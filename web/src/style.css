@@ -1,0 +1,636 @@
+/* PilotStd — Design System (亮色主题默认) */
+
+/* ═══════════════════════════════════════════
+   设计令牌 — 亮色主题 (默认)
+   ═══════════════════════════════════════════ */
+:root {
+  /* 背景层级 */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-raised: #f1f5f9;
+
+  /* 边框 */
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* 文字层级 */
+  --text-dim: #94a3b8;
+  --text: #475569;
+  --text-bright: #334155;
+  --text-heading: #0f172a;
+
+  /* 品牌主色 — Indigo */
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-bg: rgba(99, 102, 241, 0.1);
+  --primary-border: rgba(99, 102, 241, 0.3);
+
+  /* 向后兼容别名 */
+  --accent: var(--primary);
+  --accent-dim: var(--primary-hover);
+  --accent-bg: var(--primary-bg);
+  --accent-border: var(--primary-border);
+
+  /* 语义色 */
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --info: #3b82f6;
+  --info-bg: rgba(59, 130, 246, 0.12);
+
+  /* 选中/聚焦 */
+  --selected: rgba(99, 102, 241, 0.08);
+  --focus-ring: 0 0 0 3px rgba(99, 102, 241, 0.25);
+
+  /* 阴影层级 — 参考 MoviePilot */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 16px -6px rgba(0, 0, 0, 0.15), 0 4px 8px -4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 16px 32px -12px rgba(0, 0, 0, 0.18);
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  /* 字体 */
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* 过渡 */
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════
+   排版
+   ═══════════════════════════════════════════ */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--sans);
+  font-weight: 600;
+  color: var(--text-heading);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  font-size: 17px;
+}
+
+h3 {
+  font-size: 15px;
+}
+
+h4 {
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════
+   PrimeVue 组件覆盖
+   ═══════════════════════════════════════════ */
+.p-component {
+  font-family: var(--sans);
+}
+
+/* Panel / Card */
+.p-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+}
+
+.p-panel .p-panel-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-heading);
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.p-panel .p-panel-content {
+  background: var(--surface);
+  color: var(--text);
+  padding: 18px;
+}
+
+/* DataTable */
+.p-datatable {
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.p-datatable .p-datatable-header {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  padding: 12px 16px;
+}
+
+.p-datatable .p-datatable-thead>tr>th {
+  background: var(--surface-raised);
+  color: var(--text-dim);
+  border-color: var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 10px 14px;
+}
+
+.p-datatable .p-datatable-tbody>tr {
+  background: var(--surface);
+  transition: background var(--transition);
+}
+
+.p-datatable .p-datatable-tbody>tr>td {
+  border-color: var(--border-light);
+  color: var(--text);
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.p-datatable .p-datatable-tbody>tr:hover {
+  background: var(--selected);
+}
+
+.p-datatable .p-datatable-tbody>tr:nth-child(even) {
+  background: var(--surface-raised);
+}
+
+.p-datatable .p-paginator {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  padding: 8px;
+}
+
+.p-datatable .p-paginator .p-paginator-page {
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  min-width: 32px;
+  height: 32px;
+}
+
+.p-datatable .p-paginator .p-paginator-page.p-highlight {
+  background: var(--primary);
+  color: #fff;
+}
+
+.p-datatable .p-datatable-emptymessage td {
+  color: var(--text-dim);
+  padding: 32px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Button */
+.p-button {
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 18px;
+  transition: all var(--transition);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.p-button:hover {
+  background: var(--selected);
+  border-color: var(--primary-border);
+  color: var(--text-bright);
+}
+
+.p-button:active {
+  transform: translateY(1px);
+}
+
+.p-button.p-button-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.p-button.p-button-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.p-button.p-button-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.25);
+}
+
+.p-button.p-button-success {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.p-button.p-button-success:hover {
+  filter: brightness(1.1);
+}
+
+.p-button.p-button-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.p-button.p-button-danger:hover {
+  filter: brightness(1.1);
+}
+
+.p-button.p-button-warning {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #fff;
+}
+
+.p-button.p-button-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.p-button.p-button-secondary:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.p-button.p-button-text {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-dim);
+}
+
+.p-button.p-button-text:hover {
+  background: var(--selected);
+  color: var(--text);
+}
+
+.p-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.p-button .p-button-icon {
+  font-size: 14px;
+}
+
+.p-button .p-button-label {
+  font-weight: 500;
+}
+
+/* Input / Textarea */
+.p-inputtext,
+.p-textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  font-size: 13px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.p-inputtext:focus,
+.p-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+
+.p-inputtext::placeholder {
+  color: var(--text-dim);
+}
+
+/* Tag */
+.p-tag {
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+}
+
+.p-tag.p-tag-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.p-tag.p-tag-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.p-tag.p-tag-warning,
+.p-tag.p-tag-warn {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.p-tag.p-tag-info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.p-tag.p-tag-secondary {
+  background: var(--border);
+  color: var(--text-dim);
+}
+
+/* Dialog */
+.p-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.p-dialog .p-dialog-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+.p-dialog .p-dialog-content {
+  padding: 18px 22px;
+}
+
+/* Message */
+.p-message {
+  border-radius: var(--radius);
+}
+
+/* Toolbar */
+.p-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+/* SelectButton */
+.p-selectbutton .p-button {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.p-selectbutton .p-button.p-highlight {
+  background: var(--primary-bg);
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+
+/* TabView */
+.p-tabview .p-tabview-nav {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-dim);
+  padding: 10px 16px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ProgressBar */
+.p-progressbar {
+  background: var(--border);
+  border-radius: var(--radius-sm);
+  height: 6px;
+}
+
+.p-progressbar .p-progressbar-value {
+  background: var(--primary);
+  border-radius: var(--radius-sm);
+}
+
+/* Select */
+.p-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.p-select .p-select-label {
+  color: var(--text);
+}
+
+/* Toast */
+.p-toast {
+  z-index: 1100;
+}
+
+.p-toast .p-toast-message {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+/* ═══════════════════════════════════════════
+   通用卡片样式
+   ═══════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  font-weight: 600;
+  color: var(--text-heading);
+  font-size: 14px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ═══════════════════════════════════════════
+   工具类
+   ═══════════════════════════════════════════ */
+.mt-1 {
+  margin-top: 8px;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mt-3 {
+  margin-top: 24px;
+}
+
+.mb-1 {
+  margin-bottom: 8px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
+
+.ml-2 {
+  margin-left: 16px;
+}
+
+.text-dim {
+  color: var(--text-dim);
+}
+
+.text-accent {
+  color: var(--primary);
+}
+
+.text-mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+/* link-style button */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 8px;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.btn-link:hover {
+  background: var(--primary-bg);
+}
+
+/* ═══════════════════════════════════════════
+   顶部加载条 (NProgress 风格)
+   ═══════════════════════════════════════════ */
+.nprogress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), #a78bfa);
+  z-index: 1200;
+  transition: width 0.3s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ═══════════════════════════════════════════
+   响应式
+   ═══════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .home-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-grid label {
+    margin-top: 8px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   自定义滚动条
+   ═══════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}

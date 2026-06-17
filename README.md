@@ -1,0 +1,86 @@
+# PilotStd — 标准文件管理工具
+
+自动识别标准号 · 多站点有效性查询 · 批量下载 · 分类归档
+
+[![Docker CI](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml/badge.svg)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/leanmore/pilotstd?include_prereleases)](https://github.com/leanmore/pilotstd/releases)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+## 功能特性
+
+- **标准号解析** — 支持 GB/JB/HG/SH/ISO/ASME/BS/DIN/JIS 等 94 类标准代号，自动识别年份、部分号、语种
+- **多站点查询** — 6 个适配器覆盖国家标准、行业标准、国际标准，含缓存和冷却机制
+- **批量下载** — 采标自动检测跳过，验证码自动识别（ddddocr），去重避免重复下载
+- **智能归档** — 按行业自动分目录，Word 源目录镜像，废止文件移入过期作废目录
+- **公告监控** — 定期拉取国家标准公告，交叉比对本地标准库，发现更新自动提醒
+- **双端可用** — PyQt6 桌面端 + Docker Web 端，共享同一引擎
+
+## 快速开始
+
+```bash
+# 克隆仓库
+git clone https://github.com/leanmore/pilotstd.git
+cd pilotstd
+
+# 桌面端
+pip install -r requirements.txt
+python main.py
+
+# Docker Web 端
+docker compose up -d
+# 访问 http://localhost:9028，首次启动日志中查看自动生成的凭证
+```
+
+## 部署方式
+
+| 方式 | 说明 |
+|---|---|
+| **PyInstaller exe** | Windows 单文件，无需 Python，[Release 页下载](https://github.com/leanmore/pilotstd/releases) |
+| **Docker 镜像** | `docker compose up -d`，镜像自动推送 `ghcr.io/leanmore/pilotstd:latest` |
+| **源码运行** | `pip install -r requirements.txt && python main.py` |
+
+## 依赖文件
+
+| 文件 | 环境 |
+|------|------|
+| `requirements.txt` | Windows 桌面（PyQt6 + ddddocr） |
+| `docker/requirements-docker.txt` | Docker Web（FastAPI + JWT） |
+| `requirements-dev.txt` | 开发（pytest + ruff + PyInstaller） |
+
+## 技术栈
+
+| 层次 | 技术 |
+|---|---|
+| 桌面 GUI | PyQt6 + Qt 多语言（简中/繁中/English） |
+| Web 前端 | Vue3 + PrimeVue + TypeScript |
+| Web 后端 | FastAPI + JWT + SQLite |
+| 构建 | PyInstaller（exe）+ Docker 多阶段构建 |
+| CI/CD | GitHub Actions（测试 + 构建 + 自动发布） |
+
+## 目录结构
+
+```
+PilotStd/
+├── main.py              # 桌面端入口
+├── pilotstd/            # 核心引擎
+│   ├── scan/            # 文件扫描 + 标准号解析
+│   ├── query/           # 查询引擎 + 6 个适配器
+│   ├── download/        # 下载引擎
+│   ├── organizer/       # 分类归档
+│   ├── announcement/    # 公告监控
+│   ├── ui/              # PyQt6 桌面界面
+│   ├── cli/             # 命令行接口
+│   ├── manager/         # 业务门面
+│   ├── pipeline/        # 分类路由
+│   └── core/            # 配置 / 数据库 / 工具
+├── web/                 # Vue3 前端
+├── docker/              # FastAPI 后端 + Docker 配置
+├── tests/               # 测试
+├── scripts/             # 辅助脚本
+└── assets/              # 图标
+```
+
+## 许可证
+
+MIT License — 详见 [LICENSE](LICENSE)。

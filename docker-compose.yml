@@ -1,0 +1,35 @@
+# PilotStd — 标准文件管理工具
+# 部署: docker compose up -d
+#
+# 安全凭证 JWT_SECRET 和 ADMIN_PASSWORD 首次启动自动生成，
+# 执行 docker logs pilotstd 查看。
+#
+# 目录说明：
+#   ./inbox → 监控目录，新文件丢这里，扫描入口
+#   ./standards → 标准库，归档后的最终存放位置
+
+services:
+  pilotstd:
+    image: ghcr.io/leanmore/pilotstd:latest
+    container_name: pilotstd
+    ports:
+      - "9028:9028"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./inbox:/inbox               # 监控目录——放待处理的文件
+      - ${STANDARD_ROOT:-./standards}:/standards  # 标准库——归档目标
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker 自更新（容器内 docker pull + restart）
+    environment:
+      - TZ=Asia/Shanghai
+      - STANDARD_ROOT=/standards
+      # Docker 自更新——如需 docker compose 方式重启，设置以下环境变量指向宿主机上的 compose 文件
+      # - COMPOSE_FILE=/path/to/docker-compose.yml
+      # - COMPOSE_PROJECT_NAME=pilotstd
+      # 安全凭证（可选）—— 留空则首次启动自动生成
+      # - ADMIN_USERNAME=admin
+      # - ADMIN_PASSWORD=你的密码
+      # 群晖 NAS 文件权限（可选）—— SSH 执行 id 查看 uid/gid
+      # - PUID=1026
+      # - PGID=100
+    restart: unless-stopped

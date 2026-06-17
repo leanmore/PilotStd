@@ -1,0 +1,16 @@
+{
+  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "nav": { "home": "首頁", "scan": "掃描", "query": "查詢", "download": "下載",
+           "normalize": "規範化", "archive": "歸檔",
+           "organize": "檔案管理", "pending": "待確認", "announce": "公告", "settings": "設定" },
+  "home": { "stats": "標準庫概覽", "current": "現行", "expired": "廢止",
+            "pending": "待確認", "upcoming": "即將實施", "scanBtn": "手動掃描",
+            "queryBtn": "手動查詢", "autoBtn": "一鍵更新" },
+  "login": { "title": "PilotStd 登入", "password": "密碼", "submit": "登入",
+             "error": "密碼錯誤" },
+  "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中" },
+  "query": { "saveResults": "儲存查詢結果", "saved": "已儲存 {n} 條查詢結果", "saveFailed": "儲存失敗" },
+  "download": { "importResult": "已匯入 {n} 條可下載標準", "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果", "importFailed": "匯入失敗，請確認已儲存查詢結果" },
+  "pending": { "importResult": "已匯入 {n} 條待確認標準", "importEmpty": "暫無待確認標準", "importFailed": "匯入失敗" },
+  "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" }
+}

@@ -1,0 +1,323 @@
+# pilotstd/core/file_index.py
+# 本地文件索引表 — ParsedStdInfo 持久化，避免每次启动重扫
+
+from __future__ import annotations
+
+import logging
+import os
+import threading
+import time
+from datetime import datetime
+from typing import Optional
+
+from .db import Database
+from .file_utils import hash_file_content
+
+FILE_INDEX_TABLE = "file_index"
+NETWORK_CACHE_TABLE = "standard_info_cache"
+ANNOUNCEMENT_CACHE_TABLE = "announcement_cache"
+
+logger = logging.getLogger(__name__)
+
+
+class FileIndexRepository:
+    """本地文件索引仓库。"""
+
+    def __init__(self, db: Database):
+        self._db = db
+        self._validation_complete = threading.Event()
+        self._start_delayed_validation()
+
+    # ---- 校验 ----
+
+    @property
+    def is_validation_complete(self) -> bool:
+        """校验是否完成。未完成前扫描器应降级，不依赖索引去重。"""
+        return self._validation_complete.is_set()
+
+    def _start_delayed_validation(self):
+        """启动后台校验所有索引路径是否存在，延迟时间根据记录数自适应（5~30s）。"""
+        def _run():
+            try:
+                row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
+                row_count = row["cnt"] if row else 0
+                delay = min(30, max(5, row_count / 500))
+            except Exception:
+                delay = 10
+            time.sleep(delay)
+            deleted = self.validate_paths()
+            logger = logging.getLogger("pilotstd.file_index")
+            logger.info("file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录", delay, deleted)
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+
+    def validate_paths(self) -> int:
+        """逐条校验索引记录的目标路径是否存在，失效则删除。返回清除数量。"""
+        try:
+            rows = self._db.fetchall(
+                f"SELECT id, file_path FROM {FILE_INDEX_TABLE}")
+        except Exception:
+            self._validation_complete.set()
+            return 0
+        deleted = 0
+        for r in rows:
+            if not os.path.exists(r["file_path"]):
+                try:
+                    self._db.execute(
+                        f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
+                    deleted += 1
+                except Exception:
+                    logger.debug("删除无效记录失败: id=%s", r["id"], exc_info=True)
+        self._validation_complete.set()
+        return deleted
+
+    # ---- 写入 ----
+
+    def upsert(self, file_path: str, logical_code: str, number: int,
+               year: int, part: Optional[int] = None, std_name: str = "",
+               file_hash: str = "", status: str = "现行") -> None:
+        if not file_hash and os.path.exists(file_path):
+            file_hash = hash_file_content(file_path)
+        now = datetime.now().isoformat()
+        part_val = part if part is not None else -1
+        existing = self._db.fetchone(
+            f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?",
+            (file_path,))
+        if existing:
+            self._db.execute(
+                f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
+                "part=?, std_name=?, file_hash=?, status=?, scanned_at=? WHERE id=?",
+                (logical_code, number, year, part_val, std_name,
+                 file_hash, status, now, existing["id"]))
+        else:
+            self._db.execute(
+                f"INSERT INTO {FILE_INDEX_TABLE} "
+                "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (file_path, logical_code, number, year, part_val,
+                 std_name, file_hash, status, now))
+
+    def remove(self, file_path: str) -> None:
+        self._db.execute(
+            f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?",
+            (file_path,))
+
+    # ---- 读取 ----
+
+    def get(self, file_path: str) -> Optional[dict]:
+        return self._db.fetchone(
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?",
+            (file_path,))
+
+    def get_all(self) -> list:
+        return self._db.fetchall(
+            f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part")
+
+    def find_by_standard(self, logical_code: str, number: int,
+                          year: int, part: Optional[int] = None) -> list:
+        """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
+        part_val = part if part is not None else -1
+        return self._db.fetchall(
+            f"SELECT * FROM {FILE_INDEX_TABLE} "
+            "WHERE logical_code=? AND number=? AND year=? AND part=?",
+            (logical_code, number, year, part_val))
+
+    def find_by_hash(self, file_hash: str) -> Optional[dict]:
+        """通过文件哈希查找（用于检测移动/重命名）。"""
+        return self._db.fetchone(
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?",
+            (file_hash,))
+
+    def get_recheck_candidates(self, limit: int = 500) -> list[dict]:
+        """返回需重新查询的标准（7天未检查的现行标准）。"""
+        return self._db.fetchall(
+            "SELECT * FROM file_index WHERE status='现行' AND "
+            "(last_checked IS NULL OR last_checked < date('now', '-7 days')) "
+            "ORDER BY last_checked ASC LIMIT ?", (limit,))
+
+    def clear_stale(self) -> int:
+        """清除文件已不存在的索引记录（增量：仅检查超过 7 天未验证或从未验证的记录），返回清除数量。"""
+        rows = self._db.fetchall(
+            f"SELECT id, file_path FROM {FILE_INDEX_TABLE} "
+            "WHERE last_checked IS NULL OR last_checked < date('now', '-7 days')"
+        )
+        deleted = 0
+        for r in rows:
+            if os.path.exists(r["file_path"]):
+                self._db.execute(
+                    f"UPDATE {FILE_INDEX_TABLE} SET last_checked = date('now') WHERE id = ?",
+                    (r["id"],))
+            else:
+                self._db.execute(
+                    f"DELETE FROM {FILE_INDEX_TABLE} WHERE id = ?",
+                    (r["id"],))
+                deleted += 1
+        return deleted
+
+    def count(self) -> int:
+        row = self._db.fetchone(
+            f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
+        return row["cnt"] if row else 0
+
+    def get_status_stats(self) -> dict:
+        """返回按状态分组的统计：现行/废止/待确认/即将实施数量。"""
+        try:
+            rows = self._db.fetchall(
+                f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} "
+                "WHERE status IS NOT NULL GROUP BY status")
+            s = {r["status"]: r["cnt"] for r in rows}
+        except Exception:
+            return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
+        return {
+            "current": s.get("现行", 0),
+            "expired": s.get("废止", 0) + s.get("被代替", 0),
+            "pending": s.get("待确认", 0),
+            "upcoming": s.get("即将实施", 0),
+        }
+
+    def clear_all(self) -> None:
+        self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE}")
+
+    # ---- 内部 ----
+
+    def restore_parsed(self, file_path: str) -> Optional["ParsedStdInfo"]:
+        """从索引恢复 ParsedStdInfo，同时查缓存填充查询结果字段。"""
+        row = self.get(file_path)
+        if not row:
+            return None
+        from ..models import ParsedStdInfo  # 延迟导入，避免循环引用
+        info = ParsedStdInfo(
+            raw_filename=os.path.basename(file_path),
+            logical_code=row["logical_code"],
+            number=row["number"],
+            year=row["year"],
+            part=row["part"] if row["part"] != -1 else None,
+            std_name=row["std_name"],
+            source_path=file_path,
+        )
+        # 查缓存恢复查询结果（仅置信度 100 的 exact 数据）
+        self._restore_cache_fields(info)
+        return info
+
+    def _restore_cache_fields(self, info: "ParsedStdInfo") -> None:
+        """从缓存表恢复查询结果字段。
+
+        优先级：网络缓存（主数据源）> 公告缓存（补充）。
+        网络缓存须检查过期时间，公告缓存永久有效。
+        """
+        from datetime import datetime
+        std_num = info.get_full_number()
+        now = datetime.now().isoformat()
+
+        # 先查网络缓存（主数据源，事件驱动失效）
+        row = self._db.fetchone(
+            f"SELECT result_json FROM {NETWORK_CACHE_TABLE} "
+            "WHERE standard_number = ? LIMIT 1",
+            (std_num,))
+
+        if row and row["result_json"]:
+            self._apply_cache_result(row["result_json"], info)
+            return
+
+        # 网络缓存未命中，查公告缓存
+        ann_row = self._db.fetchone(
+            f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} "
+            "WHERE standard_number = ? LIMIT 1",
+            (std_num,))
+        if ann_row and ann_row["result_json"]:
+            self._apply_cache_result(ann_row["result_json"], info)
+
+    @staticmethod
+    def _apply_cache_result(result_json: str, info: "ParsedStdInfo") -> None:
+        """将缓存的 JSON 结果应用到 ParsedStdInfo 对象。"""
+        import json
+        try:
+            cached = json.loads(result_json)
+            if cached.get("match_status") == "exact":
+                info.effect_status = cached.get("status", "")
+                info.found_name = cached.get("standard_name", "")
+                info.is_adopted = cached.get("is_adopted", False)
+                info.match_status = "exact"
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict]:
+        """检测文件移动/重命名：哈希命中但路径不同的返回原索引记录。
+
+        Args:
+            candidates: [(file_path, file_hash), ...] 未被路径匹配到的文件列表
+        Returns:
+            [{"old_path": ..., "new_path": ..., "logical_code": ..., ...}, ...]
+        """
+        result = []
+        for new_path, file_hash in candidates:
+            if not file_hash:
+                continue
+            row = self.find_by_hash(file_hash)
+            if row and row["file_path"] != new_path:
+                result.append({
+                    "old_path": row["file_path"],
+                    "new_path": new_path,
+                    "logical_code": row["logical_code"],
+                    "number": row["number"],
+                    "year": row["year"],
+                    "part": row["part"],
+                    "std_name": row["std_name"],
+                })
+        return result
+
+    def get_full_info(self, logical_code: str, number: int) -> list[dict]:
+        """联合本地文件索引与两个缓存表，返回离线完整信息。
+
+        JOIN 使用 LIKE 前缀匹配，兼容新旧两种连接号格式。
+        网络缓存优先，过期后回退到公告缓存。
+        """
+        rows = self._db.fetchall(
+            f"SELECT fi.*, "
+            f"nc.result_json AS nc_result_json, "
+            f"nc.cached_at AS nc_cached_at, "
+            f"ac.result_json AS ac_result_json, "
+            f"ac.cached_at AS ac_cached_at "
+            f"FROM {FILE_INDEX_TABLE} fi "
+            f"LEFT JOIN {NETWORK_CACHE_TABLE} nc "
+            f"ON nc.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
+            f"LEFT JOIN {ANNOUNCEMENT_CACHE_TABLE} ac "
+            f"ON ac.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
+            f"WHERE fi.logical_code = ? AND fi.number = ?",
+            (logical_code, number))
+
+        import json
+        result = []
+        for row in rows:
+            info = {
+                "file_path": row["file_path"],
+                "logical_code": row["logical_code"],
+                "number": row["number"],
+                "year": row["year"],
+                "part": row["part"] if row["part"] != -1 else None,
+                "std_name": row["std_name"],
+                "effect_status": "",
+                "found_name": "",
+                "is_adopted": False,
+                "match_status": "",
+                "cached_at": "",
+            }
+            # 优先网络缓存（事件驱动失效，不再按时间过期），回退到公告缓存
+            cache_json = None
+            if row["nc_result_json"]:
+                cache_json = row["nc_result_json"]
+                info["cached_at"] = row["nc_cached_at"] or ""
+            if cache_json is None and row["ac_result_json"]:
+                cache_json = row["ac_result_json"]
+                info["cached_at"] = row["ac_cached_at"] or ""
+            if cache_json:
+                try:
+                    cached = json.loads(cache_json)
+                    info["effect_status"] = cached.get("status", "")
+                    info["found_name"] = cached.get("standard_name", "")
+                    info["is_adopted"] = cached.get("is_adopted", False)
+                    info["match_status"] = cached.get("match_status", "")
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            result.append(info)
+        return result

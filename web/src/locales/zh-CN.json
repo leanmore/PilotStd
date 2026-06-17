@@ -1,0 +1,17 @@
+{
+  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "nav": { "home": "首页", "task": "任务", "organize": "文件管理",
+           "pending": "待确认", "announce": "公告", "settings": "设置" },
+  "home": { "stats": "标准库概览", "current": "现行", "expired": "废止",
+            "pending": "待确认", "upcoming": "即将实施", "tasks": "定时任务",
+            "recent": "最近更新", "scanBtn": "扫描文件", "queryBtn": "查询标准",
+            "downloadBtn": "下载标准", "organizeBtn": "文件管理",
+            "autoBtn": "一键更新" },
+  "login": { "title": "PilotStd 登录", "password": "密码", "submit": "登录",
+             "error": "密码错误" },
+  "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中" },
+  "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
+  "download": { "importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果" },
+  "pending": { "importResult": "已导入 {n} 条待确认标准", "importEmpty": "暂无待确认标准", "importFailed": "导入失败" },
+  "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" }
+}

@@ -1,0 +1,31 @@
+# ==================================
+# PilotStd Windows 桌面环境依赖
+# 安装：pip install -r requirements.txt
+# 包含：PyQt6 GUI + CLI + 核心管线（扫描/查询/下载/归档/公告）
+# ==================================
+
+# --- 敏感数据加密 ---
+cryptography==48.0.0
+
+# --- 核心网络请求与网页解析 ---
+requests==2.34.0
+httpx==0.28.0
+beautifulsoup4==4.14.0
+lxml==6.1.0
+
+# --- 数据处理与 Excel 导出 ---
+pandas==3.0.0
+openpyxl==3.1.0
+
+# --- 桌面图形界面 ---
+PyQt6==6.11.0
+
+# --- 验证码识别与图像处理 ---
+ddddocr==1.6.1
+pillow==12.2.0
+watchdog==6.0.0
+
+# --- 文档解析（公告附件 PDF/DOCX） ---
+PyPDF2==3.0.1
+python-docx==1.1.2
+

@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# venv
+pilotstd_env/
+
+# IDE
+.idea/
+
+# Node
+node_modules/
+
+# 运行时产物
+data/
+logs/
+app.log
+
+# 文档（仅本地保留）
+docs/
+
+# 测试缓存
+.pytest_cache/
+tests/standards/
+tests/gui/fixtures/
+
+# 临时文件
+scripts/temp/
+tests/fixtures/
+tests/gui_test_files/
+tests/verify_downloads/
+temp_*.py
+*.patch
+
+# 个人笔记
+*进度*.md
+*审核*.md
+*日志*.md
+
+# IDE 个人配置
+.vscode/
+
+# AI 助手
+CLAUDE.md
+memory/
+
+# 外部工具
+.claude/
+.superpowers/
+.qwen/
+
+# Vue 脚手架模板文件
+web/README.md
+web/src/components/HelloWorld.vue
+web/src/assets/vite.svg
+web/src/assets/vue.svg
+capture_*.bmp
+web/dist/

@@ -1,0 +1,312 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
+import Button from 'primevue/button'
+import Tag from 'primevue/tag'
+import ProgressBar from 'primevue/progressbar'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import LogBar from '@/components/LogBar.vue'
+
+const paths = ref<string[]>(['/inbox', '/standards'])
+const selectedPath = ref('/inbox')
+const running = ref(false)
+const currentStep = ref(-1)
+
+interface StepState { label: string; icon: string; status: 'wait'|'running'|'done'|'fail'; summary: string }
+const steps = ref<StepState[]>([
+  { label: '扫描', icon: 'pi pi-search', status: 'wait', summary: '' },
+  { label: '查询', icon: 'pi pi-globe', status: 'wait', summary: '' },
+  { label: '下载', icon: 'pi pi-download', status: 'wait', summary: '' },
+  { label: '规范化', icon: 'pi pi-pencil', status: 'wait', summary: '' },
+  { label: '归档', icon: 'pi pi-folder-open', status: 'wait', summary: '' },
+])
+
+const scanResult = ref<any>(null)
+const queryResult = ref<any>(null)
+const downloadResult = ref<any>(null)
+const normalizeResult = ref<any>(null)
+const archiveResult = ref<any>(null)
+const error = ref('')
+const progress = ref(0)
+
+// 任务历史 —— localStorage 持久化
+interface TaskRecord {
+  id: string; time: string; path: string
+  scanCount: number; queryFound: number; dlSuccess: number; normCount: number
+  status: 'success' | 'partial' | 'fail'
+  steps: StepState[]
+}
+const history = ref<TaskRecord[]>([])
+const selectedRecord = ref<TaskRecord | null>(null)
+
+onMounted(() => {
+  try {
+    history.value = JSON.parse(localStorage.getItem('pilotstd_tasks') || '[]')
+  } catch { history.value = [] }
+  loadPaths()
+})
+
+function saveHistory(status: 'success'|'partial'|'fail') {
+  const record: TaskRecord = {
+    id: Date.now().toString(36),
+    time: new Date().toLocaleString('zh-CN'),
+    path: selectedPath.value,
+    scanCount: scanResult.value?.total || 0,
+    queryFound: queryResult.value?.stats?.found || 0,
+    dlSuccess: downloadResult.value?.stats?.success || 0,
+    normCount: normalizeResult.value?.results?.length || 0,
+    status,
+    steps: JSON.parse(JSON.stringify(steps.value)),
+  }
+  history.value.unshift(record)
+  if (history.value.length > 50) history.value = history.value.slice(0, 50)
+  localStorage.setItem('pilotstd_tasks', JSON.stringify(history.value))
+}
+
+function viewRecord(r: TaskRecord) { selectedRecord.value = r }
+function rerun(r: TaskRecord) { selectedPath.value = r.path; selectedRecord.value = null; runPipeline() }
+
+async function loadPaths() {
+  try { const r = await getSettings(); paths.value = r.storage?.scan_paths || paths.value } catch {}
+}
+
+function setStep(i: number, status: 'wait'|'running'|'done'|'fail', summary = '') {
+  steps.value[i].status = status
+  steps.value[i].summary = summary
+  progress.value = status === 'done' ? ((i + 1) / 5 * 100) : progress.value
+}
+
+async function runPipeline() {
+  running.value = true; error.value = ''
+  scanResult.value = queryResult.value = downloadResult.value = normalizeResult.value = archiveResult.value = null
+  steps.value.forEach(s => { s.status = 'wait'; s.summary = '' })
+  progress.value = 0
+  let finalStatus: 'success'|'partial'|'fail' = 'success'
+
+  try {
+    currentStep.value = 0; setStep(0, 'running')
+    const scan = await postScan(selectedPath.value)
+    scanResult.value = scan
+    setStep(0, 'done', `${scan.total || 0} 个文件 (PDF ${scan.pdf_count || 0} / Word ${scan.word_count || 0})`)
+    if (!scan.files?.length) { error.value = '未扫描到标准文件'; finalStatus = 'fail'; return }
+
+    currentStep.value = 1; setStep(1, 'running')
+    const numbers = (scan.files || []).map((f: any) => f.standard_number).filter(Boolean)
+    if (numbers.length === 0) {
+      setStep(1, 'done', '扫描结果中无标准号'); error.value = '未能从文件名中解析出标准号'; finalStatus = 'partial'; return
+    }
+    const query = await postQuery(numbers)
+    queryResult.value = query
+    setStep(1, 'done', `查得 ${query.stats?.found || 0} 条 (可下载 ${query.stats?.downloadable || 0})`)
+
+    currentStep.value = 2; setStep(2, 'running')
+    const dlNums = (query.results || []).filter((r: any) => !r.is_adopted && r.match_status === 'exact').map((r: any) => r.standard_number).slice(0, 10)
+    if (dlNums.length > 0) {
+      const dl = await postDownload(dlNums)
+      downloadResult.value = dl
+      setStep(2, 'done', `成功 ${dl.stats?.success || 0} / 跳过 ${dl.stats?.skipped || 0}`)
+    } else { setStep(2, 'done', '无可下载项') }
+
+    currentStep.value = 3; setStep(3, 'running')
+    const normItems = (scan.files || []).filter((f: any) => f.standard_number).map((f: any) => ({ source_path: f.full_path, logical_code: f.standard_number }))
+    const norm = await postNormalize(normItems)
+    normalizeResult.value = norm
+    setStep(3, 'done', `${norm.results?.length || 0} 个文件`)
+
+    currentStep.value = 4; setStep(4, 'running')
+    const archiveMap = new Map((norm.results || []).map((r: any) => [r.source_path, r.new_filename]))
+    const archiveItems = (scan.files || []).filter((f: any) => archiveMap.has(f.full_path)).map((f: any) => ({
+      source_path: f.full_path, logical_code: f.logical_code || f.standard_number || '',
+      number: f.number || 0, year: f.year || 0, std_name: f.name || '',
+      num_prefix: f.logical_code || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
+    }))
+    if (archiveItems.length > 0) {
+      await postArchive(archiveItems)
+      setStep(4, 'done', '已处理')
+    } else { setStep(4, 'done', '无文件待归档') }
+
+    progress.value = 100
+  } catch (e: any) {
+    setStep(currentStep.value, 'fail', e.response?.data?.error || e.message || '未知错误')
+    error.value = e.response?.data?.error || e.message || '未知错误'
+    finalStatus = 'fail'
+  } finally {
+    running.value = false
+    saveHistory(finalStatus)
+  }
+}
+
+function stepSeverity(s: string) {
+  if (s === 'done') return 'success'; if (s === 'running') return 'info'
+  if (s === 'fail') return 'danger'; return 'secondary'
+}
+function statusSeverity(s: string) {
+  if (s === 'success') return 'success'; if (s === 'partial') return 'warn'; return 'danger'
+}
+function statusLabel(s: string) {
+  if (s === 'success') return '完成'; if (s === 'partial') return '部分完成'; return '失败'
+}
+</script>
+
+<template>
+  <div class="page-header">
+    <div>
+      <h1>任务</h1>
+      <p class="hint">标准处理流水线：扫描 → 查询 → 下载 → 规范化 → 归档</p>
+    </div>
+  </div>
+
+  <!-- 路径选择 + 启动 -->
+  <div class="card mb-3">
+    <div class="controls">
+      <select v-model="selectedPath" class="fi">
+        <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
+      </select>
+      <Button label="开始任务" icon="pi pi-play" :loading="running" @click="runPipeline" />
+    </div>
+  </div>
+
+  <!-- 进度条 -->
+  <ProgressBar v-if="running || progress > 0" :value="progress" class="mb-3" />
+
+  <p v-if="error" class="err-msg mb-2">{{ error }}</p>
+
+  <!-- 流水线步骤 -->
+  <div class="pipeline">
+    <div v-for="(step, i) in steps" :key="i" class="step" :class="step.status">
+      <div class="step-indicator">
+        <i v-if="step.status === 'done'" class="pi pi-check" />
+        <i v-else-if="step.status === 'running'" class="pi pi-spin pi-spinner" />
+        <i v-else-if="step.status === 'fail'" class="pi pi-times" />
+        <span v-else class="step-num">{{ i + 1 }}</span>
+      </div>
+      <div class="step-info">
+        <div class="step-label">{{ step.label }}</div>
+        <div v-if="step.summary" class="step-summary">{{ step.summary }}</div>
+      </div>
+      <Tag :value="step.status === 'done' ? '完成' : step.status === 'running' ? '进行中' : step.status === 'fail' ? '失败' : '待定'" :severity="stepSeverity(step.status)" />
+    </div>
+  </div>
+
+  <!-- 扫描结果 -->
+  <div v-if="scanResult" class="card mt-3">
+    <div class="card-header">扫描结果</div>
+    <div class="stats-row">
+      <Tag severity="success" :value="'PDF: ' + (scanResult.pdf_count || 0)" />
+      <Tag severity="info" :value="'Word: ' + (scanResult.word_count || 0)" />
+      <Tag severity="warn" :value="'去重: ' + (scanResult.dup_skipped || 0)" />
+      <Tag :value="'共 ' + (scanResult.total || 0) + ' 个文件'" />
+    </div>
+  </div>
+
+  <!-- 查询/下载/归档汇总 -->
+  <div v-if="queryResult" class="card mt-3">
+    <div class="card-header">查询·下载·归档汇总</div>
+    <div class="summary-grid">
+      <div class="sum-item"><span class="sum-label">查询</span><span class="sum-val">{{ queryResult.stats?.found || 0 }} 条</span></div>
+      <div class="sum-item"><span class="sum-label">可下载</span><span class="sum-val">{{ queryResult.stats?.downloadable || 0 }} 条</span></div>
+      <div class="sum-item"><span class="sum-label">下载成功</span><span class="sum-val">{{ downloadResult?.stats?.success || 0 }} 条</span></div>
+      <div class="sum-item"><span class="sum-label">规范化</span><span class="sum-val">{{ normalizeResult?.results?.length || 0 }} 个</span></div>
+    </div>
+  </div>
+
+  <!-- 任务历史 -->
+  <div v-if="history.length" class="card mt-3">
+    <div class="card-header">运行记录</div>
+    <DataTable :value="history" paginator :rows="10" stripedRows size="small">
+      <Column field="time" header="时间" style="min-width:140px" />
+      <Column field="path" header="目录" style="max-width:160px"><template #body="{data}"><span class="text-mono text-dim">{{ data.path }}</span></template></Column>
+      <Column field="scanCount" header="扫描" style="width:60px" />
+      <Column field="queryFound" header="查询" style="width:60px" />
+      <Column field="dlSuccess" header="下载" style="width:60px" />
+      <Column header="状态" style="width:90px">
+        <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" /></template>
+      </Column>
+      <Column header="操作" style="width:120px">
+        <template #body="{data}">
+          <Button label="详情" size="small" text @click="viewRecord(data)" />
+          <Button label="重跑" size="small" text severity="info" @click="rerun(data)" />
+        </template>
+      </Column>
+    </DataTable>
+  </div>
+
+  <!-- 历史详情弹窗 -->
+  <div v-if="selectedRecord" class="card mt-3">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+      <span>任务详情 — {{ selectedRecord.time }}</span>
+      <Button icon="pi pi-times" size="small" text @click="selectedRecord = null" />
+    </div>
+    <div class="pipeline">
+      <div v-for="(step, i) in selectedRecord.steps" :key="i" class="step" :class="step.status">
+        <div class="step-indicator">
+          <i v-if="step.status === 'done'" class="pi pi-check" />
+          <i v-else-if="step.status === 'fail'" class="pi pi-times" />
+          <span v-else class="step-num">{{ i + 1 }}</span>
+        </div>
+        <div class="step-info">
+          <div class="step-label">{{ step.label }}</div>
+          <div v-if="step.summary" class="step-summary">{{ step.summary }}</div>
+        </div>
+        <Tag :value="step.status === 'done' ? '完成' : step.status === 'fail' ? '失败' : '待定'" :severity="stepSeverity(step.status)" />
+      </div>
+    </div>
+  </div>
+
+  <LogBar />
+</template>
+
+<style scoped>
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.controls { display: flex; gap: 12px; align-items: center; }
+.fi { padding: 9px 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-sm); font-size: 13px; min-width: 220px; outline: none; }
+.fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+.err-msg { color: var(--danger); font-size: 12px; }
+.mb-2 { margin-bottom: 12px; }
+.mb-3 { margin-bottom: 16px; }
+.mt-3 { margin-top: 16px; }
+
+/* 流水线步骤 */
+.pipeline {
+  display: flex; flex-direction: column; gap: 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+.step {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.15s ease;
+}
+.step:last-child { border-bottom: none; }
+.step.running { background: var(--primary-bg); }
+.step.fail { background: rgba(239,68,68,0.06); }
+
+.step-indicator {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--border);
+  color: var(--text-dim);
+  font-size: 13px; font-weight: 600;
+  flex-shrink: 0;
+}
+.step.done .step-indicator { background: var(--success, #10b981); color: #fff; }
+.step.running .step-indicator { background: var(--primary); color: #fff; }
+.step.fail .step-indicator { background: var(--danger, #ef4444); color: #fff; }
+
+.step-info { flex: 1; min-width: 0; }
+.step-label { font-size: 14px; font-weight: 500; color: var(--text-heading); }
+.step-summary { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+.stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.sum-item { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--bg); border-radius: var(--radius-sm); }
+.sum-label { font-size: 12px; color: var(--text-dim); }
+.sum-val { font-size: 18px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); }
+</style>

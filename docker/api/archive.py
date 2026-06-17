@@ -1,0 +1,35 @@
+# docker/api/archive.py — 文件归档 API（移动到标准库目录结构）
+from fastapi import Depends
+from fastapi.routing import APIRouter
+from fastapi import Request as FastAPIRequest
+from ..manager import get_manager_dep
+from pilotstd.models import ParsedStdInfo
+
+router = APIRouter(tags=["archive"])
+
+
+@router.post("/api/archive")
+async def archive_files(request: FastAPIRequest, mgr=Depends(get_manager_dep)):
+    """将已处理的文件移动到分类目录。"""
+    body = await request.json()
+    items = body.get("items", [])
+    word_source_root = body.get("word_source_root", "")
+    parsed_list = []
+    for item in items:
+        parsed = ParsedStdInfo(
+            raw_filename=item.get("source_path", "").split("/")[-1].split("\\")[-1],
+            source_path=item.get("source_path", ""),
+            logical_code=item.get("logical_code", ""),
+            number=item.get("number", 0),
+            year=item.get("year", 0),
+            part=item.get("part"),
+            std_name=item.get("std_name", ""),
+            num_prefix=item.get("num_prefix", ""),
+            num_suffix=item.get("num_suffix", ""),
+            language=item.get("language", ""),
+            ext=item.get("ext", "pdf"),
+        )
+        parsed_list.append(parsed)
+
+    result = mgr.organize(parsed_list, word_source_root=word_source_root)
+    return result

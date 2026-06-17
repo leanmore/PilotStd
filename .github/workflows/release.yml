@@ -1,0 +1,182 @@
+# PilotStd Release — PyInstaller 编译 + GitHub Release
+name: Release
+run-name: PyInstaller | ${{ github.event.head_commit.message }}
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:  # 仅以下变更触发打包
+      - 'pilotstd/**'
+      - 'main.py'
+      - 'PilotStd.spec'
+      - 'requirements.txt'
+      - 'assets/**'
+      - 'icon.ico'
+      - 'pilotstd/i18n/**'
+      - '.github/scripts/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      description:
+        description: '运行描述（显示在 Actions 列表中）'
+        required: false
+        default: '手动触发'
+
+env:
+  PYTHON_VERSION: '3.12'
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  release:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      # ── 0. 检出 ──
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 1. 版本号（从 commit message 前缀自动判断升 Minor/Patch）──
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # 标签推送：直接使用标签名，无需 bump
+            VERSION="${{ github.ref_name }}"
+            PRERELEASE="false"
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          else
+            # main 分支推送：从 commit message 自动判断版本号
+            COMMIT_MSG="${{ github.event.head_commit.message }}"
+            BUMP_OUTPUT=$(python scripts/bump_version.py --github --update "$COMMIT_MSG") || exit 1
+            eval "$BUMP_OUTPUT"
+            VERSION="$version"
+            PRERELEASE="false"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+          echo "new_version=${new_version:-}" >> $GITHUB_OUTPUT
+          echo "bumped=${bumped:-false}" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION  prerelease=$PRERELEASE  bumped=${bumped:-false}"
+
+      # ── 2. Python 环境 ──
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          $ErrorActionPreference = "Stop"
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # ── 3. 编译 ──
+      - name: Build with PyInstaller
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          Write-Host "Python: $(python --version)"
+          Write-Host "PyInstaller: $(pyinstaller --version)"
+
+          # 确保 data/ 存在（spec 会打包此目录，exe 首次运行自动生成 config.json）
+          if (-not (Test-Path data)) { New-Item -ItemType Directory data | Out-Null }
+
+          $free = (Get-PSDrive -Name (Get-Location).Drive.Name).Free
+          $free_gb = "{0:N1} GB" -f ($free / 1GB)
+          Write-Host "可用磁盘空间: $free_gb"
+          if ($free -lt 3GB) {
+            Write-Error "磁盘空间不足 (需要 ≥3GB，实际 $free_gb)"
+            exit 1
+          }
+
+          # spec 文件已包含所有配置（Qt翻译/i18n/ddddocr/mock排除）
+          pyinstaller PilotStd.spec --noconfirm
+
+          $exe_path = "dist/PilotStd.exe"
+          if (-not (Test-Path $exe_path)) {
+            Write-Error "PyInstaller 产物缺失: $exe_path"
+            exit 1
+          }
+          $exe_size_mb = "{0:N1} MB" -f ((Get-Item $exe_path).Length / 1MB)
+          if ((Get-Item $exe_path).Length -lt 10MB) {
+            Write-Error "PyInstaller 产物异常(过小): $exe_path ($exe_size_mb)"
+            exit 1
+          }
+          Write-Host "产物: $exe_path ($exe_size_mb)"
+
+      # ── 4. 打包 ──
+      - name: Package to zip
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = "${{ steps.version.outputs.version }}"
+          $zip_name = "PilotStd-$version.zip"
+          Compress-Archive -Path "dist/PilotStd.exe" -DestinationPath $zip_name
+          if (-not (Test-Path $zip_name)) {
+            Write-Error "打包失败: $zip_name"
+            exit 1
+          }
+          $zip_size = "{0:N0} MB" -f ((Get-Item $zip_name).Length / 1MB)
+          Write-Host "打包完成: $zip_name ($zip_size)"
+
+      # ── 5. 上传 artifact ──
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PilotStd-${{ steps.version.outputs.version }}
+          path: PilotStd-${{ steps.version.outputs.version }}.zip
+          retention-days: 7
+
+      # ── 6. GitHub Release ──
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: PilotStd ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          make_latest: ${{ steps.version.outputs.prerelease == 'false' }}
+          body: |
+            ## PilotStd ${{ steps.version.outputs.version }}
+
+            > 提交: ${{ github.sha }}
+
+            PyInstaller 编译的 Windows 单文件版本。下载 `PilotStd-${{ steps.version.outputs.version }}.zip` 解压后运行 `PilotStd.exe`。
+
+            ### 系统要求
+            - Windows 10/11 64-bit
+            - 无需安装 Python
+
+            ### 部署方式
+            1. 下载 `PilotStd-${{ steps.version.outputs.version }}.zip` 并解压
+            2. 双击 `PilotStd.exe` 启动
+            3. 首次运行会自动创建 `data/` 和 `logs/` 目录
+
+            ### 版本策略
+            - 正式版（`v0.4.0`）：标签推送，稳定 Release
+            - 开发版（`v0.4.0-dev.XXXXXXX`）：每次推送 main 自动构建
+          files: PilotStd-${{ steps.version.outputs.version }}.zip
+
+      # ── 7. 版本号回写 ──
+      - name: Commit version bump
+        if: steps.version.outputs.bumped == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pilotstd/__init__.py
+          git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }} [skip ci]"
+          # 先拉取远程最新再推送，防止并发 workflow 导致 push rejected
+          git pull --rebase origin main
+          git push

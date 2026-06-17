@@ -1,0 +1,16 @@
+{
+  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "nav": { "home": "Home", "scan": "Scan", "query": "Query", "download": "Download",
+           "normalize": "Normalize", "archive": "Archive",
+           "organize": "Organize", "pending": "Pending", "announce": "Announce", "settings": "Settings" },
+  "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
+            "pending": "Pending", "upcoming": "Upcoming", "scanBtn": "Manual Scan",
+            "queryBtn": "Manual Query", "autoBtn": "Auto Run" },
+  "login": { "title": "PilotStd Login", "password": "Password", "submit": "Login",
+             "error": "Wrong password" },
+  "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading" },
+  "query": { "saveResults": "Save Query Results", "saved": "Saved {n} results", "saveFailed": "Save failed" },
+  "download": { "importResult": "Imported {n} downloadable standards", "importEmpty": "No data to import. Please save query results first.", "importFailed": "Import failed. Please save query results first." },
+  "pending": { "importResult": "Imported {n} pending standards", "importEmpty": "No pending items", "importFailed": "Import failed" },
+  "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" }
+}

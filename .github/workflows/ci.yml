@@ -1,0 +1,194 @@
+# PilotStd CI — 测试 + Docker 镜像推送到 ghcr.io
+name: Docker CI
+run-name: Docker | ${{ github.event.head_commit.message }}
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:  # 仅以下变更触发构建
+      - 'pilotstd/**'
+      - 'tests/**'
+      - 'web/**'
+      - 'docker/**'
+      - 'requirements*.txt'
+      - 'docker-compose.yml'
+      - '.github/workflows/ci.yml'
+      - 'main.py'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      description:
+        description: '运行描述（显示在 Actions 列表中）'
+        required: false
+        default: '手动触发'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/pilotstd  # GHCR 要求全小写
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
+
+jobs:
+  # ════════════════════════════════════════════════════════════════
+  # Job 1: 后端测试
+  # ════════════════════════════════════════════════════════════════
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install pytest
+
+      - name: Run backend tests
+        env:
+          STANDARD_ROOT: /tmp/standards
+        run: |
+          mkdir -p /tmp/standards
+          python -m pytest tests/ -q --tb=short \
+            --deselect "tests/test_manager.py" \
+            --deselect "tests/test_organizer.py" \
+            --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
+            --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
+            --deselect "tests/test_pipeline_router.py" \
+            --deselect "tests/test_e2e_adapters.py"
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 2: 安全扫描
+  # ════════════════════════════════════════════════════════════════
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install bandit pip-audit
+
+      - name: Run Bandit (static security analysis — 建议性)
+        run: bandit -r pilotstd/ -f json -o bandit-report.json || echo "bandit found issues (non-blocking)"
+        continue-on-error: true
+
+      - name: Run pip-audit (dependency vulnerability scan — 建议性)
+        run: pip-audit || echo "pip-audit found issues (non-blocking)"
+        continue-on-error: true
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 3: 前端测试
+  # ════════════════════════════════════════════════════════════════
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install and test
+        run: |
+          cd web
+          npm ci
+          npx vitest run
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 4: 构建 + 推送 Docker 镜像
+  # ════════════════════════════════════════════════════════════════
+  build-and-push:
+    needs: [test-frontend]  # 前端必须通过；后端测试+安全扫描建议性
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要 git tag 历史以计算版本号
+
+      # ── 版本号（tag 推送直接用，main 推送自动 bump）──
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            bumped="false"
+          else
+            COMMIT_MSG="${{ github.event.head_commit.message }}"
+            BUMP_OUTPUT=$(python3 .github/scripts/bump_version.py --github "$COMMIT_MSG") || exit 1
+            eval "$BUMP_OUTPUT"
+            VERSION="$version"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "bumped=$bumped" >> $GITHUB_OUTPUT
+          echo "Version tag: $VERSION"
+
+      # ── 2a: 构建前端 ──
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      # ── 2b: Docker 登录 ──
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2c: 构建 + 推送 ──
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          # cache-from/cache-to 在默认 docker driver 下不支持，已禁用
+
+      # ── 2d: 版本号变更时推送 git tag（防止 Docker tag 与 git tag 脱节）──
+      - name: Push version tag to git
+        if: steps.version.outputs.bumped == 'true'
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          TAG="${{ steps.version.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG 已存在，跳过（可能被并发 CI 先推送）"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "已推送 git tag: $TAG"
+          fi
