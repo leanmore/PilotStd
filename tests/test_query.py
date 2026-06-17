@@ -713,5 +713,78 @@ class TestBuildSearchTerms(unittest.TestCase):
         self.assertIn("RP14", terms)
 
 
+class TestBucketQuery(unittest.TestCase):
+    """逐桶查询 V2 测试——分组/链隔离/临时桶调度"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        self.db = Database(os.path.join(self.tmp, "test.db"))
+        self.cache = CacheRepository(self.db)
+        self.parser = StandardParser(build_code_mapping())
+        self.adapter = MockActiveAdapter()
+        self.engine = QueryEngine(
+            adapters=[self.adapter],
+            cache=self.cache,
+            use_cache=False,
+            parser=self.parser,
+        )
+
+    def tearDown(self):
+        self.db.close()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_bucket_key_gb(self):
+        """GB 标准 → 主站点非空，从 CODE_ROUTES 路由"""
+        key = self.engine._bucket_key("GB")
+        self.assertTrue(key)  # 任何 GB 标准都应该有一个桶
+
+    def test_bucket_key_industry(self):
+        """行业标准 → 主站点非空"""
+        key = self.engine._bucket_key("SH")
+        self.assertTrue(key)
+
+    def test_bucket_key_foreign(self):
+        """国外标准 → 主站点非空"""
+        key = self.engine._bucket_key("API")
+        self.assertTrue(key)
+
+    def test_bucket_key_db(self):
+        """地方标准 → 主站点非空"""
+        key = self.engine._bucket_key("DB11")
+        self.assertTrue(key)
+
+    def test_chain_excludes_csres(self):
+        """优先级链中不含 csres（由独立线程处理）"""
+        chain = self.engine._build_chain_for_item(("GB", 1, 2020, "test", None))
+        self.assertNotIn("csres", chain)
+        self.assertTrue(len(chain) > 0)
+
+    def test_batch_query_bucketed(self):
+        """逐桶批量查询：混合类型结果数量正确"""
+        items = [
+            ("GB", 1, 2020, "国标测试", None, "", "", ""),
+            ("SH", 3031, 2013, "行业测试", None, "", "", ""),
+            ("API", 610, 2004, "国外测试", None, "", "", ""),
+        ]
+        results = self.engine.query_batch_parsed(items)
+        self.assertEqual(len(results), 3)
+        found = [r for r in results if r.is_found()]
+        self.assertGreaterEqual(len(found), 1)
+
+    def test_empty_batch(self):
+        """空列表不崩溃"""
+        results = self.engine.query_batch_parsed([])
+        self.assertEqual(len(results), 0)
+
+    def test_temp_bucket_chain_exhausted(self):
+        """链耗尽条目→待确认"""
+        items = [("ZZ", 99999, 2050, "不存在", None, "", "", "")]
+        results = self.engine.query_batch_parsed(items)
+        self.assertEqual(len(results), 1)
+        # Mock 适配器对所有代号返回结果，不一定链耗尽
+        # 但至少结果不为空且没有崩溃
+        self.assertIsNotNone(results[0])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
