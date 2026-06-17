@@ -837,6 +837,8 @@ class QueryEngine:
                     # 检查冷却
                     if self._rotator and self._rotator.get_cooldown_remaining(primary_site) > 0:
                         # 主站点冷却→尝试溢出到链上下一个站点
+                        logger.info("[COOLDOWN] site=%s triggered_by=%s_bucket",
+                                   primary_site, primary_site)
                         overflow_site = chain[1] if len(chain) > 1 else None
                         if overflow_site and _try_overflow(overflow_site):
                             assigned_site = overflow_site
@@ -925,6 +927,7 @@ class QueryEngine:
                 bump()
 
         # ── 7. 临时桶：链迭代 ──
+        temp_cooldown_skips = 0
         if all_overflow:
             # 按剩余站点数升序
             all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1])))
@@ -941,6 +944,7 @@ class QueryEngine:
                     if site not in self._adapter_map:
                         continue
                     if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
+                        temp_cooldown_skips += 1
                         continue
                     adapter = self._adapter_map[site]
                     try:
@@ -1010,6 +1014,7 @@ class QueryEngine:
         # ── 配额水位 ──
         logger.info("[WATER] ahbz_overflow_remain=%d njbz365_remain=%d",
                    overflow_quota["ahbz"][0], overflow_quota["njbz365"][0])
+        logger.info("[RECOVERY] temp_cooldown_skips=%d", temp_cooldown_skips)
 
         # ── 漏斗汇总 ──
         pending_count = len(pending_reasons)
