@@ -59,7 +59,7 @@ jobs:
           else
             # main 分支推送：从 commit message 自动判断版本号
             COMMIT_MSG="${{ github.event.head_commit.message }}"
-            BUMP_OUTPUT=$(python scripts/bump_version.py --github --update "$COMMIT_MSG") || exit 1
+            BUMP_OUTPUT=$(python .github/scripts/bump_version.py --github --update "$COMMIT_MSG") || exit 1
             eval "$BUMP_OUTPUT"
             VERSION="$version"
             PRERELEASE="false"
