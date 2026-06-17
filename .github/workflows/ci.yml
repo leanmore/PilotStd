@@ -1,4 +1,5 @@
 # PilotStd CI — 测试 + Docker 镜像推送 ghcr.io
+# 用 GITHUB_TOKEN + repository_owner 登录 ghcr
 name: Docker CI
 run-name: Docker | ${{ github.event.head_commit.message }}
 
@@ -26,7 +27,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/pilotstd  # GHCR 要求全小写
+  IMAGE_NAME: ${{ github.repository_owner }}/pilotstd-app
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '20'
 
