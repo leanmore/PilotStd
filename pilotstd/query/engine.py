@@ -730,6 +730,8 @@ class QueryEngine:
                            preferred_site: str = "",
                            ) -> List[QueryResult]:
         """逐桶查询版——桶内串行+桶间并行+临时桶链迭代。"""
+        import time as _time
+        _bucket_t0 = _time.time()
         n = len(parsed_list)
         results: Dict[int, QueryResult] = {}
         counter_lock = threading.Lock()
@@ -746,6 +748,9 @@ class QueryEngine:
         for i, item in enumerate(parsed_list):
             key = self._bucket_key(item[0])
             buckets.setdefault(key, []).append((i, item))
+
+        for key, items in buckets.items():
+            logger.info("[BUCKET] %s total=%d", key, len(items))
 
         # ── 2. 全局溢出配额锁 ──
         overflow_lock = threading.Lock()
@@ -934,6 +939,14 @@ class QueryEngine:
                         source_site="",
                         match_status="chain_exhausted")
                     bump()
+
+        # ── 漏斗汇总 ──
+        pending_count = sum(1 for r in results.values()
+                          if getattr(r, 'match_status', '') == 'chain_exhausted')
+        logger.info("[FUNNEL] total=%d ok=%d overflow=%d pending=%d",
+                   n, len(results) - pending_count, len(all_overflow), pending_count)
+        logger.info("[TIMELINE] query_bucketed_done total=%d elapsed=%.1fs",
+                   n, _time.time() - _bucket_t0)
 
         # ── 8. 按原始顺序组装 ──
         return [results.get(i, QueryResult(

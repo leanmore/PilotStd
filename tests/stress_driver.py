@@ -296,24 +296,47 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
         [python, "-m", cli_module, "--storage-root", output_dir,
          "query", "--file", nums_file, "--no-cache"],
         timeout=timeout_query or 3600, step_name="query", env=env)
-    # 从 query 输出解析分类计数
+    # 从 query 输出解析分类计数 + 逐桶统计
     dl_count = ex_count = pe_count = exact_count = 0
+    bucket_stats = {}  # {key: total}
+    funnel = {}        # {total, ok, overflow, pending}
+    timeline_elapsed = 0
     if "error" not in r:
         for line in (r.get("stdout", "") + r.get("stderr", "")).splitlines():
             if "download=" in line and "expire=" in line:
                 m = re.search(r"download=(\d+).*?expire=(\d+).*?pending=(\d+)", line)
                 if m:
                     dl_count, ex_count, pe_count = int(m.group(1)), int(m.group(2)), int(m.group(3))
-            # 解析精确匹配数: "645 找到, 601 精确, 108 采标"
             m2 = re.search(r"(\d+)\s+精确", line)
             if m2:
                 exact_count = int(m2.group(1))
+            # 逐桶日志解析
+            m3 = re.match(r".*\[BUCKET\]\s+(\S+)\s+total=(\d+)", line)
+            if m3:
+                bucket_stats[m3.group(1)] = int(m3.group(2))
+            m4 = re.match(r".*\[FUNNEL\]\s+total=(\d+)\s+ok=(\d+)\s+overflow=(\d+)\s+pending=(\d+)", line)
+            if m4:
+                funnel = {"total": int(m4.group(1)), "ok": int(m4.group(2)),
+                         "overflow": int(m4.group(3)), "pending": int(m4.group(4))}
+            m5 = re.match(r".*\[TIMELINE\]\s+query_bucketed_done\s+total=(\d+)\s+elapsed=([\d.]+)", line)
+            if m5:
+                timeline_elapsed = float(m5.group(2))
         results["checkpoints"]["query"] = {
             "download": dl_count, "expire": ex_count, "pending": pe_count,
             "exact": exact_count,
             "total": dl_count + ex_count + pe_count,
             "rc": r.get("returncode", 0), "elapsed_s": round(time.time() - t0, 1)}
+        if bucket_stats:
+            results["checkpoints"]["query"]["bucket_stats"] = bucket_stats
+        if funnel:
+            results["checkpoints"]["query"]["funnel"] = funnel
+        if timeline_elapsed:
+            results["checkpoints"]["query"]["funnel_elapsed_s"] = timeline_elapsed
         _log(f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}")
+        if bucket_stats:
+            _log(f"    bucket_stats: {bucket_stats}")
+        if funnel:
+            _log(f"    funnel: total={funnel['total']} ok={funnel['ok']} overflow={funnel['overflow']} pending={funnel['pending']} elapsed={timeline_elapsed}s")
     else:
         query_failed = True
         results["checkpoints"]["query"] = {"error": r["error"], "elapsed_s": round(time.time() - t0, 1)}
