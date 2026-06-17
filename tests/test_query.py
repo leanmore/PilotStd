@@ -786,5 +786,79 @@ class TestBucketQuery(unittest.TestCase):
         self.assertIsNotNone(results[0])
 
 
+class MockSiteAdapter(BaseAdapter):
+    """通用 mock 站点——可配站点名，命中率，计请求数"""
+
+    def __init__(self, name, always_hit=True, match_status="exact"):
+        self._name = name
+        self._always_hit = always_hit
+        self._match_status = match_status
+        self.request_count = 0
+
+    @property
+    def site_name(self): return self._name
+
+    @property
+    def site_label(self): return self._name
+
+    def _search(self, term):
+        self.request_count += 1
+        if self._always_hit:
+            return QueryResult(standard_number=term, standard_name=f"std_{term}",
+                              status="现行", source_site=self._name,
+                              match_status=self._match_status)
+        return None
+
+
+class TestBucketConcurrency(unittest.TestCase):
+    """逐桶并发测试——溢出隔离/csres隔离/大桶拆子桶"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        self.db = Database(os.path.join(self.tmp, "test.db"))
+        self.cache = CacheRepository(self.db)
+        self.parser = StandardParser(build_code_mapping())
+
+    def tearDown(self):
+        self.db.close()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _engine(self, sites=None):
+        adapters = sites or [
+            MockSiteAdapter("std_gov"), MockSiteAdapter("hbba"),
+            MockSiteAdapter("ahbz"), MockSiteAdapter("njbz365"),
+            MockSiteAdapter("csres"),
+        ]
+        return QueryEngine(adapters=adapters, cache=self.cache,
+                          use_cache=False, parser=self.parser)
+
+    def test_01_overflow_concurrent(self):
+        """GB 200+行业 150 并发，不崩溃，ahbz 溢出池不击穿"""
+        items = [("GB", i, 2020, "g", None, "", "", "") for i in range(200)]
+        items += [("SH", i, 2020, "s", None, "", "", "") for i in range(150)]
+        results = self._engine().query_batch_parsed(items)
+        self.assertEqual(len(results), 350)
+        self.assertGreater(sum(1 for r in results if r.is_found()), 200)
+
+    def test_02_csres_chain_isolated(self):
+        """csres 从链中完全移除"""
+        chain = self._engine()._build_chain_for_item(("GB", 1, 2020, "t", None))
+        self.assertNotIn("csres", chain)
+
+    def test_03_overflow_exhausted_pending(self):
+        """全部站点不命中→待确认"""
+        engine = self._engine([MockSiteAdapter("std_gov", always_hit=False),
+                              MockSiteAdapter("ahbz", always_hit=False)])
+        results = engine.query_batch_parsed(
+            [("GB", 99999, 2050, "x", None, "", "", "")])
+        self.assertEqual(results[0].status, "待确认")
+
+    def test_04_large_batch_sub_buckets(self):
+        """500 条大桶自动拆子桶，不崩溃"""
+        items = [("GB", i, 2020, "t", None, "", "", "") for i in range(500)]
+        results = self._engine().query_batch_parsed(items)
+        self.assertEqual(len(results), 500)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
