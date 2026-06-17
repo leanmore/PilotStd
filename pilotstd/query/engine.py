@@ -930,57 +930,64 @@ class QueryEngine:
                 results[idx] = result
                 bump()
 
-        # ── 7. 临时桶：链迭代 ──
+        # ── 7. 临时桶：链迭代（微批 + 抖动防惊群）──
         temp_cooldown_skips = 0
         if all_overflow:
             # 按剩余站点数升序
             all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1])))
-
-            for idx, item in all_overflow:
-                if idx in results:
-                    continue
-                chain = self._build_chain_for_item(item)
-                # 主站点已查过，从二线开始
-                start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
-                found = False
-                tried_chain = item_chains.get(idx, [])
-                for site in chain[start:]:
-                    if site not in self._adapter_map:
+            # 微批：每批 20 条，批次间 2-5s 随机抖动
+            batch_size = 20
+            for batch_start in range(0, len(all_overflow), batch_size):
+                batch = all_overflow[batch_start:batch_start + batch_size]
+                if batch_start > 0:
+                    import random as _random
+                    jitter = _random.uniform(2, 5)
+                    _time.sleep(jitter)
+                for idx, item in batch:
+                    if idx in results:
                         continue
-                    if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
-                        temp_cooldown_skips += 1
-                        continue
-                    adapter = self._adapter_map[site]
-                    try:
-                        result = adapter.query_with_strategy(
-                            item[0], item[1], item[2], item[3], item[4])
-                    except Exception:
-                        continue
-                    if result:
-                        result.source_site = site
-                        self._record(site, 1)
-                        _record_match(site, getattr(result, 'match_status', 'err'))
-                        tried_chain.append(site)
-                        item_chains[idx] = tried_chain
-                        score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
-                        if score >= 100:
-                            results[idx] = result
-                            if result_callback and result.is_found():
-                                result_callback(idx, result)
-                            bump()
-                            found = True
-                            break
-                # 链耗尽→待确认
-                if not found:
-                    chain_str = "→".join(item_chains.get(idx, [])) or "none"
-                    pending_reasons.append((idx, chain_str))
-                    results[idx] = QueryResult(
-                        standard_number=f"{item[0]} {item[1]}-{item[2]}",
-                        standard_name=item[3],
-                        status="待确认",
-                        source_site="",
-                        match_status="chain_exhausted")
-                    bump()
+                    chain = self._build_chain_for_item(item)
+                    # 主站点已查过，从二线开始
+                    start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
+                    found = False
+                    tried_chain = item_chains.get(idx, [])
+                    for site in chain[start:]:
+                        if site not in self._adapter_map:
+                            continue
+                        if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
+                            temp_cooldown_skips += 1
+                            continue
+                        adapter = self._adapter_map[site]
+                        try:
+                            result = adapter.query_with_strategy(
+                                item[0], item[1], item[2], item[3], item[4])
+                        except Exception:
+                            continue
+                        if result:
+                            result.source_site = site
+                            self._record(site, 1)
+                            _record_match(site, getattr(result, 'match_status', 'err'))
+                            tried_chain.append(site)
+                            item_chains[idx] = tried_chain
+                            score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
+                            if score >= 100:
+                                results[idx] = result
+                                if result_callback and result.is_found():
+                                    result_callback(idx, result)
+                                bump()
+                                found = True
+                                break
+                    # 链耗尽→待确认
+                    if not found:
+                        chain_str = "→".join(item_chains.get(idx, [])) or "none"
+                        pending_reasons.append((idx, chain_str))
+                        results[idx] = QueryResult(
+                            standard_number=f"{item[0]} {item[1]}-{item[2]}",
+                            standard_name=item[3],
+                            status="待确认",
+                            source_site="",
+                            match_status="chain_exhausted")
+                        bump()
 
         # ── 桶统计 ──
         for key in sorted(bucket_times.keys()):
