@@ -807,6 +807,19 @@ class QueryEngine:
             with usage_lock:
                 site_usage[site] = site_usage.get(site, 0) + 1
 
+        # 追踪结构
+        overflow_events: list = []      # (timestamp, from_bucket, to_site, idx)
+        match_scores: Dict[str, Dict[str, int]] = {}  # {site: {match_status: count}}
+        item_chains: Dict[int, list] = {}  # {idx: [site1, site2, ...]}
+        pending_reasons: list = []       # [(idx, chain_str)]
+        score_lock = threading.Lock()
+
+        def _record_match(site: str, status: str):
+            with score_lock:
+                if site not in match_scores:
+                    match_scores[site] = {}
+                match_scores[site][status] = match_scores[site].get(status, 0) + 1
+
         def _bucket_worker(bucket_items, primary_site: str):
             _ts = _time.time()
             chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
@@ -849,7 +862,10 @@ class QueryEngine:
                         result.source_site = assigned_site
                         self._record(assigned_site, 1)
                         _record_usage(assigned_site)
+                        _record_match(assigned_site, getattr(result, 'match_status', 'err'))
                         score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
+                        # 记条目链
+                        item_chains.setdefault(idx, []).append(assigned_site)
                         if score >= 100:
                             results[idx] = result
                             if result_callback and result.is_found():
@@ -857,6 +873,7 @@ class QueryEngine:
                             bump()
                         else:
                             # 未达100分 → 溢出
+                            overflow_events.append((_time.time(), primary_site, assigned_site, idx))
                             overflow_items.append((idx, item))
                     else:
                         overflow_items.append((idx, item))
@@ -919,10 +936,10 @@ class QueryEngine:
                 # 主站点已查过，从二线开始
                 start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
                 found = False
+                tried_chain = item_chains.get(idx, [])
                 for site in chain[start:]:
                     if site not in self._adapter_map:
                         continue
-                    # 检查是否已查过
                     if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
                         continue
                     adapter = self._adapter_map[site]
@@ -934,6 +951,9 @@ class QueryEngine:
                     if result:
                         result.source_site = site
                         self._record(site, 1)
+                        _record_match(site, getattr(result, 'match_status', 'err'))
+                        tried_chain.append(site)
+                        item_chains[idx] = tried_chain
                         score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
                         if score >= 100:
                             results[idx] = result
@@ -944,6 +964,8 @@ class QueryEngine:
                             break
                 # 链耗尽→待确认
                 if not found:
+                    chain_str = "→".join(item_chains.get(idx, [])) or "none"
+                    pending_reasons.append((idx, chain_str))
                     results[idx] = QueryResult(
                         standard_number=f"{item[0]} {item[1]}-{item[2]}",
                         standard_name=item[3],
@@ -964,9 +986,33 @@ class QueryEngine:
         for site in sorted(site_usage.keys()):
             logger.info("[QUOTA] site=%s used=%d", site, site_usage[site])
 
+        # ── 溢出时序 ──
+        logger.info("[OVERFLOW] events=%d", len(overflow_events))
+
+        # ── csres 状态 ──
+        csres_hit = len(csres_results)
+        logger.info("[CSRES] processed=%d failures=%d", csres_hit, csres_failures[0])
+
+        # ── 站点评分卡 ──
+        for site in sorted(match_scores.keys()):
+            score_dist = " ".join(f"{k}={v}" for k, v in sorted(match_scores[site].items()))
+            logger.info("[SCORE] site=%s %s", site, score_dist)
+
+        # ── 条目链追踪（前 20 条）──
+        for idx in sorted(item_chains.keys())[:20]:
+            chain_str = "→".join(item_chains[idx])
+            logger.info("[CHAIN] #%d %s", idx, chain_str)
+
+        # ── 待确认归因 ──
+        for idx, chain_str in pending_reasons[:10]:
+            logger.info("[PENDING] #%d chain=%s", idx, chain_str)
+
+        # ── 配额水位 ──
+        logger.info("[WATER] ahbz_overflow_remain=%d njbz365_remain=%d",
+                   overflow_quota["ahbz"][0], overflow_quota["njbz365"][0])
+
         # ── 漏斗汇总 ──
-        pending_count = sum(1 for r in results.values()
-                          if getattr(r, 'match_status', '') == 'chain_exhausted')
+        pending_count = len(pending_reasons)
         logger.info("[FUNNEL] total=%d ok=%d overflow=%d pending=%d",
                    n, len(results) - pending_count, len(all_overflow), pending_count)
         logger.info("[TIMELINE] query_bucketed_done total=%d elapsed=%.1fs",
