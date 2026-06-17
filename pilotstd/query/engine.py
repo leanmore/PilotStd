@@ -779,8 +779,8 @@ class QueryEngine:
                 return
             import random as _random
             import time as _time
-            # 从 GB 和行业各取一半
             pool = gb_items[:self._CSRES_LIMIT // 2] + industry_items[:self._CSRES_LIMIT // 2]
+            _last_ts = _time.time()
             for idx, item in pool:
                 if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
                     break
@@ -797,6 +797,10 @@ class QueryEngine:
                     csres_failures[0] += 1
                 delay = _random.uniform(5, 10)
                 _time.sleep(delay)
+                now = _time.time()
+                logger.debug("[CSRES_INTERVAL] actual=%.1fs target=%.1fs",
+                           now - _last_ts, delay)
+                _last_ts = now
 
         # ── 4. 桶工作线程 ──
         bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
@@ -1022,6 +1026,9 @@ class QueryEngine:
                    n, len(results) - pending_count, len(all_overflow), pending_count)
         logger.info("[TIMELINE] query_bucketed_done total=%d elapsed=%.1fs",
                    n, _time.time() - _bucket_t0)
+        logger.info("[BASELINE] total=%d ok=%d overflow=%d pending=%d elapsed=%.1fs",
+                   n, len(results) - pending_count, len(all_overflow), pending_count,
+                   _time.time() - _bucket_t0)
 
         # ── 8. 按原始顺序组装 ──
         return [results.get(i, QueryResult(
