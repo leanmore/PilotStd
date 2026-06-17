@@ -29,11 +29,11 @@ class FileDialogMixin:
     # ── 打开文件夹 ───────────────────────────────────────
 
     def _on_open_folder(self):
-        last = self._config.get("ui.last_import_path", "")
+        last = self._config.get("appearance.last_import_path", "")
         path = self._pick_folder("选择文件夹", last)
         if path:
             self._menu_selected_path = path
-            self._config.set("ui.last_import_path", path)
+            self._config.set("appearance.last_import_path", path)
             self._config.save()
             self.status_changed.emit(f"已选择文件夹: {path}")
             logger.info(f"打开文件夹: {path}")
@@ -43,11 +43,11 @@ class FileDialogMixin:
 
     def _on_select(self):
         """导入文件夹到项目。"""
-        last = self._config.get("ui.last_import_path", "")
+        last = self._config.get("appearance.last_import_path", "")
         path = self._pick_folder("选择文件夹", last)
         if path:
             self._menu_selected_path = path
-            self._config.set("ui.last_import_path", path)
+            self._config.set("appearance.last_import_path", path)
             self._config.save()
             self.status_changed.emit(f"已选择: {path}")
             logger.info(f"选择: {path}")

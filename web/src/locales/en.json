@@ -1,5 +1,5 @@
 {
-  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "app": { "title": "PilotStd" },
   "nav": { "home": "Home", "scan": "Scan", "query": "Query", "download": "Download",
            "normalize": "Normalize", "archive": "Archive",
            "organize": "Organize", "pending": "Pending", "announce": "Announce", "settings": "Settings" },

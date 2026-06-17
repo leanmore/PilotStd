@@ -234,6 +234,35 @@ class ConfigManager:
     # 内部
     # ════════════════════════════════════════════════════════════════
 
+    def _migrate_ui_keys(self):
+        """将旧版 ui.* 键迁移到 appearance.* 前缀（v0.5.x → v0.6 兼容）。"""
+        _map = {
+            "ui.column_widths": "appearance.column_widths",
+            "ui.window_geometry": "appearance.window_geometry",
+            "ui.main_splitter": "appearance.main_splitter",
+            "ui.right_splitter": "appearance.right_splitter",
+            "ui.sort_column": "appearance.sort_column",
+            "ui.sort_order": "appearance.sort_order",
+            "ui.last_import_path": "appearance.last_import_path",
+        }
+        for old, new in _map.items():
+            val = self.get(old)
+            if val is not None:
+                # 新键不存在才迁移，不覆盖已有值
+                if self.get(new) is None:
+                    self.set(new, val)
+                # 删旧键（用内部 _data 直接操作，避免 set 回写旧键）
+                node = self._data
+                parts = old.split(".")
+                for p in parts[:-1]:
+                    if isinstance(node, dict) and p in node:
+                        node = node[p]
+                    else:
+                        node = None
+                        break
+                if node and isinstance(node, dict) and parts[-1] in node:
+                    del node[parts[-1]]
+
     def _load(self) -> None:
         """加载 JSON 配置文件，文件不存在时自动创建并填充默认值。
         文件损坏时自动备份并重建默认配置。启动时清理残留 .tmp 文件。"""
@@ -257,6 +286,7 @@ class ConfigManager:
                 self._data = self._walk_sensitive(raw, encrypt=False)
                 # 补入新增默认 key，确保已有配置文件不缺失新版本增加的默认值
                 self.populate_defaults(FACTORY_DEFAULTS)
+                self._migrate_ui_keys()
                 self.save()
                 return
         except (json.JSONDecodeError, OSError) as e:

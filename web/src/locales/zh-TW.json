@@ -1,5 +1,5 @@
 {
-  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "app": { "title": "PilotStd" },
   "nav": { "home": "首頁", "scan": "掃描", "query": "查詢", "download": "下載",
            "normalize": "規範化", "archive": "歸檔",
            "organize": "檔案管理", "pending": "待確認", "announce": "公告", "settings": "設定" },

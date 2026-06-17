@@ -338,13 +338,6 @@ class MainWindow(QMainWindow,
 
         self.toolbar.addSeparator()
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setMinimumWidth(150)
-        self.progress_bar.setMaximumWidth(300)
-        self.progress_bar.setFormat("%p%")
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setValue(0)
-
     # ================================================================
     # 中央区域（左右分栏）
     # ================================================================
@@ -679,6 +672,17 @@ class MainWindow(QMainWindow,
         import urllib.request, urllib.error
         from pilotstd import __version__
         current = f"v{__version__}"
+
+        # 24h 内不重复检查，避免触发 GitHub API 限流（60次/h 无 Token）
+        import time as _time
+        last_check = self._config.get("appearance.last_update_check", 0)
+        if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
+            QMessageBox.information(self, _("title_no_update"),
+                _("update_already_latest").format(current=current))
+            return
+
+        self._config.set("appearance.last_update_check", _time.time())
+        self._config.save()
         self.status_changed.emit(_("checking_update"))
         try:
             url = "https://api.github.com/repos/leanmore/PilotStd/releases/latest"
@@ -787,6 +791,11 @@ class MainWindow(QMainWindow,
 
             zip_path = result["path"]
             exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
+            # 写入权限检查（Program Files 等系统目录可能无写入权限）
+            if not os.access(exe_dir, os.W_OK):
+                raise PermissionError(
+                    f"无法写入 {exe_dir}\n"
+                    "请以管理员身份运行，或将程序移至用户目录")
             bat_path = os.path.join(exe_dir, "update.bat")
             self._write_update_bat(bat_path, zip_path, exe_dir)
 

@@ -38,9 +38,8 @@ COPY main.py .
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9028/api/health')" || exit 1
 
-# 前端构建产物（若未构建则创建空目录占位，后续 Task 5/19 构建后填充）
+# 前端构建产物目录（构建后由前端 CI 填充）
 RUN mkdir -p /app/web/dist
-COPY web/dist/ /app/web/dist/
 
 # 复制 docker 模块（app.py、api/ 等）
 COPY docker/ ./docker/

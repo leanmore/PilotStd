@@ -146,18 +146,12 @@ class BaseAnnounceAdapter(ABC):
                 return self._finalize_items(att_items, attachment_url)
             return self._finalize_items(html_items, attachment_url)
 
-        # 混合：HTML + 附件并行
+        # 混合：HTML 有数据 + 有附件。下载附件存档，但直接返回 HTML 结果（不重新解析）
         if html_items and attachment_url:
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future_att = executor.submit(self._download_attachment, attachment_url)
-                att_bytes = future_att.result(timeout=60)
-            if att_bytes:
-                all_items, _meta = parse_announcement_detail(
-                    raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider)
-            else:
-                all_items = html_items
-            return self._finalize_items(all_items, attachment_url)
+                executor.submit(self._download_attachment, attachment_url)
+            return self._finalize_items(html_items, attachment_url)
 
         return self._finalize_items(html_items, attachment_url)
 
@@ -200,18 +194,19 @@ class BaseAnnounceAdapter(ABC):
         completed = [0]
         lock = __import__('threading').Lock()
 
-        def _bump(label: str):
+        def _bump(pid: str):
             with lock:
                 completed[0] += 1
+                logger.info("公告处理完成: pid=%s (%d/%d)", pid, completed[0], total)
                 if progress_callback:
-                    progress_callback(completed[0], total, label)
+                    progress_callback(completed[0], total, pid)
 
         def _process_one(ann: dict) -> list:
             """处理单条公告：取详情 → 解析。线程安全。"""
             raw = self._fetch_detail(ann["pid"])
             if not raw:
                 logger.warning("公告详情获取失败: pid=%s code=%s", ann.get("pid",""), ann.get("code",""))
-                _bump(ann.get("code", "?")[:20])
+                _bump(ann.get("pid", "?"))
                 return []
             parsed = self._parse_items(raw, ocr_provider=ocr_provider)
             if not parsed:

@@ -1,5 +1,5 @@
 {
-  "app": { "title": "PilotStd", "version": "v0.1.3" },
+  "app": { "title": "PilotStd" },
   "nav": { "home": "首页", "task": "任务", "organize": "文件管理",
            "pending": "待确认", "announce": "公告", "settings": "设置" },
   "home": { "stats": "标准库概览", "current": "现行", "expired": "废止",

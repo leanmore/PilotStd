@@ -4,6 +4,13 @@
 from __future__ import annotations
 
 import re
+import concurrent.futures
+import threading
+import time
+import logging
+from typing import Dict, List, Tuple, Optional, Callable
+
+from ..query.search_strategy import MATCH_SCORE
 #
 # 架构说明：
 #   查询引擎是标准查询的核心调度器。它管理多个网站适配器，按优先级和配额
@@ -219,21 +226,18 @@ class QueryEngine:
                     force_refresh: bool = False,
                     progress_callback: Callable[[int, int], None] = None,
                     preferred_site: str = "") -> tuple:
-        """批量查询标准号列表。优先走 StandardParser，无 parser 时回退旧正则。"""
+        """批量查询标准号列表。StandardParser 解析失败的条目跳过。"""
         total = len(standard_numbers)
         parsed: List[Tuple[str, int, int, str, Optional[int], str]] = []
         for s in standard_numbers:
-            if self._parser:
-                info = self._parser.parse(s + ".pdf")
-                if info:
-                    parsed.append((info.logical_code, info.number, info.year,
-                                  info.std_name or "", info.part,
-                                  getattr(info, "num_prefix", ""),
-                                  getattr(info, "num_suffix", ""), ""))
-                    continue
-            # 回退：旧正则解析（无 parser 时）
-            code, num, yr, name, part = self._parse_standard_number_str_fallback(s)
-            parsed.append((code, num, yr, name, part, "", "", ""))
+            info = self._parser.parse(s + ".pdf") if self._parser else None
+            if info:
+                parsed.append((info.logical_code, info.number, info.year,
+                              info.std_name or "", info.part,
+                              getattr(info, "num_prefix", ""),
+                              getattr(info, "num_suffix", ""), ""))
+            else:
+                logger.warning("无法解析标准号，跳过: %s", s)
 
         cb = (lambda c: progress_callback(c, total)) if progress_callback else None
         results = self.query_batch_parsed(parsed, progress_callback=cb,
@@ -256,26 +260,6 @@ class QueryEngine:
             else:
                 stats.errors += 1
         return results, stats
-
-    @staticmethod
-    def _parse_standard_number_str_fallback(s: str) -> tuple:
-        """回退解析（无 StandardParser 时使用）。修复部分号处理——保留 [.:] 分隔符。"""
-        import re
-        m = re.match(r'([A-Z]{2,}(?:\s*/\s*\w+)?)\s+(\d+(?:[.:]\d+)?)(?:[_-](\d{4}))?', s.strip())
-        if m:
-            code = m.group(1).replace(" ", "")
-            num_str = m.group(2)
-            # 保留部分号：提取 .N 或 :N 后缀
-            part_match = re.search(r'[.:](\d+)$', num_str)
-            if part_match:
-                num = int(re.sub(r'[.:]\d+$', '', num_str))
-                part = int(part_match.group(1))
-            else:
-                num = int(num_str)
-                part = None
-            yr = int(m.group(3)) if m.group(3) else 0
-            return (code, num, yr, "", part)
-        return ("", 0, 0, "", None)
 
     def query_batch_parsed(self,
                            parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
@@ -542,7 +526,8 @@ class QueryEngine:
 
             if result_callback and result.is_found():
                 result_callback(idx, result)
-            progress_callback()
+            if results[-1][2] == "ok":
+                progress_callback()
 
             # 查询间隔（含随机抖动），降低被站点限流的概率
             if self._query_interval:
@@ -709,3 +694,249 @@ class QueryEngine:
             result.is_adopted = True
         result.is_downloadable = not result.is_adopted
         return result
+
+    # ════════════════════════════════════════════════════════════════
+    # 逐桶查询（V2）：桶内串行 + 桶间并行 + 临时桶链迭代
+    # ════════════════════════════════════════════════════════════════
+
+    # 子桶大小（压测后数据驱动动态化）
+    _BUCKET_SIZE = 80
+    # 子桶间冷却间隔（秒）
+    _BUCKET_INTERVAL = 30
+    # csres 日配额
+    _CSRES_LIMIT = 40
+    # csres 连续失败熔断阈值
+    _CSRES_CIRCUIT_BREAK = 5
+    # 溢出站点共享配额（ahbz: 200 中 170 给溢出, njbz365: 200 全给溢出）
+    _AHBZ_OVERFLOW_QUOTA = 170
+    _NJBZ_OVERFLOW_QUOTA = 200
+
+    def _bucket_key(self, logical_code: str) -> str:
+        """按 _get_priority 第一条（主站点）确定桶标识。"""
+        priority = self._get_priority(logical_code)
+        return priority[0] if priority else "other"
+
+    def _build_chain_for_item(self, item: tuple) -> list:
+        """返回条目对应的完整优先级链（不含 csres）。"""
+        logical_code = item[0]
+        chain = self._get_priority(logical_code)
+        # 从链中移除 csres（csres 由独立线程处理）
+        return [s for s in chain if s != "csres"]
+
+    def query_batch_parsed(self,
+                           parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
+                           progress_callback: Callable[[int], None] = None,
+                           result_callback: Callable[[int, QueryResult], None] = None,
+                           preferred_site: str = "",
+                           ) -> List[QueryResult]:
+        """逐桶查询版——桶内串行+桶间并行+临时桶链迭代。"""
+        n = len(parsed_list)
+        results: Dict[int, QueryResult] = {}
+        counter_lock = threading.Lock()
+        counter = [0]
+
+        def bump():
+            with counter_lock:
+                counter[0] += 1
+                if progress_callback:
+                    progress_callback(counter[0])
+
+        # ── 1. 分组 ──
+        buckets: Dict[str, List[Tuple[int, tuple]]] = {}
+        for i, item in enumerate(parsed_list):
+            key = self._bucket_key(item[0])
+            buckets.setdefault(key, []).append((i, item))
+
+        # ── 2. 全局溢出配额锁 ──
+        overflow_lock = threading.Lock()
+        overflow_quota = {
+            "ahbz": [self._AHBZ_OVERFLOW_QUOTA],
+            "njbz365": [self._NJBZ_OVERFLOW_QUOTA],
+        }
+
+        def _try_overflow(site: str) -> bool:
+            """尝试从溢出池扣减配额，成功返回 True。"""
+            if site not in overflow_quota:
+                return True
+            with overflow_lock:
+                if overflow_quota[site][0] > 0:
+                    overflow_quota[site][0] -= 1
+                    return True
+            return False
+
+        # ── 3. csres 独立线程 ──
+        csres_results: Dict[int, QueryResult] = {}
+        csres_failures = [0]
+
+        def _csres_worker(gb_items, industry_items):
+            adapter = self._adapter_map.get("csres")
+            if not adapter:
+                return
+            import random as _random
+            import time as _time
+            # 从 GB 和行业各取一半
+            pool = gb_items[:self._CSRES_LIMIT // 2] + industry_items[:self._CSRES_LIMIT // 2]
+            for idx, item in pool:
+                if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
+                    break
+                try:
+                    result = adapter.query_with_strategy(
+                        item[0], item[1], item[2], item[3], item[4])
+                    if result:
+                        result.source_site = "csres"
+                        csres_results[idx] = result
+                        csres_failures[0] = 0
+                    else:
+                        csres_failures[0] += 1
+                except Exception:
+                    csres_failures[0] += 1
+                delay = _random.uniform(5, 10)
+                _time.sleep(delay)
+
+        # ── 4. 桶工作线程 ──
+        def _bucket_worker(bucket_items, primary_site: str):
+            chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
+            chain = [s for s in chain if s != "csres"]
+
+            sub_buckets = [bucket_items[i:i + self._BUCKET_SIZE]
+                          for i in range(0, len(bucket_items), self._BUCKET_SIZE)]
+            overflow_items = []
+
+            for sb_idx, sub in enumerate(sub_buckets):
+                if sb_idx > 0:
+                    import time as _time
+                    _time.sleep(self._BUCKET_INTERVAL)
+
+                for idx, item in sub:
+                    # 检查冷却
+                    if self._rotator and self._rotator.get_cooldown_remaining(primary_site) > 0:
+                        # 主站点冷却→尝试溢出到链上下一个站点
+                        overflow_site = chain[1] if len(chain) > 1 else None
+                        if overflow_site and _try_overflow(overflow_site):
+                            assigned_site = overflow_site
+                        else:
+                            overflow_items.append((idx, item))
+                            continue
+                    else:
+                        assigned_site = primary_site
+
+                    adapter = self._adapter_map.get(assigned_site)
+                    if not adapter:
+                        overflow_items.append((idx, item))
+                        continue
+
+                    try:
+                        result = adapter.query_with_strategy(
+                            item[0], item[1], item[2], item[3], item[4])
+                    except Exception:
+                        overflow_items.append((idx, item))
+                        continue
+
+                    if result:
+                        result.source_site = assigned_site
+                        self._record(assigned_site, 1)
+                        score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
+                        if score >= 100:
+                            results[idx] = result
+                            if result_callback and result.is_found():
+                                result_callback(idx, result)
+                            bump()
+                        else:
+                            # 未达100分 → 溢出
+                            overflow_items.append((idx, item))
+                    else:
+                        overflow_items.append((idx, item))
+
+            return overflow_items
+
+        # ── 5. 桶间并行执行 ──
+        csres_pool_gb = []
+        csres_pool_industry = []
+        all_overflow = []
+        bucket_futures = {}
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            for bucket_key, items in buckets.items():
+                if not items:
+                    continue
+                future = executor.submit(_bucket_worker, items, bucket_key)
+                bucket_futures[future] = bucket_key
+                # 收集 csres 候选条目
+                if bucket_key in ("std_gov",):
+                    csres_pool_gb.extend(items)
+                elif bucket_key in ("hbba",):
+                    csres_pool_industry.extend(items)
+
+            # csres 独立线程
+            csres_future = executor.submit(_csres_worker, csres_pool_gb, csres_pool_industry)
+
+            # 收集桶结果
+            for future in concurrent.futures.as_completed(bucket_futures):
+                try:
+                    overflow = future.result()
+                    all_overflow.extend(overflow)
+                except Exception:
+                    logger.exception("桶执行异常: %s", bucket_futures[future])
+
+            # 等待 csres 完成
+            try:
+                csres_future.result(timeout=600)
+            except Exception:
+                pass
+
+        # ── 6. 合并 csres 结果 ──
+        for idx, result in csres_results.items():
+            if idx not in results:
+                results[idx] = result
+                bump()
+
+        # ── 7. 临时桶：链迭代 ──
+        if all_overflow:
+            # 按剩余站点数升序
+            all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1])))
+
+            for idx, item in all_overflow:
+                if idx in results:
+                    continue
+                chain = self._build_chain_for_item(item)
+                # 主站点已查过，从二线开始
+                start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
+                found = False
+                for site in chain[start:]:
+                    if site not in self._adapter_map:
+                        continue
+                    # 检查是否已查过
+                    if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
+                        continue
+                    adapter = self._adapter_map[site]
+                    try:
+                        result = adapter.query_with_strategy(
+                            item[0], item[1], item[2], item[3], item[4])
+                    except Exception:
+                        continue
+                    if result:
+                        result.source_site = site
+                        self._record(site, 1)
+                        score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
+                        if score >= 100:
+                            results[idx] = result
+                            if result_callback and result.is_found():
+                                result_callback(idx, result)
+                            bump()
+                            found = True
+                            break
+                # 链耗尽→待确认
+                if not found:
+                    results[idx] = QueryResult(
+                        standard_number=f"{item[0]} {item[1]}-{item[2]}",
+                        standard_name=item[3],
+                        status="待确认",
+                        source_site="",
+                        match_status="chain_exhausted")
+                    bump()
+
+        # ── 8. 按原始顺序组装 ──
+        return [results.get(i, QueryResult(
+            standard_number=f"{parsed_list[i][0]} {parsed_list[i][1]}-{parsed_list[i][2]}",
+            error_message="查询未完成", source_site=""))
+            for i in range(n)]

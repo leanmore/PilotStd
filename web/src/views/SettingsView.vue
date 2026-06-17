@@ -318,5 +318,6 @@ const sites = [
 .site-limit { display: flex; flex-direction: column; gap: 2px; }
 .lim-label { font-size: 11px; color: var(--text-dim); }
 .lim-val { font-size: 15px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); }
+.fieldset-gap { grid-column: 1 / -1; height: 8px; }
 .mb-2 { margin-bottom: 12px; }
 </style>

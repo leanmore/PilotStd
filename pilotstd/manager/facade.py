@@ -669,11 +669,13 @@ class StandardManager:
         return items
 
     def check_announcements_filtered(self, std_type: str = None,
-                                      since_date: str = "") -> dict:
+                                      since_date: str = "",
+                                      progress_callback=None) -> dict:
         """带类型过滤和日期筛选的公告检查。供 CLI cmd_announce 调用。
         返回 {std_type: {matched: int, updated: int, ...}, ...}"""
         return self._announce_svc.check_announcements_filtered(
-            std_type=std_type, since_date=since_date)
+            std_type=std_type, since_date=since_date,
+            progress_callback=progress_callback)
 
     def announce_stream(self, since_date: str = "",
                         on_progress=None, on_adapter_done=None) -> dict:

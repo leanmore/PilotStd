@@ -194,10 +194,10 @@ class TableHelperMixin:
 
     def _save_column_widths(self):
         widths = [self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())]
-        self._config.set("ui.column_widths", widths)
+        self._config.set("appearance.column_widths", widths)
 
     def _restore_column_widths(self):
-        widths = self._config.get("ui.column_widths")
+        widths = self._config.get("appearance.column_widths")
         if widths and len(widths) == self.work_table.columnCount():
             for c, w in enumerate(widths):
                 if w > 0:

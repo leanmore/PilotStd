@@ -16,6 +16,8 @@ from pilotstd.query.models import QueryResult, BatchQueryStats
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.cache import CacheRepository
 from pilotstd.query.engine import QueryEngine
+from pilotstd.scan.parser import StandardParser
+from pilotstd.organizer.industry_lookup import build_code_mapping
 
 
 # ── 模拟适配器（用于测试引擎和缓存）─────────────────────────
@@ -145,6 +147,7 @@ class TestQueryEngine(unittest.TestCase):
             adapters=[self.active_adapter, self.adopted_adapter],
             cache=self.cache,
             use_cache=True,
+            parser=StandardParser(build_code_mapping()),
         )
 
     def tearDown(self):
@@ -519,7 +522,8 @@ class TestNetworkErrorHandling(unittest.TestCase):
 
         cache = CacheRepository(self.db)
         engine = QueryEngine(adapters=[GoodAdapter(), BadAdapter()],
-                             cache=cache, use_cache=False)
+                             cache=cache, use_cache=False,
+                             parser=StandardParser(build_code_mapping()))
         results, stats = engine.query_batch(["GB/T 1-2020"])
         # 至少有一个成功
         found = [r for r in results if r.is_found()]

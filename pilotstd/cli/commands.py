@@ -107,7 +107,9 @@ class CLI:
                 _progress_last_log[0] = now
                 _progress_last_pct[0] = pct
             else:
-                print(f"\r  查询进度: {count}/{_total} ({pct}%)", end="", file=sys.stderr, flush=True)
+                msg = f"查询进度: {count}/{_total} ({pct}%)"
+                print(f"\r  {msg}", end="", file=sys.stderr, flush=True)
+                logger.debug(msg)
 
         results, stats = mgr.query(parsed_list, progress_callback=_progress)
         if total:
@@ -234,7 +236,14 @@ class CLI:
         mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
         std_type = getattr(args, 'type', None)
         since = args.since or ""
-        results = mgr.check_announcements_filtered(std_type=std_type, since_date=since)
+
+        def _progress(cur: int, total: int, pid: str):
+            print(f"\r  公告进度: {cur}/{total}", end="", file=sys.stderr, flush=True)
+
+        results = mgr.check_announcements_filtered(
+            std_type=std_type, since_date=since, progress_callback=_progress)
+        if results:
+            print(file=sys.stderr)  # 进度行换行
 
         total_matched = 0
         for std_type_key, r in results.items():

@@ -96,20 +96,23 @@ class AnnounceService:
         return {"matched": total_matched, "error": ""}
 
     def check_announcements_filtered(self, std_type: str = None,
-                                      since_date: str = "") -> dict:
+                                      since_date: str = "",
+                                      progress_callback=None) -> dict:
         """带类型过滤和日期筛选的公告检查。供 CLI 调用。"""
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
 
         if std_type:
             result = engine.check_one(std_type, since_date=since_date,
-                                       ocr_provider=ocr)
+                                       ocr_provider=ocr,
+                                       progress_callback=progress_callback)
             return {std_type: result}
 
         results = {}
         for adapter in engine.adapters:
             result = engine.check_one(adapter.standard_type,
                                        since_date=since_date,
-                                       ocr_provider=ocr)
+                                       ocr_provider=ocr,
+                                       progress_callback=progress_callback)
             results[adapter.standard_type] = result
         return results

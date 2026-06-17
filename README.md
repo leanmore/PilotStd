@@ -16,6 +16,10 @@
 - **公告监控** — 定期拉取国家标准公告，交叉比对本地标准库，发现更新自动提醒
 - **双端可用** — PyQt6 桌面端 + Docker Web 端，共享同一引擎
 
+## 界面展示
+
+![主界面](assets/screenshots/main_window.png)
+
 ## 快速开始
 
 ```bash
