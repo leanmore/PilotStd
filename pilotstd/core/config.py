@@ -154,6 +154,17 @@ class ConfigManager:
         # Docker/容器环境：STANDARD_ROOT 环境变量覆盖配置文件中的路径
         if os.environ.get("STANDARD_ROOT"):
             self.set("storage.root_dir", os.environ["STANDARD_ROOT"])
+        # OCR 密钥可通过环境变量注入（压测子进程等场景）
+        for key, env_var in [
+            ("ocr.baidu_api_key", "OCR_BAIDU_API_KEY"),
+            ("ocr.baidu_secret_key", "OCR_BAIDU_SECRET_KEY"),
+            ("ocr.tencent_secret_id", "OCR_TENCENT_SECRET_ID"),
+            ("ocr.tencent_secret_key", "OCR_TENCENT_SECRET_KEY"),
+            ("ocr.aliyun_access_key_id", "OCR_ALIYUN_ACCESS_KEY_ID"),
+            ("ocr.aliyun_access_key_secret", "OCR_ALIYUN_ACCESS_KEY_SECRET"),
+        ]:
+            if os.environ.get(env_var):
+                self.set(key, os.environ[env_var])
 
     # ════════════════════════════════════════════════════════════════
     # 公共 API

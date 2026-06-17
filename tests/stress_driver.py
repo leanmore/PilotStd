@@ -302,6 +302,9 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
     funnel = {}        # {total, ok, overflow, pending}
     timeline_elapsed = 0
     cooldown_count = 0
+    csres_info = {}     # {processed, failures}
+    overflow_count = 0
+    water_level = {}    # {ahbz_remain, njbz_remain}
     if "error" not in r:
         for line in (r.get("stdout", "") + r.get("stderr", "")).splitlines():
             if "download=" in line and "expire=" in line:
@@ -312,9 +315,11 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
             if m2:
                 exact_count = int(m2.group(1))
             # 逐桶日志解析
-            m3 = re.match(r".*\[BUCKET\]\s+(\S+)\s+total=(\d+)", line)
+            m3 = re.match(r".*\[BUCKET\]\s+(\S+)\s+total=(\d+)\s+done=(\d+)\s+overflow=(\d+)\s+elapsed=([\d.]+)", line)
             if m3:
-                bucket_stats[m3.group(1)] = int(m3.group(2))
+                bucket_stats[m3.group(1)] = {"total": int(m3.group(2)),
+                    "done": int(m3.group(3)), "overflow": int(m3.group(4)),
+                    "elapsed_s": float(m3.group(5))}
             m4 = re.match(r".*\[FUNNEL\]\s+total=(\d+)\s+ok=(\d+)\s+overflow=(\d+)\s+pending=(\d+)", line)
             if m4:
                 funnel = {"total": int(m4.group(1)), "ok": int(m4.group(2)),
@@ -324,6 +329,15 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
                 timeline_elapsed = float(m5.group(2))
             if "[COOLDOWN]" in line:
                 cooldown_count += 1
+            m6 = re.match(r".*\[CSRES\]\s+processed=(\d+)\s+failures=(\d+)", line)
+            if m6:
+                csres_info = {"processed": int(m6.group(1)), "failures": int(m6.group(2))}
+            m7 = re.match(r".*\[OVERFLOW\]\s+events=(\d+)", line)
+            if m7:
+                overflow_count = int(m7.group(1))
+            m8 = re.match(r".*\[WATER\]\s+ahbz_overflow_remain=(\d+)\s+njbz365_remain=(\d+)", line)
+            if m8:
+                water_level = {"ahbz_remain": int(m8.group(1)), "njbz_remain": int(m8.group(2))}
         results["checkpoints"]["query"] = {
             "download": dl_count, "expire": ex_count, "pending": pe_count,
             "exact": exact_count,
@@ -336,11 +350,23 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
         if timeline_elapsed:
             results["checkpoints"]["query"]["funnel_elapsed_s"] = timeline_elapsed
         results["checkpoints"]["query"]["cooldown_count"] = cooldown_count
+        if csres_info:
+            results["checkpoints"]["query"]["csres"] = csres_info
+        if overflow_count:
+            results["checkpoints"]["query"]["overflow_events"] = overflow_count
+        if water_level:
+            results["checkpoints"]["query"]["water_level"] = water_level
         _log(f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}")
         if bucket_stats:
             _log(f"    bucket_stats: {bucket_stats}")
         if funnel:
             _log(f"    funnel: total={funnel['total']} ok={funnel['ok']} overflow={funnel['overflow']} pending={funnel['pending']} elapsed={timeline_elapsed}s")
+        if csres_info:
+            _log(f"    csres: processed={csres_info['processed']} failures={csres_info['failures']}")
+        if overflow_count:
+            _log(f"    overflow_events: {overflow_count}")
+        if water_level:
+            _log(f"    water: ahbz_remain={water_level['ahbz_remain']} njbz_remain={water_level['njbz_remain']}")
     else:
         query_failed = True
         results["checkpoints"]["query"] = {"error": r["error"], "elapsed_s": round(time.time() - t0, 1)}
@@ -647,9 +673,15 @@ def _step4_verdict(step1_ok: bool, step2_ok: bool, step3_ok: bool,
         funnel = q.get("funnel", {})
         cooldown = q.get("cooldown_count", -1)
         elapsed = q.get("funnel_elapsed_s", 0)
+        csres = q.get("csres", {})
+        water = q.get("water_level", {})
         _log(f"逐桶指标: pending={funnel.get('pending','?')} "
              f"overflow={funnel.get('overflow','?')} "
              f"cooldown={cooldown} elapsed={elapsed:.0f}s")
+        if csres:
+            _log(f"csres: processed={csres.get('processed','?')} failures={csres.get('failures','?')}")
+        if water:
+            _log(f"water: ahbz_remain={water.get('ahbz_remain','?')} njbz_remain={water.get('njbz_remain','?')}")
         _log("基线(0617逐轮): pending=206 elapsed=1440s cooled=1348")
         if funnel.get("pending", 999) <= 206 and cooldown == 0:
             _log("逐桶对比: 优于基线 ✓")
