@@ -799,7 +799,16 @@ class QueryEngine:
                 _time.sleep(delay)
 
         # ── 4. 桶工作线程 ──
+        bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
+        site_usage: Dict[str, int] = {}  # {site: count}
+        usage_lock = threading.Lock()
+
+        def _record_usage(site: str):
+            with usage_lock:
+                site_usage[site] = site_usage.get(site, 0) + 1
+
         def _bucket_worker(bucket_items, primary_site: str):
+            _ts = _time.time()
             chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
             chain = [s for s in chain if s != "csres"]
 
@@ -809,7 +818,6 @@ class QueryEngine:
 
             for sb_idx, sub in enumerate(sub_buckets):
                 if sb_idx > 0:
-                    import time as _time
                     _time.sleep(self._BUCKET_INTERVAL)
 
                 for idx, item in sub:
@@ -840,6 +848,7 @@ class QueryEngine:
                     if result:
                         result.source_site = assigned_site
                         self._record(assigned_site, 1)
+                        _record_usage(assigned_site)
                         score = MATCH_SCORE.get(getattr(result, 'match_status', ''), 0)
                         if score >= 100:
                             results[idx] = result
@@ -852,7 +861,8 @@ class QueryEngine:
                     else:
                         overflow_items.append((idx, item))
 
-            return overflow_items
+            done = len(bucket_items) - len(overflow_items)
+            return (overflow_items, _time.time() - _ts, done)
 
         # ── 5. 桶间并行执行 ──
         csres_pool_gb = []
@@ -878,7 +888,9 @@ class QueryEngine:
             # 收集桶结果
             for future in concurrent.futures.as_completed(bucket_futures):
                 try:
-                    overflow = future.result()
+                    overflow, elapsed, done = future.result()
+                    key = bucket_futures[future]
+                    bucket_times[key] = (_bucket_t0, _bucket_t0 + elapsed, done, len(overflow))
                     all_overflow.extend(overflow)
                 except Exception:
                     logger.exception("桶执行异常: %s", bucket_futures[future])
@@ -939,6 +951,18 @@ class QueryEngine:
                         source_site="",
                         match_status="chain_exhausted")
                     bump()
+
+        # ── 桶统计 ──
+        for key in sorted(bucket_times.keys()):
+            start, end, done, ov = bucket_times[key]
+            logger.info("[BUCKET] %s total=%d done=%d overflow=%d elapsed=%.1fs",
+                       key, done + ov, done, ov, end - _bucket_t0)
+        logger.info("[TIMELINE] buckets=%d overlap_total=%.1fs",
+                   len(bucket_times), _time.time() - _bucket_t0)
+
+        # ── 站点配额日志 ──
+        for site in sorted(site_usage.keys()):
+            logger.info("[QUOTA] site=%s used=%d", site, site_usage[site])
 
         # ── 漏斗汇总 ──
         pending_count = sum(1 for r in results.values()
