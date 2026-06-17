@@ -301,6 +301,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
     bucket_stats = {}  # {key: total}
     funnel = {}        # {total, ok, overflow, pending}
     timeline_elapsed = 0
+    cooldown_count = 0
     if "error" not in r:
         for line in (r.get("stdout", "") + r.get("stderr", "")).splitlines():
             if "download=" in line and "expire=" in line:
@@ -321,6 +322,8 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
             m5 = re.match(r".*\[TIMELINE\]\s+query_bucketed_done\s+total=(\d+)\s+elapsed=([\d.]+)", line)
             if m5:
                 timeline_elapsed = float(m5.group(2))
+            if "[COOLDOWN]" in line:
+                cooldown_count += 1
         results["checkpoints"]["query"] = {
             "download": dl_count, "expire": ex_count, "pending": pe_count,
             "exact": exact_count,
@@ -332,6 +335,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
             results["checkpoints"]["query"]["funnel"] = funnel
         if timeline_elapsed:
             results["checkpoints"]["query"]["funnel_elapsed_s"] = timeline_elapsed
+        results["checkpoints"]["query"]["cooldown_count"] = cooldown_count
         _log(f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}")
         if bucket_stats:
             _log(f"    bucket_stats: {bucket_stats}")
@@ -637,6 +641,7 @@ def _step4_verdict(step1_ok: bool, step2_ok: bool, step3_ok: bool,
     for line in lines:
         _log(line)
     _log(f"判定: {verdict}")
+    _log("基线对比——逐轮(0617): pending=206 elapsed=24min cooled=1348")
 
     verdict_path = os.path.join(RESULT_DIR, "verdict.json")
     with open(verdict_path, "w", encoding="utf-8") as f:
