@@ -10,10 +10,6 @@ from unittest.mock import patch, MagicMock
 import json as _json
 from fastapi import HTTPException
 
-# —— mock docker.sock 存在 ——
-_patched_sock = patch("os.path.exists", return_value=True)
-_patched_sock.start()
-
 # —— 直接测函数，绕过 HTTP 鉴权层 ——
 from docker.api.system import update_container, _get_container_id, _run_docker
 
@@ -28,9 +24,13 @@ class TestUpdateFunction(unittest.TestCase):
         self.patch_docker = patch("docker.api.system._run_docker")
         self.mock_docker = self.patch_docker.start()
 
+        self.patch_exists = patch("os.path.exists", return_value=True)
+        self.patch_exists.start()
+
     def tearDown(self):
         self.patch_cid.stop()
         self.patch_docker.stop()
+        self.patch_exists.stop()
 
     def _set_docker_sequence(self, *outputs):
         results = []
