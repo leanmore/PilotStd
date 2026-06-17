@@ -7,7 +7,9 @@ from pilotstd import __version__
 router = APIRouter(prefix="/api/system", tags=["system"])
 logger = logging.getLogger(__name__)
 
-IMAGE = "ghcr.io/leanmore/pilotstd:latest"
+IMAGE_REGISTRY = "ghcr.io/leanmore/pilotstd"
+IMAGE_LATEST = f"{IMAGE_REGISTRY}:latest"
+IMAGE_VERSIONED = f"{IMAGE_REGISTRY}:v{__version__}"
 
 
 def _get_container_id() -> str:
@@ -43,7 +45,8 @@ async def get_version():
         "version": __version__,
         "tag": f"v{__version__}",
         "container_id": cid,
-        "image": IMAGE,
+        "image": IMAGE_VERSIONED,
+        "image_latest": IMAGE_LATEST,
     }
 
 
@@ -76,11 +79,11 @@ async def update_container():
             pass
 
         # 2. 拉取最新镜像
-        pull = _run_docker(["pull", IMAGE], timeout=300)
+        pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
         pulled_layers = [l for l in pull.stdout.split("\n") if "Downloaded" in l or "Pulled" in l]
 
         # 3. 比较
-        new_inspect = _run_docker(["image", "inspect", IMAGE, "--format", "{{.RepoDigests}}"])
+        new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
         new_digest = new_inspect.stdout.strip()
 
         if new_digest and old_digest and new_digest == old_digest:
