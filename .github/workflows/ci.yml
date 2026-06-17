@@ -1,4 +1,4 @@
-# PilotStd CI — 测试 + Docker 镜像推送到 ghcr.io
+# PilotStd CI — 测试 + Docker 镜像推送 ghcr.io
 name: Docker CI
 run-name: Docker | ${{ github.event.head_commit.message }}
 
