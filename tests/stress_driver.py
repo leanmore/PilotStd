@@ -615,7 +615,7 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
 # ── 第四步：汇总判定 ──────────────────────────────────────────
 
 def _step4_verdict(step1_ok: bool, step2_ok: bool, step3_ok: bool,
-                   skip_winui: bool, skip_docker: bool):
+                   skip_winui: bool, skip_docker: bool, step1_data: dict = None):
     """汇总判定，写入方案执行记录。"""
     _log("=" * 50)
     _log("汇总判定")
@@ -640,8 +640,23 @@ def _step4_verdict(step1_ok: bool, step2_ok: bool, step3_ok: bool,
 
     for line in lines:
         _log(line)
+
+    # 逐桶指标对比基线
+    if step1_data:
+        q = step1_data.get("checkpoints", {}).get("query", {})
+        funnel = q.get("funnel", {})
+        cooldown = q.get("cooldown_count", -1)
+        elapsed = q.get("funnel_elapsed_s", 0)
+        _log(f"逐桶指标: pending={funnel.get('pending','?')} "
+             f"overflow={funnel.get('overflow','?')} "
+             f"cooldown={cooldown} elapsed={elapsed:.0f}s")
+        _log("基线(0617逐轮): pending=206 elapsed=1440s cooled=1348")
+        if funnel.get("pending", 999) <= 206 and cooldown == 0:
+            _log("逐桶对比: 优于基线 ✓")
+        else:
+            _log("逐桶对比: 未达基线，需分析 ✗")
+
     _log(f"判定: {verdict}")
-    _log("基线对比——逐轮(0617): pending=206 elapsed=24min cooled=1348")
 
     verdict_path = os.path.join(RESULT_DIR, "verdict.json")
     with open(verdict_path, "w", encoding="utf-8") as f:
@@ -681,7 +696,7 @@ def main():
         if not args.skip_docker:
             step3_ok = _step3_docker(args.docker_url, args.docker_user, args.docker_pass)
         verdict = _step4_verdict(True, step2_ok, step3_ok,
-                                 False, args.skip_docker)
+                                 False, args.skip_docker, None)
         return 0 if verdict == "PASS" else 1
 
     # 第〇步：环境自检
@@ -786,7 +801,7 @@ def main():
 
     # 第四步：判定
     verdict = _step4_verdict(step1_ok, step2_ok, step3_ok,
-                             args.skip_winui, args.skip_docker)
+                             args.skip_winui, args.skip_docker, step1)
 
     # 返回码
     return 0 if verdict == "PASS" else 1
