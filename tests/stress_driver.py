@@ -52,7 +52,17 @@ def _parse_args():
     p.add_argument("--winui-only", action="store_true", help="仅执行 WinUI 步骤（跳过CLI冷启）")
     p.add_argument("--step1", default=None, help="step1.json 路径（winui-only 模式时由总入口传入）")
     p.add_argument("--result-dir", default=None, help="结果目录（由 stress_all 传入，统一输出位置）")
+    p.add_argument("--config", default=None, help="压测配置文件路径（JSON，含 Docker/OCR 凭证）")
     return p.parse_args()
+
+
+def _load_test_config(path: str) -> dict:
+    """加载压测配置文件（不上传 git，仅本地使用）。"""
+    import json as _json
+    if not path or not os.path.exists(path):
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        return _json.load(f)
 
 
 def _log(msg):
@@ -226,7 +236,8 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
 
 # ── 第一步：CLI 冷启 ─────────────────────────────────────────
 
-def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
+def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int,
+                   ocr_config: dict = None):
     """CLI 冷启分阶段。依次执行全管线，记录数据到 step1.json。"""
     _log("=" * 50)
     _log("第一步：CLI 冷启分阶段")
@@ -235,6 +246,14 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int):
     cli_module = "pilotstd.cli.commands"
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
+
+    if ocr_config:
+        env["OCR_BAIDU_API_KEY"] = ocr_config.get("baidu_api_key", "")
+        env["OCR_BAIDU_SECRET_KEY"] = ocr_config.get("baidu_secret_key", "")
+        env["OCR_TENCENT_SECRET_ID"] = ocr_config.get("tencent_secret_id", "")
+        env["OCR_TENCENT_SECRET_KEY"] = ocr_config.get("tencent_secret_key", "")
+        env["OCR_ALIYUN_ACCESS_KEY_ID"] = ocr_config.get("aliyun_access_key_id", "")
+        env["OCR_ALIYUN_ACCESS_KEY_SECRET"] = ocr_config.get("aliyun_access_key_secret", "")
 
     results = {"step": 1, "ts": TS, "checkpoints": {}}
 
@@ -706,6 +725,14 @@ def _yes(args):
 def main():
     global RESULT_DIR, TS
     args = _parse_args()
+
+    # 加载本地压测配置（JSON，不上传 git），命令行参数优先
+    cfg = _load_test_config(getattr(args, 'config', None))
+    docker_cfg = cfg.get("docker", {})
+    ocr_cfg = cfg.get("ocr", {})
+    docker_url = args.docker_url or docker_cfg.get("url", "")
+    docker_user = args.docker_user or docker_cfg.get("username", "")
+    docker_pass = args.docker_pass or docker_cfg.get("password", "")
     TS = datetime.now().strftime("%Y%m%d_%H%M%S")
     RESULT_DIR = args.result_dir or os.path.join(ROOT, "logs", f"stress_{TS}")
     os.makedirs(RESULT_DIR, exist_ok=True)
@@ -726,7 +753,7 @@ def main():
             args.timeout_auto)
         step3_ok = True
         if not args.skip_docker:
-            step3_ok = _step3_docker(args.docker_url, args.docker_user, args.docker_pass)
+            step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
         verdict = _step4_verdict(True, step2_ok, step3_ok,
                                  False, args.skip_docker, None)
         return 0 if verdict == "PASS" else 1
@@ -735,7 +762,7 @@ def main():
     _log("=" * 50)
     _log("第〇步：环境自检")
     _step0_check_preconditions(args.source, args.output,
-                               args.skip_docker, args.docker_url)
+                               args.skip_docker, docker_url)
     _log("-" * 40)
     if not _yes(args):
         ans = input("是否开始测试？(y/n): ").strip().lower()
@@ -762,7 +789,7 @@ def main():
     _log("自检通过")
 
     # 第一步：CLI 冷启
-    step1 = _step1_cli_cold(args.source, args.output, args.timeout_query)
+    step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
     step1_ok = all(
         step1["checkpoints"].get(c, {}).get("rc", 1) == 0
         for c in ["scan", "query", "download", "normalize", "organize", "expire", "announce", "task"]
@@ -827,7 +854,7 @@ def main():
             if ans not in ("y", "yes"):
                 _log("已取消，测试停止。")
                 return 0
-        step3_ok = _step3_docker(args.docker_url, args.docker_user, args.docker_pass)
+        step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
     else:
         _log("第三步：跳过（--skip-docker）")
 
