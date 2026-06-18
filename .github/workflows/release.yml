@@ -131,7 +131,21 @@ jobs:
           $zip_size = "{0:N0} MB" -f ((Get-Item $zip_name).Length / 1MB)
           Write-Host "打包完成: $zip_name ($zip_size)"
 
-      # ── 5. 上传 artifact ──
+      # ── 5. 版本号回写（必须在 Release 前执行，确保 tag 指向正确的版本号）──
+      - name: Commit version bump
+        if: steps.version.outputs.bumped == 'true'
+        id: bump_commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pilotstd/__init__.py
+          git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }} [skip ci]"
+          git pull --rebase origin main
+          git push
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      # ── 6. 上传 artifact ──
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
@@ -139,11 +153,12 @@ jobs:
           path: PilotStd-${{ steps.version.outputs.version }}.zip
           retention-days: 7
 
-      # ── 6. GitHub Release ──
+      # ── 7. GitHub Release ──
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
+          target_commitish: ${{ steps.bump_commit.outputs.sha || github.sha }}
           name: PilotStd ${{ steps.version.outputs.version }}
           prerelease: ${{ steps.version.outputs.prerelease }}
           make_latest: ${{ steps.version.outputs.prerelease == 'false' }}
@@ -167,16 +182,3 @@ jobs:
             - 正式版（`v0.4.0`）：标签推送，稳定 Release
             - 开发版（`v0.4.0-dev.XXXXXXX`）：每次推送 main 自动构建
           files: PilotStd-${{ steps.version.outputs.version }}.zip
-
-      # ── 7. 版本号回写 ──
-      - name: Commit version bump
-        if: steps.version.outputs.bumped == 'true'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pilotstd/__init__.py
-          git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }} [skip ci]"
-          # 先拉取远程最新再推送，防止并发 workflow 导致 push rejected
-          git pull --rebase origin main
-          git push
