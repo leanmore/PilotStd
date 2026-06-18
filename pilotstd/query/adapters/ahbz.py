@@ -50,28 +50,6 @@ class AhbzAdapter(BaseAdapter):
         session.headers["User-Agent"] = CHROME_UA
         return self._search_single(search_term, session)
 
-    def query_single(self, standard_number: str) -> Optional[QueryResult]:
-        results = self.query_batch([standard_number])
-        return results[0] if results else None
-
-    def query_batch(self, standard_numbers: List[str]) -> List[QueryResult]:
-        session = requests.Session()
-        session.headers["User-Agent"] = CHROME_UA
-        results = []
-        for num in standard_numbers:
-            try:
-                r = self._search_single(num, session)
-                results.append(r)
-            except Exception as e:
-                logger.warning("ahbz 查询异常: %s - %s", num, e)
-                results.append(QueryResult(
-                    standard_number=num,
-                    error_message=f"查询异常: {e}",
-                    source_site=self.site_name))
-        return results
-
-    # ── 内部搜索逻辑 ──
-
     def _search_single(self, standard_number: str, session: requests.Session) -> QueryResult:
         """搜索单个标准号，在模糊匹配结果中过滤精确匹配。"""
         # 从标准号提取 code + type
@@ -84,8 +62,9 @@ class AhbzAdapter(BaseAdapter):
 
         code = self._normalize_code(standard_number)
 
-        # 请求API
-        payload = {"type": std_type, "code": code, "size": 20, "page": 1}
+        # 请求API — 使用 keyWord 全文检索（同网页搜索框），非 code 字段模糊匹配
+        # code 参数对空格敏感（"API 685 2000"→0行），keyWord 不限格式
+        payload = {"type": std_type, "keyWord": code, "size": 20, "page": 1}
         resp = safe_request(session, "POST", SEARCH_URL, self.site_name,
                            timeout=15, json=payload)
         if resp is None:

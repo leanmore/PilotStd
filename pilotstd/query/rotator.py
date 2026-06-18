@@ -51,6 +51,7 @@ class SiteRotator:
         self._lock = threading.Lock()
         self._sites: Dict[str, SiteState] = {}
         self._last_cooldown_log: Dict[str, float] = {}  # 冷却日志节流
+        self._was_cooling: Dict[str, bool] = {}  # 追踪冷却退出
         self._db = db  # 可选：数据库实例，用于持久化冷却状态
         if sites:
             for s in sites:
@@ -89,21 +90,41 @@ class SiteRotator:
                 # 日上限检查——到上限后当天不再使用
                 self._check_daily_reset(site)
                 if site.daily_limit > 0 and site.daily_count >= site.daily_limit:
-                    logger.debug(f"站点 {name} 已达日上限 {site.daily_limit}，当天不再使用")
+                    logger.info("[QUOTA] site=%s action=daily_exhausted daily_count=%d daily_limit=%d",
+                                name, site.daily_count, site.daily_limit)
                     continue
+                # 检测冷却退出
+                was_cooling = self._was_cooling.get(name, False)
                 if site.cooldown_until > 0 and now < site.cooldown_until:
-                    # 冷却日志节流：每站点每 60 秒最多记录一次
                     remaining = site.cooldown_until - now
                     last_log = self._last_cooldown_log.get(name, 0)
                     if now - last_log >= 60:
-                        logger.info(f"站点冷却中: {name} (剩余 {remaining:.0f}s)")
+                        logger.info("[COOLDOWN] site=%s action=status remaining_s=%.0f cooldown_s=%d",
+                                    name, remaining, site.cooldown_seconds)
                         self._last_cooldown_log[name] = now
+                    self._was_cooling[name] = True
                     continue
+                if site.cooldown_until > 0 and now >= site.cooldown_until:
+                    # 冷却已到期，自动恢复
+                    duration = now - (site.cooldown_until - site.cooldown_seconds)
+                    site.cooldown_until = 0.0
+                    site.request_count = 0
+                    self._was_cooling[name] = False
+                    logger.info("[COOLDOWN] site=%s action=exit duration_s=%.0f cooldown_configured_s=%d",
+                                name, duration, site.cooldown_seconds)
+                elif was_cooling and site.cooldown_until == 0:
+                    # 冷却被 reset_all_cooldowns 或其他方式清零
+                    self._was_cooling[name] = False
                 if site.request_count >= site.max_requests:
                     self._enter_cooldown(site)
-                    self._save()  # 持久化冷却状态
-                    logger.info(f"站点达到请求上限，进入冷却: {name} ({site.cooldown_seconds}s)")
+                    self._save()
+                    logger.info("[COOLDOWN] site=%s action=enter reason=max_requests "
+                                "request_count=%d max_requests=%d cooldown_s=%d daily_count=%d daily_limit=%d",
+                                name, site.request_count, site.max_requests,
+                                site.cooldown_seconds, site.daily_count, site.daily_limit)
+                    self._was_cooling[name] = True
                     continue
+                self._was_cooling[name] = False
                 available.append(name)
             return available
 
@@ -115,6 +136,15 @@ class SiteRotator:
                 site.request_count += 1
                 site.daily_count += 1
                 site.consecutive_errors = 0
+                # 里程碑日志：50%/75%/90% 阈值
+                pct = site.request_count / site.max_requests if site.max_requests else 0
+                if pct >= 0.9 or (site.max_requests > 0 and
+                                   site.request_count in (site.max_requests // 2,
+                                                          site.max_requests * 3 // 4)):
+                    logger.info("[ROTATOR] site=%s request_count=%d/%d (%.0f%%) "
+                                "daily_count=%d/%d",
+                                name, site.request_count, site.max_requests,
+                                pct * 100, site.daily_count, site.daily_limit)
 
     def record_error(self, name: str) -> Optional[str]:
         """记录一次错误。返回切换后的新 URL（如有），或 None。"""
@@ -134,12 +164,18 @@ class SiteRotator:
                     site.consecutive_errors = 0
                     site.fallback_urls.append(site.base_url)  # 原URL作为最后的回退
                     site.base_url = new_url
-                    logger.warning(f"站点 {name} 切换备用地址: {new_url}")
+                    logger.warning("[ROTATOR] site=%s action=switch_url url=%s",
+                                   name, new_url)
                     return new_url
                 else:
                     self._enter_cooldown(site)
-                    self._save()  # 持久化冷却状态
-                    logger.warning(f"站点 {name} 无备用地址，进入冷却")
+                    self._save()
+                    logger.warning("[COOLDOWN] site=%s action=enter reason=error_threshold "
+                                   "request_count=%d max_requests=%d cooldown_s=%d "
+                                   "consecutive_errors=%d",
+                                   name, site.request_count, site.max_requests,
+                                   site.cooldown_seconds, site.consecutive_errors)
+                    return new_url
             return None
 
     def force_cooldown(self, name: str, seconds: int = DEFAULT_COOLDOWN_SECONDS) -> None:
@@ -154,7 +190,8 @@ class SiteRotator:
                 site.request_count = 0
                 site.consecutive_errors = 0
                 self._save()  # 持久化冷却状态
-                logger.info(f"站点强制冷却: {name} ({seconds}s)")
+                logger.info("[COOLDOWN] site=%s action=enter reason=forced cooldown_s=%d",
+                            name, seconds)
 
     def all_in_cooldown(self, priority_order: List[str]) -> bool:
         with self._lock:

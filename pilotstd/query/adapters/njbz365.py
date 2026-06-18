@@ -270,7 +270,12 @@ class Njbz365Adapter(BaseAdapter):
     def _search(self, search_term: str,
                 target_code: str = "", target_number: int = 0,
                 target_year: int = 0) -> Optional[QueryResult]:
-        """单结果兼容接口。"""
+        """单结果兼容接口。target 为空时从 search_term 自动解析。"""
+        if not target_code:
+            parsed = _parse_result_number(search_term)
+            target_code = parsed.get("code", "")
+            target_number = parsed.get("number", 0)
+            target_year = parsed.get("year", 0)
         candidates = self._search_candidates(
             search_term, target_code, target_number, target_year)
         return candidates[0] if candidates else None
@@ -345,29 +350,9 @@ class Njbz365Adapter(BaseAdapter):
             return self._fetch_replaces(result.hcno, result.standard_number) or ""
         return ""
 
-    def query_single(self, standard_number: str) -> Optional[QueryResult]:
-        """按标准号搜索，解析目标参数传给 _search 做正确比对。"""
-        parsed = _parse_result_number(standard_number)
-        return self._search(standard_number,
-                            target_code=parsed.get("code", ""),
-                            target_number=parsed.get("number", 0),
-                            target_year=parsed.get("year", 0))
-
 
 def _parse_result_number(standard_number: str) -> dict:
-    """从标准编号字符串解析代号、顺序号、年份、部分号。"""
-    m = re.match(
-        r"([A-Z]+(?:/[A-Z]+)?)\s*(\d+)(?:\.(\d+))?(?:[Pp](\d+))?-(\d{4})",
-        standard_number)
-    if m:
-        return {
-            "code": m.group(1), "number": int(m.group(2)),
-            "part": (int(m.group(3)) if m.group(3) else
-                     (int(m.group(4)) if m.group(4) else None)),
-            "year": int(m.group(5)),
-        }
-    m2 = re.match(r"([A-Z]+(?:/[A-Z]+)?)\s*(\d+)", standard_number)
-    if m2:
-        return {"code": m2.group(1), "number": int(m2.group(2)),
-                "part": None, "year": 0}
-    return {"code": "", "number": 0, "part": None, "year": 0}
+    """从标准编号字符串解析代号、顺序号、年份、部分号。委托公用解析器。"""
+    from ...core.std_utils import parse_std_number
+    r = parse_std_number(standard_number)
+    return r if r else {"code": "", "number": 0, "part": None, "year": 0}

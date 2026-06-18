@@ -143,7 +143,13 @@ class QueryClassifier:
             if not getattr(adapter, 'supports_replaces_detail', False):
                 continue
             try:
-                result = adapter.query_single(standard_number)
+                from ..core.std_utils import parse_std_number
+                parsed = parse_std_number(standard_number)
+                if not parsed:
+                    continue
+                result = adapter.query_with_strategy(
+                    parsed["code"], parsed["number"], parsed.get("year", 0),
+                    num_prefix=parsed.get("num_prefix", ""))
                 if result is None or not result.is_found():
                     continue
                 if self._query_engine._use_cache:

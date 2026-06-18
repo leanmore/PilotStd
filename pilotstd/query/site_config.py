@@ -18,11 +18,11 @@ def create_default_sites() -> list[SiteState]:
     """
     return [
         SiteState(name="ahbz", base_url="https://bzxx.ahbz.org.cn",
-                  max_requests=200, daily_limit=800),
+                  max_requests=200, daily_limit=800, cooldown_seconds=300),
         SiteState(name="std_gov", base_url="https://openstd.samr.gov.cn",
-                  max_requests=200, daily_limit=800),
+                  max_requests=200, daily_limit=800, cooldown_seconds=300),
         SiteState(name="hbba", base_url="https://hbba.sacinfo.org.cn",
-                  max_requests=200, daily_limit=800),
+                  max_requests=200, daily_limit=800, cooldown_seconds=900),
         SiteState(name="iso_gov", base_url="https://std.samr.gov.cn",
                   max_requests=200, daily_limit=800),
         SiteState(name="njbz365", base_url="https://www.njbz365.cn",

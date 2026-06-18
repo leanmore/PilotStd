@@ -108,46 +108,51 @@ class QueryEngine:
 
     def query_single(self, standard_number: str,
                      force_refresh: bool = False) -> QueryResult:
-        """根据标准号字符串查询单个标准。
-
-        流程：缓存命中直接返回 → 按优先级遍历适配器 → 首个命中即返回。
-        适用于命令行或 API 调用，只需标准号文本即可。
-        """
-        # 先查缓存（force_refresh=True 时跳过）
+        """根据标准号字符串查询单个标准。解析后委托 query_with_strategy。"""
+        from ..core.std_utils import parse_std_number
+        # 先查缓存
         if self._use_cache and not force_refresh:
             for adapter in self._adapters:
                 cached = self._cache.get(standard_number, adapter.site_name)
                 if cached:
                     return cached
 
+        # 解析标准号
+        parsed = parse_std_number(standard_number)
+        if not parsed:
+            return QueryResult(
+                standard_number=standard_number,
+                error_message="无法解析标准号",
+                source_site="")
+
+        code = parsed["code"]
+        number = parsed["number"]
+        year = parsed.get("year", 0)
+        num_prefix = parsed.get("num_prefix", "")
+
         # 按优先级链依次尝试各适配器
-        # 从标准号字符串提取代号（如 "NB/T 20646-2023" → "NB/T"），用于精确路由
-        code_match = re.match(r'([A-Z]{2,}(?:\s*/\s*[A-Z]+)?)', standard_number.strip())
-        logical_code = code_match.group(1).replace(" ", "") if code_match else ""
-        priority = self._get_priority(logical_code)
+        priority = self._get_priority(code)
         quota_exhausted = True
         for name in priority:
             adapter = self._adapter_map.get(name)
             if adapter is None:
                 continue
-            # 配额耗尽则跳过该站点
             if self._quota and self._quota.get_search_remaining(name) <= 0:
                 logger.warning(f"{adapter.site_label}({name}) 今日配额已用尽，跳过")
                 continue
             quota_exhausted = False
-            result = adapter.query_single(standard_number)
+            result = adapter.query_with_strategy(
+                code, number, year, num_prefix=num_prefix)
             if result and result.is_found():
                 result.source_site = adapter.site_name
-                result = self._verify_adoption(result)  # 采标检测
-                # 查询结果始终写入缓存（不受 use_cache 控制，use_cache 仅控制读取）
+                result = self._verify_adoption(result)
                 if getattr(result, 'match_status', '') == 'exact':
                     self._cache.put(result)
-                self._record(name, 1)  # 记录配额消耗 + 轮转成功
+                self._record(name, 1)
                 return result
             if result and result.error_message:
                 logger.warning(f"查询失败 {standard_number} @ {adapter.site_name}: {result.error_message}")
 
-        # 所有站点都未命中
         if quota_exhausted:
             return QueryResult(
                 standard_number=standard_number,
@@ -703,8 +708,8 @@ class QueryEngine:
     _BUCKET_SIZE = 80
     # 子桶间冷却间隔（秒）
     _BUCKET_INTERVAL = 30
-    # csres 日配额
-    _CSRES_LIMIT = 40
+    # csres 日配额（30 GB + 20 行业）
+    _CSRES_LIMIT = 50
     # csres 连续失败熔断阈值
     _CSRES_CIRCUIT_BREAK = 5
     # 溢出站点共享配额（ahbz: 200 中 170 给溢出, njbz365: 200 全给溢出）
@@ -747,6 +752,11 @@ class QueryEngine:
         buckets: Dict[str, List[Tuple[int, tuple]]] = {}
         for i, item in enumerate(parsed_list):
             key = self._bucket_key(item[0])
+            # GB 类标准：ahbz 与 std_gov 同为一线，交替分配错开冷却
+            if key == "std_gov":
+                from ..core.std_utils import classify_std_code
+                if classify_std_code(item[0]) == "gb" and i % 2 == 0:
+                    key = "ahbz"
             buckets.setdefault(key, []).append((i, item))
 
         for key, items in buckets.items():
@@ -779,7 +789,9 @@ class QueryEngine:
                 return
             import random as _random
             import time as _time
-            pool = gb_items[:self._CSRES_LIMIT // 2] + industry_items[:self._CSRES_LIMIT // 2]
+            gb_take = int(self._CSRES_LIMIT * 0.6)  # 30
+            industry_take = self._CSRES_LIMIT - gb_take  # 20
+            pool = gb_items[:gb_take] + industry_items[:industry_take]
             _last_ts = _time.time()
             for idx, item in pool:
                 if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
@@ -791,14 +803,20 @@ class QueryEngine:
                         result.source_site = "csres"
                         csres_results[idx] = result
                         csres_failures[0] = 0
+                        logger.info("[CSRES] idx=%d code=%s action=found score=100",
+                                    idx, item[0])
                     else:
                         csres_failures[0] += 1
+                        logger.info("[CSRES] idx=%d code=%s action=not_found failures=%d/%d",
+                                    idx, item[0], csres_failures[0], self._CSRES_CIRCUIT_BREAK)
                 except Exception:
                     csres_failures[0] += 1
+                    logger.info("[CSRES] idx=%d code=%s action=error failures=%d/%d",
+                                idx, item[0], csres_failures[0], self._CSRES_CIRCUIT_BREAK)
                 delay = _random.uniform(5, 10)
                 _time.sleep(delay)
                 now = _time.time()
-                logger.debug("[CSRES_INTERVAL] actual=%.1fs target=%.1fs",
+                logger.info("[CSRES_INTERVAL] actual=%.1fs target=%.1fs",
                            now - _last_ts, delay)
                 _last_ts = now
 
@@ -828,6 +846,9 @@ class QueryEngine:
             _ts = _time.time()
             chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
             chain = [s for s in chain if s != "csres"]
+            # 桶键可能不是链首（如 GB 分桶到 ahbz），裁剪链从当前主站开始
+            if primary_site in chain:
+                chain = chain[chain.index(primary_site):]
 
             sub_buckets = [bucket_items[i:i + self._BUCKET_SIZE]
                           for i in range(0, len(bucket_items), self._BUCKET_SIZE)]
@@ -841,8 +862,10 @@ class QueryEngine:
                     # 检查冷却
                     if self._rotator and self._rotator.get_cooldown_remaining(primary_site) > 0:
                         # 主站点冷却→尝试溢出到链上下一个站点
-                        logger.info("[COOLDOWN] site=%s triggered_by=%s_bucket",
-                                   primary_site, primary_site)
+                        remaining = self._rotator.get_cooldown_remaining(primary_site)
+                        logger.info("[COOLDOWN] site=%s action=overflow_skip "
+                                    "remaining_s=%.0f chain=%s",
+                                    primary_site, remaining, "→".join(chain))
                         overflow_site = chain[1] if len(chain) > 1 else None
                         if overflow_site and _try_overflow(overflow_site):
                             assigned_site = overflow_site

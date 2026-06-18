@@ -81,19 +81,11 @@ class AnnouncementMatcher:
         return result
 
     def _parse_std_code(self, std_code: str) -> dict | None:
-        """解析标准编号字符串为 logical_code + number。
-
-        'GB/T 19001—2025' → {logical_code: 'GB/T', number: 19001}
-        """
-        import re
-        m = re.match(
-            r'([A-Z]+(?:/[A-Z]+)?)\s*(\d+)(?:\.\d+)?(?:\s*[—\-])?',
-            std_code.strip())
-        if m:
-            return {
-                "logical_code": m.group(1),
-                "number": int(m.group(2)),
-            }
+        """解析标准编号字符串为 logical_code + number。委托公用解析器。"""
+        from ..core.std_utils import parse_std_number
+        r = parse_std_number(std_code)
+        if r:
+            return {"logical_code": r["code"], "number": r["number"]}
         return None
 
     def _find_in_file_index(self, logical_code: str, number: int) -> list[dict]:

@@ -313,7 +313,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int,
     t0 = time.time()
     r = _safe_run(
         [python, "-m", cli_module, "--storage-root", output_dir,
-         "query", "--file", nums_file, "--no-cache"],
+         "query", "--file", nums_file],
         timeout=timeout_query or 3600, step_name="query", env=env)
     # 从 query 输出解析分类计数 + 逐桶统计
     dl_count = ex_count = pe_count = exact_count = 0
@@ -348,6 +348,33 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int,
                 timeline_elapsed = float(m5.group(2))
             if "[COOLDOWN]" in line:
                 cooldown_count += 1
+                # 解析新版结构化格式: [COOLDOWN] site=X action=enter reason=Y cooldown_s=Z
+                cs = re.search(r"\[COOLDOWN\]\s+site=(\S+)\s+action=(\S+)", line)
+                if cs:
+                    site_name = cs.group(1)
+                    action = cs.group(2)
+                    if "cooldown_details" not in results["checkpoints"]["query"]:
+                        results["checkpoints"]["query"]["cooldown_details"] = {}
+                    cdetails = results["checkpoints"]["query"]["cooldown_details"]
+                    if site_name not in cdetails:
+                        cdetails[site_name] = {}
+                    cdetails[site_name][action] = cdetails[site_name].get(action, 0) + 1
+            # 解析 ROTATOR 里程碑日志
+            mr = re.match(r".*\[ROTATOR\]\s+site=(\S+)\s+request_count=(\d+)/(\d+)\s+\((\d+)%\)\s+daily_count=(\d+)/(\d+)", line)
+            if mr:
+                if "rotator_milestones" not in results["checkpoints"]["query"]:
+                    results["checkpoints"]["query"]["rotator_milestones"] = []
+                results["checkpoints"]["query"]["rotator_milestones"].append({
+                    "site": mr.group(1), "request_count": int(mr.group(2)),
+                    "max_requests": int(mr.group(3)), "pct": int(mr.group(4)),
+                    "daily_count": int(mr.group(5)), "daily_limit": int(mr.group(6))})
+            # 解析 CSRES_INTERVAL 日志（每条约 5-10s）
+            mi = re.match(r".*\[CSRES_INTERVAL\]\s+actual=([\d.]+)s\s+target=([\d.]+)s", line)
+            if mi:
+                if "csres_intervals" not in results["checkpoints"]["query"]:
+                    results["checkpoints"]["query"]["csres_intervals"] = []
+                results["checkpoints"]["query"]["csres_intervals"].append({
+                    "actual": float(mi.group(1)), "target": float(mi.group(2))})
             m6 = re.match(r".*\[CSRES\]\s+processed=(\d+)\s+failures=(\d+)", line)
             if m6:
                 csres_info = {"processed": int(m6.group(1)), "failures": int(m6.group(2))}
@@ -691,14 +718,31 @@ def _step4_verdict(step1_ok: bool, step2_ok: bool, step3_ok: bool,
         q = step1_data.get("checkpoints", {}).get("query", {})
         funnel = q.get("funnel", {})
         cooldown = q.get("cooldown_count", -1)
+        cooldown_details = q.get("cooldown_details", {})
         elapsed = q.get("funnel_elapsed_s", 0)
         csres = q.get("csres", {})
+        csres_intervals = q.get("csres_intervals", [])
         water = q.get("water_level", {})
+        milestones = q.get("rotator_milestones", [])
         _log(f"逐桶指标: pending={funnel.get('pending','?')} "
              f"overflow={funnel.get('overflow','?')} "
              f"cooldown={cooldown} elapsed={elapsed:.0f}s")
+        if cooldown_details:
+            for site, actions in sorted(cooldown_details.items()):
+                enter = actions.get("enter", 0)
+                exit_ = actions.get("exit", 0)
+                status = actions.get("status", 0)
+                overflow = actions.get("overflow_skip", 0)
+                _log(f"  冷却详情 site={site} enter={enter} exit={exit_} status={status} overflow_skip={overflow}")
+        if milestones:
+            _log(f"  ROTATOR里程碑: {len(milestones)} 条")
+            for m in milestones:
+                _log(f"    {m['site']} {m['request_count']}/{m['max_requests']} ({m['pct']}%) daily={m['daily_count']}/{m['daily_limit']}")
         if csres:
             _log(f"csres: processed={csres.get('processed','?')} failures={csres.get('failures','?')}")
+        if csres_intervals:
+            actuals = [x["actual"] for x in csres_intervals]
+            _log(f"csres间隔: min={min(actuals):.1f}s max={max(actuals):.1f}s avg={sum(actuals)/len(actuals):.1f}s count={len(actuals)}")
         if water:
             _log(f"water: ahbz_remain={water.get('ahbz_remain','?')} njbz_remain={water.get('njbz_remain','?')}")
         _log("基线(0617逐轮): pending=206 elapsed=1440s cooled=1348")
