@@ -70,20 +70,23 @@ class ScheduledService:
         rows = self._file_index.get_recheck_candidates(limit=500)
         if not rows:
             return {"checked": 0, "updated": 0}
-        numbers = [r["standard_number"] for r in rows if r.get("standard_number")]
-        results = []
-        for num in numbers:
-            r = self._query_engine.query_single(num)
-            results.append(r)
         updated = 0
-        for i, r in enumerate(results):
-            if r and r.is_found() and r.status != rows[i].get("status"):
-                self._file_index.upsert(rows[i]["file_path"],
-                    logical_code=rows[i].get("logical_code", ""),
-                    number=rows[i].get("number", 0), year=rows[i].get("year", 0),
+        checked = 0
+        for row in rows:
+            lc = row.get("logical_code", "")
+            num = row.get("number", 0)
+            yr = row.get("year", 0)
+            if not lc or not num:
+                continue
+            r = self._query_engine.query_parsed(lc, num, yr,
+                num_prefix=row.get("num_prefix", ""))
+            checked += 1
+            if r and r.is_found() and r.status != row.get("status"):
+                self._file_index.upsert(row["file_path"],
+                    logical_code=lc, number=num, year=yr,
                     std_name=r.standard_name, status=r.status)
                 updated += 1
-        return {"checked": len(results), "updated": updated}
+        return {"checked": checked, "updated": updated}
 
     # ════════════════════════════════════════════════════════════════
     # 批量查询/下载
@@ -92,14 +95,34 @@ class ScheduledService:
     def query_by_numbers(self, numbers: List[str], force_refresh: bool = False,
                           preferred_site: str = "") -> tuple:
         """直接按标准号字符串列表查询（跳过扫描步骤）。"""
-        results, stats = self._query_engine.query_batch(
-            numbers, force_refresh=force_refresh, preferred_site=preferred_site)
+        from ..core.std_utils import parse_std_number
+        parsed = []
+        for n in numbers:
+            p = parse_std_number(n)
+            if p:
+                parsed.append((n, p))
+        items = [(p["code"], p["number"], p.get("year", 0),
+                  p.get("num_prefix", ""), p.get("part"), n) for n, p in parsed]
+        results = self._query_engine.query_batch_parsed(
+            items, preferred_site=preferred_site)
+        # 构建兼容的 stats（旧调用方期望 tuple）
+        total = len(results)
+        found = sum(1 for r in results if r.is_found())
+        from ..query.models import BatchQueryStats
+        stats = BatchQueryStats(total=total, found=found)
         return results, stats
 
     def download_by_numbers(self, numbers: List[str]) -> tuple:
         """按标准号列表下载。先查询获取采标状态，采标标准给提示并跳过。"""
-        # 先查询获取采标信息
-        query_results, _stats = self._query_engine.query_batch(numbers)
+        from ..core.std_utils import parse_std_number
+        parsed = []
+        for n in numbers:
+            p = parse_std_number(n)
+            if p:
+                parsed.append((n, p))
+        items = [(p["code"], p["number"], p.get("year", 0),
+                  p.get("num_prefix", ""), p.get("part"), n) for n, p in parsed]
+        query_results = self._query_engine.query_batch_parsed(items)
         tasks = []
         adopted_skipped = []
         for n, r in zip(numbers, query_results):
