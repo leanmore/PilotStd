@@ -135,11 +135,11 @@ class TestNjbz365SearchFix(unittest.TestCase):
         # 空字符串代号 vs GB/T → 不应该是 exact
         self.assertNotEqual(result.match_status, "exact")
 
-    def test_query_single_parses_target_from_number(self):
-        """query_single 从 standard_number 解析目标参数传给 _search。"""
+    def test_query_with_strategy_detects_mismatch(self):
+        """query_with_strategy 用结构化参数匹配 API 返回，检测不匹配。"""
         adapter = self.adapter
         adapter._do_request = MagicMock(return_value=self._fake_do_request(None))
-        result = adapter.query_single("API 610-2004")
+        result = adapter.query_with_strategy("API", 610, 2004)
         self.assertIsNotNone(result)
         # API 目标 vs GB/T 返回 → 不应该是 exact
         self.assertNotEqual(result.match_status, "exact")
