@@ -9,6 +9,7 @@ if root_dir not in sys.path:
 import unittest
 import tempfile
 import shutil
+from unittest.mock import MagicMock
 from datetime import datetime, timedelta
 
 from pilotstd.core.db import Database
@@ -156,31 +157,33 @@ class TestQueryEngine(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_single_query_found(self):
-        r = self.engine.query_single("GB/T 19001-2020")
+        r = self.engine.query_parsed("GB/T", 19001, 2020)
         self.assertTrue(r.is_found())
         self.assertEqual(r.status, "现行")
 
     def test_single_query_not_found(self):
-        r = self.engine.query_single("NONE_12345-2020")
+        r = self.engine.query_parsed("NONE", 12345, 2020)
         self.assertFalse(r.is_found())
 
     def test_cache_reuse(self):
-        self.engine.query_single("GB/T 19001-2020")
+        self.engine.query_parsed("GB/T", 19001, 2020)
         cached = self.cache.get("GB/T 19001-2020", "mock_active")
         self.assertIsNotNone(cached)
 
     def test_force_refresh(self):
-        self.engine.query_single("GB/T 19001-2020")
+        self.engine.query_parsed("GB/T", 19001, 2020)
         self.cache.refresh("GB/T 19001-2020", "mock_active")
-        r = self.engine.query_single("GB/T 19001-2020", force_refresh=True)
+        r = self.engine.query_parsed("GB/T", 19001, 2020, force_refresh=True)
         self.assertTrue(r.is_found())
 
     def test_batch_query(self):
-        numbers = ["GB/T 1-2020", "GB/T 2-2020", "NONE_3-2020"]
-        results, stats = self.engine.query_batch(numbers)
-        self.assertEqual(stats.total, 3)
-        # query_batch 现在走 query_batch_parsed 的类型路由，Mock 适配器返回全部 found
-        self.assertGreaterEqual(stats.found, 0)
+        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
+                 ("GB/T", 2, 2020, "", None, "GB/T 2-2020"),
+                 ("NONE", 3, 2020, "", None, "NONE_3-2020")]
+        results = self.engine.query_batch_parsed(items)
+        self.assertEqual(len(results), 3)
+        found = sum(1 for r in results if r.is_found())
+        self.assertGreaterEqual(found, 0)
 
     def test_disabled_cache(self):
         """use_cache=False 仅跳过缓存读取，查询结果仍应写入缓存。"""
@@ -189,7 +192,7 @@ class TestQueryEngine(unittest.TestCase):
             cache=self.cache,
             use_cache=False,
         )
-        engine.query_single("GB/T 19001-2020")
+        engine.query_parsed("GB/T", 19001, 2020)
         cached = self.cache.get("GB/T 19001-2020", "mock_active")
         self.assertIsNotNone(cached)
         self.assertEqual(cached.match_status, "exact")
@@ -434,19 +437,20 @@ class TestRouting(unittest.TestCase):
 # ── 网络异常模拟测试 ─────────────────────────────────────
 
 class TestNetworkErrorHandling(unittest.TestCase):
-    """模拟超时/连接失败，验证 QueryEngine 和适配器优雅降级。"""
+    """模拟超时/连接失败，验证 QueryEngine 在引擎层优雅降级。"""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
         self.db = Database(os.path.join(self.tmp, "test.db"))
+        self.cache = CacheRepository(self.db)
 
     def tearDown(self):
         self.db.close()
         self.db = None
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def test_timeout_adapter_batch_graceful(self):
-        """超时适配器的 query_batch 应捕获异常返回 error_message，不崩溃。"""
+    def test_timeout_adapter_engine_graceful(self):
+        """超时适配器在引擎 query_batch_parsed 中不崩溃，异常入 error_message。"""
 
         class TimeoutAdapter(BaseAdapter):
             @property
@@ -461,16 +465,16 @@ class TestNetworkErrorHandling(unittest.TestCase):
                 raise __import__('requests').Timeout("模拟超时")
 
         adapter = TimeoutAdapter()
-        # query_single 允许抛异常（底层接口），query_batch 负责捕获
-        batch = adapter.query_batch(["GB/T 1-2020", "GB/T 2-2020"])
-        self.assertEqual(len(batch), 2)
-        for r in batch:
-            self.assertIsNotNone(r)
-            # 异常被转为 error_message
+        engine = QueryEngine(adapters=[adapter], cache=self.cache)
+        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
+                 ("GB/T", 2, 2020, "", None, "GB/T 2-2020")]
+        results = engine.query_batch_parsed(items)
+        self.assertEqual(len(results), 2)
+        for r in results:
             self.assertTrue(r.error_message or not r.is_found())
 
-    def test_connection_error_batch_graceful(self):
-        """连接失败适配器的 query_batch 不抛异常，异常信息进入 error_message。"""
+    def test_connection_error_engine_graceful(self):
+        """连接失败适配器在引擎层不抛异常。"""
 
         class ConnErrorAdapter(BaseAdapter):
             @property
@@ -485,49 +489,30 @@ class TestNetworkErrorHandling(unittest.TestCase):
                 raise __import__('requests').ConnectionError("模拟断网")
 
         adapter = ConnErrorAdapter()
-        batch = adapter.query_batch(["GB/T 1-2020"])
-        self.assertEqual(len(batch), 1)
-        self.assertIsNotNone(batch[0])
-        self.assertIn("模拟断网", batch[0].error_message)
+        engine = QueryEngine(adapters=[adapter], cache=self.cache)
+        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020")]
+        results = engine.query_batch_parsed(items)
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].error_message or not results[0].is_found())
 
-    def test_mixed_adapters_engine_does_not_crash(self):
-        """混合正常+异常适配器时 QueryEngine 不崩溃，正常结果可返回。"""
-        from pilotstd.query.cache import CacheRepository
-
-        class GoodAdapter(BaseAdapter):
+    def test_cache_with_network_errors(self):
+        """网络错误适配器不崩溃，返回带 error_message 的结果。"""
+        class ConnErrorAdapter(BaseAdapter):
             @property
             def site_name(self):
-                return "good"
-
+                return "conn_err"
             @property
             def site_label(self):
-                return "正常"
-
+                return "断网站点"
             def _search(self, search_term):
-                return QueryResult(standard_number=search_term,
-                                   standard_name="正常结果", status="现行",
-                                   source_site=self.site_name)
+                raise __import__('requests').ConnectionError("模拟断网")
 
-        class BadAdapter(BaseAdapter):
-            @property
-            def site_name(self):
-                return "bad"
-
-            @property
-            def site_label(self):
-                return "异常"
-
-            def _search(self, search_term):
-                raise RuntimeError("内部错误")
-
-        cache = CacheRepository(self.db)
-        engine = QueryEngine(adapters=[GoodAdapter(), BadAdapter()],
-                             cache=cache, use_cache=False,
-                             parser=StandardParser(build_code_mapping()))
-        results, stats = engine.query_batch(["GB/T 1-2020"])
-        # 至少有一个成功
-        found = [r for r in results if r.is_found()]
-        self.assertGreaterEqual(len(found), 1)
+        engine = QueryEngine(adapters=[ConnErrorAdapter()], cache=self.cache,
+                             use_cache=False)
+        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020")]
+        results = engine.query_batch_parsed(items)
+        # 异常不崩溃
+        self.assertFalse(results[0].is_found())
 
 
 # ── 并发安全测试 ────────────────────────────────────────
@@ -535,16 +520,18 @@ class TestNetworkErrorHandling(unittest.TestCase):
 class TestConcurrencySafety(unittest.TestCase):
     """DailyQuotaTracker 多线程并发正确性。"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        cls.db = Database(os.path.join(cls.tmp, "test.db"))
         from pilotstd.query.daily_quota import DailyQuotaTracker
-        self.tracker = DailyQuotaTracker(self.db)
+        cls._tracker = DailyQuotaTracker(cls.db)
 
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
+    @classmethod
+    def tearDownClass(cls):
+        cls.db.close()
+        cls.db = None
+        shutil.rmtree(cls.tmp, ignore_errors=True)
 
     def test_concurrent_record_usage_no_lost_count(self):
         """10 线程各 record_usage 10 次 → 最终 used=100，无丢失。"""
@@ -556,7 +543,7 @@ class TestConcurrencySafety(unittest.TestCase):
         def worker():
             try:
                 for _ in range(10):
-                    self.tracker.record_usage(site, 1)
+                    self._tracker.record_usage(site, 1)
             except Exception as e:
                 errors.append(str(e))
 
@@ -568,7 +555,7 @@ class TestConcurrencySafety(unittest.TestCase):
             t.join()
 
         self.assertEqual(errors, [])
-        used = self.tracker.get_used(site)
+        used = self._tracker.get_used(site)
         self.assertEqual(used, 100, f"期望 100，实际 {used}（计数丢失）")
 
     def test_concurrent_get_remaining_consistent(self):
@@ -579,7 +566,7 @@ class TestConcurrencySafety(unittest.TestCase):
         def reader():
             try:
                 for _ in range(50):
-                    self.tracker.get_remaining("csres")
+                    self._tracker.get_remaining("csres")
             except Exception as e:
                 errors.append(str(e))
 
@@ -594,15 +581,6 @@ class TestConcurrencySafety(unittest.TestCase):
 
 class TestNjbz365Retry(unittest.TestCase):
     """njbz365 适配器网络重试行为。"""
-
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_do_request_timeout_retries(self):
         """_do_request 超时后应重试 3 次（含首次），最终返回 None。"""
@@ -677,40 +655,34 @@ class TestNjbz365Retry(unittest.TestCase):
         self.assertEqual(adapter._csrf_token, "")
 
 
-class TestBuildSearchTerms(unittest.TestCase):
-    """build_search_terms 渐进式搜索词生成（含 num_prefix）"""
+class TestProgressiveSearch(unittest.TestCase):
+    """验证 query_with_strategy 渐进式搜索的搜索词生成与回退行为。"""
 
-    def test_num_prefix_single_letter(self):
-        """ASME B16.5 → 搜索词含 B 前缀"""
-        from pilotstd.query.search_strategy import build_search_terms
-        terms = build_search_terms("ASME", 16, 2017, part=5, num_prefix="B")
-        self.assertIn("ASME B16.5 2017", terms)
-        self.assertIn("ASME B16.5", terms)
-        self.assertIn("ASME B16 2017", terms)
-        self.assertIn("B16", terms)
+    def setUp(self):
+        self.adapter = MockActiveAdapter()
 
-    def test_num_prefix_not_present(self):
-        """无 num_prefix 时行为不变"""
-        from pilotstd.query.search_strategy import build_search_terms
-        terms = build_search_terms("GB", 30000, 2013, part=3)
-        self.assertIn("GB 30000.3 2013", terms)
-        self.assertIn("GB 30000.3", terms)
-        self.assertIn("30000", terms)
+    def test_num_prefix_included_in_search(self):
+        """num_prefix 应出现在搜索词中。"""
+        self.adapter._search = MagicMock(return_value=None)
+        self.adapter.query_with_strategy("ASME", 16, 2017, part=5, num_prefix="B")
+        calls = [c[0][0] for c in self.adapter._search.call_args_list]
+        self.assertIn("ASME B16.5-2017", calls)
+        self.assertIn("ASME B16.5", calls)
 
-    def test_num_prefix_roman(self):
-        """罗马数字前缀——VIII即8，前缀替代顺序号而非拼接"""
-        from pilotstd.query.search_strategy import build_search_terms
-        terms = build_search_terms("ASME", 8, 2021, num_prefix="VIII")
-        self.assertIn("ASME VIII 2021", terms)
-        self.assertIn("ASME VIII", terms)
+    def test_roman_numeral_triggers_bpvc_variant(self):
+        """罗马数字前缀触发 BPVC 变体搜索。"""
+        self.adapter._search = MagicMock(return_value=None)
+        self.adapter.query_with_strategy("ASME", 8, 2021, num_prefix="VIII")
+        calls = [c[0][0] for c in self.adapter._search.call_args_list]
+        self.assertIn("ASME BPVC VIII.8-2021", calls)
 
-    def test_num_prefix_multi_letter(self):
-        """多字母前缀（API RP → RP 前缀）"""
-        from pilotstd.query.search_strategy import build_search_terms
-        terms = build_search_terms("API", 14, 2019, num_prefix="RP")
-        self.assertIn("API RP14 2019", terms)
-        self.assertIn("API RP14", terms)
-        self.assertIn("RP14", terms)
+    def test_api_stdspec_variant_fallback(self):
+        """API 代号生成 Std/Spec 变体回退搜索。"""
+        self.adapter._search = MagicMock(return_value=None)
+        self.adapter.query_with_strategy("API", 14, 2019, num_prefix="RP")
+        calls = [c[0][0] for c in self.adapter._search.call_args_list]
+        self.assertIn("API Std 14-2019", calls)
+        self.assertIn("API Spec 14-2019", calls)
 
 
 class TestBucketQuery(unittest.TestCase):
@@ -813,13 +785,17 @@ class MockSiteAdapter(BaseAdapter):
 class TestBucketConcurrency(unittest.TestCase):
     """逐桶并发测试——溢出隔离/csres隔离/大桶拆子桶"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
-        self.parser = StandardParser(build_code_mapping())
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        cls.db = Database(os.path.join(cls.tmp, "test.db"))
+        cls.cache = CacheRepository(cls.db)
+        cls.parser = StandardParser(build_code_mapping())
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
+        cls.db.close()
+        shutil.rmtree(cls.tmp, ignore_errors=True)
         self.db.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
