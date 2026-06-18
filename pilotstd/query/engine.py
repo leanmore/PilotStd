@@ -170,6 +170,7 @@ class QueryEngine:
             error_message="所有来源均未找到该标准",
             source_site="")
 
+    def plan_batch(self, total: int, logical_code: str = "") -> List[tuple]:
         """按配额预估分配方案（供 UI 展示）。返回 [(site_name, count), ...]"""
         plan = []
         remaining = total
@@ -385,7 +386,7 @@ class QueryEngine:
                     break
                 try:
                     result = adapter.query_with_strategy(
-                        item[0], item[1], item[2], item[3], item[4])
+                        item[0], item[1], item[2], num_prefix=item[3], part=item[4])
                     if result:
                         result.source_site = "csres"
                         csres_results[idx] = result

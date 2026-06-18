@@ -794,8 +794,6 @@ class TestBucketConcurrency(unittest.TestCase):
     def tearDown(self):
         self.db.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
-        self.db.close()
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _engine(self, sites=None):
         adapters = sites or [
