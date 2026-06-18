@@ -49,14 +49,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest
+          pip install pytest pytest-xdist
 
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
         run: |
           mkdir -p /tmp/standards
-          python -m pytest tests/ -q --tb=short \
+          python -m pytest tests/ -q --tb=short -n auto \
             --deselect "tests/test_manager.py" \
             --deselect "tests/test_organizer.py" \
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
