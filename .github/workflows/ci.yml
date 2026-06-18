@@ -27,7 +27,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/pilotstd-app
+  IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '20'
 
