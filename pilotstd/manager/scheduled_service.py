@@ -1,13 +1,13 @@
 # pilotstd/manager/scheduled_service.py
 # ScheduledService — 定时任务专用方法：扫描入库、更新检测、批量查询/下载
 
-import os
 import logging
+import os
 from typing import List
 
 from ..core.config import get_library_root
-from ..scan.scanner import FileScanner
 from ..download.models import DownloadTask
+from ..scan.scanner import FileScanner
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class ScheduledService:
     # 扫描入库
     # ════════════════════════════════════════════════════════════════
 
-    def scan_and_index(self, root_path: str = None) -> int:
+    def scan_and_index(self, root_path: str | None = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。返回入库文件数。"""
         root = root_path or get_library_root(self._cfg)
         if not os.path.isdir(root):

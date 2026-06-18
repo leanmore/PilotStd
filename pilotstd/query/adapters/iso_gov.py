@@ -4,14 +4,13 @@
 
 import logging
 import re
-from typing import Optional
 
 import requests
 
-from .base import BaseAdapter
 from ..models import QueryResult
 from ..network import safe_get
-from ..search_strategy import (map_status, match_result, _parse_result_number)
+from ..search_strategy import _parse_result_number, map_status, match_result
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,12 @@
 # pilotstd/scan/scanner.py
 # 文件系统扫描器（防御性遍历，跳过指定目录）
 
-import os
 import logging
-from typing import List, Any, Optional
+import os
+from typing import Any, List, Optional
 
-from ..models import FileInfo, ScanResult
 from ..core.file_utils import hash_file_content, normalize_std_filename
+from ..models import FileInfo, ScanResult
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,6 @@ class FileScanner:
         """检查文件是否属于跳过查询的类型（如 Word 模板）"""
         return any(filename.lower().endswith(ext) for ext in self.skip_query_exts)
 
-    @staticmethod
     @property
     def dup_count(self) -> int:
         """本次扫描去重跳过的文件数。"""

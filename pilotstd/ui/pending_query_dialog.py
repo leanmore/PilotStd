@@ -1,16 +1,22 @@
 # pilotstd/ui/pending_query_dialog.py
 # 待确认二次查询对话框 — 从 main_window.py 提取
 
-import json
 import logging
 from typing import Optional
 
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QGroupBox, QRadioButton, QPushButton,
-    QProgressBar, QMessageBox,
-)
 from PyQt6.QtCore import QThread, QTimer
+from PyQt6.QtWidgets import (
+    QDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
 
 from ..i18n import _
 from .workers import QueryWorker
@@ -44,7 +50,7 @@ class PendingQueryDialog(QDialog):
         layout.addWidget(info)
 
         # ── 站点选择（两列网格布局） ──
-        site_count = len(self._mgr.get_query_sites()) + (1 if self._has_local_db else 0)
+        len(self._mgr.get_query_sites()) + (1 if self._has_local_db else 0)
         gb = QGroupBox(_("pq_source_group"))
         gb_layout = QGridLayout(gb)
         gb_layout.setColumnStretch(0, 1)

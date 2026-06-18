@@ -1,9 +1,9 @@
 # pilotstd/organizer/expire_handler.py
 # 过期标准处理：批量扫描并移动过期文件
 
-import os
 import logging
-from typing import List, Tuple
+import os
+from typing import Any, List, Tuple
 
 from ..models import ParsedStdInfo
 from .mover import FileMover
@@ -26,7 +26,7 @@ class ExpireHandler:
         Returns:
             {"moved": int, "failed": int, "details": [str]}
         """
-        result = {"moved": 0, "failed": 0, "details": []}
+        result: dict[str, Any] = {"moved": 0, "failed": 0, "details": []}
         for src_path, parsed in items:
             if not os.path.exists(src_path):
                 result["failed"] += 1

@@ -1,8 +1,8 @@
 # 公共模型和基础类在顶层导入（轻量）
-from .models import QueryResult, BatchQueryStats, CacheEntry
 from .adapters.base import BaseAdapter
 from .cache import CacheRepository
 from .engine import QueryEngine
+from .models import BatchQueryStats, CacheEntry, QueryResult
 from .rotator import SiteRotator, SiteState
 
 __all__ = [

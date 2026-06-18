@@ -4,7 +4,7 @@
 import logging
 import re
 from io import BytesIO
-from typing import Optional
+from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
@@ -242,7 +242,7 @@ def parse_text_table(text: str) -> list[dict]:
     Returns:
         [{std_code, std_name, replaces_code, publish_date}, ...]
     """
-    results = []
+    results: list[dict[str, Any]] = []
     # 用标准编号模式在全文中找所有匹配（不依赖行边界）
     matches = list(STD_CODE_PATTERN.finditer(text))
     if not matches:
@@ -328,8 +328,9 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
 
     total_pages = 1
     try:
-        from PyPDF2 import PdfReader
         from io import BytesIO
+
+        from PyPDF2 import PdfReader
         reader = PdfReader(BytesIO(pdf_bytes))
         total_pages = len(reader.pages)
     except Exception:

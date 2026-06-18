@@ -1,12 +1,12 @@
 # pilotstd/cli/commands.py
 # CLI 子命令：scan, query, download, organize, auto, normalize, move, expire, announce, task
 
+import argparse
+import csv
+import json
+import logging
 import os
 import sys
-import json
-import csv
-import argparse
-import logging
 
 from ..core.config import ConfigManager, get_library_root
 from ..core.logger import LoggerManager

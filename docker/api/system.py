@@ -1,5 +1,9 @@
 # docker/api/system.py — 系统管理 API（版本信息、自更新）
-import os, logging, subprocess, json
+import json
+import logging
+import os
+import subprocess
+
 from fastapi import APIRouter, HTTPException
 
 from pilotstd import __version__

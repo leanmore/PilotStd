@@ -1,6 +1,5 @@
 # docker/api/models.py — API 响应 Pydantic 模型，自动生成 OpenAPI 文档
 from pydantic import BaseModel
-from typing import Optional
 
 
 class HealthResponse(BaseModel):
@@ -61,20 +60,6 @@ class DownloadResponse(BaseModel):
     """批量下载响应"""
     stats: DownloadStats
     results: list[DownloadResult]
-
-
-class QueryResultItem(BaseModel):
-    """单条查询结果"""
-    standard_number: str = ""
-    standard_name: str = ""
-    status: str = ""
-    source_site: str = ""
-
-
-class QueryResponse(BaseModel):
-    """批量查询响应"""
-    total: int
-    results: list[QueryResultItem]
 
 
 class ErrorResponse(BaseModel):

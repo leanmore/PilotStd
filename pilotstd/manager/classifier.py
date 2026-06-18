@@ -1,10 +1,10 @@
 # pilotstd/manager/classifier.py
 # QueryClassifier — 查询后分类，将查询结果按状态/替代关系分堆
 
-import re
 import logging
+import re
 
-from ..core.std_utils import is_gb_code, GB_CODES
+from ..core.std_utils import GB_CODES, is_gb_code
 
 logger = logging.getLogger(__name__)
 

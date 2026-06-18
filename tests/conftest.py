@@ -1,13 +1,9 @@
 # pytest 收集时忽略独立运行脚本（含模块级 sys.exit / parse_args 会导致收集失败）
 collect_ignore = [
-    "stress_01_pipeline_archived.py",
-    "stress_02_cli_archived.py",
     "stress_selfcheck.py",
     "stress_web.py",
     "gui",
-    "stress_two_round_archived.py",
     "stress_driver.py",
-    "stress_full_coverage_archived.py",
     "stress_winui.py",  # 由 stress_driver.py 显式调用，不走自动收集
 ]
 

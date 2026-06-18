@@ -11,14 +11,14 @@
 #   5. GET viewGb?hcno=<H>  →  Content-Disposition: attachment;filename=xxx.pdf
 #      返回完整 PDF 字节流
 
-import time
 import logging
+import time
 from typing import Optional
 
 import requests
 
-from .base import BaseDownloadAdapter
 from ..models import DownloadTask
+from .base import BaseDownloadAdapter
 
 logger = logging.getLogger(__name__)
 

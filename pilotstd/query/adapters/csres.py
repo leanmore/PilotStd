@@ -2,8 +2,8 @@
 # 工标网查询适配器（csres.com）
 # 逐页逐行搜索，标准编号精确比对后才返回
 
-import re
 import logging
+import re
 import threading
 import time as _time
 from typing import Optional
@@ -11,10 +11,10 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
-from .base import BaseAdapter
 from ..models import QueryResult
 from ..network import safe_get
-from ..search_strategy import map_status, is_adopted
+from ..search_strategy import is_adopted, map_status
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,6 @@ class CsresAdapter(BaseAdapter):
 
     def _is_locally_cooled(self) -> bool:
         """检查本地冷却标记（类级别，跨实例生效）。"""
-        import time
         with CsresAdapter._cool_lock:
             return _time.time() < CsresAdapter._local_cooldown_until
 
@@ -111,7 +110,7 @@ class CsresAdapter(BaseAdapter):
 
             # 检测被拒：302→/error/noright.html 或页面内容为错误页
             if resp.status_code != 200 or "noright" in resp.url or "noright" in resp.text[:200].lower():
-                logger.warning(f"工标网拒绝访问，自动冷却站点(24h)")
+                logger.warning("工标网拒绝访问，自动冷却站点(24h)")
                 self._set_local_cooldown(COOLDOWN_ON_REJECT)
                 if self._rotator:
                     self._rotator.force_cooldown(self.site_name, COOLDOWN_ON_REJECT)
@@ -195,11 +194,11 @@ class CsresAdapter(BaseAdapter):
             publish_date="网站无此分类",
             responsible_dept=dept or "网站无此分类",
             is_adopted=is_adopted(std_name),
-            is_downloadable=not is_adopted,
+            is_downloadable=not is_adopted(std_name),
             source_site=self.site_name,
         )
         # 暂存详情页 URL，由 query_with_strategy 择机提取 replaces
-        result._csres_detail_url = detail_url
+        result._csres_detail_url = detail_url  # type: ignore[attr-defined]
         return result
 
     def _fetch_detail_replaces(self, detail_url: str) -> str:

@@ -1,11 +1,10 @@
 # pilotstd/ui/controllers/file_dialog_mixin.py
 # 文件/文件夹选择对话框 — 从 main_window.py 提取
 
-import os
 import logging
-from PyQt6.QtWidgets import QFileDialog
+import os
 
-from ...i18n import _
+from PyQt6.QtWidgets import QFileDialog
 
 logger = logging.getLogger(__name__)
 

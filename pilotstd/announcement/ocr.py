@@ -152,7 +152,9 @@ class TencentOcrProvider(BaseOcrProvider):
 
     def _sign_tc3(self, payload: str, timestamp: int) -> dict:
         """TC3-HMAC-SHA256 签名，返回请求头。"""
-        import hashlib, hmac, datetime
+        import datetime
+        import hashlib
+        import hmac
 
         date = datetime.datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d")
         algorithm = "TC3-HMAC-SHA256"
@@ -210,7 +212,9 @@ class TencentOcrProvider(BaseOcrProvider):
         }
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
-        import requests, json
+        import json
+
+        import requests
 
         b64 = base64.b64encode(pdf_bytes).decode()
         timestamp = int(time.time())
@@ -271,7 +275,9 @@ class AliyunOcrProvider(BaseOcrProvider):
 
     def _sign_aliyun(self, params: dict) -> str:
         """阿里云 HMAC-SHA1 签名，返回 Signature 字符串。"""
-        import hmac, hashlib, urllib.parse
+        import hashlib
+        import hmac
+        import urllib.parse
 
         # 参数排序 + URL 编码
         sorted_keys = sorted(params.keys())
@@ -288,11 +294,14 @@ class AliyunOcrProvider(BaseOcrProvider):
         return base64.b64encode(signature).decode()
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
-        import requests, json, uuid, hashlib, urllib.parse
+        import urllib.parse
+        import uuid
+
+        import requests
 
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         nonce = str(uuid.uuid4())
-        b64 = base64.b64encode(pdf_bytes).decode()
+        base64.b64encode(pdf_bytes).decode()
 
         params = {
             "AccessKeyId": self._ak_id,
@@ -346,7 +355,7 @@ class AliyunOcrProvider(BaseOcrProvider):
 import json as _json
 import os as _os
 import threading as _threading
-from datetime import datetime as _datetime
+from datetime import datetime as _datetime, timedelta
 
 
 class OcrCounters:
@@ -422,7 +431,7 @@ class ProviderCooling:
             until = _time.time() + 300
         elif level == "day":
             until = (now.replace(hour=0, minute=0, second=0, microsecond=0)
-                     + _datetime.timedelta(days=1)).timestamp()
+                     + timedelta(days=1)).timestamp()
         elif level == "month":
             if now.month == 12:
                 nxt = now.replace(year=now.year + 1, month=1, day=1)
@@ -447,6 +456,7 @@ def _split_pdf_pages(pdf_bytes: bytes) -> list[bytes]:
     """PyPDF2 拆 PDF 为单页 bytes 列表。失败降级为 [pdf_bytes]。"""
     try:
         from io import BytesIO
+
         from PyPDF2 import PdfReader, PdfWriter
         reader = PdfReader(BytesIO(pdf_bytes))
         total = len(reader.pages)
@@ -469,6 +479,7 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
     """返回 PDF 总页数。失败返回 1。"""
     try:
         from io import BytesIO
+
         from PyPDF2 import PdfReader
         return len(PdfReader(BytesIO(pdf_bytes)).pages)
     except Exception:
@@ -545,11 +556,12 @@ class OcrSlot:
                              result.error_code or err_type, total - i - 1)
                 if emergency and (i + 1) < total:
                     remaining = pages[i + 1:]
+                    filtered = [r for r in results if r is not None]
                     return emergency._finish_remaining(remaining, label,
-                                                       stop_event, results)
+                                                       stop_event, filtered)
                 break
         logger.info("[OCR] %s %s 完成 (%d/%d页)", self.name, label, len(results), total)
-        return results
+        return [r for r in results if r is not None]
 
     def _finish_remaining(self, pages: list[bytes], label: str,
                           stop_event: _threading.Event,
@@ -563,7 +575,7 @@ class OcrSlot:
                 break
             time.sleep(self._interval)
             result = self.provider.recognize_pdf(page, page_num=1)
-            if result.ok:
+            if result.ok and result.text is not None:
                 existing.append(result.text)
                 self._counters.increment(self.name)
             else:
@@ -597,7 +609,7 @@ class OcrScheduler(BaseOcrProvider):
     def name(self) -> str:
         return "scheduler"
 
-    def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> Optional[str]:
+    def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> Optional[str]:  # type: ignore[override]
         """外部入口——入槽 + 阻塞等待完成。兼容 BaseOcrProvider 接口。"""
         pages = _split_pdf_pages(pdf_bytes)
         total = len(pages)
@@ -681,7 +693,7 @@ def create_ocr_provider(config: dict, data_dir: str = "") -> Optional[BaseOcrPro
     if not baidu_slot and not tencent_slot:
         if aliyun_slot:
             logger.warning("仅阿里云可用，百度云和腾讯云均未配置")
-            return aliyun_slot
+            return aliyun_slot  # type: ignore[return-value]
         logger.warning("无可用 OCR provider")
         return None
     return OcrScheduler(baidu_slot, tencent_slot, aliyun_slot, stop, counters, cooling)

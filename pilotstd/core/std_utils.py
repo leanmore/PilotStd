@@ -15,8 +15,8 @@ def classify_std_code(logical_code: str) -> str:
     """按标准代号返回分类标签。
     返回值: 'gb' | 'industry' | 'db' | 'iso_iec' | 'foreign' | 'group' | 'enterprise' | ''
     """
-    from ..scan.parser import FOREIGN_CODE_SET, ISO_IEC_SET
     from ..organizer.industry_lookup import build_code_mapping
+    from ..scan.parser import FOREIGN_CODE_SET, ISO_IEC_SET
 
     if not logical_code:
         return ""

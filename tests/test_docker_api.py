@@ -275,14 +275,10 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_query_standards_returns_results(self):
         """POST /api/query 返回查询结果及统计。"""
-        mock_result = MagicMock()
-        mock_result.standard_number = "GB/T 1-2020"
-        mock_result.standard_name = "测试标准"
-        mock_result.status = "现行"
-        mock_result.source_site = "njbz365"
-        mock_result.replaces = ""
-        mock_result.match_status = "exact"
-        mock_result.is_adopted = False
+        from pilotstd.query.models import QueryResult
+        mock_result = QueryResult(
+            standard_number="GB/T 1-2020", standard_name="测试标准",
+            status="现行", source_site="njbz365", match_status="exact")
         mock_stats = MagicMock()
         mock_stats.total = 1
         mock_stats.found = 1

@@ -1,14 +1,14 @@
 # pilotstd/ui/controllers/download_mixin.py
 # 下载相关方法的混入类
 
-import os
 import logging
+import os
 from datetime import datetime, timedelta
-from PyQt6.QtWidgets import QMessageBox, QFileDialog
 
-from ...organizer.industry_lookup import get_folder_name
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+
 from ...i18n import _
-from ..workers import RowUpdate, DownloadWorker
+from ..workers import DownloadWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
 

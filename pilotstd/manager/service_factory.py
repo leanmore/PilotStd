@@ -1,16 +1,14 @@
 # pilotstd/manager/service_factory.py
 # 服务工厂 — 从 StandardManager 实例创建所有子服务
 
-import os
 
 from ..core.config import get_library_root
 from ..organizer.dir_builder import DirBuilder
-from ..organizer.mover import FileMover
 from ..organizer.expire_handler import ExpireHandler
-
+from ..organizer.mover import FileMover
+from .announce_service import AnnounceService
 from .classifier import QueryClassifier
 from .organizer_service import OrganizerService
-from .announce_service import AnnounceService
 from .pending_service import PendingService
 from .scheduled_service import ScheduledService
 

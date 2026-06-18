@@ -1,9 +1,12 @@
 # docker/api/scan.py — 标准文件扫描 API（含路径遍历防护）
 import os
+
 from fastapi import Depends
-from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRouter
+
 from pilotstd.core.path_guard import validate_path_in_root
+
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["scan"])

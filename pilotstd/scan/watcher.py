@@ -5,11 +5,10 @@ from __future__ import annotations
 
 import logging
 import os
-import threading
-from typing import Callable, List, Optional
+from typing import List, Optional
 
+from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler, FileSystemEvent
 
 logger = logging.getLogger(__name__)
 

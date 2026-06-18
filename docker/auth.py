@@ -1,18 +1,26 @@
 # docker/auth.py — JWT 鉴权模块（多用户 + 速率限制 + CSRF 保护 + Cookie 安全标记）
 import os
-import time
 import secrets
 import threading
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+
 from fastapi import Form, HTTPException, Request
-from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRouter
+from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
-from jose import jwt, JWTError
-from .users import init_users_table, verify_user, init_login_attempts_table, \
-    record_login_failure, clear_login_failures, count_recent_failures, \
-    check_must_change_password
+
+from .users import (
+    check_must_change_password,
+    clear_login_failures,
+    count_recent_failures,
+    init_login_attempts_table,
+    init_users_table,
+    record_login_failure,
+    verify_user,
+)
 
 router = APIRouter(tags=["auth"])
 

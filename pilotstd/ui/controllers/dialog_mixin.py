@@ -2,10 +2,16 @@
 # 通用确认对话框 + 阶段完成弹窗 + 任务注册 — 从 main_window.py 提取
 
 import logging
-from PyQt6.QtWidgets import (
-    QMessageBox, QDialog, QLabel, QPushButton, QHBoxLayout, QVBoxLayout,
-)
+
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QVBoxLayout,
+)
 
 from ...i18n import _
 

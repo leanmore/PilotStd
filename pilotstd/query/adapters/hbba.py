@@ -5,15 +5,19 @@
 import logging
 import re
 from datetime import datetime
-from typing import Optional
 
 import requests
 
-from .base import BaseAdapter
 from ..models import QueryResult
 from ..network import safe_get
-from ..search_strategy import (map_status, ts_to_date, is_adopted,
-                                match_result, _parse_result_number)
+from ..search_strategy import (
+    _parse_result_number,
+    is_adopted,
+    map_status,
+    match_result,
+    ts_to_date,
+)
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 

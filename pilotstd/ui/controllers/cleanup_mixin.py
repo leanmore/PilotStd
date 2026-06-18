@@ -1,18 +1,27 @@
 # pilotstd/ui/controllers/cleanup_mixin.py
 # 空文件夹清理 + 未识别文件收集 — 从 main_window.py 提取
 
-import os
-import stat as _stat
-import shutil
 import logging
-from PyQt6.QtWidgets import (
-    QMessageBox, QFileDialog, QDialog, QApplication,
-    QTreeWidget, QTreeWidgetItem, QLabel, QPushButton,
-    QHBoxLayout, QVBoxLayout, QProgressDialog,
-)
-from PyQt6.QtCore import Qt
+import os
+import shutil
+import stat as _stat
 
-from ...core.file_utils import safe_move, ensure_long_path
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressDialog,
+    QPushButton,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+)
+
+from ...core.file_utils import ensure_long_path, safe_move
 from ...i18n import _
 
 logger = logging.getLogger(__name__)

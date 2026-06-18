@@ -3,14 +3,9 @@
 
 from __future__ import annotations
 
-import re
 import concurrent.futures
-import threading
-import time
 import logging
-from typing import Dict, List, Tuple, Optional, Callable
 
-from ..query.search_strategy import MATCH_SCORE
 #
 # 架构说明：
 #   查询引擎是标准查询的核心调度器。它管理多个网站适配器，按优先级和配额
@@ -25,20 +20,16 @@ from ..query.search_strategy import MATCH_SCORE
 #   配额机制：
 #     DailyQuotaTracker 按日跟踪每个站点的请求次数，plan_batch 按配额
 #     分割任务，超出配额的部分自动切换到下一个站点。
-
-import concurrent.futures
-import logging
-import os
+import re
 import threading
-import time
 from typing import Callable, Dict, List, Optional, Tuple
 
+from ..query.search_strategy import MATCH_SCORE
 from .adapters.base import BaseAdapter
 from .cache import CacheRepository
-from .models import QueryResult, BatchQueryStats
-from .rotator import SiteRotator
 from .daily_quota import DailyQuotaTracker
-from .search_strategy import match_result
+from .models import QueryResult
+from .rotator import SiteRotator
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +40,8 @@ FOREIGN_ROUTE = ["ahbz", "njbz365"]
 
 # 按标准代号分流：专业站点优先，njbz365 二线，csres 国标/行业兜底
 def _build_default_code_routes():
-    from ..scan.parser import FOREIGN_CODE_SET
     from ..organizer.industry_lookup import _DB_PROVINCE_MAP
+    from ..scan.parser import FOREIGN_CODE_SET
     routes = {
         "GB":   ["std_gov", "ahbz", "njbz365", "csres"],
         "GB/T": ["std_gov", "ahbz", "njbz365", "csres"],
@@ -84,10 +75,10 @@ class QueryEngine:
     """
 
     def __init__(self, adapters: List[BaseAdapter], cache: CacheRepository,
-                 use_cache: bool = True, rotator: SiteRotator = None,
-                 quota_tracker: DailyQuotaTracker = None,
-                 site_order: List[str] = None,
-                 query_interval: tuple = None,
+                 use_cache: bool = True, rotator: Optional[SiteRotator] = None,
+                 quota_tracker: Optional[DailyQuotaTracker] = None,
+                 site_order: Optional[List[str]] = None,
+                 query_interval: Optional[tuple] = None,
                  parser = None):
         self._adapters = adapters
         # site_name → adapter 映射，O(1) 查找
@@ -107,7 +98,7 @@ class QueryEngine:
     # ════════════════════════════════════════════════════════════════
 
     def query_parsed(self, logical_code: str, number: int, year: int,
-                     std_name: str = "", part: int = None,
+                     std_name: str = "", part: Optional[int] = None,
                      force_refresh: bool = False,
                      num_prefix: str = "") -> QueryResult:
         """根据结构化信息查询（比 query_single 更精准）。
@@ -137,7 +128,7 @@ class QueryEngine:
         quota_exhausted = True
         tried: list[str] = []
         for name in priority:
-            adapter = self._adapter_map.get(name)
+            adapter = self._adapter_map.get(name)  # type: ignore[assignment]
             if adapter is None:
                 continue
             if self._quota and self._quota.get_search_remaining(name) <= 0:
@@ -145,7 +136,7 @@ class QueryEngine:
                 continue
             quota_exhausted = False
             tried.append(name)
-            result = adapter.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
+            result = adapter.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)  # type: ignore[arg-type]
             if result and result.is_found():
                 result.source_site = adapter.site_name
                 if not result.standard_number:
@@ -229,7 +220,7 @@ class QueryEngine:
             base = ["dbba", "njbz365"]  # 市级DB代码 → 地方标准平台优先
         elif logical_code:
             # 先查是否为国外代号（避免 AWWA/SAE/NFPA 等 4 字符国外代号误入行业路由）
-            from ..scan.parser import FOREIGN_CODE_SET, ITU_CODES, CAC_PREFIXES
+            from ..scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
             code_no_space = logical_code.upper().replace(" ", "")
             is_foreign = any(
                 code_no_space.startswith(fc.upper().replace(" ", ""))
@@ -318,8 +309,8 @@ class QueryEngine:
 
     def query_batch_parsed(self,
                            parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
-                           progress_callback: Callable[[int], None] = None,
-                           result_callback: Callable[[int, QueryResult], None] = None,
+                           progress_callback: Optional[Callable[[int], None]] = None,
+                           result_callback: Optional[Callable[[int, QueryResult], None]] = None,
                            preferred_site: str = "",
                            ) -> List[QueryResult]:
         """逐桶查询版——桶内串行+桶间并行+临时桶链迭代。"""
@@ -333,7 +324,7 @@ class QueryEngine:
         def bump():
             with counter_lock:
                 counter[0] += 1
-                if progress_callback:
+                if progress_callback:  # type: ignore[truthy-function]
                     progress_callback(counter[0])
 
         # ── 1. 分组 ──
@@ -570,7 +561,7 @@ class QueryEngine:
                             continue
                         adapter = self._adapter_map[site]
                         try:
-                            result = adapter.query_with_strategy(
+                            result = adapter.query_with_strategy(  # type: ignore[assignment]
                                 item[0], item[1], item[2], item[3], item[4])
                         except Exception:
                             continue

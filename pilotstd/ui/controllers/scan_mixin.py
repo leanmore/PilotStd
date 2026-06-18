@@ -1,9 +1,10 @@
 # pilotstd/ui/controllers/scan_mixin.py
 # 扫描相关方法的混入类 — 从 main_window.py 提取以减少单体类体积
 
-import os
 import logging
-from PyQt6.QtWidgets import QMessageBox, QApplication
+import os
+
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from ...core import file_utils as core
 from ...i18n import _  # 直接从 i18n 导入，避免循环引用

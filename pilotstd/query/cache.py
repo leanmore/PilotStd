@@ -101,7 +101,7 @@ class CacheRepository:
             f"UPDATE {CACHE_TABLE} SET status_history=? WHERE id=?",
             (_json.dumps(history, ensure_ascii=False), row["id"]))
 
-    def refresh(self, standard_number: str, source_site: str = None) -> None:
+    def refresh(self, standard_number: str, source_site: str | None = None) -> None:
         """强制清除指定标准的缓存，下次查询将重新请求。"""
         if source_site:
             self._db.execute(

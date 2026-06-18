@@ -3,9 +3,16 @@
 
 import csv
 import logging
+
 from PyQt6.QtWidgets import (
-    QMessageBox, QFileDialog, QDialog, QLabel, QPushButton,
-    QHBoxLayout, QVBoxLayout, QTextEdit,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
 )
 
 from ...i18n import _

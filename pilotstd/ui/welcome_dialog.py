@@ -1,10 +1,15 @@
 # pilotstd/ui/welcome_dialog.py
 # 首次启动欢迎对话框
 
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QCheckBox, QPushButton, QHBoxLayout,
-)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
 
 from ..i18n import _
 

@@ -7,17 +7,17 @@
 # 详情入口: std.samr.gov.cn/gb/search/gbDetailed?id=<pid>
 # 下载入口: openstd.samr.gov.cn/bzgk/gb/viewGb?hcno=<hcno> (pid 即 hcno)
 
-import re
 import logging
+import re
 from typing import List, Optional
 
 import requests
 from bs4 import BeautifulSoup
 
-from .base import BaseAdapter
 from ..models import QueryResult
-from ..network import safe_get, get_monitor
+from ..network import safe_get
 from ..search_strategy import map_status
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 

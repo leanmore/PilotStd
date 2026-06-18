@@ -2,19 +2,18 @@
 # 后台 Worker 线程类 — 从 main_window.py 提取
 # LogHandler / QueryWorker / DownloadWorker / NormalizeWorker / ArchiveWorker / ScanWorker / AnnounceWorker
 
+import logging
 import os
 import shutil
-import logging
 import time as _time
 from dataclasses import dataclass
-from functools import partial
 
-from PyQt6.QtWidgets import QApplication, QTextEdit, QTableWidgetItem
-from PyQt6.QtCore import Qt, QThread, QObject, QTimer, pyqtSignal
+from PyQt6.QtCore import QObject, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QTextEdit
 
-from ..core.file_utils import make_standard_filename, safe_move
-from ..organizer.industry_lookup import get_folder_name
+from ..core.file_utils import make_standard_filename
 from ..models import ParsedStdInfo
+from ..organizer.industry_lookup import get_folder_name
 
 logger = logging.getLogger(__name__)
 

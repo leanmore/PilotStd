@@ -6,7 +6,7 @@ import os
 from typing import List
 
 from ..core.file_utils import make_standard_filename
-from ..core.std_utils import is_gb_code, GB_CODES
+from ..core.std_utils import GB_CODES, is_gb_code
 from ..models import ParsedStdInfo
 
 logger = logging.getLogger(__name__)

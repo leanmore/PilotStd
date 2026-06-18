@@ -45,7 +45,7 @@ def extract_edition(text: str, language: str) -> str:
     if m.group("en_word"):
         word = m.group("en_word")
         full = m.group(0)  # 完整匹配（如 "Tenth Edition"）
-        n = _ORDINAL_MAP.get(word.lower())
+        n = _ORDINAL_MAP.get(word.lower(), 0)
         if n is not None and language == "中文版":
             return f"第{n}版"
         return full  # 保留完整原文（如 "Tenth Edition"）

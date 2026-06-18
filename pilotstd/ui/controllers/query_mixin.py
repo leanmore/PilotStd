@@ -1,19 +1,28 @@
 # pilotstd/ui/controllers/query_mixin.py
 # 查询相关方法的混入类
 
+import logging
 import os
 import sys
-import logging
-from PyQt6.QtWidgets import (
-    QApplication, QMessageBox, QDialog, QTableWidget, QTableWidgetItem,
-    QLabel, QPushButton, QHBoxLayout, QVBoxLayout, QFileDialog, QProgressDialog,
-)
-from PyQt6.QtCore import Qt
 
-from ...models import ParsedStdInfo
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
+
 from ...i18n import _
-from ..workers import RowUpdate, QueryWorker
+from ...models import ParsedStdInfo
 from ..pending_query_dialog import PendingQueryDialog
+from ..workers import QueryWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +96,7 @@ class QueryMixin:
             plan = self._mgr.plan_batch(total)
             csres_count = sum(c for s, c in plan if s == "csres")
             if csres_count > 0:
-                quota = self._mgr.get_quota_info()
+                self._mgr.get_quota_info()
                 msg = _("query_quota_msg").format(total)
                 reply = self._question_dlg(_("query_quota_title"), msg)
                 if reply != QMessageBox.StandardButton.Yes:
@@ -392,7 +401,7 @@ class QueryMixin:
             self.status_changed.emit("已取消待确认查询，工作区未变更。")
             return
 
-        results = dlg.get_results()
+        dlg.get_results()
         self._clear_table()
         self._parsed_results = parsed_list
 

@@ -1,12 +1,14 @@
 # pilotstd/ui/controllers/file_tree_mixin.py
 # 文件树填充（Win11 风格） — 从 main_window.py 提取
 
-import os
 import logging
+import os
+
+from PyQt6.QtCore import QDir, QStandardPaths, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QMenu, QTreeWidgetItem,
+    QMenu,
+    QTreeWidgetItem,
 )
-from PyQt6.QtCore import Qt, QDir, QStandardPaths, QThread, pyqtSignal
 
 from ...i18n import _
 

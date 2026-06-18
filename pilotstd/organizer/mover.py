@@ -1,13 +1,13 @@
 # pilotstd/organizer/mover.py
 # 文件移动与规范化：将标准文件归入对应代号目录
 
-import os
 import logging
+import os
 from typing import Optional
 
 from ..core.file_utils import (
-    safe_move,
     make_standard_filename,
+    safe_move,
     truncate_path,
 )
 from ..models import ParsedStdInfo
@@ -72,7 +72,7 @@ class FileMover:
 
     def move_to_expire(self, src_path: str, parsed: ParsedStdInfo) -> Optional[str]:
         """将过期文件移动到过期作废子目录。"""
-        folder = get_folder_name(parsed.logical_code)
+        get_folder_name(parsed.logical_code)
         expire_dir = self._dirs.get_expire_dir(parsed.logical_code)
         basename = os.path.basename(src_path)
         dst = os.path.join(expire_dir, basename)

@@ -1,14 +1,14 @@
 # pilotstd/ui/controllers/archive_mixin.py
 # 归档/规范化相关方法的混入类 — 从 main_window.py 提取以减少单体类体积
 
-import os
 import logging
+import os
+
 from PyQt6.QtWidgets import QMessageBox
 
 from ... import core
-from ...models import ParsedStdInfo
 from ...i18n import _
-from ..workers import RowUpdate, NormalizeWorker, ArchiveWorker
+from ..workers import ArchiveWorker, NormalizeWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
 

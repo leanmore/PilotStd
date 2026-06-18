@@ -1,14 +1,17 @@
 # pilotstd/ui/controllers/project_mixin.py
 # 项目打开/恢复/保存 — 从 main_window.py 提取
 
-import os
 import logging
+import os
+
 from PyQt6.QtWidgets import (
-    QMessageBox, QFileDialog, QTableWidgetItem,
+    QFileDialog,
+    QMessageBox,
+    QTableWidgetItem,
 )
 
 from ...i18n import _
-from ..table_mixin import WORK_COLUMNS, WORK_COLUMN_KEYS
+from ..table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +67,7 @@ class ProjectMixin:
 
     def _save_project_dialog(self, label: str):
         path, __ = QFileDialog.getSaveFileName(self, label,
-                                               f"project.pilotstd",
+                                               "project.pilotstd",
                                                _("file_filter_project"))
         if path:
             state = self._collect_state()

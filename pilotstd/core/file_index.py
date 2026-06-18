@@ -10,6 +10,8 @@ import time
 from datetime import datetime
 from typing import Optional
 
+from pilotstd.models import ParsedStdInfo
+
 from .db import Database
 from .file_utils import hash_file_content
 
@@ -37,9 +39,12 @@ class FileIndexRepository:
 
     def _start_delayed_validation(self):
         """启动后台校验所有索引路径是否存在，延迟时间根据记录数自适应（5~30s）。"""
+
         def _run():
             try:
-                row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
+                row = self._db.fetchone(
+                    f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}"
+                )
                 row_count = row["cnt"] if row else 0
                 delay = min(30, max(5, row_count / 500))
             except Exception:
@@ -47,15 +52,19 @@ class FileIndexRepository:
             time.sleep(delay)
             deleted = self.validate_paths()
             logger = logging.getLogger("pilotstd.file_index")
-            logger.info("file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录", delay, deleted)
+            logger.info(
+                "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
+                delay,
+                deleted,
+            )
+
         t = threading.Thread(target=_run, daemon=True)
         t.start()
 
     def validate_paths(self) -> int:
         """逐条校验索引记录的目标路径是否存在，失效则删除。返回清除数量。"""
         try:
-            rows = self._db.fetchall(
-                f"SELECT id, file_path FROM {FILE_INDEX_TABLE}")
+            rows = self._db.fetchall(f"SELECT id, file_path FROM {FILE_INDEX_TABLE}")
         except Exception:
             self._validation_complete.set()
             return 0
@@ -64,7 +73,8 @@ class FileIndexRepository:
             if not os.path.exists(r["file_path"]):
                 try:
                     self._db.execute(
-                        f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
+                        f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],)
+                    )
                     deleted += 1
                 except Exception:
                     logger.debug("删除无效记录失败: id=%s", r["id"], exc_info=True)
@@ -73,67 +83,100 @@ class FileIndexRepository:
 
     # ---- 写入 ----
 
-    def upsert(self, file_path: str, logical_code: str, number: int,
-               year: int, part: Optional[int] = None, std_name: str = "",
-               file_hash: str = "", status: str = "现行") -> None:
+    def upsert(
+        self,
+        file_path: str,
+        logical_code: str,
+        number: int,
+        year: int,
+        part: Optional[int] = None,
+        std_name: str = "",
+        file_hash: str = "",
+        status: str = "现行",
+    ) -> None:
         if not file_hash and os.path.exists(file_path):
             file_hash = hash_file_content(file_path)
         now = datetime.now().isoformat()
         part_val = part if part is not None else -1
         existing = self._db.fetchone(
-            f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?",
-            (file_path,))
+            f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
+        )
         if existing:
             self._db.execute(
                 f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
                 "part=?, std_name=?, file_hash=?, status=?, scanned_at=? WHERE id=?",
-                (logical_code, number, year, part_val, std_name,
-                 file_hash, status, now, existing["id"]))
+                (
+                    logical_code,
+                    number,
+                    year,
+                    part_val,
+                    std_name,
+                    file_hash,
+                    status,
+                    now,
+                    existing["id"],
+                ),
+            )
         else:
             self._db.execute(
                 f"INSERT INTO {FILE_INDEX_TABLE} "
                 "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (file_path, logical_code, number, year, part_val,
-                 std_name, file_hash, status, now))
+                (
+                    file_path,
+                    logical_code,
+                    number,
+                    year,
+                    part_val,
+                    std_name,
+                    file_hash,
+                    status,
+                    now,
+                ),
+            )
 
     def remove(self, file_path: str) -> None:
         self._db.execute(
-            f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?",
-            (file_path,))
+            f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
+        )
 
     # ---- 读取 ----
 
     def get(self, file_path: str) -> Optional[dict]:
         return self._db.fetchone(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?",
-            (file_path,))
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
+        )
 
     def get_all(self) -> list:
         return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part")
+            f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"
+        )
 
-    def find_by_standard(self, logical_code: str, number: int,
-                          year: int, part: Optional[int] = None) -> list:
+    def find_by_standard(
+        self, logical_code: str, number: int, year: int, part: Optional[int] = None
+    ) -> list:
         """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
         part_val = part if part is not None else -1
         return self._db.fetchall(
             f"SELECT * FROM {FILE_INDEX_TABLE} "
             "WHERE logical_code=? AND number=? AND year=? AND part=?",
-            (logical_code, number, year, part_val))
+            (logical_code, number, year, part_val),
+        )
 
     def find_by_hash(self, file_hash: str) -> Optional[dict]:
         """通过文件哈希查找（用于检测移动/重命名）。"""
         return self._db.fetchone(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?",
-            (file_hash,))
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,)
+        )
 
     def get_recheck_candidates(self, limit: int = 500) -> list[dict]:
         """返回需重新查询的标准（7天未检查的现行标准）。"""
         return self._db.fetchall(
             "SELECT * FROM file_index WHERE status='现行' AND "
             "(last_checked IS NULL OR last_checked < date('now', '-7 days')) "
-            "ORDER BY last_checked ASC LIMIT ?", (limit,))
+            "ORDER BY last_checked ASC LIMIT ?",
+            (limit,),
+        )
 
     def clear_stale(self) -> int:
         """清除文件已不存在的索引记录（增量：仅检查超过 7 天未验证或从未验证的记录），返回清除数量。"""
@@ -146,17 +189,17 @@ class FileIndexRepository:
             if os.path.exists(r["file_path"]):
                 self._db.execute(
                     f"UPDATE {FILE_INDEX_TABLE} SET last_checked = date('now') WHERE id = ?",
-                    (r["id"],))
+                    (r["id"],),
+                )
             else:
                 self._db.execute(
-                    f"DELETE FROM {FILE_INDEX_TABLE} WHERE id = ?",
-                    (r["id"],))
+                    f"DELETE FROM {FILE_INDEX_TABLE} WHERE id = ?", (r["id"],)
+                )
                 deleted += 1
         return deleted
 
     def count(self) -> int:
-        row = self._db.fetchone(
-            f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
+        row = self._db.fetchone(f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
         return row["cnt"] if row else 0
 
     def get_status_stats(self) -> dict:
@@ -164,7 +207,8 @@ class FileIndexRepository:
         try:
             rows = self._db.fetchall(
                 f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} "
-                "WHERE status IS NOT NULL GROUP BY status")
+                "WHERE status IS NOT NULL GROUP BY status"
+            )
             s = {r["status"]: r["cnt"] for r in rows}
         except Exception:
             return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
@@ -186,6 +230,7 @@ class FileIndexRepository:
         if not row:
             return None
         from ..models import ParsedStdInfo  # 延迟导入，避免循环引用
+
         info = ParsedStdInfo(
             raw_filename=os.path.basename(file_path),
             logical_code=row["logical_code"],
@@ -206,14 +251,16 @@ class FileIndexRepository:
         网络缓存须检查过期时间，公告缓存永久有效。
         """
         from datetime import datetime
+
         std_num = info.get_full_number()
-        now = datetime.now().isoformat()
+        datetime.now().isoformat()
 
         # 先查网络缓存（主数据源，事件驱动失效）
         row = self._db.fetchone(
             f"SELECT result_json FROM {NETWORK_CACHE_TABLE} "
             "WHERE standard_number = ? LIMIT 1",
-            (std_num,))
+            (std_num,),
+        )
 
         if row and row["result_json"]:
             self._apply_cache_result(row["result_json"], info)
@@ -223,7 +270,8 @@ class FileIndexRepository:
         ann_row = self._db.fetchone(
             f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} "
             "WHERE standard_number = ? LIMIT 1",
-            (std_num,))
+            (std_num,),
+        )
         if ann_row and ann_row["result_json"]:
             self._apply_cache_result(ann_row["result_json"], info)
 
@@ -231,6 +279,7 @@ class FileIndexRepository:
     def _apply_cache_result(result_json: str, info: "ParsedStdInfo") -> None:
         """将缓存的 JSON 结果应用到 ParsedStdInfo 对象。"""
         import json
+
         try:
             cached = json.loads(result_json)
             if cached.get("match_status") == "exact":
@@ -255,15 +304,17 @@ class FileIndexRepository:
                 continue
             row = self.find_by_hash(file_hash)
             if row and row["file_path"] != new_path:
-                result.append({
-                    "old_path": row["file_path"],
-                    "new_path": new_path,
-                    "logical_code": row["logical_code"],
-                    "number": row["number"],
-                    "year": row["year"],
-                    "part": row["part"],
-                    "std_name": row["std_name"],
-                })
+                result.append(
+                    {
+                        "old_path": row["file_path"],
+                        "new_path": new_path,
+                        "logical_code": row["logical_code"],
+                        "number": row["number"],
+                        "year": row["year"],
+                        "part": row["part"],
+                        "std_name": row["std_name"],
+                    }
+                )
         return result
 
     def get_full_info(self, logical_code: str, number: int) -> list[dict]:
@@ -284,9 +335,11 @@ class FileIndexRepository:
             f"LEFT JOIN {ANNOUNCEMENT_CACHE_TABLE} ac "
             f"ON ac.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
             f"WHERE fi.logical_code = ? AND fi.number = ?",
-            (logical_code, number))
+            (logical_code, number),
+        )
 
         import json
+
         result = []
         for row in rows:
             info = {

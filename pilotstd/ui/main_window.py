@@ -19,61 +19,67 @@
 #     新增 UI 文字时必须在 _retranslate_ui() 中添加对应的 setText 调用。
 #     QPushButton 初始文本可用 _() 直接包裹，工具栏按钮由 _retranslate_ui 统一管理。
 
-import os
-import sys
 import atexit
-import signal
+import json
 import logging
-from ..core.frozen import is_frozen
+import os
+import signal
+import sys
 import threading
 from typing import Optional
 
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QToolBar, QStatusBar,
-    QSplitter, QTreeWidget,
-    QTableWidget,
-    QHeaderView, QTextEdit, QMenu, QProgressBar, QMessageBox,
-    QLabel, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QApplication,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSplitter,
+    QStatusBar,
     QSystemTrayIcon,
+    QTableWidget,
+    QTextEdit,
+    QToolBar,
+    QTreeWidget,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QTranslator, QLibraryInfo
-from PyQt6.QtGui import QAction, QIcon
-
-import json
 
 from .. import core
+from ..core.frozen import is_frozen
+from ..i18n import _
 from ..models import ParsedStdInfo
-from ..core.db import Database
-from ..i18n import set_language, _
+from .controllers.announce_mixin import AnnounceMixin
+from .controllers.archive_mixin import ArchiveMixin
+from .controllers.auto_run_mixin import AutoRunMixin
+from .controllers.cleanup_mixin import CleanupMixin
+from .controllers.dialog_mixin import DialogMixin
+from .controllers.download_mixin import DownloadMixin
+from .controllers.export_mixin import ExportMixin
+from .controllers.file_dialog_mixin import FileDialogMixin
+from .controllers.file_tree_mixin import FileTreeMixin
+from .controllers.persistence_mixin import PersistenceMixin
+from .controllers.project_mixin import ProjectMixin
+from .controllers.query_mixin import QueryMixin
+from .controllers.scan_mixin import ScanMixin
+from .controllers.table_helper_mixin import TableHelperMixin
+from .controllers.theme_mixin import ThemeMixin
 
 # 重型模块由 StandardManager 内部延迟初始化，GUI 直接调用 self._mgr 公共 API
-from .table_mixin import TableMixin, WORK_COLUMNS, WORK_COLUMN_KEYS, TOGGLEABLE_COLS
-from .controllers.scan_mixin import ScanMixin
-from .controllers.archive_mixin import ArchiveMixin
-from .controllers.download_mixin import DownloadMixin
-from .controllers.query_mixin import QueryMixin
-from .controllers.table_helper_mixin import TableHelperMixin
-from .controllers.file_tree_mixin import FileTreeMixin
-from .controllers.export_mixin import ExportMixin
-from .controllers.cleanup_mixin import CleanupMixin
-from .controllers.auto_run_mixin import AutoRunMixin
-from .controllers.persistence_mixin import PersistenceMixin
-from .controllers.announce_mixin import AnnounceMixin
-from .controllers.project_mixin import ProjectMixin
-from .controllers.file_dialog_mixin import FileDialogMixin
-from .controllers.dialog_mixin import DialogMixin
-from .controllers.theme_mixin import ThemeMixin
+from .table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS, TableMixin
 
 logger = logging.getLogger("pilotstd.ui")
 
-from .workers import (
-    LogHandler, QueryWorker, DownloadWorker, NormalizeWorker,
-    ArchiveWorker, ScanWorker, AnnounceWorker, RowUpdate,
-    _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _ANNOUNCEMENT_BATCH_SIZE,
-)
-
-from .pending_query_dialog import PendingQueryDialog
 from .dialogs import ConfigPageDialog
+from .workers import (
+    LogHandler,
+    RowUpdate,
+)
 
 
 class MainWindow(QMainWindow,
@@ -544,7 +550,7 @@ class MainWindow(QMainWindow,
             return
         has_results = bool(self._parsed_results)
         has_download = bool(self._mgr.get_stage_queue("download"))
-        has_pending = bool(self._mgr.get_stage_queue("pending"))
+        bool(self._mgr.get_stage_queue("pending"))
         has_archive = bool(self._mgr.get_stage_queue("all"))
 
         self.btn_query.setEnabled(has_results)
@@ -669,7 +675,9 @@ class MainWindow(QMainWindow,
 
     def _on_check_update(self):
         """半自动升级：检查 GitHub Release → 下载 → 写 update.bat → 提示重启。"""
-        import urllib.request, urllib.error
+        import urllib.error
+        import urllib.request
+
         from pilotstd import __version__
         current = f"v{__version__}"
 
@@ -732,7 +740,8 @@ class MainWindow(QMainWindow,
             self.status_changed.emit(_("update_downloading").format(filename=filename))
 
             # 在后台下载（含完整性校验）
-            import threading, zipfile
+            import threading
+            import zipfile
             result = {"ok": False, "error": "", "path": ""}
             def _download():
                 try:

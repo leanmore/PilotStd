@@ -3,6 +3,7 @@
 
 import json
 import logging
+from typing import Any
 from datetime import datetime
 
 from ..core.db import Database
@@ -35,7 +36,7 @@ class AnnouncementMatcher:
         Returns:
             {matched: int, updated: int, details: [str]}
         """
-        result = {"matched": 0, "updated": 0, "details": []}
+        result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
 
         for item in items:
             std_code = item.get("std_code", "")

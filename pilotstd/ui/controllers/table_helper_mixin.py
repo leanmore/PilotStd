@@ -2,10 +2,14 @@
 # 表格右键菜单、行操作、列宽管理 — 从 main_window.py 提取
 
 import logging
-from PyQt6.QtWidgets import (
-    QMenu, QMessageBox, QFileDialog, QTableWidgetItem, QApplication,
-)
+
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QMenu,
+    QMessageBox,
+    QTableWidgetItem,
+)
 
 from ...i18n import _
 from ..table_mixin import WORK_COLUMNS

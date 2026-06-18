@@ -2,10 +2,10 @@
 # 项目管理：工作状态保存/恢复（.pilotstd JSON 格式）
 
 import json
-import os
 import logging
+import os
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

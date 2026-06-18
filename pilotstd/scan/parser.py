@@ -1,16 +1,15 @@
 # pilotstd/scan/parser.py
 # 标准文件名解析器 — 按代号分流：国内/国际/国外三路解析
 
+import logging
 import os
 import re
-import unicodedata
-import logging
 from typing import Dict, Optional
 
-from ..models import ParsedStdInfo
 from ..core.file_utils import normalize_std_filename
-from .lang_detect import detect_language
+from ..models import ParsedStdInfo
 from .edition_detect import edition_skip_pattern
+from .lang_detect import detect_language
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +111,7 @@ _FOREIGN_GROUP_MAP = {
 class StandardParser:
     """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份"""
 
-    def __init__(self, code_mapping: Dict[str, str], log: logging.Logger = None):
+    def __init__(self, code_mapping: Dict[str, str], log: logging.Logger | None = None):
         self.code_mapping = code_mapping
         self.log = log or logger
 
@@ -524,7 +523,7 @@ class StandardParser:
     def _build_result(self, text: str, match_end: int, logical_code: str,
                       number: int, part: Optional[int], year: int,
                       num_prefix: str = "", num_suffix: str = "",
-                      file_kind: str = None, require_year: bool = True) -> ParsedStdInfo:
+                      file_kind: str | None = None, require_year: bool = True) -> ParsedStdInfo:
         if file_kind is None:
             file_kind = getattr(self, '_current_file_kind', '')
         """构建 ParsedStdInfo，处理名称尾部清理。"""
@@ -536,7 +535,7 @@ class StandardParser:
 
         # 自查校验：require_year=False 时跳过年份校验（字母修订版如 MIL-STD-810G）
         if not self._validate_result(year, number, logical_code, require_year):
-            return None
+            return None  # type: ignore[return-value]
 
         return ParsedStdInfo(
             raw_filename=text,

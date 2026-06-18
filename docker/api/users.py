@@ -1,8 +1,9 @@
 # docker/api/users.py — 用户管理 API
-from fastapi.routing import APIRouter
 from fastapi import HTTPException, Request
+from fastapi.routing import APIRouter
 from pydantic import BaseModel
-from ..users import list_users, add_user, delete_user, change_password
+
+from ..users import add_user, change_password, delete_user, list_users
 
 router = APIRouter(tags=["users"])
 

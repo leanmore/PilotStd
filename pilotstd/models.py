@@ -1,7 +1,7 @@
 # pilotstd/models.py
 # 通用数据模型，供各模块共享
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 

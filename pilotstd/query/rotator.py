@@ -1,9 +1,9 @@
 # pilotstd/query/rotator.py
 # 查询网站轮转冷却机制：限流保护、故障冷却、备用地址切换
 
-import time
 import logging
 import threading
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -47,7 +47,7 @@ class SiteRotator:
     5. 冷却期间跳过该站，到期自动恢复
     """
 
-    def __init__(self, sites: List[SiteState] = None, db=None):
+    def __init__(self, sites: List[SiteState] | None = None, db=None):
         self._lock = threading.Lock()
         self._sites: Dict[str, SiteState] = {}
         self._last_cooldown_log: Dict[str, float] = {}  # 冷却日志节流
@@ -175,7 +175,7 @@ class SiteRotator:
                                    "consecutive_errors=%d",
                                    name, site.request_count, site.max_requests,
                                    site.cooldown_seconds, site.consecutive_errors)
-                    return new_url
+                    return new_url  # type: ignore[used-before-def]
             return None
 
     def force_cooldown(self, name: str, seconds: int = DEFAULT_COOLDOWN_SECONDS) -> None:

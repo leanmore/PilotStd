@@ -2,9 +2,9 @@
 # 区分临时性错误（超时/连接重置/DNS/5xx → 重试1次）和永久性错误（4xx/解析失败 → 不重试）
 # 限制最大重定向次数 5 次，防止恶意重定向链
 
-import time
 import logging
 import threading
+import time
 from typing import Optional
 
 import requests
@@ -91,7 +91,6 @@ def safe_request(session: requests.Session, method: str, url: str,
     # 限制最大重定向次数，防止恶意重定向链
     session.max_redirects = MAX_REDIRECTS
 
-    last_exc = None
     for attempt in range(MAX_RETRIES + 1):
         try:
             resp = session.request(method, url, timeout=timeout, **kwargs)
@@ -101,7 +100,6 @@ def safe_request(session: requests.Session, method: str, url: str,
                 continue
             return resp
         except (requests.Timeout, requests.ConnectionError) as e:
-            last_exc = e
             if attempt < MAX_RETRIES:
                 _monitor.record_retry(site_name)
                 logger.debug("%s %s: %s — 重试中...", site_name, type(e).__name__, url)

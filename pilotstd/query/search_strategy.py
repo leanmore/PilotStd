@@ -1,8 +1,8 @@
 # pilotstd/query/search_strategy.py
 # 搜索策略 + 查询结果比对
 
-import re
 import logging
+import re
 from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ _VARIANT_PAIRS = [
 
 def match_result(local_code: str, local_number: int, local_year: int,
                  result_name: str = "", result_number_str: str = "",
-                 local_part: int = None) -> Tuple[bool, str]:
+                 local_part: int | None = None) -> Tuple[bool, str]:
     """将网站返回结果与本地解析信息比对，优先解析标准编号精确对比。
 
     返回 (是否匹配, 匹配状态):

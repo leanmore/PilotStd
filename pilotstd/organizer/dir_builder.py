@@ -1,8 +1,8 @@
 # pilotstd/organizer/dir_builder.py
 # 目录结构生成：{root}/{基础代号} {行业名称}/{过期作废}/
 
-import os
 import logging
+import os
 
 from ..core.file_utils import ensure_dir
 from .industry_lookup import get_folder_name

@@ -8,14 +8,13 @@
 # 覆盖范围: GB/行业/地方/国际/团体 ~230万条
 
 import logging
-import re
-from typing import List, Optional
+from typing import Optional
 
 import requests
 
-from .base import BaseAdapter
 from ..models import QueryResult
-from ..network import safe_request, CHROME_UA
+from ..network import CHROME_UA, safe_request
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -120,8 +119,8 @@ class AhbzAdapter(BaseAdapter):
     @staticmethod
     def _match_structured(target_num: str, rows: list) -> Optional[dict]:
         """结构化匹配：用 StandardParser 解析双方 code，比对数段+前后缀。"""
-        from ...scan.parser import StandardParser
         from ...organizer.industry_lookup import build_code_mapping
+        from ...scan.parser import StandardParser
         parser = StandardParser(build_code_mapping())
         target = parser.parse(target_num + ".pdf")
         if not target:

@@ -2,8 +2,8 @@
 # 每日查询配额追踪器（SQLite 持久化）
 # 日限额统一从 site_config.SiteState.daily_limit 读取，此处不再硬编码
 
-import threading
 import logging
+import threading
 from datetime import date
 from typing import Dict
 
@@ -22,7 +22,7 @@ DETAIL_RESERVE = {
 class DailyQuotaTracker:
     """按站点追踪每日查询次数，持久化到 SQLite。"""
 
-    def __init__(self, db: Database, limits: Dict[str, int] = None):
+    def __init__(self, db: Database, limits: Dict[str, int] | None = None):
         self._db = db
         self._db.execute("""
             CREATE TABLE IF NOT EXISTS daily_quota (

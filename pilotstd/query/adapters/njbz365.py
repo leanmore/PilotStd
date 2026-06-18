@@ -6,15 +6,15 @@ import hashlib
 import logging
 import re
 import time
-from typing import Optional, Dict
+from typing import Dict, Optional
 from urllib.parse import unquote
 
 import requests
 
-from .base import BaseAdapter
 from ..models import QueryResult
-from ..search_strategy import match_result
 from ..network import safe_get
+from ..search_strategy import match_result
+from .base import BaseAdapter
 
 logger = logging.getLogger(__name__)
 

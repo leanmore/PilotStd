@@ -3,14 +3,22 @@
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QTableWidget, QTableWidgetItem, QHeaderView,
-    QTextEdit, QGroupBox, QSplitter,
     QDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QPushButton,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from ...task.models import TaskStatus, TaskType
-from ...task.queue import TaskQueue
+
 from ...i18n import _
+from ...task.models import TaskStatus
+from ...task.queue import TaskQueue
 
 
 class TaskPage(QWidget):

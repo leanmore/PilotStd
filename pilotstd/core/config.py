@@ -17,6 +17,7 @@ import os
 import sys
 import threading
 from typing import Any, Dict, Optional
+
 from .frozen import is_frozen
 
 
@@ -283,10 +284,10 @@ class ConfigManager:
         # 清理上次进程崩溃可能残留的 .tmp 文件
         cfg_dir = os.path.dirname(self._filepath)
         if os.path.isdir(cfg_dir):
-            for f in os.listdir(cfg_dir):
-                if f.endswith(".tmp"):
+            for name in os.listdir(cfg_dir):
+                if name.endswith(".tmp"):
                     try:
-                        os.remove(os.path.join(cfg_dir, f))
+                        os.remove(os.path.join(cfg_dir, name))
                     except OSError:
                         pass
         try:
@@ -348,7 +349,7 @@ class ConfigManager:
 
     def _walk_sensitive(self, data: dict, *, encrypt: bool, prefix: str = "") -> dict:
         """递归遍历嵌套字典，对所有敏感字段加密/解密。内存中始终明文。"""
-        result = {}
+        result: dict[str, Any] = {}
         for k, v in data.items():
             full_key = f"{prefix}.{k}" if prefix else k
             if isinstance(v, dict):

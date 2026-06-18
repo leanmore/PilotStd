@@ -4,8 +4,8 @@
 import random
 from typing import Optional
 
-from .base import BaseAdapter
 from ..models import QueryResult
+from .base import BaseAdapter
 
 STATUS_POOL = ["现行", "现行", "现行", "现行", "废止", "即将实施"]
 DEPT_POOL = [

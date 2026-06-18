@@ -7,9 +7,6 @@
 # 剥离策略：仅剥离语种/版次标记，保护标准代号段（如 BS EN 中的 EN 不是语种）
 
 import re
-import os
-from .lang_detect import detect_language
-from .edition_detect import extract_edition
 
 # ── 剥离用正则 ────────────────────────────────────────────────
 

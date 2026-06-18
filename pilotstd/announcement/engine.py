@@ -2,8 +2,6 @@
 # 公告引擎 — 编排多个适配器，GB→HB→DB 串行抓取
 
 import logging
-import time
-from typing import Optional
 
 from .base import BaseAnnounceAdapter
 from .matcher import AnnouncementMatcher

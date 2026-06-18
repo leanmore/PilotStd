@@ -1,11 +1,14 @@
 # docker/api/organize.py — 文件组织/归类 API（含路径遍历防护）
-import os
 import logging
+import os
+
 from fastapi import Depends
-from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse
+from fastapi.routing import APIRouter
+
 from pilotstd.core.config import get_library_root
 from pilotstd.core.path_guard import validate_path_in_root
+
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)

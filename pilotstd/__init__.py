@@ -2,7 +2,7 @@
 __version__ = "0.8.2"
 
 # 轻量数据模型（启动时需用）
-from .models import ParsedStdInfo, FileInfo, ScanResult, ScanStats
+from .models import FileInfo, ParsedStdInfo, ScanResult, ScanStats
 from .scan import FileScanner, StandardParser
 
 __all__ = [

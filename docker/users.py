@@ -1,9 +1,10 @@
 # docker/users.py — 多用户管理（SQLite 持久化）
 import hashlib
-import secrets
 import os
-from pilotstd.core.db import Database
+import secrets
+
 from pilotstd.core.config import get_db_path
+from pilotstd.core.db import Database
 
 SALT_BYTES = 32
 MIN_PASSWORD_LEN = 8  # 最小密码长度

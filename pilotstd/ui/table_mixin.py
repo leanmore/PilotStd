@@ -4,7 +4,7 @@
 import csv
 import logging
 
-from PyQt6.QtWidgets import QMenu, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox
 
 from ..i18n import _
 

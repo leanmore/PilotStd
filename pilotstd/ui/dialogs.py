@@ -1,12 +1,17 @@
 # pilotstd/ui/dialogs.py
 # 通用小对话框 — 从 main_window.py 提取
 
-from ..i18n import _
-
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton, QCheckBox, QFileDialog,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
 )
+
+from ..i18n import _
 
 
 class ConfigPageDialog(QDialog):

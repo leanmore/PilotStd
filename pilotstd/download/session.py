@@ -1,11 +1,11 @@
 # pilotstd/download/session.py
 # HTTP 会话管理：UA 轮换、重试退避、代理、随机延迟
 
+import logging
 import os
 import random
 import time
-import logging
-from typing import Optional, List
+from typing import List, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -53,11 +53,13 @@ class SessionManager:
         s = requests.Session()
         s.headers.update({"User-Agent": self._next_ua()})
         # 设置默认超时（适配器可用 per-request timeout 覆盖）
-        s.request = lambda method, url, **kwargs: \
-            super(requests.Session, s).request(
-                method, url, timeout=self._default_timeout, **kwargs) \
-            if "timeout" not in kwargs else \
-            super(requests.Session, s).request(method, url, **kwargs)
+        s.request = lambda method, url, **kwargs: (  # type: ignore[method-assign]
+            super(requests.Session, s).request(  # type: ignore[misc]
+                method, url, timeout=self._default_timeout, **kwargs
+            )
+            if "timeout" not in kwargs
+            else super(requests.Session, s).request(method, url, **kwargs)  # type: ignore[misc]
+        )
 
         if self._proxy:
             s.proxies = {"http": self._proxy, "https": self._proxy}
@@ -95,6 +97,7 @@ class SessionManager:
     def _detect_system_proxy() -> str:
         """检测系统代理：环境变量 > Windows 系统设置。"""
         import urllib.request
+
         for var in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"):
             val = os.environ.get(var)
             if val:

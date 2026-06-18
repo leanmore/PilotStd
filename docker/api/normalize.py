@@ -1,9 +1,11 @@
 # docker/api/normalize.py — 文件规范化 API（通过 StandardManager 统一入口）
 from fastapi import Depends
-from fastapi.routing import APIRouter
 from fastapi import Request as FastAPIRequest
-from ..manager import get_manager_dep
+from fastapi.routing import APIRouter
+
 from pilotstd.models import ParsedStdInfo
+
+from ..manager import get_manager_dep
 
 router = APIRouter(tags=["normalize"])
 

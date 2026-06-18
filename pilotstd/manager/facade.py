@@ -3,38 +3,37 @@
 
 from __future__ import annotations
 
-import os
 import logging
-from typing import Callable, List, Optional
+import os
+from typing import Any, Callable, List, Optional
 
 from ..core.config import ConfigManager, get_db_path, get_library_root
-from ..core.std_utils import is_gb_code, GB_CODES, classify_std_code
 from ..core.db import Database
 from ..core.file_index import FileIndexRepository
-from ..models import ParsedStdInfo
-from ..scan.scanner import FileScanner
-from ..scan.parser import StandardParser
-from ..organizer.industry_lookup import build_code_mapping
-from .organizer_service import OrganizerService
-from ..query.adapters.base import BaseAdapter
-from ..query.adapters.csres import CsresAdapter
-from ..query.adapters.njbz365 import Njbz365Adapter
-from ..query.adapters.std_gov import StdGovAdapter
-from ..query.adapters.hbba import HbbaAdapter
-from ..query.adapters.iso_gov import IsoGovAdapter
-from ..query.adapters.dbba import DbbaAdapter
-from ..query.cache import CacheRepository
-from ..query.daily_quota import DailyQuotaTracker
-from ..query.engine import QueryEngine
-from ..query.models import QueryResult, BatchQueryStats
-from ..query.rotator import SiteRotator
+from ..core.std_utils import GB_CODES, classify_std_code
 from ..download.adapters.base import BaseDownloadAdapter
 from ..download.adapters.openstd_download import OpenstdDownloadAdapter
 from ..download.engine import DownloadEngine
-from ..download.models import DownloadTask, BatchDownloadStats
+from ..download.models import BatchDownloadStats, DownloadTask
 from ..download.session import SessionManager
-from ..task.models import TaskInfo, TaskStatus, TaskType
+from ..models import ParsedStdInfo
+from ..organizer.industry_lookup import build_code_mapping
+from ..query.adapters.base import BaseAdapter
+from ..query.adapters.csres import CsresAdapter
+from ..query.adapters.dbba import DbbaAdapter
+from ..query.adapters.hbba import HbbaAdapter
+from ..query.adapters.iso_gov import IsoGovAdapter
+from ..query.adapters.njbz365 import Njbz365Adapter
+from ..query.adapters.std_gov import StdGovAdapter
+from ..query.cache import CacheRepository
+from ..query.daily_quota import DailyQuotaTracker
+from ..query.engine import QueryEngine
+from ..query.models import BatchQueryStats, QueryResult
+from ..query.rotator import SiteRotator
+from ..scan.parser import StandardParser
+from ..scan.scanner import FileScanner
 from ..task.queue import TaskQueue
+from .organizer_service import OrganizerService
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +45,9 @@ class StandardManager:
     同时管理所有子系统（配置、数据库、适配器、缓存、任务队列）的生命周期。
     """
 
-    def __init__(self, config: ConfigManager = None, db: Database = None,
-                 query_adapters: List[BaseAdapter] = None,
-                 download_adapters: List[BaseDownloadAdapter] = None):
+    def __init__(self, config: Optional[ConfigManager] = None, db: Optional[Database] = None,
+                 query_adapters: Optional[List[BaseAdapter]] = None,
+                 download_adapters: Optional[List[BaseDownloadAdapter]] = None):
         # ── 配置 & 数据库 ──
         self.cfg = config or ConfigManager()
         self.db = db or Database(get_db_path())
@@ -82,7 +81,7 @@ class StandardManager:
         self.query_engine = QueryEngine(adapters, self.cache,
                                         use_cache=self.cfg.get("query.use_cache", True),
                                         rotator=rotator, quota_tracker=self.quota_tracker,
-                                        query_interval=query_interval,
+                                        query_interval=query_interval,  # type: ignore[arg-type]
                                         parser=self.parser)
 
         # ── 下载子系统 ──
@@ -155,7 +154,7 @@ class StandardManager:
             src = getattr(p, 'full_path', '')
             ext = os.path.splitext(src)[1].lower().lstrip('.')
             ext_count[ext if ext in ext_count else 'other'] += 1
-        result.ext_stats = ext_count
+        result.ext_stats = ext_count  # type: ignore[attr-defined]
 
         self._parsed_results = parsed
         logger.info(f"扫描完成: {len(parsed)}/{len(result.files)} 识别成功")
@@ -199,7 +198,7 @@ class StandardManager:
             src = getattr(p, 'full_path', '')
             ext = os.path.splitext(src)[1].lower().lstrip('.')
             ext_count[ext if ext in ext_count else 'other'] += 1
-        result.ext_stats = ext_count
+        result.ext_stats = ext_count  # type: ignore[attr-defined]
         self._parsed_results = parsed
         logger.info(f"扫描完成: {len(parsed)}/{total} 识别成功")
         return parsed
@@ -211,7 +210,7 @@ class StandardManager:
     def query(self, parsed_list: list[ParsedStdInfo] | None = None,
               force_refresh: bool = False,
               progress_callback: Callable[[int, int], None] | None = None,
-              result_callback: Callable[[int, any], None] | None = None,
+              result_callback: Callable[[int, Any], None] | None = None,
               ) -> tuple[list, "BatchQueryStats"]:
         """批量查询标准的有效性状态，查询完成后自动分类路由。
 
@@ -236,8 +235,9 @@ class StandardManager:
 
         # result_callback 透传给引擎，每条查询就绪时立即回调（供 UI 实时更新）
         results = self.query_engine.query_batch_parsed(
-            parsed_tuples, progress_callback=_parsed_progress,
-            result_callback=result_callback)
+            parsed_tuples,  # type: ignore[arg-type]
+            result_callback=result_callback,  # type: ignore[arg-type]
+        )
         self._query_results = results
 
         # 从结果计算统计
@@ -460,7 +460,7 @@ class StandardManager:
             f"下载完成: 入队 {len(tasks)}, 成功 {stats.success}, "
             f"跳过(已存在) {stats.skipped_exists}, 失败 {stats.failed}"
         )
-        return completed, stats
+        return tasks, stats  # type: ignore[return-value]
 
     def download_stream(self, on_progress=None, on_result=None) -> tuple:
         """流式下载（线程安全）。回调签名:
@@ -509,7 +509,7 @@ class StandardManager:
     # ════════════════════════════════════════════════════════════════
 
     def organize(self, parsed_list: list[ParsedStdInfo] | None = None,
-                 word_source_root: str = None) -> dict:
+                 word_source_root: Optional[str] = None) -> dict:
         """将已处理的文件移动到分类目录。
 
         目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
@@ -525,8 +525,8 @@ class StandardManager:
         """去重：同标准号旧路径残留（分类变化导致双份文件）。"""
         self._organizer_svc._dedup_standard(parsed, new_path)
 
-    def organize_stream(self, parsed_list: list = None,
-                        word_source_root: str = None,
+    def organize_stream(self, parsed_list: Optional[list] = None,
+                        word_source_root: Optional[str] = None,
                         on_progress=None, on_result=None) -> dict:
         """流式归档（线程安全）。逐条移动文件并通过回调通知进度。
         回调签名: on_progress(current, total)  on_result(idx, status)
@@ -546,10 +546,10 @@ class StandardManager:
                 result["failed"] += single.get("failed", 0)
                 if on_result:
                     on_result(i, status)
-            except Exception as e:
+            except Exception:
                 if on_result:
                     on_result(i, "归档失败")
-                result["failed"] += 1
+                result["failed"] += 1  # type: ignore[operator]
             if on_progress:
                 on_progress(i + 1, total)
         return result
@@ -668,7 +668,7 @@ class StandardManager:
             items.append(item)
         return items
 
-    def check_announcements_filtered(self, std_type: str = None,
+    def check_announcements_filtered(self, std_type: Optional[str] = None,
                                       since_date: str = "",
                                       progress_callback=None) -> dict:
         """带类型过滤和日期筛选的公告检查。供 CLI cmd_announce 调用。
@@ -711,7 +711,7 @@ class StandardManager:
         return OrganizerService._is_word_or_template(src_path)
 
     def organize_skipped_dirs(self, skipped_dirs: List[str],
-                               source_root: str = None) -> dict:
+                               source_root: Optional[str] = None) -> dict:
         """将扫描时跳过的目录原封不动镜像到新库。
 
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
@@ -745,7 +745,7 @@ class StandardManager:
     # 过期处理
     # ════════════════════════════════════════════════════════════════
 
-    def handle_expired(self, parsed_list: List[ParsedStdInfo] = None) -> dict:
+    def handle_expired(self, parsed_list: Optional[List[ParsedStdInfo]] = None) -> dict:
         """将查询结果为「废止」的标准移入 过期作废 目录。"""
         return self._organizer_svc.handle_expired(parsed_list)
 
@@ -761,7 +761,7 @@ class StandardManager:
     # 定时任务专用方法
     # ════════════════════════════════════════════════════════════════
 
-    def scan_and_index(self, root_path: str = None) -> int:
+    def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。返回入库文件数。"""
         return self._scheduled_svc.scan_and_index(root_path)
 
@@ -784,14 +784,16 @@ class StandardManager:
     # 增量文件监控
     # ════════════════════════════════════════════════════════════════
 
-    def start_watching(self, root_paths: list = None):
+    def start_watching(self, root_paths: Optional[list] = None):
         """启动增量文件监控。可选，需安装 watchdog 包。"""
         try:
             if self._file_watcher is None:
                 paths = root_paths or [get_library_root(self.cfg)]
-                from ..scan.watcher import FileWatcher  # 惰性导入，避免 Docker 环境缺 watchdog
-                self._file_watcher = FileWatcher(self.file_index, self.parser, self.cfg)
-                self._file_watcher.start(paths)
+                from ..scan.watcher import (
+                    FileWatcher,  # 惰性导入，避免 Docker 环境缺 watchdog
+                )
+                self._file_watcher = FileWatcher(self.file_index, self.parser, self.cfg)  # type: ignore[assignment]
+                self._file_watcher.start(paths)  # type: ignore[attr-defined]
                 logger.info("增量文件监控已启动: %s", paths)
         except ImportError:
             logger.warning("watchdog 未安装，跳过增量监控")
@@ -825,7 +827,7 @@ class StandardManager:
         report["query_found"] = q_stats.found
 
         # 3. 下载
-        dl_tasks, dl_stats = self.download()
+        dl_tasks, dl_stats = self.download()  # type: ignore[misc]
         report["download_success"] = dl_stats.success
 
         # 4. 归类
@@ -960,8 +962,8 @@ class StandardManager:
 
     def normalize_files(self, file_paths: list[str]) -> list[dict]:
         """返回文件规范化名称列表。供 cmd_normalize 调用。"""
-        from ..organizer.industry_lookup import get_folder_name
         from ..core.file_utils import make_standard_filename
+        from ..organizer.industry_lookup import get_folder_name
         results = []
         for path in file_paths:
             if not os.path.isfile(path):
@@ -1034,7 +1036,7 @@ class StandardManager:
 
     def get_site_cooldown(self, site_name: str) -> int:
         """暴露指定站点的冷却剩余秒数。"""
-        return self.query_engine.get_site_cooldown(site_name)
+        return self.query_engine.get_site_cooldown(site_name)  # type: ignore[return-value]
 
     def upsert_file_index(self, file_path: str, logical_code: str,
                           number: int, year: int, part=None,

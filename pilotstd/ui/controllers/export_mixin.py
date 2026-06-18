@@ -1,14 +1,15 @@
 # pilotstd/ui/controllers/export_mixin.py
 # 导出相关方法 — 从 main_window.py 提取
 
-import os
 import logging
-from PyQt6.QtWidgets import QFileDialog, QDialog
+import os
+
 from PyQt6.QtCore import QStandardPaths
+from PyQt6.QtWidgets import QDialog, QFileDialog
 
 from ...i18n import _
-from ..table_mixin import WORK_COLUMNS, WORK_COLUMN_KEYS
 from ..dialogs import ExportFileListDialog
+from ..table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -99,14 +100,14 @@ class ExportMixin:
 
     def _on_export_diag(self):
         """导出诊断报告：配置 + 运行状态 + 完整日志。"""
-        from datetime import datetime
         import platform
+        from datetime import datetime
         path, __ = QFileDialog.getSaveFileName(self, "导出诊断报告",
             f"pilotstd_diag_{datetime.now():%Y%m%d_%H%M%S}.log", "LOG (*.log)")
         if not path:
             return
         with open(path, "w", encoding="utf-8") as f:
-            f.write(f"=== PilotStd 诊断报告 ===\n")
+            f.write("=== PilotStd 诊断报告 ===\n")
             f.write(f"时间: {datetime.now():%Y-%m-%d %H:%M:%S}\n")
             f.write(f"Python: {platform.python_version()} | {platform.system()} {platform.release()}\n\n")
 
@@ -116,12 +117,12 @@ class ExportMixin:
                         "scan.skip_folders", "scan.extensions"]:
                 f.write(f"  {key}: {self._config.get(key, 'N/A')}\n")
 
-            f.write(f"\n--- 工作区 ---\n")
+            f.write("\n--- 工作区 ---\n")
             f.write(f"  解析结果: {len(self._parsed_results)} 条\n")
             f.write(f"  表格行数: {self.work_table.rowCount()} 行\n")
             f.write(f"  隐藏列: {[_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if self.work_table.isColumnHidden(c)]}\n")
 
-            f.write(f"\n--- 运行日志 ---\n")
+            f.write("\n--- 运行日志 ---\n")
             f.write(self.log_view.toPlainText())
 
         self.status_changed.emit(f"诊断报告已导出: {path}")

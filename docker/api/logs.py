@@ -1,6 +1,8 @@
 # docker/api/logs.py — 应用日志读取 API（供前端日志栏使用）
 import os
+
 from fastapi.routing import APIRouter
+
 from pilotstd.core.logger import _get_log_dir
 
 router = APIRouter(tags=["logs"])

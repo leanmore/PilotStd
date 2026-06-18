@@ -1,18 +1,27 @@
 # pilotstd/ui/pages/settings_page.py
 # 设置页：左侧导航 + 右侧堆叠内容
 
-import os
-import sys
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QFormLayout, QLineEdit, QLabel,
-    QPushButton, QGroupBox, QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
-    QDialog, QMessageBox, QListWidget, QListWidgetItem,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
     QStackedWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ...i18n import _
-
 
 ICON_OPTIONS = {
     "默认": "default",
@@ -216,8 +225,9 @@ class SettingsPage(QWidget):
         self._add_page(_("ocr_group"), w)
 
     def _build_columns_page(self):
-        from ..table_mixin import WORK_COLUMNS, WORK_COLUMN_KEYS, TOGGLEABLE_COLS
         from PyQt6.QtWidgets import QGridLayout
+
+        from ..table_mixin import TOGGLEABLE_COLS, WORK_COLUMN_KEYS
 
         w = QWidget()
         layout = QVBoxLayout(w)

@@ -2,9 +2,9 @@
 # 陈旧引用检测——导入了已删除函数/方法的文件
 
 import ast
-from typing import Set
+from typing import Any, Set
 
-from ..models import Violation, Severity
+from ..models import Severity, Violation
 
 
 class StaleReferencesRule:
@@ -27,7 +27,7 @@ class StaleReferencesRule:
     }
 
     def check_file(self, filepath: str) -> list:
-        violations = []
+        violations: list[Any] = []
         try:
             with open(filepath, "r", encoding="utf-8") as f:
                 tree = ast.parse(f.read())

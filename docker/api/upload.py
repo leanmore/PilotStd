@@ -1,9 +1,10 @@
 # docker/api/upload.py — 文件上传 API（登录页背景图等）
 import os
 import uuid
-from fastapi.routing import APIRouter
-from fastapi import UploadFile, File, HTTPException
+
+from fastapi import File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.routing import APIRouter
 
 router = APIRouter(tags=["upload"])
 

@@ -1,9 +1,11 @@
 # docker/api/archive.py — 文件归档 API（移动到标准库目录结构）
 from fastapi import Depends
-from fastapi.routing import APIRouter
 from fastapi import Request as FastAPIRequest
-from ..manager import get_manager_dep
+from fastapi.routing import APIRouter
+
 from pilotstd.models import ParsedStdInfo
+
+from ..manager import get_manager_dep
 
 router = APIRouter(tags=["archive"])
 

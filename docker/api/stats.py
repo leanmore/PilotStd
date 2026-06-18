@@ -1,6 +1,7 @@
 # docker/api/stats.py — 统计口径 API
 from fastapi import Depends
 from fastapi.routing import APIRouter
+
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["stats"])

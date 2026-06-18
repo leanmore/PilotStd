@@ -3,15 +3,12 @@
 
 import concurrent.futures
 import logging
-import random
-import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import requests
 
-from .. import models
-from ..query.network import safe_raw_get, safe_request, CHROME_UA
+from ..query.network import CHROME_UA, safe_raw_get, safe_request
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +58,7 @@ class BaseAnnounceAdapter(ABC):
         """分页拉取公告列表，按日期降序排列。
         当遇到早于 since_date 的记录时提前终止。
         """
-        announcements = []
+        announcements: list[Any] = []
         session = requests.Session()
         session.headers["User-Agent"] = CHROME_UA
         page = 1
@@ -165,8 +162,8 @@ class BaseAnnounceAdapter(ABC):
 
     def fetch_announcements(self, since_date: str = "", page_size: int = 20,
                             ocr_provider=None,
-                            progress_callback: Callable[[int, int, str], None] = None,
-                            checkpoint_pids: set = None) -> list[dict]:
+                            progress_callback: Callable[[int, int, str], None] | None = None,
+                            checkpoint_pids: set[Any] | None = None) -> list[dict]:
         """一站式：列表 → 并行详情+解析 → 标准清单。
 
         Args:

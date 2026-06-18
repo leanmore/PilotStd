@@ -2,6 +2,7 @@
 # 窗口几何/分栏/排序列宽持久化 — 从 main_window.py 提取
 
 import logging
+
 from PyQt6.QtCore import Qt as QC
 
 logger = logging.getLogger(__name__)

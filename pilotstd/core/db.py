@@ -5,7 +5,7 @@ import logging
 import os
 import sqlite3
 import threading
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
 CURRENT_SCHEMA_VERSION = 10
@@ -16,14 +16,17 @@ MIGRATIONS: dict[int, Callable[["Database"], None]] = {}
 
 def migration(version: int):
     """装饰器：注册迁移函数到指定版本号。"""
+
     def decorator(fn):
         MIGRATIONS[version] = fn
         return fn
+
     return decorator
 
 
 class DatabaseError(Exception):
     """数据库操作失败时抛出的通用异常，不暴露内部结构。"""
+
     pass
 
 
@@ -84,11 +87,15 @@ class Database:
         logger = logging.getLogger("pilotstd.db")
         if current > 0:
             backup_path = os.path.join(
-                os.path.dirname(self._db_path), "backups",
-                f"pre_migration_v{current}_to_v{target}.bak")
+                os.path.dirname(self._db_path),
+                "backups",
+                f"pre_migration_v{current}_to_v{target}.bak",
+            )
             self.backup(backup_path)
         if current == 0:
-            self.execute("CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY)")
+            self.execute(
+                "CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY)"
+            )
         for v in range(current + 1, target + 1):
             if v in MIGRATIONS:
                 try:
@@ -96,7 +103,9 @@ class Database:
                 except Exception as e:
                     logger.exception("迁移 v%d 失败，数据库可能处于不一致状态", v)
                     raise DatabaseError(f"数据库迁移失败(v{v})，请从备份恢复") from e
-            self.execute("INSERT OR REPLACE INTO _schema_version (version) VALUES (?)", (v,))
+            self.execute(
+                "INSERT OR REPLACE INTO _schema_version (version) VALUES (?)", (v,)
+            )
 
     def _get_conn(self) -> sqlite3.Connection:
         """获取当前线程的数据库连接，首次访问时创建。"""
@@ -124,8 +133,11 @@ class Database:
                 cur = conn.execute(sql, params)
                 conn.commit()
                 return cur
-            except (sqlite3.IntegrityError, sqlite3.OperationalError,
-                    sqlite3.DatabaseError) as e:
+            except (
+                sqlite3.IntegrityError,
+                sqlite3.OperationalError,
+                sqlite3.DatabaseError,
+            ) as e:
                 conn.rollback()
                 logging.getLogger("pilotstd.db").error("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
@@ -148,8 +160,11 @@ class Database:
         try:
             rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
-        except (sqlite3.IntegrityError, sqlite3.OperationalError,
-                sqlite3.DatabaseError) as e:
+        except (
+            sqlite3.IntegrityError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ) as e:
             logging.getLogger("pilotstd.db").error("SQL查询失败: %s", sql)
             raise DatabaseError("数据库查询失败") from e
 
@@ -161,7 +176,7 @@ class Database:
     def path(self) -> str:
         return self._db_path
 
-    def backup(self, backup_path: str = None) -> str:
+    def backup(self, backup_path: str | None = None) -> str:
         """使用 SQLite backup API 创建一致性快照，返回备份路径。"""
         if backup_path is None:
             backup_path = self._db_path + ".bak"
@@ -205,6 +220,7 @@ class Database:
 
 # ── 迁移定义 ──────────────────────────────────────────────
 
+
 @migration(2)
 def _migrate_v2_add_file_index(db: Database) -> None:
     """v2：新增 file_index 表（本地文件索引持久化）。"""
@@ -223,9 +239,11 @@ def _migrate_v2_add_file_index(db: Database) -> None:
         )
     """)
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_file_index_hash ON file_index(file_hash)")
+        "CREATE INDEX IF NOT EXISTS idx_file_index_hash ON file_index(file_hash)"
+    )
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_file_index_code ON file_index(logical_code, number)")
+        "CREATE INDEX IF NOT EXISTS idx_file_index_code ON file_index(logical_code, number)"
+    )
 
 
 @migration(3)
@@ -245,7 +263,8 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
         )
     """)
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_download_queue_status ON download_queue(status)")
+        "CREATE INDEX IF NOT EXISTS idx_download_queue_status ON download_queue(status)"
+    )
 
     # 待确认清单表
     db.execute("""
@@ -266,12 +285,15 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
         )
     """)
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_pending_lookup_status ON pending_lookup(status)")
+        "CREATE INDEX IF NOT EXISTS idx_pending_lookup_status ON pending_lookup(status)"
+    )
 
     # 兼容 v2 旧库：补充 status 列（先检查是否存在，避免误报 ERROR）
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(file_index)")}
     if "status" not in cols:
-        db.execute("ALTER TABLE file_index ADD COLUMN status TEXT NOT NULL DEFAULT '现行'")
+        db.execute(
+            "ALTER TABLE file_index ADD COLUMN status TEXT NOT NULL DEFAULT '现行'"
+        )
 
 
 @migration(4)
@@ -302,7 +324,8 @@ def _migrate_v5_announcement_cache(db: Database) -> None:
     """)
     db.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_announcement_cache_lookup "
-        "ON announcement_cache(standard_number, source_site)")
+        "ON announcement_cache(standard_number, source_site)"
+    )
 
 
 @migration(6)
@@ -328,10 +351,13 @@ def _migrate_v7_add_last_checked(db: Database) -> None:
     try:
         db.execute("ALTER TABLE file_index ADD COLUMN last_checked TEXT")
     except Exception:
-        logging.getLogger("pilotstd.db").debug("v7 迁移：last_checked 列可能已存在", exc_info=True)
+        logging.getLogger("pilotstd.db").debug(
+            "v7 迁移：last_checked 列可能已存在", exc_info=True
+        )
     db.execute(
         "CREATE INDEX IF NOT EXISTS idx_file_index_last_checked "
-        "ON file_index(last_checked)")  # 加速 WHERE last_checked < ? 增量查询
+        "ON file_index(last_checked)"
+    )  # 加速 WHERE last_checked < ? 增量查询
 
 
 @migration(8)
@@ -341,7 +367,8 @@ def _migrate_v8_drop_expires_at(db: Database) -> None:
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(standard_info_cache)")}
     if not cols:
         logging.getLogger("pilotstd.db").debug(
-            "v8 迁移：standard_info_cache 表不存在，跳过")
+            "v8 迁移：standard_info_cache 表不存在，跳过"
+        )
         return
     if "expires_at" in cols:
         db.execute("ALTER TABLE standard_info_cache DROP COLUMN expires_at")
@@ -354,7 +381,9 @@ def _migrate_v9_add_requery_count(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "requery_count" not in cols:
-        db.execute("ALTER TABLE pending_lookup ADD COLUMN requery_count INTEGER DEFAULT 0")
+        db.execute(
+            "ALTER TABLE pending_lookup ADD COLUMN requery_count INTEGER DEFAULT 0"
+        )
 
 
 @migration(10)
@@ -364,9 +393,13 @@ def _migrate_v10_add_source_and_status_history(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "source" not in cols:
-        db.execute("ALTER TABLE standard_info_cache ADD COLUMN source TEXT NOT NULL DEFAULT 'network'")
+        db.execute(
+            "ALTER TABLE standard_info_cache ADD COLUMN source TEXT NOT NULL DEFAULT 'network'"
+        )
     if "status_history" not in cols:
-        db.execute("ALTER TABLE standard_info_cache ADD COLUMN status_history TEXT NOT NULL DEFAULT ''")
+        db.execute(
+            "ALTER TABLE standard_info_cache ADD COLUMN status_history TEXT NOT NULL DEFAULT ''"
+        )
 
 
 @migration(11)
@@ -376,6 +409,10 @@ def _migrate_v11_add_daily_limits(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "daily_count" not in cols:
-        db.execute("ALTER TABLE rotator_state ADD COLUMN daily_count INTEGER NOT NULL DEFAULT 0")
+        db.execute(
+            "ALTER TABLE rotator_state ADD COLUMN daily_count INTEGER NOT NULL DEFAULT 0"
+        )
     if "daily_date" not in cols:
-        db.execute("ALTER TABLE rotator_state ADD COLUMN daily_date TEXT NOT NULL DEFAULT ''")
+        db.execute(
+            "ALTER TABLE rotator_state ADD COLUMN daily_date TEXT NOT NULL DEFAULT ''"
+        )

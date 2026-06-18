@@ -1,27 +1,30 @@
 # docker/app.py — FastAPI 入口（模块组装 + 安全头 + 健康检查 + 请求体限制）
-import os
 import logging
+import os
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from .auth import router as auth_router, AuthMiddleware
-from .scheduler import start_scheduler, stop_scheduler, register_job_func
-from .api.scan import router as scan_router
-from .api.query import router as query_router
-from .api.download import router as download_router
-from .api.organize import router as organize_router
+
 from .api.announce import router as announce_router
+from .api.archive import router as archive_router
+from .api.download import router as download_router
+from .api.logs import router as logs_router
+from .api.normalize import router as normalize_router
+from .api.organize import router as organize_router
 from .api.pending import router as pending_router
+from .api.query import router as query_router
+from .api.scan import router as scan_router
 from .api.settings import router as settings_router
 from .api.stats import router as stats_router
-from .api.normalize import router as normalize_router
-from .api.archive import router as archive_router
-from .api.users import router as users_router
-from .api.upload import router as upload_router
-from .api.logs import router as logs_router
 from .api.system import router as system_router
+from .api.upload import router as upload_router
+from .api.users import router as users_router
+from .auth import AuthMiddleware
+from .auth import router as auth_router
+from .scheduler import register_job_func, start_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 from pilotstd import __version__ as _app_version
+
 app = FastAPI(title="PilotStd API", version=_app_version, lifespan=lifespan)
 
 

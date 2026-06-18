@@ -3,10 +3,17 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 
 from ..models import QueryResult
-from ..search_strategy import build_code_variants, match_result, MATCH_SCORE, MATCH_SCORE_CONFIRMED, MATCH_SCORE_HIGH_CONFIDENCE, _parse_result_number
+from ..search_strategy import (
+    MATCH_SCORE,
+    MATCH_SCORE_CONFIRMED,
+    MATCH_SCORE_HIGH_CONFIDENCE,
+    _parse_result_number,
+    build_code_variants,
+    match_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +51,7 @@ class BaseAdapter(ABC):
         return best
 
     def query_with_strategy(self, logical_code: str, number: int, year: int,
-                            std_name: str = "", part: int = None,
+                            std_name: str = "", part: int | None = None,
                             num_prefix: str = "", num_suffix: str = "") -> Optional[QueryResult]:
         """渐进式搜索：完整号直搜 → 空格回退 → 去年份 → 代号变体。"""
         part_str = f".{part}" if part else ""
@@ -56,7 +63,7 @@ class BaseAdapter(ABC):
             _, status = match_result(
                 logical_code, number, year,
                 result.standard_name, result.standard_number,
-                local_part=part)
+                local_part=part)  # type: ignore[arg-type]
             if status == "exact":
                 result.match_status = status
                 self._post_process_result(result)
@@ -70,7 +77,7 @@ class BaseAdapter(ABC):
                 _, status = match_result(
                     logical_code, number, year,
                     result.standard_name, result.standard_number,
-                    local_part=part)
+                    local_part=part)  # type: ignore[arg-type]
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
@@ -83,7 +90,7 @@ class BaseAdapter(ABC):
             _, status = match_result(
                 logical_code, number, year,
                 result.standard_name, result.standard_number,
-                local_part=part)
+                local_part=part)  # type: ignore[arg-type]
             if status in ("exact", "newer", "older"):
                 result.match_status = status
                 self._post_process_result(result)
@@ -102,7 +109,7 @@ class BaseAdapter(ABC):
                 _, status = match_result(
                     logical_code, number, year,
                     result.standard_name, result.standard_number,
-                    local_part=part)
+                    local_part=part)  # type: ignore[arg-type]
                 score = MATCH_SCORE.get(status, 0)
                 if score > best_score:
                     best_score = score
@@ -138,7 +145,7 @@ class BaseAdapter(ABC):
         """POST 搜索候选（通用实现）。子类的 _search_candidates 可委托此方法。"""
         data = self._build_search_data(search_term)
         from ..network import safe_post
-        resp = safe_post(self._session, self.API_URL, self.site_name,
+        resp = safe_post(self._session, self.API_URL, self.site_name,  # type: ignore[attr-defined]
                         data=data, timeout=15)
         if resp is None or resp.status_code != 200:
             return []
@@ -152,7 +159,7 @@ class BaseAdapter(ABC):
         if not records:
             return []
 
-        return [self._parse_result(rec, search_term) for rec in records]
+        return [self._parse_result(rec, search_term) for rec in records]  # type: ignore[attr-defined]
 
     def _post_process_result(self, result: QueryResult) -> None:
         """结果后处理钩子，子类可重写（如从详情页提取 replaces）。"""

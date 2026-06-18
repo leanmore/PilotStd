@@ -1,12 +1,14 @@
 # docker/scheduler.py — APScheduler 定时任务调度器（含自动备份 + 优雅关闭 + DB 互斥锁）
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from pilotstd.core.config import ConfigManager, get_db_path
-from pilotstd.core.db import Database
 import logging
 import os
 import threading
 import time
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+from pilotstd.core.config import ConfigManager, get_db_path
+from pilotstd.core.db import Database
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()

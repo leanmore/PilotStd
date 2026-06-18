@@ -2,9 +2,12 @@
 import json
 import os
 from datetime import datetime
-from fastapi import Depends, BackgroundTasks
+
+from fastapi import BackgroundTasks, Depends
 from fastapi.routing import APIRouter
-from ..manager import get_manager as _get_mgr, get_manager_dep
+
+from ..manager import get_manager as _get_mgr
+from ..manager import get_manager_dep
 
 router = APIRouter(tags=["announce"])
 

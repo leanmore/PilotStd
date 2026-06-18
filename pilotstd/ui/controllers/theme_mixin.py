@@ -1,16 +1,16 @@
 # pilotstd/ui/controllers/theme_mixin.py
 # 主题/语言/i18n 混入——主题切换 + 语言切换 + 图标 + 全部 UI 文字刷新
 
+import logging
 import os
 import sys
-import logging
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTranslator, QLibraryInfo
+from PyQt6.QtCore import QLibraryInfo, QTranslator
 from PyQt6.QtGui import QIcon
-from ...core.frozen import is_frozen
+from PyQt6.QtWidgets import QApplication
 
-from ...i18n import set_language, _
+from ...core.frozen import is_frozen
+from ...i18n import _, set_language
 
 logger = logging.getLogger("pilotstd.ui")
 

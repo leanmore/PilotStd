@@ -3,15 +3,15 @@
 
 from __future__ import annotations
 
-import os
 import logging
+import os
 from datetime import datetime
 from typing import Optional
 
-from ..core.config import get_data_dir
+from ..announcement.adapters import SamrDbAdapter, SamrGbAdapter, SamrHbAdapter
 from ..announcement.engine import AnnounceEngine
-from ..announcement.adapters import SamrGbAdapter, SamrHbAdapter, SamrDbAdapter
 from ..announcement.matcher import AnnouncementMatcher
+from ..core.config import get_data_dir
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ class AnnounceService:
 
         return {"matched": total_matched, "error": ""}
 
-    def check_announcements_filtered(self, std_type: str = None,
+    def check_announcements_filtered(self, std_type: str | None = None,
                                       since_date: str = "",
                                       progress_callback=None) -> dict:
         """带类型过滤和日期筛选的公告检查。供 CLI 调用。"""

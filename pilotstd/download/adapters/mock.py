@@ -4,8 +4,8 @@
 import random
 from typing import Optional
 
-from .base import BaseDownloadAdapter
 from ..models import DownloadTask
+from .base import BaseDownloadAdapter
 
 
 class MockDownloadAdapter(BaseDownloadAdapter):

@@ -3,15 +3,21 @@
 
 import logging
 import os
-from PyQt6.QtWidgets import (
-    QMessageBox, QDialog, QLabel, QProgressBar, QPushButton,
-    QHBoxLayout, QVBoxLayout, QDateEdit,
-)
 
 from PyQt6.QtCore import QDate
+from PyQt6.QtWidgets import (
+    QDateEdit,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QVBoxLayout,
+)
 
-from ...i18n import _
 from ...core.config import get_data_dir
+from ...i18n import _
 from ..workers import AnnounceWorker
 
 logger = logging.getLogger(__name__)

@@ -1,15 +1,26 @@
 # pilotstd/manager/organizer_service.py
 # OrganizerService — 归类移动 + 过期处理，将已处理的文件归入分类目录
 
+import logging
 import os
 import shutil
 import stat
-import logging
-from typing import List
+from typing import Any, List
 
 from ..core.config import get_library_root
-from ..core.file_utils import safe_move, hash_file_content, ensure_long_path, strip_long_path
-from ..organizer.industry_lookup import get_folder_name, INDUSTRY_MAP, NATIONAL_CODES, FOREIGN_CODES, is_db_code
+from ..core.file_utils import (
+    ensure_long_path,
+    hash_file_content,
+    safe_move,
+    strip_long_path,
+)
+from ..organizer.industry_lookup import (
+    FOREIGN_CODES,
+    INDUSTRY_MAP,
+    NATIONAL_CODES,
+    get_folder_name,
+    is_db_code,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +61,7 @@ class OrganizerService:
     # ════════════════════════════════════════════════════════════════
 
     def organize(self, parsed_list: list,
-                 word_source_root: str = None) -> dict:
+                 word_source_root: str | None = None) -> dict:
         """将已处理的文件移动到分类目录。
 
         目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
@@ -63,10 +74,10 @@ class OrganizerService:
         root = get_library_root(self._cfg)
         mover = self._file_mover
 
-        result = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0,
+        result: dict[str, Any] = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0,
                   "skipped_source": 0, "dedup_skipped": 0, "details": []}
         # 内容去重：全局限哈希表，防止同内容不同名文件重复归档
-        _content_hashes = {}
+        _content_hashes: dict[str, str] = {}
         for p in items:
             src = getattr(p, "source_path", "")
             if src and os.path.isfile(src):
@@ -204,14 +215,15 @@ class OrganizerService:
     # ════════════════════════════════════════════════════════════════
 
     def organize_skipped_dirs(self, skipped_dirs: List[str],
-                               source_root: str = None) -> dict:
+                               source_root: str | None = None) -> dict:
         """将扫描时跳过的目录原封不动镜像到新库。
 
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
         目标路径 = <输出根>/<相对源根路径>，保留原始目录结构。
         """
         root = get_library_root(self._cfg)
-        result = {"moved": 0, "failed": 0, "details": []}
+        result: dict[str, Any] = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0,
+                  "skipped_source": 0, "dedup_skipped": 0, "details": []}
         for src_dir in skipped_dirs:
             if not os.path.isdir(src_dir):
                 continue
@@ -326,7 +338,8 @@ class OrganizerService:
         # 去掉 \\?\ 前缀以计算相对路径
         clean_src_root = strip_long_path(source_root)
 
-        result = {"moved": 0, "failed": 0, "skipped": 0, "skipped_by_organize": 0, "details": []}
+        result: dict[str, Any] = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0,
+                  "skipped": 0, "skipped_by_organize": 0, "details": []}
         for dirpath, dirnames, filenames in os.walk(source_root):
             for fname in filenames:
                 if fname in self._FALLBACK_SKIP_FILES or fname.startswith(self._FALLBACK_SKIP_PREFIX):
@@ -379,6 +392,7 @@ class OrganizerService:
     def merge_expire_from_source(self, root_dir: str, parsed_list: list) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
         import os as _os
+
         from ..core.file_utils import safe_move as _safe_move
         expire_folder = self._cfg.get("storage.expire_folder", "过期作废")
         source_dirs = set()

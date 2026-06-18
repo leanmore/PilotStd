@@ -1,9 +1,11 @@
 # docker/api/settings.py — 系统配置读写 API
 from fastapi import Depends
 from fastapi.routing import APIRouter
+
 from docker.scheduler import update_job
-from ..manager import get_manager_dep
+
 from ..auth import require_admin
+from ..manager import get_manager_dep
 
 router = APIRouter(tags=["settings"])
 

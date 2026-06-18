@@ -2,14 +2,22 @@
 # 网站规则配置：管理查询/下载网站的适配规则模板
 
 import json
-import os
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QTreeWidget, QTreeWidgetItem, QGroupBox, QFormLayout,
-    QLineEdit, QTextEdit, QComboBox, QLabel,
-    QDialog, QMessageBox, QHeaderView,
+    QComboBox,
+    QDialog,
     QFileDialog,
+    QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 from ...i18n import _

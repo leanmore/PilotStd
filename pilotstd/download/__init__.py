@@ -1,13 +1,9 @@
-from .models import DownloadTask, DownloadStatus, BatchDownloadStats
 from .adapters.base import BaseDownloadAdapter
 from .adapters.openstd_download import OpenstdDownloadAdapter
-from .session import SessionManager
+from .adapters.mock import MockDownloadAdapter
 from .engine import DownloadEngine
-
-try:
-    from .adapters.mock import MockDownloadAdapter
-except ImportError:
-    MockDownloadAdapter = None
+from .models import BatchDownloadStats, DownloadStatus, DownloadTask
+from .session import SessionManager
 
 __all__ = [
     "DownloadTask",
@@ -15,8 +11,7 @@ __all__ = [
     "BatchDownloadStats",
     "BaseDownloadAdapter",
     "OpenstdDownloadAdapter",
+    "MockDownloadAdapter",
     "SessionManager",
     "DownloadEngine",
 ]
-if MockDownloadAdapter is not None:
-    __all__.append("MockDownloadAdapter")
