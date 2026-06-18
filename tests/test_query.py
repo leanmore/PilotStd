@@ -785,17 +785,15 @@ class MockSiteAdapter(BaseAdapter):
 class TestBucketConcurrency(unittest.TestCase):
     """逐桶并发测试——溢出隔离/csres隔离/大桶拆子桶"""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        cls.db = Database(os.path.join(cls.tmp, "test.db"))
-        cls.cache = CacheRepository(cls.db)
-        cls.parser = StandardParser(build_code_mapping())
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        self.db = Database(os.path.join(self.tmp, "test.db"))
+        self.cache = CacheRepository(self.db)
+        self.parser = StandardParser(build_code_mapping())
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.db.close()
-        shutil.rmtree(cls.tmp, ignore_errors=True)
+    def tearDown(self):
+        self.db.close()
+        shutil.rmtree(self.tmp, ignore_errors=True)
         self.db.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
