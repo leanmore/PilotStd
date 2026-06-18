@@ -120,7 +120,7 @@ class TestNjbz365Adapter(unittest.TestCase):
     def test_din_exact_match(self):
         """搜索 DIN EN 1092.1-2018 → exact"""
         self._mock_response([_njbz_item("DIN EN 1092.1-2018", "Flanges")])
-        r = self.a._search("DIN EN 1092.1 2018", "DIN", 1, 2018)
+        r = self.a._search("DIN EN 1092.1 2018", "DIN", 1092, 2018)
         self.assertEqual(r.match_status, "exact")
 
     def test_bs_exact_match(self):
@@ -167,10 +167,10 @@ class TestNjbz365Adapter(unittest.TestCase):
         r = self.a._search("NONEXIST 9999", "NONEXIST", 9999, 2020)
         self.assertIsNone(r)
 
-    def test_query_single_parses_target_and_returns_correct_match(self):
-        """query_single 从标准号字符串解析目标参数，与 API 结果正确比对。"""
+    def test_query_with_strategy_newer_match(self):
+        """query_with_strategy 用目标参数与 API 结果比对，年份更新返回 newer。"""
         self._mock_response([_njbz_item("API 610-2010", "Centrifugal Pumps 11th Ed")])
-        r = self.a.query_single("API 610-2004")
+        r = self.a.query_with_strategy("API", 610, 2004)
         self.assertEqual(r.match_status, "newer")  # 目标2004, API返回2010
 
 
@@ -344,8 +344,8 @@ class TestBaseQueryWithStrategy(unittest.TestCase):
     def _mock_response(self, recs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = _make_hbba_records(*recs)
-        self.a._session.post = MagicMock(return_value=mock_resp)
+        mock_resp.json.return_value = {"records": list(recs)}
+        self.a._session.request = MagicMock(return_value=mock_resp)
 
     def test_query_with_strategy_overwrites_match_status(self):
         """base.py query_with_strategy 用目标参数重新计算 match_status，
