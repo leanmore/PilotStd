@@ -1,0 +1,48 @@
+[project]
+name = "pilotstd"
+version = "0.8.1"
+description = "标准文件管理工具"
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.mypy]
+exclude = [
+    "tests/",
+    "pilotstd/ui/",
+    "pilotstd_env/",
+]
+explicit_package_bases = true
+[[tool.mypy.overrides]]
+module = [
+    "PyPDF2",
+    "docx",
+    "cryptography.fernet",
+    "PyQt6.QtWidgets",
+    "ddddocr",
+    "watchdog.observers",
+    "watchdog.events",
+    "jose",
+    "apscheduler.*",
+]
+ignore_missing_imports = true
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["E402"]
+"tests/**/*.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ── 常用命令 ──────────────────────────────────────────
+# type-check-backend: mypy pilotstd/ docker/ --exclude tests
+# lint:               ruff check pilotstd/ docker/ tests/
+# format:             ruff format pilotstd/ docker/ tests/

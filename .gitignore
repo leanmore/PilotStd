@@ -35,6 +35,11 @@ tests/verify_downloads/
 temp_*.py
 *.patch
 
+# 诊断输出
+mypy_errors.txt
+project_backend_tree.txt
+project_frontend_tree.txt
+
 # 个人笔记
 *进度*.md
 *审核*.md
