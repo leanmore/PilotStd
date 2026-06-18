@@ -109,7 +109,7 @@ async function runPipeline() {
     } else { setStep(2, 'done', '无可下载项') }
 
     currentStep.value = 3; setStep(3, 'running')
-    const normItems = (scan.files || []).filter((f: any) => f.standard_number).map((f: any) => ({ source_path: f.full_path, logical_code: f.standard_number }))
+    const normItems = (scan.files || []).filter((f: any) => f.standard_number).map((f: any) => ({ source_path: f.full_path, new_filename: f.standard_number || f.logical_code || f.name }))
     const norm = await postNormalize(normItems)
     normalizeResult.value = norm
     setStep(3, 'done', `${norm.results?.length || 0} 个文件`)
@@ -117,7 +117,7 @@ async function runPipeline() {
     currentStep.value = 4; setStep(4, 'running')
     const archiveMap = new Map((norm.results || []).map((r: any) => [r.source_path, r.new_filename]))
     const archiveItems = (scan.files || []).filter((f: any) => archiveMap.has(f.full_path)).map((f: any) => ({
-      source_path: f.full_path, logical_code: f.logical_code || f.standard_number || '',
+      source_path: f.full_path, new_filename: archiveMap.get(f.full_path) || f.name || '',
       number: f.number || 0, year: f.year || 0, std_name: f.name || '',
       num_prefix: f.logical_code || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
     }))

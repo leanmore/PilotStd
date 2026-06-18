@@ -20,7 +20,7 @@ async function submit() {
 }
 
 onMounted(async () => {
-  try { const c = await getSettings(); bgUrl.value = c.appearance?.login_bg || c.login_bg_url || '' } catch {}
+  try { const c = await getSettings(); bgUrl.value = (c.appearance?.login_bg || c.login_bg_url || '') as string } catch {}
 })
 </script>
 

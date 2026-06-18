@@ -28,7 +28,7 @@ async function browse(dir?: string) {
 
 async function cleanEmpty() {
   const data = await postCleanEmpty(rootPath.value)
-  cleanResult.value = data.cleaned ? `已清理 ${data.cleaned} 个空目录` : '无空目录'
+  cleanResult.value = data.removed ? `已清理 ${data.removed} 个空目录` : '无空目录'
   setTimeout(() => cleanResult.value = '', 3000)
   browse()
 }
