@@ -44,7 +44,7 @@ class TestE2ENjbz365(unittest.TestCase):
 
     def test_api_exact_match(self):
         """API 610-2004 应返回 exact，名称含 Centrifugal"""
-        r = self.a.query_single("API 610-2004")
+        r = self.a.query_with_strategy("API", 610, 2004)
         if r is None or not r.is_found():
             self.skipTest("njbz365 对 API 610 无结果")
         self.assertIsNotNone(r)
@@ -59,7 +59,7 @@ class TestE2ENjbz365(unittest.TestCase):
 
     def test_sh_exact_match(self):
         """SH/T 1610-2011 应返回 exact"""
-        r = self.a.query_single("SH/T 1610-2011")
+        r = self.a.query_with_strategy("SH/T", 1610, 2011)
         if r is None or not r.is_found():
             self.skipTest("njbz365 对 SH/T 1610 无结果")
         self.assertIsNotNone(r)
@@ -146,7 +146,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
         njbz = Njbz365Adapter()
 
         r_hbba = hbba._search("SH/T 1610-2011")
-        r_njbz = njbz.query_single("SH/T 1610-2011")
+        r_njbz = njbz.query_with_strategy("SH/T", 1610, 2011)
 
         found = False
         for r in (r_hbba, r_njbz):
@@ -161,7 +161,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
         njbz = Njbz365Adapter()
 
         r_gov = std_gov.query_with_strategy("GB/T", 19001, 2016)
-        r_njbz = njbz.query_single("GB/T 19001-2016")
+        r_njbz = njbz.query_with_strategy("GB/T", 19001, 2016)
 
         statuses = set()
         for r in (r_gov, r_njbz):
@@ -178,7 +178,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
         ahbz = AhbzAdapter()
         std_gov = StdGovAdapter()
 
-        r_ahbz = ahbz.query_single("GB/T 19001-2016")
+        r_ahbz = ahbz.query_with_strategy("GB/T", 19001, 2016)
         r_gov = std_gov.query_with_strategy("GB/T", 19001, 2016)
 
         found = False
@@ -197,7 +197,7 @@ class TestE2EAhbz(unittest.TestCase):
 
     def test_gb_exact_match(self):
         """GB/T 19001-2016 在 ahbz 应返回 exact"""
-        r = self.a.query_single("GB/T 19001-2016")
+        r = self.a.query_with_strategy("GB/T", 19001, 2016)
         if r is None or not r.is_found():
             self.skipTest("ahbz 对 GB/T 19001 无结果")
         self.assertEqual(r.match_status, "exact",
@@ -205,7 +205,7 @@ class TestE2EAhbz(unittest.TestCase):
 
     def test_sh_exact_match(self):
         """SH/T 1610-2011 在 ahbz 应可查"""
-        r = self.a.query_single("SH/T 1610-2011")
+        r = self.a.query_with_strategy("SH/T", 1610, 2011)
         if r is None or not r.is_found():
             self.skipTest("ahbz 未收录 SH/T 1610")
         self.assertIn(r.match_status, ("exact", "newer"),
@@ -213,7 +213,7 @@ class TestE2EAhbz(unittest.TestCase):
 
     def test_iso_exact_match(self):
         """ISO 9001:2015 在 ahbz 应可查"""
-        r = self.a.query_single("ISO 9001:2015")
+        r = self.a.query_with_strategy("ISO", 9001, 2015)
         if r is None or not r.is_found():
             self.skipTest("ahbz 未收录 ISO 9001")
         self.assertIn(r.match_status, ("exact", "newer"),
@@ -267,7 +267,7 @@ class TestSiteUnavailable(unittest.TestCase):
         from pilotstd.query.adapters.njbz365 import Njbz365Adapter
 
         adapter = Njbz365Adapter()
-        r = adapter.query_single("GB/T 19001-2016")
+        r = adapter.query_with_strategy("GB/T", 19001, 2016)
         if r is None:
             self.skipTest("njbz365 无响应")
         self.assertIsNotNone(r)
@@ -292,24 +292,27 @@ class TestNetworkDisconnect(unittest.TestCase):
     def test_query_with_mock_network_error_does_not_crash_engine(self):
         """单个适配器抛异常时引擎应捕获并继续，不因一次失败而崩溃。"""
         from unittest.mock import MagicMock
-        from pilotstd.manager.facade import StandardManager
-        from pilotstd.query.models import QueryResult
+        from pilotstd.query.engine import QueryEngine, CODE_ROUTES
+        from pilotstd.query.cache import CacheRepository
+        from pilotstd.query.adapters.hbba import HbbaAdapter
+        from pilotstd.core.db import Database
+        import tempfile
 
-        mgr = StandardManager()
-        # Mock 第一个可用站点的 query_single 抛异常
-        priority = mgr.query_engine._get_priority("GB/T")
-        first_site = priority[0]
-        adapter = mgr.query_engine.get_adapter(first_site)
-        original_query = adapter.query_single
+        tmp = tempfile.mkdtemp(prefix="e2e_test_")
+        db = Database(tmp + "/test.db")
+        cache = CacheRepository(db)
+        adapter = HbbaAdapter()
+        adapter._search = MagicMock(side_effect=ConnectionError("模拟断网"))
+        engine = QueryEngine(adapters=[adapter], cache=cache, use_cache=False)
+        items = [("GB/T", 19001, 2016, "", None, "GB/T 19001-2016")]
         try:
-            adapter.query_single = MagicMock(side_effect=ConnectionError("模拟断网"))
-
-            results, stats = mgr.query_by_numbers(["GB/T 19001-2016"])
+            results = engine.query_batch_parsed(items)
             self.assertEqual(len(results), 1)
-            # 引擎不应崩溃——要么切换到下一个站点查到，要么返回错误
             self.assertIsNotNone(results[0])
         finally:
-            adapter.query_single = original_query
+            db.close()
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":

@@ -526,8 +526,8 @@ else:
         cfg.set("query.use_cache", True)
         hits = 0
         for p in parsed_pdf[:5]:
-            r1 = mgr.query_engine.query_single(p.get_full_number())
-            r2 = mgr.query_engine.query_single(p.get_full_number())
+            r1 = mgr.query_engine.query_parsed(p.code, p.number, p.year)
+            r2 = mgr.query_engine.query_parsed(p.code, p.number, p.year)
             if r1 and r2 and r1.standard_name == r2.standard_name:
                 hits += 1
         _check("缓存: 命中率", hits >= 4, f"{hits}/5")
@@ -749,10 +749,10 @@ except Exception as e:
 # 12. 搜索策略回归
 logger.info("  12. 搜索策略回归")
 from pilotstd.query.search_strategy import (
-    build_search_terms, build_code_variants, _parse_result_number, match_result)
+    build_code_variants, _parse_result_number, match_result)
 
 # build_search_terms 回退层级去重验证（无 part 时层级 3/4 与 1/2 重复，去重后 ≥ 4 层即正确）
-_terms = build_search_terms("GB/T", 19001, 2016, "质量管理体系")
+_variants = build_code_variants("GB/T", 19001, 2016)
 _check("搜索词: 去重后层级", len(_terms) >= 4, f"{len(_terms)} 级")
 _check("搜索词: 第1级含年份", str(2016) in _terms[0])
 
@@ -865,7 +865,7 @@ _sga = _SGA()
 
 # GB/T 19001 在 std_gov 和 njbz365 均可查
 _r_sg = _sga.query_with_strategy("GB/T", 19001, 2016)
-_r_nj = _njz.query_single("GB/T 19001-2016")
+_r_nj = _njz.query_with_strategy("GB/T", 19001, 2016)
 _check("跨适配器: GB在std_gov查到", _r_sg is not None and _r_sg.is_found(),
        f"match={getattr(_r_sg,'match_status','?')}" if _r_sg else "无结果")
 _check("跨适配器: GB在njbz365查到", _r_nj is not None and _r_nj.is_found(),
@@ -873,7 +873,7 @@ _check("跨适配器: GB在njbz365查到", _r_nj is not None and _r_nj.is_found(
 
 # SH/T 1610 在 hbba 和 njbz365 均可查
 _r_hb = _hba._search("SH/T 1610-2011")
-_r_nj_sh = _njz.query_single("SH/T 1610-2011")
+_r_nj_sh = _njz.query_with_strategy("SH/T", 1610, 2011)
 _check("跨适配器: SH在hbba查到", _r_hb is not None and _r_hb.is_found(),
        f"match={getattr(_r_hb,'match_status','?')}" if _r_hb else "无结果")
 _check("跨适配器: SH在njbz365查到", _r_nj_sh is not None and _r_nj_sh.is_found(),

@@ -20,7 +20,7 @@ from pilotstd.manager.classifier import QueryClassifier
 from pilotstd.manager.pending_service import PendingService
 from pilotstd.query.models import QueryResult
 from pilotstd.query.search_strategy import (
-    build_search_terms, build_code_variants, match_result,
+    build_code_variants, match_result,
     _parse_result_number,
 )
 from pilotstd.core.db import Database
@@ -118,7 +118,7 @@ class Test02SearchStrategy(unittest.TestCase):
             _,s = match_result(c,n,y,"",w)
             self.assertEqual(s,"mismatch",f"{c} {n}-{y} vs {w}")
 
-    def test_build_search_terms(self):
+    def test_query_with_strategy_progressive(self):
         for c,n,y in ALL[:10]:
             t = build_search_terms(c,n,y,"test")
             self.assertGreater(len(t),0,f"{c} {n}-{y}")
