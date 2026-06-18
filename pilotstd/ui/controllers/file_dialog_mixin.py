@@ -17,8 +17,9 @@ class FileDialogMixin:
     # ── 打开文件 ─────────────────────────────────────────
 
     def _on_open_file(self):
-        path, __ = QFileDialog.getOpenFileName(self, "选择文件", "",
-                                               "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)")
+        path, __ = QFileDialog.getOpenFileName(
+            self, "选择文件", "", "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)"
+        )
         if path:
             self._menu_selected_path = path
             self.status_changed.emit(f"已选择文件: {os.path.basename(path)}")

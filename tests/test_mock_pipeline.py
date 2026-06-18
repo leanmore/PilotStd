@@ -2,17 +2,18 @@
 # Mock适配器单元测试 + Worker线程安全验证
 """用mock适配器测试下载逻辑，以及Worker线程控制，无需网络。"""
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import unittest
+import sqlite3
 import threading
 import time
-import sqlite3
+import unittest
 
-from pilotstd.download.models import DownloadTask
 from pilotstd.download.adapters.mock import MockDownloadAdapter
+from pilotstd.download.models import DownloadTask
 
 
 class TestMockDownloadAdapter(unittest.TestCase):
@@ -21,7 +22,9 @@ class TestMockDownloadAdapter(unittest.TestCase):
     def test_can_handle_any_task(self):
         adapter = MockDownloadAdapter()
         self.assertTrue(adapter.can_handle(DownloadTask(standard_number="任意标准号")))
-        self.assertTrue(adapter.can_handle(DownloadTask(standard_number="GB/T 19001-2016")))
+        self.assertTrue(
+            adapter.can_handle(DownloadTask(standard_number="GB/T 19001-2016"))
+        )
 
     def test_download_returns_pdf_content(self):
         adapter = MockDownloadAdapter()
@@ -104,15 +107,18 @@ class TestWorkerThreadSafety(unittest.TestCase):
             try:
                 c = sqlite3.connect(tmpfile)
                 for i in range(20):
-                    c.execute("INSERT INTO t (id, val) VALUES (?, ?)",
-                              (thread_id * 100 + i, f"t{thread_id}-{i}"))
+                    c.execute(
+                        "INSERT INTO t (id, val) VALUES (?, ?)",
+                        (thread_id * 100 + i, f"t{thread_id}-{i}"),
+                    )
                     c.commit()
                 c.close()
             except Exception as e:
                 errors.append(str(e))
 
-        threads = [threading.Thread(target=writer, args=(i,), daemon=True)
-                   for i in range(4)]
+        threads = [
+            threading.Thread(target=writer, args=(i,), daemon=True) for i in range(4)
+        ]
         for t in threads:
             t.start()
         for t in threads:

@@ -1,7 +1,8 @@
 import os
-import sys
 import shutil
+import sys
 import tempfile
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -42,8 +43,18 @@ def test_download_mock_after_query(window, test_data_dir, qtbot):
             item = table.item(row, 1)
             if item:
                 text = item.text()
-                assert text in ("已下载", "下载失败", "采标受限", "新标准待公开", "已就绪",
-                               "normalize", "expire", "not_found", "下载中...", "")
+                assert text in (
+                    "已下载",
+                    "下载失败",
+                    "采标受限",
+                    "新标准待公开",
+                    "已就绪",
+                    "normalize",
+                    "expire",
+                    "not_found",
+                    "下载中...",
+                    "",
+                )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

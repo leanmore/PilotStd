@@ -4,7 +4,11 @@
 # 全程自动化；Docker不可达时自动跳过
 # 覆盖: 认证(4)/业务API(11)/配置与公告(3)/文件操作(5) 共23项
 
-import sys, os, time, logging, json, requests
+import os
+import sys
+import time
+
+import requests
 from _stress_utils import setup_stress_logging
 
 logger = setup_stress_logging("stress_web")
@@ -16,8 +20,8 @@ PASSWORD = os.environ.get("PILOTSTD_PASSWORD", "")
 TIMEOUT = 120
 
 # 复用公共判定工具
-from _stress_utils import check as _check, verdict as _verdict
-
+from _stress_utils import check as _check
+from _stress_utils import verdict as _verdict
 
 # ════════════════════════════════════════════════════════════════
 # 环境预检
@@ -36,13 +40,18 @@ _docker_healthy = False
 try:
     r = requests.get(f"{BASE}/api/health", timeout=5)
     _docker_healthy = r.status_code == 200 and r.json().get("status") == "ok"
-    logger.info("前置: Docker健康检查 %s", "PASS" if _docker_healthy else "FAIL status=%d" % r.status_code)
+    logger.info(
+        "前置: Docker健康检查 %s",
+        "PASS" if _docker_healthy else "FAIL status=%d" % r.status_code,
+    )
 except Exception as e:
     logger.info("前置: Docker健康检查 FAIL — %s", str(e)[:80])
 
 # 2. API 可达性（login 端点 = 401 表示可达）
 try:
-    r = requests.post(f"{BASE}/api/login", data={"username": USERNAME, "password": "wrong"}, timeout=5)
+    r = requests.post(
+        f"{BASE}/api/login", data={"username": USERNAME, "password": "wrong"}, timeout=5
+    )
     _docker_up = r.status_code in (200, 401, 403, 404, 422, 500)
     logger.info("前置: API可达 %s", "PASS" if _docker_up else "FAIL")
 except requests.exceptions.ConnectionError as e:
@@ -52,8 +61,16 @@ except Exception as e:
 
 if not _docker_up or not _docker_healthy:
     logger.info("Docker 环境不可达或不健康，跳过全部 Web API 测试")
-    _check("环境: Docker可达", _docker_up, "跳过全部 Web 测试" if not _docker_up else "API ok")
-    _check("环境: Docker健康", _docker_healthy, "跳过全部 Web 测试" if not _docker_healthy else "health ok")
+    _check(
+        "环境: Docker可达",
+        _docker_up,
+        "跳过全部 Web 测试" if not _docker_up else "API ok",
+    )
+    _check(
+        "环境: Docker健康",
+        _docker_healthy,
+        "跳过全部 Web 测试" if not _docker_healthy else "health ok",
+    )
     _verdict()
     sys.exit(0)
 
@@ -65,13 +82,25 @@ _check("环境: Docker可达", True)
 logger.info("--- 认证 ---")
 
 # 1. 错误密码返回 401
-r = requests.post(f"{BASE}/api/login", data={"username": USERNAME, "password": "wrong"}, timeout=TIMEOUT)
+r = requests.post(
+    f"{BASE}/api/login",
+    data={"username": USERNAME, "password": "wrong"},
+    timeout=TIMEOUT,
+)
 _check("认证: 错误密码返回401", r.status_code == 401, f"status={r.status_code}")
 
 # 2. 正确密码登录成功，获取 pilotstd_token cookie
-r = requests.post(f"{BASE}/api/login", data={"username": USERNAME, "password": PASSWORD}, timeout=TIMEOUT)
+r = requests.post(
+    f"{BASE}/api/login",
+    data={"username": USERNAME, "password": PASSWORD},
+    timeout=TIMEOUT,
+)
 _login_ok = r.status_code == 200 and r.json().get("ok")
-_check("认证: 登录成功", _login_ok, f"status={r.status_code}, ok={r.json().get('ok') if r.status_code == 200 else 'N/A'}")
+_check(
+    "认证: 登录成功",
+    _login_ok,
+    f"status={r.status_code}, ok={r.json().get('ok') if r.status_code == 200 else 'N/A'}",
+)
 _cookies = r.cookies.get_dict() if _login_ok else {}
 _csrf = _cookies.get("csrf_token", "")
 
@@ -81,10 +110,17 @@ _check("认证: 未登录拒绝", r.status_code in (401, 403), f"status={r.statu
 
 # 4. 登出清除 cookie（POST 需 CSRF token）
 if _cookies and _csrf:
-    r = requests.post(f"{BASE}/api/logout", cookies=_cookies,
-                      headers={"X-CSRF-Token": _csrf}, timeout=TIMEOUT)
-    _check("认证: 登出成功", r.status_code == 200 and r.json().get("ok"),
-           f"status={r.status_code}")
+    r = requests.post(
+        f"{BASE}/api/logout",
+        cookies=_cookies,
+        headers={"X-CSRF-Token": _csrf},
+        timeout=TIMEOUT,
+    )
+    _check(
+        "认证: 登出成功",
+        r.status_code == 200 and r.json().get("ok"),
+        f"status={r.status_code}",
+    )
 else:
     _check("认证: 登出成功", None, "未登录，跳过")
 
@@ -94,14 +130,20 @@ else:
 logger.info("--- 业务 API ---")
 
 # 重新登录获取有效 cookie + CSRF token
-r = requests.post(f"{BASE}/api/login", data={"username": USERNAME, "password": PASSWORD}, timeout=TIMEOUT)
+r = requests.post(
+    f"{BASE}/api/login",
+    data={"username": USERNAME, "password": PASSWORD},
+    timeout=TIMEOUT,
+)
 _cookies = r.cookies.get_dict()
 _csrf_token = _cookies.get("csrf_token", "")
 _csrf_headers = {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
 
+
 def _get(path, **kwargs):
     """带认证 cookie 的 GET 请求。"""
     return requests.get(f"{BASE}{path}", cookies=_cookies, timeout=TIMEOUT, **kwargs)
+
 
 def _post(path, data=None, json_data=None, **kwargs):
     """带认证 cookie + CSRF 头的 POST 请求。"""
@@ -113,6 +155,7 @@ def _post(path, data=None, json_data=None, **kwargs):
     kw.update(kwargs)
     return requests.post(f"{BASE}{path}", **kw)
 
+
 def _put(path, json_data=None, **kwargs):
     """带认证 cookie + CSRF 头的 PUT 请求。"""
     kw = {"cookies": _cookies, "timeout": TIMEOUT, "headers": _csrf_headers}
@@ -121,14 +164,18 @@ def _put(path, json_data=None, **kwargs):
     kw.update(kwargs)
     return requests.put(f"{BASE}{path}", **kw)
 
+
 # 5. 统计接口
 r = _get("/api/stats")
 _check("API: 统计接口", r.status_code == 200, f"status={r.status_code}")
 
 # 6. 扫描（scan 使用查询参数，非 JSON body）
 r = _post("/api/scan", data={"path": r"D:\标准\GB 国标", "recursive": "true"})
-_check("API: 扫描启动", r.status_code in (200, 404, 500),
-       f"status={r.status_code} (路径可能不存在)")
+_check(
+    "API: 扫描启动",
+    r.status_code in (200, 404, 500),
+    f"status={r.status_code} (路径可能不存在)",
+)
 
 # 7. 标准查询（Body embed: {"numbers": [...]}）
 r = _post("/api/query", json_data={"numbers": ["GB/T 1-2020"]})
@@ -157,23 +204,40 @@ _check("API: 待确认重查", r.status_code in (200, 404), f"status={r.status_c
 
 # 13. 待确认清单读取（新增 GET /api/pending）
 r = _get("/api/pending")
-_check("API: 待确认清单", r.status_code == 200,
-       f"status={r.status_code}, items={len(r.json().get('items', [])) if r.status_code == 200 else 'N/A'}")
+_check(
+    "API: 待确认清单",
+    r.status_code == 200,
+    f"status={r.status_code}, items={len(r.json().get('items', [])) if r.status_code == 200 else 'N/A'}",
+)
 
 # 14. 查询结果持久化保存（新增 POST /api/query/save）
-_sample_results = [{"standard_number": "GB/T 1-2020", "standard_name": "测试标准", "status": "现行",
-                     "source_site": "test", "match_status": "精确匹配", "is_adopted": False}]
+_sample_results = [
+    {
+        "standard_number": "GB/T 1-2020",
+        "standard_name": "测试标准",
+        "status": "现行",
+        "source_site": "test",
+        "match_status": "精确匹配",
+        "is_adopted": False,
+    }
+]
 r = _post("/api/query/save", json_data=_sample_results)
 _save_ok = r.status_code == 200 and r.json().get("ok")
-_check("API: 查询结果保存", _save_ok,
-       f"status={r.status_code}, count={r.json().get('count', 0) if r.status_code == 200 else 'N/A'}")
+_check(
+    "API: 查询结果保存",
+    _save_ok,
+    f"status={r.status_code}, count={r.json().get('count', 0) if r.status_code == 200 else 'N/A'}",
+)
 
 # 15. 查询结果读取（新增 GET /api/query/results）
 r = _get("/api/query/results")
 _results_ok = r.status_code == 200
 _results_data = r.json().get("results", []) if _results_ok else []
-_check("API: 查询结果读取", _results_ok and len(_results_data) > 0,
-       f"status={r.status_code}, count={len(_results_data)}")
+_check(
+    "API: 查询结果读取",
+    _results_ok and len(_results_data) > 0,
+    f"status={r.status_code}, count={len(_results_data)}",
+)
 
 # ════════════════════════════════════════════════════════════════
 # 配置与公告写入（3项）
@@ -196,8 +260,11 @@ else:
 try:
     r = _post("/api/announce/check", timeout=180)
     ok = r.status_code == 200 and r.json().get("ok") is True
-    _check("公告: 抓取检查", ok,
-           f"status={r.status_code} ok={r.json().get('ok')} count={r.json().get('count',0)}")
+    _check(
+        "公告: 抓取检查",
+        ok,
+        f"status={r.status_code} ok={r.json().get('ok')} count={r.json().get('count', 0)}",
+    )
 except Exception as e:
     _check("公告: 抓取检查", None, f"超时或异常: {str(e)[:60]}")
 
@@ -210,18 +277,24 @@ logger.info("--- 文件操作权限 ---")
 _test_file_name = f"_stress_test_{int(time.time())}.png"
 _test_file_content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100  # 最小合法 PNG
 try:
-    r = requests.post(f"{BASE}/api/upload",
-                      files={"file": (_test_file_name, _test_file_content, "image/png")},
-                      cookies=_cookies, headers=_csrf_headers, timeout=TIMEOUT)
+    r = requests.post(
+        f"{BASE}/api/upload",
+        files={"file": (_test_file_name, _test_file_content, "image/png")},
+        cookies=_cookies,
+        headers=_csrf_headers,
+        timeout=TIMEOUT,
+    )
     _upload_ok = r.status_code == 200 and "url" in r.json()
     _upload_url = r.json().get("url", "") if _upload_ok else ""
-    _check("文件: 上传图片", _upload_ok,
-           f"status={r.status_code}, url={_upload_url}")
+    _check("文件: 上传图片", _upload_ok, f"status={r.status_code}, url={_upload_url}")
     # 读取刚上传的文件验证内容
     if _upload_url:
         r2 = requests.get(f"{BASE}{_upload_url}", timeout=TIMEOUT)
-        _check("文件: 读取已上传图片", r2.status_code == 200 and len(r2.content) > 0,
-               f"status={r2.status_code}, size={len(r2.content)}")
+        _check(
+            "文件: 读取已上传图片",
+            r2.status_code == 200 and len(r2.content) > 0,
+            f"status={r2.status_code}, size={len(r2.content)}",
+        )
     else:
         _check("文件: 读取已上传图片", None, "上传未成功，跳过")
 except Exception as e:
@@ -231,12 +304,19 @@ except Exception as e:
 r = _get("/api/files", params={"path": "/standards"})
 _files_list_ok = r.status_code == 200
 _files_data = r.json() if _files_list_ok else {}
-_check("文件: 列表/standards可读", _files_list_ok and isinstance(_files_data.get("files"), list),
-       f"status={r.status_code}, count={len(_files_data.get('files', []))}")
+_check(
+    "文件: 列表/standards可读",
+    _files_list_ok and isinstance(_files_data.get("files"), list),
+    f"status={r.status_code}, count={len(_files_data.get('files', []))}",
+)
 
 # 20. 从 inode 确认容器内有可写的持久化目录
-for _test_dir, _label in [("/inbox", "inbox"), ("/standards", "standards"),
-                            ("/app/data", "data"), ("/app/logs", "logs")]:
+for _test_dir, _label in [
+    ("/inbox", "inbox"),
+    ("/standards", "standards"),
+    ("/app/data", "data"),
+    ("/app/logs", "logs"),
+]:
     r = _get("/api/files", params={"path": _test_dir})
     # 只有标准库目录返回 200；非库目录返回 400 是路径安全策略的正确行为
     _ok = r.status_code in (200, 400, 404)
@@ -246,13 +326,19 @@ for _test_dir, _label in [("/inbox", "inbox"), ("/standards", "standards"),
 r = _post("/api/scan", data={"path": "/inbox", "recursive": "true"})
 _scan_ok = r.status_code in (200, 404)
 _scan_data = r.json() if _scan_ok else {}
-_check("文件: 扫描inbox目录", _scan_ok,
-       f"status={r.status_code}, files={_scan_data.get('total', 0)}")
+_check(
+    "文件: 扫描inbox目录",
+    _scan_ok,
+    f"status={r.status_code}, files={_scan_data.get('total', 0)}",
+)
 
 # 22. 清空目录（写入+删除权限，dry-run 用不存在的空目录）
 r = _post("/api/clean-empty", data={"path": "/standards"})
-_check("文件: clean-empty权限", r.status_code in (200, 404),
-       f"status={r.status_code}, cleaned={r.json().get('cleaned', 0) if r.status_code == 200 else 'N/A'}")
+_check(
+    "文件: clean-empty权限",
+    r.status_code in (200, 404),
+    f"status={r.status_code}, cleaned={r.json().get('cleaned', 0) if r.status_code == 200 else 'N/A'}",
+)
 
 # ════════════════════════════════════════════════════════════════
 # 补充：配置一致性 + 权限隔离 + 端到端管线
@@ -264,14 +350,30 @@ if _settings_ok:
     try:
         orig = r.json() if _settings_ok else {}
         test_val = "test_roundtrip_value"
-        r_put = _put("/api/settings", json_data={"storage": {"downloads_dir": test_val}})
+        r_put = _put(
+            "/api/settings", json_data={"storage": {"downloads_dir": test_val}}
+        )
         r_get = _get("/api/settings")
-        _new_val = r_get.json().get("storage", {}).get("downloads_dir", "") if r_get.status_code == 200 else ""
+        _new_val = (
+            r_get.json().get("storage", {}).get("downloads_dir", "")
+            if r_get.status_code == 200
+            else ""
+        )
         _roundtrip_ok = r_put.status_code == 200 and _new_val == test_val
-        _check("配置: 读写一致", _roundtrip_ok,
-               f"put={r_put.status_code}, get={r_get.status_code}, val={_new_val}")
+        _check(
+            "配置: 读写一致",
+            _roundtrip_ok,
+            f"put={r_put.status_code}, get={r_get.status_code}, val={_new_val}",
+        )
         # 还原
-        _put("/api/settings", json_data={"storage": {"downloads_dir": orig.get("storage", {}).get("downloads_dir", "")}})
+        _put(
+            "/api/settings",
+            json_data={
+                "storage": {
+                    "downloads_dir": orig.get("storage", {}).get("downloads_dir", "")
+                }
+            },
+        )
     except Exception as e:
         _check("配置: 读写一致", None, f"异常: {str(e)[:60]}")
 else:
@@ -282,35 +384,57 @@ logger.info("--- 权限隔离 ---")
 # 24. 非 admin 不能改设置（测试完清理临时用户）
 _non_admin_user = "_test_noadmin_"
 try:
-    r_create = _post("/api/users", json_data={"username": _non_admin_user, "password": "test123456", "role": "user"})
+    r_create = _post(
+        "/api/users",
+        json_data={
+            "username": _non_admin_user,
+            "password": "test123456",
+            "role": "user",
+        },
+    )
     _user_created = r_create.status_code in (200, 409)
     if _user_created or r_create.status_code == 409:
-        r_login = requests.post(f"{BASE}/api/login",
-                                data={"username": _non_admin_user, "password": "test123456"},
-                                timeout=TIMEOUT)
+        r_login = requests.post(
+            f"{BASE}/api/login",
+            data={"username": _non_admin_user, "password": "test123456"},
+            timeout=TIMEOUT,
+        )
         if r_login.status_code == 200 and r_login.json().get("ok"):
             _user_cookies = r_login.cookies.get_dict()
             _user_csrf = _user_cookies.get("csrf_token", "")
-            r_put = requests.put(f"{BASE}/api/settings",
-                                json={"tasks": {"auto_scan_enabled": False}},
-                                cookies=_user_cookies,
-                                headers={"X-CSRF-Token": _user_csrf} if _user_csrf else {},
-                                timeout=TIMEOUT)
-            _check("权限: 非admin改设置", r_put.status_code in (401, 403, 405),
-                   f"status={r_put.status_code}")
+            r_put = requests.put(
+                f"{BASE}/api/settings",
+                json={"tasks": {"auto_scan_enabled": False}},
+                cookies=_user_cookies,
+                headers={"X-CSRF-Token": _user_csrf} if _user_csrf else {},
+                timeout=TIMEOUT,
+            )
+            _check(
+                "权限: 非admin改设置",
+                r_put.status_code in (401, 403, 405),
+                f"status={r_put.status_code}",
+            )
             # 清理：删除临时用户（需获取 user_id）
             r_users = _get("/api/users")
             if r_users.status_code == 200:
                 for u in r_users.json().get("users", []):
                     if u.get("username") == _non_admin_user:
-                        _csrf_headers_extra = {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
-                        requests.delete(f"{BASE}/api/users/{u['id']}",
-                                       cookies=_cookies, headers=_csrf_headers_extra, timeout=TIMEOUT)
+                        _csrf_headers_extra = (
+                            {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
+                        )
+                        requests.delete(
+                            f"{BASE}/api/users/{u['id']}",
+                            cookies=_cookies,
+                            headers=_csrf_headers_extra,
+                            timeout=TIMEOUT,
+                        )
                         break
         else:
             _check("权限: 非admin改设置", None, "普通用户登录失败，跳过")
     else:
-        _check("权限: 非admin改设置", None, f"创建用户失败 status={r_create.status_code}")
+        _check(
+            "权限: 非admin改设置", None, f"创建用户失败 status={r_create.status_code}"
+        )
 except Exception as e:
     _check("权限: 非admin改设置", None, f"异常: {str(e)[:60]}")
 
@@ -321,44 +445,66 @@ r_scan = _post("/api/scan", data={"path": "/inbox"})
 _scan_files = r_scan.json().get("files", []) if r_scan.status_code == 200 else []
 
 if _scan_files:
-    _std_numbers = [f["standard_number"] for f in _scan_files if f.get("standard_number")]
+    _std_numbers = [
+        f["standard_number"] for f in _scan_files if f.get("standard_number")
+    ]
     # 查询
     r_q = _post("/api/query", json_data={"numbers": _std_numbers})
     _query_ok = r_q.status_code == 200
-    _check("管线: 扫描→查询", _query_ok,
-           f"scan={len(_scan_files)}files, query={r_q.status_code}")
+    _check(
+        "管线: 扫描→查询",
+        _query_ok,
+        f"scan={len(_scan_files)}files, query={r_q.status_code}",
+    )
 
     # 规范化（用扫描结果的字段构造 items）
-    _norm_items = [{"logical_code": f.get("logical_code", ""), "number": f.get("number", 0),
-                     "year": f.get("year", 0), "part": f.get("part"),
-                     "source_path": f.get("full_path", "")} for f in _scan_files]
+    _norm_items = [
+        {
+            "logical_code": f.get("logical_code", ""),
+            "number": f.get("number", 0),
+            "year": f.get("year", 0),
+            "part": f.get("part"),
+            "source_path": f.get("full_path", ""),
+        }
+        for f in _scan_files
+    ]
     r_norm = _post("/api/normalize", json_data={"items": _norm_items})
     _norm_ok = r_norm.status_code == 200
-    _check("管线: 规范化", _norm_ok,
-           f"status={r_norm.status_code}, results={len(r_norm.json().get('results', []))}")
+    _check(
+        "管线: 规范化",
+        _norm_ok,
+        f"status={r_norm.status_code}, results={len(r_norm.json().get('results', []))}",
+    )
 
     # 归档（需要查询结果的匹配信息）
     _archive_items = []
     for f in _scan_files:
-        _archive_items.append({
-            "logical_code": f.get("logical_code", ""), "number": f.get("number", 0),
-            "year": f.get("year", 0), "part": f.get("part"),
-            "source_path": f.get("full_path", ""),
-            "std_name": f.get("std_name", ""),
-            "num_prefix": f.get("num_prefix", ""),
-            "num_suffix": f.get("num_suffix", ""),
-            "language": f.get("language", ""),
-            "ext": f.get("ext", ".pdf"),
-        })
-    r_archive = _post("/api/archive", json_data={"items": _archive_items, "word_source_root": "/inbox"})
+        _archive_items.append(
+            {
+                "logical_code": f.get("logical_code", ""),
+                "number": f.get("number", 0),
+                "year": f.get("year", 0),
+                "part": f.get("part"),
+                "source_path": f.get("full_path", ""),
+                "std_name": f.get("std_name", ""),
+                "num_prefix": f.get("num_prefix", ""),
+                "num_suffix": f.get("num_suffix", ""),
+                "language": f.get("language", ""),
+                "ext": f.get("ext", ".pdf"),
+            }
+        )
+    r_archive = _post(
+        "/api/archive",
+        json_data={"items": _archive_items, "word_source_root": "/inbox"},
+    )
     _archive_ok = r_archive.status_code in (200, 404)
     _moved = r_archive.json().get("moved", 0) if r_archive.status_code == 200 else 0
-    _check("管线: 归档", _archive_ok,
-           f"status={r_archive.status_code}, moved={_moved}")
+    _check("管线: 归档", _archive_ok, f"status={r_archive.status_code}, moved={_moved}")
 
     # 验证文件已归档（用 archive 返回的 moved 计数）
-    _check("管线: 文件进入输出目录", _moved > 0,
-           f"归档移动了 {_moved} 个文件到 /standards")
+    _check(
+        "管线: 文件进入输出目录", _moved > 0, f"归档移动了 {_moved} 个文件到 /standards"
+    )
 else:
     _check("管线: 扫描→查询", None, "inbox 无文件，跳过端到端")
     _check("管线: 规范化", None, "跳过")
@@ -372,6 +518,8 @@ total_time = time.time() - t0
 logger.info("=" * 60)
 logger.info("Web API 压力测试完成 (%.1fs)", total_time)
 # 从 logger 的 FileHandler 中取日志路径（setup_stress_logging 不返回路径）
-_log_path = next((h.baseFilename for h in logger.handlers if hasattr(h, 'baseFilename')), '未知')
+_log_path = next(
+    (h.baseFilename for h in logger.handlers if hasattr(h, "baseFilename")), "未知"
+)
 logger.info("日志: %s", _log_path)
 _verdict()

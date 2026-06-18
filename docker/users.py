@@ -10,6 +10,7 @@ SALT_BYTES = 32
 MIN_PASSWORD_LEN = 8  # 最小密码长度
 _db_instance: Database | None = None  # 缓存的 Database 实例
 
+
 def _hash(password: str, salt: str = "") -> tuple[str, str]:
     """SHA-256 哈希密码。返回 (hash_hex, salt_hex)。"""
     if not salt:
@@ -46,7 +47,9 @@ def init_users_table() -> None:
     if "role" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
-        db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
+        db.execute(
+            "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"
+        )
     # 管理员用户名（可通过 ADMIN_USERNAME 环境变量自定义）
     admin_user = os.environ.get("ADMIN_USERNAME", "admin")
     # 常见弱密码列表，用于检测已存在管理员是否需要强制改密
@@ -55,21 +58,27 @@ def init_users_table() -> None:
     # 确保管理员用户存在
     existing = db.fetchone(
         "SELECT id, password_hash, salt, must_change_password FROM users WHERE username = ?",
-        (admin_user,))
+        (admin_user,),
+    )
     if not existing:
         admin_pass = os.environ.get("ADMIN_PASSWORD") or secrets.token_urlsafe(12)
-        must_change = 0 if os.environ.get("ADMIN_PASSWORD") else 1  # 自动生成密码则强制改密
+        must_change = (
+            0 if os.environ.get("ADMIN_PASSWORD") else 1
+        )  # 自动生成密码则强制改密
         if not os.environ.get("ADMIN_PASSWORD"):
-            print(f"\n{'='*60}\n"
-                  f"  ⚠️  ADMIN_PASSWORD 环境变量未设置！\n"
-                  f"  已自动生成管理员密码: {admin_pass}\n"
-                  f"  请保存此密码，或设置 ADMIN_PASSWORD 环境变量。\n"
-                  f"{'='*60}\n")
+            print(
+                f"\n{'=' * 60}\n"
+                f"  ⚠️  ADMIN_PASSWORD 环境变量未设置！\n"
+                f"  已自动生成管理员密码: {admin_pass}\n"
+                f"  请保存此密码，或设置 ADMIN_PASSWORD 环境变量。\n"
+                f"{'=' * 60}\n"
+            )
         h, s = _hash(admin_pass)
         db.execute(
             "INSERT INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, 'admin', ?)",
-            (admin_user, h, s, must_change))
+            (admin_user, h, s, must_change),
+        )
     else:
         # 已有管理员用户：检测弱密码，若哈希匹配弱密码则强制改密
         if not existing["must_change_password"]:
@@ -78,17 +87,22 @@ def init_users_table() -> None:
                 if h_check == existing["password_hash"]:
                     db.execute(
                         "UPDATE users SET must_change_password = 1 WHERE username = ?",
-                        (admin_user,))
-                    print(f"\n{'='*60}\n"
-                          f"  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n"
-                          f"{'='*60}\n")
+                        (admin_user,),
+                    )
+                    print(
+                        f"\n{'=' * 60}\n"
+                        f"  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n"
+                        f"{'=' * 60}\n"
+                    )
                     break
 
 
 def verify_user(username: str, password: str) -> bool:
     """验证用户名和密码。"""
     db = _get_db()
-    row = db.fetchone("SELECT password_hash, salt FROM users WHERE username = ?", (username,))
+    row = db.fetchone(
+        "SELECT password_hash, salt FROM users WHERE username = ?", (username,)
+    )
     if not row:
         return False
     h, _ = _hash(password, row["salt"])
@@ -123,7 +137,8 @@ def add_user(username: str, password: str, role: str = "user") -> bool:
     h, s = _hash(password)
     db.execute(
         "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-        (username, h, s, role))
+        (username, h, s, role),
+    )
     return True
 
 
@@ -144,15 +159,15 @@ def check_must_change_password(username: str) -> bool:
     """检查用户是否需要强制修改密码。"""
     db = _get_db()
     row = db.fetchone(
-        "SELECT must_change_password FROM users WHERE username = ?", (username,))
+        "SELECT must_change_password FROM users WHERE username = ?", (username,)
+    )
     return bool(row and row["must_change_password"])
 
 
 def get_user_role(username: str) -> str:
     """获取用户角色。用户不存在返回空字符串。"""
     db = _get_db()
-    row = db.fetchone(
-        "SELECT role FROM users WHERE username = ?", (username,))
+    row = db.fetchone("SELECT role FROM users WHERE username = ?", (username,))
     return row["role"] if row else ""
 
 
@@ -160,7 +175,8 @@ def clear_must_change_password(username: str) -> None:
     """清除强制改密标记。"""
     db = _get_db()
     db.execute(
-        "UPDATE users SET must_change_password = 0 WHERE username = ?", (username,))
+        "UPDATE users SET must_change_password = 0 WHERE username = ?", (username,)
+    )
 
 
 def change_password(username: str, old_password: str, new_password: str) -> bool:
@@ -171,13 +187,17 @@ def change_password(username: str, old_password: str, new_password: str) -> bool
         raise ValueError(err)
     db = _get_db()
     h, s = _hash(new_password)
-    db.execute("UPDATE users SET password_hash = ?, salt = ? WHERE username = ?", (h, s, username))
+    db.execute(
+        "UPDATE users SET password_hash = ?, salt = ? WHERE username = ?",
+        (h, s, username),
+    )
     # 清除强制改密标记
     clear_must_change_password(username)
     return True
 
 
 # ── 登录失败计数持久化 ──
+
 
 def init_login_attempts_table() -> None:
     """创建登录失败记录表。"""
@@ -188,18 +208,17 @@ def init_login_attempts_table() -> None:
             attempt_time REAL NOT NULL
         )
     """)
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_login_attempts_ip "
-        "ON login_attempts(ip)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip)")
 
 
 def record_login_failure(ip: str) -> None:
     """记录一次登录失败。"""
     import time
+
     db = _get_db()
     db.execute(
-        "INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)",
-        (ip, time.time()))
+        "INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)", (ip, time.time())
+    )
 
 
 def clear_login_failures(ip: str) -> None:
@@ -213,5 +232,6 @@ def count_recent_failures(ip: str, cutoff: float) -> int:
     db = _get_db()
     row = db.fetchone(
         "SELECT COUNT(*) as cnt FROM login_attempts WHERE ip = ? AND attempt_time > ?",
-        (ip, cutoff))
+        (ip, cutoff),
+    )
     return row["cnt"] if row else 0

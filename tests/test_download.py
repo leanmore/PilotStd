@@ -1,29 +1,37 @@
 # tests/test_download.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
+import tempfile
 import time
+import unittest
 
 import requests
 
-from pilotstd.download.models import DownloadTask, DownloadStatus, BatchDownloadStats
 from pilotstd.download.adapters.base import BaseDownloadAdapter
-from pilotstd.download.session import SessionManager, DEFAULT_USER_AGENTS
 from pilotstd.download.engine import DownloadEngine
-
+from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
+from pilotstd.download.session import DEFAULT_USER_AGENTS, SessionManager
 
 # ── 辅助：模拟 QueryResult ──────────────────────────────
 
+
 class FakeQueryResult:
-    def __init__(self, standard_number, standard_name="测试标准",
-                 is_adopted=False, year=2020, number=19001, part=None):
+    def __init__(
+        self,
+        standard_number,
+        standard_name="测试标准",
+        is_adopted=False,
+        year=2020,
+        number=19001,
+        part=None,
+    ):
         self.standard_number = standard_number
         self.standard_name = standard_name
         self.is_adopted = is_adopted
@@ -33,6 +41,7 @@ class FakeQueryResult:
 
 
 # ── 模拟适配器 ──────────────────────────────────────────
+
 
 class MockDownloadAdapter(BaseDownloadAdapter):
     """模拟下载适配器：返回固定字节内容，可触发失败。"""
@@ -58,6 +67,7 @@ class MockDownloadAdapter(BaseDownloadAdapter):
 
 
 # ── 测试用例 ────────────────────────────────────────────
+
 
 class TestDownloadModels(unittest.TestCase):
     def test_task_defaults(self):
@@ -90,7 +100,7 @@ class TestSessionManager(unittest.TestCase):
         self.assertLess(elapsed, 0.2)
 
     def test_default_user_agents(self):
-        sm = SessionManager()
+        SessionManager()
         self.assertGreaterEqual(len(DEFAULT_USER_AGENTS), 2)
 
     def test_proxy_config(self):
@@ -114,8 +124,7 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_single_download_success(self):
         qr = FakeQueryResult("GB/T 19001-2020")
-        task = DownloadTask(standard_number="GB/T 19001-2020",
-                            query_result=qr)
+        task = DownloadTask(standard_number="GB/T 19001-2020", query_result=qr)
         task = self.engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.SUCCESS)
         self.assertTrue(task.saved_path.endswith(".pdf"))
@@ -123,8 +132,7 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_skip_adopted_standard(self):
         qr = FakeQueryResult("GB/T 19001-2020", is_adopted=True)
-        task = DownloadTask(standard_number="GB/T 19001-2020",
-                            query_result=qr)
+        task = DownloadTask(standard_number="GB/T 19001-2020", query_result=qr)
         task = self.engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.SKIPPED)
         self.assertIn("采标", task.error_message)
@@ -137,7 +145,8 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_download_failure(self):
         fail_adapter = MockDownloadAdapter(
-            session=self.session_mgr.create_session(), fail=True)
+            session=self.session_mgr.create_session(), fail=True
+        )
         engine = DownloadEngine(
             adapters=[fail_adapter],
             session_manager=self.session_mgr,
@@ -149,10 +158,14 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_batch_download_stats(self):
         tasks = [
-            DownloadTask(standard_number="GB/T 1-2020",
-                         query_result=FakeQueryResult("GB/T 1-2020", number=1)),
-            DownloadTask(standard_number="GB/T 2-2020",
-                         query_result=FakeQueryResult("GB/T 2-2020", is_adopted=True, number=2)),
+            DownloadTask(
+                standard_number="GB/T 1-2020",
+                query_result=FakeQueryResult("GB/T 1-2020", number=1),
+            ),
+            DownloadTask(
+                standard_number="GB/T 2-2020",
+                query_result=FakeQueryResult("GB/T 2-2020", is_adopted=True, number=2),
+            ),
             DownloadTask(standard_number="XX 3-2020"),
         ]
         results, stats = self.engine.download_batch(tasks)
@@ -162,8 +175,9 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertEqual(stats.failed, 1)
 
     def test_saved_file_naming(self):
-        qr = FakeQueryResult("GB/T 1610-2010", standard_name="石油化工规范",
-                             number=1610, year=2010)
+        qr = FakeQueryResult(
+            "GB/T 1610-2010", standard_name="石油化工规范", number=1610, year=2010
+        )
         task = DownloadTask(standard_number="GB/T 1610-2010", query_result=qr)
         task = self.engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.SUCCESS)
@@ -181,8 +195,10 @@ class TestDownloadEngine(unittest.TestCase):
             @property
             def site_name(self):
                 return "flaky"
+
             def can_handle(self, task):
                 return True
+
             def download(self, task):
                 call_count[0] += 1
                 if call_count[0] < 3:
@@ -202,8 +218,14 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertEqual(task.retry_count, 1)
 
         # 批量下载内部应自动重试到成功
-        results, stats = engine.download_batch([DownloadTask(standard_number="GB/T 1-2020",
-                                                             query_result=FakeQueryResult("GB/T 1-2020", number=1))])
+        results, stats = engine.download_batch(
+            [
+                DownloadTask(
+                    standard_number="GB/T 1-2020",
+                    query_result=FakeQueryResult("GB/T 1-2020", number=1),
+                )
+            ]
+        )
         self.assertEqual(stats.success, 1, "重试后应成功")
 
     def test_skip_existing_file(self):
@@ -216,18 +238,24 @@ class TestDownloadEngine(unittest.TestCase):
         with open(target, "wb") as f:
             f.write(b"%PDF-1.4 preexisting")
         task = self.engine.download_single(task)
-        self.assertEqual(task.status, DownloadStatus.SKIPPED,
-                        f"文件已存在应跳过，实际: {task.status}")
+        self.assertEqual(
+            task.status,
+            DownloadStatus.SKIPPED,
+            f"文件已存在应跳过，实际: {task.status}",
+        )
         self.assertIn("已存在", task.error_message or "")
 
     def test_empty_content_from_adapter(self):
         """适配器返回空内容 → 下载失败（status=FAILED）。"""
+
         class EmptyAdapter(BaseDownloadAdapter):
             @property
             def site_name(self):
                 return "empty"
+
             def can_handle(self, task):
                 return True
+
             def download(self, task):
                 return b""  # 空内容
 
@@ -242,21 +270,22 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_find_adapter_exact_match(self):
         """source_site 精确匹配时优先使用对应适配器。"""
-        task = DownloadTask(standard_number="GB/T 1-2020",
-                            source_site="openstd_download")
+        task = DownloadTask(
+            standard_number="GB/T 1-2020", source_site="openstd_download"
+        )
         adapter = self.engine._find_adapter(task)
         self.assertIsNotNone(adapter)
 
     def test_find_adapter_returns_none_for_unknown_site(self):
         """未知 source_site → 回退 can_handle → 无匹配 → None。"""
-        task = DownloadTask(standard_number="API 610-2004",
-                            source_site="njbz365")
+        task = DownloadTask(standard_number="API 610-2004", source_site="njbz365")
         adapter = self.engine._find_adapter(task)
         self.assertIsNone(adapter, "njbz365 来源的国外标准无可下载适配器")
 
     def test_content_disposition_filename_extraction(self):
         """Content-Disposition 响应头中的 filename 应被正确提取到 task.extra。"""
         import re
+
         from pilotstd.download.models import DownloadTask
 
         task = DownloadTask(
@@ -265,12 +294,13 @@ class TestDownloadEngine(unittest.TestCase):
             extra={},
         )
         # 模拟服务器返回的 Content-Disposition 头
-        cd = 'attachment;filename=GB_T_19001-2016.pdf'
+        cd = "attachment;filename=GB_T_19001-2016.pdf"
         m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
         self.assertIsNotNone(m, "Content-Disposition 解析正则不应为 None")
         filename = m.group(2)
-        self.assertEqual(filename, "GB_T_19001-2016.pdf",
-                        "应从 Content-Disposition 中提取文件名")
+        self.assertEqual(
+            filename, "GB_T_19001-2016.pdf", "应从 Content-Disposition 中提取文件名"
+        )
 
         # 验证文件名存入 task.extra
         task.extra["filename_from_header"] = filename
@@ -279,6 +309,7 @@ class TestDownloadEngine(unittest.TestCase):
     def test_content_disposition_quoted_filename(self):
         """带引号的 Content-Disposition filename 应正确处理。"""
         import re
+
         cd = 'attachment; filename="GB_T_19001-2016.pdf"'
         m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
         self.assertIsNotNone(m)

@@ -14,7 +14,9 @@ router = APIRouter(tags=["announce"])
 # 公告检查结果缓存（供 /api/announce/results 查询）
 _cache: dict = {"last_check": "", "results": [], "summary": {}, "failures": []}
 
-FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
+FAILURES_FILE = os.path.join(
+    os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json"
+)
 
 
 def check_announce(since_date: str = "", mgr=None) -> dict:
@@ -53,12 +55,19 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
                 json.dump(failures, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
-    return {"ok": True, "count": total_matched + total_updated, "failures": len(failures)}
+    return {
+        "ok": True,
+        "count": total_matched + total_updated,
+        "failures": len(failures),
+    }
 
 
 @router.post("/api/announce/check")
-def api_check_announce(since_date: str = "", background_tasks: BackgroundTasks = None,
-                       mgr=Depends(get_manager_dep)):
+def api_check_announce(
+    since_date: str = "",
+    background_tasks: BackgroundTasks = None,
+    mgr=Depends(get_manager_dep),
+):
     """抓取最新公告（后台异步执行，不阻塞请求线程）。
     since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。"""
     if background_tasks:
@@ -80,7 +89,9 @@ def get_announce_results(from_date: str = "", to_date: str = ""):
             if to_date and pub > to_date:
                 continue
             filtered.append(item)
-        return {"last_check": _cache.get("last_check", ""),
-                "summary": _cache.get("summary", {}),
-                "results": filtered}
+        return {
+            "last_check": _cache.get("last_check", ""),
+            "summary": _cache.get("summary", {}),
+            "results": filtered,
+        }
     return _cache

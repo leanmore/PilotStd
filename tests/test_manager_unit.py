@@ -2,30 +2,30 @@
 # 管理层单元测试：QueryClassifier 分类逻辑 + PendingService 待确认/下载队列
 # 使用 mock 适配器构造已知查询结果，验证分类和待确认逻辑的正确性
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
-from unittest.mock import MagicMock
+import tempfile
+import unittest
 
 from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
 from pilotstd.core.file_utils import make_standard_filename
 from pilotstd.manager.classifier import QueryClassifier
 from pilotstd.manager.pending_service import PendingService
-from pilotstd.pipeline.router import PipelineRouter
 from pilotstd.models import ParsedStdInfo
+from pilotstd.pipeline.router import PipelineRouter
 from pilotstd.query.models import QueryResult
-
 
 # ════════════════════════════════════════════════════════════════
 # 辅助
 # ════════════════════════════════════════════════════════════════
+
 
 def _make_parsed(code, number, year, std_name="测试标准", source_path=""):
     # 用规范文件名确保 router 正确识别 organize
@@ -34,15 +34,30 @@ def _make_parsed(code, number, year, std_name="测试标准", source_path=""):
         source_path = f"/tmp/{fname}"
     return ParsedStdInfo(
         raw_filename=f"{code} {number}-{year}.pdf",
-        logical_code=code, number=number, year=year,
-        std_name=std_name, source_path=source_path,
+        logical_code=code,
+        number=number,
+        year=year,
+        std_name=std_name,
+        source_path=source_path,
     )
 
-def _make_result(std_num, std_name, status="现行", match_status="exact",
-                 is_adopted=False, replaces="", source_site="std_gov"):
+
+def _make_result(
+    std_num,
+    std_name,
+    status="现行",
+    match_status="exact",
+    is_adopted=False,
+    replaces="",
+    source_site="std_gov",
+):
     return QueryResult(
-        standard_number=std_num, standard_name=std_name, status=status,
-        match_status=match_status, is_adopted=is_adopted, replaces=replaces,
+        standard_number=std_num,
+        standard_name=std_name,
+        status=status,
+        match_status=match_status,
+        is_adopted=is_adopted,
+        replaces=replaces,
         source_site=source_site,
     )
 
@@ -50,6 +65,7 @@ def _make_result(std_num, std_name, status="现行", match_status="exact",
 # ════════════════════════════════════════════════════════════════
 # 1. QueryClassifier — 查询后分类验证
 # ════════════════════════════════════════════════════════════════
+
 
 class TestQueryClassifier(unittest.TestCase):
     """验证 classifier.classify() 对各类标准的分类结果。"""
@@ -81,8 +97,9 @@ class TestQueryClassifier(unittest.TestCase):
 
     def test_gb_active_normalized_filename(self):
         """GB 现行但文件名不规范 → next_action=normalize"""
-        p = _make_parsed("GB/T", 19001, 2016, "质量管理体系",
-                         source_path="/tmp/wrong_name.pdf")
+        p = _make_parsed(
+            "GB/T", 19001, 2016, "质量管理体系", source_path="/tmp/wrong_name.pdf"
+        )
         r = _make_result("GB/T 19001-2016", "质量管理体系")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "normalize")
@@ -92,8 +109,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_newer_goes_to_download(self):
         """GB newer + 非采标 → pending（规则0: 非exact统一pending）"""
         p = _make_parsed("GB/T", 19001, 2016, "质量管理体系")
-        r = _make_result("GB/T 19001-2020", "质量管理体系",
-                         match_status="newer")
+        r = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "pending")
         self.assertIn(p, pending)
@@ -101,8 +117,9 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_newer_adopted_goes_to_pending(self):
         """GB newer + 采标 → pending（不可下载）"""
         p = _make_parsed("GB/T", 19001, 2016, "质量管理体系")
-        r = _make_result("GB/T 19001-2020", "质量管理体系",
-                         match_status="newer", is_adopted=True)
+        r = _make_result(
+            "GB/T 19001-2020", "质量管理体系", match_status="newer", is_adopted=True
+        )
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "pending")
         self.assertIn(p, pending)
@@ -112,8 +129,9 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_repealed_with_replaces_goes_to_download(self):
         """GB 废止 + 有替代 + 非采标 → download"""
         p = _make_parsed("GB", 150, 1998, "钢制压力容器")
-        r = _make_result("GB 150-1998", "钢制压力容器", status="废止",
-                         replaces="GB/T 150.1-2011")
+        r = _make_result(
+            "GB 150-1998", "钢制压力容器", status="废止", replaces="GB/T 150.1-2011"
+        )
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "download")
         self.assertIn(p, download)
@@ -131,8 +149,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_industry_active_goes_to_organize(self):
         """行业标准 现行 + exact → archive（可归档，不可下载）"""
         p = _make_parsed("SH/T", 1610, 2011, "苯乙烯-丁二烯橡胶")
-        r = _make_result("SH/T 1610-2011", "苯乙烯-丁二烯橡胶",
-                         source_site="hbba")
+        r = _make_result("SH/T 1610-2011", "苯乙烯-丁二烯橡胶", source_site="hbba")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "archive")
         self.assertEqual(len(download), 0)
@@ -140,17 +157,20 @@ class TestQueryClassifier(unittest.TestCase):
     def test_foreign_not_found_goes_to_pending(self):
         """国外标准 未查到 → pending"""
         p = _make_parsed("API", 610, 2004, "Centrifugal Pumps")
-        r = QueryResult(standard_number="API 610-2004",
-                        status="", match_status="",
-                        error_message="所有来源均未找到", source_site="njbz365")
+        r = QueryResult(
+            standard_number="API 610-2004",
+            status="",
+            match_status="",
+            error_message="所有来源均未找到",
+            source_site="njbz365",
+        )
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "pending")
 
     def test_foreign_active_goes_to_organize(self):
         """国外标准 现行 + exact → archive（不可下载）"""
         p = _make_parsed("API", 610, 2004, "Centrifugal Pumps")
-        r = _make_result("API 610-2004", "Centrifugal Pumps",
-                         source_site="njbz365")
+        r = _make_result("API 610-2004", "Centrifugal Pumps", source_site="njbz365")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "archive")
         self.assertEqual(len(download), 0)
@@ -160,8 +180,13 @@ class TestQueryClassifier(unittest.TestCase):
     def test_uncertain_status_goes_to_pending(self):
         """查询结果 status='待确认' → pending"""
         p = _make_parsed("SH/T", 9999, 2020, "未知标准")
-        r = _make_result("SH/T 9999-2020", "未知标准", status="待确认",
-                         match_status="related", source_site="hbba")
+        r = _make_result(
+            "SH/T 9999-2020",
+            "未知标准",
+            status="待确认",
+            match_status="related",
+            source_site="hbba",
+        )
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "pending")
 
@@ -169,8 +194,13 @@ class TestQueryClassifier(unittest.TestCase):
 
     def test_found_source_site_is_populated(self):
         """分类后 parsed.found_source_site 被正确回写"""
-        p = _make_parsed("GB/T", 19001, 2016, "质量管理体系",
-                         source_path="/tmp/GB_T 19001-2016 质量管理体系.pdf")
+        p = _make_parsed(
+            "GB/T",
+            19001,
+            2016,
+            "质量管理体系",
+            source_path="/tmp/GB_T 19001-2016 质量管理体系.pdf",
+        )
         r = _make_result("GB/T 19001-2016", "质量管理体系", source_site="std_gov")
         self._classify([p], [r])
         self.assertEqual(p.found_source_site, "std_gov")
@@ -183,8 +213,7 @@ class TestQueryClassifier(unittest.TestCase):
         p_new = _make_parsed("GB/T", 19001, 2020, "质量管理体系")
         r_old = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer")
         r_new = _make_result("GB/T 19001-2020", "质量管理体系", match_status="exact")
-        download, expire, pending = self._classify(
-            [p_old, p_new], [r_old, r_new])
+        download, expire, pending = self._classify([p_old, p_new], [r_old, r_new])
         # p_old: newer → pending（规则0: 非exact统一pending）
         self.assertEqual(p_old.next_action, "pending")
         # p_new: exact → archive
@@ -195,6 +224,7 @@ class TestQueryClassifier(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════
 # 2. PendingService — 待确认清单 + 下载等待队列 + 本地缓存查询
 # ════════════════════════════════════════════════════════════════
+
 
 class TestPendingService(unittest.TestCase):
     """验证 PendingService 的 CRUD 操作和本地缓存查询。"""
@@ -235,6 +265,7 @@ class TestPendingService(unittest.TestCase):
             pass
         # Windows 上 SQLite 可能持有文件锁，尝试多次删除
         import time
+
         for _ in range(5):
             try:
                 shutil.rmtree(self.tmp)
@@ -304,7 +335,6 @@ class TestPendingService(unittest.TestCase):
         self.assertEqual(len(due), 1)
 
     def test_get_due_downloads_filters_by_date(self):
-        import datetime
         p = _make_parsed("GB/T", 99999, 2099)
         p.found_publish_date = "2099-01-01"  # 未来
         self.svc.enqueue_download_wait(p)
@@ -323,16 +353,26 @@ class TestPendingService(unittest.TestCase):
 
     def test_query_local_cache_returns_results(self):
         import json
+
         self.db.execute(
             "INSERT INTO standard_info_cache (standard_number, source_site, "
             "result_json, cached_at) VALUES (?, 'std_gov', ?, datetime('now'))",
-            ("GB/T 19001-2016", json.dumps({
-                "standard_name": "质量管理体系",
-                "status": "现行", "match_status": "exact",
-                "is_adopted": False, "hcno": "12345",
-                "replaces": "", "publish_date": "2016-12-30",
-                "implementation_date": "2017-07-01",
-            })))
+            (
+                "GB/T 19001-2016",
+                json.dumps(
+                    {
+                        "standard_name": "质量管理体系",
+                        "status": "现行",
+                        "match_status": "exact",
+                        "is_adopted": False,
+                        "hcno": "12345",
+                        "replaces": "",
+                        "publish_date": "2016-12-30",
+                        "implementation_date": "2017-07-01",
+                    }
+                ),
+            ),
+        )
         p = _make_parsed("GB/T", 19001, 2016)
         results = self.svc.query_local_cache([p])
         self.assertEqual(len(results), 1)
@@ -349,14 +389,22 @@ class TestPendingService(unittest.TestCase):
 
     def test_query_local_cache_falls_back_to_announcement(self):
         import json
+
         self.db.execute(
             "INSERT INTO announcement_cache (standard_number, source_site, "
             "result_json, cached_at) VALUES (?, 'announcement', ?, datetime('now'))",
-            ("SH/T 1610-2011", json.dumps({
-                "standard_name": "苯乙烯-丁二烯橡胶",
-                "status": "现行", "match_status": "exact",
-                "is_adopted": False,
-            })))
+            (
+                "SH/T 1610-2011",
+                json.dumps(
+                    {
+                        "standard_name": "苯乙烯-丁二烯橡胶",
+                        "status": "现行",
+                        "match_status": "exact",
+                        "is_adopted": False,
+                    }
+                ),
+            ),
+        )
         p = _make_parsed("SH/T", 1610, 2011)
         results = self.svc.query_local_cache([p])
         _, result = results[0]

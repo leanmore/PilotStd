@@ -49,7 +49,9 @@ class AhbzAdapter(BaseAdapter):
         session.headers["User-Agent"] = CHROME_UA
         return self._search_single(search_term, session)
 
-    def _search_single(self, standard_number: str, session: requests.Session) -> QueryResult:
+    def _search_single(
+        self, standard_number: str, session: requests.Session
+    ) -> QueryResult:
         """搜索单个标准号，在模糊匹配结果中过滤精确匹配。"""
         # 从标准号提取 code + type
         std_type = self._get_type(standard_number)
@@ -57,20 +59,23 @@ class AhbzAdapter(BaseAdapter):
             return QueryResult(
                 standard_number=standard_number,
                 error_message=f"无法识别标准类型: {standard_number}",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         code = self._normalize_code(standard_number)
 
         # 请求API — 使用 keyWord 全文检索（同网页搜索框），非 code 字段模糊匹配
         # code 参数对空格敏感（"API 685 2000"→0行），keyWord 不限格式
         payload = {"type": std_type, "keyWord": code, "size": 20, "page": 1}
-        resp = safe_request(session, "POST", SEARCH_URL, self.site_name,
-                           timeout=15, json=payload)
+        resp = safe_request(
+            session, "POST", SEARCH_URL, self.site_name, timeout=15, json=payload
+        )
         if resp is None:
             return QueryResult(
                 standard_number=standard_number,
                 error_message="网络请求失败",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         try:
             data = resp.json()
@@ -78,20 +83,23 @@ class AhbzAdapter(BaseAdapter):
             return QueryResult(
                 standard_number=standard_number,
                 error_message="响应解析失败",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         if data.get("code") != "0":
             return QueryResult(
                 standard_number=standard_number,
                 error_message=f"API返回错误: {data.get('message', '未知')}",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         rows = data.get("data", {}).get("rows", [])
         if not rows:
             return QueryResult(
                 standard_number=standard_number,
                 error_message="未找到",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         # 结构化匹配：用 StandardParser 解析双方 code，按 (code, number, year, prefix, suffix) 比对
         match = self._match_structured(standard_number, rows)
@@ -100,7 +108,8 @@ class AhbzAdapter(BaseAdapter):
             return QueryResult(
                 standard_number=standard_number,
                 error_message="未找到精确匹配",
-                source_site=self.site_name)
+                source_site=self.site_name,
+            )
 
         # 构造QueryResult，补提闲置字段
         return QueryResult(
@@ -121,6 +130,7 @@ class AhbzAdapter(BaseAdapter):
         """结构化匹配：用 StandardParser 解析双方 code，比对数段+前后缀。"""
         from ...organizer.industry_lookup import build_code_mapping
         from ...scan.parser import StandardParser
+
         parser = StandardParser(build_code_mapping())
         target = parser.parse(target_num + ".pdf")
         if not target:
@@ -131,23 +141,37 @@ class AhbzAdapter(BaseAdapter):
             candidate = parser.parse(row_code + ".pdf")
             if not candidate:
                 continue
-            if (candidate.logical_code == target.logical_code and
-                candidate.number == target.number and
-                candidate.year == target.year and
-                candidate.num_prefix == target.num_prefix and
-                candidate.num_suffix == target.num_suffix):
+            if (
+                candidate.logical_code == target.logical_code
+                and candidate.number == target.number
+                and candidate.year == target.year
+                and candidate.num_prefix == target.num_prefix
+                and candidate.num_suffix == target.num_suffix
+            ):
                 return row
         return None
 
     # ── 类型推断 ──
 
-    _TYPE_MAP = {"gb": 1, "industry": 2, "db": 3, "iso_iec": 4, "foreign": 4, "group": 5}
+    _TYPE_MAP = {
+        "gb": 1,
+        "industry": 2,
+        "db": 3,
+        "iso_iec": 4,
+        "foreign": 4,
+        "group": 5,
+    }
 
     @staticmethod
     def _get_type(std_num: str) -> Optional[int]:
         """从标准号推断 ahbz API type 编号。委托 classify_std_code()。"""
         from ...core.std_utils import classify_std_code
-        code = std_num.split()[0].upper() if " " in std_num else std_num.split("/")[0].upper()
+
+        code = (
+            std_num.split()[0].upper()
+            if " " in std_num
+            else std_num.split("/")[0].upper()
+        )
         cat = classify_std_code(code)
         return AhbzAdapter._TYPE_MAP.get(cat)  # enterprise → None
 

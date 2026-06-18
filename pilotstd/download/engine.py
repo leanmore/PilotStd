@@ -47,11 +47,12 @@ class DownloadEngine:
             self._save_root = save_root
         else:
             self._save_root = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "data", "downloads"))
-        self._min_delay = min_delay      # 请求间最小间隔秒数，防反爬
-        self._max_delay = max_delay      # 请求间最大间隔秒数（实际随机取区间中值）
-        self._batch_size = batch_size    # 每批下载数量，批次间长休息
-        self._long_rest = long_rest      # 批次间休息秒数，避免触发站点限流
+                os.path.join(os.path.dirname(__file__), "..", "..", "data", "downloads")
+            )
+        self._min_delay = min_delay  # 请求间最小间隔秒数，防反爬
+        self._max_delay = max_delay  # 请求间最大间隔秒数（实际随机取区间中值）
+        self._batch_size = batch_size  # 每批下载数量，批次间长休息
+        self._long_rest = long_rest  # 批次间休息秒数，避免触发站点限流
         self._max_workers = max_workers  # 并发下载线程数，2 线程平衡速度与反爬
         self._max_retries = max_retries  # 网络失败最大重试次数
 
@@ -59,16 +60,24 @@ class DownloadEngine:
 
     # ---- 公共 API ----
 
-    def download_single(self, task: DownloadTask, skip_adopted: bool = True) -> DownloadTask:
+    def download_single(
+        self, task: DownloadTask, skip_adopted: bool = True
+    ) -> DownloadTask:
         """下载单个任务，返回更新后的任务对象（含状态和本地路径）。"""
-        if skip_adopted and task.query_result and getattr(task.query_result, "is_adopted", False):
+        if (
+            skip_adopted
+            and task.query_result
+            and getattr(task.query_result, "is_adopted", False)
+        ):
             task.status = DownloadStatus.SKIPPED
             task.error_message = "采标标准，版权受限，自动跳过"
             logger.info(f"跳过采标: {task.standard_number}")
             return task
 
         # 下载前去重：目标文件已存在则跳过 HTTP 请求
-        logger.debug("下载: %s | 适配器=%s", task.standard_number, task.source_site or "auto")
+        logger.debug(
+            "下载: %s | 适配器=%s", task.standard_number, task.source_site or "auto"
+        )
         existing_path = self._get_existing_file(task)
         if existing_path:
             task.status = DownloadStatus.SKIPPED
@@ -92,7 +101,9 @@ class DownloadEngine:
             if task.retry_count < self._max_retries:
                 task.retry_count += 1
                 task.status = DownloadStatus.RETRYING
-                task.error_message = f"网络异常，将重试 ({task.retry_count}/{self._max_retries}): {e}"
+                task.error_message = (
+                    f"网络异常，将重试 ({task.retry_count}/{self._max_retries}): {e}"
+                )
                 logger.warning(task.error_message)
                 return task
             task.status = DownloadStatus.FAILED
@@ -103,10 +114,13 @@ class DownloadEngine:
             task.error_message = str(e)
             return task
 
-        if not content:                    # None 或空 bytes 均视为失败
+        if not content:  # None 或空 bytes 均视为失败
             task.status = DownloadStatus.FAILED
-            logger.warning("下载失败(content为空): %s | %s",
-                           task.standard_number, task.error_message or "无错误信息")
+            logger.warning(
+                "下载失败(content为空): %s | %s",
+                task.standard_number,
+                task.error_message or "无错误信息",
+            )
             return task
 
         saved = self._save_file(task, content, adapter)
@@ -117,8 +131,9 @@ class DownloadEngine:
             task.error_message = "文件保存失败"
         return task
 
-    def download_batch(self, tasks: List[DownloadTask],
-                       skip_adopted: bool = True) -> tuple[List[DownloadTask], BatchDownloadStats]:
+    def download_batch(
+        self, tasks: List[DownloadTask], skip_adopted: bool = True
+    ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import concurrent.futures
 
@@ -133,21 +148,32 @@ class DownloadEngine:
 
             # 重试循环：最多 self._max_retries 轮，每轮只提交 RETRYING/PENDING 的任务
             for retry_round in range(self._max_retries + 1):
-                pending = [t for t in batch if t.status in (
-                    DownloadStatus.PENDING, DownloadStatus.RETRYING)]
+                pending = [
+                    t
+                    for t in batch
+                    if t.status in (DownloadStatus.PENDING, DownloadStatus.RETRYING)
+                ]
                 if not pending:
                     break
                 if retry_round > 0:
-                    wait = 2 ** retry_round  # 指数退避: 2s/4s/...
-                    logger.info("重试第 %d 轮，%d 个任务，等待 %ds",
-                                retry_round, len(pending), wait)
+                    wait = 2**retry_round  # 指数退避: 2s/4s/...
+                    logger.info(
+                        "重试第 %d 轮，%d 个任务，等待 %ds",
+                        retry_round,
+                        len(pending),
+                        wait,
+                    )
                     time.sleep(wait)
 
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self._max_workers
+                ) as executor:
                     futures = {}
                     for i, task in enumerate(pending):
                         idx = task_index[id(task)]
-                        future = executor.submit(self.download_single, task, skip_adopted)
+                        future = executor.submit(
+                            self.download_single, task, skip_adopted
+                        )
                         futures[future] = idx
 
                     for future in concurrent.futures.as_completed(futures):
@@ -183,18 +209,25 @@ class DownloadEngine:
     def _resolve_target_path(self, task: DownloadTask) -> str:
         """解析任务的标准号并生成目标文件路径，校验路径范围。"""
         from ..query.search_strategy import _parse_result_number
+
         query = task.query_result
         std_name = getattr(query, "standard_name", "") if query else ""
         parsed = _parse_result_number(task.standard_number)
         if parsed:
             logical_code = f"{parsed['code']}"
         else:
-            logical_code = task.standard_number.split()[0] if " " in task.standard_number else task.standard_number
+            logical_code = (
+                task.standard_number.split()[0]
+                if " " in task.standard_number
+                else task.standard_number
+            )
         number = parsed.get("number", 0) if parsed else 0
         year = parsed.get("year", 0) if parsed else 0
         part = parsed.get("part", None) if parsed else None
 
-        filename = make_standard_filename(logical_code, number or 0, year or 0, std_name, part, ext=".pdf")
+        filename = make_standard_filename(
+            logical_code, number or 0, year or 0, std_name, part, ext=".pdf"
+        )
         # 仅保留文件名，剥离可能混入的路径分隔符
         filename = os.path.basename(filename)
         final_path = os.path.join(self._save_root, filename)
@@ -232,8 +265,9 @@ class DownloadEngine:
                 return a
         return None
 
-    def _save_file(self, task: DownloadTask, content: bytes,
-                   adapter: BaseDownloadAdapter) -> bool:
+    def _save_file(
+        self, task: DownloadTask, content: bytes, adapter: BaseDownloadAdapter
+    ) -> bool:
         """保存下载内容到规范命名的文件。"""
         try:
             final_path = self._resolve_target_path(task)
@@ -249,10 +283,12 @@ class DownloadEngine:
 
             # 校验下载内容类型与扩展名一致
             ext = os.path.splitext(final_path)[1].lower()
-            if ext == '.pdf' and not content[:5] == b'%PDF-':
+            if ext == ".pdf" and not content[:5] == b"%PDF-":
                 logger.warning("文件类型异常，非PDF: %s", final_path)
-            elif ext in ('.doc', '.docx') and len(content) < 512:
-                logger.warning("文件过小，可能非有效文档: %s (%d bytes)", final_path, len(content))
+            elif ext in (".doc", ".docx") and len(content) < 512:
+                logger.warning(
+                    "文件过小，可能非有效文档: %s (%d bytes)", final_path, len(content)
+                )
 
             task.saved_path = final_path
             logger.info(f"保存成功: {final_path}")

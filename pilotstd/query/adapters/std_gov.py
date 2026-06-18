@@ -29,15 +29,17 @@ class StdGovAdapter(BaseAdapter):
 
     def __init__(self, session: requests.Session = None):
         self._session = session or requests.Session()
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/133.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/133.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            }
+        )
 
     @property
     def site_name(self) -> str:
@@ -64,8 +66,9 @@ class StdGovAdapter(BaseAdapter):
         """搜索并解析搜索结果页（新版 Bootstrap panel 布局）。"""
         logger.debug("搜索: %s @std_gov", search_term)
         params = {"q": search_term}
-        resp = safe_get(self._session, self.SEARCH_URL, self.site_name,
-                        params=params, timeout=15)
+        resp = safe_get(
+            self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15
+        )
         if resp is None:
             return []
         resp.encoding = "utf-8"
@@ -108,20 +111,26 @@ class StdGovAdapter(BaseAdapter):
             raw = en_code.get_text(strip=True)
             # en-code 有 "GB 4053.1-2025" 和 "GB30000.30-2025" 两格式，
             # 统一插入代号与序号间的空格
-            std_number = re.sub(r'([A-Z]+(?:/[A-Z]+)?)(\d)', r'\1 \2', raw)
+            std_number = re.sub(r"([A-Z]+(?:/[A-Z]+)?)(\d)", r"\1 \2", raw)
             # 从 full_text 去掉编号前缀得到名称
-            if full_text.upper().replace(" ", "").startswith(std_number.upper().replace(" ", "")):
-                std_name = full_text[len(std_number):].strip().lstrip('-/ ')
+            if (
+                full_text.upper()
+                .replace(" ", "")
+                .startswith(std_number.upper().replace(" ", ""))
+            ):
+                std_name = full_text[len(std_number) :].strip().lstrip("-/ ")
             else:
-                std_name = full_text.replace(raw, "", 1).strip().lstrip('-/ ')
+                std_name = full_text.replace(raw, "", 1).strip().lstrip("-/ ")
         else:
             # 旧版回退：正则匹配
-            m = re.match(r'([A-Z]{2,}(?:\s*/\s*[A-Z]+)?)\s*(\d{1,6}(?:[\.\-]\d{1,4})*(?:\s*[\.\-]\s*(?:19|20)\d{2})?)',
-                         full_text)
+            m = re.match(
+                r"([A-Z]{2,}(?:\s*/\s*[A-Z]+)?)\s*(\d{1,6}(?:[\.\-]\d{1,4})*(?:\s*[\.\-]\s*(?:19|20)\d{2})?)",
+                full_text,
+            )
             if m:
-                code_part = re.sub(r'\s*/\s*', '/', m.group(1))
+                code_part = re.sub(r"\s*/\s*", "/", m.group(1))
                 std_number = f"{code_part} {m.group(2)}".strip()
-                std_name = full_text[m.end():].strip().lstrip('-/ ')
+                std_name = full_text[m.end() :].strip().lstrip("-/ ")
             else:
                 return None
 
@@ -177,10 +186,13 @@ class StdGovAdapter(BaseAdapter):
 
     def get_meta(self, hcno: str) -> Optional[dict]:
         """通过 pid 获取标准详细元数据（新版详情页）。"""
-        resp = safe_get(self._session,
+        resp = safe_get(
+            self._session,
             "https://std.samr.gov.cn/gb/search/gbDetailed",
             self.site_name,
-            params={"id": hcno}, timeout=15)
+            params={"id": hcno},
+            timeout=15,
+        )
         if resp is None:
             return None
         resp.encoding = "utf-8"

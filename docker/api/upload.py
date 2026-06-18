@@ -8,7 +8,7 @@ from fastapi.routing import APIRouter
 
 router = APIRouter(tags=["upload"])
 
-from pilotstd.core.config import get_data_dir
+from pilotstd.core.config import get_data_dir  # noqa: E402
 
 UPLOAD_DIR = os.path.join(get_data_dir(), "backgrounds")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -21,9 +21,9 @@ _MAGIC_SIGNATURES = {
     b"\x89PNG\r\n\x1a\n": "image/png",
     b"GIF87a": "image/gif",
     b"GIF89a": "image/gif",
-    b"RIFF": "image/webp",       # RIFF....WEBP，需进一步验证
+    b"RIFF": "image/webp",  # RIFF....WEBP，需进一步验证
 }
-_MAX_SIZE = 10 * 1024 * 1024     # 10MB
+_MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 def _validate_image(content: bytes, ext: str) -> None:
@@ -43,8 +43,12 @@ def _validate_image(content: bytes, ext: str) -> None:
     for magic, mime in _MAGIC_SIGNATURES.items():
         if content.startswith(magic):
             # 额外校验：扩展名与魔数一致
-            ext_to_mime = {".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-                          ".png": "image/png", ".gif": "image/gif"}
+            ext_to_mime = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+            }
             expected = ext_to_mime.get(ext)
             if expected and mime != expected:
                 raise HTTPException(400, f"文件扩展名与内容不匹配：{ext}")

@@ -75,21 +75,34 @@ from .table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS, TableMixin
 
 logger = logging.getLogger("pilotstd.ui")
 
-from .dialogs import ConfigPageDialog
-from .workers import (
+from .dialogs import ConfigPageDialog  # noqa: E402
+from .workers import (  # noqa: E402
     LogHandler,
     RowUpdate,
 )
 
 
-class MainWindow(QMainWindow,
-                 # 一期提取 (4)
-                 TableMixin, ScanMixin, ArchiveMixin, DownloadMixin, QueryMixin,
-                 # 二期提取 (11)
-                 TableHelperMixin, FileTreeMixin, ExportMixin,
-                 CleanupMixin, AutoRunMixin, PersistenceMixin,
-                 AnnounceMixin, ProjectMixin, FileDialogMixin, DialogMixin,
-                 ThemeMixin):
+class MainWindow(
+    QMainWindow,
+    # 一期提取 (4)
+    TableMixin,
+    ScanMixin,
+    ArchiveMixin,
+    DownloadMixin,
+    QueryMixin,
+    # 二期提取 (11)
+    TableHelperMixin,
+    FileTreeMixin,
+    ExportMixin,
+    CleanupMixin,
+    AutoRunMixin,
+    PersistenceMixin,
+    AnnounceMixin,
+    ProjectMixin,
+    FileDialogMixin,
+    DialogMixin,
+    ThemeMixin,
+):
     # 信号：供外部模块更新进度
     progress_changed = pyqtSignal(int)
     status_changed = pyqtSignal(str)
@@ -160,6 +173,7 @@ class MainWindow(QMainWindow,
         self._tray.activated.connect(self._on_tray_activated)
         self._tray.show()
         from ..core.notify import NotifyService
+
         NotifyService.init(self._tray)
 
     def _on_tray_activated(self, reason):
@@ -187,8 +201,12 @@ class MainWindow(QMainWindow,
             self._save_sort_state()
             self._save_column_widths()
             self.hide()
-            self._tray.showMessage("PilotStd", _("tray_minimized_msg"),
-                                   QSystemTrayIcon.MessageIcon.Information, 2000)
+            self._tray.showMessage(
+                "PilotStd",
+                _("tray_minimized_msg"),
+                QSystemTrayIcon.MessageIcon.Information,
+                2000,
+            )
             event.ignore()
             return
         super().changeEvent(event)
@@ -232,7 +250,9 @@ class MainWindow(QMainWindow,
         file_menu.addSeparator()
         a = file_menu.addAction(_("save_query_project"), self._on_save_query_project)
         a.setToolTip("将当前查询列表保存为 .pilotstd 项目文件，便于下次恢复")
-        a = file_menu.addAction(_("save_download_project"), self._on_save_download_project)
+        a = file_menu.addAction(
+            _("save_download_project"), self._on_save_download_project
+        )
         a.setToolTip("将当前下载队列保存为 .pilotstd 项目文件，便于下次恢复")
         a = file_menu.addAction(_("import_download"), self._on_import_download)
         a.setToolTip("从文件导入标准号列表并直接下载，无需先查询")
@@ -290,7 +310,9 @@ class MainWindow(QMainWindow,
         self.toolbar.addWidget(self.btn_select)
 
         self.btn_query = QPushButton("查询")
-        self.btn_query.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogContentsView))
+        self.btn_query.setIcon(
+            style.standardIcon(style.StandardPixmap.SP_FileDialogContentsView)
+        )
         self.btn_query.setToolTip("对扫描后的标准号在网站上查询有效性，获取标准状态")
         self.btn_query.clicked.connect(self._on_query)
         self.toolbar.addWidget(self.btn_query)
@@ -302,7 +324,9 @@ class MainWindow(QMainWindow,
         self.toolbar.addWidget(self.btn_download)
 
         self.btn_normalize = QPushButton("规范化")
-        self.btn_normalize.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogDetailedView))
+        self.btn_normalize.setIcon(
+            style.standardIcon(style.StandardPixmap.SP_FileDialogDetailedView)
+        )
         self.btn_normalize.setToolTip("对扫描结果生成规范标准文件名")
         self.btn_normalize.clicked.connect(self._on_normalize)
         self.toolbar.addWidget(self.btn_normalize)
@@ -320,15 +344,21 @@ class MainWindow(QMainWindow,
         self.toolbar.addWidget(self.btn_auto)
 
         self.btn_announce = QPushButton("公告检查")
-        self.btn_announce.setIcon(style.standardIcon(style.StandardPixmap.SP_MessageBoxWarning))
-        self.btn_announce.setToolTip("抓取国家标准/行业标准/地方标准公告，检测本地标准变更")
+        self.btn_announce.setIcon(
+            style.standardIcon(style.StandardPixmap.SP_MessageBoxWarning)
+        )
+        self.btn_announce.setToolTip(
+            "抓取国家标准/行业标准/地方标准公告，检测本地标准变更"
+        )
         self.btn_announce.clicked.connect(self._on_check_announcements)
         self.toolbar.addWidget(self.btn_announce)
 
         self._paused = False
         self._pause_event = threading.Event()  # 跨线程暂停信号，worker 循环中检查
         self._pause_event.set()  # 初始为"继续"状态，pause 时 clear，resume 时 set
-        self._current_task = None  # 当前正在执行的任务类型: scan/query/download/normalize/archive
+        self._current_task = (
+            None  # 当前正在执行的任务类型: scan/query/download/normalize/archive
+        )
         self.btn_pause = QPushButton("暂停")
         self.btn_pause.setIcon(style.standardIcon(style.StandardPixmap.SP_MediaPause))
         self.btn_pause.setToolTip("暂停/继续当前操作")
@@ -336,7 +366,9 @@ class MainWindow(QMainWindow,
         self.toolbar.addWidget(self.btn_pause)
 
         self.btn_cancel = QPushButton("取消")
-        self.btn_cancel.setIcon(style.standardIcon(style.StandardPixmap.SP_DialogCancelButton))
+        self.btn_cancel.setIcon(
+            style.standardIcon(style.StandardPixmap.SP_DialogCancelButton)
+        )
         self.btn_cancel.setToolTip("停止当前操作并取消后续任务")
         self.btn_cancel.clicked.connect(self._on_cancel)
         self.btn_cancel.setEnabled(False)  # 初始无任务，置灰
@@ -358,7 +390,9 @@ class MainWindow(QMainWindow,
         self.file_tree.setAnimated(True)
         self.file_tree.itemExpanded.connect(self._on_tree_item_expanded)
         self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.file_tree.customContextMenuRequested.connect(self._on_file_tree_context_menu)
+        self.file_tree.customContextMenuRequested.connect(
+            self._on_file_tree_context_menu
+        )
         self._populate_quick_access()
 
         left_widget = QWidget()
@@ -371,7 +405,9 @@ class MainWindow(QMainWindow,
 
         self.work_table = QTableWidget()
         self.work_table.setColumnCount(len(WORK_COLUMNS))
-        self.work_table.setHorizontalHeaderLabels([_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))])
+        self.work_table.setHorizontalHeaderLabels(
+            [_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))]
+        )
         # 列宽：默认值 + 最小值，标准名称(3)为Stretch吸收剩余空间，可手动拖拽不得小于最小值
         header = self.work_table.horizontalHeader()
         for c in range(len(WORK_COLUMNS)):
@@ -379,16 +415,16 @@ class MainWindow(QMainWindow,
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         # (默认宽度, 最小宽度) px
         self._col_specs = {
-            0: (34,  34),   # 序号
-            1: (54,  54),   # 工作状态
-            2: (93,  93),   # 标准编号
+            0: (34, 34),  # 序号
+            1: (54, 54),  # 工作状态
+            2: (93, 93),  # 标准编号
             3: (241, 241),  # 标准名称
-            4: (54,  54),   # 生效状态
-            5: (93,  93),   # 替代标准
-            6: (60,  60),   # 发布日期
-            7: (60,  60),   # 实施日期
-            8: (65,  65),   # 发布部门
-            9: (34,  34),   # 采标
+            4: (54, 54),  # 生效状态
+            5: (93, 93),  # 替代标准
+            6: (60, 60),  # 发布日期
+            7: (60, 60),  # 实施日期
+            8: (65, 65),  # 发布部门
+            9: (34, 34),  # 采标
         }
         self.work_table.horizontalHeader().setMinimumSectionSize(30)
         for c, (w, mn) in self._col_specs.items():
@@ -407,7 +443,9 @@ class MainWindow(QMainWindow,
         self.work_table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self.work_table.setSortingEnabled(True)
         self.work_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.work_table.customContextMenuRequested.connect(self._on_work_table_context_menu)
+        self.work_table.customContextMenuRequested.connect(
+            self._on_work_table_context_menu
+        )
         # Ctrl+C 复制选中单元格
         self.work_table.keyPressEvent = self._table_key_press_event
         self._right_splitter.addWidget(self.work_table)
@@ -461,7 +499,9 @@ class MainWindow(QMainWindow,
         # 注意：不要在此处调用 handler.setLevel()，LogHandler 在 __init__ 中
         # 已固定为 logging.INFO。外部覆盖为 DEBUG 会导致日志信号洪水 → c0000409 崩溃。
         logging.getLogger().addHandler(handler)
-        logging.getLogger().setLevel(logging.DEBUG)  # root logger 保持 DEBUG 供文件 handler 使用
+        logging.getLogger().setLevel(
+            logging.DEBUG
+        )  # root logger 保持 DEBUG 供文件 handler 使用
         self._log_handler = handler
         self._apply_language()
         logger.info("PilotStd 启动完成")
@@ -484,8 +524,15 @@ class MainWindow(QMainWindow,
         ex = self._mgr.get_stage_queue("expire")
         pe = self._mgr.get_stage_queue("pending")
         # 精确匹配计数
-        exact = sum(1 for p in self._parsed_results
-                    if getattr(p, 'match_status', '') == 'exact') if self._parsed_results else 0
+        exact = (
+            sum(
+                1
+                for p in self._parsed_results
+                if getattr(p, "match_status", "") == "exact"
+            )
+            if self._parsed_results
+            else 0
+        )
         return {
             "scan_count": len(self._parsed_results) if self._parsed_results else 0,
             "query_download": len(dl),
@@ -498,9 +545,15 @@ class MainWindow(QMainWindow,
     # ── Worker 管理 ──────────────────────────────────────────
 
     def _stop_workers(self):
-        for attr in ('_query_worker', '_download_worker', '_scan_worker',
-                     '_normalize_worker', '_archive_worker', '_ann_worker',
-                     '_auto_worker'):
+        for attr in (
+            "_query_worker",
+            "_download_worker",
+            "_scan_worker",
+            "_normalize_worker",
+            "_archive_worker",
+            "_ann_worker",
+            "_auto_worker",
+        ):
             try:
                 w = getattr(self, attr, None)
                 if w is not None and w.isRunning():
@@ -517,7 +570,9 @@ class MainWindow(QMainWindow,
         self._paused = False
         self._pause_event.set()
         self.btn_pause.setText("暂停")
-        self.btn_pause.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause))
+        self.btn_pause.setIcon(
+            self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause)
+        )
         # 恢复按钮
         self.btn_query.setEnabled(True)
         self.btn_download.setEnabled(True)
@@ -539,9 +594,14 @@ class MainWindow(QMainWindow,
         self._clear_table()
         total = len(items)
         for i, parsed in enumerate(items):
-            self._add_table_row(RowUpdate(
-                seq=i + 1, parsed=parsed, work_status=parsed.stage_status,
-                total=total))
+            self._add_table_row(
+                RowUpdate(
+                    seq=i + 1,
+                    parsed=parsed,
+                    work_status=parsed.stage_status,
+                    total=total,
+                )
+            )
         self._update_button_states()
 
     def _update_button_states(self):
@@ -589,7 +649,7 @@ class MainWindow(QMainWindow,
             "work_table_rows": self._table_to_list(),
             "current_path": self._project.current_path,
             # 保留未识别文件列表，使得重启后"工具→未识别文件处理"仍可用
-            "unrecognized_files": list(getattr(self, '_unrecognized_files', [])),
+            "unrecognized_files": list(getattr(self, "_unrecognized_files", [])),
         }
 
     # ================================================================
@@ -600,12 +660,16 @@ class MainWindow(QMainWindow,
         self._paused = not self._paused
         if self._paused:
             self.btn_pause.setText(_("toolbar_continue"))
-            self.btn_pause.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_MediaPlay))
+            self.btn_pause.setIcon(
+                self.style().standardIcon(self.style().StandardPixmap.SP_MediaPlay)
+            )
             self.status_changed.emit(_("paused"))
             self._pause_event.clear()  # 清除 event → 所有 worker 在 wait() 处阻塞
         else:
             self.btn_pause.setText(_("toolbar_pause"))
-            self.btn_pause.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause))
+            self.btn_pause.setIcon(
+                self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause)
+            )
             self.status_changed.emit(_("resumed"))
             self._pause_event.set()  # 设置 event → 所有 worker 的 wait() 返回，继续执行
 
@@ -613,6 +677,7 @@ class MainWindow(QMainWindow,
         """轮询等待暂停解除。使用 QApplication.processEvents 处理当前队列事件，
         不递归处理新事件（避免 QEventLoop 的栈溢出），同时允许用户点击"继续"。"""
         import time as _time
+
         while self._paused:
             QApplication.processEvents()
             _time.sleep(0.05)
@@ -647,7 +712,10 @@ class MainWindow(QMainWindow,
 
     def _on_rule_query(self):
         from .pages.rules_page import RulesPage  # 延迟导入
-        dlg = ConfigPageDialog(RulesPage(self._config), "网站规则配置（查询/下载）", self)
+
+        dlg = ConfigPageDialog(
+            RulesPage(self._config), "网站规则配置（查询/下载）", self
+        )
         dlg.exec()
 
     def _on_rule_download(self):
@@ -657,11 +725,13 @@ class MainWindow(QMainWindow,
         if not self._mgr_ready:
             return
         from .pages.task_page import TaskCenterDialog  # 延迟导入
+
         dlg = TaskCenterDialog(self._mgr.task_queue, self)
         dlg.exec()
 
     def _on_settings(self):
         from .pages.settings_page import SettingsDialog  # 延迟导入
+
         dlg = SettingsDialog(self._config, self)
         dlg.exec()
         self._apply_language()
@@ -679,14 +749,19 @@ class MainWindow(QMainWindow,
         import urllib.request
 
         from pilotstd import __version__
+
         current = f"v{__version__}"
 
         # 24h 内不重复检查，避免触发 GitHub API 限流（60次/h 无 Token）
         import time as _time
+
         last_check = self._config.get("appearance.last_update_check", 0)
         if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
-            QMessageBox.information(self, _("title_no_update"),
-                _("update_already_latest").format(current=current))
+            QMessageBox.information(
+                self,
+                _("title_no_update"),
+                _("update_already_latest").format(current=current),
+            )
             return
 
         self._config.set("appearance.last_update_check", _time.time())
@@ -697,6 +772,7 @@ class MainWindow(QMainWindow,
             req = urllib.request.Request(url)
             req.add_header("User-Agent", f"PilotStd/{__version__}")
             import os as _os
+
             _token = _os.environ.get("GITHUB_TOKEN", "")
             if _token:
                 req.add_header("Authorization", f"Bearer {_token}")
@@ -708,20 +784,29 @@ class MainWindow(QMainWindow,
 
             # 语义化版本比较：去除 v 前缀后按 . 分段逐位比较
             if not self._is_newer_version(latest, current):
-                QMessageBox.information(self, _("title_no_update"),
-                    _("update_already_latest").format(current=current))
+                QMessageBox.information(
+                    self,
+                    _("title_no_update"),
+                    _("update_already_latest").format(current=current),
+                )
                 return
 
             body = data.get("body", "")[:500]
-            reply = QMessageBox.question(self, _("title_update_found"),
-                _("update_new_version_msg").format(current=current, latest=latest, body=body),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            reply = QMessageBox.question(
+                self,
+                _("title_update_found"),
+                _("update_new_version_msg").format(
+                    current=current, latest=latest, body=body
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
             # 源码运行模式不自动下载，引导手动 git pull
-            if not getattr(sys, 'frozen', False):
+            if not getattr(sys, "frozen", False):
                 import webbrowser
+
                 webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
                 return
 
@@ -742,14 +827,18 @@ class MainWindow(QMainWindow,
             # 在后台下载（含完整性校验）
             import threading
             import zipfile
+
             result = {"ok": False, "error": "", "path": ""}
+
             def _download():
                 try:
                     dl_req = urllib.request.Request(download_url)
                     dl_req.add_header("User-Agent", f"PilotStd/{__version__}")
                     if _token:
                         dl_req.add_header("Authorization", f"Bearer {_token}")
-                    dl_path = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), filename)
+                    dl_path = os.path.join(
+                        os.environ.get("TEMP", os.path.expanduser("~")), filename
+                    )
                     expected_size = 0
                     actual_size = 0
                     with urllib.request.urlopen(dl_req, timeout=300) as src:
@@ -765,7 +854,9 @@ class MainWindow(QMainWindow,
                                 actual_size += len(chunk)
                     # 校验：大小不匹配说明下载不完整
                     if expected_size and actual_size != expected_size:
-                        raise IOError(f"下载不完整：期望 {expected_size} 字节，实际 {actual_size}")
+                        raise IOError(
+                            f"下载不完整：期望 {expected_size} 字节，实际 {actual_size}"
+                        )
                     # 校验：必须是合法 zip
                     if not zipfile.is_zipfile(dl_path):
                         raise IOError("下载的文件不是有效的 zip 包")
@@ -778,6 +869,7 @@ class MainWindow(QMainWindow,
                             break
                     if sha256_expected:
                         import hashlib
+
                         sha256_actual = hashlib.sha256()
                         with open(dl_path, "rb") as _f:
                             while True:
@@ -786,7 +878,9 @@ class MainWindow(QMainWindow,
                                     break
                                 sha256_actual.update(chunk)
                         if sha256_actual.hexdigest() != sha256_expected:
-                            raise IOError(f"SHA256 校验失败: 期望 {sha256_expected[:16]}...")
+                            raise IOError(
+                                f"SHA256 校验失败: 期望 {sha256_expected[:16]}..."
+                            )
                     result["ok"] = True
                     result["path"] = dl_path
                 except Exception as e:
@@ -799,31 +893,43 @@ class MainWindow(QMainWindow,
                 raise RuntimeError(result["error"] or "下载超时")
 
             zip_path = result["path"]
-            exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
+            exe_dir = (
+                os.path.dirname(sys.executable)
+                if getattr(sys, "frozen", False)
+                else os.path.dirname(__file__)
+            )
             # 写入权限检查（Program Files 等系统目录可能无写入权限）
             if not os.access(exe_dir, os.W_OK):
                 raise PermissionError(
-                    f"无法写入 {exe_dir}\n"
-                    "请以管理员身份运行，或将程序移至用户目录")
+                    f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录"
+                )
             bat_path = os.path.join(exe_dir, "update.bat")
             self._write_update_bat(bat_path, zip_path, exe_dir)
 
             import subprocess
-            reply = QMessageBox.question(self, _("update_restart_title"),
+
+            reply = QMessageBox.question(
+                self,
+                _("update_restart_title"),
                 _("update_download_ready"),
-                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            )
             if reply == QMessageBox.StandardButton.Ok:
                 subprocess.Popen(["cmd.exe", "/c", bat_path])
                 QApplication.quit()
 
         except Exception as e:
             logger.warning("检查更新失败: %s", e)
-            QMessageBox.information(self, _("title_no_update"),
-                _("update_connection_failed").format(current=current))
+            QMessageBox.information(
+                self,
+                _("title_no_update"),
+                _("update_connection_failed").format(current=current),
+            )
 
     @staticmethod
     def _is_newer_version(latest: str, current: str) -> bool:
         """语义化版本比较：latest > current → True。v前缀自动去除。"""
+
         def _parse(v):
             v = v.lstrip("v")
             parts = []
@@ -833,6 +939,7 @@ class MainWindow(QMainWindow,
             while len(parts) < 3:
                 parts.append(0)
             return tuple(parts[:3])
+
         return _parse(latest) > _parse(current)
 
     @staticmethod
@@ -840,17 +947,17 @@ class MainWindow(QMainWindow,
         """写出 update.bat——等待旧进程退出后解压替换并重启。"""
         exe_path = os.path.join(exe_dir, "PilotStd.exe")
         bat = (
-            '@echo off\r\n'
-            'chcp 65001 >nul\r\n'
-            'echo 等待 PilotStd 退出...\r\n'
-            ':wait\r\n'
-            'timeout /t 2 /nobreak >nul\r\n'
+            "@echo off\r\n"
+            "chcp 65001 >nul\r\n"
+            "echo 等待 PilotStd 退出...\r\n"
+            ":wait\r\n"
+            "timeout /t 2 /nobreak >nul\r\n"
             'tasklist /fi "IMAGENAME eq PilotStd.exe" 2>nul | find /i "PilotStd.exe" >nul\r\n'
-            'if not errorlevel 1 goto wait\r\n'
-            'echo 正在解压更新...\r\n'
+            "if not errorlevel 1 goto wait\r\n"
+            "echo 正在解压更新...\r\n"
             f'powershell -Command "Start-Process -Verb RunAs -ArgumentList \'Expand-Archive -Path \\"{zip_path}\\" -DestinationPath \\"{exe_dir}\\" -Force\'" \r\n'
             f'if exist "{zip_path}" del /q "{zip_path}"\r\n'
-            'echo 更新完成，正在启动...\r\n'
+            "echo 更新完成，正在启动...\r\n"
             f'start "" "{exe_path}"\r\n'
             'del "%~f0"\r\n'
         )
@@ -869,6 +976,7 @@ class MainWindow(QMainWindow,
         if skip:
             return
         from .welcome_dialog import WelcomeDialog  # 延迟导入
+
         dlg = WelcomeDialog(self)
         dlg.exec()
         if dlg.should_skip():
@@ -894,6 +1002,7 @@ class MainWindow(QMainWindow,
         if self._mgr_ready:
             return  # 已初始化（property 懒加载 + QTimer 竞态保护）
         from ..manager import StandardManager
+
         mgr = StandardManager(config=self._config)
         self._mgr = mgr  # 必须先设 backing field，避免下游 _mgr 访问触发递归
         self._mgr_ready = True
@@ -922,6 +1031,7 @@ class MainWindow(QMainWindow,
 def run():
     """启动 GUI 应用。"""
     from ..core.logger import LoggerManager
+
     LoggerManager(level=logging.INFO)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
@@ -932,6 +1042,7 @@ def run():
     # exe 模式下预创建下载目录
     if is_frozen():
         import os as _os
+
         dl_dir = _os.path.join(_os.path.dirname(sys.executable), "downloads")
         _os.makedirs(dl_dir, exist_ok=True)
 

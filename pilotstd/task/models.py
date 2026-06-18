@@ -25,6 +25,7 @@ class TaskStatus(Enum):
 @dataclass
 class TaskInfo:
     """任务信息（可序列化到 SQLite）。"""
+
     task_id: str = ""
     task_type: TaskType = TaskType.SCAN
     status: TaskStatus = TaskStatus.PENDING
@@ -33,8 +34,8 @@ class TaskInfo:
     failed_items: int = 0
     created_at: str = ""
     updated_at: str = ""
-    result_json: str = ""       # 批次结果摘要 JSON
-    error_log: str = ""         # 错误汇总
+    result_json: str = ""  # 批次结果摘要 JSON
+    error_log: str = ""  # 错误汇总
 
     @property
     def progress_pct(self) -> float:

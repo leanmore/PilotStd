@@ -16,12 +16,17 @@ logger = logging.getLogger(__name__)
 class FileWatchHandler(PatternMatchingEventHandler):
     """文件变更事件处理器：过滤 → 哈希 → 解析 → 更新 file_index。"""
 
-    def __init__(self, file_index, parser, patterns=None, ignore_patterns=None,
-                 skip_dir_patterns=None):
+    def __init__(
+        self,
+        file_index,
+        parser,
+        patterns=None,
+        ignore_patterns=None,
+        skip_dir_patterns=None,
+    ):
         super().__init__(
-            patterns=patterns,
-            ignore_patterns=ignore_patterns,
-            ignore_directories=True)
+            patterns=patterns, ignore_patterns=ignore_patterns, ignore_directories=True
+        )
         self._file_index = file_index
         self._parser = parser
         self._skip_dir_patterns = skip_dir_patterns or []
@@ -40,6 +45,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
             return
         try:
             from ..core.file_utils import hash_file_content
+
             file_hash = hash_file_content(path)
             parsed = self._parser.parse(os.path.basename(path))
             if parsed:
@@ -48,10 +54,10 @@ class FileWatchHandler(PatternMatchingEventHandler):
                     logical_code=parsed.logical_code,
                     number=parsed.number,
                     year=parsed.year,
-                    part=getattr(parsed, 'part', None),
-                    std_name=getattr(parsed, 'std_name', ''),
+                    part=getattr(parsed, "part", None),
+                    std_name=getattr(parsed, "std_name", ""),
                     file_hash=file_hash,
-                    status=getattr(parsed, 'effect_status', '') or ''
+                    status=getattr(parsed, "effect_status", "") or "",
                 )
         except OSError:
             pass  # 文件被锁定或已删除
@@ -108,7 +114,7 @@ class FileWatcher:
             file_index=self._file_index,
             parser=self._parser,
             patterns=self._patterns,
-            skip_dir_patterns=self._skip_dir_names
+            skip_dir_patterns=self._skip_dir_names,
         )
         self._observer = Observer()
         for path in root_paths:

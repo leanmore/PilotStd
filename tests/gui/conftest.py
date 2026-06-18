@@ -1,10 +1,11 @@
 # tests/gui/conftest.py
-import os
-import sys
 import logging
-import pytest
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
+
+import pytest
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -46,13 +47,13 @@ def mock_main_window(qapp, qtbot, test_data_dir):
     window = MainWindow(cfg, prj)
 
     # 注入 mock 适配器直接替换 Manager 的引擎（所有操作走 self._mgr）
-    from pilotstd.query.adapters.mock import MockQueryAdapter
-    from pilotstd.download.adapters.mock import MockDownloadAdapter
-    from pilotstd.query.engine import QueryEngine
-    from pilotstd.download.engine import DownloadEngine
-    from pilotstd.query.cache import CacheRepository
     from pilotstd.core.db import Database
+    from pilotstd.download.adapters.mock import MockDownloadAdapter
+    from pilotstd.download.engine import DownloadEngine
     from pilotstd.download.session import SessionManager
+    from pilotstd.query.adapters.mock import MockQueryAdapter
+    from pilotstd.query.cache import CacheRepository
+    from pilotstd.query.engine import QueryEngine
 
     db_path = os.path.join(tmpdir, "test.db")
     _db = Database(db_path)
@@ -60,8 +61,12 @@ def mock_main_window(qapp, qtbot, test_data_dir):
     _cache.clear_all()
 
     window._mgr.query_engine = QueryEngine(
-        adapters=[MockQueryAdapter()], cache=_cache, use_cache=False,
-        rotator=None, quota_tracker=None, site_order=None,
+        adapters=[MockQueryAdapter()],
+        cache=_cache,
+        use_cache=False,
+        rotator=None,
+        quota_tracker=None,
+        site_order=None,
     )
     window._mgr.download_engine = DownloadEngine(
         adapters=[MockDownloadAdapter(session=SessionManager().create_session())],
@@ -80,10 +85,10 @@ def mock_main_window(qapp, qtbot, test_data_dir):
     # 先移除 LogHandler，防止 worker 线程写已销毁的 QTextEdit
     root_logger = logging.getLogger()
     for h in list(root_logger.handlers):
-        if hasattr(window, '_log_handler') and h is window._log_handler:
+        if hasattr(window, "_log_handler") and h is window._log_handler:
             root_logger.removeHandler(h)
     # 再停掉所有后台 worker 线程
-    if hasattr(window, '_stop_workers'):
+    if hasattr(window, "_stop_workers"):
         window._stop_workers()
     window.close()
     window.deleteLater()
@@ -99,6 +104,7 @@ def window(mock_main_window):
 
 # ── 真实网络 MainWindow fixture（冷启模拟） ──
 
+
 @pytest.fixture
 def real_window(qapp, qtbot):
     """创建真实网络模式下的 MainWindow，用于冷启动压测。
@@ -107,6 +113,7 @@ def real_window(qapp, qtbot):
     _suppress_dialogs=True 阻断阶段弹窗，模拟自动点击。
     """
     import tempfile
+
     from pilotstd import core
     from pilotstd.ui.main_window import MainWindow
 
@@ -132,9 +139,9 @@ def real_window(qapp, qtbot):
     # 清理：先停 worker，再关窗口
     root_logger = logging.getLogger()
     for h in list(root_logger.handlers):
-        if hasattr(win, '_log_handler') and h is win._log_handler:
+        if hasattr(win, "_log_handler") and h is win._log_handler:
             root_logger.removeHandler(h)
-    if hasattr(win, '_stop_workers'):
+    if hasattr(win, "_stop_workers"):
         win._stop_workers()
     win.close()
     win.deleteLater()

@@ -1,15 +1,15 @@
 # tests/test_manager.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
-import pytest
+import tempfile
+import unittest
 
 from pilotstd.manager import StandardManager
 
@@ -109,9 +109,10 @@ class TestStandardManager(unittest.TestCase):
         到 _query_results 中的结果，而非按 _parsed_results 的全局索引错位匹配。
         """
         from unittest.mock import MagicMock
+
+        from pilotstd.download.models import BatchDownloadStats
         from pilotstd.models import ParsedStdInfo
         from pilotstd.query.models import QueryResult
-        from pilotstd.download.models import BatchDownloadStats
 
         mgr = StandardManager()
 
@@ -124,7 +125,7 @@ class TestStandardManager(unittest.TestCase):
                 number=1000 + i,
                 year=2020,
                 std_name=f"测试标准{i}",
-                source_path=f"C:\\test\\test{i}.pdf"
+                source_path=f"C:\\test\\test{i}.pdf",
             )
             items.append(p)
         mgr._parsed_results = items
@@ -190,10 +191,12 @@ class TestStandardManager(unittest.TestCase):
 
     def test_mock_full_pipeline_e2e(self):
         """mock 网络层的全管线 E2E：扫描→查询→下载→归档，验证各段衔接无崩溃。"""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         from unittest.mock import MagicMock
-        from pilotstd.query.models import QueryResult
+
         from pilotstd.download.models import BatchDownloadStats
+        from pilotstd.query.models import QueryResult
 
         tmp = tempfile.mkdtemp()
         try:
@@ -212,8 +215,10 @@ class TestStandardManager(unittest.TestCase):
             qr.match_status = "exact"
             qr.is_adopted = False
             mock_qstats = MagicMock()
-            mock_qstats.total = 1; mock_qstats.found = 1
-            mock_qstats.downloadable = 1; mock_qstats.not_found = 0
+            mock_qstats.total = 1
+            mock_qstats.found = 1
+            mock_qstats.downloadable = 1
+            mock_qstats.not_found = 0
             mgr.query_engine = MagicMock()
             mgr.query_engine.query_batch_parsed.return_value = [qr]
 
@@ -227,7 +232,8 @@ class TestStandardManager(unittest.TestCase):
             mock_dl = MagicMock()
             mock_dl.download_batch.return_value = (
                 [mock_task],
-                BatchDownloadStats(success=1, skipped_exists=0, failed=0, errors=0))
+                BatchDownloadStats(success=1, skipped_exists=0, failed=0, errors=0),
+            )
             mgr.download_engine = mock_dl
 
             # 调用 auto_run —— 生产代码的唯一公共入口
@@ -235,12 +241,12 @@ class TestStandardManager(unittest.TestCase):
 
             # 验证各段均有输出（auto_run 返回的 report 使用描述性 key 名）
             self.assertIn("scan", report)
-            self.assertGreaterEqual(report["scan"], 1,
-                                    "扫描应至少识别 1 个文件")
+            self.assertGreaterEqual(report["scan"], 1, "扫描应至少识别 1 个文件")
             # 各段不应抛异常，report 应包含完整 pipeline 结果
             for key in ["scan", "query_found", "download_success", "organize_moved"]:
-                self.assertIn(key, report,
-                              f"report 应包含 {key} 键（{list(report.keys())}）")
+                self.assertIn(
+                    key, report, f"report 应包含 {key} 键（{list(report.keys())}）"
+                )
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

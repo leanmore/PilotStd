@@ -12,9 +12,9 @@ import requests
 logger = logging.getLogger(__name__)
 
 RETRYABLE_STATUS = {502, 503, 504}  # 临时性服务端错误可重试
-MAX_RETRIES = 1                     # 最多重试 1 次（避免过度消耗）
-MAX_REDIRECTS = 5                   # 最大重定向次数，防恶意重定向链
-DEFAULT_TIMEOUT = 15                # 默认请求超时秒数
+MAX_RETRIES = 1  # 最多重试 1 次（避免过度消耗）
+MAX_REDIRECTS = 5  # 最大重定向次数，防恶意重定向链
+DEFAULT_TIMEOUT = 15  # 默认请求超时秒数
 
 # 通用 User-Agent（公告适配器等模块可复用）
 CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
@@ -69,9 +69,14 @@ def get_monitor() -> NetworkMonitor:
     return _monitor
 
 
-def safe_request(session: requests.Session, method: str, url: str,
-                  site_name: str, timeout: int = DEFAULT_TIMEOUT,
-                  **kwargs) -> Optional[requests.Response]:
+def safe_request(
+    session: requests.Session,
+    method: str,
+    url: str,
+    site_name: str,
+    timeout: int = DEFAULT_TIMEOUT,
+    **kwargs,
+) -> Optional[requests.Response]:
     """统一的安全请求方法，带重试逻辑。
 
     临时性错误（超时、连接重置、5xx）重试 1 次；
@@ -115,25 +120,37 @@ def safe_request(session: requests.Session, method: str, url: str,
     return None
 
 
-def safe_get(session: requests.Session, url: str, site_name: str,
-             timeout: int = DEFAULT_TIMEOUT, **kwargs) -> Optional[requests.Response]:
+def safe_get(
+    session: requests.Session,
+    url: str,
+    site_name: str,
+    timeout: int = DEFAULT_TIMEOUT,
+    **kwargs,
+) -> Optional[requests.Response]:
     """带重试的 GET 请求。向后兼容封装。"""
     return safe_request(session, "GET", url, site_name, timeout, **kwargs)
 
 
-def safe_post(session: requests.Session, url: str, site_name: str,
-              timeout: int = DEFAULT_TIMEOUT, **kwargs) -> Optional[requests.Response]:
+def safe_post(
+    session: requests.Session,
+    url: str,
+    site_name: str,
+    timeout: int = DEFAULT_TIMEOUT,
+    **kwargs,
+) -> Optional[requests.Response]:
     """带重试的 POST 请求。向后兼容封装。"""
     return safe_request(session, "POST", url, site_name, timeout, **kwargs)
 
 
-def safe_raw_get(url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT,
-                 **kwargs) -> Optional[requests.Response]:
+def safe_raw_get(
+    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
+) -> Optional[requests.Response]:
     """不带 session 的简单 GET 请求（含重试）。供公告适配器等没有 session 的场景。"""
     return safe_request(requests, "GET", url, site_name, timeout, **kwargs)
 
 
-def safe_raw_post(url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT,
-                  **kwargs) -> Optional[requests.Response]:
+def safe_raw_post(
+    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
+) -> Optional[requests.Response]:
     """不带 session 的简单 POST 请求（含重试）。供 OCR 等场景。"""
     return safe_request(requests, "POST", url, site_name, timeout, **kwargs)

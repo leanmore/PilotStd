@@ -43,15 +43,17 @@ class CsresAdapter(BaseAdapter):
         if not CsresAdapter._http_warned:
             logger.info("csres.com 不支持 HTTPS，查询内容可能被网络中间人窃听")
             CsresAdapter._http_warned = True
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            }
+        )
         self._rotator = None
 
     def set_rotator(self, rotator):
@@ -109,7 +111,11 @@ class CsresAdapter(BaseAdapter):
             resp.encoding = "gbk"
 
             # 检测被拒：302→/error/noright.html 或页面内容为错误页
-            if resp.status_code != 200 or "noright" in resp.url or "noright" in resp.text[:200].lower():
+            if (
+                resp.status_code != 200
+                or "noright" in resp.url
+                or "noright" in resp.text[:200].lower()
+            ):
                 logger.warning("工标网拒绝访问，自动冷却站点(24h)")
                 self._set_local_cooldown(COOLDOWN_ON_REJECT)
                 if self._rotator:
@@ -168,7 +174,7 @@ class CsresAdapter(BaseAdapter):
             if len(cells) < 5:
                 continue
             found_number = cells[0].get_text(strip=True)
-            if not re.match(r'[A-Z]+', found_number):
+            if not re.match(r"[A-Z]+", found_number):
                 continue
             # 提取详情页 ID
             detail_url = ""
@@ -178,8 +184,9 @@ class CsresAdapter(BaseAdapter):
             candidates.append(self._parse_result(found_number, cells, detail_url))
         return candidates
 
-    def _parse_result(self, found_number: str, cells,
-                      detail_url: str = "") -> QueryResult:
+    def _parse_result(
+        self, found_number: str, cells, detail_url: str = ""
+    ) -> QueryResult:
         """从表格行构建 QueryResult。"""
         std_name = cells[1].get_text(strip=True)
         dept = cells[2].get_text(strip=True) if len(cells) > 2 else ""
@@ -206,15 +213,15 @@ class CsresAdapter(BaseAdapter):
         if not detail_url:
             return ""
         try:
-            resp = safe_get(self._session, detail_url, self.site_name,
-                           timeout=10)
+            resp = safe_get(self._session, detail_url, self.site_name, timeout=10)
             if resp is None or resp.status_code != 200:
                 return ""
             resp.encoding = "gbk"
             # 匹配 \"被GB/T 713.2-2023代替\"
             m = re.search(
-                r'被\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-:]\s*\d{4})\s*代替',
-                resp.text)
+                r"被\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-:]\s*\d{4})\s*代替",
+                resp.text,
+            )
             if m:
                 return m.group(1).strip()
         except Exception:
@@ -223,8 +230,8 @@ class CsresAdapter(BaseAdapter):
 
     def fetch_replaces_detail(self, result) -> str:
         """classifier 调用的统一接口：从 csres 详情页提取替代关系。"""
-        detail_url = getattr(result, '_csres_detail_url', '')
-        if detail_url and hasattr(self, '_fetch_detail_replaces'):
+        detail_url = getattr(result, "_csres_detail_url", "")
+        if detail_url and hasattr(self, "_fetch_detail_replaces"):
             return self._fetch_detail_replaces(detail_url) or ""
         return ""
 
@@ -233,20 +240,36 @@ class CsresAdapter(BaseAdapter):
     def _search(self, search_term: str) -> Optional[QueryResult]:
         """简化版搜索（不比对标准编号），供 query_single / query_batch 使用。"""
         if self._is_locally_cooled():
-            return QueryResult(standard_number=search_term, error_message="站点冷却中", source_site=self.site_name)
+            return QueryResult(
+                standard_number=search_term,
+                error_message="站点冷却中",
+                source_site=self.site_name,
+            )
         base_url = self.SEARCH_URL.format(requests.utils.quote(search_term))
         resp = safe_get(self._session, base_url, self.site_name, timeout=15)
         if resp is None:
-            return QueryResult(standard_number=search_term, error_message="网络错误", source_site=self.site_name)
+            return QueryResult(
+                standard_number=search_term,
+                error_message="网络错误",
+                source_site=self.site_name,
+            )
         # 响应返回后二次检查：其他线程可能已在请求期间触发冷却
         if self._is_locally_cooled():
-            return QueryResult(standard_number=search_term, error_message="站点冷却中", source_site=self.site_name)
+            return QueryResult(
+                standard_number=search_term,
+                error_message="站点冷却中",
+                source_site=self.site_name,
+            )
         resp.encoding = "gbk"
         if resp.status_code != 200 or "noright" in resp.url:
             self._set_local_cooldown(COOLDOWN_ON_REJECT)
             if self._rotator:
                 self._rotator.force_cooldown(self.site_name, COOLDOWN_ON_REJECT)
-            return QueryResult(standard_number=search_term, error_message="工标网拒绝访问", source_site=self.site_name)
+            return QueryResult(
+                standard_number=search_term,
+                error_message="工标网拒绝访问",
+                source_site=self.site_name,
+            )
         # 返回第一个格式有效的标准号行
         html = resp.text
         soup = BeautifulSoup(html, "lxml")
@@ -265,7 +288,7 @@ class CsresAdapter(BaseAdapter):
             if len(cells) < 5:
                 continue
             found = cells[0].get_text(strip=True)
-            if not re.match(r'[A-Z]+', found):
+            if not re.match(r"[A-Z]+", found):
                 continue
             return self._parse_result(found, cells)
         return None

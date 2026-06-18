@@ -33,7 +33,10 @@ def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     if not os.path.exists("/var/run/docker.sock"):
         raise RuntimeError("docker.sock 未挂载，无法执行容器管理操作")
     return subprocess.run(
-        ["docker"] + args, capture_output=True, text=True, timeout=timeout,
+        ["docker"] + args,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
 
 
@@ -77,17 +80,25 @@ async def update_container():
         old_image = info.get("Image", "")
         old_digest = ""
         try:
-            img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
+            img_inspect = _run_docker(
+                ["image", "inspect", old_image, "--format", "{{.RepoDigests}}"]
+            )
             old_digest = img_inspect.stdout.strip()
         except Exception:
             pass
 
         # 2. 拉取最新镜像
         pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
-        pulled_layers = [l for l in pull.stdout.split("\n") if "Downloaded" in l or "Pulled" in l]
+        pulled_layers = [
+            line
+            for line in pull.stdout.split("\n")
+            if "Downloaded" in line or "Pulled" in line
+        ]
 
         # 3. 比较
-        new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
+        new_inspect = _run_docker(
+            ["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"]
+        )
         new_digest = new_inspect.stdout.strip()
 
         if new_digest and old_digest and new_digest == old_digest:
@@ -110,8 +121,19 @@ async def update_container():
         restart_ok = False
         if compose_file and os.path.exists(compose_file):
             try:
-                _run_docker(["compose", "-f", compose_file, "-p", compose_project,
-                             "up", "-d", "--force-recreate"], timeout=120)
+                _run_docker(
+                    [
+                        "compose",
+                        "-f",
+                        compose_file,
+                        "-p",
+                        compose_project,
+                        "up",
+                        "-d",
+                        "--force-recreate",
+                    ],
+                    timeout=120,
+                )
                 restart_ok = True
             except Exception as e:
                 logger.warning("compose 重启失败: %s", e)
@@ -124,7 +146,7 @@ async def update_container():
                 "已拉取并应用更新"
                 if restart_ok
                 else "已拉取新镜像，但需要 compose 配置才能重建容器。"
-                     "请设置 COMPOSE_FILE 环境变量后重试，或手动执行 docker compose up -d"
+                "请设置 COMPOSE_FILE 环境变量后重试，或手动执行 docker compose up -d"
             ),
             "old_digest": old_digest[:80] if old_digest else "",
             "new_digest": new_digest[:80] if new_digest else "",

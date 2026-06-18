@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -8,7 +9,7 @@ if root_dir not in sys.path:
 
 def test_pause_button_exists(window):
     """暂停按钮应存在。"""
-    assert hasattr(window, 'btn_pause')
+    assert hasattr(window, "btn_pause")
     assert window.btn_pause is not None
 
 
@@ -45,11 +46,12 @@ def test_export_diagnostics_creates_file(window, test_data_dir, qtbot):
     tmp = tempfile.mkdtemp(prefix="pilotstd_diag_")
     diag_path = os.path.join(tmp, "diag.log")
     from datetime import datetime
+
     with open(diag_path, "w", encoding="utf-8") as f:
-        f.write(f"=== PilotStd 诊断报告 ===\n")
+        f.write("=== PilotStd 诊断报告 ===\n")
         f.write(f"时间: {datetime.now():%Y-%m-%d %H:%M:%S}\n")
         f.write(f"Python: {sys.version}\n\n")
-        f.write(f"--- 工作区 ---\n")
+        f.write("--- 工作区 ---\n")
         f.write(f"  解析结果: {len(window._parsed_results)} 条\n")
         f.write(f"  表格行数: {window.work_table.rowCount()} 行\n")
     assert os.path.exists(diag_path)

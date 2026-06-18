@@ -16,6 +16,7 @@ from ..i18n import _
 
 class ConfigPageDialog(QDialog):
     """通用配置页面对话框，包裹任意 QWidget。"""
+
     def __init__(self, page, title: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
@@ -29,6 +30,7 @@ class ConfigPageDialog(QDialog):
 
 class ExportFileListDialog(QDialog):
     """导出文件名清单选项对话框：选择源路径、是否包含路径。"""
+
     def __init__(self, parent, source_path: str):
         super().__init__(parent)
         self.setWindowTitle("导出文件列表")

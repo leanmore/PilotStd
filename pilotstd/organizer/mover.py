@@ -22,13 +22,17 @@ class FileMover:
 
     def __init__(self, dir_builder: DirBuilder):
         self._dirs = dir_builder
-        self._library_root = os.path.abspath(dir_builder.root)  # 库根目录绝对路径，用于路径越界校验
+        self._library_root = os.path.abspath(
+            dir_builder.root
+        )  # 库根目录绝对路径，用于路径越界校验
 
     # ── 路径安全校验 ──
 
     def _is_safe_path(self, target: str) -> bool:
         """校验目标路径在库根目录内，防止路径遍历越界"""
-        return os.path.abspath(target).startswith(os.path.abspath(self._library_root) + os.sep)
+        return os.path.abspath(target).startswith(
+            os.path.abspath(self._library_root) + os.sep
+        )
 
     # ── 独立步骤：规范化生成路径 ──
 
@@ -61,9 +65,13 @@ class FileMover:
 
     def move_to_code_dir(self, src_path: str, parsed: ParsedStdInfo) -> Optional[str]:
         """将文件移动到对应代号目录下，按规范生成文件名。成功返回新路径，失败返回 None。"""
-        logger.debug("移动: %s → 代号=%s 号=%s 年=%s",
-                     os.path.basename(src_path), parsed.logical_code,
-                     parsed.number, parsed.year)
+        logger.debug(
+            "移动: %s → 代号=%s 号=%s 年=%s",
+            os.path.basename(src_path),
+            parsed.logical_code,
+            parsed.number,
+            parsed.year,
+        )
         dst = self.normalize_filename(parsed)
         if not self._is_safe_path(dst):
             logger.error("路径越界被拒绝: %s", dst)

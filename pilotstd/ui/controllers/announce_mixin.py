@@ -65,7 +65,9 @@ class AnnounceMixin:
 
         # 后台线程
         since_date = self._ann_start_date.date().toString("yyyy-MM-dd")
-        self._ann_worker = AnnounceWorker(self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self)
+        self._ann_worker = AnnounceWorker(
+            self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self
+        )
         self._ann_worker.progress.connect(self._on_ann_progress)
         self._ann_worker.finished_signal.connect(dlg.accept)
         cancel_btn.clicked.connect(self._ann_worker.stop)
@@ -74,38 +76,49 @@ class AnnounceMixin:
 
         # 弹窗汇总
         if self._ann_worker._stopped:
-            QMessageBox.information(self, _("announcement_check"),
-                                    _("announcement_cancelled"))
+            QMessageBox.information(
+                self, _("announcement_check"), _("announcement_cancelled")
+            )
         elif self._ann_worker._error and not self._ann_worker._matched:
-            QMessageBox.warning(self, _("announcement_check"),
-                                self._ann_worker._error)
+            QMessageBox.warning(self, _("announcement_check"), self._ann_worker._error)
         else:
-            failures = getattr(self._ann_worker, '_failures', [])
+            failures = getattr(self._ann_worker, "_failures", [])
             fail_msg = ""
             if failures:
                 import json
+
                 fail_path = os.path.join(get_data_dir(), "announce_failures.json")
                 os.makedirs(os.path.dirname(fail_path), exist_ok=True)
                 with open(fail_path, "w", encoding="utf-8") as f:
                     json.dump(failures, f, ensure_ascii=False, indent=2)
                 fail_msg = _("announcement_failures").format(
-                    count=len(failures), path=fail_path)
-            QMessageBox.information(self, _("announcement_check"),
+                    count=len(failures), path=fail_path
+                )
+            QMessageBox.information(
+                self,
+                _("announcement_check"),
                 _("announcement_complete").format(
-                    total=self._ann_worker._total,
-                    matched=self._ann_worker._matched) + fail_msg)
+                    total=self._ann_worker._total, matched=self._ann_worker._matched
+                )
+                + fail_msg,
+            )
             # Toast 通知
             from ...core.notify import NotifyService
+
             if self._ann_worker._matched > 0:
                 NotifyService.get().show(
                     _("announcement_complete_toast"),
                     _("announcement_complete_detail").format(
-                        total=self._ann_worker._total,
-                        matched=self._ann_worker._matched))
+                        total=self._ann_worker._total, matched=self._ann_worker._matched
+                    ),
+                )
 
     def _on_ann_progress(self, current: int, total: int, matched: int):
         """更新公告检查进度。"""
         self._ann_progress_bar.setMaximum(total)
         self._ann_progress_bar.setValue(current)
         self._ann_progress_label.setText(
-            _("announcement_progress").format(current=current, total=total, matched=matched))
+            _("announcement_progress").format(
+                current=current, total=total, matched=matched
+            )
+        )

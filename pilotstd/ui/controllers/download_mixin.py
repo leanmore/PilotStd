@@ -24,9 +24,8 @@ class DownloadMixin:
         download_list = self._mgr.get_stage_queue("download")
         if not download_list:
             choice = self._stage_prereq_dialog(
-                _("title_hint"),
-                _("msg_download_prereq"),
-                _("task_query"))
+                _("title_hint"), _("msg_download_prereq"), _("task_query")
+            )
             if choice == "run_prereq":
                 self._on_query()
                 return
@@ -51,11 +50,13 @@ class DownloadMixin:
         if too_new_list and not self._suppress_dialogs:
             lines = [_("msg_new_std_too_new"), ""]
             for idx, p in too_new_list[:10]:
-                num = getattr(p, 'found_number', None) or p.get_full_number()
+                num = getattr(p, "found_number", None) or p.get_full_number()
                 lines.append(f"  {num}")
             if len(too_new_list) > 10:
                 lines.append(f"  ... {len(too_new_list)} total")
-            QMessageBox.information(self, _("title_new_std_unavailable"), "\n".join(lines))
+            QMessageBox.information(
+                self, _("title_new_std_unavailable"), "\n".join(lines)
+            )
 
         self.status_changed.emit("下载中...")
         self.btn_query.setEnabled(False)
@@ -65,11 +66,13 @@ class DownloadMixin:
 
         self._clear_table()
         for i, parsed in enumerate(download_list):
-            self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="待下载",
-                                          total=total))
+            self._add_table_row(
+                RowUpdate(seq=i + 1, parsed=parsed, work_status="待下载", total=total)
+            )
 
-        self._download_worker = DownloadWorker(self._mgr, download_list,
-                                                pause_event=self._pause_event, parent=self)
+        self._download_worker = DownloadWorker(
+            self._mgr, download_list, pause_event=self._pause_event, parent=self
+        )
         self._download_worker.progress.connect(self.progress_changed.emit)
         self._download_worker.batch_ready.connect(self._on_download_batch_ready)
 
@@ -86,18 +89,29 @@ class DownloadMixin:
             failed_count = total - success_count - too_new_count
             self.status_changed.emit(f"下载完成: {success_count}/{total} 成功")
             self._project.mark_dirty()
-            self._register_task("下载", total, success_count, failed_count + too_new_count)
+            self._register_task(
+                "下载", total, success_count, failed_count + too_new_count
+            )
 
             from ...core.notify import NotifyService
+
             if success_count > 0 and failed_count == 0:
                 NotifyService.get().show(
-                    _("download_results_title"), _("download_toast_all_success").format(count=success_count))
+                    _("download_results_title"),
+                    _("download_toast_all_success").format(count=success_count),
+                )
             elif success_count > 0:
                 NotifyService.get().show_warning(
-                    _("download_results_title"), _("download_toast_partial").format(success=success_count, failed=failed_count))
+                    _("download_results_title"),
+                    _("download_toast_partial").format(
+                        success=success_count, failed=failed_count
+                    ),
+                )
             else:
                 NotifyService.get().show_warning(
-                    _("download_toast_failed_title"), _("download_toast_all_failed").format(total=total))
+                    _("download_toast_failed_title"),
+                    _("download_toast_all_failed").format(total=total),
+                )
             # 收集下载失败的文件详情
             failed_details = []
             for orig_idx, p in to_download:
@@ -108,7 +122,11 @@ class DownloadMixin:
                     item = self.work_table.item(row, 1)
                     status = item.text() if item else ""
                     if status != "已下载":
-                        fname = os.path.basename(getattr(p, 'source_path', '') or getattr(p, 'raw_filename', '') or p.get_full_number())
+                        fname = os.path.basename(
+                            getattr(p, "source_path", "")
+                            or getattr(p, "raw_filename", "")
+                            or p.get_full_number()
+                        )
                         failed_details.append(f"  • {fname} — {status or '下载失败'}")
             if not self._suppress_dialogs:
                 has_any_success = success_count > 0
@@ -118,7 +136,9 @@ class DownloadMixin:
                     _("download_summary_failed").format(count=failed_count),
                 ]
                 if too_new_count > 0:
-                    lines.append(_("download_summary_too_new").format(count=too_new_count))
+                    lines.append(
+                        _("download_summary_too_new").format(count=too_new_count)
+                    )
                 if failed_details:
                     lines.append("")
                     lines.append(_("download_summary_failed_detail"))
@@ -126,11 +146,17 @@ class DownloadMixin:
                     lines.extend(shown)
                     if len(failed_details) > 15:
                         lines.append(f"  ... {len(failed_details) - 15} more")
-                suffix = _("download_summary_all_failed_hint") if not has_any_success and failed_count > 0 else ""
-                self._show_stage_dialog(_("download_results_title"),
+                suffix = (
+                    _("download_summary_all_failed_hint")
+                    if not has_any_success and failed_count > 0
+                    else ""
+                )
+                self._show_stage_dialog(
+                    _("download_results_title"),
                     "\n".join(lines) + suffix,
                     next_action=self._on_normalize if has_any_success else None,
-                    next_label=_("next_step_normalize") if has_any_success else "")
+                    next_label=_("next_step_normalize") if has_any_success else "",
+                )
             self._current_task = None
 
         def on_dl_error(msg):
@@ -148,9 +174,16 @@ class DownloadMixin:
         """从文件导入标准号列表并直接下载。"""
         if not self._mgr_ready:
             return
-        path, _ = QFileDialog.getOpenFileName(
-            self, _("dialog_select_file"), "",
-            _("file_filter_txt") + ";;" + _("file_filter_csv") + ";;" + _("file_filter_std"))
+        path, _ignored = QFileDialog.getOpenFileName(
+            self,
+            _("dialog_select_file"),
+            "",
+            _("file_filter_txt")
+            + ";;"
+            + _("file_filter_csv")
+            + ";;"
+            + _("file_filter_std"),
+        )
         if not path:
             return
 
@@ -179,7 +212,7 @@ class DownloadMixin:
 
     def _is_too_new(self, parsed) -> bool:
         """发布不满 20 个工作日（≈28 日历日），暂不可下载。"""
-        pub_str = getattr(parsed, 'found_publish_date', '')
+        pub_str = getattr(parsed, "found_publish_date", "")
         if not pub_str:
             return False
         try:
@@ -199,7 +232,7 @@ class DownloadMixin:
         due = self._mgr.get_due_downloads()
         if not due:
             return
-        nums = [d['standard_number'] for d in due[:5]]
+        nums = [d["standard_number"] for d in due[:5]]
         msg = _("download_queue_ready").format(len(due)) + "\n" + "\n".join(nums)
         if len(due) > 5:
             msg += f"\n... 等共 {len(due)} 条"
@@ -207,7 +240,7 @@ class DownloadMixin:
         reply = QMessageBox.question(self, _("download_queue_title"), msg)
         if reply == QMessageBox.StandardButton.Yes:
             for d in due:
-                self._mgr.remove_download_queue(d['standard_number'])
+                self._mgr.remove_download_queue(d["standard_number"])
             self._on_download()
 
     def _update_download_row(self, idx: int, status: str):

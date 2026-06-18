@@ -1,11 +1,12 @@
 """解析器自查校验测试"""
+
 import unittest
+
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
 
 
 class TestParserValidation(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.parser = StandardParser(build_code_mapping())

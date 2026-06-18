@@ -37,14 +37,17 @@ async def lifespan(app: FastAPI):
     """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
     # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
     from pilotstd.core.logger import LoggerManager
+
     LoggerManager(level=logging.INFO)
 
     # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
     from .manager import get_manager as _get_mgr
+
     _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
     register_job_func("auto_query", lambda: _cron_mgr.recheck_updates())
     from .api.announce import check_announce
+
     register_job_func("auto_announce", check_announce)
     start_scheduler()
     yield
@@ -53,7 +56,7 @@ async def lifespan(app: FastAPI):
     _cron_mgr.shutdown()
 
 
-from pilotstd import __version__ as _app_version
+from pilotstd import __version__ as _app_version  # noqa: E402
 
 app = FastAPI(title="PilotStd API", version=_app_version, lifespan=lifespan)
 
@@ -63,8 +66,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     """全局异常处理：捕获所有未处理异常，写日志 + 返回 500。"""
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
     return JSONResponse(
-        {"error": "服务器内部错误", "detail": str(exc)},
-        status_code=500)
+        {"error": "服务器内部错误", "detail": str(exc)}, status_code=500
+    )
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -76,17 +79,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers.setdefault("X-Content-Type-Options", "nosniff")
         headers.setdefault("X-Frame-Options", "DENY")
         headers.setdefault("X-XSS-Protection", "1; mode=block")
-        headers.setdefault("Strict-Transport-Security",
-                           "max-age=31536000; includeSubDomains")
+        headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
         headers.setdefault("Referrer-Policy", "no-referrer")
         headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
-        headers.setdefault("Content-Security-Policy",
-                           "default-src 'self'; "
-                           "script-src 'self' 'unsafe-eval'; "
-                           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                           "font-src 'self' https://fonts.gstatic.com; "
-                           "img-src 'self' data: https:; "
-                           "connect-src 'self'")
+        headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self'",
+        )
         return response
 
 
@@ -122,6 +128,7 @@ app.include_router(upload_router)
 app.include_router(logs_router)
 app.include_router(system_router)
 
+
 # 健康检查端点（Docker HEALTHCHECK 使用）
 @app.get("/api/health")
 async def health_check():
@@ -130,12 +137,15 @@ async def health_check():
         "version": _app_version,
     }
 
+
 # 挂载 Vue 静态文件 + SPA 回退
 _DOCKER_DIR = os.path.dirname(os.path.abspath(__file__))  # docker/ 目录
-_PROJ_ROOT = os.path.dirname(_DOCKER_DIR)                   # 项目根目录
+_PROJ_ROOT = os.path.dirname(_DOCKER_DIR)  # 项目根目录
 DIST = os.path.join(_PROJ_ROOT, "web", "dist")
 if os.path.isdir(os.path.join(DIST, "assets")):
-    app.mount("/assets", StaticFiles(directory=os.path.join(DIST, "assets")), name="assets")
+    app.mount(
+        "/assets", StaticFiles(directory=os.path.join(DIST, "assets")), name="assets"
+    )
 
 
 @app.get("/{full_path:path}")

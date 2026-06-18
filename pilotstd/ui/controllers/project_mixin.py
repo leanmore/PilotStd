@@ -24,13 +24,16 @@ class ProjectMixin:
     # ── 打开项目 ─────────────────────────────────────────
 
     def _on_open_project(self):
-        path, __ = QFileDialog.getOpenFileName(self, _("dialog_open_project"), "",
-                                                _("file_filter_project"))
+        path, __ = QFileDialog.getOpenFileName(
+            self, _("dialog_open_project"), "", _("file_filter_project")
+        )
         if not path:
             return
         state = self._project.load(path)
         if state is None:
-            QMessageBox.warning(self, _("open_failed"), _("cant_read_project").format(path))
+            QMessageBox.warning(
+                self, _("open_failed"), _("cant_read_project").format(path)
+            )
             return
         self._restore_state(state)
         self.status_changed.emit(_("project_loaded").format(path))
@@ -66,14 +69,19 @@ class ProjectMixin:
         self._save_project_dialog(_("save_download_project"))
 
     def _save_project_dialog(self, label: str):
-        path, __ = QFileDialog.getSaveFileName(self, label,
-                                               "project.pilotstd",
-                                               _("file_filter_project"))
+        path, __ = QFileDialog.getSaveFileName(
+            self, label, "project.pilotstd", _("file_filter_project")
+        )
         if path:
             state = self._collect_state()
             ok = self._project.save(path, state)
             if ok:
-                self.status_changed.emit(_("project_save_success").format(label=label, path=path))
+                self.status_changed.emit(
+                    _("project_save_success").format(label=label, path=path)
+                )
             else:
-                QMessageBox.warning(self, _("title_save_failed"),
-                    _("msg_save_project_failed").format(path=path))
+                QMessageBox.warning(
+                    self,
+                    _("title_save_failed"),
+                    _("msg_save_project_failed").format(path=path),
+                )

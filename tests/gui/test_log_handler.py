@@ -1,6 +1,8 @@
 import logging
-from pilotstd.ui.main_window import LogHandler
+
 from PyQt6.QtWidgets import QTextEdit
+
+from pilotstd.ui.main_window import LogHandler
 
 
 def test_loghandler_filters_debug(qtbot):

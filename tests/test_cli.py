@@ -1,16 +1,17 @@
 # tests/test_cli.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
-import shutil
 import io
 import json
+import shutil
+import tempfile
+import unittest
 
 from pilotstd.cli.commands import build_parser
 
@@ -70,6 +71,7 @@ class TestCLIScan(unittest.TestCase):
 
     def test_cmd_scan_csv(self):
         from pilotstd.cli.commands import CLI
+
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
@@ -84,6 +86,7 @@ class TestCLIScan(unittest.TestCase):
 
     def test_cmd_scan_json(self):
         from pilotstd.cli.commands import CLI
+
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
@@ -108,10 +111,15 @@ class TestCLIMove(unittest.TestCase):
 
     def test_cmd_move(self):
         from pilotstd.cli.commands import CLI
+
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:
-            args = type("Args", (), {"files": [self.test_file], "root": self.tmp, "dry_run": False})()
+            args = type(
+                "Args",
+                (),
+                {"files": [self.test_file], "root": self.tmp, "dry_run": False},
+            )()
             ret = CLI.cmd_move(args)
             self.assertEqual(ret, 0)
         finally:
@@ -119,6 +127,7 @@ class TestCLIMove(unittest.TestCase):
 
     def test_cmd_expire(self):
         from pilotstd.cli.commands import CLI
+
         old_stdout = sys.stdout
         sys.stdout = io.StringIO()
         try:

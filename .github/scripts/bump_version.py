@@ -32,15 +32,24 @@ PATCH_PREFIXES = ("fix:", "fix(", "bugfix:", "bugfix(", "hotfix:", "hotfix(")
 
 # 不升版本的提交类型
 SKIP_PREFIXES = (
-    "chore:", "chore(",
-    "refactor:", "refactor(",
-    "docs:", "docs(",
-    "test:", "test(",
-    "style:", "style(",
-    "ci:", "ci(",
-    "build:", "build(",
-    "perf:", "perf(",
-    "revert:", "revert(",
+    "chore:",
+    "chore(",
+    "refactor:",
+    "refactor(",
+    "docs:",
+    "docs(",
+    "test:",
+    "test(",
+    "style:",
+    "style(",
+    "ci:",
+    "ci(",
+    "build:",
+    "build(",
+    "perf:",
+    "perf(",
+    "revert:",
+    "revert(",
 )
 
 
@@ -52,23 +61,28 @@ def read_current_version():
     但未打 tag 导致 CI 重复 bump。
     """
     import subprocess
+
     result = subprocess.run(
         ["git", "tag", "--sort=-creatordate"],
-        capture_output=True, text=True, cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
     )
     if result.returncode == 0:
         for tag in result.stdout.strip().split("\n"):
             tag = tag.strip()
             # 只取正式版 tag（vX.Y.Z），跳过 dev 后缀
-            if re.match(r'^v\d+\.\d+\.\d+$', tag):
+            if re.match(r"^v\d+\.\d+\.\d+$", tag):
                 return tag.lstrip("v")
 
     # 回退：从 __init__.py 读取
     content = INIT_PATH.read_text(encoding="utf-8")
     m = re.search(r'__version__\s*=\s*"([^"]+)"', content)
     if not m:
-        print("::error::无法获取当前版本号（无 git tag 且 __init__.py 无 __version__）",
-              file=sys.stderr)
+        print(
+            "::error::无法获取当前版本号（无 git tag 且 __init__.py 无 __version__）",
+            file=sys.stderr,
+        )
         sys.exit(1)
     return m.group(1)
 
@@ -153,9 +167,12 @@ def main() -> None:
         msg = args.message
     else:
         import subprocess
+
         result = subprocess.run(
             ["git", "log", "-1", "--format=%s"],
-            capture_output=True, text=True, cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            cwd=PROJECT_ROOT,
         )
         if result.returncode != 0:
             print(f"::error::git log 失败: {result.stderr}", file=sys.stderr)

@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class DriveEnumerator(QThread):
     """后台线程枚举驱动器，避免网络驱动器阻塞 UI 主线程。"""
+
     drives_ready = pyqtSignal(list)
 
     def run(self):
@@ -42,24 +43,32 @@ class FileTreeMixin:
         self._drive_items: dict[str, QTreeWidgetItem] = {}
 
         # 桌面
-        desktop_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
+        desktop_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DesktopLocation
+        )
         item = self._make_item(_("desktop"), desktop_path)
         self.file_tree.addTopLevelItem(item)
 
         # 文档
-        doc_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        doc_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DocumentsLocation
+        )
         item = self._make_item(_("documents"), doc_path)
         self.file_tree.addTopLevelItem(item)
 
         # 下载
-        dl_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
+        dl_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DownloadLocation
+        )
         item = self._make_item(_("downloads"), dl_path)
         self.file_tree.addTopLevelItem(item)
 
         # 此电脑（先创建空节点，盘符由后台线程异步填充）
         self.this_pc = QTreeWidgetItem([_("this_pc")])
         self.this_pc.setData(0, Qt.ItemDataRole.UserRole, "")
-        self.this_pc.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon))
+        self.this_pc.setIcon(
+            0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon)
+        )
         self.file_tree.addTopLevelItem(self.this_pc)
         # 异步枚举驱动器
         self._drive_thread = DriveEnumerator()
@@ -77,15 +86,21 @@ class FileTreeMixin:
     def _make_item(self, name: str, path: str) -> QTreeWidgetItem:
         item = QTreeWidgetItem([name])
         item.setData(0, Qt.ItemDataRole.UserRole, path)
-        item.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DirIcon))
+        item.setIcon(
+            0, self.style().standardIcon(self.style().StandardPixmap.SP_DirIcon)
+        )
         if os.path.isdir(path):
-            item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator)
+            item.setChildIndicatorPolicy(
+                QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator
+            )
         return item
 
     def _make_drive_item(self, name: str, path: str) -> QTreeWidgetItem:
         item = QTreeWidgetItem([name])
         item.setData(0, Qt.ItemDataRole.UserRole, path)
-        item.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon))
+        item.setIcon(
+            0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon)
+        )
         item.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.ShowIndicator)
         return item
 
@@ -97,7 +112,9 @@ class FileTreeMixin:
         if not parent_path or not os.path.isdir(parent_path):
             return
         try:
-            entries = sorted(os.scandir(parent_path), key=lambda e: (not e.is_dir(), e.name.lower()))
+            entries = sorted(
+                os.scandir(parent_path), key=lambda e: (not e.is_dir(), e.name.lower())
+            )
         except PermissionError:
             return
         for entry in entries:
@@ -110,17 +127,37 @@ class FileTreeMixin:
                 child.setData(0, Qt.ItemDataRole.UserRole, entry.path)
                 ext = os.path.splitext(entry.name)[1].lower()
                 if ext == ".pdf":
-                    child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
+                    child.setIcon(
+                        0,
+                        self.style().standardIcon(
+                            self.style().StandardPixmap.SP_FileIcon
+                        ),
+                    )
                 elif ext in (".doc", ".docx", ".txt"):
-                    child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView))
+                    child.setIcon(
+                        0,
+                        self.style().standardIcon(
+                            self.style().StandardPixmap.SP_FileDialogDetailedView
+                        ),
+                    )
                 else:
-                    child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
-                child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
+                    child.setIcon(
+                        0,
+                        self.style().standardIcon(
+                            self.style().StandardPixmap.SP_FileIcon
+                        ),
+                    )
+                child.setChildIndicatorPolicy(
+                    QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator
+                )
             parent_item.addChild(child)
 
     def _on_tree_item_expanded(self, item: QTreeWidgetItem):
         """展开时懒加载子目录。"""
-        if item.childCount() == 1 and item.child(0).data(0, Qt.ItemDataRole.UserRole) is None:
+        if (
+            item.childCount() == 1
+            and item.child(0).data(0, Qt.ItemDataRole.UserRole) is None
+        ):
             item.takeChildren()
         if item.childCount() == 0:
             self._populate_children(item)
@@ -177,7 +214,7 @@ class FileTreeMixin:
         current, current_path = ancestors[0]
 
         # 沿路径逐层展开、查找
-        remaining = path[len(current_path):].lstrip(os.sep)
+        remaining = path[len(current_path) :].lstrip(os.sep)
         parts = remaining.split(os.sep) if remaining else []
         for part in parts:
             if current.childCount() == 0:

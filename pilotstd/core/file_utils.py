@@ -21,9 +21,21 @@ def sanitize_filename(name: str) -> str:
 
 # 文件名中的垃圾推广后缀关键词——匹配到则截断丢弃
 GARBAGE_SUFFIX_KEYWORDS = [
-    "海川化工论坛", "原创力文档", "道客巴巴", "豆丁网", "百度文库",
-    "人人文库", "淘豆网", "文档之家", "文档分享", "免费文档",
-    "下载中心", "资料共享", "maxwid", "doc88", "docin",
+    "海川化工论坛",
+    "原创力文档",
+    "道客巴巴",
+    "豆丁网",
+    "百度文库",
+    "人人文库",
+    "淘豆网",
+    "文档之家",
+    "文档分享",
+    "免费文档",
+    "下载中心",
+    "资料共享",
+    "maxwid",
+    "doc88",
+    "docin",
 ]
 
 
@@ -35,29 +47,34 @@ def normalize_std_filename(filename: str) -> str:
     返回清洗后的文件名字符串（不含扩展名处理，由调用方负责）。
     """
     # 1. Unicode 斜杠 → ASCII /
-    for ch in ('∕', '／', '⁄'):
-        filename = filename.replace(ch, '/')
+    for ch in ("∕", "／", "⁄"):
+        filename = filename.replace(ch, "/")
 
     # 2. 全角转半角（NFKC 归一化：全角字母/数字/符号 → 半角）
     import unicodedata
-    filename = unicodedata.normalize('NFKC', filename)
+
+    filename = unicodedata.normalize("NFKC", filename)
 
     # 3. 缺斜杠还原（SHT→SH/T, GBT→GB/T, DB22T→DB22/T 等）
     #    在步骤1之后执行：如果文件名本来就有 /T，步骤1 已处理，此正则不会误匹配
-    filename = re.sub(r'^(DB\d{2,4})([TZ])(?=\s*\d)', r'\1/\2', filename)
-    filename = re.sub(r'^(GB)([TZ])(?=\s*\d)', r'\1/\2', filename)
-    filename = re.sub(r'^(SH|NB|HG|JB|SY|YB|AQ|CJ|JG|JT|SC|LY|NY|QB|SN|WB|WS|WW|YY|ZB)([TZ])(?=\s*\d)', r'\1/\2', filename)
+    filename = re.sub(r"^(DB\d{2,4})([TZ])(?=\s*\d)", r"\1/\2", filename)
+    filename = re.sub(r"^(GB)([TZ])(?=\s*\d)", r"\1/\2", filename)
+    filename = re.sub(
+        r"^(SH|NB|HG|JB|SY|YB|AQ|CJ|JG|JT|SC|LY|NY|QB|SN|WB|WS|WW|YY|ZB)([TZ])(?=\s*\d)",
+        r"\1/\2",
+        filename,
+    )
 
     # 4. 方括号/特殊符号 → 空格（保留（）用于语言标签检测）
-    filename = re.sub(r'[\[\]【】]', ' ', filename)
+    filename = re.sub(r"[\[\]【】]", " ", filename)
 
     # 5. 垃圾后缀截断：匹配 [-_]关键词 模式，截断丢弃
     for kw in GARBAGE_SUFFIX_KEYWORDS:
-        pattern = re.compile(r'[\s\-_]+' + re.escape(kw) + r'.*$', re.IGNORECASE)
-        filename = pattern.sub('', filename)
+        pattern = re.compile(r"[\s\-_]+" + re.escape(kw) + r".*$", re.IGNORECASE)
+        filename = pattern.sub("", filename)
 
     # 6. 多余空格压缩
-    filename = re.sub(r'\s+', ' ', filename).strip()
+    filename = re.sub(r"\s+", " ", filename).strip()
 
     return filename
 
@@ -91,6 +108,7 @@ def hash_file_content(path: str) -> str:
     扫描器与文件索引共享此函数，保证去重一致性。
     """
     import hashlib
+
     file_size = os.path.getsize(path)
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -150,6 +168,7 @@ def safe_move(src: str, dst: str, on_exists: str = "skip") -> bool:
         # 清除只读属性（跨盘符移动时只读文件会导致删除步骤失败）
         if os.path.isfile(src):
             import stat
+
             os.chmod(src, stat.S_IWRITE)
         # 复制到临时文件，完成后原子替换
         tmp_dst = dst + ".tmp"
@@ -188,17 +207,17 @@ def safe_copy(src: str, dst: str) -> bool:
 
 def ensure_long_path(path: str) -> str:
     r"""Windows 长路径支持：添加 \\?\ 前缀（已有则跳过）。非 Windows 原样返回。"""
-    if os.name == 'nt' and path and not path.startswith('\\\\?\\'):
-        return '\\\\?\\' + os.path.abspath(path)
+    if os.name == "nt" and path and not path.startswith("\\\\?\\"):
+        return "\\\\?\\" + os.path.abspath(path)
     return path
 
 
 def strip_long_path(path: str) -> str:
     """去掉 Windows \\\\?\\ 长路径前缀（已有则去掉，没有则原样返回）。非 Windows 不作处理。"""
-    if os.name == 'nt':
-        _prefix = '\\\\?\\'
+    if os.name == "nt":
+        _prefix = "\\\\?\\"
         if path.startswith(_prefix):
-            return path[4:].lstrip('\\')
+            return path[4:].lstrip("\\")
     return path
 
 
@@ -211,15 +230,16 @@ def remove_empty_dirs(root: str) -> int:
     含系统垃圾文件（Thumbs.db/~$锁文件等）的目录也视为空目录处理。
     """
     # Windows 长路径支持
-    if os.name == 'nt' and not root.startswith('\\\\?\\'):
-        root = '\\\\?\\' + os.path.abspath(root)
+    if os.name == "nt" and not root.startswith("\\\\?\\"):
+        root = "\\\\?\\" + os.path.abspath(root)
     deleted = 0
     for dirpath, dirnames, filenames in os.walk(root, topdown=False):
         if dirpath == root:
             continue
         # 过滤系统垃圾，仅余有效文件才判断是否为空
-        real_files = [f for f in filenames
-                      if f not in _JUNK_FILES and not f.startswith('~$')]
+        real_files = [
+            f for f in filenames if f not in _JUNK_FILES and not f.startswith("~$")
+        ]
         if not real_files and not dirnames:
             # 先删除目录中的系统垃圾文件，再删目录
             for f in filenames:
@@ -241,11 +261,18 @@ def ensure_dir(path: str) -> str:
     return os.path.abspath(path)
 
 
-def make_standard_filename(logical_code: str, number: int, year: int,
-                           std_name: str = "", part: Optional[int] = None,
-                           ext: str = ".pdf", num_suffix: str = "",
-                           language: str = "", num_prefix: str = "",
-                           file_kind: str = "") -> str:
+def make_standard_filename(
+    logical_code: str,
+    number: int,
+    year: int,
+    std_name: str = "",
+    part: Optional[int] = None,
+    ext: str = ".pdf",
+    num_suffix: str = "",
+    language: str = "",
+    num_prefix: str = "",
+    file_kind: str = "",
+) -> str:
     """根据标准信息生成规范文件名：{代号} {编号}[.{部分号}]-{年份} {名称}[ 语言][ file_kind].<ext>
     num_prefix 为罗马数字时直接作为编号显示，多字母前缀时加空格（如 'Spec 6D'）。"""
     win_code = safe_code_for_filename(logical_code)
@@ -254,7 +281,7 @@ def make_standard_filename(logical_code: str, number: int, year: int,
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
     # 罗马数字前缀：直接用罗马数字替代阿拉伯数字
-    if num_prefix and all(c in 'IVXLCDM' for c in num_prefix.upper()):
+    if num_prefix and all(c in "IVXLCDM" for c in num_prefix.upper()):
         num_str = f"{num_prefix}{num_suffix}"
     elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():
         num_str = f"{num_prefix} {number}{num_suffix}"
@@ -262,4 +289,6 @@ def make_standard_filename(logical_code: str, number: int, year: int,
         num_str = f"{num_prefix}{number}{num_suffix}"
     else:
         num_str = f"{number}{num_suffix}"
-    return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"
+    return (
+        f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"
+    )

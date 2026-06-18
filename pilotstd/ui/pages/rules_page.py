@@ -35,7 +35,9 @@ class RulesPage(QWidget):
         rule_group = QGroupBox(_("rule_group"))
         rule_layout = QHBoxLayout(rule_group)
         self.rule_tree = QTreeWidget()
-        self.rule_tree.setHeaderLabels([_("header_rule_name"), _("header_task_type"), _("header_url")])
+        self.rule_tree.setHeaderLabels(
+            [_("header_rule_name"), _("header_task_type"), _("header_url")]
+        )
         self.rule_tree.setColumnWidth(0, 120)
         self.rule_tree.setColumnWidth(1, 60)
         self.rule_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -90,7 +92,9 @@ class RulesPage(QWidget):
             self._add_item(r)
 
     def _add_item(self, rule: dict):
-        item = QTreeWidgetItem([rule.get("name", ""), rule.get("type", ""), rule.get("url", "")])
+        item = QTreeWidgetItem(
+            [rule.get("name", ""), rule.get("type", ""), rule.get("url", "")]
+        )
         item.setData(0, 1, rule)
         self.rule_tree.addTopLevelItem(item)
 
@@ -113,7 +117,9 @@ class RulesPage(QWidget):
             dlg = RuleEditDialog(self, rule)
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 rules = self._get_rules()
-                idx = next(i for i, r in enumerate(rules) if r.get("name") == rule.get("name"))
+                idx = next(
+                    i for i, r in enumerate(rules) if r.get("name") == rule.get("name")
+                )
                 rules[idx] = dlg.get_rule()
                 self._save_rules(rules)
                 self._refresh()
@@ -123,7 +129,11 @@ class RulesPage(QWidget):
         if not items:
             return
         rule = items[0].data(0, 1)
-        confirm = QMessageBox.question(self, _("title_confirm_delete"), _("confirm_delete_rule").format(name=rule.get('name')))
+        confirm = QMessageBox.question(
+            self,
+            _("title_confirm_delete"),
+            _("confirm_delete_rule").format(name=rule.get("name")),
+        )
         if confirm == QMessageBox.StandardButton.Yes:
             rules = self._get_rules()
             rules = [r for r in rules if r.get("name") != rule.get("name")]
@@ -131,21 +141,27 @@ class RulesPage(QWidget):
             self._refresh()
 
     def _on_import_json(self):
-        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_rules"), "",
-                                                _("file_filter_json"))
+        path, __ = QFileDialog.getOpenFileName(
+            self, _("dialog_import_rules"), "", _("file_filter_json")
+        )
         if not path:
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
-            QMessageBox.warning(self, _("title_import_failed"), _("msg_import_read_error").format(error=e))
+            QMessageBox.warning(
+                self,
+                _("title_import_failed"),
+                _("msg_import_read_error").format(error=e),
+            )
             return
 
         imported = data.get("rules", []) if isinstance(data, dict) else data
         if not isinstance(imported, list):
-            QMessageBox.warning(self, _("title_format_error"),
-                                _("msg_invalid_json_format"))
+            QMessageBox.warning(
+                self, _("title_format_error"), _("msg_invalid_json_format")
+            )
             return
 
         rules = self._get_rules()
@@ -154,27 +170,32 @@ class RulesPage(QWidget):
             if not isinstance(rule, dict) or "name" not in rule:
                 continue
             if not any(r.get("name") == rule["name"] for r in rules):
-                rules.append({
-                    "name": rule.get("name", ""),
-                    "type": rule.get("type", _("rule_type_query")),
-                    "url": rule.get("url", ""),
-                    "xpath": rule.get("xpath", ""),
-                    "regex": rule.get("regex", ""),
-                    "captcha": rule.get("captcha", ""),
-                })
+                rules.append(
+                    {
+                        "name": rule.get("name", ""),
+                        "type": rule.get("type", _("rule_type_query")),
+                        "url": rule.get("url", ""),
+                        "xpath": rule.get("xpath", ""),
+                        "regex": rule.get("regex", ""),
+                        "captcha": rule.get("captcha", ""),
+                    }
+                )
                 added += 1
 
         self._save_rules(rules)
         self._refresh()
-        QMessageBox.information(self, _("title_import_done"), _("msg_import_success").format(count=added))
+        QMessageBox.information(
+            self, _("title_import_done"), _("msg_import_success").format(count=added)
+        )
 
     def _on_export_json(self):
         rules = self._get_rules()
         if not rules:
             QMessageBox.information(self, _("title_hint"), _("msg_no_rules_to_export"))
             return
-        path, __ = QFileDialog.getSaveFileName(self, _("dialog_export_rules"), "pilotstd_rules.json",
-                                                _("file_filter_json"))
+        path, __ = QFileDialog.getSaveFileName(
+            self, _("dialog_export_rules"), "pilotstd_rules.json", _("file_filter_json")
+        )
         if not path:
             return
         payload = {
@@ -185,17 +206,32 @@ class RulesPage(QWidget):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, ensure_ascii=False, indent=2)
-            QMessageBox.information(self, _("title_export_done"),
-                                    _("msg_export_success").format(count=len(rules), path=path))
+            QMessageBox.information(
+                self,
+                _("title_export_done"),
+                _("msg_export_success").format(count=len(rules), path=path),
+            )
         except OSError as e:
             QMessageBox.warning(self, _("title_export_failed"), str(e))
 
     def _on_copy_builtin(self):
         builtins = [
-            {"name": "工标网", "type": "查询", "url": "https://www.csres.com/s.jsp?keyword=%s"},
+            {
+                "name": "工标网",
+                "type": "查询",
+                "url": "https://www.csres.com/s.jsp?keyword=%s",
+            },
             {"name": "南京标准网", "type": "查询", "url": "https://www.njbz365.cn/"},
-            {"name": "全国标准信息公共服务平台(G)", "type": "查询", "url": "https://openstd.samr.gov.cn/bzgk/std/std_list?p.p1=0&p.p2=%s"},
-            {"name": "openstd 下载", "type": "下载", "url": "https://openstd.samr.gov.cn/bzgk/gb/showGb?type=online&hcno=%s"},
+            {
+                "name": "全国标准信息公共服务平台(G)",
+                "type": "查询",
+                "url": "https://openstd.samr.gov.cn/bzgk/std/std_list?p.p1=0&p.p2=%s",
+            },
+            {
+                "name": "openstd 下载",
+                "type": "下载",
+                "url": "https://openstd.samr.gov.cn/bzgk/gb/showGb?type=online&hcno=%s",
+            },
         ]
         rules = self._get_rules()
         for b in builtins:
@@ -240,9 +276,19 @@ class RuleEditDialog(QDialog):
         form.addRow(_("label_regex"), self.regex_edit)
 
         self.captcha_combo = QComboBox()
-        self.captcha_combo.addItems([_("captcha_none"), _("captcha_alphanumeric"), _("captcha_arithmetic"), _("captcha_slide"), _("captcha_click")])
+        self.captcha_combo.addItems(
+            [
+                _("captcha_none"),
+                _("captcha_alphanumeric"),
+                _("captcha_arithmetic"),
+                _("captcha_slide"),
+                _("captcha_click"),
+            ]
+        )
         captcha_map = {"": 0, "digit": 1, "math": 2, "slide": 3, "click": 4}
-        self.captcha_combo.setCurrentIndex(captcha_map.get(self._rule.get("captcha", ""), 0))
+        self.captcha_combo.setCurrentIndex(
+            captcha_map.get(self._rule.get("captcha", ""), 0)
+        )
         form.addRow(_("label_captcha_type"), self.captcha_combo)
 
         layout.addLayout(form)

@@ -32,18 +32,20 @@ class HbbaAdapter(BaseAdapter):
 
     def __init__(self, session: requests.Session = None):
         self._session = session or requests.Session()
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            ),
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-            "X-Requested-With": "XMLHttpRequest",
-            "Origin": "https://hbba.sacinfo.org.cn",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+                "X-Requested-With": "XMLHttpRequest",
+                "Origin": "https://hbba.sacinfo.org.cn",
+            }
+        )
 
     @property
     def site_name(self) -> str:
@@ -86,8 +88,12 @@ class HbbaAdapter(BaseAdapter):
         # 用搜索目标（search_term）与 API 返回结果（code）比对，避免自比较
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
-            target.get("code", ""), target.get("number", 0),
-            target.get("year", 0), ch_name, code)
+            target.get("code", ""),
+            target.get("number", 0),
+            target.get("year", 0),
+            ch_name,
+            code,
+        )
 
         return QueryResult(
             standard_number=code,
@@ -117,8 +123,9 @@ class HbbaAdapter(BaseAdapter):
                 return ""
             # 匹配 \"代替标准\\nSH/T 1752—2006\"
             m = re.search(
-                r'代替标准\s*\n\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})',
-                resp.text)
+                r"代替标准\s*\n\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})",
+                resp.text,
+            )
             if m:
                 return m.group(1).strip()
         except Exception:

@@ -4,5 +4,10 @@ from .adapters import SamrDbAdapter, SamrGbAdapter, SamrHbAdapter
 from .engine import AnnounceEngine
 from .matcher import AnnouncementMatcher
 
-__all__ = ["AnnounceEngine", "AnnouncementMatcher",
-           "SamrGbAdapter", "SamrHbAdapter", "SamrDbAdapter"]
+__all__ = [
+    "AnnounceEngine",
+    "AnnouncementMatcher",
+    "SamrGbAdapter",
+    "SamrHbAdapter",
+    "SamrDbAdapter",
+]

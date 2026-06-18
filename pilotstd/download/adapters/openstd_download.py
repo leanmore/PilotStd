@@ -36,15 +36,17 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     def __init__(self, session: requests.Session = None, captcha_callback=None):
         self._session = session or requests.Session()
         self._captcha_callback = captcha_callback
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/133.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,*/*",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/133.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,*/*",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            }
+        )
 
     @property
     def site_name(self) -> str:
@@ -87,8 +89,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         # ═══ 步骤1：建立会话 ⚠️ 不可跳过 ═══
         # showGb 在首次访问时 302 重定向并设置 JSESSIONID cookie，
         # 此 cookie 是后续 gc / verifyCode / viewGb 的会话凭证。
-        show_url = (f"{self.BASE_URL}/showGb?type=download"
-                    f"&hcno={hcno}&request_locale=zh")
+        show_url = f"{self.BASE_URL}/showGb?type=download&hcno={hcno}&request_locale=zh"
         try:
             self._session.get(show_url, timeout=30)
         except requests.RequestException as e:
@@ -110,14 +111,19 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             resp = self._session.get(view_url, timeout=120, stream=True)
         except requests.RequestException as e:
             task.error_message = f"PDF 下载请求失败: {e}"
-            logger.warning("下载失败(viewGb): %s hcno=%s | %s",
-                           task.standard_number, hcno, e)
+            logger.warning(
+                "下载失败(viewGb): %s hcno=%s | %s", task.standard_number, hcno, e
+            )
             return None
 
         if resp.status_code != 200:
             task.error_message = f"viewGb HTTP {resp.status_code}"
-            logger.warning("下载失败(viewGb HTTP%d): %s hcno=%s",
-                           resp.status_code, task.standard_number, hcno)
+            logger.warning(
+                "下载失败(viewGb HTTP%d): %s hcno=%s",
+                resp.status_code,
+                task.standard_number,
+                hcno,
+            )
             return None
 
         content = resp.content
@@ -130,6 +136,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         cd = resp.headers.get("Content-Disposition", "")
         if cd and "filename=" in cd:
             import re
+
             m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
             if m:
                 task.extra["filename_from_header"] = m.group(2)
@@ -142,8 +149,12 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             return content
 
         task.error_message = "viewGb 返回非 PDF 内容"
-        logger.warning("下载失败(非PDF): %s hcno=%s | 前50字节=%r",
-                       task.standard_number, hcno, content[:50])
+        logger.warning(
+            "下载失败(非PDF): %s hcno=%s | 前50字节=%r",
+            task.standard_number,
+            hcno,
+            content[:50],
+        )
         return None
 
     # ════════════════════════════════════════════════════════════════
@@ -165,14 +176,16 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 img_resp = self._session.get(captcha_url, timeout=15)
             except requests.RequestException as e:
                 task.error_message = "验证码图片获取失败"
-                logger.warning("下载失败(验证码): %s | 图片获取失败: %s",
-                               task.standard_number, e)
+                logger.warning(
+                    "下载失败(验证码): %s | 图片获取失败: %s", task.standard_number, e
+                )
                 return None
 
             # ═══ 步骤3：ddddocr 识别 ═══
             captcha_text = ""
             try:
                 import ddddocr
+
                 ocr = ddddocr.DdddOcr()
                 captcha_text = ocr.classification(img_resp.content)
                 logger.info("ddddocr 识别: %s (第%d次)", captcha_text, attempt + 1)
@@ -189,8 +202,11 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 if attempt == 0:
                     continue  # 刷新验证码重试
                 task.error_message = "验证码识别失败"
-                logger.warning("下载失败(验证码): %s | 识别失败 captcha_text=%r",
-                               task.standard_number, captcha_text)
+                logger.warning(
+                    "下载失败(验证码): %s | 识别失败 captcha_text=%r",
+                    task.standard_number,
+                    captcha_text,
+                )
                 return None
 
             # ═══ 步骤4：提交验证码 ═══
@@ -210,6 +226,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                     continue
 
         task.error_message = "验证码提交失败（已重试）"
-        logger.warning("下载失败(验证码): %s hcno=%s | 验证码提交失败",
-                       task.standard_number, hcno)
+        logger.warning(
+            "下载失败(验证码): %s hcno=%s | 验证码提交失败", task.standard_number, hcno
+        )
         return None

@@ -54,6 +54,7 @@ def api_delete_user(user_id: int):
 def api_change_password(body: ChangePasswordRequest, request: Request):
     """修改当前登录用户的密码。"""
     from ..auth import get_current_username
+
     username = get_current_username(request)
     if not body.new_password or len(body.new_password) < 4:
         raise HTTPException(400, "新密码至少4个字符")

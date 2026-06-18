@@ -12,22 +12,22 @@ logger = logging.getLogger(__name__)
 
 # 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
 STD_CODE_PATTERN = re.compile(
-    r'([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})'
+    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})"
 )
 # 代替标准在表格中的位置模式（"代替" 列的后面）
 REPLACES_PATTERN = re.compile(
-    r'([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})'
+    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})"
 )
 
 
 def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
     """根据附件文件名后缀选择合适的解析方法，提取纯文本。"""
     name_lower = filename.lower()
-    if name_lower.endswith('.wps'):
+    if name_lower.endswith(".wps"):
         return parse_wps_text(attachment_bytes)
-    if name_lower.endswith('.pdf'):
+    if name_lower.endswith(".pdf"):
         return _parse_pdf_text(attachment_bytes)
-    if name_lower.endswith(('.doc', '.docx')):
+    if name_lower.endswith((".doc", ".docx")):
         return _parse_docx_text(attachment_bytes)
     # 后缀未知时尝试各解析器
     for parser in (parse_wps_text, _parse_pdf_text, _parse_docx_text):
@@ -48,21 +48,22 @@ def parse_wps_text(raw_bytes: bytes) -> str:
     直接按 UTF-16LE 解码，提取可打印字符。
     """
     try:
-        text = raw_bytes.decode('utf-16-le', errors='ignore')
+        text = raw_bytes.decode("utf-16-le", errors="ignore")
     except Exception:
         logger.debug("WPS 解码失败", exc_info=True)
         return ""
     # 过滤出可读字符（中文+ASCII+数字+常见符号）
     result = []
     for ch in text:
-        if ch.isprintable() or ch in '\n\r\t':
+        if ch.isprintable() or ch in "\n\r\t":
             result.append(ch)
-    return ''.join(result)
+    return "".join(result)
 
 
 def _parse_pdf_text(raw_bytes: bytes) -> str:
     """从 PDF 原始字节中提取纯文本（使用 PyPDF2）。"""
     from PyPDF2 import PdfReader
+
     try:
         reader = PdfReader(BytesIO(raw_bytes))
         pages = []
@@ -70,7 +71,7 @@ def _parse_pdf_text(raw_bytes: bytes) -> str:
             text = page.extract_text()
             if text:
                 pages.append(text)
-        return '\n'.join(pages)
+        return "\n".join(pages)
     except Exception as e:
         logger.debug("PDF 解析失败: %s", e, exc_info=True)
         return ""
@@ -81,6 +82,7 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
     优先提取表格文本（公告标准清单通常在表格中），无表格则提取段落。
     """
     from docx import Document
+
     try:
         doc = Document(BytesIO(raw_bytes))
         lines = []
@@ -90,14 +92,14 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
                 cells = [cell.text.strip() for cell in row.cells]
                 # 过滤全空行
                 if any(c for c in cells):
-                    lines.append('\t'.join(cells))
+                    lines.append("\t".join(cells))
         if not lines:
             # 无表格时提取段落文本
             for para in doc.paragraphs:
                 text = para.text.strip()
                 if text:
                     lines.append(text)
-        return '\n'.join(lines)
+        return "\n".join(lines)
     except Exception as e:
         logger.debug("DOCX 解析失败: %s", e, exc_info=True)
         return ""
@@ -119,7 +121,7 @@ def parse_announcement_meta(html: str) -> dict:
 
     # 公告发布日期：正文中最后一个 YYYY-MM-DD 格式的日期即为落款日期
     text = soup.get_text()
-    dates = re.findall(r'\d{4}-\d{2}-\d{2}', text)
+    dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
     if dates:
         meta["publish_date"] = dates[-1]
 
@@ -203,8 +205,11 @@ def parse_html_table(html: str) -> list[dict]:
             item = {
                 "std_code": std_code,
                 "std_name": cell_texts[name_col] if name_col < len(cell_texts) else "",
-                "replaces_code": "", "publish_date": "",
-                "implementation_date": "", "record_no": "", "dept": "",
+                "replaces_code": "",
+                "publish_date": "",
+                "implementation_date": "",
+                "record_no": "",
+                "dept": "",
             }
             for col_idx, field_name in col_map.items():
                 if col_idx < len(cell_texts) and field_name in item:
@@ -219,14 +224,30 @@ def parse_html_table(html: str) -> list[dict]:
 def _clean_wps_name(name: str) -> str:
     """清理 WPS 提取文本中的二进制垃圾和非表头残留。"""
     # 去除不可打印字符和控制字符（保留中英文、数字、常见标点）
-    name = re.sub(r'[^一-鿿　-〿＀-￯'
-                  r'a-zA-Z0-9\s\-—/\.\(\)（）\d]', '', name)
+    name = re.sub(
+        r"[^一-鿿　-〿＀-￯"
+        r"a-zA-Z0-9\s\-—/\.\(\)（）\d]",
+        "",
+        name,
+    )
     # 去除 WPS 表格表头关键词残留
-    for kw in ['国家标准', '行业标准', '地方标准', '指导性技术文件',
-               '标准化指导性技术文件编号', '标准化指导性技术文件名称',
-               '标准编号', '标准名称', '代替标准号', '实施日期', '发布日期',
-               '复审结论', '标准废止日期', '代替文件号']:
-        name = name.replace(kw, '')
+    for kw in [
+        "国家标准",
+        "行业标准",
+        "地方标准",
+        "指导性技术文件",
+        "标准化指导性技术文件编号",
+        "标准化指导性技术文件名称",
+        "标准编号",
+        "标准名称",
+        "代替标准号",
+        "实施日期",
+        "发布日期",
+        "复审结论",
+        "标准废止日期",
+        "代替文件号",
+    ]:
+        name = name.replace(kw, "")
     return name.strip()
 
 
@@ -262,23 +283,23 @@ def parse_text_table(text: str) -> list[dict]:
         while next_idx < len(matches) and next_idx in skip_indices:
             next_idx += 1
         if next_idx < len(matches):
-            field_text = text[end:matches[next_idx].start()]
+            field_text = text[end : matches[next_idx].start()]
         else:
-            field_text = text[end:end + 300]
+            field_text = text[end : end + 300]
 
         # 检查相邻匹配是否与当前条目在同一逻辑行
         # 条件：field_text 含中文字符（是名称而非行分隔），且距下一匹配很近
         replaces_code = ""
         if next_idx < len(matches):
             between = field_text
-            has_chinese = bool(re.search(r'[一-鿿]', between))
+            has_chinese = bool(re.search(r"[一-鿿]", between))
             next_match = matches[next_idx]
             # 下一匹配紧跟在名称后（无换行），且中间有中文 → 是代替号
-            if has_chinese and '\n' not in between:
+            if has_chinese and "\n" not in between:
                 replaces_code = next_match.group(0)
                 skip_indices.add(next_idx)
                 # 代替号之后的内容作为发布日期来源
-                post_replaces = text[next_match.end():next_match.end() + 50]
+                post_replaces = text[next_match.end() : next_match.end() + 50]
                 # 继续往后检查是否还有日期
                 field_text = between + post_replaces
 
@@ -292,36 +313,38 @@ def parse_text_table(text: str) -> list[dict]:
                 rep_start = replaces_match.start()
                 std_name = _clean_wps_name(field_text[:rep_start])
                 replaces_code = replaces_match.group(0)
-                field_text = field_text[replaces_match.end():]
+                field_text = field_text[replaces_match.end() :]
 
         # 提取发布日期
-        date_match = re.search(r'(\d{4}-\d{2}-\d{2})', field_text)
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", field_text)
         publish_date = date_match.group(1) if date_match else ""
 
         if len(std_name) < 2:
             continue
 
-        results.append({
-            "std_code": std_code,
-            "std_name": std_name,
-            "replaces_code": replaces_code,
-            "publish_date": publish_date,
-            "implementation_date": "",
-        })
+        results.append(
+            {
+                "std_code": std_code,
+                "std_name": std_name,
+                "replaces_code": replaces_code,
+                "publish_date": publish_date,
+                "implementation_date": "",
+            }
+        )
 
     return results
 
 
 def _code_key(item: dict) -> str:
     """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。"""
-    return (item.get("std_code", "") + "|" +
-            item.get("std_name", "")[:20])
+    return item.get("std_code", "") + "|" + item.get("std_name", "")[:20]
 
 
 def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
     """用 OCR 提供商识别 PDF 全部页面，返回合并文本。"""
     # OcrScheduler 内部已拆页+调度，直接返回全文，无需逐页循环
     from pilotstd.announcement.ocr import OcrScheduler
+
     if isinstance(ocr_provider, OcrScheduler):
         result = ocr_provider.recognize_pdf(pdf_bytes, page_num=1)
         return result or ""
@@ -331,6 +354,7 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
         from io import BytesIO
 
         from PyPDF2 import PdfReader
+
         reader = PdfReader(BytesIO(pdf_bytes))
         total_pages = len(reader.pages)
     except Exception:
@@ -346,15 +370,21 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
             failed += 1
 
     result = "\n".join(texts)
-    logger.info("OCR 完成: %d/%d 页成功, %d 字符",
-                total_pages - failed, total_pages, len(result))
+    logger.info(
+        "OCR 完成: %d/%d 页成功, %d 字符",
+        total_pages - failed,
+        total_pages,
+        len(result),
+    )
     return result
 
 
-def parse_announcement_detail(html: str,
-                              attachment_bytes: Optional[bytes] = None,
-                              attachment_filename: str = "",
-                              ocr_provider=None) -> tuple[list[dict], dict]:
+def parse_announcement_detail(
+    html: str,
+    attachment_bytes: Optional[bytes] = None,
+    attachment_filename: str = "",
+    ocr_provider=None,
+) -> tuple[list[dict], dict]:
     """解析公告详情页，HTML + 附件交叉校验补全。
 
     三层回退：
@@ -386,8 +416,9 @@ def parse_announcement_detail(html: str,
         if text:
             att_items = parse_text_table(text)
         # PDF 文本提取失败 → 尝试 OCR
-        elif (attachment_filename.lower().endswith('.pdf')
-              or (attachment_filename and '.pdf' in attachment_filename.lower())):
+        elif attachment_filename.lower().endswith(".pdf") or (
+            attachment_filename and ".pdf" in attachment_filename.lower()
+        ):
             if ocr_provider:
                 att_text = _ocr_pdf(attachment_bytes, ocr_provider)
                 if att_text:
@@ -401,7 +432,9 @@ def parse_announcement_detail(html: str,
             if _code_key(item) not in codes:
                 html_items.append(item)
                 new_count += 1
-        logger.info("HTML %d 条 + 附件补充 %d 条", len(html_items) - new_count, new_count)
+        logger.info(
+            "HTML %d 条 + 附件补充 %d 条", len(html_items) - new_count, new_count
+        )
         return html_items, meta
 
     if html_items:
@@ -433,6 +466,7 @@ def find_attachment_url(html: str) -> Optional[str]:
 def download_attachment(url: str) -> Optional[bytes]:
     """下载附件文件 (.wps)。返回原始字节，失败返回 None。"""
     from ..query.network import safe_raw_get
+
     resp = safe_raw_get(url, "announcement_attachment", timeout=60)
     if resp and resp.status_code == 200:
         return resp.content

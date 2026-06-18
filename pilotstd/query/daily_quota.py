@@ -48,11 +48,13 @@ class DailyQuotaTracker:
         for site in self._limits:
             row = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
-                (site, self._today))
+                (site, self._today),
+            )
             if row is None:
                 self._db.execute(
                     "INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
-                    (site, self._today))
+                    (site, self._today),
+                )
 
     def get_remaining(self, site_name: str) -> int:
         """返回该站点今日剩余可用次数。"""
@@ -61,7 +63,8 @@ class DailyQuotaTracker:
             limit = self._limits.get(site_name, 500)
             row = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
-                (site_name, self._today))
+                (site_name, self._today),
+            )
             if row is None:
                 return limit
             used = row["count"]
@@ -74,14 +77,17 @@ class DailyQuotaTracker:
             # 确保该站点的今日行存在（_ensure_today_rows 只覆盖 _limits 中的站点）
             existing = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
-                (site_name, self._today))
+                (site_name, self._today),
+            )
             if existing is None:
                 self._db.execute(
                     "INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
-                    (site_name, self._today))
+                    (site_name, self._today),
+                )
             self._db.execute(
                 "UPDATE daily_quota SET count = count + ? WHERE site_name=? AND query_date=?",
-                (count, site_name, self._today))
+                (count, site_name, self._today),
+            )
             return self.get_remaining(site_name)
 
     def get_used(self, site_name: str) -> int:
@@ -90,7 +96,8 @@ class DailyQuotaTracker:
             self._ensure_date()
             row = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
-                (site_name, self._today))
+                (site_name, self._today),
+            )
             return row["count"] if row else 0
 
     def get_search_remaining(self, site_name: str) -> int:

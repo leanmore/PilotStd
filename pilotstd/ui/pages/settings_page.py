@@ -46,7 +46,9 @@ class SettingsPage(QWidget):
         self._nav = QListWidget()
         self._nav.setFixedWidth(120)
         self._nav.setSpacing(0)
-        self._nav.setStyleSheet("QListWidget { border: none; border-right: 1px solid #ddd; }")
+        self._nav.setStyleSheet(
+            "QListWidget { border: none; border-right: 1px solid #ddd; }"
+        )
 
         # ── 右侧堆叠 ──
         self._stack = QStackedWidget()
@@ -166,7 +168,9 @@ class SettingsPage(QWidget):
         self.scan_extensions.setPlaceholderText("用逗号分隔，如: .pdf,.doc,.txt")
         form.addRow(_("scan_extensions"), self.scan_extensions)
         self.skip_file_keywords = QLineEdit()
-        self.skip_file_keywords.setPlaceholderText("用逗号分隔，如: 征求意见稿,培训课件,标准图集")
+        self.skip_file_keywords.setPlaceholderText(
+            "用逗号分隔，如: 征求意见稿,培训课件,标准图集"
+        )
         form.addRow(_("scan_skip_keywords"), self.skip_file_keywords)
         layout.addWidget(gb)
         layout.addStretch()
@@ -249,42 +253,98 @@ class SettingsPage(QWidget):
 
     def _load_from_config(self):
         from PyQt6.QtCore import QStandardPaths
-        default_root = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+
+        default_root = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DocumentsLocation
+        )
         self.root_dir.setText(self._config.get("storage.root_dir", default_root))
         self.expire_name.setText(self._config.get("storage.expire_folder", "过期作废"))
-        self.auto_clean_cb.setChecked(self._config.get("organize.auto_clean_source", False))
-        self.mirror_skipped_cb.setChecked(self._config.get("storage.mirror_skipped_dirs", True))
-        self.mirror_fallback_cb.setChecked(self._config.get("storage.mirror_fallback", True))
+        self.auto_clean_cb.setChecked(
+            self._config.get("organize.auto_clean_source", False)
+        )
+        self.mirror_skipped_cb.setChecked(
+            self._config.get("storage.mirror_skipped_dirs", True)
+        )
+        self.mirror_fallback_cb.setChecked(
+            self._config.get("storage.mirror_fallback", True)
+        )
         self.watchdog_cb.setChecked(self._config.get("watchdog.enabled", False))
         self.proxy.setText(self._config.get("network.proxy", ""))
         self.ua_cb.setChecked(self._config.get("network.ua_rotation", True))
         self.announcement_cb.setChecked(self._config.get("announcement.enabled", False))
-        self.ocr_api_key.setText(self._config.get("ocr.baidu_api_key", "") or self._config.get("ocr.api_key", ""))
-        self.ocr_secret_key.setPlaceholderText("已保存" if self._config.get("ocr.baidu_secret_key", "") else "百度云 Secret Key")
-        self.ocr_secret_id.setText(self._config.get("ocr.tencent_secret_id", "") or self._config.get("ocr.secret_id", ""))
-        self.ocr_tencent_secret_key.setPlaceholderText("已保存" if self._config.get("ocr.tencent_secret_key", "") else "腾讯云 Secret Key")
-        self.ocr_access_key_id.setText(self._config.get("ocr.aliyun_access_key_id", "") or self._config.get("ocr.access_key_id", ""))
-        self.ocr_access_key_secret.setPlaceholderText("已保存" if self._config.get("ocr.aliyun_access_key_secret", "") else "阿里云 Access Key Secret")
+        self.ocr_api_key.setText(
+            self._config.get("ocr.baidu_api_key", "")
+            or self._config.get("ocr.api_key", "")
+        )
+        self.ocr_secret_key.setPlaceholderText(
+            "已保存"
+            if self._config.get("ocr.baidu_secret_key", "")
+            else "百度云 Secret Key"
+        )
+        self.ocr_secret_id.setText(
+            self._config.get("ocr.tencent_secret_id", "")
+            or self._config.get("ocr.secret_id", "")
+        )
+        self.ocr_tencent_secret_key.setPlaceholderText(
+            "已保存"
+            if self._config.get("ocr.tencent_secret_key", "")
+            else "腾讯云 Secret Key"
+        )
+        self.ocr_access_key_id.setText(
+            self._config.get("ocr.aliyun_access_key_id", "")
+            or self._config.get("ocr.access_key_id", "")
+        )
+        self.ocr_access_key_secret.setPlaceholderText(
+            "已保存"
+            if self._config.get("ocr.aliyun_access_key_secret", "")
+            else "阿里云 Access Key Secret"
+        )
         self.dash_cb.setChecked(True)  # 已锁定，始终使用短横
         self.clear_readonly_cb.setChecked(self._config.get("file.clear_readonly", True))
         self.downloads_dir.setText(self._config.get("storage.downloads_dir", ""))
-        self.skip_welcome_cb.setChecked(self._config.get("appearance.skip_welcome", False))
+        self.skip_welcome_cb.setChecked(
+            self._config.get("appearance.skip_welcome", False)
+        )
         self.cache_cb.setChecked(self._config.get("query.use_cache", True))
-        self.skip_folders.setText(", ".join(self._config.get("scan.skip_folders", ["过期作废"])))
-        self.scan_extensions.setText(", ".join(self._config.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])))
-        self.skip_file_keywords.setText(", ".join(self._config.get("scan.exclude_patterns", [
-            "征求意见稿", "培训课件", "建设项目过程资料及交工资料标准", "吊车性能", "标准图集"])))
+        self.skip_folders.setText(
+            ", ".join(self._config.get("scan.skip_folders", ["过期作废"]))
+        )
+        self.scan_extensions.setText(
+            ", ".join(
+                self._config.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])
+            )
+        )
+        self.skip_file_keywords.setText(
+            ", ".join(
+                self._config.get(
+                    "scan.exclude_patterns",
+                    [
+                        "征求意见稿",
+                        "培训课件",
+                        "建设项目过程资料及交工资料标准",
+                        "吊车性能",
+                        "标准图集",
+                    ],
+                )
+            )
+        )
         theme = self._config.get("appearance.theme", "经典白")
         self.theme_combo.setCurrentText(theme)
         icon_theme = self._config.get("appearance.icon_theme", "default")
         icon_display = {v: k for k, v in ICON_OPTIONS.items()}.get(icon_theme, "默认")
         self.icon_combo.setCurrentText(icon_display)
-        lang_map = {"zh_CN": _("lang_zh_CN"), "zh_TW": _("lang_zh_TW"), "en": _("lang_en")}
+        lang_map = {
+            "zh_CN": _("lang_zh_CN"),
+            "zh_TW": _("lang_zh_TW"),
+            "en": _("lang_en"),
+        }
         lang = self._config.get("appearance.language", "zh_CN")
         self.lang_combo.setCurrentText(lang_map.get(lang, _("lang_zh_CN")))
         # 列可见性
         default_vis = [True] * 9
-        visible = self._config.get("appearance.column_visibility", default_vis) or default_vis
+        visible = (
+            self._config.get("appearance.column_visibility", default_vis) or default_vis
+        )
         for c, cb in self._col_checkboxes.items():
             cb.blockSignals(True)
             cb.setChecked(visible[c] if c < len(visible) else True)
@@ -294,11 +354,20 @@ class SettingsPage(QWidget):
         if not self._config:
             return
         from PyQt6.QtCore import QStandardPaths
-        default_root = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
-        self._config.set("storage.root_dir", self.root_dir.text().strip() or default_root)
-        self._config.set("storage.expire_folder", self.expire_name.text().strip() or "过期作废")
+
+        default_root = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DocumentsLocation
+        )
+        self._config.set(
+            "storage.root_dir", self.root_dir.text().strip() or default_root
+        )
+        self._config.set(
+            "storage.expire_folder", self.expire_name.text().strip() or "过期作废"
+        )
         self._config.set("organize.auto_clean_source", self.auto_clean_cb.isChecked())
-        self._config.set("storage.mirror_skipped_dirs", self.mirror_skipped_cb.isChecked())
+        self._config.set(
+            "storage.mirror_skipped_dirs", self.mirror_skipped_cb.isChecked()
+        )
         self._config.set("storage.mirror_fallback", self.mirror_fallback_cb.isChecked())
         self._config.set("watchdog.enabled", self.watchdog_cb.isChecked())
         self._config.set("network.proxy", self.proxy.text().strip())
@@ -307,9 +376,15 @@ class SettingsPage(QWidget):
         self._config.set("ocr.baidu_api_key", self.ocr_api_key.text().strip())
         self._config.set("ocr.baidu_secret_key", self.ocr_secret_key.text().strip())
         self._config.set("ocr.tencent_secret_id", self.ocr_secret_id.text().strip())
-        self._config.set("ocr.tencent_secret_key", self.ocr_tencent_secret_key.text().strip())
-        self._config.set("ocr.aliyun_access_key_id", self.ocr_access_key_id.text().strip())
-        self._config.set("ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip())
+        self._config.set(
+            "ocr.tencent_secret_key", self.ocr_tencent_secret_key.text().strip()
+        )
+        self._config.set(
+            "ocr.aliyun_access_key_id", self.ocr_access_key_id.text().strip()
+        )
+        self._config.set(
+            "ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip()
+        )
         # 保存后清空敏感字段，防止被复制
         self.ocr_secret_key.clear()
         self.ocr_tencent_secret_key.clear()
@@ -317,7 +392,9 @@ class SettingsPage(QWidget):
         self.ocr_secret_key.setPlaceholderText("已保存")
         self.ocr_tencent_secret_key.setPlaceholderText("已保存")
         self.ocr_access_key_secret.setPlaceholderText("已保存")
-        self._config.set("ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip())
+        self._config.set(
+            "ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip()
+        )
         self._config.set("appearance.hyphen_style", True)  # 已锁定，始终使用短横
         self._config.set("file.clear_readonly", self.clear_readonly_cb.isChecked())
         self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())
@@ -328,16 +405,29 @@ class SettingsPage(QWidget):
         self._config.set("appearance.icon_theme", icon_key)
         # 通过索引取值，避免界面文本翻译导致匹配失败
         lang_codes = ["zh_CN", "zh_TW", "en"]
-        self._config.set("appearance.language", lang_codes[self.lang_combo.currentIndex()])
+        self._config.set(
+            "appearance.language", lang_codes[self.lang_combo.currentIndex()]
+        )
         # 扫描配置
         skip = [s.strip() for s in self.skip_folders.text().split(",") if s.strip()]
         self._config.set("scan.skip_folders", skip or ["过期作废"])
         exts = [s.strip() for s in self.scan_extensions.text().split(",") if s.strip()]
         self._config.set("scan.extensions", exts or [".pdf", ".doc", ".docx", ".txt"])
         # 排除关键词
-        keywords = [s.strip() for s in self.skip_file_keywords.text().split(",") if s.strip()]
-        self._config.set("scan.exclude_patterns", keywords or [
-            "征求意见稿", "培训课件", "建设项目过程资料及交工资料标准", "吊车性能", "标准图集"])
+        keywords = [
+            s.strip() for s in self.skip_file_keywords.text().split(",") if s.strip()
+        ]
+        self._config.set(
+            "scan.exclude_patterns",
+            keywords
+            or [
+                "征求意见稿",
+                "培训课件",
+                "建设项目过程资料及交工资料标准",
+                "吊车性能",
+                "标准图集",
+            ],
+        )
         # 列可见性
         visible = []
         for c in range(9):
@@ -348,9 +438,9 @@ class SettingsPage(QWidget):
         self._config.set("appearance.column_visibility", visible)
         # 即时应用到主窗口
         mw = self.window()
-        if mw and hasattr(mw, '_apply_column_visibility'):
+        if mw and hasattr(mw, "_apply_column_visibility"):
             mw._apply_column_visibility(visible)
-        if mw and hasattr(mw, '_apply_icon'):
+        if mw and hasattr(mw, "_apply_icon"):
             mw._apply_icon()
         self._config.save()
 

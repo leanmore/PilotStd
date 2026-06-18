@@ -50,10 +50,13 @@ def require_admin(request: Request) -> str:
     """要求当前用户为 admin 角色，否则返回 405。"""
     username = get_current_username(request)
     from .users import get_user_role
+
     role = get_user_role(username)
     if role != "admin":
         raise HTTPException(405, "仅管理员可执行此操作")
     return username
+
+
 # 白名单：(路径前缀, {允许的HTTP方法})，方法集合为空表示允许所有方法
 AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/login", set()),
@@ -67,14 +70,14 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
 ]
 
 # 登录失败计数（持久化到 SQLite），仅保留 5 分钟内的记录
-MAX_ATTEMPTS = 5          # 5 分钟内最多 5 次失败
-LOCKOUT_SECONDS = 300     # 锁定 5 分钟
+MAX_ATTEMPTS = 5  # 5 分钟内最多 5 次失败
+LOCKOUT_SECONDS = 300  # 锁定 5 分钟
 
 # API 全局速率限制：{key: [timestamp, ...]}，key = 用户名 或 IP
 _api_rate_limit: dict[str, list[float]] = defaultdict(list)
 _api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
-API_RATE_LIMIT = 60       # 每分钟最多 60 次请求
-API_RATE_WINDOW = 60      # 窗口 60 秒
+API_RATE_LIMIT = 60  # 每分钟最多 60 次请求
+API_RATE_WINDOW = 60  # 窗口 60 秒
 
 
 def _generate_token(username: str = "admin") -> str:
@@ -100,7 +103,11 @@ def _is_https(request: Request) -> bool:
 
 
 @router.post("/api/login")
-def login(request: Request, username: str = Form(os.environ.get("ADMIN_USERNAME", "admin")), password: str = Form(...)):
+def login(
+    request: Request,
+    username: str = Form(os.environ.get("ADMIN_USERNAME", "admin")),
+    password: str = Form(...),
+):
     """用户登录，含速率限制。默认用户名可通过 ADMIN_USERNAME 环境变量配置。"""
     global _init_done
     if not _init_done:
@@ -126,16 +133,20 @@ def login(request: Request, username: str = Form(os.environ.get("ADMIN_USERNAME"
     token = _generate_token(username)
     csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     must_change = check_must_change_password(username)
-    resp = JSONResponse({"ok": True, "username": username, "must_change_password": must_change})
+    resp = JSONResponse(
+        {"ok": True, "username": username, "must_change_password": must_change}
+    )
     resp.set_cookie(
-        COOKIE_NAME, token,
+        COOKIE_NAME,
+        token,
         httponly=True,
         secure=_is_https(request),
         samesite="strict",
         path="/",
     )
     resp.set_cookie(
-        "csrf_token", csrf_token,
+        "csrf_token",
+        csrf_token,
         httponly=False,  # 前端需读取此 cookie 值写入 X-CSRF-Token 请求头
         secure=_is_https(request),
         samesite="strict",
@@ -160,7 +171,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # 白名单检查：路径+方法匹配则免认证放行；仅路径匹配但方法不匹配时，回落走认证流程
         for w_path, w_methods in AUTH_WHITELIST:
-            if path.startswith(w_path) and (not w_methods or request.method in w_methods):
+            if path.startswith(w_path) and (
+                not w_methods or request.method in w_methods
+            ):
                 return await call_next(request)
         # 非 API 路径放行（前端静态文件）
         if not path.startswith("/api/"):
@@ -171,7 +184,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else "unknown"
         cutoff = now - API_RATE_WINDOW
         with _api_rate_lock:
-            _api_rate_limit[client_ip] = [t for t in _api_rate_limit[client_ip] if t > cutoff]
+            _api_rate_limit[client_ip] = [
+                t for t in _api_rate_limit[client_ip] if t > cutoff
+            ]
             if not _api_rate_limit[client_ip]:
                 del _api_rate_limit[client_ip]  # 清理过期IP条目，防止字典无限增长
             elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:
@@ -182,6 +197,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
         if origin:
             from urllib.parse import urlparse
+
             try:
                 origin_host = urlparse(origin).hostname
                 request_host = request.headers.get("Host", "").split(":")[0]

@@ -41,14 +41,16 @@ class Njbz365Adapter(BaseAdapter):
 
     def __init__(self, session: requests.Session = None):
         self._session = session or requests.Session()
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/133.0.0.0 Safari/537.36"
-            ),
-            "Accept-Language": "zh-CN,zh;q=0.9",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/133.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "zh-CN,zh;q=0.9",
+            }
+        )
         self._csrf_token = ""
         self._session_val = ""
         self._jwt = ""
@@ -69,14 +71,16 @@ class Njbz365Adapter(BaseAdapter):
 
         # 第1步：访问首页获取 token cookie（最多重试 3 次，指数退避）
         if "token" not in self._session.cookies:
-            self._retry_request("get", HOME_URL, timeout=30,
-                                err_msg="访问njbz365首页获取token")
+            self._retry_request(
+                "get", HOME_URL, timeout=30, err_msg="访问njbz365首页获取token"
+            )
             # 即使失败也继续——可能 cookie 中已有 token
 
         # 从 cookie 提取 JWT
         token_raw = unquote(self._session.cookies.get("token", ""))
         if token_raw:
             import json
+
             try:
                 token_data = json.loads(token_raw)
                 self._jwt = token_data.get("token", "")
@@ -107,22 +111,35 @@ class Njbz365Adapter(BaseAdapter):
                 # 设置 cookie 以便后续请求自动携带
                 if self._csrf_token:
                     self._session.cookies.set(
-                        "csrf_token", self._csrf_token, domain=".njbz365.cn")
+                        "csrf_token", self._csrf_token, domain=".njbz365.cn"
+                    )
                 if self._session_val:
                     self._session.cookies.set(
-                        "session", self._session_val, domain=".njbz365.cn")
+                        "session", self._session_val, domain=".njbz365.cn"
+                    )
                 return  # 成功则退出
             except requests.RequestException as e:
                 if attempt < 2:
-                    wait = 2 ** attempt
-                    logger.warning("获取 csrf_token 失败（%d/3），%ds后重试: %s",
-                                   attempt + 1, wait, e)
+                    wait = 2**attempt
+                    logger.warning(
+                        "获取 csrf_token 失败（%d/3），%ds后重试: %s",
+                        attempt + 1,
+                        wait,
+                        e,
+                    )
                     time.sleep(wait)
                 else:
                     logger.warning("获取 csrf_token 最终失败: %s", e)
 
-    def _retry_request(self, method: str, url: str, max_retries: int = 3,
-                       timeout: int = 30, err_msg: str = "", **kwargs) -> Optional[requests.Response]:
+    def _retry_request(
+        self,
+        method: str,
+        url: str,
+        max_retries: int = 3,
+        timeout: int = 30,
+        err_msg: str = "",
+        **kwargs,
+    ) -> Optional[requests.Response]:
         """发送 HTTP 请求（使用实例 session），网络超时/连接失败时指数退避重试。
         返回 Response 或 None（全部重试失败时）。
         """
@@ -135,9 +152,15 @@ class Njbz365Adapter(BaseAdapter):
             except (requests.Timeout, requests.ConnectionError) as e:
                 last_exc = e
                 if attempt < max_retries - 1:
-                    wait = 2 ** attempt
-                    logger.warning("%s失败（%d/%d），%ds后重试: %s",
-                                   err_msg, attempt + 1, max_retries, wait, e)
+                    wait = 2**attempt
+                    logger.warning(
+                        "%s失败（%d/%d），%ds后重试: %s",
+                        err_msg,
+                        attempt + 1,
+                        max_retries,
+                        wait,
+                        e,
+                    )
                     time.sleep(wait)
             except requests.RequestException as e:
                 logger.error("%s请求异常: %s", err_msg, e)
@@ -154,8 +177,11 @@ class Njbz365Adapter(BaseAdapter):
         3. 拼接 key=value&...&key=<privateKey>
         4. MD5 大写
         """
-        non_empty = {k: v for k, v in params.items()
-                     if v != "" and v is not None and k != "json_data"}
+        non_empty = {
+            k: v
+            for k, v in params.items()
+            if v != "" and v is not None and k != "json_data"
+        }
         sorted_keys = sorted(non_empty.keys())
         raw = "&".join(f"{k}={non_empty[k]}" for k in sorted_keys)
         raw += "&key=" + _PRIVATE_KEY
@@ -187,15 +213,44 @@ class Njbz365Adapter(BaseAdapter):
             "page": "1",
             "limit": "10",
             # 空值字段（sign 计算时会被过滤，但需在请求体中）
-            "org_id": "", "check_login_device": "", "ptly": "", "org_gid": "",
-            "user_type": "", "fllb": "", "code_kind": "", "has_pdf": "",
-            "is_atlas": "", "is_czb": "", "dw_gk": "", "cyfl": "",
-            "pdf_content": "", "bzxh": "", "bzmc": "", "enmc": "",
-            "sxq_zbfl": "", "sxq_ics": "", "sxq_dw_gk": "", "sxq_fllb": "",
-            "sxq_bzzz": "", "is_ewm": "", "is_chapter": "", "hylb_new": "",
-            "ndh": "", "bzzz": "", "zbfl": "", "ics": "", "qcr": "", "dw_qc": "",
-            "origin": "", "and_gjz_list": "", "fbrq_jsrq": "", "fbrq_ksrq": "",
-            "ssrq_ksrq": "", "ssrq_jsrq": "", "fzrq_ksrq": "", "fzrq_jsrq": "",
+            "org_id": "",
+            "check_login_device": "",
+            "ptly": "",
+            "org_gid": "",
+            "user_type": "",
+            "fllb": "",
+            "code_kind": "",
+            "has_pdf": "",
+            "is_atlas": "",
+            "is_czb": "",
+            "dw_gk": "",
+            "cyfl": "",
+            "pdf_content": "",
+            "bzxh": "",
+            "bzmc": "",
+            "enmc": "",
+            "sxq_zbfl": "",
+            "sxq_ics": "",
+            "sxq_dw_gk": "",
+            "sxq_fllb": "",
+            "sxq_bzzz": "",
+            "is_ewm": "",
+            "is_chapter": "",
+            "hylb_new": "",
+            "ndh": "",
+            "bzzz": "",
+            "zbfl": "",
+            "ics": "",
+            "qcr": "",
+            "dw_qc": "",
+            "origin": "",
+            "and_gjz_list": "",
+            "fbrq_jsrq": "",
+            "fbrq_ksrq": "",
+            "ssrq_ksrq": "",
+            "ssrq_jsrq": "",
+            "fzrq_ksrq": "",
+            "fzrq_jsrq": "",
             "result_gjz": "",
         }
 
@@ -217,14 +272,17 @@ class Njbz365Adapter(BaseAdapter):
             params["sign"] = self._compute_sign(params)
 
             try:
-                resp = self._session.post(url, json=params, headers=headers,
-                                          timeout=30)
+                resp = self._session.post(url, json=params, headers=headers, timeout=30)
                 data = resp.json()
             except (requests.Timeout, requests.ConnectionError) as e:
                 if attempt < 2:
-                    wait = 2 ** attempt
-                    logger.warning("njbz365 请求超时/连接失败（%d/3），%ds后重试: %s",
-                                   attempt + 1, wait, e)
+                    wait = 2**attempt
+                    logger.warning(
+                        "njbz365 请求超时/连接失败（%d/3），%ds后重试: %s",
+                        attempt + 1,
+                        wait,
+                        e,
+                    )
                     time.sleep(wait)
                     continue
                 logger.error("njbz365 请求最终失败: %s", e)
@@ -258,8 +316,11 @@ class Njbz365Adapter(BaseAdapter):
                 headers["x-csrftoken"] = self._csrf_token
                 continue
 
-            logger.warning("njbz365 返回错误 code=%s: %s",
-                           data.get("code", "?"), data.get("msg", ""))
+            logger.warning(
+                "njbz365 返回错误 code=%s: %s",
+                data.get("code", "?"),
+                data.get("msg", ""),
+            )
             return None
 
         return None
@@ -267,9 +328,13 @@ class Njbz365Adapter(BaseAdapter):
     # 详情页 URL 模板
     DETAIL_URL = "https://www.njbz365.cn/details/{}"
 
-    def _search(self, search_term: str,
-                target_code: str = "", target_number: int = 0,
-                target_year: int = 0) -> Optional[QueryResult]:
+    def _search(
+        self,
+        search_term: str,
+        target_code: str = "",
+        target_number: int = 0,
+        target_year: int = 0,
+    ) -> Optional[QueryResult]:
         """单结果兼容接口。target 为空时从 search_term 自动解析。"""
         if not target_code:
             parsed = _parse_result_number(search_term)
@@ -277,12 +342,17 @@ class Njbz365Adapter(BaseAdapter):
             target_number = parsed.get("number", 0)
             target_year = parsed.get("year", 0)
         candidates = self._search_candidates(
-            search_term, target_code, target_number, target_year)
+            search_term, target_code, target_number, target_year
+        )
         return candidates[0] if candidates else None
 
-    def _search_candidates(self, search_term: str,
-                           target_code: str = "", target_number: int = 0,
-                           target_year: int = 0) -> list:
+    def _search_candidates(
+        self,
+        search_term: str,
+        target_code: str = "",
+        target_number: int = 0,
+        target_year: int = 0,
+    ) -> list:
         """返回 API 全部候选结果（最多 limit 条），供 base 层统一打分。"""
         data = self._do_request(search_term)
         if data is None:
@@ -304,20 +374,23 @@ class Njbz365Adapter(BaseAdapter):
             status = status_map.get(bzzt, bzzt)
 
             matched, match_status = match_result(
-                target_code, target_number, target_year, bzmc, bzbh)
+                target_code, target_number, target_year, bzmc, bzbh
+            )
 
-            results.append(QueryResult(
-                standard_number=bzbh,
-                standard_name=bzmc,
-                status=status,
-                match_status=match_status,
-                source_site=self.site_name,
-                hcno=bzid,
-                is_adopted=is_adopted,
-                is_downloadable=not is_adopted,
-                publish_date=item.get("fbrq", ""),
-                implementation_date=item.get("ssrq", ""),
-            ))
+            results.append(
+                QueryResult(
+                    standard_number=bzbh,
+                    standard_name=bzmc,
+                    status=status,
+                    match_status=match_status,
+                    source_site=self.site_name,
+                    hcno=bzid,
+                    is_adopted=is_adopted,
+                    is_downloadable=not is_adopted,
+                    publish_date=item.get("fbrq", ""),
+                    implementation_date=item.get("ssrq", ""),
+                )
+            )
         return results
 
     def _fetch_replaces(self, bzid: str, bzbh: str) -> str:
@@ -326,12 +399,19 @@ class Njbz365Adapter(BaseAdapter):
             return ""
         try:
             url = self.DETAIL_URL.format(bzid)
-            resp = safe_get(self._session, url, self.site_name,
-                           params={"bzbh": bzbh, "bzid": bzid}, timeout=10)
+            resp = safe_get(
+                self._session,
+                url,
+                self.site_name,
+                params={"bzbh": bzbh, "bzid": bzid},
+                timeout=10,
+            )
             if resp is None or resp.status_code != 200:
                 return ""
-            m = re.search(r'被如下标准代替：\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-:]\s*\d{4})',
-                          resp.text)
+            m = re.search(
+                r"被如下标准代替：\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-:]\s*\d{4})",
+                resp.text,
+            )
             if m:
                 return m.group(1).strip()
         except Exception:
@@ -341,12 +421,11 @@ class Njbz365Adapter(BaseAdapter):
     def _post_process_result(self, result: QueryResult) -> None:
         """结果后处理：从详情页提取替代标准号。"""
         if result.hcno:
-            result.replaces = self._fetch_replaces(
-                result.hcno, result.standard_number)
+            result.replaces = self._fetch_replaces(result.hcno, result.standard_number)
 
     def fetch_replaces_detail(self, result) -> str:
         """classifier 调用的统一接口：从查询结果提取替代关系。"""
-        if hasattr(self, '_fetch_replaces') and result.hcno:
+        if hasattr(self, "_fetch_replaces") and result.hcno:
             return self._fetch_replaces(result.hcno, result.standard_number) or ""
         return ""
 
@@ -354,5 +433,6 @@ class Njbz365Adapter(BaseAdapter):
 def _parse_result_number(standard_number: str) -> dict:
     """从标准编号字符串解析代号、顺序号、年份、部分号。委托公用解析器。"""
     from ...core.std_utils import parse_std_number
+
     r = parse_std_number(standard_number)
     return r if r else {"code": "", "number": 0, "part": None, "year": 0}

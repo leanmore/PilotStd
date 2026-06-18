@@ -8,15 +8,16 @@ from typing import List, Tuple
 logger = logging.getLogger(__name__)
 
 
-def build_code_variants(logical_code: str, number: int, year: int,
-                        num_prefix: str = "") -> List[str]:
+def build_code_variants(
+    logical_code: str, number: int, year: int, num_prefix: str = ""
+) -> List[str]:
     """按标准类型生成搜索词变体，补充公共回退中缺失的分类标记。
     所有适配器共享，不绑定特定站点。"""
     variants = []
-    upper = logical_code.upper().replace('/', '')
+    upper = logical_code.upper().replace("/", "")
 
     # ASME + 罗马数字前缀 → 追加 BPVC 分类标记
-    if upper == "ASME" and num_prefix and re.match(r'^[IVXLCDM]+$', num_prefix):
+    if upper == "ASME" and num_prefix and re.match(r"^[IVXLCDM]+$", num_prefix):
         variants.append(f"ASME BPVC {num_prefix}.{number}-{year}")
         variants.append(f"ASME BPVC {num_prefix}.{number}")
         variants.append(f"ASME BPVC {num_prefix}-{year}")
@@ -37,6 +38,7 @@ def _parse_result_number(num_str: str) -> dict:
     """从标准编号字符串中提取 代号、顺序号、部分号、年份。
     委托 core.std_utils.parse_std_number()。"""
     from ..core.std_utils import parse_std_number
+
     r = parse_std_number(num_str)
     return r if r else {}
 
@@ -50,12 +52,14 @@ def _is_code_variant(code1: str, code2: str) -> bool:
     """
     if code1 == code2:
         return False
+
     def _split(c: str):
         c = c.upper()
-        if '/' in c:
-            base, suffix = c.split('/', 1)
+        if "/" in c:
+            base, suffix = c.split("/", 1)
             return base, suffix
-        return c, ''
+        return c, ""
+
     b1, s1 = _split(code1)
     b2, s2 = _split(code2)
     return b1 == b2 and bool(s1) != bool(s2)
@@ -71,9 +75,14 @@ _VARIANT_PAIRS = [
 ]
 
 
-def match_result(local_code: str, local_number: int, local_year: int,
-                 result_name: str = "", result_number_str: str = "",
-                 local_part: int | None = None) -> Tuple[bool, str]:
+def match_result(
+    local_code: str,
+    local_number: int,
+    local_year: int,
+    result_name: str = "",
+    result_number_str: str = "",
+    local_part: int | None = None,
+) -> Tuple[bool, str]:
     """将网站返回结果与本地解析信息比对，优先解析标准编号精确对比。
 
     返回 (是否匹配, 匹配状态):
@@ -94,14 +103,14 @@ def match_result(local_code: str, local_number: int, local_year: int,
     # 优先精确解析标准编号
     parsed = _parse_result_number(result_number_str)
     if parsed:
-        code_match = parsed.get('code', '') == local_code_clean
-        num_exact = parsed.get('number') == local_number
-        result_part = parsed.get('part')
+        code_match = parsed.get("code", "") == local_code_clean
+        num_exact = parsed.get("number") == local_number
+        result_part = parsed.get("part")
         if local_part is not None and result_part is not None:
             part_match = result_part == local_part
         else:
             part_match = True
-        result_year = parsed.get('year')
+        result_year = parsed.get("year")
 
         if not num_exact:
             return False, "mismatch"
@@ -113,7 +122,7 @@ def match_result(local_code: str, local_number: int, local_year: int,
         # 如 GB ↔ GB/T、GA ↔ GA/T 等。仅当顺序号一致时才触发（num_exact 已保证）
         code_variant = False
         if not code_match:
-            result_raw = parsed.get('raw_code', '')
+            result_raw = parsed.get("raw_code", "")
             local_upper = local_code.upper()
             if result_raw and _is_code_variant(local_upper, result_raw):
                 code_variant = True
@@ -132,7 +141,7 @@ def match_result(local_code: str, local_number: int, local_year: int,
     combined = f"{result_name} {result_number_str}".upper()
     code_match = local_code_clean in combined
     num_str = str(local_number)
-    num_match = bool(re.search(rf'(?<!\d){re.escape(num_str)}(?!\d)', combined))
+    num_match = bool(re.search(rf"(?<!\d){re.escape(num_str)}(?!\d)", combined))
     year_str = str(local_year)
     year_match = year_str in combined
 
@@ -171,17 +180,26 @@ MATCH_SCORE_CONFIRMED = 50
 MATCH_SCORE_HIGH_CONFIDENCE = 80
 
 STATUS_MAP = [
-    ("现行", "现行"), ("即将实施", "即将实施"),
-    ("废止", "废止"), ("作废", "废止"),
-    ("已废止", "废止"), ("未实施", "未实施"),
+    ("现行", "现行"),
+    ("即将实施", "即将实施"),
+    ("废止", "废止"),
+    ("作废", "废止"),
+    ("已废止", "废止"),
+    ("未实施", "未实施"),
     ("被代替", "被代替"),
     # 国外标准英文状态映射（njbz365 返回英文，csres 返回中文；两者都覆盖）
-    ("Active", "现行"), ("active", "现行"),
-    ("Withdrawn", "废止"), ("withdrawn", "废止"),
-    ("Superseded", "被代替"), ("superseded", "被代替"),
-    ("Obsolete", "废止"), ("obsolete", "废止"),
-    ("Replaced", "被代替"), ("replaced", "被代替"),
-    ("Cancelled", "废止"), ("cancelled", "废止"),
+    ("Active", "现行"),
+    ("active", "现行"),
+    ("Withdrawn", "废止"),
+    ("withdrawn", "废止"),
+    ("Superseded", "被代替"),
+    ("superseded", "被代替"),
+    ("Obsolete", "废止"),
+    ("obsolete", "废止"),
+    ("Replaced", "被代替"),
+    ("replaced", "被代替"),
+    ("Cancelled", "废止"),
+    ("cancelled", "废止"),
 ]
 
 
@@ -196,6 +214,7 @@ def map_status(text: str) -> str:
 def ts_to_date(ts) -> str:
     """毫秒时间戳 → 日期字符串。"""
     from datetime import datetime
+
     if not ts:
         return ""
     try:

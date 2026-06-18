@@ -13,21 +13,36 @@ from .frozen import is_frozen
 
 # 模块名缩写映射，便于日志筛选和阅读
 _TAG_MAP = {
-    "ui": "UI", "main_window": "UI",
-    "scanner": "SCAN", "parser": "PARSE",
-    "csres": "CSRES", "njbz365": "NJBZ", "std_gov": "STDGOV",
-    "hbba": "HBBA", "iso_gov": "ISOGOV", "mock": "MOCK",
-    "engine": "ENGINE", "rotator": "ROTATOR",
-    "download": "DL", "session": "DL",
-    "queue": "TASK", "task": "TASK",
-    "mover": "ORG", "dir_builder": "ORG", "expire_handler": "ORG",
-    "config": "CONFIG", "db": "DB", "logger": "LOG",
-    "search_strategy": "MATCH", "cache": "CACHE",
+    "ui": "UI",
+    "main_window": "UI",
+    "scanner": "SCAN",
+    "parser": "PARSE",
+    "csres": "CSRES",
+    "njbz365": "NJBZ",
+    "std_gov": "STDGOV",
+    "hbba": "HBBA",
+    "iso_gov": "ISOGOV",
+    "mock": "MOCK",
+    "engine": "ENGINE",
+    "rotator": "ROTATOR",
+    "download": "DL",
+    "session": "DL",
+    "queue": "TASK",
+    "task": "TASK",
+    "mover": "ORG",
+    "dir_builder": "ORG",
+    "expire_handler": "ORG",
+    "config": "CONFIG",
+    "db": "DB",
+    "logger": "LOG",
+    "search_strategy": "MATCH",
+    "cache": "CACHE",
 }
 
 
 class _TagFormatter(logging.Formatter):
     """带模块缩写的格式化器。"""
+
     def format(self, record):
         tag = record.name
         # 取模块名最后一段
@@ -46,7 +61,9 @@ def _get_log_dir() -> str:
             os.makedirs(log_dir, exist_ok=True)
             return log_dir
         except OSError:
-            appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd", "logs")
+            appdata = os.path.join(
+                os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd", "logs"
+            )
             os.makedirs(appdata, exist_ok=True)
             return appdata
     return os.path.join(os.path.dirname(__file__), "..", "..", "logs")
@@ -123,7 +140,12 @@ class LoggerManager:
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         path = os.path.join(self._log_dir, filename)
-        h = RotatingFileHandler(path, maxBytes=self._max_bytes, backupCount=self._backup_count, encoding="utf-8")
+        h = RotatingFileHandler(
+            path,
+            maxBytes=self._max_bytes,
+            backupCount=self._backup_count,
+            encoding="utf-8",
+        )
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h

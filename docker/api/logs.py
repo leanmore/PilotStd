@@ -26,7 +26,10 @@ def get_logs(tail: int = 50, offset: int = 0):
             lines = lines[-10000:]
         if offset > 0 and offset < len(lines):
             lines = lines[offset:]
-        return {"lines": [l.rstrip("\n") for l in lines],
-                "path": _LOG_PATH, "total": total}
+        return {
+            "lines": [line.rstrip("\n") for line in lines],
+            "path": _LOG_PATH,
+            "total": total,
+        }
     except OSError as e:
         return {"lines": [f"[日志读取失败] {e}"], "path": _LOG_PATH}

@@ -45,8 +45,18 @@ class QueryMixin:
             (4, result.status),
             (5, result.replaces if result.replaces != "网站无此分类" else ""),
             (6, result.publish_date if result.publish_date != "网站无此分类" else ""),
-            (7, result.implementation_date if result.implementation_date != "网站无此分类" else ""),
-            (8, result.responsible_dept if result.responsible_dept != "网站无此分类" else ""),
+            (
+                7,
+                result.implementation_date
+                if result.implementation_date != "网站无此分类"
+                else "",
+            ),
+            (
+                8,
+                result.responsible_dept
+                if result.responsible_dept != "网站无此分类"
+                else "",
+            ),
             (9, "采标" if result.is_adopted else ""),
         ]
         for col, text in cells:
@@ -66,7 +76,12 @@ class QueryMixin:
                 status_item.setForeground(Qt.GlobalColor.red)
             elif s == "待确认":
                 status_item.setForeground(Qt.GlobalColor.darkYellow)
-            if not result.is_downloadable and s not in ("废止", "已废止", "作废", "待确认"):
+            if not result.is_downloadable and s not in (
+                "废止",
+                "已废止",
+                "作废",
+                "待确认",
+            ):
                 status_item.setForeground(Qt.GlobalColor.darkYellow)
 
     def _on_query_batch_ready(self, batch: list):
@@ -79,9 +94,8 @@ class QueryMixin:
             return
         if not self._parsed_results:
             choice = self._stage_prereq_dialog(
-                _("title_hint"),
-                _("msg_scan_prereq"),
-                _("task_scan"))
+                _("title_hint"), _("msg_scan_prereq"), _("task_scan")
+            )
             if choice == "run_prereq":
                 self._on_scan()
                 return
@@ -110,7 +124,11 @@ class QueryMixin:
         self._clear_table()
 
         for i, parsed in enumerate(self._parsed_results):
-            self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="查询中...", total=total))
+            self._add_table_row(
+                RowUpdate(
+                    seq=i + 1, parsed=parsed, work_status="查询中...", total=total
+                )
+            )
         QApplication.processEvents()
 
         self.btn_query.setEnabled(False)
@@ -118,10 +136,13 @@ class QueryMixin:
 
         def on_progress(current: int):
             self._check_pause()
-            self.progress_changed.emit(current)  # QueryWorker 已发射百分比(0-100)，无需二次换算
+            self.progress_changed.emit(
+                current
+            )  # QueryWorker 已发射百分比(0-100)，无需二次换算
 
-        self._query_worker = QueryWorker(self._mgr, self._parsed_results,
-                                         pause_event=self._pause_event, parent=self)
+        self._query_worker = QueryWorker(
+            self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self
+        )
         self._query_worker.batch_ready.connect(self._on_query_batch_ready)
         self._query_worker.progress.connect(on_progress)
 
@@ -155,16 +176,24 @@ class QueryMixin:
 
         table = QTableWidget()
         table.setColumnCount(8)
-        table.setHorizontalHeaderLabels([
-            _("query_pending_col_std_number"), _("query_pending_col_source_filename"),
-            _("query_pending_col_web_name"), _("query_pending_col_local_year"),
-            _("query_pending_col_web_number"), _("query_pending_col_status"),
-            _("query_pending_col_confidence"), _("query_pending_col_source_site")])
+        table.setHorizontalHeaderLabels(
+            [
+                _("query_pending_col_std_number"),
+                _("query_pending_col_source_filename"),
+                _("query_pending_col_web_name"),
+                _("query_pending_col_local_year"),
+                _("query_pending_col_web_number"),
+                _("query_pending_col_status"),
+                _("query_pending_col_confidence"),
+                _("query_pending_col_source_site"),
+            ]
+        )
         table.setRowCount(len(pending_items))
         from ...query.search_strategy import CONFIDENCE_SCORE
+
         for row, parsed in enumerate(pending_items):
-            fn = getattr(parsed, 'found_number', '') or ''
-            site = getattr(parsed, 'found_source_site', '') or ''
+            fn = getattr(parsed, "found_number", "") or ""
+            site = getattr(parsed, "found_source_site", "") or ""
             actual_score = CONFIDENCE_SCORE.get(parsed.match_status, -1)
             score = str(actual_score) if actual_score >= 0 else "≤80"
             items = [
@@ -204,19 +233,42 @@ class QueryMixin:
         def on_save():
             # 自动保存到 exe/data 目录，文件名带时间戳，不弹 QFileDialog
             from datetime import datetime
+
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
+            save_dir = (
+                os.path.dirname(sys.executable)
+                if getattr(sys, "frozen", False)
+                else os.getcwd()
+            )
             path = os.path.join(save_dir, f"pending_standards_{ts}.csv")
             try:
                 import csv
-                with open(path, 'w', newline='', encoding='utf-8-sig') as f:
+
+                with open(path, "w", newline="", encoding="utf-8-sig") as f:
                     writer = csv.writer(f)
-                    writer.writerow([_("query_pending_col_std_number"), _("query_pending_col_source_filename"),
-                                     _("query_pending_col_web_name"), _("query_pending_col_local_year"),
-                                     _("query_pending_col_web_number"), _("query_pending_col_status"),
-                                     _("query_pending_col_confidence"), _("query_pending_col_source_site")])
+                    writer.writerow(
+                        [
+                            _("query_pending_col_std_number"),
+                            _("query_pending_col_source_filename"),
+                            _("query_pending_col_web_name"),
+                            _("query_pending_col_local_year"),
+                            _("query_pending_col_web_number"),
+                            _("query_pending_col_status"),
+                            _("query_pending_col_confidence"),
+                            _("query_pending_col_source_site"),
+                        ]
+                    )
                     for row in range(table.rowCount()):
-                        writer.writerow([(table.item(row, c).text() if table.item(row, c) else '') for c in range(8)])
+                        writer.writerow(
+                            [
+                                (
+                                    table.item(row, c).text()
+                                    if table.item(row, c)
+                                    else ""
+                                )
+                                for c in range(8)
+                            ]
+                        )
                 save_status.setText(f"已保存: pending_standards_{ts}.csv")
                 save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
             except OSError as e:
@@ -244,21 +296,40 @@ class QueryMixin:
             self._write_pending_to_db(pending)
         if pending and not self._suppress_dialogs:
             if self._show_pending_dialog(pending):
-                self._parsed_results = [p for p in self._parsed_results if p.next_action != "pending"]
+                self._parsed_results = [
+                    p for p in self._parsed_results if p.next_action != "pending"
+                ]
                 self._resolve_pending_in_db(pending, "discarded")
                 self._clear_table()
                 new_total = len(self._parsed_results)
                 for i, parsed in enumerate(self._parsed_results):
-                    self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="已分类", total=new_total))
+                    self._add_table_row(
+                        RowUpdate(
+                            seq=i + 1,
+                            parsed=parsed,
+                            work_status="已分类",
+                            total=new_total,
+                        )
+                    )
                 total = new_total
-                self.status_changed.emit(_("pending_discarded").format(len(pending), total))
+                self.status_changed.emit(
+                    _("pending_discarded").format(len(pending), total)
+                )
 
         # 分类统计
-        archive_count = sum(1 for p in self._parsed_results if p.next_action == "archive")
-        normalize_count = sum(1 for p in self._parsed_results if p.next_action == "normalize")
+        archive_count = sum(
+            1 for p in self._parsed_results if p.next_action == "archive"
+        )
+        normalize_count = sum(
+            1 for p in self._parsed_results if p.next_action == "normalize"
+        )
         expire_count = sum(1 for p in self._parsed_results if p.next_action == "expire")
-        not_found_count = sum(1 for p in self._parsed_results if p.next_action == "not_found")
-        pending_count = sum(1 for p in self._parsed_results if p.next_action == "pending")
+        not_found_count = sum(
+            1 for p in self._parsed_results if p.next_action == "not_found"
+        )
+        pending_count = sum(
+            1 for p in self._parsed_results if p.next_action == "pending"
+        )
 
         expired_moved = 0
         if expire_count > 0:
@@ -269,10 +340,16 @@ class QueryMixin:
         self._register_task("查询", total, total)
 
         from ...core.notify import NotifyService
+
         NotifyService.get().show(
             _("query_toast_title"),
-            _("query_toast_msg").format(total=total, archive=archive_count,
-                                        pending=pending_count, expire=expire_count))
+            _("query_toast_msg").format(
+                total=total,
+                archive=archive_count,
+                pending=pending_count,
+                expire=expire_count,
+            ),
+        )
 
         if not self._suppress_dialogs:
             lines = [_("query_results_total").format(total)]
@@ -281,8 +358,14 @@ class QueryMixin:
             if normalize_count > 0:
                 lines.append(_("query_summary_normalize").format(count=normalize_count))
             if expire_count > 0:
-                extra = f" ({_('expired_move_info').format(expired_moved)})" if expired_moved else ""
-                lines.append(_("query_summary_expire").format(count=expire_count, extra=extra))
+                extra = (
+                    f" ({_('expired_move_info').format(expired_moved)})"
+                    if expired_moved
+                    else ""
+                )
+                lines.append(
+                    _("query_summary_expire").format(count=expire_count, extra=extra)
+                )
             if pending_count > 0:
                 lines.append(_("query_summary_pending").format(count=pending_count))
             if not_found_count > 0:
@@ -290,46 +373,74 @@ class QueryMixin:
 
             # 逐文件状态详情（每类最多显示15个）
             detail_section = []
-            cat_keys = {"archive": "query_cat_archive", "normalize": "query_cat_normalize",
-                       "expire": "query_cat_expire", "pending": "query_cat_pending",
-                       "not_found": "query_cat_not_found"}
-            for cat_action in ["archive", "normalize", "expire", "pending", "not_found"]:
+            cat_keys = {
+                "archive": "query_cat_archive",
+                "normalize": "query_cat_normalize",
+                "expire": "query_cat_expire",
+                "pending": "query_cat_pending",
+                "not_found": "query_cat_not_found",
+            }
+            for cat_action in [
+                "archive",
+                "normalize",
+                "expire",
+                "pending",
+                "not_found",
+            ]:
                 cat_label = _(cat_keys[cat_action])
-                cat_items = [p for p in self._parsed_results if p.next_action == cat_action]
+                cat_items = [
+                    p for p in self._parsed_results if p.next_action == cat_action
+                ]
                 if cat_items:
                     cat_details = []
                     for p in cat_items[:15]:
-                        fname = os.path.basename(getattr(p, 'source_path', '') or '') or getattr(p, 'raw_filename', '') or p.get_full_number()
+                        fname = (
+                            os.path.basename(getattr(p, "source_path", "") or "")
+                            or getattr(p, "raw_filename", "")
+                            or p.get_full_number()
+                        )
                         cat_details.append(f"    • {fname}")
                     if cat_details:
                         detail_section.append(f"  {cat_label}:")
                         detail_section.extend(cat_details)
                         if len(cat_items) > 15:
-                            detail_section.append(f"    ... 还有 {len(cat_items) - 15} 个")
+                            detail_section.append(
+                                f"    ... 还有 {len(cat_items) - 15} 个"
+                            )
             if detail_section:
                 lines.append("")
                 lines.extend(detail_section)
 
-            download_count = sum(1 for p in self._parsed_results if p.next_action == "download")
+            download_count = sum(
+                1 for p in self._parsed_results if p.next_action == "download"
+            )
             actions = []
             if download_count > 0:
+
                 def do_download():
                     self._switch_to_stage("download")
                     self._on_download()
+
                 actions.append((f"开始下载({download_count}条)", do_download))
             if pending_count > 0:
+
                 def do_pending():
                     self._switch_to_stage("pending")
-                    pending_items = [p for p in self._parsed_results if p.next_action == "pending"]
+                    pending_items = [
+                        p for p in self._parsed_results if p.next_action == "pending"
+                    ]
                     dlg = PendingQueryDialog(self._mgr, pending_items, self)
                     dlg.exec()
+
                 actions.append((f"处理待确认({pending_count}条)", do_pending))
             if download_count == 0 and pending_count == 0:
                 if normalize_count > 0:
                     actions.append((_("next_step_normalize"), self._on_normalize))
                 elif archive_count > 0:
                     actions.append((_("next_step_save"), self._on_save_to_folder))
-            self._show_stage_dialog_multi(_("query_results_title"), "\n".join(lines), actions)
+            self._show_stage_dialog_multi(
+                _("query_results_title"), "\n".join(lines), actions
+            )
 
         self._current_task = None
 
@@ -345,19 +456,20 @@ class QueryMixin:
         if not self._mgr_ready:
             return
         if self._parsed_results:
-            QMessageBox.warning(self, _("title_hint"),
-                _("workspace_not_empty"))
+            QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
             return
 
-        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_pending"), "",
-            _("file_filter_csv"))
+        path, __ = QFileDialog.getOpenFileName(
+            self, _("dialog_import_pending"), "", _("file_filter_csv")
+        )
         if not path:
             return
 
         import csv
+
         parsed_list: list[ParsedStdInfo] = []
         failed_names: list[str] = []
-        with open(path, 'r', encoding='utf-8-sig') as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
             rows = list(reader)
         if not rows:
@@ -376,7 +488,11 @@ class QueryMixin:
                 failed_names.append(std_num)
                 continue
             if parsed:
-                parsed.std_name = row[1].strip() if len(row) > 1 and row[1].strip() else parsed.std_name
+                parsed.std_name = (
+                    row[1].strip()
+                    if len(row) > 1 and row[1].strip()
+                    else parsed.std_name
+                )
                 parsed_list.append(parsed)
             else:
                 failed_names.append(std_num)
@@ -387,7 +503,10 @@ class QueryMixin:
 
         msg = _("msg_csv_parse_result").format(count=len(parsed_list))
         if failed_names:
-            msg += f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n" + "\n".join(failed_names[:5])
+            msg += (
+                f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n"
+                + "\n".join(failed_names[:5])
+            )
             if len(failed_names) > 5:
                 msg += f"\n... 等共 {len(failed_names)} 条"
         msg += "\n\n是否继续？"
@@ -406,14 +525,24 @@ class QueryMixin:
         self._parsed_results = parsed_list
 
         for i, parsed in enumerate(self._parsed_results):
-            self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="已查询", total=len(self._parsed_results)))
+            self._add_table_row(
+                RowUpdate(
+                    seq=i + 1,
+                    parsed=parsed,
+                    work_status="已查询",
+                    total=len(self._parsed_results),
+                )
+            )
 
         total = len(self._parsed_results)
         found = sum(1 for p in self._parsed_results if p.found_name)
         self.status_changed.emit(f"待确认查询完成: {found}/{total}")
 
-        QMessageBox.information(self, _("title_pending_query_complete"),
-            _("msg_pending_query_complete").format(found=found, failed=total - found))
+        QMessageBox.information(
+            self,
+            _("title_pending_query_complete"),
+            _("msg_pending_query_complete").format(found=found, failed=total - found),
+        )
 
     def _write_pending_to_db(self, pending_items: list) -> None:
         """将待确认项写入 pending_lookup 表（委托 manager）。"""
@@ -431,7 +560,7 @@ class QueryMixin:
         if not pending_rows:
             return
         count = len(pending_rows)
-        nums = [r['standard_number'] for r in pending_rows[:5]]
+        nums = [r["standard_number"] for r in pending_rows[:5]]
         msg = _("pending_lookup_msg").format(count) + "\n" + "\n".join(nums)
         if count > 5:
             msg += f"\n... 等共 {count} 条"

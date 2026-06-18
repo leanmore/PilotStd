@@ -4,30 +4,29 @@
 # - 下载 source_site 传递 + can_handle 过宽
 # - _find_adapter 站点名映射
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-from pilotstd.query.models import QueryResult
-from pilotstd.query.adapters.njbz365 import Njbz365Adapter, _parse_result_number as njbz_parse
-from pilotstd.query.adapters.hbba import HbbaAdapter
-from pilotstd.query.adapters.dbba import DbbaAdapter
-from pilotstd.query.adapters.iso_gov import IsoGovAdapter
-from pilotstd.query.search_strategy import match_result, _parse_result_number
 from pilotstd.download.adapters.openstd_download import OpenstdDownloadAdapter
 from pilotstd.download.engine import DownloadEngine
 from pilotstd.download.models import DownloadTask
-from pilotstd.download.session import SessionManager
-
+from pilotstd.query.adapters.dbba import DbbaAdapter
+from pilotstd.query.adapters.hbba import HbbaAdapter
+from pilotstd.query.adapters.iso_gov import IsoGovAdapter
+from pilotstd.query.adapters.njbz365 import Njbz365Adapter
+from pilotstd.query.search_strategy import match_result
 
 # ════════════════════════════════════════════════════════════════
 # 1. match_result 参数语义验证
 # ════════════════════════════════════════════════════════════════
+
 
 class TestMatchResultSemantics(unittest.TestCase):
     """验证 match_result 不会误将 API 返回值自比较。
@@ -71,6 +70,7 @@ class TestMatchResultSemantics(unittest.TestCase):
 # 2. njbz365 _search 自比较修复验证
 # ════════════════════════════════════════════════════════════════
 
+
 class TestNjbz365SearchFix(unittest.TestCase):
     """验证 njbz365._search 用搜索目标参数比对，而非自比较。"""
 
@@ -82,37 +82,44 @@ class TestNjbz365SearchFix(unittest.TestCase):
         return {
             "code": "0",
             "data": {
-                "datalist": [{
-                    "bzbh": "GB/T 19001-2016",
-                    "bzmc": "质量管理体系 要求",
-                    "bzzt": "现行",
-                    "bzid": "12345",
-                    "cybz": "",
-                    "fbrq": "2016-12-30",
-                    "ssrq": "2017-07-01",
-                }]
-            }
+                "datalist": [
+                    {
+                        "bzbh": "GB/T 19001-2016",
+                        "bzmc": "质量管理体系 要求",
+                        "bzzt": "现行",
+                        "bzid": "12345",
+                        "cybz": "",
+                        "fbrq": "2016-12-30",
+                        "ssrq": "2017-07-01",
+                    }
+                ]
+            },
         }
 
     def test_search_with_target_params_detects_exact(self):
         """传入正确的目标参数 → API 返回了匹配的结果 → exact"""
         adapter = self.adapter
-        adapter._do_request = MagicMock(return_value={
-            "code": "0",
-            "data": {
-                "datalist": [{
-                    "bzbh": "API 610-2004",
-                    "bzmc": "Centrifugal Pumps",
-                    "bzzt": "现行",
-                    "bzid": "67890",
-                    "cybz": "",
-                    "fbrq": "2004-01-01",
-                    "ssrq": "2004-06-01",
-                }]
+        adapter._do_request = MagicMock(
+            return_value={
+                "code": "0",
+                "data": {
+                    "datalist": [
+                        {
+                            "bzbh": "API 610-2004",
+                            "bzmc": "Centrifugal Pumps",
+                            "bzzt": "现行",
+                            "bzid": "67890",
+                            "cybz": "",
+                            "fbrq": "2004-01-01",
+                            "ssrq": "2004-06-01",
+                        }
+                    ]
+                },
             }
-        })
-        result = adapter._search("API 610 2004", target_code="API",
-                                 target_number=610, target_year=2004)
+        )
+        result = adapter._search(
+            "API 610 2004", target_code="API", target_number=610, target_year=2004
+        )
         self.assertIsNotNone(result)
         self.assertEqual(result.match_status, "exact")
 
@@ -120,11 +127,13 @@ class TestNjbz365SearchFix(unittest.TestCase):
         """传入 API 搜索目标，但 API 返回了 GB/T → mismatch"""
         adapter = self.adapter
         adapter._do_request = MagicMock(return_value=self._fake_do_request(None))
-        result = adapter._search("API 610 2004", target_code="API",
-                                 target_number=610, target_year=2004)
+        result = adapter._search(
+            "API 610 2004", target_code="API", target_number=610, target_year=2004
+        )
         self.assertIsNotNone(result)
-        self.assertNotEqual(result.match_status, "exact",
-                           "搜索 API 但 API 返回 GB/T → 不应该是 exact")
+        self.assertNotEqual(
+            result.match_status, "exact", "搜索 API 但 API 返回 GB/T → 不应该是 exact"
+        )
 
     def test_search_without_target_params_uses_empty(self):
         """不传目标参数时 match_result 收到空字符串 → 应返回非 exact"""
@@ -149,6 +158,7 @@ class TestNjbz365SearchFix(unittest.TestCase):
 # 3. hbba/dbba/iso_gov _parse_result 自比较修复验证
 # ════════════════════════════════════════════════════════════════
 
+
 class TestHbbaParseResultFix(unittest.TestCase):
     """验证 hbba._parse_result 用 search_term 解析目标参数比对。"""
 
@@ -156,9 +166,15 @@ class TestHbbaParseResultFix(unittest.TestCase):
         self.adapter = HbbaAdapter()
 
     def _make_rec(self, code="SH/T 1610-2011", ch_name="苯乙烯-丁二烯橡胶"):
-        return {"code": code, "chName": ch_name, "status": "现行",
-                "pk": "12345", "issueDate": 1293811200000,
-                "actDate": 1293811200000, "chargeDept": "全国橡胶委"}
+        return {
+            "code": code,
+            "chName": ch_name,
+            "status": "现行",
+            "pk": "12345",
+            "issueDate": 1293811200000,
+            "actDate": 1293811200000,
+            "chargeDept": "全国橡胶委",
+        }
 
     def test_parse_result_with_matching_search_term(self):
         """search_term 与 API 结果匹配 → exact"""
@@ -170,8 +186,11 @@ class TestHbbaParseResultFix(unittest.TestCase):
         """search_term 与 API 结果不匹配 → 不应是 exact"""
         rec = self._make_rec("SH/T 1610-2011")
         result = self.adapter._parse_result(rec, "SH/T 1752-2006")
-        self.assertNotEqual(result.match_status, "exact",
-                           "搜索 SH/T 1752 但 API 返回 SH/T 1610 → 不应该是 exact")
+        self.assertNotEqual(
+            result.match_status,
+            "exact",
+            "搜索 SH/T 1752 但 API 返回 SH/T 1610 → 不应该是 exact",
+        )
 
     def test_parse_result_without_search_term(self):
         """无 search_term 时目标参数为空 → 不应是 exact（除非同为空的巧合）"""
@@ -188,9 +207,15 @@ class TestDbbaParseResultFix(unittest.TestCase):
         self.adapter = DbbaAdapter()
 
     def _make_rec(self, code="DB35 1234-2020", ch_name="福建省地方标准"):
-        return {"code": code, "chName": ch_name, "status": "现行",
-                "pk": "12345", "issueDate": 1577836800000,
-                "actDate": 1577836800000, "chargeDept": ""}
+        return {
+            "code": code,
+            "chName": ch_name,
+            "status": "现行",
+            "pk": "12345",
+            "issueDate": 1577836800000,
+            "actDate": 1577836800000,
+            "chargeDept": "",
+        }
 
     def test_parse_result_exact_when_matching(self):
         rec = self._make_rec()
@@ -210,10 +235,16 @@ class TestIsoGovParseResultFix(unittest.TestCase):
         self.adapter = IsoGovAdapter()
 
     def _make_row(self, std_no="ISO 9001:2015", en_name="Quality management systems"):
-        return {"STANDARD_NO": std_no, "ENGLISH_NAME": en_name,
-                "STATE": "现行", "CIRCULATION_DATE": "2015-09-15",
-                "STANDARD_STATUS": "ACTIVE", "YEAR_DATE": 2015,
-                "PUBLISH_UNIT": "ISO", "id": "iso_9001"}
+        return {
+            "STANDARD_NO": std_no,
+            "ENGLISH_NAME": en_name,
+            "STATE": "现行",
+            "CIRCULATION_DATE": "2015-09-15",
+            "STANDARD_STATUS": "ACTIVE",
+            "YEAR_DATE": 2015,
+            "PUBLISH_UNIT": "ISO",
+            "id": "iso_9001",
+        }
 
     def test_parse_result_exact_when_matching(self):
         row = self._make_row()
@@ -235,6 +266,7 @@ class TestIsoGovParseResultFix(unittest.TestCase):
 # 4. 下载 source_site 传递 + can_handle 修复验证
 # ════════════════════════════════════════════════════════════════
 
+
 class TestDownloadSourceSitePropagation(unittest.TestCase):
     """验证 DownloadTask.source_site 正确传递 + can_handle 不会误匹配。"""
 
@@ -242,14 +274,16 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         """修复后 can_handle 不再对空 source_site 返回 True。"""
         adapter = OpenstdDownloadAdapter()
         task = DownloadTask(standard_number="GB/T 1-2020", source_site="")
-        self.assertFalse(adapter.can_handle(task),
-                        "空 source_site 不应被 openstd 适配器接受")
+        self.assertFalse(
+            adapter.can_handle(task), "空 source_site 不应被 openstd 适配器接受"
+        )
 
     def test_can_handle_accepts_openstd_download(self):
         """明确标记为 openstd_download 的任务应被接受。"""
         adapter = OpenstdDownloadAdapter()
-        task = DownloadTask(standard_number="GB/T 1-2020",
-                            source_site="openstd_download")
+        task = DownloadTask(
+            standard_number="GB/T 1-2020", source_site="openstd_download"
+        )
         self.assertTrue(adapter.can_handle(task))
 
     def test_can_handle_rejects_foreign_site(self):
@@ -257,16 +291,15 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         adapter = OpenstdDownloadAdapter()
         for site in ("njbz365", "hbba", "dbba", "iso_gov", "csres"):
             task = DownloadTask(standard_number="API 610-2004", source_site=site)
-            self.assertFalse(adapter.can_handle(task),
-                            f"site={site} 不应被 openstd 适配器接受")
+            self.assertFalse(
+                adapter.can_handle(task), f"site={site} 不应被 openstd 适配器接受"
+            )
 
     def test_find_adapter_maps_std_gov_to_openstd(self):
         """_QUERY_TO_DOWNLOAD_SITE 映射：std_gov → openstd_download"""
         adapter = OpenstdDownloadAdapter()
-        engine = DownloadEngine(adapters=[adapter],
-                                session_manager=MagicMock())
-        task = DownloadTask(standard_number="GB/T 19001-2016",
-                            source_site="std_gov")
+        engine = DownloadEngine(adapters=[adapter], session_manager=MagicMock())
+        task = DownloadTask(standard_number="GB/T 19001-2016", source_site="std_gov")
         found = engine._find_adapter(task)
         self.assertIsNotNone(found, "std_gov 应通过映射找到 openstd_download 适配器")
         self.assertEqual(found.site_name, "openstd_download")
@@ -274,18 +307,16 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
     def test_find_adapter_returns_none_for_foreign_standard(self):
         """国外标准（njbz365 等查询结果）→ 无下载适配器 → 返回 None"""
         adapter = OpenstdDownloadAdapter()
-        engine = DownloadEngine(adapters=[adapter],
-                                session_manager=MagicMock())
-        task = DownloadTask(standard_number="API 610-2004",
-                            source_site="njbz365")
+        engine = DownloadEngine(adapters=[adapter], session_manager=MagicMock())
+        task = DownloadTask(standard_number="API 610-2004", source_site="njbz365")
         found = engine._find_adapter(task)
-        self.assertIsNone(found,
-                         "njbz365 来源的国外标准不应有下载适配器，应返回清晰错误而非缺hcno")
+        self.assertIsNone(
+            found, "njbz365 来源的国外标准不应有下载适配器，应返回清晰错误而非缺hcno"
+        )
 
     def test_download_task_accepts_source_site_param(self):
         """DownloadTask 可以接受 source_site 参数。"""
-        task = DownloadTask(standard_number="GB/T 1-2020",
-                            source_site="std_gov")
+        task = DownloadTask(standard_number="GB/T 1-2020", source_site="std_gov")
         self.assertEqual(task.source_site, "std_gov")
 
 
@@ -293,19 +324,24 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
 # 5. ParsedStdInfo found_source_site 字段
 # ════════════════════════════════════════════════════════════════
 
+
 class TestFoundSourceSiteField(unittest.TestCase):
     """验证 ParsedStdInfo 新增的 found_source_site 字段。"""
 
     def test_field_exists_with_default(self):
         from pilotstd.models import ParsedStdInfo
-        p = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T",
-                          number=1, year=2020)
+
+        p = ParsedStdInfo(
+            raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020
+        )
         self.assertEqual(p.found_source_site, "")
 
     def test_field_can_be_set(self):
         from pilotstd.models import ParsedStdInfo
-        p = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T",
-                          number=1, year=2020)
+
+        p = ParsedStdInfo(
+            raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020
+        )
         p.found_source_site = "std_gov"
         self.assertEqual(p.found_source_site, "std_gov")
 

@@ -19,6 +19,7 @@ class PersistenceMixin:
         geo_b64 = self._config.get("appearance.window_geometry", "")
         if geo_b64:
             from PyQt6.QtCore import QByteArray
+
             ok = self.restoreGeometry(QByteArray.fromBase64(geo_b64.encode()))
             if ok:
                 logger.debug("已恢复窗口位置和大小")
@@ -31,18 +32,18 @@ class PersistenceMixin:
     # ── 分栏尺寸 ─────────────────────────────────────────
 
     def _save_splitter_sizes(self):
-        if hasattr(self, '_main_splitter'):
+        if hasattr(self, "_main_splitter"):
             self._config.set("appearance.main_splitter", self._main_splitter.sizes())
-        if hasattr(self, '_right_splitter'):
+        if hasattr(self, "_right_splitter"):
             self._config.set("appearance.right_splitter", self._right_splitter.sizes())
         self._config.save()
 
     def _restore_splitter_sizes(self):
         sizes = self._config.get("appearance.main_splitter")
-        if sizes and hasattr(self, '_main_splitter'):
+        if sizes and hasattr(self, "_main_splitter"):
             self._main_splitter.setSizes(sizes)
         sizes = self._config.get("appearance.right_splitter")
-        if sizes and hasattr(self, '_right_splitter'):
+        if sizes and hasattr(self, "_right_splitter"):
             self._right_splitter.setSizes(sizes)
 
     # ── 排序状态 ─────────────────────────────────────────

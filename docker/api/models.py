@@ -4,12 +4,14 @@ from pydantic import BaseModel
 
 class HealthResponse(BaseModel):
     """健康检查响应"""
+
     status: str
     version: str
 
 
 class FileItem(BaseModel):
     """扫描文件条目"""
+
     name: str
     full_path: str
     size: int
@@ -18,6 +20,7 @@ class FileItem(BaseModel):
 
 class ScanResponse(BaseModel):
     """扫描结果响应"""
+
     total: int
     pdf_count: int
     word_count: int
@@ -28,20 +31,23 @@ class ScanResponse(BaseModel):
 
 class DirItem(BaseModel):
     """文件/目录条目"""
+
     name: str
-    type: str          # "dir" 或 "file"
+    type: str  # "dir" 或 "file"
     path: str
     size: int
 
 
 class ListFilesResponse(BaseModel):
     """文件列表响应"""
+
     path: str
     items: list[DirItem]
 
 
 class DownloadResult(BaseModel):
     """单个下载任务结果"""
+
     standard_number: str
     status: str
     saved_path: str = ""
@@ -49,6 +55,7 @@ class DownloadResult(BaseModel):
 
 class DownloadStats(BaseModel):
     """批量下载统计"""
+
     total: int
     success: int
     failed: int
@@ -58,10 +65,12 @@ class DownloadStats(BaseModel):
 
 class DownloadResponse(BaseModel):
     """批量下载响应"""
+
     stats: DownloadStats
     results: list[DownloadResult]
 
 
 class ErrorResponse(BaseModel):
     """通用错误响应"""
+
     error: str

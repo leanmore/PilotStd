@@ -1,26 +1,28 @@
 # tests/test_scanner.py
 
-import sys
 import os
+import sys
+
 # 将项目根目录加入模块搜索路径
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
+import tempfile
+import unittest
+
+from pilotstd.scan.parser import StandardParser
 
 # 直接从拆分后的模块导入（不依赖顶层包的 __init__.py）
 from pilotstd.scan.scanner import FileScanner
-from pilotstd.scan.parser import StandardParser
 
 
 class MockConfig:
     def get(self, key, default=None):
         config_map = {
             "scan.skip_folders": ["过期作废", "__pycache__"],
-            "scan.extensions": [".pdf", ".doc", ".txt", ".docx"]
+            "scan.extensions": [".pdf", ".doc", ".txt", ".docx"],
         }
         return config_map.get(key, default)
 
@@ -36,7 +38,7 @@ class TestFileScanner(unittest.TestCase):
 
     def test_scan_creates_fileinfo(self):
         test_file = os.path.join(self.test_dir, "test.txt")
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             f.write("dummy")
         result = self.scanner.scan([self.test_dir])
         self.assertEqual(result.stats.total, 1)
@@ -45,10 +47,10 @@ class TestFileScanner(unittest.TestCase):
     def test_scan_skips_folders(self):
         skip_dir = os.path.join(self.test_dir, "过期作废")
         os.makedirs(skip_dir)
-        with open(os.path.join(skip_dir, "skip.pdf"), 'w') as f:
+        with open(os.path.join(skip_dir, "skip.pdf"), "w") as f:
             f.write("skip")
         normal_file = os.path.join(self.test_dir, "normal.pdf")
-        with open(normal_file, 'w') as f:
+        with open(normal_file, "w") as f:
             f.write("normal")
         result = self.scanner.scan([self.test_dir])
         warning_found = any("过期作废" in w for w in result.warnings)
@@ -59,16 +61,28 @@ class TestFileScanner(unittest.TestCase):
 
 class TestStandardParser(unittest.TestCase):
     def setUp(self):
-        self.parser = StandardParser(code_mapping={
-            "GB/T": "GB/T", "GB": "GB", "GBT": "GB/T",
-            "BS EN": "BS EN", "BS EN ISO": "BS EN ISO",
-            "DIN EN": "DIN EN", "ISO": "ISO",
-            "ASME": "ASME",
-            "ANSI": "ANSI", "ANSI/UL": "ANSI/UL",
-            "API": "API", "ASTM": "ASTM", "MIL": "MIL",
-            "UL": "UL", "JIS": "JIS", "GOST": "GOST",
-            "CSA": "CSA", "NF": "NF",
-        })
+        self.parser = StandardParser(
+            code_mapping={
+                "GB/T": "GB/T",
+                "GB": "GB",
+                "GBT": "GB/T",
+                "BS EN": "BS EN",
+                "BS EN ISO": "BS EN ISO",
+                "DIN EN": "DIN EN",
+                "ISO": "ISO",
+                "ASME": "ASME",
+                "ANSI": "ANSI",
+                "ANSI/UL": "ANSI/UL",
+                "API": "API",
+                "ASTM": "ASTM",
+                "MIL": "MIL",
+                "UL": "UL",
+                "JIS": "JIS",
+                "GOST": "GOST",
+                "CSA": "CSA",
+                "NF": "NF",
+            }
+        )
 
     def test_parse_modern_year(self):
         info = self.parser.parse("GB/T 19001-2020 质量管理体系.pdf")
@@ -211,8 +225,8 @@ class TestStandardParser(unittest.TestCase):
         info = self.parser.parse("ASME BPVC.IX-2021.pdf")
         self.assertIsNotNone(info)
         self.assertEqual(info.logical_code, "ASME")  # BPVC是分类标签不改变代号
-        self.assertEqual(info.num_prefix, "IX")    # 保留罗马数字
-        self.assertEqual(info.number, 9)           # 阿拉伯值用于排序
+        self.assertEqual(info.num_prefix, "IX")  # 保留罗马数字
+        self.assertEqual(info.number, 9)  # 阿拉伯值用于排序
         self.assertEqual(info.year, 2021)
 
     def test_parse_asme_bpvc_viii1(self):
@@ -247,9 +261,7 @@ class TestStandardParser(unittest.TestCase):
 
     def test_bpvc_lang_stripped(self):
         """Bug修复：BPVC路径补调_clean_std_name，（中）被剥离并识别为中文版"""
-        info = self.parser.parse(
-            "ASME VIII.1-2021 压力容器建造规则（中）.pdf"
-        )
+        info = self.parser.parse("ASME VIII.1-2021 压力容器建造规则（中）.pdf")
         self.assertIsNotNone(info)
         self.assertEqual(info.std_name, "压力容器建造规则")
         self.assertEqual(info.language, "中文版")
@@ -368,7 +380,6 @@ class TestStandardParser(unittest.TestCase):
         self.assertEqual(info.number, 50)
         self.assertEqual(info.year, 2004)
 
-
     def test_parse_download_site_format(self):
         """下载站文件名格式：{number}-{year}-{code}-{suffix}（代号小写）"""
         # 小写 gbt
@@ -416,7 +427,8 @@ class TestStandardParser(unittest.TestCase):
     def test_normalize_garbage_suffix_stripped(self):
         """垃圾推广后缀被截断"""
         info = self.parser.parse(
-            "SH/T 3548-2024 石油化工涂料防腐蚀-海川化工论坛 有温度的化工交流平台.pdf")
+            "SH/T 3548-2024 石油化工涂料防腐蚀-海川化工论坛 有温度的化工交流平台.pdf"
+        )
         self.assertIsNotNone(info)
         self.assertEqual(info.logical_code, "SH/T")
         self.assertEqual(info.number, 3548)
@@ -448,9 +460,14 @@ class TestBoundaryConditions(unittest.TestCase):
     def setUp(self):
         self.config = MockConfig()
         self.scanner = FileScanner(self.config)
-        self.parser = StandardParser(code_mapping={
-            "GB/T": "GB/T", "GB": "GB", "ISO": "ISO", "BS": "BS",
-        })
+        self.parser = StandardParser(
+            code_mapping={
+                "GB/T": "GB/T",
+                "GB": "GB",
+                "ISO": "ISO",
+                "BS": "BS",
+            }
+        )
         self.test_dir = tempfile.mkdtemp(prefix="pilotstd_test_")
 
     def tearDown(self):
@@ -482,7 +499,7 @@ class TestBoundaryConditions(unittest.TestCase):
     def test_empty_file(self):
         """0 字节文件扫描不崩溃，哈希计算正常。"""
         fpath = os.path.join(self.test_dir, "GB 345-2022 空文件.pdf")
-        with open(fpath, "w") as f:
+        with open(fpath, "w"):
             pass  # 空文件
         result = self.scanner.scan([self.test_dir])
         self.assertIsNotNone(result)
@@ -526,6 +543,7 @@ class TestScanDedup(unittest.TestCase):
     def test_dedup_by_standard_number(self):
         """相同标准号多个文件时只保留第一条"""
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmp:
             os.makedirs(os.path.join(tmp, "GB"))
             # 用 GBT 避免文件名含 /（Windows 路径分隔符），parser 会将 GBT 归一化为 GB/T
@@ -536,6 +554,7 @@ class TestScanDedup(unittest.TestCase):
                 f2.write("content2")
 
             from pilotstd.manager.facade import StandardManager
+
             mgr = StandardManager()
             parsed = mgr.scan_directory(tmp)
             nums = [p.get_full_number() for p in parsed]
@@ -559,5 +578,5 @@ class TestScanDedup(unittest.TestCase):
                 shutil.rmtree(tmp, ignore_errors=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

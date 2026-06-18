@@ -70,17 +70,21 @@ class TaskQueue:
         return self._set_status(task_id, TaskStatus.CANCELLED)
 
     def get(self, task_id: str) -> Optional[TaskInfo]:
-        row = self._db.fetchone(f"SELECT * FROM {TASK_TABLE} WHERE task_id=?", (task_id,))
+        row = self._db.fetchone(
+            f"SELECT * FROM {TASK_TABLE} WHERE task_id=?", (task_id,)
+        )
         return self._row_to_task(row) if row else None
 
     def list_all(self, limit: int = 50) -> List[TaskInfo]:
         rows = self._db.fetchall(
-            f"SELECT * FROM {TASK_TABLE} ORDER BY updated_at DESC LIMIT ?", (limit,))
+            f"SELECT * FROM {TASK_TABLE} ORDER BY updated_at DESC LIMIT ?", (limit,)
+        )
         return [self._row_to_task(r) for r in rows]
 
     def get_pending(self) -> List[TaskInfo]:
         rows = self._db.fetchall(
-            f"SELECT * FROM {TASK_TABLE} WHERE status IN ('pending','paused') ORDER BY created_at")
+            f"SELECT * FROM {TASK_TABLE} WHERE status IN ('pending','paused') ORDER BY created_at"
+        )
         return [self._row_to_task(r) for r in rows]
 
     def update_progress(self, task: TaskInfo, completed: int, failed: int = 0) -> None:
@@ -146,7 +150,9 @@ class TaskQueue:
             return True
 
     def _persist(self, task: TaskInfo) -> None:
-        existing = self._db.fetchone(f"SELECT id FROM {TASK_TABLE} WHERE task_id=?", (task.task_id,))
+        existing = self._db.fetchone(
+            f"SELECT id FROM {TASK_TABLE} WHERE task_id=?", (task.task_id,)
+        )
         data = (
             task.task_type.value,
             task.status.value,
@@ -164,13 +170,15 @@ class TaskQueue:
                 f"UPDATE {TASK_TABLE} SET task_type=?, status=?, total_items=?, "
                 "completed_items=?, failed_items=?, created_at=?, updated_at=?, "
                 "result_json=?, error_log=? WHERE task_id=?",
-                data)
+                data,
+            )
         else:
             self._db.execute(
                 f"INSERT INTO {TASK_TABLE} (task_type, status, total_items, "
                 "completed_items, failed_items, created_at, updated_at, "
                 "result_json, error_log, task_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                data)
+                data,
+            )
 
     @staticmethod
     def _row_to_task(row: dict) -> TaskInfo:
@@ -204,10 +212,13 @@ class TaskQueue:
             )
         """)
         self._db.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_{TASK_TABLE}_status ON {TASK_TABLE}(status)")
+            f"CREATE INDEX IF NOT EXISTS idx_{TASK_TABLE}_status ON {TASK_TABLE}(status)"
+        )
         self._db.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{TASK_TABLE}_updated "
-            f"ON {TASK_TABLE}(updated_at)")
+            f"ON {TASK_TABLE}(updated_at)"
+        )
         self._db.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{TASK_TABLE}_status_created "
-            f"ON {TASK_TABLE}(status, created_at)")
+            f"ON {TASK_TABLE}(status, created_at)"
+        )

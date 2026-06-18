@@ -3,6 +3,8 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
+from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -14,15 +16,15 @@ logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
 
 # 调度器互斥锁：多 worker 部署时，只有一个能抢到锁并启动调度器
-_HEARTBEAT_INTERVAL = 30   # 心跳间隔（秒）
-_STALE_TIMEOUT = 90        # 心跳超时（秒），超过则认为前 worker 已死
+_HEARTBEAT_INTERVAL = 30  # 心跳间隔（秒）
+_STALE_TIMEOUT = 90  # 心跳超时（秒），超过则认为前 worker 已死
 _heartbeat_stop = threading.Event()
 
 # 已注册的任务执行函数表：job_id -> callable
-_job_funcs: dict[str, callable] = {}
+_job_funcs: dict[str, Callable] = {}
 
 # 进程级 DB 连接缓存，避免四个函数各自 new Database
-_scheduler_db: Database = None
+_scheduler_db: Optional[Database] = None
 
 
 def _get_db() -> Database:
@@ -33,13 +35,15 @@ def _get_db() -> Database:
     return _scheduler_db
 
 
-def register_job_func(job_id: str, func: callable):
+def register_job_func(job_id: str, func: Callable):
     """注册定时任务执行函数。app.py 启动时调用，将业务函数与 job_id 绑定。
     公告类任务包装为独立线程执行，不占用调度器线程池。"""
     if "announce" in job_id:
+
         def _wrapped():
             t = threading.Thread(target=func, daemon=True, name=f"sched-{job_id}")
             t.start()
+
         _job_funcs[job_id] = _wrapped
     else:
         _job_funcs[job_id] = func
@@ -49,8 +53,9 @@ def _add_cron_job(job_id: str, cron_expr: str):
     """向调度器添加一个 cron 定时任务。若已存在则替换。"""
     func = _job_funcs.get(job_id)
     if func:
-        scheduler.add_job(func, CronTrigger.from_crontab(cron_expr),
-                          id=job_id, replace_existing=True)
+        scheduler.add_job(
+            func, CronTrigger.from_crontab(cron_expr), id=job_id, replace_existing=True
+        )
 
 
 def _backup_database():
@@ -63,8 +68,8 @@ def _backup_database():
     result = db.backup(backup_path)
     if result:
         all_backups = sorted(
-            [f for f in os.listdir(backup_dir) if f.endswith(".bak")],
-            reverse=True)
+            [f for f in os.listdir(backup_dir) if f.endswith(".bak")], reverse=True
+        )
         for old in all_backups[4:]:
             try:
                 os.remove(os.path.join(backup_dir, old))
@@ -94,20 +99,25 @@ def _acquire_scheduler_lock() -> bool:
         db.execute(
             "INSERT INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
             "VALUES (1, ?, ?, ?)",
-            (pid, now_str, now_str))
+            (pid, now_str, now_str),
+        )
         logger.info("调度器互斥锁已获取 (PID=%d)", pid)
         return True
     except Exception:
         row = db.fetchone("SELECT pid, heartbeat_at FROM scheduler_lock WHERE id = 1")
         if row:
             try:
-                heartbeat = time.mktime(time.strptime(
-                    row["heartbeat_at"], "%Y-%m-%d %H:%M:%S"))
+                heartbeat = time.mktime(
+                    time.strptime(row["heartbeat_at"], "%Y-%m-%d %H:%M:%S")
+                )
                 if time.time() - heartbeat > _STALE_TIMEOUT:
                     db.execute(
                         "UPDATE scheduler_lock SET pid=?, started_at=?, heartbeat_at=? WHERE id=1",
-                        (pid, now_str, now_str))
-                    logger.warning("调度器互斥锁已接管（前 PID=%d 心跳超时）", row["pid"])
+                        (pid, now_str, now_str),
+                    )
+                    logger.warning(
+                        "调度器互斥锁已接管（前 PID=%d 心跳超时）", row["pid"]
+                    )
                     return True
                 else:
                     logger.info("调度器已在 PID=%d 运行，本 worker 跳过", row["pid"])
@@ -123,7 +133,8 @@ def _heartbeat_loop() -> None:
         try:
             db.execute(
                 "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
-                (time.strftime("%Y-%m-%d %H:%M:%S"),))
+                (time.strftime("%Y-%m-%d %H:%M:%S"),),
+            )
         except Exception:
             pass
 
@@ -146,7 +157,9 @@ def start_scheduler():
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
     scheduler.start()
     _heartbeat_stop.clear()
-    threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
+    threading.Thread(
+        target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat"
+    ).start()
     logger.info("APScheduler started")
 
 

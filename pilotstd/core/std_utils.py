@@ -39,7 +39,7 @@ def classify_std_code(logical_code: str) -> str:
             return "foreign"
 
     # 地方标准（DB + 数字）
-    if re.match(r'^DB\d{2,4}(?:/T)?$', code):
+    if re.match(r"^DB\d{2,4}(?:/T)?$", code):
         return "db"
 
     # 企业标准
@@ -47,7 +47,7 @@ def classify_std_code(logical_code: str) -> str:
         return "enterprise"
 
     # 团体标准（T/xxx 或其无斜杠形式）
-    if code.startswith("T/") or re.match(r'^T[A-Z]{2,}', code):
+    if code.startswith("T/") or re.match(r"^T[A-Z]{2,}", code):
         return "group"
 
     # 行业标准：≤4 字符且在 code_mapping 中（含去斜杠形式）
@@ -81,12 +81,15 @@ def parse_std_number(text: str) -> dict | None:
 
     # 地方标准: DB + 2~4位行政区划代码 + 可选 /T /Z
     m = re.match(
-        r'(DB\d{2,4}(?:/[A-Z])?)\s*(\d+)(?:\.(\d+))?\s*?[—\-:\s]\s*(\d{4})',
-        text, re.IGNORECASE)
+        r"(DB\d{2,4}(?:/[A-Z])?)\s*(\d+)(?:\.(\d+))?\s*?[—\-:\s]\s*(\d{4})",
+        text,
+        re.IGNORECASE,
+    )
     if m:
         raw = m.group(1).upper()
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
             "number": int(m.group(2)),
             "part": int(m.group(3)) if m.group(3) else None,
             "year": int(m.group(4)),
@@ -94,32 +97,42 @@ def parse_std_number(text: str) -> dict | None:
 
     # 通用格式: 纯字母代号 [+空格+字母前缀] + 序号 + 可选 .p数字/.P数字/.-数字 + 分隔符 + 4位年份
     m = re.match(
-        r'([A-Z]+(?:/[A-Z]+)?)\s*(?:([A-Z]+)\s+)?(\d+)(?:\.(\d+))?(?:[Pp](\d+))?\s*[—\-:\s]\s*(\d{4})',
-        text, re.IGNORECASE)
+        r"([A-Z]+(?:/[A-Z]+)?)\s*(?:([A-Z]+)\s+)?(\d+)(?:\.(\d+))?(?:[Pp](\d+))?\s*[—\-:\s]\s*(\d{4})",
+        text,
+        re.IGNORECASE,
+    )
     if m:
         raw = m.group(1).upper()
         prefix = m.group(2)
         number = int(m.group(3))
-        part = (int(m.group(4)) if m.group(4) else
-                (int(m.group(5)) if m.group(5) else None))
+        part = (
+            int(m.group(4)) if m.group(4) else (int(m.group(5)) if m.group(5) else None)
+        )
         year = int(m.group(6))
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
-            "number": number, "part": part, "year": year,
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
+            "number": number,
+            "part": part,
+            "year": year,
             "num_prefix": prefix if prefix else "",
         }
 
     # 罗马数字编号: 代号 + 罗马数字（≥2字符，排除单字母前缀误判）+ 可选 .数字 + 年份
     m = re.match(
-        r'([A-Z]+)\s+([IVXLCDM]{2,})(?:\.(\d+))?\s*[—\-:\s]\s*(\d{4})',
-        text, re.IGNORECASE)
+        r"([A-Z]+)\s+([IVXLCDM]{2,})(?:\.(\d+))?\s*[—\-:\s]\s*(\d{4})",
+        text,
+        re.IGNORECASE,
+    )
     if m:
         from ..scan.parser import _ROMAN_MAP
+
         raw = m.group(1).upper()
         roman_str = m.group(2).upper()
         number = _ROMAN_MAP.get(roman_str, 0)
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
             "number": number,
             "part": int(m.group(3)) if m.group(3) else None,
             "year": int(m.group(4)),
@@ -127,38 +140,40 @@ def parse_std_number(text: str) -> dict | None:
 
     # 点号前缀: "ANSI C.81-2003"（CODE PREFIX.NUMBER-YEAR）
     m = re.match(
-        r'([A-Z]+)\s+([A-Z]+)\.(\d+)\s*[—\-:\s]\s*(\d{4})',
-        text, re.IGNORECASE)
+        r"([A-Z]+)\s+([A-Z]+)\.(\d+)\s*[—\-:\s]\s*(\d{4})", text, re.IGNORECASE
+    )
     if m:
         raw = m.group(1).upper()
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
             "number": int(m.group(3)),
             "year": int(m.group(4)),
             "num_prefix": m.group(2),
         }
 
     # 多连字符格式: 代号 + 首段数字 + ... + 最后的4位年份
-    m = re.match(
-        r'([A-Z]+)\s*(\d+).*?[—\-:\s](\d{4})$',
-        text, re.IGNORECASE)
+    m = re.match(r"([A-Z]+)\s*(\d+).*?[—\-:\s](\d{4})$", text, re.IGNORECASE)
     if m:
         raw = m.group(1).upper().replace(" ", "")
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
             "number": int(m.group(2)),
             "part": None,
             "year": int(m.group(3)),
         }
 
     # 兜底: 代号 + 数字（无年份）
-    m = re.match(r'([A-Z]+(?:/[A-Z]+)?)\s*(\d+)', text, re.IGNORECASE)
+    m = re.match(r"([A-Z]+(?:/[A-Z]+)?)\s*(\d+)", text, re.IGNORECASE)
     if m:
         raw = m.group(1).upper()
         return {
-            "raw_code": raw, "code": raw.replace("/", ""),
+            "raw_code": raw,
+            "code": raw.replace("/", ""),
             "number": int(m.group(2)),
-            "part": None, "year": 0,
+            "part": None,
+            "year": 0,
         }
 
     return None

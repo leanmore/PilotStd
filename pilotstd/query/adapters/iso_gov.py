@@ -27,16 +27,18 @@ class IsoGovAdapter(BaseAdapter):
 
     def __init__(self, session: requests.Session = None):
         self._session = session or requests.Session()
-        self._session.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/125.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-            "X-Requested-With": "XMLHttpRequest",
-        })
+        self._session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/125.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Accept-Language": "zh-CN,zh;q=0.9",
+                "X-Requested-With": "XMLHttpRequest",
+            }
+        )
 
     @property
     def site_name(self) -> str:
@@ -55,8 +57,13 @@ class IsoGovAdapter(BaseAdapter):
 
         clean_term = re.sub(r"[-—:]\s*\d{4}", "", search_term).strip()
 
-        safe_get(self._session, self.SEARCH_PAGE, self.site_name,
-                params={"key": clean_term}, timeout=10)
+        safe_get(
+            self._session,
+            self.SEARCH_PAGE,
+            self.site_name,
+            params={"key": clean_term},
+            timeout=10,
+        )
 
         self._session.headers["Referer"] = self.SEARCH_PAGE
 
@@ -65,8 +72,9 @@ class IsoGovAdapter(BaseAdapter):
             "pageNumber": 1,
             "pageSize": 10,
         }
-        resp = safe_get(self._session, self.SEARCH_URL, self.site_name,
-                       params=params, timeout=15)
+        resp = safe_get(
+            self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15
+        )
         if resp is None or resp.status_code != 200:
             return []
 
@@ -100,8 +108,12 @@ class IsoGovAdapter(BaseAdapter):
         # 用搜索目标（search_term）与 API 返回结果（std_no）比对，避免自比较
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
-            target.get("code", ""), target.get("number", 0),
-            target.get("year", 0), en_name, std_no)
+            target.get("code", ""),
+            target.get("number", 0),
+            target.get("year", 0),
+            en_name,
+            std_no,
+        )
 
         return QueryResult(
             standard_number=std_no,

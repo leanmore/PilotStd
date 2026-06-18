@@ -8,6 +8,13 @@ from .mock import MockQueryAdapter
 from .njbz365 import Njbz365Adapter
 from .std_gov import StdGovAdapter
 
-__all__ = ["BaseAdapter", "CsresAdapter", "DbbaAdapter",
-           "StdGovAdapter", "Njbz365Adapter", "HbbaAdapter", "IsoGovAdapter",
-           "MockQueryAdapter"]
+__all__ = [
+    "BaseAdapter",
+    "CsresAdapter",
+    "DbbaAdapter",
+    "StdGovAdapter",
+    "Njbz365Adapter",
+    "HbbaAdapter",
+    "IsoGovAdapter",
+    "MockQueryAdapter",
+]

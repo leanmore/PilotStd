@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMenu,
     QMessageBox,
+    QTableWidget,
     QTableWidgetItem,
 )
 
@@ -65,8 +66,12 @@ class TableHelperMixin:
         chosen = menu.exec(self.work_table.viewport().mapToGlobal(pos))
 
         if chosen == add_file:
-            path, _filter = QFileDialog.getOpenFileName(self, _("dialog_select_file"), "",
-                                                        "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)")
+            path, _filter = QFileDialog.getOpenFileName(
+                self,
+                _("dialog_select_file"),
+                "",
+                "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)",
+            )
             if path:
                 self._menu_selected_path = path
                 self._run_scan(path)
@@ -104,8 +109,11 @@ class TableHelperMixin:
         results = self._mgr.get_file_index_full_info(parsed.logical_code, parsed.number)
 
         if not results:
-            QMessageBox.information(self, _("offline_view"),
-                _("本地索引中未找到 {} 的相关信息").format(parsed.get_full_number()))
+            QMessageBox.information(
+                self,
+                _("offline_view"),
+                _("本地索引中未找到 {} 的相关信息").format(parsed.get_full_number()),
+            )
             return
 
         lines = [f"=== {parsed.get_full_number()} ===\n"]
@@ -147,7 +155,11 @@ class TableHelperMixin:
     def _add_table_row(self, update: RowUpdate):
         row = self.work_table.rowCount()
         self.work_table.insertRow(row)
-        width = max(2, len(str(update.total))) if update.total else max(2, len(str(update.seq)))
+        width = (
+            max(2, len(str(update.total)))
+            if update.total
+            else max(2, len(str(update.seq)))
+        )
         std_num = update.parsed.get_full_number()
         items = [
             QTableWidgetItem(f"{update.seq:0{width}d}"),
@@ -155,7 +167,7 @@ class TableHelperMixin:
             QTableWidgetItem(std_num),
             QTableWidgetItem(update.std_name_override or update.parsed.std_name),
             QTableWidgetItem(update.effect_status),
-            QTableWidgetItem(getattr(update.parsed, 'found_replaces', '')),
+            QTableWidgetItem(getattr(update.parsed, "found_replaces", "")),
             QTableWidgetItem(update.publish_date),
             QTableWidgetItem(update.implement_date),
             QTableWidgetItem(update.responsible_dept),
@@ -197,7 +209,9 @@ class TableHelperMixin:
         self._save_column_widths()
 
     def _save_column_widths(self):
-        widths = [self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())]
+        widths = [
+            self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())
+        ]
         self._config.set("appearance.column_widths", widths)
 
     def _restore_column_widths(self):
@@ -210,7 +224,10 @@ class TableHelperMixin:
     # ── 键盘交互 ─────────────────────────────────────────
 
     def _table_key_press_event(self, event):
-        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        if (
+            event.key() == Qt.Key.Key_C
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
             self._copy_selected_cells()
         else:
             QTableWidget.keyPressEvent(self.work_table, event)
@@ -229,4 +246,5 @@ class TableHelperMixin:
                 cells.append(item.text() if item else "")
             lines.append("\t".join(cells))
         from PyQt6.QtWidgets import QApplication as QA
+
         QA.clipboard().setText("\n".join(lines))

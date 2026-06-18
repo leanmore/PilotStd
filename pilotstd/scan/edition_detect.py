@@ -6,17 +6,26 @@ import re
 # ── 版次正则 ────────────────────────────────────────────────
 # 捕获组: cn=中文版次数字, en_num=英文序数数字, en_word=英文全称版次
 _EDITION_RE = re.compile(
-    r'(?:第\s*)?(?P<cn>\d{1,2})\s*版'                       # 中文: 10版 / 第10版
-    r'|(?P<en_num>\d{1,2})\s*(?:st|nd|rd|th)'               # 英文序数: 10th / 5th
-    r'|(?P<en_word>[A-Za-z]+)\s+Edition',                    # 英文全称: Tenth Edition
+    r"(?:第\s*)?(?P<cn>\d{1,2})\s*版"  # 中文: 10版 / 第10版
+    r"|(?P<en_num>\d{1,2})\s*(?:st|nd|rd|th)"  # 英文序数: 10th / 5th
+    r"|(?P<en_word>[A-Za-z]+)\s+Edition",  # 英文全称: Tenth Edition
     re.IGNORECASE,
 )
 
 # 英文序数 → 数字映射
 _ORDINAL_MAP = {
-    "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
-    "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
-    "eleventh": 11, "twelfth": 12,
+    "first": 1,
+    "second": 2,
+    "third": 3,
+    "fourth": 4,
+    "fifth": 5,
+    "sixth": 6,
+    "seventh": 7,
+    "eighth": 8,
+    "ninth": 9,
+    "tenth": 10,
+    "eleventh": 11,
+    "twelfth": 12,
 }
 
 
@@ -58,4 +67,4 @@ def edition_skip_pattern() -> str:
 
     兼容: 10版 / 第10版 / 10th Edition / TENTH EDITION
     """
-    return r'(?:\s*\d+版\s*|\s*[A-Za-z]+\s+Edition\s*)?'
+    return r"(?:\s*\d+版\s*|\s*[A-Za-z]+\s+Edition\s*)?"

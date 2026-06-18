@@ -1,14 +1,23 @@
 # tests/test_docker_scheduler.py
 """docker/scheduler.py 定时任务模块测试"""
-import sys, os
+
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
+
 from docker.scheduler import (
-    register_job_func, start_scheduler, stop_scheduler,
-    update_job, _job_funcs, scheduler
+    _job_funcs,
+    register_job_func,
+    scheduler,
+    start_scheduler,
+    stop_scheduler,
+    update_job,
 )
+
 
 class TestSchedulerModule(unittest.TestCase):
     def setUp(self):
@@ -46,7 +55,7 @@ class TestSchedulerModule(unittest.TestCase):
         register_job_func("test_job", func)
         func.assert_not_called()
 
-    @patch('docker.scheduler.ConfigManager')
+    @patch("docker.scheduler.ConfigManager")
     def test_start_scheduler_adds_enabled_jobs(self, mock_cfg):
         mock_cfg.return_value.get.side_effect = lambda key, default: {
             "tasks.auto_scan_enabled": True,
@@ -65,8 +74,10 @@ class TestSchedulerModule(unittest.TestCase):
         self.assertTrue(any(j.id == "auto_scan" for j in scheduler.get_jobs()))
         self.assertFalse(any(j.id == "auto_query" for j in scheduler.get_jobs()))
 
-    @patch('docker.scheduler.ConfigManager')
-    @patch.object(scheduler, 'start')  # 避免前一个测试已启动导致 SchedulerAlreadyRunningError
+    @patch("docker.scheduler.ConfigManager")
+    @patch.object(
+        scheduler, "start"
+    )  # 避免前一个测试已启动导致 SchedulerAlreadyRunningError
     def test_start_scheduler_no_enabled_jobs_does_nothing(self, mock_start, mock_cfg):
         mock_cfg.return_value.get.return_value = False
         start_scheduler()
@@ -89,7 +100,7 @@ class TestSchedulerModule(unittest.TestCase):
         update_job("nonexistent", "0 3 * * *", True)
         self.assertFalse(any(j.id == "nonexistent" for j in scheduler.get_jobs()))
 
-    @patch.object(scheduler, 'shutdown')
+    @patch.object(scheduler, "shutdown")
     def test_stop_scheduler_shuts_down(self, mock_shutdown):
         """stop_scheduler 应调用 scheduler.shutdown()，此处用 mock 避免真销毁"""
         stop_scheduler()

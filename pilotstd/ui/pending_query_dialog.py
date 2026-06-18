@@ -169,13 +169,19 @@ class PendingQueryDialog(QDialog):
         for parsed in self._parsed_list:
             num = parsed.get_full_number()
             if self._mgr.is_requery_exhausted(num):
-                QMessageBox.warning(self, _("title_hint"),
-                    f"「{num}」已查询 3 次仍无匹配，请手动搜索确认。")
+                QMessageBox.warning(
+                    self,
+                    _("title_hint"),
+                    f"「{num}」已查询 3 次仍无匹配，请手动搜索确认。",
+                )
                 return
             count = self._mgr.get_requery_count(num)
             if count >= 2:
-                reply = QMessageBox.question(self, _("title_hint"),
-                    f"「{num}」已查询 {count} 次仍无匹配，是否继续？")
+                reply = QMessageBox.question(
+                    self,
+                    _("title_hint"),
+                    f"「{num}」已查询 {count} 次仍无匹配，是否继续？",
+                )
                 if reply != QMessageBox.StandardButton.Yes:
                     return
 
@@ -190,11 +196,16 @@ class PendingQueryDialog(QDialog):
             secs = int(remaining % 60)
             if remaining > 14400:
                 hours = int(remaining // 3600)
-                QMessageBox.information(self, _("title_site_cooldown"),
-                    _("msg_cool_down_info").format(hours=hours))
+                QMessageBox.information(
+                    self,
+                    _("title_site_cooldown"),
+                    _("msg_cool_down_info").format(hours=hours),
+                )
             self._countdown_active = True
             self._start_btn.setEnabled(False)
-            self._start_btn.setText(_("pq_wait_cooldown_btn").format(min=mins, sec=secs))
+            self._start_btn.setText(
+                _("pq_wait_cooldown_btn").format(min=mins, sec=secs)
+            )
             self._refresh_timer.start(1000)
             return
 
@@ -214,7 +225,9 @@ class PendingQueryDialog(QDialog):
         # 验证所选站点适配器存在
         adapter = self._mgr.query_engine.get_adapter(self._selected_site)
         if not adapter:
-            QMessageBox.critical(self, _("title_error"), f"查询站点不可用: {self._selected_site}")
+            QMessageBox.critical(
+                self, _("title_error"), f"查询站点不可用: {self._selected_site}"
+            )
             self.reject()
             return
 
@@ -229,6 +242,7 @@ class PendingQueryDialog(QDialog):
         """检查用户是否已开启公告数据库（设置→网络→标准公告自动更新）。"""
         try:
             from ..core.config import ConfigManager
+
             cfg = ConfigManager()
             return cfg.get("announcement.enabled", False)
         except Exception:
@@ -264,8 +278,11 @@ class PendingQueryDialog(QDialog):
                 new_count = self._mgr.increment_requery_count(num)
                 if new_count >= 3:
                     self._mgr.mark_manual_required(num)
-        QMessageBox.information(self, _("title_pending_query_complete"),
-            _("msg_pending_query_complete").format(found=found, failed=failed))
+        QMessageBox.information(
+            self,
+            _("title_pending_query_complete"),
+            _("msg_pending_query_complete").format(found=found, failed=failed),
+        )
         self.accept()
 
     def get_results(self) -> list:

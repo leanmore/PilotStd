@@ -2,22 +2,21 @@
 # 公告解析器单元测试——纯离线，不依赖网络
 """测试 pilotstd/announcement/parser.py 各解析函数：HTML表格、文本表格、元数据、标准号模式。"""
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
 
 from pilotstd.announcement.parser import (
     STD_CODE_PATTERN,
+    _build_header_map,
+    _code_key,
     parse_announcement_meta,
     parse_html_table,
     parse_text_table,
-    parse_attachment_text,
     parse_wps_text,
-    _parse_docx_text,
-    _build_header_map,
-    _code_key,
 )
 
 
@@ -66,6 +65,7 @@ class TestBuildHeaderMap(unittest.TestCase):
             <th>序号</th><th>标准编号</th><th>标准名称</th><th>代替标准</th><th>实施日期</th>
         </tr></thead></table>"""
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup(html, "lxml")
         table = soup.find("table")
         col_map = _build_header_map(table)
@@ -79,6 +79,7 @@ class TestBuildHeaderMap(unittest.TestCase):
             <th>国 家 标 准 编 号</th><th>名 称</th>
         </tr></thead></table>"""
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup(html, "lxml")
         col_map = _build_header_map(soup.find("table"))
         self.assertIn(0, col_map)
@@ -160,8 +161,14 @@ class TestCodeKey(unittest.TestCase):
 
     def test_same_std_same_key(self):
         """前20字符相同的标准名称生成相同去重键"""
-        a = {"std_code": "GB 17681-2024", "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南"}
-        b = {"std_code": "GB 17681-2024", "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南（含勘误）"}
+        a = {
+            "std_code": "GB 17681-2024",
+            "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南",
+        }
+        b = {
+            "std_code": "GB 17681-2024",
+            "std_name": "危险化学品重大危险源安全监控技术规范及其实施指南（含勘误）",
+        }
         self.assertEqual(_code_key(a), _code_key(b))  # 前20字符完全相同
 
     def test_different_std_different_key(self):
@@ -176,6 +183,7 @@ class TestOCRConfig(unittest.TestCase):
     def test_ocr_provider_config_exists(self):
         """OCR 配置项应包含 provider 字段，配置路径可读。"""
         from pilotstd.core.config import ConfigManager
+
         cfg = ConfigManager()
         provider = cfg.get("ocr.provider", "")
         self.assertIsInstance(provider, str, "ocr.provider 应为字符串")

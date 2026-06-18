@@ -17,6 +17,7 @@ logger = logging.getLogger("pilotstd.cli")
 def _make_manager(storage_root=None, use_cache=True):
     """创建 StandardManager 实例——CLI 和测试的统一入口。"""
     from ..manager.facade import StandardManager
+
     cfg = ConfigManager()
     if storage_root:
         cfg.set("storage.root_dir", storage_root)
@@ -37,25 +38,44 @@ class CLI:
     @staticmethod
     def cmd_scan(args):
         """扫描目录（支持多目录），输出解析结果。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
-        shallow = getattr(args, 'shallow', False)
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
+        shallow = getattr(args, "shallow", False)
 
         parsed = []
         for path in args.paths:
             parsed.extend(mgr.scan_directory(path, recursive=not shallow))
 
         if args.format == "json":
-            data = [{"index": i + 1, "code": p.logical_code, "number": p.number,
-                     "year": p.year, "part": p.part, "name": p.std_name,
-                     "full_number": p.get_full_number()}
-                    for i, p in enumerate(parsed)]
+            data = [
+                {
+                    "index": i + 1,
+                    "code": p.logical_code,
+                    "number": p.number,
+                    "year": p.year,
+                    "part": p.part,
+                    "name": p.std_name,
+                    "full_number": p.get_full_number(),
+                }
+                for i, p in enumerate(parsed)
+            ]
             json.dump(data, sys.stdout, ensure_ascii=False, indent=2)
         else:
             writer = csv.writer(sys.stdout)
-            writer.writerow(["序号", "代号", "顺序号", "年份", "部分号", "标准名称", "完整编号"])
+            writer.writerow(
+                ["序号", "代号", "顺序号", "年份", "部分号", "标准名称", "完整编号"]
+            )
             for i, p in enumerate(parsed):
-                writer.writerow([i + 1, p.logical_code, p.number, p.year,
-                                 p.part or "", p.std_name, p.get_full_number()])
+                writer.writerow(
+                    [
+                        i + 1,
+                        p.logical_code,
+                        p.number,
+                        p.year,
+                        p.part or "",
+                        p.std_name,
+                        p.get_full_number(),
+                    ]
+                )
         return 0
 
     # ── query ───────────────────────────────────────────────────
@@ -63,8 +83,10 @@ class CLI:
     @staticmethod
     def cmd_query(args):
         """查询标准有效性并分类。从 stdin 或 --file 读取标准号列表。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None),
-                            use_cache=not getattr(args, 'no_cache', False))
+        mgr = _make_manager(
+            storage_root=getattr(args, "storage_root", None),
+            use_cache=not getattr(args, "no_cache", False),
+        )
 
         # 读取标准号
         numbers = []
@@ -101,8 +123,12 @@ class CLI:
             pct = count * 100 // _total
             # 日志：每 15 秒或跨越 10% 阈值时写一条
             import time
+
             now = time.monotonic()
-            if now - _progress_last_log[0] >= 15 or abs(pct - _progress_last_pct[0]) >= 10:
+            if (
+                now - _progress_last_log[0] >= 15
+                or abs(pct - _progress_last_pct[0]) >= 10
+            ):
                 logger.info("查询进度: %d/%d (%d%%)", count, _total, pct)
                 _progress_last_log[0] = now
                 _progress_last_pct[0] = pct
@@ -117,23 +143,32 @@ class CLI:
 
         # 输出：含分类结果
         writer = csv.writer(sys.stdout)
-        writer.writerow(["标准号", "标准名称", "状态", "匹配状态", "下一步", "来源站点", "是否采标"])
+        writer.writerow(
+            ["标准号", "标准名称", "状态", "匹配状态", "下一步", "来源站点", "是否采标"]
+        )
         for i, (p, r) in enumerate(zip(parsed_list, results)):
-            writer.writerow([
-                p.get_full_number(),
-                r.standard_name or p.std_name,
-                r.status,
-                getattr(r, 'match_status', ''),
-                p.next_action,
-                getattr(r, 'source_site', ''),
-                "是" if getattr(r, 'is_adopted', False) else "否",
-            ])
+            writer.writerow(
+                [
+                    p.get_full_number(),
+                    r.standard_name or p.std_name,
+                    r.status,
+                    getattr(r, "match_status", ""),
+                    p.next_action,
+                    getattr(r, "source_site", ""),
+                    "是" if getattr(r, "is_adopted", False) else "否",
+                ]
+            )
 
         # 分类汇总
         s = mgr.get_stage_summary()
-        print(f"\n查询: {stats.found} 找到, {stats.adopted_restricted} 采标", file=sys.stderr)
-        print(f"分类: download={s['download']} expire={s['expire']} pending={s['pending']}",
-              file=sys.stderr)
+        print(
+            f"\n查询: {stats.found} 找到, {stats.adopted_restricted} 采标",
+            file=sys.stderr,
+        )
+        print(
+            f"分类: download={s['download']} expire={s['expire']} pending={s['pending']}",
+            file=sys.stderr,
+        )
         return 0
 
     # ── download ────────────────────────────────────────────────
@@ -141,10 +176,10 @@ class CLI:
     @staticmethod
     def cmd_download(args):
         """下载标准。有 --file 时直接从文件读取标准号下载，否则从查询队列取。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
 
         # 途径一：--file 直接下载，绕开查询队列
-        if getattr(args, 'file', None):
+        if getattr(args, "file", None):
             with open(args.file, "r", encoding="utf-8") as f:
                 numbers = [line.strip() for line in f if line.strip()]
             if not numbers:
@@ -152,26 +187,37 @@ class CLI:
                 return 1
             print(f"从文件读取 {len(numbers)} 条标准号，开始下载...", file=sys.stderr)
             tasks, stats = mgr.download_by_numbers(numbers)
-            print(f"完成: {stats.success} 成功, {getattr(stats, 'skipped_exists', 0)} 已存在, "
-                  f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败")
+            print(
+                f"完成: {stats.success} 成功, {getattr(stats, 'skipped_exists', 0)} 已存在, "
+                f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败"
+            )
             for t in tasks:
-                print(f"  {t.standard_number}: {t.status.value}"
-                      + (f" -> {t.saved_path}" if t.saved_path else ""))
+                print(
+                    f"  {t.standard_number}: {t.status.value}"
+                    + (f" -> {t.saved_path}" if t.saved_path else "")
+                )
             return 0
 
         # 途径二：从查询队列取
         dl = mgr.get_stage_queue("download")
         if not dl:
-            print("无待下载条目。请先执行 query 命令，或使用 -f 指定标准号列表文件。", file=sys.stderr)
+            print(
+                "无待下载条目。请先执行 query 命令，或使用 -f 指定标准号列表文件。",
+                file=sys.stderr,
+            )
             return 1
 
         print(f"待下载: {len(dl)} 条", file=sys.stderr)
         completed, stats = mgr.download()
-        print(f"完成: {stats.success} 成功, {stats.skipped_exists} 已存在, "
-              f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败")
+        print(
+            f"完成: {stats.success} 成功, {stats.skipped_exists} 已存在, "
+            f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败"
+        )
         for t in completed:
-            print(f"  {t.standard_number}: {t.status.value}"
-                  + (f" -> {t.saved_path}" if t.saved_path else ""))
+            print(
+                f"  {t.standard_number}: {t.status.value}"
+                + (f" -> {t.saved_path}" if t.saved_path else "")
+            )
         return 0
 
     # ── organize ────────────────────────────────────────────────
@@ -179,16 +225,19 @@ class CLI:
     @staticmethod
     def cmd_organize(args):
         """规范化文件名并归档到标准库。--source 指定源目录时先扫描再归档。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
-        source = getattr(args, 'source', None)
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
+        source = getattr(args, "source", None)
         if source:
             parsed = mgr.scan_directory(source)
             logger.info("扫描完成: %d 条，开始归档...", len(parsed))
             result = mgr.organize(parsed, word_source_root=source)
         else:
             result = mgr.organize()
-        print(json.dumps(result, ensure_ascii=False, indent=2) if getattr(args, 'format', None) == "json"
-              else str(result))
+        print(
+            json.dumps(result, ensure_ascii=False, indent=2)
+            if getattr(args, "format", None) == "json"
+            else str(result)
+        )
         return 0
 
     # ── auto ────────────────────────────────────────────────────
@@ -196,11 +245,16 @@ class CLI:
     @staticmethod
     def cmd_auto(args):
         """一键处理：扫描→查询→下载→规范化→归档，全自动。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None),
-                            use_cache=not getattr(args, 'no_cache', False))
+        mgr = _make_manager(
+            storage_root=getattr(args, "storage_root", None),
+            use_cache=not getattr(args, "no_cache", False),
+        )
         result = mgr.auto_run(args.path)
-        print(json.dumps(result, ensure_ascii=False, indent=2) if args.format == "json"
-              else str(result))
+        print(
+            json.dumps(result, ensure_ascii=False, indent=2)
+            if args.format == "json"
+            else str(result)
+        )
         return 0
 
     # ── pending ─────────────────────────────────────────────────
@@ -208,7 +262,7 @@ class CLI:
     @staticmethod
     def cmd_pending(args):
         """查看/导出待确认清单。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         items = mgr.get_pending_items()
 
         if args.format == "json":
@@ -216,15 +270,29 @@ class CLI:
         elif args.output:
             with open(args.output, "w", encoding="utf-8-sig", newline="") as f:
                 w = csv.writer(f)
-                w.writerow(["标准编号", "文件名", "网站名称", "状态", "匹配状态", "来源站点"])
+                w.writerow(
+                    ["标准编号", "文件名", "网站名称", "状态", "匹配状态", "来源站点"]
+                )
                 for item in items:
-                    w.writerow([item.get(k, "") for k in
-                        ("standard_number","std_name","found_name",
-                         "effect_status","match_status","source_site")])
+                    w.writerow(
+                        [
+                            item.get(k, "")
+                            for k in (
+                                "standard_number",
+                                "std_name",
+                                "found_name",
+                                "effect_status",
+                                "match_status",
+                                "source_site",
+                            )
+                        ]
+                    )
             print(f"已导出 {len(items)} 条 → {args.output}")
         else:
             for item in items:
-                print(f"  {item.get('standard_number','')} | {item.get('std_name','')}")
+                print(
+                    f"  {item.get('standard_number', '')} | {item.get('std_name', '')}"
+                )
             print(f"\n共 {len(items)} 条待确认")
         return 0
 
@@ -233,15 +301,16 @@ class CLI:
     @staticmethod
     def cmd_announce(args):
         """检查公告更新，比对本地文件索引，输出命中结果。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
-        std_type = getattr(args, 'type', None)
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
+        std_type = getattr(args, "type", None)
         since = args.since or ""
 
         def _progress(cur: int, total: int, pid: str):
             print(f"\r  公告进度: {cur}/{total}", end="", file=sys.stderr, flush=True)
 
         results = mgr.check_announcements_filtered(
-            std_type=std_type, since_date=since, progress_callback=_progress)
+            std_type=std_type, since_date=since, progress_callback=_progress
+        )
         if results:
             print(file=sys.stderr)  # 进度行换行
 
@@ -250,7 +319,9 @@ class CLI:
             if "error" in r:
                 print(f"[{std_type_key}] {r['error']}")
                 continue
-            print(f"[{std_type_key}] 公告抓取完成: 命中 {r.get('matched', 0)} 条, 更新 {r.get('updated', 0)} 条")
+            print(
+                f"[{std_type_key}] 公告抓取完成: 命中 {r.get('matched', 0)} 条, 更新 {r.get('updated', 0)} 条"
+            )
             total_matched += r.get("matched", 0)
 
         if total_matched == 0:
@@ -262,24 +333,39 @@ class CLI:
     @staticmethod
     def cmd_task(args):
         """查看任务队列状态。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         tasks = mgr.task_queue.list_all(limit=args.limit)
         if not tasks:
             print("暂无任务记录。")
             return 0
 
         if args.format == "json":
-            data = [{"task_id": t.task_id, "type": t.task_type.value,
-                     "status": t.status.value, "total": t.total_items,
-                     "completed": t.completed_items, "failed": t.failed_items}
-                    for t in tasks]
+            data = [
+                {
+                    "task_id": t.task_id,
+                    "type": t.task_type.value,
+                    "status": t.status.value,
+                    "total": t.total_items,
+                    "completed": t.completed_items,
+                    "failed": t.failed_items,
+                }
+                for t in tasks
+            ]
             json.dump(data, sys.stdout, ensure_ascii=False, indent=2)
         else:
             writer = csv.writer(sys.stdout)
             writer.writerow(["任务ID", "类型", "状态", "总数", "已完成", "失败"])
             for t in tasks:
-                writer.writerow([t.task_id, t.task_type.value, t.status.value,
-                                 t.total_items, t.completed_items, t.failed_items])
+                writer.writerow(
+                    [
+                        t.task_id,
+                        t.task_type.value,
+                        t.status.value,
+                        t.total_items,
+                        t.completed_items,
+                        t.failed_items,
+                    ]
+                )
         return 0
 
     # ── normalize ────────────────────────────────────────────────
@@ -287,17 +373,27 @@ class CLI:
     @staticmethod
     def cmd_normalize(args):
         """解析文件名并输出规范化格式，不移动文件。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         results = mgr.normalize_files(args.files)
 
         if args.format == "json":
             json.dump(results, sys.stdout, ensure_ascii=False, indent=2)
         else:
             writer = csv.writer(sys.stdout)
-            writer.writerow(["源文件", "代号", "顺序号", "年份", "规范化名称", "目标文件夹"])
+            writer.writerow(
+                ["源文件", "代号", "顺序号", "年份", "规范化名称", "目标文件夹"]
+            )
             for r in results:
-                writer.writerow([r["source"], r["logical_code"], r["number"],
-                                 r["year"], r["normalized"], r["folder"]])
+                writer.writerow(
+                    [
+                        r["source"],
+                        r["logical_code"],
+                        r["number"],
+                        r["year"],
+                        r["normalized"],
+                        r["folder"],
+                    ]
+                )
         return 0
 
     # ── move ────────────────────────────────────────────────────
@@ -306,15 +402,17 @@ class CLI:
     def cmd_move(args):
         """将标准文件移动到分类目录。支持 --dry-run 预览。"""
         if args.dry_run:
-            mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+            mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
             root = get_library_root(mgr.cfg)
             info_list = mgr.normalize_files(args.files)
             print(f"[预览模式] 将移动 {len(info_list)} 个文件:\n")
             for item in info_list:
-                print(f"  {os.path.basename(item['source'])} -> {os.path.join(root, item['folder'], item['normalized'])}")
+                print(
+                    f"  {os.path.basename(item['source'])} -> {os.path.join(root, item['folder'], item['normalized'])}"
+                )
             return 0
 
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         result = mgr.organize_files(args.files)
         for detail in result.get("details", []):
             print(f"  {detail}")
@@ -327,7 +425,7 @@ class CLI:
     @staticmethod
     def cmd_expire(args):
         """将过期标准文件移入 过期作废/ 目录。"""
-        mgr = _make_manager(storage_root=getattr(args, 'storage_root', None))
+        mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         result = mgr.expire_files(args.files)
         print(f"已移动: {result['moved']}, 失败: {result['failed']}")
         for detail in result["details"]:
@@ -355,7 +453,11 @@ def build_parser():
 
     # download
     p = sub.add_parser("download", help="下载分类结果中的标准")
-    p.add_argument("--file", "-f", help="标准号列表文件（每行一个），直接从文件读取下载，跳过查询队列")
+    p.add_argument(
+        "--file",
+        "-f",
+        help="标准号列表文件（每行一个），直接从文件读取下载，跳过查询队列",
+    )
     p.set_defaults(func=CLI.cmd_download)
 
     # organize
@@ -415,7 +517,11 @@ def build_parser():
 
 def main():
     LoggerManager(level=logging.INFO)  # CLI 入口统一初始化日志
-    logger.info("[CLI] 会话开始 PID=%d 命令=%s", os.getpid(), sys.argv[1] if len(sys.argv) > 1 else "?")
+    logger.info(
+        "[CLI] 会话开始 PID=%d 命令=%s",
+        os.getpid(),
+        sys.argv[1] if len(sys.argv) > 1 else "?",
+    )
     parser = build_parser()
     args = parser.parse_args()
     if not args.command:

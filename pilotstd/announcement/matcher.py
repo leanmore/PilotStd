@@ -3,8 +3,8 @@
 
 import json
 import logging
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
@@ -21,10 +21,13 @@ class AnnouncementMatcher:
     def __init__(self, db: Database):
         self._db = db
 
-    def match_and_update(self, items: list[dict],
-                         announcement_code: str = "",
-                         announcement_date: str = "",
-                         source_site: str = "announcement") -> dict:
+    def match_and_update(
+        self,
+        items: list[dict],
+        announcement_code: str = "",
+        announcement_date: str = "",
+        source_site: str = "announcement",
+    ) -> dict:
         """逐条公告明细比对 file_index，命中则更新缓存。
 
         Args:
@@ -48,8 +51,7 @@ class AnnouncementMatcher:
                 continue
 
             # 在 file_index 中查找匹配的标准
-            matches = self._find_in_file_index(
-                parsed["logical_code"], parsed["number"])
+            matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
 
             # 区分匹配类型：std_code 匹配 → 新标准，replaces_code 匹配 → 旧标准被代替
             match_type = "new"  # 默认为新标准
@@ -60,8 +62,8 @@ class AnnouncementMatcher:
                     replaced_parsed = self._parse_std_code(replaces_code)
                     if replaced_parsed:
                         matches = self._find_in_file_index(
-                            replaced_parsed["logical_code"],
-                            replaced_parsed["number"])
+                            replaced_parsed["logical_code"], replaced_parsed["number"]
+                        )
                         match_type = "replaced"
 
             if not matches:
@@ -69,12 +71,12 @@ class AnnouncementMatcher:
 
             result["matched"] += 1
             for fi_row in matches:
-                updated = self._update_cache(
-                    fi_row, item, match_type, source_site)
+                updated = self._update_cache(fi_row, item, match_type, source_site)
                 if updated:
                     result["updated"] += 1
-                    detail = (f"{fi_row['logical_code']} {fi_row['number']}"
-                              f"-{fi_row['year']}")
+                    detail = (
+                        f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
+                    )
                     if match_type == "replaced":
                         detail += f" → 被代替: {std_code}"
                     result["details"].append(detail)
@@ -84,6 +86,7 @@ class AnnouncementMatcher:
     def _parse_std_code(self, std_code: str) -> dict | None:
         """解析标准编号字符串为 logical_code + number。委托公用解析器。"""
         from ..core.std_utils import parse_std_number
+
         r = parse_std_number(std_code)
         if r:
             return {"logical_code": r["code"], "number": r["number"]}
@@ -92,12 +95,17 @@ class AnnouncementMatcher:
     def _find_in_file_index(self, logical_code: str, number: int) -> list[dict]:
         """在 file_index 中查找匹配 logical_code + number 的记录。"""
         return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} "
-            f"WHERE logical_code=? AND number=?",
-            (logical_code, number))
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=?",
+            (logical_code, number),
+        )
 
-    def _update_cache(self, fi_row: dict, item: dict, match_type: str,
-                      source_site: str = "announcement") -> bool:
+    def _update_cache(
+        self,
+        fi_row: dict,
+        item: dict,
+        match_type: str,
+        source_site: str = "announcement",
+    ) -> bool:
         """更新 announcement_cache 中的标准状态。
 
         match_type:
@@ -106,8 +114,7 @@ class AnnouncementMatcher:
 
         写入字段全部来自公告原文，不凭空捏造。
         """
-        std_number = (f"{fi_row['logical_code']} {fi_row['number']}"
-                      f"-{fi_row['year']}")
+        std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
         now = datetime.now().isoformat()
         today = datetime.now().date()
 
@@ -148,18 +155,20 @@ class AnnouncementMatcher:
 
         # upsert
         existing = self._db.fetchone(
-            f"SELECT id FROM {CACHE_TABLE} WHERE standard_number=?",
-            (std_number,))
+            f"SELECT id FROM {CACHE_TABLE} WHERE standard_number=?", (std_number,)
+        )
         if existing:
             self._db.execute(
                 f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=? WHERE id=?",
-                (result_json, now, existing["id"]))
+                (result_json, now, existing["id"]),
+            )
         else:
             self._db.execute(
                 f"INSERT INTO {CACHE_TABLE} "
                 "(standard_number, source_site, result_json, cached_at, expires_at) "
                 "VALUES (?, 'announcement', ?, ?, NULL)",  # expires_at=NULL = 永久
-                (std_number, result_json, now))
+                (std_number, result_json, now),
+            )
 
         logger.info(f"公告更新缓存: {std_number} → {status}")
         return True

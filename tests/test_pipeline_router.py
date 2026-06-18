@@ -1,17 +1,29 @@
 """路由调度器测试 — 按状态标记分堆，冷启动/热启动兼容"""
+
 import pytest
-from pilotstd.pipeline.router import PipelineRouter
+
 from pilotstd.models import ParsedStdInfo
+from pilotstd.pipeline.router import PipelineRouter
 
 
-def make_parsed(code="GB", number=19001, year=2020, name="测试标准",
-                effect_status="待确认", next_action="pending",
-                found_replaces="", match_status=""):
+def make_parsed(
+    code="GB",
+    number=19001,
+    year=2020,
+    name="测试标准",
+    effect_status="待确认",
+    next_action="pending",
+    found_replaces="",
+    match_status="",
+):
     """快速构造 ParsedStdInfo 测试数据"""
     p = ParsedStdInfo(
         raw_filename=f"{code}{number}-{year}.pdf",
-        logical_code=code, number=number, year=year,
-        std_name=name, source_path=f"C:\\test\\{code}{number}-{year}.pdf",
+        logical_code=code,
+        number=number,
+        year=year,
+        std_name=name,
+        source_path=f"C:\\test\\{code}{number}-{year}.pdf",
     )
     p.effect_status = effect_status
     p.next_action = next_action
@@ -21,7 +33,6 @@ def make_parsed(code="GB", number=19001, year=2020, name="测试标准",
 
 
 class TestPipelineRouter:
-
     @pytest.fixture
     def router(self):
         return PipelineRouter()
@@ -89,16 +100,18 @@ class TestPipelineRouter:
 
     def test_after_query_non_gb_with_replaces_goes_to_expire(self, router):
         """非国标（如 HG）有替代也应走 expire，因 gb688 无法下载"""
-        non_gb = make_parsed(code="HG", effect_status="被代替",
-                             found_replaces="HG/T 1234-2026")
+        non_gb = make_parsed(
+            code="HG", effect_status="被代替", found_replaces="HG/T 1234-2026"
+        )
         result = router.classify_after_query([non_gb])
         assert result["expire"] == [non_gb]
         assert result["download"] == []
 
     def test_after_query_gb_with_replaces_goes_to_download(self, router):
         """国标+被代替+有替代 → 下载新版"""
-        gb_replaced = make_parsed(code="GB/T", effect_status="被代替",
-                                  found_replaces="GB/T 19001-2026")
+        gb_replaced = make_parsed(
+            code="GB/T", effect_status="被代替", found_replaces="GB/T 19001-2026"
+        )
         result = router.classify_after_query([gb_replaced])
         assert result["download"] == [gb_replaced]
         assert result["expire"] == []
@@ -154,45 +167,80 @@ class TestPipelineRouter:
 
     def test_match_status_newer_gb_to_download(self, router):
         """match_status="newer" + GB → pending（规则0: 非exact统一pending，等重查）"""
-        item = make_parsed(code="GB/T", number=19001, year=2016,
-                          effect_status="现行", match_status="newer")
+        item = make_parsed(
+            code="GB/T",
+            number=19001,
+            year=2016,
+            effect_status="现行",
+            match_status="newer",
+        )
         result = router.classify_after_query([item])
         assert result["pending"] == [item]
         assert result["download"] == []
 
     def test_match_status_newer_gb_expired_to_download(self, router):
         """match_status="newer" + GB + 废止 → pending（规则0: 非exact统一pending，等重查）"""
-        item = make_parsed(code="GB", number=12345, year=2010,
-                          effect_status="废止", match_status="newer")
+        item = make_parsed(
+            code="GB",
+            number=12345,
+            year=2010,
+            effect_status="废止",
+            match_status="newer",
+        )
         result = router.classify_after_query([item])
         assert result["pending"] == [item]
         assert result["download"] == []
 
     def test_match_status_newer_non_gb_not_download(self, router):
         """match_status="newer" + 非GB → pending（规则0: 非exact统一pending）"""
-        item = make_parsed(code="HG", number=1234, year=2018,
-                          effect_status="现行", match_status="newer")
+        item = make_parsed(
+            code="HG",
+            number=1234,
+            year=2018,
+            effect_status="现行",
+            match_status="newer",
+        )
         result = router.classify_after_query([item])
         assert result["download"] == []
         assert result["pending"] == [item]
 
     def test_newer_exists_locally_skips_download(self, router):
         """match_status="newer" 新版已在本地 → pending（规则0: 非exact统一pending）"""
-        old = make_parsed(code="GB", number=4053, year=2009,
-                          effect_status="现行", match_status="newer")
-        newer = make_parsed(code="GB", number=4053, year=2025,
-                            effect_status="即将实施", match_status="exact")
+        old = make_parsed(
+            code="GB",
+            number=4053,
+            year=2009,
+            effect_status="现行",
+            match_status="newer",
+        )
+        newer = make_parsed(
+            code="GB",
+            number=4053,
+            year=2025,
+            effect_status="即将实施",
+            match_status="exact",
+        )
         result = router.classify_after_query([old, newer])
         assert result["download"] == []
         assert result["pending"] == [old]
 
     def test_newer_exists_locally_same_code_diff_part(self, router):
         """同代号同序号但不同部分号 → pending（规则0: 非exact统一pending，不因部分号差异改变）"""
-        old = make_parsed(code="GB", number=4053, year=2009,
-                          effect_status="现行", match_status="newer")
+        old = make_parsed(
+            code="GB",
+            number=4053,
+            year=2009,
+            effect_status="现行",
+            match_status="newer",
+        )
         old.part = 1
-        newer = make_parsed(code="GB", number=4053, year=2025,
-                            effect_status="即将实施", match_status="exact")
+        newer = make_parsed(
+            code="GB",
+            number=4053,
+            year=2025,
+            effect_status="即将实施",
+            match_status="exact",
+        )
         newer.part = 2
         result = router.classify_after_query([old, newer])
         assert result["pending"] == [old]  # 规则0: newer→pending
@@ -200,11 +248,21 @@ class TestPipelineRouter:
 
     def test_newer_exists_locally_with_part_match(self, router):
         """同代号同序号同部分号 newer → pending（规则0）"""
-        old = make_parsed(code="GB/T", number=47013, year=2015,
-                          effect_status="现行", match_status="newer")
+        old = make_parsed(
+            code="GB/T",
+            number=47013,
+            year=2015,
+            effect_status="现行",
+            match_status="newer",
+        )
         old.part = 3
-        newer = make_parsed(code="GB/T", number=47013, year=2023,
-                            effect_status="现行", match_status="exact")
+        newer = make_parsed(
+            code="GB/T",
+            number=47013,
+            year=2023,
+            effect_status="现行",
+            match_status="exact",
+        )
         newer.part = 3
         result = router.classify_after_query([old, newer])
         assert result["download"] == []

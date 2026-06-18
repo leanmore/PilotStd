@@ -27,8 +27,9 @@ def _should_log_progress(last_log: float, interval: float = 15.0) -> bool:
     """距上次日志输出已超过 interval 秒时返回 True。"""
     return _time.monotonic() - last_log >= interval
 
+
 # Worker 批量处理常量
-_WORKER_BATCH_SIZE = 50       # 标准 Worker 每批通知条数
+_WORKER_BATCH_SIZE = 50  # 标准 Worker 每批通知条数
 _WORKER_FLUSH_INTERVAL = 0.5  # 批量刷新间隔（秒）
 _ANNOUNCEMENT_BATCH_SIZE = 20  # 公告处理每批条数
 
@@ -43,6 +44,7 @@ def _log_progress(logger, label: str, current: int, total: int, t_start: float):
 @dataclass
 class RowUpdate:
     """工作表格行更新数据，替代 _add_table_row 的十参数签名。"""
+
     seq: int
     parsed: ParsedStdInfo
     work_status: str = ""
@@ -58,14 +60,18 @@ class RowUpdate:
 class LogHandler(logging.Handler, QObject):
     """将 logging 输出重定向到 QTextEdit，跨线程安全，批量写入防信号洪峰。
     QTextEdit 展示 DEBUG 及以上级别，与文件日志一致。"""
+
     _log_signal = pyqtSignal(str)
 
     def __init__(self, widget: QTextEdit):
         logging.Handler.__init__(self)
         QObject.__init__(self)
         self.widget = widget
-        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname).1s] %(message)s",
-                                             datefmt="%H:%M:%S"))
+        self.setFormatter(
+            logging.Formatter(
+                "%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"
+            )
+        )
         self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []
@@ -99,6 +105,7 @@ class LogHandler(logging.Handler, QObject):
         try:
             msg = self.format(record)
             from PyQt6.QtCore import QThread
+
             if QThread.currentThread() == QApplication.instance().thread():
                 self._append_text(msg)
             else:
@@ -116,6 +123,7 @@ class LogHandler(logging.Handler, QObject):
 
 class QueryWorker(QThread):
     """后台查询线程 — 调用业务门面的批量查询方法。"""
+
     progress = pyqtSignal(int)
     result_ready = pyqtSignal(int, object)
     batch_ready = pyqtSignal(list)
@@ -148,7 +156,10 @@ class QueryWorker(QThread):
                 _result_batch.append((idx, result))
                 _sent_indices.add(idx)
                 now = _time.monotonic()
-                if len(_result_batch) >= _WORKER_BATCH_SIZE or now - _last_flush >= _WORKER_FLUSH_INTERVAL:
+                if (
+                    len(_result_batch) >= _WORKER_BATCH_SIZE
+                    or now - _last_flush >= _WORKER_FLUSH_INTERVAL
+                ):
                     if not self._stopped:
                         self.batch_ready.emit(_result_batch)
                     _result_batch = []
@@ -179,7 +190,11 @@ class QueryWorker(QThread):
 
         # 发送最后一批残留结果（跳过已实时发送的）
         if not self._stopped:
-            remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
+            remaining = [
+                (i, r)
+                for i, r in enumerate(results)
+                if r is not None and i not in _sent_indices
+            ]
             if _result_batch:
                 self.batch_ready.emit(_result_batch)
             if remaining:
@@ -189,6 +204,7 @@ class QueryWorker(QThread):
 
 class DownloadWorker(QThread):
     """后台下载线程，批量通知 UI 以减少更新频率。"""
+
     progress = pyqtSignal(int)
     batch_ready = pyqtSignal(list)
     finished_signal = pyqtSignal()
@@ -206,6 +222,7 @@ class DownloadWorker(QThread):
 
     def run(self):
         import time as _time
+
         try:
             batch: list[tuple] = []
             last_flush = _time.monotonic()
@@ -217,7 +234,8 @@ class DownloadWorker(QThread):
                 batch.append((idx, status))
                 now = _time.monotonic()
                 if len(batch) >= _WORKER_BATCH_SIZE or (
-                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL):
+                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL
+                ):
                     if not self._stopped:
                         self.batch_ready.emit(batch)
                     batch = []
@@ -230,9 +248,7 @@ class DownloadWorker(QThread):
                     self._pause_event.wait()
                 self.progress.emit(_pct(cur, total))
 
-            self._mgr.download_stream(
-                on_progress=on_progress,
-                on_result=on_result)
+            self._mgr.download_stream(on_progress=on_progress, on_result=on_result)
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
             self.finished_signal.emit()
@@ -242,6 +258,7 @@ class DownloadWorker(QThread):
 
 class NormalizeWorker(QThread):
     """后台规范化线程：计算规范文件名，批量通知 UI。"""
+
     progress = pyqtSignal(int)
     batch_ready = pyqtSignal(list)
     finished_signal = pyqtSignal()
@@ -259,6 +276,7 @@ class NormalizeWorker(QThread):
 
     def run(self):
         try:
+
             def on_batch(batch_rows):
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
@@ -271,9 +289,8 @@ class NormalizeWorker(QThread):
                 self.progress.emit(_pct(cur, total))
 
             self._mgr.normalize_files_stream(
-                self.parsed_list,
-                on_progress=on_progress,
-                on_batch=on_batch)
+                self.parsed_list, on_progress=on_progress, on_batch=on_batch
+            )
             self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
@@ -281,12 +298,22 @@ class NormalizeWorker(QThread):
 
 class ArchiveWorker(QThread):
     """后台归档线程：移动文件到标准库目录，含磁盘检查+断点续做。"""
+
     progress = pyqtSignal(int)
     batch_ready = pyqtSignal(list)
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(self, mgr, parsed_list, library_root, config=None, overwrite=False, pause_event=None, parent=None):
+    def __init__(
+        self,
+        mgr,
+        parsed_list,
+        library_root,
+        config=None,
+        overwrite=False,
+        pause_event=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
@@ -301,19 +328,24 @@ class ArchiveWorker(QThread):
 
     def run(self):
         import time as _time
+
         try:
             # 磁盘检查（保留——UI 特有需求，避免大批量移动中磁盘满）
             total_size = 0
             for p in self.parsed_list:
                 if p.source_path and os.path.exists(p.source_path):
                     total_size += os.path.getsize(p.source_path)
-            _disk_root = (self.library_root if os.path.exists(self.library_root)
-                          else os.path.dirname(self.library_root))
+            _disk_root = (
+                self.library_root
+                if os.path.exists(self.library_root)
+                else os.path.dirname(self.library_root)
+            )
             _, _, free = shutil.disk_usage(_disk_root)
             if total_size > free * 0.9:
                 self.error.emit(
-                    f"磁盘空间不足: 需要 {total_size/1024/1024:.0f}MB,"
-                    f" 剩余 {free/1024/1024:.0f}MB")
+                    f"磁盘空间不足: 需要 {total_size / 1024 / 1024:.0f}MB,"
+                    f" 剩余 {free / 1024 / 1024:.0f}MB"
+                )
                 return
 
             batch: list[tuple] = []
@@ -328,7 +360,8 @@ class ArchiveWorker(QThread):
                 batch.append((idx, status))
                 now = _time.monotonic()
                 if len(batch) >= _WORKER_BATCH_SIZE or (
-                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL):
+                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL
+                ):
                     if not self._stopped:
                         self.batch_ready.emit(batch)
                     batch = []
@@ -347,9 +380,8 @@ class ArchiveWorker(QThread):
                     _last_log = now
 
             self._mgr.organize_stream(
-                self.parsed_list,
-                on_progress=on_progress,
-                on_result=on_result)
+                self.parsed_list, on_progress=on_progress, on_result=on_result
+            )
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
             self.finished_signal.emit()
@@ -359,13 +391,16 @@ class ArchiveWorker(QThread):
     @staticmethod
     def target_path(parsed, library_root: str, config=None) -> str | None:
         name = make_standard_filename(
-            logical_code=parsed.logical_code, number=parsed.number,
-            year=parsed.year, std_name=parsed.std_name,
-            part=getattr(parsed, 'part', None),
-            language=getattr(parsed, 'language', ''),
-            num_prefix=getattr(parsed, 'num_prefix', ''),
-            num_suffix=getattr(parsed, 'num_suffix', ''),
-            ext=getattr(parsed, 'ext', 'pdf'))
+            logical_code=parsed.logical_code,
+            number=parsed.number,
+            year=parsed.year,
+            std_name=parsed.std_name,
+            part=getattr(parsed, "part", None),
+            language=getattr(parsed, "language", ""),
+            num_prefix=getattr(parsed, "num_prefix", ""),
+            num_suffix=getattr(parsed, "num_suffix", ""),
+            ext=getattr(parsed, "ext", "pdf"),
+        )
         folder = get_folder_name(parsed.logical_code)
         target_dir = os.path.join(library_root, folder)
         if parsed.effect_status in ("废止", "已废止", "作废", "被代替"):
@@ -378,6 +413,7 @@ class ArchiveWorker(QThread):
 
 class ScanWorker(QThread):
     """后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。"""
+
     progress = pyqtSignal(int, int)
     batch_ready = pyqtSignal(list)
     finished_signal = pyqtSignal(int, int)
@@ -396,6 +432,7 @@ class ScanWorker(QThread):
 
     def run(self):
         import time as _time
+
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
@@ -417,9 +454,8 @@ class ScanWorker(QThread):
                     _last_log = now
 
             parsed = self._mgr.scan_directory_stream(
-                self._root_path,
-                on_progress=on_progress,
-                on_batch=on_batch)
+                self._root_path, on_progress=on_progress, on_batch=on_batch
+            )
             # 收集未识别文件（扫描结果中未被解析的）
             self.unrecognized = []  # scan_directory_stream 内部处理，异常由 facade 记录
             parsed_count = len(parsed)
@@ -430,6 +466,7 @@ class ScanWorker(QThread):
 
 class AnnounceWorker(QThread):
     """后台公告检查线程：分批抓取公告、解析标准、比对缓存、保存附件。"""
+
     progress = pyqtSignal(int, int, int)
     finished_signal = pyqtSignal()
 
@@ -449,6 +486,7 @@ class AnnounceWorker(QThread):
 
     def run(self):
         try:
+
             def on_progress(cur, total, matched):
                 if self._stopped:
                     return
@@ -468,7 +506,8 @@ class AnnounceWorker(QThread):
             self._mgr.announce_stream(
                 since_date=self._since_date or "",
                 on_progress=on_progress,
-                on_adapter_done=on_adapter_done)
+                on_adapter_done=on_adapter_done,
+            )
         except Exception as e:
             self._error = str(e)
         finally:
@@ -480,15 +519,15 @@ class AutoWorker(QThread):
     在线程中串行执行 scan→query→download→archive，通过 Qt 信号通知 UI。
     取代原有 5 个独立 Worker 的手动拼接。"""
 
-    scan_batch = pyqtSignal(list)           # [(seq, ParsedStdInfo), ...]
-    scan_progress = pyqtSignal(int, int)     # (current, total)
-    query_progress = pyqtSignal(int, int)    # (current, total)
-    query_result = pyqtSignal(int, object)   # (index, QueryResult)
-    download_progress = pyqtSignal(int, int) # (current, total)
-    download_result = pyqtSignal(int, str)   # (index, status)
-    archive_result = pyqtSignal(int, str)    # (index, status)
-    stage_changed = pyqtSignal(str, int, int) # (stage, current, total)
-    finished_signal = pyqtSignal(dict)       # report dict
+    scan_batch = pyqtSignal(list)  # [(seq, ParsedStdInfo), ...]
+    scan_progress = pyqtSignal(int, int)  # (current, total)
+    query_progress = pyqtSignal(int, int)  # (current, total)
+    query_result = pyqtSignal(int, object)  # (index, QueryResult)
+    download_progress = pyqtSignal(int, int)  # (current, total)
+    download_result = pyqtSignal(int, str)  # (index, status)
+    archive_result = pyqtSignal(int, str)  # (index, status)
+    stage_changed = pyqtSignal(str, int, int)  # (stage, current, total)
+    finished_signal = pyqtSignal(dict)  # report dict
     error = pyqtSignal(str)
 
     def __init__(self, mgr, root_path, parent=None):

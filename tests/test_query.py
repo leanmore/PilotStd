@@ -1,27 +1,27 @@
 # tests/test_query.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
+import tempfile
+import unittest
 from unittest.mock import MagicMock
-from datetime import datetime, timedelta
 
 from pilotstd.core.db import Database
-from pilotstd.query.models import QueryResult, BatchQueryStats
+from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.cache import CacheRepository
 from pilotstd.query.engine import QueryEngine
+from pilotstd.query.models import BatchQueryStats, QueryResult
 from pilotstd.scan.parser import StandardParser
-from pilotstd.organizer.industry_lookup import build_code_mapping
-
 
 # ── 模拟适配器（用于测试引擎和缓存）─────────────────────────
+
 
 class MockActiveAdapter(BaseAdapter):
     """模拟一个总是返回'现行'结果的适配器"""
@@ -72,6 +72,7 @@ class MockAdoptedAdapter(BaseAdapter):
 
 # ── 测试用例 ─────────────────────────────────────────────
 
+
 class TestQueryModels(unittest.TestCase):
     def test_query_result_is_found(self):
         r = QueryResult(standard_number="GB/T 1-2020", standard_name="测试")
@@ -82,8 +83,9 @@ class TestQueryModels(unittest.TestCase):
         self.assertFalse(r.is_found())
 
     def test_batch_query_stats(self):
-        s = BatchQueryStats(total=10, found=8, downloadable=6,
-                            adopted_restricted=2, not_found=2)
+        s = BatchQueryStats(
+            total=10, found=8, downloadable=6, adopted_restricted=2, not_found=2
+        )
         self.assertEqual(s.total, 10)
         self.assertEqual(s.downloadable, 6)
 
@@ -100,9 +102,12 @@ class TestCacheRepository(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_put_and_get(self):
-        r = QueryResult(standard_number="GB/T 1-2020",
-                        standard_name="基础规范", status="现行",
-                        source_site="mock")
+        r = QueryResult(
+            standard_number="GB/T 1-2020",
+            standard_name="基础规范",
+            status="现行",
+            source_site="mock",
+        )
         self.cache.put(r)
         cached = self.cache.get("GB/T 1-2020", "mock")
         self.assertIsNotNone(cached)
@@ -112,15 +117,17 @@ class TestCacheRepository(unittest.TestCase):
         self.assertIsNone(self.cache.get("不存在的标准", "mock"))
 
     def test_refresh(self):
-        r = QueryResult(standard_number="GB/T 2-2020", status="现行",
-                        source_site="mock")
+        r = QueryResult(
+            standard_number="GB/T 2-2020", status="现行", source_site="mock"
+        )
         self.cache.put(r)
         self.cache.refresh("GB/T 2-2020", "mock")
         self.assertIsNone(self.cache.get("GB/T 2-2020", "mock"))
 
     def test_history(self):
-        r = QueryResult(standard_number="GB/T 3-2020", status="现行",
-                        source_site="mock")
+        r = QueryResult(
+            standard_number="GB/T 3-2020", status="现行", source_site="mock"
+        )
         self.cache.put(r)
         history = self.cache.get_history(limit=10)
         self.assertGreaterEqual(len(history), 1)
@@ -128,8 +135,9 @@ class TestCacheRepository(unittest.TestCase):
     def test_no_ttl_expiry(self):
         """缓存不因 TTL 过期而删除——失效由事件（被代替）驱动。"""
         cache = CacheRepository(self.db, active_ttl=-1, inactive_ttl=-1)
-        r = QueryResult(standard_number="GB/T 4-2020", status="现行",
-                        source_site="mock")
+        r = QueryResult(
+            standard_number="GB/T 4-2020", status="现行", source_site="mock"
+        )
         cache.put(r)
         # TTL 为负值时仍能命中，因为不再按时间淘汰缓存
         result = cache.get("GB/T 4-2020", "mock")
@@ -177,9 +185,11 @@ class TestQueryEngine(unittest.TestCase):
         self.assertTrue(r.is_found())
 
     def test_batch_query(self):
-        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
-                 ("GB/T", 2, 2020, "", None, "GB/T 2-2020"),
-                 ("NONE", 3, 2020, "", None, "NONE_3-2020")]
+        items = [
+            ("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
+            ("GB/T", 2, 2020, "", None, "GB/T 2-2020"),
+            ("NONE", 3, 2020, "", None, "NONE_3-2020"),
+        ]
         results = self.engine.query_batch_parsed(items)
         self.assertEqual(len(results), 3)
         found = sum(1 for r in results if r.is_found())
@@ -208,7 +218,8 @@ class TestQueryEngine(unittest.TestCase):
         ]
         progress = []
         results = self.engine.query_batch_parsed(
-            parsed_list, lambda c: progress.append(c))
+            parsed_list, lambda c: progress.append(c)
+        )
 
         self.assertEqual(len(results), 5)
         # 结果顺序应与输入一致（引擎保留网站返回的编号格式）
@@ -231,86 +242,116 @@ class TestQueryEngine(unittest.TestCase):
 
 # ── 代号变体匹配测试 ───────────────────────────────────────
 
+
 class TestCodeVariantMatching(unittest.TestCase):
     """match_result 代号变体匹配（GB ↔ GB/T 等）"""
 
     def setUp(self):
-        from pilotstd.query.search_strategy import match_result
+        pass
 
     def test_match_gb_vs_gbt_same_number(self):
         """GB 713-2014 vs GB/T 713-2014 → exact（代号变体，同一标准）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 713, 2014,
+            "GB",
+            713,
+            2014,
             result_name="锅炉和压力容器用钢板",
-            result_number_str="GB/T 713-2014")
+            result_number_str="GB/T 713-2014",
+        )
         self.assertTrue(is_match)
         self.assertEqual(status, "exact")
 
     def test_match_gb_vs_gbt_newer_year(self):
         """GB 713-2014 vs GB/T 713-2017 → newer（代号变体，年份更新）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 713, 2014,
+            "GB",
+            713,
+            2014,
             result_name="锅炉和压力容器用钢板",
-            result_number_str="GB/T 713-2017")
+            result_number_str="GB/T 713-2017",
+        )
         self.assertTrue(is_match)
         self.assertEqual(status, "newer")
 
     def test_variant_not_cross_number(self):
         """GB 713-2014 vs GB/T 30713-2014 → mismatch（顺序号不同）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 713, 2014,
+            "GB",
+            713,
+            2014,
             result_name="砚石 显微鉴定方法",
-            result_number_str="GB/T 30713-2014")
+            result_number_str="GB/T 30713-2014",
+        )
         self.assertFalse(is_match)
         self.assertEqual(status, "mismatch")
 
     def test_variant_not_cross_family(self):
         """GB 713 vs ISO 713 → mismatch（不同标准体系）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 713, 2014,
+            "GB",
+            713,
+            2014,
             result_name="Some ISO standard",
-            result_number_str="ISO 713-2014")
+            result_number_str="ISO 713-2014",
+        )
         self.assertFalse(is_match)
         self.assertEqual(status, "mismatch")
 
     def test_different_parts_mismatch(self):
         """GB 30000.3-2013 vs GB 30000.30-2025 → mismatch（不同部分号，非同一标准）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 30000, 2013,
+            "GB",
+            30000,
+            2013,
             result_name="化学品分类和标签规范 第30部分：退敏爆炸物",
             result_number_str="GB 30000.30-2025",
-            local_part=3)
+            local_part=3,
+        )
         self.assertFalse(is_match)
         self.assertEqual(status, "mismatch")
 
     def test_same_part_newer_year(self):
         """GB 4053.1-2009 vs GB 4053.1-2025 → newer（同部分号，年份更新）"""
         from pilotstd.query.search_strategy import match_result
+
         is_match, status = match_result(
-            "GB", 4053, 2009,
+            "GB",
+            4053,
+            2009,
             result_name="固定式钢梯及平台安全要求 第1部分：钢直梯",
             result_number_str="GB 4053.1-2025",
-            local_part=1)
+            local_part=1,
+        )
         self.assertTrue(is_match)
         self.assertEqual(status, "newer")
 
 
 # ── 多部分拆分检测测试 ─────────────────────────────────────
 
+
 class TestMultiPartDetection(unittest.TestCase):
     """_detect_split_parts 多部分拆分检测"""
 
     def setUp(self):
-        self.adapter = type("_Mock", (BaseAdapter,), {
-            "site_name": "mock",
-            "site_label": "Mock",
-            "_search": lambda self, term: None,
-        })()
+        self.adapter = type(
+            "_Mock",
+            (BaseAdapter,),
+            {
+                "site_name": "mock",
+                "site_label": "Mock",
+                "_search": lambda self, term: None,
+            },
+        )()
 
     def test_two_parts_detected(self):
         """同 number 出现 ≥2 个不同 part → 返回拆分列表"""
@@ -351,68 +392,82 @@ class TestMultiPartDetection(unittest.TestCase):
 
 # ── 英文状态映射测试 ───────────────────────────────────────
 
+
 class TestStatusMapping(unittest.TestCase):
     """map_status 英文状态映射"""
 
     def test_map_active(self):
         from pilotstd.query.search_strategy import map_status
+
         self.assertEqual(map_status("Active"), "现行")
 
     def test_map_withdrawn(self):
         from pilotstd.query.search_strategy import map_status
+
         self.assertEqual(map_status("Withdrawn"), "废止")
 
     def test_map_superseded(self):
         from pilotstd.query.search_strategy import map_status
+
         self.assertEqual(map_status("Superseded"), "被代替")
 
     def test_map_chinese_unchanged(self):
         """中文状态保持原有映射"""
         from pilotstd.query.search_strategy import map_status
+
         self.assertEqual(map_status("现行"), "现行")
         self.assertEqual(map_status("废止"), "废止")
 
 
 # ── 路由测试 ───────────────────────────────────────────────
 
+
 class TestRouting(unittest.TestCase):
     """查询路由验证"""
 
     def setUp(self):
-        from pilotstd.query.engine import QueryEngine, CODE_ROUTES
+        from pilotstd.query.engine import CODE_ROUTES
+
         self.CODE_ROUTES = CODE_ROUTES
 
     def test_njbz365_in_routes(self):
         """njbz365 已恢复：GB/GB/T 路由含 njbz365 作为二线站点"""
         for code in ("GB", "GB/T", "GB/Z", "GSB"):
-            self.assertIn("njbz365", self.CODE_ROUTES.get(code, []),
-                          f"njbz365 应在 {code} 路由中（二线站点）")
+            self.assertIn(
+                "njbz365",
+                self.CODE_ROUTES.get(code, []),
+                f"njbz365 应在 {code} 路由中（二线站点）",
+            )
 
     def test_njbz365_in_priority(self):
         """njbz365 在默认优先级中"""
         from pilotstd.query.engine import PROD_PRIORITY
+
         self.assertIn("njbz365", PROD_PRIORITY)
 
     def test_njbz365_in_industry(self):
         """njbz365 在行业路由中作为二线"""
         from pilotstd.query.engine import INDUSTRY_ROUTE
+
         self.assertIn("njbz365", INDUSTRY_ROUTE)
 
     def test_njbz365_in_foreign(self):
         """njbz365 在国外路由中（唯一覆盖国外标准的站点）"""
         from pilotstd.query.engine import FOREIGN_ROUTE
+
         self.assertIn("njbz365", FOREIGN_ROUTE)
 
     def test_foreign_codes_have_routes(self):
         """所有 FOREIGN_CODE_SET 中的代号在 CODE_ROUTES 中都有条目"""
         from pilotstd.scan.parser import FOREIGN_CODE_SET
+
         for fc in FOREIGN_CODE_SET:
-            self.assertIn(fc, self.CODE_ROUTES,
-                          f"{fc} 应在 CODE_ROUTES 中有路由条目")
+            self.assertIn(fc, self.CODE_ROUTES, f"{fc} 应在 CODE_ROUTES 中有路由条目")
 
     def test_awwa_routes_to_foreign(self):
         """AWWA(4字符)应在 CODE_ROUTES 中且路由不含 hbba（国外路由不走行业平台）"""
-        from pilotstd.query.engine import CODE_ROUTES, INDUSTRY_ROUTE
+        from pilotstd.query.engine import CODE_ROUTES
+
         self.assertIn("AWWA", CODE_ROUTES)
         self.assertNotIn("hbba", CODE_ROUTES.get("AWWA", []))
 
@@ -423,18 +478,21 @@ class TestRouting(unittest.TestCase):
         """
         from pilotstd.query.engine import CODE_ROUTES
         from pilotstd.scan.parser import FOREIGN_CODE_SET
+
         for fc in FOREIGN_CODE_SET:
             if fc in ("ISO", "IEC"):
                 continue  # ISO/IEC 走 iso_gov 路线，不走 FOREIGN_ROUTE
             route = CODE_ROUTES.get(fc, [])
-            self.assertNotIn("csres", route,
-                             f"{fc} 不应路由到 csres（csres 无法查询国外标准），"
-                             f"当前路由={route}")
-            self.assertIn("njbz365", route,
-                          f"{fc} 应路由到 njbz365，当前路由={route}")
+            self.assertNotIn(
+                "csres",
+                route,
+                f"{fc} 不应路由到 csres（csres 无法查询国外标准），当前路由={route}",
+            )
+            self.assertIn("njbz365", route, f"{fc} 应路由到 njbz365，当前路由={route}")
 
 
 # ── 网络异常模拟测试 ─────────────────────────────────────
+
 
 class TestNetworkErrorHandling(unittest.TestCase):
     """模拟超时/连接失败，验证 QueryEngine 在引擎层优雅降级。"""
@@ -462,12 +520,14 @@ class TestNetworkErrorHandling(unittest.TestCase):
                 return "超时站点"
 
             def _search(self, search_term):
-                raise __import__('requests').Timeout("模拟超时")
+                raise __import__("requests").Timeout("模拟超时")
 
         adapter = TimeoutAdapter()
         engine = QueryEngine(adapters=[adapter], cache=self.cache)
-        items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
-                 ("GB/T", 2, 2020, "", None, "GB/T 2-2020")]
+        items = [
+            ("GB/T", 1, 2020, "", None, "GB/T 1-2020"),
+            ("GB/T", 2, 2020, "", None, "GB/T 2-2020"),
+        ]
         results = engine.query_batch_parsed(items)
         self.assertEqual(len(results), 2)
         for r in results:
@@ -486,7 +546,7 @@ class TestNetworkErrorHandling(unittest.TestCase):
                 return "断网站点"
 
             def _search(self, search_term):
-                raise __import__('requests').ConnectionError("模拟断网")
+                raise __import__("requests").ConnectionError("模拟断网")
 
         adapter = ConnErrorAdapter()
         engine = QueryEngine(adapters=[adapter], cache=self.cache)
@@ -497,18 +557,22 @@ class TestNetworkErrorHandling(unittest.TestCase):
 
     def test_cache_with_network_errors(self):
         """网络错误适配器不崩溃，返回带 error_message 的结果。"""
+
         class ConnErrorAdapter(BaseAdapter):
             @property
             def site_name(self):
                 return "conn_err"
+
             @property
             def site_label(self):
                 return "断网站点"
-            def _search(self, search_term):
-                raise __import__('requests').ConnectionError("模拟断网")
 
-        engine = QueryEngine(adapters=[ConnErrorAdapter()], cache=self.cache,
-                             use_cache=False)
+            def _search(self, search_term):
+                raise __import__("requests").ConnectionError("模拟断网")
+
+        engine = QueryEngine(
+            adapters=[ConnErrorAdapter()], cache=self.cache, use_cache=False
+        )
         items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020")]
         results = engine.query_batch_parsed(items)
         # 异常不崩溃
@@ -516,6 +580,7 @@ class TestNetworkErrorHandling(unittest.TestCase):
 
 
 # ── 并发安全测试 ────────────────────────────────────────
+
 
 class TestConcurrencySafety(unittest.TestCase):
     """DailyQuotaTracker 多线程并发正确性。"""
@@ -525,6 +590,7 @@ class TestConcurrencySafety(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
         cls.db = Database(os.path.join(cls.tmp, "test.db"))
         from pilotstd.query.daily_quota import DailyQuotaTracker
+
         cls._tracker = DailyQuotaTracker(cls.db)
 
     @classmethod
@@ -536,6 +602,7 @@ class TestConcurrencySafety(unittest.TestCase):
     def test_concurrent_record_usage_no_lost_count(self):
         """10 线程各 record_usage 10 次 → 最终 used=100，无丢失。"""
         import threading
+
         site = "csres"
         threads = []
         errors = []
@@ -561,6 +628,7 @@ class TestConcurrencySafety(unittest.TestCase):
     def test_concurrent_get_remaining_consistent(self):
         """并发读取 get_remaining 期间无异常、不崩溃。"""
         import threading
+
         errors = []
 
         def reader():
@@ -585,6 +653,7 @@ class TestNjbz365Retry(unittest.TestCase):
     def test_do_request_timeout_retries(self):
         """_do_request 超时后应重试 3 次（含首次），最终返回 None。"""
         import requests as req
+
         from pilotstd.query.adapters import njbz365
 
         adapter = njbz365.Njbz365Adapter()
@@ -606,6 +675,7 @@ class TestNjbz365Retry(unittest.TestCase):
     def test_do_request_succeeds_after_retry(self):
         """前 2 次超时、第 3 次成功应返回数据。"""
         import requests as req
+
         from pilotstd.query.adapters import njbz365
 
         adapter = njbz365.Njbz365Adapter()
@@ -621,11 +691,21 @@ class TestNjbz365Retry(unittest.TestCase):
             resp = req.Response()
             resp.status_code = 200
             import json
+
             resp._content = json.dumps(
-                {"code": "0", "data": {"datalist": [
-                    {"bzbh": "GB/T 1-2020", "bzmc": "test",
-                     "bzzt": "现行", "bzid": "123"}
-                ]}}
+                {
+                    "code": "0",
+                    "data": {
+                        "datalist": [
+                            {
+                                "bzbh": "GB/T 1-2020",
+                                "bzmc": "test",
+                                "bzzt": "现行",
+                                "bzid": "123",
+                            }
+                        ]
+                    },
+                }
             ).encode()
             return resp
 
@@ -638,6 +718,7 @@ class TestNjbz365Retry(unittest.TestCase):
     def test_refresh_csrf_retries(self):
         """_refresh_csrf 失败后应重试 3 次。"""
         import requests as req
+
         from pilotstd.query.adapters import njbz365
 
         adapter = njbz365.Njbz365Adapter()
@@ -651,7 +732,9 @@ class TestNjbz365Retry(unittest.TestCase):
 
         adapter._session.options = fake_options
         adapter._refresh_csrf()
-        self.assertEqual(call_count[0], 3, f"_refresh_csrf 应重试 3 次，实际 {call_count[0]}")
+        self.assertEqual(
+            call_count[0], 3, f"_refresh_csrf 应重试 3 次，实际 {call_count[0]}"
+        )
         self.assertEqual(adapter._csrf_token, "")
 
 
@@ -768,17 +851,23 @@ class MockSiteAdapter(BaseAdapter):
         self.request_count = 0
 
     @property
-    def site_name(self): return self._name
+    def site_name(self):
+        return self._name
 
     @property
-    def site_label(self): return self._name
+    def site_label(self):
+        return self._name
 
     def _search(self, term):
         self.request_count += 1
         if self._always_hit:
-            return QueryResult(standard_number=term, standard_name=f"std_{term}",
-                              status="现行", source_site=self._name,
-                              match_status=self._match_status)
+            return QueryResult(
+                standard_number=term,
+                standard_name=f"std_{term}",
+                status="现行",
+                source_site=self._name,
+                match_status=self._match_status,
+            )
         return None
 
 
@@ -797,12 +886,15 @@ class TestBucketConcurrency(unittest.TestCase):
 
     def _engine(self, sites=None):
         adapters = sites or [
-            MockSiteAdapter("std_gov"), MockSiteAdapter("hbba"),
-            MockSiteAdapter("ahbz"), MockSiteAdapter("njbz365"),
+            MockSiteAdapter("std_gov"),
+            MockSiteAdapter("hbba"),
+            MockSiteAdapter("ahbz"),
+            MockSiteAdapter("njbz365"),
             MockSiteAdapter("csres"),
         ]
-        return QueryEngine(adapters=adapters, cache=self.cache,
-                          use_cache=False, parser=self.parser)
+        return QueryEngine(
+            adapters=adapters, cache=self.cache, use_cache=False, parser=self.parser
+        )
 
     def test_01_overflow_concurrent(self):
         """GB 200+行业 150 并发，不崩溃，ahbz 溢出池不击穿"""
@@ -819,10 +911,15 @@ class TestBucketConcurrency(unittest.TestCase):
 
     def test_03_overflow_exhausted_pending(self):
         """全部站点不命中→待确认"""
-        engine = self._engine([MockSiteAdapter("std_gov", always_hit=False),
-                              MockSiteAdapter("ahbz", always_hit=False)])
+        engine = self._engine(
+            [
+                MockSiteAdapter("std_gov", always_hit=False),
+                MockSiteAdapter("ahbz", always_hit=False),
+            ]
+        )
         results = engine.query_batch_parsed(
-            [("GB", 99999, 2050, "x", None, "", "", "")])
+            [("GB", 99999, 2050, "x", None, "", "", "")]
+        )
         self.assertEqual(results[0].status, "待确认")
 
     def test_04_large_batch_sub_buckets(self):

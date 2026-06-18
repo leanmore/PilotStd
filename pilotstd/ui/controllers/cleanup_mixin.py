@@ -41,9 +41,11 @@ class CleanupMixin:
         # 首次询问
         if not self._config.get("file.clear_readonly_asked", False):
             reply = QMessageBox.question(
-                self, _("msg_readonly_title"),
+                self,
+                _("msg_readonly_title"),
                 _("msg_readonly_prompt"),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
             self._config.set("file.clear_readonly_asked", True)
             if reply == QMessageBox.StandardButton.No:
                 self._config.set("file.clear_readonly", False)
@@ -56,15 +58,14 @@ class CleanupMixin:
         """清理空文件夹：用户选择目录 → 扫描空目录和仅含过期文件的目录
         → 弹窗确认 → 删除 → 弹窗汇总。"""
         # 用户选择要清理的目录
-        path = QFileDialog.getExistingDirectory(
-            self, _("dialog_select_cleanup_dir"))
+        path = QFileDialog.getExistingDirectory(self, _("dialog_select_cleanup_dir"))
         if not path:
             return
         path = ensure_long_path(path)  # 长路径支持
 
         expire_folder = self._config.get("storage.expire_folder", "过期作废")
-        empty_dirs = []     # 完全空的目录
-        expire_only = []    # 仅含过期文件夹的目录
+        empty_dirs = []  # 完全空的目录
+        expire_only = []  # 仅含过期文件夹的目录
 
         # 扫描目录结构
         for entry in sorted(os.scandir(path), key=lambda e: e.name):
@@ -76,19 +77,28 @@ class CleanupMixin:
                 continue
             if not sub_items:
                 empty_dirs.append(entry.path)
-            elif len(sub_items) == 1 and sub_items[0].is_dir() and sub_items[0].name == expire_folder:
+            elif (
+                len(sub_items) == 1
+                and sub_items[0].is_dir()
+                and sub_items[0].name == expire_folder
+            ):
                 expire_only.append(entry.path)
 
         total = len(empty_dirs) + len(expire_only)
         if total == 0:
-            QMessageBox.information(self, _("dialog_cleanup_title"),
-                                    _("msg_cleanup_none"))
+            QMessageBox.information(
+                self, _("dialog_cleanup_title"), _("msg_cleanup_none")
+            )
             return
 
         # 弹窗确认
         reply = QMessageBox.question(
-            self, _("dialog_cleanup_title"),
-            _("msg_cleanup_confirm").format(empty=len(empty_dirs), expire=len(expire_only)))
+            self,
+            _("dialog_cleanup_title"),
+            _("msg_cleanup_confirm").format(
+                empty=len(empty_dirs), expire=len(expire_only)
+            ),
+        )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
@@ -106,8 +116,10 @@ class CleanupMixin:
         for d in expire_only:
             name = os.path.basename(d)
             reply2 = QMessageBox.question(
-                self, _("dialog_cleanup_title"),
-                _("msg_cleanup_expire_only").format(name=name, expire=expire_folder))
+                self,
+                _("dialog_cleanup_title"),
+                _("msg_cleanup_expire_only").format(name=name, expire=expire_folder),
+            )
             if reply2 == QMessageBox.StandardButton.Yes:
                 # 清除目录下所有文件的只读属性，防止 rmtree 因只读文件崩溃
                 if self._ensure_clear_readonly():
@@ -124,12 +136,15 @@ class CleanupMixin:
                 except OSError as e:
                     logger.error(f"删除失败: {d}: {e}")
                     QMessageBox.warning(
-                        self, _("dialog_cleanup_title"),
-                        f"删除失败: {name}\n{e}\n\n请检查是否有文件正在被其他程序占用。")
+                        self,
+                        _("dialog_cleanup_title"),
+                        f"删除失败: {name}\n{e}\n\n请检查是否有文件正在被其他程序占用。",
+                    )
 
         # 弹窗汇总
-        QMessageBox.information(self, _("dialog_cleanup_title"),
-                                _("msg_cleanup_done").format(count=deleted))
+        QMessageBox.information(
+            self, _("dialog_cleanup_title"), _("msg_cleanup_done").format(count=deleted)
+        )
 
     # ── 未识别文件处理 ───────────────────────────────────────
 
@@ -137,8 +152,9 @@ class CleanupMixin:
         """未识别文件处理：列出扫描中解析失败的文件，用户勾选后
         原封不动搬迁到 标准/未识别文件/，保留源目录层级结构。"""
         if not self._unrecognized_files:
-            QMessageBox.information(self, _("dialog_collect_unrecognized"),
-                                    _("msg_collect_none"))
+            QMessageBox.information(
+                self, _("dialog_collect_unrecognized"), _("msg_collect_none")
+            )
             return
 
         # 弹出自定义对话框：用户勾选要搬迁的文件
@@ -147,7 +163,9 @@ class CleanupMixin:
         dlg.setMinimumSize(700, 400)
         layout = QVBoxLayout(dlg)
 
-        info_label = QLabel(_("msg_collect_confirm").format(count=len(self._unrecognized_files)))
+        info_label = QLabel(
+            _("msg_collect_confirm").format(count=len(self._unrecognized_files))
+        )
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
 
@@ -155,7 +173,9 @@ class CleanupMixin:
         tree = QTreeWidget()
         # 三列：文件名 | 原文件目录 | 处理后文档目录
         root_dir = self._get_library_root()
-        tree.setHeaderLabels([_("header_file_name"), _("header_source_dir"), _("header_target_dir")])
+        tree.setHeaderLabels(
+            [_("header_file_name"), _("header_source_dir"), _("header_target_dir")]
+        )
         tree.setColumnWidth(0, 280)
         tree.setColumnWidth(1, 320)
         tree.setColumnWidth(2, 320)
@@ -180,8 +200,12 @@ class CleanupMixin:
         btn_none = QPushButton(_("deselect_all"))
         btn_ok = QPushButton(_("btn_ok"))
         btn_cancel = QPushButton(_("btn_cancel"))
-        btn_all.clicked.connect(lambda: [cb.setCheckState(0, Qt.CheckState.Checked) for cb in checkboxes])
-        btn_none.clicked.connect(lambda: [cb.setCheckState(0, Qt.CheckState.Unchecked) for cb in checkboxes])
+        btn_all.clicked.connect(
+            lambda: [cb.setCheckState(0, Qt.CheckState.Checked) for cb in checkboxes]
+        )
+        btn_none.clicked.connect(
+            lambda: [cb.setCheckState(0, Qt.CheckState.Unchecked) for cb in checkboxes]
+        )
         btn_ok.clicked.connect(dlg.accept)
         btn_cancel.clicked.connect(dlg.reject)
         btn_layout.addWidget(btn_all)
@@ -214,7 +238,9 @@ class CleanupMixin:
 
         # 进度条：原封不动镜像移动，保留源目录层级结构
         root_dir = self._get_library_root()
-        progress = QProgressDialog(_("msg_collect_progress"), _("btn_cancel"), 0, len(selected), dlg)
+        progress = QProgressDialog(
+            _("msg_collect_progress"), _("btn_cancel"), 0, len(selected), dlg
+        )
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setValue(0)
@@ -235,5 +261,8 @@ class CleanupMixin:
         progress.close()
 
         self._unrecognized_files = []
-        QMessageBox.information(self, _("dialog_collect_unrecognized"),
-                                _("msg_collect_done").format(count=moved))
+        QMessageBox.information(
+            self,
+            _("dialog_collect_unrecognized"),
+            _("msg_collect_done").format(count=moved),
+        )

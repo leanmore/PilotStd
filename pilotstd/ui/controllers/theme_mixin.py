@@ -37,6 +37,7 @@ class ThemeMixin:
 
     def _apply_theme(self):
         from ..themes import apply_theme
+
         theme = self._config.get("appearance.theme", "经典白")
         apply_theme(QApplication.instance(), theme)
 
@@ -57,7 +58,9 @@ class ThemeMixin:
                 base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
                 qt_trans_dir = os.path.join(base, "qt_translations")
             else:
-                qt_trans_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+                qt_trans_dir = QLibraryInfo.path(
+                    QLibraryInfo.LibraryPath.TranslationsPath
+                )
             # 加载 Qt 内置翻译（qtbase + widgets，多翻译器协同）
             for qm_name in (f"qtbase_{lang}.qm", f"widgets_{lang}.qm"):
                 qt_qm = os.path.join(qt_trans_dir, qm_name)
@@ -110,7 +113,7 @@ class ThemeMixin:
             self.btn_pause.setText(_("toolbar_pause"))
         # 状态栏和日志
         self.status_bar.showMessage(_("ready"))
-        if hasattr(self, '_log_label'):
+        if hasattr(self, "_log_label"):
             self._log_label.setText(_("work_log"))
         # 文件浏览树
         self._populate_quick_access()
@@ -119,7 +122,16 @@ class ThemeMixin:
         mb.clear()
         self._setup_menu()
         # 工作表列头
-        cols = [_("col_seq"), _("col_work_status"), _("col_std_number"), _("col_std_name"),
-                _("col_effect_status"), _("col_replaces"), _("col_publish_date"),
-                _("col_impl_date"), _("col_responsible_dept"), _("col_adopted")]
+        cols = [
+            _("col_seq"),
+            _("col_work_status"),
+            _("col_std_number"),
+            _("col_std_name"),
+            _("col_effect_status"),
+            _("col_replaces"),
+            _("col_publish_date"),
+            _("col_impl_date"),
+            _("col_responsible_dept"),
+            _("col_adopted"),
+        ]
         self.work_table.setHorizontalHeaderLabels(cols)

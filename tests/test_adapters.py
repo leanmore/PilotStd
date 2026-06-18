@@ -2,65 +2,117 @@
 # 适配器层单元测试：覆盖全部 6 个查询适配器的 _search/_parse_result
 # 使用 mock HTTP 响应，验证各适配器对 GB/行业/国外/地方标准的匹配正确性
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock
 
-from pilotstd.query.adapters.std_gov import StdGovAdapter
-from pilotstd.query.adapters.hbba import HbbaAdapter
-from pilotstd.query.adapters.dbba import DbbaAdapter
-from pilotstd.query.adapters.iso_gov import IsoGovAdapter
 from pilotstd.query.adapters.csres import CsresAdapter
+from pilotstd.query.adapters.dbba import DbbaAdapter
+from pilotstd.query.adapters.hbba import HbbaAdapter
+from pilotstd.query.adapters.iso_gov import IsoGovAdapter
 from pilotstd.query.adapters.njbz365 import Njbz365Adapter
-from pilotstd.query.models import QueryResult
-
+from pilotstd.query.adapters.std_gov import StdGovAdapter
 
 # ════════════════════════════════════════════════════════════════
 # 辅助：构造 API 返回结果的工具函数
 # ════════════════════════════════════════════════════════════════
 
+
 def _make_njbz_items(*items):
     """构造 njbz365 API 返回格式。"""
     return {"code": "0", "data": {"datalist": list(items)}}
 
-def _njbz_item(bzbh, bzmc, bzzt="现行", bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"):
-    return {"bzbh": bzbh, "bzmc": bzmc, "bzzt": bzzt, "bzid": bzid,
-            "cybz": cybz, "fbrq": fbrq, "ssrq": ssrq}
+
+def _njbz_item(
+    bzbh, bzmc, bzzt="现行", bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"
+):
+    return {
+        "bzbh": bzbh,
+        "bzmc": bzmc,
+        "bzzt": bzzt,
+        "bzid": bzid,
+        "cybz": cybz,
+        "fbrq": fbrq,
+        "ssrq": ssrq,
+    }
+
 
 def _make_hbba_records(*recs):
     """构造 hbba API 返回格式。"""
     return {"success": True, "data": {"records": list(recs)}}
 
-def _hbba_rec(code, ch_name, status="现行", pk="1", issue_date=1577836800000, act_date=1577836800000):
-    return {"code": code, "chName": ch_name, "status": status, "pk": pk,
-            "issueDate": issue_date, "actDate": act_date, "chargeDept": ""}
+
+def _hbba_rec(
+    code,
+    ch_name,
+    status="现行",
+    pk="1",
+    issue_date=1577836800000,
+    act_date=1577836800000,
+):
+    return {
+        "code": code,
+        "chName": ch_name,
+        "status": status,
+        "pk": pk,
+        "issueDate": issue_date,
+        "actDate": act_date,
+        "chargeDept": "",
+    }
+
 
 def _make_dbba_records(*recs):
     """构造 dbba API 返回格式。"""
     return {"code": 200, "data": {"records": list(recs)}}
 
-def _dbba_rec(code, ch_name, status="现行", pk="1", issue_date=1577836800000, act_date=1577836800000):
-    return {"code": code, "chName": ch_name, "status": status, "pk": pk,
-            "issueDate": issue_date, "actDate": act_date, "chargeDept": ""}
+
+def _dbba_rec(
+    code,
+    ch_name,
+    status="现行",
+    pk="1",
+    issue_date=1577836800000,
+    act_date=1577836800000,
+):
+    return {
+        "code": code,
+        "chName": ch_name,
+        "status": status,
+        "pk": pk,
+        "issueDate": issue_date,
+        "actDate": act_date,
+        "chargeDept": "",
+    }
+
 
 def _make_iso_rows(*rows):
     """构造 iso_gov API 返回格式。"""
     return {"page": 1, "total": len(rows), "rows": list(rows)}
 
+
 def _iso_row(std_no, en_name, state="现行", year_date=2020, std_id="iso_1"):
-    return {"STANDARD_NO": std_no, "ENGLISH_NAME": en_name, "STATE": state,
-            "CIRCULATION_DATE": "2020-01-01", "STANDARD_STATUS": "ACTIVE",
-            "YEAR_DATE": year_date, "PUBLISH_UNIT": "ISO", "id": std_id}
+    return {
+        "STANDARD_NO": std_no,
+        "ENGLISH_NAME": en_name,
+        "STATE": state,
+        "CIRCULATION_DATE": "2020-01-01",
+        "STANDARD_STATUS": "ACTIVE",
+        "YEAR_DATE": year_date,
+        "PUBLISH_UNIT": "ISO",
+        "id": std_id,
+    }
 
 
 # ════════════════════════════════════════════════════════════════
 # 1. njbz365 适配器 — 国外标准 + GB 标准
 # ════════════════════════════════════════════════════════════════
+
 
 class TestNjbz365Adapter(unittest.TestCase):
     """njbz365 适配器对各种标准类型的搜索匹配测试。"""
@@ -147,15 +199,23 @@ class TestNjbz365Adapter(unittest.TestCase):
 
     def test_adopted_detection(self):
         """cybz 字段非空 → is_adopted=True"""
-        self._mock_response([_njbz_item("IEC 60079-25-2020", "Explosive atmospheres",
-                                        cybz="IEC 60079-25-2020,MOD")])
+        self._mock_response(
+            [
+                _njbz_item(
+                    "IEC 60079-25-2020",
+                    "Explosive atmospheres",
+                    cybz="IEC 60079-25-2020,MOD",
+                )
+            ]
+        )
         r = self.a._search("IEC 60079-25 2020", "IEC", 60079, 2020)
         self.assertTrue(r.is_adopted)
 
     def test_non_adopted(self):
         """cybz 字段为空 → is_adopted=False"""
-        self._mock_response([_njbz_item("ISO 9001-2015", "Quality management",
-                                        cybz="")])
+        self._mock_response(
+            [_njbz_item("ISO 9001-2015", "Quality management", cybz="")]
+        )
         r = self.a._search("ISO 9001 2015", "ISO", 9001, 2015)
         self.assertFalse(r.is_adopted)
 
@@ -163,7 +223,9 @@ class TestNjbz365Adapter(unittest.TestCase):
 
     def test_no_results_returns_none(self):
         """API 返回空列表 → None"""
-        self.a._do_request = MagicMock(return_value={"code": "0", "data": {"datalist": []}})
+        self.a._do_request = MagicMock(
+            return_value={"code": "0", "data": {"datalist": []}}
+        )
         r = self.a._search("NONEXIST 9999", "NONEXIST", 9999, 2020)
         self.assertIsNone(r)
 
@@ -178,6 +240,7 @@ class TestNjbz365Adapter(unittest.TestCase):
 # 2. hbba 适配器 — 行业标准
 # ════════════════════════════════════════════════════════════════
 
+
 class TestHbbaAdapter(unittest.TestCase):
     """hbba 适配器 _parse_result — 用 search_term 与 API 返回结果比对。"""
 
@@ -186,44 +249,43 @@ class TestHbbaAdapter(unittest.TestCase):
 
     def test_sh_exact_match(self):
         r = self.a._parse_result(
-            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"),
-            "SH/T 1610-2011")
+            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2011"
+        )
         self.assertEqual(r.match_status, "exact")
 
     def test_sh_newer_match(self):
         r = self.a._parse_result(
-            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"),
-            "SH/T 1610-2001")
+            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2001"
+        )
         self.assertEqual(r.match_status, "newer")
 
     def test_hg_exact_match(self):
         r = self.a._parse_result(
-            _hbba_rec("HG/T 20592-2009", "钢制管法兰"),
-            "HG/T 20592-2009")
+            _hbba_rec("HG/T 20592-2009", "钢制管法兰"), "HG/T 20592-2009"
+        )
         self.assertEqual(r.match_status, "exact")
 
     def test_jb_exact_match(self):
         r = self.a._parse_result(
-            _hbba_rec("JB/T 4730.3-2005", "承压设备无损检测"),
-            "JB/T 4730.3-2005")
+            _hbba_rec("JB/T 4730.3-2005", "承压设备无损检测"), "JB/T 4730.3-2005"
+        )
         self.assertEqual(r.match_status, "exact")
 
     def test_mismatch_different_code(self):
         r = self.a._parse_result(
-            _hbba_rec("HG/T 20592-2009", "钢制管法兰"),
-            "SH/T 1610-2011")
+            _hbba_rec("HG/T 20592-2009", "钢制管法兰"), "SH/T 1610-2011"
+        )
         self.assertNotEqual(r.match_status, "exact")
 
     def test_no_search_term_fallback(self):
-        r = self.a._parse_result(
-            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"),
-            "")
+        r = self.a._parse_result(_hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "")
         self.assertNotEqual(r.match_status, "exact")
 
 
 # ════════════════════════════════════════════════════════════════
 # 3. dbba 适配器 — 地方标准
 # ════════════════════════════════════════════════════════════════
+
 
 class TestDbbaAdapter(unittest.TestCase):
     """dbba 适配器 _parse_result — 用 search_term 与 API 返回结果比对。"""
@@ -233,33 +295,33 @@ class TestDbbaAdapter(unittest.TestCase):
 
     def test_db_exact_match(self):
         r = self.a._parse_result(
-            _dbba_rec("DB35 1234-2020", "福建省地方标准"),
-            "DB35 1234-2020")
+            _dbba_rec("DB35 1234-2020", "福建省地方标准"), "DB35 1234-2020"
+        )
         self.assertEqual(r.match_status, "exact")
 
     def test_db_newer_match(self):
         r = self.a._parse_result(
-            _dbba_rec("DB35 1234-2024", "福建省地方标准修订版"),
-            "DB35 1234-2020")
+            _dbba_rec("DB35 1234-2024", "福建省地方标准修订版"), "DB35 1234-2020"
+        )
         # DB35 的 province code 被解析器视为序号的一部分，
         # 2024 vs 2020 比对结果是 newer
         self.assertIsNotNone(r)
 
     def test_db_mismatch(self):
         r = self.a._parse_result(
-            _dbba_rec("DB11 9999-2020", "北京市地方标准"),
-            "DB35 1234-2020")
+            _dbba_rec("DB11 9999-2020", "北京市地方标准"), "DB35 1234-2020"
+        )
         self.assertNotEqual(r.match_status, "exact")
 
     def test_db_not_downloadable(self):
-        r = self.a._parse_result(
-            _dbba_rec("DB35 1234-2020", "福建省地方标准"))
+        r = self.a._parse_result(_dbba_rec("DB35 1234-2020", "福建省地方标准"))
         self.assertFalse(r.is_downloadable)
 
 
 # ════════════════════════════════════════════════════════════════
 # 4. iso_gov 适配器 — 国际标准
 # ════════════════════════════════════════════════════════════════
+
 
 class TestIsoGovAdapter(unittest.TestCase):
     """iso_gov 适配器 _parse_result — 用 search_term 与 API 返回结果比对。"""
@@ -269,26 +331,27 @@ class TestIsoGovAdapter(unittest.TestCase):
 
     def test_iso_exact_match(self):
         r = self.a._parse_result(
-            _iso_row("ISO 9001:2015", "Quality management systems"),
-            "ISO 9001:2015")
+            _iso_row("ISO 9001:2015", "Quality management systems"), "ISO 9001:2015"
+        )
         self.assertEqual(r.match_status, "exact")
 
     def test_iso_newer_match(self):
         r = self.a._parse_result(
             _iso_row("ISO 9001:2015", "Quality management systems", year_date=2015),
-            "ISO 9001:2008")
+            "ISO 9001:2008",
+        )
         self.assertEqual(r.match_status, "newer")
 
     def test_iso_mismatch(self):
         r = self.a._parse_result(
-            _iso_row("ISO 14001:2015", "Environmental management"),
-            "ISO 9001:2015")
+            _iso_row("ISO 14001:2015", "Environmental management"), "ISO 9001:2015"
+        )
         self.assertNotEqual(r.match_status, "exact")
 
     def test_iec_exact_match(self):
         r = self.a._parse_result(
-            _iso_row("IEC 61000-4-2:2008", "EMC Testing"),
-            "IEC 61000-4-2:2008")
+            _iso_row("IEC 61000-4-2:2008", "EMC Testing"), "IEC 61000-4-2:2008"
+        )
         # IEC 61000-4-2:2008 的多连字符格式解析器处理有限，
         # 关键是代号和主序号能匹配（不是 mismatch）
         self.assertNotEqual(r.match_status, "mismatch")
@@ -301,13 +364,15 @@ class TestIsoGovAdapter(unittest.TestCase):
     def test_adopted_detection(self):
         r = self.a._parse_result(
             _iso_row("ISO 9001:2015", "Adoption of ISO 9001:2015", year_date=2015),
-            "ISO 9001:2015")
+            "ISO 9001:2015",
+        )
         self.assertTrue(r.is_adopted)
 
 
 # ════════════════════════════════════════════════════════════════
 # 5. std_gov 和 csres — 验证不自行调用 match_result
 # ════════════════════════════════════════════════════════════════
+
 
 class TestStdGovAdapter(unittest.TestCase):
     """std_gov 适配器不自行调用 match_result，交给 base.py 处理。"""
@@ -333,6 +398,7 @@ class TestCsresAdapter(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════
 # 6. base.py query_with_strategy — 各适配器的上层覆盖验证
 # ════════════════════════════════════════════════════════════════
+
 
 class TestBaseQueryWithStrategy(unittest.TestCase):
     """验证 base.py query_with_strategy 正确覆盖子类的 match_status。"""

@@ -15,21 +15,25 @@ class TestAuthRateLimit:
 
     def test_rate_limit_triggers_after_max_attempts(self):
         """连续失败 MAX_ATTEMPTS 次后应返回 429。"""
-        import time
-        import tempfile
         import os
         import shutil
-        from pilotstd.core.db import Database
+        import tempfile
+        import time
+
+        from docker.auth import LOCKOUT_SECONDS, MAX_ATTEMPTS
         from docker.users import (
-            init_login_attempts_table, record_login_failure,
-            count_recent_failures, clear_login_failures)
-        from docker.auth import MAX_ATTEMPTS, LOCKOUT_SECONDS
+            clear_login_failures,
+            count_recent_failures,
+            init_login_attempts_table,
+            record_login_failure,
+        )
 
         tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
         try:
             # 临时覆盖数据库路径
             db_path = os.path.join(tmp, "test.db")
             import docker.users
+
             _orig = docker.users.get_db_path
             docker.users.get_db_path = lambda: db_path
 
@@ -43,7 +47,9 @@ class TestAuthRateLimit:
 
             cutoff = now - LOCKOUT_SECONDS
             recent = count_recent_failures(ip, cutoff)
-            assert recent >= MAX_ATTEMPTS, f"应有 {MAX_ATTEMPTS} 条失败记录，实际 {recent}"
+            assert recent >= MAX_ATTEMPTS, (
+                f"应有 {MAX_ATTEMPTS} 条失败记录，实际 {recent}"
+            )
 
             clear_login_failures(ip)
         finally:
@@ -52,20 +58,23 @@ class TestAuthRateLimit:
 
     def test_rate_limit_clears_expired_entries(self):
         """超过 LOCKOUT_SECONDS 的记录不计入限流。"""
-        import time
-        import tempfile
         import os
         import shutil
-        from pilotstd.core.db import Database
+        import tempfile
+        import time
+
         from docker.users import (
-            init_login_attempts_table, record_login_failure,
-            count_recent_failures, clear_login_failures)
-        from docker.auth import LOCKOUT_SECONDS
+            clear_login_failures,
+            count_recent_failures,
+            init_login_attempts_table,
+            record_login_failure,
+        )
 
         tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
         try:
             db_path = os.path.join(tmp, "test.db")
             import docker.users
+
             _orig = docker.users.get_db_path
             docker.users.get_db_path = lambda: db_path
 
@@ -90,6 +99,7 @@ class TestPathValidation:
     def test_valid_path_passes(self):
         """合法路径应通过校验。"""
         from docker.api.scan import _validate_path
+
         # /inbox 是允许的根目录
         result = _validate_path("/inbox/standards")
         assert os.path.isabs(result)
@@ -97,6 +107,7 @@ class TestPathValidation:
     def test_path_traversal_rejected(self):
         """../../../etc 应被拒绝。"""
         import os
+
         # 模拟一个受限场景：直接测试 abspath 前缀匹配逻辑
         abs_path = os.path.abspath("/media/../../../etc/passwd")
         abs_root = os.path.abspath("/media")
@@ -105,8 +116,9 @@ class TestPathValidation:
 
     def test_download_engine_path_traversal_rejected(self):
         """下载引擎应拒绝路径遍历攻击的标准号。"""
-        import tempfile
         import shutil
+        import tempfile
+
         from pilotstd.download.engine import DownloadEngine
         from pilotstd.download.models import DownloadTask
         from pilotstd.download.session import SessionManager
@@ -114,7 +126,9 @@ class TestPathValidation:
         tmp_dir = tempfile.mkdtemp(prefix="pilotstd_dl_test_")
         try:
             session_mgr = SessionManager()
-            engine = DownloadEngine(adapters=[], session_manager=session_mgr, save_root=tmp_dir)
+            engine = DownloadEngine(
+                adapters=[], session_manager=session_mgr, save_root=tmp_dir
+            )
             task = DownloadTask(standard_number="../../etc/passwd")
             try:
                 engine._resolve_target_path(task)
@@ -126,8 +140,9 @@ class TestPathValidation:
 
     def test_download_engine_normal_path_ok(self):
         """正常标准号的下载路径应在 _save_root 范围内。"""
-        import tempfile
         import shutil
+        import tempfile
+
         from pilotstd.download.engine import DownloadEngine
         from pilotstd.download.models import DownloadTask
         from pilotstd.download.session import SessionManager
@@ -135,10 +150,14 @@ class TestPathValidation:
         tmp_dir = tempfile.mkdtemp(prefix="pilotstd_dl_test_")
         try:
             session_mgr = SessionManager()
-            engine = DownloadEngine(adapters=[], session_manager=session_mgr, save_root=tmp_dir)
+            engine = DownloadEngine(
+                adapters=[], session_manager=session_mgr, save_root=tmp_dir
+            )
             task = DownloadTask(standard_number="GB/T 1.1-2020")
             result = engine._resolve_target_path(task)
-            assert os.path.realpath(result).startswith(os.path.realpath(tmp_dir) + os.sep)
+            assert os.path.realpath(result).startswith(
+                os.path.realpath(tmp_dir) + os.sep
+            )
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -148,8 +167,9 @@ class TestJWTToken:
 
     def test_token_contains_sub_and_iat(self):
         """Token 应包含 sub 和 iat 字段。"""
-        from docker.auth import _generate_token, SECRET
         from jose import jwt
+
+        from docker.auth import SECRET, _generate_token
 
         token = _generate_token()
         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
@@ -160,9 +180,11 @@ class TestJWTToken:
 
     def test_token_has_expiry(self):
         """Token 应有过期时间且在合理范围内。"""
-        from docker.auth import _generate_token, SECRET, TOKEN_EXPIRE_HOURS
-        from jose import jwt
         from datetime import datetime, timezone
+
+        from jose import jwt
+
+        from docker.auth import SECRET, TOKEN_EXPIRE_HOURS, _generate_token
 
         token = _generate_token()
         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
@@ -178,6 +200,7 @@ class TestCSRFProtection:
     def test_csrf_header_name_defined(self):
         """CSRF_HEADER 常量应已定义。"""
         from docker.auth import CSRF_HEADER
+
         assert CSRF_HEADER == "X-CSRF-Token"
 
     def test_state_changing_methods_checked(self):
@@ -188,9 +211,9 @@ class TestCSRFProtection:
 
     def test_login_sets_csrf_cookie(self):
         """登录成功后应设置独立的 csrf_token Cookie（httponly=False 供前端读取）。"""
-        from docker.auth import login, _generate_token
         # 验证 CSRF token 是通过独立 cookie 而非复用 JWT
         from docker.auth import COOKIE_NAME
+
         assert COOKIE_NAME == "pilotstd_token"  # JWT cookie
         # csrf_token 是独立 cookie，登录时通过 resp.set_cookie("csrf_token", ...) 设置
 
@@ -223,11 +246,13 @@ class TestSecureCookie:
     def test_cookie_name_defined(self):
         """Cookie 名称应已定义。"""
         from docker.auth import COOKIE_NAME
+
         assert COOKIE_NAME == "pilotstd_token"
 
     def test_auth_whitelist_contains_health(self):
         """健康检查端点应在白名单中。"""
         from docker.auth import AUTH_WHITELIST
+
         whitelist_paths = {path for path, _ in AUTH_WHITELIST}
         for p in ["/api/login", "/api/logout", "/api/health"]:
             assert p in whitelist_paths, f"{p} 不在白名单中"

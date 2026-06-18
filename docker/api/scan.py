@@ -40,8 +40,9 @@ def _validate_path(user_path: str, mgr=None) -> str:
 
 
 @router.post("/api/scan")
-def scan_directory(path: str = "/inbox", recursive: bool = True,
-                   mgr=Depends(get_manager_dep)):
+def scan_directory(
+    path: str = "/inbox", recursive: bool = True, mgr=Depends(get_manager_dep)
+):
     """扫描目录中的标准文件，返回文件列表及统计。走 facade 去重+解析。"""
     try:
         safe_path = _validate_path(path, mgr)
@@ -52,27 +53,32 @@ def scan_directory(path: str = "/inbox", recursive: bool = True,
     parsed_list = mgr.scan_directory(safe_path)
     files = []
     for p in parsed_list:
-        src = getattr(p, 'source_path', '')
-        files.append({
-            "name": os.path.basename(src),
-            "full_path": src,
-            "size": 0, "status": "parsed",
-            "standard_number": p.get_full_number(),
-            "logical_code": p.logical_code,
-            "number": p.number,
-            "year": p.year,
-            "part": p.part,
-            "num_prefix": p.num_prefix,
-            "num_suffix": p.num_suffix,
-            "ext": p.ext or ".pdf",
-            "language": p.language,
-            "std_name": p.std_name,
-        })
+        src = getattr(p, "source_path", "")
+        files.append(
+            {
+                "name": os.path.basename(src),
+                "full_path": src,
+                "size": 0,
+                "status": "parsed",
+                "standard_number": p.get_full_number(),
+                "logical_code": p.logical_code,
+                "number": p.number,
+                "year": p.year,
+                "part": p.part,
+                "num_prefix": p.num_prefix,
+                "num_suffix": p.num_suffix,
+                "ext": p.ext or ".pdf",
+                "language": p.language,
+                "std_name": p.std_name,
+            }
+        )
     return {
         "total": len(files),
         "pdf_count": sum(1 for f in files if f["name"].lower().endswith(".pdf")),
-        "word_count": sum(1 for f in files if f["name"].lower().endswith((".doc", ".docx"))),
+        "word_count": sum(
+            1 for f in files if f["name"].lower().endswith((".doc", ".docx"))
+        ),
         "dup_skipped": 0,
-        "skipped_dirs": len(getattr(mgr, '_last_skipped_dirs', [])),
+        "skipped_dirs": len(getattr(mgr, "_last_skipped_dirs", [])),
         "files": files,
     }

@@ -1,22 +1,26 @@
 # tests/test_organizer.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
+import tempfile
+import unittest
 
-from pilotstd.organizer.industry_lookup import (
-    get_base_code, get_industry_name, get_folder_name, INDUSTRY_MAP,
-)
-from pilotstd.organizer.dir_builder import DirBuilder
-from pilotstd.organizer.mover import FileMover
-from pilotstd.organizer.expire_handler import ExpireHandler
 from pilotstd.models import ParsedStdInfo
+from pilotstd.organizer.dir_builder import DirBuilder
+from pilotstd.organizer.expire_handler import ExpireHandler
+from pilotstd.organizer.industry_lookup import (
+    INDUSTRY_MAP,
+    get_base_code,
+    get_folder_name,
+    get_industry_name,
+)
+from pilotstd.organizer.mover import FileMover
 
 
 class TestIndustryLookup(unittest.TestCase):
@@ -78,8 +82,12 @@ class TestFileMover(unittest.TestCase):
         with open(src, "w") as f:
             f.write("dummy")
         parsed = ParsedStdInfo(
-            raw_filename="test.pdf", logical_code="GB/T",
-            number=19001, year=2020, std_name="测试")
+            raw_filename="test.pdf",
+            logical_code="GB/T",
+            number=19001,
+            year=2020,
+            std_name="测试",
+        )
         dst = self.mover.move_to_code_dir(src, parsed)
         self.assertIsNotNone(dst)
         self.assertTrue(os.path.exists(dst))
@@ -88,7 +96,9 @@ class TestFileMover(unittest.TestCase):
 
     def test_is_safe_path_accepts_internal(self):
         """库根目录内的路径通过校验。"""
-        self.assertTrue(self.mover._is_safe_path(os.path.join(self.tmp, "sub", "file.pdf")))
+        self.assertTrue(
+            self.mover._is_safe_path(os.path.join(self.tmp, "sub", "file.pdf"))
+        )
 
     def test_is_safe_path_rejects_escape(self):
         """库根目录外的路径被拒绝。"""
@@ -105,9 +115,12 @@ class TestFileMover(unittest.TestCase):
         outside = os.path.join(os.path.dirname(self.tmp), "escaped.pdf")
         self.mover.normalize_filename = lambda parsed: outside
         try:
-            dst = self.mover.move_to_code_dir(src, ParsedStdInfo(
-                raw_filename="test.pdf", logical_code="GB",
-                number=1, year=2020))
+            dst = self.mover.move_to_code_dir(
+                src,
+                ParsedStdInfo(
+                    raw_filename="test.pdf", logical_code="GB", number=1, year=2020
+                ),
+            )
             self.assertIsNone(dst, "越界路径应被拒绝返回 None")
         finally:
             self.mover.normalize_filename = original
@@ -117,8 +130,8 @@ class TestFileMover(unittest.TestCase):
         with open(src, "w") as f:
             f.write("old")
         parsed = ParsedStdInfo(
-            raw_filename="old.pdf", logical_code="GB",
-            number=1234, year=1986)
+            raw_filename="old.pdf", logical_code="GB", number=1234, year=1986
+        )
         dst = self.mover.move_to_expire(src, parsed)
         self.assertIsNotNone(dst)
         self.assertTrue(os.path.exists(dst))
@@ -140,18 +153,19 @@ class TestExpireHandler(unittest.TestCase):
         with open(src, "w") as f:
             f.write("data")
         parsed = ParsedStdInfo(
-            raw_filename="expired.pdf", logical_code="GB",
-            number=1, year=1990)
+            raw_filename="expired.pdf", logical_code="GB", number=1, year=1990
+        )
         result = self.handler.process_expired([(src, parsed)])
         self.assertEqual(result["moved"], 1)
         self.assertEqual(result["failed"], 0)
 
     def test_process_missing_file(self):
         parsed = ParsedStdInfo(
-            raw_filename="ghost.pdf", logical_code="GB",
-            number=2, year=1995)
+            raw_filename="ghost.pdf", logical_code="GB", number=2, year=1995
+        )
         result = self.handler.process_expired(
-            [(os.path.join(self.tmp, "ghost.pdf"), parsed)])
+            [(os.path.join(self.tmp, "ghost.pdf"), parsed)]
+        )
         self.assertEqual(result["failed"], 1)
 
 

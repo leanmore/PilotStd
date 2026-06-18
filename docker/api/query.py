@@ -11,18 +11,28 @@ router = APIRouter(tags=["query"])
 
 # 查询结果持久化文件路径
 QUERY_RESULTS_FILE = os.path.join(
-    os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data")),
-    "query_results.json")
+    os.environ.get(
+        "DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data")
+    ),
+    "query_results.json",
+)
 
 
 @router.post("/api/query")
-def query_standards(numbers: list[str] = Body(embed=True), force_refresh: bool = False,
-                    mgr=Depends(get_manager_dep)):
+def query_standards(
+    numbers: list[str] = Body(embed=True),
+    force_refresh: bool = False,
+    mgr=Depends(get_manager_dep),
+):
     """批量查询标准有效性状态。返回完整 17 字段，前端按需取用。"""
     results, stats = mgr.query_by_numbers(numbers, force_refresh=force_refresh)
     return {
-        "stats": {"total": stats.total, "found": stats.found,
-                  "downloadable": stats.downloadable, "not_found": stats.not_found},
+        "stats": {
+            "total": stats.total,
+            "found": stats.found,
+            "downloadable": stats.downloadable,
+            "not_found": stats.not_found,
+        },
         "results": results,
     }
 

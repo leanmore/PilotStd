@@ -17,7 +17,6 @@ import json
 import logging
 import os
 import sys
-import tempfile
 import time
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -32,6 +31,7 @@ logger = logging.getLogger("stress_winui")
 
 # ── QApplication fixture ─────────────────────────────────────
 
+
 @pytest.fixture(scope="session")
 def qapp():
     app = QApplication.instance()
@@ -40,11 +40,13 @@ def qapp():
     app.setStyle("Fusion")
     # 初始化 LoggerManager——MainWindow(cfg, prj) 不走 run()，需手动初始化文件 handler
     from pilotstd.core.logger import LoggerManager
+
     LoggerManager(level=logging.INFO)
     yield app
 
 
 # ── MainWindow fixture ───────────────────────────────────────
+
 
 @pytest.fixture
 def window(qapp, qtbot, request):
@@ -78,13 +80,14 @@ def window(qapp, qtbot, request):
 
     # 清理
     for h in list(logging.getLogger().handlers):
-        if hasattr(win, '_log_handler') and h is win._log_handler:
+        if hasattr(win, "_log_handler") and h is win._log_handler:
             logging.getLogger().removeHandler(h)
     win.close()
     win.deleteLater()
 
 
 # ── Worker 等待工具 ──────────────────────────────────────────
+
 
 def _wait_worker(qtbot, window, attr, timeout=3600000):
     """等待 Worker 完成。默认 1 小时超时，远大于正常管线耗时。"""
@@ -95,6 +98,7 @@ def _wait_worker(qtbot, window, attr, timeout=3600000):
 
 
 # ── 测试: 热启 auto + 交叉对比 ────────────────────────────────
+
 
 def test_winui_hot_cross_compare(window, qtbot, request):
     """WinUI 热启一键处理 → 取统计 → 与 CLI 冷启结果交叉对比。
@@ -111,13 +115,15 @@ def test_winui_hot_cross_compare(window, qtbot, request):
     with open(step1_path, "r", encoding="utf-8") as f:
         step1 = json.load(f)
     expected = step1.get("summary", {})
-    logger.info("CLI 冷启期望值: scan=%d query_dl=%d query_ex=%d query_pe=%d dl_success=%d org_moved=%d",
-                expected.get("scan_count", 0),
-                expected.get("query_download", 0),
-                expected.get("query_expire", 0),
-                expected.get("query_pending", 0),
-                expected.get("download_success", 0),
-                expected.get("organize_moved", 0))
+    logger.info(
+        "CLI 冷启期望值: scan=%d query_dl=%d query_ex=%d query_pe=%d dl_success=%d org_moved=%d",
+        expected.get("scan_count", 0),
+        expected.get("query_download", 0),
+        expected.get("query_expire", 0),
+        expected.get("query_pending", 0),
+        expected.get("download_success", 0),
+        expected.get("organize_moved", 0),
+    )
 
     win = window
     t0 = time.time()
@@ -135,10 +141,14 @@ def test_winui_hot_cross_compare(window, qtbot, request):
 
     # 取统计
     actual = win.get_pipeline_stats()
-    logger.info("WinUI 实际值: scan=%d query_dl=%d query_ex=%d query_pe=%d total=%d",
-                actual["scan_count"], actual["query_download"],
-                actual["query_expire"], actual["query_pending"],
-                actual["query_total"])
+    logger.info(
+        "WinUI 实际值: scan=%d query_dl=%d query_ex=%d query_pe=%d total=%d",
+        actual["scan_count"],
+        actual["query_download"],
+        actual["query_expire"],
+        actual["query_pending"],
+        actual["query_total"],
+    )
 
     # ── 交叉对比 ──
     comparisons = []
@@ -146,14 +156,25 @@ def test_winui_hot_cross_compare(window, qtbot, request):
 
     def _cmp(label, exp_val, act_val, tolerance=0.1):
         nonlocal all_pass
-        ok = abs(exp_val - act_val) / max(exp_val, 1) <= tolerance if exp_val > 0 else act_val == 0
+        ok = (
+            abs(exp_val - act_val) / max(exp_val, 1) <= tolerance
+            if exp_val > 0
+            else act_val == 0
+        )
         if not ok:
             all_pass = False
-        comparisons.append({
-            "item": label, "cli_expected": exp_val, "winui_actual": act_val,
-            "pass": ok, "tolerance": tolerance
-        })
-        logger.info(f"  交叉对比 {label}: CLI={exp_val} WinUI={act_val} → {'PASS' if ok else 'FAIL'}")
+        comparisons.append(
+            {
+                "item": label,
+                "cli_expected": exp_val,
+                "winui_actual": act_val,
+                "pass": ok,
+                "tolerance": tolerance,
+            }
+        )
+        logger.info(
+            f"  交叉对比 {label}: CLI={exp_val} WinUI={act_val} → {'PASS' if ok else 'FAIL'}"
+        )
 
     _cmp("scan_count", expected.get("scan_count", 0), actual["scan_count"])
     _cmp("query_download", expected.get("query_download", 0), actual["query_download"])
@@ -162,6 +183,7 @@ def test_winui_hot_cross_compare(window, qtbot, request):
     # ── 三表读验证 ──
     from pilotstd.core.config import get_data_dir
     from pilotstd.core.db import Database
+
     db_path = os.path.join(get_data_dir(), "pilotstd.db")
     three_table = {}
     if os.path.exists(db_path):
@@ -175,16 +197,23 @@ def test_winui_hot_cross_compare(window, qtbot, request):
     logger.info("三表: %s", three_table)
     for t_name in ["standard_info_cache", "file_index", "announcement_cache"]:
         ok = three_table.get(t_name, 0) > 0
-        comparisons.append({
-            "item": f"三表读_{t_name}", "count": three_table.get(t_name, 0), "pass": ok
-        })
+        comparisons.append(
+            {
+                "item": f"三表读_{t_name}",
+                "count": three_table.get(t_name, 0),
+                "pass": ok,
+            }
+        )
         if not ok:
             all_pass = False
-        logger.info(f"  三表读 {t_name}: {three_table.get(t_name, 0)} → {'PASS' if ok else 'FAIL'}")
+        logger.info(
+            f"  三表读 {t_name}: {three_table.get(t_name, 0)} → {'PASS' if ok else 'FAIL'}"
+        )
 
     # ── 写 step2.json ──
     step2 = {
-        "step": 2, "ts": time.strftime("%Y%m%d_%H%M%S"),
+        "step": 2,
+        "ts": time.strftime("%Y%m%d_%H%M%S"),
         "elapsed_s": round(elapsed, 1),
         "actual": actual,
         "expected": expected,
@@ -197,4 +226,6 @@ def test_winui_hot_cross_compare(window, qtbot, request):
         json.dump(step2, f, ensure_ascii=False, indent=2)
     logger.info(f"step2.json 已写入: {step2_path}")
 
-    assert all_pass, f"交叉对比 FAIL: {len([c for c in comparisons if not c['pass']])} 项未通过"
+    assert all_pass, (
+        f"交叉对比 FAIL: {len([c for c in comparisons if not c['pass']])} 项未通过"
+    )

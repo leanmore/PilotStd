@@ -49,9 +49,18 @@ class TaskPage(QWidget):
         self.task_table = QTableWidget()
         self.task_table.setColumnCount(6)
         self.task_table.setHorizontalHeaderLabels(
-            [_("header_task_id"), _("header_task_type"), _("header_task_status"),
-             _("header_task_progress"), _("header_task_created"), _("header_task_error")])
-        self.task_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+            [
+                _("header_task_id"),
+                _("header_task_type"),
+                _("header_task_status"),
+                _("header_task_progress"),
+                _("header_task_created"),
+                _("header_task_error"),
+            ]
+        )
+        self.task_table.horizontalHeader().setSectionResizeMode(
+            5, QHeaderView.ResizeMode.Stretch
+        )
         task_layout.addWidget(self.task_table)
 
         # 下部：详情
@@ -79,15 +88,26 @@ class TaskPage(QWidget):
             self.task_table.setItem(row, 0, QTableWidgetItem(t.task_id))
             self.task_table.setItem(row, 1, QTableWidgetItem(t.task_type.value))
             self.task_table.setItem(row, 2, QTableWidgetItem(t.status.value))
-            self.task_table.setItem(row, 3, QTableWidgetItem(
-                f"{t.completed_items}/{t.total_items} ({t.progress_pct:.0f}%)"))
-            self.task_table.setItem(row, 4, QTableWidgetItem(t.updated_at[:19] if t.updated_at else ""))
+            self.task_table.setItem(
+                row,
+                3,
+                QTableWidgetItem(
+                    f"{t.completed_items}/{t.total_items} ({t.progress_pct:.0f}%)"
+                ),
+            )
+            self.task_table.setItem(
+                row, 4, QTableWidgetItem(t.updated_at[:19] if t.updated_at else "")
+            )
             self.task_table.setItem(row, 5, QTableWidgetItem(t.error_log))
 
     def _clear_completed(self):
         if self._queue:
             for t in self._queue.list_all(limit=200):
-                if t.status in (TaskStatus.COMPLETED, TaskStatus.CANCELLED, TaskStatus.FAILED):
+                if t.status in (
+                    TaskStatus.COMPLETED,
+                    TaskStatus.CANCELLED,
+                    TaskStatus.FAILED,
+                ):
                     self._queue.cancel(t.task_id)  # marks for cleanup
         self._refresh()
 

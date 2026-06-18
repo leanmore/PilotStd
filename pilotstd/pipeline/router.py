@@ -36,20 +36,22 @@ class PipelineRouter:
         同部分号、且查询结果为 exact 匹配的文件。
         若存在则说明新版标准已由用户持有，无需重复下载。
         """
-        code = (getattr(item, 'logical_code', '') or '').replace('/', '').upper()
-        number = getattr(item, 'number', 0)
-        part = getattr(item, 'part', None)
+        code = (getattr(item, "logical_code", "") or "").replace("/", "").upper()
+        number = getattr(item, "number", 0)
+        part = getattr(item, "part", None)
         for other in all_items:
             if other is item:
                 continue
-            other_code = (getattr(other, 'logical_code', '') or '').replace('/', '').upper()
+            other_code = (
+                (getattr(other, "logical_code", "") or "").replace("/", "").upper()
+            )
             if other_code != code:
                 continue
-            if getattr(other, 'number', 0) != number:
+            if getattr(other, "number", 0) != number:
                 continue
-            if getattr(other, 'part', None) != part:
+            if getattr(other, "part", None) != part:
                 continue
-            if getattr(other, 'match_status', '') == 'exact':
+            if getattr(other, "match_status", "") == "exact":
                 return True
         return False
 
@@ -90,16 +92,27 @@ class PipelineRouter:
         8. 现行 → organize（文件名规范）/ normalize（需重命名）
         9. 其他 → fallback
         """
-        buckets: dict = {"organize": [], "normalize": [], "expire": [],
-                         "download": [], "pending": [], "fallback": []}
+        buckets: dict = {
+            "organize": [],
+            "normalize": [],
+            "expire": [],
+            "download": [],
+            "pending": [],
+            "fallback": [],
+        }
         for p in items:
             status = getattr(p, "effect_status", "") or ""
             replaces = getattr(p, "found_replaces", "") or ""
             code = getattr(p, "logical_code", "") or ""
             match_status = getattr(p, "match_status", "") or ""
-            logger.debug("路由: %s | 状态=%s match=%s 采标=%s replaces=%s",
-                         p.get_full_number(), status, match_status,
-                         getattr(p, 'is_adopted', False), bool(replaces))
+            logger.debug(
+                "路由: %s | 状态=%s match=%s 采标=%s replaces=%s",
+                p.get_full_number(),
+                status,
+                match_status,
+                getattr(p, "is_adopted", False),
+                bool(replaces),
+            )
             has_valid_replaces = bool(replaces and replaces not in ("网站无此分类",))
             is_gb = is_gb_code(code)
 
@@ -111,12 +124,14 @@ class PipelineRouter:
             # 规则1: match_status=="newer" + GB + 非采标 → 远程有更新版，可下载
             # ⚠️ 下载前先检查新版是否已在本地存在——避免重复下载
             if match_status == "newer" and is_gb:
-                if getattr(p, 'is_adopted', False):
+                if getattr(p, "is_adopted", False):
                     buckets["pending"].append(p)
                 elif self._newer_exists_locally(p, items):
                     # 新版文件已在本地，旧版直接归档过期，不下载
-                    logger.debug("路由: %s | 新版已本地存在，跳过下载→归档过期",
-                                 p.get_full_number())
+                    logger.debug(
+                        "路由: %s | 新版已本地存在，跳过下载→归档过期",
+                        p.get_full_number(),
+                    )
                     buckets["expire"].append(p)
                 else:
                     buckets["download"].append(p)
@@ -135,7 +150,7 @@ class PipelineRouter:
             # 规则4+5: 废止/已废止/作废
             if status in ("废止", "已废止", "作废"):
                 if has_valid_replaces and is_gb:
-                    if getattr(p, 'is_adopted', False):
+                    if getattr(p, "is_adopted", False):
                         buckets["pending"].append(p)
                     else:
                         buckets["download"].append(p)
@@ -146,7 +161,7 @@ class PipelineRouter:
             # 规则6+7: 被代替
             if status == "被代替":
                 if has_valid_replaces and is_gb:
-                    if getattr(p, 'is_adopted', False):
+                    if getattr(p, "is_adopted", False):
                         buckets["pending"].append(p)
                     else:
                         buckets["download"].append(p)
@@ -157,12 +172,16 @@ class PipelineRouter:
             # 规则8: 现行 → 检查文件名是否已符合规范格式
             if status == "现行":
                 expected = make_standard_filename(
-                    p.logical_code, p.number, p.year,
-                    p.std_name, getattr(p, "part", None),
+                    p.logical_code,
+                    p.number,
+                    p.year,
+                    p.std_name,
+                    getattr(p, "part", None),
                     language=getattr(p, "language", ""),
                     num_prefix=getattr(p, "num_prefix", ""),
                     num_suffix=getattr(p, "num_suffix", ""),
-                    ext=getattr(p, "ext", "pdf"))
+                    ext=getattr(p, "ext", "pdf"),
+                )
                 actual = os.path.basename(p.source_path or "")
                 if actual == expected:
                     buckets["organize"].append(p)

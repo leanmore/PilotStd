@@ -42,7 +42,9 @@ def _get_config_dir() -> str:
         except OSError:
             pass
         # 不可写时使用用户 AppData 目录
-        appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
+        appdata = os.path.join(
+            os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd"
+        )
         os.makedirs(appdata, exist_ok=True)
         return appdata
     else:
@@ -62,7 +64,9 @@ def get_data_dir() -> str:
             os.makedirs(data_dir, exist_ok=True)
             return data_dir
         except OSError:
-            appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
+            appdata = os.path.join(
+                os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd"
+            )
             os.makedirs(appdata, exist_ok=True)
             return appdata
     return os.path.join(os.path.dirname(__file__), "..", "..", "data")
@@ -82,9 +86,12 @@ def get_library_root(config: "ConfigManager") -> str:
     """返回标准库根目录路径（环境变量 STANDARD_ROOT 优先，其次配置，最后默认值）。
     路径不存在时自动创建，不可写时记录错误。"""
     import logging
+
     _log = logging.getLogger("pilotstd.config")
     # Docker/容器环境通过 STANDARD_ROOT 注入路径，优先使用
-    root = os.environ.get("STANDARD_ROOT") or config.get("storage.root_dir", os.path.expanduser("~/标准"))
+    root = os.environ.get("STANDARD_ROOT") or config.get(
+        "storage.root_dir", os.path.expanduser("~/标准")
+    )
     root = os.path.abspath(os.path.normpath(root))
     if not os.path.exists(root):
         try:
@@ -107,31 +114,44 @@ FACTORY_DEFAULTS = {
     "appearance.column_visibility": [True] * 9,
     "appearance.icon_theme": "default",
     "appearance.skip_welcome": False,
-    "appearance.hyphen_style": True,         # 短横代替一字线
+    "appearance.hyphen_style": True,  # 短横代替一字线
     "storage.root_dir": os.path.expanduser("~/标准"),
     "storage.expire_folder": "过期作废",
     "storage.downloads_dir": None,  # null=回退到 data/downloads
-    "storage.mirror_skipped_dirs": True,   # 归档时将扫描跳过的目录镜像到输出
-    "storage.mirror_fallback": True,       # 归档收尾：将源目录残留文件镜像到输出
+    "storage.mirror_skipped_dirs": True,  # 归档时将扫描跳过的目录镜像到输出
+    "storage.mirror_fallback": True,  # 归档收尾：将源目录残留文件镜像到输出
     "organize.auto_clean_source": False,  # 归档目标已存在时自动清理源文件（需SHA-256确认）
     "network.proxy": "",
     "network.ua_rotation": True,
-    "network.timeout": 30,                 # HTTP 请求默认超时秒数
-    "query.site_order": [],               # 空=使用默认路由
+    "network.timeout": 30,  # HTTP 请求默认超时秒数
+    "query.site_order": [],  # 空=使用默认路由
     "query.use_cache": True,
-    "scan.skip_folders": ["过期作废", "征求意见稿", "培训课件", "建设项目过程资料及交工资料标准", "吊车性能", "标准图集"],
-    "scan.exclude_patterns": ["征求意见稿", "培训课件", "建设项目过程资料及交工资料标准", "吊车性能", "标准图集"],  # 扫描排除关键词
+    "scan.skip_folders": [
+        "过期作废",
+        "征求意见稿",
+        "培训课件",
+        "建设项目过程资料及交工资料标准",
+        "吊车性能",
+        "标准图集",
+    ],
+    "scan.exclude_patterns": [
+        "征求意见稿",
+        "培训课件",
+        "建设项目过程资料及交工资料标准",
+        "吊车性能",
+        "标准图集",
+    ],  # 扫描排除关键词
     "scan.extensions": [".pdf", ".doc", ".docx", ".txt"],
-    "announcement.enabled": False,           # 公告自动更新（Windows默认关，Docker默认开）
-    "ocr.provider": "",                      # 已废弃——多 provider 共存时忽略，各 provider 独立配置
-    "ocr.baidu_api_key": "",                 # 百度云 API Key
-    "ocr.baidu_secret_key": "",              # 百度云 Secret Key
-    "ocr.tencent_secret_id": "",             # 腾讯云 Secret ID
-    "ocr.tencent_secret_key": "",            # 腾讯云 Secret Key
-    "ocr.aliyun_access_key_id": "",          # 阿里云 Access Key ID
-    "ocr.aliyun_access_key_secret": "",      # 阿里云 Access Key Secret
-    "file.clear_readonly": True,             # 移动文件前自动清除只读属性
-    "watchdog.enabled": False,             # 启动时开启增量文件监控（需安装watchdog包）
+    "announcement.enabled": False,  # 公告自动更新（Windows默认关，Docker默认开）
+    "ocr.provider": "",  # 已废弃——多 provider 共存时忽略，各 provider 独立配置
+    "ocr.baidu_api_key": "",  # 百度云 API Key
+    "ocr.baidu_secret_key": "",  # 百度云 Secret Key
+    "ocr.tencent_secret_id": "",  # 腾讯云 Secret ID
+    "ocr.tencent_secret_key": "",  # 腾讯云 Secret Key
+    "ocr.aliyun_access_key_id": "",  # 阿里云 Access Key ID
+    "ocr.aliyun_access_key_secret": "",  # 阿里云 Access Key Secret
+    "file.clear_readonly": True,  # 移动文件前自动清除只读属性
+    "watchdog.enabled": False,  # 启动时开启增量文件监控（需安装watchdog包）
 }
 
 
@@ -280,6 +300,7 @@ class ConfigManager:
         文件损坏时自动备份并重建默认配置。启动时清理残留 .tmp 文件。"""
         import logging
         from datetime import datetime
+
         _log = logging.getLogger("pilotstd.config")
         # 清理上次进程崩溃可能残留的 .tmp 文件
         cfg_dir = os.path.dirname(self._filepath)
@@ -302,7 +323,9 @@ class ConfigManager:
                 self.save()
                 return
         except (json.JSONDecodeError, OSError) as e:
-            backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
+            backup = (
+                self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
+            )
             try:
                 os.rename(self._filepath, backup)
                 _log.error("配置文件损坏已备份至 %s，重建默认配置", backup)
@@ -324,8 +347,11 @@ class ConfigManager:
 
     # 完整键路径（含层级前缀）以此结尾的为敏感字段
     _SENSITIVE_SUFFIXES = (
-        ".api_key", ".secret_key", ".secret_id",
-        ".access_key_id", ".access_key_secret",
+        ".api_key",
+        ".secret_key",
+        ".secret_id",
+        ".access_key_id",
+        ".access_key_secret",
     )
 
     def _get_fernet(self):
@@ -333,6 +359,7 @@ class ConfigManager:
         if hasattr(self, "_fernet"):
             return self._fernet
         from cryptography.fernet import Fernet
+
         key_path = os.path.join(os.path.dirname(self._filepath), ".fernet_key")
         try:
             with open(key_path, "rb") as f:

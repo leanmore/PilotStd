@@ -54,18 +54,23 @@ class AutoRunMixin:
         # 复用已有 UI slot（与独立 Worker 同签名）
         self._auto_worker.scan_batch.connect(self._on_scan_batch_ready)
         self._auto_worker.scan_progress.connect(
-            lambda cur, total: self.progress_changed.emit(_pct(cur, total)))
+            lambda cur, total: self.progress_changed.emit(_pct(cur, total))
+        )
         self._auto_worker.query_result.connect(
-            lambda idx, result: self._on_query_result_ready(idx, result))
+            lambda idx, result: self._on_query_result_ready(idx, result)
+        )
         self._auto_worker.query_progress.connect(
-            lambda cur, total: self.progress_changed.emit(_pct(cur, total)))
+            lambda cur, total: self.progress_changed.emit(_pct(cur, total))
+        )
         self._auto_worker.download_result.connect(self._on_download_batch_ready_single)
         self._auto_worker.download_progress.connect(
-            lambda cur, total: self.progress_changed.emit(_pct(cur, total)))
+            lambda cur, total: self.progress_changed.emit(_pct(cur, total))
+        )
         self._auto_worker.archive_result.connect(self._on_archive_batch_ready_single)
         self._auto_worker.stage_changed.connect(self._on_auto_stage_changed)
         self._auto_worker.error.connect(
-            lambda msg: self.status_changed.emit(f"自动运行失败: {msg}"))
+            lambda msg: self.status_changed.emit(f"自动运行失败: {msg}")
+        )
         self._auto_worker.finished_signal.connect(self._on_auto_pipeline_finished)
         self._auto_worker.start()
 
@@ -80,8 +85,10 @@ class AutoRunMixin:
     def _on_auto_stage_changed(self, stage: str, current: int, total: int):
         """AutoWorker 阶段切换 → 更新按钮状态和进度条。"""
         stage_labels = {
-            "scan": "扫描中...", "query": "查询中...",
-            "download": "下载中...", "archive": "归档中...",
+            "scan": "扫描中...",
+            "query": "查询中...",
+            "download": "下载中...",
+            "archive": "归档中...",
             "done": "自动运行完成",
         }
         self.status_changed.emit(stage_labels.get(stage, stage))
@@ -121,11 +128,17 @@ class AutoRunMixin:
             label = f"{p.get_full_number()}  {_('auto_run_manual_row_adopted')}"
             manual_all.append(label)
 
-        msg = (_("auto_run_summary_total").format(total=total) + "\n\n"
-               + _("auto_run_summary_found").format(count=total - len(not_found)) + "\n"
-               + _("auto_run_summary_not_found").format(count=len(not_found)) + "\n"
-               + _("auto_run_summary_expired").format(count=len(expired)) + "\n"
-               + _("auto_run_summary_adopted").format(count=len(adopted)))
+        msg = (
+            _("auto_run_summary_total").format(total=total)
+            + "\n\n"
+            + _("auto_run_summary_found").format(count=total - len(not_found))
+            + "\n"
+            + _("auto_run_summary_not_found").format(count=len(not_found))
+            + "\n"
+            + _("auto_run_summary_expired").format(count=len(expired))
+            + "\n"
+            + _("auto_run_summary_adopted").format(count=len(adopted))
+        )
 
         dlg = QDialog(self)
         dlg.setWindowTitle(_("auto_run_summary_title"))
@@ -154,15 +167,22 @@ class AutoRunMixin:
 
         def _export(fmt):
             filter_str = _("file_filter_csv") if fmt == "csv" else _("file_filter_txt")
-            path, __ = QFileDialog.getSaveFileName(None, _("dialog_export_summary"),
-                f"auto_run_summary.{fmt}", filter_str)
+            path, __ = QFileDialog.getSaveFileName(
+                None, _("dialog_export_summary"), f"auto_run_summary.{fmt}", filter_str
+            )
             if not path:
                 return
             try:
                 with open(path, "w", encoding="utf-8-sig") as f:
                     if fmt == "csv":
                         w = csv.writer(f)
-                        w.writerow([_("csv_header_std_number"), _("csv_header_std_name"), _("csv_header_reason")])
+                        w.writerow(
+                            [
+                                _("csv_header_std_number"),
+                                _("csv_header_std_name"),
+                                _("csv_header_reason"),
+                            ]
+                        )
                         for item in manual_all:
                             parts = item.split("  ")
                             w.writerow(parts if len(parts) >= 2 else [item, "", ""])

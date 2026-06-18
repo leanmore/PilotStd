@@ -33,13 +33,20 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
     items = []
     try:
         for entry in os.scandir(safe_path):
-            items.append({"name": entry.name,
-                "type": "dir" if entry.is_dir() else "file",
-                "path": os.path.join(safe_path, entry.name),
-                "size": entry.stat().st_size if not entry.is_dir() else 0})
+            items.append(
+                {
+                    "name": entry.name,
+                    "type": "dir" if entry.is_dir() else "file",
+                    "path": os.path.join(safe_path, entry.name),
+                    "size": entry.stat().st_size if not entry.is_dir() else 0,
+                }
+            )
     except (PermissionError, OSError) as e:
         logger.warning("目录扫描失败: %s — %s", safe_path, e)
-    return {"path": safe_path, "files": sorted(items, key=lambda x: (x["type"], x["name"]))}
+    return {
+        "path": safe_path,
+        "files": sorted(items, key=lambda x: (x["type"], x["name"])),
+    }
 
 
 @router.post("/api/clean-empty")

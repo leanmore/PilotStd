@@ -40,6 +40,7 @@ class AnnounceService:
         """懒加载 OCR provider，首次调用时从配置创建。"""
         if self._ocr_provider is None and self._ocr_config:
             from ..announcement.ocr import create_ocr_provider
+
             self._ocr_provider = create_ocr_provider(self._ocr_config)
         return self._ocr_provider
 
@@ -56,7 +57,9 @@ class AnnounceService:
 
         data_dir = get_data_dir()
         for std_type in ("gb", "hb", "db"):
-            os.makedirs(os.path.join(data_dir, "announcements", std_type), exist_ok=True)
+            os.makedirs(
+                os.path.join(data_dir, "announcements", std_type), exist_ok=True
+            )
 
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
@@ -64,55 +67,66 @@ class AnnounceService:
 
         for adapter in engine.adapters:
             log_row = self._file_index._db.fetchone(
-                "SELECT * FROM fetch_log WHERE source_site=?",
-                (adapter.source_site,))
+                "SELECT * FROM fetch_log WHERE source_site=?", (adapter.source_site,)
+            )
             since = log_row["last_notice_date"] if log_row else ""
 
-            result = engine.check_one(adapter.standard_type, since_date=since,
-                                       ocr_provider=ocr)
+            result = engine.check_one(
+                adapter.standard_type, since_date=since, ocr_provider=ocr
+            )
             if "error" in result:
-                logger.warning("公告适配器 %s 异常: %s",
-                               adapter.source_site, result.get("error", ""))
+                logger.warning(
+                    "公告适配器 %s 异常: %s",
+                    adapter.source_site,
+                    result.get("error", ""),
+                )
                 continue
             total_matched += result.get("matched", 0)
 
             now = datetime.now().isoformat()
             latest_date = result.get("last_notice_date", "")
             log_row = self._file_index._db.fetchone(
-                "SELECT * FROM fetch_log WHERE source_site=?",
-                (adapter.source_site,))
+                "SELECT * FROM fetch_log WHERE source_site=?", (adapter.source_site,)
+            )
             if log_row:
                 self._file_index._db.execute(
                     "UPDATE fetch_log SET last_fetched_at=?, last_notice_date=? "
                     "WHERE source_site=?",
-                    (now, latest_date, adapter.source_site))
+                    (now, latest_date, adapter.source_site),
+                )
             else:
                 self._file_index._db.execute(
                     "INSERT INTO fetch_log "
                     "(source_site, last_fetched_at, last_notice_date) "
                     "VALUES (?, ?, ?)",
-                    (adapter.source_site, now, latest_date))
+                    (adapter.source_site, now, latest_date),
+                )
 
         return {"matched": total_matched, "error": ""}
 
-    def check_announcements_filtered(self, std_type: str | None = None,
-                                      since_date: str = "",
-                                      progress_callback=None) -> dict:
+    def check_announcements_filtered(
+        self, std_type: str | None = None, since_date: str = "", progress_callback=None
+    ) -> dict:
         """带类型过滤和日期筛选的公告检查。供 CLI 调用。"""
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
 
         if std_type:
-            result = engine.check_one(std_type, since_date=since_date,
-                                       ocr_provider=ocr,
-                                       progress_callback=progress_callback)
+            result = engine.check_one(
+                std_type,
+                since_date=since_date,
+                ocr_provider=ocr,
+                progress_callback=progress_callback,
+            )
             return {std_type: result}
 
         results = {}
         for adapter in engine.adapters:
-            result = engine.check_one(adapter.standard_type,
-                                       since_date=since_date,
-                                       ocr_provider=ocr,
-                                       progress_callback=progress_callback)
+            result = engine.check_one(
+                adapter.standard_type,
+                since_date=since_date,
+                ocr_provider=ocr,
+                progress_callback=progress_callback,
+            )
             results[adapter.standard_type] = result
         return results

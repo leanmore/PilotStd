@@ -39,18 +39,27 @@ class PendingService:
             std_num = parsed.get_full_number()
             existing = self._db.fetchone(
                 "SELECT id FROM pending_lookup WHERE standard_number=? AND status='pending'",
-                (std_num,))
+                (std_num,),
+            )
             if existing:
                 continue
             self._db.execute(
                 "INSERT INTO pending_lookup (standard_number, std_name, found_name, "
                 "found_number, match_status, effect_status, score, source_site, "
                 "file_path, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
-                (std_num, parsed.std_name, parsed.found_name,
-                 getattr(parsed, 'found_number', ''), parsed.match_status,
-                 parsed.effect_status, MATCH_SCORE.get(parsed.match_status, 0),
-                 getattr(parsed, 'found_source_site', ''), parsed.source_path or '',
-                 now))
+                (
+                    std_num,
+                    parsed.std_name,
+                    parsed.found_name,
+                    getattr(parsed, "found_number", ""),
+                    parsed.match_status,
+                    parsed.effect_status,
+                    MATCH_SCORE.get(parsed.match_status, 0),
+                    getattr(parsed, "found_source_site", ""),
+                    parsed.source_path or "",
+                    now,
+                ),
+            )
 
     def resolve_pending(self, pending_items: list, resolution: str) -> None:
         """标记待确认项为已处理。resolution: 'discarded' | 'confirmed'"""
@@ -60,20 +69,22 @@ class PendingService:
             self._db.execute(
                 "UPDATE pending_lookup SET status=?, resolved_at=? "
                 "WHERE standard_number=? AND status='pending'",
-                (resolution, now, std_num))
+                (resolution, now, std_num),
+            )
 
     def get_pending_items(self) -> list:
         """获取所有待确认项。"""
         return self._db.fetchall(
-            "SELECT * FROM pending_lookup WHERE status='pending' ORDER BY created_at")
+            "SELECT * FROM pending_lookup WHERE status='pending' ORDER BY created_at"
+        )
 
     # ── 下载等待队列 ───────────────────────────────────────────
 
     def enqueue_download_wait(self, parsed) -> None:
         """写入下载等待队列（未到公开期的标准）。"""
-        num = getattr(parsed, 'found_number', '') or parsed.get_full_number()
-        name = parsed.found_name or parsed.std_name or ''
-        pub_str = getattr(parsed, 'found_publish_date', '')
+        num = getattr(parsed, "found_number", "") or parsed.get_full_number()
+        name = parsed.found_name or parsed.std_name or ""
+        pub_str = getattr(parsed, "found_publish_date", "")
         if not pub_str:
             return
         try:
@@ -83,26 +94,30 @@ class PendingService:
         available_dt = pub_dt + timedelta(days=28)
         existing = self._db.fetchone(
             "SELECT id FROM download_queue WHERE standard_number=? AND status='waiting'",
-            (num,))
+            (num,),
+        )
         if existing:
             return
         self._db.execute(
             "INSERT INTO download_queue (standard_number, standard_name, "
             "publish_date, expected_available, created_at, status) "
             "VALUES (?, ?, ?, ?, ?, 'waiting')",
-            (num, name, pub_str, available_dt.isoformat(), datetime.now().isoformat()))
+            (num, name, pub_str, available_dt.isoformat(), datetime.now().isoformat()),
+        )
 
     def get_due_downloads(self) -> list:
         """获取公开期已到的下载等待项。"""
         return self._db.fetchall(
             "SELECT * FROM download_queue WHERE status='waiting' AND expected_available <= ?",
-            (datetime.now().isoformat(),))
+            (datetime.now().isoformat(),),
+        )
 
     def remove_download_queue(self, standard_number: str) -> None:
         """从下载等待队列中移除指定项。"""
         self._db.execute(
             "UPDATE download_queue SET status='done' WHERE standard_number=?",
-            (standard_number,))
+            (standard_number,),
+        )
 
     # ── 重试限制 ────────────────────────────────────────────
 
@@ -110,24 +125,28 @@ class PendingService:
         """重新查询次数 +1，返回当前次数。无行时自动插入。"""
         cur = self._db.fetchone(
             "SELECT requery_count FROM pending_lookup WHERE standard_number=?",
-            (standard_number,))
+            (standard_number,),
+        )
         if cur is None:
             # 自动插入新行，初始 requery_count=1
             self._db.execute(
                 "INSERT INTO pending_lookup (standard_number, requery_count) VALUES (?, 1)",
-                (standard_number,))
+                (standard_number,),
+            )
             return 1
         new_count = (cur.get("requery_count", 0) or 0) + 1
         self._db.execute(
             "UPDATE pending_lookup SET requery_count=? WHERE standard_number=?",
-            (new_count, standard_number))
+            (new_count, standard_number),
+        )
         return new_count
 
     def get_requery_count(self, standard_number: str) -> int:
         """返回当前重试次数。"""
         cur = self._db.fetchone(
             "SELECT requery_count FROM pending_lookup WHERE standard_number=?",
-            (standard_number,))
+            (standard_number,),
+        )
         return (cur.get("requery_count", 0) or 0) if cur else 0
 
     def is_requery_exhausted(self, standard_number: str) -> bool:
@@ -139,7 +158,8 @@ class PendingService:
         self._db.execute(
             "UPDATE pending_lookup SET status='manual_required', "
             "resolved_at=? WHERE standard_number=?",
-            (datetime.now().isoformat(), standard_number))
+            (datetime.now().isoformat(), standard_number),
+        )
 
     # ── 本地缓存查询 ─────────────────────────────────────────
 
@@ -153,14 +173,18 @@ class PendingService:
             # 先查网络缓存
             row = self._db.fetchone(
                 "SELECT result_json FROM standard_info_cache "
-                "WHERE standard_number = ? LIMIT 1", (std_num,))
+                "WHERE standard_number = ? LIMIT 1",
+                (std_num,),
+            )
             result_json = row.get("result_json") if row else None
             source = "local_db"
             if not result_json:
                 # 回退到公告缓存
                 row = self._db.fetchone(
                     "SELECT result_json FROM announcement_cache "
-                    "WHERE standard_number = ? LIMIT 1", (std_num,))
+                    "WHERE standard_number = ? LIMIT 1",
+                    (std_num,),
+                )
                 result_json = row.get("result_json") if row else None
                 source = "local_db(公告)"
             if result_json:
@@ -179,10 +203,16 @@ class PendingService:
                         implementation_date=cached.get("implementation_date", ""),
                     )
                 except (json.JSONDecodeError, TypeError):
-                    result = QueryResult(standard_number=std_num,
-                                         error_message="缓存解析失败", source_site=source)
+                    result = QueryResult(
+                        standard_number=std_num,
+                        error_message="缓存解析失败",
+                        source_site=source,
+                    )
             else:
-                result = QueryResult(standard_number=std_num,
-                                     error_message="本地数据库未找到", source_site="local_db")
+                result = QueryResult(
+                    standard_number=std_num,
+                    error_message="本地数据库未找到",
+                    source_site="local_db",
+                )
             results.append((i, result))
         return results

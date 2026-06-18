@@ -64,18 +64,25 @@ class BaseAnnounceAdapter(ABC):
         page = 1
         while True:
             params = {
-                "pageNumber": page, "pageSize": page_size,
-                "sortName": "NOTICE_DATE", "sortOrder": "desc",
+                "pageNumber": page,
+                "pageSize": page_size,
+                "sortName": "NOTICE_DATE",
+                "sortOrder": "desc",
             }
-            resp = safe_request(session, "GET", self._list_url,
-                              self.site_name, timeout=120, params=params)
+            resp = safe_request(
+                session,
+                "GET",
+                self._list_url,
+                self.site_name,
+                timeout=120,
+                params=params,
+            )
             if resp is None:
                 break
             try:
                 data = resp.json()
             except Exception as e:
-                logger.error("%s公告响应解析失败: %s",
-                           self.standard_type.upper(), e)
+                logger.error("%s公告响应解析失败: %s", self.standard_type.upper(), e)
                 break
             rows = data.get("rows", [])
             if not rows:
@@ -83,13 +90,15 @@ class BaseAnnounceAdapter(ABC):
             for row in rows:
                 if since_date and row.get("NOTICE_DATE", "") < since_date:
                     return announcements
-                announcements.append({
-                    "pid": row.get("PID", ""),
-                    "code": row.get("CODE", ""),
-                    "title": row.get("C_TITLE", ""),
-                    "notice_date": row.get("NOTICE_DATE", ""),
-                    "std_count": row.get("STD_COUNT", ""),
-                })
+                announcements.append(
+                    {
+                        "pid": row.get("PID", ""),
+                        "code": row.get("CODE", ""),
+                        "title": row.get("C_TITLE", ""),
+                        "notice_date": row.get("NOTICE_DATE", ""),
+                        "std_count": row.get("STD_COUNT", ""),
+                    }
+                )
             total = data.get("total", 0)
             if page * page_size >= total:
                 break
@@ -104,6 +113,7 @@ class BaseAnnounceAdapter(ABC):
     def _download_attachment(self, url: str) -> Optional[bytes]:
         """下载附件，子类可重写。"""
         from ..query.network import safe_raw_get
+
         resp = safe_raw_get(url, self.site_name, timeout=60)
         if resp and resp.status_code == 200:
             return resp.content
@@ -113,8 +123,7 @@ class BaseAnnounceAdapter(ABC):
 
     def _fetch_detail(self, pid: str) -> Optional[str]:
         """获取公告详情页 HTML，失败返回 None。"""
-        resp = safe_raw_get(f"{self._detail_url}?id={pid}",
-                          self.site_name, timeout=120)
+        resp = safe_raw_get(f"{self._detail_url}?id={pid}", self.site_name, timeout=120)
         if resp is not None:
             resp.encoding = "utf-8"
             return resp.text
@@ -126,8 +135,9 @@ class BaseAnnounceAdapter(ABC):
         """子类可重写。默认实现：HTML 表格优先，无数据时回退附件。"""
         from .parser import find_attachment_url, parse_announcement_detail
 
-        html_items, meta = parse_announcement_detail(raw_detail, None, "",
-                                                       ocr_provider=ocr_provider)
+        html_items, meta = parse_announcement_detail(
+            raw_detail, None, "", ocr_provider=ocr_provider
+        )
         attachment_url = find_attachment_url(raw_detail) or ""
 
         # 纯网页：HTML 已拿到数据
@@ -139,13 +149,15 @@ class BaseAnnounceAdapter(ABC):
             att_bytes = self._download_attachment(attachment_url)
             if att_bytes:
                 att_items, _meta = parse_announcement_detail(
-                    raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider)
+                    raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
+                )
                 return self._finalize_items(att_items, attachment_url)
             return self._finalize_items(html_items, attachment_url)
 
         # 混合：HTML 有数据 + 有附件。下载附件存档，但直接返回 HTML 结果（不重新解析）
         if html_items and attachment_url:
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 executor.submit(self._download_attachment, attachment_url)
             return self._finalize_items(html_items, attachment_url)
@@ -160,10 +172,14 @@ class BaseAnnounceAdapter(ABC):
             item.setdefault("attachment_path", "")
         return items
 
-    def fetch_announcements(self, since_date: str = "", page_size: int = 20,
-                            ocr_provider=None,
-                            progress_callback: Callable[[int, int, str], None] | None = None,
-                            checkpoint_pids: set[Any] | None = None) -> list[dict]:
+    def fetch_announcements(
+        self,
+        since_date: str = "",
+        page_size: int = 20,
+        ocr_provider=None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        checkpoint_pids: set[Any] | None = None,
+    ) -> list[dict]:
         """一站式：列表 → 并行详情+解析 → 标准清单。
 
         Args:
@@ -179,8 +195,12 @@ class BaseAnnounceAdapter(ABC):
             remaining = [a for a in ann_list if a["pid"] not in checkpoint_pids]
             skipped = len(ann_list) - len(remaining)
             if skipped > 0:
-                logger.info("公告 %s: 跳过已完成 %d 条, 剩余 %d 条",
-                           self.standard_type, skipped, len(remaining))
+                logger.info(
+                    "公告 %s: 跳过已完成 %d 条, 剩余 %d 条",
+                    self.standard_type,
+                    skipped,
+                    len(remaining),
+                )
             ann_list = remaining
 
         if not ann_list:
@@ -189,7 +209,7 @@ class BaseAnnounceAdapter(ABC):
         total = len(ann_list)
         items = []
         completed = [0]
-        lock = __import__('threading').Lock()
+        lock = __import__("threading").Lock()
 
         def _bump(pid: str):
             with lock:
@@ -202,22 +222,32 @@ class BaseAnnounceAdapter(ABC):
             """处理单条公告：取详情 → 解析。线程安全。"""
             raw = self._fetch_detail(ann["pid"])
             if not raw:
-                logger.warning("公告详情获取失败: pid=%s code=%s", ann.get("pid",""), ann.get("code",""))
+                logger.warning(
+                    "公告详情获取失败: pid=%s code=%s",
+                    ann.get("pid", ""),
+                    ann.get("code", ""),
+                )
                 _bump(ann.get("pid", "?"))
                 return []
             parsed = self._parse_items(raw, ocr_provider=ocr_provider)
             if not parsed:
-                logger.warning("公告解析为空: pid=%s code=%s title=%s",
-                             ann.get("pid",""), ann.get("code",""), ann.get("title","")[:60])
+                logger.warning(
+                    "公告解析为空: pid=%s code=%s title=%s",
+                    ann.get("pid", ""),
+                    ann.get("code", ""),
+                    ann.get("title", "")[:60],
+                )
             for item in parsed:
-                item.setdefault("announcement_title",
-                                ann.get("title", ann.get("code", "")))
+                item.setdefault(
+                    "announcement_title", ann.get("title", ann.get("code", ""))
+                )
                 item.setdefault("pid", ann.get("pid", ""))
             _bump(ann.get("code", "?")[:20])
             return parsed
 
         with concurrent.futures.ThreadPoolExecutor(
-                max_workers=_MAX_DETAIL_WORKERS) as executor:
+            max_workers=_MAX_DETAIL_WORKERS
+        ) as executor:
             futures = {executor.submit(_process_one, ann): ann for ann in ann_list}
             for future in concurrent.futures.as_completed(futures):
                 try:

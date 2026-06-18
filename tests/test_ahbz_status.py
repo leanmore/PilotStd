@@ -1,17 +1,20 @@
 # tests/test_ahbz_status.py
 # ahbz 适配器 status 映射 + 结构化比对测试
-import pytest
 from pilotstd.query.adapters import ahbz
 
 
 def test_status_map_active_means_current():
     """ahbz 返回 status='A' 应映射为'现行'（非'废止'）"""
-    assert ahbz._STATUS_MAP.get("A") == "现行", f"A 应为现行，实际: {ahbz._STATUS_MAP.get('A')}"
+    assert ahbz._STATUS_MAP.get("A") == "现行", (
+        f"A 应为现行，实际: {ahbz._STATUS_MAP.get('A')}"
+    )
 
 
 def test_status_map_withdrawn_means_abolished():
     """ahbz 返回 status='W' 应映射为'作废'（非'现行'）"""
-    assert ahbz._STATUS_MAP.get("W") == "作废", f"W 应为作废，实际: {ahbz._STATUS_MAP.get('W')}"
+    assert ahbz._STATUS_MAP.get("W") == "作废", (
+        f"W 应为作废，实际: {ahbz._STATUS_MAP.get('W')}"
+    )
 
 
 def test_status_map_no_d_key():
@@ -20,6 +23,7 @@ def test_status_map_no_d_key():
 
 
 # ── Task 3: _get_type 测试 ──
+
 
 def test_get_type_gb():
     assert ahbz.AhbzAdapter._get_type("GB/T 1.1-2020") == 1
@@ -56,6 +60,7 @@ def test_type_map_covers_all_valid():
 
 
 # ── Task 6: 结构化匹配测试 ──
+
 
 def test_match_structured_identical():
     """标准号完全相同应匹配"""

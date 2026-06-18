@@ -1,15 +1,16 @@
 # tests/test_task.py
 
-import sys
 import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import unittest
-import tempfile
 import shutil
+import tempfile
 import time
+import unittest
 
 from pilotstd.core.db import Database
 from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
@@ -104,6 +105,7 @@ class TestTaskQueue(unittest.TestCase):
 
     def test_handler_timeout(self):
         """handler 执行超过 timeout 应标记为 FAILED。"""
+
         def slow_handler(t: TaskInfo) -> TaskInfo:
             time.sleep(10)
             return t

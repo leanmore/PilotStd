@@ -46,16 +46,17 @@ class QueryClassifier:
     def parse_std_number(standard_number: str):
         """从标准号字符串中提取代号和序号。如 'GB/T 713.1-2023' → ('GB/T', 713)。"""
         m = re.match(
-            r'([A-Z]+(?:\s*/\s*[A-Z]+)?)\s*(\d+(?:\.\d+)?)',
-            str(standard_number))
+            r"([A-Z]+(?:\s*/\s*[A-Z]+)?)\s*(\d+(?:\.\d+)?)", str(standard_number)
+        )
         if m:
-            code = m.group(1).replace(' ', '')
+            code = m.group(1).replace(" ", "")
             number = int(float(m.group(2)))
             return code, number
         return None, None
 
-    def classify(self, query_results, parsed_list, download_list,
-                 expire_list, pending_list):
+    def classify(
+        self, query_results, parsed_list, download_list, expire_list, pending_list
+    ):
         """查询后分类：回写状态 → 跨站补查替代关系 → 委托路由调度器分堆。
 
         分类规则统一由 PipelineRouter.classify_after_query() 定义。
@@ -77,23 +78,25 @@ class QueryClassifier:
         # 1. 回写查询结果到 ParsedStdInfo
         for p, r in zip(items, results):
             p.effect_status = r.status
-            p.match_status = getattr(r, 'match_status', '') or ''
-            p.found_replaces = getattr(r, 'replaces', '') or ''
-            p.is_adopted = getattr(r, 'is_adopted', False)
-            p.found_name = getattr(r, 'standard_name', '') or ''
-            p.split_parts = getattr(r, 'split_into', '') or ''
-            p.found_publish_date = getattr(r, 'publish_date', '') or ''
-            p.found_impl_date = getattr(r, 'implementation_date', '') or ''
-            p.found_responsible_dept = getattr(r, 'responsible_dept', '') or ''
-            p.found_abolition_date = getattr(r, 'abolition_date', '') or ''
-            p.found_source_site = getattr(r, 'source_site', '') or ''
+            p.match_status = getattr(r, "match_status", "") or ""
+            p.found_replaces = getattr(r, "replaces", "") or ""
+            p.is_adopted = getattr(r, "is_adopted", False)
+            p.found_name = getattr(r, "standard_name", "") or ""
+            p.split_parts = getattr(r, "split_into", "") or ""
+            p.found_publish_date = getattr(r, "publish_date", "") or ""
+            p.found_impl_date = getattr(r, "implementation_date", "") or ""
+            p.found_responsible_dept = getattr(r, "responsible_dept", "") or ""
+            p.found_abolition_date = getattr(r, "abolition_date", "") or ""
+            p.found_source_site = getattr(r, "source_site", "") or ""
 
         # 2. 跨站补查替代关系（废止/被代替/作废 + 无replaces + GB代码）
         for p, r in zip(items, results):
-            if (r.status in self._EXPIRE_STATUSES
-                    and not r.replaces
-                    and is_gb_code(p.logical_code)
-                    and r.match_status != "newer"):  # newer 已在 router 中优先处理
+            if (
+                r.status in self._EXPIRE_STATUSES
+                and not r.replaces
+                and is_gb_code(p.logical_code)
+                and r.match_status != "newer"
+            ):  # newer 已在 router 中优先处理
                 replaced_by = self.resolve_replaces(p.get_full_number())
                 if not replaced_by:
                     continue
@@ -103,7 +106,8 @@ class QueryClassifier:
                 if repl_code and is_gb_code(repl_code):
                     in_results = any(
                         qr.standard_number and repl_code in qr.standard_number
-                        for qr in results)
+                        for qr in results
+                    )
                     if not in_results:
                         p._replacement_number = replaced_by
                         p.found_replaces = replaced_by
@@ -140,16 +144,20 @@ class QueryClassifier:
             if self._quota_tracker and not self._quota_tracker.can_use_for_detail(site):
                 continue
             # 适配器需声明 supports_replaces_detail 能力
-            if not getattr(adapter, 'supports_replaces_detail', False):
+            if not getattr(adapter, "supports_replaces_detail", False):
                 continue
             try:
                 from ..core.std_utils import parse_std_number
+
                 parsed = parse_std_number(standard_number)
                 if not parsed:
                     continue
                 result = adapter.query_with_strategy(
-                    parsed["code"], parsed["number"], parsed.get("year", 0),
-                    num_prefix=parsed.get("num_prefix", ""))
+                    parsed["code"],
+                    parsed["number"],
+                    parsed.get("year", 0),
+                    num_prefix=parsed.get("num_prefix", ""),
+                )
                 if result is None or not result.is_found():
                     continue
                 if self._query_engine._use_cache:
@@ -159,7 +167,9 @@ class QueryClassifier:
                 if replaces:
                     return replaces
             except Exception:
-                logger.warning(f"替代关系补查失败 ({site}): {standard_number}", exc_info=True)
+                logger.warning(
+                    f"替代关系补查失败 ({site}): {standard_number}", exc_info=True
+                )
                 continue
 
         return ""

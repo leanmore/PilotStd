@@ -26,13 +26,11 @@ class BaseAdapter(ABC):
 
     @property
     @abstractmethod
-    def site_name(self) -> str:
-        ...
+    def site_name(self) -> str: ...
 
     @property
     @abstractmethod
-    def site_label(self) -> str:
-        ...
+    def site_label(self) -> str: ...
 
     # ── 搜索（子类通常不需要重写，只需实现 _search_candidates 和钩子）──
 
@@ -46,13 +44,20 @@ class BaseAdapter(ABC):
             if c.standard_number == search_term:
                 self._post_process_result(c)
                 return c
-        best = max(candidates, key=lambda c: getattr(c, 'publish_date', '') or '')
+        best = max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
         self._post_process_result(best)
         return best
 
-    def query_with_strategy(self, logical_code: str, number: int, year: int,
-                            std_name: str = "", part: int | None = None,
-                            num_prefix: str = "", num_suffix: str = "") -> Optional[QueryResult]:
+    def query_with_strategy(
+        self,
+        logical_code: str,
+        number: int,
+        year: int,
+        std_name: str = "",
+        part: int | None = None,
+        num_prefix: str = "",
+        num_suffix: str = "",
+    ) -> Optional[QueryResult]:
         """渐进式搜索：完整号直搜 → 空格回退 → 去年份 → 代号变体。"""
         part_str = f".{part}" if part else ""
         target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
@@ -61,9 +66,13 @@ class BaseAdapter(ABC):
         result = self._search(target)
         if result and result.is_found():
             _, status = match_result(
-                logical_code, number, year,
-                result.standard_name, result.standard_number,
-                local_part=part)  # type: ignore[arg-type]
+                logical_code,
+                number,
+                year,
+                result.standard_name,
+                result.standard_number,
+                local_part=part,
+            )  # type: ignore[arg-type]
             if status == "exact":
                 result.match_status = status
                 self._post_process_result(result)
@@ -75,22 +84,32 @@ class BaseAdapter(ABC):
             result = self._search(space_target)
             if result and result.is_found():
                 _, status = match_result(
-                    logical_code, number, year,
-                    result.standard_name, result.standard_number,
-                    local_part=part)  # type: ignore[arg-type]
+                    logical_code,
+                    number,
+                    year,
+                    result.standard_name,
+                    result.standard_number,
+                    local_part=part,
+                )  # type: ignore[arg-type]
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
                     return result
 
         # 第三步：去年份回退
-        no_year = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
+        no_year = (
+            f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
+        )
         result = self._search(no_year)
         if result and result.is_found():
             _, status = match_result(
-                logical_code, number, year,
-                result.standard_name, result.standard_number,
-                local_part=part)  # type: ignore[arg-type]
+                logical_code,
+                number,
+                year,
+                result.standard_name,
+                result.standard_number,
+                local_part=part,
+            )  # type: ignore[arg-type]
             if status in ("exact", "newer", "older"):
                 result.match_status = status
                 self._post_process_result(result)
@@ -107,9 +126,13 @@ class BaseAdapter(ABC):
                 continue
             for result in candidates:
                 _, status = match_result(
-                    logical_code, number, year,
-                    result.standard_name, result.standard_number,
-                    local_part=part)  # type: ignore[arg-type]
+                    logical_code,
+                    number,
+                    year,
+                    result.standard_name,
+                    result.standard_number,
+                    local_part=part,
+                )  # type: ignore[arg-type]
                 score = MATCH_SCORE.get(status, 0)
                 if score > best_score:
                     best_score = score
@@ -128,7 +151,8 @@ class BaseAdapter(ABC):
         return QueryResult(
             standard_number=target,
             error_message="未找到匹配结果",
-            source_site=self.site_name)
+            source_site=self.site_name,
+        )
 
     def _search_candidates(self, search_term: str) -> list:
         """搜索候选项，默认逐条搜索。子类可重写以返回多个结果（翻页等）。"""
@@ -145,8 +169,14 @@ class BaseAdapter(ABC):
         """POST 搜索候选（通用实现）。子类的 _search_candidates 可委托此方法。"""
         data = self._build_search_data(search_term)
         from ..network import safe_post
-        resp = safe_post(self._session, self.API_URL, self.site_name,  # type: ignore[attr-defined]
-                        data=data, timeout=15)
+
+        resp = safe_post(
+            self._session,  # type: ignore[attr-defined]
+            self.API_URL,  # type: ignore[attr-defined]
+            self.site_name,  # type: ignore[attr-defined]
+            data=data,
+            timeout=15,
+        )
         if resp is None or resp.status_code != 200:
             return []
 
@@ -177,8 +207,8 @@ class BaseAdapter(ABC):
             parsed = _parse_result_number(result.standard_number)
             if not parsed:
                 continue
-            if parsed.get('number') == local_number:
-                p = parsed.get('part')
+            if parsed.get("number") == local_number:
+                p = parsed.get("part")
                 if p is not None:
                     part_nums.add(result.standard_number)
         if len(part_nums) >= 2:

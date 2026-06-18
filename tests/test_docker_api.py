@@ -1,33 +1,40 @@
 # tests/test_docker_api.py
 """docker/api/*.py API 端点测试"""
-import sys, os
+
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import unittest
 import json
+import unittest
+from unittest.mock import MagicMock, patch
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import MagicMock, patch, PropertyMock
+
 from docker.manager import get_manager_dep
+
 
 class TestAPIEndpoints(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         app = FastAPI()
-        from docker.api.stats import router as stats_router
-        from docker.api.scan import router as scan_router
+        from docker.api.announce import router as announce_router
+        from docker.api.archive import router as archive_router
+        from docker.api.download import router as download_router
+        from docker.api.logs import router as logs_router
+        from docker.api.normalize import router as normalize_router
         from docker.api.organize import router as organize_router
         from docker.api.pending import router as pending_router
-        from docker.api.announce import router as announce_router
-        from docker.api.settings import router as settings_router
-        from docker.api.system import router as system_router
-        from docker.api.normalize import router as normalize_router
-        from docker.api.archive import router as archive_router
-        from docker.api.upload import router as upload_router
-        from docker.api.logs import router as logs_router
         from docker.api.query import router as query_router
-        from docker.api.download import router as download_router
+        from docker.api.scan import router as scan_router
+        from docker.api.settings import router as settings_router
+        from docker.api.stats import router as stats_router
+        from docker.api.system import router as system_router
+        from docker.api.upload import router as upload_router
         from docker.api.users import router as users_router
+
         app.include_router(stats_router)
         app.include_router(scan_router)
         app.include_router(organize_router)
@@ -53,7 +60,11 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_stats_returns_zero_counts_when_empty(self):
         mock_mgr = MagicMock()
         mock_mgr.file_index.get_status_stats.return_value = {
-            "current": 0, "expired": 0, "pending": 0, "upcoming": 0}
+            "current": 0,
+            "expired": 0,
+            "pending": 0,
+            "upcoming": 0,
+        }
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.get("/api/stats")
         self.assertEqual(r.status_code, 200)
@@ -64,15 +75,20 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Scan ──
 
-    @patch('docker.api.scan._validate_path')
+    @patch("docker.api.scan._validate_path")
     def test_scan_returns_file_list(self, mock_validate):
         """POST /api/scan 返回扫描到的文件列表及统计。"""
         mock_validate.return_value = "/inbox"
         mock_mgr = MagicMock()
         from pilotstd.models import ParsedStdInfo
+
         mock_parsed = ParsedStdInfo(
             raw_filename="GB_T_1-2020.pdf",
-            logical_code="GB/T", number=1, year=2020, std_name="测试")
+            logical_code="GB/T",
+            number=1,
+            year=2020,
+            std_name="测试",
+        )
         mock_parsed.source_path = "/inbox/GB_T_1-2020.pdf"
         mock_mgr.scan_directory.return_value = [mock_parsed]
         mock_mgr._last_skipped_dirs = []
@@ -84,7 +100,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(data["pdf_count"], 1)
         self.assertEqual(data["files"][0]["name"], "GB_T_1-2020.pdf")
 
-    @patch('docker.api.scan._validate_path')
+    @patch("docker.api.scan._validate_path")
     def test_scan_invalid_path_returns_400(self, mock_validate):
         """扫描路径不在允许范围时返回 400。"""
         mock_validate.side_effect = ValueError("路径不在允许的目录范围内")
@@ -94,9 +110,9 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Organize ──
 
-    @patch('docker.api.organize._validate_library_path')
-    @patch('docker.api.organize.os.path.exists', return_value=True)
-    @patch('docker.api.organize.os.scandir')
+    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize.os.path.exists", return_value=True)
+    @patch("docker.api.organize.os.scandir")
     def test_files_lists_directory(self, mock_scandir, mock_exists, mock_validate):
         mock_validate.return_value = "/standards"
         mock_entry = MagicMock()
@@ -111,19 +127,21 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(len(data["files"]), 1)
         self.assertEqual(data["files"][0]["name"], "test.pdf")
 
-    @patch('docker.api.organize._validate_library_path')
-    @patch('docker.api.organize.os.path.exists', return_value=False)
+    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize.os.path.exists", return_value=False)
     def test_files_nonexistent_path_returns_404(self, mock_exists, mock_validate):
         """路径不存在时返回 404。路径校验通过，但文件系统找不到。"""
         mock_validate.return_value = "/nonexistent"
         r = self.client.get("/api/files?path=/nonexistent")
         self.assertEqual(r.status_code, 404)
 
-    @patch('docker.api.organize._validate_library_path')
-    @patch('docker.api.organize.os.walk')
-    @patch('docker.api.organize.os.listdir')
-    @patch('docker.api.organize.os.rmdir')
-    def test_clean_empty_removes_dirs(self, mock_rmdir, mock_listdir, mock_walk, mock_validate):
+    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize.os.walk")
+    @patch("docker.api.organize.os.listdir")
+    @patch("docker.api.organize.os.rmdir")
+    def test_clean_empty_removes_dirs(
+        self, mock_rmdir, mock_listdir, mock_walk, mock_validate
+    ):
         mock_validate.return_value = "/standards"
         mock_walk.return_value = [("/standards/empty", ["sub"], [])]
         mock_listdir.return_value = []
@@ -133,7 +151,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Settings ──
 
-    @patch('docker.api.settings.update_job')
+    @patch("docker.api.settings.update_job")
     def test_get_settings_returns_all_sections(self, mock_update):
         mock_mgr = MagicMock()
         mock_mgr.cfg.get.return_value = []
@@ -144,13 +162,14 @@ class TestAPIEndpoints(unittest.TestCase):
         for section in ["storage", "scan", "query", "tasks", "appearance"]:
             self.assertIn(section, data, f"Missing section: {section}")
 
-    @patch('docker.api.settings.update_job')
+    @patch("docker.api.settings.update_job")
     def test_put_settings_calls_update_job(self, mock_update):
         mock_mgr = MagicMock()
         mock_mgr.cfg.get.return_value = False
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         # put_settings 需要 admin 权限，通过 dependency override 绕过
         from docker.auth import require_admin
+
         self.client.app.dependency_overrides[require_admin] = lambda: "admin"
         data = {
             "tasks": {
@@ -186,7 +205,11 @@ class TestAPIEndpoints(unittest.TestCase):
         """GET /api/pending 返回待确认标准列表。"""
         mock_mgr = MagicMock()
         mock_mgr.get_pending_items.return_value = [
-            {"standard_number": "GB/T 1-2020", "status": "待确认", "source_site": "njbz365"}
+            {
+                "standard_number": "GB/T 1-2020",
+                "status": "待确认",
+                "source_site": "njbz365",
+            }
         ]
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.get("/api/pending")
@@ -225,9 +248,10 @@ class TestAPIEndpoints(unittest.TestCase):
             {"source": "/inbox/test.pdf", "normalized": "GB_T_1-2020.pdf"},
         ]
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        r = self.client.post("/api/normalize", json=[
-            {"source_path": "/inbox/test.pdf", "logical_code": "GB/T 1-2020"}
-        ])
+        r = self.client.post(
+            "/api/normalize",
+            json=[{"source_path": "/inbox/test.pdf", "logical_code": "GB/T 1-2020"}],
+        )
         self.assertEqual(r.status_code, 200)
         results = r.json()["results"]
         self.assertEqual(len(results), 1)
@@ -253,14 +277,25 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr = MagicMock()
         mock_mgr.organize.return_value = {"moved": 1, "errors": []}
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        r = self.client.post("/api/archive", json={
-            "items": [
-                {"source_path": "/inbox/GB_T_1-2020.pdf", "logical_code": "GB/T 1-2020",
-                 "number": 1, "year": 2020, "std_name": "测试标准",
-                 "num_prefix": "GB/T", "num_suffix": "", "language": "zh", "ext": "pdf"}
-            ],
-            "word_source_root": "/word"
-        })
+        r = self.client.post(
+            "/api/archive",
+            json={
+                "items": [
+                    {
+                        "source_path": "/inbox/GB_T_1-2020.pdf",
+                        "logical_code": "GB/T 1-2020",
+                        "number": 1,
+                        "year": 2020,
+                        "std_name": "测试标准",
+                        "num_prefix": "GB/T",
+                        "num_suffix": "",
+                        "language": "zh",
+                        "ext": "pdf",
+                    }
+                ],
+                "word_source_root": "/word",
+            },
+        )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["moved"], 1)
         # 验证 organize 被调用且 word_source_root 正确传递
@@ -276,9 +311,14 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_query_standards_returns_results(self):
         """POST /api/query 返回查询结果及统计。"""
         from pilotstd.query.models import QueryResult
+
         mock_result = QueryResult(
-            standard_number="GB/T 1-2020", standard_name="测试标准",
-            status="现行", source_site="njbz365", match_status="exact")
+            standard_number="GB/T 1-2020",
+            standard_name="测试标准",
+            status="现行",
+            source_site="njbz365",
+            match_status="exact",
+        )
         mock_stats = MagicMock()
         mock_stats.total = 1
         mock_stats.found = 1
@@ -295,17 +335,18 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["standard_number"], "GB/T 1-2020")
 
-    @patch('builtins.open')
+    @patch("builtins.open")
     def test_query_save_persists_results(self, mock_open):
         """POST /api/query/save 保存查询结果到文件。"""
-        r = self.client.post("/api/query/save", json=[
-            {"standard_number": "GB/T 1-2020", "standard_name": "测试"}
-        ])
+        r = self.client.post(
+            "/api/query/save",
+            json=[{"standard_number": "GB/T 1-2020", "standard_name": "测试"}],
+        )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
         self.assertEqual(r.json()["count"], 1)
 
-    @patch('docker.api.query.os.path.exists')
+    @patch("docker.api.query.os.path.exists")
     def test_query_results_initially_empty(self, mock_exists):
         """查询结果文件不存在时返回空列表。"""
         mock_exists.return_value = False
@@ -338,20 +379,24 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(data["stats"]["success"], 1)
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["status"], "success")
-        self.assertEqual(data["results"][0]["saved_path"], "/standards/GB/GB_T_1-2020.pdf")
+        self.assertEqual(
+            data["results"][0]["saved_path"], "/standards/GB/GB_T_1-2020.pdf"
+        )
 
     # ── Upload ──
 
-    @patch('builtins.open')
-    @patch('uuid.uuid4')
+    @patch("builtins.open")
+    @patch("uuid.uuid4")
     def test_upload_valid_image_returns_url(self, mock_uuid, mock_open):
         """上传合法 JPEG 图片返回访问 URL。"""
         mock_uuid.return_value.hex = "abc123def456"
         # 最小合法 JPEG（SOI + JFIF 头）
-        jpeg_bytes = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
-        r = self.client.post("/api/upload", files={
-            "file": ("test.jpg", jpeg_bytes, "image/jpeg")
-        })
+        jpeg_bytes = (
+            b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        )
+        r = self.client.post(
+            "/api/upload", files={"file": ("test.jpg", jpeg_bytes, "image/jpeg")}
+        )
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertIn("url", data)
@@ -359,18 +404,19 @@ class TestAPIEndpoints(unittest.TestCase):
 
     def test_upload_invalid_extension_returns_400(self):
         """上传不支持扩展名返回 400。"""
-        r = self.client.post("/api/upload", files={
-            "file": ("test.exe", b"data", "application/octet-stream")
-        })
+        r = self.client.post(
+            "/api/upload",
+            files={"file": ("test.exe", b"data", "application/octet-stream")},
+        )
         self.assertEqual(r.status_code, 400)
 
     def test_upload_wrong_magic_returns_400(self):
         """扩展名 .jpg 但内容是 PNG 魔数：返回 400。"""
         # PNG 文件头魔数
-        png_header = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
-        r = self.client.post("/api/upload", files={
-            "file": ("fake.jpg", png_header, "image/jpeg")
-        })
+        png_header = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+        r = self.client.post(
+            "/api/upload", files={"file": ("fake.jpg", png_header, "image/jpeg")}
+        )
         self.assertEqual(r.status_code, 400)
 
     def test_backgrounds_not_found_returns_404(self):
@@ -380,13 +426,15 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Logs ──
 
-    @patch('builtins.open')
-    @patch('docker.api.logs.os.path.exists')
+    @patch("builtins.open")
+    @patch("docker.api.logs.os.path.exists")
     def test_logs_returns_lines(self, mock_exists, mock_open):
         """GET /api/logs 返回最近 N 行日志。"""
         mock_exists.return_value = True
         mock_open.return_value.__enter__.return_value.readlines.return_value = [
-            "line 1\n", "line 2\n", "line 3\n"
+            "line 1\n",
+            "line 2\n",
+            "line 3\n",
         ]
         r = self.client.get("/api/logs?tail=10")
         self.assertEqual(r.status_code, 200)
@@ -394,7 +442,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(len(data["lines"]), 3)
         self.assertEqual(data["total"], 3)
 
-    @patch('docker.api.logs.os.path.exists')
+    @patch("docker.api.logs.os.path.exists")
     def test_logs_file_not_exist_returns_note(self, mock_exists):
         """日志文件尚未生成时返回提示信息。"""
         mock_exists.return_value = False
@@ -406,46 +454,46 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Users ──
 
-    @patch('docker.api.users.list_users')
+    @patch("docker.api.users.list_users")
     def test_list_users_returns_list(self, mock_list):
         """GET /api/users 返回用户列表。"""
-        mock_list.return_value = [
-            {"id": 1, "username": "admin", "role": "admin"}
-        ]
+        mock_list.return_value = [{"id": 1, "username": "admin", "role": "admin"}]
         r = self.client.get("/api/users")
         self.assertEqual(r.status_code, 200)
         users = r.json()["users"]
         self.assertEqual(len(users), 1)
         self.assertEqual(users[0]["username"], "admin")
 
-    @patch('docker.api.users.add_user')
+    @patch("docker.api.users.add_user")
     def test_add_user_returns_ok(self, mock_add):
         """POST /api/users 添加用户成功返回 ok。"""
         mock_add.return_value = True
-        r = self.client.post("/api/users", json={
-            "username": "newuser", "password": "pass1234", "role": "user"
-        })
+        r = self.client.post(
+            "/api/users",
+            json={"username": "newuser", "password": "pass1234", "role": "user"},
+        )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
-    @patch('docker.api.users.add_user')
+    @patch("docker.api.users.add_user")
     def test_add_user_empty_username_returns_400(self, mock_add):
         """空用户名返回 400。"""
-        r = self.client.post("/api/users", json={
-            "username": "", "password": "pass1234"
-        })
+        r = self.client.post(
+            "/api/users", json={"username": "", "password": "pass1234"}
+        )
         self.assertEqual(r.status_code, 400)
 
-    @patch('docker.api.users.add_user')
+    @patch("docker.api.users.add_user")
     def test_add_user_duplicate_returns_409(self, mock_add):
         """用户名已存在返回 409。"""
         mock_add.return_value = False
-        r = self.client.post("/api/users", json={
-            "username": "admin", "password": "pass1234", "role": "admin"
-        })
+        r = self.client.post(
+            "/api/users",
+            json={"username": "admin", "password": "pass1234", "role": "admin"},
+        )
         self.assertEqual(r.status_code, 409)
 
-    @patch('docker.api.users.delete_user')
+    @patch("docker.api.users.delete_user")
     def test_delete_user_returns_ok(self, mock_delete):
         """DELETE /api/users/{id} 删除成功返回 ok。"""
         mock_delete.return_value = True
@@ -453,32 +501,33 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
-    @patch('docker.api.users.delete_user')
+    @patch("docker.api.users.delete_user")
     def test_delete_user_not_found_returns_400(self, mock_delete):
         """删除不存在的用户返回 400。"""
         mock_delete.return_value = False
         r = self.client.delete("/api/users/99")
         self.assertEqual(r.status_code, 400)
 
-    @patch('docker.auth.get_current_username')
-    @patch('docker.api.users.change_password')
+    @patch("docker.auth.get_current_username")
+    @patch("docker.api.users.change_password")
     def test_change_password_returns_ok(self, mock_change, mock_user):
         """PUT /api/users/password 修改密码成功返回 ok。"""
         mock_user.return_value = "admin"
         mock_change.return_value = True
-        r = self.client.put("/api/users/password", json={
-            "old_password": "old", "new_password": "newpass"
-        })
+        r = self.client.put(
+            "/api/users/password",
+            json={"old_password": "old", "new_password": "newpass"},
+        )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
-    @patch('docker.auth.get_current_username')
+    @patch("docker.auth.get_current_username")
     def test_change_password_short_returns_400(self, mock_user):
         """新密码不足 4 个字符返回 400。"""
         mock_user.return_value = "admin"
-        r = self.client.put("/api/users/password", json={
-            "old_password": "old", "new_password": "ab"
-        })
+        r = self.client.put(
+            "/api/users/password", json={"old_password": "old", "new_password": "ab"}
+        )
         self.assertEqual(r.status_code, 400)
 
     # ── System: version ──
@@ -492,35 +541,37 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── System: update ──
 
-    @patch('docker.api.system.os.path.exists', return_value=False)
-    @patch('docker.api.system.os.environ.get', return_value="")
-    @patch('docker.api.system._get_container_id', return_value="")
+    @patch("docker.api.system.os.path.exists", return_value=False)
+    @patch("docker.api.system.os.environ.get", return_value="")
+    @patch("docker.api.system._get_container_id", return_value="")
     def test_update_no_container_id_returns_500(self, mock_cid, mock_env, mock_exists):
         """无法获取容器 ID 时返回 500。"""
         r = self.client.post("/api/system/update")
         self.assertEqual(r.status_code, 500)
 
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
     def test_update_same_digest_returns_not_updated(self, mock_run, mock_cid):
         """新旧 digest 相同时返回 updated=False。"""
         inspect_out = json.dumps([{"Image": "sha256:old"}])
         digest_out = "ghcr.io/leanmore/pilotstd@sha256:abc123"
         mock_run.side_effect = [
-            MagicMock(stdout=inspect_out),      # inspect cid
-            MagicMock(stdout=digest_out),       # image inspect old
-            MagicMock(stdout="Downloaded newer"),# pull
-            MagicMock(stdout=digest_out),       # image inspect new
+            MagicMock(stdout=inspect_out),  # inspect cid
+            MagicMock(stdout=digest_out),  # image inspect old
+            MagicMock(stdout="Downloaded newer"),  # pull
+            MagicMock(stdout=digest_out),  # image inspect new
         ]
         r = self.client.post("/api/system/update")
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.json()["updated"])
 
-    @patch('docker.api.system.os.path.exists', return_value=False)
-    @patch('docker.api.system.os.environ.get', return_value="")
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
-    def test_update_no_compose_returns_restarted_false(self, mock_run, mock_cid, mock_env, mock_exists):
+    @patch("docker.api.system.os.path.exists", return_value=False)
+    @patch("docker.api.system.os.environ.get", return_value="")
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
+    def test_update_no_compose_returns_restarted_false(
+        self, mock_run, mock_cid, mock_env, mock_exists
+    ):
         """无 compose 配置时，拉取成功但 restart 为 false。"""
         old_digest = "ghcr.io/leanmore/pilotstd@sha256:aaa"
         new_digest = "ghcr.io/leanmore/pilotstd@sha256:bbb"
@@ -537,11 +588,13 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertFalse(data["restarted"])
         self.assertIn("compose", data["message"].lower())
 
-    @patch('docker.api.system.os.path.exists', return_value=True)
-    @patch('docker.api.system.os.environ.get')
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
-    def test_update_with_compose_succeeds(self, mock_run, mock_cid, mock_env, mock_exists):
+    @patch("docker.api.system.os.path.exists", return_value=True)
+    @patch("docker.api.system.os.environ.get")
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
+    def test_update_with_compose_succeeds(
+        self, mock_run, mock_cid, mock_env, mock_exists
+    ):
         """有 compose 配置时，compose up 成功后 restarted=True。"""
         mock_env.side_effect = lambda k, d="": {
             "COMPOSE_FILE": "/app/docker-compose.yml",
@@ -563,11 +616,13 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertTrue(data["restarted"])
         self.assertEqual(data["method"], "compose")
 
-    @patch('docker.api.system.os.path.exists', return_value=True)
-    @patch('docker.api.system.os.environ.get')
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
-    def test_update_compose_fails_returns_restarted_false(self, mock_run, mock_cid, mock_env, mock_exists):
+    @patch("docker.api.system.os.path.exists", return_value=True)
+    @patch("docker.api.system.os.environ.get")
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
+    def test_update_compose_fails_returns_restarted_false(
+        self, mock_run, mock_cid, mock_env, mock_exists
+    ):
         """compose up 抛异常时 restarted=False。"""
         mock_env.side_effect = lambda k, d="": {
             "COMPOSE_FILE": "/app/docker-compose.yml",
@@ -588,19 +643,20 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertTrue(data["updated"])
         self.assertFalse(data["restarted"])
 
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
     def test_update_docker_sock_not_found_returns_503(self, mock_run, mock_cid):
         """docker.sock 未挂载时返回 503。"""
         mock_run.side_effect = RuntimeError("docker.sock 未挂载")
         r = self.client.post("/api/system/update")
         self.assertEqual(r.status_code, 503)
 
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
     def test_update_pull_timeout_returns_504(self, mock_run, mock_cid):
         """pull 超时返回 504（_run_docker 抛 TimeoutExpired 时 subprocess 模块抛出）。"""
         import subprocess
+
         # inspect 成功但 pull 超时
         mock_run.side_effect = [
             MagicMock(stdout=json.dumps([{"Image": "sha256:old"}])),
@@ -610,11 +666,13 @@ class TestAPIEndpoints(unittest.TestCase):
         r = self.client.post("/api/system/update")
         self.assertEqual(r.status_code, 504)
 
-    @patch('docker.api.system.os.path.exists', return_value=False)
-    @patch('docker.api.system.os.environ.get', return_value="")
-    @patch('docker.api.system._get_container_id', return_value="abc123")
-    @patch('docker.api.system._run_docker')
-    def test_update_old_digest_empty_still_triggers_update(self, mock_run, mock_cid, mock_env, mock_exists):
+    @patch("docker.api.system.os.path.exists", return_value=False)
+    @patch("docker.api.system.os.environ.get", return_value="")
+    @patch("docker.api.system._get_container_id", return_value="abc123")
+    @patch("docker.api.system._run_docker")
+    def test_update_old_digest_empty_still_triggers_update(
+        self, mock_run, mock_cid, mock_env, mock_exists
+    ):
         """旧 digest 获取失败时（image inspect 抛异常），仍应触发更新流程。"""
         new_digest = "ghcr.io/leanmore/pilotstd@sha256:bbb"
         mock_run.side_effect = [

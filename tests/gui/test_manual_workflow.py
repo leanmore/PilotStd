@@ -3,16 +3,13 @@
 # 覆盖问题5（分阶段操作工况）中提到的手动操作路径
 
 import os
-import sys
 import shutil
+import sys
 import tempfile
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
-
-import pytest
-from PyQt6.QtCore import Qt
 
 
 def _count_visible_rows(table):
@@ -28,15 +25,18 @@ def _count_visible_rows(table):
 # 1. 跳过阶段
 # ════════════════════════════════════════════════════════════════
 
+
 def test_download_without_query_shows_hint(window, test_data_dir, qtbot):
     """跳过查询直接点下载 → 提示'请先导入标准文件'（工作区为空时）。"""
     window._suppress_dialogs = True
     # 未扫描/查询，工作区为空
     # 直接点下载应安全返回（不崩溃），不启动 worker
     window._on_download()
-    assert not hasattr(window, '_download_worker') or \
-        window._download_worker is None or \
-        not window._download_worker.isRunning()
+    assert (
+        not hasattr(window, "_download_worker")
+        or window._download_worker is None
+        or not window._download_worker.isRunning()
+    )
 
 
 def test_skip_download_after_query(window, test_data_dir, qtbot):
@@ -52,6 +52,7 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
         # 扫描
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         assert len(window._parsed_results) > 0
 
@@ -65,8 +66,9 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
 
         # 验证：规范化后所有行的 next_action 不是 download
         for p in window._parsed_results:
-            assert p.next_action != "download", \
+            assert p.next_action != "download", (
                 f"跳过下载后仍有 download 状态: {p.get_full_number()}"
+            )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -74,6 +76,7 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 2. 取消按钮
 # ════════════════════════════════════════════════════════════════
+
 
 def test_cancel_button_initially_disabled(window, qtbot):
     """取消按钮初始为置灰状态。"""
@@ -92,6 +95,7 @@ def test_cancel_button_enabled_during_query(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
 
         # 发起查询，检查取消按钮状态
@@ -117,6 +121,7 @@ def test_cancel_stops_query_worker(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
 
         window._on_query()
@@ -154,6 +159,7 @@ def test_pause_button_still_works(window, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 3. 重复操作
 # ════════════════════════════════════════════════════════════════
+
 
 def test_scan_twice_overwrites_results(window, test_data_dir, qtbot):
     """扫描两次 → _parsed_results 被第二次扫描覆盖。"""
@@ -199,6 +205,7 @@ def test_query_twice_does_not_double_classify(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
 
         window._on_query()
@@ -220,9 +227,10 @@ def test_query_twice_does_not_double_classify(window, test_data_dir, qtbot):
 # 4. 按钮状态
 # ════════════════════════════════════════════════════════════════
 
+
 def test_buttons_exist_and_have_correct_text(window, qtbot):
     """验证所有工具栏按钮存在且文本正确。"""
-    assert window.btn_select.text() is not None   # 导入（扫描）
+    assert window.btn_select.text() is not None  # 导入（扫描）
     assert window.btn_query.text() is not None
     assert window.btn_download.text() is not None
     assert window.btn_normalize.text() is not None
@@ -244,6 +252,7 @@ def test_buttons_enabled_after_cancel(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
 
         window._on_query()
@@ -259,6 +268,7 @@ def test_buttons_enabled_after_cancel(window, test_data_dir, qtbot):
 # 5. 进度条
 # ════════════════════════════════════════════════════════════════
 
+
 def test_progress_bar_visible_during_task(window, test_data_dir, qtbot):
     """任务执行中进度条可见。"""
     window._suppress_dialogs = True
@@ -271,6 +281,7 @@ def test_progress_bar_visible_during_task(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
 
         window._on_query()
@@ -297,6 +308,7 @@ def test_progress_bar_shows_percentage(window, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 6. 工作流完整性
 # ════════════════════════════════════════════════════════════════
+
 
 def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
     """完全手动操作：扫描→查询→下载→规范化→归档，不崩溃。"""
@@ -348,6 +360,7 @@ def test_status_bar_shows_cancel_message(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         window._on_query()
 
@@ -355,8 +368,9 @@ def test_status_bar_shows_cancel_message(window, test_data_dir, qtbot):
         window._on_cancel()
 
         messages = [args[0] for args in spy if args]
-        assert any("取消" in str(m) for m in messages), \
+        assert any("取消" in str(m) for m in messages), (
             f"状态栏应包含'取消'消息，实际: {messages}"
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -364,6 +378,7 @@ def test_status_bar_shows_cancel_message(window, test_data_dir, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 7. 阶段切换
 # ════════════════════════════════════════════════════════════════
+
 
 def test_switch_to_stage_after_query(window, test_data_dir, qtbot):
     """查询完成后 _switch_to_stage 切换显示不同队列。"""
@@ -377,6 +392,7 @@ def test_switch_to_stage_after_query(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
@@ -400,6 +416,7 @@ def test_get_stage_summary(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
@@ -414,6 +431,7 @@ def test_get_stage_summary(window, test_data_dir, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 8. 按钮状态感知
 # ════════════════════════════════════════════════════════════════
+
 
 def test_button_states_empty_workspace(window, qtbot):
     """空工作区时查询按钮置灰。"""
@@ -435,6 +453,7 @@ def test_button_states_after_scan(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         window._update_button_states()
         assert window.btn_query.isEnabled()
@@ -445,6 +464,7 @@ def test_button_states_after_scan(window, test_data_dir, qtbot):
 # ════════════════════════════════════════════════════════════════
 # 9. 下载独立队列
 # ════════════════════════════════════════════════════════════════
+
 
 def test_download_uses_independent_queue(window, test_data_dir, qtbot):
     """下载时 work_table 只显示 download_list。"""
@@ -458,6 +478,7 @@ def test_download_uses_independent_queue(window, test_data_dir, qtbot):
 
         window._run_scan(tmp)
         from tests.gui.test_full_pipeline import _wait_worker
+
         _wait_worker(qtbot, window, "_scan_worker")
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
