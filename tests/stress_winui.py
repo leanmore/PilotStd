@@ -154,7 +154,9 @@ def test_winui_hot_cross_compare(window, qtbot, request):
     comparisons = []
     all_pass = True
 
-    def _cmp(label, exp_val, act_val, tolerance=0.1):
+    _TOLERANCE = float(os.environ.get("PILOTSTD_TOLERANCE", "0.1"))
+
+    def _cmp(label, exp_val, act_val, tolerance=_TOLERANCE):
         nonlocal all_pass
         ok = (
             abs(exp_val - act_val) / max(exp_val, 1) <= tolerance

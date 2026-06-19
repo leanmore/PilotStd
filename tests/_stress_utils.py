@@ -85,6 +85,11 @@ def verdict() -> bool:
     return passed == total
 
 
+def get_check_results() -> list:
+    """返回所有已记录的检查结果列表，供外部汇总报告使用。"""
+    return list(_checks)
+
+
 # ── 统一子进程执行（可见控制台窗口）───────────────────────────────
 
 

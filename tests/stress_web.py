@@ -4,11 +4,17 @@
 # 全程自动化；Docker不可达时自动跳过
 # 覆盖: 认证(4)/业务API(11)/配置与公告(3)/文件操作(5) 共23项
 
+import json
+import os
 import sys
 import time
 
 import requests
-from _stress_utils import load_docker_credentials, setup_stress_logging
+from _stress_utils import (
+    get_check_results,
+    load_docker_credentials,
+    setup_stress_logging,
+)
 
 logger = setup_stress_logging("stress_web")
 
@@ -517,9 +523,40 @@ else:
 total_time = time.time() - t0
 logger.info("=" * 60)
 logger.info("Web API 压力测试完成 (%.1fs)", total_time)
-# 从 logger 的 FileHandler 中取日志路径（setup_stress_logging 不返回路径）
 _log_path = next(
     (h.baseFilename for h in logger.handlers if hasattr(h, "baseFilename")), "未知"
 )
 logger.info("日志: %s", _log_path)
-_verdict()
+_all_ok = _verdict()
+
+# 输出 step3.json 完整报告
+_results = get_check_results()
+_total = len(_results)
+_passed = sum(1 for _, ok, _ in _results if ok)
+_failed = sum(1 for _, ok, _ in _results if ok is False)
+_skipped = _total - _passed - _failed
+_failures = [
+    {"name": label, "detail": detail}
+    for label, ok, detail in _results
+    if ok is False
+]
+_step3 = {
+    "step": 3,
+    "ts": time.strftime("%Y%m%d_%H%M%S"),
+    "elapsed_s": round(total_time, 1),
+    "total": _total,
+    "passed": _passed,
+    "failed": _failed,
+    "skipped": _skipped,
+    "failures": _failures,
+    "verdict": "PASS" if _all_ok else "FAIL",
+}
+_step3_path = os.environ.get("STRESS_STEP3_PATH", "")
+if _step3_path:
+    os.makedirs(os.path.dirname(_step3_path), exist_ok=True)
+    with open(_step3_path, "w", encoding="utf-8") as _f:
+        json.dump(_step3, _f, ensure_ascii=False, indent=2)
+    logger.info("step3.json: %s", _step3_path)
+else:
+    logger.info("step3 统计: total=%d passed=%d failed=%d skipped=%d",
+                 _total, _passed, _failed, _skipped)

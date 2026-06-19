@@ -46,6 +46,7 @@ def _parse_args():
     )
     p.add_argument("--skip-winui", action="store_true", help="跳过 WinUI 步骤")
     p.add_argument("--skip-docker", action="store_true", help="跳过 Docker 步骤")
+    p.add_argument("--skip-cli", action="store_true", help="跳过 CLI 冷启步骤")
     p.add_argument(
         "--docker-url",
         default=os.environ.get("PILOTSTD_BASE_URL", ""),
@@ -321,6 +322,14 @@ def _step1_cli_cold(
         env["OCR_ALIYUN_ACCESS_KEY_SECRET"] = ocr_config.get(
             "aliyun_access_key_secret", ""
         )
+        _providers = []
+        if ocr_config.get("baidu_api_key"):
+            _providers.append("百度")
+        if ocr_config.get("tencent_secret_id"):
+            _providers.append("腾讯")
+        if ocr_config.get("aliyun_access_key_id"):
+            _providers.append("阿里云")
+        _log(f"OCR 凭证已注入环境变量: {', '.join(_providers) if _providers else '无'}")
 
     results = {"step": 1, "ts": TS, "checkpoints": {}}
 
@@ -433,11 +442,20 @@ def _step1_cli_cold(
     csres_info = {}  # {processed, failures}
     overflow_count = 0
     water_level = {}  # {ahbz_remain, njbz_remain}
+    parse_failures = 0  # 日志解析失败行数
+    # 需要解析的日志标记关键字集合
+    _PARSE_MARKERS = (
+        "[BUCKET]", "[FUNNEL]", "[TIMELINE]", "[COOLDOWN]",
+        "[ROTATOR]", "[CSRES_INTERVAL]", "[CSRES]",
+        "[OVERFLOW]", "[WATER]",
+    )
     if "error" not in r:
         for line in (r.get("stdout", "") + r.get("stderr", "")).splitlines():
+            _matched = False  # 本行是否有正则匹配成功
             if "download=" in line and "expire=" in line:
                 m = re.search(r"download=(\d+).*?expire=(\d+).*?pending=(\d+)", line)
                 if m:
+                    _matched = True
                     dl_count, ex_count, pe_count = (
                         int(m.group(1)),
                         int(m.group(2)),
@@ -445,6 +463,7 @@ def _step1_cli_cold(
                     )
             m2 = re.search(r"(\d+)\s+精确", line)
             if m2:
+                _matched = True
                 exact_count = int(m2.group(1))
             # 逐桶日志解析
             m3 = re.match(
@@ -452,6 +471,7 @@ def _step1_cli_cold(
                 line,
             )
             if m3:
+                _matched = True
                 bucket_stats[m3.group(1)] = {
                     "total": int(m3.group(2)),
                     "done": int(m3.group(3)),
@@ -463,6 +483,7 @@ def _step1_cli_cold(
                 line,
             )
             if m4:
+                _matched = True
                 funnel = {
                     "total": int(m4.group(1)),
                     "ok": int(m4.group(2)),
@@ -474,12 +495,14 @@ def _step1_cli_cold(
                 line,
             )
             if m5:
+                _matched = True
                 timeline_elapsed = float(m5.group(2))
             if "[COOLDOWN]" in line:
                 cooldown_count += 1
                 # 解析新版结构化格式: [COOLDOWN] site=X action=enter reason=Y cooldown_s=Z
                 cs = re.search(r"\[COOLDOWN\]\s+site=(\S+)\s+action=(\S+)", line)
                 if cs:
+                    _matched = True
                     site_name = cs.group(1)
                     action = cs.group(2)
                     if "cooldown_details" not in results["checkpoints"]["query"]:
@@ -494,6 +517,7 @@ def _step1_cli_cold(
                 line,
             )
             if mr:
+                _matched = True
                 if "rotator_milestones" not in results["checkpoints"]["query"]:
                     results["checkpoints"]["query"]["rotator_milestones"] = []
                 results["checkpoints"]["query"]["rotator_milestones"].append(
@@ -511,6 +535,7 @@ def _step1_cli_cold(
                 r".*\[CSRES_INTERVAL\]\s+actual=([\d.]+)s\s+target=([\d.]+)s", line
             )
             if mi:
+                _matched = True
                 if "csres_intervals" not in results["checkpoints"]["query"]:
                     results["checkpoints"]["query"]["csres_intervals"] = []
                 results["checkpoints"]["query"]["csres_intervals"].append(
@@ -518,21 +543,28 @@ def _step1_cli_cold(
                 )
             m6 = re.match(r".*\[CSRES\]\s+processed=(\d+)\s+failures=(\d+)", line)
             if m6:
+                _matched = True
                 csres_info = {
                     "processed": int(m6.group(1)),
                     "failures": int(m6.group(2)),
                 }
             m7 = re.match(r".*\[OVERFLOW\]\s+events=(\d+)", line)
             if m7:
+                _matched = True
                 overflow_count = int(m7.group(1))
             m8 = re.match(
                 r".*\[WATER\]\s+ahbz_overflow_remain=(\d+)\s+njbz365_remain=(\d+)", line
             )
             if m8:
+                _matched = True
                 water_level = {
                     "ahbz_remain": int(m8.group(1)),
                     "njbz_remain": int(m8.group(2)),
                 }
+            # 检测含标记但解析失败的行
+            _has_marker = any(mk in line for mk in _PARSE_MARKERS)
+            if _has_marker and not _matched:
+                parse_failures += 1
         results["checkpoints"]["query"] = {
             "download": dl_count,
             "expire": ex_count,
@@ -541,6 +573,7 @@ def _step1_cli_cold(
             "total": dl_count + ex_count + pe_count,
             "rc": r.get("returncode", 0),
             "elapsed_s": round(time.time() - t0, 1),
+            "parse_failures": parse_failures,
         }
         if bucket_stats:
             results["checkpoints"]["query"]["bucket_stats"] = bucket_stats
@@ -1023,6 +1056,7 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
     env["PILOTSTD_BASE_URL"] = docker_url
     env["PILOTSTD_USERNAME"] = docker_user
     env["PILOTSTD_PASSWORD"] = docker_pass
+    env["STRESS_STEP3_PATH"] = os.path.join(RESULT_DIR, "step3.json")
 
     try:
         r = subprocess.run(
@@ -1040,6 +1074,21 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
             for line in r.stdout.splitlines():
                 if "PASS" in line or "FAIL" in line or "SKIP" in line:
                     _log(f"  {line.strip()}")
+        # 读取 step3.json 汇总
+        _step3_path = os.path.join(RESULT_DIR, "step3.json")
+        if os.path.exists(_step3_path):
+            try:
+                with open(_step3_path, "r", encoding="utf-8") as _f:
+                    _s3 = json.load(_f)
+                _log(
+                    f"Docker 统计: total={_s3.get('total',0)} "
+                    f"passed={_s3.get('passed',0)} failed={_s3.get('failed',0)} "
+                    f"skipped={_s3.get('skipped',0)}"
+                )
+                for _fitem in _s3.get("failures", []):
+                    _log(f"  FAIL {_fitem['name']}: {_fitem['detail']}")
+            except Exception:
+                pass
         return r.returncode == 0
     except subprocess.TimeoutExpired:
         _log("Docker test: 超时")
@@ -1100,10 +1149,12 @@ def _step4_verdict(
         csres_intervals = q.get("csres_intervals", [])
         water = q.get("water_level", {})
         milestones = q.get("rotator_milestones", [])
+        parse_failures = q.get("parse_failures", 0)
         _log(
             f"逐桶指标: pending={funnel.get('pending', '?')} "
             f"overflow={funnel.get('overflow', '?')} "
-            f"cooldown={cooldown} elapsed={elapsed:.0f}s"
+            f"cooldown={cooldown} elapsed={elapsed:.0f}s "
+            f"parse_failures={parse_failures}"
         )
         if cooldown_details:
             for site, actions in sorted(cooldown_details.items()):
@@ -1240,59 +1291,64 @@ def main():
     _log("自检通过")
 
     # 第一步：CLI 冷启
-    step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
-    step1_ok = all(
-        step1["checkpoints"].get(c, {}).get("rc", 1) == 0
-        for c in [
-            "scan",
-            "query",
-            "download",
-            "normalize",
-            "organize",
-            "expire",
-            "announce",
-            "task",
-            "recheck",
-        ]
-    )
-
-    # 第一步后：如果未跳过 WinUI，等用户手动复位源目录
-    # （方案规定：复位由用户操作，AI 不得越权）
-    if not args.skip_winui:
-        s = step1.get("summary", {})
-        org_moved = s.get("organize_moved", 0)
-        _log(
-            f"第一步完成: scan={s.get('scan_count', 0)} query_dl={s.get('query_download', 0)} "
-            f"query_ex={s.get('query_expire', 0)} query_pe={s.get('query_pending', 0)} "
-            f"dl_ok={s.get('download_success', 0)} org_moved={org_moved} "
-            f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
+    if getattr(args, "skip_cli", False):
+        _log("第一步：跳过（--skip-cli）")
+        step1 = {"checkpoints": {}, "summary": {}}
+        step1_ok = True
+    else:
+        step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
+        step1_ok = all(
+            step1["checkpoints"].get(c, {}).get("rc", 1) == 0
+            for c in [
+                "scan",
+                "query",
+                "download",
+                "normalize",
+                "organize",
+                "expire",
+                "announce",
+                "task",
+                "recheck",
+            ]
         )
-        if org_moved > 0:
+
+        # 第一步后：如果未跳过 WinUI，等用户手动复位源目录
+        # （方案规定：复位由用户操作，AI 不得越权）
+        if not args.skip_winui:
+            s = step1.get("summary", {})
+            org_moved = s.get("organize_moved", 0)
             _log(
-                f"=== organize 已移动 {org_moved} 个文件到 {args.output}，请手动迁回 {args.source} ==="
+                f"第一步完成: scan={s.get('scan_count', 0)} query_dl={s.get('query_download', 0)} "
+                f"query_ex={s.get('query_expire', 0)} query_pe={s.get('query_pending', 0)} "
+                f"dl_ok={s.get('download_success', 0)} org_moved={org_moved} "
+                f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
             )
-        else:
-            _log("=== organize 未移动文件，源目录未变动 ===")
-        if _yes(args) or org_moved == 0:
             if org_moved > 0:
-                _log("=== --yes 模式：自动复位源目录 ===")
-                _step0_reset_source(args.source, args.output)
+                _log(
+                    f"=== organize 已移动 {org_moved} 个文件到 {args.output}，请手动迁回 {args.source} ==="
+                )
             else:
-                _log("=== organize 未移动文件，自动继续 ===")
+                _log("=== organize 未移动文件，源目录未变动 ===")
+            if _yes(args) or org_moved == 0:
+                if org_moved > 0:
+                    _log("=== --yes 模式：自动复位源目录 ===")
+                    _step0_reset_source(args.source, args.output)
+                else:
+                    _log("=== organize 未移动文件，自动继续 ===")
         else:
             _log("=== 用户复位源目录完成后，输入 y 继续 ===")
             ans = input("复位完成，是否继续 WinUI 测试？(y/n): ").strip().lower()
             if ans not in ("y", "yes"):
                 _log("已取消，测试停止。")
                 return 0
-    else:
-        s = step1.get("summary", {})
-        _log(
-            f"第一步完成: scan={s.get('scan_count', 0)} query_dl={s.get('query_download', 0)} "
-            f"query_ex={s.get('query_expire', 0)} query_pe={s.get('query_pending', 0)} "
-            f"dl_ok={s.get('download_success', 0)} org_moved={s.get('organize_moved', 0)} "
-            f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
-        )
+        if args.skip_winui:
+            s = step1.get("summary", {})
+            _log(
+                f"第一步完成: scan={s.get('scan_count', 0)} query_dl={s.get('query_download', 0)} "
+                f"query_ex={s.get('query_expire', 0)} query_pe={s.get('query_pending', 0)} "
+                f"dl_ok={s.get('download_success', 0)} org_moved={s.get('organize_moved', 0)} "
+                f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
+            )
 
     # 第二步：WinUI 热启
     step2_ok = True

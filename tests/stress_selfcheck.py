@@ -571,6 +571,42 @@ _check(
     f"缺失: {_missing_cols}" if _missing_cols else f"{len(_cols)}列全部就位",
 )
 
+# --- adapter_stats 写入验证 ---
+logger.info("--- adapter_stats 写入验证 ---")
+try:
+    from pilotstd.core.db import Database as _AsDb
+
+    _as_db = _AsDb(get_db_path())
+    _tables = {
+        r["name"]
+        for r in _as_db.fetchall(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    }
+    if "adapter_stats" not in _tables:
+        _check("adapter_stats写入验证", None, "adapter_stats 表不存在，跳过")
+    else:
+        _test_name = "_test_selfcheck"
+        try:
+            _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+        except Exception:
+            pass
+        _as_db.update_adapter_stats(
+            _test_name, success=True, response_time=0.05, cooldown_triggered=False
+        )
+        _row = _as_db.fetchone(
+            "SELECT * FROM adapter_stats WHERE adapter_name=?", (_test_name,)
+        )
+        _write_ok = _row is not None and _row["total_queries"] == 1
+        _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+        _check(
+            "adapter_stats写入验证",
+            _write_ok,
+            f"total_queries={_row['total_queries'] if _row else 'None'}",
+        )
+except Exception as _e:
+    _check("adapter_stats写入验证", None, f"异常: {str(_e)[:60]}")
+
 # ======================================================================
 # 汇总
 # ======================================================================
