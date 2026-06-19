@@ -64,3 +64,4 @@ web/src/assets/vite.svg
 web/src/assets/vue.svg
 capture_*.bmp
 web/dist/
+web/stats.html
