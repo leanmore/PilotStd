@@ -38,8 +38,8 @@ SAMPLE_NUMBERS = [
 ]
 
 # ── 默认凭据 ───────────────────────────────────────────────
-DEFAULT_USERNAME = "admin"
-DEFAULT_PASSWORD = "admin"
+DEFAULT_USERNAME = "mystdpilot"
+DEFAULT_PASSWORD = "AKAyJS-0xbr79iZD"
 
 
 class PilotStdUser(HttpUser):
