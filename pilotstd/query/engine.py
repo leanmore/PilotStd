@@ -247,7 +247,6 @@ class QueryEngine:
                         t0 = _time.time()
                         result = adapter.query_with_strategy(code, number, year)
                         elapsed = round(_time.time() - t0, 3)
-                        success = result is not None and result.is_found()
                         # 检测冷却 + 记录到数据库
                         cooled = bool(
                             self._rotator
@@ -257,12 +256,12 @@ class QueryEngine:
                         if self._rotator:
                             self._rotator.record_query_result(
                                 adapter_name,
-                                success,
+                                result is not None and result.is_found(),
                                 elapsed,
                                 cooldown_triggered=cooled,
                                 cooldown_reason=cooldown_reason,
                             )
-                        if success:
+                        if result is not None and result.is_found():
                             result.source_site = adapter_name
                             all_results.append(result)
                             found_numbers.add(num)
