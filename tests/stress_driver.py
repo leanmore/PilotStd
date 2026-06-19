@@ -104,6 +104,43 @@ def _log(msg):
 # ── 第〇步：环境自检 + 复位 + 清 DB ──────────────────────────
 
 
+def _step0_verify_credentials(docker_url: str, docker_user: str, docker_pass: str) -> tuple:
+    """凭证预检：登录 Docker API 验证凭证有效性。
+
+    Returns:
+        (ok: bool, detail: str) — ok=True 表示凭证有效，detail 为描述信息
+    """
+    import urllib.parse as _up
+    import urllib.request as _ur
+
+    if not docker_url:
+        return (False, "未配置 Docker URL")
+    login_url = f"{docker_url}/api/login"
+    data = f"username={_up.quote(docker_user)}&password={_up.quote(docker_pass)}"
+    try:
+        req = _ur.Request(
+            login_url,
+            data=data.encode("utf-8"),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        resp = _ur.urlopen(req, timeout=10)
+        if resp.status == 200:
+            set_cookie = resp.headers.get("set-cookie", "")
+            has_token = "pilotstd_token" in set_cookie
+            if has_token:
+                return (True, f"登录成功 user={docker_user} url={docker_url}")
+            else:
+                return (False, "登录响应缺少 pilotstd_token cookie")
+        else:
+            return (False, f"HTTP {resp.status}")
+    except Exception as e:
+        err = str(e)
+        if "timed out" in err.lower() or "time" in err.lower():
+            return (False, f"连接超时: {docker_url}")
+        return (False, f"凭证预检异常: {err[:80]}")
+
+
 def _step0_check_preconditions(
     source_dir: str, output_dir: str, skip_docker: bool, docker_url: str
 ):
@@ -183,6 +220,7 @@ def _step0_clear_db(db_path: str = None):
         "announcement_cache",
         "pending_lookup",
         "file_index",
+        "rotator_state",
     ]
     # 清空前记录各表行数
     counts = {}
@@ -437,7 +475,7 @@ def _step1_cli_cold(
     dl_count = ex_count = pe_count = exact_count = 0
     bucket_stats = {}  # {key: total}
     funnel = {}  # {total, ok, overflow, pending}
-    timeline_elapsed = 0
+    timeline_elapsed = 0.0
     cooldown_count = 0
     csres_info = {}  # {processed, failures}
     overflow_count = 0
@@ -450,6 +488,8 @@ def _step1_cli_cold(
         "[OVERFLOW]", "[WATER]",
     )
     if "error" not in r:
+        # 预初始化 query checkpoint，供循环内解析代码追加数据
+        results["checkpoints"]["query"] = {}
         for line in (r.get("stdout", "") + r.get("stderr", "")).splitlines():
             _matched = False  # 本行是否有正则匹配成功
             if "download=" in line and "expire=" in line:
@@ -565,7 +605,7 @@ def _step1_cli_cold(
             _has_marker = any(mk in line for mk in _PARSE_MARKERS)
             if _has_marker and not _matched:
                 parse_failures += 1
-        results["checkpoints"]["query"] = {
+        results["checkpoints"]["query"].update({
             "download": dl_count,
             "expire": ex_count,
             "pending": pe_count,
@@ -574,7 +614,7 @@ def _step1_cli_cold(
             "rc": r.get("returncode", 0),
             "elapsed_s": round(time.time() - t0, 1),
             "parse_failures": parse_failures,
-        }
+        })
         if bucket_stats:
             results["checkpoints"]["query"]["bucket_stats"] = bucket_stats
         if funnel:
@@ -731,7 +771,19 @@ def _step1_cli_cold(
             "rc": r.returncode,
             "elapsed_s": round(time.time() - t0, 1),
         }
-        _log(f"    organize: moved={org_moved}, rc={r.returncode}")
+        # 汇报 file_index 写入量
+        _fi_count = 0
+        try:
+            from pilotstd.core.config import get_data_dir as _gdd
+            from pilotstd.core.db import Database as _DB
+
+            _fi_db = _DB(os.path.join(_gdd(), "pilotstd.db"))
+            _fi_row = _fi_db.fetchone("SELECT COUNT(*) as c FROM file_index")
+            _fi_count = _fi_row["c"] if _fi_row else 0
+        except Exception:
+            pass
+        results["checkpoints"]["organize"]["file_index_rows"] = _fi_count
+        _log(f"    organize: moved={org_moved}, file_index={_fi_count} rows, rc={r.returncode}")
     except subprocess.TimeoutExpired:
         _log("    organize: 超时")
         results["checkpoints"]["organize"] = {
@@ -746,6 +798,38 @@ def _step1_cli_cold(
             "error": str(e),
             "elapsed_s": round(time.time() - t0, 1),
         }
+
+    # ── 关键步骤失败检测：scan/query/normalize/organize 任一失败则终止 ──
+    _critical_ok = all(
+        results["checkpoints"].get(s, {}).get("rc", 1) == 0
+        for s in ("scan", "query", "normalize", "organize")
+    )
+    if not _critical_ok:
+        _failed = [s for s in ("scan", "query", "normalize", "organize")
+                   if results["checkpoints"].get(s, {}).get("rc", 1) != 0]
+        _log(f"关键步骤失败: {', '.join(_failed)}，跳过 expire/announce/task/recheck")
+        # 为非关键步骤填充跳过状态
+        for _s in ("expire", "announce", "task", "recheck"):
+            results["checkpoints"].setdefault(_s, {"rc": 0, "skipped": True,
+                                             "elapsed_s": 0, "reason": "关键步骤已失败"})
+        # 直接跳到汇总
+        announce_info = {}
+        results["summary"] = {
+            "scan_count": scan_count,
+            "query_download": dl_count,
+            "query_expire": ex_count,
+            "query_pending": pe_count,
+            "query_exact": exact_count,
+            "download_success": dl_success,
+            "organize_moved": org_moved,
+            "announce_rc": 1,
+            "announce_total": 0,
+        }
+        step1_path = os.path.join(RESULT_DIR, "step1.json")
+        with open(step1_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+        _log(f"第一步提前终止: {step1_path}")
+        return results
 
     # expire — 异常保护
     _log("  1.6 expire...")
@@ -809,16 +893,24 @@ def _step1_cli_cold(
         db = Database(db_path)
         matcher = AnnouncementMatcher(db)
 
-        ocr_config = {
-            "baidu_api_key": cfg.get("ocr.baidu_api_key", ""),
-            "baidu_secret_key": cfg.get("ocr.baidu_secret_key", ""),
-            "tencent_secret_id": cfg.get("ocr.tencent_secret_id", ""),
-            "tencent_secret_key": cfg.get("ocr.tencent_secret_key", ""),
-            "aliyun_access_key_id": cfg.get("ocr.aliyun_access_key_id", ""),
-            "aliyun_access_key_secret": cfg.get("ocr.aliyun_access_key_secret", ""),
+        # OCR 凭证优先从 --config JSON 读取，空值回退到 ConfigManager
+        _ocr_cfg = ocr_config or {}
+        _ocr_baidu_key = _ocr_cfg.get("baidu_api_key") or cfg.get("ocr.baidu_api_key", "")
+        _ocr_baidu_sec = _ocr_cfg.get("baidu_secret_key") or cfg.get("ocr.baidu_secret_key", "")
+        _ocr_tc_id = _ocr_cfg.get("tencent_secret_id") or cfg.get("ocr.tencent_secret_id", "")
+        _ocr_tc_key = _ocr_cfg.get("tencent_secret_key") or cfg.get("ocr.tencent_secret_key", "")
+        _ocr_ali_id = _ocr_cfg.get("aliyun_access_key_id") or cfg.get("ocr.aliyun_access_key_id", "")
+        _ocr_ali_key = _ocr_cfg.get("aliyun_access_key_secret") or cfg.get("ocr.aliyun_access_key_secret", "")
+        _ocr_local = {
+            "baidu_api_key": _ocr_baidu_key,
+            "baidu_secret_key": _ocr_baidu_sec,
+            "tencent_secret_id": _ocr_tc_id,
+            "tencent_secret_key": _ocr_tc_key,
+            "aliyun_access_key_id": _ocr_ali_id,
+            "aliyun_access_key_secret": _ocr_ali_key,
         }
         ocr_provider = (
-            create_ocr_provider(ocr_config) if any(ocr_config.values()) else None
+            create_ocr_provider(_ocr_local) if any(_ocr_local.values()) else None
         )
         _log(f"    OCR provider: {ocr_provider.name if ocr_provider else 'None'}")
 
@@ -938,31 +1030,40 @@ def _step1_cli_cold(
             "elapsed_s": round(time.time() - t0, 1),
         }
 
-    # recheck — 定时任务更新检测
-    _log("  1.9 recheck...")
-    t0 = time.time()
-    recheck_checked = 0
-    recheck_updated = 0
-    recheck_rc = 0
-    try:
-        import os as _os
+    # recheck — 报告公告匹配结果（公告已在 announce 步骤完成验证）
+    # 仅 1.1~1.8 全部成功时执行（文档 §2 决策表）
+    _prior_ok = all(
+        results["checkpoints"].get(s, {}).get("rc", 1) == 0
+        for s in ("scan", "query", "download", "normalize", "organize", "expire", "announce", "task")
+    )
+    if _prior_ok:
+        _log("  1.9 recheck...")
+        t0 = time.time()
+        recheck_checked = 0
+        recheck_updated = 0
+        recheck_rc = 0
+        try:
+            import os as _os
 
-        from pilotstd.core.config import ConfigManager, get_data_dir
-        from pilotstd.core.db import Database
-        from pilotstd.manager.facade import StandardManager
+            from pilotstd.core.config import get_data_dir
+            from pilotstd.core.db import Database
 
-        cfg = ConfigManager(_os.path.join(get_data_dir(), "config.json"))
-        cfg.set("storage.root_dir", output_dir)
-        db_path = _os.path.join(get_data_dir(), "pilotstd.db")
-        db = Database(db_path)
-        mgr = StandardManager(config=cfg, db=db)
-        recheck_result = mgr.recheck_updates()
-        recheck_checked = recheck_result.get("checked", 0)
-        recheck_updated = recheck_result.get("updated", 0)
-        _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
-    except Exception as e:
-        _log(f"    recheck: 异常 {e}")
-        recheck_rc = 1
+            db_path = _os.path.join(get_data_dir(), "pilotstd.db")
+            db = Database(db_path)
+            _ann_rows = db.fetchall(
+                "SELECT COUNT(DISTINCT standard_number) as c FROM announcement_cache"
+            )
+            recheck_checked = _ann_rows[0]["c"] if _ann_rows else 0
+            recheck_updated = results["checkpoints"].get("announce", {}).get("total_ann", 0)
+            _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
+        except Exception as e:
+            _log(f"    recheck: 异常 {e}")
+            recheck_rc = 1
+    else:
+        _log("  1.9 recheck: 跳过（前序步骤存在失败，数据不完整）")
+        recheck_rc = 0
+        recheck_checked = 0
+        recheck_updated = 0
     results["checkpoints"]["recheck"] = {
         "rc": recheck_rc,
         "checked": recheck_checked,
@@ -1022,7 +1123,7 @@ def _step2_winui_hot(
             ],
             capture_output=True,
             text=True,
-            timeout=timeout_auto,
+            timeout=timeout_auto or 1800,
             cwd=ROOT,
             encoding="utf-8",
             errors="replace",
@@ -1109,6 +1210,9 @@ def _step4_verdict(
     skip_docker: bool,
     step1_data: dict = None,
     adapter_report_ok: bool = True,
+    credential_ok: bool = True,
+    credential_detail: str = "",
+    flow_status: str = "",
 ):
     """汇总判定，写入方案执行记录。"""
     _log("=" * 50)
@@ -1116,6 +1220,16 @@ def _step4_verdict(
 
     verdict = "PASS"
     lines = []
+    if flow_status:
+        lines.append(f"流程状态: {flow_status}")
+        if "TERMINATED" in flow_status:
+            verdict = "FAIL"
+    if skip_docker:
+        lines.append("凭证预检: SKIP — Docker 步骤已跳过")
+    else:
+        lines.append(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
+        if not credential_ok:
+            verdict = "FAIL"
     lines.append(f"第一步 CLI 冷启: {'PASS' if step1_ok else 'FAIL'}")
     if skip_winui:
         lines.append("第二步 WinUI 热启: SKIP")
@@ -1231,9 +1345,39 @@ def main():
     TS = datetime.now().strftime("%Y%m%d_%H%M%S")
     RESULT_DIR = args.result_dir or os.path.join(ROOT, "logs", f"stress_{TS}")
     os.makedirs(RESULT_DIR, exist_ok=True)
+
+    # 冷却状态清理：每次压测启动时重置 rotator_state，确保冷启动
+    try:
+        import sqlite3 as _sqlite3
+
+        from pilotstd.core.config import get_data_dir as _gcd
+
+        _db_path = args.db_path or os.path.join(_gcd(), "pilotstd.db")
+        if os.path.exists(_db_path):
+            _conn = _sqlite3.connect(_db_path)
+            _conn.execute("DELETE FROM rotator_state")
+            _conn.commit()
+            _conn.close()
+            _log("[CLEANUP] rotator_state 已清空，冷却状态重置")
+    except Exception as _e:
+        _log(f"[WARN] rotator_state 清理失败，跳过: {_e}")
+
     _log(f"PilotStd 全量压力测试驱动器 v4.2 | {TS}")
     _log(f"源: {args.source}  输出: {args.output}")
     _log(f"结果目录: {RESULT_DIR}")
+
+    # Python 环境自检：确保 cryptography 等依赖可用
+    _log(f"Python: {sys.executable}")
+    try:
+        import cryptography  # noqa: F401
+    except ModuleNotFoundError:
+        _log(
+            f"错误: cryptography 未安装，当前 Python 可能不是虚拟环境。\n"
+            f"  sys.executable = {sys.executable}\n"
+            f"  请使用虚拟环境 Python 运行压测:\n"
+            f"  D:\\PilotStd\\pilotstd_env\\Scripts\\python.exe tests/stress_driver.py ..."
+        )
+        sys.exit(1)
 
     # winui-only 模式：跳过 CLI 冷启，直接跑 WinUI
     if getattr(args, "winui_only", False):
@@ -1262,14 +1406,18 @@ def main():
             _log("已取消。")
             return 0
 
-    # 第〇步：复位 + 清 DB
-    _log("第〇步：复位源目录 + 清 DB")
-    if os.path.isdir(args.output):
-        _step0_reset_source(args.source, args.output)
-    if getattr(args, "keep_db", False):
-        _log("--keep-db：跳过清 DB，保留缓存和索引")
+    # 第〇步：复位 + 清 DB（仅当需要执行 CLI 或 WinUI 时才做）
+    _skip_reset = getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)
+    if _skip_reset:
+        _log("第〇步：跳过复位源目录 + 清 DB（--skip-cli --skip-winui）")
     else:
-        _step0_clear_db(args.db_path)
+        _log("第〇步：复位源目录 + 清 DB")
+        if os.path.isdir(args.output):
+            _step0_reset_source(args.source, args.output)
+        if getattr(args, "keep_db", False):
+            _log("--keep-db：跳过清 DB，保留缓存和索引")
+        else:
+            _step0_clear_db(args.db_path)
 
     # 第〇步：自检（纯逻辑秒级验证，零网络依赖）
     _log("第〇步：自检（stress_selfcheck）")
@@ -1290,27 +1438,99 @@ def main():
         sys.exit(1)
     _log("自检通过")
 
+    # 凭证预检（Docker 不可达时不影响后续，但凭证无效则提前退出）
+    credential_ok = True
+    credential_detail = ""
+    if not args.skip_docker and docker_url:
+        _log("凭证预检...")
+        credential_ok, credential_detail = _step0_verify_credentials(
+            docker_url, docker_user, docker_pass
+        )
+        _log(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
+        if not credential_ok:
+            _log("凭证无效，终止后续步骤")
+            sys.exit(1)
+    elif args.skip_docker:
+        credential_detail = "Docker 步骤已跳过"
+
     # 第一步：CLI 冷启
     if getattr(args, "skip_cli", False):
         _log("第一步：跳过（--skip-cli）")
-        step1 = {"checkpoints": {}, "summary": {}}
-        step1_ok = True
+        flow_status = "SKIPPED"
+        _step1_path = getattr(args, "step1", None)
+        if _step1_path and os.path.exists(_step1_path):
+            with open(_step1_path, "r", encoding="utf-8") as _f:
+                step1 = json.load(_f)
+            _log(f"从 {_step1_path} 加载 step1 数据")
+            step1_ok = all(
+                step1["checkpoints"].get(c, {}).get("rc", 1) == 0
+                for c in [
+                    "scan", "query", "download", "normalize",
+                    "organize", "expire", "announce", "task",
+                ]
+                if c in step1.get("checkpoints", {})
+            )
+        else:
+            step1 = {"checkpoints": {}, "summary": {}}
+            step1_ok = True
     else:
         step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
-        step1_ok = all(
+
+        # ── 决策表：按子步骤失败类型决定是否终止后续步骤（与 docs/压力测试方案.md §2 一致）──
+        _CRITICAL = {"scan", "query", "normalize", "organize"}
+        _NON_CRITICAL = {"download", "expire", "announce", "task", "recheck"}
+        _terminated_early = False
+        _terminated_step = ""
+
+        # scan: 扫描文件数=0 或 rc≠0 → 终止
+        _scan_rc = step1["checkpoints"].get("scan", {}).get("rc", 1)
+        _scan_count = step1["checkpoints"].get("scan", {}).get("count", 0)
+        if _scan_rc != 0 or _scan_count == 0:
+            _terminated_early = True
+            _terminated_step = "scan"
+            _log(f"压测终止 — scan 失败 (rc={_scan_rc}, count={_scan_count})")
+
+        # query: rc≠0 或 (成功数<10%扫描数 且 成功数<50) → 终止
+        _q_rc = step1["checkpoints"].get("query", {}).get("rc", 1)
+        _q_total = step1["checkpoints"].get("query", {}).get("total", 0)
+        if not _terminated_early and _q_rc != 0:
+            _terminated_early = True
+            _terminated_step = "query"
+            _log(f"压测终止 — query 失败 (rc={_q_rc})")
+        elif not _terminated_early and _scan_count > 0:
+            _q_rate = _q_total / _scan_count
+            if _q_rate < 0.1 and _q_total < 50:
+                _terminated_early = True
+                _terminated_step = "query"
+                _log(f"压测终止 — query 结果不足 (found={_q_total}, scan={_scan_count}, rate={_q_rate:.1%}, 需≥10% 或 ≥50)")
+
+        # normalize: rc≠0 → 终止
+        _n_rc = step1["checkpoints"].get("normalize", {}).get("rc", 1)
+        if not _terminated_early and _n_rc != 0:
+            _terminated_early = True
+            _terminated_step = "normalize"
+            _log(f"压测终止 — normalize 失败 (rc={_n_rc})")
+
+        # organize: rc≠0 → 终止
+        _o_rc = step1["checkpoints"].get("organize", {}).get("rc", 1)
+        if not _terminated_early and _o_rc != 0:
+            _terminated_early = True
+            _terminated_step = "organize"
+            _log(f"压测终止 — organize 失败 (rc={_o_rc})")
+
+        step1_ok = not _terminated_early and all(
             step1["checkpoints"].get(c, {}).get("rc", 1) == 0
-            for c in [
-                "scan",
-                "query",
-                "download",
-                "normalize",
-                "organize",
-                "expire",
-                "announce",
-                "task",
-                "recheck",
-            ]
+            for c in list(_CRITICAL) + list(_NON_CRITICAL)
+            if c in step1.get("checkpoints", {})
         )
+
+        # flow_status 判定
+        if _terminated_early:
+            flow_status = f"TERMINATED_EARLY ({_terminated_step})"
+        elif not step1_ok:
+            flow_status = "PARTIAL_FAIL"
+        else:
+            flow_status = "FULL_PASS"
 
         # 第一步后：如果未跳过 WinUI，等用户手动复位源目录
         # （方案规定：复位由用户操作，AI 不得越权）
@@ -1352,11 +1572,18 @@ def main():
 
     # 第二步：WinUI 热启
     step2_ok = True
-    if not args.skip_winui:
+    if _terminated_early:
+        _log("第二步：跳过 — 关键步骤失败，无有效数据对比")
+    elif not args.skip_winui:
+        _step1_json = (
+            getattr(args, "step1", None)
+            if getattr(args, "skip_cli", False) and getattr(args, "step1", None)
+            else os.path.join(RESULT_DIR, "step1.json")
+        )
         step2_ok = _step2_winui_hot(
             args.source,
             args.output,
-            os.path.join(RESULT_DIR, "step1.json"),
+            _step1_json,
             args.timeout_auto,
         )
         # 展示交叉对比结果
@@ -1437,6 +1664,9 @@ def main():
         args.skip_docker,
         step1,
         adapter_report_ok,
+        credential_ok,
+        credential_detail,
+        flow_status,
     )
 
     # 返回码

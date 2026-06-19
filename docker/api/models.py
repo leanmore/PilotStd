@@ -1,4 +1,6 @@
 # docker/api/models.py — API 响应 Pydantic 模型，自动生成 OpenAPI 文档
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -33,7 +35,7 @@ class DirItem(BaseModel):
     """文件/目录条目"""
 
     name: str
-    type: str  # "dir" 或 "file"
+    type: Literal["dir", "file"]
     path: str
     size: int
 
@@ -42,7 +44,7 @@ class ListFilesResponse(BaseModel):
     """文件列表响应"""
 
     path: str
-    items: list[DirItem]
+    files: list[DirItem]
 
 
 class DownloadResult(BaseModel):

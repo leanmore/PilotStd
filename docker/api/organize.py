@@ -10,6 +10,7 @@ from pilotstd.core.config import get_library_root
 from pilotstd.core.path_guard import validate_path_in_root
 
 from ..manager import get_manager_dep
+from .models import ListFilesResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["organize"])
@@ -20,7 +21,7 @@ def _validate_library_path(user_path: str, cfg) -> str:
     return validate_path_in_root(user_path, get_library_root(cfg))
 
 
-@router.get("/api/files")
+@router.get("/api/files", response_model=ListFilesResponse)
 def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
     """列出指定目录下的文件和子目录。"""
     try:

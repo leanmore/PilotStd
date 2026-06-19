@@ -63,10 +63,9 @@ export interface DirItem {
   size: number
 }
 
-/** 文件列表响应 — API 返回 items，前端可用 files 别名 */
+/** 文件列表响应 */
 export interface ListFilesResponse {
   path: string
-  items: DirItem[]
   files: DirItem[]
 }
 

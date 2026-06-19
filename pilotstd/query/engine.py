@@ -344,6 +344,8 @@ class QueryEngine:
     # 溢出站点共享配额（ahbz: 200 中 170 给溢出, njbz365: 200 全给溢出）
     _AHBZ_OVERFLOW_QUOTA = 170
     _NJBZ_OVERFLOW_QUOTA = 200
+    # 桶主站点请求上限（超出后进入冷却，防止触发站点防御）
+    _PRIMARY_BUCKET_LIMIT = 400
 
     def _bucket_key(self, logical_code: str) -> str:
         """按 _get_priority 第一条（主站点）确定桶标识。"""
@@ -440,16 +442,16 @@ class QueryEngine:
                         csres_results[idx] = result
                         csres_failures[0] = 0
                         logger.info(
-                            "[CSRES] idx=%d code=%s action=found score=100",
+                            "[CSRES] idx=%d code=%s num=%s %d-%d action=found score=100",
                             idx,
-                            item[0],
+                            item[0], item[0], item[1], item[2],
                         )
                     else:
                         csres_failures[0] += 1
                         logger.info(
-                            "[CSRES] idx=%d code=%s action=not_found failures=%d/%d",
+                            "[CSRES] idx=%d code=%s num=%s %d-%d action=not_found failures=%d/%d",
                             idx,
-                            item[0],
+                            item[0], item[0], item[1], item[2],
                             csres_failures[0],
                             self._CSRES_CIRCUIT_BREAK,
                         )
@@ -474,6 +476,14 @@ class QueryEngine:
         bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
         site_usage: Dict[str, int] = {}  # {site: count}
         usage_lock = threading.Lock()
+        # 桶主站点请求计数（线程安全），用于溢出配额检查
+        primary_bucket_count: Dict[str, int] = {}
+        primary_count_lock = threading.Lock()
+
+        def _inc_primary(site: str) -> int:
+            with primary_count_lock:
+                primary_bucket_count[site] = primary_bucket_count.get(site, 0) + 1
+                return primary_bucket_count[site]
 
         def _record_usage(site: str):
             with usage_lock:
@@ -511,8 +521,23 @@ class QueryEngine:
                     _time.sleep(self._BUCKET_INTERVAL)
 
                 for idx, item in sub:
+                    # 检查主桶站点是否超出配额上限
+                    _pc = _inc_primary(primary_site)
+                    if _pc > self._PRIMARY_BUCKET_LIMIT:
+                        overflow_site = chain[1] if len(chain) > 1 else None
+                        if _pc == self._PRIMARY_BUCKET_LIMIT + 1:
+                            logger.info(
+                                "[OVERFLOW_PRIMARY] site=%s limit=%d chain=%s",
+                                primary_site, self._PRIMARY_BUCKET_LIMIT,
+                                "→".join(chain),
+                            )
+                        if overflow_site and _try_overflow(overflow_site):
+                            assigned_site = overflow_site
+                        else:
+                            overflow_items.append((idx, item))
+                            continue
                     # 检查冷却
-                    if (
+                    elif (
                         self._rotator
                         and self._rotator.get_cooldown_remaining(primary_site) > 0
                     ):
@@ -728,8 +753,14 @@ class QueryEngine:
         for site in sorted(site_usage.keys()):
             logger.info("[QUOTA] site=%s used=%d", site, site_usage[site])
 
-        # ── 溢出时序 ──
-        logger.info("[OVERFLOW] events=%d", len(overflow_events))
+        # ── 溢出时序 + 链路径统计 ──
+        _chain_counts: dict[str, int] = {}
+        for _idx, _chain in item_chains.items():
+            _key = "→".join(_chain) if _chain else "none"
+            _chain_counts[_key] = _chain_counts.get(_key, 0) + 1
+        logger.info("[OVERFLOW] events=%d chains=%d", len(overflow_events), len(_chain_counts))
+        for _chain_key, _cnt in sorted(_chain_counts.items(), key=lambda x: -x[1])[:5]:
+            logger.info("[OVERFLOW_CHAIN] path=%s count=%d", _chain_key, _cnt)
 
         # ── csres 状态 ──
         csres_hit = len(csres_results)

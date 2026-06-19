@@ -427,112 +427,113 @@ shutil.rmtree(os.path.join(_attach_base), ignore_errors=True)
 
 # --- Worker 暂停/停止/进度 ---
 logger.info("--- Worker 暂停/停止/进度 ---")
-from unittest.mock import MagicMock
+_worker_ok = False
+try:
+    from pilotstd.ui.workers import QueryWorker
 
-from pilotstd.models import ParsedStdInfo as _PI
-from pilotstd.ui.workers import QueryWorker
+    _worker_ok = True
+except Exception as e:
+    logger.info("  SKIP Worker 测试（PyQt6 不可用: %s）", e)
 
+if _worker_ok:
+    from unittest.mock import MagicMock
 
-def _make_items(n=3):
-    return [
-        _PI(
-            raw_filename=f"test{i}.pdf",
-            logical_code="GB",
-            number=1000 + i,
-            year=2020,
-            std_name=f"测试{i}",
-            source_path=f"/tmp/test{i}.pdf",
-        )
-        for i in range(n)
-    ]
+    from pilotstd.models import ParsedStdInfo as _PI
 
+    def _make_items(n=3):
+        return [
+            _PI(
+                raw_filename=f"test{i}.pdf",
+                logical_code="GB",
+                number=1000 + i,
+                year=2020,
+                std_name=f"测试{i}",
+                source_path=f"/tmp/test{i}.pdf",
+            )
+            for i in range(n)
+        ]
 
-# --- QueryWorker 进度 ---
-_progress_hit = threading.Event()
-_mgr = MagicMock()
+    # --- QueryWorker 进度 ---
+    _progress_hit = threading.Event()
+    _mgr = MagicMock()
 
+    def _slow_query(items, progress_callback=None, **kwargs):
+        for i in range(5):
+            if progress_callback:
+                progress_callback(i + 1, 5)
+            _progress_hit.set()
+            time.sleep(0.01)
+        return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
 
-def _slow_query(items, progress_callback=None, **kwargs):
-    for i in range(5):
-        if progress_callback:
-            progress_callback(i + 1, 5)
-        _progress_hit.set()
-        time.sleep(0.01)
-    return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
+    _mgr.query = _slow_query
+    _w = QueryWorker(_mgr, _make_items())
+    _w.start()
+    _ok = _progress_hit.wait(timeout=2.0)
+    _w.stop()
+    _w.wait(3000)
+    _check("Worker: QueryWorker 进度回调", _ok, "收到" if _ok else "超时")
 
+    # --- QueryWorker 暂停/继续 ---
+    _pause_evt = threading.Event()
+    _pause_evt.set()
+    _blocked = threading.Event()
+    _cb_count = [0]
 
-_mgr.query = _slow_query
-_w = QueryWorker(_mgr, _make_items())
-_w.start()
-_ok = _progress_hit.wait(timeout=2.0)
-_w.stop()
-_w.wait(3000)
-_check("Worker: QueryWorker 进度回调", _ok, "收到" if _ok else "超时")
+    def _pausable_query(items, progress_callback=None, **kwargs):
+        for i in range(30):
+            if progress_callback:
+                progress_callback(i + 1, 30)
+                if not _pause_evt.is_set():
+                    _blocked.set()
+            time.sleep(0.02)
+        return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
 
-# --- QueryWorker 暂停/继续 ---
-# 用 slow_query 中 progress_callback 内部的 wait() 来测试暂停
-_pause_evt = threading.Event()
-_pause_evt.set()
-_blocked = threading.Event()  # 当 progress_callback 被暂停阻塞时置位
-_cb_count = [0]
+    _mgr2 = MagicMock()
+    _mgr2.query = _pausable_query
+    _w2 = QueryWorker(_mgr2, _make_items(2), pause_event=_pause_evt)
+    _w2.start()
+    time.sleep(0.1)
+    _pause_evt.clear()
+    _blocked.wait(timeout=2.0)
+    time.sleep(0.1)
+    _paused_ok = not _w2.isFinished()
+    _pause_evt.set()
+    _w2.wait(3000)
+    _resumed_ok = _w2.isFinished()
+    _check(
+        "Worker: QueryWorker 暂停/继续",
+        _paused_ok and _resumed_ok,
+        f"暂停时运行={_paused_ok} 恢复后完成={_resumed_ok}",
+    )
 
+    # --- QueryWorker 停止 ---
+    _stop_hit = threading.Event()
 
-def _pausable_query(items, progress_callback=None, **kwargs):
-    for i in range(30):
-        if progress_callback:
-            progress_callback(i + 1, 30)
-            # progress_callback 中会检查 pause_event.wait()
-            # 如果被 clear，会阻塞。此时通知主线程"已阻塞"
-            if not _pause_evt.is_set():
-                _blocked.set()
-        time.sleep(0.02)
-    return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
+    def _stoppable_query(items, progress_callback=None, **kwargs):
+        for i in range(5):
+            if progress_callback:
+                progress_callback(i + 1, 5)
+            time.sleep(0.02)
+        _stop_hit.set()
+        return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
 
-
-_mgr2 = MagicMock()
-_mgr2.query = _pausable_query
-_w2 = QueryWorker(_mgr2, _make_items(2), pause_event=_pause_evt)
-_w2.start()
-time.sleep(0.1)  # 让 worker 先跑几个回调
-_pause_evt.clear()  # 暂停：progress_callback 中的 wait() 将阻塞
-_blocked.wait(timeout=2.0)  # 等待 worker 确认阻塞
-time.sleep(0.1)
-_paused_ok = not _w2.isFinished()  # 暂停后 worker 应该还在运行(被阻塞)
-_pause_evt.set()  # 恢复
-_w2.wait(3000)
-_resumed_ok = _w2.isFinished()
-_check(
-    "Worker: QueryWorker 暂停/继续",
-    _paused_ok and _resumed_ok,
-    f"暂停时运行={_paused_ok} 恢复后完成={_resumed_ok}",
-)
-
-# --- QueryWorker 停止 ---
-_stop_hit = threading.Event()
-
-
-def _stoppable_query(items, progress_callback=None, **kwargs):
-    for i in range(5):
-        if progress_callback:
-            progress_callback(i + 1, 5)
-        time.sleep(0.02)
-    _stop_hit.set()
-    return [], MagicMock(success=0, skipped_exists=0, failed=0, errors=0)
-
-
-_mgr3 = MagicMock()
-_mgr3.query = _stoppable_query
-_w3 = QueryWorker(_mgr3, _make_items())
-_batch_got = []
-_w3.batch_ready.connect(lambda b: _batch_got.append(b))
-_w3.start()
-_w3.stop()
-_w3.wait(3000)
-_check(
-    "Worker: QueryWorker 停止",
-    len(_batch_got) == 0,
-    f"停止后batch_ready: {len(_batch_got)}次(预期0)",
-)
+    _mgr3 = MagicMock()
+    _mgr3.query = _stoppable_query
+    _w3 = QueryWorker(_mgr3, _make_items())
+    _batch_got = []
+    _w3.batch_ready.connect(lambda b: _batch_got.append(b))
+    _w3.start()
+    _w3.stop()
+    _w3.wait(3000)
+    _check(
+        "Worker: QueryWorker 停止",
+        len(_batch_got) == 0,
+        f"停止后batch_ready: {len(_batch_got)}次(预期0)",
+    )
+else:
+    _check("Worker: QueryWorker 进度回调", False, "PyQt6 不可用，跳过")
+    _check("Worker: QueryWorker 暂停/继续", False, "PyQt6 不可用，跳过")
+    _check("Worker: QueryWorker 停止", False, "PyQt6 不可用，跳过")
 
 # --- Schema 迁移完整性 ---
 logger.info("--- Schema 迁移 ---")
