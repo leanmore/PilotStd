@@ -75,7 +75,7 @@ def init_users_table() -> None:
             )
         h, s = _hash(admin_pass)
         db.execute(
-            "INSERT INTO users (username, password_hash, salt, role, must_change_password) "
+            "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, 'admin', ?)",
             (admin_user, h, s, must_change),
         )
