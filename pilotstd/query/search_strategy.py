@@ -232,6 +232,24 @@ def is_adopted(name: str, en_name: str = "") -> bool:
     return any(kw in text for kw in ADOPTION_KW)
 
 
+# ── 查询调度：按标准类型映射适配器优先级 ────────────────────
+# 键 = classify_std_code() 返回的分类标签
+# 值 = 适配器 site_name 优先级链（越靠前越优先）
+# 设计目标：分散负载——GB 类用 ahbz 免鉴权高配额，行标用 hbba 专业平台，
+# 地标用 dbba，国际用 iso_gov，csres 作为所有类型的兜底。
+
+ADAPTER_TYPE_MAP: dict[str, list[str]] = {
+    "gb": ["ahbz", "std_gov", "njbz365", "csres"],
+    "industry": ["hbba", "ahbz", "njbz365", "csres"],
+    "db": ["dbba", "ahbz", "njbz365"],
+    "iso_iec": ["iso_gov", "ahbz", "njbz365"],
+    "foreign": ["ahbz", "njbz365"],
+}
+
+# 所有类型的兜底适配器
+FALLBACK_ADAPTER = "csres"
+
+
 def is_recently_published(pub_date_str: str, window_days: int = 28) -> bool:
     """判断发布时间是否在指定天数内（不满 window_days 天返回 True）。
     用于决定是否允许下载。

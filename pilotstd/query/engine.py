@@ -24,7 +24,10 @@ import re
 import threading
 from typing import Callable, Dict, List, Optional, Tuple
 
-from ..query.search_strategy import MATCH_SCORE
+from ..query.search_strategy import (
+    ADAPTER_TYPE_MAP,
+    MATCH_SCORE,
+)
 from .adapters.base import BaseAdapter
 from .cache import CacheRepository
 from .daily_quota import DailyQuotaTracker
@@ -45,10 +48,10 @@ def _build_default_code_routes():
     from ..scan.parser import FOREIGN_CODE_SET
 
     routes = {
-        "GB": ["std_gov", "ahbz", "njbz365", "csres"],
-        "GB/T": ["std_gov", "ahbz", "njbz365", "csres"],
-        "GB/Z": ["std_gov", "ahbz", "njbz365", "csres"],
-        "GSB": ["std_gov", "ahbz", "njbz365", "csres"],
+        "GB": ["ahbz", "std_gov", "njbz365", "csres"],
+        "GB/T": ["ahbz", "std_gov", "njbz365", "csres"],
+        "GB/Z": ["ahbz", "std_gov", "njbz365", "csres"],
+        "GSB": ["ahbz", "std_gov", "njbz365", "csres"],
         "ISO": ["iso_gov", "ahbz", "njbz365"],
         "IEC": ["iso_gov", "ahbz", "njbz365"],
     }
@@ -236,34 +239,50 @@ class QueryEngine:
         """
         # 步骤1：确定基础路由
         if logical_code in CODE_ROUTES:
-            base = CODE_ROUTES[logical_code]
+            base = list(CODE_ROUTES[logical_code])
         elif logical_code and re.match(r"^DB\d{2,4}(?:/T)?$", logical_code):
             base = ["dbba", "njbz365"]  # 市级DB代码 → 地方标准平台优先
-        elif logical_code:
-            # 先查是否为国外代号（避免 AWWA/SAE/NFPA 等 4 字符国外代号误入行业路由）
-            from ..scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
-
-            code_no_space = logical_code.upper().replace(" ", "")
-            is_foreign = any(
-                code_no_space.startswith(fc.upper().replace(" ", ""))
-                for fc in FOREIGN_CODE_SET
-            )
-            if not is_foreign:
-                is_foreign = any(
-                    logical_code.upper().startswith(itu.upper()) for itu in ITU_CODES
-                )
-            if not is_foreign:
-                is_foreign = any(
-                    logical_code.upper().startswith(cac.upper()) for cac in CAC_PREFIXES
-                )
-            if is_foreign:
-                base = FOREIGN_ROUTE
-            elif len(logical_code) <= 4:
-                base = INDUSTRY_ROUTE
-            else:
-                base = FOREIGN_ROUTE
         else:
-            base = PROD_PRIORITY
+            # 按标准类型分类路由（ADAPTER_TYPE_MAP 提供优先级）
+            from ..core.std_utils import classify_std_code
+
+            std_type = classify_std_code(logical_code)
+            type_route = ADAPTER_TYPE_MAP.get(std_type)
+            if type_route:
+                base = list(type_route)
+                logger.debug(
+                    "[ROUTE] code=%s type=%s route=%s",
+                    logical_code,
+                    std_type,
+                    "→".join(base),
+                )
+            elif logical_code:
+                # 未命中分类 → 尝试判断是否为国外代号
+                from ..scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
+
+                code_no_space = logical_code.upper().replace(" ", "")
+                is_foreign = any(
+                    code_no_space.startswith(fc.upper().replace(" ", ""))
+                    for fc in FOREIGN_CODE_SET
+                )
+                if not is_foreign:
+                    is_foreign = any(
+                        logical_code.upper().startswith(itu.upper())
+                        for itu in ITU_CODES
+                    )
+                if not is_foreign:
+                    is_foreign = any(
+                        logical_code.upper().startswith(cac.upper())
+                        for cac in CAC_PREFIXES
+                    )
+                if is_foreign:
+                    base = list(FOREIGN_ROUTE)
+                elif len(logical_code) <= 4:
+                    base = list(INDUSTRY_ROUTE)
+                else:
+                    base = list(FOREIGN_ROUTE)
+            else:
+                base = list(PROD_PRIORITY)
 
         # 步骤2：用户自定义优先级叠加（置顶）
         if self._site_order:
@@ -355,12 +374,6 @@ class QueryEngine:
         buckets: Dict[str, List[Tuple[int, tuple]]] = {}
         for i, item in enumerate(parsed_list):
             key = self._bucket_key(item[0])
-            # GB 类标准：ahbz 与 std_gov 同为一线，交替分配错开冷却
-            if key == "std_gov":
-                from ..core.std_utils import classify_std_code
-
-                if classify_std_code(item[0]) == "gb" and i % 2 == 0:
-                    key = "ahbz"
             buckets.setdefault(key, []).append((i, item))
 
         for key, items in buckets.items():

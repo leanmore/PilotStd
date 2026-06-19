@@ -290,6 +290,42 @@ class SiteRotator:
             remaining = site.cooldown_until - time.time()
             return max(0.0, remaining)
 
+    def get_available_adapters(
+        self,
+        priority: List[str],
+        quota_tracker=None,
+    ) -> List[str]:
+        """返回当前可用适配器列表（按优先级排序，跳过冷却/日限达标站点）。
+
+        若传入 quota_tracker，同时过滤配额已耗尽站点。
+        返回值第一个元素为主适配器，后续为回退链。
+        """
+        with self._lock:
+            now = time.time()
+            available = []
+            for name in priority:
+                site = self._sites.get(name)
+                if site is None:
+                    # 站点未在 rotator 中注册 → 视为可用
+                    available.append(name)
+                    continue
+                self._check_daily_reset(site)
+                if site.daily_limit > 0 and site.daily_count >= site.daily_limit:
+                    continue
+                if site.cooldown_until > 0 and now < site.cooldown_until:
+                    continue
+                if site.request_count >= site.max_requests:
+                    self._enter_cooldown(site)
+                    self._save()
+                    continue
+                if (
+                    quota_tracker is not None
+                    and quota_tracker.get_search_remaining(name) <= 0
+                ):
+                    continue
+                available.append(name)
+            return available
+
     @staticmethod
     def _enter_cooldown(site: SiteState) -> None:
         site.cooldown_until = time.time() + site.cooldown_seconds
