@@ -80,7 +80,7 @@ class StandardManager:
         from ..query.site_config import create_default_sites
 
         sites = create_default_sites()
-        rotator = SiteRotator(sites)
+        rotator = SiteRotator(sites, db=self.db)
         csres.set_rotator(rotator)
         # 每日配额跟踪——日上限从 site_config 统一读取
         daily_limits = {s.name: s.daily_limit for s in sites if s.daily_limit > 0}
@@ -261,7 +261,6 @@ class StandardManager:
         items = parsed_list or self._parsed_results
         self._queried_items = items  # 保存查询列表，供 download() 匹配索引
         # 使用 query_batch_parsed（按代号路由，每个标准有站点回退）
-        # query_batch 按配额均匀分配、无回退，仅适用于纯文本批量查询
         parsed_tuples = [
             (
                 p.logical_code,

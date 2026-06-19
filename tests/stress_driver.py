@@ -66,6 +66,9 @@ def _parse_args():
     )
     p.add_argument("--yes", action="store_true", help="跳过所有交互确认（CI/自动模式）")
     p.add_argument(
+        "--keep-db", action="store_true", help="跳过清 DB 步骤（保留缓存和索引）"
+    )
+    p.add_argument(
         "--winui-only", action="store_true", help="仅执行 WinUI 步骤（跳过CLI冷启）"
     )
     p.add_argument(
@@ -180,6 +183,15 @@ def _step0_clear_db(db_path: str = None):
         "pending_lookup",
         "file_index",
     ]
+    # 清空前记录各表行数
+    counts = {}
+    for t in tables:
+        try:
+            row = db.fetchone(f"SELECT COUNT(*) as c FROM {t}")
+            counts[t] = row["c"] if row else 0
+        except Exception:
+            counts[t] = -1
+    _log(f"即将清空四表（当前数据量）: {counts}")
     for t in tables:
         try:
             db.execute(f"DELETE FROM {t}")
@@ -893,6 +905,38 @@ def _step1_cli_cold(
             "elapsed_s": round(time.time() - t0, 1),
         }
 
+    # recheck — 定时任务更新检测
+    _log("  1.9 recheck...")
+    t0 = time.time()
+    recheck_checked = 0
+    recheck_updated = 0
+    recheck_rc = 0
+    try:
+        import os as _os
+
+        from pilotstd.core.config import ConfigManager, get_data_dir
+        from pilotstd.core.db import Database
+        from pilotstd.manager.facade import StandardManager
+
+        cfg = ConfigManager(_os.path.join(get_data_dir(), "config.json"))
+        cfg.set("storage.root_dir", output_dir)
+        db_path = _os.path.join(get_data_dir(), "pilotstd.db")
+        db = Database(db_path)
+        mgr = StandardManager(config=cfg, db=db)
+        recheck_result = mgr.recheck_updates()
+        recheck_checked = recheck_result.get("checked", 0)
+        recheck_updated = recheck_result.get("updated", 0)
+        _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
+    except Exception as e:
+        _log(f"    recheck: 异常 {e}")
+        recheck_rc = 1
+    results["checkpoints"]["recheck"] = {
+        "rc": recheck_rc,
+        "checked": recheck_checked,
+        "updated": recheck_updated,
+        "elapsed_s": round(time.time() - t0, 1),
+    }
+
     # 汇总 + 写入
     announce_info = results["checkpoints"].get("announce", {})
     results["summary"] = {
@@ -971,7 +1015,7 @@ def _step2_winui_hot(
 
 
 def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
-    """Docker 部署态验证。Docker 不可达时返回 SKIP。"""
+    """Docker 部署态验证。凭证由 load_docker_credentials 保证非空。"""
     _log("=" * 50)
     _log(f"第三步：Docker Web API → {docker_url}")
 
@@ -985,7 +1029,7 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
             [sys.executable, os.path.join(ROOT, "tests", "stress_web.py")],
             capture_output=True,
             text=True,
-            timeout=360,  # announce/check 内部有 180s 超时请求
+            timeout=360,
             cwd=ROOT,
             encoding="utf-8",
             errors="replace",
@@ -1015,6 +1059,7 @@ def _step4_verdict(
     skip_winui: bool,
     skip_docker: bool,
     step1_data: dict = None,
+    adapter_report_ok: bool = True,
 ):
     """汇总判定，写入方案执行记录。"""
     _log("=" * 50)
@@ -1035,6 +1080,9 @@ def _step4_verdict(
         lines.append(f"第三步 Docker: {'PASS' if step3_ok else 'FAIL'}")
         if not step3_ok:
             verdict = "FAIL"
+    lines.append(f"适配器统计报告: {'PASS' if adapter_report_ok else 'FAIL'}")
+    if not adapter_report_ok:
+        verdict = "FAIL"
     if not step1_ok:
         verdict = "FAIL"
 
@@ -1118,12 +1166,17 @@ def main():
     args = _parse_args()
 
     # 加载本地压测配置（JSON，不上传 git），命令行参数优先
+    from _stress_utils import load_docker_credentials
+
     cfg = _load_test_config(getattr(args, "config", None))
-    docker_cfg = cfg.get("docker", {})
     ocr_cfg = cfg.get("ocr", {})
-    docker_url = args.docker_url or docker_cfg.get("url", "")
-    docker_user = args.docker_user or docker_cfg.get("username", "")
-    docker_pass = args.docker_pass or docker_cfg.get("password", "")
+    # Docker 凭证通过统一加载器读取（--config JSON > 环境变量）
+    _creds = {}
+    if not args.skip_docker:
+        _creds = load_docker_credentials(getattr(args, "config", None))
+    docker_url = args.docker_url or _creds.get("base_url", "")
+    docker_user = args.docker_user or _creds.get("username", "")
+    docker_pass = args.docker_pass or _creds.get("password", "")
     TS = datetime.now().strftime("%Y%m%d_%H%M%S")
     RESULT_DIR = args.result_dir or os.path.join(ROOT, "logs", f"stress_{TS}")
     os.makedirs(RESULT_DIR, exist_ok=True)
@@ -1162,7 +1215,10 @@ def main():
     _log("第〇步：复位源目录 + 清 DB")
     if os.path.isdir(args.output):
         _step0_reset_source(args.source, args.output)
-    _step0_clear_db(args.db_path)
+    if getattr(args, "keep_db", False):
+        _log("--keep-db：跳过清 DB，保留缓存和索引")
+    else:
+        _step0_clear_db(args.db_path)
 
     # 第〇步：自检（纯逻辑秒级验证，零网络依赖）
     _log("第〇步：自检（stress_selfcheck）")
@@ -1196,6 +1252,7 @@ def main():
             "expire",
             "announce",
             "task",
+            "recheck",
         ]
     )
 
@@ -1217,7 +1274,11 @@ def main():
         else:
             _log("=== organize 未移动文件，源目录未变动 ===")
         if _yes(args) or org_moved == 0:
-            _log("=== --yes 或 organize 未移动文件，自动继续 ===")
+            if org_moved > 0:
+                _log("=== --yes 模式：自动复位源目录 ===")
+                _step0_reset_source(args.source, args.output)
+            else:
+                _log("=== organize 未移动文件，自动继续 ===")
         else:
             _log("=== 用户复位源目录完成后，输入 y 继续 ===")
             ans = input("复位完成，是否继续 WinUI 测试？(y/n): ").strip().lower()
@@ -1277,8 +1338,49 @@ def main():
         _log("第三步：跳过（--skip-docker）")
 
     # 第四步：判定
+    # 适配器统计报告验证（补充点1：数据收集链路完整性）
+    adapter_report_ok = True
+    try:
+        from pilotstd.core.config import get_data_dir as _get_data_dir
+        from pilotstd.core.db import Database as _Database
+
+        _db_path = args.db_path or os.path.join(_get_data_dir(), "pilotstd.db")
+        if os.path.exists(_db_path):
+            _db = _Database(_db_path)
+            _report = _db.get_adapter_stats_all()
+            if not _report:
+                _log("适配器统计: FAIL — 返回空列表，数据收集链路未打通")
+                adapter_report_ok = False
+            else:
+                _total_q = sum(r.get("total_queries", 0) for r in _report)
+                if _total_q == 0:
+                    _log("适配器统计: FAIL — 总查询数为 0，record_query_result 未生效")
+                    adapter_report_ok = False
+                else:
+                    _log(
+                        f"适配器统计: PASS — {len(_report)} 个适配器, 总查询={_total_q}"
+                    )
+                    for _r in _report:
+                        _log(
+                            f"  {_r['adapter_name']}: queries={_r['total_queries']} "
+                            f"success={_r['success_rate']:.1%} "
+                            f"avg={_r['avg_response_time']:.2f}s "
+                            f"cooldown={_r['cooldown_count']}"
+                        )
+        else:
+            _log(f"适配器统计: SKIP — DB 不存在 ({_db_path})")
+    except Exception as _e:
+        _log(f"适配器统计: FAIL — 异常 {_e}")
+        adapter_report_ok = False
+
     verdict = _step4_verdict(
-        step1_ok, step2_ok, step3_ok, args.skip_winui, args.skip_docker, step1
+        step1_ok,
+        step2_ok,
+        step3_ok,
+        args.skip_winui,
+        args.skip_docker,
+        step1,
+        adapter_report_ok,
     )
 
     # 返回码

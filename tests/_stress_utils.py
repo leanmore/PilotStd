@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from typing import Optional
 
 # ── 统一日志配置 ─────────────────────────────────────────────────
 # 调用一次，所有 stress_*.py 共用，不再各自造 StreamHandler/FileHandler
@@ -107,3 +108,62 @@ def run_visible(cmd: list, timeout: int = 3600, step: str = "", cwd: str = None)
     except subprocess.TimeoutExpired:
         logger.info("<<< 超时: %s (%ds)", step, timeout)
         return -1
+
+
+# ── 统一 Docker 凭证加载 ───────────────────────────────────────────
+
+
+def load_docker_credentials(config_path: Optional[str] = None) -> dict:
+    """统一的 Docker 凭证加载，所有压测脚本共用。
+
+    优先级：命令行 --config JSON > 环境变量 > 报错退出。
+    不允许空值或默认值继续执行，防止静默跳过 Docker 测试。
+
+    Args:
+        config_path: --config 指向的 JSON 配置文件路径（可选）
+
+    Returns:
+        {"base_url": str, "username": str, "password": str}
+
+    Raises:
+        SystemExit: 缺少任一凭证时退出，打印帮助信息
+    """
+    import json as _json
+
+    base_url = os.environ.get("PILOTSTD_BASE_URL", "")
+    username = os.environ.get("PILOTSTD_USERNAME", "")
+    password = os.environ.get("PILOTSTD_PASSWORD", "")
+
+    # --config JSON 文件覆盖环境变量
+    if config_path and os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            cfg = _json.load(f)
+        docker_cfg = cfg.get("docker", {})
+        if docker_cfg:
+            base_url = docker_cfg.get("url", base_url)
+            username = docker_cfg.get("username", username)
+            password = docker_cfg.get("password", password)
+
+    missing = []
+    if not base_url:
+        missing.append("PILOTSTD_BASE_URL 或 docker.url")
+    if not username:
+        missing.append("PILOTSTD_USERNAME 或 docker.username")
+    if not password:
+        missing.append("PILOTSTD_PASSWORD 或 docker.password")
+
+    if missing:
+        print(
+            "错误: 缺少 Docker 凭证，请通过以下方式之一提供:\n"
+            "  1. 环境变量:\n"
+            "     set PILOTSTD_BASE_URL=http://<host>:<port>\n"
+            "     set PILOTSTD_USERNAME=<用户名>\n"
+            "     set PILOTSTD_PASSWORD=<密码>\n"
+            "  2. --config JSON 文件:\n"
+            '     {"docker": {"url": "http://<host>:<port>", '
+            '"username": "<用户名>", "password": "<密码>"}}',
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    return {"base_url": base_url, "username": username, "password": password}

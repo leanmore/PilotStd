@@ -4,19 +4,19 @@
 # 全程自动化；Docker不可达时自动跳过
 # 覆盖: 认证(4)/业务API(11)/配置与公告(3)/文件操作(5) 共23项
 
-import os
 import sys
 import time
 
 import requests
-from _stress_utils import setup_stress_logging
+from _stress_utils import load_docker_credentials, setup_stress_logging
 
 logger = setup_stress_logging("stress_web")
 
-# 环境变量设置 Docker 连接信息，未设置则跳过 Docker 测试
-BASE = os.environ.get("PILOTSTD_BASE_URL", "")
-USERNAME = os.environ.get("PILOTSTD_USERNAME", "")
-PASSWORD = os.environ.get("PILOTSTD_PASSWORD", "")
+# 统一凭证加载：环境变量 > 报错退出
+_creds = load_docker_credentials()
+BASE = _creds["base_url"]
+USERNAME = _creds["username"]
+PASSWORD = _creds["password"]
 TIMEOUT = 120
 
 # 复用公共判定工具

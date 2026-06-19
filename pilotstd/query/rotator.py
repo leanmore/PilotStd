@@ -376,20 +376,6 @@ class SiteRotator:
         scored.sort(key=lambda x: x[1], reverse=True)
         return [name for name, _ in scored]
 
-    def mark_quota_exceeded(self, adapter_name: str) -> None:
-        """标记站点配额已用完（将 request_count 设为 max_requests 触发冷却）。"""
-        with self._lock:
-            site = self._sites.get(adapter_name)
-            if site:
-                site.request_count = site.max_requests
-                self._enter_cooldown(site)
-                self._save()
-                logger.info(
-                    "[QUOTA] site=%s action=exhausted total_requests=%d",
-                    adapter_name,
-                    site.max_requests,
-                )
-
     def record_query_result(
         self,
         adapter_name: str,

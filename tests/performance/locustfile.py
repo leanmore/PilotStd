@@ -3,20 +3,36 @@
 #
 # 启动方式（单机）:
 #   cd tests/performance
-#   locust -f locustfile.py --host=http://192.168.1.18:9028
+#   locust -f locustfile.py --host=http://<DOCKER_HOST>:<PORT>
 #
 # 分布式模式（1 master + N workers）:
-#   locust -f locustfile.py --master --host=http://192.168.1.18:9028
+#   locust -f locustfile.py --master --host=http://<DOCKER_HOST>:<PORT>
 #   locust -f locustfile.py --worker --master-host=<master_ip>   (在每台 worker 上)
 #
 # Web UI: http://localhost:8089
 #
 # 注意：服务端有 60 req/min/IP 限流，压测时控制并发数 ≤ 10。
+# 凭证通过环境变量提供：PILOTSTD_USERNAME / PILOTSTD_PASSWORD
 
+import os
 import random
+import sys
 import time
 
 from locust import HttpUser, between, task
+
+# ── Docker 凭证（从环境变量读取，不允许硬编码）──────────────────
+_DOCKER_USERNAME = os.environ.get("PILOTSTD_USERNAME", "")
+_DOCKER_PASSWORD = os.environ.get("PILOTSTD_PASSWORD", "")
+
+if not _DOCKER_USERNAME or not _DOCKER_PASSWORD:
+    print(
+        "错误: 缺少 Docker 凭证，请设置环境变量:\n"
+        "  set PILOTSTD_USERNAME=<用户名>\n"
+        "  set PILOTSTD_PASSWORD=<密码>",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 # ── 预设标准号样本（15 个，覆盖国标/行标/地标/国际）────────────────
 SAMPLE_NUMBERS = [
@@ -37,10 +53,6 @@ SAMPLE_NUMBERS = [
     "API 610-2010",
 ]
 
-# ── 默认凭据 ───────────────────────────────────────────────
-DEFAULT_USERNAME = "mystdpilot"
-DEFAULT_PASSWORD = "AKAyJS-0xbr79iZD"
-
 
 class PilotStdUser(HttpUser):
     """模拟用户：登录 → 查询 → 下载。
@@ -60,7 +72,7 @@ class PilotStdUser(HttpUser):
         for attempt in range(3):
             resp = self.client.post(
                 "/api/login",
-                data={"username": DEFAULT_USERNAME, "password": DEFAULT_PASSWORD},
+                data={"username": _DOCKER_USERNAME, "password": _DOCKER_PASSWORD},
                 name="/api/login",
             )
             if resp.status_code == 200:

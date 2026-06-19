@@ -534,6 +534,43 @@ _check(
     f"停止后batch_ready: {len(_batch_got)}次(预期0)",
 )
 
+# --- Schema 迁移完整性 ---
+logger.info("--- Schema 迁移 ---")
+from pilotstd.core.db import CURRENT_SCHEMA_VERSION
+from pilotstd.core.db import Database as _SelfCheckDB
+
+_sc_db = _SelfCheckDB(get_db_path())
+_actual_version = _sc_db.schema_version
+_check(
+    f"Schema版本: 期望{CURRENT_SCHEMA_VERSION}, 实际{_actual_version}",
+    _actual_version == CURRENT_SCHEMA_VERSION,
+    "版本不匹配" if _actual_version != CURRENT_SCHEMA_VERSION else "OK",
+)
+
+# 验证 adapter_stats 表及扩展列
+try:
+    _cols = {
+        r["name"]
+        for r in _sc_db.fetchall("PRAGMA table_info(adapter_stats)")
+    }
+except Exception:
+    _cols = set()
+_check("adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在")
+
+_required_cols = [
+    "avg_response_time",
+    "total_response_time",
+    "cooldown_count",
+    "last_cooldown_reason",
+    "last_cooldown_at",
+]
+_missing_cols = [c for c in _required_cols if c not in _cols]
+_check(
+    "adapter_stats扩展列完整",
+    len(_missing_cols) == 0,
+    f"缺失: {_missing_cols}" if _missing_cols else f"{len(_cols)}列全部就位",
+)
+
 # ======================================================================
 # 汇总
 # ======================================================================
