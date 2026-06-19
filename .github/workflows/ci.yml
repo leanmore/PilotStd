@@ -158,7 +158,11 @@ jobs:
           npm ci
           npm run build
 
-      # ── 2b: Docker 登录 ──
+      # ── 2b: 启用 Buildx（Registry Cache 必需）──
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 2c: Docker 登录 ──
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -166,7 +170,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2c: 构建 + 推送 ──
+      # ── 2d: 构建 + 推送（含 Registry Cache 层缓存）──
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -177,9 +181,10 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
-          # cache-from/cache-to 在默认 docker driver 下不支持，已禁用
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-      # ── 2d: 版本号变更时推送 git tag（防止 Docker tag 与 git tag 脱节）──
+      # ── 2e: 版本号变更时推送 git tag（防止 Docker tag 与 git tag 脱节）──
       - name: Push version tag to git
         if: steps.version.outputs.bumped == 'true'
         run: |
