@@ -233,17 +233,42 @@ def is_adopted(name: str, en_name: str = "") -> bool:
 
 
 # ── 查询调度：按标准类型映射适配器优先级 ────────────────────
-# 键 = classify_std_code() 返回的分类标签
-# 值 = 适配器 site_name 优先级链（越靠前越优先）
-# 设计目标：分散负载——GB 类用 ahbz 免鉴权高配额，行标用 hbba 专业平台，
-# 地标用 dbba，国际用 iso_gov，csres 作为所有类型的兜底。
+# 键 = 标准代号（小写）或 classify_std_code() 分类标签
+# 值 = {"primary": 主适配器, "fallback": 兜底适配器}
+# 设计目标：动态评分 + 实时负载感知替代固定优先级路由
 
-ADAPTER_TYPE_MAP: dict[str, list[str]] = {
-    "gb": ["ahbz", "std_gov", "njbz365", "csres"],
-    "industry": ["hbba", "ahbz", "njbz365", "csres"],
-    "db": ["dbba", "ahbz", "njbz365"],
-    "iso_iec": ["iso_gov", "ahbz", "njbz365"],
-    "foreign": ["ahbz", "njbz365"],
+ADAPTER_TYPE_MAP: dict[str, dict[str, str]] = {
+    # GB 类 → ahbz 免鉴权高配额
+    "gb": {"primary": "ahbz", "fallback": "csres"},
+    "gb/t": {"primary": "ahbz", "fallback": "csres"},
+    "gb/z": {"primary": "ahbz", "fallback": "csres"},
+    "gjb": {"primary": "ahbz", "fallback": "csres"},
+    # 行标类 → hbba 专业平台
+    "sh": {"primary": "hbba", "fallback": "csres"},
+    "sh/t": {"primary": "hbba", "fallback": "csres"},
+    "nb": {"primary": "hbba", "fallback": "csres"},
+    "nb/t": {"primary": "hbba", "fallback": "csres"},
+    "hg": {"primary": "hbba", "fallback": "csres"},
+    "hg/t": {"primary": "hbba", "fallback": "csres"},
+    "jb": {"primary": "hbba", "fallback": "csres"},
+    "jb/t": {"primary": "hbba", "fallback": "csres"},
+    "sy": {"primary": "hbba", "fallback": "csres"},
+    "sy/t": {"primary": "hbba", "fallback": "csres"},
+    "industry": {"primary": "hbba", "fallback": "csres"},
+    # 地标类 → dbba 专业平台
+    "db": {"primary": "dbba", "fallback": "csres"},
+    "db11": {"primary": "dbba", "fallback": "csres"},
+    "db31": {"primary": "dbba", "fallback": "csres"},
+    # 国际标准 → iso_gov
+    "iso": {"primary": "iso_gov", "fallback": "csres"},
+    "iec": {"primary": "iso_gov", "fallback": "csres"},
+    "ieee": {"primary": "iso_gov", "fallback": "csres"},
+    "iso_iec": {"primary": "iso_gov", "fallback": "csres"},
+    # 国外标准 → 通用路由
+    "astm": {"primary": "iso_gov", "fallback": "csres"},
+    "asme": {"primary": "iso_gov", "fallback": "csres"},
+    "api": {"primary": "iso_gov", "fallback": "csres"},
+    "foreign": {"primary": "ahbz", "fallback": "csres"},
 }
 
 # 所有类型的兜底适配器

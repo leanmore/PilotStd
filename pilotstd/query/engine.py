@@ -185,6 +185,102 @@ class QueryEngine:
             source_site="",
         )
 
+    def query_batch(
+        self,
+        numbers: list[str],
+        progress_callback=None,
+        result_callback=None,
+    ) -> list[QueryResult]:
+        """基于实时评分的批量查询——按标准类型分组，动态选择最佳适配器。
+
+        与 query_batch_parsed 的区别：
+          - 使用 rotator.score_adapter() 实时评分替代固定优先级
+          - 配额用尽自动切换下一个高分配适配器
+          - 冷却中的站点自动跳过，不空转等待
+        """
+        if not numbers:
+            return []
+
+        from ..core.std_utils import classify_std_code
+
+        # 按标准类型分组
+        groups: dict[str, list[str]] = {}
+        for num in numbers:
+            # 从标准号中提取代号（如 "GB/T 19001-2016" → "GB/T"）
+            parts = num.split()
+            code = parts[0] if parts else ""
+            std_type = classify_std_code(code).lower() or "other"
+            groups.setdefault(std_type, []).append(num)
+
+        all_results: list[QueryResult] = []
+        for std_type, nums in groups.items():
+            if not nums:
+                continue
+            # 获取按实时评分排序的适配器
+            available = (
+                self._rotator.get_available_adapters(std_type=std_type)
+                if self._rotator
+                else [a.site_name for a in self._adapters]
+            )
+            remaining = list(nums)
+            found_numbers: set[str] = set()
+
+            for adapter_name in available:
+                if not remaining:
+                    break
+                adapter = self._adapter_map.get(adapter_name)
+                if adapter is None:
+                    continue
+
+                batch_nums = list(remaining)
+                try:
+                    for num in batch_nums:
+                        if num in found_numbers:
+                            remaining.remove(num)
+                            continue
+                        # 解析标准号 → 调 query_with_strategy
+                        code, number, year = self._parse_number(num)
+                        if not code:
+                            continue
+                        result = adapter.query_with_strategy(code, number, year)
+                        if result and result.is_found():
+                            result.source_site = adapter_name
+                            all_results.append(result)
+                            found_numbers.add(num)
+                            remaining.remove(num)
+                            if result_callback:
+                                result_callback(len(all_results) - 1, result)
+                except Exception as exc:
+                    logger.warning(
+                        "查询异常 adapter=%s num=%s: %s", adapter_name, num, exc
+                    )
+                    continue
+
+            if remaining:
+                logger.info(
+                    "[QUERY_BATCH] type=%s remaining=%d/%d",
+                    std_type,
+                    len(remaining),
+                    len(nums),
+                )
+
+            if progress_callback:
+                progress_callback(len(all_results))
+
+        return all_results
+
+    def _parse_number(self, standard_number: str) -> tuple[str, int, int]:
+        """从标准号字符串提取 (logical_code, number, year)。"""
+        if self._parser:
+            parsed = self._parser.parse(standard_number)
+            if parsed:
+                return (
+                    parsed.get("code", ""),
+                    parsed.get("number", 0),
+                    parsed.get("year", 0),
+                )
+        return ("", 0, 0)
+
     def plan_batch(self, total: int, logical_code: str = "") -> List[tuple]:
         """按配额预估分配方案（供 UI 展示）。返回 [(site_name, count), ...]"""
         plan = []
@@ -249,7 +345,16 @@ class QueryEngine:
             std_type = classify_std_code(logical_code)
             type_route = ADAPTER_TYPE_MAP.get(std_type)
             if type_route:
-                base = list(type_route)
+                # 新格式：{"primary": "ahbz", "fallback": "csres"}
+                # 构建完整链：primary → 补充站点 → fallback
+                primary = type_route.get("primary", "")
+                fallback = type_route.get("fallback", "")
+                base = [primary] if primary else []
+                # 补充中间站点（ahbz、njbz365 等）
+                extras = [s for s in PROD_PRIORITY if s not in base and s != fallback]
+                base.extend(extras[:2])  # 最多加 2 个中间站点
+                if fallback and fallback not in base:
+                    base.append(fallback)
                 logger.debug(
                     "[ROUTE] code=%s type=%s route=%s",
                     logical_code,
