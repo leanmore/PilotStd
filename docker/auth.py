@@ -70,13 +70,13 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
 ]
 
 # 登录失败计数（持久化到 SQLite），仅保留 5 分钟内的记录
-MAX_ATTEMPTS = 5  # 5 分钟内最多 5 次失败
+MAX_ATTEMPTS = 100  # 5 分钟内最多 100 次失败（压测放宽）
 LOCKOUT_SECONDS = 300  # 锁定 5 分钟
 
 # API 全局速率限制：{key: [timestamp, ...]}，key = 用户名 或 IP
 _api_rate_limit: dict[str, list[float]] = defaultdict(list)
 _api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
-API_RATE_LIMIT = 60  # 每分钟最多 60 次请求
+API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
 API_RATE_WINDOW = 60  # 窗口 60 秒
 
 
