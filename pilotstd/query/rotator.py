@@ -310,7 +310,11 @@ class SiteRotator:
         return 0.0
 
     def _get_success_rate(self, adapter_name: str) -> float:
-        """获取适配器历史成功率（0-1）。后续可从日志或数据库读取。"""
+        """从数据库读取适配器历史成功率（0-1），无数据返回 0.8 默认值。"""
+        if self._db:
+            rate = self._db.get_adapter_success_rate(adapter_name)
+            if rate >= 0:
+                return rate
         return 0.8
 
     def score_adapter(self, adapter_name: str, std_type: str = "") -> float:
@@ -385,6 +389,11 @@ class SiteRotator:
                     adapter_name,
                     site.max_requests,
                 )
+
+    def record_query_result(self, adapter_name: str, success: bool) -> None:
+        """记录一次查询结果到数据库（用于成功率统计）。"""
+        if self._db:
+            self._db.update_adapter_stats(adapter_name, success)
 
     @staticmethod
     def _enter_cooldown(site: SiteState) -> None:

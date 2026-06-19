@@ -243,7 +243,11 @@ class QueryEngine:
                         if not code:
                             continue
                         result = adapter.query_with_strategy(code, number, year)
-                        if result and result.is_found():
+                        success = result is not None and result.is_found()
+                        # 记录到数据库（供评分系统使用）
+                        if self._rotator:
+                            self._rotator.record_query_result(adapter_name, success)
+                        if success:
                             result.source_site = adapter_name
                             all_results.append(result)
                             found_numbers.add(num)

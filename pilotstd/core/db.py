@@ -8,7 +8,7 @@ import threading
 from typing import Callable, Optional
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 12
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[["Database"], None]] = {}
@@ -217,6 +217,35 @@ class Database:
         if hasattr(self._local, "conn"):
             self._local.conn = None
 
+    def update_adapter_stats(self, adapter_name: str, success: bool) -> None:
+        """更新适配器查询统计（总查询数+成功数）。"""
+        try:
+            self.execute(
+                "INSERT INTO adapter_stats (adapter_name, total_queries, successful_queries) "
+                "VALUES (?, 1, ?) "
+                "ON CONFLICT(adapter_name) DO UPDATE SET "
+                "total_queries = total_queries + 1, "
+                "successful_queries = successful_queries + ?, "
+                "last_updated = datetime('now')",
+                (adapter_name, 1 if success else 0, 1 if success else 0),
+            )
+        except Exception:
+            pass  # 表尚未创建或查询失败，静默跳过
+
+    def get_adapter_success_rate(self, adapter_name: str) -> float:
+        """从数据库读取适配器历史成功率（0-1），无数据返回 -1。"""
+        try:
+            row = self.fetchone(
+                "SELECT total_queries, successful_queries FROM adapter_stats "
+                "WHERE adapter_name = ?",
+                (adapter_name,),
+            )
+            if row and row["total_queries"] > 0:
+                return row["successful_queries"] / row["total_queries"]
+        except Exception:
+            pass
+        return -1.0
+
 
 # ── 迁移定义 ──────────────────────────────────────────────
 
@@ -416,3 +445,16 @@ def _migrate_v11_add_daily_limits(db: Database) -> None:
         db.execute(
             "ALTER TABLE rotator_state ADD COLUMN daily_date TEXT NOT NULL DEFAULT ''"
         )
+
+
+@migration(12)
+def _migrate_v12_adapter_stats(db: Database) -> None:
+    """v12: 适配器查询统计表（成功率持久化）。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS adapter_stats (
+            adapter_name TEXT PRIMARY KEY,
+            total_queries INTEGER DEFAULT 0,
+            successful_queries INTEGER DEFAULT 0,
+            last_updated TEXT DEFAULT (datetime('now'))
+        )
+    """)
