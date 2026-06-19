@@ -8,7 +8,7 @@ import threading
 from typing import Callable, Optional
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[["Database"], None]] = {}
@@ -217,20 +217,51 @@ class Database:
         if hasattr(self._local, "conn"):
             self._local.conn = None
 
-    def update_adapter_stats(self, adapter_name: str, success: bool) -> None:
-        """更新适配器查询统计（总查询数+成功数）。"""
+    def update_adapter_stats(
+        self,
+        adapter_name: str,
+        success: bool,
+        response_time: float = 0.0,
+        cooldown_triggered: bool = False,
+        cooldown_reason: str = "",
+    ) -> None:
+        """更新适配器查询统计（总查询数+成功数+响应时间+冷却次数）。"""
         try:
             self.execute(
-                "INSERT INTO adapter_stats (adapter_name, total_queries, successful_queries) "
-                "VALUES (?, 1, ?) "
+                "INSERT INTO adapter_stats "
+                "(adapter_name, total_queries, successful_queries, "
+                " total_response_time, cooldown_count, last_cooldown_reason, "
+                " last_cooldown_at, last_updated) "
+                "VALUES (?, 1, ?, ?, ?, ?, "
+                " CASE WHEN ? THEN datetime('now') ELSE NULL END, "
+                " datetime('now')) "
                 "ON CONFLICT(adapter_name) DO UPDATE SET "
                 "total_queries = total_queries + 1, "
                 "successful_queries = successful_queries + ?, "
+                "total_response_time = total_response_time + ?, "
+                "cooldown_count = cooldown_count + ?, "
+                "last_cooldown_reason = CASE WHEN ? THEN ? "
+                "   ELSE adapter_stats.last_cooldown_reason END, "
+                "last_cooldown_at = CASE WHEN ? THEN datetime('now') "
+                "   ELSE adapter_stats.last_cooldown_at END, "
                 "last_updated = datetime('now')",
-                (adapter_name, 1 if success else 0, 1 if success else 0),
+                (
+                    adapter_name,
+                    1 if success else 0,
+                    response_time,
+                    1 if cooldown_triggered else 0,
+                    cooldown_reason,
+                    cooldown_triggered,
+                    1 if success else 0,
+                    response_time,
+                    1 if cooldown_triggered else 0,
+                    cooldown_triggered,
+                    cooldown_reason,
+                    cooldown_triggered,
+                ),
             )
         except Exception:
-            pass  # 表尚未创建或查询失败，静默跳过
+            pass
 
     def get_adapter_success_rate(self, adapter_name: str) -> float:
         """从数据库读取适配器历史成功率（0-1），无数据返回 -1。"""
@@ -245,6 +276,35 @@ class Database:
         except Exception:
             pass
         return -1.0
+
+    def get_adapter_stats_all(self) -> list[dict]:
+        """返回所有适配器的统计汇总（供报告使用）。"""
+        try:
+            rows = self.fetchall(
+                "SELECT adapter_name, total_queries, successful_queries, "
+                "total_response_time, cooldown_count, "
+                "last_cooldown_reason, last_cooldown_at, last_updated "
+                "FROM adapter_stats ORDER BY total_queries DESC"
+            )
+            result = []
+            for r in rows:
+                total = r["total_queries"]
+                success = r["successful_queries"]
+                resp_total = r["total_response_time"] or 0
+                result.append({
+                    "adapter_name": r["adapter_name"],
+                    "total_queries": total,
+                    "successful_queries": success,
+                    "success_rate": round(success / total, 3) if total > 0 else 0.0,
+                    "avg_response_time": round(resp_total / total, 3) if total > 0 else 0.0,
+                    "cooldown_count": r["cooldown_count"] or 0,
+                    "last_cooldown_reason": r["last_cooldown_reason"] or "",
+                    "last_cooldown_at": r["last_cooldown_at"] or "",
+                    "last_updated": r["last_updated"] or "",
+                })
+            return result
+        except Exception:
+            return []
 
 
 # ── 迁移定义 ──────────────────────────────────────────────
@@ -458,3 +518,31 @@ def _migrate_v12_adapter_stats(db: Database) -> None:
             last_updated TEXT DEFAULT (datetime('now'))
         )
     """)
+
+
+@migration(13)
+def _migrate_v13_adapter_stats_extend(db: Database) -> None:
+    """v13: adapter_stats 扩展响应时间+冷却统计字段。"""
+    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(adapter_stats)")}
+    if not cols:
+        return
+    if "avg_response_time" not in cols:
+        db.execute(
+            "ALTER TABLE adapter_stats ADD COLUMN avg_response_time REAL DEFAULT 0"
+        )
+    if "total_response_time" not in cols:
+        db.execute(
+            "ALTER TABLE adapter_stats ADD COLUMN total_response_time REAL DEFAULT 0"
+        )
+    if "cooldown_count" not in cols:
+        db.execute(
+            "ALTER TABLE adapter_stats ADD COLUMN cooldown_count INTEGER DEFAULT 0"
+        )
+    if "last_cooldown_reason" not in cols:
+        db.execute(
+            "ALTER TABLE adapter_stats ADD COLUMN last_cooldown_reason TEXT"
+        )
+    if "last_cooldown_at" not in cols:
+        db.execute(
+            "ALTER TABLE adapter_stats ADD COLUMN last_cooldown_at TEXT"
+        )

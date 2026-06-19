@@ -1221,6 +1221,12 @@ class StandardManager:
         """暴露指定站点的冷却剩余秒数。"""
         return self.query_engine.get_site_cooldown(site_name)  # type: ignore[return-value]
 
+    def get_adapter_report(self) -> list[dict]:
+        """返回所有适配器的统计汇总报告。
+        每项包含：名称、总查询次数、成功率、平均响应时间、冷却次数、最后冷却原因。
+        """
+        return self.db.get_adapter_stats_all()
+
     def upsert_file_index(
         self,
         file_path: str,

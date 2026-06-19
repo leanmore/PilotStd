@@ -242,11 +242,26 @@ class QueryEngine:
                         code, number, year = self._parse_number(num)
                         if not code:
                             continue
+                        import time as _time
+
+                        t0 = _time.time()
                         result = adapter.query_with_strategy(code, number, year)
+                        elapsed = round(_time.time() - t0, 3)
                         success = result is not None and result.is_found()
-                        # 记录到数据库（供评分系统使用）
+                        # 检测冷却 + 记录到数据库
+                        cooled = bool(
+                            self._rotator
+                            and self._rotator.get_cooldown_remaining(adapter_name) > 0
+                        )
+                        cooldown_reason = "max_requests" if cooled else ""
                         if self._rotator:
-                            self._rotator.record_query_result(adapter_name, success)
+                            self._rotator.record_query_result(
+                                adapter_name,
+                                success,
+                                elapsed,
+                                cooldown_triggered=cooled,
+                                cooldown_reason=cooldown_reason,
+                            )
                         if success:
                             result.source_site = adapter_name
                             all_results.append(result)
