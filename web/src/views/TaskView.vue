@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import DataView from 'primevue/dataview'
+import Paginator from 'primevue/paginator'
 import LogBar from '@/components/LogBar.vue'
 
 const paths = ref<string[]>(['/inbox', '/standards'])
@@ -46,6 +46,18 @@ onMounted(() => {
   } catch { history.value = [] }
   loadPaths()
 })
+
+const historyPage = ref(0)
+const historyRows = ref(10)
+
+const paginatedHistory = computed(() => {
+  const start = historyPage.value * historyRows.value
+  return history.value.slice(start, start + historyRows.value)
+})
+
+function onHistoryPage(e: any) {
+  historyPage.value = e.page
+}
 
 function saveHistory(status: 'success'|'partial'|'fail') {
   const record: TaskRecord = {
@@ -214,22 +226,31 @@ function statusLabel(s: string) {
   <!-- 任务历史 -->
   <div v-if="history.length" class="card mt-3">
     <div class="card-header">运行记录</div>
-    <DataTable :value="history" paginator :rows="10" stripedRows size="small">
-      <Column field="time" header="时间" style="min-width:140px" />
-      <Column field="path" header="目录" style="max-width:160px"><template #body="{data}"><span class="text-mono text-dim">{{ data.path }}</span></template></Column>
-      <Column field="scanCount" header="扫描" style="width:60px" />
-      <Column field="queryFound" header="查询" style="width:60px" />
-      <Column field="dlSuccess" header="下载" style="width:60px" />
-      <Column header="状态" style="width:90px">
-        <template #body="{data}"><Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" /></template>
-      </Column>
-      <Column header="操作" style="width:120px">
-        <template #body="{data}">
-          <Button label="详情" size="small" text @click="viewRecord(data)" />
-          <Button label="重跑" size="small" text severity="info" @click="rerun(data)" />
-        </template>
-      </Column>
-    </DataTable>
+    <DataView :value="paginatedHistory" size="small">
+      <template #list="slotProps">
+        <div v-for="item in slotProps.items" :key="item.id" class="p-2 border-bottom">
+          <div class="flex" style="display:flex;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-light)">
+            <div style="flex:1;min-width:0">
+              <div class="flex" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+                <span class="text-mono" style="font-size:13px;font-family:var(--mono)">{{ item.time }}</span>
+                <span class="text-dim" style="font-size:12px;color:var(--text-dim)">{{ item.path }}</span>
+              </div>
+              <div class="flex" style="display:flex;gap:12px;font-size:12px;color:var(--text-dim);margin-top:4px">
+                <span>扫描: {{ item.scanCount }}</span>
+                <span>查询: {{ item.queryFound }}</span>
+                <span>下载: {{ item.dlSuccess }}</span>
+              </div>
+            </div>
+            <div class="flex" style="display:flex;gap:6px;align-items:center">
+              <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
+              <Button label="详情" size="small" text @click="viewRecord(item)" />
+              <Button label="重跑" size="small" text severity="info" @click="rerun(item)" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </DataView>
+    <Paginator :rows="historyRows" :totalRecords="history.length" @page="onHistoryPage" class="mt-2" />
   </div>
 
   <!-- 历史详情弹窗 -->
@@ -309,4 +330,8 @@ function statusLabel(s: string) {
 .sum-item { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--bg); border-radius: var(--radius-sm); }
 .sum-label { font-size: 12px; color: var(--text-dim); }
 .sum-val { font-size: 18px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); }
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.text-dim { color: var(--text-dim, #6b7280); }
+.text-mono { font-family: var(--mono, 'Consolas', 'Courier New', monospace); }
+.mt-2 { margin-top: 12px; }
 </style>

@@ -30,7 +30,7 @@ class HbbaAdapter(BaseAdapter):
     API_URL = "https://hbba.sacinfo.org.cn/stdQueryList"
     DETAIL_URL = "https://hbba.sacinfo.org.cn/stdDetail/{}"
 
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         self._session.headers.update(
             {

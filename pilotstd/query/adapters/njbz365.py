@@ -39,7 +39,7 @@ class Njbz365Adapter(BaseAdapter):
 
     supports_replaces_detail = True
 
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         self._session.headers.update(
             {
@@ -77,7 +77,7 @@ class Njbz365Adapter(BaseAdapter):
             # 即使失败也继续——可能 cookie 中已有 token
 
         # 从 cookie 提取 JWT
-        token_raw = unquote(self._session.cookies.get("token", ""))
+        token_raw = unquote(self._session.cookies.get("token", "") or "")
         if token_raw:
             import json
 

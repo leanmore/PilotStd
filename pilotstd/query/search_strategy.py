@@ -230,3 +230,18 @@ def is_adopted(name: str, en_name: str = "") -> bool:
     """统一的采标判定：中文名 + 英文名中匹配采标关键词。"""
     text = f"{name} {en_name}"
     return any(kw in text for kw in ADOPTION_KW)
+
+
+def is_recently_published(pub_date_str: str, window_days: int = 28) -> bool:
+    """判断发布时间是否在指定天数内（不满 window_days 天返回 True）。
+    用于决定是否允许下载。
+    """
+    from datetime import datetime, timedelta
+
+    if not pub_date_str:
+        return False
+    try:
+        pub_date = datetime.strptime(pub_date_str, "%Y-%m-%d")
+        return datetime.now() - pub_date < timedelta(days=window_days)
+    except (ValueError, TypeError):
+        return False

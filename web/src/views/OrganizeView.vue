@@ -2,8 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { getFiles, postCleanEmpty } from '@/api'
 import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import DataView from 'primevue/dataview'
+import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import LogBar from '@/components/LogBar.vue'
 
@@ -34,6 +34,18 @@ async function cleanEmpty() {
 }
 
 onMounted(() => browse())
+
+const page = ref(0)
+const rows = ref(30)
+
+const paginatedFiles = computed(() => {
+  const start = page.value * rows.value
+  return files.value.slice(start, start + rows.value)
+})
+
+function onPage(e: any) {
+  page.value = e.page
+}
 
 // 面包屑：当前路径拆成逐段可点击的导航
 import { computed } from 'vue'
@@ -82,14 +94,21 @@ const breadcrumbs = computed(() => {
   </div>
 
   <!-- 文件列表 -->
-  <DataTable :value="files" paginator :rows="30" stripedRows size="small" class="mt-2">
-    <Column field="name" header="文件名" />
-    <Column field="path" header="路径" />
-    <Column field="_size" header="大小" />
-    <Column field="type" header="类型">
-      <template #body="{data}"><Tag :value="data.type" :severity="data.type==='pdf'?'success':'info'" /></template>
-    </Column>
-  </DataTable>
+  <DataView :value="paginatedFiles" size="small" class="mt-2">
+    <template #list="slotProps">
+      <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
+        <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center">
+          <span style="min-width:140px;font-weight:500;flex-shrink:0">{{ item.name }}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text-dim)">{{ item.path }}</span>
+          <span style="min-width:80px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item._size }}</span>
+          <span style="min-width:60px;flex-shrink:0">
+            <Tag :value="item.type" :severity="item.type==='pdf'?'success':'info'" />
+          </span>
+        </div>
+      </div>
+    </template>
+  </DataView>
+  <Paginator :rows="rows" :totalRecords="files.length" @page="onPage" class="mt-2" />
   <LogBar />
 </template>
 
@@ -107,4 +126,5 @@ const breadcrumbs = computed(() => {
 .clean-msg { font-size: 12px; color: var(--success); margin-top: 6px; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-top: 6px; }
 .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

@@ -12,6 +12,8 @@ import tempfile
 import unittest
 from datetime import datetime
 
+import pytest
+
 from pilotstd.core.config import ConfigManager
 from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
@@ -318,21 +320,24 @@ class TestProjectManager(unittest.TestCase):
 
 
 class TestFileIndexRepository(unittest.TestCase):
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
         self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.repo = FileIndexRepository(self.db)
+        self.db = shared_db
+        self.repo = FileIndexRepository(shared_db)
         # get_full_info 和 _restore_cache_fields 依赖这两张缓存表
-        self.db.execute("""
+        shared_db.execute("""
             CREATE TABLE IF NOT EXISTS standard_info_cache (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 standard_number TEXT NOT NULL,
                 source_site TEXT NOT NULL,
                 result_json TEXT NOT NULL,
-                cached_at TEXT NOT NULL
+                cached_at TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'network',
+                status_history TEXT NOT NULL DEFAULT ''
             )
         """)
-        self.db.execute("""
+        shared_db.execute("""
             CREATE TABLE IF NOT EXISTS announcement_cache (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 standard_number TEXT NOT NULL,
@@ -342,11 +347,7 @@ class TestFileIndexRepository(unittest.TestCase):
                 expires_at TEXT
             )
         """)
-
-    def tearDown(self):
-        # 必须先关闭线程本地连接，否则 Windows 下 db 文件被锁定无法删除
-        self.db.close()
-        self.db = None
+        yield
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_upsert_and_get(self):
@@ -647,22 +648,12 @@ class TestFileIndexRepository(unittest.TestCase):
 class TestDailyQuotaTracker(unittest.TestCase):
     """DailyQuotaTracker 单元测试：配额计算、跨天回滚。"""
 
-    def setUp(self):
-        import tempfile
-
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
         from pilotstd.query.daily_quota import DailyQuotaTracker
 
-        self.tracker = DailyQuotaTracker(self.db, limits={"csres": 180})
-
-    def tearDown(self):
-        import shutil
-
-        # 必须先关闭线程本地连接，否则 Windows 下 db 文件被锁定无法删除
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
+        self.db = shared_db
+        self.tracker = DailyQuotaTracker(shared_db, limits={"csres": 180})
 
     def test_get_remaining_initial(self):
         """新实例返回完整默认配额。"""
@@ -820,23 +811,16 @@ class TestHashFileContent(unittest.TestCase):
 class TestDatabaseConcurrency(unittest.TestCase):
     """数据库并发读写测试：验证读写锁分离后无数据竞争。"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        from pilotstd.core.db import Database
-
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.db.execute(
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        shared_db.execute(
             "CREATE TABLE IF NOT EXISTS _concurrent_test (id INTEGER PRIMARY KEY, val TEXT)"
         )
         for i in range(100):
-            self.db.execute(
+            shared_db.execute(
                 "INSERT OR REPLACE INTO _concurrent_test VALUES (?, ?)", (i, f"val_{i}")
             )
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_concurrent_reads_no_error(self):
         """多线程并发 fetchall 不应抛异常或数据竞争。"""

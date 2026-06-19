@@ -3,11 +3,11 @@
 
 import logging
 import os
-from datetime import datetime, timedelta
 
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from ...i18n import _
+from ...query.search_strategy import is_recently_published
 from ..workers import DownloadWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class DownloadMixin:
         too_new_set = set()
         too_new_list = []
         for orig_idx, p in to_download:
-            if self._is_too_new(p):
+            if is_recently_published(getattr(p, "found_publish_date", "")):
                 too_new_list.append((orig_idx, p))
                 too_new_set.add(orig_idx)
                 self._enqueue_download_wait(p)
@@ -209,17 +209,6 @@ class DownloadMixin:
         msg += _("download_results_failed") + ": " + str(stats.failed)
         QMessageBox.information(self, _("download_results_title"), msg)
         self._project.mark_dirty()
-
-    def _is_too_new(self, parsed) -> bool:
-        """发布不满 20 个工作日（≈28 日历日），暂不可下载。"""
-        pub_str = getattr(parsed, "found_publish_date", "")
-        if not pub_str:
-            return False
-        try:
-            pub_dt = datetime.strptime(pub_str, "%Y-%m-%d")
-            return pub_dt > datetime.now() - timedelta(days=28)
-        except ValueError:
-            return False
 
     def _enqueue_download_wait(self, parsed) -> None:
         """将未到下载期的标准写入下载等待队列（委托 manager）。"""

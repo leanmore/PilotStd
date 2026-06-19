@@ -146,11 +146,13 @@ def safe_raw_get(
     url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
 ) -> Optional[requests.Response]:
     """不带 session 的简单 GET 请求（含重试）。供公告适配器等没有 session 的场景。"""
-    return safe_request(requests, "GET", url, site_name, timeout, **kwargs)
+    session = requests.Session()
+    return safe_request(session, "GET", url, site_name, timeout, **kwargs)
 
 
 def safe_raw_post(
     url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
 ) -> Optional[requests.Response]:
     """不带 session 的简单 POST 请求（含重试）。供 OCR 等场景。"""
-    return safe_request(requests, "POST", url, site_name, timeout, **kwargs)
+    session = requests.Session()
+    return safe_request(session, "POST", url, site_name, timeout, **kwargs)

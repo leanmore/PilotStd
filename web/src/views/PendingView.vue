@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import { ref, computed } from 'vue'
+import DataView from 'primevue/dataview'
+import Paginator from 'primevue/paginator'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
@@ -14,6 +14,18 @@ const loading = ref(false)
 const error = ref('')
 const importMsg = ref('')
 const selectedSite = ref('ahbz')
+
+const page = ref(0)
+const rows = ref(25)
+
+const paginatedResults = computed(() => {
+  const start = page.value * rows.value
+  return results.value.slice(start, start + rows.value)
+})
+
+function onPage(e: any) {
+  page.value = e.page
+}
 
 const sites = [
   { name: 'ahbz', label: '安徽标准平台', desc: '免鉴权，覆盖国标/行标/地标/国际/团体' },
@@ -85,18 +97,25 @@ function severity(s: string) {
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
 
-  <DataTable v-if="results.length" :value="results" paginator :rows="25" stripedRows size="small" class="mt-3">
-    <Column field="standard_number" header="标准号" />
-    <Column field="standard_name" header="名称" />
-    <Column field="status" header="状态">
-      <template #body="{ data }"><Tag :value="data.status" :severity="severity(data.status)" /></template>
-    </Column>
-    <Column field="source_site" header="来源" />
-    <Column field="match_status" header="匹配" />
-    <Column field="_site" header="查询站点">
-      <template #body="{ data }"><Tag :value="data._site" severity="info" /></template>
-    </Column>
-  </DataTable>
+  <template v-if="results.length">
+    <DataView :value="paginatedResults" size="small" class="mt-3">
+      <template #list="slotProps">
+        <div v-for="item in slotProps.items" :key="item.standard_number" class="p-2 border-bottom">
+          <div class="flex justify-content-between align-items-center" style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+            <div style="flex:1;min-width:0">
+              <div><strong>{{ item.standard_number }}</strong></div>
+              <div class="text-dim" style="font-size:13px;color:var(--text-dim)">{{ item.standard_name }}</div>
+            </div>
+            <div class="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <Tag :value="item.status" :severity="severity(item.status)" />
+              <Tag :value="item._site" severity="info" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </DataView>
+    <Paginator :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
+  </template>
   <LogBar />
 </template>
 
@@ -114,4 +133,6 @@ function severity(s: string) {
 .site-name { font-size: 13px; font-weight: 600; color: var(--text-heading); }
 .site-desc { font-size: 12px; color: var(--text-dim); }
 .mt-2 { margin-top: 12px; }
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.text-dim { color: var(--text-dim, #6b7280); }
 </style>

@@ -13,6 +13,8 @@ import shutil
 import tempfile
 import unittest
 
+import pytest
+
 from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
 from pilotstd.core.file_utils import make_standard_filename
@@ -229,49 +231,20 @@ class TestQueryClassifier(unittest.TestCase):
 class TestPendingService(unittest.TestCase):
     """验证 PendingService 的 CRUD 操作和本地缓存查询。"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        db_path = os.path.join(self.tmp, "test.db")
-        self.db = Database(db_path)
-        # 手动创建 PendingService 需要的表（跳过完整迁移）
-        self.db.execute("CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER)")
-        self.db.execute("INSERT OR IGNORE INTO _schema_version (version) VALUES (8)")
-        self.db.execute("""CREATE TABLE IF NOT EXISTS pending_lookup (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            standard_number TEXT NOT NULL, std_name TEXT, found_name TEXT,
-            found_number TEXT, match_status TEXT, effect_status TEXT,
-            score INTEGER, source_site TEXT, file_path TEXT,
-            status TEXT DEFAULT 'pending', created_at TEXT, resolved_at TEXT)""")
-        self.db.execute("""CREATE TABLE IF NOT EXISTS download_queue (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            standard_number TEXT NOT NULL, standard_name TEXT,
-            publish_date TEXT, expected_available TEXT,
-            created_at TEXT, status TEXT DEFAULT 'waiting')""")
-        self.db.execute("""CREATE TABLE IF NOT EXISTS standard_info_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            standard_number TEXT NOT NULL, source_site TEXT NOT NULL,
-            result_json TEXT NOT NULL, cached_at TEXT)""")
-        self.db.execute("""CREATE TABLE IF NOT EXISTS announcement_cache (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            standard_number TEXT NOT NULL, source_site TEXT NOT NULL,
-            result_json TEXT NOT NULL, cached_at TEXT)""")
-        self.file_index = FileIndexRepository(self.db)
-        self.svc = PendingService(self.db, self.file_index)
-
-    def tearDown(self):
-        try:
-            self.db.close()
-        except Exception:
-            pass
-        # Windows 上 SQLite 可能持有文件锁，尝试多次删除
-        import time
-
-        for _ in range(5):
-            try:
-                shutil.rmtree(self.tmp)
-                break
-            except PermissionError:
-                time.sleep(0.1)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        # standard_info_cache 由 CacheRepository 惰性创建，PendingService 间接使用
+        shared_db.execute("""
+            CREATE TABLE IF NOT EXISTS standard_info_cache (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                standard_number TEXT NOT NULL, source_site TEXT NOT NULL,
+                result_json TEXT NOT NULL, cached_at TEXT,
+                source TEXT NOT NULL DEFAULT 'network',
+                status_history TEXT NOT NULL DEFAULT '')
+        """)
+        self.file_index = FileIndexRepository(shared_db)
+        self.svc = PendingService(shared_db, self.file_index)
 
     # ── record_pending ────────────────────────────────────
 

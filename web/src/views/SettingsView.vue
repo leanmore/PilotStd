@@ -4,8 +4,7 @@ import { getUsers, addUser, deleteUser, changePassword, getSettings, putSettings
 import { useAppStore } from '@/stores/app'
 const store = useAppStore()
 import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
 
@@ -235,10 +234,19 @@ const sites = [
       </div>
     </div>
     <p v-if="loadUsersErr" class="err-msg">{{ loadUsersErr }}</p>
-    <DataTable :value="users" size="small" stripedRows>
-      <Column field="username" header="用户名" /><Column field="role" header="角色" /><Column field="created_at" header="创建时间" />
-      <Column header="操作"><template #body="{data}"><Button v-if="data.username!=='admin'" icon="pi pi-trash" severity="danger" size="small" text @click="doDelete(data.id)" /></template></Column>
-    </DataTable>
+    <DataView :value="users" size="small">
+      <template #list="slotProps">
+        <div v-for="item in slotProps.items" :key="item.id" class="p-2 border-bottom">
+          <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center">
+            <span style="min-width:100px;font-weight:500">{{ item.username }}</span>
+            <span style="min-width:80px;font-size:13px;color:var(--text-dim)">{{ item.role }}</span>
+            <span style="flex:1;font-size:12px;color:var(--text-dim)">{{ item.created_at }}</span>
+            <Button v-if="item.username!=='admin'" icon="pi pi-trash"
+                    severity="danger" size="small" text @click="doDelete(item.id)" />
+          </div>
+        </div>
+      </template>
+    </DataView>
   </div>
 
   <div class="mt-3" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
@@ -320,4 +328,5 @@ const sites = [
 .lim-val { font-size: 15px; font-weight: 600; color: var(--text-heading); font-family: var(--mono); }
 .fieldset-gap { grid-column: 1 / -1; height: 8px; }
 .mb-2 { margin-bottom: 12px; }
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

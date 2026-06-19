@@ -146,7 +146,11 @@ class TableMixin:
             QMessageBox.warning(self, _("title_save_failed"), str(e))
 
     def _save_txt(
-        self, path: str, rows: list, cols: list = None, data_keys: list = None
+        self,
+        path: str,
+        rows: list,
+        cols: list | None = None,
+        data_keys: list | None = None,
     ):
         """保存TXT文件。cols为显示列名（表头），data_keys为数据键名（行查找）。"""
         if cols is None:
@@ -170,7 +174,11 @@ class TableMixin:
                 f.write(line + "\n")
 
     def _save_csv(
-        self, path: str, rows: list, cols: list = None, data_keys: list = None
+        self,
+        path: str,
+        rows: list,
+        cols: list | None = None,
+        data_keys: list | None = None,
     ):
         """保存CSV文件。cols为显示列名（表头），data_keys为数据键名（行查找）。"""
         if cols is None:

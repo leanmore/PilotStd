@@ -364,8 +364,8 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
     failed = 0
     for page_num in range(1, total_pages + 1):
         result = ocr_provider.recognize_pdf(pdf_bytes, page_num=page_num)
-        if result.ok:
-            texts.append(result.text)
+        if result.ok:  # type: ignore[union-attr]
+            texts.append(result.text)  # type: ignore[union-attr]
         else:
             failed += 1
 

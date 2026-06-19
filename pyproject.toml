@@ -24,6 +24,7 @@ module = [
     "watchdog.events",
     "jose",
     "apscheduler.*",
+    "urllib3.*",
 ]
 ignore_missing_imports = true
 

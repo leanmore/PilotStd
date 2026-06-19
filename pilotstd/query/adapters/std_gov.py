@@ -27,7 +27,7 @@ class StdGovAdapter(BaseAdapter):
 
     SEARCH_URL = "https://std.samr.gov.cn/search/stdPage"
 
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         self._session.headers.update(
             {

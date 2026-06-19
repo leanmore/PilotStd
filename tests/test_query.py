@@ -7,10 +7,10 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import shutil
-import tempfile
 import unittest
 from unittest.mock import MagicMock
+
+import pytest
 
 from pilotstd.core.db import Database
 from pilotstd.organizer.industry_lookup import build_code_mapping
@@ -91,15 +91,10 @@ class TestQueryModels(unittest.TestCase):
 
 
 class TestCacheRepository(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
 
     def test_put_and_get(self):
         r = QueryResult(
@@ -146,10 +141,10 @@ class TestCacheRepository(unittest.TestCase):
 
 
 class TestQueryEngine(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
         self.active_adapter = MockActiveAdapter()
         self.adopted_adapter = MockAdoptedAdapter()
         self.engine = QueryEngine(
@@ -158,11 +153,6 @@ class TestQueryEngine(unittest.TestCase):
             use_cache=True,
             parser=StandardParser(build_code_mapping()),
         )
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_single_query_found(self):
         r = self.engine.query_parsed("GB/T", 19001, 2020)
@@ -497,15 +487,10 @@ class TestRouting(unittest.TestCase):
 class TestNetworkErrorHandling(unittest.TestCase):
     """模拟超时/连接失败，验证 QueryEngine 在引擎层优雅降级。"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
 
     def test_timeout_adapter_engine_graceful(self):
         """超时适配器在引擎 query_batch_parsed 中不崩溃，异常入 error_message。"""
@@ -585,19 +570,12 @@ class TestNetworkErrorHandling(unittest.TestCase):
 class TestConcurrencySafety(unittest.TestCase):
     """DailyQuotaTracker 多线程并发正确性。"""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        cls.db = Database(os.path.join(cls.tmp, "test.db"))
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
         from pilotstd.query.daily_quota import DailyQuotaTracker
 
-        cls._tracker = DailyQuotaTracker(cls.db)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.db.close()
-        cls.db = None
-        shutil.rmtree(cls.tmp, ignore_errors=True)
+        self.db = shared_db
+        self._tracker = DailyQuotaTracker(shared_db)
 
     def test_concurrent_record_usage_no_lost_count(self):
         """10 线程各 record_usage 10 次 → 最终 used=100，无丢失。"""
@@ -771,10 +749,10 @@ class TestProgressiveSearch(unittest.TestCase):
 class TestBucketQuery(unittest.TestCase):
     """逐桶查询 V2 测试——分组/链隔离/临时桶调度"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
         self.parser = StandardParser(build_code_mapping())
         self.adapter = MockActiveAdapter()
         self.engine = QueryEngine(
@@ -783,10 +761,6 @@ class TestBucketQuery(unittest.TestCase):
             use_cache=False,
             parser=self.parser,
         )
-
-    def tearDown(self):
-        self.db.close()
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_bucket_key_gb(self):
         """GB 标准 → 主站点非空，从 CODE_ROUTES 路由"""
@@ -874,15 +848,11 @@ class MockSiteAdapter(BaseAdapter):
 class TestBucketConcurrency(unittest.TestCase):
     """逐桶并发测试——溢出隔离/csres隔离/大桶拆子桶"""
 
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.cache = CacheRepository(self.db)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
         self.parser = StandardParser(build_code_mapping())
-
-    def tearDown(self):
-        self.db.close()
-        shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _engine(self, sites=None):
         adapters = sites or [

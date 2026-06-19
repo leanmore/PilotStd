@@ -24,7 +24,7 @@ from ...task.queue import TaskQueue
 class TaskPage(QWidget):
     """任务中心控件：展示任务列表和详情。"""
 
-    def __init__(self, task_queue: TaskQueue = None):
+    def __init__(self, task_queue: TaskQueue | None = None):
         super().__init__()
         self._queue = task_queue
         layout = QVBoxLayout(self)

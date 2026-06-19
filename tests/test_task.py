@@ -7,10 +7,10 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import shutil
-import tempfile
 import time
 import unittest
+
+import pytest
 
 from pilotstd.core.db import Database
 from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
@@ -28,15 +28,12 @@ class TestTaskModels(unittest.TestCase):
 
 
 class TestTaskQueue(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.db = Database(os.path.join(self.tmp, "test.db"))
-        self.queue = TaskQueue(self.db)
-
-    def tearDown(self):
-        self.db.close()
-        self.db = None
-        shutil.rmtree(self.tmp, ignore_errors=True)
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.queue = TaskQueue(shared_db)
+        # 清理上一个测试的残留任务数据
+        shared_db.execute("DELETE FROM task_queue")
 
     def test_enqueue_and_get(self):
         task = self.queue.enqueue(TaskType.SCAN, total_items=10)

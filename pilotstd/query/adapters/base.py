@@ -125,6 +125,8 @@ class BaseAdapter(ABC):
             if not candidates:
                 continue
             for result in candidates:
+                if result is None:
+                    continue
                 _, status = match_result(
                     logical_code,
                     number,

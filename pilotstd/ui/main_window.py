@@ -20,7 +20,6 @@
 #     QPushButton 初始文本可用 _() 直接包裹，工具栏按钮由 _retranslate_ui 统一管理。
 
 import atexit
-import json
 import logging
 import os
 import signal
@@ -745,16 +744,20 @@ class MainWindow(
 
     def _on_check_update(self):
         """半自动升级：检查 GitHub Release → 下载 → 写 update.bat → 提示重启。"""
-        import urllib.error
-        import urllib.request
+        import time as _time
 
         from pilotstd import __version__
+        from pilotstd.core.updater import (
+            check_latest_version,
+            download_update,
+            extract_sha256_from_body,
+            generate_update_script,
+            is_newer_version,
+        )
 
         current = f"v{__version__}"
 
         # 24h 内不重复检查，避免触发 GitHub API 限流（60次/h 无 Token）
-        import time as _time
-
         last_check = self._config.get("appearance.last_update_check", 0)
         if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
             QMessageBox.information(
@@ -768,22 +771,13 @@ class MainWindow(
         self._config.save()
         self.status_changed.emit(_("checking_update"))
         try:
-            url = "https://api.github.com/repos/leanmore/PilotStd/releases/latest"
-            req = urllib.request.Request(url)
-            req.add_header("User-Agent", f"PilotStd/{__version__}")
-            import os as _os
+            release = check_latest_version()
+            if not release:
+                raise RuntimeError("无法获取最新版本信息")
 
-            _token = _os.environ.get("GITHUB_TOKEN", "")
-            if _token:
-                req.add_header("Authorization", f"Bearer {_token}")
-            resp = urllib.request.urlopen(req, timeout=10)
-            data = json.loads(resp.read().decode())
-            latest = data.get("tag_name", "")
-            if not latest:
-                raise ValueError("无法解析最新版本号")
+            latest = release["tag_name"]
 
-            # 语义化版本比较：去除 v 前缀后按 . 分段逐位比较
-            if not self._is_newer_version(latest, current):
+            if not is_newer_version(latest, current):
                 QMessageBox.information(
                     self,
                     _("title_no_update"),
@@ -791,7 +785,7 @@ class MainWindow(
                 )
                 return
 
-            body = data.get("body", "")[:500]
+            body = release["body"][:500]
             reply = QMessageBox.question(
                 self,
                 _("title_update_found"),
@@ -810,79 +804,25 @@ class MainWindow(
                 webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
                 return
 
-            # 找到 zip 资源下载
-            asset = None
-            for a in data.get("assets", []):
-                name = a.get("name", "")
-                if name.endswith(".zip") and "PilotStd" in name:
-                    asset = a
-                    break
-            if not asset:
-                raise ValueError("未找到下载资源")
-
-            download_url = asset.get("browser_download_url", "")
-            filename = asset.get("name", f"PilotStd-{latest}.zip")
+            download_url = release["download_url"]
+            filename = release["filename"]
             self.status_changed.emit(_("update_downloading").format(filename=filename))
 
-            # 在后台下载（含完整性校验）
-            import threading
-            import zipfile
+            dl_path = os.path.join(
+                os.environ.get("TEMP", os.path.expanduser("~")), filename
+            )
+            sha256_expected = extract_sha256_from_body(release["body"])
 
-            result = {"ok": False, "error": "", "path": ""}
+            # 在后台下载（含完整性校验）
+            result = {"ok": False, "error": ""}
 
             def _download():
                 try:
-                    dl_req = urllib.request.Request(download_url)
-                    dl_req.add_header("User-Agent", f"PilotStd/{__version__}")
-                    if _token:
-                        dl_req.add_header("Authorization", f"Bearer {_token}")
-                    dl_path = os.path.join(
-                        os.environ.get("TEMP", os.path.expanduser("~")), filename
-                    )
-                    expected_size = 0
-                    actual_size = 0
-                    with urllib.request.urlopen(dl_req, timeout=300) as src:
-                        content_length = src.headers.get("Content-Length", "")
-                        if content_length:
-                            expected_size = int(content_length)
-                        with open(dl_path, "wb") as dst:
-                            while True:
-                                chunk = src.read(65536)
-                                if not chunk:
-                                    break
-                                dst.write(chunk)
-                                actual_size += len(chunk)
-                    # 校验：大小不匹配说明下载不完整
-                    if expected_size and actual_size != expected_size:
-                        raise IOError(
-                            f"下载不完整：期望 {expected_size} 字节，实际 {actual_size}"
-                        )
-                    # 校验：必须是合法 zip
-                    if not zipfile.is_zipfile(dl_path):
-                        raise IOError("下载的文件不是有效的 zip 包")
-                    # 校验：SHA256（从 release body 中提取）
-                    sha256_expected = ""
-                    for line in (data.get("body", "") or "").splitlines():
-                        line = line.strip()
-                        if line.lower().startswith("sha256:"):
-                            sha256_expected = line.split(":", 1)[1].strip()
-                            break
-                    if sha256_expected:
-                        import hashlib
-
-                        sha256_actual = hashlib.sha256()
-                        with open(dl_path, "rb") as _f:
-                            while True:
-                                chunk = _f.read(65536)
-                                if not chunk:
-                                    break
-                                sha256_actual.update(chunk)
-                        if sha256_actual.hexdigest() != sha256_expected:
-                            raise IOError(
-                                f"SHA256 校验失败: 期望 {sha256_expected[:16]}..."
-                            )
-                    result["ok"] = True
-                    result["path"] = dl_path
+                    ok = download_update(download_url, dl_path, sha256_expected)
+                    if ok:
+                        result["ok"] = True
+                    else:
+                        result["error"] = "下载或校验失败"
                 except Exception as e:
                     result["error"] = str(e)
 
@@ -892,7 +832,6 @@ class MainWindow(
             if not result["ok"]:
                 raise RuntimeError(result["error"] or "下载超时")
 
-            zip_path = result["path"]
             exe_dir = (
                 os.path.dirname(sys.executable)
                 if getattr(sys, "frozen", False)
@@ -903,8 +842,7 @@ class MainWindow(
                 raise PermissionError(
                     f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录"
                 )
-            bat_path = os.path.join(exe_dir, "update.bat")
-            self._write_update_bat(bat_path, zip_path, exe_dir)
+            bat_path = generate_update_script(dl_path, exe_dir)
 
             import subprocess
 
@@ -925,44 +863,6 @@ class MainWindow(
                 _("title_no_update"),
                 _("update_connection_failed").format(current=current),
             )
-
-    @staticmethod
-    def _is_newer_version(latest: str, current: str) -> bool:
-        """语义化版本比较：latest > current → True。v前缀自动去除。"""
-
-        def _parse(v):
-            v = v.lstrip("v")
-            parts = []
-            for p in v.split("."):
-                digits = "".join(c for c in p if c.isdigit())
-                parts.append(int(digits) if digits else 0)
-            while len(parts) < 3:
-                parts.append(0)
-            return tuple(parts[:3])
-
-        return _parse(latest) > _parse(current)
-
-    @staticmethod
-    def _write_update_bat(bat_path: str, zip_path: str, exe_dir: str):
-        """写出 update.bat——等待旧进程退出后解压替换并重启。"""
-        exe_path = os.path.join(exe_dir, "PilotStd.exe")
-        bat = (
-            "@echo off\r\n"
-            "chcp 65001 >nul\r\n"
-            "echo 等待 PilotStd 退出...\r\n"
-            ":wait\r\n"
-            "timeout /t 2 /nobreak >nul\r\n"
-            'tasklist /fi "IMAGENAME eq PilotStd.exe" 2>nul | find /i "PilotStd.exe" >nul\r\n'
-            "if not errorlevel 1 goto wait\r\n"
-            "echo 正在解压更新...\r\n"
-            f'powershell -Command "Start-Process -Verb RunAs -ArgumentList \'Expand-Archive -Path \\"{zip_path}\\" -DestinationPath \\"{exe_dir}\\" -Force\'" \r\n'
-            f'if exist "{zip_path}" del /q "{zip_path}"\r\n'
-            "echo 更新完成，正在启动...\r\n"
-            f'start "" "{exe_path}"\r\n'
-            'del "%~f0"\r\n'
-        )
-        with open(bat_path, "w", encoding="utf-8") as f:
-            f.write(bat)
 
     def _on_about(self):
         QMessageBox.about(self, _("about"), _("about_text"))

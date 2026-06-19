@@ -262,6 +262,89 @@ class ConfigManager:
             if self.get(k) is None:
                 self.set(k, v)
 
+    def export_rules(self, file_path: str) -> bool:
+        """将当前所有规则导出到 JSON 文件。返回 True/False。"""
+        import logging
+
+        _log = logging.getLogger("pilotstd.config")
+        try:
+            rules_raw = self.get("sites.rules", "[]")
+            if isinstance(rules_raw, str):
+                try:
+                    rules = json.loads(rules_raw)
+                except json.JSONDecodeError:
+                    rules = []
+            elif isinstance(rules_raw, list):
+                rules = rules_raw
+            else:
+                rules = []
+            payload = {
+                "version": "1.0",
+                "description": "PilotStd 网站规则导出",
+                "rules": rules,
+            }
+            os.makedirs(os.path.dirname(file_path) or ".", exist_ok=True)
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+            return True
+        except (OSError, json.JSONDecodeError) as e:
+            _log.error("导出规则失败: %s", e)
+            return False
+
+    def import_rules(self, file_path: str) -> int:
+        """从 JSON 文件导入规则并合并到已有配置。
+
+        支持两种格式：{"rules": [...]} 或 [...]。
+        返回成功导入的规则数，-1 表示失败。
+        """
+        import logging
+
+        _log = logging.getLogger("pilotstd.config")
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            _log.error("读取规则文件失败: %s", e)
+            return -1
+
+        imported = data.get("rules", []) if isinstance(data, dict) else data
+        if not isinstance(imported, list):
+            _log.error("规则数据格式无效：期望列表或对象")
+            return -1
+
+        # 读取现有规则
+        rules_raw = self.get("sites.rules", "[]")
+        if isinstance(rules_raw, str):
+            try:
+                existing = json.loads(rules_raw)
+            except json.JSONDecodeError:
+                existing = []
+        elif isinstance(rules_raw, list):
+            existing = rules_raw
+        else:
+            existing = []
+
+        added = 0
+        for rule in imported:
+            if not isinstance(rule, dict) or "name" not in rule:
+                continue
+            if not any(r.get("name") == rule["name"] for r in existing):
+                existing.append(
+                    {
+                        "name": rule.get("name", ""),
+                        "type": rule.get("type", ""),
+                        "url": rule.get("url", ""),
+                        "xpath": rule.get("xpath", ""),
+                        "regex": rule.get("regex", ""),
+                        "captcha": rule.get("captcha", ""),
+                    }
+                )
+                added += 1
+
+        self.set("sites.rules", json.dumps(existing, ensure_ascii=False))
+        self.save()
+        return added
+
     # ════════════════════════════════════════════════════════════════
     # 内部
     # ════════════════════════════════════════════════════════════════

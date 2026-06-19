@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import DataView from 'primevue/dataview'
+import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import Calendar from 'primevue/calendar'
 import LogBar from '@/components/LogBar.vue'
@@ -51,6 +51,18 @@ async function check() {
 }
 
 onMounted(load)
+
+const page = ref(0)
+const rows = ref(25)
+
+const paginatedResults = computed(() => {
+  const start = page.value * rows.value
+  return results.value.slice(start, start + rows.value)
+})
+
+function onPage(e: any) {
+  page.value = e.page
+}
 </script>
 
 <template>
@@ -67,12 +79,21 @@ onMounted(load)
   <div v-if="Object.keys(summary).length" class="mt-2" style="display:flex;gap:8px">
     <Tag v-for="(v,k) in summary" :key="k" :value="`${k}: ${v}`" />
   </div>
-  <DataTable :value="results" paginator :rows="25" stripedRows size="small" class="mt-3">
-    <Column field="std_code" header="标准号" />
-    <Column field="std_name" header="名称" />
-    <Column field="replaces_code" header="代替" />
-    <Column field="publish_date" header="日期" />
-  </DataTable>
+  <template v-if="results.length">
+    <DataView :value="paginatedResults" size="small" class="mt-3">
+      <template #list="slotProps">
+        <div v-for="item in slotProps.items" :key="item.std_code" class="p-2 border-bottom">
+          <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+            <strong style="min-width:140px;flex-shrink:0">{{ item.std_code }}</strong>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.std_name }}</span>
+            <span v-if="item.replaces_code" style="min-width:100px;font-size:12px;color:var(--text-dim);flex-shrink:0">代替: {{ item.replaces_code }}</span>
+            <span style="min-width:90px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item.publish_date }}</span>
+          </div>
+        </div>
+      </template>
+    </DataView>
+    <Paginator :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
+  </template>
   <LogBar />
 </template>
 
@@ -84,4 +105,5 @@ onMounted(load)
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

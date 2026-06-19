@@ -2,6 +2,7 @@
 # 网站规则配置：管理查询/下载网站的适配规则模板
 
 import json
+from typing import Optional
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -146,43 +147,14 @@ class RulesPage(QWidget):
         )
         if not path:
             return
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
+        added = self._config.import_rules(path)
+        if added < 0:
             QMessageBox.warning(
                 self,
                 _("title_import_failed"),
-                _("msg_import_read_error").format(error=e),
+                _("msg_import_read_error").format(error=""),
             )
             return
-
-        imported = data.get("rules", []) if isinstance(data, dict) else data
-        if not isinstance(imported, list):
-            QMessageBox.warning(
-                self, _("title_format_error"), _("msg_invalid_json_format")
-            )
-            return
-
-        rules = self._get_rules()
-        added = 0
-        for rule in imported:
-            if not isinstance(rule, dict) or "name" not in rule:
-                continue
-            if not any(r.get("name") == rule["name"] for r in rules):
-                rules.append(
-                    {
-                        "name": rule.get("name", ""),
-                        "type": rule.get("type", _("rule_type_query")),
-                        "url": rule.get("url", ""),
-                        "xpath": rule.get("xpath", ""),
-                        "regex": rule.get("regex", ""),
-                        "captcha": rule.get("captcha", ""),
-                    }
-                )
-                added += 1
-
-        self._save_rules(rules)
         self._refresh()
         QMessageBox.information(
             self, _("title_import_done"), _("msg_import_success").format(count=added)
@@ -198,21 +170,14 @@ class RulesPage(QWidget):
         )
         if not path:
             return
-        payload = {
-            "version": "1.0",
-            "description": _("msg_export_description"),
-            "rules": rules,
-        }
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False, indent=2)
+        if self._config.export_rules(path):
             QMessageBox.information(
                 self,
                 _("title_export_done"),
                 _("msg_export_success").format(count=len(rules), path=path),
             )
-        except OSError as e:
-            QMessageBox.warning(self, _("title_export_failed"), str(e))
+        else:
+            QMessageBox.warning(self, _("title_export_failed"), "")
 
     def _on_copy_builtin(self):
         builtins = [
@@ -244,7 +209,7 @@ class RulesPage(QWidget):
 class RuleEditDialog(QDialog):
     """网站规则编辑对话框。"""
 
-    def __init__(self, parent, rule: dict = None):
+    def __init__(self, parent, rule: Optional[dict] = None):
         super().__init__(parent)
         self.setWindowTitle(_("title_edit_rule"))
         self.resize(450, 350)

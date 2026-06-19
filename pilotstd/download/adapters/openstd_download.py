@@ -33,7 +33,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     # 新平台基础 URL（2026-06-04 起 gb688.cn 已停用）
     BASE_URL = "https://openstd.samr.gov.cn/bzgk/gb"
 
-    def __init__(self, session: requests.Session = None, captcha_callback=None):
+    def __init__(self, session: requests.Session | None = None, captcha_callback=None):
         self._session = session or requests.Session()
         self._captcha_callback = captcha_callback
         self._session.headers.update(

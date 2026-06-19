@@ -7,6 +7,7 @@ import re
 import threading
 import time as _time
 from typing import Optional
+from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
@@ -38,7 +39,7 @@ class CsresAdapter(BaseAdapter):
     _local_cooldown_until: float = 0.0
     _cool_lock = threading.Lock()
 
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         if not CsresAdapter._http_warned:
             logger.info("csres.com 不支持 HTTPS，查询内容可能被网络中间人窃听")
@@ -96,7 +97,7 @@ class CsresAdapter(BaseAdapter):
         # 本地冷却检查：多线程竞态下第一时间拦截
         if self._is_locally_cooled():
             return []
-        base_url = self.SEARCH_URL.format(requests.utils.quote(search_term))
+        base_url = self.SEARCH_URL.format(quote(search_term))
         total_pages = 1
         candidates = []
 
@@ -245,7 +246,7 @@ class CsresAdapter(BaseAdapter):
                 error_message="站点冷却中",
                 source_site=self.site_name,
             )
-        base_url = self.SEARCH_URL.format(requests.utils.quote(search_term))
+        base_url = self.SEARCH_URL.format(quote(search_term))
         resp = safe_get(self._session, base_url, self.site_name, timeout=15)
         if resp is None:
             return QueryResult(
