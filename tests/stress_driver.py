@@ -87,6 +87,12 @@ def _parse_args():
     p.add_argument(
         "--config", default=None, help="压测配置文件路径（JSON，含 Docker/OCR 凭证）"
     )
+    p.add_argument(
+        "--stop-after",
+        default=None,
+        choices=["cli"],
+        help="在第一阶段完成后退出: cli=CLI冷启后停止（不执行WinUI/Docker）",
+    )
     return p.parse_args()
 
 
@@ -1453,16 +1459,18 @@ def main():
             return 0
 
     # 第〇步：复位 + 清 DB（仅当需要执行 CLI 或 WinUI 时才做）
-    _skip_reset = getattr(args, "skip_cli", False) and getattr(
-        args, "skip_winui", False
-    )
+    # --stop-after=cli 时跳过复位和清DB，保留数据供后续热启使用
+    _stop_after_cli = getattr(args, "stop_after", None) == "cli"
+    _skip_reset = (
+        getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)
+    ) or _stop_after_cli
     if _skip_reset:
         _log("第〇步：跳过复位源目录 + 清 DB（--skip-cli --skip-winui）")
     else:
         _log("第〇步：复位源目录 + 清 DB")
         if os.path.isdir(args.output):
             _step0_reset_source(args.source, args.output)
-        if getattr(args, "keep_db", False):
+        if getattr(args, "keep_db", False) or _stop_after_cli:
             _log("--keep-db：跳过清 DB，保留缓存和索引")
         else:
             _step0_clear_db(args.db_path)
@@ -1587,6 +1595,22 @@ def main():
             flow_status = "PARTIAL_FAIL"
         else:
             flow_status = "FULL_PASS"
+
+        # --stop-after=cli：第一步完成后退出，不执行后续步骤
+        if _stop_after_cli:
+            _log("=" * 50)
+            _log("--stop-after=cli：第一步完成，退出")
+            _log(f"  step1.json: {os.path.join(RESULT_DIR, 'step1.json')}")
+            _log(f"  数据库: {_db_path}")
+            _log(f"  日志目录: {RESULT_DIR}")
+            _log("  源目录状态: 已处理（CLI 冷启完成），未复位")
+            _log(
+                "  下一步: 检查数据后，如需继续第二/三步，执行: "
+                f"python tests/stress_driver.py --source {args.source} --output {args.output} "
+                f"--skip-cli --step1 {os.path.join(RESULT_DIR, 'step1.json')} --keep-db"
+            )
+            _log("=" * 50)
+            return 0
 
         # 第一步后：如果未跳过 WinUI，等用户手动复位源目录
         # （方案规定：复位由用户操作，AI 不得越权）
