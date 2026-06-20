@@ -724,6 +724,7 @@ class StandardParser:
             part=part,
             year=year,
             std_name=name,
+            source_name=name,  # 原始名称，不被后处理覆盖
             file_kind=file_kind,
         )
 
@@ -755,6 +756,7 @@ class StandardParser:
             number=number,
             year=year,
             std_name=name,
+            source_name=name,
         )
 
     def _exact_match_bpvc(self, text: str) -> Optional[ParsedStdInfo]:
@@ -783,6 +785,7 @@ class StandardParser:
             part=int(sub) if sub else None,
             year=year,
             std_name=name,
+            source_name=name,
         )
 
     def _exact_match_itu(self, text: str) -> Optional[ParsedStdInfo]:
@@ -818,6 +821,7 @@ class StandardParser:
             part=int(parts[1]) if len(parts) > 1 else None,
             year=year,
             std_name=name,
+            source_name=name,
         )
 
     def _exact_match(self, text: str) -> Optional[ParsedStdInfo]:
@@ -964,5 +968,6 @@ class StandardParser:
             part=part,
             year=year,
             std_name="",
+            source_name="",  # 模糊匹配无法可靠提取名称
             file_kind=getattr(self, "_current_file_kind", ""),
         )

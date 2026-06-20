@@ -20,6 +20,9 @@ class ParsedStdInfo:
     ext: str = ".pdf"  # 源文件扩展名（parse() 入口获取，不再丢弃）
     language: str = ""  # 语言版本标记（仅国外标准）："中文版"/"英文版"/""
     found_name: str = ""  # 网站返回的标准名称（查询后填充）
+    source_name: str = ""  # 源文件原始名称（解析时从文件名提取，不被任何后处理覆盖）
+    normalized_name: str = ""  # 规范化中间值（自动格式化处理后的名称）
+    final_name: str = ""  # 最终归档名称（路由阶段决策后写入，用户确认或系统自动选定）
     source_path: str = ""  # 源文件完整路径（扫描/下载后填充）
     effect_status: str = (
         ""  # 有效性状态（查询后填充：现行/废止/即将实施/待确认/被代替）
@@ -52,8 +55,8 @@ class ParsedStdInfo:
         prefix = self.num_prefix or ""
         suffix = self.num_suffix or ""
         year_str = f"-{self.year}" if self.year else ""
-        # 罗马数字前缀：直接用罗马数字替代阿拉伯数字（ASME VIII）
-        if prefix and all(c in "IVXLCDM" for c in prefix.upper()):
+        # 罗马数字前缀（≥2字符，如 VIII/IX/XII）直接用罗马数字替代阿拉伯数字
+        if prefix and len(prefix) >= 2 and all(c in "IVXLCDM" for c in prefix.upper()):
             return f"{self.logical_code} {prefix}{suffix}{part_str}{year_str}"
         # 多字母前缀加空格分隔（API Spec 6D），单字母紧贴（ASME B16.5）
         sep = " " if len(prefix) > 1 and prefix.isalpha() else ""

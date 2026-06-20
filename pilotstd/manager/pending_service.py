@@ -46,7 +46,8 @@ class PendingService:
             self._db.execute(
                 "INSERT INTO pending_lookup (standard_number, std_name, found_name, "
                 "found_number, match_status, effect_status, score, source_site, "
-                "file_path, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
+                "file_path, source_name, final_name, reason, status, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)",
                 (
                     std_num,
                     parsed.std_name,
@@ -57,6 +58,9 @@ class PendingService:
                     MATCH_SCORE.get(parsed.match_status, 0),
                     getattr(parsed, "found_source_site", ""),
                     parsed.source_path or "",
+                    getattr(parsed, "source_name", "") or "",
+                    getattr(parsed, "final_name", "") or "",
+                    getattr(parsed, "stage_status", "") or "",
                     now,
                 ),
             )

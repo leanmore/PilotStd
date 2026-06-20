@@ -136,8 +136,12 @@ class DownloadEngine:
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import concurrent.futures
+        import time as _time
 
-        stats = BatchDownloadStats(total=len(tasks))
+        _dl_t0 = _time.monotonic()
+        _last_progress = _dl_t0
+        _total = len(tasks)
+        stats = BatchDownloadStats(total=_total)
         results: List[Optional[DownloadTask]] = [None] * len(tasks)
         # 预建任务到索引的映射，避免 retry 循环中 O(n²) 的 tasks.index() 调用
         task_index = {id(t): i for i, t in enumerate(tasks)}
@@ -188,7 +192,16 @@ class DownloadEngine:
                             results[idx] = task
 
             if batch_end < len(tasks):
-                logger.info(f"已完成 {batch_end}/{len(tasks)}，休息 {self._long_rest}s")
+                _elapsed = _time.monotonic() - _dl_t0
+                _pct = int(batch_end / _total * 100) if _total > 0 else 0
+                logger.info(
+                    "下载进度: %d/%d (%d%%) 已耗时 %.0fs，休息 %ds",
+                    batch_end,
+                    _total,
+                    _pct,
+                    _elapsed,
+                    self._long_rest,
+                )
                 time.sleep(self._long_rest)
 
         completed = [r for r in results if r is not None]

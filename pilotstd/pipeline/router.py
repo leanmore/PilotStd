@@ -121,6 +121,13 @@ class PipelineRouter:
                 buckets["pending"].append(p)
                 continue
 
+            # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending
+            src = (getattr(p, "source_name", "") or "").strip()
+            qry = (getattr(p, "found_name", "") or "").strip()
+            if not src and not qry:
+                buckets["pending"].append(p)
+                continue
+
             # 规则1: match_status=="newer" + GB + 非采标 → 远程有更新版，可下载
             # ⚠️ 下载前先检查新版是否已在本地存在——避免重复下载
             if match_status == "newer" and is_gb:
@@ -208,7 +215,101 @@ class PipelineRouter:
             p.next_action = "pending"
         for p in buckets.get("fallback", []):
             p.next_action = "not_found"
+        # 名称决策：对即将归档的条目确定 final_name，回写 std_name
+        # 实质差异条目从 organize/normalize 中移入 pending
+        name_conflicts = self._resolve_names(
+            buckets.get("organize", []) + buckets.get("normalize", [])
+        )
+        if name_conflicts:
+            for p in name_conflicts:
+                p.next_action = "pending"
+                p.stage_status = "name_conflict"
+            buckets["pending"].extend(name_conflicts)
         return buckets
+
+    def _resolve_names(self, items: List[ParsedStdInfo]) -> List[ParsedStdInfo]:
+        """名称决策：比较 source_name 与 found_name，确定 final_name。
+
+        返回：因实质差异需移入 pending 的条目列表。
+        """
+        conflicts = []
+        for p in items:
+            src = (getattr(p, "source_name", "") or "").strip()
+            qry = (getattr(p, "found_name", "") or "").strip()
+
+            if src and qry:
+                if src == qry:
+                    p.final_name = src
+                else:
+                    norm_src = self._normalize_name(src)
+                    norm_qry = self._normalize_name(qry)
+                    if norm_src == norm_qry:
+                        p.normalized_name = norm_src
+                        p.final_name = norm_src
+                    elif not self._is_core_different(norm_src, norm_qry):
+                        # 仅停用词/标点差异 → 自动规范化
+                        p.normalized_name = norm_src
+                        p.final_name = norm_src
+                    else:
+                        # 实质差异：不自动赋值，移入 pending
+                        conflicts.append(p)
+                        continue
+            elif src and not qry:
+                p.final_name = src
+            elif not src and qry:
+                p.final_name = qry
+
+            # 过渡期：回写 std_name，归档链路零改动
+            if p.final_name:
+                p.std_name = p.final_name
+        return conflicts
+
+    # 中文停用词/字集合（名称对比时忽略）
+    _STOP_WORDS = frozenset(
+        {"的", "和", "及", "与", "或", "及其", "以及", "第", "部分"}
+    )
+
+    @classmethod
+    def _is_core_different(cls, a: str, b: str) -> bool:
+        """比较两个名称的核心词是否不同。
+
+        去除停用词、标点、数字后，提取核心词集合进行比较。
+        中文按字符级分词，英文按空格分词。
+        核心词相同 → False（格式差异）; 核心词不同 → True（实质差异）。
+        """
+        import re
+
+        def _extract_core(name: str) -> frozenset:
+            cleaned = re.sub(r"[^\w\s]", " ", name)
+            cleaned = re.sub(r"\d+", " ", cleaned)
+            # 检测是否含中文
+            has_cjk = any("一" <= c <= "鿿" for c in cleaned)
+            if has_cjk:
+                # 中文：逐字分词，过滤停用字和空白
+                words = [c for c in cleaned if c not in cls._STOP_WORDS and c.strip()]
+            else:
+                # 英文：按空格分词
+                words = [w for w in cleaned.split() if w not in cls._STOP_WORDS]
+            return frozenset(words)
+
+        core_a = _extract_core(a)
+        core_b = _extract_core(b)
+        if not core_a or not core_b:
+            return False
+        return core_a != core_b
+
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """名称格式规范化：全角转半角、统一标点、去多余空格。"""
+        import re
+        import unicodedata
+
+        name = unicodedata.normalize("NFKC", name)
+        name = name.replace("（", "(").replace("）", ")")
+        name = name.replace("：", ":").replace("，", ",")
+        name = name.replace("。", ".").replace("；", ";")
+        name = re.sub(r"\s+", " ", name).strip()
+        return name
 
     def classify_after_download(self, items: List[ParsedStdInfo]) -> dict:
         """下载完成后第三轮判断。已下载的全部送归档。

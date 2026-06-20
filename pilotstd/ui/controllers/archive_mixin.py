@@ -44,6 +44,24 @@ class ArchiveMixin:
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self._on_query()
+        # 名称冲突检测：路由阶段标记为 name_conflict 的条目
+        conflicts = [
+            p
+            for p in self._parsed_results
+            if getattr(p, "stage_status", "") == "name_conflict"
+        ]
+        if conflicts and not self._suppress_dialogs:
+            resolved = self._show_name_conflict_dialog(conflicts)
+            # 用户取消的条目写入 pending_lookup
+            for p in conflicts:
+                if getattr(p, "stage_status", "") == "name_conflict":
+                    self._mgr.record_pending([p])
+            # 用户已选择的条目移回归档流程
+            for p in resolved:
+                p.stage_status = "archive_ready"
+        elif conflicts:
+            # 自动运行模式：直接写入 pending_lookup
+            self._mgr.record_pending(conflicts)
         self._clear_table()
         # 后台线程计算规范文件名
         self._normalize_worker = NormalizeWorker(
@@ -243,3 +261,44 @@ class ArchiveMixin:
     def _get_library_root(self) -> str:
         """返回标准库根目录路径。"""
         return core.get_library_root(self._config)
+
+    def _show_name_conflict_dialog(self, conflicts: list) -> list:
+        """名称冲突弹窗：逐条让用户选择。返回用户已确认的条目列表。"""
+        resolved = []
+        for p in conflicts[:10]:  # 最多处理前 10 条，避免弹窗过多
+            src = getattr(p, "source_name", "") or "（无）"
+            qry = getattr(p, "found_name", "") or "（无）"
+            full_num = p.get_full_number()
+            msg = (
+                f"标准号: {full_num}\n\n"
+                f"源文件名称: {src}\n"
+                f"网站查询名称: {qry}\n\n"
+                f"请选择归档使用的名称:"
+            )
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle(_("title_name_conflict"))
+            dlg.setText(msg)
+            dlg.setIcon(QMessageBox.Icon.Question)
+            btn_src = dlg.addButton(
+                _("btn_use_source_name"), QMessageBox.ButtonRole.AcceptRole
+            )
+            btn_qry = dlg.addButton(
+                _("btn_use_query_name"), QMessageBox.ButtonRole.YesRole
+            )
+            dlg.addButton(  # 第三个按钮为取消，else 分支处理
+                _("btn_cancel"), QMessageBox.ButtonRole.RejectRole
+            )
+            dlg.exec()
+            clicked = dlg.clickedButton()
+            if clicked == btn_src:
+                p.final_name = src
+                p.std_name = src
+                p.stage_status = ""
+                resolved.append(p)
+            elif clicked == btn_qry:
+                p.final_name = qry
+                p.std_name = qry
+                p.stage_status = ""
+                resolved.append(p)
+            # 取消：保持 stage_status="name_conflict"，由调用方写入 pending_lookup
+        return resolved

@@ -46,15 +46,16 @@ def classify_std_code(logical_code: str) -> str:
     if code == "SG":
         return "enterprise"
 
-    # 团体标准（T/xxx 或其无斜杠形式）
-    if code.startswith("T/") or re.match(r"^T[A-Z]{2,}", code):
-        return "group"
-
     # 行业标准：≤4 字符且在 code_mapping 中（含去斜杠形式）
+    # 必须在团体标准检查之前，避免 TSG 等 T 开头行业标准被误判为团体标准
     mapping = build_code_mapping()
     code_no_slash = code.replace("/", "")
     if logical_code in mapping or code in mapping or code_no_slash in mapping:
         return "industry"
+
+    # 团体标准（T/xxx 或其无斜杠形式）
+    if code.startswith("T/") or re.match(r"^T[A-Z]{2,}", code):
+        return "group"
 
     return ""
 

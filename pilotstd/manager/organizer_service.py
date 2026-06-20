@@ -84,6 +84,26 @@ class OrganizerService:
         }
         # 内容去重：全局限哈希表，防止同内容不同名文件重复归档
         _content_hashes: dict[str, str] = {}
+        _org_total = len(items)
+        _org_count = 0
+        _org_t0 = 0.0  # 首次处理时赋值
+        import time as _time
+
+        for p in items:
+            _org_count += 1
+            # 每 50 条或首条输出进度（CLI 大目录归档时有用）
+            if _org_count == 1:
+                _org_t0 = _time.monotonic()
+            if _org_count % 50 == 0 or _org_count == _org_total:
+                _elapsed = _time.monotonic() - _org_t0 if _org_t0 else 0
+                _pct = int(_org_count / _org_total * 100) if _org_total > 0 else 0
+                logger.info(
+                    "归档进度: %d/%d (%d%%) 已耗时 %.0fs",
+                    _org_count,
+                    _org_total,
+                    _pct,
+                    _elapsed,
+                )
         for p in items:
             src = getattr(p, "source_path", "")
             if src and os.path.isfile(src):

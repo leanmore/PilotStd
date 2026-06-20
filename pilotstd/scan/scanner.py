@@ -63,6 +63,11 @@ class FileScanner:
 
     def _scan_recursive(self, start_dir: str, result: ScanResult):
         """栈遍历扫描目录（非递归，避免深层目录爆栈）。"""
+        import time as _time
+
+        _scan_t0 = _time.monotonic()
+        _file_count = 0
+        _last_log = _scan_t0
         stack = [start_dir]
         while stack:
             current_dir = stack.pop()
@@ -137,6 +142,15 @@ class FileScanner:
                                 status=file_status,
                             )
                             result.add_file(file_info)
+                            _file_count += 1
+                            # 每 100 个文件输出一次进度（CLI 大目录扫描时有用）
+                            if _file_count % 100 == 0:
+                                _elapsed = _time.monotonic() - _scan_t0
+                                self.log.info(
+                                    "扫描进度: %d 个文件 已耗时 %.0fs",
+                                    _file_count,
+                                    _elapsed,
+                                )
                             logger.debug("扫描: %s -> %s", file_status, entry.name)
                         except PermissionError as e:
                             result.add_warning(f"无权限访问: {entry.path}")

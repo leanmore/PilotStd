@@ -280,8 +280,12 @@ def make_standard_filename(
     name_part = f" {std_name}" if std_name else ""
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
-    # 罗马数字前缀：直接用罗马数字替代阿拉伯数字
-    if num_prefix and all(c in "IVXLCDM" for c in num_prefix.upper()):
+    # 罗马数字前缀（≥2字符，如 VIII/IX/XII）：直接用罗马数字替代阿拉伯数字
+    if (
+        num_prefix
+        and len(num_prefix) >= 2
+        and all(c in "IVXLCDM" for c in num_prefix.upper())
+    ):
         num_str = f"{num_prefix}{num_suffix}"
     elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():
         num_str = f"{num_prefix} {number}{num_suffix}"

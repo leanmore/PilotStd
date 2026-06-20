@@ -179,6 +179,6 @@ jobs:
             3. 首次运行会自动创建 `data/` 和 `logs/` 目录
 
             ### 版本策略
-            - 正式版（`v0.4.0`）：标签推送，稳定 Release
-            - 开发版（`v0.4.0-dev.XXXXXXX`）：每次推送 main 自动构建
+            - 正式版（`v0.12.2`）：标签推送，稳定 Release
+            - 开发版（`v0.12.2-dev.XXXXXXX`）：每次推送 main 自动构建
           files: PilotStd-${{ steps.version.outputs.version }}.zip

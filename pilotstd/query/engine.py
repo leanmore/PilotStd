@@ -551,7 +551,7 @@ class QueryEngine:
                         # 主站点冷却→尝试溢出到链上下一个站点
                         remaining = self._rotator.get_cooldown_remaining(primary_site)
                         logger.info(
-                            "[COOLDOWN] site=%s action=overflow_skip "
+                            "[COOLDOWN] site=%s triggered_by=%s_bucket "
                             "remaining_s=%.0f chain=%s",
                             primary_site,
                             remaining,
@@ -584,6 +584,14 @@ class QueryEngine:
                                 _elapsed,
                             )
                     except Exception:
+                        item_chains.setdefault(idx, []).append(assigned_site)
+                        logger.warning(
+                            "查询 [%s %s-%s] 异常 @%s",
+                            item[0],
+                            item[1],
+                            item[2],
+                            assigned_site,
+                        )
                         overflow_items.append((idx, item))
                         continue
 
@@ -597,18 +605,40 @@ class QueryEngine:
                         score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
                         # 记条目链
                         item_chains.setdefault(idx, []).append(assigned_site)
+                        target_display = f"{item[0]} {item[1]}-{item[2]}"
                         if score >= 100:
                             results[idx] = result
+                            logger.info(
+                                "查询 [%s] [OK]%s(%s)",
+                                target_display,
+                                assigned_site,
+                                getattr(result, "match_status", ""),
+                            )
                             if result_callback and result.is_found():
                                 result_callback(idx, result)
                             bump()
                         else:
                             # 未达100分 → 溢出
+                            logger.info(
+                                "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
+                                target_display,
+                                assigned_site,
+                                getattr(result, "match_status", ""),
+                                score,
+                            )
                             overflow_events.append(
                                 (_time.time(), primary_site, assigned_site, idx)
                             )
                             overflow_items.append((idx, item))
                     else:
+                        item_chains.setdefault(idx, []).append(assigned_site)
+                        chain_str = "→".join(item_chains.get(idx, []))
+                        logger.info(
+                            "查询 [%s] [NG]%s tried=%s",
+                            target_display,
+                            assigned_site,
+                            chain_str,
+                        )
                         overflow_items.append((idx, item))
 
             done = len(bucket_items) - len(overflow_items)
@@ -719,16 +749,33 @@ class QueryEngine:
                             score = MATCH_SCORE.get(
                                 getattr(result, "match_status", ""), 0
                             )
+                            _td = f"{item[0]} {item[1]}-{item[2]}"
                             if score >= 100:
                                 results[idx] = result
+                                logger.info(
+                                    "查询 [%s] [OK]%s(%s)",
+                                    _td,
+                                    site,
+                                    getattr(result, "match_status", ""),
+                                )
                                 if result_callback and result.is_found():
                                     result_callback(idx, result)
                                 bump()
                                 found = True
                                 break
+                            else:
+                                logger.info(
+                                    "查询 [%s] [LO]%s(%s=%d) 未达100分继续",
+                                    _td,
+                                    site,
+                                    getattr(result, "match_status", ""),
+                                    score,
+                                )
                     # 链耗尽→待确认
                     if not found:
                         chain_str = "→".join(item_chains.get(idx, [])) or "none"
+                        _td2 = f"{item[0]} {item[1]}-{item[2]}"
+                        logger.info("查询 [%s] [NG] tried=%s", _td2, chain_str)
                         pending_reasons.append((idx, chain_str))
                         results[idx] = QueryResult(
                             standard_number=f"{item[0]} {item[1]}-{item[2]}",
@@ -798,6 +845,26 @@ class QueryEngine:
             overflow_quota["njbz365"][0],
         )
         logger.info("[RECOVERY] temp_cooldown_skips=%d", temp_cooldown_skips)
+
+        # ── 缓存命中率 ──
+        if self._use_cache:
+            cache_hit = 0
+            for i in range(n):
+                if i in results:
+                    r = results[i]
+                    cached = self._cache.get(
+                        r.standard_number if r.standard_number else "",
+                        getattr(r, "source_site", ""),
+                    )
+                    if cached is not None:
+                        cache_hit += 1
+            if n > 0:
+                logger.info(
+                    "[CACHE] hit=%d miss=%d rate=%.1f%%",
+                    cache_hit,
+                    n - cache_hit,
+                    cache_hit / n * 100,
+                )
 
         # ── 漏斗汇总 ──
         pending_count = len(pending_reasons)

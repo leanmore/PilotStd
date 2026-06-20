@@ -49,6 +49,7 @@ def _p(
         number=number,
         year=year,
         std_name=std_name,
+        source_name=std_name,
         source_path=source_path,
         effect_status=effect_status,
         match_status=match_status,

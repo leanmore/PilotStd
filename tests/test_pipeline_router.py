@@ -23,6 +23,7 @@ def make_parsed(
         number=number,
         year=year,
         std_name=name,
+        source_name=name,
         source_path=f"C:\\test\\{code}{number}-{year}.pdf",
     )
     p.effect_status = effect_status

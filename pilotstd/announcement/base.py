@@ -210,11 +210,22 @@ class BaseAnnounceAdapter(ABC):
         items = []
         completed = [0]
         lock = __import__("threading").Lock()
+        _ann_t0 = __import__("time").monotonic()
 
         def _bump(pid: str):
             with lock:
                 completed[0] += 1
-                logger.info("公告处理完成: pid=%s (%d/%d)", pid, completed[0], total)
+                _elapsed = __import__("time").monotonic() - _ann_t0
+                _pct = int(completed[0] / total * 100) if total > 0 else 0
+                # 每条均输出（线程间交错自然节流），含进度百分比和耗时
+                logger.info(
+                    "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
+                    pid,
+                    completed[0],
+                    total,
+                    _pct,
+                    _elapsed,
+                )
                 if progress_callback:
                     progress_callback(completed[0], total, pid)
 

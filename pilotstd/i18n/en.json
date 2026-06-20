@@ -361,7 +361,7 @@
     "desktop": "Desktop",
     "documents": "Documents",
     "downloads": "Downloads",
-    "about_text": "PilotStd — Standards File Manager\n\nOne-stop standard file processing: scan & identify,\nonline status query, version download,\nstandard naming, and automatic archiving.\n\nVersion 0.4.1\nAuthor: leanmore\nGitHub: https://github.com/leanmore/PilotStd",
+    "about_text": "PilotStd — Standards File Manager\n\nOne-stop standard file processing: scan & identify,\nonline status query, version download,\nstandard naming, and automatic archiving.\n\nVersion {version}\nAuthor: leanmore\nGitHub: https://github.com/leanmore/PilotStd",
     "scan_failed_parse": "Parse failed, cannot identify standard from filename: {}",
     "expired_move_info": "Query complete: {} expired standards moved to Expired/",
     "config_path_warning": "Config directory not writable, using fallback path",

@@ -931,30 +931,53 @@ class StandardManager:
         Returns:
             包含各步骤统计数的报告字典
         """
+        import time as _time
+
         report = {
             "scan": 0,
             "query_found": 0,
             "download_success": 0,
             "organize_moved": 0,
         }
+        t_stage = _time.monotonic()
 
         # 1. 扫描
         parsed = self.scan_directory(root_path)
         report["scan"] = len(parsed)
+        logger.info(
+            "阶段耗时 scan: %.1fs (%d 条)", _time.monotonic() - t_stage, len(parsed)
+        )
+        t_stage = _time.monotonic()
 
         # 2. 查询
         _, q_stats = self.query(parsed)
         report["query_found"] = q_stats.found
+        logger.info(
+            "阶段耗时 query: %.1fs (%d 条)", _time.monotonic() - t_stage, q_stats.found
+        )
+        t_stage = _time.monotonic()
 
         # 3. 下载
         dl_tasks, dl_stats = self.download()  # type: ignore[misc]
         report["download_success"] = dl_stats.success
+        logger.info(
+            "阶段耗时 download: %.1fs (%d 成功)",
+            _time.monotonic() - t_stage,
+            report["download_success"],
+        )
+        t_stage = _time.monotonic()
 
         # 4. 归类
         org_result = self.organize(parsed)
         report["organize_moved"] = org_result["moved"]
         report["mirror_skipped"] = 0
         report["fallback_mirrored"] = 0
+        logger.info(
+            "阶段耗时 archive: %.1fs (%d 已移动)",
+            _time.monotonic() - t_stage,
+            report["organize_moved"],
+        )
+        t_stage = _time.monotonic()
 
         # 5. 归档收容：镜像跳过的目录 + 兜底残留文件
         if self.cfg.get("storage.mirror_skipped_dirs", True):
@@ -967,6 +990,12 @@ class StandardManager:
         if self.cfg.get("storage.mirror_fallback", True):
             fallback_result = self.organize_fallback(root_path)
             report["fallback_mirrored"] = fallback_result.get("moved", 0)
+        logger.info(
+            "阶段耗时 收容: %.1fs (镜像跳过%d 兜底%d)",
+            _time.monotonic() - t_stage,
+            report["mirror_skipped"],
+            report["fallback_mirrored"],
+        )
 
         logger.info(f"自动运行完成: {report}")
         return report

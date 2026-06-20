@@ -296,7 +296,7 @@
     "desktop": "桌面",
     "documents": "文件",
     "downloads": "下載",
-    "about_text": "PilotStd — 標準檔案管理工具\n\n一站式處理標準檔案：掃描識別、線上查詢、\n版本下載、規範命名、自動歸檔。\n\n版本 0.4.1\n作者: leanmore\nGitHub: https://github.com/leanmore/PilotStd",
+    "about_text": "PilotStd — 標準檔案管理工具\n\n一站式處理標準檔案：掃描識別、線上查詢、\n版本下載、規範命名、自動歸檔。\n\n版本 {version}\n作者: leanmore\nGitHub: https://github.com/leanmore/PilotStd",
     "scan_failed_parse": "解析失敗，檔案名稱無法識別: {}",
     "expired_move_info": "查詢完成: 已自動將 {} 個廢止標準移入過期作廢/",
     "config_path_warning": "設定目錄不可寫，使用備用路徑",

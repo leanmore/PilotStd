@@ -865,7 +865,9 @@ class MainWindow(
             )
 
     def _on_about(self):
-        QMessageBox.about(self, _("about"), _("about_text"))
+        from pilotstd import __version__
+
+        QMessageBox.about(self, _("about"), _("about_text").format(version=__version__))
 
     # ================================================================
     # 欢迎页

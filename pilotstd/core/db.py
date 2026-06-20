@@ -372,6 +372,9 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
             score INTEGER NOT NULL DEFAULT 0,
             source_site TEXT NOT NULL DEFAULT '',
             file_path TEXT NOT NULL DEFAULT '',
+            source_name TEXT NOT NULL DEFAULT '',
+            final_name TEXT NOT NULL DEFAULT '',
+            reason TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL DEFAULT '',
             resolved_at TEXT NOT NULL DEFAULT ''
