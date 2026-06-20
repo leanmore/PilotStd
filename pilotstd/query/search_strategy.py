@@ -271,6 +271,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str]] = {
     "foreign": {"primary": "ahbz", "fallback": "csres"},
 }
 
+
 def is_recently_published(pub_date_str: str, window_days: int = 28) -> bool:
     """判断发布时间是否在指定天数内（不满 window_days 天返回 True）。
     用于决定是否允许下载。

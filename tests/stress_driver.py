@@ -108,7 +108,9 @@ def _log(msg):
 # ── 第〇步：环境自检 + 复位 + 清 DB ──────────────────────────
 
 
-def _step0_verify_credentials(docker_url: str, docker_user: str, docker_pass: str) -> tuple:
+def _step0_verify_credentials(
+    docker_url: str, docker_user: str, docker_pass: str
+) -> tuple:
     """凭证预检：登录 Docker API 验证凭证有效性。
 
     Returns:
@@ -487,9 +489,15 @@ def _step1_cli_cold(
     parse_failures = 0  # 日志解析失败行数
     # 需要解析的日志标记关键字集合
     _PARSE_MARKERS = (
-        "[BUCKET]", "[FUNNEL]", "[TIMELINE]", "[COOLDOWN]",
-        "[ROTATOR]", "[CSRES_INTERVAL]", "[CSRES]",
-        "[OVERFLOW]", "[WATER]",
+        "[BUCKET]",
+        "[FUNNEL]",
+        "[TIMELINE]",
+        "[COOLDOWN]",
+        "[ROTATOR]",
+        "[CSRES_INTERVAL]",
+        "[CSRES]",
+        "[OVERFLOW]",
+        "[WATER]",
     )
     if "error" not in r:
         # 预初始化 query checkpoint，供循环内解析代码追加数据
@@ -609,16 +617,18 @@ def _step1_cli_cold(
             _has_marker = any(mk in line for mk in _PARSE_MARKERS)
             if _has_marker and not _matched:
                 parse_failures += 1
-        results["checkpoints"]["query"].update({
-            "download": dl_count,
-            "expire": ex_count,
-            "pending": pe_count,
-            "exact": exact_count,
-            "total": dl_count + ex_count + pe_count,
-            "rc": r.get("returncode", 0),
-            "elapsed_s": round(time.time() - t0, 1),
-            "parse_failures": parse_failures,
-        })
+        results["checkpoints"]["query"].update(
+            {
+                "download": dl_count,
+                "expire": ex_count,
+                "pending": pe_count,
+                "exact": exact_count,
+                "total": dl_count + ex_count + pe_count,
+                "rc": r.get("returncode", 0),
+                "elapsed_s": round(time.time() - t0, 1),
+                "parse_failures": parse_failures,
+            }
+        )
         if bucket_stats:
             results["checkpoints"]["query"]["bucket_stats"] = bucket_stats
         if funnel:
@@ -787,7 +797,9 @@ def _step1_cli_cold(
         except Exception:
             pass
         results["checkpoints"]["organize"]["file_index_rows"] = _fi_count
-        _log(f"    organize: moved={org_moved}, file_index={_fi_count} rows, rc={r.returncode}")
+        _log(
+            f"    organize: moved={org_moved}, file_index={_fi_count} rows, rc={r.returncode}"
+        )
     except subprocess.TimeoutExpired:
         _log("    organize: 超时")
         results["checkpoints"]["organize"] = {
@@ -809,13 +821,18 @@ def _step1_cli_cold(
         for s in ("scan", "query", "normalize", "organize")
     )
     if not _critical_ok:
-        _failed = [s for s in ("scan", "query", "normalize", "organize")
-                   if results["checkpoints"].get(s, {}).get("rc", 1) != 0]
+        _failed = [
+            s
+            for s in ("scan", "query", "normalize", "organize")
+            if results["checkpoints"].get(s, {}).get("rc", 1) != 0
+        ]
         _log(f"关键步骤失败: {', '.join(_failed)}，跳过 expire/announce/task/recheck")
         # 为非关键步骤填充跳过状态
         for _s in ("expire", "announce", "task", "recheck"):
-            results["checkpoints"].setdefault(_s, {"rc": 0, "skipped": True,
-                                             "elapsed_s": 0, "reason": "关键步骤已失败"})
+            results["checkpoints"].setdefault(
+                _s,
+                {"rc": 0, "skipped": True, "elapsed_s": 0, "reason": "关键步骤已失败"},
+            )
         # 直接跳到汇总
         announce_info = {}
         results["summary"] = {
@@ -899,12 +916,24 @@ def _step1_cli_cold(
 
         # OCR 凭证优先从 --config JSON 读取，空值回退到 ConfigManager
         _ocr_cfg = ocr_config or {}
-        _ocr_baidu_key = _ocr_cfg.get("baidu_api_key") or cfg.get("ocr.baidu_api_key", "")
-        _ocr_baidu_sec = _ocr_cfg.get("baidu_secret_key") or cfg.get("ocr.baidu_secret_key", "")
-        _ocr_tc_id = _ocr_cfg.get("tencent_secret_id") or cfg.get("ocr.tencent_secret_id", "")
-        _ocr_tc_key = _ocr_cfg.get("tencent_secret_key") or cfg.get("ocr.tencent_secret_key", "")
-        _ocr_ali_id = _ocr_cfg.get("aliyun_access_key_id") or cfg.get("ocr.aliyun_access_key_id", "")
-        _ocr_ali_key = _ocr_cfg.get("aliyun_access_key_secret") or cfg.get("ocr.aliyun_access_key_secret", "")
+        _ocr_baidu_key = _ocr_cfg.get("baidu_api_key") or cfg.get(
+            "ocr.baidu_api_key", ""
+        )
+        _ocr_baidu_sec = _ocr_cfg.get("baidu_secret_key") or cfg.get(
+            "ocr.baidu_secret_key", ""
+        )
+        _ocr_tc_id = _ocr_cfg.get("tencent_secret_id") or cfg.get(
+            "ocr.tencent_secret_id", ""
+        )
+        _ocr_tc_key = _ocr_cfg.get("tencent_secret_key") or cfg.get(
+            "ocr.tencent_secret_key", ""
+        )
+        _ocr_ali_id = _ocr_cfg.get("aliyun_access_key_id") or cfg.get(
+            "ocr.aliyun_access_key_id", ""
+        )
+        _ocr_ali_key = _ocr_cfg.get("aliyun_access_key_secret") or cfg.get(
+            "ocr.aliyun_access_key_secret", ""
+        )
         _ocr_local = {
             "baidu_api_key": _ocr_baidu_key,
             "baidu_secret_key": _ocr_baidu_sec,
@@ -1038,7 +1067,16 @@ def _step1_cli_cold(
     # 仅 1.1~1.8 全部成功时执行（文档 §2 决策表）
     _prior_ok = all(
         results["checkpoints"].get(s, {}).get("rc", 1) == 0
-        for s in ("scan", "query", "download", "normalize", "organize", "expire", "announce", "task")
+        for s in (
+            "scan",
+            "query",
+            "download",
+            "normalize",
+            "organize",
+            "expire",
+            "announce",
+            "task",
+        )
     )
     if _prior_ok:
         _log("  1.9 recheck...")
@@ -1058,7 +1096,9 @@ def _step1_cli_cold(
                 "SELECT COUNT(DISTINCT standard_number) as c FROM announcement_cache"
             )
             recheck_checked = _ann_rows[0]["c"] if _ann_rows else 0
-            recheck_updated = results["checkpoints"].get("announce", {}).get("total_ann", 0)
+            recheck_updated = (
+                results["checkpoints"].get("announce", {}).get("total_ann", 0)
+            )
             _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
         except Exception as e:
             _log(f"    recheck: 异常 {e}")
@@ -1186,9 +1226,9 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
                 with open(_step3_path, "r", encoding="utf-8") as _f:
                     _s3 = json.load(_f)
                 _log(
-                    f"Docker 统计: total={_s3.get('total',0)} "
-                    f"passed={_s3.get('passed',0)} failed={_s3.get('failed',0)} "
-                    f"skipped={_s3.get('skipped',0)}"
+                    f"Docker 统计: total={_s3.get('total', 0)} "
+                    f"passed={_s3.get('passed', 0)} failed={_s3.get('failed', 0)} "
+                    f"skipped={_s3.get('skipped', 0)}"
                 )
                 for _fitem in _s3.get("failures", []):
                     _log(f"  FAIL {_fitem['name']}: {_fitem['detail']}")
@@ -1231,7 +1271,9 @@ def _step4_verdict(
     if skip_docker:
         lines.append("凭证预检: SKIP — Docker 步骤已跳过")
     else:
-        lines.append(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
+        lines.append(
+            f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}"
+        )
         if not credential_ok:
             verdict = "FAIL"
     lines.append(f"第一步 CLI 冷启: {'PASS' if step1_ok else 'FAIL'}")
@@ -1411,7 +1453,9 @@ def main():
             return 0
 
     # 第〇步：复位 + 清 DB（仅当需要执行 CLI 或 WinUI 时才做）
-    _skip_reset = getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)
+    _skip_reset = getattr(args, "skip_cli", False) and getattr(
+        args, "skip_winui", False
+    )
     if _skip_reset:
         _log("第〇步：跳过复位源目录 + 清 DB（--skip-cli --skip-winui）")
     else:
@@ -1469,8 +1513,14 @@ def main():
             step1_ok = all(
                 step1["checkpoints"].get(c, {}).get("rc", 1) == 0
                 for c in [
-                    "scan", "query", "download", "normalize",
-                    "organize", "expire", "announce", "task",
+                    "scan",
+                    "query",
+                    "download",
+                    "normalize",
+                    "organize",
+                    "expire",
+                    "announce",
+                    "task",
                 ]
                 if c in step1.get("checkpoints", {})
             )
@@ -1506,7 +1556,9 @@ def main():
             if _q_rate < 0.1 and _q_total < 50:
                 _terminated_early = True
                 _terminated_step = "query"
-                _log(f"压测终止 — query 结果不足 (found={_q_total}, scan={_scan_count}, rate={_q_rate:.1%}, 需≥10% 或 ≥50)")
+                _log(
+                    f"压测终止 — query 结果不足 (found={_q_total}, scan={_scan_count}, rate={_q_rate:.1%}, 需≥10% 或 ≥50)"
+                )
 
         # normalize: rc≠0 → 终止
         _n_rc = step1["checkpoints"].get("normalize", {}).get("rc", 1)

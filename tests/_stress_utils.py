@@ -93,7 +93,9 @@ def get_check_results() -> list:
 # ── 统一子进程执行（可见控制台窗口）───────────────────────────────
 
 
-def run_visible(cmd: list, timeout: int = 3600, step: str = "", cwd: str | None = None) -> int:
+def run_visible(
+    cmd: list, timeout: int = 3600, step: str = "", cwd: str | None = None
+) -> int:
     """以可见控制台窗口运行子进程。返回 exit code。"""
     import subprocess
 

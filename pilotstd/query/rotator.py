@@ -301,8 +301,11 @@ class SiteRotator:
         """记录一次查询结果到数据库（用于成功率+响应时间+冷却统计）。"""
         if self._db:
             self._db.update_adapter_stats(
-                adapter_name, success, response_time,
-                cooldown_triggered, cooldown_reason,
+                adapter_name,
+                success,
+                response_time,
+                cooldown_triggered,
+                cooldown_reason,
             )
 
     @staticmethod

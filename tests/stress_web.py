@@ -536,9 +536,7 @@ _passed = sum(1 for _, ok, _ in _results if ok)
 _failed = sum(1 for _, ok, _ in _results if ok is False)
 _skipped = _total - _passed - _failed
 _failures = [
-    {"name": label, "detail": detail}
-    for label, ok, detail in _results
-    if ok is False
+    {"name": label, "detail": detail} for label, ok, detail in _results if ok is False
 ]
 _step3 = {
     "step": 3,
@@ -558,5 +556,10 @@ if _step3_path:
         json.dump(_step3, _f, ensure_ascii=False, indent=2)
     logger.info("step3.json: %s", _step3_path)
 else:
-    logger.info("step3 统计: total=%d passed=%d failed=%d skipped=%d",
-                 _total, _passed, _failed, _skipped)
+    logger.info(
+        "step3 统计: total=%d passed=%d failed=%d skipped=%d",
+        _total,
+        _passed,
+        _failed,
+        _skipped,
+    )

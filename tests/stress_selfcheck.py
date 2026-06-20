@@ -550,13 +550,12 @@ _check(
 
 # 验证 adapter_stats 表及扩展列
 try:
-    _cols = {
-        r["name"]
-        for r in _sc_db.fetchall("PRAGMA table_info(adapter_stats)")
-    }
+    _cols = {r["name"] for r in _sc_db.fetchall("PRAGMA table_info(adapter_stats)")}
 except Exception:
     _cols = set()
-_check("adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在")
+_check(
+    "adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在"
+)
 
 _required_cols = [
     "avg_response_time",
@@ -580,16 +579,16 @@ try:
     _as_db = _AsDb(get_db_path())
     _table_names = {
         r["name"]
-        for r in _as_db.fetchall(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
+        for r in _as_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")
     }
     if "adapter_stats" not in _table_names:
         _check("adapter_stats写入验证", None, "adapter_stats 表不存在，跳过")
     else:
         _test_name = "_test_selfcheck"
         try:
-            _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+            _as_db.execute(
+                "DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,)
+            )
         except Exception:
             pass
         _as_db.update_adapter_stats(

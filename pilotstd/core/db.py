@@ -291,17 +291,21 @@ class Database:
                 total = r["total_queries"]
                 success = r["successful_queries"]
                 resp_total = r["total_response_time"] or 0
-                result.append({
-                    "adapter_name": r["adapter_name"],
-                    "total_queries": total,
-                    "successful_queries": success,
-                    "success_rate": round(success / total, 3) if total > 0 else 0.0,
-                    "avg_response_time": round(resp_total / total, 3) if total > 0 else 0.0,
-                    "cooldown_count": r["cooldown_count"] or 0,
-                    "last_cooldown_reason": r["last_cooldown_reason"] or "",
-                    "last_cooldown_at": r["last_cooldown_at"] or "",
-                    "last_updated": r["last_updated"] or "",
-                })
+                result.append(
+                    {
+                        "adapter_name": r["adapter_name"],
+                        "total_queries": total,
+                        "successful_queries": success,
+                        "success_rate": round(success / total, 3) if total > 0 else 0.0,
+                        "avg_response_time": round(resp_total / total, 3)
+                        if total > 0
+                        else 0.0,
+                        "cooldown_count": r["cooldown_count"] or 0,
+                        "last_cooldown_reason": r["last_cooldown_reason"] or "",
+                        "last_cooldown_at": r["last_cooldown_at"] or "",
+                        "last_updated": r["last_updated"] or "",
+                    }
+                )
             return result
         except Exception:
             return []
@@ -539,10 +543,6 @@ def _migrate_v13_adapter_stats_extend(db: Database) -> None:
             "ALTER TABLE adapter_stats ADD COLUMN cooldown_count INTEGER DEFAULT 0"
         )
     if "last_cooldown_reason" not in cols:
-        db.execute(
-            "ALTER TABLE adapter_stats ADD COLUMN last_cooldown_reason TEXT"
-        )
+        db.execute("ALTER TABLE adapter_stats ADD COLUMN last_cooldown_reason TEXT")
     if "last_cooldown_at" not in cols:
-        db.execute(
-            "ALTER TABLE adapter_stats ADD COLUMN last_cooldown_at TEXT"
-        )
+        db.execute("ALTER TABLE adapter_stats ADD COLUMN last_cooldown_at TEXT")

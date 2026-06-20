@@ -46,9 +46,7 @@ def _clean_shared_db(shared_db):
     """每次测试前清理共享数据库的所有用户数据表，确保测试隔离。"""
     existing = {
         r["name"]
-        for r in shared_db.fetchall(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
+        for r in shared_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")
     }
     for table in _SHARED_CLEAN_TABLES:
         if table in existing:

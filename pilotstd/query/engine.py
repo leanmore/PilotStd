@@ -444,14 +444,20 @@ class QueryEngine:
                         logger.info(
                             "[CSRES] idx=%d code=%s num=%s %d-%d action=found score=100",
                             idx,
-                            item[0], item[0], item[1], item[2],
+                            item[0],
+                            item[0],
+                            item[1],
+                            item[2],
                         )
                     else:
                         csres_failures[0] += 1
                         logger.info(
                             "[CSRES] idx=%d code=%s num=%s %d-%d action=not_found failures=%d/%d",
                             idx,
-                            item[0], item[0], item[1], item[2],
+                            item[0],
+                            item[0],
+                            item[1],
+                            item[2],
                             csres_failures[0],
                             self._CSRES_CIRCUIT_BREAK,
                         )
@@ -528,7 +534,8 @@ class QueryEngine:
                         if _pc == self._PRIMARY_BUCKET_LIMIT + 1:
                             logger.info(
                                 "[OVERFLOW_PRIMARY] site=%s limit=%d chain=%s",
-                                primary_site, self._PRIMARY_BUCKET_LIMIT,
+                                primary_site,
+                                self._PRIMARY_BUCKET_LIMIT,
                                 "→".join(chain),
                             )
                         if overflow_site and _try_overflow(overflow_site):
@@ -758,7 +765,9 @@ class QueryEngine:
         for _idx, _chain in item_chains.items():
             _key = "→".join(_chain) if _chain else "none"
             _chain_counts[_key] = _chain_counts.get(_key, 0) + 1
-        logger.info("[OVERFLOW] events=%d chains=%d", len(overflow_events), len(_chain_counts))
+        logger.info(
+            "[OVERFLOW] events=%d chains=%d", len(overflow_events), len(_chain_counts)
+        )
         for _chain_key, _cnt in sorted(_chain_counts.items(), key=lambda x: -x[1])[:5]:
             logger.info("[OVERFLOW_CHAIN] path=%s count=%d", _chain_key, _cnt)
 

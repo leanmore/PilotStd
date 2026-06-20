@@ -69,7 +69,9 @@ class ProjectMixin:
         self._save_project_dialog(_("save_download_project"))
 
     def _save_project_dialog(self, label: str):
-        path, __ = QFileDialog.getSaveFileName(self, label, "project.pilotstd", _("file_filter_project"))  # type: ignore[arg-type]
+        path, __ = QFileDialog.getSaveFileName(
+            self, label, "project.pilotstd", _("file_filter_project")
+        )  # type: ignore[arg-type]
         if path:
             state = self._collect_state()
             ok = self._project.save(path, state)
