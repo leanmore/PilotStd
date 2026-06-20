@@ -297,6 +297,7 @@ class TestDownloadEngine(unittest.TestCase):
         cd = "attachment;filename=GB_T_19001-2016.pdf"
         m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
         self.assertIsNotNone(m, "Content-Disposition 解析正则不应为 None")
+        assert m is not None
         filename = m.group(2)
         self.assertEqual(
             filename, "GB_T_19001-2016.pdf", "应从 Content-Disposition 中提取文件名"
@@ -313,6 +314,7 @@ class TestDownloadEngine(unittest.TestCase):
         cd = 'attachment; filename="GB_T_19001-2016.pdf"'
         m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
         self.assertIsNotNone(m)
+        assert m is not None
         self.assertEqual(m.group(2), "GB_T_19001-2016.pdf")
 
     def test_file_validity_minimum_size_and_pdf_header(self):
@@ -327,7 +329,7 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertGreater(os.path.getsize(saved), 1024, "文件应大于 1KB")
         with open(saved, "rb") as f:
             header = f.read(5)
-        self.assertEqual(header, b"%PDF-", f"PDF 魔数应为 %PDF-，实际: {header}")
+        self.assertEqual(header, b"%PDF-", f"PDF 魔数应为 %PDF-，实际: {header!r}")
 
 
 if __name__ == "__main__":

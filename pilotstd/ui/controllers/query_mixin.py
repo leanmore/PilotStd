@@ -165,7 +165,7 @@ class QueryMixin:
 
     def _show_pending_dialog(self, pending_items: list) -> bool:
         """显示待确认清单对话框。返回 True=用户确认丢弃，False=取消。"""
-        dlg = QDialog(self)
+        dlg = QDialog(self)  # type: ignore[arg-type]
         dlg.setWindowTitle(_("title_pending_confirm"))
         dlg.setMinimumSize(800, 400)
         layout = QVBoxLayout(dlg)
@@ -565,4 +565,4 @@ class QueryMixin:
         if count > 5:
             msg += f"\n... 等共 {count} 条"
         msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(self, _("pending_lookup_title"), msg)
+        QMessageBox.information(self, _("pending_lookup_title"), msg)  # type: ignore[arg-type]

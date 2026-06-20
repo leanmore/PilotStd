@@ -226,7 +226,7 @@ class DownloadMixin:
         if len(due) > 5:
             msg += f"\n... 等共 {len(due)} 条"
         msg += "\n" + _("download_queue_confirm")
-        reply = QMessageBox.question(self, _("download_queue_title"), msg)
+        reply = QMessageBox.question(self, _("download_queue_title"), msg)  # type: ignore[arg-type]
         if reply == QMessageBox.StandardButton.Yes:
             for d in due:
                 self._mgr.remove_download_queue(d["standard_number"])

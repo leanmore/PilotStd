@@ -41,7 +41,7 @@ class CleanupMixin:
         # 首次询问
         if not self._config.get("file.clear_readonly_asked", False):
             reply = QMessageBox.question(
-                self,
+                self,  # type: ignore[arg-type]
                 _("msg_readonly_title"),
                 _("msg_readonly_prompt"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

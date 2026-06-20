@@ -17,6 +17,8 @@ from docker.manager import get_manager_dep
 
 
 class TestAPIEndpoints(unittest.TestCase):
+    client: TestClient
+
     @classmethod
     def setUpClass(cls):
         app = FastAPI()

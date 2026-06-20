@@ -12,7 +12,6 @@ import unittest
 
 import pytest
 
-from pilotstd.core.db import Database
 from pilotstd.task.models import TaskInfo, TaskStatus, TaskType
 from pilotstd.task.queue import TaskQueue
 

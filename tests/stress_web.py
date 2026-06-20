@@ -10,7 +10,7 @@ import sys
 import time
 
 import requests
-from _stress_utils import (
+from _stress_utils import (  # type: ignore[import-not-found]
     get_check_results,
     load_docker_credentials,
     setup_stress_logging,
@@ -159,7 +159,7 @@ def _post(path, data=None, json_data=None, **kwargs):
     if json_data is not None:
         kw["json"] = json_data
     kw.update(kwargs)
-    return requests.post(f"{BASE}{path}", **kw)
+    return requests.post(f"{BASE}{path}", **kw)  # type: ignore[arg-type]
 
 
 def _put(path, json_data=None, **kwargs):
@@ -168,7 +168,7 @@ def _put(path, json_data=None, **kwargs):
     if json_data is not None:
         kw["json"] = json_data
     kw.update(kwargs)
-    return requests.put(f"{BASE}{path}", **kw)
+    return requests.put(f"{BASE}{path}", **kw)  # type: ignore[arg-type]
 
 
 # 5. 统计接口

@@ -12,7 +12,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from pilotstd.core.db import Database
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.cache import CacheRepository
@@ -724,7 +723,7 @@ class TestProgressiveSearch(unittest.TestCase):
 
     def test_num_prefix_included_in_search(self):
         """num_prefix 应出现在搜索词中。"""
-        self.adapter._search = MagicMock(return_value=None)
+        self.adapter._search = MagicMock(return_value=None)  # type: ignore[method-assign]
         self.adapter.query_with_strategy("ASME", 16, 2017, part=5, num_prefix="B")
         calls = [c[0][0] for c in self.adapter._search.call_args_list]
         self.assertIn("ASME B16.5-2017", calls)
@@ -732,14 +731,14 @@ class TestProgressiveSearch(unittest.TestCase):
 
     def test_roman_numeral_triggers_bpvc_variant(self):
         """罗马数字前缀触发 BPVC 变体搜索。"""
-        self.adapter._search = MagicMock(return_value=None)
+        self.adapter._search = MagicMock(return_value=None)  # type: ignore[method-assign]
         self.adapter.query_with_strategy("ASME", 8, 2021, num_prefix="VIII")
         calls = [c[0][0] for c in self.adapter._search.call_args_list]
         self.assertIn("ASME BPVC VIII.8-2021", calls)
 
     def test_api_stdspec_variant_fallback(self):
         """API 代号生成 Std/Spec 变体回退搜索。"""
-        self.adapter._search = MagicMock(return_value=None)
+        self.adapter._search = MagicMock(return_value=None)  # type: ignore[method-assign]
         self.adapter.query_with_strategy("API", 14, 2019, num_prefix="RP")
         calls = [c[0][0] for c in self.adapter._search.call_args_list]
         self.assertIn("API Std 14-2019", calls)

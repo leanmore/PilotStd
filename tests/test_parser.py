@@ -7,6 +7,8 @@ from pilotstd.scan.parser import StandardParser
 
 
 class TestParserValidation(unittest.TestCase):
+    parser: StandardParser
+
     @classmethod
     def setUpClass(cls):
         cls.parser = StandardParser(build_code_mapping())

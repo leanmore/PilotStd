@@ -2,6 +2,7 @@
 # 通用确认对话框 + 阶段完成弹窗 + 任务注册 — 从 main_window.py 提取
 
 import logging
+from typing import Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -27,7 +28,7 @@ class DialogMixin:
 
     def _question_dlg(self, title: str, msg: str) -> QMessageBox.StandardButton:
         """弹出 i18n 化的是/否对话框。"""
-        dlg = QMessageBox(self)
+        dlg = QMessageBox(self)  # type: ignore[call-overload]
         dlg.setWindowTitle(title)
         dlg.setText(msg)
         dlg.setIcon(QMessageBox.Icon.Question)
@@ -47,7 +48,7 @@ class DialogMixin:
         """阶段依赖检查三按钮对话框。prereq_label 为前置操作的按钮文字。"""
         if self._suppress_dialogs:
             return "skip"  # 自动运行模式：跳过检查强制执行
-        dlg = QMessageBox(self)
+        dlg = QMessageBox(self)  # type: ignore[call-overload]
         dlg.setWindowTitle(title)
         dlg.setText(msg)
         dlg.setIcon(QMessageBox.Icon.Warning)
@@ -71,7 +72,7 @@ class DialogMixin:
     ):
         """统一阶段弹窗。下一步按钮在左，确定在右，等宽等高。
         支持右下角拉伸手柄调整窗口大小。"""
-        dlg = QDialog(self)
+        dlg = QDialog(self)  # type: ignore[arg-type]
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)  # 合理的初始尺寸
@@ -86,7 +87,7 @@ class DialogMixin:
         btn_layout.addStretch()
         if next_action:
             next_btn = QPushButton(next_label)
-            next_btn.clicked.connect(lambda: [dlg.accept(), next_action()])
+            next_btn.clicked.connect(lambda: [dlg.accept(), next_action()])  # type: ignore[func-returns-value]
             btn_layout.addWidget(next_btn)
         close_btn = QPushButton(_("btn_close"))
         close_btn.clicked.connect(dlg.accept)
@@ -95,12 +96,12 @@ class DialogMixin:
         dlg.exec()
 
     def _show_stage_dialog_multi(
-        self, title: str, message: str, actions: list[tuple[str, callable]]
+        self, title: str, message: str, actions: list[tuple[str, Callable]]
     ):
         """多按钮阶段弹窗。actions 为 [(按钮文本, 回调函数), ...] 列表。"""
         if self._suppress_dialogs:
             return
-        dlg = QDialog(self)
+        dlg = QDialog(self)  # type: ignore[arg-type]
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)
@@ -115,7 +116,7 @@ class DialogMixin:
         btn_layout.addStretch()
         for label_text, callback in actions:
             btn = QPushButton(label_text)
-            btn.clicked.connect(lambda checked, cb=callback: [dlg.accept(), cb()])
+            btn.clicked.connect(lambda checked, cb=callback: [dlg.accept(), cb()])  # type: ignore[func-returns-value]
             btn_layout.addWidget(btn)
         close_btn = QPushButton(_("btn_close"))
         close_btn.clicked.connect(dlg.accept)

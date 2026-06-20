@@ -9,13 +9,10 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import shutil
-import tempfile
 import unittest
 
 import pytest
 
-from pilotstd.core.db import Database
 from pilotstd.core.file_index import FileIndexRepository
 from pilotstd.core.file_utils import make_standard_filename
 from pilotstd.manager.classifier import QueryClassifier
@@ -82,7 +79,9 @@ class TestQueryClassifier(unittest.TestCase):
         )
 
     def _classify(self, parsed_list, results):
-        download, expire, pending = [], [], []
+        download: list = []
+        expire: list = []
+        pending: list = []
         self.classifier.classify(results, parsed_list, download, expire, pending)
         return download, expire, pending
 

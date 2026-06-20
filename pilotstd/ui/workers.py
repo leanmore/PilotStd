@@ -72,7 +72,7 @@ class LogHandler(logging.Handler, QObject):
                 "%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"
             )
         )
-        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
+        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []
         self._buf_timer = QTimer()

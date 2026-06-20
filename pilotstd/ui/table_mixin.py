@@ -97,7 +97,7 @@ class TableMixin:
 
     def _on_save_result(self, fmt: str):
         if self.work_table.rowCount() == 0:
-            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
+            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))  # type: ignore[arg-type]
             return
 
         vis_names = self._get_visible_cols()
@@ -113,7 +113,7 @@ class TableMixin:
                 visible_count=len(vis_names),
             )
             reply = QMessageBox.question(
-                self,
+                self,  # type: ignore[arg-type]
                 _("title_export_hint"),
                 msg,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -124,9 +124,7 @@ class TableMixin:
                 return
 
         ext_map = {"txt": "TXT (*.txt)", "csv": "CSV (*.csv)"}
-        path, __ = QFileDialog.getSaveFileName(
-            self, _("dialog_save_sheet"), f"results.{fmt}", ext_map.get(fmt, "All (*)")
-        )
+        path, __ = QFileDialog.getSaveFileName(self, _("dialog_save_sheet"), f"results.{fmt}", ext_map.get(fmt, "All (*)"))  # type: ignore[arg-type]
         if not path:
             return
 
@@ -143,7 +141,7 @@ class TableMixin:
             elif fmt == "csv":
                 self._save_csv(path, rows, vis_names, visible_data_keys)
         except OSError as e:
-            QMessageBox.warning(self, _("title_save_failed"), str(e))
+            QMessageBox.warning(self, _("title_save_failed"), str(e))  # type: ignore[arg-type]
 
     def _save_txt(
         self,

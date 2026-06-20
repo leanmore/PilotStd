@@ -154,9 +154,11 @@ class FileTreeMixin:
 
     def _on_tree_item_expanded(self, item: QTreeWidgetItem):
         """展开时懒加载子目录。"""
+        first_child = item.child(0)
         if (
             item.childCount() == 1
-            and item.child(0).data(0, Qt.ItemDataRole.UserRole) is None
+            and first_child is not None
+            and first_child.data(0, Qt.ItemDataRole.UserRole) is None
         ):
             item.takeChildren()
         if item.childCount() == 0:
@@ -222,7 +224,8 @@ class FileTreeMixin:
                 current.setExpanded(True)
             found = None
             for i in range(current.childCount()):
-                if current.child(i).text(0) == part:
+                child_i = current.child(i)
+                if child_i is not None and child_i.text(0) == part:
                     found = current.child(i)
                     break
             if found is None:

@@ -20,6 +20,8 @@ from docker.auth import router as auth_router
 
 
 class TestAuthModule(unittest.TestCase):
+    client: TestClient
+
     @classmethod
     def setUpClass(cls):
         app = FastAPI()

@@ -143,7 +143,7 @@ class ScanMixin:
 
         if failed > 0 and not self._suppress_dialogs:
             QMessageBox.information(
-                self,
+                self,  # type: ignore[arg-type]
                 _("dialog_scan_result"),
                 _("msg_scan_complete").format(success=success, failed=failed)
                 + "\n\n"

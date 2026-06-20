@@ -69,9 +69,7 @@ class ProjectMixin:
         self._save_project_dialog(_("save_download_project"))
 
     def _save_project_dialog(self, label: str):
-        path, __ = QFileDialog.getSaveFileName(
-            self, label, "project.pilotstd", _("file_filter_project")
-        )
+        path, __ = QFileDialog.getSaveFileName(self, label, "project.pilotstd", _("file_filter_project"))  # type: ignore[arg-type]
         if path:
             state = self._collect_state()
             ok = self._project.save(path, state)
@@ -81,7 +79,7 @@ class ProjectMixin:
                 )
             else:
                 QMessageBox.warning(
-                    self,
+                    self,  # type: ignore[arg-type]
                     _("title_save_failed"),
                     _("msg_save_project_failed").format(path=path),
                 )

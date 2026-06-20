@@ -48,7 +48,7 @@ class AutoRunMixin:
         self._clear_table()
         # 自动流程绕过了手动操作的初始化步骤，需显式初始化以下两个属性
         self._parsed_results.clear()
-        self._archive_results = []
+        self._archive_results: list = []
 
         self._auto_worker = AutoWorker(self._mgr, source_dir, parent=self)
         # 复用已有 UI slot（与独立 Worker 同签名）

@@ -48,7 +48,7 @@ for _mod in ("urllib3", "requests", "lxml", "httpx", "PIL"):
 
 logger = logging.getLogger("stress_logic")
 
-_checks = []
+_checks: list[tuple[str, bool, str]] = []
 
 
 def _check(label, ok, detail=""):
@@ -170,7 +170,7 @@ qt._today = _orig_today
 qt._ensure_date()
 
 # 并发安全：4 线程各写 10 次，无异常即通过
-_errors = []
+_errors: list[str] = []
 
 
 def _quota_worker():
@@ -578,13 +578,13 @@ try:
     from pilotstd.core.db import Database as _AsDb
 
     _as_db = _AsDb(get_db_path())
-    _tables = {
+    _table_names = {
         r["name"]
         for r in _as_db.fetchall(
             "SELECT name FROM sqlite_master WHERE type='table'"
         )
     }
-    if "adapter_stats" not in _tables:
+    if "adapter_stats" not in _table_names:
         _check("adapter_stats写入验证", None, "adapter_stats 表不存在，跳过")
     else:
         _test_name = "_test_selfcheck"

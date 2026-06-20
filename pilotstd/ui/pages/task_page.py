@@ -58,9 +58,9 @@ class TaskPage(QWidget):
                 _("header_task_error"),
             ]
         )
-        self.task_table.horizontalHeader().setSectionResizeMode(
-            5, QHeaderView.ResizeMode.Stretch
-        )
+        header = self.task_table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
         task_layout.addWidget(self.task_table)
 
         # 下部：详情
@@ -115,7 +115,7 @@ class TaskPage(QWidget):
 class TaskCenterDialog(QDialog):
     """任务中心对话框。"""
 
-    def __init__(self, task_queue: TaskQueue = None, parent=None):
+    def __init__(self, task_queue: TaskQueue | None = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle(_("title_task_center"))
         self.resize(700, 500)

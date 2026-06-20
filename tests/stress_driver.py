@@ -26,10 +26,14 @@ from datetime import datetime
 
 # 强制 stdout 使用 utf-8 编码（Windows 默认 GBK 无法输出 Docker 日志中的 Unicode 字符）
 if sys.stdout.encoding != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+
+# 模块级常量：由 main() 在运行时赋值，避免 mypy [name-defined]
+TS: str = ""
+RESULT_DIR: str = ""
 
 # ── CLI 参数 ──────────────────────────────────────────────────
 
@@ -204,7 +208,7 @@ def _step0_check_preconditions(
     _log("前置条件全部满足")
 
 
-def _step0_clear_db(db_path: str = None):
+def _step0_clear_db(db_path: str | None = None):
     """清空四表，保留 schema 和用户设置。"""
     from pilotstd.core.config import get_data_dir
     from pilotstd.core.db import Database
@@ -296,8 +300,8 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
             env=env,
         )
 
-        stdout_lines = []
-        stderr_lines = []
+        stdout_lines: list[str] = []
+        stderr_lines: list[str] = []
 
         # 同时读取 stdout 和 stderr，避免管道缓冲区写满导致死锁
         def read_stream(stream, lines_list, prefix):
@@ -327,7 +331,7 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
             return {"error": "timeout"}
 
         return {
-            "stdout": proc.stdout.read(),
+            "stdout": proc.stdout.read(),  # type: ignore[union-attr]
             "stderr": "\n".join(stderr_lines),
             "returncode": proc.returncode,
         }
@@ -340,7 +344,7 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
 
 
 def _step1_cli_cold(
-    source_dir: str, output_dir: str, timeout_query: int, ocr_config: dict = None
+    source_dir: str, output_dir: str, timeout_query: int, ocr_config: dict | None = None
 ):
     """CLI 冷启分阶段。依次执行全管线，记录数据到 step1.json。"""
     _log("=" * 50)
@@ -369,7 +373,7 @@ def _step1_cli_cold(
             _providers.append("阿里云")
         _log(f"OCR 凭证已注入环境变量: {', '.join(_providers) if _providers else '无'}")
 
-    results = {"step": 1, "ts": TS, "checkpoints": {}}
+    results: dict = {"step": 1, "ts": TS, "checkpoints": {}}
 
     # scan — 快速扫描，保持 subprocess.run + 异常保护
     _log("  1.1 scan...")
@@ -959,7 +963,7 @@ def _step1_cli_cold(
                         for r in rows
                     ]
 
-                adapter._fetch_list = _limited_fetch.__get__(adapter, type(adapter))
+                adapter._fetch_list = _limited_fetch.__get__(adapter, type(adapter))  # type: ignore[method-assign]
 
                 # 复用现有逻辑：fetch + parse + match
                 items = adapter.fetch_announcements(
@@ -1208,7 +1212,7 @@ def _step4_verdict(
     step3_ok: bool,
     skip_winui: bool,
     skip_docker: bool,
-    step1_data: dict = None,
+    step1_data: dict | None = None,
     adapter_report_ok: bool = True,
     credential_ok: bool = True,
     credential_detail: str = "",
@@ -1331,9 +1335,9 @@ def main():
     args = _parse_args()
 
     # 加载本地压测配置（JSON，不上传 git），命令行参数优先
-    from _stress_utils import load_docker_credentials
+    from _stress_utils import load_docker_credentials  # type: ignore[import-not-found]
 
-    cfg = _load_test_config(getattr(args, "config", None))
+    cfg = _load_test_config(getattr(args, "config", None))  # type: ignore[arg-type]
     ocr_cfg = cfg.get("ocr", {})
     # Docker 凭证通过统一加载器读取（--config JSON > 环境变量）
     _creds = {}
@@ -1471,7 +1475,7 @@ def main():
                 if c in step1.get("checkpoints", {})
             )
         else:
-            step1 = {"checkpoints": {}, "summary": {}}
+            step1: dict = {"checkpoints": {}, "summary": {}}
             step1_ok = True
     else:
         step1 = _step1_cli_cold(args.source, args.output, args.timeout_query, ocr_cfg)
@@ -1583,7 +1587,7 @@ def main():
         step2_ok = _step2_winui_hot(
             args.source,
             args.output,
-            _step1_json,
+            _step1_json,  # type: ignore[arg-type]
             args.timeout_auto,
         )
         # 展示交叉对比结果
