@@ -137,7 +137,7 @@ class LoggerManager:
     # ---- 内部 ----
 
     def _console_handler(self, fmt: logging.Formatter) -> logging.Handler:
-        h = logging.StreamHandler(sys.stdout)
+        h = logging.StreamHandler()
         h.setLevel(self._level)
         h.setFormatter(fmt)
         return h

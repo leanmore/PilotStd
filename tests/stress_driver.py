@@ -392,7 +392,7 @@ def _step1_cli_cold(
     scan_count = 0
     scan_stdout = ""
     try:
-        r = subprocess.run(
+        scan_r = subprocess.run(
             [
                 python,
                 "-m",
@@ -412,22 +412,26 @@ def _step1_cli_cold(
             errors="replace",
             env=env,
         )
-        scan_stdout = r.stdout if r.stdout else ""
-        if r.returncode == 0:
+        scan_stdout = scan_r.stdout if scan_r.stdout else ""
+        if scan_r.returncode == 0:
             try:
-                scan_data = json.loads(r.stdout if r.stdout else "[]")
+                scan_data = json.loads(scan_r.stdout if scan_r.stdout else "[]")
                 scan_count = len(scan_data)
             except json.JSONDecodeError:
                 scan_count = len(
-                    [line for line in (r.stdout or "").splitlines() if line.strip()]
+                    [
+                        line
+                        for line in (scan_r.stdout or "").splitlines()
+                        if line.strip()
+                    ]
                 )
         results["checkpoints"]["scan"] = {
             "count": scan_count,
-            "rc": r.returncode,
+            "rc": scan_r.returncode,
             "elapsed_s": round(time.time() - t0, 1),
         }
         _log(
-            f"    scan: {scan_count} 条, rc={r.returncode}, {results['checkpoints']['scan']['elapsed_s']}s"
+            f"    scan: {scan_count} 条, rc={scan_r.returncode}, {results['checkpoints']['scan']['elapsed_s']}s"
         )
     except subprocess.TimeoutExpired:
         _log("    scan: 超时")
@@ -467,25 +471,42 @@ def _step1_cli_cold(
                             fn += f"-{item.get('year', '')}"
                         f.write(fn + "\n")
             except json.JSONDecodeError:
-                pass
+                _log(
+                    "    scan JSON 解析失败，标准号列表可能为空（检查日志是否混入 stdout）"
+                )
 
-    # query — 流式读取 + 异常保护（查询可能耗时 30+ 分钟）
-    t0 = time.time()
-    r = _safe_run(
-        [
-            python,
-            "-m",
-            cli_module,
-            "--storage-root",
-            output_dir,
-            "query",
-            "--file",
-            nums_file,
-        ],
-        timeout=timeout_query or 3600,
-        step_name="query",
-        env=env,
-    )
+    # 安全校验：nums 文件为空时提前终止查询
+    nums_lines = 0
+    if os.path.exists(nums_file):
+        with open(nums_file, "r", encoding="utf-8") as f:
+            nums_lines = sum(1 for _ in f)
+    if scan_count > 0 and nums_lines == 0:
+        _log(f"    scan→query 数据传递失败: scan={scan_count}条, nums文件为空")
+        _log("    根因: 日志混入stdout导致JSON解析失败，请确认StreamHandler写stderr")
+        results["checkpoints"]["query"] = {"error": "nums_file_empty", "rc": 1}
+        query_failed = True
+
+    if not query_failed:
+        # query — 流式读取 + 异常保护（查询可能耗时 30+ 分钟）
+        t0 = time.time()
+        r = _safe_run(
+            [
+                python,
+                "-m",
+                cli_module,
+                "--storage-root",
+                output_dir,
+                "query",
+                "--file",
+                nums_file,
+            ],
+            timeout=timeout_query or 3600,
+            step_name="query",
+            env=env,
+        )
+    else:
+        r = {"error": "query_failed_early"}
+
     # 从 query 输出解析分类计数 + 逐桶统计
     dl_count = ex_count = pe_count = exact_count = 0
     bucket_stats = {}  # {key: total}
