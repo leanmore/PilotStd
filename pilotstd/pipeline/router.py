@@ -200,6 +200,34 @@ class PipelineRouter:
 
             # 规则9: 其他（含"即将实施"等未明确处理的状态）→ 兜底
             buckets["fallback"].append(p)
+        # [TRACE] 指令8: 统计各状态条目数
+        _ce_count = sum(
+            1
+            for p in buckets.get("pending", [])
+            if getattr(p, "match_status", "") == "chain_exhausted"
+        )
+        logger.info(
+            "[ROUTER] classify result: pending=%d (chain_exhausted=%d) "
+            "organize=%d normalize=%d expire=%d download=%d fallback=%d",
+            len(buckets["pending"]),
+            _ce_count,
+            len(buckets["organize"]),
+            len(buckets["normalize"]),
+            len(buckets["expire"]),
+            len(buckets["download"]),
+            len(buckets["fallback"]),
+        )
+        # [TRACE] 修复C: 每个pending条目的详细归因
+        for p in buckets["pending"]:
+            logger.info(
+                "[PENDING_DETAIL] std=%s match_status=%s next_action=%s "
+                "effect_status=%s source_path=%s",
+                p.get_full_number(),
+                getattr(p, "match_status", ""),
+                getattr(p, "next_action", ""),
+                getattr(p, "effect_status", ""),
+                (getattr(p, "source_path", "") or "")[:80],
+            )
         return buckets
 
     def apply_actions(self, items: List[ParsedStdInfo]) -> dict:

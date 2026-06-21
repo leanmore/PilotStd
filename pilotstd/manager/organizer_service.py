@@ -105,6 +105,9 @@ class OrganizerService:
                     _elapsed,
                 )
         for p in items:
+            # 跳过待确认条目：用户确认前不归档，保留在源目录供后续处理
+            if getattr(p, "next_action", "") == "pending":
+                continue
             src = getattr(p, "source_path", "")
             if src and os.path.isfile(src):
                 # Word/模板文件：按源目录镜像归档（与跳过目录一致，不加"其他资料"中间层）
@@ -442,6 +445,18 @@ class OrganizerService:
                 # 跳过待确认条目（用户确认前不归档）
                 if src in pending_paths or strip_long_path(src) in pending_paths:
                     result["skipped_pending"] += 1
+                    # [TRACE] 指令8: 路径归一化检查（前5条）
+                    if result["skipped_pending"] <= 5:
+                        logger.debug(
+                            "[FALLBACK] skipped_pending #%d: src=%r "
+                            "stripped=%r in_pending=%s",
+                            result["skipped_pending"],
+                            src,
+                            strip_long_path(src),
+                            strip_long_path(src) in pending_paths
+                            if src not in pending_paths
+                            else "direct",
+                        )
                     continue
                 # organize() 已确认目标存在的文件，fallback 不再搬运
                 if src in self._skipped_source_files:
@@ -474,6 +489,15 @@ class OrganizerService:
             f"兜底镜像完成: {result['moved']} 已移动, {result['skipped']} 已跳过"
             f"({result['skipped_by_organize']}因目标已存在, "
             f"{result['skipped_pending']}因待确认), {result['failed']} 失败"
+        )
+        # [TRACE] 指令8: 摘要日志，便于grep
+        logger.info(
+            "[FALLBACK] moved=%d skipped=%d skipped_by_organize=%d skipped_pending=%d failed=%d",
+            result["moved"],
+            result["skipped"],
+            result["skipped_by_organize"],
+            result["skipped_pending"],
+            result["failed"],
         )
         return result
 

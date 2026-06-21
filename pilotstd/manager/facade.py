@@ -341,6 +341,7 @@ class StandardManager:
         logger.info(
             f"查询完成: {stats.found}/{n} 找到 ({stats.found / max(n, 1) * 100:.1f}%)"
         )
+        logger.info(f"{stats.exact} 精确匹配")
 
         # ── 2. 按标准类型分组 ──
         cats = {}  # {label: {"total": N, "found": N, "pending": N}}
@@ -858,6 +859,22 @@ class StandardManager:
         # 收集待确认条目的源文件路径，兜底镜像时跳过
         pending_paths = frozenset(
             p.source_path for p in self._pending_list if getattr(p, "source_path", "")
+        )
+        # [TRACE] 修复C: _pending_list按match_status汇总
+        _ps_by_ms: dict[str, int] = {}
+        for p in self._pending_list:
+            ms = getattr(p, "match_status", "") or "(empty)"
+            _ps_by_ms[ms] = _ps_by_ms.get(ms, 0) + 1
+        logger.info(
+            "[PENDING_SUMMARY] total=%d by_match_status=%s",
+            len(self._pending_list),
+            _ps_by_ms,
+        )
+        # [TRACE] 指令8: pending路径数量 + 路径归一化采样
+        logger.info(
+            "[PENDING] total pending paths: %d (sample: %s)",
+            len(pending_paths),
+            [p[:80] for p in list(pending_paths)[:5]],
         )
         return self._organizer_svc.organize_fallback(source_root, pending_paths)
 

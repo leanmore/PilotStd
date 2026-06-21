@@ -111,6 +111,12 @@ class SiteRotator:
                             site.cooldown_seconds,
                         )
                         self._last_cooldown_log[name] = now
+                    # [TRACE] 指令7: 记录冷却跳过对配额的影响
+                    logger.debug(
+                        "[QUOTA] site=%s action=unavailable_due_cooldown remaining_s=%.0f",
+                        name,
+                        remaining,
+                    )
                     self._was_cooling[name] = True
                     continue
                 if site.cooldown_until > 0 and now >= site.cooldown_until:

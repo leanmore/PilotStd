@@ -41,10 +41,19 @@ _checks: list[tuple[str, bool, str]] = []
 
 def check(label: str, ok, detail: str = ""):
     """记录一项检查结果（PASS/FAIL/SKIP）。"""
+    # [TRACE] 指令C-1: check入口
     _checks.append((label, ok, detail))
     logger = logging.getLogger("stress")
     icon = "PASS" if ok else "FAIL" if ok is False else "SKIP"
     logger.info("  %s %s%s", icon, label, f" — {detail}" if detail else "")
+    # [TRACE] 指令C-1: check详情（包含ok值类型和跳过原因）
+    logger.info(
+        "[TRACE-C] check: name=%r ok=%r ok_type=%s detail=%r",
+        label,
+        ok,
+        type(ok).__name__,
+        detail,
+    )
 
 
 def verdict() -> bool:
@@ -52,6 +61,22 @@ def verdict() -> bool:
     logger = logging.getLogger("stress")
     total = len(_checks)
     passed = sum(1 for _, ok, _ in _checks if ok)
+    failed = sum(1 for _, ok, _ in _checks if ok is False)
+    skipped = total - passed - failed
+    # [TRACE] 指令C-2: verdict完整计数
+    logger.info(
+        "[TRACE-C] verdict: total=%d passed=%d failed=%d skipped=%d",
+        total,
+        passed,
+        failed,
+        skipped,
+    )
+    # 打印每个步骤的名称和状态
+    for label, ok, detail in _checks:
+        status = "PASS" if ok else "FAIL" if ok is False else "SKIP"
+        logger.info(
+            "[TRACE-C] verdict_step: name=%r status=%s detail=%r", label, status, detail
+        )
     logger.info("=" * 60)
     logger.info(
         "判定: %s (%d/%d)", "PASS" if passed == total else "FAIL", passed, total

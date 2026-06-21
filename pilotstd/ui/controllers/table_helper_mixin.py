@@ -153,6 +153,22 @@ class TableHelperMixin:
         self.status_changed.emit(f"已移除 {removed} 行")
 
     def _add_table_row(self, update: RowUpdate):
+        # [TRACE] 指令A-4: 输出最终传入_add_table_row的parsed对象
+        logger.debug(
+            "[TRACE-A] _add_table_row: seq=%d std_num=%r std_name=%r "
+            "work_status=%r effect_status=%r is_adopted=%s "
+            "parsed.code=%s parsed.number=%s parsed.year=%s parsed.part=%s",
+            update.seq,
+            update.parsed.get_full_number(),
+            update.std_name_override or update.parsed.std_name,
+            update.work_status,
+            update.effect_status,
+            update.is_adopted,
+            getattr(update.parsed, "logical_code", ""),
+            getattr(update.parsed, "number", 0),
+            getattr(update.parsed, "year", 0),
+            getattr(update.parsed, "part", None),
+        )
         row = self.work_table.rowCount()
         self.work_table.insertRow(row)
         width = (

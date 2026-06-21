@@ -23,7 +23,7 @@ _creds = load_docker_credentials()
 BASE = _creds["base_url"]
 USERNAME = _creds["username"]
 PASSWORD = _creds["password"]
-TIMEOUT = 120
+TIMEOUT = 300
 
 # 复用公共判定工具
 from _stress_utils import check as _check
@@ -446,6 +446,30 @@ except Exception as e:
 
 logger.info("--- 端到端管线 ---")
 
+# [TRACE] 指令C-3: Docker容器内文件系统检查
+for _test_dir, _label in [("/inbox", "inbox"), ("/standards", "standards")]:
+    try:
+        r_fs = _get("/api/files", params={"path": _test_dir})
+        if r_fs.status_code == 200:
+            _fs_data = r_fs.json()
+            _files = _fs_data.get("files", [])
+            logger.info(
+                "[TRACE-C] fs_check: dir=%s status=%d file_count=%d files=%s",
+                _test_dir,
+                r_fs.status_code,
+                len(_files),
+                [f.get("name", "") for f in _files[:5]],
+            )
+        else:
+            logger.info(
+                "[TRACE-C] fs_check: dir=%s status=%d detail=%s",
+                _test_dir,
+                r_fs.status_code,
+                r_fs.text[:200],
+            )
+    except Exception as e:
+        logger.info("[TRACE-C] fs_check: dir=%s error=%s", _test_dir, str(e)[:100])
+
 # 25. 完整管线：扫描 inbox → 查询 → 下载 → 规范化 → 归档
 r_scan = _post("/api/scan", data={"path": "/inbox"})
 _scan_files = r_scan.json().get("files", []) if r_scan.status_code == 200 else []
@@ -454,13 +478,41 @@ if _scan_files:
     _std_numbers = [
         f["standard_number"] for f in _scan_files if f.get("standard_number")
     ]
-    # 查询
-    r_q = _post("/api/query", json_data={"numbers": _std_numbers})
-    _query_ok = r_q.status_code == 200
+    # [TRACE] 指令C: 端到端扫描结果详情
+    logger.info(
+        "[TRACE-C] e2e_scan: status=%d files=%d std_numbers=%s",
+        r_scan.status_code,
+        len(_scan_files),
+        _std_numbers[:5],
+    )
+    # 查询 — 分批串行，每批5条，批次间隔2s，避免远端API并发超时
+    _query_all_ok = True
+    _batch_size = 5
+    _batch_delay = 2.0
+    for _batch_start in range(0, len(_std_numbers), _batch_size):
+        _batch = _std_numbers[_batch_start : _batch_start + _batch_size]
+        if _batch_start > 0:
+            time.sleep(_batch_delay)
+        r_q = _post("/api/query", json_data={"numbers": _batch})
+        if r_q.status_code != 200:
+            _query_all_ok = False
+            logger.info(
+                "[TRACE-C] e2e_query_batch: batch=%d/%d status=%d body=%s",
+                _batch_start // _batch_size + 1,
+                (len(_std_numbers) + _batch_size - 1) // _batch_size,
+                r_q.status_code,
+                (r_q.text or "")[:200],
+            )
+    logger.info(
+        "[TRACE-C] e2e_scan: status=%d files=%d std_numbers=%s",
+        r_scan.status_code,
+        len(_scan_files),
+        _std_numbers[:5],
+    )
     _check(
         "管线: 扫描→查询",
-        _query_ok,
-        f"scan={len(_scan_files)}files, query={r_q.status_code}",
+        _query_all_ok,
+        f"scan={len(_scan_files)}files, batches={(len(_std_numbers) + _batch_size - 1) // _batch_size}",
     )
 
     # 规范化（用扫描结果的字段构造 items）
@@ -476,6 +528,12 @@ if _scan_files:
     ]
     r_norm = _post("/api/normalize", json_data={"items": _norm_items})
     _norm_ok = r_norm.status_code == 200
+    logger.info(
+        "[TRACE-C] e2e_normalize: status=%d ok=%s body=%s",
+        r_norm.status_code,
+        _norm_ok,
+        (r_norm.text or "")[:200],
+    )
     _check(
         "管线: 规范化",
         _norm_ok,
@@ -505,6 +563,13 @@ if _scan_files:
     )
     _archive_ok = r_archive.status_code in (200, 404)
     _moved = r_archive.json().get("moved", 0) if r_archive.status_code == 200 else 0
+    logger.info(
+        "[TRACE-C] e2e_archive: status=%d ok=%s moved=%s body=%s",
+        r_archive.status_code,
+        _archive_ok,
+        _moved,
+        (r_archive.text or "")[:200],
+    )
     _check("管线: 归档", _archive_ok, f"status={r_archive.status_code}, moved={_moved}")
 
     # 验证文件已归档（用 archive 返回的 moved 计数）
@@ -512,6 +577,10 @@ if _scan_files:
         "管线: 文件进入输出目录", _moved > 0, f"归档移动了 {_moved} 个文件到 /standards"
     )
 else:
+    logger.info(
+        "[TRACE-C] e2e_skip: inbox为空，跳过端到端管线 scan_status=%d",
+        r_scan.status_code,
+    )
     _check("管线: 扫描→查询", None, "inbox 无文件，跳过端到端")
     _check("管线: 规范化", None, "跳过")
     _check("管线: 归档", None, "跳过")

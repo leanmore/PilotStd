@@ -23,7 +23,22 @@ logger = logging.getLogger(__name__)
 
 
 class HbbaAdapter(BaseAdapter):
-    """行业标准信息服务平台查询适配器。"""
+    """行业标准信息服务平台查询适配器。
+
+    API: POST https://hbba.sacinfo.org.cn/stdQueryList
+    可用请求参数: {current, size, key}
+    key 为全文检索关键词（支持标准号含年份子串匹配，如 "SH/T 1752-2006"）。
+
+    已知限制：
+    - ❌ 不支持 year / stdYear / pubYear / issueDate / publishDate 独立过滤参数
+    - ❌ status="" 参数无效（不同于同域 dbba API）
+    - 年份过滤仅通过 key 中的年份子串实现（全字匹配，非范围过滤）
+    - 不含年份的 key 会返回所有版本（如 "SH/T 1752" 返回 2006+2026）
+
+    回退策略：
+    - 首次搜索用完整标准号含年份 → 无结果时自动去年份重试（query_with_strategy 第4步）
+    - 宽搜结果通过 match_result 比对区分 exact/newer/older
+    """
 
     supports_replaces_detail = True
 
@@ -56,8 +71,49 @@ class HbbaAdapter(BaseAdapter):
         return "行业标准平台"
 
     def _search_candidates(self, search_term: str) -> list:
-        """返回 API 全部候选结果。"""
-        return self._post_search_candidates(search_term)
+        """搜索候选项。含年份无结果时自动去年份宽搜。"""
+        candidates = self._post_search_candidates(search_term)
+        if candidates:
+            return candidates
+        # 年份回退：去除末尾 -YYYY 重新搜索
+        m = re.search(r"-(\d{4})$", search_term)
+        if m:
+            no_year = search_term[: m.start()]
+            logger.debug("hbba 无结果，去年份宽搜: %s -> %s", search_term, no_year)
+            candidates = self._post_search_candidates(no_year)
+        return candidates
+
+    def _search(self, search_term: str):
+        """搜索并返回最佳匹配。多候选时按年份接近度选取，而非简单取最新。"""
+        candidates = self._search_candidates(search_term)
+        if not candidates:
+            return None
+        # 精确匹配：standard_number 与 search_term 完全一致
+        for c in candidates:
+            if c.standard_number == search_term:
+                self._post_process_result(c)
+                return c
+        # 年份接近度优选：取与搜索词中年份最接近的候选
+        target = _parse_result_number(search_term)
+        target_year = target.get("year", 0)
+        if target_year and len(candidates) > 1:
+
+            def _year_dist(candidate):
+                parsed = _parse_result_number(candidate.standard_number)
+                y = parsed.get("year", 0)
+                return abs(y - target_year) if y else 9999
+
+            best = min(candidates, key=_year_dist)
+            logger.debug(
+                "hbba 多候选按年距选取: target_year=%d candidates=%d best=%s",
+                target_year,
+                len(candidates),
+                best.standard_number,
+            )
+        else:
+            best = max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
+        self._post_process_result(best)
+        return best
 
     def _post_process_result(self, result: QueryResult) -> None:
         """结果后处理：从详情页提取替代标准号。"""

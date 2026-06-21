@@ -42,10 +42,13 @@ GARBAGE_SUFFIX_KEYWORDS = [
 def normalize_std_filename(filename: str) -> str:
     """文件名前置清洗，全链路统一入口。
 
-    按顺序执行：Unicode 斜杠归一化 → 全角转半角 → 缺斜杠还原 →
-    方括号/特殊符号清理 → 垃圾后缀截断 → 多余空格压缩。
+    按顺序执行：HTML标签剥离 → Unicode 斜杠归一化 → 全角转半角 →
+    缺斜杠还原 → 方括号/特殊符号清理 → 垃圾后缀截断 → 多余空格压缩。
     返回清洗后的文件名字符串（不含扩展名处理，由调用方负责）。
     """
+    # 0. HTML 标签剥离：防止 <em>/<b>/<span> 等导致解析失败或 WinError 123
+    filename = re.sub(r"<[^>]+>", "", filename)
+
     # 1. Unicode 斜杠 → ASCII /
     for ch in ("∕", "／", "⁄"):
         filename = filename.replace(ch, "/")

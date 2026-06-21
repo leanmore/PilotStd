@@ -423,8 +423,8 @@ class QueryEngine:
             for idx, item in pool:
                 if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
                     break
+                _t0 = _time.time()
                 try:
-                    _t0 = _time.time()
                     result = adapter.query_with_strategy(
                         item[0], item[1], item[2], num_prefix=item[3], part=item[4]
                     )
@@ -468,11 +468,19 @@ class QueryEngine:
                         csres_failures[0],
                         self._CSRES_CIRCUIT_BREAK,
                     )
-                delay = _random.uniform(5, 10)
-                _time.sleep(delay)
+                base_interval = 5.0
+                jitter = _random.uniform(0, 1.0)
+                query_elapsed = _time.time() - _t0
+                sleep_time = max(0, base_interval + jitter - query_elapsed)
+                _time.sleep(sleep_time)
                 now = _time.time()
+                actual_interval = now - _last_ts
                 logger.info(
-                    "[CSRES_INTERVAL] actual=%.1fs target=%.1fs", now - _last_ts, delay
+                    "[CSRES_INTERVAL] actual=%.1fs target=%.1fs query=%.1fs sleep=%.1fs",
+                    actual_interval,
+                    base_interval + jitter,
+                    query_elapsed,
+                    sleep_time,
                 )
                 _last_ts = now
 
@@ -816,8 +824,24 @@ class QueryEngine:
                             and self._rotator.get_cooldown_remaining(site) > 0
                         ):
                             temp_cooldown_skips += 1
+                            # [TRACE] 指令7: 记录冷却导致溢出配额不可用
+                            ov_q = overflow_quota.get(site, [0])
+                            logger.debug(
+                                "[QUOTA] site=%s action=overflow_unavailable "
+                                "reason=cooling remain_overflow_quota=%d",
+                                site,
+                                ov_q[0] if ov_q else 0,
+                            )
                             continue
                         adapter = self._adapter_map[site]
+                        # 溢出配额控制：受限站点消耗配额，配额耗尽则跳过
+                        if site in overflow_quota and not _try_overflow(site):
+                            logger.debug(
+                                "[QUOTA] site=%s action=overflow_exhausted remain=%d",
+                                site,
+                                overflow_quota[site][0],
+                            )
+                            continue
                         try:
                             _t0 = _time.time()
                             result = adapter.query_with_strategy(  # type: ignore[assignment]
@@ -931,10 +955,21 @@ class QueryEngine:
             logger.info("[PENDING] #%d chain=%s", idx, chain_str)
 
         # ── 配额水位 ──
+        _ahbz_used = self._AHBZ_OVERFLOW_QUOTA - overflow_quota["ahbz"][0]
+        _njbz_used = self._NJBZ_OVERFLOW_QUOTA - overflow_quota["njbz365"][0]
         logger.info(
             "[WATER] ahbz_overflow_remain=%d njbz365_remain=%d",
             overflow_quota["ahbz"][0],
             overflow_quota["njbz365"][0],
+        )
+        # [TRACE] 指令7: 配额使用率明细
+        logger.info(
+            "[QUOTA] usage: ahbz=%d/%d njbz365=%d/%d cooldown_skips=%d",
+            _ahbz_used,
+            self._AHBZ_OVERFLOW_QUOTA,
+            _njbz_used,
+            self._NJBZ_OVERFLOW_QUOTA,
+            temp_cooldown_skips,
         )
         logger.info("[RECOVERY] temp_cooldown_skips=%d", temp_cooldown_skips)
 

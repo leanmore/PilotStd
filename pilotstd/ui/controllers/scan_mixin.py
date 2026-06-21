@@ -69,6 +69,17 @@ class ScanMixin:
         if parsed is None:
             parsed = self._mgr.parse_standard_number(filename)
 
+        # [TRACE] 指令A-3: 输出文件索引查找/解析结果
+        logger.debug(
+            "[TRACE-A] scan result: file=%r parsed_ok=%s std_name=%r code=%s number=%s year=%s",
+            file_path,
+            parsed is not None,
+            parsed.std_name if parsed else "",
+            parsed.logical_code if parsed else "",
+            parsed.number if parsed else 0,
+            parsed.year if parsed else 0,
+        )
+
         if parsed:
             parsed.source_path = file_path
             self._parsed_results.append(parsed)

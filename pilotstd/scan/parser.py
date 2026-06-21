@@ -715,6 +715,21 @@ class StandardParser:
         if not self._validate_result(year, number, logical_code, require_year):
             return None  # type: ignore[return-value]
 
+        # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
+        logger.debug(
+            "[TRACE-A] ParsedStdInfo: code=%s number=%d year=%d part=%s "
+            "std_name=%r source_name=%r num_prefix=%r num_suffix=%r ext=%r",
+            logical_code,
+            number,
+            year,
+            part,
+            name,
+            name,
+            num_prefix,
+            num_suffix,
+            getattr(self, "_current_file_kind", ""),
+        )
+
         return ParsedStdInfo(
             raw_filename=text,
             logical_code=logical_code,
