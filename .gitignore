@@ -18,6 +18,7 @@ node_modules/
 data/
 logs/
 app.log
+*.db
 
 # 文档（仅本地保留）
 docs/
