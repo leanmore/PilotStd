@@ -523,10 +523,7 @@ else:
 total_time = time.time() - t0
 logger.info("=" * 60)
 logger.info("Web API 压力测试完成 (%.1fs)", total_time)
-_log_path = next(
-    (h.baseFilename for h in logger.handlers if hasattr(h, "baseFilename")), "未知"
-)
-logger.info("日志: %s", _log_path)
+logger.info("日志已写入: logs/app.log")
 _all_ok = _verdict()
 
 # 输出 step3.json 完整报告

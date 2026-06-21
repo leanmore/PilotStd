@@ -7,7 +7,6 @@ import sys
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QApplication,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -121,15 +120,11 @@ class QueryMixin:
         self.btn_cancel.setEnabled(True)
         self.progress_changed.emit(0)
 
-        self._clear_table()
-
-        for i, parsed in enumerate(self._parsed_results):
-            self._add_table_row(
-                RowUpdate(
-                    seq=i + 1, parsed=parsed, work_status="查询中...", total=total
-                )
-            )
-        QApplication.processEvents()
+        # 就地更新状态列（保留扫描阶段已添加的行数据，不重建表格）
+        for row in range(self.work_table.rowCount()):
+            item = self.work_table.item(row, 1)
+            if item:
+                item.setText("查询中...")
 
         self.btn_query.setEnabled(False)
         self.btn_auto.setEnabled(False)

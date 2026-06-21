@@ -1,57 +1,35 @@
 # tests/_stress_utils.py
 # 压力测试公共工具模块 —— 统一日志、进度、子进程、判定
 #
-# 替代各 stress_*.py 文件中重复的 StreamHandler/FileHandler/_check/_verdict 等
-# 重复代码。所有 stress_*.py 从此模块导入公共函数。
+# 日志统一写入 logs/app.log（通过 LoggerManager），不再创建独立 stress_*.log 文件。
 
 import logging
 import os
 import sys
 import time
-from datetime import datetime
 from typing import Optional
 
 # ── 统一日志配置 ─────────────────────────────────────────────────
-# 调用一次，所有 stress_*.py 共用，不再各自造 StreamHandler/FileHandler
+# 委托 LoggerManager 管理，全局只初始化一次
 
 _log_initialized = False
 
 
 def setup_stress_logging(name: str) -> logging.Logger:
-    """为压力测试脚本设置统一日志：控制台 + 文件双通道。
-    全局只初始化一次，后续调用只返回对应 name 的 logger。"""
+    """为压力测试脚本获取统一 logger，日志写入 logs/app.log。
+
+    首次调用时初始化 LoggerManager（若尚未初始化），
+    后续调用直接返回对应 name 的 logger。
+    """
     global _log_initialized
     if not _log_initialized:
-        log_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
-        )
-        os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(
-            log_dir, f"stress_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        )
+        # 确保项目根目录在 sys.path 中
+        _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _proj_root not in sys.path:
+            sys.path.insert(0, _proj_root)
+        from pilotstd.core.logger import LoggerManager
 
-        root = logging.getLogger()
-        root.setLevel(logging.DEBUG)
-
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setLevel(logging.INFO)
-        ch.setFormatter(
-            logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S")
-        )
-        root.addHandler(ch)
-
-        fh = logging.FileHandler(log_path, encoding="utf-8")
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"
-            )
-        )
-        root.addHandler(fh)
-
-        for noisy in ("urllib3", "requests", "lxml", "httpx", "PIL"):
-            logging.getLogger(noisy).setLevel(logging.WARNING)
-
+        LoggerManager.get_logger("stress")  # 触发 LoggerManager 初始化
         _log_initialized = True
     return logging.getLogger(name)
 

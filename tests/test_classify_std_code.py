@@ -24,6 +24,7 @@ from pilotstd.core.std_utils import classify_std_code
         ("DIN", "foreign"),
         ("EN", "foreign"),
         ("ANSI", "foreign"),
+        ("IEEE", "foreign"),  # 回归：IEEE 不应被 IEC startswith 误匹配为 iso_iec
         ("MSS", "foreign"),
         ("UL", "foreign"),
         ("ITU", "foreign"),

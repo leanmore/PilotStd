@@ -114,14 +114,13 @@ class CLI:
             print("所有标准号均无法解析", file=sys.stderr)
             return 1
 
-        # 查询（带进度汇报——终端 \r 行 + 日志定时落盘）
-        total = len(parsed_list)
+        # 查询（带进度汇报——每15秒或每10%进度写一条 INFO 日志）
         _progress_last_log = [0.0]
         _progress_last_pct = [-1]
 
         def _progress(count: int, _total: int):
             pct = count * 100 // _total
-            # 日志：每 15 秒或跨越 10% 阈值时写一条
+            # 每 15 秒或跨越 10% 阈值时写一条 INFO 日志（同时落 app.log + 控制台）
             import time
 
             now = time.monotonic()
@@ -132,14 +131,8 @@ class CLI:
                 logger.info("查询进度: %d/%d (%d%%)", count, _total, pct)
                 _progress_last_log[0] = now
                 _progress_last_pct[0] = pct
-            else:
-                msg = f"查询进度: {count}/{_total} ({pct}%)"
-                print(f"\r  {msg}", end="", file=sys.stderr, flush=True)
-                logger.debug(msg)
 
         results, stats = mgr.query(parsed_list, progress_callback=_progress)
-        if total:
-            print(file=sys.stderr)  # 进度行换行
 
         # 输出：含分类结果
         writer = csv.writer(sys.stdout)
@@ -306,13 +299,11 @@ class CLI:
         since = args.since or ""
 
         def _progress(cur: int, total: int, pid: str):
-            print(f"\r  公告进度: {cur}/{total}", end="", file=sys.stderr, flush=True)
+            logger.info("公告进度: %d/%d (pid=%s)", cur, total, pid)
 
         results = mgr.check_announcements_filtered(
             std_type=std_type, since_date=since, progress_callback=_progress
         )
-        if results:
-            print(file=sys.stderr)  # 进度行换行
 
         total_matched = 0
         for std_type_key, r in results.items():

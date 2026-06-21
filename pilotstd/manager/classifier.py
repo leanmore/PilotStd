@@ -122,12 +122,15 @@ class QueryClassifier:
         pending_list.extend(buckets.get("pending", []))
 
         # 3.1 回写 stage_status，供 UI 工作表按阶段切换显示
+        # 注意：若路由阶段已设置 stage_status（如 version_mismatch / name_conflict），
+        # 则保留原值，不覆盖
         for p in buckets.get("download", []):
             p.stage_status = "download"
         for p in buckets.get("expire", []):
             p.stage_status = "expired"
         for p in buckets.get("pending", []):
-            p.stage_status = "pending"
+            if not getattr(p, "stage_status", ""):
+                p.stage_status = "pending"
         for p in buckets.get("organize", []) + buckets.get("normalize", []):
             p.stage_status = "archive_ready"
 

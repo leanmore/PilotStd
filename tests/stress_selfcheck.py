@@ -3,6 +3,8 @@
 # 全程自动化，秒级完成
 #
 # 覆盖: i18n/通知/配额/任务队列/DB备份/文件工具/路径安全/clear_stale/数据模型
+#
+# 日志统一写入 logs/app.log（通过 LoggerManager）
 
 import argparse
 import logging
@@ -23,24 +25,10 @@ import sys as _sys
 _args = _p.parse_args([]) if "pytest" in _sys.argv[0] else _p.parse_args()
 OUTPUT_DIR = _args.output
 
-_log_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
-)
-os.makedirs(_log_dir, exist_ok=True)
-_log_path = os.path.join(_log_dir, f"stress_logic_{time.strftime('%Y%m%d_%H%M%S')}.log")
+# 使用 LoggerManager 统一日志（写入 logs/app.log）
+from pilotstd.core.logger import LoggerManager
 
-_ch = logging.StreamHandler(sys.stdout)
-_ch.setLevel(logging.INFO)
-_ch.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
-_fh = logging.FileHandler(_log_path, encoding="utf-8")
-_fh.setLevel(logging.DEBUG)
-_fh.setFormatter(
-    logging.Formatter("%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S")
-)
-_root = logging.getLogger()
-_root.setLevel(logging.DEBUG)
-_root.addHandler(_ch)
-_root.addHandler(_fh)
+LoggerManager.get_logger("stress_logic")  # 触发初始化
 
 # 抑制第三方日志噪音
 for _mod in ("urllib3", "requests", "lxml", "httpx", "PIL"):
@@ -618,5 +606,5 @@ except Exception as _e:
 total_time = time.time() - t0
 logger.info("=" * 60)
 logger.info("纯逻辑压力测试完成 (%.1fs)", total_time)
-logger.info("日志: %s", _log_path)
+logger.info("日志已写入: logs/app.log")
 _verdict()

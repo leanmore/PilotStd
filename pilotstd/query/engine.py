@@ -22,7 +22,7 @@ import logging
 #     分割任务，超出配额的部分自动切换到下一个站点。
 import re
 import threading
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, cast
 
 from ..query.search_strategy import (
     ADAPTER_TYPE_MAP,
@@ -45,13 +45,8 @@ FOREIGN_ROUTE = ["ahbz", "njbz365"]
 # 按标准代号分流：专业站点优先，njbz365 二线，csres 国标/行业兜底
 def _build_default_code_routes():
     from ..organizer.industry_lookup import _DB_PROVINCE_MAP
-    from ..scan.parser import FOREIGN_CODE_SET
 
     routes = {
-        "GB": ["ahbz", "std_gov", "njbz365", "csres"],
-        "GB/T": ["ahbz", "std_gov", "njbz365", "csres"],
-        "GB/Z": ["ahbz", "std_gov", "njbz365", "csres"],
-        "GSB": ["ahbz", "std_gov", "njbz365", "csres"],
         "ISO": ["iso_gov", "ahbz", "njbz365"],
         "IEC": ["iso_gov", "ahbz", "njbz365"],
     }
@@ -59,16 +54,13 @@ def _build_default_code_routes():
     for province_code in _DB_PROVINCE_MAP:
         routes[f"DB{province_code}"] = ["dbba", "ahbz", "njbz365"]
         routes[f"DB{province_code}/T"] = ["dbba", "ahbz", "njbz365"]
-    for fc in FOREIGN_CODE_SET:
-        if fc not in routes:
-            routes[fc] = list(FOREIGN_ROUTE)
-    # 省级DB代码已在上方动态生成，市级DB代码未命中时走行业路由
+    # GB/行业/国外标准统一走 classify_std_code() → ADAPTER_TYPE_MAP
     return routes
 
 
 CODE_ROUTES = _build_default_code_routes()
 # 行业标准（SH/NB/HG/JB 等）：行标平台优先，njbz365二线，csres兜底
-INDUSTRY_ROUTE = ["hbba", "ahbz", "njbz365", "csres"]
+INDUSTRY_ROUTE = ["hbba", "njbz365", "csres"]
 
 
 class QueryEngine:
@@ -249,16 +241,23 @@ class QueryEngine:
             std_type = classify_std_code(logical_code)
             type_route = ADAPTER_TYPE_MAP.get(std_type)
             if type_route:
-                # 新格式：{"primary": "ahbz", "fallback": "csres"}
-                # 构建完整链：primary → 补充站点 → fallback
-                primary = type_route.get("primary", "")
-                fallback = type_route.get("fallback", "")
-                base = [primary] if primary else []
-                # 补充中间站点（ahbz、njbz365 等）
-                extras = [s for s in PROD_PRIORITY if s not in base and s != fallback]
-                base.extend(extras[:2])  # 最多加 2 个中间站点
-                if fallback and fallback not in base:
-                    base.append(fallback)
+                # 支持两种格式：
+                #   显式链：{"chain": ["hbba", "njbz365", "csres"]} → 直接使用
+                #   构造链：{"primary": "ahbz", "fallback": "csres"} → primary + 补充站点 + fallback
+                explicit_chain = type_route.get("chain")
+                if explicit_chain:
+                    base = list(explicit_chain)
+                else:
+                    primary = type_route.get("primary", "")
+                    fallback = type_route.get("fallback", "")
+                    base = [primary] if primary else []
+                    # 补充中间站点（ahbz、njbz365 等）
+                    extras = [
+                        s for s in PROD_PRIORITY if s not in base and s != fallback
+                    ]
+                    base.extend(extras[:2])  # 最多加 2 个中间站点
+                    if fallback and fallback not in base:
+                        base.append(fallback)
                 logger.debug(
                     "[ROUTE] code=%s type=%s route=%s",
                     logical_code,
@@ -333,10 +332,11 @@ class QueryEngine:
     # 逐桶查询（V2）：桶内串行 + 桶间并行 + 临时桶链迭代
     # ════════════════════════════════════════════════════════════════
 
-    # 子桶大小（压测后数据驱动动态化）
-    _BUCKET_SIZE = 80
-    # 子桶间冷却间隔（秒）
-    _BUCKET_INTERVAL = 30
+    # ── 二次分桶参数 ──
+    # 小桶容量（条）
+    _MINI_BUCKET_SIZE = 50
+    # 小桶间错峰间隔（秒）
+    _MINI_BUCKET_STAGGER = 5
     # csres 日配额（30 GB + 20 行业）
     _CSRES_LIMIT = 50
     # csres 连续失败熔断阈值
@@ -344,8 +344,6 @@ class QueryEngine:
     # 溢出站点共享配额（ahbz: 200 中 170 给溢出, njbz365: 200 全给溢出）
     _AHBZ_OVERFLOW_QUOTA = 170
     _NJBZ_OVERFLOW_QUOTA = 200
-    # 桶主站点请求上限（超出后进入冷却，防止触发站点防御）
-    _PRIMARY_BUCKET_LIMIT = 400
 
     def _bucket_key(self, logical_code: str) -> str:
         """按 _get_priority 第一条（主站点）确定桶标识。"""
@@ -482,14 +480,6 @@ class QueryEngine:
         bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
         site_usage: Dict[str, int] = {}  # {site: count}
         usage_lock = threading.Lock()
-        # 桶主站点请求计数（线程安全），用于溢出配额检查
-        primary_bucket_count: Dict[str, int] = {}
-        primary_count_lock = threading.Lock()
-
-        def _inc_primary(site: str) -> int:
-            with primary_count_lock:
-                primary_bucket_count[site] = primary_bucket_count.get(site, 0) + 1
-                return primary_bucket_count[site]
 
         def _record_usage(site: str):
             with usage_lock:
@@ -509,68 +499,172 @@ class QueryEngine:
                 match_scores[site][status] = match_scores[site].get(status, 0) + 1
 
         def _bucket_worker(bucket_items, primary_site: str):
+            """二次分桶：按权重拆分为小桶(50条) → 错峰5s → 冷却/配额感知。
+
+            支持两种分配模式：
+              - 加权分配（ADAPTER_TYPE_MAP 含 weights 时）：按权重比例分配条目到各站点
+              - 轮询分配（默认）：round-robin 循环分配
+            """
             _ts = _time.time()
             chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
             chain = [s for s in chain if s != "csres"]
-            # 桶键可能不是链首（如 GB 分桶到 ahbz），裁剪链从当前主站开始
             if primary_site in chain:
                 chain = chain[chain.index(primary_site) :]
+            if not chain:
+                chain = [primary_site]
 
-            sub_buckets = [
-                bucket_items[i : i + self._BUCKET_SIZE]
-                for i in range(0, len(bucket_items), self._BUCKET_SIZE)
-            ]
+            # 读取权重配置
+            code = bucket_items[0][1][0]
+            from ..core.std_utils import classify_std_code
+
+            std_type = classify_std_code(code)
+            type_route = ADAPTER_TYPE_MAP.get(std_type, {})
+            weights = type_route.get("weights")
+
+            # ── 加权分配：按权重比例切分条目 ──
+            if weights and len(weights) == len(chain):
+                weights = cast(List[int], weights)
+                # 冷却站点权重按比例重分配给活跃站点
+                cooled_sites = set()
+                if self._rotator:
+                    for site in chain:
+                        if self._rotator.get_cooldown_remaining(site) > 0:
+                            cooled_sites.add(site)
+                active_weights = list(weights)
+                if cooled_sites:
+                    cooled_w = sum(
+                        w for w, s in zip(weights, chain) if s in cooled_sites
+                    )
+                    active_total = sum(
+                        w for w, s in zip(weights, chain) if s not in cooled_sites
+                    )
+                    if active_total > 0:
+                        active_weights = [
+                            0
+                            if s in cooled_sites
+                            else w + round(cooled_w * w / active_total)
+                            for w, s in zip(weights, chain)
+                        ]
+                        logger.info(
+                            "[MINI_BUCKET] cooled=%s redist_weights=%s",
+                            ",".join(sorted(cooled_sites)),
+                            active_weights,
+                        )
+
+                total_w = sum(active_weights)
+                mini_buckets = []  # [(site, items), ...]
+                start = 0
+                for i, site in enumerate(chain):
+                    if site in cooled_sites:
+                        continue
+                    if i == len(chain) - 1:
+                        target = len(bucket_items) - start
+                    else:
+                        target = round(len(bucket_items) * active_weights[i] / total_w)
+                    end = min(start + target, len(bucket_items))
+                    if end > start:
+                        site_slice = bucket_items[start:end]
+                        start = end
+                        # 拆分为50条小桶
+                        for j in range(0, len(site_slice), self._MINI_BUCKET_SIZE):
+                            mini_buckets.append(
+                                (
+                                    site,
+                                    site_slice[j : j + self._MINI_BUCKET_SIZE],
+                                )
+                            )
+                # 尾差兜底
+                if start < len(bucket_items):
+                    remaining = bucket_items[start:]
+                    for s in chain:
+                        if s not in cooled_sites:
+                            mini_buckets.append((s, remaining))
+                            break
+                    else:
+                        mini_buckets.append((chain[0], remaining))
+            else:
+                # ── 轮询分配（默认） ──
+                mini_buckets = []
+                for i in range(0, len(bucket_items), self._MINI_BUCKET_SIZE):
+                    mb = bucket_items[i : i + self._MINI_BUCKET_SIZE]
+                    site = chain[(i // self._MINI_BUCKET_SIZE) % len(chain)]
+                    mini_buckets.append((site, mb))
+
+            logger.info(
+                "[MINI_BUCKET] %s total=%d mini=%d chain=%s weights=%s",
+                primary_site,
+                len(bucket_items),
+                len(mini_buckets),
+                "→".join(chain),
+                weights,
+            )
+
             overflow_items = []
 
-            for sb_idx, sub in enumerate(sub_buckets):
-                if sb_idx > 0:
-                    _time.sleep(self._BUCKET_INTERVAL)
+            for mb_idx, (assigned_site, mini) in enumerate(mini_buckets):
+                # 错峰启动
+                if mb_idx > 0:
+                    _time.sleep(self._MINI_BUCKET_STAGGER)
 
-                for idx, item in sub:
-                    # 检查主桶站点是否超出配额上限
-                    _pc = _inc_primary(primary_site)
-                    if _pc > self._PRIMARY_BUCKET_LIMIT:
-                        overflow_site = chain[1] if len(chain) > 1 else None
-                        if _pc == self._PRIMARY_BUCKET_LIMIT + 1:
-                            logger.info(
-                                "[OVERFLOW_PRIMARY] site=%s limit=%d chain=%s",
-                                primary_site,
-                                self._PRIMARY_BUCKET_LIMIT,
-                                "→".join(chain),
-                            )
-                        if overflow_site and _try_overflow(overflow_site):
-                            assigned_site = overflow_site
-                        else:
-                            overflow_items.append((idx, item))
-                            continue
-                    # 检查冷却
-                    elif (
-                        self._rotator
-                        and self._rotator.get_cooldown_remaining(primary_site) > 0
-                    ):
-                        # 主站点冷却→尝试溢出到链上下一个站点
-                        remaining = self._rotator.get_cooldown_remaining(primary_site)
+                # 冷却/配额二次确认
+                if (
+                    self._rotator
+                    and self._rotator.get_cooldown_remaining(assigned_site) > 0
+                ):
+                    fallback_site = None
+                    for s in chain:
+                        if s != assigned_site and (
+                            not self._rotator
+                            or self._rotator.get_cooldown_remaining(s) <= 0
+                        ):
+                            fallback_site = s
+                            break
+                    if fallback_site:
                         logger.info(
-                            "[COOLDOWN] site=%s triggered_by=%s_bucket "
-                            "remaining_s=%.0f chain=%s",
-                            primary_site,
-                            remaining,
-                            "→".join(chain),
+                            "[MINI_BUCKET] mb=%d site=%s cooled→%s",
+                            mb_idx,
+                            assigned_site,
+                            fallback_site,
                         )
-                        overflow_site = chain[1] if len(chain) > 1 else None
-                        if overflow_site and _try_overflow(overflow_site):
-                            assigned_site = overflow_site
-                        else:
-                            overflow_items.append((idx, item))
-                            continue
+                        assigned_site = fallback_site
                     else:
-                        assigned_site = primary_site
-
-                    adapter = self._adapter_map.get(assigned_site)
-                    if not adapter:
-                        overflow_items.append((idx, item))
+                        logger.warning(
+                            "[MINI_BUCKET] mb=%d site=%s no_fallback overflow=%d",
+                            mb_idx,
+                            assigned_site,
+                            len(mini),
+                        )
+                        overflow_items.extend(mini)
                         continue
 
+                if self._quota and self._quota.get_search_remaining(
+                    assigned_site
+                ) < len(mini):
+                    logger.warning(
+                        "[MINI_BUCKET] mb=%d site=%s quota<%d overflow=%d",
+                        mb_idx,
+                        assigned_site,
+                        len(mini),
+                        len(mini),
+                    )
+                    overflow_items.extend(mini)
+                    continue
+
+                logger.info(
+                    "[MINI_BUCKET] mb=%d/%d site=%s items=%d",
+                    mb_idx + 1,
+                    len(mini_buckets),
+                    assigned_site,
+                    len(mini),
+                )
+
+                adapter = self._adapter_map.get(assigned_site)
+                if not adapter:
+                    overflow_items.extend(mini)
+                    continue
+
+                # 逐条查询
+                for idx, item in mini:
                     try:
                         _t0 = _time.time()
                         result = adapter.query_with_strategy(
@@ -603,7 +697,6 @@ class QueryEngine:
                             assigned_site, getattr(result, "match_status", "err")
                         )
                         score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
-                        # 记条目链
                         item_chains.setdefault(idx, []).append(assigned_site)
                         target_display = f"{item[0]} {item[1]}-{item[2]}"
                         if score >= 100:
@@ -618,7 +711,6 @@ class QueryEngine:
                                 result_callback(idx, result)
                             bump()
                         else:
-                            # 未达100分 → 溢出
                             logger.info(
                                 "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
                                 target_display,
@@ -656,8 +748,8 @@ class QueryEngine:
                     continue
                 future = executor.submit(_bucket_worker, items, bucket_key)
                 bucket_futures[future] = bucket_key
-                # 收集 csres 候选条目
-                if bucket_key in ("std_gov",):
+                # 收集 csres 候选条目（ahbz=GB主力桶, hbba=行业桶）
+                if bucket_key in ("ahbz", "std_gov"):
                     csres_pool_gb.extend(items)
                 elif bucket_key in ("hbba",):
                     csres_pool_industry.extend(items)

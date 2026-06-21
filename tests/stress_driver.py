@@ -107,8 +107,11 @@ def _load_test_config(path: str) -> dict:
 
 
 def _log(msg):
-    line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
-    print(line, flush=True)
+    """压测日志统一写入 logs/app.log + 控制台输出。"""
+    from pilotstd.core.logger import LoggerManager
+
+    logger = LoggerManager.get_logger("stress_driver")
+    logger.info(msg)
 
 
 # ── 第〇步：环境自检 + 复位 + 清 DB ──────────────────────────
@@ -1249,6 +1252,72 @@ def _step3_docker(docker_url: str, docker_user: str, docker_pass: str):
         return False
 
 
+# ── 远端日志取回 ──────────────────────────────────────────────
+
+
+def _fetch_remote_logs(docker_url: str, username: str, password: str) -> None:
+    """从远端 Docker API 获取 app.log，转录到本地 app.log。
+
+    在 Docker 压测完成后调用，合并远端日志到本地。
+    取回失败仅记录 warning，不中断压测流程。
+    """
+    import requests
+
+    from pilotstd.core.logger import LoggerManager
+
+    logger = LoggerManager.get_logger("stress_driver")
+    try:
+        # 1. 登录获取 token
+        login_url = f"{docker_url}/api/login"
+        resp = requests.post(
+            login_url,
+            data={"username": username, "password": password},
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            _log(f"远端日志取回失败: 登录失败 status={resp.status_code}")
+            return
+        token = resp.json().get("access_token", "")
+        if not token:
+            _log("远端日志取回失败: 未获取到 access_token")
+            return
+
+        # 2. 获取远端日志
+        log_url = f"{docker_url}/api/admin/logs/app"
+        resp = requests.get(
+            log_url,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=60,
+        )
+        if resp.status_code == 404:
+            _log("远端日志取回: 远端 app.log 尚未生成，跳过")
+            return
+        if resp.status_code != 200:
+            _log(f"远端日志取回失败: HTTP {resp.status_code}")
+            return
+
+        # 3. 转录到本地 app.log（以 [DOCKER] 前缀标记远端来源）
+        remote_content = resp.text
+        _log(f"远端日志取回成功, {len(remote_content)} 字符")
+        for line in remote_content.strip().split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # 提取日志消息体（去掉远端的时间戳/级别前缀，追加 [DOCKER] 标记）
+            if "] " in stripped:
+                msg_body = stripped.split("] ", 1)[-1]
+            else:
+                msg_body = stripped
+            logger.info("[DOCKER] %s", msg_body)
+
+    except requests.exceptions.ConnectionError:
+        _log(f"远端日志取回失败: 无法连接 {docker_url}")
+    except requests.exceptions.Timeout:
+        _log("远端日志取回失败: 请求超时")
+    except Exception as e:
+        _log(f"远端日志取回异常: {e}")
+
+
 # ── 第四步：汇总判定 ──────────────────────────────────────────
 
 
@@ -1442,6 +1511,9 @@ def main():
         step3_ok = True
         if not args.skip_docker:
             step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
+            if step3_ok:
+                _log("取回远端 Docker 日志...")
+                _fetch_remote_logs(docker_url, docker_user, docker_pass)
         verdict = _step4_verdict(
             True, step2_ok, step3_ok, False, args.skip_docker, None
         )
@@ -1510,6 +1582,8 @@ def main():
         credential_detail = "Docker 步骤已跳过"
 
     # 第一步：CLI 冷启
+    _terminated_early = False
+    _terminated_step = ""
     if getattr(args, "skip_cli", False):
         _log("第一步：跳过（--skip-cli）")
         flow_status = "SKIPPED"
@@ -1697,6 +1771,9 @@ def main():
                 _log("已取消，测试停止。")
                 return 0
         step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
+        if step3_ok:
+            _log("取回远端 Docker 日志...")
+            _fetch_remote_logs(docker_url, docker_user, docker_pass)
     else:
         _log("第三步：跳过（--skip-docker）")
 

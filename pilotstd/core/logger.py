@@ -1,12 +1,12 @@
 # pilotstd/core/logger.py
-# 日志管理器：双通道（控制台+文件）、自动轮转、按级别筛选、支持导出
+# 日志管理器：双通道（控制台+文件）、按天轮转、14天保留、支持导出
 
 import logging
 import os
 import sys
 import threading
 import time
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from typing import Optional
 
 from .frozen import is_frozen
@@ -37,6 +37,10 @@ _TAG_MAP = {
     "logger": "LOG",
     "search_strategy": "MATCH",
     "cache": "CACHE",
+    "stress": "STRESS",
+    "stress_driver": "STRESS",
+    "stress_logic": "STRESS",
+    "stress_web": "STRESS",
 }
 
 
@@ -70,7 +74,11 @@ def _get_log_dir() -> str:
 
 
 class LoggerManager:
-    """封装日志初始化，提供统一的 logger 获取入口。"""
+    """封装日志初始化，提供统一的 logger 获取入口。
+
+    双通道输出：控制台(INFO) + 文件(DEBUG)。
+    按天轮转，保留 14 天历史日志。
+    """
 
     _instance: Optional["LoggerManager"] = None
     _lock: threading.Lock = threading.Lock()
@@ -79,9 +87,7 @@ class LoggerManager:
         self,
         log_dir: Optional[str] = None,
         level: int = logging.INFO,
-        max_bytes: int = 512 * 1024,
-        backup_count: int = 5,
-        retain_days: int = 7,
+        retain_days: int = 14,
     ):
         if log_dir is None:
             log_dir = _get_log_dir()
@@ -89,19 +95,17 @@ class LoggerManager:
         os.makedirs(self._log_dir, exist_ok=True)
 
         self._level = level
-        self._max_bytes = max_bytes
-        self._backup_count = backup_count
         self._retain_days = retain_days
 
-        # 文件日志
+        # 文件日志 — 年份完整，便于跨年回溯
         file_fmt = _TagFormatter(
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
-            datefmt="%m-%d %H:%M:%S",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         # 控制台日志
         console_fmt = _TagFormatter(
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
-            datefmt="%m-%d %H:%M:%S",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
 
         root = logging.getLogger()
@@ -133,19 +137,21 @@ class LoggerManager:
     # ---- 内部 ----
 
     def _console_handler(self, fmt: logging.Formatter) -> logging.Handler:
-        h = logging.StreamHandler()
+        h = logging.StreamHandler(sys.stdout)
         h.setLevel(self._level)
         h.setFormatter(fmt)
         return h
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         path = os.path.join(self._log_dir, filename)
-        h = RotatingFileHandler(
+        h = TimedRotatingFileHandler(
             path,
-            maxBytes=self._max_bytes,
-            backupCount=self._backup_count,
+            when="midnight",
+            interval=1,
+            backupCount=self._retain_days,
             encoding="utf-8",
         )
+        h.suffix = "%Y%m%d"
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h

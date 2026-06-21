@@ -1,9 +1,13 @@
-# docker/api/logs.py — 应用日志读取 API（供前端日志栏使用）
+# docker/api/logs.py — 应用日志读取 API（供前端日志栏 + 压测远端取回使用）
 import os
 
+from fastapi import Depends
+from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 
 from pilotstd.core.logger import _get_log_dir
+
+from ..auth import require_admin
 
 router = APIRouter(tags=["logs"])
 
@@ -33,3 +37,21 @@ def get_logs(tail: int = 50, offset: int = 0):
         }
     except OSError as e:
         return {"lines": [f"[日志读取失败] {e}"], "path": _LOG_PATH}
+
+
+@router.get("/api/admin/logs/app")
+def get_app_log_raw(username: str = Depends(require_admin)):
+    """返回完整 app.log 文件内容（管理员权限，供压测驱动器远端取回）。
+
+    返回纯文本，Content-Type: text/plain; charset=utf-8。
+    日志文件不存在时返回 404。
+    """
+    from fastapi import HTTPException
+
+    if not os.path.exists(_LOG_PATH):
+        raise HTTPException(status_code=404, detail="日志文件不存在")
+    return FileResponse(
+        _LOG_PATH,
+        media_type="text/plain; charset=utf-8",
+        filename="app.log",
+    )

@@ -302,6 +302,10 @@ class StandardManager:
         # 查询后分类
         self._classify_after_query(items, results)
 
+        # 持久化待确认条目（CLI/auto_run/UI 统一路径，record_pending 幂等防重）
+        if self._pending_list:
+            self.record_pending(self._pending_list)
+
         # 汇总汇报
         self._report_query_summary(stats, items, results)
         return results, stats
@@ -848,9 +852,14 @@ class StandardManager:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。
 
         不解析、不分类、不查询。跳过系统垃圾文件（Thumbs.db、~$* 等）。
+        跳过 next_action="pending" 的条目。
         在正常归档和 organize_skipped_dirs 之后调用。
         """
-        return self._organizer_svc.organize_fallback(source_root)
+        # 收集待确认条目的源文件路径，兜底镜像时跳过
+        pending_paths = frozenset(
+            p.source_path for p in self._pending_list if getattr(p, "source_path", "")
+        )
+        return self._organizer_svc.organize_fallback(source_root, pending_paths)
 
     # ════════════════════════════════════════════════════════════════
     # 过期处理

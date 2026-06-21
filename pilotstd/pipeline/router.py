@@ -119,6 +119,8 @@ class PipelineRouter:
             # 规则0: 非 exact 匹配 → pending（置信不足，等以后重查）
             if match_status and match_status != "exact":
                 buckets["pending"].append(p)
+                if match_status in ("older", "newer"):
+                    p.stage_status = "version_mismatch"
                 continue
 
             # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending

@@ -420,13 +420,16 @@ class TestRouting(unittest.TestCase):
         self.CODE_ROUTES = CODE_ROUTES
 
     def test_njbz365_in_routes(self):
-        """njbz365 已恢复：GB/GB/T 路由含 njbz365 作为二线站点"""
-        for code in ("GB", "GB/T", "GB/Z", "GSB"):
-            self.assertIn(
-                "njbz365",
-                self.CODE_ROUTES.get(code, []),
-                f"njbz365 应在 {code} 路由中（二线站点）",
-            )
+        """njbz365 在 GB 路由链中（已迁移到 ADAPTER_TYPE_MAP["gb"]["chain"]）"""
+        from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
+
+        gb_entry = ADAPTER_TYPE_MAP.get("gb", {})
+        gb_chain = gb_entry.get("chain", [])
+        self.assertIn(
+            "njbz365",
+            gb_chain,
+            "njbz365 应在 GB 路由链中",
+        )
 
     def test_njbz365_in_priority(self):
         """njbz365 在默认优先级中"""
@@ -447,37 +450,52 @@ class TestRouting(unittest.TestCase):
         self.assertIn("njbz365", FOREIGN_ROUTE)
 
     def test_foreign_codes_have_routes(self):
-        """所有 FOREIGN_CODE_SET 中的代号在 CODE_ROUTES 中都有条目"""
+        """所有 FOREIGN_CODE_SET 中的代号通过 classify_std_code → ADAPTER_TYPE_MAP 获取路由。
+
+        国外标准不再硬编码到 CODE_ROUTES，而是走 ADAPTER_TYPE_MAP["foreign"]。
+        """
+        from pilotstd.core.std_utils import classify_std_code
+        from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
         from pilotstd.scan.parser import FOREIGN_CODE_SET
 
+        foreign_route = ADAPTER_TYPE_MAP.get("foreign")
+        self.assertIsNotNone(foreign_route, "ADAPTER_TYPE_MAP 中应有 foreign 条目")
         for fc in FOREIGN_CODE_SET:
-            self.assertIn(fc, self.CODE_ROUTES, f"{fc} 应在 CODE_ROUTES 中有路由条目")
+            self.assertEqual(
+                classify_std_code(fc),
+                "foreign",
+                f"{fc} 应分类为 foreign",
+            )
 
     def test_awwa_routes_to_foreign(self):
-        """AWWA(4字符)应在 CODE_ROUTES 中且路由不含 hbba（国外路由不走行业平台）"""
-        from pilotstd.query.engine import CODE_ROUTES
+        """AWWA(4字符)应分类为 foreign 而非 industry（国外路由不走行业平台）"""
+        from pilotstd.core.std_utils import classify_std_code
 
-        self.assertIn("AWWA", CODE_ROUTES)
-        self.assertNotIn("hbba", CODE_ROUTES.get("AWWA", []))
+        self.assertEqual(classify_std_code("AWWA"), "foreign")
 
     def test_foreign_codes_route_to_njbz365_not_csres(self):
-        """外标代号应走 njbz365 而非 csres（O修复回归测试）。
+        """外标代号应走 njbz365 而非 csres（回归测试）。
 
-        csres 无法查询国外标准，强制冷却 24h 会阻塞后续国内标准查询。
+        国外标准通过 ADAPTER_TYPE_MAP["foreign"] 路由，主站点 njbz365。
+        csres 无法查询国外标准，不应出现在路由链中。
         """
-        from pilotstd.query.engine import CODE_ROUTES
+        from pilotstd.core.std_utils import classify_std_code
+        from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
         from pilotstd.scan.parser import FOREIGN_CODE_SET
+
+        foreign_route = ADAPTER_TYPE_MAP.get("foreign", {})
+        primary = foreign_route.get("primary", "")
+        self.assertEqual(primary, "njbz365", "foreign 主站点应为 njbz365")
+        self.assertNotEqual(primary, "csres", "foreign 主站点不应为 csres")
 
         for fc in FOREIGN_CODE_SET:
             if fc in ("ISO", "IEC"):
-                continue  # ISO/IEC 走 iso_gov 路线，不走 FOREIGN_ROUTE
-            route = CODE_ROUTES.get(fc, [])
-            self.assertNotIn(
-                "csres",
-                route,
-                f"{fc} 不应路由到 csres（csres 无法查询国外标准），当前路由={route}",
+                continue  # ISO/IEC 走 iso_iec 路线
+            self.assertEqual(
+                classify_std_code(fc),
+                "foreign",
+                f"{fc} 应分类为 foreign",
             )
-            self.assertIn("njbz365", route, f"{fc} 应路由到 njbz365，当前路由={route}")
 
 
 # ── 网络异常模拟测试 ─────────────────────────────────────

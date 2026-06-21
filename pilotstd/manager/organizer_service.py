@@ -406,10 +406,13 @@ class OrganizerService:
     # 兜底镜像
     # ════════════════════════════════════════════════════════════════
 
-    def organize_fallback(self, source_root: str) -> dict:
+    def organize_fallback(
+        self, source_root: str, pending_paths: frozenset = frozenset()
+    ) -> dict:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。
 
         不解析、不分类、不查询。跳过系统垃圾文件（Thumbs.db、~$* 等）。
+        跳过 next_action="pending" 的条目（待用户确认前不归档）。
         在正常归档和 organize_skipped_dirs 之后调用。
         """
         # Windows 长路径支持：统一使用 ensure_long_path
@@ -425,6 +428,7 @@ class OrganizerService:
             "word_mirrored": 0,
             "skipped": 0,
             "skipped_by_organize": 0,
+            "skipped_pending": 0,
             "details": [],
         }
         for dirpath, dirnames, filenames in os.walk(source_root):
@@ -435,6 +439,10 @@ class OrganizerService:
                     result["skipped"] += 1
                     continue
                 src = os.path.join(dirpath, fname)
+                # 跳过待确认条目（用户确认前不归档）
+                if src in pending_paths or strip_long_path(src) in pending_paths:
+                    result["skipped_pending"] += 1
+                    continue
                 # organize() 已确认目标存在的文件，fallback 不再搬运
                 if src in self._skipped_source_files:
                     result["skipped_by_organize"] += 1
@@ -464,7 +472,8 @@ class OrganizerService:
                     result["details"].append(f"兜底镜像失败: {fname} - {e}")
         logger.info(
             f"兜底镜像完成: {result['moved']} 已移动, {result['skipped']} 已跳过"
-            f"({result['skipped_by_organize']}因目标已存在), {result['failed']} 失败"
+            f"({result['skipped_by_organize']}因目标已存在, "
+            f"{result['skipped_pending']}因待确认), {result['failed']} 失败"
         )
         return result
 

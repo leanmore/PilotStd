@@ -27,16 +27,16 @@ def classify_std_code(logical_code: str) -> str:
     if code in GB_CODES:
         return "gb"
 
-    # ISO/IEC
-    for iso in ISO_IEC_SET:
-        if code.startswith(iso.upper().replace(" ", "")):
-            return "iso_iec"
-
-    # 国外标准
+    # 国外标准（必须在 ISO/IEC 之前检查，避免 IEEE 被 IEC startswith 误匹配）
     for fc in FOREIGN_CODE_SET:
         fc_norm = fc.upper().replace(" ", "")
         if code.startswith(fc_norm):
             return "foreign"
+
+    # ISO/IEC
+    for iso in ISO_IEC_SET:
+        if code.startswith(iso.upper().replace(" ", "")):
+            return "iso_iec"
 
     # 地方标准（DB + 数字）
     if re.match(r"^DB\d{2,4}(?:/T)?$", code):

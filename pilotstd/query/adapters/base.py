@@ -58,7 +58,7 @@ class BaseAdapter(ABC):
         num_prefix: str = "",
         num_suffix: str = "",
     ) -> Optional[QueryResult]:
-        """渐进式搜索：完整号直搜 → 空格回退 → 去年份 → 代号变体。"""
+        """渐进式搜索：完整号直搜 → 空格回退 → 去前缀 → 去年份 → 代号变体。"""
         part_str = f".{part}" if part else ""
         target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
 
@@ -96,7 +96,25 @@ class BaseAdapter(ABC):
                     self._post_process_result(result)
                     return result
 
-        # 第三步：去年份回退
+        # 第三步：去除 num_prefix 回退（如 ANSI C78.81 → ANSI 78.81，保留年份）
+        no_prefix = f"{logical_code} {number}{num_suffix or ''}{part_str}-{year}"
+        if num_prefix and no_prefix != target:
+            result = self._search(no_prefix)
+            if result and result.is_found():
+                _, status = match_result(
+                    logical_code,
+                    number,
+                    year,
+                    result.standard_name,
+                    result.standard_number,
+                    local_part=part,
+                )  # type: ignore[arg-type]
+                if status == "exact":
+                    result.match_status = status
+                    self._post_process_result(result)
+                    return result
+
+        # 第四步：去年份回退
         no_year = (
             f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
         )
@@ -115,7 +133,7 @@ class BaseAdapter(ABC):
                 self._post_process_result(result)
                 return result
 
-        # 第四步：代号变体补充（API Std/Spec、ASME BPVC、DIN EN 等）
+        # 第五步：代号变体补充（API Std/Spec、ASME BPVC、DIN EN 等）
         variants = build_code_variants(logical_code, number, year, num_prefix)
         best_score = -1
         best_result = None
