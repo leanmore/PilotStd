@@ -83,6 +83,11 @@
 - [ ] 更新能力所在位置（文件:行号）以反映新代码。
 - [ ] 若旧文件已删除，从登记簿中移除对应的旧位置条目。
 
+### 3.2.1 CI 流水线验证
+
+- [ ] CI 流水线中的观测能力自检已通过（`python tests/test_observability.py --check-all` 零 FAIL）
+- [ ] 若登记簿中存在 `migrating` 条目，`scripts/check_no_migrating.sh` 会阻断合并，请确保迁移完成后再合并
+
 ### 3.3 PR 描述
 
 - [ ] 附上"能力迁移状态表"：

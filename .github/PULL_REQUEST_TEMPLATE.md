@@ -1,6 +1,24 @@
 ## Description
 <!-- Please include a summary of the change -->
 
+## Capability Migration Status (Governance Required)
+
+> If this PR does NOT involve refactoring or migration, check "Not applicable" and skip the table.
+
+- [ ] Not applicable (new feature or bug fix, no refactoring)
+- [ ] Involves refactoring (fill table below)
+
+| Capability Name | Source Location | Target Location | Status |
+|----------|----------|----------|----------|
+|          |          |          | migrated / abandoned / new |
+|          |          |          | migrated / abandoned / new |
+
+**Verification**:
+- [ ] Ran `python tests/test_observability.py --check-all`, result: ___ (PASS / FAIL)
+- [ ] Updated `docs/governance/capabilities_registry.md` if capabilities changed
+
+---
+
 ## Type of Change
 - [ ] Bug fix
 - [ ] New feature

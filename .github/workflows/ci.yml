@@ -16,6 +16,7 @@ on:
       - 'docker-compose.yml'
       - '.github/workflows/ci.yml'
       - '.github/scripts/**'
+      - 'docs/governance/**'
       - 'main.py'
   pull_request:
     branches: [main]
@@ -135,6 +136,18 @@ jobs:
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --deselect "tests/test_pipeline_router.py" \
             --deselect "tests/test_e2e_adapters.py"
+
+      - name: Observability self-check
+        run: python tests/test_observability.py --check-all
+
+      - name: Governance documents validation
+        run: |
+          if grep -q "migrating" docs/governance/capabilities_registry.md; then
+            echo "::error::Found entries with status 'migrating' in capabilities_registry.md"
+            echo "Please resolve them before merging (migrate or deprecate)."
+            exit 1
+          fi
+          echo "No migrating entries found — governance check passed."
 
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
