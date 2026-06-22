@@ -266,7 +266,8 @@ def verify_api_key(token: str) -> dict | None:
     """
     if not token.startswith("pst_"):
         return None
-    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    actual_token = token[4:]  # 去掉 "pst_" 前缀后做 SHA256 哈希
+    key_hash = hashlib.sha256(actual_token.encode()).hexdigest()
     from pilotstd.core.config import get_db_path
     from pilotstd.core.db import Database
 
