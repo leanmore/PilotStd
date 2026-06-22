@@ -64,6 +64,7 @@ web/src/components/HelloWorld.vue
 web/src/assets/vite.svg
 web/src/assets/vue.svg
 capture_*.bmp
+capture_*.png
 web/dist/
 web/stats.html
 
