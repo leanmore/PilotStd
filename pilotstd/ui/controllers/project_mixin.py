@@ -82,7 +82,7 @@ class ProjectMixin:
                 )
             else:
                 QMessageBox.warning(
-                    self,  # type: ignore[arg-type]
+                    self,
                     _("title_save_failed"),
                     _("msg_save_project_failed").format(path=path),
                 )

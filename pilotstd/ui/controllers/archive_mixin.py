@@ -133,7 +133,7 @@ class ArchiveMixin:
             if count > 5:
                 sample += f"\n  ... 等共 {count} 个"
             msg = _("msg_file_overwrite").format(count=count, sample=sample)
-            reply = QMessageBox.question(  # type: ignore[arg-type]
+            reply = QMessageBox.question(
                 self,
                 _("title_file_exists"),
                 msg,

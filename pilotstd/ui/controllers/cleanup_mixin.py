@@ -41,7 +41,7 @@ class CleanupMixin:
         # 首次询问
         if not self._config.get("file.clear_readonly_asked", False):
             reply = QMessageBox.question(
-                self,  # type: ignore[arg-type]
+                self,
                 _("msg_readonly_title"),
                 _("msg_readonly_prompt"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -58,7 +58,7 @@ class CleanupMixin:
         """清理空文件夹：用户选择目录 → 扫描空目录和仅含过期文件的目录
         → 弹窗确认 → 删除 → 弹窗汇总。"""
         # 用户选择要清理的目录
-        path = QFileDialog.getExistingDirectory(self, _("dialog_select_cleanup_dir"))
+        path = QFileDialog.getExistingDirectory(None,_("dialog_select_cleanup_dir"))
         if not path:
             return
         path = ensure_long_path(path)  # 长路径支持
@@ -115,11 +115,7 @@ class CleanupMixin:
         # 对仅含过期文件夹的目录，逐个确认
         for d in expire_only:
             name = os.path.basename(d)
-            reply2 = QMessageBox.question(
-                None,
-                _("dialog_cleanup_title"),
-                _("msg_cleanup_expire_only").format(name=name, expire=expire_folder),
-            )
+            reply2 = QMessageBox.question(None, _("dialog_cleanup_title"), _("msg_cleanup_expire_only").format(name=name, expire=expire_folder),)
             if reply2 == QMessageBox.StandardButton.Yes:
                 # 清除目录下所有文件的只读属性，防止 rmtree 因只读文件崩溃
                 if self._ensure_clear_readonly():
@@ -135,14 +131,14 @@ class CleanupMixin:
                     logger.info(f"删除仅含过期目录的文件夹: {d}")
                 except OSError as e:
                     logger.error(f"删除失败: {d}: {e}")
-                    QMessageBox.warning(  # type: ignore[arg-type]
-                        self,  # type: ignore[arg-type]
+                    QMessageBox.warning(
+                        self,
                         _("dialog_cleanup_title"),
                         f"删除失败: {name}\n{e}\n\n请检查是否有文件正在被其他程序占用。",
                     )
 
         # 弹窗汇总
-        QMessageBox.information(  # type: ignore[arg-type]
+        QMessageBox.information(
             self, _("dialog_cleanup_title"), _("msg_cleanup_done").format(count=deleted)
         )
 
@@ -152,7 +148,7 @@ class CleanupMixin:
         """未识别文件处理：列出扫描中解析失败的文件，用户勾选后
         原封不动搬迁到 标准/未识别文件/，保留源目录层级结构。"""
         if not self._unrecognized_files:
-            QMessageBox.information(  # type: ignore[arg-type]
+            QMessageBox.information(
                 self, _("dialog_collect_unrecognized"), _("msg_collect_none")
             )
             return
@@ -261,8 +257,8 @@ class CleanupMixin:
         progress.close()
 
         self._unrecognized_files = []
-        QMessageBox.information(  # type: ignore[arg-type]
-            self,  # type: ignore[arg-type]
+        QMessageBox.information(
+            self,
             _("dialog_collect_unrecognized"),
             _("msg_collect_done").format(count=moved),
         )

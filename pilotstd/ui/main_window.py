@@ -187,7 +187,7 @@ class MainWindow(
 
     def _quit_app(self) -> None:
         try:
-            self._db.backup()  # type: ignore[attr-defined]
+            self._db.backup()
             logger.info("数据库已备份")
         except Exception:
             logger.debug("数据库备份跳过（DB未初始化或已关闭）")
@@ -718,7 +718,7 @@ class MainWindow(
         from .pages.rules_page import RulesPage  # 延迟导入
 
         dlg = ConfigPageDialog(
-            RulesPage(self._config), "网站规则配置（查询/下载）", self
+            RulesPage(self._config), "网站规则配置（查询/下载）", self  # type: ignore[arg-type]
         )
         dlg.exec()
 
@@ -730,13 +730,13 @@ class MainWindow(
             return
         from .pages.task_page import TaskCenterDialog  # 延迟导入
 
-        dlg = TaskCenterDialog(self._mgr.task_queue, self)
+        dlg = TaskCenterDialog(self._mgr.task_queue, self)  # type: ignore[arg-type]
         dlg.exec()
 
     def _on_settings(self) -> None:
         from .pages.settings_page import SettingsDialog  # 延迟导入
 
-        dlg = SettingsDialog(self._config, self)
+        dlg = SettingsDialog(self._config, self)  # type: ignore[arg-type]
         dlg.exec()
         self._apply_language()
         self._apply_theme()
@@ -766,7 +766,7 @@ class MainWindow(
         last_check = self._config.get("appearance.last_update_check", 0)
         if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
             QMessageBox.information(
-                self,
+                self,  # type: ignore[arg-type]
                 _("title_no_update"),
                 _("update_already_latest").format(current=current),
             )
@@ -784,7 +784,7 @@ class MainWindow(
 
             if not is_newer_version(latest, current):
                 QMessageBox.information(
-                    self,
+                    self,  # type: ignore[arg-type]
                     _("title_no_update"),
                     _("update_already_latest").format(current=current),
                 )
@@ -792,7 +792,7 @@ class MainWindow(
 
             body = release["body"][:500]
             reply = QMessageBox.question(
-                self,
+                self,  # type: ignore[arg-type]
                 _("title_update_found"),
                 _("update_new_version_msg").format(
                     current=current, latest=latest, body=body
@@ -852,7 +852,7 @@ class MainWindow(
             import subprocess
 
             reply = QMessageBox.question(
-                self,
+                self,  # type: ignore[arg-type]
                 _("update_restart_title"),
                 _("update_download_ready"),
                 QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
@@ -864,7 +864,7 @@ class MainWindow(
         except Exception as e:
             logger.warning("检查更新失败: %s", e)
             QMessageBox.information(
-                self,
+                self,  # type: ignore[arg-type]
                 _("title_no_update"),
                 _("update_connection_failed").format(current=current),
             )
@@ -872,7 +872,7 @@ class MainWindow(
     def _on_about(self) -> None:
         from pilotstd import __version__
 
-        QMessageBox.about(self, _("about"), _("about_text").format(version=__version__))
+        QMessageBox.about(self, _("about"), _("about_text").format(version=__version__))  # type: ignore[arg-type]
 
     # ================================================================
     # 欢迎页
@@ -884,7 +884,7 @@ class MainWindow(
             return
         from .welcome_dialog import WelcomeDialog  # 延迟导入
 
-        dlg = WelcomeDialog(self)
+        dlg = WelcomeDialog(self)  # type: ignore[arg-type]
         dlg.exec()
         if dlg.should_skip():
             self._config.set("appearance.skip_welcome", True)

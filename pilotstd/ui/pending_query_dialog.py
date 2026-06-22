@@ -162,7 +162,7 @@ class PendingQueryDialog(QDialog):
                 self._selected_site = name
                 break
         if not self._selected_site:
-            QMessageBox.warning(self, _("title_hint"), _("select_site_first"))
+            QMessageBox.warning(None,_("title_hint"), _("select_site_first"))
             return
 
         # 检查重试次数限制（每个待确认标准最多自动查询 3 次）

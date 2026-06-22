@@ -72,7 +72,7 @@ class BaseAdapter(ABC):
                 result.standard_name,
                 result.standard_number,
                 local_part=part,
-            )  # type: ignore[arg-type]
+)
             if status == "exact":
                 result.match_status = status
                 self._post_process_result(result)
@@ -90,7 +90,7 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-                )  # type: ignore[arg-type]
+)
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
@@ -108,7 +108,7 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-                )  # type: ignore[arg-type]
+)
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
@@ -127,7 +127,7 @@ class BaseAdapter(ABC):
                 result.standard_name,
                 result.standard_number,
                 local_part=part,
-            )  # type: ignore[arg-type]
+)
             if status in ("exact", "newer", "older"):
                 result.match_status = status
                 self._post_process_result(result)
@@ -152,7 +152,7 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-                )  # type: ignore[arg-type]
+)
                 score = MATCH_SCORE.get(status, 0)
                 if score > best_score:
                     best_score = score

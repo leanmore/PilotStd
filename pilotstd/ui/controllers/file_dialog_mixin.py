@@ -57,4 +57,4 @@ class FileDialogMixin:
 
     def _pick_folder(self, title: str, start_dir: str = "") -> str:
         """打开系统原生文件夹选择对话框。"""
-        return QFileDialog.getExistingDirectory(self, title, start_dir)  # type: ignore[arg-type]
+        return QFileDialog.getExistingDirectory(None,title, start_dir)

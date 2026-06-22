@@ -484,12 +484,12 @@ class SettingsPage(QWidget):
         self._config.save()
 
     def _browse_root(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, _("dialog_select_library"))
+        path = QFileDialog.getExistingDirectory(None,_("dialog_select_library"))
         if path:
             self.root_dir.setText(path)
 
     def _browse_downloads_dir(self) -> None:
-        path = QFileDialog.getExistingDirectory(self, _("dialog_select_temp_dl"))
+        path = QFileDialog.getExistingDirectory(None,_("dialog_select_temp_dl"))
         if path:
             self.downloads_dir.setText(path)
 
@@ -545,5 +545,5 @@ class SettingsDialog(QDialog):
 
     def _on_accept(self) -> None:
         self.page.save_to_config()
-        QMessageBox.information(self, _("settings_title"), _("settings_saved"))
+        QMessageBox.information(None,_("settings_title"), _("settings_saved"))
         self.accept()

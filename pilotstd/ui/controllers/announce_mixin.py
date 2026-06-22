@@ -36,8 +36,8 @@ class AnnounceMixin:
         # Web 端公告缓存模式互斥：禁用本地公告检查
         if self._config.get("query.use_announcement_cache", False):
             logger.info("本地公告检查被禁用（use_announcement_cache=True）")
-            QMessageBox.information(  # type: ignore[arg-type]
-                self,  # type: ignore[arg-type]
+            QMessageBox.information(
+                self,
                 "公告检查",
                 "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。",
             )
@@ -85,11 +85,11 @@ class AnnounceMixin:
 
         # 弹窗汇总
         if self._ann_worker._stopped:
-            QMessageBox.information(  # type: ignore[arg-type]
+            QMessageBox.information(
                 self, _("announcement_check"), _("announcement_cancelled")
             )
         elif self._ann_worker._error and not self._ann_worker._matched:
-            QMessageBox.warning(self, _("announcement_check"), self._ann_worker._error)
+            QMessageBox.warning(None,_("announcement_check"), self._ann_worker._error)
         else:
             failures = getattr(self._ann_worker, "_failures", [])
             fail_msg = ""
@@ -103,8 +103,8 @@ class AnnounceMixin:
                 fail_msg = _("announcement_failures").format(
                     count=len(failures), path=fail_path
                 )
-            QMessageBox.information(  # type: ignore[arg-type]
-                self,  # type: ignore[arg-type]
+            QMessageBox.information(
+                self,
                 _("announcement_check"),
                 _("announcement_complete").format(
                     total=self._ann_worker._total, matched=self._ann_worker._matched

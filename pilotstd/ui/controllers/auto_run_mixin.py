@@ -60,7 +60,7 @@ class AutoRunMixin:
             return
         path = self._get_selected_path()
         if not path:
-            QMessageBox.information(self, _("title_hint"), _("import_hint"))
+            QMessageBox.information(None,_("title_hint"), _("import_hint"))
             return
         self._start_auto_pipeline(path)
 

@@ -98,7 +98,7 @@ class TableMixin:
 
     def _on_save_result(self, fmt: str) -> None:
         if self.work_table.rowCount() == 0:
-            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
+            QMessageBox.information(None,_("title_hint"), _("no_data_to_save"))
             return
 
         vis_names = self._get_visible_cols()
@@ -144,7 +144,7 @@ class TableMixin:
             elif fmt == "csv":
                 self._save_csv(path, rows, vis_names, visible_data_keys)
         except OSError as e:
-            QMessageBox.warning(self, _("title_save_failed"), str(e))
+            QMessageBox.warning(None,_("title_save_failed"), str(e))
 
     def _save_txt(
         self,

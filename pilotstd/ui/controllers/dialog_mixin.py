@@ -72,7 +72,7 @@ class DialogMixin:
     ) -> None:
         """统一阶段弹窗。下一步按钮在左，确定在右，等宽等高。
         支持右下角拉伸手柄调整窗口大小。"""
-        dlg = QDialog(self)  # type: ignore[arg-type]
+        dlg = QDialog(self)
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)  # 合理的初始尺寸
@@ -101,7 +101,7 @@ class DialogMixin:
         """多按钮阶段弹窗。actions 为 [(按钮文本, 回调函数), ...] 列表。"""
         if self._suppress_dialogs:
             return
-        dlg = QDialog(self)  # type: ignore[arg-type]
+        dlg = QDialog(self)
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)

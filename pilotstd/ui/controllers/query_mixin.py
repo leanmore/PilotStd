@@ -441,16 +441,16 @@ class QueryMixin:
             self._do_pending_query()
         except Exception as e:
             logger.exception("待确认查询异常")
-            QMessageBox.critical(self, _("title_error"), f"待确认查询失败: {e}")
+            QMessageBox.critical(None,_("title_error"), f"待确认查询失败: {e}")
 
     def _do_pending_query(self) -> None:
         if not self._mgr_ready:
             return
         if self._parsed_results:
-            QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
+            QMessageBox.warning(None,_("title_hint"), _("workspace_not_empty"))
             return
 
-        path, __ = QFileDialog.getOpenFileName(  # type: ignore[arg-type]
+        path, __ = QFileDialog.getOpenFileName(
             self, _("dialog_import_pending"), "", _("file_filter_csv")
         )
         if not path:
@@ -464,7 +464,7 @@ class QueryMixin:
             reader = csv.reader(f)
             rows = list(reader)
         if not rows:
-            QMessageBox.warning(self, _("title_hint"), _("csv_empty"))
+            QMessageBox.warning(None,_("title_hint"), _("csv_empty"))
             return
         for i, row in enumerate(rows):
             if i == 0:
@@ -489,7 +489,7 @@ class QueryMixin:
                 failed_names.append(std_num)
 
         if not parsed_list:
-            QMessageBox.warning(self, _("title_hint"), _("csv_no_standards"))
+            QMessageBox.warning(None,_("title_hint"), _("csv_no_standards"))
             return
 
         msg = _("msg_csv_parse_result").format(count=len(parsed_list))
@@ -530,7 +530,7 @@ class QueryMixin:
         self.status_changed.emit(f"待确认查询完成: {found}/{total}")
 
         QMessageBox.information(
-            self,  # type: ignore[arg-type]
+            self,
             _("title_pending_query_complete"),
             _("msg_pending_query_complete").format(found=found, failed=total - found),
         )
@@ -556,4 +556,4 @@ class QueryMixin:
         if count > 5:
             msg += f"\n... 等共 {count} 条"
         msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(self, _("pending_lookup_title"), msg)
+        QMessageBox.information(None,_("pending_lookup_title"), msg)

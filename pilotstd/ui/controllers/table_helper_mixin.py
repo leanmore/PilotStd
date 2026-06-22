@@ -67,7 +67,7 @@ class TableHelperMixin:
         chosen = menu.exec(self.work_table.viewport().mapToGlobal(pos))
 
         if chosen == add_file:
-            path, _filter = QFileDialog.getOpenFileName(  # type: ignore[arg-type]
+            path, _filter = QFileDialog.getOpenFileName(
                 self,
                 _("dialog_select_file"),
                 "",
@@ -110,8 +110,8 @@ class TableHelperMixin:
         results = self._mgr.get_file_index_full_info(parsed.logical_code, parsed.number)
 
         if not results:
-            QMessageBox.information(  # type: ignore[arg-type]
-                self,  # type: ignore[arg-type]
+            QMessageBox.information(
+                self,
                 _("offline_view"),
                 _("本地索引中未找到 {} 的相关信息").format(parsed.get_full_number()),
             )
@@ -134,7 +134,7 @@ class TableHelperMixin:
                 lines.append(_("缓存时间: {}").format(r["cached_at"]))
             lines.append("")
 
-        QMessageBox.information(self, _("offline_view"), "\n".join(lines))
+        QMessageBox.information(None,_("offline_view"), "\n".join(lines))
 
     # ── 行操作 ───────────────────────────────────────────
 

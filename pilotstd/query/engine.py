@@ -179,7 +179,7 @@ class QueryEngine:
             tried.append(name)
             result = adapter.query_with_strategy(
                 logical_code, number, year, std_name, part, num_prefix=num_prefix
-            )  # type: ignore[arg-type]
+)
             if result and result.is_found():
                 result.source_site = adapter.site_name
                 if not result.standard_number:
