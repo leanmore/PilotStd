@@ -1,5 +1,5 @@
-# PilotStd CI — 测试 + Docker 镜像推送 ghcr.io
-# 用 GITHUB_TOKEN + repository_owner 登录 ghcr
+# PilotStd CI — 测试 + 版本管理 + Docker 镜像推送 ghcr.io
+# 版本治理已原子化：version_bump job 负责写回三文件+打tag，build job 只读版本号
 name: Docker CI
 run-name: Docker | ${{ github.event.head_commit.message }}
 
@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths:  # 仅以下变更触发构建
+    paths:
       - 'pilotstd/**'
       - 'tests/**'
       - 'web/**'
@@ -15,6 +15,7 @@ on:
       - 'requirements*.txt'
       - 'docker-compose.yml'
       - '.github/workflows/ci.yml'
+      - '.github/scripts/**'
       - 'main.py'
   pull_request:
     branches: [main]
@@ -25,10 +26,6 @@ on:
         required: false
         default: '手动触发'
 
-concurrency:
-  group: version-bump
-  cancel-in-progress: false
-
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
@@ -37,9 +34,66 @@ env:
 
 jobs:
   # ════════════════════════════════════════════════════════════════
+  # Job 0: 版本号 bump（原子化——写回三个文件 + 打 tag）
+  # ════════════════════════════════════════════════════════════════
+  version-bump:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run bump_version.py
+        id: bump
+        run: |
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          python .github/scripts/bump_version.py --github --update "$COMMIT_MSG"
+          NEW_VER=$(python -c "from pilotstd import __version__; print(__version__)")
+          echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VER"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pilotstd/__init__.py pyproject.toml web/package.json
+          if git diff --cached --quiet; then
+            echo "版本号未变更，跳过提交"
+          else
+            git commit -m "chore: bump version to v${{ steps.bump.outputs.new_version }} [skip ci]"
+            git pull --rebase origin main
+            git push
+          fi
+
+      - name: Create and push tag
+        run: |
+          TAG="v${{ steps.bump.outputs.new_version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG 已存在，跳过"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+            echo "已推送 git tag: $TAG"
+          fi
+
+  # ════════════════════════════════════════════════════════════════
   # Job 1: 后端测试
   # ════════════════════════════════════════════════════════════════
   test-backend:
+    needs: [version-bump]
+    if: |
+      always() &&
+      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +134,10 @@ jobs:
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
   security-scan:
+    needs: [version-bump]
+    if: |
+      always() &&
+      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,6 +165,10 @@ jobs:
   # Job 3: 前端测试
   # ════════════════════════════════════════════════════════════════
   test-frontend:
+    needs: [version-bump]
+    if: |
+      always() &&
+      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,23 +190,27 @@ jobs:
   # Job 4: 构建 + 推送 Docker 镜像
   # ════════════════════════════════════════════════════════════════
   build-and-push:
-    needs: [test-frontend]  # 前端必须通过；后端测试+安全扫描建议性
+    needs: [test-frontend, version-bump]
+    if: |
+      always() &&
+      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped') &&
+      needs.test-frontend.result == 'success'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 需要 git tag 历史以计算版本号
 
-      # ── 版本号（从最新 git tag 读取，由 release.yml 专责管理）──
+      # ── 版本号（由 version-bump job 产出）──
       - name: Determine version
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${{ github.ref_name }}"
+          elif [[ -n "${{ needs.version-bump.outputs.new_version }}" ]]; then
+            VERSION="v${{ needs.version-bump.outputs.new_version }}"
           else
             VERSION=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
             if [ -z "$VERSION" ]; then
