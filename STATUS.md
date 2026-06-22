@@ -7,7 +7,7 @@
 
 | 项目 | 值 |
 |------|-----|
-| 版本号 | 0.15.0 |
+| 版本号 | 0.15.1 |
 | 分支 | main |
 | 目标 | v4.2 压测验收通过并修复阻塞项 |
 
@@ -56,7 +56,7 @@
 - [x] **API 令牌简化** — 改用静态令牌方案：`PILOTSTD_API_TOKEN` 环境变量 → `docker/auth.py` 启动时自动写入 `api_keys` 表（key_id='pst_static'），支持 `Authorization: Bearer` / `X-API-KEY` / `?token=` 三通道。移除 stress_driver 中 `_prepare_api_key()`/`_cleanup_api_key()`/`atexit` 共 ~130 行动态创建吊销逻辑。stress_web.py 中 AUTH-05/06/07 替换为 AUTH-01（有效令牌→200）+ AUTH-02（无效令牌→401）。
 - [x] **AUTH-02 白名单绕过修复** — 从 `AUTH_WHITELIST` 移除 `("/api/announce/lookup", {"GET"})`，强制 `/api/announce/lookup` 走完整的 token 鉴权流程。stress_web.py AUTH-02 改用 `?token=` 查询参数传递无效令牌。
 - [x] **BIZ-12 NoneType 修复** — stress_web.py:723 的 `body.get("data", {})` 在 key 存在但值为 None 时不回退默认值，修复为 `(body.get("data") or {}).get("source", "")`。
-- [x] **verify_api_key pst_ 前缀哈希修复** — 注释说"提取后"但代码直接哈希含 `pst_` 前缀的完整 token，而 `_ensure_static_token_in_db` 存储时哈希无前缀原始值，导致静态令牌永不匹配。修复为 `token[4:]` 去掉前缀后哈希。
+- [x] **verify_api_key pst_ 前缀哈希修复** — 注释说"提取后"但代码直接哈希含 `pst_` 前缀的完整 token，而 `_ensure_static_token_in_db` 存储时哈希无前缀原始值，导致静态令牌永不匹配。修复为 `token[4:]` 去掉前缀后哈希。stress_web.py 中 AUTH-01/BIZ-12/BIZ-13 的 Bearer token 均加 `pst_` 前缀。
 
 ## 三、当前阻塞项（P0）
 
@@ -88,6 +88,25 @@
 
 **修复**：`stress_web.py:723` 改为 `(body.get("data") or {}).get("source", "")`。
 
+**验证**：代码逻辑修复后不再抛异常。远程容器 `announcement_cache` 表为空导致 `found=False`，需预灌缓存数据后验证命中路径。
+
+### 3.5 ~~stress_web AUTH/BIZ pst_ 前缀缺失~~ ✅ 已修复
+**根因**：`verify_api_key` 要求 token 以 `pst_` 开头，但 AUTH-01/BIZ-12/BIZ-13 发送 `Bearer {_stress_api_key}` 时未加前缀。
+
+**修复**：三处 Bearer token 均改为 `f"Bearer pst_{_stress_api_key}"`。
+
+### 3.6 Step 3 压测结果（2026-06-22 19:33）
+| 指标 | 值 |
+|------|-----|
+| 总计 | 37 项 |
+| 通过 | 35 项 |
+| 失败 | 2 项 |
+| AUTH-01 | PASS (200 OK) |
+| AUTH-02 | PASS (401) |
+| BIZ-12 | FAIL (found=False，远程缓存为空，非代码bug) |
+| BIZ-13 | PASS (found=False，降级正常) |
+| 管线: 文件进入输出目录 | FAIL (skipped_exists=21，文件已存在，非代码bug) |
+
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |
@@ -96,8 +115,10 @@
 | ~~API 令牌简化~~ | ✅ 已完成 | — |
 | ~~AUTH-02 白名单绕过~~ | ✅ 已完成 | — |
 | ~~BIZ-12 NoneType 异常~~ | ✅ 已完成 | — |
-| ~~verify_api_key pst_ 前缀哈希~~ | ✅ 已完成 | Docker 更新后待验证 |
+| ~~verify_api_key pst_ 前缀哈希~~ | ✅ 已完成 | Step 3 压测 35/37 PASS |
+| ~~stress_web pst_ 前缀缺失~~ | ✅ 已完成 | AUTH-01/BIZ-13 恢复 PASS |
 | 全量压测重跑（含 WinUI 乙轮） | 待执行 | AUTH/BIZ 验证通过后 |
+| BIZ-12 远程缓存预灌 | 待执行 | 需往 Docker 容器灌入公告缓存数据 |
 | v4.2 验收结论 | 待执行 | 全量压测完成后 |
 
 ## 五、最近决策记录
@@ -107,7 +128,8 @@
 | 2026-06-22 | AUTH-02：从 AUTH_WHITELIST 移除 announce/lookup，强制 token 鉴权 | 白名单绕过导致无效 token 仍返回 200，安全隐患 |
 | 2026-06-22 | BIZ-12：`(body.get("data") or {}).get("source")` 防御性空值处理 | `dict.get(key, default)` 在 key 存在值为 None 时不回退 |
 | 2026-06-22 | verify_api_key：去掉 pst_ 前缀后再做 SHA256 哈希 | 存储时哈希无前缀值，校验时哈希含前缀值，永远不匹配 |
-| 2026-06-22 | API token 传递需加 `pst_` 前缀（`pst_<token>`） | verify_api_key 以此前缀区分 API Key 和 JWT token |
+| 2026-06-22 | stress_web Bearer token 需加 `pst_` 前缀 | verify_api_key 以此区分 API Key 和 JWT，不加前缀直接 return None |
+| 2026-06-22 | BIZ-12 远程缓存为空属测试环境问题，非代码bug | 需在 Docker compose 中预灌 announcement_cache 数据 |
 | 2026-06-22 | njbz365 冷却修复：在 record_success 中触发 _enter_cooldown | 根因：批量查询路径不经过 get_available()，冷却入口缺失 |
 | 2026-06-22 | 建立能力遗产治理框架（登记簿+迁移协议+工具脚本） | 对抗 AI 失忆和代码重构中能力静默丢失 |
 | 2026-06-22 | API 令牌改用静态方案（参考 MoviePilot） | 动态创建 API Key 存在 500 错误，简化认证流程 |
