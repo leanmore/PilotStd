@@ -670,8 +670,7 @@ else:
 _auth_total += 1
 try:
     r = requests.get(
-        f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
-        headers={"Authorization": "Bearer pst_invalid_static_token"},
+        f"{BASE}/api/announce/lookup?number=GB/T%201-2020&token=pst_invalid_static_token",
         timeout=10,
     )
     ok = r.status_code in (401, 403)
@@ -720,7 +719,7 @@ if _cache_test_num:
         elapsed_ms = (time.time() - t1) * 1000
         body = r.json() if r.status_code == 200 else {}
         found = body.get("found", False)
-        src = body.get("source", body.get("data", {}).get("source", ""))
+        src = body.get("source", "") or (body.get("data") or {}).get("source", "")
         _source_dist[src] = _source_dist.get(src, 0) + 1
         if found:
             _cache_hit_count += 1
