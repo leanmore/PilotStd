@@ -2,40 +2,58 @@
 # 保留此文件返回 410 Gone，避免旧链接 404 混淆
 import logging
 
+from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
 
+from ..auth import require_admin
+
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/admin/api-keys", tags=["api_keys"])
-
-_GONE_MSG = "API Key management has moved to /api/settings/token"
-
-
-def _gone():
-    from fastapi import HTTPException
-
-    raise HTTPException(410, _GONE_MSG)
-
-
-@router.post("")
-def create_api_key():
-    _gone()
+router = APIRouter(prefix="/api/admin/api-keys", tags=["deprecated"])
 
 
 @router.get("")
-def list_api_keys():
-    _gone()
+def list_api_keys(user: str = Depends(require_admin)):
+    """此接口已废弃，请使用 GET /api/settings/token 获取当前静态令牌。"""
+    raise HTTPException(
+        status_code=410,
+        detail="Gone — API Key management has been moved to /settings. "
+        "Use GET /api/settings/token",
+    )
+
+
+@router.post("")
+def create_api_key(user: str = Depends(require_admin)):
+    """此接口已废弃。静态令牌由管理员在设置页面 /settings 中管理。"""
+    raise HTTPException(
+        status_code=410,
+        detail="Gone — Static token is managed via /settings. "
+        "Use POST /api/settings/token/refresh to rotate.",
+    )
 
 
 @router.put("/{key_id}")
-def update_api_key(key_id: str):
-    _gone()
+def update_api_key(key_id: str, user: str = Depends(require_admin)):
+    """此接口已废弃。"""
+    raise HTTPException(
+        status_code=410,
+        detail="Gone — Use /api/settings/token instead.",
+    )
 
 
 @router.delete("/{key_id}")
-def revoke_api_key(key_id: str):
-    _gone()
+def revoke_api_key(key_id: str, user: str = Depends(require_admin)):
+    """此接口已废弃（软删除）。静态令牌通过刷新即吊销旧值。"""
+    raise HTTPException(
+        status_code=410,
+        detail="Gone — Static token revocation is done via refresh. "
+        "Use POST /api/settings/token/refresh to rotate the token.",
+    )
 
 
 @router.put("/{key_id}/reactivate")
-def reactivate_api_key(key_id: str):
-    _gone()
+def reactivate_api_key(key_id: str, user: str = Depends(require_admin)):
+    """此接口已废弃。"""
+    raise HTTPException(
+        status_code=410,
+        detail="Gone — Use POST /api/settings/token/refresh to manage the static token.",
+    )
