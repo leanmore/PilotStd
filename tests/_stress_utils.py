@@ -177,3 +177,69 @@ def load_docker_credentials(config_path: Optional[str] = None) -> dict:
         sys.exit(1)
 
     return {"base_url": base_url, "username": username, "password": password}
+
+
+# ── 版本一致性校验 ──────────────────────────────────────────────────
+
+
+def normalize_version(v: str) -> str:
+    """剥离前导 v 和 -dirty/-dev 后缀，返回纯数字版本号。"""
+    v = v.strip().lstrip("v")
+    for sep in ("-dirty", "-dev", "-"):
+        if sep in v:
+            v = v.split(sep)[0]
+    return v
+
+
+def check_version_consistency(expected: str = "") -> bool:
+    """比对运行环境中的 __version__ 与预期版本。
+
+    Args:
+        expected: 预期版本号（如 "0.13.0" 或 "v0.13.0"）。
+                  为空时尝试从 git describe 或 EXPECTED_VERSION 环境变量获取。
+
+    Returns:
+        True 表示一致，False 表示不一致（调用方应终止压测）。
+    """
+    logger = logging.getLogger("stress")
+    if not expected:
+        expected = os.environ.get("EXPECTED_VERSION", "")
+    if not expected:
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["git", "describe", "--tags", "--dirty"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                expected = result.stdout.strip()
+        except Exception:
+            pass
+    if not expected:
+        logger.warning(
+            "无法确定预期版本（无 EXPECTED_VERSION 且 git describe 失败），跳过版本校验"
+        )
+        return True
+
+    try:
+        from pilotstd import __version__ as actual
+    except ImportError:
+        logger.error("无法导入 pilotstd.__version__，版本校验失败")
+        return False
+
+    exp_norm = normalize_version(expected)
+    act_norm = normalize_version(actual)
+    if exp_norm != act_norm:
+        logger.error(
+            "[FATAL] 版本不一致: 预期=%s (归一化=%s), 实际=%s (归一化=%s)",
+            expected,
+            exp_norm,
+            actual,
+            act_norm,
+        )
+        return False
+    logger.info("版本一致: 预期=%s 实际=%s", expected, actual)
+    return True

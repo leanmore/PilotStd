@@ -6,14 +6,15 @@
 #   python tests/stress_driver.py --source D:\标准 --output E:\标准 --docker-url <地址> --docker-user <用户名> --docker-pass <密码>
 #
 # 执行流程:
-#   第〇步  复位源目录 + 清 DB
-#   第一步  CLI 冷启（一+三+四+五+六写+七） → 写 step1.json
+#   第〇步  复位源目录 + 清 DB + 版本校验
+#   第一步  CLI 冷启（一+三+四+五+六写+七+1.7.1 cache_lookup） → 写 step1.json
 #          复位源目录
-#   第二步  WinUI 热启（一交叉+二+三+四交叉+六读） → 交叉对比 → 写 step2.json
-#   第三步  Docker Web API（补充） → 写 step3.json
+#   第二步  Docker Web API（补充，填充 announcement_cache） → 写 step3.json
+#   第三步  WinUI 热启（一交叉+二+三+四交叉+六读） → 交叉对比 → 写 step2.json
 #   第四步  汇总判定
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -349,6 +350,115 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
     except Exception as e:
         _log(f"    {step_name}: 异常 {e}")
         return {"error": str(e)}
+
+
+# ── API Key 自动准备与清理 ────────────────────────────────────
+
+
+def _prepare_api_key(
+    cfg: dict, docker_url: str, docker_user: str, docker_pass: str
+) -> str:
+    """自动创建临时 API Key 供压测使用。
+
+    优先从 PILOTSTD_API_KEY 环境变量读取；若无，使用 web_admin 凭证
+    登录 Web 后端并调用 POST /api/admin/api-keys 创建临时 Key。
+    """
+    import requests
+
+    existing = os.environ.get("PILOTSTD_API_KEY", "")
+    if existing:
+        _log(f"使用已有 API Key: {existing[:8]}...")
+        return existing
+
+    web_admin = cfg.get("web_admin", {})
+    admin_url = web_admin.get("url", docker_url)
+    admin_user = web_admin.get("username", docker_user)
+    admin_pass = web_admin.get("password", docker_pass)
+    if not all([admin_url, admin_user, admin_pass]):
+        _log("API Key 创建失败: web_admin 凭证不完整")
+        return ""
+
+    try:
+        # 登录获取 Cookie
+        login_url = f"{admin_url}/api/login"
+        r = requests.post(
+            login_url,
+            data={"username": admin_user, "password": admin_pass},
+            timeout=30,
+        )
+        if r.status_code != 200:
+            _log(f"API Key 创建失败: 登录失败 status={r.status_code}")
+            return ""
+        cookies = r.cookies
+        csrf = cookies.get("csrf_token", "")
+
+        # 创建临时 Key
+        key_id = f"pst_stress_{int(time.time())}"
+        r = requests.post(
+            f"{admin_url}/api/admin/api-keys",
+            json={
+                "key_id": key_id,
+                "description": "压测临时 Key",
+                "scopes": ["query:read", "announce:read"],
+            },
+            cookies=cookies,
+            headers={"X-CSRF-Token": csrf} if csrf else {},
+            timeout=30,
+        )
+        if r.status_code == 200 and r.json().get("ok"):
+            raw_key = r.json().get("raw_key", "")
+            _log(f"已创建临时 API Key: key_id={key_id}")
+            return raw_key
+        _log(f"API Key 创建失败: status={r.status_code} body={r.text[:100]}")
+        return ""
+    except requests.exceptions.ConnectionError:
+        _log(f"API Key 创建失败: 无法连接 {admin_url}")
+        return ""
+    except Exception as e:
+        _log(f"API Key 创建异常: {e}")
+        return ""
+
+
+def _cleanup_api_key(cfg: dict, docker_url: str, docker_user: str, docker_pass: str):
+    """吊销压测自动创建的临时 API Key（仅 pst_stress_* 前缀）。"""
+    import requests
+
+    api_key = os.environ.get("PILOTSTD_API_KEY", "")
+    if not api_key or not api_key.startswith("pst_stress_"):
+        return
+
+    web_admin = cfg.get("web_admin", {})
+    admin_url = web_admin.get("url", docker_url)
+    admin_user = web_admin.get("username", docker_user)
+    admin_pass = web_admin.get("password", docker_pass)
+    if not all([admin_url, admin_user, admin_pass]):
+        return
+
+    try:
+        r = requests.post(
+            f"{admin_url}/api/login",
+            data={"username": admin_user, "password": admin_pass},
+            timeout=30,
+        )
+        if r.status_code != 200:
+            return
+        cookies = r.cookies
+        csrf = cookies.get("csrf_token", "")
+        # 查找并吊销所有 pst_stress_ 前缀的 Key
+        r = requests.get(f"{admin_url}/api/admin/api-keys", cookies=cookies, timeout=30)
+        if r.status_code == 200:
+            for k in r.json().get("api_keys", []):
+                kid = k.get("key_id", "")
+                if kid.startswith("pst_stress_"):
+                    requests.delete(
+                        f"{admin_url}/api/admin/api-keys/{kid}",
+                        cookies=cookies,
+                        headers={"X-CSRF-Token": csrf} if csrf else {},
+                        timeout=30,
+                    )
+                    _log(f"已吊销临时 API Key: {kid}")
+    except Exception:
+        pass
 
 
 # ── 第一步：CLI 冷启 ─────────────────────────────────────────
@@ -1052,6 +1162,71 @@ def _step1_cli_cold(
         "elapsed_s": round(time.time() - t0, 1),
     }
 
+    # ── 1.7.1 cache_lookup：公告缓存连通性验证 ──
+    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get(
+        "PILOTSTD_WEB_API_URL", ""
+    )
+    if web_api_url and announce_total > 0:
+        _log("  1.7.1 cache_lookup (公告缓存连通性验证)...")
+        # 从 scan 结果取前 5 个标准号
+        _lookup_nums = []
+        try:
+            with open(nums_file, "r", encoding="utf-8") as _f:
+                _lookup_nums = [
+                    line.strip() for line in _f.readlines()[:5] if line.strip()
+                ]
+        except Exception:
+            pass
+        if _lookup_nums:
+            _cache_hits = 0
+            _cache_misses = 0
+            import urllib.parse as _up
+            import urllib.request as _ur
+
+            for _num in _lookup_nums:
+                try:
+                    _lookup_url = (
+                        f"{web_api_url}/api/announce/lookup?number={_up.quote(_num)}"
+                    )
+                    _api_key_hdr = os.environ.get("PILOTSTD_API_KEY", "")
+                    _hdr = {}
+                    if _api_key_hdr:
+                        _hdr["Authorization"] = f"Bearer {_api_key_hdr}"
+                    _req = _ur.Request(_lookup_url, headers=_hdr)
+                    _resp = _ur.urlopen(_req, timeout=10)
+                    _body = json.loads(_resp.read())
+                    if _body.get("found"):
+                        _cache_hits += 1
+                        _src = _body.get("source", "")
+                        _log(f"    cache_lookup {_num}: 命中 source={_src}")
+                    else:
+                        _cache_misses += 1
+                        _log(f"    cache_lookup {_num}: 未命中")
+                except Exception as _e:
+                    _cache_misses += 1
+                    _log(f"    cache_lookup {_num}: 异常 {_e}")
+            _log(
+                f"    cache_lookup 完成: hits={_cache_hits} misses={_cache_misses} "
+                f"total={_cache_hits + _cache_misses}"
+            )
+            results["checkpoints"]["cache_lookup"] = {
+                "hits": _cache_hits,
+                "misses": _cache_misses,
+                "total": _cache_hits + _cache_misses,
+            }
+        else:
+            _log("    cache_lookup: 无可用标准号，跳过")
+            results["checkpoints"]["cache_lookup"] = {"skipped": True}
+    elif not web_api_url:
+        _log("  1.7.1 cache_lookup: 跳过（未配置 web_api_url）")
+        results["checkpoints"]["cache_lookup"] = {"skipped": True, "reason": "no_url"}
+    else:
+        _log("  1.7.1 cache_lookup: 跳过（announce 无结果）")
+        results["checkpoints"]["cache_lookup"] = {
+            "skipped": True,
+            "reason": "no_announce",
+        }
+
     # task — 异常保护
     _log("  1.8 task...")
     t0 = time.time()
@@ -1165,58 +1340,159 @@ def _step1_cli_cold(
     return results
 
 
-# ── 第二步：WinUI 热启 ────────────────────────────────────────
+# ── 第二步：WinUI 热启（两轮）────────────────────────────────
 
 
 def _step2_winui_hot(
-    source_dir: str, output_dir: str, step1_path: str, timeout_auto: int
+    source_dir: str,
+    output_dir: str,
+    step1_path: str,
+    timeout_auto: int,
+    cfg: dict,
 ):
-    """pytest 调用 WinUI 测试，热启 auto + 交叉对比。"""
-    _log("=" * 50)
-    _log("第二步：WinUI 热启（交叉对比）")
+    """pytest 调用 WinUI 测试，分甲/乙两轮。
 
-    step2_path = os.path.join(RESULT_DIR, "step2.json")
+    甲轮：use_announcement_cache=false → 本地抓取回归
+    乙轮：use_announcement_cache=true → Web 缓存命中 + 来源标注验证
+    """
+    config_path = os.path.join(ROOT, "data", "config.json")
+    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get(
+        "PILOTSTD_WEB_API_URL", ""
+    )
 
-    try:
-        r = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                os.path.join(ROOT, "tests", "stress_winui.py"),
-                "-v",
-                "-s",
-                "--source",
-                source_dir,
-                "--output",
-                output_dir,
-                "--step1",
-                step1_path,
-                "--step2",
-                step2_path,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=timeout_auto or 1800,
-            cwd=ROOT,
-            encoding="utf-8",
-            errors="replace",
+    rounds = [
+        {
+            "name": "甲轮-本地抓取回归",
+            "cache_enabled": False,
+            "announcement_url": "",
+            "step2_suffix": "_roundA",
+        },
+    ]
+    if web_api_url:
+        rounds.append(
+            {
+                "name": "乙轮-Web缓存验证",
+                "cache_enabled": True,
+                "announcement_url": web_api_url,
+                "step2_suffix": "_roundB",
+            }
         )
-        _log(f"WinUI pytest: rc={r.returncode}")
-        if r.stdout:
-            # 只打印 pytest 结果行
-            for line in r.stdout.splitlines():
-                if "PASSED" in line or "FAILED" in line or "ERROR" in line:
-                    _log(f"  {line.strip()}")
-        if r.returncode != 0 and r.stderr:
-            _log(f"  stderr: {r.stderr[-500:]}")
-        return r.returncode == 0
-    except subprocess.TimeoutExpired:
-        _log("WinUI pytest: 超时")
-        return False
-    except Exception as e:
-        _log(f"WinUI pytest: 异常 {e}")
-        return False
+    else:
+        _log("WinUI 乙轮跳过: web_api.url 未配置，无法验证缓存命中")
+
+    round_results = []
+    overall_ok = True
+
+    for ri in rounds:
+        _log("=" * 50)
+        _log(f"WinUI 热启: {ri['name']}")
+
+        # 1. 修改 data/config.json
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg_json = json.load(f)
+            except Exception:
+                cfg_json = {}
+        else:
+            cfg_json = {}
+        cfg_json.setdefault("query", {})["use_announcement_cache"] = ri["cache_enabled"]
+        if ri["announcement_url"]:
+            cfg_json["query"]["announcement_url"] = ri["announcement_url"]
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(cfg_json, f, ensure_ascii=False, indent=2)
+        _log(
+            f"  配置已写入: use_announcement_cache={ri['cache_enabled']}"
+            + (
+                f" announcement_url={ri['announcement_url']}"
+                if ri["announcement_url"]
+                else ""
+            )
+        )
+
+        # 2. 执行 pytest
+        step2_path = os.path.join(RESULT_DIR, f"step2{ri['step2_suffix']}.json")
+        round_ok = False
+        try:
+            r = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    os.path.join(ROOT, "tests", "stress_winui.py"),
+                    "-v",
+                    "-s",
+                    "--source",
+                    source_dir,
+                    "--output",
+                    output_dir,
+                    "--step1",
+                    step1_path,
+                    "--step2",
+                    step2_path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=timeout_auto or 1800,
+                cwd=ROOT,
+                encoding="utf-8",
+                errors="replace",
+            )
+            _log(f"  {ri['name']} pytest: rc={r.returncode}")
+            if r.stdout:
+                for line in r.stdout.splitlines():
+                    if "PASSED" in line or "FAILED" in line or "ERROR" in line:
+                        _log(f"    {line.strip()}")
+            if r.returncode != 0 and r.stderr:
+                _log(f"    stderr: {r.stderr[-500:]}")
+            round_ok = r.returncode == 0
+
+            # 展示交叉对比结果
+            if os.path.exists(step2_path):
+                try:
+                    with open(step2_path, "r", encoding="utf-8") as f:
+                        step2_data = json.load(f)
+                    _log(
+                        f"    {ri['name']} 判定: {step2_data.get('verdict', '?')} "
+                        f"耗时={step2_data.get('elapsed_s', 0)}s"
+                    )
+                except Exception:
+                    pass
+        except subprocess.TimeoutExpired:
+            _log(f"  {ri['name']} pytest: 超时")
+        except Exception as e:
+            _log(f"  {ri['name']} pytest: 异常 {e}")
+
+        round_results.append(
+            {"round": ri["name"], "passed": round_ok, "step2": step2_path}
+        )
+        if not round_ok:
+            overall_ok = False
+            if ri["cache_enabled"]:
+                _log(f"  [WARN] {ri['name']} 失败（依赖外部 Web 服务，不终止压测）")
+            else:
+                _log(f"  {ri['name']} 失败")
+
+    # 汇总
+    _log("WinUI 热启汇总:")
+    for rr in round_results:
+        _log(f"  {rr['round']}: {'PASS' if rr['passed'] else 'FAIL'}")
+
+    # 写入合并 step2.json
+    step2_merged = os.path.join(RESULT_DIR, "step2.json")
+    with open(step2_merged, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "step": 2,
+                "rounds": round_results,
+                "verdict": "PASS" if overall_ok else "FAIL",
+            },
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+    return overall_ok
 
 
 # ── 第三步：Docker Web API ────────────────────────────────────
@@ -1448,6 +1724,34 @@ def _step4_verdict(
 
     _log(f"判定: {verdict}")
 
+    # ── 新增压测指标（缓存路由 + API Key 鉴权）──
+    _step3_path = os.path.join(RESULT_DIR, "step3.json")
+    if os.path.exists(_step3_path):
+        try:
+            with open(_step3_path, "r", encoding="utf-8") as _f:
+                _s3 = json.load(_f)
+            _s3_ext = _s3.get("extended", {})
+            if _s3_ext:
+                _cache_hit = _s3_ext.get("cache_hit", 0)
+                _cache_miss = _s3_ext.get("cache_miss", 0)
+                _cache_total = _cache_hit + _cache_miss
+                if _cache_total > 0:
+                    _hit_rate = _cache_hit / _cache_total * 100
+                    _log(f"缓存命中率: {_hit_rate:.1f}% ({_cache_hit}/{_cache_total})")
+                    if _hit_rate < 50:
+                        _log("[WARN] 缓存命中率低于 50%，需检查公告缓存数据是否充足")
+                _src_dist = _s3_ext.get("source_distribution", {})
+                if _src_dist:
+                    _log(f"来源标注分布: {_src_dist}")
+                _auth_total = _s3_ext.get("auth_total", 0)
+                _auth_pass = _s3_ext.get("auth_pass", 0)
+                if _auth_total > 0:
+                    _log(
+                        f"API Key 鉴权通过率: {_auth_pass / _auth_total * 100:.0f}% ({_auth_pass}/{_auth_total})"
+                    )
+        except Exception:
+            pass
+
     verdict_path = os.path.join(RESULT_DIR, "verdict.json")
     with open(verdict_path, "w", encoding="utf-8") as f:
         json.dump(
@@ -1602,6 +1906,31 @@ def main():
     elif args.skip_docker:
         credential_detail = "Docker 步骤已跳过"
 
+    # ── 版本一致性校验 ──
+    if not os.environ.get("SKIP_VERSION_CHECK"):
+        _log("版本一致性校验...")
+        from _stress_utils import (
+            check_version_consistency,  # type: ignore[import-not-found]
+        )
+
+        if not check_version_consistency():
+            _log("[FATAL] 版本不一致，压测终止。可通过 SKIP_VERSION_CHECK=1 跳过")
+            sys.exit(1)
+    else:
+        _log("版本一致性校验: 跳过（SKIP_VERSION_CHECK=1）")
+
+    # ── API Key 自动准备 ──
+    _api_key = ""
+    if not args.skip_docker and docker_url:
+        _api_key = _prepare_api_key(cfg, docker_url, docker_user, docker_pass)
+        if _api_key:
+            os.environ["PILOTSTD_API_KEY"] = _api_key
+            _log(f"API Key 已准备: {_api_key[:8]}...")
+        # 注册清理
+        atexit.register(_cleanup_api_key, cfg, docker_url, docker_user, docker_pass)
+    else:
+        _log("API Key 准备: 跳过（Docker 不可达或用户跳过）")
+
     # 第一步：CLI 冷启
     _terminated_early = False
     _terminated_step = ""
@@ -1745,10 +2074,27 @@ def main():
                 f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
             )
 
-    # 第二步：WinUI 热启
+    # 第二步：Docker（先于 WinUI 执行，填充 announcement_cache 供缓存命中验证）
+    step3_ok = True
+    if not args.skip_docker:
+        _log("-" * 40)
+        _log("即将开始 Docker Web API 验证。")
+        if not _yes(args):
+            ans = input("是否继续 Docker 测试？(y/n): ").strip().lower()
+            if ans not in ("y", "yes"):
+                _log("已取消，测试停止。")
+                return 0
+        step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
+        if step3_ok:
+            _log("取回远端 Docker 日志...")
+            _fetch_remote_logs(docker_url, docker_user, docker_pass)
+    else:
+        _log("第二步：Docker 跳过（--skip-docker）")
+
+    # 第三步：WinUI 热启（此时 Docker 已填充 announcement_cache）
     step2_ok = True
     if _terminated_early:
-        _log("第二步：跳过 — 关键步骤失败，无有效数据对比")
+        _log("第三步：跳过 — 关键步骤失败，无有效数据对比")
     elif not args.skip_winui:
         _step1_json = (
             getattr(args, "step1", None)
@@ -1758,8 +2104,9 @@ def main():
         step2_ok = _step2_winui_hot(
             args.source,
             args.output,
-            _step1_json,  # type: ignore[arg-type]
+            _step1_json,
             args.timeout_auto,
+            cfg,
         )
         # 展示交叉对比结果
         try:
@@ -1779,24 +2126,7 @@ def main():
         except Exception:
             pass
     else:
-        _log("第二步：跳过（--skip-winui）")
-
-    # 第三步：Docker
-    step3_ok = True
-    if not args.skip_docker:
-        _log("-" * 40)
-        _log("即将开始 Docker Web API 验证。")
-        if not _yes(args):
-            ans = input("是否继续 Docker 测试？(y/n): ").strip().lower()
-            if ans not in ("y", "yes"):
-                _log("已取消，测试停止。")
-                return 0
-        step3_ok = _step3_docker(docker_url, docker_user, docker_pass)
-        if step3_ok:
-            _log("取回远端 Docker 日志...")
-            _fetch_remote_logs(docker_url, docker_user, docker_pass)
-    else:
-        _log("第三步：跳过（--skip-docker）")
+        _log("第三步：跳过（--skip-winui）")
 
     # 第四步：判定
     # 适配器统计报告验证（补充点1：数据收集链路完整性）
