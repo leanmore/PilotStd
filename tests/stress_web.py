@@ -587,6 +587,161 @@ else:
     _check("管线: 文件进入输出目录", None, "跳过")
 
 # ════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════
+# 公告缓存路由 + API Key 鉴权压测（v4.2 新增）
+# ════════════════════════════════════════════════════════════════
+
+_stress_api_key = os.environ.get("PILOTSTD_API_KEY", "")
+_cache_hit_count = 0
+_cache_miss_count = 0
+_source_dist: dict[str, int] = {}
+_auth_total = 0
+_auth_pass = 0
+
+logger.info("--- 公告缓存路由 + API Key 鉴权 ---")
+
+# AUTH-05: 有效 API Key 鉴权
+if _stress_api_key:
+    _auth_total += 1
+    try:
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
+            headers={"Authorization": f"Bearer {_stress_api_key}"},
+            timeout=10,
+        )
+        ok = r.status_code == 200
+        if ok:
+            _auth_pass += 1
+        _check(
+            "AUTH-05: 有效API Key鉴权",
+            ok,
+            f"status={r.status_code}" if not ok else "200 OK",
+        )
+    except Exception as e:
+        _check("AUTH-05: 有效API Key鉴权", False, f"异常: {str(e)[:60]}")
+else:
+    _check("AUTH-05: 有效API Key鉴权", None, "PILOTSTD_API_KEY 未设置，跳过")
+
+# AUTH-06: 无效 API Key 鉴权
+_auth_total += 1
+try:
+    r = requests.get(
+        f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
+        headers={"Authorization": "Bearer pst_invalid_key_000000000"},
+        timeout=10,
+    )
+    ok = r.status_code in (401, 403)
+    if ok:
+        _auth_pass += 1
+    _check(
+        "AUTH-06: 无效API Key鉴权",
+        ok,
+        f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
+    )
+except Exception as e:
+    _check("AUTH-06: 无效API Key鉴权", False, f"异常: {str(e)[:60]}")
+
+# AUTH-07: 吊销 API Key 鉴权（用随机 Key 模拟已吊销）
+_auth_total += 1
+try:
+    r = requests.get(
+        f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
+        headers={"Authorization": "Bearer pst_revoked_test_key_xxx"},
+        timeout=10,
+    )
+    ok = r.status_code in (401, 403)
+    if ok:
+        _auth_pass += 1
+    _check(
+        "AUTH-07: 吊销API Key鉴权",
+        ok,
+        f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
+    )
+except Exception as e:
+    _check("AUTH-07: 吊销API Key鉴权", False, f"异常: {str(e)[:60]}")
+
+# BIZ-12: 缓存命中（用公告缓存中预置的号码测试）
+# 从 announcement_cache 表取一条记录进行命中验证
+_cache_test_num = ""
+try:
+    from pilotstd.core.config import get_data_dir as _gdd
+    from pilotstd.core.db import Database as _DB
+
+    _db_path = os.path.join(_gdd(), "pilotstd.db")
+    if os.path.exists(_db_path):
+        _db = _DB(_db_path)
+        _row = _db.fetchone("SELECT standard_number FROM announcement_cache LIMIT 1")
+        if _row:
+            _cache_test_num = _row["standard_number"]
+except Exception:
+    pass
+
+if _cache_test_num:
+    import urllib.parse as _up
+
+    _q_num = _up.quote(_cache_test_num)
+    _hdr = {}
+    if _stress_api_key:
+        _hdr["Authorization"] = f"Bearer {_stress_api_key}"
+    try:
+        t1 = time.time()
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number={_q_num}",
+            headers=_hdr,
+            timeout=10,
+        )
+        elapsed_ms = (time.time() - t1) * 1000
+        body = r.json() if r.status_code == 200 else {}
+        found = body.get("found", False)
+        src = body.get("source", body.get("data", {}).get("source", ""))
+        _source_dist[src] = _source_dist.get(src, 0) + 1
+        if found:
+            _cache_hit_count += 1
+        # 来源标注检查
+        has_cache_label = (
+            "web端公告缓存" in str(src)
+            or "web_announcement" in str(src)
+            or "announcement_cache" in str(src)
+        )
+        _check(
+            "BIZ-12: 缓存命中",
+            found and has_cache_label,
+            f"found={found} source={src} {elapsed_ms:.0f}ms"
+            if not (found and has_cache_label)
+            else f"命中 source={src} {elapsed_ms:.0f}ms",
+        )
+    except Exception as e:
+        _check("BIZ-12: 缓存命中", False, f"异常: {str(e)[:60]}")
+else:
+    _check("BIZ-12: 缓存命中", None, "announcement_cache 为空，跳过")
+
+# BIZ-13: 缓存未命中降级
+_hdr = {}
+if _stress_api_key:
+    _hdr["Authorization"] = f"Bearer {_stress_api_key}"
+try:
+    t1 = time.time()
+    r = requests.get(
+        f"{BASE}/api/announce/lookup?number=GB%2FT%2099999-9999",
+        headers=_hdr,
+        timeout=10,
+    )
+    elapsed_ms = (time.time() - t1) * 1000
+    body = r.json() if r.status_code == 200 else {}
+    found = body.get("found", False)
+    msg = body.get("message", "")
+    _cache_miss_count += 1
+    _check(
+        "BIZ-13: 缓存未命中降级",
+        not found and r.status_code == 200,
+        f"found={found} msg={msg[:30]} {elapsed_ms:.0f}ms"
+        if not found
+        else f"意外命中 {elapsed_ms:.0f}ms",
+    )
+except Exception as e:
+    _check("BIZ-13: 缓存未命中降级", False, f"异常: {str(e)[:60]}")
+
+# ════════════════════════════════════════════════════════════════
 # 汇总
 # ════════════════════════════════════════════════════════════════
 total_time = time.time() - t0
@@ -614,6 +769,13 @@ _step3 = {
     "skipped": _skipped,
     "failures": _failures,
     "verdict": "PASS" if _all_ok else "FAIL",
+    "extended": {
+        "cache_hit": _cache_hit_count,
+        "cache_miss": _cache_miss_count,
+        "source_distribution": _source_dist,
+        "auth_total": _auth_total,
+        "auth_pass": _auth_pass,
+    },
 }
 _step3_path = os.environ.get("STRESS_STEP3_PATH", "")
 if _step3_path:
