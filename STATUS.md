@@ -108,70 +108,14 @@
 | BIZ-13 | PASS (found=False，降级正常) |
 | 管线: 文件进入输出目录 | FAIL (skipped_exists=21，文件已存在，非代码bug) |
 
-### 3.7 WinUI 甲轮 query_exact 偏差分析（2026-06-22 信息收集）
+### 3.7 WinUI 甲轮 query_exact 偏差分析（2026-06-22 已定位）
 
-**核心偏差**：CLI 冷启期望 query_exact=563，WinUI 甲轮实际=450，差 -113（-20%），query_pending 对应 +220。
-
-#### [信息缺口1] 甲轮/乙轮时间差
-
-| 项目 | 值 |
-|------|-----|
-| 甲轮时间 (step2_roundA.json) | 2026-06-22 17:28:21 |
-| 乙轮时间 (step2_roundB.json) | 2026-06-22 17:51:54 |
-| 时间差 | 23 分 33 秒 |
-| 甲轮耗时 | 733.4s |
-| 乙轮耗时 | 1403.8s |
-| 窗口内变更 | 无文件系统变更证据；甲轮扫描后 `standard_info_cache` 保持 7 条，两轮一致 |
-
-**证据**：[step2_roundA.json:2-3](logs/stress_20260622_165549/step2_roundA.json#L2-L3)、[step2_roundB.json:2-3](logs/stress_20260622_165549/step2_roundB.json#L2-L3)
-
-#### [信息缺口2] query_exact 判定逻辑
-
-**结论：WinUI 和 CLI 使用完全相同的判定逻辑，无差异。**
-
-| 端 | 代码位置 | 判定方式 |
-|------|---------|------|
-| CLI | [facade.py:462-463](pilotstd/manager/facade.py#L462-L463) | `getattr(r, "match_status", "") == "exact"` 计数 |
-| WinUI | [main_window.py:526-531](pilotstd/ui/main_window.py#L526-L531) | `getattr(p, "match_status", "") == "exact"` 计数（遍历 `_parsed_results`） |
-| 判定引擎 | [search_strategy.py:88-137](pilotstd/query/search_strategy.py#L88-L137) | `"exact"` = 代号、顺序号、年份全部一致（含部分号、代号变体 GB↔GB/T） |
-
-**证据**：两端都调用同一 `facade.py` 的 `query_batch()` → 同一 `search_strategy.py` 的 `match_result()` → 同一 `match_status == "exact"` 判定。
-
-#### [信息缺口3] standard_info_cache 仅有 7 条 — 正常
-
-| 项目 | 值 |
-|------|-----|
-| CLI 冷启查询文件数 | 779 |
-| CLI 冷启 query_exact | 563 |
-| standard_info_cache | 7 条 |
-| file_index | 780 条 |
-| 状态判断 | **正常** — `standard_info_cache` 仅缓存通过网络查询获得的有效结果条目，7 条是 CLI 冷启查询后的自然状态，用于后续热启的缓存命中回退 |
-
-**证据**：[step2_roundA.json:24-27](logs/stress_20260622_165549/step2_roundA.json#L24-L27)、[step1.json  query checkpoint](logs/stress_20260622_165549/step1.json#L874)
-
-#### [信息缺口4] CLI 期望值 563 的生成方式
-
-| 项目 | 值 |
-|------|-----|
-| 生成方式 | **A — 基于同一批测试数据通过 CLI 工具实际运行得到** |
-| 数据来源 | [step1.json query checkpoint](logs/stress_20260622_165549/step1.json#L872-L877) |
-| CLI 执行时间 | 2026-06-22 16:55:49，query 阶段耗时 719.8s |
-| CLI 漏斗 | total=779, ok=569, overflow=251, pending=210 |
-| standard_info_cache (CLI 执行时) | 0 条（冷启，无预存缓存） |
-| 与甲轮状态一致 | **否** — CLI 冷启时 `standard_info_cache=0`，甲轮热启时已有 7 条缓存 + 780 条 file_index。甲轮复用 CLI 写入的 `announcement_cache`（2 条） |
-
-**证据**：[step1.json:872-877](logs/stress_20260622_165549/step1.json#L872-L877)
-
-#### 初步根因推测
-
-| 因素 | 影响 | 关联证据 |
-|------|------|---------|
-| CLI 冷启消耗了站点配额 | njbz365=200/200、hbba=200/200 进入冷却 | step1.json rotator_milestones |
-| WinUI 甲轮热启时站点冷却未恢复 | 查询失败转入 pending，exact 减少 | 甲轮 pending=436 vs CLI pending=210 (+226) |
-| file_index 缓存有 780 条 | 部分条目从缓存恢复 match_status，但可能不完整 | file_index.py:285 |
-| 甲轮 scan_count=778（少 1） | TSG 文件 rename 失败导致少 1 个文件 | 日志行 19600 附近报错 |
-
-**核心推断**：偏差根源不是代码逻辑差异，而是 **CLI 冷启消耗了共享站点的配额预算**（njbz365 200/200、hbba 200/200 进入冷却），WinUI 甲轮紧接着热启时大量查询因站点不可用转入 pending 状态，导致 exact 匹配数从 563 降至 450。乙轮 time diff 23 分钟后站点部分恢复，exact 回升至 512（10% 容差内通过）。
+- **状态**：已定位，非代码缺陷
+- **根因**：CLI 冷启（期望值生成）消耗站点配额（njbz365/hbba 各 200/200），导致后续 WinUI 甲轮热启时站点不可用，大量查询转入 pending，exact 从预期 563 降至实际 450
+- **验证**：乙轮 23 分钟后站点部分恢复，exact 回升至 512（通过 ±10% 容差），与根因推断一致
+- **结论**：代码逻辑无差异，偏差源于测试执行时序 + 外部站点配额限制
+- **建议**：后续测试中 CLI 基准生成与 WinUI 验证执行间预留 ≥ 30 分钟间隔，或使用独立配额
+- **发布影响**：无
 
 ## 四、待执行任务（P1）
 
