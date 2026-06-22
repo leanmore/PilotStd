@@ -70,3 +70,6 @@ web/stats.html
 
 # 压测本地配置（含凭证，不上传）
 tests/test_config.json
+
+# 环境变量（不要提交实际值）
+.env

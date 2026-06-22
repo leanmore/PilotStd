@@ -1,7 +1,13 @@
 # docker/app.py — FastAPI 入口（模块组装 + 安全头 + 健康检查 + 请求体限制）
+# ruff: noqa: E402  — load_dotenv() 必须在其他模块导入前执行
 import logging
 import os
 from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+
+# 加载 .env 文件（Docker 容器内路径 /app/.env，通过卷挂载注入）
+load_dotenv(os.path.join(os.path.dirname(__file__) or ".", "..", ".env"))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
