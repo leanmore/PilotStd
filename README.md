@@ -69,7 +69,7 @@ PilotStd/
 ├── main.py              # 桌面端入口
 ├── pilotstd/            # 核心引擎
 │   ├── scan/            # 文件扫描 + 标准号解析
-│   ├── query/           # 查询引擎 + 6 个适配器
+│   ├── query/           # 查询引擎 + 7 个适配器
 │   ├── download/        # 下载引擎
 │   ├── organizer/       # 分类归档
 │   ├── announcement/    # 公告监控
@@ -77,6 +77,7 @@ PilotStd/
 │   ├── cli/             # 命令行接口
 │   ├── manager/         # 业务门面
 │   ├── pipeline/        # 分类路由
+│   ├── quality/         # 代码质量检查
 │   └── core/            # 配置 / 数据库 / 工具
 ├── web/                 # Vue3 前端
 ├── docker/              # FastAPI 后端 + Docker 配置
