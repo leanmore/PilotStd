@@ -191,6 +191,14 @@ class SettingsPage(QWidget):
         query_form = QFormLayout(query_gb)
         self.cache_cb = QCheckBox(_("query_cache"))
         query_form.addRow(self.cache_cb)
+        # 公告缓存查询模式
+        self.announce_cache_cb = QCheckBox("启用 Web 端公告缓存")
+        self.announce_cache_cb.toggled.connect(self._on_announce_cache_toggled)
+        query_form.addRow(self.announce_cache_cb)
+        self.announce_url_edit = QLineEdit()
+        self.announce_url_edit.setPlaceholderText("http://localhost:9028")
+        self.announce_url_edit.textChanged.connect(self._on_announce_url_changed)
+        query_form.addRow("Web 端公告服务地址", self.announce_url_edit)
         layout.addWidget(query_gb)
         layout.addStretch()
         self._add_page(_("compat_group"), w)
@@ -306,6 +314,15 @@ class SettingsPage(QWidget):
             self._config.get("appearance.skip_welcome", False)
         )
         self.cache_cb.setChecked(self._config.get("query.use_cache", True))
+        self.announce_cache_cb.setChecked(
+            self._config.get("query.use_announcement_cache", False)
+        )
+        self.announce_url_edit.setText(
+            self._config.get("query.announcement_url", "http://localhost:9028")
+        )
+        self.announce_url_edit.setEnabled(
+            self._config.get("query.use_announcement_cache", False)
+        )
         self.skip_folders.setText(
             ", ".join(self._config.get("scan.skip_folders", ["过期作废"]))
         )
@@ -400,6 +417,12 @@ class SettingsPage(QWidget):
         self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())
         self._config.set("appearance.skip_welcome", self.skip_welcome_cb.isChecked())
         self._config.set("query.use_cache", self.cache_cb.isChecked())
+        self._config.set(
+            "query.use_announcement_cache", self.announce_cache_cb.isChecked()
+        )
+        self._config.set(
+            "query.announcement_url", self.announce_url_edit.text().strip()
+        )
         self._config.set("appearance.theme", self.theme_combo.currentText())
         icon_key = ICON_OPTIONS.get(self.icon_combo.currentText(), "default")
         self._config.set("appearance.icon_theme", icon_key)
@@ -442,6 +465,8 @@ class SettingsPage(QWidget):
             mw._apply_column_visibility(visible)
         if mw and hasattr(mw, "_apply_icon"):
             mw._apply_icon()
+        if mw and hasattr(mw, "_apply_announce_cache_mode"):
+            mw._apply_announce_cache_mode(self.announce_cache_cb.isChecked())
         self._config.save()
 
     def _browse_root(self):
@@ -453,6 +478,26 @@ class SettingsPage(QWidget):
         path = QFileDialog.getExistingDirectory(self, _("dialog_select_temp_dl"))
         if path:
             self.downloads_dir.setText(path)
+
+    # ── 公告缓存控件即时写入回调 ──
+
+    def _on_announce_cache_toggled(self, checked: bool):
+        """复选框切换：即时写入配置并联动地址输入框启用/禁用。"""
+        if not self._config:
+            return
+        self.announce_url_edit.setEnabled(checked)
+        self._config.set("query.use_announcement_cache", checked)
+        self._config.save()
+        mw = self.window()
+        if mw and hasattr(mw, "_apply_announce_cache_mode"):
+            mw._apply_announce_cache_mode(checked)
+
+    def _on_announce_url_changed(self, text: str):
+        """地址输入框变化：即时写入配置。"""
+        if not self._config:
+            return
+        self._config.set("query.announcement_url", text.strip())
+        self._config.save()
 
 
 class SettingsDialog(QDialog):

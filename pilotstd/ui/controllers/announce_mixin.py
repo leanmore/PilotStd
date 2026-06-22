@@ -33,6 +33,15 @@ class AnnounceMixin:
         弹出进度对话框，后台分批抓取公告、解析标准、比对缓存。"""
         if not self._mgr_ready:
             return
+        # Web 端公告缓存模式互斥：禁用本地公告检查
+        if self._config.get("query.use_announcement_cache", False):
+            logger.info("本地公告检查被禁用（use_announcement_cache=True）")
+            QMessageBox.information(
+                self,
+                "公告检查",
+                "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。",
+            )
+            return
         # 进度对话框
         dlg = QDialog(self)
         dlg.setWindowTitle(_("announcement_check"))

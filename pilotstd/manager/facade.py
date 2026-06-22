@@ -7,6 +7,8 @@ import logging
 import os
 from typing import Any, Callable, List, Optional
 
+import requests
+
 from ..core.config import ConfigManager, get_db_path, get_library_root
 from ..core.db import Database
 from ..core.file_index import FileIndexRepository
@@ -241,6 +243,75 @@ class StandardManager:
     # 查询
     # ════════════════════════════════════════════════════════════════
 
+    def _query_announcement_cache(self, standard_number: str) -> dict | None:
+        """向 Web 端公告缓存服务查询单个标准号。
+        返回 dict={"data":..., "cached_at":...} 或 None（未命中/不可达）。
+        """
+        base_url = self.cfg.get("query.announcement_url", "http://localhost:9028")
+        timeout = self.cfg.get("network.timeout", 30)
+        url = f"{base_url.rstrip('/')}/api/announce/lookup"
+        try:
+            resp = requests.get(
+                url, params={"number": standard_number}, timeout=timeout
+            )
+            resp.raise_for_status()
+            body = resp.json()
+        except requests.exceptions.Timeout:
+            logger.info(
+                "公告缓存查询：%s → 连接超时（%ss），降级到实时网络查询",
+                standard_number,
+                timeout,
+            )
+            return None
+        except requests.exceptions.ConnectionError as e:
+            logger.info(
+                "公告缓存查询：%s → 连接失败（%s），降级到实时网络查询",
+                standard_number,
+                e,
+            )
+            return None
+        except (requests.exceptions.RequestException, ValueError) as e:
+            logger.info(
+                "公告缓存查询：%s → 请求异常（%s），降级到实时网络查询",
+                standard_number,
+                e,
+            )
+            return None
+
+        if body.get("found"):
+            logger.info(
+                "公告缓存查询：%s → 命中（cached_at=%s）",
+                standard_number,
+                body.get("cached_at", ""),
+            )
+            return {"data": body["data"], "cached_at": body.get("cached_at", "")}
+
+        logger.info("公告缓存查询：%s → 未命中，降级到实时网络查询", standard_number)
+        return None
+
+    @staticmethod
+    def _build_result_from_cache(
+        standard_number: str, cache_data: dict, cached_at: str
+    ) -> QueryResult:
+        """从 Web 公告缓存数据构建 QueryResult。"""
+        data = cache_data or {}
+        return QueryResult(
+            standard_number=standard_number,
+            standard_name=data.get("standard_name", data.get("std_name", "")),
+            status=data.get("status", data.get("effect_status", "")),
+            replaces=data.get("replaces", data.get("replaces_code", "")),
+            implementation_date=data.get("implementation_date", ""),
+            responsible_dept=data.get("responsible_dept", ""),
+            is_adopted=data.get("is_adopted", False),
+            match_status=data.get("match_status", "exact"),
+            source_site="web_announcement_cache",
+            source="web端公告缓存",
+            publish_date=data.get("publish_date", ""),
+            abolition_date=data.get("abolition_date", ""),
+            hcno=data.get("hcno", ""),
+            is_downloadable=data.get("is_downloadable", True),
+        )
+
     def query(
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
@@ -260,31 +331,116 @@ class StandardManager:
         """
         items = parsed_list or self._parsed_results
         self._queried_items = items  # 保存查询列表，供 download() 匹配索引
-        # 使用 query_batch_parsed（按代号路由，每个标准有站点回退）
-        parsed_tuples = [
-            (
-                p.logical_code,
-                p.number,
-                p.year,
-                p.std_name or "",
-                p.part,
-                getattr(p, "num_prefix", ""),
-                getattr(p, "num_suffix", ""),
-                getattr(p, "source_path", ""),
+
+        # Web 端公告缓存优先模式：先查缓存，未命中再降级到本地适配器
+        use_announcement_cache = self.cfg.get("query.use_announcement_cache", False)
+
+        if use_announcement_cache:
+            # ── 分支A：缓存优先 + 自动降级 ──
+            cache_hit_map: dict[int, QueryResult] = {}
+            miss_indices: list[int] = []
+            miss_items: list[ParsedStdInfo] = []
+
+            for i, p in enumerate(items):
+                part = getattr(p, "part", None)
+                part_str = f".{part}" if part else ""
+                std_num = f"{p.logical_code} {p.number}{part_str}-{p.year}"
+
+                cache_hit = self._query_announcement_cache(std_num)
+                if cache_hit:
+                    cache_hit_map[i] = self._build_result_from_cache(
+                        std_num, cache_hit["data"], cache_hit["cached_at"]
+                    )
+                    if result_callback:
+                        result_callback(i, cache_hit_map[i])
+                else:
+                    miss_indices.append(i)
+                    miss_items.append(p)
+
+            # 合并结果：缓存命中 + 引擎降级查询
+            # 用空占位 QueryResult 预填充，后续全部替换为实际结果
+            _placeholder = QueryResult(standard_number="")
+            results: list[QueryResult] = [_placeholder] * len(items)
+            for i, r in cache_hit_map.items():
+                results[i] = r
+
+            if miss_items:
+                miss_tuples = [
+                    (
+                        p.logical_code,
+                        p.number,
+                        p.year,
+                        p.std_name or "",
+                        getattr(p, "part", None),
+                        getattr(p, "num_prefix", ""),
+                        getattr(p, "num_suffix", ""),
+                        getattr(p, "source_path", ""),
+                    )
+                    for p in miss_items
+                ]
+
+                # 降级回调：将 miss 结果映射回原始索引
+                def _fallback_callback(miss_idx: int, r: QueryResult):
+                    r.source = "live_fallback"
+                    logger.info(
+                        "实时网络查询（降级）：%s → %s",
+                        r.standard_number,
+                        "找到" if r.is_found() else "未找到",
+                    )
+                    orig_idx = miss_indices[miss_idx]
+                    results[orig_idx] = r
+                    if result_callback:
+                        result_callback(orig_idx, r)
+
+                engine_results = self.query_engine.query_batch_parsed(
+                    miss_tuples,  # type: ignore[arg-type]
+                    result_callback=_fallback_callback,
+                )
+                # 兜底：回调未覆盖的用直接结果填充
+                for j, r in enumerate(engine_results):
+                    orig_idx = miss_indices[j]
+                    if results[orig_idx] is _placeholder:
+                        r.source = "live_fallback"
+                        results[orig_idx] = r
+
+            # None → 占位错误结果
+            for i in range(len(results)):
+                if results[i] is _placeholder:
+                    p = items[i]
+                    part_str = (
+                        f".{getattr(p, 'part', '')}" if getattr(p, "part", None) else ""
+                    )
+                    results[i] = QueryResult(
+                        standard_number=f"{p.logical_code} {p.number}{part_str}-{p.year}",
+                        error_message="查询未执行",
+                    )  # type: ignore[index]
+
+        else:
+            # ── 分支B：原有本地适配器查询逻辑（不变） ──
+            parsed_tuples = [
+                (
+                    p.logical_code,
+                    p.number,
+                    p.year,
+                    p.std_name or "",
+                    p.part,
+                    getattr(p, "num_prefix", ""),
+                    getattr(p, "num_suffix", ""),
+                    getattr(p, "source_path", ""),
+                )
+                for p in items
+            ]
+
+            def _parsed_progress(count: int):
+                if progress_callback:
+                    progress_callback(count, len(items))
+
+            # result_callback 透传给引擎，每条查询就绪时立即回调（供 UI 实时更新）
+            results = self.query_engine.query_batch_parsed(
+                parsed_tuples,  # type: ignore[arg-type]
+                result_callback=result_callback,  # type: ignore[arg-type]
             )
-            for p in items
-        ]
-
-        def _parsed_progress(count: int):
-            if progress_callback:
-                progress_callback(count, len(items))
-
-        # result_callback 透传给引擎，每条查询就绪时立即回调（供 UI 实时更新）
-        results = self.query_engine.query_batch_parsed(
-            parsed_tuples,  # type: ignore[arg-type]
-            result_callback=result_callback,  # type: ignore[arg-type]
-        )
-        self._query_results = results
+        self._query_results = results  # type: ignore[assignment]
 
         # 从结果计算统计
         stats = BatchQueryStats()

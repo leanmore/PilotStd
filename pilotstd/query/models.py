@@ -18,6 +18,7 @@ class QueryResult:
     is_adopted: bool = False  # 是否采标（True 时 UI 显示"采标"）
     match_status: str = ""  # 原始匹配状态（exact/newer/older/code_only/mismatch）
     source_site: str = ""  # 来源网站标识
+    source: str = ""  # 数据来源标注：web端公告缓存 / live_fallback / 空=本地适配器
     publish_date: str = ""  # 发布日期
     abolition_date: str = "网站无此分类"  # 废止日期
     hcno: str = ""  # 标准唯一ID（新平台 hcno = std_gov 查询结果的 pid，

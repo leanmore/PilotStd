@@ -909,6 +909,7 @@ class MainWindow(
         self._mgr = mgr  # 必须先设 backing field，避免下游 _mgr 访问触发递归
         self._mgr_ready = True
         self._set_toolbar_enabled(True)
+        self._apply_announce_cache_mode()
         self.status_bar.showMessage(_("ready"), 2000)
         # 后端就绪后执行启动检查任务（从 run() 移入，确保在后端就绪后触发）
         self._check_download_queue()
@@ -928,6 +929,14 @@ class MainWindow(
         self.btn_announce.setEnabled(enabled)
         self.btn_pause.setEnabled(enabled)
         # btn_cancel 始终由任务状态控制（_on_cancel / worker 生命周期），不在此处改动
+
+    def _apply_announce_cache_mode(self, enabled: Optional[bool] = None):
+        """根据配置控制公告检查按钮启用/禁用状态。
+        Web 端公告缓存开启时禁用本地公告检查，避免双数据源混淆。
+        """
+        if enabled is None:
+            enabled = self._config.get("query.use_announcement_cache", False)
+        self.btn_announce.setEnabled(not enabled)
 
 
 def run():
