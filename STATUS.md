@@ -134,6 +134,28 @@
 - **建议**：后续测试中 CLI 基准生成与 WinUI 验证执行间预留 ≥ 30 分钟间隔，或使用独立配额
 - **发布影响**：无
 
+### 3.8 心跳机制检查（2026-06-22 已验证）
+
+- **结论**：结论 C — 心跳代码存在且正常工作，所有压测阶段均有规律性 `[PROGRESS]` 输出
+- **心跳代码位置**：
+  - 查询引擎：`pilotstd/query/engine.py:390-408` — daemon 线程，每 60s `logger.info("[PROGRESS] ...")`
+  - Web 压测：`tests/stress_web.py:103-122` — 同格式，覆盖 AUTH+BIZ 4 项
+  - 看门狗：`tests/stress_driver.py:335` — 解析子进程 `[PROGRESS]` 输出，180s 超时卡死检测
+- **日志配置**：`pilotstd/core/logger.py:113-114` — 双通道输出，root logger INFO 级别 → `app.log`
+- **实际验证**：
+
+| 阶段 | 来源 | 心跳数 | 时间窗口 | 间隔 |
+|------|------|--------|---------|------|
+| Step 1 CLI 冷启 | ENGINE | 12 | 16:56:57→17:07:23 | ~60s |
+| Step 2 甲轮 WinUI | ENGINE | 11 | 17:17:11→17:26:13 | ~60s |
+| Step 2 乙轮 WinUI | ENGINE | 21 | 17:29:46→17:49:39 | ~60s |
+| Step 3 Docker Web #1 | STRESS | 3 | 17:10:27→17:11:35 | ~60s |
+| Step 3 Docker Web #2 | STRESS | 3 | 19:29:22→19:30:28 | ~60s |
+| Step 3 Docker Web #3 | STRESS | 3 | 19:32:38→19:33:43 | ~60s |
+
+- **Docker 容器**：不适用 — 查询引擎在本机运行，Docker 仅提供 HTTP API，不产生 ENGINE 心跳
+- **发布影响**：无
+
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |
