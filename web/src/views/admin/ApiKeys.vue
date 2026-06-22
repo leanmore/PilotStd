@@ -2,14 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { getApiKeys, createApiKey, updateApiKey, revokeApiKey, reactivateApiKey } from '@/api/apiKeys'
 import type { ApiKey } from '@/api/apiKeys'
-import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-
-const store = useAppStore()
 
 // ── 列表 ──
 const keys = ref<ApiKey[]>([])
