@@ -95,10 +95,41 @@ class QueryEngine:
         self._parser = parser  # StandardParser 实例，query_batch 解析用
         # 查询间隔（含随机抖动）：(最小秒, 最大秒)，如 (0.5, 1.5)。None=不启用
         self._query_interval = query_interval
+        # 查询运行时状态（供进度条和外部监控查询）
+        self._query_active = False
+        self._overflow_item_count = 0
+        self._csres_active = False
+        self._csres_processed = 0
+        self._csres_total = 0
 
     # ════════════════════════════════════════════════════════════════
     # 公共 API
     # ════════════════════════════════════════════════════════════════
+
+    def is_query_running(self) -> bool:
+        """查询引擎是否正在执行批量查询。"""
+        return self._query_active
+
+    def get_overflow_count(self) -> int:
+        """当前溢出队列中待重试的条目数。"""
+        return self._overflow_item_count
+
+    def get_csres_status(self) -> dict:
+        """返回 CSRES 线程状态。"""
+        return {
+            "is_active": self._csres_active,
+            "processed": self._csres_processed,
+            "total": self._csres_total,
+            "remaining": max(0, self._csres_total - self._csres_processed),
+        }
+
+    def is_idle(self) -> bool:
+        """查询引擎是否完全空闲（无查询、无溢出、CSRES 已结束）。"""
+        return (
+            not self._query_active
+            and self._overflow_item_count == 0
+            and not self._csres_active
+        )
 
     def query_parsed(
         self,
@@ -367,6 +398,8 @@ class QueryEngine:
         """逐桶查询版——桶内串行+桶间并行+临时桶链迭代。"""
         import time as _time
 
+        self._query_active = True
+
         _bucket_t0 = _time.time()
         n = len(parsed_list)
         results: Dict[int, QueryResult] = {}
@@ -447,6 +480,9 @@ class QueryEngine:
             gb_take = int(self._CSRES_LIMIT * 0.6)  # 30
             industry_take = self._CSRES_LIMIT - gb_take  # 20
             pool = gb_items[:gb_take] + industry_items[:industry_take]
+            self._csres_active = True
+            self._csres_processed = 0
+            self._csres_total = len(pool)
             _last_ts = _time.time()
             for idx, item in pool:
                 if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
@@ -503,6 +539,7 @@ class QueryEngine:
                 _time.sleep(sleep_time)
                 now = _time.time()
                 actual_interval = now - _last_ts
+                self._csres_processed += 1
                 logger.info(
                     "[CSRES_INTERVAL] 实际=%.1f秒 目标=%.1f秒 查询=%.1f秒 休眠=%.1f秒",
                     actual_interval,
@@ -511,6 +548,8 @@ class QueryEngine:
                     sleep_time,
                 )
                 _last_ts = now
+
+            self._csres_active = False
 
         # ── 4. 桶工作线程 ──
         bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
@@ -825,6 +864,8 @@ class QueryEngine:
             except Exception:
                 pass
 
+        self._overflow_item_count = len(all_overflow)
+
         # ── 6. 合并 csres 结果 ──
         for idx, result in csres_results.items():
             if idx not in results:
@@ -942,6 +983,8 @@ class QueryEngine:
                             match_status="chain_exhausted",
                         )
                         bump()
+
+        self._overflow_item_count = 0
 
         # ── 桶统计 ──
         for key in sorted(bucket_times.keys()):
@@ -1071,7 +1114,10 @@ class QueryEngine:
             c / max(elapsed, 0.001),
         )
 
-        # ── 8. 按原始顺序组装 ──
+        # ── 8. 按原始顺序组装 + 状态重置 ──
+        self._query_active = False
+        self._overflow_item_count = 0
+        self._csres_active = False
         return [
             results.get(
                 i,

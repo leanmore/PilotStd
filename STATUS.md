@@ -255,6 +255,41 @@
 
 **结论**：技术上可行，但当前进度条口径（按处理条数）对用户理解管线进度已足够。溢出/回池/CSRES 发生在秒级窗口内，对整体进度感知影响有限。建议优先级 P2。
 
+### 3.12 进度条全量改进（2026-06-22 已实现）
+
+#### 新增的 4 项能力
+
+| 方法 | 位置 | 说明 |
+|------|------|------|
+| `is_query_running()` | [engine.py:108-110](pilotstd/query/engine.py#L108-L110) | 查询引擎是否正在执行批量查询 |
+| `get_overflow_count()` | [engine.py:112-114](pilotstd/query/engine.py#L112-L114) | 当前溢出队列待重试条目数 |
+| `get_csres_status()` | [engine.py:116-123](pilotstd/query/engine.py#L116-L123) | CSRES 线程状态：`{is_active, processed, total, remaining}` |
+| `is_idle()` | [engine.py:125-130](pilotstd/query/engine.py#L125-L130) | 汇总：无查询 + 溢出空 + CSRES 已结束 |
+| `get_query_status()` | [facade.py:1441-1449](pilotstd/manager/facade.py#L1441-L1449) | facade 透传，供 UI/进度条轮询 |
+
+#### 状态生命周期
+
+```
+query_batch_parsed 入口 → _query_active = True
+  _csres_worker 启动 → _csres_active = True, _csres_total = len(pool)
+    逐条处理 → _csres_processed += 1
+  _csres_worker 结束 → _csres_active = False
+  桶结果收集完成 → _overflow_item_count = len(all_overflow)
+  临时桶链迭代结束 → _overflow_item_count = 0
+query_batch_parsed 出口 → 全部重置为 False/0
+```
+
+#### 进度条改进
+
+- **查询阶段**：主流程按 `cur/total * 90` 推进（停在 90%）
+- **查询完成时**：直接跳到 `100/100`（`is_idle()` 必然为 True）
+- **代码位置**：[facade.py:1235-1253](pilotstd/manager/facade.py#L1235-L1253)
+
+#### 验证结果
+
+- Ruff 0 error，Mypy 0 error
+- `is_idle()` 在 `query_batch_parsed` 返回后必然为 True（CSRES/溢出均在内部完成）
+
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |

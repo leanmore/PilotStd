@@ -1232,9 +1232,27 @@ class StandardManager:
         # Stage 2: 查询
         if on_stage_change:
             on_stage_change("query", 0, len(parsed))
+        # 包装进度回调：主流程占 90%，剩余 10% 留给 CSRES/溢出等内部处理
+        _wrapped_query_progress = None
+        if on_query_progress:
+            _q_total = len(parsed)
+
+            def _wrapped_query_progress(cur, total):
+                scaled = int(cur / total * 90) if total > 0 else 0
+                on_query_progress(scaled, 100)
+
+            _progress_cb = _wrapped_query_progress
+        else:
+            _progress_cb = on_query_progress
+
         results, q_stats = self.query(
-            parsed, progress_callback=on_query_progress, result_callback=on_query_result
+            parsed,
+            progress_callback=_progress_cb,
+            result_callback=on_query_result,
         )
+        # 查询完成（query_batch_parsed 内部 CSRES/溢出均已结束），进度到 100%
+        if on_query_progress:
+            on_query_progress(100, 100)
         report["query_found"] = q_stats.found
         logger.info(
             "阶段耗时 query: %.1fs (%d 条)", _time.monotonic() - t_stage, q_stats.found
@@ -1437,6 +1455,17 @@ class StandardManager:
     def get_site_cooldown(self, site_name: str) -> int:
         """暴露指定站点的冷却剩余秒数。"""
         return self.query_engine.get_site_cooldown(site_name)  # type: ignore[return-value]
+
+    def get_query_status(self) -> dict:
+        """返回查询引擎运行时状态，供进度条轮询。
+        返回值: {is_running, overflow_count, csres_active, is_idle}
+        """
+        return {
+            "is_running": self.query_engine.is_query_running(),
+            "overflow_count": self.query_engine.get_overflow_count(),
+            "csres_active": self.query_engine.get_csres_status()["is_active"],
+            "is_idle": self.query_engine.is_idle(),
+        }
 
     def get_adapter_report(self) -> list[dict]:
         """返回所有适配器的统计汇总报告。
