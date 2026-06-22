@@ -178,6 +178,24 @@ class SiteRotator:
                         site.daily_count,
                         site.daily_limit,
                     )
+                # 达到 max_requests 上限 → 立即进入冷却
+                # 此前冷却仅在 get_available() 中触发，但 query_batch_parsed
+                # 的 mini-bucket 循环不调用 get_available()，导致超额。
+                if site.max_requests > 0 and site.request_count >= site.max_requests:
+                    self._enter_cooldown(site)
+                    self._save()
+                    logger.info(
+                        "[COOLDOWN] site=%s action=enter reason=max_requests "
+                        "request_count=%d max_requests=%d cooldown_s=%d "
+                        "daily_count=%d daily_limit=%d",
+                        name,
+                        site.request_count,
+                        site.max_requests,
+                        site.cooldown_seconds,
+                        site.daily_count,
+                        site.daily_limit,
+                    )
+                    self._was_cooling[name] = True
 
     def record_error(self, name: str) -> Optional[str]:
         """记录一次错误。返回切换后的新 URL（如有），或 None。"""

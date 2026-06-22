@@ -701,6 +701,13 @@ class QueryEngine:
 
                 # 逐条查询
                 for idx, item in mini:
+                    # 逐条冷却检查：record_success 可能在上一轮触发了冷却
+                    if (
+                        self._rotator
+                        and self._rotator.get_cooldown_remaining(assigned_site) > 0
+                    ):
+                        overflow_items.append((idx, item))
+                        continue
                     try:
                         _t0 = _time.time()
                         result = adapter.query_with_strategy(
