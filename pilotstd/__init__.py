@@ -1,5 +1,5 @@
 # 应用版本号——唯一真相来源（CI、更新检查、打包均从此读取）
-__version__ = "0.18.2"
+__version__ = "0.18.3"
 
 # 轻量数据模型（启动时需用）
 from .models import FileInfo, ParsedStdInfo, ScanResult, ScanStats
