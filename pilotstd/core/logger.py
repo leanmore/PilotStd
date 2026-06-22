@@ -1,12 +1,11 @@
 # pilotstd/core/logger.py
-# 日志管理器：双通道（控制台+文件）、按天轮转、14天保留、支持导出
+# 日志管理器：双通道（控制台+文件）、按大小轮转(256KB)、1个备份
 
 import logging
 import os
 import sys
 import threading
-import time
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 from .frozen import is_frozen
@@ -77,7 +76,7 @@ class LoggerManager:
     """封装日志初始化，提供统一的 logger 获取入口。
 
     双通道输出：控制台(INFO) + 文件(DEBUG)。
-    按天轮转，保留 14 天历史日志。
+    按 256KB 大小轮转，保留 1 个备份文件。
     """
 
     _instance: Optional["LoggerManager"] = None
@@ -144,26 +143,15 @@ class LoggerManager:
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         path = os.path.join(self._log_dir, filename)
-        h = TimedRotatingFileHandler(
+        h = RotatingFileHandler(
             path,
-            when="midnight",
-            interval=1,
-            backupCount=self._retain_days,
+            maxBytes=256 * 1024,
+            backupCount=1,
             encoding="utf-8",
         )
-        h.suffix = "%Y%m%d"
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h
 
     def _cleanup_old_logs(self):
-        """删除超过保留天数的日志备份文件。"""
-        cutoff = time.time() - self._retain_days * 86400
-        for fn in os.listdir(self._log_dir):
-            if fn.startswith("app.log"):
-                fp = os.path.join(self._log_dir, fn)
-                try:
-                    if os.path.getmtime(fp) < cutoff:
-                        os.remove(fp)
-                except OSError:
-                    pass
+        """轮转由 RotatingFileHandler 自动管理（backupCount=1），无需手动清理。"""
