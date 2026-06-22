@@ -14,7 +14,6 @@
 #   第四步  汇总判定
 
 import argparse
-import atexit
 import json
 import os
 import re
@@ -378,110 +377,23 @@ def _safe_run(
 # ── API Key 自动准备与清理 ────────────────────────────────────
 
 
-def _prepare_api_key(
-    cfg: dict, docker_url: str, docker_user: str, docker_pass: str
-) -> str:
-    """自动创建临时 API Key 供压测使用。
+def _resolve_api_token(cfg: dict) -> str:
+    """读取静态 API 令牌（环境变量 PILOTSTD_API_TOKEN）。
 
-    优先从 PILOTSTD_API_KEY 环境变量读取；若无，使用 web_admin 凭证
-    登录 Web 后端并调用 POST /api/admin/api-keys 创建临时 Key。
+    兼容旧变量名 PILOTSTD_API_KEY，优先级：PILOTSTD_API_TOKEN > PILOTSTD_API_KEY。
     """
-    import requests
-
-    existing = os.environ.get("PILOTSTD_API_KEY", "")
-    if existing:
-        _log(f"使用已有 API Key: {existing[:8]}...")
-        return existing
-
-    web_admin = cfg.get("web_admin", {})
-    admin_url = web_admin.get("url", docker_url)
-    admin_user = web_admin.get("username", docker_user)
-    admin_pass = web_admin.get("password", docker_pass)
-    if not all([admin_url, admin_user, admin_pass]):
-        _log("API Key 创建失败: web_admin 凭证不完整")
-        return ""
-
-    try:
-        # 登录获取 Cookie
-        login_url = f"{admin_url}/api/login"
-        r = requests.post(
-            login_url,
-            data={"username": admin_user, "password": admin_pass},
-            timeout=30,
-        )
-        if r.status_code != 200:
-            _log(f"API Key 创建失败: 登录失败 status={r.status_code}")
-            return ""
-        cookies = r.cookies
-        csrf = cookies.get("csrf_token", "")
-
-        # 创建临时 Key
-        key_id = f"pst_stress_{int(time.time())}"
-        r = requests.post(
-            f"{admin_url}/api/admin/api-keys",
-            json={
-                "key_id": key_id,
-                "description": "压测临时 Key",
-                "scopes": ["query:read", "announce:read"],
-            },
-            cookies=cookies,
-            headers={"X-CSRF-Token": csrf} if csrf else {},
-            timeout=30,
-        )
-        if r.status_code == 200 and r.json().get("ok"):
-            raw_key = r.json().get("raw_key", "")
-            _log(f"已创建临时 API Key: key_id={key_id}")
-            return raw_key
-        _log(f"API Key 创建失败: status={r.status_code} body={r.text[:100]}")
-        return ""
-    except requests.exceptions.ConnectionError:
-        _log(f"API Key 创建失败: 无法连接 {admin_url}")
-        return ""
-    except Exception as e:
-        _log(f"API Key 创建异常: {e}")
-        return ""
-
-
-def _cleanup_api_key(cfg: dict, docker_url: str, docker_user: str, docker_pass: str):
-    """吊销压测自动创建的临时 API Key（仅 pst_stress_* 前缀）。"""
-    import requests
-
-    api_key = os.environ.get("PILOTSTD_API_KEY", "")
-    if not api_key or not api_key.startswith("pst_stress_"):
-        return
-
-    web_admin = cfg.get("web_admin", {})
-    admin_url = web_admin.get("url", docker_url)
-    admin_user = web_admin.get("username", docker_user)
-    admin_pass = web_admin.get("password", docker_pass)
-    if not all([admin_url, admin_user, admin_pass]):
-        return
-
-    try:
-        r = requests.post(
-            f"{admin_url}/api/login",
-            data={"username": admin_user, "password": admin_pass},
-            timeout=30,
-        )
-        if r.status_code != 200:
-            return
-        cookies = r.cookies
-        csrf = cookies.get("csrf_token", "")
-        # 查找并吊销所有 pst_stress_ 前缀的 Key
-        r = requests.get(f"{admin_url}/api/admin/api-keys", cookies=cookies, timeout=30)
-        if r.status_code == 200:
-            for k in r.json().get("api_keys", []):
-                kid = k.get("key_id", "")
-                if kid.startswith("pst_stress_"):
-                    requests.delete(
-                        f"{admin_url}/api/admin/api-keys/{kid}",
-                        cookies=cookies,
-                        headers={"X-CSRF-Token": csrf} if csrf else {},
-                        timeout=30,
-                    )
-                    _log(f"已吊销临时 API Key: {kid}")
-    except Exception:
-        pass
+    token = os.environ.get("PILOTSTD_API_TOKEN", "")
+    if token:
+        os.environ["PILOTSTD_API_KEY"] = token  # 兼容下游子进程的旧变量名
+        _log(f"使用静态 API Token: {token[:8]}...")
+        return token
+    # 回退到旧变量名
+    legacy = os.environ.get("PILOTSTD_API_KEY", "")
+    if legacy:
+        _log(f"使用旧版 API Key: {legacy[:8]}...")
+        return legacy
+    _log("WARN: PILOTSTD_API_TOKEN 未设置，Web API 鉴权测试将跳过 AUTH 验证")
+    return ""
 
 
 # ── 第一步：CLI 冷启 ─────────────────────────────────────────
@@ -1961,17 +1873,14 @@ def main():
     else:
         _log("版本一致性校验: 跳过（SKIP_VERSION_CHECK=1）")
 
-    # ── API Key 自动准备 ──
+    # ── API Token 解析 ──
     _api_key = ""
     if not args.skip_docker and docker_url:
-        _api_key = _prepare_api_key(cfg, docker_url, docker_user, docker_pass)
-        if _api_key:
-            os.environ["PILOTSTD_API_KEY"] = _api_key
-            _log(f"API Key 已准备: {_api_key[:8]}...")
-        # 注册清理
-        atexit.register(_cleanup_api_key, cfg, docker_url, docker_user, docker_pass)
+        _api_key = _resolve_api_token(cfg)
+        if not _api_key:
+            _log("WARN: PILOTSTD_API_TOKEN 未设置，AUTH 验证将跳过")
     else:
-        _log("API Key 准备: 跳过（Docker 不可达或用户跳过）")
+        _log("API Token: 跳过（Docker 不可达或用户跳过）")
 
     # 第一步：CLI 冷启
     _terminated_early = False

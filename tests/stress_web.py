@@ -85,7 +85,7 @@ _check("环境: Docker可达", True)
 # ── 进度心跳（每60秒，供 stress_driver 存活检测）──
 import threading as _thr  # noqa: E402
 
-_prog_total = 5  # AUTH-05/06/07 + BIZ-12/13
+_prog_total = 4  # AUTH-01 + AUTH-02 + BIZ-12 + BIZ-13
 _prog_completed = [0]
 _prog_ok = [0]
 _prog_lock = _thr.Lock()
@@ -630,16 +630,18 @@ else:
 # 公告缓存路由 + API Key 鉴权压测（v4.2 新增）
 # ════════════════════════════════════════════════════════════════
 
-_stress_api_key = os.environ.get("PILOTSTD_API_KEY", "")
+_stress_api_key = os.environ.get("PILOTSTD_API_TOKEN") or os.environ.get(
+    "PILOTSTD_API_KEY", ""
+)
 _cache_hit_count = 0
 _cache_miss_count = 0
 _source_dist: dict[str, int] = {}
 _auth_total = 0
 _auth_pass = 0
 
-logger.info("--- 公告缓存路由 + API Key 鉴权 ---")
+logger.info("--- 公告缓存路由 + API 令牌鉴权 ---")
 
-# AUTH-05: 有效 API Key 鉴权
+# AUTH-01: 有效令牌 → 200（支持 Authorization: Bearer + X-API-KEY 双通道）
 if _stress_api_key:
     _auth_total += 1
     try:
@@ -652,58 +654,37 @@ if _stress_api_key:
         if ok:
             _auth_pass += 1
         _check(
-            "AUTH-05: 有效API Key鉴权",
+            "AUTH-01: 有效令牌鉴权 (Bearer)",
             ok,
             f"status={r.status_code}" if not ok else "200 OK",
         )
         _prog_bump(ok=ok)
     except Exception as e:
-        _check("AUTH-05: 有效API Key鉴权", False, f"异常: {str(e)[:60]}")
+        _check("AUTH-01: 有效令牌鉴权 (Bearer)", False, f"异常: {str(e)[:60]}")
         _prog_bump(ok=False)
 else:
-    _check("AUTH-05: 有效API Key鉴权", None, "PILOTSTD_API_KEY 未设置，跳过")
+    _check("AUTH-01: 有效令牌鉴权", None, "PILOTSTD_API_TOKEN 未设置，跳过")
     _prog_bump(ok=False)
 
-# AUTH-06: 无效 API Key 鉴权
+# AUTH-02: 无效令牌 → 401
 _auth_total += 1
 try:
     r = requests.get(
         f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
-        headers={"Authorization": "Bearer pst_invalid_key_000000000"},
+        headers={"Authorization": "Bearer pst_invalid_static_token"},
         timeout=10,
     )
     ok = r.status_code in (401, 403)
     if ok:
         _auth_pass += 1
     _check(
-        "AUTH-06: 无效API Key鉴权",
+        "AUTH-02: 无效令牌拒绝",
         ok,
         f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
     )
     _prog_bump(ok=ok)
 except Exception as e:
-    _check("AUTH-06: 无效API Key鉴权", False, f"异常: {str(e)[:60]}")
-    _prog_bump(ok=False)
-
-# AUTH-07: 吊销 API Key 鉴权（用随机 Key 模拟已吊销）
-_auth_total += 1
-try:
-    r = requests.get(
-        f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
-        headers={"Authorization": "Bearer pst_revoked_test_key_xxx"},
-        timeout=10,
-    )
-    ok = r.status_code in (401, 403)
-    if ok:
-        _auth_pass += 1
-    _check(
-        "AUTH-07: 吊销API Key鉴权",
-        ok,
-        f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
-    )
-    _prog_bump(ok=ok)
-except Exception as e:
-    _check("AUTH-07: 吊销API Key鉴权", False, f"异常: {str(e)[:60]}")
+    _check("AUTH-02: 无效令牌拒绝", False, f"异常: {str(e)[:60]}")
     _prog_bump(ok=False)
 
 # BIZ-12: 缓存命中（用公告缓存中预置的号码测试）

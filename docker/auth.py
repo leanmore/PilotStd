@@ -33,6 +33,58 @@ _init_done = False
 TOKEN_EXPIRE_HOURS = 2  # jwt 过期时间（小时），可通过 TOKEN_EXPIRE_HOURS 环境变量覆盖
 COOKIE_NAME = "pilotstd_token"
 CSRF_HEADER = "X-CSRF-Token"
+API_TOKEN_HEADER = "X-API-KEY"  # 静态令牌 Header（参考 MoviePilot）
+
+# 静态 API 令牌：从 PILOTSTD_API_TOKEN 环境变量读取，未设置则自动生成
+_STATIC_API_TOKEN = os.environ.get("PILOTSTD_API_TOKEN") or secrets.token_hex(32)
+_STATIC_TOKEN_INITIALIZED = False
+
+
+def _ensure_static_token_in_db():
+    """确保静态令牌在 api_keys 表中存在且有效（幂等）。
+
+    每次应用启动时调用——若 PILOTSTD_API_TOKEN 已设置且与 DB 中一致则跳过，
+    否则创建/更新一条 key_id='pst_static' 的记录。
+    """
+    global _STATIC_TOKEN_INITIALIZED
+    if _STATIC_TOKEN_INITIALIZED:
+        return
+    try:
+        from pilotstd.core.config import get_db_path
+        from pilotstd.core.db import Database
+
+        db = Database(get_db_path())
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                key_id TEXT PRIMARY KEY,
+                key_hash TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                scopes TEXT DEFAULT '[]',
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now')),
+                last_used_at TEXT
+            )
+        """)
+        key_hash = hashlib.sha256(_STATIC_API_TOKEN.encode()).hexdigest()
+        existing = db.fetchone(
+            "SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'"
+        )
+        if existing:
+            if existing["key_hash"] != key_hash:
+                db.execute(
+                    "UPDATE api_keys SET key_hash=?, is_active=1 WHERE key_id='pst_static'",
+                    (key_hash,),
+                )
+        else:
+            db.execute(
+                "INSERT INTO api_keys (key_id, key_hash, description, scopes, is_active)"
+                " VALUES ('pst_static', ?, 'static-token-from-env', '[\"query:read\", \"announce:read\"]', 1)",
+                (key_hash,),
+            )
+        db.close()
+        _STATIC_TOKEN_INITIALIZED = True
+    except Exception:
+        pass  # 首次启动时 DB 可能尚未初始化，后续请求重试
 
 
 def get_current_username(request: Request) -> str:
@@ -202,6 +254,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
 
+        # 静态令牌自动初始化（惰性，首次 API 请求时触发）
+        _ensure_static_token_in_db()
+
         # 白名单检查
         for w_path, w_methods in AUTH_WHITELIST:
             if path.startswith(w_path) and (
@@ -226,16 +281,36 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 return JSONResponse({"error": "请求过于频繁，请稍后重试"}, 429)
             _api_rate_limit[client_ip].append(now)
 
-        # API Key 校验：Authorization: Bearer <token>，token 以 "pst_" 开头
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            api_token = auth_header[7:]
-            key_info = verify_api_key(api_token)
+        # API Key 校验（三通道）：
+        #   1. Authorization: Bearer <token>
+        #   2. X-API-KEY: <token>  （参考 MoviePilot）
+        #   3. ?token=<token> 查询参数
+        def _try_api_token(token: str) -> bool:
+            if not token:
+                return False
+            key_info = verify_api_key(token)
             if key_info:
                 request.state.api_key_id = key_info["key_id"]
                 request.state.api_key_scopes = key_info["scopes"]
+                return True
+            return False
+
+        auth_header = request.headers.get("Authorization", "")
+        api_key_header = request.headers.get(API_TOKEN_HEADER, "")
+        query_token = request.query_params.get("token", "")
+
+        api_token = ""
+        if auth_header.startswith("Bearer "):
+            api_token = auth_header[7:]
+        elif api_key_header:
+            api_token = api_key_header
+        elif query_token:
+            api_token = query_token
+
+        if api_token:
+            if _try_api_token(api_token):
                 return await call_next(request)
-            # 如果 token 以 "pst_" 开头但验证失败，直接 401（不回落 JWT）
+            # token 验证失败，直接 401（不回落 JWT）
             if api_token.startswith("pst_"):
                 return JSONResponse({"error": "认证失败"}, 401)
 

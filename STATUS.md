@@ -51,11 +51,13 @@
 - [x] PULL_REQUEST_TEMPLATE.md 能力迁移状态表
 - [x] STATUS.md（本文件）
 
-### v4.2 阻塞项修复（1/2 完成）
-- [x] **njbz365 配额冷却修复** — 根因：`SiteRotator.record_success()` 累加 `request_count` 但未在达到 `max_requests` 时触发 `_enter_cooldown()`。冷却仅在 `get_available()` 中触发，但 `query_batch_parsed` 的 mini-bucket 循环不调用 `get_available()`，导致超额。修复：`record_success()` 新增冷却触发 + `_bucket_worker` 逐条冷却检查。验证：单元测试 4/4 PASS，冷却在第 5 次请求后正确触发。
-- [ ] API 令牌简化（待实施）
+### v4.2 阻塞项修复（2/2 完成）
+- [x] **njbz365 配额冷却修复**
+- [x] **API 令牌简化** — 改用静态令牌方案：`PILOTSTD_API_TOKEN` 环境变量 → `docker/auth.py` 启动时自动写入 `api_keys` 表（key_id='pst_static'），支持 `Authorization: Bearer` / `X-API-KEY` / `?token=` 三通道。移除 stress_driver 中 `_prepare_api_key()`/`_cleanup_api_key()`/`atexit` 共 ~130 行动态创建吊销逻辑。stress_web.py 中 AUTH-05/06/07 替换为 AUTH-01（有效令牌→200）+ AUTH-02（无效令牌→401）。
 
 ## 三、当前阻塞项（P0）
+
+~~无~~ — 全部阻塞项已修复。
 
 ### 3.1 ~~njbz365 配额冷却失效~~ ✅ 已修复
 | 指标 | 修复前 | 修复后（预期） |
@@ -67,18 +69,18 @@
 
 **修复**：`rotator.py:record_success()` 新增 `request_count >= max_requests` 检查 → 立即进入冷却；`engine.py:_bucket_worker` 逐条循环新增冷却检查。
 
-### 3.2 API 令牌方案待简化
-- 当前：依赖动态创建 API Key（已发现 500 错误：`'NoneType' object has no attribute 'cookies'`）
-- 目标：改为静态令牌（参考 MoviePilot），移除动态创建/吊销逻辑
-- 状态：方案已确认，待实施
+### 3.2 ~~API 令牌方案待简化~~ ✅ 已修复
+- 当前：静态令牌，环境变量 `PILOTSTD_API_TOKEN` 驱动
+- 认证方式：`Authorization: Bearer` / `X-API-KEY` Header / `?token=` Query 参数
+- 动态创建/吊销逻辑已移除（~130 行代码消除）
 
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |
 |------|------|------|
 | ~~njbz365 配额修复~~ | ✅ 已完成 | — |
-| API 令牌简化 | 待执行 | 无 |
-| 全量压测重跑（含 WinUI 乙轮） | 待执行 | API 令牌简化完成后 |
+| ~~API 令牌简化~~ | ✅ 已完成 | — |
+| 全量压测重跑（含 WinUI 乙轮） | 待执行 | 无 |
 | v4.2 验收结论 | 待执行 | 全量压测完成后 |
 
 ## 五、最近决策记录

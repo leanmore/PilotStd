@@ -70,7 +70,7 @@
 |----------|---------|------|---------|------|--------|---------|------|
 | `pilotstd/ui/main_window.py` | SIGTERM 自动保存 | `signal.signal(SIGTERM, ...)` 捕获终止信号触发自动保存 | `main_window.py:629` | 信号处理 | required | 2026-06-22 | active |
 | `pilotstd/ui/main_window.py` | atexit 退出清理 | `atexit.register()` 注册退出回调保存状态 | `main_window.py:627` | 退出清理 | required | 2026-06-22 | active |
-| `tests/stress_driver.py` | API Key 退出清理 | `atexit.register(_cleanup_api_key, ...)` 压测退出时清理 Docker API Key | `stress_driver.py:1972` | 退出清理 | required | 2026-06-22 | active |
+| `tests/stress_driver.py` | API Key 退出清理 | atexit 注册 `_cleanup_api_key()` 吊销临时 Key | `stress_driver.py:1972` (已删除) | 退出清理 | recommended | 2026-06-22 | **deprecated** |
 | `docker/scheduler.py` | 调度器优雅关闭 | `stop_scheduler()`：停止心跳→等待任务→释放 DB 锁 | `scheduler.py:166-174` | 退出清理 | required | 2026-06-22 | active |
 | `docker/app.py` | FastAPI 生命周期钩子 | `startup` 启动调度器，`shutdown` 停止调度器 | `app.py:54-57` | 生命周期 | required | 2026-06-22 | active |
 | `pilotstd/announcement/ocr.py` | OCR 取消信号 | `_threading.Event` 作为 OCR 处理停止信号，传递给所有 OCR Slot | `ocr.py:565-752` | Event（同步） | recommended | 2026-06-22 | active |
