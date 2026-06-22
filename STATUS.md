@@ -296,7 +296,8 @@
 - 最终状态：280 errors in 52 files (-70%)
 - 修复轮次：3 轮并行 Agent 修复（共 8 个 Agent）
 - 主要成果：新增 ~700 处返回类型注解、参数类型、泛型参数、None 守卫
-- 遗留：280 个 PyQt6 union-attr + mixin arg-type 错误，属架构固有模式，需重构 mixin 为 QWidget 子类或精确配置 mypy overrides 才能消除
+- 遗留：280 个 PyQt6 union-attr + mixin arg-type 错误，属架构固有模式，通过 `pyproject.toml` 中 `[[tool.mypy.overrides]] module = "pilotstd.ui.*" ignore_errors = true` 压制
+- 技术债：后续若重构 mixin 为 QWidget 子类，移除 ignore_errors 恢复严格检查
 - 发布影响：无（仅类型注解层面改动，不影响运行时行为）
 
 ## 四、待执行任务（P1）

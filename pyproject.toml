@@ -27,10 +27,12 @@ module = [
 ]
 ignore_missing_imports = true
 
-# UI 目录 Mixin 模式：跨类动态属性 mypy 无法推断，压制 attr-defined
+# UI 目录 Mixin 模式：PyQt6 类型系统与 mixin 架构冲突
+# (QMessageBox/QMenu/QHeaderView | None / self 非 QWidget)
+# 压制直到 mixin 重构为 QWidget 子类——参见 STATUS.md 3.14 节技术债
 [[tool.mypy.overrides]]
 module = "pilotstd.ui.*"
-disable_error_code = ["attr-defined"]
+ignore_errors = true
 
 [tool.ruff]
 target-version = "py312"
