@@ -1,5 +1,4 @@
 from .adapters.base import BaseDownloadAdapter
-from .adapters.mock import MockDownloadAdapter
 from .adapters.openstd_download import OpenstdDownloadAdapter
 from .engine import DownloadEngine
 from .models import BatchDownloadStats, DownloadStatus, DownloadTask
@@ -11,7 +10,6 @@ __all__ = [
     "BatchDownloadStats",
     "BaseDownloadAdapter",
     "OpenstdDownloadAdapter",
-    "MockDownloadAdapter",
     "SessionManager",
     "DownloadEngine",
 ]

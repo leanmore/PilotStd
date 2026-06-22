@@ -12,8 +12,8 @@ import threading
 import time
 import unittest
 
-from pilotstd.download.adapters.mock import MockDownloadAdapter
 from pilotstd.download.models import DownloadTask
+from tests.adapters.mock_download import MockDownloadAdapter
 
 
 class TestMockDownloadAdapter(unittest.TestCase):

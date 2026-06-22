@@ -21,3 +21,13 @@ repos:
         args: [--follow-imports=skip, --ignore-missing-imports]
         exclude: ^(tests/|pilotstd/ui/)
         additional_dependencies: [types-requests]
+
+  - repo: local
+    hooks:
+      - id: forbid-test-imports
+        name: Forbid production imports from test modules
+        entry: bash -c 'if grep -rn "from pilotstd\..*\.mock\|from tests\." pilotstd/ --include="*.py" | grep -v "except ImportError\|_get_mock_adapter"; then echo "❌ Forbidden import detected"; exit 1; fi'
+        language: system
+        files: \.py$
+        exclude: ^tests/
+        pass_filenames: false

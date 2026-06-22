@@ -141,6 +141,26 @@ def bump_version(current: str, bump_type: str) -> str:
     return f"{major}.{minor}.{patch}"
 
 
+def write_version_to_pyproject(version: str) -> None:
+    """将版本号写入 pyproject.toml"""
+    path = PROJECT_ROOT / "pyproject.toml"
+    content = path.read_text(encoding="utf-8")
+    content = re.sub(
+        r'^version\s*=\s*"[^"]*"', f'version = "{version}"', content, flags=re.MULTILINE
+    )
+    path.write_text(content, encoding="utf-8")
+    print(f"  ✓ pyproject.toml -> {version}", file=sys.stderr)
+
+
+def write_version_to_package_json(version: str) -> None:
+    """将版本号写入 web/package.json"""
+    path = PROJECT_ROOT / "web" / "package.json"
+    content = path.read_text(encoding="utf-8")
+    content = re.sub(r'"version":\s*"[^"]*"', f'"version": "{version}"', content)
+    path.write_text(content, encoding="utf-8")
+    print(f"  ✓ web/package.json -> {version}", file=sys.stderr)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="根据 commit message 前缀自动计算下一个语义化版本号"
@@ -158,7 +178,7 @@ def main() -> None:
     parser.add_argument(
         "--update",
         action="store_true",
-        help="就地更新 pilotstd/__init__.py 中的 __version__",
+        help="就地更新 pilotstd/__init__.py + pyproject.toml + web/package.json 中的版本号",
     )
     args = parser.parse_args()
 
@@ -197,6 +217,8 @@ def main() -> None:
         )
         INIT_PATH.write_text(updated, encoding="utf-8")
         print(f"已更新 {INIT_PATH}: {current} → {new_version}", file=sys.stderr)
+        write_version_to_pyproject(new_version)
+        write_version_to_package_json(new_version)
 
     if args.github:
         # GitHub Actions set-output 格式

@@ -48,12 +48,12 @@ def mock_main_window(qapp, qtbot, test_data_dir):
 
     # 注入 mock 适配器直接替换 Manager 的引擎（所有操作走 self._mgr）
     from pilotstd.core.db import Database
-    from pilotstd.download.adapters.mock import MockDownloadAdapter
     from pilotstd.download.engine import DownloadEngine
     from pilotstd.download.session import SessionManager
-    from pilotstd.query.adapters.mock import MockQueryAdapter
     from pilotstd.query.cache import CacheRepository
     from pilotstd.query.engine import QueryEngine
+    from tests.adapters.mock import MockQueryAdapter
+    from tests.adapters.mock_download import MockDownloadAdapter
 
     db_path = os.path.join(tmpdir, "test.db")
     _db = Database(db_path)

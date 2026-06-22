@@ -25,6 +25,10 @@ on:
         required: false
         default: '手动触发'
 
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
@@ -50,6 +54,14 @@ jobs:
         run: |
           pip install -r docker/requirements-docker.txt
           pip install pytest pytest-xdist
+
+      - name: Forbid production imports from test modules
+        run: |
+          if grep -rn "from pilotstd\..*\.mock\|from tests\." pilotstd/ --include="*.py" | grep -v "except ImportError\|_get_mock_adapter"; then
+            echo "❌ Production code imports test-only module. Abort."
+            exit 1
+          fi
+          echo "✅ No forbidden imports found."
 
       - name: Run backend tests
         env:
@@ -127,22 +139,21 @@ jobs:
         with:
           fetch-depth: 0  # 需要 git tag 历史以计算版本号
 
-      # ── 版本号（tag 推送直接用，main 推送自动 bump）──
+      # ── 版本号（从最新 git tag 读取，由 release.yml 专责管理）──
       - name: Determine version
         id: version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${{ github.ref_name }}"
-            bumped="false"
           else
-            COMMIT_MSG="${{ github.event.head_commit.message }}"
-            BUMP_OUTPUT=$(python3 .github/scripts/bump_version.py --github "$COMMIT_MSG") || exit 1
-            eval "$BUMP_OUTPUT"
-            VERSION="$version"
+            VERSION=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            if [ -z "$VERSION" ]; then
+              echo "::error::无可用版本标签"
+              exit 1
+            fi
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "bumped=$bumped" >> $GITHUB_OUTPUT
-          echo "Version tag: $VERSION"
+          echo "Version: $VERSION"
 
       # ── 2a: 构建前端 ──
       - name: Setup Node.js
@@ -183,18 +194,3 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-      # ── 2e: 版本号变更时推送 git tag（防止 Docker tag 与 git tag 脱节）──
-      - name: Push version tag to git
-        if: steps.version.outputs.bumped == 'true'
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          TAG="${{ steps.version.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG 已存在，跳过（可能被并发 CI 先推送）"
-          else
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-            echo "已推送 git tag: $TAG"
-          fi
