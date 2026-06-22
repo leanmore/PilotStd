@@ -209,6 +209,52 @@
 - **17:30:35~17:30:38 的行为是正常工作流**：CSRES 速率控制、hbba 年份回退宽搜、低分回池均为设计内行为，非错误恢复
 - **与 WinUI 甲轮 exact/pending 偏差无直接关联**：偏差根因仍是 CLI 冷启消耗站点配额导致热启时部分站点不可用
 
+### 3.11 进度条改进可行性检查（2026-06-22）
+
+#### 当前实现
+
+| 项目 | 位置 | 说明 |
+|------|------|------|
+| 进度计算 | [workers.py:21-23](pilotstd/ui/workers.py#L21-L23) | `_pct(cur,total)` = `int(cur/total*100)` |
+| 驱动方式 | [facade.py:1235-1237](pilotstd/manager/facade.py#L1235-L1237) | `auto_run_stream` 回调链 → `query_progress(cur, total)` |
+| 节流 | [auto_run_mixin.py:25-40](pilotstd/ui/controllers/auto_run_mixin.py#L25-L40) | `_ThrottledProgress` 500ms 节流，value≥100 立即发射 |
+| 覆盖范围 | scan → query → download → archive | 4 阶段，按"已处理条数 / 总条数"计算 |
+
+#### 现有后台状态查询能力
+
+| 能力 | 接口 | 状态 |
+|------|------|------|
+| 站点冷却剩余 | `facade.get_site_cooldown(site)` → `rotator.get_cooldown_remaining()` | 已存在 |
+| 配额剩余 | `facade.get_quota_info()` → `engine.get_quota_info()` | 已存在 |
+| 阶段队列长度 | `facade.get_stage_summary()` → `{download,expire,pending,total}` | 已存在（仅查询完成后） |
+| 待确认清单 | `facade.get_pending_items()` → 返回列表 | 已存在（仅查询完成后） |
+
+#### 缺失的关键能力
+
+| 缺失能力 | 原因 | 影响 |
+|---------|------|------|
+| **查询中状态** `is_query_running()` | `query_batch_parsed` 内部 `_prog_completed` 未暴露 | 进度条无法区分"查询中"和"查询完成" |
+| **溢出队列长度** `get_overflow_count()` | `overflow_items` 是 `_bucket_worker` 局部变量 | 无法感知回池重试的积压量 |
+| **CSRES 线程状态** | 独立 daemon 线程，无进度汇报 | CSRES 处理期间进度条停滞 |
+| **引擎空闲检测** | `QueryEngine` 无 `is_idle()` 方法 | 无法判断所有后台任务是否结束 |
+
+#### 可行性结论
+
+**当前进度条无法获取"后台是否还有任务"的状态**。进度条只知道各阶段入口的 `total` 和回调的 `cur`，对于阶段内部发生的回池重试、CSRES 异步处理、溢出链迭代等子任务完全不可见。
+
+**若需改进，最小新增功能集合**：
+
+| 新增功能 | 改动文件 | 说明 | 预估行数 |
+|---------|---------|------|---------|
+| `QueryEngine.get_query_status()` | `engine.py` | 返回 `{completed, total, overflow_count, phase}` | ~15 行 |
+| 暴露 `_prog_completed` 为属性 | `engine.py` | 将 `_prog_completed` 从局部变量提升为实例属性 | ~5 行 |
+| `StandardManager.get_query_status()` | `facade.py` | 透传 engine 的状态查询 | ~8 行 |
+| AutoWorker 轮询状态 | `workers.py` | 阶段完成后轮询 `get_query_status()` 确认真空闲 | ~15 行 |
+
+**预估总工作量**：3 文件，~45 行，低风险（只增不改）。
+
+**结论**：技术上可行，但当前进度条口径（按处理条数）对用户理解管线进度已足够。溢出/回池/CSRES 发生在秒级窗口内，对整体进度感知影响有限。建议优先级 P2。
+
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |
