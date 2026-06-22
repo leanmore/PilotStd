@@ -155,9 +155,9 @@ class TableHelperMixin:
     def _add_table_row(self, update: RowUpdate):
         # [TRACE] 指令A-4: 输出最终传入_add_table_row的parsed对象
         logger.debug(
-            "[TRACE-A] _add_table_row: seq=%d std_num=%r std_name=%r "
-            "work_status=%r effect_status=%r is_adopted=%s "
-            "parsed.code=%s parsed.number=%s parsed.year=%s parsed.part=%s",
+            "[TRACE-A] _add_table_row: 行号=%d 标准号=%r 标准名称=%r "
+            "工作状态=%r 生效状态=%r 是否采标=%s "
+            "代号=%s 序号=%s 年份=%s 部分=%s",
             update.seq,
             update.parsed.get_full_number(),
             update.std_name_override or update.parsed.std_name,

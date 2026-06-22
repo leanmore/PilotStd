@@ -43,7 +43,7 @@ def check_latest_version() -> Optional[dict]:
 
         tag_name = data.get("tag_name", "")
         if not tag_name:
-            logger.warning("GitHub Release 无 tag_name")
+            logger.warning("GitHub Release 缺少 tag_name 字段")
             return None
 
         body = data.get("body", "")
@@ -59,7 +59,7 @@ def check_latest_version() -> Optional[dict]:
                 break
 
         if not download_url:
-            logger.warning("GitHub Release 无 zip 资源")
+            logger.warning("GitHub Release 缺少 zip 下载资源")
             return None
 
         return {

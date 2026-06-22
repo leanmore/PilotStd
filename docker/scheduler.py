@@ -160,7 +160,7 @@ def start_scheduler():
     threading.Thread(
         target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat"
     ).start()
-    logger.info("APScheduler started")
+    logger.info("APScheduler 已启动")
 
 
 def stop_scheduler():
@@ -171,7 +171,7 @@ def stop_scheduler():
         _get_db().execute("DELETE FROM scheduler_lock WHERE id=1")
     except Exception:
         pass
-    logger.info("APScheduler stopped")
+    logger.info("APScheduler 已停止")
 
 
 def update_job(job_id: str, cron: str, enabled: bool):

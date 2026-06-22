@@ -92,7 +92,7 @@ class SiteRotator:
                 self._check_daily_reset(site)
                 if site.daily_limit > 0 and site.daily_count >= site.daily_limit:
                     logger.info(
-                        "[QUOTA] site=%s action=daily_exhausted daily_count=%d daily_limit=%d",
+                        "[配额] 站点=%s 日配额耗尽 当日请求=%d 日上限=%d",
                         name,
                         site.daily_count,
                         site.daily_limit,
@@ -105,7 +105,7 @@ class SiteRotator:
                     last_log = self._last_cooldown_log.get(name, 0)
                     if now - last_log >= 60:
                         logger.info(
-                            "[COOLDOWN] site=%s action=status remaining_s=%.0f cooldown_s=%d",
+                            "[冷却] 站点=%s 冷却中 剩余秒=%.0f 配置冷却=%d",
                             name,
                             remaining,
                             site.cooldown_seconds,
@@ -113,7 +113,7 @@ class SiteRotator:
                         self._last_cooldown_log[name] = now
                     # [TRACE] 指令7: 记录冷却跳过对配额的影响
                     logger.debug(
-                        "[QUOTA] site=%s action=unavailable_due_cooldown remaining_s=%.0f",
+                        "[配额] 站点=%s 因冷却不可用 剩余秒=%.0f",
                         name,
                         remaining,
                     )
@@ -126,7 +126,7 @@ class SiteRotator:
                     site.request_count = 0
                     self._was_cooling[name] = False
                     logger.info(
-                        "[COOLDOWN] site=%s action=exit duration_s=%.0f cooldown_configured_s=%d",
+                        "[冷却] 站点=%s 退出冷却 持续秒=%.0f 配置冷却=%d",
                         name,
                         duration,
                         site.cooldown_seconds,
@@ -138,8 +138,8 @@ class SiteRotator:
                     self._enter_cooldown(site)
                     self._save()
                     logger.info(
-                        "[COOLDOWN] site=%s action=enter reason=max_requests "
-                        "request_count=%d max_requests=%d cooldown_s=%d daily_count=%d daily_limit=%d",
+                        "[冷却] 站点=%s 进入冷却 原因=达到最大请求数 "
+                        "请求计数=%d 最大请求=%d 冷却秒=%d 当日计数=%d 日上限=%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -169,8 +169,7 @@ class SiteRotator:
                     in (site.max_requests // 2, site.max_requests * 3 // 4)
                 ):
                     logger.info(
-                        "[ROTATOR] site=%s request_count=%d/%d (%.0f%%) "
-                        "daily_count=%d/%d",
+                        "[轮转器] 站点=%s 请求计数=%d/%d (%.0f%%) 当日计数=%d/%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -185,9 +184,9 @@ class SiteRotator:
                     self._enter_cooldown(site)
                     self._save()
                     logger.info(
-                        "[COOLDOWN] site=%s action=enter reason=max_requests "
-                        "request_count=%d max_requests=%d cooldown_s=%d "
-                        "daily_count=%d daily_limit=%d",
+                        "[冷却] 站点=%s 进入冷却 原因=达到最大请求数 "
+                        "请求计数=%d 最大请求=%d 冷却秒=%d "
+                        "当日计数=%d 日上限=%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -215,17 +214,15 @@ class SiteRotator:
                     site.consecutive_errors = 0
                     site.fallback_urls.append(site.base_url)  # 原URL作为最后的回退
                     site.base_url = new_url
-                    logger.warning(
-                        "[ROTATOR] site=%s action=switch_url url=%s", name, new_url
-                    )
+                    logger.warning("[轮转器] 站点=%s 切换URL url=%s", name, new_url)
                     return new_url
                 else:
                     self._enter_cooldown(site)
                     self._save()
                     logger.warning(
-                        "[COOLDOWN] site=%s action=enter reason=error_threshold "
-                        "request_count=%d max_requests=%d cooldown_s=%d "
-                        "consecutive_errors=%d",
+                        "[冷却] 站点=%s 进入冷却 原因=连续错误阈值 "
+                        "请求计数=%d 最大请求=%d 冷却秒=%d "
+                        "连续错误=%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -250,7 +247,7 @@ class SiteRotator:
                 site.consecutive_errors = 0
                 self._save()  # 持久化冷却状态
                 logger.info(
-                    "[COOLDOWN] site=%s action=enter reason=forced cooldown_s=%d",
+                    "[冷却] 站点=%s 进入冷却 原因=强制冷却 冷却秒=%d",
                     name,
                     seconds,
                 )

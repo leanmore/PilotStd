@@ -25,7 +25,7 @@ def lookup_announcement(
             (number,),
         )
     except Exception as e:
-        logger.error("公告缓存查询失败 number=%s: %s", number, e)
+        logger.error("公告缓存查询失败 标准号=%s: %s", number, e)
         raise HTTPException(status_code=500, detail=f"数据库查询失败: {e}")
 
     if not rows:

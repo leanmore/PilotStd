@@ -448,8 +448,8 @@ class OrganizerService:
                     # [TRACE] 指令8: 路径归一化检查（前5条）
                     if result["skipped_pending"] <= 5:
                         logger.debug(
-                            "[FALLBACK] skipped_pending #%d: src=%r "
-                            "stripped=%r in_pending=%s",
+                            "[FALLBACK] 跳过待确认 #%d: 源路径=%r "
+                            "去除前缀=%r 在待确认中=%s",
                             result["skipped_pending"],
                             src,
                             strip_long_path(src),
@@ -492,7 +492,7 @@ class OrganizerService:
         )
         # [TRACE] 指令8: 摘要日志，便于grep
         logger.info(
-            "[FALLBACK] moved=%d skipped=%d skipped_by_organize=%d skipped_pending=%d failed=%d",
+            "[FALLBACK] 已移动=%d 已跳过=%d 因目标已存在跳过=%d 因待确认跳过=%d 失败=%d",
             result["moved"],
             result["skipped"],
             result["skipped_by_organize"],

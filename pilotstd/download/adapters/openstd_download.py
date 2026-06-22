@@ -203,7 +203,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                     continue  # 刷新验证码重试
                 task.error_message = "验证码识别失败"
                 logger.warning(
-                    "下载失败(验证码): %s | 识别失败 captcha_text=%r",
+                    "下载失败(验证码): %s | 识别失败 验证码文本=%r",
                     task.standard_number,
                     captcha_text,
                 )

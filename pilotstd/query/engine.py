@@ -259,7 +259,7 @@ class QueryEngine:
                     if fallback and fallback not in base:
                         base.append(fallback)
                 logger.debug(
-                    "[ROUTE] code=%s type=%s route=%s",
+                    "[ROUTE] 代号=%s 类型=%s 路由=%s",
                     logical_code,
                     std_type,
                     "→".join(base),
@@ -396,7 +396,7 @@ class QueryEngine:
                 rate = c / max(elapsed, 0.001)
                 eta = (n - c) / max(rate, 0.001) if rate > 0 else 0.0
                 logger.info(
-                    "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
+                    "[PROGRESS] 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=%.0f秒",
                     c,
                     n,
                     o,
@@ -414,7 +414,7 @@ class QueryEngine:
             buckets.setdefault(key, []).append((i, item))
 
         for key, items in buckets.items():
-            logger.info("[BUCKET] %s total=%d", key, len(items))
+            logger.info("[BUCKET] %s 总数=%d", key, len(items))
 
         # ── 2. 全局溢出配额锁 ──
         overflow_lock = threading.Lock()
@@ -468,7 +468,7 @@ class QueryEngine:
                         csres_results[idx] = result
                         csres_failures[0] = 0
                         logger.info(
-                            "[CSRES] idx=%d code=%s num=%s %d-%d action=found score=100",
+                            "[CSRES] idx=%d code=%s num=%s %d-%d 状态=找到 评分=100",
                             idx,
                             item[0],
                             item[0],
@@ -478,7 +478,7 @@ class QueryEngine:
                     else:
                         csres_failures[0] += 1
                         logger.info(
-                            "[CSRES] idx=%d code=%s num=%s %d-%d action=not_found failures=%d/%d",
+                            "[CSRES] idx=%d code=%s num=%s %d-%d 状态=未找到 失败=%d/%d",
                             idx,
                             item[0],
                             item[0],
@@ -490,7 +490,7 @@ class QueryEngine:
                 except Exception:
                     csres_failures[0] += 1
                     logger.info(
-                        "[CSRES] idx=%d code=%s action=error failures=%d/%d",
+                        "[CSRES] idx=%d code=%s 状态=错误 失败=%d/%d",
                         idx,
                         item[0],
                         csres_failures[0],
@@ -504,7 +504,7 @@ class QueryEngine:
                 now = _time.time()
                 actual_interval = now - _last_ts
                 logger.info(
-                    "[CSRES_INTERVAL] actual=%.1fs target=%.1fs query=%.1fs sleep=%.1fs",
+                    "[CSRES_INTERVAL] 实际=%.1f秒 目标=%.1f秒 查询=%.1f秒 休眠=%.1f秒",
                     actual_interval,
                     base_interval + jitter,
                     query_elapsed,
@@ -582,7 +582,7 @@ class QueryEngine:
                             for w, s in zip(weights, chain)
                         ]
                         logger.info(
-                            "[MINI_BUCKET] cooled=%s redist_weights=%s",
+                            "[MINI_BUCKET] 冷却站点=%s 重分配权重=%s",
                             ",".join(sorted(cooled_sites)),
                             active_weights,
                         )
@@ -627,7 +627,7 @@ class QueryEngine:
                     mini_buckets.append((site, mb))
 
             logger.info(
-                "[MINI_BUCKET] %s total=%d mini=%d chain=%s weights=%s",
+                "[MINI_BUCKET] %s 总数=%d 小桶=%d 链=%s 权重=%s",
                 primary_site,
                 len(bucket_items),
                 len(mini_buckets),
@@ -657,7 +657,7 @@ class QueryEngine:
                             break
                     if fallback_site:
                         logger.info(
-                            "[MINI_BUCKET] mb=%d site=%s cooled→%s",
+                            "[MINI_BUCKET] mb=%d 站点=%s 冷却→%s",
                             mb_idx,
                             assigned_site,
                             fallback_site,
@@ -665,7 +665,7 @@ class QueryEngine:
                         assigned_site = fallback_site
                     else:
                         logger.warning(
-                            "[MINI_BUCKET] mb=%d site=%s no_fallback overflow=%d",
+                            "[MINI_BUCKET] mb=%d 站点=%s 无回退 溢出=%d",
                             mb_idx,
                             assigned_site,
                             len(mini),
@@ -677,7 +677,7 @@ class QueryEngine:
                     assigned_site
                 ) < len(mini):
                     logger.warning(
-                        "[MINI_BUCKET] mb=%d site=%s quota<%d overflow=%d",
+                        "[MINI_BUCKET] mb=%d 站点=%s 配额不足<%d 溢出=%d",
                         mb_idx,
                         assigned_site,
                         len(mini),
@@ -687,7 +687,7 @@ class QueryEngine:
                     continue
 
                 logger.info(
-                    "[MINI_BUCKET] mb=%d/%d site=%s items=%d",
+                    "[MINI_BUCKET] mb=%d/%d 站点=%s 条目=%d",
                     mb_idx + 1,
                     len(mini_buckets),
                     assigned_site,
@@ -866,8 +866,8 @@ class QueryEngine:
                             # [TRACE] 指令7: 记录冷却导致溢出配额不可用
                             ov_q = overflow_quota.get(site, [0])
                             logger.debug(
-                                "[QUOTA] site=%s action=overflow_unavailable "
-                                "reason=cooling remain_overflow_quota=%d",
+                                "[QUOTA] 站点=%s 操作=溢出不可用 "
+                                "原因=冷却中 剩余溢出配额=%d",
                                 site,
                                 ov_q[0] if ov_q else 0,
                             )
@@ -876,7 +876,7 @@ class QueryEngine:
                         # 溢出配额控制：受限站点消耗配额，配额耗尽则跳过
                         if site in overflow_quota and not _try_overflow(site):
                             logger.debug(
-                                "[QUOTA] site=%s action=overflow_exhausted remain=%d",
+                                "[QUOTA] 站点=%s 操作=溢出配额耗尽 剩余=%d",
                                 site,
                                 overflow_quota[site][0],
                             )
@@ -947,7 +947,7 @@ class QueryEngine:
         for key in sorted(bucket_times.keys()):
             start, end, done, ov = bucket_times[key]
             logger.info(
-                "[BUCKET] %s total=%d done=%d overflow=%d elapsed=%.1fs",
+                "[BUCKET] %s 总数=%d 完成=%d 溢出=%d 耗时=%.1f秒",
                 key,
                 done + ov,
                 done,
@@ -955,14 +955,14 @@ class QueryEngine:
                 end - _bucket_t0,
             )
         logger.info(
-            "[TIMELINE] buckets=%d overlap_total=%.1fs",
+            "[TIMELINE] 桶数=%d 并发耗时=%.1f秒",
             len(bucket_times),
             _time.time() - _bucket_t0,
         )
 
         # ── 站点配额日志 ──
         for site in sorted(site_usage.keys()):
-            logger.info("[QUOTA] site=%s used=%d", site, site_usage[site])
+            logger.info("[QUOTA] 站点=%s 已用=%d", site, site_usage[site])
 
         # ── 溢出时序 + 链路径统计 ──
         _chain_counts: dict[str, int] = {}
@@ -970,21 +970,21 @@ class QueryEngine:
             _key = "→".join(_chain) if _chain else "none"
             _chain_counts[_key] = _chain_counts.get(_key, 0) + 1
         logger.info(
-            "[OVERFLOW] events=%d chains=%d", len(overflow_events), len(_chain_counts)
+            "[OVERFLOW] 事件=%d 链=%d", len(overflow_events), len(_chain_counts)
         )
         for _chain_key, _cnt in sorted(_chain_counts.items(), key=lambda x: -x[1])[:5]:
-            logger.info("[OVERFLOW_CHAIN] path=%s count=%d", _chain_key, _cnt)
+            logger.info("[OVERFLOW_CHAIN] 路径=%s 次数=%d", _chain_key, _cnt)
 
         # ── csres 状态 ──
         csres_hit = len(csres_results)
-        logger.info("[CSRES] processed=%d failures=%d", csres_hit, csres_failures[0])
+        logger.info("[CSRES] 已处理=%d 失败=%d", csres_hit, csres_failures[0])
 
         # ── 站点评分卡 ──
         for site in sorted(match_scores.keys()):
             score_dist = " ".join(
                 f"{k}={v}" for k, v in sorted(match_scores[site].items())
             )
-            logger.info("[SCORE] site=%s %s", site, score_dist)
+            logger.info("[SCORE] 站点=%s %s", site, score_dist)
 
         # ── 条目链追踪（前 20 条）──
         for idx in sorted(item_chains.keys())[:20]:
@@ -993,26 +993,26 @@ class QueryEngine:
 
         # ── 待确认归因 ──
         for idx, chain_str in pending_reasons[:10]:
-            logger.info("[PENDING] #%d chain=%s", idx, chain_str)
+            logger.info("[PENDING] #%d 链=%s", idx, chain_str)
 
         # ── 配额水位 ──
         _ahbz_used = self._AHBZ_OVERFLOW_QUOTA - overflow_quota["ahbz"][0]
         _njbz_used = self._NJBZ_OVERFLOW_QUOTA - overflow_quota["njbz365"][0]
         logger.info(
-            "[WATER] ahbz_overflow_remain=%d njbz365_remain=%d",
+            "[WATER] ahbz溢出剩余=%d njbz365剩余=%d",
             overflow_quota["ahbz"][0],
             overflow_quota["njbz365"][0],
         )
         # [TRACE] 指令7: 配额使用率明细
         logger.info(
-            "[QUOTA] usage: ahbz=%d/%d njbz365=%d/%d cooldown_skips=%d",
+            "[QUOTA] 用量: ahbz=%d/%d njbz365=%d/%d 冷却跳过=%d",
             _ahbz_used,
             self._AHBZ_OVERFLOW_QUOTA,
             _njbz_used,
             self._NJBZ_OVERFLOW_QUOTA,
             temp_cooldown_skips,
         )
-        logger.info("[RECOVERY] temp_cooldown_skips=%d", temp_cooldown_skips)
+        logger.info("[RECOVERY] 临时冷却跳过=%d", temp_cooldown_skips)
 
         # ── 缓存命中率 ──
         if self._use_cache:
@@ -1028,7 +1028,7 @@ class QueryEngine:
                         cache_hit += 1
             if n > 0:
                 logger.info(
-                    "[CACHE] hit=%d miss=%d rate=%.1f%%",
+                    "[CACHE] 命中=%d 未命中=%d 命中率=%.1f%%",
                     cache_hit,
                     n - cache_hit,
                     cache_hit / n * 100,
@@ -1037,19 +1037,19 @@ class QueryEngine:
         # ── 漏斗汇总 ──
         pending_count = len(pending_reasons)
         logger.info(
-            "[FUNNEL] total=%d ok=%d overflow=%d pending=%d",
+            "[FUNNEL] 总数=%d 成功=%d 溢出=%d 待确认=%d",
             n,
             len(results) - pending_count,
             len(all_overflow),
             pending_count,
         )
         logger.info(
-            "[TIMELINE] query_bucketed_done total=%d elapsed=%.1fs",
+            "[TIMELINE] 逐桶查询完成 总数=%d 耗时=%.1f秒",
             n,
             _time.time() - _bucket_t0,
         )
         logger.info(
-            "[BASELINE] total=%d ok=%d overflow=%d pending=%d elapsed=%.1fs",
+            "[BASELINE] 总数=%d 成功=%d 溢出=%d 待确认=%d 耗时=%.1f秒",
             n,
             len(results) - pending_count,
             len(all_overflow),
@@ -1064,7 +1064,7 @@ class QueryEngine:
             o = _prog_ok[0]
         elapsed = _time.time() - _bucket_t0
         logger.info(
-            "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
+            "[PROGRESS] 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=0秒(完成)",
             c,
             n,
             o,

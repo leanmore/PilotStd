@@ -207,7 +207,7 @@ class PipelineRouter:
             if getattr(p, "match_status", "") == "chain_exhausted"
         )
         logger.info(
-            "[ROUTER] classify result: pending=%d (chain_exhausted=%d) "
+            "[ROUTER] 分类结果: pending=%d (chain_exhausted=%d) "
             "organize=%d normalize=%d expire=%d download=%d fallback=%d",
             len(buckets["pending"]),
             _ce_count,
@@ -220,8 +220,7 @@ class PipelineRouter:
         # [TRACE] 修复C: 每个pending条目的详细归因
         for p in buckets["pending"]:
             logger.info(
-                "[PENDING_DETAIL] std=%s match_status=%s next_action=%s "
-                "effect_status=%s source_path=%s",
+                "[PENDING_DETAIL] 标准=%s 匹配状态=%s 下一步=%s 有效性=%s 源路径=%s",
                 p.get_full_number(),
                 getattr(p, "match_status", ""),
                 getattr(p, "next_action", ""),

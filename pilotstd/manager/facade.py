@@ -1029,13 +1029,13 @@ class StandardManager:
             ms = getattr(p, "match_status", "") or "(empty)"
             _ps_by_ms[ms] = _ps_by_ms.get(ms, 0) + 1
         logger.info(
-            "[PENDING_SUMMARY] total=%d by_match_status=%s",
+            "[PENDING_SUMMARY] 总数=%d 按匹配状态=%s",
             len(self._pending_list),
             _ps_by_ms,
         )
         # [TRACE] 指令8: pending路径数量 + 路径归一化采样
         logger.info(
-            "[PENDING] total pending paths: %d (sample: %s)",
+            "[PENDING] 待确认路径总数: %d (采样: %s)",
             len(pending_paths),
             [p[:80] for p in list(pending_paths)[:5]],
         )

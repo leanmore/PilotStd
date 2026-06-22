@@ -71,7 +71,7 @@ class ScanMixin:
 
         # [TRACE] 指令A-3: 输出文件索引查找/解析结果
         logger.debug(
-            "[TRACE-A] scan result: file=%r parsed_ok=%s std_name=%r code=%s number=%s year=%s",
+            "[TRACE-A] 扫描结果: 文件=%r 解析成功=%s 标准名称=%r 代号=%s 序号=%s 年份=%s",
             file_path,
             parsed is not None,
             parsed.std_name if parsed else "",

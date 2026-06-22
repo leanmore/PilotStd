@@ -455,7 +455,7 @@ class ProviderCooling:
             until = 0
         with self._lock:
             self._until[name] = until
-        logger.warning("[OCR] %s 进入冷却: level=%s until=%.0f", name, level, until)
+        logger.warning("[OCR] %s 进入冷却: 级别=%s 冷却至=%.0f", name, level, until)
 
     def remaining(self, name: str) -> float:
         with self._lock:
@@ -578,7 +578,9 @@ class OcrSlot:
             if result.ok:
                 results.append(result.text)
                 self._counters.increment(self.name)
-                logger.info("[OCR] %s %s 页%d/%d OK", self.name, label, i + 1, total)
+                logger.info(
+                    "[OCR] %s %s 第%d/%d页 成功", self.name, label, i + 1, total
+                )
                 if i == 0 and result.pdf_pages > 0 and result.pdf_pages != total:
                     logger.warning(
                         "[OCR] %s API返回页数=%d ≠ PyPDF2=%d，以PyPDF2为准",
@@ -760,7 +762,7 @@ def create_ocr_provider(config: dict, data_dir: str = "") -> Optional[BaseOcrPro
         if aliyun_slot:
             logger.warning("仅阿里云可用，百度云和腾讯云均未配置")
             return aliyun_slot  # type: ignore[return-value]
-        logger.warning("无可用 OCR provider")
+        logger.warning("无可用OCR提供商")
         return None
     return OcrScheduler(baidu_slot, tencent_slot, aliyun_slot, stop, counters, cooling)
 
