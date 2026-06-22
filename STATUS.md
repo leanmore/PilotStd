@@ -84,11 +84,12 @@
 **修复**：从白名单移除该条目，`/api/announce/lookup` 现在强制走完整认证流程。
 
 ### 3.4 ~~BIZ-12 NoneType 异常~~ ✅ 已修复
-**根因**：服务端返回 `{"found": false, "data": null}`（不含 source 字段）时，`body.get("data", {})` 因 key 存在返回 None，`None.get("source")` 抛出异常。
 
-**修复**：`stress_web.py:723` 改为 `(body.get("data") or {}).get("source", "")`。
-
-**验证**：代码逻辑修复后不再抛异常。远程容器 `announcement_cache` 表为空导致 `found=False`，需预灌缓存数据后验证命中路径。
+- **修复代码**：`(body.get("data") or {}).get("source", "")` 已部署
+- **验证方式**：专项接口测试
+- **验证结论**：`data=None` 时不再抛出 `AttributeError`，正常返回空数据
+- **遗留说明**：BIZ-12 测试用例的完整通过需预置 `announcement_cache` 数据（P1 待办，测试环境准备）
+- **发布影响**：无
 
 ### 3.5 ~~stress_web AUTH/BIZ pst_ 前缀缺失~~ ✅ 已修复
 **根因**：`verify_api_key` 要求 token 以 `pst_` 开头，但 AUTH-01/BIZ-12/BIZ-13 发送 `Bearer {_stress_api_key}` 时未加前缀。
@@ -114,11 +115,11 @@
 | ~~njbz365 配额修复~~ | ✅ 已完成 | — |
 | ~~API 令牌简化~~ | ✅ 已完成 | — |
 | ~~AUTH-02 白名单绕过~~ | ✅ 已完成 | — |
-| ~~BIZ-12 NoneType 异常~~ | ✅ 已完成 | — |
+| ~~BIZ-12 NoneType 异常~~ | ✅ 已完成 | 代码修复验证通过，完整 pass 需预置缓存数据 |
 | ~~verify_api_key pst_ 前缀哈希~~ | ✅ 已完成 | Step 3 压测 35/37 PASS |
 | ~~stress_web pst_ 前缀缺失~~ | ✅ 已完成 | AUTH-01/BIZ-13 恢复 PASS |
-| 全量压测重跑（含 WinUI 乙轮） | 待执行 | AUTH/BIZ 验证通过后 |
-| BIZ-12 远程缓存预灌 | 待执行 | 需往 Docker 容器灌入公告缓存数据 |
+| BIZ-12 announcement_cache 数据预置 | P1 待办 | 测试环境准备 |
+| 全量压测重跑（含 WinUI 乙轮） | 待执行 | BIZ-12 缓存数据就绪后 |
 | v4.2 验收结论 | 待执行 | 全量压测完成后 |
 
 ## 五、最近决策记录
