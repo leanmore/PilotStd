@@ -8,7 +8,7 @@ import threading
 from typing import Callable, Optional
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[["Database"], None]] = {}
@@ -549,3 +549,26 @@ def _migrate_v13_adapter_stats_extend(db: Database) -> None:
         db.execute("ALTER TABLE adapter_stats ADD COLUMN last_cooldown_reason TEXT")
     if "last_cooldown_at" not in cols:
         db.execute("ALTER TABLE adapter_stats ADD COLUMN last_cooldown_at TEXT")
+
+
+@migration(14)
+def _migrate_v14_api_keys(db: Database) -> None:
+    """v14: API Key 管理表。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key_id TEXT NOT NULL UNIQUE,
+            key_hash TEXT NOT NULL UNIQUE,
+            description TEXT NOT NULL DEFAULT '',
+            scopes TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            expires_at TEXT,
+            last_used_at TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_by TEXT NOT NULL DEFAULT ''
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)")
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active)"
+    )

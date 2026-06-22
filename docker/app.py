@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from .api.announce import router as announce_router
 from .api.announce_lookup import router as announce_lookup_router
+from .api.api_keys import router as api_keys_router
 from .api.archive import router as archive_router
 from .api.download import router as download_router
 from .api.logs import router as logs_router
@@ -120,6 +121,7 @@ app.include_router(download_router)
 app.include_router(organize_router)
 app.include_router(announce_router)
 app.include_router(announce_lookup_router)
+app.include_router(api_keys_router)
 app.include_router(pending_router)
 app.include_router(settings_router)
 app.include_router(stats_router)

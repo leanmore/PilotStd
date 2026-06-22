@@ -249,10 +249,17 @@ class StandardManager:
         """
         base_url = self.cfg.get("query.announcement_url", "http://localhost:9028")
         timeout = self.cfg.get("network.timeout", 30)
+        api_key = self.cfg.get("query.announcement_api_key", "")
         url = f"{base_url.rstrip('/')}/api/announce/lookup"
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         try:
             resp = requests.get(
-                url, params={"number": standard_number}, timeout=timeout
+                url,
+                params={"number": standard_number},
+                timeout=timeout,
+                headers=headers,
             )
             resp.raise_for_status()
             body = resp.json()

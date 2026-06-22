@@ -199,6 +199,13 @@ class SettingsPage(QWidget):
         self.announce_url_edit.setPlaceholderText("http://localhost:9028")
         self.announce_url_edit.textChanged.connect(self._on_announce_url_changed)
         query_form.addRow("Web 端公告服务地址", self.announce_url_edit)
+        self.announce_api_key_edit = QLineEdit()
+        self.announce_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.announce_api_key_edit.setPlaceholderText("API Key（用于 Web 端认证）")
+        self.announce_api_key_edit.textChanged.connect(
+            self._on_announce_api_key_changed
+        )
+        query_form.addRow("Web 端 API Key", self.announce_api_key_edit)
         layout.addWidget(query_gb)
         layout.addStretch()
         self._add_page(_("compat_group"), w)
@@ -323,6 +330,9 @@ class SettingsPage(QWidget):
         self.announce_url_edit.setEnabled(
             self._config.get("query.use_announcement_cache", False)
         )
+        self.announce_api_key_edit.setText(
+            self._config.get("query.announcement_api_key", "")
+        )
         self.skip_folders.setText(
             ", ".join(self._config.get("scan.skip_folders", ["过期作废"]))
         )
@@ -423,6 +433,9 @@ class SettingsPage(QWidget):
         self._config.set(
             "query.announcement_url", self.announce_url_edit.text().strip()
         )
+        self._config.set(
+            "query.announcement_api_key", self.announce_api_key_edit.text().strip()
+        )
         self._config.set("appearance.theme", self.theme_combo.currentText())
         icon_key = ICON_OPTIONS.get(self.icon_combo.currentText(), "default")
         self._config.set("appearance.icon_theme", icon_key)
@@ -497,6 +510,13 @@ class SettingsPage(QWidget):
         if not self._config:
             return
         self._config.set("query.announcement_url", text.strip())
+        self._config.save()
+
+    def _on_announce_api_key_changed(self, text: str):
+        """API Key 输入框变化：即时写入配置。"""
+        if not self._config:
+            return
+        self._config.set("query.announcement_api_key", text.strip())
         self._config.save()
 
 

@@ -96,6 +96,31 @@ except Exception as e:
     print(f'[entrypoint] DB 初始化警告: {e}（继续启动）')
 "
 
+# ── 初始 API Key 自动生成 ─────────────────────────────────────
+# 首次启动时自动创建一个默认 API Key，打印到控制台（可通过 docker logs 查看）
+python -c "
+import hashlib, json, os, secrets, sys
+sys.path.insert(0, '/app')
+from pilotstd.core.db import Database
+db = Database('/app/data/pilotstd.db')
+existing = db.fetchone(\"SELECT id FROM api_keys WHERE key_id = 'default'\")
+if existing is None:
+    raw_key = 'pst_' + secrets.token_urlsafe(24)
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    db.execute(
+        'INSERT INTO api_keys (key_id, key_hash, description, scopes) VALUES (?, ?, ?, ?)',
+        ('default', key_hash, '初始默认 Key', json.dumps(['query:read'])),
+    )
+    print('============================================================')
+    print('  初始 API Key 已生成（仅显示一次，请妥善保存）')
+    print('  Key ID: default')
+    print(f'  Raw Key: {raw_key}')
+    print('  使用方式: Authorization: Bearer <raw_key>')
+    print('============================================================')
+else:
+    print('[entrypoint] 初始 API Key 已存在，跳过生成')
+"
+
 # 权限处理：PUID=0 表示以 root 运行，跳过 chown 和 gosu；否则降权到 appuser
 if [ "$PUID" = "0" ]; then
     # root 模式：直接启动，不降权（宿主机目录权限由 root 兜底）

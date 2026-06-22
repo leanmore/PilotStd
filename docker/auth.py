@@ -1,4 +1,5 @@
-# docker/auth.py — JWT 鉴权模块（多用户 + 速率限制 + CSRF 保护 + Cookie 安全标记）
+# docker/auth.py — JWT 鉴权模块（多用户 + 速率限制 + CSRF 保护 + Cookie 安全标记 + API Key）
+import hashlib
 import os
 import secrets
 import threading
@@ -164,13 +165,44 @@ def logout():
     return resp
 
 
+def verify_api_key(token: str) -> dict | None:
+    """验证 API Key。返回 {key_id, scopes} 或 None。
+    token 以 "pst_" 开头，提取后 SHA256 哈希查表，验证 is_active=1。
+    """
+    if not token.startswith("pst_"):
+        return None
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    from pilotstd.core.config import get_db_path
+    from pilotstd.core.db import Database
+
+    db = Database(get_db_path())
+    row = db.fetchone(
+        "SELECT key_id, scopes FROM api_keys WHERE key_hash = ? AND is_active = 1",
+        (key_hash,),
+    )
+    if row is None:
+        return None
+    # 更新 last_used_at
+    db.execute(
+        "UPDATE api_keys SET last_used_at = datetime('now') WHERE key_hash = ?",
+        (key_hash,),
+    )
+    try:
+        import json
+
+        scopes = json.loads(row["scopes"]) if row["scopes"] else []
+    except (json.JSONDecodeError, TypeError):
+        scopes = []
+    return {"key_id": row["key_id"], "scopes": scopes}
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
-    """鉴权中间件：白名单放行 + Origin/Referer 校验 + Cookie token 校验 + CSRF 检查。"""
+    """鉴权中间件：白名单放行 + Origin/Referer 校验 + Cookie JWT 校验 + API Key 校验 + CSRF 检查。"""
 
     async def dispatch(self, request, call_next):
         path = request.url.path
 
-        # 白名单检查：路径+方法匹配则免认证放行；仅路径匹配但方法不匹配时，回落走认证流程
+        # 白名单检查
         for w_path, w_methods in AUTH_WHITELIST:
             if path.startswith(w_path) and (
                 not w_methods or request.method in w_methods
@@ -180,7 +212,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not path.startswith("/api/"):
             return await call_next(request)
 
-        # 全局速率限制：按 IP 限流，白名单路径已放行到此的 API 请求
+        # 全局速率限制
         now = time.time()
         client_ip = request.client.host if request.client else "unknown"
         cutoff = now - API_RATE_WINDOW
@@ -189,12 +221,25 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 t for t in _api_rate_limit[client_ip] if t > cutoff
             ]
             if not _api_rate_limit[client_ip]:
-                del _api_rate_limit[client_ip]  # 清理过期IP条目，防止字典无限增长
+                del _api_rate_limit[client_ip]
             elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:
                 return JSONResponse({"error": "请求过于频繁，请稍后重试"}, 429)
             _api_rate_limit[client_ip].append(now)
 
-        # 跨源检查：有 Origin/Referer 时校验与请求 Host 一致
+        # API Key 校验：Authorization: Bearer <token>，token 以 "pst_" 开头
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            api_token = auth_header[7:]
+            key_info = verify_api_key(api_token)
+            if key_info:
+                request.state.api_key_id = key_info["key_id"]
+                request.state.api_key_scopes = key_info["scopes"]
+                return await call_next(request)
+            # 如果 token 以 "pst_" 开头但验证失败，直接 401（不回落 JWT）
+            if api_token.startswith("pst_"):
+                return JSONResponse({"error": "认证失败"}, 401)
+
+        # 跨源检查
         origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
         if origin:
             from urllib.parse import urlparse
@@ -207,7 +252,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             except Exception:
                 return JSONResponse({"error": "认证失败"}, 403)
 
-        # Cookie token 校验
+        # Cookie JWT 校验
         token = request.cookies.get(COOKIE_NAME)
         if not token:
             return JSONResponse({"error": "认证失败"}, 401)
@@ -216,7 +261,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except JWTError:
             return JSONResponse({"error": "认证失败"}, 401)
 
-        # CSRF 检查：状态变更操作须携带与 csrf_token Cookie 一致的 X-CSRF-Token 请求头
+        # CSRF 检查
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
             csrf_header = request.headers.get(CSRF_HEADER, "")
             csrf_cookie = request.cookies.get("csrf_token", "")

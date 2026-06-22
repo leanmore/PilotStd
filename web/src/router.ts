@@ -10,6 +10,7 @@ const routes = [
   { path: '/pending', component: () => import('./views/PendingView.vue') },
   { path: '/announce', component: () => import('./views/AnnounceView.vue') },
   { path: '/settings', component: () => import('./views/SettingsView.vue') },
+  { path: '/admin/api-keys', component: () => import('./views/admin/ApiKeys.vue') },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

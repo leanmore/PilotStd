@@ -128,6 +128,7 @@ FACTORY_DEFAULTS = {
     "query.use_cache": True,
     "query.use_announcement_cache": False,  # 查询时优先使用 Web 端公告缓存
     "query.announcement_url": "http://localhost:9028",  # Web 端公告 API 地址
+    "query.announcement_api_key": "",  # Web 端公告 API 认证密钥
     "scan.skip_folders": [
         "过期作废",
         "征求意见稿",
