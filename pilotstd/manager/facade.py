@@ -1238,7 +1238,8 @@ class StandardManager:
             _q_total = len(parsed)
 
             def _wrapped_query_progress(cur, total):
-                scaled = int(cur / total * 90) if total > 0 else 0
+                # 映射到 90%~99%：90 + 9×(cur/total)
+                scaled = 90 + int(cur / total * 9) if total > 0 else 90
                 on_query_progress(scaled, 100)
 
             _progress_cb = _wrapped_query_progress

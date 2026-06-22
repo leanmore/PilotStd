@@ -281,9 +281,11 @@ query_batch_parsed 出口 → 全部重置为 False/0
 
 #### 进度条改进
 
-- **查询阶段**：主流程按 `cur/total * 90` 推进（停在 90%）
-- **查询完成时**：直接跳到 `100/100`（`is_idle()` 必然为 True）
-- **代码位置**：[facade.py:1235-1253](pilotstd/manager/facade.py#L1235-L1253)
+- **查询阶段**：`90 + int(cur / total * 9)`，从 90% 逐步推进到 99%
+- **查询完成时**：跳至 `100/100`（`is_idle()` 必然为 True）
+- **进度轨迹示例**（total=779）：
+  - cur=0 → 90%, cur=195 → 92%, cur=390 → 94%, cur=585 → 96%, cur=700 → 98%, cur=779 → 99% → 100%（完成）
+- **代码位置**：[facade.py:1240-1242](pilotstd/manager/facade.py#L1240-L1242)
 
 #### 验证结果
 
