@@ -647,7 +647,7 @@ if _stress_api_key:
     try:
         r = requests.get(
             f"{BASE}/api/announce/lookup?number=GB/T%201-2020",
-            headers={"Authorization": f"Bearer {_stress_api_key}"},
+            headers={"Authorization": f"Bearer pst_{_stress_api_key}"},
             timeout=10,
         )
         ok = r.status_code == 200
@@ -708,7 +708,7 @@ if _cache_test_num:
     _q_num = _up.quote(_cache_test_num)
     _hdr = {}
     if _stress_api_key:
-        _hdr["Authorization"] = f"Bearer {_stress_api_key}"
+        _hdr["Authorization"] = f"Bearer pst_{_stress_api_key}"
     try:
         t1 = time.time()
         r = requests.get(
@@ -747,7 +747,7 @@ else:
 # BIZ-13: 缓存未命中降级
 _hdr = {}
 if _stress_api_key:
-    _hdr["Authorization"] = f"Bearer {_stress_api_key}"
+    _hdr["Authorization"] = f"Bearer pst_{_stress_api_key}"
 try:
     t1 = time.time()
     r = requests.get(
