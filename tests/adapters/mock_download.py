@@ -4,8 +4,8 @@
 import random
 from typing import Optional
 
-from ..models import DownloadTask
-from .base import BaseDownloadAdapter
+from pilotstd.download.adapters.base import BaseDownloadAdapter
+from pilotstd.download.models import DownloadTask
 
 
 class MockDownloadAdapter(BaseDownloadAdapter):
