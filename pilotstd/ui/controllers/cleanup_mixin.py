@@ -54,7 +54,7 @@ class CleanupMixin:
 
     # ── 清理空文件夹 ─────────────────────────────────────────
 
-    def _on_cleanup_empty_dirs(self):
+    def _on_cleanup_empty_dirs(self) -> None:
         """清理空文件夹：用户选择目录 → 扫描空目录和仅含过期文件的目录
         → 弹窗确认 → 删除 → 弹窗汇总。"""
         # 用户选择要清理的目录
@@ -93,7 +93,7 @@ class CleanupMixin:
 
         # 弹窗确认
         reply = QMessageBox.question(
-            self,
+            None,
             _("dialog_cleanup_title"),
             _("msg_cleanup_confirm").format(
                 empty=len(empty_dirs), expire=len(expire_only)
@@ -116,7 +116,7 @@ class CleanupMixin:
         for d in expire_only:
             name = os.path.basename(d)
             reply2 = QMessageBox.question(
-                self,
+                None,
                 _("dialog_cleanup_title"),
                 _("msg_cleanup_expire_only").format(name=name, expire=expire_folder),
             )
@@ -135,24 +135,24 @@ class CleanupMixin:
                     logger.info(f"删除仅含过期目录的文件夹: {d}")
                 except OSError as e:
                     logger.error(f"删除失败: {d}: {e}")
-                    QMessageBox.warning(
-                        self,
+                    QMessageBox.warning(  # type: ignore[arg-type]
+                        self,  # type: ignore[arg-type]
                         _("dialog_cleanup_title"),
                         f"删除失败: {name}\n{e}\n\n请检查是否有文件正在被其他程序占用。",
                     )
 
         # 弹窗汇总
-        QMessageBox.information(
+        QMessageBox.information(  # type: ignore[arg-type]
             self, _("dialog_cleanup_title"), _("msg_cleanup_done").format(count=deleted)
         )
 
     # ── 未识别文件处理 ───────────────────────────────────────
 
-    def _on_collect_unrecognized(self):
+    def _on_collect_unrecognized(self) -> None:
         """未识别文件处理：列出扫描中解析失败的文件，用户勾选后
         原封不动搬迁到 标准/未识别文件/，保留源目录层级结构。"""
         if not self._unrecognized_files:
-            QMessageBox.information(
+            QMessageBox.information(  # type: ignore[arg-type]
                 self, _("dialog_collect_unrecognized"), _("msg_collect_none")
             )
             return
@@ -261,8 +261,8 @@ class CleanupMixin:
         progress.close()
 
         self._unrecognized_files = []
-        QMessageBox.information(
-            self,
+        QMessageBox.information(  # type: ignore[arg-type]
+            self,  # type: ignore[arg-type]
             _("dialog_collect_unrecognized"),
             _("msg_collect_done").format(count=moved),
         )

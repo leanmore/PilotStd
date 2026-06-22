@@ -3,7 +3,7 @@
 
 import logging
 import os
-from typing import List
+from typing import Any, List
 
 from ..core.config import get_library_root
 from ..download.models import DownloadTask
@@ -20,13 +20,13 @@ class ScheduledService:
 
     def __init__(
         self,
-        cfg,
-        scanner,
-        parser,
-        query_engine,
-        file_index,
-        quota_tracker,
-        download_engine,
+        cfg: Any,
+        scanner: Any,
+        parser: Any,
+        query_engine: Any,
+        file_index: Any,
+        quota_tracker: Any,
+        download_engine: Any,
     ):
         """注入依赖。
 
@@ -80,7 +80,7 @@ class ScheduledService:
     # 更新检测
     # ════════════════════════════════════════════════════════════════
 
-    def recheck_updates(self) -> dict:
+    def recheck_updates(self) -> dict[str, int]:
         """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
         rows = self._file_index.get_recheck_candidates(limit=500)
         if not rows:
@@ -115,7 +115,7 @@ class ScheduledService:
 
     def query_by_numbers(
         self, numbers: List[str], force_refresh: bool = False, preferred_site: str = ""
-    ) -> tuple:
+    ) -> tuple[Any, Any]:
         """直接按标准号字符串列表查询（跳过扫描步骤）。"""
         from ..core.std_utils import parse_std_number
 
@@ -146,7 +146,7 @@ class ScheduledService:
         stats = BatchQueryStats(total=total, found=found)
         return results, stats
 
-    def download_by_numbers(self, numbers: List[str]) -> tuple:
+    def download_by_numbers(self, numbers: List[str]) -> tuple[Any, Any]:
         """按标准号列表下载。先查询获取采标状态，采标标准给提示并跳过。"""
         from ..core.std_utils import parse_std_number
 

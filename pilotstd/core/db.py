@@ -5,19 +5,19 @@ import logging
 import os
 import sqlite3
 import threading
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
 CURRENT_SCHEMA_VERSION = 14
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
-MIGRATIONS: dict[int, Callable[["Database"], None]] = {}
+MIGRATIONS: dict[int, Callable[..., Any]] = {}
 
 
-def migration(version: int):
+def migration(version: int) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """装饰器：注册迁移函数到指定版本号。"""
 
-    def decorator(fn):
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         MIGRATIONS[version] = fn
         return fn
 
@@ -34,20 +34,22 @@ class Database:
     """SQLite 数据库管理器，启用 WAL 模式，支持版本迁移，线程本地连接复用。
     支持上下文管理器协议：with Database(path) as db: ..."""
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str) -> None:
         self._db_path = os.path.abspath(db_path)
         self._write_lock = threading.Lock()  # 仅写操作加锁，WAL 模式下并发读安全
         # 线程本地连接：每个线程复用同一连接，减少重复打开开销
         self._local = threading.local()
-        self._all_conns: list = []  # 追踪所有线程创建的连接，供 close_all() 遍历关闭
+        self._all_conns: list[
+            Any
+        ] = []  # 追踪所有线程创建的连接，供 close_all() 遍历关闭
         os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
         self._init_pragma()
         self._run_migrations()
 
-    def __enter__(self):
+    def __enter__(self) -> "Database":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
         self.close_all()
         return False
 
@@ -126,7 +128,7 @@ class Database:
         conn.row_factory = sqlite3.Row
         return conn
 
-    def execute(self, sql: str, params=()) -> sqlite3.Cursor:
+    def execute(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Cursor:
         with self._write_lock:
             conn = self._get_conn()
             try:
@@ -142,7 +144,7 @@ class Database:
                 logging.getLogger("pilotstd.db").error("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
 
-    def executemany(self, sql: str, seq) -> sqlite3.Cursor:
+    def executemany(self, sql: str, seq: Sequence[Any]) -> sqlite3.Cursor:
         with self._write_lock:
             conn = self._get_conn()
             try:
@@ -154,7 +156,7 @@ class Database:
                 logging.getLogger("pilotstd.db").error("批量SQL执行失败: %s", sql)
                 raise DatabaseError("数据库批量操作失败") from e
 
-    def fetchall(self, sql: str, params=()) -> list:
+    def fetchall(self, sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]:
         # WAL 模式：纯读操作不加锁，多线程可并发读取
         conn = self._get_conn()
         try:
@@ -168,7 +170,9 @@ class Database:
             logging.getLogger("pilotstd.db").error("SQL查询失败: %s", sql)
             raise DatabaseError("数据库查询失败") from e
 
-    def fetchone(self, sql: str, params=()) -> Optional[dict]:
+    def fetchone(
+        self, sql: str, params: Sequence[Any] = ()
+    ) -> Optional[dict[str, Any]]:
         rows = self.fetchall(sql, params)
         return rows[0] if rows else None
 
@@ -197,7 +201,7 @@ class Database:
             logger.warning("数据库备份失败: %s", e)
             return ""
 
-    def close(self):
+    def close(self) -> None:
         """关闭当前线程的数据库连接。"""
         if hasattr(self._local, "conn") and self._local.conn is not None:
             try:
@@ -206,7 +210,7 @@ class Database:
                 pass
             self._local.conn = None
 
-    def close_all(self):
+    def close_all(self) -> None:
         """关闭所有线程创建的数据库连接（应用 shutdown 时调用）。"""
         for conn in self._all_conns:
             try:
@@ -277,7 +281,7 @@ class Database:
             pass
         return -1.0
 
-    def get_adapter_stats_all(self) -> list[dict]:
+    def get_adapter_stats_all(self) -> list[dict[str, Any]]:
         """返回所有适配器的统计汇总（供报告使用）。"""
         try:
             rows = self.fetchall(

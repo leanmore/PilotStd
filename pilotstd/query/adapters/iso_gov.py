@@ -4,6 +4,7 @@
 
 import logging
 import re
+from typing import Any
 
 import requests
 
@@ -50,7 +51,7 @@ class IsoGovAdapter(BaseAdapter):
 
     # _search 继承自 BaseAdapter（基类实现已覆盖：_search_candidates → 精确匹配 → 取最新）
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[QueryResult]:
         """返回 API 全部候选结果，供 base 层统一打分。"""
         if not any(kw in search_term.upper() for kw in ("ISO", "IEC")):
             return []
@@ -89,7 +90,7 @@ class IsoGovAdapter(BaseAdapter):
 
         return [self._parse_result(row, search_term) for row in rows]
 
-    def _parse_result(self, row: dict, search_term: str = "") -> QueryResult:
+    def _parse_result(self, row: dict[str, Any], search_term: str = "") -> QueryResult:
         # 使用无 HTML 标签的字段
         std_no = self._clean_std_no(row.get("STANDARD_NO", ""))
         en_name = row.get("ENGLISH_NAME", "")

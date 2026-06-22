@@ -252,7 +252,7 @@ class ConfigManager:
                 node = node[part]
             node.pop(parts[-1], None)
 
-    def populate_defaults(self, defaults: dict) -> None:
+    def populate_defaults(self, defaults: dict[str, Any]) -> None:
         """只填充缺失的键，不覆盖已有值。
 
         典型用法：
@@ -352,7 +352,7 @@ class ConfigManager:
     # 内部
     # ════════════════════════════════════════════════════════════════
 
-    def _migrate_ui_keys(self):
+    def _migrate_ui_keys(self) -> None:
         """将旧版 ui.* 键迁移到 appearance.* 前缀（v0.5.x → v0.6 兼容）。"""
         _map = {
             "ui.column_widths": "appearance.column_widths",
@@ -440,7 +440,7 @@ class ConfigManager:
         ".access_key_secret",
     )
 
-    def _get_fernet(self):
+    def _get_fernet(self) -> Any:
         """懒初始化 Fernet——密钥存于 config 目录，首次自动生成。"""
         if hasattr(self, "_fernet"):
             return self._fernet
@@ -460,7 +460,9 @@ class ConfigManager:
         self._fernet = Fernet(key)
         return self._fernet
 
-    def _walk_sensitive(self, data: dict, *, encrypt: bool, prefix: str = "") -> dict:
+    def _walk_sensitive(
+        self, data: dict[str, Any], *, encrypt: bool, prefix: str = ""
+    ) -> dict[str, Any]:
         """递归遍历嵌套字典，对所有敏感字段加密/解密。内存中始终明文。"""
         result: dict[str, Any] = {}
         for k, v in data.items():

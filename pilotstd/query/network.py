@@ -23,20 +23,20 @@ CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 class NetworkMonitor:
     """网络异常计数器（线程安全）。模块级单例保证全局唯一实例。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lock = threading.Lock()
         self._errors: dict[str, int] = {}  # {site_name: count}
         self._retried: dict[str, int] = {}  # {site_name: count}
 
-    def record_error(self, site_name: str):
+    def record_error(self, site_name: str) -> None:
         with self._lock:
             self._errors[site_name] = self._errors.get(site_name, 0) + 1
 
-    def record_retry(self, site_name: str):
+    def record_retry(self, site_name: str) -> None:
         with self._lock:
             self._retried[site_name] = self._retried.get(site_name, 0) + 1
 
-    def reset(self):
+    def reset(self) -> None:
         with self._lock:
             self._errors.clear()
             self._retried.clear()

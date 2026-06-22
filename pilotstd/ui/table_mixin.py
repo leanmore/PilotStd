@@ -3,6 +3,7 @@
 
 import csv
 import logging
+from typing import Any
 
 from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox
 
@@ -42,10 +43,10 @@ class TableMixin:
 
     # ── 列可见性 ─────────────────────────────────────────
 
-    def _get_column_visibility(self) -> list:
+    def _get_column_visibility(self) -> list[bool]:
         return [not self.work_table.isColumnHidden(c) for c in range(len(WORK_COLUMNS))]
 
-    def _apply_column_visibility(self, visible: list):
+    def _apply_column_visibility(self, visible: list[bool]) -> None:
         header = self.work_table.horizontalHeader()
         for c in range(len(WORK_COLUMNS)):
             if c < 4:
@@ -58,17 +59,17 @@ class TableMixin:
                 elif hasattr(self, "_col_specs") and c in self._col_specs:
                     header.resizeSection(c, self._col_specs[c][0])
 
-    def _save_column_visibility(self):
+    def _save_column_visibility(self) -> None:
         self._config.set("appearance.column_visibility", self._get_column_visibility())
 
-    def _load_column_visibility(self):
+    def _load_column_visibility(self) -> None:
         default = [True] * len(WORK_COLUMNS)
         visible = self._config.get("appearance.column_visibility", default) or default
         self._apply_column_visibility(visible)
 
-    def _on_header_context_menu(self, pos):
+    def _on_header_context_menu(self, pos: Any) -> None:
         header = self.work_table.horizontalHeader()
-        menu = QMenu(self)
+        menu = QMenu(None)
         for c in TOGGLEABLE_COLS:
             action = menu.addAction(_(WORK_COLUMN_KEYS[c]))
             action.setCheckable(True)
@@ -85,7 +86,7 @@ class TableMixin:
                 header.resizeSection(c, self._col_specs[c][0])
             self._save_column_visibility()
 
-    def _get_visible_cols(self) -> list:
+    def _get_visible_cols(self) -> list[str]:
         """返回可见列的翻译后显示名（用于导出文件表头和UI提示）。"""
         return [
             _(WORK_COLUMN_KEYS[c])
@@ -95,9 +96,9 @@ class TableMixin:
 
     # ── 导出（覆盖 main_window 的同名方法） ────────────────
 
-    def _on_save_result(self, fmt: str):
+    def _on_save_result(self, fmt: str) -> None:
         if self.work_table.rowCount() == 0:
-            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))  # type: ignore[arg-type]
+            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
             return
 
         vis_names = self._get_visible_cols()
@@ -113,7 +114,7 @@ class TableMixin:
                 visible_count=len(vis_names),
             )
             reply = QMessageBox.question(
-                self,  # type: ignore[arg-type]
+                self,
                 _("title_export_hint"),
                 msg,
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -143,15 +144,15 @@ class TableMixin:
             elif fmt == "csv":
                 self._save_csv(path, rows, vis_names, visible_data_keys)
         except OSError as e:
-            QMessageBox.warning(self, _("title_save_failed"), str(e))  # type: ignore[arg-type]
+            QMessageBox.warning(self, _("title_save_failed"), str(e))
 
     def _save_txt(
         self,
         path: str,
-        rows: list,
-        cols: list | None = None,
-        data_keys: list | None = None,
-    ):
+        rows: list[dict[str, Any]],
+        cols: list[str] | None = None,
+        data_keys: list[str] | None = None,
+    ) -> None:
         """保存TXT文件。cols为显示列名（表头），data_keys为数据键名（行查找）。"""
         if cols is None:
             cols = [_(k) for k in WORK_COLUMN_KEYS]
@@ -176,10 +177,10 @@ class TableMixin:
     def _save_csv(
         self,
         path: str,
-        rows: list,
-        cols: list | None = None,
-        data_keys: list | None = None,
-    ):
+        rows: list[dict[str, Any]],
+        cols: list[str] | None = None,
+        data_keys: list[str] | None = None,
+    ) -> None:
         """保存CSV文件。cols为显示列名（表头），data_keys为数据键名（行查找）。"""
         if cols is None:
             cols = [_(k) for k in WORK_COLUMN_KEYS]

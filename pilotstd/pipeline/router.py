@@ -3,7 +3,7 @@
 
 import logging
 import os
-from typing import List
+from typing import Any, List
 
 from ..core.file_utils import make_standard_filename
 from ..core.std_utils import GB_CODES, is_gb_code
@@ -29,7 +29,7 @@ class PipelineRouter:
     _GB_CODES = GB_CODES  # 定义见 pilotstd.core.std_utils
 
     @staticmethod
-    def _newer_exists_locally(item, all_items) -> bool:
+    def _newer_exists_locally(item: Any, all_items: Any) -> bool:
         """检查 match_status=="newer" 对应的新版文件是否已在本地存在。
 
         遍历所有已解析条目，查找是否已有与当前条目同代号、同序号、
@@ -55,12 +55,17 @@ class PipelineRouter:
                 return True
         return False
 
-    def classify_after_scan(self, items: List[ParsedStdInfo]) -> dict:
+    def classify_after_scan(self, items: List[ParsedStdInfo]) -> dict[str, Any]:
         """扫描后第一轮判断。按 next_action 分堆。
 
         返回 {"archive": [...], "normalize": [...], "query": [...], "fallback": [...]}
         """
-        buckets: dict = {"archive": [], "normalize": [], "query": [], "fallback": []}
+        buckets: dict[str, list[Any]] = {
+            "archive": [],
+            "normalize": [],
+            "query": [],
+            "fallback": [],
+        }
         for p in items:
             action = getattr(p, "next_action", "") or ""
             if action == "archive":
@@ -74,7 +79,7 @@ class PipelineRouter:
                 buckets["query"].append(p)
         return buckets
 
-    def classify_after_query(self, items: List[ParsedStdInfo]) -> dict:
+    def classify_after_query(self, items: List[ParsedStdInfo]) -> dict[str, Any]:
         """查询后第二轮判断。按 effect_status 分堆。
 
         返回 {"organize": [...], "expire": [...], "download": [...],
@@ -92,7 +97,7 @@ class PipelineRouter:
         8. 现行 → organize（文件名规范）/ normalize（需重命名）
         9. 其他 → fallback
         """
-        buckets: dict = {
+        buckets: dict[str, list[Any]] = {
             "organize": [],
             "normalize": [],
             "expire": [],
@@ -229,7 +234,7 @@ class PipelineRouter:
             )
         return buckets
 
-    def apply_actions(self, items: List[ParsedStdInfo]) -> dict:
+    def apply_actions(self, items: List[ParsedStdInfo]) -> dict[str, Any]:
         """对条目分类并设置 next_action。返回分桶结果。"""
         buckets = self.classify_after_query(items)
         for p in buckets.get("organize", []):
@@ -308,7 +313,7 @@ class PipelineRouter:
         """
         import re
 
-        def _extract_core(name: str) -> frozenset:
+        def _extract_core(name: str) -> frozenset[Any]:
             cleaned = re.sub(r"[^\w\s]", " ", name)
             cleaned = re.sub(r"\d+", " ", cleaned)
             # 检测是否含中文
@@ -340,7 +345,9 @@ class PipelineRouter:
         name = re.sub(r"\s+", " ", name).strip()
         return name
 
-    def classify_after_download(self, items: List[ParsedStdInfo]) -> dict:
+    def classify_after_download(
+        self, items: List[ParsedStdInfo]
+    ) -> dict[str, list[ParsedStdInfo]]:
         """下载完成后第三轮判断。已下载的全部送归档。
 
         返回 {"organize": [...]}

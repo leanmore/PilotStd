@@ -2,16 +2,17 @@
 # 质量检查运行器——扫描目录，汇总违规
 
 import os
+from typing import Any
 
 from .models import CheckReport
 from .rules.stale_references import StaleReferencesRule
 
 
 class QualityRunner:
-    def __init__(self, rules=None):
+    def __init__(self, rules: Any = None) -> None:
         self._rules = rules or [StaleReferencesRule()]
 
-    def run(self, paths: list) -> CheckReport:
+    def run(self, paths: list[str]) -> CheckReport:
         report = CheckReport()
         for path in paths:
             if os.path.isfile(path) and path.endswith(".py"):

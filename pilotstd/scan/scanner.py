@@ -61,7 +61,7 @@ class FileScanner:
             self._scan_recursive(safe_root, result)
         return result
 
-    def _scan_recursive(self, start_dir: str, result: ScanResult):
+    def _scan_recursive(self, start_dir: str, result: ScanResult) -> None:
         """栈遍历扫描目录（非递归，避免深层目录爆栈）。"""
         import time as _time
 

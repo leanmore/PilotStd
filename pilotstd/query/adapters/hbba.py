@@ -5,6 +5,7 @@
 import logging
 import re
 from datetime import datetime
+from typing import Any
 
 import requests
 
@@ -70,7 +71,7 @@ class HbbaAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "行业标准平台"
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[Any]:
         """搜索候选项。含年份无结果时自动去年份宽搜。"""
         candidates = self._post_search_candidates(search_term)
         if candidates:
@@ -83,7 +84,7 @@ class HbbaAdapter(BaseAdapter):
             candidates = self._post_search_candidates(no_year)
         return candidates
 
-    def _search(self, search_term: str):
+    def _search(self, search_term: str) -> Optional[QueryResult]:
         """搜索并返回最佳匹配。多候选时按年份接近度选取，而非简单取最新。"""
         candidates = self._search_candidates(search_term)
         if not candidates:
@@ -98,7 +99,7 @@ class HbbaAdapter(BaseAdapter):
         target_year = target.get("year", 0)
         if target_year and len(candidates) > 1:
 
-            def _year_dist(candidate):
+            def _year_dist(candidate: QueryResult) -> int:
                 parsed = _parse_result_number(candidate.standard_number)
                 y = parsed.get("year", 0)
                 return abs(y - target_year) if y else 9999
@@ -120,7 +121,7 @@ class HbbaAdapter(BaseAdapter):
         if result.hcno:
             result.replaces = self._fetch_detail_replaces(result.hcno) or ""
 
-    def _parse_result(self, rec: dict, search_term: str = "") -> QueryResult:
+    def _parse_result(self, rec: dict[str, Any], search_term: str = "") -> QueryResult:
         code = rec.get("code", "")
         ch_name = rec.get("chName", "")
         raw_status = rec.get("status", "")

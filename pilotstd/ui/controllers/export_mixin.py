@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtWidgets import QDialog, QFileDialog
@@ -19,7 +20,7 @@ class ExportMixin:
 
     # ── 导出文件清单 ─────────────────────────────────────────
 
-    def _on_export_file_list(self):
+    def _on_export_file_list(self) -> None:
         """导出文件名清单，可选是否包含路径名。"""
         path = self._get_selected_path()
         if not path:
@@ -54,7 +55,7 @@ class ExportMixin:
 
     # ── 导出文件夹层次 ───────────────────────────────────────
 
-    def _on_export_folder_tree(self):
+    def _on_export_folder_tree(self) -> None:
         """导出文件夹层次结构。"""
         path = self._get_selected_path()
         if not path:
@@ -76,7 +77,7 @@ class ExportMixin:
             f.write("\n".join(lines))
         self.status_changed.emit(f"文件夹层次已保存: {save_path} ({len(lines)} 行)")
 
-    def _collect_folder_tree(self, root: str, lines: list, prefix: str):
+    def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str) -> None:
         """递归收集文件夹树形结构。"""
         lines.append(f"{prefix}{os.path.basename(root) or root}")
         try:
@@ -106,7 +107,7 @@ class ExportMixin:
 
     # ── 导出诊断 ─────────────────────────────────────────────
 
-    def _on_export_diag(self):
+    def _on_export_diag(self) -> None:
         """导出诊断报告：配置 + 运行状态 + 完整日志。"""
         import platform
         from datetime import datetime

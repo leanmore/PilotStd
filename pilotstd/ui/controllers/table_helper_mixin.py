@@ -2,6 +2,7 @@
 # 表格右键菜单、行操作、列宽管理 — 从 main_window.py 提取
 
 import logging
+from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -24,7 +25,7 @@ class TableHelperMixin:
 
     # ── 右键菜单 ─────────────────────────────────────────
 
-    def _on_work_table_context_menu(self, pos):
+    def _on_work_table_context_menu(self, pos: Any) -> None:
         """工作表右键菜单：📋复制 | 📄增加文件 | 📁增加文件夹 | 🗑移除所选 | 🧹移除全部。
 
         菜单项文本通过 _() 国际化，emoji 图标在代码中统一添加。
@@ -66,7 +67,7 @@ class TableHelperMixin:
         chosen = menu.exec(self.work_table.viewport().mapToGlobal(pos))
 
         if chosen == add_file:
-            path, _filter = QFileDialog.getOpenFileName(
+            path, _filter = QFileDialog.getOpenFileName(  # type: ignore[arg-type]
                 self,
                 _("dialog_select_file"),
                 "",
@@ -89,7 +90,7 @@ class TableHelperMixin:
 
     # ── 离线查看 ─────────────────────────────────────────
 
-    def _on_offline_view(self):
+    def _on_offline_view(self) -> None:
         """离线查看：从本地索引和缓存联合查询标准信息。"""
         if not self._mgr_ready:
             return
@@ -109,8 +110,8 @@ class TableHelperMixin:
         results = self._mgr.get_file_index_full_info(parsed.logical_code, parsed.number)
 
         if not results:
-            QMessageBox.information(
-                self,
+            QMessageBox.information(  # type: ignore[arg-type]
+                self,  # type: ignore[arg-type]
                 _("offline_view"),
                 _("本地索引中未找到 {} 的相关信息").format(parsed.get_full_number()),
             )
@@ -137,7 +138,7 @@ class TableHelperMixin:
 
     # ── 行操作 ───────────────────────────────────────────
 
-    def _remove_selected_rows(self):
+    def _remove_selected_rows(self) -> None:
         """移除表格中选中的行，同步更新 _parsed_results。"""
         rows = set()
         for item in self.work_table.selectedItems():
@@ -152,7 +153,7 @@ class TableHelperMixin:
             removed += 1
         self.status_changed.emit(f"已移除 {removed} 行")
 
-    def _add_table_row(self, update: RowUpdate):
+    def _add_table_row(self, update: RowUpdate) -> None:
         # [TRACE] 指令A-4: 输出最终传入_add_table_row的parsed对象
         logger.debug(
             "[TRACE-A] _add_table_row: 行号=%d 标准号=%r 标准名称=%r "
@@ -195,7 +196,7 @@ class TableHelperMixin:
                 item.setForeground(Qt.GlobalColor.darkMagenta)
             self.work_table.setItem(row, c, item)
 
-    def _clear_table(self):
+    def _clear_table(self) -> None:
         self.work_table.setRowCount(0)
 
     def _find_row_by_seq(self, seq: int) -> int:
@@ -205,7 +206,7 @@ class TableHelperMixin:
                 return r
         return -1
 
-    def _table_to_list(self) -> list:
+    def _table_to_list(self) -> list[Any]:
         rows = []
         for r in range(self.work_table.rowCount()):
             row_data = {}
@@ -217,20 +218,20 @@ class TableHelperMixin:
 
     # ── 列宽管理 ─────────────────────────────────────────
 
-    def _enforce_min_column_width(self, col: int, _old: int, new: int):
+    def _enforce_min_column_width(self, col: int, _old: int, new: int) -> None:
         if col in self._col_specs:
             mn = self._col_specs[col][1]
             if new < mn:
                 self.work_table.horizontalHeader().resizeSection(col, mn)
         self._save_column_widths()
 
-    def _save_column_widths(self):
+    def _save_column_widths(self) -> None:
         widths = [
             self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())
         ]
         self._config.set("appearance.column_widths", widths)
 
-    def _restore_column_widths(self):
+    def _restore_column_widths(self) -> None:
         widths = self._config.get("appearance.column_widths")
         if widths and len(widths) == self.work_table.columnCount():
             for c, w in enumerate(widths):
@@ -239,7 +240,7 @@ class TableHelperMixin:
 
     # ── 键盘交互 ─────────────────────────────────────────
 
-    def _table_key_press_event(self, event):
+    def _table_key_press_event(self, event: Any) -> None:
         if (
             event.key() == Qt.Key.Key_C
             and event.modifiers() == Qt.KeyboardModifier.ControlModifier
@@ -248,7 +249,7 @@ class TableHelperMixin:
         else:
             QTableWidget.keyPressEvent(self.work_table, event)
 
-    def _copy_selected_cells(self):
+    def _copy_selected_cells(self) -> None:
         selected = self.work_table.selectedIndexes()
         if not selected:
             return

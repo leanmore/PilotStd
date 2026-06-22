@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class SiteRotator:
     5. 冷却期间跳过该站，到期自动恢复
     """
 
-    def __init__(self, sites: List[SiteState] | None = None, db=None):
+    def __init__(self, sites: List[SiteState] | None = None, db: Optional[Any] = None):
         self._lock = threading.Lock()
         self._sites: Dict[str, SiteState] = {}
         self._last_cooldown_log: Dict[str, float] = {}  # 冷却日志节流
@@ -282,7 +282,7 @@ class SiteRotator:
             _time.sleep(5)
         return False
 
-    def list_sites(self) -> list:
+    def list_sites(self) -> list[str]:
         """返回所有已知站点名称列表。"""
         with self._lock:
             return list(self._sites.keys())
@@ -335,7 +335,7 @@ class SiteRotator:
         site.request_count = 0
         site.consecutive_errors = 0
 
-    def _save(self, db=None) -> None:
+    def _save(self, db: Optional[Any] = None) -> None:
         """持久化所有站点冷却状态到数据库。"""
         target = db or self._db
         if not target:
@@ -359,7 +359,7 @@ class SiteRotator:
         except Exception:
             logger.warning("持久化站点冷却状态时出错", exc_info=True)
 
-    def _load(self, db) -> None:
+    def _load(self, db: Any) -> None:
         """从数据库恢复冷却状态（仅恢复仍在冷却期内的状态）。"""
         try:
             rows = db.fetchall("SELECT * FROM rotator_state")

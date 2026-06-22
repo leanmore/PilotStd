@@ -15,7 +15,7 @@ _lang: str = "zh_CN"
 _loaded: bool = False
 
 
-def _load():
+def _load() -> None:
     """从 JSON 文件加载翻译数据到 _translations（仅首次调用时执行）。"""
     global _translations
     base = os.path.dirname(__file__)
@@ -31,7 +31,7 @@ def _load():
             _translations[lang] = {}
 
 
-def _ensure_loaded():
+def _ensure_loaded() -> None:
     """懒加载守卫：首次调用时加载翻译文件，避免 import 时阻塞 I/O。"""
     global _loaded, _translations, _current
     if not _loaded:
@@ -40,7 +40,7 @@ def _ensure_loaded():
         _loaded = True
 
 
-def set_language(lang: str):
+def set_language(lang: str) -> None:
     global _lang, _current
     _ensure_loaded()
     _lang = lang

@@ -4,7 +4,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
@@ -18,16 +18,16 @@ class AnnouncementMatcher:
     """将公告中的标准清单与本地 file_index 交叉比对，
     发现匹配时更新 announcement_cache。"""
 
-    def __init__(self, db: Database):
+    def __init__(self, db: Database) -> None:
         self._db = db
 
     def match_and_update(
         self,
-        items: list[dict],
+        items: list[dict[str, Any]],
         announcement_code: str = "",
         announcement_date: str = "",
         source_site: str = "announcement",
-    ) -> dict:
+    ) -> dict[str, Any]:
         """逐条公告明细比对 file_index，命中则更新缓存。
 
         Args:
@@ -83,7 +83,7 @@ class AnnouncementMatcher:
 
         return result
 
-    def _parse_std_code(self, std_code: str) -> dict | None:
+    def _parse_std_code(self, std_code: str) -> Optional[dict[str, Any]]:
         """解析标准编号字符串为 logical_code + number。委托公用解析器。"""
         from ..core.std_utils import parse_std_number
 
@@ -92,7 +92,9 @@ class AnnouncementMatcher:
             return {"logical_code": r["code"], "number": r["number"]}
         return None
 
-    def _find_in_file_index(self, logical_code: str, number: int) -> list[dict]:
+    def _find_in_file_index(
+        self, logical_code: str, number: int
+    ) -> list[dict[str, Any]]:
         """在 file_index 中查找匹配 logical_code + number 的记录。"""
         return self._db.fetchall(
             f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=?",
@@ -101,8 +103,8 @@ class AnnouncementMatcher:
 
     def _update_cache(
         self,
-        fi_row: dict,
-        item: dict,
+        fi_row: dict[str, Any],
+        item: dict[str, Any],
         match_type: str,
         source_site: str = "announcement",
     ) -> bool:

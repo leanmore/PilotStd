@@ -4,6 +4,7 @@
 
 import logging
 from datetime import datetime
+from typing import Any
 
 import requests
 
@@ -58,17 +59,17 @@ class DbbaAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "地方标准平台"
 
-    def _build_search_data(self, search_term: str) -> dict:
+    def _build_search_data(self, search_term: str) -> dict[str, Any]:
         """地方标准 API 需要 status 参数避免遗漏已废止标准。"""
         data = super()._build_search_data(search_term)
         data["status"] = ""
         return data
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[Any]:
         """返回 API 全部候选结果。"""
         return self._post_search_candidates(search_term)
 
-    def _parse_result(self, rec: dict, search_term: str = "") -> QueryResult:
+    def _parse_result(self, rec: dict[str, Any], search_term: str = "") -> QueryResult:
         code = rec.get("code", "")
         ch_name = rec.get("chName", "")
         raw_status = rec.get("status", "")

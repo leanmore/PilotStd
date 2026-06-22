@@ -3,7 +3,7 @@
 
 import re
 
-GB_CODES: frozenset = frozenset({"GB", "GB/T", "GB/Z", "GSB"})
+GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z", "GSB"})
 
 
 def is_gb_code(code: str) -> bool:

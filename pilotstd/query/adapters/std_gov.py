@@ -9,7 +9,7 @@
 
 import logging
 import re
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -51,7 +51,7 @@ class StdGovAdapter(BaseAdapter):
 
     # ── 覆盖：多结果搜索 ─────────────────────────────────────
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[QueryResult]:
         """std_gov 多结果搜索（自动翻页）。"""
         return self._search_multi(search_term)
 
@@ -97,7 +97,7 @@ class StdGovAdapter(BaseAdapter):
                 results.append(r)
         return results
 
-    def _parse_result(self, search_term: str, panel) -> Optional[QueryResult]:
+    def _parse_result(self, search_term: str, panel: Any) -> Optional[QueryResult]:
         """从单个 div.panel.post 中提取标准信息。"""
         # 标准名称链接
         name_link = panel.select_one("a[tid]")
@@ -184,7 +184,7 @@ class StdGovAdapter(BaseAdapter):
 
     # ── 元数据 ──────────────────────────────────────────────
 
-    def get_meta(self, hcno: str) -> Optional[dict]:
+    def get_meta(self, hcno: str) -> Optional[dict[str, Any]]:
         """通过 pid 获取标准详细元数据（新版详情页）。"""
         resp = safe_get(
             self._session,
@@ -198,7 +198,7 @@ class StdGovAdapter(BaseAdapter):
         resp.encoding = "utf-8"
         return self._parse_meta(hcno, resp.text)
 
-    def _parse_meta(self, hcno: str, html: str) -> Optional[dict]:
+    def _parse_meta(self, hcno: str, html: str) -> Optional[dict[str, Any]]:
         soup = BeautifulSoup(html, "lxml")
         bor = soup.select_one("div.bor2")
         if not bor:

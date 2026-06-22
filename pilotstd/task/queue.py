@@ -5,7 +5,7 @@ import logging
 import threading
 import uuid
 from datetime import datetime
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ..core.db import Database
 from .models import TaskInfo, TaskStatus, TaskType
@@ -18,16 +18,18 @@ TASK_TABLE = "task_queue"
 class TaskQueue:
     """后台任务队列，任务状态持久化到 SQLite，支持断点恢复。"""
 
-    def __init__(self, db: Database, task_timeout: int = 300):
+    def __init__(self, db: Database, task_timeout: int = 300) -> None:
         self._db = db
         self._lock = threading.Lock()
-        self._handlers: Dict[TaskType, Callable] = {}
+        self._handlers: Dict[TaskType, Callable[..., Any]] = {}
         self._task_timeout = task_timeout  # handler 超时秒数，超时后任务标记 FAILED
         self._ensure_table()
 
     # ---- 公共 API ----
 
-    def register_handler(self, task_type: TaskType, handler: Callable) -> None:
+    def register_handler(
+        self, task_type: TaskType, handler: Callable[..., Any]
+    ) -> None:
         """注册任务类型的处理函数。handler(task: TaskInfo) -> TaskInfo"""
         self._handlers[task_type] = handler
 
@@ -98,7 +100,7 @@ class TaskQueue:
 
     # ---- 内部 ----
 
-    def _run(self, task: TaskInfo, handler: Callable) -> None:
+    def _run(self, task: TaskInfo, handler: Callable[..., Any]) -> None:
         result_holder = [None]
         exc_holder = [None]
 
@@ -181,7 +183,7 @@ class TaskQueue:
             )
 
     @staticmethod
-    def _row_to_task(row: dict) -> TaskInfo:
+    def _row_to_task(row: dict[str, Any]) -> TaskInfo:
         return TaskInfo(
             task_id=row["task_id"],
             task_type=TaskType(row["task_type"]),

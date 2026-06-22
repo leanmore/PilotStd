@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtCore import QDir, QStandardPaths, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -18,9 +19,9 @@ logger = logging.getLogger(__name__)
 class DriveEnumerator(QThread):
     """后台线程枚举驱动器，避免网络驱动器阻塞 UI 主线程。"""
 
-    drives_ready = pyqtSignal(list)
+    drives_ready = pyqtSignal(list)  # type: ignore[type-arg]
 
-    def run(self):
+    def run(self) -> None:
         """在后台线程中枚举驱动器，将结果通过信号发回主线程。"""
         drives = QDir.drives()
         result = []
@@ -36,7 +37,7 @@ class FileTreeMixin:
 
     # ── 快速访问 ─────────────────────────────────────────
 
-    def _populate_quick_access(self):
+    def _populate_quick_access(self) -> None:
         """构建 Win11 风格的文件浏览树：桌面、文档、下载、此电脑(含盘符)。
         驱动器枚举移至后台线程，避免网络驱动器阻塞 UI。"""
         self.file_tree.clear()
@@ -75,7 +76,7 @@ class FileTreeMixin:
         self._drive_thread.drives_ready.connect(self._on_drives_ready)
         self._drive_thread.start()
 
-    def _on_drives_ready(self, drives):
+    def _on_drives_ready(self, drives: list[Any]) -> None:
         """驱动器枚举完成后填充此电脑子树。"""
         self.this_pc.takeChildren()
         for name, path in drives:
@@ -106,7 +107,7 @@ class FileTreeMixin:
 
     # ── 懒加载 ───────────────────────────────────────────
 
-    def _populate_children(self, parent_item: QTreeWidgetItem):
+    def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
         """懒加载：展开时填充子目录和文件。"""
         parent_path = parent_item.data(0, Qt.ItemDataRole.UserRole)
         if not parent_path or not os.path.isdir(parent_path):
@@ -152,7 +153,7 @@ class FileTreeMixin:
                 )
             parent_item.addChild(child)
 
-    def _on_tree_item_expanded(self, item: QTreeWidgetItem):
+    def _on_tree_item_expanded(self, item: QTreeWidgetItem) -> None:
         """展开时懒加载子目录。"""
         first_child = item.child(0)
         if (
@@ -166,7 +167,7 @@ class FileTreeMixin:
 
     # ── 右键菜单 ─────────────────────────────────────────
 
-    def _on_file_tree_context_menu(self, pos):
+    def _on_file_tree_context_menu(self, pos: Any) -> None:
         """右键菜单：导入工作区。"""
         item = self.file_tree.itemAt(pos)
         if not item:
@@ -184,7 +185,7 @@ class FileTreeMixin:
 
     # ── 导航 ─────────────────────────────────────────────
 
-    def _navigate_to(self, path: str):
+    def _navigate_to(self, path: str) -> None:
         """在文件树中定位到指定路径，必要时展开父节点。"""
         path = os.path.normpath(path)
         if not os.path.exists(path):

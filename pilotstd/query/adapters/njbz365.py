@@ -6,7 +6,7 @@ import hashlib
 import logging
 import re
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import unquote
 
 import requests
@@ -254,7 +254,7 @@ class Njbz365Adapter(BaseAdapter):
             "result_gjz": "",
         }
 
-    def _do_request(self, search_term: str) -> Optional[dict]:
+    def _do_request(self, search_term: str) -> Optional[dict[str, Any]]:
         """发起搜索请求，token/CSRF 过期时自动刷新并重试。"""
         self._ensure_session()
 
@@ -352,7 +352,7 @@ class Njbz365Adapter(BaseAdapter):
         target_code: str = "",
         target_number: int = 0,
         target_year: int = 0,
-    ) -> list:
+    ) -> list[QueryResult]:
         """返回 API 全部候选结果（最多 limit 条），供 base 层统一打分。"""
         data = self._do_request(search_term)
         if data is None:
@@ -423,14 +423,14 @@ class Njbz365Adapter(BaseAdapter):
         if result.hcno:
             result.replaces = self._fetch_replaces(result.hcno, result.standard_number)
 
-    def fetch_replaces_detail(self, result) -> str:
+    def fetch_replaces_detail(self, result: Any) -> str:
         """classifier 调用的统一接口：从查询结果提取替代关系。"""
         if hasattr(self, "_fetch_replaces") and result.hcno:
             return self._fetch_replaces(result.hcno, result.standard_number) or ""
         return ""
 
 
-def _parse_result_number(standard_number: str) -> dict:
+def _parse_result_number(standard_number: str) -> dict[str, Any]:
     """从标准编号字符串解析代号、顺序号、年份、部分号。委托公用解析器。"""
     from ...core.std_utils import parse_std_number
 

@@ -38,7 +38,14 @@ class OrganizerService:
     _FALLBACK_SKIP_FILES = frozenset({"Thumbs.db", "sync.ffs_db"})
     _FALLBACK_SKIP_PREFIX = "~$"  # Office 临时锁文件
 
-    def __init__(self, cfg, file_index, dir_builder, file_mover, expire_handler):
+    def __init__(
+        self,
+        cfg: Any,
+        file_index: Any,
+        dir_builder: Any,
+        file_mover: Any,
+        expire_handler: Any,
+    ) -> None:
         """注入依赖。
 
         Args:
@@ -60,7 +67,9 @@ class OrganizerService:
     # 归类移动
     # ════════════════════════════════════════════════════════════════
 
-    def organize(self, parsed_list: list, word_source_root: str | None = None) -> dict:
+    def organize(
+        self, parsed_list: list[Any], word_source_root: str | None = None
+    ) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。
 
         目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
@@ -232,7 +241,7 @@ class OrganizerService:
     # 去重
     # ════════════════════════════════════════════════════════════════
 
-    def _dedup_standard(self, parsed, new_path: str):
+    def _dedup_standard(self, parsed: Any, new_path: str) -> None:
         """去重：同标准号旧路径残留（分类变化导致双份文件）。"""
         if not self._file_index:
             return
@@ -269,7 +278,7 @@ class OrganizerService:
 
     def organize_skipped_dirs(
         self, skipped_dirs: List[str], source_root: str | None = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。
 
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
@@ -410,8 +419,8 @@ class OrganizerService:
     # ════════════════════════════════════════════════════════════════
 
     def organize_fallback(
-        self, source_root: str, pending_paths: frozenset = frozenset()
-    ) -> dict:
+        self, source_root: str, pending_paths: frozenset[Any] = frozenset()
+    ) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。
 
         不解析、不分类、不查询。跳过系统垃圾文件（Thumbs.db、~$* 等）。
@@ -505,7 +514,7 @@ class OrganizerService:
     # 过期处理
     # ════════════════════════════════════════════════════════════════
 
-    def handle_expired(self, parsed_list: list) -> dict:
+    def handle_expired(self, parsed_list: list[Any]) -> dict[str, Any]:
         """将查询结果为「废止」的标准移入 过期作废 目录。"""
         items = parsed_list
 
@@ -517,7 +526,7 @@ class OrganizerService:
 
         return self._expire_handler.process_expired(pairs)
 
-    def merge_expire_from_source(self, root_dir: str, parsed_list: list) -> int:
+    def merge_expire_from_source(self, root_dir: str, parsed_list: list[Any]) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
         import os as _os
 

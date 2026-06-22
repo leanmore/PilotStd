@@ -88,15 +88,15 @@ class ScanStats:
 class ScanResult:
     """扫描结果容器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.files: List[FileInfo] = []
         self.warnings: List[str] = []
         self.skipped_dirs: List[str] = []  # 被关键词排除的目录路径（后续原样归档）
         self.stats = ScanStats()
 
-    def add_file(self, file: FileInfo):
+    def add_file(self, file: FileInfo) -> None:
         self.files.append(file)
         self.stats.total += 1
 
-    def add_warning(self, msg: str):
+    def add_warning(self, msg: str) -> None:
         self.warnings.append(msg)

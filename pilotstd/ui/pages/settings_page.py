@@ -1,6 +1,7 @@
 # pilotstd/ui/pages/settings_page.py
 # 设置页：左侧导航 + 右侧堆叠内容
 
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -34,7 +35,7 @@ ICON_OPTIONS = {
 class SettingsPage(QWidget):
     """设置表单，左侧导航列表 + 右侧 QStackedWidget。"""
 
-    def __init__(self, config_manager=None):
+    def __init__(self, config_manager: Any = None) -> None:
         super().__init__()
         self._config = config_manager
 
@@ -72,7 +73,7 @@ class SettingsPage(QWidget):
 
     # ── 辅助：添加页面到导航和堆叠 ──
 
-    def _add_page(self, name: str, widget: QWidget):
+    def _add_page(self, name: str, widget: QWidget) -> None:
         item = QListWidgetItem(name)
         self._nav.addItem(item)
         self._stack.addWidget(widget)
@@ -81,7 +82,7 @@ class SettingsPage(QWidget):
     # 各分组页面
     # ═══════════════════════════════════════
 
-    def _build_storage_page(self):
+    def _build_storage_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("storage_group"))
@@ -120,7 +121,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("storage_group"), w)
 
-    def _build_network_page(self):
+    def _build_network_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("network_group"))
@@ -136,7 +137,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("network_group"), w)
 
-    def _build_ui_page(self):
+    def _build_ui_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ui_group"))
@@ -156,7 +157,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("ui_group"), w)
 
-    def _build_scan_page(self):
+    def _build_scan_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("scan_group"))
@@ -176,7 +177,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("scan_group"), w)
 
-    def _build_compat_page(self):
+    def _build_compat_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("compat_group"))
@@ -210,7 +211,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("compat_group"), w)
 
-    def _build_ocr_page(self):
+    def _build_ocr_page(self) -> None:
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ocr_group"))
@@ -243,7 +244,7 @@ class SettingsPage(QWidget):
         layout.addStretch()
         self._add_page(_("ocr_group"), w)
 
-    def _build_columns_page(self):
+    def _build_columns_page(self) -> None:
         from PyQt6.QtWidgets import QGridLayout
 
         from ..table_mixin import TOGGLEABLE_COLS, WORK_COLUMN_KEYS
@@ -252,7 +253,7 @@ class SettingsPage(QWidget):
         layout = QVBoxLayout(w)
         col_gb = QGroupBox(_("columns_group"))
         col_layout = QGridLayout()
-        self._col_checkboxes = {}
+        self._col_checkboxes: dict[int, Any] = {}
         for i, c in enumerate(TOGGLEABLE_COLS):
             cb = QCheckBox(_(WORK_COLUMN_KEYS[c]))
             col_layout.addWidget(cb, i // 3, i % 3)
@@ -266,7 +267,7 @@ class SettingsPage(QWidget):
     # 配置加载 / 保存
     # ═══════════════════════════════════════
 
-    def _load_from_config(self):
+    def _load_from_config(self) -> None:
         from PyQt6.QtCore import QStandardPaths
 
         default_root = QStandardPaths.writableLocation(
@@ -377,7 +378,7 @@ class SettingsPage(QWidget):
             cb.setChecked(visible[c] if c < len(visible) else True)
             cb.blockSignals(False)
 
-    def save_to_config(self):
+    def save_to_config(self) -> None:
         if not self._config:
             return
         from PyQt6.QtCore import QStandardPaths
@@ -482,19 +483,19 @@ class SettingsPage(QWidget):
             mw._apply_announce_cache_mode(self.announce_cache_cb.isChecked())
         self._config.save()
 
-    def _browse_root(self):
+    def _browse_root(self) -> None:
         path = QFileDialog.getExistingDirectory(self, _("dialog_select_library"))
         if path:
             self.root_dir.setText(path)
 
-    def _browse_downloads_dir(self):
+    def _browse_downloads_dir(self) -> None:
         path = QFileDialog.getExistingDirectory(self, _("dialog_select_temp_dl"))
         if path:
             self.downloads_dir.setText(path)
 
     # ── 公告缓存控件即时写入回调 ──
 
-    def _on_announce_cache_toggled(self, checked: bool):
+    def _on_announce_cache_toggled(self, checked: bool) -> None:
         """复选框切换：即时写入配置并联动地址输入框启用/禁用。"""
         if not self._config:
             return
@@ -505,14 +506,14 @@ class SettingsPage(QWidget):
         if mw and hasattr(mw, "_apply_announce_cache_mode"):
             mw._apply_announce_cache_mode(checked)
 
-    def _on_announce_url_changed(self, text: str):
+    def _on_announce_url_changed(self, text: str) -> None:
         """地址输入框变化：即时写入配置。"""
         if not self._config:
             return
         self._config.set("query.announcement_url", text.strip())
         self._config.save()
 
-    def _on_announce_api_key_changed(self, text: str):
+    def _on_announce_api_key_changed(self, text: str) -> None:
         """API Key 输入框变化：即时写入配置。"""
         if not self._config:
             return
@@ -523,7 +524,7 @@ class SettingsPage(QWidget):
 class SettingsDialog(QDialog):
     """设置对话框，包裹 SettingsPage + 确定/取消按钮。"""
 
-    def __init__(self, config_manager, parent=None):
+    def __init__(self, config_manager: Any, parent: Any = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(_("settings_title"))
         self.resize(600, 420)
@@ -542,7 +543,7 @@ class SettingsDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
-    def _on_accept(self):
+    def _on_accept(self) -> None:
         self.page.save_to_config()
         QMessageBox.information(self, _("settings_title"), _("settings_saved"))
         self.accept()

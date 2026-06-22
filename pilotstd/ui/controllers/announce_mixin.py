@@ -28,7 +28,7 @@ class AnnounceMixin:
 
     # ── 公告检查 ─────────────────────────────────────────
 
-    def _on_check_announcements(self):
+    def _on_check_announcements(self) -> None:
         """手动检查标准公告更新（工具菜单触发）。
         弹出进度对话框，后台分批抓取公告、解析标准、比对缓存。"""
         if not self._mgr_ready:
@@ -36,8 +36,8 @@ class AnnounceMixin:
         # Web 端公告缓存模式互斥：禁用本地公告检查
         if self._config.get("query.use_announcement_cache", False):
             logger.info("本地公告检查被禁用（use_announcement_cache=True）")
-            QMessageBox.information(
-                self,
+            QMessageBox.information(  # type: ignore[arg-type]
+                self,  # type: ignore[arg-type]
                 "公告检查",
                 "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。",
             )
@@ -85,7 +85,7 @@ class AnnounceMixin:
 
         # 弹窗汇总
         if self._ann_worker._stopped:
-            QMessageBox.information(
+            QMessageBox.information(  # type: ignore[arg-type]
                 self, _("announcement_check"), _("announcement_cancelled")
             )
         elif self._ann_worker._error and not self._ann_worker._matched:
@@ -103,8 +103,8 @@ class AnnounceMixin:
                 fail_msg = _("announcement_failures").format(
                     count=len(failures), path=fail_path
                 )
-            QMessageBox.information(
-                self,
+            QMessageBox.information(  # type: ignore[arg-type]
+                self,  # type: ignore[arg-type]
                 _("announcement_check"),
                 _("announcement_complete").format(
                     total=self._ann_worker._total, matched=self._ann_worker._matched
@@ -122,7 +122,7 @@ class AnnounceMixin:
                     ),
                 )
 
-    def _on_ann_progress(self, current: int, total: int, matched: int):
+    def _on_ann_progress(self, current: int, total: int, matched: int) -> None:
         """更新公告检查进度。"""
         self._ann_progress_bar.setMaximum(total)
         self._ann_progress_bar.setValue(current)

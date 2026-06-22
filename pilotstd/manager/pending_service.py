@@ -4,6 +4,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from ..query.models import QueryResult
 from ..query.search_strategy import MATCH_SCORE
@@ -20,7 +21,7 @@ class PendingService:
       - 本地缓存查询（standard_info_cache + announcement_cache），供 GUI 离线查询
     """
 
-    def __init__(self, db, file_index):
+    def __init__(self, db: Any, file_index: Any):
         """注入依赖。
 
         Args:
@@ -32,7 +33,7 @@ class PendingService:
 
     # ── 待确认清单 ─────────────────────────────────────────────
 
-    def record_pending(self, pending_items: list) -> None:
+    def record_pending(self, pending_items: list[Any]) -> None:
         """将待确认项写入 pending_lookup 表（已存在则跳过）。"""
         now = datetime.now().isoformat()
         for parsed in pending_items:
@@ -65,7 +66,7 @@ class PendingService:
                 ),
             )
 
-    def resolve_pending(self, pending_items: list, resolution: str) -> None:
+    def resolve_pending(self, pending_items: list[Any], resolution: str) -> None:
         """标记待确认项为已处理。resolution: 'discarded' | 'confirmed'"""
         now = datetime.now().isoformat()
         for parsed in pending_items:
@@ -76,7 +77,7 @@ class PendingService:
                 (resolution, now, std_num),
             )
 
-    def get_pending_items(self) -> list:
+    def get_pending_items(self) -> list[dict[str, Any]]:
         """获取所有待确认项。"""
         return self._db.fetchall(
             "SELECT * FROM pending_lookup WHERE status='pending' ORDER BY created_at"
@@ -109,7 +110,7 @@ class PendingService:
             (num, name, pub_str, available_dt.isoformat(), datetime.now().isoformat()),
         )
 
-    def get_due_downloads(self) -> list:
+    def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
         return self._db.fetchall(
             "SELECT * FROM download_queue WHERE status='waiting' AND expected_available <= ?",
@@ -167,7 +168,7 @@ class PendingService:
 
     # ── 本地缓存查询 ─────────────────────────────────────────
 
-    def query_local_cache(self, parsed_list: list) -> list:
+    def query_local_cache(self, parsed_list: list[Any]) -> list[Any]:
         """从本地缓存（standard_info_cache + announcement_cache）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """

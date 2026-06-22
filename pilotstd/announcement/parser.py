@@ -105,7 +105,7 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
         return ""
 
 
-def parse_announcement_meta(html: str) -> dict:
+def parse_announcement_meta(html: str) -> dict[str, str]:
     """从公告详情页 HTML 中提取公告级元数据。
 
     Returns:
@@ -143,7 +143,7 @@ _HEADER_KEYWORD_MAP = [
 ]
 
 
-def _build_header_map(table) -> dict:
+def _build_header_map(table: Any) -> dict[int, str]:
     """从表格表头构建 {列索引: 字段名} 映射。"""
     col_map = {}
     thead = table.find("thead")
@@ -162,7 +162,7 @@ def _build_header_map(table) -> dict:
     return col_map
 
 
-def _find_col(col_map: dict, field_name: str):
+def _find_col(col_map: dict[int, str], field_name: str) -> Optional[int]:
     """在 col_map 中查找字段名对应的列索引。找不到返回 None。"""
     for idx, name in col_map.items():
         if name == field_name:
@@ -170,7 +170,7 @@ def _find_col(col_map: dict, field_name: str):
     return None
 
 
-def parse_html_table(html: str) -> list[dict]:
+def parse_html_table(html: str) -> list[dict[str, Any]]:
     """从公告详情页 HTML 表格中提取标准列表。表头驱动列识别，兼容 GB(5列)/HB(8列)/DB(8列)。
     遍历所有表格，返回第一个同时含标准编号和标准名称列的数据表格。
 
@@ -251,7 +251,7 @@ def _clean_wps_name(name: str) -> str:
     return name.strip()
 
 
-def parse_text_table(text: str) -> list[dict]:
+def parse_text_table(text: str) -> list[dict[str, Any]]:
     """从附件文本中提取标准表格。不依赖换行符，用标准编号模式全文本扫描。
 
     兼容多种 WPS/PDF 提取格式：
@@ -335,12 +335,12 @@ def parse_text_table(text: str) -> list[dict]:
     return results
 
 
-def _code_key(item: dict) -> str:
+def _code_key(item: dict[str, Any]) -> str:
     """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。"""
     return item.get("std_code", "") + "|" + item.get("std_name", "")[:20]
 
 
-def _ocr_pdf(pdf_bytes: bytes, ocr_provider) -> str:
+def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
     """用 OCR 提供商识别 PDF 全部页面，返回合并文本。"""
     # OcrScheduler 内部已拆页+调度，直接返回全文，无需逐页循环
     from pilotstd.announcement.ocr import OcrScheduler
@@ -383,8 +383,8 @@ def parse_announcement_detail(
     html: str,
     attachment_bytes: Optional[bytes] = None,
     attachment_filename: str = "",
-    ocr_provider=None,
-) -> tuple[list[dict], dict]:
+    ocr_provider: Any = None,
+) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """解析公告详情页，HTML + 附件交叉校验补全。
 
     三层回退：

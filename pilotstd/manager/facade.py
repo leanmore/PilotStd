@@ -53,7 +53,7 @@ class StandardManager:
         db: Optional[Database] = None,
         query_adapters: Optional[List[BaseAdapter]] = None,
         download_adapters: Optional[List[BaseDownloadAdapter]] = None,
-    ):
+    ) -> None:
         # ── 配置 & 数据库 ──
         self.cfg = config or ConfigManager()
         self.db = db or Database(get_db_path())
@@ -124,6 +124,7 @@ class StandardManager:
 
         # ── 增量文件监控（watchdog，可选） ──
         self._file_watcher = None
+        self._last_skipped_dirs: list[Any] = []  # 扫描跳过的目录列表
 
         # ── 子服务（拆分自本类，保持向后兼容） ──
         from .service_factory import create_services
@@ -197,8 +198,12 @@ class StandardManager:
         return parsed
 
     def scan_directory_stream(
-        self, root_path: str, on_progress=None, on_batch=None, recursive: bool = True
-    ) -> list:
+        self,
+        root_path: str,
+        on_progress: Any = None,
+        on_batch: Any = None,
+        recursive: bool = True,
+    ) -> list[ParsedStdInfo]:
         """流式扫描目录（线程安全）。通过回调通知进度，供 Worker 线程调用。
         回调签名: on_progress(current, total)  on_batch([(seq, ParsedStdInfo), ...])
         """
@@ -243,7 +248,7 @@ class StandardManager:
     # 查询
     # ════════════════════════════════════════════════════════════════
 
-    def _query_announcement_cache(self, standard_number: str) -> dict | None:
+    def _query_announcement_cache(self, standard_number: str) -> dict[str, Any] | None:
         """向 Web 端公告缓存服务查询单个标准号。
         返回 dict={"data":..., "cached_at":...} 或 None（未命中/不可达）。
         """
@@ -298,7 +303,7 @@ class StandardManager:
 
     @staticmethod
     def _build_result_from_cache(
-        standard_number: str, cache_data: dict, cached_at: str
+        standard_number: str, cache_data: dict[str, Any], cached_at: str
     ) -> QueryResult:
         """从 Web 公告缓存数据构建 QueryResult。"""
         data = cache_data or {}
@@ -325,7 +330,7 @@ class StandardManager:
         force_refresh: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         result_callback: Callable[[int, Any], None] | None = None,
-    ) -> tuple[list, "BatchQueryStats"]:
+    ) -> tuple[list[QueryResult], BatchQueryStats]:
         """批量查询标准的有效性状态，查询完成后自动分类路由。
 
         分类结果存入实例属性，供 download() 和 UI 读取：
@@ -387,7 +392,7 @@ class StandardManager:
                 ]
 
                 # 降级回调：将 miss 结果映射回原始索引
-                def _fallback_callback(miss_idx: int, r: QueryResult):
+                def _fallback_callback(miss_idx: int, r: QueryResult) -> None:
                     r.source = "live_fallback"
                     logger.info(
                         "实时网络查询（降级）：%s → %s",
@@ -420,7 +425,7 @@ class StandardManager:
                     results[i] = QueryResult(
                         standard_number=f"{p.logical_code} {p.number}{part_str}-{p.year}",
                         error_message="查询未执行",
-                    )  # type: ignore[index]
+                    )
 
         else:
             # ── 分支B：原有本地适配器查询逻辑（不变） ──
@@ -438,7 +443,7 @@ class StandardManager:
                 for p in items
             ]
 
-            def _parsed_progress(count: int):
+            def _parsed_progress(count: int) -> None:
                 if progress_callback:
                     progress_callback(count, len(items))
 
@@ -447,7 +452,7 @@ class StandardManager:
                 parsed_tuples,  # type: ignore[arg-type]
                 result_callback=result_callback,  # type: ignore[arg-type]
             )
-        self._query_results = results  # type: ignore[assignment]
+        self._query_results = results
 
         # 从结果计算统计
         stats = BatchQueryStats()
@@ -495,7 +500,10 @@ class StandardManager:
     }
 
     def _report_query_summary(
-        self, stats: BatchQueryStats, items: list, results: list
+        self,
+        stats: BatchQueryStats,
+        items: list[ParsedStdInfo],
+        results: list[QueryResult],
     ) -> None:
         """输出查询阶段汇总报告。按标准类型分组 + 待确认拆分 + 站点贡献 + 下载说明。"""
         n = len(items)
@@ -600,14 +608,14 @@ class StandardManager:
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
     @staticmethod
-    def _parse_std_number(standard_number: str):
+    def _parse_std_number(standard_number: str) -> tuple[str | None, int | None]:
         """从标准号字符串中提取代号和序号。如 'GB/T 713.1-2023' → ('GB/T', 713)。"""
         from .classifier import QueryClassifier
 
-        return QueryClassifier.parse_std_number(standard_number)
+        return QueryClassifier.parse_std_number(standard_number)  # type: ignore[return-value]
 
     def _classify_after_query(
-        self, parsed_list: list[ParsedStdInfo], query_results: list
+        self, parsed_list: list[ParsedStdInfo], query_results: list[QueryResult]
     ) -> None:
         """查询后分类：回写状态 → 跨站补查替代关系 → 委托路由调度器分堆。
 
@@ -630,7 +638,7 @@ class StandardManager:
     def _resolve_replaces(self, standard_number: str) -> str:
         """跨站点补查替代关系。当 std_gov 等无 replaces 的站点查到废止标准时，
         尝试用 njbz365 / csres / hbba 的详情页补查替代标准号。"""
-        return self._classifier.resolve_replaces(standard_number)
+        return self._classifier.resolve_replaces(standard_number)  # type: ignore[return-value]
 
     # ════════════════════════════════════════════════════════════════
     # 下载
@@ -638,7 +646,7 @@ class StandardManager:
 
     def download(
         self, query_results: list[QueryResult] | None = None
-    ) -> tuple[list[ParsedStdInfo], int, int, int]:
+    ) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """下载分类结果中的标准文件。
 
         不从 query_results 过滤——直接用 query() 阶段分类好的 _download_list。
@@ -696,9 +704,11 @@ class StandardManager:
             f"下载完成: 入队 {len(tasks)}, 成功 {stats.success}, "
             f"跳过(已存在) {stats.skipped_exists}, 失败 {stats.failed}"
         )
-        return tasks, stats  # type: ignore[return-value]
+        return tasks, stats
 
-    def download_stream(self, on_progress=None, on_result=None) -> tuple:
+    def download_stream(
+        self, on_progress: Any = None, on_result: Any = None
+    ) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """流式下载（线程安全）。回调签名:
         on_progress(current, total)  on_result(idx, status, saved_path_or_None)
         """
@@ -754,7 +764,7 @@ class StandardManager:
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
         word_source_root: Optional[str] = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。
 
         目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
@@ -765,19 +775,19 @@ class StandardManager:
         """
         return self._organizer_svc.organize(
             parsed_list or self._parsed_results, word_source_root
-        )
+        )  # type: ignore[return-value]
 
-    def _dedup_standard(self, parsed, new_path: str):
+    def _dedup_standard(self, parsed: ParsedStdInfo, new_path: str) -> None:
         """去重：同标准号旧路径残留（分类变化导致双份文件）。"""
         self._organizer_svc._dedup_standard(parsed, new_path)
 
     def organize_stream(
         self,
-        parsed_list: Optional[list] = None,
+        parsed_list: Optional[list[ParsedStdInfo]] = None,
         word_source_root: Optional[str] = None,
-        on_progress=None,
-        on_result=None,
-    ) -> dict:
+        on_progress: Any = None,
+        on_result: Any = None,
+    ) -> dict[str, Any]:
         """流式归档（线程安全）。逐条移动文件并通过回调通知进度。
         回调签名: on_progress(current, total)  on_result(idx, status)
         """
@@ -819,13 +829,13 @@ class StandardManager:
 
     def get_quota_info(self) -> dict[str, int]:
         """各站点剩余配额，供 GUI 查询前展示。"""
-        return self.query_engine.get_quota_info()
+        return self.query_engine.get_quota_info()  # type: ignore[return-value]
 
     def plan_batch(self, total: int) -> list[tuple[int, int]]:
         """查询批次规划，供 GUI 展示预估耗时。"""
-        return self.query_engine.plan_batch(total)
+        return self.query_engine.plan_batch(total)  # type: ignore[return-value]
 
-    def get_stage_queue(self, stage: str) -> list:
+    def get_stage_queue(self, stage: str) -> list[ParsedStdInfo]:
         """返回指定阶段的条目列表，供 UI 工作表按阶段切换显示。
         stage: 'download' | 'expire' | 'pending' | 'all'
         'all' 返回全量查询结果。"""
@@ -841,7 +851,7 @@ class StandardManager:
             else list(self._parsed_results)
         )
 
-    def get_stage_summary(self) -> dict:
+    def get_stage_summary(self) -> dict[str, int]:
         """返回各阶段条目计数，供查询汇总弹窗展示。"""
         return {
             "download": len(self._download_list),
@@ -852,25 +862,27 @@ class StandardManager:
 
     # ── 待确认清单 ─────────────────────────────────────────────
 
-    def record_pending(self, pending_items: list) -> None:
+    def record_pending(self, pending_items: list[ParsedStdInfo]) -> None:
         """将待确认项写入 pending_lookup 表（已存在则跳过）。"""
         self._pending_svc.record_pending(pending_items)
 
-    def resolve_pending(self, pending_items: list[dict], resolution: str) -> None:
+    def resolve_pending(
+        self, pending_items: list[dict[str, Any]], resolution: str
+    ) -> None:
         """标记待确认项为已处理。resolution: 'discarded' | 'confirmed'"""
         self._pending_svc.resolve_pending(pending_items, resolution)
 
-    def get_pending_items(self) -> list[dict]:
+    def get_pending_items(self) -> list[dict[str, Any]]:
         """获取所有待确认项。"""
-        return self._pending_svc.get_pending_items()
+        return self._pending_svc.get_pending_items()  # type: ignore[return-value]
 
     def increment_requery_count(self, standard_number: str) -> int:
         """待确认重试次数 +1。"""
-        return self._pending_svc.increment_requery_count(standard_number)
+        return self._pending_svc.increment_requery_count(standard_number)  # type: ignore[return-value]
 
     def is_requery_exhausted(self, standard_number: str) -> bool:
         """重试次数 >= 3 → True。"""
-        return self._pending_svc.is_requery_exhausted(standard_number)
+        return self._pending_svc.is_requery_exhausted(standard_number)  # type: ignore[return-value]
 
     def mark_manual_required(self, standard_number: str) -> None:
         """标记为需要手动查询。"""
@@ -878,7 +890,7 @@ class StandardManager:
 
     def get_requery_count(self, standard_number: str) -> int:
         """返回当前重试次数。"""
-        return self._pending_svc.get_requery_count(standard_number)
+        return self._pending_svc.get_requery_count(standard_number)  # type: ignore[return-value]
 
     # ── 下载等待队列 ───────────────────────────────────────────
 
@@ -886,9 +898,9 @@ class StandardManager:
         """写入下载等待队列（未到公开期的标准）。"""
         self._pending_svc.enqueue_download_wait(parsed)
 
-    def get_due_downloads(self) -> list[dict]:
+    def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
-        return self._pending_svc.get_due_downloads()
+        return self._pending_svc.get_due_downloads()  # type: ignore[return-value]
 
     def remove_download_queue(self, standard_number: str) -> None:
         """从下载等待队列中移除指定项。"""
@@ -902,15 +914,15 @@ class StandardManager:
         """从本地缓存（standard_info_cache + announcement_cache）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """
-        return self._pending_svc.query_local_cache(parsed_list)
+        return self._pending_svc.query_local_cache(parsed_list)  # type: ignore[return-value]
 
     # ── 公告 ─────────────────────────────────────────────────
 
-    def check_announcements(self) -> dict:
+    def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
-        return self._announce_svc.check_announcements()
+        return self._announce_svc.check_announcements()  # type: ignore[return-value]
 
-    def get_announcement_cache(self, limit: int = 500) -> list:
+    def get_announcement_cache(self, limit: int = 500) -> list[dict[str, Any]]:
         """从 announcement_cache 表读取最近公告结果。返回字典列表。"""
         rows = self.db.fetchall(
             "SELECT standard_number, source_site, result_json, cached_at "
@@ -943,18 +955,18 @@ class StandardManager:
         std_type: Optional[str] = None,
         since_date: str = "",
         progress_callback=None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI cmd_announce 调用。
         返回 {std_type: {matched: int, updated: int, ...}, ...}"""
         return self._announce_svc.check_announcements_filtered(
             std_type=std_type,
             since_date=since_date,
             progress_callback=progress_callback,
-        )
+        )  # type: ignore[return-value]
 
     def announce_stream(
-        self, since_date: str = "", on_progress=None, on_adapter_done=None
-    ) -> dict:
+        self, since_date: str = "", on_progress: Any = None, on_adapter_done: Any = None
+    ) -> dict[str, Any]:
         """流式公告检查（线程安全）。逐适配器检查并通过回调通知进度。
         回调签名: on_progress(current, total, matched)  on_adapter_done(std_type, result_dict)
         """
@@ -986,17 +998,17 @@ class StandardManager:
     @staticmethod
     def _is_word_or_template(src_path: str) -> bool:
         """通过扩展名判断是否为 Word/模板文件"""
-        return OrganizerService._is_word_or_template(src_path)
+        return OrganizerService._is_word_or_template(src_path)  # type: ignore[return-value]
 
     def organize_skipped_dirs(
         self, skipped_dirs: List[str], source_root: Optional[str] = None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。
 
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
         目标路径 = <输出根>/<相对源根路径>，保留原始目录结构。
         """
-        return self._organizer_svc.organize_skipped_dirs(skipped_dirs, source_root)
+        return self._organizer_svc.organize_skipped_dirs(skipped_dirs, source_root)  # type: ignore[return-value]
 
     @staticmethod
     def _resolve_industry_in_path(rel_path: str) -> str:
@@ -1006,13 +1018,13 @@ class StandardManager:
         但主归档已将文件移至完整目录名（如 API 美国石油学会）。
         此方法将跳过目录的目标路径同步到与主归档一致。
         """
-        return OrganizerService._resolve_industry_in_path(rel_path)
+        return OrganizerService._resolve_industry_in_path(rel_path)  # type: ignore[return-value]
 
     # 兜底镜像中需跳过的系统垃圾文件
     _FALLBACK_SKIP_FILES = frozenset({"Thumbs.db", "sync.ffs_db"})
     _FALLBACK_SKIP_PREFIX = "~$"  # Office 临时锁文件
 
-    def organize_fallback(self, source_root: str) -> dict:
+    def organize_fallback(self, source_root: str) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。
 
         不解析、不分类、不查询。跳过系统垃圾文件（Thumbs.db、~$* 等）。
@@ -1039,19 +1051,23 @@ class StandardManager:
             len(pending_paths),
             [p[:80] for p in list(pending_paths)[:5]],
         )
-        return self._organizer_svc.organize_fallback(source_root, pending_paths)
+        return self._organizer_svc.organize_fallback(source_root, pending_paths)  # type: ignore[return-value]
 
     # ════════════════════════════════════════════════════════════════
     # 过期处理
     # ════════════════════════════════════════════════════════════════
 
-    def handle_expired(self, parsed_list: Optional[List[ParsedStdInfo]] = None) -> dict:
+    def handle_expired(
+        self, parsed_list: Optional[List[ParsedStdInfo]] = None
+    ) -> dict[str, Any]:
         """将查询结果为「废止」的标准移入 过期作废 目录。"""
-        return self._organizer_svc.handle_expired(parsed_list)
+        return self._organizer_svc.handle_expired(parsed_list)  # type: ignore[return-value]
 
-    def merge_expire_from_source(self, root_dir: str, parsed_list: list) -> int:
+    def merge_expire_from_source(
+        self, root_dir: str, parsed_list: list[ParsedStdInfo]
+    ) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
-        return self._organizer_svc.merge_expire_from_source(root_dir, parsed_list)
+        return self._organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[return-value]
 
     # ════════════════════════════════════════════════════════════════
     # 便捷方法
@@ -1063,23 +1079,23 @@ class StandardManager:
 
     def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。返回入库文件数。"""
-        return self._scheduled_svc.scan_and_index(root_path)
+        return self._scheduled_svc.scan_and_index(root_path)  # type: ignore[return-value]
 
-    def recheck_updates(self) -> dict:
+    def recheck_updates(self) -> dict[str, int]:
         """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
-        return self._scheduled_svc.recheck_updates()
+        return self._scheduled_svc.recheck_updates()  # type: ignore[return-value]
 
     def query_by_numbers(
         self, numbers: List[str], force_refresh: bool = False, preferred_site: str = ""
-    ) -> tuple:
+    ) -> tuple[list[QueryResult], BatchQueryStats]:
         """直接按标准号字符串列表查询（跳过扫描步骤）。preferred_site 可选强制指定站点。"""
         return self._scheduled_svc.query_by_numbers(
             numbers, force_refresh, preferred_site
-        )
+        )  # type: ignore[return-value]
 
-    def download_by_numbers(self, numbers: List[str]) -> tuple:
+    def download_by_numbers(self, numbers: List[str]) -> tuple[list[DownloadTask], Any]:
         """按标准号列表下载。先查询获取采标状态，采标标准给提示并跳过。"""
-        return self._scheduled_svc.download_by_numbers(numbers)
+        return self._scheduled_svc.download_by_numbers(numbers)  # type: ignore[return-value]
 
     # ════════════════════════════════════════════════════════════════
     # 一键自动运行
@@ -1087,7 +1103,7 @@ class StandardManager:
     # 增量文件监控
     # ════════════════════════════════════════════════════════════════
 
-    def start_watching(self, root_paths: Optional[list] = None):
+    def start_watching(self, root_paths: Optional[list[str]] = None) -> None:
         """启动增量文件监控。可选，需安装 watchdog 包。"""
         try:
             if self._file_watcher is None:
@@ -1104,7 +1120,7 @@ class StandardManager:
         except Exception:
             logger.warning("启动文件监控失败", exc_info=True)
 
-    def stop_watching(self):
+    def stop_watching(self) -> None:
         """停止增量文件监控。"""
         if self._file_watcher:
             self._file_watcher.stop()
@@ -1112,7 +1128,7 @@ class StandardManager:
 
     # ════════════════════════════════════════════════════════════════
 
-    def auto_run(self, root_path: str) -> dict:
+    def auto_run(self, root_path: str) -> dict[str, int]:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。
 
         Args:
@@ -1147,7 +1163,7 @@ class StandardManager:
         t_stage = _time.monotonic()
 
         # 3. 下载
-        dl_tasks, dl_stats = self.download()  # type: ignore[misc]
+        dl_tasks, dl_stats = self.download()
         report["download_success"] = dl_stats.success
         logger.info(
             "阶段耗时 download: %.1fs (%d 成功)",
@@ -1192,15 +1208,15 @@ class StandardManager:
     def auto_run_stream(
         self,
         root_path: str,
-        on_scan_batch=None,
-        on_scan_progress=None,
-        on_query_progress=None,
-        on_query_result=None,
-        on_download_progress=None,
-        on_download_result=None,
-        on_archive_result=None,
-        on_stage_change=None,
-    ) -> dict:
+        on_scan_batch: Any = None,
+        on_scan_progress: Any = None,
+        on_query_progress: Any = None,
+        on_query_result: Any = None,
+        on_download_progress: Any = None,
+        on_download_result: Any = None,
+        on_archive_result: Any = None,
+        on_stage_change: Any = None,
+    ) -> dict[str, int]:
         """流式自动管线（线程安全）。所有回调在调用线程执行。
         各阶段串行执行: scan → query → download → archive。
         回调签名: on_stage_change(stage_name, current, total)
@@ -1237,7 +1253,7 @@ class StandardManager:
         if on_query_progress:
             _q_total = len(parsed)
 
-            def _wrapped_query_progress(cur, total):
+            def _wrapped_query_progress(cur: int, total: int) -> None:
                 # 映射到 90%~99%：90 + 9×(cur/total)
                 scaled = 90 + int(cur / total * 9) if total > 0 else 90
                 on_query_progress(scaled, 100)
@@ -1318,7 +1334,7 @@ class StandardManager:
     # CLI 命令直通 — 消除 CLI 层的底层对象重复创建
     # ════════════════════════════════════════════════════════════════
 
-    def organize_files(self, file_paths: list[str]) -> dict:
+    def organize_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后走完整 organizer_service 归档。供 cmd_move 调用。"""
         parsed = []
         for path in file_paths:
@@ -1338,9 +1354,9 @@ class StandardManager:
                 "dedup_skipped": 0,
                 "details": ["无有效文件"],
             }
-        return self._organizer_svc.organize(parsed)
+        return self._organizer_svc.organize(parsed)  # type: ignore[return-value]
 
-    def expire_files(self, file_paths: list[str]) -> dict:
+    def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后过期处理。供 cmd_expire 调用。"""
         items = []
         for path in file_paths:
@@ -1351,9 +1367,9 @@ class StandardManager:
                 items.append((path, info))
         if not items:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}
-        return self._organizer_svc.handle_expired(items)
+        return self._organizer_svc.handle_expired(items)  # type: ignore[return-value]
 
-    def normalize_files(self, file_paths: list[str]) -> list[dict]:
+    def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
         """返回文件规范化名称列表。供 cmd_normalize 调用。"""
         from ..core.file_utils import make_standard_filename
         from ..organizer.industry_lookup import get_folder_name
@@ -1390,7 +1406,7 @@ class StandardManager:
         return results
 
     @staticmethod
-    def _make_archive_filename(parsed) -> str:
+    def _make_archive_filename(parsed: ParsedStdInfo) -> str:
         """根据已解析元数据统一生成归档文件名。"""
         from ..core.file_utils import make_standard_filename
 
@@ -1404,11 +1420,14 @@ class StandardManager:
             num_prefix=getattr(parsed, "num_prefix", ""),
             num_suffix=getattr(parsed, "num_suffix", ""),
             ext=getattr(parsed, "ext", "pdf"),
-        )
+        )  # type: ignore[return-value]
 
     def normalize_files_stream(
-        self, parsed_list: list, on_progress=None, on_batch=None
-    ) -> list[dict]:
+        self,
+        parsed_list: list[ParsedStdInfo],
+        on_progress: Any = None,
+        on_batch: Any = None,
+    ) -> list[dict[str, Any]]:
         """流式规范化（线程安全）。回调签名:
         on_progress(current, total)  on_batch([(idx, ParsedStdInfo, name), ...])
         """
@@ -1445,19 +1464,19 @@ class StandardManager:
     # 暴露内部组件方法 — 消除 UI/Web 层直接穿透子组件
     # ════════════════════════════════════════════════════════════════
 
-    def get_query_sites(self) -> list:
+    def get_query_sites(self) -> list[str]:
         """暴露所有查询站点名称列表。"""
-        return self.query_engine.get_all_sites()
+        return self.query_engine.get_all_sites()  # type: ignore[return-value]
 
-    def get_site_adapter(self, site_name: str):
+    def get_site_adapter(self, site_name: str) -> Any:
         """暴露指定站点的适配器实例（供 UI 取 site_label 等元数据）。"""
         return self.query_engine.get_adapter(site_name)
 
-    def get_site_cooldown(self, site_name: str) -> int:
+    def get_site_cooldown(self, site_name: str) -> float:
         """暴露指定站点的冷却剩余秒数。"""
         return self.query_engine.get_site_cooldown(site_name)  # type: ignore[return-value]
 
-    def get_query_status(self) -> dict:
+    def get_query_status(self) -> dict[str, bool]:
         """返回查询引擎运行时状态，供进度条轮询。
         返回值: {is_running, overflow_count, csres_active, is_idle}
         """
@@ -1468,11 +1487,11 @@ class StandardManager:
             "is_idle": self.query_engine.is_idle(),
         }
 
-    def get_adapter_report(self) -> list[dict]:
+    def get_adapter_report(self) -> list[dict[str, Any]]:
         """返回所有适配器的统计汇总报告。
         每项包含：名称、总查询次数、成功率、平均响应时间、冷却次数、最后冷却原因。
         """
-        return self.db.get_adapter_stats_all()
+        return self.db.get_adapter_stats_all()  # type: ignore[return-value]
 
     def upsert_file_index(
         self,
@@ -1480,7 +1499,7 @@ class StandardManager:
         logical_code: str,
         number: int,
         year: int,
-        part=None,
+        part: Any = None,
         std_name: str = "",
         status: str = "现行",
     ) -> None:
@@ -1496,29 +1515,31 @@ class StandardManager:
                 status=status,
             )
 
-    def get_file_index(self, file_path: str) -> dict | None:
+    def get_file_index(self, file_path: str) -> dict[str, Any] | None:
         """封装 file_index.get，供 UI 层查询文件索引。"""
         if self.file_index:
-            return self.file_index.get(file_path)
+            return self.file_index.get(file_path)  # type: ignore[return-value]
         return None
 
-    def get_file_index_full_info(self, logical_code: str, number: int) -> list:
+    def get_file_index_full_info(
+        self, logical_code: str, number: int
+    ) -> list[dict[str, Any]]:
         """封装 file_index.get_full_info，供 UI 层查询文件版本列表。"""
         if self.file_index:
-            return self.file_index.get_full_info(logical_code, number)
+            return self.file_index.get_full_info(logical_code, number)  # type: ignore[return-value]
         return []
 
     def parse_standard_number(self, filename: str) -> object | None:
         """封装 parser.parse，供 UI 层解析标准文件名。"""
-        return self.parser.parse(filename)
+        return self.parser.parse(filename)  # type: ignore[return-value]
 
     def restore_parsed_from_index(self, file_path: str) -> object | None:
         """从 file_index 恢复已解析的标准信息。"""
         if self.file_index:
-            return self.file_index.restore_parsed(file_path)
+            return self.file_index.restore_parsed(file_path)  # type: ignore[return-value]
         return None
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """关闭数据库连接，应用退出时调用。"""
         if self.db:
             self.db.close_all()

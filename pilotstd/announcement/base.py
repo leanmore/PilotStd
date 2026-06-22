@@ -54,7 +54,7 @@ class BaseAnnounceAdapter(ABC):
 
     # ── 列表拉取（通用实现，子类只需提供 _list_url 和 site_name）
 
-    def _fetch_list(self, since_date: str, page_size: int) -> list[dict]:
+    def _fetch_list(self, since_date: str, page_size: int) -> list[dict[str, Any]]:
         """分页拉取公告列表，按日期降序排列。
         当遇到早于 since_date 的记录时提前终止。
         """
@@ -131,7 +131,9 @@ class BaseAnnounceAdapter(ABC):
 
     # ── 公共解析入口（页面结构路由）──
 
-    def _parse_items(self, raw_detail: str, ocr_provider=None) -> list[dict]:
+    def _parse_items(
+        self, raw_detail: str, ocr_provider: Any = None
+    ) -> list[dict[str, Any]]:
         """子类可重写。默认实现：HTML 表格优先，无数据时回退附件。"""
         from .parser import find_attachment_url, parse_announcement_detail
 
@@ -165,7 +167,9 @@ class BaseAnnounceAdapter(ABC):
         return self._finalize_items(html_items, attachment_url)
 
     @staticmethod
-    def _finalize_items(items: list, attachment_url: str) -> list:
+    def _finalize_items(
+        items: list[dict[str, Any]], attachment_url: str
+    ) -> list[dict[str, Any]]:
         """为每条标准补默认字段。"""
         for item in items:
             item.setdefault("attachment_url", attachment_url)
@@ -179,7 +183,7 @@ class BaseAnnounceAdapter(ABC):
         ocr_provider=None,
         progress_callback: Callable[[int, int, str], None] | None = None,
         checkpoint_pids: set[Any] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """一站式：列表 → 并行详情+解析 → 标准清单。
 
         Args:
@@ -212,7 +216,7 @@ class BaseAnnounceAdapter(ABC):
         lock = __import__("threading").Lock()
         _ann_t0 = __import__("time").monotonic()
 
-        def _bump(pid: str):
+        def _bump(pid: str) -> None:
             with lock:
                 completed[0] += 1
                 _elapsed = __import__("time").monotonic() - _ann_t0
@@ -229,7 +233,7 @@ class BaseAnnounceAdapter(ABC):
                 if progress_callback:
                     progress_callback(completed[0], total, pid)
 
-        def _process_one(ann: dict) -> list:
+        def _process_one(ann: dict[str, Any]) -> list[dict[str, Any]]:
             """处理单条公告：取详情 → 解析。线程安全。"""
             raw = self._fetch_detail(ann["pid"])
             if not raw:

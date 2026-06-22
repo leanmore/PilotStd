@@ -15,7 +15,7 @@ PROJECT_VERSION = "1.0"
 class ProjectManager:
     """项目文件管理，用于保存和恢复软件工作状态。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._current_path: Optional[str] = None
         self._dirty = False
 

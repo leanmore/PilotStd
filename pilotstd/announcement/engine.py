@@ -2,6 +2,7 @@
 # 公告引擎 — 编排多个适配器，GB→HB→DB 串行抓取
 
 import logging
+from typing import Any
 
 from .base import BaseAnnounceAdapter
 from .matcher import AnnouncementMatcher
@@ -27,7 +28,9 @@ class AnnounceEngine:
         """返回适配器列表，供 AnnounceService 遍历。"""
         return list(self._adapters.values())
 
-    def check_all(self, since_date: str = "", ocr_provider=None) -> dict:
+    def check_all(
+        self, since_date: str = "", ocr_provider: Any = None
+    ) -> dict[str, dict[str, Any]]:
         """GB→HB→DB 依次串行抓取。
         返回 {gb: {matched, updated}, hb: ..., db: ...}。
         """
@@ -55,10 +58,10 @@ class AnnounceEngine:
         self,
         standard_type: str,
         since_date: str = "",
-        ocr_provider=None,
-        progress_callback=None,
-        checkpoint_pids=None,
-    ) -> dict:
+        ocr_provider: Any = None,
+        progress_callback: Any = None,
+        checkpoint_pids: Any = None,
+    ) -> dict[str, Any]:
         """指定类型抓取。"""
         adapter = self._adapters.get(standard_type)
         if adapter is None:
@@ -75,10 +78,10 @@ class AnnounceEngine:
         self,
         adapter: BaseAnnounceAdapter,
         since_date: str,
-        ocr_provider=None,
-        progress_callback=None,
-        checkpoint_pids=None,
-    ) -> dict:
+        ocr_provider: Any = None,
+        progress_callback: Any = None,
+        checkpoint_pids: Any = None,
+    ) -> dict[str, Any]:
         try:
             items = adapter.fetch_announcements(
                 since_date=since_date,

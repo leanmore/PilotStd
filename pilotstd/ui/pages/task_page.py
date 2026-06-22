@@ -24,7 +24,7 @@ from ...task.queue import TaskQueue
 class TaskPage(QWidget):
     """任务中心控件：展示任务列表和详情。"""
 
-    def __init__(self, task_queue: TaskQueue | None = None):
+    def __init__(self, task_queue: TaskQueue | None = None) -> None:
         super().__init__()
         self._queue = task_queue
         layout = QVBoxLayout(self)
@@ -78,7 +78,7 @@ class TaskPage(QWidget):
         if self._queue:
             self._refresh()
 
-    def _refresh(self):
+    def _refresh(self) -> None:
         self.task_table.setRowCount(0)
         if not self._queue:
             return
@@ -100,7 +100,7 @@ class TaskPage(QWidget):
             )
             self.task_table.setItem(row, 5, QTableWidgetItem(t.error_log))
 
-    def _clear_completed(self):
+    def _clear_completed(self) -> None:
         if self._queue:
             for t in self._queue.list_all(limit=200):
                 if t.status in (
@@ -115,7 +115,7 @@ class TaskPage(QWidget):
 class TaskCenterDialog(QDialog):
     """任务中心对话框。"""
 
-    def __init__(self, task_queue: TaskQueue | None = None, parent=None):
+    def __init__(self, task_queue: TaskQueue | None = None, parent: Any = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(_("title_task_center"))
         self.resize(700, 500)

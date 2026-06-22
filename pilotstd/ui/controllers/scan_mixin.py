@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ScanMixin:
     """扫描相关方法，混入 MainWindow。"""
 
-    def _run_scan(self, root_path: str):
+    def _run_scan(self, root_path: str) -> None:
         """执行文件扫描并填充工作区表格。单文件直接解析，目录递归扫描。
         若 _parsed_results 已有数据，弹出追加/覆盖选择。"""
         if not self._mgr_ready:
@@ -48,7 +49,7 @@ class ScanMixin:
 
         self._project.mark_dirty()
 
-    def _scan_single_file(self, file_path: str):
+    def _scan_single_file(self, file_path: str) -> None:
         """直接解析单个文件，优先从索引恢复。"""
         filename = os.path.basename(file_path)
         self.status_changed.emit(f"扫描文件: {filename}")
@@ -103,7 +104,7 @@ class ScanMixin:
             logger.debug(f"解析失败: {filename}")
             self._unrecognized_files.append(file_path)
 
-    def _scan_directory(self, dir_path: str):
+    def _scan_directory(self, dir_path: str) -> None:
         """后台线程扫描目录，主线程只通过信号更新 UI。"""
         self.status_changed.emit(f"扫描中: {dir_path}")
         self._scan_source_root = os.path.abspath(dir_path)
@@ -125,7 +126,7 @@ class ScanMixin:
         )
         self._scan_worker.start()
 
-    def _on_scan_batch_ready(self, batch_rows: list):
+    def _on_scan_batch_ready(self, batch_rows: list[Any]) -> None:
         """后台线程批量通知：追加已解析文件到表格和结果列表。"""
         for seq, parsed in batch_rows:
             self._parsed_results.append(parsed)
@@ -138,7 +139,7 @@ class ScanMixin:
                 )
             )
 
-    def _on_scan_finished(self, success: int, failed: int):
+    def _on_scan_finished(self, success: int, failed: int) -> None:
         """扫描完成：汇总统计并弹窗。"""
         self._unrecognized_files = self._scan_worker.unrecognized
         total = success + failed

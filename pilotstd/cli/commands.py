@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import sys
+from typing import Any
 
 from ..core.config import ConfigManager, get_library_root
 from ..core.logger import LoggerManager
@@ -14,7 +15,7 @@ from ..core.logger import LoggerManager
 logger = logging.getLogger("pilotstd.cli")
 
 
-def _make_manager(storage_root=None, use_cache=True):
+def _make_manager(storage_root: Any = None, use_cache: bool = True) -> Any:
     """创建 StandardManager 实例——CLI 和测试的统一入口。"""
     from ..manager.facade import StandardManager
 
@@ -29,14 +30,14 @@ def _make_manager(storage_root=None, use_cache=True):
 class CLI:
     """命令行入口。扫描/查询/下载/归档 走 Manager；其余命令保持独立。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.cfg = ConfigManager()
         LoggerManager(level=logging.INFO)
 
     # ── scan ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_scan(args):
+    def cmd_scan(args) -> int:
         """扫描目录（支持多目录），输出解析结果。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         shallow = getattr(args, "shallow", False)
@@ -81,7 +82,7 @@ class CLI:
     # ── query ───────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_query(args):
+    def cmd_query(args) -> int:
         """查询标准有效性并分类。从 stdin 或 --file 读取标准号列表。"""
         mgr = _make_manager(
             storage_root=getattr(args, "storage_root", None),
@@ -118,7 +119,7 @@ class CLI:
         _progress_last_log = [0.0]
         _progress_last_pct = [-1]
 
-        def _progress(count: int, _total: int):
+        def _progress(count: int, _total: int) -> None:
             pct = count * 100 // _total
             # 每 15 秒或跨越 10% 阈值时写一条 INFO 日志（同时落 app.log + 控制台）
             import time
@@ -167,7 +168,7 @@ class CLI:
     # ── download ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_download(args):
+    def cmd_download(args) -> int:
         """下载标准。有 --file 时直接从文件读取标准号下载，否则从查询队列取。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
 
@@ -216,7 +217,7 @@ class CLI:
     # ── organize ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_organize(args):
+    def cmd_organize(args) -> int:
         """规范化文件名并归档到标准库。--source 指定源目录时先扫描再归档。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         source = getattr(args, "source", None)
@@ -236,7 +237,7 @@ class CLI:
     # ── auto ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_auto(args):
+    def cmd_auto(args) -> int:
         """一键处理：扫描→查询→下载→规范化→归档，全自动。"""
         mgr = _make_manager(
             storage_root=getattr(args, "storage_root", None),
@@ -253,7 +254,7 @@ class CLI:
     # ── pending ─────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_pending(args):
+    def cmd_pending(args) -> int:
         """查看/导出待确认清单。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         items = mgr.get_pending_items()
@@ -292,13 +293,13 @@ class CLI:
     # ── announce ─────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_announce(args):
+    def cmd_announce(args) -> int:
         """检查公告更新，比对本地文件索引，输出命中结果。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         std_type = getattr(args, "type", None)
         since = args.since or ""
 
-        def _progress(cur: int, total: int, pid: str):
+        def _progress(cur: int, total: int, pid: str) -> None:
             logger.info("公告进度: %d/%d (pid=%s)", cur, total, pid)
 
         results = mgr.check_announcements_filtered(
@@ -322,7 +323,7 @@ class CLI:
     # ── task ─────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_task(args):
+    def cmd_task(args) -> int:
         """查看任务队列状态。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         tasks = mgr.task_queue.list_all(limit=args.limit)
@@ -362,7 +363,7 @@ class CLI:
     # ── normalize ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_normalize(args):
+    def cmd_normalize(args) -> int:
         """解析文件名并输出规范化格式，不移动文件。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         results = mgr.normalize_files(args.files)
@@ -390,7 +391,7 @@ class CLI:
     # ── move ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_move(args):
+    def cmd_move(args) -> int:
         """将标准文件移动到分类目录。支持 --dry-run 预览。"""
         if args.dry_run:
             mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
@@ -414,7 +415,7 @@ class CLI:
     # ── expire ──────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_expire(args):
+    def cmd_expire(args) -> int:
         """将过期标准文件移入 过期作废/ 目录。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         result = mgr.expire_files(args.files)
@@ -424,7 +425,7 @@ class CLI:
         return 0
 
 
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pilotstd", description="PilotStd CLI")
     parser.add_argument("--storage-root", "-r", help="标准库存放根目录")
     sub = parser.add_subparsers(dest="command")
@@ -506,7 +507,7 @@ def build_parser():
     return parser
 
 
-def main():
+def main() -> int:
     LoggerManager(level=logging.INFO)  # CLI 入口统一初始化日志
     logger.info(
         "[CLI] 会话开始 PID=%d 命令=%s",

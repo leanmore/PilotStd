@@ -200,7 +200,9 @@ _FOREIGN_GROUP_MAP = {
 class StandardParser:
     """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份"""
 
-    def __init__(self, code_mapping: Dict[str, str], log: logging.Logger | None = None):
+    def __init__(
+        self, code_mapping: Dict[str, str], log: logging.Logger | None = None
+    ) -> None:
         self.code_mapping = code_mapping
         self.log = log or logger
 
@@ -582,7 +584,7 @@ class StandardParser:
         return words[0]  # 没匹配到至少保留第一个词
 
     @staticmethod
-    def _extract_number(number_str: str) -> tuple:
+    def _extract_number(number_str: str) -> tuple[Optional[int], str]:
         """从编号字符串提取整数和后缀字母。如 '6D'→(6,'D'), 'B16'→(16,''), '500'→(500,'')。"""
         if not number_str:
             return None, ""
@@ -701,7 +703,7 @@ class StandardParser:
         num_suffix: str = "",
         file_kind: str | None = None,
         require_year: bool = True,
-    ) -> ParsedStdInfo:
+    ) -> Optional[ParsedStdInfo]:
         if file_kind is None:
             file_kind = getattr(self, "_current_file_kind", "")
         """构建 ParsedStdInfo，处理名称尾部清理。"""
@@ -713,7 +715,7 @@ class StandardParser:
 
         # 自查校验：require_year=False 时跳过年份校验（字母修订版如 MIL-STD-810G）
         if not self._validate_result(year, number, logical_code, require_year):
-            return None  # type: ignore[return-value]
+            return None
 
         # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
         logger.debug(

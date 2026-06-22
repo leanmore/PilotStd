@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from ..core.db import Database
 from ..core.file_index import ANNOUNCEMENT_CACHE_TABLE
@@ -96,7 +96,7 @@ class CacheRepository:
             )
 
     def append_status_history(
-        self, standard_number: str, source_site: str, entry: dict
+        self, standard_number: str, source_site: str, entry: dict[str, Any]
     ) -> None:
         """追加状态变更记录到 status_history JSON 数组。
         entry: {status, announcement_number, announcement_date, changed_at, source}
@@ -135,7 +135,7 @@ class CacheRepository:
                 f"DELETE FROM {CACHE_TABLE} WHERE standard_number=?", (standard_number,)
             )
 
-    def get_history(self, limit: int = 100, offset: int = 0) -> list:
+    def get_history(self, limit: int = 100, offset: int = 0) -> list[Any]:
         return self._db.fetchall(
             f"SELECT * FROM {CACHE_TABLE} ORDER BY cached_at DESC LIMIT ? OFFSET ?",
             (limit, offset),

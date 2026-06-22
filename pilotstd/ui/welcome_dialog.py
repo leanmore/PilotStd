@@ -36,7 +36,8 @@ WELCOME_TEXT = """
 
 
 class WelcomeDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent: Any = None) -> None:
+        super().__init__(parent)
         super().__init__(parent)
         self.setWindowTitle(_("welcome_title"))
         self.resize(520, 420)

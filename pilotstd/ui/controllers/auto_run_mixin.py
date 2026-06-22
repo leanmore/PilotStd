@@ -4,6 +4,7 @@
 import csv
 import logging
 import time
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QDialog,
@@ -26,20 +27,20 @@ class _ThrottledProgress:
     """节流进度发射器：确保 progress_changed 信号最多每 500ms 发射一次，
     避免 Qt 事件循环合并高频信号导致进度条跳变。"""
 
-    def __init__(self, signal, min_interval: float = 0.5):
+    def __init__(self, signal: Any, min_interval: float = 0.5) -> None:
         self._signal = signal
         self._min_interval = min_interval
         self._last_emit = 0.0
         self._last_value = -1
 
-    def emit(self, value: int):
+    def emit(self, value: int) -> None:
         now = time.monotonic()
         self._last_value = value
         if now - self._last_emit >= self._min_interval or value >= 100:
             self._signal.emit(value)
             self._last_emit = now
 
-    def flush(self):
+    def flush(self) -> None:
         """强制发射最后一次值（阶段切换时调用，确保最终进度显示）。"""
         if self._last_value >= 0:
             self._signal.emit(self._last_value)
@@ -53,7 +54,7 @@ class AutoRunMixin:
 
     # ── 一键处理 ─────────────────────────────────────────
 
-    def _on_auto_run(self):
+    def _on_auto_run(self) -> None:
         """自动运行：使用统一 AutoWorker（包装核心层 auto_run_stream）。"""
         if not self._mgr_ready:
             return
@@ -65,14 +66,14 @@ class AutoRunMixin:
 
     # ── AutoWorker 连接 ──────────────────────────────────
 
-    def _start_auto_pipeline(self, source_dir: str):
+    def _start_auto_pipeline(self, source_dir: str) -> None:
         """启动统一自动管线（AutoWorker）。连接信号到已有 UI slot。"""
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
         self._suppress_dialogs = True
         self._clear_table()
         self._parsed_results.clear()
-        self._archive_results: list = []
+        self._archive_results: list[Any] = []
 
         # 节流进度发射器（最多每 500ms 发射一次，避免 Qt 合并信号导致跳变）
         self._throttled_progress = _ThrottledProgress(self.progress_changed)
@@ -101,15 +102,15 @@ class AutoRunMixin:
         self._auto_worker.finished_signal.connect(self._on_auto_pipeline_finished)
         self._auto_worker.start()
 
-    def _on_download_batch_ready_single(self, idx: int, status: str):
+    def _on_download_batch_ready_single(self, idx: int, status: str) -> None:
         """AutoWorker 单条下载结果 → 批量 slot 适配。"""
         self._on_download_batch_ready([(idx, status)])
 
-    def _on_archive_batch_ready_single(self, idx: int, status: str):
+    def _on_archive_batch_ready_single(self, idx: int, status: str) -> None:
         """AutoWorker 单条归档结果 → 批量 slot 适配。"""
         self._on_archive_batch_ready([(idx, status)])
 
-    def _on_auto_stage_changed(self, stage: str, current: int, total: int):
+    def _on_auto_stage_changed(self, stage: str, current: int, total: int) -> None:
         """AutoWorker 阶段切换 → 更新按钮状态和进度条。"""
         stage_labels = {
             "scan": "扫描中...",
@@ -130,7 +131,7 @@ class AutoRunMixin:
         else:
             self.btn_cancel.setEnabled(False)
 
-    def _on_auto_pipeline_finished(self, report: dict):
+    def _on_auto_pipeline_finished(self, report: dict[str, Any]) -> None:
         """AutoWorker 完成 → 恢复 UI + 弹汇总。"""
         self._suppress_dialogs = False
         self.btn_query.setEnabled(True)
@@ -140,7 +141,7 @@ class AutoRunMixin:
 
     # ── 汇总弹窗 ─────────────────────────────────────────
 
-    def _show_auto_run_summary(self):
+    def _show_auto_run_summary(self) -> None:
         """自动运行完成后弹出汇总统计。"""
         results = self._parsed_results
         if not results:
@@ -196,7 +197,7 @@ class AutoRunMixin:
         btn_layout.addWidget(btn_close)
         layout.addLayout(btn_layout)
 
-        def _export(fmt):
+        def _export(fmt: str) -> None:
             filter_str = _("file_filter_csv") if fmt == "csv" else _("file_filter_txt")
             path, __ = QFileDialog.getSaveFileName(
                 None, _("dialog_export_summary"), f"auto_run_summary.{fmt}", filter_str

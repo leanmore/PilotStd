@@ -34,7 +34,7 @@ class SessionManager:
         min_delay: float = 1.0,
         max_delay: float = 3.0,
         default_timeout: int = 30,
-    ):
+    ) -> None:
         self._user_agents = user_agents or DEFAULT_USER_AGENTS
         # 未指定代理时自动检测系统代理（环境变量 > 系统设置）
         if not proxy:

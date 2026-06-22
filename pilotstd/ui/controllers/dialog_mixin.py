@@ -2,7 +2,7 @@
 # 通用确认对话框 + 阶段完成弹窗 + 任务注册 — 从 main_window.py 提取
 
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -68,8 +68,8 @@ class DialogMixin:
     # ── 阶段弹窗 ─────────────────────────────────────────
 
     def _show_stage_dialog(
-        self, title: str, message: str, next_action=None, next_label: str = ""
-    ):
+        self, title: str, message: str, next_action: Any = None, next_label: str = ""
+    ) -> None:
         """统一阶段弹窗。下一步按钮在左，确定在右，等宽等高。
         支持右下角拉伸手柄调整窗口大小。"""
         dlg = QDialog(self)  # type: ignore[arg-type]
@@ -96,8 +96,8 @@ class DialogMixin:
         dlg.exec()
 
     def _show_stage_dialog_multi(
-        self, title: str, message: str, actions: list[tuple[str, Callable]]
-    ):
+        self, title: str, message: str, actions: list[tuple[str, Callable[..., Any]]]
+    ) -> None:
         """多按钮阶段弹窗。actions 为 [(按钮文本, 回调函数), ...] 列表。"""
         if self._suppress_dialogs:
             return
@@ -126,7 +126,9 @@ class DialogMixin:
 
     # ── 任务注册 ─────────────────────────────────────────
 
-    def _register_task(self, label: str, total: int, completed: int, failed: int = 0):
+    def _register_task(
+        self, label: str, total: int, completed: int, failed: int = 0
+    ) -> None:
         """向任务队列注册一条操作记录。"""
         try:
             from ...task.models import TaskType

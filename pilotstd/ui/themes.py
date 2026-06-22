@@ -3,9 +3,8 @@
 # 配色思路：主色统一、灰度分层区分区块、语义三色标识状态
 
 import ctypes
-from typing import Dict
 
-THEMES: Dict[str, str] = {
+THEMES: dict[str, str] = {
     "经典白": """
         /* === 全局 === */
         QMainWindow { background-color: #f5f7fa; }
@@ -553,7 +552,7 @@ def _set_titlebar_dark_mode(hwnd: int, dark: bool) -> None:
         pass
 
 
-def apply_theme(app, theme_name: str):
+def apply_theme(app: Any, theme_name: str) -> None:
     """应用主题样式表 + 标题栏明暗自适应。"""
     qss = THEMES.get(theme_name)
     if qss:

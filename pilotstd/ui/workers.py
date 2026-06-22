@@ -7,6 +7,7 @@ import os
 import shutil
 import time as _time
 from dataclasses import dataclass
+from typing import Any
 
 from PyQt6.QtCore import QObject, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QTextEdit
@@ -34,7 +35,9 @@ _WORKER_FLUSH_INTERVAL = 0.5  # 批量刷新间隔（秒）
 _ANNOUNCEMENT_BATCH_SIZE = 20  # 公告处理每批条数
 
 
-def _log_progress(logger, label: str, current: int, total: int, t_start: float):
+def _log_progress(
+    logger: Any, label: str, current: int, total: int, t_start: float
+) -> None:
     """输出阶段性进度日志（供各 Worker 在循环中调用）。"""
     elapsed = _time.monotonic() - t_start
     pct = int(current / total * 100) if total > 0 else 0
@@ -63,7 +66,7 @@ class LogHandler(logging.Handler, QObject):
 
     _log_signal = pyqtSignal(str)
 
-    def __init__(self, widget: QTextEdit):
+    def __init__(self, widget: QTextEdit) -> None:
         logging.Handler.__init__(self)
         QObject.__init__(self)
         self.widget = widget
@@ -72,7 +75,7 @@ class LogHandler(logging.Handler, QObject):
                 "%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"
             )
         )
-        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)  # type: ignore[call-arg]
+        self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []
         self._buf_timer = QTimer()
@@ -80,7 +83,7 @@ class LogHandler(logging.Handler, QObject):
         self._buf_timer.setInterval(200)
         self._buf_timer.timeout.connect(self._flush)
 
-    def _flush(self):
+    def _flush(self) -> None:
         if not self._buf:
             return
         try:
@@ -96,24 +99,25 @@ class LogHandler(logging.Handler, QObject):
             pass
         self._buf.clear()
 
-    def _append_text(self, msg: str):
+    def _append_text(self, msg: str) -> None:
         self._buf.append(msg)
         if not self._buf_timer.isActive():
             self._buf_timer.start()
 
-    def emit(self, record):
+    def emit(self, record: Any) -> None:
         try:
             msg = self.format(record)
             from PyQt6.QtCore import QThread
 
-            if QThread.currentThread() == QApplication.instance().thread():
+            app = QApplication.instance()
+            if app is not None and QThread.currentThread() == app.thread():
                 self._append_text(msg)
             else:
                 self._log_signal.emit(msg)
         except RuntimeError:
             pass
 
-    def flush(self):
+    def flush(self) -> None:
         """覆盖 Handler.flush()，防止 atexit 时 C++ 对象已销毁。"""
         try:
             self._flush()
@@ -126,30 +130,36 @@ class QueryWorker(QThread):
 
     progress = pyqtSignal(int)
     result_ready = pyqtSignal(int, object)
-    batch_ready = pyqtSignal(list)
-    finished_signal = pyqtSignal(list)
+    batch_ready = pyqtSignal(list[Any])
+    finished_signal = pyqtSignal(list[Any])
     error = pyqtSignal(str)
 
-    def __init__(self, manager, parsed_list, pause_event=None, parent=None):
+    def __init__(
+        self,
+        manager: Any,
+        parsed_list: Any,
+        pause_event: Any = None,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent)
         self._mgr = manager  # StandardManager 实例
         self.parsed_list = parsed_list
         self._pause_event = pause_event
         self._stopped = False
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
             # 实时结果回调：每条查询就绪时积累并批量发送到 UI
-            _result_batch: list = []
+            _result_batch: list[Any] = []
             _last_flush = _t_start
-            _sent_indices: set = set()
+            _sent_indices: set[int] = set()
 
-            def on_result(idx: int, result):
+            def on_result(idx: int, result: Any) -> None:
                 nonlocal _result_batch, _last_flush, _sent_indices
                 if self._stopped:
                     return
@@ -166,7 +176,7 @@ class QueryWorker(QThread):
                     _last_flush = now
 
             # 进度回调：每处理一条标准时触发，内联暂停/停止检查
-            def on_progress(current: int, total: int):
+            def on_progress(current: int, total: int) -> None:
                 nonlocal _last_log
                 if self._stopped:
                     return
@@ -206,28 +216,30 @@ class DownloadWorker(QThread):
     """后台下载线程，批量通知 UI 以减少更新频率。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list)
+    batch_ready = pyqtSignal(list[Any])
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(self, mgr, parsed_list, pause_event=None, parent=None):
+    def __init__(
+        self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None
+    ) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
         self._pause_event = pause_event
         self._stopped = False
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         import time as _time
 
         try:
-            batch: list[tuple] = []
+            batch: list[tuple[Any, ...]] = []
             last_flush = _time.monotonic()
 
-            def on_result(idx, status):
+            def on_result(idx: Any, status: Any) -> None:
                 nonlocal batch, last_flush
                 if self._stopped:
                     return
@@ -241,7 +253,7 @@ class DownloadWorker(QThread):
                     batch = []
                     last_flush = now
 
-            def on_progress(cur, total):
+            def on_progress(cur: Any, total: Any) -> None:
                 if self._stopped:
                     return
                 if self._pause_event is not None:
@@ -260,28 +272,30 @@ class NormalizeWorker(QThread):
     """后台规范化线程：计算规范文件名，批量通知 UI。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list)
+    batch_ready = pyqtSignal(list[Any])
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(self, mgr, parsed_list, pause_event=None, parent=None):
+    def __init__(
+        self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None
+    ) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
         self._stopped = False
         self._pause_event = pause_event
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         try:
 
-            def on_batch(batch_rows):
+            def on_batch(batch_rows: Any) -> None:
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
 
-            def on_progress(cur, total):
+            def on_progress(cur: Any, total: Any) -> None:
                 if self._stopped:
                     return
                 if self._pause_event is not None:
@@ -300,20 +314,20 @@ class ArchiveWorker(QThread):
     """后台归档线程：移动文件到标准库目录，含磁盘检查+断点续做。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list)
+    batch_ready = pyqtSignal(list[Any])
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
     def __init__(
         self,
-        mgr,
-        parsed_list,
-        library_root,
-        config=None,
-        overwrite=False,
-        pause_event=None,
-        parent=None,
-    ):
+        mgr: Any,
+        parsed_list: Any,
+        library_root: Any,
+        config: Any = None,
+        overwrite: bool = False,
+        pause_event: Any = None,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
@@ -323,10 +337,10 @@ class ArchiveWorker(QThread):
         self._pause_event = pause_event
         self._stopped = False
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         import time as _time
 
         try:
@@ -348,12 +362,12 @@ class ArchiveWorker(QThread):
                 )
                 return
 
-            batch: list[tuple] = []
+            batch: list[tuple[Any, ...]] = []
             last_flush = _time.monotonic()
             _t_start = _time.monotonic()
             _last_log = _t_start
 
-            def on_result(idx, status):
+            def on_result(idx: Any, status: Any) -> None:
                 nonlocal batch, last_flush
                 if self._stopped:
                     return
@@ -367,7 +381,7 @@ class ArchiveWorker(QThread):
                     batch = []
                     last_flush = now
 
-            def on_progress(cur, total):
+            def on_progress(cur: int, total: int) -> None:
                 nonlocal _last_log
                 if self._stopped:
                     return
@@ -389,7 +403,7 @@ class ArchiveWorker(QThread):
             self.error.emit(str(e))
 
     @staticmethod
-    def target_path(parsed, library_root: str, config=None) -> str | None:
+    def target_path(parsed: Any, library_root: str, config: Any = None) -> str | None:
         name = make_standard_filename(
             logical_code=parsed.logical_code,
             number=parsed.number,
@@ -407,7 +421,7 @@ class ArchiveWorker(QThread):
             target_dir = os.path.join(target_dir, "过期作废")
         return os.path.join(target_dir, name)
 
-    def _target_path(self, parsed) -> str | None:
+    def _target_path(self, parsed: Any) -> str | None:
         return ArchiveWorker.target_path(parsed, self.library_root, self._config)
 
 
@@ -415,11 +429,13 @@ class ScanWorker(QThread):
     """后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。"""
 
     progress = pyqtSignal(int, int)
-    batch_ready = pyqtSignal(list)
+    batch_ready = pyqtSignal(list[Any])
     finished_signal = pyqtSignal(int, int)
     error = pyqtSignal(str)
 
-    def __init__(self, mgr, root_path, pause_event=None, parent=None):
+    def __init__(
+        self, mgr: Any, root_path: str, pause_event: Any = None, parent: Any = None
+    ) -> None:
         super().__init__(parent)
         self._mgr = mgr  # StandardManager，不再独立持有 scanner/parser
         self._root_path = root_path
@@ -427,21 +443,21 @@ class ScanWorker(QThread):
         self._stopped = False
         self.unrecognized: list[str] = []
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         import time as _time
 
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
 
-            def on_batch(batch_rows):
+            def on_batch(batch_rows: Any) -> None:
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
 
-            def on_progress(cur, total):
+            def on_progress(cur: int, total: int) -> None:
                 nonlocal _last_log
                 if self._stopped:
                     return
@@ -470,24 +486,30 @@ class AnnounceWorker(QThread):
     progress = pyqtSignal(int, int, int)
     finished_signal = pyqtSignal()
 
-    def __init__(self, mgr, since_date=None, pause_event=None, parent=None):
+    def __init__(
+        self,
+        mgr: Any,
+        since_date: Any = None,
+        pause_event: Any = None,
+        parent: Any = None,
+    ) -> None:
         super().__init__(parent)
         self._mgr = mgr  # StandardManager，统一后端
         self._since_date = since_date  # UI传入的起始日期，覆盖fetch_log记录
         self._stopped = False
         self._error = ""
-        self._failures = []  # 累积所有适配器失败记录
+        self._failures: list[dict[str, Any]] = []  # 累积所有适配器失败记录
         self._total = 0
         self._matched = 0
         self._pause_event = pause_event
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         try:
 
-            def on_progress(cur, total, matched):
+            def on_progress(cur: int, total: int, matched: int) -> None:
                 if self._stopped:
                     return
                 if self._pause_event is not None:
@@ -496,7 +518,7 @@ class AnnounceWorker(QThread):
                 self._total = total
                 self.progress.emit(cur, total, matched)
 
-            def on_adapter_done(std_type, result):
+            def on_adapter_done(std_type: Any, result: Any) -> None:
                 if result is None:
                     self._failures.append({"type": std_type, "error": "无响应"})
                 elif "error" in result:
@@ -519,7 +541,7 @@ class AutoWorker(QThread):
     在线程中串行执行 scan→query→download→archive，通过 Qt 信号通知 UI。
     取代原有 5 个独立 Worker 的手动拼接。"""
 
-    scan_batch = pyqtSignal(list)  # [(seq, ParsedStdInfo), ...]
+    scan_batch = pyqtSignal(list[Any])  # [(seq, ParsedStdInfo), ...]
     scan_progress = pyqtSignal(int, int)  # (current, total)
     query_progress = pyqtSignal(int, int)  # (current, total)
     query_result = pyqtSignal(int, object)  # (index, QueryResult)
@@ -527,19 +549,19 @@ class AutoWorker(QThread):
     download_result = pyqtSignal(int, str)  # (index, status)
     archive_result = pyqtSignal(int, str)  # (index, status)
     stage_changed = pyqtSignal(str, int, int)  # (stage, current, total)
-    finished_signal = pyqtSignal(dict)  # report dict
+    finished_signal = pyqtSignal(dict[str, Any])  # report dict
     error = pyqtSignal(str)
 
-    def __init__(self, mgr, root_path, parent=None):
+    def __init__(self, mgr: Any, root_path: str, parent: Any = None) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self._root_path = root_path
         self._stopped = False
 
-    def stop(self):
+    def stop(self) -> None:
         self._stopped = True
 
-    def run(self):
+    def run(self) -> None:
         try:
             report = self._mgr.auto_run_stream(
                 self._root_path,
@@ -557,7 +579,7 @@ class AutoWorker(QThread):
             return
         self.finished_signal.emit(report)
 
-    def _emit_scan_batch(self, batch_rows: list):
+    def _emit_scan_batch(self, batch_rows: list[Any]) -> None:
         """扫描批量回调 → Qt 信号。AutoWorker 不操作 _parsed_results。"""
         if not self._stopped:
             self.scan_batch.emit(batch_rows)

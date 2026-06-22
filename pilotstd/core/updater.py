@@ -10,7 +10,7 @@ import os
 import urllib.error
 import urllib.request
 import zipfile
-from typing import Optional
+from typing import Any, Optional
 
 from pilotstd import __version__
 
@@ -30,7 +30,7 @@ def _make_request(url: str, timeout: int = 10) -> urllib.request.Request:
     return req
 
 
-def check_latest_version() -> Optional[dict]:
+def check_latest_version() -> Optional[dict[str, Any]]:
     """检查 GitHub 最新 Release。
 
     成功返回 {'tag_name': str, 'body': str, 'download_url': str, 'filename': str}
@@ -76,7 +76,7 @@ def check_latest_version() -> Optional[dict]:
 def is_newer_version(latest: str, current: str) -> bool:
     """语义化版本比较：latest > current → True。v 前缀自动去除。"""
 
-    def _parse(v: str) -> tuple:
+    def _parse(v: str) -> tuple[int, ...]:
         v = v.lstrip("v")
         parts: list[int] = []
         for p in v.split("."):

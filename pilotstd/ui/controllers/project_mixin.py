@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -23,7 +24,7 @@ class ProjectMixin:
 
     # ── 打开项目 ─────────────────────────────────────────
 
-    def _on_open_project(self):
+    def _on_open_project(self) -> None:
         path, __ = QFileDialog.getOpenFileName(
             self, _("dialog_open_project"), "", _("file_filter_project")
         )
@@ -38,7 +39,7 @@ class ProjectMixin:
         self._restore_state(state)
         self.status_changed.emit(_("project_loaded").format(path))
 
-    def _restore_state(self, state: dict):
+    def _restore_state(self, state: dict[str, Any]) -> None:
         rows = state.get("work_table_rows", [])
         saved_path = state.get("current_path", "")
         self._clear_table()
@@ -62,13 +63,13 @@ class ProjectMixin:
 
     # ── 保存项目 ─────────────────────────────────────────
 
-    def _on_save_query_project(self):
+    def _on_save_query_project(self) -> None:
         self._save_project_dialog(_("save_query_project"))
 
-    def _on_save_download_project(self):
+    def _on_save_download_project(self) -> None:
         self._save_project_dialog(_("save_download_project"))
 
-    def _save_project_dialog(self, label: str):
+    def _save_project_dialog(self, label: str) -> None:
         path, __ = QFileDialog.getSaveFileName(
             None, label, "project.pilotstd", _("file_filter_project")
         )

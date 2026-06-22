@@ -8,7 +8,7 @@
 # 覆盖范围: GB/行业/地方/国际/团体 ~230万条
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import requests
 
@@ -126,7 +126,9 @@ class AhbzAdapter(BaseAdapter):
         )
 
     @staticmethod
-    def _match_structured(target_num: str, rows: list) -> Optional[dict]:
+    def _match_structured(
+        target_num: str, rows: list[dict[str, Any]]
+    ) -> Optional[dict[str, Any]]:
         """结构化匹配：用 StandardParser 解析双方 code，比对数段+前后缀。"""
         from ...organizer.industry_lookup import build_code_mapping
         from ...scan.parser import StandardParser

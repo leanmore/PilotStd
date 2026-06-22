@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class DownloadMixin:
     """下载相关方法，混入 MainWindow。"""
 
-    def _on_download(self):
+    def _on_download(self) -> None:
         """下载处理：从 Manager 的 download_list 取数据，不依赖工作表筛选。"""
         if not self._mgr_ready:
             return
@@ -54,7 +55,7 @@ class DownloadMixin:
                 lines.append(f"  {num}")
             if len(too_new_list) > 10:
                 lines.append(f"  ... {len(too_new_list)} total")
-            QMessageBox.information(
+            QMessageBox.information(  # type: ignore[arg-type]
                 self, _("title_new_std_unavailable"), "\n".join(lines)
             )
 
@@ -76,7 +77,7 @@ class DownloadMixin:
         self._download_worker.progress.connect(self.progress_changed.emit)
         self._download_worker.batch_ready.connect(self._on_download_batch_ready)
 
-        def on_dl_finished():
+        def on_dl_finished() -> None:
             self.btn_query.setEnabled(True)
             self.btn_download.setEnabled(True)
             self.btn_cancel.setEnabled(False)
@@ -159,7 +160,7 @@ class DownloadMixin:
                 )
             self._current_task = None
 
-        def on_dl_error(msg):
+        def on_dl_error(msg: str) -> None:
             self.btn_query.setEnabled(True)
             self.btn_download.setEnabled(True)
             self.btn_cancel.setEnabled(False)
@@ -170,11 +171,11 @@ class DownloadMixin:
         self._download_worker.error.connect(on_dl_error)
         self._download_worker.start()
 
-    def _on_import_download(self):
+    def _on_import_download(self) -> None:
         """从文件导入标准号列表并直接下载。"""
         if not self._mgr_ready:
             return
-        path, _ignored = QFileDialog.getOpenFileName(
+        path, _ignored = QFileDialog.getOpenFileName(  # type: ignore[arg-type]
             self,
             _("dialog_select_file"),
             "",
@@ -210,7 +211,7 @@ class DownloadMixin:
         QMessageBox.information(self, _("download_results_title"), msg)
         self._project.mark_dirty()
 
-    def _enqueue_download_wait(self, parsed) -> None:
+    def _enqueue_download_wait(self, parsed: Any) -> None:
         """将未到下载期的标准写入下载等待队列（委托 manager）。"""
         self._mgr.enqueue_download_wait(parsed)
 
@@ -226,13 +227,13 @@ class DownloadMixin:
         if len(due) > 5:
             msg += f"\n... 等共 {len(due)} 条"
         msg += "\n" + _("download_queue_confirm")
-        reply = QMessageBox.question(self, _("download_queue_title"), msg)  # type: ignore[arg-type]
+        reply = QMessageBox.question(self, _("download_queue_title"), msg)
         if reply == QMessageBox.StandardButton.Yes:
             for d in due:
                 self._mgr.remove_download_queue(d["standard_number"])
             self._on_download()
 
-    def _update_download_row(self, idx: int, status: str):
+    def _update_download_row(self, idx: int, status: str) -> None:
         row = self._find_row_by_seq(idx + 1)
         if row < 0:
             return
@@ -240,7 +241,7 @@ class DownloadMixin:
         if item:
             item.setText(status)
 
-    def _on_download_batch_ready(self, batch: list):
+    def _on_download_batch_ready(self, batch: list[Any]) -> None:
         """批量更新下载结果，一次刷新多行。"""
         for idx, status in batch:
             self._update_download_row(idx, status)

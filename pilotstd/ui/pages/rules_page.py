@@ -2,7 +2,7 @@
 # 网站规则配置：管理查询/下载网站的适配规则模板
 
 import json
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -27,7 +27,7 @@ from ...i18n import _
 class RulesPage(QWidget):
     """网站规则配置控件：展示已保存的规则列表。"""
 
-    def __init__(self, config_manager=None):
+    def __init__(self, config_manager: Any = None) -> None:
         super().__init__()
         self._config = config_manager
         layout = QVBoxLayout(self)
@@ -70,7 +70,7 @@ class RulesPage(QWidget):
         if self._config:
             self._refresh()
 
-    def _get_rules(self) -> list[dict]:
+    def _get_rules(self) -> list[dict[str, Any]]:
         raw = self._config.get("sites.rules", "[]")
         if isinstance(raw, str):
             try:
@@ -83,23 +83,23 @@ class RulesPage(QWidget):
         return []
         return raw
 
-    def _save_rules(self, rules: list[dict]):
+    def _save_rules(self, rules: list[dict[str, Any]]) -> None:
         self._config.set("sites.rules", json.dumps(rules, ensure_ascii=False))
         self._config.save()
 
-    def _refresh(self):
+    def _refresh(self) -> None:
         self.rule_tree.clear()
         for r in self._get_rules():
             self._add_item(r)
 
-    def _add_item(self, rule: dict):
+    def _add_item(self, rule: dict[str, Any]) -> None:
         item = QTreeWidgetItem(
             [rule.get("name", ""), rule.get("type", ""), rule.get("url", "")]
         )
         item.setData(0, 1, rule)
         self.rule_tree.addTopLevelItem(item)
 
-    def _on_add_rule(self):
+    def _on_add_rule(self) -> None:
         dlg = RuleEditDialog(self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             rules = self._get_rules()
@@ -107,7 +107,7 @@ class RulesPage(QWidget):
             self._save_rules(rules)
             self._refresh()
 
-    def _on_edit_rule(self, item=None):
+    def _on_edit_rule(self, item: Any = None) -> None:
         if item is None:
             items = self.rule_tree.selectedItems()
             if not items:
@@ -125,7 +125,7 @@ class RulesPage(QWidget):
                 self._save_rules(rules)
                 self._refresh()
 
-    def _on_delete_rule(self):
+    def _on_delete_rule(self) -> None:
         items = self.rule_tree.selectedItems()
         if not items:
             return
@@ -141,7 +141,7 @@ class RulesPage(QWidget):
             self._save_rules(rules)
             self._refresh()
 
-    def _on_import_json(self):
+    def _on_import_json(self) -> None:
         path, __ = QFileDialog.getOpenFileName(
             self, _("dialog_import_rules"), "", _("file_filter_json")
         )
@@ -160,7 +160,7 @@ class RulesPage(QWidget):
             self, _("title_import_done"), _("msg_import_success").format(count=added)
         )
 
-    def _on_export_json(self):
+    def _on_export_json(self) -> None:
         rules = self._get_rules()
         if not rules:
             QMessageBox.information(self, _("title_hint"), _("msg_no_rules_to_export"))
@@ -179,7 +179,7 @@ class RulesPage(QWidget):
         else:
             QMessageBox.warning(self, _("title_export_failed"), "")
 
-    def _on_copy_builtin(self):
+    def _on_copy_builtin(self) -> None:
         builtins = [
             {
                 "name": "工标网",
@@ -209,7 +209,7 @@ class RulesPage(QWidget):
 class RuleEditDialog(QDialog):
     """网站规则编辑对话框。"""
 
-    def __init__(self, parent, rule: Optional[dict] = None):
+    def __init__(self, parent: Any, rule: Optional[dict[str, Any]] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(_("title_edit_rule"))
         self.resize(450, 350)
@@ -268,14 +268,14 @@ class RuleEditDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
-    def _on_accept(self):
+    def _on_accept(self) -> None:
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, _("title_hint"), _("msg_enter_rule_name"))
             return
         self.accept()
 
-    def get_rule(self) -> dict:
+    def get_rule(self) -> dict[str, Any]:
         captcha_map = {0: "", 1: "digit", 2: "math", 3: "slide", 4: "click"}
         return {
             "name": self.name_edit.text().strip(),

@@ -8,7 +8,7 @@ import os
 import threading
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pilotstd.models import ParsedStdInfo
 
@@ -37,10 +37,10 @@ class FileIndexRepository:
         """校验是否完成。未完成前扫描器应降级，不依赖索引去重。"""
         return self._validation_complete.is_set()
 
-    def _start_delayed_validation(self):
+    def _start_delayed_validation(self) -> None:
         """启动后台校验所有索引路径是否存在，延迟时间根据记录数自适应（5~30s）。"""
 
-        def _run():
+        def _run() -> None:
             try:
                 row = self._db.fetchone(
                     f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}"
@@ -142,19 +142,19 @@ class FileIndexRepository:
 
     # ---- 读取 ----
 
-    def get(self, file_path: str) -> Optional[dict]:
+    def get(self, file_path: str) -> Optional[dict[str, Any]]:
         return self._db.fetchone(
             f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
         )
 
-    def get_all(self) -> list:
+    def get_all(self) -> list[dict[str, Any]]:
         return self._db.fetchall(
             f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"
         )
 
     def find_by_standard(
         self, logical_code: str, number: int, year: int, part: Optional[int] = None
-    ) -> list:
+    ) -> list[dict[str, Any]]:
         """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
         part_val = part if part is not None else -1
         return self._db.fetchall(
@@ -163,13 +163,13 @@ class FileIndexRepository:
             (logical_code, number, year, part_val),
         )
 
-    def find_by_hash(self, file_hash: str) -> Optional[dict]:
+    def find_by_hash(self, file_hash: str) -> Optional[dict[str, Any]]:
         """通过文件哈希查找（用于检测移动/重命名）。"""
         return self._db.fetchone(
             f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,)
         )
 
-    def get_recheck_candidates(self, limit: int = 500) -> list[dict]:
+    def get_recheck_candidates(self, limit: int = 500) -> list[dict[str, Any]]:
         """返回需重新查询的标准（7天未检查的现行标准）。"""
         return self._db.fetchall(
             "SELECT * FROM file_index WHERE status='现行' AND "
@@ -202,7 +202,7 @@ class FileIndexRepository:
         row = self._db.fetchone(f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
         return row["cnt"] if row else 0
 
-    def get_status_stats(self) -> dict:
+    def get_status_stats(self) -> dict[str, int]:
         """返回按状态分组的统计：现行/废止/待确认/即将实施数量。"""
         try:
             rows = self._db.fetchall(
@@ -290,7 +290,9 @@ class FileIndexRepository:
         except (json.JSONDecodeError, TypeError):
             pass
 
-    def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict]:
+    def find_moved_files(
+        self, candidates: list[tuple[str, str]]
+    ) -> list[dict[str, Any]]:
         """检测文件移动/重命名：哈希命中但路径不同的返回原索引记录。
 
         Args:
@@ -317,7 +319,7 @@ class FileIndexRepository:
                 )
         return result
 
-    def get_full_info(self, logical_code: str, number: int) -> list[dict]:
+    def get_full_info(self, logical_code: str, number: int) -> list[dict[str, Any]]:
         """联合本地文件索引与两个缓存表，返回离线完整信息。
 
         JOIN 使用 LIKE 前缀匹配，兼容新旧两种连接号格式。

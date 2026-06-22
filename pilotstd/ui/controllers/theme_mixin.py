@@ -21,7 +21,7 @@ class ThemeMixin:
     依赖 self._config（主题/语言配置项），由 MainWindow.__init__ 提供。
     """
 
-    def _apply_icon(self):
+    def _apply_icon(self) -> None:
         theme = self._config.get("appearance.icon_theme", "default")
         # 项目根目录：__file__ 在 pilotstd/ui/controllers/，向上3级
         if is_frozen():
@@ -35,13 +35,13 @@ class ThemeMixin:
         if os.path.exists(ico):
             self.setWindowIcon(QIcon(ico))
 
-    def _apply_theme(self):
+    def _apply_theme(self) -> None:
         from ..themes import apply_theme
 
         theme = self._config.get("appearance.theme", "经典白")
         apply_theme(QApplication.instance(), theme)
 
-    def _load_qt_translator(self):
+    def _load_qt_translator(self) -> None:
         """仅加载 Qt 翻译器（须在控件创建前调用，确保内置右键菜单被翻译）。"""
         lang = self._config.get("appearance.language", "zh_CN")
         set_language(lang)
@@ -86,12 +86,12 @@ class ThemeMixin:
                     QApplication.instance().removeTranslator(old)
                     setattr(self, attr, None)
 
-    def _apply_language(self):
+    def _apply_language(self) -> None:
         """语言切换入口：加载 Qt 翻译 + 刷新 UI 文本（控件创建后调用）。"""
         self._load_qt_translator()
         self._retranslate_ui()
 
-    def _retranslate_ui(self):
+    def _retranslate_ui(self) -> None:
         """语言切换时刷新所有可见文本。
 
         【重要】新增 i18n 的 UI 元素（按钮、标签、菜单项等）必须在此方法中添加

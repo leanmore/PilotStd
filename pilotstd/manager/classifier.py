@@ -3,6 +3,7 @@
 
 import logging
 import re
+from typing import Any
 
 from ..core.std_utils import GB_CODES, is_gb_code
 
@@ -24,7 +25,9 @@ class QueryClassifier:
     _GB_CODES = GB_CODES  # 向后兼容，定义见 pilotstd.core.std_utils
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
-    def __init__(self, router, query_adapters, quota_tracker, query_engine):
+    def __init__(
+        self, router: Any, query_adapters: Any, quota_tracker: Any, query_engine: Any
+    ) -> None:
         """注入依赖。
 
         Args:
@@ -43,7 +46,7 @@ class QueryClassifier:
     # ════════════════════════════════════════════════════════════════
 
     @staticmethod
-    def parse_std_number(standard_number: str):
+    def parse_std_number(standard_number: str) -> tuple[str | None, int | None]:
         """从标准号字符串中提取代号和序号。如 'GB/T 713.1-2023' → ('GB/T', 713)。"""
         m = re.match(
             r"([A-Z]+(?:\s*/\s*[A-Z]+)?)\s*(\d+(?:\.\d+)?)", str(standard_number)
@@ -55,8 +58,13 @@ class QueryClassifier:
         return None, None
 
     def classify(
-        self, query_results, parsed_list, download_list, expire_list, pending_list
-    ):
+        self,
+        query_results: Any,
+        parsed_list: Any,
+        download_list: Any,
+        expire_list: Any,
+        pending_list: Any,
+    ) -> None:
         """查询后分类：回写状态 → 跨站补查替代关系 → 委托路由调度器分堆。
 
         分类规则统一由 PipelineRouter.classify_after_query() 定义。
@@ -168,7 +176,7 @@ class QueryClassifier:
                 # 委托适配器自己的 replaces 提取逻辑
                 replaces = adapter.fetch_replaces_detail(result)
                 if replaces:
-                    return replaces
+                    return str(replaces)
             except Exception:
                 logger.warning(
                     f"替代关系补查失败 ({site}): {standard_number}", exc_info=True

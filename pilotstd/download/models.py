@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Optional
 
 
 class DownloadStatus(Enum):
@@ -21,7 +22,7 @@ class DownloadTask:
     standard_number: str  # 标准完整编号
     download_url: str = ""  # 下载直链
     source_site: str = ""  # 来源网站标识
-    query_result: object = None  # 关联的 QueryResult（含标准名、采标状态等）
+    query_result: Optional[object] = None  # 关联的 QueryResult（含标准名、采标状态等）
 
     status: DownloadStatus = DownloadStatus.PENDING
     retry_count: int = 0
@@ -30,7 +31,7 @@ class DownloadTask:
     saved_path: str = ""  # 下载后本地路径
 
     # 供适配器使用的临时数据
-    extra: dict = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

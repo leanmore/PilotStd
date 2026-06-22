@@ -15,7 +15,7 @@ class PersistenceMixin:
 
     # ── 窗口几何 ─────────────────────────────────────────
 
-    def _restore_window_geometry(self):
+    def _restore_window_geometry(self) -> None:
         geo_b64 = self._config.get("appearance.window_geometry", "")
         if geo_b64:
             from PyQt6.QtCore import QByteArray
@@ -24,21 +24,21 @@ class PersistenceMixin:
             if ok:
                 logger.debug("已恢复窗口位置和大小")
 
-    def _save_window_geometry(self):
+    def _save_window_geometry(self) -> None:
         geo_b64 = self.saveGeometry().toBase64().data().decode()
         self._config.set("appearance.window_geometry", geo_b64)
         self._config.save()
 
     # ── 分栏尺寸 ─────────────────────────────────────────
 
-    def _save_splitter_sizes(self):
+    def _save_splitter_sizes(self) -> None:
         if hasattr(self, "_main_splitter"):
             self._config.set("appearance.main_splitter", self._main_splitter.sizes())
         if hasattr(self, "_right_splitter"):
             self._config.set("appearance.right_splitter", self._right_splitter.sizes())
         self._config.save()
 
-    def _restore_splitter_sizes(self):
+    def _restore_splitter_sizes(self) -> None:
         sizes = self._config.get("appearance.main_splitter")
         if sizes and hasattr(self, "_main_splitter"):
             self._main_splitter.setSizes(sizes)
@@ -48,13 +48,13 @@ class PersistenceMixin:
 
     # ── 排序状态 ─────────────────────────────────────────
 
-    def _save_sort_state(self):
+    def _save_sort_state(self) -> None:
         header = self.work_table.horizontalHeader()
         self._config.set("appearance.sort_column", header.sortIndicatorSection())
         self._config.set("appearance.sort_order", header.sortIndicatorOrder().value)
         self._config.save()
 
-    def _restore_sort_state(self):
+    def _restore_sort_state(self) -> None:
         col = self._config.get("appearance.sort_column")
         order_val = self._config.get("appearance.sort_order")
         if col is not None and order_val is not None:

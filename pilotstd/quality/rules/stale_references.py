@@ -21,13 +21,13 @@ class StaleReferencesRule:
     }
 
     # 已删除符号来源模块（可选，精确匹配）
-    DELETED_IMPORTS: Set[tuple] = {
+    DELETED_IMPORTS: Set[tuple[str, str]] = {
         ("pilotstd.query.search_strategy", "build_search_terms"),
         ("pilotstd.query.adapters.base", "query_single"),
         ("pilotstd.query.adapters.base", "query_batch"),
     }
 
-    def check_file(self, filepath: str) -> list:
+    def check_file(self, filepath: str) -> list[Any]:
         violations: list[Any] = []
         try:
             with open(filepath, "r", encoding="utf-8") as f:

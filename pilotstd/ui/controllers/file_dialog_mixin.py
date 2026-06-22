@@ -16,7 +16,7 @@ class FileDialogMixin:
 
     # ── 打开文件 ─────────────────────────────────────────
 
-    def _on_open_file(self):
+    def _on_open_file(self) -> None:
         path, __ = QFileDialog.getOpenFileName(
             self, "选择文件", "", "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)"
         )
@@ -28,7 +28,7 @@ class FileDialogMixin:
 
     # ── 打开文件夹 ───────────────────────────────────────
 
-    def _on_open_folder(self):
+    def _on_open_folder(self) -> None:
         last = self._config.get("appearance.last_import_path", "")
         path = self._pick_folder("选择文件夹", last)
         if path:
@@ -41,7 +41,7 @@ class FileDialogMixin:
 
     # ── 工具栏导入 ───────────────────────────────────────
 
-    def _on_select(self):
+    def _on_select(self) -> None:
         """导入文件夹到项目。"""
         last = self._config.get("appearance.last_import_path", "")
         path = self._pick_folder("选择文件夹", last)

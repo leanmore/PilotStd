@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from watchdog.events import FileSystemEvent, PatternMatchingEventHandler
 from watchdog.observers import Observer
@@ -18,12 +18,12 @@ class FileWatchHandler(PatternMatchingEventHandler):
 
     def __init__(
         self,
-        file_index,
-        parser,
-        patterns=None,
-        ignore_patterns=None,
-        skip_dir_patterns=None,
-    ):
+        file_index: Any,
+        parser: Any,
+        patterns: Optional[list[str]] = None,
+        ignore_patterns: Optional[list[str]] = None,
+        skip_dir_patterns: Optional[list[str]] = None,
+    ) -> None:
         super().__init__(
             patterns=patterns, ignore_patterns=ignore_patterns, ignore_directories=True
         )
@@ -39,7 +39,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
                 return True
         return False
 
-    def _handle_new_or_modified(self, path: str):
+    def _handle_new_or_modified(self, path: str) -> None:
         """处理文件创建或修改：计算哈希 → 解析文件名 → 更新索引。"""
         if self._should_skip(path):
             return
@@ -64,13 +64,13 @@ class FileWatchHandler(PatternMatchingEventHandler):
         except Exception:
             logger.debug("watcher 处理文件失败: %s", path, exc_info=True)
 
-    def on_created(self, event: FileSystemEvent):
+    def on_created(self, event: FileSystemEvent) -> None:
         self._handle_new_or_modified(event.src_path)
 
-    def on_modified(self, event: FileSystemEvent):
+    def on_modified(self, event: FileSystemEvent) -> None:
         self._handle_new_or_modified(event.src_path)
 
-    def on_deleted(self, event: FileSystemEvent):
+    def on_deleted(self, event: FileSystemEvent) -> None:
         if self._should_skip(event.src_path):
             return
         try:
@@ -78,7 +78,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
         except Exception:
             pass
 
-    def on_moved(self, event: FileSystemEvent):
+    def on_moved(self, event: FileSystemEvent) -> None:
         """文件移动/重命名：删除旧路径 → 按新路径重新索引。"""
         if self._should_skip(event.dest_path):
             return
@@ -92,7 +92,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
 class FileWatcher:
     """文件系统监控器：封装 watchdog Observer 生命周期和启动策略。"""
 
-    def __init__(self, file_index, parser, config_manager):
+    def __init__(self, file_index: Any, parser: Any, config_manager: Any) -> None:
         self._file_index = file_index
         self._parser = parser
         self._observer: Optional[Observer] = None
@@ -104,7 +104,7 @@ class FileWatcher:
         self._skip_dir_names = config_manager.get("scan.skip_folders", ["过期作废"])
         self._skip_keywords = config_manager.get("scan.exclude_patterns", [])
 
-    def start(self, root_paths: List[str]):
+    def start(self, root_paths: List[str]) -> None:
         """启动文件监控。先全量扫描填充索引，再启动 watcher。"""
         if self._observer is not None:
             return  # 已在运行
@@ -125,7 +125,7 @@ class FileWatcher:
                 logger.warning("watcher 跳过不存在的目录: %s", path)
         self._observer.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """停止文件监控。"""
         if self._observer:
             self._observer.stop()

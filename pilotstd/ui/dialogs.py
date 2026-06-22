@@ -1,6 +1,8 @@
 # pilotstd/ui/dialogs.py
 # 通用小对话框 — 从 main_window.py 提取
 
+from typing import Any
+
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -17,7 +19,7 @@ from ..i18n import _
 class ConfigPageDialog(QDialog):
     """通用配置页面对话框，包裹任意 QWidget。"""
 
-    def __init__(self, page, title: str, parent=None):
+    def __init__(self, page: Any, title: str, parent: Any = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
         self.resize(650, 480)
@@ -31,7 +33,7 @@ class ConfigPageDialog(QDialog):
 class ExportFileListDialog(QDialog):
     """导出文件名清单选项对话框：选择源路径、是否包含路径。"""
 
-    def __init__(self, parent, source_path: str):
+    def __init__(self, parent: Any, source_path: str) -> None:
         super().__init__(parent)
         self.setWindowTitle("导出文件列表")
         self.source_path = source_path
@@ -57,12 +59,12 @@ class ExportFileListDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
-    def _change_folder(self):
+    def _change_folder(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "选择文件夹")
         if path:
             self.source_path = path
             self.layout().itemAt(0).widget().setText(f"源文件夹: {path}")
 
-    def _on_accept(self):
+    def _on_accept(self) -> None:
         self.include_path = self.include_cb.isChecked()
         self.accept()

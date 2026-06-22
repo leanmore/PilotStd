@@ -3,7 +3,7 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 from ..models import QueryResult
 from ..search_strategy import (
@@ -136,7 +136,7 @@ class BaseAdapter(ABC):
         # 第五步：代号变体补充（API Std/Spec、ASME BPVC、DIN EN 等）
         variants = build_code_variants(logical_code, number, year, num_prefix)
         best_score = -1
-        best_result = None
+        best_result: Optional[QueryResult] = None
         best_match_status = ""
         for term in variants:
             candidates = self._search_candidates(term)
@@ -174,18 +174,18 @@ class BaseAdapter(ABC):
             source_site=self.site_name,
         )
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[QueryResult]:
         """搜索候选项，默认逐条搜索。子类可重写以返回多个结果（翻页等）。"""
         result = self._search(search_term)
         if result and result.is_found():
             return [result]
         return []
 
-    def _build_search_data(self, search_term: str) -> dict:
+    def _build_search_data(self, search_term: str) -> dict[str, Any]:
         """构建搜索请求 data。子类可重写以添加额外字段（如 status 过滤）。"""
         return {"current": 1, "size": 15, "key": search_term}
 
-    def _post_search_candidates(self, search_term: str) -> list:
+    def _post_search_candidates(self, search_term: str) -> list[QueryResult]:
         """POST 搜索候选（通用实现）。子类的 _search_candidates 可委托此方法。"""
         data = self._build_search_data(search_term)
         from ..network import safe_post
@@ -215,7 +215,9 @@ class BaseAdapter(ABC):
         """结果后处理钩子，子类可重写（如从详情页提取 replaces）。"""
 
     @staticmethod
-    def _detect_split_parts(candidates: list, local_number: int) -> str:
+    def _detect_split_parts(
+        candidates: list[Tuple[QueryResult, int]], local_number: int
+    ) -> str:
         """检测标准是否被拆分为多个部分。
 
         同 number 出现 ≥2 个不同 part 时，返回逗号分隔的部分编号列表。

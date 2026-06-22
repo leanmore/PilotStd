@@ -6,7 +6,7 @@ import logging
 import re
 import threading
 import time as _time
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import quote
 
 import requests
@@ -57,7 +57,7 @@ class CsresAdapter(BaseAdapter):
         )
         self._rotator = None
 
-    def set_rotator(self, rotator):
+    def set_rotator(self, rotator: Any) -> None:
         self._rotator = rotator
 
     def _is_locally_cooled(self) -> bool:
@@ -82,7 +82,7 @@ class CsresAdapter(BaseAdapter):
 
     # ── 覆盖：多页搜索 + 详情页 replaces ─────────────────────
 
-    def _search_candidates(self, search_term: str) -> list:
+    def _search_candidates(self, search_term: str) -> list[Any]:
         """工标网翻页搜索，返回多页所有候选结果。"""
         return self._search_multi_page(search_term, max_pages=3)
 
@@ -92,7 +92,7 @@ class CsresAdapter(BaseAdapter):
         if detail_url:
             result.replaces = self._fetch_detail_replaces(detail_url)
 
-    def _search_multi_page(self, search_term: str, max_pages: int = 3) -> list:
+    def _search_multi_page(self, search_term: str, max_pages: int = 3) -> list[Any]:
         """用搜索词查询工标网，翻 max_pages 页，返回所有有效候选结果列表。"""
         # 本地冷却检查：多线程竞态下第一时间拦截
         if self._is_locally_cooled():
@@ -154,7 +154,7 @@ class CsresAdapter(BaseAdapter):
 
     _DETAIL_BASE = "http://www.csres.com"
 
-    def _find_all_matches_in_page(self, html: str) -> list:
+    def _find_all_matches_in_page(self, html: str) -> list[Any]:
         """在单页 HTML 中解析所有有效标准编号行，返回 QueryResult 列表。"""
         soup = BeautifulSoup(html, "lxml")
 
@@ -186,7 +186,7 @@ class CsresAdapter(BaseAdapter):
         return candidates
 
     def _parse_result(
-        self, found_number: str, cells, detail_url: str = ""
+        self, found_number: str, cells: Any, detail_url: str = ""
     ) -> QueryResult:
         """从表格行构建 QueryResult。"""
         std_name = cells[1].get_text(strip=True)
@@ -229,7 +229,7 @@ class CsresAdapter(BaseAdapter):
             logger.debug("csres 替代标准解析失败", exc_info=True)
         return ""
 
-    def fetch_replaces_detail(self, result) -> str:
+    def fetch_replaces_detail(self, result: Any) -> str:
         """classifier 调用的统一接口：从 csres 详情页提取替代关系。"""
         detail_url = getattr(result, "_csres_detail_url", "")
         if detail_url and hasattr(self, "_fetch_detail_replaces"):

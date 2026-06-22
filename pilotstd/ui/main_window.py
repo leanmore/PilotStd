@@ -25,7 +25,7 @@ import os
 import signal
 import sys
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -107,7 +107,9 @@ class MainWindow(
     status_changed = pyqtSignal(str)
     query_result_ready = pyqtSignal(int, object)
 
-    def __init__(self, config: "core.ConfigManager", project: "core.ProjectManager"):
+    def __init__(
+        self, config: "core.ConfigManager", project: "core.ProjectManager"
+    ) -> None:
         super().__init__()
         self._config = config
         self._project = project
@@ -131,7 +133,7 @@ class MainWindow(
         self._setup_scanner()
         # ── 业务门面（唯一后端入口）──
         # 延迟初始化：__init__ 中仅设置占位，首次访问或 QTimer 触发时才创建
-        self.__mgr = None  # 私有 backing field，由 _mgr property 管理
+        self.__mgr: Any = None  # 私有 backing field，由 _mgr property 管理
         self._mgr_ready = False
         self._setup_status_bar()
         self._setup_log_handler()
@@ -145,21 +147,21 @@ class MainWindow(
     # ── _mgr 延迟属性：首次访问时自动初始化 StandardManager ──
 
     @property
-    def _mgr(self):
+    def _mgr(self) -> Any:
         """业务门面延迟属性。未初始化时首次访问触发自动创建。"""
         if self.__mgr is None:
             self._init_manager()
         return self.__mgr
 
     @_mgr.setter
-    def _mgr(self, value):
+    def _mgr(self, value: Any) -> None:
         self.__mgr = value
 
     # ================================================================
     # 菜单栏
     # ================================================================
 
-    def _setup_tray(self):
+    def _setup_tray(self) -> None:
         """系统托盘：最小化到托盘，双击恢复。"""
         self._tray = QSystemTrayIcon(self)
         self._tray.setIcon(self.windowIcon())
@@ -175,24 +177,26 @@ class MainWindow(
 
         NotifyService.init(self._tray)
 
-    def _on_tray_activated(self, reason):
+    def _on_tray_activated(self, reason: Any) -> None:
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
             self._restore_from_tray()
 
-    def _restore_from_tray(self):
+    def _restore_from_tray(self) -> None:
         self.showNormal()
         self.activateWindow()
 
-    def _quit_app(self):
+    def _quit_app(self) -> None:
         try:
-            self._db.backup()
+            self._db.backup()  # type: ignore[attr-defined]
             logger.info("数据库已备份")
         except Exception:
             logger.debug("数据库备份跳过（DB未初始化或已关闭）")
         self._tray.hide()
-        QApplication.instance().quit()
+        app = QApplication.instance()
+        assert app is not None, "QApplication 未初始化"
+        app.quit()
 
-    def changeEvent(self, event):
+    def changeEvent(self, event: Any) -> None:
         """窗口最小化时隐藏到系统托盘。"""
         if event.type() == event.Type.WindowStateChange and self.isMinimized():
             self._save_window_geometry()
@@ -210,7 +214,7 @@ class MainWindow(
             return
         super().changeEvent(event)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: Any) -> None:
         """关闭窗口时保存状态并退出。"""
         self._save_window_geometry()
         self._save_splitter_sizes()
@@ -219,13 +223,14 @@ class MainWindow(
         self._quit_app()
         event.accept()
 
-    def _setup_menu(self):
+    def _setup_menu(self) -> None:
         """构建菜单栏：文件 | 工具 | 设置 | 帮助。
 
         所有菜单项的文本通过 _() 国际化，在 _retranslate_ui 中统一刷新。
         子菜单（如"导出工作表"）使用 addMenu 创建级联菜单。
         """
         mb = self.menuBar()
+        assert mb is not None, "menuBar() 不应为 None"
 
         # ── 文件 ──
         file_menu = mb.addMenu(_("file"))
@@ -290,7 +295,7 @@ class MainWindow(
     # 工具栏
     # ================================================================
 
-    def _setup_toolbar(self):
+    def _setup_toolbar(self) -> None:
         """构建工具栏：导入 | 查询 | 下载 | 规范化 | 归档 | 一键处理 | 暂停 | 进度条。
 
         按钮使用 QPushButton + QStyle 标准图标，文本由 _retranslate_ui 国际化。
@@ -301,6 +306,7 @@ class MainWindow(
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.toolbar)
 
         style = self.style()
+        assert style is not None, "style() 不应为 None"
 
         self.btn_select = QPushButton("导入")
         self.btn_select.setIcon(style.standardIcon(style.StandardPixmap.SP_DirOpenIcon))
@@ -355,7 +361,7 @@ class MainWindow(
         self._paused = False
         self._pause_event = threading.Event()  # 跨线程暂停信号，worker 循环中检查
         self._pause_event.set()  # 初始为"继续"状态，pause 时 clear，resume 时 set
-        self._current_task = (
+        self._current_task: Optional[str] = (
             None  # 当前正在执行的任务类型: scan/query/download/normalize/archive
         )
         self.btn_pause = QPushButton("暂停")
@@ -379,7 +385,7 @@ class MainWindow(
     # 中央区域（左右分栏）
     # ================================================================
 
-    def _setup_central(self):
+    def _setup_central(self) -> None:
         self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # ── 左侧：文件浏览（Win11 风格）──
@@ -413,7 +419,7 @@ class MainWindow(
             header.setSectionResizeMode(c, QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Stretch)
         # (默认宽度, 最小宽度) px
-        self._col_specs = {
+        self._col_specs: dict[int, tuple[int, int]] = {
             0: (34, 34),  # 序号
             1: (54, 54),  # 工作状态
             2: (93, 93),  # 标准编号
@@ -487,13 +493,13 @@ class MainWindow(
     # 状态栏 + 日志桥接
     # ================================================================
 
-    def _setup_status_bar(self):
+    def _setup_status_bar(self) -> None:
         self.status_bar = QStatusBar()
         self.status_bar.setStyleSheet("font-size: 10pt; color: #dcdcdc;")
         self.status_bar.showMessage(_("ready"))
         self.setStatusBar(self.status_bar)
 
-    def _setup_log_handler(self):
+    def _setup_log_handler(self) -> None:
         handler = LogHandler(self.log_view)
         # 注意：不要在此处调用 handler.setLevel()，LogHandler 在 __init__ 中
         # 已固定为 logging.INFO。外部覆盖为 DEBUG 会导致日志信号洪水 → c0000409 崩溃。
@@ -511,11 +517,11 @@ class MainWindow(
 
     # ── 驱动器公开方法 ──────────────────────────────────────
 
-    def run_auto(self, source_dir: str):
+    def run_auto(self, source_dir: str) -> None:
         """供压力测试驱动器调用：启动统一 AutoWorker，异步返回。"""
         self._start_auto_pipeline(source_dir)
 
-    def get_pipeline_stats(self) -> dict:
+    def get_pipeline_stats(self) -> dict[str, Any]:
         """供驱动器取交叉对比数据。需在 run_auto 全部 worker 完成后调用。"""
         if not self._mgr_ready:
             return {}
@@ -543,7 +549,7 @@ class MainWindow(
 
     # ── Worker 管理 ──────────────────────────────────────────
 
-    def _stop_workers(self):
+    def _stop_workers(self) -> None:
         for attr in (
             "_query_worker",
             "_download_worker",
@@ -562,16 +568,16 @@ class MainWindow(
             except RuntimeError:
                 pass
 
-    def _on_cancel(self):
+    def _on_cancel(self) -> None:
         """取消按钮：停止所有后台 Worker，恢复 UI 状态。"""
         self._stop_workers()
         # 恢复暂停状态
         self._paused = False
         self._pause_event.set()
         self.btn_pause.setText("暂停")
-        self.btn_pause.setIcon(
-            self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause)
-        )
+        s = self.style()
+        assert s is not None, "style() 不应为 None"
+        self.btn_pause.setIcon(s.standardIcon(s.StandardPixmap.SP_MediaPause))
         # 恢复按钮
         self.btn_query.setEnabled(True)
         self.btn_download.setEnabled(True)
@@ -583,7 +589,7 @@ class MainWindow(
 
     # ── 工作表阶段切换 ───────────────────────────────────
 
-    def _switch_to_stage(self, stage: str):
+    def _switch_to_stage(self, stage: str) -> None:
         """清空 work_table，从 Manager.get_stage_queue(stage) 取数据填充。
         stage: 'scan' | 'all' | 'download' | 'pending' | 'archive_ready'
         """
@@ -603,13 +609,12 @@ class MainWindow(
             )
         self._update_button_states()
 
-    def _update_button_states(self):
+    def _update_button_states(self) -> None:
         """根据当前数据状态动态启用/禁用工具栏按钮。"""
         if not self._mgr_ready:
             return
         has_results = bool(self._parsed_results)
         has_download = bool(self._mgr.get_stage_queue("download"))
-        bool(self._mgr.get_stage_queue("pending"))
         has_archive = bool(self._mgr.get_stage_queue("all"))
 
         self.btn_query.setEnabled(has_results)
@@ -622,27 +627,29 @@ class MainWindow(
     # 自动保存
     # ================================================================
 
-    def _setup_auto_save(self):
-        QApplication.instance().aboutToQuit.connect(self._on_auto_save)
+    def _setup_auto_save(self) -> None:
+        app = QApplication.instance()
+        assert app is not None, "QApplication 未初始化"
+        app.aboutToQuit.connect(self._on_auto_save)
         atexit.register(self._on_atexit_save)
         try:
             signal.signal(signal.SIGTERM, lambda *a: self._on_auto_save())
         except (ValueError, OSError):
             pass
 
-    def _on_auto_save(self):
+    def _on_auto_save(self) -> None:
         if self._mgr_ready:
             self._mgr.stop_watching()
         if self._project.current_path and self._project._dirty:
             state = self._collect_state()
             self._project.save(self._project.current_path, state)
 
-    def _on_atexit_save(self):
+    def _on_atexit_save(self) -> None:
         if self._project.current_path and self._project._dirty:
             state = self._collect_state()
             self._project.save(self._project.current_path, state)
 
-    def _collect_state(self) -> dict:
+    def _collect_state(self) -> dict[str, Any]:
         """收集当前工作状态供保存。"""
         return {
             "work_table_rows": self._table_to_list(),
@@ -655,24 +662,22 @@ class MainWindow(
     # 信号回调
     # ================================================================
 
-    def _on_pause_toggle(self):
+    def _on_pause_toggle(self) -> None:
         self._paused = not self._paused
+        s = self.style()
+        assert s is not None, "style() 不应为 None"
         if self._paused:
             self.btn_pause.setText(_("toolbar_continue"))
-            self.btn_pause.setIcon(
-                self.style().standardIcon(self.style().StandardPixmap.SP_MediaPlay)
-            )
+            self.btn_pause.setIcon(s.standardIcon(s.StandardPixmap.SP_MediaPlay))
             self.status_changed.emit(_("paused"))
             self._pause_event.clear()  # 清除 event → 所有 worker 在 wait() 处阻塞
         else:
             self.btn_pause.setText(_("toolbar_pause"))
-            self.btn_pause.setIcon(
-                self.style().standardIcon(self.style().StandardPixmap.SP_MediaPause)
-            )
+            self.btn_pause.setIcon(s.standardIcon(s.StandardPixmap.SP_MediaPause))
             self.status_changed.emit(_("resumed"))
             self._pause_event.set()  # 设置 event → 所有 worker 的 wait() 返回，继续执行
 
-    def _check_pause(self):
+    def _check_pause(self) -> None:
         """轮询等待暂停解除。使用 QApplication.processEvents 处理当前队列事件，
         不递归处理新事件（避免 QEventLoop 的栈溢出），同时允许用户点击"继续"。"""
         import time as _time
@@ -681,15 +686,15 @@ class MainWindow(
             QApplication.processEvents()
             _time.sleep(0.05)
 
-    def _on_progress(self, value: int):
+    def _on_progress(self, value: int) -> None:
         logger.info("进度条: %d%%", value)
         self.progress_bar.setValue(value)
 
-    def _on_status(self, msg: str):
+    def _on_status(self, msg: str) -> None:
         self.status_bar.showMessage(msg)
         logger.info(msg)
 
-    def _setup_scanner(self):
+    def _setup_scanner(self) -> None:
         self._parsed_results: list[ParsedStdInfo] = []
         self._unrecognized_files: list[str] = []  # 扫描中无法识别的文件路径
         self._scan_source_root: str = ""  # 最近一次扫描的源根目录
@@ -709,7 +714,7 @@ class MainWindow(
 
     # ── 规则/任务/设置 ──────────────────────────────────────
 
-    def _on_rule_query(self):
+    def _on_rule_query(self) -> None:
         from .pages.rules_page import RulesPage  # 延迟导入
 
         dlg = ConfigPageDialog(
@@ -717,10 +722,10 @@ class MainWindow(
         )
         dlg.exec()
 
-    def _on_rule_download(self):
+    def _on_rule_download(self) -> None:
         self._on_rule_query()
 
-    def _on_task_center(self):
+    def _on_task_center(self) -> None:
         if not self._mgr_ready:
             return
         from .pages.task_page import TaskCenterDialog  # 延迟导入
@@ -728,7 +733,7 @@ class MainWindow(
         dlg = TaskCenterDialog(self._mgr.task_queue, self)
         dlg.exec()
 
-    def _on_settings(self):
+    def _on_settings(self) -> None:
         from .pages.settings_page import SettingsDialog  # 延迟导入
 
         dlg = SettingsDialog(self._config, self)
@@ -742,7 +747,7 @@ class MainWindow(
     # 关于 / 更新
     # ================================================================
 
-    def _on_check_update(self):
+    def _on_check_update(self) -> None:
         """半自动升级：检查 GitHub Release → 下载 → 写 update.bat → 提示重启。"""
         import time as _time
 
@@ -814,9 +819,9 @@ class MainWindow(
             sha256_expected = extract_sha256_from_body(release["body"])
 
             # 在后台下载（含完整性校验）
-            result = {"ok": False, "error": ""}
+            result: dict[str, Any] = {"ok": False, "error": ""}
 
-            def _download():
+            def _download() -> None:
                 try:
                     ok = download_update(download_url, dl_path, sha256_expected)
                     if ok:
@@ -864,7 +869,7 @@ class MainWindow(
                 _("update_connection_failed").format(current=current),
             )
 
-    def _on_about(self):
+    def _on_about(self) -> None:
         from pilotstd import __version__
 
         QMessageBox.about(self, _("about"), _("about_text").format(version=__version__))
@@ -873,7 +878,7 @@ class MainWindow(
     # 欢迎页
     # ================================================================
 
-    def show_welcome_if_needed(self):
+    def show_welcome_if_needed(self) -> None:
         skip = self._config.get("appearance.skip_welcome", False)
         if skip:
             return
@@ -889,7 +894,7 @@ class MainWindow(
     # 延迟初始化
     # ================================================================
 
-    def _init_manager(self):
+    def _init_manager(self) -> None:
         """延迟初始化 StandardManager——避免阻塞窗口显示。
 
         窗口先显示（工具栏灰色），后台加载所有子系统（DB/适配器/引擎/
@@ -918,7 +923,7 @@ class MainWindow(
         if self._config.get("watchdog.enabled", False):
             mgr.start_watching()
 
-    def _set_toolbar_enabled(self, enabled: bool):
+    def _set_toolbar_enabled(self, enabled: bool) -> None:
         """统一控制工具栏按钮状态。管理器未就绪时禁用所有操作按钮。"""
         self.btn_select.setEnabled(enabled)
         self.btn_query.setEnabled(enabled)
@@ -930,7 +935,7 @@ class MainWindow(
         self.btn_pause.setEnabled(enabled)
         # btn_cancel 始终由任务状态控制（_on_cancel / worker 生命周期），不在此处改动
 
-    def _apply_announce_cache_mode(self, enabled: Optional[bool] = None):
+    def _apply_announce_cache_mode(self, enabled: Optional[bool] = None) -> None:
         """根据配置控制公告检查按钮启用/禁用状态。
         Web 端公告缓存开启时禁用本地公告检查，避免双数据源混淆。
         """
@@ -939,7 +944,7 @@ class MainWindow(
         self.btn_announce.setEnabled(not enabled)
 
 
-def run():
+def run() -> None:
     """启动 GUI 应用。"""
     from ..core.logger import LoggerManager
 

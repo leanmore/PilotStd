@@ -46,7 +46,7 @@ _TAG_MAP = {
 class _TagFormatter(logging.Formatter):
     """带模块缩写的格式化器。"""
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         tag = record.name
         # 取模块名最后一段
         last = record.name.rsplit(".", 1)[-1] if "." in record.name else record.name
@@ -87,7 +87,7 @@ class LoggerManager:
         log_dir: Optional[str] = None,
         level: int = logging.INFO,
         retain_days: int = 14,
-    ):
+    ) -> None:
         if log_dir is None:
             log_dir = _get_log_dir()
         self._log_dir = os.path.abspath(log_dir)
@@ -153,5 +153,5 @@ class LoggerManager:
         h.setFormatter(fmt)
         return h
 
-    def _cleanup_old_logs(self):
+    def _cleanup_old_logs(self) -> None:
         """轮转由 RotatingFileHandler 自动管理（backupCount=1），无需手动清理。"""

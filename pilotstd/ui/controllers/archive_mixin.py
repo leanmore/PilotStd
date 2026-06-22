@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtWidgets import QMessageBox
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ArchiveMixin:
     """归档/规范化相关方法，混入 MainWindow。"""
 
-    def _on_normalize(self):
+    def _on_normalize(self) -> None:
         self._current_task = "normalize"
         if not self._parsed_results:
             choice = self._stage_prereq_dialog(
@@ -70,7 +71,7 @@ class ArchiveMixin:
         self._normalize_worker.batch_ready.connect(self._on_normalize_batch_ready)
         self._normalize_worker.progress.connect(self.progress_changed.emit)
 
-        def on_normalize_finished():
+        def on_normalize_finished() -> None:
             count = len(self._parsed_results)
             self.status_changed.emit(_("normalize_complete").format(count))
             self._register_task("规范化", count, count)
@@ -86,7 +87,7 @@ class ArchiveMixin:
         self._normalize_worker.finished_signal.connect(on_normalize_finished)
         self._normalize_worker.start()
 
-    def _on_normalize_batch_ready(self, batch: list):
+    def _on_normalize_batch_ready(self, batch: list[Any]) -> None:
         """批量更新规范化结果到表格。"""
         for idx, parsed, name in batch:
             self._add_table_row(
@@ -99,7 +100,7 @@ class ArchiveMixin:
                 )
             )
 
-    def _on_save_to_folder(self):
+    def _on_save_to_folder(self) -> None:
         """将文件以规范名称归档到标准库目录。后台线程执行文件操作。"""
         if not self._mgr_ready:
             return
@@ -132,7 +133,7 @@ class ArchiveMixin:
             if count > 5:
                 sample += f"\n  ... 等共 {count} 个"
             msg = _("msg_file_overwrite").format(count=count, sample=sample)
-            reply = QMessageBox.question(
+            reply = QMessageBox.question(  # type: ignore[arg-type]
                 self,
                 _("title_file_exists"),
                 msg,
@@ -160,7 +161,7 @@ class ArchiveMixin:
             lambda msg: logger.error("归档错误: %s", msg)
         )
 
-        def on_archive_finished():
+        def on_archive_finished() -> None:
             saved = sum(1 for i, s in self._archive_results if s == "已归档")
             skipped = len(self._archive_results) - saved
             self.status_changed.emit(_("save_complete").format(saved, skipped))
@@ -233,13 +234,13 @@ class ArchiveMixin:
         self._archive_worker.finished_signal.connect(on_archive_finished)
         self._archive_worker.start()
 
-    def _on_archive_batch_ready(self, batch: list):
+    def _on_archive_batch_ready(self, batch: list[Any]) -> None:
         """批量更新归档结果到表格。"""
         self._archive_results.extend(batch)
         for idx, status in batch:
             self._update_download_row(idx, status)
 
-    def _merge_expire_from_source(self, root_dir: str):
+    def _merge_expire_from_source(self, root_dir: str) -> None:
         """源文件夹中过期作废目录合并到标准库（委托 manager）。"""
         merged = self._mgr.merge_expire_from_source(root_dir, self._parsed_results)
         if merged:
@@ -262,7 +263,7 @@ class ArchiveMixin:
         """返回标准库根目录路径。"""
         return core.get_library_root(self._config)
 
-    def _show_name_conflict_dialog(self, conflicts: list) -> list:
+    def _show_name_conflict_dialog(self, conflicts: list[Any]) -> list[Any]:
         """名称冲突弹窗：逐条让用户选择。返回用户已确认的条目列表。"""
         resolved = []
         for p in conflicts[:10]:  # 最多处理前 10 条，避免弹窗过多

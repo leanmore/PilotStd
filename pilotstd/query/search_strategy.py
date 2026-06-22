@@ -3,7 +3,7 @@
 
 import logging
 import re
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def build_code_variants(
     return variants
 
 
-def _parse_result_number(num_str: str) -> dict:
+def _parse_result_number(num_str: str) -> dict[str, Any]:
     """从标准编号字符串中提取 代号、顺序号、部分号、年份。
     委托 core.std_utils.parse_std_number()。"""
     from ..core.std_utils import parse_std_number
@@ -211,7 +211,7 @@ def map_status(text: str) -> str:
     return str(text) if text else "未知"
 
 
-def ts_to_date(ts) -> str:
+def ts_to_date(ts: Any) -> str:
     """毫秒时间戳 → 日期字符串。"""
     from datetime import datetime
 

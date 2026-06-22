@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from ..announcement.adapters import SamrDbAdapter, SamrGbAdapter, SamrHbAdapter
 from ..announcement.engine import AnnounceEngine
@@ -23,7 +23,7 @@ class AnnounceService:
     支持用户通过 ConfigManager 配置 OCR 提供商（baidu/tencent/aliyun）。
     """
 
-    def __init__(self, file_index, ocr_config: dict | None = None):
+    def __init__(self, file_index: Any, ocr_config: dict[str, Any] | None = None):
         """注入依赖。
 
         Args:
@@ -36,7 +36,7 @@ class AnnounceService:
         self._ocr_config = ocr_config or {}
         self._ocr_provider = None  # 懒加载
 
-    def _get_ocr_provider(self):
+    def _get_ocr_provider(self) -> Any:
         """懒加载 OCR provider，首次调用时从配置创建。"""
         if self._ocr_provider is None and self._ocr_config:
             from ..announcement.ocr import create_ocr_provider
@@ -52,7 +52,7 @@ class AnnounceService:
             self._engine = AnnounceEngine(adapters=adapters, matcher=matcher)
         return self._engine
 
-    def check_announcements(self) -> dict:
+    def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
 
         data_dir = get_data_dir()
@@ -105,8 +105,11 @@ class AnnounceService:
         return {"matched": total_matched, "error": ""}
 
     def check_announcements_filtered(
-        self, std_type: str | None = None, since_date: str = "", progress_callback=None
-    ) -> dict:
+        self,
+        std_type: str | None = None,
+        since_date: str = "",
+        progress_callback: Any = None,
+    ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI 调用。"""
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()

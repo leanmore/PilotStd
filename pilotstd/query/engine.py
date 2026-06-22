@@ -22,7 +22,7 @@ import logging
 #     分割任务，超出配额的部分自动切换到下一个站点。
 import re
 import threading
-from typing import Callable, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 from ..query.search_strategy import (
     ADAPTER_TYPE_MAP,
@@ -43,7 +43,7 @@ FOREIGN_ROUTE = ["ahbz", "njbz365"]
 
 
 # 按标准代号分流：专业站点优先，njbz365 二线，csres 国标/行业兜底
-def _build_default_code_routes():
+def _build_default_code_routes() -> dict[str, list[str]]:
     from ..organizer.industry_lookup import _DB_PROVINCE_MAP
 
     routes = {
@@ -80,8 +80,8 @@ class QueryEngine:
         rotator: Optional[SiteRotator] = None,
         quota_tracker: Optional[DailyQuotaTracker] = None,
         site_order: Optional[List[str]] = None,
-        query_interval: Optional[tuple] = None,
-        parser=None,
+        query_interval: Optional[tuple[float, float]] = None,
+        parser: Optional[Any] = None,
     ):
         self._adapters = adapters
         # site_name → adapter 映射，O(1) 查找
@@ -114,7 +114,7 @@ class QueryEngine:
         """当前溢出队列中待重试的条目数。"""
         return self._overflow_item_count
 
-    def get_csres_status(self) -> dict:
+    def get_csres_status(self) -> dict[str, Any]:
         """返回 CSRES 线程状态。"""
         return {
             "is_active": self._csres_active,
@@ -208,7 +208,7 @@ class QueryEngine:
             source_site="",
         )
 
-    def plan_batch(self, total: int, logical_code: str = "") -> List[tuple]:
+    def plan_batch(self, total: int, logical_code: str = "") -> List[Tuple[str, int]]:
         """按配额预估分配方案（供 UI 展示）。返回 [(site_name, count), ...]"""
         plan = []
         remaining = total
@@ -226,13 +226,13 @@ class QueryEngine:
             remaining -= take
         return plan
 
-    def get_quota_info(self) -> dict:
+    def get_quota_info(self) -> dict[str, int]:
         """返回各站点配额信息（供 UI 弹窗展示）。"""
         if self._quota:
             return self._quota.get_all_remaining()
         return {}
 
-    def get_adapter(self, name: str):
+    def get_adapter(self, name: str) -> Optional[BaseAdapter]:
         """获取指定站点适配器（供 PendingQueryDialog 使用）。"""
         return self._adapter_map.get(name)
 
@@ -344,7 +344,7 @@ class QueryEngine:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
-    def _record(self, site_name: str, count: int):
+    def _record(self, site_name: str, count: int) -> None:
         """记录配额消耗 + 通知站点轮转器记录成功请求。"""
         if self._quota:
             self._quota.record_usage(site_name, count)
@@ -381,7 +381,9 @@ class QueryEngine:
         priority = self._get_priority(logical_code)
         return priority[0] if priority else "other"
 
-    def _build_chain_for_item(self, item: tuple) -> list:
+    def _build_chain_for_item(
+        self, item: Tuple[str, int, int, str, Optional[int], str]
+    ) -> list[str]:
         """返回条目对应的完整优先级链（不含 csres）。"""
         logical_code = item[0]
         chain = self._get_priority(logical_code)
@@ -406,7 +408,7 @@ class QueryEngine:
         counter_lock = threading.Lock()
         counter = [0]
 
-        def bump():
+        def bump() -> None:
             with counter_lock:
                 counter[0] += 1
                 if progress_callback:  # type: ignore[truthy-function]
@@ -420,7 +422,7 @@ class QueryEngine:
         _prog_lock = threading.Lock()
         _prog_stop = threading.Event()
 
-        def _progress_heartbeat():
+        def _progress_heartbeat() -> None:
             while not _prog_stop.wait(60.0):
                 with _prog_lock:
                     c = _prog_completed[0]
@@ -470,7 +472,12 @@ class QueryEngine:
         csres_results: Dict[int, QueryResult] = {}
         csres_failures = [0]
 
-        def _csres_worker(gb_items, industry_items):
+        def _csres_worker(
+            gb_items: list[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
+            industry_items: list[
+                Tuple[int, Tuple[str, int, int, str, Optional[int], str]]
+            ],
+        ) -> None:
             adapter = self._adapter_map.get("csres")
             if not adapter:
                 return
@@ -552,28 +559,37 @@ class QueryEngine:
             self._csres_active = False
 
         # ── 4. 桶工作线程 ──
-        bucket_times: Dict[str, tuple] = {}  # {key: (start, end, done, overflowed)}
+        bucket_times: Dict[str, tuple[float, float, int, int]] = {}
         site_usage: Dict[str, int] = {}  # {site: count}
         usage_lock = threading.Lock()
 
-        def _record_usage(site: str):
+        def _record_usage(site: str) -> None:
             with usage_lock:
                 site_usage[site] = site_usage.get(site, 0) + 1
 
         # 追踪结构
-        overflow_events: list = []  # (timestamp, from_bucket, to_site, idx)
+        overflow_events: list[
+            tuple[float, str, str, int]
+        ] = []  # (timestamp, from_bucket, to_site, idx)
         match_scores: Dict[str, Dict[str, int]] = {}  # {site: {match_status: count}}
-        item_chains: Dict[int, list] = {}  # {idx: [site1, site2, ...]}
-        pending_reasons: list = []  # [(idx, chain_str)]
+        item_chains: Dict[int, list[str]] = {}  # {idx: [site1, site2, ...]}
+        pending_reasons: list[tuple[int, str]] = []  # [(idx, chain_str)]
         score_lock = threading.Lock()
 
-        def _record_match(site: str, status: str):
+        def _record_match(site: str, status: str) -> None:
             with score_lock:
                 if site not in match_scores:
                     match_scores[site] = {}
                 match_scores[site][status] = match_scores[site].get(status, 0) + 1
 
-        def _bucket_worker(bucket_items, primary_site: str):
+        def _bucket_worker(
+            bucket_items: List[
+                Tuple[int, Tuple[str, int, int, str, Optional[int], str]]
+            ],
+            primary_site: str,
+        ) -> tuple[
+            List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]], float, int
+        ]:
             """二次分桶：按权重拆分为小桶(50条) → 错峰5s → 冷却/配额感知。
 
             支持两种分配模式：

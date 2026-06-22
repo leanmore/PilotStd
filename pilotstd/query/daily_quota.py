@@ -67,7 +67,7 @@ class DailyQuotaTracker:
             )
             if row is None:
                 return limit
-            used = row["count"]
+            used: int = row["count"]
             return max(0, limit - used)
 
     def record_usage(self, site_name: str, count: int) -> int:
@@ -98,7 +98,8 @@ class DailyQuotaTracker:
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
                 (site_name, self._today),
             )
-            return row["count"] if row else 0
+            count: int = row["count"] if row else 0
+            return count
 
     def get_search_remaining(self, site_name: str) -> int:
         """返回搜索可用次数（总额 - 已用 - 详情页保底）。"""
@@ -110,6 +111,6 @@ class DailyQuotaTracker:
         """是否还有详情页额度可用。"""
         return self.get_remaining(site_name) > 0
 
-    def get_all_remaining(self) -> dict:
+    def get_all_remaining(self) -> dict[str, int]:
         """返回所有站点的剩余配额。"""
         return {s: self.get_remaining(s) for s in self._limits}

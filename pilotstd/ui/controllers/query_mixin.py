@@ -4,6 +4,7 @@
 import logging
 import os
 import sys
+from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 class QueryMixin:
     """查询相关方法，混入 MainWindow。"""
 
-    def _on_query_result_ready(self, idx: int, result):
+    def _on_query_result_ready(self, idx: int, result: Any) -> None:
         """实时刷新表格行（字段回写由 manager._classify_after_query 统一完成）。"""
         parsed = self._parsed_results[idx]
         source_label = getattr(result, "source_site", "") or "未知"
@@ -83,12 +84,12 @@ class QueryMixin:
             ):
                 status_item.setForeground(Qt.GlobalColor.darkYellow)
 
-    def _on_query_batch_ready(self, batch: list):
+    def _on_query_batch_ready(self, batch: list[Any]) -> None:
         """批量处理查询结果：一次刷新多行表格，减少 Qt 布局计算次数。"""
         for idx, result in batch:
             self._on_query_result_ready(idx, result)
 
-    def _on_query(self):
+    def _on_query(self) -> None:
         if not self._mgr_ready:
             return
         if not self._parsed_results:
@@ -129,7 +130,7 @@ class QueryMixin:
         self.btn_query.setEnabled(False)
         self.btn_auto.setEnabled(False)
 
-        def on_progress(current: int):
+        def on_progress(current: int) -> None:
             self._check_pause()
             self.progress_changed.emit(
                 current
@@ -141,13 +142,13 @@ class QueryMixin:
         self._query_worker.batch_ready.connect(self._on_query_batch_ready)
         self._query_worker.progress.connect(on_progress)
 
-        def on_query_finished(results):
+        def on_query_finished(results: Any) -> None:
             self.btn_query.setEnabled(True)
             self.btn_auto.setEnabled(True)
             self.btn_cancel.setEnabled(False)
             self._show_query_summary()
 
-        def on_query_error(msg):
+        def on_query_error(msg: str) -> None:
             self.btn_query.setEnabled(True)
             self.btn_auto.setEnabled(True)
             self.btn_cancel.setEnabled(False)
@@ -158,9 +159,9 @@ class QueryMixin:
         self._query_worker.error.connect(on_query_error)
         self._query_worker.start()
 
-    def _show_pending_dialog(self, pending_items: list) -> bool:
+    def _show_pending_dialog(self, pending_items: list[Any]) -> bool:
         """显示待确认清单对话框。返回 True=用户确认丢弃，False=取消。"""
-        dlg = QDialog(self)  # type: ignore[arg-type]
+        dlg = QDialog(self)
         dlg.setWindowTitle(_("title_pending_confirm"))
         dlg.setMinimumSize(800, 400)
         layout = QVBoxLayout(dlg)
@@ -225,7 +226,7 @@ class QueryMixin:
 
         confirmed = False
 
-        def on_save():
+        def on_save() -> None:
             # 自动保存到 exe/data 目录，文件名带时间戳，不弹 QFileDialog
             from datetime import datetime
 
@@ -254,23 +255,18 @@ class QueryMixin:
                         ]
                     )
                     for row in range(table.rowCount()):
-                        writer.writerow(
-                            [
-                                (
-                                    table.item(row, c).text()
-                                    if table.item(row, c)
-                                    else ""
-                                )
-                                for c in range(8)
-                            ]
-                        )
+                        row_data: list[str] = []
+                        for c in range(8):
+                            item = table.item(row, c)
+                            row_data.append(item.text() if item else "")
+                        writer.writerow(row_data)
                 save_status.setText(f"已保存: pending_standards_{ts}.csv")
                 save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
             except OSError as e:
                 save_status.setText(f"保存失败: {e}")
                 save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
 
-        def on_discard():
+        def on_discard() -> None:
             nonlocal confirmed
             confirmed = True
             dlg.accept()
@@ -281,7 +277,7 @@ class QueryMixin:
         dlg.exec()
         return confirmed
 
-    def _show_query_summary(self):
+    def _show_query_summary(self) -> None:
         total = len(self._parsed_results)
         # 分类已由 manager._classify_after_query 完成，此处仅做 UI 统计
 
@@ -412,14 +408,14 @@ class QueryMixin:
             actions = []
             if download_count > 0:
 
-                def do_download():
+                def do_download() -> None:
                     self._switch_to_stage("download")
                     self._on_download()
 
                 actions.append((f"开始下载({download_count}条)", do_download))
             if pending_count > 0:
 
-                def do_pending():
+                def do_pending() -> None:
                     self._switch_to_stage("pending")
                     pending_items = [
                         p for p in self._parsed_results if p.next_action == "pending"
@@ -439,7 +435,7 @@ class QueryMixin:
 
         self._current_task = None
 
-    def _on_pending_query(self):
+    def _on_pending_query(self) -> None:
         """待确认二次查询：导入 CSV，选择站点，执行独立查询。"""
         try:
             self._do_pending_query()
@@ -447,14 +443,14 @@ class QueryMixin:
             logger.exception("待确认查询异常")
             QMessageBox.critical(self, _("title_error"), f"待确认查询失败: {e}")
 
-    def _do_pending_query(self):
+    def _do_pending_query(self) -> None:
         if not self._mgr_ready:
             return
         if self._parsed_results:
             QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
             return
 
-        path, __ = QFileDialog.getOpenFileName(
+        path, __ = QFileDialog.getOpenFileName(  # type: ignore[arg-type]
             self, _("dialog_import_pending"), "", _("file_filter_csv")
         )
         if not path:
@@ -534,16 +530,16 @@ class QueryMixin:
         self.status_changed.emit(f"待确认查询完成: {found}/{total}")
 
         QMessageBox.information(
-            self,
+            self,  # type: ignore[arg-type]
             _("title_pending_query_complete"),
             _("msg_pending_query_complete").format(found=found, failed=total - found),
         )
 
-    def _write_pending_to_db(self, pending_items: list) -> None:
+    def _write_pending_to_db(self, pending_items: list[Any]) -> None:
         """将待确认项写入 pending_lookup 表（委托 manager）。"""
         self._mgr.record_pending(pending_items)
 
-    def _resolve_pending_in_db(self, pending_items: list, resolution: str) -> None:
+    def _resolve_pending_in_db(self, pending_items: list[Any], resolution: str) -> None:
         """标记待确认项为已处理（委托 manager）。"""
         self._mgr.resolve_pending(pending_items, resolution)
 
@@ -560,4 +556,4 @@ class QueryMixin:
         if count > 5:
             msg += f"\n... 等共 {count} 条"
         msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(self, _("pending_lookup_title"), msg)  # type: ignore[arg-type]
+        QMessageBox.information(self, _("pending_lookup_title"), msg)

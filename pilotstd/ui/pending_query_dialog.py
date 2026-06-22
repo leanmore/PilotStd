@@ -2,7 +2,7 @@
 # 待确认二次查询对话框 — 从 main_window.py 提取
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from PyQt6.QtCore import QThread, QTimer
 from PyQt6.QtWidgets import (
@@ -29,13 +29,13 @@ class PendingQueryDialog(QDialog):
 
     LOCAL_DB_KEY = "_local_db"  # 本地数据库选项的内部标识
 
-    def __init__(self, manager, parsed_list, parent=None):
+    def __init__(self, manager: Any, parsed_list: Any, parent: Any = None) -> None:
         """manager: StandardManager 实例，用于查询及站点管理。"""
         super().__init__(parent)
         self._mgr = manager  # StandardManager
         self._parsed_list = parsed_list
         self._selected_site: str = ""
-        self._results: list = []
+        self._results: list[Any] = []
         self._worker: Optional[QThread] = None
         self._countdown_active = False
         self._has_local_db = self._check_local_db_available()
@@ -115,21 +115,21 @@ class PendingQueryDialog(QDialog):
         self._refresh_timer.start(1000)
         self._refresh_cooldown()
 
-    def reject(self):
+    def reject(self) -> None:
         self._cleanup()
         super().reject()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: Any) -> None:
         self._cleanup()
         super().closeEvent(event)
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         self._refresh_timer.stop()
         if self._worker and self._worker.isRunning():
             self._worker.stop()
             self._worker.wait(3000)
 
-    def _refresh_cooldown(self):
+    def _refresh_cooldown(self) -> None:
         """每秒刷新冷却显示。若所选站点冷却结束则自动发起查询。"""
         all_sites = self._mgr.get_query_sites()
         for name in all_sites:
@@ -155,7 +155,7 @@ class PendingQueryDialog(QDialog):
                 self._start_btn.setText(_("pq_start_query_btn"))
                 self._do_query()
 
-    def _on_start(self):
+    def _on_start(self) -> None:
         """用户点击开始查询。"""
         for name, rb in self._radio_group.items():
             if rb.isChecked():
@@ -211,7 +211,7 @@ class PendingQueryDialog(QDialog):
 
         self._do_query()
 
-    def _do_query(self):
+    def _do_query(self) -> None:
         """执行查询。"""
         self._start_btn.setEnabled(False)
         self._start_btn.setText(_("pq_querying_btn"))
@@ -249,7 +249,7 @@ class PendingQueryDialog(QDialog):
             logger.debug("待确认查询公告设置失败", exc_info=True)
             return False
 
-    def _do_local_query(self):
+    def _do_local_query(self) -> None:
         """本地数据库查询（委托 manager）。"""
         self._start_btn.setEnabled(False)
         self._start_btn.setText(_("pq_query_local_btn"))
@@ -260,11 +260,11 @@ class PendingQueryDialog(QDialog):
         self._progress.setValue(len(self._parsed_list))
         self._on_query_finished(None)
 
-    def _on_single_result(self, idx: int, result):
+    def _on_single_result(self, idx: int, result: Any) -> None:
         self._results.append((idx, result))
         self._progress.setValue(len(self._results))
 
-    def _on_query_finished(self, _results):
+    def _on_query_finished(self, _results: Any) -> None:
         self._refresh_timer.stop()
         self._start_btn.setText(_("completed"))
         total = len(self._parsed_list)
@@ -285,5 +285,5 @@ class PendingQueryDialog(QDialog):
         )
         self.accept()
 
-    def get_results(self) -> list:
+    def get_results(self) -> list[Any]:
         return self._results
