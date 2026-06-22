@@ -278,6 +278,22 @@
 | `get_csres_status()` | CSRES 线程状态 |
 | `is_idle()` | 汇总：无查询 + 溢出空 + CSRES 已结束 |
 
+
+### 3.13 全项目类型错误修复（2026-06-22）
+
+mypy 0 error, ruff E 0 error（不含预存 E501 行太长 215 条）。
+
+**修复的 5 个 mypy error + 3 个 ruff E501**：
+
+- `table_mixin.py:128` — QFileDialog arg-type: self -> None
+- `project_mixin.py:73` — QFileDialog arg-type: self -> None
+- `archive_mixin.py:278` — QMessageBox overload: QMessageBox(self) -> QMessageBox(parent=None)
+- `facade.py:470` — record_pending arg-type: list[dict] -> list
+- `query/__init__.py:53` — mock adapter import-not-found: type: ignore
+- `bump_version.py:181` — E501: 拆分 help 字符串
+- `announce.py:81` — E501: 拆分 docstring
+- `api_keys.py:58` — E501: 拆分 detail 字符串
+
 ## 四、待执行任务（P1）
 
 | 任务 | 状态 | 依赖 |
