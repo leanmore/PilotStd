@@ -104,7 +104,7 @@ class TaskQueue:
         result_holder = [None]
         exc_holder = [None]
 
-        def wrapped_handler():
+        def wrapped_handler() -> None:
             try:
                 result_holder[0] = handler(task)
             except Exception as e:

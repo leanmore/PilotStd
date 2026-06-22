@@ -37,7 +37,7 @@ class CLI:
     # ── scan ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_scan(args) -> int:
+    def cmd_scan(args: argparse.Namespace) -> int:
         """扫描目录（支持多目录），输出解析结果。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         shallow = getattr(args, "shallow", False)
@@ -82,7 +82,7 @@ class CLI:
     # ── query ───────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_query(args) -> int:
+    def cmd_query(args: argparse.Namespace) -> int:
         """查询标准有效性并分类。从 stdin 或 --file 读取标准号列表。"""
         mgr = _make_manager(
             storage_root=getattr(args, "storage_root", None),
@@ -168,7 +168,7 @@ class CLI:
     # ── download ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_download(args) -> int:
+    def cmd_download(args: argparse.Namespace) -> int:
         """下载标准。有 --file 时直接从文件读取标准号下载，否则从查询队列取。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
 
@@ -217,7 +217,7 @@ class CLI:
     # ── organize ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_organize(args) -> int:
+    def cmd_organize(args: argparse.Namespace) -> int:
         """规范化文件名并归档到标准库。--source 指定源目录时先扫描再归档。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         source = getattr(args, "source", None)
@@ -237,7 +237,7 @@ class CLI:
     # ── auto ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_auto(args) -> int:
+    def cmd_auto(args: argparse.Namespace) -> int:
         """一键处理：扫描→查询→下载→规范化→归档，全自动。"""
         mgr = _make_manager(
             storage_root=getattr(args, "storage_root", None),
@@ -254,7 +254,7 @@ class CLI:
     # ── pending ─────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_pending(args) -> int:
+    def cmd_pending(args: argparse.Namespace) -> int:
         """查看/导出待确认清单。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         items = mgr.get_pending_items()
@@ -293,7 +293,7 @@ class CLI:
     # ── announce ─────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_announce(args) -> int:
+    def cmd_announce(args: argparse.Namespace) -> int:
         """检查公告更新，比对本地文件索引，输出命中结果。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         std_type = getattr(args, "type", None)
@@ -323,7 +323,7 @@ class CLI:
     # ── task ─────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_task(args) -> int:
+    def cmd_task(args: argparse.Namespace) -> int:
         """查看任务队列状态。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         tasks = mgr.task_queue.list_all(limit=args.limit)
@@ -363,7 +363,7 @@ class CLI:
     # ── normalize ────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_normalize(args) -> int:
+    def cmd_normalize(args: argparse.Namespace) -> int:
         """解析文件名并输出规范化格式，不移动文件。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         results = mgr.normalize_files(args.files)
@@ -391,7 +391,7 @@ class CLI:
     # ── move ────────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_move(args) -> int:
+    def cmd_move(args: argparse.Namespace) -> int:
         """将标准文件移动到分类目录。支持 --dry-run 预览。"""
         if args.dry_run:
             mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
@@ -415,7 +415,7 @@ class CLI:
     # ── expire ──────────────────────────────────────────────────
 
     @staticmethod
-    def cmd_expire(args) -> int:
+    def cmd_expire(args: argparse.Namespace) -> int:
         """将过期标准文件移入 过期作废/ 目录。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
         result = mgr.expire_files(args.files)

@@ -32,7 +32,7 @@ class SiteState:
     consecutive_errors: int = 0  # 连续错误计数
     active_url: str = ""  # 当前使用的URL
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.active_url:
             self.active_url = self.base_url
 

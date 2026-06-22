@@ -37,14 +37,14 @@ class DailyQuotaTracker:
         self._lock = threading.RLock()
         self._ensure_today_rows()
 
-    def _ensure_date(self):
+    def _ensure_date(self) -> None:
         """跨天自动更新日期标记并初始化新日期的配额行"""
         today = str(date.today())
         if self._today != today:
             self._today = today
             self._ensure_today_rows()
 
-    def _ensure_today_rows(self):
+    def _ensure_today_rows(self) -> None:
         for site in self._limits:
             row = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",

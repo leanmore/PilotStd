@@ -1,6 +1,7 @@
 # pilotstd/manager/service_factory.py
 # 服务工厂 — 从 StandardManager 实例创建所有子服务
 
+from typing import Any
 
 from ..core.config import get_library_root
 from ..organizer.dir_builder import DirBuilder
@@ -13,7 +14,7 @@ from .pending_service import PendingService
 from .scheduled_service import ScheduledService
 
 
-def create_services(mgr):
+def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
     """从 StandardManager 实例创建所有子服务并返回元组。
 
     StandardManager.__init__ 中调用：

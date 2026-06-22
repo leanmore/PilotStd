@@ -53,7 +53,7 @@ def _is_code_variant(code1: str, code2: str) -> bool:
     if code1 == code2:
         return False
 
-    def _split(c: str):
+    def _split(c: str) -> tuple[str, str]:
         c = c.upper()
         if "/" in c:
             base, suffix = c.split("/", 1)

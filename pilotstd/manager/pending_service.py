@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..query.models import QueryResult
+from ..query.models import ParsedStdInfo, QueryResult
 from ..query.search_strategy import MATCH_SCORE
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class PendingService:
 
     # ── 下载等待队列 ───────────────────────────────────────────
 
-    def enqueue_download_wait(self, parsed) -> None:
+    def enqueue_download_wait(self, parsed: ParsedStdInfo) -> None:
         """写入下载等待队列（未到公开期的标准）。"""
         num = getattr(parsed, "found_number", "") or parsed.get_full_number()
         name = parsed.found_name or parsed.std_name or ""

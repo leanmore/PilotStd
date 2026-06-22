@@ -17,7 +17,7 @@ __all__ = [
 
 
 # StandardManager 延迟导入（其依赖 query/download 引擎和全部适配器）
-def get_manager():
+def get_manager() -> type[Any]:
     from .manager import StandardManager
 
     return StandardManager

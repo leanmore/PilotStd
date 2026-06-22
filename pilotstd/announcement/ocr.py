@@ -190,7 +190,7 @@ class TencentOcrProvider(BaseOcrProvider):
         )
 
         # 步骤3: 签名
-        def _sign(key, msg):
+        def _sign(key: bytes, msg: str) -> bytes:
             return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
         secret_date = _sign(("TC3" + self._secret_key).encode("utf-8"), date)
@@ -390,7 +390,7 @@ class OcrCounters:
             data = {"month": current, "baidu": 0, "tencent": 0, "aliyun": 0}
         return data
 
-    def _save(self):
+    def _save(self) -> None:
         _os.makedirs(_os.path.dirname(self._path), exist_ok=True)
         tmp = self._path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -405,7 +405,7 @@ class OcrCounters:
         with self._lock:
             return max(0, self._LIMITS[provider] - self._data[provider])
 
-    def increment(self, provider: str):
+    def increment(self, provider: str) -> None:
         with self._lock:
             self._data[provider] += 1
             self._save()
@@ -428,7 +428,7 @@ import time as _time  # noqa: E402
 class ProviderCooling:
     """Provider 冷却状态管理，线程安全。"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lock = _threading.Lock()
         self._until: dict[str, float] = {}
 
@@ -436,7 +436,7 @@ class ProviderCooling:
         with self._lock:
             return _time.time() >= self._until.get(name, 0)
 
-    def set(self, name: str, level: str):
+    def set(self, name: str, level: str) -> None:
         now = _datetime.now()
         if level == "qps":
             until = _time.time() + 300
@@ -504,7 +504,7 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
 # ── 线程优先级 ──────────────────────────────────────────────────────
 
 
-def _set_thread_priority_idle():
+def _set_thread_priority_idle() -> None:
     """Windows: 当前线程设为 THREAD_PRIORITY_IDLE(-15)。非 Windows 静默跳过。"""
     try:
         import ctypes

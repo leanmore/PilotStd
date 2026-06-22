@@ -942,7 +942,7 @@ class StandardManager:
         self,
         std_type: Optional[str] = None,
         since_date: str = "",
-        progress_callback=None,
+        progress_callback: Any = None,
     ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI cmd_announce 调用。
         返回 {std_type: {matched: int, updated: int, ...}, ...}"""

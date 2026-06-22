@@ -138,7 +138,7 @@ class Njbz365Adapter(BaseAdapter):
         max_retries: int = 3,
         timeout: int = 30,
         err_msg: str = "",
-        **kwargs,
+        **kwargs: Any,
     ) -> Optional[requests.Response]:
         """发送 HTTP 请求（使用实例 session），网络超时/连接失败时指数退避重试。
         返回 Response 或 None（全部重试失败时）。

@@ -180,7 +180,7 @@ class BaseAnnounceAdapter(ABC):
         self,
         since_date: str = "",
         page_size: int = 20,
-        ocr_provider=None,
+        ocr_provider: Any = None,
         progress_callback: Callable[[int, int, str], None] | None = None,
         checkpoint_pids: set[Any] | None = None,
     ) -> list[dict[str, Any]]:

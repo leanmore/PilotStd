@@ -5,7 +5,7 @@
 import logging
 import threading
 import time
-from typing import Optional
+from typing import Any, Optional
 
 import requests
 
@@ -75,7 +75,7 @@ def safe_request(
     url: str,
     site_name: str,
     timeout: int = DEFAULT_TIMEOUT,
-    **kwargs,
+    **kwargs: Any,
 ) -> Optional[requests.Response]:
     """统一的安全请求方法，带重试逻辑。
 
@@ -125,7 +125,7 @@ def safe_get(
     url: str,
     site_name: str,
     timeout: int = DEFAULT_TIMEOUT,
-    **kwargs,
+    **kwargs: Any,
 ) -> Optional[requests.Response]:
     """带重试的 GET 请求。向后兼容封装。"""
     return safe_request(session, "GET", url, site_name, timeout, **kwargs)
@@ -136,14 +136,14 @@ def safe_post(
     url: str,
     site_name: str,
     timeout: int = DEFAULT_TIMEOUT,
-    **kwargs,
+    **kwargs: Any,
 ) -> Optional[requests.Response]:
     """带重试的 POST 请求。向后兼容封装。"""
     return safe_request(session, "POST", url, site_name, timeout, **kwargs)
 
 
 def safe_raw_get(
-    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
+    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs: Any
 ) -> Optional[requests.Response]:
     """不带 session 的简单 GET 请求（含重试）。供公告适配器等没有 session 的场景。"""
     session = requests.Session()
@@ -151,7 +151,7 @@ def safe_raw_get(
 
 
 def safe_raw_post(
-    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs
+    url: str, site_name: str, timeout: int = DEFAULT_TIMEOUT, **kwargs: Any
 ) -> Optional[requests.Response]:
     """不带 session 的简单 POST 请求（含重试）。供 OCR 等场景。"""
     session = requests.Session()

@@ -19,7 +19,7 @@ class NotifyService:
     _DEDUP_WINDOW = 3.0  # 同标题去重窗口（秒）
 
     @classmethod
-    def init(cls, tray: QSystemTrayIcon):
+    def init(cls, tray: QSystemTrayIcon) -> None:
         cls._instance = cls(tray)
 
     @classmethod
@@ -38,12 +38,12 @@ class NotifyService:
         return self._enabled
 
     @enabled.setter
-    def enabled(self, value: bool):
+    def enabled(self, value: bool) -> None:
         self._enabled = value
 
     # ── 公共方法 ──
 
-    def show(self, title: str, message: str, duration: int = 5000):
+    def show(self, title: str, message: str, duration: int = 5000) -> None:
         """发送通知。同标题 3 秒内去重。"""
         if not self._enabled or self._tray is None:
             return
@@ -53,7 +53,7 @@ class NotifyService:
             title, message, QSystemTrayIcon.MessageIcon.Information, duration
         )
 
-    def show_warning(self, title: str, message: str, duration: int = 5000):
+    def show_warning(self, title: str, message: str, duration: int = 5000) -> None:
         """发送警告通知。同标题 3 秒内去重。"""
         if not self._enabled or self._tray is None:
             return

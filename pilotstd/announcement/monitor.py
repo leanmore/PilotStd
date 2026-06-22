@@ -35,7 +35,7 @@ class AnnounceMonitor:
     _t0: float = field(default_factory=time.time, repr=False)
     _stage_start: float = field(default=0, repr=False)
 
-    def start_stage(self):
+    def start_stage(self) -> None:
         """开始计时一个新阶段。"""
         self._stage_start = time.time()
 
@@ -53,7 +53,7 @@ class AnnounceMonitor:
             self.write_db_ms = elapsed_ms
         return elapsed
 
-    def inc_api_call(self, success: bool = True):
+    def inc_api_call(self, success: bool = True) -> None:
         self.api_calls += 1
         if not success:
             self.api_failures += 1
