@@ -15,7 +15,6 @@ const navItems = [
   { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
   { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
   { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
-  { label: 'API Keys', icon: 'pi pi-key', to: '/admin/api-keys' },
   { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
 ]
 

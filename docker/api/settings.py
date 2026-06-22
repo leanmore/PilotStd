@@ -1,12 +1,16 @@
-# docker/api/settings.py — 系统配置读写 API
+# docker/api/settings.py — 系统配置读写 API + 静态令牌管理
+import logging
+from datetime import datetime, timezone
+
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
 from docker.scheduler import update_job
 
-from ..auth import require_admin
+from ..auth import get_static_token, refresh_static_token, require_admin
 from ..manager import get_manager_dep
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["settings"])
 
 
@@ -110,3 +114,25 @@ def put_settings(
         update_job(job_id, cron, enabled)
     cfg.save()
     return {"ok": True}
+
+
+# ── 静态令牌管理 ──────────────────────────────────────────────────
+
+
+@router.get("/api/settings/token")
+def get_token(user: str = Depends(require_admin)):
+    """返回当前静态 API 令牌值（仅管理员）。"""
+    return {"token": get_static_token()}
+
+
+@router.post("/api/settings/token/refresh")
+def refresh_token(user: str = Depends(require_admin)):
+    """重新生成静态令牌（立即生效，旧令牌立即失效）。
+
+    刷新后刷新数据库 api_keys 表的 pst_static 记录 +
+    内存缓存 + 环境变量 PILOTSTD_API_TOKEN。
+    """
+    new_token = refresh_static_token()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    logger.info("静态令牌已刷新")
+    return {"token": new_token, "refreshed_at": now_iso}

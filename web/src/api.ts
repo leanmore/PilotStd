@@ -3,5 +3,5 @@ export { login, getUsers, addUser, deleteUser, changePassword } from './api/auth
 export { postQuery, saveQueryResults, getQueryResults, getPendingItems, postRequery } from './api/query'
 export { getFiles, postScan, postNormalize, postArchive, postCleanEmpty, uploadFile } from './api/files'
 export { getAnnounceResults, postAnnounceCheck } from './api/announce'
-export { getSettings, putSettings, getStats } from './api/settings'
+export { getSettings, putSettings, getStats, getToken, refreshToken } from './api/settings'
 export { postDownload } from './api/download'

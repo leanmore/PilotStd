@@ -87,6 +87,50 @@ def _ensure_static_token_in_db():
         pass  # 首次启动时 DB 可能尚未初始化，后续请求重试
 
 
+def get_static_token() -> str:
+    """返回当前静态令牌值（供 settings API 读取）。"""
+    return _STATIC_API_TOKEN
+
+
+def refresh_static_token() -> str:
+    """重新生成静态令牌，更新内存缓存 + 数据库 + 环境变量。
+
+    返回新令牌值。刷新后旧令牌立即失效。
+    """
+    global _STATIC_API_TOKEN, _STATIC_TOKEN_INITIALIZED
+    import hashlib as _hashlib
+    import secrets as _secrets
+
+    new_token = _secrets.token_hex(32)
+    new_hash = _hashlib.sha256(new_token.encode()).hexdigest()
+    _STATIC_API_TOKEN = new_token
+    os.environ["PILOTSTD_API_TOKEN"] = new_token
+    try:
+        from pilotstd.core.config import get_db_path
+        from pilotstd.core.db import Database
+
+        db = Database(get_db_path())
+        existing = db.fetchone(
+            "SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'"
+        )
+        if existing:
+            db.execute(
+                "UPDATE api_keys SET key_hash=?, is_active=1 WHERE key_id='pst_static'",
+                (new_hash,),
+            )
+        else:
+            db.execute(
+                "INSERT INTO api_keys (key_id, key_hash, description, scopes, is_active)"
+                " VALUES ('pst_static', ?, 'static-token-from-env',"
+                ' \'["query:read", "announce:read"]\', 1)',
+                (new_hash,),
+            )
+        db.close()
+    except Exception:
+        pass
+    return new_token
+
+
 def get_current_username(request: Request) -> str:
     """从请求 Cookie 中解码 JWT，返回当前用户名。"""
     token = request.cookies.get(COOKIE_NAME)
