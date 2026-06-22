@@ -82,6 +82,45 @@ if not _docker_up or not _docker_healthy:
 
 _check("环境: Docker可达", True)
 
+# ── 进度心跳（每60秒，供 stress_driver 存活检测）──
+import threading as _thr  # noqa: E402
+
+_prog_total = 5  # AUTH-05/06/07 + BIZ-12/13
+_prog_completed = [0]
+_prog_ok = [0]
+_prog_lock = _thr.Lock()
+_prog_stop = _thr.Event()
+_prog_t0 = time.time()
+
+
+def _prog_bump(ok=False):
+    with _prog_lock:
+        _prog_completed[0] += 1
+        if ok:
+            _prog_ok[0] += 1
+
+
+def _progress_heartbeat():
+    while not _prog_stop.wait(60.0):
+        with _prog_lock:
+            c = _prog_completed[0]
+            o = _prog_ok[0]
+        elapsed = time.time() - _prog_t0
+        rate = c / max(elapsed, 0.001)
+        eta = (_prog_total - c) / max(rate, 0.001) if rate > 0 else 0.0
+        logger.info(
+            "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
+            c,
+            _prog_total,
+            o,
+            rate,
+            eta,
+        )
+
+
+_prog_thread = _thr.Thread(target=_progress_heartbeat, daemon=True)
+_prog_thread.start()
+
 # ════════════════════════════════════════════════════════════════
 # 认证测试（4项）
 # ════════════════════════════════════════════════════════════════
@@ -617,10 +656,13 @@ if _stress_api_key:
             ok,
             f"status={r.status_code}" if not ok else "200 OK",
         )
+        _prog_bump(ok=ok)
     except Exception as e:
         _check("AUTH-05: 有效API Key鉴权", False, f"异常: {str(e)[:60]}")
+        _prog_bump(ok=False)
 else:
     _check("AUTH-05: 有效API Key鉴权", None, "PILOTSTD_API_KEY 未设置，跳过")
+    _prog_bump(ok=False)
 
 # AUTH-06: 无效 API Key 鉴权
 _auth_total += 1
@@ -638,8 +680,10 @@ try:
         ok,
         f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
     )
+    _prog_bump(ok=ok)
 except Exception as e:
     _check("AUTH-06: 无效API Key鉴权", False, f"异常: {str(e)[:60]}")
+    _prog_bump(ok=False)
 
 # AUTH-07: 吊销 API Key 鉴权（用随机 Key 模拟已吊销）
 _auth_total += 1
@@ -657,8 +701,10 @@ try:
         ok,
         f"status={r.status_code}" if not ok else f"拒绝 {r.status_code}",
     )
+    _prog_bump(ok=ok)
 except Exception as e:
     _check("AUTH-07: 吊销API Key鉴权", False, f"异常: {str(e)[:60]}")
+    _prog_bump(ok=False)
 
 # BIZ-12: 缓存命中（用公告缓存中预置的号码测试）
 # 从 announcement_cache 表取一条记录进行命中验证
@@ -710,10 +756,13 @@ if _cache_test_num:
             if not (found and has_cache_label)
             else f"命中 source={src} {elapsed_ms:.0f}ms",
         )
+        _prog_bump(ok=found and has_cache_label)
     except Exception as e:
         _check("BIZ-12: 缓存命中", False, f"异常: {str(e)[:60]}")
+        _prog_bump(ok=False)
 else:
     _check("BIZ-12: 缓存命中", None, "announcement_cache 为空，跳过")
+    _prog_bump(ok=False)
 
 # BIZ-13: 缓存未命中降级
 _hdr = {}
@@ -738,12 +787,26 @@ try:
         if not found
         else f"意外命中 {elapsed_ms:.0f}ms",
     )
+    _prog_bump(ok=not found and r.status_code == 200)
 except Exception as e:
     _check("BIZ-13: 缓存未命中降级", False, f"异常: {str(e)[:60]}")
+    _prog_bump(ok=False)
 
 # ════════════════════════════════════════════════════════════════
 # 汇总
 # ════════════════════════════════════════════════════════════════
+_prog_stop.set()
+with _prog_lock:
+    c = _prog_completed[0]
+    o = _prog_ok[0]
+elapsed = time.time() - _prog_t0
+logger.info(
+    "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
+    c,
+    _prog_total,
+    o,
+    c / max(elapsed, 0.001),
+)
 total_time = time.time() - t0
 logger.info("=" * 60)
 logger.info("Web API 压力测试完成 (%.1fs)", total_time)

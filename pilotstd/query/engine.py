@@ -378,6 +378,34 @@ class QueryEngine:
                 counter[0] += 1
                 if progress_callback:  # type: ignore[truthy-function]
                     progress_callback(counter[0])
+            with _prog_lock:
+                _prog_completed[0] += 1
+
+        # ── 0. 进度心跳线程（每60秒输出一次，三端统一格式）──
+        _prog_completed = [0]
+        _prog_ok = [0]
+        _prog_lock = threading.Lock()
+        _prog_stop = threading.Event()
+
+        def _progress_heartbeat():
+            while not _prog_stop.wait(60.0):
+                with _prog_lock:
+                    c = _prog_completed[0]
+                    o = _prog_ok[0]
+                elapsed = _time.time() - _bucket_t0
+                rate = c / max(elapsed, 0.001)
+                eta = (n - c) / max(rate, 0.001) if rate > 0 else 0.0
+                logger.info(
+                    "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
+                    c,
+                    n,
+                    o,
+                    rate,
+                    eta,
+                )
+
+        _prog_thread = threading.Thread(target=_progress_heartbeat, daemon=True)
+        _prog_thread.start()
 
         # ── 1. 分组 ──
         buckets: Dict[str, List[Tuple[int, tuple]]] = {}
@@ -709,6 +737,8 @@ class QueryEngine:
                         target_display = f"{item[0]} {item[1]}-{item[2]}"
                         if score >= 100:
                             results[idx] = result
+                            with _prog_lock:
+                                _prog_ok[0] += 1
                             logger.info(
                                 "查询 [%s] [OK]%s(%s)",
                                 target_display,
@@ -792,6 +822,8 @@ class QueryEngine:
         for idx, result in csres_results.items():
             if idx not in results:
                 results[idx] = result
+                with _prog_lock:
+                    _prog_ok[0] += 1
                 bump()
 
         # ── 7. 临时桶：链迭代（微批 + 抖动防惊群）──
@@ -868,6 +900,8 @@ class QueryEngine:
                             _td = f"{item[0]} {item[1]}-{item[2]}"
                             if score >= 100:
                                 results[idx] = result
+                                with _prog_lock:
+                                    _prog_ok[0] += 1
                                 logger.info(
                                     "查询 [%s] [OK]%s(%s)",
                                     _td,
@@ -1014,6 +1048,20 @@ class QueryEngine:
             len(all_overflow),
             pending_count,
             _time.time() - _bucket_t0,
+        )
+
+        # ── 停止进度心跳 + 最终进度 ──
+        _prog_stop.set()
+        with _prog_lock:
+            c = _prog_completed[0]
+            o = _prog_ok[0]
+        elapsed = _time.time() - _bucket_t0
+        logger.info(
+            "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
+            c,
+            n,
+            o,
+            c / max(elapsed, 0.001),
         )
 
         # ── 8. 按原始顺序组装 ──

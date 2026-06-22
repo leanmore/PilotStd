@@ -294,11 +294,13 @@ def _step0_reset_source(source_dir: str, output_dir: str):
 # ── 子进程安全执行工具 ───────────────────────────────────────
 
 
-def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
+def _safe_run(
+    cmd: list, timeout: int, step_name: str, env: dict, progress_timeout: int = 0
+):
     """运行子进程，流式读取 stderr 实时输出。超时/异常不崩溃。
 
-    Returns:
-        dict: {"stdout": str, "stderr": str, "returncode": int} or {"error": str}
+    Args:
+        progress_timeout: [PROGRESS] 心跳超时秒数，0=不监控。超时后输出警告。
     """
     try:
         proc = subprocess.Popen(
@@ -314,6 +316,8 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
 
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []
+        _last_progress = [time.time()]
+        _prog_stop = threading.Event()
 
         # 同时读取 stdout 和 stderr，避免管道缓冲区写满导致死锁
         def read_stream(stream, lines_list, prefix):
@@ -322,6 +326,22 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
                 if line:
                     _log(f"  {line}")
                 lines_list.append(line)
+                if "[PROGRESS]" in line:
+                    _last_progress[0] = time.time()
+
+        # 进度心跳看门狗（每30秒检查一次）
+        if progress_timeout > 0:
+
+            def _progress_watchdog():
+                while not _prog_stop.wait(30.0):
+                    since_last = time.time() - _last_progress[0]
+                    if since_last > progress_timeout:
+                        _log(
+                            f"    ⚠ 进度心跳超时: {since_last:.0f}s 未收到 [PROGRESS]，可能卡死，请检查"
+                        )
+
+            _t_wd = threading.Thread(target=_progress_watchdog, daemon=True)
+            _t_wd.start()
 
         t_stdout = threading.Thread(
             target=read_stream, args=(proc.stdout, stdout_lines, "  "), daemon=True
@@ -341,6 +361,9 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict):
             proc.wait()
             _log(f"    {step_name}: 超时 ({timeout}s)")
             return {"error": "timeout"}
+        finally:
+            if progress_timeout > 0:
+                _prog_stop.set()
 
         return {
             "stdout": proc.stdout.read(),  # type: ignore[union-attr]
@@ -613,6 +636,7 @@ def _step1_cli_cold(
             timeout=timeout_query or 3600,
             step_name="query",
             env=env,
+            progress_timeout=180,
         )
     else:
         r = {"error": "query_failed_early"}
@@ -753,6 +777,24 @@ def _step1_cli_cold(
                     "ahbz_remain": int(m8.group(1)),
                     "njbz_remain": int(m8.group(2)),
                 }
+            # ── 解析 [PROGRESS] 心跳行 ──
+            mp = re.match(
+                r".*\[PROGRESS\]\s+completed=(\d+)\s+total=(\d+)\s+ok=(\d+)\s+rate=([\d.]+)/s\s+eta=([\d.]+)s",
+                line,
+            )
+            if mp:
+                _matched = True
+                if "progress_snapshots" not in results["checkpoints"]["query"]:
+                    results["checkpoints"]["query"]["progress_snapshots"] = []
+                results["checkpoints"]["query"]["progress_snapshots"].append(
+                    {
+                        "completed": int(mp.group(1)),
+                        "total": int(mp.group(2)),
+                        "ok": int(mp.group(3)),
+                        "rate": float(mp.group(4)),
+                        "eta_s": float(mp.group(5)),
+                    }
+                )
             # 检测含标记但解析失败的行
             _has_marker = any(mk in line for mk in _PARSE_MARKERS)
             if _has_marker and not _matched:
