@@ -50,7 +50,7 @@ def _get_iso_gov_adapter():
 
 def _get_mock_adapter():
     try:
-        from .adapters.mock import MockQueryAdapter
+        from .adapters.mock import MockQueryAdapter  # type: ignore[import-not-found]
 
         return MockQueryAdapter
     except ImportError:

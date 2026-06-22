@@ -852,7 +852,7 @@ class StandardManager:
 
     # ── 待确认清单 ─────────────────────────────────────────────
 
-    def record_pending(self, pending_items: list[dict]) -> None:
+    def record_pending(self, pending_items: list) -> None:
         """将待确认项写入 pending_lookup 表（已存在则跳过）。"""
         self._pending_svc.record_pending(pending_items)
 

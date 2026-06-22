@@ -275,7 +275,7 @@ class ArchiveMixin:
                 f"网站查询名称: {qry}\n\n"
                 f"请选择归档使用的名称:"
             )
-            dlg = QMessageBox(self)
+            dlg = QMessageBox(parent=None)
             dlg.setWindowTitle(_("title_name_conflict"))
             dlg.setText(msg)
             dlg.setIcon(QMessageBox.Icon.Question)

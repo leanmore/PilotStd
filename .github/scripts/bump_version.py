@@ -178,7 +178,10 @@ def main() -> None:
     parser.add_argument(
         "--update",
         action="store_true",
-        help="就地更新 pilotstd/__init__.py + pyproject.toml + web/package.json 中的版本号",
+        help=(
+            "就地更新 pilotstd/__init__.py + pyproject.toml"
+            " + web/package.json 中的版本号"
+        ),
     )
     args = parser.parse_args()
 

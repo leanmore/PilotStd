@@ -70,8 +70,8 @@ class ProjectMixin:
 
     def _save_project_dialog(self, label: str):
         path, __ = QFileDialog.getSaveFileName(
-            self, label, "project.pilotstd", _("file_filter_project")
-        )  # type: ignore[arg-type]
+            None, label, "project.pilotstd", _("file_filter_project")
+        )
         if path:
             state = self._collect_state()
             ok = self._project.save(path, state)

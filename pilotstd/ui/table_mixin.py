@@ -125,8 +125,8 @@ class TableMixin:
 
         ext_map = {"txt": "TXT (*.txt)", "csv": "CSV (*.csv)"}
         path, __ = QFileDialog.getSaveFileName(
-            self, _("dialog_save_sheet"), f"results.{fmt}", ext_map.get(fmt, "All (*)")
-        )  # type: ignore[arg-type]
+            None, _("dialog_save_sheet"), f"results.{fmt}", ext_map.get(fmt, "All (*)")
+        )
         if not path:
             return
 

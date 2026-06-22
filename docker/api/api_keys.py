@@ -55,5 +55,7 @@ def reactivate_api_key(key_id: str, user: str = Depends(require_admin)):
     """此接口已废弃。"""
     raise HTTPException(
         status_code=410,
-        detail="Gone — Use POST /api/settings/token/refresh to manage the static token.",
+        detail=(
+            "Gone — Use POST /api/settings/token/refresh to manage the static token."
+        ),
     )

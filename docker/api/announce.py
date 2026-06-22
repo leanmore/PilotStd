@@ -78,7 +78,8 @@ def api_check_announce(
 
 @router.get("/api/announce/results")
 def get_announce_results(from_date: str = "", to_date: str = ""):
-    """获取最近一次公告检查的结果缓存。可选 from_date/to_date 过滤（格式 YYYY-MM-DD）。"""
+    """获取最近一次公告检查的结果缓存。
+    可选 from_date/to_date 过滤（格式 YYYY-MM-DD）。"""
     items = _cache.get("results", [])
     if from_date or to_date:
         filtered = []
