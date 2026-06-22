@@ -1340,58 +1340,159 @@ def _step1_cli_cold(
     return results
 
 
-# ── 第二步：WinUI 热启 ────────────────────────────────────────
+# ── 第二步：WinUI 热启（两轮）────────────────────────────────
 
 
 def _step2_winui_hot(
-    source_dir: str, output_dir: str, step1_path: str, timeout_auto: int
+    source_dir: str,
+    output_dir: str,
+    step1_path: str,
+    timeout_auto: int,
+    cfg: dict,
 ):
-    """pytest 调用 WinUI 测试，热启 auto + 交叉对比。"""
-    _log("=" * 50)
-    _log("第二步：WinUI 热启（交叉对比）")
+    """pytest 调用 WinUI 测试，分甲/乙两轮。
 
-    step2_path = os.path.join(RESULT_DIR, "step2.json")
+    甲轮：use_announcement_cache=false → 本地抓取回归
+    乙轮：use_announcement_cache=true → Web 缓存命中 + 来源标注验证
+    """
+    config_path = os.path.join(ROOT, "data", "config.json")
+    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get(
+        "PILOTSTD_WEB_API_URL", ""
+    )
 
-    try:
-        r = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                os.path.join(ROOT, "tests", "stress_winui.py"),
-                "-v",
-                "-s",
-                "--source",
-                source_dir,
-                "--output",
-                output_dir,
-                "--step1",
-                step1_path,
-                "--step2",
-                step2_path,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=timeout_auto or 1800,
-            cwd=ROOT,
-            encoding="utf-8",
-            errors="replace",
+    rounds = [
+        {
+            "name": "甲轮-本地抓取回归",
+            "cache_enabled": False,
+            "announcement_url": "",
+            "step2_suffix": "_roundA",
+        },
+    ]
+    if web_api_url:
+        rounds.append(
+            {
+                "name": "乙轮-Web缓存验证",
+                "cache_enabled": True,
+                "announcement_url": web_api_url,
+                "step2_suffix": "_roundB",
+            }
         )
-        _log(f"WinUI pytest: rc={r.returncode}")
-        if r.stdout:
-            # 只打印 pytest 结果行
-            for line in r.stdout.splitlines():
-                if "PASSED" in line or "FAILED" in line or "ERROR" in line:
-                    _log(f"  {line.strip()}")
-        if r.returncode != 0 and r.stderr:
-            _log(f"  stderr: {r.stderr[-500:]}")
-        return r.returncode == 0
-    except subprocess.TimeoutExpired:
-        _log("WinUI pytest: 超时")
-        return False
-    except Exception as e:
-        _log(f"WinUI pytest: 异常 {e}")
-        return False
+    else:
+        _log("WinUI 乙轮跳过: web_api.url 未配置，无法验证缓存命中")
+
+    round_results = []
+    overall_ok = True
+
+    for ri in rounds:
+        _log("=" * 50)
+        _log(f"WinUI 热启: {ri['name']}")
+
+        # 1. 修改 data/config.json
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg_json = json.load(f)
+            except Exception:
+                cfg_json = {}
+        else:
+            cfg_json = {}
+        cfg_json.setdefault("query", {})["use_announcement_cache"] = ri["cache_enabled"]
+        if ri["announcement_url"]:
+            cfg_json["query"]["announcement_url"] = ri["announcement_url"]
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(cfg_json, f, ensure_ascii=False, indent=2)
+        _log(
+            f"  配置已写入: use_announcement_cache={ri['cache_enabled']}"
+            + (
+                f" announcement_url={ri['announcement_url']}"
+                if ri["announcement_url"]
+                else ""
+            )
+        )
+
+        # 2. 执行 pytest
+        step2_path = os.path.join(RESULT_DIR, f"step2{ri['step2_suffix']}.json")
+        round_ok = False
+        try:
+            r = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pytest",
+                    os.path.join(ROOT, "tests", "stress_winui.py"),
+                    "-v",
+                    "-s",
+                    "--source",
+                    source_dir,
+                    "--output",
+                    output_dir,
+                    "--step1",
+                    step1_path,
+                    "--step2",
+                    step2_path,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=timeout_auto or 1800,
+                cwd=ROOT,
+                encoding="utf-8",
+                errors="replace",
+            )
+            _log(f"  {ri['name']} pytest: rc={r.returncode}")
+            if r.stdout:
+                for line in r.stdout.splitlines():
+                    if "PASSED" in line or "FAILED" in line or "ERROR" in line:
+                        _log(f"    {line.strip()}")
+            if r.returncode != 0 and r.stderr:
+                _log(f"    stderr: {r.stderr[-500:]}")
+            round_ok = r.returncode == 0
+
+            # 展示交叉对比结果
+            if os.path.exists(step2_path):
+                try:
+                    with open(step2_path, "r", encoding="utf-8") as f:
+                        step2_data = json.load(f)
+                    _log(
+                        f"    {ri['name']} 判定: {step2_data.get('verdict', '?')} "
+                        f"耗时={step2_data.get('elapsed_s', 0)}s"
+                    )
+                except Exception:
+                    pass
+        except subprocess.TimeoutExpired:
+            _log(f"  {ri['name']} pytest: 超时")
+        except Exception as e:
+            _log(f"  {ri['name']} pytest: 异常 {e}")
+
+        round_results.append(
+            {"round": ri["name"], "passed": round_ok, "step2": step2_path}
+        )
+        if not round_ok:
+            overall_ok = False
+            if ri["cache_enabled"]:
+                _log(f"  [WARN] {ri['name']} 失败（依赖外部 Web 服务，不终止压测）")
+            else:
+                _log(f"  {ri['name']} 失败")
+
+    # 汇总
+    _log("WinUI 热启汇总:")
+    for rr in round_results:
+        _log(f"  {rr['round']}: {'PASS' if rr['passed'] else 'FAIL'}")
+
+    # 写入合并 step2.json
+    step2_merged = os.path.join(RESULT_DIR, "step2.json")
+    with open(step2_merged, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "step": 2,
+                "rounds": round_results,
+                "verdict": "PASS" if overall_ok else "FAIL",
+            },
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+    return overall_ok
 
 
 # ── 第三步：Docker Web API ────────────────────────────────────
@@ -2005,6 +2106,7 @@ def main():
             args.output,
             _step1_json,
             args.timeout_auto,
+            cfg,
         )
         # 展示交叉对比结果
         try:
