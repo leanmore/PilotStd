@@ -411,7 +411,7 @@ class QueryEngine:
         def bump() -> None:
             with counter_lock:
                 counter[0] += 1
-                if progress_callback:  # type: ignore[truthy-function]
+                if progress_callback:
                     progress_callback(counter[0])
             with _prog_lock:
                 _prog_completed[0] += 1

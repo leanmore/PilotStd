@@ -193,7 +193,7 @@ class BaseAdapter(ABC):
         resp = safe_post(
             self._session,  # type: ignore[attr-defined]
             self.API_URL,  # type: ignore[attr-defined]
-            self.site_name,  # type: ignore[attr-defined]
+            self.site_name,
             data=data,
             timeout=15,
         )
