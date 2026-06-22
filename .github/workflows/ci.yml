@@ -61,8 +61,9 @@ jobs:
 
       - name: Run bump_version.py
         id: bump
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
           python .github/scripts/bump_version.py --github --update "$COMMIT_MSG"
           NEW_VER=$(python -c "from pilotstd import __version__; print(__version__)")
           echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
