@@ -1,5 +1,5 @@
 # 应用版本号——唯一真相来源（CI、更新检查、打包均从此读取）
-__version__ = "0.19.1"
+__version__ = "0.19.2"
 
 from typing import Any
 
