@@ -167,7 +167,7 @@ class SiteRotator:
                     site.max_requests > 0 and site.request_count in (site.max_requests // 2, site.max_requests * 3 // 4)
                 ):
                     logger.info(
-                        "[轮转器] 站点=%s 请求计数=%d/%d (%.0f%%) 当日计数=%d/%d",
+                        "[ROTATOR] 站点=%s 请求计数=%d/%d (%.0f%%) 当日计数=%d/%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -212,7 +212,7 @@ class SiteRotator:
                     site.consecutive_errors = 0
                     site.fallback_urls.append(site.base_url)  # 原URL作为最后的回退
                     site.base_url = new_url
-                    logger.warning("[轮转器] 站点=%s 切换URL url=%s", name, new_url)
+                    logger.warning("[ROTATOR] 站点=%s 切换URL url=%s", name, new_url)
                     return new_url
                 else:
                     self._enter_cooldown(site)
