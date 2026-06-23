@@ -195,6 +195,9 @@ def _step0_check_preconditions(source_dir: str, output_dir: str, skip_docker: bo
         except Exception as e:
             _log(f"⚠️ Docker 不可达: {docker_url} — {e}（将自动跳过）")
 
+    # 压测环境专项检查：updater 自更新应禁用，scheduled_service 定时任务由压测主动调用
+    _log("压测环境检查: updater 自更新应禁用，scheduled_service 定时任务由 stress_driver 主动调用")
+
     if not all_ok:
         _log("前置条件不满足，退出。")
         sys.exit(1)
@@ -688,6 +691,10 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
             results["checkpoints"]["query"]["overflow_events"] = overflow_count
         if water_level:
             results["checkpoints"]["query"]["water_level"] = water_level
+        # v7.0: 补充缓存命中率 + 心跳统计
+        _progress_snapshots = results["checkpoints"]["query"].get("progress_snapshots", [])
+        results["checkpoints"]["query"]["heartbeat_count"] = len(_progress_snapshots)
+        results["checkpoints"]["query"]["max_elapsed_s"] = results["checkpoints"]["query"].get("elapsed_s", 0)
         _log(
             f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}"  # noqa: E501
         )
@@ -1055,6 +1062,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
         if _lookup_nums:
             _cache_hits = 0
             _cache_misses = 0
+            _cache_latencies: list[float] = []  # v7.0: 记录每次 HTTP GET 延迟
             import urllib.parse as _up
             import urllib.request as _ur
 
@@ -1066,15 +1074,18 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
                     if _api_key_hdr:
                         _hdr["Authorization"] = f"Bearer {_api_key_hdr}"
                     _req = _ur.Request(_lookup_url, headers=_hdr)
+                    _t0 = time.time()
                     _resp = _ur.urlopen(_req, timeout=10)
+                    _latency_ms = (time.time() - _t0) * 1000
+                    _cache_latencies.append(_latency_ms)
                     _body = json.loads(_resp.read())
                     if _body.get("found"):
                         _cache_hits += 1
                         _src = _body.get("source", "")
-                        _log(f"    cache_lookup {_num}: 命中 source={_src}")
+                        _log(f"    cache_lookup {_num}: 命中 source={_src} latency={_latency_ms:.0f}ms")
                     else:
                         _cache_misses += 1
-                        _log(f"    cache_lookup {_num}: 未命中")
+                        _log(f"    cache_lookup {_num}: 未命中 latency={_latency_ms:.0f}ms")
                 except Exception as _e:
                     _cache_misses += 1
                     _log(f"    cache_lookup {_num}: 异常 {_e}")
@@ -1085,6 +1096,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
                 "hits": _cache_hits,
                 "misses": _cache_misses,
                 "total": _cache_hits + _cache_misses,
+                "max_latency_ms": max(_cache_latencies) if _cache_latencies else 0,  # v7.0
             }
         else:
             _log("    cache_lookup: 无可用标准号，跳过")
@@ -1546,6 +1558,13 @@ def _step4_verdict(
             f"cooldown={cooldown} elapsed={elapsed:.0f}s "
             f"parse_failures={parse_failures}"
         )
+        # v7.0: 日志解析失败率阈值检查（方案要求 < 5%）
+        _total_log_lines = len(step1_data.get("checkpoints", {}).get("query", {}).get("progress_snapshots", [])) + 1
+        _parse_rate = parse_failures / max(_total_log_lines, 1)
+        if _parse_rate >= 0.05:
+            _log(f"  ⚠ 日志解析失败率 {_parse_rate:.1%} 超过 5% 阈值（parse_failures={parse_failures}）")
+        else:
+            _log(f"  日志解析失败率 {_parse_rate:.1%} (parse_failures={parse_failures}) — OK")
         if cooldown_details:
             for site, actions in sorted(cooldown_details.items()):
                 enter = actions.get("enter", 0)
