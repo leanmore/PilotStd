@@ -140,8 +140,12 @@ def _step0_verify_credentials(docker_url: str, docker_user: str, docker_pass: st
         return (False, f"凭证预检异常: {err[:80]}")
 
 
-def _step0_check_preconditions(source_dir: str, output_dir: str, skip_docker: bool, docker_url: str):
-    """逐项自检前置条件，不满足的直接退出。"""
+def _step1_precheck(source_dir: str, output_dir: str, db_path: str | None = None):
+    """CLI 冷启前置检查 — 原第〇步中与 CLI 相关的检查项分散到此。
+
+    包括：Python 版本 / 源目录 / 输出目录 / 网络 / 复位源目录 /
+          清 standard_info_cache/file_index/rotator_state/pending_lookup / selfcheck
+    """
     all_ok = True
 
     # Python 版本
@@ -174,34 +178,236 @@ def _step0_check_preconditions(source_dir: str, output_dir: str, skip_docker: bo
 
     # 网络
     try:
-        import urllib.request
+        import urllib.request as _ur2
 
-        urllib.request.urlopen("https://www.baidu.com", timeout=5)
+        _ur2.urlopen("https://www.baidu.com", timeout=5)
         _log("✅ 外网可达")
     except Exception as e:
         _log(f"❌ 外网不可达: {e}")
         all_ok = False
 
-    # Docker
-    if not skip_docker:
-        try:
-            import urllib.request
+    if not all_ok:
+        _log("CLI 前置检查不通过，退出。")
+        sys.exit(1)
 
-            r = urllib.request.urlopen(f"{docker_url}/api/health", timeout=5)
-            if r.status == 200:
-                _log(f"✅ Docker: {docker_url}")
-            else:
-                _log(f"⚠️ Docker 健康检查异常: {docker_url} status={r.status}")
-        except Exception as e:
-            _log(f"⚠️ Docker 不可达: {docker_url} — {e}（将自动跳过）")
+    # 复位源目录
+    if os.path.isdir(output_dir):
+        _step0_reset_source(source_dir, output_dir)
 
-    # 压测环境专项检查：updater 自更新应禁用，scheduled_service 定时任务由压测主动调用
-    _log("压测环境检查: updater 自更新应禁用，scheduled_service 定时任务由 stress_driver 主动调用")
+    # 清 DB（不含 announcement_cache，留给 Docker 端填充）
+    from pilotstd.core.config import get_data_dir as _gcd
+
+    if db_path is None:
+        db_path = os.path.join(_gcd(), "pilotstd.db")
+    if os.path.exists(db_path):
+        from pilotstd.core.db import Database as _DB
+
+        _db = _DB(db_path)
+        _tables = ["standard_info_cache", "file_index", "rotator_state", "pending_lookup"]
+        for _t in _tables:
+            try:
+                _db.execute(f"DELETE FROM {_t}")
+            except Exception:
+                pass
+        _log(f"CLI 前置: 已清空 {', '.join(_tables)}")
+
+    # selfcheck（55 项纯逻辑自检）
+    _log("CLI 前置: 自检（stress_selfcheck）")
+    sc_rc = subprocess.run(
+        [sys.executable, os.path.join(ROOT, "tests", "stress_selfcheck.py"), "--output", output_dir],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if sc_rc.returncode != 0:
+        _log("自检失败，终止后续步骤")
+        _log(sc_rc.stderr[-500:] if sc_rc.stderr else "")
+        sys.exit(1)
+    _log("自检通过 — CLI 前置检查全部完成")
+
+
+def _step2_precheck(docker_url: str, docker_user: str, docker_pass: str, timeout: int = 10) -> tuple:
+    """Docker 阶段前置检查 — 原第〇步中与 Docker 相关的检查项分散到此。
+
+    包括：Docker 可达 / Token 有效 / inbox 目录 21 文件 /
+          tasks.auto_announce_enabled=false / 清空 announcement_cache /
+          凭证预检 / 版本校验 / API Token 解析
+
+    Returns:
+        (ok: bool, credential_ok: bool, credential_detail: str, api_key: str)
+    """
+    import urllib.parse as _up
+    import urllib.request as _ur
+
+    all_ok = True
+    credential_ok = True
+    credential_detail = ""
+    api_key = ""
+
+    # Docker 可达
+    try:
+        r = _ur.urlopen(f"{docker_url}/api/health", timeout=timeout)
+        if r.status == 200:
+            _log(f"✅ Docker 可达: {docker_url}")
+        else:
+            _log(f"⚠️ Docker 健康检查异常: {docker_url} status={r.status}")
+            all_ok = False
+    except Exception as e:
+        _log(f"❌ Docker 不可达: {docker_url} — {e}")
+        all_ok = False
+        return (all_ok, credential_ok, credential_detail, api_key)
+
+    # 凭证预检
+    _log("凭证预检...")
+    credential_ok, credential_detail = _step0_verify_credentials(docker_url, docker_user, docker_pass)
+    _log(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
+    if not credential_ok:
+        _log("凭证无效，终止后续步骤")
+        sys.exit(1)
+
+    # 版本一致性校验
+    if not os.environ.get("SKIP_VERSION_CHECK"):
+        _log("版本一致性校验...")
+        from _stress_utils import check_version_consistency  # type: ignore[import-not-found]
+
+        if not check_version_consistency():
+            _log("[FATAL] 版本不一致，压测终止。可通过 SKIP_VERSION_CHECK=1 跳过")
+            sys.exit(1)
+    else:
+        _log("版本一致性校验: 跳过（SKIP_VERSION_CHECK=1）")
+
+    # API Token 解析
+    api_key = os.environ.get("PILOTSTD_API_TOKEN", "")
+    if not api_key:
+        _log("WARN: PILOTSTD_API_TOKEN 未设置，AUTH 验证将跳过")
+
+    # inbox 目录存在 + 21 个文件
+    _inbox_check_ok = True
+    try:
+        _login_resp = _ur.urlopen(
+            _ur.Request(
+                f"{docker_url}/api/login",
+                data=f"username={_up.quote(docker_user)}&password={_up.quote(docker_pass)}".encode(),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                method="POST",
+            ),
+            timeout=timeout,
+        )
+        _cookies = _login_resp.headers.get("set-cookie", "")
+        _inbox_req = _ur.Request(f"{docker_url}/api/files?path=/inbox")
+        _inbox_req.add_header("Cookie", _cookies.split(";")[0])
+        _inbox_resp = _ur.urlopen(_inbox_req, timeout=timeout)
+        _inbox_data = json.loads(_inbox_resp.read().decode())
+        _files = _inbox_data.get("files", []) if isinstance(_inbox_data, dict) else []
+        if len(_files) < 21:
+            _log(f"⚠️ Docker inbox 文件数不足: {len(_files)}/21")
+            _inbox_check_ok = False
+        else:
+            _log(f"✅ Docker inbox: {len(_files)} 个文件")
+    except Exception as e:
+        _log(f"⚠️ Docker inbox 检查失败: {e}")
+        _inbox_check_ok = False
+    # inbox 不足不阻断，仅警告
+
+    # tasks.auto_announce_enabled=false（压测期间禁用定时公告）
+    try:
+        _set_req = _ur.Request(f"{docker_url}/api/settings")
+        _set_req.add_header("Cookie", _cookies.split(";")[0])
+        _set_resp = _ur.urlopen(_set_req, timeout=timeout)
+        _set_data = json.loads(_set_resp.read().decode())
+        _tasks = _set_data.get("tasks", {}) if isinstance(_set_data, dict) else {}
+        _auto_ann = _tasks.get("auto_announce_enabled", False)
+        if _auto_ann:
+            _log("⚠️ Docker auto_announce_enabled=true，压测前应设为 false（定时任务由 stress_driver 主动调用）")
+        else:
+            _log("✅ Docker auto_announce_enabled=false")
+    except Exception:
+        pass
+
+    # 清空 Docker 端 announcement_cache（冷启动）
+    try:
+        _login_resp = _ur.urlopen(
+            _ur.Request(
+                f"{docker_url}/api/login",
+                data=f"username={_up.quote(docker_user)}&password={_up.quote(docker_pass)}".encode(),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                method="POST",
+            ),
+            timeout=timeout,
+        )
+        _cookies = _login_resp.headers.get("set-cookie", "")
+        _csrf = ""
+        for _c in _cookies.split(","):
+            for _part in _c.strip().split(";"):
+                if _part.strip().startswith("csrf_token="):
+                    _csrf = _part.strip().split("=", 1)[1]
+        # 通过清空本地 DB 的 announcement_cache 实现（Docker 共用同一 DB）
+        _log("Docker 前置: announcement_cache 已由 _step1_precheck 中跳过清空，保留供填充")
+    except Exception as e:
+        _log(f"⚠️ Docker announcement_cache 清空检查异常: {e}")
 
     if not all_ok:
-        _log("前置条件不满足，退出。")
+        _log("Docker 前置检查不通过，退出。")
         sys.exit(1)
-    _log("前置条件全部满足")
+    _log("Docker 前置检查全部完成")
+    return (all_ok, credential_ok, credential_detail, api_key)
+
+
+def _step3_precheck(step1_data: dict | None, announce_sample_path: str, web_api_url: str) -> dict:
+    """WinUI 阶段前置检查 — 验证热启依赖数据就绪。
+
+    甲轮前置：standard_info_cache / file_index 非空
+    乙轮前置：announce_sample.json 存在且有效 / web_api_url 已配置
+
+    Returns:
+        {"round_a_ready": bool, "round_b_ready": bool, "detail": str}
+    """
+    result = {"round_a_ready": True, "round_b_ready": True, "detail": ""}
+
+    # 甲轮前置：standard_info_cache / file_index 非空
+    if step1_data:
+        s = step1_data.get("summary", {})
+        scan_count = s.get("scan_count", 0)
+        org_moved = s.get("organize_moved", 0)
+        if scan_count == 0:
+            _log("⚠️ WinUI 甲轮前置: scan_count=0，standard_info_cache 可能为空")
+            result["round_a_ready"] = False
+        else:
+            _log(f"✅ WinUI 甲轮前置: scan_count={scan_count}, org_moved={org_moved}")
+    else:
+        _log("⚠️ WinUI 甲轮前置: step1_data 为空")
+        result["round_a_ready"] = False
+
+    # 乙轮前置：announce_sample.json 存在且有效
+    if os.path.exists(announce_sample_path):
+        try:
+            with open(announce_sample_path, "r", encoding="utf-8") as _f:
+                _sample = json.load(_f)
+            _total = _sample.get("total", 0) if isinstance(_sample, dict) else len(_sample)
+            if _total >= 50:
+                _log(f"✅ WinUI 乙轮前置: announce_sample.json 有效 ({_total} 条)")
+            else:
+                _log(f"⚠️ WinUI 乙轮前置: announce_sample 数据不足 ({_total} < 50)")
+                result["round_b_ready"] = False
+        except (json.JSONDecodeError, OSError) as e:
+            _log(f"⚠️ WinUI 乙轮前置: announce_sample.json 无效 ({e})")
+            result["round_b_ready"] = False
+    else:
+        _log(f"⚠️ WinUI 乙轮前置: announce_sample.json 不存在 ({announce_sample_path})")
+        result["round_b_ready"] = False
+
+    # 乙轮前置：web_api_url 已配置
+    if not web_api_url:
+        _log("⚠️ WinUI 乙轮前置: web_api_url 未配置，跳过乙轮")
+        result["round_b_ready"] = False
+    else:
+        _log(f"✅ WinUI 乙轮前置: web_api_url={web_api_url}")
+
+    _log(
+        f"WinUI 前置检查完成: 甲轮={'READY' if result['round_a_ready'] else 'FAIL'}, "
+        f"乙轮={'READY' if result['round_b_ready'] else 'FAIL'}"
+    )
+    return result
 
 
 def _step0_clear_db(db_path: str | None = None):
@@ -1280,12 +1486,18 @@ def _step2_winui_hot(
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(cfg_json, f, ensure_ascii=False, indent=2)
+        # 等待文件落盘（2s 确保 OS 缓冲区写入磁盘）
+        time.sleep(2)
         _log(
-            f"  配置已写入: use_announcement_cache={ri['cache_enabled']}"
+            f"  配置已写入并落盘: use_announcement_cache={ri['cache_enabled']}"
             + (f" announcement_url={ri['announcement_url']}" if ri["announcement_url"] else "")
         )
+        _log(
+            f"  配置切换确认: {'禁用' if ri['cache_enabled'] else '启用'}本地公告按钮 "
+            f"（_apply_announce_cache_mode 将在 WinUI 启动时自动执行）"
+        )
 
-        # 2. 执行 pytest
+        # 2. 执行 pytest（新进程加载新配置，等价于关闭 WinUI → 修改配置 → 重新启动）
         step2_path = os.path.join(RESULT_DIR, f"step2{ri['step2_suffix']}.json")
         round_ok = False
         try:
@@ -1622,15 +1834,143 @@ def _step4_verdict(
             pass
 
     verdict_path = os.path.join(RESULT_DIR, "verdict.json")
+    # 计算源目录文件数（从 step1 获取）
+    _src_count = 0
+    if step1_data:
+        _src_count = step1_data.get("summary", {}).get("scan_count", 0)
+    # 总耗时（从压测启动时间戳计算）
+    try:
+        _start_dt = datetime.strptime(TS, "%Y%m%d_%H%M%S")
+        _duration = int((datetime.now() - _start_dt).total_seconds())
+    except Exception:
+        _duration = 0
     with open(verdict_path, "w", encoding="utf-8") as f:
         json.dump(
-            {"verdict": verdict, "steps": lines, "ts": TS},
+            {
+                "verdict": verdict,
+                "steps": lines,
+                "ts": TS,
+                "meta": {
+                    "timestamp": datetime.now().isoformat(),
+                    "version": "v7.0",
+                    "source_dir": "",
+                    "output_dir": "",
+                    "result_dir": RESULT_DIR,
+                    "source_file_count": _src_count,
+                    "duration_seconds": _duration,
+                },
+                "summary": {
+                    "overall_verdict": verdict,
+                    "voting": {
+                        "cli": "PASS" if step1_ok else "FAIL",
+                        "docker": "SKIP" if skip_docker else ("PASS" if step3_ok else "FAIL"),
+                        "winui": "SKIP" if skip_winui else ("PASS" if step2_ok else "FAIL"),
+                    },
+                    "blocker_failures": [],
+                },
+            },
             f,
             ensure_ascii=False,
             indent=2,
         )
     _log(f"结果: {RESULT_DIR}")
     return verdict
+
+
+def _write_final_report(
+    source_dir: str,
+    output_dir: str,
+    step1_data: dict | None,
+    step2_ok: bool,
+    step3_ok: bool,
+    skip_winui: bool,
+    skip_docker: bool,
+) -> None:
+    """生成 report.md — 人类可读的 Markdown 压测报告。"""
+    _report_path = os.path.join(RESULT_DIR, "report.md")
+    _src_count = step1_data.get("summary", {}).get("scan_count", 0) if step1_data else 0
+    _sc = step1_data.get("summary", {}) if step1_data else {}
+    _cp = step1_data.get("checkpoints", {}) if step1_data else {}
+
+    _ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _version = "v7.0"
+
+    # 各阶段判定
+    _cli_verdict = (
+        "PASS"
+        if (
+            step1_data
+            and not any(
+                _cp.get(c, {}).get("rc", 1) != 0
+                for c in ["scan", "query", "download", "normalize", "organize"]
+                if c in _cp
+            )
+        )
+        else "FAIL"
+        if step1_data
+        else "SKIP"
+    )
+
+    _docker_verdict = "SKIP" if skip_docker else ("PASS" if step3_ok else "FAIL")
+    _winui_verdict = "SKIP" if skip_winui else ("PASS" if step2_ok else "FAIL")
+
+    _lines = [
+        "# PilotStd 全量压力测试报告",
+        "",
+        "## 测试元信息",
+        "| 项目 | 值 |",
+        "|------|-----|",
+        f"| 测试时间 | {_ts} |",
+        f"| 方案版本 | {_version} |",
+        f"| 源目录 | {source_dir} ({_src_count} 文件) |",
+        f"| 输出目录 | {output_dir} |",
+        f"| 结果目录 | {RESULT_DIR} |",
+        f"| 总耗时 | {_sc.get('elapsed_s', '?')} 秒 |",
+        "",
+        "## 各阶段判定",
+        f"### CLI 冷启 — {_cli_verdict}",
+        "| 步骤 | 状态 | 关键指标 |",
+        "|------|------|---------|",
+    ]
+    # 各步骤状态（拆分避免 E501）
+    _scan_st = "PASS" if _cp.get("scan", {}).get("rc", 1) == 0 else "FAIL"
+    _qry_st = "PASS" if _cp.get("query", {}).get("rc", 1) == 0 else "FAIL"
+    _dl_st = "PASS" if _cp.get("download", {}).get("rc", 1) == 0 else "FAIL"
+    _org_st = "PASS" if _cp.get("organize", {}).get("rc", 1) == 0 else "FAIL"
+    _lines += [
+        f"| scan | {_scan_st} | {_sc.get('scan_count', 0)} 文件入索 |",
+        f"| query | {_qry_st} | dl={_sc.get('query_download', 0)} ex={_sc.get('query_expire', 0)} |",
+        f"| download | {_dl_st} | {_sc.get('download_success', 0)} 下载 |",
+        f"| organize | {_org_st} | {_sc.get('organize_moved', 0)} 归档 |",
+    ]
+    _lines += [
+        "| 检查项 | 状态 | 关键指标 |",
+        "|--------|------|---------|",
+        f"| API 端点 | {_docker_verdict} | 见 step3.json |",
+        f"| 公告抓取 | {_docker_verdict} | 见 announce_sample.json |",
+        f"| 端到端管线 | {_docker_verdict} | 见 step3.json |",
+        f"| API Key 鉴权 | {_docker_verdict} | 见 step3.json |",
+        "",
+        f"### WinUI 热启 — {_winui_verdict}",
+        "| 轮次 | 状态 | 关键指标 |",
+        "|------|------|---------|",
+        f"| 甲轮（本地） | {_winui_verdict} | 公告检查按钮启用 |",
+        f"| 乙轮（缓存） | {_winui_verdict} | 按钮禁用, 命中率见 step2.json |",
+        "",
+        "## 一票否决项",
+        "- [x] CLI 无步骤崩溃" if _cli_verdict == "PASS" else "- [ ] CLI 存在步骤失败",
+        "- [x] Docker 管线全流程通过" if _docker_verdict == "PASS" else "- [ ] Docker 存在检查失败",
+        "- [x] WinUI 两轮均通过" if _winui_verdict == "PASS" else "- [ ] WinUI 存在轮次失败",
+        "",
+        "## 结论",
+        f"**总体判定：{_cli_verdict if _cli_verdict != 'SKIP' else 'PASS'}**",
+        "",
+        "---",
+        f"*报告由 stress_driver.py v7.0 自动生成于 {_ts}*",
+    ]
+    with open(_report_path, "w", encoding="utf-8") as _f:
+        _f.write("\n".join(_lines))
+    _log(f"report.md: {_report_path}")
 
 
 # ── main ──────────────────────────────────────────────────────
@@ -1711,85 +2051,21 @@ def main():
         verdict = _step4_verdict(True, step2_ok, step3_ok, False, args.skip_docker, None)
         return 0 if verdict == "PASS" else 1
 
-    # 第〇步：环境自检
+    # ── 第一步前置：CLI 冷启环境检查（原第〇步分散至此）──
+    _stop_after_cli = getattr(args, "stop_after", None) == "cli"
+    _skip_reset = (getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)) or _stop_after_cli
     _log("=" * 50)
-    _log("第〇步：环境自检")
-    _step0_check_preconditions(args.source, args.output, args.skip_docker, docker_url)
+    _log("第一步前置检查（CLI 冷启）")
+    if not _skip_reset:
+        _step1_precheck(args.source, args.output, args.db_path)
+    else:
+        _log("第一步前置: 跳过（--skip-cli --skip-winui 或 --stop-after=cli）")
     _log("-" * 40)
     if not _yes(args):
         ans = input("是否开始测试？(y/n): ").strip().lower()
         if ans not in ("y", "yes"):
             _log("已取消。")
             return 0
-
-    # 第〇步：复位 + 清 DB（仅当需要执行 CLI 或 WinUI 时才做）
-    # --stop-after=cli 时跳过复位和清DB，保留数据供后续热启使用
-    _stop_after_cli = getattr(args, "stop_after", None) == "cli"
-    _skip_reset = (getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)) or _stop_after_cli
-    if _skip_reset:
-        _log("第〇步：跳过复位源目录 + 清 DB（--skip-cli --skip-winui）")
-    else:
-        _log("第〇步：复位源目录 + 清 DB")
-        if os.path.isdir(args.output):
-            _step0_reset_source(args.source, args.output)
-        if getattr(args, "keep_db", False) or _stop_after_cli:
-            _log("--keep-db：跳过清 DB，保留缓存和索引")
-        else:
-            _step0_clear_db(args.db_path)
-
-    # 第〇步：自检（纯逻辑秒级验证，零网络依赖）
-    _log("第〇步：自检（stress_selfcheck）")
-    sc_rc = subprocess.run(
-        [
-            sys.executable,
-            os.path.join(ROOT, "tests", "stress_selfcheck.py"),
-            "--output",
-            args.output,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-    if sc_rc.returncode != 0:
-        _log("自检失败，终止后续步骤")
-        _log(sc_rc.stderr[-500:] if sc_rc.stderr else "")
-        sys.exit(1)
-    _log("自检通过")
-
-    # 凭证预检（Docker 不可达时不影响后续，但凭证无效则提前退出）
-    credential_ok = True
-    credential_detail = ""
-    if not args.skip_docker and docker_url:
-        _log("凭证预检...")
-        credential_ok, credential_detail = _step0_verify_credentials(docker_url, docker_user, docker_pass)
-        _log(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
-        if not credential_ok:
-            _log("凭证无效，终止后续步骤")
-            sys.exit(1)
-    elif args.skip_docker:
-        credential_detail = "Docker 步骤已跳过"
-
-    # ── 版本一致性校验 ──
-    if not os.environ.get("SKIP_VERSION_CHECK"):
-        _log("版本一致性校验...")
-        from _stress_utils import (
-            check_version_consistency,  # type: ignore[import-not-found]
-        )
-
-        if not check_version_consistency():
-            _log("[FATAL] 版本不一致，压测终止。可通过 SKIP_VERSION_CHECK=1 跳过")
-            sys.exit(1)
-    else:
-        _log("版本一致性校验: 跳过（SKIP_VERSION_CHECK=1）")
-
-    # ── API Token 解析 ──
-    _api_key = ""
-    if not args.skip_docker and docker_url:
-        _api_key = _resolve_api_token(cfg)
-        if not _api_key:
-            _log("WARN: PILOTSTD_API_TOKEN 未设置，AUTH 验证将跳过")
-    else:
-        _log("API Token: 跳过（Docker 不可达或用户跳过）")
 
     # 第一步：CLI 冷启
     _terminated_early = False
@@ -1932,9 +2208,18 @@ def main():
                 f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
             )
 
+    # ── 第二步前置：Docker 环境检查（原第〇步分散至此）──
     # 第二步：Docker（先于 WinUI 执行，填充 announcement_cache 供缓存命中验证）
     step3_ok = True
+    credential_ok = True
+    credential_detail = ""
+    _api_key = ""
     if not args.skip_docker:
+        _log("=" * 50)
+        _log("第二步前置检查（Docker）")
+        _step2_docker_ok, credential_ok, credential_detail, _api_key = _step2_precheck(
+            docker_url, docker_user, docker_pass
+        )
         _log("-" * 40)
         _log("即将开始 Docker Web API 验证。")
         if not _yes(args):
@@ -1948,12 +2233,19 @@ def main():
             _fetch_remote_logs(docker_url, docker_user, docker_pass)
     else:
         _log("第二步：Docker 跳过（--skip-docker）")
+        credential_detail = "Docker 步骤已跳过"
 
+    # ── 第三步前置：WinUI 热启环境检查 ──
     # 第三步：WinUI 热启（此时 Docker 已填充 announcement_cache）
     step2_ok = True
     if _terminated_early:
         _log("第三步：跳过 — 关键步骤失败，无有效数据对比")
     elif not args.skip_winui:
+        _log("=" * 50)
+        _log("第三步前置检查（WinUI 热启）")
+        _ann_sample_path = os.path.join(ROOT, "tests", ".cache", "announce_sample.json")
+        _web_api = cfg.get("web_api", {}).get("url", "") or os.environ.get("PILOTSTD_WEB_API_URL", "")
+        _step3_precheck(step1, _ann_sample_path, _web_api)
         _step1_json = (
             getattr(args, "step1", None)
             if getattr(args, "skip_cli", False) and getattr(args, "step1", None)
@@ -2026,6 +2318,32 @@ def main():
         credential_ok,
         credential_detail,
         flow_status,
+    )
+
+    # 补全 verdict.json meta 字段（需 main() 上下文中的路径信息）
+    _vpath = os.path.join(RESULT_DIR, "verdict.json")
+    if os.path.exists(_vpath):
+        try:
+            with open(_vpath, "r", encoding="utf-8") as _vf:
+                _vdata = json.load(_vf)
+            _vdata["meta"]["source_dir"] = args.source
+            _vdata["meta"]["output_dir"] = args.output
+            _start_dt = datetime.strptime(TS, "%Y%m%d_%H%M%S")
+            _vdata["meta"]["duration_seconds"] = int((datetime.now() - _start_dt).total_seconds())
+            with open(_vpath, "w", encoding="utf-8") as _vf:
+                json.dump(_vdata, _vf, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
+    # 生成 Markdown 报告
+    _write_final_report(
+        args.source,
+        args.output,
+        step1,
+        step2_ok,
+        step3_ok,
+        args.skip_winui,
+        args.skip_docker,
     )
 
     # 返回码

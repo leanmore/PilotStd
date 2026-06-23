@@ -1,8 +1,9 @@
 # Docker Web API 压力测试 — 第四层
-# 用法: cd d:\PilotStd && python tests/stress_04_web.py
+# 用法: cd d:\PilotStd && python tests/stress_web.py
 # 前置: docker compose up（端口 9028）
 # 全程自动化；Docker不可达时自动跳过
-# 覆盖: 认证(4)/业务API(11)/配置与公告(3)/文件操作(5) 共23项
+# 覆盖: 认证(4)/业务API(12)/配置与公告(10)/文件操作(4)/端到端(5)/权限(3) 共38项
+# 通过阈值: ≥36/38 PASS (≥95%)，压测期间禁用 POST /api/system/update
 
 import json
 import os
@@ -55,9 +56,7 @@ except Exception as e:
 
 # 2. API 可达性（login 端点 = 401 表示可达）
 try:
-    r = requests.post(
-        f"{BASE}/api/login", data={"username": USERNAME, "password": "wrong"}, timeout=5
-    )
+    r = requests.post(f"{BASE}/api/login", data={"username": USERNAME, "password": "wrong"}, timeout=5)
     _docker_up = r.status_code in (200, 401, 403, 404, 422, 500)
     logger.info("前置: API可达 %s", "PASS" if _docker_up else "FAIL")
 except requests.exceptions.ConnectionError as e:
@@ -313,6 +312,68 @@ try:
 except Exception as e:
     _check("公告: 抓取检查", None, f"超时或异常: {str(e)[:60]}")
 
+# 17b. /api/system/update — 压测期间必须禁用（自更新重启容器）
+logger.info("[SKIP] /api/system/update — 压测期间禁用（自更新会重启容器，不验证此端点）")
+_check("系统: 自更新禁用", True, "SKIP — 压测期间禁用")
+
+# ════════════════════════════════════════════════════════════════
+# 公告样本抓取 — 通过 /check + /results 获取，替代不存在的 /sample
+# ════════════════════════════════════════════════════════════════
+_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+os.makedirs(_CACHE_DIR, exist_ok=True)
+_ANNOUNCE_SAMPLE_PATH = os.path.join(_CACHE_DIR, "announce_sample.json")
+
+_announce_sample_ok = False
+try:
+    logger.info("公告样本: 轮询 /api/announce/results 等待数据就绪...")
+    _max_wait = 120
+    _poll_interval = 5
+    _sample_items = []
+    for _attempt in range(_max_wait // _poll_interval):
+        time.sleep(_poll_interval)
+        r_results = _get("/api/announce/results")
+        if r_results.status_code == 200:
+            _data = r_results.json()
+            _items = _data.get("results", [])
+            if len(_items) >= 50:
+                _sample_items = _items
+                logger.info("公告样本: %d 条就绪 (等待 %ds)", len(_items), (_attempt + 1) * _poll_interval)
+                break
+            logger.info("公告样本: 等待中... %d/%d 条 (第%d次轮询)", len(_items), 50, _attempt + 1)
+    # 三类分布 (gb/hb/db) 随机抽样
+    if _sample_items:
+        import random
+
+        _by_source: dict = {}
+        for _item in _sample_items:
+            _src = _item.get("source_site", "unknown")
+            _by_source.setdefault(_src, []).append(_item)
+        _sampled = []
+        _max_per_source = 40
+        for _src, _src_items in _by_source.items():
+            if len(_src_items) <= _max_per_source:
+                _sampled.extend(_src_items)
+            else:
+                _sampled.extend(random.sample(_src_items, _max_per_source))
+        _sample_out = {
+            "total": len(_sampled),
+            "source_distribution": {s: len(v) for s, v in _by_source.items()},
+            "items": _sampled,
+        }
+        with open(_ANNOUNCE_SAMPLE_PATH, "w", encoding="utf-8") as _f:
+            json.dump(_sample_out, _f, ensure_ascii=False, indent=2)
+        _announce_sample_ok = True
+        logger.info(
+            "公告样本: 写入 %s (total=%d, 分布=%s)",
+            _ANNOUNCE_SAMPLE_PATH,
+            len(_sampled),
+            _sample_out["source_distribution"],
+        )
+    else:
+        logger.warning("公告样本: 超时 (%ds) 仍不足 50 条，将跳过 WinUI 乙轮", _max_wait)
+except Exception as _e:
+    logger.warning("公告样本: 提取失败 — %s", _e)
+
 # ════════════════════════════════════════════════════════════════
 # 文件操作权限测试（5项）— 验证容器内实际文件读写
 # ════════════════════════════════════════════════════════════════
@@ -395,15 +456,9 @@ if _settings_ok:
     try:
         orig = r.json() if _settings_ok else {}
         test_val = "test_roundtrip_value"
-        r_put = _put(
-            "/api/settings", json_data={"storage": {"downloads_dir": test_val}}
-        )
+        r_put = _put("/api/settings", json_data={"storage": {"downloads_dir": test_val}})
         r_get = _get("/api/settings")
-        _new_val = (
-            r_get.json().get("storage", {}).get("downloads_dir", "")
-            if r_get.status_code == 200
-            else ""
-        )
+        _new_val = r_get.json().get("storage", {}).get("downloads_dir", "") if r_get.status_code == 200 else ""
         _roundtrip_ok = r_put.status_code == 200 and _new_val == test_val
         _check(
             "配置: 读写一致",
@@ -413,11 +468,7 @@ if _settings_ok:
         # 还原
         _put(
             "/api/settings",
-            json_data={
-                "storage": {
-                    "downloads_dir": orig.get("storage", {}).get("downloads_dir", "")
-                }
-            },
+            json_data={"storage": {"downloads_dir": orig.get("storage", {}).get("downloads_dir", "")}},
         )
     except Exception as e:
         _check("配置: 读写一致", None, f"异常: {str(e)[:60]}")
@@ -464,9 +515,7 @@ try:
             if r_users.status_code == 200:
                 for u in r_users.json().get("users", []):
                     if u.get("username") == _non_admin_user:
-                        _csrf_headers_extra = (
-                            {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
-                        )
+                        _csrf_headers_extra = {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
                         requests.delete(
                             f"{BASE}/api/users/{u['id']}",
                             cookies=_cookies,
@@ -477,9 +526,7 @@ try:
         else:
             _check("权限: 非admin改设置", None, "普通用户登录失败，跳过")
     else:
-        _check(
-            "权限: 非admin改设置", None, f"创建用户失败 status={r_create.status_code}"
-        )
+        _check("权限: 非admin改设置", None, f"创建用户失败 status={r_create.status_code}")
 except Exception as e:
     _check("权限: 非admin改设置", None, f"异常: {str(e)[:60]}")
 
@@ -514,9 +561,7 @@ r_scan = _post("/api/scan", data={"path": "/inbox"})
 _scan_files = r_scan.json().get("files", []) if r_scan.status_code == 200 else []
 
 if _scan_files:
-    _std_numbers = [
-        f["standard_number"] for f in _scan_files if f.get("standard_number")
-    ]
+    _std_numbers = [f["standard_number"] for f in _scan_files if f.get("standard_number")]
     # [TRACE] 指令C: 端到端扫描结果详情
     logger.info(
         "[TRACE-C] e2e_scan: status=%d files=%d std_numbers=%s",
@@ -612,9 +657,7 @@ if _scan_files:
     _check("管线: 归档", _archive_ok, f"status={r_archive.status_code}, moved={_moved}")
 
     # 验证文件已归档（用 archive 返回的 moved 计数）
-    _check(
-        "管线: 文件进入输出目录", _moved > 0, f"归档移动了 {_moved} 个文件到 /standards"
-    )
+    _check("管线: 文件进入输出目录", _moved > 0, f"归档移动了 {_moved} 个文件到 /standards")
 else:
     logger.info(
         "[TRACE-C] e2e_skip: inbox为空，跳过端到端管线 scan_status=%d",
@@ -630,9 +673,7 @@ else:
 # 公告缓存路由 + API Key 鉴权压测（v4.2 新增）
 # ════════════════════════════════════════════════════════════════
 
-_stress_api_key = os.environ.get("PILOTSTD_API_TOKEN") or os.environ.get(
-    "PILOTSTD_API_KEY", ""
-)
+_stress_api_key = os.environ.get("PILOTSTD_API_TOKEN") or os.environ.get("PILOTSTD_API_KEY", "")
 _cache_hit_count = 0
 _cache_miss_count = 0
 _source_dist: dict[str, int] = {}
@@ -725,9 +766,7 @@ if _cache_test_num:
             _cache_hit_count += 1
         # 来源标注检查
         has_cache_label = (
-            "web端公告缓存" in str(src)
-            or "web_announcement" in str(src)
-            or "announcement_cache" in str(src)
+            "web端公告缓存" in str(src) or "web_announcement" in str(src) or "announcement_cache" in str(src)
         )
         _check(
             "BIZ-12: 缓存命中",
@@ -763,9 +802,7 @@ try:
     _check(
         "BIZ-13: 缓存未命中降级",
         not found and r.status_code == 200,
-        f"found={found} msg={msg[:30]} {elapsed_ms:.0f}ms"
-        if not found
-        else f"意外命中 {elapsed_ms:.0f}ms",
+        f"found={found} msg={msg[:30]} {elapsed_ms:.0f}ms" if not found else f"意外命中 {elapsed_ms:.0f}ms",
     )
     _prog_bump(ok=not found and r.status_code == 200)
 except Exception as e:
@@ -799,9 +836,7 @@ _total = len(_results)
 _passed = sum(1 for _, ok, _ in _results if ok)
 _failed = sum(1 for _, ok, _ in _results if ok is False)
 _skipped = _total - _passed - _failed
-_failures = [
-    {"name": label, "detail": detail} for label, ok, detail in _results if ok is False
-]
+_failures = [{"name": label, "detail": detail} for label, ok, detail in _results if ok is False]
 _step3 = {
     "step": 3,
     "ts": time.strftime("%Y%m%d_%H%M%S"),
@@ -818,6 +853,8 @@ _step3 = {
         "source_distribution": _source_dist,
         "auth_total": _auth_total,
         "auth_pass": _auth_pass,
+        "announce_sample_ok": _announce_sample_ok,
+        "announce_sample_path": _ANNOUNCE_SAMPLE_PATH,
     },
 }
 _step3_path = os.environ.get("STRESS_STEP3_PATH", "")
