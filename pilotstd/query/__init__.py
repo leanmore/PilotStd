@@ -54,6 +54,6 @@ def _get_mock_adapter() -> Optional[Type[Any]]:
     try:
         from .adapters.mock import MockQueryAdapter  # type: ignore[import-not-found]
 
-        return MockQueryAdapter
+        return MockQueryAdapter  # type: ignore[no-any-return]  # 动态导入类无精确类型
     except ImportError:
         return None

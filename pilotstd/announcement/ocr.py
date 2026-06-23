@@ -388,7 +388,7 @@ class OcrCounters:
         current = _datetime.now().strftime("%Y-%m")
         if data.get("month") != current:
             data = {"month": current, "baidu": 0, "tencent": 0, "aliyun": 0}
-        return data
+        return data  # type: ignore[no-any-return]  # json.load 返回 Any
 
     def _save(self) -> None:
         _os.makedirs(_os.path.dirname(self._path), exist_ok=True)
@@ -399,11 +399,11 @@ class OcrCounters:
 
     def can_accept(self, provider: str, pages: int) -> bool:
         with self._lock:
-            return self._data[provider] + pages <= self._LIMITS[provider]
+            return self._data[provider] + pages <= self._LIMITS[provider]  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
     def remaining(self, provider: str) -> int:
         with self._lock:
-            return max(0, self._LIMITS[provider] - self._data[provider])
+            return max(0, self._LIMITS[provider] - self._data[provider])  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
     def increment(self, provider: str) -> None:
         with self._lock:
@@ -412,12 +412,11 @@ class OcrCounters:
 
     def get(self, provider: str) -> int:
         with self._lock:
-            return self._data[provider]
-
+            return self._data[provider]  # type: ignore[no-any-return]  # json 加载数据无精确类型
     @property
     def month(self) -> str:
         with self._lock:
-            return self._data["month"]
+            return self._data["month"]  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
 
 # ── 冷却管理 ──────────────────────────────────────────────────────

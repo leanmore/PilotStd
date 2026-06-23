@@ -637,7 +637,7 @@ class StandardManager:
     def _resolve_replaces(self, standard_number: str) -> str:
         """跨站点补查替代关系。当 std_gov 等无 replaces 的站点查到废止标准时，
         尝试用 njbz365 / csres / hbba 的详情页补查替代标准号。"""
-        return self._classifier.resolve_replaces(standard_number)
+        return self._classifier.resolve_replaces(standard_number)  # type: ignore[no-any-return]  # 子服务返回值类型委托
     # ════════════════════════════════════════════════════════════════
     # 下载
     # ════════════════════════════════════════════════════════════════
@@ -771,7 +771,7 @@ class StandardManager:
         Word/模板文件按源目录镜像归档：
         <输出根>/其他资料/<相对源根路径>/<文件名>
         """
-        return self._organizer_svc.organize(
+        return self._organizer_svc.organize(  # type: ignore[no-any-return]
             parsed_list or self._parsed_results, word_source_root
         )
     def _dedup_standard(self, parsed: ParsedStdInfo, new_path: str) -> None:
@@ -869,20 +869,20 @@ class StandardManager:
 
     def get_pending_items(self) -> list[dict[str, Any]]:
         """获取所有待确认项。"""
-        return self._pending_svc.get_pending_items()
+        return self._pending_svc.get_pending_items()  # type: ignore[no-any-return]  # 子服务返回值类型委托
     def increment_requery_count(self, standard_number: str) -> int:
         """待确认重试次数 +1。"""
-        return self._pending_svc.increment_requery_count(standard_number)
+        return self._pending_svc.increment_requery_count(standard_number)  # type: ignore[no-any-return]  # 子服务返回值类型委托
     def is_requery_exhausted(self, standard_number: str) -> bool:
         """重试次数 >= 3 → True。"""
-        return self._pending_svc.is_requery_exhausted(standard_number)
+        return self._pending_svc.is_requery_exhausted(standard_number)  # type: ignore[no-any-return]  # 子服务返回值类型委托
     def mark_manual_required(self, standard_number: str) -> None:
         """标记为需要手动查询。"""
         self._pending_svc.mark_manual_required(standard_number)
 
     def get_requery_count(self, standard_number: str) -> int:
         """返回当前重试次数。"""
-        return self._pending_svc.get_requery_count(standard_number)
+        return self._pending_svc.get_requery_count(standard_number)  # type: ignore[no-any-return]  # 子服务返回值类型委托
     # ── 下载等待队列 ───────────────────────────────────────────
 
     def enqueue_download_wait(self, parsed: ParsedStdInfo) -> None:
@@ -891,7 +891,7 @@ class StandardManager:
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
-        return self._pending_svc.get_due_downloads()
+        return self._pending_svc.get_due_downloads()  # type: ignore[no-any-return]  # 子服务返回值类型委托
     def remove_download_queue(self, standard_number: str) -> None:
         """从下载等待队列中移除指定项。"""
         self._pending_svc.remove_download_queue(standard_number)
@@ -904,12 +904,12 @@ class StandardManager:
         """从本地缓存（standard_info_cache + announcement_cache）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """
-        return self._pending_svc.query_local_cache(parsed_list)
+        return self._pending_svc.query_local_cache(parsed_list)  # type: ignore[no-any-return]  # 子服务返回值类型委托
     # ── 公告 ─────────────────────────────────────────────────
 
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
-        return self._announce_svc.check_announcements()
+        return self._announce_svc.check_announcements()  # type: ignore[no-any-return]  # 子服务返回值类型委托
     def get_announcement_cache(self, limit: int = 500) -> list[dict[str, Any]]:
         """从 announcement_cache 表读取最近公告结果。返回字典列表。"""
         rows = self.db.fetchall(
@@ -946,7 +946,7 @@ class StandardManager:
     ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI cmd_announce 调用。
         返回 {std_type: {matched: int, updated: int, ...}, ...}"""
-        return self._announce_svc.check_announcements_filtered(
+        return self._announce_svc.check_announcements_filtered(  # type: ignore[no-any-return]
             std_type=std_type,
             since_date=since_date,
             progress_callback=progress_callback,
@@ -994,7 +994,9 @@ class StandardManager:
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
         目标路径 = <输出根>/<相对源根路径>，保留原始目录结构。
         """
-        return self._organizer_svc.organize_skipped_dirs(skipped_dirs, source_root)
+        return self._organizer_svc.organize_skipped_dirs(  # type: ignore[no-any-return]
+            skipped_dirs, source_root
+        )
     @staticmethod
     def _resolve_industry_in_path(rel_path: str) -> str:
         """解析相对路径第一段中的行业代号为完整目录名。
@@ -1035,7 +1037,9 @@ class StandardManager:
             len(pending_paths),
             [p[:80] for p in list(pending_paths)[:5]],
         )
-        return self._organizer_svc.organize_fallback(source_root, pending_paths)
+        return self._organizer_svc.organize_fallback(  # type: ignore[no-any-return]
+            source_root, pending_paths
+        )
     # ════════════════════════════════════════════════════════════════
     # 过期处理
     # ════════════════════════════════════════════════════════════════
@@ -1044,12 +1048,14 @@ class StandardManager:
         self, parsed_list: Optional[List[ParsedStdInfo]] = None
     ) -> dict[str, Any]:
         """将查询结果为「废止」的标准移入 过期作废 目录。"""
-        return self._organizer_svc.handle_expired(parsed_list)
+        return self._organizer_svc.handle_expired(parsed_list)  # type: ignore[no-any-return]
     def merge_expire_from_source(
         self, root_dir: str, parsed_list: list[ParsedStdInfo]
     ) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
-        return self._organizer_svc.merge_expire_from_source(root_dir, parsed_list)
+        return self._organizer_svc.merge_expire_from_source(  # type: ignore[no-any-return]
+            root_dir, parsed_list
+        )
     # ════════════════════════════════════════════════════════════════
     # 便捷方法
     # ════════════════════════════════════════════════════════════════
@@ -1060,20 +1066,20 @@ class StandardManager:
 
     def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。返回入库文件数。"""
-        return self._scheduled_svc.scan_and_index(root_path)
+        return self._scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
     def recheck_updates(self) -> dict[str, int]:
         """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
-        return self._scheduled_svc.recheck_updates()
+        return self._scheduled_svc.recheck_updates()  # type: ignore[no-any-return]
     def query_by_numbers(
         self, numbers: List[str], force_refresh: bool = False, preferred_site: str = ""
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """直接按标准号字符串列表查询（跳过扫描步骤）。preferred_site 可选强制指定站点。"""
-        return self._scheduled_svc.query_by_numbers(
+        return self._scheduled_svc.query_by_numbers(  # type: ignore[no-any-return]
             numbers, force_refresh, preferred_site
         )
     def download_by_numbers(self, numbers: List[str]) -> tuple[list[DownloadTask], Any]:
         """按标准号列表下载。先查询获取采标状态，采标标准给提示并跳过。"""
-        return self._scheduled_svc.download_by_numbers(numbers)
+        return self._scheduled_svc.download_by_numbers(numbers)  # type: ignore[no-any-return]
     # ════════════════════════════════════════════════════════════════
     # 一键自动运行
     # ════════════════════════════════════════════════════════════════
@@ -1331,7 +1337,7 @@ class StandardManager:
                 "dedup_skipped": 0,
                 "details": ["无有效文件"],
             }
-        return self._organizer_svc.organize(parsed)
+        return self._organizer_svc.organize(parsed)  # type: ignore[no-any-return]
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后过期处理。供 cmd_expire 调用。"""
         items = []
@@ -1343,7 +1349,7 @@ class StandardManager:
                 items.append((path, info))
         if not items:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}
-        return self._organizer_svc.handle_expired(items)
+        return self._organizer_svc.handle_expired(items)  # type: ignore[no-any-return]
     def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
         """返回文件规范化名称列表。供 cmd_normalize 调用。"""
         from ..core.file_utils import make_standard_filename

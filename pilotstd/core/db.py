@@ -118,7 +118,7 @@ class Database:
             conn.row_factory = sqlite3.Row
             self._local.conn = conn
             self._all_conns.append(conn)  # 追踪连接，供 close_all() 遍历关闭
-        return self._local.conn
+        return self._local.conn  # type: ignore[no-any-return]  # thread-local 存储无精确类型
 
     def connect(self) -> sqlite3.Connection:
         """创建新的独立连接（供 backup 等特殊场景使用）。"""
@@ -276,7 +276,7 @@ class Database:
                 (adapter_name,),
             )
             if row and row["total_queries"] > 0:
-                return row["successful_queries"] / row["total_queries"]
+                return row["successful_queries"] / row["total_queries"]  # type: ignore[no-any-return]  # sqlite3.Row 返回 Any
         except Exception:
             pass
         return -1.0

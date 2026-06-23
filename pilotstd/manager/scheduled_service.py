@@ -203,4 +203,4 @@ class ScheduledService:
                 },
             )()
 
-        return self._download_engine.download_batch(tasks)
+        return self._download_engine.download_batch(tasks)  # type: ignore[no-any-return]  # 子引擎返回值类型委托

@@ -79,7 +79,7 @@ def get_db_path() -> str:
 
 def get_network_timeout(config: "ConfigManager") -> int:
     """返回网络请求超时秒数（从配置读取，默认30）。"""
-    return config.get("network.timeout", 30)
+    return config.get("network.timeout", 30)  # type: ignore[no-any-return]  # config.get 返回 Any
 
 
 def get_library_root(config: "ConfigManager") -> str:

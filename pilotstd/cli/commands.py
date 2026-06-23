@@ -519,7 +519,7 @@ def main() -> int:
     if not args.command:
         parser.print_help()
         return 0
-    return args.func(args)
+    return args.func(args)  # type: ignore[no-any-return]  # argparse func 无精确类型
 
 
 if __name__ == "__main__":

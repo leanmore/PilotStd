@@ -79,7 +79,7 @@ class PendingService:
 
     def get_pending_items(self) -> list[dict[str, Any]]:
         """获取所有待确认项。"""
-        return self._db.fetchall(
+        return self._db.fetchall(  # type: ignore[no-any-return]
             "SELECT * FROM pending_lookup WHERE status='pending' ORDER BY created_at"
         )
 
@@ -112,7 +112,7 @@ class PendingService:
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
         """获取公开期已到的下载等待项。"""
-        return self._db.fetchall(
+        return self._db.fetchall(  # type: ignore[no-any-return]
             "SELECT * FROM download_queue WHERE status='waiting' AND expected_available <= ?",
             (datetime.now().isoformat(),),
         )

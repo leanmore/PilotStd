@@ -337,7 +337,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
 
 def _code_key(item: dict[str, Any]) -> str:
     """标准号去重键：代号 + 名称前20字符，用于 HTML 与附件交叉去重。"""
-    return item.get("std_code", "") + "|" + item.get("std_name", "")[:20]
+    return item.get("std_code", "") + "|" + item.get("std_name", "")[:20]  # type: ignore[no-any-return]  # dict.get 返回 Any
 
 
 def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:

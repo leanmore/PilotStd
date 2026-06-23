@@ -93,7 +93,7 @@ class HbbaAdapter(BaseAdapter):
         for c in candidates:
             if c.standard_number == search_term:
                 self._post_process_result(c)
-                return c
+                return c  # type: ignore[no-any-return]  # 搜索结果列表元素无精确类型
         # 年份接近度优选：取与搜索词中年份最接近的候选
         target = _parse_result_number(search_term)
         target_year = target.get("year", 0)
@@ -114,7 +114,7 @@ class HbbaAdapter(BaseAdapter):
         else:
             best = max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
         self._post_process_result(best)
-        return best
+        return best  # type: ignore[no-any-return]  # 搜索结果列表元素无精确类型
 
     def _post_process_result(self, result: QueryResult) -> None:
         """结果后处理：从详情页提取替代标准号。"""

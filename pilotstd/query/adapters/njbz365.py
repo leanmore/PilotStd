@@ -297,7 +297,7 @@ class Njbz365Adapter(BaseAdapter):
                 return None
 
             if data.get("code") == "0":
-                return data
+                return data  # type: ignore[no-any-return]  # API 响应无精确类型
 
             # token 过期 → 刷新 session 重试
             if data.get("code") == "1001" and attempt < 2:

@@ -524,7 +524,7 @@ class OrganizerService:
             if src and os.path.isfile(src):
                 pairs.append((src, p))
 
-        return self._expire_handler.process_expired(pairs)
+        return self._expire_handler.process_expired(pairs)  # type: ignore[no-any-return]  # 子处理器返回值类型委托
 
     def merge_expire_from_source(self, root_dir: str, parsed_list: list[Any]) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
