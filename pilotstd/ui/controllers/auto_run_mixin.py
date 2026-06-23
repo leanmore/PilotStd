@@ -60,7 +60,7 @@ class AutoRunMixin:
             return
         path = self._get_selected_path()
         if not path:
-            QMessageBox.information(None,_("title_hint"), _("import_hint"))
+            QMessageBox.information(None, _("title_hint"), _("import_hint"))
             return
         self._start_auto_pipeline(path)
 
@@ -70,6 +70,8 @@ class AutoRunMixin:
         """启动统一自动管线（AutoWorker）。连接信号到已有 UI slot。"""
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
+        self.progress_bar.setStyleSheet("")  # 重置样式（上次异常可能设为红色）
+        self.progress_bar.setFormat("%p%")  # 恢复百分比显示
         self._suppress_dialogs = True
         self._clear_table()
         self._parsed_results.clear()
@@ -96,11 +98,19 @@ class AutoRunMixin:
         )
         self._auto_worker.archive_result.connect(self._on_archive_batch_ready_single)
         self._auto_worker.stage_changed.connect(self._on_auto_stage_changed)
-        self._auto_worker.error.connect(
-            lambda msg: self.status_changed.emit(f"自动运行失败: {msg}")
-        )
+        self._auto_worker.error.connect(self._on_auto_error)
         self._auto_worker.finished_signal.connect(self._on_auto_pipeline_finished)
         self._auto_worker.start()
+
+    def _on_auto_error(self, msg: str) -> None:
+        """AutoWorker 异常 → 进度条变红 + 状态栏错误信息。
+        同时给用户两个信号：进度条显示"失败"，状态栏显示原因。"""
+        self.progress_bar.setStyleSheet(
+            "QProgressBar::chunk { background-color: #ef4444; }"
+        )
+        self.progress_bar.setFormat(_("auto_run_failed"))
+        self.progress_bar.setValue(100)
+        self.status_changed.emit(f"{_('auto_run_failed')}: {msg}")
 
     def _on_download_batch_ready_single(self, idx: int, status: str) -> None:
         """AutoWorker 单条下载结果 → 批量 slot 适配。"""

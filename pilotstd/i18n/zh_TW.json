@@ -62,6 +62,7 @@
     "normalize_complete": "規範化完成: {} 條",
     "save_complete": "儲存完成: {} 個檔案, 跳過 {} 個",
     "auto_run_complete": "自動執行完成",
+    "auto_run_failed": "執行失敗",
     "paused": "已暫停 — 點擊「繼續」恢復",
     "resumed": "已恢復",
     "settings_updated": "設定已更新",

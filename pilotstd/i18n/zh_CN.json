@@ -76,6 +76,7 @@
     "normalize_complete": "规范化完成: {} 条",
     "save_complete": "保存完成: {} 个文件, 跳过 {} 个",
     "auto_run_complete": "自动运行完成",
+    "auto_run_failed": "运行失败",
     "paused": "已暂停 — 点击「继续」恢复",
     "resumed": "已恢复",
     "settings_updated": "设置已更新",

@@ -77,6 +77,7 @@
     "normalize_complete": "Normalization complete: {} items",
     "save_complete": "Save complete: {} files, {} skipped",
     "auto_run_complete": "Auto run complete",
+    "auto_run_failed": "Failed",
     "paused": "Paused — click Continue to resume",
     "resumed": "Resumed",
     "settings_updated": "Settings updated",
