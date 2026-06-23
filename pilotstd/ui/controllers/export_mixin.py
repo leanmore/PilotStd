@@ -24,18 +24,14 @@ class ExportMixin:
         """导出文件名清单，可选是否包含路径名。"""
         path = self._get_selected_path()
         if not path:
-            path = QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.DesktopLocation
-            )
+            path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         dlg = ExportFileListDialog(self, path)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
         root = dlg.source_path
         include_path = dlg.include_path
-        save_path, __ = QFileDialog.getSaveFileName(
-            self, "导出文件列表", "file_list.txt", "TXT (*.txt);;CSV (*.csv)"
-        )
+        save_path, __ = QFileDialog.getSaveFileName(self, "导出文件列表", "file_list.txt", "TXT (*.txt);;CSV (*.csv)")
         if not save_path:
             return
 
@@ -59,15 +55,11 @@ class ExportMixin:
         """导出文件夹层次结构。"""
         path = self._get_selected_path()
         if not path:
-            path = QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.DesktopLocation
-            )
+            path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         if not os.path.isdir(path):
             return
 
-        save_path, __ = QFileDialog.getSaveFileName(
-            self, "导出文件夹层次", "folder_tree.txt", "TXT (*.txt)"
-        )
+        save_path, __ = QFileDialog.getSaveFileName(self, "导出文件夹层次", "folder_tree.txt", "TXT (*.txt)")
         if not save_path:
             return
 
@@ -81,9 +73,7 @@ class ExportMixin:
         """递归收集文件夹树形结构。"""
         lines.append(f"{prefix}{os.path.basename(root) or root}")
         try:
-            entries = sorted(
-                os.scandir(root), key=lambda e: (not e.is_dir(), e.name.lower())
-            )
+            entries = sorted(os.scandir(root), key=lambda e: (not e.is_dir(), e.name.lower()))
         except PermissionError:
             return
         count = 0
@@ -123,9 +113,7 @@ class ExportMixin:
         with open(path, "w", encoding="utf-8") as f:
             f.write("=== PilotStd 诊断报告 ===\n")
             f.write(f"时间: {datetime.now():%Y-%m-%d %H:%M:%S}\n")
-            f.write(
-                f"Python: {platform.python_version()} | {platform.system()} {platform.release()}\n\n"
-            )
+            f.write(f"Python: {platform.python_version()} | {platform.system()} {platform.release()}\n\n")
 
             f.write("--- 配置 ---\n")
             for key in [
@@ -143,7 +131,7 @@ class ExportMixin:
             f.write(f"  解析结果: {len(self._parsed_results)} 条\n")
             f.write(f"  表格行数: {self.work_table.rowCount()} 行\n")
             f.write(
-                f"  隐藏列: {[_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if self.work_table.isColumnHidden(c)]}\n"
+                f"  隐藏列: {[_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if self.work_table.isColumnHidden(c)]}\n"  # noqa: E501
             )
 
             f.write("\n--- 运行日志 ---\n")

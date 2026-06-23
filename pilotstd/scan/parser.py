@@ -137,7 +137,7 @@ _ASME_BPVC_RE = re.compile(
 
 # ── 正则原子构件 ────────────────────────────────────────────
 # 各正则共享的子模式，定义为模块级常量以便独立测试和复用
-_PFX = r"(?P<prefix>(?:ITU-[TRD])|[A-Z]{2,}(?:[\-\s]+[A-Z]{2,})*(?:/[A-Z]+)?)"  # 标准代号段（如 "BS EN", "ITU-T", "ANSI/UL"）
+_PFX = r"(?P<prefix>(?:ITU-[TRD])|[A-Z]{2,}(?:[\-\s]+[A-Z]{2,})*(?:/[A-Z]+)?)"  # 标准代号段（如 "BS EN", "ITU-T", "ANSI/UL"）  # noqa: E501
 _NUM = r"(?P<number>[A-Z]?\d{1,6}[A-Z]?)"  # 编号（支持字母后缀如 API 6D）
 _PART_SHORT = r"(?:[\.\-](?P<part>\d{1,2}))?"  # 短分册号（1-2位纯数字）
 _PART_LONG = r"(?:[\.\-](?P<part>[A-Z]?\d{1,3}))?"  # 长分册号（可含前导字母，如 B16）
@@ -200,16 +200,12 @@ _FOREIGN_GROUP_MAP = {
 class StandardParser:
     """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份"""
 
-    def __init__(
-        self, code_mapping: Dict[str, str], log: logging.Logger | None = None
-    ) -> None:
+    def __init__(self, code_mapping: Dict[str, str], log: logging.Logger | None = None) -> None:
         self.code_mapping = code_mapping
         self.log = log or logger
 
         # 精确匹配（带年份） — "API 610-2004", "BS EN 1092.1-2018", "ISO 9001:2015"
-        self.regex = _compile(
-            _PFX, _SEP, _NUM, _PART_SHORT, _EDITION_SKIP, _SEP, _YEAR4
-        )
+        self.regex = _compile(_PFX, _SEP, _NUM, _PART_SHORT, _EDITION_SKIP, _SEP, _YEAR4)
         # 精确匹配（无年份） — "MIL-STD-810G"（字母修订版，无年份）
         self.regex_no_year = _compile(_PFX, _SEP, _NUM, _PART_SHORT)
         # 带类型前缀的精确匹配 — "ANSI/UL 560-1980", "API Spec 6A-2023", "GB 1234-86"
@@ -360,11 +356,7 @@ class StandardParser:
 
         # IEC 带类型前缀（TR/TS/PAS）按国外标准处理，触发 _handle_type_prefix 修正
         parts = logical_code.split()
-        if (
-            len(parts) > 1
-            and parts[0].upper() == "IEC"
-            and parts[1].upper() in IEC_TYPES
-        ):
+        if len(parts) > 1 and parts[0].upper() == "IEC" and parts[1].upper() in IEC_TYPES:
             return "foreign"
 
         cat = classify_std_code(logical_code)
@@ -393,17 +385,13 @@ class StandardParser:
     def _post_process_foreign(self, info: ParsedStdInfo) -> None:
         """国外标准定向后处理，按分组路由到对应 handler。"""
         raw = info.raw_filename
-        base_code = info.logical_code.split()[
-            0
-        ].upper()  # 取首段（如 "ASME BPVC"→"ASME"）
+        base_code = info.logical_code.split()[0].upper()  # 取首段（如 "ASME BPVC"→"ASME"）
         group = _FOREIGN_GROUP_MAP.get(base_code)
         if group is None:
             return
         self._dispatch_foreign_handler(info, raw, group)
 
-    def _dispatch_foreign_handler(
-        self, info: ParsedStdInfo, raw: str, group: str
-    ) -> None:
+    def _dispatch_foreign_handler(self, info: ParsedStdInfo, raw: str, group: str) -> None:
         """按组路由到对应 handler，组1/组4 无需处理直接返回。"""
         if group == "letter_class":
             self._handle_letter_class(info, raw)
@@ -478,9 +466,7 @@ class StandardParser:
         code = info.logical_code.upper()
 
         if code.startswith("GOST"):
-            m = re.search(
-                r"\bGOST\s*(?:R\s+)?(?:ISO\s+)?(\d+(?:\.\d+)+)", raw, re.IGNORECASE
-            )
+            m = re.search(r"\bGOST\s*(?:R\s+)?(?:ISO\s+)?(\d+(?:\.\d+)+)", raw, re.IGNORECASE)
             if m:
                 parts = m.group(1).split(".")
                 if len(parts) >= 3:
@@ -652,9 +638,7 @@ class StandardParser:
         # 版次标记（前后空格一并移除）
         name = re.sub(r"\s*\d+版\s*", " ", name)
         name = re.sub(r"\s*第\s*\d+\s*版\s*", " ", name)
-        name = re.sub(
-            r"\s*\d{1,2}\s*(?:st|nd|rd|th)\s*", " ", name, flags=re.IGNORECASE
-        )
+        name = re.sub(r"\s*\d{1,2}\s*(?:st|nd|rd|th)\s*", " ", name, flags=re.IGNORECASE)
         name = re.sub(r"\s*[A-Za-z]+\s+Edition\s*", " ", name, flags=re.IGNORECASE)
         # 嵌入版次-语种残留（-5th-中文版 的残留碎片）+ 孤儿版字
         name = re.sub(r"^\s*版\s*", " ", name)  # 孤儿版字（如 "版 石油..."）
@@ -666,9 +650,7 @@ class StandardParser:
         return name.strip()
 
     @staticmethod
-    def _validate_result(
-        year: int, number: int, logical_code: str, require_year: bool = True
-    ) -> bool:
+    def _validate_result(year: int, number: int, logical_code: str, require_year: bool = True) -> bool:
         """校验解析结果是否构成合法的标准编号。
 
         规则:
@@ -854,9 +836,7 @@ class StandardParser:
         part = self._extract_part(match.group("part"))
         year = self._normalize_year(match.group("year"))
         logical_code = self.code_mapping.get(prefix, prefix)
-        return self._build_result(
-            text, match.end(), logical_code, number, part, year, num_prefix, num_suffix
-        )
+        return self._build_result(text, match.end(), logical_code, number, part, year, num_prefix, num_suffix)
 
     def _exact_match_no_year(self, text: str) -> Optional[ParsedStdInfo]:
         """无年份精确匹配——仅接受带字母后缀的修订版标准（如 MIL-STD-810G）。
@@ -919,9 +899,7 @@ class StandardParser:
         else:
             logical_code = self.code_mapping.get(prefix, prefix)
 
-        return self._build_result(
-            text, match.end(), logical_code, number, part, year, num_prefix, num_suffix
-        )
+        return self._build_result(text, match.end(), logical_code, number, part, year, num_prefix, num_suffix)
 
     # ── 模糊匹配 ────────────────────────────────────────────
 
@@ -929,11 +907,7 @@ class StandardParser:
         """上下文感知模糊匹配：取最后一个年份 → 找最靠近年份的编号 → 代号验证。"""
         # 1. 找所有候选年份（1900-2099），取最后一个（实际文件名中年份通常靠后）
         year_matches = re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", raw_name)
-        year_candidates = [
-            self._normalize_year(y)
-            for y in year_matches
-            if 1900 <= self._normalize_year(y) <= 2099
-        ]
+        year_candidates = [self._normalize_year(y) for y in year_matches if 1900 <= self._normalize_year(y) <= 2099]
         if not year_candidates:
             return None
         year = year_candidates[-1]  # 取最后一个年份
@@ -951,9 +925,7 @@ class StandardParser:
 
         # 3. 提取部分号
         part = None
-        part_match = re.search(
-            rf"(?<!\d){re.escape(str(number))}\.(\d{{1,2}})", before_year
-        )
+        part_match = re.search(rf"(?<!\d){re.escape(str(number))}\.(\d{{1,2}})", before_year)
         if part_match:
             part = int(part_match.group(1))
 

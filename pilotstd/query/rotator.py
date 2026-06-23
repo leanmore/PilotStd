@@ -164,9 +164,7 @@ class SiteRotator:
                 # 里程碑日志：50%/75%/90% 阈值
                 pct = site.request_count / site.max_requests if site.max_requests else 0
                 if pct >= 0.9 or (
-                    site.max_requests > 0
-                    and site.request_count
-                    in (site.max_requests // 2, site.max_requests * 3 // 4)
+                    site.max_requests > 0 and site.request_count in (site.max_requests // 2, site.max_requests * 3 // 4)
                 ):
                     logger.info(
                         "[轮转器] 站点=%s 请求计数=%d/%d (%.0f%%) 当日计数=%d/%d",
@@ -220,9 +218,7 @@ class SiteRotator:
                     self._enter_cooldown(site)
                     self._save()
                     logger.warning(
-                        "[冷却] 站点=%s 进入冷却 原因=连续错误阈值 "
-                        "请求计数=%d 最大请求=%d 冷却秒=%d "
-                        "连续错误=%d",
+                        "[冷却] 站点=%s 进入冷却 原因=连续错误阈值 请求计数=%d 最大请求=%d 冷却秒=%d 连续错误=%d",
                         name,
                         site.request_count,
                         site.max_requests,
@@ -232,9 +228,7 @@ class SiteRotator:
                     return new_url  # type: ignore[used-before-def]
             return None
 
-    def force_cooldown(
-        self, name: str, seconds: int = DEFAULT_COOLDOWN_SECONDS
-    ) -> None:
+    def force_cooldown(self, name: str, seconds: int = DEFAULT_COOLDOWN_SECONDS) -> None:
         """强制进入冷却（如检测到被网站拒绝）。已在冷却中则跳过。"""
         with self._lock:
             site = self._sites.get(name)
@@ -263,9 +257,7 @@ class SiteRotator:
                     return False
             return True
 
-    def wait_for_any_recovery(
-        self, priority_order: List[str], timeout: int = WAIT_FOR_RECOVERY_TIMEOUT
-    ) -> bool:
+    def wait_for_any_recovery(self, priority_order: List[str], timeout: int = WAIT_FOR_RECOVERY_TIMEOUT) -> bool:
         """阻塞等待任一站点冷却恢复，最长 timeout 秒。返回 True=有站点恢复。"""
         import time as _time
 
@@ -275,9 +267,7 @@ class SiteRotator:
             with self._lock:
                 for name in priority_order:
                     site = self._sites.get(name)
-                    if site and (
-                        site.cooldown_until == 0 or now >= site.cooldown_until
-                    ):
+                    if site and (site.cooldown_until == 0 or now >= site.cooldown_until):
                         return True
             _time.sleep(5)
         return False
@@ -344,7 +334,7 @@ class SiteRotator:
             for name, site in self._sites.items():
                 target.execute(
                     "INSERT OR REPLACE INTO rotator_state "
-                    "(site_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "
+                    "(site_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "  # noqa: E501
                     "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
                     (
                         name,
@@ -383,8 +373,6 @@ class SiteRotator:
                     site.request_count = 0
                     continue
                 site.request_count = row["request_count"]
-                site.consecutive_errors = (
-                    row["consecutive_errors"] if row["cooldown_until"] > now else 0
-                )
+                site.consecutive_errors = row["consecutive_errors"] if row["cooldown_until"] > now else 0
                 if row["active_url"]:
                     site.active_url = row["active_url"]

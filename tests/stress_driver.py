@@ -3,7 +3,7 @@
 #
 # 用法（Docker 连接信息见 docs/testing/本机源码全量压力测试方案.md）:
 #   python tests/stress_driver.py --source D:\标准 --output E:\标准 --skip-docker
-#   python tests/stress_driver.py --source D:\标准 --output E:\标准 --docker-url <地址> --docker-user <用户名> --docker-pass <密码>
+#   python tests/stress_driver.py --source D:\标准 --output E:\标准 --docker-url <地址> --docker-user <用户名> --docker-pass <密码>  # noqa: E501
 #
 # 执行流程:
 #   第〇步  复位源目录 + 清 DB + 版本校验
@@ -42,12 +42,8 @@ def _parse_args():
     p = argparse.ArgumentParser(description="PilotStd 全量压力测试驱动器")
     p.add_argument("--source", required=True, help="源目录，如 D:\\标准")
     p.add_argument("--output", required=True, help="输出目录，如 E:\\标准")
-    p.add_argument(
-        "--timeout-query", type=int, default=None, help="查询超时秒数（默认不限）"
-    )
-    p.add_argument(
-        "--timeout-auto", type=int, default=None, help="auto 超时秒数（默认不限）"
-    )
+    p.add_argument("--timeout-query", type=int, default=None, help="查询超时秒数（默认不限）")
+    p.add_argument("--timeout-auto", type=int, default=None, help="auto 超时秒数（默认不限）")
     p.add_argument("--skip-winui", action="store_true", help="跳过 WinUI 步骤")
     p.add_argument("--skip-docker", action="store_true", help="跳过 Docker 步骤")
     p.add_argument("--skip-cli", action="store_true", help="跳过 CLI 冷启步骤")
@@ -66,27 +62,17 @@ def _parse_args():
         default=os.environ.get("PILOTSTD_PASSWORD", ""),
         help="Docker 管理员密码（需设置环境变量 PILOTSTD_PASSWORD）",
     )
-    p.add_argument(
-        "--db-path", default=None, help="数据库路径（默认 data/pilotstd.db）"
-    )
+    p.add_argument("--db-path", default=None, help="数据库路径（默认 data/pilotstd.db）")
     p.add_argument("--yes", action="store_true", help="跳过所有交互确认（CI/自动模式）")
-    p.add_argument(
-        "--keep-db", action="store_true", help="跳过清 DB 步骤（保留缓存和索引）"
-    )
-    p.add_argument(
-        "--winui-only", action="store_true", help="仅执行 WinUI 步骤（跳过CLI冷启）"
-    )
-    p.add_argument(
-        "--step1", default=None, help="step1.json 路径（winui-only 模式时由总入口传入）"
-    )
+    p.add_argument("--keep-db", action="store_true", help="跳过清 DB 步骤（保留缓存和索引）")
+    p.add_argument("--winui-only", action="store_true", help="仅执行 WinUI 步骤（跳过CLI冷启）")
+    p.add_argument("--step1", default=None, help="step1.json 路径（winui-only 模式时由总入口传入）")
     p.add_argument(
         "--result-dir",
         default=None,
         help="结果目录（由 stress_all 传入，统一输出位置）",
     )
-    p.add_argument(
-        "--config", default=None, help="压测配置文件路径（JSON，含 Docker/OCR 凭证）"
-    )
+    p.add_argument("--config", default=None, help="压测配置文件路径（JSON，含 Docker/OCR 凭证）")
     p.add_argument(
         "--stop-after",
         default=None,
@@ -117,9 +103,7 @@ def _log(msg):
 # ── 第〇步：环境自检 + 复位 + 清 DB ──────────────────────────
 
 
-def _step0_verify_credentials(
-    docker_url: str, docker_user: str, docker_pass: str
-) -> tuple:
+def _step0_verify_credentials(docker_url: str, docker_user: str, docker_pass: str) -> tuple:
     """凭证预检：登录 Docker API 验证凭证有效性。
 
     Returns:
@@ -156,9 +140,7 @@ def _step0_verify_credentials(
         return (False, f"凭证预检异常: {err[:80]}")
 
 
-def _step0_check_preconditions(
-    source_dir: str, output_dir: str, skip_docker: bool, docker_url: str
-):
+def _step0_check_preconditions(source_dir: str, output_dir: str, skip_docker: bool, docker_url: str):
     """逐项自检前置条件，不满足的直接退出。"""
     all_ok = True
 
@@ -262,11 +244,7 @@ def _step0_reset_source(source_dir: str, output_dir: str):
     for root, dirs, files in os.walk(output_dir):
         # 跳过非分类文件夹（downloads, logs 等）
         rel = os.path.relpath(root, output_dir)
-        if (
-            rel.startswith("logs")
-            or rel.startswith("downloads")
-            or rel.startswith("_stress")
-        ):
+        if rel.startswith("logs") or rel.startswith("downloads") or rel.startswith("_stress"):
             continue
         for f in files:
             src = os.path.join(root, f)
@@ -293,9 +271,7 @@ def _step0_reset_source(source_dir: str, output_dir: str):
 # ── 子进程安全执行工具 ───────────────────────────────────────
 
 
-def _safe_run(
-    cmd: list, timeout: int, step_name: str, env: dict, progress_timeout: int = 0
-):
+def _safe_run(cmd: list, timeout: int, step_name: str, env: dict, progress_timeout: int = 0):
     """运行子进程，流式读取 stderr 实时输出。超时/异常不崩溃。
 
     Args:
@@ -335,19 +311,13 @@ def _safe_run(
                 while not _prog_stop.wait(30.0):
                     since_last = time.time() - _last_progress[0]
                     if since_last > progress_timeout:
-                        _log(
-                            f"    ⚠ 进度心跳超时: {since_last:.0f}s 未收到 [PROGRESS]，可能卡死，请检查"
-                        )
+                        _log(f"    ⚠ 进度心跳超时: {since_last:.0f}s 未收到 [PROGRESS]，可能卡死，请检查")
 
             _t_wd = threading.Thread(target=_progress_watchdog, daemon=True)
             _t_wd.start()
 
-        t_stdout = threading.Thread(
-            target=read_stream, args=(proc.stdout, stdout_lines, "  "), daemon=True
-        )
-        t_stderr = threading.Thread(
-            target=read_stream, args=(proc.stderr, stderr_lines, "  "), daemon=True
-        )
+        t_stdout = threading.Thread(target=read_stream, args=(proc.stdout, stdout_lines, "  "), daemon=True)
+        t_stderr = threading.Thread(target=read_stream, args=(proc.stderr, stderr_lines, "  "), daemon=True)
         t_stdout.start()
         t_stderr.start()
 
@@ -399,9 +369,7 @@ def _resolve_api_token(cfg: dict) -> str:
 # ── 第一步：CLI 冷启 ─────────────────────────────────────────
 
 
-def _step1_cli_cold(
-    source_dir: str, output_dir: str, timeout_query: int, ocr_config: dict | None = None
-):
+def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_config: dict | None = None):
     """CLI 冷启分阶段。依次执行全管线，记录数据到 step1.json。"""
     _log("=" * 50)
     _log("第一步：CLI 冷启分阶段")
@@ -417,9 +385,7 @@ def _step1_cli_cold(
         env["OCR_TENCENT_SECRET_ID"] = ocr_config.get("tencent_secret_id", "")
         env["OCR_TENCENT_SECRET_KEY"] = ocr_config.get("tencent_secret_key", "")
         env["OCR_ALIYUN_ACCESS_KEY_ID"] = ocr_config.get("aliyun_access_key_id", "")
-        env["OCR_ALIYUN_ACCESS_KEY_SECRET"] = ocr_config.get(
-            "aliyun_access_key_secret", ""
-        )
+        env["OCR_ALIYUN_ACCESS_KEY_SECRET"] = ocr_config.get("aliyun_access_key_secret", "")
         _providers = []
         if ocr_config.get("baidu_api_key"):
             _providers.append("百度")
@@ -463,21 +429,13 @@ def _step1_cli_cold(
                 scan_data = json.loads(scan_r.stdout if scan_r.stdout else "[]")
                 scan_count = len(scan_data)
             except json.JSONDecodeError:
-                scan_count = len(
-                    [
-                        line
-                        for line in (scan_r.stdout or "").splitlines()
-                        if line.strip()
-                    ]
-                )
+                scan_count = len([line for line in (scan_r.stdout or "").splitlines() if line.strip()])
         results["checkpoints"]["scan"] = {
             "count": scan_count,
             "rc": scan_r.returncode,
             "elapsed_s": round(time.time() - t0, 1),
         }
-        _log(
-            f"    scan: {scan_count} 条, rc={scan_r.returncode}, {results['checkpoints']['scan']['elapsed_s']}s"
-        )
+        _log(f"    scan: {scan_count} 条, rc={scan_r.returncode}, {results['checkpoints']['scan']['elapsed_s']}s")
     except subprocess.TimeoutExpired:
         _log("    scan: 超时")
         results["checkpoints"]["scan"] = {
@@ -516,9 +474,7 @@ def _step1_cli_cold(
                             fn += f"-{item.get('year', '')}"
                         f.write(fn + "\n")
             except json.JSONDecodeError:
-                _log(
-                    "    scan JSON 解析失败，标准号列表可能为空（检查日志是否混入 stdout）"
-                )
+                _log("    scan JSON 解析失败，标准号列表可能为空（检查日志是否混入 stdout）")
 
     # 安全校验：nums 文件为空时提前终止查询
     nums_lines = 0
@@ -659,9 +615,7 @@ def _step1_cli_cold(
                     }
                 )
             # 解析 CSRES_INTERVAL 日志（每条约 5-10s）
-            mi = re.match(
-                r".*\[CSRES_INTERVAL\]\s+actual=([\d.]+)s\s+target=([\d.]+)s", line
-            )
+            mi = re.match(r".*\[CSRES_INTERVAL\]\s+actual=([\d.]+)s\s+target=([\d.]+)s", line)
             if mi:
                 _matched = True
                 if "csres_intervals" not in results["checkpoints"]["query"]:
@@ -680,9 +634,7 @@ def _step1_cli_cold(
             if m7:
                 _matched = True
                 overflow_count = int(m7.group(1))
-            m8 = re.match(
-                r".*\[WATER\]\s+ahbz_overflow_remain=(\d+)\s+njbz365_remain=(\d+)", line
-            )
+            m8 = re.match(r".*\[WATER\]\s+ahbz_overflow_remain=(\d+)\s+njbz365_remain=(\d+)", line)
             if m8:
                 _matched = True
                 water_level = {
@@ -737,24 +689,20 @@ def _step1_cli_cold(
         if water_level:
             results["checkpoints"]["query"]["water_level"] = water_level
         _log(
-            f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}"
+            f"    query: download={dl_count} expire={ex_count} pending={pe_count} exact={exact_count}, rc={r.get('returncode', 0)}"  # noqa: E501
         )
         if bucket_stats:
             _log(f"    bucket_stats: {bucket_stats}")
         if funnel:
             _log(
-                f"    funnel: total={funnel['total']} ok={funnel['ok']} overflow={funnel['overflow']} pending={funnel['pending']} elapsed={timeline_elapsed}s"
+                f"    funnel: total={funnel['total']} ok={funnel['ok']} overflow={funnel['overflow']} pending={funnel['pending']} elapsed={timeline_elapsed}s"  # noqa: E501
             )
         if csres_info:
-            _log(
-                f"    csres: processed={csres_info['processed']} failures={csres_info['failures']}"
-            )
+            _log(f"    csres: processed={csres_info['processed']} failures={csres_info['failures']}")
         if overflow_count:
             _log(f"    overflow_events: {overflow_count}")
         if water_level:
-            _log(
-                f"    water: ahbz_remain={water_level['ahbz_remain']} njbz_remain={water_level['njbz_remain']}"
-            )
+            _log(f"    water: ahbz_remain={water_level['ahbz_remain']} njbz_remain={water_level['njbz_remain']}")
     else:
         query_failed = True
         results["checkpoints"]["query"] = {
@@ -891,9 +839,7 @@ def _step1_cli_cold(
         except Exception:
             pass
         results["checkpoints"]["organize"]["file_index_rows"] = _fi_count
-        _log(
-            f"    organize: moved={org_moved}, file_index={_fi_count} rows, rc={r.returncode}"
-        )
+        _log(f"    organize: moved={org_moved}, file_index={_fi_count} rows, rc={r.returncode}")
     except subprocess.TimeoutExpired:
         _log("    organize: 超时")
         results["checkpoints"]["organize"] = {
@@ -911,14 +857,11 @@ def _step1_cli_cold(
 
     # ── 关键步骤失败检测：scan/query/normalize/organize 任一失败则终止 ──
     _critical_ok = all(
-        results["checkpoints"].get(s, {}).get("rc", 1) == 0
-        for s in ("scan", "query", "normalize", "organize")
+        results["checkpoints"].get(s, {}).get("rc", 1) == 0 for s in ("scan", "query", "normalize", "organize")
     )
     if not _critical_ok:
         _failed = [
-            s
-            for s in ("scan", "query", "normalize", "organize")
-            if results["checkpoints"].get(s, {}).get("rc", 1) != 0
+            s for s in ("scan", "query", "normalize", "organize") if results["checkpoints"].get(s, {}).get("rc", 1) != 0
         ]
         _log(f"关键步骤失败: {', '.join(_failed)}，跳过 expire/announce/task/recheck")
         # 为非关键步骤填充跳过状态
@@ -1010,24 +953,12 @@ def _step1_cli_cold(
 
         # OCR 凭证优先从 --config JSON 读取，空值回退到 ConfigManager
         _ocr_cfg = ocr_config or {}
-        _ocr_baidu_key = _ocr_cfg.get("baidu_api_key") or cfg.get(
-            "ocr.baidu_api_key", ""
-        )
-        _ocr_baidu_sec = _ocr_cfg.get("baidu_secret_key") or cfg.get(
-            "ocr.baidu_secret_key", ""
-        )
-        _ocr_tc_id = _ocr_cfg.get("tencent_secret_id") or cfg.get(
-            "ocr.tencent_secret_id", ""
-        )
-        _ocr_tc_key = _ocr_cfg.get("tencent_secret_key") or cfg.get(
-            "ocr.tencent_secret_key", ""
-        )
-        _ocr_ali_id = _ocr_cfg.get("aliyun_access_key_id") or cfg.get(
-            "ocr.aliyun_access_key_id", ""
-        )
-        _ocr_ali_key = _ocr_cfg.get("aliyun_access_key_secret") or cfg.get(
-            "ocr.aliyun_access_key_secret", ""
-        )
+        _ocr_baidu_key = _ocr_cfg.get("baidu_api_key") or cfg.get("ocr.baidu_api_key", "")
+        _ocr_baidu_sec = _ocr_cfg.get("baidu_secret_key") or cfg.get("ocr.baidu_secret_key", "")
+        _ocr_tc_id = _ocr_cfg.get("tencent_secret_id") or cfg.get("ocr.tencent_secret_id", "")
+        _ocr_tc_key = _ocr_cfg.get("tencent_secret_key") or cfg.get("ocr.tencent_secret_key", "")
+        _ocr_ali_id = _ocr_cfg.get("aliyun_access_key_id") or cfg.get("ocr.aliyun_access_key_id", "")
+        _ocr_ali_key = _ocr_cfg.get("aliyun_access_key_secret") or cfg.get("ocr.aliyun_access_key_secret", "")
         _ocr_local = {
             "baidu_api_key": _ocr_baidu_key,
             "baidu_secret_key": _ocr_baidu_sec,
@@ -1036,9 +967,7 @@ def _step1_cli_cold(
             "aliyun_access_key_id": _ocr_ali_id,
             "aliyun_access_key_secret": _ocr_ali_key,
         }
-        ocr_provider = (
-            create_ocr_provider(_ocr_local) if any(_ocr_local.values()) else None
-        )
+        ocr_provider = create_ocr_provider(_ocr_local) if any(_ocr_local.values()) else None
         _log(f"    OCR provider: {ocr_provider.name if ocr_provider else 'None'}")
 
         for atype, AdapterCls in [
@@ -1089,16 +1018,12 @@ def _step1_cli_cold(
                 adapter._fetch_list = _limited_fetch.__get__(adapter, type(adapter))  # type: ignore[method-assign]
 
                 # 复用现有逻辑：fetch + parse + match
-                items = adapter.fetch_announcements(
-                    since_date="", ocr_provider=ocr_provider
-                )
+                items = adapter.fetch_announcements(since_date="", ocr_provider=ocr_provider)
                 if not items:
                     _log(f"    announce {atype}: 无公告/解析为空")
                     continue
                 announce_total += len(items)
-                result = matcher.match_and_update(
-                    items, source_site=adapter.source_site
-                )
+                result = matcher.match_and_update(items, source_site=adapter.source_site)
                 _log(
                     f"    announce {atype}: {len(items)} 条标准, "
                     f"matched={result.get('matched', 0)} "
@@ -1117,18 +1042,14 @@ def _step1_cli_cold(
     }
 
     # ── 1.7.1 cache_lookup：公告缓存连通性验证 ──
-    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get(
-        "PILOTSTD_WEB_API_URL", ""
-    )
+    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get("PILOTSTD_WEB_API_URL", "")
     if web_api_url and announce_total > 0:
         _log("  1.7.1 cache_lookup (公告缓存连通性验证)...")
         # 从 scan 结果取前 5 个标准号
         _lookup_nums = []
         try:
             with open(nums_file, "r", encoding="utf-8") as _f:
-                _lookup_nums = [
-                    line.strip() for line in _f.readlines()[:5] if line.strip()
-                ]
+                _lookup_nums = [line.strip() for line in _f.readlines()[:5] if line.strip()]
         except Exception:
             pass
         if _lookup_nums:
@@ -1139,9 +1060,7 @@ def _step1_cli_cold(
 
             for _num in _lookup_nums:
                 try:
-                    _lookup_url = (
-                        f"{web_api_url}/api/announce/lookup?number={_up.quote(_num)}"
-                    )
+                    _lookup_url = f"{web_api_url}/api/announce/lookup?number={_up.quote(_num)}"
                     _api_key_hdr = os.environ.get("PILOTSTD_API_KEY", "")
                     _hdr = {}
                     if _api_key_hdr:
@@ -1160,8 +1079,7 @@ def _step1_cli_cold(
                     _cache_misses += 1
                     _log(f"    cache_lookup {_num}: 异常 {_e}")
             _log(
-                f"    cache_lookup 完成: hits={_cache_hits} misses={_cache_misses} "
-                f"total={_cache_hits + _cache_misses}"
+                f"    cache_lookup 完成: hits={_cache_hits} misses={_cache_misses} total={_cache_hits + _cache_misses}"
             )
             results["checkpoints"]["cache_lookup"] = {
                 "hits": _cache_hits,
@@ -1251,13 +1169,9 @@ def _step1_cli_cold(
 
             db_path = _os.path.join(get_data_dir(), "pilotstd.db")
             db = Database(db_path)
-            _ann_rows = db.fetchall(
-                "SELECT COUNT(DISTINCT standard_number) as c FROM announcement_cache"
-            )
+            _ann_rows = db.fetchall("SELECT COUNT(DISTINCT standard_number) as c FROM announcement_cache")
             recheck_checked = _ann_rows[0]["c"] if _ann_rows else 0
-            recheck_updated = (
-                results["checkpoints"].get("announce", {}).get("total_ann", 0)
-            )
+            recheck_updated = results["checkpoints"].get("announce", {}).get("total_ann", 0)
             _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
         except Exception as e:
             _log(f"    recheck: 异常 {e}")
@@ -1310,9 +1224,7 @@ def _step2_winui_hot(
     乙轮：use_announcement_cache=true → Web 缓存命中 + 来源标注验证
     """
     config_path = os.path.join(ROOT, "data", "config.json")
-    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get(
-        "PILOTSTD_WEB_API_URL", ""
-    )
+    web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get("PILOTSTD_WEB_API_URL", "")
 
     rounds = [
         {
@@ -1358,11 +1270,7 @@ def _step2_winui_hot(
             json.dump(cfg_json, f, ensure_ascii=False, indent=2)
         _log(
             f"  配置已写入: use_announcement_cache={ri['cache_enabled']}"
-            + (
-                f" announcement_url={ri['announcement_url']}"
-                if ri["announcement_url"]
-                else ""
-            )
+            + (f" announcement_url={ri['announcement_url']}" if ri["announcement_url"] else "")
         )
 
         # 2. 执行 pytest
@@ -1418,9 +1326,7 @@ def _step2_winui_hot(
         except Exception as e:
             _log(f"  {ri['name']} pytest: 异常 {e}")
 
-        round_results.append(
-            {"round": ri["name"], "passed": round_ok, "step2": step2_path}
-        )
+        round_results.append({"round": ri["name"], "passed": round_ok, "step2": step2_path})
         if not round_ok:
             overall_ok = False
             if ri["cache_enabled"]:
@@ -1597,9 +1503,7 @@ def _step4_verdict(
     if skip_docker:
         lines.append("凭证预检: SKIP — Docker 步骤已跳过")
     else:
-        lines.append(
-            f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}"
-        )
+        lines.append(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
         if not credential_ok:
             verdict = "FAIL"
     lines.append(f"第一步 CLI 冷启: {'PASS' if step1_ok else 'FAIL'}")
@@ -1648,28 +1552,22 @@ def _step4_verdict(
                 exit_ = actions.get("exit", 0)
                 status = actions.get("status", 0)
                 overflow = actions.get("overflow_skip", 0)
-                _log(
-                    f"  冷却详情 site={site} enter={enter} exit={exit_} status={status} overflow_skip={overflow}"
-                )
+                _log(f"  冷却详情 site={site} enter={enter} exit={exit_} status={status} overflow_skip={overflow}")
         if milestones:
             _log(f"  ROTATOR里程碑: {len(milestones)} 条")
             for m in milestones:
                 _log(
-                    f"    {m['site']} {m['request_count']}/{m['max_requests']} ({m['pct']}%) daily={m['daily_count']}/{m['daily_limit']}"
+                    f"    {m['site']} {m['request_count']}/{m['max_requests']} ({m['pct']}%) daily={m['daily_count']}/{m['daily_limit']}"  # noqa: E501
                 )
         if csres:
-            _log(
-                f"csres: processed={csres.get('processed', '?')} failures={csres.get('failures', '?')}"
-            )
+            _log(f"csres: processed={csres.get('processed', '?')} failures={csres.get('failures', '?')}")
         if csres_intervals:
             actuals = [x["actual"] for x in csres_intervals]
             _log(
-                f"csres间隔: min={min(actuals):.1f}s max={max(actuals):.1f}s avg={sum(actuals) / len(actuals):.1f}s count={len(actuals)}"
+                f"csres间隔: min={min(actuals):.1f}s max={max(actuals):.1f}s avg={sum(actuals) / len(actuals):.1f}s count={len(actuals)}"  # noqa: E501
             )
         if water:
-            _log(
-                f"water: ahbz_remain={water.get('ahbz_remain', '?')} njbz_remain={water.get('njbz_remain', '?')}"
-            )
+            _log(f"water: ahbz_remain={water.get('ahbz_remain', '?')} njbz_remain={water.get('njbz_remain', '?')}")
         _log("基线(0617逐轮): pending=206 elapsed=1440s cooled=1348")
         if funnel.get("pending", 999) <= 206 and cooldown == 0:
             _log("逐桶对比: 优于基线 ✓")
@@ -1700,9 +1598,7 @@ def _step4_verdict(
                 _auth_total = _s3_ext.get("auth_total", 0)
                 _auth_pass = _s3_ext.get("auth_pass", 0)
                 if _auth_total > 0:
-                    _log(
-                        f"API Key 鉴权通过率: {_auth_pass / _auth_total * 100:.0f}% ({_auth_pass}/{_auth_total})"
-                    )
+                    _log(f"API Key 鉴权通过率: {_auth_pass / _auth_total * 100:.0f}% ({_auth_pass}/{_auth_total})")
         except Exception:
             pass
 
@@ -1793,9 +1689,7 @@ def main():
             if step3_ok:
                 _log("取回远端 Docker 日志...")
                 _fetch_remote_logs(docker_url, docker_user, docker_pass)
-        verdict = _step4_verdict(
-            True, step2_ok, step3_ok, False, args.skip_docker, None
-        )
+        verdict = _step4_verdict(True, step2_ok, step3_ok, False, args.skip_docker, None)
         return 0 if verdict == "PASS" else 1
 
     # 第〇步：环境自检
@@ -1812,9 +1706,7 @@ def main():
     # 第〇步：复位 + 清 DB（仅当需要执行 CLI 或 WinUI 时才做）
     # --stop-after=cli 时跳过复位和清DB，保留数据供后续热启使用
     _stop_after_cli = getattr(args, "stop_after", None) == "cli"
-    _skip_reset = (
-        getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)
-    ) or _stop_after_cli
+    _skip_reset = (getattr(args, "skip_cli", False) and getattr(args, "skip_winui", False)) or _stop_after_cli
     if _skip_reset:
         _log("第〇步：跳过复位源目录 + 清 DB（--skip-cli --skip-winui）")
     else:
@@ -1850,9 +1742,7 @@ def main():
     credential_detail = ""
     if not args.skip_docker and docker_url:
         _log("凭证预检...")
-        credential_ok, credential_detail = _step0_verify_credentials(
-            docker_url, docker_user, docker_pass
-        )
+        credential_ok, credential_detail = _step0_verify_credentials(docker_url, docker_user, docker_pass)
         _log(f"凭证预检: {'PASS' if credential_ok else 'FAIL'} — {credential_detail}")
         if not credential_ok:
             _log("凭证无效，终止后续步骤")
@@ -1940,7 +1830,7 @@ def main():
                 _terminated_early = True
                 _terminated_step = "query"
                 _log(
-                    f"压测终止 — query 结果不足 (found={_q_total}, scan={_scan_count}, rate={_q_rate:.1%}, 需≥10% 或 ≥50)"
+                    f"压测终止 — query 结果不足 (found={_q_total}, scan={_scan_count}, rate={_q_rate:.1%}, 需≥10% 或 ≥50)"  # noqa: E501
                 )
 
         # normalize: rc≠0 → 终止
@@ -1999,9 +1889,7 @@ def main():
                 f"ann_total={s.get('announce_total', 0)} ann_rc={s.get('announce_rc', -1)}"
             )
             if org_moved > 0:
-                _log(
-                    f"=== organize 已移动 {org_moved} 个文件到 {args.output}，请手动迁回 {args.source} ==="
-                )
+                _log(f"=== organize 已移动 {org_moved} 个文件到 {args.output}，请手动迁回 {args.source} ===")
             else:
                 _log("=== organize 未移动文件，源目录未变动 ===")
             if _yes(args) or org_moved == 0:
@@ -2061,14 +1949,9 @@ def main():
         )
         # 展示交叉对比结果
         try:
-            with open(
-                os.path.join(RESULT_DIR, "step2.json"), "r", encoding="utf-8"
-            ) as f:
+            with open(os.path.join(RESULT_DIR, "step2.json"), "r", encoding="utf-8") as f:
                 step2_data = json.load(f)
-            _log(
-                f"WinUI 完成: 判定={step2_data.get('verdict', '?')} "
-                f"耗时={step2_data.get('elapsed_s', 0)}s"
-            )
+            _log(f"WinUI 完成: 判定={step2_data.get('verdict', '?')} 耗时={step2_data.get('elapsed_s', 0)}s")
             for c in step2_data.get("comparisons", []):
                 _log(
                     f"  交叉对比 {c.get('item', '')}: CLI={c.get('cli_expected', '')} "
@@ -2099,9 +1982,7 @@ def main():
                     _log("适配器统计: FAIL — 总查询数为 0，record_query_result 未生效")
                     adapter_report_ok = False
                 else:
-                    _log(
-                        f"适配器统计: PASS — {len(_report)} 个适配器, 总查询={_total_q}"
-                    )
+                    _log(f"适配器统计: PASS — {len(_report)} 个适配器, 总查询={_total_q}")
                     for _r in _report:
                         _log(
                             f"  {_r['adapter_name']}: queries={_r['total_queries']} "

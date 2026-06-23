@@ -98,9 +98,7 @@ def extract_sha256_from_body(body: str) -> str:
     return ""
 
 
-def download_update(
-    download_url: str, save_path: str, expected_sha256: str = ""
-) -> bool:
+def download_update(download_url: str, save_path: str, expected_sha256: str = "") -> bool:
     """下载更新包并校验完整性。
 
     校验项：Content-Length 大小匹配、合法 zip 格式、SHA256（如提供）。
@@ -124,9 +122,7 @@ def download_update(
 
         # Content-Length 大小校验
         if expected_size and actual_size != expected_size:
-            logger.error(
-                "下载不完整：期望 %s 字节，实际 %s", expected_size, actual_size
-            )
+            logger.error("下载不完整：期望 %s 字节，实际 %s", expected_size, actual_size)
             return False
 
         # 合法 zip 校验
@@ -175,7 +171,7 @@ def generate_update_script(zip_path: str, exe_dir: str) -> str:
         'tasklist /fi "IMAGENAME eq PilotStd.exe" 2>nul | find /i "PilotStd.exe" >nul\r\n'
         "if not errorlevel 1 goto wait\r\n"
         "echo 正在解压更新...\r\n"
-        f'powershell -Command "Start-Process -Verb RunAs -ArgumentList \'Expand-Archive -Path \\"{zip_path}\\" -DestinationPath \\"{exe_dir}\\" -Force\'" \r\n'
+        f'powershell -Command "Start-Process -Verb RunAs -ArgumentList \'Expand-Archive -Path \\"{zip_path}\\" -DestinationPath \\"{exe_dir}\\" -Force\'" \r\n'  # noqa: E501
         f'if exist "{zip_path}" del /q "{zip_path}"\r\n'
         "echo 更新完成，正在启动...\r\n"
         f'start "" "{exe_path}"\r\n'

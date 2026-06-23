@@ -17,7 +17,9 @@ MAX_REDIRECTS = 5  # 最大重定向次数，防恶意重定向链
 DEFAULT_TIMEOUT = 15  # 默认请求超时秒数
 
 # 通用 User-Agent（公告适配器等模块可复用）
-CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+CHROME_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"  # noqa: E501
+)
 
 
 class NetworkMonitor:
