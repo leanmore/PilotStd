@@ -19,6 +19,7 @@ services:
       - ./logs:/app/logs
       - ./inbox:/inbox               # 监控目录——放待处理的文件
       - ${STANDARD_ROOT:-./standards}:/standards  # 标准库——归档目标
+      - ./.env:/app/.env             # 安全凭证——令牌刷新后持久化
       - /var/run/docker.sock:/var/run/docker.sock  # Docker 自更新（容器内 docker pull + restart）
     environment:
       - TZ=Asia/Shanghai

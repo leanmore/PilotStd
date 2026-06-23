@@ -1,5 +1,9 @@
 # tests/stress_driver.py
-# 全量压力测试驱动器 — 按 docs/testing/本机源码全量压力测试方案.md v4.2 执行
+# ⚠️ DEPRECATED — 已拆分为 stress_runner.py + stress_cli.py + stress_docker.py
+# 本文件保留供 stress_cli.py 导入 _step1_cli_cold / _step1_precheck 等函数
+# 新代码请使用: python tests/stress_runner.py --source ... --output ... --config ... --yes
+#
+# 全量压力测试驱动器 — 按 docs/压力测试方案.md v8.0 执行
 #
 # 用法（Docker 连接信息见 docs/testing/本机源码全量压力测试方案.md）:
 #   python tests/stress_driver.py --source D:\标准 --output E:\标准 --skip-docker
@@ -23,6 +27,11 @@ import sys
 import threading
 import time
 from datetime import datetime
+
+# 加载项目 .env 文件，确保 PILOTSTD_API_TOKEN 等环境变量可用
+from dotenv import load_dotenv as _load_dotenv
+
+_load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # 强制 stdout 使用 utf-8 编码（Windows 默认 GBK 无法输出 Docker 日志中的 Unicode 字符）
 if sys.stdout.encoding != "utf-8":

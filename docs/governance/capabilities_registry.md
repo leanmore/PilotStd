@@ -57,7 +57,7 @@
 | 待确认冷却刷新 | `pilotstd/ui/pending_query_dialog.py` | L113 | L113 | active | 1000ms 持续触发，每秒更新冷却倒计时状态 |
 | 节流进度发射器 | `pilotstd/ui/controllers/auto_run_mixin.py` | L26 | L26 | active | 500ms 节流，防止 Qt 事件循环合并高频信号导致进度条跳变 |
 | 压力测试看门狗 | `tests/stress_driver.py` | `_progress_watchdog()` | L313-319 | active | 每 30s 检查子进程 `[PROGRESS]`，超时 180s 则告警 |
-| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L561-562 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
+| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L570-571 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
 | 压力测试 Web 心跳 | `tests/stress_web.py` | L112, 784 | L111, 821 | active | 与 engine 层格式统一的 60s 进度日志；完成消息在 L784 |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |
 | 已废弃-旧管道 heartbeat() | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` |

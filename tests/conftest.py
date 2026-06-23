@@ -9,9 +9,12 @@ from pilotstd.core.db import Database
 collect_ignore = [
     "stress_selfcheck.py",
     "stress_web.py",
+    "stress_docker.py",
+    "stress_cli.py",
+    "stress_runner.py",
     "gui",
-    "stress_driver.py",
-    "stress_winui.py",  # 由 stress_driver.py 显式调用，不走自动收集
+    "stress_driver.py",  # 已废弃，由 stress_runner.py + stress_cli.py 替代
+    "stress_winui.py",  # 由 stress_runner.py 显式调用，不走自动收集
 ]
 
 
@@ -44,10 +47,7 @@ _SHARED_CLEAN_TABLES = [
 @pytest.fixture(autouse=True)
 def _clean_shared_db(shared_db):
     """每次测试前清理共享数据库的所有用户数据表，确保测试隔离。"""
-    existing = {
-        r["name"]
-        for r in shared_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")
-    }
+    existing = {r["name"] for r in shared_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")}
     for table in _SHARED_CLEAN_TABLES:
         if table in existing:
             try:
