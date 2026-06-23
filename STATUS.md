@@ -375,3 +375,53 @@
 - ⏳ 待迁移：尚未开始
 - ⛔ 暂停：因架构原因暂缓
 - ❌ 废弃：不再需要，已删除
+
+## 八、公告同步触发方式分析（2026-06-23）
+
+### 结论
+
+**公告同步是主动触发，不存在被动懒加载或预热机制。**
+
+`announcement_cache` 表必须通过手动或定时执行公告检查来填充，查询路径不会自动触发抓取。
+
+### 触发入口一览
+
+| 平台 | 入口 | 类型 | 关键代码 |
+|------|------|------|---------|
+| WinUI | 工具栏"公告检查"按钮 | 手动点击 | [announce_mixin.py:31](pilotstd/ui/controllers/announce_mixin.py#L31) `_on_check_announcements()` |
+| CLI | `pilotstd announce` | 命令行 | [commands.py:296](pilotstd/cli/commands.py#L296) `cmd_announce()` |
+| Docker API | `POST /api/announce/check` | HTTP 请求 | [announce.py:65](docker/api/announce.py#L65) `api_check_announce()` |
+| Docker 定时 | `auto_announce` cron 任务 | 定时调度 | [scheduler.py:151](docker/scheduler.py#L151) `start_scheduler()` |
+
+### 调用链
+
+```
+入口 (CLI/API/UI按钮)
+  → StandardManager.check_announcements_filtered()  [facade.py:941]
+    → AnnounceService.check_announcements_filtered()  [announce_service.py:108]
+      → AnnounceEngine.check_one()                    [engine.py]
+        → BaseAnnounceAdapter.fetch_announcements()   [base.py:179]
+          → AnnouncementMatcher.match_and_update()    [matcher.py]
+            → _update_cache()                         [matcher.py:104]
+              → INSERT INTO announcement_cache         [matcher.py:168-173]
+```
+
+### 预热机制
+
+**不存在。** 全量搜索 `preheat|预热|seed.*cache|populate.*announce|预置|预灌` 在 `pilotstd/` 和 `docker/` 目录下命中 0 条。
+
+Docker `lifespan` 启动时仅注册任务函数 + 启动调度器，**不立即执行公告检查**。`auto_announce` 任务默认关闭（`tasks.auto_announce_enabled` 默认为 `False`）。
+
+### Docker 端启用自动公告同步
+
+在配置中设置：
+```json
+{
+  "tasks.auto_announce_enabled": true,
+  "tasks.auto_announce_cron": "0 1 * * *"
+}
+```
+
+### BIZ-12 影响
+
+压测用例 BIZ-12 依赖 `announcement_cache` 中有预置数据才能返回 `found=True`。当前无自动预热，需手动执行一次公告检查（如 `POST /api/announce/check`）或通过外部脚本预灌缓存数据。
