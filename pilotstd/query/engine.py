@@ -125,11 +125,7 @@ class QueryEngine:
 
     def is_idle(self) -> bool:
         """查询引擎是否完全空闲（无查询、无溢出、CSRES 已结束）。"""
-        return (
-            not self._query_active
-            and self._overflow_item_count == 0
-            and not self._csres_active
-        )
+        return not self._query_active and self._overflow_item_count == 0 and not self._csres_active
 
     def query_parsed(
         self,
@@ -162,9 +158,7 @@ class QueryEngine:
             self._rotator.wait_for_any_recovery([a.site_name for a in self._adapters])
             priority = self._get_priority(logical_code)
             logger.info("站点冷却恢复，继续查询")
-        logger.debug(
-            f"查询 [{target}] 路由={'→'.join(priority) if priority else '(全部冷却)'}"
-        )
+        logger.debug(f"查询 [{target}] 路由={'→'.join(priority) if priority else '(全部冷却)'}")
 
         quota_exhausted = True
         tried: list[str] = []
@@ -177,9 +171,7 @@ class QueryEngine:
                 continue
             quota_exhausted = False
             tried.append(name)
-            result = adapter.query_with_strategy(
-                logical_code, number, year, std_name, part, num_prefix=num_prefix
-)
+            result = adapter.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
             if result and result.is_found():
                 result.source_site = adapter.site_name
                 if not result.standard_number:
@@ -189,9 +181,7 @@ class QueryEngine:
                 if getattr(result, "match_status", "") == "exact":
                     self._cache.put(result)
                 self._record(name, 1)
-                logger.info(
-                    f"查询 [{target}] ✓{name}({result.match_status}) tried={'→'.join(tried)}"
-                )
+                logger.info(f"查询 [{target}] ✓{name}({result.match_status}) tried={'→'.join(tried)}")
                 return result
 
         if quota_exhausted:
@@ -283,9 +273,7 @@ class QueryEngine:
                     fallback = str(type_route.get("fallback", ""))
                     base = [primary] if primary else []
                     # 补充中间站点（ahbz、njbz365 等）
-                    extras = [
-                        s for s in PROD_PRIORITY if s not in base and s != fallback
-                    ]
+                    extras = [s for s in PROD_PRIORITY if s not in base and s != fallback]
                     base.extend(extras[:2])  # 最多加 2 个中间站点
                     if fallback and fallback not in base:
                         base.append(fallback)
@@ -300,20 +288,11 @@ class QueryEngine:
                 from ..scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
 
                 code_no_space = logical_code.upper().replace(" ", "")
-                is_foreign = any(
-                    code_no_space.startswith(fc.upper().replace(" ", ""))
-                    for fc in FOREIGN_CODE_SET
-                )
+                is_foreign = any(code_no_space.startswith(fc.upper().replace(" ", "")) for fc in FOREIGN_CODE_SET)
                 if not is_foreign:
-                    is_foreign = any(
-                        logical_code.upper().startswith(itu.upper())
-                        for itu in ITU_CODES
-                    )
+                    is_foreign = any(logical_code.upper().startswith(itu.upper()) for itu in ITU_CODES)
                 if not is_foreign:
-                    is_foreign = any(
-                        logical_code.upper().startswith(cac.upper())
-                        for cac in CAC_PREFIXES
-                    )
+                    is_foreign = any(logical_code.upper().startswith(cac.upper()) for cac in CAC_PREFIXES)
                 if is_foreign:
                     base = list(FOREIGN_ROUTE)
                 elif len(logical_code) <= 4:
@@ -325,9 +304,7 @@ class QueryEngine:
 
         # 步骤2：用户自定义优先级叠加（置顶）
         if self._site_order:
-            base = list(self._site_order) + [
-                s for s in base if s not in self._site_order
-            ]
+            base = list(self._site_order) + [s for s in base if s not in self._site_order]
 
         # 步骤3：站点轮转过滤（冷却中的站点暂时跳过）
         if self._rotator:
@@ -381,9 +358,7 @@ class QueryEngine:
         priority = self._get_priority(logical_code)
         return priority[0] if priority else "other"
 
-    def _build_chain_for_item(
-        self, item: Tuple[str, int, int, str, Optional[int], str]
-    ) -> list[str]:
+    def _build_chain_for_item(self, item: Tuple[str, int, int, str, Optional[int], str]) -> list[str]:
         """返回条目对应的完整优先级链（不含 csres）。"""
         logical_code = item[0]
         chain = self._get_priority(logical_code)
@@ -474,9 +449,7 @@ class QueryEngine:
 
         def _csres_worker(
             gb_items: list[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
-            industry_items: list[
-                Tuple[int, Tuple[str, int, int, str, Optional[int], str]]
-            ],
+            industry_items: list[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
         ) -> None:
             adapter = self._adapter_map.get("csres")
             if not adapter:
@@ -496,9 +469,7 @@ class QueryEngine:
                     break
                 _t0 = _time.time()
                 try:
-                    result = adapter.query_with_strategy(
-                        item[0], item[1], item[2], num_prefix=item[3], part=item[4]
-                    )
+                    result = adapter.query_with_strategy(item[0], item[1], item[2], num_prefix=item[3], part=item[4])
                     _elapsed = round(_time.time() - _t0, 3)
                     if self._rotator:
                         self._rotator.record_query_result(
@@ -568,9 +539,7 @@ class QueryEngine:
                 site_usage[site] = site_usage.get(site, 0) + 1
 
         # 追踪结构
-        overflow_events: list[
-            tuple[float, str, str, int]
-        ] = []  # (timestamp, from_bucket, to_site, idx)
+        overflow_events: list[tuple[float, str, str, int]] = []  # (timestamp, from_bucket, to_site, idx)
         match_scores: Dict[str, Dict[str, int]] = {}  # {site: {match_status: count}}
         item_chains: Dict[int, list[str]] = {}  # {idx: [site1, site2, ...]}
         pending_reasons: list[tuple[int, str]] = []  # [(idx, chain_str)]
@@ -583,13 +552,9 @@ class QueryEngine:
                 match_scores[site][status] = match_scores[site].get(status, 0) + 1
 
         def _bucket_worker(
-            bucket_items: List[
-                Tuple[int, Tuple[str, int, int, str, Optional[int], str]]
-            ],
+            bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
             primary_site: str,
-        ) -> tuple[
-            List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]], float, int
-        ]:
+        ) -> tuple[List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]], float, int]:
             """二次分桶：按权重拆分为小桶(50条) → 错峰5s → 冷却/配额感知。
 
             支持两种分配模式：
@@ -623,17 +588,11 @@ class QueryEngine:
                             cooled_sites.add(site)
                 active_weights = list(weights)
                 if cooled_sites:
-                    cooled_w = sum(
-                        w for w, s in zip(weights, chain) if s in cooled_sites
-                    )
-                    active_total = sum(
-                        w for w, s in zip(weights, chain) if s not in cooled_sites
-                    )
+                    cooled_w = sum(w for w, s in zip(weights, chain) if s in cooled_sites)
+                    active_total = sum(w for w, s in zip(weights, chain) if s not in cooled_sites)
                     if active_total > 0:
                         active_weights = [
-                            0
-                            if s in cooled_sites
-                            else w + round(cooled_w * w / active_total)
+                            0 if s in cooled_sites else w + round(cooled_w * w / active_total)
                             for w, s in zip(weights, chain)
                         ]
                         logger.info(
@@ -698,16 +657,10 @@ class QueryEngine:
                     _time.sleep(self._MINI_BUCKET_STAGGER)
 
                 # 冷却/配额二次确认
-                if (
-                    self._rotator
-                    and self._rotator.get_cooldown_remaining(assigned_site) > 0
-                ):
+                if self._rotator and self._rotator.get_cooldown_remaining(assigned_site) > 0:
                     fallback_site = None
                     for s in chain:
-                        if s != assigned_site and (
-                            not self._rotator
-                            or self._rotator.get_cooldown_remaining(s) <= 0
-                        ):
+                        if s != assigned_site and (not self._rotator or self._rotator.get_cooldown_remaining(s) <= 0):
                             fallback_site = s
                             break
                     if fallback_site:
@@ -728,9 +681,7 @@ class QueryEngine:
                         overflow_items.extend(mini)
                         continue
 
-                if self._quota and self._quota.get_search_remaining(
-                    assigned_site
-                ) < len(mini):
+                if self._quota and self._quota.get_search_remaining(assigned_site) < len(mini):
                     logger.warning(
                         "[MINI_BUCKET] mb=%d 站点=%s 配额不足<%d 溢出=%d",
                         mb_idx,
@@ -757,17 +708,12 @@ class QueryEngine:
                 # 逐条查询
                 for idx, item in mini:
                     # 逐条冷却检查：record_success 可能在上一轮触发了冷却
-                    if (
-                        self._rotator
-                        and self._rotator.get_cooldown_remaining(assigned_site) > 0
-                    ):
+                    if self._rotator and self._rotator.get_cooldown_remaining(assigned_site) > 0:
                         overflow_items.append((idx, item))
                         continue
                     try:
                         _t0 = _time.time()
-                        result = adapter.query_with_strategy(
-                            item[0], item[1], item[2], item[3], item[4]
-                        )
+                        result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
                         _elapsed = round(_time.time() - _t0, 3)
                         if self._rotator:
                             self._rotator.record_query_result(
@@ -791,9 +737,7 @@ class QueryEngine:
                         result.source_site = assigned_site
                         self._record(assigned_site, 1)
                         _record_usage(assigned_site)
-                        _record_match(
-                            assigned_site, getattr(result, "match_status", "err")
-                        )
+                        _record_match(assigned_site, getattr(result, "match_status", "err"))
                         score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
                         item_chains.setdefault(idx, []).append(assigned_site)
                         target_display = f"{item[0]} {item[1]}-{item[2]}"
@@ -807,6 +751,13 @@ class QueryEngine:
                                 assigned_site,
                                 getattr(result, "match_status", ""),
                             )
+                            # 与 _query_single 行为对齐：精确匹配结果写入缓存
+                            self._cache.put(result)
+                            logger.info(
+                                "[CACHE] put exact match: %s → %s",
+                                target_display,
+                                assigned_site,
+                            )
                             if result_callback and result.is_found():
                                 result_callback(idx, result)
                             bump()
@@ -818,9 +769,7 @@ class QueryEngine:
                                 getattr(result, "match_status", ""),
                                 score,
                             )
-                            overflow_events.append(
-                                (_time.time(), primary_site, assigned_site, idx)
-                            )
+                            overflow_events.append((_time.time(), primary_site, assigned_site, idx))
                             overflow_items.append((idx, item))
                     else:
                         item_chains.setdefault(idx, []).append(assigned_site)
@@ -855,9 +804,7 @@ class QueryEngine:
                     csres_pool_industry.extend(items)
 
             # csres 独立线程
-            csres_future = executor.submit(
-                _csres_worker, csres_pool_gb, csres_pool_industry
-            )
+            csres_future = executor.submit(_csres_worker, csres_pool_gb, csres_pool_industry)
 
             # 收集桶结果
             for future in concurrent.futures.as_completed(bucket_futures):
@@ -915,16 +862,12 @@ class QueryEngine:
                     for site in chain[start:]:
                         if site not in self._adapter_map:
                             continue
-                        if (
-                            self._rotator
-                            and self._rotator.get_cooldown_remaining(site) > 0
-                        ):
+                        if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
                             temp_cooldown_skips += 1
                             # [TRACE] 指令7: 记录冷却导致溢出配额不可用
                             ov_q = overflow_quota.get(site, [0])
                             logger.debug(
-                                "[QUOTA] 站点=%s 操作=溢出不可用 "
-                                "原因=冷却中 剩余溢出配额=%d",
+                                "[QUOTA] 站点=%s 操作=溢出不可用 原因=冷却中 剩余溢出配额=%d",
                                 site,
                                 ov_q[0] if ov_q else 0,
                             )
@@ -958,9 +901,7 @@ class QueryEngine:
                             _record_match(site, getattr(result, "match_status", "err"))
                             tried_chain.append(site)
                             item_chains[idx] = tried_chain
-                            score = MATCH_SCORE.get(
-                                getattr(result, "match_status", ""), 0
-                            )
+                            score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
                             _td = f"{item[0]} {item[1]}-{item[2]}"
                             if score >= 100:
                                 results[idx] = result
@@ -1028,9 +969,7 @@ class QueryEngine:
         for _idx, _chain in item_chains.items():
             _key = "→".join(_chain) if _chain else "none"
             _chain_counts[_key] = _chain_counts.get(_key, 0) + 1
-        logger.info(
-            "[OVERFLOW] 事件=%d 链=%d", len(overflow_events), len(_chain_counts)
-        )
+        logger.info("[OVERFLOW] 事件=%d 链=%d", len(overflow_events), len(_chain_counts))
         for _chain_key, _cnt in sorted(_chain_counts.items(), key=lambda x: -x[1])[:5]:
             logger.info("[OVERFLOW_CHAIN] 路径=%s 次数=%d", _chain_key, _cnt)
 
@@ -1040,9 +979,7 @@ class QueryEngine:
 
         # ── 站点评分卡 ──
         for site in sorted(match_scores.keys()):
-            score_dist = " ".join(
-                f"{k}={v}" for k, v in sorted(match_scores[site].items())
-            )
+            score_dist = " ".join(f"{k}={v}" for k, v in sorted(match_scores[site].items()))
             logger.info("[SCORE] 站点=%s %s", site, score_dist)
 
         # ── 条目链追踪（前 20 条）──

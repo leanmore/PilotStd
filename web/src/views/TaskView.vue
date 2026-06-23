@@ -130,7 +130,7 @@ async function runPipeline() {
     const archiveMap = new Map((norm.results || []).map((r: any) => [r.source_path, r.new_filename]))
     const archiveItems = (scan.files || []).filter((f: any) => archiveMap.has(f.full_path)).map((f: any) => ({
       source_path: f.full_path, new_filename: archiveMap.get(f.full_path) || f.name || '',
-      number: f.number || 0, year: f.year || 0, std_name: f.name || '',
+      number: f.number || 0, year: f.year || 0, std_name: f.std_name || f.name || '',
       num_prefix: f.logical_code || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
     }))
     if (archiveItems.length > 0) {

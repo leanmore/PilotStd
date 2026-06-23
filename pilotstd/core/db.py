@@ -39,9 +39,7 @@ class Database:
         self._write_lock = threading.Lock()  # 仅写操作加锁，WAL 模式下并发读安全
         # 线程本地连接：每个线程复用同一连接，减少重复打开开销
         self._local = threading.local()
-        self._all_conns: list[
-            Any
-        ] = []  # 追踪所有线程创建的连接，供 close_all() 遍历关闭
+        self._all_conns: list[Any] = []  # 追踪所有线程创建的连接，供 close_all() 遍历关闭
         os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
         self._init_pragma()
         self._run_migrations()
@@ -56,6 +54,7 @@ class Database:
     def _init_pragma(self) -> None:
         try:
             conn = sqlite3.connect(self._db_path)
+            conn.text_factory = str
             # 9p 文件系统（Docker Desktop Windows bind mount）不支持 WAL 锁，
             # 回退为 DELETE 模式。检测方式：打开后立即设 WAL，异常则换 DELETE。
             try:
@@ -71,7 +70,12 @@ class Database:
         """返回当前数据库的 schema 版本号（0 = 全新/未初始化）。"""
         try:
             row = self.fetchone("SELECT MAX(version) FROM _schema_version")
-            return row["MAX(version)"] if row and row["MAX(version)"] is not None else 0
+            if row and row["MAX(version)"] is not None:
+                val = row["MAX(version)"]
+                if isinstance(val, bytes):
+                    val = val.decode("utf-8")
+                return int(val)
+            return 0
         except DatabaseError:
             # 新数据库无 _schema_version 表，fetchone 会失败，正常返回 0
             return 0
@@ -95,9 +99,7 @@ class Database:
             )
             self.backup(backup_path)
         if current == 0:
-            self.execute(
-                "CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY)"
-            )
+            self.execute("CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY)")
         for v in range(current + 1, target + 1):
             if v in MIGRATIONS:
                 try:
@@ -105,14 +107,13 @@ class Database:
                 except Exception as e:
                     logger.exception("迁移 v%d 失败，数据库可能处于不一致状态", v)
                     raise DatabaseError(f"数据库迁移失败(v{v})，请从备份恢复") from e
-            self.execute(
-                "INSERT OR REPLACE INTO _schema_version (version) VALUES (?)", (v,)
-            )
+            self.execute("INSERT OR REPLACE INTO _schema_version (version) VALUES (?)", (v,))
 
     def _get_conn(self) -> sqlite3.Connection:
         """获取当前线程的数据库连接，首次访问时创建。"""
         if not hasattr(self._local, "conn") or self._local.conn is None:
             conn = sqlite3.connect(self._db_path)
+            conn.text_factory = str
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
@@ -123,6 +124,7 @@ class Database:
     def connect(self) -> sqlite3.Connection:
         """创建新的独立连接（供 backup 等特殊场景使用）。"""
         conn = sqlite3.connect(self._db_path)
+        conn.text_factory = str
         conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.row_factory = sqlite3.Row
@@ -170,9 +172,7 @@ class Database:
             logging.getLogger("pilotstd.db").error("SQL查询失败: %s", sql)
             raise DatabaseError("数据库查询失败") from e
 
-    def fetchone(
-        self, sql: str, params: Sequence[Any] = ()
-    ) -> Optional[dict[str, Any]]:
+    def fetchone(self, sql: str, params: Sequence[Any] = ()) -> Optional[dict[str, Any]]:
         rows = self.fetchall(sql, params)
         return rows[0] if rows else None
 
@@ -187,6 +187,7 @@ class Database:
         try:
             os.makedirs(os.path.dirname(backup_path), exist_ok=True)
             backup_conn = sqlite3.connect(backup_path)
+            backup_conn.text_factory = str
             src_conn = self.connect()
             try:
                 src_conn.backup(backup_conn)
@@ -271,8 +272,7 @@ class Database:
         """从数据库读取适配器历史成功率（0-1），无数据返回 -1。"""
         try:
             row = self.fetchone(
-                "SELECT total_queries, successful_queries FROM adapter_stats "
-                "WHERE adapter_name = ?",
+                "SELECT total_queries, successful_queries FROM adapter_stats WHERE adapter_name = ?",
                 (adapter_name,),
             )
             if row and row["total_queries"] > 0:
@@ -301,9 +301,7 @@ class Database:
                         "total_queries": total,
                         "successful_queries": success,
                         "success_rate": round(success / total, 3) if total > 0 else 0.0,
-                        "avg_response_time": round(resp_total / total, 3)
-                        if total > 0
-                        else 0.0,
+                        "avg_response_time": round(resp_total / total, 3) if total > 0 else 0.0,
                         "cooldown_count": r["cooldown_count"] or 0,
                         "last_cooldown_reason": r["last_cooldown_reason"] or "",
                         "last_cooldown_at": r["last_cooldown_at"] or "",
@@ -335,12 +333,8 @@ def _migrate_v2_add_file_index(db: Database) -> None:
             scanned_at TEXT NOT NULL DEFAULT ''
         )
     """)
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_file_index_hash ON file_index(file_hash)"
-    )
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_file_index_code ON file_index(logical_code, number)"
-    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_file_index_hash ON file_index(file_hash)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_file_index_code ON file_index(logical_code, number)")
 
 
 @migration(3)
@@ -359,9 +353,7 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
             status TEXT NOT NULL DEFAULT 'waiting'
         )
     """)
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_download_queue_status ON download_queue(status)"
-    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_download_queue_status ON download_queue(status)")
 
     # 待确认清单表
     db.execute("""
@@ -384,16 +376,12 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
             resolved_at TEXT NOT NULL DEFAULT ''
         )
     """)
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_pending_lookup_status ON pending_lookup(status)"
-    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_pending_lookup_status ON pending_lookup(status)")
 
     # 兼容 v2 旧库：补充 status 列（先检查是否存在，避免误报 ERROR）
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(file_index)")}
     if "status" not in cols:
-        db.execute(
-            "ALTER TABLE file_index ADD COLUMN status TEXT NOT NULL DEFAULT '现行'"
-        )
+        db.execute("ALTER TABLE file_index ADD COLUMN status TEXT NOT NULL DEFAULT '现行'")
 
 
 @migration(4)
@@ -451,12 +439,9 @@ def _migrate_v7_add_last_checked(db: Database) -> None:
     try:
         db.execute("ALTER TABLE file_index ADD COLUMN last_checked TEXT")
     except Exception:
-        logging.getLogger("pilotstd.db").debug(
-            "v7 迁移：last_checked 列可能已存在", exc_info=True
-        )
+        logging.getLogger("pilotstd.db").debug("v7 迁移：last_checked 列可能已存在", exc_info=True)
     db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_file_index_last_checked "
-        "ON file_index(last_checked)"
+        "CREATE INDEX IF NOT EXISTS idx_file_index_last_checked ON file_index(last_checked)"
     )  # 加速 WHERE last_checked < ? 增量查询
 
 
@@ -466,9 +451,7 @@ def _migrate_v8_drop_expires_at(db: Database) -> None:
     # 表可能尚未创建（CacheRepository 惰性初始化），先检查表是否存在
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(standard_info_cache)")}
     if not cols:
-        logging.getLogger("pilotstd.db").debug(
-            "v8 迁移：standard_info_cache 表不存在，跳过"
-        )
+        logging.getLogger("pilotstd.db").debug("v8 迁移：standard_info_cache 表不存在，跳过")
         return
     if "expires_at" in cols:
         db.execute("ALTER TABLE standard_info_cache DROP COLUMN expires_at")
@@ -481,9 +464,7 @@ def _migrate_v9_add_requery_count(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "requery_count" not in cols:
-        db.execute(
-            "ALTER TABLE pending_lookup ADD COLUMN requery_count INTEGER DEFAULT 0"
-        )
+        db.execute("ALTER TABLE pending_lookup ADD COLUMN requery_count INTEGER DEFAULT 0")
 
 
 @migration(10)
@@ -493,13 +474,9 @@ def _migrate_v10_add_source_and_status_history(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "source" not in cols:
-        db.execute(
-            "ALTER TABLE standard_info_cache ADD COLUMN source TEXT NOT NULL DEFAULT 'network'"
-        )
+        db.execute("ALTER TABLE standard_info_cache ADD COLUMN source TEXT NOT NULL DEFAULT 'network'")
     if "status_history" not in cols:
-        db.execute(
-            "ALTER TABLE standard_info_cache ADD COLUMN status_history TEXT NOT NULL DEFAULT ''"
-        )
+        db.execute("ALTER TABLE standard_info_cache ADD COLUMN status_history TEXT NOT NULL DEFAULT ''")
 
 
 @migration(11)
@@ -509,13 +486,9 @@ def _migrate_v11_add_daily_limits(db: Database) -> None:
     if not cols:
         return  # 表尚未创建（惰性初始化），跳过
     if "daily_count" not in cols:
-        db.execute(
-            "ALTER TABLE rotator_state ADD COLUMN daily_count INTEGER NOT NULL DEFAULT 0"
-        )
+        db.execute("ALTER TABLE rotator_state ADD COLUMN daily_count INTEGER NOT NULL DEFAULT 0")
     if "daily_date" not in cols:
-        db.execute(
-            "ALTER TABLE rotator_state ADD COLUMN daily_date TEXT NOT NULL DEFAULT ''"
-        )
+        db.execute("ALTER TABLE rotator_state ADD COLUMN daily_date TEXT NOT NULL DEFAULT ''")
 
 
 @migration(12)
@@ -538,17 +511,11 @@ def _migrate_v13_adapter_stats_extend(db: Database) -> None:
     if not cols:
         return
     if "avg_response_time" not in cols:
-        db.execute(
-            "ALTER TABLE adapter_stats ADD COLUMN avg_response_time REAL DEFAULT 0"
-        )
+        db.execute("ALTER TABLE adapter_stats ADD COLUMN avg_response_time REAL DEFAULT 0")
     if "total_response_time" not in cols:
-        db.execute(
-            "ALTER TABLE adapter_stats ADD COLUMN total_response_time REAL DEFAULT 0"
-        )
+        db.execute("ALTER TABLE adapter_stats ADD COLUMN total_response_time REAL DEFAULT 0")
     if "cooldown_count" not in cols:
-        db.execute(
-            "ALTER TABLE adapter_stats ADD COLUMN cooldown_count INTEGER DEFAULT 0"
-        )
+        db.execute("ALTER TABLE adapter_stats ADD COLUMN cooldown_count INTEGER DEFAULT 0")
     if "last_cooldown_reason" not in cols:
         db.execute("ALTER TABLE adapter_stats ADD COLUMN last_cooldown_reason TEXT")
     if "last_cooldown_at" not in cols:
@@ -573,6 +540,4 @@ def _migrate_v14_api_keys(db: Database) -> None:
         )
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)")
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active)"
-    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active)")

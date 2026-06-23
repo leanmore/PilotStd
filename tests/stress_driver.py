@@ -353,7 +353,13 @@ def _step2_precheck(docker_url: str, docker_user: str, docker_pass: str, timeout
     return (all_ok, credential_ok, credential_detail, api_key)
 
 
-def _step3_precheck(step1_data: dict | None, announce_sample_path: str, web_api_url: str) -> dict:
+def _step3_precheck(
+    step1_data: dict | None,
+    announce_sample_path: str,
+    web_api_url: str,
+    source_dir: str = "",
+    yes_mode: bool = False,
+) -> dict:
     """WinUI 阶段前置检查 — 验证热启依赖数据就绪。
 
     甲轮前置：standard_info_cache / file_index 非空
@@ -407,6 +413,33 @@ def _step3_precheck(step1_data: dict | None, announce_sample_path: str, web_api_
         f"WinUI 前置检查完成: 甲轮={'READY' if result['round_a_ready'] else 'FAIL'}, "
         f"乙轮={'READY' if result['round_b_ready'] else 'FAIL'}"
     )
+
+    # ── CLI 完成后暂停确认（无论 org_moved 是否为 0）──
+    _cli_completed = bool(step1_data and step1_data.get("summary", {}).get("scan_count", 0) > 0)
+    if _cli_completed:
+        _src = source_dir or os.environ.get("STRESS_SOURCE_DIR", "")
+        _fcount = 0
+        if _src and os.path.isdir(_src):
+            _files = [f for f in os.listdir(_src) if os.path.isfile(os.path.join(_src, f))]
+            _fcount = len(_files)
+        if yes_mode:
+            print(f"\n--- [--yes 模式] CLI 阶段已完成，请确保源目录已复位。当前文件数：{_fcount}")
+            print(f"    源目录：{_src or '(未知)'}")
+        else:
+            print("\n" + "=" * 70)
+            print("CLI 阶段已完成，准备进入 WinUI 阶段")
+            print(f"源目录：{_src or '(未知)'}")
+            print(f"当前文件数：{_fcount}")
+            print("操作说明：")
+            print("   1. 若需复位源目录，请将备份文件复制回上述路径，然后按 Enter")
+            print("   2. 若当前文件即为待扫描内容且无需复位，直接按 Enter 继续")
+            print("=" * 70)
+            input()
+            if _src and os.path.isdir(_src):
+                _files_after = [f for f in os.listdir(_src) if os.path.isfile(os.path.join(_src, f))]
+                _fcount = len(_files_after)
+                print(f"当前源目录文件数：{_fcount}，继续执行 WinUI 阶段")
+
     return result
 
 
@@ -2010,6 +2043,7 @@ def main():
         _db_path = args.db_path or os.path.join(_gcd(), "pilotstd.db")
         if os.path.exists(_db_path):
             _conn = _sqlite3.connect(_db_path)
+            _conn.text_factory = str
             _conn.execute("DELETE FROM rotator_state")
             _conn.commit()
             _conn.close()
@@ -2245,7 +2279,7 @@ def main():
         _log("第三步前置检查（WinUI 热启）")
         _ann_sample_path = os.path.join(ROOT, "tests", ".cache", "announce_sample.json")
         _web_api = cfg.get("web_api", {}).get("url", "") or os.environ.get("PILOTSTD_WEB_API_URL", "")
-        _step3_precheck(step1, _ann_sample_path, _web_api)
+        _step3_precheck(step1, _ann_sample_path, _web_api, args.source, _yes(args))
         _step1_json = (
             getattr(args, "step1", None)
             if getattr(args, "skip_cli", False) and getattr(args, "step1", None)

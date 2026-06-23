@@ -66,9 +66,7 @@ def _ensure_static_token_in_db():
             )
         """)
         key_hash = hashlib.sha256(_STATIC_API_TOKEN.encode()).hexdigest()
-        existing = db.fetchone(
-            "SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'"
-        )
+        existing = db.fetchone("SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'")
         if existing:
             if existing["key_hash"] != key_hash:
                 db.execute(
@@ -110,9 +108,7 @@ def refresh_static_token() -> str:
         from pilotstd.core.db import Database
 
         db = Database(get_db_path())
-        existing = db.fetchone(
-            "SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'"
-        )
+        existing = db.fetchone("SELECT key_hash FROM api_keys WHERE key_id = 'pst_static'")
         if existing:
             db.execute(
                 "UPDATE api_keys SET key_hash=?, is_active=1 WHERE key_id='pst_static'",
@@ -127,6 +123,26 @@ def refresh_static_token() -> str:
             )
         db.close()
     except Exception:
+        pass
+    # 回写 .env 文件，确保重启后令牌不丢失
+    _dotenv_path = os.path.join(os.path.dirname(__file__) or ".", "..", ".env")
+    try:
+        if os.path.exists(_dotenv_path):
+            with open(_dotenv_path, "r", encoding="utf-8") as _f:
+                _lines = _f.readlines()
+        else:
+            _lines = []
+        with open(_dotenv_path, "w", encoding="utf-8") as _f:
+            _written = False
+            for _line in _lines:
+                if _line.startswith("PILOTSTD_API_TOKEN="):
+                    _f.write(f"PILOTSTD_API_TOKEN={new_token}\n")
+                    _written = True
+                else:
+                    _f.write(_line)
+            if not _written:
+                _f.write(f"\nPILOTSTD_API_TOKEN={new_token}\n")
+    except OSError:
         pass
     return new_token
 
@@ -230,9 +246,7 @@ def login(
     token = _generate_token(username)
     csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     must_change = check_must_change_password(username)
-    resp = JSONResponse(
-        {"ok": True, "username": username, "must_change_password": must_change}
-    )
+    resp = JSONResponse({"ok": True, "username": username, "must_change_password": must_change})
     resp.set_cookie(
         COOKIE_NAME,
         token,
@@ -303,9 +317,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # 白名单检查
         for w_path, w_methods in AUTH_WHITELIST:
-            if path.startswith(w_path) and (
-                not w_methods or request.method in w_methods
-            ):
+            if path.startswith(w_path) and (not w_methods or request.method in w_methods):
                 return await call_next(request)
         # 非 API 路径放行（前端静态文件）
         if not path.startswith("/api/"):
@@ -316,9 +328,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         client_ip = request.client.host if request.client else "unknown"
         cutoff = now - API_RATE_WINDOW
         with _api_rate_lock:
-            _api_rate_limit[client_ip] = [
-                t for t in _api_rate_limit[client_ip] if t > cutoff
-            ]
+            _api_rate_limit[client_ip] = [t for t in _api_rate_limit[client_ip] if t > cutoff]
             if not _api_rate_limit[client_ip]:
                 del _api_rate_limit[client_ip]
             elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:

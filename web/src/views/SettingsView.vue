@@ -68,7 +68,24 @@ async function loadToken() {
   try { const r = await getToken(); token.value = r.token; tokenErr.value = '' } catch { tokenErr.value = '加载令牌失败（需要管理员权限）' }
 }
 async function copyToken() {
-  try { await navigator.clipboard.writeText(token.value); tokenCopied.value = true; setTimeout(() => tokenCopied.value = false, 2000) } catch { /* 非 HTTPS 环境可能失败 */ }
+  try {
+    await navigator.clipboard.writeText(token.value)
+    tokenCopied.value = true
+  } catch {
+    // 降级：HTTP 环境下 clipboard API 不可用，使用 textarea + execCommand
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = token.value
+      ta.style.position = 'fixed'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      tokenCopied.value = true
+    } catch { /* 降级也失败，静默忽略 */ }
+  }
+  if (tokenCopied.value) setTimeout(() => tokenCopied.value = false, 2000)
 }
 async function doRefreshToken() {
   tokenLoading.value = true; tokenErr.value = ''
