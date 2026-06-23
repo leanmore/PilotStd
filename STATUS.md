@@ -344,3 +344,34 @@
 | 提取能力清单 | `bash scripts/extract_capabilities.sh <文件路径>` |
 | 观测能力自检 | `python tests/test_observability.py --check-all` |
 | 全量压测 | `python tests/stress_driver.py --source D:\标准 --output E:\标准 --config tests/test_config.json --yes` |
+
+## 七、Mixin → 组合 迁移追踪表
+
+> **目标**：在新功能中优先使用组合，在修改现有功能时顺带重构涉及的 Mixin。
+> **更新规则**：每次涉及 Mixin 的 PR 合并后，由提交者更新此表。
+
+| Mixin 名称 | 文件位置 | 迁移状态 | 预计版本 | 备注 |
+| :--- | :--- | :--- | :--- | :--- |
+| CleanupMixin | `ui/controllers/cleanup_mixin.py` | ⏳ 待迁移 | — | — |
+| ProjectMixin | `ui/controllers/project_mixin.py` | ⏳ 待迁移 | — | — |
+| TableMixin | `ui/table_mixin.py` | ⏳ 待迁移 | — | — |
+| TableHelperMixin | `ui/controllers/table_helper_mixin.py` | ⏳ 待迁移 | — | — |
+| ArchiveMixin | `ui/controllers/archive_mixin.py` | ⏳ 待迁移 | — | — |
+| ScanMixin | `ui/controllers/scan_mixin.py` | ⏳ 待迁移 | — | — |
+| QueryMixin | `ui/controllers/query_mixin.py` | ⏳ 待迁移 | — | — |
+| FileDialogMixin | `ui/controllers/file_dialog_mixin.py` | ⏳ 待迁移 | — | — |
+| DownloadMixin | `ui/controllers/download_mixin.py` | ⏳ 待迁移 | — | — |
+| DialogMixin | `ui/controllers/dialog_mixin.py` | ⏳ 待迁移 | — | — |
+| AutoRunMixin | `ui/controllers/auto_run_mixin.py` | ⏳ 待迁移 | — | — |
+| AnnounceMixin | `ui/controllers/announce_mixin.py` | ⏳ 待迁移 | — | — |
+| ThemeMixin | `ui/controllers/theme_mixin.py` | ⏳ 待迁移 | — | — |
+| PersistenceMixin | `ui/controllers/persistence_mixin.py` | ⏳ 待迁移 | — | — |
+| FileTreeMixin | `ui/controllers/file_tree_mixin.py` | ⏳ 待迁移 | — | — |
+| ExportMixin | `ui/controllers/export_mixin.py` | ⏳ 待迁移 | — | — |
+
+**状态说明**：
+- ✅ 已迁移：该 Mixin 已转为组合模式，原 Mixin 文件已删除
+- 🔄 进行中：正在部分模块中试点迁移
+- ⏳ 待迁移：尚未开始
+- ⛔ 暂停：因架构原因暂缓
+- ❌ 废弃：不再需要，已删除

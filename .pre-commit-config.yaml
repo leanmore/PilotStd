@@ -31,3 +31,10 @@ repos:
         files: \.py$
         exclude: ^tests/
         pass_filenames: false
+
+      - id: no-new-mixin
+        name: 禁止新增 Mixin（请优先使用组合模式）
+        entry: python scripts/check_mixin.py
+        language: python
+        files: \.py$
+        exclude: ^scripts/

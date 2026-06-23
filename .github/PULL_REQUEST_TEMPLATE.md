@@ -34,3 +34,8 @@
 - [ ] I have ensured that no production code imports from `tests/` or any `*mock*.py` file.
 - [ ] I have added tests that prove my fix is effective or my feature works.
 - [ ] New and existing unit tests pass locally with my changes.
+- [ ] **【Mixin 检查】**：是否新增或修改了 Mixin？
+  - 若新增 → 请在 PR 描述中说明为何不能使用组合模式
+  - 若修改 → 请说明是否同时重构了涉及该 Mixin 的 UI 类
+- [ ] 本地运行 `mypy pilotstd/ --strict` 通过
+- [ ] 本地运行 `ruff check .` 通过
