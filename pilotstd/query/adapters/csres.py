@@ -180,8 +180,10 @@ class CsresAdapter(BaseAdapter):
             # 提取详情页 ID
             detail_url = ""
             a_tag = cells[0].find("a")
-            if a_tag and a_tag.get("href", "").startswith("/detail/"):
-                detail_url = self._DETAIL_BASE + a_tag["href"]
+            if a_tag:
+                href: str = a_tag.get("href", "") or ""  # type: ignore[assignment]  # BeautifulSoup get 返回值类型不精确
+                if href.startswith("/detail/"):
+                    detail_url = self._DETAIL_BASE + href
             candidates.append(self._parse_result(found_number, cells, detail_url))
         return candidates
 

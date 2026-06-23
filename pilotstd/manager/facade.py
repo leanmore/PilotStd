@@ -827,7 +827,7 @@ class StandardManager:
     def get_quota_info(self) -> dict[str, int]:
         """各站点剩余配额，供 GUI 查询前展示。"""
         return self.query_engine.get_quota_info()
-    def plan_batch(self, total: int) -> list[tuple[int, int]]:
+    def plan_batch(self, total: int) -> list[tuple[str, int]]:
         """查询批次规划，供 GUI 展示预估耗时。"""
         return self.query_engine.plan_batch(total)
     def get_stage_queue(self, stage: str) -> list[ParsedStdInfo]:

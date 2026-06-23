@@ -1,6 +1,8 @@
 # pilotstd/ui/pages/task_page.py
 # 任务中心：历史记录、进度、日志
 
+from typing import Any
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,

@@ -41,7 +41,8 @@ class AnnounceService:
         if self._ocr_provider is None and self._ocr_config:
             from ..announcement.ocr import create_ocr_provider
 
-            self._ocr_provider = create_ocr_provider(self._ocr_config)
+            ocr: Any = create_ocr_provider(self._ocr_config)
+            self._ocr_provider = ocr
         return self._ocr_provider
 
     def _get_or_create_engine(self) -> AnnounceEngine:

@@ -3,6 +3,7 @@
 # 配色思路：主色统一、灰度分层区分区块、语义三色标识状态
 
 import ctypes
+from typing import Any
 
 THEMES: dict[str, str] = {
     "经典白": """

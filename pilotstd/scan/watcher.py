@@ -65,13 +65,13 @@ class FileWatchHandler(PatternMatchingEventHandler):
             logger.debug("watcher 处理文件失败: %s", path, exc_info=True)
 
     def on_created(self, event: FileSystemEvent) -> None:
-        self._handle_new_or_modified(event.src_path)
+        self._handle_new_or_modified(str(event.src_path))
 
     def on_modified(self, event: FileSystemEvent) -> None:
-        self._handle_new_or_modified(event.src_path)
+        self._handle_new_or_modified(str(event.src_path))
 
     def on_deleted(self, event: FileSystemEvent) -> None:
-        if self._should_skip(event.src_path):
+        if self._should_skip(str(event.src_path)):
             return
         try:
             self._file_index.remove(event.src_path)
@@ -80,11 +80,11 @@ class FileWatchHandler(PatternMatchingEventHandler):
 
     def on_moved(self, event: FileSystemEvent) -> None:
         """文件移动/重命名：删除旧路径 → 按新路径重新索引。"""
-        if self._should_skip(event.dest_path):
+        if self._should_skip(str(event.dest_path)):
             return
         try:
             self._file_index.remove(event.src_path)
-            self._handle_new_or_modified(event.dest_path)
+            self._handle_new_or_modified(str(event.dest_path))
         except Exception:
             pass
 
@@ -95,7 +95,7 @@ class FileWatcher:
     def __init__(self, file_index: Any, parser: Any, config_manager: Any) -> None:
         self._file_index = file_index
         self._parser = parser
-        self._observer: Optional[Observer] = None
+        self._observer: Any = None  # watchdog Observer 类型桩不完整
         self._watched_dirs: List[str] = []
 
         # 从配置获取过滤规则（与 FileScanner 保持一致）

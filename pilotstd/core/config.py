@@ -174,6 +174,7 @@ class ConfigManager:
         self._filepath = os.path.abspath(filepath)
         self._lock = threading.Lock()
         self._data: Dict[str, Any] = {}
+        self._fernet: Any = None  # 懒初始化，_get_fernet() 中赋值
         self._load()
         # Docker/容器环境：STANDARD_ROOT 环境变量覆盖配置文件中的路径
         if os.environ.get("STANDARD_ROOT"):
@@ -370,7 +371,7 @@ class ConfigManager:
                 if self.get(new) is None:
                     self.set(new, val)
                 # 删旧键（用内部 _data 直接操作，避免 set 回写旧键）
-                node = self._data
+                node: Any = self._data
                 parts = old.split(".")
                 for p in parts[:-1]:
                     if isinstance(node, dict) and p in node:

@@ -102,7 +102,7 @@ class TaskQueue:
 
     def _run(self, task: TaskInfo, handler: Callable[..., Any]) -> None:
         result_holder = [None]
-        exc_holder = [None]
+        exc_holder: list[Any] = [None]
 
         def wrapped_handler() -> None:
             try:

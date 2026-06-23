@@ -1,6 +1,8 @@
 # pilotstd/ui/welcome_dialog.py
 # 首次启动欢迎对话框
 
+from typing import Any
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,

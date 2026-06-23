@@ -5,7 +5,7 @@ import logging
 import os
 import sqlite3
 import threading
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
 CURRENT_SCHEMA_VERSION = 14
@@ -49,7 +49,7 @@ class Database:
     def __enter__(self) -> "Database":
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> bool:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
         self.close_all()
         return False
 

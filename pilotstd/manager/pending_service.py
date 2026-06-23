@@ -6,7 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..query.models import ParsedStdInfo, QueryResult
+from ..models import ParsedStdInfo
+from ..query.models import QueryResult
 from ..query.search_strategy import MATCH_SCORE
 
 logger = logging.getLogger(__name__)

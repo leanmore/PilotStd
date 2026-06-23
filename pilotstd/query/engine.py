@@ -275,12 +275,12 @@ class QueryEngine:
                 # 支持两种格式：
                 #   显式链：{"chain": ["hbba", "njbz365", "csres"]} → 直接使用
                 #   构造链：{"primary": "ahbz", "fallback": "csres"} → primary + 补充站点 + fallback
-                explicit_chain = type_route.get("chain")
+                explicit_chain: Any = type_route.get("chain")
                 if explicit_chain:
                     base = list(explicit_chain)
                 else:
-                    primary = type_route.get("primary", "")
-                    fallback = type_route.get("fallback", "")
+                    primary = str(type_route.get("primary", ""))
+                    fallback = str(type_route.get("fallback", ""))
                     base = [primary] if primary else []
                     # 补充中间站点（ahbz、njbz365 等）
                     extras = [
@@ -1004,14 +1004,14 @@ class QueryEngine:
 
         # ── 桶统计 ──
         for key in sorted(bucket_times.keys()):
-            start, end, done, ov = bucket_times[key]
+            start_t, end_t, done, ov = bucket_times[key]
             logger.info(
                 "[BUCKET] %s 总数=%d 完成=%d 溢出=%d 耗时=%.1f秒",
                 key,
                 done + ov,
                 done,
                 ov,
-                end - _bucket_t0,
+                end_t - _bucket_t0,
             )
         logger.info(
             "[TIMELINE] 桶数=%d 并发耗时=%.1f秒",
