@@ -61,7 +61,7 @@ class OrganizerService:
         self._file_mover = file_mover
         self._expire_handler = expire_handler
         # organize() 中目标已存在的源文件集合，供 organize_fallback() 跳过
-        self._skipped_source_files: set = set()
+        self._skipped_source_files: set[str] = set()
 
     # ════════════════════════════════════════════════════════════════
     # 归类移动

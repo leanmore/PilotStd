@@ -13,7 +13,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +157,7 @@ class TencentOcrProvider(BaseOcrProvider):
     def name(self) -> str:
         return "tencent"
 
-    def _sign_tc3(self, payload: str, timestamp: int) -> dict:
+    def _sign_tc3(self, payload: str, timestamp: int) -> dict[str, Any]:
         """TC3-HMAC-SHA256 签名，返回请求头。"""
         import datetime
         import hashlib
@@ -283,7 +283,7 @@ class AliyunOcrProvider(BaseOcrProvider):
     def name(self) -> str:
         return "aliyun"
 
-    def _sign_aliyun(self, params: dict) -> str:
+    def _sign_aliyun(self, params: dict[str, Any]) -> str:
         """阿里云 HMAC-SHA1 签名，返回 Signature 字符串。"""
         import hashlib
         import hmac
@@ -379,7 +379,7 @@ class OcrCounters:
         self._lock = _threading.Lock()
         self._data = self._load()
 
-    def _load(self) -> dict:
+    def _load(self) -> dict[str, Any]:
         try:
             with open(self._path, "r", encoding="utf-8") as f:
                 data = _json.load(f)
@@ -716,7 +716,7 @@ class OcrScheduler(BaseOcrProvider):
 # ── create_ocr_provider ───────────────────────────────────────────
 
 
-def create_ocr_provider(config: dict, data_dir: str = "") -> Optional[BaseOcrProvider]:
+def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[BaseOcrProvider]:
     """创建 OCR 调度器（多 provider 共存）或单个 provider（旧模式兼容）。
 
     新键（推荐）：
@@ -767,7 +767,7 @@ def create_ocr_provider(config: dict, data_dir: str = "") -> Optional[BaseOcrPro
     return OcrScheduler(baidu_slot, tencent_slot, aliyun_slot, stop, counters, cooling)
 
 
-def _create_baidu(config: dict) -> Optional["BaiduOcrProvider"]:
+def _create_baidu(config: dict[str, Any]) -> Optional["BaiduOcrProvider"]:
     api_key = config.get("baidu_api_key", "") or config.get("api_key", "")
     secret_key = config.get("baidu_secret_key", "") or config.get("secret_key", "")
     if not api_key or not secret_key:
@@ -776,7 +776,7 @@ def _create_baidu(config: dict) -> Optional["BaiduOcrProvider"]:
     return BaiduOcrProvider(api_key=api_key, secret_key=secret_key)
 
 
-def _create_tencent(config: dict) -> Optional["TencentOcrProvider"]:
+def _create_tencent(config: dict[str, Any]) -> Optional["TencentOcrProvider"]:
     secret_id = config.get("tencent_secret_id", "") or config.get("secret_id", "")
     secret_key = config.get("tencent_secret_key", "") or config.get("secret_key", "")
     if not secret_id or not secret_key:
@@ -785,7 +785,7 @@ def _create_tencent(config: dict) -> Optional["TencentOcrProvider"]:
     return TencentOcrProvider(secret_id=secret_id, secret_key=secret_key)
 
 
-def _create_aliyun(config: dict) -> Optional["AliyunOcrProvider"]:
+def _create_aliyun(config: dict[str, Any]) -> Optional["AliyunOcrProvider"]:
     ak_id = config.get("aliyun_access_key_id", "") or config.get("access_key_id", "")
     ak_secret = config.get("aliyun_access_key_secret", "") or config.get(
         "access_key_secret", ""

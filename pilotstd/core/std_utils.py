@@ -2,6 +2,7 @@
 """标准体系通用工具：GB 代号判断、标准号解析等。"""
 
 import re
+from typing import Any
 
 GB_CODES: frozenset[Any] = frozenset({"GB", "GB/T", "GB/Z", "GSB"})
 
@@ -63,7 +64,7 @@ def classify_std_code(logical_code: str) -> str:
 # ── 标准编号字符串解析（唯一公用入口）────────────────────────────
 
 
-def parse_std_number(text: str) -> dict | None:
+def parse_std_number(text: str) -> dict[str, Any] | None:
     """从标准编号字符串提取结构化字段。所有场景的编号解析统一入口。
 
     支持格式:

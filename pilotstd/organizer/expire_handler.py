@@ -17,7 +17,7 @@ class ExpireHandler:
     def __init__(self, mover: FileMover):
         self._mover = mover
 
-    def process_expired(self, items: List[Tuple[str, ParsedStdInfo]]) -> dict:
+    def process_expired(self, items: List[Tuple[str, ParsedStdInfo]]) -> dict[str, Any]:
         """批量移动过期文件到 过期作废/ 目录。
 
         Args:

@@ -153,7 +153,7 @@ _ENDORSER = r"(?:/(?P<endorser>[A-Z]{2,}))?"  # 背书者（如 ANSI/UL）
 _TYPE = r"(?:(?P<type>[A-Z]{2,})(?:\s+|\-))?"  # 类型前缀（如 API Spec）
 
 
-def _compile(*parts: str) -> re.Pattern:
+def _compile(*parts: str) -> re.Pattern[str]:
     """组装正则原子构件为编译后的 Pattern。"""
     return re.compile("".join(parts), re.IGNORECASE)
 

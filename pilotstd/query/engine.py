@@ -443,7 +443,7 @@ class QueryEngine:
         _prog_thread.start()
 
         # ── 1. 分组 ──
-        buckets: Dict[str, List[Tuple[int, tuple]]] = {}
+        buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]] = {}
         for i, item in enumerate(parsed_list):
             key = self._bucket_key(item[0])
             buckets.setdefault(key, []).append((i, item))
