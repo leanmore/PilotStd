@@ -38,3 +38,11 @@ repos:
         language: python
         files: \.py$
         exclude: ^scripts/
+
+      - id: update-capabilities
+        name: 自动更新 capabilities_registry.md 行号
+        entry: python scripts/update_capabilities.py
+        language: python
+        files: \.py$
+        pass_filenames: false
+        always_run: true
