@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from .api.adapter import router as adapter_router
 from .api.announce import router as announce_router
 from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
@@ -119,6 +120,7 @@ app.add_middleware(AuthMiddleware)
 
 # 注册 API 路由
 app.include_router(auth_router)
+app.include_router(adapter_router)
 app.include_router(scan_router)
 app.include_router(query_router)
 app.include_router(download_router)
