@@ -4,6 +4,7 @@
 import concurrent.futures
 import logging
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
 
 import requests
@@ -17,9 +18,155 @@ FETCH_DELAY_RANGE = (0.5, 1.0)
 # 详情获取最大并发数
 _MAX_DETAIL_WORKERS = 3
 
+# ── 熔断默认参数 ──
+_DEFAULT_FREEZE_DURATIONS = [1800, 7200, 21600, 43200]  # 秒：30m/2h/6h/12h
+_DEFAULT_FAILURE_THRESHOLD = 3
+_DEFAULT_RESET_WINDOW_HOURS = 24
+_HEALTH_TABLE = "adapter_health"
+
+
+class AdapterFrozenError(Exception):
+    """适配器处于冻结状态，请求被熔断拦截。"""
+
+    def __init__(self, adapter_name: str, remaining_seconds: int):
+        self.adapter_name = adapter_name
+        self.remaining_seconds = remaining_seconds
+        super().__init__(f"{adapter_name} 冻结中，剩余 {remaining_seconds} 秒")
+
 
 class BaseAnnounceAdapter(ABC):
     """公告抓取适配器基类。每个站点/公告类型一个子类。"""
+
+    def __init__(self, config: Any = None):
+        self._cb_freeze_count: int = 0
+        self._cb_first_freeze_time: Optional[datetime] = None
+        self._cb_frozen_until: Optional[datetime] = None
+        self._cb_fail_streak: int = 0
+        self._cb_loaded: bool = False
+        # 从配置读取熔断参数
+        if config:
+            self._cb_threshold = config.get("adapter.circuit_breaker.failure_threshold") or _DEFAULT_FAILURE_THRESHOLD
+            raw_durations = config.get("adapter.circuit_breaker.freeze_durations")
+            if raw_durations and isinstance(raw_durations, list):
+                self._cb_durations = [int(m) * 60 for m in raw_durations]
+            else:
+                self._cb_durations = _DEFAULT_FREEZE_DURATIONS
+            self._cb_reset_hours = (
+                config.get("adapter.circuit_breaker.reset_window_hours") or _DEFAULT_RESET_WINDOW_HOURS
+            )
+        else:
+            self._cb_threshold = _DEFAULT_FAILURE_THRESHOLD
+            self._cb_durations = _DEFAULT_FREEZE_DURATIONS
+            self._cb_reset_hours = _DEFAULT_RESET_WINDOW_HOURS
+
+    # ── 熔断：数据库读写 ──
+
+    def _cb_load_health(self) -> None:
+        """从 adapter_health 表加载健康状态。"""
+        if self._cb_loaded:
+            return
+        try:
+            from pilotstd.core.config import get_db_path
+            from pilotstd.core.db import Database
+
+            db = Database(get_db_path())
+            row = db.fetchone(f"SELECT * FROM {_HEALTH_TABLE} WHERE adapter_name=?", (self.site_name,))
+            if row:
+                self._cb_freeze_count = row["freeze_count"] or 0
+                self._cb_fail_streak = row["fail_streak"] or 0
+                ft = row["first_freeze_time"]
+                fu = row["frozen_until"]
+                self._cb_first_freeze_time = datetime.fromisoformat(ft) if ft else None
+                self._cb_frozen_until = datetime.fromisoformat(fu) if fu else None
+            else:
+                now = datetime.now(timezone.utc).isoformat()
+                db.execute(
+                    f"INSERT INTO {_HEALTH_TABLE} (adapter_name, freeze_count, fail_streak, updated_at) "
+                    "VALUES (?, 0, 0, ?)",
+                    (self.site_name, now),
+                )
+            db.close()
+            self._cb_loaded = True
+        except Exception as e:
+            logger.warning("[CB] %s: 加载健康状态失败: %s", self.site_name, e)
+
+    def _cb_save_health(self) -> None:
+        """全量保存健康状态到 adapter_health 表。"""
+        try:
+            from pilotstd.core.config import get_db_path
+            from pilotstd.core.db import Database
+
+            now = datetime.now(timezone.utc).isoformat()
+            ft = self._cb_first_freeze_time.isoformat() if self._cb_first_freeze_time else None
+            fu = self._cb_frozen_until.isoformat() if self._cb_frozen_until else None
+            db = Database(get_db_path())
+            db.execute(
+                f"INSERT OR REPLACE INTO {_HEALTH_TABLE} "
+                "(adapter_name, freeze_count, first_freeze_time, frozen_until, fail_streak, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (self.site_name, self._cb_freeze_count, ft, fu, self._cb_fail_streak, now),
+            )
+            db.close()
+        except Exception as e:
+            logger.warning("[CB] %s: 保存健康状态失败: %s", self.site_name, e)
+
+    # ── 熔断检查（请求前调用）──
+
+    def _cb_check_frozen(self) -> None:
+        """检查是否处于冻结状态。冻结中→抛 AdapterFrozenError。冻结到期→解冻（含24h归零）。"""
+        self._cb_load_health()
+        if self._cb_frozen_until is None:
+            return
+        now = datetime.now(timezone.utc)
+        if now < self._cb_frozen_until:
+            remaining = int((self._cb_frozen_until - now).total_seconds())
+            logger.info("[FREEZE] %s 冻结中，剩余 %d 秒", self.site_name, remaining)
+            raise AdapterFrozenError(self.site_name, remaining)
+        # 触发点B：冻结到期，检查24h窗口归零
+        self._cb_frozen_until = None
+        if self._cb_first_freeze_time:
+            if (now - self._cb_first_freeze_time) >= timedelta(hours=self._cb_reset_hours):
+                self._cb_freeze_count = 0
+                self._cb_first_freeze_time = None
+                logger.info("[THAW] %s 24小时窗口到期，冻结计数归零", self.site_name)
+        logger.info("[THAW] %s 冻结到期，已自动解冻", self.site_name)
+        self._cb_save_health()
+
+    # ── 成功/失败记录 ──
+
+    def _cb_record_success(self) -> None:
+        """请求成功：重置 fail_streak。"""
+        self._cb_fail_streak = 0
+        self._cb_save_health()
+
+    def _cb_record_failure(self) -> bool:
+        """请求失败：累加 fail_streak，达到阈值时触发冻结。返回 True 表示触发了冻结。"""
+        self._cb_fail_streak += 1
+        self._cb_save_health()
+        if self._cb_fail_streak < self._cb_threshold:
+            return False
+        # 触发点A：即将冻结时检查24h窗口
+        now = datetime.now(timezone.utc)
+        if self._cb_first_freeze_time:
+            if (now - self._cb_first_freeze_time) >= timedelta(hours=self._cb_reset_hours):
+                self._cb_freeze_count = 0
+                self._cb_first_freeze_time = None
+                logger.info("[THAW] %s 24小时窗口到期，冻结计数归零", self.site_name)
+        idx = min(self._cb_freeze_count, len(self._cb_durations) - 1)
+        duration = self._cb_durations[idx]
+        self._cb_freeze_count += 1
+        self._cb_frozen_until = now + timedelta(seconds=duration)
+        if self._cb_first_freeze_time is None:
+            self._cb_first_freeze_time = now
+        self._cb_fail_streak = 0
+        self._cb_save_health()
+        logger.info(
+            "[FREEZE] %s 触发冻结，第 %d 次，持续 %d 分钟",
+            self.site_name,
+            self._cb_freeze_count,
+            duration // 60,
+        )
+        return True
 
     # ── 子类必须定义 ──
 
@@ -184,81 +331,95 @@ class BaseAnnounceAdapter(ABC):
             progress_callback: 每条完成回调 (current, total, label)
             complete_pids: 已完全解析的公告 PID 集合，跳过这些公告的阶段2抓取
         """
-        ann_list = self._fetch_list(since_date, page_size)
-        if not ann_list:
-            return []
+        # 熔断检查
+        self._cb_check_frozen()
 
-        # 过滤已完全解析的公告（去重前移：阶段1后、阶段2前检查）
-        if complete_pids:
-            remaining = [a for a in ann_list if a["pid"] not in complete_pids]
-            skipped = len(ann_list) - len(remaining)
-            if skipped > 0:
-                logger.info(
-                    "公告 %s: 跳过已完全解析 %d 条, 剩余 %d 条",
-                    self.standard_type,
-                    skipped,
-                    len(remaining),
-                )
-            ann_list = remaining
-
-        if not ann_list:
-            return []
-
-        total = len(ann_list)
-        items = []
-        completed = [0]
-        lock = __import__("threading").Lock()
-        _ann_t0 = __import__("time").monotonic()
-
-        def _bump(pid: str) -> None:
-            with lock:
-                completed[0] += 1
-                _elapsed = __import__("time").monotonic() - _ann_t0
-                _pct = int(completed[0] / total * 100) if total > 0 else 0
-                # 每条均输出（线程间交错自然节流），含进度百分比和耗时
-                logger.info(
-                    "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
-                    pid,
-                    completed[0],
-                    total,
-                    _pct,
-                    _elapsed,
-                )
-                if progress_callback:
-                    progress_callback(completed[0], total, pid)
-
-        def _process_one(ann: dict[str, Any]) -> list[dict[str, Any]]:
-            """处理单条公告：取详情 → 解析。线程安全。"""
-            raw = self._fetch_detail(ann["pid"])
-            if not raw:
-                logger.warning(
-                    "公告详情获取失败: pid=%s code=%s",
-                    ann.get("pid", ""),
-                    ann.get("code", ""),
-                )
-                _bump(ann.get("pid", "?"))
+        try:
+            ann_list = self._fetch_list(since_date, page_size)
+            if not ann_list:
+                self._cb_record_success()
                 return []
-            parsed = self._parse_items(raw, ocr_provider=ocr_provider)
-            if not parsed:
-                logger.warning(
-                    "公告解析为空: pid=%s code=%s title=%s",
-                    ann.get("pid", ""),
-                    ann.get("code", ""),
-                    ann.get("title", "")[:60],
-                )
-            for item in parsed:
-                item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
-                # 注入公告级元数据，供 matcher 写入 announcement_fetch_log
-                item["_pid"] = ann.get("pid", "")
-                item["announce_no"] = ann.get("code", "")
-            _bump(ann.get("code", "?")[:20])
-            return parsed
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_DETAIL_WORKERS) as executor:
-            futures = {executor.submit(_process_one, ann): ann for ann in ann_list}
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    items.extend(future.result())
-                except Exception:
-                    logger.exception("公告处理异常")
-        return items
+            # 过滤已完全解析的公告（去重前移：阶段1后、阶段2前检查）
+            if complete_pids:
+                remaining = [a for a in ann_list if a["pid"] not in complete_pids]
+                skipped = len(ann_list) - len(remaining)
+                if skipped > 0:
+                    logger.info(
+                        "公告 %s: 跳过已完全解析 %d 条, 剩余 %d 条",
+                        self.standard_type,
+                        skipped,
+                        len(remaining),
+                    )
+                ann_list = remaining
+
+            if not ann_list:
+                self._cb_record_success()
+                return []
+
+            total = len(ann_list)
+            items = []
+            completed = [0]
+            lock = __import__("threading").Lock()
+            _ann_t0 = __import__("time").monotonic()
+
+            def _bump(pid: str) -> None:
+                with lock:
+                    completed[0] += 1
+                    _elapsed = __import__("time").monotonic() - _ann_t0
+                    _pct = int(completed[0] / total * 100) if total > 0 else 0
+                    logger.info(
+                        "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
+                        pid,
+                        completed[0],
+                        total,
+                        _pct,
+                        _elapsed,
+                    )
+                    if progress_callback:
+                        progress_callback(completed[0], total, pid)
+
+            def _process_one(ann: dict[str, Any]) -> list[dict[str, Any]]:
+                """处理单条公告：取详情 → 解析。线程安全。"""
+                raw = self._fetch_detail(ann["pid"])
+                if not raw:
+                    logger.warning(
+                        "公告详情获取失败: pid=%s code=%s",
+                        ann.get("pid", ""),
+                        ann.get("code", ""),
+                    )
+                    _bump(ann.get("pid", "?"))
+                    return []
+                parsed = self._parse_items(raw, ocr_provider=ocr_provider)
+                if not parsed:
+                    logger.warning(
+                        "公告解析为空: pid=%s code=%s title=%s",
+                        ann.get("pid", ""),
+                        ann.get("code", ""),
+                        ann.get("title", "")[:60],
+                    )
+                for item in parsed:
+                    item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
+                    item["_pid"] = ann.get("pid", "")
+                    item["announce_no"] = ann.get("code", "")
+                _bump(ann.get("code", "?")[:20])
+                return parsed
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_DETAIL_WORKERS) as executor:
+                futures = {executor.submit(_process_one, ann): ann for ann in ann_list}
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        items.extend(future.result())
+                    except Exception:
+                        logger.exception("公告处理异常")
+
+            if items:
+                self._cb_record_success()
+            else:
+                self._cb_record_failure()
+            return items
+        except AdapterFrozenError:
+            raise
+        except Exception:
+            self._cb_record_failure()
+            raise
