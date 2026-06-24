@@ -196,6 +196,59 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     else:
         _check("认证: 登出成功", None, "未登录，跳过")
 
+    # API Key 三种传递方式验证
+    _api_token = os.environ.get("PILOTSTD_API_TOKEN", "")
+    if _api_token:
+        _pst_token = f"pst_{_api_token}"
+        # AUTH-01a: Authorization Bearer
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number=GB/T+1",
+            headers={"Authorization": f"Bearer {_pst_token}"},
+            timeout=TIMEOUT,
+        )
+        _check(
+            "认证: Bearer pst_token",
+            r.status_code == 200,
+            f"status={r.status_code}",
+        )
+        # AUTH-01b: X-API-KEY header
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number=GB/T+1",
+            headers={"X-API-KEY": _pst_token},
+            timeout=TIMEOUT,
+        )
+        _check(
+            "认证: X-API-KEY pst_token",
+            r.status_code == 200,
+            f"status={r.status_code}",
+        )
+        # AUTH-01c: ?token= query param
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number=GB/T+1&token={_pst_token}",
+            timeout=TIMEOUT,
+        )
+        _check(
+            "认证: query token pst_token",
+            r.status_code == 200,
+            f"status={r.status_code}",
+        )
+        # AUTH-02a: 不带 pst_ 前缀 → 401
+        r = requests.get(
+            f"{BASE}/api/announce/lookup?number=GB/T+1",
+            headers={"X-API-KEY": _api_token},
+            timeout=TIMEOUT,
+        )
+        _check(
+            "认证: 无pst_前缀拒绝",
+            r.status_code == 401,
+            f"status={r.status_code}",
+        )
+    else:
+        _check("认证: API Key 验证", None, "PILOTSTD_API_TOKEN 未设置，跳过")
+        _check("认证: API Key 验证", None, "PILOTSTD_API_TOKEN 未设置，跳过")
+        _check("认证: API Key 验证", None, "PILOTSTD_API_TOKEN 未设置，跳过")
+        _check("认证: API Key 验证", None, "PILOTSTD_API_TOKEN 未设置，跳过")
+
     # ════════════════════════════════════════════════════════════════
     # 业务 API（11项，需登录）
     # ════════════════════════════════════════════════════════════════
@@ -324,7 +377,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     else:
         _check("配置: 保存设置", None, "配置读取失败，跳过")
 
-    # 17. 公告检查（并行跑3个适配器，NAS环境用180s超时）
+    # 17. 公告检查（page_size 使用适配器默认值 20，即每适配器最多 20 条公告）
     try:
         r = _post("/api/announce/check", timeout=180)
         ok = r.status_code == 200 and r.json().get("ok") is True
@@ -343,7 +396,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     # ════════════════════════════════════════════════════════════════
     # 公告样本抓取 — 通过 /check + /results 获取，替代不存在的 /sample
     # ════════════════════════════════════════════════════════════════
-    _CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+    _CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "stress")
     os.makedirs(_CACHE_DIR, exist_ok=True)
     _ANNOUNCE_SAMPLE_PATH = os.path.join(_CACHE_DIR, "announce_sample.json")
 
@@ -852,10 +905,17 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     logger.info("=" * 60)
     logger.info("Web API 压力测试完成 (%.1fs)", total_time)
     logger.info("日志已写入: logs/app.log")
-    _all_ok = _verdict()
 
-    # 输出 step3.json 完整报告
+    # 端点数量自检：预期 38 项（认证4+业务API12+配置公告10+文件操作4+端到端5+权限3）
     _results = get_check_results()
+    _total = len(_results)
+    _expected_total = 38
+    if _total == _expected_total:
+        logger.info("[OK] 端点数量校验通过: %d 个 (预期 %d)", _total, _expected_total)
+    else:
+        logger.warning("[WARN] 端点数量与方案不符: 实际 %d, 预期 %d", _total, _expected_total)
+
+    _all_ok = _verdict()
     _total = len(_results)
     _passed = sum(1 for _, ok, _ in _results if ok)
     _failed = sum(1 for _, ok, _ in _results if ok is False)

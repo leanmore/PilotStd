@@ -158,11 +158,7 @@ def test_winui_hot_cross_compare(window, qtbot, request):
 
     def _cmp(label, exp_val, act_val, tolerance=_TOLERANCE):
         nonlocal all_pass
-        ok = (
-            abs(exp_val - act_val) / max(exp_val, 1) <= tolerance
-            if exp_val > 0
-            else act_val == 0
-        )
+        ok = abs(exp_val - act_val) / max(exp_val, 1) <= tolerance if exp_val > 0 else act_val == 0
         if not ok:
             all_pass = False
         comparisons.append(
@@ -174,9 +170,7 @@ def test_winui_hot_cross_compare(window, qtbot, request):
                 "tolerance": tolerance,
             }
         )
-        logger.info(
-            f"  交叉对比 {label}: CLI={exp_val} WinUI={act_val} → {'PASS' if ok else 'FAIL'}"
-        )
+        logger.info(f"  交叉对比 {label}: CLI={exp_val} WinUI={act_val} → {'PASS' if ok else 'FAIL'}")
 
     _cmp("scan_count", expected.get("scan_count", 0), actual["scan_count"])
     _cmp("query_download", expected.get("query_download", 0), actual["query_download"])
@@ -208,9 +202,7 @@ def test_winui_hot_cross_compare(window, qtbot, request):
         )
         if not ok:
             all_pass = False
-        logger.info(
-            f"  三表读 {t_name}: {three_table.get(t_name, 0)} → {'PASS' if ok else 'FAIL'}"
-        )
+        logger.info(f"  三表读 {t_name}: {three_table.get(t_name, 0)} → {'PASS' if ok else 'FAIL'}")
 
     # ── 写 step2.json ──
     step2 = {
@@ -228,6 +220,150 @@ def test_winui_hot_cross_compare(window, qtbot, request):
         json.dump(step2, f, ensure_ascii=False, indent=2)
     logger.info(f"step2.json 已写入: {step2_path}")
 
-    assert all_pass, (
-        f"交叉对比 FAIL: {len([c for c in comparisons if not c['pass']])} 项未通过"
+    assert all_pass, f"交叉对比 FAIL: {len([c for c in comparisons if not c['pass']])} 项未通过"
+
+
+# ════════════════════════════════════════════════════════════════
+# 乙轮：web 缓存命中率验证（独立函数，非 pytest 测试）
+# ════════════════════════════════════════════════════════════════
+
+
+def run_winui_round_b(result_dir: str, config: dict | None = None) -> dict:
+    """乙轮：关闭本地公告抓取，开启 web 缓存查询。
+
+    从 Docker 端产出的 announce_sample.json 中提取约 100 条公告号，
+    逐条调用 web API 的 /api/announce/lookup 端点，统计缓存命中率。
+    命中率 ≥ 90% → PASS。
+
+    Args:
+        result_dir: Docker 阶段的结果目录，含 announce_sample.json
+        config: 压测配置 dict，含 web_api.url 字段
+    """
+    import time as _time
+
+    import requests as _requests
+
+    sample_path = os.path.join(result_dir, "announce_sample.json")
+    outcome: dict = {
+        "verdict": "SKIP",
+        "total": 0,
+        "hits": 0,
+        "hit_rate": 0.0,
+        "avg_response_ms": 0,
+        "results": [],
+        "reason": "",
+    }
+
+    if not os.path.exists(sample_path):
+        outcome["reason"] = "announce_sample.json 不存在"
+        logger.warning("乙轮跳过: %s", outcome["reason"])
+        return outcome
+
+    try:
+        with open(sample_path, "r", encoding="utf-8") as f:
+            sample = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        outcome["reason"] = f"announce_sample.json 读取失败: {e}"
+        logger.warning("乙轮跳过: %s", outcome["reason"])
+        return outcome
+
+    items = sample.get("items", [])
+    if not items:
+        outcome["reason"] = "announce_sample.json 中公告列表为空"
+        logger.warning("乙轮跳过: %s", outcome["reason"])
+        return outcome
+
+    # 提取 standard_number，去重，最多 100 条
+    numbers: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        sn = item.get("standard_number", "")
+        if sn and sn not in seen:
+            seen.add(sn)
+            numbers.append(sn)
+    numbers = numbers[:100]
+
+    if not numbers:
+        outcome["reason"] = "公告号列表为空（无 standard_number 字段）"
+        logger.warning("乙轮跳过: %s", outcome["reason"])
+        return outcome
+
+    cfg = config or {}
+    web_api_url = cfg.get("web_api", {}).get("url", "")
+    if not web_api_url:
+        web_api_url = os.environ.get("PILOTSTD_BASE_URL", "")
+    if not web_api_url:
+        outcome["reason"] = "web_api.url 未配置"
+        logger.warning("乙轮跳过: %s", outcome["reason"])
+        return outcome
+
+    api_token = os.environ.get("PILOTSTD_API_TOKEN", "")
+    pst_token = f"pst_{api_token}" if api_token else ""
+
+    total = 0
+    hits = 0
+    total_ms = 0.0
+    results: list[dict] = []
+
+    logger.info("乙轮: 开始查询 %d 条公告号 → %s", len(numbers), web_api_url)
+
+    for num in numbers:
+        total += 1
+        t0 = _time.time()
+        try:
+            params: dict = {"number": num}
+            if pst_token:
+                params["token"] = pst_token
+            r = _requests.get(
+                f"{web_api_url.rstrip('/')}/api/announce/lookup",
+                params=params,
+                timeout=10,
+            )
+            elapsed_ms = (_time.time() - t0) * 1000
+            total_ms += elapsed_ms
+            found = r.status_code == 200 and r.json().get("found", False)
+            if found:
+                hits += 1
+            if len(results) < 10:
+                results.append(
+                    {
+                        "standard_number": num,
+                        "hit": found,
+                        "status": r.status_code,
+                        "response_ms": round(elapsed_ms),
+                    }
+                )
+        except Exception as e:
+            elapsed_ms = (_time.time() - t0) * 1000
+            total_ms += elapsed_ms
+            if len(results) < 10:
+                results.append(
+                    {
+                        "standard_number": num,
+                        "hit": False,
+                        "status": 0,
+                        "response_ms": round(elapsed_ms),
+                        "error": str(e)[:80],
+                    }
+                )
+
+    hit_rate = hits / total if total > 0 else 0.0
+    avg_ms = total_ms / total if total > 0 else 0.0
+
+    outcome["verdict"] = "PASS" if hit_rate >= 0.90 else "FAIL"
+    outcome["total"] = total
+    outcome["hits"] = hits
+    outcome["hit_rate"] = round(hit_rate, 3)
+    outcome["avg_response_ms"] = round(avg_ms)
+    outcome["results"] = results
+    outcome.pop("reason", None)
+
+    logger.info(
+        "乙轮完成: verdict=%s total=%d hits=%d hit_rate=%.1f%% avg=%dms",
+        outcome["verdict"],
+        total,
+        hits,
+        hit_rate * 100,
+        round(avg_ms),
     )
+    return outcome

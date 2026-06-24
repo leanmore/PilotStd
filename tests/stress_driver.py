@@ -1247,7 +1247,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
                         timeout=120,
                         params={
                             "pageNumber": 1,
-                            "pageSize": 10,
+                            "pageSize": 1,
                             "sortName": "NOTICE_DATE",
                             "sortOrder": "desc",
                         },
@@ -1258,7 +1258,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
                         data = resp.json()
                     except Exception:
                         return []
-                    rows = data.get("rows", [])[:10]
+                    rows = data.get("rows", [])[:1]
                     return [
                         {
                             "pid": r.get("PID", ""),

@@ -20,7 +20,7 @@ _load_dotenv(os.path.join(ROOT, ".env"))
 
 
 def _parse_args():
-    p = argparse.ArgumentParser(description="PilotStd 全量压力测试驱动器 v8.1")
+    p = argparse.ArgumentParser(description="PilotStd 全量压力测试驱动器 v9.1")
     p.add_argument("--source", default="", help="源目录")
     p.add_argument("--output", default="", help="输出目录")
     p.add_argument("--config", default=None, help="压测配置文件路径")
@@ -51,7 +51,7 @@ def main():
     RESULT_DIR = args.result_dir or os.path.join(ROOT, "logs", f"stress_{TS}")
     os.makedirs(RESULT_DIR, exist_ok=True)
 
-    print(f"PilotStd 全量压力测试 v8.1 | {TS}")
+    print(f"PilotStd 全量压力测试 v9.1 | {TS}")
     print(f"结果目录: {RESULT_DIR}")
 
     step1_data = {}
@@ -132,7 +132,29 @@ def main():
         if os.path.exists(step2_path):
             with open(step2_path, "r", encoding="utf-8") as f:
                 step2_data = json.load(f)
-            print(f"WinUI 完成: 判定={step2_data.get('verdict', '?')}")
+            print(f"WinUI 甲轮完成: 判定={step2_data.get('verdict', '?')}")
+
+        # 乙轮：web 缓存命中率验证（从 Docker 的 announce_sample.json 读取公告号）
+        from stress_winui import run_winui_round_b
+
+        test_config = _load_test_config(args.config)
+        round_b = run_winui_round_b(RESULT_DIR, test_config)
+        print(
+            f"WinUI 乙轮完成: verdict={round_b['verdict']} "
+            f"total={round_b['total']} hits={round_b['hits']} "
+            f"rate={round_b['hit_rate']}"
+        )
+        step2_ok = step2_ok and round_b.get("verdict") != "FAIL"
+        # 将乙轮结果回写到 step2.json
+        if os.path.exists(step2_path):
+            with open(step2_path, "r", encoding="utf-8") as f:
+                step2_data = json.load(f)
+            step2_data["round_b"] = round_b
+            step2_data["verdict"] = (
+                "PASS" if step2_data.get("verdict") == "PASS" and round_b.get("verdict") != "FAIL" else "FAIL"
+            )
+            with open(step2_path, "w", encoding="utf-8") as f:
+                json.dump(step2_data, f, ensure_ascii=False, indent=2)
 
     # ── 汇总 ──
     cli_ok = bool(step1_data.get("checkpoints", {}).get("query", {}).get("rc", 0) == 0)
@@ -143,7 +165,7 @@ def main():
         "ts": TS,
         "meta": {
             "timestamp": datetime.now().isoformat(),
-            "version": "v8.1",
+            "version": "v9.1",
             "source_dir": args.source,
             "output_dir": args.output,
             "result_dir": RESULT_DIR,
