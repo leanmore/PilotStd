@@ -1,15 +1,19 @@
 # docker/api/announce.py — 标准公告抓取 API（通过 StandardManager 统一入口）
 import json
+import logging
 import os
+import threading
 from datetime import datetime
 
 from fastapi import BackgroundTasks, Depends
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
 from ..manager import get_manager as _get_mgr
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["announce"])
+logger = logging.getLogger(__name__)
 
 # 公告检查结果缓存（供 /api/announce/results 查询）
 _cache: dict = {"last_check": "", "results": [], "summary": {}, "failures": []}
@@ -60,6 +64,60 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
     }
 
 
+def _sync_wait_check(since_date: str = "", mgr=None, timeout: int = 60) -> dict:
+    """sync=true 兼容模式：创建异步任务后同步等待，60s 超时。"""
+    import time as _time
+    import uuid as _uuid
+
+    from pilotstd.core.config import get_db_path
+    from pilotstd.core.db import Database
+
+    task_id = _uuid.uuid4().hex
+    now = datetime.now().isoformat()
+    db = Database(get_db_path())
+    db.execute(
+        "INSERT INTO fetch_task (id, task_type, status, progress, created_at, updated_at) "
+        "VALUES (?, 'announcement', 'pending', 0, ?, ?)",
+        (task_id, now, now),
+    )
+    db.close()
+
+    # 启动后台抓取线程
+    from .announcements import _run_fetch_task
+
+    t = threading.Thread(target=_run_fetch_task, args=(task_id, "", mgr), daemon=True)
+    t.start()
+
+    # 同步轮询等待
+    deadline = _time.monotonic() + timeout
+    while _time.monotonic() < deadline:
+        db2 = Database(get_db_path())
+        row = db2.fetchone("SELECT status, result_data, error_msg FROM fetch_task WHERE id=?", (task_id,))
+        db2.close()
+        if row is None:
+            return {"ok": False, "count": 0, "failures": 1, "error": "任务丢失"}
+        if row["status"] == "success":
+            data = {}
+            if row["result_data"]:
+                try:
+                    data = json.loads(row["result_data"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return data
+        if row["status"] == "failed":
+            return {"ok": False, "count": 0, "failures": 1, "error": row["error_msg"] or ""}
+        _time.sleep(1)
+    # 超时
+    return JSONResponse(
+        {
+            "code": 408,
+            "msg": "同步等待超时，请改用异步模式 POST /api/announcements/fetch",
+            "task_id": task_id,
+        },
+        408,
+    )
+
+
 @router.post("/api/announce/check")
 def api_check_announce(
     since_date: str = "",
@@ -73,7 +131,8 @@ def api_check_announce(
     since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。
     """
     if sync:
-        return check_announce(since_date=since_date, mgr=mgr)
+        logger.warning("[DEPRECATED] sync=true 调用已弃用，请迁移至 POST /api/announcements/fetch 异步模式")
+        return _sync_wait_check(since_date=since_date, mgr=mgr)
     if background_tasks:
         background_tasks.add_task(check_announce, since_date=since_date, mgr=mgr)
         return {"ok": True, "msg": "公告抓取已提交后台执行"}

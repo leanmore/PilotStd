@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from .api.announce import router as announce_router
 from .api.announce_lookup import router as announce_lookup_router
+from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
 from .api.archive import router as archive_router
 from .api.download import router as download_router
@@ -124,6 +125,7 @@ app.include_router(download_router)
 app.include_router(organize_router)
 app.include_router(announce_router)
 app.include_router(announce_lookup_router)
+app.include_router(announcements_router)
 app.include_router(api_keys_router)
 app.include_router(pending_router)
 app.include_router(settings_router)
