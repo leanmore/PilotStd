@@ -4,7 +4,7 @@
 
 import logging
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .db import Database
@@ -46,45 +46,61 @@ class ValidityChecker:
     # ── 状态更新 ──────────────────────────────────────────────
 
     def update_status(self, standard_number: str, new_status: str) -> None:
-        """更新标准时效性状态，同时记录检测历史。"""
-        now = datetime.now(timezone.utc).isoformat()
+        """更新标准时效性状态，设置下次检查时间=now+28天。
+        状态变更时记录 last_status + last_status_updated_at。
+        """
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
+        next_check = (now + timedelta(days=28)).isoformat()
         row = self._db.fetchone(
             f"SELECT status, check_count FROM {_TABLE} WHERE standard_number=?",
             (standard_number,),
         )
         if row:
-            self._db.execute(
-                f"UPDATE {_TABLE} SET status=?, last_checked_at=?, last_status=?, "
-                "last_status_updated_at=?, check_count=check_count+1, updated_at=? "
-                "WHERE standard_number=?",
-                (new_status, now, row["status"], now, now, standard_number),
-            )
+            # 状态变更时记录旧状态+变更时间
+            if row["status"] != new_status:
+                self._db.execute(
+                    f"UPDATE {_TABLE} SET status=?, last_checked_at=?, next_check_at=?, "
+                    "last_status=?, last_status_updated_at=?, check_count=check_count+1, updated_at=? "
+                    "WHERE standard_number=?",
+                    (new_status, now_iso, next_check, row["status"], now_iso, now_iso, standard_number),
+                )
+            else:
+                self._db.execute(
+                    f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "
+                    "check_count=check_count+1, updated_at=? WHERE standard_number=?",
+                    (now_iso, next_check, now_iso, standard_number),
+                )
         else:
             self._db.execute(
                 f"INSERT INTO {_TABLE} (standard_number, status, last_checked_at, "
-                "last_status_updated_at, check_count, created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, 1, ?, ?)",
-                (standard_number, new_status, now, now, now, now),
+                "next_check_at, last_status_updated_at, check_count, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
+                (standard_number, new_status, now_iso, next_check, now_iso, now_iso, now_iso),
             )
 
-    # ── 每周批次 ──────────────────────────────────────────────
+    # ── 到期标准查询 ──────────────────────────────────────────
 
-    def get_weekly_batch(self, week_number: int, batch_size: int = 50) -> list[str]:
-        """返回本周待查标准号列表（随机切片，确保四周覆盖全部）。
+    def get_due_standards(self) -> list[str]:
+        """查询所有 next_check_at <= now 的到期标准号。"""
+        now = datetime.now(timezone.utc).isoformat()
+        rows = self._db.fetchall(
+            f"SELECT standard_number FROM {_TABLE} WHERE next_check_at <= ? ORDER BY next_check_at ASC",
+            (now,),
+        )
+        return [r["standard_number"] for r in rows]
 
-        Args:
-            week_number: 当前周编号（0-index，从 epoch 起算）
-            batch_size: 每批返回的标准数量
-        """
-        rows = self._db.fetchall(f"SELECT standard_number FROM {_TABLE} ORDER BY next_check_at ASC")
-        if not rows:
+    @staticmethod
+    def random_slice(candidates: list[str], week_number: int, batch_size: int = 50) -> list[str]:
+        """从候选列表中随机切片取约 1/4（固定种子，同周结果一致）。"""
+        if not candidates:
             return []
-        all_numbers = [r["standard_number"] for r in rows]
-        # 随机切片：固定随机种子确保同周结果一致，不同周覆盖不同子集
+        # 复制后 shuffle，避免修改原列表
+        shuffled = list(candidates)
         rng = random.Random(week_number)
-        rng.shuffle(all_numbers)
-        start = (week_number % max(1, (len(all_numbers) + batch_size - 1) // batch_size)) * batch_size
-        return all_numbers[start : start + batch_size]
+        rng.shuffle(shuffled)
+        start = (week_number % max(1, (len(shuffled) + batch_size - 1) // batch_size)) * batch_size
+        return shuffled[start : start + batch_size]
 
     # ── 状态检查 ──────────────────────────────────────────────
 

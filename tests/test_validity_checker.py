@@ -83,34 +83,48 @@ class TestValidityChecker(unittest.TestCase):
         self.assertEqual(row["last_status"], "未知")
         self.assertEqual(row["check_count"], 1)
 
-    # ── get_weekly_batch ──
+    # ── get_due_standards + random_slice ──
 
-    def test_weekly_batch_empty(self):
-        batch = self.checker.get_weekly_batch(0)
-        self.assertEqual(batch, [])
+    def test_get_due_empty(self):
+        due = self.checker.get_due_standards()
+        self.assertEqual(due, [])
 
-    def test_weekly_batch_random_slice(self):
-        # 注册 200 条标准
-        for i in range(200):
-            self.checker.register_new_standard(f"GB {i + 1}-2020")
-        # 第 0 周取 50 条
-        w0 = self.checker.get_weekly_batch(0, batch_size=50)
-        self.assertEqual(len(w0), 50)
-        # 第 1 周取 50 条，不应与第 0 周完全重叠
-        w1 = self.checker.get_weekly_batch(1, batch_size=50)
-        self.assertEqual(len(w1), 50)
-        # 四周覆盖验证：第 0-3 周合计应接近 200
+    def test_random_slice_deterministic(self):
+        candidates = [f"GB {i}-2020" for i in range(200)]
+        a = self.checker.random_slice(candidates, 0, batch_size=50)
+        b = self.checker.random_slice(candidates, 0, batch_size=50)
+        self.assertEqual(a, b)
+        self.assertEqual(len(a), 50)
+
+    def test_random_slice_covers_with_weeks(self):
+        candidates = [f"GB {i}-2020" for i in range(200)]
         all_w = set()
         for w in range(4):
-            all_w.update(self.checker.get_weekly_batch(w, batch_size=50))
+            all_w.update(self.checker.random_slice(candidates, w, batch_size=50))
         self.assertGreaterEqual(len(all_w), 100)  # 随机切片至少覆盖 50%
 
-    def test_weekly_batch_deterministic(self):
-        for i in range(100):
-            self.checker.register_new_standard(f"GB {i + 1}-2020")
-        w0_a = self.checker.get_weekly_batch(0, batch_size=50)
-        w0_b = self.checker.get_weekly_batch(0, batch_size=50)
-        self.assertEqual(w0_a, w0_b)
+    # ── update_status with 28-day scheduling ──
+
+    def test_update_status_sets_next_check(self):
+        self.checker.update_status("GB X-2020", "现行")
+        row = self.db.fetchone(
+            "SELECT status, next_check_at, check_count FROM standard_validity_status WHERE standard_number=?",
+            ("GB X-2020",),
+        )
+        self.assertEqual(row["status"], "现行")
+        self.assertIsNotNone(row["next_check_at"])
+        self.assertEqual(row["check_count"], 1)
+
+    def test_update_status_change_records_last_status(self):
+        self.checker.update_status("GB Y-2020", "现行")
+        self.checker.update_status("GB Y-2020", "已废止")
+        row = self.db.fetchone(
+            "SELECT status, last_status, last_status_updated_at FROM standard_validity_status WHERE standard_number=?",
+            ("GB Y-2020",),
+        )
+        self.assertEqual(row["status"], "已废止")
+        self.assertEqual(row["last_status"], "现行")
+        self.assertIsNotNone(row["last_status_updated_at"])
 
     # ── check_standard ──
 
