@@ -563,3 +563,24 @@ def _migrate_v15_announcement_fetch_log(db: Database) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_pid ON announcement_fetch_log(source_site, pid)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_standard ON announcement_fetch_log(standard_number)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_matched ON announcement_fetch_log(matched)")
+
+
+@migration(16)
+def _migrate_v16_validity_status(db: Database) -> None:
+    """v16: 标准时效性检查表——跟踪标准现行/废止状态变更。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS standard_validity_status (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            standard_number TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT '未知',
+            last_checked_at TEXT,
+            next_check_at TEXT,
+            last_status TEXT,
+            last_status_updated_at TEXT,
+            check_count INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity_status(next_check_at)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity_status(standard_number)")

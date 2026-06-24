@@ -15,6 +15,7 @@ from ..core.config import ConfigManager, get_db_path, get_library_root
 from ..core.db import Database
 from ..core.file_index import FileIndexRepository
 from ..core.std_utils import GB_CODES, classify_std_code
+from ..core.validity_checker import ValidityChecker  # v16 标准时效性检查
 from ..download.adapters.base import BaseDownloadAdapter
 from ..download.adapters.openstd_download import OpenstdDownloadAdapter
 from ..download.engine import DownloadEngine
@@ -132,6 +133,9 @@ class StandardManager:
             self._pending_svc,
             self._scheduled_svc,
         ) = create_services(self)
+
+        # ── 时效性检查 ──
+        self.validity_checker = ValidityChecker(self.db)
 
         # ── 工作状态 ──
         self._parsed_results: List[ParsedStdInfo] = []  # 扫描结果缓存
@@ -888,7 +892,18 @@ class StandardManager:
                 progress_callback(_i + 1, _total)
         if _backfilled:
             logger.info("archive_standards: 回填 std_name %d/%d 条", _backfilled, _total)
-        return self._organizer_svc.organize(_items, word_source_root)
+        result = self._organizer_svc.organize(_items, word_source_root)
+        # 归档成功后注册新标准到时效性检查表
+        if result.get("moved", 0) > 0:
+            for _p in _items:
+                _std_no = f"{_p.logical_code} {_p.number}"
+                if _p.year:
+                    _std_no += f"-{_p.year}"
+                try:
+                    self.validity_checker.register_new_standard(_std_no)
+                except Exception:
+                    pass
+        return result
 
     # ════════════════════════════════════════════════════════════════
     # GUI 桥接方法（替代 mixin 直接访问子组件）
