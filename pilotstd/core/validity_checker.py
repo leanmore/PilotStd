@@ -45,9 +45,9 @@ class ValidityChecker:
 
     # ── 状态更新 ──────────────────────────────────────────────
 
-    def update_status(self, standard_number: str, new_status: str) -> None:
+    def update_status(self, standard_number: str, new_status: str, notification_mgr: Any = None) -> None:
         """更新标准时效性状态，设置下次检查时间=now+28天。
-        状态变更时记录 last_status + last_status_updated_at。
+        状态变更时记录 last_status + last_status_updated_at，并触发通知事件。
         """
         now = datetime.now(timezone.utc)
         now_iso = now.isoformat()
@@ -65,6 +65,20 @@ class ValidityChecker:
                     "WHERE standard_number=?",
                     (new_status, now_iso, next_check, row["status"], now_iso, now_iso, standard_number),
                 )
+                # 触发通知事件
+                if notification_mgr:
+                    try:
+                        event_type = "standard_expired" if new_status == "已废止" else "standard_status_changed"
+                        notification_mgr.send_event(
+                            event_type,
+                            {
+                                "standard_number": standard_number,
+                                "old_status": row["status"],
+                                "new_status": new_status,
+                            },
+                        )
+                    except Exception:
+                        pass
             else:
                 self._db.execute(
                     f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "

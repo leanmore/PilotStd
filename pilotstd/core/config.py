@@ -149,6 +149,19 @@ FACTORY_DEFAULTS = {
     "ocr.aliyun_access_key_secret": "",  # 阿里云 Access Key Secret
     "file.clear_readonly": True,  # 移动文件前自动清除只读属性
     "watchdog.enabled": False,  # 启动时开启增量文件监控（需安装watchdog包）
+    "notification.enabled": False,
+    "notification.channels.wechat.enabled": True,
+    "notification.channels.wechat.webhook_url": "",
+    "notification.channels.telegram.enabled": False,
+    "notification.channels.telegram.bot_token": "",
+    "notification.channels.telegram.chat_id": "",
+    "notification.channels.feishu.enabled": False,
+    "notification.channels.feishu.webhook_url": "",
+    "notification.rules.archive_complete": ["wechat"],
+    "notification.rules.standard_status_changed": ["wechat"],
+    "notification.rules.standard_expired": ["wechat"],
+    "notification.rules.standard_first_registered": ["wechat"],
+    "notification.rules.check_batch_complete": ["wechat"],
 }
 
 

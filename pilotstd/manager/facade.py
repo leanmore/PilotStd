@@ -14,6 +14,7 @@ import requests
 from ..core.config import ConfigManager, get_db_path, get_library_root
 from ..core.db import Database
 from ..core.file_index import FileIndexRepository
+from ..core.notification import EVENT_ARCHIVE_COMPLETE, NotificationManager  # v17 通知模块
 from ..core.std_utils import GB_CODES, classify_std_code
 from ..core.validity_checker import ValidityChecker  # v16 标准时效性检查
 from ..download.adapters.base import BaseDownloadAdapter
@@ -137,6 +138,9 @@ class StandardManager:
         # ── 时效性检查 ──
         self.validity_checker = ValidityChecker(self.db)
 
+        # ── 通知模块 ──
+        self.notification_mgr = NotificationManager(self.cfg, self.db)
+
         # ── 工作状态 ──
         self._parsed_results: List[ParsedStdInfo] = []  # 扫描结果缓存
         self._queried_items: List[ParsedStdInfo] = []  # 查询时实际传入的列表（与 _query_results 平行）
@@ -145,6 +149,10 @@ class StandardManager:
         self._expire_list: List[ParsedStdInfo] = []  # 需过期处理列表
         self._pending_list: List[ParsedStdInfo] = []  # 需人工确认列表
         self._download_tasks: List[DownloadTask] = []  # 下载任务缓存
+
+    def _init_notification(self) -> None:
+        """重新初始化通知模块（配置变更后调用）。"""
+        self.notification_mgr = NotificationManager(self.cfg, self.db)
 
     # ════════════════════════════════════════════════════════════════
     # 扫描
@@ -893,7 +901,7 @@ class StandardManager:
         if _backfilled:
             logger.info("archive_standards: 回填 std_name %d/%d 条", _backfilled, _total)
         result = self._organizer_svc.organize(_items, word_source_root)
-        # 归档成功后注册新标准到时效性检查表
+        # 归档成功后注册新标准到时效性检查表 + 发送通知
         if result.get("moved", 0) > 0:
             for _p in _items:
                 _std_no = f"{_p.logical_code} {_p.number}"
@@ -903,6 +911,10 @@ class StandardManager:
                     self.validity_checker.register_new_standard(_std_no)
                 except Exception:
                     pass
+            try:
+                self.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": result["moved"]})
+            except Exception:
+                pass
         return result
 
     # ════════════════════════════════════════════════════════════════

@@ -21,6 +21,7 @@ from .api.archive import router as archive_router
 from .api.download import router as download_router
 from .api.logs import router as logs_router
 from .api.normalize import router as normalize_router
+from .api.notification import router as notification_router
 from .api.organize import router as organize_router
 from .api.pending import router as pending_router
 from .api.query import router as query_router
@@ -128,6 +129,7 @@ app.include_router(pending_router)
 app.include_router(settings_router)
 app.include_router(stats_router)
 app.include_router(normalize_router)
+app.include_router(notification_router)
 app.include_router(archive_router)
 app.include_router(users_router)
 app.include_router(upload_router)

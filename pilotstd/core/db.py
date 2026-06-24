@@ -584,3 +584,23 @@ def _migrate_v16_validity_status(db: Database) -> None:
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity_status(next_check_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity_status(standard_number)")
+
+
+@migration(17)
+def _migrate_v17_notification_log(db: Database) -> None:
+    """v17: 通知发送日志表——记录所有渠道的通知发送记录。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS notification_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            title TEXT,
+            body TEXT,
+            standard_number TEXT,
+            status TEXT NOT NULL DEFAULT 'success',
+            error_msg TEXT,
+            sent_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_notif_sent_at ON notification_log(sent_at)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_notif_event_type ON notification_log(event_type)")
