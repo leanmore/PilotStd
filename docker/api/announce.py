@@ -63,11 +63,17 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
 @router.post("/api/announce/check")
 def api_check_announce(
     since_date: str = "",
+    sync: bool = False,
     background_tasks: BackgroundTasks = None,
     mgr=Depends(get_manager_dep),
 ):
-    """抓取最新公告（后台异步执行，不阻塞请求线程）。
-    since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。"""
+    """抓取最新公告。
+    - sync=False（默认）：后台异步执行，不阻塞请求线程，返回 msg
+    - sync=True：同步执行，返回实际抓取的 count 和 failures 数
+    since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。
+    """
+    if sync:
+        return check_announce(since_date=since_date, mgr=mgr)
     if background_tasks:
         background_tasks.add_task(check_announce, since_date=since_date, mgr=mgr)
         return {"ok": True, "msg": "公告抓取已提交后台执行"}

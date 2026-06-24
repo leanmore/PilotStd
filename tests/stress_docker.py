@@ -378,14 +378,16 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     else:
         _check("配置: 保存设置", None, "配置读取失败，跳过")
 
-    # 17. 公告检查（page_size 使用适配器默认值 20，即每适配器最多 20 条公告）
+    # 17. 公告检查（sync=true 同步执行，获取实际 count）
     try:
-        r = _post("/api/announce/check", timeout=180)
-        ok = r.status_code == 200 and r.json().get("ok") is True
+        r = _post("/api/announce/check?sync=true", timeout=300)
+        _aj = r.json()
+        ok = r.status_code == 200 and _aj.get("ok") is True
+        _announce_count = _aj.get("count", 0)
         _check(
             "公告: 抓取检查",
-            ok,
-            f"status={r.status_code} ok={r.json().get('ok')} count={r.json().get('count', 0)}",
+            ok and _announce_count > 0,
+            f"status={r.status_code} ok={_aj.get('ok')} count={_announce_count}",
         )
     except Exception as e:
         _check("公告: 抓取检查", None, f"超时或异常: {str(e)[:60]}")
