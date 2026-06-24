@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 15
+CURRENT_SCHEMA_VERSION = 18
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -604,3 +604,30 @@ def _migrate_v17_notification_log(db: Database) -> None:
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_sent_at ON notification_log(sent_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_event_type ON notification_log(event_type)")
+
+
+@migration(18)
+def _migrate_v18_fetch_task_adapter_health(db: Database) -> None:
+    """v18: 异步抓取任务表 + 适配器熔断健康表。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS fetch_task (
+            id TEXT PRIMARY KEY,
+            task_type TEXT DEFAULT 'announcement',
+            status TEXT DEFAULT 'pending',
+            progress INTEGER DEFAULT 0,
+            result_data TEXT,
+            error_msg TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS adapter_health (
+            adapter_name TEXT PRIMARY KEY,
+            freeze_count INTEGER DEFAULT 0,
+            first_freeze_time TIMESTAMP,
+            frozen_until TIMESTAMP,
+            fail_streak INTEGER DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
