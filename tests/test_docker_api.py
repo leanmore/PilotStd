@@ -141,9 +141,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.organize.os.walk")
     @patch("docker.api.organize.os.listdir")
     @patch("docker.api.organize.os.rmdir")
-    def test_clean_empty_removes_dirs(
-        self, mock_rmdir, mock_listdir, mock_walk, mock_validate
-    ):
+    def test_clean_empty_removes_dirs(self, mock_rmdir, mock_listdir, mock_walk, mock_validate):
         mock_validate.return_value = "/standards"
         mock_walk.return_value = [("/standards/empty", ["sub"], [])]
         mock_listdir.return_value = []
@@ -277,7 +275,7 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_archive_calls_organize(self):
         """POST /api/archive 将文件移动到分类目录。"""
         mock_mgr = MagicMock()
-        mock_mgr.organize.return_value = {"moved": 1, "errors": []}
+        mock_mgr.archive_standards.return_value = {"moved": 1, "errors": []}
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.post(
             "/api/archive",
@@ -300,9 +298,9 @@ class TestAPIEndpoints(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["moved"], 1)
-        # 验证 organize 被调用且 word_source_root 正确传递
-        mock_mgr.organize.assert_called_once()
-        args, kwargs = mock_mgr.organize.call_args
+        # 验证 archive_standards 被调用且 word_source_root 正确传递
+        mock_mgr.archive_standards.assert_called_once()
+        args, kwargs = mock_mgr.archive_standards.call_args
         self.assertEqual(kwargs["word_source_root"], "/word")
         parsed_list = args[0]
         self.assertEqual(len(parsed_list), 1)
@@ -381,9 +379,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(data["stats"]["success"], 1)
         self.assertEqual(len(data["results"]), 1)
         self.assertEqual(data["results"][0]["status"], "success")
-        self.assertEqual(
-            data["results"][0]["saved_path"], "/standards/GB/GB_T_1-2020.pdf"
-        )
+        self.assertEqual(data["results"][0]["saved_path"], "/standards/GB/GB_T_1-2020.pdf")
 
     # ── Upload ──
 
@@ -393,12 +389,8 @@ class TestAPIEndpoints(unittest.TestCase):
         """上传合法 JPEG 图片返回访问 URL。"""
         mock_uuid.return_value.hex = "abc123def456"
         # 最小合法 JPEG（SOI + JFIF 头）
-        jpeg_bytes = (
-            b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
-        )
-        r = self.client.post(
-            "/api/upload", files={"file": ("test.jpg", jpeg_bytes, "image/jpeg")}
-        )
+        jpeg_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        r = self.client.post("/api/upload", files={"file": ("test.jpg", jpeg_bytes, "image/jpeg")})
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertIn("url", data)
@@ -416,9 +408,7 @@ class TestAPIEndpoints(unittest.TestCase):
         """扩展名 .jpg 但内容是 PNG 魔数：返回 400。"""
         # PNG 文件头魔数
         png_header = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
-        r = self.client.post(
-            "/api/upload", files={"file": ("fake.jpg", png_header, "image/jpeg")}
-        )
+        r = self.client.post("/api/upload", files={"file": ("fake.jpg", png_header, "image/jpeg")})
         self.assertEqual(r.status_code, 400)
 
     def test_backgrounds_not_found_returns_404(self):
@@ -480,9 +470,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.users.add_user")
     def test_add_user_empty_username_returns_400(self, mock_add):
         """空用户名返回 400。"""
-        r = self.client.post(
-            "/api/users", json={"username": "", "password": "pass1234"}
-        )
+        r = self.client.post("/api/users", json={"username": "", "password": "pass1234"})
         self.assertEqual(r.status_code, 400)
 
     @patch("docker.api.users.add_user")
@@ -527,9 +515,7 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_change_password_short_returns_400(self, mock_user):
         """新密码不足 4 个字符返回 400。"""
         mock_user.return_value = "admin"
-        r = self.client.put(
-            "/api/users/password", json={"old_password": "old", "new_password": "ab"}
-        )
+        r = self.client.put("/api/users/password", json={"old_password": "old", "new_password": "ab"})
         self.assertEqual(r.status_code, 400)
 
     # ── System: version ──
@@ -571,9 +557,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.system.os.environ.get", return_value="")
     @patch("docker.api.system._get_container_id", return_value="abc123")
     @patch("docker.api.system._run_docker")
-    def test_update_no_compose_returns_restarted_false(
-        self, mock_run, mock_cid, mock_env, mock_exists
-    ):
+    def test_update_no_compose_returns_restarted_false(self, mock_run, mock_cid, mock_env, mock_exists):
         """无 compose 配置时，拉取成功但 restart 为 false。"""
         old_digest = "ghcr.io/leanmore/pilotstd@sha256:aaa"
         new_digest = "ghcr.io/leanmore/pilotstd@sha256:bbb"
@@ -594,9 +578,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.system.os.environ.get")
     @patch("docker.api.system._get_container_id", return_value="abc123")
     @patch("docker.api.system._run_docker")
-    def test_update_with_compose_succeeds(
-        self, mock_run, mock_cid, mock_env, mock_exists
-    ):
+    def test_update_with_compose_succeeds(self, mock_run, mock_cid, mock_env, mock_exists):
         """有 compose 配置时，compose up 成功后 restarted=True。"""
         mock_env.side_effect = lambda k, d="": {
             "COMPOSE_FILE": "/app/docker-compose.yml",
@@ -622,9 +604,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.system.os.environ.get")
     @patch("docker.api.system._get_container_id", return_value="abc123")
     @patch("docker.api.system._run_docker")
-    def test_update_compose_fails_returns_restarted_false(
-        self, mock_run, mock_cid, mock_env, mock_exists
-    ):
+    def test_update_compose_fails_returns_restarted_false(self, mock_run, mock_cid, mock_env, mock_exists):
         """compose up 抛异常时 restarted=False。"""
         mock_env.side_effect = lambda k, d="": {
             "COMPOSE_FILE": "/app/docker-compose.yml",
@@ -672,9 +652,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.system.os.environ.get", return_value="")
     @patch("docker.api.system._get_container_id", return_value="abc123")
     @patch("docker.api.system._run_docker")
-    def test_update_old_digest_empty_still_triggers_update(
-        self, mock_run, mock_cid, mock_env, mock_exists
-    ):
+    def test_update_old_digest_empty_still_triggers_update(self, mock_run, mock_cid, mock_env, mock_exists):
         """旧 digest 获取失败时（image inspect 抛异常），仍应触发更新流程。"""
         new_digest = "ghcr.io/leanmore/pilotstd@sha256:bbb"
         mock_run.side_effect = [
