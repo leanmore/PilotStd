@@ -27,6 +27,7 @@ docs/
 .pytest_cache/
 tests/standards/
 tests/gui/fixtures/
+tests/.cache/
 
 # 临时文件
 scripts/temp/
