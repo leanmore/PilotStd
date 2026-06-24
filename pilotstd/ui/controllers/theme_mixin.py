@@ -58,9 +58,7 @@ class ThemeMixin:
                 base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
                 qt_trans_dir = os.path.join(base, "qt_translations")
             else:
-                qt_trans_dir = QLibraryInfo.path(
-                    QLibraryInfo.LibraryPath.TranslationsPath
-                )
+                qt_trans_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
             # 加载 Qt 内置翻译（qtbase + widgets，多翻译器协同）
             for qm_name in (f"qtbase_{lang}.qm", f"widgets_{lang}.qm"):
                 qt_qm = os.path.join(qt_trans_dir, qm_name)

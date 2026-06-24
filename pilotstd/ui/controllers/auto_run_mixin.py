@@ -83,19 +83,11 @@ class AutoRunMixin:
 
         self._auto_worker = AutoWorker(self._mgr, source_dir, parent=self)
         self._auto_worker.scan_batch.connect(self._on_scan_batch_ready)
-        self._auto_worker.scan_progress.connect(
-            lambda cur, total: tp.emit(_pct(cur, total))
-        )
-        self._auto_worker.query_result.connect(
-            lambda idx, result: self._on_query_result_ready(idx, result)
-        )
-        self._auto_worker.query_progress.connect(
-            lambda cur, total: tp.emit(_pct(cur, total))
-        )
+        self._auto_worker.scan_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
+        self._auto_worker.query_result.connect(lambda idx, result: self._on_query_result_ready(idx, result))
+        self._auto_worker.query_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
         self._auto_worker.download_result.connect(self._on_download_batch_ready_single)
-        self._auto_worker.download_progress.connect(
-            lambda cur, total: tp.emit(_pct(cur, total))
-        )
+        self._auto_worker.download_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
         self._auto_worker.archive_result.connect(self._on_archive_batch_ready_single)
         self._auto_worker.stage_changed.connect(self._on_auto_stage_changed)
         self._auto_worker.error.connect(self._on_auto_error)
@@ -105,9 +97,7 @@ class AutoRunMixin:
     def _on_auto_error(self, msg: str) -> None:
         """AutoWorker 异常 → 进度条变红 + 状态栏错误信息。
         同时给用户两个信号：进度条显示"失败"，状态栏显示原因。"""
-        self.progress_bar.setStyleSheet(
-            "QProgressBar::chunk { background-color: #ef4444; }"
-        )
+        self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #ef4444; }")
         self.progress_bar.setFormat(_("auto_run_failed"))
         self.progress_bar.setValue(100)
         self.status_changed.emit(f"{_('auto_run_failed')}: {msg}")

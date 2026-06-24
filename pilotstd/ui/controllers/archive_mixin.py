@@ -20,9 +20,7 @@ class ArchiveMixin:
     def _on_normalize(self) -> None:
         self._current_task = "normalize"
         if not self._parsed_results:
-            choice = self._stage_prereq_dialog(
-                _("title_hint"), _("msg_scan_prereq"), _("task_scan")
-            )
+            choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
                 self._on_scan()
                 return
@@ -30,27 +28,17 @@ class ArchiveMixin:
                 return
             # choice == "skip": 强制执行
         # 标准名称缺失时提示查询补全（主线程弹出对话框）
-        missing = [
-            p.get_full_number()
-            for p in self._parsed_results
-            if not p.std_name and not p.found_name
-        ]
+        missing = [p.get_full_number() for p in self._parsed_results if not p.std_name and not p.found_name]
         if missing:
             more = f"\n... 还有 {len(missing) - 5} 条" if len(missing) > 5 else ""
             reply = self._question_dlg(
                 _("title_missing_name"),
-                _("msg_missing_name").format(
-                    count=len(missing), list="\n".join(missing[:5]), more=more
-                ),
+                _("msg_missing_name").format(count=len(missing), list="\n".join(missing[:5]), more=more),
             )
             if reply == QMessageBox.StandardButton.Yes:
                 self._on_query()
         # 名称冲突检测：路由阶段标记为 name_conflict 的条目
-        conflicts = [
-            p
-            for p in self._parsed_results
-            if getattr(p, "stage_status", "") == "name_conflict"
-        ]
+        conflicts = [p for p in self._parsed_results if getattr(p, "stage_status", "") == "name_conflict"]
         if conflicts and not self._suppress_dialogs:
             resolved = self._show_name_conflict_dialog(conflicts)
             # 用户取消的条目写入 pending_lookup
@@ -106,9 +94,7 @@ class ArchiveMixin:
             return
         self._current_task = "archive"
         if not self._parsed_results:
-            choice = self._stage_prereq_dialog(
-                _("title_hint"), _("msg_scan_prereq"), _("task_scan")
-            )
+            choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
                 self._on_scan()
                 return
@@ -137,9 +123,7 @@ class ArchiveMixin:
                 self,
                 _("title_file_exists"),
                 msg,
-                QMessageBox.StandardButton.Yes
-                | QMessageBox.StandardButton.No
-                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
             )
             if reply == QMessageBox.StandardButton.Cancel:
                 return
@@ -157,9 +141,7 @@ class ArchiveMixin:
         )
         self._archive_worker.batch_ready.connect(self._on_archive_batch_ready)
         self._archive_worker.progress.connect(self.progress_changed.emit)
-        self._archive_worker.error.connect(
-            lambda msg: logger.error("归档错误: %s", msg)
-        )
+        self._archive_worker.error.connect(lambda msg: logger.error("归档错误: %s", msg))
 
         def on_archive_finished() -> None:
             saved = sum(1 for i, s in self._archive_results if s == "已归档")
@@ -175,11 +157,7 @@ class ArchiveMixin:
                     st = (
                         "被代替"
                         if parsed.effect_status == "被代替"
-                        else (
-                            "废止"
-                            if parsed.effect_status in ("废止", "已废止", "作废")
-                            else "现行"
-                        )
+                        else ("废止" if parsed.effect_status in ("废止", "已废止", "作废") else "现行")
                     )
                     self._mgr.upsert_file_index(
                         file_path=parsed.source_path,
@@ -199,33 +177,20 @@ class ArchiveMixin:
                 for idx, status in self._archive_results:
                     if status != "已归档" and idx < len(self._parsed_results):
                         p = self._parsed_results[idx]
-                        fname = os.path.basename(
-                            getattr(p, "source_path", "")
-                            or getattr(p, "raw_filename", "")
-                        )
-                        skip_details.append(
-                            _("msg_archive_skip_line").format(name=fname, reason=status)
-                        )
+                        fname = os.path.basename(getattr(p, "source_path", "") or getattr(p, "raw_filename", ""))
+                        skip_details.append(_("msg_archive_skip_line").format(name=fname, reason=status))
                 detail_text = ""
                 if skip_details:
                     shown = skip_details[:20]
-                    more = (
-                        f"\n  ... {len(skip_details) - 20} more"
-                        if len(skip_details) > 20
-                        else ""
-                    )
+                    more = f"\n  ... {len(skip_details) - 20} more" if len(skip_details) > 20 else ""
                     detail_text = (
-                        _("msg_archive_skip_detail").format(
-                            lines="\n".join(shown) + more
-                        )
+                        _("msg_archive_skip_detail").format(lines="\n".join(shown) + more)
                         if more
                         else _("msg_archive_skip_detail").format(lines="\n".join(shown))
                     )
                 self._show_stage_dialog(
                     _("save_results_title"),
-                    _("msg_save_done").format(
-                        saved=saved, skipped=skipped, detail=detail_text
-                    ),
+                    _("msg_save_done").format(saved=saved, skipped=skipped, detail=detail_text),
                     next_action=None,
                     next_label="",
                 )
@@ -254,9 +219,7 @@ class ArchiveMixin:
         result = self._mgr.handle_expired(expired)
         moved = result.get("moved", 0)
         if moved:
-            self.status_changed.emit(
-                f"查询完成: 已自动将 {moved} 个废止标准移入过期作废/"
-            )
+            self.status_changed.emit(f"查询完成: 已自动将 {moved} 个废止标准移入过期作废/")
         return moved
 
     def _get_library_root(self) -> str:
@@ -270,22 +233,13 @@ class ArchiveMixin:
             src = getattr(p, "source_name", "") or "（无）"
             qry = getattr(p, "found_name", "") or "（无）"
             full_num = p.get_full_number()
-            msg = (
-                f"标准号: {full_num}\n\n"
-                f"源文件名称: {src}\n"
-                f"网站查询名称: {qry}\n\n"
-                f"请选择归档使用的名称:"
-            )
+            msg = f"标准号: {full_num}\n\n源文件名称: {src}\n网站查询名称: {qry}\n\n请选择归档使用的名称:"
             dlg = QMessageBox(parent=None)
             dlg.setWindowTitle(_("title_name_conflict"))
             dlg.setText(msg)
             dlg.setIcon(QMessageBox.Icon.Question)
-            btn_src = dlg.addButton(
-                _("btn_use_source_name"), QMessageBox.ButtonRole.AcceptRole
-            )
-            btn_qry = dlg.addButton(
-                _("btn_use_query_name"), QMessageBox.ButtonRole.YesRole
-            )
+            btn_src = dlg.addButton(_("btn_use_source_name"), QMessageBox.ButtonRole.AcceptRole)
+            btn_qry = dlg.addButton(_("btn_use_query_name"), QMessageBox.ButtonRole.YesRole)
             dlg.addButton(  # 第三个按钮为取消，else 分支处理
                 _("btn_cancel"), QMessageBox.ButtonRole.RejectRole
             )

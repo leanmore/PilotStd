@@ -35,11 +35,7 @@ class DialogMixin:
         btn_yes = dlg.addButton(_("btn_yes"), QMessageBox.ButtonRole.YesRole)
         dlg.addButton(_("btn_no"), QMessageBox.ButtonRole.NoRole)
         dlg.exec()
-        return (
-            QMessageBox.StandardButton.Yes
-            if dlg.clickedButton() == btn_yes
-            else QMessageBox.StandardButton.No
-        )
+        return QMessageBox.StandardButton.Yes if dlg.clickedButton() == btn_yes else QMessageBox.StandardButton.No
 
     # ── 阶段前置条件对话框 ──────────────────────────────
     # 返回值: "run_prereq" — 执行前置阶段, "skip" — 跳过检查强制执行, "cancel" — 取消
@@ -52,9 +48,7 @@ class DialogMixin:
         dlg.setWindowTitle(title)
         dlg.setText(msg)
         dlg.setIcon(QMessageBox.Icon.Warning)
-        btn_prereq = dlg.addButton(
-            prereq_label or _("btn_run_prereq"), QMessageBox.ButtonRole.AcceptRole
-        )
+        btn_prereq = dlg.addButton(prereq_label or _("btn_run_prereq"), QMessageBox.ButtonRole.AcceptRole)
         btn_skip = dlg.addButton(_("btn_skip_prereq"), QMessageBox.ButtonRole.NoRole)
         dlg.addButton(_("btn_cancel"), QMessageBox.ButtonRole.RejectRole)
         dlg.exec()
@@ -67,9 +61,7 @@ class DialogMixin:
 
     # ── 阶段弹窗 ─────────────────────────────────────────
 
-    def _show_stage_dialog(
-        self, title: str, message: str, next_action: Any = None, next_label: str = ""
-    ) -> None:
+    def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, next_label: str = "") -> None:
         """统一阶段弹窗。下一步按钮在左，确定在右，等宽等高。
         支持右下角拉伸手柄调整窗口大小。"""
         dlg = QDialog(self)
@@ -95,9 +87,7 @@ class DialogMixin:
         layout.addLayout(btn_layout)
         dlg.exec()
 
-    def _show_stage_dialog_multi(
-        self, title: str, message: str, actions: list[tuple[str, Callable[..., Any]]]
-    ) -> None:
+    def _show_stage_dialog_multi(self, title: str, message: str, actions: list[tuple[str, Callable[..., Any]]]) -> None:
         """多按钮阶段弹窗。actions 为 [(按钮文本, 回调函数), ...] 列表。"""
         if self._suppress_dialogs:
             return
@@ -126,9 +116,7 @@ class DialogMixin:
 
     # ── 任务注册 ─────────────────────────────────────────
 
-    def _register_task(
-        self, label: str, total: int, completed: int, failed: int = 0
-    ) -> None:
+    def _register_task(self, label: str, total: int, completed: int, failed: int = 0) -> None:
         """向任务队列注册一条操作记录。"""
         try:
             from ...task.models import TaskType
@@ -139,12 +127,8 @@ class DialogMixin:
                 "下载": TaskType.DOWNLOAD,
                 "规范化": TaskType.ORGANIZE,
             }
-            task = self._mgr.task_queue.enqueue(
-                type_map.get(label, TaskType.SCAN), total_items=total
-            )
-            self._mgr.task_queue.update_progress(
-                task, completed=completed, failed=failed
-            )
+            task = self._mgr.task_queue.enqueue(type_map.get(label, TaskType.SCAN), total_items=total)
+            self._mgr.task_queue.update_progress(task, completed=completed, failed=failed)
             logger.debug(f"任务记录: {label} {completed}/{total}")
         except Exception as e:
             logger.warning(f"任务记录失败: {e}")

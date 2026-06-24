@@ -12,7 +12,7 @@ import sys
 def get_staged_py_files() -> list[str]:
     """获取本次提交中新增或修改的 .py 文件"""
     result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=AM", "--", "*.py"],
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=A", "--", "*.py"],
         capture_output=True,
         text=True,
     )

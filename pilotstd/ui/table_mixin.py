@@ -88,25 +88,17 @@ class TableMixin:
 
     def _get_visible_cols(self) -> list[str]:
         """返回可见列的翻译后显示名（用于导出文件表头和UI提示）。"""
-        return [
-            _(WORK_COLUMN_KEYS[c])
-            for c in range(len(WORK_COLUMNS))
-            if not self.work_table.isColumnHidden(c)
-        ]
+        return [_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if not self.work_table.isColumnHidden(c)]
 
     # ── 导出（覆盖 main_window 的同名方法） ────────────────
 
     def _on_save_result(self, fmt: str) -> None:
         if self.work_table.rowCount() == 0:
-            QMessageBox.information(None,_("title_hint"), _("no_data_to_save"))
+            QMessageBox.information(None, _("title_hint"), _("no_data_to_save"))
             return
 
         vis_names = self._get_visible_cols()
-        hidden = [
-            _(WORK_COLUMN_KEYS[c])
-            for c in range(4, len(WORK_COLUMNS))
-            if self.work_table.isColumnHidden(c)
-        ]
+        hidden = [_(WORK_COLUMN_KEYS[c]) for c in range(4, len(WORK_COLUMNS)) if self.work_table.isColumnHidden(c)]
         if hidden:
             msg = _("msg_export_hidden_warning").format(
                 hidden_count=len(hidden),
@@ -133,18 +125,14 @@ class TableMixin:
 
         rows = self._table_to_list()
         # 计算可见列的数据键名（用于行数据查找）
-        visible_data_keys = [
-            WORK_COLUMNS[c]
-            for c in range(len(WORK_COLUMNS))
-            if not self.work_table.isColumnHidden(c)
-        ]
+        visible_data_keys = [WORK_COLUMNS[c] for c in range(len(WORK_COLUMNS)) if not self.work_table.isColumnHidden(c)]
         try:
             if fmt == "txt":
                 self._save_txt(path, rows, vis_names, visible_data_keys)
             elif fmt == "csv":
                 self._save_csv(path, rows, vis_names, visible_data_keys)
         except OSError as e:
-            QMessageBox.warning(None,_("title_save_failed"), str(e))
+            QMessageBox.warning(None, _("title_save_failed"), str(e))
 
     def _save_txt(
         self,
@@ -168,10 +156,7 @@ class TableMixin:
             header = "\t".join(c.ljust(widths[i]) for i, c in enumerate(cols))
             f.write(header + "\n")
             for row in rows:
-                line = "\t".join(
-                    str(row.get(k, "")).ljust(widths[i])
-                    for i, k in enumerate(data_keys)
-                )
+                line = "\t".join(str(row.get(k, "")).ljust(widths[i]) for i, k in enumerate(data_keys))
                 f.write(line + "\n")
 
     def _save_csv(

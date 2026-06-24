@@ -47,15 +47,11 @@ class QueryMixin:
             (6, result.publish_date if result.publish_date != "网站无此分类" else ""),
             (
                 7,
-                result.implementation_date
-                if result.implementation_date != "网站无此分类"
-                else "",
+                result.implementation_date if result.implementation_date != "网站无此分类" else "",
             ),
             (
                 8,
-                result.responsible_dept
-                if result.responsible_dept != "网站无此分类"
-                else "",
+                result.responsible_dept if result.responsible_dept != "网站无此分类" else "",
             ),
             (9, "采标" if result.is_adopted else ""),
         ]
@@ -93,9 +89,7 @@ class QueryMixin:
         if not self._mgr_ready:
             return
         if not self._parsed_results:
-            choice = self._stage_prereq_dialog(
-                _("title_hint"), _("msg_scan_prereq"), _("task_scan")
-            )
+            choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
                 self._on_scan()
                 return
@@ -132,13 +126,9 @@ class QueryMixin:
 
         def on_progress(current: int) -> None:
             self._check_pause()
-            self.progress_changed.emit(
-                current
-            )  # QueryWorker 已发射百分比(0-100)，无需二次换算
+            self.progress_changed.emit(current)  # QueryWorker 已发射百分比(0-100)，无需二次换算
 
-        self._query_worker = QueryWorker(
-            self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self
-        )
+        self._query_worker = QueryWorker(self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self)
         self._query_worker.batch_ready.connect(self._on_query_batch_ready)
         self._query_worker.progress.connect(on_progress)
 
@@ -231,11 +221,7 @@ class QueryMixin:
             from datetime import datetime
 
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_dir = (
-                os.path.dirname(sys.executable)
-                if getattr(sys, "frozen", False)
-                else os.getcwd()
-            )
+            save_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
             path = os.path.join(save_dir, f"pending_standards_{ts}.csv")
             try:
                 import csv
@@ -287,9 +273,7 @@ class QueryMixin:
             self._write_pending_to_db(pending)
         if pending and not self._suppress_dialogs:
             if self._show_pending_dialog(pending):
-                self._parsed_results = [
-                    p for p in self._parsed_results if p.next_action != "pending"
-                ]
+                self._parsed_results = [p for p in self._parsed_results if p.next_action != "pending"]
                 self._resolve_pending_in_db(pending, "discarded")
                 self._clear_table()
                 new_total = len(self._parsed_results)
@@ -303,24 +287,14 @@ class QueryMixin:
                         )
                     )
                 total = new_total
-                self.status_changed.emit(
-                    _("pending_discarded").format(len(pending), total)
-                )
+                self.status_changed.emit(_("pending_discarded").format(len(pending), total))
 
         # 分类统计
-        archive_count = sum(
-            1 for p in self._parsed_results if p.next_action == "archive"
-        )
-        normalize_count = sum(
-            1 for p in self._parsed_results if p.next_action == "normalize"
-        )
+        archive_count = sum(1 for p in self._parsed_results if p.next_action == "archive")
+        normalize_count = sum(1 for p in self._parsed_results if p.next_action == "normalize")
         expire_count = sum(1 for p in self._parsed_results if p.next_action == "expire")
-        not_found_count = sum(
-            1 for p in self._parsed_results if p.next_action == "not_found"
-        )
-        pending_count = sum(
-            1 for p in self._parsed_results if p.next_action == "pending"
-        )
+        not_found_count = sum(1 for p in self._parsed_results if p.next_action == "not_found")
+        pending_count = sum(1 for p in self._parsed_results if p.next_action == "pending")
 
         expired_moved = 0
         if expire_count > 0:
@@ -349,14 +323,8 @@ class QueryMixin:
             if normalize_count > 0:
                 lines.append(_("query_summary_normalize").format(count=normalize_count))
             if expire_count > 0:
-                extra = (
-                    f" ({_('expired_move_info').format(expired_moved)})"
-                    if expired_moved
-                    else ""
-                )
-                lines.append(
-                    _("query_summary_expire").format(count=expire_count, extra=extra)
-                )
+                extra = f" ({_('expired_move_info').format(expired_moved)})" if expired_moved else ""
+                lines.append(_("query_summary_expire").format(count=expire_count, extra=extra))
             if pending_count > 0:
                 lines.append(_("query_summary_pending").format(count=pending_count))
             if not_found_count > 0:
@@ -379,9 +347,7 @@ class QueryMixin:
                 "not_found",
             ]:
                 cat_label = _(cat_keys[cat_action])
-                cat_items = [
-                    p for p in self._parsed_results if p.next_action == cat_action
-                ]
+                cat_items = [p for p in self._parsed_results if p.next_action == cat_action]
                 if cat_items:
                     cat_details = []
                     for p in cat_items[:15]:
@@ -395,16 +361,12 @@ class QueryMixin:
                         detail_section.append(f"  {cat_label}:")
                         detail_section.extend(cat_details)
                         if len(cat_items) > 15:
-                            detail_section.append(
-                                f"    ... 还有 {len(cat_items) - 15} 个"
-                            )
+                            detail_section.append(f"    ... 还有 {len(cat_items) - 15} 个")
             if detail_section:
                 lines.append("")
                 lines.extend(detail_section)
 
-            download_count = sum(
-                1 for p in self._parsed_results if p.next_action == "download"
-            )
+            download_count = sum(1 for p in self._parsed_results if p.next_action == "download")
             actions = []
             if download_count > 0:
 
@@ -417,9 +379,7 @@ class QueryMixin:
 
                 def do_pending() -> None:
                     self._switch_to_stage("pending")
-                    pending_items = [
-                        p for p in self._parsed_results if p.next_action == "pending"
-                    ]
+                    pending_items = [p for p in self._parsed_results if p.next_action == "pending"]
                     dlg = PendingQueryDialog(self._mgr, pending_items, self)
                     dlg.exec()
 
@@ -429,9 +389,7 @@ class QueryMixin:
                     actions.append((_("next_step_normalize"), self._on_normalize))
                 elif archive_count > 0:
                     actions.append((_("next_step_save"), self._on_save_to_folder))
-            self._show_stage_dialog_multi(
-                _("query_results_title"), "\n".join(lines), actions
-            )
+            self._show_stage_dialog_multi(_("query_results_title"), "\n".join(lines), actions)
 
         self._current_task = None
 
@@ -441,18 +399,16 @@ class QueryMixin:
             self._do_pending_query()
         except Exception as e:
             logger.exception("待确认查询异常")
-            QMessageBox.critical(None,_("title_error"), f"待确认查询失败: {e}")
+            QMessageBox.critical(None, _("title_error"), f"待确认查询失败: {e}")
 
     def _do_pending_query(self) -> None:
         if not self._mgr_ready:
             return
         if self._parsed_results:
-            QMessageBox.warning(None,_("title_hint"), _("workspace_not_empty"))
+            QMessageBox.warning(None, _("title_hint"), _("workspace_not_empty"))
             return
 
-        path, __ = QFileDialog.getOpenFileName(
-            self, _("dialog_import_pending"), "", _("file_filter_csv")
-        )
+        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_pending"), "", _("file_filter_csv"))
         if not path:
             return
 
@@ -464,7 +420,7 @@ class QueryMixin:
             reader = csv.reader(f)
             rows = list(reader)
         if not rows:
-            QMessageBox.warning(None,_("title_hint"), _("csv_empty"))
+            QMessageBox.warning(None, _("title_hint"), _("csv_empty"))
             return
         for i, row in enumerate(rows):
             if i == 0:
@@ -479,25 +435,18 @@ class QueryMixin:
                 failed_names.append(std_num)
                 continue
             if parsed:
-                parsed.std_name = (
-                    row[1].strip()
-                    if len(row) > 1 and row[1].strip()
-                    else parsed.std_name
-                )
+                parsed.std_name = row[1].strip() if len(row) > 1 and row[1].strip() else parsed.std_name
                 parsed_list.append(parsed)
             else:
                 failed_names.append(std_num)
 
         if not parsed_list:
-            QMessageBox.warning(None,_("title_hint"), _("csv_no_standards"))
+            QMessageBox.warning(None, _("title_hint"), _("csv_no_standards"))
             return
 
         msg = _("msg_csv_parse_result").format(count=len(parsed_list))
         if failed_names:
-            msg += (
-                f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n"
-                + "\n".join(failed_names[:5])
-            )
+            msg += f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n" + "\n".join(failed_names[:5])
             if len(failed_names) > 5:
                 msg += f"\n... 等共 {len(failed_names)} 条"
         msg += "\n\n是否继续？"
@@ -556,4 +505,4 @@ class QueryMixin:
         if count > 5:
             msg += f"\n... 等共 {count} 条"
         msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(None,_("pending_lookup_title"), msg)
+        QMessageBox.information(None, _("pending_lookup_title"), msg)

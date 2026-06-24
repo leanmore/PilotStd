@@ -134,7 +134,7 @@ class TableHelperMixin:
                 lines.append(_("缓存时间: {}").format(r["cached_at"]))
             lines.append("")
 
-        QMessageBox.information(None,_("offline_view"), "\n".join(lines))
+        QMessageBox.information(None, _("offline_view"), "\n".join(lines))
 
     # ── 行操作 ───────────────────────────────────────────
 
@@ -172,11 +172,7 @@ class TableHelperMixin:
         )
         row = self.work_table.rowCount()
         self.work_table.insertRow(row)
-        width = (
-            max(2, len(str(update.total)))
-            if update.total
-            else max(2, len(str(update.seq)))
-        )
+        width = max(2, len(str(update.total))) if update.total else max(2, len(str(update.seq)))
         std_num = update.parsed.get_full_number()
         items = [
             QTableWidgetItem(f"{update.seq:0{width}d}"),
@@ -226,9 +222,7 @@ class TableHelperMixin:
         self._save_column_widths()
 
     def _save_column_widths(self) -> None:
-        widths = [
-            self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())
-        ]
+        widths = [self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())]
         self._config.set("appearance.column_widths", widths)
 
     def _restore_column_widths(self) -> None:
@@ -241,10 +235,7 @@ class TableHelperMixin:
     # ── 键盘交互 ─────────────────────────────────────────
 
     def _table_key_press_event(self, event: Any) -> None:
-        if (
-            event.key() == Qt.Key.Key_C
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-        ):
+        if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self._copy_selected_cells()
         else:
             QTableWidget.keyPressEvent(self.work_table, event)

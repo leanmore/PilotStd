@@ -24,9 +24,7 @@ class DownloadMixin:
         self._current_task = "download"
         download_list = self._mgr.get_stage_queue("download")
         if not download_list:
-            choice = self._stage_prereq_dialog(
-                _("title_hint"), _("msg_download_prereq"), _("task_query")
-            )
+            choice = self._stage_prereq_dialog(_("title_hint"), _("msg_download_prereq"), _("task_query"))
             if choice == "run_prereq":
                 self._on_query()
                 return
@@ -55,9 +53,7 @@ class DownloadMixin:
                 lines.append(f"  {num}")
             if len(too_new_list) > 10:
                 lines.append(f"  ... {len(too_new_list)} total")
-            QMessageBox.information(
-                self, _("title_new_std_unavailable"), "\n".join(lines)
-            )
+            QMessageBox.information(self, _("title_new_std_unavailable"), "\n".join(lines))
 
         self.status_changed.emit("下载中...")
         self.btn_query.setEnabled(False)
@@ -67,13 +63,9 @@ class DownloadMixin:
 
         self._clear_table()
         for i, parsed in enumerate(download_list):
-            self._add_table_row(
-                RowUpdate(seq=i + 1, parsed=parsed, work_status="待下载", total=total)
-            )
+            self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="待下载", total=total))
 
-        self._download_worker = DownloadWorker(
-            self._mgr, download_list, pause_event=self._pause_event, parent=self
-        )
+        self._download_worker = DownloadWorker(self._mgr, download_list, pause_event=self._pause_event, parent=self)
         self._download_worker.progress.connect(self.progress_changed.emit)
         self._download_worker.batch_ready.connect(self._on_download_batch_ready)
 
@@ -90,9 +82,7 @@ class DownloadMixin:
             failed_count = total - success_count - too_new_count
             self.status_changed.emit(f"下载完成: {success_count}/{total} 成功")
             self._project.mark_dirty()
-            self._register_task(
-                "下载", total, success_count, failed_count + too_new_count
-            )
+            self._register_task("下载", total, success_count, failed_count + too_new_count)
 
             from ...core.notify import NotifyService
 
@@ -104,9 +94,7 @@ class DownloadMixin:
             elif success_count > 0:
                 NotifyService.get().show_warning(
                     _("download_results_title"),
-                    _("download_toast_partial").format(
-                        success=success_count, failed=failed_count
-                    ),
+                    _("download_toast_partial").format(success=success_count, failed=failed_count),
                 )
             else:
                 NotifyService.get().show_warning(
@@ -124,9 +112,7 @@ class DownloadMixin:
                     status = item.text() if item else ""
                     if status != "已下载":
                         fname = os.path.basename(
-                            getattr(p, "source_path", "")
-                            or getattr(p, "raw_filename", "")
-                            or p.get_full_number()
+                            getattr(p, "source_path", "") or getattr(p, "raw_filename", "") or p.get_full_number()
                         )
                         failed_details.append(f"  • {fname} — {status or '下载失败'}")
             if not self._suppress_dialogs:
@@ -137,9 +123,7 @@ class DownloadMixin:
                     _("download_summary_failed").format(count=failed_count),
                 ]
                 if too_new_count > 0:
-                    lines.append(
-                        _("download_summary_too_new").format(count=too_new_count)
-                    )
+                    lines.append(_("download_summary_too_new").format(count=too_new_count))
                 if failed_details:
                     lines.append("")
                     lines.append(_("download_summary_failed_detail"))
@@ -147,11 +131,7 @@ class DownloadMixin:
                     lines.extend(shown)
                     if len(failed_details) > 15:
                         lines.append(f"  ... {len(failed_details) - 15} more")
-                suffix = (
-                    _("download_summary_all_failed_hint")
-                    if not has_any_success and failed_count > 0
-                    else ""
-                )
+                suffix = _("download_summary_all_failed_hint") if not has_any_success and failed_count > 0 else ""
                 self._show_stage_dialog(
                     _("download_results_title"),
                     "\n".join(lines) + suffix,
@@ -179,11 +159,7 @@ class DownloadMixin:
             self,
             _("dialog_select_file"),
             "",
-            _("file_filter_txt")
-            + ";;"
-            + _("file_filter_csv")
-            + ";;"
-            + _("file_filter_std"),
+            _("file_filter_txt") + ";;" + _("file_filter_csv") + ";;" + _("file_filter_std"),
         )
         if not path:
             return
@@ -192,11 +168,11 @@ class DownloadMixin:
             with open(path, "r", encoding="utf-8") as f:
                 lines = [line.strip() for line in f if line.strip()]
         except OSError as e:
-            QMessageBox.warning(None,_("title_import_failed"), str(e))
+            QMessageBox.warning(None, _("title_import_failed"), str(e))
             return
 
         if not lines:
-            QMessageBox.information(None,_("title_hint"), _("csv_empty"))
+            QMessageBox.information(None, _("title_hint"), _("csv_empty"))
             return
 
         # 直接调 download_by_numbers 下载
@@ -208,7 +184,7 @@ class DownloadMixin:
         msg = _("download_results_total") + ": " + str(stats.total) + "\n"
         msg += _("download_results_success") + ": " + str(stats.success) + "\n"
         msg += _("download_results_failed") + ": " + str(stats.failed)
-        QMessageBox.information(None,_("download_results_title"), msg)
+        QMessageBox.information(None, _("download_results_title"), msg)
         self._project.mark_dirty()
 
     def _enqueue_download_wait(self, parsed: Any) -> None:
@@ -227,7 +203,7 @@ class DownloadMixin:
         if len(due) > 5:
             msg += f"\n... 等共 {len(due)} 条"
         msg += "\n" + _("download_queue_confirm")
-        reply = QMessageBox.question(None,_("download_queue_title"), msg)
+        reply = QMessageBox.question(None, _("download_queue_title"), msg)
         if reply == QMessageBox.StandardButton.Yes:
             for d in due:
                 self._mgr.remove_download_queue(d["standard_number"])
