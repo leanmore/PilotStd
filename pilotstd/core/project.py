@@ -71,18 +71,10 @@ class ProjectManager:
         result = {}
         for key, value in state.items():
             if hasattr(value, "__dict__"):
-                result[key] = (
-                    asdict(value)
-                    if hasattr(value, "__dataclass_fields__")
-                    else value.__dict__
-                )
+                result[key] = asdict(value) if hasattr(value, "__dataclass_fields__") else value.__dict__
             elif isinstance(value, list):
                 result[key] = [
-                    asdict(v)
-                    if hasattr(v, "__dataclass_fields__")
-                    else v.__dict__
-                    if hasattr(v, "__dict__")
-                    else v
+                    asdict(v) if hasattr(v, "__dataclass_fields__") else v.__dict__ if hasattr(v, "__dict__") else v
                     for v in value
                 ]
             else:

@@ -8,9 +8,7 @@ from typing import Any, List, Tuple
 logger = logging.getLogger(__name__)
 
 
-def build_code_variants(
-    logical_code: str, number: int, year: int, num_prefix: str = ""
-) -> List[str]:
+def build_code_variants(logical_code: str, number: int, year: int, num_prefix: str = "") -> List[str]:
     """按标准类型生成搜索词变体，补充公共回退中缺失的分类标记。
     所有适配器共享，不绑定特定站点。"""
     variants = []

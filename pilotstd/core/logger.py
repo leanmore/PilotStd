@@ -64,9 +64,7 @@ def _get_log_dir() -> str:
             os.makedirs(log_dir, exist_ok=True)
             return log_dir
         except OSError:
-            appdata = os.path.join(
-                os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd", "logs"
-            )
+            appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd", "logs")
             os.makedirs(appdata, exist_ok=True)
             return appdata
     return os.path.join(os.path.dirname(__file__), "..", "..", "logs")

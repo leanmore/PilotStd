@@ -93,9 +93,7 @@ class ScheduledService:
             yr = row.get("year", 0)
             if not lc or not num:
                 continue
-            r = self._query_engine.query_parsed(
-                lc, num, yr, num_prefix=row.get("num_prefix", "")
-            )
+            r = self._query_engine.query_parsed(lc, num, yr, num_prefix=row.get("num_prefix", ""))
             checked += 1
             if r and r.is_found() and r.status != row.get("status"):
                 self._file_index.upsert(
@@ -135,9 +133,7 @@ class ScheduledService:
             )
             for n, p in parsed
         ]
-        results = self._query_engine.query_batch_parsed(
-            items, preferred_site=preferred_site
-        )
+        results = self._query_engine.query_batch_parsed(items, preferred_site=preferred_site)
         # 构建兼容的 stats（旧调用方期望 tuple）
         total = len(results)
         found = sum(1 for r in results if r.is_found())

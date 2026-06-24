@@ -42,9 +42,7 @@ class FileIndexRepository:
 
         def _run() -> None:
             try:
-                row = self._db.fetchone(
-                    f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}"
-                )
+                row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                 row_count = row["cnt"] if row else 0
                 delay = min(30, max(5, row_count / 500))
             except Exception:
@@ -72,9 +70,7 @@ class FileIndexRepository:
         for r in rows:
             if not os.path.exists(r["file_path"]):
                 try:
-                    self._db.execute(
-                        f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],)
-                    )
+                    self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE id=?", (r["id"],))
                     deleted += 1
                 except Exception:
                     logger.debug("删除无效记录失败: id=%s", r["id"], exc_info=True)
@@ -98,9 +94,7 @@ class FileIndexRepository:
             file_hash = hash_file_content(file_path)
         now = datetime.now().isoformat()
         part_val = part if part is not None else -1
-        existing = self._db.fetchone(
-            f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
-        )
+        existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
         if existing:
             self._db.execute(
                 f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
@@ -136,21 +130,15 @@ class FileIndexRepository:
             )
 
     def remove(self, file_path: str) -> None:
-        self._db.execute(
-            f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
-        )
+        self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
 
     # ---- 读取 ----
 
     def get(self, file_path: str) -> Optional[dict[str, Any]]:
-        return self._db.fetchone(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)
-        )
+        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
 
     def get_all(self) -> list[dict[str, Any]]:
-        return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"
-        )
+        return self._db.fetchall(f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part")
 
     def find_by_standard(
         self, logical_code: str, number: int, year: int, part: Optional[int] = None
@@ -158,16 +146,13 @@ class FileIndexRepository:
         """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
         part_val = part if part is not None else -1
         return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} "
-            "WHERE logical_code=? AND number=? AND year=? AND part=?",
+            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=? AND year=? AND part=?",
             (logical_code, number, year, part_val),
         )
 
     def find_by_hash(self, file_hash: str) -> Optional[dict[str, Any]]:
         """通过文件哈希查找（用于检测移动/重命名）。"""
-        return self._db.fetchone(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,)
-        )
+        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,))
 
     def get_recheck_candidates(self, limit: int = 500) -> list[dict[str, Any]]:
         """返回需重新查询的标准（7天未检查的现行标准）。"""
@@ -192,9 +177,7 @@ class FileIndexRepository:
                     (r["id"],),
                 )
             else:
-                self._db.execute(
-                    f"DELETE FROM {FILE_INDEX_TABLE} WHERE id = ?", (r["id"],)
-                )
+                self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE id = ?", (r["id"],))
                 deleted += 1
         return deleted
 
@@ -206,8 +189,7 @@ class FileIndexRepository:
         """返回按状态分组的统计：现行/废止/待确认/即将实施数量。"""
         try:
             rows = self._db.fetchall(
-                f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} "
-                "WHERE status IS NOT NULL GROUP BY status"
+                f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} WHERE status IS NOT NULL GROUP BY status"
             )
             s = {r["status"]: r["cnt"] for r in rows}
         except Exception:
@@ -257,8 +239,7 @@ class FileIndexRepository:
 
         # 先查网络缓存（主数据源，事件驱动失效）
         row = self._db.fetchone(
-            f"SELECT result_json FROM {NETWORK_CACHE_TABLE} "
-            "WHERE standard_number = ? LIMIT 1",
+            f"SELECT result_json FROM {NETWORK_CACHE_TABLE} WHERE standard_number = ? LIMIT 1",
             (std_num,),
         )
 
@@ -268,8 +249,7 @@ class FileIndexRepository:
 
         # 网络缓存未命中，查公告缓存
         ann_row = self._db.fetchone(
-            f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} "
-            "WHERE standard_number = ? LIMIT 1",
+            f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number = ? LIMIT 1",
             (std_num,),
         )
         if ann_row and ann_row["result_json"]:
@@ -290,9 +270,7 @@ class FileIndexRepository:
         except (json.JSONDecodeError, TypeError):
             pass
 
-    def find_moved_files(
-        self, candidates: list[tuple[str, str]]
-    ) -> list[dict[str, Any]]:
+    def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict[str, Any]]:
         """检测文件移动/重命名：哈希命中但路径不同的返回原索引记录。
 
         Args:

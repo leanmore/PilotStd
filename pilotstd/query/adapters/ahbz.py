@@ -49,9 +49,7 @@ class AhbzAdapter(BaseAdapter):
         session.headers["User-Agent"] = CHROME_UA
         return self._search_single(search_term, session)
 
-    def _search_single(
-        self, standard_number: str, session: requests.Session
-    ) -> QueryResult:
+    def _search_single(self, standard_number: str, session: requests.Session) -> QueryResult:
         """搜索单个标准号，在模糊匹配结果中过滤精确匹配。"""
         # 从标准号提取 code + type
         std_type = self._get_type(standard_number)
@@ -67,9 +65,7 @@ class AhbzAdapter(BaseAdapter):
         # 请求API — 使用 keyWord 全文检索（同网页搜索框），非 code 字段模糊匹配
         # code 参数对空格敏感（"API 685 2000"→0行），keyWord 不限格式
         payload = {"type": std_type, "keyWord": code, "size": 20, "page": 1}
-        resp = safe_request(
-            session, "POST", SEARCH_URL, self.site_name, timeout=15, json=payload
-        )
+        resp = safe_request(session, "POST", SEARCH_URL, self.site_name, timeout=15, json=payload)
         if resp is None:
             return QueryResult(
                 standard_number=standard_number,
@@ -126,9 +122,7 @@ class AhbzAdapter(BaseAdapter):
         )
 
     @staticmethod
-    def _match_structured(
-        target_num: str, rows: list[dict[str, Any]]
-    ) -> Optional[dict[str, Any]]:
+    def _match_structured(target_num: str, rows: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
         """结构化匹配：用 StandardParser 解析双方 code，比对数段+前后缀。"""
         from ...organizer.industry_lookup import build_code_mapping
         from ...scan.parser import StandardParser
@@ -169,11 +163,7 @@ class AhbzAdapter(BaseAdapter):
         """从标准号推断 ahbz API type 编号。委托 classify_std_code()。"""
         from ...core.std_utils import classify_std_code
 
-        code = (
-            std_num.split()[0].upper()
-            if " " in std_num
-            else std_num.split("/")[0].upper()
-        )
+        code = std_num.split()[0].upper() if " " in std_num else std_num.split("/")[0].upper()
         cat = classify_std_code(code)
         return AhbzAdapter._TYPE_MAP.get(cat)  # enterprise → None
 

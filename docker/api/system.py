@@ -80,25 +80,17 @@ async def update_container():
         old_image = info.get("Image", "")
         old_digest = ""
         try:
-            img_inspect = _run_docker(
-                ["image", "inspect", old_image, "--format", "{{.RepoDigests}}"]
-            )
+            img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
             old_digest = img_inspect.stdout.strip()
         except Exception:
             pass
 
         # 2. 拉取最新镜像
         pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
-        pulled_layers = [
-            line
-            for line in pull.stdout.split("\n")
-            if "Downloaded" in line or "Pulled" in line
-        ]
+        pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
 
         # 3. 比较
-        new_inspect = _run_docker(
-            ["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"]
-        )
+        new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
         new_digest = new_inspect.stdout.strip()
 
         if new_digest and old_digest and new_digest == old_digest:

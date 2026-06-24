@@ -31,15 +31,15 @@
 | 轮转器里程碑日志 | `pilotstd/query/rotator.py` | L170, 215 | L170, 215 | active | 请求量达 50%/75%/90%/100% 阈值时输出（中文标签，非 `[ROTATOR]`） |
 | 轮转器冷却日志 | `pilotstd/query/rotator.py` | 冷却倒计时日志 | L103-113 | active | 冷却进入时输出剩余秒数（中文"冷却剩余"，无固定标签） |
 | 日配额追踪 | `pilotstd/query/daily_quota.py` | L22 | L22 | active | 站点日配额管理，`threading.RLock` 线程安全，跨天自动重置 |
-| 任务队列执行 | `pilotstd/task/queue.py` | L103, 107, 113 | L103, 107, 113 | active | daemon 线程异步执行任务，含超时控制 `join(timeout)` |
-| 下载线程池 | `pilotstd/download/engine.py` | L172 | L172 | active | 并行下载标准文件，含重试 + 采标跳过 |
+| 任务队列执行 | `pilotstd/task/queue.py` | L103, 107, 113 | L95, 99, 105 | active | daemon 线程异步执行任务，含超时控制 `join(timeout)` |
+| 下载线程池 | `pilotstd/download/engine.py` | L172 | L156 | active | 并行下载标准文件，含重试 + 采标跳过 |
 | 公告引擎调度 | `pilotstd/announcement/engine.py` | L13 | L13 | active | 公告适配器注册/调度 + OCR 集成，公告同步核心 |
 | 公告基础并行 | `pilotstd/announcement/base.py` | L163 | L159, 257 | active | 附件下载 1-worker；详情抓取 `_MAX_DETAIL_WORKERS=3` 并行 |
 | 公告阶段耗时 | `pilotstd/announcement/monitor.py` | L38, 42, 56 | L38, 42, 56 | active | 分阶段追踪抓取耗时：fetch_list / fetch_detail / parse / write_db |
-| OCR 取消事件 | `pilotstd/announcement/ocr.py` | L753 | L753 | active | threading.Event 跨线程取消信号，传递给所有 OCR Slot |
-| 文件索引清理线程 | `pilotstd/core/file_index.py` | L61 | L61 | active | 启动后延迟 5-30s，daemon 线程逐条校验索引路径并清理失效记录 |
+| OCR 取消事件 | `pilotstd/announcement/ocr.py` | L753 | L731 | active | threading.Event 跨线程取消信号，传递给所有 OCR Slot |
+| 文件索引清理线程 | `pilotstd/core/file_index.py` | L61 | L59 | active | 启动后延迟 5-30s，daemon 线程逐条校验索引路径并清理失效记录 |
 | 文件索引缓存恢复 | `pilotstd/core/file_index.py` | 双层缓存回填 | L228-358 | active | 从 network/announcement 双层缓存回填文件索引的元数据字段 |
-| 文件监控 | `pilotstd/scan/watcher.py` | L92 | L92 | active | watchdog Observer 后台监控文件系统变更，事件驱动增量索引 |
+| 文件监控 | `pilotstd/scan/watcher.py` | L92 | L90 | active | watchdog Observer 后台监控文件系统变更，事件驱动增量索引 |
 | 软件自更新 | `pilotstd/core/updater.py` | 下载+校验+提权替换 | — | active | 下载 ZIP → SHA256 校验 → PowerShell 提权替换 exe；压测期间应禁用 |
 | 定时任务编排 | `pilotstd/manager/scheduled_service.py` | `ScheduledService` | — | active | scan_and_index / recheck_updates / query_by_numbers 供 Docker cron 调用 |
 | LoggerManager | `pilotstd/core/logger.py` | `LoggerManager` | — | active | 全局日志入口 + `RotatingFileHandler`（256KB/1备份）；压测 I/O 关键 |
@@ -47,13 +47,13 @@
 | Web 公告缓存回退 | `pilotstd/manager/facade.py` | `lookup_or_query()` | L342-371 | active | 先查 Web 端 `announcement_cache`，未命中降级到标准查询引擎 |
 | 离线双表回退 | `pilotstd/manager/pending_service.py` | 离线查询 | L168-212 | active | 无网络时优先 `standard_info_cache` → `announcement_cache` |
 | API 公告缓存 | `docker/api/announce.py` | `_cache` 字典 | L15, L40-43 | active | 内存缓存公告结果（last_check/results/summary/failures），供 `/api/announce/results` |
-| 主窗口 atexit | `pilotstd/ui/main_window.py` | L634 | L634 | active | 退出时触发自动保存 |
-| 主窗口 SIGTERM | `pilotstd/ui/main_window.py` | L636 | L636 | active | 捕获终止信号触发自动保存 |
+| 主窗口 atexit | `pilotstd/ui/main_window.py` | L634 | L606 | active | 退出时触发自动保存 |
+| 主窗口 SIGTERM | `pilotstd/ui/main_window.py` | L636 | L608 | active | 捕获终止信号触发自动保存 |
 | 主窗口自动保存 | `pilotstd/ui/main_window.py` | `_on_auto_save()` | L640 | active | 退出时保存窗口状态和配置 |
-| 主窗口暂停信号 | `pilotstd/ui/main_window.py` | L362 | L362 | active | `threading.Event` 跨线程暂停/继续控制 |
-| 主窗口下载线程 | `pilotstd/ui/main_window.py` | L834 | L834 | active | daemon 线程后台下载更新包并校验 SHA256，主线程 `join(timeout=300)` |
+| 主窗口暂停信号 | `pilotstd/ui/main_window.py` | L362 | L350 | active | `threading.Event` 跨线程暂停/继续控制 |
+| 主窗口下载线程 | `pilotstd/ui/main_window.py` | L834 | L804 | active | daemon 线程后台下载更新包并校验 SHA256，主线程 `join(timeout=300)` |
 | 主窗口公告按钮 | `pilotstd/ui/main_window.py` | `_on_check_announcements()` | L356-358 | active | 工具栏"公告检查"按钮，点击触发公告抓取 + OCR + 匹配 |
-| 工作者 QTimer | `pilotstd/ui/workers.py` | L81 | L81 | active | 200ms 单次触发，将缓冲日志批量写入 QTextEdit，防信号洪峰 |
+| 工作者 QTimer | `pilotstd/ui/workers.py` | L81 | L75 | active | 200ms 单次触发，将缓冲日志批量写入 QTextEdit，防信号洪峰 |
 | 待确认冷却刷新 | `pilotstd/ui/pending_query_dialog.py` | L113 | L113 | active | 1000ms 持续触发，每秒更新冷却倒计时状态 |
 | 节流进度发射器 | `pilotstd/ui/controllers/auto_run_mixin.py` | L26 | L26 | active | 500ms 节流，防止 Qt 事件循环合并高频信号导致进度条跳变 |
 | 压力测试看门狗 | `tests/stress_driver.py` | `_progress_watchdog()` | L313-319 | active | 每 30s 检查子进程 `[PROGRESS]`，超时 180s 则告警 |

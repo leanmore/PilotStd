@@ -47,9 +47,7 @@ def init_users_table() -> None:
     if "role" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
-        db.execute(
-            "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"
-        )
+        db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
     # 管理员用户名（可通过 ADMIN_USERNAME 环境变量自定义）
     admin_user = os.environ.get("ADMIN_USERNAME", "admin")
     # 常见弱密码列表，用于检测已存在管理员是否需要强制改密
@@ -62,9 +60,7 @@ def init_users_table() -> None:
     )
     if not existing:
         admin_pass = os.environ.get("ADMIN_PASSWORD") or secrets.token_urlsafe(12)
-        must_change = (
-            0 if os.environ.get("ADMIN_PASSWORD") else 1
-        )  # 自动生成密码则强制改密
+        must_change = 0 if os.environ.get("ADMIN_PASSWORD") else 1  # 自动生成密码则强制改密
         if not os.environ.get("ADMIN_PASSWORD"):
             print(
                 f"\n{'=' * 60}\n"
@@ -89,20 +85,14 @@ def init_users_table() -> None:
                         "UPDATE users SET must_change_password = 1 WHERE username = ?",
                         (admin_user,),
                     )
-                    print(
-                        f"\n{'=' * 60}\n"
-                        f"  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n"
-                        f"{'=' * 60}\n"
-                    )
+                    print(f"\n{'=' * 60}\n  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n{'=' * 60}\n")
                     break
 
 
 def verify_user(username: str, password: str) -> bool:
     """验证用户名和密码。"""
     db = _get_db()
-    row = db.fetchone(
-        "SELECT password_hash, salt FROM users WHERE username = ?", (username,)
-    )
+    row = db.fetchone("SELECT password_hash, salt FROM users WHERE username = ?", (username,))
     if not row:
         return False
     h, _ = _hash(password, row["salt"])
@@ -158,9 +148,7 @@ def delete_user(user_id: int) -> bool:
 def check_must_change_password(username: str) -> bool:
     """检查用户是否需要强制修改密码。"""
     db = _get_db()
-    row = db.fetchone(
-        "SELECT must_change_password FROM users WHERE username = ?", (username,)
-    )
+    row = db.fetchone("SELECT must_change_password FROM users WHERE username = ?", (username,))
     return bool(row and row["must_change_password"])
 
 
@@ -174,9 +162,7 @@ def get_user_role(username: str) -> str:
 def clear_must_change_password(username: str) -> None:
     """清除强制改密标记。"""
     db = _get_db()
-    db.execute(
-        "UPDATE users SET must_change_password = 0 WHERE username = ?", (username,)
-    )
+    db.execute("UPDATE users SET must_change_password = 0 WHERE username = ?", (username,))
 
 
 def change_password(username: str, old_password: str, new_password: str) -> bool:
@@ -216,9 +202,7 @@ def record_login_failure(ip: str) -> None:
     import time
 
     db = _get_db()
-    db.execute(
-        "INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)", (ip, time.time())
-    )
+    db.execute("INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)", (ip, time.time()))
 
 
 def clear_login_failures(ip: str) -> None:

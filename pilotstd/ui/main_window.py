@@ -107,9 +107,7 @@ class MainWindow(
     status_changed = pyqtSignal(str)
     query_result_ready = pyqtSignal(int, object)
 
-    def __init__(
-        self, config: "core.ConfigManager", project: "core.ProjectManager"
-    ) -> None:
+    def __init__(self, config: "core.ConfigManager", project: "core.ProjectManager") -> None:
         super().__init__()
         self._config = config
         self._project = project
@@ -254,9 +252,7 @@ class MainWindow(
         file_menu.addSeparator()
         a = file_menu.addAction(_("save_query_project"), self._on_save_query_project)
         a.setToolTip("将当前查询列表保存为 .pilotstd 项目文件，便于下次恢复")
-        a = file_menu.addAction(
-            _("save_download_project"), self._on_save_download_project
-        )
+        a = file_menu.addAction(_("save_download_project"), self._on_save_download_project)
         a.setToolTip("将当前下载队列保存为 .pilotstd 项目文件，便于下次恢复")
         a = file_menu.addAction(_("import_download"), self._on_import_download)
         a.setToolTip("从文件导入标准号列表并直接下载，无需先查询")
@@ -315,9 +311,7 @@ class MainWindow(
         self.toolbar.addWidget(self.btn_select)
 
         self.btn_query = QPushButton("查询")
-        self.btn_query.setIcon(
-            style.standardIcon(style.StandardPixmap.SP_FileDialogContentsView)
-        )
+        self.btn_query.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogContentsView))
         self.btn_query.setToolTip("对扫描后的标准号在网站上查询有效性，获取标准状态")
         self.btn_query.clicked.connect(self._on_query)
         self.toolbar.addWidget(self.btn_query)
@@ -329,9 +323,7 @@ class MainWindow(
         self.toolbar.addWidget(self.btn_download)
 
         self.btn_normalize = QPushButton("规范化")
-        self.btn_normalize.setIcon(
-            style.standardIcon(style.StandardPixmap.SP_FileDialogDetailedView)
-        )
+        self.btn_normalize.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogDetailedView))
         self.btn_normalize.setToolTip("对扫描结果生成规范标准文件名")
         self.btn_normalize.clicked.connect(self._on_normalize)
         self.toolbar.addWidget(self.btn_normalize)
@@ -349,21 +341,15 @@ class MainWindow(
         self.toolbar.addWidget(self.btn_auto)
 
         self.btn_announce = QPushButton("公告检查")
-        self.btn_announce.setIcon(
-            style.standardIcon(style.StandardPixmap.SP_MessageBoxWarning)
-        )
-        self.btn_announce.setToolTip(
-            "抓取国家标准/行业标准/地方标准公告，检测本地标准变更"
-        )
+        self.btn_announce.setIcon(style.standardIcon(style.StandardPixmap.SP_MessageBoxWarning))
+        self.btn_announce.setToolTip("抓取国家标准/行业标准/地方标准公告，检测本地标准变更")
         self.btn_announce.clicked.connect(self._on_check_announcements)
         self.toolbar.addWidget(self.btn_announce)
 
         self._paused = False
         self._pause_event = threading.Event()  # 跨线程暂停信号，worker 循环中检查
         self._pause_event.set()  # 初始为"继续"状态，pause 时 clear，resume 时 set
-        self._current_task: Optional[str] = (
-            None  # 当前正在执行的任务类型: scan/query/download/normalize/archive
-        )
+        self._current_task: Optional[str] = None  # 当前正在执行的任务类型: scan/query/download/normalize/archive
         self.btn_pause = QPushButton("暂停")
         self.btn_pause.setIcon(style.standardIcon(style.StandardPixmap.SP_MediaPause))
         self.btn_pause.setToolTip("暂停/继续当前操作")
@@ -371,9 +357,7 @@ class MainWindow(
         self.toolbar.addWidget(self.btn_pause)
 
         self.btn_cancel = QPushButton("取消")
-        self.btn_cancel.setIcon(
-            style.standardIcon(style.StandardPixmap.SP_DialogCancelButton)
-        )
+        self.btn_cancel.setIcon(style.standardIcon(style.StandardPixmap.SP_DialogCancelButton))
         self.btn_cancel.setToolTip("停止当前操作并取消后续任务")
         self.btn_cancel.clicked.connect(self._on_cancel)
         self.btn_cancel.setEnabled(False)  # 初始无任务，置灰
@@ -395,9 +379,7 @@ class MainWindow(
         self.file_tree.setAnimated(True)
         self.file_tree.itemExpanded.connect(self._on_tree_item_expanded)
         self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.file_tree.customContextMenuRequested.connect(
-            self._on_file_tree_context_menu
-        )
+        self.file_tree.customContextMenuRequested.connect(self._on_file_tree_context_menu)
         self._populate_quick_access()
 
         left_widget = QWidget()
@@ -410,9 +392,7 @@ class MainWindow(
 
         self.work_table = QTableWidget()
         self.work_table.setColumnCount(len(WORK_COLUMNS))
-        self.work_table.setHorizontalHeaderLabels(
-            [_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))]
-        )
+        self.work_table.setHorizontalHeaderLabels([_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))])
         # 列宽：默认值 + 最小值，标准名称(3)为Stretch吸收剩余空间，可手动拖拽不得小于最小值
         header = self.work_table.horizontalHeader()
         for c in range(len(WORK_COLUMNS)):
@@ -448,9 +428,7 @@ class MainWindow(
         self.work_table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self.work_table.setSortingEnabled(True)
         self.work_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.work_table.customContextMenuRequested.connect(
-            self._on_work_table_context_menu
-        )
+        self.work_table.customContextMenuRequested.connect(self._on_work_table_context_menu)
         # Ctrl+C 复制选中单元格
         self.work_table.keyPressEvent = self._table_key_press_event
         self._right_splitter.addWidget(self.work_table)
@@ -504,9 +482,7 @@ class MainWindow(
         # 注意：不要在此处调用 handler.setLevel()，LogHandler 在 __init__ 中
         # 已固定为 logging.INFO。外部覆盖为 DEBUG 会导致日志信号洪水 → c0000409 崩溃。
         logging.getLogger().addHandler(handler)
-        logging.getLogger().setLevel(
-            logging.DEBUG
-        )  # root logger 保持 DEBUG 供文件 handler 使用
+        logging.getLogger().setLevel(logging.DEBUG)  # root logger 保持 DEBUG 供文件 handler 使用
         self._log_handler = handler
         self._apply_language()
         logger.info("PilotStd 启动完成")
@@ -530,11 +506,7 @@ class MainWindow(
         pe = self._mgr.get_stage_queue("pending")
         # 精确匹配计数
         exact = (
-            sum(
-                1
-                for p in self._parsed_results
-                if getattr(p, "match_status", "") == "exact"
-            )
+            sum(1 for p in self._parsed_results if getattr(p, "match_status", "") == "exact")
             if self._parsed_results
             else 0
         )
@@ -718,7 +690,9 @@ class MainWindow(
         from .pages.rules_page import RulesPage  # 延迟导入
 
         dlg = ConfigPageDialog(
-            RulesPage(self._config), "网站规则配置（查询/下载）", self  # type: ignore[arg-type]
+            RulesPage(self._config),
+            "网站规则配置（查询/下载）",
+            self,  # type: ignore[arg-type]
         )
         dlg.exec()
 
@@ -794,9 +768,7 @@ class MainWindow(
             reply = QMessageBox.question(
                 self,  # type: ignore[arg-type]
                 _("title_update_found"),
-                _("update_new_version_msg").format(
-                    current=current, latest=latest, body=body
-                ),
+                _("update_new_version_msg").format(current=current, latest=latest, body=body),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
             if reply != QMessageBox.StandardButton.Yes:
@@ -813,9 +785,7 @@ class MainWindow(
             filename = release["filename"]
             self.status_changed.emit(_("update_downloading").format(filename=filename))
 
-            dl_path = os.path.join(
-                os.environ.get("TEMP", os.path.expanduser("~")), filename
-            )
+            dl_path = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), filename)
             sha256_expected = extract_sha256_from_body(release["body"])
 
             # 在后台下载（含完整性校验）
@@ -837,16 +807,10 @@ class MainWindow(
             if not result["ok"]:
                 raise RuntimeError(result["error"] or "下载超时")
 
-            exe_dir = (
-                os.path.dirname(sys.executable)
-                if getattr(sys, "frozen", False)
-                else os.path.dirname(__file__)
-            )
+            exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(__file__)
             # 写入权限检查（Program Files 等系统目录可能无写入权限）
             if not os.access(exe_dir, os.W_OK):
-                raise PermissionError(
-                    f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录"
-                )
+                raise PermissionError(f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录")
             bat_path = generate_update_script(dl_path, exe_dir)
 
             import subprocess

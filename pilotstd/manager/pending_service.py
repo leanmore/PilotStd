@@ -73,8 +73,7 @@ class PendingService:
         for parsed in pending_items:
             std_num = parsed.get_full_number()
             self._db.execute(
-                "UPDATE pending_lookup SET status=?, resolved_at=? "
-                "WHERE standard_number=? AND status='pending'",
+                "UPDATE pending_lookup SET status=?, resolved_at=? WHERE standard_number=? AND status='pending'",
                 (resolution, now, std_num),
             )
 
@@ -162,8 +161,7 @@ class PendingService:
     def mark_manual_required(self, standard_number: str) -> None:
         """标记为'建议手动查询'，从 pending 循环中移除。"""
         self._db.execute(
-            "UPDATE pending_lookup SET status='manual_required', "
-            "resolved_at=? WHERE standard_number=?",
+            "UPDATE pending_lookup SET status='manual_required', resolved_at=? WHERE standard_number=?",
             (datetime.now().isoformat(), standard_number),
         )
 
@@ -178,8 +176,7 @@ class PendingService:
             std_num = parsed.get_full_number()
             # 先查网络缓存
             row = self._db.fetchone(
-                "SELECT result_json FROM standard_info_cache "
-                "WHERE standard_number = ? LIMIT 1",
+                "SELECT result_json FROM standard_info_cache WHERE standard_number = ? LIMIT 1",
                 (std_num,),
             )
             result_json = row.get("result_json") if row else None
@@ -187,8 +184,7 @@ class PendingService:
             if not result_json:
                 # 回退到公告缓存
                 row = self._db.fetchone(
-                    "SELECT result_json FROM announcement_cache "
-                    "WHERE standard_number = ? LIMIT 1",
+                    "SELECT result_json FROM announcement_cache WHERE standard_number = ? LIMIT 1",
                     (std_num,),
                 )
                 result_json = row.get("result_json") if row else None

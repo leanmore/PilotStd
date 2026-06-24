@@ -115,9 +115,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             resp = self._session.get(view_url, timeout=120, stream=True)
         except requests.RequestException as e:
             task.error_message = f"PDF 下载请求失败: {e}"
-            logger.warning(
-                "下载失败(viewGb): %s hcno=%s | %s", task.standard_number, hcno, e
-            )
+            logger.warning("下载失败(viewGb): %s hcno=%s | %s", task.standard_number, hcno, e)
             return None
 
         if resp.status_code != 200:
@@ -180,9 +178,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 img_resp = self._session.get(captcha_url, timeout=15)
             except requests.RequestException as e:
                 task.error_message = "验证码图片获取失败"
-                logger.warning(
-                    "下载失败(验证码): %s | 图片获取失败: %s", task.standard_number, e
-                )
+                logger.warning("下载失败(验证码): %s | 图片获取失败: %s", task.standard_number, e)
                 return None
 
             # ═══ 步骤3：ddddocr 识别 ═══
@@ -230,7 +226,5 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                     continue
 
         task.error_message = "验证码提交失败（已重试）"
-        logger.warning(
-            "下载失败(验证码): %s hcno=%s | 验证码提交失败", task.standard_number, hcno
-        )
+        logger.warning("下载失败(验证码): %s hcno=%s | 验证码提交失败", task.standard_number, hcno)
         return None

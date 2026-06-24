@@ -32,13 +32,9 @@ class FileScanner:
             file_index: 可选，FileIndexRepository 实例，用于跨扫描内容去重
         """
         self.skip_dir_names = config_manager.get("scan.skip_folders", ["过期作废"])
-        self.supported_exts = config_manager.get(
-            "scan.extensions", [".pdf", ".doc", ".docx", ".txt"]
-        )
+        self.supported_exts = config_manager.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])
         self.skip_file_keywords = config_manager.get("scan.exclude_patterns", [])
-        self.skip_query_exts = config_manager.get(
-            "scan.skip_query_exts", [".doc", ".docx"]
-        )
+        self.skip_query_exts = config_manager.get("scan.skip_query_exts", [".doc", ".docx"])
         self.log = log or logger
         # 去重：内存哈希集合（本批次）+ 可选的持久化索引（跨扫描）
         self._seen_hashes: set[str] = set()
@@ -92,16 +88,12 @@ class FileScanner:
                             # 关键词排除
                             if self._should_skip_by_keyword(entry.name):
                                 result.stats.skipped += 1
-                                self.log.info(
-                                    "扫描跳过: %s", os.path.basename(entry.path)
-                                )
+                                self.log.info("扫描跳过: %s", os.path.basename(entry.path))
                                 continue
                             try:
                                 stat = entry.stat()
                             except OSError as e:
-                                result.add_warning(
-                                    f"获取文件状态失败 {entry.path}: {e}"
-                                )
+                                result.add_warning(f"获取文件状态失败 {entry.path}: {e}")
                                 self.log.warning(f"stat失败: {entry.path} - {e}")
                                 continue
                             # 内容级去重：计算 SHA-256，本批次 + 跨扫描两层过滤
@@ -115,9 +107,7 @@ class FileScanner:
                                 # 第2层：跨扫描持久化索引（仅校验完成后启用）
                                 if self._file_index is not None:
                                     if self._file_index.is_validation_complete:
-                                        existing = self._file_index.find_by_hash(
-                                            file_hash
-                                        )
+                                        existing = self._file_index.find_by_hash(file_hash)
                                         if existing is not None:
                                             self._dup_count += 1
                                             self.log.debug(
@@ -129,11 +119,7 @@ class FileScanner:
                                 file_hash = ""  # 读取失败不阻塞扫描
 
                             # Word/模板文件标记为跳过查询，但仍保留在扫描结果中供归档
-                            file_status = (
-                                "word_template"
-                                if self._is_skip_query_file(entry.name)
-                                else "pending"
-                            )
+                            file_status = "word_template" if self._is_skip_query_file(entry.name) else "pending"
                             file_info = FileInfo(
                                 full_path=entry.path,
                                 filename=normalize_std_filename(entry.name),

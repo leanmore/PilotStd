@@ -8,9 +8,7 @@ router = APIRouter(tags=["download"])
 
 
 @router.post("/api/download")
-def download_standards(
-    numbers: list[str] = Body(embed=True), mgr=Depends(get_manager_dep)
-):
+def download_standards(numbers: list[str] = Body(embed=True), mgr=Depends(get_manager_dep)):
     """批量下载标准文件。"""
     tasks, stats = mgr.download_by_numbers(numbers)
     return {
@@ -24,9 +22,7 @@ def download_standards(
         "results": [
             {
                 "standard_number": t.standard_number,
-                "standard_name": getattr(t.query_result, "standard_name", "")
-                if t.query_result
-                else "",
+                "standard_name": getattr(t.query_result, "standard_name", "") if t.query_result else "",
                 "status": t.status.value,
                 "saved_path": t.saved_path,
                 "error": t.error_message,

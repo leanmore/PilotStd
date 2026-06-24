@@ -36,9 +36,7 @@ class RulesPage(QWidget):
         rule_group = QGroupBox(_("rule_group"))
         rule_layout = QHBoxLayout(rule_group)
         self.rule_tree = QTreeWidget()
-        self.rule_tree.setHeaderLabels(
-            [_("header_rule_name"), _("header_task_type"), _("header_url")]
-        )
+        self.rule_tree.setHeaderLabels([_("header_rule_name"), _("header_task_type"), _("header_url")])
         self.rule_tree.setColumnWidth(0, 120)
         self.rule_tree.setColumnWidth(1, 60)
         self.rule_tree.header().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -93,9 +91,7 @@ class RulesPage(QWidget):
             self._add_item(r)
 
     def _add_item(self, rule: dict[str, Any]) -> None:
-        item = QTreeWidgetItem(
-            [rule.get("name", ""), rule.get("type", ""), rule.get("url", "")]
-        )
+        item = QTreeWidgetItem([rule.get("name", ""), rule.get("type", ""), rule.get("url", "")])
         item.setData(0, 1, rule)
         self.rule_tree.addTopLevelItem(item)
 
@@ -118,9 +114,7 @@ class RulesPage(QWidget):
             dlg = RuleEditDialog(self, rule)
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 rules = self._get_rules()
-                idx = next(
-                    i for i, r in enumerate(rules) if r.get("name") == rule.get("name")
-                )
+                idx = next(i for i, r in enumerate(rules) if r.get("name") == rule.get("name"))
                 rules[idx] = dlg.get_rule()
                 self._save_rules(rules)
                 self._refresh()
@@ -142,9 +136,7 @@ class RulesPage(QWidget):
             self._refresh()
 
     def _on_import_json(self) -> None:
-        path, __ = QFileDialog.getOpenFileName(
-            self, _("dialog_import_rules"), "", _("file_filter_json")
-        )
+        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_rules"), "", _("file_filter_json"))
         if not path:
             return
         added = self._config.import_rules(path)
@@ -156,14 +148,12 @@ class RulesPage(QWidget):
             )
             return
         self._refresh()
-        QMessageBox.information(
-            self, _("title_import_done"), _("msg_import_success").format(count=added)
-        )
+        QMessageBox.information(self, _("title_import_done"), _("msg_import_success").format(count=added))
 
     def _on_export_json(self) -> None:
         rules = self._get_rules()
         if not rules:
-            QMessageBox.information(None,_("title_hint"), _("msg_no_rules_to_export"))
+            QMessageBox.information(None, _("title_hint"), _("msg_no_rules_to_export"))
             return
         path, __ = QFileDialog.getSaveFileName(
             self, _("dialog_export_rules"), "pilotstd_rules.json", _("file_filter_json")
@@ -177,7 +167,7 @@ class RulesPage(QWidget):
                 _("msg_export_success").format(count=len(rules), path=path),
             )
         else:
-            QMessageBox.warning(None,_("title_export_failed"), "")
+            QMessageBox.warning(None, _("title_export_failed"), "")
 
     def _on_copy_builtin(self) -> None:
         builtins = [
@@ -251,9 +241,7 @@ class RuleEditDialog(QDialog):
             ]
         )
         captcha_map = {"": 0, "digit": 1, "math": 2, "slide": 3, "click": 4}
-        self.captcha_combo.setCurrentIndex(
-            captcha_map.get(self._rule.get("captcha", ""), 0)
-        )
+        self.captcha_combo.setCurrentIndex(captcha_map.get(self._rule.get("captcha", ""), 0))
         form.addRow(_("label_captcha_type"), self.captcha_combo)
 
         layout.addLayout(form)
@@ -271,7 +259,7 @@ class RuleEditDialog(QDialog):
     def _on_accept(self) -> None:
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(None,_("title_hint"), _("msg_enter_rule_name"))
+            QMessageBox.warning(None, _("title_hint"), _("msg_enter_rule_name"))
             return
         self.accept()
 

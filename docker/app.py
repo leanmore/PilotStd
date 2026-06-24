@@ -73,9 +73,7 @@ app = FastAPI(title="PilotStd API", version=_app_version, lifespan=lifespan)
 async def global_exception_handler(request: Request, exc: Exception):
     """全局异常处理：捕获所有未处理异常，写日志 + 返回 500。"""
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
-    return JSONResponse(
-        {"error": "服务器内部错误", "detail": str(exc)}, status_code=500
-    )
+    return JSONResponse({"error": "服务器内部错误", "detail": str(exc)}, status_code=500)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -87,9 +85,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers.setdefault("X-Content-Type-Options", "nosniff")
         headers.setdefault("X-Frame-Options", "DENY")
         headers.setdefault("X-XSS-Protection", "1; mode=block")
-        headers.setdefault(
-            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
-        )
+        headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         headers.setdefault("Referrer-Policy", "no-referrer")
         headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
         headers.setdefault(
@@ -153,9 +149,7 @@ _DOCKER_DIR = os.path.dirname(os.path.abspath(__file__))  # docker/ 目录
 _PROJ_ROOT = os.path.dirname(_DOCKER_DIR)  # 项目根目录
 DIST = os.path.join(_PROJ_ROOT, "web", "dist")
 if os.path.isdir(os.path.join(DIST, "assets")):
-    app.mount(
-        "/assets", StaticFiles(directory=os.path.join(DIST, "assets")), name="assets"
-    )
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST, "assets")), name="assets")
 
 
 @app.get("/{full_path:path}")

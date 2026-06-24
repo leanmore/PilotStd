@@ -66,9 +66,7 @@ class StdGovAdapter(BaseAdapter):
         """搜索并解析搜索结果页（新版 Bootstrap panel 布局）。"""
         logger.debug("搜索: %s @std_gov", search_term)
         params = {"q": search_term}
-        resp = safe_get(
-            self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15
-        )
+        resp = safe_get(self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15)
         if resp is None:
             return []
         resp.encoding = "utf-8"
@@ -113,11 +111,7 @@ class StdGovAdapter(BaseAdapter):
             # 统一插入代号与序号间的空格
             std_number = re.sub(r"([A-Z]+(?:/[A-Z]+)?)(\d)", r"\1 \2", raw)
             # 从 full_text 去掉编号前缀得到名称
-            if (
-                full_text.upper()
-                .replace(" ", "")
-                .startswith(std_number.upper().replace(" ", ""))
-            ):
+            if full_text.upper().replace(" ", "").startswith(std_number.upper().replace(" ", "")):
                 std_name = full_text[len(std_number) :].strip().lstrip("-/ ")
             else:
                 std_name = full_text.replace(raw, "", 1).strip().lstrip("-/ ")

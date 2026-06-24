@@ -34,8 +34,5 @@ async def normalize_files(request: FastAPIRequest, mgr=Depends(get_manager_dep))
     items = body if isinstance(body, list) else body.get("items", [])
     parsed_list = [_dict_to_parsed(it) for it in items]
     norm_results = mgr.normalize_files_stream(parsed_list)
-    results = [
-        {"source_path": r["source"], "new_filename": r["normalized"]}
-        for r in norm_results
-    ]
+    results = [{"source_path": r["source"], "new_filename": r["normalized"]} for r in norm_results]
     return {"results": results}

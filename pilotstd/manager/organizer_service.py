@@ -67,9 +67,7 @@ class OrganizerService:
     # 归类移动
     # ════════════════════════════════════════════════════════════════
 
-    def organize(
-        self, parsed_list: list[Any], word_source_root: str | None = None
-    ) -> dict[str, Any]:
+    def organize(self, parsed_list: list[Any], word_source_root: str | None = None) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。
 
         目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
@@ -123,9 +121,7 @@ class OrganizerService:
                 if self._is_word_or_template(src):
                     # 去掉 Windows 长路径前缀
                     clean_src = strip_long_path(src)
-                    clean_root = (
-                        strip_long_path(word_source_root) if word_source_root else ""
-                    )
+                    clean_root = strip_long_path(word_source_root) if word_source_root else ""
                     if clean_root and clean_src.startswith(clean_root):
                         rel = clean_src[len(clean_root) :].lstrip(os.sep)
                     else:
@@ -137,9 +133,7 @@ class OrganizerService:
                         try:
                             os.makedirs(os.path.dirname(dst), exist_ok=True)
                             if os.path.exists(dst):
-                                logger.debug(
-                                    f"Word 目标已存在，跳过: {os.path.basename(src)}"
-                                )
+                                logger.debug(f"Word 目标已存在，跳过: {os.path.basename(src)}")
                                 result["skipped_exists"] += 1
                                 result["word_mirrored"] += 1
                                 self._skipped_source_files.add(clean_src)
@@ -147,9 +141,7 @@ class OrganizerService:
                             safe_move(src, dst, on_exists="skip")
                             result["moved"] += 1
                             result["word_mirrored"] += 1
-                            result["details"].append(
-                                f"Word: {os.path.basename(src)} -> {dst}"
-                            )
+                            result["details"].append(f"Word: {os.path.basename(src)} -> {dst}")
                             # Word 文件归档后写入索引（代号用 WORD 标记）
                             if self._file_index:
                                 self._file_index.upsert(
@@ -170,13 +162,9 @@ class OrganizerService:
                                 f"Word 归档失败(权限不足): {os.path.basename(src)} — 请关闭占用程序后重试"
                             )
                         except OSError as e:
-                            logger.warning(
-                                f"Word 归档失败: {os.path.basename(src)} - {e}"
-                            )
+                            logger.warning(f"Word 归档失败: {os.path.basename(src)} - {e}")
                             result["failed"] += 1
-                            result["details"].append(
-                                f"Word 归档失败: {os.path.basename(src)} - {e}"
-                            )
+                            result["details"].append(f"Word 归档失败: {os.path.basename(src)} - {e}")
                     else:
                         logger.warning(f"Word 路径计算失败: {src}")
                         result["failed"] += 1
@@ -276,9 +264,7 @@ class OrganizerService:
     # 跳过目录镜像
     # ════════════════════════════════════════════════════════════════
 
-    def organize_skipped_dirs(
-        self, skipped_dirs: List[str], source_root: str | None = None
-    ) -> dict[str, Any]:
+    def organize_skipped_dirs(self, skipped_dirs: List[str], source_root: str | None = None) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。
 
         不扫描、不解析、不改名、不改后缀、不改变目录层次——整体移动。
@@ -299,11 +285,7 @@ class OrganizerService:
                 continue
             # 去掉 Windows 长路径前缀
             clean_src = src_dir[4:] if src_dir.startswith("\\\\?\\") else src_dir
-            clean_root = (
-                source_root[4:]
-                if source_root and source_root.startswith("\\\\?\\")
-                else source_root
-            )
+            clean_root = source_root[4:] if source_root and source_root.startswith("\\\\?\\") else source_root
             if clean_root:
                 try:
                     rel = os.path.relpath(clean_src, clean_root)
@@ -317,9 +299,7 @@ class OrganizerService:
             if not os.path.realpath(dst).startswith(os.path.realpath(root) + os.sep):
                 logger.error("路径越界被拒绝: %s", dst)
                 result["failed"] += 1
-                result["details"].append(
-                    f"跳过目录移动被拒绝(路径越界): {os.path.basename(src_dir)}"
-                )
+                result["details"].append(f"跳过目录移动被拒绝(路径越界): {os.path.basename(src_dir)}")
                 continue
             try:
                 if os.path.exists(dst):
@@ -340,9 +320,7 @@ class OrganizerService:
                                     sub_src = os.path.join(src_file, sub_fname)
                                     sub_dst = os.path.join(dst_file, sub_fname)
                                     if os.path.isfile(sub_src):
-                                        if safe_move(
-                                            sub_src, sub_dst, on_exists="skip"
-                                        ):
+                                        if safe_move(sub_src, sub_dst, on_exists="skip"):
                                             result["moved"] += 1
                                     elif os.path.isdir(sub_src):
                                         # 清除只读属性后移动子目录
@@ -359,9 +337,7 @@ class OrganizerService:
                                         shutil.move(sub_src, sub_dst)
                                         result["moved"] += 1
                             except OSError as e:
-                                result["details"].append(
-                                    f"跳过目录子项移动失败: {fname} - {e}"
-                                )
+                                result["details"].append(f"跳过目录子项移动失败: {fname} - {e}")
                 else:
                     # 清除源目录下所有文件的只读属性，防止 shutil.move → rmtree 崩溃
                     if self._cfg.get("file.clear_readonly", True):
@@ -374,14 +350,10 @@ class OrganizerService:
                     os.makedirs(os.path.dirname(dst), exist_ok=True)
                     shutil.move(src_dir, dst)
                     result["moved"] += 1
-                    result["details"].append(
-                        f"跳过目录: {os.path.basename(src_dir)} -> {dst}"
-                    )
+                    result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
             except OSError as e:
                 result["failed"] += 1
-                result["details"].append(
-                    f"跳过目录移动失败: {os.path.basename(src_dir)} - {e}"
-                )
+                result["details"].append(f"跳过目录移动失败: {os.path.basename(src_dir)} - {e}")
                 logger.warning(f"跳过目录移动失败: {os.path.basename(src_dir)} - {e}")
         logger.info(f"跳过目录归档: {result['moved']} 已移动, {result['failed']} 失败")
         return result
@@ -403,12 +375,7 @@ class OrganizerService:
         parts = rel_path.split(os.sep, 1)
         first = parts[0]
         # 守卫条件：覆盖 INDUSTRY_MAP（国内行业）、NATIONAL_CODES（国标）、FOREIGN_CODES（国外）、DB 代码
-        if (
-            first in INDUSTRY_MAP
-            or first in NATIONAL_CODES
-            or first in FOREIGN_CODES
-            or is_db_code(first)
-        ):
+        if first in INDUSTRY_MAP or first in NATIONAL_CODES or first in FOREIGN_CODES or is_db_code(first):
             resolved = get_folder_name(first)
             if resolved != first:
                 return os.path.join(resolved, parts[1]) if len(parts) > 1 else resolved
@@ -418,9 +385,7 @@ class OrganizerService:
     # 兜底镜像
     # ════════════════════════════════════════════════════════════════
 
-    def organize_fallback(
-        self, source_root: str, pending_paths: frozenset[Any] = frozenset()
-    ) -> dict[str, Any]:
+    def organize_fallback(self, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。
 
         不解析、不分类、不查询。跳过系统垃圾文件（Thumbs.db、~$* 等）。
@@ -445,9 +410,7 @@ class OrganizerService:
         }
         for dirpath, dirnames, filenames in os.walk(source_root):
             for fname in filenames:
-                if fname in self._FALLBACK_SKIP_FILES or fname.startswith(
-                    self._FALLBACK_SKIP_PREFIX
-                ):
+                if fname in self._FALLBACK_SKIP_FILES or fname.startswith(self._FALLBACK_SKIP_PREFIX):
                     result["skipped"] += 1
                     continue
                 src = os.path.join(dirpath, fname)
@@ -457,14 +420,11 @@ class OrganizerService:
                     # [TRACE] 指令8: 路径归一化检查（前5条）
                     if result["skipped_pending"] <= 5:
                         logger.debug(
-                            "[FALLBACK] 跳过待确认 #%d: 源路径=%r "
-                            "去除前缀=%r 在待确认中=%s",
+                            "[FALLBACK] 跳过待确认 #%d: 源路径=%r 去除前缀=%r 在待确认中=%s",
                             result["skipped_pending"],
                             src,
                             strip_long_path(src),
-                            strip_long_path(src) in pending_paths
-                            if src not in pending_paths
-                            else "direct",
+                            strip_long_path(src) in pending_paths if src not in pending_paths else "direct",
                         )
                     continue
                 # organize() 已确认目标存在的文件，fallback 不再搬运
@@ -481,11 +441,7 @@ class OrganizerService:
                 if rel_dir == ".":
                     rel_dir = ""
                 rel_dir = self._resolve_industry_in_path(rel_dir)
-                dst = (
-                    os.path.join(root, rel_dir, fname)
-                    if rel_dir
-                    else os.path.join(root, fname)
-                )
+                dst = os.path.join(root, rel_dir, fname) if rel_dir else os.path.join(root, fname)
                 try:
                     if safe_move(src, dst, on_exists="skip"):
                         result["moved"] += 1

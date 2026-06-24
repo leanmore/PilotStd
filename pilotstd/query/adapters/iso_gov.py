@@ -73,9 +73,7 @@ class IsoGovAdapter(BaseAdapter):
             "pageNumber": 1,
             "pageSize": 10,
         }
-        resp = safe_get(
-            self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15
-        )
+        resp = safe_get(self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15)
         if resp is None or resp.status_code != 200:
             return []
 

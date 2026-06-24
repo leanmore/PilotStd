@@ -62,9 +62,7 @@ class CLI:
             json.dump(data, sys.stdout, ensure_ascii=False, indent=2)
         else:
             writer = csv.writer(sys.stdout)
-            writer.writerow(
-                ["序号", "代号", "顺序号", "年份", "部分号", "标准名称", "完整编号"]
-            )
+            writer.writerow(["序号", "代号", "顺序号", "年份", "部分号", "标准名称", "完整编号"])
             for i, p in enumerate(parsed):
                 writer.writerow(
                     [
@@ -125,10 +123,7 @@ class CLI:
             import time
 
             now = time.monotonic()
-            if (
-                now - _progress_last_log[0] >= 15
-                or abs(pct - _progress_last_pct[0]) >= 10
-            ):
+            if now - _progress_last_log[0] >= 15 or abs(pct - _progress_last_pct[0]) >= 10:
                 logger.info("查询进度: %d/%d (%d%%)", count, _total, pct)
                 _progress_last_log[0] = now
                 _progress_last_pct[0] = pct
@@ -137,9 +132,7 @@ class CLI:
 
         # 输出：含分类结果
         writer = csv.writer(sys.stdout)
-        writer.writerow(
-            ["标准号", "标准名称", "状态", "匹配状态", "下一步", "来源站点", "是否采标"]
-        )
+        writer.writerow(["标准号", "标准名称", "状态", "匹配状态", "下一步", "来源站点", "是否采标"])
         for i, (p, r) in enumerate(zip(parsed_list, results)):
             writer.writerow(
                 [
@@ -186,10 +179,7 @@ class CLI:
                 f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败"
             )
             for t in tasks:
-                print(
-                    f"  {t.standard_number}: {t.status.value}"
-                    + (f" -> {t.saved_path}" if t.saved_path else "")
-                )
+                print(f"  {t.standard_number}: {t.status.value}" + (f" -> {t.saved_path}" if t.saved_path else ""))
             return 0
 
         # 途径二：从查询队列取
@@ -208,10 +198,7 @@ class CLI:
             f"{getattr(stats, 'skipped_adopted', 0)} 采标跳过, {stats.failed} 失败"
         )
         for t in completed:
-            print(
-                f"  {t.standard_number}: {t.status.value}"
-                + (f" -> {t.saved_path}" if t.saved_path else "")
-            )
+            print(f"  {t.standard_number}: {t.status.value}" + (f" -> {t.saved_path}" if t.saved_path else ""))
         return 0
 
     # ── organize ────────────────────────────────────────────────
@@ -228,9 +215,7 @@ class CLI:
         else:
             result = mgr.organize()
         print(
-            json.dumps(result, ensure_ascii=False, indent=2)
-            if getattr(args, "format", None) == "json"
-            else str(result)
+            json.dumps(result, ensure_ascii=False, indent=2) if getattr(args, "format", None) == "json" else str(result)
         )
         return 0
 
@@ -244,11 +229,7 @@ class CLI:
             use_cache=not getattr(args, "no_cache", False),
         )
         result = mgr.auto_run(args.path)
-        print(
-            json.dumps(result, ensure_ascii=False, indent=2)
-            if args.format == "json"
-            else str(result)
-        )
+        print(json.dumps(result, ensure_ascii=False, indent=2) if args.format == "json" else str(result))
         return 0
 
     # ── pending ─────────────────────────────────────────────────
@@ -264,9 +245,7 @@ class CLI:
         elif args.output:
             with open(args.output, "w", encoding="utf-8-sig", newline="") as f:
                 w = csv.writer(f)
-                w.writerow(
-                    ["标准编号", "文件名", "网站名称", "状态", "匹配状态", "来源站点"]
-                )
+                w.writerow(["标准编号", "文件名", "网站名称", "状态", "匹配状态", "来源站点"])
                 for item in items:
                     w.writerow(
                         [
@@ -284,9 +263,7 @@ class CLI:
             print(f"已导出 {len(items)} 条 → {args.output}")
         else:
             for item in items:
-                print(
-                    f"  {item.get('standard_number', '')} | {item.get('std_name', '')}"
-                )
+                print(f"  {item.get('standard_number', '')} | {item.get('std_name', '')}")
             print(f"\n共 {len(items)} 条待确认")
         return 0
 
@@ -302,18 +279,14 @@ class CLI:
         def _progress(cur: int, total: int, pid: str) -> None:
             logger.info("公告进度: %d/%d (pid=%s)", cur, total, pid)
 
-        results = mgr.check_announcements_filtered(
-            std_type=std_type, since_date=since, progress_callback=_progress
-        )
+        results = mgr.check_announcements_filtered(std_type=std_type, since_date=since, progress_callback=_progress)
 
         total_matched = 0
         for std_type_key, r in results.items():
             if "error" in r:
                 print(f"[{std_type_key}] {r['error']}")
                 continue
-            print(
-                f"[{std_type_key}] 公告抓取完成: 命中 {r.get('matched', 0)} 条, 更新 {r.get('updated', 0)} 条"
-            )
+            print(f"[{std_type_key}] 公告抓取完成: 命中 {r.get('matched', 0)} 条, 更新 {r.get('updated', 0)} 条")
             total_matched += r.get("matched", 0)
 
         if total_matched == 0:
@@ -372,9 +345,7 @@ class CLI:
             json.dump(results, sys.stdout, ensure_ascii=False, indent=2)
         else:
             writer = csv.writer(sys.stdout)
-            writer.writerow(
-                ["源文件", "代号", "顺序号", "年份", "规范化名称", "目标文件夹"]
-            )
+            writer.writerow(["源文件", "代号", "顺序号", "年份", "规范化名称", "目标文件夹"])
             for r in results:
                 writer.writerow(
                     [

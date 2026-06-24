@@ -182,12 +182,8 @@ class TencentOcrProvider(BaseOcrProvider):
 
         # 步骤2: 待签字符串
         credential_scope = f"{date}/{self._SERVICE}/tc3_request"
-        hashed_canonical_request = hashlib.sha256(
-            canonical_request.encode("utf-8")
-        ).hexdigest()
-        string_to_sign = (
-            f"{algorithm}\n{timestamp}\n{credential_scope}\n{hashed_canonical_request}"
-        )
+        hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
+        string_to_sign = f"{algorithm}\n{timestamp}\n{credential_scope}\n{hashed_canonical_request}"
 
         # 步骤3: 签名
         def _sign(key: bytes, msg: str) -> bytes:
@@ -196,9 +192,7 @@ class TencentOcrProvider(BaseOcrProvider):
         secret_date = _sign(("TC3" + self._secret_key).encode("utf-8"), date)
         secret_service = _sign(secret_date, self._SERVICE)
         secret_signing = _sign(secret_service, "tc3_request")
-        signature = hmac.new(
-            secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
 
         # 步骤4: Authorization 头
         authorization = (
@@ -292,15 +286,11 @@ class AliyunOcrProvider(BaseOcrProvider):
         # 参数排序 + URL 编码
         sorted_keys = sorted(params.keys())
         canonical = "&".join(
-            f"{urllib.parse.quote(k, safe='')}="
-            f"{urllib.parse.quote(str(params[k]), safe='')}"
-            for k in sorted_keys
+            f"{urllib.parse.quote(k, safe='')}={urllib.parse.quote(str(params[k]), safe='')}" for k in sorted_keys
         )
         string_to_sign = "POST&%2F&" + urllib.parse.quote(canonical, safe="")
         key = self._ak_secret + "&"
-        signature = hmac.new(
-            key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha1
-        ).digest()
+        signature = hmac.new(key.encode("utf-8"), string_to_sign.encode("utf-8"), hashlib.sha1).digest()
         return base64.b64encode(signature).decode()
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
@@ -332,9 +322,7 @@ class AliyunOcrProvider(BaseOcrProvider):
             body_data = (
                 b"--boundary\r\n"
                 b'Content-Disposition: form-data; name="body"; filename="page.pdf"\r\n'
-                b"Content-Type: application/pdf\r\n\r\n"
-                + pdf_bytes
-                + b"\r\n--boundary--"
+                b"Content-Type: application/pdf\r\n\r\n" + pdf_bytes + b"\r\n--boundary--"
             )
             query = urllib.parse.urlencode(params)
             resp = requests.post(
@@ -413,6 +401,7 @@ class OcrCounters:
     def get(self, provider: str) -> int:
         with self._lock:
             return self._data[provider]  # type: ignore[no-any-return]  # json 加载数据无精确类型
+
     @property
     def month(self) -> str:
         with self._lock:
@@ -440,10 +429,7 @@ class ProviderCooling:
         if level == "qps":
             until = _time.time() + 300
         elif level == "day":
-            until = (
-                now.replace(hour=0, minute=0, second=0, microsecond=0)
-                + timedelta(days=1)
-            ).timestamp()
+            until = (now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)).timestamp()
         elif level == "month":
             if now.month == 12:
                 nxt = now.replace(year=now.year + 1, month=1, day=1)
@@ -568,18 +554,14 @@ class OcrSlot:
         total = len(pages)
         for i, page in enumerate(pages):
             if stop_event.is_set():
-                logger.info(
-                    "[OCR] %s 收到停止信号，已完成 %d/%d 页", self.name, i, total
-                )
+                logger.info("[OCR] %s 收到停止信号，已完成 %d/%d 页", self.name, i, total)
                 break
             time.sleep(self._interval)
             result = self.provider.recognize_pdf(page, page_num=1)
             if result.ok:
                 results.append(result.text)
                 self._counters.increment(self.name)
-                logger.info(
-                    "[OCR] %s %s 第%d/%d页 成功", self.name, label, i + 1, total
-                )
+                logger.info("[OCR] %s %s 第%d/%d页 成功", self.name, label, i + 1, total)
                 if i == 0 and result.pdf_pages > 0 and result.pdf_pages != total:
                     logger.warning(
                         "[OCR] %s API返回页数=%d ≠ PyPDF2=%d，以PyPDF2为准",
@@ -603,9 +585,7 @@ class OcrSlot:
                 if emergency and (i + 1) < total:
                     remaining = pages[i + 1 :]
                     filtered = [r for r in results if r is not None]
-                    return emergency._finish_remaining(
-                        remaining, label, stop_event, filtered
-                    )
+                    return emergency._finish_remaining(remaining, label, stop_event, filtered)
                 break
         logger.info("[OCR] %s %s 完成 (%d/%d页)", self.name, label, len(results), total)
         return [r for r in results if r is not None]
@@ -694,9 +674,7 @@ class OcrScheduler(BaseOcrProvider):
 
         logger.info("[OCR] %s槽 ← %s (%d页)", slot.name, label, total)
         try:
-            results = slot.process(
-                pages, label, emergency=self._alibaba, stop_event=self._stop
-            )
+            results = slot.process(pages, label, emergency=self._alibaba, stop_event=self._stop)
             return "\n".join(results) if results else None
         finally:
             with self._active_lock:
@@ -752,9 +730,7 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
 
     stop = _threading.Event()
     baidu_slot = OcrSlot("baidu", baidu, 2, counters, cooling) if baidu else None
-    tencent_slot = (
-        OcrSlot("tencent", tencent, 10, counters, cooling) if tencent else None
-    )
+    tencent_slot = OcrSlot("tencent", tencent, 10, counters, cooling) if tencent else None
     aliyun_slot = OcrSlot("aliyun", aliyun, 10, counters, cooling) if aliyun else None
 
     if not baidu_slot and not tencent_slot:
@@ -786,9 +762,7 @@ def _create_tencent(config: dict[str, Any]) -> Optional["TencentOcrProvider"]:
 
 def _create_aliyun(config: dict[str, Any]) -> Optional["AliyunOcrProvider"]:
     ak_id = config.get("aliyun_access_key_id", "") or config.get("access_key_id", "")
-    ak_secret = config.get("aliyun_access_key_secret", "") or config.get(
-        "access_key_secret", ""
-    )
+    ak_secret = config.get("aliyun_access_key_secret", "") or config.get("access_key_secret", "")
     if not ak_id or not ak_secret:
         logger.warning("阿里云 OCR 未配置 access_key_id/access_key_secret，跳过")
         return None

@@ -46,9 +46,7 @@ class DownloadEngine:
         elif save_root:
             self._save_root = save_root
         else:
-            self._save_root = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "data", "downloads")
-            )
+            self._save_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "downloads"))
         self._min_delay = min_delay  # 请求间最小间隔秒数，防反爬
         self._max_delay = max_delay  # 请求间最大间隔秒数（实际随机取区间中值）
         self._batch_size = batch_size  # 每批下载数量，批次间长休息
@@ -60,24 +58,16 @@ class DownloadEngine:
 
     # ---- 公共 API ----
 
-    def download_single(
-        self, task: DownloadTask, skip_adopted: bool = True
-    ) -> DownloadTask:
+    def download_single(self, task: DownloadTask, skip_adopted: bool = True) -> DownloadTask:
         """下载单个任务，返回更新后的任务对象（含状态和本地路径）。"""
-        if (
-            skip_adopted
-            and task.query_result
-            and getattr(task.query_result, "is_adopted", False)
-        ):
+        if skip_adopted and task.query_result and getattr(task.query_result, "is_adopted", False):
             task.status = DownloadStatus.SKIPPED
             task.error_message = "采标标准，版权受限，自动跳过"
             logger.info(f"跳过采标: {task.standard_number}")
             return task
 
         # 下载前去重：目标文件已存在则跳过 HTTP 请求
-        logger.debug(
-            "下载: %s | 适配器=%s", task.standard_number, task.source_site or "auto"
-        )
+        logger.debug("下载: %s | 适配器=%s", task.standard_number, task.source_site or "auto")
         existing_path = self._get_existing_file(task)
         if existing_path:
             task.status = DownloadStatus.SKIPPED
@@ -101,9 +91,7 @@ class DownloadEngine:
             if task.retry_count < self._max_retries:
                 task.retry_count += 1
                 task.status = DownloadStatus.RETRYING
-                task.error_message = (
-                    f"网络异常，将重试 ({task.retry_count}/{self._max_retries}): {e}"
-                )
+                task.error_message = f"网络异常，将重试 ({task.retry_count}/{self._max_retries}): {e}"
                 logger.warning(task.error_message)
                 return task
             task.status = DownloadStatus.FAILED
@@ -152,11 +140,7 @@ class DownloadEngine:
 
             # 重试循环：最多 self._max_retries 轮，每轮只提交 RETRYING/PENDING 的任务
             for retry_round in range(self._max_retries + 1):
-                pending = [
-                    t
-                    for t in batch
-                    if t.status in (DownloadStatus.PENDING, DownloadStatus.RETRYING)
-                ]
+                pending = [t for t in batch if t.status in (DownloadStatus.PENDING, DownloadStatus.RETRYING)]
                 if not pending:
                     break
                 if retry_round > 0:
@@ -169,15 +153,11 @@ class DownloadEngine:
                     )
                     time.sleep(wait)
 
-                with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self._max_workers
-                ) as executor:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers) as executor:
                     futures = {}
                     for i, task in enumerate(pending):
                         idx = task_index[id(task)]
-                        future = executor.submit(
-                            self.download_single, task, skip_adopted
-                        )
+                        future = executor.submit(self.download_single, task, skip_adopted)
                         futures[future] = idx
 
                     for future in concurrent.futures.as_completed(futures):
@@ -229,18 +209,12 @@ class DownloadEngine:
         if parsed:
             logical_code = f"{parsed['code']}"
         else:
-            logical_code = (
-                task.standard_number.split()[0]
-                if " " in task.standard_number
-                else task.standard_number
-            )
+            logical_code = task.standard_number.split()[0] if " " in task.standard_number else task.standard_number
         number = parsed.get("number", 0) if parsed else 0
         year = parsed.get("year", 0) if parsed else 0
         part = parsed.get("part", None) if parsed else None
 
-        filename = make_standard_filename(
-            logical_code, number or 0, year or 0, std_name, part, ext=".pdf"
-        )
+        filename = make_standard_filename(logical_code, number or 0, year or 0, std_name, part, ext=".pdf")
         # 仅保留文件名，剥离可能混入的路径分隔符
         filename = os.path.basename(filename)
         final_path = os.path.join(self._save_root, filename)
@@ -278,9 +252,7 @@ class DownloadEngine:
                 return a
         return None
 
-    def _save_file(
-        self, task: DownloadTask, content: bytes, adapter: BaseDownloadAdapter
-    ) -> bool:
+    def _save_file(self, task: DownloadTask, content: bytes, adapter: BaseDownloadAdapter) -> bool:
         """保存下载内容到规范命名的文件。"""
         try:
             final_path = self._resolve_target_path(task)
@@ -299,9 +271,7 @@ class DownloadEngine:
             if ext == ".pdf" and not content[:5] == b"%PDF-":
                 logger.warning("文件类型异常，非PDF: %s", final_path)
             elif ext in (".doc", ".docx") and len(content) < 512:
-                logger.warning(
-                    "文件过小，可能非有效文档: %s (%d bytes)", final_path, len(content)
-                )
+                logger.warning("文件过小，可能非有效文档: %s (%d bytes)", final_path, len(content))
 
             task.saved_path = final_path
             logger.info(f"保存成功: {final_path}")

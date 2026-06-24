@@ -42,9 +42,7 @@ class PipelineRouter:
         for other in all_items:
             if other is item:
                 continue
-            other_code = (
-                (getattr(other, "logical_code", "") or "").replace("/", "").upper()
-            )
+            other_code = (getattr(other, "logical_code", "") or "").replace("/", "").upper()
             if other_code != code:
                 continue
             if getattr(other, "number", 0) != number:
@@ -206,11 +204,7 @@ class PipelineRouter:
             # 规则9: 其他（含"即将实施"等未明确处理的状态）→ 兜底
             buckets["fallback"].append(p)
         # [TRACE] 指令8: 统计各状态条目数
-        _ce_count = sum(
-            1
-            for p in buckets.get("pending", [])
-            if getattr(p, "match_status", "") == "chain_exhausted"
-        )
+        _ce_count = sum(1 for p in buckets.get("pending", []) if getattr(p, "match_status", "") == "chain_exhausted")
         logger.info(
             "[ROUTER] 分类结果: pending=%d (chain_exhausted=%d) "
             "organize=%d normalize=%d expire=%d download=%d fallback=%d",
@@ -251,9 +245,7 @@ class PipelineRouter:
             p.next_action = "not_found"
         # 名称决策：对即将归档的条目确定 final_name，回写 std_name
         # 实质差异条目从 organize/normalize 中移入 pending
-        name_conflicts = self._resolve_names(
-            buckets.get("organize", []) + buckets.get("normalize", [])
-        )
+        name_conflicts = self._resolve_names(buckets.get("organize", []) + buckets.get("normalize", []))
         if name_conflicts:
             for p in name_conflicts:
                 p.next_action = "pending"
@@ -299,9 +291,7 @@ class PipelineRouter:
         return conflicts
 
     # 中文停用词/字集合（名称对比时忽略）
-    _STOP_WORDS = frozenset(
-        {"的", "和", "及", "与", "或", "及其", "以及", "第", "部分"}
-    )
+    _STOP_WORDS = frozenset({"的", "和", "及", "与", "或", "及其", "以及", "第", "部分"})
 
     @classmethod
     def _is_core_different(cls, a: str, b: str) -> bool:
@@ -345,9 +335,7 @@ class PipelineRouter:
         name = re.sub(r"\s+", " ", name).strip()
         return name
 
-    def classify_after_download(
-        self, items: List[ParsedStdInfo]
-    ) -> dict[str, list[ParsedStdInfo]]:
+    def classify_after_download(self, items: List[ParsedStdInfo]) -> dict[str, list[ParsedStdInfo]]:
         """下载完成后第三轮判断。已下载的全部送归档。
 
         返回 {"organize": [...]}

@@ -53,9 +53,7 @@ def _add_cron_job(job_id: str, cron_expr: str):
     """向调度器添加一个 cron 定时任务。若已存在则替换。"""
     func = _job_funcs.get(job_id)
     if func:
-        scheduler.add_job(
-            func, CronTrigger.from_crontab(cron_expr), id=job_id, replace_existing=True
-        )
+        scheduler.add_job(func, CronTrigger.from_crontab(cron_expr), id=job_id, replace_existing=True)
 
 
 def _backup_database():
@@ -67,9 +65,7 @@ def _backup_database():
     backup_path = os.path.join(backup_dir, f"pilotstd_{timestamp}.bak")
     result = db.backup(backup_path)
     if result:
-        all_backups = sorted(
-            [f for f in os.listdir(backup_dir) if f.endswith(".bak")], reverse=True
-        )
+        all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith(".bak")], reverse=True)
         for old in all_backups[4:]:
             try:
                 os.remove(os.path.join(backup_dir, old))
@@ -97,8 +93,7 @@ def _acquire_scheduler_lock() -> bool:
     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
     try:
         db.execute(
-            "INSERT INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
-            "VALUES (1, ?, ?, ?)",
+            "INSERT INTO scheduler_lock (id, pid, started_at, heartbeat_at) VALUES (1, ?, ?, ?)",
             (pid, now_str, now_str),
         )
         logger.info("调度器互斥锁已获取 (PID=%d)", pid)
@@ -107,17 +102,13 @@ def _acquire_scheduler_lock() -> bool:
         row = db.fetchone("SELECT pid, heartbeat_at FROM scheduler_lock WHERE id = 1")
         if row:
             try:
-                heartbeat = time.mktime(
-                    time.strptime(row["heartbeat_at"], "%Y-%m-%d %H:%M:%S")
-                )
+                heartbeat = time.mktime(time.strptime(row["heartbeat_at"], "%Y-%m-%d %H:%M:%S"))
                 if time.time() - heartbeat > _STALE_TIMEOUT:
                     db.execute(
                         "UPDATE scheduler_lock SET pid=?, started_at=?, heartbeat_at=? WHERE id=1",
                         (pid, now_str, now_str),
                     )
-                    logger.warning(
-                        "调度器互斥锁已接管（前 PID=%d 心跳超时）", row["pid"]
-                    )
+                    logger.warning("调度器互斥锁已接管（前 PID=%d 心跳超时）", row["pid"])
                     return True
                 else:
                     logger.info("调度器已在 PID=%d 运行，本 worker 跳过", row["pid"])
@@ -157,9 +148,7 @@ def start_scheduler():
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
     scheduler.start()
     _heartbeat_stop.clear()
-    threading.Thread(
-        target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat"
-    ).start()
+    threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
     logger.info("APScheduler 已启动")
 
 

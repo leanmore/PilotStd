@@ -35,9 +35,7 @@ _WORKER_FLUSH_INTERVAL = 0.5  # 批量刷新间隔（秒）
 _ANNOUNCEMENT_BATCH_SIZE = 20  # 公告处理每批条数
 
 
-def _log_progress(
-    logger: Any, label: str, current: int, total: int, t_start: float
-) -> None:
+def _log_progress(logger: Any, label: str, current: int, total: int, t_start: float) -> None:
     """输出阶段性进度日志（供各 Worker 在循环中调用）。"""
     elapsed = _time.monotonic() - t_start
     pct = int(current / total * 100) if total > 0 else 0
@@ -70,11 +68,7 @@ class LogHandler(logging.Handler, QObject):
         logging.Handler.__init__(self)
         QObject.__init__(self)
         self.widget = widget
-        self.setFormatter(
-            logging.Formatter(
-                "%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"
-            )
-        )
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"))
         self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []
@@ -166,10 +160,7 @@ class QueryWorker(QThread):
                 _result_batch.append((idx, result))
                 _sent_indices.add(idx)
                 now = _time.monotonic()
-                if (
-                    len(_result_batch) >= _WORKER_BATCH_SIZE
-                    or now - _last_flush >= _WORKER_FLUSH_INTERVAL
-                ):
+                if len(_result_batch) >= _WORKER_BATCH_SIZE or now - _last_flush >= _WORKER_FLUSH_INTERVAL:
                     if not self._stopped:
                         self.batch_ready.emit(_result_batch)
                     _result_batch = []
@@ -200,11 +191,7 @@ class QueryWorker(QThread):
 
         # 发送最后一批残留结果（跳过已实时发送的）
         if not self._stopped:
-            remaining = [
-                (i, r)
-                for i, r in enumerate(results)
-                if r is not None and i not in _sent_indices
-            ]
+            remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
             if _result_batch:
                 self.batch_ready.emit(_result_batch)
             if remaining:
@@ -220,9 +207,7 @@ class DownloadWorker(QThread):
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(
-        self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None
-    ) -> None:
+    def __init__(self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
@@ -245,9 +230,7 @@ class DownloadWorker(QThread):
                     return
                 batch.append((idx, status))
                 now = _time.monotonic()
-                if len(batch) >= _WORKER_BATCH_SIZE or (
-                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL
-                ):
+                if len(batch) >= _WORKER_BATCH_SIZE or (batch and now - last_flush >= _WORKER_FLUSH_INTERVAL):
                     if not self._stopped:
                         self.batch_ready.emit(batch)
                     batch = []
@@ -276,9 +259,7 @@ class NormalizeWorker(QThread):
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
-    def __init__(
-        self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None
-    ) -> None:
+    def __init__(self, mgr: Any, parsed_list: Any, pause_event: Any = None, parent: Any = None) -> None:
         super().__init__(parent)
         self._mgr = mgr
         self.parsed_list = parsed_list
@@ -302,9 +283,7 @@ class NormalizeWorker(QThread):
                     self._pause_event.wait()
                 self.progress.emit(_pct(cur, total))
 
-            self._mgr.normalize_files_stream(
-                self.parsed_list, on_progress=on_progress, on_batch=on_batch
-            )
+            self._mgr.normalize_files_stream(self.parsed_list, on_progress=on_progress, on_batch=on_batch)
             self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
@@ -349,17 +328,10 @@ class ArchiveWorker(QThread):
             for p in self.parsed_list:
                 if p.source_path and os.path.exists(p.source_path):
                     total_size += os.path.getsize(p.source_path)
-            _disk_root = (
-                self.library_root
-                if os.path.exists(self.library_root)
-                else os.path.dirname(self.library_root)
-            )
+            _disk_root = self.library_root if os.path.exists(self.library_root) else os.path.dirname(self.library_root)
             _, _, free = shutil.disk_usage(_disk_root)
             if total_size > free * 0.9:
-                self.error.emit(
-                    f"磁盘空间不足: 需要 {total_size / 1024 / 1024:.0f}MB,"
-                    f" 剩余 {free / 1024 / 1024:.0f}MB"
-                )
+                self.error.emit(f"磁盘空间不足: 需要 {total_size / 1024 / 1024:.0f}MB, 剩余 {free / 1024 / 1024:.0f}MB")
                 return
 
             batch: list[tuple[Any, ...]] = []
@@ -373,9 +345,7 @@ class ArchiveWorker(QThread):
                     return
                 batch.append((idx, status))
                 now = _time.monotonic()
-                if len(batch) >= _WORKER_BATCH_SIZE or (
-                    batch and now - last_flush >= _WORKER_FLUSH_INTERVAL
-                ):
+                if len(batch) >= _WORKER_BATCH_SIZE or (batch and now - last_flush >= _WORKER_FLUSH_INTERVAL):
                     if not self._stopped:
                         self.batch_ready.emit(batch)
                     batch = []
@@ -393,9 +363,7 @@ class ArchiveWorker(QThread):
                     _log_progress(logger, "归档", cur, total, _t_start)
                     _last_log = now
 
-            self._mgr.organize_stream(
-                self.parsed_list, on_progress=on_progress, on_result=on_result
-            )
+            self._mgr.organize_stream(self.parsed_list, on_progress=on_progress, on_result=on_result)
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
             self.finished_signal.emit()
@@ -433,9 +401,7 @@ class ScanWorker(QThread):
     finished_signal = pyqtSignal(int, int)
     error = pyqtSignal(str)
 
-    def __init__(
-        self, mgr: Any, root_path: str, pause_event: Any = None, parent: Any = None
-    ) -> None:
+    def __init__(self, mgr: Any, root_path: str, pause_event: Any = None, parent: Any = None) -> None:
         super().__init__(parent)
         self._mgr = mgr  # StandardManager，不再独立持有 scanner/parser
         self._root_path = root_path
@@ -469,9 +435,7 @@ class ScanWorker(QThread):
                     _log_progress(logger, "扫描", cur, total, _t_start)
                     _last_log = now
 
-            parsed = self._mgr.scan_directory_stream(
-                self._root_path, on_progress=on_progress, on_batch=on_batch
-            )
+            parsed = self._mgr.scan_directory_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
             # 收集未识别文件（扫描结果中未被解析的）
             self.unrecognized = []  # scan_directory_stream 内部处理，异常由 facade 记录
             parsed_count = len(parsed)

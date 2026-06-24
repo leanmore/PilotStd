@@ -42,9 +42,7 @@ def _get_config_dir() -> str:
         except OSError:
             pass
         # 不可写时使用用户 AppData 目录
-        appdata = os.path.join(
-            os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd"
-        )
+        appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
         os.makedirs(appdata, exist_ok=True)
         return appdata
     else:
@@ -64,9 +62,7 @@ def get_data_dir() -> str:
             os.makedirs(data_dir, exist_ok=True)
             return data_dir
         except OSError:
-            appdata = os.path.join(
-                os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd"
-            )
+            appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
             os.makedirs(appdata, exist_ok=True)
             return appdata
     return os.path.join(os.path.dirname(__file__), "..", "..", "data")
@@ -89,9 +85,7 @@ def get_library_root(config: "ConfigManager") -> str:
 
     _log = logging.getLogger("pilotstd.config")
     # Docker/容器环境通过 STANDARD_ROOT 注入路径，优先使用
-    root = os.environ.get("STANDARD_ROOT") or config.get(
-        "storage.root_dir", os.path.expanduser("~/标准")
-    )
+    root = os.environ.get("STANDARD_ROOT") or config.get("storage.root_dir", os.path.expanduser("~/标准"))
     root = os.path.abspath(os.path.normpath(root))
     if not os.path.exists(root):
         try:
@@ -410,9 +404,7 @@ class ConfigManager:
                 self.save()
                 return
         except (json.JSONDecodeError, OSError) as e:
-            backup = (
-                self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
-            )
+            backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
             try:
                 os.rename(self._filepath, backup)
                 _log.error("配置文件损坏已备份至 %s，重建默认配置", backup)
@@ -461,9 +453,7 @@ class ConfigManager:
         self._fernet = Fernet(key)
         return self._fernet
 
-    def _walk_sensitive(
-        self, data: dict[str, Any], *, encrypt: bool, prefix: str = ""
-    ) -> dict[str, Any]:
+    def _walk_sensitive(self, data: dict[str, Any], *, encrypt: bool, prefix: str = "") -> dict[str, Any]:
         """递归遍历嵌套字典，对所有敏感字段加密/解密。内存中始终明文。"""
         result: dict[str, Any] = {}
         for k, v in data.items():

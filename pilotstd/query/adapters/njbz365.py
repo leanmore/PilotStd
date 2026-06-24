@@ -71,9 +71,7 @@ class Njbz365Adapter(BaseAdapter):
 
         # 第1步：访问首页获取 token cookie（最多重试 3 次，指数退避）
         if "token" not in self._session.cookies:
-            self._retry_request(
-                "get", HOME_URL, timeout=30, err_msg="访问njbz365首页获取token"
-            )
+            self._retry_request("get", HOME_URL, timeout=30, err_msg="访问njbz365首页获取token")
             # 即使失败也继续——可能 cookie 中已有 token
 
         # 从 cookie 提取 JWT
@@ -110,13 +108,9 @@ class Njbz365Adapter(BaseAdapter):
                     self._session_val = m2.group(1)
                 # 设置 cookie 以便后续请求自动携带
                 if self._csrf_token:
-                    self._session.cookies.set(
-                        "csrf_token", self._csrf_token, domain=".njbz365.cn"
-                    )
+                    self._session.cookies.set("csrf_token", self._csrf_token, domain=".njbz365.cn")
                 if self._session_val:
-                    self._session.cookies.set(
-                        "session", self._session_val, domain=".njbz365.cn"
-                    )
+                    self._session.cookies.set("session", self._session_val, domain=".njbz365.cn")
                 return  # 成功则退出
             except requests.RequestException as e:
                 if attempt < 2:
@@ -177,11 +171,7 @@ class Njbz365Adapter(BaseAdapter):
         3. 拼接 key=value&...&key=<privateKey>
         4. MD5 大写
         """
-        non_empty = {
-            k: v
-            for k, v in params.items()
-            if v != "" and v is not None and k != "json_data"
-        }
+        non_empty = {k: v for k, v in params.items() if v != "" and v is not None and k != "json_data"}
         sorted_keys = sorted(non_empty.keys())
         raw = "&".join(f"{k}={non_empty[k]}" for k in sorted_keys)
         raw += "&key=" + _PRIVATE_KEY
@@ -341,9 +331,7 @@ class Njbz365Adapter(BaseAdapter):
             target_code = parsed.get("code", "")
             target_number = parsed.get("number", 0)
             target_year = parsed.get("year", 0)
-        candidates = self._search_candidates(
-            search_term, target_code, target_number, target_year
-        )
+        candidates = self._search_candidates(search_term, target_code, target_number, target_year)
         return candidates[0] if candidates else None
 
     def _search_candidates(
@@ -373,9 +361,7 @@ class Njbz365Adapter(BaseAdapter):
             is_adopted = bool(cybz)
             status = status_map.get(bzzt, bzzt)
 
-            matched, match_status = match_result(
-                target_code, target_number, target_year, bzmc, bzbh
-            )
+            matched, match_status = match_result(target_code, target_number, target_year, bzmc, bzbh)
 
             results.append(
                 QueryResult(

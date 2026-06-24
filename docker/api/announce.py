@@ -14,9 +14,7 @@ router = APIRouter(tags=["announce"])
 # 公告检查结果缓存（供 /api/announce/results 查询）
 _cache: dict = {"last_check": "", "results": [], "summary": {}, "failures": []}
 
-FAILURES_FILE = os.path.join(
-    os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json"
-)
+FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
 
 
 def check_announce(since_date: str = "", mgr=None) -> dict:

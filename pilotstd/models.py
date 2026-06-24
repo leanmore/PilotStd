@@ -24,30 +24,20 @@ class ParsedStdInfo:
     normalized_name: str = ""  # 规范化中间值（自动格式化处理后的名称）
     final_name: str = ""  # 最终归档名称（路由阶段决策后写入，用户确认或系统自动选定）
     source_path: str = ""  # 源文件完整路径（扫描/下载后填充）
-    effect_status: str = (
-        ""  # 有效性状态（查询后填充：现行/废止/即将实施/待确认/被代替）
-    )
+    effect_status: str = ""  # 有效性状态（查询后填充：现行/废止/即将实施/待确认/被代替）
     is_adopted: bool = False  # 是否采标（查询后填充）
     replaced_by: str = ""  # 被代替时的新标准编号（查询后填充）
-    found_replaces: str = (
-        ""  # 网站返回的替代标准编号（查询后填充，用于路由判断是否需下载新版）
-    )
+    found_replaces: str = ""  # 网站返回的替代标准编号（查询后填充，用于路由判断是否需下载新版）
     split_parts: str = ""  # 多部分拆分时，逗号分隔的部分编号列表
     found_publish_date: str = ""  # 网站返回的发布日期（查询后填充）
     found_impl_date: str = ""  # 网站返回的实施日期（查询后填充）
     found_responsible_dept: str = ""  # 网站返回的归口单位（查询后填充）
     found_abolition_date: str = ""  # 网站返回的废止日期（查询后填充）
     next_action: str = ""  # 下一步动作（分类后填充：archive/normalize/expire/pending）
-    match_status: str = (
-        ""  # 原始匹配状态（查询后填充：exact/newer/older/code_only/mismatch）
-    )
+    match_status: str = ""  # 原始匹配状态（查询后填充：exact/newer/older/code_only/mismatch）
     found_source_site: str = ""  # 查询结果来源站点（查询后填充，供下载阶段路由）
-    stage_status: str = (
-        ""  # 分类后所处阶段：download/expired/pending/archive_ready（分类后填充）
-    )
-    file_kind: str = (
-        ""  # 文件属性标签：扫描版/扫描件/水印版/文本版（解析时从文件名提取）
-    )
+    stage_status: str = ""  # 分类后所处阶段：download/expired/pending/archive_ready（分类后填充）
+    file_kind: str = ""  # 文件属性标签：扫描版/扫描件/水印版/文本版（解析时从文件名提取）
 
     def get_full_number(self) -> str:
         """生成逻辑标准编号，如 GB/T 12345.1-2020、ASME VIII.1-2021、API Spec 6D-2021"""

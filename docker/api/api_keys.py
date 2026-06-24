@@ -16,8 +16,7 @@ def list_api_keys(user: str = Depends(require_admin)):
     """此接口已废弃，请使用 GET /api/settings/token 获取当前静态令牌。"""
     raise HTTPException(
         status_code=410,
-        detail="Gone — API Key management has been moved to /settings. "
-        "Use GET /api/settings/token",
+        detail="Gone — API Key management has been moved to /settings. Use GET /api/settings/token",
     )
 
 
@@ -26,8 +25,7 @@ def create_api_key(user: str = Depends(require_admin)):
     """此接口已废弃。静态令牌由管理员在设置页面 /settings 中管理。"""
     raise HTTPException(
         status_code=410,
-        detail="Gone — Static token is managed via /settings. "
-        "Use POST /api/settings/token/refresh to rotate.",
+        detail="Gone — Static token is managed via /settings. Use POST /api/settings/token/refresh to rotate.",
     )
 
 
@@ -55,7 +53,5 @@ def reactivate_api_key(key_id: str, user: str = Depends(require_admin)):
     """此接口已废弃。"""
     raise HTTPException(
         status_code=410,
-        detail=(
-            "Gone — Use POST /api/settings/token/refresh to manage the static token."
-        ),
+        detail=("Gone — Use POST /api/settings/token/refresh to manage the static token."),
     )

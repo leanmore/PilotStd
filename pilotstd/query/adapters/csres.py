@@ -112,11 +112,7 @@ class CsresAdapter(BaseAdapter):
             resp.encoding = "gbk"
 
             # 检测被拒：302→/error/noright.html 或页面内容为错误页
-            if (
-                resp.status_code != 200
-                or "noright" in resp.url
-                or "noright" in resp.text[:200].lower()
-            ):
+            if resp.status_code != 200 or "noright" in resp.url or "noright" in resp.text[:200].lower():
                 logger.warning("工标网拒绝访问，自动冷却站点(24h)")
                 self._set_local_cooldown(COOLDOWN_ON_REJECT)
                 if self._rotator:
@@ -187,9 +183,7 @@ class CsresAdapter(BaseAdapter):
             candidates.append(self._parse_result(found_number, cells, detail_url))
         return candidates
 
-    def _parse_result(
-        self, found_number: str, cells: Any, detail_url: str = ""
-    ) -> QueryResult:
+    def _parse_result(self, found_number: str, cells: Any, detail_url: str = "") -> QueryResult:
         """从表格行构建 QueryResult。"""
         std_name = cells[1].get_text(strip=True)
         dept = cells[2].get_text(strip=True) if len(cells) > 2 else ""

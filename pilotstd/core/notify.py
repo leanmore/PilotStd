@@ -49,9 +49,7 @@ class NotifyService:
             return
         if not self._check_dedup(title):
             return
-        self._tray.showMessage(
-            title, message, QSystemTrayIcon.MessageIcon.Information, duration
-        )
+        self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, duration)
 
     def show_warning(self, title: str, message: str, duration: int = 5000) -> None:
         """发送警告通知。同标题 3 秒内去重。"""
@@ -59,9 +57,7 @@ class NotifyService:
             return
         if not self._check_dedup(title):
             return
-        self._tray.showMessage(
-            title, message, QSystemTrayIcon.MessageIcon.Warning, duration
-        )
+        self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, duration)
 
     # ── 内部 ──
 

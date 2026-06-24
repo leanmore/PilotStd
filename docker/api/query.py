@@ -11,9 +11,7 @@ router = APIRouter(tags=["query"])
 
 # 查询结果持久化文件路径
 QUERY_RESULTS_FILE = os.path.join(
-    os.environ.get(
-        "DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data")
-    ),
+    os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data")),
     "query_results.json",
 )
 

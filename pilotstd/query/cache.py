@@ -45,15 +45,12 @@ class CacheRepository:
         if row:
             # 过滤 QueryResult 不接受的字段（适配器可能挂临时属性，如 csres 的 _csres_detail_url）
             _valid = {f.name for f in QueryResult.__dataclass_fields__.values()}
-            data = {
-                k: v for k, v in json.loads(row["result_json"]).items() if k in _valid
-            }
+            data = {k: v for k, v in json.loads(row["result_json"]).items() if k in _valid}
             return QueryResult(**data)
 
         # 不命中则回退查公告缓存
         ann_row = self._db.fetchone(
-            f"SELECT standard_number, result_json FROM {ANNOUNCEMENT_CACHE_TABLE} "
-            "WHERE standard_number=?",
+            f"SELECT standard_number, result_json FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number=?",
             (standard_number,),
         )
         if ann_row:
@@ -95,15 +92,12 @@ class CacheRepository:
                 ),
             )
 
-    def append_status_history(
-        self, standard_number: str, source_site: str, entry: dict[str, Any]
-    ) -> None:
+    def append_status_history(self, standard_number: str, source_site: str, entry: dict[str, Any]) -> None:
         """追加状态变更记录到 status_history JSON 数组。
         entry: {status, announcement_number, announcement_date, changed_at, source}
         """
         row = self._db.fetchone(
-            f"SELECT id, status_history FROM {CACHE_TABLE} "
-            "WHERE standard_number=? AND source_site=?",
+            f"SELECT id, status_history FROM {CACHE_TABLE} WHERE standard_number=? AND source_site=?",
             (standard_number, source_site),
         )
         if not row:
@@ -111,9 +105,7 @@ class CacheRepository:
         import json as _json
 
         try:
-            history = (
-                _json.loads(row["status_history"]) if row["status_history"] else []
-            )
+            history = _json.loads(row["status_history"]) if row["status_history"] else []
         except _json.JSONDecodeError:
             history = []
         entry["changed_at"] = datetime.now().isoformat()
@@ -131,9 +123,7 @@ class CacheRepository:
                 (standard_number, source_site),
             )
         else:
-            self._db.execute(
-                f"DELETE FROM {CACHE_TABLE} WHERE standard_number=?", (standard_number,)
-            )
+            self._db.execute(f"DELETE FROM {CACHE_TABLE} WHERE standard_number=?", (standard_number,))
 
     def get_history(self, limit: int = 100, offset: int = 0) -> list[Any]:
         return self._db.fetchall(
@@ -159,13 +149,9 @@ class CacheRepository:
             )
         """)
         self._db.execute(
-            f"CREATE UNIQUE INDEX IF NOT EXISTS idx_cache_lookup "
-            f"ON {CACHE_TABLE}(standard_number, source_site)"
+            f"CREATE UNIQUE INDEX IF NOT EXISTS idx_cache_lookup ON {CACHE_TABLE}(standard_number, source_site)"
         )
-        self._db.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_cache_cached_at "
-            f"ON {CACHE_TABLE}(cached_at)"
-        )
+        self._db.execute(f"CREATE INDEX IF NOT EXISTS idx_cache_cached_at ON {CACHE_TABLE}(cached_at)")
 
     def _delete(self, row_id: int) -> None:
         self._db.execute(f"DELETE FROM {CACHE_TABLE} WHERE id=?", (row_id,))

@@ -93,13 +93,9 @@ class TaskPage(QWidget):
             self.task_table.setItem(
                 row,
                 3,
-                QTableWidgetItem(
-                    f"{t.completed_items}/{t.total_items} ({t.progress_pct:.0f}%)"
-                ),
+                QTableWidgetItem(f"{t.completed_items}/{t.total_items} ({t.progress_pct:.0f}%)"),
             )
-            self.task_table.setItem(
-                row, 4, QTableWidgetItem(t.updated_at[:19] if t.updated_at else "")
-            )
+            self.task_table.setItem(row, 4, QTableWidgetItem(t.updated_at[:19] if t.updated_at else ""))
             self.task_table.setItem(row, 5, QTableWidgetItem(t.error_log))
 
     def _clear_completed(self) -> None:

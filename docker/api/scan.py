@@ -40,9 +40,7 @@ def _validate_path(user_path: str, mgr=None) -> str:
 
 
 @router.post("/api/scan")
-def scan_directory(
-    path: str = "/inbox", recursive: bool = True, mgr=Depends(get_manager_dep)
-):
+def scan_directory(path: str = "/inbox", recursive: bool = True, mgr=Depends(get_manager_dep)):
     """扫描目录中的标准文件，返回文件列表及统计。走 facade 去重+解析。"""
     try:
         safe_path = _validate_path(path, mgr)
@@ -75,9 +73,7 @@ def scan_directory(
     return {
         "total": len(files),
         "pdf_count": sum(1 for f in files if f["name"].lower().endswith(".pdf")),
-        "word_count": sum(
-            1 for f in files if f["name"].lower().endswith((".doc", ".docx"))
-        ),
+        "word_count": sum(1 for f in files if f["name"].lower().endswith((".doc", ".docx"))),
         "dup_skipped": 0,
         "skipped_dirs": len(getattr(mgr, "_last_skipped_dirs", [])),
         "files": files,

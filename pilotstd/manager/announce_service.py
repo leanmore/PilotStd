@@ -58,9 +58,7 @@ class AnnounceService:
 
         data_dir = get_data_dir()
         for std_type in ("gb", "hb", "db"):
-            os.makedirs(
-                os.path.join(data_dir, "announcements", std_type), exist_ok=True
-            )
+            os.makedirs(os.path.join(data_dir, "announcements", std_type), exist_ok=True)
 
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
@@ -72,9 +70,7 @@ class AnnounceService:
             )
             since = log_row["last_notice_date"] if log_row else ""
 
-            result = engine.check_one(
-                adapter.standard_type, since_date=since, ocr_provider=ocr
-            )
+            result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)
             if "error" in result:
                 logger.warning(
                     "公告适配器 %s 异常: %s",
@@ -91,15 +87,12 @@ class AnnounceService:
             )
             if log_row:
                 self._file_index._db.execute(
-                    "UPDATE fetch_log SET last_fetched_at=?, last_notice_date=? "
-                    "WHERE source_site=?",
+                    "UPDATE fetch_log SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
                     (now, latest_date, adapter.source_site),
                 )
             else:
                 self._file_index._db.execute(
-                    "INSERT INTO fetch_log "
-                    "(source_site, last_fetched_at, last_notice_date) "
-                    "VALUES (?, ?, ?)",
+                    "INSERT INTO fetch_log (source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
                     (adapter.source_site, now, latest_date),
                 )
 

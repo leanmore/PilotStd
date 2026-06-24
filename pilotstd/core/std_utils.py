@@ -107,9 +107,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
         raw = m.group(1).upper()
         prefix = m.group(2)
         number = int(m.group(3))
-        part = (
-            int(m.group(4)) if m.group(4) else (int(m.group(5)) if m.group(5) else None)
-        )
+        part = int(m.group(4)) if m.group(4) else (int(m.group(5)) if m.group(5) else None)
         year = int(m.group(6))
         return {
             "raw_code": raw,
@@ -141,9 +139,7 @@ def parse_std_number(text: str) -> dict[str, Any] | None:
         }
 
     # 点号前缀: "ANSI C.81-2003"（CODE PREFIX.NUMBER-YEAR）
-    m = re.match(
-        r"([A-Z]+)\s+([A-Z]+)\.(\d+)\s*[—\-:\s]\s*(\d{4})", text, re.IGNORECASE
-    )
+    m = re.match(r"([A-Z]+)\s+([A-Z]+)\.(\d+)\s*[—\-:\s]\s*(\d{4})", text, re.IGNORECASE)
     if m:
         raw = m.group(1).upper()
         return {

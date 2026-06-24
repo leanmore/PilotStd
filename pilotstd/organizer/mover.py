@@ -22,17 +22,13 @@ class FileMover:
 
     def __init__(self, dir_builder: DirBuilder):
         self._dirs = dir_builder
-        self._library_root = os.path.abspath(
-            dir_builder.root
-        )  # 库根目录绝对路径，用于路径越界校验
+        self._library_root = os.path.abspath(dir_builder.root)  # 库根目录绝对路径，用于路径越界校验
 
     # ── 路径安全校验 ──
 
     def _is_safe_path(self, target: str) -> bool:
         """校验目标路径在库根目录内，防止路径遍历越界"""
-        return os.path.abspath(target).startswith(
-            os.path.abspath(self._library_root) + os.sep
-        )
+        return os.path.abspath(target).startswith(os.path.abspath(self._library_root) + os.sep)
 
     # ── 独立步骤：规范化生成路径 ──
 

@@ -240,9 +240,7 @@ def remove_empty_dirs(root: str) -> int:
         if dirpath == root:
             continue
         # 过滤系统垃圾，仅余有效文件才判断是否为空
-        real_files = [
-            f for f in filenames if f not in _JUNK_FILES and not f.startswith("~$")
-        ]
+        real_files = [f for f in filenames if f not in _JUNK_FILES and not f.startswith("~$")]
         if not real_files and not dirnames:
             # 先删除目录中的系统垃圾文件，再删目录
             for f in filenames:
@@ -284,11 +282,7 @@ def make_standard_filename(
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
     # 罗马数字前缀（≥2字符，如 VIII/IX/XII）：直接用罗马数字替代阿拉伯数字
-    if (
-        num_prefix
-        and len(num_prefix) >= 2
-        and all(c in "IVXLCDM" for c in num_prefix.upper())
-    ):
+    if num_prefix and len(num_prefix) >= 2 and all(c in "IVXLCDM" for c in num_prefix.upper()):
         num_str = f"{num_prefix}{num_suffix}"
     elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():
         num_str = f"{num_prefix} {number}{num_suffix}"
@@ -296,6 +290,4 @@ def make_standard_filename(
         num_str = f"{num_prefix}{number}{num_suffix}"
     else:
         num_str = f"{number}{num_suffix}"
-    return (
-        f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"
-    )
+    return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"

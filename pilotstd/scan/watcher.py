@@ -24,9 +24,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
         ignore_patterns: Optional[list[str]] = None,
         skip_dir_patterns: Optional[list[str]] = None,
     ) -> None:
-        super().__init__(
-            patterns=patterns, ignore_patterns=ignore_patterns, ignore_directories=True
-        )
+        super().__init__(patterns=patterns, ignore_patterns=ignore_patterns, ignore_directories=True)
         self._file_index = file_index
         self._parser = parser
         self._skip_dir_patterns = skip_dir_patterns or []

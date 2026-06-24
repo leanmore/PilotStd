@@ -25,9 +25,7 @@ class QueryClassifier:
     _GB_CODES = GB_CODES  # 向后兼容，定义见 pilotstd.core.std_utils
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
-    def __init__(
-        self, router: Any, query_adapters: Any, quota_tracker: Any, query_engine: Any
-    ) -> None:
+    def __init__(self, router: Any, query_adapters: Any, quota_tracker: Any, query_engine: Any) -> None:
         """注入依赖。
 
         Args:
@@ -48,9 +46,7 @@ class QueryClassifier:
     @staticmethod
     def parse_std_number(standard_number: str) -> tuple[str | None, int | None]:
         """从标准号字符串中提取代号和序号。如 'GB/T 713.1-2023' → ('GB/T', 713)。"""
-        m = re.match(
-            r"([A-Z]+(?:\s*/\s*[A-Z]+)?)\s*(\d+(?:\.\d+)?)", str(standard_number)
-        )
+        m = re.match(r"([A-Z]+(?:\s*/\s*[A-Z]+)?)\s*(\d+(?:\.\d+)?)", str(standard_number))
         if m:
             code = m.group(1).replace(" ", "")
             number = int(float(m.group(2)))
@@ -112,10 +108,7 @@ class QueryClassifier:
                 repl_code, _ = self.parse_std_number(replaced_by)
                 # 仅当替代标准为 GB 且不在扫描结果中时，才写入 found_replaces
                 if repl_code and is_gb_code(repl_code):
-                    in_results = any(
-                        qr.standard_number and repl_code in qr.standard_number
-                        for qr in results
-                    )
+                    in_results = any(qr.standard_number and repl_code in qr.standard_number for qr in results)
                     if not in_results:
                         p._replacement_number = replaced_by
                         p.found_replaces = replaced_by
@@ -178,9 +171,7 @@ class QueryClassifier:
                 if replaces:
                     return str(replaces)
             except Exception:
-                logger.warning(
-                    f"替代关系补查失败 ({site}): {standard_number}", exc_info=True
-                )
+                logger.warning(f"替代关系补查失败 ({site}): {standard_number}", exc_info=True)
                 continue
 
         return ""

@@ -72,7 +72,7 @@ class BaseAdapter(ABC):
                 result.standard_name,
                 result.standard_number,
                 local_part=part,
-)
+            )
             if status == "exact":
                 result.match_status = status
                 self._post_process_result(result)
@@ -90,7 +90,7 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-)
+                )
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
@@ -108,16 +108,14 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-)
+                )
                 if status == "exact":
                     result.match_status = status
                     self._post_process_result(result)
                     return result
 
         # 第四步：去年份回退
-        no_year = (
-            f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
-        )
+        no_year = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
         result = self._search(no_year)
         if result and result.is_found():
             _, status = match_result(
@@ -127,7 +125,7 @@ class BaseAdapter(ABC):
                 result.standard_name,
                 result.standard_number,
                 local_part=part,
-)
+            )
             if status in ("exact", "newer", "older"):
                 result.match_status = status
                 self._post_process_result(result)
@@ -152,7 +150,7 @@ class BaseAdapter(ABC):
                     result.standard_name,
                     result.standard_number,
                     local_part=part,
-)
+                )
                 score = MATCH_SCORE.get(status, 0)
                 if score > best_score:
                     best_score = score
@@ -215,9 +213,7 @@ class BaseAdapter(ABC):
         """结果后处理钩子，子类可重写（如从详情页提取 replaces）。"""
 
     @staticmethod
-    def _detect_split_parts(
-        candidates: list[Tuple[QueryResult, int]], local_number: int
-    ) -> str:
+    def _detect_split_parts(candidates: list[Tuple[QueryResult, int]], local_number: int) -> str:
         """检测标准是否被拆分为多个部分。
 
         同 number 出现 ≥2 个不同 part 时，返回逗号分隔的部分编号列表。

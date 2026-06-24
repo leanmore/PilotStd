@@ -162,7 +162,7 @@ class PendingQueryDialog(QDialog):
                 self._selected_site = name
                 break
         if not self._selected_site:
-            QMessageBox.warning(None,_("title_hint"), _("select_site_first"))
+            QMessageBox.warning(None, _("title_hint"), _("select_site_first"))
             return
 
         # 检查重试次数限制（每个待确认标准最多自动查询 3 次）
@@ -203,9 +203,7 @@ class PendingQueryDialog(QDialog):
                 )
             self._countdown_active = True
             self._start_btn.setEnabled(False)
-            self._start_btn.setText(
-                _("pq_wait_cooldown_btn").format(min=mins, sec=secs)
-            )
+            self._start_btn.setText(_("pq_wait_cooldown_btn").format(min=mins, sec=secs))
             self._refresh_timer.start(1000)
             return
 
@@ -225,9 +223,7 @@ class PendingQueryDialog(QDialog):
         # 验证所选站点适配器存在
         adapter = self._mgr.query_engine.get_adapter(self._selected_site)
         if not adapter:
-            QMessageBox.critical(
-                self, _("title_error"), f"查询站点不可用: {self._selected_site}"
-            )
+            QMessageBox.critical(self, _("title_error"), f"查询站点不可用: {self._selected_site}")
             self.reject()
             return
 
