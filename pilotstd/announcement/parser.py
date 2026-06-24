@@ -11,13 +11,9 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 # 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
-STD_CODE_PATTERN = re.compile(
-    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})"
-)
+STD_CODE_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})")
 # 代替标准在表格中的位置模式（"代替" 列的后面）
-REPLACES_PATTERN = re.compile(
-    r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})"
-)
+REPLACES_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})")
 
 
 def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
@@ -364,8 +360,8 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
     failed = 0
     for page_num in range(1, total_pages + 1):
         result = ocr_provider.recognize_pdf(pdf_bytes, page_num=page_num)
-        if result.ok:
-            texts.append(result.text)
+        if result is not None and getattr(result, "ok", False):  # type: ignore[union-attr]
+            texts.append(result.text)  # type: ignore[union-attr]
         else:
             failed += 1
 
@@ -432,9 +428,7 @@ def parse_announcement_detail(
             if _code_key(item) not in codes:
                 html_items.append(item)
                 new_count += 1
-        logger.info(
-            "HTML %d 条 + 附件补充 %d 条", len(html_items) - new_count, new_count
-        )
+        logger.info("HTML %d 条 + 附件补充 %d 条", len(html_items) - new_count, new_count)
         return html_items, meta
 
     if html_items:
