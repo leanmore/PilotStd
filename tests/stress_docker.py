@@ -397,62 +397,57 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     _check("系统: 自更新禁用", True, "SKIP — 压测期间禁用")
 
     # ════════════════════════════════════════════════════════════════
-    # 公告样本抓取 — 通过 /check + /results 获取，替代不存在的 /sample
+    # 公告样本抓取 — sync=true 同步执行后直接读取 results
     # ════════════════════════════════════════════════════════════════
     _CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "stress")
     os.makedirs(_CACHE_DIR, exist_ok=True)
     _ANNOUNCE_SAMPLE_PATH = os.path.join(_CACHE_DIR, "announce_sample.json")
 
     _announce_sample_ok = False
-    try:
-        logger.info("公告样本: 轮询 /api/announce/results 等待数据就绪...")
-        _max_wait = 120
-        _poll_interval = 5
-        _sample_items = []
-        for _attempt in range(_max_wait // _poll_interval):
-            time.sleep(_poll_interval)
+    if _announce_count > 0:
+        try:
+            # sync=true 已同步执行，_cache 已更新，直接读取
             r_results = _get("/api/announce/results")
             if r_results.status_code == 200:
                 _data = r_results.json()
-                _items = _data.get("results", [])
-                if len(_items) >= 50:
-                    _sample_items = _items
-                    logger.info("公告样本: %d 条就绪 (等待 %ds)", len(_items), (_attempt + 1) * _poll_interval)
-                    break
-                logger.info("公告样本: 等待中... %d/%d 条 (第%d次轮询)", len(_items), 50, _attempt + 1)
-        # 三类分布 (gb/hb/db) 随机抽样
-        if _sample_items:
-            import random
+                _sample_items = _data.get("results", [])
+                logger.info("公告样本: %d 条就绪", len(_sample_items))
+            else:
+                _sample_items = []
+            if _sample_items:
+                import random
 
-            _by_source: dict = {}
-            for _item in _sample_items:
-                _src = _item.get("source_site", "unknown")
-                _by_source.setdefault(_src, []).append(_item)
-            _sampled = []
-            _max_per_source = 40
-            for _src, _src_items in _by_source.items():
-                if len(_src_items) <= _max_per_source:
-                    _sampled.extend(_src_items)
-                else:
-                    _sampled.extend(random.sample(_src_items, _max_per_source))
-            _sample_out = {
-                "total": len(_sampled),
-                "source_distribution": {s: len(v) for s, v in _by_source.items()},
-                "items": _sampled,
-            }
-            with open(_ANNOUNCE_SAMPLE_PATH, "w", encoding="utf-8") as _f:
-                json.dump(_sample_out, _f, ensure_ascii=False, indent=2)
-            _announce_sample_ok = True
-            logger.info(
-                "公告样本: 写入 %s (total=%d, 分布=%s)",
-                _ANNOUNCE_SAMPLE_PATH,
-                len(_sampled),
-                _sample_out["source_distribution"],
-            )
-        else:
-            logger.warning("公告样本: 超时 (%ds) 仍不足 50 条，将跳过 WinUI 乙轮", _max_wait)
-    except Exception as _e:
-        logger.warning("公告样本: 提取失败 — %s", _e)
+                _by_source: dict = {}
+                for _item in _sample_items:
+                    _src = _item.get("source_site", "unknown")
+                    _by_source.setdefault(_src, []).append(_item)
+                _sampled = []
+                _max_per_source = 40
+                for _src, _src_items in _by_source.items():
+                    if len(_src_items) <= _max_per_source:
+                        _sampled.extend(_src_items)
+                    else:
+                        _sampled.extend(random.sample(_src_items, _max_per_source))
+                _sample_out = {
+                    "total": len(_sampled),
+                    "source_distribution": {s: len(v) for s, v in _by_source.items()},
+                    "items": _sampled,
+                }
+                with open(_ANNOUNCE_SAMPLE_PATH, "w", encoding="utf-8") as _f:
+                    json.dump(_sample_out, _f, ensure_ascii=False, indent=2)
+                _announce_sample_ok = True
+                logger.info(
+                    "公告样本: 写入 %s (total=%d, 分布=%s)",
+                    _ANNOUNCE_SAMPLE_PATH,
+                    len(_sampled),
+                    _sample_out["source_distribution"],
+                )
+            else:
+                logger.warning("公告样本: results 为空，跳过样本生成")
+        except Exception as _e:
+            logger.warning("公告样本: 提取失败 — %s", _e)
+    else:
+        logger.warning("公告样本: 公告抓取 count=0，跳过样本生成")
 
     # ════════════════════════════════════════════════════════════════
     # 文件操作权限测试（5项）— 验证容器内实际文件读写
