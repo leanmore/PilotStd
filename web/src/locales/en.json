@@ -2,7 +2,7 @@
   "app": { "title": "PilotStd" },
   "nav": { "home": "Home", "scan": "Scan", "query": "Query", "download": "Download",
            "normalize": "Normalize", "archive": "Archive",
-           "organize": "Organize", "pending": "Pending", "announce": "Announce", "settings": "Settings" },
+           "organize": "Organize", "pending": "Pending", "announce": "Announce", "dashboard": "Circuit Breaker", "settings": "Settings" },
   "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
             "pending": "Pending", "upcoming": "Upcoming", "scanBtn": "Manual Scan",
             "queryBtn": "Manual Query", "autoBtn": "Auto Run" },
