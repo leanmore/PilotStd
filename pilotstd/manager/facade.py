@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import warnings
 from typing import Any, Callable, List, Optional
 
 import requests
@@ -388,7 +390,7 @@ class StandardManager:
                     if result_callback:
                         result_callback(orig_idx, r)
 
-                engine_results = self.query_engine.query_batch_parsed(
+                engine_results = self.query_engine.query_standards(
                     miss_tuples,  # type: ignore[arg-type]  # 元组额外字段运行时兼容
                     result_callback=_fallback_callback,
                 )
@@ -430,7 +432,7 @@ class StandardManager:
                     progress_callback(count, len(items))
 
             # result_callback 透传给引擎，每条查询就绪时立即回调（供 UI 实时更新）
-            results = self.query_engine.query_batch_parsed(
+            results = self.query_engine.query_standards(
                 parsed_tuples,  # type: ignore[arg-type]  # 元组额外字段运行时兼容
                 result_callback=result_callback,
             )
@@ -735,14 +737,14 @@ class StandardManager:
         parsed_list: list[ParsedStdInfo] | None = None,
         word_source_root: Optional[str] = None,
     ) -> dict[str, Any]:
-        """将已处理的文件移动到分类目录。
-
-        目录结构：<标准库根目录>/<标准代号>/<标准名称>/<文件名>
-        例如：D:/标准/GB 国家标准/GB 19001-2020 质量管理体系.pdf
-
-        Word/模板文件按源目录镜像归档：
-        <输出根>/其他资料/<相对源根路径>/<文件名>
+        """[已废弃] 使用 archive_standards() 替代。
+        迁移时间：2026-06-24，阶段一统一归档链路。
         """
+        warnings.warn(
+            "organize() 已废弃，请使用 archive_standards()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._organizer_svc.organize(  # type: ignore[no-any-return]
             parsed_list or self._parsed_results, word_source_root
         )
@@ -758,9 +760,14 @@ class StandardManager:
         on_progress: Any = None,
         on_result: Any = None,
     ) -> dict[str, Any]:
-        """流式归档（线程安全）。逐条移动文件并通过回调通知进度。
-        回调签名: on_progress(current, total)  on_result(idx, status)
+        """[已废弃] 使用 archive_standards() 替代。
+        迁移时间：2026-06-24，阶段一统一归档链路。
         """
+        warnings.warn(
+            "organize_stream() 已废弃，请使用 archive_standards()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         items = parsed_list or self._parsed_results
         total = len(items)
         result = {
@@ -792,6 +799,96 @@ class StandardManager:
             if on_progress:
                 on_progress(i + 1, total)
         return result
+
+    # ════════════════════════════════════════════════════════════════
+    # 统一归档入口（阶段一新增）
+    # ════════════════════════════════════════════════════════════════
+
+    def _backfill_std_name(self, parsed: ParsedStdInfo) -> ParsedStdInfo:
+        """回填单个 ParsedStdInfo 的 std_name。
+        1. 已有 std_name → 直接返回
+        2. 查 standard_info_cache → 命中则回填
+        3. 缓存未命中 → 实时查询（QueryEngine）
+        4. 查询失败 → 保持空，不阻塞
+        """
+        if parsed.std_name:
+            return parsed
+        # 构建标准号字符串用于缓存查询
+        _std_no = f"{parsed.logical_code} {parsed.number}"
+        if parsed.year:
+            _std_no += f"-{parsed.year}"
+        # 从 standard_info_cache 查询（不限 source_site）
+        try:
+            _row = self.db.fetchone(
+                "SELECT result_json FROM standard_info_cache WHERE standard_number = ? LIMIT 1",
+                (_std_no,),
+            )
+            if _row:
+                try:
+                    _raw = _row["result_json"]
+                    _data = json.loads(_raw) if isinstance(_raw, str) else _raw
+                    _name = _data.get("standard_name", "") if isinstance(_data, dict) else ""
+                    if _name:
+                        parsed.std_name = _name
+                        logger.info("[CACHE] std_name 命中: %s -> %s", _std_no, _name)
+                        return parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        except Exception:
+            pass
+        # 缓存未命中 → 实时查询（不阻塞，查询失败静默跳过）
+        logger.info("[CACHE] std_name 未命中: %s，尝试实时查询", _std_no)
+        try:
+            _results = self.query_engine.query_standards(
+                [
+                    (
+                        parsed.logical_code,
+                        parsed.number,
+                        parsed.year,
+                        parsed.std_name,
+                        getattr(parsed, "part", None),
+                        getattr(parsed, "num_prefix", ""),
+                    )
+                ]
+            )
+            _result = _results[0] if _results else None
+            if _result and _result.standard_name:
+                parsed.std_name = _result.standard_name
+                logger.info("[CACHE] 实时查询成功: %s -> %s，已写入缓存", _std_no, _result.standard_name)
+            else:
+                logger.info("[CACHE] 实时查询失败: %s", _std_no)
+        except Exception:
+            logger.info("[CACHE] 实时查询异常: %s", _std_no)
+            pass
+        return parsed
+
+    def archive_standards(
+        self,
+        parsed_list: list[ParsedStdInfo] | None = None,
+        word_source_root: str | None = None,
+        progress_callback: Any = None,
+        on_result: Any = None,
+    ) -> dict[str, Any]:
+        """统一归档入口：所有端（CLI/Web/WinUI）均通过此方法归档。
+
+        内部流程：
+        1. 对 std_name 为空的条目执行 _backfill_std_name() 回填
+        2. 调用 OrganizerService.organize() 执行实际归档
+        3. 返回归档结果字典
+        """
+        _items = parsed_list if parsed_list is not None else self._parsed_results
+        _total = len(_items)
+        _backfilled = 0
+        for _i, _p in enumerate(_items):
+            _orig = _p.std_name
+            self._backfill_std_name(_p)
+            if not _orig and _p.std_name:
+                _backfilled += 1
+            if progress_callback:
+                progress_callback(_i + 1, _total)
+        if _backfilled:
+            logger.info("archive_standards: 回填 std_name %d/%d 条", _backfilled, _total)
+        return self._organizer_svc.organize(_items, word_source_root)
 
     # ════════════════════════════════════════════════════════════════
     # GUI 桥接方法（替代 mixin 直接访问子组件）
@@ -1127,7 +1224,7 @@ class StandardManager:
         t_stage = _time.monotonic()
 
         # 4. 归类
-        org_result = self.organize(parsed)
+        org_result = self.archive_standards(parsed)
         report["organize_moved"] = org_result["moved"]
         report["mirror_skipped"] = 0
         report["fallback_mirrored"] = 0
@@ -1238,7 +1335,7 @@ class StandardManager:
         if on_stage_change:
             on_stage_change("archive", 0, len(parsed))
         to_archive = [p for p in parsed if getattr(p, "next_action", "") != "pending"]
-        org_result = self.organize_stream(to_archive, on_result=on_archive_result)
+        org_result = self.archive_standards(to_archive, on_result=on_archive_result)
         report["organize_moved"] = org_result.get("moved", 0)
         logger.info(
             "阶段耗时 archive: %.1fs (%d 已移动)",
@@ -1296,7 +1393,7 @@ class StandardManager:
                 "dedup_skipped": 0,
                 "details": ["无有效文件"],
             }
-        return self._organizer_svc.organize(parsed)  # type: ignore[no-any-return]
+        return self.archive_standards(parsed)  # type: ignore[no-any-return]
 
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后过期处理。供 cmd_expire 调用。"""
@@ -1422,12 +1519,13 @@ class StandardManager:
         """返回查询引擎运行时状态，供进度条轮询。
         返回值: {is_running, overflow_count, csres_active, is_idle}
         """
-        return {
+        result: dict[str, Any] = {
             "is_running": self.query_engine.is_query_running(),
             "overflow_count": self.query_engine.get_overflow_count(),
             "csres_active": self.query_engine.get_csres_status()["is_active"],
             "is_idle": self.query_engine.is_idle(),
         }
+        return result
 
     def get_adapter_report(self) -> list[dict[str, Any]]:
         """返回所有适配器的统计汇总报告。

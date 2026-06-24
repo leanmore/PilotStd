@@ -15,17 +15,17 @@
 | 调度器优雅关闭 | `docker/scheduler.py` | `stop_scheduler()` | L166-174 | active | 停止心跳 → 等待任务完成 → 释放 DB 锁 |
 | FastAPI 生命周期 | `docker/app.py` | `lifespan()` | L44-63 | active | 启动时注册定时任务 + 启动调度器；关闭时停止调度器 + shutdown mgr |
 | 引擎进度心跳 | `pilotstd/query/engine.py` | `_progress_heartbeat()` | L425-442 | active | 独立 daemon 线程，每 60s 输出 `[PROGRESS]` 进度日志（CLI/WinUI 共用） |
-| 引擎线程池 | `pilotstd/query/engine.py` | L845 | L794 | active | 8 worker 并发执行各查询桶，桶内串行 + 桶间并行 |
-| 引擎 PROGRESS 日志 | `pilotstd/query/engine.py` | L434, 1126 | L409, 1063 | active | 输出已完成/总数/成功/速率/预计剩余；完成时 eta=0s |
-| 引擎 BUCKET 日志 | `pilotstd/query/engine.py` | L452, 1009 | L427, 950 | active | 分桶分配时输出总数；完成后输出 total/done/overflow/elapsed |
-| 引擎 FUNNEL 日志 | `pilotstd/query/engine.py` | L1099 | L1036 | active | 汇总输出 total/ok/overflow/pending 四维漏斗 |
-| 引擎 TIMELINE 日志 | `pilotstd/query/engine.py` | L1017, 1106 | L958, 1043 | active | 桶并发耗时 + 逐桶查询完成总耗时 |
-| 引擎 BASELINE 日志 | `pilotstd/query/engine.py` | L1111 | L1048 | active | FUNNEL 同款字段 + 总耗时，供压测驱动对比基线 |
-| 引擎 CACHE 日志 | `pilotstd/query/engine.py` | L1090 | L757, 1027 | active | 批量查询结束后输出 hit/miss/rate% |
-| 引擎 QUOTA/WATER 日志 | `pilotstd/query/engine.py` | L926, 936, 1024, 1061, 1067 | L870, 879, 965, 998, 1004 | active | 站点溢出不可用/配额耗尽/各站已用量/水位剩余/冷却跳过 |
-| 引擎 SCORE 日志 | `pilotstd/query/engine.py` | L1046 | L983 | active | 各站点 exact/fuzzy/older/mismatch 评分分布 |
-| 引擎 OVERFLOW 日志 | `pilotstd/query/engine.py` | L1032 | L972 | active | 溢出事件计数 + 链分布 |
-| 引擎 CHAIN/PENDING 日志 | `pilotstd/query/engine.py` | L1051, 1055 | L988, 992 | active | 每条标准的查询站点链 + 待确认归因 |
+| 引擎线程池 | `pilotstd/query/engine.py` | L845 | L846 | active | 8 worker 并发执行各查询桶，桶内串行 + 桶间并行 |
+| 引擎 PROGRESS 日志 | `pilotstd/query/engine.py` | L434, 1126 | L461, 1115 | active | 输出已完成/总数/成功/速率/预计剩余；完成时 eta=0s |
+| 引擎 BUCKET 日志 | `pilotstd/query/engine.py` | L452, 1009 | L479, 1002 | active | 分桶分配时输出总数；完成后输出 total/done/overflow/elapsed |
+| 引擎 FUNNEL 日志 | `pilotstd/query/engine.py` | L1099 | L1088 | active | 汇总输出 total/ok/overflow/pending 四维漏斗 |
+| 引擎 TIMELINE 日志 | `pilotstd/query/engine.py` | L1017, 1106 | L1010, 1095 | active | 桶并发耗时 + 逐桶查询完成总耗时 |
+| 引擎 BASELINE 日志 | `pilotstd/query/engine.py` | L1111 | L1100 | active | FUNNEL 同款字段 + 总耗时，供压测驱动对比基线 |
+| 引擎 CACHE 日志 | `pilotstd/query/engine.py` | L1090 | L809, 1079 | active | 批量查询结束后输出 hit/miss/rate% |
+| 引擎 QUOTA/WATER 日志 | `pilotstd/query/engine.py` | L926, 936, 1024, 1061, 1067 | L922, 931, 1017, 1050, 1056 | active | 站点溢出不可用/配额耗尽/各站已用量/水位剩余/冷却跳过 |
+| 引擎 SCORE 日志 | `pilotstd/query/engine.py` | L1046 | L1035 | active | 各站点 exact/fuzzy/older/mismatch 评分分布 |
+| 引擎 OVERFLOW 日志 | `pilotstd/query/engine.py` | L1032 | L1024 | active | 溢出事件计数 + 链分布 |
+| 引擎 CHAIN/PENDING 日志 | `pilotstd/query/engine.py` | L1051, 1055 | L1040, 1044 | active | 每条标准的查询站点链 + 待确认归因 |
 | 引擎缓存优先查询 | `pilotstd/query/engine.py` | `query_parsed()` → `self.cache.get()` | — | active | 先查 `standard_info_cache` 再发起网络请求；实际缓存逻辑在 `cache.py` |
 | 缓存仓库 | `pilotstd/query/cache.py` | L19 | L19 | active | 双层缓存：`standard_info_cache` → `announcement_cache` 回退，事件驱动失效 |
 | 轮转器里程碑日志 | `pilotstd/query/rotator.py` | L170, 215 | L170, 215 | active | 请求量达 50%/75%/90%/100% 阈值时输出（中文标签，非 `[ROTATOR]`） |
@@ -57,7 +57,7 @@
 | 待确认冷却刷新 | `pilotstd/ui/pending_query_dialog.py` | L113 | L113 | active | 1000ms 持续触发，每秒更新冷却倒计时状态 |
 | 节流进度发射器 | `pilotstd/ui/controllers/auto_run_mixin.py` | L26 | L26 | active | 500ms 节流，防止 Qt 事件循环合并高频信号导致进度条跳变 |
 | 压力测试看门狗 | `tests/stress_driver.py` | `_progress_watchdog()` | L313-319 | active | 每 30s 检查子进程 `[PROGRESS]`，超时 180s 则告警 |
-| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L570-571 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
+| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L569-570 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
 | 压力测试 Web 心跳 | `tests/stress_web.py` | L112, 784 | L111, 821 | active | 与 engine 层格式统一的 60s 进度日志；完成消息在 L784 |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |
 | 已废弃-旧管道 heartbeat() | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` |

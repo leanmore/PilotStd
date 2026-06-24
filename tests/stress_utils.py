@@ -3,7 +3,6 @@
 #
 # 日志统一写入 logs/app.log（通过 LoggerManager），不再创建独立 stress_*.log 文件。
 
-import json as _json
 import logging
 import os
 import subprocess
@@ -115,20 +114,19 @@ def run_visible(cmd: list, timeout: int = 3600, step: str = "", cwd: str | None 
 def load_docker_credentials(config_path: Optional[str] = None) -> dict:
     """统一的 Docker 凭证加载，所有压测脚本共用。
 
-    优先级：命令行 --config JSON > 环境变量 > 报错退出。
+    优先级：ConfigManager(filepath=config_path) > 环境变量 > 报错退出。
     """
     base_url = os.environ.get("PILOTSTD_BASE_URL", "")
     username = os.environ.get("PILOTSTD_USERNAME", "")
     password = os.environ.get("PILOTSTD_PASSWORD", "")
 
     if config_path and os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            cfg = _json.load(f)
-        docker_cfg = cfg.get("docker", {})
-        if docker_cfg:
-            base_url = docker_cfg.get("url", base_url)
-            username = docker_cfg.get("username", username)
-            password = docker_cfg.get("password", password)
+        from pilotstd.core.config import ConfigManager
+
+        cm = ConfigManager(filepath=config_path)
+        base_url = cm.get("docker.url") or base_url
+        username = cm.get("docker.username") or username
+        password = cm.get("docker.password") or password
 
     missing = []
     if not base_url:

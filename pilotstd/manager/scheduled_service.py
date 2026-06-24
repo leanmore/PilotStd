@@ -93,8 +93,9 @@ class ScheduledService:
             yr = row.get("year", 0)
             if not lc or not num:
                 continue
-            r = self._query_engine.query_parsed(lc, num, yr, num_prefix=row.get("num_prefix", ""))
+            r_list = self._query_engine.query_standards([(lc, num, yr, "", None, row.get("num_prefix", ""))])
             checked += 1
+            r = r_list[0] if r_list else None
             if r and r.is_found() and r.status != row.get("status"):
                 self._file_index.upsert(
                     row["file_path"],
@@ -133,7 +134,7 @@ class ScheduledService:
             )
             for n, p in parsed
         ]
-        results = self._query_engine.query_batch_parsed(items, preferred_site=preferred_site)
+        results = self._query_engine.query_standards(items, use_parallel=True, preferred_site=preferred_site)
         # 构建兼容的 stats（旧调用方期望 tuple）
         total = len(results)
         found = sum(1 for r in results if r.is_found())
@@ -162,7 +163,7 @@ class ScheduledService:
             )
             for n, p in parsed
         ]
-        query_results = self._query_engine.query_batch_parsed(items)
+        query_results = self._query_engine.query_standards(items, use_parallel=True)
         tasks = []
         adopted_skipped = []
         for n, r in zip(numbers, query_results):

@@ -37,11 +37,12 @@ def _parse_args():
     return p.parse_args()
 
 
-def _load_test_config(path: str) -> dict:
+def _load_test_config(path: str):
+    from pilotstd.core.config import ConfigManager
+
     if not path or not os.path.exists(path):
         return {}
-    with open(path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
+    return ConfigManager(filepath=os.path.abspath(path))
 
 
 def main():

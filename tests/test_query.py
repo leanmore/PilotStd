@@ -82,9 +82,7 @@ class TestQueryModels(unittest.TestCase):
         self.assertFalse(r.is_found())
 
     def test_batch_query_stats(self):
-        s = BatchQueryStats(
-            total=10, found=8, downloadable=6, adopted_restricted=2, not_found=2
-        )
+        s = BatchQueryStats(total=10, found=8, downloadable=6, adopted_restricted=2, not_found=2)
         self.assertEqual(s.total, 10)
         self.assertEqual(s.downloadable, 6)
 
@@ -111,17 +109,13 @@ class TestCacheRepository(unittest.TestCase):
         self.assertIsNone(self.cache.get("不存在的标准", "mock"))
 
     def test_refresh(self):
-        r = QueryResult(
-            standard_number="GB/T 2-2020", status="现行", source_site="mock"
-        )
+        r = QueryResult(standard_number="GB/T 2-2020", status="现行", source_site="mock")
         self.cache.put(r)
         self.cache.refresh("GB/T 2-2020", "mock")
         self.assertIsNone(self.cache.get("GB/T 2-2020", "mock"))
 
     def test_history(self):
-        r = QueryResult(
-            standard_number="GB/T 3-2020", status="现行", source_site="mock"
-        )
+        r = QueryResult(standard_number="GB/T 3-2020", status="现行", source_site="mock")
         self.cache.put(r)
         history = self.cache.get_history(limit=10)
         self.assertGreaterEqual(len(history), 1)
@@ -129,9 +123,7 @@ class TestCacheRepository(unittest.TestCase):
     def test_no_ttl_expiry(self):
         """缓存不因 TTL 过期而删除——失效由事件（被代替）驱动。"""
         cache = CacheRepository(self.db, active_ttl=-1, inactive_ttl=-1)
-        r = QueryResult(
-            standard_number="GB/T 4-2020", status="现行", source_site="mock"
-        )
+        r = QueryResult(standard_number="GB/T 4-2020", status="现行", source_site="mock")
         cache.put(r)
         # TTL 为负值时仍能命中，因为不再按时间淘汰缓存
         result = cache.get("GB/T 4-2020", "mock")
@@ -154,23 +146,23 @@ class TestQueryEngine(unittest.TestCase):
         )
 
     def test_single_query_found(self):
-        r = self.engine.query_parsed("GB/T", 19001, 2020)
+        r = self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])[0]
         self.assertTrue(r.is_found())
         self.assertEqual(r.status, "现行")
 
     def test_single_query_not_found(self):
-        r = self.engine.query_parsed("NONE", 12345, 2020)
+        r = self.engine.query_standards([("NONE", 12345, 2020, "", None, "")])[0]
         self.assertFalse(r.is_found())
 
     def test_cache_reuse(self):
-        self.engine.query_parsed("GB/T", 19001, 2020)
+        self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])
         cached = self.cache.get("GB/T 19001-2020", "mock_active")
         self.assertIsNotNone(cached)
 
     def test_force_refresh(self):
-        self.engine.query_parsed("GB/T", 19001, 2020)
+        self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])
         self.cache.refresh("GB/T 19001-2020", "mock_active")
-        r = self.engine.query_parsed("GB/T", 19001, 2020, force_refresh=True)
+        r = self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")], force_refresh=True)[0]
         self.assertTrue(r.is_found())
 
     def test_batch_query(self):
@@ -191,7 +183,7 @@ class TestQueryEngine(unittest.TestCase):
             cache=self.cache,
             use_cache=False,
         )
-        engine.query_parsed("GB/T", 19001, 2020)
+        engine.query_standards([("GB/T", 19001, 2020, "", None, "")])
         cached = self.cache.get("GB/T 19001-2020", "mock_active")
         self.assertIsNotNone(cached)
         self.assertEqual(cached.match_status, "exact")
@@ -206,9 +198,7 @@ class TestQueryEngine(unittest.TestCase):
             ("GB", 5, 2020, "", None, ""),
         ]
         progress = []
-        results = self.engine.query_batch_parsed(
-            parsed_list, lambda c: progress.append(c)
-        )
+        results = self.engine.query_batch_parsed(parsed_list, lambda c: progress.append(c))
 
         self.assertEqual(len(results), 5)
         # 结果顺序应与输入一致（引擎保留网站返回的编号格式）
@@ -572,9 +562,7 @@ class TestNetworkErrorHandling(unittest.TestCase):
             def _search(self, search_term):
                 raise __import__("requests").ConnectionError("模拟断网")
 
-        engine = QueryEngine(
-            adapters=[ConnErrorAdapter()], cache=self.cache, use_cache=False
-        )
+        engine = QueryEngine(adapters=[ConnErrorAdapter()], cache=self.cache, use_cache=False)
         items = [("GB/T", 1, 2020, "", None, "GB/T 1-2020")]
         results = engine.query_batch_parsed(items)
         # 异常不崩溃
@@ -727,9 +715,7 @@ class TestNjbz365Retry(unittest.TestCase):
 
         adapter._session.options = fake_options
         adapter._refresh_csrf()
-        self.assertEqual(
-            call_count[0], 3, f"_refresh_csrf 应重试 3 次，实际 {call_count[0]}"
-        )
+        self.assertEqual(call_count[0], 3, f"_refresh_csrf 应重试 3 次，实际 {call_count[0]}")
         self.assertEqual(adapter._csrf_token, "")
 
 
@@ -879,9 +865,7 @@ class TestBucketConcurrency(unittest.TestCase):
             MockSiteAdapter("njbz365"),
             MockSiteAdapter("csres"),
         ]
-        return QueryEngine(
-            adapters=adapters, cache=self.cache, use_cache=False, parser=self.parser
-        )
+        return QueryEngine(adapters=adapters, cache=self.cache, use_cache=False, parser=self.parser)
 
     def test_01_overflow_concurrent(self):
         """GB 200+行业 150 并发，不崩溃，ahbz 溢出池不击穿"""
@@ -904,9 +888,7 @@ class TestBucketConcurrency(unittest.TestCase):
                 MockSiteAdapter("ahbz", always_hit=False),
             ]
         )
-        results = engine.query_batch_parsed(
-            [("GB", 99999, 2050, "x", None, "", "", "")]
-        )
+        results = engine.query_batch_parsed([("GB", 99999, 2050, "x", None, "", "", "")])
         self.assertEqual(results[0].status, "待确认")
 
     def test_04_large_batch_sub_buckets(self):

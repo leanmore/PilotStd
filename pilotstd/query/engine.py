@@ -68,8 +68,8 @@ class QueryEngine:
 
     典型用法:
         engine = QueryEngine(adapters=[...], cache=cache)
-        result = engine.query_parsed("GB/T", 19001, 2020)
-        results, stats = engine.query_batch_parsed(parsed_list)
+        result = engine.query_standards([("GB/T", 19001, 2020, "", None, "")])
+        results = engine.query_standards(items, use_parallel=True)
     """
 
     def __init__(
@@ -127,7 +127,11 @@ class QueryEngine:
         """查询引擎是否完全空闲（无查询、无溢出、CSRES 已结束）。"""
         return not self._query_active and self._overflow_item_count == 0 and not self._csres_active
 
-    def query_parsed(
+    # ════════════════════════════════════════════════════════════════
+    # 统一查询入口（阶段二新增）
+    # ════════════════════════════════════════════════════════════════
+
+    def _query_one(
         self,
         logical_code: str,
         number: int,
@@ -137,11 +141,7 @@ class QueryEngine:
         force_refresh: bool = False,
         num_prefix: str = "",
     ) -> QueryResult:
-        """根据结构化信息查询（比 query_single 更精准）。
-
-        使用 query_with_strategy 进行渐进式搜索：
-        先用精确关键词，未命中则放宽条件，多候选打分取最优。
-        """
+        """单条查询内核：缓存优先 + 适配器优先级链 + 配额感知。"""
         part_str = f".{part}" if part else ""
         target = f"{logical_code} {number}{part_str}-{year}"
         if self._use_cache and not force_refresh:
@@ -152,7 +152,6 @@ class QueryEngine:
                     return cached
 
         priority = self._get_priority(logical_code)
-        # 全部站点冷却中 → 等待恢复
         if self._rotator and not priority:
             logger.warning("所有站点均在冷却中，等待恢复...")
             self._rotator.wait_for_any_recovery([a.site_name for a in self._adapters])
@@ -163,7 +162,7 @@ class QueryEngine:
         quota_exhausted = True
         tried: list[str] = []
         for name in priority:
-            adapter = self._adapter_map.get(name)  # type: ignore[assignment]
+            adapter = self._adapter_map.get(name)
             if adapter is None:
                 continue
             if self._quota and self._quota.get_search_remaining(name) <= 0:
@@ -177,7 +176,6 @@ class QueryEngine:
                 if not result.standard_number:
                     result.standard_number = target
                 result = self._verify_adoption(result)
-                # 查询结果始终写入缓存（不受 use_cache 控制）
                 if getattr(result, "match_status", "") == "exact":
                     self._cache.put(result)
                 self._record(name, 1)
@@ -196,6 +194,58 @@ class QueryEngine:
             standard_number=target,
             error_message="所有来源均未找到该标准",
             source_site="",
+        )
+
+    def query_standards(
+        self,
+        items: List[Tuple[str, int, int, str, Optional[int], str]],
+        progress_callback: Optional[Callable[[int], None]] = None,
+        result_callback: Optional[Callable[[int, QueryResult], None]] = None,
+        use_parallel: Optional[bool] = None,
+        force_refresh: bool = False,
+        preferred_site: str = "",
+    ) -> List[QueryResult]:
+        """统一查询入口：所有端（CLI/Web/WinUI）均通过此方法查询。
+
+        Args:
+            items: [(logical_code, number, year, std_name, part, num_prefix), ...]
+            progress_callback: 进度回调（每完成一条调用一次）
+            result_callback: 结果回调（每完成一条调用一次）
+            use_parallel: 是否强制并行（None=自动判断：长度≤1串行，>1并行）
+            force_refresh: 是否跳过缓存强制实时查询
+
+        内部策略：
+            - 串行路径：逐条执行 _query_one()
+            - 并行路径：逐桶查询引擎（桶内串行+桶间并行+CSRES+溢出回收）
+        """
+        n = len(items)
+        if n == 0:
+            return []
+        # 自动判断：长度≤1 串行，>1 并行；use_parallel 可强制切换
+        if use_parallel is False or (use_parallel is None and n <= 1):
+            results: list[QueryResult] = []
+            for i, item in enumerate(items):
+                r = self._query_one(
+                    logical_code=item[0],
+                    number=item[1],
+                    year=item[2],
+                    std_name=item[3] if len(item) > 3 else "",
+                    part=item[4] if len(item) > 4 else None,
+                    force_refresh=force_refresh,
+                    num_prefix=item[5] if len(item) > 5 else "",
+                )
+                results.append(r)
+                if result_callback:
+                    result_callback(i, r)
+                if progress_callback:
+                    progress_callback(i + 1)
+            return results
+        # 并行路径：委托给逐桶查询引擎
+        return self.query_batch_parsed(
+            items,
+            progress_callback=progress_callback,
+            result_callback=result_callback,
+            preferred_site=preferred_site,
         )
 
     def plan_batch(self, total: int, logical_code: str = "") -> List[Tuple[str, int]]:
@@ -372,7 +422,9 @@ class QueryEngine:
         result_callback: Optional[Callable[[int, QueryResult], None]] = None,
         preferred_site: str = "",
     ) -> List[QueryResult]:
-        """逐桶查询版——桶内串行+桶间并行+临时桶链迭代。"""
+        """[已废弃] 使用 query_standards(items, use_parallel=True) 替代。
+        仅保留作为 query_standards 并行路径的内部实现。外部调用请走 query_standards()。
+        迁移时间：2026-06-24，阶段二统一查询引擎。"""
         import time as _time
 
         self._query_active = True

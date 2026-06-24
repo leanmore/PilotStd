@@ -33,5 +33,5 @@ async def archive_files(request: FastAPIRequest, mgr=Depends(get_manager_dep)):
         )
         parsed_list.append(parsed)
 
-    result = mgr.organize(parsed_list, word_source_root=word_source_root)
+    result = mgr.archive_standards(parsed_list, word_source_root=word_source_root)
     return result

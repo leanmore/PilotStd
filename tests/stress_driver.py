@@ -91,14 +91,13 @@ def _parse_args():
     return p.parse_args()
 
 
-def _load_test_config(path: str) -> dict:
-    """加载压测配置文件（不上传 git，仅本地使用）。"""
-    import json as _json
+def _load_test_config(path: str):  # -> ConfigManager | dict
+    """加载压测配置文件（不上传 git，仅本地使用）。通过 ConfigManager 统一读取。"""
+    from pilotstd.core.config import ConfigManager
 
     if not path or not os.path.exists(path):
         return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return _json.load(f)
+    return ConfigManager(filepath=os.path.abspath(path))
 
 
 def _log(msg):
@@ -2030,8 +2029,19 @@ def main():
     # 加载本地压测配置（JSON，不上传 git），命令行参数优先
     from _stress_utils import load_docker_credentials  # type: ignore[import-not-found]
 
-    cfg = _load_test_config(getattr(args, "config", None))  # type: ignore[arg-type]
-    ocr_cfg = cfg.get("ocr", {})
+    cm = _load_test_config(getattr(args, "config", None))
+    ocr_cfg = {}
+    if isinstance(cm, dict):
+        ocr_cfg = cm.get("ocr", {})
+    else:
+        ocr_cfg = {
+            "baidu_api_key": cm.get("ocr.baidu_api_key") or "",
+            "baidu_secret_key": cm.get("ocr.baidu_secret_key") or "",
+            "tencent_secret_id": cm.get("ocr.tencent_secret_id") or "",
+            "tencent_secret_key": cm.get("ocr.tencent_secret_key") or "",
+            "aliyun_access_key_id": cm.get("ocr.aliyun_access_key_id") or "",
+            "aliyun_access_key_secret": cm.get("ocr.aliyun_access_key_secret") or "",
+        }
     # Docker 凭证通过统一加载器读取（--config JSON > 环境变量）
     _creds = {}
     if not args.skip_docker:
@@ -2287,7 +2297,7 @@ def main():
         _log("=" * 50)
         _log("第三步前置检查（WinUI 热启）")
         _ann_sample_path = os.path.join(ROOT, "tests", ".cache", "announce_sample.json")
-        _web_api = cfg.get("web_api", {}).get("url", "") or os.environ.get("PILOTSTD_WEB_API_URL", "")
+        _web_api = cm.get("web_api.url") or os.environ.get("PILOTSTD_WEB_API_URL", "")
         _step3_precheck(step1, _ann_sample_path, _web_api, args.source, _yes(args))
         _step1_json = (
             getattr(args, "step1", None)
@@ -2299,7 +2309,7 @@ def main():
             args.output,
             _step1_json,
             args.timeout_auto,
-            cfg,
+            cm,
         )
         # 展示交叉对比结果
         try:

@@ -67,7 +67,7 @@ class TestStandardManager(unittest.TestCase):
     def test_organize_no_source_files(self):
         mgr = StandardManager()
         mgr.scan_directory(self.tmp)
-        result = mgr.organize()
+        result = mgr.archive_standards()
         self.assertIn("moved", result)
         self.assertIn("failed", result)
 
@@ -97,7 +97,7 @@ class TestStandardManager(unittest.TestCase):
         self.assertIsNotNone(dl_stats)
 
         # 4. 归档（文件应被移动或跳过）
-        org_result = mgr.organize(parsed)
+        org_result = mgr.archive_standards(parsed)
         self.assertIn("moved", org_result)
         self.assertIn("failed", org_result)
 
@@ -173,14 +173,11 @@ class TestStandardManager(unittest.TestCase):
         #    subset[1] 在 _queried_items 中位于索引 1，应匹配 results[1]
         #    无 _queried_items 修复时，会按 _parsed_results 索引 2 错位匹配 results[2]
         assert tasks[0].standard_number == subset[1].get_full_number(), (
-            f"索引错位：预期 standard_number = {subset[1].get_full_number()}，"
-            f"实际 {tasks[0].standard_number}"
+            f"索引错位：预期 standard_number = {subset[1].get_full_number()}，实际 {tasks[0].standard_number}"
         )
 
         # 10. 验证 query_result 是正确的结果对象（而非错位匹配的其他结果）
-        assert tasks[0].query_result is results[1], (
-            "DownloadTask.query_result 未正确关联到对应的 QueryResult"
-        )
+        assert tasks[0].query_result is results[1], "DownloadTask.query_result 未正确关联到对应的 QueryResult"
 
     def test_auto_run(self):
         mgr = StandardManager()
@@ -244,9 +241,7 @@ class TestStandardManager(unittest.TestCase):
             self.assertGreaterEqual(report["scan"], 1, "扫描应至少识别 1 个文件")
             # 各段不应抛异常，report 应包含完整 pipeline 结果
             for key in ["scan", "query_found", "download_success", "organize_moved"]:
-                self.assertIn(
-                    key, report, f"report 应包含 {key} 键（{list(report.keys())}）"
-                )
+                self.assertIn(key, report, f"report 应包含 {key} 键（{list(report.keys())}）")
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

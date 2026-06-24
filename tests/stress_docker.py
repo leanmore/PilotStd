@@ -53,8 +53,9 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     # 加载配置并检查目录
     if config_path:
         try:
-            with open(config_path, "r", encoding="utf-8") as _f:
-                _config = json.load(_f)
+            from pilotstd.core.config import ConfigManager
+
+            _config = ConfigManager(filepath=config_path)
             _check_directories(_config, result_dir)
         except Exception:
             logger.info("目录预检: 配置加载失败，跳过目录检查")

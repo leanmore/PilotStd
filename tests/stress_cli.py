@@ -25,26 +25,26 @@ from stress_driver import (
 )
 
 
-def _load_test_config(path: str) -> dict:
-    """加载压测配置文件（不上传 git，仅本地使用）。"""
-    if not path or not os.path.exists(path):
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
 def run_cli_phase(source, output, config_path, result_dir, yes, timeout_query=None, keep_db=False, db_path=None):
     """执行CLI冷启动阶段，委托给stress_driver.py已有函数。
 
     Returns:
         step1_data字典，含checkpoints和summary。
     """
-    # 加载OCR配置
-    cfg = {}
+    # 加载配置 — 统一使用 ConfigManager，与生产代码一致
+    ocr_cfg: dict[str, str] = {}
     if config_path and os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8-sig") as f:
-            cfg = json.load(f)
-    ocr_cfg = cfg.get("ocr", {})
+        from pilotstd.core.config import ConfigManager
+
+        cm = ConfigManager(filepath=config_path)
+        ocr_cfg = {
+            "baidu_api_key": cm.get("ocr.baidu_api_key") or "",
+            "baidu_secret_key": cm.get("ocr.baidu_secret_key") or "",
+            "tencent_secret_id": cm.get("ocr.tencent_secret_id") or "",
+            "tencent_secret_key": cm.get("ocr.tencent_secret_key") or "",
+            "aliyun_access_key_id": cm.get("ocr.aliyun_access_key_id") or "",
+            "aliyun_access_key_secret": cm.get("ocr.aliyun_access_key_secret") or "",
+        }
 
     # 设置stress_driver.py的模块级全局变量（_step1_cli_cold内部依赖这两个变量）
     stress_driver.RESULT_DIR = result_dir

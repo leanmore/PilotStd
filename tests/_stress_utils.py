@@ -74,13 +74,9 @@ def verdict() -> bool:
     # 打印每个步骤的名称和状态
     for label, ok, detail in _checks:
         status = "PASS" if ok else "FAIL" if ok is False else "SKIP"
-        logger.info(
-            "[TRACE-C] verdict_step: name=%r status=%s detail=%r", label, status, detail
-        )
+        logger.info("[TRACE-C] verdict_step: name=%r status=%s detail=%r", label, status, detail)
     logger.info("=" * 60)
-    logger.info(
-        "判定: %s (%d/%d)", "PASS" if passed == total else "FAIL", passed, total
-    )
+    logger.info("判定: %s (%d/%d)", "PASS" if passed == total else "FAIL", passed, total)
     for label, ok, detail in _checks:
         if not ok:
             logger.info("  FAIL %s — %s", label, detail)
@@ -96,9 +92,7 @@ def get_check_results() -> list:
 # ── 统一子进程执行（可见控制台窗口）───────────────────────────────
 
 
-def run_visible(
-    cmd: list, timeout: int = 3600, step: str = "", cwd: str | None = None
-) -> int:
+def run_visible(cmd: list, timeout: int = 3600, step: str = "", cwd: str | None = None) -> int:
     """以可见控制台窗口运行子进程。返回 exit code。"""
     import subprocess
 
@@ -138,21 +132,18 @@ def load_docker_credentials(config_path: Optional[str] = None) -> dict:
     Raises:
         SystemExit: 缺少任一凭证时退出，打印帮助信息
     """
-    import json as _json
-
     base_url = os.environ.get("PILOTSTD_BASE_URL", "")
     username = os.environ.get("PILOTSTD_USERNAME", "")
     password = os.environ.get("PILOTSTD_PASSWORD", "")
 
-    # --config JSON 文件覆盖环境变量
+    # --config JSON 文件覆盖环境变量（通过 ConfigManager 统一读取）
     if config_path and os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            cfg = _json.load(f)
-        docker_cfg = cfg.get("docker", {})
-        if docker_cfg:
-            base_url = docker_cfg.get("url", base_url)
-            username = docker_cfg.get("username", username)
-            password = docker_cfg.get("password", password)
+        from pilotstd.core.config import ConfigManager
+
+        cm = ConfigManager(filepath=config_path)
+        base_url = cm.get("docker.url") or base_url
+        username = cm.get("docker.username") or username
+        password = cm.get("docker.password") or password
 
     missing = []
     if not base_url:
@@ -219,9 +210,7 @@ def check_version_consistency(expected: str = "") -> bool:
         except Exception:
             pass
     if not expected:
-        logger.warning(
-            "无法确定预期版本（无 EXPECTED_VERSION 且 git describe 失败），跳过版本校验"
-        )
+        logger.warning("无法确定预期版本（无 EXPECTED_VERSION 且 git describe 失败），跳过版本校验")
         return True
 
     try:

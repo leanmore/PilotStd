@@ -211,9 +211,9 @@ class CLI:
         if source:
             parsed = mgr.scan_directory(source)
             logger.info("扫描完成: %d 条，开始归档...", len(parsed))
-            result = mgr.organize(parsed, word_source_root=source)
+            result = mgr.archive_standards(parsed, word_source_root=source)
         else:
-            result = mgr.organize()
+            result = mgr.archive_standards(mgr._parsed_results)
         print(
             json.dumps(result, ensure_ascii=False, indent=2) if getattr(args, "format", None) == "json" else str(result)
         )
