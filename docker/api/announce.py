@@ -85,7 +85,7 @@ def _sync_wait_check(since_date: str = "", mgr=None, timeout: int = 60) -> dict:
     # 启动后台抓取线程
     from .announcements import _run_fetch_task
 
-    t = threading.Thread(target=_run_fetch_task, args=(task_id, "", mgr), daemon=True)
+    t = threading.Thread(target=_run_fetch_task, args=(task_id, "", mgr), daemon=False)
     t.start()
 
     # 同步轮询等待

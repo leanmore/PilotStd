@@ -51,6 +51,20 @@ async def lifespan(app: FastAPI):
 
     LoggerManager(level=logging.INFO)
 
+    # 清理启动前遗留的僵尸抓取任务（status='running'/'pending' → failed）
+    try:
+        from pilotstd.core.config import get_db_path
+        from pilotstd.core.db import Database
+
+        db = Database(get_db_path())
+        db.execute(
+            "UPDATE fetch_task SET status='failed', error_msg='任务被中断（服务重启）' "
+            "WHERE status IN ('running', 'pending')"
+        )
+        db.close()
+    except Exception:
+        pass
+
     # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
     from .manager import get_manager as _get_mgr
 

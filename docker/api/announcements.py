@@ -85,7 +85,7 @@ def trigger_fetch(body: dict = {}, mgr=Depends(get_manager_dep)):
     logger.info("[FETCH_TASK] %s: created (adapter=%s)", task_id, adapter_name or "all")
 
     # 启动后台线程
-    t = threading.Thread(target=_run_fetch_task, args=(task_id, adapter_name, mgr), daemon=True)
+    t = threading.Thread(target=_run_fetch_task, args=(task_id, adapter_name, mgr), daemon=False)
     t.start()
 
     return {

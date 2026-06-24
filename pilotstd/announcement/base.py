@@ -43,21 +43,40 @@ class BaseAnnounceAdapter(ABC):
         self._cb_frozen_until: Optional[datetime] = None
         self._cb_fail_streak: int = 0
         self._cb_loaded: bool = False
-        # 从配置读取熔断参数
-        if config:
-            self._cb_threshold = config.get("adapter.circuit_breaker.failure_threshold") or _DEFAULT_FAILURE_THRESHOLD
-            raw_durations = config.get("adapter.circuit_breaker.freeze_durations")
-            if raw_durations and isinstance(raw_durations, list):
-                self._cb_durations = [int(m) * 60 for m in raw_durations]
-            else:
-                self._cb_durations = _DEFAULT_FREEZE_DURATIONS
-            self._cb_reset_hours = (
-                config.get("adapter.circuit_breaker.reset_window_hours") or _DEFAULT_RESET_WINDOW_HOURS
-            )
-        else:
-            self._cb_threshold = _DEFAULT_FAILURE_THRESHOLD
-            self._cb_durations = _DEFAULT_FREEZE_DURATIONS
-            self._cb_reset_hours = _DEFAULT_RESET_WINDOW_HOURS
+
+    # ── 熔断配置（实时读取 ConfigManager，支持热加载）──
+
+    @property
+    def _cb_threshold(self) -> int:
+        try:
+            from pilotstd.core.config import ConfigManager
+
+            v = ConfigManager().get("adapter.circuit_breaker.failure_threshold")
+            return v if v is not None else _DEFAULT_FAILURE_THRESHOLD
+        except Exception:
+            return _DEFAULT_FAILURE_THRESHOLD
+
+    @property
+    def _cb_durations(self) -> list[int]:
+        try:
+            from pilotstd.core.config import ConfigManager
+
+            durations = ConfigManager().get("adapter.circuit_breaker.freeze_durations")
+            if durations and isinstance(durations, list) and len(durations) > 0:
+                return [int(m) * 60 for m in durations]
+        except Exception:
+            pass
+        return list(_DEFAULT_FREEZE_DURATIONS)
+
+    @property
+    def _cb_reset_hours(self) -> int:
+        try:
+            from pilotstd.core.config import ConfigManager
+
+            v = ConfigManager().get("adapter.circuit_breaker.reset_window_hours")
+            return v if v is not None else _DEFAULT_RESET_WINDOW_HOURS
+        except Exception:
+            return _DEFAULT_RESET_WINDOW_HOURS
 
     # ── 熔断：数据库读写 ──
 
