@@ -34,7 +34,7 @@
 | 任务队列执行 | `pilotstd/task/queue.py` | L103, 107, 113 | L103, 107, 113 | active | daemon 线程异步执行任务，含超时控制 `join(timeout)` |
 | 下载线程池 | `pilotstd/download/engine.py` | L172 | L172 | active | 并行下载标准文件，含重试 + 采标跳过 |
 | 公告引擎调度 | `pilotstd/announcement/engine.py` | L13 | L13 | active | 公告适配器注册/调度 + OCR 集成，公告同步核心 |
-| 公告基础并行 | `pilotstd/announcement/base.py` | L163 | L163 | active | 附件下载 1-worker；详情抓取 `_MAX_DETAIL_WORKERS=3` 并行 |
+| 公告基础并行 | `pilotstd/announcement/base.py` | L163 | L159, 257 | active | 附件下载 1-worker；详情抓取 `_MAX_DETAIL_WORKERS=3` 并行 |
 | 公告阶段耗时 | `pilotstd/announcement/monitor.py` | L38, 42, 56 | L38, 42, 56 | active | 分阶段追踪抓取耗时：fetch_list / fetch_detail / parse / write_db |
 | OCR 取消事件 | `pilotstd/announcement/ocr.py` | L753 | L753 | active | threading.Event 跨线程取消信号，传递给所有 OCR Slot |
 | 文件索引清理线程 | `pilotstd/core/file_index.py` | L61 | L61 | active | 启动后延迟 5-30s，daemon 线程逐条校验索引路径并清理失效记录 |

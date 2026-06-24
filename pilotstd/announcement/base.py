@@ -131,15 +131,11 @@ class BaseAnnounceAdapter(ABC):
 
     # ── 公共解析入口（页面结构路由）──
 
-    def _parse_items(
-        self, raw_detail: str, ocr_provider: Any = None
-    ) -> list[dict[str, Any]]:
+    def _parse_items(self, raw_detail: str, ocr_provider: Any = None) -> list[dict[str, Any]]:
         """子类可重写。默认实现：HTML 表格优先，无数据时回退附件。"""
         from .parser import find_attachment_url, parse_announcement_detail
 
-        html_items, meta = parse_announcement_detail(
-            raw_detail, None, "", ocr_provider=ocr_provider
-        )
+        html_items, meta = parse_announcement_detail(raw_detail, None, "", ocr_provider=ocr_provider)
         attachment_url = find_attachment_url(raw_detail) or ""
 
         # 纯网页：HTML 已拿到数据
@@ -167,9 +163,7 @@ class BaseAnnounceAdapter(ABC):
         return self._finalize_items(html_items, attachment_url)
 
     @staticmethod
-    def _finalize_items(
-        items: list[dict[str, Any]], attachment_url: str
-    ) -> list[dict[str, Any]]:
+    def _finalize_items(items: list[dict[str, Any]], attachment_url: str) -> list[dict[str, Any]]:
         """为每条标准补默认字段。"""
         for item in items:
             item.setdefault("attachment_url", attachment_url)
@@ -182,25 +176,25 @@ class BaseAnnounceAdapter(ABC):
         page_size: int = 20,
         ocr_provider: Any = None,
         progress_callback: Callable[[int, int, str], None] | None = None,
-        checkpoint_pids: set[Any] | None = None,
+        complete_pids: set[Any] | None = None,
     ) -> list[dict[str, Any]]:
-        """一站式：列表 → 并行详情+解析 → 标准清单。
+        """一站式：列表 → 去重过滤 → 并行详情+解析 → 标准清单。
 
         Args:
             progress_callback: 每条完成回调 (current, total, label)
-            checkpoint_pids: 已处理的 pid 集合，跳过这些公告
+            complete_pids: 已完全解析的公告 PID 集合，跳过这些公告的阶段2抓取
         """
         ann_list = self._fetch_list(since_date, page_size)
         if not ann_list:
             return []
 
-        # 过滤已处理的公告（断点续传）
-        if checkpoint_pids:
-            remaining = [a for a in ann_list if a["pid"] not in checkpoint_pids]
+        # 过滤已完全解析的公告（去重前移：阶段1后、阶段2前检查）
+        if complete_pids:
+            remaining = [a for a in ann_list if a["pid"] not in complete_pids]
             skipped = len(ann_list) - len(remaining)
             if skipped > 0:
                 logger.info(
-                    "公告 %s: 跳过已完成 %d 条, 剩余 %d 条",
+                    "公告 %s: 跳过已完全解析 %d 条, 剩余 %d 条",
                     self.standard_type,
                     skipped,
                     len(remaining),
@@ -253,16 +247,14 @@ class BaseAnnounceAdapter(ABC):
                     ann.get("title", "")[:60],
                 )
             for item in parsed:
-                item.setdefault(
-                    "announcement_title", ann.get("title", ann.get("code", ""))
-                )
-                item.setdefault("pid", ann.get("pid", ""))
+                item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
+                # 注入公告级元数据，供 matcher 写入 announcement_fetch_log
+                item["_pid"] = ann.get("pid", "")
+                item["announce_no"] = ann.get("code", "")
             _bump(ann.get("code", "?")[:20])
             return parsed
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=_MAX_DETAIL_WORKERS
-        ) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_DETAIL_WORKERS) as executor:
             futures = {executor.submit(_process_one, ann): ann for ann in ann_list}
             for future in concurrent.futures.as_completed(futures):
                 try:

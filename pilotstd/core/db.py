@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 14
+CURRENT_SCHEMA_VERSION = 15
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -541,3 +541,25 @@ def _migrate_v14_api_keys(db: Database) -> None:
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_is_active ON api_keys(is_active)")
+
+
+@migration(15)
+def _migrate_v15_announcement_fetch_log(db: Database) -> None:
+    """v15: 公告抓取全量日志表，记录所有抓取到的公告明细（含未匹配的），用于去重和审计追溯。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS announcement_fetch_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_site TEXT NOT NULL,
+            pid TEXT NOT NULL,
+            announce_no TEXT,
+            standard_number TEXT NOT NULL,
+            std_name TEXT,
+            publish_date TEXT,
+            fetched_at TEXT NOT NULL,
+            matched INTEGER DEFAULT 0,
+            UNIQUE(source_site, pid, standard_number)
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_pid ON announcement_fetch_log(source_site, pid)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_standard ON announcement_fetch_log(standard_number)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_matched ON announcement_fetch_log(matched)")

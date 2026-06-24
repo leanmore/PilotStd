@@ -79,6 +79,13 @@ function saveHistory(status: 'success'|'partial'|'fail') {
 function viewRecord(r: TaskRecord) { selectedRecord.value = r }
 function rerun(r: TaskRecord) { selectedPath.value = r.path; selectedRecord.value = null; runPipeline() }
 
+function deleteRecord(r: TaskRecord) {
+  if (!confirm('确定删除该运行记录吗？')) return
+  history.value = history.value.filter(item => item.id !== r.id)
+  localStorage.setItem('pilotstd_tasks', JSON.stringify(history.value))
+  if (selectedRecord.value?.id === r.id) selectedRecord.value = null
+}
+
 async function loadPaths() {
   try { const r = await getSettings(); paths.value = r.storage?.scan_paths || paths.value } catch {}
 }
@@ -245,6 +252,7 @@ function statusLabel(s: string) {
               <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
               <Button label="详情" size="small" text @click="viewRecord(item)" />
               <Button label="重跑" size="small" text severity="info" @click="rerun(item)" />
+              <Button label="删除" size="small" text severity="danger" @click="deleteRecord(item)" />
             </div>
           </div>
         </div>

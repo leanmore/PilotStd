@@ -17,9 +17,7 @@ class AnnounceEngine:
     引擎实例可复用（通过 AnnounceService 缓存）。
     """
 
-    def __init__(
-        self, adapters: list[BaseAnnounceAdapter], matcher: AnnouncementMatcher
-    ):
+    def __init__(self, adapters: list[BaseAnnounceAdapter], matcher: AnnouncementMatcher):
         self._adapters = {a.standard_type: a for a in adapters}
         self._matcher = matcher
 
@@ -28,9 +26,7 @@ class AnnounceEngine:
         """返回适配器列表，供 AnnounceService 遍历。"""
         return list(self._adapters.values())
 
-    def check_all(
-        self, since_date: str = "", ocr_provider: Any = None
-    ) -> dict[str, dict[str, Any]]:
+    def check_all(self, since_date: str = "", ocr_provider: Any = None) -> dict[str, dict[str, Any]]:
         """GB→HB→DB 依次串行抓取。
         返回 {gb: {matched, updated}, hb: ..., db: ...}。
         """
@@ -40,9 +36,7 @@ class AnnounceEngine:
             if adapter is None:
                 continue
             try:
-                result[std_type] = self._check_one_adapter(
-                    adapter, since_date, ocr_provider=ocr_provider
-                )
+                result[std_type] = self._check_one_adapter(adapter, since_date, ocr_provider=ocr_provider)
             except Exception as e:
                 logger.error("公告适配器 %s 异常: %s", std_type, e)
                 result[std_type] = {
@@ -60,7 +54,6 @@ class AnnounceEngine:
         since_date: str = "",
         ocr_provider: Any = None,
         progress_callback: Any = None,
-        checkpoint_pids: Any = None,
     ) -> dict[str, Any]:
         """指定类型抓取。"""
         adapter = self._adapters.get(standard_type)
@@ -71,7 +64,6 @@ class AnnounceEngine:
             since_date,
             ocr_provider=ocr_provider,
             progress_callback=progress_callback,
-            checkpoint_pids=checkpoint_pids,
         )
 
     def _check_one_adapter(
@@ -80,14 +72,20 @@ class AnnounceEngine:
         since_date: str,
         ocr_provider: Any = None,
         progress_callback: Any = None,
-        checkpoint_pids: Any = None,
     ) -> dict[str, Any]:
+        # 查询已完全解析的公告 PID，供适配器跳过阶段2抓取
+        complete_pids = self._matcher._get_complete_pids(adapter.source_site)
+        logger.info(
+            "公告 %s: 已完全解析 %d 条，将跳过详情页抓取",
+            adapter.standard_type,
+            len(complete_pids),
+        )
         try:
             items = adapter.fetch_announcements(
                 since_date=since_date,
                 ocr_provider=ocr_provider,
                 progress_callback=progress_callback,
-                checkpoint_pids=checkpoint_pids,
+                complete_pids=complete_pids,
             )
         except Exception as e:
             logger.error("公告适配器 %s 异常: %s", adapter.source_site, e)

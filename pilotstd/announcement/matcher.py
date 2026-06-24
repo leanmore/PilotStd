@@ -4,7 +4,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Set
 
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
@@ -24,62 +24,81 @@ class AnnouncementMatcher:
     def match_and_update(
         self,
         items: list[dict[str, Any]],
-        announcement_code: str = "",
-        announcement_date: str = "",
         source_site: str = "announcement",
     ) -> dict[str, Any]:
-        """逐条公告明细比对 file_index，命中则更新缓存。
+        """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
 
-        Args:
-            items: [{std_code, std_name, replaces_code, publish_date,
-                     implementation_date, announcement_title, attachment_url}, ...]
-            announcement_code: 公告号，如 "2026年第19号"
-            announcement_date: 公告落款日期
-
-        Returns:
-            {matched: int, updated: int, details: [str]}
+        全量日志写入 announcement_fetch_log（含未匹配的），
+        缓存仅写入 announcement_cache（仅匹配 file_index 的记录）。
+        pid 从每个 item 的 _pid 字段提取。
         """
         result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
+        if not items:
+            return result
+
+        log_rows: list[tuple[Any, ...]] = []
+        cache_rows: list[tuple[Any, ...]] = []
+        now = datetime.now().isoformat()
 
         for item in items:
             std_code = item.get("std_code", "")
             replaces_code = item.get("replaces_code", "")
+            pid = item.get("_pid", "")
+            announce_no = item.get("announce_no", "")
+            publish_date = item.get("publish_date", "")
+            std_name = item.get("std_name", "")
 
-            # 解析标准编号为 logical_code + number
             parsed = self._parse_std_code(std_code)
             if not parsed:
                 continue
 
-            # 在 file_index 中查找匹配的标准
             matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
-
-            # 区分匹配类型：std_code 匹配 → 新标准，replaces_code 匹配 → 旧标准被代替
-            match_type = "new"  # 默认为新标准
+            match_type = "new"
 
             if not matches:
-                # 也检查 replaces_code 是否匹配（被代替的旧标准）
                 if replaces_code:
                     replaced_parsed = self._parse_std_code(replaces_code)
                     if replaced_parsed:
                         matches = self._find_in_file_index(
-                            replaced_parsed["logical_code"], replaced_parsed["number"]
+                            replaced_parsed["logical_code"],
+                            replaced_parsed["number"],
                         )
                         match_type = "replaced"
+
+            matched = 1 if matches else 0
+
+            # 全量日志：所有条目都记录
+            log_rows.append(
+                (
+                    source_site,
+                    pid,
+                    announce_no,
+                    std_code,
+                    std_name or None,
+                    publish_date,
+                    now,
+                    matched,
+                )
+            )
 
             if not matches:
                 continue
 
             result["matched"] += 1
             for fi_row in matches:
-                updated = self._update_cache(fi_row, item, match_type, source_site)
+                updated = self._build_cache_row(fi_row, item, match_type, source_site, now, cache_rows)
                 if updated:
                     result["updated"] += 1
-                    detail = (
-                        f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
-                    )
+                    detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
                     if match_type == "replaced":
                         detail += f" → 被代替: {std_code}"
                     result["details"].append(detail)
+
+        # 批量写入
+        if log_rows:
+            self._bulk_insert_fetch_log(log_rows)
+        if cache_rows:
+            self._bulk_upsert_cache(cache_rows)
 
         return result
 
@@ -92,51 +111,43 @@ class AnnouncementMatcher:
             return {"logical_code": r["code"], "number": r["number"]}
         return None
 
-    def _find_in_file_index(
-        self, logical_code: str, number: int
-    ) -> list[dict[str, Any]]:
+    def _find_in_file_index(self, logical_code: str, number: int) -> list[dict[str, Any]]:
         """在 file_index 中查找匹配 logical_code + number 的记录。"""
         return self._db.fetchall(
             f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=?",
             (logical_code, number),
         )
 
-    def _update_cache(
+    # ── 批量写入辅助方法 ──
+
+    def _build_cache_row(
         self,
         fi_row: dict[str, Any],
         item: dict[str, Any],
         match_type: str,
-        source_site: str = "announcement",
+        source_site: str,
+        now: str,
+        cache_rows: list[tuple[Any, ...]],
     ) -> bool:
-        """更新 announcement_cache 中的标准状态。
-
-        match_type:
-          "new" — 公告标准编号匹配到 file_index，此为新标准
-          "replaced" — 公告代替标准号匹配到 file_index，此为被代替的旧标准
-
-        写入字段全部来自公告原文，不凭空捏造。
+        """构建一条 announcement_cache 行数据，追加到 cache_rows。
+        逻辑与原 _update_cache 一致：判断状态 → 构建 JSON → 入列。
         """
         std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
-        now = datetime.now().isoformat()
         today = datetime.now().date()
 
         replaces_code = item.get("replaces_code", "")
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")
 
-        # 状态判断
         if match_type == "replaced":
-            # 被代替的旧标准
             status = "被代替"
         elif implementation_date:
-            # 有实施日期：比较今天与实施日期
             try:
                 impl_date = datetime.fromisoformat(implementation_date).date()
                 status = "即将实施" if today < impl_date else "现行"
             except (ValueError, TypeError):
                 status = "现行"
         else:
-            # 无实施日期（指导性技术文件）→ 直接现行
             status = "现行"
 
         cache_data = {
@@ -154,23 +165,55 @@ class AnnouncementMatcher:
         }
 
         result_json = json.dumps(cache_data, ensure_ascii=False)
-
-        # upsert
-        existing = self._db.fetchone(
-            f"SELECT id FROM {CACHE_TABLE} WHERE standard_number=?", (std_number,)
-        )
-        if existing:
-            self._db.execute(
-                f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=? WHERE id=?",
-                (result_json, now, existing["id"]),
-            )
-        else:
-            self._db.execute(
-                f"INSERT INTO {CACHE_TABLE} "
-                "(standard_number, source_site, result_json, cached_at, expires_at) "
-                "VALUES (?, 'announcement', ?, ?, NULL)",  # expires_at=NULL = 永久
-                (std_number, result_json, now),
-            )
-
-        logger.info(f"公告更新缓存: {std_number} → {status}")
+        cache_rows.append((std_number, source_site, result_json, now, None))
+        logger.info("公告更新缓存: %s → %s", std_number, status)
         return True
+
+    def _get_complete_pids(self, source_site: str) -> Set[str]:
+        """返回该站点下已完全解析的公告 PID 集合。
+        完全解析 = 该公告下所有标准条目的 std_name 均非空。
+        """
+        cursor = self._db.execute(
+            "SELECT pid FROM announcement_fetch_log "
+            "WHERE source_site=? "
+            "GROUP BY pid "
+            "HAVING COUNT(*) = COUNT(std_name) AND COUNT(*) > 0",
+            (source_site,),
+        )
+        rows = cursor.fetchall()
+        return {row[0] for row in rows}
+
+    def _bulk_insert_fetch_log(self, rows: list[tuple[Any, ...]]) -> None:
+        """批量 INSERT OR IGNORE 到 announcement_fetch_log。"""
+        if not rows:
+            return
+
+        placeholders = ",".join("(?,?,?,?,?,?,?,?)" for _ in rows)
+        flat_values = [item for row in rows for item in row]
+        self._db.execute(
+            "INSERT OR IGNORE INTO announcement_fetch_log "
+            "(source_site, pid, announce_no, standard_number, std_name, "
+            "publish_date, fetched_at, matched) "
+            f"VALUES {placeholders}",
+            flat_values,
+        )
+
+    def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
+        """批量 INSERT OR REPLACE 到 announcement_cache（事务包裹）。"""
+        if not rows:
+            return
+
+        self._db.execute("BEGIN TRANSACTION;")
+        try:
+            placeholders = ",".join("(?,?,?,?,?)" for _ in rows)
+            flat_values = [item for row in rows for item in row]
+            self._db.execute(
+                "INSERT OR REPLACE INTO announcement_cache "
+                "(standard_number, source_site, result_json, cached_at, expires_at) "
+                f"VALUES {placeholders}",
+                flat_values,
+            )
+            self._db.execute("COMMIT;")
+        except Exception:
+            self._db.execute("ROLLBACK;")
+            raise
