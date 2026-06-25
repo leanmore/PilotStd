@@ -29,10 +29,12 @@ from .api.pending import router as pending_router
 from .api.query import router as query_router
 from .api.scan import router as scan_router
 from .api.settings import router as settings_router
+from .api.standards import router as standards_router
 from .api.stats import router as stats_router
 from .api.system import router as system_router
 from .api.upload import router as upload_router
 from .api.users import router as users_router
+from .api.validity import router as validity_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .scheduler import register_job_func, start_scheduler, stop_scheduler
@@ -148,6 +150,8 @@ app.include_router(settings_router)
 app.include_router(stats_router)
 app.include_router(normalize_router)
 app.include_router(notification_router)
+app.include_router(standards_router)
+app.include_router(validity_router)
 app.include_router(archive_router)
 app.include_router(users_router)
 app.include_router(upload_router)

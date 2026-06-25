@@ -211,6 +211,7 @@ class SettingsPage(QWidget):
         gb = QGroupBox(_("ocr_group"))
         form = QFormLayout(gb)
         self.ocr_api_key = QLineEdit()
+        self.ocr_api_key.setEchoMode(QLineEdit.EchoMode.Password)
         self.ocr_api_key.setPlaceholderText("百度云 API Key")
         form.addRow(_("ocr_baidu_api_key"), self.ocr_api_key)
         self.ocr_secret_key = QLineEdit()
@@ -218,6 +219,7 @@ class SettingsPage(QWidget):
         self.ocr_secret_key.setPlaceholderText("百度云 Secret Key")
         form.addRow(_("ocr_baidu_secret_key"), self.ocr_secret_key)
         self.ocr_secret_id = QLineEdit()
+        self.ocr_secret_id.setEchoMode(QLineEdit.EchoMode.Password)
         self.ocr_secret_id.setPlaceholderText("腾讯云 Secret ID")
         form.addRow(_("ocr_tencent_secret_id"), self.ocr_secret_id)
         self.ocr_tencent_secret_key = QLineEdit()
@@ -225,6 +227,7 @@ class SettingsPage(QWidget):
         self.ocr_tencent_secret_key.setPlaceholderText("腾讯云 Secret Key")
         form.addRow(_("ocr_tencent_secret_key"), self.ocr_tencent_secret_key)
         self.ocr_access_key_id = QLineEdit()
+        self.ocr_access_key_id.setEchoMode(QLineEdit.EchoMode.Password)
         self.ocr_access_key_id.setPlaceholderText("阿里云 Access Key ID")
         form.addRow(_("ocr_aliyun_access_key_id"), self.ocr_access_key_id)
         self.ocr_access_key_secret = QLineEdit()
@@ -274,18 +277,18 @@ class SettingsPage(QWidget):
         self.proxy.setText(self._config.get("network.proxy", ""))
         self.ua_cb.setChecked(self._config.get("network.ua_rotation", True))
         self.announcement_cb.setChecked(self._config.get("announcement.enabled", False))
-        self.ocr_api_key.setText(self._config.get("ocr.baidu_api_key", "") or self._config.get("ocr.api_key", ""))
+        self.ocr_api_key.setPlaceholderText("已保存" if self._config.get("ocr.baidu_api_key", "") else "百度云 API Key")
         self.ocr_secret_key.setPlaceholderText(
             "已保存" if self._config.get("ocr.baidu_secret_key", "") else "百度云 Secret Key"
         )
-        self.ocr_secret_id.setText(
-            self._config.get("ocr.tencent_secret_id", "") or self._config.get("ocr.secret_id", "")
+        self.ocr_secret_id.setPlaceholderText(
+            "已保存" if self._config.get("ocr.tencent_secret_id", "") else "腾讯云 Secret ID"
         )
         self.ocr_tencent_secret_key.setPlaceholderText(
             "已保存" if self._config.get("ocr.tencent_secret_key", "") else "腾讯云 Secret Key"
         )
-        self.ocr_access_key_id.setText(
-            self._config.get("ocr.aliyun_access_key_id", "") or self._config.get("ocr.access_key_id", "")
+        self.ocr_access_key_id.setPlaceholderText(
+            "已保存" if self._config.get("ocr.aliyun_access_key_id", "") else "阿里云 Access Key ID"
         )
         self.ocr_access_key_secret.setPlaceholderText(
             "已保存" if self._config.get("ocr.aliyun_access_key_secret", "") else "阿里云 Access Key Secret"
@@ -357,13 +360,18 @@ class SettingsPage(QWidget):
         self._config.set("ocr.aliyun_access_key_id", self.ocr_access_key_id.text().strip())
         self._config.set("ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip())
         # 保存后清空敏感字段，防止被复制
+        self.ocr_api_key.clear()
         self.ocr_secret_key.clear()
+        self.ocr_secret_id.clear()
         self.ocr_tencent_secret_key.clear()
+        self.ocr_access_key_id.clear()
         self.ocr_access_key_secret.clear()
+        self.ocr_api_key.setPlaceholderText("已保存")
         self.ocr_secret_key.setPlaceholderText("已保存")
+        self.ocr_secret_id.setPlaceholderText("已保存")
         self.ocr_tencent_secret_key.setPlaceholderText("已保存")
+        self.ocr_access_key_id.setPlaceholderText("已保存")
         self.ocr_access_key_secret.setPlaceholderText("已保存")
-        self._config.set("ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip())
         self._config.set("appearance.hyphen_style", True)  # 已锁定，始终使用短横
         self._config.set("file.clear_readonly", self.clear_readonly_cb.isChecked())
         self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())

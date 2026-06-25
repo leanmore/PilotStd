@@ -9,8 +9,12 @@ const routes = [
   { path: '/organize', component: () => import('./views/OrganizeView.vue') },
   { path: '/pending', component: () => import('./views/PendingView.vue') },
   { path: '/announce', component: () => import('./views/AnnounceView.vue') },
-  { path: '/settings', component: () => import('./views/SettingsView.vue') },
+  { path: '/notifications', component: () => import('./views/NotificationsView.vue') },
+  { path: '/notification-logs', component: () => import('./views/NotificationLogsView.vue') },
+  { path: '/standards-status', component: () => import('./views/StandardsStatusView.vue') },
+  { path: '/validity-config', component: () => import('./views/ValidityConfigView.vue') },
   { path: '/dashboard', component: () => import('./views/DashboardView.vue') },
+  { path: '/settings', component: () => import('./views/SettingsView.vue') },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

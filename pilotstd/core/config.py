@@ -165,6 +165,13 @@ FACTORY_DEFAULTS = {
     "adapter.circuit_breaker.failure_threshold": 3,
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],  # 分钟
     "adapter.circuit_breaker.reset_window_hours": 24,
+    # 时效性检查配置
+    "validity.frequency": "weekly",
+    "validity.execute_time": "03:00",
+    "validity.batch_size": 50,
+    "validity.batch_interval": 5,
+    "validity.check_ratio": 25,
+    "validity.update_interval": 28,
 }
 
 

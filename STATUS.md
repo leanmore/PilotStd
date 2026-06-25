@@ -26,6 +26,9 @@
 - [x] WinUI 缓存集成
 - [x] **进度条异常状态显示**（2026-06-23）— 异常时进度条变红 + 显示"失败"文字，状态栏同步显示错误原因
 - [x] **E501 行长度清零**（2026-06-23）— line-length 放宽至120 + 8份文件逐行 noqa + 2份文件 per-file-ignores，215→0
+- [x] **Docker 重启即更新**（2026-06-25）— PILOTSTD_AUTO_UPDATE + docker.sock 挂载，容器启动自动拉取镜像并重启
+- [x] **Web UI 四个管理页面**（2026-06-25）— /notifications, /notification-logs, /standards-status, /validity-config 四个页面 + 配套后端 API
+- [x] **压测脚本 v9.2 适配**（2026-06-25）— stress_docker.py 公告抓取改为异步模式 + 新增熔断/标准状态/时效性检查 9 个端点验证，38→47
 
 ### 压测方案改造（v3.0，8/8项）
 - [x] 版本一致性校验（第零步）
@@ -328,6 +331,7 @@
 
 | 日期 | 决策 | 依据 |
 |------|------|------|
+| 2026-06-25 | Web UI 四个管理页面 — 通知配置/日志/标准状态/时效性检查，配套后端 API | 通知模块前端集成 + 标准时效性可视化 + 自更新部署 |
 | 2026-06-25 | Docker 重启即更新机制 — PILOTSTD_AUTO_UPDATE=true 时容器启动自动拉取最新镜像并重启自身 | 参考 MoviePilot 实现，挂载 docker.sock + entrypoint 中 root 阶段执行 docker pull/restart |
 | 2026-06-22 | AUTH-02：从 AUTH_WHITELIST 移除 announce/lookup，强制 token 鉴权 | 白名单绕过导致无效 token 仍返回 200，安全隐患 |
 | 2026-06-22 | BIZ-12：`(body.get("data") or {}).get("source")` 防御性空值处理 | `dict.get(key, default)` 在 key 存在值为 None 时不回退 |

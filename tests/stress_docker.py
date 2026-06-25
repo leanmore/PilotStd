@@ -2,8 +2,8 @@
 # 用法: cd d:\PilotStd && python tests/stress_docker.py
 # 前置: docker compose up（端口 9028）
 # 全程自动化；Docker不可达时自动跳过
-# 覆盖: 认证(4)/业务API(12)/配置与公告(10)/文件操作(4)/端到端(5)/权限(3) 共38项
-# 通过阈值: ≥36/38 PASS (≥95%)，压测期间禁用 POST /api/system/update
+# 覆盖: 认证(4)/业务API(11)/配置与公告(13)/文件操作(4)/端到端(5)/权限(3)/熔断(3)/标准状态(2)/时效性(4) 共47项
+# 通过阈值: ≥43/47 PASS (≥91%)，压测期间禁用 POST /api/system/update
 
 import json
 import os
@@ -378,33 +378,62 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     else:
         _check("配置: 保存设置", None, "配置读取失败，跳过")
 
-    # 17. 公告检查（sync=true 同步执行，获取实际 count）
-    try:
-        r = _post("/api/announce/check?sync=true", timeout=300)
-        _aj = r.json()
-        ok = r.status_code == 200 and _aj.get("ok") is True
-        _announce_count = _aj.get("count", 0)
-        _check(
-            "公告: 抓取检查",
-            ok and _announce_count > 0,
-            f"status={r.status_code} ok={_aj.get('ok')} count={_announce_count}",
-        )
-    except Exception as e:
-        _check("公告: 抓取检查", None, f"超时或异常: {str(e)[:60]}")
+    # 17. 公告异步抓取（gb/hb/db 三个适配器）
+    _announce_total_count = 0
+    _announce_adapters_ok = 0
+    for _adapter in ["gb", "hb", "db"]:
+        try:
+            # 触发异步抓取
+            r = _post("/api/announcements/fetch", json_data={"adapter_name": _adapter}, timeout=300)
+            _af_data = r.json() if r.status_code == 200 else {}
+            _task_id = _af_data.get("task_id", "")
+            if not _task_id:
+                _check(f"公告: {_adapter}异步抓取触发", False, f"status={r.status_code}, no task_id")
+                continue
+            # 轮询状态（最多 60 秒）
+            _final_status = ""
+            _progress = 0
+            for _i in range(30):  # 30次 × 2s = 60s
+                time.sleep(2)
+                _sr = _get(f"/api/announcements/status/{_task_id}")
+                if _sr.status_code != 200:
+                    continue
+                _sd = _sr.json()
+                _final_status = _sd.get("status", "")
+                _progress = _sd.get("progress", 0)
+                if _final_status in ("success", "failed"):
+                    break
+            if _final_status not in ("success", "failed"):
+                _check(f"公告: {_adapter}异步抓取完成", False, f"超时60s, status={_final_status}, progress={_progress}")
+                continue
+            # 获取结果
+            _rr = _get(f"/api/announcements/results/{_task_id}")
+            _result_ok = _rr.status_code == 200
+            _item_count = len(_rr.json().get("results", [])) if _result_ok else 0
+            _announce_total_count += _item_count
+            _check(
+                f"公告: {_adapter}异步抓取完成",
+                _result_ok,
+                f"task={_task_id} status={_final_status} items={_item_count}",
+            )
+            if _result_ok:
+                _announce_adapters_ok += 1
+        except Exception as e:
+            _check(f"公告: {_adapter}异步抓取", False, f"异常: {str(e)[:60]}")
 
     # 17b. /api/system/update — 压测期间必须禁用（自更新重启容器）
     logger.info("[SKIP] /api/system/update — 压测期间禁用（自更新会重启容器，不验证此端点）")
     _check("系统: 自更新禁用", True, "SKIP — 压测期间禁用")
 
     # ════════════════════════════════════════════════════════════════
-    # 公告样本抓取 — sync=true 同步执行后直接读取 results
+    # 公告样本抓取 — 异步模式完成后读取 results
     # ════════════════════════════════════════════════════════════════
     _CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "stress")
     os.makedirs(_CACHE_DIR, exist_ok=True)
     _ANNOUNCE_SAMPLE_PATH = os.path.join(_CACHE_DIR, "announce_sample.json")
 
     _announce_sample_ok = False
-    if _announce_count > 0:
+    if _announce_total_count > 0:
         try:
             # sync=true 已同步执行，_cache 已更新，直接读取
             r_results = _get("/api/announce/results")
@@ -447,7 +476,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         except Exception as _e:
             logger.warning("公告样本: 提取失败 — %s", _e)
     else:
-        logger.warning("公告样本: 公告抓取 count=0，跳过样本生成")
+        logger.warning("公告样本: 异步抓取 total_count=0，跳过样本生成")
 
     # ════════════════════════════════════════════════════════════════
     # 文件操作权限测试（5项）— 验证容器内实际文件读写
@@ -885,6 +914,146 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         _prog_bump(ok=False)
 
     # ════════════════════════════════════════════════════════════════
+    # 熔断与配置热加载（3 项）
+    # ════════════════════════════════════════════════════════════════
+    logger.info("--- 熔断与配置 ---")
+
+    # 28. 适配器状态
+    r = _get("/api/adapter/status")
+    _adapter_status_ok = r.status_code == 200
+    if _adapter_status_ok:
+        _adapters = r.json().get("adapters", [])
+        _check(
+            "熔断: 适配器状态查询",
+            len(_adapters) >= 3 and all(a.get("status") == "normal" for a in _adapters[:3]),
+            f"adapters={[a['name'] for a in _adapters]}, statuses={[a.get('status') for a in _adapters]}",
+        )
+    else:
+        _check("熔断: 适配器状态查询", False, f"status={r.status_code}")
+
+    # 29. 配置读取
+    r = _get("/api/adapter/config")
+    _cfg_read_ok = r.status_code == 200
+    if _cfg_read_ok:
+        _cfg = r.json()
+        _check(
+            "熔断: 配置读取",
+            _cfg.get("failure_threshold") == 3 and _cfg.get("freeze_durations") == [30, 120, 360, 720],
+            f"threshold={_cfg.get('failure_threshold')}, durations={_cfg.get('freeze_durations')}",
+        )
+    else:
+        _check("熔断: 配置读取", False, f"status={r.status_code}")
+
+    # 30. 配置热加载（修改 threshold=7 → GET 确认 → 恢复默认 3）
+    _new_cfg = {"failure_threshold": 7, "freeze_durations": [30, 120, 360, 720], "reset_window_hours": 24}
+    r = _put("/api/adapter/config", json_data=_new_cfg)
+    if r.status_code == 200:
+        r2 = _get("/api/adapter/config")
+        _hot_ok = r2.status_code == 200 and r2.json().get("failure_threshold") == 7
+        _hot_val = r2.json().get("failure_threshold") if r2.status_code == 200 else "N/A"
+        _check("熔断: 配置热加载", _hot_ok, f"threshold after PUT={_hot_val}")
+        # 恢复默认
+        _restore_cfg = {"failure_threshold": 3, "freeze_durations": [30, 120, 360, 720], "reset_window_hours": 24}
+        _put("/api/adapter/config", json_data=_restore_cfg)
+    else:
+        _check("熔断: 配置热加载", False, f"status={r.status_code}")
+
+    # ════════════════════════════════════════════════════════════════
+    # 标准状态（2 项）
+    # ════════════════════════════════════════════════════════════════
+    logger.info("--- 标准状态 ---")
+
+    # 31. 统计卡片
+    r = _get("/api/standards/status/stats")
+    if r.status_code == 200:
+        _stats = r.json()
+        _check(
+            "标准: 状态统计",
+            all(k in _stats for k in ("active", "inactive", "unknown")),
+            f"active={_stats.get('active')}, inactive={_stats.get('inactive')}, unknown={_stats.get('unknown')}",
+        )
+    else:
+        _check("标准: 状态统计", False, f"status={r.status_code}")
+
+    # 32. 分页列表（中文状态筛选）
+    r = _get("/api/standards/status?status=现行&page=1&page_size=10")
+    if r.status_code == 200:
+        _sdata = r.json()
+        _check(
+            "标准: 状态列表(中文筛选)",
+            "items" in _sdata and _sdata.get("total", 0) >= 0,
+            f"total={_sdata.get('total')}, items={len(_sdata.get('items', []))}",
+        )
+    else:
+        _check("标准: 状态列表(中文筛选)", False, f"status={r.status_code}")
+
+    # ════════════════════════════════════════════════════════════════
+    # 时效性检查配置（4 项）
+    # ════════════════════════════════════════════════════════════════
+    logger.info("--- 时效性检查 ---")
+
+    # 33. 配置读取
+    r = _get("/api/validity/config")
+    if r.status_code == 200:
+        _vc = r.json()
+        _check(
+            "时效: 配置读取",
+            _vc.get("batch_size") == 50 and _vc.get("frequency") == "weekly",
+            f"frequency={_vc.get('frequency')}, batch_size={_vc.get('batch_size')}",
+        )
+    else:
+        _check("时效: 配置读取", False, f"status={r.status_code}")
+
+    # 34. 配置写入（修改 batch_size=100 → GET 确认 → 恢复默认）
+    _vc_new = {
+        "frequency": "weekly",
+        "execute_time": "03:00",
+        "batch_size": 100,
+        "batch_interval": 3,
+        "check_ratio": 30,
+        "update_interval": 28,
+    }
+    r = _put("/api/validity/config", json_data=_vc_new)
+    if r.status_code == 200:
+        r2 = _get("/api/validity/config")
+        _v_write_ok = r2.status_code == 200 and r2.json().get("batch_size") == 100
+        _w_val = r2.json().get("batch_size") if r2.status_code == 200 else "N/A"
+        _check("时效: 配置写入", _v_write_ok, f"batch_size after PUT={_w_val}")
+        # 恢复默认
+        _vc_restore = {
+            "frequency": "weekly",
+            "execute_time": "03:00",
+            "batch_size": 50,
+            "batch_interval": 5,
+            "check_ratio": 25,
+            "update_interval": 28,
+        }
+        _put("/api/validity/config", json_data=_vc_restore)
+    else:
+        _check("时效: 配置写入", False, f"status={r.status_code}")
+
+    # 35. 立即执行
+    r = _post("/api/validity/run")
+    _run_ok = r.status_code == 200 and r.json().get("ok") is True
+    _check(
+        "时效: 立即执行",
+        _run_ok,
+        f"status={r.status_code}, checked={r.json().get('checked', 0) if r.status_code == 200 else 'N/A'}",
+    )
+
+    # 36. 执行历史
+    r = _get("/api/validity/history?page=1&page_size=10")
+    if r.status_code == 200:
+        _vh = r.json()
+        _check(
+            "时效: 执行历史",
+            "items" in _vh and _vh.get("total", 0) >= 0,
+            f"total={_vh.get('total')}, items={len(_vh.get('items', []))}",
+        )
+    else:
+        _check("时效: 执行历史", False, f"status={r.status_code}")
+
+    # ════════════════════════════════════════════════════════════════
     # 汇总
     # ════════════════════════════════════════════════════════════════
     _prog_stop.set()
@@ -904,10 +1073,10 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     logger.info("Web API 压力测试完成 (%.1fs)", total_time)
     logger.info("日志已写入: logs/app.log")
 
-    # 端点数量自检：预期 38 项（认证4+业务API12+配置公告10+文件操作4+端到端5+权限3）
+    # 端点数量自检：预期 47 项
     _results = get_check_results()
     _total = len(_results)
-    _expected_total = 38
+    _expected_total = 47
     if _total == _expected_total:
         logger.info("[OK] 端点数量校验通过: %d 个 (预期 %d)", _total, _expected_total)
     else:

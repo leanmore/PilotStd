@@ -1,7 +1,7 @@
 # docker/api/notification.py — 通知配置与发送日志 API
 import logging
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.routing import APIRouter
 
 from pilotstd.core.notification import NotificationManager, NotificationMessage
@@ -84,7 +84,49 @@ def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
 
 
 @router.get("/api/notification/logs")
-def get_logs(limit: int = 50, offset: int = 0, nmgr=Depends(_get_notification_mgr)):
-    """查询通知发送日志（分页）。"""
-    logs = nmgr.get_logs(limit=limit, offset=offset)
-    return {"total": len(logs), "items": logs}
+def get_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    channel: str | None = Query(None),
+    status: str | None = Query(None),
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    nmgr=Depends(_get_notification_mgr),
+):
+    """查询通知发送日志（分页+筛选）。"""
+    where_clauses: list[str] = []
+    params: list = []
+
+    if channel:
+        where_clauses.append("channel = ?")
+        params.append(channel)
+    if status:
+        where_clauses.append("status = ?")
+        params.append(status)
+    if start_date:
+        where_clauses.append("sent_at >= ?")
+        params.append(start_date)
+    if end_date:
+        where_clauses.append("sent_at <= ?")
+        params.append(end_date + " 23:59:59")
+
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+    # 总数
+    count_row = nmgr._db.fetchone(
+        f"SELECT COUNT(*) AS total FROM notification_log {where_sql}",
+        tuple(params),
+    )
+    total = count_row["total"] if count_row else 0
+
+    offset = (page - 1) * page_size
+    logs = nmgr._db.fetchall(
+        f"SELECT * FROM notification_log {where_sql} ORDER BY sent_at DESC LIMIT ? OFFSET ?",
+        tuple(params + [page_size, offset]),
+    )
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": [dict(r) for r in logs],
+    }

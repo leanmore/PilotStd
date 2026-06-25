@@ -1,7 +1,10 @@
 {
   "app": { "title": "PilotStd" },
   "nav": { "home": "首页", "task": "任务", "organize": "文件管理",
-           "pending": "待确认", "announce": "公告", "dashboard": "适配器监控", "settings": "设置" },
+           "pending": "待确认", "announce": "公告",
+           "notifications": "通知配置", "notification_logs": "通知日志",
+           "standards_status": "标准状态", "validity_config": "时效性检查",
+           "dashboard": "适配器监控", "settings": "设置" },
   "home": { "stats": "标准库概览", "current": "现行", "expired": "废止",
             "pending": "待确认", "upcoming": "即将实施", "tasks": "定时任务",
             "recent": "最近更新", "scanBtn": "扫描文件", "queryBtn": "查询标准",
