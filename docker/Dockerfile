@@ -24,9 +24,9 @@ RUN useradd -m appuser
 RUN apt-get update && apt-get install -y --no-install-recommends gosu git curl && \
     rm -rf /var/lib/apt/lists/*
 
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /app/entrypoint.sh
 COPY docker/update.sh /app/docker/update.sh
-RUN chmod +x /entrypoint.sh /app/docker/update.sh
+RUN chmod +x /app/entrypoint.sh /app/docker/update.sh
 
 # 复制源码
 COPY pilotstd/ ./pilotstd/
@@ -46,4 +46,4 @@ COPY docker/ ./docker/
 EXPOSE 9028
 
 # entrypoint.sh 内部用 gosu appuser 降权，此处保持 root
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/app/entrypoint.sh"]
