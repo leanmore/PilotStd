@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 18
+CURRENT_SCHEMA_VERSION = 19
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -604,6 +604,27 @@ def _migrate_v17_notification_log(db: Database) -> None:
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_sent_at ON notification_log(sent_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_event_type ON notification_log(event_type)")
+
+
+@migration(19)
+def _migrate_v19_users(db: Database) -> None:
+    """v19: 用户表——确保超级用户认证表始终存在（与 docker/users.py 保持同步）。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            must_change_password INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
+    if "role" not in cols:
+        db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+    if "must_change_password" not in cols:
+        db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
 
 
 @migration(18)

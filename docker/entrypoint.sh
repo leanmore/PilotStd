@@ -100,31 +100,36 @@ if [ ! -f "$INIT_MARKER" ]; then
     echo "[INIT] 首次启动，初始化超级用户..."
 
     if [ -n "${SUPERUSER_PASSWORD}" ]; then
+        _PASS="${SUPERUSER_PASSWORD}"
         python -c "
-import sqlite3, hashlib
+import sqlite3, hashlib, secrets
 conn = sqlite3.connect('/app/data/pilotstd.db')
+salt = secrets.token_hex(16)
+pw = hashlib.pbkdf2_hmac('sha256', '$_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
-                 ('$SUPERUSER', hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest()))
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, \"admin\", 1)',
+                 ('$SUPERUSER', pw, salt))
 else:
-    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
-                 (hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest(), '$SUPERUSER'))
+    conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
+                 (pw, salt, '$SUPERUSER'))
 conn.commit()
 "
         echo "[INIT] 超级用户 $SUPERUSER 密码已通过环境变量设置"
     else
         RANDOM_PASS=$(openssl rand -base64 16 | tr -d 'O0l1+/=' | head -c 16)
         python -c "
-import sqlite3, hashlib
+import sqlite3, hashlib, secrets
 conn = sqlite3.connect('/app/data/pilotstd.db')
+salt = secrets.token_hex(16)
+pw = hashlib.pbkdf2_hmac('sha256', '$RANDOM_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
-                 ('$SUPERUSER', hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest()))
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, \"admin\", 1)',
+                 ('$SUPERUSER', pw, salt))
 else:
-    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
-                 (hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest(), '$SUPERUSER'))
+    conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
+                 (pw, salt, '$SUPERUSER'))
 conn.commit()
 "
         echo "[INIT] ============================================"
