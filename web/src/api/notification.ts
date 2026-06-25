@@ -1,12 +1,33 @@
 // web/src/api/notification.ts — 通知配置与日志 API
 import http from './http'
 
+// 判别联合类型：精确表达每个渠道的配置结构
+interface BaseChannelFields {
+  enabled: boolean
+  events: string[]
+}
+
+export interface WechatChannelConfig extends BaseChannelFields {
+  webhook_url: string
+}
+
+export interface TelegramChannelConfig extends BaseChannelFields {
+  bot_token: string
+  chat_id: string
+}
+
+export interface FeishuChannelConfig extends BaseChannelFields {
+  webhook_url: string
+}
+
+export type ChannelConfig = WechatChannelConfig | TelegramChannelConfig | FeishuChannelConfig
+
 export interface NotificationConfig {
   enabled: boolean
   channels: {
-    wechat: { webhook_url: string; enabled: boolean; events: string[] }
-    telegram: { bot_token: string; chat_id: string; enabled: boolean; events: string[] }
-    feishu: { webhook_url: string; enabled: boolean; events: string[] }
+    wechat: WechatChannelConfig
+    telegram: TelegramChannelConfig
+    feishu: FeishuChannelConfig
   }
   rules: Record<string, string[]>
 }

@@ -31,10 +31,14 @@ const freqOptions = [
 ]
 
 async function loadConfig() {
+  loading.value = true
+  errMsg.value = ''
   try {
     config.value = await getValidityConfig()
   } catch (e: any) {
     errMsg.value = e.response?.data?.error || '加载配置失败'
+  } finally {
+    loading.value = false
   }
 }
 

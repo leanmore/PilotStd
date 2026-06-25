@@ -6,9 +6,17 @@ import InputText from 'primevue/inputtext'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
-import { getNotificationConfig, putNotificationConfig, testNotification } from '@/api/notification'
+import {
+  getNotificationConfig,
+  putNotificationConfig,
+  testNotification,
+  type WechatChannelConfig,
+  type TelegramChannelConfig,
+  type FeishuChannelConfig,
+} from '@/api/notification'
 
-interface ChannelState {
+// 渠道状态：本地编辑用的统一结构（所有字段可选，方便表单绑定）
+interface ChannelFormState {
   enabled: boolean
   webhook_url: string
   bot_token: string
@@ -17,7 +25,7 @@ interface ChannelState {
 }
 
 const enabled = ref(false)
-const channels = ref<Record<string, ChannelState>>({
+const channels = ref<Record<string, ChannelFormState>>({
   wechat: { enabled: true, webhook_url: '', bot_token: '', chat_id: '', events: [] },
   telegram: { enabled: false, webhook_url: '', bot_token: '', chat_id: '', events: [] },
   feishu: { enabled: false, webhook_url: '', bot_token: '', chat_id: '', events: [] },
@@ -43,6 +51,11 @@ const CHANNEL_META: Record<string, { label: string; icon: string }> = {
   feishu: { label: '飞书', icon: 'pi pi-send' },
 }
 
+function _isTelegram(cfg: WechatChannelConfig | TelegramChannelConfig | FeishuChannelConfig):
+  cfg is TelegramChannelConfig {
+  return 'bot_token' in cfg && 'chat_id' in cfg
+}
+
 async function loadConfig() {
   loading.value = true
   errMsg.value = ''
@@ -52,20 +65,18 @@ async function loadConfig() {
     rules.value = cfg.rules
     for (const ch of ['wechat', 'telegram', 'feishu'] as const) {
       const sc = cfg.channels?.[ch]
-      if (sc) {
-        channels.value[ch].enabled = sc.enabled ?? false
-        if (ch === 'telegram') {
-          channels.value[ch].bot_token = sc.bot_token || ''
-          channels.value[ch].chat_id = sc.chat_id || ''
-        } else {
-          channels.value[ch].webhook_url = sc.webhook_url || ''
-        }
-        // 从 rules 中反推该渠道订阅的事件
-        channels.value[ch].events = []
-        for (const ev of EVENTS) {
-          if (cfg.rules?.[ev.key]?.includes(ch)) {
-            channels.value[ch].events.push(ev.key)
-          }
+      if (!sc) continue
+      channels.value[ch].enabled = sc.enabled ?? false
+      if (_isTelegram(sc)) {
+        channels.value[ch].bot_token = sc.bot_token || ''
+        channels.value[ch].chat_id = sc.chat_id || ''
+      } else {
+        channels.value[ch].webhook_url = sc.webhook_url || ''
+      }
+      channels.value[ch].events = []
+      for (const ev of EVENTS) {
+        if (cfg.rules?.[ev.key]?.includes(ch)) {
+          channels.value[ch].events.push(ev.key)
         }
       }
     }
@@ -81,7 +92,6 @@ async function saveConfig() {
   saved.value = false
   errMsg.value = ''
   try {
-    // 构建 rules：从各渠道的 events 反向聚合
     const newRules: Record<string, string[]> = {}
     for (const ev of EVENTS) {
       newRules[ev.key] = []
@@ -97,19 +107,19 @@ async function saveConfig() {
         wechat: {
           webhook_url: channels.value.wechat.webhook_url,
           enabled: channels.value.wechat.enabled,
-        },
+        } as WechatChannelConfig,
         telegram: {
           bot_token: channels.value.telegram.bot_token,
           chat_id: channels.value.telegram.chat_id,
           enabled: channels.value.telegram.enabled,
-        },
+        } as TelegramChannelConfig,
         feishu: {
           webhook_url: channels.value.feishu.webhook_url,
           enabled: channels.value.feishu.enabled,
-        },
+        } as FeishuChannelConfig,
       },
       rules: newRules,
-    } as any)
+    })
     saved.value = true
     setTimeout(() => (saved.value = false), 2000)
   } catch (e: any) {
