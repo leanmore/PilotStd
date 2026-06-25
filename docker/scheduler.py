@@ -122,10 +122,20 @@ def _heartbeat_loop() -> None:
     db = _get_db()
     while not _heartbeat_stop.wait(_HEARTBEAT_INTERVAL):
         try:
-            db.execute(
+            result = db.execute(
                 "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
                 (time.strftime("%Y-%m-%d %H:%M:%S"),),
             )
+            if result.rowcount == 0:
+                # 兜底：id=1 记录被 stop_scheduler 清理后，重建并更新
+                db.execute(
+                    "INSERT OR IGNORE INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
+                    "VALUES (1, 0, datetime('now'), datetime('now'))"
+                )
+                db.execute(
+                    "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",
+                    (time.strftime("%Y-%m-%d %H:%M:%S"),),
+                )
         except Exception:
             pass
 

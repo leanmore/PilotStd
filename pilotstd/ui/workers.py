@@ -124,8 +124,8 @@ class QueryWorker(QThread):
 
     progress = pyqtSignal(int)
     result_ready = pyqtSignal(int, object)
-    batch_ready = pyqtSignal(list[Any])
-    finished_signal = pyqtSignal(list[Any])
+    batch_ready = pyqtSignal(list)  # type: ignore[type-arg]
+    finished_signal = pyqtSignal(list)  # type: ignore[type-arg]
     error = pyqtSignal(str)
 
     def __init__(
@@ -203,7 +203,7 @@ class DownloadWorker(QThread):
     """后台下载线程，批量通知 UI 以减少更新频率。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list[Any])
+    batch_ready = pyqtSignal(list)  # type: ignore[type-arg]
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -255,7 +255,7 @@ class NormalizeWorker(QThread):
     """后台规范化线程：计算规范文件名，批量通知 UI。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list[Any])
+    batch_ready = pyqtSignal(list)  # type: ignore[type-arg]
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -293,7 +293,7 @@ class ArchiveWorker(QThread):
     """后台归档线程：移动文件到标准库目录，含磁盘检查+断点续做。"""
 
     progress = pyqtSignal(int)
-    batch_ready = pyqtSignal(list[Any])
+    batch_ready = pyqtSignal(list)  # type: ignore[type-arg]
     finished_signal = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -397,7 +397,7 @@ class ScanWorker(QThread):
     """后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。"""
 
     progress = pyqtSignal(int, int)
-    batch_ready = pyqtSignal(list[Any])
+    batch_ready = pyqtSignal(list)  # type: ignore[type-arg]
     finished_signal = pyqtSignal(int, int)
     error = pyqtSignal(str)
 
@@ -505,7 +505,7 @@ class AutoWorker(QThread):
     在线程中串行执行 scan→query→download→archive，通过 Qt 信号通知 UI。
     取代原有 5 个独立 Worker 的手动拼接。"""
 
-    scan_batch = pyqtSignal(list[Any])  # [(seq, ParsedStdInfo), ...]
+    scan_batch = pyqtSignal(list)  # type: ignore[type-arg]  # [(seq, ParsedStdInfo), ...]
     scan_progress = pyqtSignal(int, int)  # (current, total)
     query_progress = pyqtSignal(int, int)  # (current, total)
     query_result = pyqtSignal(int, object)  # (index, QueryResult)
@@ -513,7 +513,7 @@ class AutoWorker(QThread):
     download_result = pyqtSignal(int, str)  # (index, status)
     archive_result = pyqtSignal(int, str)  # (index, status)
     stage_changed = pyqtSignal(str, int, int)  # (stage, current, total)
-    finished_signal = pyqtSignal(dict[str, Any])  # report dict
+    finished_signal = pyqtSignal(dict)  # type: ignore[type-arg]  # report dict
     error = pyqtSignal(str)
 
     def __init__(self, mgr: Any, root_path: str, parent: Any = None) -> None:

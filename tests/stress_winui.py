@@ -228,6 +228,67 @@ def test_winui_hot_cross_compare(window, qtbot, request):
 # ════════════════════════════════════════════════════════════════
 
 
+def precheck_winui_round_b(config: dict | None, result_dir: str):
+    """WinUI 乙轮前置预检。返回 ("PASS"/"SKIPPED"/"FAIL", message)。"""
+    import requests as _requests
+
+    cfg = config or {}
+    web_api_url = cfg.get("web_api", {}).get("url", "")
+    if not web_api_url:
+        web_api_url = os.environ.get("PILOTSTD_BASE_URL", "")
+    if not web_api_url:
+        return ("SKIPPED", "web_api.url 未配置，跳过乙轮")
+
+    # 检查 Docker 可达性
+    try:
+        resp = _requests.get(f"{web_api_url.rstrip('/')}/api/health", timeout=5)
+        if resp.status_code != 200:
+            return ("FAIL", f"Docker 不可达: {web_api_url}/api/health 返回 {resp.status_code}")
+    except Exception as e:
+        return ("FAIL", f"Docker 连接失败: {e}")
+
+    # 检查 announce_sample.json 存在
+    sample_path = os.path.join(result_dir, "announce_sample.json")
+    if not os.path.exists(sample_path):
+        return ("FAIL", f"announce_sample.json 不存在: {sample_path}，请先执行 Docker 阶段")
+
+    # 轻量预检：3 个请求验证 lookup 接口
+    token = os.environ.get("PILOTSTD_API_TOKEN", "")
+    if not token:
+        return ("FAIL", "PILOTSTD_API_TOKEN 环境变量未设置")
+
+    try:
+        with open(sample_path, "r", encoding="utf-8") as f:
+            sample_data = json.load(f)
+    except Exception as e:
+        return ("FAIL", f"announce_sample.json 读取失败: {e}")
+
+    items = sample_data.get("items", [])
+    if not items:
+        return ("FAIL", "announce_sample.json 中无公告数据")
+
+    test_standards = [item.get("standard_number", "") for item in items[:3]]
+    test_standards = [s for s in test_standards if s]
+    if not test_standards:
+        return ("FAIL", "announce_sample.json 中无可用标准号")
+
+    pst_token = f"pst_{token}"
+    for std in test_standards:
+        try:
+            resp = _requests.get(
+                f"{web_api_url.rstrip('/')}/api/announce/lookup",
+                params={"number": std},
+                headers={"Authorization": f"Bearer {pst_token}"},
+                timeout=10,
+            )
+            if resp.status_code not in (200, 404):
+                return ("FAIL", f"lookup 接口异常: {std} -> {resp.status_code}")
+        except Exception as e:
+            return ("FAIL", f"lookup 请求失败: {std} -> {e}")
+
+    return ("PASS", "乙轮预检通过")
+
+
 def run_winui_round_b(result_dir: str, config: dict | None = None) -> dict:
     """乙轮：关闭本地公告抓取，开启 web 缓存查询。
 

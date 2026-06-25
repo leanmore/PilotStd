@@ -57,6 +57,18 @@ def run_cli_phase(source, output, config_path, result_dir, yes, timeout_query=No
     # 前置检查：源目录、输出目录、网络、复位、清表、selfcheck
     _step1_precheck(source, output, db_path)
 
+    # 工具链完整性检查
+    _toolchain_scripts = [
+        "scripts/check_cache_baseline.py",
+        "scripts/check_cache_consistency.py",
+    ]
+    _missing_toolchain = [s for s in _toolchain_scripts if not os.path.exists(os.path.join(ROOT, s))]
+    if _missing_toolchain:
+        print(f"[ERROR] 缺失压测依赖脚本: {_missing_toolchain}")
+        print("请确认 scripts/ 目录下存在所有必需脚本")
+        sys.exit(1)
+    print(f"[OK] 工具链完整性检查通过 ({len(_toolchain_scripts)} 个脚本)")
+
     # 执行CLI冷启动全管线（scan→query→download→normalize→organize→expire→announce→task→recheck）
     step1 = _step1_cli_cold(source, output, timeout_query, ocr_cfg)
 

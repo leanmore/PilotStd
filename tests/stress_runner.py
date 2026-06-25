@@ -136,10 +136,19 @@ def main():
             print(f"WinUI 甲轮完成: 判定={step2_data.get('verdict', '?')}")
 
         # 乙轮：web 缓存命中率验证（从 Docker 的 announce_sample.json 读取公告号）
-        from stress_winui import run_winui_round_b
+        from stress_winui import precheck_winui_round_b, run_winui_round_b
 
         test_config = _load_test_config(args.config)
-        round_b = run_winui_round_b(RESULT_DIR, test_config)
+        precheck_status, precheck_msg = precheck_winui_round_b(test_config, RESULT_DIR)
+
+        if precheck_status == "SKIPPED":
+            print(f"WinUI 乙轮跳过: {precheck_msg}")
+            round_b = {"verdict": "SKIPPED", "total": 0, "hits": 0, "hit_rate": 0.0, "reason": precheck_msg}
+        elif precheck_status == "FAIL":
+            print(f"WinUI 乙轮预检失败: {precheck_msg}")
+            round_b = {"verdict": "FAIL", "total": 0, "hits": 0, "hit_rate": 0.0, "reason": precheck_msg}
+        else:
+            round_b = run_winui_round_b(RESULT_DIR, test_config)
         print(
             f"WinUI 乙轮完成: verdict={round_b['verdict']} "
             f"total={round_b['total']} hits={round_b['hits']} "
