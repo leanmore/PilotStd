@@ -183,36 +183,42 @@ class AnnouncementMatcher:
         rows = cursor.fetchall()
         return {row[0] for row in rows}
 
+    _BATCH_SIZE = 50  # SQLite 参数上限 999，每批 50 条远低于上限
+
     def _bulk_insert_fetch_log(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR IGNORE 到 announcement_fetch_log。"""
+        """批量 INSERT OR IGNORE 到 announcement_fetch_log（分批写入，避免 too many SQL variables）。"""
         if not rows:
             return
 
-        placeholders = ",".join("(?,?,?,?,?,?,?,?)" for _ in rows)
-        flat_values = [item for row in rows for item in row]
-        self._db.execute(
-            "INSERT OR IGNORE INTO announcement_fetch_log "
-            "(source_site, pid, announce_no, standard_number, std_name, "
-            "publish_date, fetched_at, matched) "
-            f"VALUES {placeholders}",
-            flat_values,
-        )
+        for i in range(0, len(rows), self._BATCH_SIZE):
+            batch = rows[i : i + self._BATCH_SIZE]
+            placeholders = ",".join("(?,?,?,?,?,?,?,?)" for _ in batch)
+            flat_values = [item for row in batch for item in row]
+            self._db.execute(
+                "INSERT OR IGNORE INTO announcement_fetch_log "
+                "(source_site, pid, announce_no, standard_number, std_name, "
+                "publish_date, fetched_at, matched) "
+                f"VALUES {placeholders}",
+                flat_values,
+            )
 
     def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR REPLACE 到 announcement_cache（事务包裹）。"""
+        """批量 INSERT OR REPLACE 到 announcement_cache（分批+事务包裹）。"""
         if not rows:
             return
 
         self._db.execute("BEGIN TRANSACTION;")
         try:
-            placeholders = ",".join("(?,?,?,?,?)" for _ in rows)
-            flat_values = [item for row in rows for item in row]
-            self._db.execute(
-                "INSERT OR REPLACE INTO announcement_cache "
-                "(standard_number, source_site, result_json, cached_at, expires_at) "
-                f"VALUES {placeholders}",
-                flat_values,
-            )
+            for i in range(0, len(rows), self._BATCH_SIZE):
+                batch = rows[i : i + self._BATCH_SIZE]
+                placeholders = ",".join("(?,?,?,?,?)" for _ in batch)
+                flat_values = [item for row in batch for item in row]
+                self._db.execute(
+                    "INSERT OR REPLACE INTO announcement_cache "
+                    "(standard_number, source_site, result_json, cached_at, expires_at) "
+                    f"VALUES {placeholders}",
+                    flat_values,
+                )
             self._db.execute("COMMIT;")
         except Exception:
             self._db.execute("ROLLBACK;")

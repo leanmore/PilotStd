@@ -49,31 +49,31 @@ if [ -z "$JWT_SECRET" ] || [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ];
     fi
 fi
 
-# ── 自动更新 ──────────────────────────────────────────────
-# PILOTSTD_AUTO_UPDATE=true 时拉取最新镜像并重启容器
+# ── 自动更新（用户只需配置 PILOTSTD_AUTO_UPDATE=true/false）──
 # 必须在 gosu 降权前以 root 执行（docker 命令需要 root + docker.sock）
-if [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
-    echo "[AUTO-UPDATE] 自动更新已开启 (${PILOTSTD_AUTO_UPDATE})"
+if [ "$PILOTSTD_AUTO_UPDATE" = "true" ]; then
+    echo "[AUTO-UPDATE] 自动更新已开启"
 
     if [ ! -S /var/run/docker.sock ]; then
-        echo "[AUTO-UPDATE] 警告: Docker Socket 未挂载，无法执行自动更新"
-        echo "[AUTO-UPDATE] 请挂载 -v /var/run/docker.sock:/var/run/docker.sock"
+        echo "[AUTO-UPDATE] 警告: Docker Socket 未挂载，跳过自动更新"
     else
-        IMAGE_NAME="${PILOTSTD_IMAGE:-ghcr.io/leanmore/pilotstd:latest}"
+        # 从容器元数据自动获取当前镜像名（无需用户配置）
+        IMAGE_NAME=$(docker inspect --format='{{.Config.Image}}' $(hostname) 2>/dev/null)
+        if [ -z "$IMAGE_NAME" ]; then
+            echo "[AUTO-UPDATE] 警告: 无法获取镜像名，使用默认值"
+            IMAGE_NAME="ghcr.io/leanmore/pilotstd:latest"
+        fi
         echo "[AUTO-UPDATE] 正在拉取最新镜像: ${IMAGE_NAME}"
 
         if timeout 120 docker pull "${IMAGE_NAME}" 2>&1; then
             echo "[AUTO-UPDATE] 镜像拉取成功，正在重启容器应用更新..."
             docker restart pilotstd
-            if [ $? -ne 0 ]; then
-                echo "[AUTO-UPDATE] 警告: 容器重启失败，继续启动现有版本"
-            fi
         else
             echo "[AUTO-UPDATE] 镜像拉取失败或超时，继续启动现有版本"
         fi
     fi
 else
-    echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
+    echo "[AUTO-UPDATE] 自动更新已关闭 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
 fi
 
 # PUID/PGID: 修正 appuser 的 UID/GID 匹配 NAS 文件权限

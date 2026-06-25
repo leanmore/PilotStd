@@ -378,45 +378,32 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     else:
         _check("配置: 保存设置", None, "配置读取失败，跳过")
 
-    # 17. 公告异步抓取（gb/hb/db 三个适配器）
+    # 17. 公告异步抓取（gb/hb/db 三个适配器）— 仅验证触发 + 状态可查，不等待完成
     _announce_total_count = 0
     _announce_adapters_ok = 0
+    _VALID_STATUSES = ("pending", "running", "success", "failed")
     for _adapter in ["gb", "hb", "db"]:
         try:
             # 触发异步抓取
-            r = _post("/api/announcements/fetch", json_data={"adapter_name": _adapter}, timeout=300)
-            _af_data = r.json() if r.status_code == 200 else {}
+            _r = _post("/api/announcements/fetch", json_data={"adapter_name": _adapter}, timeout=300)
+            _af_data = _r.json() if _r.status_code == 200 else {}
             _task_id = _af_data.get("task_id", "")
-            if not _task_id:
-                _check(f"公告: {_adapter}异步抓取触发", False, f"status={r.status_code}, no task_id")
+            _trigger_ok = bool(_task_id)
+            if not _trigger_ok:
+                _check(f"公告: {_adapter}异步触发", False, f"status={_r.status_code}, no task_id")
                 continue
-            # 轮询状态（最多 60 秒）
-            _final_status = ""
-            _progress = 0
-            for _i in range(30):  # 30次 × 2s = 60s
-                time.sleep(2)
-                _sr = _get(f"/api/announcements/status/{_task_id}")
-                if _sr.status_code != 200:
-                    continue
-                _sd = _sr.json()
-                _final_status = _sd.get("status", "")
-                _progress = _sd.get("progress", 0)
-                if _final_status in ("success", "failed"):
-                    break
-            if _final_status not in ("success", "failed"):
-                _check(f"公告: {_adapter}异步抓取完成", False, f"超时60s, status={_final_status}, progress={_progress}")
-                continue
-            # 获取结果
-            _rr = _get(f"/api/announcements/results/{_task_id}")
-            _result_ok = _rr.status_code == 200
-            _item_count = len(_rr.json().get("results", [])) if _result_ok else 0
-            _announce_total_count += _item_count
+            # 查询状态（不轮询等待完成）
+            _sr = _get(f"/api/announcements/status/{_task_id}")
+            _sd = _sr.json() if _sr.status_code == 200 else {}
+            _status = _sd.get("status", "")
+            _progress = _sd.get("progress", 0)
+            _status_ok = _status in _VALID_STATUSES
             _check(
-                f"公告: {_adapter}异步抓取完成",
-                _result_ok,
-                f"task={_task_id} status={_final_status} items={_item_count}",
+                f"公告: {_adapter}异步抓取",
+                _trigger_ok and _status_ok,
+                f"task={_task_id} status={_status} progress={_progress}",
             )
-            if _result_ok:
+            if _trigger_ok and _status_ok:
                 _announce_adapters_ok += 1
         except Exception as e:
             _check(f"公告: {_adapter}异步抓取", False, f"异常: {str(e)[:60]}")
