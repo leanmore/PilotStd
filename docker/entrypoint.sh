@@ -1,101 +1,12 @@
 #!/bin/bash
 set -e
 
-# ── 安全凭证初始化 ──────────────────────────────────────────
-# 若未设置 JWT_SECRET / ADMIN_USERNAME / ADMIN_PASSWORD，自动生成随机值并输出到 stdout
-CRED_MARKER="/app/data/.credentials_generated"
-
-if [ -z "$JWT_SECRET" ] || [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ]; then
-    if [ ! -f "$CRED_MARKER" ]; then
-        # 仅首次启动时生成并打印（之后可从 docker logs 获取）
-        if [ -z "$JWT_SECRET" ]; then
-            JWT_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
-            export JWT_SECRET
-        fi
-        if [ -z "$ADMIN_USERNAME" ]; then
-            ADMIN_USERNAME="admin"
-            export ADMIN_USERNAME
-        fi
-        if [ -z "$ADMIN_PASSWORD" ]; then
-            ADMIN_PASSWORD=$(python -c "import secrets; print(secrets.token_urlsafe(12))")
-            export ADMIN_PASSWORD
-        fi
-        echo "============================================================"
-        echo "  PilotStd 首次启动 — 已自动生成安全凭证"
-        echo "  ADMIN_USERNAME: $ADMIN_USERNAME"
-        echo "  ADMIN_PASSWORD: $ADMIN_PASSWORD"
-        echo "  JWT_SECRET: $JWT_SECRET"
-        echo "  请妥善保存。也可通过环境变量自行设置："
-        echo "    docker run -e ADMIN_USERNAME=xxx -e ADMIN_PASSWORD=xxx ..."
-        echo "============================================================"
-        # 凭证生成成功后才写标记文件（防止生成失败导致标记残留）
-        mkdir -p /app/data
-        touch "$CRED_MARKER"
-    else
-        # 非首次但环境变量仍为空：复用之前生成的（从标记文件恢复）
-        # 标记文件存在说明之前生成过，这里无法恢复明文值，
-        # 因此若用户未设置环境变量且标记文件存在，用固定占位符通过启动检查
-        # 实际生产部署应在首次获取凭证后通过环境变量传入
-        echo "[WARNING] 凭证标记文件存在但环境变量未设置，使用标记文件占位"
-        if [ -z "$JWT_SECRET" ]; then
-            export JWT_SECRET="placeholder_restart_with_env"
-        fi
-        if [ -z "$ADMIN_USERNAME" ]; then
-            export ADMIN_USERNAME="admin"
-        fi
-        if [ -z "$ADMIN_PASSWORD" ]; then
-            export ADMIN_PASSWORD="placeholder_restart_with_env"
-        fi
-    fi
-fi
-
-# ── 超级用户初始化（参照 MoviePilot）──────────────────────
-# 首次启动自动创建/更新超级用户，标记文件防止重复初始化
-INIT_MARKER="/app/data/.superuser_initialized"
-SUPERUSER="${SUPERUSER:-admin}"
-
-if [ ! -f "$INIT_MARKER" ]; then
-    echo "[INIT] 首次启动，初始化超级用户..."
-
-    if [ -n "${SUPERUSER_PASSWORD}" ]; then
-        python -c "
-import sqlite3, hashlib
-conn = sqlite3.connect('/app/data/pilotstd.db')
-users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
-if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
-                 ('$SUPERUSER', hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest()))
-else:
-    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
-                 (hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest(), '$SUPERUSER'))
-conn.commit()
-"
-        echo "[INIT] 超级用户 $SUPERUSER 密码已通过环境变量设置"
-    else
-        RANDOM_PASS=$(openssl rand -base64 16 | tr -d 'O0l1+/=' | head -c 16)
-        python -c "
-import sqlite3, hashlib
-conn = sqlite3.connect('/app/data/pilotstd.db')
-users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
-if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
-                 ('$SUPERUSER', hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest()))
-else:
-    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
-                 (hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest(), '$SUPERUSER'))
-conn.commit()
-"
-        echo "[INIT] ============================================"
-        echo "[INIT] 超级用户: $SUPERUSER"
-        echo "[INIT] 初始密码: $RANDOM_PASS"
-        echo "[INIT] 请登录后立即修改！"
-        echo "[INIT] ============================================"
-    fi
-
-    touch "$INIT_MARKER"
-    echo "[INIT] 超级用户初始化完成"
-else
-    echo "[INIT] 超级用户已初始化，跳过"
+# ── JWT_SECRET 初始化 ────────────────────────────────────────
+# 若未设置 JWT_SECRET，自动生成随机值
+if [ -z "$JWT_SECRET" ]; then
+    JWT_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
+    export JWT_SECRET
+    echo "[INIT] JWT_SECRET 已自动生成"
 fi
 
 # ── 自动更新（参照 MoviePilot）──────────────────────────────
@@ -179,6 +90,55 @@ if existing is None:
 else:
     print('[entrypoint] 初始 API Key 已存在，跳过生成')
 "
+
+# ── 超级用户初始化（参照 MoviePilot）──────────────────────
+# 必须在 DB 迁移之后执行（users 表已创建）
+INIT_MARKER="/app/data/.superuser_initialized"
+SUPERUSER="${SUPERUSER:-admin}"
+
+if [ ! -f "$INIT_MARKER" ]; then
+    echo "[INIT] 首次启动，初始化超级用户..."
+
+    if [ -n "${SUPERUSER_PASSWORD}" ]; then
+        python -c "
+import sqlite3, hashlib
+conn = sqlite3.connect('/app/data/pilotstd.db')
+users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
+if users == 0:
+    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
+                 ('$SUPERUSER', hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest()))
+else:
+    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
+                 (hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest(), '$SUPERUSER'))
+conn.commit()
+"
+        echo "[INIT] 超级用户 $SUPERUSER 密码已通过环境变量设置"
+    else
+        RANDOM_PASS=$(openssl rand -base64 16 | tr -d 'O0l1+/=' | head -c 16)
+        python -c "
+import sqlite3, hashlib
+conn = sqlite3.connect('/app/data/pilotstd.db')
+users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
+if users == 0:
+    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
+                 ('$SUPERUSER', hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest()))
+else:
+    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
+                 (hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest(), '$SUPERUSER'))
+conn.commit()
+"
+        echo "[INIT] ============================================"
+        echo "[INIT] 超级用户: $SUPERUSER"
+        echo "[INIT] 初始密码: $RANDOM_PASS"
+        echo "[INIT] 请登录后立即修改！"
+        echo "[INIT] ============================================"
+    fi
+
+    touch "$INIT_MARKER"
+    echo "[INIT] 超级用户初始化完成"
+else
+    echo "[INIT] 超级用户已初始化，跳过"
+fi
 
 # 权限处理：PUID=0 表示以 root 运行，跳过 chown 和 gosu；否则降权到 appuser
 if [ "$PUID" = "0" ]; then
