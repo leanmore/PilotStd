@@ -1,7 +1,7 @@
 # PilotStd — 标准文件管理工具
 # 部署: docker compose up -d
 #
-# 安全凭证 JWT_SECRET 和 ADMIN_PASSWORD 首次启动自动生成，
+# 超级用户密码首次启动自动生成（或通过 SUPERUSER_PASSWORD 指定），
 # 执行 docker logs pilotstd 查看。
 #
 # 目录说明：
@@ -28,11 +28,13 @@ services:
       - SUPERUSER=admin
       # 超级用户初始密码（可选，不填则自动生成随机密码，输出到日志）
       # - SUPERUSER_PASSWORD=your_password
-      - STANDARD_ROOT=/standards
-      # 安全凭证（可选）—— 留空则首次启动自动生成
-      # - ADMIN_USERNAME=admin
-      # - ADMIN_PASSWORD=你的密码
       # 群晖 NAS 文件权限（可选）—— SSH 执行 id 查看 uid/gid
       # - PUID=1026
       # - PGID=100
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9028/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
