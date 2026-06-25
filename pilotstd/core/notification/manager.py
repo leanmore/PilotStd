@@ -7,6 +7,7 @@ from typing import Any
 
 from ..db import Database
 from .channel import NotificationMessage
+from .channels.dingtalk import DingTalkChannel
 from .channels.feishu import FeishuChannel
 from .channels.telegram import TelegramChannel
 from .channels.wechat import WechatChannel
@@ -17,6 +18,7 @@ _CHANNEL_CLASSES = {
     "wechat": WechatChannel,
     "telegram": TelegramChannel,
     "feishu": FeishuChannel,
+    "dingtalk": DingTalkChannel,
 }
 
 
@@ -47,7 +49,12 @@ class NotificationManager:
                         self._channels[name] = cls(token, chat_id)
                 else:
                     url = self._cfg.get(f"notification.channels.{name}.webhook_url", "")
-                    if url:
+                    if not url:
+                        continue
+                    if name == "dingtalk":
+                        secret = self._cfg.get(f"notification.channels.{name}.secret", "")
+                        self._channels[name] = cls(url, secret)
+                    else:
                         self._channels[name] = cls(url)
             except Exception as e:
                 logger.warning("通知渠道 %s 初始化失败: %s", name, e)
@@ -176,6 +183,10 @@ class NotificationManager:
                     token = self._cfg.get("notification.channels.telegram.bot_token", "")
                     chat_id = self._cfg.get("notification.channels.telegram.chat_id", "")
                     ch = cls(token, chat_id)
+                elif channel == "dingtalk":
+                    url = self._cfg.get("notification.channels.dingtalk.webhook_url", "")
+                    secret = self._cfg.get("notification.channels.dingtalk.secret", "")
+                    ch = cls(url, secret)
                 else:
                     url = self._cfg.get(f"notification.channels.{channel}.webhook_url", "")
                     ch = cls(url)

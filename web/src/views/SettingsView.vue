@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
+import ConfirmDialog from 'primevue/confirmdialog'
+import Toast from 'primevue/toast'
 import { getUsers, addUser, deleteUser, changePassword, getSettings, putSettings, uploadFile, getToken, refreshToken } from '@/api'
 import { useAppStore } from '@/stores/app'
+import http from '@/api/http'
+import NotificationConfig from '@/components/NotificationConfig.vue'
+import ValidityConfig from '@/components/ValidityConfig.vue'
 const store = useAppStore()
+const { locale } = useI18n()
+const confirm = useConfirm()
+const toast = useToast()
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
+import Select from 'primevue/select'
+import InputNumber from 'primevue/inputnumber'
+import Message from 'primevue/message'
 
 // ── 用户管理 ──
 const users = ref<any[]>([]); const showAdd = ref(false)
@@ -15,10 +29,40 @@ async function loadUsers() {
   try { const r = await getUsers(); users.value = r.users; loadUsersErr.value = '' } catch { loadUsersErr.value = '加载用户列表失败' }
 }
 async function doAdd() {
+  // 校验保留用户名
+  if (newUser.value.username.toLowerCase() === 'admin') {
+    toast.add({ severity: 'error', summary: '用户名不可用', detail: '"admin" 为保留用户名，请使用其他名称', life: 4000 })
+    return
+  }
   try { await addUser(newUser.value.username, newUser.value.password, newUser.value.role); showAdd.value = false; newUser.value = { username: '', password: '', role: 'user' }; userErr.value = ''; loadUsers() }
   catch (e: any) { userErr.value = e.response?.data?.detail || '失败' }
 }
 async function doDelete(id: number) { await deleteUser(id); loadUsers() }
+
+// ── 用户管理辅助 ──
+const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
+
+function canDelete(item: any): boolean {
+  if (!currentUser.value || currentUser.value.role !== 'admin') return false
+  if (item.id === currentUser.value.id) return false
+  if (item.role === 'admin') {
+    const adminCount = users.value.filter((u: any) => u.role === 'admin').length
+    if (adminCount <= 1) return false
+  }
+  return true
+}
+
+function confirmDelete(item: any) {
+  confirm.require({
+    message: `确定要删除用户 "${item.username}" 吗？此操作不可恢复。`,
+    header: '删除确认',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '确认删除',
+    acceptClass: 'p-button-danger',
+    rejectLabel: '取消',
+    accept: () => doDelete(item.id),
+  })
+}
 
 // ── 修改密码 ──
 const showPwd = ref(false); const pwdForm = ref({ old: '', new: '', confirm: '' }); const pwdErr = ref('')
@@ -55,7 +99,69 @@ async function uploadBg(e: Event) {
 }
 
 function setTheme(v: string) { store.theme = v }
-onMounted(() => { loadUsers(); loadCfg(); loadToken() })
+
+// ── 语言选择 ──
+const selectedLocale = ref(store.locale || 'zh-CN')
+const localeOptions = [
+  { label: '简体中文', value: 'zh-CN' },
+  { label: '繁體中文', value: 'zh-TW' },
+  { label: 'English', value: 'en' },
+]
+function onLocaleChange() {
+  locale.value = selectedLocale.value
+  store.setLocale(selectedLocale.value)
+}
+
+// ── 熔断配置 ──
+interface CircuitConfig {
+  failure_threshold: number
+  freeze_durations: number[]
+  reset_window_hours: number
+}
+const circuitCfg = ref<CircuitConfig>({ failure_threshold: 3, freeze_durations: [30, 120, 360, 720], reset_window_hours: 24 })
+const circuitErr = ref('')
+const circuitSaved = ref(false)
+const circuitLoading = ref(false)
+
+async function loadCircuitConfig() {
+  try {
+    const r = await http.get('/adapter/config')
+    circuitCfg.value = r.data
+    circuitErr.value = ''
+  } catch {
+    circuitErr.value = '加载配置失败'
+  }
+}
+
+function validateDurations(): string | null {
+  const d = circuitCfg.value.freeze_durations
+  for (let i = 0; i < d.length; i++) {
+    if (!d[i] || d[i] < 1) return `第${i + 1}阶梯时长必须 >= 1`
+    if (i > 0 && d[i] <= d[i - 1]) return '阶梯时长必须严格递增'
+  }
+  if (circuitCfg.value.failure_threshold < 1) return '失败阈值必须 >= 1'
+  if (circuitCfg.value.reset_window_hours < 1) return '归零窗口必须 >= 1'
+  return null
+}
+
+async function saveCircuitConfig() {
+  const err = validateDurations()
+  if (err) { circuitErr.value = err; return }
+  circuitLoading.value = true
+  circuitSaved.value = false
+  try {
+    await http.put('/adapter/config', circuitCfg.value)
+    circuitSaved.value = true
+    circuitErr.value = ''
+    await loadCircuitConfig()
+    setTimeout(() => circuitSaved.value = false, 2000)
+  } catch (e: any) {
+    circuitErr.value = e.response?.data?.error || '保存配置失败'
+  } finally {
+    circuitLoading.value = false
+  }
+}
+onMounted(() => { loadUsers(); loadCfg(); loadToken(); loadCircuitConfig() })
 
 // ── API 令牌 ──
 const token = ref(''); const tokenErr = ref(''); const tokenLoading = ref(false)
@@ -104,6 +210,9 @@ const tabs = [
   { key: 'sites', label: '站点' },
   { key: 'users', label: '用户' },
   { key: 'token', label: 'API 令牌' },
+  { key: 'circuit', label: '熔断' },
+  { key: 'notification', label: '通知' },
+  { key: 'validity', label: '时效性' },
 ]
 
 // 站点信息（与 pilotstd/query/site_config.py 同步）
@@ -119,6 +228,8 @@ const sites = [
 </script>
 
 <template>
+  <ConfirmDialog />
+  <Toast />
   <h1>设置</h1>
 
   <div class="tab-bar mt-2">
@@ -211,6 +322,17 @@ const sites = [
           <span>暗色</span>
         </label>
       </div>
+      <!-- 界面语言选择 -->
+      <label>界面语言</label>
+      <Select
+        v-model="selectedLocale"
+        :options="localeOptions"
+        optionLabel="label"
+        optionValue="value"
+        class="fi"
+        style="width:200px"
+        @change="onLocaleChange"
+      />
     </div>
   </div>
 
@@ -277,8 +399,8 @@ const sites = [
             <span style="min-width:100px;font-weight:500">{{ item.username }}</span>
             <span style="min-width:80px;font-size:13px;color:var(--text-dim)">{{ item.role }}</span>
             <span style="flex:1;font-size:12px;color:var(--text-dim)">{{ item.created_at }}</span>
-            <Button v-if="item.username!=='admin'" icon="pi pi-trash"
-                    severity="danger" size="small" text @click="doDelete(item.id)" />
+            <Button v-if="canDelete(item)" icon="pi pi-trash"
+                    severity="danger" size="small" text @click="confirmDelete(item)" />
           </div>
         </div>
       </template>
@@ -313,6 +435,55 @@ const sites = [
     </div>
   </Dialog>
 
+  <!-- 熔断 -->
+  <div v-show="activeTab === 'circuit'" class="card mt-2">
+    <div class="card-header">熔断配置</div>
+    <p class="text-dim mb-2">控制各站点适配器的熔断阈值、阶梯冻结时长和失败归零窗口。</p>
+    <Message v-if="circuitErr" severity="error" :closable="false">{{ circuitErr }}</Message>
+    <Message v-if="circuitSaved" severity="success" :closable="false">配置已保存</Message>
+    <div class="form-grid" style="grid-template-columns:repeat(auto-fill, minmax(220px, 1fr))">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>失败阈值</label>
+        <InputNumber v-model="circuitCfg.failure_threshold" :min="1" show-buttons />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>第1阶梯时长 (分钟)</label>
+        <InputNumber v-model="circuitCfg.freeze_durations[0]" :min="1" show-buttons />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>第2阶梯时长 (分钟)</label>
+        <InputNumber v-model="circuitCfg.freeze_durations[1]" :min="1" show-buttons />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>第3阶梯时长 (分钟)</label>
+        <InputNumber v-model="circuitCfg.freeze_durations[2]" :min="1" show-buttons />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>第4阶梯时长 (分钟)</label>
+        <InputNumber v-model="circuitCfg.freeze_durations[3]" :min="1" show-buttons />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <label>归零窗口 (小时)</label>
+        <InputNumber v-model="circuitCfg.reset_window_hours" :min="1" show-buttons />
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <Button icon="pi pi-save" label="保存熔断配置" :loading="circuitLoading" @click="saveCircuitConfig" />
+    </div>
+  </div>
+
+  <!-- 通知 -->
+  <div v-show="activeTab === 'notification'" class="card mt-2">
+    <div class="card-header">通知配置</div>
+    <NotificationConfig />
+  </div>
+
+  <!-- 时效性 -->
+  <div v-show="activeTab === 'validity'" class="card mt-2">
+    <div class="card-header">时效性检查</div>
+    <ValidityConfig />
+  </div>
+
   <div class="mt-3" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
     <div style="display:flex;align-items:center;gap:8px">
       <Button label="保存设置" icon="pi pi-check" @click="saveCfg" />
@@ -331,7 +502,8 @@ const sites = [
     </div>
   </Dialog>
 
-  <Dialog v-model:visible="showPwd" header="修改密码" :modal="true" :style="{width:'360px'}">
+  <Dialog v-model:visible="showPwd" :header="`修改密码 — ${store.username}`" :modal="true" :style="{width:'360px'}">
+    <p class="text-dim" style="font-size:12px;margin-bottom:8px">正在修改用户 <strong>{{ store.username }}</strong> 的登录密码</p>
     <div style="display:flex;flex-direction:column;gap:8px">
       <input v-model="pwdForm.old" type="password" placeholder="旧密码" class="fi" />
       <input v-model="pwdForm.new" type="password" placeholder="新密码（至少4位）" class="fi" />

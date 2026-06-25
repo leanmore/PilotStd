@@ -1,7 +1,7 @@
-# 能力登记簿 v2.1
+# 能力登记簿 v2.2
 
 > PilotStd 项目非功能性能力清单。任何重构、归档、模块重写前必须查阅本簿。
-> 最后更新：2026-06-23
+> 最后更新：2026-06-25
 > 行号由 `scripts/update_capabilities.py` 自动维护，每次 pre-commit 时刷新。
 
 ## 能力登记表
@@ -59,7 +59,28 @@
 | 压力测试看门狗 | `tests/stress_driver.py` | `_progress_watchdog()` | L313-319 | active | 每 30s 检查子进程 `[PROGRESS]`，超时 180s 则告警 |
 | 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L569-570 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
 | 压力测试 Web 心跳 | `tests/stress_web.py` | L112, 784 | L111, 821 | active | 与 engine 层格式统一的 60s 进度日志；完成消息在 L784 |
+| Web 仪表板 Store | `web/src/stores/dashboard.ts` | `useDashboardStore` | — | active | Dashboard 布局状态管理：load/save/reset/onLayoutUpdated，localStorage 持久化 |
+| Web 仪表板迁移 | `web/src/utils/dashboard-migration.ts` | `loadLayout/saveLayout/resetLayout` | — | active | 布局数据版本管理：版本检查 + 自动备份 + 默认布局回退 |
+| Web 仪表板类型 | `web/src/types/dashboard.ts` | `DashboardLayoutV1/WidgetType` | — | active | 仪表板 TS 类型定义：Widget 类型枚举 + 布局数据结构 |
+| Web 语言切换 | `web/src/main.ts` + `web/src/stores/app.ts` | `setLocale/locale` | — | active | 前端界面语言切换：zh-CN/zh-TW/en，localStorage 持久化，刷新保持 |
+| Web 熔断配置 | `web/src/views/SettingsView.vue` | `circuit tab` | — | active | 设置页"熔断"Tab：失败阈值/4阶梯冻结时长/归零窗口，`GET/PUT /api/adapter/config` |
+| Web 仪表板网格 | `web/src/views/HomeView.vue` | `GridLayout/GridItem` | — | active | vue-grid-layout 拖拽/缩放/持久化网格，6 个默认 Widget |
+| Web 统计卡片 Widget | `web/src/components/dashboard/widgets/StatsCard.vue` | `StatsCard` | — | active | 统计数字卡（现行/废止/待确认/即将实施），独立 API 请求 + 骨架加载 + 错误态 |
+| Web 适配器状态 Widget | `web/src/components/dashboard/widgets/AdapterStatusCard.vue` | `AdapterStatusCard` | — | active | 适配器熔断状态表，1s 本地倒计时 + 条件 API 刷新 |
+| Web 最近公告 Widget | `web/src/components/dashboard/widgets/RecentAnnounceCard.vue` | `RecentAnnounceCard` | — | active | 最近 5 条公告列表，骨架加载 + 空态 |
+| Web 快捷操作 Widget | `web/src/components/dashboard/widgets/QuickActionsCard.vue` | `QuickActionsCard` | — | active | 4 个快捷操作按钮（任务/文件/待确认/公告），路由跳转 |
+| Web 公告标签中文化 | `web/src/views/AnnounceView.vue` | `summaryLabelMap` | — | active | 后端英文 key → 中文标签（标准总数/已匹配/已更新/新增/已跳过） |
+| Web 用户删除 | `web/src/views/SettingsView.vue` | `canDelete/confirmDelete` | — | active | 删除确认弹窗 + 角色权限 + 自我防护 + 保留最后管理员 |
+| Web 密码修改标示 | `web/src/views/SettingsView.vue` | `showPwd` dialog | — | active | 密码弹窗标题含当前用户名 |
+| Web 用户名规则 | `web/src/views/SettingsView.vue` | `doAdd` validation | — | active | 禁用 `admin` 保留用户名 |
+| Web 通知配置组件 | `web/src/components/NotificationConfig.vue` | `NotificationConfig` | — | active | 通知配置独立组件：4 渠道卡片（含钉钉）+ 事件订阅 + 测试，响应式网格布局 |
+| Web 时效性配置组件 | `web/src/components/ValidityConfig.vue` | `ValidityConfig` | — | active | 时效性检查设置页组件：6 项配置 + 立即执行 + 执行记录（分页/筛选/详情） |
+| Web 文件选择器 | `web/src/views/OrganizeView.vue` | `selectedFiles/enqueueValidityCheck` | — | active | 文件复选框 + 全选 + 操作栏 + 时效性入队 |
+| 时效性入队 API | `docker/api/validity.py` | `POST /api/validity/enqueue` | — | active | 前端选中文件后入队写入 `validity_check_queue` |
+| 已废弃-ValidityConfigView 页面 | `web/src/views/ValidityConfigView.vue` | （文件已删除） | — | deprecated | 时效性配置已整合进设置页"时效性"Tab |
+| 已废弃-NotificationsView 页面 | `web/src/views/NotificationsView.vue` | （文件已删除） | — | deprecated | 通知配置已整合进设置页"通知"Tab |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |
+| 已废弃-DashboardView 页面 | `web/src/views/DashboardView.vue` | （文件已删除） | — | deprecated | 适配器状态→仪表板 Widget，熔断配置→设置页熔断 Tab |
 | 已废弃-旧管道 heartbeat() | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` |
 | 已废弃-API Key 退出清理 | `tests/stress_driver.py` | `_cleanup_api_key()` （已删除） | — | deprecated | API 令牌方案已简化为静态令牌，不再需要动态创建/吊销 |
 

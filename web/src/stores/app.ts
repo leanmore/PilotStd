@@ -30,5 +30,9 @@ export const useAppStore = defineStore('app', () => {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
   }
 
-  return { theme, locale, loggedIn, username, toggleTheme }
+  function setLocale(v: string) {
+    locale.value = v
+  }
+
+  return { theme, locale, loggedIn, username, toggleTheme, setLocale }
 })

@@ -15,11 +15,8 @@ const navItems = [
   { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
   { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
   { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
-  { label: t('nav.notifications'), icon: 'pi pi-bell', to: '/notifications' },
   { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
   { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
-  { label: t('nav.validity_config'), icon: 'pi pi-clock', to: '/validity-config' },
-  { label: t('nav.dashboard'), icon: 'pi pi-shield', to: '/dashboard' },
   { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
 ]
 

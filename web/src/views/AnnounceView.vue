@@ -8,6 +8,15 @@ import Tag from 'primevue/tag'
 import Calendar from 'primevue/calendar'
 import LogBar from '@/components/LogBar.vue'
 
+// 摘要标签中文映射（后端返回英文 key）
+const summaryLabelMap: Record<string, string> = {
+  total_standards: '标准总数',
+  matched: '已匹配',
+  updated: '已更新',
+  new: '新增',
+  skipped: '已跳过',
+}
+
 // 起始日期默认往前3个月，与 Windows GUI 公告检查一致
 function defaultSince(): Date {
   const d = new Date(); d.setMonth(d.getMonth() - 3); return d
@@ -77,7 +86,7 @@ function onPage(e: any) {
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
   <div v-if="Object.keys(summary).length" class="mt-2" style="display:flex;gap:8px">
-    <Tag v-for="(v,k) in summary" :key="k" :value="`${k}: ${v}`" />
+    <Tag v-for="(v,k) in summary" :key="k" :value="`${summaryLabelMap[k] || k}: ${v}`" />
   </div>
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">

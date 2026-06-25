@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getFiles, postCleanEmpty } from '@/api'
+import { enqueueValidityCheck } from '@/api/validity'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
@@ -33,6 +35,55 @@ async function cleanEmpty() {
   browse()
 }
 
+// ── 文件选择 + 入队 ──
+const selectedFiles = ref<Set<string>>(new Set())
+const enqueueResult = ref('')
+const enqueueLoading = ref(false)
+
+// 当前页的文件路径列表（用于全选）
+const currentPagePaths = computed(() => paginatedFiles.value.filter((f: any) => f.type !== 'dir').map((f: any) => f.path))
+
+function isFileSelected(path: string): boolean {
+  return selectedFiles.value.has(path)
+}
+
+function toggleFile(path: string) {
+  const s = new Set(selectedFiles.value)
+  if (s.has(path)) s.delete(path); else s.add(path)
+  selectedFiles.value = s
+}
+
+function toggleAll() {
+  const s = new Set(selectedFiles.value)
+  const allSelected = currentPagePaths.value.every(p => s.has(p))
+  if (allSelected) {
+    for (const p of currentPagePaths.value) s.delete(p)
+  } else {
+    for (const p of currentPagePaths.value) s.add(p)
+  }
+  selectedFiles.value = s
+}
+
+function isAllSelected(): boolean {
+  if (currentPagePaths.value.length === 0) return false
+  return currentPagePaths.value.every(p => selectedFiles.value.has(p))
+}
+
+async function doEnqueue() {
+  if (selectedFiles.value.size === 0) return
+  enqueueLoading.value = true; enqueueResult.value = ''
+  try {
+    const r = await enqueueValidityCheck(Array.from(selectedFiles.value))
+    enqueueResult.value = `已加入队列：${r.enqueued}/${r.total}`
+    selectedFiles.value = new Set()
+    setTimeout(() => enqueueResult.value = '', 3000)
+  } catch (e: any) {
+    enqueueResult.value = `入队失败: ${e.response?.data?.error || e.message}`
+  } finally {
+    enqueueLoading.value = false
+  }
+}
+
 onMounted(() => browse())
 
 const page = ref(0)
@@ -48,7 +99,6 @@ function onPage(e: any) {
 }
 
 // 面包屑：当前路径拆成逐段可点击的导航
-import { computed } from 'vue'
 const breadcrumbs = computed(() => {
   const p = rootPath.value.replace(/\\/g, '/')
   const parts = p.split('/').filter(Boolean)
@@ -86,18 +136,35 @@ const breadcrumbs = computed(() => {
     </template>
   </div>
 
-  <!-- 统计 -->
+  <!-- 统计 + 操作栏 -->
   <div class="stats-row mt-2">
     <Tag severity="info" :value="files.length + ' 个文件'" />
     <Tag severity="success" :value="files.filter(f=>f.type==='pdf').length + ' PDF'" />
     <Tag severity="warn" :value="files.filter(f=>f.type!=='pdf').length + ' 其他'" />
+    <div style="flex:1" />
+    <div v-if="selectedFiles.size > 0" class="op-bar">
+      <span class="selected-count">已选 {{ selectedFiles.size }} 个文件</span>
+      <Button label="加入时效性检查" icon="pi pi-clock" size="small" :loading="enqueueLoading" @click="doEnqueue" />
+    </div>
+    <span v-if="enqueueResult" class="enqueue-msg">{{ enqueueResult }}</span>
   </div>
 
   <!-- 文件列表 -->
   <DataView :value="paginatedFiles" size="small" class="mt-2">
     <template #list="slotProps">
+      <!-- 全选行 -->
+      <div class="select-all-row">
+        <Checkbox :model-value="isAllSelected()" @change="toggleAll" :input-id="'select-all'" />
+        <label for="select-all" class="select-all-label">全选本页文件</label>
+      </div>
       <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
         <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center">
+          <Checkbox
+            v-if="item.type !== 'dir'"
+            :model-value="isFileSelected(item.path)"
+            @change="toggleFile(item.path)"
+          />
+          <span v-else style="width:20px;flex-shrink:0" />
           <span style="min-width:140px;font-weight:500;flex-shrink:0">{{ item.name }}</span>
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text-dim)">{{ item.path }}</span>
           <span style="min-width:80px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item._size }}</span>
@@ -125,6 +192,11 @@ const breadcrumbs = computed(() => {
 .fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
 .clean-msg { font-size: 12px; color: var(--success); margin-top: 6px; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-top: 6px; }
-.stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.stats-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.op-bar { display: flex; align-items: center; gap: 8px; }
+.selected-count { font-size: 12px; color: var(--primary); font-weight: 500; }
+.enqueue-msg { font-size: 12px; color: var(--success); }
+.select-all-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border); }
+.select-all-label { font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

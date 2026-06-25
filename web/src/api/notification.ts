@@ -20,7 +20,12 @@ export interface FeishuChannelConfig extends BaseChannelFields {
   webhook_url: string
 }
 
-export type ChannelConfig = WechatChannelConfig | TelegramChannelConfig | FeishuChannelConfig
+export interface DingTalkChannelConfig extends BaseChannelFields {
+  webhook_url: string
+  secret?: string
+}
+
+export type ChannelConfig = WechatChannelConfig | TelegramChannelConfig | FeishuChannelConfig | DingTalkChannelConfig
 
 export interface NotificationConfig {
   enabled: boolean
@@ -28,6 +33,7 @@ export interface NotificationConfig {
     wechat: WechatChannelConfig
     telegram: TelegramChannelConfig
     feishu: FeishuChannelConfig
+    dingtalk: DingTalkChannelConfig
   }
   rules: Record<string, string[]>
 }

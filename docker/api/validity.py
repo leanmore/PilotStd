@@ -3,6 +3,7 @@
 # PUT  /api/validity/config → 更新时效性检查配置
 # POST /api/validity/run → 立即执行一次检查
 # GET  /api/validity/history → 获取执行历史
+# POST /api/validity/enqueue → 将指定文件加入时效性检查队列
 import logging
 
 from fastapi import Depends, Query
@@ -200,3 +201,35 @@ def get_validity_history(
         for r in rows
     ]
     return {"total": total, "page": page, "page_size": page_size, "items": items}
+
+
+@router.post("/api/validity/enqueue")
+def enqueue_validity_check(body: dict, mgr=Depends(get_manager_dep)):
+    """将指定文件路径加入时效性检查队列。"""
+    file_paths: list[str] = body.get("file_paths", []) if isinstance(body.get("file_paths"), list) else []
+    if not file_paths:
+        return JSONResponse({"error": "file_paths 不能为空"}, status_code=400)
+
+    try:
+        from pilotstd.core.config import get_db_path as _dbp
+        from pilotstd.core.db import Database as _DB
+
+        db = _DB(_dbp())
+        inserted = 0
+        for fp in file_paths:
+            try:
+                db.execute(
+                    "INSERT OR IGNORE INTO validity_check_queue "
+                    "(file_path, status, created_at) VALUES (?, 'pending', datetime('now'))",
+                    (str(fp),),
+                )
+                if db.cursor.rowcount > 0:
+                    inserted += 1
+            except Exception:
+                pass
+        db.close()
+        logger.info("时效性检查入队: %d/%d", inserted, len(file_paths))
+        return {"ok": True, "enqueued": inserted, "total": len(file_paths)}
+    except Exception as e:
+        logger.exception("时效性检查入队失败")
+        return JSONResponse({"error": f"入队失败: {e}"}, status_code=500)

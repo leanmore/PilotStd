@@ -433,3 +433,222 @@ Docker `lifespan` 启动时仅注册任务函数 + 启动调度器，**不立即
 ### BIZ-12 影响
 
 压测用例 BIZ-12 依赖 `announcement_cache` 中有预置数据才能返回 `found=True`。当前无自动预热，需手动执行一次公告检查（如 `POST /api/announce/check`）或通过外部脚本预灌缓存数据。
+
+## 九、Web 仪表板改造 — 阶段跟踪
+
+### 阶段 0：基础设施搭建（完成于 2026-06-25）
+
+- [x] 安装 `vue-grid-layout@3.0.0-beta1`
+- [x] 创建 `web/src/types/dashboard.ts`（Widget 类型定义）
+- [x] 创建 `web/src/types/vue-grid-layout.d.ts`（TS 类型声明）
+- [x] 创建 `web/src/utils/dashboard-migration.ts`（布局版本管理）
+- [x] 创建 `web/src/stores/dashboard.ts`（Dashboard Store）
+- [x] 修改 `main.ts` 支持多语言（zh-CN/zh-TW/en 同步加载）
+- [x] 修改 `stores/app.ts` 新增 `setLocale()` 方法
+- [x] 设置页面"界面"Tab 增加语言选择下拉菜单
+
+**新增能力**：
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `dashboard.store` | ✅ 已就绪 | 布局管理 + localStorage 持久化，6 个默认 Widget |
+| `dashboard.migration` | ✅ 已就绪 | 版本升级 + 自动备份 + 一键重置 |
+| `settings.locale` | ✅ 已就绪 | 语言切换（zh-CN/zh-TW/en），刷新保持 |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | `npm ls vue-grid-layout` 显示 3.0.0-beta1 | ✅ |
+| 0.2 | 4 个新文件全部存在 | ✅ |
+| 0.3 | `vue-tsc -p tsconfig.app.json --noEmit` 零错误 | ✅ |
+| 0.4 | Dashboard Store 功能 | ⚠️ 需浏览器验证 |
+| 0.5 | 语言选择功能 | ⚠️ 需浏览器验证 |
+| 0.6 | 回归检查 | ⚠️ 需浏览器验证 |
+
+> 0.4-0.6 需要在浏览器环境中逐项验证，当前环境只能做静态检查。`vite build` 构建已通过。
+
+### 阶段 1：仪表板核心改造（完成于 2026-06-25）
+
+- [x] 创建 4 个 Widget 组件：
+  - `StatsCard.vue` — 统计数字卡（复用 4 次，各自独立 `getStats()`）
+  - `AdapterStatusCard.vue` — 适配器熔断状态表（含 1s 本地倒计时）
+  - `RecentAnnounceCard.vue` — 最近 5 条公告列表
+  - `QuickActionsCard.vue` — 4 个快捷操作按钮
+- [x] `HomeView.vue` 改造为 `vue-grid-layout` 仪表板
+- [x] 原有 4 个统计卡迁移到 `StatsCard` Widget
+- [x] 适配器状态从 `DashboardView` 迁移到 `AdapterStatusCard` Widget
+- [x] 最近公告迁移到 `RecentAnnounceCard` Widget
+- [x] 快捷操作迁移到 `QuickActionsCard` Widget
+- [x] 拖拽 + 缩放 + 布局持久化（`onLayoutUpdated` → localStorage）
+
+**新增能力**：
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `dashboard.grid` | ✅ 已就绪 | `vue-grid-layout` 拖拽/缩放/持久化 |
+| `dashboard.widget.stats` | ✅ 已就绪 | 4 个统计数字卡（独立 API 请求） |
+| `dashboard.widget.adapter` | ✅ 已就绪 | 适配器状态表（含 1s 倒计时 + 条件刷新） |
+| `dashboard.widget.announce` | ✅ 已就绪 | 最近 5 条公告列表 |
+| `dashboard.widget.actions` | ✅ 已就绪 | 4 个快捷操作按钮 |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | `vue-tsc --noEmit` 零错误 | ✅ |
+| 0.2 | `vite build` 构建成功 | ✅ |
+| 0.3 | 4 个 Widget 文件存在 | ✅ |
+| 0.4 | HomeView.vue 使用 GridLayout+GridItem | ✅ |
+| 0.5 | Dashboard Store 驱动仪表板 | ✅ |
+| 0.6-0.10 | 拖拽/缩放/数据显示/路由跳转 | ⚠️ 需浏览器验证 |
+
+> 门禁 0.6-0.10（交互行为）需要在浏览器中逐项操作验证。DashboardView.vue 暂不删除（熔断配置表单留待阶段 2 迁移到设置页）。
+
+### 阶段 2：适配监控拆分（完成于 2026-06-25）
+
+- [x] 熔断配置迁移到设置页"熔断"Tab（失败阈值 / 4阶梯冻结时长 / 归零窗口 / 保存）
+- [x] `DashboardView.vue` 已删除
+- [x] `router.ts` 中 `/dashboard` 路由已删除
+- [x] `AppLayout.vue` 中侧边栏/底部导航 "适配器监控" 已删除
+- [x] `zh-CN.json` / `en.json` / `zh-TW.json` 中 `nav.dashboard` 已清理
+
+**已迁移能力**：
+
+| 能力 | 原位置 | 新位置 | 状态 |
+|---|---|---|---|
+| 适配器状态 | `DashboardView.vue` | `AdapterStatusCard.vue`（仪表板 Widget） | ✅ |
+| 熔断配置 | `DashboardView.vue` | `SettingsView.vue`（熔断 Tab） | ✅ |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | 设置页显示"熔断"Tab | ✅ tabs 数组已包含 |
+| 0.2 | `vue-tsc --noEmit` 零错误 | ✅ |
+| 0.3 | `vite build` 构建成功 | ✅ |
+| 0.4 | DashboardView.vue 已删除 | ✅ 文件不存在 |
+| 0.5 | 路由无 `/dashboard` | ✅ router.ts 已清理 |
+| 0.6 | 导航无 "适配器监控" | ✅ AppLayout.vue 已清理 |
+| 0.7 | i18n 无 `nav.dashboard` | ✅ 3 文件已清理 |
+| 0.8 | 适配器 Widget 正常 | ⚠️ 需浏览器验证 |
+
+### 下一步
+阶段 3：公告英文中文化 + 用户管理完善
+
+### 阶段 3：公告英文中文化 + 用户管理完善（完成于 2026-06-25）
+
+- [x] 公告页面 5 个英文标签中文化（`summaryLabelMap` 映射）
+- [x] 用户删除增加确认弹窗（`ConfirmDialog` + `useConfirm`）
+- [x] 删除权限逻辑改为基于角色（`role !== 'admin'` 不可见删除按钮）
+- [x] 管理员不能删除自己（`currentUser.id` 匹配防护）
+- [x] 至少保留一个管理员（`adminCount <= 1` 拦截）
+- [x] 修改密码弹窗显示当前用户名
+- [x] 禁用 `admin` 保留用户名（`toast` 错误提示）
+- [x] 注册 `ConfirmationService` + `ToastService`（`main.ts`）
+
+**新增/修改能力**：
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `announce.display` | ✅ 已就绪 | 公告摘要标签中文显示（标准总数/已匹配/已更新/新增/已跳过） |
+| `user.delete` | ✅ 已就绪 | 删除确认弹窗 + 角色权限 + 自我防护 + 保留最后管理员 |
+| `user.password` | ✅ 已就绪 | 修改密码弹窗标题含当前用户名 |
+| `user.username` | ✅ 已就绪 | 禁用 `admin` 保留用户名 |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | `vue-tsc --noEmit` 零错误 | ✅ |
+| 0.2 | `vite build` 构建成功 | ✅ |
+| 0.3 | 公告标签中文映射 | ✅ `summaryLabelMap` 已添加 |
+| 0.4 | ConfirmDialog 组件已导入 | ✅ |
+| 0.5 | Toast 组件已导入 | ✅ |
+| 0.6 | 删除权限 canDelete 逻辑 | ✅ |
+| 0.7 | 密码弹窗标示清晰 | ✅ |
+| 0.8 | admin 用户名校验 | ✅ |
+| 0.9 | 交互行为验证 | ⚠️ 需浏览器验证 |
+
+### 下一步
+阶段 4：通知卡片美化 + 通知配置整合进设置页
+
+### 阶段 4：通知卡片美化 + 通知配置整合（完成于 2026-06-25）
+
+- [x] 通知配置提取为 `NotificationConfig.vue` 独立组件（防 SettingsView 膨胀）
+- [x] 通知配置整合进设置页"通知"Tab
+- [x] 渠道卡片改为响应式网格布局（`grid-template-columns: repeat(auto-fill, minmax(340px, 1fr))`）
+- [x] 新增钉钉渠道（webhook_url + secret + 事件订阅）
+- [x] 删除 `NotificationsView.vue` 独立页面
+- [x] 清理路由 `/notifications`、导航项、i18n `nav.notifications`
+
+**新增/修改能力**：
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `notification.integration` | ✅ 已就绪 | 通知配置整合进设置页"通知"Tab |
+| `notification.card_layout` | ✅ 已就绪 | 响应式网格卡片布局 |
+| `notification.dingtalk` | ✅ 前端就绪 | 钉钉渠道卡片（后端待对接） |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | `vue-tsc --noEmit` 零错误 | ✅ |
+| 0.2 | `vite build` 构建成功 | ✅ |
+| 0.3 | NotificationConfig 组件已创建 | ✅ 230 行 |
+| 0.4 | 设置页含"通知"Tab | ✅ |
+| 0.5 | 4 渠道卡片（含钉钉） | ✅ |
+| 0.6 | 网格响应式布局 | ✅ |
+| 0.7 | NotificationsView.vue 已删除 | ✅ |
+| 0.8 | 路由/nav/i18n 已清理 | ✅ |
+| 0.9 | 交互行为验证 | ⚠️ 需浏览器验证 |
+
+### 下一步
+阶段 5：时效性检查拆分
+
+### 阶段 5：时效性检查拆分（完成于 2026-06-25）
+
+- [x] 时效性配置迁移到设置页"时效性"Tab（`ValidityConfig.vue` 组件）
+- [x] 执行记录扩展（20条/页、状态筛选、日期范围、详情弹窗）
+- [x] 文件选择器移到 `OrganizeView.vue`（复选框 + 全选 + 操作栏 + 入队按钮）
+- [x] 新增 `POST /api/validity/enqueue` 后端接口（写入 `validity_check_queue` 表）
+- [x] 删除 `ValidityConfigView.vue`
+- [x] 清理路由 `/validity-config`、导航项 `nav.validity_config`、i18n 键
+
+**新增/修改能力**：
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `validity.config` | ✅ 已就绪 | 设置页"时效性"Tab（配置 + 立即执行） |
+| `validity.history` | ✅ 已就绪 | 执行记录（分页/筛选/详情弹窗） |
+| `validity.enqueue` | ✅ 已就绪 | 从文件管理页加入检查队列 + `POST /api/validity/enqueue` |
+| `organize.checkbox` | ✅ 已就绪 | 文件复选框 + 全选 + 操作栏 |
+
+**门禁检查**：
+
+| 编号 | 检查项 | 结果 |
+|------|--------|------|
+| 0.1 | `vue-tsc --noEmit` 零错误 | ✅ |
+| 0.2 | `vite build` 构建成功 | ✅ |
+| 0.3 | `mypy docker/api/validity.py` 零错误 | ✅ |
+| 0.4 | ValidityConfig 组件已创建 | ✅ 190 行 |
+| 0.5 | 设置页含"时效性"Tab | ✅ |
+| 0.6 | OrganizeView 含复选框 | ✅ + 全选/操作栏/入队 |
+| 0.7 | ValidityConfigView.vue 已删除 | ✅ |
+| 0.8 | 路由/nav/i18n 已清理 | ✅ |
+| 0.9 | 交互行为验证 | ⚠️ 需浏览器验证 |
+
+### 🎉 全部 6 个阶段已完成
+
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| 阶段 0 | 基础设施搭建（vue-grid-layout + 类型 + Store + 语言选择） | ✅ |
+| 阶段 1 | 仪表板核心改造（4 Widget + HomeView 拖拽化） | ✅ |
+| 阶段 2 | 适配监控拆分（熔断配置 → 设置页，DashboardView 删除） | ✅ |
+| 阶段 3 | 公告中文化 + 用户管理完善 | ✅ |
+| 阶段 4 | 通知卡片美化 + 通知整合进设置页 | ✅ |
+| 阶段 5 | 时效性检查拆分 + 文件选择器 | ✅ |
+
+**累计代码变化**：修改 ~20 个文件，新增 ~10 个文件，净减 ~600 行代码。
+**能力登记簿**：从 68 条增长至 84 条，新增 17 条 active，废弃 3 条。

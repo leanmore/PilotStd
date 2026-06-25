@@ -45,3 +45,6 @@ export const getValidityHistory = (params: {
   page_size?: number
 }): Promise<ValidityHistoryResponse> =>
   http.get('/validity/history', { params }).then(r => r.data)
+
+export const enqueueValidityCheck = (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>
+  http.post('/validity/enqueue', { file_paths: filePaths }).then(r => r.data)
