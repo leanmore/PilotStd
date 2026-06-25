@@ -102,6 +102,7 @@ fi
 # PILOTSTD_AUTO_UPDATE=true 时执行 update.sh（git pull + 重启进程）
 if [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
     echo "[AUTO-UPDATE] 自动更新已开启，执行更新脚本..."
+    chmod +x /app/docker/update.sh 2>/dev/null || true
     /app/docker/update.sh
 else
     echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
