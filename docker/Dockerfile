@@ -20,15 +20,13 @@ COPY --from=builder /install/bin /usr/local/bin/
 # 创建非 root 用户
 RUN useradd -m appuser
 
-# 安装 gosu + docker CLI（用于自更新 API 执行 docker pull/restart）
-RUN apt-get update && apt-get install -y --no-install-recommends gosu curl && \
-    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh && \
-    sh /tmp/get-docker.sh --version 27.0.3 2>/dev/null || true && \
-    rm -f /tmp/get-docker.sh && \
+# 安装 gosu + git（自更新 git pull 方案，参照 MoviePilot）
+RUN apt-get update && apt-get install -y --no-install-recommends gosu git curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker/update.sh /app/docker/update.sh
+RUN chmod +x /entrypoint.sh /app/docker/update.sh
 
 # 复制源码
 COPY pilotstd/ ./pilotstd/

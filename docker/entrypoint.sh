@@ -49,31 +49,62 @@ if [ -z "$JWT_SECRET" ] || [ -z "$ADMIN_USERNAME" ] || [ -z "$ADMIN_PASSWORD" ];
     fi
 fi
 
-# ── 自动更新（用户只需配置 PILOTSTD_AUTO_UPDATE=true/false）──
-# 必须在 gosu 降权前以 root 执行（docker 命令需要 root + docker.sock）
-if [ "$PILOTSTD_AUTO_UPDATE" = "true" ]; then
-    echo "[AUTO-UPDATE] 自动更新已开启"
+# ── 超级用户初始化（参照 MoviePilot）──────────────────────
+# 首次启动自动创建/更新超级用户，标记文件防止重复初始化
+INIT_MARKER="/app/data/.superuser_initialized"
+SUPERUSER="${SUPERUSER:-admin}"
 
-    if [ ! -S /var/run/docker.sock ]; then
-        echo "[AUTO-UPDATE] 警告: Docker Socket 未挂载，跳过自动更新"
+if [ ! -f "$INIT_MARKER" ]; then
+    echo "[INIT] 首次启动，初始化超级用户..."
+
+    if [ -n "${SUPERUSER_PASSWORD}" ]; then
+        python -c "
+import sqlite3, hashlib
+conn = sqlite3.connect('/app/data/pilotstd.db')
+users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
+if users == 0:
+    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
+                 ('$SUPERUSER', hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest()))
+else:
+    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
+                 (hashlib.sha256('$SUPERUSER_PASSWORD'.encode()).hexdigest(), '$SUPERUSER'))
+conn.commit()
+"
+        echo "[INIT] 超级用户 $SUPERUSER 密码已通过环境变量设置"
     else
-        # 从容器元数据自动获取当前镜像名（无需用户配置）
-        IMAGE_NAME=$(docker inspect --format='{{.Config.Image}}' $(hostname) 2>/dev/null)
-        if [ -z "$IMAGE_NAME" ]; then
-            echo "[AUTO-UPDATE] 警告: 无法获取镜像名，使用默认值"
-            IMAGE_NAME="ghcr.io/leanmore/pilotstd:latest"
-        fi
-        echo "[AUTO-UPDATE] 正在拉取最新镜像: ${IMAGE_NAME}"
-
-        if timeout 120 docker pull "${IMAGE_NAME}" 2>&1; then
-            echo "[AUTO-UPDATE] 镜像拉取成功，正在重启容器应用更新..."
-            docker restart pilotstd
-        else
-            echo "[AUTO-UPDATE] 镜像拉取失败或超时，继续启动现有版本"
-        fi
+        RANDOM_PASS=$(openssl rand -base64 16 | tr -d 'O0l1+/=' | head -c 16)
+        python -c "
+import sqlite3, hashlib
+conn = sqlite3.connect('/app/data/pilotstd.db')
+users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
+if users == 0:
+    conn.execute('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)',
+                 ('$SUPERUSER', hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest()))
+else:
+    conn.execute('UPDATE users SET password_hash = ? WHERE username = ?',
+                 (hashlib.sha256('$RANDOM_PASS'.encode()).hexdigest(), '$SUPERUSER'))
+conn.commit()
+"
+        echo "[INIT] ============================================"
+        echo "[INIT] 超级用户: $SUPERUSER"
+        echo "[INIT] 初始密码: $RANDOM_PASS"
+        echo "[INIT] 请登录后立即修改！"
+        echo "[INIT] ============================================"
     fi
+
+    touch "$INIT_MARKER"
+    echo "[INIT] 超级用户初始化完成"
 else
-    echo "[AUTO-UPDATE] 自动更新已关闭 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
+    echo "[INIT] 超级用户已初始化，跳过"
+fi
+
+# ── 自动更新（参照 MoviePilot）──────────────────────────────
+# PILOTSTD_AUTO_UPDATE=true 时执行 update.sh（git pull + 重启进程）
+if [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
+    echo "[AUTO-UPDATE] 自动更新已开启，执行更新脚本..."
+    /app/docker/update.sh
+else
+    echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
 fi
 
 # PUID/PGID: 修正 appuser 的 UID/GID 匹配 NAS 文件权限

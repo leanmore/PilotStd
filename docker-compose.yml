@@ -17,18 +17,18 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./inbox:/inbox               # 监控目录——放待处理的文件
-      - ./standards:/standards          # 标准库——归档目标（用户改路径直接改 ./standards）
-      - ./.env:/app/.env             # 安全凭证——令牌刷新后持久化
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker 自更新（容器内 docker pull + restart）
+      - ./inbox:/inbox
+      - ./standards:/standards
+      - ./.env:/app/.env
     environment:
       - TZ=Asia/Shanghai
-      # Docker 自更新 — 改下面这行：true=开启, false=关闭
+      # 自动更新：true=开启, false=关闭
       - PILOTSTD_AUTO_UPDATE=true
+      # 超级用户（可选，默认 admin）
+      - SUPERUSER=admin
+      # 超级用户初始密码（可选，不填则自动生成随机密码，输出到日志）
+      # - SUPERUSER_PASSWORD=your_password
       - STANDARD_ROOT=/standards
-      # Docker 自更新——如需 docker compose 方式重启，设置以下环境变量指向宿主机上的 compose 文件
-      # - COMPOSE_FILE=/path/to/docker-compose.yml
-      # - COMPOSE_PROJECT_NAME=pilotstd
       # 安全凭证（可选）—— 留空则首次启动自动生成
       # - ADMIN_USERNAME=admin
       # - ADMIN_PASSWORD=你的密码
