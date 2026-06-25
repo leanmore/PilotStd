@@ -328,6 +328,7 @@
 
 | 日期 | 决策 | 依据 |
 |------|------|------|
+| 2026-06-25 | Docker 重启即更新机制 — PILOTSTD_AUTO_UPDATE=true 时容器启动自动拉取最新镜像并重启自身 | 参考 MoviePilot 实现，挂载 docker.sock + entrypoint 中 root 阶段执行 docker pull/restart |
 | 2026-06-22 | AUTH-02：从 AUTH_WHITELIST 移除 announce/lookup，强制 token 鉴权 | 白名单绕过导致无效 token 仍返回 200，安全隐患 |
 | 2026-06-22 | BIZ-12：`(body.get("data") or {}).get("source")` 防御性空值处理 | `dict.get(key, default)` 在 key 存在值为 None 时不回退 |
 | 2026-06-22 | verify_api_key：去掉 pst_ 前缀后再做 SHA256 哈希 | 存储时哈希无前缀值，校验时哈希含前缀值，永远不匹配 |

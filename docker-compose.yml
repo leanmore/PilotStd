@@ -23,6 +23,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock  # Docker 自更新（容器内 docker pull + restart）
     environment:
       - TZ=Asia/Shanghai
+      # Docker 自更新
+      - PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-false}
+      - PILOTSTD_IMAGE=${PILOTSTD_IMAGE:-ghcr.io/leanmore/pilotstd:latest}
       - STANDARD_ROOT=/standards
       # Docker 自更新——如需 docker compose 方式重启，设置以下环境变量指向宿主机上的 compose 文件
       # - COMPOSE_FILE=/path/to/docker-compose.yml
