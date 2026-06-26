@@ -685,8 +685,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Path Guard ──
 
-    @patch("os.path.exists", return_value=True)
-    def test_get_allowed_roots_includes_inbox_and_standards(self, mock_exists):
+    def test_get_allowed_roots_includes_inbox_and_standards(self):
         """回归门禁：get_allowed_roots 必须包含 inbox 和 standards（Docker 挂载点）。"""
         from pilotstd.core.path_guard import get_allowed_roots
 

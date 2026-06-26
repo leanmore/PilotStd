@@ -20,10 +20,9 @@ def get_allowed_roots(config_root: str = "") -> list[str]:
         if std_real not in roots:
             roots.append(std_real)
     for extra in _DOCKER_EXTRA_ROOTS:
-        if os.path.exists(extra):
-            extra_real = os.path.realpath(extra)
-            if extra_real not in roots:
-                roots.append(extra_real)
+        extra_real = os.path.realpath(extra)
+        if extra_real not in roots:
+            roots.append(extra_real)
     return roots
 
 
