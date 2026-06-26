@@ -11,14 +11,11 @@ describe('StandardTable', () => {
       props: { data: [] },
       global: {
         plugins: [PrimeVue],
-        // PrimeVue v4 不全局注册组件，需在 mount 时显式注册
         components: { DataTable, Column },
       },
     })
-    // DataTable 组件挂载后应存在
     const dt = wrapper.findComponent({ name: 'DataTable' })
     expect(dt.exists()).toBe(true)
-    // 应有 4 个 Column 列定义
     expect(wrapper.findAllComponents({ name: 'Column' }).length).toBe(4)
   })
 
@@ -34,7 +31,6 @@ describe('StandardTable', () => {
         components: { DataTable, Column },
       },
     })
-    // 验证 DataTable 收到正确的 value prop
     const dt = wrapper.findComponent({ name: 'DataTable' })
     expect(dt.exists()).toBe(true)
     expect(dt.props('value')).toEqual(data)

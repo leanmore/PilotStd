@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
+import { useThemeSync } from '@/composables/useThemeSync'
 
 const route = useRoute()
+
+// 同步应用主题与 PrimeVue 主题状态
+useThemeSync()
 </script>
 
 <template>

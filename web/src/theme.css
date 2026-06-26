@@ -1,50 +1,10 @@
-/* PilotStd — 暗色主题变量覆盖 */
-[data-theme="dark"] {
-  /* 背景层级 */
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface-raised: #334155;
-
-  /* 边框 */
-  --border: #475569;
-  --border-light: #334155;
-
-  /* 文字层级 */
-  --text-dim: #94a3b8;
-  --text: #cbd5e1;
-  --text-bright: #e2e8f0;
-  --text-heading: #f1f5f9;
-
-  /* 品牌主色 — 暗色下稍亮 */
-  --primary: #818cf8;
-  --primary-hover: #6366f1;
-  --primary-bg: rgba(129, 140, 248, 0.15);
-  --primary-border: rgba(129, 140, 248, 0.35);
-
-  /* 向后兼容别名 */
-  --accent: var(--primary);
-  --accent-dim: var(--primary-hover);
-  --accent-bg: var(--primary-bg);
-  --accent-border: var(--primary-border);
-
-  /* 语义色 — 暗色下稍亮 */
-  --success: #4ade80;
-  --success-bg: rgba(74, 222, 128, 0.15);
-  --danger: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.15);
-  --warning: #fbbf24;
-  --warning-bg: rgba(251, 191, 36, 0.15);
-  --info: #60a5fa;
-  --info-bg: rgba(96, 165, 250, 0.15);
-
-  /* 选中 */
-  --selected: rgba(129, 140, 248, 0.12);
-  --focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.3);
-
-  /* 阴影 — 暗色下加深 */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 8px 16px -6px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 16px 32px -12px rgba(0, 0, 0, 0.7);
-}
+/* PilotStd — 主题切换说明 */
+/*
+ * 主题切换现在由 JS 动态管理（见 config/themes.ts 和 stores/app.ts）。
+ * CSS 变量通过 applyThemeToDom() 动态设置，不再需要 [data-theme="dark"] 覆盖。
+ *
+ * 本文件保留作为历史参考，如需添加特定主题的额外样式覆盖，可在此处添加。
+ *
+ * 旧暗色主题覆盖（已废弃，仅供参考）：
+ * [data-theme="dark"] { --bg: #0f172a; --surface: #1e293b; ... }
+ */

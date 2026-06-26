@@ -7,6 +7,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import { getUsers, addUser, deleteUser, changePassword, getSettings, putSettings, uploadFile, getToken, refreshToken } from '@/api'
 import { useAppStore } from '@/stores/app'
+import { THEMES } from '@/config/themes'
 import http from '@/api/http'
 import NotificationConfig from '@/components/NotificationConfig.vue'
 import ValidityConfig from '@/components/ValidityConfig.vue'
@@ -21,6 +22,9 @@ import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+
+// 主题列表（供模板使用）
+const themeList = computed(() => Object.values(THEMES))
 
 // ── 用户管理 ──
 const users = ref<any[]>([]); const showAdd = ref(false)
@@ -379,20 +383,22 @@ const sites = [
         <option :value="false">禁用</option><option :value="true">启用</option>
       </select>
       <label>公告检查 cron</label><input :value="getp('tasks.auto_announce_cron','0 1 * * *')" @input="setp('tasks.auto_announce_cron',($event.target as any).value)" class="fi" />
-      <!-- 主题切换（亮色/暗色双主题） -->
+      <!-- 主题切换（四套主题） -->
       <label>主题</label>
       <div class="theme-options">
-        <label class="theme-option" :class="{ active: store.theme === 'light' }" @click="setTheme('light')">
-          <div class="theme-swatch light">
-            <i class="pi pi-sun" />
+        <label
+          v-for="t in themeList"
+          :key="t.id"
+          class="theme-option"
+          :class="{ active: store.theme === t.id }"
+          @click="setTheme(t.id)"
+        >
+          <div class="theme-swatch-wrapper">
+            <div class="theme-swatch" :style="{ background: t.colors.bg, borderColor: t.colors.border }">
+              <div class="theme-primary-dot" :style="{ background: t.colors.primary }" />
+            </div>
           </div>
-          <span>亮色</span>
-        </label>
-        <label class="theme-option" :class="{ active: store.theme === 'dark' }" @click="setTheme('dark')">
-          <div class="theme-swatch dark">
-            <i class="pi pi-moon" />
-          </div>
-          <span>暗色</span>
+          <span>{{ t.label }}</span>
         </label>
       </div>
       <!-- 界面语言选择 -->
@@ -402,7 +408,7 @@ const sites = [
         :options="localeOptions"
         optionLabel="label"
         optionValue="value"
-        class="fi"
+        class="fi lang-select"
         style="width:200px"
         @change="onLocaleChange"
       />
@@ -612,30 +618,40 @@ const sites = [
 .form-grid label { color: var(--text-dim); }
 .fi { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); font-size: 13px; outline: none; transition: border-color var(--transition); }
 .fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+/* 语言下拉框——紧凑垂直内边距 */
+.lang-select :deep(.p-select-label) { padding-top: 6px; padding-bottom: 6px; }
 .upload-btn { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; white-space: nowrap; }
 .upload-btn:hover { border-color: var(--primary); color: var(--primary); }
 .error { color: var(--danger); font-size: 12px; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-left: 8px; }
 
 /* 主题选择器 */
-.theme-options { display: flex; gap: 12px; }
-.theme-option { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-.theme-option span { font-size: 12px; color: var(--text-dim); }
+.theme-options { display: flex; gap: 16px; flex-wrap: wrap; }
+.theme-option { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; }
+.theme-option span { font-size: 12px; color: var(--text-dim); transition: color var(--transition); }
 .theme-option.active span { color: var(--primary); font-weight: 600; }
+.theme-swatch-wrapper { padding: 3px; }
 .theme-swatch {
-  width: 56px;
-  height: 40px;
+  width: 72px;
+  height: 38px;
   border-radius: var(--radius-sm);
   border: 2px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.theme-primary-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
 }
 .theme-option.active .theme-swatch { border-color: var(--primary); box-shadow: var(--focus-ring); }
-.theme-swatch.light { background: #f4f5fa; color: #f59e0b; }
-.theme-swatch.dark { background: #111827; color: #818cf8; }
 
 .site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .site-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: box-shadow 0.15s; }

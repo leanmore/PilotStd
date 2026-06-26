@@ -7,7 +7,6 @@ import AppLayout from './AppLayout.vue'
 import PrimeVue from 'primevue/config'
 import zhCN from '@/locales/zh-CN.json'
 
-// 与生产环境一致的完整路由表，避免 [Vue Router warn]
 const Dummy = { template: '<div />' }
 const routes = [
   { path: '/', component: { template: '<div>Home</div>' } },
@@ -24,10 +23,7 @@ function mountLayout() {
   const pinia = createPinia()
   setActivePinia(pinia)
   const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes,
-  })
+  const router = createRouter({ history: createMemoryHistory(), routes })
   return mount(AppLayout, {
     global: {
       plugins: [pinia, i18n, router, PrimeVue],

@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+// Node.js 原生测试 — App Store（纯逻辑，无需 Vue SFC 编译）
+import { describe, it, expect, beforeEach } from '../test-helper.js'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAppStore } from './app'
 
-describe('useAppStore', () => {
+describe('useAppStore (native)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()

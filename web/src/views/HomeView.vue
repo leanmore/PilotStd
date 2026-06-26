@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { GridLayout, GridItem } from 'vue-grid-layout'
+import { GridLayout, GridItem } from 'grid-layout-plus'
 import type { WidgetType } from '@/types/dashboard'
 import { useDashboardStore } from '@/stores/dashboard'
 import StatsCard from '@/components/dashboard/widgets/StatsCard.vue'
@@ -79,20 +79,20 @@ function getWidgetComponent(type: WidgetType) {
   margin-top: 4px;
 }
 
-/* vue-grid-layout 占位符定制 */
-:deep(.vue-grid-item.vue-grid-placeholder) {
+/* grid-layout-plus 占位符定制 */
+:deep(.vgl-item--placeholder) {
   background: var(--primary);
   opacity: 0.12;
   border-radius: var(--radius);
 }
 
 /* 网格项过渡 */
-:deep(.vue-grid-item) {
+:deep(.vgl-item) {
   transition: all 200ms ease;
 }
 
 /* 拖拽中的项加阴影 */
-:deep(.vue-grid-item.vue-draggable-dragging) {
+:deep(.vgl-item--dragging) {
   box-shadow: var(--shadow-lg);
   z-index: 3;
 }

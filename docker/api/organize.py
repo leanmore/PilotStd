@@ -50,6 +50,8 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
     items = []
     try:
         for entry in os.scandir(safe_path):
+            if entry.name.startswith("@eaDir"):
+                continue
             items.append(
                 {
                     "name": entry.name,

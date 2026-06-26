@@ -1,5 +1,6 @@
 import './style.css'
 import './theme.css'
+import 'primeicons/primeicons.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
@@ -12,6 +13,7 @@ import router from './router'
 import zhCN from './locales/zh-CN.json'
 import en from './locales/en.json'
 import zhTW from './locales/zh-TW.json'
+import { isDarkTheme } from '@/config/themes'
 
 const savedLocale = (localStorage.getItem('locale') || 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
 
@@ -28,10 +30,20 @@ const i18n = createI18n({
   messages,
 })
 
+// 检测初始主题的明暗类型
+const savedTheme = localStorage.getItem('theme') || 'light'
+const initialDark = isDarkTheme(savedTheme)
+
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
-app.use(PrimeVue, { theme: { preset: Aura }, ripple: true })
+app.use(PrimeVue, {
+  theme: {
+    preset: Aura,
+    options: { dark: initialDark },
+  },
+  ripple: true,
+})
 app.use(ConfirmationService)
 app.use(ToastService)
 app.use(i18n)

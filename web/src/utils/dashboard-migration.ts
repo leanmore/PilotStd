@@ -60,7 +60,7 @@ export function loadLayout(): DashboardLayoutV1 {
 
   try {
     const data = JSON.parse(raw)
-    if (data.version !== CURRENT_VERSION) {
+    if (data.version !== CURRENT_VERSION || !Array.isArray(data.widgets) || data.widgets.length === 0) {
       localStorage.setItem(BACKUP_KEY, raw)
       return createDefaultLayout()
     }

@@ -8,8 +8,8 @@ import { useDashboardStore } from '@/stores/dashboard'
 import PrimeVue from 'primevue/config'
 import zhCN from '@/locales/zh-CN.json'
 
-// vue-grid-layout 在 jsdom 中无法正常 import，mock 为简单容器组件
-vi.mock('vue-grid-layout', () => ({
+// grid-layout-plus 在 jsdom 中无法正常渲染，mock 为简单容器组件
+vi.mock('grid-layout-plus', () => ({
   GridLayout: {
     name: 'GridLayout',
     template: '<div class="grid-layout"><slot /></div>',
@@ -42,14 +42,12 @@ describe('HomeView', () => {
   it('renders 4 stat cards from default layout', () => {
     mountHome()
     const store = useDashboardStore()
-    const statCards = store.widgets.filter(w => w.type === 'stats-card')
+    const statCards = store.widgets.filter((w: any) => w.type === 'stats-card')
     expect(statCards.length).toBe(4)
   })
 
   it('stat cards show skeleton loading when API not loaded', () => {
     const wrapper = mountHome()
-    // StatsCard 加载中渲染 .skeleton-box（图标占位）和 .skeleton-num / .skeleton-label（文字占位）
-    // 每个 card：1 个 box + 1 个 num + 1 个 label = 共 4 组
     const skeletonBoxes = wrapper.findAll('.skeleton-box')
     const skeletonNums = wrapper.findAll('.skeleton-num')
     const skeletonLabels = wrapper.findAll('.skeleton-label')
@@ -62,7 +60,6 @@ describe('HomeView', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const store = useDashboardStore()
-    // 默认布局不含 quick-actions，手动添加到 store
     store.widgets.push({
       id: 'quick-actions',
       type: 'quick-actions',
@@ -76,9 +73,7 @@ describe('HomeView', () => {
       routes: [{ path: '/', component: HomeView }],
     })
     const wrapper = mount(HomeView, {
-      global: {
-        plugins: [pinia, i18n, router, PrimeVue],
-      },
+      global: { plugins: [pinia, i18n, router, PrimeVue] },
     })
 
     const buttons = wrapper.findAll('.action-btn')

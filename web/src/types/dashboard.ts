@@ -1,6 +1,6 @@
 // web/src/types/dashboard.ts — 仪表板卡片布局类型定义
 
-import type { LayoutItem } from 'vue-grid-layout'
+import type { LayoutItem } from 'grid-layout-plus'
 
 // ── 仪表板业务类型 ──
 
@@ -12,7 +12,7 @@ export type WidgetType =
   | 'task-progress'
   | 'validity-history'
 
-export type { LayoutItem } from 'vue-grid-layout'
+export type { LayoutItem } from 'grid-layout-plus'
 
 export interface DashboardWidget {
   id: string
