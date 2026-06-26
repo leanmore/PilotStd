@@ -46,3 +46,38 @@ repos:
         files: \.py$
         pass_filenames: false
         always_run: true
+
+      - id: gate-allowed-paths
+        name: 门禁 GATE-01 — 白名单路径检查
+        entry: python scripts/check_allowed_paths.py
+        language: python
+        files: pilotstd/core/path_guard\.py$
+        pass_filenames: false
+
+      - id: gate-log-tags
+        name: 门禁 GATE-02 — 日志标签完整性
+        entry: python scripts/check_log_tags.py
+        language: python
+        files: (pilotstd/core/logger\.py|pilotstd/query/engine\.py)$
+        pass_filenames: false
+
+      - id: gate-sensitive-fields
+        name: 门禁 GATE-03 — 敏感字段掩码
+        entry: python scripts/check_sensitive_fields.py
+        language: python
+        files: docker/api/settings\.py$
+        pass_filenames: false
+
+      - id: gate-adapters
+        name: 门禁 GATE-05 — 适配器列表一致性
+        entry: python scripts/check_adapters.py
+        language: python
+        files: docker/api/adapter\.py$
+        pass_filenames: false
+
+      - id: gate-docker-mounts
+        name: 门禁 GATE-06 — Docker 挂载黑名单
+        entry: python scripts/check_docker_mounts.py
+        language: python
+        files: docker-compose\.yml$
+        pass_filenames: false

@@ -124,6 +124,8 @@ class AutoRunMixin:
         tp = getattr(self, "_throttled_progress", None)
         if tp:
             tp.flush()
+        # 阶段切换时归零，避免从上一阶段结束位置闪跳
+        self.progress_bar.setValue(0)
         if stage != "done":
             self.btn_query.setEnabled(False)
             self.btn_download.setEnabled(False)

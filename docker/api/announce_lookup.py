@@ -16,23 +16,23 @@ def lookup_announcement(
     number: str = Query(..., description="标准号，精确匹配"),
     mgr=Depends(get_manager_dep),
 ):
-    """按标准号精确查询公告缓存，返回匹配结果。"""
+    """按标准号精确查询公告抓取记录，返回匹配结果。"""
     try:
         rows = mgr.db.fetchall(
-            "SELECT standard_number, source_site, result_json, cached_at "
-            "FROM announcement_cache WHERE standard_number = ? "
-            "ORDER BY cached_at DESC LIMIT 1",
+            "SELECT standard_number, source_site, result_json, fetch_time "
+            "FROM announcement_fetch_log WHERE standard_number = ? "
+            "ORDER BY fetch_time DESC LIMIT 1",
             (number,),
         )
     except Exception as e:
-        logger.error("公告缓存查询失败 标准号=%s: %s", number, e)
+        logger.error("公告抓取记录查询失败 标准号=%s: %s", number, e)
         raise HTTPException(status_code=500, detail=f"数据库查询失败: {e}")
 
     if not rows:
         return {
             "found": False,
             "data": None,
-            "message": "未在公告缓存中找到该标准",
+            "message": "未在公告抓取记录中找到该标准",
         }
 
     row = rows[0]
@@ -45,5 +45,5 @@ def lookup_announcement(
         "found": True,
         "data": result_data,
         "cached_at": row[3],
-        "source": "announcement_cache",
+        "source": "announcement_fetch_log",
     }

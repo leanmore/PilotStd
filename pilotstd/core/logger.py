@@ -44,14 +44,15 @@ _TAG_MAP = {
 
 
 class _TagFormatter(logging.Formatter):
-    """带模块缩写的格式化器。"""
+    """带模块缩写的格式化器，标签通过 i18n 运行时翻译。"""
 
     def format(self, record: logging.LogRecord) -> str:
-        tag = record.name
-        # 取模块名最后一段
         last = record.name.rsplit(".", 1)[-1] if "." in record.name else record.name
         tag = _TAG_MAP.get(last, last.upper()[:6])
-        record.tag = tag
+        # 运行时翻译：根据当前语言设置动态翻译标签
+        from pilotstd.i18n import _ as _i18n
+
+        record.tag = _i18n(f"log.{tag}")
         return super().format(record)
 
 

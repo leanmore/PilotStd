@@ -427,5 +427,27 @@
     "site_order": "查询站点顺序:",
     "mirror_skipped_dirs": "归档时镜像跳过的目录（如标准图集、培训课件）",
     "mirror_fallback": "归档收尾：将源目录残留文件镜像到输出（不丢数据）",
-    "watchdog_enabled": "启用文件增量监控（需安装watchdog包，重启生效）"
+    "watchdog_enabled": "启用文件增量监控（需安装watchdog包，重启生效）",
+
+    "log.STRESS": "压测",
+    "log.ENGINE": "引擎",
+    "log.CACHE": "缓存",
+    "log.FACADE": "门面",
+    "log.PARSE": "解析",
+    "log.UI": "界面",
+    "log.SCAN": "扫描",
+    "log.DL": "下载",
+    "log.ORG": "整理",
+    "log.TASK": "任务",
+    "log.DB": "数据库",
+    "log.CONFIG": "配置",
+    "log.NETWOR": "网络",
+    "log.ROTATOR": "轮转",
+    "log.MATCH": "匹配",
+    "log.CSRES": "工标",
+    "log.NJBZ": "南京",
+    "log.STDGOV": "国标",
+    "log.HBBA": "行标",
+    "log.ISOGOV": "国际",
+    "log.MOCK": "模拟"
 }

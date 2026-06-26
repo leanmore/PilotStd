@@ -31,6 +31,8 @@ from datetime import datetime
 # 加载项目 .env 文件，确保 PILOTSTD_API_TOKEN 等环境变量可用
 from dotenv import load_dotenv as _load_dotenv
 
+from pilotstd.query.engine import PROGRESS_TAG
+
 _load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 # 强制 stdout 使用 utf-8 编码（Windows 默认 GBK 无法输出 Docker 日志中的 Unicode 字符）
@@ -525,7 +527,7 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict, progress_timeo
     """运行子进程，流式读取 stderr 实时输出。超时/异常不崩溃。
 
     Args:
-        progress_timeout: [PROGRESS] 心跳超时秒数，0=不监控。超时后输出警告。
+        progress_timeout: {PROGRESS_TAG} 心跳超时秒数，0=不监控。超时后输出警告。
     """
     try:
         proc = subprocess.Popen(
@@ -551,7 +553,7 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict, progress_timeo
                 if line:
                     _log(f"  {line}")
                 lines_list.append(line)
-                if "[PROGRESS]" in line:
+                if PROGRESS_TAG in line:
                     _last_progress[0] = time.time()
 
         # 进度心跳看门狗（每30秒检查一次）
@@ -561,7 +563,7 @@ def _safe_run(cmd: list, timeout: int, step_name: str, env: dict, progress_timeo
                 while not _prog_stop.wait(30.0):
                     since_last = time.time() - _last_progress[0]
                     if since_last > progress_timeout:
-                        _log(f"    ⚠ 进度心跳超时: {since_last:.0f}s 未收到 [PROGRESS]，可能卡死，请检查")
+                        _log(f"    ⚠ 进度心跳超时: {since_last:.0f}s 未收到 {PROGRESS_TAG}，可能卡死，请检查")
 
             _t_wd = threading.Thread(target=_progress_watchdog, daemon=True)
             _t_wd.start()
@@ -891,9 +893,11 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
                     "ahbz_remain": int(m8.group(1)),
                     "njbz_remain": int(m8.group(2)),
                 }
-            # ── 解析 [PROGRESS] 心跳行 ──
+            # ── 解析 {PROGRESS_TAG} 心跳行 ──
             mp = re.match(
-                r".*\[PROGRESS\]\s+completed=(\d+)\s+total=(\d+)\s+ok=(\d+)\s+rate=([\d.]+)/s\s+eta=([\d.]+)s",
+                r".*"
+                + re.escape(PROGRESS_TAG)
+                + r"\s+completed=(\d+)\s+total=(\d+)\s+ok=(\d+)\s+rate=([\d.]+)/s\s+eta=([\d.]+)s",
                 line,
             )
             if mp:

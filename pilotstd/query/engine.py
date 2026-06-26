@@ -34,6 +34,9 @@ from .daily_quota import DailyQuotaTracker
 from .models import QueryResult
 from .rotator import SiteRotator
 
+# 跨进程日志解析协议标识 — 压测脚本依赖此字符串进行心跳检测和进度解析
+PROGRESS_TAG = "[PROGRESS]"
+
 logger = logging.getLogger(__name__)
 
 # 默认站点优先级（兜底，无代号匹配时使用）
@@ -458,7 +461,7 @@ class QueryEngine:
                 rate = c / max(elapsed, 0.001)
                 eta = (n - c) / max(rate, 0.001) if rate > 0 else 0.0
                 logger.info(
-                    "[PROGRESS] 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=%.0f秒",
+                    f"{PROGRESS_TAG} 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=%.0f秒",
                     c,
                     n,
                     o,
@@ -1112,7 +1115,7 @@ class QueryEngine:
             o = _prog_ok[0]
         elapsed = _time.time() - _bucket_t0
         logger.info(
-            "[PROGRESS] 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=0秒(完成)",
+            f"{PROGRESS_TAG} 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=0秒(完成)",
             c,
             n,
             o,

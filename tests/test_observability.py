@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from pilotstd.query.engine import PROGRESS_TAG
+
 ROOT = Path(__file__).resolve().parent.parent
 
 # ── 硬性规则（登记簿之外的内置检查） ──────────────────────────────
@@ -27,8 +29,8 @@ _HARD_RULES: list[tuple[str, str, str, str]] = [
     (
         "pilotstd/query/engine.py",
         "观测日志",
-        "[PROGRESS]",
-        "query/engine.py 必须包含 [PROGRESS] 日志输出 (required)",
+        PROGRESS_TAG,
+        f"query/engine.py 必须包含 {PROGRESS_TAG} 日志输出 (required)",
     ),
     (
         "tests/stress_driver.py",
@@ -39,8 +41,8 @@ _HARD_RULES: list[tuple[str, str, str, str]] = [
     (
         "tests/stress_web.py",
         "观测日志",
-        "[PROGRESS]",
-        "stress_web.py 必须包含 [PROGRESS] 日志输出 (required)",
+        PROGRESS_TAG,
+        f"stress_web.py 必须包含 {PROGRESS_TAG} 日志输出 (required)",
     ),
     (
         "pilotstd/query/engine.py",
@@ -212,12 +214,7 @@ def _check_signal_pattern(content: str) -> bool:
 
 def _classify_cap_type(cap_type: str) -> str:
     """归类能力类型到检测函数。"""
-    if (
-        "线程" in cap_type
-        or "QTimer" in cap_type
-        or "Event" in cap_type
-        or "线程池" in cap_type
-    ):
+    if "线程" in cap_type or "QTimer" in cap_type or "Event" in cap_type or "线程池" in cap_type:
         return "thread"
     if "日志" in cap_type:
         return "log"
@@ -245,11 +242,9 @@ def check_entry(entry: CapabilityEntry) -> CheckResult:
 
     if cat == "thread":
         passed = _check_thread_pattern(content)
-        detail = (
-            "[OK] thread pattern detected" if passed else "[MISS] no thread pattern"
-        )
+        detail = "[OK] thread pattern detected" if passed else "[MISS] no thread pattern"
     elif cat == "log":
-        # 从能力名称提取日志标记（如 [PROGRESS]、[BUCKET] 等）
+        # 从能力名称提取日志标记（如 {PROGRESS_TAG}、[BUCKET] 等）
         marker_match = re.search(r"\[([A-Z_]+)\]", entry.name)
         if marker_match:
             marker = f"[{marker_match.group(1)}]"
@@ -282,9 +277,7 @@ def check_hard_rules() -> list[CheckResult]:
         if content is None:
             results.append(
                 CheckResult(
-                    CapabilityEntry(
-                        file_path, desc, "", "", cap_type, "required", "active"
-                    ),
+                    CapabilityEntry(file_path, desc, "", "", cap_type, "required", "active"),
                     False,
                     f"文件不存在: {file_path}",
                     source="hard_rule",
@@ -299,9 +292,7 @@ def check_hard_rules() -> list[CheckResult]:
             passed = True
         results.append(
             CheckResult(
-                CapabilityEntry(
-                    file_path, desc, "", "", cap_type, "required", "active"
-                ),
+                CapabilityEntry(file_path, desc, "", "", cap_type, "required", "active"),
                 passed,
                 f"[OK] found {pattern}" if passed else f"[MISS] {pattern} not found",
                 source="hard_rule",
@@ -340,18 +331,14 @@ def main() -> int:
             entries = [e for e in all_entries if e.is_active_required]
         elif args.module:
             mod = args.module.replace("\\", "/")
-            entries = [
-                e for e in all_entries if e.module_path == mod or mod in e.module_path
-            ]
+            entries = [e for e in all_entries if e.module_path == mod or mod in e.module_path]
             if not entries:
                 print(f"WARN:️  未找到模块 {args.module} 的登记条目")
         else:
             entries = [e for e in all_entries if e.is_active_required]
 
         if args.verbose:
-            print(
-                f"从登记簿加载 {len(all_entries)} 条，筛选后 {len(entries)} 条待检查\n"
-            )
+            print(f"从登记簿加载 {len(all_entries)} 条，筛选后 {len(entries)} 条待检查\n")
 
         for entry in entries:
             result = check_entry(entry)

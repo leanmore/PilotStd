@@ -159,3 +159,25 @@ def get_announce_results(from_date: str = "", to_date: str = ""):
             "results": filtered,
         }
     return _cache
+
+
+@router.get("/api/announce/fetch-log")
+def get_fetch_log(limit: int = 100, mgr=Depends(get_manager_dep)):
+    """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
+    rows = mgr.db.fetchall(
+        "SELECT DISTINCT standard_number, source_site, std_name, fetched_at "
+        "FROM announcement_fetch_log ORDER BY fetched_at DESC LIMIT ?",
+        (limit,),
+    )
+    return {
+        "total": len(rows),
+        "items": [
+            {
+                "standard_number": r[0],
+                "source_site": r[1],
+                "title": r[2] or "",
+                "fetched_at": r[3],
+            }
+            for r in rows
+        ],
+    }

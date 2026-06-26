@@ -12,6 +12,8 @@ from typing import Any
 from PyQt6.QtCore import QObject, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QTextEdit
 
+from pilotstd.core.logger import _TagFormatter
+
 from ..core.file_utils import make_standard_filename
 from ..models import ParsedStdInfo
 from ..organizer.industry_lookup import get_folder_name
@@ -68,7 +70,7 @@ class LogHandler(logging.Handler, QObject):
         logging.Handler.__init__(self)
         QObject.__init__(self)
         self.widget = widget
-        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname).1s] %(message)s", datefmt="%H:%M:%S"))
+        self.setFormatter(_TagFormatter())
         self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
         self.setLevel(logging.DEBUG)
         self._buf: list[str] = []

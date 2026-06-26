@@ -15,17 +15,17 @@
 | 调度器优雅关闭 | `docker/scheduler.py` | `stop_scheduler()` | L166-174 | active | 停止心跳 → 等待任务完成 → 释放 DB 锁 |
 | FastAPI 生命周期 | `docker/app.py` | `lifespan()` | L44-63 | active | 启动时注册定时任务 + 启动调度器；关闭时停止调度器 + shutdown mgr |
 | 引擎进度心跳 | `pilotstd/query/engine.py` | `_progress_heartbeat()` | L425-442 | active | 独立 daemon 线程，每 60s 输出 `[PROGRESS]` 进度日志（CLI/WinUI 共用） |
-| 引擎线程池 | `pilotstd/query/engine.py` | L845 | L846 | active | 8 worker 并发执行各查询桶，桶内串行 + 桶间并行 |
-| 引擎 PROGRESS 日志 | `pilotstd/query/engine.py` | L434, 1126 | L461, 1115 | active | 输出已完成/总数/成功/速率/预计剩余；完成时 eta=0s |
-| 引擎 BUCKET 日志 | `pilotstd/query/engine.py` | L452, 1009 | L479, 1002 | active | 分桶分配时输出总数；完成后输出 total/done/overflow/elapsed |
-| 引擎 FUNNEL 日志 | `pilotstd/query/engine.py` | L1099 | L1088 | active | 汇总输出 total/ok/overflow/pending 四维漏斗 |
-| 引擎 TIMELINE 日志 | `pilotstd/query/engine.py` | L1017, 1106 | L1010, 1095 | active | 桶并发耗时 + 逐桶查询完成总耗时 |
-| 引擎 BASELINE 日志 | `pilotstd/query/engine.py` | L1111 | L1100 | active | FUNNEL 同款字段 + 总耗时，供压测驱动对比基线 |
-| 引擎 CACHE 日志 | `pilotstd/query/engine.py` | L1090 | L809, 1079 | active | 批量查询结束后输出 hit/miss/rate% |
-| 引擎 QUOTA/WATER 日志 | `pilotstd/query/engine.py` | L926, 936, 1024, 1061, 1067 | L922, 931, 1017, 1050, 1056 | active | 站点溢出不可用/配额耗尽/各站已用量/水位剩余/冷却跳过 |
-| 引擎 SCORE 日志 | `pilotstd/query/engine.py` | L1046 | L1035 | active | 各站点 exact/fuzzy/older/mismatch 评分分布 |
-| 引擎 OVERFLOW 日志 | `pilotstd/query/engine.py` | L1032 | L1024 | active | 溢出事件计数 + 链分布 |
-| 引擎 CHAIN/PENDING 日志 | `pilotstd/query/engine.py` | L1051, 1055 | L1040, 1044 | active | 每条标准的查询站点链 + 待确认归因 |
+| 引擎线程池 | `pilotstd/query/engine.py` | L845 | L849 | active | 8 worker 并发执行各查询桶，桶内串行 + 桶间并行 |
+| 引擎 PROGRESS 日志 | `pilotstd/query/engine.py` | L434, 1126 | L38 | active | 输出已完成/总数/成功/速率/预计剩余；完成时 eta=0s |
+| 引擎 BUCKET 日志 | `pilotstd/query/engine.py` | L452, 1009 | L482, 1005 | active | 分桶分配时输出总数；完成后输出 total/done/overflow/elapsed |
+| 引擎 FUNNEL 日志 | `pilotstd/query/engine.py` | L1099 | L1091 | active | 汇总输出 total/ok/overflow/pending 四维漏斗 |
+| 引擎 TIMELINE 日志 | `pilotstd/query/engine.py` | L1017, 1106 | L1013, 1098 | active | 桶并发耗时 + 逐桶查询完成总耗时 |
+| 引擎 BASELINE 日志 | `pilotstd/query/engine.py` | L1111 | L1103 | active | FUNNEL 同款字段 + 总耗时，供压测驱动对比基线 |
+| 引擎 CACHE 日志 | `pilotstd/query/engine.py` | L1090 | L812, 1082 | active | 批量查询结束后输出 hit/miss/rate% |
+| 引擎 QUOTA/WATER 日志 | `pilotstd/query/engine.py` | L926, 936, 1024, 1061, 1067 | L925, 934, 1020, 1053, 1059 | active | 站点溢出不可用/配额耗尽/各站已用量/水位剩余/冷却跳过 |
+| 引擎 SCORE 日志 | `pilotstd/query/engine.py` | L1046 | L1038 | active | 各站点 exact/fuzzy/older/mismatch 评分分布 |
+| 引擎 OVERFLOW 日志 | `pilotstd/query/engine.py` | L1032 | L1027 | active | 溢出事件计数 + 链分布 |
+| 引擎 CHAIN/PENDING 日志 | `pilotstd/query/engine.py` | L1051, 1055 | L1043, 1047 | active | 每条标准的查询站点链 + 待确认归因 |
 | 引擎缓存优先查询 | `pilotstd/query/engine.py` | `query_parsed()` → `self.cache.get()` | — | active | 先查 `standard_info_cache` 再发起网络请求；实际缓存逻辑在 `cache.py` |
 | 缓存仓库 | `pilotstd/query/cache.py` | L19 | L19 | active | 双层缓存：`standard_info_cache` → `announcement_cache` 回退，事件驱动失效 |
 | 轮转器里程碑日志 | `pilotstd/query/rotator.py` | L170, 215 | L170, 215 | active | 请求量达 50%/75%/90%/100% 阈值时输出（中文标签，非 `[ROTATOR]`） |
@@ -43,6 +43,7 @@
 | 软件自更新 | `pilotstd/core/updater.py` | 下载+校验+提权替换 | — | active | 下载 ZIP → SHA256 校验 → PowerShell 提权替换 exe；压测期间应禁用 |
 | 定时任务编排 | `pilotstd/manager/scheduled_service.py` | `ScheduledService` | — | active | scan_and_index / recheck_updates / query_by_numbers 供 Docker cron 调用 |
 | LoggerManager | `pilotstd/core/logger.py` | `LoggerManager` | — | active | 全局日志入口 + `RotatingFileHandler`（256KB/1备份）；压测 I/O 关键 |
+| 日志标签国际化 | `pilotstd/core/logger.py` + `pilotstd/i18n/*.json` | `log.*` 键 | L46-57 | active | `_TagFormatter` 运行时通过 i18n 翻译标签（zh_CN→中文, en→英文） |
 | JWT + API Key | `docker/auth.py` | JWT 生成/验证 + Key 写库 | — | active | JWT 令牌 + 静态 API Key 自动写入 `api_keys` 表；压测认证依赖 |
 | Web 公告缓存回退 | `pilotstd/manager/facade.py` | `lookup_or_query()` | L342-371 | active | 先查 Web 端 `announcement_cache`，未命中降级到标准查询引擎 |
 | 离线双表回退 | `pilotstd/manager/pending_service.py` | 离线查询 | L168-212 | active | 无网络时优先 `standard_info_cache` → `announcement_cache` |
@@ -53,11 +54,11 @@
 | 主窗口暂停信号 | `pilotstd/ui/main_window.py` | L362 | L350 | active | `threading.Event` 跨线程暂停/继续控制 |
 | 主窗口下载线程 | `pilotstd/ui/main_window.py` | L834 | L804 | active | daemon 线程后台下载更新包并校验 SHA256，主线程 `join(timeout=300)` |
 | 主窗口公告按钮 | `pilotstd/ui/main_window.py` | `_on_check_announcements()` | L356-358 | active | 工具栏"公告检查"按钮，点击触发公告抓取 + OCR + 匹配 |
-| 工作者 QTimer | `pilotstd/ui/workers.py` | L81 | L75 | active | 200ms 单次触发，将缓冲日志批量写入 QTextEdit，防信号洪峰 |
+| 工作者 QTimer | `pilotstd/ui/workers.py` | L81 | L77 | active | 200ms 单次触发，将缓冲日志批量写入 QTextEdit，防信号洪峰 |
 | 待确认冷却刷新 | `pilotstd/ui/pending_query_dialog.py` | L113 | L113 | active | 1000ms 持续触发，每秒更新冷却倒计时状态 |
 | 节流进度发射器 | `pilotstd/ui/controllers/auto_run_mixin.py` | L26 | L26 | active | 500ms 节流，防止 Qt 事件循环合并高频信号导致进度条跳变 |
 | 压力测试看门狗 | `tests/stress_driver.py` | `_progress_watchdog()` | L313-319 | active | 每 30s 检查子进程 `[PROGRESS]`，超时 180s 则告警 |
-| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L569-570 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
+| 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L571-572 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
 | 压力测试 Web 心跳 | `tests/stress_web.py` | L112, 784 | L111, 821 | active | 与 engine 层格式统一的 60s 进度日志；完成消息在 L784 |
 | Web 仪表板 Store | `web/src/stores/dashboard.ts` | `useDashboardStore` | — | active | Dashboard 布局状态管理：load/save/reset/onLayoutUpdated，localStorage 持久化 |
 | Web 仪表板迁移 | `web/src/utils/dashboard-migration.ts` | `loadLayout/saveLayout/resetLayout` | — | active | 布局数据版本管理：版本检查 + 自动备份 + 默认布局回退 |
@@ -86,6 +87,16 @@
 | 文件浏览 API（多根） | `docker/api/organize.py` | `_validate_path` | L19-26 | active | 文件列表与清理，支持多根目录（与 scan 模块对齐） |
 | 扫描路径校验（多根） | `docker/api/scan.py` | `_validate_path` | L19-26 | active | 扫描路径校验，支持多根目录（与 organize 模块对齐） |
 | Docker 标准库根目录 | `docker-compose.yml` | `STANDARD_ROOT=/standards` | L30 | active | 环境变量注入，覆盖 config 默认值 ~/标准 |
+| GATE-01 | 白名单路径门禁 | `scripts/check_allowed_paths.py` | — | active | 检查 /inbox 和 /standards 在 get_allowed_roots() 中 |
+| GATE-02 | 日志标签门禁 | `scripts/check_log_tags.py` | — | active | 检查 [PROGRESS] 等关键标签未被移除 |
+| GATE-03 | 敏感字段掩码门禁 | `scripts/check_sensitive_fields.py` | — | active | 检查新增 OCR 字段已加入掩码列表 |
+| GATE-04 | API 文档门禁 | `scripts/check_api_docs.py` | — | active | 检查新增路由已记录在压力测试方案中（仅警告） |
+| GATE-05 | 适配器一致性门禁 | `scripts/check_adapters.py` | — | active | 检查 _ALL_ADAPTER_NAMES 与登记簿一致 |
+| GATE-06 | Docker 挂载黑名单门禁 | `scripts/check_docker_mounts.py` | — | active | 禁止挂载 /app，防止误覆盖代码目录 |
+| LOG-02 | 敏感字段掩码 | `docker/api/settings.py` | L68-73 | active | `aliyun_access_key_id` 等 5 个字段 GET 返回 `***` |
+| LOG-03 | PROGRESS_TAG 常量 | `pilotstd/query/engine.py` | L28 | active | `[PROGRESS]` 跨进程协议标识集中定义为常量，8 文件统一引用 |
+| LOG-04 | 三端日志格式统一 | `pilotstd/ui/workers.py` + `pilotstd/core/logger.py` | L73 | active | CLI/WinUI/Web 均使用 `_TagFormatter`，日期+标签+i18n 统一 |
+| UI-01 | WinUI 进度条阶段归零 | `pilotstd/ui/controllers/auto_run_mixin.py` | L127-128 | active | `_on_auto_stage_changed()` 阶段切换时 `setValue(0)` 归零 |
 | 已废弃-ValidityConfigView 页面 | `web/src/views/ValidityConfigView.vue` | （文件已删除） | — | deprecated | 时效性配置已整合进设置页"时效性"Tab |
 | 已废弃-NotificationsView 页面 | `web/src/views/NotificationsView.vue` | （文件已删除） | — | deprecated | 通知配置已整合进设置页"通知"Tab |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |

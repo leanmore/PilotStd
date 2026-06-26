@@ -15,11 +15,17 @@ services:
     ports:
       - "9028:9028"
     volumes:
+      # ═══════════════════════════════════════════════════════════════
+      # 🚫 禁止挂载 /app 目录 — 包含 Python 代码和 Web 前端
+      #    挂载空目录会覆盖代码，导致容器无法启动
+      # ✅ 业务输出文件请写入 /app/data 或 /app/output
+      # ═══════════════════════════════════════════════════════════════
       - ./data:/app/data
       - ./logs:/app/logs
       - ./inbox:/inbox
       - ./standards:/standards
       - ./.env:/app/.env
+      - ./output:/app/output   # 容器内生成的文件可通过此目录在宿主机访问
       # 挂载 docker.sock 允许容器调用 Docker API（镜像级更新 / 容器自重启）。
       # 安全注意：挂载后容器可控制宿主机 Docker，仅在信任容器内代码时启用。
       # 方案 C 的代码级重启（/api/system/restart）不依赖此挂载，可注释掉。

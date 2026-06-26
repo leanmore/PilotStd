@@ -344,5 +344,27 @@
     "site_order": "查詢站點順序:",
     "mirror_skipped_dirs": "歸檔時鏡像跳過的目錄（如標準圖集、培訓課件）",
     "mirror_fallback": "歸檔收尾：將源目錄殘留文件鏡像到輸出（不丟數據）",
-    "watchdog_enabled": "啟用文件增量監控（需安裝watchdog套件，重啟生效）"
+    "watchdog_enabled": "啟用文件增量監控（需安裝watchdog套件，重啟生效）",
+
+    "log.STRESS": "壓測",
+    "log.ENGINE": "引擎",
+    "log.CACHE": "快取",
+    "log.FACADE": "門面",
+    "log.PARSE": "解析",
+    "log.UI": "介面",
+    "log.SCAN": "掃描",
+    "log.DL": "下載",
+    "log.ORG": "整理",
+    "log.TASK": "任務",
+    "log.DB": "資料庫",
+    "log.CONFIG": "設定",
+    "log.NETWOR": "網路",
+    "log.ROTATOR": "輪轉",
+    "log.MATCH": "匹配",
+    "log.CSRES": "工標",
+    "log.NJBZ": "南京",
+    "log.STDGOV": "國標",
+    "log.HBBA": "行標",
+    "log.ISOGOV": "國際",
+    "log.MOCK": "模擬"
 }

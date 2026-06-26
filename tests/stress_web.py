@@ -17,6 +17,8 @@ from _stress_utils import (  # type: ignore[import-not-found]
     setup_stress_logging,
 )
 
+from pilotstd.query.engine import PROGRESS_TAG
+
 logger = setup_stress_logging("stress_web")
 
 # 统一凭证加载：环境变量 > 报错退出
@@ -108,7 +110,7 @@ def _progress_heartbeat():
         rate = c / max(elapsed, 0.001)
         eta = (_prog_total - c) / max(rate, 0.001) if rate > 0 else 0.0
         logger.info(
-            "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
+            f"{PROGRESS_TAG} completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
             c,
             _prog_total,
             o,
@@ -818,7 +820,7 @@ with _prog_lock:
     o = _prog_ok[0]
 elapsed = time.time() - _prog_t0
 logger.info(
-    "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
+    f"{PROGRESS_TAG} completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
     c,
     _prog_total,
     o,

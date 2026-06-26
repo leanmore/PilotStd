@@ -423,5 +423,27 @@
     "site_order": "Query site order:",
     "mirror_skipped_dirs": "Mirror skipped directories during archive (e.g. drawings, training)",
     "mirror_fallback": "Archive fallback: mirror remaining source files to output (no data loss)",
-    "watchdog_enabled": "Enable incremental file monitoring (requires watchdog package, restart needed)"
+    "watchdog_enabled": "Enable incremental file monitoring (requires watchdog package, restart needed)",
+
+    "log.STRESS": "STRESS",
+    "log.ENGINE": "ENGINE",
+    "log.CACHE": "CACHE",
+    "log.FACADE": "FACADE",
+    "log.PARSE": "PARSE",
+    "log.UI": "UI",
+    "log.SCAN": "SCAN",
+    "log.DL": "DOWNLOAD",
+    "log.ORG": "ORGANIZE",
+    "log.TASK": "TASK",
+    "log.DB": "DATABASE",
+    "log.CONFIG": "CONFIG",
+    "log.NETWOR": "NETWORK",
+    "log.ROTATOR": "ROTATOR",
+    "log.MATCH": "MATCH",
+    "log.CSRES": "CSRES",
+    "log.NJBZ": "NJBZ",
+    "log.STDGOV": "STDGOV",
+    "log.HBBA": "HBBA",
+    "log.ISOGOV": "ISOGOV",
+    "log.MOCK": "MOCK"
 }

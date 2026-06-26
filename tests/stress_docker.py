@@ -17,6 +17,8 @@ from stress_utils import (  # type: ignore[import-not-found]
     setup_stress_logging,
 )
 
+from pilotstd.query.engine import PROGRESS_TAG
+
 
 def _check_directories(config: dict, result_dir: str) -> bool:
     """Check input/output directories, list files, write to log."""
@@ -138,7 +140,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
             rate = c / max(elapsed, 0.001)
             eta = (_prog_total - c) / max(rate, 0.001) if rate > 0 else 0.0
             logger.info(
-                "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
+                f"{PROGRESS_TAG} completed=%d total=%d ok=%d rate=%.1f/s eta=%.0fs",
                 c,
                 _prog_total,
                 o,
@@ -422,12 +424,12 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     _announce_sample_ok = False
     if _announce_total_count > 0:
         try:
-            # sync=true 已同步执行，_cache 已更新，直接读取
-            r_results = _get("/api/announce/results")
-            if r_results.status_code == 200:
-                _data = r_results.json()
-                _sample_items = _data.get("results", [])
-                logger.info("公告样本: %d 条就绪", len(_sample_items))
+            # v9.5: 从 announcement_fetch_log 抽样（全量抓取记录，无论匹配结果）
+            r_log = _get("/api/announce/fetch-log")
+            if r_log.status_code == 200:
+                _log_data = r_log.json()
+                _sample_items = _log_data.get("items", [])
+                logger.info("公告样本(fetch_log): %d 条就绪", len(_sample_items))
             else:
                 _sample_items = []
             if _sample_items:
@@ -447,6 +449,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                 _sample_out = {
                     "total": len(_sampled),
                     "source_distribution": {s: len(v) for s, v in _by_source.items()},
+                    "source_table": "announcement_fetch_log",
                     "items": _sampled,
                 }
                 with open(_ANNOUNCE_SAMPLE_PATH, "w", encoding="utf-8") as _f:
@@ -459,7 +462,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                     _sample_out["source_distribution"],
                 )
             else:
-                logger.warning("公告样本: results 为空，跳过样本生成")
+                logger.warning("公告样本: fetch_log 为空，跳过样本生成")
         except Exception as _e:
             logger.warning("公告样本: 提取失败 — %s", _e)
     else:
@@ -996,7 +999,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         o = _prog_ok[0]
     elapsed = time.time() - _prog_t0
     logger.info(
-        "[PROGRESS] completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
+        f"{PROGRESS_TAG} completed=%d total=%d ok=%d rate=%.1f/s eta=0s (done)",
         c,
         _prog_total,
         o,
