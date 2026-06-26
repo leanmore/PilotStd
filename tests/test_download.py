@@ -144,9 +144,7 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertIn("适配器", task.error_message)
 
     def test_download_failure(self):
-        fail_adapter = MockDownloadAdapter(
-            session=self.session_mgr.create_session(), fail=True
-        )
+        fail_adapter = MockDownloadAdapter(session=self.session_mgr.create_session(), fail=True)
         engine = DownloadEngine(
             adapters=[fail_adapter],
             session_manager=self.session_mgr,
@@ -175,9 +173,7 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertEqual(stats.failed, 1)
 
     def test_saved_file_naming(self):
-        qr = FakeQueryResult(
-            "GB/T 1610-2010", standard_name="石油化工规范", number=1610, year=2010
-        )
+        qr = FakeQueryResult("GB/T 1610-2010", standard_name="石油化工规范", number=1610, year=2010)
         task = DownloadTask(standard_number="GB/T 1610-2010", query_result=qr)
         task = self.engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.SUCCESS)
@@ -270,9 +266,7 @@ class TestDownloadEngine(unittest.TestCase):
 
     def test_find_adapter_exact_match(self):
         """source_site 精确匹配时优先使用对应适配器。"""
-        task = DownloadTask(
-            standard_number="GB/T 1-2020", source_site="openstd_download"
-        )
+        task = DownloadTask(standard_number="GB/T 1-2020", source_site="openstd_download")
         adapter = self.engine._find_adapter(task)
         self.assertIsNotNone(adapter)
 
@@ -299,9 +293,7 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertIsNotNone(m, "Content-Disposition 解析正则不应为 None")
         assert m is not None
         filename = m.group(2)
-        self.assertEqual(
-            filename, "GB_T_19001-2016.pdf", "应从 Content-Disposition 中提取文件名"
-        )
+        self.assertEqual(filename, "GB_T_19001-2016.pdf", "应从 Content-Disposition 中提取文件名")
 
         # 验证文件名存入 task.extra
         task.extra["filename_from_header"] = filename

@@ -252,9 +252,7 @@ class TestStandardParser(unittest.TestCase):
 
     def test_clean_std_name_empty_parens(self):
         """Bug修复：剥离版次+语种后不残留空括号 (5th中文版)→空括号清除"""
-        info = self.parser.parse(
-            "API 618-2007-石油化工和天然气工业用往复式压缩机(5th中文版).pdf"
-        )
+        info = self.parser.parse("API 618-2007-石油化工和天然气工业用往复式压缩机(5th中文版).pdf")
         self.assertIsNotNone(info)
         self.assertEqual(info.std_name, "石油化工和天然气工业用往复式压缩机")
         self.assertEqual(info.language, "中文版")
@@ -426,9 +424,7 @@ class TestStandardParser(unittest.TestCase):
 
     def test_normalize_garbage_suffix_stripped(self):
         """垃圾推广后缀被截断"""
-        info = self.parser.parse(
-            "SH/T 3548-2024 石油化工涂料防腐蚀-海川化工论坛 有温度的化工交流平台.pdf"
-        )
+        info = self.parser.parse("SH/T 3548-2024 石油化工涂料防腐蚀-海川化工论坛 有温度的化工交流平台.pdf")
         self.assertIsNotNone(info)
         self.assertEqual(info.logical_code, "SH/T")
         self.assertEqual(info.number, 3548)

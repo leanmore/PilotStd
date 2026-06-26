@@ -40,9 +40,7 @@ def test_scan_success_count(window, test_data_dir, qtbot):
     window._run_scan(test_data_dir)
     _wait_scan(qtbot, window)
     parsed = window._parsed_results
-    filenames = [
-        os.path.basename(p.source_path) if p.source_path else "" for p in parsed
-    ]
+    filenames = [os.path.basename(p.source_path) if p.source_path else "" for p in parsed]
     assert "readme.txt" not in filenames
     assert len(parsed) == 4
 

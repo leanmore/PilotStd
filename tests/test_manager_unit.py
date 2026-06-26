@@ -98,9 +98,7 @@ class TestQueryClassifier(unittest.TestCase):
 
     def test_gb_active_normalized_filename(self):
         """GB 现行但文件名不规范 → next_action=normalize"""
-        p = _make_parsed(
-            "GB/T", 19001, 2016, "质量管理体系", source_path="/tmp/wrong_name.pdf"
-        )
+        p = _make_parsed("GB/T", 19001, 2016, "质量管理体系", source_path="/tmp/wrong_name.pdf")
         r = _make_result("GB/T 19001-2016", "质量管理体系")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "normalize")
@@ -118,9 +116,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_newer_adopted_goes_to_pending(self):
         """GB newer + 采标 → pending（不可下载）"""
         p = _make_parsed("GB/T", 19001, 2016, "质量管理体系")
-        r = _make_result(
-            "GB/T 19001-2020", "质量管理体系", match_status="newer", is_adopted=True
-        )
+        r = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer", is_adopted=True)
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "pending")
         self.assertIn(p, pending)
@@ -130,9 +126,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_repealed_with_replaces_goes_to_download(self):
         """GB 废止 + 有替代 + 非采标 → download"""
         p = _make_parsed("GB", 150, 1998, "钢制压力容器")
-        r = _make_result(
-            "GB 150-1998", "钢制压力容器", status="废止", replaces="GB/T 150.1-2011"
-        )
+        r = _make_result("GB 150-1998", "钢制压力容器", status="废止", replaces="GB/T 150.1-2011")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "download")
         self.assertIn(p, download)

@@ -69,6 +69,4 @@ def test_query_worker_stops_on_stop(qtbot):
     query_started.wait(timeout=5)
     worker.stop()
     worker.wait(5000)
-    assert len(processed) == 0, (
-        f"stop() 后不应发射 batch_ready，实际 {len(processed)} 条"
-    )
+    assert len(processed) == 0, f"stop() 后不应发射 batch_ready，实际 {len(processed)} 条"

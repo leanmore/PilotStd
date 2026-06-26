@@ -22,9 +22,7 @@ class TestMockDownloadAdapter(unittest.TestCase):
     def test_can_handle_any_task(self):
         adapter = MockDownloadAdapter()
         self.assertTrue(adapter.can_handle(DownloadTask(standard_number="任意标准号")))
-        self.assertTrue(
-            adapter.can_handle(DownloadTask(standard_number="GB/T 19001-2016"))
-        )
+        self.assertTrue(adapter.can_handle(DownloadTask(standard_number="GB/T 19001-2016")))
 
     def test_download_returns_pdf_content(self):
         adapter = MockDownloadAdapter()
@@ -116,9 +114,7 @@ class TestWorkerThreadSafety(unittest.TestCase):
             except Exception as e:
                 errors.append(str(e))
 
-        threads = [
-            threading.Thread(target=writer, args=(i,), daemon=True) for i in range(4)
-        ]
+        threads = [threading.Thread(target=writer, args=(i,), daemon=True) for i in range(4)]
         for t in threads:
             t.start()
         for t in threads:

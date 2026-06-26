@@ -96,9 +96,7 @@ class TestFileMover(unittest.TestCase):
 
     def test_is_safe_path_accepts_internal(self):
         """库根目录内的路径通过校验。"""
-        self.assertTrue(
-            self.mover._is_safe_path(os.path.join(self.tmp, "sub", "file.pdf"))
-        )
+        self.assertTrue(self.mover._is_safe_path(os.path.join(self.tmp, "sub", "file.pdf")))
 
     def test_is_safe_path_rejects_escape(self):
         """库根目录外的路径被拒绝。"""
@@ -117,9 +115,7 @@ class TestFileMover(unittest.TestCase):
         try:
             dst = self.mover.move_to_code_dir(
                 src,
-                ParsedStdInfo(
-                    raw_filename="test.pdf", logical_code="GB", number=1, year=2020
-                ),
+                ParsedStdInfo(raw_filename="test.pdf", logical_code="GB", number=1, year=2020),
             )
             self.assertIsNone(dst, "越界路径应被拒绝返回 None")
         finally:
@@ -129,9 +125,7 @@ class TestFileMover(unittest.TestCase):
         src = os.path.join(self.tmp, "old.pdf")
         with open(src, "w") as f:
             f.write("old")
-        parsed = ParsedStdInfo(
-            raw_filename="old.pdf", logical_code="GB", number=1234, year=1986
-        )
+        parsed = ParsedStdInfo(raw_filename="old.pdf", logical_code="GB", number=1234, year=1986)
         dst = self.mover.move_to_expire(src, parsed)
         self.assertIsNotNone(dst)
         self.assertTrue(os.path.exists(dst))
@@ -152,20 +146,14 @@ class TestExpireHandler(unittest.TestCase):
         src = os.path.join(self.tmp, "expired.pdf")
         with open(src, "w") as f:
             f.write("data")
-        parsed = ParsedStdInfo(
-            raw_filename="expired.pdf", logical_code="GB", number=1, year=1990
-        )
+        parsed = ParsedStdInfo(raw_filename="expired.pdf", logical_code="GB", number=1, year=1990)
         result = self.handler.process_expired([(src, parsed)])
         self.assertEqual(result["moved"], 1)
         self.assertEqual(result["failed"], 0)
 
     def test_process_missing_file(self):
-        parsed = ParsedStdInfo(
-            raw_filename="ghost.pdf", logical_code="GB", number=2, year=1995
-        )
-        result = self.handler.process_expired(
-            [(os.path.join(self.tmp, "ghost.pdf"), parsed)]
-        )
+        parsed = ParsedStdInfo(raw_filename="ghost.pdf", logical_code="GB", number=2, year=1995)
+        result = self.handler.process_expired([(os.path.join(self.tmp, "ghost.pdf"), parsed)])
         self.assertEqual(result["failed"], 1)
 
 

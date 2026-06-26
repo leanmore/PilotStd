@@ -29,9 +29,7 @@ def _make_njbz_items(*items):
     return {"code": "0", "data": {"datalist": list(items)}}
 
 
-def _njbz_item(
-    bzbh, bzmc, bzzt="现行", bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"
-):
+def _njbz_item(bzbh, bzmc, bzzt="现行", bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"):
     return {
         "bzbh": bzbh,
         "bzmc": bzmc,
@@ -213,9 +211,7 @@ class TestNjbz365Adapter(unittest.TestCase):
 
     def test_non_adopted(self):
         """cybz 字段为空 → is_adopted=False"""
-        self._mock_response(
-            [_njbz_item("ISO 9001-2015", "Quality management", cybz="")]
-        )
+        self._mock_response([_njbz_item("ISO 9001-2015", "Quality management", cybz="")])
         r = self.a._search("ISO 9001 2015", "ISO", 9001, 2015)
         self.assertFalse(r.is_adopted)
 
@@ -223,9 +219,7 @@ class TestNjbz365Adapter(unittest.TestCase):
 
     def test_no_results_returns_none(self):
         """API 返回空列表 → None"""
-        self.a._do_request = MagicMock(
-            return_value={"code": "0", "data": {"datalist": []}}
-        )
+        self.a._do_request = MagicMock(return_value={"code": "0", "data": {"datalist": []}})
         r = self.a._search("NONEXIST 9999", "NONEXIST", 9999, 2020)
         self.assertIsNone(r)
 
@@ -248,33 +242,23 @@ class TestHbbaAdapter(unittest.TestCase):
         self.a = HbbaAdapter()
 
     def test_sh_exact_match(self):
-        r = self.a._parse_result(
-            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2011"
-        )
+        r = self.a._parse_result(_hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2011")
         self.assertEqual(r.match_status, "exact")
 
     def test_sh_newer_match(self):
-        r = self.a._parse_result(
-            _hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2001"
-        )
+        r = self.a._parse_result(_hbba_rec("SH/T 1610-2011", "苯乙烯-丁二烯橡胶"), "SH/T 1610-2001")
         self.assertEqual(r.match_status, "newer")
 
     def test_hg_exact_match(self):
-        r = self.a._parse_result(
-            _hbba_rec("HG/T 20592-2009", "钢制管法兰"), "HG/T 20592-2009"
-        )
+        r = self.a._parse_result(_hbba_rec("HG/T 20592-2009", "钢制管法兰"), "HG/T 20592-2009")
         self.assertEqual(r.match_status, "exact")
 
     def test_jb_exact_match(self):
-        r = self.a._parse_result(
-            _hbba_rec("JB/T 4730.3-2005", "承压设备无损检测"), "JB/T 4730.3-2005"
-        )
+        r = self.a._parse_result(_hbba_rec("JB/T 4730.3-2005", "承压设备无损检测"), "JB/T 4730.3-2005")
         self.assertEqual(r.match_status, "exact")
 
     def test_mismatch_different_code(self):
-        r = self.a._parse_result(
-            _hbba_rec("HG/T 20592-2009", "钢制管法兰"), "SH/T 1610-2011"
-        )
+        r = self.a._parse_result(_hbba_rec("HG/T 20592-2009", "钢制管法兰"), "SH/T 1610-2011")
         self.assertNotEqual(r.match_status, "exact")
 
     def test_no_search_term_fallback(self):
@@ -294,23 +278,17 @@ class TestDbbaAdapter(unittest.TestCase):
         self.a = DbbaAdapter()
 
     def test_db_exact_match(self):
-        r = self.a._parse_result(
-            _dbba_rec("DB35 1234-2020", "福建省地方标准"), "DB35 1234-2020"
-        )
+        r = self.a._parse_result(_dbba_rec("DB35 1234-2020", "福建省地方标准"), "DB35 1234-2020")
         self.assertEqual(r.match_status, "exact")
 
     def test_db_newer_match(self):
-        r = self.a._parse_result(
-            _dbba_rec("DB35 1234-2024", "福建省地方标准修订版"), "DB35 1234-2020"
-        )
+        r = self.a._parse_result(_dbba_rec("DB35 1234-2024", "福建省地方标准修订版"), "DB35 1234-2020")
         # DB35 的 province code 被解析器视为序号的一部分，
         # 2024 vs 2020 比对结果是 newer
         self.assertIsNotNone(r)
 
     def test_db_mismatch(self):
-        r = self.a._parse_result(
-            _dbba_rec("DB11 9999-2020", "北京市地方标准"), "DB35 1234-2020"
-        )
+        r = self.a._parse_result(_dbba_rec("DB11 9999-2020", "北京市地方标准"), "DB35 1234-2020")
         self.assertNotEqual(r.match_status, "exact")
 
     def test_db_not_downloadable(self):
@@ -330,9 +308,7 @@ class TestIsoGovAdapter(unittest.TestCase):
         self.a = IsoGovAdapter()
 
     def test_iso_exact_match(self):
-        r = self.a._parse_result(
-            _iso_row("ISO 9001:2015", "Quality management systems"), "ISO 9001:2015"
-        )
+        r = self.a._parse_result(_iso_row("ISO 9001:2015", "Quality management systems"), "ISO 9001:2015")
         self.assertEqual(r.match_status, "exact")
 
     def test_iso_newer_match(self):
@@ -343,15 +319,11 @@ class TestIsoGovAdapter(unittest.TestCase):
         self.assertEqual(r.match_status, "newer")
 
     def test_iso_mismatch(self):
-        r = self.a._parse_result(
-            _iso_row("ISO 14001:2015", "Environmental management"), "ISO 9001:2015"
-        )
+        r = self.a._parse_result(_iso_row("ISO 14001:2015", "Environmental management"), "ISO 9001:2015")
         self.assertNotEqual(r.match_status, "exact")
 
     def test_iec_exact_match(self):
-        r = self.a._parse_result(
-            _iso_row("IEC 61000-4-2:2008", "EMC Testing"), "IEC 61000-4-2:2008"
-        )
+        r = self.a._parse_result(_iso_row("IEC 61000-4-2:2008", "EMC Testing"), "IEC 61000-4-2:2008")
         # IEC 61000-4-2:2008 的多连字符格式解析器处理有限，
         # 关键是代号和主序号能匹配（不是 mismatch）
         self.assertNotEqual(r.match_status, "mismatch")

@@ -101,18 +101,14 @@ class TestPipelineRouter:
 
     def test_after_query_non_gb_with_replaces_goes_to_expire(self, router):
         """非国标（如 HG）有替代也应走 expire，因 gb688 无法下载"""
-        non_gb = make_parsed(
-            code="HG", effect_status="被代替", found_replaces="HG/T 1234-2026"
-        )
+        non_gb = make_parsed(code="HG", effect_status="被代替", found_replaces="HG/T 1234-2026")
         result = router.classify_after_query([non_gb])
         assert result["expire"] == [non_gb]
         assert result["download"] == []
 
     def test_after_query_gb_with_replaces_goes_to_download(self, router):
         """国标+被代替+有替代 → 下载新版"""
-        gb_replaced = make_parsed(
-            code="GB/T", effect_status="被代替", found_replaces="GB/T 19001-2026"
-        )
+        gb_replaced = make_parsed(code="GB/T", effect_status="被代替", found_replaces="GB/T 19001-2026")
         result = router.classify_after_query([gb_replaced])
         assert result["download"] == [gb_replaced]
         assert result["expire"] == []

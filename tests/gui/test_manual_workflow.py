@@ -66,9 +66,7 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
 
         # 验证：规范化后所有行的 next_action 不是 download
         for p in window._parsed_results:
-            assert p.next_action != "download", (
-                f"跳过下载后仍有 download 状态: {p.get_full_number()}"
-            )
+            assert p.next_action != "download", f"跳过下载后仍有 download 状态: {p.get_full_number()}"
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -368,9 +366,7 @@ def test_status_bar_shows_cancel_message(window, test_data_dir, qtbot):
         window._on_cancel()
 
         messages = [args[0] for args in spy if args]
-        assert any("取消" in str(m) for m in messages), (
-            f"状态栏应包含'取消'消息，实际: {messages}"
-        )
+        assert any("取消" in str(m) for m in messages), f"状态栏应包含'取消'消息，实际: {messages}"
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

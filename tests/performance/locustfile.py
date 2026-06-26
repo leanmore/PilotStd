@@ -27,9 +27,7 @@ _DOCKER_PASSWORD = os.environ.get("PILOTSTD_PASSWORD", "")
 
 if not _DOCKER_USERNAME or not _DOCKER_PASSWORD:
     print(
-        "错误: 缺少 Docker 凭证，请设置环境变量:\n"
-        "  set PILOTSTD_USERNAME=<用户名>\n"
-        "  set PILOTSTD_PASSWORD=<密码>",
+        "错误: 缺少 Docker 凭证，请设置环境变量:\n  set PILOTSTD_USERNAME=<用户名>\n  set PILOTSTD_PASSWORD=<密码>",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -91,9 +89,7 @@ class PilotStdUser(HttpUser):
     @task(2)
     def query_only(self):
         """仅查询：随机取 3-5 个标准号。"""
-        numbers = random.sample(
-            SAMPLE_NUMBERS, min(len(SAMPLE_NUMBERS), random.randint(3, 5))
-        )
+        numbers = random.sample(SAMPLE_NUMBERS, min(len(SAMPLE_NUMBERS), random.randint(3, 5)))
         with self.client.post(
             "/api/query",
             json={"numbers": numbers},
@@ -111,9 +107,7 @@ class PilotStdUser(HttpUser):
     @task(1)
     def query_then_download(self):
         """全链路：查询 → 下载可下载结果。"""
-        numbers = random.sample(
-            SAMPLE_NUMBERS, min(len(SAMPLE_NUMBERS), random.randint(4, 6))
-        )
+        numbers = random.sample(SAMPLE_NUMBERS, min(len(SAMPLE_NUMBERS), random.randint(4, 6)))
         # 第一步：查询
         with self.client.post(
             "/api/query",
@@ -131,9 +125,7 @@ class PilotStdUser(HttpUser):
         downloadable = [
             r["standard_number"]
             for r in query_data.get("results", [])
-            if not r.get("is_adopted")
-            and r.get("match_status") == "exact"
-            and r.get("standard_number")
+            if not r.get("is_adopted") and r.get("match_status") == "exact" and r.get("standard_number")
         ]
         if not downloadable:
             return

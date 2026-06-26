@@ -49,9 +49,7 @@ class TestStaleReferencesRule(unittest.TestCase):
         self.assertEqual(len(violations), 0)
 
     def test_runner_scans_directory(self):
-        self._write(
-            "a.py", "from pilotstd.query.search_strategy import build_search_terms\n"
-        )
+        self._write("a.py", "from pilotstd.query.search_strategy import build_search_terms\n")
         self._write("b.py", "adapter.query_single('test')\n")
         runner = QualityRunner()
         report = runner.run([self.tmp])

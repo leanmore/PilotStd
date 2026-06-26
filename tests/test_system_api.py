@@ -44,9 +44,7 @@ class TestUpdateFunction(unittest.TestCase):
     # ── 10 场景 ──────────────────────────────────
 
     def test_01_new_image_compose_available(self):
-        with patch.dict(
-            "os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}
-        ):
+        with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             self._set_docker_sequence(
                 ('[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]', 0),
                 ("sha256:old", 0),
@@ -108,11 +106,7 @@ class TestUpdateFunction(unittest.TestCase):
                 raise RuntimeError("network error")
             r = MagicMock()
             r.returncode = 0
-            r.stdout = (
-                '[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]'
-                if call_count[0] == 1
-                else "sha256:ok"
-            )
+            r.stdout = '[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]' if call_count[0] == 1 else "sha256:ok"
             return r
 
         self.mock_docker.side_effect = _fail
@@ -156,9 +150,7 @@ class TestUpdateFunction(unittest.TestCase):
             return r
 
         self.mock_docker.side_effect = _fail
-        with patch.dict(
-            "os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}
-        ):
+        with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             import asyncio
 
             result = asyncio.run(update_container())
@@ -191,18 +183,14 @@ class TestUpdateFunction(unittest.TestCase):
             return r
 
         self.mock_docker.side_effect = _no_old
-        with patch.dict(
-            "os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}
-        ):
+        with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             import asyncio
 
             result = asyncio.run(update_container())
         self.assertTrue(result["updated"])
 
     def test_10_no_layers_but_digest_differs(self):
-        with patch.dict(
-            "os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}
-        ):
+        with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             self._set_docker_sequence(
                 ('[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]', 0),
                 ("sha256:old", 0),

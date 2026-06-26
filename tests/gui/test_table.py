@@ -51,7 +51,4 @@ def test_table_selection_is_item_based(window):
     """表格选择行为是按单元格选择（支持 Ctrl+C 复制）。"""
     from PyQt6.QtWidgets import QTableWidget
 
-    assert (
-        window.work_table.selectionBehavior()
-        == QTableWidget.SelectionBehavior.SelectItems
-    )
+    assert window.work_table.selectionBehavior() == QTableWidget.SelectionBehavior.SelectItems

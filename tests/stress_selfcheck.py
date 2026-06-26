@@ -41,18 +41,14 @@ _checks: list[tuple[str, bool, str]] = []
 
 def _check(label, ok, detail=""):
     _checks.append((label, ok, detail))
-    logger.info(
-        "  %s %s%s", "PASS" if ok else "FAIL", label, f" — {detail}" if detail else ""
-    )
+    logger.info("  %s %s%s", "PASS" if ok else "FAIL", label, f" — {detail}" if detail else "")
 
 
 def _verdict():
     total = len(_checks)
     passed = sum(1 for _, ok, _ in _checks if ok)
     logger.info("=" * 60)
-    logger.info(
-        "判定: %s (%d/%d)", "PASS" if passed == total else "FAIL", passed, total
-    )
+    logger.info("判定: %s (%d/%d)", "PASS" if passed == total else "FAIL", passed, total)
     for label, ok, detail in _checks:
         if not ok:
             logger.info("  FAIL %s — %s", label, detail)
@@ -206,12 +202,7 @@ _check(
 
 try:
     _bc = sqlite3.connect(bak_path)
-    _tables = [
-        r[0]
-        for r in _bc.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()
-    ]
+    _tables = [r[0] for r in _bc.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
     _check("备份: 表结构完整", len(_tables) > 0, f"{len(_tables)} 个表")
     _bc.close()
 except Exception as e:
@@ -301,9 +292,7 @@ for _h in ("hash_1d_stress3", "hash_8d_stress3"):
 logger.info("--- 数据模型 ---")
 from pilotstd.models import ParsedStdInfo
 
-p = ParsedStdInfo(
-    raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020, std_name="测试"
-)
+p = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020, std_name="测试")
 _check("模型: get_full_number", p.get_full_number() == "GB/T 1-2020")
 p2 = ParsedStdInfo(
     raw_filename="test.pdf",
@@ -326,37 +315,25 @@ _parser = StandardParser(build_code_mapping())
 _info = _parser.parse("DB11/T 1951-2021 城市照明规划标准.pdf")
 _check(
     "DB解析: DB11/T 1951-2021",
-    _info is not None
-    and _info.logical_code == "DB11/T"
-    and _info.number == 1951
-    and _info.year == 2021,
+    _info is not None and _info.logical_code == "DB11/T" and _info.number == 1951 and _info.year == 2021,
 )
 # 省级强制
 _info = _parser.parse("DB44 123-2018 广东强制标准.pdf")
 _check(
     "DB解析: DB44 123-2018",
-    _info is not None
-    and _info.logical_code == "DB44"
-    and _info.number == 123
-    and _info.year == 2018,
+    _info is not None and _info.logical_code == "DB44" and _info.number == 123 and _info.year == 2018,
 )
 # 市级
 _info = _parser.parse("DB3501/T 002-2023 福州标准.pdf")
 _check(
     "DB解析: DB3501/T 002-2023",
-    _info is not None
-    and _info.logical_code == "DB3501/T"
-    and _info.number == 2
-    and _info.year == 2023,
+    _info is not None and _info.logical_code == "DB3501/T" and _info.number == 2 and _info.year == 2023,
 )
 # 市级强制
 _info = _parser.parse("DB4201 001-2020 武汉标准.pdf")
 _check(
     "DB解析: DB4201 001-2020",
-    _info is not None
-    and _info.logical_code == "DB4201"
-    and _info.number == 1
-    and _info.year == 2020,
+    _info is not None and _info.logical_code == "DB4201" and _info.number == 1 and _info.year == 2020,
 )
 
 # --- v2.2 新增：语言标记 ---
@@ -405,9 +382,7 @@ except Exception as e:
 
 # --- v2.2 新增：附件子目录 ---
 logger.info("--- 附件子目录 ---")
-_attach_base = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "announcements"
-)
+_attach_base = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "announcements")
 for _t in ("gb", "hb", "db"):
     _d = ensure_dir(os.path.join(_attach_base, _t))
     _check(f"附件目录: announcements/{_t}", os.path.isdir(_d))
@@ -541,9 +516,7 @@ try:
     _cols = {r["name"] for r in _sc_db.fetchall("PRAGMA table_info(adapter_stats)")}
 except Exception:
     _cols = set()
-_check(
-    "adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在"
-)
+_check("adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在")
 
 _required_cols = [
     "avg_response_time",
@@ -565,26 +538,17 @@ try:
     from pilotstd.core.db import Database as _AsDb
 
     _as_db = _AsDb(get_db_path())
-    _table_names = {
-        r["name"]
-        for r in _as_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")
-    }
+    _table_names = {r["name"] for r in _as_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")}
     if "adapter_stats" not in _table_names:
         _check("adapter_stats写入验证", None, "adapter_stats 表不存在，跳过")
     else:
         _test_name = "_test_selfcheck"
         try:
-            _as_db.execute(
-                "DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,)
-            )
+            _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
         except Exception:
             pass
-        _as_db.update_adapter_stats(
-            _test_name, success=True, response_time=0.05, cooldown_triggered=False
-        )
-        _row = _as_db.fetchone(
-            "SELECT * FROM adapter_stats WHERE adapter_name=?", (_test_name,)
-        )
+        _as_db.update_adapter_stats(_test_name, success=True, response_time=0.05, cooldown_triggered=False)
+        _row = _as_db.fetchone("SELECT * FROM adapter_stats WHERE adapter_name=?", (_test_name,))
         _write_ok = _row is not None and _row["total_queries"] == 1
         _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
         _check(

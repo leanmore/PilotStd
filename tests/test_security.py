@@ -47,9 +47,7 @@ class TestAuthRateLimit:
 
             cutoff = now - LOCKOUT_SECONDS
             recent = count_recent_failures(ip, cutoff)
-            assert recent >= MAX_ATTEMPTS, (
-                f"应有 {MAX_ATTEMPTS} 条失败记录，实际 {recent}"
-            )
+            assert recent >= MAX_ATTEMPTS, f"应有 {MAX_ATTEMPTS} 条失败记录，实际 {recent}"
 
             clear_login_failures(ip)
         finally:
@@ -126,9 +124,7 @@ class TestPathValidation:
         tmp_dir = tempfile.mkdtemp(prefix="pilotstd_dl_test_")
         try:
             session_mgr = SessionManager()
-            engine = DownloadEngine(
-                adapters=[], session_manager=session_mgr, save_root=tmp_dir
-            )
+            engine = DownloadEngine(adapters=[], session_manager=session_mgr, save_root=tmp_dir)
             task = DownloadTask(standard_number="../../etc/passwd")
             try:
                 engine._resolve_target_path(task)
@@ -150,14 +146,10 @@ class TestPathValidation:
         tmp_dir = tempfile.mkdtemp(prefix="pilotstd_dl_test_")
         try:
             session_mgr = SessionManager()
-            engine = DownloadEngine(
-                adapters=[], session_manager=session_mgr, save_root=tmp_dir
-            )
+            engine = DownloadEngine(adapters=[], session_manager=session_mgr, save_root=tmp_dir)
             task = DownloadTask(standard_number="GB/T 1.1-2020")
             result = engine._resolve_target_path(task)
-            assert os.path.realpath(result).startswith(
-                os.path.realpath(tmp_dir) + os.sep
-            )
+            assert os.path.realpath(result).startswith(os.path.realpath(tmp_dir) + os.sep)
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 

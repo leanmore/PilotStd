@@ -6,9 +6,7 @@ from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.main_window import ArchiveWorker
 
 
-def _make_parsed(
-    src_path, code="GB", num=1, year=2020, effect_status="现行", std_name="测试标准"
-):
+def _make_parsed(src_path, code="GB", num=1, year=2020, effect_status="现行", std_name="测试标准"):
     """创建测试用 ParsedStdInfo。"""
     p = ParsedStdInfo(
         raw_filename=os.path.basename(src_path),
@@ -59,9 +57,7 @@ def test_archive_worker_checkpoint_skips_completed(qtbot):
         # 应被标记为"已归档"（从checkpoint跳过），而非再次移动
         statuses = [s for _, s in batches]
         # 移动后 parsed.source_path 更新为目标路径
-        assert "已归档" in statuses or parsed.source_path != src_file, (
-            "checkpoint 中已完成的文件应被跳过"
-        )
+        assert "已归档" in statuses or parsed.source_path != src_file, "checkpoint 中已完成的文件应被跳过"
     finally:
         cfg.get_data_dir = orig_get_data_dir
         shutil.rmtree(tmpdir, ignore_errors=True)

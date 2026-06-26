@@ -32,9 +32,7 @@ class TestE2EStdGov(unittest.TestCase):
             self.skipTest("std_gov 无响应")
         self.assertIsNotNone(r)
         self.assertEqual(r.match_status, "exact", f"期望 exact，实际 {r.match_status}")
-        self.assertIn(
-            "质量", r.standard_name or "", f"标准名称应包含'质量': {r.standard_name}"
-        )
+        self.assertIn("质量", r.standard_name or "", f"标准名称应包含'质量': {r.standard_name}")
 
 
 class TestE2ENjbz365(unittest.TestCase):
@@ -153,8 +151,7 @@ class TestE2EIsoGov(unittest.TestCase):
             f"期望 exact/newer，实际 {r.match_status}",
         )
         self.assertTrue(
-            "quality" in (r.standard_name or "").lower()
-            or "9001" in (r.standard_number or ""),
+            "quality" in (r.standard_name or "").lower() or "9001" in (r.standard_number or ""),
             f"标准名称/编号应相关: {r.standard_name}",
         )
 
@@ -276,9 +273,7 @@ class TestAllSitesCooled(unittest.TestCase):
             # 查询一条标准——应不崩溃，返回无可用站点错误
             results, stats = mgr.query_by_numbers(["GB/T 1-2020"])
             self.assertEqual(len(results), 1)
-            self.assertIsNotNone(
-                results[0].error_message, "全部站点冷却时应有 error_message"
-            )
+            self.assertIsNotNone(results[0].error_message, "全部站点冷却时应有 error_message")
 
         finally:
             # 恢复冷却状态
@@ -311,9 +306,7 @@ class TestSiteUnavailable(unittest.TestCase):
         if r is None:
             self.skipTest("hbba 无响应")
         has_error = r.error_message or not r.is_found()
-        self.assertTrue(
-            has_error, f"应返回 None 或带 error_message/not_found: {r.error_message}"
-        )
+        self.assertTrue(has_error, f"应返回 None 或带 error_message/not_found: {r.error_message}")
 
 
 class TestNetworkDisconnect(unittest.TestCase):

@@ -124,8 +124,7 @@ class TestParseTextTable(unittest.TestCase):
 
     def test_parses_two_standards(self):
         text = (
-            "1GB/Z 171—2026航空航天 实心铆钉 材料清单2026-04-29\n"
-            "2GB/Z 172—2026燃料电池电动摩托车安全要求2026-05-01\n"
+            "1GB/Z 171—2026航空航天 实心铆钉 材料清单2026-04-29\n2GB/Z 172—2026燃料电池电动摩托车安全要求2026-05-01\n"
         )
         items = parse_text_table(text)
         self.assertEqual(len(items), 2)

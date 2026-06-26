@@ -59,9 +59,7 @@ class TestConfigManager(unittest.TestCase):
 
     def test_populate_defaults(self):
         self.cfg.reset()  # 清空 _populate_first_run 预填的默认值
-        self.cfg.populate_defaults(
-            {"scan.extensions": [".pdf"], "scan.skip_folders": ["过期"]}
-        )
+        self.cfg.populate_defaults({"scan.extensions": [".pdf"], "scan.skip_folders": ["过期"]})
         self.assertEqual(self.cfg.get("scan.extensions"), [".pdf"])
         self.cfg.set("scan.extensions", [".txt"])
         self.cfg.populate_defaults({"scan.extensions": [".pdf"]})
@@ -86,9 +84,7 @@ class TestConfigManager(unittest.TestCase):
         # 应能正常创建并使用默认值
         self.assertIsNotNone(cfg.get("scan.extensions"))
         # 备份文件应存在
-        backups = [
-            f for f in os.listdir(self.tmp) if f.startswith("config.json.corrupted")
-        ]
+        backups = [f for f in os.listdir(self.tmp) if f.startswith("config.json.corrupted")]
         self.assertEqual(len(backups), 1, "损坏的配置文件应被备份")
 
 
@@ -109,9 +105,7 @@ class TestFileUtils(unittest.TestCase):
         self.assertEqual(safe_code_for_filename("SH/T"), "SHT")
 
     def test_truncate_path_short_path(self):
-        result = truncate_path(
-            "D:\\标准", "GB 国家标准", "GB 19001-2020 质量管理体系.pdf"
-        )
+        result = truncate_path("D:\\标准", "GB 国家标准", "GB 19001-2020 质量管理体系.pdf")
         self.assertIn("质量管理体系", result)
 
     def test_truncate_path_long_path(self):
@@ -211,10 +205,7 @@ class TestDatabase(unittest.TestCase):
                 f"期望 schema {CURRENT_SCHEMA_VERSION}，实际 {actual}",
             )
             tables = {
-                r["name"]
-                for r in alt_db.fetchall(
-                    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-                )
+                r["name"] for r in alt_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
             }
             expected = {
                 "_schema_version",
@@ -390,9 +381,7 @@ class TestFileIndexRepository(unittest.TestCase):
         """7 天内已验证的记录跳过检查，不被清除。"""
         self.repo.upsert("/nonexistent.pdf", "GB", 5, 2020, file_hash="abc")
         # 标记为今天已验证
-        self.db.execute(
-            "UPDATE file_index SET last_checked = date('now') WHERE file_path = '/nonexistent.pdf'"
-        )
+        self.db.execute("UPDATE file_index SET last_checked = date('now') WHERE file_path = '/nonexistent.pdf'")
         removed = self.repo.clear_stale()
         self.assertEqual(removed, 0, "7天内的记录不应被检查删除")
         self.assertEqual(self.repo.count(), 1)
@@ -434,9 +423,7 @@ class TestFileIndexRepository(unittest.TestCase):
     # ---- restore_parsed ----
 
     def test_restore_parsed(self):
-        self.repo.upsert(
-            "/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范"
-        )
+        self.repo.upsert("/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范")
         parsed = self.repo.restore_parsed("/path/GB 1-2020 基础规范.pdf")
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed.logical_code, "GB")
@@ -512,9 +499,7 @@ class TestFileIndexRepository(unittest.TestCase):
         """restore_parsed 从 standard_info_cache 恢复 exact 查询结果字段。"""
         import json
 
-        self.repo.upsert(
-            "/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范"
-        )
+        self.repo.upsert("/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范")
         # 插入 exact 缓存
         cached = json.dumps(
             {
@@ -526,8 +511,7 @@ class TestFileIndexRepository(unittest.TestCase):
             }
         )
         self.db.execute(
-            "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)"
-            "VALUES (?, ?, ?, ?)",
+            "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)VALUES (?, ?, ?, ?)",
             ("GB 1-2020", "test_site", cached, datetime.now().isoformat()),
         )
         parsed = self.repo.restore_parsed("/path/GB 1-2020 基础规范.pdf")
@@ -552,8 +536,7 @@ class TestFileIndexRepository(unittest.TestCase):
             }
         )
         self.db.execute(
-            "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)"
-            "VALUES (?, ?, ?, ?)",
+            "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)VALUES (?, ?, ?, ?)",
             ("SH 2-2020", "test_site", cached, datetime.now().isoformat()),
         )
         parsed = self.repo.restore_parsed("/path/SH 2-2020.pdf")
@@ -569,9 +552,7 @@ class TestFileIndexRepository(unittest.TestCase):
         """公告缓存也能恢复查询结果字段。"""
         import json
 
-        self.repo.upsert(
-            "/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范"
-        )
+        self.repo.upsert("/path/GB 1-2020 基础规范.pdf", "GB", 1, 2020, std_name="基础规范")
         cached = json.dumps(
             {
                 "standard_number": "GB 1-2020",
@@ -625,9 +606,7 @@ class TestFileIndexRepository(unittest.TestCase):
             "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)"
             "VALUES ('GB 2-2020', 'mock', ?, ?)",
             (
-                json.dumps(
-                    {"status": "现行", "match_status": "exact", "standard_name": "网查"}
-                ),
+                json.dumps({"status": "现行", "match_status": "exact", "standard_name": "网查"}),
                 datetime.now().isoformat(),
             ),
         )
@@ -635,9 +614,7 @@ class TestFileIndexRepository(unittest.TestCase):
             "INSERT INTO announcement_cache (standard_number, source_site, result_json, cached_at) "
             "VALUES ('GB 2-2020', 'announcement', ?, ?)",
             (
-                json.dumps(
-                    {"status": "废止", "match_status": "exact", "standard_name": "公告"}
-                ),
+                json.dumps({"status": "废止", "match_status": "exact", "standard_name": "公告"}),
                 datetime.now().isoformat(),
             ),
         )
@@ -686,9 +663,7 @@ class TestDailyQuotaTracker(unittest.TestCase):
         self.tracker.get_remaining("csres")  # 触发 _ensure_date
         from datetime import date
 
-        self.assertEqual(
-            self.tracker._today, str(date.today()), "跨天后 _today 应更新为当前日期"
-        )
+        self.assertEqual(self.tracker._today, str(date.today()), "跨天后 _today 应更新为当前日期")
 
     def test_cross_day_preserves_existing_usage(self):
         """日期复位后，当天已有用量保持不变。"""
@@ -814,13 +789,9 @@ class TestDatabaseConcurrency(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def _setup_db(self, shared_db):
         self.db = shared_db
-        shared_db.execute(
-            "CREATE TABLE IF NOT EXISTS _concurrent_test (id INTEGER PRIMARY KEY, val TEXT)"
-        )
+        shared_db.execute("CREATE TABLE IF NOT EXISTS _concurrent_test (id INTEGER PRIMARY KEY, val TEXT)")
         for i in range(100):
-            shared_db.execute(
-                "INSERT OR REPLACE INTO _concurrent_test VALUES (?, ?)", (i, f"val_{i}")
-            )
+            shared_db.execute("INSERT OR REPLACE INTO _concurrent_test VALUES (?, ?)", (i, f"val_{i}"))
 
     def test_concurrent_reads_no_error(self):
         """多线程并发 fetchall 不应抛异常或数据竞争。"""
@@ -863,9 +834,7 @@ class TestDatabaseConcurrency(unittest.TestCase):
         def reader():
             try:
                 for _ in range(20):
-                    rows = self.db.fetchall(
-                        "SELECT COUNT(*) as cnt FROM _concurrent_test"
-                    )
+                    rows = self.db.fetchall("SELECT COUNT(*) as cnt FROM _concurrent_test")
                     results.append(rows[0]["cnt"])
             except Exception as e:
                 errors.append(str(e))

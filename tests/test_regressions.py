@@ -117,9 +117,7 @@ class TestNjbz365SearchFix(unittest.TestCase):
                 },
             }
         )
-        result = adapter._search(
-            "API 610 2004", target_code="API", target_number=610, target_year=2004
-        )
+        result = adapter._search("API 610 2004", target_code="API", target_number=610, target_year=2004)
         self.assertIsNotNone(result)
         self.assertEqual(result.match_status, "exact")
 
@@ -127,13 +125,9 @@ class TestNjbz365SearchFix(unittest.TestCase):
         """传入 API 搜索目标，但 API 返回了 GB/T → mismatch"""
         adapter = self.adapter
         adapter._do_request = MagicMock(return_value=self._fake_do_request(None))
-        result = adapter._search(
-            "API 610 2004", target_code="API", target_number=610, target_year=2004
-        )
+        result = adapter._search("API 610 2004", target_code="API", target_number=610, target_year=2004)
         self.assertIsNotNone(result)
-        self.assertNotEqual(
-            result.match_status, "exact", "搜索 API 但 API 返回 GB/T → 不应该是 exact"
-        )
+        self.assertNotEqual(result.match_status, "exact", "搜索 API 但 API 返回 GB/T → 不应该是 exact")
 
     def test_search_without_target_params_uses_empty(self):
         """不传目标参数时 match_result 收到空字符串 → 应返回非 exact"""
@@ -274,16 +268,12 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         """修复后 can_handle 不再对空 source_site 返回 True。"""
         adapter = OpenstdDownloadAdapter()
         task = DownloadTask(standard_number="GB/T 1-2020", source_site="")
-        self.assertFalse(
-            adapter.can_handle(task), "空 source_site 不应被 openstd 适配器接受"
-        )
+        self.assertFalse(adapter.can_handle(task), "空 source_site 不应被 openstd 适配器接受")
 
     def test_can_handle_accepts_openstd_download(self):
         """明确标记为 openstd_download 的任务应被接受。"""
         adapter = OpenstdDownloadAdapter()
-        task = DownloadTask(
-            standard_number="GB/T 1-2020", source_site="openstd_download"
-        )
+        task = DownloadTask(standard_number="GB/T 1-2020", source_site="openstd_download")
         self.assertTrue(adapter.can_handle(task))
 
     def test_can_handle_rejects_foreign_site(self):
@@ -291,9 +281,7 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         adapter = OpenstdDownloadAdapter()
         for site in ("njbz365", "hbba", "dbba", "iso_gov", "csres"):
             task = DownloadTask(standard_number="API 610-2004", source_site=site)
-            self.assertFalse(
-                adapter.can_handle(task), f"site={site} 不应被 openstd 适配器接受"
-            )
+            self.assertFalse(adapter.can_handle(task), f"site={site} 不应被 openstd 适配器接受")
 
     def test_find_adapter_maps_std_gov_to_openstd(self):
         """_QUERY_TO_DOWNLOAD_SITE 映射：std_gov → openstd_download"""
@@ -310,9 +298,7 @@ class TestDownloadSourceSitePropagation(unittest.TestCase):
         engine = DownloadEngine(adapters=[adapter], session_manager=MagicMock())
         task = DownloadTask(standard_number="API 610-2004", source_site="njbz365")
         found = engine._find_adapter(task)
-        self.assertIsNone(
-            found, "njbz365 来源的国外标准不应有下载适配器，应返回清晰错误而非缺hcno"
-        )
+        self.assertIsNone(found, "njbz365 来源的国外标准不应有下载适配器，应返回清晰错误而非缺hcno")
 
     def test_download_task_accepts_source_site_param(self):
         """DownloadTask 可以接受 source_site 参数。"""
@@ -331,17 +317,13 @@ class TestFoundSourceSiteField(unittest.TestCase):
     def test_field_exists_with_default(self):
         from pilotstd.models import ParsedStdInfo
 
-        p = ParsedStdInfo(
-            raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020
-        )
+        p = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020)
         self.assertEqual(p.found_source_site, "")
 
     def test_field_can_be_set(self):
         from pilotstd.models import ParsedStdInfo
 
-        p = ParsedStdInfo(
-            raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020
-        )
+        p = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020)
         p.found_source_site = "std_gov"
         self.assertEqual(p.found_source_site, "std_gov")
 

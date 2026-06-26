@@ -12,9 +12,7 @@ from PyQt6.QtWidgets import QApplication, QMenu
 
 def test_work_table_has_context_menu_policy(window):
     """工作表应设置了 CustomContextMenu 策略。"""
-    assert (
-        window.work_table.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
-    )
+    assert window.work_table.contextMenuPolicy() == Qt.ContextMenuPolicy.CustomContextMenu
 
 
 def test_work_table_context_menu_triggered(window, qtbot):
@@ -28,9 +26,7 @@ def test_work_table_context_menu_triggered(window, qtbot):
     window.work_table.customContextMenuRequested.connect(on_menu)
     # 通过 viewport 发送 QContextMenuEvent，由 QAbstractScrollArea::viewportEvent
     # 转发至 work_table 自身，触发 customContextMenuRequested 信号
-    event = QContextMenuEvent(
-        QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100)
-    )
+    event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100))
     QApplication.sendEvent(window.work_table.viewport(), event)
     qtbot.wait(100)
     assert triggered
