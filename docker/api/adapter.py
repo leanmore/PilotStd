@@ -20,7 +20,20 @@ _DEFAULT_CONFIG = {
     "freeze_durations": [30, 120, 360, 720],
     "reset_window_hours": 24,
 }
-_ALL_ADAPTER_NAMES = ["gb", "hb", "db"]
+_ALL_ADAPTER_NAMES = [
+    # 公告适配器
+    "gb",
+    "hb",
+    "db",
+    # 标准查询适配器
+    "ahbz",
+    "std_gov",
+    "hbba",
+    "iso_gov",
+    "njbz365",
+    "csres",
+    "dbba",
+]
 
 
 @router.get("/api/adapter/status")

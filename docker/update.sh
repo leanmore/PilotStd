@@ -1,6 +1,7 @@
 #!/bin/bash
-# PilotStd 更新脚本 v2 — 版本比较 + 前端更新 + 依赖编译
+# PilotStd 更新脚本 v2.1 — 版本比较 + 前端更新 + 依赖编译
 # 支持：容器启动时自动检查 + Web 触发一次性更新
+# 注意：Docker 镜像不含 .git 目录，git pull 仅在开发/调试容器中生效
 
 set -e
 
@@ -22,7 +23,7 @@ log_error() { echo -e "${RED}[UPDATE]${NC} $1"; }
 
 # 1. 读取本地版本
 get_local_version() {
-    python -c "from pilotstd import __version__; print(__version__)" 2>/dev/null || echo "unknown"
+    python -c "from pilotstd import __version__; print(__version__)" 2>/dev/null || echo "0.0.0"
 }
 
 # 2. 获取远程最新版本（GitHub Release，带超时和错误处理）
@@ -50,10 +51,16 @@ compare_versions() {
     fi
 }
 
-# 4. 更新后端代码（git pull）
+# 4. 更新后端代码（仅当 .git 目录存在时执行 git pull）
 update_backend() {
     log_info "更新后端代码..."
     cd "${APP_DIR}" || return 1
+
+    # Docker 镜像不含 .git 目录，跳过 git 操作
+    if [ ! -d "${APP_DIR}/.git" ]; then
+        log_info ".git 目录不存在（生产镜像），后端代码随镜像更新，跳过 git pull"
+        return 0
+    fi
 
     if ! git diff --quiet 2>/dev/null; then
         log_warn "存在未提交的更改，跳过 git pull"
@@ -76,14 +83,14 @@ update_frontend() {
 
     log_info "更新前端资源 (${version})..."
     if ! curl -sL --connect-timeout 60 "${dist_url}" -o "${dist_zip}" 2>/dev/null; then
-        log_warn "前端 dist.zip 下载失败，跳过前端更新"
+        log_warn "前端 dist.zip 下载失败（Release 可能尚未构建），跳过前端更新"
         rm -f "${dist_zip}"
         return 0
     fi
 
     mkdir -p "${APP_DIR}/web/dist"
     if unzip -o "${dist_zip}" -d "${APP_DIR}/web/dist/" 2>/dev/null; then
-        log_info "前端资源已更新至 ${version}"
+        log_info "前端资源已更新"
         rm -f "${dist_zip}"
     else
         log_warn "前端 dist.zip 解压失败"
@@ -92,10 +99,16 @@ update_frontend() {
     fi
 }
 
-# 6. 依赖编译（requirements.in → requirements.txt → pip install）
+# 6. 依赖编译（仅当 .git 目录存在时检测变更）
 update_dependencies() {
     log_info "检查依赖变更..."
     cd "${APP_DIR}" || return 1
+
+    # 生产镜像不含 .git，无法检测变更
+    if [ ! -d "${APP_DIR}/.git" ]; then
+        log_info ".git 目录不存在，跳过依赖变更检测"
+        return 0
+    fi
 
     if ! git diff HEAD@{1} HEAD --name-only 2>/dev/null | grep -qE "requirements\.in|docker/requirements-docker\.txt"; then
         log_info "依赖无变化"
@@ -103,13 +116,10 @@ update_dependencies() {
     fi
 
     log_info "依赖已变更，重新安装..."
-
-    # 若存在 requirements.in，优先编译
     if [ -f "requirements.in" ] && command -v pip-compile >/dev/null 2>&1; then
         log_info "编译 requirements.in → requirements.txt"
         pip-compile requirements.in -o requirements.txt || log_warn "pip-compile 失败，使用现有 requirements.txt"
     fi
-
     pip install -r docker/requirements-docker.txt
     log_info "依赖安装完成"
 }
@@ -172,29 +182,16 @@ main() {
     elif [ $cmp_result -eq 1 ]; then
         log_info "发现新版本 ${remote_ver}，开始更新..."
 
-        if ! update_backend; then
-            log_error "后端更新失败"
-            return 1
-        fi
-
-        if ! update_frontend "${remote_ver}"; then
-            log_warn "前端更新失败（后端已更新）"
-        fi
-
-        if ! update_dependencies; then
-            log_warn "依赖更新失败（代码已更新）"
-        fi
+        update_backend
+        update_frontend "${remote_ver}" || log_warn "前端更新失败（后端已更新）"
+        update_dependencies || log_warn "依赖更新失败（代码已更新）"
 
         clear_pending_flag
-        log_info "✅ 更新完成，即将重启服务..."
+        log_info "✅ 更新完成"
 
         if [ "$triggered_by_web" = true ]; then
             log_info "Web 触发模式：退出容器，Docker 重启策略将重建容器"
-            pkill -f "uvicorn" || true
-            sleep 1
             exit 0
-        else
-            pkill -f "uvicorn" || true
         fi
     else
         log_info "本地版本 ${local_ver} 高于远程 ${remote_ver}（开发模式），跳过更新"

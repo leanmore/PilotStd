@@ -70,30 +70,62 @@ function getWidgetComponent(type: WidgetType) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  position: relative;
+}
+
+.page-header::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), transparent);
 }
 
 .hint {
   color: var(--text-dim);
-  font-size: 13px;
-  margin-top: 4px;
+  font-size: 14px;
+  margin-top: 6px;
+  font-weight: 400;
 }
 
 /* grid-layout-plus 占位符定制 */
 :deep(.vgl-item--placeholder) {
-  background: var(--primary);
-  opacity: 0.12;
-  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary-bg), transparent);
+  opacity: 0.6;
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--primary-border);
 }
 
 /* 网格项过渡 */
 :deep(.vgl-item) {
-  transition: all 200ms ease;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 拖拽中的项加阴影 */
 :deep(.vgl-item--dragging) {
   box-shadow: var(--shadow-lg);
-  z-index: 3;
+  z-index: 10;
+  transform: rotate(2deg) scale(1.02);
+}
+
+/* 网格项默认样式 */
+:deep(.vgl-item) {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* 响应式优化 */
+@media (max-width: 767px) {
+  .page-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+  }
+  .page-header h1 { font-size: 20px; }
+  .hint { font-size: 13px; }
 }
 </style>

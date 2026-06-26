@@ -109,37 +109,36 @@ onBeforeUnmount(() => {
 .adapter-widget {
   height: 100%;
   box-sizing: border-box;
-  background: var(--surface);
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
-  padding: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
+  transition: all var(--transition);
+}
+.adapter-widget:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .widget-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
 }
 
 .adapter-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.adapter-table th,
-.adapter-table td {
-  padding: 6px 8px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-light);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
 }
 .adapter-table th {
   font-weight: 600;
@@ -147,17 +146,41 @@ onBeforeUnmount(() => {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding: 8px 10px;
+  background: var(--surface-raised);
+  border-bottom: 2px solid var(--border);
 }
+.adapter-table th:first-child { border-radius: var(--radius-sm) 0 0 0; }
+.adapter-table th:last-child { border-radius: 0 var(--radius-sm) 0 0; }
+.adapter-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+}
+.adapter-table tbody tr {
+  transition: all var(--transition);
+}
+.adapter-table tbody tr:hover {
+  background: var(--selected);
+}
+.adapter-table tbody tr:last-child td { border-bottom: none; }
 
 .empty {
   color: var(--text-dim);
   font-size: 13px;
-  padding: 16px 0;
+  padding: 24px 0;
   text-align: center;
 }
 .err-msg {
   color: var(--danger);
   font-size: 12px;
   margin: 4px 0;
+}
+
+/* 响应式 */
+@media (max-width: 767px) {
+  .adapter-widget { padding: 16px; }
+  .adapter-table { font-size: 12px; }
+  .adapter-table th, .adapter-table td { padding: 6px 8px; }
 }
 </style>

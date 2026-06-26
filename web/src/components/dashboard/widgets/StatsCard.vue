@@ -77,48 +77,70 @@ onMounted(async () => {
 .stats-card-widget {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 18px;
+  padding: 24px;
   height: 100%;
   box-sizing: border-box;
-  background: var(--surface);
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
-  transition: box-shadow var(--transition), transform var(--transition);
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.stats-card-widget::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, var(--primary-bg), transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
 }
 .stats-card-widget:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  border-color: var(--primary-border);
 }
 
 .stat-icon-box {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: #fff;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 22px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 1;
+  transition: all var(--transition);
+}
+.stats-card-widget:hover .stat-icon-box {
+  transform: scale(1.05) rotate(-3deg);
 }
 
-.stat-info { flex: 1; min-width: 0; }
+.stat-info { flex: 1; min-width: 0; position: relative; z-index: 1; }
 .stat-num {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   color: var(--text-heading);
   font-family: var(--mono);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-dim);
-  margin-top: 2px;
-  font-weight: 500;
+  margin-top: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .stat-err { color: var(--danger); }
 
@@ -130,10 +152,18 @@ onMounted(async () => {
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
 }
-.skeleton-num { height: 28px; width: 60%; margin-bottom: 6px; }
+.skeleton-num { height: 32px; width: 60%; margin-bottom: 8px; }
 .skeleton-label { height: 14px; width: 40%; }
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* 响应式 */
+@media (max-width: 767px) {
+  .stats-card-widget { padding: 18px; gap: 14px; }
+  .stat-icon-box { width: 44px; height: 44px; font-size: 18px; }
+  .stat-num { font-size: 26px; }
+  .stat-label { font-size: 11px; }
 }
 </style>

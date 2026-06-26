@@ -19,13 +19,13 @@ if [ "${PILOTSTD_AUTO_UPDATE}" = "false" ]; then
 elif [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
     echo "[AUTO-UPDATE] 自动更新已开启 (mode=${PILOTSTD_AUTO_UPDATE})，执行更新脚本..."
     chmod +x /app/docker/update.sh 2>/dev/null || true
-    /app/docker/update.sh
+    /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
 else
     # 未设置或其他值 → 跳过，但 Web 触发的一次性更新仍然生效
     if [ -f "/app/data/temp/pilotstd.pending_update" ]; then
         echo "[AUTO-UPDATE] 检测到 Web 触发的一次性更新标记，强制执行更新..."
         chmod +x /app/docker/update.sh 2>/dev/null || true
-        /app/docker/update.sh
+        /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
     else
         echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
     fi
