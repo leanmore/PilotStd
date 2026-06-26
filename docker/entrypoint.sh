@@ -10,13 +10,25 @@ if [ -z "$JWT_SECRET" ]; then
 fi
 
 # ── 自动更新（参照 MoviePilot）──────────────────────────────
-# PILOTSTD_AUTO_UPDATE=true 时执行 update.sh（git pull + 重启进程）
-if [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
-    echo "[AUTO-UPDATE] 自动更新已开启，执行更新脚本..."
+# PILOTSTD_AUTO_UPDATE 取值：
+#   true / release  → 容器启动时检查并更新（版本比较 + 前端 + 依赖）
+#   false           → 跳过更新检查（Web 触发的一次性更新也忽略）
+#   未设置           → 跳过更新检查（默认行为，向后兼容）
+if [ "${PILOTSTD_AUTO_UPDATE}" = "false" ]; then
+    echo "[AUTO-UPDATE] 自动更新已禁用 (PILOTSTD_AUTO_UPDATE=false)"
+elif [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
+    echo "[AUTO-UPDATE] 自动更新已开启 (mode=${PILOTSTD_AUTO_UPDATE})，执行更新脚本..."
     chmod +x /app/docker/update.sh 2>/dev/null || true
     /app/docker/update.sh
 else
-    echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
+    # 未设置或其他值 → 跳过，但 Web 触发的一次性更新仍然生效
+    if [ -f "/app/data/temp/pilotstd.pending_update" ]; then
+        echo "[AUTO-UPDATE] 检测到 Web 触发的一次性更新标记，强制执行更新..."
+        chmod +x /app/docker/update.sh 2>/dev/null || true
+        /app/docker/update.sh
+    else
+        echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
+    fi
 fi
 
 # PUID/PGID: 修正 appuser 的 UID/GID 匹配 NAS 文件权限

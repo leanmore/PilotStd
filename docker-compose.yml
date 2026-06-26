@@ -20,9 +20,13 @@ services:
       - ./inbox:/inbox
       - ./standards:/standards
       - ./.env:/app/.env
+      # 挂载 docker.sock 允许容器调用 Docker API（镜像级更新 / 容器自重启）。
+      # 安全注意：挂载后容器可控制宿主机 Docker，仅在信任容器内代码时启用。
+      # 方案 C 的代码级重启（/api/system/restart）不依赖此挂载，可注释掉。
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - TZ=Asia/Shanghai
-      # 自动更新：true=开启, false=关闭
+      # 自动更新：true/release=开启（版本比较+前端+依赖）, false=关闭
       - PILOTSTD_AUTO_UPDATE=true
       # 超级用户（可选，默认 admin）
       - SUPERUSER=admin

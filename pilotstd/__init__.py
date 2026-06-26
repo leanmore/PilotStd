@@ -1,11 +1,13 @@
 # 应用版本号——唯一真相来源（CI、更新检查、打包均从此读取）
-__version__ = "0.31.7"
 
 from typing import Any
 
 # 轻量数据模型（启动时需用）
 from .models import FileInfo, ParsedStdInfo, ScanResult, ScanStats
 from .scan import FileScanner, StandardParser
+
+__version__ = "0.31.7"
+FRONTEND_VERSION = __version__  # 与后端保持一致，更新脚本据此下载前端 dist.zip
 
 __all__ = [
     "ParsedStdInfo",

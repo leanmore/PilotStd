@@ -77,6 +77,11 @@
 | Web 时效性配置组件 | `web/src/components/ValidityConfig.vue` | `ValidityConfig` | — | active | 时效性检查设置页组件：6 项配置 + 立即执行 + 执行记录（分页/筛选/详情） |
 | Web 文件选择器 | `web/src/views/OrganizeView.vue` | `selectedFiles/enqueueValidityCheck` | — | active | 文件复选框 + 全选 + 操作栏 + 时效性入队 |
 | 时效性入队 API | `docker/api/validity.py` | `POST /api/validity/enqueue` | — | active | 前端选中文件后入队写入 `validity_check_queue` |
+| Docker 自动更新入口 | `docker/entrypoint.sh` | `PILOTSTD_AUTO_UPDATE` | L12-28 | active | 容器启动时检查环境变量 + Web 触发 pending 标记，调用 update.sh |
+| Docker 更新脚本 v2 | `docker/update.sh` | 版本比较 + 前端更新 + 依赖编译 | — | active | GitHub Release 版本比较 → git pull + dist.zip 下载 + requirements.in 编译 |
+| 系统重启 API | `docker/api/system.py` | `POST /api/system/restart` | L159-184 | active | 写入 pending 标记后退出进程，Docker restart 策略重建容器 |
+| Web 重启按钮 | `web/src/components/AppLayout.vue` | `handleRestart` | — | active | 顶部栏"重启更新"按钮，确认后调用 `/api/system/restart` |
+| 前端版本号 | `pilotstd/__init__.py` | `FRONTEND_VERSION` | L3 | active | 与 `__version__` 一致，更新脚本据此下载对应前端 dist.zip |
 | 已废弃-ValidityConfigView 页面 | `web/src/views/ValidityConfigView.vue` | （文件已删除） | — | deprecated | 时效性配置已整合进设置页"时效性"Tab |
 | 已废弃-NotificationsView 页面 | `web/src/views/NotificationsView.vue` | （文件已删除） | — | deprecated | 通知配置已整合进设置页"通知"Tab |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |
@@ -103,6 +108,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
+| 2026-06-26 | v2.3 | 新增 6 条能力：Docker 自动更新入口、更新脚本 v2、系统重启 API、Web 重启按钮、前端版本号；新增 status `migrating` |
 | 2026-06-23 | v2.1 | 重构为平表格式；修正全部行号为当前代码实际值；新增 `update_capabilities.py` 自动维护脚本 |
 | 2026-06-23 | v2.0 | 新增 9 条遗漏能力；2 条归档记录改为 deprecated；覆盖率 86%→~100% |
 | 2026-06-22 | v1.0 | 初始版本 |
