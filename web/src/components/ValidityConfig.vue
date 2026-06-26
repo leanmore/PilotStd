@@ -44,6 +44,8 @@ async function doSave() {
   finally { saving.value = false }
 }
 
+defineExpose({ doSave })
+
 async function doRun() {
   running.value = true; runResult.value = ''
   try {
@@ -150,9 +152,9 @@ onMounted(() => { loadConfig(); loadHistory() })
         <label>结束日期</label>
         <InputText v-model="filterEnd" type="date" size="small" />
       </div>
-      <div class="filter-item" style="align-self:flex-end">
-        <Button icon="pi pi-search" size="small" @click="onSearch" />
-        <Button icon="pi pi-refresh" size="small" severity="secondary" style="margin-left:6px" @click="onReset" />
+      <div class="filter-actions">
+        <Button label="筛选" icon="pi pi-search" size="small" severity="success" @click="onSearch" />
+        <Button label="重置" icon="pi pi-refresh" size="small" severity="secondary" @click="onReset" />
       </div>
     </div>
 
@@ -203,6 +205,7 @@ onMounted(() => { loadConfig(); loadHistory() })
 .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
 .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
 .filter-item label { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+.filter-actions { display: flex; gap: 8px; align-items: flex-end; }
 .table-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .data-table th, .data-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); }

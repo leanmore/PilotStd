@@ -82,6 +82,10 @@
 | 系统重启 API | `docker/api/system.py` | `POST /api/system/restart` | L159-184 | active | 写入 pending 标记后退出进程，Docker restart 策略重建容器 |
 | Web 重启按钮 | `web/src/components/AppLayout.vue` | `handleRestart` | — | active | 顶部栏"重启更新"按钮，确认后调用 `/api/system/restart` |
 | 前端版本号 | `pilotstd/__init__.py` | `FRONTEND_VERSION` | L3 | active | 与 `__version__` 一致，更新脚本据此下载对应前端 dist.zip |
+| 路径遍历防护 | `pilotstd/core/path_guard.py` | `get_allowed_roots/validate_path_in_root` | L9-32 | active | 多根目录白名单校验，Docker 环境默认允许 /inbox 和 /standards |
+| 文件浏览 API（多根） | `docker/api/organize.py` | `_validate_path` | L19-26 | active | 文件列表与清理，支持多根目录（与 scan 模块对齐） |
+| 扫描路径校验（多根） | `docker/api/scan.py` | `_validate_path` | L19-26 | active | 扫描路径校验，支持多根目录（与 organize 模块对齐） |
+| Docker 标准库根目录 | `docker-compose.yml` | `STANDARD_ROOT=/standards` | L30 | active | 环境变量注入，覆盖 config 默认值 ~/标准 |
 | 已废弃-ValidityConfigView 页面 | `web/src/views/ValidityConfigView.vue` | （文件已删除） | — | deprecated | 时效性配置已整合进设置页"时效性"Tab |
 | 已废弃-NotificationsView 页面 | `web/src/views/NotificationsView.vue` | （文件已删除） | — | deprecated | 通知配置已整合进设置页"通知"Tab |
 | 已废弃-旧管道 ProgressReporter | `tests/stress_01_pipeline_archived.py` | （文件已删除） | — | deprecated | 已迁移至 `query/engine.py` + `stress_web.py` + `stress_driver.py` |
@@ -108,7 +112,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
-| 2026-06-26 | v2.3 | 新增 6 条能力：Docker 自动更新入口、更新脚本 v2、系统重启 API、Web 重启按钮、前端版本号；新增 status `migrating` |
+| 2026-06-26 | v2.3 | 新增 6 条能力：Docker 自动更新入口、更新脚本 v2、系统重启 API、Web 重启按钮、前端版本号、路径遍历防护体系（path_guard + organize + scan + STANDARD_ROOT） |
 | 2026-06-23 | v2.1 | 重构为平表格式；修正全部行号为当前代码实际值；新增 `update_capabilities.py` 自动维护脚本 |
 | 2026-06-23 | v2.0 | 新增 9 条遗漏能力；2 条归档记录改为 deprecated；覆盖率 86%→~100% |
 | 2026-06-22 | v1.0 | 初始版本 |

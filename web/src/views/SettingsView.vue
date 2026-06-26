@@ -215,6 +215,79 @@ const tabs = [
   { key: 'validity', label: '时效性' },
 ]
 
+// 底部操作栏：每个 Tab 对应的 cfg 顶层键（用于"应用"按钮提取对应字段）
+const tabConfigKeys: Record<string, string[]> = {
+  'storage':   ['storage', 'organize', 'file'],
+  'network':   ['network'],
+  'query':     ['query'],
+  'scan':      ['scan'],
+  'ui':        ['appearance', 'tasks'],
+  'ocr':       ['ocr'],
+  'sites':     ['sites'],
+  'circuit':   [],  // 独立 API — 不走 /settings
+  'notification': [],  // 独立 API — 子组件内部保存
+  'validity':      [],  // 独立 API — 子组件内部保存
+  'users':     [],
+  'token':     [],
+}
+
+const applyLoading = ref(false)
+
+// 子组件引用（用于"应用"按钮触发子组件内部保存）
+const notificationRef = ref<InstanceType<typeof NotificationConfig> | null>(null)
+const validityRef = ref<InstanceType<typeof ValidityConfig> | null>(null)
+
+function extractTabConfig(tabKey: string): Record<string, any> {
+  const keys = tabConfigKeys[tabKey] || []
+  const result: Record<string, any> = {}
+  for (const k of keys) {
+    if (cfg.value[k] !== undefined) {
+      result[k] = cfg.value[k]
+    }
+  }
+  return result
+}
+
+async function applyCurrentTab() {
+  const tabKey = activeTab.value
+  // 用户和令牌 Tab 无待保存表单，点击无操作
+  if (tabKey === 'users' || tabKey === 'token') {
+    applyLoading.value = true
+    setTimeout(() => applyLoading.value = false, 300)
+    return
+  }
+  applyLoading.value = true
+  try {
+    switch (tabKey) {
+      // 独立 API 的 Tab
+      case 'circuit':
+        await saveCircuitConfig()
+        break
+      case 'notification':
+        await notificationRef.value?.saveConfig()
+        break
+      case 'validity':
+        await validityRef.value?.doSave()
+        break
+      // 通过 /api/settings 部分更新的 Tab
+      default: {
+        const payload = extractTabConfig(tabKey)
+        if (Object.keys(payload).length > 0) {
+          await putSettings(payload)
+        }
+        saved.value = true
+        cfgErr.value = ''
+        setTimeout(() => saved.value = false, 2000)
+        break
+      }
+    }
+  } catch (e: any) {
+    cfgErr.value = e.response?.data?.detail || '保存失败'
+  } finally {
+    applyLoading.value = false
+  }
+}
+
 // 站点信息（与 pilotstd/query/site_config.py 同步）
 const sites = [
   { name: 'ahbz', label: '安徽标准平台', url: 'bzxx.ahbz.org.cn', priority: 1, maxRequests: 200, dailyLimit: 800 },
@@ -400,7 +473,7 @@ const sites = [
             <span style="min-width:80px;font-size:13px;color:var(--text-dim)">{{ item.role }}</span>
             <span style="flex:1;font-size:12px;color:var(--text-dim)">{{ item.created_at }}</span>
             <Button v-if="canDelete(item)" icon="pi pi-trash"
-                    severity="danger" size="small" text @click="confirmDelete(item)" />
+                    severity="danger" size="small" @click="confirmDelete(item)" />
           </div>
         </div>
       </template>
@@ -467,30 +540,43 @@ const sites = [
         <InputNumber v-model="circuitCfg.reset_window_hours" :min="1" show-buttons />
       </div>
     </div>
-    <div style="margin-top:14px">
-      <Button icon="pi pi-save" label="保存熔断配置" :loading="circuitLoading" @click="saveCircuitConfig" />
-    </div>
   </div>
 
   <!-- 通知 -->
   <div v-show="activeTab === 'notification'" class="card mt-2">
     <div class="card-header">通知配置</div>
-    <NotificationConfig />
+    <NotificationConfig ref="notificationRef" />
   </div>
 
   <!-- 时效性 -->
   <div v-show="activeTab === 'validity'" class="card mt-2">
     <div class="card-header">时效性检查</div>
-    <ValidityConfig />
+    <ValidityConfig ref="validityRef" />
   </div>
 
-  <div class="mt-3" style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+  <!-- 底部操作栏 -->
+  <div class="settings-footer">
+    <div class="footer-actions">
+      <Button
+        label="应用"
+        icon="pi pi-refresh"
+        severity="secondary"
+        @click="applyCurrentTab"
+        :loading="circuitLoading"
+        title="仅保存当前 Tab 的设置"
+      />
+      <Button
+        label="确定"
+        icon="pi pi-check"
+        @click="saveCfg"
+        title="保存所有 Tab 的设置"
+      />
+    </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <Button label="保存设置" icon="pi pi-check" @click="saveCfg" />
       <Tag v-if="saved" value="已保存" severity="success" />
       <span v-if="cfgErr" class="err-msg">{{ cfgErr }}</span>
+      <span class="text-dim" style="font-size:11px">PilotStd v{{ cfg.version || '—' }}</span>
     </div>
-    <span class="text-dim" style="font-size:11px">PilotStd v{{ cfg.version || '—' }}</span>
   </div>
 
   <Dialog v-model:visible="showAdd" header="添加用户" :modal="true" :style="{width:'360px'}">
@@ -568,4 +654,20 @@ const sites = [
 .token-display { display: flex; flex-direction: column; gap: 12px; }
 .token-value { display: block; padding: 14px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--mono), 'Courier New', monospace; font-size: 15px; letter-spacing: 0.5px; word-break: break-all; color: var(--text-heading); }
 .token-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* 底部操作栏 */
+.settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
 </style>

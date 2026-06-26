@@ -5,33 +5,17 @@ from fastapi import Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
-from pilotstd.core.path_guard import validate_path_in_root
+from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["scan"])
 
-# 允许扫描的根目录：inbox（监控目录）+ 标准库根目录
-_ALLOWED_ROOTS: list[str] = []
-
-
-def _get_allowed_roots(mgr=None) -> list[str]:
-    """延迟获取允许扫描的根目录，避免模块加载时触发配置读取。"""
-    if not _ALLOWED_ROOTS:
-        root = mgr.cfg.get("storage.root_dir", "") if mgr else ""
-        if root:
-            _ALLOWED_ROOTS.append(root)
-        std_root = os.environ.get("STANDARD_ROOT", "/standards")
-        if std_root not in _ALLOWED_ROOTS:
-            _ALLOWED_ROOTS.append(std_root)
-        if "/inbox" not in _ALLOWED_ROOTS:
-            _ALLOWED_ROOTS.append("/inbox")
-    return _ALLOWED_ROOTS
-
 
 def _validate_path(user_path: str, mgr=None) -> str:
-    """校验路径：必须在允许的根目录范围内。委托 path_guard 统一实现。"""
-    for root in _get_allowed_roots(mgr):
+    """校验路径：必须在允许的根目录范围内（支持多根目录，与 organize 模块对齐）。"""
+    config_root = mgr.cfg.get("storage.root_dir", "") if mgr else ""
+    for root in get_allowed_roots(config_root):
         try:
             return validate_path_in_root(user_path, root)
         except ValueError:

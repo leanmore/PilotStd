@@ -122,6 +122,8 @@ async function saveConfig() {
   }
 }
 
+defineExpose({ saveConfig })
+
 async function testChannel(ch: string) {
   testResults.value[ch] = '测试中...'
   try {
@@ -156,13 +158,12 @@ onMounted(loadConfig)
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
     <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
 
-    <!-- 全局开关 + 保存 -->
+    <!-- 全局开关 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <ToggleSwitch v-model="enabled" />
         <span style="font-size:13px;color:var(--text)">启用通知</span>
       </div>
-      <Button icon="pi pi-save" label="保存配置" :loading="saving" @click="saveConfig" />
     </div>
 
     <!-- 渠道卡片网格 -->

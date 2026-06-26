@@ -6,8 +6,7 @@ from fastapi import Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
-from pilotstd.core.config import get_library_root
-from pilotstd.core.path_guard import validate_path_in_root
+from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
 from ..manager import get_manager_dep
 from .models import ListFilesResponse
@@ -16,16 +15,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["organize"])
 
 
-def _validate_library_path(user_path: str, cfg) -> str:
-    """校验路径：必须在库根目录范围内。委托 path_guard 统一实现。"""
-    return validate_path_in_root(user_path, get_library_root(cfg))
+def _validate_path(user_path: str, cfg) -> str:
+    """校验路径：必须在允许的根目录范围内（支持多根目录，与 scan 模块对齐）。"""
+    config_root = _get_config_root(cfg)
+    for root in get_allowed_roots(config_root):
+        try:
+            return validate_path_in_root(user_path, root)
+        except ValueError:
+            continue
+    raise ValueError("路径不在允许的目录范围内")
+
+
+def _get_config_root(cfg) -> str:
+    """获取用户配置的库根目录路径（与 get_library_root 一致但不自动创建目录）。"""
+    import os as _os
+
+    return _os.path.abspath(
+        _os.path.normpath(
+            _os.environ.get("STANDARD_ROOT") or cfg.get("storage.root_dir", _os.path.expanduser("~/标准"))
+        )
+    )
 
 
 @router.get("/api/files", response_model=ListFilesResponse)
 def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
     """列出指定目录下的文件和子目录。"""
     try:
-        safe_path = _validate_library_path(path, mgr.cfg)
+        safe_path = _validate_path(path, mgr.cfg)
     except ValueError:
         return JSONResponse({"error": "路径不在允许的目录范围内"}, status_code=400)
 
@@ -54,7 +70,7 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
 def clean_empty_dirs(path: str = "/standards", mgr=Depends(get_manager_dep)):
     """清除指定目录下的所有空文件夹。"""
     try:
-        safe_path = _validate_library_path(path, mgr.cfg)
+        safe_path = _validate_path(path, mgr.cfg)
     except ValueError:
         return JSONResponse({"error": "路径不在允许的目录范围内"}, status_code=400)
 

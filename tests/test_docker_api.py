@@ -112,7 +112,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
     # ── Organize ──
 
-    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize._validate_path")
     @patch("docker.api.organize.os.path.exists", return_value=True)
     @patch("docker.api.organize.os.scandir")
     def test_files_lists_directory(self, mock_scandir, mock_exists, mock_validate):
@@ -129,7 +129,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(len(data["files"]), 1)
         self.assertEqual(data["files"][0]["name"], "test.pdf")
 
-    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize._validate_path")
     @patch("docker.api.organize.os.path.exists", return_value=False)
     def test_files_nonexistent_path_returns_404(self, mock_exists, mock_validate):
         """路径不存在时返回 404。路径校验通过，但文件系统找不到。"""
@@ -137,7 +137,7 @@ class TestAPIEndpoints(unittest.TestCase):
         r = self.client.get("/api/files?path=/nonexistent")
         self.assertEqual(r.status_code, 404)
 
-    @patch("docker.api.organize._validate_library_path")
+    @patch("docker.api.organize._validate_path")
     @patch("docker.api.organize.os.walk")
     @patch("docker.api.organize.os.listdir")
     @patch("docker.api.organize.os.rmdir")
@@ -664,3 +664,34 @@ class TestAPIEndpoints(unittest.TestCase):
         r = self.client.post("/api/system/update")
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["updated"])
+
+    # ── System: restart ──
+
+    @patch("docker.api.system.asyncio.create_task")
+    @patch("docker.api.system.Path")
+    def test_restart_writes_pending_flag(self, mock_path_cls, mock_create_task):
+        """POST /api/system/restart 写入 pending 标记并返回 ok。"""
+        mock_flag = MagicMock()
+        mock_temp_dir = MagicMock()
+        mock_temp_dir.__truediv__.return_value = mock_flag
+        mock_path_cls.return_value = mock_temp_dir
+        # 阻止 os._exit(0) 杀死测试进程
+        mock_create_task.side_effect = lambda coro: None
+        r = self.client.post("/api/system/restart")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["status"], "ok")
+        mock_flag.write_text.assert_called_once_with("release")
+
+    # ── Path Guard ──
+
+    @patch("os.path.exists", return_value=True)
+    def test_get_allowed_roots_includes_inbox_and_standards(self, mock_exists):
+        """回归门禁：get_allowed_roots 必须包含 inbox 和 standards（Docker 挂载点）。"""
+        from pilotstd.core.path_guard import get_allowed_roots
+
+        roots = get_allowed_roots("/standards")
+        # 用 basename 做跨平台比较，避免 Windows 反斜杠 vs Linux 正斜杠差异
+        basenames = [r.replace("\\", "/").rstrip("/").split("/")[-1] for r in roots]
+        self.assertIn("inbox", basenames, f"/inbox 不在允许的目录范围内: {roots}")
+        self.assertIn("standards", basenames, f"/standards 不在允许的目录范围内: {roots}")
