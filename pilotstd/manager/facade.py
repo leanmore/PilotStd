@@ -158,7 +158,7 @@ class StandardManager:
     # 扫描
     # ════════════════════════════════════════════════════════════════
 
-    def scan_directory(self, root_path: str, recursive: bool = True) -> List[ParsedStdInfo]:
+    def scan_directory(self, root_path: str) -> List[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。
 
         流程：
@@ -204,7 +204,6 @@ class StandardManager:
         root_path: str,
         on_progress: Any = None,
         on_batch: Any = None,
-        recursive: bool = True,
     ) -> list[ParsedStdInfo]:
         """流式扫描目录（线程安全）。通过回调通知进度，供 Worker 线程调用。
         回调签名: on_progress(current, total)  on_batch([(seq, ParsedStdInfo), ...])
@@ -305,7 +304,7 @@ class StandardManager:
         return None
 
     @staticmethod
-    def _build_result_from_cache(standard_number: str, cache_data: dict[str, Any], cached_at: str) -> QueryResult:
+    def _build_result_from_cache(standard_number: str, cache_data: dict[str, Any]) -> QueryResult:
         """从 Web 公告缓存数据构建 QueryResult。"""
         data = cache_data or {}
         return QueryResult(
@@ -361,7 +360,7 @@ class StandardManager:
 
                 cache_hit = self._query_announcement_cache(std_num)
                 if cache_hit:
-                    cache_hit_map[i] = self._build_result_from_cache(std_num, cache_hit["data"], cache_hit["cached_at"])
+                    cache_hit_map[i] = self._build_result_from_cache(std_num, cache_hit["data"])
                     if result_callback:
                         result_callback(i, cache_hit_map[i])
                 else:

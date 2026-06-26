@@ -41,8 +41,8 @@ _HARD_RULES: list[tuple[str, str, str, str]] = [
     (
         "tests/stress_web.py",
         "观测日志",
-        PROGRESS_TAG,
-        f"stress_web.py 必须包含 {PROGRESS_TAG} 日志输出 (required)",
+        "from pilotstd.query.engine import PROGRESS_TAG",
+        f"stress_web.py 必须导入并输出 {PROGRESS_TAG} 日志 (required)",
     ),
     (
         "pilotstd/query/engine.py",

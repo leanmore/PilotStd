@@ -40,11 +40,10 @@ class CLI:
     def cmd_scan(args: argparse.Namespace) -> int:
         """扫描目录（支持多目录），输出解析结果。"""
         mgr = _make_manager(storage_root=getattr(args, "storage_root", None))
-        shallow = getattr(args, "shallow", False)
 
         parsed = []
         for path in args.paths:
-            parsed.extend(mgr.scan_directory(path, recursive=not shallow))
+            parsed.extend(mgr.scan_directory(path))
 
         if args.format == "json":
             data = [
@@ -404,7 +403,6 @@ def build_parser() -> argparse.ArgumentParser:
     # scan
     p = sub.add_parser("scan", help="扫描目录")
     p.add_argument("paths", nargs="+", help="要扫描的目录路径（支持多个）")
-    p.add_argument("--shallow", action="store_true", help="仅扫描顶层")
     p.add_argument("--format", choices=["csv", "json"], default="csv")
     p.set_defaults(func=CLI.cmd_scan)
 

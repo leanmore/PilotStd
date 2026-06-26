@@ -79,7 +79,6 @@ class RulesPage(QWidget):
         if isinstance(raw, list):
             return raw
         return []
-        return raw
 
     def _save_rules(self, rules: list[dict[str, Any]]) -> None:
         self._config.set("sites.rules", json.dumps(rules, ensure_ascii=False))

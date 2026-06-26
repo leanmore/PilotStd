@@ -9,6 +9,7 @@ license = { text = "MIT" }
 [tool.mypy]
 exclude = [
     "pilotstd_env/",          # 虚拟环境目录，始终排除
+    "whitelist.py",           # Vulture 白名单（非 Python 代码）
 ]
 explicit_package_bases = true
 
@@ -37,6 +38,7 @@ ignore_errors = true
 [tool.ruff]
 target-version = "py312"
 line-length = 120
+extend-exclude = ["whitelist.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
@@ -55,3 +57,14 @@ indent-style = "space"
 # type-check:      mypy pilotstd/ docker/ tests/ pilotstd/ui/
 # lint:            ruff check pilotstd/ docker/ tests/ pilotstd/ui/
 # format:          ruff format pilotstd/ docker/ tests/ pilotstd/ui/
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["pilotstd"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+pilotstd = ["**/*.yaml", "**/*.json", "**/*.sql"]

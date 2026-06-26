@@ -116,6 +116,7 @@ jobs:
         run: |
           pip install -r docker/requirements-docker.txt
           pip install pytest pytest-xdist
+          pip install -e .
 
       - name: Forbid production imports from test modules
         run: |

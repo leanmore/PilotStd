@@ -75,9 +75,7 @@ class TestSchedulerModule(unittest.TestCase):
         self.assertFalse(any(j.id == "auto_query" for j in scheduler.get_jobs()))
 
     @patch("docker.scheduler.ConfigManager")
-    @patch.object(
-        scheduler, "start"
-    )  # 避免前一个测试已启动导致 SchedulerAlreadyRunningError
+    @patch.object(scheduler, "start")  # 避免前一个测试已启动导致 SchedulerAlreadyRunningError
     def test_start_scheduler_no_enabled_jobs_does_nothing(self, mock_start, mock_cfg):
         mock_cfg.return_value.get.return_value = False
         start_scheduler()

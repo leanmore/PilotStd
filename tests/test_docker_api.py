@@ -676,7 +676,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_temp_dir.__truediv__.return_value = mock_flag
         mock_path_cls.return_value = mock_temp_dir
         # 阻止 os._exit(0) 杀死测试进程
-        mock_create_task.side_effect = lambda coro: None
+        mock_create_task.side_effect = lambda _: None
         r = self.client.post("/api/system/restart")
         self.assertEqual(r.status_code, 200)
         data = r.json()
