@@ -35,7 +35,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
   PYTHON_VERSION: '3.12'
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ════════════════════════════════════════════════════════════════

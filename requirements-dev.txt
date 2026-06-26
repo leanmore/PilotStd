@@ -14,3 +14,11 @@ pytest-cov>=6.0
 
 # --- 打包构建 ---
 pyinstaller>=6.0
+
+# --- 前端开发 ---
+# Node.js >= 22.0.0
+# npm >= 10.0.0
+
+# 前端依赖变更（2026-06-26）
+# - @primevue/themes@4.x → @primeuix/themes@1.x
+# - vue-i18n@9.x → vue-i18n@11.x
