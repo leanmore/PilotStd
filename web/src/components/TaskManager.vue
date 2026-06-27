@@ -133,7 +133,7 @@ onMounted(loadTasks)
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="!!detailTask" header="任务详情" :modal="true" :style="{ width: '500px' }" @hide="detailTask = null">
+    <Dialog :visible="!!detailTask" header="任务详情" :modal="true" :style="{ width: '500px' }" @hide="detailTask = null">
       <div v-if="detailTask" style="font-size:13px">
         <p><strong>任务ID:</strong> {{ detailTask.task_id }}</p>
         <p><strong>类型:</strong> {{ detailTask.task_type }}</p>

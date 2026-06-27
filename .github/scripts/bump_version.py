@@ -145,9 +145,7 @@ def write_version_to_pyproject(version: str) -> None:
     """将版本号写入 pyproject.toml"""
     path = PROJECT_ROOT / "pyproject.toml"
     content = path.read_text(encoding="utf-8")
-    content = re.sub(
-        r'^version\s*=\s*"[^"]*"', f'version = "{version}"', content, flags=re.MULTILINE
-    )
+    content = re.sub(r'^version\s*=\s*"[^"]*"', f'version = "{version}"', content, flags=re.MULTILINE)
     path.write_text(content, encoding="utf-8")
     print(f"  ✓ pyproject.toml -> {version}", file=sys.stderr)
 
@@ -162,9 +160,7 @@ def write_version_to_package_json(version: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="根据 commit message 前缀自动计算下一个语义化版本号"
-    )
+    parser = argparse.ArgumentParser(description="根据 commit message 前缀自动计算下一个语义化版本号")
     parser.add_argument(
         "message",
         nargs="?",
@@ -178,10 +174,7 @@ def main() -> None:
     parser.add_argument(
         "--update",
         action="store_true",
-        help=(
-            "就地更新 pilotstd/__init__.py + pyproject.toml"
-            " + web/package.json 中的版本号"
-        ),
+        help=("就地更新 pilotstd/__init__.py + pyproject.toml + web/package.json 中的版本号"),
     )
     args = parser.parse_args()
 

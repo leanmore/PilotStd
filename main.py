@@ -13,9 +13,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog="pilotstd", description="PilotStd 标准文件管理工具"
-    )
+    parser = argparse.ArgumentParser(prog="pilotstd", description="PilotStd 标准文件管理工具")
     parser.add_argument("--cli", action="store_true", help="命令行模式")
     args, _ = parser.parse_known_args()
 

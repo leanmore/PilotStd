@@ -1,7 +1,7 @@
-# 能力登记簿 v2.2
+# 能力登记簿 v2.4
 
 > PilotStd 项目非功能性能力清单。任何重构、归档、模块重写前必须查阅本簿。
-> 最后更新：2026-06-25
+> 最后更新：2026-06-27
 > 行号由 `scripts/update_capabilities.py` 自动维护，每次 pre-commit 时刷新。
 
 ## 能力登记表
@@ -61,7 +61,7 @@
 | 压力测试双流读取 | `tests/stress_driver.py` | L322-323 | L571-572 | active | 两个 daemon 线程并行读取子进程输出，防管道缓冲区死锁 |
 | 压力测试 Web 心跳 | `tests/stress_web.py` | L112, 784 | L111, 821 | active | 与 engine 层格式统一的 60s 进度日志；完成消息在 L784 |
 | Web 仪表板 Store | `web/src/stores/dashboard.ts` | `useDashboardStore` | — | active | Dashboard 布局状态管理：load/save/reset/onLayoutUpdated，localStorage 持久化 |
-| Web 仪表板迁移 | `web/src/utils/dashboard-migration.ts` | `loadLayout/saveLayout/resetLayout` | — | active | 布局数据版本管理：版本检查 + 自动备份 + 默认布局回退 |
+| Web 仪表板迁移 | `web/src/utils/dashboard-migration.ts` | `loadLayout/saveLayout/resetLayout` | — | deprecated | 已删除。曾被仪表板 Store 引用，但无实际外部调用者（2026-06-27）|
 | Web 仪表板类型 | `web/src/types/dashboard.ts` | `DashboardLayoutV1/WidgetType` | — | active | 仪表板 TS 类型定义：Widget 类型枚举 + 布局数据结构 |
 | Web 语言切换 | `web/src/main.ts` + `web/src/stores/app.ts` | `setLocale/locale` | — | active | 前端界面语言切换：zh-CN/zh-TW/en，localStorage 持久化，刷新保持 |
 | Web 熔断配置 | `web/src/views/SettingsView.vue` | `circuit tab` | — | active | 设置页"熔断"Tab：失败阈值/4阶梯冻结时长/归零窗口，`GET/PUT /api/adapter/config` |
@@ -93,6 +93,7 @@
 | GATE-04 | API 文档门禁 | `scripts/check_api_docs.py` | — | active | 检查新增路由已记录在压力测试方案中（仅警告） |
 | GATE-05 | 适配器一致性门禁 | `scripts/check_adapters.py` | — | active | 检查 _ALL_ADAPTER_NAMES 与登记簿一致 |
 | GATE-06 | Docker 挂载黑名单门禁 | `scripts/check_docker_mounts.py` | — | active | 禁止挂载 /app，防止误覆盖代码目录 |
+| GATE-07 | 死代码检测门禁 | pre-commit + CI 内置（Vulture + ts-prune） | — | active | 触发时机：pre-commit + CI 每次构建；Python: `vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80`；TypeScript: `cd web && npx ts-prune --error`；零死代码报告（白名单除外） |
 | LOG-02 | 敏感字段掩码 | `docker/api/settings.py` | L68-73 | active | `aliyun_access_key_id` 等 5 个字段 GET 返回 `***` |
 | LOG-03 | PROGRESS_TAG 常量 | `pilotstd/query/engine.py` | L28 | active | `[PROGRESS]` 跨进程协议标识集中定义为常量，8 文件统一引用 |
 | LOG-04 | 三端日志格式统一 | `pilotstd/ui/workers.py` + `pilotstd/core/logger.py` | L73 | active | CLI/WinUI/Web 均使用 `_TagFormatter`，日期+标签+i18n 统一 |
@@ -123,6 +124,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
+| 2026-06-27 | v2.4 | 新增 GATE-07 死代码检测门禁（Vulture + ts-prune）；Web 仪表板迁移标记为 deprecated（dashboard-migration.ts 已删除） |
 | 2026-06-26 | v2.3 | 新增 6 条能力：Docker 自动更新入口、更新脚本 v2、系统重启 API、Web 重启按钮、前端版本号、路径遍历防护体系（path_guard + organize + scan + STANDARD_ROOT） |
 | 2026-06-23 | v2.1 | 重构为平表格式；修正全部行号为当前代码实际值；新增 `update_capabilities.py` 自动维护脚本 |
 | 2026-06-23 | v2.0 | 新增 9 条遗漏能力；2 条归档记录改为 deprecated；覆盖率 86%→~100% |

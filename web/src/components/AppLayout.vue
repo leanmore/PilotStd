@@ -98,7 +98,7 @@ function logout() { router.push('/login') }
         <!-- 主题切换 -->
         <button
           class="topbar-btn theme-btn"
-          @click="store.toggleTheme()"
+          @click="store.theme = isDark ? 'light' : 'dark'"
           :title="isDark ? '切换亮色主题' : '切换暗色主题'"
         >
           <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'" />

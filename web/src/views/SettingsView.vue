@@ -117,7 +117,7 @@ const localeOptions = [
 ]
 function onLocaleChange() {
   locale.value = selectedLocale.value
-  store.setLocale(selectedLocale.value)
+  store.locale = selectedLocale.value
 }
 
 // ── 熔断配置 ──

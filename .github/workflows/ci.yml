@@ -152,6 +152,11 @@ jobs:
           fi
           echo "No migrating entries found — governance check passed."
 
+      - name: Check dead Python code
+        run: |
+          pip install vulture
+          vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
+
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
@@ -207,6 +212,12 @@ jobs:
           cd web
           npm ci
           npx vitest run
+
+      - name: Check dead TypeScript exports
+        run: |
+          cd web
+          npm install -D ts-prune
+          npx ts-prune --error
 
   # ════════════════════════════════════════════════════════════════
   # Job 4: 构建 + 推送 Docker 镜像

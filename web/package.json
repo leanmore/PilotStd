@@ -38,6 +38,7 @@
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.7",
     "rollup-plugin-visualizer": "^7.0.1",
+    "ts-prune": "^0.10.3",
     "tsx": "^4.22.4",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
