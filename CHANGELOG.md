@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## v0.37.11 (2026-06-27)
+
+### Fixed
+- @ feat: CHANGELOG历史补全+GATE-09版本一致性+GATE-10敏感字段保护门禁 @
+## v0.37.12 (2026-06-27)
+
+### Fixed
+- @ fix: GATE-10修复—NotificationConfig中bot_token/secret改用Password组件 @
+## v0.37.13 (2026-06-27)
+
+### Fixed
+- @ feat: APScheduler升级至4.x并移除setuptools<82约束 @
+- @ feat: 系统Tab拆分为独立Card容器-文件监控/缓存管理/任务管理各自独立 @
+- @ feat: 通知渠道卡片+可信IP卡片改用Accordion折叠，默认全部折叠 @
+## v0.37.11 (2026-06-27)
+
+### Fixed
+- @ feat: CHANGELOG历史补全+GATE-09版本一致性+GATE-10敏感字段保护门禁 @
+## v0.37.12 (2026-06-27)
+
+### Fixed
+- @ fix: GATE-10修复—NotificationConfig中bot_token/secret改用Password组件 @
+## v0.37.13 (2026-06-27)
+
+### Fixed
+- @ feat: APScheduler升级至4.x并移除setuptools<82约束 @
+- @ feat: 系统Tab拆分为独立Card容器-文件监控/缓存管理/任务管理各自独立 @
+- @ feat: 通知渠道卡片+可信IP卡片改用Accordion折叠，默认全部折叠 @
+## v0.37.11 (2026-06-27)
+
+### Fixed
+- @ feat: CHANGELOG历史补全+GATE-09版本一致性+GATE-10敏感字段保护门禁 @
+## v0.37.12 (2026-06-27)
+
+### Fixed
+- @ fix: GATE-10修复—NotificationConfig中bot_token/secret改用Password组件 @
+## v0.37.13 (2026-06-27)
+
+### Fixed
+- @ feat: APScheduler升级至4.x并移除setuptools<82约束 @
+- @ feat: 系统Tab拆分为独立Card容器-文件监控/缓存管理/任务管理各自独立 @
+- @ feat: 通知渠道卡片+可信IP卡片改用Accordion折叠，默认全部折叠 @
 ## v0.6.0 (2026-06-17)
 
 ### Added
