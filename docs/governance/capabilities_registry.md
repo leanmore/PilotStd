@@ -1,4 +1,4 @@
-# 能力登记簿 v2.6
+# 能力登记簿 v2.7
 
 > PilotStd 项目非功能性能力清单。任何重构、归档、模块重写前必须查阅本簿。
 > 最后更新：2026-06-27
@@ -95,6 +95,8 @@
 | GATE-06 | Docker 挂载黑名单门禁 | `scripts/check_docker_mounts.py` | — | active | 禁止挂载 /app，防止误覆盖代码目录 |
 | GATE-07 | 死代码检测门禁 | pre-commit + CI 内置（Vulture + ts-prune） | — | active | 触发时机：pre-commit + CI 每次构建；Python: `vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80`；TypeScript: `cd web && npx ts-prune --error`；零死代码报告（白名单除外） |
 | GATE-08 | 依赖完整性门禁 | `scripts/check_dependencies.py` | — | active | 检查 pilotstd/ + docker/ 中所有 import 的第三方库是否在 requirements-docker.txt 中声明；零遗漏 |
+| GATE-09 | CHANGELOG 版本一致性门禁 | `scripts/check_changelog_version.py` | — | active | 确保 CHANGELOG.md 最新版本与 `pilotstd/__init__.py` 一致；触发时机：pre-commit + CI |
+| GATE-10 | UI 敏感字段保护门禁 | `scripts/gate_ui_sensitive_fields.py` | — | active | 扫描所有 .vue 文件，确保 secret/password/token/key 等敏感字段使用 Password 组件或 type="password"；零遗漏 |
 | LOG-02 | 敏感字段掩码 | `docker/api/settings.py` | L68-73 | active | `aliyun_access_key_id` 等 5 个字段 GET 返回 `***` |
 | LOG-03 | PROGRESS_TAG 常量 | `pilotstd/query/engine.py` | L28 | active | `[PROGRESS]` 跨进程协议标识集中定义为常量，8 文件统一引用 |
 | LOG-04 | 三端日志格式统一 | `pilotstd/ui/workers.py` + `pilotstd/core/logger.py` | L73 | active | CLI/WinUI/Web 均使用 `_TagFormatter`，日期+标签+i18n 统一 |
@@ -146,6 +148,7 @@
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
+| 2026-06-27 | v2.7 | 新增 GATE-09 CHANGELOG 版本一致性门禁 + GATE-10 UI 敏感字段保护门禁；CHANGELOG.md 历史版本补全（v0.5.27→v0.37.10，88个版本）|
 | 2026-06-27 | v2.6 | 新增 CI Shell 规范：Windows runner 混合语法步骤逐步骤指定 shell |
 | 2026-06-27 | v2.5 | 新增 GATE-08 依赖完整性门禁；update.sh 重构为 MoviePilot 全量替换模式；entrypoint.sh 改用 source + 重启标记检测；补全 watchdog 依赖 |
 | 2026-06-27 | v2.4 | 新增 GATE-07 死代码检测门禁（Vulture + ts-prune）；Web 仪表板迁移标记为 deprecated（dashboard-migration.ts 已删除） |

@@ -160,6 +160,9 @@ jobs:
       - name: GATE-08 — Check dependency completeness
         run: python scripts/check_dependencies.py
 
+      - name: GATE-09 — Check CHANGELOG version consistency
+        run: python scripts/check_changelog_version.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
@@ -221,6 +224,9 @@ jobs:
           cd web
           npm install -D ts-prune
           npx ts-prune --error
+
+      - name: GATE-10 — Check UI sensitive fields protection
+        run: python scripts/gate_ui_sensitive_fields.py
 
   # ════════════════════════════════════════════════════════════════
   # Job 4: 构建 + 推送 Docker 镜像

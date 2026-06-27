@@ -109,3 +109,17 @@ repos:
         language: system
         files: \.py$|requirements-docker\.txt$
         pass_filenames: false
+
+      - id: check-changelog-version
+        name: 门禁 GATE-09 — CHANGELOG 版本一致性
+        entry: python scripts/check_changelog_version.py
+        language: system
+        files: (CHANGELOG\.md|pilotstd/__init__\.py)$
+        pass_filenames: false
+
+      - id: check-ui-sensitive-fields
+        name: 门禁 GATE-10 — UI 敏感字段保护
+        entry: python scripts/gate_ui_sensitive_fields.py
+        language: system
+        files: \.vue$
+        pass_filenames: false
