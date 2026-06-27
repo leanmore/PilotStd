@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
@@ -191,7 +192,7 @@ onMounted(loadConfig)
           <template v-if="ch.key === 'telegram'">
             <div class="field">
               <label>Bot Token <span class="required">*必填</span></label>
-              <InputText v-model="channels[ch.key].bot_token" class="w-full" placeholder="123456:ABC-DEF" size="small" />
+              <Password v-model="channels[ch.key].bot_token" class="w-full" placeholder="123456:ABC-DEF" size="small" toggleMask :feedback="false" />
             </div>
             <div class="field">
               <label>Chat ID <span class="required">*必填</span></label>
@@ -239,7 +240,7 @@ onMounted(loadConfig)
             </div>
             <div class="field">
               <label>签名校验密钥 <span class="optional">选填</span></label>
-              <InputText v-model="channels[ch.key].secret" class="w-full" placeholder="加签密钥" size="small" />
+              <Password v-model="channels[ch.key].secret" class="w-full" placeholder="加签密钥" size="small" toggleMask :feedback="false" />
             </div>
             <div style="margin-top:8px">
               <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
@@ -254,7 +255,7 @@ onMounted(loadConfig)
             </div>
             <div class="field">
               <label>加签 Secret <span class="optional">选填</span></label>
-              <InputText v-model="channels[ch.key].secret" class="w-full" placeholder="SEC..." size="small" />
+              <Password v-model="channels[ch.key].secret" class="w-full" placeholder="SEC..." size="small" toggleMask :feedback="false" />
             </div>
             <div style="margin-top:8px">
               <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
