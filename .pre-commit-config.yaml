@@ -137,3 +137,10 @@ repos:
         language: system
         files: \.vue$
         pass_filenames: false
+
+      - id: check-gate-13
+        name: 门禁 GATE-13 — 禁止前端硬编码 superuser admin
+        entry: python scripts/check_gate_13.py
+        language: system
+        files: \.(vue|ts|js)$
+        pass_filenames: false
