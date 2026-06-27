@@ -8,6 +8,8 @@ import AdapterStatusAnnounceCard from '@/components/dashboard/widgets/AdapterSta
 import AdapterStatusQueryCard from '@/components/dashboard/widgets/AdapterStatusQueryCard.vue'
 import RecentAnnounceCard from '@/components/dashboard/widgets/RecentAnnounceCard.vue'
 import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vue'
+import PendingItemsCard from '@/components/dashboard/widgets/PendingItemsCard.vue'
+import SystemInfoCard from '@/components/dashboard/widgets/SystemInfoCard.vue'
 import PlaceholderWidget from '@/components/dashboard/widgets/PlaceholderWidget.vue'
 import Button from 'primevue/button'
 
@@ -30,11 +32,12 @@ function getWidgetComponent(type: string) {
   const map: Record<string, unknown> = {
     'adapter-announce': AdapterStatusAnnounceCard,
     'adapter-query': AdapterStatusQueryCard,
+    'stats-summary': StatsCard,
     'recent-tasks': RecentAnnounceCard,
     'quick-actions': QuickActionsCard,
+    'pending-items': PendingItemsCard,
+    'system-info': SystemInfoCard,
   }
-  // stats-summary 用 StatsCard 渲染，pending-items/system-info 用占位组件
-  if (type.startsWith('stats-')) return StatsCard
   return map[type] || PlaceholderWidget
 }
 </script>

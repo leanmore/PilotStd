@@ -91,19 +91,13 @@ export interface DashboardLayoutV1 {
 
 /** 生成默认布局的纯数据 */
 export function createDefaultWidgets(): DashboardWidget[] {
-  const enabled = Object.values(WIDGET_LIBRARY).filter(w => w.defaultEnabled)
-  let nextY = 0
-  const row = (w: number) => {
-    // 简单按行排列：每行放 12 列宽的卡片
-    const y = nextY
-    nextY += w >= 12 ? 2 : (w >= 6 ? 3 : 2)
-    return y
-  }
-  return enabled.map(def => ({
-    id: def.id,
-    type: def.id,
-    visible: true,
-    layout: { ...def.defaultLayout, y: row(def.defaultLayout.w || 6) },
-    config: { ...def.defaultConfig },
-  }))
+  return Object.values(WIDGET_LIBRARY)
+    .filter(w => w.defaultEnabled)
+    .map(def => ({
+      id: def.id,
+      type: def.id,
+      visible: true,
+      layout: { ...def.defaultLayout },
+      config: { ...def.defaultConfig },
+    }))
 }

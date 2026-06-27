@@ -143,9 +143,8 @@ export interface PendingItem {
 // ── 统计 ──────────────────────────────────────────────
 
 export interface StatusStats {
-  total: number
-  active: number
-  repealed: number
+  current: number
+  expired: number
   pending: number
   upcoming: number
   [key: string]: number
