@@ -13,6 +13,8 @@ from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from pilotstd import ADMIN_ROLE
+
 from .users import (
     check_must_change_password,
     clear_login_failures,
@@ -165,7 +167,7 @@ def require_admin(request: Request) -> str:
     from .users import get_user_role
 
     role = get_user_role(username)
-    if role != "admin":
+    if role != ADMIN_ROLE:
         raise HTTPException(405, "仅管理员可执行此操作")
     return username
 

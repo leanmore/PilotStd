@@ -96,7 +96,8 @@
 | GATE-07 | 死代码检测门禁 | pre-commit + CI 内置（Vulture + ts-prune） | — | active | 触发时机：pre-commit + CI 每次构建；Python: `vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80`；TypeScript: `cd web && npx ts-prune --error`；零死代码报告（白名单除外） |
 | GATE-08 | 依赖完整性门禁 | `scripts/check_dependencies.py` | — | active | 检查 pilotstd/ + docker/ 中所有 import 的第三方库是否在 requirements-docker.txt 中声明；零遗漏 |
 | GATE-09 | CHANGELOG 版本一致性门禁 | `scripts/check_changelog_version.py` | — | active | 确保 CHANGELOG.md 最新版本与 `pilotstd/__init__.py` 一致；触发时机：pre-commit + CI |
-| GATE-10 | UI 敏感字段保护门禁 | `scripts/gate_ui_sensitive_fields.py` | — | active | 扫描所有 .vue 文件，确保 secret/password/token/key 等敏感字段使用 Password 组件或 type="password"；零遗漏 |
+| GATE-10 | UI 敏感字段保护门禁 | `scripts/check_ui_sensitive_fields.py` | — | active | 扫描所有 .vue 文件，确保 secret/password/token/key 等敏感字段使用 Password 组件或 type="password"；零遗漏 |
+| GATE-11 | 禁止硬编码 admin | `scripts/check_gate_11.py` | — | active | 权限判断必须基于 ADMIN_ROLE 常量，禁止 `role === 'admin'` 等硬编码；豁免 ADMIN_ROLE 定义行 + entrypoint.sh 配置型 admin |
 | LOG-02 | 敏感字段掩码 | `docker/api/settings.py` | L68-73 | active | `aliyun_access_key_id` 等 5 个字段 GET 返回 `***` |
 | LOG-03 | PROGRESS_TAG 常量 | `pilotstd/query/engine.py` | L28 | active | `[PROGRESS]` 跨进程协议标识集中定义为常量，8 文件统一引用 |
 | LOG-04 | 三端日志格式统一 | `pilotstd/ui/workers.py` + `pilotstd/core/logger.py` | L73 | active | CLI/WinUI/Web 均使用 `_TagFormatter`，日期+标签+i18n 统一 |

@@ -49,13 +49,14 @@ async function doAdd() {
 async function doDelete(id: number) { await deleteUser(id); loadUsers() }
 
 // ── 用户管理辅助 ──
+const ADMIN_ROLE = 'admin'
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
 
 function canDelete(item: any): boolean {
-  if (!currentUser.value || currentUser.value.role !== 'admin') return false
+  if (!currentUser.value || currentUser.value.role !== ADMIN_ROLE) return false
   if (item.id === currentUser.value.id) return false
-  if (item.role === 'admin') {
-    const adminCount = users.value.filter((u: any) => u.role === 'admin').length
+  if (item.role === ADMIN_ROLE) {
+    const adminCount = users.value.filter((u: any) => u.role === ADMIN_ROLE).length
     if (adminCount <= 1) return false
   }
   return true

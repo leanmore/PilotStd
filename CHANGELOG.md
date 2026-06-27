@@ -1,6 +1,281 @@
 # CHANGELOG
 
-## v0.37.14 (2026-06-27)
+## v0.4.1 (2026-06-10)
+
+### Changed
+- chore: bump version to v0.4.1
+
+## v0.4.2 (2026-06-10)
+
+### Changed
+- chore: bump version to v0.4.2
+
+## v0.4.3 (2026-06-10)
+
+### Changed
+- chore: bump version to v0.4.3
+
+## v0.4.4 (2026-06-11)
+
+### Changed
+- chore: bump version to v0.4.4
+
+## v0.4.5 (2026-06-12)
+
+### Changed
+- chore: bump version to v0.4.5
+
+## v0.4.6 (2026-06-12)
+
+### Changed
+- chore: bump version to v0.4.6
+
+## v0.4.7 (2026-06-13)
+
+### Changed
+- chore: bump version to v0.4.7
+
+## v0.5.0 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.0
+
+## v0.5.1 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.1
+
+## v0.5.2 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.2
+
+## v0.5.3 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.3
+
+## v0.5.4 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.4
+
+## v0.5.5 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.5
+
+## v0.5.6 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.6
+
+## v0.5.7 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.7
+
+## v0.5.8 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.8
+
+## v0.5.9 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.9
+
+## v0.5.10 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.10
+
+## v0.5.11 (2026-06-14)
+
+### Changed
+- chore: bump version to v0.5.11
+
+## v0.5.12 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.12
+
+## v0.5.13 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.13
+
+## v0.5.14 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.14
+
+## v0.5.15 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.15
+
+## v0.5.16 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.16
+
+## v0.5.17 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.17
+
+## v0.5.18 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.18
+
+## v0.5.19 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.19
+
+## v0.5.20 (2026-06-15)
+
+### Changed
+- chore: bump version to v0.5.20
+
+## v0.5.21 (2026-06-16)
+
+### Changed
+- chore: bump version to v0.5.21
+
+## v0.5.22 (2026-06-16)
+
+### Changed
+- chore: bump version to v0.5.22
+
+## v0.5.23 (2026-06-16)
+
+### Changed
+- chore: bump version to v0.5.23
+
+## v0.5.24 (2026-06-16)
+
+### Changed
+- chore: bump version to v0.5.24
+
+## v0.5.25 (2026-06-17)
+
+### Changed
+- chore: bump version to v0.5.25
+
+## v0.5.26 (2026-06-17)
+
+### Changed
+- chore: bump version to v0.5.26
+
+## v0.5.27 (2026-06-17)
+
+### Changed
+- chore: bump version to v0.5.27
+
+## v0.6.0 (2026-06-17)
+
+### Changed
+- chore: bump version to v0.6.0
+
+## v0.7.0 (2026-06-17)
+
+### Changed
+- chore: bump version to v0.7.0
+
+## v0.8.0 (2026-06-18)
+
+### Changed
+- chore: bump version to v0.8.0
+
+## v0.8.1 (2026-06-18)
+
+### Changed
+- chore: bump version to v0.8.1
+
+## v0.8.2 (2026-06-18)
+
+### Changed
+- chore: bump version to v0.8.2
+
+## v0.8.3 (2026-06-19)
+
+### Changed
+- chore: bump version to v0.8.3
+
+## v0.9.0 (2026-06-19)
+
+### Changed
+- chore: bump version to v0.9.0
+
+## v0.37.2 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.2
+
+## v0.37.3 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.3
+
+## v0.37.4 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.4
+
+## v0.37.5 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.5
+
+## v0.37.6 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.6
+
+## v0.37.7 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.7
+
+## v0.37.8 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.8
+
+## v0.37.9 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.9
+
+## v0.37.18 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.18
+
+## v0.37.16 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.16
+
+## v0.37.17 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.17
+
+## v0.37.18 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.18
+
+## v0.37.1
+
+### Added
+- GATE-11: 禁止硬编码 admin 作为超级管理员标识，权限判断统一使用 ADMIN_ROLE 常量
+- 新增 ADMIN_ROLE 常量定义 (pilotstd/__init__.py)，统一后端权限判断
+ (2026-06-27)
 
 ### Changed
 - chore: bump version to v0.37.14

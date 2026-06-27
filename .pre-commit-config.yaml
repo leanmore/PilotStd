@@ -123,3 +123,10 @@ repos:
         language: system
         files: \.vue$
         pass_filenames: false
+
+      - id: check-gate-11
+        name: 门禁 GATE-11 — 禁止硬编码 admin
+        entry: python scripts/check_gate_11.py
+        language: system
+        files: \.(py|vue|ts|js|sh|yaml|yml|toml)$
+        pass_filenames: false
