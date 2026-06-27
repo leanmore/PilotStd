@@ -207,19 +207,13 @@ class AnnouncementMatcher:
         if not rows:
             return
 
-        self._db.execute("BEGIN TRANSACTION;")
-        try:
-            for i in range(0, len(rows), self._BATCH_SIZE):
-                batch = rows[i : i + self._BATCH_SIZE]
-                placeholders = ",".join("(?,?,?,?,?)" for _ in batch)
-                flat_values = [item for row in batch for item in row]
-                self._db.execute(
-                    "INSERT OR REPLACE INTO announcement_match "
-                    "(standard_number, source_site, result_json, cached_at, expires_at) "
-                    f"VALUES {placeholders}",
-                    flat_values,
-                )
-            self._db.execute("COMMIT;")
-        except Exception:
-            self._db.execute("ROLLBACK;")
-            raise
+        for i in range(0, len(rows), self._BATCH_SIZE):
+            batch = rows[i : i + self._BATCH_SIZE]
+            placeholders = ",".join("(?,?,?,?,?)" for _ in batch)
+            flat_values = [item for row in batch for item in row]
+            self._db.execute(
+                "INSERT OR REPLACE INTO announcement_match "
+                "(standard_number, source_site, result_json, cached_at, expires_at) "
+                f"VALUES {placeholders}",
+                flat_values,
+            )

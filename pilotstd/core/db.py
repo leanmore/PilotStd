@@ -142,7 +142,10 @@ class Database:
                 sqlite3.OperationalError,
                 sqlite3.DatabaseError,
             ) as e:
-                conn.rollback()
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass  # 自动提交模式下可能无活跃事务
                 logging.getLogger("pilotstd.db").error("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
 
