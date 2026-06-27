@@ -26,6 +26,7 @@ import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import Card from 'primevue/card'
 
 // 主题列表（供模板使用）
 const themeList = computed(() => Object.values(THEMES))
@@ -569,15 +570,19 @@ const sites = [
   </div>
 
   <!-- 系统 -->
-  <div v-show="activeTab === 'system'" class="card mt-2">
-    <div class="card-header">文件监控</div>
-    <FileMonitor />
-    <hr style="margin:24px 0;border-color:var(--border)" />
-    <div class="card-header" style="margin-bottom:12px">缓存管理</div>
-    <CacheManager />
-    <hr style="margin:24px 0;border-color:var(--border)" />
-    <div class="card-header" style="margin-bottom:12px">任务管理</div>
-    <TaskManager />
+  <div v-show="activeTab === 'system'" class="mt-2">
+    <Card class="mb-3">
+      <template #title>文件监控</template>
+      <FileMonitor />
+    </Card>
+    <Card class="mb-3">
+      <template #title>缓存管理</template>
+      <CacheManager />
+    </Card>
+    <Card>
+      <template #title>任务管理</template>
+      <TaskManager />
+    </Card>
   </div>
 
   <!-- 底部操作栏 -->
