@@ -2,7 +2,8 @@
 // NotificationConfig.vue v2 — 四渠道全参数通知配置
 import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
-import Card from 'primevue/card'
+import Accordion from 'primevue/accordion'
+import AccordionTab from 'primevue/accordiontab'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -176,10 +177,10 @@ onMounted(loadConfig)
       </div>
     </div>
 
-    <div class="channel-grid">
-      <Card v-for="ch in CHANNELS" :key="ch.key" class="channel-card">
-        <template #title>
-          <div class="ch-header">
+    <Accordion :multiple="true">
+      <AccordionTab v-for="ch in CHANNELS" :key="ch.key">
+        <template #header>
+          <div class="ch-header" style="width:100%">
             <div style="display:flex;align-items:center;gap:8px">
               <i :class="ch.icon" style="font-size:16px;color:var(--primary)" />
               <span>{{ ch.label }}</span>
@@ -187,7 +188,7 @@ onMounted(loadConfig)
             <Tag :severity="chSeverity(ch.key)" :value="chStatus(ch.key)" />
           </div>
         </template>
-        <template #content>
+        <div class="channel-card-content">
           <!-- Telegram -->
           <template v-if="ch.key === 'telegram'">
             <div class="field">
@@ -276,9 +277,9 @@ onMounted(loadConfig)
               <label :for="`${ch.key}-${ev.key}`">{{ ev.label }}</label>
             </div>
           </div>
-        </template>
-      </Card>
-    </div>
+        </div>
+      </AccordionTab>
+    </Accordion>
   </div>
 </template>
 

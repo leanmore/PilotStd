@@ -10,7 +10,8 @@ import Dropdown from 'primevue/dropdown'
 import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import Card from 'primevue/card'
+import Accordion from 'primevue/accordion'
+import AccordionTab from 'primevue/accordiontab'
 
 interface WeworkIPConfig {
   enabled: boolean
@@ -182,11 +183,9 @@ onMounted(() => { loadConfig(); loadStatus() })
     </div>
 
     <!-- 配置区域 -->
-    <div class="config-grid">
-      <!-- 检测设置 -->
-      <Card class="config-card">
-        <template #title><span style="font-size:14px">检测设置</span></template>
-        <template #content>
+    <Accordion>
+      <AccordionTab header="检测设置">
+        <div class="config-card-content">
           <div class="field">
             <label>检测间隔</label>
             <Dropdown v-model="config.interval_hours" :options="intervalOptions" option-label="label" option-value="value" style="width:100%" />
@@ -212,18 +211,17 @@ onMounted(() => { loadConfig(); loadStatus() })
             <ToggleSwitch v-model="config.notify_result" />
             <label>更新结果通知</label>
           </div>
-        </template>
-      </Card>
+        </div>
+      </AccordionTab>
 
-      <!-- Cookie 来源 -->
-      <Card class="config-card">
-        <template #title>
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:14px">
+      <AccordionTab>
+        <template #header>
+          <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
             <span>Cookie 管理</span>
             <Tag :value="config.cookie_status" :severity="config.cookie_status.includes('已配置') ? 'success' : 'secondary'" />
           </div>
         </template>
-        <template #content>
+        <div class="config-card-content">
           <div class="field">
             <label>Cookie 来源</label>
             <SelectButton v-model="config.cookie_source" :options="cookieSourceOptions" option-value="value" option-label="label" size="small" />
@@ -253,9 +251,9 @@ onMounted(() => { loadConfig(); loadStatus() })
               <InputText v-model="config.cookiecloud_password" placeholder="如未设置则留空" style="width:100%" type="password" />
             </div>
           </template>
-        </template>
-      </Card>
-    </div>
+        </div>
+      </AccordionTab>
+    </Accordion>
   </div>
 </template>
 
