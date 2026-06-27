@@ -1,0 +1,292 @@
+#!/usr/bin/env python3
+"""GATE-08: 依赖完整性检查 — 代码中 import 的第三方库是否在 requirements-docker.txt 中声明"""
+
+import re
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+# Python 标准库（Python 3.12）
+STDLIB = {
+    "abc",
+    "argparse",
+    "array",
+    "ast",
+    "asyncio",
+    "base64",
+    "binascii",
+    "bisect",
+    "builtins",
+    "bz2",
+    "calendar",
+    "cgi",
+    "cgitb",
+    "chunk",
+    "cmath",
+    "cmd",
+    "code",
+    "codecs",
+    "codeop",
+    "collections",
+    "colorsys",
+    "compileall",
+    "concurrent",
+    "configparser",
+    "contextlib",
+    "contextvars",
+    "copy",
+    "copyreg",
+    "cProfile",
+    "csv",
+    "ctypes",
+    "curses",
+    "dataclasses",
+    "datetime",
+    "dbm",
+    "decimal",
+    "difflib",
+    "dis",
+    "distutils",
+    "doctest",
+    "email",
+    "encodings",
+    "enum",
+    "errno",
+    "faulthandler",
+    "fcntl",
+    "filecmp",
+    "fileinput",
+    "fnmatch",
+    "fractions",
+    "ftplib",
+    "functools",
+    "gc",
+    "getopt",
+    "getpass",
+    "gettext",
+    "glob",
+    "graphlib",
+    "gzip",
+    "hashlib",
+    "heapq",
+    "hmac",
+    "html",
+    "http",
+    "imaplib",
+    "imghdr",
+    "importlib",
+    "inspect",
+    "io",
+    "ipaddress",
+    "itertools",
+    "json",
+    "keyword",
+    "linecache",
+    "locale",
+    "logging",
+    "lzma",
+    "mailbox",
+    "mailcap",
+    "marshal",
+    "math",
+    "mimetypes",
+    "mmap",
+    "modulefinder",
+    "multiprocessing",
+    "netrc",
+    "nis",
+    "numbers",
+    "operator",
+    "optparse",
+    "os",
+    "pathlib",
+    "pdb",
+    "pickle",
+    "pickletools",
+    "pipes",
+    "pkgutil",
+    "platform",
+    "plistlib",
+    "poplib",
+    "posix",
+    "posixpath",
+    "pprint",
+    "profile",
+    "pstats",
+    "pty",
+    "pwd",
+    "py_compile",
+    "pyclbr",
+    "pydoc",
+    "queue",
+    "quopri",
+    "random",
+    "re",
+    "readline",
+    "reprlib",
+    "resource",
+    "rlcompleter",
+    "runpy",
+    "sched",
+    "secrets",
+    "select",
+    "selectors",
+    "shelve",
+    "shlex",
+    "shutil",
+    "signal",
+    "site",
+    "smtplib",
+    "sndhdr",
+    "socket",
+    "socketserver",
+    "spwd",
+    "sqlite3",
+    "ssl",
+    "stat",
+    "statistics",
+    "string",
+    "stringprep",
+    "struct",
+    "subprocess",
+    "sunau",
+    "symtable",
+    "sys",
+    "sysconfig",
+    "syslog",
+    "tabnanny",
+    "tarfile",
+    "telnetlib",
+    "tempfile",
+    "textwrap",
+    "threading",
+    "time",
+    "timeit",
+    "tkinter",
+    "token",
+    "tokenize",
+    "trace",
+    "traceback",
+    "tracemalloc",
+    "tty",
+    "turtle",
+    "types",
+    "typing",
+    "unicodedata",
+    "unittest",
+    "urllib",
+    "uu",
+    "uuid",
+    "venv",
+    "warnings",
+    "wave",
+    "weakref",
+    "webbrowser",
+    "xml",
+    "xmlrpc",
+    "zipapp",
+    "zipfile",
+    "zipimport",
+    "zlib",
+    "zoneinfo",
+    "__future__",
+    "atexit",
+    "pdb",
+    "traceback",
+    "unittest",
+    # 项目内部模块
+    "pilotstd",
+    "docker",
+    "tests",
+    "scripts",
+}
+
+THIRD_PARTY_REMAP = {
+    # pip 包名 vs import 名不一致的映射
+    "PIL": "pillow",
+    "yaml": "pyyaml",
+    "bs4": "beautifulsoup4",
+    "jose": "python-jose",
+    "cv2": "opencv-python",
+    "dateutil": "python-dateutil",
+    "jwt": "pyjwt",
+    "pydantic": "pydantic",
+    "dotenv": "python-dotenv",
+    "apscheduler": "apscheduler",
+    "pytz": "pytz",
+    "watchdog": "watchdog",
+}
+
+
+def extract_third_party_imports() -> set[str]:
+    imports: set[str] = set()
+    for py_file in ROOT_DIR.glob("pilotstd/**/*.py"):
+        _collect_imports(py_file, imports)
+    for py_file in ROOT_DIR.glob("docker/**/*.py"):
+        _collect_imports(py_file, imports)
+    return imports
+
+
+def _collect_imports(py_file: Path, imports: set[str]) -> None:
+    try:
+        content = py_file.read_text(encoding="utf-8")
+    except Exception:
+        return
+    # import xxx / import xxx.yyy
+    for m in re.finditer(r"^import\s+([a-zA-Z_][a-zA-Z0-9_]*)", content, re.MULTILINE):
+        name = m.group(1)
+        if name not in STDLIB:
+            imports.add(name)
+    # from xxx import yyy
+    for m in re.finditer(r"^from\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+import", content, re.MULTILINE):
+        name = m.group(1)
+        if name not in STDLIB:
+            imports.add(name)
+
+
+def parse_requirements() -> set[str]:
+    req_file = ROOT_DIR / "docker" / "requirements-docker.txt"
+    deps: set[str] = set()
+    for line in req_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        name = re.split(r"[=<>~]", line)[0].strip().lower()
+        name = re.sub(r"\[.*\]", "", name)  # 去除 extras: python-jose[cryptography] → python-jose
+        if name:
+            deps.add(name)
+    return deps
+
+
+def main() -> int:
+    imports = extract_third_party_imports()
+    deps = parse_requirements()
+
+    # 应用 remap
+    resolved_imports: set[str] = set()
+    unresolved: list[str] = []
+    for imp in sorted(imports):
+        if imp in THIRD_PARTY_REMAP:
+            resolved_import = THIRD_PARTY_REMAP[imp]
+            if resolved_import in deps:
+                resolved_imports.add(resolved_import)
+            else:
+                unresolved.append(imp)
+        elif imp in deps:
+            resolved_imports.add(imp)
+        else:
+            unresolved.append(imp)
+
+    if unresolved:
+        print("FAIL: 以下依赖在代码中被引用但未在 requirements-docker.txt 中声明:")
+        for u in unresolved:
+            print(f"  - {u}")
+        return 1
+
+    print(f"PASS: 依赖完整性检查通过，共 {len(resolved_imports)} 个第三方依赖已全部声明")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

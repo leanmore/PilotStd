@@ -102,3 +102,10 @@ repos:
         language: system
         files: \.(ts|vue)$
         pass_filenames: false
+
+      - id: check-dependencies
+        name: 门禁 GATE-08 — 依赖完整性检查
+        entry: python scripts/check_dependencies.py
+        language: system
+        files: \.py$|requirements-docker\.txt$
+        pass_filenames: false

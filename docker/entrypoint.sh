@@ -19,13 +19,13 @@ if [ "${PILOTSTD_AUTO_UPDATE}" = "false" ]; then
 elif [ "${PILOTSTD_AUTO_UPDATE}" = "true" ] || [ "${PILOTSTD_AUTO_UPDATE}" = "release" ]; then
     echo "[AUTO-UPDATE] 自动更新已开启 (mode=${PILOTSTD_AUTO_UPDATE})，执行更新脚本..."
     chmod +x /app/docker/update.sh 2>/dev/null || true
-    /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
+    source /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
 else
     # 未设置或其他值 → 跳过，但 Web 触发的一次性更新仍然生效
     if [ -f "/app/data/temp/pilotstd.pending_update" ]; then
         echo "[AUTO-UPDATE] 检测到 Web 触发的一次性更新标记，强制执行更新..."
         chmod +x /app/docker/update.sh 2>/dev/null || true
-        /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
+        source /app/docker/update.sh || echo "[AUTO-UPDATE] 更新脚本执行失败，继续启动..."
     else
         echo "[AUTO-UPDATE] 自动更新未开启 (PILOTSTD_AUTO_UPDATE=${PILOTSTD_AUTO_UPDATE:-未设置})"
     fi
@@ -155,6 +155,14 @@ conn.commit()
     echo "[INIT] 超级用户初始化完成"
 else
     echo "[INIT] 超级用户已初始化，跳过"
+fi
+
+# 检查是否是更新完成后的重启
+INTENTIONAL_RESTART_FLAG="/app/data/temp/pilotstd.intentional_restart"
+if [ -f "$INTENTIONAL_RESTART_FLAG" ]; then
+    rm -f "$INTENTIONAL_RESTART_FLAG"
+    echo "[RESTART] 更新完成，退出容器交由 Docker 重启策略重建..."
+    exit 1
 fi
 
 # 权限处理：PUID=0 表示以 root 运行，跳过 chown 和 gosu；否则降权到 appuser

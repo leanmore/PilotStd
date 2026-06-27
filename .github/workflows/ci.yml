@@ -157,6 +157,9 @@ jobs:
           pip install vulture
           vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
 
+      - name: GATE-08 — Check dependency completeness
+        run: python scripts/check_dependencies.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
@@ -271,6 +274,18 @@ jobs:
           npm ci
           npm run build
 
+      - name: Package dist.zip
+        run: |
+          cd web/dist
+          zip -r ../../dist.zip .
+
+      - name: Upload dist.zip as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist.zip
+          retention-days: 1
+
       # ── 2b: 启用 Buildx（Registry Cache 必需）──
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -381,6 +396,12 @@ jobs:
           path: PilotStd-${{ steps.version.outputs.version }}.zip
           retention-days: 7
 
+      - name: Download dist.zip artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+        continue-on-error: true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -395,3 +416,14 @@ jobs:
             - Windows 10/11 64-bit
             - 无需安装 Python
           files: PilotStd-${{ steps.version.outputs.version }}.zip
+
+      - name: Upload dist.zip to release
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f dist.zip ]; then
+            gh release upload ${{ steps.version.outputs.version }} dist.zip --clobber
+          else
+            echo "dist.zip not found, skip upload (artifact may not be ready yet)"
+          fi
