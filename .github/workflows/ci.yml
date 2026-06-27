@@ -421,6 +421,7 @@ jobs:
         if: github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           if [ -f dist.zip ]; then
             gh release upload ${{ steps.version.outputs.version }} dist.zip --clobber
