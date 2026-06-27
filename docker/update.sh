@@ -171,9 +171,11 @@ main() {
 
     log_info "本地: ${local_ver}  →  远程: ${remote_ver}"
 
-    # 版本比较
+    # 版本比较（set +e：compare_versions 返回 1 表示本地更旧需要更新，非错误）
+    set +e
     compare_versions "${local_ver}" "${remote_ver}"
     local cmp_result=$?
+    set -e
 
     if [ $cmp_result -eq 0 ]; then
         log_info "已是最新版本，无需更新"
