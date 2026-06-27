@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'HomeView' })
 import { ref, computed, onMounted } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useDashboardStore } from '@/stores/dashboard'

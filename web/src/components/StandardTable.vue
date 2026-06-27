@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'StandardTable' })
 defineProps<{ data: any[] }>()
 </script>
 <template>

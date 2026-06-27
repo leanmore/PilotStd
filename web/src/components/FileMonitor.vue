@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'FileMonitor' })
 // FileMonitor.vue — 文件监控配置组件
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'

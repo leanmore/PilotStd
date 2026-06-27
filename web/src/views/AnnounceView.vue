@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed } from 'vue'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import Button from 'primevue/button'

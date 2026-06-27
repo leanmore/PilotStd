@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'NotificationConfig' })
 // NotificationConfig.vue v2 — 四渠道全参数通知配置
 import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'

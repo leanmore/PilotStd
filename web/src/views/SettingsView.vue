@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'SettingsView' })
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'

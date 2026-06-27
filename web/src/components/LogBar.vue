@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'LogBar' })
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
 

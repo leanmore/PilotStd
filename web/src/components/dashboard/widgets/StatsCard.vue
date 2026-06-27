@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'StatsCard' })
 // StatsCard.vue — 统计数字卡 Widget（多值展示：现行/废止/即将实施/待确认）
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'

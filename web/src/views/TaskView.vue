@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'TaskView' })
 import { ref, onMounted, computed } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import Button from 'primevue/button'

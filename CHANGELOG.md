@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v0.37.19 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.19
+
+## v0.37.20 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.20
+
+## v0.37.21 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.21
+
 ## v0.4.1 (2026-06-10)
 
 ### Changed

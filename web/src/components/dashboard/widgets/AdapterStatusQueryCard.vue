@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'AdapterStatusQueryCard' })
 // AdapterStatusQueryCard.vue — 查询适配器熔断状态 Widget
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'

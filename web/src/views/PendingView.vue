@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'PendingView' })
 import { ref, computed } from 'vue'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'

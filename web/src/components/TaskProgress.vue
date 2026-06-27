@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'TaskProgress' })
 defineProps<{ progress: number; label: string; detail: string }>()
 </script>
 <template>

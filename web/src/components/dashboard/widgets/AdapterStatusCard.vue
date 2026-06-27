@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'AdapterStatusCard' })
 // AdapterStatusCard.vue — 适配器熔断状态 Widget（从 DashboardView 迁移）
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'

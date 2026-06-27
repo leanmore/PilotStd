@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'WidgetManager' })
 // WidgetManager.vue — 仪表板卡片管理对话框
 import { useDashboardStore } from '@/stores/dashboard'
 import { WIDGET_LIBRARY } from '@/types/dashboard'

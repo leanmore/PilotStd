@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'RecentAnnounceCard' })
 // RecentAnnounceCard.vue — 最近公告列表 Widget（从 HomeView 迁移）
 import { ref, onMounted } from 'vue'
 import { getAnnounceResults } from '@/api'

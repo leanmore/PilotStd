@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'OrganizeView' })
 import { ref, onMounted, computed } from 'vue'
 import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'

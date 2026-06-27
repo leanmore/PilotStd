@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'NotificationLogsView' })
 import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'

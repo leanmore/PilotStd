@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'PendingItemsCard' })
 // PendingItemsCard.vue — 待确认标准列表 Widget
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'

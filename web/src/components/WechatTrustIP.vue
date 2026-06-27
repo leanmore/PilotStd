@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'WechatTrustIP' })
 // WechatTrustIP.vue — 企业微信可信 IP 自动更新配置
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'QuickActionsCard' })
 // QuickActionsCard.vue — 快捷操作 Widget（4 个路由跳转按钮）
 import { useRouter } from 'vue-router'
 

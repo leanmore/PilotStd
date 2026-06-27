@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'CacheManager' })
 // CacheManager.vue — 缓存管理配置组件
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'

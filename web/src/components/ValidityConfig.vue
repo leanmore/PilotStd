@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed } from 'vue'
 import Button from 'primevue/button'

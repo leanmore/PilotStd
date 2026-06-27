@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'SystemInfoCard' })
 // SystemInfoCard.vue — 系统信息 Widget
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'

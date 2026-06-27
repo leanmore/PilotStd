@@ -130,3 +130,10 @@ repos:
         language: system
         files: \.(py|vue|ts|js|sh|yaml|yml|toml)$
         pass_filenames: false
+
+      - id: check-gate-12
+        name: 门禁 GATE-12 — Vue 组件 defineOptions 检查
+        entry: python scripts/check_gate_12.py
+        language: system
+        files: \.vue$
+        pass_filenames: false

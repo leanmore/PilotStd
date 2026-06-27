@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'TaskManager' })
 // TaskManager.vue — 任务队列管理界面
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'

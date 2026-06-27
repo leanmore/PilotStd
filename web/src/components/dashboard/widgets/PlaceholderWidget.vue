@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'PlaceholderWidget' })
 // PlaceholderWidget.vue — 未实现 Widget 的占位卡片
 defineProps<{ widget: { config?: { title?: string } } }>()
 </script>
