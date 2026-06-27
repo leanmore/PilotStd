@@ -7,6 +7,10 @@
 
 ## v0.37.15 (2026-06-27)
 
+### Fixed
+- 补 v25 迁移脚本，创建 announcement_match 表（v5 迁移可能因版本跳号被跳过，兜底修复）
+
+
 ### Changed
 - chore: bump version to v0.37.15
 

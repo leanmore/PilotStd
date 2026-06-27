@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 24
+CURRENT_SCHEMA_VERSION = 25
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -834,3 +834,22 @@ def _migrate_v18_fetch_task_adapter_health(db: Database) -> None:
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+
+@migration(25)
+def _migrate_v25_announcement_match_safeguard(db: Database) -> None:
+    """v25: announcement_match 表兜底创建（v5 迁移可能因版本跳号被跳过）。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS announcement_match (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            standard_number TEXT NOT NULL,
+            source_site TEXT NOT NULL DEFAULT 'announcement',
+            result_json TEXT NOT NULL,
+            cached_at TEXT NOT NULL,
+            expires_at TEXT
+        )
+    """)
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_announcement_match_lookup "
+        "ON announcement_match(standard_number, source_site)"
+    )
