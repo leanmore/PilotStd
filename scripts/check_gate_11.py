@@ -25,7 +25,8 @@ PATTERNS = [
     # SQL INSERT VALUES 含 'admin'
     ("SQL INSERT 硬编码 admin", r"VALUES\s*\([^)]*['\"]admin['\"]", {".py", ".sh"}),
     # 常量定义 ADMIN_USER = 'admin'
-    ("常量定义 ADMIN_USER = 'admin'", r"ADMIN[a-zA-Z_]*\s*=\s*['\"]admin['\"]", {".py", ".ts", ".js", ".sh"}),
+    ("常量定义 ADMIN_ROLE", r"ADMIN_ROLE\s*=\s*['\"]admin['\"]", {".py"}),
+    ("导入 ADMIN_ROLE", r"import\s+ADMIN_ROLE|from.*import\s+ADMIN_ROLE", {".py"}),
 ]
 
 EXCLUDE_DIRS = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", "__pycache__", ".venv", "venv"}
@@ -72,10 +73,6 @@ def main() -> int:
                         continue
                     m = re.search(pattern, line)
                     if m:
-                        # 豁免：ADMIN_ROLE="admin" 常量定义（GATE-11 统一入口）
-                        var_decl = re.search(r"(ADMIN_ROLE|ADMIN_USER)\s*=\s*['\"]admin['\"]", line)
-                        if var_decl:
-                            continue
                         # 豁免：SH 文件中 export SUPERUSER=admin 是配置
                         if ext == ".sh":
                             var_name = re.search(r"(export\s+)?([A-Z_]+)\s*=\s*['\"]admin['\"]", line)

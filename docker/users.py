@@ -3,7 +3,6 @@ import hashlib
 import os
 import secrets
 
-from pilotstd import ADMIN_ROLE
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
 
@@ -74,7 +73,7 @@ def init_users_table() -> None:
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (admin_user, h, s, ADMIN_ROLE, must_change),
+            (admin_user, h, s, "superuser", must_change),
         )
     else:
         # 已有管理员用户：检测弱密码，若哈希匹配弱密码则强制改密
@@ -136,11 +135,11 @@ def add_user(username: str, password: str, role: str = "user") -> bool:
 def delete_user(user_id: int) -> bool:
     db = _get_db()
     # 不允许删除最后一个 admin
-    admin_count = db.fetchone("SELECT COUNT(*) as cnt FROM users WHERE role = ?", (ADMIN_ROLE,))
+    admin_count = db.fetchone("SELECT COUNT(*) as cnt FROM users WHERE role = ?", ("superuser",))
     row = db.fetchone("SELECT role FROM users WHERE id = ?", (user_id,))
     if not row:
         return False
-    if row["role"] == ADMIN_ROLE and admin_count and admin_count["cnt"] <= 1:
+    if row["role"] == "superuser" and admin_count and admin_count["cnt"] <= 1:
         return False  # 至少保留一个 admin
     db.execute("DELETE FROM users WHERE id = ?", (user_id,))
     return True

@@ -13,7 +13,7 @@ from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from pilotstd import ADMIN_ROLE
+from pilotstd import SUPERUSER_USERNAME
 
 from .users import (
     check_must_change_password,
@@ -162,12 +162,9 @@ def get_current_username(request: Request) -> str:
 
 
 def require_admin(request: Request) -> str:
-    """要求当前用户为 admin 角色，否则返回 405。"""
+    """要求当前用户为超级管理员，否则返回 405。"""
     username = get_current_username(request)
-    from .users import get_user_role
-
-    role = get_user_role(username)
-    if role != ADMIN_ROLE:
+    if username != SUPERUSER_USERNAME:
         raise HTTPException(405, "仅管理员可执行此操作")
     return username
 
