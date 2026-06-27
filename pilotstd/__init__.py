@@ -6,7 +6,7 @@ from typing import Any
 from .models import FileInfo, ParsedStdInfo, ScanResult, ScanStats
 from .scan import FileScanner, StandardParser
 
-__version__ = "0.37.6"
+__version__ = "0.37.7"
 FRONTEND_VERSION = __version__  # 与后端保持一致，更新脚本据此下载前端 dist.zip
 
 __all__ = [
