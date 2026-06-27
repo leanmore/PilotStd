@@ -763,7 +763,7 @@ def _migrate_v23_cache_system(db: Database) -> None:
         if "data_state" not in cols:
             db.execute(f"ALTER TABLE {table} ADD COLUMN data_state TEXT DEFAULT 'valid'")
         if "last_accessed_at" not in cols:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN last_accessed_at TEXT DEFAULT CURRENT_TIMESTAMP")
+            db.execute(f"ALTER TABLE {table} ADD COLUMN last_accessed_at TEXT DEFAULT NULL")
 
 
 @migration(24)
