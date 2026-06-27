@@ -50,7 +50,7 @@ async function doAdd() {
 async function doDelete(id: number) { await deleteUser(id); loadUsers() }
 
 // ── 用户管理辅助 ──
-const SUPERUSER_USERNAME = 'admin'
+const SUPERUSER_USERNAME = import.meta.env.VITE_SUPERUSER_NAME || 'SUPERUSER'
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
 
 function canDelete(item: any): boolean {
