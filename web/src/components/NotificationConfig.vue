@@ -177,7 +177,8 @@ onMounted(loadConfig)
       </div>
     </div>
 
-    <Accordion :multiple="true">
+    <div class="channel-grid">
+      <Accordion :multiple="true" style="display: contents;">
       <AccordionTab v-for="ch in CHANNELS" :key="ch.key">
         <template #header>
           <div class="ch-header" style="width:100%">
@@ -280,6 +281,7 @@ onMounted(loadConfig)
         </div>
       </AccordionTab>
     </Accordion>
+    </div>
   </div>
 </template>
 
