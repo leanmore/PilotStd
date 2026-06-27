@@ -2,6 +2,31 @@
 
 ## v0.37.14 (2026-06-27)
 
+### Changed
+- chore: bump version to v0.37.14
+
+## v0.37.15 (2026-06-27)
+
+### Changed
+- chore: bump version to v0.37.15
+
+## v0.37.14 (2026-06-27)
+
+### Fixed
+- @ feat: 首页三问题修复—适配器并排+StatsCard多值+待确认/系统信息卡片 @
+## v0.37.15 (2026-06-27)
+
+### Fixed
+- @ fix: GATE-10重命名为check_ui_sensitive_fields.py纳入run-gates自动触发 @
+- @ docs: CHANGELOG补全v0.37.11~v0.37.13缺失条目 @
+## v0.37.1
+
+### Changed
+- 回退 APScheduler 从 4.x 到 3.10.4（4.0.0/4.0.1 在 PyPI 被 yanked，阻塞 Docker 构建）
+- 技术债：待 APScheduler 发布 4.0.2+ 稳定版本后重新评估升级
+
+ (2026-06-27)
+
 ### Fixed
 - @ feat: 首页三问题修复—适配器并排+StatsCard多值+待确认/系统信息卡片 @
 ## v0.37.11 (2026-06-27)
