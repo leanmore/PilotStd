@@ -20,8 +20,10 @@ from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
 from .api.archive import router as archive_router
+from .api.cache import router as cache_router
 from .api.download import router as download_router
 from .api.logs import router as logs_router
+from .api.monitor import router as monitor_router
 from .api.normalize import router as normalize_router
 from .api.notification import router as notification_router
 from .api.organize import router as organize_router
@@ -32,10 +34,12 @@ from .api.settings import router as settings_router
 from .api.standards import router as standards_router
 from .api.stats import router as stats_router
 from .api.system import router as system_router
+from .api.tasks import router as tasks_router
 from .api.upload import router as upload_router
 from .api.user import router as user_layout_router
 from .api.users import router as users_router
 from .api.validity import router as validity_router
+from .api.wechat_ip import router as wechat_ip_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .scheduler import register_job_func, start_scheduler, stop_scheduler
@@ -78,10 +82,60 @@ async def lifespan(app: FastAPI):
 
     register_job_func("auto_announce", check_announce)
     start_scheduler()
+
+    # 任务调度器自动启动
+    try:
+        from pilotstd.task.scheduler import get_scheduler as get_task_scheduler
+
+        get_task_scheduler().set_queue(_cron_mgr.task_queue)
+        get_task_scheduler().start()
+    except Exception:
+        pass
+
+    # 文件监控自动启动
+    try:
+        from pilotstd.monitor.scheduler import get_scheduler
+
+        get_scheduler().start()
+    except Exception:
+        pass
+
+    # 企业微信可信 IP 自动更新（独立线程，不占用 APScheduler）
+    try:
+        if _cron_mgr.cfg.get("wechat_ip.enabled", False):
+            from pilotstd.wechat_ip.scheduler import start as start_ip_scheduler
+
+            interval = int(_cron_mgr.cfg.get("wechat_ip.interval_hours", 6)) * 3600
+            start_ip_scheduler(_cron_mgr.cfg, interval)
+            logger.info("可信 IP 自动更新已启动 (间隔=%dh)", interval // 3600)
+    except Exception:
+        pass
+
     yield
     # 关闭时释放资源
     stop_scheduler()
     _cron_mgr.shutdown()
+
+    try:
+        from pilotstd.monitor.scheduler import get_scheduler
+
+        get_scheduler().stop()
+    except Exception:
+        pass
+
+    try:
+        from pilotstd.wechat_ip.scheduler import stop as stop_ip_scheduler
+
+        stop_ip_scheduler()
+    except Exception:
+        pass
+
+    try:
+        from pilotstd.task.scheduler import get_scheduler as get_task_scheduler
+
+        get_task_scheduler().stop()
+    except Exception:
+        pass
 
 
 from pilotstd import __version__ as _app_version  # noqa: E402
@@ -140,6 +194,7 @@ app.include_router(auth_router)
 app.include_router(adapter_router)
 app.include_router(scan_router)
 app.include_router(query_router)
+app.include_router(cache_router)
 app.include_router(download_router)
 app.include_router(organize_router)
 app.include_router(announce_router)
@@ -153,11 +208,14 @@ app.include_router(normalize_router)
 app.include_router(notification_router)
 app.include_router(standards_router)
 app.include_router(validity_router)
+app.include_router(wechat_ip_router)
 app.include_router(archive_router)
 app.include_router(users_router)
 app.include_router(user_layout_router)
+app.include_router(tasks_router)
 app.include_router(upload_router)
 app.include_router(logs_router)
+app.include_router(monitor_router)
 app.include_router(system_router)
 
 

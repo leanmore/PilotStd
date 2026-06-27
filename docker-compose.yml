@@ -26,6 +26,7 @@ services:
       - ./standards:/standards
       - ./.env:/app/.env
       - ./output:/app/output   # 容器内生成的文件可通过此目录在宿主机访问
+      - ./browser_cache:/app/browser_cache  # CloakBrowser 缓存持久化（企业微信可信IP自动更新）
       # 挂载 docker.sock 允许容器调用 Docker API（镜像级更新 / 容器自重启）。
       # 安全注意：挂载后容器可控制宿主机 Docker，仅在信任容器内代码时启用。
       # 方案 C 的代码级重启（/api/system/restart）不依赖此挂载，可注释掉。

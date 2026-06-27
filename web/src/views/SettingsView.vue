@@ -10,6 +10,10 @@ import { useAppStore } from '@/stores/app'
 import { THEMES } from '@/config/themes'
 import http from '@/api/http'
 import NotificationConfig from '@/components/NotificationConfig.vue'
+import WechatTrustIP from '@/components/WechatTrustIP.vue'
+import CacheManager from '@/components/CacheManager.vue'
+import FileMonitor from '@/components/FileMonitor.vue'
+import TaskManager from '@/components/TaskManager.vue'
 import ValidityConfig from '@/components/ValidityConfig.vue'
 const store = useAppStore()
 const { locale } = useI18n()
@@ -217,6 +221,7 @@ const tabs = [
   { key: 'circuit', label: '熔断' },
   { key: 'notification', label: '通知' },
   { key: 'validity', label: '时效性' },
+  { key: 'system', label: '系统' },
 ]
 
 // 底部操作栏：每个 Tab 对应的 cfg 顶层键（用于"应用"按钮提取对应字段）
@@ -478,7 +483,7 @@ const sites = [
             <span style="min-width:100px;font-weight:500">{{ item.username }}</span>
             <span style="min-width:80px;font-size:13px;color:var(--text-dim)">{{ item.role }}</span>
             <span style="flex:1;font-size:12px;color:var(--text-dim)">{{ item.created_at }}</span>
-            <Button v-if="canDelete(item)" icon="pi pi-trash"
+            <Button v-if="canDelete(item)" icon="pi pi-trash" label="删除"
                     severity="danger" size="small" @click="confirmDelete(item)" />
           </div>
         </div>
@@ -552,12 +557,27 @@ const sites = [
   <div v-show="activeTab === 'notification'" class="card mt-2">
     <div class="card-header">通知配置</div>
     <NotificationConfig ref="notificationRef" />
+    <hr style="margin:24px 0;border-color:var(--border)" />
+    <div class="card-header" style="margin-bottom:12px">企业微信可信 IP 自动更新</div>
+    <WechatTrustIP />
   </div>
 
   <!-- 时效性 -->
   <div v-show="activeTab === 'validity'" class="card mt-2">
     <div class="card-header">时效性检查</div>
     <ValidityConfig ref="validityRef" />
+  </div>
+
+  <!-- 系统 -->
+  <div v-show="activeTab === 'system'" class="card mt-2">
+    <div class="card-header">文件监控</div>
+    <FileMonitor />
+    <hr style="margin:24px 0;border-color:var(--border)" />
+    <div class="card-header" style="margin-bottom:12px">缓存管理</div>
+    <CacheManager />
+    <hr style="margin:24px 0;border-color:var(--border)" />
+    <div class="card-header" style="margin-bottom:12px">任务管理</div>
+    <TaskManager />
   </div>
 
   <!-- 底部操作栏 -->

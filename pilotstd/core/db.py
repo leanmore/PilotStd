@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 21
+CURRENT_SCHEMA_VERSION = 24
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -654,6 +654,86 @@ def _migrate_v21_user_layouts(db: Database) -> None:
             UNIQUE(user_id, layout_key)
         )
     """)
+
+
+@migration(22)
+def _migrate_v22_user_preferences(db: Database) -> None:
+    """v22: 用户配置表——统一存储所有用户可修改的配置项。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            preference_key TEXT NOT NULL,
+            preference_value TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, preference_key)
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user_key ON user_preferences(user_id, preference_key)")
+
+
+@migration(23)
+def _migrate_v23_cache_system(db: Database) -> None:
+    """v23: 统一缓存系统——数据源版本追踪 + 缓存表扩展 + 缓存配置。"""
+    # 数据源版本追踪表
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS data_source_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_name TEXT NOT NULL UNIQUE,
+            version TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    for src in ("file_index", "announcement", "validity"):
+        db.execute(
+            "INSERT OR IGNORE INTO data_source_versions (source_name, version) VALUES (?, 'initial')",
+            (src,),
+        )
+
+    # 缓存配置表
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS cache_config (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            config_key TEXT NOT NULL UNIQUE,
+            config_value TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    for ck, cv in (("max_size_mb", "50"), ("auto_cleanup", "true"), ("cleanup_ratio", "0.1")):
+        db.execute(
+            "INSERT OR IGNORE INTO cache_config (config_key, config_value) VALUES (?, ?)",
+            (ck, cv),
+        )
+
+    # 扩展三张缓存表
+    for table in ("standard_info_cache", "standard_validity", "announcement_record"):
+        cols = {r["name"] for r in db.fetchall(f"PRAGMA table_info({table})")}
+        if "source_version" not in cols:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN source_version TEXT DEFAULT ''")
+        if "data_state" not in cols:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN data_state TEXT DEFAULT 'valid'")
+        if "last_accessed_at" not in cols:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN last_accessed_at TEXT DEFAULT CURRENT_TIMESTAMP")
+
+
+@migration(24)
+def _migrate_v24_task_queue_enhance(db: Database) -> None:
+    """v24: 任务队列扩展——重试/超时/优先级/队列名。"""
+    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(task_queue)")}
+    additions = [
+        ("retry_count", "INTEGER DEFAULT 0"),
+        ("max_retries", "INTEGER DEFAULT 3"),
+        ("timeout_seconds", "INTEGER DEFAULT 300"),
+        ("started_at", "TEXT"),
+        ("finished_at", "TEXT"),
+        ("priority", "INTEGER DEFAULT 0"),
+        ("queue_name", "TEXT DEFAULT 'default'"),
+    ]
+    for col_name, col_def in additions:
+        if col_name not in cols:
+            db.execute(f"ALTER TABLE task_queue ADD COLUMN {col_name} {col_def}")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_status_priority ON task_queue(status, priority, created_at)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_queue_name ON task_queue(queue_name)")
 
 
 @migration(18)

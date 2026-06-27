@@ -57,6 +57,14 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
                 json.dump(failures, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
+    # 公告抓取完成后标记缓存失效
+    try:
+        from pilotstd.core.cache_manager import CacheManager, DataSource
+
+        CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "count": total_matched + total_updated,

@@ -146,6 +146,15 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
                 _time.sleep(interval)
 
         logger.info("时效性检查完成: checked=%d changed=%d", len(candidates), changed)
+
+        # 时效性检查完成后标记缓存失效
+        try:
+            from pilotstd.core.cache_manager import CacheManager, DataSource
+
+            CacheManager(mgr.db).invalidate_by_source(DataSource.VALIDITY)
+        except Exception:
+            pass
+
         return {"ok": True, "checked": len(candidates), "changed": changed}
     except Exception as e:
         logger.exception("时效性检查执行失败")

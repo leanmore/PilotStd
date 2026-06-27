@@ -1,13 +1,23 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import AppLayout from '@/components/AppLayout.vue'
 import { useThemeSync } from '@/composables/useThemeSync'
+import { useAppStore } from '@/stores/app'
 
 const route = useRoute()
+const store = useAppStore()
 
 useThemeSync()
+
+// 已登录时从后端加载持久化配置（主题/语言）
+onMounted(() => {
+  if (route.path !== '/login') {
+    store.loadPreferences()
+  }
+})
 </script>
 
 <template>

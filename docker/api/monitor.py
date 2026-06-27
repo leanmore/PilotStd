@@ -1,0 +1,42 @@
+# docker/api/monitor.py — 文件监控 API
+import logging
+
+from fastapi import Depends
+from fastapi.routing import APIRouter
+
+from pilotstd.monitor.config import get_config, set_config
+from pilotstd.monitor.scheduler import get_scheduler
+
+from ..auth import require_admin
+from ..manager import get_manager_dep
+
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["monitor"])
+
+
+@router.get("/api/monitor/config")
+def get_monitor_config(mgr=Depends(get_manager_dep)):
+    return get_config()
+
+
+@router.put("/api/monitor/config")
+def put_monitor_config(body: dict, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+    set_config(body)
+    return {"ok": True}
+
+
+@router.get("/api/monitor/status")
+def get_status(mgr=Depends(get_manager_dep)):
+    return get_scheduler().get_status()
+
+
+@router.post("/api/monitor/start")
+def start_monitor(mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+    get_scheduler().start()
+    return {"ok": True, "running": get_scheduler().running}
+
+
+@router.post("/api/monitor/stop")
+def stop_monitor(mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+    get_scheduler().stop()
+    return {"ok": True, "running": False}

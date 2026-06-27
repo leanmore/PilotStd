@@ -197,6 +197,15 @@ class StandardManager:
 
         self._parsed_results = parsed
         logger.info(f"扫描完成: {len(parsed)}/{len(result.files)} 识别成功")
+
+        # 文件扫描完成后标记缓存失效
+        try:
+            from pilotstd.core.cache_manager import CacheManager, DataSource
+
+            CacheManager(self.db).invalidate_by_source(DataSource.FILE_INDEX)
+        except Exception:
+            pass
+
         return parsed
 
     def scan_directory_stream(
@@ -243,6 +252,14 @@ class StandardManager:
         result.ext_stats = ext_count  # type: ignore[attr-defined]
         self._parsed_results = parsed
         logger.info(f"扫描完成: {len(parsed)}/{total} 识别成功")
+
+        try:
+            from pilotstd.core.cache_manager import CacheManager, DataSource
+
+            CacheManager(self.db).invalidate_by_source(DataSource.FILE_INDEX)
+        except Exception:
+            pass
+
         return parsed
 
     # ════════════════════════════════════════════════════════════════

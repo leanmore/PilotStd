@@ -5,56 +5,71 @@ import { THEMES, applyThemeToDom } from '@/config/themes'
 export type ThemeId = keyof typeof THEMES
 
 export const useAppStore = defineStore('app', () => {
-  // 检测系统偏好，默认亮色
   const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const savedTheme = localStorage.getItem('theme') as ThemeId | null
   const defaultTheme: ThemeId = savedTheme || (sysDark ? 'dark' : 'light')
   const theme = ref<ThemeId>(defaultTheme)
 
-  const locale = ref(localStorage.getItem('locale') || 'zh-CN')
+  const savedLocale = localStorage.getItem('locale')
+  const locale = ref(savedLocale || 'zh-CN')
   const loggedIn = ref(false)
   const username = ref('')
+  const _initialized = ref(false)
 
-  // 主题切换：同步 CSS 变量 + data-theme 属性 + 持久化
-  watch(theme, v => {
+  /** 从 preferencesStore 加载持久化配置（登录后调用） */
+  async function loadPreferences() {
+    if (_initialized.value) return
+    _initialized.value = true
+
+    try {
+      const { usePreferencesStore } = await import('./preferences')
+      const prefs = usePreferencesStore()
+
+      const backendTheme = await prefs.get<string>('theme')
+      if (backendTheme && backendTheme in THEMES) {
+        theme.value = backendTheme as ThemeId
+      }
+
+      const backendLang = await prefs.get<string>('language')
+      if (backendLang) {
+        locale.value = backendLang
+        localStorage.setItem('locale', backendLang)
+      }
+    } catch {
+      // preferencesStore 不可用时保持 localStorage 值
+    }
+  }
+
+  // 主题切换：同步 CSS + localStorage + 后端
+  watch(theme, async v => {
     const themeConfig = THEMES[v]
     if (themeConfig) {
-      try {
-        applyThemeToDom(themeConfig)
-      } catch {
-        // 测试环境或 SSR 时可能失败，静默忽略
-      }
+      try { applyThemeToDom(themeConfig) } catch { /* SSR */ }
     }
     localStorage.setItem('theme', v)
+    // 异步同步到后端
+    try {
+      const { usePreferencesStore } = await import('./preferences')
+      usePreferencesStore().set('theme', v).catch(() => {})
+    } catch { /* ignore */ }
   }, { immediate: true })
 
-  watch(locale, v => localStorage.setItem('locale', v))
+  watch(locale, async v => {
+    localStorage.setItem('locale', v)
+    try {
+      const { usePreferencesStore } = await import('./preferences')
+      usePreferencesStore().set('language', v).catch(() => {})
+    } catch { /* ignore */ }
+  })
 
-  // 系统主题变化时自动跟随（仅当用户未手动设置时）
+  // 系统主题变化自动跟随
   try {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
       if (!localStorage.getItem('theme')) {
         theme.value = e.matches ? 'dark' : 'light'
       }
     })
-  } catch {
-    // 测试环境可能不支持
-  }
+  } catch { /* SSR */ }
 
-  function setTheme(v: ThemeId) {
-    theme.value = v
-  }
-
-  function toggleTheme() {
-    // 在四套主题中循环切换
-    const themeIds: ThemeId[] = ['light', 'dark', 'green', 'blue']
-    const currentIndex = themeIds.indexOf(theme.value)
-    theme.value = themeIds[(currentIndex + 1) % themeIds.length]
-  }
-
-  function setLocale(v: string) {
-    locale.value = v
-  }
-
-  return { theme, locale, loggedIn, username, toggleTheme, setTheme, setLocale }
+  return { theme, locale, loggedIn, username, loadPreferences }
 })
