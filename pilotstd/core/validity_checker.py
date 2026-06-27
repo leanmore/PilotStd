@@ -11,16 +11,16 @@ from .db import Database
 
 logger = logging.getLogger(__name__)
 
-_TABLE = "standard_validity_status"
+_TABLE = "standard_validity"
 
 
 class ValidityChecker:
     """标准时效性检查器。
 
     三级检查策略：
-      L1 — 查 announcement_cache / announcement_fetch_log
+      L1 — 查 announcement_match / announcement_record
       L2 — 查适配器（QueryEngine 实时查询）
-      L3 — 对比 standard_validity_status 历史记录
+      L3 — 对比 standard_validity 历史记录
     """
 
     def __init__(self, db: Database):
@@ -125,14 +125,14 @@ class ValidityChecker:
     ) -> Optional[dict[str, Optional[str]]]:
         """检查单个标准的时效性状态。
 
-        L1 — 查本地公告缓存（announcement_cache + announcement_fetch_log）
+        L1 — 查本地公告缓存（announcement_match + announcement_record）
         L2 — 查适配器实时查询（需传 query_engine）
         L3 — 对比历史状态记录
 
         返回: {"status": str, "previous": str|None} 或 None（查询失败）
         """
         # ── L1: 公告缓存表 ──
-        for table in ("announcement_cache", "announcement_fetch_log"):
+        for table in ("announcement_match", "announcement_record"):
             try:
                 row = self._db.fetchone(
                     f"SELECT std_name, publish_date FROM {table} WHERE standard_number=? LIMIT 1",

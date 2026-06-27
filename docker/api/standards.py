@@ -21,7 +21,7 @@ def get_status_stats():
     """返回各状态的标准计数（现行/已废止/未知）。"""
     try:
         db = Database(get_db_path())
-        rows = db.fetchall("SELECT status, COUNT(*) AS cnt FROM standard_validity_status GROUP BY status")
+        rows = db.fetchall("SELECT status, COUNT(*) AS cnt FROM standard_validity GROUP BY status")
         db.close()
     except Exception as e:
         logger.exception("查询标准状态统计失败")
@@ -75,7 +75,7 @@ def get_standards_status(
     try:
         # 总数
         count_row = db.fetchone(
-            f"SELECT COUNT(*) AS total FROM standard_validity_status {where_sql}",
+            f"SELECT COUNT(*) AS total FROM standard_validity {where_sql}",
             tuple(params),
         )
         total = count_row["total"] if count_row else 0
@@ -84,7 +84,7 @@ def get_standards_status(
         offset = (page - 1) * page_size
         rows = db.fetchall(
             f"SELECT id, standard_number, status, last_checked_at, next_check_at, "
-            f"check_count FROM standard_validity_status {where_sql} "
+            f"check_count FROM standard_validity {where_sql} "
             "ORDER BY last_checked_at DESC LIMIT ? OFFSET ?",
             tuple(params + [page_size, offset]),
         )

@@ -158,7 +158,12 @@ const breadcrumbs = computed(() => {
         <label for="select-all" class="select-all-label">全选本页文件</label>
       </div>
       <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
-        <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center">
+        <div
+          style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light);align-items:center"
+          :class="{ 'dir-row': item.type === 'dir' }"
+          :style="item.type === 'dir' ? 'cursor:pointer' : ''"
+          @click="item.type === 'dir' ? browse(item.path) : undefined"
+        >
           <Checkbox
             v-if="item.type !== 'dir'"
             :model-value="isFileSelected(item.path)"
@@ -190,6 +195,7 @@ const breadcrumbs = computed(() => {
 .crumb.active:hover { background: none; }
 .crumb-sep { color: var(--text-dim); font-size: 11px; user-select: none; }
 .fi:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+.dir-row:hover { background: var(--selected); }
 .clean-msg { font-size: 12px; color: var(--success); margin-top: 6px; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-top: 6px; }
 .stats-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

@@ -34,8 +34,8 @@ class AnnounceMixin:
         if not self._mgr_ready:
             return
         # Web 端公告缓存模式互斥：禁用本地公告检查
-        if self._config.get("query.use_announcement_cache", False):
-            logger.info("本地公告检查被禁用（use_announcement_cache=True）")
+        if self._config.get("query.use_announcement_match", False):
+            logger.info("本地公告检查被禁用（use_announcement_match=True）")
             QMessageBox.information(
                 self,
                 "公告检查",

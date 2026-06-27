@@ -1,5 +1,5 @@
 # pilotstd/announcement/matcher.py
-# 公告交叉比对器 — 公告标准清单 ↔ file_index，更新 announcement_cache
+# 公告交叉比对器 — 公告标准清单 ↔ file_index，更新 announcement_match
 
 import json
 import logging
@@ -11,12 +11,12 @@ from ..core.file_index import FILE_INDEX_TABLE
 
 logger = logging.getLogger(__name__)
 
-CACHE_TABLE = "announcement_cache"
+CACHE_TABLE = "announcement_match"
 
 
 class AnnouncementMatcher:
     """将公告中的标准清单与本地 file_index 交叉比对，
-    发现匹配时更新 announcement_cache。"""
+    发现匹配时更新 announcement_match。"""
 
     def __init__(self, db: Database) -> None:
         self._db = db
@@ -28,8 +28,8 @@ class AnnouncementMatcher:
     ) -> dict[str, Any]:
         """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
 
-        全量日志写入 announcement_fetch_log（含未匹配的），
-        缓存仅写入 announcement_cache（仅匹配 file_index 的记录）。
+        全量日志写入 announcement_record（含未匹配的），
+        缓存仅写入 announcement_match（仅匹配 file_index 的记录）。
         pid 从每个 item 的 _pid 字段提取。
         """
         result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
@@ -96,7 +96,7 @@ class AnnouncementMatcher:
 
         # 批量写入
         if log_rows:
-            self._bulk_insert_fetch_log(log_rows)
+            self._bulk_insert_records(log_rows)
         if cache_rows:
             self._bulk_upsert_cache(cache_rows)
 
@@ -129,7 +129,7 @@ class AnnouncementMatcher:
         now: str,
         cache_rows: list[tuple[Any, ...]],
     ) -> bool:
-        """构建一条 announcement_cache 行数据，追加到 cache_rows。
+        """构建一条 announcement_match 行数据，追加到 cache_rows。
         逻辑与原 _update_cache 一致：判断状态 → 构建 JSON → 入列。
         """
         std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
@@ -174,7 +174,7 @@ class AnnouncementMatcher:
         完全解析 = 该公告下所有标准条目的 std_name 均非空。
         """
         cursor = self._db.execute(
-            "SELECT pid FROM announcement_fetch_log "
+            "SELECT pid FROM announcement_record "
             "WHERE source_site=? "
             "GROUP BY pid "
             "HAVING COUNT(*) = COUNT(std_name) AND COUNT(*) > 0",
@@ -185,8 +185,8 @@ class AnnouncementMatcher:
 
     _BATCH_SIZE = 50  # SQLite 参数上限 999，每批 50 条远低于上限
 
-    def _bulk_insert_fetch_log(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR IGNORE 到 announcement_fetch_log（分批写入，避免 too many SQL variables）。"""
+    def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> None:
+        """批量 INSERT OR IGNORE 到 announcement_record（分批写入，避免 too many SQL variables）。"""
         if not rows:
             return
 
@@ -195,7 +195,7 @@ class AnnouncementMatcher:
             placeholders = ",".join("(?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
-                "INSERT OR IGNORE INTO announcement_fetch_log "
+                "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
                 "publish_date, fetched_at, matched) "
                 f"VALUES {placeholders}",
@@ -203,7 +203,7 @@ class AnnouncementMatcher:
             )
 
     def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR REPLACE 到 announcement_cache（分批+事务包裹）。"""
+        """批量 INSERT OR REPLACE 到 announcement_match（分批+事务包裹）。"""
         if not rows:
             return
 
@@ -214,7 +214,7 @@ class AnnouncementMatcher:
                 placeholders = ",".join("(?,?,?,?,?)" for _ in batch)
                 flat_values = [item for row in batch for item in row]
                 self._db.execute(
-                    "INSERT OR REPLACE INTO announcement_cache "
+                    "INSERT OR REPLACE INTO announcement_match "
                     "(standard_number, source_site, result_json, cached_at, expires_at) "
                     f"VALUES {placeholders}",
                     flat_values,

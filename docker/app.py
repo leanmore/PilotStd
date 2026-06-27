@@ -33,6 +33,7 @@ from .api.standards import router as standards_router
 from .api.stats import router as stats_router
 from .api.system import router as system_router
 from .api.upload import router as upload_router
+from .api.user import router as user_layout_router
 from .api.users import router as users_router
 from .api.validity import router as validity_router
 from .auth import AuthMiddleware
@@ -154,6 +155,7 @@ app.include_router(standards_router)
 app.include_router(validity_router)
 app.include_router(archive_router)
 app.include_router(users_router)
+app.include_router(user_layout_router)
 app.include_router(upload_router)
 app.include_router(logs_router)
 app.include_router(system_router)

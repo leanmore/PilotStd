@@ -298,9 +298,9 @@ class SettingsPage(QWidget):
         self.downloads_dir.setText(self._config.get("storage.downloads_dir", ""))
         self.skip_welcome_cb.setChecked(self._config.get("appearance.skip_welcome", False))
         self.cache_cb.setChecked(self._config.get("query.use_cache", True))
-        self.announce_cache_cb.setChecked(self._config.get("query.use_announcement_cache", False))
+        self.announce_cache_cb.setChecked(self._config.get("query.use_announcement_match", False))
         self.announce_url_edit.setText(self._config.get("query.announcement_url", "http://localhost:9028"))
-        self.announce_url_edit.setEnabled(self._config.get("query.use_announcement_cache", False))
+        self.announce_url_edit.setEnabled(self._config.get("query.use_announcement_match", False))
         self.announce_api_key_edit.setText(self._config.get("query.announcement_api_key", ""))
         self.skip_folders.setText(", ".join(self._config.get("scan.skip_folders", ["过期作废"])))
         self.scan_extensions.setText(", ".join(self._config.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])))
@@ -377,7 +377,7 @@ class SettingsPage(QWidget):
         self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())
         self._config.set("appearance.skip_welcome", self.skip_welcome_cb.isChecked())
         self._config.set("query.use_cache", self.cache_cb.isChecked())
-        self._config.set("query.use_announcement_cache", self.announce_cache_cb.isChecked())
+        self._config.set("query.use_announcement_match", self.announce_cache_cb.isChecked())
         self._config.set("query.announcement_url", self.announce_url_edit.text().strip())
         self._config.set("query.announcement_api_key", self.announce_api_key_edit.text().strip())
         self._config.set("appearance.theme", self.theme_combo.currentText())
@@ -439,7 +439,7 @@ class SettingsPage(QWidget):
         if not self._config:
             return
         self.announce_url_edit.setEnabled(checked)
-        self._config.set("query.use_announcement_cache", checked)
+        self._config.set("query.use_announcement_match", checked)
         self._config.save()
         mw = self.window()
         if mw and hasattr(mw, "_apply_announce_cache_mode"):

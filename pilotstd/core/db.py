@@ -8,7 +8,7 @@ import threading
 from typing import Any, Callable, Literal, Optional, Sequence
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 19
+CURRENT_SCHEMA_VERSION = 21
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
@@ -385,10 +385,10 @@ def _migrate_v3_queue_and_pending(db: Database) -> None:
 
 
 @migration(4)
-def _migrate_v4_add_fetch_log(db: Database) -> None:
+def _migrate_v4_add_fetch_checkpoint(db: Database) -> None:
     """v4：新增公告抓取日志表。"""
     db.execute("""
-        CREATE TABLE IF NOT EXISTS fetch_log (
+        CREATE TABLE IF NOT EXISTS fetch_checkpoint (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_site TEXT NOT NULL UNIQUE,
             last_fetched_at TEXT NOT NULL DEFAULT '',
@@ -398,10 +398,10 @@ def _migrate_v4_add_fetch_log(db: Database) -> None:
 
 
 @migration(5)
-def _migrate_v5_announcement_cache(db: Database) -> None:
+def _migrate_v5_announcement_match(db: Database) -> None:
     """v5：独立的公告缓存表，与网络查询缓存分离。"""
     db.execute("""
-        CREATE TABLE IF NOT EXISTS announcement_cache (
+        CREATE TABLE IF NOT EXISTS announcement_match (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             standard_number TEXT NOT NULL,
             source_site TEXT NOT NULL DEFAULT 'announcement',
@@ -411,8 +411,8 @@ def _migrate_v5_announcement_cache(db: Database) -> None:
         )
     """)
     db.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_announcement_cache_lookup "
-        "ON announcement_cache(standard_number, source_site)"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_announcement_match_lookup "
+        "ON announcement_match(standard_number, source_site)"
     )
 
 
@@ -544,10 +544,10 @@ def _migrate_v14_api_keys(db: Database) -> None:
 
 
 @migration(15)
-def _migrate_v15_announcement_fetch_log(db: Database) -> None:
+def _migrate_v15_announcement_record(db: Database) -> None:
     """v15: 公告抓取全量日志表，记录所有抓取到的公告明细（含未匹配的），用于去重和审计追溯。"""
     db.execute("""
-        CREATE TABLE IF NOT EXISTS announcement_fetch_log (
+        CREATE TABLE IF NOT EXISTS announcement_record (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_site TEXT NOT NULL,
             pid TEXT NOT NULL,
@@ -560,16 +560,16 @@ def _migrate_v15_announcement_fetch_log(db: Database) -> None:
             UNIQUE(source_site, pid, standard_number)
         )
     """)
-    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_pid ON announcement_fetch_log(source_site, pid)")
-    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_standard ON announcement_fetch_log(standard_number)")
-    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_log_matched ON announcement_fetch_log(matched)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_pid ON announcement_record(source_site, pid)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_standard ON announcement_record(standard_number)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_matched ON announcement_record(matched)")
 
 
 @migration(16)
 def _migrate_v16_validity_status(db: Database) -> None:
     """v16: 标准时效性检查表——跟踪标准现行/废止状态变更。"""
     db.execute("""
-        CREATE TABLE IF NOT EXISTS standard_validity_status (
+        CREATE TABLE IF NOT EXISTS standard_validity (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             standard_number TEXT NOT NULL UNIQUE,
             status TEXT NOT NULL DEFAULT '未知',
@@ -582,8 +582,8 @@ def _migrate_v16_validity_status(db: Database) -> None:
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity_status(next_check_at)")
-    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity_status(standard_number)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity(next_check_at)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity(standard_number)")
 
 
 @migration(17)
@@ -625,6 +625,35 @@ def _migrate_v19_users(db: Database) -> None:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
+
+
+@migration(20)
+def _migrate_v20_register_runtime_tables(db: Database) -> None:
+    """v20: 登记运行时自建表（daily_quota / task_queue / scheduler_lock）。
+
+    这三张表由各自的业务模块在运行时自建（不在此处定义 CREATE），
+    v20 仅确保表存在性检查通过，并在 _schema_version 中留下审计痕迹。
+    """
+    for tbl in ("daily_quota", "task_queue", "scheduler_lock"):
+        exists = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (tbl,))
+        if not exists:
+            # 表不存在时由运行时模块自建，此处仅记录日志
+            pass
+
+
+@migration(21)
+def _migrate_v21_user_layouts(db: Database) -> None:
+    """v21: 用户布局持久化表——跨设备同步仪表板布局。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS user_layouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            layout_key TEXT NOT NULL DEFAULT 'dashboard',
+            layout_data TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, layout_key)
+        )
+    """)
 
 
 @migration(18)

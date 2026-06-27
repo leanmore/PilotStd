@@ -17,7 +17,7 @@ from .file_utils import hash_file_content
 
 FILE_INDEX_TABLE = "file_index"
 NETWORK_CACHE_TABLE = "standard_info_cache"
-ANNOUNCEMENT_CACHE_TABLE = "announcement_cache"
+ANNOUNCEMENT_CACHE_TABLE = "announcement_match"
 
 logger = logging.getLogger(__name__)
 

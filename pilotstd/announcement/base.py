@@ -215,7 +215,7 @@ class BaseAnnounceAdapter(ABC):
 
     @property
     def source_site(self) -> str:
-        """写入 announcement_cache 的 source_site 值。"""
+        """写入 announcement_match 的 source_site 值。"""
         return f"announcement_{self.standard_type}"
 
     # ── 列表拉取（通用实现，子类只需提供 _list_url 和 site_name）

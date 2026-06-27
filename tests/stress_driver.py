@@ -13,7 +13,7 @@
 #   第〇步  复位源目录 + 清 DB + 版本校验
 #   第一步  CLI 冷启（一+三+四+五+六写+七+1.7.1 cache_lookup） → 写 step1.json
 #          复位源目录
-#   第二步  Docker Web API（补充，填充 announcement_cache） → 写 step3.json
+#   第二步  Docker Web API（补充，填充 announcement_match） → 写 step3.json
 #   第三步  WinUI 热启（一交叉+二+三+四交叉+六读） → 交叉对比 → 写 step2.json
 #   第四步  汇总判定
 
@@ -204,7 +204,7 @@ def _step1_precheck(source_dir: str, output_dir: str, db_path: str | None = None
     if os.path.isdir(output_dir):
         _step0_reset_source(source_dir, output_dir)
 
-    # 清 DB（不含 announcement_cache，留给 Docker 端填充）
+    # 清 DB（不含 announcement_match，留给 Docker 端填充）
     from pilotstd.core.config import get_data_dir as _gcd
 
     if db_path is None:
@@ -240,7 +240,7 @@ def _step2_precheck(docker_url: str, docker_user: str, docker_pass: str, timeout
     """Docker 阶段前置检查 — 原第〇步中与 Docker 相关的检查项分散到此。
 
     包括：Docker 可达 / Token 有效 / inbox 目录 21 文件 /
-          tasks.auto_announce_enabled=false / 清空 announcement_cache /
+          tasks.auto_announce_enabled=false / 清空 announcement_match /
           凭证预检 / 版本校验 / API Token 解析
 
     Returns:
@@ -334,7 +334,7 @@ def _step2_precheck(docker_url: str, docker_user: str, docker_pass: str, timeout
     except Exception:
         pass
 
-    # 清空 Docker 端 announcement_cache（冷启动）
+    # 清空 Docker 端 announcement_match（冷启动）
     try:
         _login_resp = _ur.urlopen(
             _ur.Request(
@@ -351,10 +351,10 @@ def _step2_precheck(docker_url: str, docker_user: str, docker_pass: str, timeout
             for _part in _c.strip().split(";"):
                 if _part.strip().startswith("csrf_token="):
                     _csrf = _part.strip().split("=", 1)[1]
-        # 通过清空本地 DB 的 announcement_cache 实现（Docker 共用同一 DB）
-        _log("Docker 前置: announcement_cache 已由 _step1_precheck 中跳过清空，保留供填充")
+        # 通过清空本地 DB 的 announcement_match 实现（Docker 共用同一 DB）
+        _log("Docker 前置: announcement_match 已由 _step1_precheck 中跳过清空，保留供填充")
     except Exception as e:
-        _log(f"⚠️ Docker announcement_cache 清空检查异常: {e}")
+        _log(f"⚠️ Docker announcement_match 清空检查异常: {e}")
 
     if not all_ok:
         _log("Docker 前置检查不通过，退出。")
@@ -466,7 +466,7 @@ def _step0_clear_db(db_path: str | None = None):
     db = Database(db_path)
     tables = [
         "standard_info_cache",
-        "announcement_cache",
+        "announcement_match",
         "pending_lookup",
         "file_index",
         "rotator_state",
@@ -1432,7 +1432,7 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
 
             db_path = _os.path.join(get_data_dir(), "pilotstd.db")
             db = Database(db_path)
-            _ann_rows = db.fetchall("SELECT COUNT(DISTINCT standard_number) as c FROM announcement_cache")
+            _ann_rows = db.fetchall("SELECT COUNT(DISTINCT standard_number) as c FROM announcement_match")
             recheck_checked = _ann_rows[0]["c"] if _ann_rows else 0
             recheck_updated = results["checkpoints"].get("announce", {}).get("total_ann", 0)
             _log(f"    recheck: checked={recheck_checked} updated={recheck_updated}")
@@ -1483,8 +1483,8 @@ def _step2_winui_hot(
 ):
     """pytest 调用 WinUI 测试，分甲/乙两轮。
 
-    甲轮：use_announcement_cache=false → 本地抓取回归
-    乙轮：use_announcement_cache=true → Web 缓存命中 + 来源标注验证
+    甲轮：use_announcement_match=false → 本地抓取回归
+    乙轮：use_announcement_match=true → Web 缓存命中 + 来源标注验证
     """
     config_path = os.path.join(ROOT, "data", "config.json")
     web_api_url = cfg.get("web_api", {}).get("url") or os.environ.get("PILOTSTD_WEB_API_URL", "")
@@ -1525,7 +1525,7 @@ def _step2_winui_hot(
                 cfg_json = {}
         else:
             cfg_json = {}
-        cfg_json.setdefault("query", {})["use_announcement_cache"] = ri["cache_enabled"]
+        cfg_json.setdefault("query", {})["use_announcement_match"] = ri["cache_enabled"]
         if ri["announcement_url"]:
             cfg_json["query"]["announcement_url"] = ri["announcement_url"]
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
@@ -1534,7 +1534,7 @@ def _step2_winui_hot(
         # 等待文件落盘（2s 确保 OS 缓冲区写入磁盘）
         time.sleep(2)
         _log(
-            f"  配置已写入并落盘: use_announcement_cache={ri['cache_enabled']}"
+            f"  配置已写入并落盘: use_announcement_match={ri['cache_enabled']}"
             + (f" announcement_url={ri['announcement_url']}" if ri["announcement_url"] else "")
         )
         _log(
@@ -2266,7 +2266,7 @@ def main():
             )
 
     # ── 第二步前置：Docker 环境检查（原第〇步分散至此）──
-    # 第二步：Docker（先于 WinUI 执行，填充 announcement_cache 供缓存命中验证）
+    # 第二步：Docker（先于 WinUI 执行，填充 announcement_match 供缓存命中验证）
     step3_ok = True
     credential_ok = True
     credential_detail = ""
@@ -2293,7 +2293,7 @@ def main():
         credential_detail = "Docker 步骤已跳过"
 
     # ── 第三步前置：WinUI 热启环境检查 ──
-    # 第三步：WinUI 热启（此时 Docker 已填充 announcement_cache）
+    # 第三步：WinUI 热启（此时 Docker 已填充 announcement_match）
     step2_ok = True
     if _terminated_early:
         _log("第三步：跳过 — 关键步骤失败，无有效数据对比")

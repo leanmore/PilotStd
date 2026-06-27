@@ -904,7 +904,7 @@ class MainWindow(
         Web 端公告缓存开启时禁用本地公告检查，避免双数据源混淆。
         """
         if enabled is None:
-            enabled = self._config.get("query.use_announcement_cache", False)
+            enabled = self._config.get("query.use_announcement_match", False)
         self.btn_announce.setEnabled(not enabled)
 
 

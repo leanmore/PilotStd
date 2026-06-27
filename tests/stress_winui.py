@@ -184,14 +184,14 @@ def test_winui_hot_cross_compare(window, qtbot, request):
     three_table = {}
     if os.path.exists(db_path):
         db = Database(db_path)
-        for t in ["standard_info_cache", "file_index", "announcement_cache"]:
+        for t in ["standard_info_cache", "file_index", "announcement_match"]:
             try:
                 n = db.fetchone(f"SELECT COUNT(*) as c FROM {t}")
                 three_table[t] = n.get("c", 0) if n else 0
             except Exception:
                 three_table[t] = 0
     logger.info("三表: %s", three_table)
-    for t_name in ["standard_info_cache", "file_index", "announcement_cache"]:
+    for t_name in ["standard_info_cache", "file_index", "announcement_match"]:
         ok = three_table.get(t_name, 0) > 0
         comparisons.append(
             {

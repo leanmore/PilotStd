@@ -461,7 +461,7 @@ class AnnounceWorker(QThread):
     ) -> None:
         super().__init__(parent)
         self._mgr = mgr  # StandardManager，统一后端
-        self._since_date = since_date  # UI传入的起始日期，覆盖fetch_log记录
+        self._since_date = since_date  # UI传入的起始日期，覆盖fetch_checkpoint记录
         self._stopped = False
         self._error = ""
         self._failures: list[dict[str, Any]] = []  # 累积所有适配器失败记录

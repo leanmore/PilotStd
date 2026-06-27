@@ -1,26 +1,29 @@
-// web/src/api/notification.ts — 通知配置与日志 API
+// web/src/api/notification.ts — 通知配置与日志 API（v2：四渠道全参数）
 import http from './http'
 
-// 判别联合类型：精确表达每个渠道的配置结构
-interface BaseChannelFields {
+export interface WechatChannelConfig {
   enabled: boolean
-  events: string[]
-}
-
-export interface WechatChannelConfig extends BaseChannelFields {
   webhook_url: string
+  corpid?: string
+  agentid?: string
+  corpsecret?: string
+  proxy_url?: string
 }
 
-export interface TelegramChannelConfig extends BaseChannelFields {
+export interface TelegramChannelConfig {
+  enabled: boolean
   bot_token: string
   chat_id: string
 }
 
-export interface FeishuChannelConfig extends BaseChannelFields {
+export interface FeishuChannelConfig {
+  enabled: boolean
   webhook_url: string
+  secret?: string
 }
 
-export interface DingTalkChannelConfig extends BaseChannelFields {
+export interface DingTalkChannelConfig {
+  enabled: boolean
   webhook_url: string
   secret?: string
 }
@@ -63,8 +66,11 @@ export const getNotificationConfig = (): Promise<NotificationConfig> =>
 export const putNotificationConfig = (data: Partial<NotificationConfig>): Promise<{ ok: boolean }> =>
   http.put('/notification/config', data).then(r => r.data)
 
-export const testNotification = (channel: string): Promise<{ ok: boolean; error?: string }> =>
-  http.post('/notification/test', { channel }).then(r => r.data)
+export const testNotification = (
+  channel: string,
+  params?: Record<string, string>,
+): Promise<{ ok: boolean; error?: string }> =>
+  http.post('/notification/test', { channel, params }).then(r => r.data)
 
 export const getNotificationLogs = (params: {
   page?: number

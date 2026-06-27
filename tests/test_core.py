@@ -212,8 +212,8 @@ class TestDatabase(unittest.TestCase):
                 "file_index",
                 "download_queue",
                 "pending_lookup",
-                "fetch_log",
-                "announcement_cache",
+                "fetch_checkpoint",
+                "announcement_match",
                 "rotator_state",
             }
             missing = expected - tables
@@ -329,7 +329,7 @@ class TestFileIndexRepository(unittest.TestCase):
             )
         """)
         shared_db.execute("""
-            CREATE TABLE IF NOT EXISTS announcement_cache (
+            CREATE TABLE IF NOT EXISTS announcement_match (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 standard_number TEXT NOT NULL,
                 source_site TEXT NOT NULL DEFAULT 'announcement',
@@ -548,7 +548,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
     # ---- 两表合并测试 ----
 
-    def test_restore_from_announcement_cache(self):
+    def test_restore_from_announcement_match(self):
         """公告缓存也能恢复查询结果字段。"""
         import json
 
@@ -564,7 +564,7 @@ class TestFileIndexRepository(unittest.TestCase):
             }
         )
         self.db.execute(
-            "INSERT INTO announcement_cache (standard_number, source_site, result_json, cached_at) "
+            "INSERT INTO announcement_match (standard_number, source_site, result_json, cached_at) "
             "VALUES (?, 'announcement', ?, ?)",
             ("GB 1-2020", cached, datetime.now().isoformat()),
         )
@@ -611,7 +611,7 @@ class TestFileIndexRepository(unittest.TestCase):
             ),
         )
         self.db.execute(
-            "INSERT INTO announcement_cache (standard_number, source_site, result_json, cached_at) "
+            "INSERT INTO announcement_match (standard_number, source_site, result_json, cached_at) "
             "VALUES ('GB 2-2020', 'announcement', ?, ?)",
             (
                 json.dumps({"status": "废止", "match_status": "exact", "standard_name": "公告"}),

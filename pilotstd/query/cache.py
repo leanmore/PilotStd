@@ -36,7 +36,7 @@ class CacheRepository:
     # ---- 公共 API ----
 
     def get(self, standard_number: str, source_site: str) -> Optional[QueryResult]:
-        """查缓存：先 standard_info_cache，不命中回退 announcement_cache。"""
+        """查缓存：先 standard_info_cache，不命中回退 announcement_match。"""
         # 先查网络查询缓存
         row = self._db.fetchone(
             f"SELECT * FROM {CACHE_TABLE} WHERE standard_number=? AND source_site=?",

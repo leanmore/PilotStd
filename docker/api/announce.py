@@ -38,7 +38,7 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
             if r.get("error"):
                 failures.append({"type": std_type, "error": str(r["error"])})
     # 从 facade 获取公告缓存结果
-    items = mgr.get_announcement_cache()
+    items = mgr.get_announcement_match()
     _cache["results"] = items
     _cache["last_check"] = datetime.now().isoformat()
     _cache["failures"] = failures
@@ -162,11 +162,11 @@ def get_announce_results(from_date: str = "", to_date: str = ""):
 
 
 @router.get("/api/announce/fetch-log")
-def get_fetch_log(limit: int = 100, mgr=Depends(get_manager_dep)):
+def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
     rows = mgr.db.fetchall(
         "SELECT DISTINCT standard_number, source_site, std_name, fetched_at "
-        "FROM announcement_fetch_log ORDER BY fetched_at DESC LIMIT ?",
+        "FROM announcement_record ORDER BY fetched_at DESC LIMIT ?",
         (limit,),
     )
     return {

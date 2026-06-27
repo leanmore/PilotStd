@@ -357,7 +357,7 @@ class TestPendingService(unittest.TestCase):
         import json
 
         self.db.execute(
-            "INSERT INTO announcement_cache (standard_number, source_site, "
+            "INSERT INTO announcement_match (standard_number, source_site, "
             "result_json, cached_at) VALUES (?, 'announcement', ?, datetime('now'))",
             (
                 "SH/T 1610-2011",

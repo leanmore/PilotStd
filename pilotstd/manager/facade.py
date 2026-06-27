@@ -249,7 +249,7 @@ class StandardManager:
     # 查询
     # ════════════════════════════════════════════════════════════════
 
-    def _query_announcement_cache(self, standard_number: str) -> dict[str, Any] | None:
+    def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
         """向 Web 端公告缓存服务查询单个标准号。
         返回 dict={"data":..., "cached_at":...} 或 None（未命中/不可达）。
         """
@@ -316,7 +316,7 @@ class StandardManager:
             responsible_dept=data.get("responsible_dept", ""),
             is_adopted=data.get("is_adopted", False),
             match_status=data.get("match_status", "exact"),
-            source_site="web_announcement_cache",
+            source_site="web_announcement_match",
             source="web端公告缓存",
             publish_date=data.get("publish_date", ""),
             abolition_date=data.get("abolition_date", ""),
@@ -345,9 +345,9 @@ class StandardManager:
         self._queried_items = items  # 保存查询列表，供 download() 匹配索引
 
         # Web 端公告缓存优先模式：先查缓存，未命中再降级到本地适配器
-        use_announcement_cache = self.cfg.get("query.use_announcement_cache", False)
+        use_announcement_match = self.cfg.get("query.use_announcement_match", False)
 
-        if use_announcement_cache:
+        if use_announcement_match:
             # ── 分支A：缓存优先 + 自动降级 ──
             cache_hit_map: dict[int, QueryResult] = {}
             miss_indices: list[int] = []
@@ -358,7 +358,7 @@ class StandardManager:
                 part_str = f".{part}" if part else ""
                 std_num = f"{p.logical_code} {p.number}{part_str}-{p.year}"
 
-                cache_hit = self._query_announcement_cache(std_num)
+                cache_hit = self._query_announcement_match(std_num)
                 if cache_hit:
                     cache_hit_map[i] = self._build_result_from_cache(std_num, cache_hit["data"])
                     if result_callback:
@@ -997,7 +997,7 @@ class StandardManager:
     # ── 本地缓存查询 ─────────────────────────────────────────
 
     def query_local_cache(self, parsed_list: list[ParsedStdInfo]) -> list[ParsedStdInfo]:
-        """从本地缓存（standard_info_cache + announcement_cache）查询标准信息。
+        """从本地缓存（standard_info_cache + announcement_match）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """
         return self._pending_svc.query_local_cache(parsed_list)  # type: ignore[no-any-return]  # 子服务返回值类型委托
@@ -1008,11 +1008,11 @@ class StandardManager:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
         return self._announce_svc.check_announcements()  # type: ignore[no-any-return]  # 子服务返回值类型委托
 
-    def get_announcement_cache(self, limit: int = 500) -> list[dict[str, Any]]:
-        """从 announcement_cache 表读取最近公告结果。返回字典列表。"""
+    def get_announcement_match(self, limit: int = 500) -> list[dict[str, Any]]:
+        """从 announcement_match 表读取最近公告结果。返回字典列表。"""
         rows = self.db.fetchall(
             "SELECT standard_number, source_site, result_json, cached_at "
-            "FROM announcement_cache ORDER BY cached_at DESC LIMIT ?",
+            "FROM announcement_match ORDER BY cached_at DESC LIMIT ?",
             (limit,),
         )
         items = []
@@ -1064,7 +1064,7 @@ class StandardManager:
         for idx, adapter in enumerate(engine.adapters):
             if not since_date:
                 log_row = self.file_index._db.fetchone(
-                    "SELECT * FROM fetch_log WHERE source_site=?",
+                    "SELECT * FROM fetch_checkpoint WHERE source_site=?",
                     (adapter.source_site,),
                 )
                 since = log_row["last_notice_date"] if log_row else ""

@@ -1,28 +1,41 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
-import type { WidgetType } from '@/types/dashboard'
 import { useDashboardStore } from '@/stores/dashboard'
+import WidgetManager from '@/components/dashboard/WidgetManager.vue'
 import StatsCard from '@/components/dashboard/widgets/StatsCard.vue'
-import AdapterStatusCard from '@/components/dashboard/widgets/AdapterStatusCard.vue'
+import AdapterStatusAnnounceCard from '@/components/dashboard/widgets/AdapterStatusAnnounceCard.vue'
+import AdapterStatusQueryCard from '@/components/dashboard/widgets/AdapterStatusQueryCard.vue'
 import RecentAnnounceCard from '@/components/dashboard/widgets/RecentAnnounceCard.vue'
 import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vue'
+import PlaceholderWidget from '@/components/dashboard/widgets/PlaceholderWidget.vue'
+import Button from 'primevue/button'
 
 const store = useDashboardStore()
+const showManager = ref(false)
+
+// 异步加载布局
+onMounted(async () => {
+  await store.load()
+})
+
+const visibleWidgets = computed(() => store.widgets.filter(w => w.visible))
 
 const layout = computed({
-  get: () => store.layout,
+  get: () => visibleWidgets.value.map(w => ({ ...w.layout, i: w.id })),
   set: (v) => store.onLayoutUpdated(v),
 })
 
-function getWidgetComponent(type: WidgetType) {
+function getWidgetComponent(type: string) {
   const map: Record<string, unknown> = {
-    'stats-card': StatsCard,
-    'adapter-status': AdapterStatusCard,
-    'recent-announce': RecentAnnounceCard,
+    'adapter-announce': AdapterStatusAnnounceCard,
+    'adapter-query': AdapterStatusQueryCard,
+    'recent-tasks': RecentAnnounceCard,
     'quick-actions': QuickActionsCard,
   }
-  return map[type]
+  // stats-summary 用 StatsCard 渲染，pending-items/system-info 用占位组件
+  if (type.startsWith('stats-')) return StatsCard
+  return map[type] || PlaceholderWidget
 }
 </script>
 
@@ -32,9 +45,22 @@ function getWidgetComponent(type: WidgetType) {
       <h1>PilotStd</h1>
       <p class="hint">标准管理控制台</p>
     </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <Button
+        icon="pi pi-cog"
+        label="管理卡片"
+        size="small"
+        severity="secondary"
+        outlined
+        @click="showManager = true"
+      />
+    </div>
   </div>
 
+  <WidgetManager :visible="showManager" @close="showManager = false" />
+
   <GridLayout
+    v-if="store.loaded"
     v-model:layout="layout"
     :col-num="store.colNum"
     :row-height="60"
@@ -46,7 +72,7 @@ function getWidgetComponent(type: WidgetType) {
     style="min-height: 400px"
   >
     <GridItem
-      v-for="widget in store.widgets"
+      v-for="widget in visibleWidgets"
       :key="widget.id"
       :i="widget.id"
       :x="widget.layout.x"
@@ -57,12 +83,12 @@ function getWidgetComponent(type: WidgetType) {
       :min-h="widget.layout.minH || 2"
       class="grid-item-card"
     >
-      <component
-        :is="getWidgetComponent(widget.type)"
-        :widget="widget"
-      />
+      <component :is="getWidgetComponent(widget.type)" :widget="widget" />
     </GridItem>
   </GridLayout>
+  <div v-else style="text-align:center;padding:48px;color:var(--text-dim)">
+    加载布局中...
+  </div>
 </template>
 
 <style scoped>
@@ -75,7 +101,6 @@ function getWidgetComponent(type: WidgetType) {
   border-bottom: 2px solid var(--border);
   position: relative;
 }
-
 .page-header::after {
   content: '';
   position: absolute;
@@ -85,46 +110,16 @@ function getWidgetComponent(type: WidgetType) {
   height: 2px;
   background: linear-gradient(90deg, var(--primary), transparent);
 }
-
-.hint {
-  color: var(--text-dim);
-  font-size: 14px;
-  margin-top: 6px;
-  font-weight: 400;
-}
-
-/* grid-layout-plus 占位符定制 */
+.hint { color: var(--text-dim); font-size: 14px; margin-top: 6px; font-weight: 400; }
 :deep(.vgl-item--placeholder) {
   background: linear-gradient(135deg, var(--primary-bg), transparent);
-  opacity: 0.6;
-  border-radius: var(--radius-lg);
+  opacity: 0.6; border-radius: var(--radius-lg);
   border: 2px dashed var(--primary-border);
 }
-
-/* 网格项过渡 */
-:deep(.vgl-item) {
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* 拖拽中的项加阴影 */
-:deep(.vgl-item--dragging) {
-  box-shadow: var(--shadow-lg);
-  z-index: 10;
-  transform: rotate(2deg) scale(1.02);
-}
-
-/* 网格项默认样式 */
-:deep(.vgl-item) {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-/* 响应式优化 */
+:deep(.vgl-item) { transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1); border-radius: var(--radius-lg); overflow: hidden; }
+:deep(.vgl-item--dragging) { box-shadow: var(--shadow-lg); z-index: 10; transform: rotate(2deg) scale(1.02); }
 @media (max-width: 767px) {
-  .page-header {
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-  }
+  .page-header { margin-bottom: 20px; padding-bottom: 16px; }
   .page-header h1 { font-size: 20px; }
   .hint { font-size: 13px; }
 }

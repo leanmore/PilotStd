@@ -1,4 +1,4 @@
-# docker/api/notification.py — 通知配置与发送日志 API
+# docker/api/notification.py — 通知配置与发送日志 API（v2：四渠道全参数）
 import logging
 
 from fastapi import Depends, Query
@@ -18,23 +18,37 @@ def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
 
 @router.get("/api/notification/config")
 def get_config(mgr=Depends(get_manager_dep)):
-    """读取通知配置。"""
+    """读取通知配置（四渠道全参数）。"""
     cfg = mgr.cfg
+
+    def mask(v: str) -> str:
+        return "***" if v else ""
+
     return {
         "enabled": cfg.get("notification.enabled", False),
         "channels": {
             "wechat": {
                 "enabled": cfg.get("notification.channels.wechat.enabled", True),
-                "webhook_url": "***" if cfg.get("notification.channels.wechat.webhook_url") else "",
+                "webhook_url": mask(cfg.get("notification.channels.wechat.webhook_url", "")),
+                "corpid": cfg.get("notification.channels.wechat.corpid", ""),
+                "agentid": cfg.get("notification.channels.wechat.agentid", ""),
+                "corpsecret": mask(cfg.get("notification.channels.wechat.corpsecret", "")),
+                "proxy_url": cfg.get("notification.channels.wechat.proxy_url", ""),
             },
             "telegram": {
                 "enabled": cfg.get("notification.channels.telegram.enabled", False),
-                "bot_token": "***" if cfg.get("notification.channels.telegram.bot_token") else "",
+                "bot_token": mask(cfg.get("notification.channels.telegram.bot_token", "")),
                 "chat_id": cfg.get("notification.channels.telegram.chat_id", ""),
             },
             "feishu": {
                 "enabled": cfg.get("notification.channels.feishu.enabled", False),
-                "webhook_url": "***" if cfg.get("notification.channels.feishu.webhook_url") else "",
+                "webhook_url": mask(cfg.get("notification.channels.feishu.webhook_url", "")),
+                "secret": mask(cfg.get("notification.channels.feishu.secret", "")),
+            },
+            "dingtalk": {
+                "enabled": cfg.get("notification.channels.dingtalk.enabled", False),
+                "webhook_url": mask(cfg.get("notification.channels.dingtalk.webhook_url", "")),
+                "secret": mask(cfg.get("notification.channels.dingtalk.secret", "")),
             },
         },
         "rules": {
@@ -52,7 +66,7 @@ def get_config(mgr=Depends(get_manager_dep)):
 
 @router.put("/api/notification/config")
 def update_config(body: dict, mgr=Depends(get_manager_dep)):
-    """更新通知配置。"""
+    """更新通知配置（四渠道全参数保存）。"""
     for key, value in body.items():
         if key == "enabled":
             mgr.cfg.set("notification.enabled", bool(value))
@@ -64,22 +78,33 @@ def update_config(body: dict, mgr=Depends(get_manager_dep)):
             for rule_name, channels in value.items():
                 mgr.cfg.set(f"notification.rules.{rule_name}", channels)
     mgr.cfg.save()
-    # 重新初始化渠道
     mgr._init_notification()
     return {"ok": True}
 
 
 @router.post("/api/notification/test")
 def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
-    """发送测试通知到指定渠道。body: {channel, title, body}"""
+    """发送测试通知到指定渠道。
+
+    body:
+      channel: str     — 渠道名: wechat / telegram / feishu / dingtalk
+      title: str       — 标题（可选）
+      body: str        — 正文（可选）
+      params: dict     — 渠道参数覆盖（可选，如临时测试其他 webhook）
+    """
     channel = body.get("channel", "")
+    if channel not in ("wechat", "telegram", "feishu", "dingtalk"):
+        return {"ok": False, "error": f"不支持的渠道: {channel}"}
+
     msg = NotificationMessage(
         title=body.get("title", "测试通知"),
         body=body.get("body", "这是一条测试消息"),
         level="info",
         event_type="test",
     )
-    result = nmgr.test_send(channel, msg)
+    # 渠道参数覆盖（如测试前端的临时 webhook_url）
+    params = body.get("params") or {}
+    result = nmgr.test_send(channel, msg, params)
     return result
 
 
@@ -112,7 +137,6 @@ def get_logs(
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
-    # 总数
     count_row = nmgr._db.fetchone(
         f"SELECT COUNT(*) AS total FROM notification_log {where_sql}",
         tuple(params),

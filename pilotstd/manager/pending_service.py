@@ -19,7 +19,7 @@ class PendingService:
     负责：
       - 待确认项的增删改查（pending_lookup 表）
       - 下载等待队列管理（download_queue 表，未到公开期的标准）
-      - 本地缓存查询（standard_info_cache + announcement_cache），供 GUI 离线查询
+      - 本地缓存查询（standard_info_cache + announcement_match），供 GUI 离线查询
     """
 
     def __init__(self, db: Any, file_index: Any):
@@ -168,7 +168,7 @@ class PendingService:
     # ── 本地缓存查询 ─────────────────────────────────────────
 
     def query_local_cache(self, parsed_list: list[Any]) -> list[Any]:
-        """从本地缓存（standard_info_cache + announcement_cache）查询标准信息。
+        """从本地缓存（standard_info_cache + announcement_match）查询标准信息。
         返回 [(idx, QueryResult), ...]，供 GUI 离线查询模式使用。
         """
         results = []
@@ -184,7 +184,7 @@ class PendingService:
             if not result_json:
                 # 回退到公告缓存
                 row = self._db.fetchone(
-                    "SELECT result_json FROM announcement_cache WHERE standard_number = ? LIMIT 1",
+                    "SELECT result_json FROM announcement_match WHERE standard_number = ? LIMIT 1",
                     (std_num,),
                 )
                 result_json = row.get("result_json") if row else None

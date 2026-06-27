@@ -120,7 +120,7 @@ FACTORY_DEFAULTS = {
     "network.timeout": 30,  # HTTP 请求默认超时秒数
     "query.site_order": [],  # 空=使用默认路由
     "query.use_cache": True,
-    "query.use_announcement_cache": False,  # 查询时优先使用 Web 端公告缓存
+    "query.use_announcement_match": False,  # 查询时优先使用 Web 端公告缓存
     "query.announcement_url": "http://localhost:9028",  # Web 端公告 API 地址
     "query.announcement_api_key": "",  # Web 端公告 API 认证密钥
     "scan.skip_folders": [

@@ -20,7 +20,7 @@ class TestValidityChecker(unittest.TestCase):
         self.db: Database = shared_db
         # 创建表（模拟迁移 v16）
         self.db.execute("""
-            CREATE TABLE IF NOT EXISTS standard_validity_status (
+            CREATE TABLE IF NOT EXISTS standard_validity (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 standard_number TEXT NOT NULL UNIQUE,
                 status TEXT NOT NULL DEFAULT '未知',
@@ -33,19 +33,19 @@ class TestValidityChecker(unittest.TestCase):
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity_status(next_check_at)")
-        self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity_status(standard_number)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity(next_check_at)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity(standard_number)")
         self.checker = ValidityChecker(self.db)
 
     def tearDown(self):
-        self.db.execute("DELETE FROM standard_validity_status")
+        self.db.execute("DELETE FROM standard_validity")
 
     # ── register_new_standard ──
 
     def test_register_new_standard(self):
         self.checker.register_new_standard("GB 1-2020")
         row = self.db.fetchone(
-            "SELECT status, next_check_at FROM standard_validity_status WHERE standard_number=?",
+            "SELECT status, next_check_at FROM standard_validity WHERE standard_number=?",
             ("GB 1-2020",),
         )
         self.assertIsNotNone(row)
@@ -56,7 +56,7 @@ class TestValidityChecker(unittest.TestCase):
         self.checker.register_new_standard("GB 1-2020")
         self.checker.register_new_standard("GB 1-2020")
         rows = self.db.fetchall(
-            "SELECT id FROM standard_validity_status WHERE standard_number=?",
+            "SELECT id FROM standard_validity WHERE standard_number=?",
             ("GB 1-2020",),
         )
         self.assertEqual(len(rows), 1)
@@ -66,7 +66,7 @@ class TestValidityChecker(unittest.TestCase):
     def test_update_status_new(self):
         self.checker.update_status("GB 2-2020", "现行")
         row = self.db.fetchone(
-            "SELECT status, check_count FROM standard_validity_status WHERE standard_number=?",
+            "SELECT status, check_count FROM standard_validity WHERE standard_number=?",
             ("GB 2-2020",),
         )
         self.assertEqual(row["status"], "现行")
@@ -76,7 +76,7 @@ class TestValidityChecker(unittest.TestCase):
         self.checker.register_new_standard("GB 3-2020")
         self.checker.update_status("GB 3-2020", "已废止")
         row = self.db.fetchone(
-            "SELECT status, last_status, check_count FROM standard_validity_status WHERE standard_number=?",
+            "SELECT status, last_status, check_count FROM standard_validity WHERE standard_number=?",
             ("GB 3-2020",),
         )
         self.assertEqual(row["status"], "已废止")
@@ -108,7 +108,7 @@ class TestValidityChecker(unittest.TestCase):
     def test_update_status_sets_next_check(self):
         self.checker.update_status("GB X-2020", "现行")
         row = self.db.fetchone(
-            "SELECT status, next_check_at, check_count FROM standard_validity_status WHERE standard_number=?",
+            "SELECT status, next_check_at, check_count FROM standard_validity WHERE standard_number=?",
             ("GB X-2020",),
         )
         self.assertEqual(row["status"], "现行")
@@ -119,7 +119,7 @@ class TestValidityChecker(unittest.TestCase):
         self.checker.update_status("GB Y-2020", "现行")
         self.checker.update_status("GB Y-2020", "已废止")
         row = self.db.fetchone(
-            "SELECT status, last_status, last_status_updated_at FROM standard_validity_status WHERE standard_number=?",
+            "SELECT status, last_status, last_status_updated_at FROM standard_validity WHERE standard_number=?",
             ("GB Y-2020",),
         )
         self.assertEqual(row["status"], "已废止")

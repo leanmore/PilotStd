@@ -19,9 +19,9 @@ def lookup_announcement(
     """按标准号精确查询公告抓取记录，返回匹配结果。"""
     try:
         rows = mgr.db.fetchall(
-            "SELECT standard_number, source_site, result_json, fetch_time "
-            "FROM announcement_fetch_log WHERE standard_number = ? "
-            "ORDER BY fetch_time DESC LIMIT 1",
+            "SELECT standard_number, source_site, std_name, fetched_at "
+            "FROM announcement_record WHERE standard_number = ? "
+            "ORDER BY fetched_at DESC LIMIT 1",
             (number,),
         )
     except Exception as e:
@@ -37,7 +37,7 @@ def lookup_announcement(
 
     row = rows[0]
     try:
-        result_data = json.loads(row[2])
+        result_data = {"standard_name": row[2], "fetched_at": row[3]}
     except (json.JSONDecodeError, TypeError):
         result_data = row[2]
 
@@ -45,5 +45,5 @@ def lookup_announcement(
         "found": True,
         "data": result_data,
         "cached_at": row[3],
-        "source": "announcement_fetch_log",
+        "source": "announcement_record",
     }

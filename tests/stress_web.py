@@ -730,7 +730,7 @@ except Exception as e:
     _prog_bump(ok=False)
 
 # BIZ-12: 缓存命中（用公告缓存中预置的号码测试）
-# 从 announcement_cache 表取一条记录进行命中验证
+# 从 announcement_match 表取一条记录进行命中验证
 _cache_test_num = ""
 try:
     from pilotstd.core.config import get_data_dir as _gdd
@@ -739,7 +739,7 @@ try:
     _db_path = os.path.join(_gdd(), "pilotstd.db")
     if os.path.exists(_db_path):
         _db = _DB(_db_path)
-        _row = _db.fetchone("SELECT standard_number FROM announcement_cache LIMIT 1")
+        _row = _db.fetchone("SELECT standard_number FROM announcement_match LIMIT 1")
         if _row:
             _cache_test_num = _row["standard_number"]
 except Exception:
@@ -768,7 +768,10 @@ if _cache_test_num:
             _cache_hit_count += 1
         # 来源标注检查
         has_cache_label = (
-            "web端公告缓存" in str(src) or "web_announcement" in str(src) or "announcement_cache" in str(src)
+            "web端公告缓存" in str(src)
+            or "web_announcement" in str(src)
+            or "announcement_match" in str(src)
+            or "announcement_record" in str(src)
         )
         _check(
             "BIZ-12: 缓存命中",
@@ -782,7 +785,7 @@ if _cache_test_num:
         _check("BIZ-12: 缓存命中", False, f"异常: {str(e)[:60]}")
         _prog_bump(ok=False)
 else:
-    _check("BIZ-12: 缓存命中", None, "announcement_cache 为空，跳过")
+    _check("BIZ-12: 缓存命中", None, "announcement_match 为空，跳过")
     _prog_bump(ok=False)
 
 # BIZ-13: 缓存未命中降级

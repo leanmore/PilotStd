@@ -170,25 +170,67 @@ class NotificationManager:
 
     # ── 测试发送 ──────────────────────────────────────────────
 
-    def test_send(self, channel: str, message: NotificationMessage) -> dict[str, Any]:
-        """测试发送到指定渠道，返回结果。"""
+    def test_send(
+        self,
+        channel: str,
+        message: NotificationMessage,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """测试发送到指定渠道。params 可覆盖配置中的渠道参数（如临时 webhook_url）。"""
+        override = params or {}
         ch = self._channels.get(channel)
         if ch is None:
-            # 尝试实时初始化
+            # 尝试实时初始化（优先使用 params 中的参数）
             cls = _CHANNEL_CLASSES.get(channel)
             if cls is None:
                 return {"ok": False, "error": f"未知渠道: {channel}"}
             try:
                 if channel == "telegram":
-                    token = self._cfg.get("notification.channels.telegram.bot_token", "")
-                    chat_id = self._cfg.get("notification.channels.telegram.chat_id", "")
+                    token = override.get("bot_token") or self._cfg.get("notification.channels.telegram.bot_token", "")
+                    chat_id = override.get("chat_id") or self._cfg.get("notification.channels.telegram.chat_id", "")
+                    if not token:
+                        return {"ok": False, "error": "缺少 bot_token"}
+                    if not chat_id:
+                        return {"ok": False, "error": "缺少 chat_id"}
                     ch = cls(token, chat_id)
                 elif channel == "dingtalk":
-                    url = self._cfg.get("notification.channels.dingtalk.webhook_url", "")
-                    secret = self._cfg.get("notification.channels.dingtalk.secret", "")
+                    url = override.get("webhook_url") or self._cfg.get("notification.channels.dingtalk.webhook_url", "")
+                    secret = override.get("secret") or self._cfg.get("notification.channels.dingtalk.secret", "")
+                    if not url:
+                        return {"ok": False, "error": "缺少 webhook_url（钉钉群机器人必填）"}
                     ch = cls(url, secret)
+                elif channel == "feishu":
+                    url = override.get("webhook_url") or self._cfg.get("notification.channels.feishu.webhook_url", "")
+                    secret = override.get("secret") or self._cfg.get("notification.channels.feishu.secret", "")
+                    if not url:
+                        return {"ok": False, "error": "缺少 webhook_url（飞书机器人必填）"}
+                    ch = cls(url, secret)
+                elif channel == "wechat":
+                    # 企业微信：优先应用消息 (corpid+agentid+corpsecret)，其次群机器人 (webhook_url)
+                    corpid = override.get("corpid") or self._cfg.get("notification.channels.wechat.corpid", "")
+                    agentid = override.get("agentid") or self._cfg.get("notification.channels.wechat.agentid", "")
+                    corpsecret = override.get("corpsecret") or self._cfg.get(
+                        "notification.channels.wechat.corpsecret", ""
+                    )
+                    if corpid and agentid and corpsecret:
+                        # 应用消息模式 — 需特殊初始化
+                        ch = cls(corpid, agentid, corpsecret)
+                    else:
+                        url = override.get("webhook_url") or self._cfg.get(
+                            "notification.channels.wechat.webhook_url", ""
+                        )
+                        if not url:
+                            return {
+                                "ok": False,
+                                "error": "缺少 webhook_url（群机器人）或 corpid+agentid+corpsecret（应用消息）",
+                            }
+                        ch = cls(url)
                 else:
-                    url = self._cfg.get(f"notification.channels.{channel}.webhook_url", "")
+                    url = override.get("webhook_url") or self._cfg.get(
+                        f"notification.channels.{channel}.webhook_url", ""
+                    )
+                    if not url:
+                        return {"ok": False, "error": f"缺少 {channel} 渠道的 webhook_url"}
                     ch = cls(url)
             except Exception as e:
                 return {"ok": False, "error": f"渠道初始化失败: {e}"}

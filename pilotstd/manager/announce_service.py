@@ -27,7 +27,7 @@ class AnnounceService:
         """注入依赖。
 
         Args:
-            file_index: FileIndexRepository 实例（提供 _db 访问和 fetch_log 表）
+            file_index: FileIndexRepository 实例（提供 _db 访问和 fetch_checkpoint 表）
             ocr_config: 可选，OCR 提供商配置
                 {"provider": "baidu", "api_key": "...", "secret_key": "..."}
         """
@@ -66,7 +66,7 @@ class AnnounceService:
 
         for adapter in engine.adapters:
             log_row = self._file_index._db.fetchone(
-                "SELECT * FROM fetch_log WHERE source_site=?", (adapter.source_site,)
+                "SELECT * FROM fetch_checkpoint WHERE source_site=?", (adapter.source_site,)
             )
             since = log_row["last_notice_date"] if log_row else ""
 
@@ -83,16 +83,16 @@ class AnnounceService:
             now = datetime.now().isoformat()
             latest_date = result.get("last_notice_date", "")
             log_row = self._file_index._db.fetchone(
-                "SELECT * FROM fetch_log WHERE source_site=?", (adapter.source_site,)
+                "SELECT * FROM fetch_checkpoint WHERE source_site=?", (adapter.source_site,)
             )
             if log_row:
                 self._file_index._db.execute(
-                    "UPDATE fetch_log SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
+                    "UPDATE fetch_checkpoint SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
                     (now, latest_date, adapter.source_site),
                 )
             else:
                 self._file_index._db.execute(
-                    "INSERT INTO fetch_log (source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
+                    "INSERT INTO fetch_checkpoint (source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
                     (adapter.source_site, now, latest_date),
                 )
 

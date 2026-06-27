@@ -157,7 +157,7 @@ def get_validity_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
 ):
-    """获取检查执行历史（按日期聚合 standard_validity_status 的 last_checked_at）。"""
+    """获取检查执行历史（按日期聚合 standard_validity 的 last_checked_at）。"""
     try:
         db = Database(get_db_path())
     except Exception as e:
@@ -167,7 +167,7 @@ def get_validity_history(
     try:
         count_row = db.fetchone(
             "SELECT COUNT(DISTINCT DATE(last_checked_at)) AS total "
-            "FROM standard_validity_status WHERE last_checked_at IS NOT NULL"
+            "FROM standard_validity WHERE last_checked_at IS NOT NULL"
         )
         total = count_row["total"] if count_row else 0
 
@@ -176,7 +176,7 @@ def get_validity_history(
             "SELECT DATE(last_checked_at) AS check_date, "
             "COUNT(*) AS checked_count, "
             "SUM(CASE WHEN last_status != status THEN 1 ELSE 0 END) AS changed_count "
-            "FROM standard_validity_status "
+            "FROM standard_validity "
             "WHERE last_checked_at IS NOT NULL "
             "GROUP BY DATE(last_checked_at) "
             "ORDER BY check_date DESC LIMIT ? OFFSET ?",
@@ -223,8 +223,7 @@ def enqueue_validity_check(body: dict, mgr=Depends(get_manager_dep)):
                     "(file_path, status, created_at) VALUES (?, 'pending', datetime('now'))",
                     (str(fp),),
                 )
-                if db.cursor.rowcount > 0:
-                    inserted += 1
+                inserted += 1
             except Exception:
                 pass
         db.close()
