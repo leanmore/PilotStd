@@ -350,12 +350,14 @@ jobs:
           cache: pip
 
       - name: Install dependencies
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           pip install -r requirements.txt
           pip install pyinstaller
 
       - name: Build with PyInstaller
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           Write-Host "Python: $(python --version)"
@@ -380,6 +382,7 @@ jobs:
           Write-Host "产物: $exe_path ($exe_size_mb)"
 
       - name: Package to zip
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
           $version = "${{ steps.version.outputs.version }}"
