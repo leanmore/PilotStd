@@ -6,7 +6,7 @@ from typing import Any
 from .models import FileInfo, ParsedStdInfo, ScanResult, ScanStats
 from .scan import FileScanner, StandardParser
 
-__version__ = "0.37.18"
+__version__ = "0.37.19"
 FRONTEND_VERSION = __version__  # 与后端保持一致，更新脚本据此下载前端 dist.zip
 ADMIN_ROLE = "admin"  # 管理员角色标识——GATE-11 统一常量，禁止代码中硬编码字面量
 
