@@ -226,7 +226,7 @@ jobs:
           npx ts-prune --error
 
       - name: GATE-10 — Check UI sensitive fields protection
-        run: python scripts/gate_ui_sensitive_fields.py
+        run: python scripts/check_ui_sensitive_fields.py
 
   # ════════════════════════════════════════════════════════════════
   # Job 4: 构建 + 推送 Docker 镜像
