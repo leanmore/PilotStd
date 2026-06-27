@@ -1,4 +1,4 @@
-# 能力登记簿 v2.5
+# 能力登记簿 v2.6
 
 > PilotStd 项目非功能性能力清单。任何重构、归档、模块重写前必须查阅本簿。
 > 最后更新：2026-06-27
@@ -121,10 +121,32 @@
 | `stress_01_pipeline_archived.py` | `heartbeat()` | 旧文件（commit `3d966a1` 已删除） | `query/engine.py:425-442` + `stress_web.py:103-122` | 2026-06-22 |
 | `stress_driver.py` | API Key 清理 | `stress_driver.py:1972`（已删除） | 静态令牌方案（`fbce972`） | 2026-06-22 |
 
+## CI Shell 规范（2026-06-27）
+
+- `pyinstaller` job 运行在 `windows-latest` runner 上，**不要使用 `defaults.run.shell` 一刀切**。
+- PowerShell 语法的步骤必须显式指定 `shell: pwsh`。
+- Bash 语法的步骤保持默认或显式指定 `shell: bash`。
+- 示例：
+  ```yaml
+  - name: PowerShell step
+    shell: pwsh
+    run: |
+      $ErrorActionPreference = "Stop"
+      Write-Host "Hello"
+
+  - name: Bash step
+    shell: bash
+    run: |
+      if [ -f dist.zip ]; then
+        echo "exists"
+      fi
+  ```
+
 ## 更新日志
 
 | 日期 | 版本 | 变更内容 |
 |------|------|---------|
+| 2026-06-27 | v2.6 | 新增 CI Shell 规范：Windows runner 混合语法步骤逐步骤指定 shell |
 | 2026-06-27 | v2.5 | 新增 GATE-08 依赖完整性门禁；update.sh 重构为 MoviePilot 全量替换模式；entrypoint.sh 改用 source + 重启标记检测；补全 watchdog 依赖 |
 | 2026-06-27 | v2.4 | 新增 GATE-07 死代码检测门禁（Vulture + ts-prune）；Web 仪表板迁移标记为 deprecated（dashboard-migration.ts 已删除） |
 | 2026-06-26 | v2.3 | 新增 6 条能力：Docker 自动更新入口、更新脚本 v2、系统重启 API、Web 重启按钮、前端版本号、路径遍历防护体系（path_guard + organize + scan + STANDARD_ROOT） |
