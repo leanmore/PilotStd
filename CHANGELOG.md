@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v0.37.23 (2026-06-28)
+
+### Added
+- feat: 新增GATE-13门禁—禁止前端代码硬编码admin作为超级用户标识
+
+### Fixed
+- fix: SUPERUSER_USERNAME从硬编码admin改为VITE_SUPERUSER_NAME环境变量，默认回退SUPERUSER
+
+### Changed
+- refactor: main.ts全局注册24个PrimeVue组件，消除各文件重复import
+
+## v0.37.22 (2026-06-28)
+
+### Fixed
+- fix: Vue组件添加defineOptions防止生产构建中组件名被压缩器删除+GATE-12门禁
+
 ## v0.37.19 (2026-06-27)
 
 ### Changed
