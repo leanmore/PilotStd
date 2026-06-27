@@ -36,6 +36,7 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '22'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ════════════════════════════════════════════════════════════════

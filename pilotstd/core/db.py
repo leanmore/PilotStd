@@ -705,8 +705,58 @@ def _migrate_v23_cache_system(db: Database) -> None:
             (ck, cv),
         )
 
-    # 扩展三张缓存表
+    # 扩展三张缓存表——先确保表存在（CI 空库场景），再添加新列
     for table in ("standard_info_cache", "standard_validity", "announcement_record"):
+        # 检查表是否存在（空库中运行时自建表尚未创建）
+        existing = db.fetchone(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        )
+        if not existing:
+            # 表不存在时创建最小结构（与运行时自建逻辑一致）
+            if table == "standard_info_cache":
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS standard_info_cache (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        standard_number TEXT NOT NULL,
+                        source_site TEXT NOT NULL,
+                        result_json TEXT NOT NULL,
+                        cached_at TEXT NOT NULL,
+                        source TEXT NOT NULL DEFAULT 'network',
+                        status_history TEXT NOT NULL DEFAULT ''
+                    )
+                """)
+            elif table == "standard_validity":
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS standard_validity (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        standard_number TEXT NOT NULL UNIQUE,
+                        status TEXT NOT NULL DEFAULT '未知',
+                        last_checked_at TEXT,
+                        next_check_at TEXT,
+                        last_status TEXT,
+                        last_status_updated_at TEXT,
+                        check_count INTEGER DEFAULT 0,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            elif table == "announcement_record":
+                db.execute("""
+                    CREATE TABLE IF NOT EXISTS announcement_record (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source_site TEXT NOT NULL,
+                        pid TEXT NOT NULL,
+                        announce_no TEXT,
+                        standard_number TEXT NOT NULL,
+                        std_name TEXT,
+                        publish_date TEXT,
+                        fetched_at TEXT NOT NULL,
+                        matched INTEGER DEFAULT 0,
+                        UNIQUE(source_site, pid, standard_number)
+                    )
+                """)
+
         cols = {r["name"] for r in db.fetchall(f"PRAGMA table_info({table})")}
         if "source_version" not in cols:
             db.execute(f"ALTER TABLE {table} ADD COLUMN source_version TEXT DEFAULT ''")
@@ -719,6 +769,26 @@ def _migrate_v23_cache_system(db: Database) -> None:
 @migration(24)
 def _migrate_v24_task_queue_enhance(db: Database) -> None:
     """v24: 任务队列扩展——重试/超时/优先级/队列名。"""
+    # 先确保表存在（CI 空库场景）
+    existing = db.fetchone(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='task_queue'",
+    )
+    if not existing:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS task_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL UNIQUE,
+                task_type TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                total_items INTEGER DEFAULT 0,
+                completed_items INTEGER DEFAULT 0,
+                failed_items INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                result_json TEXT DEFAULT '',
+                error_log TEXT DEFAULT ''
+            )
+        """)
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(task_queue)")}
     additions = [
         ("retry_count", "INTEGER DEFAULT 0"),

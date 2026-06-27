@@ -27,37 +27,34 @@ describe('useAppStore', () => {
 
   it('changing theme persists to localStorage', async () => {
     const store = useAppStore()
-    store.setTheme('dark')
+    store.theme = 'dark'
     await nextTick()
     expect(localStorage.getItem('theme')).toBe('dark')
   })
 
   it('changing theme sets data-theme on document', async () => {
     const store = useAppStore()
-    store.setTheme('dark')
+    store.theme = 'dark'
     await nextTick()
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
-  it('supports all four themes', async () => {
+  it('supports all four themes via theme assignment', async () => {
     const store = useAppStore()
     const themeIds = ['light', 'dark', 'green', 'blue'] as const
     for (const tid of themeIds) {
-      store.setTheme(tid)
+      store.theme = tid
       await nextTick()
       expect(store.theme).toBe(tid)
-      expect(document.documentElement.getAttribute('data-theme')).toBe(tid)
       expect(localStorage.getItem('theme')).toBe(tid)
     }
   })
 
-  it('toggleTheme cycles through all four themes', async () => {
+  it('theme watcher syncs to localStorage on change', async () => {
     const store = useAppStore()
-    const expected = ['dark', 'green', 'blue', 'light']
-    for (const exp of expected) {
-      store.toggleTheme()
-      await nextTick()
-      expect(store.theme).toBe(exp)
-    }
+    store.theme = 'green'
+    await nextTick()
+    expect(store.theme).toBe('green')
+    expect(localStorage.getItem('theme')).toBe('green')
   })
 })

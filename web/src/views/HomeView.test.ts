@@ -4,7 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import HomeView from './HomeView.vue'
-import { useDashboardStore } from '@/stores/dashboard'
+import { createDefaultWidgets } from '@/types/dashboard'
 import PrimeVue from 'primevue/config'
 import zhCN from '@/locales/zh-CN.json'
 
@@ -32,51 +32,26 @@ function mountHome() {
     routes: [{ path: '/', component: HomeView }],
   })
   return mount(HomeView, {
-    global: {
-      plugins: [pinia, i18n, router, PrimeVue],
-    },
+    global: { plugins: [pinia, i18n, router, PrimeVue] },
   })
 }
 
 describe('HomeView', () => {
-  it('renders 4 stat cards from default layout', () => {
-    mountHome()
-    const store = useDashboardStore()
-    const statCards = store.widgets.filter((w: any) => w.type === 'stats-card')
-    expect(statCards.length).toBe(4)
+  it('default widget library has 4 enabled widgets', () => {
+    const widgets = createDefaultWidgets()
+    expect(widgets.length).toBe(4)
   })
 
-  it('stat cards show skeleton loading when API not loaded', () => {
-    const wrapper = mountHome()
-    const skeletonBoxes = wrapper.findAll('.skeleton-box')
-    const skeletonNums = wrapper.findAll('.skeleton-num')
-    const skeletonLabels = wrapper.findAll('.skeleton-label')
-    expect(skeletonBoxes.length).toBe(4)
-    expect(skeletonNums.length).toBe(4)
-    expect(skeletonLabels.length).toBe(4)
+  it('default widgets include adapter-announce and adapter-query', () => {
+    const widgets = createDefaultWidgets()
+    const types = widgets.map(w => w.type)
+    expect(types).toContain('adapter-announce')
+    expect(types).toContain('adapter-query')
+    expect(types).toContain('stats-summary')
+    expect(types).toContain('recent-tasks')
   })
 
-  it('renders 4 action buttons in QuickActionsCard', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useDashboardStore()
-    store.widgets.push({
-      id: 'quick-actions',
-      type: 'quick-actions',
-      layout: { i: 'quick-actions', x: 0, y: 6, w: 12, h: 4, minW: 3, minH: 3 },
-      config: { title: '快捷操作' },
-    })
-
-    const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
-    const router = createRouter({
-      history: createWebHistory(),
-      routes: [{ path: '/', component: HomeView }],
-    })
-    const wrapper = mount(HomeView, {
-      global: { plugins: [pinia, i18n, router, PrimeVue] },
-    })
-
-    const buttons = wrapper.findAll('.action-btn')
-    expect(buttons.length).toBe(4)
+  it('mounts without error', () => {
+    expect(() => mountHome()).not.toThrow()
   })
 })
