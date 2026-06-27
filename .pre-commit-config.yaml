@@ -119,7 +119,7 @@ repos:
 
       - id: check-ui-sensitive-fields
         name: 门禁 GATE-10 — UI 敏感字段保护
-        entry: python scripts/gate_ui_sensitive_fields.py
+        entry: python scripts/check_ui_sensitive_fields.py
         language: system
         files: \.vue$
         pass_filenames: false
