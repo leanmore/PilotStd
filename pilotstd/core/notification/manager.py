@@ -141,6 +141,24 @@ class NotificationManager:
                 level="info",
                 event_type=event_type,
             )
+        elif event_type == "auto_backup":
+            success = data.get("success", False)
+            if success:
+                size_mb = data.get("size_mb", 0)
+                return NotificationMessage(
+                    title="数据库备份成功",
+                    body=f"备份完成，大小 {size_mb:.2f} MB",
+                    level="info",
+                    event_type=event_type,
+                )
+            else:
+                error = data.get("error", "未知错误")
+                return NotificationMessage(
+                    title="数据库备份失败",
+                    body=f"错误：{error}",
+                    level="error",
+                    event_type=event_type,
+                )
         else:
             return NotificationMessage(
                 title=event_type,

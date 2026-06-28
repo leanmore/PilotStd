@@ -50,6 +50,7 @@ const EVENTS = [
   { key: 'standard_first_registered', label: '首次登记' },
   { key: 'check_batch_complete',         label: '批次完成' },
   { key: 'announcement_fetch_complete',  label: '公告抓取完成' },
+  { key: 'auto_backup',                  label: '自动备份' },
 ]
 
 const CHANNELS = [

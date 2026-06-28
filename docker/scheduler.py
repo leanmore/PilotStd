@@ -56,7 +56,7 @@ def _add_cron_job(job_id: str, cron_expr: str):
         scheduler.add_job(func, CronTrigger.from_crontab(cron_expr), id=job_id, replace_existing=True)
 
 
-def _backup_database():
+def _backup_database(notification_mgr=None):
     """每周自动备份数据库，保留最近 4 个备份。"""
     db = _get_db()
     backup_dir = os.path.join(os.path.dirname(db.path), "backups")
@@ -71,6 +71,31 @@ def _backup_database():
                 os.remove(os.path.join(backup_dir, old))
                 logger.info("已清理旧备份: %s", old)
             except OSError:
+                pass
+        if notification_mgr:
+            try:
+                size_mb = os.path.getsize(backup_path) / (1024 * 1024)
+                notification_mgr.send_event(
+                    "auto_backup",
+                    {
+                        "success": True,
+                        "backup_path": backup_path,
+                        "size_mb": size_mb,
+                    },
+                )
+            except Exception:
+                pass
+    else:
+        if notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "auto_backup",
+                    {
+                        "success": False,
+                        "error": "数据库备份返回 False",
+                    },
+                )
+            except Exception:
                 pass
 
 

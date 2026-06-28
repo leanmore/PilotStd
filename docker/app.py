@@ -42,7 +42,7 @@ from .api.validity import router as validity_router
 from .api.wechat_ip import router as wechat_ip_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
-from .scheduler import register_job_func, start_scheduler, stop_scheduler
+from .scheduler import _backup_database, register_job_func, start_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +81,7 @@ async def lifespan(app: FastAPI):
     from .api.announce import check_announce
 
     register_job_func("auto_announce", check_announce)
+    register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     start_scheduler()
 
     # 任务调度器自动启动
