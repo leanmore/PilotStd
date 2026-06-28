@@ -10,9 +10,9 @@ from typing import Any
 # ═══════════════════════════════════════════════════════════
 COLOR_SCHEMES: dict[str, dict[str, str]] = {
     "经典白": {
-        "bg": "#f8fafc",
+        "bg": "#f1f5f9",  # 降低亮度，更柔和
         "surface": "#ffffff",
-        "surface_alt": "#f1f5f9",
+        "surface_alt": "#f8fafc",
         "text": "#475569",
         "text_bright": "#334155",
         "text_dim": "#94a3b8",
@@ -28,8 +28,8 @@ COLOR_SCHEMES: dict[str, dict[str, str]] = {
         "disabled_bg": "#e2e8f0",
         "disabled_text": "#94a3b8",
         "gridline": "#f1f5f9",
-        "hover_bg": "#f9fafb",
-        "log_bg": "#f9fafb",
+        "hover_bg": "#f8fafc",
+        "log_bg": "#f8fafc",
     },
     "暗夜黑": {
         "bg": "#0f172a",
@@ -54,12 +54,12 @@ COLOR_SCHEMES: dict[str, dict[str, str]] = {
         "log_bg": "#0f172a",
     },
     "护眼绿": {
-        "bg": "#f0fdf4",
-        "surface": "#ffffff",
+        "bg": "#e8f5e9",  # 降低亮度，更柔和
+        "surface": "#f6fbf7",  # 从纯白改为极浅绿色，降低刺眼感
         "surface_alt": "#dcfce7",
         "text": "#166534",
         "text_bright": "#15803d",
-        "text_dim": "#65a77d",  # 对比度优化：原 #4ade80 仅 2.3:1，改为 3.2:1
+        "text_dim": "#65a77d",
         "text_heading": "#14532d",
         "border": "#bbf7d0",
         "border_light": "#dcfce7",
@@ -72,8 +72,8 @@ COLOR_SCHEMES: dict[str, dict[str, str]] = {
         "disabled_bg": "#bbf7d0",
         "disabled_text": "#86efac",
         "gridline": "#dcfce7",
-        "hover_bg": "#f0fdf4",
-        "log_bg": "#f0fdf4",
+        "hover_bg": "#e8f5e9",
+        "log_bg": "#e8f5e9",
     },
     "科技蓝": {
         "bg": "#0c1222",

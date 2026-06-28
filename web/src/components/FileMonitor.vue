@@ -155,13 +155,13 @@ export default defineComponent({
         </div>
       </div>
       <div class="field-row">
-        <div class="field" style="flex:1">
+        <div class="field field-path">
           <label>监控路径</label>
-          <InputText v-model="config.watch_path" placeholder="/inbox" />
+          <InputText v-model="config.watch_path" placeholder="/inbox" class="full-width" />
         </div>
-        <div class="field" style="width:140px">
+        <div class="field field-delay">
           <label>延迟（秒）</label>
-          <InputNumber v-model="config.delay_seconds" :min="1" :max="60" style="width:100%" />
+          <InputNumber v-model="config.delay_seconds" :min="1" :max="60" class="full-width" />
         </div>
       </div>
       <div class="field-row" style="align-items:center">
@@ -198,8 +198,11 @@ export default defineComponent({
 .status-item { display: flex; flex-direction: column; gap: 4px; }
 .status-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
 .status-item code { font-size: 12px; background: var(--surface); padding: 1px 6px; border-radius: 3px; }
-.monitor-config { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-.field { margin-bottom: 10px; }
-.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
-.field-row { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-end; }
+.monitor-config { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.field-row { display: flex; gap: 16px; margin-bottom: 12px; align-items: flex-end; }
+.field-path { flex: 1; max-width: 400px; }
+.field-delay { width: 140px; flex-shrink: 0; }
+.full-width { width: 100%; box-sizing: border-box; }
 </style>

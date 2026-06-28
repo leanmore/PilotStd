@@ -1,14 +1,16 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationLogsView' })
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
-import Card from 'primevue/card'
 import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
+import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import { getNotificationLogs, type NotificationLog } from '@/api/notification'
+
+const { locale } = useI18n()
 
 const logs = ref<NotificationLog[]>([])
 const total = ref(0)
@@ -16,12 +18,35 @@ const page = ref(1)
 const pageSize = 20
 const loading = ref(false)
 const errMsg = ref('')
+const tableHeight = ref(400)
+
+// 拖拽调整高度
+let startY = 0
+let startHeight = 0
+
+function onResizeStart(e: MouseEvent) {
+  e.preventDefault()
+  startY = e.clientY
+  startHeight = tableHeight.value
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', onResizeEnd)
+}
+
+function onResizeMove(e: MouseEvent) {
+  const delta = e.clientY - startY
+  tableHeight.value = Math.max(200, Math.min(800, startHeight + delta))
+}
+
+function onResizeEnd() {
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+}
 
 // 筛选
 const filterChannel = ref<string | null>(null)
 const filterStatus = ref<string | null>(null)
-const filterStartDate = ref('')
-const filterEndDate = ref('')
+const filterStartDate = ref<Date | null>(null)
+const filterEndDate = ref<Date | null>(null)
 
 // 详情弹窗
 const detailVisible = ref(false)
@@ -63,13 +88,14 @@ async function loadLogs() {
   loading.value = true
   errMsg.value = ''
   try {
+    const formatDate = (d: Date | null) => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : undefined
     const r = await getNotificationLogs({
       page: page.value,
       page_size: pageSize,
       channel: filterChannel.value || undefined,
       status: filterStatus.value || undefined,
-      start_date: filterStartDate.value || undefined,
-      end_date: filterEndDate.value || undefined,
+      start_date: formatDate(filterStartDate.value),
+      end_date: formatDate(filterEndDate.value),
     })
     logs.value = r.items
     total.value = r.total
@@ -88,8 +114,8 @@ function onSearch() {
 function onReset() {
   filterChannel.value = null
   filterStatus.value = null
-  filterStartDate.value = ''
-  filterEndDate.value = ''
+  filterStartDate.value = null
+  filterEndDate.value = null
   page.value = 1
   loadLogs()
 }
@@ -126,73 +152,81 @@ onMounted(loadLogs)
   <div class="page">
     <h2 class="page-title">通知日志</h2>
 
-    <Card class="section">
-      <template #content>
-        <div class="filter-row">
-          <div class="filter-item">
-            <label>渠道</label>
-            <Select v-model="filterChannel" :options="channelOptions" optionLabel="label" optionValue="value" />
-          </div>
-          <div class="filter-item">
-            <label>状态</label>
-            <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
-          </div>
-          <div class="filter-item">
-            <label>开始日期</label>
-            <InputText v-model="filterStartDate" type="date" />
-          </div>
-          <div class="filter-item">
-            <label>结束日期</label>
-            <InputText v-model="filterEndDate" type="date" />
-          </div>
-          <div class="filter-actions">
-            <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
-            <Button icon="pi pi-refresh" label="重置" size="small" severity="secondary" @click="onReset" />
-          </div>
+    <!-- 筛选区 -->
+    <div class="card section">
+      <div class="card-header">筛选条件</div>
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>渠道</label>
+          <Select v-model="filterChannel" :options="channelOptions" optionLabel="label" optionValue="value" />
         </div>
-      </template>
-    </Card>
-
-    <Card class="section">
-      <template #content>
-        <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-
-        <div class="table-meta">
-          <span>共 {{ total }} 条记录</span>
-          <span v-if="total > 0">第 {{ page }}/{{ totalPages() }} 页</span>
+        <div class="filter-item">
+          <label>状态</label>
+          <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
         </div>
-
-        <table class="log-table" v-if="logs.length">
-          <thead>
-            <tr>
-              <th>时间</th>
-              <th>渠道</th>
-              <th>事件</th>
-              <th>状态</th>
-              <th>标题</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="l in logs" :key="l.id">
-              <td>{{ l.sent_at?.replace('T', ' ').substring(0, 16) }}</td>
-              <td>{{ channelLabel(l.channel) }}</td>
-              <td>{{ eventLabel(l.event_type) }}</td>
-              <td><Tag :severity="statusSeverity(l.status)" :value="l.status === 'success' ? '成功' : '失败'" /></td>
-              <td class="title-cell">{{ l.title }}</td>
-              <td><Button label="查看" size="small" severity="secondary" text @click="showDetail(l)" /></td>
-            </tr>
-          </tbody>
-        </table>
-        <p v-else-if="!loading" class="empty">暂无通知记录</p>
-
-        <div class="pagination" v-if="totalPages() > 1">
-          <Button icon="pi pi-angle-left" size="small" severity="secondary" text :disabled="page <= 1" @click="onPageChange(page - 1)" />
-          <Button v-for="p in pages()" :key="p" :label="String(p)" size="small" :severity="p === page ? 'primary' : 'secondary'" text @click="onPageChange(p)" />
-          <Button icon="pi pi-angle-right" size="small" severity="secondary" text :disabled="page >= totalPages()" @click="onPageChange(page + 1)" />
+        <div class="filter-item">
+          <label>开始日期</label>
+          <Calendar v-model="filterStartDate" :locale="locale" dateFormat="yy-mm-dd" showIcon />
         </div>
-      </template>
-    </Card>
+        <div class="filter-item">
+          <label>结束日期</label>
+          <Calendar v-model="filterEndDate" :locale="locale" dateFormat="yy-mm-dd" showIcon />
+        </div>
+        <div class="filter-actions">
+          <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
+          <Button icon="pi pi-refresh" label="重置" size="small" severity="secondary" @click="onReset" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 日志列表 -->
+    <div class="card section">
+      <div class="card-header">
+        <span>日志列表</span>
+        <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
+      </div>
+      <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
+
+      <div class="table-meta">
+        <span>共 {{ total }} 条记录</span>
+        <span v-if="total > 0">第 {{ page }}/{{ totalPages() }} 页</span>
+      </div>
+
+      <div class="resizable-table" :style="{ height: tableHeight + 'px' }">
+        <div class="table-scroll">
+          <table class="log-table" v-if="logs.length">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>渠道</th>
+                <th>事件</th>
+                <th>状态</th>
+                <th>标题</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="l in logs" :key="l.id">
+                <td>{{ l.sent_at?.replace('T', ' ').substring(0, 16) }}</td>
+                <td>{{ channelLabel(l.channel) }}</td>
+                <td>{{ eventLabel(l.event_type) }}</td>
+                <td><Tag :severity="statusSeverity(l.status)" :value="l.status === 'success' ? '成功' : '失败'" /></td>
+                <td class="title-cell">{{ l.title }}</td>
+                <td><Button label="查看" size="small" severity="secondary" text @click="showDetail(l)" /></td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else-if="!loading" class="empty">暂无通知记录</p>
+        </div>
+        <div class="resize-handle" @mousedown="onResizeStart" title="拖拽调整高度" />
+      </div>
+
+      <div class="pagination" v-if="totalPages() > 1">
+        <Button icon="pi pi-angle-left" size="small" severity="secondary" text :disabled="page <= 1" @click="onPageChange(page - 1)" />
+        <Button v-for="p in pages()" :key="p" :label="String(p)" size="small" :severity="p === page ? 'primary' : 'secondary'" text @click="onPageChange(p)" />
+        <Button icon="pi pi-angle-right" size="small" severity="secondary" text :disabled="page >= totalPages()" @click="onPageChange(page + 1)" />
+      </div>
+    </div>
 
     <Dialog v-model:visible="detailVisible" header="通知详情" :style="{ width: '500px' }" modal>
       <div v-if="detailItem" class="detail">
@@ -209,25 +243,78 @@ onMounted(loadLogs)
 </template>
 
 <style scoped>
-.page { max-width: 1000px; }
+.page { max-width: 1100px; }
 .page-title { margin: 0 0 20px; font-size: 20px; font-weight: 600; color: var(--text-heading); }
 .section { margin-bottom: 16px; }
-.filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-.filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+
+/* 筛选区 */
+.filter-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.filter-item { display: flex; flex-direction: column; gap: 6px; min-width: 140px; flex: 1; }
 .filter-item label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
 .filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
-.table-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
-.log-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.log-table th, .log-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-.log-table th { font-weight: 600; color: var(--text-dim); font-size: 12px; text-transform: uppercase; }
-.title-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.empty { color: var(--text-dim); font-size: 14px; padding: 20px 0; }
-.pagination { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 12px; }
-.detail { display: flex; flex-direction: column; gap: 10px; }
+
+/* 可调整高度的表格容器 */
+.resizable-table {
+  position: relative;
+  height: 400px;
+  min-height: 200px;
+  max-height: 800px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.table-scroll {
+  height: calc(100% - 8px);
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.log-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
+.log-table th { position: sticky; top: 0; background: var(--surface-raised); z-index: 1; }
+.log-table th, .log-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.log-table th { font-weight: 600; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.title-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty { color: var(--text-dim); font-size: 14px; padding: 32px 0; text-align: center; }
+
+/* 拖拽手柄 */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 10;
+  transition: background 0.2s;
+}
+.resize-handle:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+}
+.resize-handle:hover::after {
+  background: var(--primary);
+  height: 4px;
+}
+
+/* 分页 */
+.pagination { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 16px; }
+
+/* 详情弹窗 */
+.detail { display: flex; flex-direction: column; gap: 12px; }
 .detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 .detail-row span:first-child { color: var(--text-dim); }
 .detail-body { font-size: 13px; }
 .detail-body span { color: var(--text-dim); }
-.detail-body pre { margin: 4px 0 0; padding: 8px; background: var(--bg); border-radius: 4px; font-size: 12px; white-space: pre-wrap; }
+.detail-body pre { margin: 4px 0 0; padding: 10px; background: var(--bg); border-radius: var(--radius-sm); font-size: 12px; white-space: pre-wrap; word-break: break-all; }
 .err { color: var(--danger) !important; }
 </style>

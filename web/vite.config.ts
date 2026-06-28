@@ -18,7 +18,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:9028',
+      '/api': 'http://192.168.1.18:9028',
     },
   },
   build: {

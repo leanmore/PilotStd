@@ -46,9 +46,9 @@ export const THEMES: Record<string, ThemeConfig> = {
     label: '经典白',
     type: 'light',
     colors: {
-      bg: '#f8fafc',
+      bg: '#f1f5f9',         // 降低亮度，从 #f8fafc 改为更柔和的灰蓝色
       surface: '#ffffff',
-      surfaceRaised: '#f1f5f9',
+      surfaceRaised: '#f8fafc',
       border: '#e2e8f0',
       borderLight: '#f1f5f9',
       textDim: '#94a3b8',
@@ -120,12 +120,12 @@ export const THEMES: Record<string, ThemeConfig> = {
     label: '护眼绿',
     type: 'light',
     colors: {
-      bg: '#f0fdf4',
-      surface: '#ffffff',
+      bg: '#e8f5e9',         // 降低亮度，从 #f0fdf4 改为更柔和的浅绿色
+      surface: '#f6fbf7',    // 从纯白改为极浅的绿色，降低刺眼感
       surfaceRaised: '#dcfce7',
       border: '#bbf7d0',
       borderLight: '#dcfce7',
-      textDim: '#65a77d',  // 调整：原 #4ade80 对比度仅 2.3:1，改为 #65a77d 达到 3.2:1
+      textDim: '#65a77d',
       text: '#166534',
       textBright: '#15803d',
       textHeading: '#14532d',

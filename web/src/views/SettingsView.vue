@@ -22,6 +22,7 @@ import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import 'primeicons/primeicons.css'
 defineOptions({ name: 'SettingsView' })
 const store = useAppStore()
 const { locale } = useI18n()
@@ -49,9 +50,15 @@ async function doAdd() {
 async function doDelete(id: number) { await deleteUser(id); loadUsers() }
 
 // ── 用户管理辅助 ──
+// SUPERUSER_USERNAME 从环境变量读取，与容器环境变量 SUPERUSER 保持一致
+// 若环境变量未设置，默认回退为 'SUPERUSER'
 const SUPERUSER_USERNAME = import.meta.env.VITE_SUPERUSER_NAME || 'SUPERUSER'
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
 
+/**
+ * 判断是否可以删除目标用户
+ * 条件：当前用户必须是 SUPERUSER 且目标用户不是自身
+ */
 function canDelete(item: any): boolean {
   if (!currentUser.value || currentUser.value.username !== SUPERUSER_USERNAME) return false
   if (item.id === currentUser.value.id) return false
@@ -231,12 +238,20 @@ const tabConfigKeys: Record<string, string[]> = {
   'ui':        ['appearance', 'tasks'],
   'ocr':       ['ocr'],
   'sites':     ['sites'],
+  'system':    [],  // 系统 Tab — 子组件内部保存
   'circuit':   [],  // 独立 API — 不走 /settings
   'notification': [],  // 独立 API — 子组件内部保存
   'validity':      [],  // 独立 API — 子组件内部保存
   'users':     [],
   'token':     [],
 }
+
+// 系统 Tab 折叠状态
+const systemSections = ref({
+  fileMonitor: true,
+  cacheManager: true,
+  taskManager: true,
+})
 
 const applyLoading = ref(false)
 
@@ -425,21 +440,21 @@ const sites = [
     <div class="form-grid">
       <label class="fieldset-label">百度云</label><span></span>
       <label>API Key</label>
-      <input :value="getp('ocr.baidu_api_key')" @input="setp('ocr.baidu_api_key',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.baidu_api_key')" @input="setp('ocr.baidu_api_key',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
       <label>Secret Key</label>
-      <input :value="getp('ocr.baidu_secret_key')" @input="setp('ocr.baidu_secret_key',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.baidu_secret_key')" @input="setp('ocr.baidu_secret_key',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
       <div class="fieldset-gap"></div>
       <label class="fieldset-label">腾讯云</label><span></span>
       <label>Secret ID</label>
-      <input :value="getp('ocr.tencent_secret_id')" @input="setp('ocr.tencent_secret_id',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.tencent_secret_id')" @input="setp('ocr.tencent_secret_id',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
       <label>Secret Key</label>
-      <input :value="getp('ocr.tencent_secret_key')" @input="setp('ocr.tencent_secret_key',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.tencent_secret_key')" @input="setp('ocr.tencent_secret_key',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
       <div class="fieldset-gap"></div>
       <label class="fieldset-label">阿里云（应急）</label><span></span>
       <label>Access Key ID</label>
-      <input :value="getp('ocr.aliyun_access_key_id')" @input="setp('ocr.aliyun_access_key_id',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.aliyun_access_key_id')" @input="setp('ocr.aliyun_access_key_id',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
       <label>Access Key Secret</label>
-      <input :value="getp('ocr.aliyun_access_key_secret')" @input="setp('ocr.aliyun_access_key_secret',($event.target as any).value)" class="fi" type="password" autocomplete="off" />
+      <input :value="getp('ocr.aliyun_access_key_secret')" @input="setp('ocr.aliyun_access_key_secret',($event.target as any).value)" class="fi password-mask" type="password" autocomplete="off" />
     </div>
   </div>
 
@@ -567,15 +582,45 @@ const sites = [
   </div>
 
   <!-- 系统 -->
-  <div v-show="activeTab === 'system'" class="card mt-2">
-    <div class="card-header">文件监控</div>
-    <FileMonitor />
-    <hr />
-    <div class="card-header">缓存管理</div>
-    <CacheManager />
-    <hr />
-    <div class="card-header">任务管理</div>
-    <TaskManager />
+  <div v-show="activeTab === 'system'" class="mt-2 system-sections">
+    <!-- 文件监控 -->
+    <div class="collapsible-card">
+      <div class="collapsible-header" @click="systemSections.fileMonitor = !systemSections.fileMonitor">
+        <span class="collapsible-title">文件监控</span>
+        <i :class="systemSections.fileMonitor ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+      </div>
+      <transition name="collapsible">
+        <div v-show="systemSections.fileMonitor" class="collapsible-content">
+          <FileMonitor />
+        </div>
+      </transition>
+    </div>
+
+    <!-- 缓存管理 -->
+    <div class="collapsible-card">
+      <div class="collapsible-header" @click="systemSections.cacheManager = !systemSections.cacheManager">
+        <span class="collapsible-title">缓存管理</span>
+        <i :class="systemSections.cacheManager ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+      </div>
+      <transition name="collapsible">
+        <div v-show="systemSections.cacheManager" class="collapsible-content">
+          <CacheManager />
+        </div>
+      </transition>
+    </div>
+
+    <!-- 任务管理 -->
+    <div class="collapsible-card">
+      <div class="collapsible-header" @click="systemSections.taskManager = !systemSections.taskManager">
+        <span class="collapsible-title">任务管理</span>
+        <i :class="systemSections.taskManager ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+      </div>
+      <transition name="collapsible">
+        <div v-show="systemSections.taskManager" class="collapsible-content">
+          <TaskManager />
+        </div>
+      </transition>
+    </div>
   </div>
 
   <!-- 底部操作栏 -->
@@ -723,6 +768,16 @@ const sites = [
   border-color: var(--primary-border);
 }
 
+/* 密码字段统一掩码样式 */
+.password-mask {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+/* Firefox 回退方案 */
+.password-mask::-moz-placeholder {
+  -webkit-text-security: disc;
+}
+
 /* 语言下拉框——紧凑垂直内边距 */
 .lang-select :deep(.p-select-label) { padding-top: 6px; padding-bottom: 6px; }
 
@@ -868,6 +923,83 @@ const sites = [
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 .token-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════
+   系统 Tab — 可折叠卡片
+   ═══════════════════════════════════════════ */
+.system-sections { display: flex; flex-direction: column; gap: 12px; }
+
+.collapsible-card {
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: all var(--transition);
+}
+.collapsible-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(180deg, var(--surface), var(--surface-raised));
+  border-bottom: 1px solid transparent;
+  transition: all var(--transition);
+}
+.collapsible-header:hover {
+  background: var(--selected);
+  border-bottom-color: var(--border);
+}
+.collapsible-card:has(.collapsible-content[style*="display: none"]) .collapsible-header,
+.collapsible-card:not(:has(.collapsible-content)) .collapsible-header {
+  border-bottom-color: transparent;
+}
+
+.collapsible-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+}
+
+.collapsible-icon {
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: transform var(--transition);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.collapsible-header:hover .collapsible-icon {
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.collapsible-content {
+  padding: 20px;
+}
+
+/* 折叠动画 */
+.collapsible-enter-active,
+.collapsible-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collapsible-enter-from,
+.collapsible-leave-to {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+}
+.collapsible-enter-to,
+.collapsible-leave-from {
+  opacity: 1;
+  max-height: 2000px;
+}
 
 /* 底部操作栏 */
 .settings-footer {

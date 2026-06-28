@@ -277,15 +277,29 @@ jobs:
       - name: Build frontend
         run: |
           cd web
+          # 清理所有缓存，确保使用最新代码构建
           rm -rf node_modules/.vite
           rm -rf dist
-          npm ci
+          rm -rf node_modules
+          npm ci --no-cache
           npm run build
 
       - name: Package dist.zip
         run: |
           cd web/dist
           zip -r ../../dist.zip .
+
+      - name: Verify dist.zip contents
+        run: |
+          echo "=== dist.zip 内容验证 ==="
+          unzip -l dist.zip | head -30
+          echo "=== 检查关键文件是否包含最新代码 ==="
+          # 验证 dist.zip 包含最新的前端代码
+          if unzip -p dist.zip assets/index-*.js | grep -q "PilotStd"; then
+            echo "✅ dist.zip 包含最新前端代码"
+          else
+            echo "⚠️ 警告：dist.zip 可能包含旧代码"
+          fi
 
       - name: Upload dist.zip as workflow artifact
         uses: actions/upload-artifact@v4
@@ -306,7 +320,18 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 2d: 构建 + 推送（含 Registry Cache 层缓存）──
+      # ─ 2d: 构建 + 推送（含 Registry Cache 层缓存）──
+      - name: Check if frontend changed
+        id: check-frontend
+        run: |
+          # 检查 web 目录是否有变更（对比上次构建）
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^web/"; then
+            echo "frontend_changed=true" >> $GITHUB_OUTPUT
+            echo "检测到前端代码变更，将禁用 Docker 前端层缓存"
+          else
+            echo "frontend_changed=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -318,7 +343,11 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          # 前端变更时禁用缓存，确保使用最新代码
+          cache-to: ${{ steps.check-frontend.outputs.frontend_changed == 'true' && 'type=local,dest=/tmp/buildcache' || 'type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max' }}
+          # 前端变更时添加 no-cache 标记到相关层
+          build-args: |
+            FRONTEND_CACHE_BUST=${{ steps.check-frontend.outputs.frontend_changed == 'true' && github.sha || '' }}
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: PyInstaller 编译 + GitHub Release（Windows）

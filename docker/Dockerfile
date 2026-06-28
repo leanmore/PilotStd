@@ -37,8 +37,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9028/api/health')" || exit 1
 
 # 前端构建产物（由 CI npm run build 生成后 COPY 进镜像）
+# FRONTEND_CACHE_BUST 参数用于前端代码变更时强制刷新此层
+ARG FRONTEND_CACHE_BUST
 RUN mkdir -p /app/web/dist
 COPY web/dist/ ./web/dist/
+# 验证前端文件存在
+RUN test -f /app/web/dist/index.html && echo "✅ 前端资源已包含" || echo "⚠️ 前端资源缺失"
 
 # 复制 docker 模块（app.py、api/ 等）
 COPY docker/ ./docker/

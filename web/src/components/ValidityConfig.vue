@@ -135,7 +135,6 @@ onMounted(() => { loadConfig(); loadHistory() })
     </div>
     <div class="actions-row">
       <Button icon="pi pi-play" label="立即执行一次" severity="secondary" :loading="running" @click="doRun" />
-      <Button icon="pi pi-save" label="保存配置" :loading="saving" @click="doSave" />
     </div>
 
     <!-- 执行记录 -->

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
@@ -8,6 +9,8 @@ import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import Calendar from 'primevue/calendar'
 import LogBar from '@/components/LogBar.vue'
+
+const { locale } = useI18n()
 
 // 摘要标签中文映射（后端返回英文 key）
 const summaryLabelMap: Record<string, string> = {
@@ -81,7 +84,7 @@ function onPage(e: any) {
     <div class="tabs">
       <button v-for="t in tabs" :key="t.key" :class="{ active: tab === t.key }" @click="switchTab(t.key)">{{ t.label }}</button>
     </div>
-    <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
+    <Calendar v-model="sinceDate" :locale="locale" dateFormat="yy-mm-dd" showIcon style="width:160px" />
     <span v-if="lastCheck" class="text-dim">上次: {{ lastCheck }}</span>
     <Button label="立即检查" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>

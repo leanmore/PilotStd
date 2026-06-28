@@ -70,9 +70,13 @@ function getWidgetComponent(type: string) {
     :row-height="60"
     :is-draggable="true"
     :is-resizable="true"
+    :is-mirrored="false"
+    :prevent-collision="false"
+    :auto-size="true"
     :margin="[16, 16]"
     :use-css-transforms="true"
     :vertical-compact="true"
+    :restore-on-drag="false"
     style="min-height: 400px"
   >
     <GridItem
@@ -115,13 +119,38 @@ function getWidgetComponent(type: string) {
   background: linear-gradient(90deg, var(--primary), transparent);
 }
 .hint { color: var(--text-dim); font-size: 14px; margin-top: 6px; font-weight: 400; }
+
+/* grid-layout-plus 样式 */
 :deep(.vgl-item--placeholder) {
   background: linear-gradient(135deg, var(--primary-bg), transparent);
-  opacity: 0.6; border-radius: var(--radius-lg);
+  opacity: 0.6;
+  border-radius: var(--radius-lg);
   border: 2px dashed var(--primary-border);
 }
-:deep(.vgl-item) { transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1); border-radius: var(--radius-lg); overflow: hidden; }
-:deep(.vgl-item--dragging) { box-shadow: var(--shadow-lg); z-index: 10; transform: rotate(2deg) scale(1.02); }
+
+:deep(.vgl-item) {
+  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-lg);
+}
+
+:deep(.vgl-item--dragging) {
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  transform: rotate(2deg) scale(1.02);
+  transition: none !important;
+}
+
+/* 确保调整大小手柄可见且可交互 */
+:deep(.vgl-item__resizer) {
+  z-index: 100 !important;
+  pointer-events: auto !important;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+:deep(.vgl-item:hover .vgl-item__resizer) {
+  opacity: 1;
+}
 @media (max-width: 767px) {
   .page-header { margin-bottom: 20px; padding-bottom: 16px; }
   .page-header h1 { font-size: 20px; }

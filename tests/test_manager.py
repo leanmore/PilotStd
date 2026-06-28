@@ -217,7 +217,7 @@ class TestStandardManager(unittest.TestCase):
             mock_qstats.downloadable = 1
             mock_qstats.not_found = 0
             mgr.query_engine = MagicMock()
-            mgr.query_engine.query_batch_parsed.return_value = [qr]
+            mgr.query_engine.query_standards.return_value = [qr]
 
             # Mock download_engine —— 模拟下载成功
             mock_task = MagicMock()
