@@ -24,6 +24,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // 强制将这三个组件合并到入口 chunk，避免异步分割导致运行时 undefined
+          if (
+            id.includes('FileMonitor') ||
+            id.includes('CacheManager') ||
+            id.includes('TaskManager')
+          ) {
+            return 'main'
+          }
+        },
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+      },
+    },
+    chunkSizeWarningLimit: 2000,
   },
   test: {
     environment: 'jsdom',
