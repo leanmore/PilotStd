@@ -52,7 +52,7 @@ const EVENTS = [
   { key: 'announcement_fetch_complete',  label: '公告抓取完成' },
   { key: 'auto_backup',                      label: '自动备份' },
   { key: 'announcement_check_complete',      label: '定时公告检查' },
-  { key: 'batch_download_complete',          label: '批量下载完成' },
+  { key: 'auto_scan_failed',              label: '定时扫描异常' },
 ]
 
 const CHANNELS = [

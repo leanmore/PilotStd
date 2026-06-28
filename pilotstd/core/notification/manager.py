@@ -194,6 +194,15 @@ class NotificationManager:
                     level="warning",
                     event_type=event_type,
                 )
+        elif event_type == "auto_scan_failed":
+            path = data.get("path", "")
+            error = data.get("error", "未知错误")
+            return NotificationMessage(
+                title="定时扫描异常",
+                body=f"扫描 {path} 失败：{error}",
+                level="error",
+                event_type=event_type,
+            )
         else:
             return NotificationMessage(
                 title=event_type,

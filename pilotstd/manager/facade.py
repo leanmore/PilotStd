@@ -1178,7 +1178,34 @@ class StandardManager:
 
     def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。返回入库文件数。"""
-        return self._scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
+        try:
+            count = self._scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
+        except Exception as e:
+            logger.exception("scan_and_index 定时任务失败")
+            if self.notification_mgr:
+                try:
+                    self.notification_mgr.send_event(
+                        "auto_scan_failed",
+                        {
+                            "path": root_path or "默认",
+                            "error": str(e)[:200],
+                        },
+                    )
+                except Exception:
+                    pass
+            return 0
+        if count == 0 and self.notification_mgr:
+            try:
+                self.notification_mgr.send_event(
+                    "auto_scan_failed",
+                    {
+                        "path": root_path or "默认",
+                        "error": "未扫描到任何文件",
+                    },
+                )
+            except Exception:
+                pass
+        return count
 
     def recheck_updates(self) -> dict[str, int]:
         """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
