@@ -1,5 +1,4 @@
 <script setup lang="ts">
-defineOptions({ name: 'SettingsView' })
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
@@ -16,10 +15,6 @@ import CacheManager from '@/components/CacheManager.vue'
 import FileMonitor from '@/components/FileMonitor.vue'
 import TaskManager from '@/components/TaskManager.vue'
 import ValidityConfig from '@/components/ValidityConfig.vue'
-const store = useAppStore()
-const { locale } = useI18n()
-const confirm = useConfirm()
-const toast = useToast()
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
@@ -28,6 +23,11 @@ import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import Card from 'primevue/card'
+defineOptions({ name: 'SettingsView', components: { FileMonitor } })
+const store = useAppStore()
+const { locale } = useI18n()
+const confirm = useConfirm()
+const toast = useToast()
 
 // 主题列表（供模板使用）
 const themeList = computed(() => Object.values(THEMES))
