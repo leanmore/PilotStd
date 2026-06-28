@@ -79,7 +79,8 @@ function eventLabel(v: string): string {
   const m: Record<string, string> = {
     archive_complete: '归档完成', standard_status_changed: '状态变更',
     standard_expired: '标准废止', standard_first_registered: '首次登记',
-    check_batch_complete: '批次完成', announcement_fetch_complete: '公告抓取', auto_backup: '自动备份', test: '测试',
+    check_batch_complete: '批次完成', announcement_fetch_complete: '公告抓取', auto_backup: '自动备份',
+    announcement_check_complete: '定时公告检查', test: '测试',
   }
   return m[v] || v
 }

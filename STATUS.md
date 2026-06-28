@@ -33,7 +33,7 @@
 - [x] **通知触发点全量调查**（2026-06-28）— 识别 24 个时间触发点，6 个建议接入通知，详见 [docs/notification_trigger_candidates.md](docs/notification_trigger_candidates.md)
 - [x] **前端轮询机制调查**（2026-06-28）— 4 个指定异步任务（OCR/PDF/镜像/报表）均未实现，前端无轮询需求，详见 [docs/frontend_polling_report.md](docs/frontend_polling_report.md)
 - [x] **B3/B4 通知接入**（2026-06-28）— 两个事件已接入，Ruff/Mypy/Vulture/GATE 全通过
-- [x] **auto_check_announcements 事件模板调查**（2026-06-28）— 不存在，`check_announce()` 无通知调用但 mgr 已可访问，接入简单，详见 [docs/announcement_check_event_status.md](docs/announcement_check_event_status.md)
+- [x] **A6 announcement_check_complete 通知接入**（2026-06-28）— 新增双分支事件模板（全部成功/部分失败），`check_announce()` return 前调用，mgr 直通无注入，全门禁通过
 
 ### 压测方案改造（v3.0，8/8项）
 - [x] 版本一致性校验（第零步）

@@ -65,10 +65,24 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
     except Exception:
         pass
 
+    count = total_matched + total_updated
+    failure_count = len(failures)
+    if mgr and mgr.notification_mgr:
+        try:
+            mgr.notification_mgr.send_event(
+                "announcement_check_complete",
+                {
+                    "count": count,
+                    "failures": failure_count,
+                },
+            )
+        except Exception:
+            pass
+
     return {
         "ok": True,
-        "count": total_matched + total_updated,
-        "failures": len(failures),
+        "count": count,
+        "failures": failure_count,
     }
 
 

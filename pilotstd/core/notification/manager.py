@@ -159,6 +159,23 @@ class NotificationManager:
                     level="error",
                     event_type=event_type,
                 )
+        elif event_type == "announcement_check_complete":
+            count = data.get("count", 0)
+            failures = data.get("failures", 0)
+            if failures == 0:
+                return NotificationMessage(
+                    title="公告定时检查完成",
+                    body=f"检查完成，发现 {count} 条新公告",
+                    level="info",
+                    event_type=event_type,
+                )
+            else:
+                return NotificationMessage(
+                    title="公告定时检查完成（部分失败）",
+                    body=f"检查完成，发现 {count} 条新公告，{failures} 个源检查失败",
+                    level="warning",
+                    event_type=event_type,
+                )
         else:
             return NotificationMessage(
                 title=event_type,

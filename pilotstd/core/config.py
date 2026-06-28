@@ -164,6 +164,7 @@ FACTORY_DEFAULTS = {
     "notification.rules.check_batch_complete": ["wechat"],
     "notification.rules.announcement_fetch_complete": ["wechat"],
     "notification.rules.auto_backup": ["wechat"],
+    "notification.rules.announcement_check_complete": ["wechat"],
     "adapter.circuit_breaker.failure_threshold": 3,
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],  # 分钟
     "adapter.circuit_breaker.reset_window_hours": 24,
