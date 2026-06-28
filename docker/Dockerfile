@@ -25,8 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu git curl &
     rm -rf /var/lib/apt/lists/*
 
 COPY docker/entrypoint.sh /app/entrypoint.sh
-COPY docker/update.sh /app/docker/update.sh
-RUN chmod +x /app/entrypoint.sh /app/docker/update.sh
+RUN chmod +x /app/entrypoint.sh
 
 # 复制源码
 COPY pilotstd/ ./pilotstd/
