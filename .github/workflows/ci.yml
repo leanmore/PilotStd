@@ -344,7 +344,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           # 前端变更时禁用缓存，确保使用最新代码
-          cache-to: ${{ steps.check-frontend.outputs.frontend_changed == 'true' && 'type=local,dest=/tmp/buildcache' || 'type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max' }}
+          cache-to: ${{ steps.check-frontend.outputs.frontend_changed == 'true' && 'type=local,dest=/tmp/buildcache' || 'type=registry,ref=ghcr.io/leanmore/pilotstd:buildcache,mode=max' }}
           # 前端变更时添加 no-cache 标记到相关层
           build-args: |
             FRONTEND_CACHE_BUST=${{ steps.check-frontend.outputs.frontend_changed == 'true' && github.sha || '' }}
