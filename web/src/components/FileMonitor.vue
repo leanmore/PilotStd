@@ -1,7 +1,5 @@
-<script setup lang="ts">
-defineOptions({ name: 'FileMonitor' })
-// FileMonitor.vue — 文件监控配置组件
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -31,72 +29,90 @@ interface MonitorStatus {
   failed_today: number
 }
 
-const config = ref<MonitorConfig>({
-  enabled: true, watch_path: '/inbox', delay_seconds: 5,
-  recursive: true, file_patterns: ['.pdf', '.docx', '.doc'],
-  ignore_patterns: ['~$', '.tmp', '.swp'], auto_archive: true,
-})
-
-const status = ref<MonitorStatus>({
-  running: false, enabled: true, watch_path: '/inbox',
-  delay_seconds: 5, last_processed: '',
-  processed_today: 0, success_today: 0, failed_today: 0,
-})
-
-const saving = ref(false)
-const saved = ref(false)
-const errMsg = ref('')
-const startLoading = ref(false)
-const stopLoading = ref(false)
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
-async function loadConfig() {
-  try {
-    const r = await http.get('/monitor/config')
-    config.value = {
-      enabled: r.data.enabled, watch_path: r.data.watch_path,
-      delay_seconds: r.data.delay_seconds, recursive: r.data.recursive,
-      file_patterns: Array.isArray(r.data.file_patterns) ? r.data.file_patterns : [],
-      ignore_patterns: Array.isArray(r.data.ignore_patterns) ? r.data.ignore_patterns : [],
-      auto_archive: r.data.auto_archive,
-    }
-  } catch { /* ignore */ }
-}
-
-async function loadStatus() {
-  try {
-    const r = await http.get('/monitor/status')
-    status.value = r.data
-  } catch { /* ignore */ }
-}
-
-async function saveConfig() {
-  saving.value = true; saved.value = false
-  try {
-    await http.put('/monitor/config', {
-      ...config.value,
-      file_patterns: config.value.file_patterns,
-      ignore_patterns: config.value.ignore_patterns,
+export default defineComponent({
+  name: 'FileMonitor',
+  setup() {
+    const config = ref<MonitorConfig>({
+      enabled: true, watch_path: '/inbox', delay_seconds: 5,
+      recursive: true, file_patterns: ['.pdf', '.docx', '.doc'],
+      ignore_patterns: ['~$', '.tmp', '.swp'], auto_archive: true,
     })
-    saved.value = true
-    setTimeout(() => saved.value = false, 2000)
-  } catch (e: any) { errMsg.value = e.message } finally { saving.value = false }
-}
 
-async function startMonitor() {
-  startLoading.value = true
-  try { await http.post('/monitor/start'); await loadStatus() }
-  catch { /* ignore */ } finally { startLoading.value = false }
-}
+    const status = ref<MonitorStatus>({
+      running: false, enabled: true, watch_path: '/inbox',
+      delay_seconds: 5, last_processed: '',
+      processed_today: 0, success_today: 0, failed_today: 0,
+    })
 
-async function stopMonitor() {
-  stopLoading.value = true
-  try { await http.post('/monitor/stop'); await loadStatus() }
-  catch { /* ignore */ } finally { stopLoading.value = false }
-}
+    const saving = ref(false)
+    const saved = ref(false)
+    const errMsg = ref('')
+    const startLoading = ref(false)
+    const stopLoading = ref(false)
+    let pollTimer: ReturnType<typeof setInterval> | null = null
 
-onMounted(() => { loadConfig(); loadStatus(); pollTimer = setInterval(loadStatus, 5000) })
-onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer) })
+    async function loadConfig() {
+      try {
+        const r = await http.get('/monitor/config')
+        config.value = {
+          enabled: r.data.enabled, watch_path: r.data.watch_path,
+          delay_seconds: r.data.delay_seconds, recursive: r.data.recursive,
+          file_patterns: Array.isArray(r.data.file_patterns) ? r.data.file_patterns : [],
+          ignore_patterns: Array.isArray(r.data.ignore_patterns) ? r.data.ignore_patterns : [],
+          auto_archive: r.data.auto_archive,
+        }
+      } catch { /* ignore */ }
+    }
+
+    async function loadStatus() {
+      try {
+        const r = await http.get('/monitor/status')
+        status.value = r.data
+      } catch { /* ignore */ }
+    }
+
+    async function saveConfig() {
+      saving.value = true; saved.value = false
+      try {
+        await http.put('/monitor/config', {
+          ...config.value,
+          file_patterns: config.value.file_patterns,
+          ignore_patterns: config.value.ignore_patterns,
+        })
+        saved.value = true
+        setTimeout(() => saved.value = false, 2000)
+      } catch (e: any) { errMsg.value = e.message } finally { saving.value = false }
+    }
+
+    async function startMonitor() {
+      startLoading.value = true
+      try { await http.post('/monitor/start'); await loadStatus() }
+      catch { /* ignore */ } finally { startLoading.value = false }
+    }
+
+    async function stopMonitor() {
+      stopLoading.value = true
+      try { await http.post('/monitor/stop'); await loadStatus() }
+      catch { /* ignore */ } finally { stopLoading.value = false }
+    }
+
+    onMounted(() => { loadConfig(); loadStatus(); pollTimer = setInterval(loadStatus, 5000) })
+    onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer) })
+
+    return {
+      config,
+      status,
+      saving,
+      saved,
+      errMsg,
+      startLoading,
+      stopLoading,
+      saveConfig,
+      startMonitor,
+      stopMonitor,
+    }
+  },
+})
 </script>
 
 <template>
