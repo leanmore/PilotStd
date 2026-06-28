@@ -48,7 +48,8 @@ const EVENTS = [
   { key: 'standard_status_changed',   label: '状态变更' },
   { key: 'standard_expired',          label: '标准废止' },
   { key: 'standard_first_registered', label: '首次登记' },
-  { key: 'check_batch_complete',      label: '批次完成' },
+  { key: 'check_batch_complete',         label: '批次完成' },
+  { key: 'announcement_fetch_complete',  label: '公告抓取完成' },
 ]
 
 const CHANNELS = [

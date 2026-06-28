@@ -133,6 +133,14 @@ class NotificationManager:
                 level="info",
                 event_type=event_type,
             )
+        elif event_type == "announcement_fetch_complete":
+            count = data.get("count", 0)
+            return NotificationMessage(
+                title="公告抓取完成",
+                body=f"已抓取 {count} 条新公告",
+                level="info",
+                event_type=event_type,
+            )
         else:
             return NotificationMessage(
                 title=event_type,

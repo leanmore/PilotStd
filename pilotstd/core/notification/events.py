@@ -6,6 +6,7 @@ EVENT_STATUS_CHANGED = "standard_status_changed"
 EVENT_EXPIRED = "standard_expired"
 EVENT_FIRST_REGISTERED = "standard_first_registered"
 EVENT_CHECK_BATCH_COMPLETE = "check_batch_complete"
+EVENT_ANNOUNCEMENT_FETCH = "announcement_fetch_complete"
 
 ALL_EVENTS = [
     EVENT_ARCHIVE_COMPLETE,
@@ -13,4 +14,5 @@ ALL_EVENTS = [
     EVENT_EXPIRED,
     EVENT_FIRST_REGISTERED,
     EVENT_CHECK_BATCH_COMPLETE,
+    EVENT_ANNOUNCEMENT_FETCH,
 ]

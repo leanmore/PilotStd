@@ -45,6 +45,17 @@ def _run_fetch_task(task_id: str, adapter_name: str, mgr) -> None:
                 (json.dumps(result, ensure_ascii=False), now2, task_id),
             )
             logger.info("[FETCH_TASK] %s: success (count=%d)", task_id, result.get("count", 0))
+            # 发送公告抓取完成通知
+            if mgr.notification_mgr:
+                try:
+                    mgr.notification_mgr.send_event(
+                        "announcement_fetch_complete",
+                        {
+                            "count": result.get("count", 0),
+                        },
+                    )
+                except Exception:
+                    pass
         else:
             db.execute(
                 "UPDATE fetch_task SET status='failed', progress=100, error_msg=?, updated_at=? WHERE id=?",
