@@ -277,6 +277,8 @@ jobs:
       - name: Build frontend
         run: |
           cd web
+          rm -rf node_modules/.vite
+          rm -rf dist
           npm ci
           npm run build
 

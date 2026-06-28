@@ -144,3 +144,10 @@ repos:
         language: system
         files: \.(vue|ts|js)$
         pass_filenames: false
+
+      - id: check-gate-14
+        name: 门禁 GATE-14 — OCR 敏感字段掩码一致性
+        entry: python scripts/check_gate_14_ocr_mask_consistency.py
+        language: system
+        files: web/src/views/SettingsView\.vue$
+        pass_filenames: false
