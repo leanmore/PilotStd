@@ -35,8 +35,6 @@ services:
       - TZ=Asia/Shanghai
       # 标准库根目录（必填，Docker 卷挂载位置，默认 /standards）
       - STANDARD_ROOT=/standards
-      # 自动更新：true/release=开启（版本比较+前端+依赖）, false=关闭
-      - PILOTSTD_AUTO_UPDATE=true
       # 超级用户（可选，默认 admin）
       - SUPERUSER=admin
       # 超级用户初始密码（可选，不填则自动生成随机密码，输出到日志）

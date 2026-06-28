@@ -54,28 +54,6 @@ const pageTitle = computed(() => {
 
 const isDark = computed(() => store.theme === 'dark')
 
-async function handleRestart() {
-  if (!confirm('确定要重启并更新 PilotStd 吗？\n\n服务将暂时不可用约 30 秒。')) return
-  try {
-    const resp = await fetch('/api/system/restart', { method: 'POST' })
-    if (resp.ok) {
-      // 轮询等待服务恢复
-      let retries = 0
-      const check = setInterval(async () => {
-        retries++
-        try {
-          const r = await fetch('/api/health')
-          if (r.ok) { clearInterval(check); window.location.reload() }
-        } catch {}
-        if (retries > 30) { clearInterval(check); window.location.reload() }
-      }, 2000)
-    }
-  } catch {
-    // 请求已发出但可能没收到响应（容器正在退出），正常轮询
-    setTimeout(() => window.location.reload(), 3000)
-  }
-}
-
 function logout() { router.push('/login') }
 </script>
 
@@ -109,15 +87,6 @@ function logout() { router.push('/login') }
           <i class="pi pi-user" />
           <span class="hide-mobile">{{ store.username }}</span>
         </span>
-        <!-- 重启并更新 -->
-        <button
-          class="topbar-btn restart-btn"
-          @click="handleRestart"
-          title="重启并更新到最新版本"
-        >
-          <i class="pi pi-refresh" />
-          <span class="hide-mobile">重启更新</span>
-        </button>
         <!-- 退出 -->
         <button class="topbar-btn logout-btn" @click="logout" title="退出登录">
           <i class="pi pi-sign-out" />
@@ -302,7 +271,6 @@ function logout() { router.push('/login') }
 
 .theme-btn:hover { color: var(--warning); }
 .logout-btn:hover { color: var(--danger); }
-.restart-btn:hover { color: var(--primary); }
 
 .user-tag {
   display: flex;

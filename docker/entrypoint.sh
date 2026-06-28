@@ -135,14 +135,6 @@ else
     echo "[INIT] 超级用户已初始化，跳过"
 fi
 
-# 检查是否是更新完成后的重启
-INTENTIONAL_RESTART_FLAG="/app/data/temp/pilotstd.intentional_restart"
-if [ -f "$INTENTIONAL_RESTART_FLAG" ]; then
-    rm -f "$INTENTIONAL_RESTART_FLAG"
-    echo "[RESTART] 更新完成，退出容器交由 Docker 重启策略重建..."
-    exit 1
-fi
-
 # 权限处理：PUID=0 表示以 root 运行，跳过 chown 和 gosu；否则降权到 appuser
 if [ "$PUID" = "0" ]; then
     # root 模式：直接启动，不降权（宿主机目录权限由 root 兜底）

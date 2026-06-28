@@ -1,10 +1,8 @@
 # docker/api/system.py — 系统管理 API（版本信息、自更新、重启）
-import asyncio
 import json
 import logging
 import os
 import subprocess
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -153,31 +151,3 @@ async def update_container():
     except Exception as e:
         logger.error("自更新失败: %s", e)
         raise HTTPException(500, f"更新失败: {e}")
-
-
-@router.post("/restart")
-async def restart_system():
-    """重启并更新系统（代码级，无需 docker.sock）。
-
-    写入 pending 更新标记后退出进程。
-    Docker 的 restart 策略（unless-stopped）会自动重建容器，
-    entrypoint.sh 检测到 pending 标记后执行 update.sh。
-    """
-    temp_dir = Path("/app/data/temp")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-
-    flag_file = temp_dir / "pilotstd.pending_update"
-    flag_file.write_text("release")
-
-    logger.info("Web 触发重启并更新，pending 标记已写入 %s", flag_file)
-
-    # 异步延迟退出，确保 HTTP 响应先返回
-    async def _delayed_exit():
-        await asyncio.sleep(1)
-        os._exit(0)
-
-    asyncio.create_task(_delayed_exit())
-    return {
-        "status": "ok",
-        "message": "系统将在 1 秒后重启并自动检查更新",
-    }
