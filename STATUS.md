@@ -33,7 +33,7 @@
 - [x] **通知触发点全量调查**（2026-06-28）— 识别 24 个时间触发点，6 个建议接入通知，详见 [docs/notification_trigger_candidates.md](docs/notification_trigger_candidates.md)
 - [x] **前端轮询机制调查**（2026-06-28）— 4 个指定异步任务（OCR/PDF/镜像/报表）均未实现，前端无轮询需求，详见 [docs/frontend_polling_report.md](docs/frontend_polling_report.md)
 - [x] **B3/B4 通知接入**（2026-06-28）— 两个事件已接入，Ruff/Mypy/Vulture/GATE 全通过
-- [x] **A1 auto_scan_failed 异常通知接入**（2026-06-28）— 仅失败时通知（异常/无文件），成功静默，facade 直通无需注入，全门禁+578测试通过
+- [x] **validity_checker 现有规则全览**（2026-06-28）— 6个配置项中2个仅前端展示（frequency/execute_time），1个硬编码无效（update_interval），无APScheduler调度，详见 [docs/validity_checker_current_state.md](docs/validity_checker_current_state.md)
 
 ### 压测方案改造（v3.0，8/8项）
 - [x] 版本一致性校验（第零步）
