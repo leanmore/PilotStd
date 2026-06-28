@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import requests
 
@@ -120,7 +120,7 @@ class DownloadEngine:
         return task
 
     def download_batch(
-        self, tasks: List[DownloadTask], skip_adopted: bool = True
+        self, tasks: List[DownloadTask], skip_adopted: bool = True, notification_mgr: Any = None
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
         import concurrent.futures
@@ -194,6 +194,19 @@ class DownloadEngine:
                 stats.failed += 1
             else:
                 stats.errors += 1
+
+        if notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "batch_download_complete",
+                    {
+                        "total": stats.total,
+                        "success": stats.success,
+                        "failed": stats.failed + stats.errors,
+                    },
+                )
+            except Exception:
+                pass
 
         return completed, stats
 

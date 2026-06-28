@@ -176,6 +176,24 @@ class NotificationManager:
                     level="warning",
                     event_type=event_type,
                 )
+        elif event_type == "batch_download_complete":
+            total = data.get("total", 0)
+            success = data.get("success", 0)
+            failed = data.get("failed", 0)
+            if failed == 0:
+                return NotificationMessage(
+                    title="批量下载完成",
+                    body=f"共 {total} 个文件，全部下载成功",
+                    level="info",
+                    event_type=event_type,
+                )
+            else:
+                return NotificationMessage(
+                    title="批量下载完成（部分失败）",
+                    body=f"共 {total} 个文件，成功 {success} 个，失败 {failed} 个",
+                    level="warning",
+                    event_type=event_type,
+                )
         else:
             return NotificationMessage(
                 title=event_type,

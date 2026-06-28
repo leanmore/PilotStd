@@ -675,7 +675,7 @@ class StandardManager:
                     tasks.append(t)
                     break
 
-        completed, stats = self.download_engine.download_batch(tasks)
+        completed, stats = self.download_engine.download_batch(tasks, notification_mgr=self.notification_mgr)
         self._download_tasks = completed
 
         # 回写下载路径：organize() 按 source_path 移动文件，下载入队时需补上

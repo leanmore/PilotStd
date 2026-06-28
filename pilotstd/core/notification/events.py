@@ -9,6 +9,7 @@ EVENT_CHECK_BATCH_COMPLETE = "check_batch_complete"
 EVENT_ANNOUNCEMENT_FETCH = "announcement_fetch_complete"
 EVENT_AUTO_BACKUP = "auto_backup"
 EVENT_ANNOUNCEMENT_CHECK = "announcement_check_complete"
+EVENT_BATCH_DOWNLOAD = "batch_download_complete"
 
 ALL_EVENTS = [
     EVENT_ARCHIVE_COMPLETE,
@@ -19,4 +20,5 @@ ALL_EVENTS = [
     EVENT_ANNOUNCEMENT_FETCH,
     EVENT_AUTO_BACKUP,
     EVENT_ANNOUNCEMENT_CHECK,
+    EVENT_BATCH_DOWNLOAD,
 ]
