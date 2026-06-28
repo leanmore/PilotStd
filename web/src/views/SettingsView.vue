@@ -22,7 +22,6 @@ import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
-import Card from 'primevue/card'
 defineOptions({ name: 'SettingsView' })
 const store = useAppStore()
 const { locale } = useI18n()
@@ -568,19 +567,15 @@ const sites = [
   </div>
 
   <!-- 系统 -->
-  <div v-show="activeTab === 'system'" class="mt-2">
-    <Card class="mb-3">
-      <template #title>文件监控</template>
-      <FileMonitor />
-    </Card>
-    <Card class="mb-3">
-      <template #title>缓存管理</template>
-      <CacheManager />
-    </Card>
-    <Card>
-      <template #title>任务管理</template>
-      <TaskManager />
-    </Card>
+  <div v-show="activeTab === 'system'" class="card mt-2">
+    <div class="card-header">文件监控</div>
+    <FileMonitor />
+    <hr />
+    <div class="card-header">缓存管理</div>
+    <CacheManager />
+    <hr />
+    <div class="card-header">任务管理</div>
+    <TaskManager />
   </div>
 
   <!-- 底部操作栏 -->
