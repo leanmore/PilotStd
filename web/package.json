@@ -1,7 +1,7 @@
 {
   "name": "web",
   "private": true,
-  "version": "0.37.25",
+  "version": "0.37.26",
   "type": "module",
   "imports": {
     "@/*": "./src/*"
