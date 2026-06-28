@@ -28,7 +28,7 @@ class ValidityChecker:
 
     # ── 注册新标准 ──────────────────────────────────────────────
 
-    def register_new_standard(self, standard_number: str) -> None:
+    def register_new_standard(self, standard_number: str, notification_mgr: Any = None) -> None:
         """归档后注册新标准，初始状态='未知'，next_check_at=now（立即可查）。"""
         now = datetime.now(timezone.utc).isoformat()
         existing = self._db.fetchone(
@@ -42,6 +42,16 @@ class ValidityChecker:
             "VALUES (?, '未知', ?, ?, ?)",
             (standard_number, now, now, now),
         )
+        if notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "standard_first_registered",
+                    {
+                        "standard_number": standard_number,
+                    },
+                )
+            except Exception:
+                pass
 
     # ── 状态更新 ──────────────────────────────────────────────
 

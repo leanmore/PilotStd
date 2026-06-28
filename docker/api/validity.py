@@ -147,6 +147,18 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
 
         logger.info("时效性检查完成: checked=%d changed=%d", len(candidates), changed)
 
+        if mgr.notification_mgr:
+            try:
+                mgr.notification_mgr.send_event(
+                    "check_batch_complete",
+                    {
+                        "count": len(candidates),
+                        "changed": changed,
+                    },
+                )
+            except Exception:
+                pass
+
         # 时效性检查完成后标记缓存失效
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource

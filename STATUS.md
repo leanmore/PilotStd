@@ -29,7 +29,10 @@
 - [x] **公告抓取 SQL 参数超限修复**（2026-06-25）— matcher.py `_bulk_insert_fetch_log` + `_bulk_upsert_cache` 改为分批写入（每批 50 条）
 - [x] **Docker 重启即更新**（2026-06-25，2026-06-28 已移除）— ~~PILOTSTD_AUTO_UPDATE + docker.sock 挂载，容器启动自动拉取镜像并重启~~
 - [x] **Web UI 四个管理页面**（2026-06-25）— /notifications, /notification-logs, /standards-status, /validity-config 四个页面 + 配套后端 API
-- [x] **删除 test_restart_writes_pending_flag 测试**（2026-06-28）— 对应端点 `/api/system/restart` 已在自动更新清理中移除，测试套件通过（43/43），无回归— stress_docker.py 公告抓取改为异步模式 + 新增熔断/标准状态/时效性检查 9 个端点验证，38→47
+- [x] **删除 test_restart_writes_pending_flag 测试**（2026-06-28）— 对应端点 `/api/system/restart` 已在自动更新清理中移除，测试套件通过（43/43），无回归
+- [x] **通知触发点全量调查**（2026-06-28）— 识别 24 个时间触发点，6 个建议接入通知，详见 [docs/notification_trigger_candidates.md](docs/notification_trigger_candidates.md)
+- [x] **前端轮询机制调查**（2026-06-28）— 4 个指定异步任务（OCR/PDF/镜像/报表）均未实现，前端无轮询需求，详见 [docs/frontend_polling_report.md](docs/frontend_polling_report.md)
+- [x] **B3/B4 通知接入**（2026-06-28）— `standard_first_registered` 接入 `validity_checker.register_new_standard()`，`check_batch_complete` 接入 `run_validity_check()`，Ruff/Mypy/Vulture/GATE 全通过
 
 ### 压测方案改造（v3.0，8/8项）
 - [x] 版本一致性校验（第零步）

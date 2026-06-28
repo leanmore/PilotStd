@@ -925,7 +925,7 @@ class StandardManager:
                 if _p.year:
                     _std_no += f"-{_p.year}"
                 try:
-                    self.validity_checker.register_new_standard(_std_no)
+                    self.validity_checker.register_new_standard(_std_no, self.notification_mgr)
                 except Exception:
                     pass
             try:
