@@ -159,6 +159,43 @@ def write_version_to_package_json(version: str) -> None:
     print(f"  ✓ web/package.json -> {version}", file=sys.stderr)
 
 
+def update_changelog(new_version: str) -> bool:
+    """在 CHANGELOG.md 顶部插入新版本条目。"""
+    changelog_path = PROJECT_ROOT / "CHANGELOG.md"
+
+    try:
+        content = changelog_path.read_text(encoding="utf-8")
+
+        # 检查版本是否已存在
+        if f"## v{new_version}" in content:
+            print(f"CHANGELOG.md 已包含 v{new_version}，跳过更新", file=sys.stderr)
+            return True
+
+        # 生成新版本条目
+        import datetime
+
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        entry = f"## v{new_version} ({today})\n\n### Fixed\n- 版本号自动同步（CI 更新）\n\n"
+
+        # 在第一个 ## 之前插入
+        lines = content.split("\n")
+        insert_idx = 0
+        for i, line in enumerate(lines):
+            if line.startswith("## "):
+                insert_idx = i
+                break
+
+        new_lines = lines[:insert_idx] + [entry] + lines[insert_idx:]
+        changelog_path.write_text("\n".join(new_lines), encoding="utf-8")
+
+        print(f"✅ CHANGELOG.md 已更新：新增 v{new_version}", file=sys.stderr)
+        return True
+
+    except Exception as e:
+        print(f"❌ 更新 CHANGELOG.md 失败: {e}", file=sys.stderr)
+        return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="根据 commit message 前缀自动计算下一个语义化版本号")
     parser.add_argument(
@@ -215,6 +252,7 @@ def main() -> None:
         print(f"已更新 {INIT_PATH}: {current} → {new_version}", file=sys.stderr)
         write_version_to_pyproject(new_version)
         write_version_to_package_json(new_version)
+        update_changelog(new_version)
 
     if args.github:
         # GitHub Actions set-output 格式
