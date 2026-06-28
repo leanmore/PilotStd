@@ -665,24 +665,6 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["updated"])
 
-    # ── System: restart ──
-
-    @patch("docker.api.system.asyncio.create_task")
-    @patch("docker.api.system.Path")
-    def test_restart_writes_pending_flag(self, mock_path_cls, mock_create_task):
-        """POST /api/system/restart 写入 pending 标记并返回 ok。"""
-        mock_flag = MagicMock()
-        mock_temp_dir = MagicMock()
-        mock_temp_dir.__truediv__.return_value = mock_flag
-        mock_path_cls.return_value = mock_temp_dir
-        # 阻止 os._exit(0) 杀死测试进程
-        mock_create_task.side_effect = lambda _: None
-        r = self.client.post("/api/system/restart")
-        self.assertEqual(r.status_code, 200)
-        data = r.json()
-        self.assertEqual(data["status"], "ok")
-        mock_flag.write_text.assert_called_once_with("release")
-
     # ── Path Guard ──
 
     def test_get_allowed_roots_includes_inbox_and_standards(self):

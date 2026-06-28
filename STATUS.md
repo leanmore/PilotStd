@@ -1,6 +1,6 @@
 # PilotStd 项目状态
 
-> 最后更新：2026-06-27
+> 最后更新：2026-06-28
 > 维护规则：每次任务完成后，由 Claude Code 更新本文件
 
 ## 一、当前版本信息
@@ -27,9 +27,9 @@
 - [x] **进度条异常状态显示**（2026-06-23）— 异常时进度条变红 + 显示"失败"文字，状态栏同步显示错误原因
 - [x] **E501 行长度清零**（2026-06-23）— line-length 放宽至120 + 8份文件逐行 noqa + 2份文件 per-file-ignores，215→0
 - [x] **公告抓取 SQL 参数超限修复**（2026-06-25）— matcher.py `_bulk_insert_fetch_log` + `_bulk_upsert_cache` 改为分批写入（每批 50 条）
-- [x] **Docker 重启即更新**（2026-06-25）— PILOTSTD_AUTO_UPDATE + docker.sock 挂载，容器启动自动拉取镜像并重启
+- [x] **Docker 重启即更新**（2026-06-25，2026-06-28 已移除）— ~~PILOTSTD_AUTO_UPDATE + docker.sock 挂载，容器启动自动拉取镜像并重启~~
 - [x] **Web UI 四个管理页面**（2026-06-25）— /notifications, /notification-logs, /standards-status, /validity-config 四个页面 + 配套后端 API
-- [x] **压测脚本 v9.2 适配**（2026-06-25）— stress_docker.py 公告抓取改为异步模式 + 新增熔断/标准状态/时效性检查 9 个端点验证，38→47
+- [x] **删除 test_restart_writes_pending_flag 测试**（2026-06-28）— 对应端点 `/api/system/restart` 已在自动更新清理中移除，测试套件通过（43/43），无回归— stress_docker.py 公告抓取改为异步模式 + 新增熔断/标准状态/时效性检查 9 个端点验证，38→47
 
 ### 压测方案改造（v3.0，8/8项）
 - [x] 版本一致性校验（第零步）
