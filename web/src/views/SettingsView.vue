@@ -23,7 +23,7 @@ import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import Card from 'primevue/card'
-defineOptions({ name: 'SettingsView', components: { FileMonitor } })
+defineOptions({ name: 'SettingsView' })
 const store = useAppStore()
 const { locale } = useI18n()
 const confirm = useConfirm()
