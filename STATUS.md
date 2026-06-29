@@ -14,6 +14,7 @@
 ## 二、已完成工作
 
 ### 代码修复（11项）
+- [x] **通知系统实现状态调查**（2026-06-29）— 全维度调查：渠道发送（4/4完整）、消息持久化（完整）、API（4端点）、前端（配置+日志查看器完成，缺通知中心/实时推送）。详见 [docs/notification_system_status.md](docs/notification_system_status.md)
 - [x] **validity 重构 + 调度接入 + auto_query 删除**（2026-06-29）— 4 个 commit，10 个文件，净增 +1213/-151 行。详情见下方 [validity 重构摘要](#validity-重构摘要)
 - [x] query_exact 修复
 - [x] hbba 回退修复
