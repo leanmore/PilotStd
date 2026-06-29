@@ -217,7 +217,7 @@ jobs:
       - name: Install and test
         run: |
           cd web
-          pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile --ignore-scripts
           pnpm vitest run
 
       - name: Check dead TypeScript exports
@@ -280,7 +280,7 @@ jobs:
           rm -rf node_modules/.vite
           rm -rf dist
           rm -rf node_modules
-          pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile --ignore-scripts
           pnpm run build
 
       - name: Package dist.zip
