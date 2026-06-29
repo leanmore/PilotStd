@@ -28,8 +28,10 @@ from .api.normalize import router as normalize_router
 from .api.notification import router as notification_router
 from .api.organize import router as organize_router
 from .api.pending import router as pending_router
+from .api.quality import router as quality_router
 from .api.query import router as query_router
 from .api.scan import router as scan_router
+from .api.scheduler import router as scheduler_router
 from .api.settings import router as settings_router
 from .api.standards import router as standards_router
 from .api.stats import router as stats_router
@@ -257,6 +259,8 @@ app.include_router(upload_router)
 app.include_router(logs_router)
 app.include_router(monitor_router)
 app.include_router(system_router)
+app.include_router(quality_router)
+app.include_router(scheduler_router)
 
 app.add_websocket_route("/api/notification/ws", websocket_endpoint)
 
