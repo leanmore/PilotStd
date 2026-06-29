@@ -210,20 +210,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install and test
         run: |
           cd web
-          npm ci
-          npx vitest run
+          pnpm install --frozen-lockfile
+          pnpm vitest run
 
       - name: Check dead TypeScript exports
         run: |
           cd web
-          npm install -D ts-prune
-          npx ts-prune --error
+          pnpm add -D ts-prune
+          pnpm ts-prune --error
 
       - name: GATE-10 — Check UI sensitive fields protection
         run: python scripts/check_ui_sensitive_fields.py
@@ -271,18 +272,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: web/package-lock.json
 
       - name: Build frontend
         run: |
+          npm install -g pnpm
           cd web
-          # 清理所有缓存，确保使用最新代码构建
           rm -rf node_modules/.vite
           rm -rf dist
           rm -rf node_modules
-          npm ci --no-cache
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Package dist.zip
         run: |
