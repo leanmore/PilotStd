@@ -10,9 +10,6 @@ from fastapi import Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
-from pilotstd.core.config import get_db_path
-from pilotstd.core.db import Database
-
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -124,51 +121,10 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
 def get_validity_history(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
+    mgr=Depends(get_manager_dep),
 ):
     """获取检查执行历史（按日期聚合 standard_validity 的 last_checked_at）。"""
-    try:
-        db = Database(get_db_path())
-    except Exception as e:
-        logger.exception("连接数据库失败")
-        return JSONResponse({"error": f"数据库连接失败: {e}"}, status_code=500)
-
-    try:
-        count_row = db.fetchone(
-            "SELECT COUNT(DISTINCT DATE(last_checked_at)) AS total "
-            "FROM standard_validity WHERE last_checked_at IS NOT NULL"
-        )
-        total = count_row["total"] if count_row else 0
-
-        offset = (page - 1) * page_size
-        rows = db.fetchall(
-            "SELECT DATE(last_checked_at) AS check_date, "
-            "COUNT(*) AS checked_count, "
-            "SUM(CASE WHEN last_status != status THEN 1 ELSE 0 END) AS changed_count "
-            "FROM standard_validity "
-            "WHERE last_checked_at IS NOT NULL "
-            "GROUP BY DATE(last_checked_at) "
-            "ORDER BY check_date DESC LIMIT ? OFFSET ?",
-            (page_size, offset),
-        )
-        db.close()
-    except Exception as e:
-        logger.exception("查询时效性检查历史失败")
-        try:
-            db.close()
-        except Exception:
-            pass
-        return JSONResponse({"error": f"查询失败: {e}"}, status_code=500)
-
-    items = [
-        {
-            "check_date": r["check_date"],
-            "checked_count": r["checked_count"],
-            "changed_count": r["changed_count"],
-            "status": "success",
-        }
-        for r in rows
-    ]
-    return {"total": total, "page": page, "page_size": page_size, "items": items}
+    return mgr.validity_service.get_history(page, page_size)
 
 
 @router.post("/api/validity/enqueue")
@@ -177,26 +133,9 @@ def enqueue_validity_check(body: dict, mgr=Depends(get_manager_dep)):
     file_paths: list[str] = body.get("file_paths", []) if isinstance(body.get("file_paths"), list) else []
     if not file_paths:
         return JSONResponse({"error": "file_paths 不能为空"}, status_code=400)
-
     try:
-        from pilotstd.core.config import get_db_path as _dbp
-        from pilotstd.core.db import Database as _DB
-
-        db = _DB(_dbp())
-        inserted = 0
-        for fp in file_paths:
-            try:
-                db.execute(
-                    "INSERT OR IGNORE INTO validity_check_queue "
-                    "(file_path, status, created_at) VALUES (?, 'pending', datetime('now'))",
-                    (str(fp),),
-                )
-                inserted += 1
-            except Exception:
-                pass
-        db.close()
-        logger.info("时效性检查入队: %d/%d", inserted, len(file_paths))
-        return {"ok": True, "enqueued": inserted, "total": len(file_paths)}
+        result = mgr.validity_service.enqueue_files(file_paths)
+        return result
     except Exception as e:
         logger.exception("时效性检查入队失败")
         return JSONResponse({"error": f"入队失败: {e}"}, status_code=500)

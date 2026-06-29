@@ -145,6 +145,13 @@ class StandardManager:
             self._scheduled_svc,
         ) = create_services(self)
 
+        # ── 子服务 ──
+        from .user_service import UserService
+        from .validity_service import ValidityService
+
+        self.validity_service = ValidityService(self)
+        self.user_service = UserService(self)
+
         # ── 时效性检查 ──
         self.validity_checker = ValidityChecker(self.db)
 
