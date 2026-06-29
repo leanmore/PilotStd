@@ -49,6 +49,15 @@ def register_job_func(job_id: str, func: Callable):
         _job_funcs[job_id] = func
 
 
+def _add_interval_job(job_id: str, interval_seconds: int):
+    """向调度器添加 interval 定时任务（唤醒模式）。"""
+    from apscheduler.triggers.interval import IntervalTrigger
+
+    func = _job_funcs.get(job_id)
+    if func:
+        scheduler.add_job(func, IntervalTrigger(seconds=interval_seconds), id=job_id, replace_existing=True)
+
+
 def _add_cron_job(job_id: str, cron_expr: str):
     """向调度器添加一个 cron 定时任务。若已存在则替换。"""
     func = _job_funcs.get(job_id)
@@ -180,10 +189,68 @@ def start_scheduler():
         if cfg.get(enabled_key, default_enabled):
             default_cron = "0 3 * * 0" if job_id == "auto_backup" else "0 0 * * *"
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
+    _add_interval_job("validity_wake", 300)
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
     logger.info("APScheduler 已启动")
+
+
+def _check_validity_schedule(notification_mgr=None):
+    """APScheduler 唤醒函数：检查是否到了 validity 执行时间。"""
+    import math
+    from datetime import datetime, timedelta
+
+    config = ConfigManager()
+    first_execution_str = config.get("validity.first_execution")
+    next_run_str = config.get("validity.next_run")
+    round_completed = config.get("validity.round_completed", False)
+
+    if first_execution_str is None:
+        return
+
+    if round_completed:
+        config.set("validity.round_completed", False)
+        config.set("validity.checked_count", 0)
+        now = datetime.now()
+        config.set("validity.next_run", (now + timedelta(minutes=1)).isoformat())
+        config.save()
+        logger.info("validity 轮次完成，自动重置，下一轮将于 1 分钟后开始")
+        return
+
+    now = datetime.now()
+
+    if next_run_str is None:
+        try:
+            first_execution = datetime.fromisoformat(first_execution_str)
+        except (ValueError, TypeError):
+            logger.warning("validity.first_execution 格式无效: %s", first_execution_str)
+            return
+        if now < first_execution:
+            return
+    else:
+        try:
+            next_run = datetime.fromisoformat(next_run_str)
+        except (ValueError, TypeError):
+            logger.warning("validity.next_run 格式无效: %s", next_run_str)
+            return
+        if now < next_run:
+            return
+
+    from pilotstd.core.validity_checker import run_validity_check
+
+    run_validity_check(notification_mgr=notification_mgr, update_counters=True)
+
+    check_ratio = config.get("validity.check_ratio", 25)
+    total_weeks = config.get("validity.total_weeks", 4)
+    total_runs = math.ceil(100 / check_ratio)
+    total_days = total_weeks * 7
+    interval_days = math.ceil(total_days / total_runs)
+
+    next_dt = now + timedelta(days=interval_days)
+    config.set("validity.next_run", next_dt.isoformat())
+    config.save()
+    logger.info("validity 下次执行时间: %s（间隔 %d 天）", next_dt.isoformat(), interval_days)
 
 
 def stop_scheduler():
