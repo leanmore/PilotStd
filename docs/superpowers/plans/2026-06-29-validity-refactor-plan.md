@@ -755,9 +755,10 @@ def _check_validity_schedule(notification_mgr=None):
     if round_completed:
         config.set("validity.round_completed", False)
         config.set("validity.checked_count", 0)
-        config.set("validity.next_run", None)
+        now = datetime.now()
+        config.set("validity.next_run", (now + timedelta(minutes=1)).isoformat())
         config.save()
-        logger.info("validity 轮次完成，已重置，等待新的 first_execution")
+        logger.info("validity 轮次完成，自动重置，下一轮将于 1 分钟后开始")
         return
 
     now = datetime.now()

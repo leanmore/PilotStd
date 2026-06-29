@@ -167,12 +167,11 @@ interval_days = ceil(total_days / total_runs)
 ```
 first_execution=None  →  调度器跳过（安全初始态）
         │
-        ▼ 用户设置
+        ▼ 用户设置一次
 first_execution=T0
         │
         ▼ 调度器唤醒：now >= T0
-首次执行 run_validity_check()
-  计算 next_run = now + interval_days
+首次执行 → 计算 next_run = now + interval_days
         │
         ▼
 后续唤醒：now >= next_run?  →  执行 + 重算 next_run
@@ -181,14 +180,15 @@ first_execution=T0
 round_completed = True
         │
         ▼ 调度器唤醒
-重置：round_completed=False, checked_count=0, next_run=None
-  → 回到等待 first_execution 状态（用户重新设置后开始下一轮）
+自动重置：round_completed=False, checked_count=0
+  next_run = now + 1分钟（缓冲，立即开始下一轮）
+  → 无需人工干预，自动循环
 ```
 
 **关键规则**：
 - `first_execution` 仅在首次进入（`next_run is None` 且未完成过任何一轮）时使用
 - 后续完全由 `next_run` 驱动
-- `round_completed` 重置时**同时清除 `next_run`**，强制用户重新设置 `first_execution` 来启动新轮次，防止在用户未确认的情况下自动开始下一轮
+- `round_completed` 重置时**自动将 `next_run` 设为 `now + 1分钟`**，下一轮无需人工干预即可启动
 
 ### 4.6 并发保护
 
