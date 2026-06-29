@@ -77,6 +77,38 @@ async def lifespan(app: FastAPI):
     from .manager import get_manager as _get_mgr
 
     _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
+
+    # 注入 WebSocket 广播回调（在 Core 层通过回调使用 Platform 层能力，避免 Core→Docker 直接导入）
+    def _ws_broadcast_callback(event_type: str, title: str, body: str, level: str) -> None:
+        try:
+            from datetime import datetime
+
+            from .websocket import get_ws_manager
+
+            ws_manager = get_ws_manager()
+            if ws_manager.connection_count == 0:
+                return
+            import asyncio
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(
+                ws_manager.broadcast(
+                    {
+                        "event_type": event_type,
+                        "title": title,
+                        "body": body,
+                        "level": level,
+                        "sent_at": datetime.now().isoformat(),
+                    }
+                )
+            )
+            loop.close()
+        except Exception:
+            pass
+
+    _cron_mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
+
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
     from .api.announce import check_announce
 

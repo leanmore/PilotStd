@@ -2,6 +2,7 @@
 """NotificationManager——多渠道通知分发与日志记录。"""
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -29,11 +30,12 @@ class NotificationManager:
     渠道加载失败时降级（记录错误，不阻断流程）。
     """
 
-    def __init__(self, config: Any, db: Database):
+    def __init__(self, config: Any, db: Database, ws_broadcast: Callable | None = None):
         self._cfg = config
         self._db = db
         self._enabled = config.get("notification.enabled", False)
         self._channels: dict[str, Any] = {}
+        self._ws_broadcast = ws_broadcast
         if self._enabled:
             self._init_channels()
 
@@ -281,36 +283,18 @@ class NotificationManager:
 
     def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
         """在独立线程中向 WebSocket 连接广播通知。"""
+        if self._ws_broadcast is None:
+            return
+
         import threading
-        from datetime import datetime
 
-        def _run() -> None:
-            try:
-                from docker.websocket import get_ws_manager
-
-                ws_manager = get_ws_manager()
-                if ws_manager.connection_count == 0:
-                    return
-                import asyncio
-
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(
-                    ws_manager.broadcast(
-                        {
-                            "event_type": event_type,
-                            "title": msg.title,
-                            "body": msg.body,
-                            "level": msg.level,
-                            "sent_at": datetime.now().isoformat(),
-                        }
-                    )
-                )
-                loop.close()
-            except Exception:
-                pass  # 静默失败，不影响主流程
-
-        threading.Thread(target=_run, daemon=True, name="notif-ws-broadcast").start()
+        # 通过回调注入执行广播（回调内部处理 WebSocket/event loop 细节）
+        threading.Thread(
+            target=self._ws_broadcast,
+            args=(event_type, msg.title, msg.body, msg.level),
+            daemon=True,
+            name="notif-ws-broadcast",
+        ).start()
 
     # ── 查询日志 ──────────────────────────────────────────────
 

@@ -5,6 +5,7 @@ import logging
 import os
 import threading
 import time
+from typing import Any
 
 from watchdog.observers import Observer
 
@@ -24,12 +25,13 @@ def get_scheduler():
 
 
 class FileMonitorScheduler:
-    def __init__(self):
+    def __init__(self, manager: Any = None):
         self.observer: Observer | None = None
         self.handler: StandardFileHandler | None = None
         self.running = False
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
+        self._mgr = manager  # 依赖注入，避免 monitor→manager 反向导入
 
     def start(self):
         if self.running:
@@ -85,9 +87,12 @@ class FileMonitorScheduler:
         set_last_processed(path)
 
         try:
-            from pilotstd.manager.facade import StandardManager
+            if self._mgr is None:
+                # 兼容未注入 manager 的场景（自动降级）
+                from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
 
-            mgr = StandardManager()
+                self._mgr = StandardManager()
+            mgr = self._mgr
             scanned = mgr.scan_directory(os.path.dirname(path))
             if scanned:
                 logger.info("[MONITOR] 扫描完成: %d 条", len(scanned))
