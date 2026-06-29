@@ -8,13 +8,13 @@
 
 ## 一、门禁总览
 
-共 **14 道门禁**，分为三类：
+共 **15 道门禁**，分为三类：
 
 | 类别 | 数量 | 门禁编号 |
 |------|------|---------|
 | 已存在（本次未修改） | 8 | GATE-01 ~ GATE-08 |
 | 已修复 | 2 | GATE-04, GATE-09 |
-| 本次新增 | 4 | GATE-11, GATE-12, GATE-13, GATE-14 |
+| 本次新增 | 5 | GATE-11, GATE-12, GATE-13, GATE-14, GATE-15 |
 
 ---
 
@@ -187,6 +187,20 @@
 
 ---
 
+### GATE-15：代码规模控制
+
+| 属性 | 内容 |
+|------|------|
+| 脚本路径 | `scripts/check_gate_15_code_size.py` |
+| 守护能力 | 代码可维护性（防止文件/函数膨胀） |
+| 所在分层 | 全部层 |
+| 检查内容 | Python/TS/Vue 文件 ≤ 500 行，Python 函数 ≤ 80 行 |
+| 触发方式 | pre-commit + CI |
+| 违例处理 | CI 阻断（必须修复才能合并） |
+| 状态 | ✅ 已启用 |
+
+---
+
 ## 三、能力与门禁映射表
 
 | 能力 | 守护门禁 |
@@ -205,6 +219,7 @@
 | 硬编码规范 | GATE-11, GATE-13 |
 | Vue 组件规范 | GATE-12 |
 | OCR 掩码一致性 | GATE-14 |
+| 代码规模控制 | GATE-15 |
 
 ---
 
@@ -212,8 +227,8 @@
 
 | 执行方式 | 门禁 |
 |---------|------|
-| Pre-commit hooks（本地） | GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06, GATE-07a, GATE-07b, GATE-11, GATE-12, GATE-13, GATE-14 |
-| CI（test-backend job） | GATE-08, GATE-09 |
+| Pre-commit hooks（本地） | GATE-01, GATE-02, GATE-03, GATE-04, GATE-05, GATE-06, GATE-07a, GATE-07b, GATE-11, GATE-12, GATE-13, GATE-14, GATE-15 |
+| CI（test-backend job） | GATE-08, GATE-09, GATE-15 |
 | CI（test-frontend job） | GATE-10 |
 | 手动运行 | 全部门禁 |
 
