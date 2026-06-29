@@ -77,38 +77,6 @@ class ScheduledService:
         return count
 
     # ════════════════════════════════════════════════════════════════
-    # 更新检测
-    # ════════════════════════════════════════════════════════════════
-
-    def recheck_updates(self) -> dict[str, int]:
-        """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
-        rows = self._file_index.get_recheck_candidates(limit=500)
-        if not rows:
-            return {"checked": 0, "updated": 0}
-        updated = 0
-        checked = 0
-        for row in rows:
-            lc = row.get("logical_code", "")
-            num = row.get("number", 0)
-            yr = row.get("year", 0)
-            if not lc or not num:
-                continue
-            r_list = self._query_engine.query_standards([(lc, num, yr, "", None, row.get("num_prefix", ""))])
-            checked += 1
-            r = r_list[0] if r_list else None
-            if r and r.is_found() and r.status != row.get("status"):
-                self._file_index.upsert(
-                    row["file_path"],
-                    logical_code=lc,
-                    number=num,
-                    year=yr,
-                    std_name=r.standard_name,
-                    status=r.status,
-                )
-                updated += 1
-        return {"checked": checked, "updated": updated}
-
-    # ════════════════════════════════════════════════════════════════
     # 批量查询/下载
     # ════════════════════════════════════════════════════════════════
 

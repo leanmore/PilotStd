@@ -60,8 +60,6 @@ class TestSchedulerModule(unittest.TestCase):
         mock_cfg.return_value.get.side_effect = lambda key, default: {
             "tasks.auto_scan_enabled": True,
             "tasks.auto_scan_cron": "0 3 * * *",
-            "tasks.auto_query_enabled": False,
-            "tasks.auto_query_cron": "0 5 * * *",
             "tasks.auto_announce_enabled": False,
             "tasks.auto_announce_cron": "0 1 * * *",
         }.get(key, default)
@@ -72,7 +70,6 @@ class TestSchedulerModule(unittest.TestCase):
 
         # 只有 auto_scan 注册了，因为 enabled=True
         self.assertTrue(any(j.id == "auto_scan" for j in scheduler.get_jobs()))
-        self.assertFalse(any(j.id == "auto_query" for j in scheduler.get_jobs()))
 
     @patch("docker.scheduler.ConfigManager")
     @patch.object(scheduler, "start")  # 避免前一个测试已启动导致 SchedulerAlreadyRunningError

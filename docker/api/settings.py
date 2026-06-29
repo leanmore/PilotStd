@@ -50,8 +50,6 @@ def get_settings(mgr=Depends(get_manager_dep)):
         "tasks": {
             "auto_scan_enabled": cfg.get("tasks.auto_scan_enabled", False),
             "auto_scan_cron": cfg.get("tasks.auto_scan_cron", "0 3 * * *"),
-            "auto_query_enabled": cfg.get("tasks.auto_query_enabled", False),
-            "auto_query_cron": cfg.get("tasks.auto_query_cron", "0 5 * * *"),
             "auto_announce_enabled": cfg.get("tasks.auto_announce_enabled", False),
             "auto_announce_cron": cfg.get("tasks.auto_announce_cron", "0 1 * * *"),
         },
@@ -102,7 +100,6 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
     tasks = data.get("tasks", {})
     for job_id, cron_key in [
         ("auto_scan", "auto_scan_cron"),
-        ("auto_query", "auto_query_cron"),
         ("auto_announce", "auto_announce_cron"),
     ]:
         enabled = tasks.get(cron_key.replace("_cron", "_enabled"), False)

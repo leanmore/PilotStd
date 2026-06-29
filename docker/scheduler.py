@@ -173,7 +173,6 @@ def start_scheduler():
     cfg = ConfigManager()
     for job_id, cron_key, enabled_key in [
         ("auto_scan", "tasks.auto_scan_cron", "tasks.auto_scan_enabled"),
-        ("auto_query", "tasks.auto_query_cron", "tasks.auto_query_enabled"),
         ("auto_announce", "tasks.auto_announce_cron", "tasks.auto_announce_enabled"),
         ("auto_backup", "tasks.auto_backup_cron", "tasks.auto_backup_enabled"),
     ]:

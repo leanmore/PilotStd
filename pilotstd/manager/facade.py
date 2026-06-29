@@ -1207,10 +1207,6 @@ class StandardManager:
                 pass
         return count
 
-    def recheck_updates(self) -> dict[str, int]:
-        """定时任务专用：重新查询 file_index 中的现行标准，检测是否有更新/废止。"""
-        return self._scheduled_svc.recheck_updates()  # type: ignore[no-any-return]
-
     def query_by_numbers(
         self, numbers: List[str], force_refresh: bool = False, preferred_site: str = ""
     ) -> tuple[list[QueryResult], BatchQueryStats]:

@@ -154,15 +154,6 @@ class FileIndexRepository:
         """通过文件哈希查找（用于检测移动/重命名）。"""
         return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,))
 
-    def get_recheck_candidates(self, limit: int = 500) -> list[dict[str, Any]]:
-        """返回需重新查询的标准（7天未检查的现行标准）。"""
-        return self._db.fetchall(
-            "SELECT * FROM file_index WHERE status='现行' AND "
-            "(last_checked IS NULL OR last_checked < date('now', '-7 days')) "
-            "ORDER BY last_checked ASC LIMIT ?",
-            (limit,),
-        )
-
     def clear_stale(self) -> int:
         """清除文件已不存在的索引记录（增量：仅检查超过 7 天未验证或从未验证的记录），返回清除数量。"""
         rows = self._db.fetchall(

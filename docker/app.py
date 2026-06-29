@@ -77,7 +77,6 @@ async def lifespan(app: FastAPI):
 
     _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
-    register_job_func("auto_query", lambda: _cron_mgr.recheck_updates())
     from .api.announce import check_announce
 
     register_job_func("auto_announce", check_announce)
