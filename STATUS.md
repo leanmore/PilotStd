@@ -1,19 +1,20 @@
 # PilotStd 项目状态
 
-> 最后更新：2026-06-28
+> 最后更新：2026-06-29
 > 维护规则：每次任务完成后，由 Claude Code 更新本文件
 
 ## 一、当前版本信息
 
 | 项目 | 值 |
 |------|-----|
-| 版本号 | 0.37.15 |
+| 版本号 | 0.43.0 |
 | 分支 | main |
-| 目标 | v4.2 压测验收通过并修复阻塞项 |
+| 目标 | validity 重构 + 调度接入 + auto_query 删除 |
 
 ## 二、已完成工作
 
-### 代码修复（10项）
+### 代码修复（11项）
+- [x] **validity 重构 + 调度接入 + auto_query 删除**（2026-06-29）— 4 个 commit，10 个文件，净增 +1213/-151 行。详情见下方 [validity 重构摘要](#validity-重构摘要)
 - [x] query_exact 修复
 - [x] hbba 回退修复
 - [x] 冷却配额修复
@@ -662,3 +663,33 @@ Docker `lifespan` 启动时仅注册任务函数 + 启动调度器，**不立即
 ## 规则更新记录
 
 - 2026-06-27：新增 **规则 7 — UI 修改强制验收规则**（详见 `.claude/instructions.md`），要求任何 Vue 组件 UI 修改前必须输出修改前后状态描述 + 功能完整性清单
+
+---
+
+## validity 重构摘要（2026-06-29）
+
+### 背景
+- `auto_query` 是死功能：`recheck_updates()` 从未被调度器真正消费
+- validity 核心逻辑散落在 `docker/api/validity.py`，无法被调度器复用
+- `update_status()` 硬编码 `+28天`，无视配置
+- 调度器未接入 validity
+
+### 变更
+| 部分 | 内容 | Commit |
+|------|------|--------|
+| 删除 auto_query | 7 个文件，全链路零残留（`recheck_updates`/`get_recheck_candidates`/`auto_query` 全部移除） | `621ddb1` |
+| 配置重构 | 新增 `first_execution`/`total_weeks`/`next_run`/`checked_count`/`round_completed` 5 项；废弃 `frequency`/`execute_time`/`update_interval` 3 项 | `af5fe76` |
+| 核心迁移 | `run_validity_check()` 纯函数（含并发锁）+ `update_status()` 硬编码修复 | `cd38cea` |
+| 调度接入 | 每 5 分钟唤醒 `_check_validity_schedule()`，内部判断 `first_execution`→`next_run` 状态机，轮次完成自动衔接 | `fd33365` |
+
+### 验证
+- `grep "recheck_updates\|auto_query\|get_recheck_candidates"` → 零命中
+- Ruff/Mypy → PASS
+- Pytest (9 tests) → 9/9 PASSED
+- GATE-07a (死代码检测) → PASS
+
+### 前端待办
+| 文件 | 修改 | 优先级 |
+|------|------|--------|
+| `web/src/api/validity.ts` | 接口新增 5 字段 | 高 |
+| `web/src/components/ValidityConfig.vue` | 表单新增 first_execution + total_weeks | 高 |
