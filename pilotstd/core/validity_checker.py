@@ -4,6 +4,7 @@
 
 import logging
 import random
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -56,12 +57,15 @@ class ValidityChecker:
     # ── 状态更新 ──────────────────────────────────────────────
 
     def update_status(self, standard_number: str, new_status: str, notification_mgr: Any = None) -> None:
-        """更新标准时效性状态，设置下次检查时间=now+28天。
+        """更新标准时效性状态，设置下次检查时间=now + total_weeks*7 天。
         状态变更时记录 last_status + last_status_updated_at，并触发通知事件。
         """
         now = datetime.now(timezone.utc)
         now_iso = now.isoformat()
-        next_check = (now + timedelta(days=28)).isoformat()
+        from .config import ConfigManager
+
+        total_weeks = ConfigManager().get("validity.total_weeks", 4)
+        next_check = (now + timedelta(days=total_weeks * 7)).isoformat()
         row = self._db.fetchone(
             f"SELECT status, check_count FROM {_TABLE} WHERE standard_number=?",
             (standard_number,),
@@ -205,3 +209,99 @@ class ValidityChecker:
         """返回各状态的标准数量统计。"""
         rows = self._db.fetchall(f"SELECT status, COUNT(*) as cnt FROM {_TABLE} GROUP BY status")
         return {r["status"]: r["cnt"] for r in rows}
+
+
+# ── 模块级并发锁 ──────────────────────────────────────────
+_VALIDITY_LOCK = threading.Lock()
+
+
+# ── 纯执行函数（API + 调度器共用）───────────────────────────
+
+
+def run_validity_check(notification_mgr: Any = None, db: Any = None, update_counters: bool = False) -> dict:
+    """执行时效性检查，供 API 和调度器共同调用。
+
+    Args:
+        notification_mgr: 通知管理器实例，可选
+        db: 数据库连接，可选（默认从 Database 获取）
+        update_counters: 是否更新 checked_count/round_completed（仅调度器为 True）
+
+    Returns:
+        {"ok": bool, "checked": int, "changed": int, "error": str|None}
+    """
+    if not _VALIDITY_LOCK.acquire(blocking=False):
+        return {"ok": False, "checked": 0, "changed": 0, "error": "检查正在执行中"}
+    try:
+        import time as _time
+
+        if db is None:
+            from .config import get_db_path
+            from .db import Database
+
+            db = Database(get_db_path())
+
+        from .config import ConfigManager
+
+        config = ConfigManager()
+        checker = ValidityChecker(db)
+
+        check_ratio = config.get("validity.check_ratio", 25)
+        batch_size = config.get("validity.batch_size", 50)
+        batch_interval = config.get("validity.batch_interval", 5)
+
+        due = checker.get_due_standards()
+        if not due:
+            return {"ok": True, "checked": 0, "changed": 0}
+
+        rng = random.Random(int(_time.time()))
+        shuffled = list(due)
+        rng.shuffle(shuffled)
+        sample_size = max(1, int(len(shuffled) * check_ratio / 100))
+        candidates = shuffled[:sample_size]
+
+        changed = 0
+        for i, std_no in enumerate(candidates):
+            try:
+                result = checker.check_standard(std_no)
+                if result:
+                    status = result["status"] or "现行"
+                    checker.update_status(std_no, status, notification_mgr)
+                    if result.get("previous") and result["previous"] != status:
+                        changed += 1
+            except Exception as e:
+                logger.warning("检查标准 %s 失败: %s", std_no, e)
+            if i > 0 and i % batch_size == 0 and batch_interval > 0:
+                _time.sleep(batch_interval)
+
+        if update_counters:
+            current_count = config.get("validity.checked_count", 0)
+            new_count = current_count + len(candidates)
+            config.set("validity.checked_count", new_count)
+            try:
+                total_row = db.fetchone("SELECT COUNT(*) AS cnt FROM standard_validity")
+                total = total_row["cnt"] if total_row else 0
+                if total > 0 and new_count >= total:
+                    config.set("validity.round_completed", True)
+            except Exception:
+                pass
+            config.save()
+
+        if notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "check_batch_complete",
+                    {
+                        "count": len(candidates),
+                        "changed": changed,
+                    },
+                )
+            except Exception:
+                pass
+
+        logger.info("时效性检查完成: checked=%d changed=%d", len(candidates), changed)
+        return {"ok": True, "checked": len(candidates), "changed": changed}
+    except Exception as e:
+        logger.exception("时效性检查执行失败")
+        return {"ok": False, "checked": 0, "changed": 0, "error": str(e)}
+    finally:
+        _VALIDITY_LOCK.release()

@@ -102,69 +102,20 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
 
 @router.post("/api/validity/run")
 def run_validity_check(mgr=Depends(get_manager_dep)):
-    """立即触发时效性检查——对到期标准执行三级检查。"""
-    try:
-        checker = mgr.validity_checker
-        due = checker.get_due_standards()
-        if not due:
-            return {"ok": True, "message": "无到期标准需检查", "checked": 0, "changed": 0}
+    """立即触发时效性检查——调用底层 run_validity_check()。"""
+    from pilotstd.core.validity_checker import run_validity_check as do_check
 
-        # 按配置的 batch_size 和 check_ratio 取切片
-        batch_size = mgr.cfg.get("validity.batch_size") or _DEFAULT_CONFIG["batch_size"]
-        ratio = mgr.cfg.get("validity.check_ratio") or _DEFAULT_CONFIG["check_ratio"]
-        # 随机切片
-        import random
-        import time as _time
-
-        rng = random.Random(int(_time.time()))
-        shuffled = list(due)
-        rng.shuffle(shuffled)
-        sample_size = max(1, int(len(shuffled) * ratio / 100))
-        candidates = shuffled[:sample_size]
-
-        changed = 0
-        engine = mgr.query_engine if hasattr(mgr, "query_engine") else None
-        interval = mgr.cfg.get("validity.batch_interval") or _DEFAULT_CONFIG["batch_interval"]
-
-        for i, std_no in enumerate(candidates):
-            try:
-                result = checker.check_standard(std_no, query_engine=engine)
-                if result:
-                    checker.update_status(std_no, result["status"], mgr.notification_mgr)
-                    if result.get("previous") and result["previous"] != result["status"]:
-                        changed += 1
-            except Exception as e:
-                logger.warning("检查标准 %s 失败: %s", std_no, e)
-            # 批次间隔
-            if i > 0 and i % batch_size == 0 and interval > 0:
-                _time.sleep(interval)
-
-        logger.info("时效性检查完成: checked=%d changed=%d", len(candidates), changed)
-
-        if mgr.notification_mgr:
-            try:
-                mgr.notification_mgr.send_event(
-                    "check_batch_complete",
-                    {
-                        "count": len(candidates),
-                        "changed": changed,
-                    },
-                )
-            except Exception:
-                pass
-
-        # 时效性检查完成后标记缓存失效
+    result = do_check(notification_mgr=mgr.notification_mgr, db=mgr.db, update_counters=False)
+    if result["ok"]:
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
 
             CacheManager(mgr.db).invalidate_by_source(DataSource.VALIDITY)
         except Exception:
             pass
-
-        return {"ok": True, "checked": len(candidates), "changed": changed}
-    except Exception as e:
-        logger.exception("时效性检查执行失败")
-        return JSONResponse({"error": f"执行失败: {e}"}, status_code=500)
+        return {"ok": True, "checked": result["checked"], "changed": result["changed"]}
+    else:
+        return JSONResponse({"error": result.get("error", "执行失败")}, status_code=500)
 
 
 @router.get("/api/validity/history")
