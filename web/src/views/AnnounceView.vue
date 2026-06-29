@@ -21,9 +21,9 @@ const summaryLabelMap: Record<string, string> = {
   skipped: '已跳过',
 }
 
-// 起始日期默认往前3个月，与 Windows GUI 公告检查一致
+// 起始日期默认今天
 function defaultSince(): Date {
-  const d = new Date(); d.setMonth(d.getMonth() - 3); return d
+  return new Date()
 }
 
 const tab = ref<'gb'|'hb'|'db'>(window.localStorage.getItem('announce_tab') as any || 'gb')

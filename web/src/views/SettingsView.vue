@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { useRoute, useRouter } from 'vue-router'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import { getUsers, addUser, deleteUser, changePassword, getSettings, putSettings, uploadFile, getToken, refreshToken } from '@/api'
@@ -211,8 +212,10 @@ async function doRefreshToken() {
   try { const r = await refreshToken(); token.value = r.token; showToken.value = true; showRefreshDlg.value = false; tokenLoading.value = false } catch { tokenErr.value = '刷新失败，请确认管理员权限'; tokenLoading.value = false }
 }
 
-// 标签页
-const activeTab = ref('storage')
+// 标签页 — 从 URL query 恢复上次位置
+const route = useRoute()
+const router = useRouter()
+const activeTab = ref((route.query.tab as string) || 'storage')
 const tabs = [
   { key: 'storage', label: '存储' },
   { key: 'network', label: '网络' },
@@ -228,6 +231,10 @@ const tabs = [
   { key: 'validity', label: '时效性' },
   { key: 'system', label: '系统' },
 ]
+
+watch(activeTab, (newTab) => {
+  router.replace({ query: { ...route.query, tab: newTab } })
+})
 
 // 底部操作栏：每个 Tab 对应的 cfg 顶层键（用于"应用"按钮提取对应字段）
 const tabConfigKeys: Record<string, string[]> = {
