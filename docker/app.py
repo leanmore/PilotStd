@@ -81,7 +81,13 @@ async def lifespan(app: FastAPI):
 
     register_job_func("auto_announce", check_announce)
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
-    register_job_func("validity_wake", lambda: _check_validity_schedule(notification_mgr=_cron_mgr.notification_mgr))
+    register_job_func(
+        "validity_wake",
+        lambda: _check_validity_schedule(
+            notification_mgr=_cron_mgr.notification_mgr,
+            adapter_mgr=_cron_mgr.adapter_manager,
+        ),
+    )
     start_scheduler()
 
     # 任务调度器自动启动

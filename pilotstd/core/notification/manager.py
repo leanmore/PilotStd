@@ -203,6 +203,52 @@ class NotificationManager:
                 level="error",
                 event_type=event_type,
             )
+        elif event_type == "validity_batch_report":
+            count = data.get("count", 0)
+            changed = data.get("changed", 0)
+            failed = data.get("failed", 0)
+            adapters = data.get("adapters", {})
+            adapter_summary = ", ".join([f"{k}:{v.get('status', 'unknown')}" for k, v in adapters.items()])[:100]
+            return NotificationMessage(
+                title="时效性检查完成",
+                body=f"本次检查 {count} 条，变更 {changed} 条，失败 {failed} 条 | 适配器: {adapter_summary}",
+                level="info" if failed == 0 else "warning",
+                event_type=event_type,
+            )
+        elif event_type == "validity_round_summary":
+            total_checks = data.get("total_checks", 0)
+            total_changes = data.get("total_changes", 0)
+            total_failures = data.get("total_failures", 0)
+            change_list = data.get("change_list", [])
+            change_preview = ", ".join(change_list[:5])
+            if len(change_list) > 5:
+                change_preview += f" 等 {len(change_list)} 项"
+            return NotificationMessage(
+                title="周期总结汇报",
+                body=(
+                    f"总检查 {total_checks} 条，总变更 {total_changes} 条，"
+                    f"总失败 {total_failures} 条 | 变更: {change_preview}"
+                ),
+                level="info",
+                event_type=event_type,
+            )
+        elif event_type == "validity_standard_failed":
+            standard_number = data.get("standard_number", "未知")
+            error = data.get("error", "未知错误")
+            return NotificationMessage(
+                title="标准检查失败",
+                body=f"标准 {standard_number} 检查失败: {error}",
+                level="error",
+                event_type=event_type,
+            )
+        elif event_type == "validity_system_failed":
+            error = data.get("error", "未知错误")
+            return NotificationMessage(
+                title="时效性检查系统异常",
+                body=f"系统执行异常: {error}",
+                level="error",
+                event_type=event_type,
+            )
         else:
             return NotificationMessage(
                 title=event_type,

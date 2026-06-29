@@ -196,7 +196,7 @@ def start_scheduler():
     logger.info("APScheduler 已启动")
 
 
-def _check_validity_schedule(notification_mgr=None):
+def _check_validity_schedule(notification_mgr=None, adapter_mgr=None):
     """APScheduler 唤醒函数：检查是否到了 validity 执行时间。"""
     import math
     from datetime import datetime, timedelta
@@ -239,7 +239,7 @@ def _check_validity_schedule(notification_mgr=None):
 
     from pilotstd.core.validity_checker import run_validity_check
 
-    run_validity_check(notification_mgr=notification_mgr, update_counters=True)
+    run_validity_check(notification_mgr=notification_mgr, update_counters=True, adapter_mgr=adapter_mgr)
 
     check_ratio = config.get("validity.check_ratio", 25)
     total_weeks = config.get("validity.total_weeks", 4)

@@ -26,6 +26,20 @@ class ValidityChecker:
 
     def __init__(self, db: Database):
         self._db = db
+        self._ensure_last_changed_at_column()
+
+    def _ensure_last_changed_at_column(self) -> None:
+        """确保 standard_validity 表存在 last_changed_at 字段（首次启动自动迁移）。"""
+        try:
+            cols = self._db.fetchall("PRAGMA table_info(standard_validity)")
+            col_names = [c["name"] for c in cols]
+            if "last_changed_at" not in col_names:
+                self._db.execute("ALTER TABLE standard_validity ADD COLUMN last_changed_at TEXT")
+                self._db.execute("UPDATE standard_validity SET last_changed_at = updated_at")
+                self._db.commit()
+                logger.info("standard_validity 表已添加 last_changed_at 字段并回填")
+        except Exception as e:
+            logger.warning("last_changed_at 迁移跳过: %s", e)
 
     # ── 注册新标准 ──────────────────────────────────────────────
 
@@ -58,7 +72,7 @@ class ValidityChecker:
 
     def update_status(self, standard_number: str, new_status: str, notification_mgr: Any = None) -> None:
         """更新标准时效性状态，设置下次检查时间=now + total_weeks*7 天。
-        状态变更时记录 last_status + last_status_updated_at，并触发通知事件。
+        状态变更时同步更新 last_changed_at，未变化时仅更新 updated_at。
         """
         now = datetime.now(timezone.utc)
         now_iso = now.isoformat()
@@ -71,15 +85,13 @@ class ValidityChecker:
             (standard_number,),
         )
         if row:
-            # 状态变更时记录旧状态+变更时间
             if row["status"] != new_status:
                 self._db.execute(
                     f"UPDATE {_TABLE} SET status=?, last_checked_at=?, next_check_at=?, "
-                    "last_status=?, last_status_updated_at=?, check_count=check_count+1, updated_at=? "
-                    "WHERE standard_number=?",
-                    (new_status, now_iso, next_check, row["status"], now_iso, now_iso, standard_number),
+                    "last_status=?, last_status_updated_at=?, last_changed_at=?, "
+                    "check_count=check_count+1, updated_at=? WHERE standard_number=?",
+                    (new_status, now_iso, next_check, row["status"], now_iso, now_iso, now_iso, standard_number),
                 )
-                # 触发通知事件
                 if notification_mgr:
                     try:
                         event_type = "standard_expired" if new_status == "已废止" else "standard_status_changed"
@@ -102,7 +114,7 @@ class ValidityChecker:
         else:
             self._db.execute(
                 f"INSERT INTO {_TABLE} (standard_number, status, last_checked_at, "
-                "next_check_at, last_status_updated_at, check_count, created_at, updated_at) "
+                "next_check_at, last_changed_at, check_count, created_at, updated_at) "
                 "VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
                 (standard_number, new_status, now_iso, next_check, now_iso, now_iso, now_iso),
             )
@@ -218,12 +230,15 @@ _VALIDITY_LOCK = threading.Lock()
 # ── 纯执行函数（API + 调度器共用）───────────────────────────
 
 
-def run_validity_check(notification_mgr: Any = None, db: Any = None, update_counters: bool = False) -> dict:
+def run_validity_check(
+    notification_mgr: Any = None, db: Any = None, adapter_mgr: Any = None, update_counters: bool = False
+) -> dict:
     """执行时效性检查，供 API 和调度器共同调用。
 
     Args:
         notification_mgr: 通知管理器实例，可选
         db: 数据库连接，可选（默认从 Database 获取）
+        adapter_mgr: AdapterManager 实例，可选（聚合适配器状态）
         update_counters: 是否更新 checked_count/round_completed（仅调度器为 True）
 
     Returns:
@@ -259,19 +274,59 @@ def run_validity_check(notification_mgr: Any = None, db: Any = None, update_coun
         sample_size = max(1, int(len(shuffled) * check_ratio / 100))
         candidates = shuffled[:sample_size]
 
+        changed_list: list[str] = []
+        failed_list: list[dict] = []
         changed = 0
         for i, std_no in enumerate(candidates):
             try:
                 result = checker.check_standard(std_no)
                 if result:
-                    status = result["status"] or "现行"
-                    checker.update_status(std_no, status, notification_mgr)
-                    if result.get("previous") and result["previous"] != status:
+                    old_row = db.fetchone(
+                        f"SELECT status FROM {_TABLE} WHERE standard_number=?",
+                        (std_no,),
+                    )
+                    old_status = old_row["status"] if old_row else None
+                    new_status = result["status"] or "现行"
+                    checker.update_status(std_no, new_status, notification_mgr)
+                    if old_status and old_status != new_status:
+                        changed_list.append(std_no)
                         changed += 1
+                        if len(changed_list) % 10 == 0 and notification_mgr:
+                            try:
+                                notification_mgr.send_event(
+                                    "validity_batch_report",
+                                    {
+                                        "count": 0,
+                                        "changed": 10,
+                                        "failed": 0,
+                                        "adapters": {},
+                                        "change_detail": changed_list[-10:],
+                                    },
+                                )
+                            except Exception:
+                                pass
             except Exception as e:
-                logger.warning("检查标准 %s 失败: %s", std_no, e)
+                failed_list.append({"standard": std_no, "error": str(e)})
+                if notification_mgr:
+                    try:
+                        notification_mgr.send_event(
+                            "validity_standard_failed",
+                            {
+                                "standard_number": std_no,
+                                "error": str(e),
+                            },
+                        )
+                    except Exception:
+                        pass
             if i > 0 and i % batch_size == 0 and batch_interval > 0:
                 _time.sleep(batch_interval)
+
+        adapters_status: dict = {}
+        if adapter_mgr:
+            try:
+                adapters_status = adapter_mgr.get_all_status()
+            except Exception as e:
+                logger.warning("获取适配器状态失败: %s", e)
 
         if update_counters:
             current_count = config.get("validity.checked_count", 0)
@@ -282,6 +337,26 @@ def run_validity_check(notification_mgr: Any = None, db: Any = None, update_coun
                 total = total_row["cnt"] if total_row else 0
                 if total > 0 and new_count >= total:
                     config.set("validity.round_completed", True)
+                    if notification_mgr:
+                        try:
+                            changes = db.fetchall(
+                                "SELECT standard_number FROM standard_validity "
+                                "WHERE last_changed_at IS NOT NULL "
+                                "ORDER BY last_changed_at DESC LIMIT 200"
+                            )
+                            cycle_change_list = [r["standard_number"] for r in changes]
+                            notification_mgr.send_event(
+                                "validity_round_summary",
+                                {
+                                    "total_checks": new_count,
+                                    "total_changes": len(cycle_change_list),
+                                    "total_failures": len(failed_list),
+                                    "change_list": cycle_change_list,
+                                    "adapter_summary": adapters_status,
+                                },
+                            )
+                        except Exception:
+                            pass
             except Exception:
                 pass
             config.save()
@@ -289,19 +364,39 @@ def run_validity_check(notification_mgr: Any = None, db: Any = None, update_coun
         if notification_mgr:
             try:
                 notification_mgr.send_event(
-                    "check_batch_complete",
+                    "validity_batch_report",
                     {
                         "count": len(candidates),
-                        "changed": changed,
+                        "changed": len(changed_list),
+                        "failed": len(failed_list),
+                        "adapters": adapters_status,
                     },
                 )
             except Exception:
                 pass
 
-        logger.info("时效性检查完成: checked=%d changed=%d", len(candidates), changed)
-        return {"ok": True, "checked": len(candidates), "changed": changed}
+        logger.info(
+            "时效性检查完成: checked=%d changed=%d failed=%d",
+            len(candidates),
+            len(changed_list),
+            len(failed_list),
+        )
+        return {"ok": True, "checked": len(candidates), "changed": len(changed_list)}
     except Exception as e:
         logger.exception("时效性检查执行失败")
+        if notification_mgr:
+            try:
+                import traceback
+
+                notification_mgr.send_event(
+                    "validity_system_failed",
+                    {
+                        "error": str(e),
+                        "traceback": traceback.format_exc()[:500],
+                    },
+                )
+            except Exception:
+                pass
         return {"ok": False, "checked": 0, "changed": 0, "error": str(e)}
     finally:
         _VALIDITY_LOCK.release()

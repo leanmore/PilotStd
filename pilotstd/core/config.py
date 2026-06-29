@@ -167,6 +167,10 @@ FACTORY_DEFAULTS = {
     "notification.rules.announcement_check_complete": ["wechat"],
     "notification.rules.batch_download_complete": ["wechat"],
     "notification.rules.auto_scan_failed": ["wechat"],
+    "notification.rules.validity_batch_report": ["wechat"],
+    "notification.rules.validity_round_summary": ["wechat"],
+    "notification.rules.validity_standard_failed": ["wechat"],
+    "notification.rules.validity_system_failed": ["wechat"],
     "adapter.circuit_breaker.failure_threshold": 3,
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],  # 分钟
     "adapter.circuit_breaker.reset_window_hours": 24,

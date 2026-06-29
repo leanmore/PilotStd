@@ -105,7 +105,9 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
     """立即触发时效性检查——调用底层 run_validity_check()。"""
     from pilotstd.core.validity_checker import run_validity_check as do_check
 
-    result = do_check(notification_mgr=mgr.notification_mgr, db=mgr.db, update_counters=False)
+    result = do_check(
+        notification_mgr=mgr.notification_mgr, db=mgr.db, adapter_mgr=mgr.adapter_manager, update_counters=False
+    )
     if result["ok"]:
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource

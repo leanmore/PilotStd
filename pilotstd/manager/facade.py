@@ -93,6 +93,16 @@ class StandardManager:
         self.quota_tracker = DailyQuotaTracker(self.db, limits=daily_limits)
         self.cache = CacheRepository(self.db)  # 查询结果缓存
         self.file_index = FileIndexRepository(self.db)  # 本地文件索引
+
+        # AdapterManager — 聚合查询引擎站点状态 + adapter_health 表
+        from .adapter_manager import AdapterManager
+
+        self.adapter_manager = AdapterManager(
+            db=self.db,
+            rotator=rotator,
+            quota_tracker=self.quota_tracker,
+        )
+
         # 查询间隔配置（含抖动）
         qi_cfg = self.cfg.get("query.query_interval", None)
         query_interval = tuple(qi_cfg) if qi_cfg and len(qi_cfg) == 2 else None
