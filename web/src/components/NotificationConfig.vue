@@ -11,6 +11,8 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
+import Divider from 'primevue/divider'
+import Select from 'primevue/select'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
   type WechatChannelConfig, type TelegramChannelConfig,
@@ -53,6 +55,11 @@ const EVENTS = [
   { key: 'auto_backup',                      label: '自动备份' },
   { key: 'announcement_check_complete',      label: '定时公告检查' },
   { key: 'auto_scan_failed',              label: '定时扫描异常' },
+  { key: 'batch_download_complete',       label: '批量下载完成' },
+  { key: 'validity_batch_report',         label: '时效性检查完成' },
+  { key: 'validity_round_summary',        label: '周期总结汇报' },
+  { key: 'validity_standard_failed',      label: '标准检查失败' },
+  { key: 'validity_system_failed',        label: '系统执行异常' },
 ]
 
 const CHANNELS = [
@@ -167,7 +174,23 @@ function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
   return c.webhook_url ? 'success' : 'secondary'
 }
 
-onMounted(loadConfig)
+onMounted(() => {
+  loadConfig()
+  const saved = localStorage.getItem('notification_toast_config')
+  if (saved) {
+    try { toastConfig.value = JSON.parse(saved) } catch { /* ignore */ }
+  }
+})
+
+// ── Toast 桌面通知配置 ──
+const toastConfig = ref({
+  enabled: true,
+  events: ['auto_scan_failed', 'validity_system_failed', 'validity_standard_failed'],
+})
+
+function saveToastConfig() {
+  localStorage.setItem('notification_toast_config', JSON.stringify(toastConfig.value))
+}
 </script>
 
 <template>
@@ -286,6 +309,27 @@ onMounted(loadConfig)
         </div>
       </AccordionTab>
     </Accordion>
+    </div>
+
+    <Divider>桌面通知（Toast）</Divider>
+    <div class="toast-config">
+      <div class="config-row">
+        <label>启用弹出通知</label>
+        <ToggleSwitch v-model="toastConfig.enabled" @change="saveToastConfig" />
+      </div>
+      <div v-if="toastConfig.enabled" class="config-row">
+        <label>触发事件</label>
+        <Select
+          v-model="toastConfig.events"
+          :options="EVENTS"
+          option-label="label"
+          option-value="key"
+          multiple
+          placeholder="选择触发弹出通知的事件"
+          class="event-select"
+          @change="saveToastConfig"
+        />
+      </div>
     </div>
   </div>
 </template>

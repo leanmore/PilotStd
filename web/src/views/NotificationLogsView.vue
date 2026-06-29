@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationLogsView' })
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
@@ -8,8 +9,9 @@ import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import { getNotificationLogs, type NotificationLog } from '@/api/notification'
+import { getNotificationLogs, markNotificationRead, type NotificationLog } from '@/api/notification'
 
+const route = useRoute()
 const { locale } = useI18n()
 
 const logs = ref<NotificationLog[]>([])
@@ -47,6 +49,8 @@ const filterChannel = ref<string | null>(null)
 const filterStatus = ref<string | null>(null)
 const filterStartDate = ref<Date | null>(null)
 const filterEndDate = ref<Date | null>(null)
+const filterIsRead = ref<boolean | null>(null)
+const highlightId = ref<number | null>(null)
 
 // 详情弹窗
 const detailVisible = ref(false)
@@ -62,6 +66,11 @@ const statusOptions = [
   { label: '全部', value: null },
   { label: '成功', value: 'success' },
   { label: '失败', value: 'failed' },
+]
+const readOptions = [
+  { label: '全部', value: null },
+  { label: '未读', value: false },
+  { label: '已读', value: true },
 ]
 
 function channelLabel(v: string): string {
@@ -81,6 +90,9 @@ function eventLabel(v: string): string {
     standard_expired: '标准废止', standard_first_registered: '首次登记',
     check_batch_complete: '批次完成', announcement_fetch_complete: '公告抓取', auto_backup: '自动备份',
     announcement_check_complete: '定时公告检查', batch_download_complete: '批量下载完成',
+    auto_scan_failed: '扫描异常',
+    validity_batch_report: '时效性检查', validity_round_summary: '周期总结',
+    validity_standard_failed: '检查失败', validity_system_failed: '系统异常',
     test: '测试',
   }
   return m[v] || v
@@ -98,6 +110,7 @@ async function loadLogs() {
       status: filterStatus.value || undefined,
       start_date: formatDate(filterStartDate.value),
       end_date: formatDate(filterEndDate.value),
+      is_read: filterIsRead.value !== null ? filterIsRead.value : undefined,
     })
     logs.value = r.items
     total.value = r.total
@@ -132,6 +145,34 @@ function showDetail(item: NotificationLog) {
   detailVisible.value = true
 }
 
+async function markRead(id?: number) {
+  try {
+    await markNotificationRead(id ?? null)
+    loadLogs()
+  } catch {
+    /* ignore */
+  }
+}
+
+// 临时高亮行样式
+function rowClass(item: NotificationLog) {
+  return item.id === highlightId.value ? 'highlight-row' : ''
+}
+
+// 监听 URL highlight 参数
+watch(
+  () => route.query.highlight,
+  (val) => {
+    if (val) {
+      highlightId.value = Number(val)
+      setTimeout(() => {
+        const el = document.querySelector('.highlight-row') as HTMLElement | null
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
+  },
+)
+
 const totalPages = () => Math.max(1, Math.ceil(total.value / pageSize))
 const pages = () => {
   const tp = totalPages()
@@ -165,6 +206,10 @@ onMounted(loadLogs)
         <div class="filter-item">
           <label>状态</label>
           <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
+        </div>
+        <div class="filter-item">
+          <label>已读</label>
+          <Select v-model="filterIsRead" :options="readOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
           <label>开始日期</label>
@@ -203,16 +248,18 @@ onMounted(loadLogs)
                 <th>渠道</th>
                 <th>事件</th>
                 <th>状态</th>
+                <th>已读</th>
                 <th>标题</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="l in logs" :key="l.id">
+              <tr v-for="l in logs" :key="l.id" :class="rowClass(l)">
                 <td>{{ l.sent_at?.replace('T', ' ').substring(0, 16) }}</td>
                 <td>{{ channelLabel(l.channel) }}</td>
                 <td>{{ eventLabel(l.event_type) }}</td>
                 <td><Tag :severity="statusSeverity(l.status)" :value="l.status === 'success' ? '成功' : '失败'" /></td>
+                <td><Tag :severity="l.is_read ? 'info' : 'warn'" :value="l.is_read ? '已读' : '未读'" /></td>
                 <td class="title-cell">{{ l.title }}</td>
                 <td><Button label="查看" size="small" severity="secondary" text @click="showDetail(l)" /></td>
               </tr>
