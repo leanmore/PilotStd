@@ -1,0 +1,59 @@
+# pilotstd/ui/workers/scan.py — ScanWorker，从 workers.py 拆分
+
+import logging
+import time as _time
+from typing import Any
+
+from PyQt6.QtCore import QThread, pyqtSignal
+
+from ._common import _log_progress
+
+logger = logging.getLogger(__name__)
+
+
+class ScanWorker(QThread):
+    """后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。"""
+
+    progress = pyqtSignal(int, int)
+    batch_ready = pyqtSignal(list)
+    finished_signal = pyqtSignal(int, int)
+    error = pyqtSignal(str)
+
+    def __init__(self, mgr: Any, root_path: str, pause_event: Any = None, parent: Any = None) -> None:
+        super().__init__(parent)
+        self._mgr = mgr
+        self._root_path = root_path
+        self._pause_event = pause_event
+        self._stopped = False
+        self.unrecognized: list[str] = []
+
+    def stop(self) -> None:
+        self._stopped = True
+
+    def run(self) -> None:
+        try:
+            _t_start = _time.monotonic()
+            _last_log = _t_start
+
+            def on_batch(batch_rows: Any) -> None:
+                if not self._stopped:
+                    self.batch_ready.emit(batch_rows)
+
+            def on_progress(cur: int, total: int) -> None:
+                nonlocal _last_log
+                if self._stopped:
+                    return
+                if self._pause_event is not None:
+                    self._pause_event.wait()
+                self.progress.emit(cur, total)
+                now = _time.monotonic()
+                if now - _last_log >= 15:
+                    _log_progress(logger, "扫描", cur, total, _t_start)
+                    _last_log = now
+
+            parsed = self._mgr.scan_directory_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
+            self.unrecognized = []
+            parsed_count = len(parsed)
+            self.finished_signal.emit(parsed_count, 0)
+        except Exception as e:
+            self.error.emit(str(e))
