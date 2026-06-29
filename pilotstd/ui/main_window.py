@@ -64,7 +64,7 @@ from .controllers.file_dialog_mixin import FileDialogMixin
 from .controllers.file_tree_mixin import FileTreeMixin
 from .controllers.persistence_mixin import PersistenceMixin
 from .controllers.project_mixin import ProjectMixin
-from .controllers.query_mixin import QueryMixin
+from .controllers.query import QueryMixin
 from .controllers.scan_mixin import ScanMixin
 from .controllers.table_helper_mixin import TableHelperMixin
 from .controllers.theme_mixin import ThemeMixin
