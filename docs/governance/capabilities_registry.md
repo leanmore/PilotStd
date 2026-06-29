@@ -48,11 +48,11 @@
 | Web 公告缓存回退 | `pilotstd/manager/facade.py` | `lookup_or_query()` | L342-371 | active | 先查 Web 端 `announcement_cache`，未命中降级到标准查询引擎 |
 | 离线双表回退 | `pilotstd/manager/pending_service.py` | 离线查询 | L168-212 | active | 无网络时优先 `standard_info_cache` → `announcement_cache` |
 | API 公告缓存 | `docker/api/announce.py` | `_cache` 字典 | L15, L40-43 | active | 内存缓存公告结果（last_check/results/summary/failures），供 `/api/announce/results` |
-| 主窗口 atexit | `pilotstd/ui/main_window.py` | L634 | L606 | active | 退出时触发自动保存 |
-| 主窗口 SIGTERM | `pilotstd/ui/main_window.py` | L636 | L608 | active | 捕获终止信号触发自动保存 |
+| 主窗口 atexit | `pilotstd/ui/main_window.py` | L634 | L611 | active | 退出时触发自动保存 |
+| 主窗口 SIGTERM | `pilotstd/ui/main_window.py` | L636 | L613 | active | 捕获终止信号触发自动保存 |
 | 主窗口自动保存 | `pilotstd/ui/main_window.py` | `_on_auto_save()` | L640 | active | 退出时保存窗口状态和配置 |
-| 主窗口暂停信号 | `pilotstd/ui/main_window.py` | L362 | L350 | active | `threading.Event` 跨线程暂停/继续控制 |
-| 主窗口下载线程 | `pilotstd/ui/main_window.py` | L834 | L804 | active | daemon 线程后台下载更新包并校验 SHA256，主线程 `join(timeout=300)` |
+| 主窗口暂停信号 | `pilotstd/ui/main_window.py` | L362 | L351 | active | `threading.Event` 跨线程暂停/继续控制 |
+| 主窗口下载线程 | `pilotstd/ui/main_window.py` | L834 | L809 | active | daemon 线程后台下载更新包并校验 SHA256，主线程 `join(timeout=300)` |
 | 主窗口公告按钮 | `pilotstd/ui/main_window.py` | `_on_check_announcements()` | L356-358 | active | 工具栏"公告检查"按钮，点击触发公告抓取 + OCR + 匹配 |
 | 工作者 QTimer | `pilotstd/ui/workers.py` | L81 | L77 | active | 200ms 单次触发，将缓冲日志批量写入 QTextEdit，防信号洪峰 |
 | 待确认冷却刷新 | `pilotstd/ui/pending_query_dialog.py` | L113 | L113 | active | 1000ms 持续触发，每秒更新冷却倒计时状态 |

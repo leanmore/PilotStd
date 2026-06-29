@@ -216,6 +216,7 @@ THIRD_PARTY_REMAP = {
     "apscheduler": "apscheduler",
     "pytz": "pytz",
     "watchdog": "watchdog",
+    "websocket": "websocket-client",
 }
 
 

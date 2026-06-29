@@ -71,6 +71,7 @@ from .controllers.theme_mixin import ThemeMixin
 
 # 重型模块由 StandardManager 内部延迟初始化，GUI 直接调用 self._mgr 公共 API
 from .table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS, TableMixin
+from .widgets import NotificationBellWidget
 
 logger = logging.getLogger("pilotstd.ui")
 
@@ -362,6 +363,10 @@ class MainWindow(
         self.btn_cancel.clicked.connect(self._on_cancel)
         self.btn_cancel.setEnabled(False)  # 初始无任务，置灰
         self.toolbar.addWidget(self.btn_cancel)
+
+        # 通知铃铛
+        self.notification_bell = NotificationBellWidget(self)
+        self.toolbar.addWidget(self.notification_bell)
 
         self.toolbar.addSeparator()
 
