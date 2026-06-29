@@ -15,6 +15,9 @@ const routes = [
   { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue') },
   { path: '/quality', component: () => import('./views/QualityView.vue') },
   { path: '/backup', component: () => import('./views/BackupView.vue') },
+  { path: '/resources', component: () => import('./views/SystemResources.vue') },
+  { path: '/query-history', component: () => import('./views/QueryHistory.vue') },
+  { path: '/download-queue', component: () => import('./views/DownloadQueue.vue') },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

@@ -1,8 +1,9 @@
-# docker/api/system.py — 系统管理 API（版本信息、自更新、重启）
+# docker/api/system.py — 系统管理 API（版本信息、自更新、重启、资源监控）
 import json
 import logging
 import os
 import subprocess
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -202,3 +203,28 @@ def system_health(mgr=Depends(get_manager_dep)):
         result["ok"] = False
 
     return result
+
+
+@router.get("/resources")
+def system_resources():
+    """获取系统资源使用情况。"""
+    try:
+        import psutil  # type: ignore[import-untyped]
+
+        return {
+            "cpu": {"percent": psutil.cpu_percent(interval=0.3), "count": psutil.cpu_count()},
+            "memory": {
+                "total": psutil.virtual_memory().total,
+                "available": psutil.virtual_memory().available,
+                "percent": psutil.virtual_memory().percent,
+            },
+            "disk": {
+                "total": psutil.disk_usage("/").total,
+                "used": psutil.disk_usage("/").used,
+                "free": psutil.disk_usage("/").free,
+                "percent": psutil.disk_usage("/").percent,
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+    except ImportError:
+        return {"error": "psutil 未安装"}

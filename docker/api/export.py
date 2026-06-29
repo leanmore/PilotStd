@@ -1,0 +1,42 @@
+# docker/api/export.py — 数据导出 API
+import csv
+import io
+import json as _json
+
+from fastapi import Depends, Query
+from fastapi.responses import StreamingResponse
+from fastapi.routing import APIRouter
+
+from ..manager import get_manager_dep
+
+router = APIRouter(tags=["export"])
+
+
+@router.get("/api/export/standards")
+def export_standards(format: str = Query("json", description="csv 或 json"), mgr=Depends(get_manager_dep)):
+    """导出标准列表。"""
+    try:
+        stats = mgr.get_status_stats()
+        rows = mgr.db.fetchall("SELECT standard_number, status FROM standard_validity ORDER BY standard_number")
+        items = [{"standard_number": r["standard_number"], "status": r["status"]} for r in rows]
+
+        if format == "csv":
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(["standard_number", "status"])
+            for item in items:
+                writer.writerow([item["standard_number"], item["status"]])
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": "attachment; filename=standards.csv"},
+            )
+        else:
+            result = _json.dumps({"items": items, "stats": stats}, ensure_ascii=False, indent=2)
+            return StreamingResponse(
+                iter([result]),
+                media_type="application/json",
+                headers={"Content-Disposition": "attachment; filename=standards.json"},
+            )
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
