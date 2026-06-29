@@ -63,7 +63,7 @@ class BaiduOcrProvider(BaseOcrProvider):
 
     def _get_access_token(self) -> Optional[str]:
         """获取百度云 access_token，带缓存。"""
-        from ..query.network import safe_raw_get
+        from ...query.network import safe_raw_get
 
         if self._access_token and time.time() < self._token_expire:
             return self._access_token
@@ -91,7 +91,7 @@ class BaiduOcrProvider(BaseOcrProvider):
             return None
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
-        from ..query.network import safe_raw_post
+        from ...query.network import safe_raw_post
 
         token = self._get_access_token()
         if not token:
@@ -717,7 +717,7 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
     import os as _os
 
     if not data_dir:
-        from ..core.config import get_data_dir
+        from ...core.config import get_data_dir
 
         data_dir = get_data_dir()
     counter_path = _os.path.join(data_dir, "ocr_counters.json")
