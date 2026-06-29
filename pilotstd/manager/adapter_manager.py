@@ -51,3 +51,14 @@ class AdapterManager:
     def get_all_status(self) -> dict[str, dict[str, Any]]:
         """返回所有适配器状态。"""
         return {name: self.get_adapter_status(name) for name in self.list_adapters()}
+
+    def test_adapter(self, name: str) -> dict[str, Any]:
+        """测试单个适配器连通性。"""
+        if name not in self.list_adapters():
+            return {"ok": False, "message": f"适配器 {name} 不存在"}
+        status = self.get_adapter_status(name)
+        return {
+            "ok": status.get("status") == "normal",
+            "message": f"适配器 {name}: {status.get('status', 'unknown')}",
+            "details": status,
+        }

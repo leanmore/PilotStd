@@ -14,6 +14,7 @@ const routes = [
   { path: '/settings', component: () => import('./views/SettingsView.vue') },
   { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue') },
   { path: '/quality', component: () => import('./views/QualityView.vue') },
+  { path: '/backup', component: () => import('./views/BackupView.vue') },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })

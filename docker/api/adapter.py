@@ -160,3 +160,12 @@ def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
         "message": "配置已更新",
         "config": get_adapter_config(mgr=mgr),
     }
+
+
+@router.post("/api/adapter/test")
+def test_adapter(name: str, mgr=Depends(get_manager_dep)):
+    """测试单个适配器的连通性。"""
+    if not hasattr(mgr, "adapter_manager"):
+        return JSONResponse({"ok": False, "message": "适配器管理器未初始化"}, status_code=503)
+    result = mgr.adapter_manager.test_adapter(name)
+    return result

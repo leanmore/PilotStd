@@ -20,6 +20,8 @@ from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
 from .api.archive import router as archive_router
+from .api.auto import router as auto_router
+from .api.backup import router as backup_router
 from .api.cache import router as cache_router
 from .api.download import router as download_router
 from .api.logs import router as logs_router
@@ -260,6 +262,8 @@ app.include_router(logs_router)
 app.include_router(monitor_router)
 app.include_router(system_router)
 app.include_router(quality_router)
+app.include_router(auto_router)
+app.include_router(backup_router)
 app.include_router(scheduler_router)
 
 app.add_websocket_route("/api/notification/ws", websocket_endpoint)
