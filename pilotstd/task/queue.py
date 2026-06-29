@@ -73,6 +73,17 @@ class TaskQueue:
         row = self._db.fetchone(f"SELECT * FROM {TASK_TABLE} WHERE task_id=?", (task_id,))
         return self._row_to_task(row) if row else None
 
+    def get_all(self, status_filter: str | None = None, limit: int = 100) -> list[dict]:
+        """返回所有任务的原始字典列表（供 API 层使用）。"""
+        if status_filter:
+            rows = self._db.fetchall(
+                f"SELECT * FROM {TASK_TABLE} WHERE status=? ORDER BY created_at DESC LIMIT ?",
+                (status_filter, limit),
+            )
+        else:
+            rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} ORDER BY created_at DESC LIMIT ?", (limit,))
+        return [dict(r) for r in rows]
+
     def list_all(self, limit: int = 50) -> List[TaskInfo]:
         rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} ORDER BY updated_at DESC LIMIT ?", (limit,))
         return [self._row_to_task(r) for r in rows]

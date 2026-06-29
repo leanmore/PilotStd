@@ -31,7 +31,7 @@
 | 轮转器里程碑日志 | `pilotstd/query/rotator.py` | L170, 215 | L170, 215 | active | 请求量达 50%/75%/90%/100% 阈值时输出（中文标签，非 `[ROTATOR]`） |
 | 轮转器冷却日志 | `pilotstd/query/rotator.py` | 冷却倒计时日志 | L103-113 | active | 冷却进入时输出剩余秒数（中文"冷却剩余"，无固定标签） |
 | 日配额追踪 | `pilotstd/query/daily_quota.py` | L22 | L22 | active | 站点日配额管理，`threading.RLock` 线程安全，跨天自动重置 |
-| 任务队列执行 | `pilotstd/task/queue.py` | L103, 107, 113 | L95, 99, 105 | active | daemon 线程异步执行任务，含超时控制 `join(timeout)` |
+| 任务队列执行 | `pilotstd/task/queue.py` | L103, 107, 113 | L106, 110, 116 | active | daemon 线程异步执行任务，含超时控制 `join(timeout)` |
 | 下载线程池 | `pilotstd/download/engine.py` | L172 | L156 | active | 并行下载标准文件，含重试 + 采标跳过 |
 | 公告引擎调度 | `pilotstd/announcement/engine.py` | L13 | L13 | active | 公告适配器注册/调度 + OCR 集成，公告同步核心 |
 | 公告基础并行 | `pilotstd/announcement/base.py` | L163 | L325, 427 | active | 附件下载 1-worker；详情抓取 `_MAX_DETAIL_WORKERS=3` 并行 |

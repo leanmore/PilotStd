@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'App' })
 import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Toast from 'primevue/toast'

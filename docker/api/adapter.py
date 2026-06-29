@@ -39,9 +39,6 @@ _ALL_ADAPTER_NAMES = [
 @router.get("/api/adapter/status")
 def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
     """查询适配器的熔断状态。可选 type=announcement 仅公告适配器，type=query 仅查询适配器。"""
-    from pilotstd.core.config import get_db_path
-    from pilotstd.core.db import Database
-
     # 按类型过滤
     if type == "announcement":
         target_names = ["gb", "hb", "db"]
@@ -52,10 +49,10 @@ def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
 
     now = datetime.now(timezone.utc)
     adapters = []
+
+    # 通过 Manager 获取 adapter_health（避免 API 层直接创建 Database）
     try:
-        db = Database(get_db_path())
-        rows = db.fetchall("SELECT * FROM adapter_health")
-        db.close()
+        rows = mgr.db.fetchall("SELECT * FROM adapter_health")
         row_map = {r["adapter_name"]: r for r in rows}
     except Exception as e:
         logger.warning("查询 adapter_health 失败: %s", e)

@@ -21,14 +21,11 @@ def list_tasks(
 ):
     """获取任务列表（分页 + 状态筛选）。"""
     q = mgr.task_queue
-    where = f"WHERE status='{status}'" if status else ""
-    count_row = q._db.fetchone(f"SELECT COUNT(*) as cnt FROM task_queue {where}")
-    total = count_row["cnt"] if count_row else 0
+    tasks = q.get_all(status_filter=status, limit=1000)
+    # 简单客户端分页
+    filtered = [t for t in tasks if not status or t.get("status") == status]
+    total = len(filtered)
     offset = (page - 1) * page_size
-    rows = q._db.fetchall(
-        f"SELECT * FROM task_queue {where} ORDER BY created_at DESC LIMIT ? OFFSET ?",
-        (page_size, offset),
-    )
     return {
         "total": total,
         "page": page,
@@ -50,7 +47,7 @@ def list_tasks(
                 "started_at": r.get("started_at", ""),
                 "finished_at": r.get("finished_at", ""),
             }
-            for r in rows
+            for r in filtered[offset : offset + page_size]
         ],
     }
 
