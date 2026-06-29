@@ -4,6 +4,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -74,6 +75,8 @@ function logout() { router.push('/login') }
         <span class="topbar-title">{{ pageTitle }}</span>
       </div>
       <div class="topbar-right">
+        <!-- 通知铃铛 -->
+        <NotificationBell />
         <!-- 主题切换 -->
         <button
           class="topbar-btn theme-btn"

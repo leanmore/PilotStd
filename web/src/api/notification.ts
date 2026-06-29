@@ -51,6 +51,7 @@ export interface NotificationLog {
   status: string
   error_msg: string | null
   sent_at: string
+  is_read: boolean
 }
 
 export interface NotificationLogResponse {
@@ -79,5 +80,9 @@ export const getNotificationLogs = (params: {
   status?: string
   start_date?: string
   end_date?: string
+  is_read?: boolean
 }): Promise<NotificationLogResponse> =>
   http.get('/notification/logs', { params }).then(r => r.data)
+
+export const markNotificationRead = (id?: number | null): Promise<{ ok: boolean; message: string }> =>
+  http.post('/notification/read', { id: id ?? null }).then(r => r.data)
