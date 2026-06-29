@@ -12,7 +12,6 @@ load_dotenv(os.path.join(os.path.dirname(__file__) or ".", "..", ".env"))
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 
 from .api.adapter import router as adapter_router
 from .api.announce import router as announce_router
@@ -36,7 +35,6 @@ from .api.query import router as query_router
 from .api.scan import router as scan_router
 from .api.scheduler import router as scheduler_router
 from .api.settings import router as settings_router
-from .api.standards import router as standards_router
 from .api.stats import router as stats_router
 from .api.system import router as system_router
 from .api.tasks import router as tasks_router
@@ -47,13 +45,11 @@ from .api.validity import router as validity_router
 from .api.wechat_ip import router as wechat_ip_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
+from .middleware import RequestSizeLimitMiddleware, SecurityHeadersMiddleware
 from .scheduler import _backup_database, _check_validity_schedule, register_job_func, start_scheduler, stop_scheduler
 from .websocket import websocket_endpoint
 
 logger = logging.getLogger(__name__)
-
-# 请求体大小上限 10MB，防内存耗尽
-MAX_REQUEST_BODY = 10 * 1024 * 1024
 
 
 @asynccontextmanager
@@ -95,20 +91,20 @@ async def lifespan(app: FastAPI):
                 return
             import asyncio
 
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                ws_manager.broadcast(
-                    {
-                        "event_type": event_type,
-                        "title": title,
-                        "body": body,
-                        "level": level,
-                        "sent_at": datetime.now().isoformat(),
-                    }
-                )
-            )
-            loop.close()
+            payload = {
+                "event_type": event_type,
+                "title": title,
+                "body": body,
+                "level": level,
+                "sent_at": datetime.now().isoformat(),
+            }
+            try:
+                asyncio.create_task(ws_manager.broadcast(payload))
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(ws_manager.broadcast(payload))
+                loop.close()
         except Exception:
             pass
 
@@ -187,80 +183,59 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse({"error": "服务器内部错误", "detail": str(exc)}, status_code=500)
 
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """为所有响应添加安全头，包括 CSP（PrimeVue + Vue 运行时需要 eval 和内联样式）。"""
-
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        headers = response.headers
-        headers.setdefault("X-Content-Type-Options", "nosniff")
-        headers.setdefault("X-Frame-Options", "DENY")
-        headers.setdefault("X-XSS-Protection", "1; mode=block")
-        headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-        headers.setdefault("Referrer-Policy", "no-referrer")
-        headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
-        headers.setdefault(
-            "Content-Security-Policy",
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; "
-            "img-src 'self' data: https:; "
-            "connect-src 'self'",
-        )
-        return response
-
-
-class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
-    """限制请求体大小，超限返回 413。"""
-
-    async def dispatch(self, request, call_next):
-        content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > MAX_REQUEST_BODY:
-            return JSONResponse({"error": "请求体过大"}, status_code=413)
-        return await call_next(request)
-
-
 # 中间件注册顺序：安全头 → 请求体限制 → 鉴权
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(AuthMiddleware)
 
-# 注册 API 路由
+# ── 鉴权与用户 ──
 app.include_router(auth_router)
-app.include_router(adapter_router)
-app.include_router(scan_router)
+app.include_router(users_router)
+app.include_router(user_layout_router)
+app.include_router(api_keys_router)
+
+# ── 核心业务 ──
 app.include_router(query_router)
-app.include_router(cache_router)
 app.include_router(download_router)
+app.include_router(scan_router)
 app.include_router(organize_router)
+app.include_router(archive_router)
+app.include_router(stats_router)
+app.include_router(normalize_router)
+
+# ── 公告 ──
 app.include_router(announce_router)
 app.include_router(announce_lookup_router)
 app.include_router(announcements_router)
-app.include_router(api_keys_router)
-app.include_router(pending_router)
+
+# ── 管理与配置 ──
 app.include_router(settings_router)
-app.include_router(stats_router)
-app.include_router(normalize_router)
 app.include_router(notification_router)
-app.include_router(standards_router)
-app.include_router(validity_router)
-app.include_router(wechat_ip_router)
-app.include_router(archive_router)
-app.include_router(users_router)
-app.include_router(user_layout_router)
-app.include_router(tasks_router)
-app.include_router(upload_router)
-app.include_router(logs_router)
-app.include_router(monitor_router)
-app.include_router(system_router)
-app.include_router(quality_router)
-app.include_router(auto_router)
+app.include_router(adapter_router)
+app.include_router(scheduler_router)
 app.include_router(backup_router)
 app.include_router(export_router)
-app.include_router(scheduler_router)
+app.include_router(quality_router)
+app.include_router(pending_router)
+app.include_router(validity_router)
+app.include_router(wechat_ip_router)
+app.include_router(cache_router)
 
-app.add_websocket_route("/api/notification/ws", websocket_endpoint)
+# ── 系统与监控 ──
+app.include_router(system_router)
+app.include_router(monitor_router)
+app.include_router(logs_router)
+
+# ── 文件与自动化 ──
+app.include_router(upload_router)
+app.include_router(tasks_router)
+app.include_router(auto_router)
+
+
+# ── WebSocket ──
+@app.websocket("/api/notification/ws")
+async def notification_websocket(websocket):
+    await websocket_endpoint(websocket)
 
 
 # 健康检查端点（Docker HEALTHCHECK 使用）
