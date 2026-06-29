@@ -17,8 +17,8 @@ def export_standards(format: str = Query("json", description="csv 或 json"), mg
     """导出标准列表。"""
     try:
         stats = mgr.get_status_stats()
-        rows = mgr.db.fetchall("SELECT standard_number, status FROM standard_validity ORDER BY standard_number")
-        items = [{"standard_number": r["standard_number"], "status": r["status"]} for r in rows]
+        data = mgr.export_service.get_standards_data()
+        items = [{"standard_number": r["standard_number"], "status": r["status"]} for r in data["items"]]
 
         if format == "csv":
             output = io.StringIO()

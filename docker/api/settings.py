@@ -65,7 +65,7 @@ def get_settings(mgr=Depends(get_manager_dep)):
         "ocr": {
             "baidu_api_key": "***" if cfg.get("ocr.baidu_api_key") else "",
             "baidu_secret_key": "***" if cfg.get("ocr.baidu_secret_key") else "",
-            "tencent_secret_id": cfg.get("ocr.tencent_secret_id", ""),
+            "tencent_secret_id": "***" if cfg.get("ocr.tencent_secret_id") else "",
             "tencent_secret_key": "***" if cfg.get("ocr.tencent_secret_key") else "",
             "aliyun_access_key_id": "***" if cfg.get("ocr.aliyun_access_key_id") else "",
             "aliyun_access_key_secret": "***" if cfg.get("ocr.aliyun_access_key_secret") else "",

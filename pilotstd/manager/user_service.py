@@ -22,6 +22,11 @@ class UserService:
         row = self._mgr.db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
         return row["id"] if row else None
 
+    def get_user_by_id(self, user_id: int) -> dict[str, Any] | None:
+        """按用户 ID 查询用户信息（供 API 层迁移）。"""
+        row = self._mgr.db.fetchone("SELECT id, username, role FROM users WHERE id = ?", (user_id,))
+        return dict(row) if row else None
+
     # ── 布局 ─────────────────────────────────
 
     def get_layout(self, user_id: int) -> dict[str, Any]:

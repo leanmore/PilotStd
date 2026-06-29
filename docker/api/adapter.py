@@ -50,13 +50,8 @@ def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
     now = datetime.now(timezone.utc)
     adapters = []
 
-    # 通过 Manager 获取 adapter_health（避免 API 层直接创建 Database）
-    try:
-        rows = mgr.db.fetchall("SELECT * FROM adapter_health")
-        row_map = {r["adapter_name"]: r for r in rows}
-    except Exception as e:
-        logger.warning("查询 adapter_health 失败: %s", e)
-        row_map = {}
+    rows = mgr.adapter_manager.get_all_health()
+    row_map = {r["adapter_name"]: r for r in rows}
 
     for name in target_names:
         row = row_map.get(name)

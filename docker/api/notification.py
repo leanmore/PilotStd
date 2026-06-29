@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 
+from ..auth import require_admin
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -71,8 +72,8 @@ def get_config(mgr=Depends(get_manager_dep)):
 
 
 @router.put("/api/notification/config")
-def update_config(body: dict, mgr=Depends(get_manager_dep)):
-    """更新通知配置（四渠道全参数保存）。"""
+def update_config(body: dict, mgr=Depends(get_manager_dep), _: bool = Depends(require_admin)):
+    """更新通知配置（仅管理员）。"""
     for key, value in body.items():
         if key == "enabled":
             mgr.cfg.set("notification.enabled", bool(value))
@@ -126,42 +127,19 @@ def get_logs(
     nmgr=Depends(_get_notification_mgr),
 ):
     """查询通知发送日志（分页+筛选）。"""
-    where_clauses: list[str] = []
-    params: list = []
-
-    if channel:
-        where_clauses.append("channel = ?")
-        params.append(channel)
-    if status:
-        where_clauses.append("status = ?")
-        params.append(status)
-    if start_date:
-        where_clauses.append("sent_at >= ?")
-        params.append(start_date)
-    if end_date:
-        where_clauses.append("sent_at <= ?")
-        params.append(end_date + " 23:59:59")
-    if is_read is not None:
-        where_clauses.append("is_read = ?")
-        params.append(1 if is_read else 0)
-
-    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-
-    count_row = nmgr._db.fetchone(
-        f"SELECT COUNT(*) AS total FROM notification_log {where_sql}",
-        tuple(params),
-    )
-    total = count_row["total"] if count_row else 0
-
-    offset = (page - 1) * page_size
-    rows = nmgr._db.fetchall(
-        f"SELECT * FROM notification_log {where_sql} ORDER BY sent_at DESC LIMIT ? OFFSET ?",
-        tuple(params + [page_size, offset]),
+    result = nmgr.get_logs(
+        page=page,
+        size=page_size,
+        channel=channel,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        is_read=is_read,
     )
     return {
-        "total": total,
-        "page": page,
-        "page_size": page_size,
+        "total": result["total"],
+        "page": result["page"],
+        "page_size": result["size"],
         "items": [
             {
                 "id": r["id"],
@@ -175,7 +153,7 @@ def get_logs(
                 "sent_at": r["sent_at"],
                 "is_read": r.get("is_read", 0),
             }
-            for r in rows
+            for r in result["items"]
         ],
     }
 
@@ -184,16 +162,15 @@ def get_logs(
 def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
     """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
     try:
-        db = nmgr._db
+        ids = [request.id] if request.id is not None else None
         if request.id is not None:
-            existing = db.fetchone("SELECT id FROM notification_log WHERE id=?", (request.id,))
-            if not existing:
+            # 验证 ID 存在
+            result = nmgr.get_logs(page=1, size=1, start_date=None, end_date=None)
+            existing_ids = {r["id"] for r in result["items"]}
+            if request.id not in existing_ids:
                 return JSONResponse({"error": f"通知 ID {request.id} 不存在"}, status_code=404)
-            db.execute("UPDATE notification_log SET is_read=1 WHERE id=?", (request.id,))
-        else:
-            db.execute("UPDATE notification_log SET is_read=1")
-        db.commit()
-        return {"ok": True, "message": "已标记为已读"}
+        count = nmgr.mark_logs_read(ids)
+        return {"ok": True, "count": count, "message": "已标记为已读"}
     except Exception as e:
         logger.exception("标记已读失败")
         return JSONResponse({"error": str(e)}, status_code=500)

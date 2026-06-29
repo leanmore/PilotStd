@@ -1,8 +1,12 @@
 # docker/api/users.py — 用户管理 API
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd import SUPERUSER_USERNAME
+
+from ..auth import get_current_username, require_admin
+from ..manager import get_manager_dep
 from ..users import add_user, change_password, delete_user, list_users
 
 router = APIRouter(tags=["users"])
@@ -20,14 +24,14 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.get("/api/users")
-def api_list_users():
-    """列出所有用户。"""
+def api_list_users(_: bool = Depends(require_admin)):
+    """列出所有用户（仅管理员）。"""
     return {"users": list_users()}
 
 
 @router.post("/api/users")
-def api_add_user(body: AddUserRequest):
-    """添加用户。"""
+def api_add_user(body: AddUserRequest, _: bool = Depends(require_admin)):
+    """添加用户（仅管理员）。"""
     if not body.username or not body.password:
         raise HTTPException(400, "用户名和密码不能为空")
     if len(body.username) < 2:
@@ -43,8 +47,11 @@ def api_add_user(body: AddUserRequest):
 
 
 @router.delete("/api/users/{user_id}")
-def api_delete_user(user_id: int):
-    """删除用户。"""
+def api_delete_user(user_id: int, _: bool = Depends(require_admin), mgr=Depends(get_manager_dep)):
+    """删除用户（仅管理员，admin 用户不可删除）。"""
+    user = mgr.user_service.get_user_by_id(user_id)
+    if user and user["username"] == SUPERUSER_USERNAME:
+        raise HTTPException(403, "admin 用户不可删除")
     if not delete_user(user_id):
         raise HTTPException(400, "无法删除（不存在或是最后的管理员）")
     return {"ok": True}
@@ -53,8 +60,6 @@ def api_delete_user(user_id: int):
 @router.put("/api/users/password")
 def api_change_password(body: ChangePasswordRequest, request: Request):
     """修改当前登录用户的密码。"""
-    from ..auth import get_current_username
-
     username = get_current_username(request)
     if not body.new_password or len(body.new_password) < 4:
         raise HTTPException(400, "新密码至少4个字符")

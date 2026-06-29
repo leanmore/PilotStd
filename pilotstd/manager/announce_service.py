@@ -255,6 +255,43 @@ class AnnounceService:
         else:
             return {"task_id": task_id, "status": status, "error": row["error_msg"] or "任务执行失败"}
 
+    def get_announcement_sources(self, limit: int = 200) -> list[dict[str, Any]]:
+        """获取公告抓取记录（去重，供 API 层迁移）。"""
+        db = self._get_db()
+        rows = db.fetchall(
+            "SELECT DISTINCT standard_number, source_site, std_name, fetched_at "
+            "FROM announcement_record ORDER BY fetched_at DESC LIMIT ?",
+            (limit,),
+        )
+        return [
+            {
+                "standard_number": r["standard_number"],
+                "source_site": r["source_site"],
+                "title": r["std_name"] or "",
+                "fetched_at": r["fetched_at"],
+            }
+            for r in rows
+        ]
+
+    def lookup_announcement(self, number: str) -> dict[str, Any] | None:
+        """按标准号精确查询公告缓存（供 API 层迁移）。"""
+        db = self._get_db()
+        rows = db.fetchall(
+            "SELECT standard_number, source_site, std_name, fetched_at "
+            "FROM announcement_record WHERE standard_number = ? "
+            "ORDER BY fetched_at DESC LIMIT 1",
+            (number,),
+        )
+        if not rows:
+            return None
+        r = rows[0]
+        return {
+            "standard_number": r["standard_number"],
+            "source_site": r["source_site"],
+            "std_name": r["std_name"],
+            "fetched_at": r["fetched_at"],
+        }
+
     def _get_db(self) -> Any:
         """获取数据库连接。优先使用 Manager 的 DB，回退到 file_index 的 DB。"""
         if self._mgr:

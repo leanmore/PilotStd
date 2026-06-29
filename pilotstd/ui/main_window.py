@@ -172,7 +172,7 @@ class MainWindow(
         self._tray.setContextMenu(tray_menu)
         self._tray.activated.connect(self._on_tray_activated)
         self._tray.show()
-        from ..core.notify import NotifyService
+        from ..platform.notify import NotifyService
 
         NotifyService.init(self._tray)
 
@@ -731,7 +731,7 @@ class MainWindow(
         import time as _time
 
         from pilotstd import __version__
-        from pilotstd.core.updater import (
+        from pilotstd.platform.updater import (
             check_latest_version,
             download_update,
             extract_sha256_from_body,

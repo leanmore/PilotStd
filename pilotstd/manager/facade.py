@@ -39,7 +39,13 @@ from ..query.rotator import SiteRotator
 from ..scan.parser import StandardParser
 from ..scan.scanner import FileScanner
 from ..task.queue import TaskQueue
+from .export_service import ExportService
+from .monitor_service import MonitorService
 from .organizer_service import OrganizerService
+from .quality_service import QualityService
+from .standard_service import StandardService
+from .system_service import SystemService
+from .wechat_ip_service import WechatIPService
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +161,16 @@ class StandardManager:
 
         self.validity_service = ValidityService(self)
         self.user_service = UserService(self)
+
+        # ── 新增服务（文件夹整改 Phase 2） ──
+        self.standard_service = StandardService(self)
+        self.export_service = ExportService(self)
+        self.system_service = SystemService(self)
+
+        # ── 新增服务（文件夹整改 Phase 5） ──
+        self.monitor_service = MonitorService(self)
+        self.wechat_ip_service = WechatIPService(self)
+        self.quality_service = QualityService(self)
 
         # ── 时效性检查 ──
         self.validity_checker = ValidityChecker(self.db)

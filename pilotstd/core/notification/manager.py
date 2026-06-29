@@ -296,14 +296,64 @@ class NotificationManager:
             name="notif-ws-broadcast",
         ).start()
 
-    # ── 查询日志 ──────────────────────────────────────────────
+    # ── 公开查询方法（替代直接访问 _db）──────────────────────
 
-    def get_logs(self, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
-        rows = self._db.fetchall(
-            "SELECT * FROM notification_log ORDER BY sent_at DESC LIMIT ? OFFSET ?",
-            (limit, offset),
+    def get_logs(
+        self,
+        page: int = 1,
+        size: int = 20,
+        channel: str | None = None,
+        status: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        is_read: bool | None = None,
+    ) -> dict[str, Any]:
+        """获取通知日志列表（分页 + 筛选），供 API 层调用。"""
+        db = self._db
+        conditions: list[str] = []
+        params: list[Any] = []
+
+        if channel:
+            conditions.append("channel = ?")
+            params.append(channel)
+        if status:
+            conditions.append("status = ?")
+            params.append(status)
+        if start_date:
+            conditions.append("sent_at >= ?")
+            params.append(start_date)
+        if end_date:
+            conditions.append("sent_at <= ?")
+            params.append(end_date)
+        if is_read is not None:
+            conditions.append("is_read = ?")
+            params.append(1 if is_read else 0)
+
+        where_sql = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        offset = (page - 1) * size
+
+        total_row = db.fetchone(f"SELECT COUNT(*) AS cnt FROM notification_log {where_sql}", tuple(params))
+        rows = db.fetchall(
+            f"SELECT * FROM notification_log {where_sql} ORDER BY sent_at DESC LIMIT ? OFFSET ?",
+            tuple(params + [size, offset]),
         )
-        return [dict(r) for r in rows]
+        return {
+            "items": rows,
+            "total": total_row["cnt"] if total_row else 0,
+            "page": page,
+            "size": size,
+        }
+
+    def mark_logs_read(self, ids: list[int] | None = None) -> int:
+        """标记通知日志为已读（单条或全部），供 API 层调用。"""
+        db = self._db
+        if ids:
+            for i in ids:
+                db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
+            return len(ids)
+        else:
+            db.execute("UPDATE notification_log SET is_read = 1")
+            return 0
 
     # ── 测试发送 ──────────────────────────────────────────────
 

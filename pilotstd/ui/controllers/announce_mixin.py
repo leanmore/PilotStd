@@ -104,7 +104,7 @@ class AnnounceMixin:
                 + fail_msg,
             )
             # Toast 通知
-            from ...core.notify import NotifyService
+            from ...platform.notify import NotifyService
 
             if self._ann_worker._matched > 0:
                 NotifyService.get().show(

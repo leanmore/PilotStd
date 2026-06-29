@@ -52,6 +52,16 @@ class AdapterManager:
         """返回所有适配器状态。"""
         return {name: self.get_adapter_status(name) for name in self.list_adapters()}
 
+    def get_all_health(self) -> list[dict[str, Any]]:
+        """返回 adapter_health 表全部原始行（供 API 层迁移）。"""
+        if not self._db:
+            return []
+        try:
+            rows = self._db.fetchall("SELECT * FROM adapter_health")
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
+
     def test_adapter(self, name: str) -> dict[str, Any]:
         """测试单个适配器连通性。"""
         if name not in self.list_adapters():

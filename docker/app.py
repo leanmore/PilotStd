@@ -139,20 +139,16 @@ async def lifespan(app: FastAPI):
 
     # 文件监控自动启动
     try:
-        from pilotstd.monitor.scheduler import get_scheduler
-
-        get_scheduler().start()
+        _cron_mgr.monitor_service.start_scheduler()
     except Exception:
         pass
 
     # 企业微信可信 IP 自动更新（独立线程，不占用 APScheduler）
     try:
         if _cron_mgr.cfg.get("wechat_ip.enabled", False):
-            from pilotstd.wechat_ip.scheduler import start as start_ip_scheduler
-
-            interval = int(_cron_mgr.cfg.get("wechat_ip.interval_hours", 6)) * 3600
-            start_ip_scheduler(_cron_mgr.cfg, interval)
-            logger.info("可信 IP 自动更新已启动 (间隔=%dh)", interval // 3600)
+            _cron_mgr.wechat_ip_service.start_scheduler()
+            interval = int(_cron_mgr.cfg.get("wechat_ip.interval_hours", 6))
+            logger.info("可信 IP 自动更新已启动 (间隔=%dh)", interval)
     except Exception:
         pass
 
@@ -162,16 +158,12 @@ async def lifespan(app: FastAPI):
     _cron_mgr.shutdown()
 
     try:
-        from pilotstd.monitor.scheduler import get_scheduler
-
-        get_scheduler().stop()
+        _cron_mgr.monitor_service.stop_scheduler()
     except Exception:
         pass
 
     try:
-        from pilotstd.wechat_ip.scheduler import stop as stop_ip_scheduler
-
-        stop_ip_scheduler()
+        _cron_mgr.wechat_ip_service.stop_scheduler()
     except Exception:
         pass
 

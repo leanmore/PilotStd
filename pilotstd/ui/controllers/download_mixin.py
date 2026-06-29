@@ -84,7 +84,7 @@ class DownloadMixin:
             self._project.mark_dirty()
             self._register_task("下载", total, success_count, failed_count + too_new_count)
 
-            from ...core.notify import NotifyService
+            from ...platform.notify import NotifyService
 
             if success_count > 0 and failed_count == 0:
                 NotifyService.get().show(

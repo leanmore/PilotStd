@@ -75,8 +75,11 @@ async def upload_file(file: UploadFile = File(...)):
 
 @router.get("/api/backgrounds/{filename}")
 def get_upload(filename: str):
-    """访问上传的文件。"""
-    path = os.path.join(UPLOAD_DIR, filename)
+    """访问上传的文件（防路径遍历）。"""
+    safe_filename = os.path.basename(filename)
+    if not safe_filename:
+        raise HTTPException(400, "文件名无效")
+    path = os.path.join(UPLOAD_DIR, safe_filename)
     if not os.path.isfile(path):
         raise HTTPException(404, "文件不存在")
     return FileResponse(path)

@@ -1,8 +1,7 @@
 # pilotstd/ui/widgets/notification_bell_widget.py
-# WinUI 端通知铃铛组件 + WebSocket 客户端 + 本地 SQLite 缓存
+# WinUI 端通知铃铛组件 + WebSocket 客户端
+# 通知数据通过 StandardManager 统一管理，不再自建 SQLite
 import json
-import os
-import sqlite3
 from datetime import datetime
 
 import websocket
@@ -29,98 +28,7 @@ class NotificationItem:
         self.body = data.get("body", "")
         self.level = data.get("level", "info")
         self.sent_at = data.get("sent_at", "")
-        self.is_read = data.get("is_read", False)
-
-
-class LocalNotificationCache:
-    """本地 SQLite 缓存，支持离线查看历史通知。"""
-
-    def __init__(self, db_path: str = ""):
-        if not db_path:
-            db_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "notification_cache.db")
-            db_path = os.path.abspath(db_path)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        self._db_path = db_path
-        self._init_db()
-
-    def _init_db(self) -> None:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS notification_cache (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type TEXT NOT NULL,
-                title TEXT NOT NULL,
-                body TEXT,
-                level TEXT DEFAULT 'info',
-                sent_at TEXT NOT NULL,
-                is_read INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cache_sent_at ON notification_cache(sent_at DESC)")
-        conn.commit()
-        conn.close()
-
-    def save(self, item: NotificationItem) -> int:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO notification_cache "
-            "(event_type, title, body, level, sent_at, is_read) VALUES (?, ?, ?, ?, ?, ?)",
-            (item.event_type, item.title, item.body, item.level, item.sent_at, 1 if item.is_read else 0),
-        )
-        item_id = cursor.lastrowid or 0
-        conn.commit()
-        conn.close()
-        return item_id
-
-    def get_recent(self, limit: int = 20) -> list:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, event_type, title, body, level, sent_at, is_read "
-            "FROM notification_cache ORDER BY sent_at DESC LIMIT ?",
-            (limit,),
-        )
-        rows = cursor.fetchall()
-        conn.close()
-        return [
-            NotificationItem(
-                {
-                    "id": r[0],
-                    "event_type": r[1],
-                    "title": r[2],
-                    "body": r[3],
-                    "level": r[4],
-                    "sent_at": r[5],
-                    "is_read": bool(r[6]),
-                }
-            )
-            for r in rows
-        ]
-
-    def mark_read(self, item_id: int) -> None:
-        if not item_id:
-            return
-        conn = sqlite3.connect(self._db_path)
-        conn.execute("UPDATE notification_cache SET is_read = 1 WHERE id = ?", (item_id,))
-        conn.commit()
-        conn.close()
-
-    def mark_all_read(self) -> None:
-        conn = sqlite3.connect(self._db_path)
-        conn.execute("UPDATE notification_cache SET is_read = 1")
-        conn.commit()
-        conn.close()
-
-    def get_unread_count(self) -> int:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM notification_cache WHERE is_read = 0")
-        count = cursor.fetchone()[0]
-        conn.close()
-        return count
+        self.is_read = bool(data.get("is_read", False))
 
 
 class WebSocketClient(QThread):
@@ -188,18 +96,28 @@ class WebSocketClient(QThread):
 
 
 class NotificationBellWidget(QWidget):
-    """WinUI 通知铃铛组件——工具栏按钮 + 下拉菜单 + WebSocket 实时推送。"""
+    """WinUI 通知铃铛组件——工具栏按钮 + 下拉菜单 + WebSocket 实时推送。
+    通知数据通过 StandardManager 统一管理，不再自建 SQLite。
+    """
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._cache = LocalNotificationCache()
+        self._mgr = None  # 惰性初始化 StandardManager
         self._items: list[NotificationItem] = []
-        self._unread_count = self._cache.get_unread_count()
+        self._unread_count = 0
         self._menu: QMenu | None = None
 
         self._setup_ui()
         self._setup_websocket()
-        self._load_cached()
+        self._load_from_backend()
+
+    def _get_mgr(self):
+        """惰性获取 StandardManager 实例。"""
+        if self._mgr is None:
+            from pilotstd.manager.facade import StandardManager
+
+            self._mgr = StandardManager()
+        return self._mgr
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -239,17 +157,20 @@ class NotificationBellWidget(QWidget):
         self._ws_client.error_occurred.connect(self._on_error)
         self._ws_client.start()
 
-    def _load_cached(self) -> None:
-        self._items = self._cache.get_recent(20)
-        self._unread_count = self._cache.get_unread_count()
-        self._update_badge()
+    def _load_from_backend(self) -> None:
+        """从后端加载通知列表。"""
+        try:
+            mgr = self._get_mgr()
+            result = mgr.notification_mgr.get_logs(page=1, size=20)
+            self._items = [NotificationItem(r) for r in result.get("items", [])]
+            self._unread_count = sum(1 for item in self._items if not item.is_read)
+            self._update_badge()
+        except Exception as e:
+            print(f"加载通知失败: {e}")
 
     def _on_message(self, data: dict) -> None:
-        item = NotificationItem(data)
-        item.id = self._cache.save(item)
-        self._items.insert(0, item)
-        self._unread_count += 1
-        self._update_badge()
+        """收到新通知时刷新列表。"""
+        self._load_from_backend()
         if self._menu and self._menu.isVisible():
             self._update_menu()
 
@@ -385,7 +306,6 @@ class NotificationBellWidget(QWidget):
                     background: #409eff; color: white;
                 }
             """)
-            # 用默认参数捕获当前 item，避免闭包延迟绑定
             iid = item.id
             mark_btn.clicked.connect(lambda checked, iid=iid: self._mark_read_by_id(iid))
             layout.addWidget(mark_btn)
@@ -414,12 +334,15 @@ class NotificationBellWidget(QWidget):
         if self._menu:
             self._menu.close()
         self._mark_read_by_id(item_id)
-        # TODO: 未来可扩展跳转到通知详情
 
     def _mark_read_by_id(self, item_id: int) -> None:
+        """标记单条已读（同步到后端）。"""
         if not item_id:
             return
-        self._cache.mark_read(item_id)
+        try:
+            self._get_mgr().notification_mgr.mark_logs_read([item_id])
+        except Exception as e:
+            print(f"标记已读失败: {e}")
         for item in self._items:
             if item.id == item_id:
                 item.is_read = True
@@ -430,7 +353,11 @@ class NotificationBellWidget(QWidget):
             self._update_menu()
 
     def _mark_all_read(self) -> None:
-        self._cache.mark_all_read()
+        """全部标记已读（同步到后端）。"""
+        try:
+            self._get_mgr().notification_mgr.mark_logs_read(None)
+        except Exception as e:
+            print(f"全部标记已读失败: {e}")
         for item in self._items:
             item.is_read = True
         self._unread_count = 0

@@ -304,7 +304,7 @@ class QueryMixin:
         self._project.mark_dirty()
         self._register_task("查询", total, total)
 
-        from ...core.notify import NotifyService
+        from ...platform.notify import NotifyService
 
         NotifyService.get().show(
             _("query_toast_title"),

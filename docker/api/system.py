@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from pilotstd import __version__
 
+from ..auth import require_admin
 from ..manager import get_manager_dep
 
 router = APIRouter(prefix="/api/system", tags=["system"])
@@ -61,8 +62,8 @@ async def get_version():
 
 
 @router.post("/update")
-async def update_container():
-    """拉取最新镜像并检查是否有更新。需挂载 /var/run/docker.sock。
+async def update_container(_: bool = Depends(require_admin)):
+    """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
 
     流程：
       1. 获取当前容器使用的镜像 digest
@@ -168,11 +169,11 @@ def system_health(mgr=Depends(get_manager_dep)):
     result: dict = {"ok": True, "timestamp": datetime.now().isoformat()}
 
     # 1. 数据库连接
-    try:
-        mgr.db.fetchone("SELECT 1")
+    status = mgr.system_service.get_status()
+    if status["db_connected"]:
         result["database"] = "ok"
-    except Exception as e:
-        result["database"] = f"error: {e}"
+    else:
+        result["database"] = "error"
         result["ok"] = False
 
     # 2. 缓存状态

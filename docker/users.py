@@ -3,6 +3,7 @@ import hashlib
 import os
 import secrets
 
+from pilotstd import SUPERUSER_USERNAME
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
 
@@ -49,7 +50,7 @@ def init_users_table() -> None:
     if "must_change_password" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
     # 管理员用户名（可通过 ADMIN_USERNAME 环境变量自定义）
-    admin_user = os.environ.get("ADMIN_USERNAME", "admin")
+    admin_user = os.environ.get("ADMIN_USERNAME") or SUPERUSER_USERNAME
     # 常见弱密码列表，用于检测已存在管理员是否需要强制改密
     WEAK_PASSWORDS = ["admin", "123456", "password", "admin123", "12345678"]
 
@@ -117,6 +118,11 @@ def _validate_password(password: str) -> str | None:
 
 
 def add_user(username: str, password: str, role: str = "user") -> bool:
+    # admin 用户名保护：admin 强制降级为 user，admin* 禁止创建
+    if username == SUPERUSER_USERNAME:
+        role = "user"
+    elif username.lower().startswith(SUPERUSER_USERNAME):
+        raise ValueError("以 'admin' 开头的用户名不允许创建")
     err = _validate_password(password)
     if err:
         raise ValueError(err)
