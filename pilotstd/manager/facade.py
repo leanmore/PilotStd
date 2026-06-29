@@ -145,6 +145,10 @@ class StandardManager:
             self._scheduled_svc,
         ) = create_services(self)
 
+        # 注入 StandardManager 引用（供 AnnounceService 访问 DB + 通知 + 缓存）
+        self._announce_svc._mgr = self
+        self.announce_service = self._announce_svc
+
         # ── 子服务 ──
         from .user_service import UserService
         from .validity_service import ValidityService

@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-import threading
 from datetime import datetime
 
 from fastapi import BackgroundTasks, Depends
@@ -87,55 +86,28 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
 
 
 def _sync_wait_check(since_date: str = "", mgr=None, timeout: int = 60) -> dict:
-    """sync=true 兼容模式：创建异步任务后同步等待，60s 超时。"""
+    """sync=true 兼容模式：通过 AnnounceService 创建异步任务后同步等待。"""
     import time as _time
-    import uuid as _uuid
 
-    from pilotstd.core.config import get_db_path
-    from pilotstd.core.db import Database
+    # 委托 AnnounceService 创建抓取任务
+    result = mgr.announce_service.trigger_fetch()
+    task_id = result["task_id"]
 
-    task_id = _uuid.uuid4().hex
-    now = datetime.now().isoformat()
-    db = Database(get_db_path())
-    db.execute(
-        "INSERT INTO fetch_task (id, task_type, status, progress, created_at, updated_at) "
-        "VALUES (?, 'announcement', 'pending', 0, ?, ?)",
-        (task_id, now, now),
-    )
-    db.close()
-
-    # 启动后台抓取线程
-    from .announcements import _run_fetch_task
-
-    t = threading.Thread(target=_run_fetch_task, args=(task_id, "", mgr), daemon=False)
-    t.start()
-
-    # 同步轮询等待
     deadline = _time.monotonic() + timeout
     while _time.monotonic() < deadline:
-        db2 = Database(get_db_path())
-        row = db2.fetchone("SELECT status, result_data, error_msg FROM fetch_task WHERE id=?", (task_id,))
-        db2.close()
-        if row is None:
+        status = mgr.announce_service.get_task_status(task_id)
+        st = status.get("status", "")
+        if st == "success":
+            data = mgr.announce_service.get_task_results(task_id)
+            return data.get("data", {})
+        if st == "failed":
+            return {"ok": False, "count": 0, "failures": 1, "error": status.get("error_msg", "")}
+        if "error" in status:
             return {"ok": False, "count": 0, "failures": 1, "error": "任务丢失"}
-        if row["status"] == "success":
-            data = {}
-            if row["result_data"]:
-                try:
-                    data = json.loads(row["result_data"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            return data
-        if row["status"] == "failed":
-            return {"ok": False, "count": 0, "failures": 1, "error": row["error_msg"] or ""}
         _time.sleep(1)
-    # 超时
+
     return JSONResponse(
-        {
-            "code": 408,
-            "msg": "同步等待超时，请改用异步模式 POST /api/announcements/fetch",
-            "task_id": task_id,
-        },
+        {"code": 408, "msg": "同步等待超时，请改用异步模式 POST /api/announcements/fetch", "task_id": task_id},
         408,
     )
 

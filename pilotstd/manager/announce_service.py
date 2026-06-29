@@ -1,10 +1,11 @@
 # pilotstd/manager/announce_service.py
-# AnnounceService — 公告检查，从各公告源抓取新公告并匹配本地标准
+# AnnounceService — 公告检查 + 异步抓取任务管理
 
 from __future__ import annotations
 
 import logging
 import os
+import threading
 from datetime import datetime
 from typing import Any, Optional
 
@@ -17,24 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 class AnnounceService:
-    """公告检查服务：从 SAMR 公告源抓取 GB/HB/DB 新公告，与本地标准库匹配。
+    """公告检查服务 + 异步抓取任务管理。"""
 
-    引擎 + 适配器 + OCR provider 实例级复用，避免每次调用重建。
-    支持用户通过 ConfigManager 配置 OCR 提供商（baidu/tencent/aliyun）。
-    """
-
-    def __init__(self, file_index: Any, ocr_config: dict[str, Any] | None = None):
-        """注入依赖。
-
-        Args:
-            file_index: FileIndexRepository 实例（提供 _db 访问和 fetch_checkpoint 表）
-            ocr_config: 可选，OCR 提供商配置
-                {"provider": "baidu", "api_key": "...", "secret_key": "..."}
-        """
+    def __init__(self, file_index: Any, ocr_config: dict[str, Any] | None = None, manager: Any = None):
         self._file_index = file_index
         self._engine: Optional[AnnounceEngine] = None
         self._ocr_config = ocr_config or {}
-        self._ocr_provider = None  # 懒加载
+        self._ocr_provider: Any = None
+        self._mgr = manager  # StandardManager 引用（供 API 层迁移使用）
 
     def _get_ocr_provider(self) -> Any:
         """懒加载 OCR provider，首次调用时从配置创建。"""
@@ -127,3 +118,145 @@ class AnnounceService:
             )
             results[adapter.standard_type] = result
         return results
+
+    # ── 异步抓取任务管理 ────────────────────────────────
+
+    def trigger_fetch(self, adapter_name: str = "") -> dict[str, Any]:
+        """触发异步公告抓取，创建任务并启动后台线程。"""
+        import uuid
+
+        db = self._get_db()
+        task_id = uuid.uuid4().hex
+        now = datetime.now().isoformat()
+        db.execute(
+            "INSERT INTO fetch_task (id, task_type, status, progress, created_at, updated_at) "
+            "VALUES (?, 'announcement', 'pending', 0, ?, ?)",
+            (task_id, now, now),
+        )
+        logger.info("[FETCH_TASK] %s: created (adapter=%s)", task_id, adapter_name or "all")
+
+        t = threading.Thread(target=self._run_fetch_task, args=(task_id, adapter_name), daemon=False)
+        t.start()
+        return {
+            "task_id": task_id,
+            "status": "pending",
+            "message": f"任务已创建，请轮询 /api/announcements/status/{task_id} 查询进度",
+        }
+
+    def _run_fetch_task(self, task_id: str, adapter_name: str) -> None:
+        """后台线程：执行公告抓取，更新状态。"""
+        import json as _json
+
+        db = self._get_db()
+        now = datetime.now().isoformat()
+        try:
+            db.execute(
+                "UPDATE fetch_task SET status='running', progress=10, updated_at=? WHERE id=?",
+                (now, task_id),
+            )
+            logger.info("[FETCH_TASK] %s: running", task_id)
+
+            # 调用同步检查
+            result = self.check_with_notification()
+
+            now2 = datetime.now().isoformat()
+            if result.get("ok"):
+                db.execute(
+                    "UPDATE fetch_task SET status='success', progress=100, result_data=?, updated_at=? WHERE id=?",
+                    (_json.dumps(result, ensure_ascii=False), now2, task_id),
+                )
+                logger.info("[FETCH_TASK] %s: success", task_id)
+            else:
+                db.execute(
+                    "UPDATE fetch_task SET status='failed', progress=100, error_msg=?, updated_at=? WHERE id=?",
+                    ("抓取完成但返回非 ok", now2, task_id),
+                )
+                logger.warning("[FETCH_TASK] %s: failed (not ok)", task_id)
+        except Exception as e:
+            now3 = datetime.now().isoformat()
+            db.execute(
+                "UPDATE fetch_task SET status='failed', progress=50, error_msg=?, updated_at=? WHERE id=?",
+                (str(e), now3, task_id),
+            )
+            logger.exception("[FETCH_TASK] %s: exception", task_id)
+
+    def check_with_notification(self) -> dict[str, Any]:
+        """执行公告检查并发送通知。"""
+        result = self.check_announcements()
+        count = result.get("matched", 0)
+        failure_count = 1 if result.get("error") else 0
+
+        # 发送通知
+        mgr = self._mgr
+        if mgr and mgr.notification_mgr:
+            try:
+                mgr.notification_mgr.send_event(
+                    "announcement_check_complete",
+                    {
+                        "count": count,
+                        "failures": failure_count,
+                    },
+                )
+                mgr.notification_mgr.send_event(
+                    "announcement_fetch_complete",
+                    {
+                        "count": count,
+                    },
+                )
+            except Exception:
+                pass
+
+        # 缓存失效
+        if mgr:
+            try:
+                from ..core.cache_manager import CacheManager, DataSource
+
+                CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
+            except Exception:
+                pass
+
+        return {"ok": True, "count": count, "failures": failure_count}
+
+    def get_task_status(self, task_id: str) -> dict[str, Any]:
+        """查询异步抓取任务进度。"""
+        db = self._get_db()
+        row = db.fetchone("SELECT * FROM fetch_task WHERE id=?", (task_id,))
+        if row is None:
+            return {"error": "任务不存在"}
+        return {
+            "task_id": row["id"],
+            "status": row["status"],
+            "progress": row["progress"],
+            "error_msg": row["error_msg"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def get_task_results(self, task_id: str) -> dict[str, Any]:
+        """获取异步抓取任务的结果数据。"""
+        import json as _json
+
+        db = self._get_db()
+        row = db.fetchone("SELECT * FROM fetch_task WHERE id=?", (task_id,))
+        if row is None:
+            return {"error": "任务不存在"}
+
+        status = row["status"]
+        if status == "success":
+            data = {}
+            if row["result_data"]:
+                try:
+                    data = _json.loads(row["result_data"])
+                except (_json.JSONDecodeError, TypeError):
+                    pass
+            return {"task_id": task_id, "status": "success", "data": data}
+        elif status in ("pending", "running"):
+            return {"task_id": task_id, "status": status, "message": "任务尚未完成，请稍后再试"}
+        else:
+            return {"task_id": task_id, "status": status, "error": row["error_msg"] or "任务执行失败"}
+
+    def _get_db(self) -> Any:
+        """获取数据库连接。优先使用 Manager 的 DB，回退到 file_index 的 DB。"""
+        if self._mgr:
+            return self._mgr.db
+        return self._file_index._db
