@@ -18,9 +18,9 @@ class TestNotificationDB(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_cls.return_value = mock_db
 
-        from pilotstd.core.db import _migrate_v18_notification_is_read
+        from pilotstd.core.db import _migrate_v18_notification_fetch_task
 
-        _migrate_v18_notification_is_read(mock_db)
+        _migrate_v18_notification_fetch_task(mock_db)
 
         mock_db.execute.assert_any_call("ALTER TABLE notification_log ADD COLUMN is_read INTEGER DEFAULT 0")
         mock_db.execute.assert_any_call("CREATE INDEX IF NOT EXISTS idx_notif_is_read ON notification_log(is_read)")
