@@ -6,10 +6,10 @@ import os
 import re
 from typing import Dict, Optional
 
-from ..core.file_utils import normalize_std_filename
-from ..models import ParsedStdInfo
-from .edition_detect import edition_skip_pattern
-from .lang_detect import detect_language
+from ...core.file_utils import normalize_std_filename
+from ...models import ParsedStdInfo
+from ..edition_detect import edition_skip_pattern
+from ..lang_detect import detect_language
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +352,7 @@ class StandardParser:
     def _classify_code(self, logical_code: str) -> str:
         """按标准代号返回分类: domestic / iso_iec / foreign / unknown。
         内部委托 classify_std_code()，再做返回值映射。"""
-        from ..core.std_utils import classify_std_code
+        from ...core.std_utils import classify_std_code
 
         # IEC 带类型前缀（TR/TS/PAS）按国外标准处理，触发 _handle_type_prefix 修正
         parts = logical_code.split()
