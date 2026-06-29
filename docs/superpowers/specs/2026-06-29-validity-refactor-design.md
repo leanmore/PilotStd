@@ -94,7 +94,7 @@ run_validity_check() → standard_validity 表
     send_event("check_batch_complete")
            │
            ▼
-    checked_count += batch_size
+    checked_count += len(checked_this_run)
     若 checked_count >= 总标准数 → round_completed = True
            │
            ▼
@@ -132,6 +132,11 @@ run_validity_check() → standard_validity 表
 | `validity.checked_count` | `int` | `0` | 当前轮次已检查标准数 |
 | `validity.round_completed` | `bool` | `False` | 当前轮次是否完成 |
 
+**保留的已有配置**：
+| `validity.batch_size` | `int` | `50` | 每批检查条数 |
+| `validity.batch_interval` | `int` | `5` | 批次间隔秒数 |
+| `validity.check_ratio` | `int` | `25` | 每轮检查比例（%） |
+
 **废弃**（保留键名不删，兼容旧 config.json，但代码不再读取）：
 - `validity.frequency`
 - `validity.execute_time`
@@ -153,6 +158,46 @@ interval_days = ceil(total_days / total_runs)
 - PUT `/validity/config`：接受 `first_execution`、`total_weeks`，忽略 `frequency`/`execute_time`/`update_interval`
 
 ### 4.4 通知事件
+
+- `check_batch_complete`：每次 run 完成时发送，含 `count`、`changed`
+- 通知调用全部用 `try-except` 包裹，通知失败不影响主流程
+
+### 4.5 时间状态机
+
+```
+first_execution=None  →  调度器跳过（安全初始态）
+        │
+        ▼ 用户设置
+first_execution=T0
+        │
+        ▼ 调度器唤醒：now >= T0
+首次执行 run_validity_check()
+  计算 next_run = now + interval_days
+        │
+        ▼
+后续唤醒：now >= next_run?  →  执行 + 重算 next_run
+        │
+        ▼ 累计 checked_count >= 总数
+round_completed = True
+        │
+        ▼ 调度器唤醒
+重置：round_completed=False, checked_count=0, next_run=None
+  → 回到等待 first_execution 状态（用户重新设置后开始下一轮）
+```
+
+**关键规则**：
+- `first_execution` 仅在首次进入（`next_run is None` 且未完成过任何一轮）时使用
+- 后续完全由 `next_run` 驱动
+- `round_completed` 重置时**同时清除 `next_run`**，强制用户重新设置 `first_execution` 来启动新轮次，防止在用户未确认的情况下自动开始下一轮
+
+### 4.6 并发保护
+
+`run_validity_check()` 内部使用模块级 `threading.Lock`，确保同一时刻只有一个执行实例。
+
+- 调度器唤醒时若锁已被持有（用户正手动触发），则跳过本次唤醒
+- 手动触发时若锁已被持有（调度器正在执行），则返回 `{"ok": False, "error": "检查正在执行中"}`
+
+手动触发的 API 直接调用 `run_validity_check()`，不更新 `checked_count`（不参与轮次计数）。轮次计数仅限于调度器触发的执行。
 
 - `check_batch_complete`：每次 run 完成时发送，含 `count`、`changed`
 - 通知调用全部用 `try-except` 包裹，通知失败不影响主流程
