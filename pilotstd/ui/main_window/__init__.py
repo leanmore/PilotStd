@@ -49,34 +49,34 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .. import core
-from ..core.frozen import is_frozen
-from ..i18n import _
-from ..models import ParsedStdInfo
-from .controllers.announce_mixin import AnnounceMixin
-from .controllers.archive_mixin import ArchiveMixin
-from .controllers.auto_run_mixin import AutoRunMixin
-from .controllers.cleanup_mixin import CleanupMixin
-from .controllers.dialog_mixin import DialogMixin
-from .controllers.download_mixin import DownloadMixin
-from .controllers.export_mixin import ExportMixin
-from .controllers.file_dialog_mixin import FileDialogMixin
-from .controllers.file_tree_mixin import FileTreeMixin
-from .controllers.persistence_mixin import PersistenceMixin
-from .controllers.project_mixin import ProjectMixin
-from .controllers.query import QueryMixin
-from .controllers.scan_mixin import ScanMixin
-from .controllers.table_helper_mixin import TableHelperMixin
-from .controllers.theme_mixin import ThemeMixin
+from ... import core
+from ...core.frozen import is_frozen
+from ...i18n import _
+from ...models import ParsedStdInfo
+from ..controllers.announce_mixin import AnnounceMixin
+from ..controllers.archive_mixin import ArchiveMixin
+from ..controllers.auto_run_mixin import AutoRunMixin
+from ..controllers.cleanup_mixin import CleanupMixin
+from ..controllers.dialog_mixin import DialogMixin
+from ..controllers.download_mixin import DownloadMixin
+from ..controllers.export_mixin import ExportMixin
+from ..controllers.file_dialog_mixin import FileDialogMixin
+from ..controllers.file_tree_mixin import FileTreeMixin
+from ..controllers.persistence_mixin import PersistenceMixin
+from ..controllers.project_mixin import ProjectMixin
+from ..controllers.query import QueryMixin
+from ..controllers.scan_mixin import ScanMixin
+from ..controllers.table_helper_mixin import TableHelperMixin
+from ..controllers.theme_mixin import ThemeMixin
 
 # 重型模块由 StandardManager 内部延迟初始化，GUI 直接调用 self._mgr 公共 API
-from .table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS, TableMixin
-from .widgets import NotificationBellWidget
+from ..table_mixin import WORK_COLUMN_KEYS, WORK_COLUMNS, TableMixin
+from ..widgets import NotificationBellWidget
 
 logger = logging.getLogger("pilotstd.ui")
 
-from .dialogs import ConfigPageDialog  # noqa: E402
-from .workers import (  # noqa: E402
+from ..dialogs import ConfigPageDialog  # noqa: E402
+from ..workers import (  # noqa: E402
     LogHandler,
     RowUpdate,
 )
@@ -172,7 +172,7 @@ class MainWindow(
         self._tray.setContextMenu(tray_menu)
         self._tray.activated.connect(self._on_tray_activated)
         self._tray.show()
-        from ..platform.notify import NotifyService
+        from ...platform.notify import NotifyService
 
         NotifyService.init(self._tray)
 
@@ -692,7 +692,7 @@ class MainWindow(
     # ── 规则/任务/设置 ──────────────────────────────────────
 
     def _on_rule_query(self) -> None:
-        from .pages.rules_page import RulesPage  # 延迟导入
+        from ..pages.rules_page import RulesPage  # 延迟导入
 
         dlg = ConfigPageDialog(
             RulesPage(self._config),
@@ -707,13 +707,13 @@ class MainWindow(
     def _on_task_center(self) -> None:
         if not self._mgr_ready:
             return
-        from .pages.task_page import TaskCenterDialog  # 延迟导入
+        from ..pages.task_page import TaskCenterDialog  # 延迟导入
 
         dlg = TaskCenterDialog(self._mgr.task_queue, self)  # type: ignore[arg-type]
         dlg.exec()
 
     def _on_settings(self) -> None:
-        from .pages.settings_page import SettingsDialog  # 延迟导入
+        from ..pages.settings_page import SettingsDialog  # 延迟导入
 
         dlg = SettingsDialog(self._config, self)  # type: ignore[arg-type]
         dlg.exec()
@@ -851,7 +851,7 @@ class MainWindow(
         skip = self._config.get("appearance.skip_welcome", False)
         if skip:
             return
-        from .welcome_dialog import WelcomeDialog  # 延迟导入
+        from ..welcome_dialog import WelcomeDialog  # 延迟导入
 
         dlg = WelcomeDialog(self)  # type: ignore[arg-type]
         dlg.exec()
@@ -877,7 +877,7 @@ class MainWindow(
         """
         if self._mgr_ready:
             return  # 已初始化（property 懒加载 + QTimer 竞态保护）
-        from ..manager import StandardManager
+        from ...manager import StandardManager
 
         mgr = StandardManager(config=self._config)
         self._mgr = mgr  # 必须先设 backing field，避免下游 _mgr 访问触发递归
@@ -915,7 +915,7 @@ class MainWindow(
 
 def run() -> None:
     """启动 GUI 应用。"""
-    from ..core.logger import LoggerManager
+    from ...core.logger import LoggerManager
 
     LoggerManager(level=logging.INFO)
     app = QApplication(sys.argv)
