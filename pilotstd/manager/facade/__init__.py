@@ -11,41 +11,41 @@ from typing import Any, Callable, List, Optional
 
 import requests
 
-from ..core.config import ConfigManager, get_db_path, get_library_root
-from ..core.db import Database
-from ..core.file_index import FileIndexRepository
-from ..core.notification import EVENT_ARCHIVE_COMPLETE, NotificationManager  # v17 通知模块
-from ..core.std_utils import GB_CODES, classify_std_code
-from ..core.validity_checker import ValidityChecker  # v16 标准时效性检查
-from ..download.adapters.base import BaseDownloadAdapter
-from ..download.adapters.openstd_download import OpenstdDownloadAdapter
-from ..download.engine import DownloadEngine
-from ..download.models import BatchDownloadStats, DownloadTask
-from ..download.session import SessionManager
-from ..models import ParsedStdInfo
-from ..organizer.industry_lookup import build_code_mapping
-from ..query.adapters.base import BaseAdapter
-from ..query.adapters.csres import CsresAdapter
-from ..query.adapters.dbba import DbbaAdapter
-from ..query.adapters.hbba import HbbaAdapter
-from ..query.adapters.iso_gov import IsoGovAdapter
-from ..query.adapters.njbz365 import Njbz365Adapter
-from ..query.adapters.std_gov import StdGovAdapter
-from ..query.cache import CacheRepository
-from ..query.daily_quota import DailyQuotaTracker
-from ..query.engine import QueryEngine
-from ..query.models import BatchQueryStats, QueryResult
-from ..query.rotator import SiteRotator
-from ..scan.parser import StandardParser
-from ..scan.scanner import FileScanner
-from ..task.queue import TaskQueue
-from .export_service import ExportService
-from .monitor_service import MonitorService
-from .organizer_service import OrganizerService
-from .quality_service import QualityService
-from .standard_service import StandardService
-from .system_service import SystemService
-from .wechat_ip_service import WechatIPService
+from ...core.config import ConfigManager, get_db_path, get_library_root
+from ...core.db import Database
+from ...core.file_index import FileIndexRepository
+from ...core.notification import EVENT_ARCHIVE_COMPLETE, NotificationManager  # v17 通知模块
+from ...core.std_utils import GB_CODES, classify_std_code
+from ...core.validity_checker import ValidityChecker  # v16 标准时效性检查
+from ...download.adapters.base import BaseDownloadAdapter
+from ...download.adapters.openstd_download import OpenstdDownloadAdapter
+from ...download.engine import DownloadEngine
+from ...download.models import BatchDownloadStats, DownloadTask
+from ...download.session import SessionManager
+from ...models import ParsedStdInfo
+from ...organizer.industry_lookup import build_code_mapping
+from ...query.adapters.base import BaseAdapter
+from ...query.adapters.csres import CsresAdapter
+from ...query.adapters.dbba import DbbaAdapter
+from ...query.adapters.hbba import HbbaAdapter
+from ...query.adapters.iso_gov import IsoGovAdapter
+from ...query.adapters.njbz365 import Njbz365Adapter
+from ...query.adapters.std_gov import StdGovAdapter
+from ...query.cache import CacheRepository
+from ...query.daily_quota import DailyQuotaTracker
+from ...query.engine import QueryEngine
+from ...query.models import BatchQueryStats, QueryResult
+from ...query.rotator import SiteRotator
+from ...scan.parser import StandardParser
+from ...scan.scanner import FileScanner
+from ...task.queue import TaskQueue
+from ..export_service import ExportService
+from ..monitor_service import MonitorService
+from ..organizer_service import OrganizerService
+from ..quality_service import QualityService
+from ..standard_service import StandardService
+from ..system_service import SystemService
+from ..wechat_ip_service import WechatIPService
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class StandardManager:
 
         # ── 查询子系统 ──
         # 默认注册7个查询适配器：安徽标准平台(ahbz)/南京标准网/全国标准平台/行标平台/ISO平台/地方标准平台/工标网
-        from ..query.adapters.ahbz import AhbzAdapter
+        from ...query.adapters.ahbz import AhbzAdapter
 
         csres = CsresAdapter()
         self._query_adapters = query_adapters or [
@@ -89,7 +89,7 @@ class StandardManager:
         ]
         adapters = self._query_adapters
         # 站点轮转器：控制请求频率，防止被网站封 IP
-        from ..query.site_config import create_default_sites
+        from ...query.site_config import create_default_sites
 
         sites = create_default_sites()
         rotator = SiteRotator(sites, db=self.db)
@@ -101,7 +101,7 @@ class StandardManager:
         self.file_index = FileIndexRepository(self.db)  # 本地文件索引
 
         # AdapterManager — 聚合查询引擎站点状态 + adapter_health 表
-        from .adapter_manager import AdapterManager
+        from ..adapter_manager import AdapterManager
 
         self.adapter_manager = AdapterManager(
             db=self.db,
@@ -132,7 +132,7 @@ class StandardManager:
         self.task_queue = TaskQueue(self.db)
 
         # ── 流水线路由调度器 ──
-        from ..pipeline.router import PipelineRouter
+        from ...pipeline.router import PipelineRouter
 
         self.router = PipelineRouter()
 
@@ -141,7 +141,7 @@ class StandardManager:
         self._last_skipped_dirs: list[Any] = []  # 扫描跳过的目录列表
 
         # ── 子服务（拆分自本类，保持向后兼容） ──
-        from .service_factory import create_services
+        from ..service_factory import create_services
 
         (
             self._classifier,
@@ -156,8 +156,8 @@ class StandardManager:
         self.announce_service = self._announce_svc
 
         # ── 子服务 ──
-        from .user_service import UserService
-        from .validity_service import ValidityService
+        from ..user_service import UserService
+        from ..validity_service import ValidityService
 
         self.validity_service = ValidityService(self)
         self.user_service = UserService(self)
@@ -1267,7 +1267,7 @@ class StandardManager:
         try:
             if self._file_watcher is None:
                 paths = root_paths or [get_library_root(self.cfg)]
-                from ..scan.watcher import (
+                from ...scan.watcher import (
                     FileWatcher,  # 惰性导入，避免 Docker 环境缺 watchdog
                 )
 
@@ -1514,8 +1514,8 @@ class StandardManager:
 
     def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
         """返回文件规范化名称列表。供 cmd_normalize 调用。"""
-        from ..core.file_utils import make_standard_filename
-        from ..organizer.industry_lookup import get_folder_name
+        from ...core.file_utils import make_standard_filename
+        from ...organizer.industry_lookup import get_folder_name
 
         results = []
         for path in file_paths:
@@ -1551,7 +1551,7 @@ class StandardManager:
     @staticmethod
     def _make_archive_filename(parsed: ParsedStdInfo) -> str:
         """根据已解析元数据统一生成归档文件名。"""
-        from ..core.file_utils import make_standard_filename
+        from ...core.file_utils import make_standard_filename
 
         return make_standard_filename(
             logical_code=parsed.logical_code,
@@ -1574,7 +1574,7 @@ class StandardManager:
         """流式规范化（线程安全）。回调签名:
         on_progress(current, total)  on_batch([(idx, ParsedStdInfo, name), ...])
         """
-        from ..organizer.industry_lookup import get_folder_name
+        from ...organizer.industry_lookup import get_folder_name
 
         results = []
         total = len(parsed_list)
