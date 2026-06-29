@@ -9,7 +9,7 @@ import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import { getNotificationLogs, markNotificationRead, type NotificationLog } from '@/api/notification'
+import { getNotificationLogs, type NotificationLog } from '@/api/notification'
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -143,15 +143,6 @@ function onPageChange(p: number) {
 function showDetail(item: NotificationLog) {
   detailItem.value = item
   detailVisible.value = true
-}
-
-async function markRead(id?: number) {
-  try {
-    await markNotificationRead(id ?? null)
-    loadLogs()
-  } catch {
-    /* ignore */
-  }
 }
 
 // 临时高亮行样式

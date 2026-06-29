@@ -2,7 +2,7 @@
 // WebSocket 连接管理 + 通知状态管理 + 自动重连
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { markNotificationRead, type NotificationLog } from '@/api/notification'
+import { markNotificationRead } from '@/api/notification'
 
 export interface NotificationMessage {
   id?: number

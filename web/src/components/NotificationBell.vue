@@ -3,7 +3,6 @@ defineOptions({ name: 'NotificationBell' })
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
-import Badge from 'primevue/badge'
 import Popover from 'primevue/popover'
 import Divider from 'primevue/divider'
 import { useNotification } from '@/composables/useNotification'
