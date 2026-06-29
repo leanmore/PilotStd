@@ -24,15 +24,15 @@ import re
 import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
-from ..query.search_strategy import (
+from ..adapters.base import BaseAdapter
+from ..cache import CacheRepository
+from ..daily_quota import DailyQuotaTracker
+from ..models import QueryResult
+from ..rotator import SiteRotator
+from ..search_strategy import (
     ADAPTER_TYPE_MAP,
     MATCH_SCORE,
 )
-from .adapters.base import BaseAdapter
-from .cache import CacheRepository
-from .daily_quota import DailyQuotaTracker
-from .models import QueryResult
-from .rotator import SiteRotator
 
 # 跨进程日志解析协议标识 — 压测脚本依赖此字符串进行心跳检测和进度解析
 PROGRESS_TAG = "[PROGRESS]"
@@ -47,7 +47,7 @@ FOREIGN_ROUTE = ["ahbz", "njbz365"]
 
 # 按标准代号分流：专业站点优先，njbz365 二线，csres 国标/行业兜底
 def _build_default_code_routes() -> dict[str, list[str]]:
-    from ..organizer.industry_lookup import _DB_PROVINCE_MAP
+    from ...organizer.industry_lookup import _DB_PROVINCE_MAP
 
     routes = {
         "ISO": ["iso_gov", "ahbz", "njbz365"],
