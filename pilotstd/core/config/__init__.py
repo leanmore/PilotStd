@@ -1,0 +1,15 @@
+# pilotstd/core/config/__init__.py
+# 配置管理包 — 重导出所有公开符号，保持外部接口不变
+
+from .defaults import FACTORY_DEFAULTS
+from .manager import ConfigManager
+from .paths import get_data_dir, get_db_path, get_library_root, get_network_timeout
+
+__all__ = [
+    "ConfigManager",
+    "FACTORY_DEFAULTS",
+    "get_data_dir",
+    "get_db_path",
+    "get_library_root",
+    "get_network_timeout",
+]
