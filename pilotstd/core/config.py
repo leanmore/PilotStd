@@ -171,12 +171,18 @@ FACTORY_DEFAULTS = {
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],  # 分钟
     "adapter.circuit_breaker.reset_window_hours": 24,
     # 时效性检查配置
-    "validity.frequency": "weekly",
-    "validity.execute_time": "03:00",
+    "validity.first_execution": None,  # datetime 或 None，用户首次设置
+    "validity.total_weeks": 4,  # int，范围 4~52
+    "validity.next_run": None,  # datetime 或 None，系统计算的下次执行
+    "validity.checked_count": 0,  # int，当前轮次已检查标准数
+    "validity.round_completed": False,  # bool，当前轮次是否完成
     "validity.batch_size": 50,
     "validity.batch_interval": 5,
     "validity.check_ratio": 25,
-    "validity.update_interval": 28,
+    # 以下已废弃，保留键名兼容旧数据但不再读取
+    "validity.frequency": "weekly",  # @deprecated
+    "validity.execute_time": "03:00",  # @deprecated
+    "validity.update_interval": 28,  # @deprecated
 }
 
 

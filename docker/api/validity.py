@@ -18,16 +18,11 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["validity"])
 
-_VALID_FREQUENCIES = ("daily", "weekly", "monthly")
-_FREQUENCY_MAP = {"每日": "daily", "每周": "weekly", "每月": "monthly"}
-
 _DEFAULT_CONFIG = {
-    "frequency": "weekly",
-    "execute_time": "03:00",
     "batch_size": 50,
     "batch_interval": 5,
     "check_ratio": 25,
-    "update_interval": 28,
+    "total_weeks": 4,
 }
 
 
@@ -36,12 +31,18 @@ def get_validity_config(mgr=Depends(get_manager_dep)):
     """读取时效性检查配置，未设置时返回默认值。"""
     cfg = mgr.cfg
     return {
-        "frequency": cfg.get("validity.frequency") or _DEFAULT_CONFIG["frequency"],
-        "execute_time": cfg.get("validity.execute_time") or _DEFAULT_CONFIG["execute_time"],
         "batch_size": cfg.get("validity.batch_size") or _DEFAULT_CONFIG["batch_size"],
         "batch_interval": cfg.get("validity.batch_interval") or _DEFAULT_CONFIG["batch_interval"],
         "check_ratio": cfg.get("validity.check_ratio") or _DEFAULT_CONFIG["check_ratio"],
-        "update_interval": cfg.get("validity.update_interval") or _DEFAULT_CONFIG["update_interval"],
+        "total_weeks": cfg.get("validity.total_weeks") or _DEFAULT_CONFIG["total_weeks"],
+        "first_execution": cfg.get("validity.first_execution"),
+        "next_run": cfg.get("validity.next_run"),
+        "checked_count": cfg.get("validity.checked_count", 0),
+        "round_completed": cfg.get("validity.round_completed", False),
+        # 已废弃字段（兼容旧前端）
+        "frequency": cfg.get("validity.frequency") or "weekly",
+        "execute_time": cfg.get("validity.execute_time") or "03:00",
+        "update_interval": cfg.get("validity.update_interval") or 28,
     }
 
 
@@ -50,20 +51,18 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
     """更新时效性检查配置，校验后写入 ConfigManager。"""
     errors: list[str] = []
 
-    frequency = body.get("frequency")
-    if frequency is not None:
-        if frequency not in _VALID_FREQUENCIES:
-            errors.append(f"frequency 必须为: {', '.join(_VALID_FREQUENCIES)}")
+    first_execution = body.get("first_execution")
+    if first_execution is not None:
+        try:
+            from datetime import datetime
 
-    execute_time = body.get("execute_time")
-    if execute_time is not None:
-        parts = str(execute_time).split(":")
-        if len(parts) != 2 or not parts[0].isdigit() or not parts[1].isdigit():
-            errors.append("execute_time 格式必须为 HH:MM")
-        else:
-            h, m = int(parts[0]), int(parts[1])
-            if h < 0 or h > 23 or m < 0 or m > 59:
-                errors.append("execute_time 时间值无效")
+            datetime.fromisoformat(str(first_execution))
+        except (ValueError, TypeError):
+            errors.append("first_execution 格式必须为 ISO datetime（如 2026-07-01T03:00:00）")
+
+    total_weeks = body.get("total_weeks")
+    if total_weeks is not None and (not isinstance(total_weeks, int) or total_weeks < 4 or total_weeks > 52):
+        errors.append("total_weeks 必须为 4-52 之间的整数")
 
     batch_size = body.get("batch_size")
     if batch_size is not None and (not isinstance(batch_size, int) or batch_size < 1):
@@ -77,20 +76,15 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
     if check_ratio is not None and (not isinstance(check_ratio, int) or check_ratio < 1 or check_ratio > 100):
         errors.append("check_ratio 必须为 1-100 之间的整数")
 
-    update_interval = body.get("update_interval")
-    if update_interval is not None and (not isinstance(update_interval, int) or update_interval < 1):
-        errors.append("update_interval 必须为 >=1 的整数")
-
     if errors:
         return JSONResponse({"error": "参数校验失败", "details": errors}, status_code=400)
 
     field_map = {
-        "frequency": "validity.frequency",
-        "execute_time": "validity.execute_time",
+        "first_execution": "validity.first_execution",
+        "total_weeks": "validity.total_weeks",
         "batch_size": "validity.batch_size",
         "batch_interval": "validity.batch_interval",
         "check_ratio": "validity.check_ratio",
-        "update_interval": "validity.update_interval",
     }
     try:
         for json_key, cfg_key in field_map.items():
