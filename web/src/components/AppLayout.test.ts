@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import AppLayout from './AppLayout.vue'
 import PrimeVue from 'primevue/config'
+import ToastService from 'primevue/toastservice'
 import zhCN from '@/locales/zh-CN.json'
 
 const Dummy = { template: '<div />' }
@@ -26,7 +27,7 @@ function mountLayout() {
   const router = createRouter({ history: createMemoryHistory(), routes })
   return mount(AppLayout, {
     global: {
-      plugins: [pinia, i18n, router, PrimeVue],
+      plugins: [pinia, i18n, router, PrimeVue, ToastService],
     },
     slots: { default: '<div class="test-content">测试内容</div>' },
   })

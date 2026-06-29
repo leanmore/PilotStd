@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from docker.auth import require_admin
 from docker.manager import get_manager_dep
 
 
@@ -52,6 +53,10 @@ class TestAPIEndpoints(unittest.TestCase):
         app.include_router(download_router)
         app.include_router(users_router)
         cls.client = TestClient(app)
+
+    def setUp(self):
+        """每个测试前注入 require_admin 覆盖，避免 401。"""
+        self.client.app.dependency_overrides[require_admin] = lambda: "admin"
 
     def tearDown(self):
         """清除 dependency_overrides，防止测试间污染。"""
@@ -487,6 +492,9 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_delete_user_returns_ok(self, mock_delete):
         """DELETE /api/users/{id} 删除成功返回 ok。"""
         mock_delete.return_value = True
+        mock_mgr = MagicMock()
+        mock_mgr.user_service.get_user_by_id.return_value = {"id": 2, "username": "testuser", "role": "user"}
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.delete("/api/users/2")
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
@@ -495,10 +503,13 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_delete_user_not_found_returns_400(self, mock_delete):
         """删除不存在的用户返回 400。"""
         mock_delete.return_value = False
+        mock_mgr = MagicMock()
+        mock_mgr.user_service.get_user_by_id.return_value = {"id": 99, "username": "testuser", "role": "user"}
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.delete("/api/users/99")
         self.assertEqual(r.status_code, 400)
 
-    @patch("docker.auth.get_current_username")
+    @patch("docker.api.users.get_current_username")
     @patch("docker.api.users.change_password")
     def test_change_password_returns_ok(self, mock_change, mock_user):
         """PUT /api/users/password 修改密码成功返回 ok。"""
@@ -511,7 +522,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
-    @patch("docker.auth.get_current_username")
+    @patch("docker.api.users.get_current_username")
     def test_change_password_short_returns_400(self, mock_user):
         """新密码不足 4 个字符返回 400。"""
         mock_user.return_value = "admin"
