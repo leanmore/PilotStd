@@ -43,6 +43,7 @@ from .api.wechat_ip import router as wechat_ip_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .scheduler import _backup_database, _check_validity_schedule, register_job_func, start_scheduler, stop_scheduler
+from .websocket import websocket_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,8 @@ app.include_router(upload_router)
 app.include_router(logs_router)
 app.include_router(monitor_router)
 app.include_router(system_router)
+
+app.add_websocket_route("/api/notification/ws", websocket_endpoint)
 
 
 # 健康检查端点（Docker HEALTHCHECK 使用）

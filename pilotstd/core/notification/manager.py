@@ -87,6 +87,10 @@ class NotificationManager:
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
 
+        # WebSocket 广播（独立线程，不阻塞主流程）
+        if msg:
+            self._broadcast_to_ws(event_type, msg)
+
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
         std_no = data.get("standard_number", "")
         if event_type == "archive_complete":
@@ -274,6 +278,39 @@ class NotificationManager:
             )
         except Exception as e:
             logger.warning("通知日志写入失败: %s", e)
+
+    def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
+        """在独立线程中向 WebSocket 连接广播通知。"""
+        import threading
+        from datetime import datetime
+
+        def _run() -> None:
+            try:
+                from docker.websocket import get_ws_manager
+
+                ws_manager = get_ws_manager()
+                if ws_manager.connection_count == 0:
+                    return
+                import asyncio
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(
+                    ws_manager.broadcast(
+                        {
+                            "event_type": event_type,
+                            "title": msg.title,
+                            "body": msg.body,
+                            "level": msg.level,
+                            "sent_at": datetime.now().isoformat(),
+                        }
+                    )
+                )
+                loop.close()
+            except Exception:
+                pass  # 静默失败，不影响主流程
+
+        threading.Thread(target=_run, daemon=True, name="notif-ws-broadcast").start()
 
     # ── 查询日志 ──────────────────────────────────────────────
 

@@ -609,6 +609,13 @@ def _migrate_v17_notification_log(db: Database) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_event_type ON notification_log(event_type)")
 
 
+@migration(18)
+def _migrate_v18_notification_is_read(db: Database) -> None:
+    """v18: 通知日志增加 is_read 字段，支持已读标记。"""
+    db.execute("ALTER TABLE notification_log ADD COLUMN is_read INTEGER DEFAULT 0")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_notif_is_read ON notification_log(is_read)")
+
+
 @migration(19)
 def _migrate_v19_users(db: Database) -> None:
     """v19: 用户表——确保超级用户认证表始终存在（与 docker/users.py 保持同步）。"""

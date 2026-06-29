@@ -2,7 +2,9 @@
 import logging
 
 from fastapi import Depends, Query
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel
 
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 
@@ -10,6 +12,10 @@ from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
+
+
+class MarkReadRequest(BaseModel):
+    id: int | None = None  # None 表示全部标记已读
 
 
 def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
@@ -116,6 +122,7 @@ def get_logs(
     status: str | None = Query(None),
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
+    is_read: bool | None = Query(None),
     nmgr=Depends(_get_notification_mgr),
 ):
     """查询通知发送日志（分页+筛选）。"""
@@ -134,6 +141,9 @@ def get_logs(
     if end_date:
         where_clauses.append("sent_at <= ?")
         params.append(end_date + " 23:59:59")
+    if is_read is not None:
+        where_clauses.append("is_read = ?")
+        params.append(1 if is_read else 0)
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -144,7 +154,7 @@ def get_logs(
     total = count_row["total"] if count_row else 0
 
     offset = (page - 1) * page_size
-    logs = nmgr._db.fetchall(
+    rows = nmgr._db.fetchall(
         f"SELECT * FROM notification_log {where_sql} ORDER BY sent_at DESC LIMIT ? OFFSET ?",
         tuple(params + [page_size, offset]),
     )
@@ -152,5 +162,38 @@ def get_logs(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "items": [dict(r) for r in logs],
+        "items": [
+            {
+                "id": r["id"],
+                "event_type": r["event_type"],
+                "channel": r["channel"],
+                "title": r["title"],
+                "body": r["body"],
+                "standard_number": r["standard_number"],
+                "status": r["status"],
+                "error_msg": r["error_msg"],
+                "sent_at": r["sent_at"],
+                "is_read": r.get("is_read", 0),
+            }
+            for r in rows
+        ],
     }
+
+
+@router.post("/api/notification/read")
+def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
+    """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
+    try:
+        db = nmgr._db
+        if request.id is not None:
+            existing = db.fetchone("SELECT id FROM notification_log WHERE id=?", (request.id,))
+            if not existing:
+                return JSONResponse({"error": f"通知 ID {request.id} 不存在"}, status_code=404)
+            db.execute("UPDATE notification_log SET is_read=1 WHERE id=?", (request.id,))
+        else:
+            db.execute("UPDATE notification_log SET is_read=1")
+        db.commit()
+        return {"ok": True, "message": "已标记为已读"}
+    except Exception as e:
+        logger.exception("标记已读失败")
+        return JSONResponse({"error": str(e)}, status_code=500)
