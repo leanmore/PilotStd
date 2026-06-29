@@ -110,8 +110,8 @@ def run_validity_check(mgr=Depends(get_manager_dep)):
             from pilotstd.core.cache_manager import CacheManager, DataSource
 
             CacheManager(mgr.db).invalidate_by_source(DataSource.VALIDITY)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("缓存失效失败: %s", e)
         return {"ok": True, "checked": result["checked"], "changed": result["changed"]}
     else:
         return JSONResponse({"error": result.get("error", "执行失败")}, status_code=500)

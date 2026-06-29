@@ -32,7 +32,6 @@ interface MonitorStatus {
 export default defineComponent({
   name: 'FileMonitor',
   setup() {
-    console.log('🚀 FileMonitor setup 执行了');
     const config = ref<MonitorConfig>({
       enabled: true, watch_path: '/inbox', delay_seconds: 5,
       recursive: true, file_patterns: ['.pdf', '.docx', '.doc'],

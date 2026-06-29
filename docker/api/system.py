@@ -27,8 +27,8 @@ def _get_container_id() -> str:
             for line in f:
                 if "docker" in line or "containerd" in line:
                     return line.strip().split("/")[-1][:12]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("获取容器 ID 失败: %s", e)
     return os.environ.get("HOSTNAME", os.environ.get("CONTAINER_NAME", ""))
 
 
@@ -50,8 +50,8 @@ async def get_version():
     cid = ""
     try:
         cid = _get_container_id()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("获取容器 ID 失败: %s", e)
     return {
         "version": __version__,
         "tag": f"v{__version__}",
@@ -86,8 +86,8 @@ async def update_container(_: bool = Depends(require_admin)):
         try:
             img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
             old_digest = img_inspect.stdout.strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Docker 镜像检查失败: %s", e)
 
         # 2. 拉取最新镜像
         pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)

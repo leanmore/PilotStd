@@ -61,8 +61,8 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
         from pilotstd.core.cache_manager import CacheManager, DataSource
 
         CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("公告缓存失效失败: %s", e)
 
     count = total_matched + total_updated
     failure_count = len(failures)
@@ -75,8 +75,8 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
                     "failures": failure_count,
                 },
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("通知发送失败: %s", e)
 
     return {
         "ok": True,
