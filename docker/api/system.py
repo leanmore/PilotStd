@@ -4,9 +4,11 @@ import logging
 import os
 import subprocess
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from pilotstd import __version__
+
+from ..manager import get_manager_dep
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 logger = logging.getLogger(__name__)
@@ -151,3 +153,52 @@ async def update_container():
     except Exception as e:
         logger.error("自更新失败: %s", e)
         raise HTTPException(500, f"更新失败: {e}")
+
+
+@router.get("/health")
+def system_health(mgr=Depends(get_manager_dep)):
+    """系统健康检查。
+
+    检查项：数据库连接、缓存状态、适配器总数/可用数。
+    始终返回 200，通过 ok 字段指示整体健康状态。
+    """
+    from datetime import datetime
+
+    result: dict = {"ok": True, "timestamp": datetime.now().isoformat()}
+
+    # 1. 数据库连接
+    try:
+        mgr.db.fetchone("SELECT 1")
+        result["database"] = "ok"
+    except Exception as e:
+        result["database"] = f"error: {e}"
+        result["ok"] = False
+
+    # 2. 缓存状态
+    try:
+        from pilotstd.core.cache_manager import CacheManager
+
+        CacheManager(mgr.db)
+        result["cache"] = "ok"
+    except Exception as e:
+        result["cache"] = f"error: {e}"
+        result["ok"] = False
+
+    # 3. 适配器状态
+    try:
+        if hasattr(mgr, "adapter_manager"):
+            adapters = mgr.adapter_manager.list_adapters()
+            available = 0
+            for a in adapters:
+                status = mgr.adapter_manager.get_adapter_status(a)
+                if status.get("status") == "normal":
+                    available += 1
+            result["adapters"] = {"count": len(adapters), "available": available}
+        else:
+            result["adapters"] = "未初始化"
+            result["ok"] = False
+    except Exception as e:
+        result["adapters"] = f"error: {e}"
+        result["ok"] = False
+
+    return result
