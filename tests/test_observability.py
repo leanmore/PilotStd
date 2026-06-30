@@ -3,7 +3,7 @@
 
 用法:
     python tests/test_observability.py --check-all       # 检查所有 required 能力
-    python tests/test_observability.py --module pilotstd/query/engine.py
+    python tests/test_observability.py --module pilotstd/query/engine/_core.py
     python tests/test_observability.py --required-only   # 仅 required 级别
     python tests/test_observability.py --verbose         # 详细扫描过程
 
@@ -27,10 +27,10 @@ ROOT = Path(__file__).resolve().parent.parent
 # 格式: (文件路径, 检查类型, 特征模式, 描述)
 _HARD_RULES: list[tuple[str, str, str, str]] = [
     (
-        "pilotstd/query/engine.py",
+        "pilotstd/query/engine/_constants.py",
         "观测日志",
         PROGRESS_TAG,
-        f"query/engine.py 必须包含 {PROGRESS_TAG} 日志输出 (required)",
+        f"query/engine/_constants.py 必须包含 {PROGRESS_TAG} 日志输出 (required)",
     ),
     (
         "tests/stress_driver.py",
@@ -45,10 +45,10 @@ _HARD_RULES: list[tuple[str, str, str, str]] = [
         f"stress_web.py 必须导入并输出 {PROGRESS_TAG} 日志 (required)",
     ),
     (
-        "pilotstd/query/engine.py",
+        "pilotstd/query/engine/_report.py",
         "观测日志",
         "[BASELINE]",
-        "query/engine.py 必须包含 [BASELINE] 日志输出 (required)",
+        "query/engine/_report.py 必须包含 [BASELINE] 日志输出 (required)",
     ),
     (
         "pilotstd/query/rotator.py",
