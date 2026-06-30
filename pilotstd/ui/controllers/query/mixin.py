@@ -107,6 +107,7 @@ class QueryCoreMethods:
         self._query_worker = QueryWorker(self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self)
         self._query_worker.batch_ready.connect(self._on_query_batch_ready)
         self._query_worker.progress.connect(on_progress)
+        self._query_worker.error.connect(lambda msg: self._notify_worker_error("query", msg))
 
         def on_query_finished(_results: Any) -> None:
             self.btn_query.setEnabled(True)

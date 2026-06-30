@@ -174,3 +174,14 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
     except Exception as e:
         logger.exception("标记已读失败")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.get("/api/notification/unread-count")
+def get_unread_count(nmgr=Depends(_get_notification_mgr)):
+    """获取未读通知数量。"""
+    try:
+        count = nmgr.get_unread_count()
+        return {"count": count}
+    except Exception as e:
+        logger.exception("获取未读数量失败")
+        return JSONResponse({"error": str(e)}, status_code=500)

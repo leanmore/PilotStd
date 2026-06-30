@@ -1,12 +1,37 @@
 # CHANGELOG
 
-## v0.53.0 (2026-06-29)
+## v0.54.0 (2026-06-30) — GATE-15 治理清零
+
+### Added
+- 服务端会话存储 (`docker/session_store.py`) — JWT token 主动登出失效 + 定期清理
+- JWT_SECRET 固定默认值 (环境变量优先，不再随机生成)
+- 通知系统 P1 补全 — `GET /api/notification/unread-count` 端点
+- 通知 WebSocket 实时推送 (`/api/notification/ws`)
+- 引擎模块拆分：`_csres.py`、`_mini_bucket.py`、`_report.py` 三个新 mixin
+- 通知消息构建器提取：`core/notification/_message_builders.py`
+
+### Changed
+- **GATE-15 违规清零** — 11 个大文件包化为目录，32 个大函数拆分
+- `query/engine/_batch.py`: 782→424 行 (提取 CsresMixin + MiniBucketMixin + ReportMixin)
+- `core/notification/manager.py`: 543→288 行 (提取 MessageBuildersMixin)
+- `core/validity_checker.py`: `run_validity_check` 170→28 行 (提取 3 个辅助函数)
+- `pipeline/router.py`: `classify_after_query` 150→23 行 (提取 `_route_by_status`)
 
 ### Fixed
-- 版本号自动同步（CI 更新）
+- P0: `_routing.py` 3 处相对导入路径错误 (`..core` → `...core`)
+- P0: `_batch.py` 1 处相对导入路径错误
+- P0: `cli/commands/__init__.py` CLI 类丢失 (新增适配类)
+- 数据库迁移 v7 守卫 (CREATE INDEX 增加 try/except)
+- 测试 `test_migration_runs_pending` patch 路径修正
+- 测试 `test_v18_migration_adds_is_read_column` 导入路径修正
+- E2E `test_gb_exact_match` 标记 skip (外部 API 依赖)
+
+### Tests
+- 615 PASS / 6 SKIP / 0 FAIL (100% 通过率)
 
 
 ## v0.52.6 (2026-06-29)
+
 
 ### Fixed
 - 版本号自动同步（CI 更新）

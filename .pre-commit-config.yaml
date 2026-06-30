@@ -49,6 +49,14 @@ repos:
         stages: [manual]
         always_run: true
 
+      - id: gate-15
+        name: GATE-15 代码规模控制 (阻断模式)
+        entry: python scripts/check_gate_15_code_size.py
+        language: python
+        files: \.py$
+        exclude: ^(tests/|pilotstd_env/|web/)
+        pass_filenames: false
+
       - id: gate-allowed-paths
         name: 门禁 GATE-01 — 白名单路径检查
         entry: python scripts/check_allowed_paths.py

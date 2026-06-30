@@ -39,3 +39,10 @@
   - 若修改 → 请说明是否同时重构了涉及该 Mixin 的 UI 类
 - [ ] 本地运行 `mypy pilotstd/ --strict` 通过
 - [ ] 本地运行 `ruff check .` 通过
+
+## 文档同步检查
+- [ ] 代码变更对应的文档已同步更新（参考 [文档同步策略](docs/development/documentation-policy.md)）
+- [ ] 如有新增 API，已在接口文档中记录
+- [ ] 如有路径变更（文件移动/重命名），已在目录结构中更新
+- [ ] 如有技术债务消除，已在 [technical-debt-registry.md](docs/architecture/technical-debt-registry.md) 中标记
+- [ ] 如有新配置项或环境变量，已补充到环境配置文档

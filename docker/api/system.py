@@ -122,7 +122,7 @@ def _build_update_response(restart_ok: bool, old_digest: str, new_digest: str) -
 
 
 @router.post("/update")
-async def update_container(_: bool = Depends(require_admin)):
+async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_manager_dep)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
 
     流程：
@@ -150,6 +150,14 @@ async def update_container(_: bool = Depends(require_admin)):
 
         logger.info("检测到新镜像: %s → %s", old_digest[:80], new_digest[:80])
         restart_ok = _restart_via_compose()
+        # 镜像更新通知 (B1.7)
+        try:
+            if hasattr(mgr, 'notification_mgr'):
+                mgr.notification_mgr.send_event(
+                    "image_update_available",
+                    {"old_digest": old_digest, "new_digest": new_digest})
+        except Exception:
+            pass
         return _build_update_response(restart_ok, old_digest, new_digest)
     except subprocess.TimeoutExpired:
         raise HTTPException(504, "docker pull 超时")

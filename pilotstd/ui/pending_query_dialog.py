@@ -252,7 +252,17 @@ class PendingQueryDialog(QDialog):
         self._worker = QueryWorker(self._mgr, self._parsed_list, parent=self)
         self._worker.result_ready.connect(self._on_single_result)
         self._worker.finished_signal.connect(self._on_query_finished)
+        self._worker.error.connect(lambda msg: self._notify_error("query_pending", msg))
         self._worker.start()
+
+    def _notify_error(self, worker_name: str, error_msg: str) -> None:
+        """Worker 异常时发送通知（失败静默）。"""
+        try:
+            if hasattr(self._mgr, 'notification_mgr'):
+                self._mgr.notification_mgr.send_event(
+                    "worker_error", {"worker": worker_name, "error": error_msg})
+        except Exception:
+            pass
 
     def _check_local_db_available(self) -> bool:
         """检查用户是否已开启公告数据库（设置→网络→标准公告自动更新）。"""

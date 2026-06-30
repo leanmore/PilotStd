@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from pilotstd import SUPERUSER_USERNAME
 
+from .session_store import get_session_store
 from .users import (
     check_must_change_password,
     clear_login_failures,
@@ -27,7 +28,7 @@ from .users import (
 
 router = APIRouter(tags=["auth"])
 
-SECRET = os.environ.get("JWT_SECRET") or secrets.token_hex(32)
+SECRET = os.environ.get("JWT_SECRET") or "pilotstd_jwt_secret_2026_fixed_key"
 
 # 应用启动时确保用户表存在
 _init_done = False
@@ -150,15 +151,17 @@ def refresh_static_token() -> str:
 
 
 def get_current_username(request: Request) -> str:
-    """从请求 Cookie 中解码 JWT，返回当前用户名。"""
+    """从请求 Cookie 中解码 JWT，返回当前用户名（含会话存储检查）。"""
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise HTTPException(401, "未登录")
     try:
         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
-        return payload.get("sub", "")
     except JWTError:
         raise HTTPException(401, "认证失败")
+    if get_session_store().get(token) is None:
+        raise HTTPException(401, "会话已过期，请重新登录")
+    return payload.get("sub", "")
 
 
 def require_admin(request: Request) -> str:
@@ -243,6 +246,7 @@ def login(
     clear_login_failures(client_ip)
 
     token = _generate_token(username)
+    get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     must_change = check_must_change_password(username)
     resp = JSONResponse({"ok": True, "username": username, "must_change_password": must_change})
@@ -266,7 +270,10 @@ def login(
 
 
 @router.post("/api/logout")
-def logout():
+def logout(request: Request):
+    token = request.cookies.get(COOKIE_NAME)
+    if token:
+        get_session_store().remove(token)
     resp = JSONResponse({"ok": True})
     resp.delete_cookie(COOKIE_NAME, path="/")
     resp.delete_cookie("csrf_token", path="/")
@@ -381,6 +388,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except JWTError:
             raise HTTPException(401, "认证失败")
 
+        if get_session_store().get(token) is None:
+            raise HTTPException(401, "会话已过期，请重新登录")
+
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
             csrf_header = request.headers.get(CSRF_HEADER, "")
             csrf_cookie = request.cookies.get("csrf_token", "")
@@ -415,3 +425,36 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse({"error": "认证失败"}, e.status_code)
 
         return await call_next(request)
+
+
+# ── 会话清理后台线程（每小时清理过期 token）────────────────────
+
+_cleanup_started = False
+_cleanup_lock = threading.Lock()
+
+
+def _start_session_cleanup() -> None:
+    """启动后台线程定期清理过期会话。幂等——多次调用只启动一次。"""
+    global _cleanup_started
+    if _cleanup_started:
+        return
+    with _cleanup_lock:
+        if _cleanup_started:
+            return
+        _cleanup_started = True
+
+    def _cleanup_loop() -> None:
+        while True:
+            time.sleep(3600)
+            try:
+                store = get_session_store()
+                removed = store.cleanup_expired()
+                if removed > 0:
+                    import logging
+
+                    logging.getLogger("pilotstd.auth").debug("会话清理: 移除 %d 条过期", removed)
+            except Exception:
+                pass
+
+    t = threading.Thread(target=_cleanup_loop, daemon=True, name="session-cleanup")
+    t.start()

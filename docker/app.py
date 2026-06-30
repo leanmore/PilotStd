@@ -60,6 +60,11 @@ async def lifespan(app: FastAPI):
 
     LoggerManager(level=logging.INFO)
 
+    # 启动会话清理后台线程
+    from .auth import _start_session_cleanup
+
+    _start_session_cleanup()
+
     # 清理启动前遗留的僵尸抓取任务（status='running'/'pending' → failed）
     try:
         from pilotstd.core.config import get_db_path

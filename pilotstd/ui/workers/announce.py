@@ -10,6 +10,7 @@ class AnnounceWorker(QThread):
 
     progress = pyqtSignal(int, int, int)
     finished_signal = pyqtSignal()
+    error = pyqtSignal(str)
 
     def __init__(self, mgr: Any, since_date: Any = None, pause_event: Any = None, parent: Any = None) -> None:
         super().__init__(parent)
@@ -51,5 +52,6 @@ class AnnounceWorker(QThread):
             )
         except Exception as e:
             self._error = str(e)
+            self.error.emit(str(e))
         finally:
             self.finished_signal.emit()

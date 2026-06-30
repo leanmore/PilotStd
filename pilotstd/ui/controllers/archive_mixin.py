@@ -17,6 +17,16 @@ logger = logging.getLogger(__name__)
 class ArchiveMixin:
     """归档/规范化相关方法，混入 MainWindow。"""
 
+    def _notify_worker_error(self, worker_name: str, error_msg: str) -> None:
+        """Worker 异常时发送通知（不阻塞 UI，失败静默）。"""
+        try:
+            if hasattr(self, '_mgr') and hasattr(self._mgr, 'notification_mgr'):
+                self._mgr.notification_mgr.send_event(
+                    "worker_error",
+                    {"worker": worker_name, "error": error_msg})
+        except Exception:
+            pass
+
     def _on_normalize(self) -> None:
         self._current_task = "normalize"
         if not self._parsed_results:
@@ -184,7 +194,7 @@ class ArchiveMixin:
         )
         self._archive_worker.batch_ready.connect(self._on_archive_batch_ready)
         self._archive_worker.progress.connect(self.progress_changed.emit)
-        self._archive_worker.error.connect(lambda msg: logger.error("归档错误: %s", msg))
+        self._archive_worker.error.connect(lambda msg: self._notify_worker_error("archive", msg))
 
         self._archive_results = []
         self._archive_worker.finished_signal.connect(lambda: self._handle_archive_completed(root_dir))

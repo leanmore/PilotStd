@@ -163,9 +163,8 @@ jobs:
       - name: GATE-09 — Check CHANGELOG version consistency
         run: python scripts/check_changelog_version.py
 
-      - name: GATE-15 — 代码规模控制
+      - name: GATE-15 — 代码规模控制 (阻断模式)
         run: python scripts/check_gate_15_code_size.py
-        continue-on-error: true
 
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描

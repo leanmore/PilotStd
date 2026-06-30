@@ -244,3 +244,64 @@ class MessageBuildersMixin:
         return NotificationMessage(
             title=event_type, body=str(data), level="info", standard_number=None, event_type=event_type
         )
+
+    # ── 以下为 2026-07-01 新增事件 ──
+
+    def _build_image_update_available_message(self, data: dict) -> NotificationMessage:
+        """镜像更新可用通知"""
+        return NotificationMessage(
+            title=_("镜像更新可用"),
+            body=_("检测到新版本镜像，当前 {old} → 新版本 {new}").format(
+                old=data.get("old_digest", "")[:12], new=data.get("new_digest", "")[:12]),
+            level="info", standard_number=None, event_type="image_update_available")
+
+    def _build_batch_query_summary_message(self, data: dict) -> NotificationMessage:
+        """批量查询完成汇总通知"""
+        total = data.get("total", 0)
+        found = data.get("found", 0)
+        pending = data.get("pending", 0)
+        if found == total:
+            body = _("标准查询完成：共 {total} 条，全部找到").format(total=total)
+            level = "info"
+        elif pending > 0:
+            body = _("标准查询完成：共 {total} 条，找到 {found} 条，{pending} 条待确认").format(
+                total=total, found=found, pending=pending)
+            level = "warning"
+        else:
+            body = _("标准查询完成：共 {total} 条，找到 {found} 条").format(total=total, found=found)
+            level = "info"
+        return NotificationMessage(
+            title=_("标准查询完成"), body=body, level=level,
+            standard_number=None, event_type="batch_query_summary")
+
+    def _build_auto_query_complete_message(self, data: dict) -> NotificationMessage:
+        """定时自动查询完成通知"""
+        changed = data.get("changed", 0)
+        total = data.get("total", 0)
+        if changed > 0:
+            body = _("定时查询完成：共检查 {total} 条，{changed} 条状态变更").format(total=total, changed=changed)
+            level = "info"
+        else:
+            body = _("定时查询完成：共检查 {total} 条，无状态变更").format(total=total)
+            level = "info"
+        return NotificationMessage(
+            title=_("定时查询完成"), body=body, level=level,
+            standard_number=None, event_type="auto_query_complete")
+
+    def _build_trust_ip_update_message(self, data: dict) -> NotificationMessage:
+        """可信 IP 更新通知（企业微信 IP 变更）。"""
+        title = data.get("title", "可信 IP 状态")
+        body = data.get("body", "")
+        level = "warning" if "失败" in title else "info"
+        return NotificationMessage(
+            title=title, body=body, level=level,
+            standard_number=None, event_type="trust_ip_update")
+
+    def _build_worker_error_message(self, data: dict) -> NotificationMessage:
+        """Worker 异常通知"""
+        worker = data.get("worker", "未知")
+        error = data.get("error", "")
+        return NotificationMessage(
+            title=_("后台任务异常"),
+            body=_("{worker} 工作线程异常：{error}").format(worker=worker, error=error),
+            level="error", standard_number=None, event_type="worker_error")

@@ -112,6 +112,12 @@ class NotificationManager(MessageBuildersMixin):
             "validity_round_summary": self._build_validity_round_summary_message,
             "validity_standard_failed": self._build_validity_standard_failed_message,
             "validity_system_failed": self._build_validity_system_failed_message,
+            # 2026-07-01 新增
+            "image_update_available": self._build_image_update_available_message,
+            "batch_query_summary": self._build_batch_query_summary_message,
+            "auto_query_complete": self._build_auto_query_complete_message,
+            "trust_ip_update": self._build_trust_ip_update_message,
+            "worker_error": self._build_worker_error_message,
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
@@ -212,6 +218,11 @@ class NotificationManager(MessageBuildersMixin):
         else:
             db.execute("UPDATE notification_log SET is_read = 1")
             return 0
+
+    def get_unread_count(self) -> int:
+        """获取未读通知数量。"""
+        row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
+        return row["cnt"] if row else 0
 
     # ── 测试发送 ──────────────────────────────────────────────
 

@@ -76,6 +76,7 @@ class AnnounceMixin:
         )
         self._ann_worker.progress.connect(self._on_ann_progress)
         self._ann_worker.finished_signal.connect(dlg.accept)
+        self._ann_worker.error.connect(lambda msg: self._notify_worker_error("announce", msg))
         cancel_btn.clicked.connect(self._ann_worker.stop)
         self._ann_worker.start()
         dlg.exec()

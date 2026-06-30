@@ -201,6 +201,15 @@ class QueryMixin:
         if self._pending_list:
             self.record_pending(self._pending_list)
         self._report_query_summary(stats, items, results)
+        # 批量查询完成通知 (B1.3)
+        try:
+            pending_count = len(self._pending_list) if hasattr(self, '_pending_list') else 0
+            if self.notification_mgr:
+                self.notification_mgr.send_event(
+                    "batch_query_summary",
+                    {"total": stats.total, "found": stats.found, "pending": pending_count})
+        except Exception:
+            pass
         return results, stats
 
     def query(
