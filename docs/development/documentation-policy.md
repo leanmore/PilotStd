@@ -93,3 +93,10 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 | 新增/修改测试策略 | `docs/development.md` | PR提交者 | 测试代码提交时 |
 | 完成/移除技术债务 | `docs/architecture/technical-debt-registry.md` | PR提交者 | 债务消除时 |
 | 文件/函数拆分完成 | `docs/architecture/refactoring-analysis.md` | PR提交者 | 拆分任务完成时 |
+| 新增跨端功能模块 | 本文件（触发记录）+ `STATUS.md`（治理动作） | PR提交者 | 代码提交前 |
+
+### 变更历史
+
+| 日期 | 变更 | 涉及文件 | 文档同步确认 |
+|------|------|---------|-------------|
+| 2026-07-01 | 通知系统智能聚合 + 自动暂停 | `web/src/composables/useNotificationAggregator.ts`（新建）<br>`pilotstd/core/notification_aggregator.py`（新建）<br>`pilotstd/platform/notify.py`（修改）<br>`web/src/composables/useNotification.ts`（修改）<br>`web/src/components/NotificationConfig.vue`（修改）<br>`pilotstd/ui/pages/settings_page.py`（修改） | 本文件已更新触发记录；两端的核心聚合器文件已在头部注释中标注功能说明；设置页新增"通知"Tab 的 UI 文本自带功能描述 |

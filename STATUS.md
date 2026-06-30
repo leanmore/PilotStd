@@ -1,7 +1,8 @@
 # PilotStd 项目状态
 
-> 最后更新：2026-06-30
+> 最后更新：2026-07-01
 > 维护规则：每次任务完成后，由 Claude Code 更新本文件
+> 当前阶段：修复/重构阶段已完成，治理常态化运行中
 
 ## 一、当前版本信息
 
@@ -12,7 +13,29 @@
 | 未推送提交 | 1 (6bbb957 — GATE-15 清零) |
 | 目标 | GATE-15 违规归零 + 测试 100% 通过 (0 FAIL) |
 
-## 二、测试状态
+## 二、最近治理动作
+
+### 2026-07-01 — 通知系统智能聚合 + 自动暂停（两端同步实现）
+
+**背景**：通知弹窗在批量操作时存在刷屏问题，用户缺乏控制手段。
+
+**实现内容**：
+- **智能聚合**：缓冲窗口 300ms，按消息主题合并（如"任务完成"×3 → "3项任务已完成"），回退按级别聚合。
+- **自动暂停**：30秒内出现 3 次 Warning 或 Error 级别通知 → 自动暂停全部弹窗 5 分钟。
+- **用户控制**：设置页提供"启用自动暂停"开关（默认开启）+ 暂停状态横幅 + "立即恢复"按钮。
+- **关闭开关**：回退到原有 3 秒去重逻辑（无聚合/暂停）。
+
+**涉及文件**：
+- 新建：`web/src/composables/useNotificationAggregator.ts`（128行）
+- 新建：`pilotstd/core/notification_aggregator.py`（160行）
+- 修改：`web/src/composables/useNotification.ts`、`web/src/components/NotificationConfig.vue`
+- 修改：`pilotstd/platform/notify.py`、`pilotstd/ui/pages/settings_page.py`
+
+**门禁状态**：GATE-15 合规，所有修改文件 ≤500 行；Ruff PASS；未修改后端代码。
+
+**平台覆盖**：Web 端 + WinUI 端（系统托盘气泡 + 铃铛，QMessageBox 未改造）。
+
+## 三、测试状态
 
 | 指标 | 值 |
 |------|-----|
