@@ -2,6 +2,7 @@
 # Windows Toast 通知服务 — 封装系统托盘 QSystemTrayIcon.showMessage()
 
 import time
+from typing import Any
 
 from PyQt6.QtWidgets import QSystemTrayIcon
 
@@ -44,22 +45,39 @@ class NotifyService:
     # ── 公共方法 ──
 
     def show(self, title: str, message: str, duration: int = 5000) -> None:
-        """发送通知。同标题 3 秒内去重。"""
+        """发送通知。经聚合器缓冲合并后显示。"""
         if not self._enabled or self._tray is None:
             return
-        if not self._check_dedup(title):
+        agg = self._get_aggregator()
+        if not agg.auto_pause_enabled:
+            if not self._check_dedup(title):
+                return
+            self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, duration)
             return
-        self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, duration)
+        agg.should_show("info", title, message,
+                        lambda t, b, _l: self._tray.showMessage(  # type: ignore[arg-type]
+                            t, b, QSystemTrayIcon.MessageIcon.Information, duration))
 
     def show_warning(self, title: str, message: str, duration: int = 5000) -> None:
-        """发送警告通知。同标题 3 秒内去重。"""
+        """发送警告通知。经聚合器缓冲合并后显示。"""
         if not self._enabled or self._tray is None:
             return
-        if not self._check_dedup(title):
+        agg = self._get_aggregator()
+        if not agg.auto_pause_enabled:
+            if not self._check_dedup(title):
+                return
+            self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, duration)
             return
-        self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, duration)
+        agg.should_show("warning", title, message,
+                        lambda t, b, _l: self._tray.showMessage(t, b, QSystemTrayIcon.MessageIcon.Warning, duration))  # type: ignore[arg-type]
 
     # ── 内部 ──
+
+    @staticmethod
+    def _get_aggregator() -> Any:
+        """惰性获取聚合器实例。"""
+        from pilotstd.core.notification_aggregator import NotificationAggregator  # type: ignore[import-untyped]
+        return NotificationAggregator()
 
     def _check_dedup(self, title: str) -> bool:
         """检查是否应发送。同标题在去重窗口内返回 False。"""

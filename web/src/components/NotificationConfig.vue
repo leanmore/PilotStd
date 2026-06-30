@@ -18,6 +18,7 @@ import {
   type WechatChannelConfig, type TelegramChannelConfig,
   type FeishuChannelConfig, type DingTalkChannelConfig,
 } from '@/api/notification'
+import { useNotificationAggregator } from '@/composables/useNotificationAggregator'
 
 interface ChannelFormState {
   enabled: boolean
@@ -191,6 +192,32 @@ const toastConfig = ref({
 function saveToastConfig() {
   localStorage.setItem('notification_toast_config', JSON.stringify(toastConfig.value))
 }
+
+// ── 智能聚合器配置 ──
+const aggregator = useNotificationAggregator()
+const autoPauseEnabled = ref(localStorage.getItem('notification_auto_pause') !== 'false')
+const pauseState = ref(aggregator.getPauseState())
+
+function saveAutoPauseConfig() {
+  localStorage.setItem('notification_auto_pause', String(autoPauseEnabled.value))
+}
+
+function resumeNotifications() {
+  aggregator.resume()
+  pauseState.value = aggregator.getPauseState()
+}
+
+// 每秒更新暂停倒计时
+let pauseTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  pauseTimer = setInterval(() => {
+    pauseState.value = aggregator.getPauseState()
+  }, 1000)
+})
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  if (pauseTimer) clearInterval(pauseTimer)
+})
 </script>
 
 <template>
@@ -330,6 +357,21 @@ function saveToastConfig() {
           @change="saveToastConfig"
         />
       </div>
+    </div>
+
+    <!-- 聚合器设置 -->
+    <div class="config-row" style="margin-top:16px">
+      <label>智能聚合与暂停</label>
+      <div class="config-row">
+        <ToggleSwitch v-model="autoPauseEnabled" @change="saveAutoPauseConfig" />
+        <span style="font-size:12px;color:var(--text-dim);margin-left:8px">
+          连续 3 次警告/错误在 30 秒内自动暂停所有弹窗，5 分钟后自动恢复
+        </span>
+      </div>
+    </div>
+    <div v-if="pauseState.isPaused" class="pause-banner" style="margin-top:8px;padding:10px 14px;background:#fff3cd;border-radius:6px;display:flex;align-items:center;justify-content:space-between">
+      <span><i class="pi pi-clock" style="margin-right:6px" />通知已暂停，剩余 {{ pauseState.remainingSeconds }} 秒</span>
+      <Button label="立即恢复" size="small" severity="info" @click="resumeNotifications" />
     </div>
   </div>
 </template>

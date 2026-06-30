@@ -3,6 +3,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { markNotificationRead } from '@/api/notification'
+import { useNotificationAggregator } from './useNotificationAggregator'
 
 export interface NotificationMessage {
   id?: number
@@ -51,20 +52,22 @@ export function useNotification() {
         const data = JSON.parse(event.data)
         messages.value.unshift({ ...data, is_read: false })
 
+        const aggregator = useNotificationAggregator()
         const toastConfig = getToastConfig()
         if (toastConfig.enabled && toastConfig.events.includes(data.event_type)) {
           const severityMap: Record<string, 'info' | 'warn' | 'error' | 'success'> = {
-            info: 'info',
-            warning: 'warn',
-            error: 'error',
+            info: 'info', warning: 'warn', error: 'error',
           }
-          toast.add({
-            severity: severityMap[data.level] || 'info',
-            summary: data.title,
-            detail: data.body,
-            life: 5000,
-            closable: true,
-          })
+          aggregator.shouldShow(data.level, data.title, data.body,
+            (mergedTitle: string, mergedBody: string, mergedLevel: string) => {
+              toast.add({
+                severity: severityMap[mergedLevel] || 'info',
+                summary: mergedTitle,
+                detail: mergedBody,
+                life: 5000,
+                closable: true,
+              })
+            })
         }
       } catch (e) {
         console.error('解析通知消息失败:', e)
