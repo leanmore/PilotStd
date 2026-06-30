@@ -322,11 +322,18 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ─ 2d: 构建 + 推送（含 Registry Cache 层缓存）──
+      # ─ 2d: 构建 + 推送（Registry Cache + GHA Cache 双通道）──
+      - name: Compute cache key from dependencies
+        id: cache-key
+        run: |
+          # 依赖文件变更时缓存自动失效
+          HASH=$(cat docker/requirements-docker.txt requirements.txt pyproject.toml web/pnpm-lock.yaml 2>/dev/null | sha256sum | cut -c1-16)
+          echo "key=cache-${HASH}" >> $GITHUB_OUTPUT
+          echo "依赖缓存键: ${HASH}"
+
       - name: Check if frontend changed
         id: check-frontend
         run: |
-          # 检查 web 目录是否有变更（对比上次构建）
           if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^web/"; then
             echo "frontend_changed=true" >> $GITHUB_OUTPUT
             echo "检测到前端代码变更，将禁用 Docker 前端层缓存"
@@ -344,10 +351,12 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          # 前端变更时禁用缓存，确保使用最新代码
-          cache-to: ${{ steps.check-frontend.outputs.frontend_changed == 'true' && 'type=local,dest=/tmp/buildcache' || 'type=registry,ref=ghcr.io/leanmore/pilotstd:buildcache,mode=max' }}
-          # 前端变更时添加 no-cache 标记到相关层
+          # 双通道缓存：优先 Registry，备用 GHA cache
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+            type=gha,scope=${{ steps.cache-key.outputs.key }}
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          # 前端变更时添加 cache-bust 参数
           build-args: |
             FRONTEND_CACHE_BUST=${{ steps.check-frontend.outputs.frontend_changed == 'true' && github.sha || '' }}
 

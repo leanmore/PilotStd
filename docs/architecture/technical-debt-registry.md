@@ -44,7 +44,7 @@
 | 5 | `test_migration_runs_pending` 依赖 `CURRENT_SCHEMA_VERSION` patch 路径 | 低 | 2026-06-30 | 已修复 | 修正为 `database.CURRENT_SCHEMA_VERSION` |
 | 6 | WebSocket 广播无用户级路由 (广播到所有连接) | 中 | 2026-06-25 | 已接受 | 当前设计为全局广播，未来可按 user_id 路由 |
 | 7 | 会话存储重启即丢失 | 中 | 2026-06-30 | 已接受 | 重启后需重新登录是预期行为，可后续引入 Redis |
-| 8 | 构建缓存策略 — Docker 构建缓存，依赖变化时自动失效 | 低 | 2026-06-29 | 已接受 | CI 构建效率优化，构建产物不使用缓存 |
+| 8 | 构建缓存策略 — Docker Registry Cache + GHA cache 双通道，依赖哈希自动失效 | 低 | 2026-06-29 | ✅ 已实施 (2026-07-01) | `.github/workflows/ci.yml` — `build-and-push` job，`cache-from` + `cache-to` 双通道 |
 | 9 | Toast 弹窗配置 — 用户可在 NotificationConfig.vue 中配置开关 | 低 | 2026-06-29 | 已接受 | 前端用户体验，非安全相关 |
 | 10 | 静态令牌永不过期 — API Key 不设自动轮换 | 中 | 2026-06-29 | 已接受 | 当前安全模型足够，可后续引入 TTL |
 | 11 | 测试覆盖策略 — 全量覆盖 (后端 + 前端组件) | 低 | 2026-06-29 | 已接受 | 615 PASS / 6 SKIP / 0 FAIL |
