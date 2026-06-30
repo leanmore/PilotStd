@@ -103,7 +103,6 @@ async function uploadBg(e: Event) {
 // ═══════════════════════════════════════════
 // 主题 / 语言（UI Tab 使用）
 // ═══════════════════════════════════════════
-function setTheme(v: string) { store.theme = v }
 
 const selectedLocale = ref(store.locale || 'zh-CN')
 const localeOptions = [

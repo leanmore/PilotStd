@@ -6,7 +6,6 @@
  */
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'
-import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 

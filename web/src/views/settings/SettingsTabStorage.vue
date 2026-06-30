@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, type Ref } from 'vue'
+import { inject } from 'vue'
 defineOptions({ name: 'SettingsTabStorage' })
 // 从父组件注入共享的配置操作方法
 const getp = inject<(path: string, def?: any) => any>('settingsGetp')!
