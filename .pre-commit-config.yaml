@@ -22,6 +22,12 @@ repos:
         exclude: ^(tests/|pilotstd/ui/)
         additional_dependencies: [types-requests]
 
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+
   - repo: local
     hooks:
       - id: forbid-test-imports

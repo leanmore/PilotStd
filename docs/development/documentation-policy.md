@@ -65,6 +65,8 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 5. 创建/更新替代文档
 6. 在 PR 描述中注明归档操作
 
+**自动归档触发时机**：PR 合并到 `main`/`develop` 时，CI 自动将 `docs/pending/` 下文件移入 `docs/archive/YYYY-MM-DD/`。
+
 ## 六、相关文档
 
 - [技术债登记簿](../architecture/technical-debt-registry.md)
@@ -100,3 +102,11 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 | 日期 | 变更 | 涉及文件 | 文档同步确认 |
 |------|------|---------|-------------|
 | 2026-07-01 | 通知系统智能聚合 + 自动暂停 | `web/src/composables/useNotificationAggregator.ts`（新建）<br>`pilotstd/core/notification_aggregator.py`（新建）<br>`pilotstd/platform/notify.py`（修改）<br>`web/src/composables/useNotification.ts`（修改）<br>`web/src/components/NotificationConfig.vue`（修改）<br>`pilotstd/ui/pages/settings_page.py`（修改） | 本文件已更新触发记录；两端的核心聚合器文件已在头部注释中标注功能说明；设置页新增"通知"Tab 的 UI 文本自带功能描述 |
+
+## 隐私数据保护
+
+1. 文件级防护：`.gitignore` 已配置，禁止 `.env`、密钥文件、日志、数据库等入仓
+2. 内容级扫描：pre-commit + CI 使用 detect-secrets 扫描敏感字符串
+3. 基线文件：`.secrets.baseline` 记录已知敏感内容，提交到仓库
+4. 违规处理：扫描发现新增敏感内容时，阻断提交/合并
+5. 例外申请：如需提交测试用密钥，必须在文档中说明

@@ -77,3 +77,23 @@ tests/test_config.json
 
 # Docker 容器输出目录（运行时生成）
 /output/
+
+# 隐私数据保护
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.crt
+*.p12
+*.log
+logs/
+*.db
+*.sqlite
+*.sqlite3
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*~
