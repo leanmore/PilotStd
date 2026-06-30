@@ -119,15 +119,86 @@ class DownloadEngine:
             task.error_message = "文件保存失败"
         return task
 
+    def _execute_retry_batch(
+        self,
+        batch: List[DownloadTask],
+        tasks: List[DownloadTask],
+        task_index: dict[int, int],
+        skip_adopted: bool,
+        results: List[Optional[DownloadTask]],
+    ) -> None:
+        """执行一批下载任务的重试循环，原地修改 results。"""
+        import concurrent.futures
+
+        for retry_round in range(self._max_retries + 1):
+            pending = [t for t in batch if t.status in (DownloadStatus.PENDING, DownloadStatus.RETRYING)]
+            if not pending:
+                break
+            if retry_round > 0:
+                wait = 2**retry_round  # 指数退避: 2s/4s/...
+                logger.info(
+                    "重试第 %d 轮，%d 个任务，等待 %ds",
+                    retry_round,
+                    len(pending),
+                    wait,
+                )
+                time.sleep(wait)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+                futures = {}
+                for task in pending:
+                    idx = task_index[id(task)]
+                    future = executor.submit(self.download_single, task, skip_adopted)
+                    futures[future] = idx
+
+                for future in concurrent.futures.as_completed(futures):
+                    idx = futures[future]
+                    try:
+                        results[idx] = future.result()
+                    except Exception as e:
+                        logger.error(f"下载线程异常: {e}")
+                        task = tasks[idx]
+                        task.status = DownloadStatus.FAILED
+                        task.error_message = str(e)
+                        results[idx] = task
+
+    @staticmethod
+    def _collect_batch_stats(completed: List[DownloadTask], stats: BatchDownloadStats) -> None:
+        """原地更新批量下载统计。"""
+        for task in completed:
+            if task.status == DownloadStatus.SUCCESS:
+                stats.success += 1
+            elif task.status == DownloadStatus.SKIPPED:
+                stats.skipped_adopted += 1
+            elif task.status == DownloadStatus.FAILED:
+                stats.failed += 1
+            else:
+                stats.errors += 1
+
+    @staticmethod
+    def _notify_download_complete(notification_mgr: Any, stats: BatchDownloadStats) -> None:
+        """发送批量下载完成通知。"""
+        if not notification_mgr:
+            return
+        try:
+            notification_mgr.send_event(
+                "batch_download_complete",
+                {
+                    "total": stats.total,
+                    "success": stats.success,
+                    "failed": stats.failed + stats.errors,
+                },
+            )
+        except Exception:
+            pass
+
     def download_batch(
         self, tasks: List[DownloadTask], skip_adopted: bool = True, notification_mgr: Any = None
     ) -> tuple[List[DownloadTask], BatchDownloadStats]:
         """批量下载，支持网络失败自动重试。"""
-        import concurrent.futures
         import time as _time
 
         _dl_t0 = _time.monotonic()
-        _last_progress = _dl_t0
         _total = len(tasks)
         stats = BatchDownloadStats(total=_total)
         results: List[Optional[DownloadTask]] = [None] * len(tasks)
@@ -138,38 +209,7 @@ class DownloadEngine:
             batch_end = min(batch_start + self._batch_size, len(tasks))
             batch = tasks[batch_start:batch_end]
 
-            # 重试循环：最多 self._max_retries 轮，每轮只提交 RETRYING/PENDING 的任务
-            for retry_round in range(self._max_retries + 1):
-                pending = [t for t in batch if t.status in (DownloadStatus.PENDING, DownloadStatus.RETRYING)]
-                if not pending:
-                    break
-                if retry_round > 0:
-                    wait = 2**retry_round  # 指数退避: 2s/4s/...
-                    logger.info(
-                        "重试第 %d 轮，%d 个任务，等待 %ds",
-                        retry_round,
-                        len(pending),
-                        wait,
-                    )
-                    time.sleep(wait)
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers) as executor:
-                    futures = {}
-                    for i, task in enumerate(pending):
-                        idx = task_index[id(task)]
-                        future = executor.submit(self.download_single, task, skip_adopted)
-                        futures[future] = idx
-
-                    for future in concurrent.futures.as_completed(futures):
-                        idx = futures[future]
-                        try:
-                            results[idx] = future.result()
-                        except Exception as e:
-                            logger.error(f"下载线程异常: {e}")
-                            task = tasks[idx]
-                            task.status = DownloadStatus.FAILED
-                            task.error_message = str(e)
-                            results[idx] = task
+            self._execute_retry_batch(batch, tasks, task_index, skip_adopted, results)
 
             if batch_end < len(tasks):
                 _elapsed = _time.monotonic() - _dl_t0
@@ -185,28 +225,8 @@ class DownloadEngine:
                 time.sleep(self._long_rest)
 
         completed = [r for r in results if r is not None]
-        for task in completed:
-            if task.status == DownloadStatus.SUCCESS:
-                stats.success += 1
-            elif task.status == DownloadStatus.SKIPPED:
-                stats.skipped_adopted += 1
-            elif task.status == DownloadStatus.FAILED:
-                stats.failed += 1
-            else:
-                stats.errors += 1
-
-        if notification_mgr:
-            try:
-                notification_mgr.send_event(
-                    "batch_download_complete",
-                    {
-                        "total": stats.total,
-                        "success": stats.success,
-                        "failed": stats.failed + stats.errors,
-                    },
-                )
-            except Exception:
-                pass
+        self._collect_batch_stats(completed, stats)
+        self._notify_download_complete(notification_mgr, stats)
 
         return completed, stats
 

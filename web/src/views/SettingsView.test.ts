@@ -9,7 +9,7 @@ import zhCN from '@/locales/zh-CN.json'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 
-// mock API 模块 — SettingsView 导入的函数较多
+// mock API 模块 — SettingsView 和子组件导入的函数较多
 vi.mock('@/api', () => ({
   getUsers: vi.fn().mockResolvedValue({ users: [] }),
   addUser: vi.fn().mockResolvedValue({ ok: true }),
@@ -30,7 +30,7 @@ vi.mock('@/api/http', () => ({
   },
 }))
 
-// stub 子组件 — SettingsView 有大量子组件
+// stub 深层子组件（Settings Tab 子组件内部引用的组件）
 const StubNotificationConfig = { name: 'NotificationConfig', template: '<div class="notification-config" />', methods: { saveConfig: vi.fn() } }
 const StubWechatTrustIP = { name: 'WechatTrustIP', template: '<div class="wechat-trust-ip" />' }
 const StubCacheManager = { name: 'CacheManager', template: '<div class="cache-manager" />' }
@@ -97,10 +97,10 @@ describe('SettingsView', () => {
     expect(activeBtn.text()).toBe('存储')
   })
 
-  it('renders storage card with form inputs when storage tab active', () => {
+  it('renders storage tab component when storage tab active', () => {
     const wrapper = mountComponent()
-    // 存储 tab 应可见
-    expect(wrapper.find('.card').exists()).toBe(true)
+    // 拆分后存储 Tab 渲染为 SettingsTabStorage 子组件，shallowMount 产生 stub
+    expect(wrapper.find('settings-tab-storage-stub').exists()).toBe(true)
   })
 
   it('renders footer action bar with 应用 and 确定 buttons', () => {

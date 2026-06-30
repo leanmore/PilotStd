@@ -18,27 +18,28 @@ def _latest_baseline(baseline_dir: str) -> str | None:
     return files[0] if files else None
 
 
-def check_consistency(db_path: str, baseline_dir: str) -> dict:
-    """对比当前表与基线报告，返回结果 dict。退出码 0=一致, 1=不一致, 2=无基线, 3=DB错误。"""
+def _load_baseline_or_exit(baseline_dir: str) -> tuple[dict, str]:
+    """加载最新基线报告，失败时 sys.exit(2)。返回 (baseline_dict, filename)。"""
     baseline_path = _latest_baseline(baseline_dir)
     if not baseline_path:
         print(f"[ERROR] 无基线报告（{baseline_dir}/cache_baseline_*.json）")
         sys.exit(2)
-
     try:
         with open(baseline_path, "r", encoding="utf-8") as f:
             baseline = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"[ERROR] 基线报告读取失败: {e}")
         sys.exit(2)
+    return baseline, os.path.basename(baseline_path)
 
+
+def _load_db_rows_or_exit(db_path: str) -> list:
+    """从数据库加载 standard_info_cache 表所有行，失败时 sys.exit(3)。"""
     if not os.path.exists(db_path):
         print(f"[ERROR] 数据库不存在: {db_path}")
         sys.exit(3)
-
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-
     tables = [
         r[0]
         for r in conn.execute(
@@ -49,36 +50,17 @@ def check_consistency(db_path: str, baseline_dir: str) -> dict:
         print("[ERROR] standard_info_cache 表不存在")
         conn.close()
         sys.exit(3)
-
     rows = conn.execute(
         "SELECT id, standard_number, source_site, cached_at, source FROM standard_info_cache ORDER BY id"
     ).fetchall()
     conn.close()
+    return rows
 
-    total = len(rows)
-    sources: dict[str, int] = {}
-    current_records: dict[int, dict] = {}
 
-    for r in rows:
-        site = r["source_site"]
-        sources[site] = sources.get(site, 0) + 1
-        current_records[r["id"]] = {
-            "id": r["id"],
-            "standard_number": r["standard_number"],
-            "source_site": site,
-            "cached_at": r["cached_at"],
-            "source": r["source"],
-        }
-
-    baseline_records: dict[int, dict] = {}
-    for rec in baseline.get("records", []):
-        baseline_records[rec["id"]] = rec
-
-    bl_total = baseline.get("total", 0)
-    bl_sources = baseline.get("sources", {})
-    bl_filename = os.path.basename(baseline_path)
-
-    # 逐项对比
+def _compute_diff(
+    current_records: dict[int, dict], baseline_records: dict[int, dict]
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """逐项对比当前记录与基线，返回 (added, removed, modified)。"""
     diff_added: list[dict] = []
     diff_removed: list[dict] = []
     diff_modified: list[dict] = []
@@ -102,46 +84,95 @@ def check_consistency(db_path: str, baseline_dir: str) -> dict:
                             "current": cur.get(field),
                         }
                     )
+    return diff_added, diff_removed, diff_modified
 
-    has_diff = total != bl_total or sources != bl_sources or diff_added or diff_removed or diff_modified
 
+def _report_consistency_result(
+    has_diff: bool,
+    bl_filename: str,
+    total: int,
+    sources: dict[str, int],
+    bl_total: int,
+    bl_sources: dict[str, int],
+    diff_added: list[dict],
+    diff_removed: list[dict],
+    diff_modified: list[dict],
+) -> None:
+    """输出一致性校验结果并 sys.exit。"""
     if not has_diff:
-        result = {
-            "status": "PASS",
-            "message": "缓存一致性校验通过",
-            "baseline": bl_filename,
-            "total": total,
-            "sources": sources,
-        }
         print(f"[PASS] 缓存一致性校验通过 ({bl_filename})")
         print(f"   总记录: {total}, 来源分布: {sources}")
         sys.exit(0)
-    else:
-        diff_msg_parts = []
-        if diff_added:
-            diff_msg_parts.append(f"新增 {len(diff_added)} 条")
-        if diff_removed:
-            diff_msg_parts.append(f"删除 {len(diff_removed)} 条")
-        if diff_modified:
-            diff_msg_parts.append(f"修改 {len(diff_modified)} 条")
-        diff_msg = ", ".join(diff_msg_parts) if diff_msg_parts else "记录数不一致"
 
-        result = {
-            "status": "FAIL",
-            "message": f"缓存一致性校验失败: {diff_msg}",
-            "baseline": bl_filename,
-            "baseline_total": bl_total,
-            "current_total": total,
-            "baseline_sources": bl_sources,
-            "current_sources": sources,
-            "diff": {
-                "added": diff_added,
-                "removed": diff_removed,
-                "modified": diff_modified,
-            },
+    diff_msg_parts = []
+    if diff_added:
+        diff_msg_parts.append(f"新增 {len(diff_added)} 条")
+    if diff_removed:
+        diff_msg_parts.append(f"删除 {len(diff_removed)} 条")
+    if diff_modified:
+        diff_msg_parts.append(f"修改 {len(diff_modified)} 条")
+    diff_msg = ", ".join(diff_msg_parts) if diff_msg_parts else "记录数不一致"
+
+    result = {
+        "status": "FAIL",
+        "message": f"缓存一致性校验失败: {diff_msg}",
+        "baseline": bl_filename,
+        "baseline_total": bl_total,
+        "current_total": total,
+        "baseline_sources": bl_sources,
+        "current_sources": sources,
+        "diff": {
+            "added": diff_added,
+            "removed": diff_removed,
+            "modified": diff_modified,
+        },
+    }
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    sys.exit(1)
+
+
+def check_consistency(db_path: str, baseline_dir: str) -> dict:
+    """对比当前表与基线报告，返回结果 dict。退出码 0=一致, 1=不一致, 2=无基线, 3=DB错误。"""
+    baseline, bl_filename = _load_baseline_or_exit(baseline_dir)
+    rows = _load_db_rows_or_exit(db_path)
+
+    total = len(rows)
+    sources: dict[str, int] = {}
+    current_records: dict[int, dict] = {}
+
+    for r in rows:
+        site = r["source_site"]
+        sources[site] = sources.get(site, 0) + 1
+        current_records[r["id"]] = {
+            "id": r["id"],
+            "standard_number": r["standard_number"],
+            "source_site": site,
+            "cached_at": r["cached_at"],
+            "source": r["source"],
         }
-        print(json.dumps(result, ensure_ascii=False, indent=2))
-        sys.exit(1)
+
+    baseline_records: dict[int, dict] = {}
+    for rec in baseline.get("records", []):
+        baseline_records[rec["id"]] = rec
+
+    bl_total = baseline.get("total", 0)
+    bl_sources = baseline.get("sources", {})
+
+    diff_added, diff_removed, diff_modified = _compute_diff(current_records, baseline_records)
+    has_diff = bool(total != bl_total or sources != bl_sources or diff_added or diff_removed or diff_modified)
+
+    _report_consistency_result(
+        has_diff,
+        bl_filename,
+        total,
+        sources,
+        bl_total,
+        bl_sources,
+        diff_added,
+        diff_removed,
+        diff_modified,
+    )
+    return {}  # unreachable, kept for type contract compatibility
 
 
 if __name__ == "__main__":

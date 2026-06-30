@@ -77,6 +77,39 @@ class PipelineRouter:
                 buckets["query"].append(p)
         return buckets
 
+    @staticmethod
+    def _route_replaced_or_obsolete(
+        p: Any, buckets: dict[str, list[Any]], has_valid_replaces: bool, is_gb: bool
+    ) -> None:
+        """路由规则: 有替代关系的国标 → download，否则 → expire（含采标 → pending）。"""
+        if has_valid_replaces and is_gb:
+            if getattr(p, "is_adopted", False):
+                buckets["pending"].append(p)
+            else:
+                buckets["download"].append(p)
+        else:
+            buckets["expire"].append(p)
+
+    @staticmethod
+    def _route_current_status(p: Any, buckets: dict[str, list[Any]]) -> None:
+        """路由规则: '现行' 状态 → 比对文件名决定 organize 或 normalize。"""
+        expected = make_standard_filename(
+            p.logical_code,
+            p.number,
+            p.year,
+            p.std_name,
+            getattr(p, "part", None),
+            language=getattr(p, "language", ""),
+            num_prefix=getattr(p, "num_prefix", ""),
+            num_suffix=getattr(p, "num_suffix", ""),
+            ext=getattr(p, "ext", "pdf"),
+        )
+        actual = os.path.basename(p.source_path or "")
+        if actual == expected:
+            buckets["organize"].append(p)
+        else:
+            buckets["normalize"].append(p)
+
     def _route_by_status(self, p: Any, buckets: dict[str, list[Any]], items: list[Any]) -> None:
         """根据单条标准的状态标记决定路由去向（原地修改 buckets）。"""
         status = getattr(p, "effect_status", "") or ""
@@ -124,44 +157,13 @@ class PipelineRouter:
         if status == "待确认":
             buckets["pending"].append(p)
             return
-        # 规则4+5: 废止/已废止/作废
-        if status in ("废止", "已废止", "作废"):
-            if has_valid_replaces and is_gb:
-                if getattr(p, "is_adopted", False):
-                    buckets["pending"].append(p)
-                else:
-                    buckets["download"].append(p)
-            else:
-                buckets["expire"].append(p)
-            return
-        # 规则6+7: 被代替
-        if status == "被代替":
-            if has_valid_replaces and is_gb:
-                if getattr(p, "is_adopted", False):
-                    buckets["pending"].append(p)
-                else:
-                    buckets["download"].append(p)
-            else:
-                buckets["expire"].append(p)
+        # 规则4-7: 废止/已废止/作废/被代替
+        if status in ("废止", "已废止", "作废", "被代替"):
+            self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, is_gb)
             return
         # 规则8: 现行 → organize/normalize
         if status == "现行":
-            expected = make_standard_filename(
-                p.logical_code,
-                p.number,
-                p.year,
-                p.std_name,
-                getattr(p, "part", None),
-                language=getattr(p, "language", ""),
-                num_prefix=getattr(p, "num_prefix", ""),
-                num_suffix=getattr(p, "num_suffix", ""),
-                ext=getattr(p, "ext", "pdf"),
-            )
-            actual = os.path.basename(p.source_path or "")
-            if actual == expected:
-                buckets["organize"].append(p)
-            else:
-                buckets["normalize"].append(p)
+            self._route_current_status(p, buckets)
             return
         # 规则9: 兜底
         buckets["fallback"].append(p)

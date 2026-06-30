@@ -10,16 +10,17 @@ import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from ..models import QueryResult
-from ..search_strategy import ADAPTER_TYPE_MAP, MATCH_SCORE
+from ..search_strategy import ADAPTER_TYPE_MAP
 from ._constants import PROGRESS_TAG
 from ._csres import CsresMixin
 from ._mini_bucket import MiniBucketMixin
+from ._overflow import OverflowHandler
 from ._report import ReportMixin
 
 logger = logging.getLogger(__name__)
 
 
-class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
+class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
     """批量查询混入类 — query_standards + query_batch_parsed。"""
 
     # ── 二次分桶参数 ──
@@ -82,25 +83,27 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
             preferred_site=preferred_site,
         )
 
-    def query_batch_parsed(
+    # ── 批量查询子方法（query_batch_parsed 拆分）──
+
+    def _init_batch_state(
         self,
-        parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
-        progress_callback: Optional[Callable[[int], None]] = None,
-        result_callback: Optional[Callable[[int, QueryResult], None]] = None,
-        preferred_site: str = "",
-    ) -> List[QueryResult]:
-        """[已废弃] 使用 query_standards(items, use_parallel=True) 替代。
-        仅保留作为 query_standards 并行路径的内部实现。外部调用请走 query_standards()。
-        迁移时间：2026-06-24，阶段二统一查询引擎。"""
-        import time as _time
-
-        self._query_active = True
-
-        _bucket_t0 = _time.time()
-        n = len(parsed_list)
+        n: int,
+        _time: Any,
+        _bucket_t0: float,
+        progress_callback: Optional[Callable[[int], None]],
+    ) -> dict:
+        """初始化批量查询共享状态：计数器、进度心跳线程、结果容器。
+        返回 state dict 供后续子方法读写。
+        """
         results: Dict[int, QueryResult] = {}
         counter_lock = threading.Lock()
         counter = [0]
+
+        # 进度心跳变量（bump 闭包捕获，提前定义）
+        _prog_completed = [0]
+        _prog_ok = [0]
+        _prog_lock = threading.Lock()
+        _prog_stop = threading.Event()
 
         def bump() -> None:
             with counter_lock:
@@ -109,12 +112,6 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
                     progress_callback(counter[0])
             with _prog_lock:
                 _prog_completed[0] += 1
-
-        # ── 0. 进度心跳线程（每60秒输出一次，三端统一格式）──
-        _prog_completed = [0]
-        _prog_ok = [0]
-        _prog_lock = threading.Lock()
-        _prog_stop = threading.Event()
 
         def _progress_heartbeat() -> None:
             while not _prog_stop.wait(60.0):
@@ -137,16 +134,41 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
         _prog_thread = threading.Thread(target=_progress_heartbeat, daemon=True)
         _prog_thread.start()
 
-        # ── 1. 分组 ──
+        return {
+            "results": results,
+            "bump": bump,
+            "_prog_completed": _prog_completed,
+            "_prog_ok": _prog_ok,
+            "_prog_lock": _prog_lock,
+            "_prog_stop": _prog_stop,
+            "_prog_thread": _prog_thread,
+            "_bucket_t0": _bucket_t0,
+            "n": n,
+        }
+
+    def _bucket_items(
+        self,
+        parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
+    ) -> Dict[str, List[Tuple[int, tuple[Any, ...]]]]:
+        """将已解析条目按站点分桶。"""
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]] = {}
         for i, item in enumerate(parsed_list):
             key = self._bucket_key(item[0])
             buckets.setdefault(key, []).append((i, item))
-
         for key, items in buckets.items():
             logger.info("[BUCKET] %s 总数=%d", key, len(items))
+        return buckets
 
-        # ── 2. 全局溢出配额锁 ──
+    def _setup_dispatch_context(
+        self,
+        state: dict,
+        result_callback: Optional[Callable[[int, QueryResult], None]],
+        progress_callback: Optional[Callable[[int], None]],
+    ) -> None:
+        """设置分发上下文：溢出配额、跟踪变量、匹配评分记录器。
+        原地修改 state dict，添加 dispatch 阶段需要的所有键。
+        """
+        # 全局溢出配额锁
         overflow_lock = threading.Lock()
         overflow_quota = {
             "ahbz": [self._AHBZ_OVERFLOW_QUOTA],
@@ -163,11 +185,11 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
                     return True
             return False
 
-        # ── 3. csres 独立线程 ──
+        # csres 独立线程结果容器
         csres_results: Dict[int, QueryResult] = {}
         csres_failures = [0]
 
-        # ── 4. 桶工作线程 ──
+        # 桶工作跟踪变量
         bucket_times: Dict[str, tuple[float, float, int, int]] = {}
         site_usage: Dict[str, int] = {}
         usage_lock = threading.Lock()
@@ -176,6 +198,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
             with usage_lock:
                 site_usage[site] = site_usage.get(site, 0) + 1
 
+        # 匹配评分与链追踪
         overflow_events: list[tuple[float, str, str, int]] = []
         match_scores: Dict[str, Dict[str, int]] = {}
         item_chains: Dict[int, list[str]] = {}
@@ -188,65 +211,80 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
                     match_scores[site] = {}
                 match_scores[site][status] = match_scores[site].get(status, 0) + 1
 
-        bucket_ctx = {
-            "results": results,
-            "item_chains": item_chains,
-            "overflow_events": overflow_events,
-            "match_scores": match_scores,
-            "pending_reasons": pending_reasons,
-            "_prog_lock": _prog_lock,
-            "_prog_ok": _prog_ok,
-            "overflow_quota": overflow_quota,
-            "_try_overflow": _try_overflow,
-            "_record_usage": _record_usage,
-            "_record_match": _record_match,
-            "bump": bump,
-            "result_callback": result_callback,
-            "progress_callback": progress_callback,
-        }
+        state.update(
+            {
+                "overflow_quota": overflow_quota,
+                "_try_overflow": _try_overflow,
+                "csres_results": csres_results,
+                "csres_failures": csres_failures,
+                "bucket_times": bucket_times,
+                "site_usage": site_usage,
+                "_record_usage": _record_usage,
+                "overflow_events": overflow_events,
+                "match_scores": match_scores,
+                "item_chains": item_chains,
+                "pending_reasons": pending_reasons,
+                "_record_match": _record_match,
+                "result_callback": result_callback,
+                "all_overflow": [],
+            }
+        )
 
-        def _bucket_worker(
-            bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
-            primary_site: str,
-        ) -> tuple[List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]], float, int]:
-            """二次分桶 → 委托 _run_bucket 执行查询。"""
-            _ts = _time.time()
-            chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
-            chain = [s for s in chain if s != "csres"]
-            if primary_site in chain:
-                chain = chain[chain.index(primary_site) :]
-            if not chain:
-                chain = [primary_site]
-            code = bucket_items[0][1][0]
-            from ...core.std_utils import classify_std_code
+    def _bucket_worker(
+        self,
+        bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
+        primary_site: str,
+        state: dict,
+    ) -> tuple:
+        """二次分桶 → 委托 _run_mini_bucket_queries 执行查询。
+        返回 (溢出条目列表, 耗时, 已完成数)。
+        """
+        import time as _time2
 
-            std_type = classify_std_code(code)
-            type_route = ADAPTER_TYPE_MAP.get(std_type, {})
-            weights = type_route.get("weights")
-            mini_buckets = self._build_mini_buckets(bucket_items, chain, weights)
-            logger.info(
-                "[MINI_BUCKET] %s 总数=%d 小桶=%d 链=%s 权重=%s",
-                primary_site,
-                len(bucket_items),
-                len(mini_buckets),
-                "→".join(chain),
-                weights,
-            )
-            overflow_items = self._run_mini_bucket_queries(mini_buckets, chain, primary_site, _time, bucket_ctx)
-            done = len(bucket_items) - len(overflow_items)
-            return (overflow_items, _time.time() - _ts, done)
+        _ts = _time2.time()
+        chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
+        chain = [s for s in chain if s != "csres"]
+        if primary_site in chain:
+            chain = chain[chain.index(primary_site) :]
+        if not chain:
+            chain = [primary_site]
+        code = bucket_items[0][1][0]
+        from ...core.std_utils import classify_std_code
 
-        # ── 5. 桶间并行执行 ──
-        csres_pool_gb = []
-        csres_pool_industry = []
-        all_overflow = []
-        bucket_futures = {}
+        std_type = classify_std_code(code)
+        type_route = ADAPTER_TYPE_MAP.get(std_type, {})
+        weights = type_route.get("weights")
+        mini_buckets = self._build_mini_buckets(bucket_items, chain, weights)
+        logger.info(
+            "[MINI_BUCKET] %s 总数=%d 小桶=%d 链=%s 权重=%s",
+            primary_site,
+            len(bucket_items),
+            len(mini_buckets),
+            "→".join(chain),
+            weights,
+        )
+        overflow_items = self._run_mini_bucket_queries(mini_buckets, chain, primary_site, _time2, state)
+        done = len(bucket_items) - len(overflow_items)
+        return (overflow_items, _time2.time() - _ts, done)
+
+    def _dispatch_queries(
+        self,
+        buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]],
+        state: dict,
+    ) -> None:
+        """调度编排：并行提交桶工作线程 + csres 后台线程，收集桶结果。
+        原地修改 state["all_overflow"]、state["bucket_times"] 等。
+        """
+        csres_pool_gb: list = []
+        csres_pool_industry: list = []
+        all_overflow: list = []
+        bucket_futures: Dict[Any, str] = {}
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             for bucket_key, items in buckets.items():
                 if not items:
                     continue
-                future = executor.submit(_bucket_worker, items, bucket_key)
+                future = executor.submit(self._bucket_worker, items, bucket_key, state)
                 bucket_futures[future] = bucket_key
                 # 收集 csres 候选条目（ahbz=GB主力桶, hbba=行业桶）
                 if bucket_key in ("ahbz", "std_gov"):
@@ -256,7 +294,11 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
 
             # csres 独立线程
             csres_future = executor.submit(
-                self._run_csres_worker, csres_pool_gb, csres_pool_industry, csres_results, csres_failures
+                self._run_csres_worker,
+                csres_pool_gb,
+                csres_pool_industry,
+                state["csres_results"],
+                state["csres_failures"],
             )
 
             # 收集桶结果
@@ -264,9 +306,9 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
                 try:
                     overflow, elapsed, done = future.result()
                     key = bucket_futures[future]
-                    bucket_times[key] = (
-                        _bucket_t0,
-                        _bucket_t0 + elapsed,
+                    state["bucket_times"][key] = (
+                        state["_bucket_t0"],
+                        state["_bucket_t0"] + elapsed,
                         done,
                         len(overflow),
                     )
@@ -280,145 +322,53 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
             except Exception:
                 pass
 
-        self._overflow_item_count = len(all_overflow)
+        state["all_overflow"] = all_overflow
 
-        # ── 6. 合并 csres 结果 ──
-        for idx, result in csres_results.items():
-            if idx not in results:
-                results[idx] = result
-                with _prog_lock:
-                    _prog_ok[0] += 1
-                bump()
+    def _collect_csres_results(self, state: dict) -> None:
+        """结果收集：将 csres 后台查询结果合并到主结果集。"""
+        for idx, result in state["csres_results"].items():
+            if idx not in state["results"]:
+                state["results"][idx] = result
+                with state["_prog_lock"]:
+                    state["_prog_ok"][0] += 1
+                state["bump"]()
 
-        # ── 7. 临时桶：链迭代（微批 + 抖动防惊群）──
-        temp_cooldown_skips = 0
-        if all_overflow:
-            # 按剩余站点数升序
-            all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1])))
-            # 微批：每批 20 条，批次间 2-5s 随机抖动
-            batch_size = 20
-            for batch_start in range(0, len(all_overflow), batch_size):
-                batch = all_overflow[batch_start : batch_start + batch_size]
-                if batch_start > 0:
-                    import random as _random
-
-                    jitter = _random.uniform(2, 5)
-                    _time.sleep(jitter)
-                for idx, item in batch:
-                    if idx in results:
-                        continue
-                    chain = self._build_chain_for_item(item)
-                    # 主站点已查过，从二线开始
-                    start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
-                    found = False
-                    tried_chain = item_chains.get(idx, [])
-                    for site in chain[start:]:
-                        if site not in self._adapter_map:
-                            continue
-                        if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
-                            temp_cooldown_skips += 1
-                            ov_q = overflow_quota.get(site, [0])
-                            logger.debug(
-                                "[QUOTA] 站点=%s 操作=溢出不可用 原因=冷却中 剩余溢出配额=%d",
-                                site,
-                                ov_q[0] if ov_q else 0,
-                            )
-                            continue
-                        adapter = self._adapter_map[site]
-                        # 溢出配额控制：受限站点消耗配额，配额耗尽则跳过
-                        if site in overflow_quota and not _try_overflow(site):
-                            logger.debug(
-                                "[QUOTA] 站点=%s 操作=溢出配额耗尽 剩余=%d",
-                                site,
-                                overflow_quota[site][0],
-                            )
-                            continue
-                        try:
-                            _t0 = _time.time()
-                            result = adapter.query_with_strategy(  # type: ignore[assignment]
-                                item[0], item[1], item[2], item[3], item[4]
-                            )
-                            _elapsed = round(_time.time() - _t0, 3)
-                            if self._rotator:
-                                self._rotator.record_query_result(
-                                    site,
-                                    result is not None and result.is_found(),
-                                    _elapsed,
-                                )
-                        except Exception:
-                            continue
-                        if result:
-                            result.source_site = site
-                            self._record(site, 1)
-                            _record_match(site, getattr(result, "match_status", "err"))
-                            tried_chain.append(site)
-                            item_chains[idx] = tried_chain
-                            score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
-                            _td = f"{item[0]} {item[1]}-{item[2]}"
-                            if score >= 100:
-                                results[idx] = result
-                                with _prog_lock:
-                                    _prog_ok[0] += 1
-                                logger.info(
-                                    "查询 [%s] [OK]%s(%s)",
-                                    _td,
-                                    site,
-                                    getattr(result, "match_status", ""),
-                                )
-                                if result_callback and result.is_found():
-                                    result_callback(idx, result)
-                                bump()
-                                found = True
-                                break
-                            else:
-                                logger.info(
-                                    "查询 [%s] [LO]%s(%s=%d) 未达100分继续",
-                                    _td,
-                                    site,
-                                    getattr(result, "match_status", ""),
-                                    score,
-                                )
-                    # 链耗尽→待确认
-                    if not found:
-                        chain_str = "→".join(item_chains.get(idx, [])) or "none"
-                        _td2 = f"{item[0]} {item[1]}-{item[2]}"
-                        logger.info("查询 [%s] [NG] tried=%s", _td2, chain_str)
-                        pending_reasons.append((idx, chain_str))
-                        results[idx] = QueryResult(
-                            standard_number=f"{item[0]} {item[1]}-{item[2]}",
-                            standard_name=item[3],
-                            status="待确认",
-                            source_site="",
-                            match_status="chain_exhausted",
-                        )
-                        bump()
-
+    def _finalize_batch(
+        self,
+        state: dict,
+        _time: Any,
+        parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
+        n: int,
+        temp_cooldown_skips: int,
+    ) -> List[QueryResult]:
+        """收尾：输出批量摘要报告 → 停止心跳 → 组装结果 → 重置状态。"""
+        # 输出批量摘要报告
         self._report_batch_summary(
             {
-                "bucket_times": bucket_times,
-                "site_usage": site_usage,
-                "item_chains": item_chains,
-                "overflow_events": overflow_events,
-                "csres_results": csres_results,
-                "csres_failures": csres_failures,
-                "match_scores": match_scores,
-                "pending_reasons": pending_reasons,
-                "overflow_quota": overflow_quota,
+                "bucket_times": state["bucket_times"],
+                "site_usage": state["site_usage"],
+                "item_chains": state["item_chains"],
+                "overflow_events": state["overflow_events"],
+                "csres_results": state["csres_results"],
+                "csres_failures": state["csres_failures"],
+                "match_scores": state["match_scores"],
+                "pending_reasons": state["pending_reasons"],
+                "overflow_quota": state["overflow_quota"],
                 "temp_cooldown_skips": temp_cooldown_skips,
-                "_bucket_t0": _bucket_t0,
-                "n": n,
-                "all_overflow": all_overflow,
+                "_bucket_t0": state["_bucket_t0"],
+                "n": state["n"],
+                "all_overflow": state["all_overflow"],
                 "_time": _time,
-                "results": results,
+                "results": state["results"],
             }
         )
 
-        # ── 停止进度心跳 + 最终进度 ──
-        _prog_stop.set()
-        with _prog_lock:
-            c = _prog_completed[0]
-            o = _prog_ok[0]
-        elapsed = _time.time() - _bucket_t0
+        # 停止进度心跳 + 最终进度
+        state["_prog_stop"].set()
+        with state["_prog_lock"]:
+            c = state["_prog_completed"][0]
+            o = state["_prog_ok"][0]
+        elapsed = _time.time() - state["_bucket_t0"]
         logger.info(
             "%s 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=0秒(完成)",
             PROGRESS_TAG,
@@ -428,12 +378,12 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
             c / max(elapsed, 0.001),
         )
 
-        # ── 8. 按原始顺序组装 + 状态重置 ──
+        # 按原始顺序组装 + 状态重置
         self._query_active = False
         self._overflow_item_count = 0
         self._csres_active = False
         return [
-            results.get(
+            state["results"].get(
                 i,
                 QueryResult(
                     standard_number=f"{parsed_list[i][0]} {parsed_list[i][1]}-{parsed_list[i][2]}",
@@ -443,3 +393,38 @@ class BatchMixin(CsresMixin, MiniBucketMixin, ReportMixin):
             )
             for i in range(n)
         ]
+
+    def query_batch_parsed(
+        self,
+        parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
+        progress_callback: Optional[Callable[[int], None]] = None,
+        result_callback: Optional[Callable[[int, QueryResult], None]] = None,
+        preferred_site: str = "",
+    ) -> List[QueryResult]:
+        """[已废弃] 使用 query_standards(items, use_parallel=True) 替代。
+        仅保留作为 query_standards 并行路径的内部实现。外部调用请走 query_standards()。
+        迁移时间：2026-06-24，阶段二统一查询引擎。"""
+        import time as _time
+
+        self._query_active = True
+        _bucket_t0 = _time.time()
+        n = len(parsed_list)
+
+        # 1) 初始化进度心跳 + 结果容器
+        state = self._init_batch_state(n, _time, _bucket_t0, progress_callback)
+
+        # 2) 分桶 + 设置分发上下文（溢出配额、跟踪变量）
+        buckets = self._bucket_items(parsed_list)
+        self._setup_dispatch_context(state, result_callback, progress_callback)
+
+        # 3) 调度查询：桶并行 + csres 后台线程
+        self._dispatch_queries(buckets, state)
+
+        # 4) 合并 csres 结果
+        self._collect_csres_results(state)
+
+        # 5) 处理溢出：链迭代 + 冷却/配额恢复
+        temp_cooldown_skips = self._handle_overflow(state, _time, result_callback)
+
+        # 6) 报告 + 最终化 + 组装结果
+        return self._finalize_batch(state, _time, parsed_list, n, temp_cooldown_skips)

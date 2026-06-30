@@ -12,6 +12,15 @@ logger = logging.getLogger(__name__)
 class MiniBucketMixin:
     """小桶拆分与逐桶查询执行（混入 BatchMixin）。"""
 
+    # 以下属性由 BatchMixin 或其它混入提供
+    _rotator: Any
+    _MINI_BUCKET_SIZE: int
+    _MINI_BUCKET_STAGGER: int
+    _record: Any
+    _cache: Any
+    _quota: Any
+    _adapter_map: Any
+
     def _build_mini_buckets(self, bucket_items: list, chain: list, weights: Any) -> list[tuple[str, list]]:
         """按权重或轮询将桶内条目拆分为 50 条小桶。"""
         if weights and len(weights) == len(chain):
@@ -66,11 +75,74 @@ class MiniBucketMixin:
             mini_buckets.append((site, mb))
         return mini_buckets
 
+    def _process_single_query(
+        self,
+        idx: int,
+        item: tuple,
+        assigned_site: str,
+        adapter: Any,
+        ctx: dict,
+        _time: Any,
+        primary_site: str,
+        overflow_items: list,
+    ) -> None:
+        """处理单个条目的查询：执行 → 结果记录 → 缓存 → 回调。
+
+        原地修改 overflow_items 和 ctx（results/item_chains/overflow_events等）。
+        """
+        if self._rotator and self._rotator.get_cooldown_remaining(assigned_site) > 0:
+            overflow_items.append((idx, item))
+            return
+        try:
+            _t0 = _time.time()
+            result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
+            _elapsed = round(_time.time() - _t0, 3)
+            if self._rotator:
+                self._rotator.record_query_result(assigned_site, result is not None and result.is_found(), _elapsed)
+        except Exception:
+            ctx["item_chains"].setdefault(idx, []).append(assigned_site)
+            logger.warning("查询 [%s %s-%s] 异常 @%s", item[0], item[1], item[2], assigned_site)
+            overflow_items.append((idx, item))
+            return
+        target_display = f"{item[0]} {item[1]}-{item[2]}"
+        if result:
+            result.source_site = assigned_site
+            self._record(assigned_site, 1)
+            ctx["_record_usage"](assigned_site)
+            ctx["_record_match"](assigned_site, getattr(result, "match_status", "err"))
+            score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
+            ctx["item_chains"].setdefault(idx, []).append(assigned_site)
+            if score >= 100:
+                ctx["results"][idx] = result
+                with ctx["_prog_lock"]:
+                    ctx["_prog_ok"][0] += 1
+                logger.info("查询 [%s] [OK]%s(%s)", target_display, assigned_site, getattr(result, "match_status", ""))
+                self._cache.put(result)
+                logger.info("[CACHE] put exact match: %s → %s", target_display, assigned_site)
+                if ctx["result_callback"] and result.is_found():
+                    ctx["result_callback"](idx, result)
+                ctx["bump"]()
+            else:
+                logger.info(
+                    "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
+                    target_display,
+                    assigned_site,
+                    getattr(result, "match_status", ""),
+                    score,
+                )
+                ctx["overflow_events"].append((_time.time(), primary_site, assigned_site, idx))
+                overflow_items.append((idx, item))
+        else:
+            ctx["item_chains"].setdefault(idx, []).append(assigned_site)
+            chain_str = "→".join(ctx["item_chains"].get(idx, []))
+            logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)
+            overflow_items.append((idx, item))
+
     def _run_mini_bucket_queries(
         self, mini_buckets: list, chain: list, primary_site: str, _time: Any, ctx: dict
     ) -> list:
         """错峰执行小桶查询，冷却/配额感知，返回溢出条目列表。"""
-        overflow_items = []
+        overflow_items: list = []
         for mb_idx, (assigned_site, mini) in enumerate(mini_buckets):
             if mb_idx > 0:
                 _time.sleep(self._MINI_BUCKET_STAGGER)
@@ -101,55 +173,5 @@ class MiniBucketMixin:
                 overflow_items.extend(mini)
                 continue
             for idx, item in mini:
-                if self._rotator and self._rotator.get_cooldown_remaining(assigned_site) > 0:
-                    overflow_items.append((idx, item))
-                    continue
-                try:
-                    _t0 = _time.time()
-                    result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
-                    _elapsed = round(_time.time() - _t0, 3)
-                    if self._rotator:
-                        self._rotator.record_query_result(
-                            assigned_site, result is not None and result.is_found(), _elapsed
-                        )
-                except Exception:
-                    ctx["item_chains"].setdefault(idx, []).append(assigned_site)
-                    logger.warning("查询 [%s %s-%s] 异常 @%s", item[0], item[1], item[2], assigned_site)
-                    overflow_items.append((idx, item))
-                    continue
-                target_display = f"{item[0]} {item[1]}-{item[2]}"
-                if result:
-                    result.source_site = assigned_site
-                    self._record(assigned_site, 1)
-                    ctx["_record_usage"](assigned_site)
-                    ctx["_record_match"](assigned_site, getattr(result, "match_status", "err"))
-                    score = MATCH_SCORE.get(getattr(result, "match_status", ""), 0)
-                    ctx["item_chains"].setdefault(idx, []).append(assigned_site)
-                    if score >= 100:
-                        ctx["results"][idx] = result
-                        with ctx["_prog_lock"]:
-                            ctx["_prog_ok"][0] += 1
-                        logger.info(
-                            "查询 [%s] [OK]%s(%s)", target_display, assigned_site, getattr(result, "match_status", "")
-                        )
-                        self._cache.put(result)
-                        logger.info("[CACHE] put exact match: %s → %s", target_display, assigned_site)
-                        if ctx["result_callback"] and result.is_found():
-                            ctx["result_callback"](idx, result)
-                        ctx["bump"]()
-                    else:
-                        logger.info(
-                            "查询 [%s] [LO]%s(%s=%d) 未达100分回池",
-                            target_display,
-                            assigned_site,
-                            getattr(result, "match_status", ""),
-                            score,
-                        )
-                        ctx["overflow_events"].append((_time.time(), primary_site, assigned_site, idx))
-                        overflow_items.append((idx, item))
-                else:
-                    ctx["item_chains"].setdefault(idx, []).append(assigned_site)
-                    chain_str = "→".join(ctx["item_chains"].get(idx, []))
-                    logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)
-                    overflow_items.append((idx, item))
+                self._process_single_query(idx, item, assigned_site, adapter, ctx, _time, primary_site, overflow_items)
         return overflow_items

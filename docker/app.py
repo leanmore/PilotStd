@@ -52,20 +52,8 @@ from .websocket import websocket_endpoint
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
-    # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
-    from pilotstd.core.logger import LoggerManager
-
-    LoggerManager(level=logging.INFO)
-
-    # 启动会话清理后台线程
-    from .auth import _start_session_cleanup
-
-    _start_session_cleanup()
-
-    # 清理启动前遗留的僵尸抓取任务（status='running'/'pending' → failed）
+def _clean_zombie_tasks() -> None:
+    """清理启动前遗留的僵尸抓取任务（status='running'/'pending' → failed）。"""
     try:
         from pilotstd.core.config import get_db_path
         from pilotstd.core.db import Database
@@ -79,42 +67,9 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
-    from .manager import get_manager as _get_mgr
 
-    _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
-
-    # 注入 WebSocket 广播回调（在 Core 层通过回调使用 Platform 层能力，避免 Core→Docker 直接导入）
-    def _ws_broadcast_callback(event_type: str, title: str, body: str, level: str) -> None:
-        try:
-            from datetime import datetime
-
-            from .websocket import get_ws_manager
-
-            ws_manager = get_ws_manager()
-            if ws_manager.connection_count == 0:
-                return
-            import asyncio
-
-            payload = {
-                "event_type": event_type,
-                "title": title,
-                "body": body,
-                "level": level,
-                "sent_at": datetime.now().isoformat(),
-            }
-            try:
-                asyncio.create_task(ws_manager.broadcast(payload))
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(ws_manager.broadcast(payload))
-                loop.close()
-        except Exception:
-            pass
-
-    _cron_mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
-
+def _start_all_schedulers(_cron_mgr) -> None:
+    """注册定时任务并启动所有调度器（APScheduler + 任务调度器 + 监控 + 可信IP）。"""
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
     from .api.announce import check_announce
 
@@ -153,8 +108,9 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    yield
-    # 关闭时释放资源
+
+def _shutdown_cleanup(_cron_mgr) -> None:
+    """关闭时释放所有资源（调度器、服务、线程）。"""
     stop_scheduler()
     _cron_mgr.shutdown()
 
@@ -174,6 +130,65 @@ async def lifespan(app: FastAPI):
         get_task_scheduler().stop()
     except Exception:
         pass
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
+    # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
+    from pilotstd.core.logger import LoggerManager
+
+    LoggerManager(level=logging.INFO)
+
+    # 启动会话清理后台线程
+    from .auth import _start_session_cleanup
+
+    _start_session_cleanup()
+
+    # 清理启动前遗留的僵尸抓取任务
+    _clean_zombie_tasks()
+
+    # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
+    from .manager import get_manager as _get_mgr
+
+    _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
+
+    # 注入 WebSocket 广播回调（在 Core 层通过回调使用 Platform 层能力，避免 Core→Docker 直接导入）
+    def _ws_broadcast_callback(event_type: str, title: str, body: str, level: str) -> None:
+        try:
+            from datetime import datetime
+
+            from .websocket import get_ws_manager
+
+            ws_manager = get_ws_manager()
+            if ws_manager.connection_count == 0:
+                return
+            import asyncio
+
+            payload = {
+                "event_type": event_type,
+                "title": title,
+                "body": body,
+                "level": level,
+                "sent_at": datetime.now().isoformat(),
+            }
+            try:
+                asyncio.create_task(ws_manager.broadcast(payload))
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(ws_manager.broadcast(payload))
+                loop.close()
+        except Exception:
+            pass
+
+    _cron_mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
+
+    _start_all_schedulers(_cron_mgr)
+
+    yield
+    # 关闭时释放资源
+    _shutdown_cleanup(_cron_mgr)
 
 
 from pilotstd import __version__ as _app_version  # noqa: E402

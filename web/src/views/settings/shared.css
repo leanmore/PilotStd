@@ -1,0 +1,304 @@
+/* ═══════════════════════════════════════════
+   Settings 共享样式 — 供各 Tab 子组件导入
+   这些样式原本在 SettingsView.vue scoped 中，
+   拆分后在子组件中通过 @import 复用。
+   ═══════════════════════════════════════════ */
+
+/* 卡片 */
+.card {
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--transition);
+}
+.card:hover {
+  box-shadow: var(--shadow-sm);
+}
+.card-header {
+  font-weight: 700;
+  color: var(--text-heading);
+  font-size: 15px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border);
+}
+
+/* 表单网格 */
+.form-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px 20px;
+  align-items: center;
+  font-size: 14px;
+}
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; gap: 8px 0; }
+  .form-grid label { margin-top: 8px; }
+}
+.form-grid label {
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* 表单输入框 */
+.fi {
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition);
+  width: 100%;
+}
+.fi:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+  background: var(--surface);
+}
+.fi:hover {
+  border-color: var(--primary-border);
+}
+
+/* 错误消息 */
+.error { color: var(--danger); font-size: 12px; }
+.err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin-left: 8px; }
+
+/* 辅助文字 */
+.text-dim { color: var(--text-dim); font-size: 13px; }
+.text-mono { font-family: var(--mono), 'Courier New', monospace; }
+
+/* 间距 */
+.mb-2 { margin-bottom: 16px; }
+.mt-2 { margin-top: 8px; }
+
+/* 边框 */
+.border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+
+/* 字段集分隔 */
+.fieldset-gap { grid-column: 1 / -1; height: 12px; }
+.fieldset-label { font-weight: 700; color: var(--text-heading); font-size: 14px; grid-column: 1 / -1; }
+
+/* 密码掩码 */
+.password-mask {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+.password-mask::-moz-placeholder {
+  -webkit-text-security: disc;
+}
+
+/* 上传按钮 */
+.upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.upload-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+/* 主题选择器 */
+.theme-options { display: flex; gap: 20px; flex-wrap: wrap; }
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+.theme-option:hover { background: var(--selected); }
+.theme-option span {
+  font-size: 13px;
+  color: var(--text-dim);
+  transition: color var(--transition);
+  font-weight: 500;
+}
+.theme-option.active span { color: var(--primary); font-weight: 700; }
+.theme-swatch-wrapper { padding: 4px; }
+.theme-swatch {
+  width: 80px;
+  height: 44px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+.theme-option:hover .theme-swatch {
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.05);
+}
+.theme-primary-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.theme-option.active .theme-swatch {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring), var(--shadow-md);
+}
+
+/* 站点网格 */
+.site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.site-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.site-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--primary-hover));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.site-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-border);
+  transform: translateY(-2px);
+}
+.site-card:hover::before { opacity: 1; }
+.site-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.site-priority {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-bg);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.site-name { font-size: 15px; font-weight: 600; color: var(--text-heading); }
+.site-url { font-size: 12px; margin-bottom: 12px; }
+.site-limits { display: flex; gap: 20px; }
+.site-limit { display: flex; flex-direction: column; gap: 3px; }
+.lim-label { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+.lim-val { font-size: 16px; font-weight: 700; color: var(--text-heading); font-family: var(--mono); }
+
+/* 语言下拉框 */
+.lang-select :deep(.p-select-label) { padding-top: 6px; padding-bottom: 6px; }
+
+/* 令牌显示 */
+.token-display { display: flex; flex-direction: column; gap: 14px; }
+.token-value {
+  display: block;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--mono), 'Courier New', monospace;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  word-break: break-all;
+  color: var(--text-heading);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.token-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* 系统 Tab — 可折叠卡片 */
+.system-sections { display: flex; flex-direction: column; gap: 12px; }
+
+.collapsible-card {
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: all var(--transition);
+}
+.collapsible-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(180deg, var(--surface), var(--surface-raised));
+  border-bottom: 1px solid transparent;
+  transition: all var(--transition);
+}
+.collapsible-header:hover {
+  background: var(--selected);
+  border-bottom-color: var(--border);
+}
+
+.collapsible-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+}
+
+.collapsible-icon {
+  font-size: 14px;
+  color: var(--text-dim);
+  transition: transform var(--transition);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.collapsible-header:hover .collapsible-icon {
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.collapsible-content {
+  padding: 20px;
+}
+
+/* 折叠动画 */
+.collapsible-enter-active,
+.collapsible-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.collapsible-enter-from,
+.collapsible-leave-to {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+}
+.collapsible-enter-to,
+.collapsible-leave-from {
+  opacity: 1;
+  max-height: 2000px;
+}

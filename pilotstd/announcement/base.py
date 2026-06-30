@@ -336,6 +336,75 @@ class BaseAnnounceAdapter(ABC):
             item.setdefault("attachment_path", "")
         return items
 
+    def _process_one_detail(
+        self,
+        ann: dict[str, Any],
+        ocr_provider: Any,
+        _bump: Callable[[str], None],
+    ) -> list[dict[str, Any]]:
+        """处理单条公告：取详情 → 解析。线程安全。"""
+        raw = self._fetch_detail(ann["pid"])
+        if not raw:
+            logger.warning(
+                "公告详情获取失败: pid=%s code=%s",
+                ann.get("pid", ""),
+                ann.get("code", ""),
+            )
+            _bump(ann.get("pid", "?"))
+            return []
+        parsed = self._parse_items(raw, ocr_provider=ocr_provider)
+        if not parsed:
+            logger.warning(
+                "公告解析为空: pid=%s code=%s title=%s",
+                ann.get("pid", ""),
+                ann.get("code", ""),
+                ann.get("title", "")[:60],
+            )
+        for item in parsed:
+            item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
+            item["_pid"] = ann.get("pid", "")
+            item["announce_no"] = ann.get("code", "")
+        _bump(ann.get("code", "?")[:20])
+        return parsed
+
+    def _fetch_details_parallel(
+        self,
+        ann_list: list[dict[str, Any]],
+        ocr_provider: Any,
+        progress_callback: Callable[[int, int, str], None] | None,
+    ) -> list[dict[str, Any]]:
+        """并行拉取公告详情并解析，返回标准条目列表。"""
+        total = len(ann_list)
+        items: list[dict[str, Any]] = []
+        completed: list[int] = [0]
+        lock = __import__("threading").Lock()
+        _ann_t0 = __import__("time").monotonic()
+
+        def _bump(pid: str) -> None:
+            with lock:
+                completed[0] += 1
+                _elapsed = __import__("time").monotonic() - _ann_t0
+                _pct = int(completed[0] / total * 100) if total > 0 else 0
+                logger.info(
+                    "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
+                    pid,
+                    completed[0],
+                    total,
+                    _pct,
+                    _elapsed,
+                )
+                if progress_callback:
+                    progress_callback(completed[0], total, pid)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_DETAIL_WORKERS) as executor:
+            futures = {executor.submit(self._process_one_detail, ann, ocr_provider, _bump): ann for ann in ann_list}
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    items.extend(future.result())
+                except Exception:
+                    logger.exception("公告处理异常")
+        return items
+
     def fetch_announcements(
         self,
         since_date: str = "",
@@ -350,7 +419,6 @@ class BaseAnnounceAdapter(ABC):
             progress_callback: 每条完成回调 (current, total, label)
             complete_pids: 已完全解析的公告 PID 集合，跳过这些公告的阶段2抓取
         """
-        # 熔断检查
         self._cb_check_frozen()
 
         try:
@@ -359,7 +427,7 @@ class BaseAnnounceAdapter(ABC):
                 self._cb_record_success()
                 return []
 
-            # 过滤已完全解析的公告（去重前移：阶段1后、阶段2前检查）
+            # 过滤已完全解析的公告
             if complete_pids:
                 remaining = [a for a in ann_list if a["pid"] not in complete_pids]
                 skipped = len(ann_list) - len(remaining)
@@ -376,61 +444,7 @@ class BaseAnnounceAdapter(ABC):
                 self._cb_record_success()
                 return []
 
-            total = len(ann_list)
-            items = []
-            completed = [0]
-            lock = __import__("threading").Lock()
-            _ann_t0 = __import__("time").monotonic()
-
-            def _bump(pid: str) -> None:
-                with lock:
-                    completed[0] += 1
-                    _elapsed = __import__("time").monotonic() - _ann_t0
-                    _pct = int(completed[0] / total * 100) if total > 0 else 0
-                    logger.info(
-                        "公告进度: pid=%s (%d/%d %d%%) 已耗时 %.0fs",
-                        pid,
-                        completed[0],
-                        total,
-                        _pct,
-                        _elapsed,
-                    )
-                    if progress_callback:
-                        progress_callback(completed[0], total, pid)
-
-            def _process_one(ann: dict[str, Any]) -> list[dict[str, Any]]:
-                """处理单条公告：取详情 → 解析。线程安全。"""
-                raw = self._fetch_detail(ann["pid"])
-                if not raw:
-                    logger.warning(
-                        "公告详情获取失败: pid=%s code=%s",
-                        ann.get("pid", ""),
-                        ann.get("code", ""),
-                    )
-                    _bump(ann.get("pid", "?"))
-                    return []
-                parsed = self._parse_items(raw, ocr_provider=ocr_provider)
-                if not parsed:
-                    logger.warning(
-                        "公告解析为空: pid=%s code=%s title=%s",
-                        ann.get("pid", ""),
-                        ann.get("code", ""),
-                        ann.get("title", "")[:60],
-                    )
-                for item in parsed:
-                    item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
-                    item["_pid"] = ann.get("pid", "")
-                    item["announce_no"] = ann.get("code", "")
-                _bump(ann.get("code", "?")[:20])
-                return parsed
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_DETAIL_WORKERS) as executor:
-                futures = {executor.submit(_process_one, ann): ann for ann in ann_list}
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        items.extend(future.result())
-                    except Exception:
-                        logger.exception("公告处理异常")
+            items = self._fetch_details_parallel(ann_list, ocr_provider, progress_callback)
 
             if items:
                 self._cb_record_success()

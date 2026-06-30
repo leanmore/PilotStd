@@ -57,13 +57,73 @@ class FileScanner:
             self._scan_recursive(safe_root, result)
         return result
 
+    def _process_file_entry(self, entry: Any, result: ScanResult, file_count: list[int], scan_t0: float) -> None:
+        """处理单个文件条目：扩展名检查、去重、状态判定、添加到扫描结果。
+
+        原地修改 result 和 file_count[0]。
+        """
+        if not self._is_supported(entry.name):
+            return
+        # 关键词排除
+        if self._should_skip_by_keyword(entry.name):
+            result.stats.skipped += 1
+            self.log.info("扫描跳过: %s", os.path.basename(entry.path))
+            return
+        try:
+            stat = entry.stat()
+        except OSError as e:
+            result.add_warning(f"获取文件状态失败 {entry.path}: {e}")
+            self.log.warning(f"stat失败: {entry.path} - {e}")
+            return
+        # 内容级去重：计算 SHA-256，本批次 + 跨扫描两层过滤
+        try:
+            file_hash = hash_file_content(entry.path)
+            # 第1层：本批次已见过
+            if file_hash in self._seen_hashes:
+                self._dup_count += 1
+                self.log.debug(f"内容重复(本批次): {entry.path}")
+                return
+            # 第2层：跨扫描持久化索引（仅校验完成后启用）
+            if self._file_index is not None:
+                if self._file_index.is_validation_complete:
+                    existing = self._file_index.find_by_hash(file_hash)
+                    if existing is not None:
+                        self._dup_count += 1
+                        self.log.debug(f"内容重复(已归档): {entry.path} -> {existing.get('file_path', '?')}")
+                        return
+            self._seen_hashes.add(file_hash)
+        except OSError:
+            file_hash = ""  # 读取失败不阻塞扫描
+
+        # Word/模板文件标记为跳过查询，但仍保留在扫描结果中供归档
+        file_status = "word_template" if self._is_skip_query_file(entry.name) else "pending"
+        file_info = FileInfo(
+            full_path=entry.path,
+            filename=normalize_std_filename(entry.name),
+            size=stat.st_size,
+            mtime=stat.st_mtime,
+            status=file_status,
+        )
+        result.add_file(file_info)
+        file_count[0] += 1
+        # 每 100 个文件输出一次进度（CLI 大目录扫描时有用）
+        if file_count[0] % 100 == 0:
+            import time as _time
+
+            _elapsed = _time.monotonic() - scan_t0
+            self.log.info(
+                "扫描进度: %d 个文件 已耗时 %.0fs",
+                file_count[0],
+                _elapsed,
+            )
+        logger.debug("扫描: %s -> %s", file_status, entry.name)
+
     def _scan_recursive(self, start_dir: str, result: ScanResult) -> None:
         """栈遍历扫描目录（非递归，避免深层目录爆栈）。"""
         import time as _time
 
         _scan_t0 = _time.monotonic()
-        _file_count = 0
-        _last_log = _scan_t0
+        _file_count: list[int] = [0]
         stack = [start_dir]
         while stack:
             current_dir = stack.pop()
@@ -82,62 +142,7 @@ class FileScanner:
                                 stack.append(entry.path)
                             elif not entry.is_file():
                                 continue
-                            # 以下处理文件
-                            if not self._is_supported(entry.name):
-                                continue
-                            # 关键词排除
-                            if self._should_skip_by_keyword(entry.name):
-                                result.stats.skipped += 1
-                                self.log.info("扫描跳过: %s", os.path.basename(entry.path))
-                                continue
-                            try:
-                                stat = entry.stat()
-                            except OSError as e:
-                                result.add_warning(f"获取文件状态失败 {entry.path}: {e}")
-                                self.log.warning(f"stat失败: {entry.path} - {e}")
-                                continue
-                            # 内容级去重：计算 SHA-256，本批次 + 跨扫描两层过滤
-                            try:
-                                file_hash = hash_file_content(entry.path)
-                                # 第1层：本批次已见过
-                                if file_hash in self._seen_hashes:
-                                    self._dup_count += 1
-                                    self.log.debug(f"内容重复(本批次): {entry.path}")
-                                    continue
-                                # 第2层：跨扫描持久化索引（仅校验完成后启用）
-                                if self._file_index is not None:
-                                    if self._file_index.is_validation_complete:
-                                        existing = self._file_index.find_by_hash(file_hash)
-                                        if existing is not None:
-                                            self._dup_count += 1
-                                            self.log.debug(
-                                                f"内容重复(已归档): {entry.path} -> {existing.get('file_path', '?')}"
-                                            )
-                                            continue
-                                self._seen_hashes.add(file_hash)
-                            except OSError:
-                                file_hash = ""  # 读取失败不阻塞扫描
-
-                            # Word/模板文件标记为跳过查询，但仍保留在扫描结果中供归档
-                            file_status = "word_template" if self._is_skip_query_file(entry.name) else "pending"
-                            file_info = FileInfo(
-                                full_path=entry.path,
-                                filename=normalize_std_filename(entry.name),
-                                size=stat.st_size,
-                                mtime=stat.st_mtime,
-                                status=file_status,
-                            )
-                            result.add_file(file_info)
-                            _file_count += 1
-                            # 每 100 个文件输出一次进度（CLI 大目录扫描时有用）
-                            if _file_count % 100 == 0:
-                                _elapsed = _time.monotonic() - _scan_t0
-                                self.log.info(
-                                    "扫描进度: %d 个文件 已耗时 %.0fs",
-                                    _file_count,
-                                    _elapsed,
-                                )
-                            logger.debug("扫描: %s -> %s", file_status, entry.name)
+                            self._process_file_entry(entry, result, _file_count, _scan_t0)
                         except PermissionError as e:
                             result.add_warning(f"无权限访问: {entry.path}")
                             self.log.warning(f"权限错误: {entry.path} - {e}")

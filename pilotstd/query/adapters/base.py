@@ -69,19 +69,18 @@ class BaseAdapter(ABC):
                 return result
         return None
 
-    def query_with_strategy(
+    def _search_progressive(
         self,
         logical_code: str,
         number: int,
         year: int,
-        std_name: str = "",
-        part: int | None = None,
-        num_prefix: str = "",
-        num_suffix: str = "",
+        part: int | None,
+        num_prefix: str,
+        num_suffix: str,
+        target: str,
     ) -> Optional[QueryResult]:
-        """渐进式搜索：完整号直搜 → 空格回退 → 去前缀 → 去年份 → 代号变体。"""
+        """渐进式搜索前4步：完整号直搜 → 空格回退 → 去前缀 → 去年份。"""
         part_str = f".{part}" if part else ""
-        target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
 
         # 第一步：完整标准号直接搜（横杠格式）
         result = self._try_exact_search(target, logical_code, number, year, part)
@@ -108,6 +107,26 @@ class BaseAdapter(ABC):
         result = self._try_exact_search(
             no_year, logical_code, number, year, part, accepted_statuses={"exact", "newer", "older"}
         )
+        if result is not None:
+            return result
+
+        return None
+
+    def query_with_strategy(
+        self,
+        logical_code: str,
+        number: int,
+        year: int,
+        std_name: str = "",
+        part: int | None = None,
+        num_prefix: str = "",
+        num_suffix: str = "",
+    ) -> Optional[QueryResult]:
+        """渐进式搜索：完整号直搜 → 空格回退 → 去前缀 → 去年份 → 代号变体。"""
+        part_str = f".{part}" if part else ""
+        target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
+
+        result = self._search_progressive(logical_code, number, year, part, num_prefix, num_suffix, target)
         if result is not None:
             return result
 
