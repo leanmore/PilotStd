@@ -3,7 +3,7 @@ import shutil
 import tempfile
 
 from pilotstd.models import ParsedStdInfo
-from pilotstd.ui.main_window import ArchiveWorker
+from pilotstd.ui.workers import ArchiveWorker
 
 
 def _make_parsed(src_path, code="GB", num=1, year=2020, effect_status="现行", std_name="测试标准"):

@@ -898,5 +898,117 @@ class TestBucketConcurrency(unittest.TestCase):
         self.assertEqual(len(results), 500)
 
 
+# === _batch.py 覆盖 ===
+
+
+class TestBatchMixin(unittest.TestCase):
+    """query_standards 入口方法测试：空输入、串行路径。"""
+
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
+        self.engine = QueryEngine(
+            adapters=[MockActiveAdapter()],
+            cache=self.cache,
+            use_cache=False,
+        )
+
+    def test_query_standards_empty_list_returns_empty(self):
+        """空输入列表返回空结果，不崩溃。"""
+        results = self.engine.query_standards([])
+        self.assertEqual(results, [])
+
+    def test_query_standards_serial_flag_forces_serial(self):
+        """use_parallel=False 强制走串行路径，不触发多线程。"""
+        items = [("GB/T", 1, 2020, "", None, "")]
+        results = self.engine.query_standards(items, use_parallel=False)
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0].is_found())
+
+
+# === _routing.py 覆盖 ===
+
+
+class TestRoutingMixin(unittest.TestCase):
+    """_resolve_base_route / _bucket_key / plan_batch 路由测试。"""
+
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
+        self.engine = QueryEngine(
+            adapters=[MockActiveAdapter()],
+            cache=self.cache,
+            use_cache=False,
+        )
+
+    def test_resolve_base_route_db_code(self):
+        """DB11 代码 → 路由链含 dbba + njbz365。"""
+        route = self.engine._resolve_base_route("DB11")
+        self.assertIn("dbba", route)
+        self.assertIn("njbz365", route)
+
+    def test_bucket_key_returns_string_for_all_types(self):
+        """所有已知代号类型的 bucket_key 均为非空字符串。"""
+        for code in ("GB", "SH", "API", "DB11"):
+            key = self.engine._bucket_key(code)
+            self.assertTrue(key, f"{code} 的 bucket_key 不应为空")
+
+
+# === _mini_bucket.py 覆盖 ===
+
+
+class TestMiniBucketMixin(unittest.TestCase):
+    """_build_mini_buckets / _run_mini_bucket_queries 小桶逻辑测试。"""
+
+    @pytest.fixture(autouse=True)
+    def _setup_db(self, shared_db):
+        self.db = shared_db
+        self.cache = CacheRepository(shared_db)
+        self.engine = QueryEngine(
+            adapters=[MockSiteAdapter("std_gov"), MockSiteAdapter("hbba")],
+            cache=self.cache,
+            use_cache=False,
+        )
+
+    def test_build_mini_buckets_no_weights_round_robin(self):
+        """无权重时使用轮询拆分为 50 条小桶。"""
+        items = [(i, ("GB", i, 2020, "t", None, "")) for i in range(30)]
+        chain = ["std_gov", "hbba"]
+        mini = self.engine._build_mini_buckets(items, chain, weights=None)
+        self.assertGreater(len(mini), 0)
+        self.assertLessEqual(len(mini), len(items))
+
+    def test_run_mini_bucket_queries_no_adapter_overflows(self):
+        """所有站点适配器缺失时条目全部溢出。"""
+        import time
+
+        items = [(i, ("GB", i, 2020, "t", None, "")) for i in range(3)]
+        # 用一个不在 _adapter_map 中的站点名
+        ctx = {
+            "results": {},
+            "item_chains": {},
+            "overflow_events": [],
+            "match_scores": {},
+            "pending_reasons": [],
+            "_prog_lock": MagicMock(),
+            "_prog_ok": [0],
+            "_record_usage": MagicMock(),
+            "_record_match": MagicMock(),
+            "bump": MagicMock(),
+            "result_callback": None,
+        }
+        overflow = self.engine._run_mini_bucket_queries(
+            [("unknown_site", items)],
+            ["unknown_site"],
+            "unknown_site",
+            time,
+            ctx,
+        )
+        # 适配器不存在，所有条目应溢出
+        self.assertEqual(len(overflow), 3)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

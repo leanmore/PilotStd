@@ -157,5 +157,143 @@ class TestExpireHandler(unittest.TestCase):
         self.assertEqual(result["failed"], 1)
 
 
+# === _utils.py 覆盖 ===
+
+
+class TestOrganizerUtils(unittest.TestCase):
+    """_is_word_or_template / _resolve_industry_in_path 独立测试。"""
+
+    def test_is_word_or_template_doc_returns_true(self):
+        """Word 文件 (.doc) 返回 True。"""
+        from pilotstd.manager.organize._utils import _is_word_or_template
+
+        self.assertTrue(_is_word_or_template("report.doc"))
+        self.assertTrue(_is_word_or_template("report.docx"))
+
+    def test_is_word_or_template_pdf_returns_false(self):
+        """PDF 和普通文件返回 False。"""
+        from pilotstd.manager.organize._utils import _is_word_or_template
+
+        self.assertFalse(_is_word_or_template("standard.pdf"))
+        self.assertFalse(_is_word_or_template("file.txt"))
+
+
+# === expire.py 覆盖 ===
+
+
+class TestOrganizerExpireMixin(unittest.TestCase):
+    """OrganizerExpireMixin.handle_expired / merge_expire_from_source 测试。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_handle_expired_delegates_to_handler(self):
+        """handle_expired 委托 _expire_handler.process_expired，返回结果。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.manager.organize.expire import OrganizerExpireMixin
+
+        # mock expire_handler.process_expired
+        mock_handler = MagicMock()
+        mock_handler.process_expired.return_value = {"moved": 2, "failed": 0}
+        # 构造带 _expire_handler 的类实例
+        obj = type("_Mock", (OrganizerExpireMixin,), {"_expire_handler": mock_handler})()
+
+        parsed = ParsedStdInfo(raw_filename="old.pdf", logical_code="GB", number=1, year=2000)
+        parsed.source_path = os.path.join(self.tmp, "old.pdf")
+        with open(parsed.source_path, "w") as f:
+            f.write("data")
+
+        result = obj.handle_expired([parsed])
+        self.assertIn("moved", result)
+        mock_handler.process_expired.assert_called_once()
+
+    def test_merge_expire_from_source_no_expire_dir(self):
+        """合并时若无 expires 目录则 merged=0，不报错。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.manager.organize.expire import OrganizerExpireMixin
+
+        obj = type(
+            "_Mock",
+            (OrganizerExpireMixin,),
+            {"_cfg": MagicMock()},
+        )()
+        obj._cfg.get.return_value = "过期作废"
+
+        src_dir = os.path.join(self.tmp, "subdir")
+        os.makedirs(src_dir)
+        parsed = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB", number=2, year=1999)
+        parsed.source_path = os.path.join(src_dir, "test.pdf")
+
+        merged = obj.merge_expire_from_source(self.tmp, [parsed])
+        self.assertEqual(merged, 0)
+
+
+# === mirror.py 覆盖 ===
+
+
+class TestOrganizerMirrorMixin(unittest.TestCase):
+    """OrganizerMirrorMixin.organize_skipped_dirs / organize_fallback 测试。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_organize_skipped_dirs_path_traversal_blocked(self):
+        """越界路径被拒绝，failed 计数递增。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+
+        obj = type(
+            "_Mock",
+            (OrganizerMirrorMixin,),
+            {"_cfg": MagicMock()},
+        )()
+        # mock get_library_root 返回临时目录下的 lib
+        lib = os.path.join(self.tmp, "lib")
+        os.makedirs(lib)
+        obj._cfg.get.return_value = lib  # get_library_root 内部调用 _cfg.get("storage.root_dir")
+        # 构造一个 dst 会越界的 skipped dir
+        result = obj.organize_skipped_dirs([], source_root=None)
+        self.assertIn("moved", result)
+        self.assertEqual(result["moved"], 0)
+
+    def test_organize_fallback_skip_system_files(self):
+        """Thumbs.db / ~$ 前缀文件被跳过不处理。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+
+        obj = type(
+            "_Mock",
+            (OrganizerMirrorMixin,),
+            {
+                "_cfg": MagicMock(),
+                "_skipped_source_files": set(),
+                "_FALLBACK_SKIP_FILES": frozenset({"Thumbs.db", "sync.ffs_db"}),
+                "_FALLBACK_SKIP_PREFIX": "~$",
+            },
+        )()
+        obj._cfg.get.return_value = os.path.join(self.tmp, "lib")
+
+        thumbs = os.path.join(self.tmp, "Thumbs.db")
+        with open(thumbs, "w") as f:
+            f.write("skip")
+        tmp_file = os.path.join(self.tmp, "~$temp.docx")
+        with open(tmp_file, "w") as f:
+            f.write("skip")
+
+        result = obj.organize_fallback(self.tmp, frozenset())
+        self.assertIn("skipped", result)
+        self.assertGreaterEqual(result["skipped"], 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

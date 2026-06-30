@@ -138,5 +138,28 @@ class TestCLIMove(unittest.TestCase):
             sys.stdout = old_stdout
 
 
+# === _shared.py 覆盖 ===
+
+
+class TestSharedMakeManager(unittest.TestCase):
+    """_make_manager() 工具函数测试。"""
+
+    def test_make_manager_returns_instance(self):
+        """_make_manager 返回 StandardManager 实例，无参数时不崩溃。"""
+        from pilotstd.cli.commands._shared import _make_manager
+        from pilotstd.manager.facade import StandardManager
+
+        mgr = _make_manager()
+        self.assertIsInstance(mgr, StandardManager)
+
+    def test_make_manager_custom_storage_root(self):
+        """storage_root 参数应传递给配置。"""
+        from pilotstd.cli.commands._shared import _make_manager
+
+        mgr = _make_manager(storage_root="/custom/path")
+        root = mgr.cfg.get("storage.root_dir")
+        self.assertEqual(root, "/custom/path")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

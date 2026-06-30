@@ -233,6 +233,25 @@ jobs:
         run: python scripts/check_ui_sensitive_fields.py
 
   # ════════════════════════════════════════════════════════════════
+  # Job 3.5: 入仓合规检查
+  # ════════════════════════════════════════════════════════════════
+  repo-compliance:
+    needs: [version-bump]
+    if: |
+      always() &&
+      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run repo compliance check
+        env:
+          BASE_BRANCH: main
+        run: bash .github/scripts/check-repo-compliance.sh
+
+  # ════════════════════════════════════════════════════════════════
   # Job 4: 构建 + 推送 Docker 镜像
   # ════════════════════════════════════════════════════════════════
   build-and-push:

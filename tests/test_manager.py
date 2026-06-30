@@ -291,5 +291,130 @@ class TestResolveIndustryInPath:
         assert result == "API 美国石油学会"
 
 
+# === _auto.py 覆盖 ===
+
+
+class TestAutoMixin(unittest.TestCase):
+    """auto_run / auto_run_stream 管线测试。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        test_file = os.path.join(self.tmp, "GB 19001-2020.pdf")
+        with open(test_file, "w") as f:
+            f.write("dummy")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_auto_run_all_stages_complete(self):
+        """auto_run 四阶段全走完，report 含全部键且无崩溃。"""
+        mgr = StandardManager()
+        report = mgr.auto_run(self.tmp)
+        for key in ("scan", "query_found", "download_success", "organize_moved"):
+            self.assertIn(key, report, f"缺少键 {key}")
+
+    def test_auto_run_stream_short_circuit_empty(self):
+        """空目录扫描返回 0 条时 auto_run_stream 提前退出，不崩溃。"""
+        empty = tempfile.mkdtemp(prefix="pilotstd_empty_")
+        try:
+            mgr = StandardManager()
+            report = mgr.auto_run_stream(empty)
+            self.assertEqual(report["scan"], 0)
+        finally:
+            shutil.rmtree(empty)
+
+
+# === _download.py 覆盖 ===
+
+
+class TestDownloadMixin(unittest.TestCase):
+    """download / enqueue_download_wait / download_by_numbers 测试。"""
+
+    def test_download_enqueue_wait_delegates(self):
+        """enqueue_download_wait 委托 _pending_svc，不抛异常。"""
+        from unittest.mock import MagicMock
+
+        mgr = StandardManager()
+        mgr._pending_svc = MagicMock()
+        mgr.enqueue_download_wait(MagicMock())
+        mgr._pending_svc.enqueue_download_wait.assert_called_once()
+
+    def test_download_by_numbers_delegates(self):
+        """download_by_numbers 委托 _scheduled_svc，不抛异常。"""
+        from unittest.mock import MagicMock
+
+        mgr = StandardManager()
+        mgr._scheduled_svc = MagicMock()
+        mgr._scheduled_svc.download_by_numbers.return_value = ([], MagicMock())
+        result = mgr.download_by_numbers(["GB/T 1-2020"])
+        self.assertIsNotNone(result)
+
+
+# === _organize.py 覆盖 ===
+
+
+class TestOrganizeMixin(unittest.TestCase):
+    """normalize_files / expire_files / _backfill_std_name 测试。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        self.test_file = os.path.join(self.tmp, "GB 19001-2020 质量管理.pdf")
+        with open(self.test_file, "w") as f:
+            f.write("dummy")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_normalize_files_returns_correct_keys(self):
+        """normalize_files 返回列表，每项含 normalized/folder/logical_code。"""
+        mgr = StandardManager()
+        results = mgr.normalize_files([self.test_file])
+        self.assertEqual(len(results), 1)
+        item = results[0]
+        self.assertIn("normalized", item)
+        self.assertIn("folder", item)
+        self.assertEqual(item["logical_code"], "GB")
+
+    def test_expire_files_no_valid_input(self):
+        """非标准文件路径时 expire_files 返回 details 含'无有效文件'。"""
+        mgr = StandardManager()
+        nonexistent = os.path.join(self.tmp, "no_such_file.pdf")
+        result = mgr.expire_files([nonexistent])
+        self.assertIn("details", result)
+        self.assertIn("无有效文件", result["details"][0])
+
+
+# === _scan.py 覆盖 ===
+
+
+class TestScanMixin(unittest.TestCase):
+    """scan_directory / scan_and_index / stop_watching 测试。"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
+        test_file = os.path.join(self.tmp, "GB 19001-2020 质量管理.pdf")
+        with open(test_file, "w") as f:
+            f.write("dummy")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def test_scan_directory_skipped_dirs_set(self):
+        """scan_directory 后 _last_skipped_dirs 被赋值。"""
+        mgr = StandardManager()
+        mgr.scan_directory(self.tmp)
+        # _last_skipped_dirs 应为 list（即使空）
+        self.assertIsNotNone(mgr._last_skipped_dirs)
+
+    def test_stop_watching_noop_when_none(self):
+        """_file_watcher 为 None 时 stop_watching 不抛异常。"""
+        mgr = StandardManager()
+        mgr._file_watcher = None
+        try:
+            mgr.stop_watching()
+        except Exception as e:
+            self.fail(f"stop_watching 不应抛异常: {e}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
