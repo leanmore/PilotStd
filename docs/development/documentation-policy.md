@@ -3,21 +3,29 @@
 > 创建日期：2026-06-30
 > 最后更新：2026-06-30
 
-## 一、触发规则
+## 一、触发规则（两路机制）
 
-以下任一情况发生时，必须联动更新相关文档：
+### 第一路：提交时触发（入仓文件）
+- **触发点**：`git commit` / `git push`
+- **覆盖文件**：源码、测试、CI 配置、成品文档（`docs/architecture/`、`docs/specs/`、`docs/development/`、`docs/guides/`、`docs/index.md`）
+- **机制**：
+  - `git commit` 时 pre-commit `docs-sync-check` 弹出提醒
+  - `git push` 时 CI `repo-compliance` 检查新增文件合规性
+- **逻辑**：要进仓库，就必须同步更新相关文档
 
-| 触发条件 | 需更新的文档 | 操作 |
-|---------|-------------|------|
-| 新增/删除 Python 模块 | `specs/模块与功能清单.md` | 更新对应层级表格 |
-| 文件/函数行数变化（跨 500/80 红线） | `architecture/governance-summary.md`、`STATUS.md` | 更新统计数字 |
-| 新增 API 端点 | `STATUS.md`、`CHANGELOG.md` | 记录变更 |
-| 测试通过率变化 | `STATUS.md` | 更新测试数据 |
-| 安全相关变更 | `architecture/technical-debt-registry.md` | 登记新条目 |
-| 接受技术债/设计决策 | `architecture/technical-debt-registry.md` | 登记决策 |
-| 重构大文件/大函数 | `architecture/governance-summary.md`、`STATUS.md` | 更新治理数据 |
-| CI/CD 配置变更 | `STATUS.md` | 更新工作流说明 |
-| 归档过时文档 | `archive/YYYY-MM-DD/README.md` | 记录归档清单 |
+### 第二路：任务完成时触发（不入仓文件）
+- **触发点**：每轮治理任务结束时，提交之前
+- **覆盖文件**：`STATUS.md`（本地状态文件）、过程文件归档、临时文件清理、`.gitignore` 维护
+- **机制**：作为执行指令的固定收尾步骤，在任务结束、代码提交前完成
+- **逻辑**：不入仓的文件在任务完成时处理，提交前搞定
+
+### 流程
+```
+任务推进 → 任务完成 →
+  ├── 第二路（提交前）：更新 STATUS.md、归档过程文件、清理临时文件
+  └── 提交 →
+        └── 第一路（提交时）：pre-commit 提醒 → push → CI 合规检查
+``` |
 
 ## 二、PR 门禁
 
