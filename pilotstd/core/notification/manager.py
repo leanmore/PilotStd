@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ..db import Database
+from ._message_builders import MessageBuildersMixin
 from .channel import NotificationMessage
 from .channels.dingtalk import DingTalkChannel
 from .channels.feishu import FeishuChannel
@@ -23,7 +24,7 @@ _CHANNEL_CLASSES = {
 }
 
 
-class NotificationManager:
+class NotificationManager(MessageBuildersMixin):
     """通知管理器。
 
     初始化时加载配置，按事件规则分发到各渠道，记录发送日志。
@@ -36,6 +37,7 @@ class NotificationManager:
         self._enabled = config.get("notification.enabled", False)
         self._channels: dict[str, Any] = {}
         self._ws_broadcast = ws_broadcast
+        self._init_event_builders()
         if self._enabled:
             self._init_channels()
 
@@ -93,175 +95,31 @@ class NotificationManager:
         if msg:
             self._broadcast_to_ws(event_type, msg)
 
+    def _init_event_builders(self) -> None:
+        """初始化事件构建器映射表"""
+        self._EVENT_BUILDERS = {
+            "archive_complete": self._build_archive_complete_message,
+            "standard_status_changed": self._build_standard_status_changed_message,
+            "standard_expired": self._build_standard_expired_message,
+            "standard_first_registered": self._build_standard_first_registered_message,
+            "check_batch_complete": self._build_check_batch_complete_message,
+            "announcement_fetch_complete": self._build_announcement_fetch_complete_message,
+            "auto_backup": self._build_auto_backup_message,
+            "announcement_check_complete": self._build_announcement_check_complete_message,
+            "batch_download_complete": self._build_batch_download_complete_message,
+            "auto_scan_failed": self._build_auto_scan_failed_message,
+            "validity_batch_report": self._build_validity_batch_report_message,
+            "validity_round_summary": self._build_validity_round_summary_message,
+            "validity_standard_failed": self._build_validity_standard_failed_message,
+            "validity_system_failed": self._build_validity_system_failed_message,
+        }
+
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
-        std_no = data.get("standard_number", "")
-        if event_type == "archive_complete":
-            count = data.get("count", 0)
-            return NotificationMessage(
-                title="归档完成",
-                body=f"本次归档 {count} 条标准",
-                level="info",
-                standard_number=std_no,
-                event_type=event_type,
-            )
-        elif event_type == "standard_status_changed":
-            old = data.get("old_status", "")
-            new = data.get("new_status", "")
-            return NotificationMessage(
-                title="标准状态变更",
-                body=f"{std_no}: {old} → {new}",
-                level="warning" if new == "已废止" else "info",
-                standard_number=std_no,
-                event_type=event_type,
-            )
-        elif event_type == "standard_expired":
-            return NotificationMessage(
-                title="标准已废止",
-                body=f"{std_no} 状态变更为已废止",
-                level="error",
-                standard_number=std_no,
-                event_type=event_type,
-            )
-        elif event_type == "standard_first_registered":
-            return NotificationMessage(
-                title="新标准入库",
-                body=f"{std_no} 首次归档入库",
-                level="info",
-                standard_number=std_no,
-                event_type=event_type,
-            )
-        elif event_type == "check_batch_complete":
-            count = data.get("count", 0)
-            changed = data.get("changed", 0)
-            return NotificationMessage(
-                title="时效性检查完成",
-                body=f"检查 {count} 条标准，{changed} 条状态变更",
-                level="info",
-                event_type=event_type,
-            )
-        elif event_type == "announcement_fetch_complete":
-            count = data.get("count", 0)
-            return NotificationMessage(
-                title="公告抓取完成",
-                body=f"已抓取 {count} 条新公告",
-                level="info",
-                event_type=event_type,
-            )
-        elif event_type == "auto_backup":
-            success = data.get("success", False)
-            if success:
-                size_mb = data.get("size_mb", 0)
-                return NotificationMessage(
-                    title="数据库备份成功",
-                    body=f"备份完成，大小 {size_mb:.2f} MB",
-                    level="info",
-                    event_type=event_type,
-                )
-            else:
-                error = data.get("error", "未知错误")
-                return NotificationMessage(
-                    title="数据库备份失败",
-                    body=f"错误：{error}",
-                    level="error",
-                    event_type=event_type,
-                )
-        elif event_type == "announcement_check_complete":
-            count = data.get("count", 0)
-            failures = data.get("failures", 0)
-            if failures == 0:
-                return NotificationMessage(
-                    title="公告定时检查完成",
-                    body=f"检查完成，发现 {count} 条新公告",
-                    level="info",
-                    event_type=event_type,
-                )
-            else:
-                return NotificationMessage(
-                    title="公告定时检查完成（部分失败）",
-                    body=f"检查完成，发现 {count} 条新公告，{failures} 个源检查失败",
-                    level="warning",
-                    event_type=event_type,
-                )
-        elif event_type == "batch_download_complete":
-            total = data.get("total", 0)
-            success = data.get("success", 0)
-            failed = data.get("failed", 0)
-            if failed == 0:
-                return NotificationMessage(
-                    title="批量下载完成",
-                    body=f"共 {total} 个文件，全部下载成功",
-                    level="info",
-                    event_type=event_type,
-                )
-            else:
-                return NotificationMessage(
-                    title="批量下载完成（部分失败）",
-                    body=f"共 {total} 个文件，成功 {success} 个，失败 {failed} 个",
-                    level="warning",
-                    event_type=event_type,
-                )
-        elif event_type == "auto_scan_failed":
-            path = data.get("path", "")
-            error = data.get("error", "未知错误")
-            return NotificationMessage(
-                title="定时扫描异常",
-                body=f"扫描 {path} 失败：{error}",
-                level="error",
-                event_type=event_type,
-            )
-        elif event_type == "validity_batch_report":
-            count = data.get("count", 0)
-            changed = data.get("changed", 0)
-            failed = data.get("failed", 0)
-            adapters = data.get("adapters", {})
-            adapter_summary = ", ".join([f"{k}:{v.get('status', 'unknown')}" for k, v in adapters.items()])[:100]
-            return NotificationMessage(
-                title="时效性检查完成",
-                body=f"本次检查 {count} 条，变更 {changed} 条，失败 {failed} 条 | 适配器: {adapter_summary}",
-                level="info" if failed == 0 else "warning",
-                event_type=event_type,
-            )
-        elif event_type == "validity_round_summary":
-            total_checks = data.get("total_checks", 0)
-            total_changes = data.get("total_changes", 0)
-            total_failures = data.get("total_failures", 0)
-            change_list = data.get("change_list", [])
-            change_preview = ", ".join(change_list[:5])
-            if len(change_list) > 5:
-                change_preview += f" 等 {len(change_list)} 项"
-            return NotificationMessage(
-                title="周期总结汇报",
-                body=(
-                    f"总检查 {total_checks} 条，总变更 {total_changes} 条，"
-                    f"总失败 {total_failures} 条 | 变更: {change_preview}"
-                ),
-                level="info",
-                event_type=event_type,
-            )
-        elif event_type == "validity_standard_failed":
-            standard_number = data.get("standard_number", "未知")
-            error = data.get("error", "未知错误")
-            return NotificationMessage(
-                title="标准检查失败",
-                body=f"标准 {standard_number} 检查失败: {error}",
-                level="error",
-                event_type=event_type,
-            )
-        elif event_type == "validity_system_failed":
-            error = data.get("error", "未知错误")
-            return NotificationMessage(
-                title="时效性检查系统异常",
-                body=f"系统执行异常: {error}",
-                level="error",
-                event_type=event_type,
-            )
-        else:
-            return NotificationMessage(
-                title=event_type,
-                body=str(data),
-                level="info",
-                event_type=event_type,
-            )
+        """根据事件类型构建通知消息（字典分发）"""
+        builder = self._EVENT_BUILDERS.get(event_type)
+        if builder is not None:
+            return builder(data)
+        return self._build_fallback_message(event_type, data)
 
     def _log(
         self,

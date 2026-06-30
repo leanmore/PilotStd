@@ -308,21 +308,17 @@ def verify_api_key(token: str) -> dict | None:
 class AuthMiddleware(BaseHTTPMiddleware):
     """鉴权中间件：白名单放行 + Origin/Referer 校验 + Cookie JWT 校验 + API Key 校验 + CSRF 检查。"""
 
-    async def dispatch(self, request, call_next):
-        path = request.url.path
-
-        # 静态令牌自动初始化（惰性，首次 API 请求时触发）
-        _ensure_static_token_in_db()
-
-        # 白名单检查
+    async def _check_public_path(self, request, path: str) -> bool:
+        """白名单路径 + 非 API 路径放行。返回 True 表示已放行（无需鉴权）。"""
         for w_path, w_methods in AUTH_WHITELIST:
             if path.startswith(w_path) and (not w_methods or request.method in w_methods):
-                return await call_next(request)
-        # 非 API 路径放行（前端静态文件）
+                return True
         if not path.startswith("/api/"):
-            return await call_next(request)
+            return True
+        return False
 
-        # 全局速率限制
+    def _check_rate_limit(self, request) -> JSONResponse | None:
+        """全局 API 速率限制。返回 429 响应或 None（通过）。"""
         now = time.time()
         client_ip = request.client.host if request.client else "unknown"
         cutoff = now - API_RATE_WINDOW
@@ -333,21 +329,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             elif len(_api_rate_limit[client_ip]) >= API_RATE_LIMIT:
                 return JSONResponse({"error": "请求过于频繁，请稍后重试"}, 429)
             _api_rate_limit[client_ip].append(now)
+        return None
 
-        # API Key 校验（三通道）：
-        #   1. Authorization: Bearer <token>
-        #   2. X-API-KEY: <token>  （参考 MoviePilot）
-        #   3. ?token=<token> 查询参数
-        def _try_api_token(token: str) -> bool:
-            if not token:
-                return False
-            key_info = verify_api_key(token)
-            if key_info:
-                request.state.api_key_id = key_info["key_id"]
-                request.state.api_key_scopes = key_info["scopes"]
-                return True
-            return False
-
+    def _authenticate_api_key(self, request) -> bool:
+        """三通道 API Key 校验：Authorization Bearer / X-API-KEY Header / ?token 查询参数。
+        返回 True 表示已认证。失败时返回 False 或直接返回 401（pst_ 前缀 token 不回落 JWT）。"""
         auth_header = request.headers.get("Authorization", "")
         api_key_header = request.headers.get(API_TOKEN_HEADER, "")
         query_token = request.query_params.get("token", "")
@@ -360,14 +346,21 @@ class AuthMiddleware(BaseHTTPMiddleware):
         elif query_token:
             api_token = query_token
 
-        if api_token:
-            if _try_api_token(api_token):
-                return await call_next(request)
-            # token 验证失败，直接 401（不回落 JWT）
-            if api_token.startswith("pst_"):
-                return JSONResponse({"error": "认证失败"}, 401)
+        if not api_token:
+            return False
 
-        # 跨源检查
+        key_info = verify_api_key(api_token)
+        if key_info:
+            request.state.api_key_id = key_info["key_id"]
+            request.state.api_key_scopes = key_info["scopes"]
+            return True
+        # pst_ 前缀 token 验证失败直接 401（不回落 JWT）
+        if api_token.startswith("pst_"):
+            raise HTTPException(401, "认证失败")
+        return False
+
+    def _authenticate_session(self, request) -> None:
+        """Origin/Referer 跨源校验 + Cookie JWT 校验 + CSRF 检查。失败直接抛 HTTPException。"""
         origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
         if origin:
             from urllib.parse import urlparse
@@ -376,24 +369,49 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 origin_host = urlparse(origin).hostname
                 request_host = request.headers.get("Host", "").split(":")[0]
                 if origin_host and request_host and origin_host != request_host:
-                    return JSONResponse({"error": "认证失败"}, 403)
+                    raise HTTPException(403, "认证失败")
             except Exception:
-                return JSONResponse({"error": "认证失败"}, 403)
+                raise HTTPException(403, "认证失败")
 
-        # Cookie JWT 校验
         token = request.cookies.get(COOKIE_NAME)
         if not token:
-            return JSONResponse({"error": "认证失败"}, 401)
+            raise HTTPException(401, "认证失败")
         try:
             jwt.decode(token, SECRET, algorithms=["HS256"])
         except JWTError:
-            return JSONResponse({"error": "认证失败"}, 401)
+            raise HTTPException(401, "认证失败")
 
-        # CSRF 检查
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
             csrf_header = request.headers.get(CSRF_HEADER, "")
             csrf_cookie = request.cookies.get("csrf_token", "")
             if not csrf_header or csrf_header != csrf_cookie:
-                return JSONResponse({"error": "认证失败"}, 403)
+                raise HTTPException(403, "认证失败")
+
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+
+        _ensure_static_token_in_db()
+
+        # 白名单 + 非 API 路径放行
+        if await self._check_public_path(request, path):
+            return await call_next(request)
+
+        # 全局速率限制
+        rate_limit_resp = self._check_rate_limit(request)
+        if rate_limit_resp:
+            return rate_limit_resp
+
+        # API Key 校验
+        try:
+            if self._authenticate_api_key(request):
+                return await call_next(request)
+        except HTTPException:
+            return JSONResponse({"error": "认证失败"}, 401)
+
+        # Cookie JWT + CSRF 校验
+        try:
+            self._authenticate_session(request)
+        except HTTPException as e:
+            return JSONResponse({"error": "认证失败"}, e.status_code)
 
         return await call_next(request)

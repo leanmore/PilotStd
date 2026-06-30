@@ -73,6 +73,74 @@ _VARIANT_PAIRS = [
 ]
 
 
+def _exact_parse_match(
+    result_number_str: str,
+    local_code_clean: str,
+    local_code: str,
+    local_number: int,
+    local_year: int,
+    local_part: int | None,
+) -> Tuple[bool, str] | None:
+    """精确解析路径：解析标准编号后逐字段比对代号、顺序号、年份、部分号。
+    返回匹配结果；解析失败时返回 None 以触发模糊回退。"""
+    parsed = _parse_result_number(result_number_str)
+    if not parsed:
+        return None
+    code_match = parsed.get("code", "") == local_code_clean
+    num_exact = parsed.get("number") == local_number
+    result_part = parsed.get("part")
+    if local_part is not None and result_part is not None:
+        part_match = result_part == local_part
+    else:
+        part_match = True
+    result_year = parsed.get("year")
+    if not num_exact:
+        return False, "mismatch"
+    if not part_match:
+        return False, "mismatch"
+    code_variant = False
+    if not code_match:
+        result_raw = parsed.get("raw_code", "")
+        local_upper = local_code.upper()
+        if result_raw and _is_code_variant(local_upper, result_raw):
+            code_variant = True
+    if code_match or code_variant:
+        if result_year and result_year == local_year:
+            return True, "exact"
+        if result_year and result_year > local_year:
+            return True, "newer"
+        if result_year and result_year < local_year:
+            return True, "older"
+        return True, "exact"
+    return (True, "code_only") if code_match else (False, "mismatch")
+
+
+def _fuzzy_text_match(
+    result_name: str, result_number_str: str, local_code_clean: str, local_number: int, local_year: int
+) -> Tuple[bool, str]:
+    """模糊回退：文本中匹配代号、顺序号、年份，数字用词边界避免子串误匹配。"""
+    combined = f"{result_name} {result_number_str}".upper()
+    code_match = local_code_clean in combined
+    num_str = str(local_number)
+    num_match = bool(re.search(rf"(?<!\d){re.escape(num_str)}(?!\d)", combined))
+    year_str = str(local_year)
+    year_match = year_str in combined
+    if code_match and num_match and year_match:
+        return True, "exact"
+    if code_match and num_match:
+        years_in_result = re.findall(r"\b(19\d{2}|20\d{2})\b", combined)
+        if years_in_result:
+            result_year = max(int(y) for y in years_in_result)
+            if result_year > local_year:
+                return True, "newer"
+            elif result_year < local_year:
+                return True, "older"
+        return True, "exact"
+    if code_match:
+        return True, "code_only"
+    return False, "mismatch"
+
+
 def match_result(
     local_code: str,
     local_number: int,
@@ -98,66 +166,11 @@ def match_result(
 
     local_code_clean = local_code.replace("/", "").upper()
 
-    # 优先精确解析标准编号
-    parsed = _parse_result_number(result_number_str)
-    if parsed:
-        code_match = parsed.get("code", "") == local_code_clean
-        num_exact = parsed.get("number") == local_number
-        result_part = parsed.get("part")
-        if local_part is not None and result_part is not None:
-            part_match = result_part == local_part
-        else:
-            part_match = True
-        result_year = parsed.get("year")
+    exact = _exact_parse_match(result_number_str, local_code_clean, local_code, local_number, local_year, local_part)
+    if exact is not None:
+        return exact
 
-        if not num_exact:
-            return False, "mismatch"
-        # 部分号不匹配 → 不同标准（如 GB 30000.3 vs GB 30000.30）
-        if not part_match:
-            return False, "mismatch"
-
-        # 代号变体检测：同一基础代号，一个有后缀（/T /Z 等）一个没有
-        # 如 GB ↔ GB/T、GA ↔ GA/T 等。仅当顺序号一致时才触发（num_exact 已保证）
-        code_variant = False
-        if not code_match:
-            result_raw = parsed.get("raw_code", "")
-            local_upper = local_code.upper()
-            if result_raw and _is_code_variant(local_upper, result_raw):
-                code_variant = True
-
-        if code_match or code_variant:
-            if result_year and result_year == local_year:
-                return True, "exact"
-            if result_year and result_year > local_year:
-                return True, "newer"
-            if result_year and result_year < local_year:
-                return True, "older"
-            return True, "exact"
-        return (True, "code_only") if code_match else (False, "mismatch")
-
-    # 回退：文本模糊匹配（数字用词边界避免子串误匹配）
-    combined = f"{result_name} {result_number_str}".upper()
-    code_match = local_code_clean in combined
-    num_str = str(local_number)
-    num_match = bool(re.search(rf"(?<!\d){re.escape(num_str)}(?!\d)", combined))
-    year_str = str(local_year)
-    year_match = year_str in combined
-
-    if code_match and num_match and year_match:
-        return True, "exact"
-    if code_match and num_match:
-        years_in_result = re.findall(r"\b(19\d{2}|20\d{2})\b", combined)
-        if years_in_result:
-            result_year = max(int(y) for y in years_in_result)
-            if result_year > local_year:
-                return True, "newer"
-            elif result_year < local_year:
-                return True, "older"
-        return True, "exact"
-    if code_match:
-        return (True, "code_only") if code_match else (False, "mismatch")
-
-    return False, "mismatch"
+    return _fuzzy_text_match(result_name, result_number_str, local_code_clean, local_number, local_year)
 
 
 # ── 共享工具函数 ────────────────────────────────────────────

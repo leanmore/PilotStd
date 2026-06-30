@@ -28,21 +28,20 @@ class AnnounceMixin:
 
     # ── 公告检查 ─────────────────────────────────────────
 
-    def _on_check_announcements(self) -> None:
-        """手动检查标准公告更新（工具菜单触发）。
-        弹出进度对话框，后台分批抓取公告、解析标准、比对缓存。"""
+    def _check_announce_guard(self) -> bool:
+        """前置检查：Manager 就绪 + Web 公告缓存互斥。返回 True 表示可继续。"""
         if not self._mgr_ready:
-            return
-        # Web 端公告缓存模式互斥：禁用本地公告检查
+            return False
         if self._config.get("query.use_announcement_match", False):
             logger.info("本地公告检查被禁用（use_announcement_match=True）")
             QMessageBox.information(
-                self,
-                "公告检查",
-                "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。",
+                self, "公告检查", "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。"
             )
-            return
-        # 进度对话框
+            return False
+        return True
+
+    def _run_announce_dialog(self) -> AnnounceWorker:
+        """构建进度对话框 + 启动后台公告检查 Worker + 模态执行。返回 Worker。"""
         dlg = QDialog(self)
         dlg.setWindowTitle(_("announcement_check"))
         dlg.setMinimumWidth(450)
@@ -54,7 +53,6 @@ class AnnounceMixin:
             self._ann_progress_label = QLabel(_("announcement_disabled"))
         layout.addWidget(self._ann_progress_label)
 
-        # 起始日期筛选 — 默认往前3个月
         date_layout = QHBoxLayout()
         date_layout.addWidget(QLabel(_("start_date")))
         self._ann_start_date = QDateEdit()
@@ -72,22 +70,25 @@ class AnnounceMixin:
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
 
-        # 后台线程
         since_date = self._ann_start_date.date().toString("yyyy-MM-dd")
-        self._ann_worker = AnnounceWorker(self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self)
+        self._ann_worker = AnnounceWorker(
+            self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self
+        )
         self._ann_worker.progress.connect(self._on_ann_progress)
         self._ann_worker.finished_signal.connect(dlg.accept)
         cancel_btn.clicked.connect(self._ann_worker.stop)
         self._ann_worker.start()
         dlg.exec()
+        return self._ann_worker
 
-        # 弹窗汇总
-        if self._ann_worker._stopped:
+    def _show_announce_result(self, worker: AnnounceWorker) -> None:
+        """弹窗展示公告检查结果：取消/异常/完成 + 失败列表落盘 + Toast 通知。"""
+        if worker._stopped:
             QMessageBox.information(self, _("announcement_check"), _("announcement_cancelled"))
-        elif self._ann_worker._error and not self._ann_worker._matched:
-            QMessageBox.warning(None, _("announcement_check"), self._ann_worker._error)
+        elif worker._error and not worker._matched:
+            QMessageBox.warning(None, _("announcement_check"), worker._error)
         else:
-            failures = getattr(self._ann_worker, "_failures", [])
+            failures = getattr(worker, "_failures", [])
             fail_msg = ""
             if failures:
                 import json
@@ -100,19 +101,23 @@ class AnnounceMixin:
             QMessageBox.information(
                 self,
                 _("announcement_check"),
-                _("announcement_complete").format(total=self._ann_worker._total, matched=self._ann_worker._matched)
-                + fail_msg,
+                _("announcement_complete").format(total=worker._total, matched=worker._matched) + fail_msg,
             )
-            # Toast 通知
             from ...platform.notify import NotifyService
 
-            if self._ann_worker._matched > 0:
+            if worker._matched > 0:
                 NotifyService.get().show(
                     _("announcement_complete_toast"),
-                    _("announcement_complete_detail").format(
-                        total=self._ann_worker._total, matched=self._ann_worker._matched
-                    ),
+                    _("announcement_complete_detail").format(total=worker._total, matched=worker._matched),
                 )
+
+    def _on_check_announcements(self) -> None:
+        """手动检查标准公告更新（工具菜单触发）。"""
+        if not self._check_announce_guard():
+            return
+
+        worker = self._run_announce_dialog()
+        self._show_announce_result(worker)
 
     def _on_ann_progress(self, current: int, total: int, matched: int) -> None:
         """更新公告检查进度。"""

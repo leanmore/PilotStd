@@ -18,7 +18,7 @@ class TestNotificationDB(unittest.TestCase):
         mock_db = MagicMock()
         mock_db_cls.return_value = mock_db
 
-        from pilotstd.core.db import _migrate_v18_notification_fetch_task
+        from pilotstd.core.db.migrations import _migrate_v18_notification_fetch_task
 
         _migrate_v18_notification_fetch_task(mock_db)
 

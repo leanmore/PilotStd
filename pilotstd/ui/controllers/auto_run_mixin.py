@@ -143,12 +143,10 @@ class AutoRunMixin:
 
     # ── 汇总弹窗 ─────────────────────────────────────────
 
-    def _show_auto_run_summary(self) -> None:
-        """自动运行完成后弹出汇总统计。"""
-        results = self._parsed_results
-        if not results:
-            return
-
+    def _build_auto_summary_message(
+        self, results: list[Any]
+    ) -> tuple[str, list[str]]:
+        """收集统计数据 + 构建汇总消息文本。返回 (msg, manual_all)。"""
         total = len(results)
         not_found = [p for p in results if not p.std_name]
         expired = [p for p in results if p.effect_status in ("废止", "已废止", "作废")]
@@ -156,11 +154,9 @@ class AutoRunMixin:
 
         manual_all = []
         for p in not_found:
-            label = f"{p.get_full_number()}  {_('auto_run_manual_row_not_found')}"
-            manual_all.append(label)
+            manual_all.append(f"{p.get_full_number()}  {_('auto_run_manual_row_not_found')}")
         for p in adopted:
-            label = f"{p.get_full_number()}  {_('auto_run_manual_row_adopted')}"
-            manual_all.append(label)
+            manual_all.append(f"{p.get_full_number()}  {_('auto_run_manual_row_adopted')}")
 
         msg = (
             _("auto_run_summary_total").format(total=total)
@@ -173,7 +169,10 @@ class AutoRunMixin:
             + "\n"
             + _("auto_run_summary_adopted").format(count=len(adopted))
         )
+        return msg, manual_all
 
+    def _show_auto_summary_dialog(self, msg: str, manual_all: list[str]) -> None:
+        """构建汇总弹窗：消息标签 + 待处理列表 + 导出按钮。"""
         dlg = QDialog(self)
         dlg.setWindowTitle(_("auto_run_summary_title"))
         dlg.resize(550, 380)
@@ -210,13 +209,7 @@ class AutoRunMixin:
                 with open(path, "w", encoding="utf-8-sig") as f:
                     if fmt == "csv":
                         w = csv.writer(f)
-                        w.writerow(
-                            [
-                                _("csv_header_std_number"),
-                                _("csv_header_std_name"),
-                                _("csv_header_reason"),
-                            ]
-                        )
+                        w.writerow([_("csv_header_std_number"), _("csv_header_std_name"), _("csv_header_reason")])
                         for item in manual_all:
                             parts = item.split("  ")
                             w.writerow(parts if len(parts) >= 2 else [item, "", ""])
@@ -225,9 +218,18 @@ class AutoRunMixin:
                         f.write("\n".join(manual_all))
                 self.status_changed.emit(f"已导出: {path}")
             except OSError as e:
-                logger.error(f"导出汇总失败: {e}")
+                logger.error("导出汇总失败: %s", e)
 
         btn_txt.clicked.connect(lambda: _export("txt"))
         btn_csv.clicked.connect(lambda: _export("csv"))
         btn_close.clicked.connect(dlg.accept)
         dlg.exec()
+
+    def _show_auto_run_summary(self) -> None:
+        """自动运行完成后弹出汇总统计。"""
+        results = self._parsed_results
+        if not results:
+            return
+
+        msg, manual_all = self._build_auto_summary_message(results)
+        self._show_auto_summary_dialog(msg, manual_all)

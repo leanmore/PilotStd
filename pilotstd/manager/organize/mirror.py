@@ -33,75 +33,97 @@ class OrganizerMirrorMixin:
             "details": [],
         }
         for src_dir in skipped_dirs:
-            if not os.path.isdir(src_dir):
+            rel_dst = self._resolve_skipped_relative(src_dir, root, source_root)
+            if rel_dst is None:
                 continue
-            clean_src = src_dir[4:] if src_dir.startswith("\\\\?\\") else src_dir
-            clean_root = source_root[4:] if source_root and source_root.startswith("\\\\?\\") else source_root
-            if clean_root:
-                try:
-                    rel = os.path.relpath(clean_src, clean_root)
-                except ValueError:
-                    rel = os.path.basename(clean_src)
-            else:
-                rel = os.path.basename(clean_src)
-            rel = _resolve_industry_in_path(rel)
-            dst = os.path.join(root, rel)
-            if not os.path.realpath(dst).startswith(os.path.realpath(root) + os.sep):
-                logger.error("路径越界被拒绝: %s", dst)
+            _, dst = rel_dst
+            if not self._check_path_traversal(dst, root, src_dir):
                 result["failed"] += 1
                 result["details"].append(f"跳过目录移动被拒绝(路径越界): {os.path.basename(src_dir)}")
                 continue
             try:
                 if os.path.exists(dst):
-                    for fname in os.listdir(src_dir):
-                        src_file = os.path.join(src_dir, fname)
-                        dst_file = os.path.join(dst, fname)
-                        if os.path.isfile(src_file):
-                            if safe_move(src_file, dst_file, on_exists="skip"):
-                                result["moved"] += 1
-                            else:
-                                result["details"].append(f"跳过(目标已存在): {fname}")
-                        elif os.path.isdir(src_file):
-                            try:
-                                os.makedirs(dst_file, exist_ok=True)
-                                for sub_fname in os.listdir(src_file):
-                                    sub_src = os.path.join(src_file, sub_fname)
-                                    sub_dst = os.path.join(dst_file, sub_fname)
-                                    if os.path.isfile(sub_src):
-                                        if safe_move(sub_src, sub_dst, on_exists="skip"):
-                                            result["moved"] += 1
-                                    elif os.path.isdir(sub_src):
-                                        if self._cfg.get("file.clear_readonly", True):
-                                            for _r, _ds, _fs in os.walk(sub_src):
-                                                for _f in _fs:
-                                                    try:
-                                                        os.chmod(os.path.join(_r, _f), stat.S_IWRITE)
-                                                    except OSError:
-                                                        pass
-                                        shutil = __import__("shutil")
-                                        shutil.move(sub_src, sub_dst)
-                                        result["moved"] += 1
-                            except OSError as e:
-                                result["details"].append(f"跳过目录子项移动失败: {fname} - {e}")
+                    self._mirror_into_existing_dst(dst, src_dir, result)
                 else:
-                    if self._cfg.get("file.clear_readonly", True):
-                        for _root, _dirs, _files in os.walk(src_dir):
-                            for _f in _files:
-                                try:
-                                    os.chmod(os.path.join(_root, _f), stat.S_IWRITE)
-                                except OSError:
-                                    pass
-                    os.makedirs(os.path.dirname(dst), exist_ok=True)
-                    shutil = __import__("shutil")
-                    shutil.move(src_dir, dst)
-                    result["moved"] += 1
-                    result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
+                    self._mirror_whole_directory(dst, src_dir, result)
             except OSError as e:
                 result["failed"] += 1
                 result["details"].append(f"跳过目录移动失败: {os.path.basename(src_dir)} - {e}")
                 logger.warning("跳过目录移动失败: %s - %s", os.path.basename(src_dir), e)
         logger.info("跳过目录归档: %d 已移动, %d 失败", result["moved"], result["failed"])
         return result
+
+    def _resolve_skipped_relative(self, src_dir: str, root: str, source_root: str | None) -> tuple[str, str] | None:
+        """路径清理 + relpath 计算 + 行业路径替换。返回 (rel_path, dst_path)。"""
+        if not os.path.isdir(src_dir):
+            return None
+        clean_src = src_dir[4:] if src_dir.startswith("\\\\?\\") else src_dir
+        clean_root = source_root[4:] if source_root and source_root.startswith("\\\\?\\") else source_root
+        if clean_root:
+            try:
+                rel = os.path.relpath(clean_src, clean_root)
+            except ValueError:
+                rel = os.path.basename(clean_src)
+        else:
+            rel = os.path.basename(clean_src)
+        rel = _resolve_industry_in_path(rel)
+        dst = os.path.join(root, rel)
+        return rel, dst
+
+    def _check_path_traversal(self, dst: str, root: str, dirpath: str) -> bool:
+        """校验目标路径不越界。返回 True 表示安全。"""
+        if not os.path.realpath(dst).startswith(os.path.realpath(root) + os.sep):
+            logger.error("路径越界被拒绝: %s", dst)
+            return False
+        return True
+
+    def _mirror_into_existing_dst(self, dst: str, src_dir: str, result: dict) -> None:
+        """目标已存在 → 逐文件移动到目标目录。"""
+        for fname in os.listdir(src_dir):
+            src_file = os.path.join(src_dir, fname)
+            dst_file = os.path.join(dst, fname)
+            if os.path.isfile(src_file):
+                if safe_move(src_file, dst_file, on_exists="skip"):
+                    result["moved"] += 1
+                else:
+                    result["details"].append(f"跳过(目标已存在): {fname}")
+            elif os.path.isdir(src_file):
+                try:
+                    os.makedirs(dst_file, exist_ok=True)
+                    for sub_fname in os.listdir(src_file):
+                        sub_src = os.path.join(src_file, sub_fname)
+                        sub_dst = os.path.join(dst_file, sub_fname)
+                        if os.path.isfile(sub_src):
+                            if safe_move(sub_src, sub_dst, on_exists="skip"):
+                                result["moved"] += 1
+                        elif os.path.isdir(sub_src):
+                            if self._cfg.get("file.clear_readonly", True):
+                                for _r, _ds, _fs in os.walk(sub_src):
+                                    for _f in _fs:
+                                        try:
+                                            os.chmod(os.path.join(_r, _f), stat.S_IWRITE)
+                                        except OSError:
+                                            pass
+                            shutil = __import__("shutil")
+                            shutil.move(sub_src, sub_dst)
+                            result["moved"] += 1
+                except OSError as e:
+                    result["details"].append(f"跳过目录子项移动失败: {fname} - {e}")
+
+    def _mirror_whole_directory(self, dst: str, src_dir: str, result: dict) -> None:
+        """目标不存在 → 整体移动目录。"""
+        if self._cfg.get("file.clear_readonly", True):
+            for _r, _ds, _fs in os.walk(src_dir):
+                for _f in _fs:
+                    try:
+                        os.chmod(os.path.join(_r, _f), stat.S_IWRITE)
+                    except OSError:
+                        pass
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil = __import__("shutil")
+        shutil.move(src_dir, dst)
+        result["moved"] += 1
+        result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
 
     def organize_fallback(self: Any, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""

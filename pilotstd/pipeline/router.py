@@ -77,24 +77,97 @@ class PipelineRouter:
                 buckets["query"].append(p)
         return buckets
 
+    def _route_by_status(self, p: Any, buckets: dict[str, list[Any]], items: list[Any]) -> None:
+        """根据单条标准的状态标记决定路由去向（原地修改 buckets）。"""
+        status = getattr(p, "effect_status", "") or ""
+        replaces = getattr(p, "found_replaces", "") or ""
+        code = getattr(p, "logical_code", "") or ""
+        match_status = getattr(p, "match_status", "") or ""
+        logger.debug(
+            "路由: %s | 状态=%s match=%s 采标=%s replaces=%s",
+            p.get_full_number(),
+            status,
+            match_status,
+            getattr(p, "is_adopted", False),
+            bool(replaces),
+        )
+        has_valid_replaces = bool(replaces and replaces not in ("网站无此分类",))
+        is_gb = is_gb_code(code)
+
+        # 规则0: 非 exact 匹配 → pending
+        if match_status and match_status != "exact":
+            buckets["pending"].append(p)
+            if match_status in ("older", "newer"):
+                p.stage_status = "version_mismatch"
+            return
+        # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending
+        src = (getattr(p, "source_name", "") or "").strip()
+        qry = (getattr(p, "found_name", "") or "").strip()
+        if not src and not qry:
+            buckets["pending"].append(p)
+            return
+        # 规则1: match_status=="newer" + GB + 非采标 → download
+        if match_status == "newer" and is_gb:
+            if getattr(p, "is_adopted", False):
+                buckets["pending"].append(p)
+            elif self._newer_exists_locally(p, items):
+                logger.debug("路由: %s | 新版已本地存在，跳过下载→归档过期", p.get_full_number())
+                buckets["expire"].append(p)
+            else:
+                buckets["download"].append(p)
+            return
+        # 规则2: 未查到/未知/状态缺失 → 待确认
+        if not status or status == "未知":
+            buckets["pending"].append(p)
+            return
+        # 规则3: 待确认 → 待确认
+        if status == "待确认":
+            buckets["pending"].append(p)
+            return
+        # 规则4+5: 废止/已废止/作废
+        if status in ("废止", "已废止", "作废"):
+            if has_valid_replaces and is_gb:
+                if getattr(p, "is_adopted", False):
+                    buckets["pending"].append(p)
+                else:
+                    buckets["download"].append(p)
+            else:
+                buckets["expire"].append(p)
+            return
+        # 规则6+7: 被代替
+        if status == "被代替":
+            if has_valid_replaces and is_gb:
+                if getattr(p, "is_adopted", False):
+                    buckets["pending"].append(p)
+                else:
+                    buckets["download"].append(p)
+            else:
+                buckets["expire"].append(p)
+            return
+        # 规则8: 现行 → organize/normalize
+        if status == "现行":
+            expected = make_standard_filename(
+                p.logical_code,
+                p.number,
+                p.year,
+                p.std_name,
+                getattr(p, "part", None),
+                language=getattr(p, "language", ""),
+                num_prefix=getattr(p, "num_prefix", ""),
+                num_suffix=getattr(p, "num_suffix", ""),
+                ext=getattr(p, "ext", "pdf"),
+            )
+            actual = os.path.basename(p.source_path or "")
+            if actual == expected:
+                buckets["organize"].append(p)
+            else:
+                buckets["normalize"].append(p)
+            return
+        # 规则9: 兜底
+        buckets["fallback"].append(p)
+
     def classify_after_query(self, items: List[ParsedStdInfo]) -> dict[str, Any]:
-        """查询后第二轮判断。按 effect_status 分堆。
-
-        返回 {"organize": [...], "expire": [...], "download": [...],
-              "pending": [...], "fallback": [...]}
-
-        路由规则（按优先级）：
-        1. match_status=="newer" + GB + 非采标 → download（远程有更新版且可下载）
-           match_status=="newer" + GB + 采标   → pending（有更新版但采标受限，不可下载）
-        2. 未查到/未知/状态缺失 → pending（与 manager 统一，原 fallback 过于宽泛）
-        3. 待确认 → pending
-        4. 废止/已废止/作废 + 有替代信息 + GB → download（manager _resolve_replaces 已填充 found_replaces）
-        5. 废止/已废止/作废 → expire（标准已死，不可下载）
-        6. 被代替 + 有替代标准 + GB 类代码 → download（openstd 可下载新版）
-        7. 被代替（无替代或非 GB）→ expire（无法下载，过期归档）
-        8. 现行 → organize（文件名规范）/ normalize（需重命名）
-        9. 其他 → fallback
-        """
+        """查询后第二轮判断。按 effect_status 分堆。"""
         buckets: dict[str, list[Any]] = {
             "organize": [],
             "normalize": [],
@@ -104,106 +177,8 @@ class PipelineRouter:
             "fallback": [],
         }
         for p in items:
-            status = getattr(p, "effect_status", "") or ""
-            replaces = getattr(p, "found_replaces", "") or ""
-            code = getattr(p, "logical_code", "") or ""
-            match_status = getattr(p, "match_status", "") or ""
-            logger.debug(
-                "路由: %s | 状态=%s match=%s 采标=%s replaces=%s",
-                p.get_full_number(),
-                status,
-                match_status,
-                getattr(p, "is_adopted", False),
-                bool(replaces),
-            )
-            has_valid_replaces = bool(replaces and replaces not in ("网站无此分类",))
-            is_gb = is_gb_code(code)
+            self._route_by_status(p, buckets, items)
 
-            # 规则0: 非 exact 匹配 → pending（置信不足，等以后重查）
-            if match_status and match_status != "exact":
-                buckets["pending"].append(p)
-                if match_status in ("older", "newer"):
-                    p.stage_status = "version_mismatch"
-                continue
-
-            # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending
-            src = (getattr(p, "source_name", "") or "").strip()
-            qry = (getattr(p, "found_name", "") or "").strip()
-            if not src and not qry:
-                buckets["pending"].append(p)
-                continue
-
-            # 规则1: match_status=="newer" + GB + 非采标 → 远程有更新版，可下载
-            # ⚠️ 下载前先检查新版是否已在本地存在——避免重复下载
-            if match_status == "newer" and is_gb:
-                if getattr(p, "is_adopted", False):
-                    buckets["pending"].append(p)
-                elif self._newer_exists_locally(p, items):
-                    # 新版文件已在本地，旧版直接归档过期，不下载
-                    logger.debug(
-                        "路由: %s | 新版已本地存在，跳过下载→归档过期",
-                        p.get_full_number(),
-                    )
-                    buckets["expire"].append(p)
-                else:
-                    buckets["download"].append(p)
-                continue
-
-            # 规则2: 未查到/未知/状态缺失 → 待确认
-            if not status or status == "未知":
-                buckets["pending"].append(p)
-                continue
-
-            # 规则3: 待确认 → 待确认
-            if status == "待确认":
-                buckets["pending"].append(p)
-                continue
-
-            # 规则4+5: 废止/已废止/作废
-            if status in ("废止", "已废止", "作废"):
-                if has_valid_replaces and is_gb:
-                    if getattr(p, "is_adopted", False):
-                        buckets["pending"].append(p)
-                    else:
-                        buckets["download"].append(p)
-                else:
-                    buckets["expire"].append(p)
-                continue
-
-            # 规则6+7: 被代替
-            if status == "被代替":
-                if has_valid_replaces and is_gb:
-                    if getattr(p, "is_adopted", False):
-                        buckets["pending"].append(p)
-                    else:
-                        buckets["download"].append(p)
-                else:
-                    buckets["expire"].append(p)
-                continue
-
-            # 规则8: 现行 → 检查文件名是否已符合规范格式
-            if status == "现行":
-                expected = make_standard_filename(
-                    p.logical_code,
-                    p.number,
-                    p.year,
-                    p.std_name,
-                    getattr(p, "part", None),
-                    language=getattr(p, "language", ""),
-                    num_prefix=getattr(p, "num_prefix", ""),
-                    num_suffix=getattr(p, "num_suffix", ""),
-                    ext=getattr(p, "ext", "pdf"),
-                )
-                actual = os.path.basename(p.source_path or "")
-                if actual == expected:
-                    buckets["organize"].append(p)
-                else:
-                    buckets["normalize"].append(p)
-                continue
-
-            # 规则9: 其他（含"即将实施"等未明确处理的状态）→ 兜底
-            buckets["fallback"].append(p)
-        # [TRACE] 指令8: 统计各状态条目数
         _ce_count = sum(1 for p in buckets.get("pending", []) if getattr(p, "match_status", "") == "chain_exhausted")
         logger.info(
             "[ROUTER] 分类结果: pending=%d (chain_exhausted=%d) "
@@ -216,7 +191,6 @@ class PipelineRouter:
             len(buckets["download"]),
             len(buckets["fallback"]),
         )
-        # [TRACE] 修复C: 每个pending条目的详细归因
         for p in buckets["pending"]:
             logger.info(
                 "[PENDING_DETAIL] 标准=%s 匹配状态=%s 下一步=%s 有效性=%s 源路径=%s",

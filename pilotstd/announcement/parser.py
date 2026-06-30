@@ -247,6 +247,49 @@ def _clean_wps_name(name: str) -> str:
     return name.strip()
 
 
+def _find_field_text(
+    text: str, matches: list[re.Match[str]], i: int, skip_indices: set[int]
+) -> tuple[str, str, int]:
+    """当前匹配到下一个匹配之间的字段文本 + 代替号检测。返回 (field_text, replaces_code, next_idx)。"""
+    next_idx = i + 1
+    while next_idx < len(matches) and next_idx in skip_indices:
+        next_idx += 1
+
+    if next_idx < len(matches):
+        field_text = text[matches[i].end() : matches[next_idx].start()]
+    else:
+        field_text = text[matches[i].end() : matches[i].end() + 300]
+
+    replaces_code = ""
+    if next_idx < len(matches):
+        has_chinese = bool(re.search(r"[一-鿿]", field_text))
+        if has_chinese and "\n" not in field_text:
+            replaces_code = matches[next_idx].group(0)
+            skip_indices.add(next_idx)
+            post_replaces = text[matches[next_idx].end() : matches[next_idx].end() + 50]
+            field_text = field_text + post_replaces
+
+    return field_text, replaces_code, next_idx
+
+
+def _parse_entry_fields(field_text: str) -> tuple[str, str, str]:
+    """从字段文本中提取标准名称、代替号、发布日期。返回 (std_name, replaces_code, publish_date)。"""
+    replaces_code = ""
+    std_name = _clean_wps_name(field_text)
+
+    replaces_match = REPLACES_PATTERN.search(field_text)
+    if replaces_match:
+        rep_start = replaces_match.start()
+        std_name = _clean_wps_name(field_text[:rep_start])
+        replaces_code = replaces_match.group(0)
+        field_text = field_text[replaces_match.end() :]
+
+    date_match = re.search(r"(\d{4}-\d{2}-\d{2})", field_text)
+    publish_date = date_match.group(1) if date_match else ""
+
+    return std_name, replaces_code, publish_date
+
+
 def parse_text_table(text: str) -> list[dict[str, Any]]:
     """从附件文本中提取标准表格。不依赖换行符，用标准编号模式全文本扫描。
 
@@ -260,60 +303,26 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         [{std_code, std_name, replaces_code, publish_date}, ...]
     """
     results: list[dict[str, Any]] = []
-    # 用标准编号模式在全文中找所有匹配（不依赖行边界）
     matches = list(STD_CODE_PATTERN.finditer(text))
     if not matches:
         return results
 
-    skip_indices = set()  # 被合并为 replaces_code 的匹配索引
+    skip_indices: set[int] = set()
 
     for i, match in enumerate(matches):
         if i in skip_indices:
             continue
         std_code = match.group(0)
-        end = match.end()
 
-        # 编号后的内容：到下一个匹配开头（或文本末尾+300字）
-        # 先往后找下一个未被跳过的匹配
-        next_idx = i + 1
-        while next_idx < len(matches) and next_idx in skip_indices:
-            next_idx += 1
-        if next_idx < len(matches):
-            field_text = text[end : matches[next_idx].start()]
-        else:
-            field_text = text[end : end + 300]
+        field_text, replaces_code_adjacent, _ = _find_field_text(text, matches, i, skip_indices)
 
-        # 检查相邻匹配是否与当前条目在同一逻辑行
-        # 条件：field_text 含中文字符（是名称而非行分隔），且距下一匹配很近
-        replaces_code = ""
-        if next_idx < len(matches):
-            between = field_text
-            has_chinese = bool(re.search(r"[一-鿿]", between))
-            next_match = matches[next_idx]
-            # 下一匹配紧跟在名称后（无换行），且中间有中文 → 是代替号
-            if has_chinese and "\n" not in between:
-                replaces_code = next_match.group(0)
-                skip_indices.add(next_idx)
-                # 代替号之后的内容作为发布日期来源
-                post_replaces = text[next_match.end() : next_match.end() + 50]
-                # 继续往后检查是否还有日期
-                field_text = between + post_replaces
+        if not replaces_code_adjacent:
+            replaces_code_adjacent = ""  # _find_field_text may return ""
 
-        # 清洗二进制垃圾，提取名称
-        std_name = _clean_wps_name(field_text)
-
-        # 如果上面没识别到代替号，用 REPLACES_PATTERN 再扫一遍 field_text
-        if not replaces_code:
-            replaces_match = REPLACES_PATTERN.search(field_text)
-            if replaces_match:
-                rep_start = replaces_match.start()
-                std_name = _clean_wps_name(field_text[:rep_start])
-                replaces_code = replaces_match.group(0)
-                field_text = field_text[replaces_match.end() :]
-
-        # 提取发布日期
-        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", field_text)
-        publish_date = date_match.group(1) if date_match else ""
+        std_name, replaces_code, publish_date = _parse_entry_fields(field_text)
+        # 如果 _find_field_text 检测到了代替号但 REPLACES_PATTERN 没扫到，用前者
+        if not replaces_code and replaces_code_adjacent:
+            replaces_code = replaces_code_adjacent
 
         if len(std_name) < 2:
             continue

@@ -120,7 +120,10 @@ def _migrate_v7_add_last_checked(db: Any) -> None:
         db.execute("ALTER TABLE file_index ADD COLUMN last_checked TEXT")
     except Exception:
         logging.getLogger("pilotstd.db").debug("v7 迁移：last_checked 列可能已存在", exc_info=True)
-    db.execute("CREATE INDEX IF NOT EXISTS idx_file_index_last_checked ON file_index(last_checked)")
+    try:
+        db.execute("CREATE INDEX IF NOT EXISTS idx_file_index_last_checked ON file_index(last_checked)")
+    except Exception:
+        logging.getLogger("pilotstd.db").debug("v7 迁移：file_index 表不存在，跳过索引创建", exc_info=True)
 
 
 @migration(8)

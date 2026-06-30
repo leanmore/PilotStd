@@ -48,6 +48,27 @@ class BaseAdapter(ABC):
         self._post_process_result(best)
         return best
 
+    def _try_exact_search(
+        self,
+        search_term: str,
+        logical_code: str,
+        number: int,
+        year: int,
+        part: int | None,
+        accepted_statuses: set = {"exact"},
+    ) -> Optional[QueryResult]:
+        """通用精确搜索：搜索→匹配状态→后处理。匹配到接受的状态则返回 QueryResult，否则 None。"""
+        result = self._search(search_term)
+        if result and result.is_found():
+            _, status = match_result(
+                logical_code, number, year, result.standard_name, result.standard_number, local_part=part
+            )
+            if status in accepted_statuses:
+                result.match_status = status
+                self._post_process_result(result)
+                return result
+        return None
+
     def query_with_strategy(
         self,
         logical_code: str,
@@ -63,73 +84,32 @@ class BaseAdapter(ABC):
         target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}-{year}"
 
         # 第一步：完整标准号直接搜（横杠格式）
-        result = self._search(target)
-        if result and result.is_found():
-            _, status = match_result(
-                logical_code,
-                number,
-                year,
-                result.standard_name,
-                result.standard_number,
-                local_part=part,
-            )
-            if status == "exact":
-                result.match_status = status
-                self._post_process_result(result)
-                return result
+        result = self._try_exact_search(target, logical_code, number, year, part)
+        if result is not None:
+            return result
 
         # 第二步：空格格式回退
         space_target = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str} {year}"
         if space_target != target:
-            result = self._search(space_target)
-            if result and result.is_found():
-                _, status = match_result(
-                    logical_code,
-                    number,
-                    year,
-                    result.standard_name,
-                    result.standard_number,
-                    local_part=part,
-                )
-                if status == "exact":
-                    result.match_status = status
-                    self._post_process_result(result)
-                    return result
+            result = self._try_exact_search(space_target, logical_code, number, year, part)
+            if result is not None:
+                return result
 
-        # 第三步：去除 num_prefix 回退（如 ANSI C78.81 → ANSI 78.81，保留年份）
-        no_prefix = f"{logical_code} {number}{num_suffix or ''}{part_str}-{year}"
-        if num_prefix and no_prefix != target:
-            result = self._search(no_prefix)
-            if result and result.is_found():
-                _, status = match_result(
-                    logical_code,
-                    number,
-                    year,
-                    result.standard_name,
-                    result.standard_number,
-                    local_part=part,
-                )
-                if status == "exact":
-                    result.match_status = status
-                    self._post_process_result(result)
+        # 第三步：去除 num_prefix 回退（如 ANSI C78.81 → ANSI 78.81）
+        if num_prefix:
+            no_prefix = f"{logical_code} {number}{num_suffix or ''}{part_str}-{year}"
+            if no_prefix != target:
+                result = self._try_exact_search(no_prefix, logical_code, number, year, part)
+                if result is not None:
                     return result
 
         # 第四步：去年份回退
         no_year = f"{logical_code} {num_prefix or ''}{number}{num_suffix or ''}{part_str}"
-        result = self._search(no_year)
-        if result and result.is_found():
-            _, status = match_result(
-                logical_code,
-                number,
-                year,
-                result.standard_name,
-                result.standard_number,
-                local_part=part,
-            )
-            if status in ("exact", "newer", "older"):
-                result.match_status = status
-                self._post_process_result(result)
-                return result
+        result = self._try_exact_search(
+            no_year, logical_code, number, year, part, accepted_statuses={"exact", "newer", "older"}
+        )
+        if result is not None:
+            return result
 
         # 第五步：代号变体补充（API Std/Spec、ASME BPVC、DIN EN 等）
         variants = build_code_variants(logical_code, number, year, num_prefix)

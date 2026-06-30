@@ -31,8 +31,25 @@ class PendingQueryDialog(QDialog):
 
     def __init__(self, manager: Any, parsed_list: Any, parent: Any = None) -> None:
         """manager: StandardManager 实例，用于查询及站点管理。"""
+        self._init_fields(manager, parsed_list, parent)
+
+        self.setWindowTitle(_("title_pending_query"))
+        self.setMinimumSize(540, 320)
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(self._build_info_label())
+        layout.addWidget(self._build_site_selection_group())
+
+        progress, btn_row, cancel_btn = self._build_progress_and_buttons()
+        layout.addWidget(progress)
+        layout.addLayout(btn_row)
+
+        self._connect_signals_and_timer(cancel_btn)
+
+    def _init_fields(self, manager: Any, parsed_list: Any, parent: Any) -> None:
+        """基类构造 + 成员变量初始化。"""
         super().__init__(parent)
-        self._mgr = manager  # StandardManager
+        self._mgr = manager
         self._parsed_list = parsed_list
         self._selected_site: str = ""
         self._results: list[Any] = []
@@ -40,16 +57,14 @@ class PendingQueryDialog(QDialog):
         self._countdown_active = False
         self._has_local_db = self._check_local_db_available()
 
-        self.setWindowTitle(_("title_pending_query"))
-        self.setMinimumSize(540, 320)
-        layout = QVBoxLayout(self)
-
-        # ── 信息栏 ──
-        info = QLabel(_("pq_info_count").format(count=len(parsed_list)))
+    def _build_info_label(self) -> QLabel:
+        """创建信息栏 QLabel。"""
+        info = QLabel(_("pq_info_count").format(count=len(self._parsed_list)))
         info.setStyleSheet("font-weight: bold;")
-        layout.addWidget(info)
+        return info
 
-        # ── 站点选择（两列网格布局） ──
+    def _build_site_selection_group(self) -> QGroupBox:
+        """创建站点单选按钮组（QGroupBox + QGridLayout）。"""
         len(self._mgr.get_query_sites()) + (1 if self._has_local_db else 0)
         gb = QGroupBox(_("pq_source_group"))
         gb_layout = QGridLayout(gb)
@@ -59,11 +74,17 @@ class PendingQueryDialog(QDialog):
         self._cooldown_labels: dict[str, QLabel] = {}
 
         all_sites = self._mgr.get_query_sites()
+        self._build_site_grid(gb_layout, all_sites)
+        if self._has_local_db:
+            self._build_local_db_option(gb_layout, all_sites)
+        return gb
+
+    def _build_site_grid(self, gb_layout: QGridLayout, all_sites: list[str]) -> None:
+        """在网格中排列各站点单选按钮。"""
         for i, name in enumerate(all_sites):
             adapter = self._mgr.get_site_adapter(name)
             label = adapter.site_label if adapter else name
-            col = i % 2
-            row = i // 2
+            row, col = i // 2, i % 2
             item_layout = QHBoxLayout()
             rb = QRadioButton(label)
             self._radio_group[name] = rb
@@ -75,38 +96,37 @@ class PendingQueryDialog(QDialog):
             item_layout.addWidget(cd_label)
             gb_layout.addLayout(item_layout, row, col)
 
-        # 本地数据库选项（有数据时显示）
-        if self._has_local_db:
-            i = len(all_sites)
-            col = i % 2
-            row = i // 2
-            item_layout = QHBoxLayout()
-            rb = QRadioButton(_("pq_local_db_label"))
-            tip = QLabel(_("pq_cached_label"))
-            tip.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
-            self._radio_group[self.LOCAL_DB_KEY] = rb
-            self._cooldown_labels[self.LOCAL_DB_KEY] = QLabel("")
-            item_layout.addWidget(rb)
-            item_layout.addStretch()
-            item_layout.addWidget(tip)
-            gb_layout.addLayout(item_layout, row, col)
+    def _build_local_db_option(self, gb_layout: QGridLayout, all_sites: list[str]) -> None:
+        """添加本地数据库单选选项。"""
+        i = len(all_sites)
+        row, col = i // 2, i % 2
+        item_layout = QHBoxLayout()
+        rb = QRadioButton(_("pq_local_db_label"))
+        tip = QLabel(_("pq_cached_label"))
+        tip.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
+        self._radio_group[self.LOCAL_DB_KEY] = rb
+        self._cooldown_labels[self.LOCAL_DB_KEY] = QLabel("")
+        item_layout.addWidget(rb)
+        item_layout.addStretch()
+        item_layout.addWidget(tip)
+        gb_layout.addLayout(item_layout, row, col)
 
-        layout.addWidget(gb)
-
-        # ── 进度条 ──
+    def _build_progress_and_buttons(self) -> tuple[QProgressBar, QHBoxLayout, QPushButton]:
+        """创建进度条 + 按钮行。返回 (progress, btn_row, cancel_btn)。"""
         self._progress = QProgressBar()
         self._progress.setVisible(False)
-        layout.addWidget(self._progress)
 
-        # ── 按钮区 ──
         btn_row = QHBoxLayout()
         self._start_btn = QPushButton(_("pq_start_query_btn"))
         cancel_btn = QPushButton(_("btn_cancel"))
         btn_row.addStretch()
         btn_row.addWidget(self._start_btn)
         btn_row.addWidget(cancel_btn)
-        layout.addLayout(btn_row)
 
+        return self._progress, btn_row, cancel_btn
+
+    def _connect_signals_and_timer(self, cancel_btn: QPushButton) -> None:
+        """连接按钮信号 + 启动冷却刷新定时器。"""
         self._start_btn.clicked.connect(self._on_start)
         cancel_btn.clicked.connect(self.reject)
 

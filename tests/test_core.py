@@ -257,7 +257,7 @@ class TestDatabase(unittest.TestCase):
             db.execute("CREATE TABLE IF NOT EXISTS _test_m3 (y INTEGER)")
 
         try:
-            from pilotstd.core import db as db_module
+            from pilotstd.core.db import database as db_module
 
             old = db_module.CURRENT_SCHEMA_VERSION
             db_module.CURRENT_SCHEMA_VERSION = 3

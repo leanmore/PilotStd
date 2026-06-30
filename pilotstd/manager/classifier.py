@@ -79,7 +79,13 @@ class QueryClassifier:
         items = parsed_list
         results = query_results
 
-        # 1. 回写查询结果到 ParsedStdInfo
+        self._write_back_results(items, results)
+        self._resolve_cross_site_replaces(items, results)
+        self._dispatch_by_router(items, download_list, expire_list, pending_list)
+        self._sync_expired_downloads(download_list, expire_list)
+
+    def _write_back_results(self, items: list, results: list) -> None:
+        """将 QueryResult 字段写回 ParsedStdInfo（原地修改）。"""
         for p, r in zip(items, results):
             p.effect_status = r.status
             p.match_status = getattr(r, "match_status", "") or ""
@@ -93,27 +99,28 @@ class QueryClassifier:
             p.found_abolition_date = getattr(r, "abolition_date", "") or ""
             p.found_source_site = getattr(r, "source_site", "") or ""
 
-        # 2. 跨站补查替代关系（废止/被代替/作废 + 无replaces + GB代码）
+    def _resolve_cross_site_replaces(self, items: list, results: list) -> None:
+        """跨站补查替代关系：废止/被代替/作废 + 无 replaces + GB 代码。"""
         for p, r in zip(items, results):
             if (
                 r.status in self._EXPIRE_STATUSES
                 and not r.replaces
                 and is_gb_code(p.logical_code)
                 and r.match_status != "newer"
-            ):  # newer 已在 router 中优先处理
+            ):
                 replaced_by = self.resolve_replaces(p.get_full_number())
                 if not replaced_by:
                     continue
                 r.replaces = replaced_by
                 repl_code, _ = self.parse_std_number(replaced_by)
-                # 仅当替代标准为 GB 且不在扫描结果中时，才写入 found_replaces
                 if repl_code and is_gb_code(repl_code):
                     in_results = any(qr.standard_number and repl_code in qr.standard_number for qr in results)
                     if not in_results:
                         p._replacement_number = replaced_by
                         p.found_replaces = replaced_by
 
-        # 3. 委托路由调度器统一分堆
+    def _dispatch_by_router(self, items: list, download_list: list, expire_list: list, pending_list: list) -> None:
+        """路由器分堆 + stage_status 回写。"""
         buckets = self._router.apply_actions(items)
         download_list.clear()
         download_list.extend(buckets.get("download", []))
@@ -122,9 +129,6 @@ class QueryClassifier:
         pending_list.clear()
         pending_list.extend(buckets.get("pending", []))
 
-        # 3.1 回写 stage_status，供 UI 工作表按阶段切换显示
-        # 注意：若路由阶段已设置 stage_status（如 version_mismatch / name_conflict），
-        # 则保留原值，不覆盖
         for p in buckets.get("download", []):
             p.stage_status = "download"
         for p in buckets.get("expire", []):
@@ -135,7 +139,8 @@ class QueryClassifier:
         for p in buckets.get("organize", []) + buckets.get("normalize", []):
             p.stage_status = "archive_ready"
 
-        # 4. 下载桶中的废止项也加入过期列表（下载新版同时归档旧版）
+    def _sync_expired_downloads(self, download_list: list, expire_list: list) -> None:
+        """下载桶中的废止项也加入过期列表（下载新版同时归档旧版）。"""
         for p in download_list:
             if p.effect_status in self._EXPIRE_STATUSES and p not in expire_list:
                 expire_list.append(p)

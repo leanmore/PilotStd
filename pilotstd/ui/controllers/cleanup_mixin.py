@@ -54,20 +54,12 @@ class CleanupMixin:
 
     # ── 清理空文件夹 ─────────────────────────────────────────
 
-    def _on_cleanup_empty_dirs(self) -> None:
-        """清理空文件夹：用户选择目录 → 扫描空目录和仅含过期文件的目录
-        → 弹窗确认 → 删除 → 弹窗汇总。"""
-        # 用户选择要清理的目录
-        path = QFileDialog.getExistingDirectory(None, _("dialog_select_cleanup_dir"))
-        if not path:
-            return
-        path = ensure_long_path(path)  # 长路径支持
-
+    def _scan_empty_dirs(self, path: str) -> tuple[list[str], list[str], str]:
+        """扫描目录：返回 (完全空目录列表, 仅含过期文件夹目录列表, 过期文件夹名)。"""
         expire_folder = self._config.get("storage.expire_folder", "过期作废")
-        empty_dirs = []  # 完全空的目录
-        expire_only = []  # 仅含过期文件夹的目录
+        empty_dirs: list[str] = []
+        expire_only: list[str] = []
 
-        # 扫描目录结构
         for entry in sorted(os.scandir(path), key=lambda e: e.name):
             if not entry.is_dir():
                 continue
@@ -80,40 +72,43 @@ class CleanupMixin:
             elif len(sub_items) == 1 and sub_items[0].is_dir() and sub_items[0].name == expire_folder:
                 expire_only.append(entry.path)
 
+        return empty_dirs, expire_only, expire_folder
+
+    def _confirm_empty_dirs_deletion(self, empty_dirs: list[str], expire_only: list[str]) -> bool:
+        """弹窗确认删除：显示空目录数 + 仅含过期目录数。返回用户是否确认。"""
         total = len(empty_dirs) + len(expire_only)
         if total == 0:
             QMessageBox.information(self, _("dialog_cleanup_title"), _("msg_cleanup_none"))
-            return
+            return False
 
-        # 弹窗确认
         reply = QMessageBox.question(
             None,
             _("dialog_cleanup_title"),
             _("msg_cleanup_confirm").format(empty=len(empty_dirs), expire=len(expire_only)),
         )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
+        return reply == QMessageBox.StandardButton.Yes
 
+    def _delete_empty_dirs(self, empty_dirs: list[str], expire_only: list[str], expire_folder: str) -> int:
+        """删除空目录 + 逐条确认删除仅含过期文件夹的目录。返回成功删除数。"""
         deleted = 0
         # 删除完全空的目录
         for d in empty_dirs:
             try:
                 os.rmdir(d)
                 deleted += 1
-                logger.info(f"删除空目录: {d}")
+                logger.info("删除空目录: %s", d)
             except OSError as e:
-                logger.error(f"删除空目录失败: {d}: {e}")
+                logger.error("删除空目录失败: %s: %s", d, e)
 
-        # 对仅含过期文件夹的目录，逐个确认
+        # 对仅含过期文件夹的目录，逐个确认后 rmtree
         for d in expire_only:
             name = os.path.basename(d)
             reply2 = QMessageBox.question(
                 None,
                 _("dialog_cleanup_title"),
                 _("msg_cleanup_expire_only").format(name=name, expire=expire_folder),
-            )  # noqa: E501
+            )
             if reply2 == QMessageBox.StandardButton.Yes:
-                # 清除目录下所有文件的只读属性，防止 rmtree 因只读文件崩溃
                 if self._ensure_clear_readonly():
                     for _root, _dirs, _files in os.walk(d):
                         for _f in _files:
@@ -124,41 +119,36 @@ class CleanupMixin:
                 try:
                     shutil.rmtree(d)
                     deleted += 1
-                    logger.info(f"删除仅含过期目录的文件夹: {d}")
+                    logger.info("删除仅含过期目录的文件夹: %s", d)
                 except OSError as e:
-                    logger.error(f"删除失败: {d}: {e}")
+                    logger.error("删除失败: %s: %s", d, e)
                     QMessageBox.warning(
                         self,
                         _("dialog_cleanup_title"),
                         f"删除失败: {name}\n{e}\n\n请检查是否有文件正在被其他程序占用。",
                     )
 
-        # 弹窗汇总
         QMessageBox.information(self, _("dialog_cleanup_title"), _("msg_cleanup_done").format(count=deleted))
+        return deleted
+
+    def _on_cleanup_empty_dirs(self) -> None:
+        """清理空文件夹：选择目录 → 扫描 → 确认 → 删除 → 汇总。"""
+        path = QFileDialog.getExistingDirectory(None, _("dialog_select_cleanup_dir"))
+        if not path:
+            return
+        path = ensure_long_path(path)
+
+        empty_dirs, expire_only, expire_folder = self._scan_empty_dirs(path)
+        if not self._confirm_empty_dirs_deletion(empty_dirs, expire_only):
+            return
+
+        self._delete_empty_dirs(empty_dirs, expire_only, expire_folder)
 
     # ── 未识别文件处理 ───────────────────────────────────────
 
-    def _on_collect_unrecognized(self) -> None:
-        """未识别文件处理：列出扫描中解析失败的文件，用户勾选后
-        原封不动搬迁到 标准/未识别文件/，保留源目录层级结构。"""
-        if not self._unrecognized_files:
-            QMessageBox.information(self, _("dialog_collect_unrecognized"), _("msg_collect_none"))
-            return
-
-        # 弹出自定义对话框：用户勾选要搬迁的文件
-        dlg = QDialog(self)
-        dlg.setWindowTitle(_("dialog_collect_unrecognized"))
-        dlg.setMinimumSize(700, 400)
-        layout = QVBoxLayout(dlg)
-
-        info_label = QLabel(_("msg_collect_confirm").format(count=len(self._unrecognized_files)))
-        info_label.setWordWrap(True)
-        layout.addWidget(info_label)
-
-        # 文件列表（含复选框）
+    def _build_unrecognized_tree(self, root_dir: str) -> tuple[QTreeWidget, list[QTreeWidgetItem]]:
+        """构建未识别文件列表树（含复选框），三列：文件名/源目录/目标目录。"""
         tree = QTreeWidget()
-        # 三列：文件名 | 原文件目录 | 处理后文档目录
-        root_dir = self._get_library_root()
         tree.setHeaderLabels([_("header_file_name"), _("header_source_dir"), _("header_target_dir")])
         tree.setColumnWidth(0, 280)
         tree.setColumnWidth(1, 320)
@@ -172,13 +162,71 @@ class CleanupMixin:
             src_dir = os.path.dirname(fpath)
             tgt_dir = os.path.join(root_dir, os.path.dirname(rel))
             item = QTreeWidgetItem([os.path.basename(fpath), src_dir, tgt_dir])
-            item.setCheckState(0, Qt.CheckState.Checked)  # 默认全选
-            item.setData(0, 1, fpath)  # 存储完整源路径
+            item.setCheckState(0, Qt.CheckState.Checked)
+            item.setData(0, 1, fpath)
             tree.addTopLevelItem(item)
             checkboxes.append(item)
+        return tree, checkboxes
+
+    def _collect_selected_files(self, checkboxes: list[QTreeWidgetItem]) -> list[tuple[str, str]]:
+        """从勾选的树节点收集 (源路径, 相对路径)。"""
+        selected = []
+        for item in checkboxes:
+            if item.checkState(0) != Qt.CheckState.Checked:
+                continue
+            src = item.data(0, 1)
+            if not os.path.exists(src):
+                continue
+            try:
+                rel = os.path.relpath(src, self._scan_source_root)
+            except ValueError:
+                rel = os.path.basename(src)
+            selected.append((src, rel))
+        return selected
+
+    def _move_unrecognized_files(self, selected: list[tuple[str, str]], parent: QDialog) -> int:
+        """进度条 + 逐文件搬迁到标准库（保留源目录层级）。返回成功移动数。"""
+        root_dir = self._get_library_root()
+        progress = QProgressDialog(_("msg_collect_progress"), _("btn_cancel"), 0, len(selected), parent)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        moved = 0
+        for i, (src, rel) in enumerate(selected):
+            progress.setValue(i + 1)
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                break
+            dst = os.path.join(root_dir, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            try:
+                safe_move(src, dst, on_exists="skip")
+                moved += 1
+                logger.info("未识别文件已搬迁: %s", rel)
+            except OSError as e:
+                logger.error("搬迁失败: %s: %s", src, e)
+        progress.close()
+        return moved
+
+    def _on_collect_unrecognized(self) -> None:
+        """未识别文件处理：列出扫描中解析失败的文件，用户勾选后搬迁。"""
+        if not self._unrecognized_files:
+            QMessageBox.information(self, _("dialog_collect_unrecognized"), _("msg_collect_none"))
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(_("dialog_collect_unrecognized"))
+        dlg.setMinimumSize(700, 400)
+        layout = QVBoxLayout(dlg)
+
+        info_label = QLabel(_("msg_collect_confirm").format(count=len(self._unrecognized_files)))
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        root_dir = self._get_library_root()
+        tree, checkboxes = self._build_unrecognized_tree(root_dir)
         layout.addWidget(tree)
 
-        # 按钮区：全选/取消/确定/关闭
         btn_layout = QHBoxLayout()
         btn_all = QPushButton(_("select_all"))
         btn_none = QPushButton(_("deselect_all"))
@@ -198,45 +246,12 @@ class CleanupMixin:
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
-        # 收集勾选的文件
-        selected = []
-        for item in checkboxes:
-            if item.checkState(0) != Qt.CheckState.Checked:
-                continue
-            src = item.data(0, 1)
-            if not os.path.exists(src):
-                continue
-            try:
-                rel = os.path.relpath(src, self._scan_source_root)
-            except ValueError:
-                rel = os.path.basename(src)
-            selected.append((src, rel))
-
+        selected = self._collect_selected_files(checkboxes)
         if not selected:
             self._unrecognized_files = []
             return
 
-        # 进度条：原封不动镜像移动，保留源目录层级结构
-        root_dir = self._get_library_root()
-        progress = QProgressDialog(_("msg_collect_progress"), _("btn_cancel"), 0, len(selected), dlg)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-        progress.setValue(0)
-        moved = 0
-        for i, (src, rel) in enumerate(selected):
-            progress.setValue(i + 1)
-            QApplication.processEvents()  # 刷新 UI
-            if progress.wasCanceled():
-                break
-            dst = os.path.join(root_dir, rel)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            try:
-                safe_move(src, dst, on_exists="skip")
-                moved += 1
-                logger.info(f"未识别文件已搬迁: {rel}")
-            except OSError as e:
-                logger.error(f"搬迁失败: {src}: {e}")
-        progress.close()
+        moved = self._move_unrecognized_files(selected, dlg)
 
         self._unrecognized_files = []
         QMessageBox.information(

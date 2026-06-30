@@ -31,17 +31,8 @@ logger = logging.getLogger(__name__)
 class QueryPendingMethods:
     """待确认管理方法（对话框+CSV+DB）。"""
 
-    def _show_pending_dialog(self: Any, pending_items: list[Any]) -> bool:
-        """显示待确认清单对话框。返回 True=用户确认丢弃，False=取消。"""
-        dlg = QDialog(self)
-        dlg.setWindowTitle(_("title_pending_confirm"))
-        dlg.setMinimumSize(800, 400)
-        layout = QVBoxLayout(dlg)
-
-        info = QLabel(_("msg_pending_info").format(count=len(pending_items)))
-        info.setWordWrap(True)
-        layout.addWidget(info)
-
+    def _build_pending_table(self, pending_items: list[Any]) -> QTableWidget:
+        """构建待确认清单表格：8 列，填充数据，调整列宽。"""
         table = QTableWidget()
         table.setColumnCount(8)
         table.setHorizontalHeaderLabels(
@@ -79,6 +70,54 @@ class QueryPendingMethods:
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 table.setItem(row, col, item)
         table.resizeColumnsToContents()
+        return table
+
+    def _save_pending_csv(self, table: QTableWidget, save_status: QLabel) -> None:
+        """导出待确认表格为 CSV 文件，结果反映在 save_status 标签。"""
+        from datetime import datetime
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
+        path = os.path.join(save_dir, f"pending_standards_{ts}.csv")
+        try:
+            with open(path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        _("query_pending_col_std_number"),
+                        _("query_pending_col_source_filename"),
+                        _("query_pending_col_web_name"),
+                        _("query_pending_col_local_year"),
+                        _("query_pending_col_web_number"),
+                        _("query_pending_col_status"),
+                        _("query_pending_col_confidence"),
+                        _("query_pending_col_source_site"),
+                    ]
+                )
+                for r in range(table.rowCount()):
+                    row_data: list[str] = []
+                    for c in range(8):
+                        item = table.item(r, c)
+                        row_data.append(item.text() if item else "")
+                    writer.writerow(row_data)
+            save_status.setText(f"已保存: pending_standards_{ts}.csv")
+            save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
+        except OSError as e:
+            save_status.setText(f"保存失败: {e}")
+            save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
+
+    def _show_pending_dialog(self: Any, pending_items: list[Any]) -> bool:
+        """显示待确认清单对话框。返回 True=用户确认丢弃，False=取消。"""
+        dlg = QDialog(self)
+        dlg.setWindowTitle(_("title_pending_confirm"))
+        dlg.setMinimumSize(800, 400)
+        layout = QVBoxLayout(dlg)
+
+        info = QLabel(_("msg_pending_info").format(count=len(pending_items)))
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        table = self._build_pending_table(pending_items)
         layout.addWidget(table)
 
         save_status = QLabel("")
@@ -97,45 +136,13 @@ class QueryPendingMethods:
 
         confirmed = False
 
-        def on_save() -> None:
-            from datetime import datetime
-
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
-            path = os.path.join(save_dir, f"pending_standards_{ts}.csv")
-            try:
-                with open(path, "w", newline="", encoding="utf-8-sig") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(
-                        [
-                            _("query_pending_col_std_number"),
-                            _("query_pending_col_source_filename"),
-                            _("query_pending_col_web_name"),
-                            _("query_pending_col_local_year"),
-                            _("query_pending_col_web_number"),
-                            _("query_pending_col_status"),
-                            _("query_pending_col_confidence"),
-                            _("query_pending_col_source_site"),
-                        ]
-                    )
-                    for r in range(table.rowCount()):
-                        row_data: list[str] = []
-                        for c in range(8):
-                            item = table.item(r, c)
-                            row_data.append(item.text() if item else "")
-                        writer.writerow(row_data)
-                save_status.setText(f"已保存: pending_standards_{ts}.csv")
-                save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
-            except OSError as e:
-                save_status.setText(f"保存失败: {e}")
-                save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
+        save_btn.clicked.connect(lambda: self._save_pending_csv(table, save_status))
 
         def on_discard() -> None:
             nonlocal confirmed
             confirmed = True
             dlg.accept()
 
-        save_btn.clicked.connect(on_save)
         discard_btn.clicked.connect(on_discard)
         cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()

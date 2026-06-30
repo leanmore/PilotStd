@@ -338,9 +338,8 @@ class SettingsPage(QWidget):
             cb.setChecked(visible[c] if c < len(visible) else True)
             cb.blockSignals(False)
 
-    def save_to_config(self) -> None:
-        if not self._config:
-            return
+    def _save_storage_and_appearance(self) -> None:
+        """保存存储路径、网络代理、外观、缓存等通用设置。"""
         from PyQt6.QtCore import QStandardPaths
 
         default_root = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
@@ -353,13 +352,28 @@ class SettingsPage(QWidget):
         self._config.set("network.proxy", self.proxy.text().strip())
         self._config.set("network.ua_rotation", self.ua_cb.isChecked())
         self._config.set("announcement.enabled", self.announcement_cb.isChecked())
+        self._config.set("appearance.hyphen_style", True)
+        self._config.set("file.clear_readonly", self.clear_readonly_cb.isChecked())
+        self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())
+        self._config.set("appearance.skip_welcome", self.skip_welcome_cb.isChecked())
+        self._config.set("query.use_cache", self.cache_cb.isChecked())
+        self._config.set("query.use_announcement_match", self.announce_cache_cb.isChecked())
+        self._config.set("query.announcement_url", self.announce_url_edit.text().strip())
+        self._config.set("query.announcement_api_key", self.announce_api_key_edit.text().strip())
+        self._config.set("appearance.theme", self.theme_combo.currentText())
+        icon_key = ICON_OPTIONS.get(self.icon_combo.currentText(), "default")
+        self._config.set("appearance.icon_theme", icon_key)
+        lang_codes = ["zh_CN", "zh_TW", "en"]
+        self._config.set("appearance.language", lang_codes[self.lang_combo.currentIndex()])
+
+    def _save_ocr_credentials(self) -> None:
+        """保存百度/腾讯/阿里云 OCR 密钥，保存后清空输入框并标记"已保存"。"""
         self._config.set("ocr.baidu_api_key", self.ocr_api_key.text().strip())
         self._config.set("ocr.baidu_secret_key", self.ocr_secret_key.text().strip())
         self._config.set("ocr.tencent_secret_id", self.ocr_secret_id.text().strip())
         self._config.set("ocr.tencent_secret_key", self.ocr_tencent_secret_key.text().strip())
         self._config.set("ocr.aliyun_access_key_id", self.ocr_access_key_id.text().strip())
         self._config.set("ocr.aliyun_access_key_secret", self.ocr_access_key_secret.text().strip())
-        # 保存后清空敏感字段，防止被复制
         self.ocr_api_key.clear()
         self.ocr_secret_key.clear()
         self.ocr_secret_id.clear()
@@ -372,39 +386,19 @@ class SettingsPage(QWidget):
         self.ocr_tencent_secret_key.setPlaceholderText("已保存")
         self.ocr_access_key_id.setPlaceholderText("已保存")
         self.ocr_access_key_secret.setPlaceholderText("已保存")
-        self._config.set("appearance.hyphen_style", True)  # 已锁定，始终使用短横
-        self._config.set("file.clear_readonly", self.clear_readonly_cb.isChecked())
-        self._config.set("storage.downloads_dir", self.downloads_dir.text().strip())
-        self._config.set("appearance.skip_welcome", self.skip_welcome_cb.isChecked())
-        self._config.set("query.use_cache", self.cache_cb.isChecked())
-        self._config.set("query.use_announcement_match", self.announce_cache_cb.isChecked())
-        self._config.set("query.announcement_url", self.announce_url_edit.text().strip())
-        self._config.set("query.announcement_api_key", self.announce_api_key_edit.text().strip())
-        self._config.set("appearance.theme", self.theme_combo.currentText())
-        icon_key = ICON_OPTIONS.get(self.icon_combo.currentText(), "default")
-        self._config.set("appearance.icon_theme", icon_key)
-        # 通过索引取值，避免界面文本翻译导致匹配失败
-        lang_codes = ["zh_CN", "zh_TW", "en"]
-        self._config.set("appearance.language", lang_codes[self.lang_combo.currentIndex()])
-        # 扫描配置
+
+    def _save_scan_and_columns(self) -> None:
+        """保存扫描配置（跳过文件夹/扩展名/排除关键词）和工作表列可见性。"""
         skip = [s.strip() for s in self.skip_folders.text().split(",") if s.strip()]
         self._config.set("scan.skip_folders", skip or ["过期作废"])
         exts = [s.strip() for s in self.scan_extensions.text().split(",") if s.strip()]
         self._config.set("scan.extensions", exts or [".pdf", ".doc", ".docx", ".txt"])
-        # 排除关键词
         keywords = [s.strip() for s in self.skip_file_keywords.text().split(",") if s.strip()]
         self._config.set(
             "scan.exclude_patterns",
             keywords
-            or [
-                "征求意见稿",
-                "培训课件",
-                "建设项目过程资料及交工资料标准",
-                "吊车性能",
-                "标准图集",
-            ],
+            or ["征求意见稿", "培训课件", "建设项目过程资料及交工资料标准", "吊车性能", "标准图集"],
         )
-        # 列可见性
         visible = []
         for c in range(9):
             if c in self._col_checkboxes:
@@ -412,10 +406,19 @@ class SettingsPage(QWidget):
             else:
                 visible.append(True)
         self._config.set("appearance.column_visibility", visible)
-        # 即时应用到主窗口
         mw = self.window()
         if mw and hasattr(mw, "_apply_column_visibility"):
             mw._apply_column_visibility(visible)
+
+    def save_to_config(self) -> None:
+        if not self._config:
+            return
+
+        self._save_storage_and_appearance()
+        self._save_ocr_credentials()
+        self._save_scan_and_columns()
+
+        mw = self.window()
         if mw and hasattr(mw, "_apply_icon"):
             mw._apply_icon()
         if mw and hasattr(mw, "_apply_announce_cache_mode"):

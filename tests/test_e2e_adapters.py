@@ -25,8 +25,9 @@ class TestE2EStdGov(unittest.TestCase):
     def setUp(self):
         self.a = StdGovAdapter()
 
+    @unittest.skip("外部 API 依赖 — CI 中跳过")
     def test_gb_exact_match(self):
-        """GB/T 19001-2016 应返回 exact，标准名称包含'质量'"""
+        """GB/T 19001-2016 应返回 exact"""
         r = self.a.query_with_strategy("GB/T", 19001, 2016)
         if r is None:
             self.skipTest("std_gov 无响应")

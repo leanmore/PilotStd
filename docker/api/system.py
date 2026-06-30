@@ -61,6 +61,66 @@ async def get_version():
     }
 
 
+def _get_current_digest(cid: str) -> str:
+    """获取容器当前镜像的 RepoDigest，失败返回空字符串。"""
+    inspect = _run_docker(["inspect", cid])
+    info = json.loads(inspect.stdout)[0]
+    old_image = info.get("Image", "")
+    old_digest = ""
+    try:
+        img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
+        old_digest = img_inspect.stdout.strip()
+    except Exception as e:
+        logger.warning("Docker 镜像检查失败: %s", e)
+    return old_digest
+
+
+def _pull_and_compare(old_digest: str) -> tuple[str, bool]:
+    """拉取最新镜像并比对 digest，返回 (new_digest, needs_update)。"""
+    pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
+    pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
+    if pulled_layers:
+        logger.info("拉取的新层: %s", pulled_layers)
+    new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
+    new_digest = new_inspect.stdout.strip()
+    needs_update = not (new_digest and old_digest and new_digest == old_digest)
+    return new_digest, needs_update
+
+
+def _restart_via_compose() -> bool:
+    """执行 docker compose up -d 重建容器，返回是否成功。"""
+    compose_file = os.environ.get("COMPOSE_FILE", "")
+    compose_project = os.environ.get("COMPOSE_PROJECT_NAME", "")
+    if not compose_file or not os.path.exists(compose_file):
+        return False
+    try:
+        _run_docker(
+            ["compose", "-f", compose_file, "-p", compose_project, "up", "-d", "--force-recreate"],
+            timeout=120,
+        )
+        return True
+    except Exception as e:
+        logger.warning("compose 重启失败: %s", e)
+        return False
+
+
+def _build_update_response(restart_ok: bool, old_digest: str, new_digest: str) -> dict:
+    """构造更新响应体（已检测到新版本时调用）。"""
+    return {
+        "updated": True,
+        "restarted": restart_ok,
+        "method": "compose" if restart_ok else "",
+        "message": (
+            "已拉取并应用更新"
+            if restart_ok
+            else "已拉取新镜像，但需要 compose 配置才能重建容器。"
+            "请设置 COMPOSE_FILE 环境变量后重试，或手动执行 docker compose up -d"
+        ),
+        "old_digest": old_digest[:80] if old_digest else "",
+        "new_digest": new_digest[:80] if new_digest else "",
+    }
+
+
 @router.post("/update")
 async def update_container(_: bool = Depends(require_admin)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
@@ -78,26 +138,9 @@ async def update_container(_: bool = Depends(require_admin)):
         raise HTTPException(500, "无法获取容器 ID，请设置 HOSTNAME 环境变量")
 
     try:
-        # 1. 查当前镜像 digest
-        inspect = _run_docker(["inspect", cid])
-        info = json.loads(inspect.stdout)[0]
-        old_image = info.get("Image", "")
-        old_digest = ""
-        try:
-            img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
-            old_digest = img_inspect.stdout.strip()
-        except Exception as e:
-            logger.warning("Docker 镜像检查失败: %s", e)
-
-        # 2. 拉取最新镜像
-        pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
-        pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
-
-        # 3. 比较
-        new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
-        new_digest = new_inspect.stdout.strip()
-
-        if new_digest and old_digest and new_digest == old_digest:
+        old_digest = _get_current_digest(cid)
+        new_digest, needs_update = _pull_and_compare(old_digest)
+        if not needs_update:
             return {
                 "updated": False,
                 "message": "已是最新版本",
@@ -105,49 +148,9 @@ async def update_container(_: bool = Depends(require_admin)):
                 "digest": new_digest[:80],
             }
 
-        # 4. 有新版本 → 重启容器
         logger.info("检测到新镜像: %s → %s", old_digest[:80], new_digest[:80])
-        if pulled_layers:
-            logger.info("拉取的新层: %s", pulled_layers)
-
-        # 仅支持 compose 重建（docker restart 不会应用新镜像）
-        compose_file = os.environ.get("COMPOSE_FILE", "")
-        compose_project = os.environ.get("COMPOSE_PROJECT_NAME", "")
-
-        restart_ok = False
-        if compose_file and os.path.exists(compose_file):
-            try:
-                _run_docker(
-                    [
-                        "compose",
-                        "-f",
-                        compose_file,
-                        "-p",
-                        compose_project,
-                        "up",
-                        "-d",
-                        "--force-recreate",
-                    ],
-                    timeout=120,
-                )
-                restart_ok = True
-            except Exception as e:
-                logger.warning("compose 重启失败: %s", e)
-
-        return {
-            "updated": True,
-            "restarted": restart_ok,
-            "method": "compose" if restart_ok else "",
-            "message": (
-                "已拉取并应用更新"
-                if restart_ok
-                else "已拉取新镜像，但需要 compose 配置才能重建容器。"
-                "请设置 COMPOSE_FILE 环境变量后重试，或手动执行 docker compose up -d"
-            ),
-            "old_digest": old_digest[:80] if old_digest else "",
-            "new_digest": new_digest[:80] if new_digest else "",
-        }
-
+        restart_ok = _restart_via_compose()
+        return _build_update_response(restart_ok, old_digest, new_digest)
     except subprocess.TimeoutExpired:
         raise HTTPException(504, "docker pull 超时")
     except RuntimeError as e:
