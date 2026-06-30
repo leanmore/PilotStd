@@ -131,7 +131,10 @@ def _parse_row(line: str) -> Optional[CapabilityEntry]:
 
 
 def load_registry(path: str) -> list[CapabilityEntry]:
-    """从 capabilities_registry.md 加载所有所需能力条目。"""
+    """从 capabilities_registry.md 加载所有所需能力条目。
+
+    该文件已移出仓库（本地维护），不存在时返回空列表。
+    """
     with open(path, encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -317,13 +320,13 @@ def main() -> int:
 
     registry_path = ROOT / "docs" / "governance" / "capabilities_registry.md"
     if not registry_path.exists():
-        print("ERROR: registry not found: docs/governance/capabilities_registry.md")
-        return 1
+        print("INFO: capabilities_registry.md 已移出仓库（本地维护），跳过登记簿检查")
+        print("      仅运行硬规则检查...")
 
     report = ScanReport(verbose=args.verbose)
 
-    # ── 从登记簿加载 ──
-    if args.check_all or args.required_only or args.module:
+    # ── 从登记簿加载（文件存在时才执行） ──
+    if registry_path.exists() and (args.check_all or args.required_only or args.module):
         all_entries = load_registry(str(registry_path))
 
         # 过滤
