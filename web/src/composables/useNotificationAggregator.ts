@@ -1,6 +1,5 @@
 // web/src/composables/useNotificationAggregator.ts
 // 通知智能聚合器 — 缓冲合并 + 熔断暂停（与 WinUI 端行为等价）
-import { ref, computed } from 'vue'
 
 interface BufferItem {
   level: string
