@@ -97,3 +97,20 @@ Thumbs.db
 *.tmp
 *.temp
 *~
+
+# 不入仓——过程文件与内部工具
+docs/archive/
+docs/pending/
+docs/superpowers/plans/
+docs/superpowers/specs/
+reports/
+CLAUDE_DOCS_GUIDE.md
+STATUS.md
+announce_sample.json
+image.png
+docs/notification_remaining_triggers.md
+docs/governance/code_diff_modification_list.md
+docs/governance/ANNOUNCEMENT.txt
+docs/governance/refactoring_checklist.md
+docs/governance/capabilities_registry.md
+docs/压力测试方案.md
