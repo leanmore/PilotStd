@@ -106,8 +106,8 @@ salt = secrets.token_hex(16)
 pw = hashlib.pbkdf2_hmac('sha256', '$_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
-                 ('$SUPERUSER', pw, salt))
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, ?, 1)',
+                 ('$SUPERUSER', pw, salt, 'user'))
 else:
     conn.execute('UPDATE users SET password_hash = ?, salt = ? WHERE username = ?',
                  (pw, salt, '$SUPERUSER'))
@@ -123,8 +123,8 @@ salt = secrets.token_hex(16)
 pw = hashlib.pbkdf2_hmac('sha256', '$RANDOM_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
-                 ('$SUPERUSER', pw, salt))
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, ?, 1)',
+                 ('$SUPERUSER', pw, salt, 'user'))
 else:
     conn.execute('UPDATE users SET password_hash = ?, salt = ? WHERE username = ?',
                  (pw, salt, '$SUPERUSER'))
