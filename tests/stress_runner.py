@@ -20,7 +20,7 @@ _load_dotenv(os.path.join(ROOT, ".env"))
 
 
 def _parse_args():
-    p = argparse.ArgumentParser(description="PilotStd 全量压力测试驱动器 v9.1")
+    p = argparse.ArgumentParser(description="PilotStd 全量压力测试驱动器 v10.0")
     p.add_argument("--source", default="", help="源目录")
     p.add_argument("--output", default="", help="输出目录")
     p.add_argument("--config", default=None, help="压测配置文件路径")
@@ -29,6 +29,7 @@ def _parse_args():
     p.add_argument("--skip-cli", action="store_true", help="跳过 CLI 阶段")
     p.add_argument("--skip-docker", action="store_true", help="跳过 Docker 阶段")
     p.add_argument("--skip-winui", action="store_true", help="跳过 WinUI 阶段")
+    p.add_argument("--skip-web", action="store_true", help="跳过 Web 前端验收")
     p.add_argument("--step1", default=None, help="复用已有 step1.json")
     p.add_argument("--timeout-query", type=int, default=None, help="查询超时秒数")
     p.add_argument("--timeout-auto", type=int, default=None, help="WinUI 超时秒数")
@@ -52,7 +53,7 @@ def main():
     RESULT_DIR = args.result_dir or os.path.join(ROOT, "logs", f"stress_{TS}")
     os.makedirs(RESULT_DIR, exist_ok=True)
 
-    print(f"PilotStd 全量压力测试 v9.1 | {TS}")
+    print(f"PilotStd 全量压力测试 v10.0 | {TS}")
     print(f"结果目录: {RESULT_DIR}")
 
     step1_data = {}
@@ -96,6 +97,26 @@ def main():
             result_dir=RESULT_DIR,
             yes=args.yes,
         )
+
+    # ── Web 前端验收（第二步附） ──
+    web_ok = True
+    if args.skip_web or skip_docker:
+        reason = "--skip-web" if args.skip_web else "Docker 跳过"
+        print(f"Web 前端验收跳过（{reason}）")
+    else:
+        import subprocess as _sp
+
+        web_r = _sp.run(
+            ["npx", "vitest", "run", "--reporter=json"],
+            capture_output=True,
+            text=True,
+            cwd=os.path.join(ROOT, "web"),
+            timeout=300,
+        )
+        web_ok = web_r.returncode == 0
+        print(f"Web 前端验收: {'PASS' if web_ok else 'FAIL'} (rc={web_r.returncode})")
+        if not web_ok:
+            print("前端验收失败，终止压测")
 
     # ── 第三阶段：WinUI 热启 ──
     if skip_winui:
@@ -168,14 +189,14 @@ def main():
 
     # ── 汇总 ──
     cli_ok = bool(step1_data.get("checkpoints", {}).get("query", {}).get("rc", 0) == 0)
-    overall = "PASS" if (cli_ok and step2_ok and step3_ok) else "FAIL"
+    overall = "PASS" if (cli_ok and step2_ok and step3_ok and web_ok) else "FAIL"
 
     verdict = {
         "verdict": overall,
         "ts": TS,
         "meta": {
             "timestamp": datetime.now().isoformat(),
-            "version": "v9.1",
+            "version": "v10.0",
             "source_dir": args.source,
             "output_dir": args.output,
             "result_dir": RESULT_DIR,
@@ -185,6 +206,7 @@ def main():
             "voting": {
                 "cli": "PASS" if cli_ok else ("SKIP" if args.skip_cli else "FAIL"),
                 "docker": "PASS" if step3_ok else ("SKIP" if args.skip_docker else "FAIL"),
+                "web": "PASS" if web_ok else ("SKIP" if (args.skip_web or skip_docker) else "FAIL"),
                 "winui": "PASS" if step2_ok else ("SKIP" if args.skip_winui else "FAIL"),
             },
             "blocker_failures": [],

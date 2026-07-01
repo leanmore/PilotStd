@@ -70,7 +70,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
 
     t0 = time.time()
     logger.info("=" * 60)
-    logger.info("Web API 压力测试 v1 | %s", time.strftime("%Y-%m-%d %H:%M:%S"))
+    logger.info("Web API 压力测试 v10.0 | %s", time.strftime("%Y-%m-%d %H:%M:%S"))
     logger.info("=" * 60)
 
     # ── 前置检查 ──
@@ -572,13 +572,13 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
 
     logger.info("--- 权限隔离 ---")
 
-    # 24. 非 admin 不能改设置（测试完清理临时用户）
-    _non_admin_user = "_test_noadmin_"
+    # 24. 非超级用户不能改设置（require_admin 端点验证，权限基于 SUPERUSER 用户名匹配）— 测试完清理临时用户
+    _non_superuser = "_test_nosuper_"
     try:
         r_create = _post(
             "/api/users",
             json_data={
-                "username": _non_admin_user,
+                "username": _non_superuser,
                 "password": "test123456",
                 "role": "user",
             },
@@ -587,7 +587,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         if _user_created or r_create.status_code == 409:
             r_login = requests.post(
                 f"{BASE}/api/login",
-                data={"username": _non_admin_user, "password": "test123456"},
+                data={"username": _non_superuser, "password": "test123456"},
                 timeout=TIMEOUT,
             )
             if r_login.status_code == 200 and r_login.json().get("ok"):
@@ -601,7 +601,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                     timeout=TIMEOUT,
                 )
                 _check(
-                    "权限: 非admin改设置",
+                    "权限: 非超级用户改设置",
                     r_put.status_code in (401, 403, 405),
                     f"status={r_put.status_code}",
                 )
@@ -609,7 +609,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                 r_users = _get("/api/users")
                 if r_users.status_code == 200:
                     for u in r_users.json().get("users", []):
-                        if u.get("username") == _non_admin_user:
+                        if u.get("username") == _non_superuser:
                             _csrf_headers_extra = {"X-CSRF-Token": _csrf_token} if _csrf_token else {}
                             requests.delete(
                                 f"{BASE}/api/users/{u['id']}",
@@ -619,11 +619,11 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                             )
                             break
             else:
-                _check("权限: 非admin改设置", None, "普通用户登录失败，跳过")
+                _check("权限: 非超级用户改设置", None, "普通用户登录失败，跳过")
         else:
-            _check("权限: 非admin改设置", None, f"创建用户失败 status={r_create.status_code}")
+            _check("权限: 非超级用户改设置", None, f"创建用户失败 status={r_create.status_code}")
     except Exception as e:
-        _check("权限: 非admin改设置", None, f"异常: {str(e)[:60]}")
+        _check("权限: 非超级用户改设置", None, f"异常: {str(e)[:60]}")
 
     logger.info("--- 端到端管线 ---")
 
