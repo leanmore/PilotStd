@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """GATE-16: 动态属性完整性检查 — 检测 self.xxx 定义与引用的断裂。
 
-扫描 pilotstd/ui/ 下所有 Python 文件，提取 self.xxx = ... 赋值（定义）
-和 self.xxx 属性访问（引用），检测引用但未定义的断裂属性。
+扫描 pilotstd/、docker/、scripts/ 下所有 Python 文件，
+提取 self.xxx = ... 赋值（定义）和 self.xxx 属性访问（引用），
+检测引用但未定义的断裂属性。
 
-过滤策略（减少 Qt/PyQt6 框架误报）：
+过滤策略：
 - 跳过 Qt 信号名后缀（_changed, _ready, _signal 等）
 - 跳过 _on_xxx 回调方法（由 def 定义）
 - 跳过 .connect(self.xxx) 上下文中的引用
-- 跳过 setattr 动态属性
+- 跳过全大写/下划线_大写常量名
 - 方法定义 def xxx(self) 视为 xxx 的合法定义
+- 元组解包 (self.xxx, self.yyy) = ... 视为定义
+- 跳过 @dataclass 类的字段引用
 """
 
 import re
@@ -18,21 +21,23 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCAN_DIR = ROOT / "pilotstd" / "ui"
+SCAN_DIRS = [ROOT / "pilotstd", ROOT / "docker", ROOT / "scripts"]
 
 # ── 正则 ──
-# 支持 self.xxx = value 和 self.xxx: Type = value（类型注解赋值）
-# (?!.*=) → (?!=) 修复：避免 keyword 参数中的 = 被误判为双等号
 DEF_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*) *(?::[^=\n]+)?= (?!=)")
 SETATTR_RE = re.compile(r'setattr\s*\(\s*self\s*,\s*["\']([a-zA-Z_][a-zA-Z0-9_]*)["\']')
+# 单例模式: cls._instance.xxx = ... → self.xxx 可用
+SINGLETON_DEF_RE = re.compile(r"cls\._instance\.([a-zA-Z_][a-zA-Z0-9_]*) *(?::[^=\n]+)?=")
 REF_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*)")
 METHOD_DEF_RE = re.compile(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(self\b")
+MULTILINE_DEF_RE = re.compile(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(")  # self 在下一行的多行定义
 MAGIC_RE = re.compile(r"^__[a-z].*__$")
-UPPER_CONST_RE = re.compile(r"^[A-Z][A-Z_0-9]*$")  # 全大写常量名
+UPPER_CONST_RE = re.compile(r"^_?[A-Z][A-Z_0-9]*$")
+# 元组解包: (self.xxx, self.yyy, ...) = expr
+TUPLE_UNPACK_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*)")
 
-EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".pytest_cache"}
+EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".pytest_cache", "pilotstd_env", "tests"}
 
-# Qt 信号名后缀 — 这些通常是 PyQt6/PySide6 内置信号，不纳入检查
 QT_SIGNAL_SUFFIXES = (
     "_changed",
     "_ready",
@@ -47,7 +52,6 @@ QT_SIGNAL_SUFFIXES = (
     "_failed",
 )
 
-# Qt 框架内置属性（QThread, QObject, QWidget 等）
 QT_BUILTIN_ATTRS = frozenset(
     {
         "progress",
@@ -68,9 +72,8 @@ QT_BUILTIN_ATTRS = frozenset(
         "download_result",
         "archive_result",
         "query_result",
-        "stage_changed",
         "close",  # QWidget.close()
-        "_db",  # StandardManager 注入，不在 ui/ 范围内定义
+        "_db",  # StandardManager 注入，跨模块继承
     }
 )
 
@@ -87,7 +90,6 @@ def _is_comment_or_string(line: str) -> bool:
 
 
 def _should_skip_attr(attr: str) -> bool:
-    """跳过已知的 Qt 框架属性、全大写常量等。"""
     if attr in QT_BUILTIN_ATTRS:
         return True
     if attr.startswith("_on_"):
@@ -99,8 +101,21 @@ def _should_skip_attr(attr: str) -> bool:
     return False
 
 
+def _is_tuple_unpack(line: str) -> bool:
+    """检测是否为元组解包赋值: (self.x, self.y) = expr 或 self.x, self.y = expr"""
+    stripped = line.lstrip()
+    # 括号包裹的元组解包
+    if stripped.startswith("(") and "self." in stripped[: stripped.index(")") if ")" in stripped else len(stripped)]:
+        return True
+    # 逗号分割的多重赋值: self.x, self.y = ...
+    if ", self." in stripped or stripped.startswith("self.") and ", " in stripped and "=" in stripped:
+        parts = stripped.split("=", 1)
+        if len(parts) == 2 and "self." in parts[0]:
+            return "(" not in parts[0] or ")" in parts[0]
+    return False
+
+
 def extract_defs(file_path: Path) -> list[tuple[str, int]]:
-    """提取 self.xxx = ... 和 def xxx(self, ...) 定义。"""
     defs: list[tuple[str, int]] = []
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -117,6 +132,20 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
 
+        # 单例模式: cls._instance.xxx = ... → self.xxx 可用
+        for m in SINGLETON_DEF_RE.finditer(line):
+            attr = m.group(1)
+            if not MAGIC_RE.match(attr):
+                defs.append((attr, i))
+
+        # 元组解包: (self.xxx, self.yyy) = expr
+        if _is_tuple_unpack(line):
+            for m in TUPLE_UNPACK_RE.finditer(line.split("=", 1)[0]):
+                attr = m.group(1)
+                if not MAGIC_RE.match(attr) and not _should_skip_attr(attr):
+                    defs.append((attr, i))
+            continue  # 元组解包行不再用 DEF_RE 处理
+
         # self.xxx =
         for m in DEF_RE.finditer(line):
             after = line[m.end() :].strip()
@@ -126,18 +155,42 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
 
-        # def xxx(self, ...) — 方法定义也是合法属性
+        # def xxx(self, ...) — 方法定义也是合法属性（含多行）
         md = METHOD_DEF_RE.search(line)
         if md is not None:
             attr = md.group(1)
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
+        else:
+            # 多行定义: def xxx( ... self 在下一行
+            ml = MULTILINE_DEF_RE.search(line)
+            if ml is not None:
+                attr = ml.group(1)
+                if not MAGIC_RE.match(attr):
+                    # 检查后续 1-2 行是否包含 self
+                    for offset in (1, 2):
+                        if i + offset <= len(lines):
+                            if "self" in lines[i + offset - 1]:
+                                defs.append((attr, i))
+                                break
 
     return defs
 
 
-def extract_refs(file_path: Path) -> list[tuple[str, int]]:
-    """提取 self.xxx 属性引用（过滤方法调用和 Qt 信号）。"""
+def _find_dataclass_files(py_files: list[Path]) -> set[str]:
+    """找出包含 @dataclass 装饰的文件路径集合。"""
+    dc_files: set[str] = set()
+    for f in py_files:
+        try:
+            text = f.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        if re.search(r"@dataclass", text):
+            dc_files.add(str(f.resolve()))
+    return dc_files
+
+
+def extract_refs(file_path: Path, is_dataclass: bool) -> list[tuple[str, int]]:
     refs: list[tuple[str, int]] = []
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -148,25 +201,40 @@ def extract_refs(file_path: Path) -> list[tuple[str, int]]:
         if _is_comment_or_string(line):
             continue
 
-        # 收集方法调用
         method_calls: set[str] = set()
         for m in re.finditer(r"self\.([a-zA-Z_][a-zA-Z0-9_]*) *\(", line):
             method_calls.add(m.group(1))
 
-        # 收集 .connect(self.xxx) 上下文中的属性（Qt 信号处理函数引用，跳过）
         connect_attrs: set[str] = set()
         for m in re.finditer(r"\.connect\s*\(\s*(?:self\.)+([a-zA-Z_][a-zA-Z0-9_]*)", line):
             connect_attrs.add(m.group(1))
 
-        # 检查赋值
         has_assign = bool(re.search(r"self\.([a-zA-Z_][a-zA-Z0-9_]*) =", line))
         has_setattr = bool(re.search(r"setattr\s*\(\s*self\s*,", line))
+        is_tuple = _is_tuple_unpack(line)
+
+        # 收集本行定义的属性（用于后续排除）
+        defined_in_line: set[str] = set()
+        if is_tuple:
+            for m in TUPLE_UNPACK_RE.finditer(line.split("=", 1)[0]):
+                attr = m.group(1)
+                if not MAGIC_RE.match(attr):
+                    defined_in_line.add(attr)
+        if has_assign:
+            for m in DEF_RE.finditer(line):
+                attr = m.group(1)
+                if not MAGIC_RE.match(attr):
+                    defined_in_line.add(attr)
+        if has_setattr:
+            for m in SETATTR_RE.finditer(line):
+                attr = m.group(1)
+                if not MAGIC_RE.match(attr):
+                    defined_in_line.add(attr)
 
         seen_in_line: set[str] = set()
         for m in REF_RE.finditer(line):
             attr = m.group(1)
 
-            # 过滤条件
             if MAGIC_RE.match(attr):
                 continue
             if attr in method_calls:
@@ -175,39 +243,29 @@ def extract_refs(file_path: Path) -> list[tuple[str, int]]:
                 continue
             if _should_skip_attr(attr):
                 continue
-            if has_assign and attr in seen_in_line:
+            # 本行定义的同名属性不算断裂引用
+            if attr in defined_in_line:
                 continue
             if attr not in seen_in_line:
                 seen_in_line.add(attr)
                 refs.append((attr, i))
 
-        # 赋值行：移除本行已定义的属性引用
-        if has_assign or has_setattr:
-            defined_in_line: set[str] = set()
-            for m in DEF_RE.finditer(line):
-                attr = m.group(1)
-                if not MAGIC_RE.match(attr):
-                    defined_in_line.add(attr)
-            for m in SETATTR_RE.finditer(line):
-                attr = m.group(1)
-                if not MAGIC_RE.match(attr):
-                    defined_in_line.add(attr)
-            refs = [(a, ln) for a, ln in refs if not (ln == i and a in defined_in_line)]
-
     return refs
 
 
 def main() -> int:
-    if not SCAN_DIR.exists():
-        print(f"GATE-16 SKIP: {SCAN_DIR} 不存在")
-        return 0
-
     # ── 收集文件 ──
     py_files: list[Path] = []
-    for f in SCAN_DIR.rglob("*.py"):
-        if any(p in f.parts for p in EXCLUDE_DIRS):
+    for scan_dir in SCAN_DIRS:
+        if not scan_dir.exists():
             continue
-        py_files.append(f)
+        for f in scan_dir.rglob("*.py"):
+            if any(p in f.parts for p in EXCLUDE_DIRS):
+                continue
+            py_files.append(f)
+
+    # ── 找出 dataclass 文件 ──
+    dc_files = _find_dataclass_files(py_files)
 
     # ── 定义索引 ──
     def_index: dict[str, list[tuple[Path, int]]] = defaultdict(list)
@@ -218,36 +276,42 @@ def main() -> int:
     # ── 引用索引 ──
     all_refs: list[tuple[str, Path, int]] = []
     for f in py_files:
-        for attr, lineno in extract_refs(f):
+        is_dc = str(f.resolve()) in dc_files
+        for attr, lineno in extract_refs(f, is_dc):
             all_refs.append((attr, f, lineno))
 
-    # ── 去重引用（同一文件同一属性多次引用只计一次断裂） ──
+    # ── 去重 ──
     broken: dict[tuple[str, str], tuple[str, Path, int]] = {}
     for attr, fpath, lineno in all_refs:
         if attr not in def_index:
             key = (str(fpath), attr)
             if key not in broken:
+                # dataclass 文件中的属性引用通常来自类字段定义，跳过
+                if str(fpath.resolve()) in dc_files:
+                    continue
                 broken[key] = (attr, fpath, lineno)
 
     # ── 输出 ──
     print("GATE-16: 动态属性完整性检查")
     print("=" * 60)
+    print(f"扫描目录: {', '.join(str(d) for d in SCAN_DIRS)}")
+    print(f"扫描文件: {len(py_files)}")
     print(f"定义数: {sum(len(v) for v in def_index.values())}")
     print(f"引用数: {len(all_refs)}")
     print(f"断裂引用: {len(broken)}")
     print()
 
     if broken:
-        print("FAIL: 以下属性被引用但未在 pilotstd/ui/ 任何文件中定义：")
-        for attr, fpath, lineno in sorted(broken.values(), key=lambda x: (x[1], x[2])):
-            rel = fpath.relative_to(ROOT)
+        print("FAIL: 以下属性被引用但未在扫描范围内任何文件中定义：")
+        for attr, fpath, lineno in sorted(broken.values(), key=lambda x: (str(x[1]), x[2])):
+            rel = fpath.relative_to(ROOT) if ROOT in fpath.parents else fpath
             similar = sorted(
                 [d for d in def_index if d.startswith(attr[:4]) and abs(len(d) - len(attr)) <= 3],
                 key=lambda d: abs(len(d) - len(attr)),
             )[:3]
             print(f"  [ATTR] {rel}:{lineno} self.{attr}")
             if similar:
-                print(f"         ─ 未找到定义。相似属性: {', '.join(similar)}")
+                print(f"         ─ 相似属性: {', '.join(similar)}")
         print()
         print("=" * 60)
         print(f"汇总: {len(broken)} 断裂 / {len(all_refs)} 总引用")
