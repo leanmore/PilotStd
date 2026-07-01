@@ -288,7 +288,7 @@ onMounted(() => { loadCfg() })
 
   <!-- Tab: dynamic component -->
   <KeepAlive>
-    <component :is="currentTabComponent" :ref="setComponentRef" v-bind="tabProps" />
+    <component :is="currentTabComponent" :ref="setComponentRef" v-bind="tabProps" @update:sections="(val: { fileMonitor: boolean; cacheManager: boolean; taskManager: boolean }) => systemSections = val" />
   </KeepAlive>
 
   <!-- 底部操作栏 -->
