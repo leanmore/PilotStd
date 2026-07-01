@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+"""STATUS.md 自动更新 — 从测试/门禁提取数据，刷新统计字段。
+
+仅更新可自动获取的统计字段（测试数、GATE-15 违规数、日期），
+手动填写的字段（关键决策、治理动作等）保留不动。
+本地使用，不入 CI。
+"""
+
+import re
+import subprocess
+import sys
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+STATUS_PATH = ROOT / "STATUS.md"
+
+
+def count_python_tests() -> str:
+    """运行 pytest --collect-only -q 提取测试统计。"""
+    try:
+        result = subprocess.run(
+            ["pytest", "--collect-only", "-q", "--no-header"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=60,
+        )
+        lines = [ln.strip() for ln in result.stdout.splitlines() if ln.strip()]
+        for line in lines:
+            m = re.search(r"(\d+)\s+tests?\s+collected", line)
+            if m:
+                return f"{m.group(1)} collected"
+        # 备选：最后一行
+        if lines:
+            return lines[-1]
+    except Exception:
+        pass
+    return "—"
+
+
+def count_frontend_tests() -> str:
+    """统计 web/src 下测试文件数。"""
+    try:
+        test_dir = ROOT / "web" / "src"
+        count = len(list(test_dir.rglob("*.test.*"))) + len(list(test_dir.rglob("*.spec.*")))
+        return str(count) if count > 0 else "—"
+    except Exception:
+        pass
+    return "—"
+
+
+def count_gate15_violations() -> str:
+    """运行 GATE-15 提取违规数。"""
+    try:
+        result = subprocess.run(
+            ["python", "scripts/check_gate_15_code_size.py"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT,
+            timeout=30,
+        )
+        m = re.search(r"(\d+)\s*处违规", result.stdout)
+        if m:
+            return m.group(1)
+        if "PASS" in result.stdout or "pass" in result.stdout.lower():
+            return "0"
+    except Exception:
+        pass
+    return "—"
+
+
+def update_status() -> None:
+    if not STATUS_PATH.exists():
+        print(f"STATUS.md 不存在: {STATUS_PATH}")
+        sys.exit(1)
+
+    content = STATUS_PATH.read_text(encoding="utf-8")
+    today = date.today().isoformat()
+
+    py_tests = count_python_tests()
+    fe_tests = count_frontend_tests()
+    gate15 = count_gate15_violations()
+
+    # ── 更新测试通过率行 ──
+    test_line = f"| 测试通过率 | Python {py_tests}，前端 {fe_tests} |"
+    content = re.sub(
+        r"\| 测试通过率 \|.*\|",
+        test_line.replace("|", "\\|"),
+        content,
+    )
+    content = re.sub(
+        r"\| 测试通过率 \|.*\|",
+        test_line,
+        content,
+    )
+
+    # ── 更新 GATE-15 违规数 ──
+    gate15_line = f"| GATE-15 违规 | {gate15} |"
+    content = re.sub(
+        r"\| GATE-15 违规 \|.*\|",
+        gate15_line.replace("|", "\\|"),
+        content,
+    )
+    content = re.sub(
+        r"\| GATE-15 违规 \|.*\|",
+        gate15_line,
+        content,
+    )
+
+    # ── 更新最后更新日期 ──
+    content = re.sub(
+        r"> 本地状态文件，不入仓库。最后更新：\d{4}-\d{2}-\d{2}",
+        f"> 本地状态文件，不入仓库。最后更新：{today}",
+        content,
+    )
+
+    STATUS_PATH.write_text(content, encoding="utf-8")
+    print("[update_status] STATUS.md 已更新")
+    print(f"  测试: Python {py_tests} | 前端 {fe_tests}")
+    print(f"  GATE-15 违规: {gate15}")
+    print(f"  日期: {today}")
+
+
+if __name__ == "__main__":
+    update_status()
