@@ -63,6 +63,15 @@ repos:
         exclude: ^(tests/|pilotstd_env/|web/)
         pass_filenames: false
 
+      - id: gate-16
+        name: GATE-16 — 动态属性完整性检查
+        entry: python scripts/check_gate_16_attr_integrity.py
+        language: python
+        files: \.py$
+        exclude: ^(tests/|pilotstd_env/|web/)
+        pass_filenames: false
+        stages: [manual]
+
       - id: docs-sync-check
         name: 文档同步检查
         entry: bash -c 'echo "📝 请确认本次代码变更对应的文档已同步更新"; echo "   → 详见 docs/development/documentation-policy.md"; echo "   → PR 时请填写文档同步 Checklist"'
