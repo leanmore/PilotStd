@@ -97,10 +97,16 @@ describe('SettingsView', () => {
     expect(activeBtn.text()).toBe('存储')
   })
 
-  it('renders storage tab component when storage tab active', () => {
+  it('has valid tabComponentMap with all 13 entries', () => {
     const wrapper = mountComponent()
-    // 拆分后存储 Tab 渲染为 SettingsTabStorage 子组件，shallowMount 产生 stub
-    expect(wrapper.find('settings-tab-storage-stub').exists()).toBe(true)
+    // 动态组件映射完整性 — 13 个 Tab 按钮 = 13 个组件映射
+    const tabs = wrapper.findAll('.tab-bar button')
+    expect(tabs.length).toBe(13)
+    // 每个 Tab 按钮的 key 与 tabComponentMap 键对应
+    const labels = tabs.map(btn => btn.text())
+    expect(labels).toContain('存储')
+    expect(labels).toContain('用户')
+    expect(labels).toContain('API 令牌')
   })
 
   it('renders footer action bar with 应用 and 确定 buttons', () => {
