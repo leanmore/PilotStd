@@ -109,7 +109,7 @@ if users == 0:
     conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
                  ('$SUPERUSER', pw, salt))
 else:
-    conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
+    conn.execute('UPDATE users SET password_hash = ?, salt = ? WHERE username = ?',
                  (pw, salt, '$SUPERUSER'))
 conn.commit()
 "
@@ -126,7 +126,7 @@ if users == 0:
     conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
                  ('$SUPERUSER', pw, salt))
 else:
-    conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
+    conn.execute('UPDATE users SET password_hash = ?, salt = ? WHERE username = ?',
                  (pw, salt, '$SUPERUSER'))
 conn.commit()
 "

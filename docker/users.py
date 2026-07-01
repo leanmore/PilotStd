@@ -45,6 +45,11 @@ def init_users_table() -> None:
     # 迁移：从旧表结构补齐可能缺失的列（须在 SELECT 之前，否则新列查询失败）
     # 先检查列是否存在再 ALTER，避免列已存在时产生 ERROR 日志误报
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
+    # ── 列名迁移兜底：若有 'user' 列但无 'username'，重命名 ──
+    if "user" in cols and "username" not in cols:
+        db.execute("ALTER TABLE users RENAME COLUMN user TO username")
+        print("[MIGRATION] 已将 users 表列名 user 重命名为 username")
+        cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
     if "role" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
