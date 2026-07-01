@@ -191,6 +191,22 @@ class UISetupMixin:
         self.btn_announce.clicked.connect(self._on_check_announcements)
         self.toolbar.addWidget(self.btn_announce)
 
+        self.toolbar.addSeparator()
+
+        self.btn_pause = QPushButton("暂停")
+        self.btn_pause.setIcon(style.standardIcon(style.StandardPixmap.SP_MediaPause))
+        self.btn_pause.setToolTip("暂停/继续当前任务")
+        self.btn_pause.clicked.connect(self._on_pause_toggle)
+        self.btn_pause.setEnabled(False)
+        self.toolbar.addWidget(self.btn_pause)
+
+        self.btn_cancel = QPushButton("取消")
+        self.btn_cancel.setIcon(style.standardIcon(style.StandardPixmap.SP_DialogCancelButton))
+        self.btn_cancel.setToolTip("取消当前任务")
+        self.btn_cancel.clicked.connect(self._on_cancel)
+        self.btn_cancel.setEnabled(False)
+        self.toolbar.addWidget(self.btn_cancel)
+
         # 通知铃铛
         self.notification_bell = NotificationBellWidget(self)
         self.toolbar.addWidget(self.notification_bell)
