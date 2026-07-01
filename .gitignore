@@ -115,3 +115,7 @@ docs/governance/ANNOUNCEMENT.txt
 docs/governance/refactoring_checklist.md
 docs/governance/capabilities_registry.md
 docs/压力测试方案.md
+
+# 桌面端构建产物
+desktop/build/
+desktop/dist/

@@ -3,9 +3,12 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# 先复制依赖文件，利用 Docker 缓存层
-COPY docker/requirements-docker.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt --target=/install
+# 1. 复制依赖文件到同一目录（使 -r requirements-base.txt 引用可解析）
+COPY requirements.txt /tmp/requirements-base.txt
+COPY docker/requirements-docker.txt /tmp/requirements-docker.txt
+
+# 2. 安装依赖（利用 Docker 缓存层——依赖不变则复用）
+RUN pip install --no-cache-dir -r /tmp/requirements-docker.txt --target=/install
 
 # 运行阶段
 FROM python:3.12-slim
@@ -17,6 +20,9 @@ COPY --from=builder /install /usr/local/lib/python3.12/site-packages/
 # 复制 uvicorn 等可执行文件到 PATH
 COPY --from=builder /install/bin /usr/local/bin/
 
+# 3. 注入 PYTHONPATH（--target 安装必须）
+ENV PYTHONPATH=/install
+
 # 创建非 root 用户
 RUN useradd -m appuser
 
@@ -27,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gosu git curl &
 COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# 复制源码
+# 4. 最后复制业务代码（变更频繁，放最后以利用上层缓存）
 COPY pilotstd/ ./pilotstd/
 COPY main.py .
 
