@@ -47,11 +47,16 @@ class WebSocketClient(QThread):
         self._reconnect_delay = 5
         self._max_attempts = 10
         self._attempts = 0
+        # 首次连接使用激进参数快速失败，避免启动时长时间阻塞
+        self._first_connect = True
 
     def run(self) -> None:
         self._connect()
 
     def _connect(self) -> None:
+        if self._first_connect:
+            self._max_attempts = 1
+            self._reconnect_delay = 1
         while self._running and self._attempts < self._max_attempts:
             try:
                 self._ws = websocket.WebSocketApp(
@@ -72,6 +77,9 @@ class WebSocketClient(QThread):
 
     def _on_open(self, _ws: websocket.WebSocketApp) -> None:
         self._attempts = 0
+        self._first_connect = False
+        self._max_attempts = 10
+        self._reconnect_delay = 5
         self.connected.emit()
 
     def _on_message(self, _ws: websocket.WebSocketApp, message: str) -> None:

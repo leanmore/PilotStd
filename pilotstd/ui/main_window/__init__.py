@@ -88,6 +88,7 @@ class MainWindow(
         self._current_project_path: Optional[str] = None
 
         self.setWindowTitle("PilotStd — 标准文件管理工具")
+        self._paused: bool = False  # 暂停状态（须在 _setup_log_handler 之前初始化）
         self._apply_icon()
         self.setMinimumSize(1000, 550)
         self.resize(1000, 550)
@@ -289,6 +290,7 @@ def run() -> None:
     window = MainWindow(cfg, prj)
     window._apply_theme()
     window._apply_icon()
+    window._ui_translatable = True  # 初次构建完成，后续语言切换时允许 _retranslate_ui
     window.show()
     QTimer.singleShot(50, window._init_manager)  # 窗口显示后 50ms 后台初始化后端
     QTimer.singleShot(100, window.show_welcome_if_needed)

@@ -96,6 +96,9 @@ class ThemeMixin:
         对应的 setText/setWindowTitle 调用，否则语言切换时不会更新。
         工具栏按钮和菜单栏在此集中管理，右键菜单项在构建时通过 _() 直接设置。
         """
+        # 首次加载时控件文本已由 _() 设置，跳过冗余重建
+        if not getattr(self, "_ui_translatable", False):
+            return
         self.setWindowTitle(_("app.title"))
         self.file_tree.setHeaderLabel(_("file_nav"))
         # 工具栏
