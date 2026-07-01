@@ -17,6 +17,7 @@ on:
       - '.github/workflows/ci.yml'
       - '.github/scripts/**'
       - 'docs/governance/**'
+      - 'scripts/**'
       - 'main.py'
   pull_request:
     branches: [main]
