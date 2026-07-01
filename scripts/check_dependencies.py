@@ -247,17 +247,35 @@ def _collect_imports(py_file: Path, imports: set[str]) -> None:
 
 
 def parse_requirements() -> set[str]:
-    req_file = ROOT_DIR / "docker" / "requirements-docker.txt"
+    """解析 docker/requirements-docker.txt 及其 -r 引用的文件，返回所有声明的包名"""
     deps: set[str] = set()
-    for line in req_file.read_text(encoding="utf-8").splitlines():
+    req_file = ROOT_DIR / "docker" / "requirements-docker.txt"
+    _parse_file(req_file, deps)
+    return deps
+
+
+def _parse_file(filepath: Path, deps: set[str]) -> None:
+    """递归解析 requirements 文件（支持 -r 引用）"""
+    for line in filepath.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
+            continue
+        # 处理 -r 引用
+        if line.startswith("-r "):
+            ref_name = line[3:].strip()
+            ref_path = filepath.parent / ref_name
+            if ref_path.exists():
+                _parse_file(ref_path, deps)
+            else:
+                print(f"  警告: -r 引用文件不存在: {ref_path}")
+            continue
+        # 跳过其他特殊标记（-e 等）
+        if line.startswith("-"):
             continue
         name = re.split(r"[=<>~]", line)[0].strip().lower()
         name = re.sub(r"\[.*\]", "", name)  # 去除 extras: python-jose[cryptography] → python-jose
         if name:
             deps.add(name)
-    return deps
 
 
 def main() -> int:
