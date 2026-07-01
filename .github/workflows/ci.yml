@@ -259,12 +259,13 @@ jobs:
   # Job 4: 构建 + 推送 Docker 镜像
   # ════════════════════════════════════════════════════════════════
   build-and-push:
-    needs: [test-backend, test-frontend, version-bump]
+    needs: [test-backend, test-frontend, version-bump, repo-compliance]
     if: |
       always() &&
       (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped') &&
       needs.test-backend.result == 'success' &&
-      needs.test-frontend.result == 'success'
+      needs.test-frontend.result == 'success' &&
+      (needs.repo-compliance.result == 'success' || needs.repo-compliance.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
