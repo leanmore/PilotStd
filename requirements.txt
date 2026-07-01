@@ -1,7 +1,5 @@
 # ==================================
-# PilotStd Windows 桌面环境依赖
-# 安装：pip install -r requirements.txt
-# 包含：PyQt6 GUI + CLI + 核心管线（扫描/查询/下载/归档/公告）
+# PilotStd 共享基础依赖（桌面端 + 服务端共用）
 # ==================================
 
 # --- 敏感数据加密 ---
@@ -17,9 +15,6 @@ lxml==6.1.0
 pandas==3.0.0
 openpyxl==3.1.0
 
-# --- 桌面图形界面 ---
-PyQt6==6.11.0
-
 # --- 验证码识别与图像处理 ---
 ddddocr==1.6.1
 pillow==12.2.0
@@ -30,10 +25,6 @@ PyPDF2==3.0.1
 python-docx==1.1.2
 
 python-dotenv>=1.2.2
-
-# --- 安全修复：锁定传递依赖最低版本（2026-06-29 审计） ---
-starlette>=1.3.1
-python-multipart>=0.0.31
 msgpack>=1.2.1
 
 # --- WinUI 通知中心 WebSocket 客户端 ---
