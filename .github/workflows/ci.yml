@@ -130,6 +130,7 @@ jobs:
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
+          SUPERUSER: superadmin
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q --tb=short -n auto \
