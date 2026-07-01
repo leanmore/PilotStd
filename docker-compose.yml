@@ -35,9 +35,9 @@ services:
       - TZ=Asia/Shanghai
       # 标准库根目录（必填，Docker 卷挂载位置，默认 /standards）
       - STANDARD_ROOT=/standards
-      # 超级用户（必填，默认 superadmin，不可与普通用户名冲突）
-      - SUPERUSER=superadmin
-      # 超级用户初始密码（可选，不填则自动生成随机密码，输出到日志）
+      # 超级用户（必填——取消注释并设为你的值，不可为 admin 或与普通用户重名）
+      # - SUPERUSER=superadmin
+      # 超级用户初始密码（必填，不填则启动时自动生成随机密码，输出到容器日志）
       # - SUPERUSER_PASSWORD=your_password
       # 群晖 NAS 文件权限（可选）—— SSH 执行 id 查看 uid/gid
       # - PUID=1026
