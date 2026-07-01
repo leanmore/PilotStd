@@ -74,7 +74,7 @@ repos:
 
       - id: docs-sync-check
         name: 文档同步检查
-        entry: bash -c 'echo "📝 请确认本次代码变更对应的文档已同步更新"; echo "   → 详见 docs/development/documentation-policy.md"; echo "   → PR 时请填写文档同步 Checklist"'
+        entry: bash scripts/check_docs_sync.sh
         language: system
         pass_filenames: false
         stages: [commit-msg]
