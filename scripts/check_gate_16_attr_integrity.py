@@ -190,7 +190,7 @@ def _find_dataclass_files(py_files: list[Path]) -> set[str]:
     return dc_files
 
 
-def extract_refs(file_path: Path, is_dataclass: bool) -> list[tuple[str, int]]:
+def extract_refs(file_path: Path) -> list[tuple[str, int]]:
     refs: list[tuple[str, int]] = []
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -276,8 +276,7 @@ def main() -> int:
     # ── 引用索引 ──
     all_refs: list[tuple[str, Path, int]] = []
     for f in py_files:
-        is_dc = str(f.resolve()) in dc_files
-        for attr, lineno in extract_refs(f, is_dc):
+        for attr, lineno in extract_refs(f):
             all_refs.append((attr, f, lineno))
 
     # ── 去重 ──
