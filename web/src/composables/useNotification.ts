@@ -81,7 +81,7 @@ export function useNotification() {
     }
 
     ws.value.onerror = () => {
-      error.value = 'WebSocket 连接失败'
+      // 静默失败：WebSocket 不可达不影响主业务，自动重连在 onclose 中处理
       isConnecting.value = false
     }
   }
@@ -89,15 +89,16 @@ export function useNotification() {
   const scheduleReconnect = () => {
     if (reconnectTimer) return
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      error.value = 'WebSocket 连接失败，请刷新页面重试'
+      // 静默停止，不阻塞主流程
       return
     }
     reconnectAttempts++
-    error.value = `WebSocket 连接断开，5秒后重试...`
+    // 指数退避：2s, 4s, 8s, 16s, 30s(max)
+    const delay = Math.min(2000 * Math.pow(2, reconnectAttempts - 1), 30000)
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       connect()
-    }, 5000)
+    }, delay)
   }
 
   const disconnect = () => {

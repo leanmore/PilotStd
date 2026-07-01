@@ -20,6 +20,7 @@ from .users import (
     check_must_change_password,
     clear_login_failures,
     count_recent_failures,
+    get_user_role,
     init_login_attempts_table,
     init_users_table,
     record_login_failure,
@@ -249,7 +250,8 @@ def login(
     get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     must_change = check_must_change_password(username)
-    resp = JSONResponse({"ok": True, "username": username, "must_change_password": must_change})
+    role = get_user_role(username)
+    resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": must_change})
     resp.set_cookie(
         COOKIE_NAME,
         token,
@@ -267,6 +269,14 @@ def login(
         path="/",
     )
     return resp
+
+
+@router.get("/api/auth/me")
+def auth_me(request: Request):
+    """返回当前登录用户的身份信息（用户名 + 角色），供前端权限渲染用。"""
+    username = get_current_username(request)
+    role = get_user_role(username)
+    return {"username": username, "role": role}
 
 
 @router.post("/api/logout")

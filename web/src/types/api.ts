@@ -188,4 +188,7 @@ export interface UploadResponse {
 export interface SuccessResponse {
   ok?: boolean
   message?: string
+  username?: string
+  role?: string
+  must_change_password?: boolean
 }

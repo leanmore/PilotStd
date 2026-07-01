@@ -14,6 +14,7 @@ export const useAppStore = defineStore('app', () => {
   const locale = ref(savedLocale || 'zh-CN')
   const loggedIn = ref(false)
   const username = ref('')
+  const role = ref('user')  // 后端返回的角色，前端权限渲染依据
   const _initialized = ref(false)
 
   /** 从 preferencesStore 加载持久化配置（登录后调用） */
@@ -71,5 +72,5 @@ export const useAppStore = defineStore('app', () => {
     })
   } catch { /* SSR */ }
 
-  return { theme, locale, loggedIn, username, loadPreferences }
+  return { theme, locale, loggedIn, username, role, loadPreferences }
 })

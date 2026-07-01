@@ -15,8 +15,11 @@ const store = useAppStore()
 
 async function submit() {
   try {
-    await login(username.value, password.value)
-    store.loggedIn = true; store.username = username.value; router.push('/')
+    const r = await login(username.value, password.value)
+    store.loggedIn = true
+    store.username = username.value
+    store.role = r.role || 'user'
+    router.push('/')
   } catch { error.value = '用户名或密码错误' }
 }
 
