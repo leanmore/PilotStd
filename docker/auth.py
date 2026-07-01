@@ -220,10 +220,10 @@ def _is_https(request: Request) -> bool:
 @router.post("/api/login")
 def login(
     request: Request,
-    username: str = Form(os.environ.get("ADMIN_USERNAME", "admin")),
+    username: str = Form(""),
     password: str = Form(...),
 ):
-    """用户登录，含速率限制。默认用户名可通过 ADMIN_USERNAME 环境变量配置。"""
+    """用户登录，含速率限制。用户名需在 Web UI 中手动输入。"""
     global _init_done
     if not _init_done:
         init_users_table()

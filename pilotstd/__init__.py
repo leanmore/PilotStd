@@ -1,6 +1,7 @@
 # 应用版本号——唯一真相来源（CI、更新检查、打包均从此读取）
 
 import os
+import sys
 from typing import Any
 
 # 轻量数据模型（启动时需用）
@@ -10,6 +11,14 @@ from .scan import FileScanner, StandardParser
 __version__ = "0.55.5"
 FRONTEND_VERSION = __version__  # 与后端保持一致，更新脚本据此下载前端 dist.zip
 SUPERUSER_USERNAME = os.getenv("SUPERUSER")  # 超级管理员用户名（权限判断唯一依据，须通过环境变量显式设置）
+
+if not SUPERUSER_USERNAME:
+    print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
+    sys.exit(1)
+
+if SUPERUSER_USERNAME.lower() == "admin":
+    print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
+    sys.exit(1)
 
 __all__ = [
     "ParsedStdInfo",

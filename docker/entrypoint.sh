@@ -89,6 +89,11 @@ if [ -z "$SUPERUSER" ]; then
     exit 1
 fi
 
+if [ "$SUPERUSER" = "admin" ]; then
+    echo "FATAL: SUPERUSER cannot be 'admin'" >&2
+    exit 1
+fi
+
 if [ ! -f "$INIT_MARKER" ]; then
     echo "[INIT] 首次启动，初始化超级用户..."
 

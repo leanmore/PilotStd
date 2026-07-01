@@ -49,8 +49,8 @@ def init_users_table() -> None:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
-    # 管理员用户名（可通过 ADMIN_USERNAME 环境变量自定义）
-    admin_user = os.environ.get("ADMIN_USERNAME") or SUPERUSER_USERNAME
+    # 超级用户名由环境变量 SUPERUSER 统一指定（pilotstd.SUPERUSER_USERNAME）
+    admin_user = SUPERUSER_USERNAME
     # 常见弱密码列表，用于检测已存在管理员是否需要强制改密
     WEAK_PASSWORDS = ["admin", "123456", "password", "admin123", "12345678"]
 
@@ -74,7 +74,7 @@ def init_users_table() -> None:
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (admin_user, h, s, "user", must_change),
+            (admin_user, h, s, "admin", must_change),
         )
     else:
         # 已有管理员用户：检测弱密码，若哈希匹配弱密码则强制改密
@@ -117,13 +117,28 @@ def _validate_password(password: str) -> str | None:
     return None
 
 
+def _determine_role(username: str, superuser_name: str) -> str:
+    """根据用户名和超级用户名确定角色。
+    - 超级用户 → "admin"
+    - 用户名为 "admin"（不区分大小写） → 强制降级为 "user"
+    - 其他 → "user"
+    """
+    if username.lower() == "admin":
+        return "user"
+    if username == superuser_name:
+        return "admin"
+    return "user"
+
+
 def add_user(username: str, password: str, role: str = "user") -> bool:
     # admin 用户名保护：admin 强制降级为 user，admin* 禁止创建
-    _su = SUPERUSER_USERNAME or "admin"
-    if username == _su:
-        role = "user"
-    elif username.lower().startswith(_su):
-        raise ValueError("以 'admin' 开头的用户名不允许创建")
+    _su = SUPERUSER_USERNAME
+    if not _su:
+        raise RuntimeError("SUPERUSER_USERNAME is not set — 启动守卫应已拦截，此为防御性检查")
+    role = _determine_role(username, _su)
+    # 检查是否以超级用户名开头（防止伪造）
+    if username != _su and username.lower().startswith(_su.lower()):
+        raise ValueError("以超级用户名开头的用户名不允许创建")
     err = _validate_password(password)
     if err:
         raise ValueError(err)

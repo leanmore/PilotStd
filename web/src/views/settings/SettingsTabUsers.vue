@@ -96,6 +96,7 @@ onMounted(() => { loadUsers() })
 </script>
 
 <template>
+  <div class="tab-content">
   <div class="card mt-2">
     <div class="card-header">
       <span>用户管理</span>
@@ -151,6 +152,7 @@ onMounted(() => { loadUsers() })
       </div>
     </div>
   </Dialog>
+  </div>
 </template>
 
 <style scoped>

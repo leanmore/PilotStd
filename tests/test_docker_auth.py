@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # auth.py 在非开发模式要求环境变量，测试前必须设置
 os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
 os.environ.setdefault("ADMIN_PASSWORD", "test_admin_password")
+os.environ.setdefault("SUPERUSER", "superadmin")
 
 import unittest
 
@@ -59,18 +60,18 @@ class TestAuthModule(unittest.TestCase):
         self.assertIn("认证失败", r.json()["error"])
 
     def test_login_wrong_password_returns_401(self):
-        r = self.client.post("/api/login", data={"password": "wrong"})
+        r = self.client.post("/api/login", data={"username": "superadmin", "password": "wrong"})
         self.assertEqual(r.status_code, 401)
 
     def test_login_correct_password_returns_ok_and_cookie(self):
-        r = self.client.post("/api/login", data={"password": os.environ["ADMIN_PASSWORD"]})
+        r = self.client.post("/api/login", data={"username": "superadmin", "password": os.environ["ADMIN_PASSWORD"]})
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
         self.assertIn(COOKIE_NAME, r.cookies)
 
     def test_protected_with_valid_cookie_returns_200(self):
         # 先登录
-        r = self.client.post("/api/login", data={"password": os.environ["ADMIN_PASSWORD"]})
+        r = self.client.post("/api/login", data={"username": "superadmin", "password": os.environ["ADMIN_PASSWORD"]})
         # 用返回的 cookie 访问受保护端点，附加 CSRF 头
         r.cookies.get(COOKIE_NAME)
         r2 = self.client.get("/api/protected", cookies=r.cookies)
@@ -84,7 +85,7 @@ class TestAuthModule(unittest.TestCase):
 
     def test_logout_clears_cookie(self):
         """登出清除 Cookie（logout 在白名单中，无需 CSRF）。"""
-        r = self.client.post("/api/login", data={"password": os.environ["ADMIN_PASSWORD"]})
+        r = self.client.post("/api/login", data={"username": "superadmin", "password": os.environ["ADMIN_PASSWORD"]})
         r2 = self.client.post("/api/logout", cookies=r.cookies)
         self.assertEqual(r2.status_code, 200)
         # 登出后 Cookie 被清除

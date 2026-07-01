@@ -68,6 +68,7 @@ onMounted(() => { loadToken() })
 </script>
 
 <template>
+  <div class="tab-content">
   <div class="card mt-2">
     <div class="card-header">
       <span>API 令牌</span>
@@ -94,6 +95,7 @@ onMounted(() => { loadToken() })
       <Button label="确定刷新" severity="warning" @click="doRefreshToken" />
     </div>
   </Dialog>
+  </div>
 </template>
 
 <style scoped>

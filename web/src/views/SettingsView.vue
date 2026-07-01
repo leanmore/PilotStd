@@ -5,7 +5,7 @@
  * 职责：标签页导航、共享配置状态管理、底部操作栏。
  * 各 Tab 的内容已拆分为独立子组件（web/src/views/settings/）。
  */
-import { ref, onMounted, watch, provide } from 'vue'
+import { ref, onMounted, watch, provide, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ConfirmDialog from 'primevue/confirmdialog'
@@ -151,6 +151,38 @@ const tabs = [
   { key: 'system', label: '系统' },
 ]
 
+  // Dynamic component mapping based on activeTab
+  const tabComponentMap: Record<string, any> = {
+    storage: SettingsTabStorage,
+    network: SettingsTabNetwork,
+    query: SettingsTabQuery,
+    scan: SettingsTabScan,
+    ui: SettingsTabUI,
+    ocr: SettingsTabOCR,
+    sites: SettingsTabSites,
+    users: SettingsTabUsers,
+    token: SettingsTabToken,
+    circuit: SettingsTabCircuit,
+    notification: SettingsTabNotification,
+    validity: SettingsTabValidity,
+    system: SettingsTabSystem,
+  }
+  const currentTabComponent = computed(() => tabComponentMap[activeTab.value] || null)
+
+  // Dynamic props based on active tab
+  const tabProps = computed(() => {
+    switch (activeTab.value) {
+      case 'ui':
+        return { selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
+      case 'sites':
+        return { sites }
+      case 'system':
+        return { sections: systemSections.value }
+      default:
+        return {}
+    }
+  })
+
 watch(activeTab, (newTab) => {
   router.replace({ query: { ...route.query, tab: newTab } })
 })
@@ -177,9 +209,10 @@ const tabConfigKeys: Record<string, string[]> = {
 const applyLoading = ref(false)
 
 // 子组件引用（供"应用"按钮触发独立 API Tab 的保存）
-const circuitRef = ref<InstanceType<typeof SettingsTabCircuit> | null>(null)
-const notificationRef = ref<InstanceType<typeof SettingsTabNotification> | null>(null)
-const validityRef = ref<InstanceType<typeof SettingsTabValidity> | null>(null)
+	const dynamicRef = ref<any>(null)
+	function setComponentRef(el: any) {
+	  dynamicRef.value = el
+	}
 
 function extractTabConfig(tabKey: string): Record<string, any> {
   const keys = tabConfigKeys[tabKey] || []
@@ -202,13 +235,13 @@ async function applyCurrentTab() {
   try {
     switch (tabKey) {
       case 'circuit':
-        await circuitRef.value?.saveCircuitConfig()
+        await dynamicRef.value?.saveCircuitConfig()
         break
       case 'notification':
-        await notificationRef.value?.saveConfig()
+        await dynamicRef.value?.saveConfig()
         break
       case 'validity':
-        await validityRef.value?.doSave()
+        await dynamicRef.value?.doSave()
         break
       default: {
         const payload = extractTabConfig(tabKey)
@@ -258,55 +291,11 @@ onMounted(() => { loadCfg() })
     >{{ t.label }}</button>
   </div>
 
-  <!-- Tab: 存储 -->
-  <SettingsTabStorage v-show="activeTab === 'storage'" />
 
-  <!-- Tab: 网络 -->
-  <SettingsTabNetwork v-show="activeTab === 'network'" />
-
-  <!-- Tab: 查询 -->
-  <SettingsTabQuery v-show="activeTab === 'query'" />
-
-  <!-- Tab: 扫描 -->
-  <SettingsTabScan v-show="activeTab === 'scan'" />
-
-  <!-- Tab: 界面 -->
-  <SettingsTabUI
-    v-show="activeTab === 'ui'"
-    :selected-locale="selectedLocale"
-    :locale-options="localeOptions"
-    :on-upload-bg="uploadBg"
-    @update:selected-locale="selectedLocale = $event"
-    @locale-change="onLocaleChange"
-  />
-
-  <!-- Tab: OCR -->
-  <SettingsTabOCR v-show="activeTab === 'ocr'" />
-
-  <!-- Tab: 站点 -->
-  <SettingsTabSites v-show="activeTab === 'sites'" :sites="sites" />
-
-  <!-- Tab: 用户（自包含，含对话框） -->
-  <SettingsTabUsers v-show="activeTab === 'users'" />
-
-  <!-- Tab: API 令牌（自包含，含对话框） -->
-  <SettingsTabToken v-show="activeTab === 'token'" />
-
-  <!-- Tab: 熔断（自包含，暴露 saveCircuitConfig） -->
-  <SettingsTabCircuit ref="circuitRef" v-show="activeTab === 'circuit'" />
-
-  <!-- Tab: 通知（暴露 saveConfig） -->
-  <SettingsTabNotification ref="notificationRef" v-show="activeTab === 'notification'" />
-
-  <!-- Tab: 时效性（暴露 doSave） -->
-  <SettingsTabValidity ref="validityRef" v-show="activeTab === 'validity'" />
-
-  <!-- Tab: 系统（三块可折叠区域） -->
-  <SettingsTabSystem
-    v-show="activeTab === 'system'"
-    :sections="systemSections"
-    @update:sections="systemSections = $event"
-  />
+  <!-- Tab: dynamic component -->
+  <KeepAlive>
+    <component :is="currentTabComponent" :ref="setComponentRef" v-bind="tabProps" />
+  </KeepAlive>
 
   <!-- 底部操作栏 -->
   <div class="settings-footer">
