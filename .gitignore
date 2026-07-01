@@ -99,6 +99,7 @@ Thumbs.db
 *~
 
 # 不入仓——过程文件与内部工具
+docs/.local/
 docs/archive/
 docs/pending/
 docs/superpowers/plans/
