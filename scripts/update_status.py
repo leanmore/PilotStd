@@ -26,28 +26,41 @@ def count_python_tests() -> str:
             cwd=ROOT,
             timeout=60,
         )
-        lines = [ln.strip() for ln in result.stdout.splitlines() if ln.strip()]
-        for line in lines:
+        for line in result.stdout.splitlines():
             m = re.search(r"(\d+)\s+tests?\s+collected", line)
             if m:
                 return f"{m.group(1)} collected"
-        # 备选：最后一行
-        if lines:
-            return lines[-1]
+        return "解析失败，请手动检查"
     except Exception:
-        pass
-    return "—"
+        return "解析失败，请手动检查"
 
 
 def count_frontend_tests() -> str:
-    """统计 web/src 下测试文件数。"""
+    """运行 vitest run 并解析 JSON reporter 输出获取测试数。"""
     try:
+        result = subprocess.run(
+            ["npx", "vitest", "run", "--reporter=json"],
+            capture_output=True,
+            text=True,
+            cwd=ROOT / "web",
+            timeout=120,
+        )
+        import json as _json
+
+        try:
+            data = _json.loads(result.stdout.strip())
+            total = data.get("numTotalTests", 0)
+            passed = data.get("numPassedTests", 0)
+            failed = data.get("numFailedTests", 0)
+            return f"{passed} passed / {failed} failed / {total} total"
+        except (_json.JSONDecodeError, AttributeError):
+            pass
+        # 回退：统计测试文件数
         test_dir = ROOT / "web" / "src"
         count = len(list(test_dir.rglob("*.test.*"))) + len(list(test_dir.rglob("*.spec.*")))
-        return str(count) if count > 0 else "—"
+        return f"{count} test files" if count > 0 else "解析失败，请手动检查"
     except Exception:
-        pass
-    return "—"
+        return "解析失败，请手动检查"
 
 
 def count_gate15_violations() -> str:
