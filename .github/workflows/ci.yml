@@ -131,6 +131,7 @@ jobs:
         env:
           STANDARD_ROOT: /tmp/standards
           SUPERUSER: superadmin
+          ADMIN_USERNAME: superadmin
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q --tb=short -n auto \
