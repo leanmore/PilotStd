@@ -6,7 +6,6 @@
  * 各 Tab 的内容已拆分为独立子组件（web/src/views/settings/）。
  */
 import { ref, onMounted, watch, provide, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
@@ -35,7 +34,6 @@ import 'primeicons/primeicons.css'
 defineOptions({ name: 'SettingsView' })
 
 const store = useAppStore()
-const { locale } = useI18n()
 
 // ═══════════════════════════════════════════
 // 共享配置状态（通过 provide 传递给子 Tab 组件）
@@ -110,10 +108,6 @@ const localeOptions = [
   { label: '繁體中文', value: 'zh-TW' },
   { label: 'English', value: 'en' },
 ]
-function onLocaleChange() {
-  locale.value = selectedLocale.value
-  store.locale = selectedLocale.value
-}
 
 // ═══════════════════════════════════════════
 // 站点列表（Sites Tab 使用）
