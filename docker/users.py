@@ -74,7 +74,7 @@ def init_users_table() -> None:
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (admin_user, h, s, "superuser", must_change),
+            (admin_user, h, s, "user", must_change),
         )
     else:
         # 已有管理员用户：检测弱密码，若哈希匹配弱密码则强制改密
@@ -119,9 +119,10 @@ def _validate_password(password: str) -> str | None:
 
 def add_user(username: str, password: str, role: str = "user") -> bool:
     # admin 用户名保护：admin 强制降级为 user，admin* 禁止创建
-    if username == SUPERUSER_USERNAME:
+    _su = SUPERUSER_USERNAME or "admin"
+    if username == _su:
         role = "user"
-    elif username.lower().startswith(SUPERUSER_USERNAME):
+    elif username.lower().startswith(_su):
         raise ValueError("以 'admin' 开头的用户名不允许创建")
     err = _validate_password(password)
     if err:
@@ -140,13 +141,12 @@ def add_user(username: str, password: str, role: str = "user") -> bool:
 
 def delete_user(user_id: int) -> bool:
     db = _get_db()
-    # 不允许删除最后一个 admin
-    admin_count = db.fetchone("SELECT COUNT(*) as cnt FROM users WHERE role = ?", ("superuser",))
-    row = db.fetchone("SELECT role FROM users WHERE id = ?", (user_id,))
+    # 不允许删除超级用户（由环境变量 SUPERUSER 指定）
+    row = db.fetchone("SELECT username FROM users WHERE id = ?", (user_id,))
     if not row:
         return False
-    if row["role"] == "superuser" and admin_count and admin_count["cnt"] <= 1:
-        return False  # 至少保留一个 admin
+    if row["username"] == SUPERUSER_USERNAME:
+        return False  # 超级用户不可删除
     db.execute("DELETE FROM users WHERE id = ?", (user_id,))
     return True
 

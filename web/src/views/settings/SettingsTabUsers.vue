@@ -27,7 +27,10 @@ const userErr = ref('')
 const loadUsersErr = ref('')
 
 // SUPERUSER_USERNAME 从环境变量读取，与容器环境变量 SUPERUSER 保持一致
-const SUPERUSER_USERNAME = import.meta.env.VITE_SUPERUSER_NAME || 'SUPERUSER'
+const SUPERUSER_USERNAME = import.meta.env.VITE_SUPERUSER_NAME
+if (!SUPERUSER_USERNAME) {
+  throw new Error('VITE_SUPERUSER_NAME 环境变量未设置，应用无法启动')
+}
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
 
 async function loadUsers() {

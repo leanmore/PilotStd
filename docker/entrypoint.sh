@@ -84,7 +84,10 @@ else:
 # ── 超级用户初始化（参照 MoviePilot）──────────────────────
 # 必须在 DB 迁移之后执行（users 表已创建）
 INIT_MARKER="/app/data/.superuser_initialized"
-SUPERUSER="${SUPERUSER:-admin}"
+if [ -z "$SUPERUSER" ]; then
+    echo "[INIT] 错误: SUPERUSER 环境变量未设置，拒绝启动"
+    exit 1
+fi
 
 if [ ! -f "$INIT_MARKER" ]; then
     echo "[INIT] 首次启动，初始化超级用户..."
@@ -98,7 +101,7 @@ salt = secrets.token_hex(16)
 pw = hashlib.pbkdf2_hmac('sha256', '$_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, \"admin\", 1)',
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
                  ('$SUPERUSER', pw, salt))
 else:
     conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
@@ -115,7 +118,7 @@ salt = secrets.token_hex(16)
 pw = hashlib.pbkdf2_hmac('sha256', '$RANDOM_PASS'.encode(), salt.encode(), 100000).hex()
 users = conn.execute('SELECT COUNT(*) FROM users WHERE username = ?', ('$SUPERUSER',)).fetchone()[0]
 if users == 0:
-    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, \"admin\", 1)',
+    conn.execute('INSERT INTO users (username, password_hash, salt, role, must_change_password) VALUES (?, ?, ?, "user", 1)',
                  ('$SUPERUSER', pw, salt))
 else:
     conn.execute('UPDATE users SET password_hash = ?, salt = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?',
