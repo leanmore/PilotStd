@@ -2,6 +2,7 @@
 # ruff: noqa: E402  — load_dotenv() 必须在其他模块导入前执行
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -135,6 +136,15 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
+    # ── SUPERUSER 启动校验（守卫从 pilotstd/__init__.py 迁移至此） ──
+    _su = os.getenv("SUPERUSER")
+    if not _su:
+        print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
+        sys.exit(1)
+    if _su.lower() == "admin":
+        print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
+        sys.exit(1)
+
     # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
     from pilotstd.core.logger import LoggerManager
 

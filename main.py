@@ -13,6 +13,15 @@ load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
 
 def main():
+    # ── SUPERUSER 启动校验（守卫从 pilotstd/__init__.py 迁移至此） ──
+    _su = os.getenv("SUPERUSER")
+    if not _su:
+        print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
+        sys.exit(1)
+    if _su.lower() == "admin":
+        print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(prog="pilotstd", description="PilotStd 标准文件管理工具")
     parser.add_argument("--cli", action="store_true", help="命令行模式")
     args, _ = parser.parse_known_args()
