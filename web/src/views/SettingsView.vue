@@ -11,6 +11,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import { getSettings, putSettings, uploadFile } from '@/api'
 import { useAppStore } from '@/stores/app'
+import { usePreferencesStore } from '@/stores/preferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 
@@ -256,18 +257,30 @@ async function applyCurrentTab() {
 }
 
 // ═══════════════════════════════════════════
-// 系统 Tab 折叠状态
+// 系统 Tab 折叠状态（持久化到用户首选项）
 // ═══════════════════════════════════════════
-const systemSections = ref({
-  fileMonitor: true,
-  cacheManager: true,
-  taskManager: true,
-})
+const DEFAULT_SECTIONS = { fileMonitor: true, cacheManager: true, taskManager: true }
+const prefsStore = usePreferencesStore()
+
+const systemSections = ref({ ...DEFAULT_SECTIONS })
+
+// 从后端恢复已保存的折叠状态
+async function loadSystemSections() {
+  try {
+    const saved = await prefsStore.get<Record<string, boolean>>('system_sections')
+    if (saved) systemSections.value = { ...DEFAULT_SECTIONS, ...saved }
+  } catch { /* 未登录或无网络，使用默认值 */ }
+}
+
+// 折叠变化时写入后端
+watch(systemSections, (val) => {
+  prefsStore.set('system_sections', val).catch(() => {})
+}, { deep: true })
 
 // ═══════════════════════════════════════════
 // 生命周期
 // ═══════════════════════════════════════════
-onMounted(() => { loadCfg() })
+onMounted(() => { loadCfg(); loadSystemSections() })
 </script>
 
 <template>
