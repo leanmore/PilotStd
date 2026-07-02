@@ -25,9 +25,11 @@ export function useNotification() {
 
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempts = 0
+  let intentionalClose = false
   const MAX_RECONNECT_ATTEMPTS = 10
 
   const connect = () => {
+    intentionalClose = false
     if (isConnecting.value || (ws.value?.readyState === WebSocket.OPEN)) {
       return
     }
@@ -87,7 +89,7 @@ export function useNotification() {
   }
 
   const scheduleReconnect = () => {
-    if (reconnectTimer) return
+    if (intentionalClose || reconnectTimer) return
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
       // 静默停止，不阻塞主流程
       return
@@ -102,6 +104,7 @@ export function useNotification() {
   }
 
   const disconnect = () => {
+    intentionalClose = true
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
