@@ -21,17 +21,9 @@ block_cipher = None
 # 收集 pilotstd 下所有子模块
 hiddenimports = collect_submodules("pilotstd")
 
-# 收集 ddddocr（验证码识别库）及其 ONNX 模型文件
+# 收集 ddddocr（验证码识别库）—— 隐藏导入
 try:
     hiddenimports += collect_submodules("ddddocr")
-except Exception:
-    pass
-try:
-    import ddddocr
-
-    ddddocr_root = Path(ddddocr.__file__).parent
-    for model_file in ddddocr_root.glob("*.onnx"):
-        datas.append((str(model_file), "ddddocr"))
 except Exception:
     pass
 
@@ -45,6 +37,16 @@ datas = [
     ("../pilotstd/i18n", "pilotstd/i18n"),
     (qt_trans_dir, "qt_translations"),
 ]
+
+# 收集 ddddocr ONNX 模型文件（须在 datas 定义之后）
+try:
+    import ddddocr
+
+    ddddocr_root = Path(ddddocr.__file__).parent
+    for model_file in ddddocr_root.glob("*.onnx"):
+        datas.append((str(model_file), "ddddocr"))
+except Exception:
+    pass
 
 a = Analysis(
     ["../main.py"],
