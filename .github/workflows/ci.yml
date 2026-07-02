@@ -16,6 +16,8 @@ on:
       - 'docker-compose.yml'
       - '.github/workflows/ci.yml'
       - '.github/scripts/**'
+      - '.pre-commit-config.yaml'
+      - '.secrets.baseline'
       - 'docs/governance/**'
       - 'scripts/**'
       - 'main.py'
@@ -194,7 +196,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install bandit pip-audit
+          pip install bandit pip-audit detect-secrets
+
+      - name: Run detect-secrets (凭证泄漏扫描)
+        run: detect-secrets-hook --baseline .secrets.baseline
 
       - name: Run Bandit (static security analysis — 建议性)
         run: bandit -r pilotstd/ -f json -o bandit-report.json || echo "bandit found issues (non-blocking)"
