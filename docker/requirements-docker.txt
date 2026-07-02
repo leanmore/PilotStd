@@ -1,9 +1,9 @@
 # ==================================
 # PilotStd Docker 环境依赖（无 GUI/桌面组件）
-# 共享依赖通过 -r requirements-base.txt 引用
+# 共享依赖通过 -r ../requirements.txt 引用
 # ==================================
 
--r requirements-base.txt
+-r ../requirements.txt
 
 # --- Docker Web 服务 ---
 fastapi==0.136.0

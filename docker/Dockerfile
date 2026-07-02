@@ -3,12 +3,12 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# 1. 复制依赖文件到同一目录（使 -r requirements-base.txt 引用可解析）
-COPY requirements.txt /tmp/requirements-base.txt
-COPY docker/requirements-docker.txt /tmp/requirements-docker.txt
+# 1. 先复制依赖文件（利用 Docker 缓存层——依赖不变则复用）
+COPY requirements.txt .
+COPY docker/requirements-docker.txt docker/requirements-docker.txt
 
-# 2. 安装依赖（利用 Docker 缓存层——依赖不变则复用）
-RUN pip install --no-cache-dir -r /tmp/requirements-docker.txt --target=/install
+# 2. 安装依赖（-r ../requirements.txt 在容器内解析为 /app/requirements.txt）
+RUN pip install --no-cache-dir -r docker/requirements-docker.txt --target=/install
 
 # 运行阶段
 FROM python:3.12-slim

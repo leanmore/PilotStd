@@ -33,8 +33,8 @@ except Exception:
 root = Path("..")
 qt_trans_dir = str(Path(PyQt6.__file__).parent / "Qt6" / "translations")
 datas = [
-    ("../icon.ico", "."),
-    ("../assets", "assets"),
+    ("icon.ico", "."),
+    ("assets/icons", "assets/icons"),
     ("../data", "data"),
     ("../pilotstd/i18n", "pilotstd/i18n"),
     (qt_trans_dir, "qt_translations"),
@@ -107,5 +107,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="../icon.ico",
+    icon="icon.ico",
 )

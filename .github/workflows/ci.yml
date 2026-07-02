@@ -117,7 +117,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cp requirements.txt docker/requirements-base.txt
           pip install -r docker/requirements-docker.txt
           pip install pytest pytest-xdist
           pip install -e .
@@ -194,7 +193,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cp requirements.txt docker/requirements-base.txt
           pip install -r docker/requirements-docker.txt
           pip install bandit pip-audit
 

@@ -27,7 +27,7 @@ class ThemeMixin:
         if is_frozen():
             base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         else:
-            base = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+            base = os.path.join(os.path.dirname(__file__), "..", "..", "..", "desktop")
         if theme == "default":
             ico = os.path.join(base, "icon.ico")
         else:

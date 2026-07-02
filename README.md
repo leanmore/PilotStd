@@ -28,7 +28,7 @@ git clone https://github.com/leanmore/pilotstd.git
 cd pilotstd
 
 # 桌面端
-pip install -r requirements.txt
+pip install -r desktop/requirements-win.txt
 python main.py
 
 # Docker Web 端
@@ -42,15 +42,16 @@ docker compose up -d
 |---|---|
 | **PyInstaller exe** | Windows 单文件，无需 Python，[Release 页下载](https://github.com/leanmore/pilotstd/releases) |
 | **Docker 镜像** | `docker compose up -d`，镜像自动推送 `ghcr.io/leanmore/pilotstd:latest` |
-| **源码运行** | `pip install -r requirements.txt && python main.py` |
+| **源码运行** | `pip install -r desktop/requirements-win.txt && python main.py` |
 
 ## 依赖文件
 
 | 文件 | 环境 |
 |------|------|
-| `requirements.txt` | Windows 桌面（PyQt6 + ddddocr） |
-| `docker/requirements-docker.txt` | Docker Web（FastAPI + JWT） |
-| `requirements-dev.txt` | 开发（pytest + ruff + PyInstaller） |
+| `requirements.txt` | 三端共享基础依赖 |
+| `desktop/requirements-win.txt` | Windows 桌面（PyQt6 + 共享依赖） |
+| `docker/requirements-docker.txt` | Docker Web（FastAPI + JWT + 共享依赖） |
+| `requirements-dev.txt` | 开发（pytest + ruff + PyInstaller + locust） |
 
 ## 技术栈
 
@@ -66,7 +67,7 @@ docker compose up -d
 
 ```
 PilotStd/
-├── main.py              # 桌面端入口
+├── main.py              # 程序入口（GUI / CLI）
 ├── pilotstd/            # 核心引擎
 │   ├── scan/            # 文件扫描 + 标准号解析
 │   ├── query/           # 查询引擎 + 7 个适配器
@@ -79,11 +80,12 @@ PilotStd/
 │   ├── pipeline/        # 分类路由
 │   ├── quality/         # 代码质量检查
 │   └── core/            # 配置 / 数据库 / 工具
+├── desktop/             # 桌面端打包配置 + 图标
 ├── web/                 # Vue3 前端
 ├── docker/              # FastAPI 后端 + Docker 配置
 ├── tests/               # 测试
 ├── scripts/             # 辅助脚本
-└── assets/              # 图标
+└── assets/              # 截图等静态资源
 ```
 
 ## 许可证

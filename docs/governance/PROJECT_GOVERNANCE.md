@@ -13,7 +13,7 @@ PilotStd 项目治理由三份核心文档构成，形成联动闭环：
 | 文档 | 职责 | 路径 |
 |------|------|------|
 | **能力登记簿** | 列出所有非功能性能力，每条标注守护它的门禁 | `docs/governance/capabilities_registry.md` |
-| **门禁索引** | 列出所有门禁，每条标注守护的能力和所在分层 | `docs/governance/GATE_INDEX.md` |
+| **门禁索引** | 列出所有门禁（已归档至历史快照） | `docs/archive/2026-06-30/GATE_INDEX.md` |
 | **架构报告** | 定义四层架构 + 三端定位，约束能力和门禁的放置位置 | `docs/architecture_layers.md` |
 
 **联动关系**：
@@ -89,7 +89,7 @@ PilotStd 项目治理由三份核心文档构成，形成联动闭环：
 | 文档 | 用途 | 何时阅读 |
 |------|------|---------|
 | `capabilities_registry.md` | 查看/登记能力 | 新增能力、重构前、代码审查 |
-| `GATE_INDEX.md` | 查看/登记门禁 | 新增门禁、门禁失败排查、PR 审查 |
+| `GATE_INDEX.md`（已归档至 `docs/archive/2026-06-30/`） | 查看/登记门禁（历史快照） | 新增门禁、门禁失败排查、PR 审查 |
 | `architecture_layers.md` | 确定代码放置位置 | 新增文件、迁移代码、架构讨论 |
 | `archive_migration_protocol.md` | 归档迁移协议 | 执行归档操作前 |
 | `refactoring_checklist.md` | 重构检查清单 | 执行重构前 |

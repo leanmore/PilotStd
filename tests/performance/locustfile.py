@@ -1,5 +1,6 @@
 # tests/performance/locustfile.py
 # PilotStd 全链路压测：查询 → 下载
+# 依赖安装：pip install -r requirements-dev.txt（包含 locust）
 #
 # 启动方式（单机）:
 #   cd tests/performance
