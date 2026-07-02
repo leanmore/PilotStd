@@ -3,6 +3,7 @@ defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
+import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
@@ -26,7 +27,7 @@ function defaultSince(): Date {
   return new Date()
 }
 
-const tab = ref<'gb'|'hb'|'db'>(window.localStorage.getItem('announce_tab') as any || 'gb')
+const tab = ref<'gb'|'hb'|'db'>(getItem('announce_tab') as any || 'gb')
 const tabs: { key: 'gb'|'hb'|'db', label: string, api: string }[] = [
   { key: 'gb', label: '国家标准公告', api: 'nocGBPage' },
   { key: 'hb', label: '行业标准公告', api: 'nocHBPage' },
@@ -39,7 +40,7 @@ const lastCheck = ref('')
 const sinceDate = ref<Date>(defaultSince())
 const error = ref('')
 
-function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; window.localStorage.setItem('announce_tab', k); load() }
+function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; setItem('announce_tab', k); load() }
 
 async function load() {
   try {

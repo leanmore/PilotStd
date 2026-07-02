@@ -2,13 +2,14 @@
 defineOptions({ name: 'LogBar' })
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
+import { getItem, setItem } from '@/lib/storage'
 
 const props = defineProps<{ refreshKey?: number }>()
 const lines = ref<string[]>([])
-const expanded = ref(true)
+const expanded = ref(getItem('logbar_expanded') !== '0')
 const container = ref<HTMLElement | null>(null)
 const err = ref(false)
-const logHeight = ref(200)
+const logHeight = ref(Number(getItem('logbar_height')) || 200)
 const isHovering = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 let startY = 0
@@ -39,7 +40,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 watch(() => props.refreshKey, () => fetchLogs())
 
-function toggle() { expanded.value = !expanded.value }
+function toggle() { expanded.value = !expanded.value; setItem('logbar_expanded', expanded.value ? '1' : '0') }
 
 // 拖拽调整高度
 function onResizeStart(e: MouseEvent) {
@@ -58,6 +59,7 @@ function onResizeMove(e: MouseEvent) {
 function onResizeEnd() {
   document.removeEventListener('mousemove', onResizeMove)
   document.removeEventListener('mouseup', onResizeEnd)
+  setItem('logbar_height', String(logHeight.value))
 }
 </script>
 

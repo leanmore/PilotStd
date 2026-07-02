@@ -5,8 +5,8 @@ import http from '@/api/http'
 import type { DashboardWidget, LayoutItem } from '@/types/dashboard'
 import { createDefaultWidgets } from '@/types/dashboard'
 import { usePreferencesStore } from './preferences'
+import { getItem, setItem } from '@/lib/storage'
 
-const STORAGE_KEY = 'dashboard_layout'
 const PREF_KEY = 'dashboard_layout'
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -65,7 +65,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   async function save() {
     const data = JSON.stringify(widgets.value)
-    localStorage.setItem(STORAGE_KEY, data)
+    setItem(PREF_KEY, data)
     const prefs = usePreferencesStore()
     await prefs.set(PREF_KEY, widgets.value).catch(() => {})
   }
@@ -85,7 +85,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   function getLocalWidgets(): DashboardWidget[] | null {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const raw = getItem(PREF_KEY)
       if (raw) {
         const data = JSON.parse(raw)
         if (Array.isArray(data) && data.length > 0) return data

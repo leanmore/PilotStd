@@ -38,8 +38,9 @@ import zhCN from './locales/zh-CN.json'
 import en from './locales/en.json'
 import zhTW from './locales/zh-TW.json'
 import { isDarkTheme } from '@/config/themes'
+import { getItem } from '@/lib/storage'
 
-const savedLocale = (localStorage.getItem('locale') || 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
+const savedLocale = (getItem('locale') || 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
 
 const messages = {
   'zh-CN': zhCN,
@@ -83,7 +84,7 @@ const primevueLocales: Record<string, any> = {
 }
 
 // 检测初始主题的明暗类型
-const savedTheme = localStorage.getItem('theme') || 'light'
+const savedTheme = getItem('theme') || 'light'
 const initialDark = isDarkTheme(savedTheme)
 
 const app = createApp(App)

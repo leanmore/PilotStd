@@ -1,12 +1,13 @@
 <script setup lang="ts">
 defineOptions({ name: 'PendingView' })
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import { getPendingItems, postRequery } from '@/api'
+import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
 
 const input = ref('')
@@ -14,7 +15,8 @@ const results = ref<any[]>([])
 const loading = ref(false)
 const error = ref('')
 const importMsg = ref('')
-const selectedSite = ref('ahbz')
+const selectedSite = ref(getItem('pending_site') || 'ahbz')
+watch(selectedSite, (v) => setItem('pending_site', v))
 
 const page = ref(0)
 const rows = ref(25)
