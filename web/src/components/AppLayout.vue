@@ -9,6 +9,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { usePreferencesStore } from '@/stores/preferences'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
@@ -36,24 +37,26 @@ const isDesktop = ref(window.innerWidth >= 1024)
 const isTablet = ref(window.innerWidth >= 768 && window.innerWidth < 1024)
 const isMobile = ref(window.innerWidth < 768)
 
-// 侧边栏折叠 - 平板默认折叠，桌面默认展开
+// 侧边栏折叠 - 从偏好恢复，平板/移动端默认折叠
 const sidebarCollapsed = ref(!isDesktop.value)
+
+async function loadSidebarState() {
+  try {
+    const prefs = usePreferencesStore()
+    const saved = await prefs.get<boolean>('sidebar_collapsed')
+    if (typeof saved === 'boolean') sidebarCollapsed.value = saved
+  } catch { /* 未登录时使用默认值 */ }
+}
 
 function onResize() {
   isDesktop.value = window.innerWidth >= 1024
   isTablet.value = window.innerWidth >= 768 && window.innerWidth < 1024
   isMobile.value = window.innerWidth < 768
-  // 切换断点时自动调整侧边栏
-  if (isMobile.value) {
-    sidebarCollapsed.value = true
-  } else if (isDesktop.value) {
-    sidebarCollapsed.value = false
-  } else {
-    sidebarCollapsed.value = true
-  }
+  // 移动端始终折叠（避免覆盖内容），桌面/平板保持用户选择
+  if (isMobile.value) sidebarCollapsed.value = true
 }
 
-onMounted(() => window.addEventListener('resize', onResize))
+onMounted(() => { loadSidebarState(); window.addEventListener('resize', onResize) })
 onUnmounted(() => window.removeEventListener('resize', onResize))
 
 // ── 计算属性 ──
@@ -65,7 +68,10 @@ const pageTitle = computed(() => {
 const isDark = computed(() => store.theme === 'dark')
 
 // ── 事件处理 ──
-function toggleSidebar() { sidebarCollapsed.value = !sidebarCollapsed.value }
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  usePreferencesStore().set('sidebar_collapsed', sidebarCollapsed.value).catch(() => {})
+}
 function toggleTheme() { store.theme = isDark.value ? 'light' : 'dark' }
 function logout() { router.push('/login') }
 </script>
