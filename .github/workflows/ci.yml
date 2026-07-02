@@ -224,10 +224,19 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: Install and test
+      - name: Install dependencies
         run: |
           cd web
           pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Type check
+        run: |
+          cd web
+          pnpm run type-check
+
+      - name: Run tests
+        run: |
+          cd web
           pnpm vitest run
 
       - name: Check dead TypeScript exports
