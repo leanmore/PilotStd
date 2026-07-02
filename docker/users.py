@@ -39,7 +39,7 @@ def init_users_table() -> None:
             salt TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
             must_change_password INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
     """)
     # 迁移：从旧表结构补齐可能缺失的列（须在 SELECT 之前，否则新列查询失败）
@@ -61,7 +61,7 @@ def init_users_table() -> None:
 
     # 确保管理员用户存在
     existing = db.fetchone(
-        "SELECT id, password_hash, salt, must_change_password FROM users WHERE username = ?",
+        "SELECT id, password_hash, salt, role, must_change_password FROM users WHERE username = ?",
         (admin_user,),
     )
     if not existing:
@@ -82,7 +82,11 @@ def init_users_table() -> None:
             (admin_user, h, s, "admin", must_change),
         )
     else:
-        # 已有管理员用户：检测弱密码，若哈希匹配弱密码则强制改密
+        # 已有管理员用户：确保 role 正确（修复迁移缺口：用户先注册后设为 SUPERUSER 的情况）
+        if existing.get("role") != "admin":
+            db.execute("UPDATE users SET role = 'admin' WHERE username = ?", (admin_user,))
+            print(f"[MIGRATION] 已将超级用户 {admin_user} 的 role 修正为 admin")
+        # 检测弱密码：若哈希匹配弱密码则强制改密
         if not existing["must_change_password"]:
             for weak in WEAK_PASSWORDS:
                 h_check, _ = _hash(weak, existing["salt"])

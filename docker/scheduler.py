@@ -164,7 +164,7 @@ def _heartbeat_loop() -> None:
                 # 兜底：id=1 记录被 stop_scheduler 清理后，重建并更新
                 db.execute(
                     "INSERT OR IGNORE INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
-                    "VALUES (1, 0, datetime('now'), datetime('now'))"
+                    "VALUES (1, 0, datetime('now', 'localtime'), datetime('now', 'localtime'))"
                 )
                 db.execute(
                     "UPDATE scheduler_lock SET heartbeat_at=? WHERE id=1",

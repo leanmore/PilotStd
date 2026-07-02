@@ -65,7 +65,7 @@ def _ensure_static_token_in_db():
                 description TEXT DEFAULT '',
                 scopes TEXT DEFAULT '[]',
                 is_active INTEGER DEFAULT 1,
-                created_at TEXT DEFAULT (datetime('now')),
+                created_at TEXT DEFAULT (datetime('now', 'localtime')),
                 last_used_at TEXT
             )
         """)
@@ -310,7 +310,7 @@ def verify_api_key(token: str) -> dict | None:
         return None
     # 更新 last_used_at
     db.execute(
-        "UPDATE api_keys SET last_used_at = datetime('now') WHERE key_hash = ?",
+        "UPDATE api_keys SET last_used_at = datetime('now', 'localtime') WHERE key_hash = ?",
         (key_hash,),
     )
     try:
