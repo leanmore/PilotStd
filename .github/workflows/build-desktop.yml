@@ -67,7 +67,7 @@ jobs:
             exit 1
           }
           pyinstaller desktop/PilotStd.spec --noconfirm
-          $exe_path = "desktop/dist/PilotStd.exe"
+          $exe_path = "dist/PilotStd.exe"
           if (-not (Test-Path $exe_path)) {
             Write-Error "PyInstaller 产物缺失: $exe_path"
             exit 1
@@ -85,7 +85,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $version = "${{ steps.version.outputs.version }}"
           $zip_name = "PilotStd-$version.zip"
-          Compress-Archive -Path "desktop/dist/PilotStd.exe" -DestinationPath $zip_name
+          Compress-Archive -Path "dist/PilotStd.exe" -DestinationPath $zip_name
           if (-not (Test-Path $zip_name)) {
             Write-Error "打包失败: $zip_name"
             exit 1
