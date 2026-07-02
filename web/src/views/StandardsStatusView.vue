@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'StandardsStatusView' })
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Select from 'primevue/select'
@@ -8,6 +8,7 @@ import InputText from 'primevue/inputtext'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import { getStandardsStats, getStandardsStatus, type StandardStatusItem } from '@/api/standards'
+import { getItem, setItem } from '@/lib/storage'
 
 const stats = ref({ active: 0, inactive: 0, unknown: 0 })
 const items = ref<StandardStatusItem[]>([])
@@ -20,6 +21,27 @@ const errMsg = ref('')
 const filterStatus = ref<string | null>(null)
 const filterStandardNo = ref('')
 const filterName = ref('')
+
+// 从 localStorage 恢复筛选条件
+function loadFilters() {
+  try {
+    const raw = getItem('standards_filters')
+    if (raw) {
+      const f = JSON.parse(raw)
+      filterStatus.value = f.s ?? null
+      filterStandardNo.value = f.n ?? ''
+      filterName.value = f.m ?? ''
+    }
+  } catch { /* ignore */ }
+}
+
+function saveFilters() {
+  setItem('standards_filters', JSON.stringify({
+    s: filterStatus.value, n: filterStandardNo.value, m: filterName.value,
+  }))
+}
+
+watch([filterStatus, filterStandardNo, filterName], saveFilters, { deep: true })
 
 const statusOptions = [
   { label: '全部', value: null },
@@ -87,6 +109,7 @@ const pages = () => {
 }
 
 onMounted(() => {
+  loadFilters()
   loadStats()
   loadList()
 })

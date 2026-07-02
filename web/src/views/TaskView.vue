@@ -1,7 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'TaskView' })
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
+import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
@@ -10,7 +11,8 @@ import Paginator from 'primevue/paginator'
 import LogBar from '@/components/LogBar.vue'
 
 const paths = ref<string[]>(['/inbox', '/standards'])
-const selectedPath = ref('/inbox')
+const selectedPath = ref(getItem('task_path') || '/inbox')
+watch(selectedPath, (v) => setItem('task_path', v))
 const running = ref(false)
 const currentStep = ref(-1)
 

@@ -10,6 +10,7 @@ import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 import { getNotificationLogs, type NotificationLog } from '@/api/notification'
+import { getItem, setItem } from '@/lib/storage'
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -20,7 +21,7 @@ const page = ref(1)
 const pageSize = 20
 const loading = ref(false)
 const errMsg = ref('')
-const tableHeight = ref(400)
+const tableHeight = ref(Number(getItem('notiflog_height')) || 400)
 
 // 拖拽调整高度
 let startY = 0
@@ -42,6 +43,7 @@ function onResizeMove(e: MouseEvent) {
 function onResizeEnd() {
   document.removeEventListener('mousemove', onResizeMove)
   document.removeEventListener('mouseup', onResizeEnd)
+  setItem('notiflog_height', String(tableHeight.value))
 }
 
 // 筛选
@@ -50,6 +52,30 @@ const filterStatus = ref<string | null>(null)
 const filterStartDate = ref<Date | null>(null)
 const filterEndDate = ref<Date | null>(null)
 const filterIsRead = ref<boolean | null>(null)
+
+function loadNotifFilters() {
+  try {
+    const raw = getItem('notiflog_filters')
+    if (!raw) return
+    const f = JSON.parse(raw)
+    filterChannel.value = f.ch ?? null
+    filterStatus.value = f.st ?? null
+    filterStartDate.value = f.sd ? new Date(f.sd) : null
+    filterEndDate.value = f.ed ? new Date(f.ed) : null
+    filterIsRead.value = f.ir ?? null
+  } catch { /* ignore */ }
+}
+
+function saveNotifFilters() {
+  setItem('notiflog_filters', JSON.stringify({
+    ch: filterChannel.value, st: filterStatus.value,
+    sd: filterStartDate.value?.toISOString() ?? null,
+    ed: filterEndDate.value?.toISOString() ?? null,
+    ir: filterIsRead.value,
+  }))
+}
+
+watch([filterChannel, filterStatus, filterStartDate, filterEndDate, filterIsRead], saveNotifFilters, { deep: true })
 const highlightId = ref<number | null>(null)
 
 // 详情弹窗
@@ -179,7 +205,7 @@ const pages = () => {
   return range
 }
 
-onMounted(loadLogs)
+onMounted(() => { loadNotifFilters(); loadLogs() })
 </script>
 
 <template>

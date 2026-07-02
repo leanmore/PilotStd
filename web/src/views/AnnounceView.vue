@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceView' })
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import { getItem, setItem } from '@/lib/storage'
@@ -24,7 +24,8 @@ const summaryLabelMap: Record<string, string> = {
 
 // 起始日期默认今天
 function defaultSince(): Date {
-  return new Date()
+  const saved = getItem('announce_since')
+  return saved ? new Date(saved) : new Date()
 }
 
 const tab = ref<'gb'|'hb'|'db'>(getItem('announce_tab') as any || 'gb')
@@ -38,6 +39,7 @@ const summary = ref<any>({})
 const loading = ref(false)
 const lastCheck = ref('')
 const sinceDate = ref<Date>(defaultSince())
+watch(sinceDate, (v) => setItem('announce_since', v.toISOString()))
 const error = ref('')
 
 function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; setItem('announce_tab', k); load() }
