@@ -4,8 +4,14 @@ import sys
 import os
 from pathlib import Path
 
-# 运行时路径注入：确保打包后能正确找到项目根目录的模块
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# 运行时路径注入：确保 collect_submodules 能找到项目包
+# spec 由 PyInstaller 通过 exec() 执行，__file__ 在该上下文中不可用，
+# 因此回退到 os.getcwd()（CI 和本地均从项目根目录运行 pyinstaller）
+try:
+    _spec_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    _spec_dir = os.getcwd()
+sys.path.insert(0, os.path.abspath(os.path.join(_spec_dir, "..")))
 
 import PyQt6
 from PyInstaller.utils.hooks import collect_submodules
