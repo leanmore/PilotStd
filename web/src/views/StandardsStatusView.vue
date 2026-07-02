@@ -13,7 +13,7 @@ import { getItem, setItem } from '@/lib/storage'
 const stats = ref({ active: 0, inactive: 0, unknown: 0 })
 const items = ref<StandardStatusItem[]>([])
 const total = ref(0)
-const page = ref(1)
+const page = ref(Number(getItem('standards_page')) || 1)
 const pageSize = 20
 const loading = ref(false)
 const errMsg = ref('')
@@ -90,6 +90,7 @@ function onSearch() {
 
 function onPageChange(p: number) {
   page.value = p
+  setItem('standards_page', String(p))
   loadList()
 }
 

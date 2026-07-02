@@ -3,6 +3,7 @@ defineOptions({ name: 'TaskView' })
 import { ref, onMounted, computed, watch } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import { getItem, setItem } from '@/lib/storage'
+import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
@@ -50,7 +51,7 @@ onMounted(() => {
   loadPaths()
 })
 
-const historyPage = ref(0)
+const historyPage = ref(Number(getItem('task_history_page')) || 0)
 const historyRows = ref(10)
 
 const paginatedHistory = computed(() => {
@@ -60,6 +61,7 @@ const paginatedHistory = computed(() => {
 
 function onHistoryPage(e: any) {
   historyPage.value = e.page
+  setItem('task_history_page', String(e.page))
 }
 
 function saveHistory(status: 'success'|'partial'|'fail') {

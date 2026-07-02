@@ -3,6 +3,7 @@ defineOptions({ name: 'OrganizeView' })
 import { ref, onMounted, computed } from 'vue'
 import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'
+import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import DataView from 'primevue/dataview'
@@ -87,7 +88,7 @@ async function doEnqueue() {
 
 onMounted(() => browse())
 
-const page = ref(0)
+const page = ref(Number(getItem('organize_page')) || 0)
 const rows = ref(30)
 
 const paginatedFiles = computed(() => {
@@ -97,6 +98,7 @@ const paginatedFiles = computed(() => {
 
 function onPage(e: any) {
   page.value = e.page
+  setItem('organize_page', String(e.page))
 }
 
 // 面包屑：当前路径拆成逐段可点击的导航

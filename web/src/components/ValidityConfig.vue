@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
@@ -10,6 +10,7 @@ import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
+import { getItem, setItem } from '@/lib/storage'
 
 const config = ref<ValidityConfig>({
   frequency: 'weekly', execute_time: '03:00', batch_size: 50,
@@ -60,11 +61,31 @@ async function doRun() {
 // ── 执行记录（扩展版） ──
 const history = ref<ValidityHistoryItem[]>([])
 const histTotal = ref(0)
-const histPage = ref(1)
+const histPage = ref(Number(getItem('validity_hist_page')) || 1)
 const histPageSize = 20
 const filterStatus = ref<string | null>(null)
 const filterStart = ref('')
 const filterEnd = ref('')
+
+function loadValidityFilters() {
+  try {
+    const raw = getItem('validity_filters')
+    if (!raw) return
+    const f = JSON.parse(raw)
+    filterStatus.value = f.st ?? null
+    filterStart.value = f.sd ?? ''
+    filterEnd.value = f.ed ?? ''
+  } catch { /* ignore */ }
+}
+
+function saveValidityFilters() {
+  setItem('validity_filters', JSON.stringify({
+    st: filterStatus.value, sd: filterStart.value, ed: filterEnd.value,
+  }))
+}
+
+watch([filterStatus, filterStart, filterEnd], saveValidityFilters, { deep: true })
+watch(histPage, (v) => setItem('validity_hist_page', String(v)))
 const detailItem = ref<ValidityHistoryItem | null>(null)
 const detailVisible = ref(false)
 
@@ -96,7 +117,7 @@ const pages = computed(() => {
   return r
 })
 
-onMounted(() => { loadConfig(); loadHistory() })
+onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 </script>
 
 <template>

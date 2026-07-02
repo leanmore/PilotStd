@@ -17,7 +17,7 @@ const { locale } = useI18n()
 
 const logs = ref<NotificationLog[]>([])
 const total = ref(0)
-const page = ref(1)
+const page = ref(Number(getItem('notiflog_page')) || 1)
 const pageSize = 20
 const loading = ref(false)
 const errMsg = ref('')
@@ -163,6 +163,7 @@ function onReset() {
 
 function onPageChange(p: number) {
   page.value = p
+  setItem('notiflog_page', String(p))
   loadLogs()
 }
 

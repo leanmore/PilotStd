@@ -3,6 +3,7 @@ defineOptions({ name: 'TaskManager' })
 // TaskManager.vue — 任务队列管理界面
 import { ref, onMounted } from 'vue'
 import http from '@/api/http'
+import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -30,8 +31,14 @@ interface TaskItem {
 
 const tasks = ref<TaskItem[]>([])
 const total = ref(0)
-const page = ref(0)
+const page = ref(Number(getItem('taskmgr_page')) || 0)
 const filter = ref('')
+
+function onPage(e: any) {
+  page.value = e.page
+  setItem('taskmgr_page', String(e.page))
+  loadTasks()
+}
 const loading = ref(false)
 const detailTask = ref<TaskItem | null>(null)
 
@@ -97,7 +104,7 @@ onMounted(loadTasks)
       <span style="font-size:12px;color:var(--text-dim);margin-left:auto">共 {{ total }} 条</span>
     </div>
 
-    <DataTable :value="tasks" striped-rows size="small" class="mt-2" paginator :rows="30" :total-records="total" @page="page = $event.page; loadTasks()">
+    <DataTable :value="tasks" striped-rows size="small" class="mt-2" paginator :rows="30" :total-records="total" @page="onPage">
       <Column field="task_id" header="任务ID" style="min-width:130px">
         <template #body="{ data }"><code style="font-size:11px">{{ data.task_id.slice(0, 12) }}</code></template>
       </Column>

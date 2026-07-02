@@ -18,7 +18,7 @@ const importMsg = ref('')
 const selectedSite = ref(getItem('pending_site') || 'ahbz')
 watch(selectedSite, (v) => setItem('pending_site', v))
 
-const page = ref(0)
+const page = ref(Number(getItem('pending_page')) || 0)
 const rows = ref(25)
 
 const paginatedResults = computed(() => {
@@ -28,6 +28,7 @@ const paginatedResults = computed(() => {
 
 function onPage(e: any) {
   page.value = e.page
+  setItem('pending_page', String(e.page))
 }
 
 const sites = [

@@ -68,8 +68,8 @@ async function check() {
 
 onMounted(load)
 
-const page = ref(0)
-const rows = ref(25)
+const page = ref(Number(getItem('announce_page')) || 0)
+const rows = ref(Number(getItem('announce_rows')) || 25)
 
 const paginatedResults = computed(() => {
   const start = page.value * rows.value
@@ -78,6 +78,7 @@ const paginatedResults = computed(() => {
 
 function onPage(e: any) {
   page.value = e.page
+  setItem('announce_page', String(e.page))
 }
 </script>
 
