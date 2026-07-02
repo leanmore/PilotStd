@@ -67,7 +67,7 @@ def set_config(updates: dict) -> None:
                 val = str(val)
             db.execute(
                 "INSERT OR REPLACE INTO cache_config (config_key, config_value, updated_at) "
-                "VALUES (?, ?, datetime('now'))",
+                "VALUES (?, ?, datetime('now', 'localtime'))",
                 (f"monitor.{key}", val),
             )
 
@@ -78,7 +78,7 @@ def increment_stat(key: str) -> None:
     db.execute(
         "INSERT OR REPLACE INTO cache_config (config_key, config_value, updated_at) "
         "VALUES (?, CAST(COALESCE((SELECT CAST(config_value AS INTEGER) "
-        "FROM cache_config WHERE config_key=?), 0) + 1 AS TEXT), datetime('now'))",
+        "FROM cache_config WHERE config_key=?), 0) + 1 AS TEXT), datetime('now', 'localtime'))",
         (f"monitor.{key}", f"monitor.{key}"),
     )
 
@@ -89,6 +89,7 @@ def set_last_processed(path: str) -> None:
     from datetime import datetime
 
     db.execute(
-        "INSERT OR REPLACE INTO cache_config (config_key, config_value, updated_at) VALUES (?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO cache_config (config_key, config_value, updated_at) "
+        "VALUES (?, ?, datetime('now', 'localtime'))",
         ("monitor.last_processed", f"{datetime.now().isoformat()} | {path}"),
     )

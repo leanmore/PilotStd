@@ -54,19 +54,26 @@ def init_users_table() -> None:
         db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
     if "must_change_password" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
-    # 超级用户名由环境变量 SUPERUSER 统一指定（pilotstd.SUPERUSER_USERNAME）
-    admin_user = SUPERUSER_USERNAME
-    # 常见弱密码列表，用于检测已存在管理员是否需要强制改密
+
+    _ensure_superuser(db, SUPERUSER_USERNAME)
+
+
+def _ensure_superuser(db: Database, username: str) -> None:
+    """确保超级用户存在且角色为 admin。
+    - 不存在 → 创建（自动生成或使用 ADMIN_PASSWORD 环境变量）
+    - 存在但 role != 'admin' → 校准为 admin
+    - 存在且 role == 'admin' → 跳过
+    """
     WEAK_PASSWORDS = ["admin", "123456", "password", "admin123", "12345678"]
 
-    # 确保管理员用户存在
     existing = db.fetchone(
         "SELECT id, password_hash, salt, role, must_change_password FROM users WHERE username = ?",
-        (admin_user,),
+        (username,),
     )
+
     if not existing:
         admin_pass = os.environ.get("ADMIN_PASSWORD") or secrets.token_urlsafe(12)
-        must_change = 0 if os.environ.get("ADMIN_PASSWORD") else 1  # 自动生成密码则强制改密
+        must_change = 0 if os.environ.get("ADMIN_PASSWORD") else 1
         if not os.environ.get("ADMIN_PASSWORD"):
             print(
                 f"\n{'=' * 60}\n"
@@ -79,24 +86,29 @@ def init_users_table() -> None:
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (admin_user, h, s, "admin", must_change),
+            (username, h, s, "admin", must_change),
         )
+        print(f"[Init] 超级用户 '{username}' 已创建 (role=admin)")
+        return
+
+    # 已存在：校准角色
+    if existing["role"] != "admin":
+        db.execute("UPDATE users SET role = 'admin' WHERE username = ?", (username,))
+        print(f"[Init] 已升级现有用户 '{username}' 为 admin")
     else:
-        # 已有管理员用户：确保 role 正确（修复迁移缺口：用户先注册后设为 SUPERUSER 的情况）
-        if existing.get("role") != "admin":
-            db.execute("UPDATE users SET role = 'admin' WHERE username = ?", (admin_user,))
-            print(f"[MIGRATION] 已将超级用户 {admin_user} 的 role 修正为 admin")
-        # 检测弱密码：若哈希匹配弱密码则强制改密
-        if not existing["must_change_password"]:
-            for weak in WEAK_PASSWORDS:
-                h_check, _ = _hash(weak, existing["salt"])
-                if h_check == existing["password_hash"]:
-                    db.execute(
-                        "UPDATE users SET must_change_password = 1 WHERE username = ?",
-                        (admin_user,),
-                    )
-                    print(f"\n{'=' * 60}\n  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n{'=' * 60}\n")
-                    break
+        print(f"[Init] 超级用户 '{username}' 角色已正确")
+
+    # 检测弱密码
+    if not existing["must_change_password"]:
+        for weak in WEAK_PASSWORDS:
+            h_check, _ = _hash(weak, existing["salt"])
+            if h_check == existing["password_hash"]:
+                db.execute(
+                    "UPDATE users SET must_change_password = 1 WHERE username = ?",
+                    (username,),
+                )
+                print(f"\n{'=' * 60}\n  ⚠️  检测到管理员密码为弱密码，已要求首次登录后修改！\n{'=' * 60}\n")
+                break
 
 
 def verify_user(username: str, password: str) -> bool:

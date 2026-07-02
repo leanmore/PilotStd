@@ -51,7 +51,7 @@ class ValidityService:
             try:
                 db.execute(
                     "INSERT OR IGNORE INTO validity_check_queue "
-                    "(file_path, status, created_at) VALUES (?, 'pending', datetime('now'))",
+                    "(file_path, status, created_at) VALUES (?, 'pending', datetime('now', 'localtime'))",
                     (str(fp),),
                 )
                 inserted += 1

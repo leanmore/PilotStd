@@ -199,8 +199,8 @@ class Database:
                 " total_response_time, cooldown_count, last_cooldown_reason, "
                 " last_cooldown_at, last_updated) "
                 "VALUES (?, 1, ?, ?, ?, ?, "
-                " CASE WHEN ? THEN datetime('now') ELSE NULL END, "
-                " datetime('now')) "
+                " CASE WHEN ? THEN datetime('now', 'localtime') ELSE NULL END, "
+                " datetime('now', 'localtime')) "
                 "ON CONFLICT(adapter_name) DO UPDATE SET "
                 "total_queries = total_queries + 1, "
                 "successful_queries = successful_queries + ?, "
@@ -208,9 +208,9 @@ class Database:
                 "cooldown_count = cooldown_count + ?, "
                 "last_cooldown_reason = CASE WHEN ? THEN ? "
                 "   ELSE adapter_stats.last_cooldown_reason END, "
-                "last_cooldown_at = CASE WHEN ? THEN datetime('now') "
+                "last_cooldown_at = CASE WHEN ? THEN datetime('now', 'localtime') "
                 "   ELSE adapter_stats.last_cooldown_at END, "
-                "last_updated = datetime('now')",
+                "last_updated = datetime('now', 'localtime')",
                 (
                     adapter_name,
                     1 if success else 0,

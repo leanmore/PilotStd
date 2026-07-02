@@ -41,7 +41,7 @@ class UserService:
             return {"error": "缺少 layout 字段"}
         self._mgr.db.execute(
             "INSERT OR REPLACE INTO user_layouts (user_id, layout_key, layout_data, updated_at) "
-            "VALUES (?, 'dashboard', ?, datetime('now'))",
+            "VALUES (?, 'dashboard', ?, datetime('now', 'localtime'))",
             (user_id, layout_data),
         )
         return {"ok": True}
@@ -80,7 +80,7 @@ class UserService:
     def save_preference(self, user_id: int, key: str, value: Any) -> dict[str, Any]:
         self._mgr.db.execute(
             "INSERT OR REPLACE INTO user_preferences (user_id, preference_key, preference_value, updated_at) "
-            "VALUES (?, ?, ?, datetime('now'))",
+            "VALUES (?, ?, ?, datetime('now', 'localtime'))",
             (user_id, key, json.dumps(value, ensure_ascii=False)),
         )
         return {"ok": True, "key": key}
@@ -91,7 +91,7 @@ class UserService:
         for key, val in preferences.items():
             self._mgr.db.execute(
                 "INSERT OR REPLACE INTO user_preferences (user_id, preference_key, preference_value, updated_at) "
-                "VALUES (?, ?, ?, datetime('now'))",
+                "VALUES (?, ?, ?, datetime('now', 'localtime'))",
                 (user_id, key, json.dumps(val, ensure_ascii=False)),
             )
         return {"ok": True, "count": len(preferences)}

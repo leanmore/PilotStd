@@ -335,7 +335,7 @@ class SiteRotator:
                 target.execute(
                     "INSERT OR REPLACE INTO rotator_state "
                     "(site_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "  # noqa: E501
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                     (
                         name,
                         site.request_count,

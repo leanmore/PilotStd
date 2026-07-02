@@ -109,7 +109,7 @@ def _migrate_v6_add_rotator_state(db: Any) -> None:
             cooldown_until REAL NOT NULL DEFAULT 0.0,
             consecutive_errors INTEGER NOT NULL DEFAULT 0,
             active_url TEXT NOT NULL DEFAULT '',
-            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
     """)
 
@@ -174,7 +174,7 @@ def _migrate_v12_adapter_stats(db: Any) -> None:
             adapter_name TEXT PRIMARY KEY,
             total_queries INTEGER DEFAULT 0,
             successful_queries INTEGER DEFAULT 0,
-            last_updated TEXT DEFAULT (datetime('now'))
+            last_updated TEXT DEFAULT (datetime('now', 'localtime'))
         )
     """)
 
@@ -204,7 +204,7 @@ def _migrate_v14_api_keys(db: Any) -> None:
             key_hash TEXT NOT NULL UNIQUE,
             description TEXT NOT NULL DEFAULT '',
             scopes TEXT NOT NULL DEFAULT '[]',
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
             expires_at TEXT,
             last_used_at TEXT,
             is_active INTEGER NOT NULL DEFAULT 1,
@@ -314,7 +314,7 @@ def _migrate_v19_users(db: Any) -> None:
             salt TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
             must_change_password INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
     """)
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
