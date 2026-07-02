@@ -3,7 +3,6 @@ defineOptions({ name: 'TaskView' })
 import { ref, onMounted, computed, watch } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import { getItem, setItem } from '@/lib/storage'
-import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
