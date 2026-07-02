@@ -63,6 +63,9 @@ a = Analysis(
         "fastapi.*",
         "starlette",
         "starlette.*",
+        # ddddocr 内嵌 API 子模块（依赖 fastapi，桌面端不需要）
+        "ddddocr.api",
+        "ddddocr.api.*",
         # 定时任务
         "apscheduler",
         "apscheduler.*",
