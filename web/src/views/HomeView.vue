@@ -44,7 +44,7 @@ function getWidgetComponent(type: string) {
 </script>
 
 <template>
-  <div class="dashboard-container" :class="{ 'layout-locked': store.isLocked }">
+  <div class="dashboard-container">
     <div class="page-header">
       <div>
         <h1>PilotStd</h1>
@@ -69,8 +69,8 @@ function getWidgetComponent(type: string) {
       v-model:layout="layout"
       :col-num="store.colNum"
       :row-height="60"
-      :is-draggable="!store.isLocked"
-      :is-resizable="!store.isLocked"
+      :is-draggable="true"
+      :is-resizable="true"
       :is-mirrored="false"
       :prevent-collision="false"
       :auto-size="true"
@@ -162,13 +162,6 @@ function getWidgetComponent(type: string) {
   cursor: grabbing;
 }
 
-/* 锁定状态：禁用拖拽/拉伸 */
-.layout-locked :deep(.vgl-item__content) {
-  cursor: default !important;
-}
-.layout-locked :deep(.vgl-item__resizer) {
-  display: none !important;
-}
 @media (max-width: 767px) {
   .page-header { margin-bottom: 20px; padding-bottom: 16px; }
   .page-header h1 { font-size: 20px; }
