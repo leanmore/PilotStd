@@ -271,18 +271,12 @@ jobs:
         with:
           version: 9
 
-      # 前端构建 — vue-tsc 已在前置 job 中通过，此处仅 vite build
-      # 注：若报 "Element is missing end tag" 是 Vite 8 Rolldown 已知 bug，
-      #     实际模板经 vue-tsc 验证无误。DEBUG 环境变量用于辅助排查。
       - name: Build frontend
         run: |
           cd web
           rm -rf node_modules/.vite
-          pnpm store prune --force 2>/dev/null || true
           pnpm install --frozen-lockfile
           pnpm run build
-        env:
-          DEBUG: 'vite:*'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
