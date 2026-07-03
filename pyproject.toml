@@ -1,6 +1,6 @@
 [project]
 name = "pilotstd"
-version = "0.55.26"
+version = "0.55.27"
 description = "标准文件管理工具"
 # Note: Dependencies are managed via requirements*.txt for Docker/PyInstaller builds.
 # PyPI distribution is not supported.
