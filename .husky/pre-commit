@@ -1,3 +1,4 @@
 #!/bin/sh
 # pre-commit — 前端类型检查 + lint-staged
+cd "$(git rev-parse --show-toplevel)/web" && pnpm vue-tsc -b --noEmit || exit 1
 cd "$(git rev-parse --show-toplevel)/web" && npx lint-staged
