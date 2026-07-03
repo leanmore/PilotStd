@@ -246,6 +246,7 @@ jobs:
   # Job 6: 统一构建 — 矩阵策略并行 Docker 镜像 + exe
   # ════════════════════════════════════════════════════════════════
   build:
+    name: ${{ matrix.target }}
     needs: version
     if: |
       always() &&
@@ -253,7 +254,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            target: docker
+          - os: windows-latest
+            target: windows
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
         with:
