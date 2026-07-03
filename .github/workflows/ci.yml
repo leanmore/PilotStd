@@ -243,36 +243,43 @@ jobs:
           git push origin "$TAG"
 
   # ════════════════════════════════════════════════════════════════
-  # Job 6: 统一构建 — 矩阵策略并行 Docker 镜像 + exe
+  # Job 6: Docker 镜像构建
   # ════════════════════════════════════════════════════════════════
-  build:
-    name: ${{ matrix.target }}
+  docker:
+    name: docker
     needs: version
     if: |
       always() &&
       (needs.version.result == 'success' || needs.version.result == 'skipped')
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: docker
-          - os: windows-latest
-            target: windows
-      fail-fast: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
 
-      # ---- Docker 构建 (ubuntu-latest) ----
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Build frontend
+        run: |
+          cd web
+          pnpm install --frozen-lockfile
+          pnpm run build
+
       - name: Set up Docker Buildx
-        if: runner.os == 'Linux'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GitHub Container Registry
-        if: runner.os == 'Linux'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -280,7 +287,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        if: runner.os == 'Linux'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -291,9 +297,26 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.version }}
 
-      # ---- exe 构建 (windows-latest) ----
+  # ════════════════════════════════════════════════════════════════
+  # Job 7: exe 构建
+  # ════════════════════════════════════════════════════════════════
+  exe:
+    name: exe
+    needs: version
+    if: |
+      always() &&
+      (needs.version.result == 'success' || needs.version.result == 'skipped')
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Setup Python
-        if: runner.os == 'Windows'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -301,17 +324,21 @@ jobs:
           cache-dependency-path: desktop/requirements-win.txt
 
       - name: Install dependencies
-        if: runner.os == 'Windows'
         run: |
           pip install -r desktop/requirements-win.txt
+          pip install fastapi uvicorn
           pip install pyinstaller
 
+      - name: Create data directory if not exists
+        run: |
+          if not exist data mkdir data
+        shell: cmd
+
       - name: Build exe with PyInstaller
-        if: runner.os == 'Windows'
         run: pyinstaller desktop/PilotStd.spec --noconfirm
 
       - name: Upload exe to Release
-        if: runner.os == 'Windows' && needs.version.outputs.bumped == 'true'
+        if: needs.version.outputs.bumped == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
