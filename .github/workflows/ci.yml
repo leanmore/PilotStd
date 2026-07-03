@@ -69,10 +69,16 @@ jobs:
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
+          OLD_VER=$(python -c "from pilotstd import __version__; print(__version__)")
           python .github/scripts/bump_version.py --github --update "$COMMIT_MSG"
           NEW_VER=$(python -c "from pilotstd import __version__; print(__version__)")
           echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
           echo "tag=v$NEW_VER" >> $GITHUB_OUTPUT
+          if [ "$OLD_VER" != "$NEW_VER" ]; then
+            echo "bumped=true" >> $GITHUB_OUTPUT
+          else
+            echo "bumped=false" >> $GITHUB_OUTPUT
+          fi
           echo "New version: $NEW_VER"
 
       - name: Commit version bump
