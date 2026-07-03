@@ -20,13 +20,15 @@ const defaultHeights: Record<string, number> = {
   '/announce': 200,
 }
 
-const heightKey = computed(() =>
-  `logbar_height_${route.path.replace(/\//g, '_')}`
-)
+const heightKey = computed(() => {
+  const path = route?.path
+  return path ? `logbar_height_${path.replace(/\//g, '_')}` : 'logbar_height_global_default'
+})
 
-const defaultHeight = computed(() =>
-  defaultHeights[route.path] || 200
-)
+const defaultHeight = computed(() => {
+  if (!route?.path) return 200
+  return defaultHeights[route.path] || 200
+})
 
 const logHeight = ref(
   Number(getItem(heightKey.value)) || defaultHeight.value
@@ -84,7 +86,8 @@ function onResizeEnd() {
 }
 
 // 路由切换时重新加载该页面对应的高度
-watch(() => route.path, () => {
+watch(() => route?.path, () => {
+  if (!route?.path) return
   const saved = Number(getItem(heightKey.value))
   logHeight.value = (saved && saved > 0) ? saved : defaultHeight.value
 })
