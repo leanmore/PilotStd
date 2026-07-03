@@ -81,7 +81,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
-  async function save() {
+  function save() {
     const data = JSON.stringify(widgets.value)
     setItem(PREF_KEY, data)
     // 保存锁定状态
@@ -91,7 +91,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
     widgets.value.forEach(w => { visMap[w.id] = w.visible })
     setItem('dashboard_widgets_visibility', JSON.stringify(visMap))
     const prefs = usePreferencesStore()
-    await prefs.set(PREF_KEY, widgets.value).catch(() => {})
+    prefs.set(PREF_KEY, widgets.value).catch((err) => {
+      console.warn('保存布局到后端失败，已保留本地缓存:', err)
+    })
   }
 
   function reset() {
