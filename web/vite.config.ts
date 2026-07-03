@@ -6,11 +6,12 @@ import { visualizer } from 'rollup-plugin-visualizer'
 export default defineConfig({
   plugins: [
     vue(),
-    visualizer({
+    // visualizer 仅在本地开发时启用，CI 环境跳过（open: true 在 CI 无意义）
+    ...(process.env.CI ? [] : [visualizer({
       open: true,
       gzipSize: true,
       brotliSize: true,
-    }),
+    })]),
   ],
   resolve: {
     alias: { '@': resolve(__dirname, 'src') },

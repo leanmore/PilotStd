@@ -144,6 +144,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd web
+          rm -rf node_modules/.vite
           pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Type check
@@ -273,8 +274,12 @@ jobs:
       - name: Build frontend
         run: |
           cd web
+          rm -rf node_modules/.vite
+          pnpm store prune --force 2>/dev/null || true
           pnpm install --frozen-lockfile
           pnpm run build
+        env:
+          DEBUG: 'vite:*'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
