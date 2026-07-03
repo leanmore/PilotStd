@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'LogBar' })
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { getItem, setItem } from '@/lib/storage'
 
@@ -9,7 +10,27 @@ const lines = ref<string[]>([])
 const expanded = ref(getItem('logbar_expanded') !== '0')
 const container = ref<HTMLElement | null>(null)
 const err = ref(false)
-const logHeight = ref(Number(getItem('logbar_height')) || 200)
+const route = useRoute()
+
+// 各页面默认高度（根据内容量预设）
+const defaultHeights: Record<string, number> = {
+  '/task': 300,
+  '/pending': 150,
+  '/organize': 200,
+  '/announce': 200,
+}
+
+const heightKey = computed(() =>
+  `logbar_height_${route.path.replace(/\//g, '_')}`
+)
+
+const defaultHeight = computed(() =>
+  defaultHeights[route.path] || 200
+)
+
+const logHeight = ref(
+  Number(getItem(heightKey.value)) || defaultHeight.value
+)
 const isHovering = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 let startY = 0
@@ -59,8 +80,14 @@ function onResizeMove(e: MouseEvent) {
 function onResizeEnd() {
   document.removeEventListener('mousemove', onResizeMove)
   document.removeEventListener('mouseup', onResizeEnd)
-  setItem('logbar_height', String(logHeight.value))
+  setItem(heightKey.value, String(logHeight.value))
 }
+
+// 路由切换时重新加载该页面对应的高度
+watch(() => route.path, () => {
+  const saved = Number(getItem(heightKey.value))
+  logHeight.value = (saved && saved > 0) ? saved : defaultHeight.value
+})
 </script>
 
 <template>

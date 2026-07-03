@@ -44,58 +44,60 @@ function getWidgetComponent(type: string) {
 </script>
 
 <template>
-  <div class="page-header">
-    <div>
-      <h1>PilotStd</h1>
-      <p class="hint">标准管理控制台</p>
+  <div class="dashboard-container" :class="{ 'layout-locked': store.isLocked }">
+    <div class="page-header">
+      <div>
+        <h1>PilotStd</h1>
+        <p class="hint">标准管理控制台</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <Button
+          icon="pi pi-cog"
+          label="管理卡片"
+          size="small"
+          severity="secondary"
+          outlined
+          @click="showManager = true"
+        />
+      </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <Button
-        icon="pi pi-cog"
-        label="管理卡片"
-        size="small"
-        severity="secondary"
-        outlined
-        @click="showManager = true"
-      />
-    </div>
-  </div>
 
-  <WidgetManager :visible="showManager" @close="showManager = false" />
+    <WidgetManager :visible="showManager" @close="showManager = false" />
 
-  <GridLayout
-    v-if="store.loaded"
-    v-model:layout="layout"
-    :col-num="store.colNum"
-    :row-height="60"
-    :is-draggable="true"
-    :is-resizable="true"
-    :is-mirrored="false"
-    :prevent-collision="false"
-    :auto-size="true"
-    :margin="[16, 16]"
-    :use-css-transforms="true"
-    :vertical-compact="true"
-    :restore-on-drag="false"
-    style="min-height: 400px"
-  >
-    <GridItem
-      v-for="widget in visibleWidgets"
-      :key="widget.id"
-      :i="widget.id"
-      :x="widget.layout.x"
-      :y="widget.layout.y"
-      :w="widget.layout.w"
-      :h="widget.layout.h"
-      :min-w="widget.layout.minW || 2"
-      :min-h="widget.layout.minH || 2"
-      class="grid-item-card"
+    <GridLayout
+      v-if="store.loaded"
+      v-model:layout="layout"
+      :col-num="store.colNum"
+      :row-height="60"
+      :is-draggable="!store.isLocked"
+      :is-resizable="!store.isLocked"
+      :is-mirrored="false"
+      :prevent-collision="false"
+      :auto-size="true"
+      :margin="[16, 16]"
+      :use-css-transforms="true"
+      :vertical-compact="true"
+      :restore-on-drag="false"
+      style="min-height: 400px"
     >
-      <component :is="getWidgetComponent(widget.type)" :widget="widget" />
-    </GridItem>
-  </GridLayout>
-  <div v-else style="text-align:center;padding:48px;color:var(--text-dim)">
-    加载布局中...
+      <GridItem
+        v-for="widget in visibleWidgets"
+        :key="widget.id"
+        :i="widget.id"
+        :x="widget.layout.x"
+        :y="widget.layout.y"
+        :w="widget.layout.w"
+        :h="widget.layout.h"
+        :min-w="widget.layout.minW || 2"
+        :min-h="widget.layout.minH || 2"
+        class="grid-item-card"
+      >
+        <component :is="getWidgetComponent(widget.type)" :widget="widget" />
+      </GridItem>
+    </GridLayout>
+    <div v-else style="text-align:center;padding:48px;color:var(--text-dim)">
+      加载布局中...
+    </div>
   </div>
 </template>
 
@@ -144,12 +146,28 @@ function getWidgetComponent(type: string) {
 :deep(.vgl-item__resizer) {
   z-index: 100 !important;
   pointer-events: auto !important;
-  opacity: 0;
+  opacity: 0.3;
   transition: opacity 0.2s;
 }
 
 :deep(.vgl-item:hover .vgl-item__resizer) {
   opacity: 1;
+}
+
+/* 拖拽光标提示 */
+:deep(.vgl-item__content) {
+  cursor: grab;
+}
+:deep(.vgl-item__content:active) {
+  cursor: grabbing;
+}
+
+/* 锁定状态：禁用拖拽/拉伸 */
+.layout-locked :deep(.vgl-item__content) {
+  cursor: default !important;
+}
+.layout-locked :deep(.vgl-item__resizer) {
+  display: none !important;
 }
 @media (max-width: 767px) {
   .page-header { margin-bottom: 20px; padding-bottom: 16px; }

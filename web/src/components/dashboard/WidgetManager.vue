@@ -78,5 +78,52 @@ const notAddedWidgets = () => availableWidgets.filter(w => !store.isVisible(w.id
         </div>
       </div>
     </div>
+
+    <!-- 布局锁定 + 可见性管理 -->
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-weight:600;font-size:13px">锁定布局</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px">锁定后卡片无法拖拽或拉伸，防止误触</div>
+        </div>
+        <button
+          class="lock-toggle"
+          :class="{ active: store.isLocked }"
+          @click="store.toggleLayoutLock()"
+        >
+          <span class="lock-knob" />
+        </button>
+      </div>
+    </div>
   </Dialog>
 </template>
+
+<style scoped>
+.lock-toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.lock-toggle.active {
+  background: var(--primary);
+}
+.lock-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.lock-toggle.active .lock-knob {
+  transform: translateX(20px);
+}

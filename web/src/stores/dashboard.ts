@@ -15,6 +15,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const colNum = ref(12)
   const loading = ref(false)
   const loaded = ref(false)
+  const isLocked = ref(false)  // 布局锁定状态
 
   async function load() {
     if (loaded.value) return
@@ -61,11 +62,34 @@ export const useDashboardStore = defineStore('dashboard', () => {
     reset()
     loading.value = false
     loaded.value = true
+
+    // 加载锁定状态和卡片可见性（所有路径统一执行）
+    const savedLocked = getItem('dashboard_is_locked')
+    if (savedLocked !== null) {
+      isLocked.value = savedLocked === 'true'
+    }
+    const savedVisibility = getItem('dashboard_widgets_visibility')
+    if (savedVisibility) {
+      try {
+        const visMap: Record<string, boolean> = JSON.parse(savedVisibility)
+        widgets.value.forEach(w => {
+          if (visMap[w.id] !== undefined) {
+            w.visible = visMap[w.id]
+          }
+        })
+      } catch { /* ignore parse error */ }
+    }
   }
 
   async function save() {
     const data = JSON.stringify(widgets.value)
     setItem(PREF_KEY, data)
+    // 保存锁定状态
+    setItem('dashboard_is_locked', String(isLocked.value))
+    // 保存卡片可见性
+    const visMap: Record<string, boolean> = {}
+    widgets.value.forEach(w => { visMap[w.id] = w.visible })
+    setItem('dashboard_widgets_visibility', JSON.stringify(visMap))
     const prefs = usePreferencesStore()
     await prefs.set(PREF_KEY, widgets.value).catch(() => {})
   }
@@ -129,8 +153,25 @@ export const useDashboardStore = defineStore('dashboard', () => {
     save()
   }
 
+  function toggleLayoutLock() {
+    isLocked.value = !isLocked.value
+    save()
+  }
+
+  function toggleWidgetVisibility(widgetId: string) {
+    const widget = widgets.value.find(w => w.id === widgetId)
+    if (widget) {
+      widget.visible = !widget.visible
+      layout.value = widgets.value.filter(w => w.visible).map(w => ({ ...w.layout, i: w.id }))
+      save()
+    }
+  }
+
   return {
-    layout, widgets, colNum, loading, loaded,
+    layout, widgets, colNum, loading, loaded, isLocked,
     load, save, reset, addWidget, removeWidget, isVisible, onLayoutUpdated,
+
+    toggleLayoutLock,
+    toggleWidgetVisibility,
   }
 })
