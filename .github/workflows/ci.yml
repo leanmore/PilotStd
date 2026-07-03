@@ -213,8 +213,10 @@ jobs:
 
       - name: Bump version
         id: bump
+        env:
+          COMMIT_MSGS: ${{ steps.commits.outputs.commits }}
         run: |
-          NEW_VER=$(python scripts/version.py ${{ steps.commits.outputs.commits }})
+          NEW_VER=$(python scripts/version.py)
           echo "version=$NEW_VER" >> $GITHUB_OUTPUT
           CURRENT=$(cat VERSION)
           if [ "$NEW_VER" != "$CURRENT" ]; then

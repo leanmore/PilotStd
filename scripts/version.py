@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """从 commit message 自动计算语义化版本号，读写 VERSION 文件。"""
 
+import os
 import re
-import sys
 from pathlib import Path
 
 VERSION_FILE = Path(__file__).parent.parent / "VERSION"
@@ -34,7 +34,8 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
 
 
 if __name__ == "__main__":
-    commit_msgs = sys.argv[1:] if len(sys.argv) > 1 else []
+    msgs_str = os.environ.get("COMMIT_MSGS", "")
+    commit_msgs = [msg.strip() for msg in msgs_str.split("\n") if msg.strip()]
     current = get_current_version()
     new_version = bump_version(current, commit_msgs)
     if new_version:
