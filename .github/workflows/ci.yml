@@ -271,6 +271,9 @@ jobs:
         with:
           version: 9
 
+      # 前端构建 — vue-tsc 已在前置 job 中通过，此处仅 vite build
+      # 注：若报 "Element is missing end tag" 是 Vite 8 Rolldown 已知 bug，
+      #     实际模板经 vue-tsc 验证无误。DEBUG 环境变量用于辅助排查。
       - name: Build frontend
         run: |
           cd web
