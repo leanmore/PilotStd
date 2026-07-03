@@ -291,10 +291,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # 检出 version-bump 产出的 tag，确保镜像内版本号与标签一致
-          ref: ${{ needs.version-bump.outputs.tag || github.ref }}
+          fetch-depth: 0
 
-      # ── 版本号（由 version-bump job 产出）──
+      # ── 版本号（多源回退：tag > version-bump 产出 > git describe）──
       - name: Determine version
         id: version
         run: |
