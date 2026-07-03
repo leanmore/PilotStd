@@ -23,6 +23,36 @@ vi.mock('grid-layout-plus', () => ({
   },
 }))
 
+// mock WidgetManager 和卡片组件，避免深层 SFC 解析链导致 vitest 误报
+vi.mock('@/components/dashboard/WidgetManager.vue', () => ({
+  default: { name: 'WidgetManager', template: '<div class="widget-manager-stub" />', props: ['visible'], emits: ['close'] },
+}))
+
+vi.mock('@/components/dashboard/widgets/StatsCard.vue', () => ({
+  default: { name: 'StatsCard', template: '<div class="stats-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/AdapterStatusAnnounceCard.vue', () => ({
+  default: { name: 'AdapterStatusAnnounceCard', template: '<div class="adapter-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/AdapterStatusQueryCard.vue', () => ({
+  default: { name: 'AdapterStatusQueryCard', template: '<div class="query-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/RecentAnnounceCard.vue', () => ({
+  default: { name: 'RecentAnnounceCard', template: '<div class="recent-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/QuickActionsCard.vue', () => ({
+  default: { name: 'QuickActionsCard', template: '<div class="quick-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/PendingItemsCard.vue', () => ({
+  default: { name: 'PendingItemsCard', template: '<div class="pending-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/SystemInfoCard.vue', () => ({
+  default: { name: 'SystemInfoCard', template: '<div class="system-card-stub" />', props: ['widget'] },
+}))
+vi.mock('@/components/dashboard/widgets/PlaceholderWidget.vue', () => ({
+  default: { name: 'PlaceholderWidget', template: '<div class="placeholder-stub" />', props: ['widget'] },
+}))
+
 function mountHome() {
   const pinia = createPinia()
   setActivePinia(pinia)
