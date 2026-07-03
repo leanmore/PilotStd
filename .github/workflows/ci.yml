@@ -83,7 +83,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "版本号未变更，跳过提交"
           else
-            git commit -m "chore: bump version to v${{ steps.bump.outputs.new_version }} [skip ci]"
+            git commit -m "chore: bump version to v${{ steps.bump.outputs.new_version }}"
             git pull --rebase origin main
             git push
           fi
