@@ -278,7 +278,7 @@ def make_standard_filename(
     num_prefix 为罗马数字时直接作为编号显示，多字母前缀时加空格（如 'Spec 6D'）。"""
     win_code = safe_code_for_filename(logical_code)
     part_str = f".{part}" if part else ""
-    name_part = f" {std_name}" if std_name else ""
+    name_part = f" {re.sub(r'<[^>]+>', '', std_name)}" if std_name else ""
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
     # 罗马数字前缀（≥2字符，如 VIII/IX/XII）：直接用罗马数字替代阿拉伯数字

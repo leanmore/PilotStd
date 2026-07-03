@@ -34,6 +34,7 @@ class FileScanner:
         self.skip_dir_names = config_manager.get("scan.skip_folders", ["过期作废"])
         self.supported_exts = config_manager.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])
         self.skip_file_keywords = config_manager.get("scan.exclude_patterns", [])
+        # Word/模板文件不参与标准号查询（由 archive 阶段以 logical_code="WORD" 写 file_index）
         self.skip_query_exts = config_manager.get("scan.skip_query_exts", [".doc", ".docx"])
         self.log = log or logger
         # 去重：内存哈希集合（本批次）+ 可选的持久化索引（跨扫描）

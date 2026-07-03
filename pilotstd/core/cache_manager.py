@@ -48,9 +48,43 @@ class CacheManager:
 
     def __init__(self, db):
         self._db = db
+        self._ensure_cache_tables()
         self._max_mb = self._load_config_int("max_size_mb", 50)
         self._auto_cleanup = self._load_config_bool("auto_cleanup", True)
         self._cleanup_ratio = self._load_config_float("cleanup_ratio", 0.1)
+
+    def _ensure_cache_tables(self) -> None:
+        """确保 cache_config 和 data_source_versions 表存在（防止迁移遗漏时查询失败）。"""
+        tables = self._db.fetchall(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('cache_config', 'data_source_versions')"
+        )
+        existing = {r["name"] for r in tables} if tables else set()
+        if "cache_config" not in existing:
+            self._db.execute("""
+                CREATE TABLE IF NOT EXISTS cache_config (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    config_key TEXT NOT NULL UNIQUE,
+                    config_value TEXT NOT NULL,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            for ck, cv in (("max_size_mb", "50"), ("auto_cleanup", "true"), ("cleanup_ratio", "0.1")):
+                self._db.execute(
+                    "INSERT OR IGNORE INTO cache_config (config_key, config_value) VALUES (?, ?)", (ck, cv)
+                )
+        if "data_source_versions" not in existing:
+            self._db.execute("""
+                CREATE TABLE IF NOT EXISTS data_source_versions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    source_name TEXT NOT NULL UNIQUE,
+                    version TEXT NOT NULL,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            for src in ("file_index", "announcement", "validity"):
+                self._db.execute(
+                    "INSERT OR IGNORE INTO data_source_versions (source_name, version) VALUES (?, 'initial')", (src,)
+                )
 
     # ── 核心读写 ──────────────────────────────
 

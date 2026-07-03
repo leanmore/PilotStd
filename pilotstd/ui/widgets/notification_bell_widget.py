@@ -2,7 +2,10 @@
 # WinUI 端通知铃铛组件 + WebSocket 客户端
 # 通知数据通过 StandardManager 统一管理，不再自建 SQLite
 import json
+import logging
+import socket
 from datetime import datetime
+from urllib.parse import urlparse
 
 import websocket
 from PyQt6.QtCore import QPoint, Qt, QThread, pyqtSignal
@@ -16,6 +19,8 @@ from PyQt6.QtWidgets import (
     QWidget,
     QWidgetAction,
 )
+
+logger = logging.getLogger("pilotstd.ui")
 
 
 class NotificationItem:
@@ -158,12 +163,43 @@ class NotificationBellWidget(QWidget):
             self._button.setText("🔔")
 
     def _setup_websocket(self) -> None:
-        self._ws_client = WebSocketClient("ws://localhost:8000/api/notification/ws")
+        # 从配置读取 WebSocket 设置
+        from pilotstd.core.config import ConfigManager
+
+        ws_url = ConfigManager().get("websocket.url", "")
+        ws_enabled = ConfigManager().get("websocket.enabled", False)
+
+        if not ws_enabled or not ws_url:
+            logger.debug("WebSocket 通知未启用，跳过连接")
+            self._ws_client = None
+            return
+
+        # 解析 URL 并检测目标可达性
+        parsed = urlparse(ws_url)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 9028
+
+        if not self._is_port_reachable(host, port):
+            logger.debug("WebSocket 目标不可达 %s，跳过连接", ws_url)
+            self._ws_client = None
+            return
+
+        logger.info("WebSocket 通知连接: %s", ws_url)
+        self._ws_client = WebSocketClient(ws_url)
         self._ws_client.message_received.connect(self._on_message)
         self._ws_client.connected.connect(self._on_connected)
         self._ws_client.disconnected.connect(self._on_disconnected)
         self._ws_client.error_occurred.connect(self._on_error)
         self._ws_client.start()
+
+    @staticmethod
+    def _is_port_reachable(host: str, port: int, timeout: float = 0.5) -> bool:
+        """检测目标主机端口是否可达（快速失败，不阻塞启动）。"""
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            return False
 
     def _load_from_backend(self) -> None:
         """从后端加载通知列表。"""
@@ -378,6 +414,6 @@ class NotificationBellWidget(QWidget):
             self._menu.close()
 
     def closeEvent(self, event) -> None:
-        if hasattr(self, "_ws_client"):
+        if hasattr(self, "_ws_client") and self._ws_client is not None:
             self._ws_client.stop()
         event.accept()

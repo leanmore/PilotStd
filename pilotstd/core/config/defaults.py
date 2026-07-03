@@ -86,4 +86,8 @@ FACTORY_DEFAULTS = {
     "validity.frequency": "weekly",
     "validity.execute_time": "03:00",
     "validity.update_interval": 28,
+    # ── WebSocket 通知连接 ──
+    "websocket.enabled": False,
+    "websocket.url": "",
+    "websocket.auto_connect": False,
 }

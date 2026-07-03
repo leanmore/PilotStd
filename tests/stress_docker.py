@@ -655,6 +655,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
     r_scan = _post("/api/scan", data={"path": "/inbox"})
     _scan_files = r_scan.json().get("files", []) if r_scan.status_code == 200 else []
 
+    _e2e_timeout = False  # 初始化：E2E 超时标记
     if _scan_files:
         _std_numbers = [f["standard_number"] for f in _scan_files if f.get("standard_number")]
         # [TRACE] 指令C: 端到端扫描结果详情
@@ -668,7 +669,26 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         _query_all_ok = True
         _batch_size = 5
         _batch_delay = 2.0
+        _E2E_MAX_DURATION = 1200  # 20 分钟总超时
+        _e2e_start = time.time()
+        _total_batches = (len(_std_numbers) + _batch_size - 1) // _batch_size
         for _batch_start in range(0, len(_std_numbers), _batch_size):
+            # 总超时检查：防止 Docker 容器外网不通时无限等待
+            _elapsed = time.time() - _e2e_start
+            if _elapsed > _E2E_MAX_DURATION:
+                _e2e_timeout = True
+                _completed = _batch_start // _batch_size
+                _remaining = _total_batches - _completed
+                logger.warning(
+                    "E2E 查询超时（%.0fs/%ds）: 已完成 %d/%d 批，跳过剩余 %d 批",
+                    _elapsed,
+                    _E2E_MAX_DURATION,
+                    _completed,
+                    _total_batches,
+                    _remaining,
+                )
+                _query_all_ok = False
+                break
             _batch = _std_numbers[_batch_start : _batch_start + _batch_size]
             if _batch_start > 0:
                 time.sleep(_batch_delay)
@@ -678,7 +698,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
                 logger.info(
                     "[TRACE-C] e2e_query_batch: batch=%d/%d status=%d body=%s",
                     _batch_start // _batch_size + 1,
-                    (len(_std_numbers) + _batch_size - 1) // _batch_size,
+                    _total_batches,
                     r_q.status_code,
                     (r_q.text or "")[:200],
                 )
@@ -1035,6 +1055,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         "skipped": _skipped,
         "failures": _failures,
         "verdict": "PASS" if _all_ok else "FAIL",
+        "e2e_status": "timeout" if _e2e_timeout else ("completed" if _all_ok else "failed"),
         "extended": {
             "cache_hit": _cache_hit_count,
             "cache_miss": _cache_miss_count,

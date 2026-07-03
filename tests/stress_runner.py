@@ -97,6 +97,22 @@ def main():
             result_dir=RESULT_DIR,
             yes=args.yes,
         )
+        # 验证 step3.json 是否生成（E2E 卡死时不会生成）
+        step3_path = os.path.join(RESULT_DIR, "step3.json")
+        if not os.path.exists(step3_path):
+            step3_ok = False
+            print("Docker 阶段未正常完成（step3.json 缺失）")
+            # 写入占位 JSON，标记 E2E 未完成
+            placeholder = {
+                "step": 3,
+                "verdict": "INCOMPLETE",
+                "e2e_status": "not_executed",
+                "error": "run_docker_phase 未生成 step3.json（E2E 管线可能卡死）",
+            }
+            os.makedirs(RESULT_DIR, exist_ok=True)
+            with open(step3_path, "w", encoding="utf-8") as f:
+                json.dump(placeholder, f, ensure_ascii=False, indent=2)
+            print(f"  已写入占位 step3.json: {step3_path}")
 
     # ── Web 前端验收（第二步附） ──
     web_ok = True
