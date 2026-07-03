@@ -49,6 +49,11 @@ class _ConfigLoadTab:
         self.announce_url_edit.setText(self._config.get("query.announcement_url", "http://localhost:9028"))
         self.announce_url_edit.setEnabled(self._config.get("query.use_announcement_match", False))
         self.announce_api_key_edit.setText(self._config.get("query.announcement_api_key", ""))
+        # 互斥：两个公告模式不能同时启用，已启用的一方禁用对方
+        if self.announce_cache_cb.isChecked():
+            self.announcement_cb.setEnabled(False)
+        elif self.announcement_cb.isChecked():
+            self.announce_cache_cb.setEnabled(False)
 
     def _load_scan_config(self) -> None:
         """加载扫描相关设置：跳过的文件夹、文件扩展名、排除关键词。"""

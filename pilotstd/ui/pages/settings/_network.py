@@ -52,33 +52,25 @@ class _NetworkTab:
         layout.addStretch()
         self._add_page(_("network_group"), w)
 
-    # ── 公告缓存 + 本地公告互斥 ──
-
-    _announce_mutex_guard = False  # 防止 toggled 信号循环
+    # ── 公告缓存 + 本地公告互斥（勾选一方则另一方不可选）──
 
     def _on_announce_cache_toggled(self, checked: bool) -> None:
         """Web 端公告缓存切换：与本地公告检查互斥。"""
-        if not self._config or self._announce_mutex_guard:
+        if not self._config:
             return
         self.announce_url_edit.setEnabled(checked)
         self._config.set("query.use_announcement_match", checked)
         self._config.save()
-        if checked:
-            self._announce_mutex_guard = True
-            self.announcement_cb.setChecked(False)
-            self._announce_mutex_guard = False
+        self.announcement_cb.setEnabled(not checked)
         mw = self.window()
         if mw and hasattr(mw, "_apply_announce_cache_mode"):
             mw._apply_announce_cache_mode(checked)
 
     def _on_announcement_toggled(self, checked: bool) -> None:
         """本地公告检查切换：与 Web 端公告缓存互斥。"""
-        if not self._config or self._announce_mutex_guard:
+        if not self._config:
             return
-        if checked:
-            self._announce_mutex_guard = True
-            self.announce_cache_cb.setChecked(False)
-            self._announce_mutex_guard = False
+        self.announce_cache_cb.setEnabled(not checked)
 
     def _on_announce_url_changed(self, text: str) -> None:
         """地址输入框变化：即时写入配置。"""
