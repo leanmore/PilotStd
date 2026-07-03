@@ -28,6 +28,7 @@ docs/
 tests/standards/
 tests/gui/fixtures/
 tests/.cache/
+tests/.fernet_key
 
 # 临时文件
 scripts/temp/
