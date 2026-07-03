@@ -1,38 +1,15 @@
-# PilotStd CI — 测试 + 版本管理 + Docker 镜像推送 ghcr.io
-# 版本治理已原子化：version_bump job 负责写回三文件+打tag，build job 只读版本号
-name: Docker CI
-run-name: Docker | ${{ github.event.head_commit.message }}
+# PilotStd CI/CD — 统一流水线：测试 → 版本管理 → Docker + exe 构建
+name: CI/CD
 
 on:
   push:
     branches: [main]
-    tags: ['v*']
-    paths:
-      - 'pilotstd/**'
-      - 'tests/**'
-      - 'web/**'
-      - 'docker/**'
-      - 'requirements.txt'
-      - 'docker-compose.yml'
-      - '.github/workflows/ci.yml'
-      - '.github/scripts/**'
-      - '.pre-commit-config.yaml'
-      - '.secrets.baseline'
-      - 'docs/governance/**'
-      - 'scripts/**'
-      - 'main.py'
-      - 'pyproject.toml'
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      description:
-        description: '运行描述（显示在 Actions 列表中）'
-        required: false
-        default: '手动触发'
 
 concurrency:
-  group: version-bump
+  group: ci-cd
   cancel-in-progress: false
 
 env:
@@ -40,90 +17,12 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/pilotstd
   PYTHON_VERSION: '3.12'
   NODE_VERSION: '22'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ════════════════════════════════════════════════════════════════
-  # Job 0: 版本号 bump（原子化——写回三个文件 + 打 tag）
-  # ════════════════════════════════════════════════════════════════
-  version-bump:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      actions: write
-    outputs:
-      new_version: ${{ steps.bump.outputs.new_version }}
-      tag: ${{ steps.bump.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Run bump_version.py
-        id: bump
-        env:
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-        run: |
-          OLD_VER=$(python -c "from pilotstd import __version__; print(__version__)")
-          python .github/scripts/bump_version.py --github --update "$COMMIT_MSG"
-          NEW_VER=$(python -c "from pilotstd import __version__; print(__version__)")
-          echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
-          echo "tag=v$NEW_VER" >> $GITHUB_OUTPUT
-          if [ "$OLD_VER" != "$NEW_VER" ]; then
-            echo "bumped=true" >> $GITHUB_OUTPUT
-          else
-            echo "bumped=false" >> $GITHUB_OUTPUT
-          fi
-          echo "New version: $NEW_VER"
-
-      - name: Commit version bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pilotstd/__init__.py pyproject.toml web/package.json CHANGELOG.md
-          if git diff --cached --quiet; then
-            echo "版本号未变更，跳过提交"
-          else
-            git commit -m "chore: bump version to v${{ steps.bump.outputs.new_version }}"
-            git pull --rebase origin main
-            git push
-          fi
-
-      - name: Create and push tag
-        run: |
-          TAG="v${{ steps.bump.outputs.new_version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG 已存在，跳过"
-          else
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-            echo "已推送 git tag: $TAG"
-          fi
-
-      - name: Trigger desktop build
-        if: steps.bump.outputs.bumped == 'true'
-        run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/build-desktop.yml/dispatches" \
-            -d '{"ref":"v${{ steps.bump.outputs.new_version }}"}'
-          echo "已触发桌面端构建: v${{ steps.bump.outputs.new_version }}"
-
   # ════════════════════════════════════════════════════════════════
   # Job 1: 后端测试
   # ════════════════════════════════════════════════════════════════
   test-backend:
-    needs: [version-bump]
-    if: |
-      always() &&
-      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -196,10 +95,6 @@ jobs:
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
   security-scan:
-    needs: [version-bump]
-    if: |
-      always() &&
-      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -230,10 +125,6 @@ jobs:
   # Job 3: 前端测试
   # ════════════════════════════════════════════════════════════════
   test-frontend:
-    needs: [version-bump]
-    if: |
-      always() &&
-      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -275,13 +166,9 @@ jobs:
         run: python scripts/check_ui_sensitive_fields.py
 
   # ════════════════════════════════════════════════════════════════
-  # Job 3.5: 入仓合规检查
+  # Job 4: 入仓合规检查
   # ════════════════════════════════════════════════════════════════
   repo-compliance:
-    needs: [version-bump]
-    if: |
-      always() &&
-      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -294,122 +181,98 @@ jobs:
         run: bash .github/scripts/check-repo-compliance.sh
 
   # ════════════════════════════════════════════════════════════════
-  # Job 4: 构建 + 推送 Docker 镜像
+  # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
-  build-and-push:
-    needs: [test-backend, test-frontend, version-bump, repo-compliance]
-    if: |
-      always() &&
-      (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped') &&
-      needs.test-backend.result == 'success' &&
-      needs.test-frontend.result == 'success' &&
-      (needs.repo-compliance.result == 'success' || needs.repo-compliance.result == 'skipped')
+  version:
+    needs: [test-backend, test-frontend, security-scan, repo-compliance]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
-
+      contents: write
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      bumped: ${{ steps.bump.outputs.bumped }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ── 版本号（多源回退：tag > version-bump 产出 > git describe）──
-      - name: Determine version
-        id: version
+      - name: Get commit messages since last tag
+        id: commits
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${{ github.ref_name }}"
-          elif [[ -n "${{ needs.version-bump.outputs.new_version }}" ]]; then
-            VERSION="v${{ needs.version-bump.outputs.new_version }}"
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          COMMITS=$(git log ${LAST_TAG}..HEAD --format=%s)
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Bump version
+        id: bump
+        run: |
+          NEW_VER=$(python scripts/version.py ${{ steps.commits.outputs.commits }})
+          echo "version=$NEW_VER" >> $GITHUB_OUTPUT
+          CURRENT=$(cat VERSION)
+          if [ "$NEW_VER" != "$CURRENT" ]; then
+            echo "bumped=true" >> $GITHUB_OUTPUT
           else
-            VERSION=$(git tag --sort=-creatordate | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-            if [ -z "$VERSION" ]; then
-              echo "::error::无可用版本标签"
-              exit 1
-            fi
+            echo "bumped=false" >> $GITHUB_OUTPUT
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          echo "Version: $NEW_VER (bumped=$([ "$NEW_VER" != "$CURRENT" ] && echo true || echo false))"
 
-      # ── 2a: 构建前端 ──
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'web/pnpm-lock.yaml'
-
-      - name: Build frontend
+      - name: Commit version bump
+        if: steps.bump.outputs.bumped == 'true'
         run: |
-          cd web
-          rm -rf node_modules/.vite
-          rm -rf dist
-          rm -rf node_modules
-          pnpm install --frozen-lockfile --ignore-scripts
-          pnpm run build
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
+          git push
 
-      - name: Package dist.zip
+      - name: Create and push tag
+        if: steps.bump.outputs.bumped == 'true'
         run: |
-          cd web/dist
-          zip -r ../../dist.zip .
+          TAG="v${{ steps.bump.outputs.version }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
 
-      - name: Verify dist.zip contents
-        run: |
-          echo "=== dist.zip 内容验证 ==="
-          unzip -l dist.zip | head -30
-          echo "=== 检查关键文件是否包含最新代码 ==="
-          # 验证 dist.zip 包含最新的前端代码
-          if unzip -p dist.zip assets/index-*.js | grep -q "PilotStd"; then
-            echo "✅ dist.zip 包含最新前端代码"
-          else
-            echo "⚠️ 警告：dist.zip 可能包含旧代码"
-          fi
-
-      - name: Upload dist.zip as workflow artifact
-        uses: actions/upload-artifact@v4
+  # ════════════════════════════════════════════════════════════════
+  # Job 6: 统一构建 — 矩阵策略并行 Docker 镜像 + exe
+  # ════════════════════════════════════════════════════════════════
+  build:
+    needs: version
+    if: |
+      always() &&
+      (needs.version.result == 'success' || needs.version.result == 'skipped')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: web-dist
-          path: dist.zip
-          retention-days: 7
+          ref: main
+          fetch-depth: 0
 
-      # ── 2b: 启用 Buildx（Registry Cache 必需）──
+      # ---- Docker 构建 (ubuntu-latest) ----
       - name: Set up Docker Buildx
+        if: runner.os == 'Linux'
         uses: docker/setup-buildx-action@v3
 
-      # ── 2c: Docker 登录 ──
       - name: Login to GitHub Container Registry
+        if: runner.os == 'Linux'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ─ 2d: 构建 + 推送（Registry Cache + GHA Cache 双通道）──
-      - name: Compute cache key from dependencies
-        id: cache-key
-        run: |
-          # 依赖文件变更时缓存自动失效
-          HASH=$(cat docker/requirements-docker.txt requirements.txt pyproject.toml web/pnpm-lock.yaml 2>/dev/null | sha256sum | cut -c1-16)
-          echo "key=cache-${HASH}" >> $GITHUB_OUTPUT
-          echo "依赖缓存键: ${HASH}"
-
-      - name: Check if frontend changed
-        id: check-frontend
-        run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q "^web/"; then
-            echo "frontend_changed=true" >> $GITHUB_OUTPUT
-            echo "检测到前端代码变更，将禁用 Docker 前端层缓存"
-          else
-            echo "frontend_changed=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build and push Docker image
+        if: runner.os == 'Linux'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -418,12 +281,41 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
-          # 双通道缓存：优先 Registry，备用 GHA cache
-          cache-from: |
-            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-            type=gha,scope=${{ steps.cache-key.outputs.key }}
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          # 前端变更时添加 cache-bust 参数
-          build-args: |
-            FRONTEND_CACHE_BUST=${{ steps.check-frontend.outputs.frontend_changed == 'true' && github.sha || '' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.version }}
+
+      # ---- exe 构建 (windows-latest) ----
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: desktop/requirements-win.txt
+
+      - name: Install dependencies
+        if: runner.os == 'Windows'
+        run: |
+          pip install -r desktop/requirements-win.txt
+          pip install pyinstaller
+
+      - name: Build exe with PyInstaller
+        if: runner.os == 'Windows'
+        run: pyinstaller desktop/PilotStd.spec --noconfirm
+
+      - name: Upload exe to Release
+        if: runner.os == 'Windows' && needs.version.outputs.bumped == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: PilotStd v${{ needs.version.outputs.version }}
+          make_latest: true
+          files: dist/PilotStd.exe
+          body: |
+            ## PilotStd v${{ needs.version.outputs.version }}
+            > 提交: ${{ github.sha }}
+
+            PyInstaller 编译的 Windows 单文件版本。
+
+            ### 系统要求
+            - Windows 10/11 64-bit
+            - 无需安装 Python
