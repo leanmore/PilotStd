@@ -54,9 +54,14 @@ class NotifyService:
                 return
             self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, duration)
             return
-        agg.should_show("info", title, message,
-                        lambda t, b, _l: self._tray.showMessage(  # type: ignore[arg-type]
-                            t, b, QSystemTrayIcon.MessageIcon.Information, duration))
+        agg.should_show(
+            "info",
+            title,
+            message,
+            lambda t, b, _l: self._tray.showMessage(  # type: ignore[arg-type]
+                t, b, QSystemTrayIcon.MessageIcon.Information, duration
+            ),
+        )
 
     def show_warning(self, title: str, message: str, duration: int = 5000) -> None:
         """发送警告通知。经聚合器缓冲合并后显示。"""
@@ -68,8 +73,12 @@ class NotifyService:
                 return
             self._tray.showMessage(title, message, QSystemTrayIcon.MessageIcon.Warning, duration)
             return
-        agg.should_show("warning", title, message,
-                        lambda t, b, _l: self._tray.showMessage(t, b, QSystemTrayIcon.MessageIcon.Warning, duration))  # type: ignore[arg-type]
+        agg.should_show(
+            "warning",
+            title,
+            message,
+            lambda t, b, _l: self._tray.showMessage(t, b, QSystemTrayIcon.MessageIcon.Warning, duration),
+        )  # type: ignore[arg-type]
 
     # ── 内部 ──
 
@@ -77,6 +86,7 @@ class NotifyService:
     def _get_aggregator() -> Any:
         """惰性获取聚合器实例。"""
         from pilotstd.core.notification_aggregator import NotificationAggregator  # type: ignore[import-untyped]
+
         return NotificationAggregator()
 
     def _check_dedup(self, title: str) -> bool:

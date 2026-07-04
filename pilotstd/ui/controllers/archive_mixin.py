@@ -20,10 +20,8 @@ class ArchiveMixin:
     def _notify_worker_error(self, worker_name: str, error_msg: str) -> None:
         """Worker 异常时发送通知（不阻塞 UI，失败静默）。"""
         try:
-            if hasattr(self, '_mgr') and hasattr(self._mgr, 'notification_mgr'):
-                self._mgr.notification_mgr.send_event(
-                    "worker_error",
-                    {"worker": worker_name, "error": error_msg})
+            if hasattr(self, "_mgr") and hasattr(self._mgr, "notification_mgr"):
+                self._mgr.notification_mgr.send_event("worker_error", {"worker": worker_name, "error": error_msg})
         except Exception:
             pass
 
@@ -118,7 +116,9 @@ class ArchiveMixin:
             sample += f"\n  ... 等共 {count} 个"
         msg = _("msg_file_overwrite").format(count=count, sample=sample)
         reply = QMessageBox.question(
-            self, _("title_file_exists"), msg,
+            self,
+            _("title_file_exists"),
+            msg,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
         )
         if reply == QMessageBox.StandardButton.Cancel:
@@ -138,13 +138,18 @@ class ArchiveMixin:
             parsed = self._parsed_results[idx]
             if parsed.source_path:
                 st = (
-                    "被代替" if parsed.effect_status == "被代替"
+                    "被代替"
+                    if parsed.effect_status == "被代替"
                     else ("废止" if parsed.effect_status in ("废止", "已废止", "作废") else "现行")
                 )
                 self._mgr.upsert_file_index(
-                    file_path=parsed.source_path, logical_code=parsed.logical_code,
-                    number=parsed.number, year=parsed.year, part=parsed.part,
-                    std_name=parsed.std_name, status=st,
+                    file_path=parsed.source_path,
+                    logical_code=parsed.logical_code,
+                    number=parsed.number,
+                    year=parsed.year,
+                    part=parsed.part,
+                    std_name=parsed.std_name,
+                    status=st,
                 )
 
         self._merge_expire_from_source(root_dir)
@@ -160,13 +165,16 @@ class ArchiveMixin:
             if skip_details:
                 shown = skip_details[:20]
                 more = f"\n  ... {len(skip_details) - 20} more" if len(skip_details) > 20 else ""
-                detail_text = _("msg_archive_skip_detail").format(lines="\n".join(shown) + more) if more else _(
-                    "msg_archive_skip_detail"
-                ).format(lines="\n".join(shown))
+                detail_text = (
+                    _("msg_archive_skip_detail").format(lines="\n".join(shown) + more)
+                    if more
+                    else _("msg_archive_skip_detail").format(lines="\n".join(shown))
+                )
             self._show_stage_dialog(
                 _("save_results_title"),
                 _("msg_save_done").format(saved=saved, skipped=skipped, detail=detail_text),
-                next_action=None, next_label="",
+                next_action=None,
+                next_label="",
             )
 
     def _on_save_to_folder(self) -> None:
@@ -188,9 +196,13 @@ class ArchiveMixin:
             return
 
         self._archive_worker = ArchiveWorker(
-            self._mgr, self._parsed_results, root_dir,
-            config=self._config, overwrite=overwrite_all,
-            pause_event=self._pause_event, parent=self,
+            self._mgr,
+            self._parsed_results,
+            root_dir,
+            config=self._config,
+            overwrite=overwrite_all,
+            pause_event=self._pause_event,
+            parent=self,
         )
         self._archive_worker.batch_ready.connect(self._on_archive_batch_ready)
         self._archive_worker.progress.connect(self.progress_changed.emit)

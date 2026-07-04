@@ -258,9 +258,8 @@ class PendingQueryDialog(QDialog):
     def _notify_error(self, worker_name: str, error_msg: str) -> None:
         """Worker 异常时发送通知（失败静默）。"""
         try:
-            if hasattr(self._mgr, 'notification_mgr'):
-                self._mgr.notification_mgr.send_event(
-                    "worker_error", {"worker": worker_name, "error": error_msg})
+            if hasattr(self._mgr, "notification_mgr"):
+                self._mgr.notification_mgr.send_event("worker_error", {"worker": worker_name, "error": error_msg})
         except Exception:
             pass
 

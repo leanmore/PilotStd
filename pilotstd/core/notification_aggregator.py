@@ -6,9 +6,9 @@ import time
 from threading import Timer
 from typing import Any
 
-_BUFFER_WINDOW = 0.3       # 秒
-_COUNT_WINDOW = 30          # 秒
-_PAUSE_DURATION = 300       # 秒 (5分钟)
+_BUFFER_WINDOW = 0.3  # 秒
+_COUNT_WINDOW = 30  # 秒
+_PAUSE_DURATION = 300  # 秒 (5分钟)
 _PAUSE_CONFIG_KEY = "notification.aggregation"
 
 
@@ -64,6 +64,7 @@ class NotificationAggregator:
     def _load_pause_state(self) -> None:
         try:
             from pilotstd.core.config.manager import ConfigManager
+
             cfg = ConfigManager()
             saved = cfg.get(_PAUSE_CONFIG_KEY)
             if saved and isinstance(saved, dict):
@@ -77,11 +78,15 @@ class NotificationAggregator:
     def _save_pause_state(self) -> None:
         try:
             from pilotstd.core.config.manager import ConfigManager
+
             cfg = ConfigManager()
-            cfg.set(_PAUSE_CONFIG_KEY, {
-                "paused": self._paused,
-                "paused_until": self._paused_until,
-            })
+            cfg.set(
+                _PAUSE_CONFIG_KEY,
+                {
+                    "paused": self._paused,
+                    "paused_until": self._paused_until,
+                },
+            )
             cfg.save()
         except Exception:
             pass
@@ -144,8 +149,7 @@ class NotificationAggregator:
 
     # ── 公共 API ──
 
-    def should_show(self, level: str, title: str, body: str,
-                    on_show: Any = None) -> bool:
+    def should_show(self, level: str, title: str, body: str, on_show: Any = None) -> bool:
         """判断是否应显示通知。缓冲 300ms 后按主题合并输出。
         若暂停中或已缓冲暂未输出 → 返回 False。
         on_show: 实际显示回调 (title, body, level)。"""
@@ -159,9 +163,14 @@ class NotificationAggregator:
             else:
                 return False
 
-        self._buffer.append({
-            "level": level, "title": title, "body": body, "timestamp": time.time(),
-        })
+        self._buffer.append(
+            {
+                "level": level,
+                "title": title,
+                "body": body,
+                "timestamp": time.time(),
+            }
+        )
 
         if not self._timer:
             self._timer = Timer(_BUFFER_WINDOW, self._flush)
@@ -187,6 +196,7 @@ class NotificationAggregator:
     def auto_pause_enabled(self) -> bool:
         try:
             from pilotstd.core.config.manager import ConfigManager
+
             return ConfigManager().get("notification.auto_pause", True)
         except Exception:
             return True

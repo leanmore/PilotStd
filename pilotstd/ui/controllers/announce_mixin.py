@@ -34,9 +34,7 @@ class AnnounceMixin:
             return False
         if self._config.get("query.use_announcement_match", False):
             logger.info("本地公告检查被禁用（use_announcement_match=True）")
-            QMessageBox.information(
-                self, "公告检查", "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。"
-            )
+            QMessageBox.information(self, "公告检查", "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。")
             return False
         return True
 
@@ -71,9 +69,7 @@ class AnnounceMixin:
         layout.addLayout(btn_layout)
 
         since_date = self._ann_start_date.date().toString("yyyy-MM-dd")
-        self._ann_worker = AnnounceWorker(
-            self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self
-        )
+        self._ann_worker = AnnounceWorker(self._mgr, since_date=since_date, pause_event=self._pause_event, parent=self)
         self._ann_worker.progress.connect(self._on_ann_progress)
         self._ann_worker.finished_signal.connect(dlg.accept)
         self._ann_worker.error.connect(lambda msg: self._notify_worker_error("announce", msg))

@@ -143,9 +143,7 @@ class AutoRunMixin:
 
     # ── 汇总弹窗 ─────────────────────────────────────────
 
-    def _build_auto_summary_message(
-        self, results: list[Any]
-    ) -> tuple[str, list[str]]:
+    def _build_auto_summary_message(self, results: list[Any]) -> tuple[str, list[str]]:
         """收集统计数据 + 构建汇总消息文本。返回 (msg, manual_all)。"""
         total = len(results)
         not_found = [p for p in results if not p.std_name]

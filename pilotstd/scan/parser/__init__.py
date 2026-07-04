@@ -101,8 +101,12 @@ class StandardParser(UtilsMixin, ExactMatchMixin, ForeignHandlerMixin):
         return cleaned, raw_ext, language, basename
 
     def _enrich_and_finalize(
-        self, info: ParsedStdInfo | None, raw_ext: str, language: str,
-        filename: str, channel: str,
+        self,
+        info: ParsedStdInfo | None,
+        raw_ext: str,
+        language: str,
+        filename: str,
+        channel: str,
     ) -> ParsedStdInfo | None:
         """补全元数据 + 日志 + 后处理。info 为 None 时直接返回 None。"""
         if info is None:

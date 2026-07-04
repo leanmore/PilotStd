@@ -247,9 +247,7 @@ def _clean_wps_name(name: str) -> str:
     return name.strip()
 
 
-def _find_field_text(
-    text: str, matches: list[re.Match[str]], i: int, skip_indices: set[int]
-) -> tuple[str, str, int]:
+def _find_field_text(text: str, matches: list[re.Match[str]], i: int, skip_indices: set[int]) -> tuple[str, str, int]:
     """当前匹配到下一个匹配之间的字段文本 + 代替号检测。返回 (field_text, replaces_code, next_idx)。"""
     next_idx = i + 1
     while next_idx < len(matches) and next_idx in skip_indices:

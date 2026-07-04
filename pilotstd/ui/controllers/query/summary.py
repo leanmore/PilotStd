@@ -35,9 +35,13 @@ class QuerySummaryMethods:
         if counts["not_found"] > 0:
             lines.append(_("query_summary_not_found").format(count=counts["not_found"]))
 
-        cat_keys = {"archive": "query_cat_archive", "normalize": "query_cat_normalize",
-                     "expire": "query_cat_expire", "pending": "query_cat_pending",
-                     "not_found": "query_cat_not_found"}
+        cat_keys = {
+            "archive": "query_cat_archive",
+            "normalize": "query_cat_normalize",
+            "expire": "query_cat_expire",
+            "pending": "query_cat_pending",
+            "not_found": "query_cat_not_found",
+        }
         detail_section = []
         for cat_action in ["archive", "normalize", "expire", "pending", "not_found"]:
             cat_label = _(cat_keys[cat_action])
@@ -88,8 +92,9 @@ class QuerySummaryMethods:
 
         NotifyService.get().show(
             _("query_toast_title"),
-            _("query_toast_msg").format(total=total, archive=counts["archive"],
-                                        pending=counts["pending"], expire=counts["expire"]),
+            _("query_toast_msg").format(
+                total=total, archive=counts["archive"], pending=counts["pending"], expire=counts["expire"]
+            ),
         )
 
         if not self._suppress_dialogs:
@@ -98,16 +103,20 @@ class QuerySummaryMethods:
             pending_count = counts["pending"]
             actions = []
             if download_count > 0:
+
                 def do_download() -> None:
                     self._switch_to_stage("download")
                     self._on_download()
+
                 actions.append((f"开始下载({download_count}条)", do_download))
             if pending_count > 0:
+
                 def do_pending() -> None:
                     self._switch_to_stage("pending")
                     pending_items = [p for p in self._parsed_results if p.next_action == "pending"]
                     dlg = PendingQueryDialog(self._mgr, pending_items, self)
                     dlg.exec()
+
                 actions.append((f"处理待确认({pending_count}条)", do_pending))
             if download_count == 0 and pending_count == 0:
                 if counts["normalize"] > 0:

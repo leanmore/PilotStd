@@ -252,8 +252,12 @@ class MessageBuildersMixin:
         return NotificationMessage(
             title=_("镜像更新可用"),
             body=_("检测到新版本镜像，当前 {old} → 新版本 {new}").format(
-                old=data.get("old_digest", "")[:12], new=data.get("new_digest", "")[:12]),
-            level="info", standard_number=None, event_type="image_update_available")
+                old=data.get("old_digest", "")[:12], new=data.get("new_digest", "")[:12]
+            ),
+            level="info",
+            standard_number=None,
+            event_type="image_update_available",
+        )
 
     def _build_batch_query_summary_message(self, data: dict) -> NotificationMessage:
         """批量查询完成汇总通知"""
@@ -265,14 +269,15 @@ class MessageBuildersMixin:
             level = "info"
         elif pending > 0:
             body = _("标准查询完成：共 {total} 条，找到 {found} 条，{pending} 条待确认").format(
-                total=total, found=found, pending=pending)
+                total=total, found=found, pending=pending
+            )
             level = "warning"
         else:
             body = _("标准查询完成：共 {total} 条，找到 {found} 条").format(total=total, found=found)
             level = "info"
         return NotificationMessage(
-            title=_("标准查询完成"), body=body, level=level,
-            standard_number=None, event_type="batch_query_summary")
+            title=_("标准查询完成"), body=body, level=level, standard_number=None, event_type="batch_query_summary"
+        )
 
     def _build_auto_query_complete_message(self, data: dict) -> NotificationMessage:
         """定时自动查询完成通知"""
@@ -285,8 +290,8 @@ class MessageBuildersMixin:
             body = _("定时查询完成：共检查 {total} 条，无状态变更").format(total=total)
             level = "info"
         return NotificationMessage(
-            title=_("定时查询完成"), body=body, level=level,
-            standard_number=None, event_type="auto_query_complete")
+            title=_("定时查询完成"), body=body, level=level, standard_number=None, event_type="auto_query_complete"
+        )
 
     def _build_trust_ip_update_message(self, data: dict) -> NotificationMessage:
         """可信 IP 更新通知（企业微信 IP 变更）。"""
@@ -294,8 +299,8 @@ class MessageBuildersMixin:
         body = data.get("body", "")
         level = "warning" if "失败" in title else "info"
         return NotificationMessage(
-            title=title, body=body, level=level,
-            standard_number=None, event_type="trust_ip_update")
+            title=title, body=body, level=level, standard_number=None, event_type="trust_ip_update"
+        )
 
     def _build_worker_error_message(self, data: dict) -> NotificationMessage:
         """Worker 异常通知"""
@@ -304,4 +309,7 @@ class MessageBuildersMixin:
         return NotificationMessage(
             title=_("后台任务异常"),
             body=_("{worker} 工作线程异常：{error}").format(worker=worker, error=error),
-            level="error", standard_number=None, event_type="worker_error")
+            level="error",
+            standard_number=None,
+            event_type="worker_error",
+        )

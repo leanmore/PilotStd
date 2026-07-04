@@ -163,7 +163,7 @@ class DownloadMixin:
         self.status_changed.emit(f"下载失败: {msg}")
         logger.error(msg)
         try:
-            if hasattr(self, '_mgr') and hasattr(self._mgr, 'notification_mgr'):
+            if hasattr(self, "_mgr") and hasattr(self._mgr, "notification_mgr"):
                 self._mgr.notification_mgr.send_event("worker_error", {"worker": "download", "error": msg})
         except Exception:
             pass
