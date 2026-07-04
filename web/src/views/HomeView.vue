@@ -102,6 +102,8 @@ function resetLayout() {
 }
 
 onMounted(fetchLayout)
+
+defineExpose({ layout, isLocked, addCard, removeCard, resetLayout })
 </script>
 
 <template>
