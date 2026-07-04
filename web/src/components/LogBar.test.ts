@@ -1,7 +1,10 @@
 // components/LogBar.test.ts — 日志栏组件测试
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import LogBar from './LogBar.vue'
+
+const router = createRouter({ history: createMemoryHistory(), routes: [] })
 
 // Mock axios 请求
 const mockGet = vi.fn()
@@ -10,7 +13,7 @@ vi.mock('axios', () => ({
 }))
 
 function mountLogBar(props?: { refreshKey?: number }) {
-  return mount(LogBar, { props })
+  return mount(LogBar, { props, global: { plugins: [router] } })
 }
 
 // 等待异步更新：使用真实 setTimeout 而非 fake timers
