@@ -210,21 +210,32 @@ jobs:
           BASE_VER=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
           echo "base_version=$BASE_VER" >> $GITHUB_OUTPUT
 
+      - name: Get commit messages since last tag
+        id: commits
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            MSGS=$(git log ${LAST_TAG}..HEAD --format=%s | tr '\n' '|')
+          else
+            MSGS=$(git log --format=%s | tr '\n' '|')
+          fi
+          echo "messages=${MSGS//'%'/'%25'}" >> $GITHUB_OUTPUT
+
       - name: Bump version
         id: bump
+        env:
+          BASE_VERSION: ${{ steps.base.outputs.base_version }}
+          COMMIT_MSGS: ${{ steps.commits.outputs.messages }}
         run: |
           OVERRIDE="${{ github.event.inputs.override_version }}"
 
           if [ -n "$OVERRIDE" ]; then
-            # 手动覆盖模式（如发布 v1.0.0 正式版）
             NEW_VER="$OVERRIDE"
           else
-            # 自动模式：将最新 Tag 作为基准传给 version 脚本进行自动计算
-            NEW_VER=$(BASE_VERSION=${{ steps.base.outputs.base_version }} python scripts/version.py)
+            NEW_VER=$(python scripts/version.py)
           fi
 
-          CURRENT=${{ steps.base.outputs.base_version }}
-          if [ "$NEW_VER" != "$CURRENT" ]; then
+          if [ -n "$NEW_VER" ] && [ "$NEW_VER" != "${{ steps.base.outputs.base_version }}" ]; then
             echo "version=$NEW_VER" >> $GITHUB_OUTPUT
             echo "bumped=true" >> $GITHUB_OUTPUT
           else
