@@ -1,246 +1,203 @@
 <script setup lang="ts">
 defineOptions({ name: 'HomeView' })
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { GridLayout } from 'grid-layout-plus'
-import { useDashboardStore } from '@/stores/dashboard'
-import type { DashboardWidget } from '@/types/dashboard'
-import WidgetManager from '@/components/dashboard/WidgetManager.vue'
+import { ref, onMounted, markRaw, type Component } from 'vue'
+import { GridLayout, GridItem } from 'grid-layout-plus'
 import StatsCard from '@/components/dashboard/widgets/StatsCard.vue'
 import AdapterStatusAnnounceCard from '@/components/dashboard/widgets/AdapterStatusAnnounceCard.vue'
 import AdapterStatusQueryCard from '@/components/dashboard/widgets/AdapterStatusQueryCard.vue'
 import RecentAnnounceCard from '@/components/dashboard/widgets/RecentAnnounceCard.vue'
-import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vue'
 import PendingItemsCard from '@/components/dashboard/widgets/PendingItemsCard.vue'
 import SystemInfoCard from '@/components/dashboard/widgets/SystemInfoCard.vue'
+import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vue'
 import TaskTrendCard from '@/components/dashboard/widgets/TaskTrendCard.vue'
 import SystemLogCard from '@/components/dashboard/widgets/SystemLogCard.vue'
-import PlaceholderWidget from '@/components/dashboard/widgets/PlaceholderWidget.vue'
-import Button from 'primevue/button'
 
-const store = useDashboardStore()
-const showManager = ref(false)
+// 卡片注册表
+const CARD_REGISTRY: Record<string, { label: string; component: Component; w: number; h: number; minW: number; minH: number }> = {
+  stats: { label: '核心统计', component: markRaw(StatsCard), w: 4, h: 6, minW: 3, minH: 4 },
+  sysInfo: { label: '系统状态', component: markRaw(SystemInfoCard), w: 4, h: 6, minW: 3, minH: 4 },
+  quickActions: { label: '快捷操作', component: markRaw(QuickActionsCard), w: 4, h: 6, minW: 2, minH: 4 },
+  announceAdapter: { label: '公告适配器', component: markRaw(AdapterStatusAnnounceCard), w: 6, h: 8, minW: 4, minH: 6 },
+  queryAdapter: { label: '查询适配器', component: markRaw(AdapterStatusQueryCard), w: 6, h: 8, minW: 4, minH: 6 },
+  recentAnnounce: { label: '最新公告', component: markRaw(RecentAnnounceCard), w: 6, h: 8, minW: 3, minH: 6 },
+  pending: { label: '待确认标准', component: markRaw(PendingItemsCard), w: 6, h: 8, minW: 3, minH: 6 },
+  trend: { label: '标准库构成', component: markRaw(TaskTrendCard), w: 4, h: 8, minW: 3, minH: 6 },
+  sysLog: { label: '系统日志', component: markRaw(SystemLogCard), w: 8, h: 8, minW: 4, minH: 6 },
+}
+
+const STORAGE_KEY = 'mp-dashboard-layout'
+const layout = ref<any[]>([])
 const isLocked = ref(false)
-const windowWidth = ref(window.innerWidth)
+const selectedCardKey = ref('')
 
-// 响应式列数：>=1200px 12列 / >=768px 8列 / 其余 4列
-const responsiveColNum = computed(() => {
-  if (windowWidth.value >= 1200) return 12
-  if (windowWidth.value >= 768) return 8
-  return 4
-})
+const availableCards = ref<{ key: string; label: string }[]>([])
 
-function onResize() {
-  windowWidth.value = window.innerWidth
+function updateAvailableCards() {
+  const currentKeys = new Set(layout.value.map(l => l.i))
+  availableCards.value = Object.entries(CARD_REGISTRY)
+    .filter(([key]) => !currentKeys.has(key))
+    .map(([key, val]) => ({ key, label: val.label }))
 }
 
-onMounted(async () => {
-  await store.load()
-  window.addEventListener('resize', onResize)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', onResize)
-})
-
-// 根据 layout item 的 i 查找对应 widget 配置（需传给子卡片组件）
-function getWidgetById(id: string): DashboardWidget | undefined {
-  return store.widgets.find(w => w.id === id)
+function saveLayout() {
+  const slim = layout.value.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(slim))
+  updateAvailableCards()
 }
 
-// 移除卡片 → 通知 Store 并持久化
-function onRemoveWidget(widgetId: string) {
-  store.removeWidget(widgetId)
-}
-
-function getWidgetComponent(type: string) {
-  const map: Record<string, unknown> = {
-    'adapter-announce': AdapterStatusAnnounceCard,
-    'adapter-query': AdapterStatusQueryCard,
-    'stats-summary': StatsCard,
-    'recent-tasks': RecentAnnounceCard,
-    'quick-actions': QuickActionsCard,
-    'pending-items': PendingItemsCard,
-    'system-info': SystemInfoCard,
-    'task-trend': TaskTrendCard,
-    'system-log': SystemLogCard,
+function loadLayout() {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    try {
+      const items = JSON.parse(saved)
+      layout.value = items.map((item: any) => ({
+        ...item,
+        component: CARD_REGISTRY[item.i]?.component,
+      }))
+    } catch { initDefaultLayout() }
+  } else {
+    initDefaultLayout()
   }
-  return map[type] || PlaceholderWidget
+  updateAvailableCards()
 }
+
+function initDefaultLayout() {
+  const defaults = ['stats', 'sysInfo', 'quickActions', 'announceAdapter', 'queryAdapter']
+  layout.value = defaults.map((key, idx) => {
+    const card = CARD_REGISTRY[key]
+    return {
+      i: key, x: (idx % 3) * 4, y: Math.floor(idx / 3) * 6,
+      w: card.w, h: card.h, minW: card.minW, minH: card.minH,
+      component: card.component,
+    }
+  })
+}
+
+function addCard() {
+  if (!selectedCardKey.value) return
+  const card = CARD_REGISTRY[selectedCardKey.value]
+  if (!card) return
+  layout.value.push({
+    i: selectedCardKey.value, x: 0, y: 0,
+    w: card.w, h: card.h, minW: card.minW, minH: card.minH,
+    component: card.component,
+  })
+  selectedCardKey.value = ''
+}
+
+function removeCard(key: string) {
+  layout.value = layout.value.filter(item => item.i !== key)
+  saveLayout()
+}
+
+onMounted(loadLayout)
 </script>
 
 <template>
   <div class="dashboard-container">
-    <div class="page-header">
-      <div>
-        <h1>PilotStd</h1>
-        <p class="hint">标准管理控制台</p>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <Button
-          :icon="isLocked ? 'pi pi-lock' : 'pi pi-unlock'"
-          :label="isLocked ? '解锁布局' : '锁定布局'"
-          size="small"
-          :severity="isLocked ? 'warn' : 'secondary'"
-          outlined
-          @click="isLocked = !isLocked"
-        />
-        <Button
-          icon="pi pi-cog"
-          label="管理卡片"
-          size="small"
-          severity="secondary"
-          outlined
-          @click="showManager = true"
-        />
+    <!-- 顶部操作栏 -->
+    <div class="toolbar">
+      <label class="lock-switch">
+        <input type="checkbox" v-model="isLocked" />
+        <span class="switch-label">{{ isLocked ? '锁定布局' : '解锁布局' }}</span>
+      </label>
+      <div class="toolbar-right">
+        <select v-model="selectedCardKey" class="card-select">
+          <option value="" disabled>添加卡片...</option>
+          <option v-for="c in availableCards" :key="c.key" :value="c.key">{{ c.label }}</option>
+        </select>
+        <button class="add-btn" :disabled="!selectedCardKey" @click="addCard">+</button>
       </div>
     </div>
 
-    <WidgetManager :visible="showManager" @close="showManager = false" />
-
-    <!--
-      使用 #item 命名槽模式：GridLayout 内部创建 GridItem，v-bind="item"
-      直接从 currentLayout.value 取值。拖拽/缩放时内部数据先更新再 compact，
-      GridItem 的 x/y/w/h 始终正确，彻底消除回弹。
-     -->
     <GridLayout
-      v-if="store.loaded"
-      :layout="store.layout"
-      @layout-updated="store.onLayoutUpdated"
-      :col-num="responsiveColNum"
-      :row-height="60"
+      v-model:layout="layout"
+      :col-num="12"
+      :row-height="30"
       :is-draggable="!isLocked"
       :is-resizable="!isLocked"
-      :is-mirrored="false"
-      :prevent-collision="false"
-      :auto-size="true"
-      :margin="[16, 16]"
-      :use-css-transforms="true"
       :vertical-compact="true"
-      :restore-on-drag="false"
-      style="min-height: 400px"
+      :use-css-transforms="true"
+      :margin="[12, 12]"
+      class="dashboard-grid"
+      @update:layout="saveLayout"
     >
-      <template #item="{ item }">
-        <div class="grid-item-inner">
-          <!-- 移除按钮：锁定状态下隐藏，button 标签默认被 dragIgnoreFrom 排除 -->
-          <button
-            v-if="!isLocked"
-            class="widget-remove-btn"
-            :title="'移除 ' + (getWidgetById(String(item.i))?.config?.title || String(item.i))"
-            @click.stop="onRemoveWidget(String(item.i))"
-          >
-            <span class="pi pi-times" />
-          </button>
-          <component
-            :is="getWidgetComponent(String(item.i))"
-            :widget="getWidgetById(String(item.i))"
-          />
+      <GridItem
+        v-for="item in layout"
+        :key="item.i"
+        :i="item.i"
+        :x="item.x"
+        :y="item.y"
+        :w="item.w"
+        :h="item.h"
+        :min-w="item.minW || 2"
+        :min-h="item.minH || 4"
+      >
+        <div class="card-wrapper">
+          <button v-if="!isLocked" class="remove-btn" @click.stop="removeCard(item.i)">×</button>
+          <component :is="item.component" class="card-inner" />
         </div>
-      </template>
+      </GridItem>
     </GridLayout>
-    <div v-else style="text-align:center;padding:48px;color:var(--text-dim)">
-      加载布局中...
-    </div>
   </div>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--border);
-  position: relative;
-}
-.page-header::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 120px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--primary), transparent);
-}
-.hint { color: var(--text-dim); font-size: 14px; margin-top: 6px; font-weight: 400; }
-
-/* 卡片内容容器 */
-.grid-item-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
+.dashboard-container {
+  width: 100%; height: 100%; padding: 16px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 12px;
 }
 
-/* 移除按钮：右上角悬浮，非锁定状态 hover 时显示 */
-.widget-remove-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 20;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.45);
-  color: #fff;
-  font-size: 11px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s, background 0.2s;
+/* 工具栏 */
+.toolbar {
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
 }
-.grid-item-inner:hover .widget-remove-btn {
-  opacity: 1;
+.lock-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-heading); user-select: none; }
+.lock-switch input { accent-color: var(--primary); }
+.toolbar-right { display: flex; gap: 8px; }
+.card-select {
+  padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-heading); font-size: 12px; outline: none;
 }
-.widget-remove-btn:hover {
-  background: rgba(239, 68, 68, 0.85);
+.add-btn {
+  width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--primary);
+  background: var(--primary); color: #fff; font-size: 16px; cursor: pointer; transition: opacity 0.2s;
 }
+.add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* grid-layout-plus 样式 */
+/* 卡片包装 */
+.card-wrapper { position: relative; width: 100%; height: 100%; }
+.card-inner { width: 100%; height: 100%; }
+.remove-btn {
+  position: absolute; top: 6px; right: 6px; z-index: 10;
+  width: 22px; height: 22px; border-radius: 50%; border: none;
+  background: rgba(239,68,68,0.85); color: #fff; font-size: 14px;
+  cursor: pointer; opacity: 0; transition: opacity 0.2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-wrapper:hover .remove-btn { opacity: 1; }
+
+.dashboard-grid { flex: 1; width: 100%; min-height: 400px; }
+
+/* grid-layout-plus 拖拽样式 */
 :deep(.vgl-item--placeholder) {
   background: linear-gradient(135deg, var(--primary-bg), transparent);
-  opacity: 0.6;
-  border-radius: var(--radius-lg);
+  opacity: 0.6; border-radius: var(--radius-lg);
   border: 2px dashed var(--primary-border);
 }
-
 :deep(.vgl-item) {
   transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: var(--radius-lg);
 }
-
 :deep(.vgl-item--dragging) {
-  box-shadow: var(--shadow-lg);
-  z-index: 10;
-  transform: rotate(2deg) scale(1.02);
-  transition: none !important;
+  box-shadow: var(--shadow-lg); z-index: 10;
+  transform: rotate(2deg) scale(1.02); transition: none !important;
 }
-
-/* 确保调整大小手柄可见且可交互 */
 :deep(.vgl-item__resizer) {
-  z-index: 100 !important;
-  pointer-events: auto !important;
-  opacity: 0.3;
-  transition: opacity 0.2s;
+  z-index: 100 !important; pointer-events: auto !important;
+  opacity: 0.3; transition: opacity 0.2s;
 }
-
-:deep(.vgl-item:hover .vgl-item__resizer) {
-  opacity: 1;
-}
-
-/* 拖拽光标提示 */
-:deep(.vgl-item__content) {
-  cursor: grab;
-}
-:deep(.vgl-item__content:active) {
-  cursor: grabbing;
-}
-
-@media (max-width: 767px) {
-  .page-header { margin-bottom: 20px; padding-bottom: 16px; }
-  .page-header h1 { font-size: 20px; }
-  .hint { font-size: 13px; }
-}
+:deep(.vgl-item:hover .vgl-item__resizer) { opacity: 1; }
+:deep(.vgl-item__content) { cursor: grab; }
+:deep(.vgl-item__content:active) { cursor: grabbing; }
 </style>
