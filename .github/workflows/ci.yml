@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      override_version:
+        description: '手动指定版本号（如 1.0.0），留空则自动计算'
+        required: false
+        default: ''
 
 concurrency:
   group: ci-cd
@@ -208,10 +213,17 @@ jobs:
       - name: Bump version
         id: bump
         run: |
-          # 将最新 Tag 作为基准传给 version 脚本进行自动计算
-          NEW_VER=$(BASE_VERSION=${{ steps.base.outputs.base_version }} python scripts/version.py)
-          CURRENT=${{ steps.base.outputs.base_version }}
+          OVERRIDE="${{ github.event.inputs.override_version }}"
 
+          if [ -n "$OVERRIDE" ]; then
+            # 手动覆盖模式（如发布 v1.0.0 正式版）
+            NEW_VER="$OVERRIDE"
+          else
+            # 自动模式：将最新 Tag 作为基准传给 version 脚本进行自动计算
+            NEW_VER=$(BASE_VERSION=${{ steps.base.outputs.base_version }} python scripts/version.py)
+          fi
+
+          CURRENT=${{ steps.base.outputs.base_version }}
           if [ "$NEW_VER" != "$CURRENT" ]; then
             echo "version=$NEW_VER" >> $GITHUB_OUTPUT
             echo "bumped=true" >> $GITHUB_OUTPUT
