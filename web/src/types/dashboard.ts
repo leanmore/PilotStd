@@ -62,6 +62,22 @@ export const WIDGET_LIBRARY: Record<string, WidgetDefinition> = {
     defaultLayout: { i: 'system-info', x: 6, y: 9, w: 6, h: 3, minW: 3, minH: 3 },
     defaultConfig: { title: '系统信息' },
   },
+  'task-trend': {
+    id: 'task-trend',
+    label: '标准库构成',
+    description: '现行/废止/待确认/即将实施 占比条形图',
+    defaultEnabled: false,
+    defaultLayout: { i: 'task-trend', x: 0, y: 12, w: 6, h: 3, minW: 3, minH: 3 },
+    defaultConfig: { title: '标准库构成' },
+  },
+  'system-log': {
+    id: 'system-log',
+    label: '系统日志',
+    description: '终端风格实时日志流（8s刷新）',
+    defaultEnabled: false,
+    defaultLayout: { i: 'system-log', x: 6, y: 12, w: 6, h: 4, minW: 4, minH: 4 },
+    defaultConfig: { title: '系统日志' },
+  },
 }
 
 // ── 核心类型 ──

@@ -1,118 +1,61 @@
 <script setup lang="ts">
 defineOptions({ name: 'QuickActionsCard' })
-// QuickActionsCard.vue — 快捷操作 Widget（4 个路由跳转按钮）
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 const actions = [
-  { label: '任务流水线', desc: '扫描→查询→下载→整理→归档', icon: 'pi pi-play', to: '/task', color: '#6366f1' },
-  { label: '文件管理', desc: '浏览和管理已下载的文件', icon: 'pi pi-folder', to: '/organize', color: '#f59e0b' },
-  { label: '待确认清单', desc: '查看需人工确认的标准', icon: 'pi pi-hourglass', to: '/pending', color: '#3b82f6' },
-  { label: '公告检查', desc: '检查标准信息的更新公告', icon: 'pi pi-megaphone', to: '/announce', color: '#10b981' },
+  { label: '任务流水线', iconClass: 'pi pi-play', color: '#6366f1', to: '/task' },
+  { label: '文件管理', iconClass: 'pi pi-folder', color: '#f59e0b', to: '/organize' },
+  { label: '待确认清单', iconClass: 'pi pi-hourglass', color: '#3b82f6', to: '/pending' },
+  { label: '公告检查', iconClass: 'pi pi-megaphone', color: '#10b981', to: '/announce' },
 ]
 </script>
 
 <template>
-  <div class="actions-widget">
-    <div class="widget-header">快捷操作</div>
-    <div class="actions-list">
-      <button
-        v-for="act in actions"
-        :key="act.to"
-        @click="router.push(act.to)"
-        class="action-btn"
+  <div class="root">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon"><i class="pi pi-bolt" /></div>
+        <span class="header-title">快捷操作</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div
+        v-for="a in actions" :key="a.to"
+        class="btn" @click="router.push(a.to)"
       >
-        <div class="action-icon" :style="{ background: act.color }">
-          <i :class="act.icon" />
-        </div>
-        <div class="action-text">
-          <span class="action-label">{{ act.label }}</span>
-          <span class="action-desc">{{ act.desc }}</span>
-        </div>
-        <i class="pi pi-chevron-right action-arrow" />
-      </button>
+        <i :class="['icon', a.iconClass]" :style="{ color: a.color }" />
+        <span class="label">{{ a.label }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.actions-widget {
-  height: 100%;
-  box-sizing: border-box;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+.root {
+  height: 100%; box-sizing: border-box; padding: 14px;
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 10px;
 }
+.header { display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(139,92,246,0.12);
+  display: flex; align-items: center; justify-content: center; color: #8b5cf6; font-size: 16px;
+}
+.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
 
-.widget-header {
-  font-weight: 600;
-  color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+.grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
+  cursor: pointer; transition: all var(--transition); user-select: none;
 }
-
-.actions-list { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; }
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  text-align: left;
-  color: var(--text);
-  transition: all var(--transition);
-  font-size: 13px;
-}
-.action-btn:hover {
-  background: var(--selected);
-  border-color: var(--primary-border);
-}
-
-.action-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #fff;
-  font-size: 16px;
-}
-.action-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.action-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-heading);
-}
-.action-desc {
-  font-size: 11px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.action-arrow {
-  color: var(--text-dim);
-  font-size: 12px;
-  flex-shrink: 0;
-}
+.btn:hover { border-color: var(--primary-border); background: var(--primary-bg); transform: translateY(-1px); }
+.btn:active { transform: scale(0.97); }
+.icon { font-size: 22px; }
+.label { font-size: 11px; font-weight: 600; color: var(--text-heading); }
 </style>

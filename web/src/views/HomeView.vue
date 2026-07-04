@@ -12,6 +12,8 @@ import RecentAnnounceCard from '@/components/dashboard/widgets/RecentAnnounceCar
 import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vue'
 import PendingItemsCard from '@/components/dashboard/widgets/PendingItemsCard.vue'
 import SystemInfoCard from '@/components/dashboard/widgets/SystemInfoCard.vue'
+import TaskTrendCard from '@/components/dashboard/widgets/TaskTrendCard.vue'
+import SystemLogCard from '@/components/dashboard/widgets/SystemLogCard.vue'
 import PlaceholderWidget from '@/components/dashboard/widgets/PlaceholderWidget.vue'
 import Button from 'primevue/button'
 
@@ -59,6 +61,8 @@ function getWidgetComponent(type: string) {
     'quick-actions': QuickActionsCard,
     'pending-items': PendingItemsCard,
     'system-info': SystemInfoCard,
+    'task-trend': TaskTrendCard,
+    'system-log': SystemLogCard,
   }
   return map[type] || PlaceholderWidget
 }
