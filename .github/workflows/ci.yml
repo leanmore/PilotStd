@@ -251,10 +251,26 @@ jobs:
           # 2. 精准替换 pilotstd/__init__.py 第 10 行的 __version__
           sed -i "10s/__version__ = .*/__version__ = \"${{ steps.bump.outputs.version }}\"/" pilotstd/__init__.py
 
-          # 3. 统一提交并推送
+          # 3. 同步 CHANGELOG（在 # CHANGELOG 行后插入新版本条目）
+          export V="${{ steps.bump.outputs.version }}"
+          export DATE=$(date +%Y-%m-%d)
+          python3 << 'PYEOF'
+          import os
+          v = os.environ["V"]
+          date = os.environ["DATE"]
+          with open("CHANGELOG.md", "r") as f:
+              content = f.read()
+          entry = f"## v{v} ({date})\n\n### Fixed\n- 版本号自动同步（CI 更新）\n\n"
+          idx = content.index("\n") + 1
+          content = content[:idx] + entry + content[idx:]
+          with open("CHANGELOG.md", "w") as f:
+              f.write(content)
+          PYEOF
+
+          # 4. 统一提交并推送
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION pilotstd/__init__.py
+          git add VERSION pilotstd/__init__.py CHANGELOG.md
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
           git push
           # 防冲突：等待 push 完成后再打 tag
