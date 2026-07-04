@@ -1,75 +1,50 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { getItem, setItem } from '@/lib/storage'
 import { THEMES, applyThemeToDom } from '@/config/themes'
+import { useUserPreferences } from '@/composables/useUserPreferences'
 
 export type ThemeId = keyof typeof THEMES
 
 export const useAppStore = defineStore('app', () => {
   const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const savedTheme = getItem('theme') as ThemeId | null
-  const defaultTheme: ThemeId = savedTheme || (sysDark ? 'dark' : 'light')
-  const theme = ref<ThemeId>(defaultTheme)
+  const { theme: prefsTheme, locale: prefsLocale, loadFromBackend } = useUserPreferences()
 
-  const savedLocale = getItem('locale')
-  const locale = ref(savedLocale || 'zh-CN')
+  const defaultTheme: ThemeId = (prefsTheme.value as ThemeId) || (sysDark ? 'dark' : 'light')
+  const theme = ref<ThemeId>(defaultTheme)
+  const locale = ref(prefsLocale.value || 'zh-CN')
   const loggedIn = ref(false)
   const username = ref('')
-  const role = ref('user')  // 后端返回的角色，前端权限渲染依据
+  const role = ref('user')
   const _initialized = ref(false)
 
-  /** 从 preferencesStore 加载持久化配置（登录后调用） */
+  /** 从后端拉取偏好并覆盖本地（登录后调用） */
   async function loadPreferences() {
     if (_initialized.value) return
     _initialized.value = true
 
     try {
-      const { usePreferencesStore } = await import('./preferences')
-      const prefs = usePreferencesStore()
+      await loadFromBackend()
 
-      const backendTheme = await prefs.get<string>('theme')
-      if (backendTheme && backendTheme in THEMES) {
-        theme.value = backendTheme as ThemeId
+      if (prefsTheme.value && prefsTheme.value in THEMES) {
+        theme.value = prefsTheme.value as ThemeId
       }
-
-      const backendLang = await prefs.get<string>('language')
-      if (backendLang) {
-        locale.value = backendLang
-        setItem('locale', backendLang)
+      if (prefsLocale.value) {
+        locale.value = prefsLocale.value
       }
-    } catch {
-      // preferencesStore 不可用时保持 localStorage 值
-    }
+    } catch { /* 保持 localStorage 值 */ }
   }
 
-  // 主题切换：同步 CSS + localStorage + 后端
-  watch(theme, async v => {
-    const themeConfig = THEMES[v]
-    if (themeConfig) {
-      try { applyThemeToDom(themeConfig) } catch { /* SSR */ }
-    }
-    setItem('theme', v)
-    // 异步同步到后端
-    try {
-      const { usePreferencesStore } = await import('./preferences')
-      usePreferencesStore().set('theme', v).catch(() => {})
-    } catch { /* ignore */ }
+  watch(theme, v => {
+    const tc = THEMES[v]
+    if (tc) { try { applyThemeToDom(tc) } catch { /* SSR */ } }
+    prefsTheme.value = v
   }, { immediate: true })
 
-  watch(locale, async v => {
-    setItem('locale', v)
-    try {
-      const { usePreferencesStore } = await import('./preferences')
-      usePreferencesStore().set('language', v).catch(() => {})
-    } catch { /* ignore */ }
-  })
+  watch(locale, v => { prefsLocale.value = v })
 
-  // 系统主题变化自动跟随
   try {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      if (!getItem('theme')) {
-        theme.value = e.matches ? 'dark' : 'light'
-      }
+      if (!prefsTheme.value) theme.value = e.matches ? 'dark' : 'light'
     })
   } catch { /* SSR */ }
 

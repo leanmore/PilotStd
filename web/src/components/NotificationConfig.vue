@@ -2,6 +2,7 @@
 defineOptions({ name: 'NotificationConfig' })
 // NotificationConfig.vue v2 — 四渠道全参数通知配置
 import { ref, onMounted } from 'vue'
+import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
@@ -177,56 +178,55 @@ function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
 
 onMounted(() => {
   loadConfig()
-  const saved = localStorage.getItem('notification_toast_config')
-  if (saved) {
-    try { toastConfig.value = JSON.parse(saved) } catch { /* ignore */ }
-  }
+  loadToastFromPrefs()
+  loadQuietHoursFromPrefs()
 })
 
-// ── Toast 页面内通知配置 ──
+// ── Toast 页面内通知配置（通过 useUserPreferences 持久化） ──
+const { toastConfig: toastPrefs, quietHours: quietPrefs, autoPause: autoPausePrefs } = useUserPreferences()
+
 const toastConfig = ref({
-  enabled: true,
-  events: ['auto_scan_failed', 'validity_system_failed', 'validity_standard_failed'],
+  enabled: toastPrefs.value.enabled,
+  events: [...toastPrefs.value.events],
 })
 
 function saveToastConfig() {
-  localStorage.setItem('notification_toast_config', JSON.stringify(toastConfig.value))
+  toastPrefs.value = { enabled: toastConfig.value.enabled, events: [...toastConfig.value.events] }
+}
+
+function loadToastFromPrefs() {
+  toastConfig.value = { enabled: toastPrefs.value.enabled, events: [...toastPrefs.value.events] }
 }
 
 // ── 静音时段配置 ──
-const quietHoursEnabled = ref(false)
+const quietHoursEnabled = ref(quietPrefs.value.enabled)
 const quietHoursStart = ref(new Date(2024, 0, 1, 22, 0))
 const quietHoursEnd = ref(new Date(2024, 0, 1, 7, 0))
 
 function saveQuietHours() {
   const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  const config = {
-    enabled: quietHoursEnabled.value,
-    start: hhmm(quietHoursStart.value),
-    end: hhmm(quietHoursEnd.value),
-  }
-  localStorage.setItem('notification_quiet_hours', JSON.stringify(config))
+  quietPrefs.value = { enabled: quietHoursEnabled.value, start: hhmm(quietHoursStart.value), end: hhmm(quietHoursEnd.value) }
 }
 
-function loadQuietHours() {
-  try {
-    const saved = localStorage.getItem('notification_quiet_hours')
-    if (saved) {
-      const cfg = JSON.parse(saved)
-      quietHoursEnabled.value = cfg.enabled || false
-      if (cfg.start) { const [h, m] = cfg.start.split(':').map(Number); quietHoursStart.value = new Date(2024, 0, 1, h, m) }
-      if (cfg.end) { const [h, m] = cfg.end.split(':').map(Number); quietHoursEnd.value = new Date(2024, 0, 1, h, m) }
-    }
-  } catch { /* ignore */ }
+function loadQuietHoursFromPrefs() {
+  quietHoursEnabled.value = quietPrefs.value.enabled
+  if (quietPrefs.value.start) {
+    const [h, m] = quietPrefs.value.start.split(':').map(Number)
+    quietHoursStart.value = new Date(2024, 0, 1, h, m)
+  }
+  if (quietPrefs.value.end) {
+    const [h, m] = quietPrefs.value.end.split(':').map(Number)
+    quietHoursEnd.value = new Date(2024, 0, 1, h, m)
+  }
 }
 
 // ── 智能聚合器配置 ──
 const aggregator = useNotificationAggregator()
-const autoPauseEnabled = ref(localStorage.getItem('notification_auto_pause') !== 'false')
+const autoPauseEnabled = ref(autoPausePrefs.value)
 const pauseState = ref(aggregator.getPauseState())
 
 function saveAutoPauseConfig() {
-  localStorage.setItem('notification_auto_pause', String(autoPauseEnabled.value))
+  autoPausePrefs.value = autoPauseEnabled.value
 }
 
 function resumeNotifications() {
@@ -240,7 +240,7 @@ onMounted(() => {
   pauseTimer = setInterval(() => {
     pauseState.value = aggregator.getPauseState()
   }, 1000)
-  loadQuietHours()
+  loadQuietHoursFromPrefs()
 })
 import { onUnmounted } from 'vue'
 onUnmounted(() => {
