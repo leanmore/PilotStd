@@ -81,7 +81,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .clear-btn:hover { color: var(--danger); border-color: var(--danger); }
 
 .log-box {
-  flex: 1; overflow-y: auto; background: rgba(0,0,0,0.05); border-radius: var(--radius);
+  flex: 1; overflow-y: auto; background: rgba(0,0,0,0.08); border-radius: var(--radius);
   padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.7;
 }
 .empty { color: var(--text-dim); text-align: center; padding: 20px 0; }

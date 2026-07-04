@@ -88,6 +88,30 @@
 }
 
 /* ═══════════════════════════════════════════
+   深色模式变量覆盖
+   ═══════════════════════════════════════════ */
+.dark {
+  --surface: #1f2937;
+  --surface-raised: #111827;
+  --border: #374151;
+  --border-light: #374151;
+  --text-heading: #f9fafb;
+  --text-dim: #9ca3af;
+  --primary: #818cf8;
+  --primary-bg: rgba(129, 140, 248, 0.1);
+  --primary-border: rgba(129, 140, 248, 0.3);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --bg: #0f172a;
+  --mp-card-bg: rgba(30, 41, 59, 0.85);
+  --mp-card-border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dark .mp-dot-success { box-shadow: 0 0 8px rgba(74, 222, 128, 0.8); }
+.dark .mp-dot-danger { box-shadow: 0 0 8px rgba(248, 113, 113, 0.8); }
+
+/* ═══════════════════════════════════════════
    MoviePilot 风格基础组件类
    ═══════════════════════════════════════════ */
 .mp-card {
