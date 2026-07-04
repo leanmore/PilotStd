@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v0.55.34 (2026-07-04)
+
+### Fixed
+- WinUI：公告互斥逻辑从 `setEnabled` 改为 `setChecked` 自动互切，修复双 True 脏数据导致双复选框锁死
+- Web：Select/Dropdown 选中态样式修复（PrimeVue 4 使用 `data-p-selected` 属性而非 `.p-highlight` 类名）
+
+### Changed
+- Web：首页控制栏改为右侧固定侧边栏，解锁布局按钮移至重置按钮上方
+- Web：查询适配器卡片尺寸加大（6×8→8×10），新增中文名称显示
+
 ## v0.55.33 (2026-07-03)
 
 ### Fixed
