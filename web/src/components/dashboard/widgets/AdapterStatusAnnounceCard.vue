@@ -1,18 +1,12 @@
 <script setup lang="ts">
 defineOptions({ name: 'AdapterStatusAnnounceCard' })
-// AdapterStatusAnnounceCard.vue — 公告适配器熔断状态 Widget
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'
-import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 
 interface AdapterStatus {
-  name: string
-  status: string
-  frozen_until: string | null
-  remaining_seconds: number
-  freeze_count: number
-  fail_streak: number
+  name: string; status: string; frozen_until: string | null
+  remaining_seconds: number; freeze_count: number; fail_streak: number
 }
 
 const adapters = ref<AdapterStatus[]>([])
@@ -24,115 +18,122 @@ async function loadStatus() {
   loading.value = true
   try {
     const r = await http.get('/adapter/status', { params: { type: 'announcement' } })
-    adapters.value = r.data.adapters
-    error.value = ''
-  } catch {
-    error.value = '加载公告适配器状态失败'
-  } finally {
-    loading.value = false
-  }
+    adapters.value = r.data.adapters; error.value = ''
+  } catch { error.value = '加载失败' }
+  finally { loading.value = false }
 }
 
 function tick() {
   let anyFrozen = false
   for (const a of adapters.value) {
-    if (a.status === 'frozen' && a.remaining_seconds > 0) {
-      a.remaining_seconds--
-      anyFrozen = true
-    }
+    if (a.status === 'frozen' && a.remaining_seconds > 0) { a.remaining_seconds--; anyFrozen = true }
   }
-  if (!anyFrozen && adapters.value.some(a => a.status === 'frozen')) {
-    loadStatus()
-  }
+  if (!anyFrozen && adapters.value.some(a => a.status === 'frozen')) loadStatus()
 }
 
-function statusSeverity(s: string): 'success' | 'danger' | 'info' {
-  if (s === 'frozen') return 'danger'
-  if (s === 'normal') return 'success'
-  return 'info'
+function fullName(n: string): string {
+  const map: Record<string, string> = { gb: '国家标准公告', hb: '行业标准公告', db: '地方标准公告' }
+  return map[n] || n.toUpperCase()
 }
 
-function statusLabel(s: string): string {
-  if (s === 'frozen') return '冻结中'
-  if (s === 'normal') return '正常'
-  return s
-}
-
-onMounted(() => {
-  loadStatus()
-  timer = setInterval(tick, 1000)
-})
-
-onBeforeUnmount(() => {
-  if (timer) clearInterval(timer)
-})
+onMounted(() => { loadStatus(); timer = setInterval(tick, 1000) })
+onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>
 
 <template>
-  <div class="adapter-widget">
-    <div class="widget-header">
-      <span>公告适配器</span>
-      <Button icon="pi pi-refresh" size="small" severity="secondary" text :loading="loading" @click="loadStatus" />
+  <div class="announce-root">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon"><i class="pi pi-shield" /></div>
+        <div>
+          <div class="header-title">公告适配器</div>
+          <div class="header-sub">核心链路 · {{ adapters.length }} 节点</div>
+        </div>
+      </div>
+      <Button icon="pi pi-refresh" size="small" severity="secondary" text rounded :loading="loading" @click="loadStatus" />
     </div>
-    <p v-if="error" class="err-msg">{{ error }}</p>
-    <table v-if="adapters.length" class="adapter-table">
-      <thead>
-        <tr>
-          <th>适配器</th>
-          <th>状态</th>
-          <th>剩余冻结</th>
-          <th>冻结次数</th>
-          <th>连续失败</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="a in adapters" :key="a.name">
-          <td><strong>{{ a.name.toUpperCase() }}</strong></td>
-          <td><Tag :severity="statusSeverity(a.status)" :value="statusLabel(a.status)" /></td>
-          <td>{{ a.status === 'frozen' ? `${a.remaining_seconds}s` : '—' }}</td>
-          <td>{{ a.freeze_count }}</td>
-          <td>{{ a.fail_streak }}</td>
-        </tr>
-      </tbody>
-    </table>
+
+    <p v-if="error" class="err">{{ error }}</p>
+
+    <!-- 垂直列表模式 -->
+    <div v-if="adapters.length" class="list">
+      <div v-for="a in adapters" :key="a.name" class="row" :class="{ frozen: a.status === 'frozen' }">
+        <!-- 左侧：名称块 -->
+        <div class="row-icon" :class="a.status === 'frozen' ? 'icon-frozen' : 'icon-ok'">
+          {{ a.name.toUpperCase() }}
+        </div>
+        <div class="row-info">
+          <span class="row-name">{{ fullName(a.name) }}</span>
+          <span class="row-code">{{ a.name }}</span>
+        </div>
+        <!-- 右侧：状态指示 -->
+        <div class="row-status">
+          <template v-if="a.status === 'normal'">
+            <span class="mp-dot-success" />
+            <span class="status-text-ok">正常</span>
+          </template>
+          <template v-else>
+            <span class="mp-dot-danger" />
+            <span class="status-text-err">冻结 {{ a.remaining_seconds }}s</span>
+          </template>
+        </div>
+        <!-- 异常数据 -->
+        <div v-if="a.fail_streak > 0" class="row-warn" :title="`冻结${a.freeze_count}次 / 连续失败${a.fail_streak}次`">
+          <i class="pi pi-exclamation-triangle" />
+        </div>
+      </div>
+    </div>
     <p v-else-if="!loading" class="empty">暂无数据</p>
   </div>
 </template>
 
 <style scoped>
-.adapter-widget {
-  height: 100%;
-  box-sizing: border-box;
+.announce-root {
+  height: 100%; box-sizing: border-box; padding: 14px;
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 10px;
+}
+
+/* Header */
+.header { display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(99,102,241,0.12);
+  display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 16px;
+}
+.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.header-sub { font-size: 10px; color: var(--text-dim); }
+
+/* 列表 */
+.list { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius);
   transition: all var(--transition);
 }
-.adapter-widget:hover { box-shadow: var(--shadow-md); }
-.widget-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
-  color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--border);
+.row:hover { border-color: var(--primary-border); background: var(--primary-bg); }
+.row.frozen { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); }
+
+.row-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; font-family: var(--mono); flex-shrink: 0;
 }
-.adapter-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
-.adapter-table th {
-  font-weight: 600; color: var(--text-dim); font-size: 10px;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 6px 8px; background: var(--surface-raised); border-bottom: 2px solid var(--border);
-}
-.adapter-table td { padding: 8px; border-bottom: 1px solid var(--border-light); color: var(--text); }
-.adapter-table tbody tr:hover { background: var(--selected); }
-.adapter-table tbody tr:last-child td { border-bottom: none; }
-.empty { color: var(--text-dim); font-size: 12px; padding: 16px 0; text-align: center; }
-.err-msg { color: var(--danger); font-size: 12px; margin: 4px 0; }
+.icon-ok { background: rgba(99,102,241,0.1); color: var(--primary); }
+.icon-frozen { background: rgba(239,68,68,0.12); color: var(--danger); }
+
+.row-info { flex: 1; min-width: 0; }
+.row-name { font-size: 12px; font-weight: 600; color: var(--text-heading); display: block; }
+.row-code { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+
+.row-status { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.status-text-ok { font-size: 11px; color: #16a34a; font-weight: 500; }
+.status-text-err { font-size: 11px; color: var(--danger); font-weight: 500; }
+
+.row-warn { color: var(--warning); font-size: 13px; cursor: help; flex-shrink: 0; }
+
+.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
+.err { color: var(--danger); font-size: 12px; }
 </style>

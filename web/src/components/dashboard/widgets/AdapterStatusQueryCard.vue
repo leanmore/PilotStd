@@ -1,18 +1,12 @@
 <script setup lang="ts">
 defineOptions({ name: 'AdapterStatusQueryCard' })
-// AdapterStatusQueryCard.vue — 查询适配器熔断状态 Widget
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'
-import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 
 interface AdapterStatus {
-  name: string
-  status: string
-  frozen_until: string | null
-  remaining_seconds: number
-  freeze_count: number
-  fail_streak: number
+  name: string; status: string; frozen_until: string | null
+  remaining_seconds: number; freeze_count: number; fail_streak: number
 }
 
 const adapters = ref<AdapterStatus[]>([])
@@ -24,115 +18,122 @@ async function loadStatus() {
   loading.value = true
   try {
     const r = await http.get('/adapter/status', { params: { type: 'query' } })
-    adapters.value = r.data.adapters
-    error.value = ''
-  } catch {
-    error.value = '加载查询适配器状态失败'
-  } finally {
-    loading.value = false
-  }
+    adapters.value = r.data.adapters; error.value = ''
+  } catch { error.value = '加载失败' }
+  finally { loading.value = false }
 }
 
 function tick() {
   let anyFrozen = false
   for (const a of adapters.value) {
-    if (a.status === 'frozen' && a.remaining_seconds > 0) {
-      a.remaining_seconds--
-      anyFrozen = true
-    }
+    if (a.status === 'frozen' && a.remaining_seconds > 0) { a.remaining_seconds--; anyFrozen = true }
   }
-  if (!anyFrozen && adapters.value.some(a => a.status === 'frozen')) {
-    loadStatus()
+  if (!anyFrozen && adapters.value.some(a => a.status === 'frozen')) loadStatus()
+}
+
+function fullName(n: string): string {
+  const map: Record<string, string> = {
+    ahbz: '安徽标准', std_gov: '国家标准', hbba: '湖北标准',
+    iso_gov: 'ISO 标准', njbz365: '南京标准', csres: 'CSRES', dbba: '地方标准',
   }
+  return map[n] || n.toUpperCase()
 }
 
-function statusSeverity(s: string): 'success' | 'danger' | 'info' {
-  if (s === 'frozen') return 'danger'
-  if (s === 'normal') return 'success'
-  return 'info'
-}
-
-function statusLabel(s: string): string {
-  if (s === 'frozen') return '冻结中'
-  if (s === 'normal') return '正常'
-  return s
-}
-
-onMounted(() => {
-  loadStatus()
-  timer = setInterval(tick, 1000)
-})
-
-onBeforeUnmount(() => {
-  if (timer) clearInterval(timer)
-})
+onMounted(() => { loadStatus(); timer = setInterval(tick, 1000) })
+onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>
 
 <template>
-  <div class="adapter-widget">
-    <div class="widget-header">
-      <span>查询适配器</span>
-      <Button icon="pi pi-refresh" size="small" severity="secondary" text :loading="loading" @click="loadStatus" />
+  <div class="query-root">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon"><i class="pi pi-globe" /></div>
+        <div>
+          <div class="header-title">查询适配器集群</div>
+          <div class="header-sub">{{ adapters.length }} 节点</div>
+        </div>
+      </div>
+      <Button icon="pi pi-refresh" size="small" severity="secondary" text rounded :loading="loading" @click="loadStatus" />
     </div>
-    <p v-if="error" class="err-msg">{{ error }}</p>
-    <table v-if="adapters.length" class="adapter-table">
-      <thead>
-        <tr>
-          <th>适配器</th>
-          <th>状态</th>
-          <th>剩余冻结</th>
-          <th>冻结次数</th>
-          <th>连续失败</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="a in adapters" :key="a.name">
-          <td><strong>{{ a.name.toUpperCase() }}</strong></td>
-          <td><Tag :severity="statusSeverity(a.status)" :value="statusLabel(a.status)" /></td>
-          <td>{{ a.status === 'frozen' ? `${a.remaining_seconds}s` : '—' }}</td>
-          <td>{{ a.freeze_count }}</td>
-          <td>{{ a.fail_streak }}</td>
-        </tr>
-      </tbody>
-    </table>
+
+    <p v-if="error" class="err">{{ error }}</p>
+
+    <!-- 紧凑网格 -->
+    <div v-if="adapters.length" class="grid">
+      <div v-for="a in adapters" :key="a.name" class="cell" :class="{ frozen: a.status === 'frozen' }">
+        <!-- 状态点 -->
+        <div class="cell-dot">
+          <span v-if="a.status === 'normal'" class="mp-dot-success" />
+          <span v-else class="mp-dot-danger" />
+        </div>
+        <!-- 名称 -->
+        <div class="cell-name" :title="fullName(a.name)">{{ a.name }}</div>
+        <!-- 底部状态条 -->
+        <div class="cell-bar">
+          <div class="cell-bar-fill" :class="a.status === 'normal' ? 'bar-ok' : 'bar-err'"
+               :style="{ width: a.status === 'normal' ? '100%' : '40%' }" />
+        </div>
+        <!-- 异常数据 hover 显示 -->
+        <div v-if="a.status === 'frozen'" class="cell-overlay">
+          <span>{{ a.remaining_seconds }}s</span>
+        </div>
+      </div>
+    </div>
     <p v-else-if="!loading" class="empty">暂无数据</p>
   </div>
 </template>
 
 <style scoped>
-.adapter-widget {
-  height: 100%;
-  box-sizing: border-box;
+.query-root {
+  height: 100%; box-sizing: border-box; padding: 14px;
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  transition: all var(--transition);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 10px;
 }
-.adapter-widget:hover { box-shadow: var(--shadow-md); }
-.widget-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
-  color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--border);
+
+/* Header */
+.header { display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(59,130,246,0.12);
+  display: flex; align-items: center; justify-content: center; color: var(--info); font-size: 16px;
 }
-.adapter-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
-.adapter-table th {
-  font-weight: 600; color: var(--text-dim); font-size: 10px;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 6px 8px; background: var(--surface-raised); border-bottom: 2px solid var(--border);
+.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.header-sub { font-size: 10px; color: var(--text-dim); }
+
+/* 网格 */
+.grid {
+  flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 6px; align-content: start; overflow-y: auto;
 }
-.adapter-table td { padding: 8px; border-bottom: 1px solid var(--border-light); color: var(--text); }
-.adapter-table tbody tr:hover { background: var(--selected); }
-.adapter-table tbody tr:last-child td { border-bottom: none; }
-.empty { color: var(--text-dim); font-size: 12px; padding: 16px 0; text-align: center; }
-.err-msg { color: var(--danger); font-size: 12px; margin: 4px 0; }
+.cell {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px 8px; background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius); transition: all var(--transition); overflow: hidden;
+}
+.cell:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
+.cell.frozen { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
+
+.cell-dot { position: absolute; top: 6px; right: 6px; }
+.cell-name {
+  font-size: 12px; font-weight: 700; color: var(--text-heading); font-family: var(--mono);
+  text-align: center; margin-top: 4px; word-break: break-all;
+}
+
+.cell-bar { width: 100%; height: 3px; background: var(--border-light); border-radius: 2px; overflow: hidden; }
+.cell-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.bar-ok { background: var(--success); }
+.bar-err { background: var(--danger); }
+
+.cell-overlay {
+  position: absolute; inset: 0; background: rgba(239,68,68,0.85);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 700; font-family: var(--mono);
+  opacity: 0; transition: opacity 0.2s;
+}
+.cell:hover .cell-overlay { opacity: 1; }
+
+.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
+.err { color: var(--danger); font-size: 12px; }
 </style>
