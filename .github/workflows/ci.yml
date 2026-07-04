@@ -257,13 +257,15 @@ jobs:
           git add VERSION pilotstd/__init__.py
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
           git push
+          # 防冲突：等待 push 完成后再打 tag
+          sleep 2
 
       - name: Create and push tag
         if: steps.bump.outputs.bumped == 'true'
         run: |
           TAG="v${{ steps.bump.outputs.version }}"
           git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
+          git push origin "$TAG" --force-with-lease
 
   # ════════════════════════════════════════════════════════════════
   # Job 6: Docker 镜像构建
