@@ -516,15 +516,87 @@ h4 {
   border-radius: var(--radius-sm);
 }
 
-/* Select */
-.p-select {
+/* ── Select / Dropdown 全局增强 ── */
+.p-select,
+.p-dropdown {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
-.p-select .p-select-label {
+.p-select .p-select-label,
+.p-dropdown .p-dropdown-label {
   color: var(--text);
+  font-weight: 500;
+}
+
+/* 面板容器 */
+.p-select-overlay,
+.p-dropdown-panel {
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* 选项基础 */
+.p-select-overlay .p-select-option,
+.p-dropdown-panel .p-dropdown-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text);
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+
+/* 未选中 hover */
+.p-select-overlay .p-select-option:not([data-p-selected="true"]):hover,
+.p-dropdown-panel .p-dropdown-item:not([data-p-selected="true"]):hover {
+  background: var(--primary-bg);
+  color: var(--text-heading);
+}
+
+/* 已选中项 — PrimeVue 4 用 data-p-selected 属性标记选中态 */
+.p-select-overlay .p-select-option[data-p-selected="true"],
+.p-dropdown-panel .p-dropdown-item[data-p-selected="true"] {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 已选中项左侧 ✓ */
+.p-select-overlay .p-select-option[data-p-selected="true"]::before,
+.p-dropdown-panel .p-dropdown-item[data-p-selected="true"]::before {
+  content: '\2713';
+  display: inline-block;
+  margin-right: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+}
+
+/* 已选中项 hover */
+.p-select-overlay .p-select-option[data-p-selected="true"]:hover,
+.p-dropdown-panel .p-dropdown-item[data-p-selected="true"]:hover {
+  filter: brightness(0.9);
+}
+
+/* 键盘聚焦项 */
+.p-select-overlay .p-select-option[data-p-focused="true"]:not([data-p-selected="true"]),
+.p-dropdown-panel .p-dropdown-item[data-p-focused="true"]:not([data-p-selected="true"]) {
+  background: var(--primary-bg);
+  outline: none;
+}
+
+/* 多选 chip */
+.p-select-chip {
+  background: var(--primary-bg);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* Toast */

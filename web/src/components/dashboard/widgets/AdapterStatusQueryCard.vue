@@ -4,6 +4,8 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import http from '@/api/http'
 import Button from 'primevue/button'
 
+const props = defineProps<{ zhName?: string }>()
+
 interface AdapterStatus {
   name: string; status: string; frozen_until: string | null
   remaining_seconds: number; freeze_count: number; fail_streak: number
@@ -50,7 +52,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-globe" /></div>
         <div>
-          <div class="header-title">查询适配器集群</div>
+          <div class="header-title">{{ props.zhName || '查询适配器集群' }}</div>
           <div class="header-sub">{{ adapters.length }} 节点</div>
         </div>
       </div>
@@ -69,6 +71,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
         </div>
         <!-- 名称 -->
         <div class="cell-name" :title="fullName(a.name)">{{ a.name }}</div>
+        <div class="cell-cn">{{ fullName(a.name) }}</div>
         <!-- 底部状态条 -->
         <div class="cell-bar">
           <div class="cell-bar-fill" :class="a.status === 'normal' ? 'bar-ok' : 'bar-err'"
@@ -104,12 +107,12 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
 /* 网格 */
 .grid {
-  flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 6px; align-content: start; overflow-y: auto;
+  flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px; align-content: start; overflow-y: auto;
 }
 .cell {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px 8px; background: var(--surface); border: 1px solid var(--border-light);
+  padding: 14px 10px 12px; background: var(--surface); border: 1px solid var(--border-light);
   border-radius: var(--radius); transition: all var(--transition); overflow: hidden;
 }
 .cell:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
@@ -119,6 +122,9 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .cell-name {
   font-size: 12px; font-weight: 700; color: var(--text-heading); font-family: var(--mono);
   text-align: center; margin-top: 4px; word-break: break-all;
+}
+.cell-cn {
+  font-size: 10px; color: var(--text-dim); text-align: center; word-break: keep-all; line-height: 1.3;
 }
 
 .cell-bar { width: 100%; height: 3px; background: var(--border-light); border-radius: 2px; overflow: hidden; }

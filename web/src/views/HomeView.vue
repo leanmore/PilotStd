@@ -13,12 +13,12 @@ import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vu
 import TaskTrendCard from '@/components/dashboard/widgets/TaskTrendCard.vue'
 import SystemLogCard from '@/components/dashboard/widgets/SystemLogCard.vue'
 
-const CARD_REGISTRY: Record<string, { label: string; w: number; h: number }> = {
+const CARD_REGISTRY: Record<string, { label: string; zhName?: string; w: number; h: number }> = {
   stats: { label: '核心统计', w: 4, h: 6 },
   sysInfo: { label: '系统状态', w: 4, h: 6 },
   quickActions: { label: '快捷操作', w: 4, h: 6 },
   announceAdapter: { label: '公告适配器', w: 6, h: 8 },
-  queryAdapter: { label: '查询适配器', w: 6, h: 8 },
+  queryAdapter: { label: '查询适配器', zhName: '查询适配器集群', w: 8, h: 10 },
   recentAnnounce: { label: '最新公告', w: 6, h: 8 },
   pending: { label: '待确认标准', w: 6, h: 8 },
   trend: { label: '标准库构成', w: 4, h: 8 },
@@ -42,7 +42,7 @@ const DEFAULT_LAYOUT = [
   { i: 'sysInfo', x: 4, y: 0, w: 4, h: 6 },
   { i: 'quickActions', x: 8, y: 0, w: 4, h: 6 },
   { i: 'announceAdapter', x: 0, y: 6, w: 6, h: 8 },
-  { i: 'queryAdapter', x: 6, y: 6, w: 6, h: 8 },
+  { i: 'queryAdapter', x: 6, y: 6, w: 8, h: 10 },
 ]
 
 const layout = ref<any[]>([])
@@ -58,7 +58,11 @@ const availableCards = computed(() => {
 })
 
 function hydrateLayout(rawLayout: any[]) {
-  return rawLayout.map(item => ({ ...item, component: COMPONENT_MAP[item.i] })).filter(item => item.component)
+  return rawLayout.map(item => ({
+    ...item,
+    component: COMPONENT_MAP[item.i],
+    zhName: CARD_REGISTRY[item.i]?.zhName,
+  })).filter(item => item.component)
 }
 
 async function fetchLayout() {
@@ -89,7 +93,11 @@ function handleLayoutUpdated(newLayout: any[]) {
 function addCard() {
   if (!selectedCardKey.value) return
   const meta = CARD_REGISTRY[selectedCardKey.value]
-  layout.value.push({ i: selectedCardKey.value, x: 0, y: 0, w: meta.w, h: meta.h, component: COMPONENT_MAP[selectedCardKey.value] })
+  layout.value.push({
+    i: selectedCardKey.value, x: 0, y: 0, w: meta.w, h: meta.h,
+    component: COMPONENT_MAP[selectedCardKey.value],
+    zhName: meta.zhName,
+  })
   selectedCardKey.value = ''
 }
 
@@ -108,69 +116,100 @@ defineExpose({ layout, isLocked, addCard, removeCard, resetLayout })
 
 <template>
   <div class="dashboard-container">
-    <div class="toolbar">
-      <label class="lock-switch">
-        <input type="checkbox" v-model="isLocked" />
-        <span class="switch-label">{{ isLocked ? '锁定布局' : '解锁布局' }}</span>
-      </label>
-      <div class="toolbar-right">
-        <select v-model="selectedCardKey" class="card-select" :disabled="isLocked">
-          <option value="" disabled>添加卡片...</option>
-          <option v-for="c in availableCards" :key="c.key" :value="c.key">{{ c.label }}</option>
-        </select>
-        <button class="action-btn add-btn" :disabled="!selectedCardKey || isLocked" @click="addCard">+</button>
-        <button class="action-btn reset-btn" :disabled="isLocked" @click="resetLayout">重置</button>
+    <div class="dashboard-body">
+      <div class="main-area">
+        <GridLayout
+          v-model:layout="layout"
+          :col-num="12"
+          :row-height="30"
+          :is-draggable="!isLocked"
+          :is-resizable="!isLocked"
+          :vertical-compact="true"
+          :use-css-transforms="true"
+          :margin="[12, 12]"
+          class="dashboard-grid"
+          @update:layout="handleLayoutUpdated"
+        >
+          <GridItem
+            v-for="item in layout"
+            :key="item.i"
+            :i="item.i"
+            :x="item.x"
+            :y="item.y"
+            :w="item.w"
+            :h="item.h"
+            :min-w="item.minW || 2"
+            :min-h="item.minH || 4"
+          >
+            <div class="card-wrapper">
+              <button v-if="!isLocked" class="remove-btn" @click.stop="removeCard(item.i)">&times;</button>
+              <component :is="item.component" class="card-inner" :zh-name="item.zhName" />
+            </div>
+          </GridItem>
+        </GridLayout>
       </div>
-    </div>
 
-    <GridLayout
-      v-model:layout="layout"
-      :col-num="12"
-      :row-height="30"
-      :is-draggable="!isLocked"
-      :is-resizable="!isLocked"
-      :vertical-compact="true"
-      :use-css-transforms="true"
-      :margin="[12, 12]"
-      class="dashboard-grid"
-      @update:layout="handleLayoutUpdated"
-    >
-      <GridItem
-        v-for="item in layout"
-        :key="item.i"
-        :i="item.i"
-        :x="item.x"
-        :y="item.y"
-        :w="item.w"
-        :h="item.h"
-        :min-w="item.minW || 2"
-        :min-h="item.minH || 4"
-      >
-        <div class="card-wrapper">
-          <button v-if="!isLocked" class="remove-btn" @click.stop="removeCard(item.i)">×</button>
-          <component :is="item.component" class="card-inner" />
+      <aside class="control-sidebar">
+        <div class="sidebar-section">
+          <label class="sidebar-label">添加卡片</label>
+          <div class="sidebar-row">
+            <select v-model="selectedCardKey" class="card-select" :disabled="isLocked">
+              <option value="" disabled>选择...</option>
+              <option v-for="c in availableCards" :key="c.key" :value="c.key">{{ c.label }}</option>
+            </select>
+            <button class="sidebar-btn add-btn" :disabled="!selectedCardKey || isLocked" @click="addCard">+</button>
+          </div>
         </div>
-      </GridItem>
-    </GridLayout>
+
+        <div class="sidebar-section">
+          <label class="sidebar-label">布局</label>
+          <button class="sidebar-btn lock-btn" @click="isLocked = !isLocked">
+            {{ isLocked ? '解锁布局' : '锁定布局' }}
+          </button>
+          <button class="sidebar-btn reset-btn" :disabled="isLocked" @click="resetLayout">重置</button>
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard-container { width: 100%; height: 100%; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-.lock-switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--text-heading); user-select: none; }
-.lock-switch input { accent-color: var(--primary); }
-.toolbar-right { display: flex; gap: 8px; align-items: center; }
-.card-select { padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-heading); font-size: 12px; outline: none; }
-.action-btn { height: 28px; padding: 0 10px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; transition: opacity 0.2s; border: 1px solid var(--border); background: var(--surface); color: var(--text-heading); }
-.add-btn { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; }
+.dashboard-container { width: 100%; height: 100%; box-sizing: border-box; }
+.dashboard-body { display: flex; height: 100%; gap: 0; }
+.main-area { flex: 1; min-width: 0; padding: 16px; box-sizing: border-box; overflow: auto; }
+
+/* 右侧控制栏 */
+.control-sidebar {
+  width: 170px; flex-shrink: 0; padding: 16px 12px; box-sizing: border-box;
+  border-left: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column; gap: 20px; overflow-y: auto;
+}
+.sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.sidebar-row { display: flex; gap: 6px; }
+.sidebar-btn {
+  width: 100%; height: 32px; padding: 0 10px; border-radius: var(--radius-sm); font-size: 13px;
+  cursor: pointer; transition: opacity 0.2s, background 0.2s;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-heading);
+  text-align: center; white-space: nowrap;
+}
+.sidebar-btn:hover { background: var(--primary-bg); }
+.sidebar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.sidebar-btn:disabled:hover { background: var(--surface); }
+
+.lock-btn { font-weight: 600; }
 .reset-btn { font-size: 12px; }
-.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.add-btn { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; flex-shrink: 0; width: 32px; }
+.add-btn:hover { background: var(--primary-hover, var(--primary)); }
+
+.card-select { flex: 1; padding: 4px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-heading); font-size: 12px; outline: none; min-width: 0; }
+
+/* 卡片 */
 .card-wrapper { position: relative; width: 100%; height: 100%; }
 .card-inner { width: 100%; height: 100%; }
 .remove-btn { position: absolute; top: 6px; right: 6px; z-index: 10; width: 22px; height: 22px; border-radius: 50%; border: none; background: rgba(239,68,68,0.85); color: #fff; font-size: 14px; cursor: pointer; opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
 .card-wrapper:hover .remove-btn { opacity: 1; }
-.dashboard-grid { flex: 1; width: 100%; min-height: 400px; }
+.dashboard-grid { width: 100%; min-height: 400px; }
 :deep(.vgl-item--placeholder) { background: linear-gradient(135deg, var(--primary-bg), transparent); opacity: 0.6; border-radius: var(--radius-lg); border: 2px dashed var(--primary-border); }
 :deep(.vgl-item) { transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1); border-radius: var(--radius-lg); }
 :deep(.vgl-item--dragging) { box-shadow: var(--shadow-lg); z-index: 10; transform: rotate(2deg) scale(1.02); transition: none !important; }
