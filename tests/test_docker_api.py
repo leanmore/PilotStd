@@ -255,7 +255,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.post(
             "/api/normalize",
-            json=[{"source_path": "/inbox/test.pdf", "logical_code": "GB/T 1-2020"}],
+            json={"items": [{"source_path": "/inbox/test.pdf", "logical_code": "GB/T 1-2020"}], "run_id": "test-run"},
         )
         self.assertEqual(r.status_code, 200)
         results = r.json()["results"]
@@ -264,16 +264,16 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(results[0]["new_filename"], "GB_T_1-2020.pdf")
 
     def test_normalize_accepts_list_body(self):
-        """POST /api/normalize 接受数组或 {items: [...]} 两种 body 格式。"""
+        """POST /api/normalize 必须包含 items 和 run_id（Body embed 模式）。"""
         mock_mgr = MagicMock()
         mock_mgr.normalize_files_stream.return_value = []
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        # 直接数组
-        r1 = self.client.post("/api/normalize", json=[])
-        self.assertEqual(r1.status_code, 200)
-        # 包装对象
+        # Body(embed=True) 要求 {"items": [...], "run_id": "..."}
+        r = self.client.post("/api/normalize", json={"items": [], "run_id": "test-run"})
+        self.assertEqual(r.status_code, 200)
+        # 缺 run_id 返回 422
         r2 = self.client.post("/api/normalize", json={"items": []})
-        self.assertEqual(r2.status_code, 200)
+        self.assertEqual(r2.status_code, 422)
 
     # ── Archive ──
 
@@ -299,6 +299,7 @@ class TestAPIEndpoints(unittest.TestCase):
                     }
                 ],
                 "word_source_root": "/word",
+                "run_id": "test-run",
             },
         )
         self.assertEqual(r.status_code, 200)
@@ -332,7 +333,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr = MagicMock()
         mock_mgr.query_by_numbers.return_value = ([mock_result], mock_stats)
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        r = self.client.post("/api/query", json={"numbers": ["GB/T 1-2020"]})
+        r = self.client.post("/api/query", json={"numbers": ["GB/T 1-2020"], "run_id": "test-run"})
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertEqual(data["stats"]["total"], 1)
@@ -377,7 +378,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr = MagicMock()
         mock_mgr.download_by_numbers.return_value = ([mock_task], mock_stats)
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        r = self.client.post("/api/download", json={"numbers": ["GB/T 1-2020"]})
+        r = self.client.post("/api/download", json={"numbers": ["GB/T 1-2020"], "run_id": "test-run"})
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertEqual(data["stats"]["total"], 1)
