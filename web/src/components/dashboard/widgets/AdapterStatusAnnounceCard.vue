@@ -129,7 +129,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .row-code { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
 
 .row-status { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.status-text-ok { font-size: 11px; color: #16a34a; font-weight: 500; }
+.status-text-ok { font-size: 11px; color: var(--success); font-weight: 500; }
 .status-text-err { font-size: 11px; color: var(--danger); font-weight: 500; }
 
 .row-warn { color: var(--warning); font-size: 13px; cursor: help; flex-shrink: 0; }
