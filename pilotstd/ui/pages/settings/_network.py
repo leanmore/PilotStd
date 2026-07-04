@@ -58,10 +58,16 @@ class _NetworkTab:
         """Web 端公告缓存切换：与本地公告检查互斥。"""
         if not self._config:
             return
+
+        if checked:
+            self.announcement_cb.blockSignals(True)
+            self.announcement_cb.setChecked(False)
+            self.announcement_cb.blockSignals(False)
+
         self.announce_url_edit.setEnabled(checked)
         self._config.set("query.use_announcement_match", checked)
         self._config.save()
-        self.announcement_cb.setEnabled(not checked)
+
         mw = self.window()
         if mw and hasattr(mw, "_apply_announce_cache_mode"):
             mw._apply_announce_cache_mode(checked)
@@ -70,7 +76,14 @@ class _NetworkTab:
         """本地公告检查切换：与 Web 端公告缓存互斥。"""
         if not self._config:
             return
-        self.announce_cache_cb.setEnabled(not checked)
+
+        if checked:
+            self.announce_cache_cb.blockSignals(True)
+            self.announce_cache_cb.setChecked(False)
+            self.announce_cache_cb.blockSignals(False)
+
+        self._config.set("announcement.enabled", checked)
+        self._config.save()
 
     def _on_announce_url_changed(self, text: str) -> None:
         """地址输入框变化：即时写入配置。"""

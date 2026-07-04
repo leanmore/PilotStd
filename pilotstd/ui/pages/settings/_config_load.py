@@ -22,7 +22,9 @@ class _ConfigLoadTab:
         """加载网络代理、公告开关、OCR 密钥设置。"""
         self.proxy.setText(self._config.get("network.proxy", ""))
         self.ua_cb.setChecked(self._config.get("network.ua_rotation", True))
+        self.announcement_cb.blockSignals(True)
         self.announcement_cb.setChecked(self._config.get("announcement.enabled", False))
+        self.announcement_cb.blockSignals(False)
         self.ocr_api_key.setPlaceholderText("已保存" if self._config.get("ocr.baidu_api_key", "") else "百度云 API Key")
         self.ocr_secret_key.setPlaceholderText(
             "已保存" if self._config.get("ocr.baidu_secret_key", "") else "百度云 Secret Key"
@@ -45,15 +47,19 @@ class _ConfigLoadTab:
         self.dash_cb.setChecked(True)  # 已锁定，始终使用短横
         self.skip_welcome_cb.setChecked(self._config.get("appearance.skip_welcome", False))
         self.cache_cb.setChecked(self._config.get("query.use_cache", True))
+        self.announce_cache_cb.blockSignals(True)
         self.announce_cache_cb.setChecked(self._config.get("query.use_announcement_match", False))
+        self.announce_cache_cb.blockSignals(False)
         self.announce_url_edit.setText(self._config.get("query.announcement_url", "http://localhost:9028"))
-        self.announce_url_edit.setEnabled(self._config.get("query.use_announcement_match", False))
         self.announce_api_key_edit.setText(self._config.get("query.announcement_api_key", ""))
-        # 互斥：两个公告模式不能同时启用，已启用的一方禁用对方
-        if self.announce_cache_cb.isChecked():
-            self.announcement_cb.setEnabled(False)
-        elif self.announcement_cb.isChecked():
-            self.announce_cache_cb.setEnabled(False)
+        # 脏数据仲裁：双 True 时强制关闭 Web 缓存，保留本地公告
+        if self.announcement_cb.isChecked() and self.announce_cache_cb.isChecked():
+            self.announce_cache_cb.blockSignals(True)
+            self.announce_cache_cb.setChecked(False)
+            self.announce_cache_cb.blockSignals(False)
+            self.announce_url_edit.setEnabled(False)
+            self._config.set("query.use_announcement_match", False)
+            self._config.save()
 
     def _load_scan_config(self) -> None:
         """加载扫描相关设置：跳过的文件夹、文件扩展名、排除关键词。"""
