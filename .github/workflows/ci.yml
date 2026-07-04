@@ -198,42 +198,41 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get commit messages since last tag
-        id: commits
+      - name: Get latest tag as base version
+        id: base
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          COMMITS=$(git log ${LAST_TAG}..HEAD --format=%s)
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          # 以 Git Tag 为唯一事实来源，解决跨端版本号对齐问题
+          BASE_VER=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          echo "base_version=$BASE_VER" >> $GITHUB_OUTPUT
 
       - name: Bump version
         id: bump
-        env:
-          COMMIT_MSGS: ${{ steps.commits.outputs.commits }}
         run: |
-          NEW_VER=$(python scripts/version.py)
-          echo "version=$NEW_VER" >> $GITHUB_OUTPUT
-          CURRENT=$(cat VERSION)
+          # 将最新 Tag 作为基准传给 version 脚本进行自动计算
+          NEW_VER=$(BASE_VERSION=${{ steps.base.outputs.base_version }} python scripts/version.py)
+          CURRENT=${{ steps.base.outputs.base_version }}
+
           if [ "$NEW_VER" != "$CURRENT" ]; then
+            echo "version=$NEW_VER" >> $GITHUB_OUTPUT
             echo "bumped=true" >> $GITHUB_OUTPUT
           else
             echo "bumped=false" >> $GITHUB_OUTPUT
           fi
-          echo "Version: $NEW_VER (bumped=$([ "$NEW_VER" != "$CURRENT" ] && echo true || echo false))"
 
       - name: Commit version bump
         if: steps.bump.outputs.bumped == 'true'
         run: |
+          # 1. 更新 VERSION 文件
+          echo "${{ steps.bump.outputs.version }}" > VERSION
+
+          # 2. 精准替换 pilotstd/__init__.py 第 10 行的 __version__
+          sed -i "10s/__version__ = .*/__version__ = \"${{ steps.bump.outputs.version }}\"/" pilotstd/__init__.py
+
+          # 3. 统一提交并推送
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
+          git add VERSION pilotstd/__init__.py
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
           git push
 
       - name: Create and push tag
