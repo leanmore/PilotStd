@@ -29,7 +29,7 @@ describe('useAppStore', () => {
     const store = useAppStore()
     store.theme = 'dark'
     await nextTick()
-    expect(localStorage.getItem('pilotstd_theme')).toBe('dark')
+    expect(JSON.parse(localStorage.getItem('pilotstd_theme') || '""')).toBe('dark')
   })
 
   it('changing theme sets data-theme on document', async () => {
@@ -46,7 +46,7 @@ describe('useAppStore', () => {
       store.theme = tid
       await nextTick()
       expect(store.theme).toBe(tid)
-      expect(localStorage.getItem('pilotstd_theme')).toBe(tid)
+      expect(JSON.parse(localStorage.getItem('pilotstd_theme') || '""')).toBe(tid)
     }
   })
 
@@ -55,6 +55,6 @@ describe('useAppStore', () => {
     store.theme = 'green'
     await nextTick()
     expect(store.theme).toBe('green')
-    expect(localStorage.getItem('pilotstd_theme')).toBe('green')
+    expect(JSON.parse(localStorage.getItem('pilotstd_theme') || '""')).toBe('green')
   })
 })

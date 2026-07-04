@@ -77,13 +77,13 @@ describe('NotificationConfig', () => {
     expect(html).toContain('钉钉')
   })
 
-  it('渲染 Toast 桌面通知配置区', async () => {
+  it('渲染 Toast 页面内通知配置区', async () => {
     const wrapper = mountConfig()
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.html()).toContain('桌面通知')
+    expect(wrapper.html()).toContain('页面内通知')
     expect(wrapper.html()).toContain('启用弹出通知')
   })
 

@@ -103,7 +103,6 @@ function onPage(e: any) {
     <div class="stat-card"><div class="stat-num">{{ statsData.matched }}</div><div class="stat-label">已匹配</div></div>
     <div class="stat-card"><div class="stat-num">{{ statsData.new.all }}</div><div class="stat-label">今日新增</div><div class="stat-sub">国标 {{ statsData.new.gb }} · 行标 {{ statsData.new.hb }} · 地标 {{ statsData.new.db }}</div></div>
   </div>
-  </div>
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
