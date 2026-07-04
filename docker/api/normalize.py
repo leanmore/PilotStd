@@ -1,6 +1,5 @@
 # docker/api/normalize.py — 文件规范化 API（通过 StandardManager 统一入口）
-from fastapi import Depends
-from fastapi import Request as FastAPIRequest
+from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
 from pilotstd.models import ParsedStdInfo
@@ -28,11 +27,43 @@ def _dict_to_parsed(item: dict) -> ParsedStdInfo:
 
 
 @router.post("/api/normalize")
-async def normalize_files(request: FastAPIRequest, mgr=Depends(get_manager_dep)):
+def normalize_files(
+    items: list[dict] = Body(..., embed=True),
+    run_id: str = Body(..., embed=True),
+    mgr=Depends(get_manager_dep),
+):
     """计算规范文件名。通过 StandardManager 统一入口。"""
-    body = await request.json()
-    items = body if isinstance(body, list) else body.get("items", [])
-    parsed_list = [_dict_to_parsed(it) for it in items]
-    norm_results = mgr.normalize_files_stream(parsed_list)
-    results = [{"source_path": r["source"], "new_filename": r["normalized"]} for r in norm_results]
+    # 更新管道：进入规范化阶段
+    try:
+        mgr.pipeline_store.update_step(
+            run_id,
+            "normalize",
+            "running",
+            60,
+            step_results={"count": len(items)},
+        )
+    except Exception:
+        pass
+
+    try:
+        parsed_list = [_dict_to_parsed(it) for it in items]
+        norm_results = mgr.normalize_files_stream(parsed_list)
+        results = [{"source_path": r["source"], "new_filename": r["normalized"]} for r in norm_results]
+        mgr.pipeline_store.update_step(
+            run_id,
+            "normalize",
+            "completed",
+            80,
+            step_results={"count": len(results)},
+        )
+    except Exception as exc:
+        mgr.pipeline_store.update_step(
+            run_id,
+            "normalize",
+            "failed",
+            60,
+            error=str(exc),
+        )
+        raise
+
     return {"results": results}

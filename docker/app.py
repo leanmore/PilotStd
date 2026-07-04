@@ -83,6 +83,12 @@ def _start_all_schedulers(_cron_mgr) -> None:
             adapter_mgr=_cron_mgr.adapter_manager,
         ),
     )
+    from .scheduler import _cleanup_notification_logs
+
+    register_job_func(
+        "notification_cleanup",
+        lambda: _cleanup_notification_logs(notification_mgr=_cron_mgr.notification_mgr),
+    )
     start_scheduler()
 
     # 任务调度器自动启动

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'TaskView' })
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
+import { getPipelineRun } from '@/api/tasks'
+import type { PipelineRun } from '@/types/task'
 import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -32,6 +34,63 @@ const normalizeResult = ref<any>(null)
 const archiveResult = ref<any>(null)
 const error = ref('')
 const progress = ref(0)
+
+// 管道运行追踪
+const runId = ref<string | null>(null)
+let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollFailCount = 0
+const STEP_ORDER = ['scan', 'query', 'download', 'normalize', 'archive'] as const
+
+/** 将后端 PipelineRun 状态映射到本地 steps */
+function updateStepsFromRun(run: PipelineRun) {
+  const currentIdx = STEP_ORDER.indexOf(run.current_step as typeof STEP_ORDER[number])
+  for (let i = 0; i < STEP_ORDER.length; i++) {
+    const s = steps.value[i]
+    if (i < currentIdx && s.status !== 'done' && s.status !== 'fail') {
+      s.status = 'done'
+    } else if (i === currentIdx) {
+      if (run.status === 'failed') {
+        s.status = 'fail'
+        s.summary = run.error_message || '执行失败'
+      } else if (run.status === 'completed') {
+        s.status = 'done'
+      } else {
+        s.status = 'running'
+      }
+    }
+  }
+  progress.value = run.progress
+  if (run.status === 'failed' && !error.value) {
+    error.value = run.error_message || '管道执行失败'
+  }
+}
+
+function startPolling() {
+  if (!runId.value) return
+  pollFailCount = 0
+  pollTimer = setInterval(async () => {
+    try {
+      const run = await getPipelineRun(runId.value!)
+      pollFailCount = 0
+      updateStepsFromRun(run)
+      if (run.status === 'completed' || run.status === 'failed') {
+        stopPolling()
+      }
+    } catch {
+      pollFailCount++
+      if (pollFailCount >= 3) {
+        stopPolling()
+        if (!error.value) error.value = '状态同步失败，请检查网络连接'
+      }
+    }
+  }, 2000)
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+}
+
+onBeforeUnmount(() => { stopPolling() })
 
 // 任务历史 —— localStorage 持久化
 interface TaskRecord {
@@ -105,38 +164,48 @@ async function runPipeline() {
   scanResult.value = queryResult.value = downloadResult.value = normalizeResult.value = archiveResult.value = null
   steps.value.forEach(s => { s.status = 'wait'; s.summary = '' })
   progress.value = 0
+  runId.value = null
+  stopPolling()
   let finalStatus: 'success'|'partial'|'fail' = 'success'
 
   try {
+    // 步骤 0：扫描（发起方，run_id 由后端生成）
     currentStep.value = 0; setStep(0, 'running')
     const scan = await postScan(selectedPath.value)
     scanResult.value = scan
+    runId.value = scan.run_id
+    // 启动后端状态轮询
+    startPolling()
     setStep(0, 'done', `${scan.total || 0} 个文件 (PDF ${scan.pdf_count || 0} / Word ${scan.word_count || 0})`)
     if (!scan.files?.length) { error.value = '未扫描到标准文件'; finalStatus = 'fail'; return }
 
+    // 步骤 1：查询
     currentStep.value = 1; setStep(1, 'running')
     const numbers = (scan.files || []).map((f: any) => f.standard_number).filter(Boolean)
     if (numbers.length === 0) {
       setStep(1, 'done', '扫描结果中无标准号'); error.value = '未能从文件名中解析出标准号'; finalStatus = 'partial'; return
     }
-    const query = await postQuery(numbers)
+    const query = await postQuery(numbers, false, runId.value!)
     queryResult.value = query
     setStep(1, 'done', `查得 ${query.stats?.found || 0} 条 (可下载 ${query.stats?.downloadable || 0})`)
 
+    // 步骤 2：下载
     currentStep.value = 2; setStep(2, 'running')
     const dlNums = (query.results || []).filter((r: any) => !r.is_adopted && r.match_status === 'exact').map((r: any) => r.standard_number).slice(0, 10)
     if (dlNums.length > 0) {
-      const dl = await postDownload(dlNums)
+      const dl = await postDownload(dlNums, runId.value!)
       downloadResult.value = dl
       setStep(2, 'done', `成功 ${dl.stats?.success || 0} / 跳过 ${dl.stats?.skipped || 0}`)
     } else { setStep(2, 'done', '无可下载项') }
 
+    // 步骤 3：规范化
     currentStep.value = 3; setStep(3, 'running')
     const normItems = (scan.files || []).filter((f: any) => f.standard_number).map((f: any) => ({ source_path: f.full_path, new_filename: f.standard_number || f.logical_code || f.name }))
-    const norm = await postNormalize(normItems)
+    const norm = await postNormalize(normItems, runId.value!)
     normalizeResult.value = norm
     setStep(3, 'done', `${norm.results?.length || 0} 个文件`)
 
+    // 步骤 4：归档
     currentStep.value = 4; setStep(4, 'running')
     const archiveMap = new Map((norm.results || []).map((r: any) => [r.source_path, r.new_filename]))
     const archiveItems = (scan.files || []).filter((f: any) => archiveMap.has(f.full_path)).map((f: any) => ({
@@ -145,7 +214,7 @@ async function runPipeline() {
       num_prefix: f.logical_code || '', ext: (f.name || '').toLowerCase().endsWith('.pdf') ? 'pdf' : 'doc',
     }))
     if (archiveItems.length > 0) {
-      await postArchive(archiveItems)
+      await postArchive(archiveItems, undefined, runId.value!)
       setStep(4, 'done', '已处理')
     } else { setStep(4, 'done', '无文件待归档') }
 
@@ -157,6 +226,8 @@ async function runPipeline() {
   } finally {
     running.value = false
     saveHistory(finalStatus)
+    // 延迟停止轮询：给后端最后一次状态更新留时间
+    setTimeout(() => { if (pollTimer) stopPolling() }, 5000)
   }
 }
 

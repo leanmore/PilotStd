@@ -86,3 +86,7 @@ export const getNotificationLogs = (params: {
 
 export const markNotificationRead = (id?: number | null): Promise<{ ok: boolean; message: string }> =>
   http.post('/notification/read', { id: id ?? null }).then(r => r.data)
+
+/** 清理指定天数前的通知日志（需管理员权限） */
+export const deleteNotificationLogs = (days: number = 30): Promise<{ ok: boolean; deleted: number }> =>
+  http.delete('/notification/logs', { params: { days } }).then(r => r.data)

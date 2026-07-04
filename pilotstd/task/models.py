@@ -22,6 +22,43 @@ class TaskStatus(Enum):
     CANCELLED = "cancelled"
 
 
+# ── 管道运行追踪（pipeline_runs 表） ──
+
+
+class PipelineStep(Enum):
+    """管道五步阶段。"""
+
+    SCAN = "scan"
+    QUERY = "query"
+    DOWNLOAD = "download"
+    NORMALIZE = "normalize"
+    ARCHIVE = "archive"
+
+
+class PipelineStatus(Enum):
+    """管道运行状态。"""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+@dataclass
+class PipelineRun:
+    """一次用户触发的管道执行记录（pipeline_runs 表）。"""
+
+    id: int = 0
+    run_id: str = ""
+    current_step: str = ""  # PipelineStep 值
+    status: str = ""  # PipelineStatus 值
+    progress: int = 0  # 0–100
+    step_results: str = "{}"  # 各步结果 JSON
+    error_message: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+
+
 @dataclass
 class TaskInfo:
     """任务信息（可序列化到 SQLite）。"""

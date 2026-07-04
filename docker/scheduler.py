@@ -112,6 +112,24 @@ def _backup_database(notification_mgr=None):
 register_job_func("auto_backup", _backup_database)
 
 
+def _cleanup_notification_logs(notification_mgr=None):
+    """定时清理过期通知日志。"""
+    if notification_mgr is None:
+        from .manager import get_manager
+
+        notification_mgr = get_manager().notification_mgr
+    cfg = ConfigManager()
+    retention_days = int(cfg.get("notification.log_retention_days", 30))
+    try:
+        deleted = notification_mgr.cleanup_logs(days=retention_days)
+        logger.info("[cleanup] 通知日志清理完成，删除 %d 条（保留 %d 天）", deleted, retention_days)
+    except Exception:
+        logger.exception("[cleanup] 通知日志清理失败")
+
+
+register_job_func("notification_cleanup", _cleanup_notification_logs)
+
+
 def _acquire_scheduler_lock() -> bool:
     """尝试获取调度器互斥锁。返回 True=获取成功，False=已有其他 worker 在运行。"""
     db = _get_db()
@@ -190,6 +208,9 @@ def start_scheduler():
             default_cron = "0 3 * * 0" if job_id == "auto_backup" else "0 0 * * *"
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
     _add_interval_job("validity_wake", 300)
+    # 通知日志定期清理（从配置读取间隔）
+    cleanup_interval = int(cfg.get("notification.log_cleanup_interval_hours", 24))
+    _add_interval_job("notification_cleanup", cleanup_interval * 3600)
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()

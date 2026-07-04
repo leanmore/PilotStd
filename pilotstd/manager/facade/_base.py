@@ -85,9 +85,13 @@ class BaseFacade:
         qi_cfg = self.cfg.get("query.query_interval", None)
         query_interval = tuple(qi_cfg) if qi_cfg and len(qi_cfg) == 2 else None
         self.query_engine = QueryEngine(
-            adapters, self.cache, use_cache=self.cfg.get("query.use_cache", True),
-            rotator=rotator, quota_tracker=self.quota_tracker,
-            query_interval=query_interval, parser=self.parser,
+            adapters,
+            self.cache,
+            use_cache=self.cfg.get("query.use_cache", True),
+            rotator=rotator,
+            quota_tracker=self.quota_tracker,
+            query_interval=query_interval,
+            parser=self.parser,
         )
 
     def _init_download(self, download_adapters: list[BaseDownloadAdapter] | None) -> None:
@@ -127,6 +131,10 @@ class BaseFacade:
         self.quality_service = QualityService(self)
         self.validity_checker = ValidityChecker(self.db)
         self.notification_mgr = NotificationManager(self.cfg, self.db)
+
+        from pilotstd.task.pipeline_store import PipelineRunStore
+
+        self.pipeline_store = PipelineRunStore(self.db)
 
     def __init__(
         self,

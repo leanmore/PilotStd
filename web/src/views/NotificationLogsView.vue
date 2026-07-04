@@ -9,7 +9,7 @@ import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import { getNotificationLogs, type NotificationLog } from '@/api/notification'
+import { getNotificationLogs, deleteNotificationLogs, type NotificationLog } from '@/api/notification'
 import { getItem, setItem } from '@/lib/storage'
 
 const route = useRoute()
@@ -81,6 +81,27 @@ const highlightId = ref<number | null>(null)
 // 详情弹窗
 const detailVisible = ref(false)
 const detailItem = ref<NotificationLog | null>(null)
+
+// 清理日志弹窗
+const cleanupVisible = ref(false)
+const cleanupDays = ref(30)
+const cleanupLoading = ref(false)
+const cleanupResult = ref('')
+
+async function doCleanup() {
+  cleanupLoading.value = true
+  cleanupResult.value = ''
+  try {
+    const r = await deleteNotificationLogs(cleanupDays.value)
+    cleanupResult.value = `已清理 ${r.deleted} 条记录`
+    cleanupVisible.value = false
+    loadLogs()
+  } catch (e: any) {
+    cleanupResult.value = e.response?.data?.error || '清理失败'
+  } finally {
+    cleanupLoading.value = false
+  }
+}
 
 const channelOptions = [
   { label: '全部', value: null },
@@ -248,7 +269,10 @@ onMounted(() => { loadNotifFilters(); loadLogs() })
     <div class="card section">
       <div class="card-header">
         <span>日志列表</span>
-        <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
+        <div style="display:flex;gap:8px">
+          <Button icon="pi pi-trash" label="清理日志" size="small" severity="danger" outlined @click="cleanupVisible = true" />
+          <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
+        </div>
       </div>
       <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
 
@@ -305,6 +329,29 @@ onMounted(() => { loadNotifFilters(); loadLogs() })
         <div class="detail-body"><span>内容</span><pre>{{ detailItem.body }}</pre></div>
         <div v-if="detailItem.error_msg" class="detail-row"><span>错误</span><span class="err">{{ detailItem.error_msg }}</span></div>
       </div>
+    </Dialog>
+
+    <!-- 清理日志确认弹窗 -->
+    <Dialog v-model:visible="cleanupVisible" header="清理通知日志" :style="{ width: '420px' }" modal>
+      <div>
+        <p style="margin:0 0 12px;color:var(--text-dim)">删除指定天数之前的通知日志记录：</p>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label>保留</label>
+          <input
+            v-model.number="cleanupDays"
+            type="number"
+            min="1"
+            max="365"
+            style="width:80px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"
+          />
+          <label>天</label>
+        </div>
+        <p v-if="cleanupResult" style="margin-top:12px;font-size:12px;color:var(--primary)">{{ cleanupResult }}</p>
+      </div>
+      <template #footer>
+        <Button label="取消" size="small" severity="secondary" text @click="cleanupVisible = false" />
+        <Button label="确认清理" size="small" severity="danger" :loading="cleanupLoading" @click="doCleanup" />
+      </template>
     </Dialog>
   </div>
 </template>

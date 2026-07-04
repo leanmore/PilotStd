@@ -1,8 +1,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'HomeView' })
-import { ref, computed, onMounted } from 'vue'
-import { GridLayout, GridItem } from 'grid-layout-plus'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { GridLayout } from 'grid-layout-plus'
 import { useDashboardStore } from '@/stores/dashboard'
+import type { DashboardWidget } from '@/types/dashboard'
 import WidgetManager from '@/components/dashboard/WidgetManager.vue'
 import StatsCard from '@/components/dashboard/widgets/StatsCard.vue'
 import AdapterStatusAnnounceCard from '@/components/dashboard/widgets/AdapterStatusAnnounceCard.vue'
@@ -16,18 +17,38 @@ import Button from 'primevue/button'
 
 const store = useDashboardStore()
 const showManager = ref(false)
+const isLocked = ref(false)
+const windowWidth = ref(window.innerWidth)
 
-// 异步加载布局
+// 响应式列数：>=1200px 12列 / >=768px 8列 / 其余 4列
+const responsiveColNum = computed(() => {
+  if (windowWidth.value >= 1200) return 12
+  if (windowWidth.value >= 768) return 8
+  return 4
+})
+
+function onResize() {
+  windowWidth.value = window.innerWidth
+}
+
 onMounted(async () => {
   await store.load()
+  window.addEventListener('resize', onResize)
 })
 
-const visibleWidgets = computed(() => store.widgets.filter(w => w.visible))
-
-const layout = computed({
-  get: () => visibleWidgets.value.map(w => ({ ...w.layout, i: w.id })),
-  set: (v) => store.onLayoutUpdated(v),
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
 })
+
+// 根据 layout item 的 i 查找对应 widget 配置（需传给子卡片组件）
+function getWidgetById(id: string): DashboardWidget | undefined {
+  return store.widgets.find(w => w.id === id)
+}
+
+// 移除卡片 → 通知 Store 并持久化
+function onRemoveWidget(widgetId: string) {
+  store.removeWidget(widgetId)
+}
 
 function getWidgetComponent(type: string) {
   const map: Record<string, unknown> = {
@@ -52,6 +73,14 @@ function getWidgetComponent(type: string) {
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <Button
+          :icon="isLocked ? 'pi pi-lock' : 'pi pi-unlock'"
+          :label="isLocked ? '解锁布局' : '锁定布局'"
+          size="small"
+          :severity="isLocked ? 'warn' : 'secondary'"
+          outlined
+          @click="isLocked = !isLocked"
+        />
+        <Button
           icon="pi pi-cog"
           label="管理卡片"
           size="small"
@@ -64,13 +93,19 @@ function getWidgetComponent(type: string) {
 
     <WidgetManager :visible="showManager" @close="showManager = false" />
 
+    <!--
+      使用 #item 命名槽模式：GridLayout 内部创建 GridItem，v-bind="item"
+      直接从 currentLayout.value 取值。拖拽/缩放时内部数据先更新再 compact，
+      GridItem 的 x/y/w/h 始终正确，彻底消除回弹。
+     -->
     <GridLayout
       v-if="store.loaded"
-      v-model:layout="layout"
-      :col-num="store.colNum"
+      :layout="store.layout"
+      @layout-updated="store.onLayoutUpdated"
+      :col-num="responsiveColNum"
       :row-height="60"
-      :is-draggable="true"
-      :is-resizable="true"
+      :is-draggable="!isLocked"
+      :is-resizable="!isLocked"
       :is-mirrored="false"
       :prevent-collision="false"
       :auto-size="true"
@@ -80,20 +115,23 @@ function getWidgetComponent(type: string) {
       :restore-on-drag="false"
       style="min-height: 400px"
     >
-      <GridItem
-        v-for="widget in visibleWidgets"
-        :key="widget.id"
-        :i="widget.id"
-        :x="widget.layout.x"
-        :y="widget.layout.y"
-        :w="widget.layout.w"
-        :h="widget.layout.h"
-        :min-w="widget.layout.minW || 2"
-        :min-h="widget.layout.minH || 2"
-        class="grid-item-card"
-      >
-        <component :is="getWidgetComponent(widget.type)" :widget="widget" />
-      </GridItem>
+      <template #item="{ item }">
+        <div class="grid-item-inner">
+          <!-- 移除按钮：锁定状态下隐藏，button 标签默认被 dragIgnoreFrom 排除 -->
+          <button
+            v-if="!isLocked"
+            class="widget-remove-btn"
+            :title="'移除 ' + (getWidgetById(String(item.i))?.config?.title || String(item.i))"
+            @click.stop="onRemoveWidget(String(item.i))"
+          >
+            <span class="pi pi-times" />
+          </button>
+          <component
+            :is="getWidgetComponent(String(item.i))"
+            :widget="getWidgetById(String(item.i))"
+          />
+        </div>
+      </template>
     </GridLayout>
     <div v-else style="text-align:center;padding:48px;color:var(--text-dim)">
       加载布局中...
@@ -121,6 +159,40 @@ function getWidgetComponent(type: string) {
   background: linear-gradient(90deg, var(--primary), transparent);
 }
 .hint { color: var(--text-dim); font-size: 14px; margin-top: 6px; font-weight: 400; }
+
+/* 卡片内容容器 */
+.grid-item-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 移除按钮：右上角悬浮，非锁定状态 hover 时显示 */
+.widget-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 20;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+.grid-item-inner:hover .widget-remove-btn {
+  opacity: 1;
+}
+.widget-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.85);
+}
 
 /* grid-layout-plus 样式 */
 :deep(.vgl-item--placeholder) {

@@ -72,6 +72,9 @@ FACTORY_DEFAULTS = {
     "notification.rules.validity_round_summary": ["wechat"],
     "notification.rules.validity_standard_failed": ["wechat"],
     "notification.rules.validity_system_failed": ["wechat"],
+    # 通知日志清理
+    "notification.log_retention_days": 30,
+    "notification.log_cleanup_interval_hours": 24,
     "adapter.circuit_breaker.failure_threshold": 3,
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],
     "adapter.circuit_breaker.reset_window_hours": 24,

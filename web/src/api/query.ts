@@ -2,8 +2,8 @@
 import http from './http'
 import type { QueryResponse, PendingItem } from '../types/api'
 
-export const postQuery = (numbers: string[]): Promise<QueryResponse> =>
-  http.post('/query', { numbers }).then(r => r.data)
+export const postQuery = (numbers: string[], forceRefresh: boolean = false, runId?: string): Promise<QueryResponse> =>
+  http.post('/query', { numbers, run_id: runId }, { params: forceRefresh ? { force_refresh: true } : {} }).then(r => r.data)
 
 export const saveQueryResults = (results: QueryResponse['results']): Promise<{ ok?: boolean }> =>
   http.post('/query/save', results).then(r => r.data)

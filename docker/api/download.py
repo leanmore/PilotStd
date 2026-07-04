@@ -8,9 +8,43 @@ router = APIRouter(tags=["download"])
 
 
 @router.post("/api/download")
-def download_standards(numbers: list[str] = Body(embed=True), mgr=Depends(get_manager_dep)):
+def download_standards(
+    numbers: list[str] = Body(embed=True),
+    run_id: str = Body(..., embed=True),
+    mgr=Depends(get_manager_dep),
+):
     """批量下载标准文件。"""
-    tasks, stats = mgr.download_by_numbers(numbers)
+    # 更新管道：进入下载阶段
+    try:
+        mgr.pipeline_store.update_step(
+            run_id,
+            "download",
+            "running",
+            40,
+            step_results={"count": len(numbers)},
+        )
+    except Exception:
+        pass
+
+    try:
+        tasks, stats = mgr.download_by_numbers(numbers)
+        mgr.pipeline_store.update_step(
+            run_id,
+            "download",
+            "completed",
+            60,
+            step_results={"success": stats.success, "failed": stats.failed},
+        )
+    except Exception as exc:
+        mgr.pipeline_store.update_step(
+            run_id,
+            "download",
+            "failed",
+            40,
+            error=str(exc),
+        )
+        raise
+
     return {
         "stats": {
             "total": stats.total,

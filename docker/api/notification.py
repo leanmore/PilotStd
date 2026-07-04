@@ -185,3 +185,18 @@ def get_unread_count(nmgr=Depends(_get_notification_mgr)):
     except Exception as e:
         logger.exception("获取未读数量失败")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.delete("/api/notification/logs")
+def delete_notification_logs(
+    days: int = Query(30, ge=1, le=365),
+    nmgr=Depends(_get_notification_mgr),
+    _: str = Depends(require_admin),
+):
+    """清理通知日志（仅管理员）。删除 days 天前的记录。"""
+    try:
+        deleted = nmgr.cleanup_logs(days)
+        return {"ok": True, "deleted": deleted}
+    except Exception as e:
+        logger.exception("清理通知日志失败")
+        return JSONResponse({"error": str(e)}, status_code=500)

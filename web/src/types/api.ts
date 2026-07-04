@@ -45,6 +45,7 @@ export interface FileItem {
 
 /** 扫描结果响应 */
 export interface ScanResponse {
+  run_id: string
   total: number
   pdf_count: number
   word_count: number

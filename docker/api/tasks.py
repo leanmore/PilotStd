@@ -112,3 +112,21 @@ def cancel_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(
     """取消运行中任务。"""
     ok = mgr.task_queue.cancel(task_id)
     return {"ok": ok}
+
+
+@router.get("/api/tasks/runs/{run_id}")
+def get_pipeline_run(run_id: str, mgr=Depends(get_manager_dep)):
+    """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""
+    run = mgr.pipeline_store.get(run_id)
+    if run is None:
+        return JSONResponse({"error": "管道运行记录不存在"}, 404)
+    return {
+        "run_id": run["run_id"],
+        "current_step": run["current_step"],
+        "status": run["status"],
+        "progress": run["progress"],
+        "step_results": run["step_results"],
+        "error_message": run["error_message"],
+        "created_at": run["created_at"],
+        "updated_at": run["updated_at"],
+    }

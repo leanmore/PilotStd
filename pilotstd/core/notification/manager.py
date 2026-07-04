@@ -224,6 +224,19 @@ class NotificationManager(MessageBuildersMixin):
         row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
         return row["cnt"] if row else 0
 
+    # ── 日志清理 ──────────────────────────────────────────────
+
+    def cleanup_logs(self, days: int = 30) -> int:
+        """删除 days 天前的通知日志，返回删除条数。"""
+        from datetime import timedelta
+
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cur = self._db.execute("DELETE FROM notification_log WHERE sent_at < ?", (cutoff,))
+        deleted = cur.rowcount
+        if deleted > 0:
+            logger.info("清理了 %d 条过期通知日志（保留 %d 天）", deleted, days)
+        return deleted
+
     # ── 测试发送 ──────────────────────────────────────────────
 
     def test_send(
