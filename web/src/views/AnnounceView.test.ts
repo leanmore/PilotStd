@@ -11,10 +11,18 @@ const { getAnnounceResultsMock, postAnnounceCheckMock } = vi.hoisted(() => ({
   postAnnounceCheckMock: vi.fn(),
 }))
 
-// Mock 公告 API
 vi.mock('@/api', () => ({
   getAnnounceResults: getAnnounceResultsMock,
   postAnnounceCheck: postAnnounceCheckMock,
+}))
+
+// Mock /api/announce/stats（新版统计数据接口）
+vi.mock('@/api/http', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({
+      data: { total: { all: 2, gb: 1, hb: 1, db: 0 }, matched: 1, new: { all: 1, gb: 1, hb: 0, db: 0 } },
+    }),
+  },
 }))
 
 // Mock LogBar
