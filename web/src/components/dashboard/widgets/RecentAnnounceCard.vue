@@ -1,111 +1,82 @@
 <script setup lang="ts">
 defineOptions({ name: 'RecentAnnounceCard' })
-// RecentAnnounceCard.vue — 最近公告列表 Widget（从 HomeView 迁移）
 import { ref, onMounted } from 'vue'
 import { getAnnounceResults } from '@/api'
 
-const announces = ref<any[]>([])
+const list = ref<any[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
     const data = await getAnnounceResults()
-    announces.value = (data.results || []).slice(0, 5)
-  } catch {
-    // 公告非关键，静默失败
-  } finally {
-    loading.value = false
-  }
+    list.value = (data.results || []).slice(0, 6)
+  } catch { list.value = [] }
+  finally { loading.value = false }
 })
 </script>
 
 <template>
-  <div class="announce-widget">
-    <div class="widget-header">最近公告</div>
-    <template v-if="loading">
-      <div v-for="n in 3" :key="n" class="skeleton-item">
-        <div class="skeleton-line skeleton-code" />
-        <div class="skeleton-line skeleton-name" />
+  <div class="root">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-icon"><i class="pi pi-bell" /></div>
+        <div>
+          <div class="header-title">最新公告</div>
+          <div class="header-sub">实时推送</div>
+        </div>
       </div>
-    </template>
-    <p v-else-if="announces.length === 0" class="empty">暂无数据</p>
-    <div v-for="a in announces" :key="a.standard_number || a.std_code" class="announce-item">
-      <span class="announce-code">{{ a.standard_number || a.std_code }}</span>
-      <span class="announce-name">{{ a.standard_name || a.std_name }}</span>
+    </div>
+
+    <div v-if="loading" class="empty">加载中...</div>
+    <div v-else-if="!list.length" class="empty">暂无新公告</div>
+
+    <div v-else class="timeline">
+      <div v-for="(item, idx) in list" :key="item.standard_number || item.std_code || idx" class="tl-item">
+        <div class="tl-dot" :class="{ 'tl-dot-active': idx === 0 }" />
+        <div class="tl-line" v-if="idx !== list.length - 1" />
+        <div class="tl-content">
+          <div class="tl-title">{{ item.standard_number || item.std_code || '无标题' }}</div>
+          <div class="tl-meta">{{ item.standard_name || item.std_name || '' }}</div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.announce-widget {
-  height: 100%;
-  box-sizing: border-box;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xs);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+.root {
+  height: 100%; box-sizing: border-box; padding: 14px;
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column; gap: 10px;
 }
+.header { display: flex; align-items: center; justify-content: space-between; }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(245,158,11,0.12);
+  display: flex; align-items: center; justify-content: center; color: var(--warning); font-size: 16px;
+}
+.header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.header-sub { font-size: 10px; color: var(--text-dim); }
 
-.widget-header {
-  font-weight: 600;
-  color: var(--text-heading);
-  font-size: 14px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+.timeline { flex: 1; display: flex; flex-direction: column; gap: 0; overflow-y: auto; padding-left: 8px; }
+.tl-item { display: flex; position: relative; padding: 8px 0 8px 20px; }
+.tl-dot {
+  position: absolute; left: 0; top: 12px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); border: 2px solid var(--surface); z-index: 1;
 }
-
-.announce-item {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-light);
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  font-size: 12px;
+.tl-dot-active { background: var(--primary); box-shadow: 0 0 6px rgba(99,102,241,0.5); }
+.tl-line {
+  position: absolute; left: 3.5px; top: 20px; bottom: -8px; width: 1px; background: var(--border-light);
 }
-.announce-item:last-child { border-bottom: none; }
-.announce-code {
-  flex-shrink: 0;
-  color: var(--primary);
-  font-weight: 500;
-  font-family: var(--mono);
-  font-size: 11px;
+.tl-content { flex: 1; min-width: 0; }
+.tl-title {
+  font-size: 12px; font-weight: 600; color: var(--text-heading); font-family: var(--mono);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.announce-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-dim);
+.tl-meta {
+  font-size: 11px; color: var(--text-dim); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
-  padding: 16px 0;
-  text-align: center;
-}
-
-/* 骨架 */
-.skeleton-item {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-light);
-  display: flex;
-  gap: 10px;
-}
-.skeleton-line {
-  background: linear-gradient(90deg, var(--border-light) 25%, var(--border) 50%, var(--border-light) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius-sm);
-}
-.skeleton-code { height: 14px; width: 80px; flex-shrink: 0; }
-.skeleton-name { height: 14px; flex: 1; }
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
+.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 30px 0; flex: 1; display: flex; align-items: center; justify-content: center; }
 </style>
