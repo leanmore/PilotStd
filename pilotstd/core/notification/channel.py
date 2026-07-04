@@ -15,6 +15,9 @@ class NotificationMessage:
     level: str = "info"  # info / warning / error
     standard_number: Optional[str] = None
     event_type: str = ""
+    link: Optional[str] = None  # 跳转链接（如 /standards/GB/T 123-2024）
+    icon: Optional[str] = None  # 图标标识（前端按类型渲染）
+    aggregated_count: int = 1  # 聚合条数（1=未聚合，>1=合并了N条）
 
 
 class NotificationChannel(ABC):

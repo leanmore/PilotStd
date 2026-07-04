@@ -170,7 +170,15 @@ async def lifespan(app: FastAPI):
     _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
 
     # 注入 WebSocket 广播回调（在 Core 层通过回调使用 Platform 层能力，避免 Core→Docker 直接导入）
-    def _ws_broadcast_callback(event_type: str, title: str, body: str, level: str) -> None:
+    def _ws_broadcast_callback(
+        event_type: str,
+        title: str,
+        body: str,
+        level: str,
+        link: str | None = None,
+        icon: str | None = None,
+        aggregated_count: int = 1,
+    ) -> None:
         try:
             from datetime import datetime
 
@@ -187,6 +195,9 @@ async def lifespan(app: FastAPI):
                 "body": body,
                 "level": level,
                 "sent_at": datetime.now().isoformat(),
+                "link": link,
+                "icon": icon,
+                "aggregated_count": aggregated_count,
             }
             try:
                 asyncio.create_task(ws_manager.broadcast(payload))
@@ -203,6 +214,9 @@ async def lifespan(app: FastAPI):
     _start_all_schedulers(_cron_mgr)
 
     yield
+    # 优雅关闭：刷新聚合缓冲（防止通知丢失）
+    if hasattr(_cron_mgr.notification_mgr, "buffer"):
+        _cron_mgr.notification_mgr.buffer.force_flush_all()
     # 关闭时释放资源
     _shutdown_cleanup(_cron_mgr)
 

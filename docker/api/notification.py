@@ -176,6 +176,18 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@router.get("/api/notification/config/aggregate")
+def get_aggregate_config(mgr=Depends(get_manager_dep)):
+    """获取前端 Toast 聚合配置（无需管理员权限）。"""
+    cfg = mgr.cfg
+    return {
+        "toast_aggregate_window_ms": cfg.get("notification.toast_aggregate_window_ms", 300),
+        "toast_count_window_ms": cfg.get("notification.toast_count_window_ms", 30000),
+        "toast_pause_duration_ms": cfg.get("notification.toast_pause_duration_ms", 300000),
+        "toast_pause_threshold": cfg.get("notification.toast_pause_threshold", 3),
+    }
+
+
 @router.get("/api/notification/unread-count")
 def get_unread_count(nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""

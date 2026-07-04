@@ -301,8 +301,15 @@ onMounted(() => { loadNotifFilters(); loadLogs() })
                 <td>{{ channelLabel(l.channel) }}</td>
                 <td>{{ eventLabel(l.event_type) }}</td>
                 <td><Tag :severity="statusSeverity(l.status)" :value="l.status === 'success' ? '成功' : '失败'" /></td>
-                <td><Tag :severity="l.is_read ? 'info' : 'warn'" :value="l.is_read ? '已读' : '未读'" /></td>
-                <td class="title-cell">{{ l.title }}</td>
+                <td>
+                  <Tag v-if="l.is_read" severity="info" value="已读" />
+                  <Tag v-else severity="warn" value="未读" />
+                  <Tag v-if="l.aggregated_count && l.aggregated_count > 1" severity="info" :value="'×' + l.aggregated_count" style="margin-left:4px" />
+                </td>
+                <td class="title-cell">
+                  <a v-if="l.link" :href="l.link" class="notif-link">{{ l.title }}</a>
+                  <span v-else>{{ l.title }}</span>
+                </td>
                 <td><Button label="查看" size="small" severity="secondary" text @click="showDetail(l)" /></td>
               </tr>
             </tbody>

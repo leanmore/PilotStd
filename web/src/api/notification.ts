@@ -52,6 +52,9 @@ export interface NotificationLog {
   error_msg: string | null
   sent_at: string
   is_read: boolean
+  aggregated_count?: number
+  link?: string | null
+  icon?: string | null
 }
 
 export interface NotificationLogResponse {

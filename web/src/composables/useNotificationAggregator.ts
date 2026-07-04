@@ -13,9 +13,34 @@ interface PauseState {
   remainingSeconds: number
 }
 
-const BUFFER_WINDOW = 300       // ms
-const COUNT_WINDOW = 30000      // ms (30s)
-const PAUSE_DURATION = 300000   // ms (5min)
+interface AggregateConfig {
+  toast_aggregate_window_ms: number
+  toast_count_window_ms: number
+  toast_pause_duration_ms: number
+  toast_pause_threshold: number
+}
+
+// 默认值（API 不可用时降级）
+let _config: AggregateConfig = {
+  toast_aggregate_window_ms: 300,
+  toast_count_window_ms: 30000,
+  toast_pause_duration_ms: 300000,
+  toast_pause_threshold: 3,
+}
+let _configLoaded = false
+
+/** 从后端拉取聚合配置（幂等，仅首次调用时请求） */
+async function loadConfig() {
+  if (_configLoaded) return
+  try {
+    const r = await fetch('/api/notification/config/aggregate')
+    if (r.ok) {
+      const data = await r.json()
+      _config = { ..._config, ...data }
+    }
+  } catch { /* 网络不可用，使用默认值 */ }
+  _configLoaded = true
+}
 
 let _instance: ReturnType<typeof _createAggregator> | null = null
 
@@ -62,7 +87,7 @@ function _createAggregator() {
 
   function cleanWarningErrors(now: number) {
     for (let i = warningErrors.length - 1; i >= 0; i--) {
-      if (now - warningErrors[i] > COUNT_WINDOW) warningErrors.splice(i, 1)
+      if (now - warningErrors[i] > _config.toast_count_window_ms) warningErrors.splice(i, 1)
     }
   }
 
@@ -102,9 +127,9 @@ function _createAggregator() {
       if (level === 'warn' || level === 'error') {
         warningErrors.push(now)
         cleanWarningErrors(now)
-        if (warningErrors.length >= 3) {
+        if (warningErrors.length >= _config.toast_pause_threshold) {
           paused = true
-          pausedUntil = now + PAUSE_DURATION
+          pausedUntil = now + _config.toast_pause_duration_ms
           savePauseState()
           if (_onShow) {
             _onShow('通知已暂停', `连续 ${warningErrors.length} 次警告，通知将在 5 分钟后自动恢复`, 'warn')
@@ -131,7 +156,7 @@ function _createAggregator() {
     }
     buffer.push({ level, title, body, timestamp: Date.now() })
     if (!flushTimer) {
-      flushTimer = setTimeout(flush, BUFFER_WINDOW)
+      flushTimer = setTimeout(flush, _config.toast_aggregate_window_ms)
     }
     return false  // 总是等待缓冲窗口结束再显示
   }
@@ -155,6 +180,9 @@ function _createAggregator() {
 }
 
 export function useNotificationAggregator() {
-  if (!_instance) _instance = _createAggregator()
+  if (!_instance) {
+    _instance = _createAggregator()
+    loadConfig()  // 首次调用时异步拉取配置
+  }
   return _instance
 }

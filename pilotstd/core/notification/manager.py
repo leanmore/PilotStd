@@ -40,6 +40,14 @@ class NotificationManager(MessageBuildersMixin):
         self._init_event_builders()
         if self._enabled:
             self._init_channels()
+        # 服务端聚合开关
+        self._aggregate_enabled = config.get("notification.aggregate_window_seconds", 0) > 0
+        if self._aggregate_enabled:
+            from .aggregate_buffer import AggregateBuffer
+
+            window = float(config.get("notification.aggregate_window_seconds", 30))
+            max_events = int(config.get("notification.aggregate_max_events", 50))
+            self.buffer = AggregateBuffer(window, max_events, self._do_send_merged)
 
     def _init_channels(self) -> None:
         for name, cls in _CHANNEL_CLASSES.items():
@@ -72,13 +80,27 @@ class NotificationManager(MessageBuildersMixin):
         rules = self._cfg.get(f"notification.rules.{event_type}")
         if not rules:
             return
-        # 将 rules 转为列表（配置值可能是逗号分隔字符串或列表）
         if isinstance(rules, str):
             target_channels = [c.strip() for c in rules.split(",") if c.strip()]
         else:
             target_channels = rules
 
         msg = self._build_message(event_type, event_data)
+        if self._aggregate_enabled:
+            # 聚合模式：事件进入缓冲，由 AggregateBuffer 定时合并后回调 _do_send_merged
+            import asyncio
+
+            try:
+                asyncio.create_task(self.buffer.add_event(event_type, msg))
+            except RuntimeError:
+                # 不在 async 上下文中（如 CLI 直接调用），降级为直发
+                self._do_send(msg, target_channels)
+        else:
+            self._do_send(msg, target_channels)
+
+    def _do_send(self, msg: NotificationMessage, target_channels: list[str]) -> None:
+        """逐渠道发送 + 写日志 + WS 广播（单条或聚合后调用）。"""
+        event_type = msg.event_type
         for ch_name in target_channels:
             channel = self._channels.get(ch_name)
             sent_at = datetime.now(timezone.utc).isoformat()
@@ -90,10 +112,20 @@ class NotificationManager(MessageBuildersMixin):
                 self._log(event_type, ch_name, msg, "success" if ok else "failed", "" if ok else "发送失败", sent_at)
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
-
-        # WebSocket 广播（独立线程，不阻塞主流程）
+        # WebSocket 广播
         if msg:
             self._broadcast_to_ws(event_type, msg)
+
+    def _do_send_merged(self, msg: NotificationMessage) -> None:
+        """聚合后回调：提取渠道并转发到 _do_send。"""
+        rules = self._cfg.get(f"notification.rules.{msg.event_type}")
+        if not rules:
+            return
+        if isinstance(rules, str):
+            target_channels = [c.strip() for c in rules.split(",") if c.strip()]
+        else:
+            target_channels = rules
+        self._do_send(msg, target_channels)
 
     def _init_event_builders(self) -> None:
         """初始化事件构建器映射表"""
@@ -102,7 +134,6 @@ class NotificationManager(MessageBuildersMixin):
             "standard_status_changed": self._build_standard_status_changed_message,
             "standard_expired": self._build_standard_expired_message,
             "standard_first_registered": self._build_standard_first_registered_message,
-            "check_batch_complete": self._build_check_batch_complete_message,
             "announcement_fetch_complete": self._build_announcement_fetch_complete_message,
             "auto_backup": self._build_auto_backup_message,
             "announcement_check_complete": self._build_announcement_check_complete_message,
@@ -112,10 +143,8 @@ class NotificationManager(MessageBuildersMixin):
             "validity_round_summary": self._build_validity_round_summary_message,
             "validity_standard_failed": self._build_validity_standard_failed_message,
             "validity_system_failed": self._build_validity_system_failed_message,
-            # 2026-07-01 新增
             "image_update_available": self._build_image_update_available_message,
             "batch_query_summary": self._build_batch_query_summary_message,
-            "auto_query_complete": self._build_auto_query_complete_message,
             "trust_ip_update": self._build_trust_ip_update_message,
             "worker_error": self._build_worker_error_message,
         }
@@ -139,8 +168,21 @@ class NotificationManager(MessageBuildersMixin):
         try:
             self._db.execute(
                 "INSERT INTO notification_log (event_type, channel, title, body, "
-                "standard_number, status, error_msg, sent_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (event_type, channel, msg.title, msg.body, msg.standard_number, status, error_msg, sent_at),
+                "standard_number, status, error_msg, sent_at, aggregated_count, link, icon) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    event_type,
+                    channel,
+                    msg.title,
+                    msg.body,
+                    msg.standard_number,
+                    status,
+                    error_msg,
+                    sent_at,
+                    msg.aggregated_count,
+                    msg.link,
+                    msg.icon,
+                ),
             )
         except Exception as e:
             logger.warning("通知日志写入失败: %s", e)
@@ -155,7 +197,7 @@ class NotificationManager(MessageBuildersMixin):
         # 通过回调注入执行广播（回调内部处理 WebSocket/event loop 细节）
         threading.Thread(
             target=self._ws_broadcast,
-            args=(event_type, msg.title, msg.body, msg.level),
+            args=(event_type, msg.title, msg.body, msg.level, msg.link, msg.icon, msg.aggregated_count),
             daemon=True,
             name="notif-ws-broadcast",
         ).start()
