@@ -83,11 +83,15 @@ def _start_all_schedulers(_cron_mgr) -> None:
             adapter_mgr=_cron_mgr.adapter_manager,
         ),
     )
-    from .scheduler import _cleanup_notification_logs
+    from .scheduler import _cleanup_notification_logs, _release_suppressed_notifications
 
     register_job_func(
         "notification_cleanup",
         lambda: _cleanup_notification_logs(notification_mgr=_cron_mgr.notification_mgr),
+    )
+    register_job_func(
+        "release_suppressed",
+        lambda: _release_suppressed_notifications(notification_mgr=_cron_mgr.notification_mgr),
     )
     start_scheduler()
 

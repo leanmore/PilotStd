@@ -78,6 +78,10 @@ FACTORY_DEFAULTS = {
     # 服务端聚合（秒级，防DB爆炸）
     "notification.aggregate_window_seconds": 30,
     "notification.aggregate_max_events": 50,
+    # 静音时段
+    "notification.quiet_hours_enabled": False,
+    "notification.quiet_hours_start": "22:00",
+    "notification.quiet_hours_end": "07:00",
     # 前端Toast聚合（毫秒级，防UI打扰）
     "notification.toast_aggregate_window_ms": 300,
     "notification.toast_count_window_ms": 30000,

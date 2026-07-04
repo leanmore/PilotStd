@@ -3,24 +3,15 @@ defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
+import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
-import Tag from 'primevue/tag'
 import Calendar from 'primevue/calendar'
 import LogBar from '@/components/LogBar.vue'
 
 const { locale } = useI18n()
-
-// 摘要标签中文映射（后端返回英文 key）
-const summaryLabelMap: Record<string, string> = {
-  total_standards: '标准总数',
-  matched: '已匹配',
-  updated: '已更新',
-  new: '新增',
-  skipped: '已跳过',
-}
 
 // 起始日期默认今天
 function defaultSince(): Date {
@@ -36,6 +27,18 @@ const tabs: { key: 'gb'|'hb'|'db', label: string, api: string }[] = [
 ]
 const results = ref<any[]>([])
 const summary = ref<any>({})
+
+// 新版统计数据
+interface AnnounceStats {
+  total: { all: number; gb: number; hb: number; db: number }
+  matched: number
+  new: { all: number; gb: number; hb: number; db: number }
+}
+const statsData = ref<AnnounceStats | null>(null)
+
+async function loadStats() {
+  try { statsData.value = await http.get('/announce/stats').then(r => r.data) } catch { /* ignore */ }
+}
 const loading = ref(false)
 const lastCheck = ref('')
 const sinceDate = ref<Date>(defaultSince())
@@ -50,6 +53,7 @@ async function load() {
     results.value = (data.results || []).filter((x: any) => (x.type || 'gb') === tab.value)
     summary.value = data.summary || {}
     lastCheck.value = data.last_check || ''
+    loadStats()
   } catch {}
 }
 
@@ -93,8 +97,12 @@ function onPage(e: any) {
     <Button label="立即检查" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
-  <div v-if="Object.keys(summary).length" class="mt-2" style="display:flex;gap:8px">
-    <Tag v-for="(v,k) in summary" :key="k" :value="`${summaryLabelMap[k] || k}: ${v}`" />
+  <!-- 统计数据 -->
+  <div v-if="statsData" class="stats-grid mt-2">
+    <div class="stat-card"><div class="stat-num">{{ statsData.total.all }}</div><div class="stat-label">标准总数</div><div class="stat-sub">国标 {{ statsData.total.gb }} · 行标 {{ statsData.total.hb }} · 地标 {{ statsData.total.db }}</div></div>
+    <div class="stat-card"><div class="stat-num">{{ statsData.matched }}</div><div class="stat-label">已匹配</div></div>
+    <div class="stat-card"><div class="stat-num">{{ statsData.new.all }}</div><div class="stat-label">今日新增</div><div class="stat-sub">国标 {{ statsData.new.gb }} · 行标 {{ statsData.new.hb }} · 地标 {{ statsData.new.db }}</div></div>
+  </div>
   </div>
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
@@ -122,5 +130,11 @@ function onPage(e: any) {
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: var(--primary); font-family: var(--mono); }
+.stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

@@ -365,3 +365,15 @@ def _migrate_v27_notification_aggregation(db: Any) -> None:
         db.execute("ALTER TABLE notification_log ADD COLUMN link TEXT")
     if "icon" not in cols:
         db.execute("ALTER TABLE notification_log ADD COLUMN icon TEXT")
+
+
+@migration(28)
+def _migrate_v28_notification_queue(db: Any) -> None:
+    """通知静音暂存队列表。"""
+    db.execute("""CREATE TABLE IF NOT EXISTS notification_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
+        event_data TEXT NOT NULL, status TEXT DEFAULT 'pending',
+        scheduled_time TEXT, error_msg TEXT DEFAULT '',
+        created_at TEXT NOT NULL)""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_nq_status ON notification_queue(status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_nq_scheduled ON notification_queue(scheduled_time)")

@@ -130,6 +130,23 @@ def _cleanup_notification_logs(notification_mgr=None):
 register_job_func("notification_cleanup", _cleanup_notification_logs)
 
 
+def _release_suppressed_notifications(notification_mgr=None):
+    """每5分钟检查并补发静音时段暂存的通知。"""
+    if notification_mgr is None:
+        from .manager import get_manager
+
+        notification_mgr = get_manager().notification_mgr
+    try:
+        count = notification_mgr.release_suppressed_notifications()
+        if count > 0:
+            logger.info("[release] 补发压制通知: %d 条", count)
+    except Exception:
+        logger.exception("[release] 补发压制通知失败")
+
+
+register_job_func("release_suppressed", _release_suppressed_notifications)
+
+
 def _acquire_scheduler_lock() -> bool:
     """尝试获取调度器互斥锁。返回 True=获取成功，False=已有其他 worker 在运行。"""
     db = _get_db()
@@ -211,6 +228,7 @@ def start_scheduler():
     # 通知日志定期清理（从配置读取间隔）
     cleanup_interval = int(cfg.get("notification.log_cleanup_interval_hours", 24))
     _add_interval_job("notification_cleanup", cleanup_interval * 3600)
+    _add_interval_job("release_suppressed", 300)  # 每5分钟检查静音补发
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()

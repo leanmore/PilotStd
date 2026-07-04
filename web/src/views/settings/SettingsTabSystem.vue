@@ -57,10 +57,10 @@ function toggle(key: keyof SystemSections) {
       </transition>
     </div>
 
-    <!-- 任务管理 -->
+    <!-- 后台任务调度 -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="toggle('taskManager')">
-        <span class="collapsible-title">任务管理</span>
+        <span class="collapsible-title">后台任务调度</span>
         <i :class="sections.taskManager ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
       </div>
       <transition name="collapsible">

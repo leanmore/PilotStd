@@ -160,3 +160,64 @@ def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
     items = mgr.announce_service.get_announcement_sources(limit=limit)
     return {"total": len(items), "items": items}
+
+
+# 统计缓存（避免频繁扫全表）
+_stats_cache: dict = {"data": None, "ts": 0}
+_STATS_CACHE_TTL = 300  # 5 分钟
+
+
+@router.get("/api/announce/stats")
+def get_announce_stats(mgr=Depends(get_manager_dep)):
+    """公告统计数据（今日，按国标/行标/地标分类）。5分钟缓存。"""
+    import time
+
+    now_ts = time.time()
+    if _stats_cache["data"] and (now_ts - _stats_cache["ts"]) < _STATS_CACHE_TTL:
+        return _stats_cache["data"]
+
+    db = mgr.db
+    today = "date('now', 'localtime')"
+    yesterday = "date('now', 'localtime', '-1 day')"
+
+    # 今日抓取（按 source_site 区分 gb/hb/db）
+    today_row = db.fetchone(
+        f"SELECT COUNT(*) as total,"
+        f" SUM(CASE WHEN source_site='samr_gb' THEN 1 ELSE 0 END) as gb,"
+        f" SUM(CASE WHEN source_site='samr_hb' THEN 1 ELSE 0 END) as hb,"
+        f" SUM(CASE WHEN source_site='samr_db' THEN 1 ELSE 0 END) as db"
+        f" FROM announcement_record WHERE date(fetched_at)={today}"
+    )
+    # 昨日抓取（用于计算新增）
+    yest_row = db.fetchone(
+        f"SELECT COUNT(*) as total,"
+        f" SUM(CASE WHEN source_site='samr_gb' THEN 1 ELSE 0 END) as gb,"
+        f" SUM(CASE WHEN source_site='samr_hb' THEN 1 ELSE 0 END) as hb,"
+        f" SUM(CASE WHEN source_site='samr_db' THEN 1 ELSE 0 END) as db"
+        f" FROM announcement_record WHERE date(fetched_at)={yesterday}"
+    )
+    # 今日匹配
+    matched_row = db.fetchone(f"SELECT COUNT(*) as cnt FROM announcement_match WHERE date(cached_at)={today}")
+
+    def _val(row, key, default=0):
+        return row[key] if row else default
+
+    today_total = _val(today_row, "total")
+    result = {
+        "total": {
+            "all": today_total,
+            "gb": _val(today_row, "gb"),
+            "hb": _val(today_row, "hb"),
+            "db": _val(today_row, "db"),
+        },
+        "matched": _val(matched_row, "cnt"),
+        "new": {
+            "all": max(0, today_total - _val(yest_row, "total")),
+            "gb": max(0, _val(today_row, "gb") - _val(yest_row, "gb")),
+            "hb": max(0, _val(today_row, "hb") - _val(yest_row, "hb")),
+            "db": max(0, _val(today_row, "db") - _val(yest_row, "db")),
+        },
+    }
+    _stats_cache["data"] = result
+    _stats_cache["ts"] = now_ts
+    return result

@@ -183,7 +183,7 @@ onMounted(() => {
   }
 })
 
-// ── Toast 桌面通知配置 ──
+// ── Toast 页面内通知配置 ──
 const toastConfig = ref({
   enabled: true,
   events: ['auto_scan_failed', 'validity_system_failed', 'validity_standard_failed'],
@@ -191,6 +191,33 @@ const toastConfig = ref({
 
 function saveToastConfig() {
   localStorage.setItem('notification_toast_config', JSON.stringify(toastConfig.value))
+}
+
+// ── 静音时段配置 ──
+const quietHoursEnabled = ref(false)
+const quietHoursStart = ref(new Date(2024, 0, 1, 22, 0))
+const quietHoursEnd = ref(new Date(2024, 0, 1, 7, 0))
+
+function saveQuietHours() {
+  const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const config = {
+    enabled: quietHoursEnabled.value,
+    start: hhmm(quietHoursStart.value),
+    end: hhmm(quietHoursEnd.value),
+  }
+  localStorage.setItem('notification_quiet_hours', JSON.stringify(config))
+}
+
+function loadQuietHours() {
+  try {
+    const saved = localStorage.getItem('notification_quiet_hours')
+    if (saved) {
+      const cfg = JSON.parse(saved)
+      quietHoursEnabled.value = cfg.enabled || false
+      if (cfg.start) { const [h, m] = cfg.start.split(':').map(Number); quietHoursStart.value = new Date(2024, 0, 1, h, m) }
+      if (cfg.end) { const [h, m] = cfg.end.split(':').map(Number); quietHoursEnd.value = new Date(2024, 0, 1, h, m) }
+    }
+  } catch { /* ignore */ }
 }
 
 // ── 智能聚合器配置 ──
@@ -213,6 +240,7 @@ onMounted(() => {
   pauseTimer = setInterval(() => {
     pauseState.value = aggregator.getPauseState()
   }, 1000)
+  loadQuietHours()
 })
 import { onUnmounted } from 'vue'
 onUnmounted(() => {
@@ -338,7 +366,7 @@ onUnmounted(() => {
     </Accordion>
     </div>
 
-    <Divider>桌面通知（Toast）</Divider>
+    <Divider>页面内通知</Divider>
     <div class="toast-config">
       <div class="config-row">
         <label>启用弹出通知</label>
@@ -352,10 +380,23 @@ onUnmounted(() => {
           option-label="label"
           option-value="key"
           multiple
-          placeholder="选择触发弹出通知的事件"
+          display="chip"
+          placeholder="请选择触发事件（可多选）"
           class="event-select"
           @change="saveToastConfig"
         />
+      </div>
+
+      <!-- 静音时段 -->
+      <div class="config-row" style="margin-top:12px">
+        <label>静音时段</label>
+        <ToggleSwitch v-model="quietHoursEnabled" @change="saveQuietHours" />
+      </div>
+      <div v-if="quietHoursEnabled" class="config-row">
+        <label>开始时间</label>
+        <Calendar v-model="quietHoursStart" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
+        <label style="margin-left:16px">结束时间</label>
+        <Calendar v-model="quietHoursEnd" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
       </div>
     </div>
 

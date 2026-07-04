@@ -94,10 +94,45 @@ async function cancelTask(taskId: string) {
 function showDetail(task: TaskItem) { detailTask.value = task }
 
 onMounted(loadTasks)
+
+// ── 管道历史 ──
+const subTab = ref<'tasks' | 'runs'>('tasks')
+interface PipelineRunItem {
+  run_id: string; current_step: string; status: string; progress: number
+  error_message: string; created_at: string; updated_at: string
+}
+const runs = ref<PipelineRunItem[]>([])
+const runsTotal = ref(0)
+const runsPage = ref(0)
+const runsLoading = ref(false)
+
+async function loadPipelineRuns() {
+  runsLoading.value = true
+  try {
+    const r = await http.get('/tasks/runs', { params: { page: runsPage.value + 1, page_size: 20 } })
+    runs.value = r.data.items; runsTotal.value = r.data.total
+  } catch { /* ignore */ }
+  finally { runsLoading.value = false }
+}
+
+function onRunsPage(e: any) { runsPage.value = e.page; loadPipelineRuns() }
+
+function stepLabel(s: string) {
+  const map: Record<string, string> = { scan: '扫描', query: '查询', download: '下载', normalize: '规范化', archive: '归档' }
+  return map[s] || s
+}
 </script>
 
 <template>
   <div>
+    <!-- 子Tab切换 -->
+    <div style="display:flex;gap:0;margin-bottom:8px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:fit-content">
+      <button :class="['subtab', { active: subTab === 'tasks' }]" @click="subTab = 'tasks'; loadTasks()">后台任务</button>
+      <button :class="['subtab', { active: subTab === 'runs' }]" @click="subTab = 'runs'; loadPipelineRuns()">管道历史</button>
+    </div>
+
+    <!-- 后台任务 -->
+    <template v-if="subTab === 'tasks'">
     <div class="toolbar">
       <SelectButton v-model="filter" :options="statusOptions" option-label="label" option-value="value" size="small" @change="loadTasks" />
       <Button label="刷新" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="loading" @click="loadTasks" />
@@ -156,9 +191,48 @@ onMounted(loadTasks)
         </div>
       </div>
     </Dialog>
+    </template>
+
+    <!-- 管道历史 -->
+    <template v-if="subTab === 'runs'">
+      <div class="toolbar">
+        <Button label="刷新" icon="pi pi-refresh" size="small" severity="secondary" outlined :loading="runsLoading" @click="loadPipelineRuns" />
+        <span style="font-size:12px;color:var(--text-dim);margin-left:auto">共 {{ runsTotal }} 条</span>
+      </div>
+      <DataTable :value="runs" striped-rows size="small" class="mt-2" paginator :rows="20" :total-records="runsTotal" @page="onRunsPage">
+        <Column field="run_id" header="Run ID" style="min-width:130px">
+          <template #body="{ data }"><code style="font-size:11px">{{ data.run_id.slice(0, 12) }}</code></template>
+        </Column>
+        <Column header="当前阶段" style="min-width:80px">
+          <template #body="{ data }"><Tag severity="info" :value="stepLabel(data.current_step)" /></template>
+        </Column>
+        <Column header="状态" style="min-width:70px">
+          <template #body="{ data }">
+            <Tag :severity="getStatusSeverity(data.status)" :value="statusLabel(data.status)" />
+          </template>
+        </Column>
+        <Column header="进度" style="min-width:100px">
+          <template #body="{ data }">
+            <ProgressBar :value="data.progress" :style="{ height: '6px' }" />
+          </template>
+        </Column>
+        <Column field="created_at" header="创建时间" style="min-width:130px">
+          <template #body="{ data }"><span style="font-size:11px">{{ (data.created_at || '').slice(0, 19) }}</span></template>
+        </Column>
+        <Column field="error_message" header="错误" style="min-width:100px">
+          <template #body="{ data }">
+            <span v-if="data.error_message" style="font-size:11px;color:var(--danger)">{{ data.error_message.slice(0, 50) }}</span>
+            <span v-else style="font-size:11px;color:var(--text-dim)">--</span>
+          </template>
+        </Column>
+      </DataTable>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.subtab { padding: 6px 14px; border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: 12px; border-right: 1px solid var(--border); }
+.subtab:last-child { border-right: none; }
+.subtab.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
 </style>

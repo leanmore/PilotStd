@@ -1,9 +1,10 @@
 # pilotstd/core/notification/manager.py
 """NotificationManager——多渠道通知分发与日志记录。"""
 
+import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..db import Database
@@ -100,6 +101,14 @@ class NotificationManager(MessageBuildersMixin):
 
     def _do_send(self, msg: NotificationMessage, target_channels: list[str]) -> None:
         """逐渠道发送 + 写日志 + WS 广播（单条或聚合后调用）。"""
+        # 静音时段检查：暂存后补发
+        if self._is_quiet_hours():
+            self._enqueue_notification(msg, target_channels)
+            return
+        self._send_now(msg, target_channels)
+
+    def _send_now(self, msg: NotificationMessage, target_channels: list[str]) -> None:
+        """实际执行发送（写日志 + 渠道推送 + WS 广播）。"""
         event_type = msg.event_type
         for ch_name in target_channels:
             channel = self._channels.get(ch_name)
@@ -112,9 +121,79 @@ class NotificationManager(MessageBuildersMixin):
                 self._log(event_type, ch_name, msg, "success" if ok else "failed", "" if ok else "发送失败", sent_at)
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
-        # WebSocket 广播
         if msg:
             self._broadcast_to_ws(event_type, msg)
+
+    # ── 静音时段 ──────────────────────────────────────────────
+
+    def _is_quiet_hours(self) -> bool:
+        """检查当前是否在静音时段内（跨天支持 22:00-07:00）。"""
+        if not self._cfg.get("notification.quiet_hours_enabled", False):
+            return False
+        now = datetime.now().time()
+        start_str = self._cfg.get("notification.quiet_hours_start", "22:00")
+        end_str = self._cfg.get("notification.quiet_hours_end", "07:00")
+        start = datetime.strptime(start_str, "%H:%M").time()
+        end = datetime.strptime(end_str, "%H:%M").time()
+        if start <= end:
+            return start <= now <= end
+        else:
+            return now >= start or now <= end
+
+    def _enqueue_notification(self, msg: NotificationMessage, target_channels: list[str]) -> None:
+        """静音时段内暂存通知到 notification_queue 表。"""
+        end_str = self._cfg.get("notification.quiet_hours_end", "07:00")
+        hour, minute = map(int, end_str.split(":"))
+        now = datetime.now()
+        scheduled = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if now >= scheduled:
+            scheduled += timedelta(days=1)
+        event_data = json.dumps(
+            {
+                "event_type": msg.event_type,
+                "title": msg.title,
+                "body": msg.body,
+                "level": msg.level,
+                "link": msg.link,
+                "icon": msg.icon,
+                "channels": target_channels,
+            },
+            ensure_ascii=False,
+        )
+        self._db.execute(
+            "INSERT INTO notification_queue (event_type, event_data, status, scheduled_time, created_at) "
+            "VALUES (?, ?, 'suppressed', ?, ?)",
+            (msg.event_type, event_data, scheduled.isoformat(), now.isoformat()),
+        )
+        logger.info("通知 %s 在静音时段内，已暂存，计划 %s 补发", msg.event_type, scheduled.isoformat())
+
+    def release_suppressed_notifications(self) -> int:
+        """补发所有已到期的压制通知，返回补发条数。"""
+        now = datetime.now().isoformat()
+        rows = self._db.fetchall(
+            "SELECT id, event_type, event_data FROM notification_queue "
+            "WHERE status='suppressed' AND scheduled_time <= ?",
+            (now,),
+        )
+        if not rows:
+            return 0
+        for row in rows:
+            self._db.execute("UPDATE notification_queue SET status='sending' WHERE id=?", (row["id"],))
+            try:
+                data = json.loads(row["event_data"])
+                channels = data.pop("channels", [])
+                msg = NotificationMessage(
+                    **{k: v for k, v in data.items() if k in ("title", "body", "level", "link", "icon", "event_type")}
+                )
+                self._send_now(msg, channels)
+                self._db.execute("UPDATE notification_queue SET status='sent' WHERE id=?", (row["id"],))
+            except Exception as e:
+                logger.error("补发通知失败: %s", e)
+                self._db.execute(
+                    "UPDATE notification_queue SET status='failed', error_msg=? WHERE id=?",
+                    (str(e), row["id"]),
+                )
+        return len(rows)
 
     def _do_send_merged(self, msg: NotificationMessage) -> None:
         """聚合后回调：提取渠道并转发到 _do_send。"""

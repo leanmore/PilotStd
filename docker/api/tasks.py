@@ -114,6 +114,25 @@ def cancel_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(
     return {"ok": ok}
 
 
+@router.get("/api/tasks/runs")
+def list_pipeline_runs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    mgr=Depends(get_manager_dep),
+):
+    """查询管道运行历史列表（分页）。"""
+    db = mgr.db
+    total_row = db.fetchone("SELECT COUNT(*) as cnt FROM pipeline_runs")
+    total = total_row["cnt"] if total_row else 0
+    offset = (page - 1) * page_size
+    rows = db.fetchall(
+        "SELECT run_id, current_step, status, progress, error_message, created_at, updated_at "
+        "FROM pipeline_runs ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        (page_size, offset),
+    )
+    return {"total": total, "page": page, "page_size": page_size, "items": rows}
+
+
 @router.get("/api/tasks/runs/{run_id}")
 def get_pipeline_run(run_id: str, mgr=Depends(get_manager_dep)):
     """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""
