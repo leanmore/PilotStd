@@ -241,8 +241,12 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertIn("msg", r.json())
 
     def test_announce_results_initially_empty(self):
+        mock_mgr = MagicMock()
+        mock_mgr.db.fetchall.return_value = []
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.get("/api/announce/results")
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["results"], [])
 
     # ── Normalize ──
 
