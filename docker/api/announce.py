@@ -143,7 +143,7 @@ def get_announce_results(
         query += " AND publish_date <= ?"
         params.append(to_date)
 
-    query += " ORDER BY fetched_at DESC LIMIT 100"
+    query += " ORDER BY publish_date DESC, fetched_at DESC LIMIT 100"
 
     rows = db.fetchall(query, params)
 

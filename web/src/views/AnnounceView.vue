@@ -23,7 +23,6 @@ const tabs: { key: 'gb'|'hb'|'db', label: string, api: string }[] = [
   { key: 'db', label: '地方标准公告', api: 'nocDBPage' },
 ]
 const results = ref<any[]>([])
-const summary = ref<any>({})
 
 // 新版统计数据
 interface AnnounceStats {
@@ -37,7 +36,6 @@ async function loadStats() {
   try { statsData.value = await http.get('/announce/stats').then(r => r.data) } catch { /* ignore */ }
 }
 const loading = ref(false)
-const lastCheck = ref('')
 const sinceDate = ref<Date>(defaultSince())
 watch(sinceDate, (v) => setItem('announce_since', v.toISOString()))
 const error = ref('')
@@ -47,9 +45,8 @@ function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; setItem('announce_tab', k
 async function load() {
   try {
     const data = await getAnnounceResults()
-    results.value = (data.results || []).filter((x: any) => (x.type || 'gb') === tab.value)
-    summary.value = data.summary || {}
-    lastCheck.value = data.last_check || ''
+    const sourceSite = `announcement_${tab.value}`
+    results.value = (data.results || []).filter((x: any) => x.source_site === sourceSite)
     loadStats()
   } catch {}
 }
@@ -90,7 +87,6 @@ function onPage(e: any) {
       <button v-for="t in tabs" :key="t.key" :class="{ active: tab === t.key }" @click="switchTab(t.key)">{{ t.label }}</button>
     </div>
     <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
-    <span v-if="lastCheck" class="text-dim">上次: {{ lastCheck }}</span>
     <Button label="立即检查" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
@@ -103,11 +99,11 @@ function onPage(e: any) {
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
-        <div v-for="item in slotProps.items" :key="item.std_code" class="p-2 border-bottom">
+        <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom">
           <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
-            <strong style="min-width:140px;flex-shrink:0">{{ item.std_code }}</strong>
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.std_name }}</span>
-            <span v-if="item.replaces_code" style="min-width:100px;font-size:12px;color:var(--text-dim);flex-shrink:0">代替: {{ item.replaces_code }}</span>
+            <strong style="min-width:140px;flex-shrink:0">{{ item.announce_no }}</strong>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.announcement_title }}</span>
+            <span v-if="item.standard_count" style="min-width:60px;font-size:12px;color:var(--text-dim);flex-shrink:0">({{ item.standard_count }}项)</span>
             <span style="min-width:90px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item.publish_date }}</span>
           </div>
         </div>
