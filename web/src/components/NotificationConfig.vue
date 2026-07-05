@@ -4,8 +4,6 @@ defineOptions({ name: 'NotificationConfig' })
 import { ref, onMounted } from 'vue'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
-import Accordion from 'primevue/accordion'
-import AccordionTab from 'primevue/accordiontab'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -13,7 +11,6 @@ import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
-import Select from 'primevue/select'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
   type WechatChannelConfig, type TelegramChannelConfig,
@@ -70,6 +67,13 @@ const CHANNELS = [
   { key: 'feishu',   label: '飞书',      icon: 'pi pi-book' },
   { key: 'dingtalk', label: '钉钉',      icon: 'pi pi-bolt' },
 ]
+
+const channelOpen = ref<Record<string, boolean>>({
+  wechat: false,
+  telegram: false,
+  feishu: false,
+  dingtalk: false,
+})
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
@@ -261,18 +265,19 @@ onUnmounted(() => {
     </div>
 
     <div class="channel-grid">
-      <Accordion :multiple="true" style="display: contents;">
-      <AccordionTab v-for="ch in CHANNELS" :key="ch.key">
-        <template #header>
-          <div class="ch-header" style="width:100%">
-            <div style="display:flex;align-items:center;gap:8px">
-              <i :class="ch.icon" style="font-size:16px;color:var(--primary)" />
-              <span>{{ ch.label }}</span>
-            </div>
-            <Tag :severity="chSeverity(ch.key)" :value="chStatus(ch.key)" />
+      <div v-for="ch in CHANNELS" :key="ch.key" class="collapsible-card">
+        <div class="collapsible-header" @click="channelOpen[ch.key] = !channelOpen[ch.key]">
+          <div style="display:flex;align-items:center;gap:8px">
+            <i :class="ch.icon" style="font-size:16px;color:var(--primary)" />
+            <span class="collapsible-title">{{ ch.label }}</span>
           </div>
-        </template>
-        <div class="channel-card-content">
+          <div style="display:flex;align-items:center;gap:8px">
+            <Tag :severity="chSeverity(ch.key)" :value="chStatus(ch.key)" />
+            <i :class="channelOpen[ch.key] ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+          </div>
+        </div>
+        <transition name="collapsible">
+          <div v-show="channelOpen[ch.key]" class="collapsible-content">
           <!-- Telegram -->
           <template v-if="ch.key === 'telegram'">
             <div class="field">
@@ -361,9 +366,9 @@ onUnmounted(() => {
               <label :for="`${ch.key}-${ev.key}`">{{ ev.label }}</label>
             </div>
           </div>
-        </div>
-      </AccordionTab>
-    </Accordion>
+          </div>
+        </transition>
+      </div>
     </div>
 
     <Divider>页面内通知</Divider>
@@ -374,17 +379,12 @@ onUnmounted(() => {
       </div>
       <div v-if="toastConfig.enabled" class="config-row">
         <label>触发事件</label>
-        <Select
-          v-model="toastConfig.events"
-          :options="EVENTS"
-          option-label="label"
-          option-value="key"
-          multiple
-          display="chip"
-          placeholder="请选择触发事件（可多选）"
-          class="event-select"
-          @change="saveToastConfig"
-        />
+        <div class="events-check-grid">
+          <div v-for="ev in EVENTS" :key="ev.key" class="checkbox-field">
+            <Checkbox v-model="toastConfig.events" :value="ev.key" :input-id="`toast-${ev.key}`" @change="saveToastConfig" />
+            <label :for="`toast-${ev.key}`">{{ ev.label }}</label>
+          </div>
+        </div>
       </div>
 
       <!-- 静音时段 -->
@@ -418,9 +418,38 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
-.channel-card { border: 1px solid var(--border); border-radius: var(--radius); }
-.ch-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.channel-grid { display: flex; flex-direction: column; gap: 12px; }
+
+.collapsible-card {
+  background: linear-gradient(135deg, var(--surface), var(--surface-raised));
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs); overflow: hidden; transition: all var(--transition);
+}
+.collapsible-card:hover { box-shadow: var(--shadow-sm); }
+
+.collapsible-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; cursor: pointer; user-select: none;
+  background: linear-gradient(180deg, var(--surface), var(--surface-raised));
+  border-bottom: 1px solid transparent; transition: all var(--transition);
+}
+.collapsible-header:hover { background: var(--selected); border-bottom-color: var(--border); }
+
+.collapsible-title { font-size: 14px; font-weight: 700; color: var(--text-heading); }
+
+.collapsible-icon {
+  font-size: 13px; color: var(--text-dim); transition: transform var(--transition);
+  padding: 2px; border-radius: var(--radius-sm);
+}
+.collapsible-header:hover .collapsible-icon { color: var(--primary); background: var(--primary-bg); }
+
+.collapsible-content { padding: 16px 18px; }
+
+.collapsible-enter-active,
+.collapsible-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.collapsible-enter-from,
+.collapsible-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+
 .field { margin-bottom: 8px; }
 .field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
 .required { color: var(--danger); font-size: 10px; }
@@ -433,4 +462,9 @@ onUnmounted(() => {
 .events-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; display: block; }
 .checkbox-field { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; margin-top: 4px; }
 .checkbox-field label { font-size: 12px; color: var(--text); }
+
+.events-check-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 8px; margin-top: 6px;
+}
 </style>

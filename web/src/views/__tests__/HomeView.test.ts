@@ -37,6 +37,7 @@ describe('HomeView 布局与持久化', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   afterEach(() => {

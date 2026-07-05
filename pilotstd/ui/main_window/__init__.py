@@ -173,6 +173,7 @@ class MainWindow(
         self._save_splitter_sizes()
         self._save_sort_state()
         self._save_column_widths()
+        self._stop_workers()
         self._quit_app()
         event.accept()
 

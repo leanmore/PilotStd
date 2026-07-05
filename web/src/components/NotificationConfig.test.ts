@@ -31,10 +31,7 @@ function mountConfig() {
     global: {
       plugins: [PrimeVue],
       stubs: {
-        Accordion: { template: '<div class="accordion-stub"><slot /></div>', props: ['multiple'] },
-        AccordionTab: { template: '<div class="tab-stub"><slot name="header" /><slot /></div>', props: ['header'] },
         Password: { template: '<input class="password-stub" />', props: ['modelValue', 'placeholder', 'toggleMask', 'feedback', 'size'] },
-        Select: { template: '<select class="select-stub"><slot /></select>', props: ['modelValue', 'options', 'optionLabel', 'optionValue', 'placeholder', 'multiple'] },
       },
     },
   })
@@ -103,5 +100,17 @@ describe('NotificationConfig', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.html()).not.toContain('通知已暂停')
+  })
+
+  it('触发事件使用 Checkbox 平铺而非 Select 下拉', () => {
+    const wrapper = mountConfig()
+    expect(wrapper.findComponent({ name: 'Select' }).exists()).toBe(false)
+    expect(wrapper.find('.events-check-grid').exists()).toBe(true)
+  })
+
+  it('渠道卡片使用 collapsible-card 而非 Accordion', () => {
+    const wrapper = mountConfig()
+    expect(wrapper.findComponent({ name: 'Accordion' }).exists()).toBe(false)
+    expect(wrapper.find('.collapsible-card').exists()).toBe(true)
   })
 })

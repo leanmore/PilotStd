@@ -200,7 +200,10 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     matched_row = db.fetchone(f"SELECT COUNT(*) as cnt FROM announcement_match WHERE date(cached_at)={today}")
 
     def _val(row, key, default=0):
-        return row[key] if row else default
+        if not row:
+            return default
+        v = row[key]
+        return v if v is not None else default
 
     today_total = _val(today_row, "total")
     result = {

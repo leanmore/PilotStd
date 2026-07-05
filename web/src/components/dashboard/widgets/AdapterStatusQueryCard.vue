@@ -35,8 +35,8 @@ function tick() {
 
 function fullName(n: string): string {
   const map: Record<string, string> = {
-    ahbz: '安徽标准', std_gov: '国家标准', hbba: '湖北标准',
-    iso_gov: 'ISO 标准', njbz365: '南京标准', csres: 'CSRES', dbba: '地方标准',
+    ahbz: '安徽标准', std_gov: '国家标准', hbba: '行业标准',
+    iso_gov: 'ISO 标准', njbz365: '南京标准', csres: '工标网', dbba: '地方标准',
   }
   return map[n] || n.toUpperCase()
 }

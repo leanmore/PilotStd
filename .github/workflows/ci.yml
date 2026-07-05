@@ -239,6 +239,7 @@ jobs:
             echo "version=$NEW_VER" >> $GITHUB_OUTPUT
             echo "bumped=true" >> $GITHUB_OUTPUT
           else
+            echo "version=${{ steps.base.outputs.base_version }}" >> $GITHUB_OUTPUT
             echo "bumped=false" >> $GITHUB_OUTPUT
           fi
 

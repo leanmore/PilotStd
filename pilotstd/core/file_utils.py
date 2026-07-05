@@ -56,7 +56,12 @@ def normalize_std_filename(filename: str) -> str:
     # 2. 全角转半角（NFKC 归一化：全角字母/数字/符号 → 半角）
     import unicodedata
 
-    filename = unicodedata.normalize("NFKC", filename)
+    try:
+        filename = unicodedata.normalize("NFKC", filename)
+    except Exception:
+        # 安全降级：Windows 文件系统可能包含孤立代理项等非法 Unicode，
+        # unicodedata.normalize 遇到时会触发 C 层面崩溃（c0000005），保留原始文件名
+        pass
 
     # 3. 缺斜杠还原（SHT→SH/T, GBT→GB/T, DB22T→DB22/T 等）
     #    在步骤1之后执行：如果文件名本来就有 /T，步骤1 已处理，此正则不会误匹配

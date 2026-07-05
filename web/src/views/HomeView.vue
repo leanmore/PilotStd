@@ -13,6 +13,8 @@ import QuickActionsCard from '@/components/dashboard/widgets/QuickActionsCard.vu
 import TaskTrendCard from '@/components/dashboard/widgets/TaskTrendCard.vue'
 import SystemLogCard from '@/components/dashboard/widgets/SystemLogCard.vue'
 
+const LAYOUT_STORAGE_KEY = 'dashboard_layout'
+
 const CARD_REGISTRY: Record<string, { label: string; zhName?: string; w: number; h: number }> = {
   stats: { label: '核心统计', w: 4, h: 6 },
   sysInfo: { label: '系统状态', w: 4, h: 6 },
@@ -48,6 +50,7 @@ const DEFAULT_LAYOUT = [
 const layout = ref<any[]>([])
 const isLocked = ref(true)
 const selectedCardKey = ref('')
+const layoutSaved = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 const availableCards = computed(() => {
@@ -66,6 +69,18 @@ function hydrateLayout(rawLayout: any[]) {
 }
 
 async function fetchLayout() {
+  // 1. 优先读本地缓存（秒开，无网络延迟）
+  const cached = localStorage.getItem(LAYOUT_STORAGE_KEY)
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        layout.value = hydrateLayout(parsed)
+      }
+    } catch { /* ignore */ }
+  }
+
+  // 2. 异步拉取服务器配置覆盖本地缓存
   try {
     const res = await http.get('/user/layout')
     const raw = res.data?.layout
@@ -73,21 +88,39 @@ async function fetchLayout() {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
         layout.value = hydrateLayout(parsed)
+        localStorage.setItem(LAYOUT_STORAGE_KEY, raw)
         return
       }
     }
   } catch { /* ignore */ }
-  resetLayout()
+
+  // 3. 无缓存且服务器无数据 → 默认布局
+  if (!layout.value.length) resetLayout()
 }
 
-async function saveLayoutToServer(newLayout: any[]) {
-  const payload = newLayout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
-  try { await http.put('/user/layout', { layout: JSON.stringify(payload) }) } catch { /* ignore */ }
+async function saveLayoutToServer(newLayout?: any[]) {
+  const source = newLayout || layout.value
+  const payload = source.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
+  try {
+    await http.put('/user/layout', { layout: JSON.stringify(payload) })
+    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(payload))
+  } catch {
+    console.warn('布局保存失败')
+  }
 }
 
 function handleLayoutUpdated(newLayout: any[]) {
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(() => saveLayoutToServer(newLayout), 500)
+}
+
+async function toggleLayoutLock() {
+  isLocked.value = !isLocked.value
+  if (isLocked.value) {
+    await saveLayoutToServer()
+    layoutSaved.value = true
+    setTimeout(() => layoutSaved.value = false, 2000)
+  }
 }
 
 function addCard() {
@@ -116,6 +149,24 @@ defineExpose({ layout, isLocked, addCard, removeCard, resetLayout })
 
 <template>
   <div class="dashboard-container">
+    <!-- 顶部操作栏 -->
+    <header class="dashboard-header">
+      <div class="header-left">
+        <h2 class="header-title">工作台</h2>
+      </div>
+      <div class="header-actions">
+        <span v-if="layoutSaved" class="saved-hint">布局已保存</span>
+        <select v-model="selectedCardKey" class="card-select" :disabled="isLocked">
+          <option value="" disabled>添加卡片…</option>
+          <option v-for="c in availableCards" :key="c.key" :value="c.key">{{ c.label }}</option>
+        </select>
+        <button class="header-btn add-btn" :disabled="!selectedCardKey || isLocked" @click="addCard">+</button>
+        <button class="header-btn lock-btn" @click="toggleLayoutLock">
+          {{ isLocked ? '🔒 锁定布局' : '🔓 解锁布局' }}
+        </button>
+      </div>
+    </header>
+
     <div class="dashboard-body">
       <div class="main-area">
         <GridLayout
@@ -148,61 +199,46 @@ defineExpose({ layout, isLocked, addCard, removeCard, resetLayout })
           </GridItem>
         </GridLayout>
       </div>
-
-      <aside class="control-sidebar">
-        <div class="sidebar-section">
-          <label class="sidebar-label">添加卡片</label>
-          <div class="sidebar-row">
-            <select v-model="selectedCardKey" class="card-select" :disabled="isLocked">
-              <option value="" disabled>选择...</option>
-              <option v-for="c in availableCards" :key="c.key" :value="c.key">{{ c.label }}</option>
-            </select>
-            <button class="sidebar-btn add-btn" :disabled="!selectedCardKey || isLocked" @click="addCard">+</button>
-          </div>
-        </div>
-
-        <div class="sidebar-section">
-          <label class="sidebar-label">布局</label>
-          <button class="sidebar-btn lock-btn" @click="isLocked = !isLocked">
-            {{ isLocked ? '解锁布局' : '锁定布局' }}
-          </button>
-          <button class="sidebar-btn reset-btn" :disabled="isLocked" @click="resetLayout">重置</button>
-        </div>
-      </aside>
     </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard-container { width: 100%; height: 100%; box-sizing: border-box; }
-.dashboard-body { display: flex; height: 100%; gap: 0; }
-.main-area { flex: 1; min-width: 0; padding: 16px; box-sizing: border-box; overflow: auto; }
+.dashboard-container { width: 100%; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
 
-/* 右侧控制栏 */
-.control-sidebar {
-  width: 170px; flex-shrink: 0; padding: 16px 12px; box-sizing: border-box;
-  border-left: 1px solid var(--border); background: var(--surface);
-  display: flex; flex-direction: column; gap: 20px; overflow-y: auto;
+/* 顶部操作栏 */
+.dashboard-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; flex-shrink: 0;
+  border-bottom: 1px solid var(--border); background: var(--surface);
 }
-.sidebar-section { display: flex; flex-direction: column; gap: 8px; }
-.sidebar-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-.sidebar-row { display: flex; gap: 6px; }
-.sidebar-btn {
-  width: 100%; height: 32px; padding: 0 10px; border-radius: var(--radius-sm); font-size: 13px;
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-title { font-size: 15px; font-weight: 700; color: var(--text-heading); margin: 0; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.saved-hint { font-size: 12px; color: var(--success); white-space: nowrap; }
+
+.header-btn {
+  height: 32px; padding: 0 12px; border-radius: var(--radius-sm); font-size: 13px;
   cursor: pointer; transition: opacity 0.2s, background 0.2s;
   border: 1px solid var(--border); background: var(--surface); color: var(--text-heading);
   text-align: center; white-space: nowrap;
 }
-.sidebar-btn:hover { background: var(--primary-bg); }
-.sidebar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.sidebar-btn:disabled:hover { background: var(--surface); }
+.header-btn:hover { background: var(--primary-bg); }
+.header-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.header-btn:disabled:hover { background: var(--surface); }
 
 .lock-btn { font-weight: 600; }
-.reset-btn { font-size: 12px; }
-.add-btn { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; flex-shrink: 0; width: 32px; }
+.add-btn { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 700; width: 32px; padding: 0; }
 .add-btn:hover { background: var(--primary-hover, var(--primary)); }
 
-.card-select { flex: 1; padding: 4px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-heading); font-size: 12px; outline: none; min-width: 0; }
+.card-select {
+  padding: 4px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-heading); font-size: 12px; outline: none;
+}
+
+/* 主体 */
+.dashboard-body { flex: 1; min-height: 0; display: flex; }
+.main-area { flex: 1; min-width: 0; padding: 16px; box-sizing: border-box; overflow: auto; }
 
 /* 卡片 */
 .card-wrapper { position: relative; width: 100%; height: 100%; }
