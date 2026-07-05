@@ -176,7 +176,7 @@ _STATS_CACHE_TTL = 300  # 5 分钟
 
 @router.get("/api/announce/stats")
 def get_announce_stats(mgr=Depends(get_manager_dep)):
-    """公告统计数据（今日，按国标/行标/地标分类）。5分钟缓存。"""
+    """公告统计数据（标准总数/已匹配/今日新增，按国标/行标/地标分类）。5分钟缓存。"""
     import time
 
     now_ts = time.time()
@@ -187,7 +187,15 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     today = "date('now', 'localtime')"
     yesterday = "date('now', 'localtime', '-1 day')"
 
-    # 今日抓取（按 source_site 区分 gb/hb/db）
+    # 全量统计（标准总数，不限时间）
+    all_row = db.fetchone(
+        "SELECT COUNT(*) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
+        " FROM announcement_record"
+    )
+    # 今日抓取（用于计算新增）
     today_row = db.fetchone(
         "SELECT COUNT(*) as total,"
         " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
@@ -203,8 +211,8 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={yesterday}"
     )
-    # 今日匹配
-    matched_row = db.fetchone(f"SELECT COUNT(*) as cnt FROM announcement_match WHERE date(cached_at)={today}")
+    # 已匹配（全量，不限时间）
+    matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
 
     def _val(row, key, default=0):
         if not row:
@@ -212,21 +220,23 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         v = row[key]
         return v if v is not None else default
 
+    all_gb = _val(all_row, "gb")
+    all_hb = _val(all_row, "hb")
+    all_db = _val(all_row, "db")
     today_gb = _val(today_row, "gb")
     today_hb = _val(today_row, "hb")
     today_db = _val(today_row, "db")
-    # 用明细求和构造总数，保证 total.all = gb + hb + db 绝对自洽
-    today_total = today_gb + today_hb + today_db
+
     result = {
         "total": {
-            "all": today_total,
-            "gb": today_gb,
-            "hb": today_hb,
-            "db": today_db,
+            "all": all_gb + all_hb + all_db,
+            "gb": all_gb,
+            "hb": all_hb,
+            "db": all_db,
         },
         "matched": _val(matched_row, "cnt"),
         "new": {
-            "all": max(0, today_total - _val(yest_row, "total")),
+            "all": max(0, _val(today_row, "total") - _val(yest_row, "total")),
             "gb": max(0, today_gb - _val(yest_row, "gb")),
             "hb": max(0, today_hb - _val(yest_row, "hb")),
             "db": max(0, today_db - _val(yest_row, "db")),
