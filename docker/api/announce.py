@@ -189,7 +189,6 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
     db = mgr.db
     today = "date('now', 'localtime')"
-    yesterday = "date('now', 'localtime', '-1 day')"
 
     # 全量统计（标准总数，不限时间）
     all_row = db.fetchone(
@@ -207,14 +206,8 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={today}"
     )
-    # 昨日抓取（用于计算新增）
-    yest_row = db.fetchone(
-        "SELECT COUNT(*) as total,"
-        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
-        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
-        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
-        f" FROM announcement_record WHERE date(fetched_at)={yesterday}"
-    )
+    # 已匹配（全量，不限时间）
+    matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
     # 已匹配（全量，不限时间）
     matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
 
@@ -240,10 +233,10 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         },
         "matched": _val(matched_row, "cnt"),
         "new": {
-            "all": max(0, _val(today_row, "total") - _val(yest_row, "total")),
-            "gb": max(0, today_gb - _val(yest_row, "gb")),
-            "hb": max(0, today_hb - _val(yest_row, "hb")),
-            "db": max(0, today_db - _val(yest_row, "db")),
+            "all": _val(today_row, "total"),
+            "gb": today_gb,
+            "hb": today_hb,
+            "db": today_db,
         },
     }
     _stats_cache["data"] = result
