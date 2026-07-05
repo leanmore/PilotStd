@@ -2,7 +2,6 @@
 defineOptions({ name: 'NotificationLogsView' })
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Calendar from 'primevue/calendar'
@@ -13,7 +12,6 @@ import { getNotificationLogs, deleteNotificationLogs, type NotificationLog } fro
 import { getItem, setItem } from '@/lib/storage'
 
 const route = useRoute()
-const { locale } = useI18n()
 
 const logs = ref<NotificationLog[]>([])
 const total = ref(0)
@@ -252,11 +250,11 @@ onMounted(() => { loadNotifFilters(); loadLogs() })
         </div>
         <div class="filter-item">
           <label>开始日期</label>
-          <Calendar v-model="filterStartDate" :locale="locale" dateFormat="yy-mm-dd" showIcon />
+          <Calendar v-model="filterStartDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-item">
           <label>结束日期</label>
-          <Calendar v-model="filterEndDate" :locale="locale" dateFormat="yy-mm-dd" showIcon />
+          <Calendar v-model="filterEndDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-actions">
           <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />

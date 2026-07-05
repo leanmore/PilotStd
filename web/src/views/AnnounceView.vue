@@ -1,7 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
@@ -10,8 +9,6 @@ import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Calendar from 'primevue/calendar'
 import LogBar from '@/components/LogBar.vue'
-
-const { locale } = useI18n()
 
 // 起始日期默认今天
 function defaultSince(): Date {
@@ -92,7 +89,7 @@ function onPage(e: any) {
     <div class="tabs">
       <button v-for="t in tabs" :key="t.key" :class="{ active: tab === t.key }" @click="switchTab(t.key)">{{ t.label }}</button>
     </div>
-    <Calendar v-model="sinceDate" :locale="locale" dateFormat="yy-mm-dd" showIcon style="width:160px" />
+    <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
     <span v-if="lastCheck" class="text-dim">上次: {{ lastCheck }}</span>
     <Button label="立即检查" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
