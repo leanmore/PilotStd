@@ -5,6 +5,7 @@ import logging
 import os
 from typing import Any
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from ...core import file_utils as core
@@ -108,28 +109,52 @@ class ScanMixin:
         self._scan_source_root = os.path.abspath(dir_path)
         self._unrecognized_files = []
         self.progress_changed.emit(0)
+        # 重置动画状态
+        self._target_progress = 0
+        self._current_progress = 0.0
 
         self._scan_worker = ScanWorker(self._mgr, dir_path, pause_event=self._pause_event, parent=self)
-        self._scan_worker.batch_ready.connect(self._on_scan_batch_ready)
-        self._scan_worker.progress.connect(
-            lambda cur, total: self.progress_changed.emit(int(cur / total * 100) if total else 0)
+        self._scan_worker.batch_ready.connect(self._on_scan_batch_ready, Qt.ConnectionType.QueuedConnection)
+        self._scan_worker.progress.connect(self._on_raw_progress, Qt.ConnectionType.QueuedConnection)
+        self._scan_worker.finished_signal.connect(self._on_scan_finished, Qt.ConnectionType.QueuedConnection)
+        self._scan_worker.error.connect(
+            lambda msg: self.status_changed.emit(f"扫描失败: {msg}"), Qt.ConnectionType.QueuedConnection
         )
-        self._scan_worker.finished_signal.connect(self._on_scan_finished)
-        self._scan_worker.error.connect(lambda msg: self.status_changed.emit(f"扫描失败: {msg}"))
         self._scan_worker.start()
 
+    def _on_raw_progress(self, cur: int, total: int) -> None:
+        """接收 Worker 的节流信号，仅更新目标值，由定时器驱动平滑动画。"""
+        self._target_progress = int(cur / total * 100) if total else 0
+        if not self._progress_timer.isActive():
+            self._progress_timer.start()
+
+    def _animate_progress(self) -> None:
+        """定时器触发：平滑逼近目标进度，产生缓动效果。"""
+        diff = self._target_progress - self._current_progress
+        if abs(diff) < 0.5:
+            self._current_progress = self._target_progress
+            self.progress_changed.emit(int(self._current_progress))
+            self._progress_timer.stop()
+        else:
+            self._current_progress += diff * 0.2
+            self.progress_changed.emit(int(self._current_progress))
+
     def _on_scan_batch_ready(self, batch_rows: list[Any]) -> None:
-        """后台线程批量通知：追加已解析文件到表格和结果列表。"""
-        for seq, parsed in batch_rows:
-            self._parsed_results.append(parsed)
-            self._add_table_row(
-                RowUpdate(
-                    seq=seq,
-                    parsed=parsed,
-                    work_status="已扫描",
-                    total=len(self._parsed_results),
+        """后台线程批量通知：追加已解析文件到表格和结果列表（暂停渲染，批量写入后一次性刷新）。"""
+        self.work_table.setUpdatesEnabled(False)
+        try:
+            for seq, parsed in batch_rows:
+                self._parsed_results.append(parsed)
+                self._add_table_row(
+                    RowUpdate(
+                        seq=seq,
+                        parsed=parsed,
+                        work_status="已扫描",
+                        total=len(self._parsed_results),
+                    )
                 )
-            )
+        finally:
+            self.work_table.setUpdatesEnabled(True)
 
     def _on_scan_finished(self, success: int, failed: int) -> None:
         """扫描完成：汇总统计并弹窗。"""

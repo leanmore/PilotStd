@@ -117,6 +117,13 @@ class MainWindow(
         self.status_changed.connect(self._on_status)
         self.query_result_ready.connect(self._on_query_result_ready)
 
+        # 进度条平滑动画（50ms 定时器，20FPS 缓动效果）
+        self._target_progress = 0
+        self._current_progress = 0.0
+        self._progress_timer = QTimer(self)
+        self._progress_timer.setInterval(50)
+        self._progress_timer.timeout.connect(self._animate_progress)
+
     # ── _mgr 延迟属性：首次访问时自动初始化 StandardManager ──
 
     @property

@@ -34,19 +34,23 @@ class ScanWorker(QThread):
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
+            _last_signal = _t_start
 
             def on_batch(batch_rows: Any) -> None:
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
 
             def on_progress(cur: int, total: int) -> None:
-                nonlocal _last_log
+                nonlocal _last_log, _last_signal
                 if self._stopped:
                     return
                 if self._pause_event is not None:
                     self._pause_event.wait()
-                self.progress.emit(cur, total)
                 now = _time.monotonic()
+                # 节流：每 50 个文件 / 每 500ms / 最后一批 才发射一次信号，防止事件队列撑爆
+                if cur % 50 == 0 or cur == total or now - _last_signal >= 0.5:
+                    self.progress.emit(cur, total)
+                    _last_signal = now
                 if now - _last_log >= 15:
                     _log_progress(logger, "扫描", cur, total, _t_start)
                     _last_log = now

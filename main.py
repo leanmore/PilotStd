@@ -2,10 +2,13 @@
 # 入口脚本：默认启动 PyQt6 GUI，--cli 进入命令行模式
 
 import argparse
+import faulthandler
 import os
 import sys
 
 from dotenv import load_dotenv
+
+faulthandler.enable()
 
 # 加载 .env 文件（优先级：系统环境变量 > .env 文件）
 # load_dotenv 默认不覆盖已存在的环境变量，保证系统环境变量优先
