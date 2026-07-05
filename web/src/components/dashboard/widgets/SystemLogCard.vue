@@ -4,8 +4,6 @@ import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import http from '@/api/http'
 
-const SYSLOG_CLEAR_KEY = 'syslog_clear_hours'
-
 interface LogEntry { time: string; level: string; message: string }
 
 const logs = ref<LogEntry[]>([])
