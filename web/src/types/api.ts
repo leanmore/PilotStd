@@ -109,18 +109,16 @@ export interface UserListResponse {
 // ── 公告 ──────────────────────────────────────────────
 
 export interface AnnounceItem {
-  title: string
-  number: string
+  announce_no: string
+  announcement_title: string
+  standard_count: number | null
   publish_date: string
-  status: string
-  source: string
+  source_site: string
 }
 
 /** 公告响应包装 */
 export interface AnnounceResponse {
   results: AnnounceItem[]
-  summary: Record<string, unknown>
-  last_check: string
 }
 
 // ── 整理 ──────────────────────────────────────────────

@@ -44,9 +44,9 @@ function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; setItem('announce_tab', k
 
 async function load() {
   try {
-    const data = await getAnnounceResults()
     const sourceSite = `announcement_${tab.value}`
-    results.value = (data.results || []).filter((x: any) => x.source_site === sourceSite)
+    const data = await getAnnounceResults(sourceSite)
+    results.value = data.results || []
     loadStats()
   } catch {}
 }

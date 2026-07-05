@@ -119,13 +119,14 @@ def api_check_announce(
 
 @router.get("/api/announce/results")
 def get_announce_results(
+    source_site: str = "",
     from_date: str = "",
     to_date: str = "",
     mgr=Depends(get_manager_dep),
 ):
-    """获取最新公告列表。直接从 announcement_record 表查询，不依赖内存缓存。
-    可选 from_date/to_date 过滤（格式 YYYY-MM-DD）。
-    按 fetched_at DESC 排序，返回最近 100 条。
+    """获取最新公告列表。直接从 announcement_record 表查询。
+    可选 source_site 过滤（announcement_gb/hb/db），不传则查全量。
+    按 publish_date DESC 排序，返回最近 100 条。
     """
     db = mgr.db
     query = (
@@ -136,6 +137,9 @@ def get_announce_results(
     )
     params: list = []
 
+    if source_site:
+        query += " AND source_site = ?"
+        params.append(source_site)
     if from_date:
         query += " AND publish_date >= ?"
         params.append(from_date)

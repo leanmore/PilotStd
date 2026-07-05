@@ -50,11 +50,9 @@ describe('AnnounceView', () => {
     localStorage.clear()
     getAnnounceResultsMock.mockResolvedValue({
       results: [
-        { type: 'gb', std_code: 'GB/T 1.1-2020', std_name: '标准化工作导则', replaces_code: 'GB/T 1.1-2009', publish_date: '2020-03-31' },
-        { type: 'gb', std_code: 'GB 15979-2024', std_name: '一次性使用卫生用品卫生标准', replaces_code: null, publish_date: '2024-06-01' },
+        { announce_no: '2026年第28号', announcement_title: '关于批准发布《纺织工业水污染物排放标准》等24项强制性国家标准的公告', standard_count: 25, publish_date: '2026-06-27', source_site: 'announcement_gb' },
+        { announce_no: '2025年第1号', announcement_title: '2025年1月国家标准委收到北京市等27个省市区共发布标准1530项', standard_count: 1530, publish_date: '2025-02-01', source_site: 'announcement_db' },
       ],
-      summary: { total_standards: 2, matched: 1, updated: 0, new: 1, skipped: 0 },
-      last_check: '2026-06-29 12:00',
     })
   })
 
@@ -88,7 +86,7 @@ describe('AnnounceView', () => {
   })
 
   it('无结果时正常渲染不崩溃', async () => {
-    getAnnounceResultsMock.mockResolvedValue({ results: [], summary: {}, last_check: '' })
+    getAnnounceResultsMock.mockResolvedValue({ results: [] })
     const wrapper = mountView()
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
