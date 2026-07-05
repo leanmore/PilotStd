@@ -349,9 +349,7 @@ class NotificationManager(MessageBuildersMixin):
 
     def cleanup_logs(self, days: int = 30) -> int:
         """删除 days 天前的通知日志，返回删除条数。"""
-        from datetime import timedelta
-
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
         cur = self._db.execute("DELETE FROM notification_log WHERE sent_at < ?", (cutoff,))
         deleted = cur.rowcount
         if deleted > 0:
