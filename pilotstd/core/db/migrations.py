@@ -377,3 +377,16 @@ def _migrate_v28_notification_queue(db: Any) -> None:
         created_at TEXT NOT NULL)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_status ON notification_queue(status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_scheduled ON notification_queue(scheduled_time)")
+
+
+@migration(29)
+def _migrate_v29_announce_title_and_count(db: Any) -> None:
+    """announcement_record 表新增公告标题和标准总数字段。"""
+    try:
+        db.execute("ALTER TABLE announcement_record ADD COLUMN announcement_title TEXT")
+    except Exception:
+        pass  # 列已存在
+    try:
+        db.execute("ALTER TABLE announcement_record ADD COLUMN standard_count INTEGER")
+    except Exception:
+        pass  # 列已存在

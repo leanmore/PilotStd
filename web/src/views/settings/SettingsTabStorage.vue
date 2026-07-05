@@ -26,6 +26,19 @@ const setp = inject<(path: string, val: any) => void>('settingsSetp')!
       </select>
     </div>
   </div>
+
+  <div class="card mt-2">
+    <div class="card-header">归档文件夹监控</div>
+    <div class="form-grid">
+      <label>启用自动扫描</label>
+      <select :value="getp('tasks.auto_scan_enabled',false)" @change="setp('tasks.auto_scan_enabled',($event.target as any).value==='true')" class="fi">
+        <option :value="false">否</option><option :value="true">是</option>
+      </select>
+      <label>扫描间隔 (cron)</label>
+      <input :value="getp('tasks.auto_scan_cron','0 3 * * *')" @input="setp('tasks.auto_scan_cron',($event.target as any).value)" class="fi" />
+      <span></span><span class="text-dim" style="font-size:11px">定时扫描标准库目录，解析文件名中的标准号并写入索引，使首页统计数据生效</span>
+    </div>
+  </div>
 </template>
 
 <style scoped>

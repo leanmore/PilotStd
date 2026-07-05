@@ -260,7 +260,7 @@ class BaseAnnounceAdapter(ABC):
                     {
                         "pid": row.get("PID", ""),
                         "code": row.get("CODE", ""),
-                        "title": row.get("C_TITLE", ""),
+                        "title": row.get("TITLE", row.get("C_TITLE", "")),
                         "notice_date": row.get("NOTICE_DATE", ""),
                         "std_count": row.get("STD_COUNT", ""),
                     }
@@ -289,11 +289,21 @@ class BaseAnnounceAdapter(ABC):
 
     def _fetch_detail(self, pid: str) -> Optional[str]:
         """获取公告详情页 HTML，失败返回 None。"""
-        resp = safe_raw_get(f"{self._detail_url}?id={pid}", self.site_name, timeout=120)
-        if resp is not None:
-            resp.encoding = "utf-8"
-            return resp.text
-        return None
+        url = f"{self._detail_url}?id={pid}"
+        resp = safe_raw_get(url, self.site_name, timeout=120)
+        if resp is None:
+            logger.warning("公告详情请求失败: type=%s url=%s", self.standard_type, url[:100])
+            return None
+        if resp.status_code != 200:
+            logger.warning(
+                "公告详情HTTP错误: type=%s status=%d url=%s",
+                self.standard_type,
+                resp.status_code,
+                url[:100],
+            )
+            return None
+        resp.encoding = "utf-8"
+        return resp.text
 
     # ── 公共解析入口（页面结构路由）──
 
@@ -346,8 +356,9 @@ class BaseAnnounceAdapter(ABC):
         raw = self._fetch_detail(ann["pid"])
         if not raw:
             logger.warning(
-                "公告详情获取失败: pid=%s code=%s",
-                ann.get("pid", ""),
+                "公告详情获取失败: type=%s pid=%s code=%s",
+                self.standard_type,
+                ann.get("pid", "")[:32],
                 ann.get("code", ""),
             )
             _bump(ann.get("pid", "?"))
@@ -355,15 +366,26 @@ class BaseAnnounceAdapter(ABC):
         parsed = self._parse_items(raw, ocr_provider=ocr_provider)
         if not parsed:
             logger.warning(
-                "公告解析为空: pid=%s code=%s title=%s",
-                ann.get("pid", ""),
+                "公告解析为空: type=%s pid=%s code=%s html_size=%d title=%s",
+                self.standard_type,
+                ann.get("pid", "")[:32],
                 ann.get("code", ""),
+                len(raw),
                 ann.get("title", "")[:60],
+            )
+        else:
+            logger.debug(
+                "公告解析成功: type=%s code=%s items=%d",
+                self.standard_type,
+                ann.get("code", ""),
+                len(parsed),
             )
         for item in parsed:
             item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
             item["_pid"] = ann.get("pid", "")
             item["announce_no"] = ann.get("code", "")
+            raw_std_count = ann.get("std_count", "")
+            item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
         _bump(ann.get("code", "?")[:20])
         return parsed
 

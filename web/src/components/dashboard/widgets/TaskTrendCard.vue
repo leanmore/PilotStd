@@ -6,17 +6,12 @@ import { getStats } from '@/api'
 const stats = ref({ current: 0, expired: 0, pending: 0, upcoming: 0 })
 const total = computed(() => stats.value.current + stats.value.expired + stats.value.pending + stats.value.upcoming)
 
-// 使用现有 stats 数据构造四条模拟趋势线
-const sparklines = computed(() => {
-  const max = Math.max(total.value, 1)
-  const gen = (v: number) => 40 - (v / max) * 34
-  return [
-    { label: '现行', value: stats.value.current, y: gen(stats.value.current), color: '#22c55e' },
-    { label: '废止', value: stats.value.expired, y: gen(stats.value.expired), color: '#ef4444' },
-    { label: '待确认', value: stats.value.pending, y: gen(stats.value.pending), color: '#f59e0b' },
-    { label: '即将实施', value: stats.value.upcoming, y: gen(stats.value.upcoming), color: '#3b82f6' },
-  ]
-})
+const statusList = computed(() => [
+  { label: '现行', value: stats.value.current, color: '#22c55e' },
+  { label: '废止', value: stats.value.expired, color: '#ef4444' },
+  { label: '待确认', value: stats.value.pending, color: '#f59e0b' },
+  { label: '即将实施', value: stats.value.upcoming, color: '#3b82f6' },
+])
 
 onMounted(async () => {
   try { stats.value = await getStats() } catch { /* ignore */ }
@@ -35,14 +30,15 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="bars">
-      <div v-for="s in sparklines" :key="s.label" class="bar-row">
-        <span class="bar-label">{{ s.label }}</span>
-        <div class="bar-track">
-          <div class="bar-fill" :style="{ width: total ? (s.value / total * 100) + '%' : '0%', background: s.color }" />
-        </div>
-        <span class="bar-val">{{ s.value }}</span>
+    <div v-if="total" class="number-list">
+      <div v-for="s in statusList" :key="s.label" class="list-item">
+        <span class="item-label" :style="{ color: s.color }">{{ s.label }}</span>
+        <span class="item-value">{{ s.value }}</span>
       </div>
+    </div>
+    <div v-else class="empty-state">
+      <p class="empty-text">暂无标准数据</p>
+      <p class="empty-hint">导入文件后自动统计</p>
     </div>
   </div>
 </template>
@@ -63,10 +59,13 @@ onMounted(async () => {
 .header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
 .header-sub { font-size: 10px; color: var(--text-dim); }
 
-.bars { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
-.bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-label { font-size: 10px; color: var(--text-dim); width: 48px; flex-shrink: 0; text-align: right; }
-.bar-track { flex: 1; height: 8px; background: var(--border-light); border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-.bar-val { font-size: 12px; font-weight: 700; font-family: var(--mono); color: var(--text-heading); width: 40px; flex-shrink: 0; }
+.number-list { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.list-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 4px 0; border-bottom: 1px dashed var(--border-light); }
+.list-item:last-child { border-bottom: none; }
+.item-label { font-weight: 600; }
+.item-value { font-family: var(--mono); font-weight: 700; font-size: 14px; color: var(--text-heading); }
+
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.empty-text { font-size: 13px; color: var(--text-dim); }
+.empty-hint { font-size: 11px; color: var(--border); }
 </style>

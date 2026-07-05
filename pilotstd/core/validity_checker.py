@@ -130,6 +130,24 @@ class ValidityChecker:
         )
         return [r["standard_number"] for r in rows]
 
+    def count_due_standards(self) -> int:
+        """到期标准总数（轻量 COUNT 查询，不加载数据）。"""
+        now = datetime.now(timezone.utc).isoformat()
+        row = self._db.fetchone(
+            f"SELECT COUNT(*) as cnt FROM {_TABLE} WHERE next_check_at <= ?",
+            (now,),
+        )
+        return row["cnt"] if row else 0
+
+    def get_due_standards_random(self, limit: int) -> list[str]:
+        """随机采样 limit 条到期标准号（数据库层 ORDER BY RANDOM() + LIMIT，避免全量加载到 Python 内存）。"""
+        now = datetime.now(timezone.utc).isoformat()
+        rows = self._db.fetchall(
+            f"SELECT standard_number FROM {_TABLE} WHERE next_check_at <= ? ORDER BY RANDOM() LIMIT ?",
+            (now, limit),
+        )
+        return [r["standard_number"] for r in rows]
+
     @staticmethod
     def random_slice(candidates: list[str], week_number: int, batch_size: int = 50) -> list[str]:
         """从候选列表中随机切片取约 1/4（固定种子，同周结果一致）。"""
@@ -231,17 +249,17 @@ _VALIDITY_LOCK = threading.Lock()
 
 
 def _sample_due_standards(checker: ValidityChecker, check_ratio: int) -> tuple[list[str], int]:
-    """获取到期标准 → 随机打乱 → 按比例采样。返回 (候选列表, 采样数)。"""
-    due = checker.get_due_standards()
-    if not due:
-        return [], 0
-    import time as _time
+    """到期标准 → 数据库层随机采样 → 返回 (候选列表, 采样数)。
+    不再全量加载 + Python 洗牌，改为 COUNT + ORDER BY RANDOM() LIMIT 两步查询。"""
+    import math
 
-    rng = random.Random(int(_time.time()))
-    shuffled = list(due)
-    rng.shuffle(shuffled)
-    sample_size = max(1, int(len(shuffled) * check_ratio / 100))
-    return shuffled[:sample_size], sample_size
+    total_due = checker.count_due_standards()
+    if total_due == 0:
+        return [], 0
+
+    sample_size = max(1, math.ceil(total_due * check_ratio / 100))
+    candidates = checker.get_due_standards_random(sample_size)
+    return candidates, sample_size
 
 
 def _process_validity_batch(

@@ -31,12 +31,15 @@ onMounted(async () => {
     <div v-else-if="!list.length" class="empty">暂无新公告</div>
 
     <div v-else class="timeline">
-      <div v-for="(item, idx) in list" :key="item.standard_number || item.std_code || idx" class="tl-item">
+      <div v-for="(item, idx) in list" :key="item.announce_no || idx" class="tl-item">
         <div class="tl-dot" :class="{ 'tl-dot-active': idx === 0 }" />
         <div class="tl-line" v-if="idx !== list.length - 1" />
         <div class="tl-content">
-          <div class="tl-title">{{ item.standard_number || item.std_code || '无标题' }}</div>
-          <div class="tl-meta">{{ item.standard_name || item.std_name || '' }}</div>
+          <div class="tl-title">
+            {{ item.announcement_title || item.announce_no || '无标题' }}
+            <span v-if="item.standard_count" class="tl-count">({{ item.standard_count }}项)</span>
+          </div>
+          <div class="tl-meta">{{ item.publish_date || '' }}</div>
         </div>
       </div>
     </div>

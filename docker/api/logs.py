@@ -55,3 +55,57 @@ def get_app_log_raw(username: str = Depends(require_admin)):
         media_type="text/plain; charset=utf-8",
         filename="app.log",
     )
+
+
+@router.delete("/api/admin/logs")
+def clear_logs(
+    before_hours: int = 24,
+    username: str = Depends(require_admin),
+):
+    """清除 before_hours 小时前的日志条目（仅管理员）。
+
+    默认 24 小时，传入 before_hours=0 表示清空全部。
+    返回删除的日志行数。
+    """
+    if not os.path.exists(_LOG_PATH):
+        return {"ok": True, "deleted": 0, "note": "日志文件不存在"}
+
+    try:
+        with open(_LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        total = len(lines)
+        if before_hours <= 0:
+            # 清空全部
+            with open(_LOG_PATH, "w", encoding="utf-8") as f:
+                f.write("")
+            return {"ok": True, "deleted": total}
+
+        # 保留最近 before_hours 小时内的日志
+        from datetime import datetime, timedelta
+
+        cutoff = datetime.now() - timedelta(hours=before_hours)
+        kept = []
+        deleted = 0
+        for line in lines:
+            # 日志格式: "MM-DD HH:MM:SS [LEVEL] TAG message"
+            try:
+                ts_str = line[:14]  # "MM-DD HH:MM:SS"
+                # 补齐年份（假设当前年）
+                log_time = datetime.strptime(f"{datetime.now().year}-{ts_str}", "%Y-%m-%d %H:%M:%S")
+                if log_time >= cutoff:
+                    kept.append(line)
+                else:
+                    deleted += 1
+            except (ValueError, IndexError):
+                # 无法解析的行保留
+                kept.append(line)
+
+        with open(_LOG_PATH, "w", encoding="utf-8") as f:
+            f.writelines(kept)
+
+        return {"ok": True, "deleted": deleted, "kept": len(kept)}
+    except OSError as e:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=500, detail=f"清理日志失败: {e}")

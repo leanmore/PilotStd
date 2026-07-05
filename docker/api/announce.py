@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-from datetime import datetime
 
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
@@ -14,14 +13,11 @@ from ..manager import get_manager_dep
 router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
 
-# 公告检查结果缓存（供 /api/announce/results 查询）
-_cache: dict = {"last_check": "", "results": [], "summary": {}, "failures": []}
-
 FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
 
 
 def check_announce(since_date: str = "", mgr=None) -> dict:
-    """抓取最新公告并更新缓存。通过 StandardManager 统一入口。
+    """抓取最新公告。通过 StandardManager 统一入口。
     mgr 参数：路由通过 Depends 注入，调度器调用时传 None 走 _get_mgr() 降级。"""
     if mgr is None:
         mgr = _get_mgr()
@@ -36,18 +32,6 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
             total_updated += r.get("updated", 0)
             if r.get("error"):
                 failures.append({"type": std_type, "error": str(r["error"])})
-    # 从 facade 获取公告缓存结果
-    items = mgr.get_announcement_match()
-    _cache["results"] = items
-    _cache["last_check"] = datetime.now().isoformat()
-    _cache["failures"] = failures
-    _cache["summary"] = {
-        "total_standards": total_matched + total_updated,
-        "matched": total_matched,
-        "updated": total_updated,
-        "new": total_matched,
-        "skipped": len(failures),
-    }
     # 失败记录持久化到文件，方便人工处理或后续重试
     if failures:
         try:
@@ -134,25 +118,48 @@ def api_check_announce(
 
 
 @router.get("/api/announce/results")
-def get_announce_results(from_date: str = "", to_date: str = ""):
-    """获取最近一次公告检查的结果缓存。
-    可选 from_date/to_date 过滤（格式 YYYY-MM-DD）。"""
-    items = _cache.get("results", [])
-    if from_date or to_date:
-        filtered = []
-        for item in items:
-            pub = item.get("publish_date", "")
-            if from_date and pub < from_date:
-                continue
-            if to_date and pub > to_date:
-                continue
-            filtered.append(item)
-        return {
-            "last_check": _cache.get("last_check", ""),
-            "summary": _cache.get("summary", {}),
-            "results": filtered,
-        }
-    return _cache
+def get_announce_results(
+    from_date: str = "",
+    to_date: str = "",
+    mgr=Depends(get_manager_dep),
+):
+    """获取最新公告列表。直接从 announcement_record 表查询，不依赖内存缓存。
+    可选 from_date/to_date 过滤（格式 YYYY-MM-DD）。
+    按 fetched_at DESC 排序，返回最近 100 条。
+    """
+    db = mgr.db
+    query = (
+        "SELECT DISTINCT announce_no, announcement_title, standard_count,"
+        " publish_date, fetched_at, source_site"
+        " FROM announcement_record"
+        " WHERE announce_no IS NOT NULL AND announce_no != ''"
+    )
+    params: list = []
+
+    if from_date:
+        query += " AND publish_date >= ?"
+        params.append(from_date)
+    if to_date:
+        query += " AND publish_date <= ?"
+        params.append(to_date)
+
+    query += " ORDER BY fetched_at DESC LIMIT 100"
+
+    rows = db.fetchall(query, params)
+
+    results = []
+    for row in rows:
+        results.append(
+            {
+                "announce_no": row["announce_no"],
+                "announcement_title": row["announcement_title"] or "",
+                "standard_count": row["standard_count"],
+                "publish_date": row["publish_date"] or "",
+                "source_site": row["source_site"],
+            }
+        )
+
+    return {"results": results}
 
 
 @router.get("/api/announce/fetch-log")
@@ -182,18 +189,18 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
     # 今日抓取（按 source_site 区分 gb/hb/db）
     today_row = db.fetchone(
-        f"SELECT COUNT(*) as total,"
-        f" SUM(CASE WHEN source_site='samr_gb' THEN 1 ELSE 0 END) as gb,"
-        f" SUM(CASE WHEN source_site='samr_hb' THEN 1 ELSE 0 END) as hb,"
-        f" SUM(CASE WHEN source_site='samr_db' THEN 1 ELSE 0 END) as db"
+        "SELECT COUNT(*) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={today}"
     )
     # 昨日抓取（用于计算新增）
     yest_row = db.fetchone(
-        f"SELECT COUNT(*) as total,"
-        f" SUM(CASE WHEN source_site='samr_gb' THEN 1 ELSE 0 END) as gb,"
-        f" SUM(CASE WHEN source_site='samr_hb' THEN 1 ELSE 0 END) as hb,"
-        f" SUM(CASE WHEN source_site='samr_db' THEN 1 ELSE 0 END) as db"
+        "SELECT COUNT(*) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={yesterday}"
     )
     # 今日匹配
@@ -205,20 +212,24 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         v = row[key]
         return v if v is not None else default
 
-    today_total = _val(today_row, "total")
+    today_gb = _val(today_row, "gb")
+    today_hb = _val(today_row, "hb")
+    today_db = _val(today_row, "db")
+    # 用明细求和构造总数，保证 total.all = gb + hb + db 绝对自洽
+    today_total = today_gb + today_hb + today_db
     result = {
         "total": {
             "all": today_total,
-            "gb": _val(today_row, "gb"),
-            "hb": _val(today_row, "hb"),
-            "db": _val(today_row, "db"),
+            "gb": today_gb,
+            "hb": today_hb,
+            "db": today_db,
         },
         "matched": _val(matched_row, "cnt"),
         "new": {
             "all": max(0, today_total - _val(yest_row, "total")),
-            "gb": max(0, _val(today_row, "gb") - _val(yest_row, "gb")),
-            "hb": max(0, _val(today_row, "hb") - _val(yest_row, "hb")),
-            "db": max(0, _val(today_row, "db") - _val(yest_row, "db")),
+            "gb": max(0, today_gb - _val(yest_row, "gb")),
+            "hb": max(0, today_hb - _val(yest_row, "hb")),
+            "db": max(0, today_db - _val(yest_row, "db")),
         },
     }
     _stats_cache["data"] = result

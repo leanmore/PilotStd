@@ -47,7 +47,7 @@ from .api.wechat_ip import router as wechat_ip_router
 from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .middleware import RequestSizeLimitMiddleware, SecurityHeadersMiddleware
-from .scheduler import _backup_database, _check_validity_schedule, register_job_func, start_scheduler, stop_scheduler
+from .scheduler import _backup_database, register_job_func, start_scheduler, stop_scheduler
 from .websocket import websocket_endpoint
 
 logger = logging.getLogger(__name__)
@@ -76,22 +76,11 @@ def _start_all_schedulers(_cron_mgr) -> None:
 
     register_job_func("auto_announce", check_announce)
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
-    register_job_func(
-        "validity_wake",
-        lambda: _check_validity_schedule(
-            notification_mgr=_cron_mgr.notification_mgr,
-            adapter_mgr=_cron_mgr.adapter_manager,
-        ),
-    )
-    from .scheduler import _cleanup_notification_logs, _release_suppressed_notifications
+    from .scheduler import _cleanup_notification_logs
 
     register_job_func(
         "notification_cleanup",
         lambda: _cleanup_notification_logs(notification_mgr=_cron_mgr.notification_mgr),
-    )
-    register_job_func(
-        "release_suppressed",
-        lambda: _release_suppressed_notifications(notification_mgr=_cron_mgr.notification_mgr),
     )
     start_scheduler()
 
@@ -143,37 +132,21 @@ def _shutdown_cleanup(_cron_mgr) -> None:
         pass
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
-    # ── SUPERUSER 启动校验（守卫从 pilotstd/__init__.py 迁移至此） ──
-    _su = os.getenv("SUPERUSER")
-    if not _su:
-        print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
-        sys.exit(1)
-    if _su.lower() == "admin":
-        print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
-        sys.exit(1)
+def _run_backfill_if_needed(mgr) -> None:
+    """公告历史数据回填（幂等，仅执行一次）。"""
+    from pilotstd.announcement.adapters.samr_db import SamrDbAdapter
+    from pilotstd.announcement.adapters.samr_gb import SamrGbAdapter
+    from pilotstd.announcement.adapters.samr_hb import SamrHbAdapter
 
-    # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
-    from pilotstd.core.logger import LoggerManager
+    from .backfill_announce import run_backfill
 
-    LoggerManager(level=logging.INFO)
+    _adapters = {"gb": SamrGbAdapter(), "hb": SamrHbAdapter(), "db": SamrDbAdapter()}
+    run_backfill(mgr.db, _adapters)
 
-    # 启动会话清理后台线程
-    from .auth import _start_session_cleanup
 
-    _start_session_cleanup()
+def _setup_ws_broadcast(mgr) -> None:
+    """注入 WebSocket 广播回调。"""
 
-    # 清理启动前遗留的僵尸抓取任务
-    _clean_zombie_tasks()
-
-    # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
-    from .manager import get_manager as _get_mgr
-
-    _cron_mgr = _get_mgr()  # 触发初始化，之后所有 API 模块共享此实例
-
-    # 注入 WebSocket 广播回调（在 Core 层通过回调使用 Platform 层能力，避免 Core→Docker 直接导入）
     def _ws_broadcast_callback(
         event_type: str,
         title: str,
@@ -213,9 +186,48 @@ async def lifespan(app: FastAPI):
         except Exception:
             pass
 
-    _cron_mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
+    mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
+    # ── SUPERUSER 启动校验（守卫从 pilotstd/__init__.py 迁移至此） ──
+    _su = os.getenv("SUPERUSER")
+    if not _su:
+        print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
+        sys.exit(1)
+    if _su.lower() == "admin":
+        print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
+        sys.exit(1)
+
+    # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
+    from pilotstd.core.logger import LoggerManager
+
+    LoggerManager(level=logging.INFO)
+
+    # 启动会话清理后台线程
+    from .auth import _start_session_cleanup
+
+    _start_session_cleanup()
+
+    # 清理启动前遗留的僵尸抓取任务
+    _clean_zombie_tasks()
+
+    # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
+    from .manager import get_manager as _get_mgr
+
+    _cron_mgr = _get_mgr()
+
+    _setup_ws_broadcast(_cron_mgr)
 
     _start_all_schedulers(_cron_mgr)
+
+    # 公告历史数据回填（幂等，仅执行一次）
+    try:
+        _run_backfill_if_needed(_cron_mgr)
+    except Exception:
+        logger.warning("公告历史数据回填失败", exc_info=True)
 
     yield
     # 优雅关闭：刷新聚合缓冲（防止通知丢失）

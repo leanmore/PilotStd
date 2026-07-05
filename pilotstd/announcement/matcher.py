@@ -26,12 +26,7 @@ class AnnouncementMatcher:
         items: list[dict[str, Any]],
         source_site: str = "announcement",
     ) -> dict[str, Any]:
-        """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
-
-        全量日志写入 announcement_record（含未匹配的），
-        缓存仅写入 announcement_match（仅匹配 file_index 的记录）。
-        pid 从每个 item 的 _pid 字段提取。
-        """
+        """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。"""
         result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
         if not items:
             return result
@@ -41,66 +36,62 @@ class AnnouncementMatcher:
         now = datetime.now().isoformat()
 
         for item in items:
-            std_code = item.get("std_code", "")
-            replaces_code = item.get("replaces_code", "")
-            pid = item.get("_pid", "")
-            announce_no = item.get("announce_no", "")
-            publish_date = item.get("publish_date", "")
-            std_name = item.get("std_name", "")
+            self._process_item(item, source_site, now, log_rows, cache_rows, result)
 
-            parsed = self._parse_std_code(std_code)
-            if not parsed:
-                continue
-
-            matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
-            match_type = "new"
-
-            if not matches:
-                if replaces_code:
-                    replaced_parsed = self._parse_std_code(replaces_code)
-                    if replaced_parsed:
-                        matches = self._find_in_file_index(
-                            replaced_parsed["logical_code"],
-                            replaced_parsed["number"],
-                        )
-                        match_type = "replaced"
-
-            matched = 1 if matches else 0
-
-            # 全量日志：所有条目都记录
-            log_rows.append(
-                (
-                    source_site,
-                    pid,
-                    announce_no,
-                    std_code,
-                    std_name or None,
-                    publish_date,
-                    now,
-                    matched,
-                )
-            )
-
-            if not matches:
-                continue
-
-            result["matched"] += 1
-            for fi_row in matches:
-                updated = self._build_cache_row(fi_row, item, match_type, source_site, now, cache_rows)
-                if updated:
-                    result["updated"] += 1
-                    detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
-                    if match_type == "replaced":
-                        detail += f" → 被代替: {std_code}"
-                    result["details"].append(detail)
-
-        # 批量写入
         if log_rows:
             self._bulk_insert_records(log_rows)
         if cache_rows:
             self._bulk_upsert_cache(cache_rows)
-
         return result
+
+    def _process_item(self, item, source_site, now, log_rows, cache_rows, result):
+        std_code = item.get("std_code", "")
+        replaces_code = item.get("replaces_code", "")
+        pid = item.get("_pid", "")
+        announce_no = item.get("announce_no", "")
+        publish_date = item.get("publish_date", "")
+        std_name = item.get("std_name", "")
+
+        parsed = self._parse_std_code(std_code)
+        if not parsed:
+            return
+
+        matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
+        match_type = "new"
+
+        if not matches and replaces_code:
+            replaced_parsed = self._parse_std_code(replaces_code)
+            if replaced_parsed:
+                matches = self._find_in_file_index(replaced_parsed["logical_code"], replaced_parsed["number"])
+                match_type = "replaced"
+
+        matched = 1 if matches else 0
+        log_rows.append(
+            (
+                source_site,
+                pid,
+                announce_no,
+                std_code,
+                std_name or None,
+                publish_date,
+                now,
+                matched,
+                item.get("announcement_title", "") or None,
+                item.get("standard_count"),
+            )
+        )
+
+        if not matches:
+            return
+        result["matched"] += 1
+        for fi_row in matches:
+            updated = self._build_cache_row(fi_row, item, match_type, source_site, now, cache_rows)
+            if updated:
+                result["updated"] += 1
+                detail = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
+                if match_type == "replaced":
+                    detail += f" -> {std_code}"
+                result["details"].append(detail)
 
     def _parse_std_code(self, std_code: str) -> Optional[dict[str, Any]]:
         """解析标准编号字符串为 logical_code + number。委托公用解析器。"""
@@ -118,24 +109,17 @@ class AnnouncementMatcher:
             (logical_code, number),
         )
 
-    # ── 批量写入辅助方法 ──
-
     def _build_cache_row(
         self,
-        fi_row: dict[str, Any],
-        item: dict[str, Any],
-        match_type: str,
-        source_site: str,
-        now: str,
-        cache_rows: list[tuple[Any, ...]],
+        fi_row,
+        item,
+        match_type,
+        source_site,
+        now,
+        cache_rows,
     ) -> bool:
-        """构建一条 announcement_match 行数据，追加到 cache_rows。
-        逻辑与原 _update_cache 一致：判断状态 → 构建 JSON → 入列。
-        """
         std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
         today = datetime.now().date()
-
-        replaces_code = item.get("replaces_code", "")
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")
 
@@ -153,7 +137,7 @@ class AnnouncementMatcher:
         cache_data = {
             "status": status,
             "standard_name": fi_row["std_name"] or item.get("std_name", ""),
-            "replaces": replaces_code,
+            "replaces": item.get("replaces_code", ""),
             "publish_date": publish_date,
             "implementation_date": implementation_date,
             "announcement_title": item.get("announcement_title", ""),
@@ -166,13 +150,10 @@ class AnnouncementMatcher:
 
         result_json = json.dumps(cache_data, ensure_ascii=False)
         cache_rows.append((std_number, source_site, result_json, now, None))
-        logger.info("公告更新缓存: %s → %s", std_number, status)
+        logger.info("公告更新缓存: %s -> %s", std_number, status)
         return True
 
     def _get_complete_pids(self, source_site: str) -> Set[str]:
-        """返回该站点下已完全解析的公告 PID 集合。
-        完全解析 = 该公告下所有标准条目的 std_name 均非空。
-        """
         cursor = self._db.execute(
             "SELECT pid FROM announcement_record "
             "WHERE source_site=? "
@@ -183,30 +164,26 @@ class AnnouncementMatcher:
         rows = cursor.fetchall()
         return {row[0] for row in rows}
 
-    _BATCH_SIZE = 50  # SQLite 参数上限 999，每批 50 条远低于上限
+    _BATCH_SIZE = 50
 
     def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR IGNORE 到 announcement_record（分批写入，避免 too many SQL variables）。"""
         if not rows:
             return
-
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
-            placeholders = ",".join("(?,?,?,?,?,?,?,?)" for _ in batch)
+            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
-                "publish_date, fetched_at, matched) "
+                "publish_date, fetched_at, matched, announcement_title, standard_count) "
                 f"VALUES {placeholders}",
                 flat_values,
             )
 
     def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
-        """批量 INSERT OR REPLACE 到 announcement_match（分批+事务包裹）。"""
         if not rows:
             return
-
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?)" for _ in batch)

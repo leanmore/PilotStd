@@ -1,12 +1,17 @@
 <script setup lang="ts">
 defineOptions({ name: 'SystemLogCard' })
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useToast } from 'primevue/usetoast'
 import http from '@/api/http'
+
+const SYSLOG_CLEAR_KEY = 'syslog_clear_hours'
 
 interface LogEntry { time: string; level: string; message: string }
 
 const logs = ref<LogEntry[]>([])
 const logContainer = ref<HTMLElement | null>(null)
+const clearing = ref(false)
+const toast = useToast()
 let timer: ReturnType<typeof setInterval> | null = null
 
 function scrollToBottom() {
@@ -14,7 +19,6 @@ function scrollToBottom() {
 }
 
 function parseLine(line: string): LogEntry {
-  // 解析 "MM-DD HH:MM:SS [LEVEL] TAG message" 格式
   const m = line.match(/^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+\[(\w+)\]\s+\S+\s+(.*)/)
   if (m) return { time: m[1] || '', level: (m[2] || 'info').toLowerCase(), message: m[3] || line }
   return { time: '', level: 'info', message: line }
@@ -31,6 +35,20 @@ async function fetchLogs() {
   } catch { /* ignore */ }
 }
 
+async function clearOldLogs(hours: number) {
+  clearing.value = true
+  try {
+    const r = await http.delete('/admin/logs', { params: { before_hours: hours } })
+    const deleted = r.data?.deleted ?? 0
+    toast.add({ severity: 'success', summary: hours > 0 ? `已清理 ${deleted} 条日志（${hours}h 前）` : `已清空全部日志（${deleted} 条）`, life: 3000 })
+    await fetchLogs()
+  } catch {
+    toast.add({ severity: 'error', summary: '清理日志失败', life: 3000 })
+  } finally {
+    clearing.value = false
+  }
+}
+
 onMounted(() => { fetchLogs(); timer = setInterval(fetchLogs, 8000) })
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 </script>
@@ -45,7 +63,10 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
           <div class="header-sub">{{ logs.length }} 行 · 8s 刷新</div>
         </div>
       </div>
-      <button class="clear-btn" @click="logs = []">清空</button>
+      <div class="header-actions">
+        <button class="clear-btn" :disabled="clearing" @click="clearOldLogs(24)">清理旧日志</button>
+        <button class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)">清空</button>
+      </div>
     </div>
 
     <div ref="logContainer" class="log-box">
@@ -74,11 +95,14 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 }
 .header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
 .header-sub { font-size: 10px; color: var(--text-dim); }
+.header-actions { display: flex; gap: 6px; }
 .clear-btn {
   font-size: 10px; color: var(--text-dim); background: none; border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm); padding: 2px 8px; cursor: pointer;
+  border-radius: var(--radius-sm); padding: 2px 8px; cursor: pointer; white-space: nowrap;
 }
-.clear-btn:hover { color: var(--danger); border-color: var(--danger); }
+.clear-btn:hover:not(:disabled) { color: var(--warning); border-color: var(--warning); }
+.clear-all:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+.clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .log-box {
   flex: 1; overflow-y: auto; background: rgba(0,0,0,0.08); border-radius: var(--radius);
