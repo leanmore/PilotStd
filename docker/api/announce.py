@@ -208,8 +208,6 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     )
     # 已匹配（全量，不限时间）
     matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
-    # 已匹配（全量，不限时间）
-    matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
 
     def _val(row, key, default=0):
         if not row:
