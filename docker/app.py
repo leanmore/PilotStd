@@ -134,13 +134,13 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 
 def _run_backfill_if_needed(mgr) -> None:
     """公告历史数据回填（幂等，仅执行一次）。"""
-    from pilotstd.announcement.adapters.samr_db import SamrDbAdapter
-    from pilotstd.announcement.adapters.samr_gb import SamrGbAdapter
-    from pilotstd.announcement.adapters.samr_hb import SamrHbAdapter
+    from pilotstd.announcement.adapters.samr_db import SamrDbCrawler
+    from pilotstd.announcement.adapters.samr_gb import SamrGbCrawler
+    from pilotstd.announcement.adapters.samr_hb import SamrHbCrawler
 
     from .backfill_announce import run_backfill
 
-    _adapters = {"gb": SamrGbAdapter(), "hb": SamrHbAdapter(), "db": SamrDbAdapter()}
+    _adapters = {"gb": SamrGbCrawler(), "hb": SamrHbCrawler(), "db": SamrDbCrawler()}
     run_backfill(mgr.db, _adapters)
 
 

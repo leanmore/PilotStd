@@ -1195,9 +1195,9 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
     try:
         import os as _os
 
-        from pilotstd.announcement.adapters.samr_db import SamrDbAdapter
-        from pilotstd.announcement.adapters.samr_gb import SamrGbAdapter
-        from pilotstd.announcement.adapters.samr_hb import SamrHbAdapter
+        from pilotstd.announcement.adapters.samr_db import SamrDbCrawler
+        from pilotstd.announcement.adapters.samr_gb import SamrGbCrawler
+        from pilotstd.announcement.adapters.samr_hb import SamrHbCrawler
         from pilotstd.announcement.matcher import AnnouncementMatcher
         from pilotstd.announcement.ocr import create_ocr_provider
         from pilotstd.core.config import ConfigManager, get_data_dir
@@ -1229,9 +1229,9 @@ def _step1_cli_cold(source_dir: str, output_dir: str, timeout_query: int, ocr_co
         _log(f"    OCR provider: {ocr_provider.name if ocr_provider else 'None'}")
 
         for atype, AdapterCls in [
-            ("gb", SamrGbAdapter),
-            ("hb", SamrHbAdapter),
-            ("db", SamrDbAdapter),
+            ("gb", SamrGbCrawler),
+            ("hb", SamrHbCrawler),
+            ("db", SamrDbCrawler),
         ]:
             try:
                 adapter = AdapterCls()

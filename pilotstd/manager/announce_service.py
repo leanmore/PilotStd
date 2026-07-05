@@ -9,7 +9,7 @@ import threading
 from datetime import datetime
 from typing import Any, Optional
 
-from ..announcement.adapters import SamrDbAdapter, SamrGbAdapter, SamrHbAdapter
+from ..announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbCrawler
 from ..announcement.engine import AnnounceEngine
 from ..announcement.matcher import AnnouncementMatcher
 from ..core.config import get_data_dir
@@ -39,7 +39,7 @@ class AnnounceService:
     def _get_or_create_engine(self) -> AnnounceEngine:
         """获取或创建引擎实例（复用）。"""
         if self._engine is None:
-            adapters = [SamrGbAdapter(), SamrHbAdapter(), SamrDbAdapter()]
+            adapters = [SamrGbCrawler(), SamrHbCrawler(), SamrDbCrawler()]
             matcher = AnnouncementMatcher(self._file_index._db)
             self._engine = AnnounceEngine(adapters=adapters, matcher=matcher)
         return self._engine

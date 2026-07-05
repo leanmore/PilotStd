@@ -1,10 +1,10 @@
 # pilotstd/announcement/adapters/samr_gb.py
 # SAMR 国家标准公告适配器
 
-from ..base import BaseAnnounceAdapter
+from ..base import BaseAnnounceCrawler
 
 
-class SamrGbAdapter(BaseAnnounceAdapter):
+class SamrGbCrawler(BaseAnnounceCrawler):
     """SAMR 国家标准公告适配器。"""
 
     @property

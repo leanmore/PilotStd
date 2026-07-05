@@ -34,7 +34,7 @@ class AdapterFrozenError(Exception):
         super().__init__(f"{adapter_name} 冻结中，剩余 {remaining_seconds} 秒")
 
 
-class BaseAnnounceAdapter(ABC):
+class BaseAnnounceCrawler(ABC):
     """公告抓取适配器基类。每个站点/公告类型一个子类。"""
 
     def __init__(self, config: Any = None):

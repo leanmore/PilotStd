@@ -17,14 +17,14 @@ def _needs_backfill(db) -> bool:
 
 def _build_list_lookup() -> dict[tuple[str, str], dict]:
     """从 GB/HB/DB 三个列表 API 拉取全量数据，构建 (source_site, pid) → {title, std_count} 查找表。"""
-    from pilotstd.announcement.adapters.samr_db import SamrDbAdapter
-    from pilotstd.announcement.adapters.samr_gb import SamrGbAdapter
-    from pilotstd.announcement.adapters.samr_hb import SamrHbAdapter
+    from pilotstd.announcement.adapters.samr_db import SamrDbCrawler
+    from pilotstd.announcement.adapters.samr_gb import SamrGbCrawler
+    from pilotstd.announcement.adapters.samr_hb import SamrHbCrawler
 
     adapters = [
-        SamrGbAdapter(),
-        SamrHbAdapter(),
-        SamrDbAdapter(),
+        SamrGbCrawler(),
+        SamrHbCrawler(),
+        SamrDbCrawler(),
     ]
 
     lookup: dict[tuple[str, str], dict] = {}

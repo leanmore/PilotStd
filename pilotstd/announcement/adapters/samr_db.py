@@ -1,10 +1,10 @@
 # pilotstd/announcement/adapters/samr_db.py
 # SAMR 地方标准公告适配器（详情页使用 gnocDb 独立端点）
 
-from ..base import BaseAnnounceAdapter
+from ..base import BaseAnnounceCrawler
 
 
-class SamrDbAdapter(BaseAnnounceAdapter):
+class SamrDbCrawler(BaseAnnounceCrawler):
     """SAMR 地方标准公告适配器。"""
 
     @property
