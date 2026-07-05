@@ -98,12 +98,12 @@ class TestAnnounceStats(unittest.TestCase):
         self.client.app.dependency_overrides.clear()
 
     def test_stats_returns_200_with_expected_structure(self):
-        """统计接口返回正确的 JSON 结构，不含 updated/failed。"""
+        """统计接口返回正确的 JSON 结构。"""
         mock_mgr = MagicMock()
-        # fetchone 被多次调用：today_row, yest_row, matched_row
+        # fetchone 被多次调用：all_row, today_row, matched_row
         mock_mgr.db.fetchone.side_effect = [
+            {"total": 500, "gb": 300, "hb": 50, "db": 150},  # all_row (全量)
             {"total": 10, "gb": 5, "hb": 3, "db": 2},  # today_row
-            {"total": 8, "gb": 4, "hb": 3, "db": 1},  # yest_row
             {"cnt": 7},  # matched_row
         ]
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
@@ -115,17 +115,18 @@ class TestAnnounceStats(unittest.TestCase):
         self.assertIn("new", data)
         self.assertNotIn("updated", data)
         self.assertNotIn("failed", data)
-        self.assertEqual(data["total"]["gb"], 5)
+        self.assertEqual(data["total"]["all"], 500)  # 全量
+        self.assertEqual(data["total"]["gb"], 300)
         self.assertEqual(data["matched"], 7)
-        self.assertEqual(data["new"]["all"], 2)  # 10 - 8
+        self.assertEqual(data["new"]["all"], 10)  # 今日新增 = today_row.total
 
     def test_stats_cache_returns_same_data(self):
         """连续两次请求返回相同数据（5分钟内存缓存）。"""
         mock_mgr = MagicMock()
         mock_mgr.db.fetchone.side_effect = [
-            {"total": 10, "gb": 5, "hb": 3, "db": 2},
-            {"total": 8, "gb": 4, "hb": 3, "db": 1},
-            {"cnt": 7},
+            {"total": 500, "gb": 300, "hb": 50, "db": 150},  # all_row
+            {"total": 10, "gb": 5, "hb": 3, "db": 2},  # today_row
+            {"cnt": 7},  # matched_row
         ]
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r1 = self.client.get("/api/announce/stats")
