@@ -32,6 +32,7 @@ function mountConfig() {
       plugins: [PrimeVue],
       stubs: {
         Password: { template: '<input class="password-stub" />', props: ['modelValue', 'placeholder', 'toggleMask', 'feedback', 'size'] },
+        Calendar: true,
       },
     },
   })
