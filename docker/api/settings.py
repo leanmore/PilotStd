@@ -77,6 +77,8 @@ def get_settings(mgr=Depends(get_manager_dep)):
 def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
     """保存系统配置并更新定时任务调度。"""
     cfg = mgr.cfg
+    # 只读字段：GET 返回供前端展示，但不允许通过 PUT 回写 config
+    _READONLY_KEYS = {"storage.scan_paths"}
     mappings = {
         "storage": "storage",
         "organize": "organize",
@@ -94,6 +96,8 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
             for k, v in data[cat].items():
                 # 跳过掩码后的密钥值（"***" = 保持不变）
                 if v == "***":
+                    continue
+                if f"{cfg_prefix}.{k}" in _READONLY_KEYS:
                     continue
                 cfg.set(f"{cfg_prefix}.{k}", v)
     # 同步定时任务 cron 配置到调度器
@@ -129,3 +133,17 @@ def refresh_token(user: str = Depends(require_admin)):
     now_iso = datetime.now(timezone.utc).isoformat()
     logger.info("静态令牌已刷新")
     return {"token": new_token, "refreshed_at": now_iso}
+
+
+# ── 配置 Schema（单一数据源）─────────────────────────────────────
+
+
+@router.get("/api/settings/schema")
+def get_schema():
+    """返回配置 Schema——按 Tab 分组的完整字段定义。
+
+    前端可据此动态渲染表单，无需手写每个 Tab 组件。
+    """
+    from pilotstd.core.config.settings_schema import get_schema_by_tab
+
+    return {"tabs": get_schema_by_tab()}

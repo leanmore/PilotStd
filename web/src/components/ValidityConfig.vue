@@ -14,7 +14,7 @@ import { getItem, setItem } from '@/lib/storage'
 
 const config = ref<ValidityConfig>({
   frequency: 'weekly', execute_time: '03:00', batch_size: 50,
-  batch_interval: 5, check_ratio: 25, update_interval: 28,
+  batch_interval: 5, check_ratio: 25, total_weeks: 4,
 })
 const loading = ref(false)
 const saving = ref(false)
@@ -31,7 +31,14 @@ const freqOptions = [
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
-  try { config.value = await getValidityConfig() }
+  try {
+    const raw = await getValidityConfig()
+    config.value = { ...config.value, ...raw }
+    // 兼容旧后端：可能只返回 update_interval（天），无 total_weeks
+    if (!config.value.total_weeks && (raw as any).update_interval) {
+      config.value.total_weeks = Math.max(4, Math.round((raw as any).update_interval / 7))
+    }
+  }
   catch (e: any) { errMsg.value = e.response?.data?.error || '加载配置失败' }
   finally { loading.value = false }
 }
@@ -150,8 +157,8 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
         <InputNumber v-model="config.check_ratio" :min="1" :max="100" show-buttons />
       </div>
       <div class="field">
-        <label>状态更新间隔（天）</label>
-        <InputNumber v-model="config.update_interval" :min="1" show-buttons />
+        <label>状态更新间隔（周）</label>
+        <InputNumber v-model="config.total_weeks" :min="4" :max="52" show-buttons />
       </div>
     </div>
     <div class="actions-row">

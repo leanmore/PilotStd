@@ -7,7 +7,8 @@ export interface ValidityConfig {
   batch_size: number
   batch_interval: number
   check_ratio: number
-  update_interval: number
+  /** 状态更新间隔（周），每条标准检查后的冷却期 */
+  total_weeks: number
 }
 
 export interface ValidityRunResult {

@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.notification import NotificationManager, NotificationMessage
+from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
 from ..auth import require_admin
 from ..manager import get_manager_dep
@@ -58,16 +59,7 @@ def get_config(mgr=Depends(get_manager_dep)):
                 "secret": mask(cfg.get("notification.channels.dingtalk.secret", "")),
             },
         },
-        "rules": {
-            ev: cfg.get(f"notification.rules.{ev}", [])
-            for ev in (
-                "archive_complete",
-                "standard_status_changed",
-                "standard_expired",
-                "standard_first_registered",
-                "check_batch_complete",
-            )
-        },
+        "rules": {ev: cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
     }
 
 

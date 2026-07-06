@@ -11,6 +11,9 @@ export const putSettings = (data: Partial<Settings>): Promise<Settings> =>
 export const getStats = (): Promise<StatusStats> =>
   http.get('/stats').then(r => r.data)
 
+export const getSettingsSchema = (): Promise<{ tabs: Record<string, any[]> }> =>
+  http.get('/settings/schema').then(r => r.data)
+
 export const getToken = (): Promise<{ token: string }> =>
   http.get('/settings/token').then(r => r.data)
 

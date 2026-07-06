@@ -29,7 +29,7 @@ describe('ValidityConfig', () => {
     vi.clearAllMocks()
     getValidityConfigMock.mockResolvedValue({
       frequency: 'weekly', execute_time: '03:00', batch_size: 50,
-      batch_interval: 5, check_ratio: 25, update_interval: 28,
+      batch_interval: 5, check_ratio: 25, total_weeks: 4,
     })
     getValidityHistoryMock.mockResolvedValue({
       total: 1, page: 1, page_size: 20,

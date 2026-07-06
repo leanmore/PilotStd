@@ -75,9 +75,12 @@ FACTORY_DEFAULTS = {
     # 通知日志清理
     "notification.log_retention_days": 30,
     "notification.log_cleanup_interval_hours": 24,
-    # 服务端聚合（秒级，防DB爆炸）
-    "notification.aggregate_window_seconds": 30,
+    # 服务端聚合（同类消息合并，防通知刷屏）
+    "notification.aggregate_enabled": True,
+    "notification.aggregate_window_seconds": 5,
     "notification.aggregate_max_events": 50,
+    # aggregate_bypass_events 默认值由 events.BYPASS_EVENTS 派生，
+    # 此处留空由 manager 层在读取时做回退，用户可通过 config.json 覆盖
     # 静音时段
     "notification.quiet_hours_enabled": False,
     "notification.quiet_hours_start": "22:00",

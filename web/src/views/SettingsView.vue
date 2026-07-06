@@ -9,19 +9,16 @@ import { ref, onMounted, watch, provide, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
-import { getSettings, putSettings, uploadFile } from '@/api'
+import { getSettings, putSettings, getSettingsSchema, uploadFile } from '@/api'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 
-// ── Tab 子组件 ──
-import SettingsTabStorage from './settings/SettingsTabStorage.vue'
-import SettingsTabNetwork from './settings/SettingsTabNetwork.vue'
-import SettingsTabQuery from './settings/SettingsTabQuery.vue'
-import SettingsTabScan from './settings/SettingsTabScan.vue'
-import SettingsTabUI from './settings/SettingsTabUI.vue'
-import SettingsTabOCR from './settings/SettingsTabOCR.vue'
+// ── Tab 子组件（Schema 驱动 + 特殊混合布局）──
+import SettingsTabSchema from '@/components/SettingsTabSchema.vue'
+import SettingsTabAppearanceMixed from '@/components/SettingsTabAppearanceMixed.vue'
+// 非 Schema Tab（独立 API）
 import SettingsTabSites from './settings/SettingsTabSites.vue'
 import SettingsTabUsers from './settings/SettingsTabUsers.vue'
 import SettingsTabToken from './settings/SettingsTabToken.vue'
@@ -42,18 +39,17 @@ const store = useAppStore()
 const cfg = ref<Record<string, any>>({})
 const saved = ref(false)
 const cfgErr = ref('')
+// Schema 映射表：key → SchemaField + tabs 分组，供 DynamicSettingField 注入
+const schemaMap = ref<Record<string, any>>({})
+const schemaTabs = ref<Record<string, any[]>>({})
 
+/** 按点号路径读取嵌套配置值 */
 /** 按点号路径读取嵌套配置值 */
 function getp(path: string, def: any = ''): any {
   const parts = path.split('.')
   let v: any = cfg.value
   for (const p of parts) { if (!v) return def; v = v[p] }
   return v ?? def
-}
-
-/** 将数组转为逗号分隔字符串（用于表单输入框显示） */
-function arrstr(v: any): string {
-  return Array.isArray(v) ? v.join(', ') : (typeof v === 'string' ? v : '')
 }
 
 /** 按点号路径写入嵌套配置值（会就地修改 cfg.value） */
@@ -68,7 +64,19 @@ function setp(path: string, val: any) {
 }
 
 async function loadCfg() {
-  try { const r = await getSettings(); cfg.value = r; cfgErr.value = '' }
+  try {
+    const [settings, schema] = await Promise.all([getSettings(), getSettingsSchema()])
+    cfg.value = settings; cfgErr.value = ''
+    // 构建 key → field 映射表 + tabs 分组
+    const map: Record<string, any> = {}
+    const tabs: Record<string, any[]> = {}
+    for (const [tabName, fields] of Object.entries(schema.tabs)) {
+      tabs[tabName] = fields as any[]
+      for (const f of fields as any[]) { map[f.key] = f }
+    }
+    schemaMap.value = map
+    schemaTabs.value = tabs
+  }
   catch { cfgErr.value = '加载设置失败' }
 }
 
@@ -85,7 +93,9 @@ async function saveCfg() {
 // 提供给子组件注入
 provide('settingsGetp', getp)
 provide('settingsSetp', setp)
-provide('settingsArrstr', arrstr)
+provide('settingsSchema', schemaMap)
+provide('settingsSchemaTabs', schemaTabs)
+provide('settingsConfig', cfg)
 
 // ═══════════════════════════════════════════
 // 上传背景图（UI Tab 回调）
@@ -146,14 +156,15 @@ const tabs = [
   { key: 'system', label: '系统' },
 ]
 
-  // Dynamic component mapping based on activeTab
+  // Schema 驱动 Tab → 通用 SettingsTabSchema 组件
+  // 非 Schema Tab → 各自独立组件
   const tabComponentMap: Record<string, any> = {
-    storage: SettingsTabStorage,
-    network: SettingsTabNetwork,
-    query: SettingsTabQuery,
-    scan: SettingsTabScan,
-    ui: SettingsTabUI,
-    ocr: SettingsTabOCR,
+    storage: SettingsTabSchema,
+    network: SettingsTabSchema,
+    query: SettingsTabSchema,
+    scan: SettingsTabSchema,
+    ocr: SettingsTabSchema,
+    ui: SettingsTabAppearanceMixed,
     sites: SettingsTabSites,
     users: SettingsTabUsers,
     token: SettingsTabToken,
@@ -164,9 +175,14 @@ const tabs = [
   }
   const currentTabComponent = computed(() => tabComponentMap[activeTab.value] || null)
 
-  // Dynamic props based on active tab
+  // Schema Tab 通用 props（tabKey） + 界面 Tab 特殊 props
   const tabProps = computed(() => {
-    switch (activeTab.value) {
+    const key = activeTab.value
+    // Schema 驱动的 Tab：传递 tabKey
+    if (['storage', 'network', 'query', 'scan', 'ocr'].includes(key)) {
+      return { tabKey: key }
+    }
+    switch (key) {
       case 'ui':
         return { selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
       case 'sites':
@@ -185,22 +201,6 @@ watch(activeTab, (newTab) => {
 // ═══════════════════════════════════════════
 // 底部操作栏："应用"按钮
 // ═══════════════════════════════════════════
-const tabConfigKeys: Record<string, string[]> = {
-  storage: ['storage', 'organize', 'file'],
-  network: ['network'],
-  query: ['query'],
-  scan: ['scan'],
-  ui: ['appearance', 'tasks'],
-  ocr: ['ocr'],
-  sites: ['sites'],
-  system: [],
-  circuit: [],
-  notification: [],
-  validity: [],
-  users: [],
-  token: [],
-}
-
 const applyLoading = ref(false)
 
 // 子组件引用（供"应用"按钮触发独立 API Tab 的保存）
@@ -210,10 +210,13 @@ const applyLoading = ref(false)
 	}
 
 function extractTabConfig(tabKey: string): Record<string, any> {
-  const keys = tabConfigKeys[tabKey] || []
+  // 从 Schema 中获取该 Tab 的所有配置键的顶层分组
+  const fields = schemaTabs.value[tabKey]
+  if (!fields || fields.length === 0) return {}
+  const categories = new Set(fields.map((f: any) => f.key.split('.')[0]))
   const result: Record<string, any> = {}
-  for (const k of keys) {
-    if (cfg.value[k] !== undefined) result[k] = cfg.value[k]
+  for (const cat of categories) {
+    if (cfg.value[cat] !== undefined) result[cat] = cfg.value[cat]
   }
   return result
 }

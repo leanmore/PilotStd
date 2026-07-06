@@ -142,11 +142,11 @@ class ProviderCooling:
 
 
 def _split_pdf_pages(pdf_bytes: bytes) -> list[bytes]:
-    """PyPDF2 拆 PDF 为单页 bytes 列表。失败降级为 [pdf_bytes]。"""
+    """pypdf 拆 PDF 为单页 bytes 列表。失败降级为 [pdf_bytes]。"""
     try:
         from io import BytesIO
 
-        from PyPDF2 import PdfReader, PdfWriter
+        from pypdf import PdfReader, PdfWriter
 
         reader = PdfReader(BytesIO(pdf_bytes))
         total = len(reader.pages)
@@ -161,7 +161,7 @@ def _split_pdf_pages(pdf_bytes: bytes) -> list[bytes]:
             pages.append(buf.getvalue())
         return pages
     except Exception:
-        logger.warning("PyPDF2 拆页失败，降级为整文件处理")
+        logger.warning("pypdf 拆页失败，降级为整文件处理")
         return [pdf_bytes]
 
 
@@ -170,7 +170,7 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
     try:
         from io import BytesIO
 
-        from PyPDF2 import PdfReader
+        from pypdf import PdfReader
 
         return len(PdfReader(BytesIO(pdf_bytes)).pages)
     except Exception:
@@ -255,7 +255,7 @@ class OcrSlot:
                 logger.info("[OCR] %s %s 第%d/%d页 成功", self.name, label, i + 1, total)
                 if i == 0 and result.pdf_pages > 0 and result.pdf_pages != total:
                     logger.warning(
-                        "[OCR] %s API返回页数=%d ≠ PyPDF2=%d，以PyPDF2为准",
+                        "[OCR] %s API返回页数=%d ≠ pypdf=%d，以pypdf为准",
                         self.name,
                         result.pdf_pages,
                         total,

@@ -33,6 +33,9 @@ class MessageBuildersMixin:
             event_type="archive_complete",
             link=_make_link(data.get("standard_number")),
             icon="pi pi-folder-open",
+            status=data.get("status", ""),
+            target_id=data.get("target_id", ""),
+            elapsed_ms=data.get("elapsed_ms", 0),
         )
 
     def _build_standard_status_changed_message(self, data: dict) -> NotificationMessage:

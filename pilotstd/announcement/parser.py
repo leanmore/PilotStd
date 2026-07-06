@@ -57,8 +57,8 @@ def parse_wps_text(raw_bytes: bytes) -> str:
 
 
 def _parse_pdf_text(raw_bytes: bytes) -> str:
-    """从 PDF 原始字节中提取纯文本（使用 PyPDF2）。"""
-    from PyPDF2 import PdfReader
+    """从 PDF 原始字节中提取纯文本（使用 pypdf）。"""
+    from pypdf import PdfReader
 
     try:
         reader = PdfReader(BytesIO(raw_bytes))
@@ -115,10 +115,13 @@ def parse_announcement_meta(html: str) -> dict[str, str]:
     if title_tag:
         meta["title"] = title_tag.get_text(strip=True)
 
-    # 公告发布日期：正文中最后一个 YYYY-MM-DD 格式的日期即为落款日期
+    # 公告发布日期：排除表格内文本（实施日期在表格中），从正文区域取最后一个日期
+    for table in soup.find_all("table"):
+        table.decompose()
     text = soup.get_text()
     dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
     if dates:
+        # 最后一个日期为落款日期（表格已排除，正文末尾是发布/批准日期）
         meta["publish_date"] = dates[-1]
 
     return meta
@@ -356,7 +359,7 @@ def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
     try:
         from io import BytesIO
 
-        from PyPDF2 import PdfReader
+        from pypdf import PdfReader
 
         reader = PdfReader(BytesIO(pdf_bytes))
         total_pages = len(reader.pages)
@@ -392,7 +395,7 @@ def parse_announcement_detail(
 
     三层回退：
       1. HTML 表格解析（覆盖 ~99.5% 公告）
-      2. 附件解析：.wps/.docx 本地、.pdf 先 PyPDF2 再 OCR
+      2. 附件解析：.wps/.docx 本地、.pdf 先 pypdf 再 OCR
       3. HTML + 附件交叉去重合并
 
     Args:

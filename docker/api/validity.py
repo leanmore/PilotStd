@@ -39,7 +39,7 @@ def get_validity_config(mgr=Depends(get_manager_dep)):
         # 已废弃字段（兼容旧前端）
         "frequency": cfg.get("validity.frequency") or "weekly",
         "execute_time": cfg.get("validity.execute_time") or "03:00",
-        "update_interval": cfg.get("validity.update_interval") or 28,
+        "update_interval": (cfg.get("validity.total_weeks") or _DEFAULT_CONFIG["total_weeks"]) * 7,
     }
 
 
@@ -58,6 +58,11 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
             errors.append("first_execution 格式必须为 ISO datetime（如 2026-07-01T03:00:00）")
 
     total_weeks = body.get("total_weeks")
+    # 兼容旧前端：如果发的是 update_interval（天数），转换为 total_weeks（周数）
+    if total_weeks is None:
+        raw_interval = body.get("update_interval")
+        if raw_interval is not None and isinstance(raw_interval, (int, float)):
+            total_weeks = max(1, int(raw_interval) // 7)
     if total_weeks is not None and (not isinstance(total_weeks, int) or total_weeks < 4 or total_weeks > 52):
         errors.append("total_weeks 必须为 4-52 之间的整数")
 

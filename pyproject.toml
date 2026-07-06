@@ -17,7 +17,7 @@ explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
-    "PyPDF2",
+    "pypdf",
     "docx",
     "cryptography.fernet",
     "PyQt6.QtWidgets",

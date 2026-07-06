@@ -56,7 +56,7 @@ def test_counters_monthly_reset():
 def test_split_pdf_pages():
     from io import BytesIO
 
-    from PyPDF2 import PdfWriter
+    from pypdf import PdfWriter
 
     w = PdfWriter()
     for _ in range(3):

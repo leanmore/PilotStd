@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from ..db import Database
 from ._message_builders import MessageBuildersMixin
@@ -41,14 +41,23 @@ class NotificationManager(MessageBuildersMixin):
         self._init_event_builders()
         if self._enabled:
             self._init_channels()
-        # 服务端聚合开关
-        self._aggregate_enabled = config.get("notification.aggregate_window_seconds", 0) > 0
+        # 消息聚合器（线程安全，同类事件合并为一条发送）
+        self.aggregator: Optional[Any] = None
+        self._aggregate_enabled = config.get("notification.aggregate_enabled", False)
         if self._aggregate_enabled:
-            from .aggregate_buffer import AggregateBuffer
+            from .aggregate_buffer import NotificationAggregator
+            from .events import BYPASS_EVENTS
 
-            window = float(config.get("notification.aggregate_window_seconds", 30))
+            window = float(config.get("notification.aggregate_window_seconds", 5))
             max_events = int(config.get("notification.aggregate_max_events", 50))
-            self.buffer = AggregateBuffer(window, max_events, self._do_send_merged)
+            bypass_raw = config.get("notification.aggregate_bypass_events")
+            bypass_events = set(bypass_raw) if bypass_raw is not None else set(BYPASS_EVENTS)
+            self.aggregator = NotificationAggregator(
+                self._send_now,
+                window_seconds=window,
+                batch_size=max_events,
+                bypass_events=bypass_events,
+            )
 
     def _init_channels(self) -> None:
         for name, cls in _CHANNEL_CLASSES.items():
@@ -56,8 +65,8 @@ class NotificationManager(MessageBuildersMixin):
                 if not self._cfg.get(f"notification.channels.{name}.enabled", False):
                     continue
                 if name == "telegram":
-                    token = self._cfg.get("notification.channels.telegram.bot_token", "")
-                    chat_id = self._cfg.get("notification.channels.telegram.chat_id", "")
+                    token = self._cfg.get("notification.channels.telegram.bot_token", "").strip()
+                    chat_id = self._cfg.get("notification.channels.telegram.chat_id", "").strip()
                     if token and chat_id:
                         self._channels[name] = cls(token, chat_id)
                 else:
@@ -75,7 +84,7 @@ class NotificationManager(MessageBuildersMixin):
     # ── 发送事件 ──────────────────────────────────────────────
 
     def send_event(self, event_type: str, event_data: dict[str, Any]) -> None:
-        """根据 rules 映射分发通知到各渠道。"""
+        """根据 rules 映射分发通知到各渠道（经过聚合器缓冲）。"""
         if not self._enabled:
             return
         rules = self._cfg.get(f"notification.rules.{event_type}")
@@ -87,25 +96,17 @@ class NotificationManager(MessageBuildersMixin):
             target_channels = rules
 
         msg = self._build_message(event_type, event_data)
-        if self._aggregate_enabled:
-            # 聚合模式：事件进入缓冲，由 AggregateBuffer 定时合并后回调 _do_send_merged
-            import asyncio
-
-            try:
-                asyncio.create_task(self.buffer.add_event(event_type, msg))
-            except RuntimeError:
-                # 不在 async 上下文中（如 CLI 直接调用），降级为直发
-                self._do_send(msg, target_channels)
-        else:
-            self._do_send(msg, target_channels)
+        self._do_send(msg, target_channels)
 
     def _do_send(self, msg: NotificationMessage, target_channels: list[str]) -> None:
-        """逐渠道发送 + 写日志 + WS 广播（单条或聚合后调用）。"""
-        # 静音时段检查：暂存后补发
+        """逐渠道发送：静音期暂存 → 聚合器入队 → 合并后发送。"""
         if self._is_quiet_hours():
             self._enqueue_notification(msg, target_channels)
             return
-        self._send_now(msg, target_channels)
+        if self.aggregator is not None:
+            self.aggregator.enqueue(msg, target_channels, target_id=msg.target_id)
+        else:
+            self._send_now(msg, target_channels)
 
     def _send_now(self, msg: NotificationMessage, target_channels: list[str]) -> None:
         """实际执行发送（写日志 + 渠道推送 + WS 广播）。"""
@@ -195,16 +196,10 @@ class NotificationManager(MessageBuildersMixin):
                 )
         return len(rows)
 
-    def _do_send_merged(self, msg: NotificationMessage) -> None:
-        """聚合后回调：提取渠道并转发到 _do_send。"""
-        rules = self._cfg.get(f"notification.rules.{msg.event_type}")
-        if not rules:
-            return
-        if isinstance(rules, str):
-            target_channels = [c.strip() for c in rules.split(",") if c.strip()]
-        else:
-            target_channels = rules
-        self._do_send(msg, target_channels)
+    def shutdown(self) -> None:
+        """优雅关闭：刷新聚合器中所有缓冲消息（防止丢失）。"""
+        if self.aggregator is not None:
+            self.aggregator.shutdown()
 
     def _init_event_builders(self) -> None:
         """初始化事件构建器映射表"""
@@ -374,8 +369,12 @@ class NotificationManager(MessageBuildersMixin):
                 return {"ok": False, "error": f"未知渠道: {channel}"}
             try:
                 if channel == "telegram":
-                    token = override.get("bot_token") or self._cfg.get("notification.channels.telegram.bot_token", "")
-                    chat_id = override.get("chat_id") or self._cfg.get("notification.channels.telegram.chat_id", "")
+                    token = (
+                        override.get("bot_token") or self._cfg.get("notification.channels.telegram.bot_token", "")
+                    ).strip()
+                    chat_id = (
+                        override.get("chat_id") or self._cfg.get("notification.channels.telegram.chat_id", "")
+                    ).strip()
                     if not token:
                         return {"ok": False, "error": "缺少 bot_token"}
                     if not chat_id:

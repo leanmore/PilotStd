@@ -231,8 +231,8 @@ async def lifespan(app: FastAPI):
 
     yield
     # 优雅关闭：刷新聚合缓冲（防止通知丢失）
-    if hasattr(_cron_mgr.notification_mgr, "buffer"):
-        _cron_mgr.notification_mgr.buffer.force_flush_all()
+    if hasattr(_cron_mgr.notification_mgr, "shutdown"):
+        _cron_mgr.notification_mgr.shutdown()
     # 关闭时释放资源
     _shutdown_cleanup(_cron_mgr)
 

@@ -147,7 +147,13 @@ def get_announce_results(
         query += " AND publish_date <= ?"
         params.append(to_date)
 
-    query += " ORDER BY publish_date DESC, fetched_at DESC LIMIT 100"
+    query += (
+        " ORDER BY"
+        " CAST(substr(announce_no, 1, 4) AS INTEGER) DESC,"
+        " CAST(substr(announce_no, instr(announce_no, '第')+1,"
+        " instr(announce_no, '号')-instr(announce_no, '第')-1) AS INTEGER) DESC,"
+        " publish_date DESC LIMIT 100"
+    )
 
     rows = db.fetchall(query, params)
 

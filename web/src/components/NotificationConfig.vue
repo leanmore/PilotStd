@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationConfig' })
 // NotificationConfig.vue v2 — 四渠道全参数通知配置
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -10,7 +10,6 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
-import Divider from 'primevue/divider'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
   type WechatChannelConfig, type TelegramChannelConfig,
@@ -74,6 +73,21 @@ const channelOpen = ref<Record<string, boolean>>({
   feishu: false,
   dingtalk: false,
 })
+
+// ── 页面内通知卡片折叠状态（localStorage 持久化） ──
+const TOAST_CARD_STORAGE_KEY = 'notification_toast_card_expanded'
+const toastCardExpanded = ref(
+  localStorage.getItem(TOAST_CARD_STORAGE_KEY) !== 'false' ? false : false
+)
+// 初始默认折叠；若用户上次展开过，则恢复
+try {
+  const saved = localStorage.getItem(TOAST_CARD_STORAGE_KEY)
+  if (saved === 'true') toastCardExpanded.value = true
+} catch { /* localStorage 不可用，保持默认折叠 */ }
+
+function saveToastCardPref() {
+  try { localStorage.setItem(TOAST_CARD_STORAGE_KEY, String(toastCardExpanded.value)) } catch { /* ignore */ }
+}
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
@@ -180,14 +194,21 @@ function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
   return c.webhook_url ? 'success' : 'secondary'
 }
 
+// ── Toast 页面内通知配置（通过 useUserPreferences 持久化） ──
+const { toastConfig: toastPrefs, quietHours: quietPrefs, autoPause: autoPausePrefs } = useUserPreferences()
+
 onMounted(() => {
   loadConfig()
   loadToastFromPrefs()
   loadQuietHoursFromPrefs()
+  pauseTimer = setInterval(() => {
+    pauseState.value = aggregator.getPauseState()
+  }, 1000)
 })
 
-// ── Toast 页面内通知配置（通过 useUserPreferences 持久化） ──
-const { toastConfig: toastPrefs, quietHours: quietPrefs, autoPause: autoPausePrefs } = useUserPreferences()
+onUnmounted(() => {
+  if (pauseTimer) clearInterval(pauseTimer)
+})
 
 const toastConfig = ref({
   enabled: toastPrefs.value.enabled,
@@ -240,13 +261,7 @@ function resumeNotifications() {
 
 // 每秒更新暂停倒计时
 let pauseTimer: ReturnType<typeof setInterval> | null = null
-onMounted(() => {
-  pauseTimer = setInterval(() => {
-    pauseState.value = aggregator.getPauseState()
-  }, 1000)
-  loadQuietHoursFromPrefs()
-})
-import { onUnmounted } from 'vue'
+
 onUnmounted(() => {
   if (pauseTimer) clearInterval(pauseTimer)
 })
@@ -371,7 +386,21 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <Divider>页面内通知</Divider>
+    <!-- 页面内通知（可折叠卡片） -->
+    <div class="collapsible-card" style="margin-top:16px">
+      <div class="collapsible-header" @click="toastCardExpanded = !toastCardExpanded; saveToastCardPref()">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="pi pi-bell" style="font-size:16px;color:var(--primary)" />
+          <span class="collapsible-title">页面内通知</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <Tag :severity="toastConfig.enabled ? 'success' : 'secondary'" :value="toastConfig.enabled ? '已启用' : '未启用'" />
+          <i :class="toastCardExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+        </div>
+      </div>
+      <transition name="collapsible">
+        <div v-show="toastCardExpanded" class="collapsible-content">
+
     <div class="toast-config">
       <div class="config-row">
         <label>启用弹出通知</label>
@@ -414,6 +443,10 @@ onUnmounted(() => {
       <span><i class="pi pi-clock" style="margin-right:6px" />通知已暂停，剩余 {{ pauseState.remainingSeconds }} 秒</span>
       <Button label="立即恢复" size="small" severity="info" @click="resumeNotifications" />
     </div>
+
+        </div>
+      </transition>
+    </div>
   </div>
 </template>
 
@@ -426,7 +459,6 @@ onUnmounted(() => {
   box-shadow: var(--shadow-xs); overflow: hidden; transition: all var(--transition);
 }
 .collapsible-card:hover { box-shadow: var(--shadow-sm); }
-
 .collapsible-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px; cursor: pointer; user-select: none;
@@ -442,9 +474,7 @@ onUnmounted(() => {
   padding: 2px; border-radius: var(--radius-sm);
 }
 .collapsible-header:hover .collapsible-icon { color: var(--primary); background: var(--primary-bg); }
-
 .collapsible-content { padding: 16px 18px; }
-
 .collapsible-enter-active,
 .collapsible-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 .collapsible-enter-from,
@@ -462,7 +492,6 @@ onUnmounted(() => {
 .events-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; display: block; }
 .checkbox-field { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; margin-top: 4px; }
 .checkbox-field label { font-size: 12px; color: var(--text); }
-
 .events-check-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 4px 8px; margin-top: 6px;

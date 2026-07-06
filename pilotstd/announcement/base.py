@@ -380,12 +380,17 @@ class BaseAnnounceCrawler(ABC):
                 ann.get("code", ""),
                 len(parsed),
             )
+        notice_date = ann.get("notice_date", "")
         for item in parsed:
             item.setdefault("announcement_title", ann.get("title", ann.get("code", "")))
             item["_pid"] = ann.get("pid", "")
             item["announce_no"] = ann.get("code", "")
             raw_std_count = ann.get("std_count", "")
             item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
+            # 列表API的NOTICE_DATE是权威发布日期，优先于页面解析结果
+            if notice_date and not item.get("publish_date"):
+                item["publish_date"] = notice_date
+            item["notice_date"] = notice_date
         _bump(ann.get("code", "?")[:20])
         return parsed
 
