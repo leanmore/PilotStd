@@ -201,6 +201,9 @@ class MainWindow(
         self._start_auto_pipeline(source_dir)
 
     def _stop_workers(self) -> None:
+        # 先解除暂停，防止 Worker 卡在 _pause_event.wait() 中无法退出
+        if hasattr(self, "_pause_event"):
+            self._pause_event.set()
         for attr in (
             "_query_worker",
             "_download_worker",
@@ -215,7 +218,9 @@ class MainWindow(
                 if w is not None and w.isRunning():
                     w.stop()
                     w.quit()
-                    w.wait(5000)
+                    if not w.wait(5000):
+                        w.terminate()
+                        w.wait()
             except RuntimeError:
                 pass
 
