@@ -3,10 +3,16 @@
 
 import argparse
 import faulthandler
+import io
 import os
 import sys
 
 from dotenv import load_dotenv
+
+# PyInstaller --noconsole 模式下 sys.stderr/stdout 为 None，后续 print(..., file=sys.stderr) 会崩溃
+if getattr(sys, "frozen", False) and sys.stderr is None:
+    sys.stderr = io.StringIO()
+    sys.stdout = io.StringIO()
 
 faulthandler.enable()
 
