@@ -28,12 +28,13 @@ const props = defineProps<{
 }>()
 
 // 从父组件注入
-const schemaMap = inject<Record<string, any>>('settingsSchema', {})
+const schemaMapRaw = inject<any>('settingsSchema', {})
+const schemaMap = computed<Record<string, any>>(() => unref(schemaMapRaw))
 const cfg = inject<Record<string, any>>('settingsConfig', {})
 
 /** 从注入的 schemaMap 中查找字段定义 */
 const resolved = computed<SchemaField>(() => {
-  const found = schemaMap[props.fieldKey]
+  const found = schemaMap.value[props.fieldKey]
   if (found) return found as SchemaField
   return { key: props.fieldKey, tab: '', field_type: 'input', default: '' }
 })

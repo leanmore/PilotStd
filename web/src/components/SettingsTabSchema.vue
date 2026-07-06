@@ -1,12 +1,8 @@
 <script setup lang="ts">
 /**
  * SettingsTabSchema.vue — Schema 驱动的通用设置 Tab 渲染器。
- *
- * 用法：<SettingsTabSchema tab-key="storage" />
- *
- * 从注入的 settingsSchema 中获取该 Tab 的所有字段元数据，
- * 遍历渲染 DynamicSettingField。
  */
+import { inject, computed, unref } from 'vue'
 import DynamicSettingField from '@/components/DynamicSettingField.vue'
 
 defineOptions({ name: 'SettingsTabSchema' })
@@ -16,10 +12,9 @@ const props = defineProps<{
 }>()
 
 // 从父组件注入的 Schema 映射表：tab → fields[]
-import { inject } from 'vue'
-const schemaTabs = inject<Record<string, any[]>>('settingsSchemaTabs', {})
+const schemaTabsRaw = inject<any>('settingsSchemaTabs', {})
+const schemaTabs = computed<Record<string, any[]>>(() => unref(schemaTabsRaw))
 
-import { computed } from 'vue'
 const LABELS: Record<string, string> = {
   storage: '存储设置',
   network: '网络设置',
@@ -28,7 +23,7 @@ const LABELS: Record<string, string> = {
   ocr: 'OCR 设置',
 }
 
-const fields = computed(() => schemaTabs[props.tabKey] || [])
+const fields = computed(() => schemaTabs.value[props.tabKey] || [])
 const headerLabel = computed(() => LABELS[props.tabKey] || props.tabKey)
 </script>
 
