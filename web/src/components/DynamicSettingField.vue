@@ -9,8 +9,20 @@
  * 从注入的 settingsConfig 中读写值，自动处理嵌套路径。
  */
 import { computed, inject, unref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'DynamicSettingField' })
+
+const { t } = useI18n()
+
+const i18nKey = computed(() => `settings.${resolved.value.key}`)
+const label = computed(() => {
+  const translated = t(i18nKey.value)
+  // 如果翻译缺失（返回 key 本身），回退到 key 名格式化
+  return translated !== i18nKey.value
+    ? translated
+    : (resolved.value.key.split('.').pop() || '').replace(/_/g, ' ')
+})
 
 export interface SchemaField {
   key: string
@@ -103,7 +115,7 @@ function numberVal(): number {
 <template>
   <div class="setting-field">
     <label class="field-label">
-      {{ resolved.key.split('.').pop()?.replace(/_/g, ' ') }}
+      {{ label }}
       <span v-if="resolved.required" class="required">*</span>
     </label>
 
