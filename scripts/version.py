@@ -37,7 +37,9 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
 if __name__ == "__main__":
     # 1. 获取 commit 信息
     msgs_str = os.environ.get("COMMIT_MSGS", "")
-    commit_msgs = [msg.strip() for msg in msgs_str.split("\n") if msg.strip()]
+    # CI 用 | 分隔（GitHub output 不支持多行），本地用换行
+    separator = "|" if "|" in msgs_str else "\n"
+    commit_msgs = [msg.strip() for msg in msgs_str.split(separator) if msg.strip()]
 
     # 2. 获取基准版本并计算
     current = get_base_version()
