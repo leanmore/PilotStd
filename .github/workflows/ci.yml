@@ -378,7 +378,7 @@ jobs:
         shell: cmd
 
       - name: Build exe with PyInstaller
-        run: pyinstaller desktop/PilotStd.spec --noconfirm
+        run: pyinstaller desktop/PilotStd.spec --noconfirm --clean
 
       - name: Upload exe to Release
         if: needs.version.outputs.bumped == 'true'
