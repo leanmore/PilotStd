@@ -387,8 +387,10 @@ class BaseAnnounceCrawler(ABC):
             item["announce_no"] = ann.get("code", "")
             raw_std_count = ann.get("std_count", "")
             item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
-            # 列表API的NOTICE_DATE是权威发布日期，优先于页面解析结果
-            if notice_date and not item.get("publish_date"):
+            # 列表API的NOTICE_DATE是公告权威发布日期，覆盖所有条目
+            # HTML表格和附件解析可能产生不同的publish_date（甚至为空），
+            # 不一致会导致SELECT DISTINCT返回重复行
+            if notice_date:
                 item["publish_date"] = notice_date
             item["notice_date"] = notice_date
         _bump(ann.get("code", "?")[:20])

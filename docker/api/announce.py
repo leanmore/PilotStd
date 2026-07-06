@@ -124,30 +124,36 @@ def get_announce_results(
     to_date: str = "",
     mgr=Depends(get_manager_dep),
 ):
-    """获取最新公告列表。直接从 announcement_record 表查询。
-    可选 source_site 过滤（announcement_gb/hb/db），不传则查全量。
-    按 publish_date DESC 排序，返回最近 100 条。
-    """
+    """获取最新公告列表。ROW_NUMBER 窗口去重——同公告号优先保留有日期、最近抓取的行。"""
     db = mgr.db
-    query = (
-        "SELECT DISTINCT announce_no, announcement_title, standard_count,"
-        " publish_date, fetched_at, source_site"
+    inner = (
+        "SELECT announce_no, announcement_title, standard_count,"
+        " publish_date, fetched_at, source_site,"
+        " ROW_NUMBER() OVER ("
+        "   PARTITION BY announce_no"
+        "   ORDER BY"
+        "     CASE WHEN publish_date IS NOT NULL AND publish_date != '' THEN 0 ELSE 1 END,"
+        "     fetched_at DESC"
+        " ) AS rn"
         " FROM announcement_record"
         " WHERE announce_no IS NOT NULL AND announce_no != ''"
     )
     params: list = []
 
     if source_site:
-        query += " AND source_site = ?"
+        inner += " AND source_site = ?"
         params.append(source_site)
     if from_date:
-        query += " AND publish_date >= ?"
+        inner += " AND publish_date >= ?"
         params.append(from_date)
     if to_date:
-        query += " AND publish_date <= ?"
+        inner += " AND publish_date <= ?"
         params.append(to_date)
 
-    query += (
+    query = (
+        f"SELECT announce_no, announcement_title, standard_count,"
+        f" publish_date, fetched_at, source_site"
+        f" FROM ({inner}) WHERE rn = 1"
         " ORDER BY"
         " CAST(substr(announce_no, 1, 4) AS INTEGER) DESC,"
         " CAST(substr(announce_no, instr(announce_no, '第')+1,"

@@ -26,10 +26,17 @@ class AnnouncementMatcher:
         items: list[dict[str, Any]],
         source_site: str = "announcement",
     ) -> dict[str, Any]:
-        """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。"""
+        """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
+
+        入库前先按 announce_no 归一化：同一公告的所有条目强制统一 publish_date、
+        announcement_title、standard_count，消除 HTML/PDF 混合解析导致的字段不一致。
+        """
         result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
         if not items:
             return result
+
+        # ── 归一化：按公告号合并元数据 ──
+        items = self._normalize(items)
 
         log_rows: list[tuple[Any, ...]] = []
         cache_rows: list[tuple[Any, ...]] = []
@@ -43,6 +50,49 @@ class AnnouncementMatcher:
         if cache_rows:
             self._bulk_upsert_cache(cache_rows)
         return result
+
+    @staticmethod
+    def _normalize(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """按 announce_no 分组，统一各条目的公告级元数据。
+
+        - publish_date: 取组内第一个非空值
+        - announcement_title: 取组内第一个非空值
+        - standard_count: 动态计算 = 该公告下条目总数
+        """
+        from collections import defaultdict
+
+        groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for item in items:
+            anno = item.get("announce_no", "")
+            if anno:
+                groups[anno].append(item)
+
+        for anno, group in groups.items():
+            # 找第一个非空的 publish_date
+            best_date = ""
+            for it in group:
+                d = it.get("publish_date", "")
+                if d:
+                    best_date = d
+                    break
+            # 找第一个非空的 title
+            best_title = ""
+            for it in group:
+                t = it.get("announcement_title", "")
+                if t:
+                    best_title = t
+                    break
+            # 实际条目数
+            total = len(group)
+
+            for it in group:
+                if best_date:
+                    it["publish_date"] = best_date
+                if best_title:
+                    it.setdefault("announcement_title", best_title)
+                it["standard_count"] = total
+
+        return items
 
     def _process_item(self, item, source_site, now, log_rows, cache_rows, result):
         std_code = item.get("std_code", "")
