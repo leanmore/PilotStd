@@ -4,7 +4,7 @@
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from ..db import Database
@@ -113,7 +113,7 @@ class NotificationManager(MessageBuildersMixin):
         event_type = msg.event_type
         for ch_name in target_channels:
             channel = self._channels.get(ch_name)
-            sent_at = datetime.now(timezone.utc).isoformat()
+            sent_at = datetime.now().isoformat()
             if channel is None:
                 self._log(event_type, ch_name, msg, "failed", f"渠道 {ch_name} 未启用或初始化失败", sent_at)
                 continue
@@ -344,7 +344,7 @@ class NotificationManager(MessageBuildersMixin):
 
     def cleanup_logs(self, days: int = 30) -> int:
         """删除 days 天前的通知日志，返回删除条数。"""
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
         cur = self._db.execute("DELETE FROM notification_log WHERE sent_at < ?", (cutoff,))
         deleted = cur.rowcount
         if deleted > 0:
