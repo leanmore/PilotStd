@@ -209,9 +209,9 @@ function numberVal(): number {
   display: contents;
 }
 .field-label {
-  font-size: 13px;
-  color: var(--text);
-  text-transform: capitalize;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
   white-space: nowrap;
 }
 .required {
