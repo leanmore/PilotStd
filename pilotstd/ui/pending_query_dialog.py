@@ -147,7 +147,10 @@ class PendingQueryDialog(QDialog):
         self._refresh_timer.stop()
         if self._worker and self._worker.isRunning():
             self._worker.stop()
-            self._worker.wait(3000)
+            self._worker.quit()
+            if not self._worker.wait(3000):
+                self._worker.terminate()
+                self._worker.wait()
 
     def _refresh_cooldown(self) -> None:
         """每秒刷新冷却显示。若所选站点冷却结束则自动发起查询。"""

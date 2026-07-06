@@ -212,6 +212,7 @@ class MainWindow(
             "_archive_worker",
             "_ann_worker",
             "_auto_worker",
+            "_drive_thread",
         ):
             try:
                 w = getattr(self, attr, None)
