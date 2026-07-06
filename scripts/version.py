@@ -21,8 +21,9 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
     major, minor, patch = map(int, version.split("."))
 
     has_breaking = any("BREAKING CHANGE:" in msg for msg in commit_messages)
-    has_feat = any(re.search(r"^feat(\(.+\))?:", msg) for msg in commit_messages)
-    has_fix = any(re.search(r"^fix(\(.+\))?:", msg) for msg in commit_messages)
+    # 兼容 '@ ' 前缀（bash heredoc 残留）和标准格式
+    has_feat = any(re.search(r"^(@ )?feat(\(.+\))?:", msg) for msg in commit_messages)
+    has_fix = any(re.search(r"^(@ )?fix(\(.+\))?:", msg) for msg in commit_messages)
 
     if has_breaking:
         return f"{major + 1}.0.0"
