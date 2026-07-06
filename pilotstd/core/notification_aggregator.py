@@ -140,7 +140,8 @@ class NotificationAggregator:
         """新版聚合器合并后的回调。
 
         msg: NotificationMessage（新版数据类）
-        优先通过 QTimer.singleShot 回到主线程；无 Qt event loop 时直接同步调用。
+        1. 通过 format_for_desktop 剥离 Emoji + 截断长度
+        2. 优先通过 QTimer.singleShot 回到主线程
         """
         if self._check_pause_trigger(msg.level):
             return
@@ -148,19 +149,21 @@ class NotificationAggregator:
         if not self._on_show:
             return
 
-        # 尝试回到 Qt 主线程（仅当 event loop 运行时）
+        from pilotstd.core.notification.desktop_formatter import format_for_desktop
+
+        safe_title, safe_body = format_for_desktop(msg.title, msg.body)
+
         try:
             from PyQt6.QtCore import QCoreApplication, QTimer
 
             app = QCoreApplication.instance()
             if app is not None:
-                QTimer.singleShot(0, lambda: self._on_show(msg.title, msg.body, msg.level))
+                QTimer.singleShot(0, lambda: self._on_show(safe_title, safe_body, msg.level))
                 return
         except ImportError:
             pass
 
-        # 回退：无 Qt event loop（测试 / CLI 环境），直接同步调用
-        self._on_show(msg.title, msg.body, msg.level)
+        self._on_show(safe_title, safe_body, msg.level)
 
     # ── 公共 API ──
 
