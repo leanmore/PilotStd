@@ -202,24 +202,24 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     db = mgr.db
     today = "date('now', 'localtime')"
 
-    # 全量统计（标准总数，不限时间）
+    # 全量统计（标准总数 = SUM(standard_count)，非公告条数）
     all_row = db.fetchone(
-        "SELECT COUNT(*) as total,"
-        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
-        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
-        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
+        "SELECT SUM(standard_count) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN standard_count ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN standard_count ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN standard_count ELSE 0 END) as db"
         " FROM announcement_record"
     )
     # 今日抓取（用于计算新增）
     today_row = db.fetchone(
-        "SELECT COUNT(*) as total,"
-        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
-        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
-        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
+        "SELECT SUM(standard_count) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN standard_count ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN standard_count ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN standard_count ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={today}"
     )
-    # 已匹配（全量，不限时间）
-    matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
+    # 已匹配（全量，不限时间，计算已匹配的标准数）
+    matched_row = db.fetchone("SELECT SUM(standard_count) as cnt FROM announcement_record WHERE matched=1")
 
     def _val(row, key, default=0):
         if not row:
