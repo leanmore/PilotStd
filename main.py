@@ -9,7 +9,9 @@ import sys
 
 from dotenv import load_dotenv
 
-# PyInstaller --noconsole 模式下 sys.stderr/stdout 为 None，后续 print(..., file=sys.stderr) 会崩溃
+# PyInstaller --noconsole 模式下 sys.stderr 为 None
+# 不仅 print(..., file=sys.stderr) 会崩溃，LoggerManager 的 StreamHandler 也会
+# 必须在任何 logging 初始化之前完成替换
 if getattr(sys, "frozen", False) and sys.stderr is None:
     sys.stderr = io.StringIO()
     sys.stdout = io.StringIO()
@@ -17,34 +19,34 @@ if getattr(sys, "frozen", False) and sys.stderr is None:
 faulthandler.enable()
 
 # 加载 .env 文件（优先级：系统环境变量 > .env 文件）
-# load_dotenv 默认不覆盖已存在的环境变量，保证系统环境变量优先
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
 
 def main():
+    # 惰性初始化：LoggerManager 首次 get_logger 时自动创建（Console + File handler）
+    # 必须在 io.StringIO 修复之后、首次 logger 调用之前执行
+    from pilotstd.core.logger import LoggerManager
+
+    logger = LoggerManager.get_logger("PilotStd")
+
     # ── SUPERUSER 环境变量处理 ──
-    # 检测是否为 PyInstaller 打包环境
     is_packaged = getattr(sys, "frozen", False)
 
     if is_packaged:
         # ── Win / CLI 桌面端（打包后的 exe） ──
-        # 优先使用系统环境变量，若无则使用默认值
         _su = os.getenv("SUPERUSER", "superadmin")
         if _su.lower() == "admin":
-            # "admin" 用户名被禁止充当超级用户，回退到安全默认值
-            print("WARNING: SUPERUSER cannot be 'admin', falling back to 'superadmin'", file=sys.stderr)
+            logger.warning("SUPERUSER cannot be 'admin', falling back to 'superadmin'")
             _su = "superadmin"
-        # 写入环境变量，供后续导入的模块读取
         os.environ["SUPERUSER"] = _su
     else:
         # ── Docker / 源码开发环境 ──
-        # 必须设置 SUPERUSER 环境变量，否则拒绝启动
         _su = os.getenv("SUPERUSER")
         if not _su:
-            print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
+            logger.critical("FATAL: SUPERUSER environment variable is not set")
             sys.exit(1)
         if _su.lower() == "admin":
-            print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
+            logger.critical("FATAL: SUPERUSER cannot be 'admin', please use a different username")
             sys.exit(1)
 
     # ── 后续原有代码不变 ──
