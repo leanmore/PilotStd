@@ -110,14 +110,14 @@ class CleanupMixin:
             )
             if reply2 == QMessageBox.StandardButton.Yes:
                 if self._ensure_clear_readonly():
-                    for _root, _dirs, _files in os.walk(d):
+                    for _root, _dirs, _files in os.walk(d, followlinks=False):
                         for _f in _files:
                             try:
                                 os.chmod(os.path.join(_root, _f), _stat.S_IWRITE)
                             except OSError:
                                 pass
                 try:
-                    shutil.rmtree(d)
+                    shutil.rmtree(d, onerror=lambda func, path, excinfo: None)
                     deleted += 1
                     logger.info("删除仅含过期目录的文件夹: %s", d)
                 except OSError as e:

@@ -36,14 +36,17 @@ class ExportMixin:
             return
 
         lines = []
-        for dirpath, dirnames, filenames in os.walk(root):
+        for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
             dirnames[:] = [d for d in dirnames if d not in ("过期作废", "__pycache__")]
             for fn in filenames:
-                full = os.path.join(dirpath, fn)
-                if include_path:
-                    lines.append(full)
-                else:
-                    lines.append(fn)
+                try:
+                    full = os.path.join(dirpath, fn)
+                    if include_path:
+                        lines.append(full)
+                    else:
+                        lines.append(fn)
+                except OSError:
+                    pass  # 单个文件名拼接失败，跳过
 
         with open(save_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
@@ -69,23 +72,36 @@ class ExportMixin:
             f.write("\n".join(lines))
         self.status_changed.emit(f"文件夹层次已保存: {save_path} ({len(lines)} 行)")
 
-    def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str) -> None:
-        """递归收集文件夹树形结构。"""
+    _MAX_FOLDER_DEPTH = 50  # 最大递归深度，防止符号链接循环或深层目录栈溢出
+
+    def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str, depth: int = 0) -> None:
+        """收集文件夹树形结构（防御性递归，有深度上限和符号链接保护）。"""
+        if depth > self._MAX_FOLDER_DEPTH:
+            lines.append(f"{prefix}... (超过最大深度 {self._MAX_FOLDER_DEPTH}，已截断)")
+            return
         lines.append(f"{prefix}{os.path.basename(root) or root}")
         try:
             entries = sorted(os.scandir(root), key=lambda e: (not e.is_dir(), e.name.lower()))
-        except PermissionError:
+        except (PermissionError, OSError):
             return
         count = 0
         for entry in entries:
-            if not entry.is_dir():
+            try:
+                is_dir = entry.is_dir(follow_symlinks=False)
+            except OSError:
+                continue
+            if not is_dir:
                 continue
             if entry.name.startswith(".") or entry.name in ("__pycache__", "过期作废"):
                 continue
             count += 1
         idx = 0
         for entry in entries:
-            if not entry.is_dir():
+            try:
+                is_dir = entry.is_dir(follow_symlinks=False)
+            except OSError:
+                continue
+            if not is_dir:
                 continue
             if entry.name.startswith(".") or entry.name in ("__pycache__", "过期作废"):
                 continue
@@ -93,7 +109,7 @@ class ExportMixin:
             connector = "├── " if idx < count else "└── "
             child_prefix = prefix + ("│   " if idx < count else "    ")
             lines.append(f"{prefix}{connector}{entry.name}")
-            self._collect_folder_tree(entry.path, lines, child_prefix)
+            self._collect_folder_tree(entry.path, lines, child_prefix, depth + 1)
 
     # ── 导出诊断 ─────────────────────────────────────────────
 

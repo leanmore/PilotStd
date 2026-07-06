@@ -121,18 +121,22 @@ def hash_file_content(path: str) -> str:
     """
     import hashlib
 
-    file_size = os.path.getsize(path)
+    try:
+        file_size = os.path.getsize(path)
+    except OSError:
+        return ""
     h = hashlib.sha256()
-    with open(path, "rb") as f:
-        if file_size <= 1024 * 1024:
-            # 小文件：全量哈希
-            for chunk in iter(lambda: f.read(65536), b""):
-                h.update(chunk)
-        else:
-            # 大文件：前 1MB + 末 64KB
-            h.update(f.read(1024 * 1024))
-            f.seek(-65536, os.SEEK_END)
-            h.update(f.read(65536))
+    try:
+        with open(path, "rb") as f:
+            if file_size <= 1024 * 1024:
+                for chunk in iter(lambda: f.read(65536), b""):
+                    h.update(chunk)
+            else:
+                h.update(f.read(1024 * 1024))
+                f.seek(-65536, os.SEEK_END)
+                h.update(f.read(65536))
+    except OSError:
+        return ""  # 文件被锁定/删除/截断，返回空哈希跳过
     h.update(str(file_size).encode())
     return h.hexdigest()
 

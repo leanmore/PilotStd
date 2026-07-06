@@ -19,6 +19,7 @@
 #     新增 UI 文字时必须在 _retranslate_ui() 中添加对应的 setText 调用。
 #     QPushButton 初始文本可用 _() 直接包裹，工具栏按钮由 _retranslate_ui 统一管理。
 
+import datetime
 import logging
 import os
 import sys
@@ -284,6 +285,40 @@ def run() -> None:
     LoggerManager(level=logging.INFO)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+
+    # ── Qt 消息处理器：捕获 Qt C++ 层致命/严重错误 → crash_log.txt ──
+    from PyQt6.QtCore import QMessageLogContext, QtMsgType, qInstallMessageHandler
+
+    _qt_fatal_seen = False
+
+    def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str) -> None:
+        nonlocal _qt_fatal_seen
+        level_map = {
+            QtMsgType.QtDebugMsg: "DEBUG",
+            QtMsgType.QtInfoMsg: "INFO",
+            QtMsgType.QtWarningMsg: "WARNING",
+            QtMsgType.QtCriticalMsg: "CRITICAL",
+            QtMsgType.QtFatalMsg: "FATAL",
+        }
+        level = level_map.get(msg_type, "UNKNOWN")
+        line = f"[Qt {level}] {msg}  (file={ctx.file}, line={ctx.line}, func={ctx.function})\n"
+        if msg_type in (QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
+            _qt_fatal_seen = True
+            _crash_log = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "crash_log.txt")
+            try:
+                with open(_crash_log, "a", encoding="utf-8") as f:
+                    f.write(f"\n{'=' * 60}\nQT {level} [{datetime.datetime.now().isoformat()}]\n{line}")
+            except Exception:
+                pass
+        # 仍输出到 stderr 以便控制台可见
+        if msg_type in (
+            QtMsgType.QtCriticalMsg,
+            QtMsgType.QtFatalMsg,
+            QtMsgType.QtWarningMsg,
+        ):
+            print(line, file=sys.stderr, flush=True)
+
+    qInstallMessageHandler(_qt_message_handler)
 
     cfg = core.ConfigManager()
     prj = core.ProjectManager()
