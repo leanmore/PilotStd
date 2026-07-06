@@ -17,28 +17,30 @@
   "pending": { "importResult": "Imported {n} pending standards", "importEmpty": "No pending items", "importFailed": "Import failed" },
   "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" },
   "settings": {
-    "storage.root_dir": "Library Root Dir",
-    "storage.expire_folder": "Expire Folder Name",
-    "storage.downloads_dir": "Download Dir",
-    "organize.auto_clean_source": "Auto Clean After Archive",
-    "file.clear_readonly": "Auto Clear Read-only",
-    "tasks.auto_scan_enabled": "Enable Auto Scan",
-    "tasks.auto_scan_cron": "Scan Interval (cron)",
-    "tasks.auto_announce_enabled": "Auto Announce Check",
-    "tasks.auto_announce_cron": "Announce Check Cron",
-    "network.proxy": "Proxy Address",
-    "network.ua_rotation": "UA Rotation",
-    "query.query_interval": "Query Interval (s)",
-    "query.use_cache": "Enable Cache",
-    "scan.skip_folders": "Skip Folders",
-    "scan.extensions": "File Extensions",
-    "scan.exclude_patterns": "Skip File Keywords",
-    "appearance.login_bg": "Login Background",
-    "ocr.baidu_api_key": "Baidu API Key",
-    "ocr.baidu_secret_key": "Baidu Secret Key",
-    "ocr.tencent_secret_id": "Tencent Secret ID",
-    "ocr.tencent_secret_key": "Tencent Secret Key",
-    "ocr.aliyun_access_key_id": "Aliyun Access Key ID",
-    "ocr.aliyun_access_key_secret": "Aliyun Access Key Secret"
+    "storage": {
+      "root_dir": "Library Root Dir",
+      "expire_folder": "Expire Folder Name",
+      "downloads_dir": "Download Dir"
+    },
+    "organize": { "auto_clean_source": "Auto Clean After Archive" },
+    "file": { "clear_readonly": "Auto Clear Read-only" },
+    "tasks": {
+      "auto_scan_enabled": "Enable Auto Scan",
+      "auto_scan_cron": "Scan Interval (cron)",
+      "auto_announce_enabled": "Auto Announce Check",
+      "auto_announce_cron": "Announce Check Cron"
+    },
+    "network": { "proxy": "Proxy Address", "ua_rotation": "UA Rotation" },
+    "query": { "query_interval": "Query Interval (s)", "use_cache": "Enable Cache" },
+    "scan": { "skip_folders": "Skip Folders", "extensions": "File Extensions", "exclude_patterns": "Skip File Keywords" },
+    "appearance": { "login_bg": "Login Background" },
+    "ocr": {
+      "baidu_api_key": "Baidu API Key",
+      "baidu_secret_key": "Baidu Secret Key",
+      "tencent_secret_id": "Tencent Secret ID",
+      "tencent_secret_key": "Tencent Secret Key",
+      "aliyun_access_key_id": "Aliyun Access Key ID",
+      "aliyun_access_key_secret": "Aliyun Access Key Secret"
+    }
   }
 }

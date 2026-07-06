@@ -17,28 +17,30 @@
   "pending": { "importResult": "已匯入 {n} 條待確認標準", "importEmpty": "暫無待確認標準", "importFailed": "匯入失敗" },
   "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" },
   "settings": {
-    "storage.root_dir": "標準庫根目錄",
-    "storage.expire_folder": "過期資料夾名",
-    "storage.downloads_dir": "下載目錄",
-    "organize.auto_clean_source": "歸檔後清理原始檔",
-    "file.clear_readonly": "自動清理唯讀屬性",
-    "tasks.auto_scan_enabled": "啟用自動掃描",
-    "tasks.auto_scan_cron": "掃描間隔 (cron)",
-    "tasks.auto_announce_enabled": "定時公告自動檢查",
-    "tasks.auto_announce_cron": "公告檢查 cron",
-    "network.proxy": "代理地址",
-    "network.ua_rotation": "UA 輪轉",
-    "query.query_interval": "查詢間隔(秒)",
-    "query.use_cache": "啟用快取",
-    "scan.skip_folders": "跳過資料夾",
-    "scan.extensions": "檔案副檔名",
-    "scan.exclude_patterns": "跳過檔案關鍵詞",
-    "appearance.login_bg": "登入頁背景圖",
-    "ocr.baidu_api_key": "百度雲 API Key",
-    "ocr.baidu_secret_key": "百度雲 Secret Key",
-    "ocr.tencent_secret_id": "騰訊雲 Secret ID",
-    "ocr.tencent_secret_key": "騰訊雲 Secret Key",
-    "ocr.aliyun_access_key_id": "阿里雲 Access Key ID",
-    "ocr.aliyun_access_key_secret": "阿里雲 Access Key Secret"
+    "storage": {
+      "root_dir": "標準庫根目錄",
+      "expire_folder": "過期資料夾名",
+      "downloads_dir": "下載目錄"
+    },
+    "organize": { "auto_clean_source": "歸檔後清理原始檔" },
+    "file": { "clear_readonly": "自動清理唯讀屬性" },
+    "tasks": {
+      "auto_scan_enabled": "啟用自動掃描",
+      "auto_scan_cron": "掃描間隔 (cron)",
+      "auto_announce_enabled": "定時公告自動檢查",
+      "auto_announce_cron": "公告檢查 cron"
+    },
+    "network": { "proxy": "代理地址", "ua_rotation": "UA 輪轉" },
+    "query": { "query_interval": "查詢間隔(秒)", "use_cache": "啟用快取" },
+    "scan": { "skip_folders": "跳過資料夾", "extensions": "檔案副檔名", "exclude_patterns": "跳過檔案關鍵詞" },
+    "appearance": { "login_bg": "登入頁背景圖" },
+    "ocr": {
+      "baidu_api_key": "百度雲 API Key",
+      "baidu_secret_key": "百度雲 Secret Key",
+      "tencent_secret_id": "騰訊雲 Secret ID",
+      "tencent_secret_key": "騰訊雲 Secret Key",
+      "aliyun_access_key_id": "阿里雲 Access Key ID",
+      "aliyun_access_key_secret": "阿里雲 Access Key Secret"
+    }
   }
 }
