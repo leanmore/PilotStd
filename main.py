@@ -20,7 +20,9 @@ class _SafeStream(io.StringIO):
     """
 
     def fileno(self) -> int:
-        return -1
+        # 返回 -1 可能被 os.write(-1, ...) 误用；抛出标准异常让调用方
+        # 自行降级（logging.StreamHandler / faulthandler 会捕获后跳过）
+        raise io.UnsupportedOperation("fileno")
 
     def isatty(self) -> bool:
         return False
