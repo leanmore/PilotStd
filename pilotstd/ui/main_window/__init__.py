@@ -149,11 +149,16 @@ class MainWindow(
         self.activateWindow()
 
     def _quit_app(self) -> None:
-        try:
-            self._db.backup()
-            logger.info("数据库已备份")
-        except Exception:
-            logger.debug("数据库备份跳过（DB未初始化或已关闭）")
+        if self._mgr_ready:
+            try:
+                self._mgr.db.backup()
+                logger.info("数据库已备份")
+            except Exception:
+                logger.debug("数据库备份跳过（DB未初始化或已关闭）")
+            try:
+                self._mgr.shutdown()
+            except Exception:
+                logger.debug("管理器关闭跳过")
         self._tray.hide()
         app = QApplication.instance()
         assert app is not None, "QApplication 未初始化"

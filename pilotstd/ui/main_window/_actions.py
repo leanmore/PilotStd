@@ -140,7 +140,6 @@ class ActionsMixin:
         self.btn_download.setEnabled(True)
         self.btn_cancel.setEnabled(False)
         self.progress_bar.setVisible(False)
-        self._current_task = None
         self._update_button_states()
         self.status_changed.emit("操作已取消")
 

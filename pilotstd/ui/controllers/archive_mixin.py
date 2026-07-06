@@ -26,11 +26,10 @@ class ArchiveMixin:
             pass
 
     def _on_normalize(self) -> None:
-        self._current_task = "normalize"
         if not self._parsed_results:
             choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
-                self._on_scan()
+                self._run_scan(self._get_selected_path())
                 return
             if choice == "cancel":
                 return
@@ -71,7 +70,6 @@ class ArchiveMixin:
             count = len(self._parsed_results)
             self.status_changed.emit(_("normalize_complete").format(count))
             self._register_task("规范化", count, count)
-            self._current_task = None
             if not self._suppress_dialogs:
                 self._show_stage_dialog(
                     _("normalize_results_title"),
@@ -153,7 +151,6 @@ class ArchiveMixin:
                 )
 
         self._merge_expire_from_source(root_dir)
-        self._current_task = None
         if not self._suppress_dialogs:
             skip_details = []
             for idx, status in self._archive_results:
@@ -181,11 +178,10 @@ class ArchiveMixin:
         """将文件以规范名称归档到标准库目录。后台线程执行文件操作。"""
         if not self._mgr_ready:
             return
-        self._current_task = "archive"
         if not self._parsed_results:
             choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
-                self._on_scan()
+                self._run_scan(self._get_selected_path())
                 return
             if choice == "cancel":
                 return

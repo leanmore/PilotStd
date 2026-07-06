@@ -42,7 +42,6 @@ class DownloadMixin:
         """guard 检查 + 获取 download_list + prereq 对话框。返回 (是否继续, download_list)。"""
         if not self._mgr_ready:
             return False, None
-        self._current_task = "download"
         download_list = self._mgr.get_stage_queue("download")
         if not download_list:
             choice = self._stage_prereq_dialog(_("title_hint"), _("msg_download_prereq"), _("task_query"))
@@ -153,7 +152,6 @@ class DownloadMixin:
                 next_action=self._on_normalize if has_any_success else None,
                 next_label=_("next_step_normalize") if has_any_success else "",
             )
-        self._current_task = None
 
     def _on_download_error(self, msg: str) -> None:
         """下载失败回调。"""

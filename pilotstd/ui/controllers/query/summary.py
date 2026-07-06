@@ -124,5 +124,3 @@ class QuerySummaryMethods:
                 elif counts["archive"] > 0:
                     actions.append((_("next_step_save"), self._on_save_to_folder))
             self._show_stage_dialog_multi(_("query_results_title"), summary_text, actions)
-
-        self._current_task = None

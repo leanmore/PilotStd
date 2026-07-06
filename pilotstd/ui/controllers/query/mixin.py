@@ -62,11 +62,10 @@ class QueryCoreMethods:
 
             choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":
-                self._on_scan()
+                self._run_scan(self._get_selected_path())
                 return
             if choice == "cancel":
                 return
-        self._current_task = "query"
 
         total = len(self._parsed_results)
         if total > 0:
