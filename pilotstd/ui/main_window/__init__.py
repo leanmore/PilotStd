@@ -23,6 +23,7 @@ import datetime
 import logging
 import os
 import sys
+import threading
 from typing import Any, Optional
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -90,6 +91,7 @@ class MainWindow(
 
         self.setWindowTitle("PilotStd — 标准文件管理工具")
         self._paused: bool = False  # 暂停状态（须在 _setup_log_handler 之前初始化）
+        self._pause_event = threading.Event()  # 暂停事件，供 Worker 检查
         self._apply_icon()
         self.setMinimumSize(1000, 550)
         self.resize(1000, 550)
