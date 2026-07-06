@@ -370,7 +370,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r desktop/requirements-win.txt
-          pip install fastapi uvicorn
           pip install pyinstaller
 
       - name: Create data directory if not exists

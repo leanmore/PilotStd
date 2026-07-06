@@ -24,6 +24,11 @@ watchdog==6.0.0
 pypdf
 python-docx==1.1.2
 
+# --- Web 服务（桌面端嵌入式 FastAPI + Docker 共用） ---
+fastapi>=0.136.0
+uvicorn[standard]
+python-multipart>=0.0.31
+
 python-dotenv>=1.2.2
 msgpack>=1.2.1
 
