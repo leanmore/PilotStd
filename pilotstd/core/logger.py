@@ -1,6 +1,7 @@
 # pilotstd/core/logger.py
 # 日志管理器：双通道（控制台+文件）、按大小轮转(256KB)、1个备份
 
+import io
 import logging
 import os
 import sys
@@ -108,7 +109,9 @@ class LoggerManager:
 
         root = logging.getLogger()
         root.setLevel(level)
-        root.addHandler(self._console_handler(console_fmt))
+        # 控制台 handler：仅在有效终端环境下启用（PyInstaller -w 模式跳过）
+        if self._console_available():
+            root.addHandler(self._console_handler(console_fmt))
         root.addHandler(self._file_handler("app.log", file_fmt))
 
         # 抑制第三方库日志噪音
@@ -139,6 +142,19 @@ class LoggerManager:
         h.setLevel(self._level)
         h.setFormatter(fmt)
         return h
+
+    @staticmethod
+    def _console_available() -> bool:
+        """检查是否有可用控制台——PyInstaller -w 模式下返回 False。"""
+        if not sys.stderr or not sys.stdout:
+            return False
+        # --noconsole 打包后流无 fileno，StreamHandler 会崩溃
+        for stream in (sys.stderr, sys.stdout):
+            try:
+                stream.fileno()
+            except (io.UnsupportedOperation, AttributeError, OSError):
+                return False
+        return True
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         path = os.path.join(self._log_dir, filename)
