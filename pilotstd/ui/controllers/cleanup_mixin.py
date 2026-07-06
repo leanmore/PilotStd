@@ -117,7 +117,7 @@ class CleanupMixin:
                             except OSError:
                                 pass
                 try:
-                    shutil.rmtree(d, onerror=lambda func, path, excinfo: None)
+                    shutil.rmtree(d, onerror=lambda _func, _path, _excinfo: None)
                     deleted += 1
                     logger.info("删除仅含过期目录的文件夹: %s", d)
                 except OSError as e:

@@ -51,7 +51,10 @@ except (io.UnsupportedOperation, AttributeError, OSError):
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
 # ── 全局异常捕获：未捕获异常写入 crash_log.txt ──
-_CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
+if getattr(sys, "frozen", False):
+    _CRASH_LOG = os.path.join(os.path.dirname(sys.executable), "crash_log.txt")
+else:
+    _CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
 
 
 def _global_excepthook(exc_type, exc_value, exc_tb):
