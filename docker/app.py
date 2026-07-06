@@ -132,18 +132,6 @@ def _shutdown_cleanup(_cron_mgr) -> None:
         pass
 
 
-def _run_backfill_if_needed(mgr) -> None:
-    """公告历史数据回填（幂等，仅执行一次）。"""
-    from pilotstd.announcement.adapters.samr_db import SamrDbCrawler
-    from pilotstd.announcement.adapters.samr_gb import SamrGbCrawler
-    from pilotstd.announcement.adapters.samr_hb import SamrHbCrawler
-
-    from .backfill_announce import run_backfill
-
-    _adapters = {"gb": SamrGbCrawler(), "hb": SamrHbCrawler(), "db": SamrDbCrawler()}
-    run_backfill(mgr.db, _adapters)
-
-
 def _setup_ws_broadcast(mgr) -> None:
     """注入 WebSocket 广播回调。"""
 
@@ -222,12 +210,6 @@ async def lifespan(app: FastAPI):
     _setup_ws_broadcast(_cron_mgr)
 
     _start_all_schedulers(_cron_mgr)
-
-    # 公告历史数据回填（幂等，仅执行一次）
-    try:
-        _run_backfill_if_needed(_cron_mgr)
-    except Exception:
-        logger.warning("公告历史数据回填失败", exc_info=True)
 
     yield
     # 优雅关闭：刷新聚合缓冲（防止通知丢失）
