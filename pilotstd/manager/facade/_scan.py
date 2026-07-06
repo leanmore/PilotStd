@@ -85,7 +85,6 @@ class ScanMixin:
                 batch = []
             if on_progress:
                 on_progress(i + 1, total)
-            print(f"[TRACE-WORKER] file {i + 1}/{total} done", flush=True)
         if on_batch and batch:
             on_batch(batch)
         if dup_count > 0:

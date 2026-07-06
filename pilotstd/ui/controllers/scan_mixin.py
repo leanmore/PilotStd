@@ -120,12 +120,6 @@ class ScanMixin:
         self._scan_worker.error.connect(
             lambda msg: self.status_changed.emit(f"扫描失败: {msg}"), Qt.ConnectionType.QueuedConnection
         )
-        # 心跳定时器：每秒打印一次，检测主线程事件循环是否存活
-        from PyQt6.QtCore import QTimer as _QTimer
-
-        self._heartbeat_timer = _QTimer(self)
-        self._heartbeat_timer.timeout.connect(lambda: print("[TRACE-MAIN-HEARTBEAT] Event loop is alive", flush=True))
-        self._heartbeat_timer.start(1000)
         self._scan_worker.start()
 
     def _on_raw_progress(self, cur: int, total: int) -> None:
@@ -147,7 +141,6 @@ class ScanMixin:
 
     def _on_scan_batch_ready(self, batch_rows: list[Any]) -> None:
         """后台线程批量通知：追加已解析文件到表格和结果列表（暂停渲染，批量写入后一次性刷新）。"""
-        print(f"[TRACE-UI] batch_ready received, rows={len(batch_rows)}", flush=True)
         self.work_table.setUpdatesEnabled(False)
         try:
             for seq, parsed in batch_rows:
@@ -162,12 +155,9 @@ class ScanMixin:
                 )
         finally:
             self.work_table.setUpdatesEnabled(True)
-        print(f"[TRACE-UI] batch_ready done, total_rows={self.work_table.rowCount()}", flush=True)
 
     def _on_scan_finished(self, success: int, failed: int) -> None:
         """扫描完成：汇总统计并弹窗。"""
-        if hasattr(self, "_heartbeat_timer"):
-            self._heartbeat_timer.stop()
         self._unrecognized_files = self._scan_worker.unrecognized
         total = success + failed
         self.status_changed.emit(f"扫描完成: {total} 个文件, {success} 个识别成功, {failed} 个无法识别")
