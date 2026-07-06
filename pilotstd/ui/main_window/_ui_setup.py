@@ -353,8 +353,18 @@ class UISetupMixin:
         app = QApplication.instance()
         assert app is not None, "QApplication 未初始化"
         app.aboutToQuit.connect(self._on_auto_save)
+        app.aboutToQuit.connect(self._on_shutdown_aggregator)
         atexit.register(self._on_atexit_save)
         try:
             signal.signal(signal.SIGTERM, lambda *a: self._on_auto_save())
         except (ValueError, OSError):
+            pass
+
+    def _on_shutdown_aggregator(self) -> None:
+        """退出前刷新聚合器中残留的通知消息（防止丢失）。"""
+        try:
+            from pilotstd.core.notification_aggregator import NotificationAggregator
+
+            NotificationAggregator().shutdown()
+        except Exception:
             pass

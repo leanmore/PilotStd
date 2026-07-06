@@ -1,9 +1,13 @@
 # pilotstd/core/notification_aggregator.py
-# 通知智能聚合器 — 缓冲合并 + 熔断暂停（与 Web 端行为等价）
-"""单例聚合器：缓冲 300ms → 按主题合并 → 30s 窗口内 3 次 warning/error 触发 5min 暂停。"""
+# 通知智能聚合器 — 适配层（内部委托新版 NotificationAggregator）
+"""单例聚合器：缓冲合并 + 熔断暂停（与 Web 端行为等价）。
+
+内部持有新版 pilotstd.core.notification.aggregate_buffer.NotificationAggregator，
+should_show() 转为 push() 调用，_flush 逻辑由新版统一处理。
+对外 API 保持向后兼容。
+"""
 
 import time
-from threading import Timer
 from typing import Any
 
 _BUFFER_WINDOW = 0.3  # 秒
@@ -13,7 +17,15 @@ _PAUSE_CONFIG_KEY = "notification.aggregation"
 
 
 class NotificationAggregator:
-    """通知智能聚合器（单例，与 Web 端 useNotificationAggregator 行为等价）。"""
+    """通知智能聚合器（单例，适配层）。
+
+    公开 API 保持向后兼容：
+      - should_show(level, title, body, on_show) → bool
+      - get_pause_state() → {"is_paused": bool, "remaining_seconds": int}
+      - resume() → None
+      - auto_pause_enabled → bool
+      - shutdown() → None  (新增)
+    """
 
     _instance: "NotificationAggregator | None" = None
 
@@ -24,15 +36,22 @@ class NotificationAggregator:
         return cls._instance
 
     def _init(self) -> None:
-        self._buffer: list[dict[str, Any]] = []
         self._warning_errors: list[float] = []  # 时间戳
         self._paused = False
         self._paused_until: float | None = None
-        self._timer: Timer | None = None
         self._on_show: Any = None  # callback(title, body, level)
         self._load_pause_state()
 
-    # ── 主题提取 ──
+        # 初始化新版聚合器（线程安全 + 滑动窗口 + format_summary）
+        from pilotstd.core.notification.aggregate_buffer import NotificationAggregator as NewAggregator
+
+        self._new = NewAggregator(
+            sender_func=self._on_new_flush,
+            window_seconds=_BUFFER_WINDOW,
+            batch_size=50,
+        )
+
+    # ── 主题提取（保留，用于设置 target_id） ──
 
     @staticmethod
     def _extract_topic(title: str, _body: str) -> str:
@@ -91,69 +110,68 @@ class NotificationAggregator:
         except Exception:
             pass
 
-    # ── 滑动窗口清理 ──
+    # ── 暂停计数 ──
 
     def _clean_warning_errors(self, now: float) -> None:
         self._warning_errors = [t for t in self._warning_errors if now - t <= _COUNT_WINDOW]
 
-    # ── 合并输出 ──
+    def _check_pause_trigger(self, level: str) -> bool:
+        """检查是否触发暂停。返回 True 表示已触发暂停。"""
+        if level in ("warning", "error"):
+            now = time.time()
+            self._warning_errors.append(now)
+            self._clean_warning_errors(now)
+            if len(self._warning_errors) >= 3:
+                self._paused = True
+                self._paused_until = now + _PAUSE_DURATION
+                self._save_pause_state()
+                if self._on_show:
+                    self._on_show(
+                        "通知已暂停",
+                        f"连续 {len(self._warning_errors)} 次警告，通知将在 5 分钟后自动恢复",
+                        "warning",
+                    )
+                return True
+        return False
 
-    def _flush(self) -> None:
-        self._timer = None
-        if not self._buffer:
+    # ── 新版聚合器回调 → 桥接到旧版 _on_show（线程安全） ──
+
+    def _on_new_flush(self, msg: Any, _channels: list[str]) -> None:
+        """新版聚合器合并后的回调。
+
+        msg: NotificationMessage（新版数据类）
+        优先通过 QTimer.singleShot 回到主线程；无 Qt event loop 时直接同步调用。
+        """
+        if self._check_pause_trigger(msg.level):
             return
 
-        now = time.time()
-        groups: dict[str, list[dict]] = {}
-        for item in self._buffer:
-            topic = self._extract_topic(item["title"], item["body"])
-            groups.setdefault(topic, []).append(item)
+        if not self._on_show:
+            return
 
-        for topic, items in groups.items():
-            if len(items) == 1:
-                title = items[0]["title"]
-                body = items[0]["body"]
-                level = items[0]["level"]
-            elif topic == "done":
-                title = f"{len(items)} 项任务已完成"
-                body = "\n".join(f"· {i['title']}" for i in items)
-                level = "info"
-            elif topic == "error":
-                title = f"{len(items)} 项操作出现异常"
-                body = "\n".join(f"· {i['title']}" for i in items)
-                level = "warning"
-            else:
-                title = f"{len(items)} 条 {topic} 相关通知"
-                body = "\n".join(f"· {i['title']}" for i in items)
-                level = items[0]["level"]
+        # 尝试回到 Qt 主线程（仅当 event loop 运行时）
+        try:
+            from PyQt6.QtCore import QCoreApplication, QTimer
 
-            if level in ("warning", "error"):
-                self._warning_errors.append(now)
-                self._clean_warning_errors(now)
-                if len(self._warning_errors) >= 3:
-                    self._paused = True
-                    self._paused_until = now + _PAUSE_DURATION
-                    self._save_pause_state()
-                    if self._on_show:
-                        self._on_show(
-                            "通知已暂停",
-                            f"连续 {len(self._warning_errors)} 次警告，通知将在 5 分钟后自动恢复",
-                            "warning",
-                        )
-                    return
+            app = QCoreApplication.instance()
+            if app is not None:
+                QTimer.singleShot(0, lambda: self._on_show(msg.title, msg.body, msg.level))
+                return
+        except ImportError:
+            pass
 
-            if self._on_show:
-                self._on_show(title, body, level)
-
-        self._buffer.clear()
+        # 回退：无 Qt event loop（测试 / CLI 环境），直接同步调用
+        self._on_show(msg.title, msg.body, msg.level)
 
     # ── 公共 API ──
 
     def should_show(self, level: str, title: str, body: str, on_show: Any = None) -> bool:
-        """判断是否应显示通知。缓冲 300ms 后按主题合并输出。
-        若暂停中或已缓冲暂未输出 → 返回 False。
-        on_show: 实际显示回调 (title, body, level)。"""
-        self._on_show = on_show
+        """判断是否应显示通知。委托新版聚合器处理缓冲合并。
+
+        on_show: 实际显示回调 (title, body, level)。
+        返回 False：通知已入队，聚合后通过 on_show 输出。
+        """
+        if on_show is not None:
+            self._on_show = on_show
 
         if self._paused:
             if self._paused_until and time.time() >= self._paused_until:
@@ -163,21 +181,19 @@ class NotificationAggregator:
             else:
                 return False
 
-        self._buffer.append(
-            {
-                "level": level,
-                "title": title,
-                "body": body,
-                "timestamp": time.time(),
-            }
+        # 提取主题作为 target_id，复用新版的分组能力
+        topic = self._extract_topic(title, body)
+        status = "failure" if level in ("warning", "error") else "success"
+
+        self._new.push(
+            event_type="desktop_toast",
+            title=title,
+            content=body,
+            level=level,
+            target_id=topic,
+            status=status,
         )
-
-        if not self._timer:
-            self._timer = Timer(_BUFFER_WINDOW, self._flush)
-            self._timer.daemon = True
-            self._timer.start()
-
-        return False  # 总是等待缓冲窗口结束再显示
+        return False
 
     def get_pause_state(self) -> dict:
         """返回 {"is_paused": bool, "remaining_seconds": int}。"""
@@ -191,6 +207,10 @@ class NotificationAggregator:
         self._paused = False
         self._paused_until = None
         self._save_pause_state()
+
+    def shutdown(self) -> None:
+        """优雅关闭：刷新新版聚合器中所有缓冲消息（防止丢失）。"""
+        self._new.shutdown()
 
     @property
     def auto_pause_enabled(self) -> bool:
