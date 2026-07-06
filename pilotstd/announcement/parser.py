@@ -115,14 +115,14 @@ def parse_announcement_meta(html: str) -> dict[str, str]:
     if title_tag:
         meta["title"] = title_tag.get_text(strip=True)
 
-    # 公告发布日期：排除表格内文本（实施日期在表格中），从正文区域取最后一个日期
+    # 公告发布日期：排除表格内文本（实施日期在表格中），取正文区域第一个日期
     for table in soup.find_all("table"):
         table.decompose()
     text = soup.get_text()
     dates = re.findall(r"\d{4}-\d{2}-\d{2}", text)
     if dates:
-        # 最后一个日期为落款日期（表格已排除，正文末尾是发布/批准日期）
-        meta["publish_date"] = dates[-1]
+        # 正文中第一个日期为落款日期（表格已排除，正文开头是发布/批准日期）
+        meta["publish_date"] = dates[0]
 
     return meta
 
