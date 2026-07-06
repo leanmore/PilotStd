@@ -40,7 +40,7 @@ if getattr(sys, "frozen", False):
 # faulthandler 内部会调用 stderr.fileno()，_SafeStream 已兜底，但
 # 极端环境（非 frozen 但 stderr 损坏）再加一层 try-except 保护
 try:
-    faulthandler.enable()
+    faulthandler.enable(all_threads=True)
 except (io.UnsupportedOperation, AttributeError, OSError):
     pass
 

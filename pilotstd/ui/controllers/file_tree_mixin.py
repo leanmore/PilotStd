@@ -93,41 +93,82 @@ class FileTreeMixin:
 
     # ── 懒加载 ───────────────────────────────────────────
 
+    _MAX_VISIBLE_ITEMS = 500  # 单次展开最多展示条目数，超出截断避免 Qt 崩溃
+
     def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
-        """懒加载：展开时填充子目录和文件。"""
+        """懒加载：展开时填充子目录和文件。
+
+        防御措施：
+        - 单次最多展示 _MAX_VISIBLE_ITEMS 条，超出截断并提示
+        - 每个条目创建包 try/except，单个坏文件不影响整体
+        - 显式处理 OSError（含权限、路径过长等）
+        """
         parent_path = parent_item.data(0, Qt.ItemDataRole.UserRole)
         if not parent_path or not os.path.isdir(parent_path):
             return
+        logger.info("展开文件树: %s", parent_path)
         try:
             entries = sorted(os.scandir(parent_path), key=lambda e: (not e.is_dir(), e.name.lower()))
         except PermissionError:
+            logger.warning("无权限访问目录: %s", parent_path)
             return
-        for entry in entries:
+        except OSError as e:
+            logger.warning("无法读取目录 %s: %s", parent_path, e)
+            return
+
+        total = len(entries)
+        truncated = total > self._MAX_VISIBLE_ITEMS
+        if truncated:
+            logger.warning(
+                "目录条目过多(%d)，截断至 %d: %s",
+                total,
+                self._MAX_VISIBLE_ITEMS,
+                parent_path,
+            )
+
+        added = 0
+        for entry in entries[: self._MAX_VISIBLE_ITEMS]:
             if entry.name.startswith(".") or entry.name == "__pycache__":
                 continue
-            if entry.is_dir():
-                child = self._make_item(entry.name, entry.path)
-            else:
-                child = QTreeWidgetItem([entry.name])
-                child.setData(0, Qt.ItemDataRole.UserRole, entry.path)
-                ext = os.path.splitext(entry.name)[1].lower()
-                if ext == ".pdf":
-                    child.setIcon(
-                        0,
-                        self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon),
-                    )
-                elif ext in (".doc", ".docx", ".txt"):
-                    child.setIcon(
-                        0,
-                        self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView),
-                    )
+            try:
+                if entry.is_dir():
+                    child = self._make_item(entry.name, entry.path)
                 else:
-                    child.setIcon(
-                        0,
-                        self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon),
-                    )
-                child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
-            parent_item.addChild(child)
+                    child = QTreeWidgetItem([entry.name])
+                    child.setData(0, Qt.ItemDataRole.UserRole, entry.path)
+                    ext = os.path.splitext(entry.name)[1].lower()
+                    try:
+                        if ext == ".pdf":
+                            child.setIcon(
+                                0,
+                                self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon),
+                            )
+                        elif ext in (".doc", ".docx", ".txt"):
+                            child.setIcon(
+                                0,
+                                self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView),
+                            )
+                        else:
+                            child.setIcon(
+                                0,
+                                self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon),
+                            )
+                    except Exception:
+                        pass  # 图标设置失败不阻塞树展开
+                    child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
+                parent_item.addChild(child)
+                added += 1
+            except OSError:
+                pass  # 单个条目 stat 失败，跳过
+            except Exception:
+                logger.debug("跳过无法展示的条目: %s", entry.name)
+
+        if truncated:
+            hint = QTreeWidgetItem([f"... 还有 {total - added} 项，请使用搜索定位"])
+            hint.setFlags(hint.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+            parent_item.addChild(hint)
+
+        logger.debug("文件树展开完成: %s, 展示 %d/%d 项", parent_path, added, total)
 
     def _on_tree_item_expanded(self, item: QTreeWidgetItem) -> None:
         """展开时懒加载子目录。"""
