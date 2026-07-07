@@ -10,6 +10,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 import unittest
+from unittest.mock import patch
 
 import pytest
 
@@ -77,6 +78,12 @@ class TestQueryClassifier(unittest.TestCase):
             quota_tracker=None,
             query_engine=None,
         )
+        # Windows 上 /tmp/ 不存在 → os.path.exists 返回 False → Router
+        # 误判"无本地文件"将 GB 送入 download、非GB 送入 manual_download。
+        # Mock 为 True 使 Router 走"文件已存在"分支，按文件名匹配度路由。
+        self._exists_patcher = patch("os.path.exists", return_value=True)
+        self._exists_patcher.start()
+        self.addCleanup(self._exists_patcher.stop)
 
     def _classify(self, parsed_list, results):
         download: list = []
@@ -106,12 +113,12 @@ class TestQueryClassifier(unittest.TestCase):
     # ── GB 标准 — newer（远程有更新版） ─────────────────
 
     def test_gb_newer_goes_to_download(self):
-        """GB newer + 非采标 → pending（规则0: 非exact统一pending）"""
+        """GB newer + 非采标 + 本地无新版 → download（规则1: newer版本可下载）"""
         p = _make_parsed("GB/T", 19001, 2016, "质量管理体系")
         r = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer")
         download, expire, pending = self._classify([p], [r])
-        self.assertEqual(p.next_action, "pending")
-        self.assertIn(p, pending)
+        self.assertEqual(p.next_action, "download")
+        self.assertIn(p, download)
 
     def test_gb_newer_adopted_goes_to_pending(self):
         """GB newer + 采标 → pending（不可下载）"""
@@ -203,14 +210,14 @@ class TestQueryClassifier(unittest.TestCase):
     # ── 新标准本地已有 → 跳过下载 ────────────────────────
 
     def test_newer_exists_locally_skips_download(self):
-        """同代号同序号 + 另一个 exact 项已存在 → newer 项走 pending（规则0）"""
+        """同代号同序号 + 另一个 exact 项已存在 → newer 项走 expire（新版已本地持有，旧版归档）"""
         p_old = _make_parsed("GB/T", 19001, 2016, "质量管理体系")
         p_new = _make_parsed("GB/T", 19001, 2020, "质量管理体系")
         r_old = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer")
         r_new = _make_result("GB/T 19001-2020", "质量管理体系", match_status="exact")
         download, expire, pending = self._classify([p_old, p_new], [r_old, r_new])
-        # p_old: newer → pending（规则0: 非exact统一pending）
-        self.assertEqual(p_old.next_action, "pending")
+        # p_old: newer + 新版已本地存在 → expire
+        self.assertEqual(p_old.next_action, "expire")
         # p_new: exact → archive
         self.assertEqual(p_new.next_action, "archive")
         self.assertEqual(len(download), 0)
