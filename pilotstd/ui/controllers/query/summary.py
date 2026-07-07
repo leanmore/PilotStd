@@ -24,7 +24,7 @@ class QuerySummaryMethods:
             counts[action] = sum(1 for p in self._parsed_results if p.next_action == action)
         return counts
 
-    def _build_query_summary_text(self, counts: dict[str, int], expired_moved: int) -> str:
+    def _build_query_summary_text(self, counts: dict[str, int]) -> str:
         """构建查询结果汇总文本，含分类统计 + 前15条明细文件名。"""
         lines = [_("query_results_total").format(len(self._parsed_results))]
         if counts["archive"] > 0:
@@ -32,8 +32,7 @@ class QuerySummaryMethods:
         if counts["normalize"] > 0:
             lines.append(_("query_summary_normalize").format(count=counts["normalize"]))
         if counts["expire"] > 0:
-            extra = f" ({_('expired_move_info').format(expired_moved)})" if expired_moved else ""
-            lines.append(_("query_summary_expire").format(count=counts["expire"], extra=extra))
+            lines.append(_("query_summary_expire").format(count=counts["expire"], extra=""))
         if counts["pending"] > 0:
             lines.append(_("query_summary_pending").format(count=counts["pending"]))
         if counts["download"] > 0:
@@ -94,7 +93,7 @@ class QuerySummaryMethods:
                 self.status_changed.emit(_("pending_discarded").format(len(pending), total))
 
         counts = self._count_query_actions()
-        expired_moved = self._auto_move_expired() if counts["expire"] > 0 else 0
+        # 废止标准不再在查询阶段移动——改为归档阶段由 FileMover.normalize_filename 自动归入"过期作废"子目录
 
         self.status_changed.emit(f"查询完成: {total} 条")
         self._project.mark_dirty()
@@ -108,7 +107,7 @@ class QuerySummaryMethods:
         )
 
         if not self._suppress_dialogs:
-            summary_text = self._build_query_summary_text(counts, expired_moved)
+            summary_text = self._build_query_summary_text(counts)
             download_count = counts.get("archive", 0) + counts.get("normalize", 0)
             pending_count = counts["pending"]
             manual_count = counts.get("manual_download", 0)

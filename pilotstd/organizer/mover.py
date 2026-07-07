@@ -32,9 +32,14 @@ class FileMover:
 
     # ── 独立步骤：规范化生成路径 ──
 
+    _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+
     def normalize_filename(self, parsed: ParsedStdInfo) -> str:
         """仅生成规范文件名和目标路径，不移动文件。返回完整目标路径。"""
         folder = get_folder_name(parsed.logical_code)
+        # 废止/过期标准 → 目标路径追加"过期作废"子目录
+        if getattr(parsed, "effect_status", "") in self._EXPIRE_STATUSES:
+            folder = os.path.join(folder, "过期作废")
         filename = make_standard_filename(
             logical_code=parsed.logical_code,
             number=parsed.number,

@@ -110,7 +110,7 @@ class ArchiveWorker(QThread):
         )
         folder = get_folder_name(parsed.logical_code)
         target_dir = os.path.join(library_root, folder)
-        if parsed.effect_status in ("废止", "已废止", "作废", "被代替"):
+        if parsed.effect_status in ("废止", "已废止", "作废", "被代替", "过期"):
             target_dir = os.path.join(target_dir, "过期作废")
         return os.path.join(target_dir, name)
 
