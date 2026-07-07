@@ -56,16 +56,16 @@ describe('AnnounceView', () => {
     })
   })
 
-  it('渲染三个 tab 标签（国家标准/行业标准/地方标准）', async () => {
+  it('渲染三个胶囊标签（国家标准/行业标准/地方标准）', async () => {
     const wrapper = mountView()
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
 
-    const tabsEl = wrapper.find('.tabs')
-    expect(tabsEl.exists()).toBe(true)
-    expect(tabsEl.text()).toContain('国家标准')
-    expect(tabsEl.text()).toContain('行业标准')
-    expect(tabsEl.text()).toContain('地方标准')
+    const bar = wrapper.find('.unified-filter-bar')
+    expect(bar.exists()).toBe(true)
+    expect(bar.text()).toContain('国家标准')
+    expect(bar.text()).toContain('行业标准')
+    expect(bar.text()).toContain('地方标准')
   })
 
   it('渲染摘要标签', async () => {

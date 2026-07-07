@@ -112,10 +112,17 @@ QDialog, QWidget {{ background-color: {surface}; color: {text}; font-size: 10pt;
 
 /* === 菜单栏 === */
 QMenuBar {{ background-color: {surface}; color: {text_bright}; border-bottom: 1px solid {border}; }}
-QMenuBar::item:selected {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_light}, stop:1 {primary}); color: {primary_text}; border-radius: 4px; }}
+QMenuBar::item:selected {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_light}, stop:1 {primary});
+    color: {primary_text};
+    border-radius: 4px;
+}}
 QMenu {{ background-color: {surface}; color: {text_bright}; border: 1px solid {border}; border-radius: 8px; }}
 QMenu::item {{ text-align: left; padding: 8px 24px; border-radius: 4px; margin: 2px 4px; }}
-QMenu::item:selected {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_light}, stop:1 {primary}); color: {primary_text}; }}
+QMenu::item:selected {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_light}, stop:1 {primary});
+    color: {primary_text};
+}}
 
 /* === 工具栏 === */
 QToolBar {{
@@ -135,7 +142,9 @@ QPushButton {{
     font-weight: 500;
 }}
 QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary}, stop:1 {primary_dark}); }}
-QPushButton:pressed {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_dark}, stop:1 {primary_darker}); }}
+QPushButton:pressed {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {primary_dark}, stop:1 {primary_darker});
+}}
 QPushButton:disabled {{ background: {disabled_bg}; color: {disabled_text}; }}
 
 /* === 输入框 === */
@@ -238,9 +247,19 @@ QScrollBar::handle:horizontal {{ background: {border}; border-radius: 5px; min-w
 QScrollBar::handle:horizontal:hover {{ background: {text_dim}; }}
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0px; }}
 
+/* === 滚动区右下角交汇区 — 消除深色主题下灰色方块。width/height=0 彻底隐藏 === */
+QAbstractScrollArea::corner {{ background: transparent; border: none; width: 0px; height: 0px; }}
+
 /* === 标签页 === */
 QTabWidget::pane {{ border: 1px solid {border}; border-radius: 8px; background: {bg}; }}
-QTabBar::tab {{ background: {surface}; padding: 10px 20px; border: 1px solid {border}; border-bottom: none; border-radius: 6px 6px 0 0; margin-right: 2px; }}
+QTabBar::tab {{
+    background: {surface};
+    padding: 10px 20px;
+    border: 1px solid {border};
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    margin-right: 2px;
+}}
 QTabBar::tab:selected {{ background: {bg}; color: {primary}; border-bottom: 2px solid {primary}; }}
 """
 

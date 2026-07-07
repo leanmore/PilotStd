@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .....i18n import _
+from ....i18n import _
 
 
 class _NotificationTab:

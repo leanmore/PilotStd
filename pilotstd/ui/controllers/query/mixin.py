@@ -84,7 +84,7 @@ class QueryCoreMethods:
 
         from ....i18n import _
 
-        self.status_changed.emit(_("status_querying"))
+        self.status_changed.emit(_("work_status_querying"))
         self.btn_query.setEnabled(False)
         self.btn_cancel.setEnabled(True)
         self.progress_changed.emit(0)

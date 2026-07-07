@@ -8,7 +8,7 @@ import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Calendar from 'primevue/calendar'
-import ToggleSwitch from 'primevue/toggleswitch'
+import UnifiedFilterBar from '@/components/UnifiedFilterBar.vue'
 import LogBar from '@/components/LogBar.vue'
 
 // 起始日期默认今天
@@ -17,12 +17,8 @@ function defaultSince(): Date {
   return saved ? new Date(saved) : new Date()
 }
 
-const tab = ref<'gb'|'hb'|'db'>(getItem('announce_tab') as any || 'gb')
-const tabs: { key: 'gb'|'hb'|'db', label: string, api: string }[] = [
-  { key: 'gb', label: '国家标准公告', api: 'nocGBPage' },
-  { key: 'hb', label: '行业标准公告', api: 'nocHBPage' },
-  { key: 'db', label: '地方标准公告', api: 'nocDBPage' },
-]
+const activeTab = ref<'gb'|'hb'|'db'>(getItem('announce_tab') as any || 'gb')
+watch(activeTab, (v) => { setItem('announce_tab', v); load() })
 const results = ref<any[]>([])
 
 // 各适配器抓取开关（默认全部开启，持久化到 localStorage）
@@ -31,9 +27,11 @@ const adapterEnabled = reactive({
   hb: getItem('announce_hb_enabled') !== 'false',
   db: getItem('announce_db_enabled') !== 'false',
 })
-watch(() => adapterEnabled.gb, (v) => setItem('announce_gb_enabled', String(v)))
-watch(() => adapterEnabled.hb, (v) => setItem('announce_hb_enabled', String(v)))
-watch(() => adapterEnabled.db, (v) => setItem('announce_db_enabled', String(v)))
+watch(adapterEnabled, (val) => {
+  setItem('announce_gb_enabled', String(val.gb))
+  setItem('announce_hb_enabled', String(val.hb))
+  setItem('announce_db_enabled', String(val.db))
+}, { deep: true })
 
 // 新版统计数据
 interface AnnounceStats {
@@ -51,11 +49,9 @@ const sinceDate = ref<Date>(defaultSince())
 watch(sinceDate, (v) => setItem('announce_since', v.toISOString()))
 const error = ref('')
 
-function switchTab(k: 'gb'|'hb'|'db') { tab.value = k; setItem('announce_tab', k); load() }
-
 async function load() {
   try {
-    const sourceSite = `announcement_${tab.value}`
+    const sourceSite = `announcement_${activeTab.value}`
     const data = await getAnnounceResults(sourceSite)
     results.value = data.results || []
     loadStats()
@@ -99,15 +95,11 @@ function onPage(e: any) {
 <template>
   <h1>公告</h1>
   <div class="header">
-    <div class="tabs">
-      <button v-for="t in tabs" :key="t.key" :class="{ active: tab === t.key }" @click="switchTab(t.key)">{{ t.label }}</button>
-    </div>
-    <div class="toggles">
-      <span v-for="t in tabs" :key="'sw-'+t.key" class="toggle-item">
-        <ToggleSwitch v-model="adapterEnabled[t.key]" :input-id="'sw-'+t.key" />
-        <label :for="'sw-'+t.key" class="toggle-label">{{ t.label }}</label>
-      </span>
-    </div>
+    <UnifiedFilterBar
+      v-model:current-tab="activeTab"
+      :fetch-enabled="adapterEnabled"
+      @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
+    />
     <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
     <Button label="立即抓取" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
@@ -138,14 +130,6 @@ function onPage(e: any) {
 
 <style scoped>
 .header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.tabs { display: flex; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-xs); }
-.tabs button { padding: 9px 18px; border: none; background: none; color: var(--text-dim); cursor: pointer; font-size: 13px; font-weight: 500; border-right: 1px solid var(--border); transition: all var(--transition); }
-.tabs button:last-child { border-right: none; }
-.tabs button:hover { color: var(--text); }
-.tabs button.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
-.toggles { display: flex; gap: 8px; align-items: center; }
-.toggle-item { display: flex; align-items: center; gap: 4px; font-size: 12px; }
-.toggle-label { color: var(--text-dim); cursor: pointer; user-select: none; white-space: nowrap; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
