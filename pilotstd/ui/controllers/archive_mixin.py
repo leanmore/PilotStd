@@ -173,6 +173,9 @@ class ArchiveMixin:
                 next_action=None,
                 next_label="",
             )
+            # 归档是工作流最后一步，关闭对话框后清空工作区，避免阻塞后续"待确认查询"
+            self._clear_table()
+            self._parsed_results.clear()
 
     def _on_save_to_folder(self) -> None:
         """将文件以规范名称归档到标准库目录。后台线程执行文件操作。"""

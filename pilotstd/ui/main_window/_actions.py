@@ -141,7 +141,7 @@ class ActionsMixin:
         self.btn_cancel.setEnabled(False)
         self.progress_bar.setVisible(False)
         self._update_button_states()
-        self.status_changed.emit("操作已取消")
+        self.status_changed.emit(_("status_action_cancelled"))
 
     def _on_pause_toggle(self) -> None:
         self._paused = not self._paused
@@ -199,7 +199,7 @@ class ActionsMixin:
         self._apply_language()
         self._apply_theme()
         self._apply_icon()
-        self.status_changed.emit("设置已更新")
+        self.status_changed.emit(_("settings_updated"))
 
     # ── 关于 / 更新 ──────────────────────────────────────
 

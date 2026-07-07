@@ -154,7 +154,7 @@ class QueryPendingMethods:
             self._do_pending_query()
         except Exception as e:
             logger.exception("待确认查询异常")
-            QMessageBox.critical(None, _("title_error"), f"待确认查询失败: {e}")
+            QMessageBox.critical(None, _("title_error"), _("error_pending_query_failed").format(error=e))
 
     def _do_pending_query(self: Any) -> None:
         if not self._mgr_ready:
@@ -205,12 +205,12 @@ class QueryPendingMethods:
         msg += "\n\n是否继续？"
         reply = self._question_dlg(_("title_pending_query"), msg)
         if reply != QMessageBox.StandardButton.Yes:
-            self.status_changed.emit("已取消待确认查询，工作区未变更。")
+            self.status_changed.emit(_("status_pending_cancelled"))
             return
 
         dlg = PendingQueryDialog(self._mgr, parsed_list, self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
-            self.status_changed.emit("已取消待确认查询，工作区未变更。")
+            self.status_changed.emit(_("status_pending_cancelled"))
             return
 
         dlg.get_results()

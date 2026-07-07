@@ -74,7 +74,7 @@ class DownloadMixin:
     def _reset_ui_for_download(self, download_list: list, total: int) -> None:
         """切换视图 + 发射状态 + 禁用按钮 + 清空并填充表格。"""
         self._switch_to_stage("download")
-        self.status_changed.emit("下载中...")
+        self.status_changed.emit(_("download_in_progress"))
         self.btn_query.setEnabled(False)
         self.btn_download.setEnabled(False)
         self.btn_cancel.setEnabled(True)
@@ -191,7 +191,7 @@ class DownloadMixin:
             return
 
         # 直接调 download_by_numbers 下载
-        self.status_changed.emit("下载中...")
+        self.status_changed.emit(_("download_in_progress"))
         self.btn_download.setEnabled(False)
         tasks, stats = self._mgr.download_by_numbers(lines)
         self.btn_download.setEnabled(True)

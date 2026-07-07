@@ -86,7 +86,7 @@ class TableHelperMixin:
         elif chosen == remove_all:
             self._clear_table()
             self._parsed_results.clear()
-            self.status_changed.emit("已清空工作区")
+            self.status_changed.emit(_("status_workspace_cleared"))
 
     # ── 离线查看 ─────────────────────────────────────────
 
@@ -99,7 +99,7 @@ class TableHelperMixin:
             return
 
         if not self._mgr.file_index:
-            self.status_changed.emit("文件索引未初始化")
+            self.status_changed.emit(_("status_file_index_not_init"))
             return
 
         row = min(rows)

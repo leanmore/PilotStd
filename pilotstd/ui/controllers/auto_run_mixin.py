@@ -140,6 +140,9 @@ class AutoRunMixin:
         self.btn_download.setEnabled(True)
         self._project.mark_dirty()
         self._show_auto_run_summary()
+        # 自动运行全部完成后清空工作区，避免阻塞后续"待确认查询"
+        self._clear_table()
+        self._parsed_results.clear()
 
     # ── 汇总弹窗 ─────────────────────────────────────────
 

@@ -24,7 +24,7 @@ class ScanMixin:
         if not self._mgr_ready:
             return
         if not root_path or not os.path.exists(root_path):
-            self.status_changed.emit("请先选择一个有效的文件或文件夹")
+            self.status_changed.emit(_("status_select_valid_path"))
             return
 
         # 工作区非空 → 追加/覆盖保护
@@ -86,7 +86,7 @@ class ScanMixin:
             parsed.source_path = file_path
             self._parsed_results.append(parsed)
             self._add_table_row(RowUpdate(seq=1, parsed=parsed, work_status="已扫描", total=1))
-            self.status_changed.emit("扫描完成: 1 个文件, 1 个识别成功")
+            self.status_changed.emit(_("status_scan_single_ok"))
             self._register_task("扫描", 1, 1, 0)
             # 写入索引
             self._mgr.upsert_file_index(
