@@ -82,7 +82,7 @@ class QueryCoreMethods:
                 if reply != QMessageBox.StandardButton.Yes:
                     return
 
-        from ...i18n import _
+        from ....i18n import _
 
         self.status_changed.emit(_("status_querying"))
         self.btn_query.setEnabled(False)
