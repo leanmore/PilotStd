@@ -132,7 +132,7 @@ class ActionsMixin:
         self._stop_workers()
         self._paused = False
         self._pause_event.set()
-        self.btn_pause.setText("暂停")
+        self.btn_pause.setText(_("toolbar_pause"))
         s = self.style()
         assert s is not None, "style() 不应为 None"
         self.btn_pause.setIcon(s.standardIcon(s.StandardPixmap.SP_MediaPause))

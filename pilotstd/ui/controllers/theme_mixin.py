@@ -108,10 +108,12 @@ class ThemeMixin:
         self.btn_normalize.setText(_("toolbar_normalize"))
         self.btn_save.setText(_("toolbar_save"))
         self.btn_auto.setText(_("toolbar_auto"))
+        self.btn_announce.setText(_("toolbar_announce"))
         if self._paused:
             self.btn_pause.setText(_("toolbar_continue"))
         else:
             self.btn_pause.setText(_("toolbar_pause"))
+        self.btn_cancel.setText(_("toolbar_cancel"))
         # 状态栏和日志
         self.status_bar.showMessage(_("ready"))
         if hasattr(self, "_log_label"):

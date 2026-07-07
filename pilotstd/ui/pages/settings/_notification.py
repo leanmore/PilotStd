@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from .....i18n import _
+
 
 class _NotificationTab:
     """通知智能聚合：自动暂停、手动恢复、暂停状态显示。"""
@@ -53,7 +55,7 @@ class _NotificationTab:
         layout.addWidget(resume_btn)
 
         layout.addStretch()
-        self._add_page("通知", w)
+        self._add_page(_("settings_notification"), w)
 
     def _on_auto_pause_toggled(self, checked: bool) -> None:
         from pilotstd.core.config.manager import ConfigManager

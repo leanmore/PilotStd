@@ -3,8 +3,6 @@
 
 import csv
 import logging
-import os
-import sys
 from typing import Any
 
 from PyQt6.QtCore import Qt
@@ -73,12 +71,18 @@ class QueryPendingMethods:
         return table
 
     def _save_pending_csv(self, table: QTableWidget, save_status: QLabel) -> None:
-        """导出待确认表格为 CSV 文件，结果反映在 save_status 标签。"""
+        """导出待确认表格为 CSV 文件，弹出路径选择框，结果反映在 save_status 标签。"""
         from datetime import datetime
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        save_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
-        path = os.path.join(save_dir, f"pending_standards_{ts}.csv")
+        path, __ = QFileDialog.getSaveFileName(
+            None,
+            _("dialog_save_pending"),
+            f"pending_standards_{ts}.csv",
+            _("file_filter_csv"),
+        )
+        if not path:
+            return
         try:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 writer = csv.writer(f)

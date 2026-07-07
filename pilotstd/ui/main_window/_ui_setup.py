@@ -149,43 +149,43 @@ class UISetupMixin:
         style = self.style()
         assert style is not None, "style() 不应为 None"
 
-        self.btn_select = QPushButton("导入")
+        self.btn_select = QPushButton(_("toolbar_import"))
         self.btn_select.setIcon(style.standardIcon(style.StandardPixmap.SP_DirOpenIcon))
         self.btn_select.setToolTip("导入文件夹到项目中")
         self.btn_select.clicked.connect(self._on_select)
         self.toolbar.addWidget(self.btn_select)
 
-        self.btn_query = QPushButton("查询")
+        self.btn_query = QPushButton(_("toolbar_query"))
         self.btn_query.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogContentsView))
         self.btn_query.setToolTip("对扫描后的标准号在网站上查询有效性，获取标准状态")
         self.btn_query.clicked.connect(self._on_query)
         self.toolbar.addWidget(self.btn_query)
 
-        self.btn_download = QPushButton("下载")
+        self.btn_download = QPushButton(_("toolbar_download"))
         self.btn_download.setIcon(style.standardIcon(style.StandardPixmap.SP_ArrowDown))
         self.btn_download.setToolTip("对已有新版本的标准进行下载")
         self.btn_download.clicked.connect(self._on_download)
         self.toolbar.addWidget(self.btn_download)
 
-        self.btn_normalize = QPushButton("规范化")
+        self.btn_normalize = QPushButton(_("toolbar_normalize"))
         self.btn_normalize.setIcon(style.standardIcon(style.StandardPixmap.SP_FileDialogDetailedView))
         self.btn_normalize.setToolTip("对扫描结果生成规范标准文件名")
         self.btn_normalize.clicked.connect(self._on_normalize)
         self.toolbar.addWidget(self.btn_normalize)
 
-        self.btn_save = QPushButton("归档")
+        self.btn_save = QPushButton(_("toolbar_save"))
         self.btn_save.setIcon(style.standardIcon(style.StandardPixmap.SP_DriveFDIcon))
         self.btn_save.setToolTip("将文件以规范名称保存到设定文件夹")
         self.btn_save.clicked.connect(self._on_save_to_folder)
         self.toolbar.addWidget(self.btn_save)
 
-        self.btn_auto = QPushButton("一键处理")
+        self.btn_auto = QPushButton(_("toolbar_auto"))
         self.btn_auto.setIcon(style.standardIcon(style.StandardPixmap.SP_MediaPlay))
         self.btn_auto.setToolTip("自动依次执行 扫描→查询→下载→规范化→保存 全流程")
         self.btn_auto.clicked.connect(self._on_auto_run)
         self.toolbar.addWidget(self.btn_auto)
 
-        self.btn_announce = QPushButton("公告检查")
+        self.btn_announce = QPushButton(_("toolbar_announce"))
         self.btn_announce.setIcon(style.standardIcon(style.StandardPixmap.SP_MessageBoxWarning))
         self.btn_announce.setToolTip("抓取国家标准/行业标准/地方标准公告，检测本地标准变更")
         self.btn_announce.clicked.connect(self._on_check_announcements)
@@ -193,14 +193,14 @@ class UISetupMixin:
 
         self.toolbar.addSeparator()
 
-        self.btn_pause = QPushButton("暂停")
+        self.btn_pause = QPushButton(_("toolbar_pause"))
         self.btn_pause.setIcon(style.standardIcon(style.StandardPixmap.SP_MediaPause))
         self.btn_pause.setToolTip("暂停/继续当前任务")
         self.btn_pause.clicked.connect(self._on_pause_toggle)
         self.btn_pause.setEnabled(False)
         self.toolbar.addWidget(self.btn_pause)
 
-        self.btn_cancel = QPushButton("取消")
+        self.btn_cancel = QPushButton(_("toolbar_cancel"))
         self.btn_cancel.setIcon(style.standardIcon(style.StandardPixmap.SP_DialogCancelButton))
         self.btn_cancel.setToolTip("取消当前任务")
         self.btn_cancel.clicked.connect(self._on_cancel)
@@ -220,7 +220,7 @@ class UISetupMixin:
     def _setup_file_tree(self) -> QWidget:
         """创建左侧文件浏览树。返回 left_widget 供布局组装。"""
         self.file_tree = QTreeWidget()
-        self.file_tree.setHeaderLabel("文件导航")
+        self.file_tree.setHeaderLabel(_("file_nav"))
         self.file_tree.setColumnCount(1)
         self.file_tree.setAnimated(True)
         self.file_tree.itemExpanded.connect(self._on_tree_item_expanded)

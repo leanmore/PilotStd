@@ -11,7 +11,9 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QVBoxLayout,
+    QWidget,
 )
 
 from ...i18n import _
@@ -62,19 +64,27 @@ class DialogMixin:
     # ── 阶段弹窗 ─────────────────────────────────────────
 
     def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, next_label: str = "") -> None:
-        """统一阶段弹窗。下一步按钮在左，确定在右，等宽等高。
-        支持右下角拉伸手柄调整窗口大小。"""
+        """统一阶段弹窗。内容较长时自动出现垂直滚动条。"""
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
-        dlg.resize(600, 500)  # 合理的初始尺寸
+        dlg.resize(600, 500)
         dlg.setSizeGripEnabled(True)
         layout = QVBoxLayout(dlg)
+        # 内容区域 — 包裹在 QScrollArea 中，内容超长时可滚动
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
         label = QLabel(message)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(label)
-        layout.addStretch()
+        container_layout.addWidget(label)
+        container_layout.addStretch()
+        scroll.setWidget(container)
+        layout.addWidget(scroll)
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         if next_action:
@@ -88,7 +98,7 @@ class DialogMixin:
         dlg.exec()
 
     def _show_stage_dialog_multi(self, title: str, message: str, actions: list[tuple[str, Callable[..., Any]]]) -> None:
-        """多按钮阶段弹窗。actions 为 [(按钮文本, 回调函数), ...] 列表。"""
+        """多按钮阶段弹窗。内容较长时自动出现垂直滚动条。"""
         if self._suppress_dialogs:
             return
         dlg = QDialog(self)
@@ -97,11 +107,20 @@ class DialogMixin:
         dlg.resize(600, 500)
         dlg.setSizeGripEnabled(True)
         layout = QVBoxLayout(dlg)
+        # 内容区域 — 包裹在 QScrollArea 中，内容超长时可滚动
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
         label = QLabel(message)
         label.setWordWrap(True)
         label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        layout.addWidget(label)
-        layout.addStretch()
+        container_layout.addWidget(label)
+        container_layout.addStretch()
+        scroll.setWidget(container)
+        layout.addWidget(scroll)
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         for label_text, callback in actions:

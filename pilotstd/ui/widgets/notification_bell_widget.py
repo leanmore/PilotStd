@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
     QWidgetAction,
 )
 
+from ...i18n import _
+
 logger = logging.getLogger("pilotstd.ui")
 
 
@@ -256,11 +258,11 @@ class NotificationBellWidget(QWidget):
         header = QWidget()
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(12, 8, 12, 8)
-        title = QLabel("通知")
+        title = QLabel(_("settings_notification"))
         title.setStyleSheet("font-weight: bold; font-size: 14px;")
         header_layout.addWidget(title)
         if self._unread_count > 0:
-            mark_all = QPushButton("全部标记已读")
+            mark_all = QPushButton(_("notification_mark_all_read"))
             mark_all.setStyleSheet("font-size: 12px; color: #409eff; background: none; border: none;")
             mark_all.clicked.connect(self._mark_all_read)
             header_layout.addWidget(mark_all)
@@ -281,7 +283,7 @@ class NotificationBellWidget(QWidget):
         for item in self._items[:10]:
             content_layout.addWidget(self._create_item_widget(item))
         if not self._items:
-            empty = QLabel("暂无通知")
+            empty = QLabel(_("notification_empty"))
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty.setStyleSheet("padding: 40px 0; color: #999;")
             content_layout.addWidget(empty)
@@ -294,7 +296,7 @@ class NotificationBellWidget(QWidget):
         footer = QWidget()
         footer_layout = QHBoxLayout(footer)
         footer_layout.setContentsMargins(12, 8, 12, 8)
-        view_all = QPushButton("查看全部通知 →")
+        view_all = QPushButton(_("notification_view_all"))
         view_all.setStyleSheet("font-size: 12px; color: #409eff; background: none; border: none;")
         view_all.clicked.connect(self._view_all)
         footer_layout.addWidget(view_all, alignment=Qt.AlignmentFlag.AlignCenter)

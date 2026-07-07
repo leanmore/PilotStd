@@ -34,7 +34,9 @@ class AnnounceMixin:
             return False
         if self._config.get("query.use_announcement_match", False):
             logger.info("本地公告检查被禁用（use_announcement_match=True）")
-            QMessageBox.information(self, "公告检查", "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。")
+            QMessageBox.information(
+                self, _("toolbar_announce"), "当前已启用 Web 端公告缓存模式，本地公告检查功能已禁用。"
+            )
             return False
         return True
 
