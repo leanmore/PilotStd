@@ -40,7 +40,7 @@ class QueryMixin:
 
     def set_pause_event(self, event: Any) -> None:
         """设置暂停事件，透传至 QueryEngine 供串行查询循环检查。"""
-        self.query_engine.set_pause_event(event)
+        self.query_engine.set_pause_event(event)  # type: ignore[attr-defined]
 
     def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
         """向 Web 端公告缓存服务查询单个标准号。"""

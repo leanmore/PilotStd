@@ -1,8 +1,12 @@
 # pilotstd/ui/controllers/query/summary.py
 # 查询结果摘要展示 — 从 query_mixin.py 拆分
 
+import csv
 import os
+import sys
 from typing import Any
+
+from PyQt6.QtWidgets import QMessageBox
 
 from ....i18n import _
 from ....platform.notify import NotifyService
@@ -14,9 +18,9 @@ class QuerySummaryMethods:
     """查询完成后的摘要统计 + 通知 + 对话框。"""
 
     def _count_query_actions(self) -> dict[str, int]:
-        """统计各 next_action 的数量。返回 {archive, normalize, expire, not_found, pending}。"""
+        """统计各 next_action 的数量。"""
         counts: dict[str, int] = {}
-        for action in ("archive", "normalize", "expire", "not_found", "pending"):
+        for action in ("archive", "normalize", "expire", "download", "manual_download", "not_found", "pending"):
             counts[action] = sum(1 for p in self._parsed_results if p.next_action == action)
         return counts
 
@@ -32,6 +36,10 @@ class QuerySummaryMethods:
             lines.append(_("query_summary_expire").format(count=counts["expire"], extra=extra))
         if counts["pending"] > 0:
             lines.append(_("query_summary_pending").format(count=counts["pending"]))
+        if counts["download"] > 0:
+            lines.append(_("query_summary_download").format(count=counts["download"]))
+        if counts["manual_download"] > 0:
+            lines.append(_("query_summary_manual_download").format(count=counts["manual_download"]))
         if counts["not_found"] > 0:
             lines.append(_("query_summary_not_found").format(count=counts["not_found"]))
 
@@ -39,11 +47,13 @@ class QuerySummaryMethods:
             "archive": "query_cat_archive",
             "normalize": "query_cat_normalize",
             "expire": "query_cat_expire",
+            "download": "query_cat_download",
+            "manual_download": "query_cat_manual_download",
             "pending": "query_cat_pending",
             "not_found": "query_cat_not_found",
         }
         detail_section = []
-        for cat_action in ["archive", "normalize", "expire", "pending", "not_found"]:
+        for cat_action in ["archive", "normalize", "expire", "download", "manual_download", "pending", "not_found"]:
             cat_label = _(cat_keys[cat_action])
             cat_items = [p for p in self._parsed_results if p.next_action == cat_action]
             if cat_items:
@@ -101,6 +111,7 @@ class QuerySummaryMethods:
             summary_text = self._build_query_summary_text(counts, expired_moved)
             download_count = counts.get("archive", 0) + counts.get("normalize", 0)
             pending_count = counts["pending"]
+            manual_count = counts.get("manual_download", 0)
             actions = []
             if download_count > 0:
 
@@ -109,6 +120,12 @@ class QuerySummaryMethods:
                     self._on_download()
 
                 actions.append((f"开始下载({download_count}条)", do_download))
+            if manual_count > 0:
+
+                def do_save_manual() -> None:
+                    self._save_manual_download_csv()
+
+                actions.append((f"保存手动下载清单({manual_count}条)", do_save_manual))
             if pending_count > 0:
 
                 def do_pending() -> None:
@@ -118,9 +135,54 @@ class QuerySummaryMethods:
                     dlg.exec()
 
                 actions.append((f"处理待确认({pending_count}条)", do_pending))
-            if download_count == 0 and pending_count == 0:
+            if download_count == 0 and manual_count == 0 and pending_count == 0:
                 if counts["normalize"] > 0:
                     actions.append((_("next_step_normalize"), self._on_normalize))
                 elif counts["archive"] > 0:
                     actions.append((_("next_step_save"), self._on_save_to_folder))
             self._show_stage_dialog_multi(_("query_results_title"), summary_text, actions)
+
+    def _save_manual_download_csv(self: Any) -> None:
+        """保存手动下载清单为 CSV，保存后清空对应条目（遵循工作区清洁原则）。"""
+        manual_items = [p for p in self._parsed_results if p.next_action == "manual_download"]
+        if not manual_items:
+            return
+        from datetime import datetime
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
+        path = os.path.join(save_dir, f"manual_download_{ts}.csv")
+        try:
+            with open(path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        _("query_pending_col_std_number"),
+                        _("query_pending_col_source_filename"),
+                        _("query_pending_col_web_name"),
+                        _("query_pending_col_local_year"),
+                        _("query_pending_col_web_number"),
+                        _("query_pending_col_source_site"),
+                    ]
+                )
+                for p in manual_items:
+                    writer.writerow(
+                        [
+                            p.get_full_number(),
+                            getattr(p, "std_name", "") or "",
+                            getattr(p, "found_name", "") or "",
+                            str(p.year) if p.year else "",
+                            getattr(p, "found_number", "") or "",
+                            getattr(p, "found_source_site", "") or "",
+                        ]
+                    )
+            count = len(manual_items)
+            self._parsed_results = [p for p in self._parsed_results if p.next_action != "manual_download"]
+            self.status_changed.emit(_("manual_download_saved").format(count=count, path=path))
+            QMessageBox.information(
+                self,
+                _("title_manual_download"),
+                _("msg_manual_download_saved").format(count=count),
+            )
+        except OSError as e:
+            QMessageBox.warning(None, _("title_save_failed"), _("msg_save_csv_failed").format(error=e))

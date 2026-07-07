@@ -12,6 +12,16 @@ from ..models import ParsedStdInfo
 logger = logging.getLogger(__name__)
 
 
+def _parse_code_from_std_number(standard_number: str) -> str:
+    """从标准号字符串中提取代号前缀。如 'GB/T 713.1-2023' → 'GB/T'，'HG/T 20584-2020' → 'HG/T'。"""
+    import re
+
+    m = re.match(r"([A-Z]+(?:\s*/\s*[A-Z]+)?)", str(standard_number))
+    if m:
+        return m.group(1).replace(" ", "")
+    return ""
+
+
 class PipelineRouter:
     """根据标准信息结构体中的状态标记，将文件分堆到对应的下一阶段。
 
@@ -79,14 +89,21 @@ class PipelineRouter:
 
     @staticmethod
     def _route_replaced_or_obsolete(
-        p: Any, buckets: dict[str, list[Any]], has_valid_replaces: bool, is_gb: bool
+        p: Any, buckets: dict[str, list[Any]], has_valid_replaces: bool, replaces: str
     ) -> None:
-        """路由规则: 有替代关系的国标 → download，否则 → expire（含采标 → pending）。"""
-        if has_valid_replaces and is_gb:
-            if getattr(p, "is_adopted", False):
-                buckets["pending"].append(p)
+        """路由规则: 有替代关系 → 替代为GB→download，替代为非GB→manual_download，否则→expire。
+        规格要求检查替代标准（而非当前标准）的 GB/非GB 属性。"""
+        if has_valid_replaces:
+            replacement_code = _parse_code_from_std_number(replaces)
+            if replacement_code and is_gb_code(replacement_code):
+                if getattr(p, "is_adopted", False):
+                    buckets["pending"].append(p)
+                else:
+                    buckets["download"].append(p)
             else:
-                buckets["download"].append(p)
+                # 替代标准为非GB（或无法解析代号）→ 手动下载
+                buckets["manual_download"].append(p)
+                p.stage_status = "replacement_manual"
         else:
             buckets["expire"].append(p)
 
@@ -127,12 +144,6 @@ class PipelineRouter:
         has_valid_replaces = bool(replaces and replaces not in ("网站无此分类",))
         is_gb = is_gb_code(code)
 
-        # 规则0: 非 exact 匹配 → pending
-        if match_status and match_status != "exact":
-            buckets["pending"].append(p)
-            if match_status in ("older", "newer"):
-                p.stage_status = "version_mismatch"
-            return
         # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending
         src = (getattr(p, "source_name", "") or "").strip()
         qry = (getattr(p, "found_name", "") or "").strip()
@@ -159,13 +170,29 @@ class PipelineRouter:
             return
         # 规则4-7: 废止/已废止/作废/被代替
         if status in ("废止", "已废止", "作废", "被代替"):
-            self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, is_gb)
+            self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, replaces)
+            return
+        # 规则4.5: 本地无文件 → GB 进 download，非GB 进 manual_download
+        source_path = getattr(p, "source_path", "") or ""
+        if not source_path or not os.path.exists(source_path):
+            if is_gb:
+                buckets["download"].append(p)
+                p.stage_status = "need_download"
+            else:
+                buckets["manual_download"].append(p)
+                p.stage_status = "need_manual_download"
             return
         # 规则8: 现行 → organize/normalize
         if status == "现行":
             self._route_current_status(p, buckets)
             return
-        # 规则9: 兜底
+        # 规则9: 非 exact 匹配兜底 → pending（排在所有具体判定之后，仅捕获无法归类的条目）
+        if match_status and match_status != "exact":
+            buckets["pending"].append(p)
+            if match_status in ("older", "newer"):
+                p.stage_status = "version_mismatch"
+            return
+        # 规则10: 最终兜底
         buckets["fallback"].append(p)
 
     def classify_after_query(self, items: List[ParsedStdInfo]) -> dict[str, Any]:
@@ -175,6 +202,7 @@ class PipelineRouter:
             "normalize": [],
             "expire": [],
             "download": [],
+            "manual_download": [],
             "pending": [],
             "fallback": [],
         }
@@ -184,13 +212,14 @@ class PipelineRouter:
         _ce_count = sum(1 for p in buckets.get("pending", []) if getattr(p, "match_status", "") == "chain_exhausted")
         logger.info(
             "[ROUTER] 分类结果: pending=%d (chain_exhausted=%d) "
-            "organize=%d normalize=%d expire=%d download=%d fallback=%d",
+            "organize=%d normalize=%d expire=%d download=%d manual_download=%d fallback=%d",
             len(buckets["pending"]),
             _ce_count,
             len(buckets["organize"]),
             len(buckets["normalize"]),
             len(buckets["expire"]),
             len(buckets["download"]),
+            len(buckets["manual_download"]),
             len(buckets["fallback"]),
         )
         for p in buckets["pending"]:
@@ -215,6 +244,8 @@ class PipelineRouter:
             p.next_action = "expire"
         for p in buckets.get("download", []):
             p.next_action = "download"
+        for p in buckets.get("manual_download", []):
+            p.next_action = "manual_download"
         for p in buckets.get("pending", []):
             p.next_action = "pending"
         for p in buckets.get("fallback", []):
