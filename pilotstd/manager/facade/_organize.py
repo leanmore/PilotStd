@@ -132,6 +132,7 @@ class OrganizeMixin:
         word_source_root: str | None = None,
         progress_callback: Any = None,
         on_result: Any = None,
+        overwrite: bool = False,
     ) -> dict[str, Any]:
         """统一归档入口：所有端（CLI/Web/WinUI）均通过此方法归档。"""
         _items = parsed_list if parsed_list is not None else self._parsed_results
@@ -146,7 +147,7 @@ class OrganizeMixin:
                 progress_callback(_i + 1, _total)
         if _backfilled:
             logger.info("archive_standards: 回填 std_name %d/%d 条", _backfilled, _total)
-        result = self._organizer_svc.organize(_items, word_source_root)
+        result = self._organizer_svc.organize(_items, word_source_root, overwrite=overwrite)
         if result.get("moved", 0) > 0:
             for _p in _items:
                 _std_no = f"{_p.logical_code} {_p.number}"

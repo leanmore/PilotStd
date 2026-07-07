@@ -168,8 +168,8 @@ class PipelineRouter:
         if status == "待确认":
             buckets["pending"].append(p)
             return
-        # 规则4-7: 废止/已废止/作废/被代替
-        if status in ("废止", "已废止", "作废", "被代替"):
+        # 规则4-7: 废止/已废止/作废/被代替/过期
+        if status in ("废止", "已废止", "作废", "被代替", "过期"):
             self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, replaces)
             return
         # 规则4.5: 本地无文件 → GB 进 download，非GB 进 manual_download

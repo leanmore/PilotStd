@@ -86,7 +86,9 @@ class ArchiveWorker(QThread):
                     _log_progress(logger, "归档", cur, total, _t_start)
                     _last_log = now
 
-            self._mgr.archive_standards(self.parsed_list, progress_callback=on_progress, on_result=on_result)
+            self._mgr.archive_standards(
+                self.parsed_list, progress_callback=on_progress, on_result=on_result, overwrite=self._overwrite
+            )
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
             self.finished_signal.emit()

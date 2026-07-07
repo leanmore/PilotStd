@@ -136,7 +136,13 @@ class QueryPendingMethods:
 
         confirmed = False
 
-        save_btn.clicked.connect(lambda: self._save_pending_csv(table, save_status))
+        def on_save() -> None:
+            nonlocal confirmed
+            self._save_pending_csv(table, save_status)
+            confirmed = True
+            dlg.accept()
+
+        save_btn.clicked.connect(on_save)
 
         def on_discard() -> None:
             nonlocal confirmed
@@ -155,6 +161,19 @@ class QueryPendingMethods:
         except Exception as e:
             logger.exception("待确认查询异常")
             QMessageBox.critical(None, _("title_error"), _("error_pending_query_failed").format(error=e))
+
+    def _writeback_and_reclassify(self: Any, results: list[Any], parsed_list: list[Any]) -> None:
+        """将二次查询结果回写到 parsed_list，然后重新路由分类。"""
+        for idx, r in results:
+            if idx < len(parsed_list) and r is not None:
+                p = parsed_list[idx]
+                if r.standard_name:
+                    p.found_name = r.standard_name
+                p.found_source_site = getattr(r, "source_site", "") or ""
+                p.found_number = getattr(r, "standard_number", "") or ""
+                p.effect_status = getattr(r, "status", "") or ""
+                p.match_status = getattr(r, "match_status", "") or ""
+        self._mgr._classifier._router.apply_actions(parsed_list)
 
     def _do_pending_query(self: Any) -> None:
         if not self._mgr_ready:
@@ -213,7 +232,8 @@ class QueryPendingMethods:
             self.status_changed.emit(_("status_pending_cancelled"))
             return
 
-        dlg.get_results()
+        results = dlg.get_results()
+        self._writeback_and_reclassify(results, parsed_list)
         self._clear_table()
         self._parsed_results = parsed_list
 

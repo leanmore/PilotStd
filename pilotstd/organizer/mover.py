@@ -51,15 +51,15 @@ class FileMover:
 
     # ── 独立步骤：仅移动 ──
 
-    def archive(self, src_path: str, dst_path: str) -> Optional[str]:
+    def archive(self, src_path: str, dst_path: str, on_exists: str = "skip") -> Optional[str]:
         """仅执行移动操作，不做重命名。成功返回新路径，失败返回 None。"""
-        if safe_move(src_path, dst_path):
+        if safe_move(src_path, dst_path, on_exists=on_exists):
             return dst_path
         return None
 
     # ── 合并步骤（旧接口，保持兼容）──
 
-    def move_to_code_dir(self, src_path: str, parsed: ParsedStdInfo) -> Optional[str]:
+    def move_to_code_dir(self, src_path: str, parsed: ParsedStdInfo, on_exists: str = "skip") -> Optional[str]:
         """将文件移动到对应代号目录下，按规范生成文件名。成功返回新路径，失败返回 None。"""
         logger.debug(
             "移动: %s → 代号=%s 号=%s 年=%s",
@@ -72,7 +72,7 @@ class FileMover:
         if not self._is_safe_path(dst):
             logger.error("路径越界被拒绝: %s", dst)
             return None
-        return self.archive(src_path, dst)
+        return self.archive(src_path, dst, on_exists=on_exists)
 
     def move_to_expire(self, src_path: str, parsed: ParsedStdInfo) -> Optional[str]:
         """将过期文件移动到过期作废子目录。"""

@@ -37,11 +37,14 @@ class OrganizerCore:
         self._expire_handler = expire_handler
         self._skipped_source_files: set[str] = set()
 
-    def organize(self: Any, parsed_list: list[Any], word_source_root: str | None = None) -> dict[str, Any]:
+    def organize(
+        self: Any, parsed_list: list[Any], word_source_root: str | None = None, overwrite: bool = False
+    ) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。Word/模板文件按源目录镜像归档。"""
         items = parsed_list
         root = get_library_root(self._cfg)
         mover = self._file_mover
+        on_exists = "overwrite" if overwrite else "skip"
         self._ensure_target_dir(root)
         result: dict[str, Any] = {
             "moved": 0,
@@ -71,9 +74,9 @@ class OrganizerCore:
                 result["details"].append(f"跳过（无源文件）: {p.get_full_number()}")
                 continue
             if _is_word_or_template(src):
-                self._organize_word_item(p, root, word_source_root, result)
+                self._organize_word_item(p, root, word_source_root, result, on_exists)
             else:
-                self._organize_nonword_item(p, mover, result, _content_hashes)
+                self._organize_nonword_item(p, mover, result, _content_hashes, on_exists)
         self._log_organize_summary(result)
         return result
 
@@ -81,7 +84,9 @@ class OrganizerCore:
         """确保目标目录存在。"""
         os.makedirs(target_root, exist_ok=True)
 
-    def _organize_word_item(self, p: Any, root: str, word_source_root: str | None, result: dict) -> None:
+    def _organize_word_item(
+        self, p: Any, root: str, word_source_root: str | None, result: dict, on_exists: str
+    ) -> None:
         """Word 文件镜像归档 + 索引更新。"""
         src = getattr(p, "source_path", "")
         clean_src = strip_long_path(src)
@@ -99,13 +104,13 @@ class OrganizerCore:
             return
         try:
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if os.path.exists(dst):
+            if os.path.exists(dst) and on_exists != "overwrite":
                 logger.debug("Word 目标已存在，跳过: %s", os.path.basename(src))
                 result["skipped_exists"] += 1
                 result["word_mirrored"] += 1
                 self._skipped_source_files.add(clean_src)
                 return
-            safe_move(src, dst, on_exists="skip")
+            safe_move(src, dst, on_exists=on_exists)
             result["moved"] += 1
             result["word_mirrored"] += 1
             result["details"].append(f"Word: {os.path.basename(src)} -> {dst}")
@@ -122,7 +127,7 @@ class OrganizerCore:
             result["failed"] += 1
             result["details"].append(f"Word 归档失败: {os.path.basename(src)} - {e}")
 
-    def _organize_nonword_item(self, p: Any, mover: Any, result: dict, content_hashes: dict) -> None:
+    def _organize_nonword_item(self, p: Any, mover: Any, result: dict, content_hashes: dict, on_exists: str) -> None:
         """非 Word 文件去重 + 移动 + 索引更新。"""
         src = getattr(p, "source_path", "")
         try:
@@ -133,7 +138,7 @@ class OrganizerCore:
             logger.info("内容重复，跳过: %s (已归档为 %s)", os.path.basename(src), content_hashes[fhash])
             result["dedup_skipped"] += 1
             return
-        dst = mover.move_to_code_dir(src, p)
+        dst = mover.move_to_code_dir(src, p, on_exists=on_exists)
         if dst:
             result["moved"] += 1
             result["details"].append(f"{os.path.basename(src)} -> {dst}")
