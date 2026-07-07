@@ -58,6 +58,11 @@ class AnnouncementMatcher:
         - publish_date: 取组内第一个非空值
         - announcement_title: 取组内第一个非空值
         - standard_count: 动态计算 = 该公告下条目总数
+
+        ⚠️ 警告：standard_count 在此处仅表示"所属公告包含的条目数"，
+        同一公告的所有记录共享此值，不代表全局唯一标准数。
+        统计总数时必须使用 COUNT(*) 或 COUNT(DISTINCT standard_number)，
+        严禁使用 SUM(standard_count)，否则会导致数据呈 N² 膨胀。
         """
         from collections import defaultdict
 

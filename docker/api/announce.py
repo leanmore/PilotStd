@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)
 FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
 
 
-def check_announce(since_date: str = "", mgr=None) -> dict:
+def check_announce(since_date: str = "", mgr=None, types: list[str] | None = None) -> dict:
     """抓取最新公告。通过 StandardManager 统一入口。
-    mgr 参数：路由通过 Depends 注入，调度器调用时传 None 走 _get_mgr() 降级。"""
+    mgr 参数：路由通过 Depends 注入，调度器调用时传 None 走 _get_mgr() 降级。
+    types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。"""
     if mgr is None:
         mgr = _get_mgr()
-    result = mgr.check_announcements_filtered(since_date=since_date)
+    result = mgr.check_announcements_filtered(since_date=since_date, types=types)
     # 汇总各类型公告明细
     total_matched = 0
     total_updated = 0
@@ -69,7 +70,7 @@ def check_announce(since_date: str = "", mgr=None) -> dict:
     }
 
 
-def _sync_wait_check(since_date: str = "", mgr=None, timeout: int = 60) -> dict:
+def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = None, timeout: int = 60) -> dict:
     """sync=true 兼容模式：通过 AnnounceService 创建异步任务后同步等待。"""
     import time as _time
 
@@ -100,6 +101,7 @@ def _sync_wait_check(since_date: str = "", mgr=None, timeout: int = 60) -> dict:
 def api_check_announce(
     since_date: str = "",
     sync: bool = False,
+    types: str = "",
     background_tasks: BackgroundTasks = None,
     mgr=Depends(get_manager_dep),
 ):
@@ -107,14 +109,16 @@ def api_check_announce(
     - sync=False（默认）：后台异步执行，不阻塞请求线程，返回 msg
     - sync=True：同步执行，返回实际抓取的 count 和 failures 数
     since_date 可选，仅抓取该日期之后的公告（格式 YYYY-MM-DD）。
+    types 可选，逗号分隔的公告类型（gb,hb,db），不传则抓取全部。
     """
+    type_list = [t.strip() for t in types.split(",") if t.strip()] if types else None
     if sync:
         logger.warning("[DEPRECATED] sync=true 调用已弃用，请迁移至 POST /api/announcements/fetch 异步模式")
-        return _sync_wait_check(since_date=since_date, mgr=mgr)
+        return _sync_wait_check(since_date=since_date, mgr=mgr, types=type_list)
     if background_tasks:
-        background_tasks.add_task(check_announce, since_date=since_date, mgr=mgr)
+        background_tasks.add_task(check_announce, since_date=since_date, mgr=mgr, types=type_list)
         return {"ok": True, "msg": "公告抓取已提交后台执行"}
-    return check_announce(since_date=since_date, mgr=mgr)
+    return check_announce(since_date=since_date, mgr=mgr, types=type_list)
 
 
 @router.get("/api/announce/results")
@@ -192,7 +196,16 @@ _STATS_CACHE_TTL = 300  # 5 分钟
 
 @router.get("/api/announce/stats")
 def get_announce_stats(mgr=Depends(get_manager_dep)):
-    """公告统计数据（标准总数/已匹配/今日新增，按国标/行标/地标分类）。5分钟缓存。"""
+    """公告统计数据（标准总数/已匹配/今日新增，按国标/行标/地标分类）。5分钟缓存。
+
+    ⚠️ 统计口径说明：
+    - 标准总数 = announcement_record 表的记录行数（COUNT(*)），每条记录对应
+      一个 (公告, 标准号) 组合。同一标准号出现在不同公告中会分别计数。
+    - 已匹配 = announcement_record 中 matched=1 的行数。
+    - 今日新增 = 今天抓取入库的行数。
+    - 严禁使用 SUM(standard_count) 做统计：_normalize() 会将同公告的所有行
+      写入相同的条目总数，SUM 会导致 N² 膨胀。
+    """
     import time
 
     now_ts = time.time()
@@ -202,24 +215,24 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     db = mgr.db
     today = "date('now', 'localtime')"
 
-    # 全量统计（标准总数 = SUM(standard_count)，非公告条数）
+    # 全量统计：COUNT(*) 统计行数，每条 (公告, 标准号) 计 1
     all_row = db.fetchone(
-        "SELECT SUM(standard_count) as total,"
-        " SUM(CASE WHEN source_site='announcement_gb' THEN standard_count ELSE 0 END) as gb,"
-        " SUM(CASE WHEN source_site='announcement_hb' THEN standard_count ELSE 0 END) as hb,"
-        " SUM(CASE WHEN source_site='announcement_db' THEN standard_count ELSE 0 END) as db"
+        "SELECT COUNT(*) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         " FROM announcement_record"
     )
-    # 今日抓取（用于计算新增）
+    # 今日抓取
     today_row = db.fetchone(
-        "SELECT SUM(standard_count) as total,"
-        " SUM(CASE WHEN source_site='announcement_gb' THEN standard_count ELSE 0 END) as gb,"
-        " SUM(CASE WHEN source_site='announcement_hb' THEN standard_count ELSE 0 END) as hb,"
-        " SUM(CASE WHEN source_site='announcement_db' THEN standard_count ELSE 0 END) as db"
+        "SELECT COUNT(*) as total,"
+        " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"
+        " SUM(CASE WHEN source_site='announcement_hb' THEN 1 ELSE 0 END) as hb,"
+        " SUM(CASE WHEN source_site='announcement_db' THEN 1 ELSE 0 END) as db"
         f" FROM announcement_record WHERE date(fetched_at)={today}"
     )
-    # 已匹配（全量，不限时间，计算已匹配的标准数）
-    matched_row = db.fetchone("SELECT SUM(standard_count) as cnt FROM announcement_record WHERE matched=1")
+    # 已匹配
+    matched_row = db.fetchone("SELECT COUNT(*) as cnt FROM announcement_record WHERE matched=1")
 
     def _val(row, key, default=0):
         if not row:

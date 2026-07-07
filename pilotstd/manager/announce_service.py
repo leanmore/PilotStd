@@ -94,8 +94,10 @@ class AnnounceService:
         std_type: str | None = None,
         since_date: str = "",
         progress_callback: Any = None,
+        types: list[str] | None = None,
     ) -> dict[str, Any]:
-        """带类型过滤和日期筛选的公告检查。供 CLI 调用。"""
+        """带类型过滤和日期筛选的公告检查。供 CLI 调用。
+        types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。"""
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
 
@@ -108,8 +110,13 @@ class AnnounceService:
             )
             return {std_type: result}
 
+        # 确定要抓取的适配器列表
+        adapters = engine.adapters
+        if types:
+            adapters = [a for a in adapters if a.standard_type in types]
+
         results = {}
-        for adapter in engine.adapters:
+        for adapter in adapters:
             result = engine.check_one(
                 adapter.standard_type,
                 since_date=since_date,

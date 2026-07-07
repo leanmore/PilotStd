@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceView' })
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
@@ -8,6 +8,7 @@ import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Calendar from 'primevue/calendar'
+import ToggleSwitch from 'primevue/toggleswitch'
 import LogBar from '@/components/LogBar.vue'
 
 // 起始日期默认今天
@@ -23,6 +24,16 @@ const tabs: { key: 'gb'|'hb'|'db', label: string, api: string }[] = [
   { key: 'db', label: '地方标准公告', api: 'nocDBPage' },
 ]
 const results = ref<any[]>([])
+
+// 各适配器抓取开关（默认全部开启，持久化到 localStorage）
+const adapterEnabled = reactive({
+  gb: getItem('announce_gb_enabled') !== 'false',
+  hb: getItem('announce_hb_enabled') !== 'false',
+  db: getItem('announce_db_enabled') !== 'false',
+})
+watch(() => adapterEnabled.gb, (v) => setItem('announce_gb_enabled', String(v)))
+watch(() => adapterEnabled.hb, (v) => setItem('announce_hb_enabled', String(v)))
+watch(() => adapterEnabled.db, (v) => setItem('announce_db_enabled', String(v)))
 
 // 新版统计数据
 interface AnnounceStats {
@@ -57,7 +68,12 @@ async function check() {
     const sinceStr = sinceDate.value
       ? `${sinceDate.value.getFullYear()}-${String(sinceDate.value.getMonth()+1).padStart(2,'0')}-${String(sinceDate.value.getDate()).padStart(2,'0')}`
       : undefined
-    const r = await postAnnounceCheck(sinceStr)
+    // 收集已启用的适配器类型
+    const enabledTypes = (Object.keys(adapterEnabled) as ('gb'|'hb'|'db')[])
+      .filter(k => adapterEnabled[k])
+    if (enabledTypes.length === 0) { error.value = '请至少开启一个公告类型'; return }
+    const typesStr = enabledTypes.join(',')
+    const r = await postAnnounceCheck(sinceStr, typesStr)
     if (!r.ok) { error.value = '公告检查失败'; return }
     await load()
   } catch (e: any) { error.value = '公告检查失败，请查看后台日志' }
@@ -86,8 +102,14 @@ function onPage(e: any) {
     <div class="tabs">
       <button v-for="t in tabs" :key="t.key" :class="{ active: tab === t.key }" @click="switchTab(t.key)">{{ t.label }}</button>
     </div>
+    <div class="toggles">
+      <span v-for="t in tabs" :key="'sw-'+t.key" class="toggle-item">
+        <ToggleSwitch v-model="adapterEnabled[t.key]" :input-id="'sw-'+t.key" />
+        <label :for="'sw-'+t.key" class="toggle-label">{{ t.label }}</label>
+      </span>
+    </div>
     <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
-    <Button label="立即检查" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
+    <Button label="立即抓取" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
   <!-- 统计数据 -->
@@ -121,6 +143,9 @@ function onPage(e: any) {
 .tabs button:last-child { border-right: none; }
 .tabs button:hover { color: var(--text); }
 .tabs button.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
+.toggles { display: flex; gap: 8px; align-items: center; }
+.toggle-item { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.toggle-label { color: var(--text-dim); cursor: pointer; user-select: none; white-space: nowrap; }
 .err-msg { color: var(--danger, #e74c3c); font-size: 12px; margin: 4px 0; }
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }

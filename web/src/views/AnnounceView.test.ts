@@ -77,12 +77,12 @@ describe('AnnounceView', () => {
     expect(wrapper.html()).toContain('标准总数')
   })
 
-  it('渲染"立即检查"按钮', async () => {
+  it('渲染"立即抓取"按钮', async () => {
     const wrapper = mountView()
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.html()).toContain('立即检查')
+    expect(wrapper.html()).toContain('立即抓取')
   })
 
   it('无结果时正常渲染不崩溃', async () => {

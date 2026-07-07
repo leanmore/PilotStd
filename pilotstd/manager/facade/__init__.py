@@ -38,12 +38,14 @@ class StandardManager(
         std_type: Optional[str] = None,
         since_date: str = "",
         progress_callback: Any = None,
+        types: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI / API 调用。"""
         return self._announce_svc.check_announcements_filtered(  # type: ignore[no-any-return]
             std_type=std_type,
             since_date=since_date,
             progress_callback=progress_callback,
+            types=types,
         )
 
     def get_announcement_match(self, limit: int = 500) -> list[dict[str, Any]]:
