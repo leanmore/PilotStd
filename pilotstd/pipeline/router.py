@@ -219,9 +219,9 @@ class PipelineRouter:
             p.next_action = "pending"
         for p in buckets.get("fallback", []):
             p.next_action = "not_found"
-        # 名称决策：对即将归档的条目确定 final_name，回写 std_name
-        # 实质差异条目从 organize/normalize 中移入 pending
-        name_conflicts = self._resolve_names(buckets.get("organize", []) + buckets.get("normalize", []))
+        # 名称决策：仅对进入下载队列的条目（GB 类标准）比较源名称与查询名称，
+        # 实质差异条目移入 pending。非 GB 标准不参与名称决策，保持 organize/normalize 状态。
+        name_conflicts = self._resolve_names(buckets.get("download", []))
         if name_conflicts:
             for p in name_conflicts:
                 p.next_action = "pending"

@@ -60,6 +60,9 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         if use_parallel is False or (use_parallel is None and n <= 1):
             results: list[QueryResult] = []
             for i, item in enumerate(items):
+                # 暂停检查：若 _pause_event 被 clear()，在此阻塞直到 resume 调用 set()
+                if self._pause_event is not None:
+                    self._pause_event.wait()
                 r = self._query_one(
                     logical_code=item[0],
                     number=item[1],
@@ -106,6 +109,9 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         _prog_stop = threading.Event()
 
         def bump() -> None:
+            # 暂停检查：若 _pause_event 被 clear()，阻塞直到 resume 调用 set()
+            if self._pause_event is not None:
+                self._pause_event.wait()
             with counter_lock:
                 counter[0] += 1
                 if progress_callback:

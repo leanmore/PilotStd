@@ -38,6 +38,10 @@ class QueryMixin:
     _GB_CODES = GB_CODES
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
+    def set_pause_event(self, event: Any) -> None:
+        """设置暂停事件，透传至 QueryEngine 供串行查询循环检查。"""
+        self.query_engine.set_pause_event(event)
+
     def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
         """向 Web 端公告缓存服务查询单个标准号。"""
         base_url = self.cfg.get("query.announcement_url", "http://localhost:9028")
@@ -203,11 +207,11 @@ class QueryMixin:
         self._report_query_summary(stats, items, results)
         # 批量查询完成通知 (B1.3)
         try:
-            pending_count = len(self._pending_list) if hasattr(self, '_pending_list') else 0
+            pending_count = len(self._pending_list) if hasattr(self, "_pending_list") else 0
             if self.notification_mgr:
                 self.notification_mgr.send_event(
-                    "batch_query_summary",
-                    {"total": stats.total, "found": stats.found, "pending": pending_count})
+                    "batch_query_summary", {"total": stats.total, "found": stats.found, "pending": pending_count}
+                )
         except Exception:
             pass
         return results, stats

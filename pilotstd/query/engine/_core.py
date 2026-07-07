@@ -47,6 +47,12 @@ class QueryEngineCore:
         self._csres_active = False
         self._csres_processed = 0
         self._csres_total = 0
+        # 暂停事件：由 Worker 层传入，Engine 在串行循环中检查
+        self._pause_event: Optional[Any] = None
+
+    def set_pause_event(self, event: Optional[Any]) -> None:
+        """设置暂停事件（由 Manager 从 Worker 层传入）。"""
+        self._pause_event = event
 
     # ════════════════════════════════════════════════════════════════
     # 公共 API

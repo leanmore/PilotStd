@@ -64,6 +64,8 @@ class QueryWorker(QThread):
                     _log_progress(logger, "查询", current, total, _t_start)
                     _last_log = now
 
+            if self._pause_event is not None:
+                self._mgr.set_pause_event(self._pause_event)
             results, _stats = self._mgr.query(
                 self.parsed_list, progress_callback=on_progress, result_callback=on_result
             )
