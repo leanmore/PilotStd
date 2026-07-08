@@ -124,6 +124,27 @@ class AnnounceService:
                 progress_callback=progress_callback,
             )
             results[adapter.standard_type] = result
+
+        # 手动抓取成功后推进 checkpoint，让定时任务从最后抓到的日期之后开始增量
+        now = datetime.now().isoformat()
+        for adapter in adapters:
+            r = results.get(adapter.standard_type, {})
+            if isinstance(r, dict) and "error" not in r:
+                latest_date = r.get("last_notice_date", "")
+                log_row = self._file_index._db.fetchone(
+                    "SELECT * FROM fetch_checkpoint WHERE source_site=?", (adapter.source_site,)
+                )
+                if log_row:
+                    self._file_index._db.execute(
+                        "UPDATE fetch_checkpoint SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
+                        (now, latest_date, adapter.source_site),
+                    )
+                else:
+                    self._file_index._db.execute(
+                        "INSERT INTO fetch_checkpoint (source_site, last_fetched_at, last_notice_date) "
+                        "VALUES (?, ?, ?)",
+                        (adapter.source_site, now, latest_date),
+                    )
         return results
 
     # ── 异步抓取任务管理 ────────────────────────────────
