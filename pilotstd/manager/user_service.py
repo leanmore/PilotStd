@@ -102,3 +102,21 @@ class UserService:
             (user_id, key),
         )
         return {"ok": True, "key": key}
+
+    # ── 统一设置（v31：减少 HTTP 请求数） ─────
+
+    def get_user_settings(self, user_id: int) -> dict[str, Any]:
+        """一次返回 layout + preferences。"""
+        layout = self.get_layout(user_id)
+        prefs = self.get_preferences(user_id)
+        return {"layout": layout.get("layout"), "preferences": prefs.get("preferences", {})}
+
+    def save_user_settings(self, user_id: int, data: dict[str, Any]) -> dict[str, Any]:
+        """一次保存 layout（可选）和 preferences（可选）。"""
+        if "layout" in data:
+            self.save_layout(user_id, data["layout"])
+        if "preferences" in data:
+            prefs = data["preferences"]
+            if isinstance(prefs, dict) and prefs:
+                self.save_preferences_batch(user_id, prefs)
+        return {"ok": True}

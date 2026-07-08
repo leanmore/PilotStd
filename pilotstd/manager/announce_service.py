@@ -67,46 +67,6 @@ class AnnounceService:
             (task_type, source_site, since_date, error),
         )
 
-    def _record_announcement_failure(
-        self, standard_number: str, publish_date: str, source_site: str, error: str, task_id: int = 0
-    ) -> None:
-        self._file_index._db.execute(
-            "INSERT INTO announcement_fetch_failures "
-            "(standard_number, publish_date, source_site, error_message, task_id) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (standard_number, publish_date, source_site, error, task_id),
-        )
-
-    # ── 补抓队列 ──────────────────────────────────────────
-
-    def _retry_failed_announcements(self) -> int:
-        """补抓队列：取出未解决的失败公告，逐条重试。返回重试成功数。"""
-        rows = self._file_index._db.fetchall(
-            "SELECT id, standard_number, source_site FROM announcement_fetch_failures "
-            "WHERE resolved = FALSE AND retry_count < 3"
-        )
-        if not rows:
-            return 0
-        retried = 0
-        for row in rows:
-            # 检查该标准号是否已在 announcement_record 中出现
-            exists = self._file_index._db.fetchone(
-                "SELECT 1 FROM announcement_record WHERE standard_number=? AND source_site=?",
-                (row["standard_number"], row["source_site"]),
-            )
-            if exists:
-                self._file_index._db.execute(
-                    "UPDATE announcement_fetch_failures SET resolved=TRUE WHERE id=?", (row["id"],)
-                )
-                retried += 1
-            else:
-                new_count = row["retry_count"] + 1
-                self._file_index._db.execute(
-                    "UPDATE announcement_fetch_failures SET retry_count=?, last_retry_at=? WHERE id=?",
-                    (new_count, datetime.now().isoformat(), row["id"]),
-                )
-        return retried
-
     # ── 并发锁 ────────────────────────────────────────────
 
     def _acquire_manual_lock(self) -> bool:
@@ -148,8 +108,6 @@ class AnnounceService:
         if self._is_manual_running():
             logger.info("手动抓取正在运行，定时任务跳过本次")
             return {"skipped": True, "reason": "manual_running"}
-
-        self._retry_failed_announcements()
 
         user_since = self._get_user_since_date()
         if user_since:

@@ -1,6 +1,7 @@
 # pilotstd/manager/monitor_service.py
 # 文件监控服务 — 供 API 层 + app.py 生命周期使用
 
+from datetime import date
 from typing import Any
 
 
@@ -28,6 +29,18 @@ class MonitorService:
         from pilotstd.monitor.scheduler import get_scheduler
 
         return get_scheduler().get_status()
+
+    def get_stats(self) -> dict[str, Any]:
+        """获取当天监控统计。"""
+        from pilotstd.monitor.config import get_monitor_stats
+
+        stats = get_monitor_stats().get_today_stats()
+        return {
+            "date": date.today().isoformat(),
+            "processed": stats["processed"],
+            "success": stats["success"],
+            "failed": stats["failed"],
+        }
 
     def start(self) -> dict[str, Any]:
         """启动文件监控。"""

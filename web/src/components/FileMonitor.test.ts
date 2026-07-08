@@ -37,7 +37,10 @@ describe('FileMonitor', () => {
         return Promise.resolve({ data: { enabled: true, watch_path: '/inbox', delay_seconds: 5, recursive: true, file_patterns: ['.pdf'], ignore_patterns: ['.tmp'], auto_archive: true } })
       }
       if (url === '/monitor/status') {
-        return Promise.resolve({ data: { running: true, enabled: true, watch_path: '/inbox', delay_seconds: 5, last_processed: '', processed_today: 10, success_today: 8, failed_today: 2 } })
+        return Promise.resolve({ data: { running: true, enabled: true, watch_path: '/inbox', delay_seconds: 5, last_processed: '', processed_today: 0, success_today: 0, failed_today: 0 } })
+      }
+      if (url === '/monitor/stats') {
+        return Promise.resolve({ data: { date: '2026-07-08', processed: 10, success: 8, failed: 2 } })
       }
       return Promise.resolve({ data: {} })
     })

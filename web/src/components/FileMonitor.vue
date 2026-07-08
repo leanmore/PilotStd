@@ -29,6 +29,13 @@ interface MonitorStatus {
   failed_today: number
 }
 
+interface MonitorStats {
+  date: string
+  processed: number
+  success: number
+  failed: number
+}
+
 export default defineComponent({
   name: 'FileMonitor',
   setup() {
@@ -71,6 +78,16 @@ export default defineComponent({
       } catch { /* ignore */ }
     }
 
+    async function loadStats() {
+      try {
+        const r = await http.get('/monitor/stats')
+        const s: MonitorStats = r.data
+        status.value.processed_today = s.processed
+        status.value.success_today = s.success
+        status.value.failed_today = s.failed
+      } catch { /* ignore */ }
+    }
+
     async function saveConfig() {
       saving.value = true; saved.value = false
       try {
@@ -96,7 +113,7 @@ export default defineComponent({
       catch { /* ignore */ } finally { stopLoading.value = false }
     }
 
-    onMounted(() => { loadConfig(); loadStatus(); pollTimer = setInterval(loadStatus, 5000) })
+    onMounted(() => { loadConfig(); loadStatus(); loadStats(); pollTimer = setInterval(() => { loadStatus(); loadStats() }, 5000) })
     onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer) })
 
     return {

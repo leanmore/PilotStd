@@ -154,7 +154,7 @@ def _step1_precheck(source_dir: str, output_dir: str, db_path: str | None = None
     """CLI 冷启前置检查 — 原第〇步中与 CLI 相关的检查项分散到此。
 
     包括：Python 版本 / 源目录 / 输出目录 / 网络 / 复位源目录 /
-          清 standard_info_cache/file_index/rotator_state/pending_lookup / selfcheck
+          清 standard_info_cache/file_index/adapter_state/pending_lookup / selfcheck
     """
     all_ok = True
 
@@ -213,7 +213,7 @@ def _step1_precheck(source_dir: str, output_dir: str, db_path: str | None = None
         from pilotstd.core.db import Database as _DB
 
         _db = _DB(db_path)
-        _tables = ["standard_info_cache", "file_index", "rotator_state", "pending_lookup"]
+        _tables = ["standard_info_cache", "file_index", "adapter_state", "pending_lookup"]
         for _t in _tables:
             try:
                 _db.execute(f"DELETE FROM {_t}")
@@ -469,7 +469,7 @@ def _step0_clear_db(db_path: str | None = None):
         "announcement_match",
         "pending_lookup",
         "file_index",
-        "rotator_state",
+        "adapter_state",
     ]
     # 清空前记录各表行数
     counts = {}
@@ -2067,10 +2067,10 @@ def main():
         if os.path.exists(_db_path):
             _conn = _sqlite3.connect(_db_path)
             _conn.text_factory = str
-            _conn.execute("DELETE FROM rotator_state")
+            _conn.execute("DELETE FROM adapter_state")
             _conn.commit()
             _conn.close()
-            _log("[CLEANUP] rotator_state 已清空，冷却状态重置")
+            _log("[CLEANUP] adapter_state 已清空，冷却状态重置")
     except Exception as _e:
         _log(f"[WARN] rotator_state 清理失败，跳过: {_e}")
 

@@ -240,11 +240,14 @@ def init_login_attempts_table() -> None:
 
 
 def record_login_failure(ip: str) -> None:
-    """记录一次登录失败。"""
+    """记录一次登录失败，同时清理超过 7 天的旧记录。"""
     import time
 
     db = _get_db()
-    db.execute("INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)", (ip, time.time()))
+    now = time.time()
+    db.execute("INSERT INTO login_attempts (ip, attempt_time) VALUES (?, ?)", (ip, now))
+    # 清理超过 7 天的记录，控制表膨胀
+    db.execute("DELETE FROM login_attempts WHERE attempt_time < ?", (now - 7 * 86400,))
 
 
 def clear_login_failures(ip: str) -> None:

@@ -98,6 +98,10 @@ def _start_all_schedulers(_cron_mgr) -> None:
     # 文件监控自动启动
     try:
         _cron_mgr.monitor_service.start_scheduler()
+        # 初始化监控统计内存计数器
+        from pilotstd.monitor.config import get_monitor_stats
+
+        get_monitor_stats()
     except Exception:
         pass
 
@@ -118,6 +122,10 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 
     try:
         _cron_mgr.monitor_service.stop_scheduler()
+        # 落盘监控统计数据
+        from pilotstd.monitor.config import get_monitor_stats
+
+        get_monitor_stats().flush_and_close()
     except Exception:
         pass
 

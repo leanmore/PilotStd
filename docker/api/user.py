@@ -99,3 +99,24 @@ def delete_preference(
     if user_id is None:
         return JSONResponse({"error": "用户不存在"}, 404)
     return mgr.user_service.delete_preference(user_id, key)
+
+
+# ── 统一设置（v31：合并 layout + preferences，减少 HTTP 请求数） ──
+
+
+@router.get("/api/user/settings")
+def get_settings(request: Request, username: str = Depends(get_current_username), mgr=Depends(get_manager_dep)):
+    user_id = mgr.user_service.get_user_id(username)
+    if user_id is None:
+        return JSONResponse({"error": "用户不存在"}, 404)
+    return mgr.user_service.get_user_settings(user_id)
+
+
+@router.put("/api/user/settings")
+def put_settings(
+    data: dict, request: Request, username: str = Depends(get_current_username), mgr=Depends(get_manager_dep)
+):
+    user_id = mgr.user_service.get_user_id(username)
+    if user_id is None:
+        return JSONResponse({"error": "用户不存在"}, 404)
+    return mgr.user_service.save_user_settings(user_id, data)

@@ -9,7 +9,7 @@ from typing import Any
 
 from watchdog.observers import Observer
 
-from .config import get_config, increment_stat, set_last_processed
+from .config import get_config, get_monitor_stats
 from .handler import StandardFileHandler
 
 logger = logging.getLogger(__name__)
@@ -83,8 +83,8 @@ class FileMonitorScheduler:
             logger.info("[MONITOR] 自动归档已禁用，跳过: %s", path)
             return
 
-        increment_stat("processed_today")
-        set_last_processed(path)
+        stats = get_monitor_stats()
+        stats.increment("processed")
 
         try:
             if self._mgr is None:
@@ -96,22 +96,23 @@ class FileMonitorScheduler:
             scanned = mgr.scan_directory(os.path.dirname(path))
             if scanned:
                 logger.info("[MONITOR] 扫描完成: %d 条", len(scanned))
-                increment_stat("success_today")
+                stats.increment("success")
             else:
                 logger.info("[MONITOR] 扫描完成: 0 条")
         except Exception as e:
             logger.error("[MONITOR] 处理失败: %s — %s", path, e)
-            increment_stat("failed_today")
+            stats.increment("failed")
 
     def get_status(self) -> dict:
         cfg = get_config()
+        today_stats = get_monitor_stats().get_today_stats()
         return {
             "running": self.running,
             "enabled": cfg.get("enabled", True),
             "watch_path": cfg.get("watch_path", "/inbox"),
             "delay_seconds": cfg.get("delay_seconds", 5),
-            "last_processed": cfg.get("last_processed", ""),
-            "processed_today": int(cfg.get("processed_today", 0)),
-            "success_today": int(cfg.get("success_today", 0)),
-            "failed_today": int(cfg.get("failed_today", 0)),
+            "last_processed": "",
+            "processed_today": today_stats["processed"],
+            "success_today": today_stats["success"],
+            "failed_today": today_stats["failed"],
         }

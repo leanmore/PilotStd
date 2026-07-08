@@ -27,7 +27,7 @@ class AdapterManager:
         if self._db:
             try:
                 health = self._db.fetchone(
-                    "SELECT status, frozen_until, freeze_count, fail_streak FROM adapter_health WHERE name = ?",
+                    "SELECT frozen_until, freeze_count, fail_streak FROM adapter_state WHERE adapter_name = ?",
                     (name,),
                 )
             except Exception:
@@ -37,9 +37,25 @@ class AdapterManager:
         if site_state and site_state.cooldown_until > 0:
             remaining = max(0, site_state.cooldown_until - time.time())
 
+        # 应用层推导 status（adapter_health 表无 status 列）
+        h_status = "normal"
+        if health:
+            frozen_until = health["frozen_until"]
+            if frozen_until:
+                try:
+                    from datetime import datetime as _dt
+
+                    frozen_dt = _dt.fromisoformat(frozen_until)
+                    if frozen_dt.timestamp() > time.time():
+                        h_status = "frozen"
+                except (ValueError, TypeError, OSError):
+                    pass
+            if h_status == "normal" and health.get("fail_streak", 0) > 0:
+                h_status = "degraded"
+
         return {
             "name": name,
-            "status": health["status"] if health else "normal",
+            "status": health and h_status or "normal",
             "frozen_until": health["frozen_until"] if health else None,
             "remaining_seconds": int(remaining),
             "freeze_count": health["freeze_count"] if health else 0,
@@ -53,11 +69,11 @@ class AdapterManager:
         return {name: self.get_adapter_status(name) for name in self.list_adapters()}
 
     def get_all_health(self) -> list[dict[str, Any]]:
-        """返回 adapter_health 表全部原始行（供 API 层迁移）。"""
+        """返回 adapter_state 表全部原始行（供 API 层迁移）。"""
         if not self._db:
             return []
         try:
-            rows = self._db.fetchall("SELECT * FROM adapter_health")
+            rows = self._db.fetchall("SELECT * FROM adapter_state")
             return [dict(r) for r in rows]
         except Exception:
             return []

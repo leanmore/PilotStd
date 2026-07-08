@@ -164,17 +164,17 @@ def _migrate_v14_api_keys(db: Any) -> None:
 @migration(15)
 def _migrate_v15_announcement_record(db: Any) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS announcement_record (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, source_site TEXT NOT NULL, pid TEXT NOT NULL,
-        announce_no TEXT, standard_number TEXT NOT NULL, std_name TEXT, publish_date TEXT,
-        fetched_at TEXT NOT NULL, matched INTEGER DEFAULT 0,
-        UNIQUE(source_site, pid, standard_number))""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, source_site TEXT NOT NULL,
+        pid TEXT NOT NULL, announce_no TEXT, standard_number TEXT NOT NULL,
+        std_name TEXT, publish_date TEXT, fetched_at TEXT NOT NULL,
+        matched INTEGER DEFAULT 0, UNIQUE(source_site, pid, standard_number))""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_pid ON announcement_record(source_site, pid)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_standard ON announcement_record(standard_number)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_fetch_checkpoint_matched ON announcement_record(matched)")
 
 
 @migration(16)
-def _migrate_v16_validity_status(db: Any) -> None:
+def _migrate_v16_standard_validity(db: Any) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS standard_validity (
         id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL UNIQUE,
         status TEXT NOT NULL DEFAULT '未知', last_checked_at TEXT, next_check_at TEXT,
@@ -197,12 +197,17 @@ def _migrate_v17_notification_log(db: Any) -> None:
 
 @migration(18)
 def _migrate_v18_notification_fetch_task(db: Any) -> None:
-    """v18: 通知日志 is_read 列 + 异步抓取任务表 + 适配器熔断健康表（合并重复 v18）。"""
-    db.execute("ALTER TABLE notification_log ADD COLUMN is_read INTEGER DEFAULT 0")
-    db.execute("CREATE INDEX IF NOT EXISTS idx_notif_is_read ON notification_log(is_read)")
+    try:
+        db.execute("ALTER TABLE notification_log ADD COLUMN is_read INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        db.execute("CREATE INDEX IF NOT EXISTS idx_notif_is_read ON notification_log(is_read)")
+    except Exception:
+        pass
     db.execute("""CREATE TABLE IF NOT EXISTS fetch_task (
-        id TEXT PRIMARY KEY, task_type TEXT DEFAULT 'announcement',
-        status TEXT DEFAULT 'pending', progress INTEGER DEFAULT 0, result_data TEXT,
+        id TEXT PRIMARY KEY, task_type TEXT DEFAULT 'announcement', status TEXT DEFAULT 'pending',
+        progress INTEGER DEFAULT 0, result_data TEXT,
         error_msg TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
     db.execute("""CREATE TABLE IF NOT EXISTS adapter_health (
@@ -218,19 +223,14 @@ def _migrate_v19_users(db: Any) -> None:
         password_hash TEXT NOT NULL, salt TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user',
         must_change_password INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')))""")
-    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
-    if "role" not in cols:
-        db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
-    if "must_change_password" not in cols:
-        db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
 
 
 @migration(20)
-def _migrate_v20_register_runtime_tables(db: Any) -> None:
-    for tbl in ("daily_quota", "task_queue", "scheduler_lock"):
-        exists = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (tbl,))
-        if not exists:
-            pass
+def _migrate_v20_announce_since_date(db: Any) -> None:
+    try:
+        db.execute("ALTER TABLE fetch_checkpoint ADD COLUMN since_date_override TEXT DEFAULT ''")
+    except Exception:
+        pass
 
 
 @migration(21)
@@ -261,120 +261,131 @@ def _migrate_v23_cache_system(db: Any) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS cache_config (
         id INTEGER PRIMARY KEY AUTOINCREMENT, config_key TEXT NOT NULL UNIQUE,
         config_value TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-    for ck, cv in (("max_size_mb", "50"), ("auto_cleanup", "true"), ("cleanup_ratio", "0.1")):
-        db.execute("INSERT OR IGNORE INTO cache_config (config_key, config_value) VALUES (?, ?)", (ck, cv))
-    for table in ("standard_info_cache", "standard_validity", "announcement_record"):
-        existing = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
-        if not existing:
-            if table == "standard_info_cache":
-                db.execute("""CREATE TABLE IF NOT EXISTS standard_info_cache (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL,
-                    source_site TEXT NOT NULL, result_json TEXT NOT NULL, cached_at TEXT NOT NULL,
-                    source TEXT NOT NULL DEFAULT 'network',
-                    status_history TEXT NOT NULL DEFAULT '')""")
-            elif table == "standard_validity":
-                db.execute("""CREATE TABLE IF NOT EXISTS standard_validity (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    standard_number TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT '未知',
-                    last_checked_at TEXT, next_check_at TEXT, last_status TEXT,
-                    last_status_updated_at TEXT, check_count INTEGER DEFAULT 0,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-            elif table == "announcement_record":
-                db.execute("""CREATE TABLE IF NOT EXISTS announcement_record (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT, source_site TEXT NOT NULL,
-                    pid TEXT NOT NULL, announce_no TEXT, standard_number TEXT NOT NULL,
-                    std_name TEXT, publish_date TEXT, fetched_at TEXT NOT NULL,
-                    matched INTEGER DEFAULT 0,
-                    UNIQUE(source_site, pid, standard_number))""")
-        cols = {r["name"] for r in db.fetchall(f"PRAGMA table_info({table})")}
-        if "source_version" not in cols:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN source_version TEXT DEFAULT ''")
-        if "data_state" not in cols:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN data_state TEXT DEFAULT 'valid'")
-        if "last_accessed_at" not in cols:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN last_accessed_at TEXT DEFAULT NULL")
+    for key, val in [("max_size_mb", "50"), ("auto_cleanup", "true"), ("cleanup_ratio", "0.1")]:
+        db.execute("INSERT OR IGNORE INTO cache_config (config_key, config_value) VALUES (?, ?)", (key, val))
+    try:
+        db.execute("ALTER TABLE standard_validity ADD COLUMN source_version TEXT DEFAULT 'initial'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE standard_validity ADD COLUMN data_state TEXT DEFAULT 'fresh'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE standard_validity ADD COLUMN last_accessed_at TEXT")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE standard_info_cache ADD COLUMN source_version TEXT DEFAULT 'initial'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE standard_info_cache ADD COLUMN data_state TEXT DEFAULT 'fresh'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE standard_info_cache ADD COLUMN last_accessed_at TEXT")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_match ADD COLUMN source_version TEXT DEFAULT 'initial'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_match ADD COLUMN data_state TEXT DEFAULT 'fresh'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_match ADD COLUMN last_accessed_at TEXT")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_record ADD COLUMN source_version TEXT DEFAULT 'initial'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_record ADD COLUMN data_state TEXT DEFAULT 'fresh'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_record ADD COLUMN last_accessed_at TEXT")
+    except Exception:
+        pass
 
 
 @migration(24)
-def _migrate_v24_task_queue_enhance(db: Any) -> None:
-    existing = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name='task_queue'")
-    if not existing:
-        db.execute("""CREATE TABLE IF NOT EXISTS task_queue (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL UNIQUE,
-            task_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
-            total_items INTEGER DEFAULT 0, completed_items INTEGER DEFAULT 0,
-            failed_items INTEGER DEFAULT 0, created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL, result_json TEXT DEFAULT '',
-            error_log TEXT DEFAULT '')""")
-    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(task_queue)")}
-    for col_name, col_def in [
+def _migrate_v24_task_queue(db: Any) -> None:
+    db.execute("""CREATE TABLE IF NOT EXISTS task_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL UNIQUE,
+        task_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+        total_items INTEGER DEFAULT 0, completed_items INTEGER DEFAULT 0,
+        failed_items INTEGER DEFAULT 0, created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL, result_json TEXT DEFAULT '', error_log TEXT DEFAULT '')""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_status ON task_queue(status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_updated ON task_queue(updated_at)")
+    for col_name, col_type in [
         ("retry_count", "INTEGER DEFAULT 0"),
         ("max_retries", "INTEGER DEFAULT 3"),
-        ("timeout_seconds", "INTEGER DEFAULT 300"),
+        ("timeout_seconds", "INTEGER DEFAULT 3600"),
         ("started_at", "TEXT"),
         ("finished_at", "TEXT"),
         ("priority", "INTEGER DEFAULT 0"),
         ("queue_name", "TEXT DEFAULT 'default'"),
     ]:
-        if col_name not in cols:
-            db.execute(f"ALTER TABLE task_queue ADD COLUMN {col_name} {col_def}")
+        try:
+            db.execute(f"ALTER TABLE task_queue ADD COLUMN {col_name} {col_type}")
+        except Exception:
+            pass
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_status_created ON task_queue(status, created_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_status_priority ON task_queue(status, priority, created_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_queue_name ON task_queue(queue_name)")
 
 
 @migration(25)
-def _migrate_v25_announcement_match_safeguard(db: Any) -> None:
-    db.execute("""CREATE TABLE IF NOT EXISTS announcement_match (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL,
-        source_site TEXT NOT NULL DEFAULT 'announcement', result_json TEXT NOT NULL,
-        cached_at TEXT NOT NULL, expires_at TEXT)""")
-    db.execute(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_announcement_match_lookup "
-        "ON announcement_match(standard_number, source_site)"
-    )
+def _migrate_v25_announcement_match_cache(db: Any) -> None:
+    try:
+        db.execute("ALTER TABLE announcement_match ADD COLUMN source TEXT NOT NULL DEFAULT 'announcement'")
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE announcement_match ADD COLUMN status_history TEXT NOT NULL DEFAULT ''")
+    except Exception:
+        pass
 
 
 @migration(26)
 def _migrate_v26_pipeline_runs(db: Any) -> None:
-    """用户触发的管道执行追踪表。"""
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS pipeline_runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id TEXT NOT NULL UNIQUE,
-            current_step TEXT NOT NULL DEFAULT 'scan',
-            status TEXT NOT NULL DEFAULT 'running',
-            progress INTEGER DEFAULT 0,
-            step_results TEXT DEFAULT '{}',
-            error_message TEXT DEFAULT '',
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-    """)
+    db.execute("""CREATE TABLE IF NOT EXISTS pipeline_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL UNIQUE,
+        current_step TEXT NOT NULL DEFAULT 'scan', status TEXT NOT NULL DEFAULT 'running',
+        progress INTEGER DEFAULT 0, step_results TEXT DEFAULT '{}',
+        error_message TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_pipeline_runs_run_id ON pipeline_runs(run_id)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_pipeline_runs_status ON pipeline_runs(status)")
 
 
 @migration(27)
 def _migrate_v27_notification_aggregation(db: Any) -> None:
-    """通知日志增加聚合字段（幂等检查）。"""
-    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(notification_log)")}
-    if "aggregated_count" not in cols:
+    try:
         db.execute("ALTER TABLE notification_log ADD COLUMN aggregated_count INTEGER DEFAULT 1")
-    if "link" not in cols:
+    except Exception:
+        pass
+    try:
         db.execute("ALTER TABLE notification_log ADD COLUMN link TEXT")
-    if "icon" not in cols:
+    except Exception:
+        pass
+    try:
         db.execute("ALTER TABLE notification_log ADD COLUMN icon TEXT")
+    except Exception:
+        pass
 
 
 @migration(28)
 def _migrate_v28_notification_queue(db: Any) -> None:
-    """通知静音暂存队列表。"""
     db.execute("""CREATE TABLE IF NOT EXISTS notification_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
         event_data TEXT NOT NULL, status TEXT DEFAULT 'pending',
-        scheduled_time TEXT, error_msg TEXT DEFAULT '',
-        created_at TEXT NOT NULL)""")
+        scheduled_time TEXT, error_msg TEXT DEFAULT '', created_at TEXT NOT NULL)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_status ON notification_queue(status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_scheduled ON notification_queue(scheduled_time)")
 
@@ -440,3 +451,17 @@ def _migrate_v30_failure_tables(db: Any) -> None:
         )"""
     )
     db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")
+
+
+# v31-v34 迁移实现拆分到独立模块（migrations.py 超过 500 行限制）
+from ._migrate_v31_plus import (  # noqa: E402
+    _migrate_v31_monitor_stats,
+    _migrate_v32_cleanup_dead_tables,
+    _migrate_v33_adapter_state,
+    _migrate_v34_drop_old_adapter_tables,
+)
+
+migration(31)(_migrate_v31_monitor_stats)
+migration(32)(_migrate_v32_cleanup_dead_tables)
+migration(33)(_migrate_v33_adapter_state)
+migration(34)(_migrate_v34_drop_old_adapter_tables)

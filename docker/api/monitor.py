@@ -26,6 +26,11 @@ def get_status(mgr=Depends(get_manager_dep)):
     return mgr.monitor_service.get_status()
 
 
+@router.get("/api/monitor/stats")
+def get_stats(mgr=Depends(get_manager_dep)):
+    return mgr.monitor_service.get_stats()
+
+
 @router.post("/api/monitor/start")
 def start_monitor(mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
     return mgr.monitor_service.start()

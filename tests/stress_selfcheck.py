@@ -511,12 +511,12 @@ _check(
     "版本不匹配" if _actual_version != CURRENT_SCHEMA_VERSION else "OK",
 )
 
-# 验证 adapter_stats 表及扩展列
+# 验证 adapter_state 表及扩展列
 try:
-    _cols = {r["name"] for r in _sc_db.fetchall("PRAGMA table_info(adapter_stats)")}
+    _cols = {r["name"] for r in _sc_db.fetchall("PRAGMA table_info(adapter_state)")}
 except Exception:
     _cols = set()
-_check("adapter_stats表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在")
+_check("adapter_state表存在", len(_cols) > 0, f"列数={len(_cols)}" if _cols else "表不存在")
 
 _required_cols = [
     "avg_response_time",
@@ -527,37 +527,37 @@ _required_cols = [
 ]
 _missing_cols = [c for c in _required_cols if c not in _cols]
 _check(
-    "adapter_stats扩展列完整",
+    "adapter_state扩展列完整",
     len(_missing_cols) == 0,
     f"缺失: {_missing_cols}" if _missing_cols else f"{len(_cols)}列全部就位",
 )
 
-# --- adapter_stats 写入验证 ---
-logger.info("--- adapter_stats 写入验证 ---")
+# --- adapter_state 写入验证 ---
+logger.info("--- adapter_state 写入验证 ---")
 try:
     from pilotstd.core.db import Database as _AsDb
 
     _as_db = _AsDb(get_db_path())
     _table_names = {r["name"] for r in _as_db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")}
-    if "adapter_stats" not in _table_names:
-        _check("adapter_stats写入验证", None, "adapter_stats 表不存在，跳过")
+    if "adapter_state" not in _table_names:
+        _check("adapter_state写入验证", None, "adapter_state 表不存在，跳过")
     else:
         _test_name = "_test_selfcheck"
         try:
-            _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+            _as_db.execute("DELETE FROM adapter_state WHERE adapter_name=?", (_test_name,))
         except Exception:
             pass
         _as_db.update_adapter_stats(_test_name, success=True, response_time=0.05, cooldown_triggered=False)
-        _row = _as_db.fetchone("SELECT * FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+        _row = _as_db.fetchone("SELECT * FROM adapter_state WHERE adapter_name=?", (_test_name,))
         _write_ok = _row is not None and _row["total_queries"] == 1
-        _as_db.execute("DELETE FROM adapter_stats WHERE adapter_name=?", (_test_name,))
+        _as_db.execute("DELETE FROM adapter_state WHERE adapter_name=?", (_test_name,))
         _check(
-            "adapter_stats写入验证",
+            "adapter_state写入验证",
             _write_ok,
             f"total_queries={_row['total_queries'] if _row else 'None'}",
         )
 except Exception as _e:
-    _check("adapter_stats写入验证", None, f"异常: {str(_e)[:60]}")
+    _check("adapter_state写入验证", None, f"异常: {str(_e)[:60]}")
 
 # ======================================================================
 # 汇总

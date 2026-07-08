@@ -22,7 +22,7 @@ _MAX_DETAIL_WORKERS = 3
 _DEFAULT_FREEZE_DURATIONS = [1800, 7200, 21600, 43200]  # 秒：30m/2h/6h/12h
 _DEFAULT_FAILURE_THRESHOLD = 3
 _DEFAULT_RESET_WINDOW_HOURS = 24
-_HEALTH_TABLE = "adapter_health"
+_HEALTH_TABLE = "adapter_state"
 
 
 class AdapterFrozenError(Exception):

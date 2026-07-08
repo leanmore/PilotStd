@@ -287,7 +287,7 @@ class SiteRotator:
             # 也清理数据库中的冷却记录
             if self._db:
                 try:
-                    self._db.execute("DELETE FROM rotator_state")
+                    self._db.execute("DELETE FROM adapter_state")
                 except Exception:
                     pass
         logger.info("所有站点冷却已重置")
@@ -333,8 +333,8 @@ class SiteRotator:
         try:
             for name, site in self._sites.items():
                 target.execute(
-                    "INSERT OR REPLACE INTO rotator_state "
-                    "(site_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "  # noqa: E501
+                    "INSERT OR REPLACE INTO adapter_state "
+                    "(adapter_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "  # noqa: E501
                     "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
                     (
                         name,
@@ -352,13 +352,16 @@ class SiteRotator:
     def _load(self, db: Any) -> None:
         """从数据库恢复冷却状态（仅恢复仍在冷却期内的状态）。"""
         try:
-            rows = db.fetchall("SELECT * FROM rotator_state")
+            rows = db.fetchall(
+                "SELECT adapter_name, request_count, daily_count, daily_date, "
+                "cooldown_until, consecutive_errors, active_url FROM adapter_state"
+            )
         except Exception:
             logger.debug("冷却状态恢复跳过", exc_info=True)
             return  # 表不存在或查询失败，跳过恢复
         now = time.time()
         for row in rows:
-            name = row["site_name"]
+            name = row["adapter_name"]
             if name in self._sites:
                 site = self._sites[name]
                 # 恢复日计数（跨天自动失效）

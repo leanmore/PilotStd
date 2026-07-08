@@ -37,7 +37,7 @@ _SHARED_CLEAN_TABLES = [
     "pending_lookup",
     "fetch_checkpoint",
     "announcement_match",
-    "rotator_state",
+    "adapter_state",
     "daily_quota",
     "task_queue",
     "_concurrent_test",

@@ -194,10 +194,10 @@ class Database:
     ) -> None:
         try:
             self.execute(
-                "INSERT INTO adapter_stats "
+                "INSERT INTO adapter_state "
                 "(adapter_name, total_queries, successful_queries, "
                 " total_response_time, cooldown_count, last_cooldown_reason, "
-                " last_cooldown_at, last_updated) "
+                " last_cooldown_at, updated_at) "
                 "VALUES (?, 1, ?, ?, ?, ?, "
                 " CASE WHEN ? THEN datetime('now', 'localtime') ELSE NULL END, "
                 " datetime('now', 'localtime')) "
@@ -207,10 +207,10 @@ class Database:
                 "total_response_time = total_response_time + ?, "
                 "cooldown_count = cooldown_count + ?, "
                 "last_cooldown_reason = CASE WHEN ? THEN ? "
-                "   ELSE adapter_stats.last_cooldown_reason END, "
+                "   ELSE adapter_state.last_cooldown_reason END, "
                 "last_cooldown_at = CASE WHEN ? THEN datetime('now', 'localtime') "
-                "   ELSE adapter_stats.last_cooldown_at END, "
-                "last_updated = datetime('now', 'localtime')",
+                "   ELSE adapter_state.last_cooldown_at END, "
+                "updated_at = datetime('now', 'localtime')",
                 (
                     adapter_name,
                     1 if success else 0,
@@ -232,7 +232,7 @@ class Database:
     def get_adapter_success_rate(self, adapter_name: str) -> float:
         try:
             row = self.fetchone(
-                "SELECT total_queries, successful_queries FROM adapter_stats WHERE adapter_name = ?",
+                "SELECT total_queries, successful_queries FROM adapter_state WHERE adapter_name = ?",
                 (adapter_name,),
             )
             if row and row["total_queries"] > 0:
@@ -246,8 +246,8 @@ class Database:
             rows = self.fetchall(
                 "SELECT adapter_name, total_queries, successful_queries, "
                 "total_response_time, cooldown_count, "
-                "last_cooldown_reason, last_cooldown_at, last_updated "
-                "FROM adapter_stats ORDER BY total_queries DESC"
+                "last_cooldown_reason, last_cooldown_at, updated_at "
+                "FROM adapter_state ORDER BY total_queries DESC"
             )
             result = []
             for r in rows:
@@ -264,7 +264,7 @@ class Database:
                         "cooldown_count": r["cooldown_count"] or 0,
                         "last_cooldown_reason": r["last_cooldown_reason"] or "",
                         "last_cooldown_at": r["last_cooldown_at"] or "",
-                        "last_updated": r["last_updated"] or "",
+                        "last_updated": r["updated_at"] or "",
                     }
                 )
             return result
