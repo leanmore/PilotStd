@@ -430,6 +430,12 @@ def _migrate_v30_failure_tables(db: Any) -> None:
             locked_by TEXT
         )"""
     )
+
+    # user_preferences: 优先检查列是否存在，不匹配则删除重建（兼容 v22 旧表结构）
+    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(user_preferences)")}
+    if "key" not in cols:
+        db.execute("DROP TABLE IF EXISTS user_preferences")
+
     db.execute(
         """CREATE TABLE IF NOT EXISTS user_preferences (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
