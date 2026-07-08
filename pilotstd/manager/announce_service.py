@@ -59,6 +59,126 @@ class AnnounceService:
             (source_site, now, last_notice_date),
         )
 
+    # ── 失败记录 ──────────────────────────────────────────
+
+    def _record_fetch_failure(self, task_type: str, source_site: str, since_date: str, error: str) -> None:
+        self._file_index._db.execute(
+            "INSERT INTO fetch_failures (task_type, source_site, since_date, error_message) VALUES (?, ?, ?, ?)",
+            (task_type, source_site, since_date, error),
+        )
+
+    def _record_announcement_failure(
+        self, standard_number: str, publish_date: str, source_site: str, error: str, task_id: int = 0
+    ) -> None:
+        self._file_index._db.execute(
+            "INSERT INTO announcement_fetch_failures "
+            "(standard_number, publish_date, source_site, error_message, task_id) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (standard_number, publish_date, source_site, error, task_id),
+        )
+
+    # ── 补抓队列 ──────────────────────────────────────────
+
+    def _retry_failed_announcements(self) -> int:
+        """补抓队列：取出未解决的失败公告，逐条重试。返回重试成功数。"""
+        rows = self._file_index._db.fetchall(
+            "SELECT id, standard_number, source_site FROM announcement_fetch_failures "
+            "WHERE resolved = FALSE AND retry_count < 3"
+        )
+        if not rows:
+            return 0
+        retried = 0
+        for row in rows:
+            # 检查该标准号是否已在 announcement_record 中出现
+            exists = self._file_index._db.fetchone(
+                "SELECT 1 FROM announcement_record WHERE standard_number=? AND source_site=?",
+                (row["standard_number"], row["source_site"]),
+            )
+            if exists:
+                self._file_index._db.execute(
+                    "UPDATE announcement_fetch_failures SET resolved=TRUE WHERE id=?", (row["id"],)
+                )
+                retried += 1
+            else:
+                new_count = row["retry_count"] + 1
+                self._file_index._db.execute(
+                    "UPDATE announcement_fetch_failures SET retry_count=?, last_retry_at=? WHERE id=?",
+                    (new_count, datetime.now().isoformat(), row["id"]),
+                )
+        return retried
+
+    # ── 并发锁 ────────────────────────────────────────────
+
+    def _acquire_manual_lock(self) -> bool:
+        try:
+            self._file_index._db.execute(
+                "INSERT OR REPLACE INTO fetch_locks (lock_key, locked_at, locked_by) VALUES ('manual', ?, 'manual')",
+                (datetime.now().isoformat(),),
+            )
+            return True
+        except Exception:
+            return False
+
+    def _release_manual_lock(self) -> None:
+        self._file_index._db.execute("DELETE FROM fetch_locks WHERE lock_key='manual'")
+
+    def _is_manual_running(self) -> bool:
+        row = self._file_index._db.fetchone("SELECT 1 FROM fetch_locks WHERE lock_key='manual'")
+        return row is not None
+
+    # ── 用户偏好 ──────────────────────────────────────────
+
+    def _get_user_since_date(self) -> str:
+        row = self._file_index._db.fetchone("SELECT value FROM user_preferences WHERE key='announce_since_date'")
+        return row["value"] if row and row["value"] else ""
+
+    def _clear_user_since_date(self) -> None:
+        self._file_index._db.execute("UPDATE user_preferences SET value='' WHERE key='announce_since_date'")
+
+    def save_user_preference(self, key: str, value: str) -> None:
+        self._file_index._db.execute(
+            "INSERT OR REPLACE INTO user_preferences (key, value, updated_at) VALUES (?, ?, ?)",
+            (key, value, datetime.now().isoformat()),
+        )
+
+    # ── 定时任务统一入口 ──────────────────────────────────
+
+    def check_announce_scheduled(self) -> dict[str, Any]:
+        """定时任务统一入口：避让手动 → 补抓队列 → 用户日期回填 → 增量抓取。"""
+        if self._is_manual_running():
+            logger.info("手动抓取正在运行，定时任务跳过本次")
+            return {"skipped": True, "reason": "manual_running"}
+
+        self._retry_failed_announcements()
+
+        user_since = self._get_user_since_date()
+        if user_since:
+            logger.info("定时任务检测到用户设定起始日期: %s，执行回填抓取", user_since)
+            result = self.check_announcements_filtered(since_date=user_since)
+            self._clear_user_since_date()
+        else:
+            result = self.check_announcements()
+
+        self._after_fetch(result)
+        return result
+
+    def _after_fetch(self, result: dict[str, Any]) -> None:
+        """抓取后处理：通知 + 缓存失效。"""
+        count = result.get("matched", 0) if isinstance(result, dict) else 0
+        mgr = self._mgr
+        if mgr and mgr.notification_mgr:
+            try:
+                mgr.notification_mgr.send_event("announcement_check_complete", {"count": count, "failures": 0})
+            except Exception:
+                pass
+        if mgr:
+            try:
+                from ..core.cache_manager import CacheManager, DataSource
+
+                CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
+            except Exception:
+                pass
+
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
 
@@ -78,11 +198,8 @@ class AnnounceService:
 
             result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)
             if "error" in result:
-                logger.warning(
-                    "公告适配器 %s 异常: %s",
-                    adapter.source_site,
-                    result.get("error", ""),
-                )
+                logger.warning("公告适配器 %s 异常: %s", adapter.source_site, result.get("error", ""))
+                self._record_fetch_failure("scheduled", adapter.source_site, since, result.get("error", ""))
                 continue
             total_matched += result.get("matched", 0)
             self._write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))

@@ -41,6 +41,7 @@ from .api.system import router as system_router
 from .api.tasks import router as tasks_router
 from .api.upload import router as upload_router
 from .api.user import router as user_layout_router
+from .api.user_preference import router as user_preference_router
 from .api.users import router as users_router
 from .api.validity import router as validity_router
 from .api.wechat_ip import router as wechat_ip_router
@@ -72,9 +73,10 @@ def _clean_zombie_tasks() -> None:
 def _start_all_schedulers(_cron_mgr) -> None:
     """注册定时任务并启动所有调度器（APScheduler + 任务调度器 + 监控 + 可信IP）。"""
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
-    from .api.announce import check_announce_scheduled
-
-    register_job_func("auto_announce", check_announce_scheduled)
+    register_job_func(
+        "auto_announce",
+        lambda: _cron_mgr.announce_service.check_announce_scheduled(),
+    )
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     from .scheduler import _cleanup_notification_logs
 
@@ -240,6 +242,7 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(user_layout_router)
+app.include_router(user_preference_router)
 app.include_router(api_keys_router)
 
 # ── 核心业务 ──

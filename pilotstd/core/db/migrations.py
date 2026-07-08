@@ -390,3 +390,52 @@ def _migrate_v29_announce_title_and_count(db: Any) -> None:
         db.execute("ALTER TABLE announcement_record ADD COLUMN standard_count INTEGER")
     except Exception:
         pass  # 列已存在
+
+
+@migration(30)
+def _migrate_v30_failure_tables(db: Any) -> None:
+    """公告抓取失败记录 + 补抓队列 + 并发锁 + 用户偏好。"""
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS fetch_failures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_type TEXT NOT NULL,
+            source_site TEXT NOT NULL,
+            since_date TEXT NOT NULL,
+            error_message TEXT,
+            retry_count INTEGER DEFAULT 0,
+            last_retry_at TEXT,
+            resolved BOOLEAN DEFAULT FALSE,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )"""
+    )
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS announcement_fetch_failures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            standard_number TEXT NOT NULL,
+            publish_date TEXT,
+            source_site TEXT NOT NULL,
+            error_message TEXT,
+            retry_count INTEGER DEFAULT 0,
+            last_retry_at TEXT,
+            resolved BOOLEAN DEFAULT FALSE,
+            task_id INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES fetch_failures(id)
+        )"""
+    )
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS fetch_locks (
+            lock_key TEXT PRIMARY KEY,
+            locked_at TEXT,
+            locked_by TEXT
+        )"""
+    )
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS user_preferences (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )"""
+    )
+    db.execute("INSERT OR IGNORE INTO user_preferences (key, value) VALUES ('announce_since_date', '')")

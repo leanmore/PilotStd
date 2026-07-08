@@ -46,7 +46,11 @@ async function loadStats() {
 }
 const loading = ref(false)
 const sinceDate = ref<Date>(defaultSince())
-watch(sinceDate, (v) => setItem('announce_since', v.toISOString()))
+watch(sinceDate, (v) => {
+  setItem('announce_since', v.toISOString())
+  const ds = `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`
+  http.post('/user-preference', null, { params: { key: 'announce_since_date', value: ds } }).catch(() => {})
+})
 const error = ref('')
 
 async function load() {
