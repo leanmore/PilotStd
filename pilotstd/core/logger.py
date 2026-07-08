@@ -1,12 +1,18 @@
 # pilotstd/core/logger.py
 # 日志管理器：双通道（控制台+文件）、按大小轮转(256KB)、1个备份
+# 文件通道使用 QueueHandler + QueueListener 架构：
+#   - 业务线程写 QueueHandler（非阻塞入队）
+#   - 专用 QueueListener 线程持有 RotatingFileHandler 执行 os.rename
+#   - 彻底消除 Windows 下日志滚动 PermissionError
 
+import atexit
 import io
 import logging
+import logging.handlers
 import os
 import sys
 import threading
-from logging.handlers import RotatingFileHandler
+from queue import Queue
 from typing import Optional
 
 from .frozen import is_frozen
@@ -75,12 +81,14 @@ def _get_log_dir() -> str:
 class LoggerManager:
     """封装日志初始化，提供统一的 logger 获取入口。
 
-    双通道输出：控制台(INFO) + 文件(DEBUG)。
+    三通道输出：控制台(INFO) + 文件队列(DEBUG → QueueListener 专用线程落盘)。
     按 256KB 大小轮转，保留 1 个备份文件。
+    文件通道使用 QueueHandler 架构消除 Windows 日志滚动 PermissionError。
     """
 
     _instance: Optional["LoggerManager"] = None
     _lock: threading.Lock = threading.Lock()
+    _listener: Optional[logging.handlers.QueueListener] = None
 
     def __init__(
         self,
@@ -115,7 +123,14 @@ class LoggerManager:
         # 控制台 handler：仅在有效终端环境下启用（PyInstaller -w 模式跳过）
         if self._console_available():
             root.addHandler(self._console_handler(console_fmt))
-        root.addHandler(self._file_handler("app.log", file_fmt))
+
+        # 文件 handler 通过 QueueListener 专用线程持有，消除 Windows os.rename 并发冲突
+        file_handler = self._file_handler("app.log", file_fmt)
+        log_queue: Queue = Queue(-1)
+        root.addHandler(logging.handlers.QueueHandler(log_queue))
+        LoggerManager._listener = logging.handlers.QueueListener(log_queue, file_handler)
+        LoggerManager._listener.start()
+        atexit.register(self._stop_listener)
 
         # 抑制第三方库日志噪音
         for noisy in ("urllib3", "requests", "charset_normalizer", "lxml", "PIL"):
@@ -161,7 +176,7 @@ class LoggerManager:
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         path = os.path.join(self._log_dir, filename)
-        h = RotatingFileHandler(
+        h = logging.handlers.RotatingFileHandler(
             path,
             maxBytes=256 * 1024,
             backupCount=1,
@@ -170,6 +185,11 @@ class LoggerManager:
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h
+
+    @staticmethod
+    def _stop_listener() -> None:
+        if LoggerManager._listener:
+            LoggerManager._listener.stop()
 
     def _cleanup_old_logs(self) -> None:
         """轮转由 RotatingFileHandler 自动管理（backupCount=1），无需手动清理。"""
