@@ -1,10 +1,10 @@
 <script setup lang="ts">
+defineOptions({ name: 'SettingsTabUsers' })
 /**
  * SettingsTabUsers — 用户管理 Tab
  * 自包含：拥有自己的状态、API 调用、对话框逻辑。
  * 依赖父组件提供 ConfirmDialog + Toast 作为全局服务。
  */
-defineOptions({ name: 'SettingsTabUsers' })
 import { ref, onMounted, computed } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
@@ -15,8 +15,6 @@ import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
 
 const ADMIN_ROLE = 'admin'
-
-defineOptions({ name: 'SettingsTabUsers' })
 
 const store = useAppStore()
 const confirm = useConfirm()
