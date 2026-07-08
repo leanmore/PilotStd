@@ -6,6 +6,7 @@
   如果 PrimeVue 未来修复了此问题，只需改这一个文件即可。
 -->
 <script setup lang="ts">
+defineOptions({ name: 'AppCalendar' })
 import Calendar from 'primevue/calendar'
 import { primevueLocales } from '@/lib/primevueLocale'
 import { useI18n } from 'vue-i18n'

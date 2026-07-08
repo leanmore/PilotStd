@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'UnifiedFilterBar' })
 import ToggleSwitch from 'primevue/toggleswitch'
 
 const props = defineProps<{
