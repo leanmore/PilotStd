@@ -431,17 +431,12 @@ def _migrate_v30_failure_tables(db: Any) -> None:
         )"""
     )
 
-    # user_preferences: 优先检查列是否存在，不匹配则删除重建（兼容 v22 旧表结构）
-    cols = {r["name"] for r in db.fetchall("PRAGMA table_info(user_preferences)")}
-    if "key" not in cols:
-        db.execute("DROP TABLE IF EXISTS user_preferences")
-
+    # 4. app_preferences — 独立全局配置表（不动 v22 创建的 user_preferences）
     db.execute(
-        """CREATE TABLE IF NOT EXISTS user_preferences (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT NOT NULL UNIQUE,
+        """CREATE TABLE IF NOT EXISTS app_preferences (
+            key TEXT PRIMARY KEY,
             value TEXT,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )"""
     )
-    db.execute("INSERT OR IGNORE INTO user_preferences (key, value) VALUES ('announce_since_date', '')")
+    db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")

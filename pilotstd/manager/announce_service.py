@@ -129,15 +129,15 @@ class AnnounceService:
     # ── 用户偏好 ──────────────────────────────────────────
 
     def _get_user_since_date(self) -> str:
-        row = self._file_index._db.fetchone("SELECT value FROM user_preferences WHERE key='announce_since_date'")
+        row = self._file_index._db.fetchone("SELECT value FROM app_preferences WHERE key='announce_since_date'")
         return row["value"] if row and row["value"] else ""
 
     def _clear_user_since_date(self) -> None:
-        self._file_index._db.execute("UPDATE user_preferences SET value='' WHERE key='announce_since_date'")
+        self._file_index._db.execute("UPDATE app_preferences SET value='' WHERE key='announce_since_date'")
 
     def save_user_preference(self, key: str, value: str) -> None:
         self._file_index._db.execute(
-            "INSERT OR REPLACE INTO user_preferences (key, value, updated_at) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO app_preferences (key, value, updated_at) VALUES (?, ?, ?)",
             (key, value, datetime.now().isoformat()),
         )
 
