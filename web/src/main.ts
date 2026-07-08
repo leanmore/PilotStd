@@ -11,7 +11,7 @@ import ToastService from 'primevue/toastservice'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import Button from 'primevue/button'
-import Calendar from 'primevue/calendar'
+import DatePicker from 'primevue/datepicker'
 import Card from 'primevue/card'
 import Checkbox from 'primevue/checkbox'
 import Column from 'primevue/column'
@@ -86,7 +86,7 @@ watch(() => i18n.global.locale.value, (newLocale: string) => {
 app.component('Accordion', Accordion)
 app.component('AccordionTab', AccordionTab)
 app.component('Button', Button)
-app.component('Calendar', Calendar)
+app.component('DatePicker', DatePicker)
 app.component('Card', Card)
 app.component('Checkbox', Checkbox)
 app.component('Column', Column)

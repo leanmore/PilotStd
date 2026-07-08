@@ -4,13 +4,13 @@ ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT/web" && pnpm vue-tsc -b --noEmit || exit 1
 cd "$ROOT/web" && npx lint-staged
 
-# ── G-002: 禁止直接从 primevue 导入 Calendar ──────────────────────
+# ── G-002: 禁止直接从 primevue 导入 DatePicker，必须使用 AppCalendar ──
 # main.ts 除外（全局组件注册需要直接导入）
-if git diff --cached --name-only | grep -E '\.(vue|ts|tsx)$' | grep -v 'main\.ts$' | xargs grep -l "from 'primevue/calendar'" 2>/dev/null; then
+if git diff --cached --name-only | grep -E '\.(vue|ts|tsx)$' | grep -v 'main\.ts$' | xargs grep -l "from 'primevue/datepicker'" 2>/dev/null; then
   echo ""
-  echo "❌ 门禁拦截: 检测到直接导入 primevue/calendar"
+  echo "❌ 门禁拦截: 检测到直接导入 primevue/datepicker"
   echo "   请替换为: import AppCalendar from '@/components/AppCalendar.vue'"
-  echo "   说明: PrimeVue Calendar 需显式传 locale 才能汉化，AppCalendar 已内置此逻辑。"
+  echo "   说明: DatePicker 需显式传 locale 才能汉化，AppCalendar 已内置此逻辑。"
   exit 1
 fi
 

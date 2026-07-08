@@ -1,13 +1,11 @@
 <!--
   为什么封装这个组件？
-  PrimeVue 4.x 的全局 locale 配置对 Calendar 组件存在 Bug，
-  必须显式传入 :locale 才能正确汉化。使用此组件可自动注入
-  中文语言包，业务页面无需手动传参，也不会遗漏。
-  如果 PrimeVue 未来修复了此问题，只需改这一个文件即可。
+  PrimeVue 4.x 中 Calendar 已废弃，迁移到 DatePicker。
+  显式传入 :locale 确保与界面语言联动，业务代码无需关心。
 -->
 <script setup lang="ts">
 defineOptions({ name: 'AppCalendar' })
-import Calendar from 'primevue/calendar'
+import DatePicker from 'primevue/datepicker'
 import { primevueLocales } from '@/lib/primevueLocale'
 import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
@@ -17,5 +15,5 @@ const calendarLocale = computed(() => primevueLocales[locale.value] || primevueL
 </script>
 
 <template>
-  <Calendar v-bind="$attrs" :locale="calendarLocale" />
+  <DatePicker v-bind="$attrs" :locale="calendarLocale" />
 </template>
