@@ -44,6 +44,21 @@ class AnnounceService:
             self._engine = AnnounceEngine(adapters=adapters, matcher=matcher)
         return self._engine
 
+    def _write_checkpoint(self, source_site: str, last_notice_date: str) -> None:
+        """写入 checkpoint，防倒退：空日期不写，旧于当前值不写。"""
+        if not last_notice_date:
+            return
+        current = self._file_index._db.fetchone(
+            "SELECT last_notice_date FROM fetch_checkpoint WHERE source_site=?", (source_site,)
+        )
+        if current and current["last_notice_date"] >= last_notice_date:
+            return
+        now = datetime.now().isoformat()
+        self._file_index._db.execute(
+            "INSERT OR REPLACE INTO fetch_checkpoint (source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
+            (source_site, now, last_notice_date),
+        )
+
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
 
@@ -70,22 +85,7 @@ class AnnounceService:
                 )
                 continue
             total_matched += result.get("matched", 0)
-
-            now = datetime.now().isoformat()
-            latest_date = result.get("last_notice_date", "")
-            log_row = self._file_index._db.fetchone(
-                "SELECT * FROM fetch_checkpoint WHERE source_site=?", (adapter.source_site,)
-            )
-            if log_row:
-                self._file_index._db.execute(
-                    "UPDATE fetch_checkpoint SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
-                    (now, latest_date, adapter.source_site),
-                )
-            else:
-                self._file_index._db.execute(
-                    "INSERT INTO fetch_checkpoint (source_site, last_fetched_at, last_notice_date) VALUES (?, ?, ?)",
-                    (adapter.source_site, now, latest_date),
-                )
+            self._write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
 
         return {"matched": total_matched, "error": ""}
 
@@ -124,27 +124,9 @@ class AnnounceService:
                 progress_callback=progress_callback,
             )
             results[adapter.standard_type] = result
+            if "error" not in result:
+                self._write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
 
-        # 手动抓取成功后推进 checkpoint，让定时任务从最后抓到的日期之后开始增量
-        now = datetime.now().isoformat()
-        for adapter in adapters:
-            r = results.get(adapter.standard_type, {})
-            if isinstance(r, dict) and "error" not in r:
-                latest_date = r.get("last_notice_date", "")
-                log_row = self._file_index._db.fetchone(
-                    "SELECT * FROM fetch_checkpoint WHERE source_site=?", (adapter.source_site,)
-                )
-                if log_row:
-                    self._file_index._db.execute(
-                        "UPDATE fetch_checkpoint SET last_fetched_at=?, last_notice_date=? WHERE source_site=?",
-                        (now, latest_date, adapter.source_site),
-                    )
-                else:
-                    self._file_index._db.execute(
-                        "INSERT INTO fetch_checkpoint (source_site, last_fetched_at, last_notice_date) "
-                        "VALUES (?, ?, ?)",
-                        (adapter.source_site, now, latest_date),
-                    )
         return results
 
     # ── 异步抓取任务管理 ────────────────────────────────
