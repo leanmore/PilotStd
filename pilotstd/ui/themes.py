@@ -109,6 +109,8 @@ COMMON_QSS = """
 /* === 全局 === */
 QMainWindow {{ background-color: {bg}; }}
 QDialog, QWidget {{ background-color: {surface}; color: {text}; font-size: 10pt; }}
+/* 消除右下角滚动条交汇处像素方块 */
+QAbstractScrollArea::corner {{ background: transparent; }}
 
 /* === 菜单栏 === */
 QMenuBar {{ background-color: {surface}; color: {text_bright}; border-bottom: 1px solid {border}; }}
