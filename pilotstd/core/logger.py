@@ -88,6 +88,9 @@ class LoggerManager:
         level: int = logging.INFO,
         retain_days: int = 14,
     ) -> None:
+        # 防止重复初始化：get_logger 和入口点可能先后调用 __init__
+        if LoggerManager._instance is not None:
+            return
         if log_dir is None:
             log_dir = _get_log_dir()
         self._log_dir = os.path.abspath(log_dir)
