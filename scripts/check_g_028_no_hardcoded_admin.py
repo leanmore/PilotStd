@@ -53,6 +53,14 @@ def _is_comment(line: str, ext: str) -> bool:
     return False
 
 
+def _is_docstring_line(line: str, in_docstring: bool) -> tuple[bool, bool]:
+    """追踪 Python 三引号文档字符串。返回 (当前行是文档字符串, 新状态)。"""
+    count = line.count('"""') + line.count("'''")
+    if count % 2 == 1:
+        return in_docstring, not in_docstring
+    return in_docstring, in_docstring
+
+
 def main() -> int:
     found = 0
     self_name = Path(__file__).name
@@ -73,7 +81,13 @@ def main() -> int:
             except Exception:
                 continue
 
+            in_docstring = False  # Python 三引号文档字符串追踪
             for i, line in enumerate(lines, 1):
+                # 跳过注释和文档字符串
+                if ext == ".py":
+                    is_ds, in_docstring = _is_docstring_line(line, in_docstring)
+                    if is_ds:
+                        continue
                 if _is_comment(line, ext):
                     continue
                 for desc, pattern, valid_exts in _COMMON_PATTERNS + _BACKEND_PATTERNS + _FRONTEND_PATTERNS:

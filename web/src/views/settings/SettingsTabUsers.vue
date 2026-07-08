@@ -4,6 +4,7 @@
  * 自包含：拥有自己的状态、API 调用、对话框逻辑。
  * 依赖父组件提供 ConfirmDialog + Toast 作为全局服务。
  */
+defineOptions({ name: 'SettingsTabUsers' })
 import { ref, onMounted, computed } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
@@ -12,6 +13,8 @@ import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Dialog from 'primevue/dialog'
+
+const ADMIN_ROLE = 'admin'
 
 defineOptions({ name: 'SettingsTabUsers' })
 
@@ -52,7 +55,7 @@ async function doAdd() {
 async function doDelete(id: number) { await deleteUser(id); loadUsers() }
 
 function canDelete(item: any): boolean {
-  if (store.role !== 'admin') return false
+  if (store.role !== ADMIN_ROLE) return false
   if (!currentUser.value || item.id === currentUser.value.id) return false
   return true
 }
