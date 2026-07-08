@@ -249,9 +249,19 @@ class QuerySummaryMethods:
                 continue
             extra_buttons = None
             if key == "pending":
-                extra_buttons = [(_("btn_save_pending_csv"), lambda k=key, it=items: self._on_save_section_csv(k, it))]
+                extra_buttons = [
+                    (
+                        _("btn_save_pending_csv"),
+                        lambda _c=False, k=key, it=items: self._on_save_section_csv(k, it),
+                    )
+                ]
             elif key == "manual_download":
-                extra_buttons = [(_("btn_save_manual_csv"), lambda k=key, it=items: self._on_save_section_csv(k, it))]
+                extra_buttons = [
+                    (
+                        _("btn_save_manual_csv"),
+                        lambda _c=False, k=key, it=items: self._on_save_section_csv(k, it),
+                    )
+                ]
             section = self._create_section(key, items, dlg, extra_buttons=extra_buttons)
             self._summary_sections[key] = section
             container_layout.addWidget(section)
