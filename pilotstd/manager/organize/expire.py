@@ -22,6 +22,12 @@ class OrganizerExpireMixin:
 
     def merge_expire_from_source(self: Any, root_dir: str, parsed_list: list[Any]) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""
+        if not root_dir or not os.path.isdir(root_dir):
+            logger.debug("跳过过期合并：root_dir 无效 (%s)", root_dir)
+            return 0
+        if not parsed_list:
+            return 0
+
         from ...core.file_utils import safe_move as _safe_move
         from ...organizer.industry_lookup import get_folder_name as _get_folder_name
 

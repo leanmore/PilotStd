@@ -151,13 +151,20 @@ class TableMixin:
         widths = [len(c) for c in cols]
         for row in rows:
             for i, k in enumerate(data_keys):
-                widths[i] = max(widths[i], len(str(row.get(k, ""))))
+                widths[i] = max(widths[i], len(self._row_get(row, k)))
         with open(path, "w", encoding="utf-8") as f:
             header = "\t".join(c.ljust(widths[i]) for i, c in enumerate(cols))
             f.write(header + "\n")
             for row in rows:
-                line = "\t".join(str(row.get(k, "")).ljust(widths[i]) for i, k in enumerate(data_keys))
+                line = "\t".join(self._row_get(row, k).ljust(widths[i]) for i, k in enumerate(data_keys))
                 f.write(line + "\n")
+
+    @staticmethod
+    def _row_get(row: Any, key: str, default: str = "") -> str:
+        """安全获取字段值 — 兼容 dict 和 ParsedStdInfo 对象。"""
+        if isinstance(row, dict):
+            return str(row.get(key, default))
+        return str(getattr(row, key, default))
 
     def _save_csv(
         self,
@@ -178,4 +185,4 @@ class TableMixin:
             w = csv.writer(f)
             w.writerow(cols)
             for row in rows:
-                w.writerow([row.get(k, "") for k in data_keys])
+                w.writerow([self._row_get(row, k) for k in data_keys])
