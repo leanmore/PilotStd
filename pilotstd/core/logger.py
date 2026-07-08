@@ -186,8 +186,7 @@ class LoggerManager:
         h.setFormatter(fmt)
         return h
 
-    @staticmethod
-    def _stop_listener() -> None:
+    def _stop_listener(self) -> None:
         if LoggerManager._listener:
             LoggerManager._listener.stop()
 
