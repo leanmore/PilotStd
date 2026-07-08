@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GATE-09: CHANGELOG 版本一致性检查 — CHANGELOG.md 最新版本须与 __init__.py 一致"""
+"""G-009: CHANGELOG 版本一致性检查 — CHANGELOG.md 最新版本须与 __init__.py 一致"""
 
 import re
 import sys

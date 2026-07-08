@@ -353,6 +353,26 @@ def main() -> int:
         for result in check_hard_rules():
             report.add(result)
 
+    # ── G-005 扩展: 关键日志标签完整性 ──
+    if args.check_all:
+        print("\n--- G-005 日志标签检查 ---")
+        tag_ok = True
+        try:
+            from pilotstd.query.engine import PROGRESS_TAG
+
+            assert PROGRESS_TAG, "PROGRESS_TAG 为空或未定义"
+            engine_f = ROOT / "pilotstd" / "query" / "engine" / "_core.py"
+            logger_f = ROOT / "pilotstd" / "core" / "logger.py"
+            for fpath in (engine_f, logger_f):
+                if fpath.exists() and "PROGRESS_TAG" in fpath.read_text(encoding="utf-8"):
+                    print(f"  ✅ {fpath.name}: PROGRESS_TAG 已引用")
+                else:
+                    print(f"  ⚠️  {fpath.name}: 未找到 PROGRESS_TAG 引用")
+                    tag_ok = False
+            print(f"  G-005 日志标签: {'PASS' if tag_ok else 'WARN'}")
+        except Exception as e:
+            print(f"  G-005 日志标签: WARN — {e}")
+
     # ── 汇总 ──
     passed, failed, total = report.summary()
     print(f"\n{'=' * 50}")

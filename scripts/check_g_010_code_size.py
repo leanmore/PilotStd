@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GATE-15: 代码规模控制。
+"""G-010: 代码规模控制。
 
 检查项：
 1. 单个 Python/TypeScript/Vue 文件行数 <= 500 行
@@ -82,7 +82,7 @@ def main() -> int:
     errors, warnings = scan(root)
 
     print("=" * 60)
-    print("GATE-15: 代码规模控制")
+    print("G-010: 代码规模控制")
     print("=" * 60)
 
     if errors:

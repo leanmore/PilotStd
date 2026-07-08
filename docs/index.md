@@ -1,7 +1,7 @@
 # PilotStd 文档索引
 
 > 最后更新：2026-06-30
-> 治理状态：✅ GATE-15 达标 (0 文件>500行, 0 函数>80行) | ✅ 测试全绿 (615 PASS, 6 SKIP, 0 FAIL)
+> 治理状态：✅ G-010 达标 (0 文件>500行, 0 函数>80行) | ✅ 测试全绿 (615 PASS, 6 SKIP, 0 FAIL)
 
 ---
 
@@ -19,9 +19,9 @@
 
 | 文档 | 说明 |
 |------|------|
-| [治理汇总](architecture/governance-summary.md) | GATE-15 治理全过程 (7 阶段) |
+| [治理汇总](architecture/governance-summary.md) | G-010 治理全过程 (7 阶段) |
 | [包化分析](architecture/refactoring-analysis.md) | 11 个大文件包化详情 |
-| [GATE-15 规则](development/gate-15-enforcement.md) | 代码规模控制规范 |
+| [G-010 规则](development/g-010-enforcement.md) | 代码规模控制规范 |
 | [技术债登记](architecture/technical-debt-registry.md) | 已知问题 + 设计决策 |
 | [文档同步策略](development/documentation-policy.md) | 文档维护规则 |
 | [模块与功能清单](specs/模块与功能清单.md) | 当前包化后模块结构 |
@@ -37,7 +37,7 @@
 
 | 目录 | 说明 |
 |------|------|
-| [archive/2026-06-30/](archive/2026-06-30/) | GATE-15 治理前文档 (20 个已归档) |
+| [archive/2026-06-30/](archive/2026-06-30/) | G-010 治理前文档 (20 个已归档) |
 | [superpowers/](superpowers/) | 历史设计/计划文档 (41 个快照) |
 
 ### 参考
@@ -62,4 +62,4 @@
 
 | 日期 | 原因 | 文件数 | 详情 |
 |------|------|--------|------|
-| 2026-06-30 | GATE-15 治理完成 | 20 | `archive/2026-06-30/README.md` |
+| 2026-06-30 | G-010 治理完成 | 20 | `archive/2026-06-30/README.md` |

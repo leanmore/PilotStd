@@ -41,13 +41,16 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
                 json.dump(failures, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
-    # 公告抓取完成后标记缓存失效
+    # 公告抓取完成后标记缓存失效（查询缓存 + 统计缓存）
     try:
         from pilotstd.core.cache_manager import CacheManager, DataSource
 
         CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
     except Exception as e:
         logger.warning("公告缓存失效失败: %s", e)
+    # 刷新统计缓存，确保前端立即看到最新数据
+    _stats_cache["data"] = None
+    _stats_cache["ts"] = 0
 
     count = total_matched + total_updated
     failure_count = len(failures)
@@ -68,6 +71,16 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
         "count": count,
         "failures": failure_count,
     }
+
+
+def check_announce_scheduled(mgr=None) -> dict:
+    """定时自动抓取公告（从 fetch_checkpoint 增量抓取，不复用 check_announce）。
+    与 check_announce 的关键区别：since_date 来自 fetch_checkpoint 表，
+    而非用户输入。避免每次定时任务都拉取全量历史数据。"""
+    if mgr is None:
+        mgr = _get_mgr()
+    result: dict = mgr.announce_service.check_with_notification()
+    return result
 
 
 def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = None, timeout: int = 60) -> dict:

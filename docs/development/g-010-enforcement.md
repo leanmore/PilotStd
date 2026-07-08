@@ -1,4 +1,4 @@
-# GATE-15 代码规模控制规则
+# G-010 代码规模控制规则
 
 > 版本：v1.0
 > 生效日期：2026-06-24 (非阻断模式) → 2026-06-30 (阻断模式)
@@ -11,8 +11,8 @@
 
 | 规则编号 | 规则 | 红线 | 测量方式 |
 |---------|------|------|---------|
-| GATE-15a | 文件行数 | ≤ 500 行 | `wc -l <file>` |
-| GATE-15b | 函数行数 | ≤ 80 行 | AST 解析 `FunctionDef.end_lineno - lineno` |
+| G-010a | 文件行数 | ≤ 500 行 | `wc -l <file>` |
+| G-010b | 函数行数 | ≤ 80 行 | AST 解析 `FunctionDef.end_lineno - lineno` |
 
 **例外**：
 - 测试文件 (`tests/`) 不受限制
@@ -81,9 +81,9 @@ for root, dirs, files in os.walk('pilotstd'):
 ```yaml
 - repo: local
   hooks:
-    - id: gate-15
-      name: GATE-15 code size check
-      entry: python scripts/gate15_check.py
+    - id: gate-10
+      name: G-010 code size check
+      entry: python scripts/check_g_010_code_size.py
       language: python
       files: \.py$
       exclude: ^tests/|^pilotstd_env/
@@ -108,5 +108,5 @@ for root, dirs, files in os.walk('pilotstd'):
 1. **新增文件**：创建时即应 ≤500 行。若接近 400 行，提前规划拆分。
 2. **新增函数**：保持 ≤60 行（留 20 行余量）。超过 60 行立即评估拆分。
 3. **修改现有**：修改导致文件/函数超标的，必须同时拆分。
-4. **审查**：每个 PR 必须通过 GATE-15 检查。
+4. **审查**：每个 PR 必须通过 G-010 检查。
 5. **例外审批**：确实无法拆分的特殊情况（如 AST 生成的代码），需在 PR 描述中说明理由并获得批准。

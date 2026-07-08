@@ -7,7 +7,7 @@ import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
-import Calendar from 'primevue/calendar'
+import AppCalendar from '@/components/AppCalendar.vue'
 import UnifiedFilterBar from '@/components/UnifiedFilterBar.vue'
 import LogBar from '@/components/LogBar.vue'
 
@@ -100,7 +100,7 @@ function onPage(e: any) {
       :fetch-enabled="adapterEnabled"
       @update:fetch-enabled="(key, val) => { const k = key as 'gb'|'hb'|'db'; adapterEnabled[k] = val }"
     />
-    <Calendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
+    <AppCalendar v-model="sinceDate" dateFormat="yy-mm-dd" showIcon style="width:160px" />
     <Button label="立即抓取" icon="pi pi-refresh" :loading="loading" @click="check" size="small" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GATE-08: 依赖完整性检查 — 代码中 import 的第三方库是否在 requirements-docker.txt 中声明"""
+"""G-008: 依赖完整性检查 — 代码中 import 的第三方库是否在 requirements-docker.txt 中声明"""
 
 import re
 import sys

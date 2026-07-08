@@ -94,5 +94,24 @@ if [ ${#FAIL_FILES[@]} -gt 0 ]; then
   echo "结论: FAIL — 存在明确违规，请移出仓库或申请例外"
   exit 1
 fi
+
+# ── G-019 扩展: 白名单路径完整性 ──
+echo ""
+echo "--- G-019 路径检查 ---"
+GUARD_FILE="pilotstd/core/path_guard.py"
+if [ -f "$GUARD_FILE" ]; then
+  for required in "/inbox" "/standards"; do
+    if grep -q "$required" "$GUARD_FILE" 2>/dev/null; then
+      echo "  ✅ $required 在白名单中"
+    else
+      echo "  ❌ $required 不在白名单中！请检查 $GUARD_FILE"
+      exit 1
+    fi
+  done
+  echo "  G-019 路径检查: PASS"
+else
+  echo "  ⚠️  $GUARD_FILE 不存在，跳过"
+fi
+
 echo "结论: PASS"
 exit 0

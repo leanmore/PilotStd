@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GATE-12: 检查 Vue 组件是否显式声明 defineOptions，防止生产构建中组件名被压缩器删除"""
+"""G-027: 检查 Vue 组件是否显式声明 defineOptions，防止生产构建中组件名被压缩器删除"""
 
 import sys
 from pathlib import Path
@@ -22,13 +22,13 @@ def main() -> int:
                 failed.append(str(vue_file))
 
     if failed:
-        print(f"GATE-12 FAIL: {len(failed)} 个 <script setup> 组件缺少 defineOptions:")
+        print(f"G-027 FAIL: {len(failed)} 个 <script setup> 组件缺少 defineOptions:")
         for f in failed:
             print(f"  - {f}")
         print("请在 <script setup> 第一行添加：defineOptions({{ name: '组件名' }})")
         return 1
 
-    print("GATE-12 PASS: 所有 <script setup> 组件均已声明 defineOptions")
+    print("G-027 PASS: 所有 <script setup> 组件均已声明 defineOptions")
     return 0
 
 

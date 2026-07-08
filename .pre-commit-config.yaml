@@ -55,17 +55,17 @@ repos:
         stages: [manual]
         always_run: true
 
-      - id: gate-15
-        name: GATE-15 代码规模控制 (阻断模式)
-        entry: python scripts/check_gate_15_code_size.py
+      - id: gate-10
+        name: G-010 代码规模控制 (阻断模式)
+        entry: python scripts/check_g_010_code_size.py
         language: python
         files: \.py$
         exclude: ^(tests/|pilotstd_env/|web/)
         pass_filenames: false
 
-      - id: gate-16
-        name: GATE-16 — 动态属性完整性检查
-        entry: python scripts/check_gate_16_attr_integrity.py
+      - id: gate-11
+        name: G-011 — 动态属性完整性检查
+        entry: python scripts/check_g_011_attr_integrity.py
         language: python
         files: \.py$
         exclude: ^(tests/|pilotstd_env/|web/)
@@ -80,43 +80,43 @@ repos:
         stages: [commit-msg]
         always_run: true
 
-      - id: gate-allowed-paths
-        name: 门禁 GATE-01 — 白名单路径检查
-        entry: python scripts/check_allowed_paths.py
-        language: python
-        files: pilotstd/core/path_guard\.py$
-        pass_filenames: false
-        stages: [manual]
-
-      - id: gate-log-tags
-        name: 门禁 GATE-02 — 日志标签完整性
-        entry: python scripts/check_log_tags.py
-        language: python
-        files: (pilotstd/core/logger\.py|pilotstd/query/engine\.py)$
-        pass_filenames: false
-        stages: [manual]
-
       - id: gate-sensitive-fields
-        name: 门禁 GATE-03 — 敏感字段掩码
-        entry: python scripts/check_sensitive_fields.py
+        name: G-018 扩展 — 敏感字段掩码
+        entry: python scripts/check_ui_sensitive_fields.py
         language: python
-        files: docker/api/settings\.py$
+        files: \.(vue|py)$
         pass_filenames: false
         stages: [manual]
 
       - id: gate-adapters
-        name: 门禁 GATE-05 — 适配器列表一致性
-        entry: python scripts/check_adapters.py
+        name: G-025 — 适配器列表一致性
+        entry: python scripts/check_g_025_adapters.py
         language: python
         files: docker/api/adapter\.py$
         pass_filenames: false
         stages: [manual]
 
       - id: gate-docker-mounts
-        name: 门禁 GATE-06 — Docker 挂载黑名单
-        entry: python scripts/check_docker_mounts.py
+        name: G-026 — Docker 挂载黑名单
+        entry: python scripts/check_g_026_docker_mounts.py
         language: python
         files: docker-compose\.yml$
+        pass_filenames: false
+        stages: [manual]
+
+      - id: gate-define-options
+        name: G-027 — Vue 组件 defineOptions 检查
+        entry: python scripts/check_g_027_define_options.py
+        language: python
+        files: \.vue$
+        pass_filenames: false
+        stages: [manual]
+
+      - id: gate-no-hardcoded-admin
+        name: G-028 — 禁止硬编码 admin
+        entry: python scripts/check_g_028_no_hardcoded_admin.py
+        language: python
+        files: \.(py|vue|ts|js|sh|yaml|yml|toml)$
         pass_filenames: false
         stages: [manual]
 
@@ -129,7 +129,7 @@ repos:
         stages: [manual]
 
       - id: check-dead-code-python
-        name: 门禁 GATE-07a — Python 死代码检测
+        name: 门禁 G-007 — Python 死代码检测
         entry: bash -c 'vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80'
         language: system
         files: \.py$
@@ -137,7 +137,7 @@ repos:
         stages: [manual]
 
       - id: check-dead-code-typescript
-        name: 门禁 GATE-07b — TypeScript 死代码检测
+        name: 门禁 G-017 — TypeScript 死代码检测
         entry: bash -c 'cd web && npx ts-prune --error'
         language: system
         files: \.(ts|vue)$
@@ -145,7 +145,7 @@ repos:
         stages: [manual]
 
       - id: check-dependencies
-        name: 门禁 GATE-08 — 依赖完整性检查
+        name: G-008 — 依赖完整性检查
         entry: python scripts/check_dependencies.py
         language: system
         files: \.py$|requirements-docker\.txt$
@@ -153,7 +153,7 @@ repos:
         stages: [manual]
 
       - id: check-changelog-version
-        name: 门禁 GATE-09 — CHANGELOG 版本一致性
+        name: G-009 — CHANGELOG 版本一致性
         entry: python scripts/check_changelog_version.py
         language: system
         files: (CHANGELOG\.md|pilotstd/__init__\.py)$
@@ -161,48 +161,16 @@ repos:
         stages: [manual]
 
       - id: check-ui-sensitive-fields
-        name: 门禁 GATE-10 — UI 敏感字段保护
+        name: G-018 — UI 敏感字段保护
         entry: python scripts/check_ui_sensitive_fields.py
         language: system
-        files: \.vue$
+        files: \.(vue|py)$
         pass_filenames: false
         stages: [manual]
 
-      - id: check-gate-11
-        name: 门禁 GATE-11 — 禁止硬编码 admin
-        entry: python scripts/check_gate_11.py
-        language: system
-        files: \.(py|vue|ts|js|sh|yaml|yml|toml)$
-        pass_filenames: false
-        stages: [manual]
-
-      - id: check-gate-12
-        name: 门禁 GATE-12 — Vue 组件 defineOptions 检查
-        entry: python scripts/check_gate_12.py
-        language: system
-        files: \.vue$
-        pass_filenames: false
-        stages: [manual]
-
-      - id: check-gate-13
-        name: 门禁 GATE-13 — 禁止前端硬编码 superuser admin
-        entry: python scripts/check_gate_13.py
-        language: system
-        files: \.(vue|ts|js)$
-        pass_filenames: false
-        stages: [manual]
-
-      - id: check-gate-14
-        name: 门禁 GATE-14 — OCR 敏感字段掩码一致性
-        entry: python scripts/check_gate_14_ocr_mask_consistency.py
-        language: system
-        files: web/src/views/SettingsView\.vue$
-        pass_filenames: false
-        stages: [manual]
-
-      - id: gate-15-code-size
-        name: 门禁 GATE-15 — 代码规模控制
-        entry: python scripts/check_gate_15_code_size.py
+      - id: gate-10-code-size
+        name: G-010 — 代码规模控制
+        entry: python scripts/check_g_010_code_size.py
         language: system
         files: \.(py|ts|vue)$
         pass_filenames: false

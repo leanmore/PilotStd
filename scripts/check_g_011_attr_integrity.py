@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GATE-16: 动态属性完整性检查 — 检测 self.xxx 定义与引用的断裂。
+"""G-011: 动态属性完整性检查 — 检测 self.xxx 定义与引用的断裂。
 
 扫描 pilotstd/、docker/、scripts/ 下所有 Python 文件，
 提取 self.xxx = ... 赋值（定义）和 self.xxx 属性访问（引用），
@@ -291,7 +291,7 @@ def main() -> int:
                 broken[key] = (attr, fpath, lineno)
 
     # ── 输出 ──
-    print("GATE-16: 动态属性完整性检查")
+    print("G-011: 动态属性完整性检查")
     print("=" * 60)
     print(f"扫描目录: {', '.join(str(d) for d in SCAN_DIRS)}")
     print(f"扫描文件: {len(py_files)}")

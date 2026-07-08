@@ -1,4 +1,34 @@
 #!/bin/sh
-# pre-commit — 前端类型检查 + lint-staged
-cd "$(git rev-parse --show-toplevel)/web" && pnpm vue-tsc -b --noEmit || exit 1
-cd "$(git rev-parse --show-toplevel)/web" && npx lint-staged
+# pre-commit — 前端类型检查 + lint-staged + 国际化门禁 + 文档联动提醒
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT/web" && pnpm vue-tsc -b --noEmit || exit 1
+cd "$ROOT/web" && npx lint-staged
+
+# ── G-002: 禁止直接从 primevue 导入 Calendar ──────────────────────
+# main.ts 除外（全局组件注册需要直接导入）
+if git diff --cached --name-only | grep -E '\.(vue|ts|tsx)$' | grep -v 'main\.ts$' | xargs grep -l "from 'primevue/calendar'" 2>/dev/null; then
+  echo ""
+  echo "❌ 门禁拦截: 检测到直接导入 primevue/calendar"
+  echo "   请替换为: import AppCalendar from '@/components/AppCalendar.vue'"
+  echo "   说明: PrimeVue Calendar 需显式传 locale 才能汉化，AppCalendar 已内置此逻辑。"
+  exit 1
+fi
+
+# ── G-020: 活跃文档联动提醒（仅提醒，不阻断）─────────────────────
+STAGED=$(git diff --cached --name-only)
+DOC_HINT=""
+# 新增/修改 API 或核心查询逻辑 → 提醒检查设计文档
+if echo "$STAGED" | grep -qE '^(pilotstd/query/|docker/api/|pilotstd/manager/)'; then
+  DOC_HINT="$DOC_HINT  - docs/superpowers/specs/（新增功能 / 改API）\n"
+  DOC_HINT="$DOC_HINT  - docs/superpowers/plans/（实现偏离计划时更新）\n"
+fi
+# 压测相关改动 → 提醒检查压测方案
+if echo "$STAGED" | grep -qE '(stress|压测)'; then
+  DOC_HINT="$DOC_HINT  - docs/.local/压力测试方案.md\n"
+fi
+if [ -n "$DOC_HINT" ]; then
+  echo ""
+  echo "💡 文档联动提醒: 本次改动涉及以下模块，请确认关联文档是否已更新："
+  printf "$DOC_HINT"
+  echo "  （此提醒不阻断提交，仅作提示）"
+fi

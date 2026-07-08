@@ -85,17 +85,23 @@ jobs:
           pip install vulture
           vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
 
-      - name: GATE-08 — Check dependency completeness
+      - name: G-008 — Check dependency completeness
         run: python scripts/check_dependencies.py
 
-      - name: GATE-09 — Check CHANGELOG version consistency
+      - name: G-009 — Check CHANGELOG version consistency
         run: python scripts/check_changelog_version.py
 
-      - name: GATE-15 — 代码规模控制 (阻断模式)
-        run: python scripts/check_gate_15_code_size.py
+      - name: G-010 — 代码规模控制 (阻断模式)
+        run: python scripts/check_g_010_code_size.py
 
-      - name: GATE-16 — 动态属性完整性检查
-        run: python scripts/check_gate_16_attr_integrity.py
+      - name: G-011 — 动态属性完整性检查
+        run: python scripts/check_g_011_attr_integrity.py
+
+      - name: G-025 — 适配器列表一致性
+        run: python scripts/check_g_025_adapters.py
+
+      - name: G-028 — 禁止硬编码 admin
+        run: python scripts/check_g_028_no_hardcoded_admin.py
 
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
@@ -169,8 +175,11 @@ jobs:
           pnpm add -D ts-prune
           pnpm ts-prune --error
 
-      - name: GATE-10 — Check UI sensitive fields protection
+      - name: G-018 — Check UI sensitive fields protection
         run: python scripts/check_ui_sensitive_fields.py
+
+      - name: G-027 — Vue 组件 defineOptions 检查
+        run: python scripts/check_g_027_define_options.py
 
   # ════════════════════════════════════════════════════════════════
   # Job 4: 入仓合规检查
@@ -186,6 +195,9 @@ jobs:
         env:
           BASE_BRANCH: main
         run: bash .github/scripts/check-repo-compliance.sh
+
+      - name: G-026 — Docker 挂载黑名单
+        run: python scripts/check_g_026_docker_mounts.py
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）

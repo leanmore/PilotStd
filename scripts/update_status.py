@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """STATUS.md 自动更新 — 从测试/门禁提取数据，刷新统计字段。
 
-仅更新可自动获取的统计字段（测试数、GATE-15 违规数、日期），
+仅更新可自动获取的统计字段（测试数、G-010 违规数、日期），
 手动填写的字段（关键决策、治理动作等）保留不动。
 本地使用，不入 CI。
 """
@@ -63,11 +63,11 @@ def count_frontend_tests() -> str:
         return "解析失败，请手动检查"
 
 
-def count_gate15_violations() -> str:
-    """运行 GATE-15 提取违规数。"""
+def count_g010_violations() -> str:
+    """运行 G-010 提取违规数。"""
     try:
         result = subprocess.run(
-            ["python", "scripts/check_gate_15_code_size.py"],
+            ["python", "scripts/check_g_010_code_size.py"],
             capture_output=True,
             text=True,
             cwd=ROOT,
@@ -93,7 +93,7 @@ def update_status() -> None:
 
     py_tests = count_python_tests()
     fe_tests = count_frontend_tests()
-    gate15 = count_gate15_violations()
+    gate10 = count_g010_violations()
 
     # ── 更新测试通过率行 ──
     test_line = f"| 测试通过率 | Python {py_tests}，前端 {fe_tests} |"
@@ -108,16 +108,16 @@ def update_status() -> None:
         content,
     )
 
-    # ── 更新 GATE-15 违规数 ──
-    gate15_line = f"| GATE-15 违规 | {gate15} |"
+    # ── 更新 G-010 违规数 ──
+    gate10_line = f"| G-010 违规 | {gate10} |"
     content = re.sub(
-        r"\| GATE-15 违规 \|.*\|",
-        gate15_line.replace("|", "\\|"),
+        r"\| G-010 违规 \|.*\|",
+        gate10_line.replace("|", "\\|"),
         content,
     )
     content = re.sub(
-        r"\| GATE-15 违规 \|.*\|",
-        gate15_line,
+        r"\| G-010 违规 \|.*\|",
+        gate10_line,
         content,
     )
 
@@ -131,7 +131,7 @@ def update_status() -> None:
     STATUS_PATH.write_text(content, encoding="utf-8")
     print("[update_status] STATUS.md 已更新")
     print(f"  测试: Python {py_tests} | 前端 {fe_tests}")
-    print(f"  GATE-15 违规: {gate15}")
+    print(f"  G-010 违规: {gate10}")
     print(f"  日期: {today}")
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""门禁 GATE-05：检查 adapter.py 中 _ALL_ADAPTER_NAMES 与 site_config.py 一致。
+"""G-025: 检查 adapter.py 中 _ALL_ADAPTER_NAMES 与 site_config.py 一致。
 退出门禁：返回 0=通过, 1=阻断。"""
 
 import ast
@@ -30,17 +30,17 @@ def extract_allowed_adapters() -> set[str]:
 def check() -> int:
     allowed = extract_allowed_adapters()
     if not allowed:
-        print("[GATE-05] FAIL: 无法解析 _ALL_ADAPTER_NAMES")
+        print("[G-025] FAIL: 无法解析 _ALL_ADAPTER_NAMES")
         return 1
     expected = _EXPECTED_QUERY | _EXPECTED_ANNOUNCE
     missing = expected - allowed
     extra = allowed - expected
     if missing:
-        print(f"[GATE-05] FAIL: 缺少适配器: {missing}")
+        print(f"[G-025] FAIL: 缺少适配器: {missing}")
         return 1
     if extra:
-        print(f"[GATE-05] WARN: 新增适配器(请同步更新登记簿): {extra}")
-    print("[GATE-05] PASS: 10 个适配器完整")
+        print(f"[G-025] WARN: 新增适配器(请同步更新登记簿): {extra}")
+    print("[G-025] PASS: 10 个适配器完整")
     return 0
 
 

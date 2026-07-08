@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""门禁 GATE-06：检查 docker-compose.yml 中是否存在禁止挂载的目录。
+"""G-026: 检查 docker-compose.yml 中是否存在禁止挂载的目录。
 防止误挂载 /app 导致容器无法启动。退出门禁：返回 0=通过, 1=阻断。"""
 
 import sys
@@ -12,7 +12,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 def main() -> int:
     compose = _ROOT / "docker-compose.yml"
     if not compose.exists():
-        print("[GATE-06] SKIP: docker-compose.yml 不存在")
+        print("[G-026] SKIP: docker-compose.yml 不存在")
         return 0
 
     lines = compose.read_text(encoding="utf-8").split("\n")
@@ -35,11 +35,11 @@ def main() -> int:
                 # 规范化路径去除尾部斜杠
                 target = target.rstrip("/")
                 if target in _FORBIDDEN:
-                    print(f"[GATE-06] FAIL: {compose.name}:{i} 禁止挂载 {target}")
+                    print(f"[G-026] FAIL: {compose.name}:{i} 禁止挂载 {target}")
                     print(f"   {target} 是代码运行根目录，挂载会导致容器无法启动")
                     print("   请将文件写入 /app/data 或 /app/output")
                     return 1
-    print("[GATE-06] PASS: 未发现禁止挂载目录")
+    print("[G-026] PASS: 未发现禁止挂载目录")
     return 0
 
 

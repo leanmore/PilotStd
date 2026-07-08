@@ -120,9 +120,9 @@ class QuerySummaryMethods:
         list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         for item in items:
             fname = (
-                os.path.basename(getattr(item, "source_path", "") or "")
-                or getattr(item, "raw_filename", "")
-                or getattr(item, "std_name", "")
+                os.path.basename(self._safe_str(getattr(item, "source_path", "")))
+                or self._safe_str(getattr(item, "raw_filename", ""))
+                or self._safe_str(getattr(item, "std_name", ""))
                 or item.get_full_number()
             )
             # pending 分栏追加冲突原因
@@ -146,6 +146,13 @@ class QuerySummaryMethods:
         return frame
 
     @staticmethod
+    def _safe_str(value: Any) -> str:
+        """确保值为字符串，防止布尔值 False 被隐式转换为 'False' 前缀。"""
+        if isinstance(value, bool):
+            return ""
+        return str(value) if value else ""
+
+    @staticmethod
     def _save_csv(filepath: str, items: list[Any]) -> None:
         """保存条目列表为 CSV 文件。"""
         with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
@@ -155,24 +162,29 @@ class QuerySummaryMethods:
                 writer.writerow(
                     [
                         item.get_full_number(),
-                        getattr(item, "std_name", "") or "",
-                        getattr(item, "next_action", "") or "",
-                        getattr(item, "source_path", "") or "",
+                        QuerySummaryMethods._safe_str(getattr(item, "std_name", "")),
+                        QuerySummaryMethods._safe_str(getattr(item, "next_action", "")),
+                        QuerySummaryMethods._safe_str(getattr(item, "source_path", "")),
                     ]
                 )
 
     def _remove_section_widget(self, key: str) -> None:
-        """从汇总弹窗中移除指定分栏 widget。"""
+        """从汇总弹窗中移除指定分栏 widget（同步删除 + 强制重排）。"""
         widget = self._summary_sections.get(key)
         if widget is None:
             return
-        # 从父布局中移除，确保分栏消失且不占空间
         layout = self._summary_container_layout
         if layout is not None:
             layout.removeWidget(widget)
-        widget.hide()
+        widget.setParent(None)  # 同步解除父子关系，立即从视觉上移除
         widget.deleteLater()
         del self._summary_sections[key]
+        # 强制容器重排布局，消除空白间隙
+        if layout is not None:
+            layout.invalidate()
+            layout.activate()
+            if layout.parentWidget():
+                layout.parentWidget().update()
         # 更新顶部总条目数
         remaining = len(self._parsed_results)
         if hasattr(self, "_summary_total_label") and self._summary_total_label is not None:
@@ -186,7 +198,7 @@ class QuerySummaryMethods:
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         name_map = {"pending": f"待确认列表_{ts}.csv", "manual_download": f"手动下载清单_{ts}.csv"}
-        default_name = name_map.get(key, f"{key}_{ts}.csv")
+        default_name = name_map.get(str(key), f"{self._safe_str(key)}_{ts}.csv")
         path, __ = QFileDialog.getSaveFileName(None, _("title_save_csv"), default_name, _("filter_csv_files"))
         if not path:
             return
@@ -213,7 +225,8 @@ class QuerySummaryMethods:
         dlg = QDialog(self)
         dlg.setWindowTitle(_("summary_title"))
         dlg.resize(800, 600)
-        dlg.setSizeGripEnabled(True)
+        # 禁用 size grip：Windows 深色主题下会渲染为右下角异常像素方块
+        dlg.setSizeGripEnabled(False)
         main_layout = QVBoxLayout(dlg)
 
         self._summary_total_label = QLabel(_("summary_total_records").format(count=total))

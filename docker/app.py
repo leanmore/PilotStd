@@ -72,9 +72,9 @@ def _clean_zombie_tasks() -> None:
 def _start_all_schedulers(_cron_mgr) -> None:
     """注册定时任务并启动所有调度器（APScheduler + 任务调度器 + 监控 + 可信IP）。"""
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
-    from .api.announce import check_announce
+    from .api.announce import check_announce_scheduled
 
-    register_job_func("auto_announce", check_announce)
+    register_job_func("auto_announce", check_announce_scheduled)
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     from .scheduler import _cleanup_notification_logs
 

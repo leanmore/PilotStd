@@ -1,4 +1,4 @@
-# GATE-15 代码规模治理 — 完整汇总
+# G-010 代码规模治理 — 完整汇总
 
 > 日期：2026-06-28 至 2026-06-30 (3 天)
 > 结果：文件 >500 行 13→0，函数 >80 行 46→0，测试 33 FAIL→0 FAIL
@@ -12,7 +12,7 @@ PilotStd 代码库经过多轮迭代，积累了 13+ 个超过 500 行的大文�
 - 新人上手困难
 - CI 测试不稳定（33 个失败用例，93.9% 通过率）
 
-6月24日 CI 引入 GATE-15（非阻断模式）：文件 ≤500 行，函数 ≤80 行。
+6月24日 CI 引入 G-010（非阻断模式）：文件 ≤500 行，函数 ≤80 行。
 
 ## 二、执行阶段
 
@@ -88,7 +88,7 @@ PilotStd 代码库经过多轮迭代，积累了 13+ 个超过 500 行的大文�
 
 ## 三、最终成果
 
-### GATE-15 违规
+### G-010 违规
 
 | 维度 | 治理前 | 治理后 | 变化 |
 |------|--------|--------|------|
@@ -197,7 +197,7 @@ pilotstd/
 | 文档 | 路径 | 说明 |
 |------|------|------|
 | 包化分析 | `docs/architecture/refactoring-analysis.md` | 11 个大文件包化详情 |
-| GATE-15 规则 | `docs/development/gate-15-enforcement.md` | 代码规模控制规范 |
+| G-010 规则 | `docs/development/g-010-enforcement.md` | 代码规模控制规范 |
 | 技术债登记 | `docs/architecture/technical-debt-registry.md` | 已知问题 + 设计决策 |
 | 重构经验 | `docs/guides/refactoring-lessons.md` | 拆分模式 + 反模式 |
 | 会话存储设计 | `docs/development/session-store-design.md` | 服务端会话存储 |

@@ -4,7 +4,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import Calendar from 'primevue/calendar'
+import AppCalendar from '@/components/AppCalendar.vue'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
@@ -250,11 +250,11 @@ onMounted(() => { loadNotifFilters(); loadLogs() })
         </div>
         <div class="filter-item">
           <label>开始日期</label>
-          <Calendar v-model="filterStartDate" dateFormat="yy-mm-dd" showIcon />
+          <AppCalendar v-model="filterStartDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-item">
           <label>结束日期</label>
-          <Calendar v-model="filterEndDate" dateFormat="yy-mm-dd" showIcon />
+          <AppCalendar v-model="filterEndDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-actions">
           <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
