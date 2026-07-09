@@ -1,43 +1,25 @@
 # CHANGELOG
 ## v0.62.1 (2026-07-09)
 
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.62.0 (2026-07-09)
-
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.61.0 (2026-07-08)
-
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.60.1 (2026-07-08)
+### Changed
+- 公告检查完成通知数据源重写：从 matched 计数改为 announcement_record 表分类统计（国标/行标/地标的公告数和标准数）
+- 聚合器改为固定窗口 + 首次延时（60s 触发 / 300s 最大窗口），分组 key 简化
+- 标准废止事件合并到 standard_status_changed（is_expired 标记），消息模板增加废止专用标题
+- validity_batch_report 零数据时显示"开始有效性检查"而非"共 0 条标准"
+- validity_round_summary 新增 round 字段（自动递增计数器）
+- 行号生成改为 rowCount()+1，消除追加模式下行号冲突
+- _organize_word_item 新增标准号解析：有标准号分类归档，无标准号保持镜像
+- ParsedStdInfo 新增 is_valid_standard 属性，CSV 导出时过滤无效数据
+- 通知消息增加 changed_at 时间字段
 
 ### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.60.0 (2026-07-08)
-
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.59.0 (2026-07-08)
-
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.58.1 (2026-07-08)
-
-### Fixed
-- 版本号自动同步（CI 更新）
-
-## v0.58.0 (2026-07-07)
-
-### Fixed
-- 版本号自动同步（CI 更新）
+- DatePicker 月份面板英文：primevueLocale 补全字段 + AppCalendar onMounted 写入全局 locale
+- useToast 残留导致 QuickActionsCard/SystemLogCard/SettingsTabUsers 卡片黑屏
+- 静音时段不生效：user preferences API 同步写入 config.json
+- 静音时段补发未执行：_release_suppressed_notifications 注册为调度任务
+- announcement_check_complete 通知始终显示"共 0 条"：键名 count/new_count 不匹配
+- Win 弹窗右下角像素方块残留：setSizeGripEnabled(False) + QMenu/QMessageBox parent 修正
+- WinUI crash_log 写入和 CMD 窗口 Safestream 已禁用
 
 ## v0.57.0 (2026-07-07)
 
