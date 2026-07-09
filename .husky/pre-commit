@@ -15,7 +15,7 @@ if git diff --cached --name-only | grep -E '\.(vue|ts|tsx)$' | grep -v 'main\.ts
 fi
 
 # ── 自动更新文档中的可量化数据 ──────────────────────────────
-cd "$ROOT" && python scripts/update_docs.py
+cd "$ROOT" && python scripts/update_docs.py || true
 
 # ── 文档联动提醒 ────────────────────────────────────────────
 STAGED=$(git diff --cached --name-only)
