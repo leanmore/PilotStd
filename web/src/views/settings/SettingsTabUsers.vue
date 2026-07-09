@@ -7,7 +7,6 @@ defineOptions({ name: 'SettingsTabUsers' })
  */
 import { ref, onMounted, computed } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
 import { getUsers, addUser, deleteUser, changePassword } from '@/api'
 import { useAppStore } from '@/stores/app'
 import Button from 'primevue/button'
@@ -18,7 +17,6 @@ const ADMIN_ROLE = 'admin'
 
 const store = useAppStore()
 const confirm = useConfirm()
-const toast = useToast()
 
 // ── 用户管理状态 ──
 const users = ref<any[]>([])
@@ -36,7 +34,7 @@ async function loadUsers() {
 
 async function doAdd() {
   if (newUser.value.username.toLowerCase() === 'admin') {
-    toast.add({ severity: 'error', summary: '用户名不可用', detail: '"admin" 为保留用户名，请使用其他名称', life: 4000 })
+    userErr.value = '"admin" 为保留用户名，请使用其他名称'
     return
   }
   try {

@@ -2,12 +2,12 @@
 defineOptions({ name: 'QuickActionsCard' })
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
 import http from '@/api/http'
 
 const router = useRouter()
-const toast = useToast()
 const scanning = ref(false)
+const scanMsg = ref('')
+const scanErr = ref(false)
 
 const actions = [
   { label: '任务流水线', iconClass: 'pi pi-play', color: '#6366f1', to: '/task' },
@@ -21,11 +21,14 @@ async function scanAndIndex() {
   try {
     const r = await http.post('/scan-and-index')
     const count = r.data?.indexed ?? 0
-    toast.add({ severity: 'success', summary: `扫描完成，入库 ${count} 条标准`, life: 4000 })
+    scanMsg.value = `扫描完成，入库 ${count} 条标准`
+    scanErr.value = false
   } catch (e: any) {
-    toast.add({ severity: 'error', summary: e.response?.data?.error || '扫描失败', life: 4000 })
+    scanMsg.value = e.response?.data?.error || '扫描失败'
+    scanErr.value = true
   } finally {
     scanning.value = false
+    setTimeout(() => { scanMsg.value = '' }, 4000)
   }
 }
 </script>
@@ -52,6 +55,7 @@ async function scanAndIndex() {
         <span class="label">{{ scanning ? '扫描中…' : '扫描入库' }}</span>
       </div>
     </div>
+    <div v-if="scanMsg" class="scan-msg" :class="{ error: scanErr }">{{ scanMsg }}</div>
   </div>
 </template>
 
@@ -81,4 +85,6 @@ async function scanAndIndex() {
 .btn.disabled { opacity: 0.5; pointer-events: none; }
 .icon { font-size: 22px; }
 .label { font-size: 11px; font-weight: 600; color: var(--text-heading); }
+.scan-msg { font-size: 11px; color: var(--success); text-align: center; margin-top: 4px; }
+.scan-msg.error { color: var(--danger); }
 </style>

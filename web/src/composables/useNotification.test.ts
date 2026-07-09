@@ -3,24 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 
-// Mock primevue/usetoast
-const mockToastAdd = vi.fn()
-vi.mock('primevue/usetoast', () => ({
-  useToast: () => ({ add: mockToastAdd }),
-}))
-
 // Mock API
 vi.mock('@/api/notification', () => ({
   markNotificationRead: vi.fn().mockResolvedValue({ ok: true, message: 'done' }),
-}))
-
-// Mock useNotificationAggregator
-vi.mock('./useNotificationAggregator', () => ({
-  useNotificationAggregator: () => ({
-    shouldShow: vi.fn(),
-    getPauseState: () => ({ isPaused: false, remainingSeconds: 0 }),
-    resume: vi.fn(),
-  }),
 }))
 
 // 模拟 WebSocket

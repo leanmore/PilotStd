@@ -1,7 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'SystemLogCard' })
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import http from '@/api/http'
 
 interface LogEntry { time: string; level: string; message: string }
@@ -9,7 +8,8 @@ interface LogEntry { time: string; level: string; message: string }
 const logs = ref<LogEntry[]>([])
 const logContainer = ref<HTMLElement | null>(null)
 const clearing = ref(false)
-const toast = useToast()
+const clearMsg = ref('')
+const clearErr = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 
 function scrollToBottom() {
@@ -38,12 +38,15 @@ async function clearOldLogs(hours: number) {
   try {
     const r = await http.delete('/admin/logs', { params: { before_hours: hours } })
     const deleted = r.data?.deleted ?? 0
-    toast.add({ severity: 'success', summary: hours > 0 ? `已清理 ${deleted} 条日志（${hours}h 前）` : `已清空全部日志（${deleted} 条）`, life: 3000 })
+    clearMsg.value = hours > 0 ? `已清理 ${deleted} 条日志（${hours}h 前）` : `已清空全部日志（${deleted} 条）`
+    clearErr.value = false
     await fetchLogs()
   } catch {
-    toast.add({ severity: 'error', summary: '清理日志失败', life: 3000 })
+    clearMsg.value = '清理日志失败'
+    clearErr.value = true
   } finally {
     clearing.value = false
+    setTimeout(() => { clearMsg.value = '' }, 3000)
   }
 }
 
@@ -66,6 +69,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
         <button class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)">清空</button>
       </div>
     </div>
+    <div v-if="clearMsg" class="clear-msg" :class="{ error: clearErr }">{{ clearMsg }}</div>
 
     <div ref="logContainer" class="log-box">
       <div v-if="!logs.length" class="empty">等待日志...</div>
@@ -115,4 +119,6 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .lv-warn,.lv-warning { color: var(--warning); }
 .lv-error { color: var(--danger); }
 .lv-debug { color: var(--text-dim); }
+.clear-msg { font-size: 11px; color: var(--success); }
+.clear-msg.error { color: var(--danger); }
 </style>

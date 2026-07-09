@@ -9,6 +9,8 @@ export const primevueLocales: Record<string, any> = {
     monthNamesShort: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     today: '今天',
     clear: '清除',
+    dateFormat: 'yy-mm-dd',
+    weekHeader: '周',
   },
   en: {
     firstDayOfWeek: 0,
@@ -19,6 +21,8 @@ export const primevueLocales: Record<string, any> = {
     monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     today: 'Today',
     clear: 'Clear',
+    dateFormat: 'mm/dd/yy',
+    weekHeader: 'Wk',
   },
   'zh-TW': {
     firstDayOfWeek: 1,
@@ -29,5 +33,7 @@ export const primevueLocales: Record<string, any> = {
     monthNamesShort: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
     today: '今天',
     clear: '清除',
+    dateFormat: 'yy-mm-dd',
+    weekHeader: '週',
   },
 }
