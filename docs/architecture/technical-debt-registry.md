@@ -45,14 +45,14 @@
 | 6 | WebSocket 广播无用户级路由 (广播到所有连接) | 中 | 2026-06-25 | 已接受 | 当前设计为全局广播，未来可按 user_id 路由 |
 | 7 | 会话存储重启即丢失 | 中 | 2026-06-30 | 已接受 | 重启后需重新登录是预期行为，可后续引入 Redis |
 | 8 | 构建缓存策略 — Docker Registry Cache + GHA cache 双通道，依赖哈希自动失效 | 低 | 2026-06-29 | ✅ 已实施 (2026-07-01) | `.github/workflows/ci.yml` — `build-and-push` job，`cache-from` + `cache-to` 双通道 |
-| 9 | Toast 弹窗配置 — 用户可在 NotificationConfig.vue 中配置开关 | 低 | 2026-06-29 | 已接受 | 前端用户体验，非安全相关 |
+| 9 | Toast 弹窗已删除 — Web 通知走企业微信/飞书等外部渠道 | 低 | 2026-07-09 | 已关闭 | Toast 组件及相关配置于 2026-07-09 全部移除 |
 | 10 | 静态令牌永不过期 — API Key 不设自动轮换 | 中 | 2026-06-29 | 已接受 | 当前安全模型足够，可后续引入 TTL |
-| 11 | 测试覆盖策略 — 全量覆盖 (后端 + 前端组件) | 低 | 2026-06-29 | 已接受 | 615 PASS / 6 SKIP / 0 FAIL |
+| 11 | 测试覆盖策略 — 全量覆盖 (后端 + 前端组件) | 低 | 2026-06-29 | 已接受 | 771 PASS |
 | 12 | 前后端配置键名不一致 (scan/query/validity) → 数据静默丢失 | 高 | 2026-07-05 | ✅ 已修复 (2026-07-05) | `skip_file_keywords`→`exclude_patterns`、`query.interval`→`query_interval`、`validity.update_interval`→`total_weeks` |
 | 13 | 后端 GET 硬编码事件列表 vs 前端完整列表 → 订阅状态加载丢失 | 高 | 2026-07-05 | ✅ 已修复 (2026-07-05) | `ALL_EVENT_KEYS` 从 events.py 派生，GET/PUT 统一 |
 | 14 | 设置模块 4 处独立维护事件/字段列表 → 增删不同步 | 中 | 2026-07-05 | ✅ 已修复 (2026-07-06) | events.py SSOT + settings_schema.py + E2E 一致性测试 |
 | 15 | Telegram 通知 404 刷屏 (token 未 strip + 无错误分类) | 中 | 2026-07-05 | ✅ 已修复 (2026-07-05) | strip + HTTPError 分类 + 120s 去重 |
-| 16 | PyInstaller --noconsole sys.stderr=None 崩溃 | 高 | 2026-07-06 | ✅ 已修复 (2026-07-06) | io.StringIO 兜底 + print→logger |
+| 16 | PyInstaller --noconsole sys.stderr=None 兜底 | 高 | 2026-07-09 | 已回退 | _SafeStream 于 2026-07-09 禁用，改用原生 stderr |
 | 17 | PyPDF2 已废弃，CI 产生 DeprecationWarning | 低 | 2026-07-05 | ✅ 已修复 (2026-07-05) | 全量迁移至 pypdf |
 | 18 | python-multipart 缺失导致 PyInstaller 打包后文件上传崩溃 | 高 | 2026-07-06 | ✅ 已修复 (2026-07-06) | 加入共享 requirements.txt |
 
