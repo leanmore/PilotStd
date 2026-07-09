@@ -8,9 +8,7 @@ const KEYS = {
   theme: 'theme',
   locale: 'locale',
   taskPath: 'task_path',
-  toastConfig: 'notification_toast_config',
   quietHours: 'notification_quiet_hours',
-  autoPause: 'notification_auto_pause',
 } as const
 
 function readLocal(key: string, fallback: unknown) {
@@ -30,13 +28,9 @@ function writeLocal(key: string, value: unknown) {
 const theme = ref<string>(readLocal(KEYS.theme, ''))
 const locale = ref<string>(readLocal(KEYS.locale, 'zh-CN'))
 const taskPath = ref<string>(readLocal(KEYS.taskPath, '/inbox'))
-const toastConfig = ref<{ enabled: boolean; events: string[] }>(
-  readLocal(KEYS.toastConfig, { enabled: true, events: ['auto_scan_failed', 'validity_system_failed', 'validity_standard_failed'] })
-)
 const quietHours = ref<{ enabled: boolean; start: string; end: string }>(
   readLocal(KEYS.quietHours, { enabled: false, start: '22:00', end: '07:00' })
 )
-const autoPause = ref<boolean>(readLocal(KEYS.autoPause, true))
 const _initialized = ref(false)
 
 let _syncTimer: ReturnType<typeof setTimeout> | null = null
@@ -50,9 +44,7 @@ function syncToBackend() {
         theme: theme.value,
         language: locale.value,
         task_path: taskPath.value,
-        notification_toast_config: toastConfig.value,
         notification_quiet_hours: quietHours.value,
-        notification_auto_pause: autoPause.value,
       })
     } catch { /* ignore */ }
   }, 500)
@@ -60,14 +52,12 @@ function syncToBackend() {
 
 // 监听所有字段 → 写 localStorage + 防抖同步后端
 watch(
-  [theme, locale, taskPath, toastConfig, quietHours, autoPause],
+  [theme, locale, taskPath, quietHours],
   () => {
     writeLocal(KEYS.theme, theme.value)
     writeLocal(KEYS.locale, locale.value)
     writeLocal(KEYS.taskPath, taskPath.value)
-    writeLocal(KEYS.toastConfig, toastConfig.value)
     writeLocal(KEYS.quietHours, quietHours.value)
-    writeLocal(KEYS.autoPause, autoPause.value)
     if (_initialized.value) syncToBackend()
   },
   { deep: true },
@@ -85,17 +75,13 @@ async function loadFromBackend() {
     if (prefs.theme) theme.value = prefs.theme as string
     if (prefs.language) locale.value = prefs.language as string
     if (prefs.task_path) taskPath.value = prefs.task_path as string
-    if (prefs.notification_toast_config) toastConfig.value = prefs.notification_toast_config as typeof toastConfig.value
     if (prefs.notification_quiet_hours) quietHours.value = prefs.notification_quiet_hours as typeof quietHours.value
-    if (prefs.notification_auto_pause !== undefined) autoPause.value = prefs.notification_auto_pause as boolean
 
     // 同步回 localStorage
     writeLocal(KEYS.theme, theme.value)
     writeLocal(KEYS.locale, locale.value)
     writeLocal(KEYS.taskPath, taskPath.value)
-    writeLocal(KEYS.toastConfig, toastConfig.value)
     writeLocal(KEYS.quietHours, quietHours.value)
-    writeLocal(KEYS.autoPause, autoPause.value)
 
     // 一次性清理旧版 store 残留
     cleanupLegacy()
@@ -108,5 +94,5 @@ function cleanupLegacy() {
 }
 
 export function useUserPreferences() {
-  return { theme, locale, taskPath, toastConfig, quietHours, autoPause, loadFromBackend, cleanupLegacy }
+  return { theme, locale, taskPath, quietHours, loadFromBackend, cleanupLegacy }
 }

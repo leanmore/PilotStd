@@ -152,7 +152,7 @@ class RulesPage(QWidget):
     def _on_export_json(self) -> None:
         rules = self._get_rules()
         if not rules:
-            QMessageBox.information(None, _("title_hint"), _("msg_no_rules_to_export"))
+            QMessageBox.information(self, _("title_hint"), _("msg_no_rules_to_export"))
             return
         path, __ = QFileDialog.getSaveFileName(
             self, _("dialog_export_rules"), "pilotstd_rules.json", _("file_filter_json")
@@ -166,7 +166,7 @@ class RulesPage(QWidget):
                 _("msg_export_success").format(count=len(rules), path=path),
             )
         else:
-            QMessageBox.warning(None, _("title_export_failed"), "")
+            QMessageBox.warning(self, _("title_export_failed"), "")
 
     def _on_copy_builtin(self) -> None:
         builtins = [
@@ -258,7 +258,7 @@ class RuleEditDialog(QDialog):
     def _on_accept(self) -> None:
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(None, _("title_hint"), _("msg_enter_rule_name"))
+            QMessageBox.warning(self, _("title_hint"), _("msg_enter_rule_name"))
             return
         self.accept()
 

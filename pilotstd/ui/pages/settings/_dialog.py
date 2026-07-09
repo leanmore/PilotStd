@@ -39,5 +39,5 @@ class SettingsDialog(QDialog):
 
     def _on_accept(self) -> None:
         self.page.save_to_config()
-        QMessageBox.information(None, _("settings_title"), _("settings_saved"))
+        QMessageBox.information(self, _("settings_title"), _("settings_saved"))
         self.accept()

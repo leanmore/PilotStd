@@ -130,8 +130,8 @@ class MessageBuildersMixin:
 
     def _build_announcement_check_complete_message(self, data: dict) -> NotificationMessage:
         failures = data.get("failures", 0)
-        new_count = data.get("new_count", 0)
-        total = data.get("total", 0)
+        new_count = data.get("count", 0)
+        total = data.get("count", 0)
         if failures == 0:
             return NotificationMessage(
                 title=_("公告检查完成"),

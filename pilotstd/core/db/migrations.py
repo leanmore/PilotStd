@@ -453,15 +453,17 @@ def _migrate_v30_failure_tables(db: Any) -> None:
     db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")
 
 
-# v31-v34 迁移实现拆分到独立模块（migrations.py 超过 500 行限制）
+# v31-v35 迁移实现拆分到独立模块（migrations.py 超过 500 行限制）
 from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v31_monitor_stats,
     _migrate_v32_cleanup_dead_tables,
     _migrate_v33_adapter_state,
     _migrate_v34_drop_old_adapter_tables,
+    _migrate_v35_notification_policy,
 )
 
 migration(31)(_migrate_v31_monitor_stats)
 migration(32)(_migrate_v32_cleanup_dead_tables)
 migration(33)(_migrate_v33_adapter_state)
 migration(34)(_migrate_v34_drop_old_adapter_tables)
+migration(35)(_migrate_v35_notification_policy)

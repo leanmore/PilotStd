@@ -69,7 +69,8 @@ class DialogMixin:
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)
-        dlg.setSizeGripEnabled(True)
+        dlg.setSizeGripEnabled(False)  # Windows 深色主题下会渲染为右下角像素方块
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         layout = QVBoxLayout(dlg)
         # 内容区域 — 包裹在 QScrollArea 中，内容超长时可滚动
         scroll = QScrollArea()
@@ -105,7 +106,8 @@ class DialogMixin:
         dlg.setWindowTitle(title)
         dlg.setMinimumWidth(400)
         dlg.resize(600, 500)
-        dlg.setSizeGripEnabled(True)
+        dlg.setSizeGripEnabled(False)  # Windows 深色主题下会渲染为右下角像素方块
+        dlg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         layout = QVBoxLayout(dlg)
         # 内容区域 — 包裹在 QScrollArea 中，内容超长时可滚动
         scroll = QScrollArea()

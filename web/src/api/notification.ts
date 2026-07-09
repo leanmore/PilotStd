@@ -90,6 +90,24 @@ export const getNotificationLogs = (params: {
 export const markNotificationRead = (id?: number | null): Promise<{ ok: boolean; message: string }> =>
   http.post('/notification/read', { id: id ?? null }).then(r => r.data)
 
+export interface NotificationPolicy {
+  id: number
+  channel: string
+  enabled: boolean
+  events: string[]
+  updated_at: string
+}
+
+export const getNotificationPolicies = (): Promise<{ policies: NotificationPolicy[] }> =>
+  http.get('/notification/policy').then(r => r.data)
+
+export const putNotificationPolicy = (data: {
+  channel: string
+  enabled?: boolean
+  events?: string[]
+}): Promise<{ ok: boolean }> =>
+  http.put('/notification/policy', data).then(r => r.data)
+
 /** 清理指定天数前的通知日志（需管理员权限） */
 export const deleteNotificationLogs = (days: number = 30): Promise<{ ok: boolean; deleted: number }> =>
   http.delete('/notification/logs', { params: { days } }).then(r => r.data)

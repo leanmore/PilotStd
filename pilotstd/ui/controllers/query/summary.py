@@ -205,7 +205,7 @@ class QuerySummaryMethods:
         try:
             self._save_csv(path, items)
         except OSError as e:
-            QMessageBox.warning(None, _("title_save_failed"), _("msg_save_failed").format(error=e))
+            QMessageBox.warning(self, _("title_save_failed"), _("msg_save_failed").format(error=e))
             return
         action_map = {"pending": "pending", "manual_download": "manual_download"}
         target_action = action_map.get(key, key)

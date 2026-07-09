@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationConfig' })
-// NotificationConfig.vue v2 — 四渠道全参数通知配置
-import { ref, onMounted, onUnmounted } from 'vue'
+// NotificationConfig.vue v3 — 四渠道全参数通知配置（已移除页面内通知卡片）
+import { ref, onMounted } from 'vue'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -10,12 +10,13 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Checkbox from 'primevue/checkbox'
 import Message from 'primevue/message'
 import Tag from 'primevue/tag'
+import AppCalendar from '@/components/AppCalendar.vue'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
+  getNotificationPolicies, putNotificationPolicy,
   type WechatChannelConfig, type TelegramChannelConfig,
   type FeishuChannelConfig, type DingTalkChannelConfig,
 } from '@/api/notification'
-import { useNotificationAggregator } from '@/composables/useNotificationAggregator'
 
 interface ChannelFormState {
   enabled: boolean
@@ -74,21 +75,6 @@ const channelOpen = ref<Record<string, boolean>>({
   dingtalk: false,
 })
 
-// ── 页面内通知卡片折叠状态（localStorage 持久化） ──
-const TOAST_CARD_STORAGE_KEY = 'notification_toast_card_expanded'
-const toastCardExpanded = ref(
-  localStorage.getItem(TOAST_CARD_STORAGE_KEY) !== 'false' ? false : false
-)
-// 初始默认折叠；若用户上次展开过，则恢复
-try {
-  const saved = localStorage.getItem(TOAST_CARD_STORAGE_KEY)
-  if (saved === 'true') toastCardExpanded.value = true
-} catch { /* localStorage 不可用，保持默认折叠 */ }
-
-function saveToastCardPref() {
-  try { localStorage.setItem(TOAST_CARD_STORAGE_KEY, String(toastCardExpanded.value)) } catch { /* ignore */ }
-}
-
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
   try {
@@ -123,6 +109,18 @@ async function loadConfig() {
         if (cfg.rules?.[ev.key]?.includes(ch)) channels.value[ch].events.push(ev.key)
       }
     }
+
+    // 尝试从策略 API 加载事件订阅（优先于 config.json rules）
+    try {
+      const { policies } = await getNotificationPolicies()
+      if (policies && policies.length > 0) {
+        for (const p of policies) {
+          if (channels.value[p.channel]) {
+            channels.value[p.channel].events = [...p.events]
+          }
+        }
+      }
+    } catch { /* 策略 API 不可用时保持 config.json rules */ }
   } catch (e: any) {
     errMsg.value = e.response?.data?.error || '加载配置失败'
   } finally { loading.value = false }
@@ -148,6 +146,12 @@ async function saveConfig() {
       },
       rules: newRules,
     })
+    // 同时保存事件订阅到策略表
+    for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk'] as const) {
+      try {
+        await putNotificationPolicy({ channel: ch, events: channels.value[ch].events })
+      } catch { /* 策略 API 不可用时静默降级 */ }
+    }
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
   } catch (e: any) {
@@ -194,36 +198,9 @@ function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
   return c.webhook_url ? 'success' : 'secondary'
 }
 
-// ── Toast 页面内通知配置（通过 useUserPreferences 持久化） ──
-const { toastConfig: toastPrefs, quietHours: quietPrefs, autoPause: autoPausePrefs } = useUserPreferences()
+// ── 静音时段配置（全局通知配置，独立区域） ──
+const { quietHours: quietPrefs } = useUserPreferences()
 
-onMounted(() => {
-  loadConfig()
-  loadToastFromPrefs()
-  loadQuietHoursFromPrefs()
-  pauseTimer = setInterval(() => {
-    pauseState.value = aggregator.getPauseState()
-  }, 1000)
-})
-
-onUnmounted(() => {
-  if (pauseTimer) clearInterval(pauseTimer)
-})
-
-const toastConfig = ref({
-  enabled: toastPrefs.value.enabled,
-  events: [...toastPrefs.value.events],
-})
-
-function saveToastConfig() {
-  toastPrefs.value = { enabled: toastConfig.value.enabled, events: [...toastConfig.value.events] }
-}
-
-function loadToastFromPrefs() {
-  toastConfig.value = { enabled: toastPrefs.value.enabled, events: [...toastPrefs.value.events] }
-}
-
-// ── 静音时段配置 ──
 const quietHoursEnabled = ref(quietPrefs.value.enabled)
 const quietHoursStart = ref(new Date(2024, 0, 1, 22, 0))
 const quietHoursEnd = ref(new Date(2024, 0, 1, 7, 0))
@@ -245,25 +222,9 @@ function loadQuietHoursFromPrefs() {
   }
 }
 
-// ── 智能聚合器配置 ──
-const aggregator = useNotificationAggregator()
-const autoPauseEnabled = ref(autoPausePrefs.value)
-const pauseState = ref(aggregator.getPauseState())
-
-function saveAutoPauseConfig() {
-  autoPausePrefs.value = autoPauseEnabled.value
-}
-
-function resumeNotifications() {
-  aggregator.resume()
-  pauseState.value = aggregator.getPauseState()
-}
-
-// 每秒更新暂停倒计时
-let pauseTimer: ReturnType<typeof setInterval> | null = null
-
-onUnmounted(() => {
-  if (pauseTimer) clearInterval(pauseTimer)
+onMounted(() => {
+  loadConfig()
+  loadQuietHoursFromPrefs()
 })
 </script>
 
@@ -386,66 +347,32 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 页面内通知（可折叠卡片） -->
+    <!-- 静音时段（全局通知配置） -->
     <div class="collapsible-card" style="margin-top:16px">
-      <div class="collapsible-header" @click="toastCardExpanded = !toastCardExpanded; saveToastCardPref()">
+      <div class="collapsible-header" style="cursor:default">
         <div style="display:flex;align-items:center;gap:8px">
-          <i class="pi pi-bell" style="font-size:16px;color:var(--primary)" />
-          <span class="collapsible-title">页面内通知</span>
+          <i class="pi pi-moon" style="font-size:16px;color:var(--primary)" />
+          <span class="collapsible-title">静音时段</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <Tag :severity="toastConfig.enabled ? 'success' : 'secondary'" :value="toastConfig.enabled ? '已启用' : '未启用'" />
-          <i :class="toastCardExpanded ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+          <Tag :severity="quietHoursEnabled ? 'success' : 'secondary'" :value="quietHoursEnabled ? '已启用' : '未启用'" />
         </div>
       </div>
-      <transition name="collapsible">
-        <div v-show="toastCardExpanded" class="collapsible-content">
-
-    <div class="toast-config">
-      <div class="config-row">
-        <label>启用弹出通知</label>
-        <ToggleSwitch v-model="toastConfig.enabled" @change="saveToastConfig" />
-      </div>
-      <div v-if="toastConfig.enabled" class="config-row">
-        <label>触发事件</label>
-        <div class="events-check-grid">
-          <div v-for="ev in EVENTS" :key="ev.key" class="checkbox-field">
-            <Checkbox v-model="toastConfig.events" :value="ev.key" :input-id="`toast-${ev.key}`" @change="saveToastConfig" />
-            <label :for="`toast-${ev.key}`">{{ ev.label }}</label>
-          </div>
+      <div class="collapsible-content">
+        <div class="config-row">
+          <label>启用静音时段</label>
+          <ToggleSwitch v-model="quietHoursEnabled" @change="saveQuietHours" />
+          <span style="font-size:12px;color:var(--text-dim);margin-left:8px">
+            静音时段内通知将暂存，结束后自动补发
+          </span>
+        </div>
+        <div v-if="quietHoursEnabled" class="config-row" style="margin-top:8px">
+          <label>开始时间</label>
+          <AppCalendar v-model="quietHoursStart" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
+          <label style="margin-left:16px">结束时间</label>
+          <AppCalendar v-model="quietHoursEnd" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
         </div>
       </div>
-
-      <!-- 静音时段 -->
-      <div class="config-row" style="margin-top:12px">
-        <label>静音时段</label>
-        <ToggleSwitch v-model="quietHoursEnabled" @change="saveQuietHours" />
-      </div>
-      <div v-if="quietHoursEnabled" class="config-row">
-        <label>开始时间</label>
-        <Calendar v-model="quietHoursStart" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
-        <label style="margin-left:16px">结束时间</label>
-        <Calendar v-model="quietHoursEnd" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
-      </div>
-    </div>
-
-    <!-- 聚合器设置 -->
-    <div class="config-row" style="margin-top:16px">
-      <label>智能聚合与暂停</label>
-      <div class="config-row">
-        <ToggleSwitch v-model="autoPauseEnabled" @change="saveAutoPauseConfig" />
-        <span style="font-size:12px;color:var(--text-dim);margin-left:8px">
-          连续 3 次警告/错误在 30 秒内自动暂停所有弹窗，5 分钟后自动恢复
-        </span>
-      </div>
-    </div>
-    <div v-if="pauseState.isPaused" class="pause-banner" style="margin-top:8px;padding:10px 14px;background:#fff3cd;border-radius:6px;display:flex;align-items:center;justify-content:space-between">
-      <span><i class="pi pi-clock" style="margin-right:6px" />通知已暂停，剩余 {{ pauseState.remainingSeconds }} 秒</span>
-      <Button label="立即恢复" size="small" severity="info" @click="resumeNotifications" />
-    </div>
-
-        </div>
-      </transition>
     </div>
   </div>
 </template>
@@ -496,4 +423,8 @@ onUnmounted(() => {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 4px 8px; margin-top: 6px;
 }
+.config-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.config-row label { font-size: 13px; color: var(--text); }
 </style>

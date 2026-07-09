@@ -88,6 +88,14 @@ def put_preferences_batch(
     result = mgr.user_service.save_preferences_batch(user_id, preferences)
     if "error" in result:
         return JSONResponse(result, 400)
+    # 静音时段是全局通知配置，同步到 config.json 供 NotificationManager 读取
+    if "notification_quiet_hours" in preferences:
+        qh = preferences["notification_quiet_hours"]
+        if isinstance(qh, dict):
+            mgr.cfg.set("notification.quiet_hours_enabled", qh.get("enabled", False))
+            mgr.cfg.set("notification.quiet_hours_start", qh.get("start", "22:00"))
+            mgr.cfg.set("notification.quiet_hours_end", qh.get("end", "07:00"))
+            mgr.cfg.save()
     return result
 
 

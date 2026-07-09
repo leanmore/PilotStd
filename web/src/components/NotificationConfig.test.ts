@@ -4,7 +4,6 @@ import { mount } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
 import NotificationConfig from './NotificationConfig.vue'
 
-// 使用 vi.hoisted 避免 mock 提升导致引用错误
 const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock } = vi.hoisted(() => ({
   getNotificationConfigMock: vi.fn(),
   putNotificationConfigMock: vi.fn(),
@@ -17,14 +16,6 @@ vi.mock('@/api/notification', () => ({
   testNotification: testNotificationMock,
 }))
 
-vi.mock('@/composables/useNotificationAggregator', () => ({
-  useNotificationAggregator: () => ({
-    shouldShow: vi.fn(),
-    getPauseState: () => ({ isPaused: false, remainingSeconds: 0 }),
-    resume: vi.fn(),
-  }),
-}))
-
 function mountConfig() {
   localStorage.clear()
   return mount(NotificationConfig, {
@@ -33,6 +24,7 @@ function mountConfig() {
       stubs: {
         Password: { template: '<input class="password-stub" />', props: ['modelValue', 'placeholder', 'toggleMask', 'feedback', 'size'] },
         Calendar: true,
+        AppCalendar: true,
       },
     },
   })
@@ -75,38 +67,14 @@ describe('NotificationConfig', () => {
     expect(html).toContain('钉钉')
   })
 
-  it('渲染 Toast 页面内通知配置区', async () => {
+  it('渲染静音时段配置区', async () => {
     const wrapper = mountConfig()
     await new Promise(r => setTimeout(r, 10))
     await wrapper.vm.$nextTick()
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.html()).toContain('页面内通知')
-    expect(wrapper.html()).toContain('启用弹出通知')
-  })
-
-  it('渲染智能聚合与暂停配置', async () => {
-    const wrapper = mountConfig()
-    await new Promise(r => setTimeout(r, 10))
-    await wrapper.vm.$nextTick()
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.html()).toContain('智能聚合与暂停')
-  })
-
-  it('默认状态未暂停时不显示恢复横幅', async () => {
-    const wrapper = mountConfig()
-    await new Promise(r => setTimeout(r, 10))
-    await wrapper.vm.$nextTick()
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.html()).not.toContain('通知已暂停')
-  })
-
-  it('触发事件使用 Checkbox 平铺而非 Select 下拉', () => {
-    const wrapper = mountConfig()
-    expect(wrapper.findComponent({ name: 'Select' }).exists()).toBe(false)
-    expect(wrapper.find('.events-check-grid').exists()).toBe(true)
+    expect(wrapper.html()).toContain('静音时段')
+    expect(wrapper.html()).toContain('启用静音时段')
   })
 
   it('渠道卡片使用 collapsible-card 而非 Accordion', () => {

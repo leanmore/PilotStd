@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from ..db import Database
 from ._message_builders import MessageBuildersMixin
+from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
 from .channels.dingtalk import DingTalkChannel
 from .channels.feishu import FeishuChannel
@@ -35,6 +36,7 @@ class NotificationManager(MessageBuildersMixin):
     def __init__(self, config: Any, db: Database, ws_broadcast: Callable | None = None):
         self._cfg = config
         self._db = db
+        self._policy = NotificationPolicyHelper(db, config)
         self._enabled = config.get("notification.enabled", False)
         self._channels: dict[str, Any] = {}
         self._ws_broadcast = ws_broadcast
@@ -84,16 +86,16 @@ class NotificationManager(MessageBuildersMixin):
     # ── 发送事件 ──────────────────────────────────────────────
 
     def send_event(self, event_type: str, event_data: dict[str, Any]) -> None:
-        """根据 rules 映射分发通知到各渠道（经过聚合器缓冲）。"""
+        """根据策略表分发通知到各渠道（经过聚合器缓冲）。
+
+        优先从 notification_policy 表读取渠道事件订阅，
+        若表为空则回退到 config.json 的 notification.rules 配置。
+        """
         if not self._enabled:
             return
-        rules = self._cfg.get(f"notification.rules.{event_type}")
-        if not rules:
+        target_channels = self._policy.get_channels_for_event(event_type)
+        if not target_channels:
             return
-        if isinstance(rules, str):
-            target_channels = [c.strip() for c in rules.split(",") if c.strip()]
-        else:
-            target_channels = rules
 
         msg = self._build_message(event_type, event_data)
         self._do_send(msg, target_channels)
@@ -426,3 +428,11 @@ class NotificationManager(MessageBuildersMixin):
             return {"ok": ok, "error": "" if ok else "发送失败"}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+    # ── 策略表读写（委托 _policy helper） ──
+
+    def get_policies(self) -> list[dict[str, Any]]:
+        return self._policy.get_policies()
+
+    def save_policy(self, channel: str, enabled: bool | None, events: list[str] | None) -> None:
+        self._policy.save_policy(channel, enabled, events)

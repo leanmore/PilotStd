@@ -183,11 +183,11 @@ class DownloadMixin:
             with open(path, "r", encoding="utf-8") as f:
                 lines = [line.strip() for line in f if line.strip()]
         except OSError as e:
-            QMessageBox.warning(None, _("title_import_failed"), str(e))
+            QMessageBox.warning(self, _("title_import_failed"), str(e))
             return
 
         if not lines:
-            QMessageBox.information(None, _("title_hint"), _("csv_empty"))
+            QMessageBox.information(self, _("title_hint"), _("csv_empty"))
             return
 
         # 直接调 download_by_numbers 下载
@@ -199,7 +199,7 @@ class DownloadMixin:
         msg = _("download_results_total") + ": " + str(stats.total) + "\n"
         msg += _("download_results_success") + ": " + str(stats.success) + "\n"
         msg += _("download_results_failed") + ": " + str(stats.failed)
-        QMessageBox.information(None, _("download_results_title"), msg)
+        QMessageBox.information(self, _("download_results_title"), msg)
         self._project.mark_dirty()
 
     def _enqueue_download_wait(self, parsed: Any) -> None:
@@ -218,7 +218,7 @@ class DownloadMixin:
         if len(due) > 5:
             msg += f"\n... 等共 {len(due)} 条"
         msg += "\n" + _("download_queue_confirm")
-        reply = QMessageBox.question(None, _("download_queue_title"), msg)
+        reply = QMessageBox.question(self, _("download_queue_title"), msg)
         if reply == QMessageBox.StandardButton.Yes:
             for d in due:
                 self._mgr.remove_download_queue(d["standard_number"])

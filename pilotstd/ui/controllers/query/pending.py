@@ -164,7 +164,7 @@ class QueryPendingMethods:
             self._do_pending_query()
         except Exception as e:
             logger.exception("待确认查询异常")
-            QMessageBox.critical(None, _("title_error"), _("error_pending_query_failed").format(error=e))
+            QMessageBox.critical(self, _("title_error"), _("error_pending_query_failed").format(error=e))
 
     def _writeback_and_reclassify(self: Any, results: list[Any], parsed_list: list[Any]) -> None:
         """将二次查询结果回写到 parsed_list，然后重新路由分类。"""
@@ -183,7 +183,7 @@ class QueryPendingMethods:
         if not self._mgr_ready:
             return
         if self._parsed_results:
-            QMessageBox.warning(None, _("title_hint"), _("workspace_not_empty"))
+            QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
             return
 
         path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_pending"), "", _("file_filter_csv"))
@@ -196,7 +196,7 @@ class QueryPendingMethods:
             reader = csv.reader(f)
             rows = list(reader)
         if not rows:
-            QMessageBox.warning(None, _("title_hint"), _("csv_empty"))
+            QMessageBox.warning(self, _("title_hint"), _("csv_empty"))
             return
         for i, row in enumerate(rows):
             if i == 0:
@@ -217,7 +217,7 @@ class QueryPendingMethods:
                 failed_names.append(std_num)
 
         if not parsed_list:
-            QMessageBox.warning(None, _("title_hint"), _("csv_no_standards"))
+            QMessageBox.warning(self, _("title_hint"), _("csv_no_standards"))
             return
 
         msg = _("msg_csv_parse_result").format(count=len(parsed_list))
@@ -277,4 +277,4 @@ class QueryPendingMethods:
         if count > 5:
             msg += f"\n... 等共 {count} 条"
         msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(None, _("pending_lookup_title"), msg)
+        QMessageBox.information(self, _("pending_lookup_title"), msg)

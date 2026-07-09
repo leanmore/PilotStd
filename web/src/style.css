@@ -599,16 +599,6 @@ h4 {
   font-weight: 500;
 }
 
-/* Toast */
-.p-toast {
-  z-index: 1100;
-}
-
-.p-toast .p-toast-message {
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-}
-
 /* ═══════════════════════════════════════════
    通用卡片样式
    ═══════════════════════════════════════════ */

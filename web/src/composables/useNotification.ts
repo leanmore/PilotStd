@@ -1,9 +1,7 @@
 // web/src/composables/useNotification.ts
 // WebSocket 连接管理 + 通知状态管理 + 自动重连
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import { markNotificationRead } from '@/api/notification'
-import { useNotificationAggregator } from './useNotificationAggregator'
 
 export interface NotificationMessage {
   id?: number
@@ -21,7 +19,6 @@ export function useNotification() {
   const isConnecting = ref(false)
   const error = ref<string | null>(null)
   const messages = ref<NotificationMessage[]>([])
-  const toast = useToast()
 
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempts = 0
@@ -53,24 +50,6 @@ export function useNotification() {
       try {
         const data = JSON.parse(event.data)
         messages.value.unshift({ ...data, is_read: false })
-
-        const aggregator = useNotificationAggregator()
-        const toastConfig = getToastConfig()
-        if (toastConfig.enabled && toastConfig.events.includes(data.event_type)) {
-          const severityMap: Record<string, 'info' | 'warn' | 'error' | 'success'> = {
-            info: 'info', warning: 'warn', error: 'error',
-          }
-          aggregator.shouldShow(data.level, data.title, data.body,
-            (mergedTitle: string, mergedBody: string, mergedLevel: string) => {
-              toast.add({
-                severity: severityMap[mergedLevel] || 'info',
-                summary: mergedTitle,
-                detail: mergedBody,
-                life: 5000,
-                closable: true,
-              })
-            })
-        }
       } catch (e) {
         console.error('解析通知消息失败:', e)
       }
@@ -132,21 +111,6 @@ export function useNotification() {
     } catch (e) {
       console.error('标记已读失败:', e)
       return { ok: false, error: String(e) }
-    }
-  }
-
-  const getToastConfig = () => {
-    const saved = localStorage.getItem('notification_toast_config')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        /* ignore */
-      }
-    }
-    return {
-      enabled: true,
-      events: ['auto_scan_failed', 'validity_system_failed', 'validity_standard_failed'],
     }
   }
 

@@ -69,13 +69,14 @@ class TableMixin:
 
     def _on_header_context_menu(self, pos: Any) -> None:
         header = self.work_table.horizontalHeader()
-        menu = QMenu(None)
+        menu = QMenu(self.work_table)
         for c in TOGGLEABLE_COLS:
             action = menu.addAction(_(WORK_COLUMN_KEYS[c]))
             action.setCheckable(True)
             action.setChecked(not self.work_table.isColumnHidden(c))
             action.setData(c)
         chosen = menu.exec(header.viewport().mapToGlobal(pos))
+        menu.deleteLater()
         if chosen:
             c = chosen.data()
             hidden = not self.work_table.isColumnHidden(c)
@@ -94,7 +95,7 @@ class TableMixin:
 
     def _on_save_result(self, fmt: str) -> None:
         if self.work_table.rowCount() == 0:
-            QMessageBox.information(None, _("title_hint"), _("no_data_to_save"))
+            QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
             return
 
         vis_names = self._get_visible_cols()
@@ -132,7 +133,7 @@ class TableMixin:
             elif fmt == "csv":
                 self._save_csv(path, rows, vis_names, visible_data_keys)
         except OSError as e:
-            QMessageBox.warning(None, _("title_save_failed"), str(e))
+            QMessageBox.warning(self, _("title_save_failed"), str(e))
 
     def _save_txt(
         self,

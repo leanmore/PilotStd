@@ -246,15 +246,13 @@ class ArchiveMixin:
             qry = getattr(p, "found_name", "") or "（无）"
             full_num = p.get_full_number()
             msg = f"标准号: {full_num}\n\n源文件名称: {src}\n网站查询名称: {qry}\n\n请选择归档使用的名称:"
-            dlg = QMessageBox(parent=None)
+            dlg = QMessageBox(self)
             dlg.setWindowTitle(_("title_name_conflict"))
             dlg.setText(msg)
             dlg.setIcon(QMessageBox.Icon.Question)
             btn_src = dlg.addButton(_("btn_use_source_name"), QMessageBox.ButtonRole.AcceptRole)
             btn_qry = dlg.addButton(_("btn_use_query_name"), QMessageBox.ButtonRole.YesRole)
-            dlg.addButton(  # 第三个按钮为取消，else 分支处理
-                _("btn_cancel"), QMessageBox.ButtonRole.RejectRole
-            )
+            dlg.addButton(_("btn_cancel"), QMessageBox.ButtonRole.RejectRole)
             dlg.exec()
             clicked = dlg.clickedButton()
             if clicked == btn_src:
@@ -267,5 +265,5 @@ class ArchiveMixin:
                 p.std_name = qry
                 p.stage_status = ""
                 resolved.append(p)
-            # 取消：保持 stage_status="name_conflict"，由调用方写入 pending_lookup
+            dlg.deleteLater()
         return resolved

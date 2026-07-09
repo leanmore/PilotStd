@@ -2,7 +2,6 @@
 defineOptions({ name: 'App' })
 import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import Toast from 'primevue/toast'
 import AppLayout from '@/components/AppLayout.vue'
 import { useThemeSync } from '@/composables/useThemeSync'
 import { useAppStore } from '@/stores/app'
@@ -21,7 +20,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <Toast position="bottom-right" />
   <AppLayout v-if="route.path !== '/login'">
     <router-view v-slot="{ Component, route: routeParam }">
       <transition name="page">

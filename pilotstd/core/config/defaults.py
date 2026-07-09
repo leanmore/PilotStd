@@ -85,11 +85,6 @@ FACTORY_DEFAULTS = {
     "notification.quiet_hours_enabled": False,
     "notification.quiet_hours_start": "22:00",
     "notification.quiet_hours_end": "07:00",
-    # 前端Toast聚合（毫秒级，防UI打扰）
-    "notification.toast_aggregate_window_ms": 300,
-    "notification.toast_count_window_ms": 30000,
-    "notification.toast_pause_duration_ms": 300000,
-    "notification.toast_pause_threshold": 3,
     "adapter.circuit_breaker.failure_threshold": 3,
     "adapter.circuit_breaker.freeze_durations": [30, 120, 360, 720],
     "adapter.circuit_breaker.reset_window_hours": 24,

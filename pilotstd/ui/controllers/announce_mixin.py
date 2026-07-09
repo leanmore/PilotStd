@@ -85,7 +85,7 @@ class AnnounceMixin:
         if worker._stopped:
             QMessageBox.information(self, _("announcement_check"), _("announcement_cancelled"))
         elif worker._error and not worker._matched:
-            QMessageBox.warning(None, _("announcement_check"), worker._error)
+            QMessageBox.warning(self, _("announcement_check"), worker._error)
         else:
             failures = getattr(worker, "_failures", [])
             fail_msg = ""

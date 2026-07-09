@@ -117,3 +117,42 @@ def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
             db.execute(f"ALTER TABLE {table} RENAME TO {table}_backup_v34")
         except Exception:
             pass  # 表不存在则跳过
+
+
+def _migrate_v35_notification_policy(db: Any) -> None:
+    """新建 notification_policy 表，统一存储渠道事件订阅配置。"""
+    import json
+
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS notification_policy ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER,"
+        "channel TEXT NOT NULL, enabled INTEGER DEFAULT 1,"
+        "events TEXT NOT NULL DEFAULT '[]',"
+        "created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
+        "updated_at TEXT DEFAULT CURRENT_TIMESTAMP,"
+        "UNIQUE(user_id, channel))"
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_policy_user ON notification_policy(user_id)")
+
+    # 数据迁移：从 config.json 的 notification.rules 读取现有规则，
+    # 反转为 (channel → events) 映射写入 notification_policy
+    try:
+        from pilotstd.core.config import ConfigManager as _CM
+
+        cfg = _CM()
+        channel_events: dict[str, list[str]] = {}
+        for key, value in cfg._data.items():
+            if key.startswith("notification.rules.") and isinstance(value, list) and value:
+                event_type = key[len("notification.rules.") :]
+                for ch_name in value:
+                    if ch_name not in channel_events:
+                        channel_events[ch_name] = []
+                    channel_events[ch_name].append(event_type)
+
+        for ch_name, events in channel_events.items():
+            db.execute(
+                "INSERT OR REPLACE INTO notification_policy (user_id, channel, enabled, events) VALUES (NULL, ?, 1, ?)",
+                (ch_name, json.dumps(events, ensure_ascii=False)),
+            )
+    except Exception:
+        pass  # 配置文件不可用时跳过数据迁移

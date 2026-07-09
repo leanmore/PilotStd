@@ -168,18 +168,6 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@router.get("/api/notification/config/aggregate")
-def get_aggregate_config(mgr=Depends(get_manager_dep)):
-    """获取前端 Toast 聚合配置（无需管理员权限）。"""
-    cfg = mgr.cfg
-    return {
-        "toast_aggregate_window_ms": cfg.get("notification.toast_aggregate_window_ms", 300),
-        "toast_count_window_ms": cfg.get("notification.toast_count_window_ms", 30000),
-        "toast_pause_duration_ms": cfg.get("notification.toast_pause_duration_ms", 300000),
-        "toast_pause_threshold": cfg.get("notification.toast_pause_threshold", 3),
-    }
-
-
 @router.get("/api/notification/unread-count")
 def get_unread_count(nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""
@@ -203,4 +191,39 @@ def delete_notification_logs(
         return {"ok": True, "deleted": deleted}
     except Exception as e:
         logger.exception("清理通知日志失败")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ── 通知策略 API ──
+
+
+class PolicyUpdateRequest(BaseModel):
+    channel: str
+    enabled: bool | None = None
+    events: list[str] | None = None
+
+
+@router.get("/api/notification/policy")
+def get_policy(nmgr=Depends(_get_notification_mgr)):
+    """获取通知策略配置（渠道事件订阅）。"""
+    try:
+        policies = nmgr.get_policies()
+        return {"policies": policies}
+    except Exception as e:
+        logger.exception("获取通知策略失败")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.put("/api/notification/policy")
+def put_policy(
+    data: PolicyUpdateRequest,
+    nmgr=Depends(_get_notification_mgr),
+    _: str = Depends(require_admin),
+):
+    """更新通知策略（仅管理员）。"""
+    try:
+        nmgr.save_policy(data.channel, data.enabled, data.events)
+        return {"ok": True}
+    except Exception as e:
+        logger.exception("保存通知策略失败")
         return JSONResponse({"error": str(e)}, status_code=500)

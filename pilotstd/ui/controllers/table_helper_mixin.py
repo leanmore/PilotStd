@@ -134,7 +134,7 @@ class TableHelperMixin:
                 lines.append(_("缓存时间: {}").format(r["cached_at"]))
             lines.append("")
 
-        QMessageBox.information(None, _("offline_view"), "\n".join(lines))
+        QMessageBox.information(self, _("offline_view"), "\n".join(lines))
 
     # ── 行操作 ───────────────────────────────────────────
 
