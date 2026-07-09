@@ -3,19 +3,14 @@
 
 import csv
 import logging
+import re
 from typing import Any
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
-    QHBoxLayout,
     QLabel,
     QMessageBox,
-    QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
-    QVBoxLayout,
 )
 
 from ....i18n import _
@@ -29,49 +24,16 @@ logger = logging.getLogger(__name__)
 class QueryPendingMethods:
     """待确认管理方法（对话框+CSV+DB）。"""
 
-    def _build_pending_table(self, pending_items: list[Any]) -> QTableWidget:
-        """构建待确认清单表格：8 列，填充数据，调整列宽。"""
-        table = QTableWidget()
-        table.setColumnCount(8)
-        table.setHorizontalHeaderLabels(
-            [
-                _("query_pending_col_std_number"),
-                _("query_pending_col_source_filename"),
-                _("query_pending_col_web_name"),
-                _("query_pending_col_local_year"),
-                _("query_pending_col_web_number"),
-                _("query_pending_col_status"),
-                _("query_pending_col_confidence"),
-                _("query_pending_col_source_site"),
-            ]
-        )
-        table.setRowCount(len(pending_items))
-        from ....query.search_strategy import CONFIDENCE_SCORE
+    def _export_pending_csv(self, save_status: QLabel | None = None) -> str | None:
+        """统一导出函数：从 pending_lookup 表读取全部待确认记录写 CSV。
+        不依赖界面状态，不过滤 is_valid_standard，两个入口结果一致。"""
+        rows = self._mgr.get_pending_items()
+        if not rows:
+            if save_status is not None:
+                save_status.setText(_("msg_no_pending_items"))
+                save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
+            return None
 
-        for row, parsed in enumerate(pending_items):
-            fn = getattr(parsed, "found_number", "") or ""
-            site = getattr(parsed, "found_source_site", "") or ""
-            actual_score = CONFIDENCE_SCORE.get(parsed.match_status, -1)
-            score = str(actual_score) if actual_score >= 0 else "<=80"
-            items = [
-                parsed.get_full_number(),
-                parsed.std_name or "（文件名无名称）",
-                parsed.found_name or "（未找到）",
-                str(parsed.year),
-                fn,
-                parsed.effect_status,
-                str(score),
-                site,
-            ]
-            for col, text in enumerate(items):
-                item = QTableWidgetItem(text)
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                table.setItem(row, col, item)
-        table.resizeColumnsToContents()
-        return table
-
-    def _save_pending_csv(self, table: QTableWidget, save_status: QLabel) -> None:
-        """导出待确认表格为 CSV 文件，弹出路径选择框，结果反映在 save_status 标签。"""
         from datetime import datetime
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -82,7 +44,8 @@ class QueryPendingMethods:
             _("file_filter_csv"),
         )
         if not path:
-            return
+            return None
+
         try:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 writer = csv.writer(f)
@@ -98,65 +61,31 @@ class QueryPendingMethods:
                         _("query_pending_col_source_site"),
                     ]
                 )
-                for r in range(table.rowCount()):
-                    row_data: list[str] = []
-                    for c in range(8):
-                        item = table.item(r, c)
-                        row_data.append(item.text() if item else "")
-                    writer.writerow(row_data)
-            save_status.setText(f"已保存: pending_standards_{ts}.csv")
-            save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
+                for row in rows:
+                    std_num = row.get("standard_number", "")
+                    year_match = re.search(r"[-–](\d{4})$", std_num)
+                    year = year_match.group(1) if year_match else ""
+                    writer.writerow(
+                        [
+                            std_num,
+                            row.get("std_name", ""),
+                            row.get("found_name", ""),
+                            year,
+                            row.get("found_number", ""),
+                            row.get("effect_status", ""),
+                            str(row.get("score", "")),
+                            row.get("source_site", ""),
+                        ]
+                    )
+            if save_status is not None:
+                save_status.setText(f"已保存: pending_standards_{ts}.csv")
+                save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
+            return path
         except OSError as e:
-            save_status.setText(f"保存失败: {e}")
-            save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
-
-    def _show_pending_dialog(self: Any, pending_items: list[Any]) -> bool:
-        """显示待确认清单对话框。返回 True=用户确认丢弃，False=取消。"""
-        dlg = QDialog(self)
-        dlg.setWindowTitle(_("title_pending_confirm"))
-        dlg.setMinimumSize(800, 400)
-        layout = QVBoxLayout(dlg)
-
-        info = QLabel(_("msg_pending_info").format(count=len(pending_items)))
-        info.setWordWrap(True)
-        layout.addWidget(info)
-
-        table = self._build_pending_table(pending_items)
-        layout.addWidget(table)
-
-        save_status = QLabel("")
-        save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
-
-        btn_layout = QHBoxLayout()
-        save_btn = QPushButton(_("btn_save_csv"))
-        discard_btn = QPushButton(_("btn_discard_pending"))
-        cancel_btn = QPushButton(_("btn_cancel"))
-        btn_layout.addWidget(save_btn)
-        btn_layout.addWidget(save_status)
-        btn_layout.addStretch()
-        btn_layout.addWidget(discard_btn)
-        btn_layout.addWidget(cancel_btn)
-        layout.addLayout(btn_layout)
-
-        confirmed = False
-
-        def on_save() -> None:
-            nonlocal confirmed
-            self._save_pending_csv(table, save_status)
-            confirmed = True
-            dlg.accept()
-
-        save_btn.clicked.connect(on_save)
-
-        def on_discard() -> None:
-            nonlocal confirmed
-            confirmed = True
-            dlg.accept()
-
-        discard_btn.clicked.connect(on_discard)
-        cancel_btn.clicked.connect(dlg.reject)
-        dlg.exec()
-        return confirmed
+            if save_status is not None:
+                save_status.setText(f"保存失败: {e}")
+                save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
+            return None
 
     def _on_pending_query(self: Any) -> None:
         """待确认二次查询：导入 CSV，选择站点，执行独立查询。"""

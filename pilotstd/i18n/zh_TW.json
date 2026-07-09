@@ -191,6 +191,7 @@
     "btn_save_pending_csv": "儲存待確認 CSV",
     "btn_save_manual_csv": "儲存清單 CSV",
     "msg_pending_saved": "已儲存 {count} 條待確認項",
+    "msg_no_pending_items": "沒有待確認項可匯出",
     "msg_manual_saved": "已儲存 {count} 條手動下載清單",
     "msg_save_failed": "儲存失敗: {error}",
     "msg_download_queue_empty": "下載佇列為空",

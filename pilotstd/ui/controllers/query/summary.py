@@ -192,37 +192,35 @@ class QuerySummaryMethods:
 
     def _on_save_section_csv(self, key: str, items: list[Any]) -> None:
         """保存分栏条目为 CSV → 从 _parsed_results 移除 → 移除分栏 UI。"""
-        if not items:
+        if key == "pending":
+            path = self._export_pending_csv()
+            if not path:
+                return
+            self._parsed_results = [p for p in self._parsed_results if p.next_action != "pending"]
+            self._write_pending_to_db(items)
+            self._remove_section_widget(key)
+            self.status_changed.emit(_("msg_pending_saved").format(count=len(items)))
             return
 
-        # 过滤无效标准号数据（如 Word 模板文件解析出的空标准号）
-        valid_items = [it for it in items if hasattr(it, "is_valid_standard") and it.is_valid_standard]
-        if not valid_items:
-            QMessageBox.information(None, _("title_hint"), "没有有效的标准数据可导出")
+        # manual_download：保持原有逻辑
+        if not items:
             return
 
         from datetime import datetime
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        name_map = {"pending": f"待确认列表_{ts}.csv", "manual_download": f"手动下载清单_{ts}.csv"}
-        default_name = name_map.get(str(key), f"{self._safe_str(key)}_{ts}.csv")
+        default_name = f"手动下载清单_{ts}.csv"
         path, __ = QFileDialog.getSaveFileName(None, _("title_save_csv"), default_name, _("filter_csv_files"))
         if not path:
             return
         try:
-            self._save_csv(path, valid_items)
+            self._save_csv(path, items)
         except OSError as e:
             QMessageBox.warning(self, _("title_save_failed"), _("msg_save_failed").format(error=e))
             return
-        action_map = {"pending": "pending", "manual_download": "manual_download"}
-        target_action = action_map.get(key, key)
-        self._parsed_results = [p for p in self._parsed_results if p.next_action != target_action]
-        if key == "pending":
-            self._write_pending_to_db(valid_items)
+        self._parsed_results = [p for p in self._parsed_results if p.next_action != "manual_download"]
         self._remove_section_widget(key)
-        count = len(valid_items)
-        msg_key = "msg_pending_saved" if key == "pending" else "msg_manual_saved"
-        self.status_changed.emit(_(msg_key).format(count=count))
+        self.status_changed.emit(_("msg_manual_saved").format(count=len(items)))
 
     def _build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
         """构建分栏式汇总弹窗。"""
