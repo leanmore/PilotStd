@@ -2,6 +2,8 @@
 import json
 import logging
 import os
+from datetime import datetime
+from typing import Any
 
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
@@ -22,6 +24,7 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
     types 参数：限定抓取的公告类型列表，如 ['gb', 'hb']，None 表示全部。"""
     if mgr is None:
         mgr = _get_mgr()
+    check_start = datetime.now().isoformat()
     result = mgr.check_announcements_filtered(since_date=since_date, types=types)
     # 汇总各类型公告明细
     total_matched = 0
@@ -56,13 +59,11 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
     failure_count = len(failures)
     if mgr and mgr.notification_mgr:
         try:
-            mgr.notification_mgr.send_event(
-                "announcement_check_complete",
-                {
-                    "count": count,
-                    "failures": failure_count,
-                },
-            )
+            # 从 announcement_record 表查询本次新增公告的分类统计
+            stats = _get_check_stats(mgr.db, check_start)
+            stats["failures"] = failure_count
+            stats["source"] = "手动"
+            mgr.notification_mgr.send_event("announcement_check_complete", stats)
         except Exception as e:
             logger.warning("通知发送失败: %s", e)
 
@@ -278,3 +279,38 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
     _stats_cache["data"] = result
     _stats_cache["ts"] = now_ts
     return result
+
+
+def _get_check_stats(db: Any, since: str) -> dict[str, Any]:
+    """从 announcement_record 表查询 since 之后新增公告的分类统计。"""
+    rows = db.fetchall(
+        "SELECT source_site, COUNT(*) AS cnt, SUM(standard_count) AS std_cnt "
+        "FROM announcement_record WHERE fetched_at >= ? GROUP BY source_site",
+        (since,),
+    )
+    stats: dict[str, Any] = {
+        "total_announcements": 0,
+        "total_standards": 0,
+        "gb_count": 0,
+        "hb_count": 0,
+        "db_count": 0,
+        "gb_standards": 0,
+        "hb_standards": 0,
+        "db_standards": 0,
+    }
+    for r in rows:
+        cnt = r["cnt"] or 0
+        std = r["std_cnt"] or 0
+        source = r["source_site"]
+        if source == "announcement_gb":
+            stats["gb_count"] = cnt
+            stats["gb_standards"] = std
+        elif source == "announcement_hb":
+            stats["hb_count"] = cnt
+            stats["hb_standards"] = std
+        elif source == "announcement_db":
+            stats["db_count"] = cnt
+            stats["db_standards"] = std
+        stats["total_announcements"] += cnt
+        stats["total_standards"] += std
+    return stats

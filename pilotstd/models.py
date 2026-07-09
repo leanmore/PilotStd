@@ -52,6 +52,11 @@ class ParsedStdInfo:
         sep = " " if len(prefix) > 1 and prefix.isalpha() else ""
         return f"{self.logical_code} {prefix}{sep}{self.number}{suffix}{part_str}{year_str}"
 
+    @property
+    def is_valid_standard(self) -> bool:
+        """是否可识别为有效标准号（有代号、有顺序号、有年份）。"""
+        return bool(self.logical_code and self.number > 0 and self.year > 0)
+
 
 @dataclass
 class FileInfo:

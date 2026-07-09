@@ -60,6 +60,11 @@ class NotificationManager(MessageBuildersMixin):
                 batch_size=max_events,
                 bypass_events=bypass_events,
             )
+            # 注册事件特定聚合格式化器
+            self.aggregator.register_formatter(
+                "standard_status_changed",
+                self._format_standard_status_changed_aggregated,
+            )
 
     def _init_channels(self) -> None:
         for name, cls in _CHANNEL_CLASSES.items():

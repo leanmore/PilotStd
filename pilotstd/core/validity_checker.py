@@ -94,13 +94,14 @@ class ValidityChecker:
                 )
                 if notification_mgr:
                     try:
-                        event_type = "standard_expired" if new_status == "已废止" else "standard_status_changed"
+                        is_expired = new_status == "已废止"
                         notification_mgr.send_event(
-                            event_type,
+                            "standard_status_changed",
                             {
                                 "standard_number": standard_number,
                                 "old_status": row["status"],
                                 "new_status": new_status,
+                                "is_expired": is_expired,
                             },
                         )
                     except Exception:
@@ -348,6 +349,10 @@ def _finalize_validity_round(
             total = total_row["cnt"] if total_row else 0
             if total > 0 and new_count >= total:
                 config.set("validity.round_completed", True)
+                # 轮次计数递增
+                round_count = config.get("validity.round_count", 0)
+                new_round = round_count + 1
+                config.set("validity.round_count", new_round)
                 if notification_mgr:
                     try:
                         changes = db.fetchall(
@@ -364,6 +369,7 @@ def _finalize_validity_round(
                                 "total_failures": len(failed_list),
                                 "change_list": cycle_change_list,
                                 "adapter_summary": adapters_status,
+                                "round": new_round,
                             },
                         )
                     except Exception:

@@ -179,25 +179,15 @@ class QueryPendingMethods:
                 p.match_status = getattr(r, "match_status", "") or ""
         self._mgr._classifier._router.apply_actions(parsed_list)
 
-    def _do_pending_query(self: Any) -> None:
-        if not self._mgr_ready:
-            return
-        if self._parsed_results:
-            QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
-            return
-
-        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_pending"), "", _("file_filter_csv"))
-        if not path:
-            return
-
+    def _parse_pending_csv(self: Any, path: str) -> tuple[list[ParsedStdInfo], list[str]]:
+        """解析待确认 CSV 文件，返回 (parsed_list, failed_names)。"""
         parsed_list: list[ParsedStdInfo] = []
         failed_names: list[str] = []
         with open(path, "r", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
             rows = list(reader)
         if not rows:
-            QMessageBox.warning(self, _("title_hint"), _("csv_empty"))
-            return
+            return parsed_list, failed_names
         for i, row in enumerate(rows):
             if i == 0:
                 continue
@@ -215,7 +205,20 @@ class QueryPendingMethods:
                 parsed_list.append(parsed)
             else:
                 failed_names.append(std_num)
+        return parsed_list, failed_names
 
+    def _do_pending_query(self: Any) -> None:
+        if not self._mgr_ready:
+            return
+        if self._parsed_results:
+            QMessageBox.warning(self, _("title_hint"), _("workspace_not_empty"))
+            return
+
+        path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_pending"), "", _("file_filter_csv"))
+        if not path:
+            return
+
+        parsed_list, failed_names = self._parse_pending_csv(path)
         if not parsed_list:
             QMessageBox.warning(self, _("title_hint"), _("csv_no_standards"))
             return
@@ -243,7 +246,12 @@ class QueryPendingMethods:
 
         for i, parsed in enumerate(self._parsed_results):
             self._add_table_row(
-                RowUpdate(seq=i + 1, parsed=parsed, work_status="已查询", total=len(self._parsed_results))
+                RowUpdate(
+                    seq=self.work_table.rowCount() + 1,
+                    parsed=parsed,
+                    work_status="已查询",
+                    total=len(self._parsed_results),
+                )
             )
 
         total = len(self._parsed_results)

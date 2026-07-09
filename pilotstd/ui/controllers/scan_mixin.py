@@ -85,7 +85,9 @@ class ScanMixin:
         if parsed:
             parsed.source_path = file_path
             self._parsed_results.append(parsed)
-            self._add_table_row(RowUpdate(seq=1, parsed=parsed, work_status="已扫描", total=1))
+            self._add_table_row(
+                RowUpdate(seq=self.work_table.rowCount() + 1, parsed=parsed, work_status="已扫描", total=1)
+            )
             self.status_changed.emit(_("status_scan_single_ok"))
             self._register_task("扫描", 1, 1, 0)
             # 写入索引

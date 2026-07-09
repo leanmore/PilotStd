@@ -11,6 +11,7 @@ from ...core.file_utils import (
     safe_move,
     strip_long_path,
 )
+from ...scan.parser import StandardParser
 from ._utils import _is_word_or_template, _resolve_industry_in_path
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class OrganizerCore:
         self._dir_builder = dir_builder
         self._file_mover = file_mover
         self._expire_handler = expire_handler
+        self._std_parser = StandardParser(self._cfg.get("scan.code_mapping", {}))
         self._skipped_source_files: set[str] = set()
 
     def organize(
@@ -87,16 +89,38 @@ class OrganizerCore:
     def _organize_word_item(
         self, p: Any, root: str, word_source_root: str | None, result: dict, on_exists: str
     ) -> None:
-        """Word 文件镜像归档 + 索引更新。"""
+        """Word 文件归档：有标准号→分类归档，无标准号→镜像源目录。"""
         src = getattr(p, "source_path", "")
         clean_src = strip_long_path(src)
-        clean_root = strip_long_path(word_source_root) if word_source_root else ""
-        if clean_root and clean_src.startswith(clean_root):
-            rel = clean_src[len(clean_root) :].lstrip(os.sep)
+        ext = os.path.splitext(clean_src)[1]
+
+        parsed = self._std_parser.parse(os.path.basename(clean_src)) if self._std_parser else None
+
+        if parsed and parsed.logical_code and parsed.number > 0 and parsed.year > 0:
+            # 有标准号 → 走分类归档，复用 PDF 路径生成，保留原扩展名
+            dst = self._file_mover.normalize_filename(parsed)
+            dst = os.path.splitext(dst)[0] + ext
+            logical_code = parsed.logical_code
+            number = parsed.number
+            year = parsed.year
+            std_name = parsed.std_name
         else:
-            rel = os.path.basename(clean_src)
-        rel = _resolve_industry_in_path(rel)
-        dst = os.path.join(root, rel)
+            # 无标准号 → 镜像源目录
+            if word_source_root:
+                clean_root = strip_long_path(word_source_root)
+                if clean_src.startswith(clean_root):
+                    rel = os.path.relpath(clean_src, clean_root)
+                else:
+                    rel = os.path.basename(clean_src)
+            else:
+                rel = os.path.basename(clean_src)
+            rel = _resolve_industry_in_path(rel)
+            dst = os.path.join(root, rel)
+            logical_code = "WORD"
+            number = 0
+            year = 0
+            std_name = os.path.basename(clean_src)
+
         if not dst:
             logger.warning("Word 路径计算失败: %s", src)
             result["failed"] += 1
@@ -116,7 +140,12 @@ class OrganizerCore:
             result["details"].append(f"Word: {os.path.basename(src)} -> {dst}")
             if self._file_index:
                 self._file_index.upsert(
-                    file_path=dst, logical_code="WORD", number=0, year=0, std_name=os.path.basename(src), status="现行"
+                    file_path=dst,
+                    logical_code=logical_code,
+                    number=number,
+                    year=year,
+                    std_name=std_name,
+                    status="现行",
                 )
         except PermissionError:
             logger.warning("Word 归档失败(权限不足): %s — 请关闭占用程序后重试", os.path.basename(src))

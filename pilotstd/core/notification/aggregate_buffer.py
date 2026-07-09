@@ -51,6 +51,12 @@ class NotificationAggregator:
         # (event_type, target_id) → list of (msg, channels, enqueued_at)
         self._buffers: dict[tuple[str, str], list[_Entry]] = {}
         self._timers: dict[tuple[str, str], threading.Timer] = {}
+        # 事件特定格式化回调：event_type → (entries, count) → str
+        self._formatters: dict[str, Callable[..., str]] = {}
+
+    def register_formatter(self, event_type: str, formatter: Callable[..., str]) -> None:
+        """注册事件特定的聚合摘要格式化回调。"""
+        self._formatters[event_type] = formatter
 
     # ── 公开 API ──
 
@@ -172,11 +178,18 @@ class NotificationAggregator:
         first_msg, target_channels, first_ts = entries[0]
         event_type = key[0]
 
+        # 优先使用事件特定格式化器
+        formatter = self._formatters.get(event_type)
+        if formatter:
+            body = formatter(event_type, entries, count)
+        else:
+            body = self.format_summary(event_type, entries)
+
         merged = NotificationMessage(
             title=first_msg.title,
-            body=self.format_summary(event_type, entries),
+            body=body,
             level=self._worst_level(entries),
-            standard_number=None,  # 聚合消息不再关联单条标准
+            standard_number=None,
             event_type=event_type,
             link=first_msg.link,
             icon=first_msg.icon,

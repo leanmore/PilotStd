@@ -109,6 +109,8 @@ class AnnounceService:
             logger.info("手动抓取正在运行，定时任务跳过本次")
             return {"skipped": True, "reason": "manual_running"}
 
+        self._last_check_start = datetime.now().isoformat()
+
         user_since = self._get_user_since_date()
         if user_since:
             logger.info("定时任务检测到用户设定起始日期: %s，执行回填抓取", user_since)
@@ -117,16 +119,19 @@ class AnnounceService:
         else:
             result = self.check_announcements()
 
-        self._after_fetch(result)
+        self._after_fetch(result, source="定时")
         return result
 
-    def _after_fetch(self, result: dict[str, Any]) -> None:
+    def _after_fetch(self, result: dict[str, Any], source: str = "定时") -> None:
         """抓取后处理：通知 + 缓存失效。"""
-        count = result.get("matched", 0) if isinstance(result, dict) else 0
+        check_start = self._last_check_start if hasattr(self, "_last_check_start") else datetime.now().isoformat()
+        stats = self._get_announcement_stats(check_start)
+        stats["failures"] = 1 if result.get("error") else 0
+        stats["source"] = source
         mgr = self._mgr
         if mgr and mgr.notification_mgr:
             try:
-                mgr.notification_mgr.send_event("announcement_check_complete", {"count": count, "failures": 0})
+                mgr.notification_mgr.send_event("announcement_check_complete", stats)
             except Exception:
                 pass
         if mgr:
@@ -267,26 +272,20 @@ class AnnounceService:
 
     def check_with_notification(self) -> dict[str, Any]:
         """执行公告检查并发送通知。"""
+        self._last_check_start = datetime.now().isoformat()
         result = self.check_announcements()
-        count = result.get("matched", 0)
-        failure_count = 1 if result.get("error") else 0
+        stats = self._get_announcement_stats(self._last_check_start)
+        stats["failures"] = 1 if result.get("error") else 0
+        stats["source"] = "手动"
 
         # 发送通知
         mgr = self._mgr
         if mgr and mgr.notification_mgr:
             try:
-                mgr.notification_mgr.send_event(
-                    "announcement_check_complete",
-                    {
-                        "count": count,
-                        "failures": failure_count,
-                    },
-                )
+                mgr.notification_mgr.send_event("announcement_check_complete", stats)
                 mgr.notification_mgr.send_event(
                     "announcement_fetch_complete",
-                    {
-                        "count": count,
-                    },
+                    {"count": stats["total_announcements"]},
                 )
             except Exception:
                 pass
@@ -300,7 +299,7 @@ class AnnounceService:
             except Exception:
                 pass
 
-        return {"ok": True, "count": count, "failures": failure_count}
+        return {"ok": True, "count": stats["total_announcements"], "failures": stats["failures"]}
 
     def get_task_status(self, task_id: str) -> dict[str, Any]:
         """查询异步抓取任务进度。"""
@@ -382,3 +381,37 @@ class AnnounceService:
         if self._mgr:
             return self._mgr.db
         return self._file_index._db
+
+    def _get_announcement_stats(self, since: str) -> dict[str, Any]:
+        """从 announcement_record 表查询 since 之后新增公告的分类统计。"""
+        rows = self._file_index._db.fetchall(
+            "SELECT source_site, COUNT(*) AS cnt, SUM(standard_count) AS std_cnt "
+            "FROM announcement_record WHERE fetched_at >= ? GROUP BY source_site",
+            (since,),
+        )
+        stats: dict[str, Any] = {
+            "total_announcements": 0,
+            "total_standards": 0,
+            "gb_count": 0,
+            "hb_count": 0,
+            "db_count": 0,
+            "gb_standards": 0,
+            "hb_standards": 0,
+            "db_standards": 0,
+        }
+        for r in rows:
+            cnt = r["cnt"] or 0
+            std = r["std_cnt"] or 0
+            source = r["source_site"]
+            if source == "announcement_gb":
+                stats["gb_count"] = cnt
+                stats["gb_standards"] = std
+            elif source == "announcement_hb":
+                stats["hb_count"] = cnt
+                stats["hb_standards"] = std
+            elif source == "announcement_db":
+                stats["db_count"] = cnt
+                stats["db_standards"] = std
+            stats["total_announcements"] += cnt
+            stats["total_standards"] += std
+        return stats

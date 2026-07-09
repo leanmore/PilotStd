@@ -86,7 +86,7 @@ class ArchiveMixin:
         for idx, parsed, name in batch:
             self._add_table_row(
                 RowUpdate(
-                    seq=idx + 1,
+                    seq=self.work_table.rowCount() + 1,
                     parsed=parsed,
                     work_status="已规范化",
                     std_name_override=name,

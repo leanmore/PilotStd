@@ -42,15 +42,25 @@ class MessageBuildersMixin:
         std_no = data.get("standard_number", "")
         old_status = data.get("old_status", "")
         new_status = data.get("new_status", "")
-        level = "warning" if new_status == _("已废止") else "info"
+        is_expired = data.get("is_expired", False)
+        if is_expired:
+            title = _("[废止] 标准已废止")
+            body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
+            level = "error"
+            icon = "pi pi-times-circle"
+        else:
+            title = _("标准状态变更")
+            body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
+            level = "warning" if new_status == _("已废止") else "info"
+            icon = "pi pi-refresh"
         return NotificationMessage(
-            title=_("标准状态变更"),
-            body=_("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status),
+            title=title,
+            body=body,
             level=level,
             standard_number=std_no,
             event_type="standard_status_changed",
             link=_make_link(std_no),
-            icon="pi pi-refresh",
+            icon=icon,
         )
 
     def _build_standard_expired_message(self, data: dict) -> NotificationMessage:
@@ -129,25 +139,37 @@ class MessageBuildersMixin:
         )
 
     def _build_announcement_check_complete_message(self, data: dict) -> NotificationMessage:
+        source = data.get("source", "定时")
+        total = data.get("total_announcements", 0)
+        gb_count = data.get("gb_count", 0)
+        hb_count = data.get("hb_count", 0)
+        db_count = data.get("db_count", 0)
+        total_standards = data.get("total_standards", 0)
+        gb_standards = data.get("gb_standards", 0)
+        hb_standards = data.get("hb_standards", 0)
+        db_standards = data.get("db_standards", 0)
         failures = data.get("failures", 0)
-        new_count = data.get("count", 0)
-        total = data.get("count", 0)
-        if failures == 0:
-            return NotificationMessage(
-                title=_("公告检查完成"),
-                body=_("共 {total} 条公告，新增 {new_count} 条").format(total=total, new_count=new_count),
-                level="info",
-                event_type="announcement_check_complete",
-                icon="pi pi-check-circle",
+
+        body = _("公告检查完成（{source}）").format(source=source) + "\n"
+        body += (
+            _("抓取 {total} 条公告（国标 {gb} / 行标 {hb} / 地标 {db}）").format(
+                total=total, gb=gb_count, hb=hb_count, db=db_count
             )
+            + "\n"
+        )
+        body += _("涉及标准 {total} 项（国标 {gb} / 行标 {hb} / 地标 {db}）").format(
+            total=total_standards, gb=gb_standards, hb=hb_standards, db=db_standards
+        )
+
+        if failures > 0:
+            body += "\n" + _("注意：{failures} 个站点检查失败").format(failures=failures)
+
         return NotificationMessage(
-            title=_("公告检查完成（有失败）"),
-            body=_("共 {total} 条公告，新增 {new_count} 条，{failures} 个站点检查失败").format(
-                total=total, new_count=new_count, failures=failures
-            ),
-            level="warning",
+            title=_("公告检查完成"),
+            body=body,
+            level="info",
             event_type="announcement_check_complete",
-            icon="pi pi-exclamation-triangle",
+            icon="pi pi-check-circle",
         )
 
     def _build_batch_download_complete_message(self, data: dict) -> NotificationMessage:
@@ -185,6 +207,15 @@ class MessageBuildersMixin:
         count = data.get("count", 0)
         changed = data.get("changed", 0)
         failed = data.get("failed", 0)
+        # 中间进度通知：无实际数据时不显示"共 0 条标准"
+        if count == 0 and changed == 0 and failed == 0:
+            return NotificationMessage(
+                title=_("开始有效性检查"),
+                body=_("开始有效性检查"),
+                level="info",
+                event_type="validity_batch_report",
+                icon="pi pi-chart-bar",
+            )
         adapters = data.get("adapters", {})
         summary = ", ".join([f"{k}: {v.get('status', '未知')}" for k, v in adapters.items()])
         if adapters:
@@ -335,3 +366,23 @@ class MessageBuildersMixin:
             event_type="worker_error",
             icon="pi pi-cog",
         )
+
+    @staticmethod
+    def _format_standard_status_changed_aggregated(_event_type: str, entries: list, count: int) -> str:
+        """standard_status_changed 聚合模板：汇总后列出明细。"""
+        display = min(count, 10)
+        body = _("{count} 项标准状态变更").format(count=count) + "\n"
+        for i in range(display):
+            msg, _ch, _ts = entries[i]
+            body += (
+                _("- {std_no}（{name}）：{old} → {new}").format(
+                    std_no=msg.standard_number or "",
+                    name=getattr(msg, "standard_name", "") or "",
+                    old=getattr(msg, "old_status", "") or "",
+                    new=getattr(msg, "new_status", "") or "",
+                )
+                + "\n"
+            )
+        if count > 10:
+            body += _("等 {n} 项").format(n=count - 10)
+        return body

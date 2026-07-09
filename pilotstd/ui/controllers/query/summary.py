@@ -194,6 +194,13 @@ class QuerySummaryMethods:
         """保存分栏条目为 CSV → 从 _parsed_results 移除 → 移除分栏 UI。"""
         if not items:
             return
+
+        # 过滤无效标准号数据（如 Word 模板文件解析出的空标准号）
+        valid_items = [it for it in items if hasattr(it, "is_valid_standard") and it.is_valid_standard]
+        if not valid_items:
+            QMessageBox.information(None, _("title_hint"), "没有有效的标准数据可导出")
+            return
+
         from datetime import datetime
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -203,7 +210,7 @@ class QuerySummaryMethods:
         if not path:
             return
         try:
-            self._save_csv(path, items)
+            self._save_csv(path, valid_items)
         except OSError as e:
             QMessageBox.warning(self, _("title_save_failed"), _("msg_save_failed").format(error=e))
             return
@@ -211,9 +218,9 @@ class QuerySummaryMethods:
         target_action = action_map.get(key, key)
         self._parsed_results = [p for p in self._parsed_results if p.next_action != target_action]
         if key == "pending":
-            self._write_pending_to_db(items)
+            self._write_pending_to_db(valid_items)
         self._remove_section_widget(key)
-        count = len(items)
+        count = len(valid_items)
         msg_key = "msg_pending_saved" if key == "pending" else "msg_manual_saved"
         self.status_changed.emit(_(msg_key).format(count=count))
 

@@ -81,7 +81,9 @@ class DownloadMixin:
         self.progress_changed.emit(0)
         self._clear_table()
         for i, parsed in enumerate(download_list):
-            self._add_table_row(RowUpdate(seq=i + 1, parsed=parsed, work_status="待下载", total=total))
+            self._add_table_row(
+                RowUpdate(seq=self.work_table.rowCount() + 1, parsed=parsed, work_status="待下载", total=total)
+            )
 
     def _on_download_finished(self, to_download: list, too_new_set: set, total: int, download_list: list) -> None:
         """下载完成回调：恢复按钮、统计结果、发送通知、弹出汇总对话框。"""
