@@ -14,7 +14,10 @@ if git diff --cached --name-only | grep -E '\.(vue|ts|tsx)$' | grep -v 'main\.ts
   exit 1
 fi
 
-# ── G-021: 活跃文档联动提醒（仅提醒，不阻断）─────────────────────
+# ── 自动更新文档中的可量化数据 ──────────────────────────────
+cd "$ROOT" && python scripts/update_docs.py
+
+# ── 文档联动提醒 ────────────────────────────────────────────
 STAGED=$(git diff --cached --name-only)
 DOC_HINT=""
 # 新增/修改 API 或核心查询逻辑 → 提醒检查设计文档
