@@ -102,6 +102,7 @@ class ValidityChecker:
                                 "old_status": row["status"],
                                 "new_status": new_status,
                                 "is_expired": is_expired,
+                                "changed_at": datetime.now().isoformat(),
                             },
                         )
                     except Exception:

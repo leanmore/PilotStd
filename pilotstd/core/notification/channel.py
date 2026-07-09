@@ -20,6 +20,7 @@ class NotificationMessage:
     status: str = ""  # 单条状态标记：""（中性）/ "success" / "failure"
     target_id: str = ""  # 聚合分组子键（同 event_type 下按 target_id 分组）
     elapsed_ms: int = 0  # 单条耗时（毫秒），聚合时汇总为总耗时
+    changed_at: str = ""  # 状态变更时间（ISO 格式），聚合消息中显示
 
 
 class NotificationChannel(ABC):
