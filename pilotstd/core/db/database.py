@@ -1,10 +1,13 @@
 # pilotstd/core/db/database.py
 # Database 核心类 — 从 db.py 拆分
 
+import hashlib
+import inspect
 import logging
 import os
 import sqlite3
 import threading
+import time
 from typing import Any, Literal, Optional, Sequence
 
 from ._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS, DatabaseError
@@ -42,6 +45,91 @@ class Database:
         finally:
             conn.close()
 
+    def _acquire_migration_lock(self, timeout: float = 30) -> bool:
+        """用 lock 文件实现跨进程排他锁，防止并发迁移。
+
+        使用 os.O_CREAT|O_EXCL 原子创建锁文件，写入当前 PID。
+        锁文件 fd 在写入 PID 后立即关闭，不持有句柄。
+        检测到 mtime 超过 STALE_LOCK_SECONDS 秒的僵死锁文件会自动清理。
+        """
+        STALE_LOCK_SECONDS = 30
+        lock_path = self._db_path + ".migration_lock"
+        start = time.time()
+        while True:
+            try:
+                fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(fd, str(os.getpid()).encode())
+                os.close(fd)  # fd 已关闭，仅用文件存在性做锁标记
+                self._migration_lock_path = lock_path
+                return True
+            except FileExistsError:
+                try:
+                    if time.time() - os.path.getmtime(lock_path) > STALE_LOCK_SECONDS:
+                        os.remove(lock_path)
+                        continue
+                except OSError:
+                    continue
+                if time.time() - start > timeout:
+                    return False
+                time.sleep(0.5)
+
+    def _release_migration_lock(self) -> None:
+        """释放迁移锁文件。"""
+        p = getattr(self, "_migration_lock_path", "")
+        if p:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+            self._migration_lock_path = ""
+
+    def _ensure_schema_version_table(self) -> None:
+        """确保 _schema_version 表包含 version + checksum 列。
+
+        兼容旧库：如果表已存在但无 checksum 列，自动 ALTER TABLE 补齐。
+        """
+        self.execute(
+            "CREATE TABLE IF NOT EXISTS _schema_version "
+            "(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL DEFAULT '')"
+        )
+        cols = {r["name"] for r in self.fetchall("PRAGMA table_info(_schema_version)")}
+        if "checksum" not in cols:
+            self.execute("ALTER TABLE _schema_version ADD COLUMN checksum TEXT NOT NULL DEFAULT ''")
+
+    @staticmethod
+    def _compute_checksum(fn: Any) -> str:
+        """计算迁移函数的源码 checksum。
+
+        优先使用 inspect.getsource，失败时回退到 __code__.co_code 的哈希。
+        """
+        try:
+            source = inspect.getsource(fn)
+        except (OSError, TypeError):
+            source = str(fn.__code__.co_code) if hasattr(fn, "__code__") else repr(fn)
+        return hashlib.sha256(source.encode()).hexdigest()
+
+    def _verify_migration_checksums(self) -> None:
+        """验证已执行迁移的脚本 checksum 是否与执行时一致。
+
+        只校验 version <= schema_version 且 checksum 非空的记录，
+        跳过旧迁移的空 checksum（向后兼容）。
+        """
+        logr = logging.getLogger("pilotstd.db")
+        current = self.schema_version
+        for v in sorted(MIGRATIONS.keys()):
+            if v > current:
+                continue
+            expected = self._compute_checksum(MIGRATIONS[v])
+            row = self.fetchone("SELECT checksum FROM _schema_version WHERE version=?", (v,))
+            if row and row["checksum"] and row["checksum"] != expected:
+                logr.error(
+                    "迁移 v%d 脚本已被修改！期望 checksum=%s，存储 %s",
+                    v,
+                    expected,
+                    row["checksum"],
+                )
+                raise DatabaseError(f"迁移 v{v} 的脚本已被修改，checksum 不匹配")
+
     @property
     def schema_version(self) -> int:
         try:
@@ -62,25 +150,52 @@ class Database:
         current = self.schema_version
         target = CURRENT_SCHEMA_VERSION
         if current >= target:
+            self._verify_migration_checksums()
             return
+
         logr = logging.getLogger("pilotstd.db")
-        if current > 0:
-            backup_path = os.path.join(
-                os.path.dirname(self._db_path),
-                "backups",
-                f"pre_migration_v{current}_to_v{target}.bak",
-            )
-            self.backup(backup_path)
-        if current == 0:
-            self.execute("CREATE TABLE IF NOT EXISTS _schema_version (version INTEGER PRIMARY KEY)")
-        for v in range(current + 1, target + 1):
-            if v in MIGRATIONS:
-                try:
-                    MIGRATIONS[v](self)
-                except Exception as e:
-                    logr.exception("迁移 v%d 失败，数据库可能处于不一致状态", v)
-                    raise DatabaseError(f"数据库迁移失败(v{v})，请从备份恢复") from e
-            self.execute("INSERT OR REPLACE INTO _schema_version (version) VALUES (?)", (v,))
+
+        if not self._acquire_migration_lock():
+            raise DatabaseError("无法获取迁移锁，另一个进程可能正在进行迁移")
+
+        try:
+            if current > 0:
+                backup_path = os.path.join(
+                    os.path.dirname(self._db_path),
+                    "backups",
+                    f"pre_migration_v{current}_to_v{target}.bak",
+                )
+                self.backup(backup_path)
+
+            self._ensure_schema_version_table()
+
+            if current > 0:
+                self._verify_migration_checksums()
+
+            for v in range(current + 1, target + 1):
+                if v in MIGRATIONS:
+                    logr.info("开始执行迁移 v%d...", v)
+                    t0 = time.time()
+                    try:
+                        MIGRATIONS[v](self)
+                        elapsed = time.time() - t0
+                        logr.info("迁移 v%d 完成，耗时 %.2fs", v, elapsed)
+                    except Exception as e:
+                        elapsed = time.time() - t0
+                        logr.exception("迁移 v%d 失败，耗时 %.2fs", v, elapsed)
+                        raise DatabaseError(f"数据库迁移失败(v{v})，请从备份恢复") from e
+                    checksum = self._compute_checksum(MIGRATIONS[v])
+                    self.execute(
+                        "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
+                        (v, checksum),
+                    )
+                else:
+                    self.execute(
+                        "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
+                        (v, ""),
+                    )
+        finally:
+            self._release_migration_lock()
 
     def _get_conn(self) -> sqlite3.Connection:
         if not hasattr(self._local, "conn") or self._local.conn is None:

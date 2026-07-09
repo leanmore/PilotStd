@@ -9,6 +9,7 @@ if root_dir not in sys.path:
 
 import shutil
 import tempfile
+import time
 import unittest
 from datetime import datetime
 
@@ -276,6 +277,94 @@ class TestDatabase(unittest.TestCase):
             if saved_m2:  # 恢复原始迁移，避免后续 TestFileIndexRepository 找不到表
                 MIGRATIONS[2] = saved_m2
             shutil.rmtree(os.path.join(self.tmp, "test_v2.db"), ignore_errors=True)
+
+    def test_migration_lock_acquire_and_release(self):
+        """文件锁获取后创建 lock 文件，释放后清理。"""
+        lock_path = self.db._db_path + ".migration_lock"
+        result = self.db._acquire_migration_lock(timeout=1)
+        self.assertTrue(result)
+        self.assertTrue(os.path.exists(lock_path))
+        self.db._release_migration_lock()
+        self.assertFalse(os.path.exists(lock_path))
+
+    def test_migration_lock_blocks_second_acquirer(self):
+        """第二个获取者在锁未释放时获取失败。"""
+        self.db._acquire_migration_lock(timeout=30)
+        try:
+            db2 = Database.__new__(Database)
+            db2._db_path = self.db._db_path
+            result = db2._acquire_migration_lock(timeout=0.5)
+            self.assertFalse(result)
+        finally:
+            self.db._release_migration_lock()
+
+    def test_migration_lock_stale_cleanup(self):
+        """过期锁文件（mtime > timeout）被自动清理后成功获取。"""
+        lock_path = self.db._db_path + ".migration_lock"
+        with open(lock_path, "w") as f:
+            f.write("99999")
+        stale_time = time.time() - 60
+        os.utime(lock_path, (stale_time, stale_time))
+        result = self.db._acquire_migration_lock(timeout=1)
+        self.assertTrue(result)
+        self.db._release_migration_lock()
+
+    def test_checksum_empty_skips_verification(self):
+        """旧迁移 checksum 为空时跳过校验（向后兼容）。"""
+        self.db.execute(
+            "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
+            (99, ""),
+        )
+        # 不抛异常即为通过
+        self.db._verify_migration_checksums()
+
+    def test_checksum_mismatch_raises(self):
+        """checksum 不匹配时抛出 DatabaseError。"""
+        self.db.execute(
+            "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
+            (2, "wrong_checksum_value"),
+        )
+        from pilotstd.core.db._constants import DatabaseError as DE
+
+        with self.assertRaises(DE):
+            self.db._verify_migration_checksums()
+
+    def test_schema_version_table_has_checksum_column(self):
+        """_schema_version 表包含 checksum 列。"""
+        self.db._ensure_schema_version_table()
+        cols = {r["name"] for r in self.db.fetchall("PRAGMA table_info(_schema_version)")}
+        self.assertIn("checksum", cols)
+
+    def test_v34_renames_old_tables_not_drops(self):
+        """v34 迁移将旧表重命名为备份表而非删除。"""
+        # setUp 已执行 v34 创建了备份表，先清理
+        for name in ("rotator_state", "adapter_stats", "adapter_health"):
+            try:
+                self.db.execute(f"DROP TABLE IF EXISTS {name}_backup_v34")
+            except Exception:
+                pass
+
+        for name in ("rotator_state", "adapter_stats", "adapter_health"):
+            self.db.execute(f"CREATE TABLE IF NOT EXISTS {name} (adapter_name TEXT)")
+            self.db.execute(
+                f"INSERT INTO {name} (adapter_name) VALUES (?)",
+                (f"test_{name}",),
+            )
+
+        from pilotstd.core.db._migrate_v31_plus import (
+            _migrate_v34_drop_old_adapter_tables,
+        )
+
+        _migrate_v34_drop_old_adapter_tables(self.db)
+
+        tables = {r["name"] for r in self.db.fetchall("SELECT name FROM sqlite_master WHERE type='table'")}
+        for name in ("rotator_state", "adapter_stats", "adapter_health"):
+            self.assertNotIn(name, tables)
+            backup_name = f"{name}_backup_v34"
+            self.assertIn(backup_name, tables)
+            row = self.db.fetchone(f"SELECT adapter_name FROM {backup_name}")
+            self.assertIsNotNone(row)
+            self.assertEqual(row["adapter_name"], f"test_{name}")
 
 
 class TestProjectManager(unittest.TestCase):

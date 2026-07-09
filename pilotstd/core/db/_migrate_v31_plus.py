@@ -111,7 +111,9 @@ def _migrate_v33_adapter_state(db: Any) -> None:
 
 
 def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
-    """删除合并后被取代的三张旧表。"""
-    db.execute("DROP TABLE IF EXISTS rotator_state")
-    db.execute("DROP TABLE IF EXISTS adapter_stats")
-    db.execute("DROP TABLE IF EXISTS adapter_health")
+    """将合并后被取代的三张旧表重命名为备份表，确认稳定后可手动删除。"""
+    for table in ("rotator_state", "adapter_stats", "adapter_health"):
+        try:
+            db.execute(f"ALTER TABLE {table} RENAME TO {table}_backup_v34")
+        except Exception:
+            pass  # 表不存在则跳过
