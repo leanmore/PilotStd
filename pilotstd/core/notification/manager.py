@@ -7,6 +7,8 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+from pilotstd.i18n import _
+
 from ..db import Database
 from ._message_builders import MessageBuildersMixin
 from ._policy import NotificationPolicyHelper
@@ -433,6 +435,43 @@ class NotificationManager(MessageBuildersMixin):
             return {"ok": ok, "error": "" if ok else "发送失败"}
         except Exception as e:
             return {"ok": False, "error": str(e)}
+
+    # ── 聚合格式化器 ──────────────────────────────────────────
+
+    def _format_standard_status_changed_aggregated(self, _event_type: str, entries: list, count: int) -> str:
+        """standard_status_changed 聚合模板：汇总统计 + 明细列表。"""
+        expired_count = 0
+        lines: list[str] = []
+        display = min(count, 10)
+        for i in range(display):
+            msg, _ch, _ts = entries[i]
+            new_status = getattr(msg, "new_status", "") or ""
+            if new_status == "废止":
+                expired_count += 1
+            std_no = msg.standard_number or ""
+            std_name = getattr(msg, "standard_name", "") or ""
+            old_status = getattr(msg, "old_status", "") or ""
+            line = f"- {std_no}"
+            if std_name:
+                line += _("（{name}）").format(name=std_name)
+            line += _("：{old} → {new}").format(old=old_status, new=new_status)
+            changed_at = (getattr(msg, "changed_at", "") or "")[:16]
+            if changed_at:
+                line += _("，{time}").format(time=changed_at.replace("T", " "))
+            lines.append(line)
+        if count > 10:
+            for i in range(10, count):
+                _msg, _ch, _ts = entries[i]
+                if (getattr(_msg, "new_status", "") or "") == "废止":
+                    expired_count += 1
+        if expired_count > 0:
+            header = _("{count} 项标准状态变更（其中 {n} 项已废止）").format(count=count, n=expired_count)
+        else:
+            header = _("{count} 项标准状态变更").format(count=count)
+        body = header + "\n" + "\n".join(lines)
+        if count > 10:
+            body += "\n" + _("等 {n} 项").format(n=count - 10)
+        return body
 
     # ── 策略表读写（委托 _policy helper） ──
 
