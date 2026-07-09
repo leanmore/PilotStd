@@ -1,6 +1,11 @@
 # CHANGELOG
 ## v0.63.0 (2026-07-09)
 
+### Changed
+- 待确认列表导出统一：汇总弹窗"保存待确认CSV"改为从 pending_lookup 表直接读取，不再依赖界面过滤
+- 删除 3 个死方法：_build_pending_table、_save_pending_csv、_show_pending_dialog（均无调用方）
+- PyInstaller 打包改为 --noconsole (console=False)，双击 exe 不再弹出命令行窗口
+
 ### Fixed
 - 版本号自动同步（CI 更新）
 
