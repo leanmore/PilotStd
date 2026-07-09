@@ -84,8 +84,8 @@ class TestNotificationAggregator(unittest.TestCase):
 
     # ── target_id 分组 ──
 
-    def test_different_target_ids_not_merged(self) -> None:
-        """不同 target_id 的消息各自成组，不互相合并。"""
+    def test_same_event_type_merged_after_shutdown(self) -> None:
+        """同事件类型消息（即使不同 target_id）在 shutdown 时合并。"""
         for i in range(2):
             self.agg.push(
                 event_type="archive_complete",
@@ -100,13 +100,10 @@ class TestNotificationAggregator(unittest.TestCase):
                 content=f"task_b 消息 {i}",
                 target_id="task_b",
             )
-
-        time.sleep(0.3)
         self.agg.shutdown()
-
-        self.assertEqual(len(self.calls), 2)
-        counts = sorted(c.aggregated_count for c, _ in self.calls)
-        self.assertEqual(counts, [2, 3])
+        # 按 event_type 分组，全部合并为一条
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0].aggregated_count, 5)
 
     # ── format_summary ──
 

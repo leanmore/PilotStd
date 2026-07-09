@@ -1,8 +1,8 @@
 # pilotstd/core/notification/aggregate_buffer.py
-"""线程安全的通知聚合缓冲（定时刷新策略）。
+"""线程安全的通知聚合缓冲（固定窗口 + 首次延时策略）。
 
-同类事件在时间窗口内累积，到期合并为一条消息发送。
-按 (event_type, target_id) 分组，支持智能摘要格式化。
+同类事件在固定窗口内累积，1 分钟首次触发，5 分钟强制发送。
+按 event_type 分组，支持智能摘要和事件特定格式化。
 """
 
 from __future__ import annotations
@@ -16,7 +16,8 @@ from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WINDOW_SECONDS = 5.0
+DEFAULT_WINDOW_SECONDS = 60.0  # 首次延时：1分钟后触发
+MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5分钟后强制发送
 DEFAULT_BATCH_SIZE = 20
 
 # 每个条目在缓冲中的存储结构
@@ -24,11 +25,11 @@ _Entry = tuple[NotificationMessage, list[str], float]  # (msg, channels, enqueue
 
 
 class NotificationAggregator:
-    """消息聚合器：按 (event_type, target_id) 分组，窗口内合并为一条发送。
+    """消息聚合器：按 event_type 分组，固定窗口内合并为一条发送。
 
     设计要点：
     - 线程安全（threading.Lock + threading.Timer）
-    - 每组独立计时（新消息到达时重置窗口——滑动窗口）
+    - 固定窗口 + 首次延时：第一批消息 1 分钟后触发，总窗口 5 分钟
     - 双重触发：定时器到期 OR 数量达标 → 立即发送
     - bypass_events 中的事件类型跳过聚合，实时发送
     - format_summary() 智能生成包含成功/失败/耗时统计的摘要
@@ -42,15 +43,15 @@ class NotificationAggregator:
         batch_size: int = DEFAULT_BATCH_SIZE,
         bypass_events: set[str] | None = None,
     ) -> None:
-        # sender_func 签名: (msg: NotificationMessage, target_channels: list[str]) -> None
         self._callback = sender_func
         self._window = window_seconds
         self._max = batch_size
         self._bypass = bypass_events or set()
         self._lock = threading.Lock()
-        # (event_type, target_id) → list of (msg, channels, enqueued_at)
-        self._buffers: dict[tuple[str, str], list[_Entry]] = {}
-        self._timers: dict[tuple[str, str], threading.Timer] = {}
+        # event_type → list of (msg, channels, enqueued_at)
+        self._buffers: dict[str, list[_Entry]] = {}
+        self._timers: dict[str, threading.Timer | None] = {}
+        self._window_start: dict[str, float] = {}
         # 事件特定格式化回调：event_type → (entries, count) → str
         self._formatters: dict[str, Callable[..., str]] = {}
 
@@ -96,65 +97,70 @@ class NotificationAggregator:
 
         绕过列表中的事件直接发送并返回 True。
         普通事件入队等待聚合，返回 False。
+
+        固定窗口：第一条消息启动计时器，窗口内新消息追加到缓冲区，
+        不重置计时器。1 分钟后首次触发，5 分钟总窗口后强制发送。
         """
         event_type = msg.event_type
         if event_type in self._bypass:
             self._callback(msg, target_channels)
             return True
 
-        tid = target_id or msg.target_id or ""
-        key = (event_type, tid)
         now = time.monotonic()
 
         with self._lock:
-            if key not in self._buffers:
-                self._buffers[key] = []
-            self._buffers[key].append((msg, target_channels, now))
+            if event_type not in self._buffers:
+                self._buffers[event_type] = []
+            self._buffers[event_type].append((msg, target_channels, now))
 
-            # 取消旧定时器（滑动窗口：新消息重置倒计时）
-            if key in self._timers:
-                self._timers[key].cancel()
+            # 如果是第一批消息，启动计时器
+            if event_type not in self._timers or self._timers[event_type] is None:
+                self._window_start[event_type] = now
+                timer = threading.Timer(self._window, self._on_timer, args=(event_type,))
+                timer.daemon = True
+                timer.start()
+                self._timers[event_type] = timer
 
-            timer = threading.Timer(self._window, self._on_timer, args=(key,))
-            timer.daemon = True
-            timer.start()
-            self._timers[key] = timer
-
-            if len(self._buffers[key]) >= self._max:
-                entries = self._buffers.pop(key, [])
-                self._timers[key].cancel()
-                del self._timers[key]
-                self._send_merged(key, entries)
+            # 数量达标 → 立即发送
+            if len(self._buffers[event_type]) >= self._max:
+                entries = self._buffers.pop(event_type, [])
+                t = self._timers.pop(event_type, None)
+                if t:
+                    t.cancel()
+                self._window_start.pop(event_type, None)
+                self._send_merged(event_type, entries)
             return False
 
     def flush(self, event_type: str, target_id: str = "") -> None:
-        """立即刷新指定分组的缓冲。"""
-        key = (event_type, target_id)
+        """立即刷新指定事件类型的缓冲。"""
         with self._lock:
-            entries = self._buffers.pop(key, [])
-            if key in self._timers:
-                self._timers[key].cancel()
-                del self._timers[key]
+            entries = self._buffers.pop(event_type, [])
+            t = self._timers.pop(event_type, None)
+            if t:
+                t.cancel()
+            self._window_start.pop(event_type, None)
         if entries:
-            self._send_merged(key, entries)
+            self._send_merged(event_type, entries)
 
     def flush_all(self) -> None:
         """立即刷新所有缓冲组。"""
-        keys: list[tuple[str, str]] = []
+        keys: list[str] = []
         with self._lock:
             keys = list(self._buffers.keys())
         for key in keys:
-            self.flush(key[0], key[1])
+            self.flush(key)
 
     def shutdown(self) -> None:
         """优雅关闭：取消所有定时器，立即发送缓冲中所有残留消息。"""
-        pending: dict[tuple[str, str], list[_Entry]] = {}
+        pending: dict[str, list[_Entry]] = {}
         with self._lock:
             for key in list(self._buffers.keys()):
                 pending[key] = self._buffers.pop(key, [])
             for key in list(self._timers.keys()):
-                self._timers[key].cancel()
-            self._timers.clear()
+                t = self._timers.pop(key, None)
+                if t:
+                    t.cancel()
+            self._window_start.clear()
         for key, entries in pending.items():
             if entries:
                 self._send_merged(key, entries)
@@ -163,20 +169,34 @@ class NotificationAggregator:
 
     # ── 内部方法 ──
 
-    def _on_timer(self, key: tuple[str, str]) -> None:
-        """定时器回调：时间窗口到期，刷新缓冲。"""
+    def _on_timer(self, event_type: str) -> None:
+        """定时器回调：检查窗口 → 发送或续期。"""
         with self._lock:
-            entries = self._buffers.pop(key, [])
-            if key in self._timers:
-                del self._timers[key]
+            start = self._window_start.get(event_type)
+            if start is not None:
+                elapsed = time.monotonic() - start
+                if elapsed < MAX_WINDOW_SECONDS:
+                    # 未到最大窗口 → 发送当前缓冲，续期计时器
+                    entries = self._buffers.pop(event_type, [])
+                    if entries:
+                        self._send_merged(event_type, entries)
+                    # 续期：新计时器继续轮询
+                    timer = threading.Timer(self._window, self._on_timer, args=(event_type,))
+                    timer.daemon = True
+                    timer.start()
+                    self._timers[event_type] = timer
+                    return
+            # 窗口已满或开始标记缺失 → 强制发送并清空
+            entries = self._buffers.pop(event_type, [])
+            self._timers.pop(event_type, None)
+            self._window_start.pop(event_type, None)
         if entries:
-            self._send_merged(key, entries)
+            self._send_merged(event_type, entries)
 
-    def _send_merged(self, key: tuple[str, str], entries: list[_Entry]) -> None:
+    def _send_merged(self, event_type: str, entries: list[_Entry]) -> None:
         """合并多条消息为一条并回调发送。"""
         count = len(entries)
         first_msg, target_channels, first_ts = entries[0]
-        event_type = key[0]
 
         # 优先使用事件特定格式化器
         formatter = self._formatters.get(event_type)
