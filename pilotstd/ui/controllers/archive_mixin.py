@@ -18,12 +18,10 @@ class ArchiveMixin:
     """归档/规范化相关方法，混入 MainWindow。"""
 
     def _notify_worker_error(self, worker_name: str, error_msg: str) -> None:
-        """Worker 异常时发送通知（不阻塞 UI，失败静默）。"""
-        try:
-            if hasattr(self, "_mgr") and hasattr(self._mgr, "notification_mgr"):
-                self._mgr.notification_mgr.send_event("worker_error", {"worker": worker_name, "error": error_msg})
-        except Exception:
-            pass
+        """Worker 异常时弹出本地通知。"""
+        from ...platform.notify import NotifyService
+
+        NotifyService.get().show("工作线程异常", f"{worker_name}: {error_msg}", duration=5000)
 
     def _on_normalize(self) -> None:
         if not self._parsed_results:

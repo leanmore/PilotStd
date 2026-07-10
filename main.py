@@ -2,10 +2,12 @@
 # 入口脚本：默认启动 PyQt6 GUI，--cli 进入命令行模式
 
 import argparse
+import datetime
 import faulthandler
-import io
 import os
 import sys
+import threading
+import traceback
 
 from dotenv import load_dotenv
 
@@ -34,57 +36,57 @@ from dotenv import load_dotenv
 #     if sys.stdin is None:
 #         sys.stdin = _SafeStream()
 
-# faulthandler 内部会调用 stderr.fileno()，_SafeStream 已兜底，但
-# 极端环境（非 frozen 但 stderr 损坏）再加一层 try-except 保护
-try:
-    faulthandler.enable(file=sys.stderr, all_threads=True)
-except (io.UnsupportedOperation, AttributeError, OSError):
-    pass
+# faulthandler 仅开发时启用，打包交付后禁用（避免无控制台报错）
+if not getattr(sys, "frozen", False):
+    try:
+        faulthandler.enable(file=sys.stderr, all_threads=True)
+    except Exception:
+        pass
 
 # 加载 .env 文件（优先级：系统环境变量 > .env 文件）
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
 # ── 全局异常捕获：未捕获异常写入 crash_log.txt ──
-# if getattr(sys, "frozen", False):
-#     _CRASH_LOG = os.path.join(os.path.dirname(sys.executable), "crash_log.txt")
-# else:
-#     _CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
+if getattr(sys, "frozen", False):
+    _CRASH_LOG = os.path.join(os.path.dirname(sys.executable), "crash_log.txt")
+else:
+    _CRASH_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
 
 
-# def _global_excepthook(exc_type, exc_value, exc_tb):
-#     """将所有未捕获的 Python 异常写入 crash_log.txt 后调用默认处理器。"""
-#     tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
-#     msg = "".join(tb_lines)
-#     try:
-#         with open(_CRASH_LOG, "a", encoding="utf-8") as f:
-#             f.write(f"\n{'=' * 60}\n")
-#             f.write(f"CRASH [{datetime.datetime.now().isoformat()}]\n")
-#             f.write(msg)
-#     except Exception:
-#         pass
-#     sys.__excepthook__(exc_type, exc_value, exc_tb)
+def _global_excepthook(exc_type, exc_value, exc_tb):
+    """将所有未捕获的 Python 异常写入 crash_log.txt 后调用默认处理器。"""
+    tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
+    msg = "".join(tb_lines)
+    try:
+        with open(_CRASH_LOG, "a", encoding="utf-8") as f:
+            f.write(f"\n{'=' * 60}\n")
+            f.write(f"CRASH [{datetime.datetime.now().isoformat()}]\n")
+            f.write(msg)
+    except Exception:
+        pass
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 
-# def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
-#     """捕获后台线程中未处理的异常。"""
-#     exc_type = args.exc_type or type(args.exc_value) if args.exc_value else Exception
-#     exc_value = args.exc_value or Exception("unknown thread error")
-#     exc_tb = args.exc_traceback
-#     thread_name = args.thread.name if args.thread else "unknown"
-#     tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
-#     msg = "".join(tb_lines)
-#     try:
-#         with open(_CRASH_LOG, "a", encoding="utf-8") as f:
-#             f.write(f"\n{'=' * 60}\n")
-#             f.write(f"THREAD CRASH [{datetime.datetime.now().isoformat()}] thread={thread_name}\n")
-#             f.write(msg)
-#     except Exception:
-#         pass
-#     sys.__excepthook__(exc_type, exc_value, exc_tb)
+def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
+    """捕获后台线程中未处理的异常。"""
+    exc_type = args.exc_type or type(args.exc_value) if args.exc_value else Exception
+    exc_value = args.exc_value or Exception("unknown thread error")
+    exc_tb = args.exc_traceback
+    thread_name = args.thread.name if args.thread else "unknown"
+    tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
+    msg = "".join(tb_lines)
+    try:
+        with open(_CRASH_LOG, "a", encoding="utf-8") as f:
+            f.write(f"\n{'=' * 60}\n")
+            f.write(f"THREAD CRASH [{datetime.datetime.now().isoformat()}] thread={thread_name}\n")
+            f.write(msg)
+    except Exception:
+        pass
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 
-# sys.excepthook = _global_excepthook
-# threading.excepthook = _thread_excepthook  # type: ignore[assignment]
+sys.excepthook = _global_excepthook
+threading.excepthook = _thread_excepthook  # type: ignore[assignment]
 
 
 def main():

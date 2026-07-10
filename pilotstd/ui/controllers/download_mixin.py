@@ -162,11 +162,9 @@ class DownloadMixin:
         self.btn_cancel.setEnabled(False)
         self.status_changed.emit(f"下载失败: {msg}")
         logger.error(msg)
-        try:
-            if hasattr(self, "_mgr") and hasattr(self._mgr, "notification_mgr"):
-                self._mgr.notification_mgr.send_event("worker_error", {"worker": "download", "error": msg})
-        except Exception:
-            pass
+        from ...platform.notify import NotifyService
+
+        NotifyService.get().show("下载异常", f"download: {msg}", duration=5000)
 
     def _on_import_download(self) -> None:
         """从文件导入标准号列表并直接下载。"""

@@ -152,19 +152,38 @@ class QuerySummaryMethods:
             return ""
         return str(value) if value else ""
 
-    @staticmethod
-    def _save_csv(filepath: str, items: list[Any]) -> None:
-        """保存条目列表为 CSV 文件。"""
-        with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
+    def _save_csv(self, path: str, items: list[Any]) -> None:
+        """保存条目列表为 CSV 文件（10 列完整信息）。"""
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
-            writer.writerow(["标准号", "标准名称", "状态", "文件路径"])
+            writer.writerow(
+                [
+                    "标准号",
+                    "标准名称",
+                    "状态",
+                    "生效状态",
+                    "替代标准",
+                    "发布日期",
+                    "实施日期",
+                    "发布部门",
+                    "采标",
+                    "文件路径",
+                ]
+            )
             for item in items:
+                adopted = "是" if getattr(item, "is_adopted", False) else "否"
                 writer.writerow(
                     [
-                        item.get_full_number(),
-                        QuerySummaryMethods._safe_str(getattr(item, "std_name", "")),
-                        QuerySummaryMethods._safe_str(getattr(item, "next_action", "")),
-                        QuerySummaryMethods._safe_str(getattr(item, "source_path", "")),
+                        self._safe_str(item.get_full_number()),
+                        self._safe_str(getattr(item, "std_name", "")),
+                        self._safe_str(getattr(item, "next_action", "")),
+                        self._safe_str(getattr(item, "effect_status", "")),
+                        self._safe_str(getattr(item, "found_replaces", "")),
+                        self._safe_str(getattr(item, "found_publish_date", "")),
+                        self._safe_str(getattr(item, "found_impl_date", "")),
+                        self._safe_str(getattr(item, "found_responsible_dept", "")),
+                        self._safe_str(adopted),
+                        self._safe_str(getattr(item, "source_path", "")),
                     ]
                 )
 
