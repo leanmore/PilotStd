@@ -3,7 +3,6 @@
 
 import csv
 import logging
-import time
 from typing import Any
 
 from PyQt6.QtWidgets import (
@@ -18,33 +17,9 @@ from PyQt6.QtWidgets import (
 )
 
 from ...i18n import _
-from ..workers import AutoWorker, _pct
+from ..workers import AutoWorker
 
 logger = logging.getLogger(__name__)
-
-
-class _ThrottledProgress:
-    """节流进度发射器：确保 progress_changed 信号最多每 500ms 发射一次，
-    避免 Qt 事件循环合并高频信号导致进度条跳变。"""
-
-    def __init__(self, signal: Any, min_interval: float = 0.5) -> None:
-        self._signal = signal
-        self._min_interval = min_interval
-        self._last_emit = 0.0
-        self._last_value = -1
-
-    def emit(self, value: int) -> None:
-        now = time.monotonic()
-        self._last_value = value
-        if now - self._last_emit >= self._min_interval or value >= 100:
-            self._signal.emit(value)
-            self._last_emit = now
-
-    def flush(self) -> None:
-        """强制发射最后一次值（阶段切换时调用，确保最终进度显示）。"""
-        if self._last_value >= 0:
-            self._signal.emit(self._last_value)
-            self._last_emit = time.monotonic()
 
 
 class AutoRunMixin:
@@ -77,17 +52,13 @@ class AutoRunMixin:
         self._parsed_results.clear()
         self._archive_results: list[Any] = []
 
-        # 节流进度发射器（最多每 500ms 发射一次，避免 Qt 合并信号导致跳变）
-        self._throttled_progress = _ThrottledProgress(self.progress_changed)
-        tp = self._throttled_progress
-
         self._auto_worker = AutoWorker(self._mgr, source_dir, parent=self)
         self._auto_worker.scan_batch.connect(self._on_scan_batch_ready)
-        self._auto_worker.scan_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
+        self._auto_worker.scan_progress.connect(self._on_raw_progress)
         self._auto_worker.query_result.connect(lambda idx, result: self._on_query_result_ready(idx, result))
-        self._auto_worker.query_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
+        self._auto_worker.query_progress.connect(self._on_raw_progress)
         self._auto_worker.download_result.connect(self._on_download_batch_ready_single)
-        self._auto_worker.download_progress.connect(lambda cur, total: tp.emit(_pct(cur, total)))
+        self._auto_worker.download_progress.connect(self._on_raw_progress)
         self._auto_worker.archive_result.connect(self._on_archive_batch_ready_single)
         self._auto_worker.stage_changed.connect(self._on_auto_stage_changed)
         self._auto_worker.error.connect(self._on_auto_error)
@@ -120,12 +91,9 @@ class AutoRunMixin:
             "done": "自动运行完成",
         }
         self.status_changed.emit(stage_labels.get(stage, stage))
-        # 阶段切换时 flush 最后一次进度值，确保进度条不被跳过
-        tp = getattr(self, "_throttled_progress", None)
-        if tp:
-            tp.flush()
-        # 阶段切换时归零，避免从上一阶段结束位置闪跳
-        self.progress_bar.setValue(0)
+        # 阶段切换时强制定格上一阶段进度 → 重置为下一阶段准备
+        self._force_finish_progress()
+        self._reset_progress_bar()
         if stage != "done":
             self.btn_query.setEnabled(False)
             self.btn_download.setEnabled(False)
@@ -135,6 +103,7 @@ class AutoRunMixin:
 
     def _on_auto_pipeline_finished(self, report: dict[str, Any]) -> None:
         """AutoWorker 完成 → 恢复 UI + 弹汇总。"""
+        self._force_finish_progress()
         self._suppress_dialogs = False
         self.btn_query.setEnabled(True)
         self.btn_download.setEnabled(True)

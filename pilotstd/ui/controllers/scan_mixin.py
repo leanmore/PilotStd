@@ -110,10 +110,7 @@ class ScanMixin:
         self.status_changed.emit(f"扫描中: {dir_path}")
         self._scan_source_root = os.path.abspath(dir_path)
         self._unrecognized_files = []
-        self.progress_changed.emit(0)
-        # 重置动画状态
-        self._target_progress = 0
-        self._current_progress = 0.0
+        self._reset_progress_bar()
 
         self._scan_worker = ScanWorker(self._mgr, dir_path, pause_event=self._pause_event, parent=self)
         self._scan_worker.batch_ready.connect(self._on_scan_batch_ready, Qt.ConnectionType.QueuedConnection)
@@ -126,7 +123,10 @@ class ScanMixin:
 
     def _on_raw_progress(self, cur: int, total: int) -> None:
         """接收 Worker 的节流信号，仅更新目标值，由定时器驱动平滑动画。"""
-        self._target_progress = int(cur / total * 100) if total else 0
+        if total > 0:
+            self._target_progress = (cur / total) * 100
+        else:
+            self._target_progress = 0
         if not self._progress_timer.isActive():
             self._progress_timer.start()
 
@@ -140,6 +140,20 @@ class ScanMixin:
         else:
             self._current_progress += diff * 0.2
             self.progress_changed.emit(int(self._current_progress))
+
+    def _reset_progress_bar(self) -> None:
+        """强制重置进度条到 0，停止动画定时器。新任务启动前调用。"""
+        self._progress_timer.stop()
+        self._target_progress = 0
+        self._current_progress = 0.0
+        self.progress_changed.emit(0)
+
+    def _force_finish_progress(self) -> None:
+        """强制拉满进度条到 100%，停止动画定时器。任务完成时调用。"""
+        self._progress_timer.stop()
+        self._target_progress = 100
+        self._current_progress = 100.0
+        self.progress_changed.emit(100)
 
     def _on_scan_batch_ready(self, batch_rows: list[Any]) -> None:
         """后台线程批量通知：追加已解析文件到表格和结果列表（暂停渲染，批量写入后一次性刷新）。"""
@@ -160,6 +174,7 @@ class ScanMixin:
 
     def _on_scan_finished(self, success: int, failed: int) -> None:
         """扫描完成：汇总统计并弹窗。"""
+        self._force_finish_progress()
         self._unrecognized_files = self._scan_worker.unrecognized
         total = success + failed
         self.status_changed.emit(f"扫描完成: {total} 个文件, {success} 个识别成功, {failed} 个无法识别")

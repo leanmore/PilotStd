@@ -87,7 +87,7 @@ class QueryCoreMethods:
         self.status_changed.emit(_("work_status_querying"))
         self.btn_query.setEnabled(False)
         self.btn_cancel.setEnabled(True)
-        self.progress_changed.emit(0)
+        self._reset_progress_bar()
 
         for row in range(self.work_table.rowCount()):
             item = self.work_table.item(row, 1)
@@ -99,7 +99,7 @@ class QueryCoreMethods:
 
         def on_progress(current: int) -> None:
             self._check_pause()
-            self.progress_changed.emit(current)
+            self._on_raw_progress(current, 100)
 
         from ...workers import QueryWorker
 
@@ -109,6 +109,7 @@ class QueryCoreMethods:
         self._query_worker.error.connect(lambda msg: self._notify_worker_error("query", msg))
 
         def on_query_finished(_results: Any) -> None:
+            self._force_finish_progress()
             self.btn_query.setEnabled(True)
             self.btn_auto.setEnabled(True)
             self.btn_cancel.setEnabled(False)

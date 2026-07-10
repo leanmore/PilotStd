@@ -57,14 +57,16 @@ class ArchiveMixin:
             # 自动运行模式：直接写入 pending_lookup
             self._mgr.record_pending(conflicts)
         self._clear_table()
+        self._reset_progress_bar()
         # 后台线程计算规范文件名
         self._normalize_worker = NormalizeWorker(
             self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self
         )
         self._normalize_worker.batch_ready.connect(self._on_normalize_batch_ready)
-        self._normalize_worker.progress.connect(self.progress_changed.emit)
+        self._normalize_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
 
         def on_normalize_finished() -> None:
+            self._force_finish_progress()
             count = len(self._parsed_results)
             self.status_changed.emit(_("normalize_complete").format(count))
             self._register_task("规范化", count, count)
@@ -123,6 +125,7 @@ class ArchiveMixin:
 
     def _handle_archive_completed(self, root_dir: str) -> None:
         """归档完成回调：统计结果 + 写入 file_index + 过期合并 + 汇总弹窗。"""
+        self._force_finish_progress()
         saved = sum(1 for i, s in self._archive_results if s == "已归档")
         skipped = len(self._archive_results) - saved
         self.status_changed.emit(_("save_complete").format(saved, skipped))
@@ -192,6 +195,7 @@ class ArchiveMixin:
         if not proceed:
             return
 
+        self._reset_progress_bar()
         self._archive_worker = ArchiveWorker(
             self._mgr,
             self._parsed_results,
@@ -202,7 +206,7 @@ class ArchiveMixin:
             parent=self,
         )
         self._archive_worker.batch_ready.connect(self._on_archive_batch_ready)
-        self._archive_worker.progress.connect(self.progress_changed.emit)
+        self._archive_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
         self._archive_worker.error.connect(lambda msg: self._notify_worker_error("archive", msg))
 
         self._archive_results = []

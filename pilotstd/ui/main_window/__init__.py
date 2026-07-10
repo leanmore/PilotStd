@@ -254,7 +254,7 @@ class MainWindow(
     # ================================================================
 
     def _on_progress(self, value: int) -> None:
-        logger.info("进度条: %d%%", value)
+        logger.debug("进度条: %d%%", value)
         self.progress_bar.setValue(value)
 
     def _on_status(self, msg: str) -> None:

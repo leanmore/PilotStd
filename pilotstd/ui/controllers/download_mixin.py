@@ -30,7 +30,7 @@ class DownloadMixin:
         self._reset_ui_for_download(download_list, total)
 
         self._download_worker = DownloadWorker(self._mgr, download_list, pause_event=self._pause_event, parent=self)
-        self._download_worker.progress.connect(self.progress_changed.emit)
+        self._download_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
         self._download_worker.batch_ready.connect(self._on_download_batch_ready)
         self._download_worker.finished_signal.connect(
             lambda: self._on_download_finished(to_download, too_new_set, total, download_list)
@@ -78,7 +78,7 @@ class DownloadMixin:
         self.btn_query.setEnabled(False)
         self.btn_download.setEnabled(False)
         self.btn_cancel.setEnabled(True)
-        self.progress_changed.emit(0)
+        self._reset_progress_bar()
         self._clear_table()
         for i, parsed in enumerate(download_list):
             self._add_table_row(
@@ -87,6 +87,7 @@ class DownloadMixin:
 
     def _on_download_finished(self, to_download: list, too_new_set: set, total: int, download_list: list) -> None:
         """下载完成回调：恢复按钮、统计结果、发送通知、弹出汇总对话框。"""
+        self._force_finish_progress()
         self.btn_query.setEnabled(True)
         self.btn_download.setEnabled(True)
         self.btn_cancel.setEnabled(False)

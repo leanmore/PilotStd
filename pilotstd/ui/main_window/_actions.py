@@ -66,7 +66,6 @@ class ActionsMixin:
         self._apply_announce_cache_mode()
         self.status_bar.showMessage(_("ready"), 2000)
         self._check_download_queue()
-        self._check_pending_lookup()
         if self._config.get("watchdog.enabled", False):
             mgr.start_watching()
 

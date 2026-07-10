@@ -200,18 +200,3 @@ class QueryPendingMethods:
     def _resolve_pending_in_db(self: Any, pending_items: list[Any], resolution: str) -> None:
         """标记待确认项为已处理（委托 manager）。"""
         self._mgr.resolve_pending(pending_items, resolution)
-
-    def _check_pending_lookup(self: Any) -> None:
-        """启动时检查待确认清单（委托 manager）。"""
-        if not self._mgr_ready:
-            return
-        pending_rows = self._mgr.get_pending_items()
-        if not pending_rows:
-            return
-        count = len(pending_rows)
-        nums = [r["standard_number"] for r in pending_rows[:5]]
-        msg = _("pending_lookup_msg").format(count) + "\n" + "\n".join(nums)
-        if count > 5:
-            msg += f"\n... 等共 {count} 条"
-        msg += "\n" + _("pending_lookup_hint")
-        QMessageBox.information(self, _("pending_lookup_title"), msg)
