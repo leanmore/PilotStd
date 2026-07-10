@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 class ScanMixin:
     """扫描混入类 — 目录扫描 + 增量监控方法。"""
 
+    _last_skipped_dirs: Any
+    _parsed_results: Any
+    _scheduled_svc: Any
+    _file_watcher: Any
+
     def scan_directory(self, root_path: str) -> List[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。"""
         result = self.scanner.scan([root_path])

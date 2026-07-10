@@ -75,6 +75,7 @@ class ReportMixin:
     _NJBZ_OVERFLOW_QUOTA: int
     _use_cache: bool
     _cache: Any
+    _overflow_item_count: Any
 
     def _log_quota_water(self, overflow_quota: dict, temp_cooldown_skips: int) -> None:
         """输出配额水位和用量日志。"""

@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from ..models import QueryResult
 
@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 
 class SingleMixin:
     """单条查询混入类 — _query_one + _verify_adoption。"""
+
+    _use_cache: Any
+    _adapters: Any
+    _cache: Any
+    _rotator: Any
+    _adapter_map: Any
+    _quota: Any
+    _record: Any
 
     def _query_one(
         self,

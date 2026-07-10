@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
     """批量查询混入类 — query_standards + query_batch_parsed。"""
 
+    _pause_event: Any
+    _query_active: Any
+    _overflow_item_count: Any
+    _csres_active: Any
+
     # ── 二次分桶参数 ──
     _MINI_BUCKET_SIZE = 50
     _MINI_BUCKET_STAGGER = 5

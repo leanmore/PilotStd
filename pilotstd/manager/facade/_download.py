@@ -15,6 +15,15 @@ logger = logging.getLogger(__name__)
 class DownloadMixin:
     """下载混入类 — 下载执行 + 流式下载 + 按号下载。"""
 
+    _query_results: Any
+    _expire_list: Any
+    _queried_items: Any
+    _parsed_results: Any
+    _download_list: Any
+    _download_tasks: Any
+    _pending_svc: Any
+    _scheduled_svc: Any
+
     def download(self, query_results: list[Any] | None = None) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """下载分类结果中的标准文件。"""
         results = query_results or self._query_results

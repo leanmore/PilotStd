@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 class OrganizerExpireMixin:
     """过期处理方法（混入 OrganizerService）。"""
 
+    _expire_handler: Any
+    _cfg: Any
+
     def handle_expired(self: Any, parsed_list: list[Any]) -> dict[str, Any]:
         """将查询结果为「废止」的标准移入 过期作废 目录。"""
         pairs = []

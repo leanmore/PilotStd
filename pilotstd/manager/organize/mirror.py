@@ -20,6 +20,11 @@ logger = logging.getLogger(__name__)
 class OrganizerMirrorMixin:
     """跳过目录镜像 + 兜底归档（混入 OrganizerService）。"""
 
+    _cfg: Any
+    _FALLBACK_SKIP_FILES: Any
+    _FALLBACK_SKIP_PREFIX: Any
+    _skipped_source_files: Any
+
     def organize_skipped_dirs(self: Any, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。"""
         root = get_library_root(self._cfg)

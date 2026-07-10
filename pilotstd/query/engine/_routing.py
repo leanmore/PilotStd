@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 class RoutingMixin:
     """路由混入类 — 提供优先级计算、配额感知分配、站点选择方法。"""
 
+    _site_order: Any
+    _rotator: Any
+    _adapter_map: Any
+    _adapters: Any
+    _quota: Any
+
     def _resolve_base_route(self, logical_code: str) -> list[str]:
         """按标准代号/类型确定基础路由链。返回站点名称列表。"""
         if logical_code in CODE_ROUTES:

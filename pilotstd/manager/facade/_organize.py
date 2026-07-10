@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 class OrganizeMixin:
     """归档混入类 — 统一归档入口 + 回填 + 过期 + 兜底。"""
 
+    _organizer_svc: Any
+    _parsed_results: Any
+    _pending_list: Any
+
     _FALLBACK_SKIP_FILES = frozenset({"Thumbs.db", "sync.ffs_db"})
     _FALLBACK_SKIP_PREFIX = "~$"
 

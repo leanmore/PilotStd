@@ -18,6 +18,16 @@ logger = logging.getLogger(__name__)
 class QueryMixin:
     """查询混入类 — 查询引擎封装 + 分类路由 + GUI 桥接方法。"""
 
+    _query_results: Any
+    _pending_list: Any
+    _parsed_results: Any
+    _queried_items: Any
+    _classifier: Any
+    _download_list: Any
+    _expire_list: Any
+    _pending_svc: Any
+    _scheduled_svc: Any
+
     _CAT_LABEL = {
         "gb": "国标",
         "industry": "行业标准",

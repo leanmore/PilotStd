@@ -2,12 +2,21 @@
 # CSRes 后台查询混入 — 从 _batch.py 提取
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class CsresMixin:
     """CSRes 适配器独立查询线程（混入 BatchMixin）。"""
+
+    _CSRES_LIMIT: Any
+    _CSRES_CIRCUIT_BREAK: Any
+    _adapter_map: Any
+    _rotator: Any
+    _csres_active: Any
+    _csres_processed: Any
+    _csres_total: Any
 
     def _build_csres_pool(self, gb_items: list, industry_items: list) -> list:
         """计算 GB/行业各取多少条（GB 60% + 行业 40%）。"""

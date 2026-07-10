@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class AutoMixin:
     """一键处理混入类 — auto_run + auto_run_stream。"""
 
+    _last_skipped_dirs: Any
+    _download_list: Any
+
     def auto_run(self, root_path: str) -> dict[str, int]:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。"""
         import time as _time
