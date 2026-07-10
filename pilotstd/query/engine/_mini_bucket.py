@@ -85,13 +85,15 @@ class MiniBucketMixin:
         _time: Any,
         primary_site: str,
         overflow_items: list,
+        skip_overflow: bool = False,
     ) -> None:
         """处理单个条目的查询：执行 → 结果记录 → 缓存 → 回调。
 
         原地修改 overflow_items 和 ctx（results/item_chains/overflow_events等）。
         """
         if self._rotator and self._rotator.get_cooldown_remaining(assigned_site) > 0:
-            overflow_items.append((idx, item))
+            if not skip_overflow:
+                overflow_items.append((idx, item))
             return
         try:
             _t0 = _time.time()
@@ -102,7 +104,8 @@ class MiniBucketMixin:
         except Exception:
             ctx["item_chains"].setdefault(idx, []).append(assigned_site)
             logger.warning("查询 [%s %s-%s] 异常 @%s", item[0], item[1], item[2], assigned_site)
-            overflow_items.append((idx, item))
+            if not skip_overflow:
+                overflow_items.append((idx, item))
             return
         target_display = f"{item[0]} {item[1]}-{item[2]}"
         if result:
@@ -131,15 +134,17 @@ class MiniBucketMixin:
                     score,
                 )
                 ctx["overflow_events"].append((_time.time(), primary_site, assigned_site, idx))
-                overflow_items.append((idx, item))
+                if not skip_overflow:
+                    overflow_items.append((idx, item))
         else:
             ctx["item_chains"].setdefault(idx, []).append(assigned_site)
             chain_str = "→".join(ctx["item_chains"].get(idx, []))
             logger.info("查询 [%s] [NG]%s tried=%s", target_display, assigned_site, chain_str)
-            overflow_items.append((idx, item))
+            if not skip_overflow:
+                overflow_items.append((idx, item))
 
     def _run_mini_bucket_queries(
-        self, mini_buckets: list, chain: list, primary_site: str, _time: Any, ctx: dict
+        self, mini_buckets: list, chain: list, primary_site: str, _time: Any, ctx: dict, skip_overflow: bool = False
     ) -> list:
         """错峰执行小桶查询，冷却/配额感知，返回溢出条目列表。"""
         overflow_items: list = []
@@ -173,5 +178,7 @@ class MiniBucketMixin:
                 overflow_items.extend(mini)
                 continue
             for idx, item in mini:
-                self._process_single_query(idx, item, assigned_site, adapter, ctx, _time, primary_site, overflow_items)
+                self._process_single_query(
+                    idx, item, assigned_site, adapter, ctx, _time, primary_site, overflow_items, skip_overflow
+                )
         return overflow_items

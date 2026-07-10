@@ -92,15 +92,16 @@ class OverflowHandler:
         _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
         temp_skips: list,
+        preferred_site: str = "",
     ) -> None:
         """处理单个溢出条目：遍历站点链尝试查询（含冷却/配额检查）。
         原地修改 state["results"]、state["item_chains"]、state["pending_reasons"]。
         """
         if idx in state["results"]:
             return
-        chain = self._build_chain_for_item(item)
+        chain = self._build_chain_for_item(item, preferred_site)
         # 主站点已查过，从二线开始
-        start = 1 if chain and chain[0] == self._bucket_key(item[0]) else 0
+        start = 1 if chain and chain[0] == self._bucket_key(item[0], preferred_site) else 0
         found = False
 
         for site in chain[start:]:
@@ -149,6 +150,7 @@ class OverflowHandler:
         state: dict,
         _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
+        preferred_site: str = "",
     ) -> int:
         """错误恢复：溢出条目微批链迭代（含随机抖动防惊群）。
         返回因站点冷却而跳过的次数。
@@ -158,8 +160,12 @@ class OverflowHandler:
         if not all_overflow:
             return 0
 
+        # 用户指定站点 → 禁止溢出到其他站点
+        if preferred_site:
+            return 0
+
         # 按剩余站点数升序（短链优先）
-        all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1])))
+        all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1], preferred_site)))
         # 微批：每批 20 条，批次间 2-5s 随机抖动
         batch_size = 20
         for batch_start in range(0, len(all_overflow), batch_size):
@@ -170,6 +176,6 @@ class OverflowHandler:
                 jitter = _random.uniform(2, 5)
                 _time.sleep(jitter)
             for idx, item in batch:
-                self._process_overflow_item(idx, item, state, _time, result_callback, temp_skips)
+                self._process_overflow_item(idx, item, state, _time, result_callback, temp_skips, preferred_site)
 
         return temp_skips[0]

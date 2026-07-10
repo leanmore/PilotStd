@@ -258,6 +258,18 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         import time as _time2
 
         _ts = _time2.time()
+
+        # 用户指定站点 → 强制单站点链，禁止溢出到其他站点
+        if preferred_site:
+            chain = [preferred_site]
+            mini_buckets = self._build_mini_buckets(bucket_items, chain, None)
+            logger.info("[MINI_BUCKET] 用户指定站点=%s 总数=%d", preferred_site, len(bucket_items))
+            overflow_items = self._run_mini_bucket_queries(
+                mini_buckets, chain, primary_site, _time2, state, skip_overflow=True
+            )
+            done = len(bucket_items) - len(overflow_items)
+            return (overflow_items, _time2.time() - _ts, done)
+
         chain = self._get_priority(bucket_items[0][1][0] if bucket_items else "", preferred_site)
         chain = [s for s in chain if s != "csres"]
         if primary_site in chain:
@@ -441,7 +453,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         self._collect_csres_results(state)
 
         # 5) 处理溢出：链迭代 + 冷却/配额恢复
-        temp_cooldown_skips = self._handle_overflow(state, _time, result_callback)
+        temp_cooldown_skips = self._handle_overflow(state, _time, result_callback, preferred_site)
 
         # 6) 报告 + 最终化 + 组装结果
         return self._finalize_batch(state, _time, parsed_list, n, temp_cooldown_skips)
