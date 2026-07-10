@@ -281,12 +281,26 @@ jobs:
               f.write(content)
           PYEOF
 
-          # 4. 统一提交并推送
+          # 4. 统一提交并推送（防竞态：fetch+rebase 后重试，最多 3 次）
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION pilotstd/__init__.py CHANGELOG.md
           git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
-          git push
+          for i in 1 2 3; do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              break
+            fi
+            echo "Push attempt $i failed, fetching and retrying..."
+            git pull --rebase origin main
+            # 解决 CHANGELOG.md 可能产生的冲突：保留两方的版本条目
+            if [ -f CHANGELOG.md ] && git diff --name-only --diff-filter=U | grep -q CHANGELOG.md; then
+              git checkout --theirs CHANGELOG.md 2>/dev/null || true
+              git add CHANGELOG.md
+              GIT_EDITOR=true git rebase --continue 2>/dev/null || true
+            fi
+            sleep 2
+          done
           # 防冲突：等待 push 完成后再打 tag
           sleep 2
 
