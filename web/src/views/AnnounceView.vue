@@ -56,7 +56,10 @@ const error = ref('')
 async function load() {
   try {
     const sourceSite = `announcement_${activeTab.value}`
-    const data = await getAnnounceResults(sourceSite)
+    const fromDate = sinceDate.value
+      ? `${sinceDate.value.getFullYear()}-${String(sinceDate.value.getMonth() + 1).padStart(2, '0')}-${String(sinceDate.value.getDate()).padStart(2, '0')}`
+      : ''
+    const data = await getAnnounceResults(sourceSite, fromDate)
     results.value = data.results || []
     loadStats()
   } catch {}

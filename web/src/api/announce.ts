@@ -2,8 +2,8 @@
 import http from './http'
 import type { AnnounceResponse, SuccessResponse } from '../types/api'
 
-export const getAnnounceResults = (sourceSite?: string): Promise<AnnounceResponse> =>
-  http.get('/announce/results', { params: sourceSite ? { source_site: sourceSite } : {} }).then(r => r.data)
+export const getAnnounceResults = (sourceSite?: string, fromDate?: string): Promise<AnnounceResponse> =>
+  http.get('/announce/results', { params: { source_site: sourceSite || '', from_date: fromDate || '' } }).then(r => r.data)
 
 export const postAnnounceCheck = (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
   http.post('/announce/check', null, { params: { ...(sinceDate ? { since_date: sinceDate } : {}), ...(types ? { types } : {}) } }).then(r => r.data)
