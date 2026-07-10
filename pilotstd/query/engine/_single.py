@@ -24,6 +24,7 @@ class SingleMixin:
         part: Optional[int] = None,
         force_refresh: bool = False,
         num_prefix: str = "",
+        preferred_site: str = "",
     ) -> QueryResult:
         """单条查询内核：缓存优先 + 适配器优先级链 + 配额感知。"""
         part_str = f".{part}" if part else ""
@@ -35,11 +36,11 @@ class SingleMixin:
                     logger.debug("查询 [%s] 缓存命中 @%s", target, cached.source_site)
                     return cached
 
-        priority = self._get_priority(logical_code)
+        priority = self._get_priority(logical_code, preferred_site)
         if self._rotator and not priority:
             logger.warning("所有站点均在冷却中，等待恢复...")
             self._rotator.wait_for_any_recovery([a.site_name for a in self._adapters])
-            priority = self._get_priority(logical_code)
+            priority = self._get_priority(logical_code, preferred_site)
             logger.info("站点冷却恢复，继续查询")
         logger.debug("查询 [%s] 路由=%s", target, "→".join(priority) if priority else "(全部冷却)")
 

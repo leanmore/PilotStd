@@ -95,19 +95,6 @@ class QueryPendingMethods:
             logger.exception("待确认查询异常")
             QMessageBox.critical(self, _("title_error"), _("error_pending_query_failed").format(error=e))
 
-    def _writeback_and_reclassify(self: Any, results: list[Any], parsed_list: list[Any]) -> None:
-        """将二次查询结果回写到 parsed_list，然后重新路由分类。"""
-        for idx, r in results:
-            if idx < len(parsed_list) and r is not None:
-                p = parsed_list[idx]
-                if r.standard_name:
-                    p.found_name = r.standard_name
-                p.found_source_site = getattr(r, "source_site", "") or ""
-                p.found_number = getattr(r, "standard_number", "") or ""
-                p.effect_status = getattr(r, "status", "") or ""
-                p.match_status = getattr(r, "match_status", "") or ""
-        self._mgr._classifier._router.apply_actions(parsed_list)
-
     def _parse_pending_csv(self: Any, path: str) -> tuple[list[ParsedStdInfo], list[str]]:
         """解析待确认 CSV 文件，返回 (parsed_list, failed_names)。"""
         parsed_list: list[ParsedStdInfo] = []
@@ -169,7 +156,15 @@ class QueryPendingMethods:
             return
 
         results = dlg.get_results()
-        self._writeback_and_reclassify(results, parsed_list)
+        # 委托主流程 QueryClassifier 统一分类（完整12字段 + 跨站补查 + 列表填充）
+        self._mgr._classifier.classify(
+            [r for _, r in results],
+            parsed_list,
+            self._mgr._download_list,
+            self._mgr._expire_list,
+            self._mgr._pending_list,
+        )
+        self._mgr._queried_items = parsed_list
         self._clear_table()
         self._parsed_results = parsed_list
 
@@ -186,12 +181,8 @@ class QueryPendingMethods:
         total = len(self._parsed_results)
         found = sum(1 for p in self._parsed_results if p.found_name)
         self.status_changed.emit(f"待确认查询完成: {found}/{total}")
-
-        QMessageBox.information(
-            self,
-            _("title_pending_query_complete"),
-            _("msg_pending_query_complete").format(found=found, failed=total - found),
-        )
+        # 复用主流程分栏汇总弹窗
+        self._show_query_summary()
 
     def _write_pending_to_db(self: Any, pending_items: list[Any]) -> None:
         """将待确认项写入 pending_lookup 表（委托 manager）。"""

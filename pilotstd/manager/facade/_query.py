@@ -166,6 +166,7 @@ class QueryMixin:
         self,
         items: list[Any],
         result_callback: Callable[[int, Any], None] | None,
+        site: str = "",
     ) -> list[QueryResult]:
         """直接调用 QueryEngine 查询（无公告缓存的默认路径）。"""
         parsed_tuples = [
@@ -181,7 +182,7 @@ class QueryMixin:
             )
             for p in items
         ]
-        return self.query_engine.query_standards(parsed_tuples, result_callback=result_callback)  # type: ignore[arg-type]
+        return self.query_engine.query_standards(parsed_tuples, result_callback=result_callback, preferred_site=site)  # type: ignore[arg-type]
 
     def _finalize_query(
         self, items: list[Any], results: list[QueryResult]
@@ -222,6 +223,7 @@ class QueryMixin:
         force_refresh: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         result_callback: Callable[[int, Any], None] | None = None,
+        site: str = "",
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """批量查询标准的有效性状态，查询完成后自动分类路由。"""
         items = parsed_list or self._parsed_results
@@ -230,7 +232,7 @@ class QueryMixin:
         if self.cfg.get("query.use_announcement_match", False):
             results = self._query_via_cache(items, result_callback)
         else:
-            results = self._query_via_engine(items, result_callback)
+            results = self._query_via_engine(items, result_callback, site=site)
 
         return self._finalize_query(items, results)
 

@@ -80,10 +80,11 @@ class RoutingMixin:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
-    def _get_priority(self, logical_code: str = "") -> List[str]:
+    def _get_priority(self, logical_code: str = "", preferred_site: str = "") -> list[str]:
         """按标准代号返回适配器优先级链。
 
         优先级决定因素（按顺序）：
+          0. 用户指定站点 → 直接使用，不走自动路由
           1. 标准代号匹配（CODE_ROUTES）
           2. 代号长度 ≤4 且非 ISO/IEC → 行业标准路由
           3. 其他 → 国外标准路由或默认全链
@@ -91,6 +92,8 @@ class RoutingMixin:
           5. 站点轮转过滤（冷却中跳过）
           6. 过滤后为空则回退到全部已知适配器
         """
+        if preferred_site:
+            return [preferred_site]
         base = self._resolve_base_route(logical_code)
         base = self._apply_site_order(base)
         return self._filter_available_adapters(base)
@@ -133,14 +136,16 @@ class RoutingMixin:
         """返回所有已注册站点名称。"""
         return list(self._adapter_map.keys())
 
-    def _bucket_key(self, logical_code: str) -> str:
+    def _bucket_key(self, logical_code: str, preferred_site: str = "") -> str:
         """按 _get_priority 第一条（主站点）确定桶标识。"""
-        priority = self._get_priority(logical_code)
+        priority = self._get_priority(logical_code, preferred_site)
         return priority[0] if priority else "other"
 
-    def _build_chain_for_item(self, item: Tuple[str, int, int, str, Optional[int], str]) -> list[str]:
+    def _build_chain_for_item(
+        self, item: Tuple[str, int, int, str, Optional[int], str], preferred_site: str = ""
+    ) -> list[str]:
         """返回条目对应的完整优先级链（不含 csres）。"""
         logical_code = item[0]
-        chain = self._get_priority(logical_code)
+        chain = self._get_priority(logical_code, preferred_site)
         # 从链中移除 csres（csres 由独立线程处理）
         return [s for s in chain if s != "csres"]

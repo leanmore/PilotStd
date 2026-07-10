@@ -250,9 +250,9 @@ class PendingQueryDialog(QDialog):
             self.reject()
             return
 
-        # QueryWorker 现在接收 StandardManager，由 manager.query() 负责路由
+        # QueryWorker 接收 site 参数，由 manager.query() 透传给路由引擎
         self._results = []
-        self._worker = QueryWorker(self._mgr, self._parsed_list, parent=self)
+        self._worker = QueryWorker(self._mgr, self._parsed_list, site=self._selected_site, parent=self)
         self._worker.result_ready.connect(self._on_single_result)
         self._worker.finished_signal.connect(self._on_query_finished)
         self._worker.error.connect(lambda msg: self._notify_error("query_pending", msg))

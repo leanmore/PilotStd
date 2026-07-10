@@ -71,6 +71,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
                     part=item[4] if len(item) > 4 else None,
                     force_refresh=force_refresh,
                     num_prefix=item[5] if len(item) > 5 else "",
+                    preferred_site=preferred_site,
                 )
                 results.append(r)
                 if result_callback:
@@ -155,11 +156,12 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
     def _bucket_items(
         self,
         parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
+        preferred_site: str = "",
     ) -> Dict[str, List[Tuple[int, tuple[Any, ...]]]]:
         """将已解析条目按站点分桶。"""
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]] = {}
         for i, item in enumerate(parsed_list):
-            key = self._bucket_key(item[0])
+            key = self._bucket_key(item[0], preferred_site)
             buckets.setdefault(key, []).append((i, item))
         for key, items in buckets.items():
             logger.info("[BUCKET] %s 总数=%d", key, len(items))
@@ -241,6 +243,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
         primary_site: str,
         state: dict,
+        preferred_site: str = "",
     ) -> tuple:
         """二次分桶 → 委托 _run_mini_bucket_queries 执行查询。
         返回 (溢出条目列表, 耗时, 已完成数)。
@@ -248,7 +251,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         import time as _time2
 
         _ts = _time2.time()
-        chain = self._get_priority(bucket_items[0][1][0]) if bucket_items else []
+        chain = self._get_priority(bucket_items[0][1][0] if bucket_items else "", preferred_site)
         chain = [s for s in chain if s != "csres"]
         if primary_site in chain:
             chain = chain[chain.index(primary_site) :]
@@ -277,6 +280,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         self,
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]],
         state: dict,
+        preferred_site: str = "",
     ) -> None:
         """调度编排：并行提交桶工作线程 + csres 后台线程，收集桶结果。
         原地修改 state["all_overflow"]、state["bucket_times"] 等。
@@ -290,7 +294,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
             for bucket_key, items in buckets.items():
                 if not items:
                     continue
-                future = executor.submit(self._bucket_worker, items, bucket_key, state)
+                future = executor.submit(self._bucket_worker, items, bucket_key, state, preferred_site)
                 bucket_futures[future] = bucket_key
                 # 收集 csres 候选条目（ahbz=GB主力桶, hbba=行业桶）
                 if bucket_key in ("ahbz", "std_gov"):
@@ -420,11 +424,11 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         state = self._init_batch_state(n, _time, _bucket_t0, progress_callback)
 
         # 2) 分桶 + 设置分发上下文（溢出配额、跟踪变量）
-        buckets = self._bucket_items(parsed_list)
+        buckets = self._bucket_items(parsed_list, preferred_site)
         self._setup_dispatch_context(state, result_callback, progress_callback)
 
         # 3) 调度查询：桶并行 + csres 后台线程
-        self._dispatch_queries(buckets, state)
+        self._dispatch_queries(buckets, state, preferred_site)
 
         # 4) 合并 csres 结果
         self._collect_csres_results(state)
