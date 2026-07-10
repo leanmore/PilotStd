@@ -99,6 +99,7 @@ class RoutingMixin:
           6. 过滤后为空则回退到全部已知适配器
         """
         if preferred_site:
+            logger.info("[ROUTE] 用户指定站点=%s，跳过自动路由", preferred_site)
             return [preferred_site]
         base = self._resolve_base_route(logical_code)
         base = self._apply_site_order(base)
