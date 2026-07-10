@@ -38,7 +38,7 @@ class SingleMixin:
         """单条查询内核：缓存优先 + 适配器优先级链 + 配额感知。"""
         part_str = f".{part}" if part else ""
         target = f"{logical_code} {number}{part_str}-{year}"
-        if self._use_cache and not force_refresh:
+        if self._use_cache and not force_refresh and not preferred_site:
             for adapter in self._adapters:
                 cached = self._cache.get(target, adapter.site_name)
                 if cached:

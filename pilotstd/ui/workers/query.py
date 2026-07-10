@@ -21,13 +21,20 @@ class QueryWorker(QThread):
     error = pyqtSignal(str)
 
     def __init__(
-        self, manager: Any, parsed_list: Any, pause_event: Any = None, site: str = "", parent: Any = None
+        self,
+        manager: Any,
+        parsed_list: Any,
+        pause_event: Any = None,
+        site: str = "",
+        force_refresh: bool = False,
+        parent: Any = None,
     ) -> None:
         super().__init__(parent)
         self._mgr = manager
         self.parsed_list = parsed_list
         self._pause_event = pause_event
         self._site = site
+        self._force_refresh = force_refresh
         self._stopped = False
 
     def stop(self) -> None:
@@ -70,7 +77,11 @@ class QueryWorker(QThread):
             if self._pause_event is not None:
                 self._mgr.set_pause_event(self._pause_event)
             results, _stats = self._mgr.query(
-                self.parsed_list, progress_callback=on_progress, result_callback=on_result, site=self._site
+                self.parsed_list,
+                progress_callback=on_progress,
+                result_callback=on_result,
+                site=self._site,
+                force_refresh=self._force_refresh,
             )
         except Exception as e:
             self.error.emit(str(e))
