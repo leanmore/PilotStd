@@ -23,6 +23,10 @@ class DownloadMixin:
     _download_tasks: Any
     _pending_svc: Any
     _scheduled_svc: Any
+    download_engine: Any
+    notification_mgr: Any
+    cache: Any
+    handle_expired: Any  # 由 OrganizeMixin 实现
 
     def download(self, query_results: list[Any] | None = None) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """下载分类结果中的标准文件。"""

@@ -22,6 +22,7 @@ class SingleMixin:
     _adapter_map: Any
     _quota: Any
     _record: Any
+    _get_priority: Any  # 由 RoutingMixin 实现
 
     def _query_one(
         self,

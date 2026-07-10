@@ -27,6 +27,10 @@ class QueryMixin:
     _expire_list: Any
     _pending_svc: Any
     _scheduled_svc: Any
+    query_engine: Any
+    cfg: Any
+    notification_mgr: Any
+    db: Any
 
     _CAT_LABEL = {
         "gb": "国标",

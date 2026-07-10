@@ -10,6 +10,9 @@ from typing import Any
 class FileIndexMixin:
     """文件索引混入类 — 封装 file_index 仓库操作。"""
 
+    file_index: Any
+    parser: Any
+
     def upsert_file_index(
         self,
         file_path: str,

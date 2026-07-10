@@ -22,6 +22,11 @@ class OrganizeMixin:
     _organizer_svc: Any
     _parsed_results: Any
     _pending_list: Any
+    db: Any
+    query_engine: Any
+    parser: Any
+    notification_mgr: Any
+    validity_checker: Any
 
     _FALLBACK_SKIP_FILES = frozenset({"Thumbs.db", "sync.ffs_db"})
     _FALLBACK_SKIP_PREFIX = "~$"

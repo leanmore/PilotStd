@@ -15,6 +15,15 @@ class AutoMixin:
 
     _last_skipped_dirs: Any
     _download_list: Any
+    cfg: Any
+    scan_directory: Any  # ScanMixin
+    scan_directory_stream: Any  # ScanMixin
+    query: Any  # QueryMixin
+    download: Any  # DownloadMixin
+    download_stream: Any  # DownloadMixin
+    archive_standards: Any  # OrganizeMixin
+    organize_skipped_dirs: Any  # OrganizeMixin
+    organize_fallback: Any  # OrganizeMixin
 
     def auto_run(self, root_path: str) -> dict[str, int]:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。"""

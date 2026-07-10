@@ -19,6 +19,12 @@ class ScanMixin:
     _parsed_results: Any
     _scheduled_svc: Any
     _file_watcher: Any
+    scanner: Any
+    parser: Any
+    db: Any
+    notification_mgr: Any
+    cfg: Any
+    file_index: Any
 
     def scan_directory(self, root_path: str) -> List[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。"""

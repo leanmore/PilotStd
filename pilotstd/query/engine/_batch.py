@@ -27,6 +27,8 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
     _query_active: Any
     _overflow_item_count: Any
     _csres_active: Any
+    _query_one: Any  # 由 SingleMixin 实现
+    _get_priority: Any  # 由 RoutingMixin 实现
 
     # ── 二次分桶参数 ──
     _MINI_BUCKET_SIZE = 50
