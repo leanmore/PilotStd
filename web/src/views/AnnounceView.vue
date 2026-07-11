@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceView' })
 import { ref, onMounted, computed, watch, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
@@ -10,6 +11,8 @@ import Paginator from 'primevue/paginator'
 import AppCalendar from '@/components/AppCalendar.vue'
 import UnifiedFilterBar from '@/components/UnifiedFilterBar.vue'
 import LogBar from '@/components/LogBar.vue'
+
+const router = useRouter()
 
 // 起始日期默认今天
 function defaultSince(): Date {
@@ -120,7 +123,7 @@ function onPage(e: any) {
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
-        <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom">
+        <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom announce-row" @click="router.push('/announce/' + encodeURIComponent(item.announce_no))">
           <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
             <strong style="min-width:140px;flex-shrink:0">{{ item.announce_no }}</strong>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.announcement_title }}</span>
@@ -145,4 +148,6 @@ function onPage(e: any) {
 .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
+.announce-row { cursor: pointer; transition: background 0.15s; }
+.announce-row:hover { background: var(--surface-hover, #f3f4f6); }
 </style>
