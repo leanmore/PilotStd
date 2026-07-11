@@ -28,7 +28,9 @@
       "auto_scan_enabled": "啟用自動掃描",
       "auto_scan_cron": "掃描間隔 (cron)",
       "auto_announce_enabled": "定時公告自動檢查",
-      "auto_announce_cron": "公告檢查 cron"
+      "auto_announce_cron": "公告檢查 cron",
+      "date_reminder_enabled": "實施日期到期提醒",
+      "date_reminder_cron": "日期提醒 cron"
     },
     "network": { "proxy": "代理地址", "ua_rotation": "UA 輪轉" },
     "query": { "query_interval": "查詢間隔(秒)", "use_cache": "啟用快取" },

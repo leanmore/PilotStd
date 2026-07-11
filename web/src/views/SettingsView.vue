@@ -145,6 +145,7 @@ const tabs = [
   { key: 'network', label: '网络' },
   { key: 'query', label: '查询' },
   { key: 'scan', label: '扫描' },
+  { key: 'tasks', label: '定时任务' },
   { key: 'ui', label: '界面' },
   { key: 'ocr', label: 'OCR' },
   { key: 'sites', label: '站点' },
@@ -179,7 +180,7 @@ const tabs = [
   const tabProps = computed(() => {
     const key = activeTab.value
     // Schema 驱动的 Tab：传递 tabKey
-    if (['storage', 'network', 'query', 'scan', 'ocr'].includes(key)) {
+    if (['storage', 'network', 'query', 'scan', 'ocr', 'tasks'].includes(key)) {
       return { tabKey: key }
     }
     switch (key) {
