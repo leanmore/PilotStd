@@ -34,3 +34,17 @@ export const updateRecord = (id: number, data: Partial<AnnouncementRecord>): Pro
 /** 批量确认入库 */
 export const batchApprove = (ids: number[]): Promise<{ approved_count: number }> =>
   http.post('/announcement-record/batch-approve', { ids }).then(r => r.data)
+
+// ── Phase 4a: 收藏 ──────────────────────────────────────
+
+export const addFavorite = (recordId: number): Promise<{ status: string; favorite_id: number }> =>
+  http.post('/favorites', { record_id: recordId }).then(r => r.data)
+
+export const getFavoriteStatus = (recordId: number): Promise<{ status: string | null; favorite_id: number | null; local_path?: string; error_message?: string }> =>
+  http.get(`/favorites/${recordId}/status`).then(r => r.data)
+
+export const removeFavorite = (recordId: number): Promise<{ status: string }> =>
+  http.delete(`/favorites/${recordId}`).then(r => r.data)
+
+export const listFavorites = (params?: { status?: string }): Promise<{ favorites: any[] }> =>
+  http.get('/favorites', { params }).then(r => r.data)

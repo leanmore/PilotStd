@@ -13,6 +13,7 @@ FACTORY_DEFAULTS = {
     "storage.root_dir": os.path.expanduser("~/标准"),
     "storage.expire_folder": "过期作废",
     "storage.downloads_dir": None,
+    "storage.inbox_dir": "/inbox",
     "storage.mirror_skipped_dirs": True,
     "storage.mirror_fallback": True,
     "organize.auto_clean_source": False,
