@@ -81,7 +81,7 @@ class ScheduledService:
     # ════════════════════════════════════════════════════════════════
 
     def query_by_numbers(
-        self, numbers: List[str], force_refresh: bool = False, preferred_site: str = ""
+        self, numbers: List[str], force_refresh: bool = False, preferred_site: str | None = None
     ) -> tuple[Any, Any]:
         """直接按标准号字符串列表查询（跳过扫描步骤）。"""
         from ..core.std_utils import parse_std_number

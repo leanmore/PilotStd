@@ -45,7 +45,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         result_callback: Optional[Callable[[int, QueryResult], None]] = None,
         use_parallel: Optional[bool] = None,
         force_refresh: bool = False,
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> List[QueryResult]:
         """统一查询入口：所有端（CLI/Web/WinUI）均通过此方法查询。
 
@@ -163,7 +163,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
     def _bucket_items(
         self,
         parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> Dict[str, List[Tuple[int, tuple[Any, ...]]]]:
         """将已解析条目按站点分桶。"""
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]] = {}
@@ -250,7 +250,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
         primary_site: str,
         state: dict,
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> tuple:
         """二次分桶 → 委托 _run_mini_bucket_queries 执行查询。
         返回 (溢出条目列表, 耗时, 已完成数)。
@@ -299,7 +299,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         self,
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]],
         state: dict,
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> None:
         """调度编排：并行提交桶工作线程 + csres 后台线程，收集桶结果。
         原地修改 state["all_overflow"]、state["bucket_times"] 等。
@@ -428,7 +428,7 @@ class BatchMixin(CsresMixin, MiniBucketMixin, OverflowHandler, ReportMixin):
         parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
         progress_callback: Optional[Callable[[int], None]] = None,
         result_callback: Optional[Callable[[int, QueryResult], None]] = None,
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> List[QueryResult]:
         """[已废弃] 使用 query_standards(items, use_parallel=True) 替代。
         仅保留作为 query_standards 并行路径的内部实现。外部调用请走 query_standards()。

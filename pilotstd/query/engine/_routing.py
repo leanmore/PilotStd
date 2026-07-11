@@ -86,7 +86,7 @@ class RoutingMixin:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
-    def _get_priority(self, logical_code: str = "", preferred_site: str = "") -> list[str]:
+    def _get_priority(self, logical_code: str = "", preferred_site: str | None = None) -> list[str]:
         """按标准代号返回适配器优先级链。
 
         优先级决定因素（按顺序）：
@@ -143,13 +143,13 @@ class RoutingMixin:
         """返回所有已注册站点名称。"""
         return list(self._adapter_map.keys())
 
-    def _bucket_key(self, logical_code: str, preferred_site: str = "") -> str:
+    def _bucket_key(self, logical_code: str, preferred_site: str | None = None) -> str:
         """按 _get_priority 第一条（主站点）确定桶标识。"""
         priority = self._get_priority(logical_code, preferred_site)
         return priority[0] if priority else "other"
 
     def _build_chain_for_item(
-        self, item: Tuple[str, int, int, str, Optional[int], str], preferred_site: str = ""
+        self, item: Tuple[str, int, int, str, Optional[int], str], preferred_site: str | None = None
     ) -> list[str]:
         """返回条目对应的完整优先级链（不含 csres）。"""
         logical_code = item[0]

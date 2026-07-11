@@ -33,7 +33,7 @@ class SingleMixin:
         part: Optional[int] = None,
         force_refresh: bool = False,
         num_prefix: str = "",
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> QueryResult:
         """单条查询内核：缓存优先 + 适配器优先级链 + 配额感知。"""
         part_str = f".{part}" if part else ""

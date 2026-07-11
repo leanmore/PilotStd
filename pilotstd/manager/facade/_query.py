@@ -180,7 +180,7 @@ class QueryMixin:
         self,
         items: list[Any],
         result_callback: Callable[[int, Any], None] | None,
-        site: str = "",
+        site: str | None = None,
         force_refresh: bool = False,
     ) -> list[QueryResult]:
         """直接调用 QueryEngine 查询（无公告缓存的默认路径）。"""
@@ -240,16 +240,16 @@ class QueryMixin:
         force_refresh: bool = False,
         progress_callback: Callable[[int, int], None] | None = None,
         result_callback: Callable[[int, Any], None] | None = None,
-        site: str = "",
+        site: str | None = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """批量查询标准的有效性状态，查询完成后自动分类路由。"""
         items = parsed_list or self._parsed_results
         self._queried_items = items
 
-        if self.cfg.get("query.use_announcement_match", False):
-            results = self._query_via_cache(items, result_callback)
-        else:
+        if site or not self.cfg.get("query.use_announcement_match", False):
             results = self._query_via_engine(items, result_callback, site=site, force_refresh=force_refresh)
+        else:
+            results = self._query_via_cache(items, result_callback)
 
         return self._finalize_query(items, results)
 
@@ -431,7 +431,7 @@ class QueryMixin:
         return self._pending_svc.query_local_cache(parsed_list)  # type: ignore[no-any-return]
 
     def query_by_numbers(
-        self, numbers: list[str], force_refresh: bool = False, preferred_site: str = ""
+        self, numbers: list[str], force_refresh: bool = False, preferred_site: str | None = None
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """直接按标准号字符串列表查询。"""
         return self._scheduled_svc.query_by_numbers(  # type: ignore[no-any-return]

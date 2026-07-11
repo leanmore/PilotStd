@@ -25,7 +25,7 @@ class QueryWorker(QThread):
         manager: Any,
         parsed_list: Any,
         pause_event: Any = None,
-        site: str = "",
+        site: str | None = None,
         force_refresh: bool = False,
         parent: Any = None,
     ) -> None:

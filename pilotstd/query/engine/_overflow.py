@@ -92,7 +92,7 @@ class OverflowHandler:
         _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
         temp_skips: list,
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> None:
         """处理单个溢出条目：遍历站点链尝试查询（含冷却/配额检查）。
         原地修改 state["results"]、state["item_chains"]、state["pending_reasons"]。
@@ -150,7 +150,7 @@ class OverflowHandler:
         state: dict,
         _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
-        preferred_site: str = "",
+        preferred_site: str | None = None,
     ) -> int:
         """错误恢复：溢出条目微批链迭代（含随机抖动防惊群）。
         返回因站点冷却而跳过的次数。
