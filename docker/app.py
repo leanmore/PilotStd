@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.adapter import router as adapter_router
 from .api.announce import router as announce_router
+from .api.announce_detail import router as announce_detail_router
 from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
@@ -264,6 +265,7 @@ app.include_router(normalize_router)
 
 # ── 公告 ──
 app.include_router(announce_router)
+app.include_router(announce_detail_router)
 app.include_router(announce_lookup_router)
 app.include_router(announcements_router)
 
