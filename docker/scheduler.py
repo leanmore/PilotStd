@@ -133,11 +133,15 @@ register_job_func("notification_cleanup", _cleanup_notification_logs)
 from pilotstd.tasks.date_reminder import run_date_reminder  # noqa: E402
 
 
-def _date_reminder_wrapper():
+def _date_reminder_wrapper(notification_mgr=None):
+    if notification_mgr is None:
+        from .manager import get_manager
+
+        notification_mgr = get_manager().notification_mgr
     try:
-        run_date_reminder()
-    except Exception as e:
-        logger.error("日期提醒任务异常: %s", e, exc_info=True)
+        run_date_reminder(notification_mgr=notification_mgr)
+    except Exception:
+        logger.exception("日期提醒任务异常")
 
 
 register_job_func("date_reminder", _date_reminder_wrapper)
