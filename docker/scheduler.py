@@ -129,6 +129,19 @@ def _cleanup_notification_logs(notification_mgr=None):
 
 register_job_func("notification_cleanup", _cleanup_notification_logs)
 
+# Phase 4b: 日期提醒
+from pilotstd.tasks.date_reminder import run_date_reminder  # noqa: E402
+
+
+def _date_reminder_wrapper():
+    try:
+        run_date_reminder()
+    except Exception as e:
+        logger.error("日期提醒任务异常: %s", e, exc_info=True)
+
+
+register_job_func("date_reminder", _date_reminder_wrapper)
+
 
 def _release_suppressed_notifications(notification_mgr=None):
     """每5分钟检查并补发静音时段暂存的通知。"""
@@ -219,6 +232,7 @@ def start_scheduler():
         ("auto_scan", "tasks.auto_scan_cron", "tasks.auto_scan_enabled"),
         ("auto_announce", "tasks.auto_announce_cron", "tasks.auto_announce_enabled"),
         ("auto_backup", "tasks.auto_backup_cron", "tasks.auto_backup_enabled"),
+        ("date_reminder", "tasks.date_reminder_cron", "tasks.date_reminder_enabled"),
     ]:
         default_enabled = (job_id == "auto_backup") or cfg.get(enabled_key, False)
         if cfg.get(enabled_key, default_enabled):

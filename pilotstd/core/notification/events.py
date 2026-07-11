@@ -32,6 +32,7 @@ EVENT_VALIDITY_BATCH_REPORT = "validity_batch_report"
 EVENT_VALIDITY_ROUND_SUMMARY = "validity_round_summary"
 EVENT_VALIDITY_STANDARD_FAILED = "validity_standard_failed"
 EVENT_VALIDITY_SYSTEM_FAILED = "validity_system_failed"
+EVENT_DATE_REMINDER = "date_reminder"
 
 # ── 唯一数据源：所有事件定义 ──
 
@@ -54,6 +55,7 @@ ALL_EVENTS: list[EventDef] = [
     EventDef("batch_query_summary"),
     EventDef("trust_ip_update", bypass_aggregation=True),
     EventDef("worker_error", bypass_aggregation=True),
+    EventDef(EVENT_DATE_REMINDER),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

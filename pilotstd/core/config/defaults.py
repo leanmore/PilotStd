@@ -100,6 +100,9 @@ FACTORY_DEFAULTS = {
     "validity.frequency": "weekly",
     "validity.execute_time": "03:00",
     "validity.update_interval": 28,
+    # ── Phase 4b: 日期提醒 ──
+    "tasks.date_reminder_enabled": False,
+    "tasks.date_reminder_cron": "0 2 * * *",
     # ── WebSocket 通知连接 ──
     "websocket.enabled": False,
     "websocket.url": "",
