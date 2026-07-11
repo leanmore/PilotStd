@@ -171,6 +171,21 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 1 * * *",
         help_text="定时公告检查的 cron 表达式",
     ),
+    SettingDef(
+        key="tasks.date_reminder_enabled",
+        tab="ui",
+        field_type=FIELD_TOGGLE,
+        default=False,
+        help_text="标准实施日期到期提醒（30/15/7/0天前推送）",
+    ),
+    SettingDef(
+        key="tasks.date_reminder_cron",
+        tab="ui",
+        field_type=FIELD_CRON,
+        default="0 2 * * *",
+        placeholder="0 2 * * *",
+        help_text="日期提醒的 cron 表达式",
+    ),
     # ── OCR Tab ──
     SettingDef(
         key="ocr.baidu_api_key",

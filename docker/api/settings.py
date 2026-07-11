@@ -52,6 +52,8 @@ def get_settings(mgr=Depends(get_manager_dep)):
             "auto_scan_cron": cfg.get("tasks.auto_scan_cron", "0 3 * * *"),
             "auto_announce_enabled": cfg.get("tasks.auto_announce_enabled", False),
             "auto_announce_cron": cfg.get("tasks.auto_announce_cron", "0 1 * * *"),
+            "date_reminder_enabled": cfg.get("tasks.date_reminder_enabled", False),
+            "date_reminder_cron": cfg.get("tasks.date_reminder_cron", "0 2 * * *"),
         },
         "appearance": {
             "theme": cfg.get("appearance.theme", "经典白"),
@@ -105,6 +107,7 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
     for job_id, cron_key in [
         ("auto_scan", "auto_scan_cron"),
         ("auto_announce", "auto_announce_cron"),
+        ("date_reminder", "date_reminder_cron"),
     ]:
         enabled = tasks.get(cron_key.replace("_cron", "_enabled"), False)
         cron = tasks.get(cron_key, "0 0 * * *")
