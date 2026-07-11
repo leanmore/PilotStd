@@ -1,6 +1,12 @@
 # tests/test_docker_auth.py — docker/auth.py 鉴权模块测试
 import os
 import sys
+import unittest
+from pathlib import Path
+
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -9,15 +15,40 @@ os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
 os.environ.setdefault("ADMIN_PASSWORD", "test_admin_password")
 os.environ.setdefault("SUPERUSER", "superadmin")
 
-import unittest
-
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
 from docker.auth import COOKIE_NAME, AuthMiddleware
-
-# 直接导入 auth 模块的组件
 from docker.auth import router as auth_router
+
+
+@pytest.fixture(autouse=True)
+def isolated_user_db(tmp_path):
+    """自动将 docker.users 和 docker.auth 切换到临时数据库，确保测试互不干扰。"""
+    import docker.auth
+    import docker.users
+    from pilotstd.core.db.database import Database
+
+    # conftest.py 在收集阶段已加载 pilotstd（此时 SUPERUSER 未设置），
+    # 导致 docker.users / docker.auth 的 SUPERUSER_USERNAME 被缓存为 None。
+    # 必须在 fixture 中修正。
+    _su_name = os.environ.get("SUPERUSER", "superadmin")
+    docker.users.SUPERUSER_USERNAME = _su_name
+    docker.auth.SUPERUSER_USERNAME = _su_name
+
+    test_db: Path = tmp_path / "test_users.db"
+
+    # 1. 创建临时数据库实例（含完整 schema 迁移）
+    db = Database(str(test_db))
+
+    # 2. 直接注入 users 模块的全局缓存，所有 _get_db() 调用返回此实例
+    docker.users._db_instance = db
+
+    # 3. 重置 auth 模块初始化标志，确保登录路由不会跳过表创建
+    docker.auth._init_done = False
+
+    # 4. 初始化用户表和登录尝试表
+    docker.users.init_users_table()
+    docker.users.init_login_attempts_table()
+
+    yield
 
 
 class TestAuthModule(unittest.TestCase):
