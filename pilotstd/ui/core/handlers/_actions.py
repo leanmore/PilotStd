@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional
 
 from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
-from ...i18n import _
+from ....i18n import _
 from ...workers import RowUpdate
 
 logger = logging.getLogger("pilotstd.ui")
@@ -63,7 +63,7 @@ class ActionsHandler:
         """延迟初始化 StandardManager——避免阻塞窗口显示。"""
         if self._mgr_ready:
             return
-        from ...manager import StandardManager
+        from ....manager import StandardManager
 
         mgr = StandardManager(config=self._config)
         self._mgr = mgr  # 必须先设 backing field，避免下游 _mgr 访问触发递归
@@ -166,8 +166,8 @@ class ActionsHandler:
 
     def on_rule_query(self) -> None:
         """打开网站规则配置。"""
-        from ..dialogs import ConfigPageDialog
-        from ..pages.rules_page import RulesPage  # 延迟导入
+        from ...dialogs import ConfigPageDialog
+        from ...pages.rules_page import RulesPage  # 延迟导入
 
         dlg = ConfigPageDialog(
             RulesPage(self._config),
@@ -183,14 +183,14 @@ class ActionsHandler:
         """打开任务中心。"""
         if not self._mgr_ready:
             return
-        from ..pages.task_page import TaskCenterDialog  # 延迟导入
+        from ...pages.task_page import TaskCenterDialog  # 延迟导入
 
         dlg = TaskCenterDialog(self._mgr.task_queue, self._parent)
         dlg.exec()
 
     def on_settings(self, on_settings_changed_cb: Callable[[], None]) -> None:
         """打开设置对话框。"""
-        from ..pages.settings_page import SettingsDialog  # 延迟导入
+        from ...pages.settings_page import SettingsDialog  # 延迟导入
 
         dlg = SettingsDialog(self._config, self._parent)
         dlg.exec()

@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 from PyQt6.QtCore import QPoint
 from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox, QTableWidget, QWidget
 
-from ...i18n import _
+from ....i18n import _
 from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS, WORK_COLUMNS
 
 logger = logging.getLogger(__name__)

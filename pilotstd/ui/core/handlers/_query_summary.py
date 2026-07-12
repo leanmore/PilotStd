@@ -28,8 +28,8 @@ from PyQt6.QtWidgets import (
 if TYPE_CHECKING:
     pass
 
-from ...i18n import _ as tr
-from ...models import ParsedStdInfo
+from ....i18n import _ as tr
+from ....models import ParsedStdInfo
 
 logger = logging.getLogger(__name__)
 
@@ -347,7 +347,7 @@ class QuerySummaryHandler:
             self._project_mark_dirty()
         self._register_task("查询", total, total)
 
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         NotifyService.get().show(
             tr("query_toast_title"),

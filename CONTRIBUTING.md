@@ -19,6 +19,7 @@ The hooks will automatically check for forbidden imports before each commit.
 - No production code imports from `tests/` or `*mock*.py`.
 - All tests pass locally.
 - Documentation updated if needed.
+- 运行 `python scripts/fix_relative_imports.py` 验证相对导入有效性。
 - [ ] 修改 `path_guard.py` 时，确认 `/inbox` 和 `/standards` 在白名单中（G-019 检查）
 - [ ] 修改 `logger.py` 的 `_TAG_MAP` 时，确认 `[PROGRESS]` 等标签不受影响（G-005 检查）
 - [ ] 新增 OCR 敏感字段时，同步添加到 `settings.py` 掩码列表（G-018 检查）
@@ -32,6 +33,7 @@ The hooks will automatically check for forbidden imports before each commit.
 
 ### 自动门禁脚本
 ```bash
+python scripts/check_relative_imports.py             # 相对导入有效性检查
 python scripts/check_ui_sensitive_fields.py      # G-018 敏感字段掩码（前后端统一）
 python scripts/check_g_025_adapters.py            # G-025 适配器一致性
 python scripts/check_g_026_docker_mounts.py       # G-026 Docker 挂载黑名单

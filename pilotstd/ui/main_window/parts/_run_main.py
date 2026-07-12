@@ -12,11 +12,12 @@ from PyQt6.QtWidgets import QApplication
 
 def run() -> None:
     """启动 GUI 应用。"""
-    from ...core.config import ConfigManager
-    from ...core.frozen import is_frozen
-    from ...core.logger import LoggerManager
-    from ...core.project import ProjectManager
-    from . import MainWindow
+    from pilotstd.core.config import ConfigManager
+    from pilotstd.core.frozen import is_frozen
+    from pilotstd.core.logger import LoggerManager
+    from pilotstd.core.project import ProjectManager
+
+    from .. import MainWindow
 
     LoggerManager(level=logging.INFO)
     app = QApplication(sys.argv)

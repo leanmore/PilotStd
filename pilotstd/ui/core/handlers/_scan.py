@@ -11,10 +11,10 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox, QTableWidget
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
-from ...i18n import _
-from ..workers import RowUpdate, ScanWorker
+from ....i18n import _
+from ...workers import RowUpdate, ScanWorker
 
 logger = logging.getLogger(__name__)
 

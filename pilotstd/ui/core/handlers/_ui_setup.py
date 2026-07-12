@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ...i18n import _
+from ....i18n import _
 from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
 from ...widgets import NotificationBellWidget
 from ...workers import LogHandler
@@ -76,7 +76,7 @@ class UISetupHandler:
         tray.setContextMenu(tray_menu)
         tray.activated.connect(window._on_tray_activated)
         tray.show()
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         NotifyService.init(tray)
         return tray

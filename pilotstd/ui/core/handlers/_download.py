@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any, Callable
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QTableWidget
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
-from ...i18n import _
-from ...query.search_strategy import is_recently_published
-from ..workers import DownloadWorker, RowUpdate
+from ....i18n import _
+from ....query.search_strategy import is_recently_published
+from ...workers import DownloadWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +218,7 @@ class DownloadUIHandler:
         self._project_mark_dirty()
         self._register_task("下载", total, success_count, failed_count + too_new_count)
 
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         if success_count > 0 and failed_count == 0:
             NotifyService.get().show(
@@ -262,6 +262,6 @@ class DownloadUIHandler:
         """下载错误回调。"""
         self._status_cb(f"下载失败: {msg}")
         logger.error(msg)
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         NotifyService.get().show("下载异常", f"download: {msg}", duration=5000)

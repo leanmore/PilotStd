@@ -19,10 +19,10 @@ from PyQt6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
-from ...i18n import _
-from ..workers import AutoWorker
+from ....i18n import _
+from ...workers import AutoWorker
 
 logger = logging.getLogger(__name__)
 

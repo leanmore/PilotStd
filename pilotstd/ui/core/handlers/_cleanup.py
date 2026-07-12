@@ -27,8 +27,8 @@ from PyQt6.QtWidgets import (
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
 
-from ...core.file_utils import ensure_long_path, safe_move
-from ...i18n import _
+from ....core.file_utils import ensure_long_path, safe_move
+from ....i18n import _
 
 logger = logging.getLogger(__name__)
 

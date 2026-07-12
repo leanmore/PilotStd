@@ -10,7 +10,7 @@ from typing import Any, Optional
 from PyQt6.QtCore import QDir, QStandardPaths, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 
-from ...i18n import _
+from ....i18n import _
 
 logger = logging.getLogger(__name__)
 

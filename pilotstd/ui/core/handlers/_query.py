@@ -19,12 +19,12 @@ from PyQt6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
-from ...i18n import _ as tr
-from ...models import ParsedStdInfo
-from ..pending_query_dialog import PendingQueryDialog
-from ..workers import QueryWorker, RowUpdate
+from ....i18n import _ as tr
+from ....models import ParsedStdInfo
+from ...pending_query_dialog import PendingQueryDialog
+from ...workers import QueryWorker, RowUpdate
 from ._query_summary import QuerySummaryHandler
 
 logger = logging.getLogger(__name__)

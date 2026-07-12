@@ -88,6 +88,22 @@ PilotStd/
 └── assets/              # 截图等静态资源
 ```
 
+## 开发与测试
+
+```bash
+# 安装开发依赖
+pip install -r requirements-dev.txt
+
+# 运行后端全量测试（含 SQLite 临时数据库隔离）
+python -m pytest tests/ -k "not gui"
+
+# 运行前端测试
+cd web && npx vitest run
+
+# 相对导入有效性检查
+python scripts/fix_relative_imports.py
+```
+
 ## 许可证
 
 MIT License — 详见 [LICENSE](LICENSE)。

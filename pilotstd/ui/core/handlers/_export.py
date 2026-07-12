@@ -10,8 +10,8 @@ from typing import Any, Callable, Optional
 from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtWidgets import QDialog, QFileDialog, QTableWidget, QTextEdit, QWidget
 
+from ....i18n import _
 from ...dialogs import ExportFileListDialog
-from ...i18n import _
 from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
 
 logger = logging.getLogger(__name__)

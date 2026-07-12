@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ...i18n import _
+from ....i18n import _
 from ...table_constants import WORK_COLUMNS
 from ...workers import RowUpdate
 

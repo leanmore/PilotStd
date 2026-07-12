@@ -20,9 +20,9 @@ from PyQt6.QtWidgets import (
 )
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
-from ...i18n import _
+from ....i18n import _
 from ...workers import AnnounceWorker
 
 logger = logging.getLogger(__name__)
@@ -138,13 +138,13 @@ class AnnounceUIHandler:
 
     def _on_worker_error(self, msg: str) -> None:
         """Worker 异常时弹出本地通知。"""
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         NotifyService.get().show("工作线程异常", f"announce: {msg}", duration=5000)
 
     def show_result(self, worker: AnnounceWorker) -> None:
         """弹窗展示公告检查结果。"""
-        from ...core.config import get_data_dir
+        from ....core.config import get_data_dir
 
         if worker._stopped:
             QMessageBox.information(self._parent, _("announcement_check"), _("announcement_cancelled"))
@@ -166,7 +166,7 @@ class AnnounceUIHandler:
                 _("announcement_check"),
                 _("announcement_complete").format(total=worker._total, matched=worker._matched) + fail_msg,
             )
-            from ...platform.notify import NotifyService
+            from ....platform.notify import NotifyService
 
             if worker._matched > 0:
                 NotifyService.get().show(

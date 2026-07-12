@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ...i18n import _
+from ....i18n import _
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ class DialogHandler:
     def register_task(self, label: str, total: int, completed: int, failed: int = 0) -> None:
         """向任务队列注册一条操作记录。"""
         try:
-            from ...task.models import TaskType
+            from ....task.models import TaskType
 
             type_map = {
                 "扫描": TaskType.SCAN,

@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
 
-from ...i18n import _
+from ....i18n import _
 
 logger = logging.getLogger(__name__)
 

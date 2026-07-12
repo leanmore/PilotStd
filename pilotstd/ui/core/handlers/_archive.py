@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING, Any, Callable
 from PyQt6.QtWidgets import QMessageBox, QTableWidget
 
 if TYPE_CHECKING:
-    from ...core.config import ConfigManager
+    from ....core.config import ConfigManager
 
+from ....i18n import _
 from ... import core
-from ...i18n import _
-from ..workers import ArchiveWorker, NormalizeWorker, RowUpdate
+from ...workers import ArchiveWorker, NormalizeWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class ArchiveUIHandler:
 
     def notify_worker_error(self, worker_name: str, error_msg: str) -> None:
         """Worker 异常时弹出本地通知。"""
-        from ...platform.notify import NotifyService
+        from ....platform.notify import NotifyService
 
         NotifyService.get().show("工作线程异常", f"{worker_name}: {error_msg}", duration=5000)
 

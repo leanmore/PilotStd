@@ -50,7 +50,7 @@ class ThemeHandler:
 
     def apply_theme(self) -> None:
         """应用主题样式表到全局 QApplication。"""
-        from ....themes import apply_theme
+        from ...themes import apply_theme
 
         theme = self._config.get("appearance.theme", "经典白")
         apply_theme(QApplication.instance(), theme)
