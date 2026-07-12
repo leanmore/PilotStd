@@ -461,6 +461,7 @@ from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v34_drop_old_adapter_tables,
     _migrate_v35_notification_policy,
     _migrate_v36_announcement_structure,
+    _migrate_v37_user_notification_config,
 )
 
 migration(31)(_migrate_v31_monitor_stats)
@@ -469,3 +470,4 @@ migration(33)(_migrate_v33_adapter_state)
 migration(34)(_migrate_v34_drop_old_adapter_tables)
 migration(35)(_migrate_v35_notification_policy)
 migration(36)(_migrate_v36_announcement_structure)
+migration(37)(_migrate_v37_user_notification_config)
