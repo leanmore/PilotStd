@@ -192,7 +192,7 @@ class BaseFacade:
         from ..validity_service import ValidityService
 
         self._core.validity_checker = ValidityChecker(self._core.db)
-        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db)
+        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)
         self._core.pipeline_store = PipelineRunStore(self._core.db)
 
         self._validity_service = ValidityService(self)
@@ -200,7 +200,7 @@ class BaseFacade:
 
     def _init_notification(self) -> None:
         """重新初始化通知模块（配置变更后调用）。"""
-        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db)
+        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)
 
     def _bind_methods(self) -> None:
         """将 Handler 方法绑定到 self，保持对外 API 不变。"""

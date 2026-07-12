@@ -10,6 +10,7 @@ from typing import Any, Optional
 from pilotstd.i18n import _
 
 from ..db import Database
+from ._credentials import CredentialHelper
 from ._message_builders import MessageBuildersMixin
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
@@ -35,10 +36,17 @@ class NotificationManager(MessageBuildersMixin):
     渠道加载失败时降级（记录错误，不阻断流程）。
     """
 
-    def __init__(self, config: Any, db: Database, ws_broadcast: Callable | None = None):
+    def __init__(self, config: Any, db: Database, user_id: int, ws_broadcast: Callable | None = None):
         self._cfg = config
         self._db = db
+        self._user_id = user_id
         self._policy = NotificationPolicyHelper(db, config)
+        self._cred_helper: CredentialHelper | None = None
+        try:
+            config_dir = __import__("os").path.dirname(config._filepath)
+            self._cred_helper = CredentialHelper(db, config_dir)
+        except Exception:
+            pass
         self._enabled = config.get("notification.enabled", False)
         self._channels: dict[str, Any] = {}
         self._ws_broadcast = ws_broadcast
@@ -69,21 +77,31 @@ class NotificationManager(MessageBuildersMixin):
             )
 
     def _init_channels(self) -> None:
+        creds: dict[str, dict[str, str]] = {}
+        if self._cred_helper:
+            creds = self._cred_helper.get_all(self._user_id)
         for name, cls in _CHANNEL_CLASSES.items():
             try:
-                if not self._cfg.get(f"notification.channels.{name}.enabled", False):
+                ch_cfg = creds.get(name) or {}
+                enabled = ch_cfg.get("enabled", True)
+                if isinstance(enabled, str):
+                    enabled = enabled.lower() not in ("false", "0", "")
+                if not enabled:
                     continue
                 if name == "telegram":
-                    token = self._cfg.get("notification.channels.telegram.bot_token", "").strip()
-                    chat_id = self._cfg.get("notification.channels.telegram.chat_id", "").strip()
+                    token = (ch_cfg.get("bot_token") or "").strip()
+                    chat_id = (ch_cfg.get("chat_id") or "").strip()
                     if token and chat_id:
                         self._channels[name] = cls(token, chat_id)
                 else:
-                    url = self._cfg.get(f"notification.channels.{name}.webhook_url", "")
+                    url = (ch_cfg.get("webhook_url") or "").strip()
                     if not url:
                         continue
                     if name == "dingtalk":
-                        secret = self._cfg.get(f"notification.channels.{name}.secret", "")
+                        secret = (ch_cfg.get("secret") or "").strip()
+                        self._channels[name] = cls(url, secret)
+                    elif name == "feishu":
+                        secret = (ch_cfg.get("secret") or "").strip()
                         self._channels[name] = cls(url, secret)
                     else:
                         self._channels[name] = cls(url)
@@ -100,7 +118,7 @@ class NotificationManager(MessageBuildersMixin):
         """
         if not self._enabled:
             return
-        target_channels = self._policy.get_channels_for_event(event_type)
+        target_channels = self._policy.get_channels_for_event(self._user_id, event_type)
         if not target_channels:
             return
 
@@ -475,8 +493,8 @@ class NotificationManager(MessageBuildersMixin):
 
     # ── 策略表读写（委托 _policy helper） ──
 
-    def get_policies(self) -> list[dict[str, Any]]:
-        return self._policy.get_policies()
+    def get_policies(self, user_id: int) -> list[dict[str, Any]]:
+        return self._policy.get_policies(user_id)
 
-    def save_policy(self, channel: str, enabled: bool | None, events: list[str] | None) -> None:
-        self._policy.save_policy(channel, enabled, events)
+    def save_policy(self, user_id: int, channel: str, enabled: bool | None, events: list[str] | None) -> None:
+        self._policy.save_policy(user_id, channel, enabled, events)
