@@ -20,10 +20,13 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
     """根据 commit 规范计算新版本号。"""
     major, minor, patch = map(int, version.split("."))
 
-    has_breaking = any("BREAKING CHANGE:" in msg for msg in commit_messages)
+    # 剥离 UTF-8 BOM（U+FEFF），防止 feat/fix 前缀被吞导致版本号不升
+    cleaned = [msg.removeprefix("\ufeff") for msg in commit_messages]
+
+    has_breaking = any("BREAKING CHANGE:" in msg for msg in cleaned)
     # 兼容 '@ ' 前缀（bash heredoc 残留）和标准格式
-    has_feat = any(re.search(r"^(@ )?feat(\(.+\))?:", msg) for msg in commit_messages)
-    has_fix = any(re.search(r"^(@ )?fix(\(.+\))?:", msg) for msg in commit_messages)
+    has_feat = any(re.search(r"^(@ )?feat(\(.+\))?:", msg) for msg in cleaned)
+    has_fix = any(re.search(r"^(@ )?fix(\(.+\))?:", msg) for msg in cleaned)
 
     if has_breaking:
         return f"{major + 1}.0.0"
