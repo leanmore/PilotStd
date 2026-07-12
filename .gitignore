@@ -42,6 +42,8 @@ temp_*.py
 mypy_errors.txt
 project_backend_tree.txt
 project_frontend_tree.txt
+crash_log.txt
+scripts/check_relative_imports_report.txt
 
 # 个人笔记
 *进度*.md
