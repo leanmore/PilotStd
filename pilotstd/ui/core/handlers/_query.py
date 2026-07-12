@@ -207,6 +207,7 @@ class QueryUIHandler:
             self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self._parent
         )
         self._query_worker.batch_ready.connect(self.on_query_batch_ready)
+        self._query_worker.result_ready.connect(self.on_query_result_ready)
         self._query_worker.progress.connect(on_progress)
         if self._notify_worker_error:
             self._query_worker.error.connect(
@@ -335,6 +336,7 @@ class QueryUIHandler:
                 save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
             return None
 
+    # _archived: 此方法未被 UI 调用，实际待确认查询由 parts/_query_ops.py 处理
     def on_pending_query(self) -> None:
         """待确认二次查询入口。"""
         try:
@@ -375,6 +377,7 @@ class QueryUIHandler:
                 failed_names.append(std_num)
         return parsed_list, failed_names
 
+    # _archived: 此方法未被 UI 调用，实际待确认查询由 parts/_query_ops.py 处理
     def do_pending_query(self) -> None:
         """完整的待确认查询流程：打开 CSV → 解析 → PendingQueryDialog → 填充表格。"""
         if self._parsed_results:

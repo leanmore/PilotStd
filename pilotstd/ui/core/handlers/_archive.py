@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import QMessageBox, QTableWidget
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
+from ....core.config import get_library_root
 from ....i18n import _
-from ... import core
 from ...workers import ArchiveWorker, NormalizeWorker, RowUpdate
 
 logger = logging.getLogger(__name__)
@@ -140,6 +140,7 @@ class ArchiveUIHandler:
         )
         self._normalize_worker.batch_ready.connect(self.on_normalize_batch_ready)
         self._normalize_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
+        self._normalize_worker.error.connect(lambda msg: self.notify_worker_error("normalize", msg))
 
         def on_normalize_finished() -> None:
             self._force_finish_progress()
@@ -318,7 +319,7 @@ class ArchiveUIHandler:
 
     def _get_library_root(self) -> str:
         """返回标准库根目录路径。"""
-        return core.get_library_root(self._config)
+        return get_library_root(self._config)
 
     def _show_name_conflict_dialog(self, conflicts: list[Any]) -> list[Any]:
         """名称冲突弹窗：逐条让用户选择。返回用户已确认的条目列表。"""

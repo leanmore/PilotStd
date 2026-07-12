@@ -50,6 +50,10 @@ def _init_manager(self) -> None:
     if self._config.get("watchdog.enabled", False):
         mgr.start_watching()
     self._init_core()
+    # 启动自检（仅在 PILOTSTD_SELF_CHECK=1 时执行）
+    from ...core._self_check import run_self_check
+
+    run_self_check(self)
     self._file_menu.setEnabled(True)
 
 
@@ -97,6 +101,7 @@ def _update_button_states(self) -> None:
 def _on_cancel(self) -> None:
     self._stop_workers()
     self._paused = False
+    self._suppress_dialogs = False  # 重置，防止泄漏到后续手动操作
     self._pause_event.set()
     self.btn_pause.setText(_("toolbar_pause"))
     s = self.style()

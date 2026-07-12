@@ -140,7 +140,7 @@ class ScanUIHandler:
 
     def _scan_single_file(self, file_path: str) -> None:
         """直接解析单个文件，优先从索引恢复。"""
-        from ...core import file_utils as core
+        from ....core.file_utils import hash_file_content
 
         filename = os.path.basename(file_path)
         self._status_cb(f"扫描文件: {filename}")
@@ -150,7 +150,7 @@ class ScanUIHandler:
         parsed = None
         file_hash = ""
         if self._mgr.file_index:
-            file_hash = core.FileIndexRepository._hash_file(file_path)
+            file_hash = hash_file_content(file_path)
             existing = self._mgr.get_file_index(file_path)
             if existing and existing["file_hash"] == file_hash and file_hash:
                 parsed = self._mgr.restore_parsed_from_index(file_path)

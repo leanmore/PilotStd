@@ -241,12 +241,11 @@ class QuerySummaryHandler:
             self._summary_total_label.setText(tr("summary_total_records").format(count=remaining))
 
     def on_save_section_csv(self, key: str, items: list[Any]) -> None:
-        """保存分栏条目为 CSV → 从 _parsed_results 移除 → 移除 UI。"""
+        """保存分栏条目为 CSV → 移除 UI 分栏（不修改共享 _parsed_results）。"""
         if key == "pending":
             path = self._export_pending_csv_cb()
             if not path:
                 return
-            self._parsed_results[:] = [p for p in self._parsed_results if p.next_action != "pending"]
             self._write_pending_to_db_cb(items)
             self.remove_section_widget(key)
             self._status_cb(tr("msg_pending_saved").format(count=len(items)))
@@ -267,7 +266,6 @@ class QuerySummaryHandler:
         except OSError as e:
             QMessageBox.warning(self._parent, tr("title_save_failed"), tr("msg_save_failed").format(error=e))
             return
-        self._parsed_results[:] = [p for p in self._parsed_results if p.next_action != "manual_download"]
         self.remove_section_widget(key)
         self._status_cb(tr("msg_manual_saved").format(count=len(items)))
 

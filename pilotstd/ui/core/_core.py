@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Callable
 if TYPE_CHECKING:
     from ...core.config import ConfigManager
 
-from ... import core
+from ...core.config import get_library_root
 from .handlers._actions import ActionsHandler
 from .handlers._announce import AnnounceUIHandler
 from .handlers._archive import ArchiveUIHandler
@@ -273,7 +273,7 @@ class MainWindowCore:
             config=self._config,
             status_callback=self._status_callback,
             question_dlg=self._question_dlg,
-            get_library_root=lambda: core.get_library_root(self._config),
+            get_library_root=lambda: get_library_root(self._config),
             get_unrecognized_files=self._get_unrecognized_files_cb or (lambda: []),
             clear_unrecognized_files=self._clear_unrecognized_files_cb or (lambda: None),
             get_scan_source_root=self._get_scan_source_root_cb or (lambda: ""),

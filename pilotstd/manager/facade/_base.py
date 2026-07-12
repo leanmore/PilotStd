@@ -323,6 +323,10 @@ class BaseFacade:
         return self._core.router
 
     @property
+    def task_queue(self):
+        return self._core.task_queue
+
+    @property
     def _query_adapters(self):
         return self._core._query_adapters  # type: ignore[attr-defined]
 

@@ -109,6 +109,7 @@ def _do_pending_query(self) -> None:
     found = sum(1 for p in self._parsed_results if p.found_name)
     self.status_changed.emit(f"待确认查询完成: {found}/{total}")
     self._show_query_summary()
+    self._update_button_states()
 
 
 def _parse_pending_csv(self, path: str) -> tuple[list, list[str]]:

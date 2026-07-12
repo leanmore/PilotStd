@@ -40,6 +40,11 @@ class UISetupHandler:
     """UI 构建 — 提供所有 setup_* 方法。
 
     通过依赖注入替代多重继承，window 作为方法参数传入以访问 MainWindow 的回调。
+
+    ..  _archived: 以下 setup_* 方法未完成迁移，实际 UI 构建仍由
+        parts/_ui_setup_ops.py 通过 MainWindow 类注入方式处理。
+        仅 __init__ 被 MainWindowCore._init_ui_setup 调用以创建实例，
+        实例随后未在任何地方被引用。
     """
 
     def __init__(
@@ -419,6 +424,6 @@ class UISetupHandler:
 
     def get_library_root(self) -> str:
         """获取库根目录。"""
-        from ... import core
+        from ....core.config import get_library_root
 
-        return core.get_library_root(self._config)
+        return get_library_root(self._config)
