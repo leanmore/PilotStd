@@ -20,9 +20,6 @@ exc_type  # unused variable (pilotstd/core/db.py:50)
 exc_val  # unused variable (pilotstd/core/db.py:50)
 exc_tb  # unused variable (pilotstd/core/db.py:50)
 
-# ── shutil.rmtree onerror 回调（必须接受三个参数，仅吞异常） ──
-_excinfo  # unused variable (pilotstd/ui/controllers/cleanup_mixin.py:120)
-
 # ── pytest fixture 依赖（qapp 确保 QApplication 初始化） ──
 qapp  # unused variable (tests/gui/conftest.py:36)
 qapp  # unused variable (tests/gui/conftest.py:109)

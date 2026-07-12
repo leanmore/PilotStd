@@ -6,7 +6,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from pilotstd.ui.table_mixin import WORK_COLUMNS
+from pilotstd.ui.table_constants import WORK_COLUMNS
 
 
 def test_table_has_all_columns(window):

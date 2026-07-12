@@ -34,7 +34,7 @@ def test_work_table_context_menu_triggered(window, qtbot):
 
 def test_toggleable_cols_exist(window):
     """可切换列列表非空且索引有效。"""
-    from pilotstd.ui.table_mixin import TOGGLEABLE_COLS, WORK_COLUMNS
+    from pilotstd.ui.table_constants import TOGGLEABLE_COLS, WORK_COLUMNS
 
     assert len(TOGGLEABLE_COLS) >= 4
     for c in TOGGLEABLE_COLS:

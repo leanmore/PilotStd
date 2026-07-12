@@ -21,66 +21,149 @@
 
 import logging
 import os
-import sys
 import threading
 from typing import Any, Optional
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QApplication, QMainWindow, QSystemTrayIcon
+from PyQt6.QtWidgets import QApplication, QMainWindow, QSystemTrayIcon, QTableWidgetItem
 
 from ... import core
-from ...core.frozen import is_frozen
 from ...i18n import _
-from ..controllers.announce_mixin import AnnounceMixin
-from ..controllers.archive_mixin import ArchiveMixin
-from ..controllers.auto_run_mixin import AutoRunMixin
-from ..controllers.cleanup_mixin import CleanupMixin
-from ..controllers.dialog_mixin import DialogMixin
-from ..controllers.download_mixin import DownloadMixin
-from ..controllers.export_mixin import ExportMixin
-from ..controllers.file_dialog_mixin import FileDialogMixin
-from ..controllers.file_tree_mixin import FileTreeMixin
-from ..controllers.persistence_mixin import PersistenceMixin
-from ..controllers.project_mixin import ProjectMixin
-from ..controllers.query import QueryMixin
-from ..controllers.scan_mixin import ScanMixin
-from ..controllers.table_helper_mixin import TableHelperMixin
-from ..controllers.theme_mixin import ThemeMixin
-from ..table_mixin import TableMixin
-from ._actions import ActionsMixin
-from ._ui_setup import UISetupMixin
+from ..table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
+from .parts._run_main import run as run
 
 logger = logging.getLogger("pilotstd.ui")
 
 
-class MainWindow(
-    QMainWindow,
-    # 一期提取 (4)
-    TableMixin,
-    ScanMixin,
-    ArchiveMixin,
-    DownloadMixin,
-    QueryMixin,
-    # 二期提取 (11)
-    TableHelperMixin,
-    FileTreeMixin,
-    ExportMixin,
-    CleanupMixin,
-    AutoRunMixin,
-    PersistenceMixin,
-    AnnounceMixin,
-    ProjectMixin,
-    FileDialogMixin,
-    DialogMixin,
-    ThemeMixin,
-    # 三期提取 (2)
-    UISetupMixin,
-    ActionsMixin,
-):
+class MainWindow(QMainWindow):
     # 信号：供外部模块更新进度
     progress_changed = pyqtSignal(int)
     status_changed = pyqtSignal(str)
     query_result_ready = pyqtSignal(int, object)
+
+    # ── 导入方法片段（从 parts/ 注入，替代原 Mixin 内联）──
+
+    from .parts._actions_ops import (
+        _apply_announce_cache_mode,
+        _check_pause,
+        _confirm_update_available,
+        _download_update_file,
+        _init_manager,
+        _on_about,
+        _on_cancel,
+        _on_check_update,
+        _on_pause_toggle,
+        _on_rule_download,
+        _on_rule_query,
+        _on_settings,
+        _on_task_center,
+        _prompt_restart,
+        _set_toolbar_enabled,
+        _switch_to_stage,
+        _try_check_update_throttle,
+        _update_button_states,
+        get_pipeline_stats,
+    )
+    from .parts._dialog_ops import (
+        _animate_progress,
+        _force_finish_progress,
+        _on_raw_progress,
+        _question_dlg,
+        _register_task,
+        _reset_progress_bar,
+        _show_stage_dialog,
+        _stage_prereq_dialog,
+    )
+    from .parts._download_ops import (
+        _check_download_queue,
+        _on_auto_run,
+    )
+    from .parts._export_ops import (
+        _collect_folder_tree,
+        _on_export_diag,
+        _on_export_file_list,
+        _on_export_folder_tree,
+    )
+    from .parts._file_dialog_ops import (
+        _on_open_file,
+        _on_open_folder,
+        _on_select,
+        _pick_folder,
+    )
+    from .parts._file_tree_ops import (
+        _make_drive_item,
+        _make_item,
+        _navigate_to,
+        _on_drives_ready,
+        _on_file_tree_context_menu,
+        _on_tree_item_expanded,
+        _populate_children,
+        _populate_quick_access,
+    )
+    from .parts._persistence_ops import (
+        _on_open_project,
+        _on_save_download_project,
+        _on_save_query_project,
+        _restore_column_widths,
+        _restore_sort_state,
+        _restore_splitter_sizes,
+        _restore_window_geometry,
+        _save_column_widths,
+        _save_sort_state,
+        _save_splitter_sizes,
+        _save_window_geometry,
+    )
+    from .parts._query_ops import (
+        _do_pending_query,
+        _on_pending_query,
+        _on_query_result_ready,
+        _parse_pending_csv,
+        _show_query_summary,
+    )
+    from .parts._table_ops import (
+        _add_table_row,
+        _apply_column_visibility,
+        _clear_table,
+        _copy_selected_cells,
+        _enforce_min_column_width,
+        _find_row_by_seq,
+        _get_column_visibility,
+        _get_visible_cols,
+        _load_column_visibility,
+        _on_header_context_menu,
+        _on_offline_view,
+        _on_save_result,
+        _on_work_table_context_menu,
+        _remove_selected_rows,
+        _row_get,
+        _save_column_visibility,
+        _save_csv,
+        _save_txt,
+        _table_key_press_event,
+        _table_to_list,
+    )
+    from .parts._theme_ops import (
+        _apply_icon,
+        _apply_language,
+        _apply_theme,
+        _load_qt_translator,
+        _retranslate_ui,
+    )
+    from .parts._ui_setup_ops import (
+        _on_shutdown_aggregator,
+        _on_tray_activated,
+        _setup_auto_save,
+        _setup_central,
+        _setup_file_tree,
+        _setup_log_handler,
+        _setup_log_panel,
+        _setup_menu,
+        _setup_scanner,
+        _setup_status_bar,
+        _setup_toolbar,
+        _setup_tray,
+        _setup_work_table,
+    )
 
     def __init__(self, config: "core.ConfigManager", project: "core.ProjectManager") -> None:
         super().__init__()
@@ -204,16 +287,15 @@ class MainWindow(
         # 先解除暂停，防止 Worker 卡在 _pause_event.wait() 中无法退出
         if hasattr(self, "_pause_event"):
             self._pause_event.set()
-        for attr in (
-            "_query_worker",
-            "_download_worker",
-            "_scan_worker",
-            "_normalize_worker",
-            "_archive_worker",
-            "_ann_worker",
-            "_auto_worker",
-            "_drive_thread",
-        ):
+        # 已迁移到 Handler 的 Worker
+        if hasattr(self, "_core"):
+            self._core.announce.stop_workers()
+            self._core.download.stop_workers()
+            self._core.scan.stop_workers()
+            self._core.query.stop_workers()
+            self._core.archive.stop_workers()
+            self._core.auto.stop_workers()
+        for attr in ("_drive_thread",):
             try:
                 w = getattr(self, attr, None)
                 if w is not None and w.isRunning():
@@ -274,6 +356,18 @@ class MainWindow(
                 return str(path)
         return self._menu_selected_path
 
+    def _add_row_from_dict(self, row_data: dict) -> None:
+        """从字典重建工作表行（用于项目恢复）。"""
+        row = self.work_table.rowCount()
+        self.work_table.insertRow(row)
+        for c, col_name in enumerate(WORK_COLUMNS):
+            value = row_data.get(col_name, "")
+            if not value:
+                translated = _(WORK_COLUMN_KEYS[c])
+                if translated != col_name:
+                    value = row_data.get(translated, "")
+            self.work_table.setItem(row, c, QTableWidgetItem(value))
+
     # ================================================================
     # 欢迎页
     # ================================================================
@@ -290,64 +384,98 @@ class MainWindow(
             self._config.set("appearance.skip_welcome", True)
             self._config.save()
 
+    # ================================================================
+    # UI 核心 Handler（组合模式，替代 Mixin 多重继承）
+    # ================================================================
 
-def run() -> None:
-    """启动 GUI 应用。"""
-    from ...core.logger import LoggerManager
+    def _init_core(self) -> None:
+        """在 _mgr 就绪后初始化 UI 核心 Handler 容器。"""
+        from ..core._core import MainWindowCore
 
-    LoggerManager(level=logging.INFO)
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")
+        self._core = MainWindowCore(
+            mgr=self._mgr,
+            work_table=self.work_table,
+            progress_callback=lambda v: self.progress_changed.emit(v),
+            status_callback=lambda msg: self.status_changed.emit(msg),
+            parsed_results=self._parsed_results,
+            config=self._config,
+            pause_event=self._pause_event,
+            parent_widget=self,
+            show_stage_dialog=self._show_stage_dialog,
+            stage_prereq_dialog=self._stage_prereq_dialog,
+            register_task=self._register_task,
+            project_mark_dirty=lambda: self._project.mark_dirty(),
+            suppress_dialogs=lambda: self._suppress_dialogs,
+            add_table_row=self._add_table_row,
+            find_row_by_seq=self._find_row_by_seq,
+            clear_table=self._clear_table,
+            update_button_states=self._update_button_states,
+            question_dlg=self._question_dlg,
+            reset_progress=self._reset_progress_bar,
+            force_finish_progress=self._force_finish_progress,
+            on_raw_progress=self._on_raw_progress,
+            run_scan_cb=self._run_scan,
+            run_query_cb=self._on_query,
+            get_selected_path_cb=self._get_selected_path,
+            get_scan_source_root_cb=lambda: self._scan_source_root,
+            get_unrecognized_files_cb=lambda: self._unrecognized_files,
+            clear_unrecognized_files_cb=lambda: self._unrecognized_files.clear(),
+            set_suppress_dialogs=lambda v: setattr(self, "_suppress_dialogs", v),
+            set_query_btn_enabled=lambda v: self.btn_query.setEnabled(v),
+            set_download_btn_enabled=lambda v: self.btn_download.setEnabled(v),
+            set_cancel_btn_enabled=lambda v: self.btn_cancel.setEnabled(v),
+            set_progress_format=lambda v: self.progress_bar.setFormat(v),
+            set_progress_bar_visible=lambda v: self.progress_bar.setVisible(v),
+            show_auto_error_style=lambda: (
+                self.progress_bar.setStyleSheet("QProgressBar::chunk { background-color: #ef4444; }"),
+                self.progress_bar.setFormat(_("auto_run_failed")),
+                self.progress_bar.setValue(100),
+            ),
+            project=self._project,
+            add_row_from_dict_cb=self._add_row_from_dict,
+            navigate_to_cb=self._navigate_to,
+            get_work_state_cb=self._collect_state,
+            set_unrecognized_files_cb=lambda files: setattr(self, "_unrecognized_files", files),
+        )
 
-    # ── Qt 消息处理器：捕获 Qt C++ 层致命/严重错误 → crash_log.txt ──
-    from PyQt6.QtCore import QMessageLogContext, QtMsgType, qInstallMessageHandler
+    # ── 代理委托方法 ──────────────────────────────────────
 
-    _qt_fatal_seen = False
+    def _on_check_announcements(self) -> None:
+        """代理 → AnnounceUIHandler。"""
+        self._core.announce.on_check_announcements()
 
-    def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str) -> None:
-        nonlocal _qt_fatal_seen
-        level_map = {
-            QtMsgType.QtDebugMsg: "DEBUG",
-            QtMsgType.QtInfoMsg: "INFO",
-            QtMsgType.QtWarningMsg: "WARNING",
-            QtMsgType.QtCriticalMsg: "CRITICAL",
-            QtMsgType.QtFatalMsg: "FATAL",
-        }
-        level = level_map.get(msg_type, "UNKNOWN")
-        line = f"[Qt {level}] {msg}  (file={ctx.file}, line={ctx.line}, func={ctx.function})\n"
-        # crash_log 写入已禁用
-        # if msg_type in (QtMsgType.QtCriticalMsg, QtMsgType.QtFatalMsg):
-        #     _crash_log = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "crash_log.txt")
-        #     try:
-        #         with open(_crash_log, "a", encoding="utf-8") as f:
-        #             f.write(f"\n{'=' * 60}\nQT {level} [{datetime.datetime.now().isoformat()}]\n{line}")
-        #     except Exception:
-        #         pass
-        # 仍输出到 stderr 以便控制台可见
-        if msg_type in (
-            QtMsgType.QtCriticalMsg,
-            QtMsgType.QtFatalMsg,
-            QtMsgType.QtWarningMsg,
-        ):
-            print(line, file=sys.stderr, flush=True)
+    def _on_download(self) -> None:
+        """代理 → DownloadUIHandler。"""
+        self._core.download.on_download()
 
-    qInstallMessageHandler(_qt_message_handler)
+    def _on_import_download(self) -> None:
+        """代理 → DownloadUIHandler。"""
+        self._core.download.on_import_download()
 
-    cfg = core.ConfigManager()
-    prj = core.ProjectManager()
+    def _run_scan(self, root_path: str) -> None:
+        """代理 → ScanUIHandler。"""
+        self._core.scan.run_scan(root_path)
 
-    # exe 模式下预创建下载目录
-    if is_frozen():
-        import os as _os
+    def _on_query(self) -> None:
+        """代理 → QueryUIHandler。"""
+        self._core.query.on_query()
 
-        dl_dir = _os.path.join(_os.path.dirname(sys.executable), "downloads")
-        _os.makedirs(dl_dir, exist_ok=True)
+    def _on_save_to_folder(self) -> None:
+        """代理 → ArchiveUIHandler。"""
+        self._core.archive.on_save_to_folder()
 
-    window = MainWindow(cfg, prj)
-    window._apply_theme()
-    window._apply_icon()
-    window._ui_translatable = True  # 初次构建完成，后续语言切换时允许 _retranslate_ui
-    window.show()
-    QTimer.singleShot(50, window._init_manager)  # 窗口显示后 50ms 后台初始化后端
-    QTimer.singleShot(100, window.show_welcome_if_needed)
-    sys.exit(app.exec())
+    def _on_normalize(self) -> None:
+        """代理 → ArchiveUIHandler（规范化是归档的前置步骤）。"""
+        self._core.archive.on_normalize()
+
+    def _start_auto_pipeline(self, source_dir: str) -> None:
+        """代理 → AutoUIHandler。"""
+        self._core.auto.start_auto_pipeline(source_dir)
+
+    def _on_cleanup_empty_dirs(self) -> None:
+        """代理 → CleanupHandler。"""
+        self._core.cleanup.on_cleanup_empty_dirs()
+
+    def _on_collect_unrecognized(self) -> None:
+        """代理 → CleanupHandler。"""
+        self._core.cleanup.on_collect_unrecognized()

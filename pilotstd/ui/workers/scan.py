@@ -55,7 +55,7 @@ class ScanWorker(QThread):
                     _log_progress(logger, "扫描", cur, total, _t_start)
                     _last_log = now
 
-            parsed = self._mgr.scan_directory_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
+            parsed = self._mgr.scan_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
             self.unrecognized = []
             parsed_count = len(parsed)
             self.finished_signal.emit(parsed_count, 0)

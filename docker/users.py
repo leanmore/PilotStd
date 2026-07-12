@@ -55,7 +55,8 @@ def init_users_table() -> None:
     if "must_change_password" not in cols:
         db.execute("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0")
 
-    _ensure_superuser(db, SUPERUSER_USERNAME)
+    if SUPERUSER_USERNAME is not None:
+        _ensure_superuser(db, SUPERUSER_USERNAME)
 
 
 def _ensure_superuser(db: Database, username: str) -> None:

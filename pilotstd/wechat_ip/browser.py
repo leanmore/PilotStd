@@ -67,7 +67,7 @@ class WechatIPUpdater:
 
     def _launch_cloakbrowser(self):
         """启动 CloakBrowser（反指纹 Chromium）。"""
-        from cloakbrowser import launch  # type: ignore[import-untyped]
+        from cloakbrowser import launch  # type: ignore[import-not-found]
 
         self._browser = launch(
             headless=self.headless,

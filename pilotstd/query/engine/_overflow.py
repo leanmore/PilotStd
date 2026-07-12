@@ -1,27 +1,39 @@
 # pilotstd/query/engine/_overflow.py
-# 溢出/错误恢复混入 — 从 _batch.py 提取
-"""溢出条目链式重试（微批 + 随机抖动 + 冷却/配额感知）。"""
+"""溢出链式重试处理器 — 独立类，替代原 OverflowHandler（Mixin）。
+
+组合模式重构：OverflowHandler → 独立类，依赖通过 EngineCore + RoutingHandler 注入。
+不再作为 Mixin 被 BatchMixin 继承，而是由 BatchHandler 组合调用。
+"""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+import random
+import time
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from ..models import QueryResult
 from ..search_strategy import MATCH_SCORE
+
+if TYPE_CHECKING:
+    from ._core_types import EngineCore
+    from ._routing import RoutingHandler
 
 logger = logging.getLogger(__name__)
 
 
 class OverflowHandler:
-    """溢出链式重试混入 — 为 BatchMixin 提供 overflow 阶段方法。"""
+    """溢出链式重试处理器 — 替代原 OverflowHandler（Mixin）。
 
-    # 以下属性由 BatchMixin 的其他混入类提供（_core / _routing）
-    _rotator: Any
-    _record: Any
-    _adapter_map: Any
-    _build_chain_for_item: Any
-    _bucket_key: Any
+    处理溢出条目（首次查询未达 100 分的条目），在多站点链中重试。
+    依赖：
+        - EngineCore：适配器映射、轮转器、配额、记录方法
+        - RoutingHandler：构建优先级链、桶键生成
+    """
+
+    def __init__(self, core: "EngineCore", routing: "RoutingHandler") -> None:
+        self._core = core
+        self._routing = routing
 
     def _try_overflow_site(
         self,
@@ -30,20 +42,18 @@ class OverflowHandler:
         site: str,
         adapter: Any,
         state: dict,
-        _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
     ) -> bool:
         """对单个站点执行溢出查询，处理结果并更新评分/链状态。
         返回 True 表示找到 >=100 分的结果，该项无需继续重试。
         """
         try:
-            _t0 = _time.time()
-            result = adapter.query_with_strategy(  # type: ignore[assignment]
-                item[0], item[1], item[2], item[3], item[4]
-            )
-            _elapsed = round(_time.time() - _t0, 3)
-            if self._rotator:
-                self._rotator.record_query_result(
+            _t0 = time.time()
+            result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
+            _elapsed = round(time.time() - _t0, 3)
+            rotator = self._core.rotator
+            if rotator:
+                rotator.record_query_result(
                     site,
                     result is not None and result.is_found(),
                     _elapsed,
@@ -53,7 +63,7 @@ class OverflowHandler:
 
         if result:
             result.source_site = site
-            self._record(site, 1)
+            self._core.record(site, 1)
             state["_record_match"](site, getattr(result, "match_status", "err"))
             tried_chain = state["item_chains"].get(idx, [])
             tried_chain.append(site)
@@ -89,7 +99,6 @@ class OverflowHandler:
         idx: int,
         item: tuple,
         state: dict,
-        _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
         temp_skips: list,
         preferred_site: str | None = None,
@@ -99,15 +108,17 @@ class OverflowHandler:
         """
         if idx in state["results"]:
             return
-        chain = self._build_chain_for_item(item, preferred_site)
-        # 主站点已查过，从二线开始
-        start = 1 if chain and chain[0] == self._bucket_key(item[0], preferred_site) else 0
+
+        chain = self._routing._build_chain_for_item(item, preferred_site)
+        start = 1 if chain and chain[0] == self._routing._bucket_key(item[0], preferred_site) else 0
         found = False
+        adapter_map = self._core.adapter_map
+        rotator = self._core.rotator
 
         for site in chain[start:]:
-            if site not in self._adapter_map:
+            if site not in adapter_map:
                 continue
-            if self._rotator and self._rotator.get_cooldown_remaining(site) > 0:
+            if rotator and rotator.get_cooldown_remaining(site) > 0:
                 temp_skips[0] += 1
                 ov_q = state["overflow_quota"].get(site, [0])
                 logger.debug(
@@ -116,7 +127,6 @@ class OverflowHandler:
                     ov_q[0] if ov_q else 0,
                 )
                 continue
-            # 溢出配额控制：受限站点消耗配额，配额耗尽则跳过
             if site in state["overflow_quota"] and not state["_try_overflow"](site):
                 logger.debug(
                     "[QUOTA] 站点=%s 操作=溢出配额耗尽 剩余=%d",
@@ -125,12 +135,11 @@ class OverflowHandler:
                 )
                 continue
 
-            adapter = self._adapter_map[site]
-            if self._try_overflow_site(idx, item, site, adapter, state, _time, result_callback):
+            adapter = adapter_map[site]
+            if self._try_overflow_site(idx, item, site, adapter, state, result_callback):
                 found = True
                 break
 
-        # 链耗尽→待确认
         if not found:
             chain_str = "→".join(state["item_chains"].get(idx, [])) or "none"
             _td2 = f"{item[0]} {item[1]}-{item[2]}"
@@ -148,7 +157,6 @@ class OverflowHandler:
     def _handle_overflow(
         self,
         state: dict,
-        _time: Any,
         result_callback: Optional[Callable[[int, QueryResult], None]],
         preferred_site: str | None = None,
     ) -> int:
@@ -160,22 +168,18 @@ class OverflowHandler:
         if not all_overflow:
             return 0
 
-        # 用户指定站点 → 禁止溢出到其他站点
         if preferred_site:
             return 0
 
-        # 按剩余站点数升序（短链优先）
-        all_overflow.sort(key=lambda x: len(self._build_chain_for_item(x[1], preferred_site)))
-        # 微批：每批 20 条，批次间 2-5s 随机抖动
+        all_overflow.sort(key=lambda x: len(self._routing._build_chain_for_item(x[1], preferred_site)))
+
         batch_size = 20
         for batch_start in range(0, len(all_overflow), batch_size):
             batch = all_overflow[batch_start : batch_start + batch_size]
             if batch_start > 0:
-                import random as _random
-
-                jitter = _random.uniform(2, 5)
-                _time.sleep(jitter)
+                jitter = random.uniform(2, 5)
+                time.sleep(jitter)
             for idx, item in batch:
-                self._process_overflow_item(idx, item, state, _time, result_callback, temp_skips, preferred_site)
+                self._process_overflow_item(idx, item, state, result_callback, temp_skips, preferred_site)
 
         return temp_skips[0]

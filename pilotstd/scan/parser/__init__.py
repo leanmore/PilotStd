@@ -32,19 +32,38 @@ from ._constants import (
     SAE_PREFIXES,
     _compile,
 )
+from ._core import ParserCore
 from ._exact import ExactMatchMixin
+from ._file_kind_detector import FileKindDetector
 from ._foreign import ForeignHandlerMixin
-from ._utils import UtilsMixin
+from ._language_detector import LanguageDetector
+from ._number_extractor import NumberExtractor
+from ._result_builder import ResultBuilder
+from ._text_cleaner import TextCleaner
 
 logger = logging.getLogger(__name__)
 
 
-class StandardParser(UtilsMixin, ExactMatchMixin, ForeignHandlerMixin):
+class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
     """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份"""
+
+    # 静态方法代理（保持类级别访问兼容，如 StandardParser._clean(...)）
+    # mypy 忽略说明：基类 ExactMatchMixin 中这些是实例方法，
+    # 子类用 staticmethod 覆盖时 mypy 报签名不匹配，但运行时正确
+    _clean = staticmethod(TextCleaner.clean)  # type: ignore[assignment]
+    _detect_language = staticmethod(LanguageDetector.detect)  # type: ignore[assignment]
+    _detect_file_kind = staticmethod(FileKindDetector.detect)  # type: ignore[assignment]
+    _normalize_year = staticmethod(NumberExtractor.normalize_year)  # type: ignore[assignment]
+    _extract_number = staticmethod(NumberExtractor.extract_number)  # type: ignore[assignment]
+    _extract_num_prefix = staticmethod(NumberExtractor.extract_num_prefix)  # type: ignore[assignment]
+    _extract_part = staticmethod(NumberExtractor.extract_part)  # type: ignore[assignment]
+    _clean_std_name = staticmethod(ResultBuilder.clean_std_name)  # type: ignore[assignment]
+    _validate_result = staticmethod(ResultBuilder.validate_result)  # type: ignore[assignment]
 
     def __init__(self, code_mapping: Dict[str, str], log: logging.Logger | None = None) -> None:
         self.code_mapping = code_mapping
         self.log = log or logger
+        self._core = ParserCore(code_mapping, lambda: self._current_file_kind)
 
         # 精确匹配（带年份） — "API 610-2004", "BS EN 1092.1-2018", "ISO 9001:2015"
         self.regex = _compile(_PFX, _SEP, _NUM, _PART_SHORT, _EDITION_SKIP, _SEP, _YEAR4)
@@ -86,6 +105,37 @@ class StandardParser(UtilsMixin, ExactMatchMixin, ForeignHandlerMixin):
             r"(?P<number>\d{2,5})",  # 顺序号 2~5位
             _SEP,
             _YEAR_DB,
+        )
+
+    # ── 实例方法代理（委托 ParserCore，供 ExactMatchMixin 通过 MRO 调用）─────────
+
+    def _trim_prefix(self, prefix: str, text: str) -> str:
+        return self._core.trim_prefix(prefix, text)
+
+    def _build_result(
+        self,
+        text: str,
+        match_end: int,
+        logical_code: str,
+        number: int,
+        part: Optional[int],
+        year: int,
+        num_prefix: str = "",
+        num_suffix: str = "",
+        file_kind: str | None = None,
+        require_year: bool = True,
+    ) -> Optional[ParsedStdInfo]:
+        return self._core.build_result(
+            text,
+            match_end,
+            logical_code,
+            number,
+            part,
+            year,
+            num_prefix,
+            num_suffix,
+            file_kind,
+            require_year,
         )
 
     # ── 公共 API ────────────────────────────────────────────
