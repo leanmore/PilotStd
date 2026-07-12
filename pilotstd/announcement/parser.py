@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
+from ._wps_utils import _clean_wps_fulltext, _split_wps_entries
+
 logger = logging.getLogger(__name__)
 
 # 标准编号模式：代号 + 空格 + 顺序号[.部分号] + — + 年份
@@ -41,19 +43,31 @@ def parse_wps_text(raw_bytes: bytes) -> str:
     """从 .wps 文件的原始字节中提取可读文本。
 
     .wps 文件是 OLE2 容器内包 UTF-16LE 编码的文本。
-    直接按 UTF-16LE 解码，提取可打印字符。
+    直接按 UTF-16LE 解码，清洗格式标记后按标准号切分条目。
     """
     try:
         text = raw_bytes.decode("utf-16-le", errors="ignore")
     except Exception:
         logger.debug("WPS 解码失败", exc_info=True)
         return ""
-    # 过滤出可读字符（中文+ASCII+数字+常见符号）
-    result = []
-    for ch in text:
-        if ch.isprintable() or ch in "\n\r\t":
-            result.append(ch)
-    return "".join(result)
+
+    # 全文级清洗：去 WPS 格式标记、压缩空白
+    text = _clean_wps_fulltext(text)
+
+    # 按标准号位置切分粘连条目
+    entries = _split_wps_entries(text, STD_CODE_PATTERN)
+
+    # 逐条清洗字段级垃圾
+    cleaned = []
+    for entry in entries:
+        # 过滤不可打印字符
+        chars = [ch for ch in entry if ch.isprintable() or ch in "\n\r\t"]
+        entry = "".join(chars)
+        entry = _clean_wps_name(entry)
+        if entry:
+            cleaned.append(entry)
+
+    return "\n".join(cleaned)
 
 
 def _parse_pdf_text(raw_bytes: bytes) -> str:
@@ -222,6 +236,9 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
 
 def _clean_wps_name(name: str) -> str:
     """清理 WPS 提取文本中的二进制垃圾和非表头残留。"""
+    # WPS 页脚标记（安全网：_clean_wps_fulltext 遗漏的在这里补刀）
+    name = re.sub(r"\s*—+\s*PAGE\s*\n?\s*MERGEFORMAT\s*\d*\s*—*\s*", " ", name, flags=re.IGNORECASE)
+    name = re.sub(r"PAGE\s*\d+\s*OF\s*\d+", " ", name, flags=re.IGNORECASE)
     # 去除不可打印字符和控制字符（保留中英文、数字、常见标点）
     name = re.sub(
         r"[^一-鿿　-〿＀-￯"

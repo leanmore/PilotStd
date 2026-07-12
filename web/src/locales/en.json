@@ -28,7 +28,9 @@
       "auto_scan_enabled": "Enable Auto Scan",
       "auto_scan_cron": "Scan Interval (cron)",
       "auto_announce_enabled": "Auto Announce Check",
-      "auto_announce_cron": "Announce Check Cron"
+      "auto_announce_cron": "Announce Check Cron",
+      "date_reminder_enabled": "Date Reminder",
+      "date_reminder_cron": "Reminder Cron"
     },
     "network": { "proxy": "Proxy Address", "ua_rotation": "UA Rotation" },
     "query": { "query_interval": "Query Interval (s)", "use_cache": "Enable Cache" },

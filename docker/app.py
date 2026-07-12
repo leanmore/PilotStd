@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.adapter import router as adapter_router
 from .api.announce import router as announce_router
+from .api.announce_detail import router as announce_detail_router
 from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
@@ -25,6 +26,7 @@ from .api.backup import router as backup_router
 from .api.cache import router as cache_router
 from .api.download import router as download_router
 from .api.export import router as export_router
+from .api.favorites import router as favorites_router
 from .api.logs import router as logs_router
 from .api.monitor import router as monitor_router
 from .api.normalize import router as normalize_router
@@ -264,6 +266,7 @@ app.include_router(normalize_router)
 
 # ── 公告 ──
 app.include_router(announce_router)
+app.include_router(announce_detail_router)
 app.include_router(announce_lookup_router)
 app.include_router(announcements_router)
 
@@ -274,6 +277,7 @@ app.include_router(adapter_router)
 app.include_router(scheduler_router)
 app.include_router(backup_router)
 app.include_router(export_router)
+app.include_router(favorites_router)
 app.include_router(quality_router)
 app.include_router(pending_router)
 app.include_router(validity_router)

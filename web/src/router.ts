@@ -9,6 +9,7 @@ const routes = [
   { path: '/organize', component: () => import('./views/OrganizeView.vue') },
   { path: '/pending', component: () => import('./views/PendingView.vue') },
   { path: '/announce', component: () => import('./views/AnnounceView.vue') },
+  { path: '/announce/:announceNo', component: () => import('./views/AnnounceDetail.vue'), meta: { title: '公告详情' } },
   { path: '/notification-logs', component: () => import('./views/NotificationLogsView.vue') },
   { path: '/standards-status', component: () => import('./views/StandardsStatusView.vue') },
   { path: '/settings', component: () => import('./views/SettingsView.vue') },

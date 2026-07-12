@@ -76,3 +76,46 @@ class ErrorResponse(BaseModel):
     """通用错误响应"""
 
     error: str
+
+
+# ── Phase 3: 公告详情 ──────────────────────────────────
+
+
+class AnnouncementResponse(BaseModel):
+    id: int
+    announce_no: str
+    title: str
+    publish_date: str = ""
+    source_url: str = ""
+    attachment_url: str = ""
+
+
+class AnnouncementRecordResponse(BaseModel):
+    id: int
+    row_index: int = 0
+    standard_number: str = ""
+    std_name: str = ""
+    implement_date: str = ""
+    expiry_date: str = ""
+    superseded_by: str = ""
+    status: str = "draft"
+    confidence: float = 0.0
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class AnnouncementDetailResponse(BaseModel):
+    announcement: AnnouncementResponse
+    records: list[AnnouncementRecordResponse]
+    parse_status: str  # pending | parsing | completed | failed
+
+
+class ParseStatusResponse(BaseModel):
+    status: str
+    record_count: int = 0
+
+
+class BatchApproveResponse(BaseModel):
+    status: str
+    approved_count: int
+    errors: list[str] = []

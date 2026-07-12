@@ -9,7 +9,6 @@
  */
 import { computed, inject } from 'vue'
 import Select from 'primevue/select'
-import DynamicSettingField from '@/components/DynamicSettingField.vue'
 import { THEMES } from '@/config/themes'
 import { useAppStore } from '@/stores/app'
 
@@ -60,11 +59,7 @@ function handleLocaleChange(val: string) {
       <span></span>
       <span class="text-dim" style="font-size:11px">支持手动上传图片或填入 API 网络地址</span>
 
-      <!-- 2. Schema 驱动字段：公告自动检查 -->
-      <DynamicSettingField field-key="tasks.auto_announce_enabled" />
-      <DynamicSettingField field-key="tasks.auto_announce_cron" />
-
-      <!-- 3. 主题（Pinia store 管理，非 Schema） -->
+      <!-- 2. 主题（Pinia store 管理，非 Schema） -->
       <label>主题</label>
       <div class="theme-options">
         <label

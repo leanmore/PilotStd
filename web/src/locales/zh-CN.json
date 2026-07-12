@@ -29,7 +29,9 @@
       "auto_scan_enabled": "启用自动扫描",
       "auto_scan_cron": "扫描间隔 (cron)",
       "auto_announce_enabled": "定时公告自动检查",
-      "auto_announce_cron": "公告检查 cron"
+      "auto_announce_cron": "公告检查 cron",
+      "date_reminder_enabled": "实施日期到期提醒",
+      "date_reminder_cron": "日期提醒 cron"
     },
     "network": { "proxy": "代理地址", "ua_rotation": "UA 轮转" },
     "query": { "query_interval": "查询间隔(秒)", "use_cache": "启用缓存" },

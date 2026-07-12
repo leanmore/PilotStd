@@ -25,7 +25,7 @@ class QueryWorker(QThread):
         manager: Any,
         parsed_list: Any,
         pause_event: Any = None,
-        site: str = "",
+        site: str | None = None,
         force_refresh: bool = False,
         parent: Any = None,
     ) -> None:
@@ -76,10 +76,10 @@ class QueryWorker(QThread):
 
             if self._pause_event is not None:
                 self._mgr.set_pause_event(self._pause_event)
-            results, _stats = self._mgr.query(
+            results, _stats = self._mgr.query_stream(
                 self.parsed_list,
-                progress_callback=on_progress,
-                result_callback=on_result,
+                on_progress=on_progress,
+                on_result=on_result,
                 site=self._site,
                 force_refresh=self._force_refresh,
             )

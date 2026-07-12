@@ -1,75 +1,82 @@
 # pilotstd/manager/facade/_download.py
-# StandardManager 下载混入模块
-"""DownloadMixin：下载执行、流式下载、下载等待队列。"""
+"""DownloadHandler：下载执行、流式下载、下载等待队列，替代原 DownloadMixin。"""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, List
+from typing import TYPE_CHECKING, Any
 
 from ...download.models import BatchDownloadStats, DownloadTask
+
+if TYPE_CHECKING:
+    from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
 
 
-class DownloadMixin:
-    """下载混入类 — 下载执行 + 流式下载 + 按号下载。"""
+class DownloadHandler:
+    """下载处理器 — 封装所有下载方法，替代原 DownloadMixin。"""
 
-    _query_results: Any
-    _expire_list: Any
-    _queried_items: Any
-    _parsed_results: Any
-    _download_list: Any
-    _download_tasks: Any
-    _pending_svc: Any
-    _scheduled_svc: Any
-    download_engine: Any
-    notification_mgr: Any
-    cache: Any
-    handle_expired: Any  # 由 OrganizeMixin 实现
+    def __init__(self, core: "ManagerCore"):
+        self._core = core
+        self._organize_handler: Any = None  # 由 BaseFacade 注入
 
-    def download(self, query_results: list[Any] | None = None) -> tuple[list[DownloadTask], BatchDownloadStats]:
-        """下载分类结果中的标准文件。"""
-        results = query_results or self._query_results
+    def _set_organize_handler(self, organize_handler: Any) -> None:
+        """注入 OrganizeHandler 引用（用于 handle_expired 调用）。"""
+        self._organize_handler = organize_handler
 
-        if self._expire_list:
-            self.handle_expired(self._expire_list)
+    def _handle_expired_if_needed(self) -> None:
+        """如果有过期列表，调用 OrganizeHandler.handle_expired。"""
+        if self._core.expire_list and self._organize_handler:
+            self._organize_handler.handle_expired(self._core.expire_list)
 
-        tasks = []
-        queried = self._queried_items if self._queried_items else self._parsed_results
-        for p in self._download_list:
-            for i, r in enumerate(results):
-                if i < len(queried) and queried[i] is p:
-                    t = DownloadTask(
-                        standard_number=r.standard_number,
-                        query_result=r,
-                        source_site=getattr(r, "source_site", ""),
-                    )
-                    tasks.append(t)
-                    break
-
-        completed, stats = self.download_engine.download_batch(tasks, notification_mgr=self.notification_mgr)
-        self._download_tasks = completed
-
+    def _post_process_download(self, completed: list[DownloadTask], tasks: list[DownloadTask]) -> None:
+        """下载后处理：更新 source_path 和缓存状态。"""
         for task in completed:
             if task.status.value == "success" and task.saved_path:
-                for i, p in enumerate(self._download_list):
+                for i, p in enumerate(self._core.download_list):
                     if i < len(tasks) and tasks[i] is task:
                         p.source_path = task.saved_path
                         old_status = getattr(p, "effect_status", "") or ""
                         old_match = getattr(p, "match_status", "") or ""
+                        new_effect = ""
                         if old_status in ("废止", "已废止", "作废", "被代替"):
                             new_effect = "现行"
                         elif old_status == "现行" and old_match == "newer":
                             new_effect = "待实施"
-                        else:
-                            new_effect = ""
                         if new_effect:
-                            cached = self.cache.get(task.standard_number, getattr(task, "source_site", ""))
+                            cached = self._core.cache.get(task.standard_number, getattr(task, "source_site", ""))
                             if cached:
                                 cached.status = new_effect
-                                self.cache.put(cached)
+                                self._core.cache.put(cached)
                         break
+
+    def download(self, query_results: list[Any] | None = None) -> tuple[list[DownloadTask], BatchDownloadStats]:
+        """下载分类结果中的标准文件。"""
+        results = query_results or self._core.query_results
+
+        self._handle_expired_if_needed()
+
+        tasks: list[DownloadTask] = []
+        queried = self._core.queried_items if self._core.queried_items else self._core.parsed_results
+
+        for p in self._core.download_list:
+            for i, r in enumerate(results):
+                if i < len(queried) and queried[i] is p:
+                    tasks.append(
+                        DownloadTask(
+                            standard_number=r.standard_number,
+                            query_result=r,
+                            source_site=getattr(r, "source_site", ""),
+                        )
+                    )
+                    break
+
+        completed, stats = self._core.download_engine.download_batch(
+            tasks, notification_mgr=self._core.notification_mgr
+        )
+        self._core.download_tasks = completed
+        self._post_process_download(completed, tasks)
 
         logger.info(
             "下载完成: 入队 %d, 成功 %d, 跳过(已存在) %d, 失败 %d",
@@ -84,26 +91,44 @@ class DownloadMixin:
         self, on_progress: Any = None, on_result: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
         """流式下载（线程安全）。"""
-        if self._expire_list:
-            self.handle_expired(self._expire_list)
-        tasks = []
-        queried = self._queried_items if self._queried_items else self._parsed_results
-        for p in self._download_list:
-            for i, r in enumerate(self._query_results):
+        self._handle_expired_if_needed()
+
+        tasks: list[tuple[int, DownloadTask, Any]] = []
+        queried = self._core.queried_items if self._core.queried_items else self._core.parsed_results
+
+        for p in self._core.download_list:
+            for i, r in enumerate(self._core.query_results):
                 if i < len(queried) and queried[i] is p:
-                    t = DownloadTask(
-                        standard_number=r.standard_number,
-                        query_result=r,
-                        source_site=getattr(r, "source_site", ""),
+                    tasks.append(
+                        (
+                            i,
+                            DownloadTask(
+                                standard_number=r.standard_number,
+                                query_result=r,
+                                source_site=getattr(r, "source_site", ""),
+                            ),
+                            p,
+                        )
                     )
-                    tasks.append((i, t, p))
                     break
-        completed = []
+
+        completed: list[DownloadTask] = []
         stats = BatchDownloadStats()
         total = len(tasks)
+
         for idx, (orig_idx, task, parsed) in enumerate(tasks):
-            result = self.download_engine.download_single(task, skip_adopted=True)
+            result = self._core.download_engine.download_single(task, skip_adopted=True)
             completed.append(result)
+
+            if result.status.value == "success":
+                stats.success += 1
+                if result.saved_path:
+                    parsed.source_path = result.saved_path
+            elif result.status.value == "failed":
+                stats.failed += 1
+            else:
+                stats.skipped_exists += 1
+
             status = (
                 "已下载"
                 if result.status.value == "success"
@@ -113,35 +138,25 @@ class DownloadMixin:
                 if result.status.value == "skipped"
                 else result.status.value
             )
-            if result.status.value == "success":
-                stats.success += 1
-                if result.saved_path:
-                    parsed.source_path = result.saved_path
-            elif result.status.value == "failed":
-                stats.failed += 1
-            else:
-                stats.skipped_exists += 1
             if on_result:
                 on_result(orig_idx, status)
             if on_progress:
                 on_progress(idx + 1, total)
-        self._download_tasks = completed
+
+        self._core.download_tasks = completed
         return completed, stats
 
-    def download_by_numbers(self, numbers: List[str]) -> tuple[list[DownloadTask], Any]:
+    def download_by_numbers(self, numbers: list[str]) -> tuple[list[DownloadTask], Any]:
         """按标准号列表下载。"""
-        return self._scheduled_svc.download_by_numbers(numbers)  # type: ignore[no-any-return]
+        return self._core.scheduled_svc.download_by_numbers(numbers)  # type: ignore[no-any-return]
 
     # ── 下载等待队列 ──
 
     def enqueue_download_wait(self, parsed: Any) -> None:
-        """写入下载等待队列。"""
-        self._pending_svc.enqueue_download_wait(parsed)
+        self._core.pending_svc.enqueue_download_wait(parsed)
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
-        """获取公开期已到的下载等待项。"""
-        return self._pending_svc.get_due_downloads()  # type: ignore[no-any-return]
+        return self._core.pending_svc.get_due_downloads()  # type: ignore[no-any-return]
 
     def remove_download_queue(self, standard_number: str) -> None:
-        """从下载等待队列中移除指定项。"""
-        self._pending_svc.remove_download_queue(standard_number)
+        self._core.pending_svc.remove_download_queue(standard_number)

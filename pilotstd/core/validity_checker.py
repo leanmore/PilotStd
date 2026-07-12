@@ -36,7 +36,6 @@ class ValidityChecker:
             if "last_changed_at" not in col_names:
                 self._db.execute("ALTER TABLE standard_validity ADD COLUMN last_changed_at TEXT")
                 self._db.execute("UPDATE standard_validity SET last_changed_at = updated_at")
-                self._db.commit()
                 logger.info("standard_validity 表已添加 last_changed_at 字段并回填")
         except Exception as e:
             logger.warning("last_changed_at 迁移跳过: %s", e)
@@ -274,8 +273,6 @@ def _process_validity_batch(
 ) -> tuple[int, list[str], list[dict]]:
     """逐条检查标准时效性，更新状态，发送批量通知。返回 (changed, changed_list, failed_list)。"""
     import time as _time
-
-    from .config import _TABLE
 
     changed = 0
     changed_list: list[str] = []

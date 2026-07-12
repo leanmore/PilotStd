@@ -51,7 +51,7 @@ class PendingQueryDialog(QDialog):
         super().__init__(parent)
         self._mgr = manager
         self._parsed_list = parsed_list
-        self._selected_site: str = ""
+        self._selected_site: str | None = None
         self._results: list[Any] = []
         self._worker: Optional[QThread] = None
         self._countdown_active = False

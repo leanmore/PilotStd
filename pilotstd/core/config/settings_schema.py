@@ -78,14 +78,14 @@ SCHEMA: list[SettingDef] = [
     ),
     SettingDef(
         key="tasks.auto_scan_enabled",
-        tab="storage",
+        tab="tasks",
         field_type=FIELD_TOGGLE,
         default=False,
         help_text="定时自动扫描标准库目录，解析文件名中的标准号",
     ),
     SettingDef(
         key="tasks.auto_scan_cron",
-        tab="storage",
+        tab="tasks",
         field_type=FIELD_CRON,
         default="0 3 * * *",
         placeholder="0 3 * * *",
@@ -158,18 +158,33 @@ SCHEMA: list[SettingDef] = [
     ),
     SettingDef(
         key="tasks.auto_announce_enabled",
-        tab="ui",
+        tab="tasks",
         field_type=FIELD_TOGGLE,
         default=False,
         help_text="定时自动检查标准公告更新",
     ),
     SettingDef(
         key="tasks.auto_announce_cron",
-        tab="ui",
+        tab="tasks",
         field_type=FIELD_CRON,
         default="0 1 * * *",
         placeholder="0 1 * * *",
         help_text="定时公告检查的 cron 表达式",
+    ),
+    SettingDef(
+        key="tasks.date_reminder_enabled",
+        tab="tasks",
+        field_type=FIELD_TOGGLE,
+        default=False,
+        help_text="标准实施日期到期提醒（30/15/7/0天前推送）",
+    ),
+    SettingDef(
+        key="tasks.date_reminder_cron",
+        tab="tasks",
+        field_type=FIELD_CRON,
+        default="0 2 * * *",
+        placeholder="0 2 * * *",
+        help_text="日期提醒的 cron 表达式",
     ),
     # ── OCR Tab ──
     SettingDef(

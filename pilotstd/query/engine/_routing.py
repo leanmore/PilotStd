@@ -1,28 +1,34 @@
 # pilotstd/query/engine/_routing.py
-# 查询引擎路由混入模块
-"""优先级计算、配额分配、站点轮转、桶分片逻辑。"""
+# mypy: disable-error-code="no-any-return"
+"""查询引擎路由处理器 — 优先级计算、配额分配、站点轮转、桶分片逻辑。
+
+组合模式重构：RoutingMixin → RoutingHandler，依赖通过 EngineCore 注入。
+"""
 
 from __future__ import annotations
 
 import logging
 import re
-from typing import Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from ..adapters.base import BaseAdapter
 from ..search_strategy import ADAPTER_TYPE_MAP
 from ._constants import CODE_ROUTES, FOREIGN_ROUTE, INDUSTRY_ROUTE, PROD_PRIORITY
 
+if TYPE_CHECKING:
+    from ._core_types import EngineCore
+
 logger = logging.getLogger(__name__)
 
 
-class RoutingMixin:
-    """路由混入类 — 提供优先级计算、配额感知分配、站点选择方法。"""
+class RoutingHandler:
+    """路由处理器 — 提供优先级计算、配额感知分配、站点选择方法。
 
-    _site_order: Any
-    _rotator: Any
-    _adapter_map: Any
-    _adapters: Any
-    _quota: Any
+    替代原 RoutingMixin，所有依赖通过 EngineCore 访问。
+    """
+
+    def __init__(self, core: "EngineCore") -> None:
+        self._core = core
 
     def _resolve_base_route(self, logical_code: str) -> list[str]:
         """按标准代号/类型确定基础路由链。返回站点名称列表。"""
@@ -69,24 +75,29 @@ class RoutingMixin:
 
     def _apply_site_order(self, base: list[str]) -> list[str]:
         """用户自定义 site_order 置顶叠加。"""
-        if self._site_order:
-            return list(self._site_order) + [s for s in base if s not in self._site_order]
+        site_order = self._core.site_order
+        if site_order:
+            return list(site_order) + [s for s in base if s not in site_order]
         return base
 
     def _filter_available_adapters(self, base: list[str]) -> list[str]:
         """站点轮转过滤（冷却跳过）+ 仅保留已注册适配器 + 回退逻辑。"""
-        if self._rotator:
-            base = self._rotator.get_available(base)
+        rotator = self._core.rotator
+        adapter_map = self._core.adapter_map
+        adapters = self._core.adapters
 
-        known = set(self._adapter_map.keys())
+        if rotator:
+            base = rotator.get_available(base)
+
+        known = set(adapter_map.keys())
         pri = [n for n in base if n in known]
         if not pri and known:
-            pri = [a.site_name for a in self._adapters]
+            pri = [a.site_name for a in adapters]
             if base == FOREIGN_ROUTE:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
-    def _get_priority(self, logical_code: str = "", preferred_site: str = "") -> list[str]:
+    def _get_priority(self, logical_code: str = "", preferred_site: str | None = None) -> list[str]:
         """按标准代号返回适配器优先级链。
 
         优先级决定因素（按顺序）：
@@ -110,49 +121,53 @@ class RoutingMixin:
         plan = []
         remaining = total
         priority = self._get_priority(logical_code)
-        if self._quota is None:
+        quota = self._core.quota
+        if quota is None:
             return [(priority[0], total)] if priority else []
         for name in priority:
             if remaining <= 0:
                 break
-            quota = self._quota.get_search_remaining(name)
-            if quota <= 0:
+            quota_remaining = quota.get_search_remaining(name)
+            if quota_remaining <= 0:
                 continue
-            take = min(remaining, quota)
+            take = min(remaining, quota_remaining)
             plan.append((name, take))
             remaining -= take
         return plan
 
     def get_quota_info(self) -> dict[str, int]:
         """返回各站点配额信息（供 UI 弹窗展示）。"""
-        if self._quota:
-            return self._quota.get_all_remaining()
+        quota = self._core.quota
+        if quota:
+            return quota.get_all_remaining()
         return {}
 
     def get_adapter(self, name: str) -> Optional[BaseAdapter]:
         """获取指定站点适配器（供 PendingQueryDialog 使用）。"""
-        return self._adapter_map.get(name)
+        return self._core.adapter_map.get(name)
 
     def get_site_cooldown(self, name: str) -> float:
         """返回指定站点剩余冷却秒数，0=不在冷却中。"""
-        if self._rotator:
-            return self._rotator.get_cooldown_remaining(name)
+        rotator = self._core.rotator
+        if rotator:
+            return rotator.get_cooldown_remaining(name)
         return 0.0
 
     def get_all_sites(self) -> List[str]:
         """返回所有已注册站点名称。"""
-        return list(self._adapter_map.keys())
+        return list(self._core.adapter_map.keys())
 
-    def _bucket_key(self, logical_code: str, preferred_site: str = "") -> str:
+    def _bucket_key(self, logical_code: str, preferred_site: str | None = None) -> str:
         """按 _get_priority 第一条（主站点）确定桶标识。"""
         priority = self._get_priority(logical_code, preferred_site)
         return priority[0] if priority else "other"
 
     def _build_chain_for_item(
-        self, item: Tuple[str, int, int, str, Optional[int], str], preferred_site: str = ""
+        self,
+        item: Tuple[str, int, int, str, Optional[int], str],
+        preferred_site: str | None = None,
     ) -> list[str]:
         """返回条目对应的完整优先级链（不含 csres）。"""
         logical_code = item[0]
         chain = self._get_priority(logical_code, preferred_site)
-        # 从链中移除 csres（csres 由独立线程处理）
         return [s for s in chain if s != "csres"]

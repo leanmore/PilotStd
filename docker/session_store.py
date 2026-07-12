@@ -12,13 +12,15 @@ class SessionStore:
 
     _instance: "SessionStore | None" = None
     _lock = threading.Lock()
+    _store: dict[str, dict[str, Any]]
+    _store_lock: threading.Lock
 
     def __new__(cls) -> "SessionStore":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance._store: dict[str, dict[str, Any]] = {}
+                    cls._instance._store = {}
                     cls._instance._store_lock = threading.Lock()
         return cls._instance
 

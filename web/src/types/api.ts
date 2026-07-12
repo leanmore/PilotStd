@@ -121,6 +121,41 @@ export interface AnnounceResponse {
   results: AnnounceItem[]
 }
 
+// ── Phase 3: 公告详情 ──────────────────────────────────
+
+export interface Announcement {
+  id: number
+  announce_no: string
+  title: string
+  publish_date: string
+  source_url: string
+  attachment_url: string
+}
+
+export interface AnnouncementRecord {
+  id: number
+  announcement_id: number
+  announce_no: string
+  row_index: number
+  standard_number: string
+  std_name: string
+  implement_date: string | null
+  expiry_date: string | null
+  superseded_by: string | null
+  status: 'draft' | 'pending_review' | 'approved' | 'rejected'
+  confidence: number
+  raw_text: string | null
+  parser_engine: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface AnnouncementDetail {
+  announcement: Announcement
+  records: AnnouncementRecord[]
+  parse_status: 'pending' | 'parsing' | 'completed' | 'failed'
+}
+
 // ── 整理 ──────────────────────────────────────────────
 
 export interface NormalizeResult {

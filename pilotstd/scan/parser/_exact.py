@@ -3,14 +3,63 @@
 """精确匹配 + 模糊匹配方法。"""
 
 import re
-from typing import Optional
+from typing import Optional, Pattern
 
 from ...models import ParsedStdInfo
 from ._constants import _ASME_BPVC_RE, _ROMAN_MAP
 
 
 class ExactMatchMixin:
-    """精确匹配混入类 — 提供 7 个匹配通道。"""
+    """精确匹配混入类 — 提供 7 个匹配通道。
+
+    以下属性和方法由 StandardParser 在运行时通过多重继承注入，
+    此处声明仅用于通过 mypy 静态检查。
+    """
+
+    # 正则表达式（由 StandardParser.__init__ 初始化）
+    regex: Pattern[str]
+    regex_no_year: Pattern[str]
+    regex_typed: Pattern[str]
+    regex_typed_v2: Pattern[str]
+    regex_db: Pattern[str]
+    # 标准代号映射表（由 StandardParser 注入）
+    code_mapping: dict
+
+    def _normalize_year(self, year_str: str) -> int:
+        raise NotImplementedError
+
+    def _extract_number(self, number_str: str) -> tuple[Optional[int], str]:
+        raise NotImplementedError
+
+    def _extract_num_prefix(self, number_str: str) -> str:
+        raise NotImplementedError
+
+    def _extract_part(self, part_str: Optional[str]) -> Optional[int]:
+        raise NotImplementedError
+
+    def _clean_std_name(self, name: str) -> str:
+        raise NotImplementedError
+
+    def _validate_result(self, year: int, number: int, logical_code: str, require_year: bool = True) -> bool:
+        raise NotImplementedError
+
+    def _trim_prefix(self, prefix: str, text: str) -> str:
+        raise NotImplementedError
+
+    def _build_result(
+        self,
+        text: str,
+        match_end: int,
+        logical_code: str,
+        number: int,
+        part: Optional[int],
+        year: int,
+        num_prefix: str = "",
+        num_suffix: str = "",
+        file_kind: str | None = None,
+        require_year: bool = True,
+    ) -> Optional[ParsedStdInfo]:
+        raise NotImplementedError
 
     # ── 精确匹配通道 ────────────────────────────────────────
 

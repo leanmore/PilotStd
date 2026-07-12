@@ -13,6 +13,7 @@ FACTORY_DEFAULTS = {
     "storage.root_dir": os.path.expanduser("~/标准"),
     "storage.expire_folder": "过期作废",
     "storage.downloads_dir": None,
+    "storage.inbox_dir": "/inbox",
     "storage.mirror_skipped_dirs": True,
     "storage.mirror_fallback": True,
     "organize.auto_clean_source": False,
@@ -72,6 +73,7 @@ FACTORY_DEFAULTS = {
     "notification.rules.validity_round_summary": ["wechat"],
     "notification.rules.validity_standard_failed": ["wechat"],
     "notification.rules.validity_system_failed": ["wechat"],
+    "notification.rules.date_reminder": ["wechat"],
     # 通知日志清理
     "notification.log_retention_days": 30,
     "notification.log_cleanup_interval_hours": 24,
@@ -99,6 +101,9 @@ FACTORY_DEFAULTS = {
     "validity.frequency": "weekly",
     "validity.execute_time": "03:00",
     "validity.update_interval": 28,
+    # ── Phase 4b: 日期提醒 ──
+    "tasks.date_reminder_enabled": False,
+    "tasks.date_reminder_cron": "0 2 * * *",
     # ── WebSocket 通知连接 ──
     "websocket.enabled": False,
     "websocket.url": "",

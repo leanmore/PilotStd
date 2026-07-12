@@ -1,40 +1,20 @@
 # pilotstd/ui/pages/settings/_core.py
-# SettingsPage 核心类 — 组合所有设置 Tab mixin，管理导航与布局
+"""SettingsPage — 设置页面，组合 SettingsHandler 管理导航与布局。"""
 
 from typing import Any
 
 from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QWidget
 
-from ._appearance import _AppearanceTab
-from ._columns import _ColumnsTab
-from ._compat import _CompatTab
-from ._config_load import _ConfigLoadTab
-from ._config_save import _ConfigSaveTab
-from ._network import _NetworkTab
-from ._notification import _NotificationTab
-from ._ocr import _OcrTab
-from ._scan import _ScanTab
-from ._storage import _StorageTab
+from ...core.handlers._settings import SettingsHandler
 
 
-class SettingsPage(
-    _StorageTab,
-    _NetworkTab,
-    _AppearanceTab,
-    _ScanTab,
-    _CompatTab,
-    _NotificationTab,
-    _OcrTab,
-    _ColumnsTab,
-    _ConfigLoadTab,
-    _ConfigSaveTab,
-    QWidget,
-):
+class SettingsPage(QWidget):
     """设置表单，左侧导航列表 + 右侧 QStackedWidget。"""
 
     def __init__(self, config_manager: Any = None) -> None:
         super().__init__()
         self._config = config_manager
+        self._handler = SettingsHandler(config_manager, parent=self)
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -48,15 +28,12 @@ class SettingsPage(
 
         # ── 右侧堆叠 ──
         self._stack = QStackedWidget()
+        self._handler.build_all_pages(self._stack)
 
-        self._build_storage_page()
-        self._build_network_page()
-        self._build_ui_page()
-        self._build_scan_page()
-        self._build_compat_page()
-        self._build_notification_page()
-        self._build_ocr_page()
-        self._build_columns_page()
+        # ── 从 handler 获取页面名称填充导航 ──
+        for name in self._handler.page_names:
+            item = QListWidgetItem(name)
+            self._nav.addItem(item)
 
         main_layout.addWidget(self._nav)
         main_layout.addWidget(self._stack, 1)
@@ -65,11 +42,8 @@ class SettingsPage(
         self._nav.currentRowChanged.connect(self._stack.setCurrentIndex)
 
         if self._config:
-            self._load_from_config()
+            self._handler.load_all_configs()
 
-    # ── 辅助：添加页面到导航和堆叠 ──
-
-    def _add_page(self, name: str, widget: QWidget) -> None:
-        item = QListWidgetItem(name)
-        self._nav.addItem(item)
-        self._stack.addWidget(widget)
+    def save_to_config(self) -> None:
+        """委托 handler 保存所有设置，保留原公开 API 签名。"""
+        self._handler.save_all_configs()
