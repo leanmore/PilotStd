@@ -73,11 +73,10 @@ repos:
         stages: [manual]
 
       - id: docs-sync-check
-        name: 文档同步检查
-        entry: bash scripts/check_docs_sync.sh
-        language: system
+        name: 文档自动同步门禁（检测+修复）
+        entry: python scripts/docs_sync_check.py
+        language: python
         pass_filenames: false
-        stages: [commit-msg]
         always_run: true
 
       - id: gate-sensitive-fields
