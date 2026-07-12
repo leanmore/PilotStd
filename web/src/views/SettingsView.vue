@@ -164,6 +164,7 @@ const tabs = [
     network: SettingsTabSchema,
     query: SettingsTabSchema,
     scan: SettingsTabSchema,
+    tasks: SettingsTabSchema,
     ocr: SettingsTabSchema,
     ui: SettingsTabAppearanceMixed,
     sites: SettingsTabSites,
