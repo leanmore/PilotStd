@@ -102,14 +102,23 @@ def _restore_column_widths(self) -> None:
 
 def _on_open_project(self) -> None:
     """代理 → ProjectHandler。"""
+    if not hasattr(self, "_core") or self._core is None:
+        logger.warning("_core 未就绪，跳过打开项目")
+        return
     self._core.project.on_open_project()
 
 
 def _on_save_query_project(self) -> None:
     """代理 → ProjectHandler。"""
+    if not hasattr(self, "_core") or self._core is None:
+        logger.warning("_core 未就绪，跳过保存查询项目")
+        return
     self._core.project.on_save_query_project()
 
 
 def _on_save_download_project(self) -> None:
     """代理 → ProjectHandler。"""
+    if not hasattr(self, "_core") or self._core is None:
+        logger.warning("_core 未就绪，跳过保存下载项目")
+        return
     self._core.project.on_save_download_project()

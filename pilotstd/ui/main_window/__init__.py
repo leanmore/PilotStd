@@ -64,6 +64,18 @@ class MainWindow(QMainWindow):
         _update_button_states,
         get_pipeline_stats,
     )
+    from .parts._delegate_ops import (
+        _on_check_announcements,
+        _on_cleanup_empty_dirs,
+        _on_collect_unrecognized,
+        _on_download,
+        _on_import_download,
+        _on_normalize,
+        _on_query,
+        _on_save_to_folder,
+        _run_scan,
+        _start_auto_pipeline,
+    )
     from .parts._dialog_ops import (
         _animate_progress,
         _force_finish_progress,
@@ -186,6 +198,7 @@ class MainWindow(QMainWindow):
         self._load_qt_translator()
 
         self._setup_menu()
+        self._file_menu.setEnabled(False)  # _core 就绪前禁用 File 菜单
         self._setup_toolbar()
         self._set_toolbar_enabled(False)  # 后端未就绪，工具栏置灰
         self._setup_central()
@@ -437,45 +450,3 @@ class MainWindow(QMainWindow):
             get_work_state_cb=self._collect_state,
             set_unrecognized_files_cb=lambda files: setattr(self, "_unrecognized_files", files),
         )
-
-    # ── 代理委托方法 ──────────────────────────────────────
-
-    def _on_check_announcements(self) -> None:
-        """代理 → AnnounceUIHandler。"""
-        self._core.announce.on_check_announcements()
-
-    def _on_download(self) -> None:
-        """代理 → DownloadUIHandler。"""
-        self._core.download.on_download()
-
-    def _on_import_download(self) -> None:
-        """代理 → DownloadUIHandler。"""
-        self._core.download.on_import_download()
-
-    def _run_scan(self, root_path: str) -> None:
-        """代理 → ScanUIHandler。"""
-        self._core.scan.run_scan(root_path)
-
-    def _on_query(self) -> None:
-        """代理 → QueryUIHandler。"""
-        self._core.query.on_query()
-
-    def _on_save_to_folder(self) -> None:
-        """代理 → ArchiveUIHandler。"""
-        self._core.archive.on_save_to_folder()
-
-    def _on_normalize(self) -> None:
-        """代理 → ArchiveUIHandler（规范化是归档的前置步骤）。"""
-        self._core.archive.on_normalize()
-
-    def _start_auto_pipeline(self, source_dir: str) -> None:
-        """代理 → AutoUIHandler。"""
-        self._core.auto.start_auto_pipeline(source_dir)
-
-    def _on_cleanup_empty_dirs(self) -> None:
-        """代理 → CleanupHandler。"""
-        self._core.cleanup.on_cleanup_empty_dirs()
-
-    def _on_collect_unrecognized(self) -> None:
-        """代理 → CleanupHandler。"""
-        self._core.cleanup.on_collect_unrecognized()

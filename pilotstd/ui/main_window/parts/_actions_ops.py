@@ -50,6 +50,7 @@ def _init_manager(self) -> None:
     if self._config.get("watchdog.enabled", False):
         mgr.start_watching()
     self._init_core()
+    self._file_menu.setEnabled(True)
 
 
 def _set_toolbar_enabled(self, enabled: bool) -> None:

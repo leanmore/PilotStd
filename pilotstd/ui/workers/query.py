@@ -54,6 +54,7 @@ class QueryWorker(QThread):
                     return
                 _result_batch.append((idx, result))
                 _sent_indices.add(idx)
+                self.result_ready.emit(idx, result)
                 now = _time.monotonic()
                 if len(_result_batch) >= _WORKER_BATCH_SIZE or now - _last_flush >= _WORKER_FLUSH_INTERVAL:
                     if not self._stopped:

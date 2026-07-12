@@ -56,7 +56,8 @@ def _on_tray_activated(self, reason: object) -> None:
 def _setup_menu(self) -> None:
     mb = self.menuBar()
     assert mb is not None, "menuBar() 不应为 None"
-    file_menu = mb.addMenu(_("file"))
+    self._file_menu = mb.addMenu(_("file"))
+    file_menu = self._file_menu
     a = file_menu.addAction(_("open_file"), self._on_open_file)
     a.setToolTip("选择单个标准文件并导入项目")
     a = file_menu.addAction(_("open_folder"), self._on_open_folder)
