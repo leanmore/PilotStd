@@ -25,12 +25,14 @@ class TestQuietHours(unittest.TestCase):
 
     def test_is_quiet_hours_false_when_disabled(self):
         cfg = MagicMock()
+        cfg._filepath = os.path.join(os.path.dirname(__file__), "test_config.json")
         cfg.get.return_value = False
-        mgr = self.NotificationManager(cfg, MagicMock())
+        mgr = self.NotificationManager(cfg, MagicMock(), user_id=1)
         self.assertFalse(mgr._is_quiet_hours())
 
     def test_is_quiet_hours_true_when_inside(self):
         cfg = MagicMock()
+        cfg._filepath = os.path.join(os.path.dirname(__file__), "test_config.json")
 
         def _cfg_get(key, default=None):
             return {
@@ -40,7 +42,7 @@ class TestQuietHours(unittest.TestCase):
             }.get(key, default)
 
         cfg.get.side_effect = _cfg_get
-        mgr = self.NotificationManager(cfg, MagicMock())
+        mgr = self.NotificationManager(cfg, MagicMock(), user_id=1)
         # 直接 patch manager 模块中已导入的 datetime
         with patch("pilotstd.core.notification.manager.datetime") as mock_dt:
             fake_now = MagicMock()
@@ -51,6 +53,7 @@ class TestQuietHours(unittest.TestCase):
 
     def test_enqueue_writes_to_queue(self):
         cfg = MagicMock()
+        cfg._filepath = os.path.join(os.path.dirname(__file__), "test_config.json")
 
         def _cfg_get(key, default=None):
             return {
@@ -61,7 +64,7 @@ class TestQuietHours(unittest.TestCase):
 
         cfg.get.side_effect = _cfg_get
         mock_db = MagicMock()
-        mgr = self.NotificationManager(cfg, mock_db)
+        mgr = self.NotificationManager(cfg, mock_db, user_id=1)
         msg = MagicMock()
         msg.event_type = "test"
         msg.title = "T"
@@ -76,10 +79,11 @@ class TestQuietHours(unittest.TestCase):
 
     def test_release_suppressed_returns_zero_when_empty(self):
         cfg = MagicMock()
+        cfg._filepath = os.path.join(os.path.dirname(__file__), "test_config.json")
         cfg.get.return_value = False
         mock_db = MagicMock()
         mock_db.fetchall.return_value = []
-        mgr = self.NotificationManager(cfg, mock_db)
+        mgr = self.NotificationManager(cfg, mock_db, user_id=1)
         self.assertEqual(mgr.release_suppressed_notifications(), 0)
 
 
