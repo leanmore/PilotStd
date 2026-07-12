@@ -2,6 +2,8 @@
 ## v0.65.1 (2026-07-12)
 
 ### Fixed
+- Handler 构造参数错配修复：ScanUIHandler 删除 3 个不存在参数 + 补 2 个缺失；QueryUIHandler 补充 `__init__` 委托给 `__init_tr` + 调用方补 3 删 1；DownloadUIHandler 补 `progress_callback`/`question_dlg`
+- 全量审查 14 个 Handler 实例化，其余 10 个签名与调用一致
 - 版本号自动同步（CI 更新）
 
 ## v0.65.0 (2026-07-12)

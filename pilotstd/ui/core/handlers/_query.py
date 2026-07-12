@@ -33,6 +33,60 @@ logger = logging.getLogger(__name__)
 class QueryUIHandler:
     """查询 UI 状态管理（Core + Pending）。"""
 
+    def __init__(
+        self,
+        mgr: Any,
+        config: ConfigManager,
+        pause_event: Any,
+        parent_widget: QWidget | None,
+        work_table: QTableWidget,
+        parsed_results: list[ParsedStdInfo],
+        # 回调依赖
+        add_table_row: Callable[[RowUpdate], None],
+        clear_table: Callable[[], None],
+        find_row_by_seq: Callable[[int], int],
+        question_dlg: Callable[[str, str], int],
+        stage_prereq_dialog: Callable[[str, str, str], str],
+        show_stage_dialog: Callable[..., None],
+        register_task: Callable[..., None],
+        status_callback: Callable[[str], None],
+        progress_callback: Callable[[int], None],
+        reset_progress: Callable[[], None],
+        force_finish_progress: Callable[[], None],
+        suppress_dialogs: Callable[[], bool] | None = None,
+        project_mark_dirty: Callable[[], None] | None = None,
+        notify_worker_error: Callable[[str, str], None] | None = None,
+        # 外部流程委托
+        run_scan: Callable[[str], None] | None = None,
+        get_selected_path: Callable[[], str] | None = None,
+        on_download: Callable[[], None] | None = None,
+    ) -> None:
+        self.__init_tr(
+            mgr=mgr,
+            config=config,
+            pause_event=pause_event,
+            parent=parent_widget,
+            work_table=work_table,
+            parsed_results=parsed_results,
+            add_table_row=add_table_row,
+            clear_table=clear_table,
+            find_row_by_seq=find_row_by_seq,
+            question_dlg=question_dlg,
+            stage_prereq_dialog=stage_prereq_dialog,
+            show_stage_dialog=show_stage_dialog,
+            register_task=register_task,
+            status_callback=status_callback,
+            progress_callback=progress_callback,
+            reset_progress=reset_progress,
+            force_finish_progress=force_finish_progress,
+            suppress_dialogs=suppress_dialogs,
+            project_mark_dirty=project_mark_dirty,
+            notify_worker_error=notify_worker_error,
+            run_scan=run_scan,
+            get_selected_path=get_selected_path,
+            on_download=on_download,
+        )
+
     def __init_tr(
         self,
         mgr: Any,

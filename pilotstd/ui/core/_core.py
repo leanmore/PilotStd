@@ -139,9 +139,8 @@ class MainWindowCore:
             clear_table=self._clear_table,
             update_button_states=self._update_button_states,
             question_dlg=self._question_dlg,
-            reset_progress=self._reset_progress,
-            force_finish_progress=self._force_finish_progress,
-            on_raw_progress=self._on_raw_progress,
+            unrecognized_files=self._get_unrecognized_files_cb,
+            scan_source_root=self._get_scan_source_root_cb,
         )
 
     def _init_query(self) -> None:
@@ -154,15 +153,17 @@ class MainWindowCore:
             parsed_results=self._parsed_results,
             status_callback=self._status_callback,
             suppress_dialogs=self._suppress_dialogs,
+            add_table_row=self._add_table_row,
+            clear_table=self._clear_table,
+            find_row_by_seq=self._find_row_by_seq,
             question_dlg=self._question_dlg,
             stage_prereq_dialog=self._stage_prereq_dialog,
             show_stage_dialog=self._show_stage_dialog,
             register_task=self._register_task,
             project_mark_dirty=self._project_mark_dirty,
+            progress_callback=self._progress_callback,
             reset_progress=self._reset_progress,
             force_finish_progress=self._force_finish_progress,
-            on_raw_progress=self._on_raw_progress,
-            find_row_by_seq=self._find_row_by_seq,
         )
 
     def _init_download(self) -> None:
@@ -173,7 +174,9 @@ class MainWindowCore:
             parent_widget=self._parent,
             work_table=self._work_table,
             status_callback=self._status_callback,
+            progress_callback=self._progress_callback,
             show_stage_dialog=self._show_stage_dialog,
+            question_dlg=self._question_dlg,
             stage_prereq_dialog=self._stage_prereq_dialog,
             register_task=self._register_task,
             project_mark_dirty=self._project_mark_dirty,
