@@ -139,8 +139,8 @@ class MainWindowCore:
             clear_table=self._clear_table,
             update_button_states=self._update_button_states,
             question_dlg=self._question_dlg,
-            unrecognized_files=self._get_unrecognized_files_cb,
-            scan_source_root=self._get_scan_source_root_cb,
+            unrecognized_files=self._get_unrecognized_files_cb() if self._get_unrecognized_files_cb else [],
+            scan_source_root=self._get_scan_source_root_cb() if self._get_scan_source_root_cb else "",
         )
 
     def _init_query(self) -> None:
