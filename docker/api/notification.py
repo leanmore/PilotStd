@@ -9,11 +9,17 @@ from pydantic import BaseModel
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
-from ..auth import require_admin
+from ..auth import get_current_username, require_admin
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
+
+
+def _get_user_id(username: str = Depends(get_current_username), mgr=Depends(get_manager_dep)) -> int:
+    """从 token 提取 user_id，找不到时返回 1（兼容系统调用）。"""
+    user_id = mgr.user_service.get_user_id(username)
+    return user_id if user_id is not None else 1
 
 
 class MarkReadRequest(BaseModel):
@@ -25,54 +31,79 @@ def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
 
 
 @router.get("/api/notification/config")
-def get_config(mgr=Depends(get_manager_dep)):
-    """读取通知配置（四渠道全参数）。"""
-    cfg = mgr.cfg
+def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id)):
+    """读取当前用户的渠道凭证配置。"""
+    nmgr = mgr.notification_mgr
+    creds: dict[str, dict[str, str]] = {}
+    if nmgr._cred_helper:
+        creds = nmgr._cred_helper.get_all(user_id)
 
     def mask(v: str) -> str:
         return "***" if v else ""
 
+    def build_channel(ch_name: str, defaults: dict) -> dict:
+        ch = creds.get(ch_name) or {}
+        result: dict[str, object] = {}
+        for k in defaults:
+            val = ch.get(k, "")
+            if k in ("webhook_url", "bot_token", "secret", "corpsecret"):
+                result[k] = mask(str(val))
+            elif k == "enabled":
+                if isinstance(val, bool):
+                    result[k] = val
+                elif isinstance(val, str) and val.lower() in ("false", "0", ""):
+                    result[k] = False
+                else:
+                    result[k] = bool(val)
+            else:
+                result[k] = str(val)
+        return result
+
     return {
-        "enabled": cfg.get("notification.enabled", False),
+        "enabled": mgr.cfg.get("notification.enabled", False),
         "channels": {
-            "wechat": {
-                "enabled": cfg.get("notification.channels.wechat.enabled", True),
-                "webhook_url": mask(cfg.get("notification.channels.wechat.webhook_url", "")),
-                "corpid": cfg.get("notification.channels.wechat.corpid", ""),
-                "agentid": cfg.get("notification.channels.wechat.agentid", ""),
-                "corpsecret": mask(cfg.get("notification.channels.wechat.corpsecret", "")),
-                "proxy_url": cfg.get("notification.channels.wechat.proxy_url", ""),
-            },
-            "telegram": {
-                "enabled": cfg.get("notification.channels.telegram.enabled", False),
-                "bot_token": mask(cfg.get("notification.channels.telegram.bot_token", "")),
-                "chat_id": cfg.get("notification.channels.telegram.chat_id", ""),
-            },
-            "feishu": {
-                "enabled": cfg.get("notification.channels.feishu.enabled", False),
-                "webhook_url": mask(cfg.get("notification.channels.feishu.webhook_url", "")),
-                "secret": mask(cfg.get("notification.channels.feishu.secret", "")),
-            },
-            "dingtalk": {
-                "enabled": cfg.get("notification.channels.dingtalk.enabled", False),
-                "webhook_url": mask(cfg.get("notification.channels.dingtalk.webhook_url", "")),
-                "secret": mask(cfg.get("notification.channels.dingtalk.secret", "")),
-            },
+            "wechat": build_channel(
+                "wechat",
+                {
+                    "enabled": True,
+                    "webhook_url": "",
+                    "corpid": "",
+                    "agentid": "",
+                    "corpsecret": "",
+                    "proxy_url": "",
+                },
+            ),
+            "telegram": build_channel("telegram", {"enabled": False, "bot_token": "", "chat_id": ""}),
+            "feishu": build_channel("feishu", {"enabled": False, "webhook_url": "", "secret": ""}),
+            "dingtalk": build_channel("dingtalk", {"enabled": False, "webhook_url": "", "secret": ""}),
         },
-        "rules": {ev: cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
+        "rules": {ev: mgr.cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
     }
 
 
 @router.put("/api/notification/config")
-def update_config(body: dict, mgr=Depends(get_manager_dep), _: bool = Depends(require_admin)):
-    """更新通知配置（仅管理员）。"""
+def update_config(
+    body: dict,
+    mgr=Depends(get_manager_dep),
+    user_id: int = Depends(_get_user_id),
+    _: bool = Depends(require_admin),
+):
+    """更新通知配置（按用户隔离）。"""
+    nmgr = mgr.notification_mgr
     for key, value in body.items():
         if key == "enabled":
             mgr.cfg.set("notification.enabled", bool(value))
         elif key == "channels":
             for ch_name, ch_cfg in value.items():
-                for ch_key, ch_val in ch_cfg.items():
-                    mgr.cfg.set(f"notification.channels.{ch_name}.{ch_key}", ch_val)
+                if isinstance(ch_cfg, dict) and nmgr._cred_helper:
+                    cleaned: dict[str, str] = {}
+                    for k, v in ch_cfg.items():
+                        if k == "enabled":
+                            cleaned[k] = "true" if v else "false"
+                        elif v:
+                            cleaned[k] = str(v)
+                    if cleaned:
+                        nmgr._cred_helper.set_channel(user_id, ch_name, cleaned)
         elif key == "rules":
             for rule_name, channels in value.items():
                 mgr.cfg.set(f"notification.rules.{rule_name}", channels)
@@ -204,10 +235,10 @@ class PolicyUpdateRequest(BaseModel):
 
 
 @router.get("/api/notification/policy")
-def get_policy(nmgr=Depends(_get_notification_mgr)):
-    """获取通知策略配置（渠道事件订阅）。"""
+def get_policy(nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_user_id)):
+    """获取通知策略配置（渠道事件订阅，按用户隔离）。"""
     try:
-        policies = nmgr.get_policies()
+        policies = nmgr.get_policies(user_id)
         return {"policies": policies}
     except Exception as e:
         logger.exception("获取通知策略失败")
@@ -218,11 +249,12 @@ def get_policy(nmgr=Depends(_get_notification_mgr)):
 def put_policy(
     data: PolicyUpdateRequest,
     nmgr=Depends(_get_notification_mgr),
+    user_id: int = Depends(_get_user_id),
     _: str = Depends(require_admin),
 ):
-    """更新通知策略（仅管理员）。"""
+    """更新通知策略（仅管理员，按用户隔离）。"""
     try:
-        nmgr.save_policy(data.channel, data.enabled, data.events)
+        nmgr.save_policy(user_id, data.channel, data.enabled, data.events)
         return {"ok": True}
     except Exception as e:
         logger.exception("保存通知策略失败")
