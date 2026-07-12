@@ -100,6 +100,7 @@ class ArchiveUIHandler:
 
     def on_normalize(self) -> None:
         """规范化：标准名称缺失补全 → 冲突处理 → 后台计算规范文件名。"""
+        print(f"[TRACE] on_normalize: id={id(self._parsed_results)} len={len(self._parsed_results)}")
         if not self._parsed_results:
             choice = self._stage_prereq_dialog(_("title_hint"), _("msg_scan_prereq"), _("task_scan"))
             if choice == "run_prereq":

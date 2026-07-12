@@ -80,6 +80,7 @@ class MainWindowCore:
         self._mgr, self._config, self._pause_event = mgr, config, pause_event
         self._parent, self._work_table = parent_widget, work_table
         self._parsed_results, self._status_callback = parsed_results, status_callback
+        print(f"[TRACE] MainWindowCore.__init__: _parsed_results id={id(self._parsed_results)}")
         self._progress_callback, self._suppress_dialogs = progress_callback, suppress_dialogs
         self._register_task, self._project_mark_dirty = register_task, project_mark_dirty
         self._add_table_row, self._find_row_by_seq = add_table_row, find_row_by_seq
