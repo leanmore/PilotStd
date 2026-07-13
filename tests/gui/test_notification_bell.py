@@ -6,7 +6,7 @@ import json
 from unittest.mock import MagicMock
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMenu
 
 from pilotstd.ui.widgets.notification_bell_widget import (
     NotificationBellWidget,
@@ -131,12 +131,10 @@ class TestNotificationBellWidget:
         """点击通知项关闭菜单并调用标记已读。"""
         widget = NotificationBellWidget()
         qtbot.addWidget(widget)
-        # mock StandardManager 以跳过后端调用
         widget._get_mgr = MagicMock()  # type: ignore[method-assign]
         widget._items = [NotificationItem({"id": 99, "title": "测试"})]
         widget._unread_count = 1
-        widget._menu = MagicMock()
-        widget._menu.isVisible.return_value = True
+        widget._menu = QMenu()  # 真实 QMenu，避免 QWidgetAction 收到 MagicMock
 
         widget._on_item_click(99)
         assert widget._unread_count == 0

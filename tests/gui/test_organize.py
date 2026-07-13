@@ -68,7 +68,9 @@ def test_save_to_folder_creates_files(window, test_data_dir, qtbot):
         _wait_worker(qtbot, window, "_query_worker")
         window._on_save_to_folder()
         _wait_worker(qtbot, window, "_archive_worker")
-        root = window._get_library_root()
+        from pilotstd.core.config import get_library_root
+
+        root = get_library_root(window._config)
         assert os.path.isdir(root), f"标准库根目录应存在: {root}"
         subdirs = [d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))]
         assert len(subdirs) > 0, "应有至少一个分类子目录"
