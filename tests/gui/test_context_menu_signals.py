@@ -1,10 +1,21 @@
 """验证右键菜单的触发（弹出/信号）"""
 
-from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QPoint, QTimer
 from PyQt6.QtGui import QContextMenuEvent
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMenu
 
 from pilotstd.i18n import _
+
+
+def _schedule_menu_close():
+    """100ms 后关闭当前活动弹出菜单，防止 menu.exec() 阻塞事件循环。"""
+
+    def _close():
+        popup = QApplication.activePopupWidget()
+        if popup is not None:
+            popup.close()
+
+    QTimer.singleShot(100, _close)
 
 
 class TestContextMenuPopups:
@@ -20,9 +31,10 @@ class TestContextMenuPopups:
             triggered = True
 
         window.file_tree.customContextMenuRequested.connect(on_menu)
+        _schedule_menu_close()
         event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100))
         QApplication.sendEvent(window.file_tree.viewport(), event)
-        qtbot.wait(100)
+        qtbot.waitUntil(lambda: triggered, timeout=2000)
         assert triggered, "文件树 customContextMenuRequested 信号未触发"
 
     def test_table_header_context_menu_signal_emitted(self, mock_main_window, qtbot):
@@ -36,9 +48,10 @@ class TestContextMenuPopups:
 
         header = window.work_table.horizontalHeader()
         header.customContextMenuRequested.connect(on_menu)
+        _schedule_menu_close()
         event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100))
         QApplication.sendEvent(header.viewport(), event)
-        qtbot.wait(100)
+        qtbot.waitUntil(lambda: triggered, timeout=2000)
         assert triggered, "表头 customContextMenuRequested 信号未触发"
 
     def test_work_table_context_menu_signal_emitted(self, mock_main_window, qtbot):
@@ -51,9 +64,10 @@ class TestContextMenuPopups:
             triggered = True
 
         window.work_table.customContextMenuRequested.connect(on_menu)
+        _schedule_menu_close()
         event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100))
         QApplication.sendEvent(window.work_table.viewport(), event)
-        qtbot.wait(100)
+        qtbot.waitUntil(lambda: triggered, timeout=2000)
         assert triggered, "工作表 customContextMenuRequested 信号未触发"
 
 
@@ -62,8 +76,6 @@ class TestContextMenuContent:
 
     def test_file_tree_context_menu_has_import(self, mock_main_window):
         """文件树右键菜单应包含「导入工作区」选项。"""
-        from PyQt6.QtWidgets import QMenu
-
         menu = QMenu(mock_main_window)
         menu.addAction(f"\U0001f4c2 {_('context_import')}")
         actions_text = [a.text() for a in menu.actions()]
@@ -71,10 +83,7 @@ class TestContextMenuContent:
 
     def test_work_table_context_menu_items_exist(self, mock_main_window):
         """构建工作表右键菜单的模拟菜单，确认所有 6 项均可创建。"""
-        from PyQt6.QtWidgets import QMenu
-
-        window = mock_main_window
-        menu = QMenu(window)
+        menu = QMenu(mock_main_window)
         menu.addAction(f"\U0001f4cb {_('copy')}")
         menu.addAction(f"\U0001f50d {_('offline_view')}")
         menu.addAction(f"\U0001f4c4 {_('add_file')}")
