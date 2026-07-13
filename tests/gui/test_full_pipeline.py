@@ -11,8 +11,15 @@ if root_dir not in sys.path:
 
 
 def _wait_worker(qtbot, window, attr, timeout=30000):
-    """等待 Worker 线程完成。"""
+    """等待 Worker 线程完成（兼容新旧 Handler 架构）。"""
     w = getattr(window, attr, None)
+    # 新架构：worker 在 window._core.<handler>.<attr> 下
+    if w is None and hasattr(window, "_core"):
+        # attr → handler 映射：_scan_worker → scan, _query_worker → query, etc.
+        handler_name = attr.replace("_worker", "")
+        handler = getattr(window._core, handler_name, None)
+        if handler is not None:
+            w = getattr(handler, attr, None)
     if w is not None and w.isRunning():
         with qtbot.waitSignal(w.finished_signal, timeout=timeout):
             pass

@@ -8,8 +8,10 @@ if root_dir not in sys.path:
 
 
 def _wait_scan(qtbot, window, timeout=5000):
-    """等待 ScanWorker 完成。"""
+    """等待 ScanWorker 完成（兼容新旧 Handler 架构）。"""
     w = getattr(window, "_scan_worker", None)
+    if w is None and hasattr(window, "_core"):
+        w = getattr(window._core.scan, "_scan_worker", None)
     if w is not None and w.isRunning():
         with qtbot.waitSignal(w.finished_signal, timeout=timeout):
             pass
