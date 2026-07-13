@@ -23,6 +23,8 @@ logger = logging.getLogger("pilotstd.ui")
 
 
 def _question_dlg(self, title: str, msg: str) -> QMessageBox.StandardButton:
+    if self._suppress_dialogs:
+        return QMessageBox.StandardButton.Yes
     dlg = QMessageBox(self)  # type: ignore[call-overload]
     dlg.setWindowTitle(title)
     dlg.setText(msg)

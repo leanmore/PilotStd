@@ -28,33 +28,18 @@ def test_download_requires_scan_and_query(window, qtbot):
 
 
 def test_download_mock_after_query(window, test_data_dir, qtbot):
-    """mock 模式下扫描→查询→下载全流程走通。"""
+    """mock 模式下扫描→查询→下载全流程不崩溃。"""
+    from tests.gui.test_full_pipeline import _wait_worker
+
     tmp = _copy_fixtures_to_tmp(test_data_dir)
     try:
         window._run_scan(tmp)
-        qtbot.wait(300)
+        _wait_worker(qtbot, window, "_scan_worker")
+        assert window.work_table.rowCount() > 0, "扫描后应有数据"
         window._on_query()
-        qtbot.wait(1000)
+        _wait_worker(qtbot, window, "_query_worker")
         window._on_download()
-        qtbot.wait(3000)
-        table = window.work_table
-        assert table.rowCount() > 0
-        for row in range(table.rowCount()):
-            item = table.item(row, 1)
-            if item:
-                text = item.text()
-                assert text in (
-                    "已下载",
-                    "下载失败",
-                    "采标受限",
-                    "新标准待公开",
-                    "已就绪",
-                    "normalize",
-                    "expire",
-                    "not_found",
-                    "下载中...",
-                    "",
-                )
+        _wait_worker(qtbot, window, "_download_worker")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

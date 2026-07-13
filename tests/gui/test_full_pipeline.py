@@ -15,8 +15,15 @@ def _wait_worker(qtbot, window, attr, timeout=30000):
     w = getattr(window, attr, None)
     # 新架构：worker 在 window._core.<handler>.<attr> 下
     if w is None and hasattr(window, "_core"):
-        # attr → handler 映射：_scan_worker → scan, _query_worker → query, etc.
-        handler_name = attr.replace("_worker", "")
+        # attr → handler 映射
+        _worker_handler_map = {
+            "_scan_worker": "scan",
+            "_query_worker": "query",
+            "_download_worker": "download",
+            "_normalize_worker": "archive",  # normalize 是 archive handler 的子功能
+            "_archive_worker": "archive",
+        }
+        handler_name = _worker_handler_map.get(attr, attr.replace("_worker", ""))
         handler = getattr(window._core, handler_name, None)
         if handler is not None:
             w = getattr(handler, attr, None)
@@ -51,6 +58,11 @@ def test_full_pipeline_scan_query_download(window, test_data_dir, qtbot):
         assert len(window._parsed_results) > 0
         assert window.work_table.rowCount() > 0
 
+        # 补充 std_name，跳过查询/规范化/存档的缺失名称弹窗
+        for p in window._parsed_results:
+            if not p.std_name:
+                p.std_name = f"标准_{p.logical_code}_{p.number}"
+
         # 查询（后台线程）
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
@@ -66,7 +78,9 @@ def test_full_pipeline_scan_query_download(window, test_data_dir, qtbot):
         # 归档（后台线程）
         window._on_save_to_folder()
         _wait_worker(qtbot, window, "_archive_worker")
-        root = window._get_library_root()
+        from pilotstd.core.config import get_library_root
+
+        root = get_library_root(window._config)
         assert os.path.isdir(root)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
