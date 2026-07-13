@@ -17,7 +17,7 @@ def _make_mock_manager(results_count: int):
             source_site="mock",
         )
         results.append(r)
-    mgr.query.return_value = (results, {})
+    mgr.query_stream.return_value = (results, {})
     return mgr
 
 
@@ -59,7 +59,7 @@ def test_query_worker_stops_on_stop(qtbot):
             results.append(r)
         return results, {}
 
-    mgr.query.side_effect = delayed_query
+    mgr.query_stream.side_effect = delayed_query
     parsed_list = [("GB/T", i, 2020, "", None) for i in range(100)]
     worker = QueryWorker(mgr, parsed_list)
     processed = []
@@ -107,7 +107,7 @@ def test_archive_worker_target_path_returns_path(qtbot):
     path = ArchiveWorker.target_path(parsed, "/tmp/lib")
     assert path is not None
     assert "GB 国家标准" in path
-    assert "GBT 1-2020" in path
+    assert "GB 1-2020" in path
 
 
 # === auto.py 覆盖 ===
