@@ -357,8 +357,13 @@ class QuerySummaryHandler:
             ),
         )
 
-        if self._suppress_dialogs and self._suppress_dialogs():
+        if getattr(self._parent, "_suppress_dialogs", False):
             return
+        try:
+            if self._suppress_dialogs and self._suppress_dialogs():
+                return
+        except Exception:
+            pass
 
         buckets = self.build_buckets()
         has_download = len(buckets.get("download", [])) > 0
