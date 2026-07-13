@@ -15,7 +15,7 @@ on:
 
 concurrency:
   group: ci-cd
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
