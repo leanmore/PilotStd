@@ -5,11 +5,21 @@
 import json
 from unittest.mock import MagicMock
 
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication
+
 from pilotstd.ui.widgets.notification_bell_widget import (
     NotificationBellWidget,
     NotificationItem,
     WebSocketClient,
 )
+
+
+def _close_popup_menu():
+    """关闭当前活动弹出菜单，防止 menu.exec() 阻塞事件循环。"""
+    popup = QApplication.activePopupWidget()
+    if popup is not None:
+        popup.close()
 
 
 class TestNotificationItem:
@@ -89,10 +99,11 @@ class TestNotificationBellWidget:
         assert widget._button.text() == "🔔"
 
     def test_button_clickable(self, qtbot) -> None:
-        """按钮点击不抛异常。"""
+        """按钮点击不抛异常。自动关闭弹出的菜单防止阻塞事件循环。"""
         widget = NotificationBellWidget()
         qtbot.addWidget(widget)
-        # 点击按钮应能正常展开/收起菜单
+        # 100ms 后关闭弹出的菜单
+        QTimer.singleShot(100, lambda: _close_popup_menu())
         widget._button.click()
 
     def test_format_time_just_now(self) -> None:
