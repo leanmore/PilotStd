@@ -40,9 +40,14 @@ class FileIndexRepository:
         return self._validation_complete.is_set()
 
     def stop(self) -> None:
-        """停止后台校验线程。设置停止信号并等待最多 5 秒退出。"""
+        """停止后台校验线程。设置停止信号，关闭 DB，等待线程退出。"""
         self._stop_event.set()
         self._validation_complete.set()
+        if hasattr(self, "_db") and self._db is not None:
+            try:
+                self._db.close_all()
+            except Exception:
+                pass
         if self._validation_thread is not None and self._validation_thread.is_alive():
             self._validation_thread.join(timeout=5)
 
@@ -88,6 +93,8 @@ class FileIndexRepository:
 
     def validate_paths(self) -> int:
         """逐条校验索引记录的目标路径是否存在，失效则删除。返回清除数量。"""
+        if self._stop_event.is_set():
+            return 0
         try:
             rows = self._db.fetchall(f"SELECT id, file_path FROM {FILE_INDEX_TABLE}")
         except Exception:

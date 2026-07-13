@@ -7,6 +7,9 @@ import tempfile
 
 import pytest
 
+# 全局测试模式 — 禁止所有弹窗
+os.environ["PILOTSTD_TEST_MODE"] = "1"
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)

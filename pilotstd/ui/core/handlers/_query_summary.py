@@ -357,13 +357,9 @@ class QuerySummaryHandler:
             ),
         )
 
-        if getattr(self._parent, "_suppress_dialogs", False):
+        # 检查当前对象的 _suppress_dialogs 标志
+        if getattr(self, "_suppress_dialogs", False):
             return
-        try:
-            if self._suppress_dialogs and self._suppress_dialogs():
-                return
-        except Exception:
-            pass
 
         buckets = self.build_buckets()
         has_download = len(buckets.get("download", [])) > 0
