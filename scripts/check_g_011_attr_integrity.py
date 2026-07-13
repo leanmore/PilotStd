@@ -21,7 +21,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCAN_DIRS = [ROOT / "pilotstd", ROOT / "docker", ROOT / "scripts"]
+SCAN_DIRS = [ROOT / "pilotstd", ROOT / "docker"]  # scripts/ 排除，为工具脚本不参与属性检查
 
 # ── 正则 ──
 DEF_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*) *(?::[^=\n]+)?= (?!=)")
