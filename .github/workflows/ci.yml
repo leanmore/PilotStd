@@ -347,7 +347,7 @@ jobs:
     name: docker
     needs: version
     if: |
-      always() &&
+      !cancelled() &&
       (needs.version.result == 'success' || needs.version.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
@@ -406,7 +406,7 @@ jobs:
     name: exe
     needs: version
     if: |
-      always() &&
+      !cancelled() &&
       (needs.version.result == 'success' || needs.version.result == 'skipped')
     runs-on: windows-latest
     timeout-minutes: 45
