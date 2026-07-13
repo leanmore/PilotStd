@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+from unittest import mock
 
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.workers import ArchiveWorker
@@ -18,6 +19,32 @@ def _make_parsed(src_path, code="GB", num=1, year=2020, effect_status="现行", 
         effect_status=effect_status,
     )
     return p
+
+
+def _make_mock_mgr(tmpdir):
+    """创建 mock manager，模拟 archive_standards 移动文件。"""
+    mgr = mock.MagicMock()
+
+    def fake_archive(parsed_list, progress_callback=None, on_result=None, overwrite=False):
+        for i, p in enumerate(parsed_list):
+            # 模拟文件移动
+            src = getattr(p, "source_path", "")
+            if src and os.path.exists(src):
+                dst_dir = os.path.join(tmpdir, "library", "GB")
+                os.makedirs(dst_dir, exist_ok=True)
+                dst = os.path.join(dst_dir, os.path.basename(src))
+                shutil.move(src, dst)
+                p.source_path = dst
+                status = "已归档"
+            else:
+                status = "跳过"
+            if on_result:
+                on_result(i, status)
+            if progress_callback:
+                progress_callback(i + 1, len(parsed_list))
+
+    mgr.archive_standards = fake_archive
+    return mgr
 
 
 def test_archive_worker_checkpoint_skips_completed(qtbot):
@@ -48,7 +75,7 @@ def test_archive_worker_checkpoint_skips_completed(qtbot):
     cfg.get_data_dir = lambda: data_dir
 
     try:
-        worker = ArchiveWorker([parsed], dst_dir)
+        worker = ArchiveWorker(_make_mock_mgr(tmpdir), [parsed], library_root=dst_dir)
         batches = []
         worker.batch_ready.connect(lambda b: batches.extend(b))
         with qtbot.waitSignal(worker.finished_signal, timeout=5000):
@@ -76,7 +103,7 @@ def test_archive_worker_moves_new_files(qtbot):
         f.write("test")
     parsed = _make_parsed(src_file)
 
-    worker = ArchiveWorker([parsed], dst_dir)
+    worker = ArchiveWorker(_make_mock_mgr(tmpdir), [parsed], library_root=dst_dir)
     batches = []
     worker.batch_ready.connect(lambda b: batches.extend(b))
     with qtbot.waitSignal(worker.finished_signal, timeout=5000):

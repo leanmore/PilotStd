@@ -5,7 +5,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import QPoint, Qt, QTimer
 from PyQt6.QtGui import QContextMenuEvent
 from PyQt6.QtWidgets import QApplication, QMenu
 
@@ -16,19 +16,28 @@ def test_work_table_has_context_menu_policy(window):
 
 
 def test_work_table_context_menu_triggered(window, qtbot):
-    """工作区右键菜单应能触发 context menu 信号。"""
+    """工作区右键菜单应能触发 context menu 信号。
+    发送 QContextMenuEvent 后 _on_work_table_context_menu 会调用 menu.exec()
+    进入阻塞模态循环，因此用 QTimer 在 100ms 后关闭菜单防止测试卡死。"""
     triggered = False
 
     def on_menu(pos):
         nonlocal triggered
         triggered = True
 
+    def _close_menu():
+        # 菜单是 QMenu(window) 创建的，从窗口查找
+        menu = window.findChild(QMenu)
+        if menu and menu.isVisible():
+            menu.close()
+
     window.work_table.customContextMenuRequested.connect(on_menu)
-    # 通过 viewport 发送 QContextMenuEvent，由 QAbstractScrollArea::viewportEvent
-    # 转发至 work_table 自身，触发 customContextMenuRequested 信号
+    QTimer.singleShot(100, _close_menu)
+
     event = QContextMenuEvent(QContextMenuEvent.Reason.Mouse, QPoint(10, 10), QPoint(100, 100))
     QApplication.sendEvent(window.work_table.viewport(), event)
-    qtbot.wait(100)
+
+    qtbot.waitUntil(lambda: triggered, timeout=2000)
     assert triggered
 
 
