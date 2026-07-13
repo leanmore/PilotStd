@@ -232,7 +232,7 @@ jobs:
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
   version:
-    needs: [test-backend, test-frontend, security-scan, repo-compliance]
+    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-gui]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
