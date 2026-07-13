@@ -43,7 +43,7 @@ def test_toggleable_cols_exist(window):
 
 def test_column_visibility_toggle(window):
     """表头右键菜单项应能切换列可见性。"""
-    from pilotstd.ui.table_mixin import TOGGLEABLE_COLS
+    from pilotstd.ui.table_constants import TOGGLEABLE_COLS
 
     first_toggle_col = TOGGLEABLE_COLS[0]
     assert not window.work_table.isColumnHidden(first_toggle_col)

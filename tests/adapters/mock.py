@@ -4,8 +4,8 @@
 import random
 from typing import Optional
 
-from ..models import QueryResult
-from .base import BaseAdapter
+from pilotstd.query.adapters.base import BaseAdapter
+from pilotstd.query.models import QueryResult
 
 STATUS_POOL = ["现行", "现行", "现行", "现行", "废止", "即将实施"]
 DEPT_POOL = [

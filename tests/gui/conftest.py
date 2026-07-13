@@ -18,6 +18,18 @@ from pilotstd.ui.main_window import MainWindow
 
 
 @pytest.fixture(scope="session")
+def _template_db_path(tmp_path_factory):
+    """Session 级模板 DB：37 个迁移只跑一次，后续每个测试复制模板秒过。"""
+    from pilotstd.core.db import Database
+
+    template_dir = tmp_path_factory.mktemp("db_template")
+    db_path = str(template_dir / "template.db")
+    db = Database(db_path)
+    db.close_all()
+    return db_path
+
+
+@pytest.fixture(scope="session")
 def qapp():
     app = QApplication.instance()
     if app is None:
@@ -33,9 +45,13 @@ def test_data_dir():
 
 
 @pytest.fixture
-def mock_main_window(qapp, qtbot, test_data_dir):
+def mock_main_window(qapp, qtbot, test_data_dir, _template_db_path):
     """创建 mock 模式下的 MainWindow，查询和下载使用 mock 适配器。"""
     tmpdir = tempfile.mkdtemp(prefix="pilotstd_gui_test_")
+
+    # 复制模板 DB（已含全部迁移），避免每个测试重复跑 37 个迁移
+    db_path = os.path.join(tmpdir, "test.db")
+    shutil.copy2(_template_db_path, db_path)
 
     config_path = os.path.join(tmpdir, "config.json")
     cfg = core.ConfigManager(filepath=config_path)
@@ -55,7 +71,6 @@ def mock_main_window(qapp, qtbot, test_data_dir):
     from tests.adapters.mock import MockQueryAdapter
     from tests.adapters.mock_download import MockDownloadAdapter
 
-    db_path = os.path.join(tmpdir, "test.db")
     _db = Database(db_path)
     _cache = CacheRepository(_db)
     _cache.clear_all()
@@ -106,7 +121,7 @@ def window(mock_main_window):
 
 
 @pytest.fixture
-def real_window(qapp, qtbot):
+def real_window(qapp, qtbot, _template_db_path):
     """创建真实网络模式下的 MainWindow，用于冷启动压测。
 
     DB 非 mock，适配器非 mock——真实 HTTP 请求。
@@ -118,6 +133,10 @@ def real_window(qapp, qtbot):
     from pilotstd.ui.main_window import MainWindow
 
     _tmp = tempfile.mkdtemp(prefix="stress_cold_")
+
+    # 复制模板 DB
+    db_path = os.path.join(_tmp, "test.db")
+    shutil.copy2(_template_db_path, db_path)
 
     config_path = os.path.join(_tmp, "config.json")
     cfg = core.ConfigManager(filepath=config_path)
