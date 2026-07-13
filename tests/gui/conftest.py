@@ -102,6 +102,16 @@ def mock_main_window(qapp, qtbot, test_data_dir, _template_db_path):
     for h in list(root_logger.handlers):
         if hasattr(window, "_log_handler") and h is window._log_handler:
             root_logger.removeHandler(h)
+
+    # 停掉 FileIndex 后台校验线程（防止访问已关闭的 DB 导致 segfault）
+    try:
+        if hasattr(window, "_mgr") and window._mgr is not None:
+            fi = window._mgr._core.file_index
+            if fi is not None:
+                fi._validation_complete.set()
+    except Exception:
+        pass
+
     # 再停掉所有后台 worker 线程
     if hasattr(window, "_stop_workers"):
         window._stop_workers()
