@@ -114,9 +114,13 @@ def main():
 
     parser = argparse.ArgumentParser(prog="pilotstd", description="PilotStd 标准文件管理工具")
     parser.add_argument("--cli", action="store_true", help="命令行模式")
-    args, _ = parser.parse_known_args()
+    args, remaining = parser.parse_known_args()
 
     if args.cli:
+        # 将 --cli 之后的参数传给 CLI 子解析器，避免 "unrecognized arguments: --cli"
+        import sys as _sys
+
+        _sys.argv = [_sys.argv[0], *remaining]
         from pilotstd.cli.commands import main as cli_main
 
         return cli_main()

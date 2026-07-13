@@ -409,6 +409,18 @@ jobs:
       - name: Build exe with PyInstaller
         run: pyinstaller desktop/PilotStd.spec --noconfirm --clean
 
+      - name: L1 — Packaged startup test
+        shell: pwsh
+        env:
+          SUPERUSER: superadmin
+        run: python scripts/test_packaged.py
+
+      - name: L2 — Packaged CLI e2e tests
+        shell: pwsh
+        env:
+          SUPERUSER: superadmin
+        run: python -m pytest tests/cli/test_packaged_cli_e2e.py -v
+
       - name: Upload exe to Release
         if: needs.version.outputs.bumped == 'true'
         uses: softprops/action-gh-release@v2
