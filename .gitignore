@@ -26,7 +26,6 @@ docs/
 # 测试缓存
 .pytest_cache/
 tests/standards/
-tests/gui/fixtures/
 tests/.cache/
 tests/.fernet_key
 

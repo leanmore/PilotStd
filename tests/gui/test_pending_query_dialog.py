@@ -75,7 +75,7 @@ class TestPendingQueryDialog:
         """公告数据库默认未开启时不显示本地数据库选项。"""
         from pilotstd.ui.pending_query_dialog import PendingQueryDialog
 
-        with patch("pilotstd.ui.pending_query_dialog.ConfigManager") as mock_cfg:
+        with patch("pilotstd.core.config.ConfigManager") as mock_cfg:
             mock_cfg_instance = MagicMock()
             mock_cfg_instance.get.return_value = False
             mock_cfg.return_value = mock_cfg_instance
@@ -89,7 +89,7 @@ class TestPendingQueryDialog:
         """公告数据库已开启时显示本地数据库选项。"""
         from pilotstd.ui.pending_query_dialog import PendingQueryDialog
 
-        with patch("pilotstd.ui.pending_query_dialog.ConfigManager") as mock_cfg:
+        with patch("pilotstd.core.config.ConfigManager") as mock_cfg:
             mock_cfg_instance = MagicMock()
             mock_cfg_instance.get.return_value = True
             mock_cfg.return_value = mock_cfg_instance

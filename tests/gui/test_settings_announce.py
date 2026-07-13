@@ -44,13 +44,13 @@ class TestDirtyDataArbitration:
         from pilotstd.ui.pages.settings._core import SettingsPage
 
         page = SettingsPage(cfg)
+        h = page._handler
         try:
-            assert page.announcement_cb.isChecked() is True
-            assert page.announce_cache_cb.isChecked() is False
-            assert page.announce_url_edit.isEnabled() is False
-            assert page.announcement_cb.isEnabled() is True
-            assert page.announce_cache_cb.isEnabled() is True
-            # 确认脏数据已被修正写盘
+            assert h._announcement_cb.isChecked() is True
+            assert h._announce_cache_cb.isChecked() is False
+            assert h._announce_url_edit.isEnabled() is False
+            assert h._announcement_cb.isEnabled() is True
+            assert h._announce_cache_cb.isEnabled() is True
             assert cfg.get("query.use_announcement_match") is False
         finally:
             page.close()
@@ -61,10 +61,11 @@ class TestDirtyDataArbitration:
         cfg.set("announcement.enabled", True)
         cfg.set("query.use_announcement_match", False)
         cfg.save()
-        settings_page._load_from_config()
+        h = settings_page._handler
+        h.load_all_configs()
 
-        assert settings_page.announcement_cb.isChecked() is True
-        assert settings_page.announce_cache_cb.isChecked() is False
+        assert h._announcement_cb.isChecked() is True
+        assert h._announce_cache_cb.isChecked() is False
 
 
 class TestAutoToggle:
@@ -72,30 +73,28 @@ class TestAutoToggle:
 
     def test_check_cache_auto_unchecks_local(self, settings_page):
         """勾选 Web 缓存 → 本地公告自动取消。"""
-        # 前置：本地公告已勾选（触发槽函数，Web 缓存被自动取消）
-        settings_page.announcement_cb.setChecked(True)
-        assert settings_page.announcement_cb.isChecked() is True
-        assert settings_page.announce_cache_cb.isChecked() is False
+        h = settings_page._handler
+        h._announcement_cb.setChecked(True)
+        assert h._announcement_cb.isChecked() is True
+        assert h._announce_cache_cb.isChecked() is False
 
-        # 用户点击 Web 缓存复选框
-        settings_page.announce_cache_cb.click()
+        h._announce_cache_cb.click()
 
-        assert settings_page.announcement_cb.isChecked() is False
-        assert settings_page.announce_cache_cb.isChecked() is True
-        assert settings_page.announce_url_edit.isEnabled() is True
+        assert h._announcement_cb.isChecked() is False
+        assert h._announce_cache_cb.isChecked() is True
+        assert h._announce_url_edit.isEnabled() is True
 
     def test_check_local_auto_unchecks_cache(self, settings_page):
         """勾选本地公告 → Web 缓存自动取消。"""
-        # 前置：Web 缓存已勾选（触发槽函数，本地公告被自动取消）
-        settings_page.announce_cache_cb.setChecked(True)
-        assert settings_page.announce_cache_cb.isChecked() is True
-        assert settings_page.announcement_cb.isChecked() is False
+        h = settings_page._handler
+        h._announce_cache_cb.setChecked(True)
+        assert h._announce_cache_cb.isChecked() is True
+        assert h._announcement_cb.isChecked() is False
 
-        # 用户点击本地公告复选框
-        settings_page.announcement_cb.click()
+        h._announcement_cb.click()
 
-        assert settings_page.announce_cache_cb.isChecked() is False
-        assert settings_page.announcement_cb.isChecked() is True
+        assert h._announce_cache_cb.isChecked() is False
+        assert h._announcement_cb.isChecked() is True
 
 
 class TestUncheckDoesNotAffectOther:
@@ -103,27 +102,25 @@ class TestUncheckDoesNotAffectOther:
 
     def test_uncheck_cache_leaves_local_unchanged(self, settings_page):
         """取消 Web 缓存 → 本地公告状态不变。"""
-        # 前置：Web 缓存已勾选
-        settings_page.announce_cache_cb.click()
-        assert settings_page.announce_cache_cb.isChecked() is True
-        assert settings_page.announcement_cb.isChecked() is False
+        h = settings_page._handler
+        h._announce_cache_cb.click()
+        assert h._announce_cache_cb.isChecked() is True
+        assert h._announcement_cb.isChecked() is False
 
-        # 用户取消勾选 Web 缓存
-        settings_page.announce_cache_cb.click()
+        h._announce_cache_cb.click()
 
-        assert settings_page.announcement_cb.isChecked() is False
+        assert h._announcement_cb.isChecked() is False
 
     def test_uncheck_local_leaves_cache_unchanged(self, settings_page):
         """取消本地公告 → Web 缓存状态不变。"""
-        # 前置：本地公告已勾选
-        settings_page.announcement_cb.click()
-        assert settings_page.announcement_cb.isChecked() is True
-        assert settings_page.announce_cache_cb.isChecked() is False
+        h = settings_page._handler
+        h._announcement_cb.click()
+        assert h._announcement_cb.isChecked() is True
+        assert h._announce_cache_cb.isChecked() is False
 
-        # 用户取消勾选本地公告
-        settings_page.announcement_cb.click()
+        h._announcement_cb.click()
 
-        assert settings_page.announce_cache_cb.isChecked() is False
+        assert h._announce_cache_cb.isChecked() is False
 
 
 class TestConfigPersistence:
@@ -131,12 +128,12 @@ class TestConfigPersistence:
 
     def test_cache_toggle_writes_config(self, settings_page, cfg):
         """勾选 Web 缓存后配置正确写盘。"""
-        settings_page._on_announce_cache_toggled(True)
+        settings_page._handler._on_announce_cache_toggled(True)
 
         assert cfg.get("query.use_announcement_match") is True
 
     def test_local_toggle_writes_config(self, settings_page, cfg):
         """勾选本地公告后配置正确写盘。"""
-        settings_page._on_announcement_toggled(True)
+        settings_page._handler._on_announcement_toggled(True)
 
         assert cfg.get("announcement.enabled") is True
