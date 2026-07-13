@@ -55,6 +55,10 @@ def _stage_prereq_dialog(self, title: str, msg: str, prereq_label: str = "") -> 
 
 
 def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, next_label: str = "") -> None:
+    if self._suppress_dialogs:
+        if next_action:
+            next_action()
+        return
     dlg = QDialog(self)
     dlg.setWindowTitle(title)
     dlg.setMinimumWidth(400)
