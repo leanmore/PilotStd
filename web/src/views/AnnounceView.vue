@@ -4,6 +4,7 @@ import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
+import { usePreferencesStore } from '@/stores/preferences'
 import { getItem, setItem } from '@/lib/storage'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
@@ -52,7 +53,7 @@ const sinceDate = ref<Date>(defaultSince())
 watch(sinceDate, (v) => {
   setItem('announce_since', v.toISOString())
   const ds = `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`
-  http.post('/user-preference', null, { params: { key: 'announce_since_date', value: ds } }).catch(() => {})
+  usePreferencesStore().set('announce_since_date', ds).catch(() => {})
 })
 const error = ref('')
 

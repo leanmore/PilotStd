@@ -471,3 +471,29 @@ migration(34)(_migrate_v34_drop_old_adapter_tables)
 migration(35)(_migrate_v35_notification_policy)
 migration(36)(_migrate_v36_announcement_structure)
 migration(37)(_migrate_v37_user_notification_config)
+
+
+# v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）
+@migration(38)
+def _migrate_v38_user_settings(db) -> None:
+    """新增 user_settings 表（JSON 聚合存储），与现有 user_preferences（KV 存储）并存。"""
+    logger = logging.getLogger(__name__)
+
+    result = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'")
+    if result:
+        logger.info("user_settings 表已存在，跳过创建")
+        return
+
+    db.execute("""
+        CREATE TABLE user_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            settings JSON NOT NULL DEFAULT '{}',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    db.execute("CREATE INDEX idx_user_settings_user_id ON user_settings(user_id)")
+
+    logger.info("user_settings 表创建完成")

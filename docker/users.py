@@ -1,11 +1,20 @@
 # docker/users.py — 多用户管理（SQLite 持久化）
 import hashlib
+import logging
 import os
 import secrets
 
 from pilotstd import SUPERUSER_USERNAME
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
+from pilotstd.core.security import (
+    generate_salt,
+    get_password_hash,
+    needs_upgrade,
+    verify_password_with_salt,
+)
+
+logger = logging.getLogger(__name__)
 
 SALT_BYTES = 32
 MIN_PASSWORD_LEN = 8  # 最小密码长度
@@ -60,7 +69,7 @@ def init_users_table() -> None:
 
 
 def _ensure_superuser(db: Database, username: str) -> None:
-    """确保超级用户存在且角色为 admin。
+    """确保超级用户存在且角色为 admin（使用 bcrypt 存储密码）。
     - 不存在 → 创建（自动生成或使用 ADMIN_PASSWORD 环境变量）
     - 存在但 role != 'admin' → 校准为 admin
     - 存在且 role == 'admin' → 跳过
@@ -83,13 +92,14 @@ def _ensure_superuser(db: Database, username: str) -> None:
                 f"  请保存此密码，或设置 ADMIN_PASSWORD 环境变量。\n"
                 f"{'=' * 60}\n"
             )
-        h, s = _hash(admin_pass)
+        password_hash = get_password_hash(admin_pass)
+        salt = generate_salt()
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (username, h, s, "admin", must_change),
+            (username, password_hash, salt, "admin", must_change),
         )
-        print(f"[Init] 超级用户 '{username}' 已创建 (role=admin)")
+        print(f"[Init] 超级用户 '{username}' 已创建 (role=admin, bcrypt)")
         return
 
     # 已存在：校准角色
@@ -99,11 +109,10 @@ def _ensure_superuser(db: Database, username: str) -> None:
     else:
         print(f"[Init] 超级用户 '{username}' 角色已正确")
 
-    # 检测弱密码
+    # 检测弱密码（兼容 bcrypt 与旧 PBKDF2 格式）
     if not existing["must_change_password"]:
         for weak in WEAK_PASSWORDS:
-            h_check, _ = _hash(weak, existing["salt"])
-            if h_check == existing["password_hash"]:
+            if verify_password_with_salt(weak, existing["password_hash"], existing["salt"]):
                 db.execute(
                     "UPDATE users SET must_change_password = 1 WHERE username = ?",
                     (username,),
@@ -113,13 +122,28 @@ def _ensure_superuser(db: Database, username: str) -> None:
 
 
 def verify_user(username: str, password: str) -> bool:
-    """验证用户名和密码。"""
+    """验证用户名和密码，旧格式密码自动升级为 bcrypt。"""
     db = _get_db()
-    row = db.fetchone("SELECT password_hash, salt FROM users WHERE username = ?", (username,))
+    row = db.fetchone("SELECT id, password_hash, salt FROM users WHERE username = ?", (username,))
     if not row:
         return False
-    h, _ = _hash(password, row["salt"])
-    return h == row["password_hash"]
+
+    password_hash = row["password_hash"]
+    salt = row["salt"] or ""
+
+    if not verify_password_with_salt(password, password_hash, salt):
+        return False
+
+    # 旧格式（PBKDF2）自动升级为 bcrypt
+    if needs_upgrade(password_hash):
+        new_hash = get_password_hash(password)
+        db.execute(
+            "UPDATE users SET password_hash = ?, salt = '' WHERE id = ?",
+            (new_hash, row["id"]),
+        )
+        logger.info("用户 %s 的密码哈希已自动升级为 bcrypt", username)
+
+    return True
 
 
 def list_users() -> list[dict]:
@@ -153,6 +177,7 @@ def _determine_role(username: str, superuser_name: str) -> str:
 
 
 def add_user(username: str, password: str, role: str = "user") -> bool:
+    """添加用户，使用 bcrypt 存储密码。"""
     # admin 用户名保护：admin 强制降级为 user，admin* 禁止创建
     _su = SUPERUSER_USERNAME
     if not _su:
@@ -168,10 +193,11 @@ def add_user(username: str, password: str, role: str = "user") -> bool:
     existing = db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
     if existing:
         return False
-    h, s = _hash(password)
+    password_hash = get_password_hash(password)
+    salt = generate_salt()
     db.execute(
         "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-        (username, h, s, role),
+        (username, password_hash, salt, role),
     )
     return True
 
@@ -209,19 +235,22 @@ def clear_must_change_password(username: str) -> None:
 
 
 def change_password(username: str, old_password: str, new_password: str) -> bool:
+    """修改用户密码，使用 bcrypt 存储新密码。"""
     if not verify_user(username, old_password):
         return False
     err = _validate_password(new_password)
     if err:
         raise ValueError(err)
     db = _get_db()
-    h, s = _hash(new_password)
+    new_hash = get_password_hash(new_password)
+    new_salt = generate_salt()
     db.execute(
         "UPDATE users SET password_hash = ?, salt = ? WHERE username = ?",
-        (h, s, username),
+        (new_hash, new_salt, username),
     )
     # 清除强制改密标记
     clear_must_change_password(username)
+    logger.info("用户 %s 的密码已修改", username)
     return True
 
 
@@ -265,3 +294,20 @@ def count_recent_failures(ip: str, cutoff: float) -> int:
         (ip, cutoff),
     )
     return row["cnt"] if row else 0
+
+
+# ── 供其他模块使用的导出函数 ──
+
+
+def get_user_by_username(username: str):
+    """根据用户名获取用户信息（供 user_preference 等模块使用）。"""
+    db = _get_db()
+    return db.fetchone(
+        "SELECT id, username, role FROM users WHERE username = ?",
+        (username,),
+    )
+
+
+def get_db_connection():
+    """获取数据库连接（供其他模块使用）。"""
+    return _get_db()

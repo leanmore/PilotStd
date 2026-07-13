@@ -55,8 +55,12 @@ class TestAPIEndpoints(unittest.TestCase):
         cls.client = TestClient(app)
 
     def setUp(self):
-        """每个测试前注入 require_admin 覆盖，避免 401。"""
+        """注入认证覆盖，避免 401。必须同时覆盖 require_admin 和 get_current_username。"""
+        from docker.auth import get_current_username
+
+        self.client.app.dependency_overrides.clear()
         self.client.app.dependency_overrides[require_admin] = lambda: "admin"
+        self.client.app.dependency_overrides[get_current_username] = lambda: "admin"
 
     def tearDown(self):
         """清除 dependency_overrides，防止测试间污染。"""
@@ -173,7 +177,6 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr.cfg.get.return_value = False
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         # put_settings 需要 admin 权限，通过 dependency override 绕过
-        from docker.auth import require_admin
 
         self.client.app.dependency_overrides[require_admin] = lambda: "admin"
         data = {

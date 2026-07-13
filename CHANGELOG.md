@@ -1,4 +1,27 @@
 # CHANGELOG
+## v0.67.0 (2026-07-13)
+
+### Changed — 破坏性变更 (Breaking Changes)
+- **密码哈希升级为 bcrypt**：`docker/users.py` 的 `verify_user`/`add_user`/`change_password`/`_ensure_superuser` 改用 bcrypt 存储密码；旧 PBKDF2 密码在用户登录时自动惰性升级
+- **用户偏好 API 重构**：`GET /api/user-preference?key=xxx` 和 `POST /api/user-preference?key=xxx&value=yyy` 已删除。替代端点：
+  - `GET /api/user-preference` — 读取全部偏好（JSON 聚合格式）
+  - `PATCH /api/user-preference` — 增量更新偏好（body: `{"updates": {...}}`）
+  - `DELETE /api/user-preference` — 重置为默认值
+  - **所有新端点需要登录认证**（Cookie/Token），旧端点无认证
+
+### Added
+- `pilotstd/core/security.py` — 密码安全模块（bcrypt + PBKDF2/SHA256 三格式兼容）
+- `pilotstd/manager/settings_manager.py` — 用户偏好管理器（JSON 聚合存储 + 内存缓存）
+- `pilotstd/core/config/priority.py` — 配置优先级管理器（ENV > FILE > FACTORY）
+- 数据库迁移 v38 — 新增 `user_settings` 表（JSON 聚合存储），与现有 `user_preferences`（KV）并存
+- 新增依赖：`passlib[bcrypt]>=1.7,<2`（bcrypt 需 <5.0 以兼容 passlib）
+
+### Fixed
+- 前端 `stores/preferences.ts` 适配新 JSON 聚合 API
+- 前端 `AnnounceView.vue` 旧 API 调用迁移至 preferences store
+- JWT SECRET 恢复为自动生成（移除硬编码默认值）
+- 测试补充：`TestPasswordSecurity`（9 个用例）+ 迁移测试更新预期表清单
+
 ## v0.66.0 (2026-07-12)
 
 ### Fixed

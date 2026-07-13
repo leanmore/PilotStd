@@ -216,6 +216,7 @@ class TestDatabase(unittest.TestCase):
                 "fetch_checkpoint",
                 "announcement_match",
                 "adapter_state",
+                "user_settings",
             }
             missing = expected - tables
             self.assertFalse(missing, f"缺少业务表: {missing}")

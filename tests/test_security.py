@@ -2,8 +2,6 @@
 import os
 import sys
 
-import pytest
-
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -215,7 +213,6 @@ class TestCSRFProtection:
 class TestJWTSecretAutoGen:
     """JWT 密钥：未设置环境变量时自动生成，不再抛 RuntimeError。"""
 
-    @pytest.mark.skip(reason="设计变更：SECRET 现使用固定默认值，非随机生成")
     def test_missing_jwt_secret_auto_generates(self):
         """清除 JWT_SECRET 后导入 auth 模块应自动生成 SECRET，不抛异常。"""
         import importlib
@@ -227,7 +224,8 @@ class TestJWTSecretAutoGen:
                 del sys.modules["docker.auth"]
             mod = importlib.import_module("docker.auth")
             assert mod.SECRET, "SECRET 不应为空"
-            assert len(mod.SECRET) == 64, f"应为 64 字符 hex，实际 {len(mod.SECRET)}"
+            # token_urlsafe(32) 约 43 字符
+            assert len(mod.SECRET) >= 32, f"SECRET 长度不足: {len(mod.SECRET)}"
         finally:
             if saved_secret:
                 os.environ["JWT_SECRET"] = saved_secret
@@ -251,3 +249,73 @@ class TestSecureCookie:
         whitelist_paths = {path for path, _ in AUTH_WHITELIST}
         for p in ["/api/login", "/api/logout", "/api/health"]:
             assert p in whitelist_paths, f"{p} 不在白名单中"
+
+
+class TestPasswordSecurity:
+    """密码安全模块测试 — bcrypt 哈希与旧格式兼容。"""
+
+    def test_get_password_hash_returns_bcrypt(self):
+        from pilotstd.core.security import get_password_hash
+
+        h = get_password_hash("test_password")
+        assert h.startswith("$2b$"), f"应为 bcrypt 格式，实际：{h[:20]}..."
+
+    def test_bcrypt_verify_correct_password(self):
+        from pilotstd.core.security import get_password_hash, verify_password
+
+        h = get_password_hash("correct")
+        assert verify_password("correct", h) is True
+
+    def test_bcrypt_verify_wrong_password(self):
+        from pilotstd.core.security import get_password_hash, verify_password
+
+        h = get_password_hash("correct")
+        assert verify_password("wrong", h) is False
+
+    def test_verify_legacy_desktop_format(self):
+        import hashlib
+        import secrets
+
+        from pilotstd.core.security import verify_password
+
+        salt = secrets.token_hex(16)
+        digest = hashlib.sha256((salt + "desktop_password").encode()).hexdigest()
+        assert verify_password("desktop_password", f"{salt}:{digest}") is True
+        assert verify_password("wrong", f"{salt}:{digest}") is False
+
+    def test_verify_legacy_docker_format(self):
+        import hashlib
+
+        from pilotstd.core.security import verify_password_with_salt
+
+        salt = "a" * 64
+        h = hashlib.pbkdf2_hmac("sha256", b"docker_password", salt.encode(), 100_000).hex()
+        assert verify_password_with_salt("docker_password", h, salt) is True
+        assert verify_password_with_salt("wrong", h, salt) is False
+
+    def test_needs_upgrade_detects_legacy(self):
+        from pilotstd.core.security import needs_upgrade
+
+        assert needs_upgrade("a" * 64) is True
+        assert needs_upgrade("salt:digest") is True
+        assert needs_upgrade("") is True
+
+    def test_needs_upgrade_bcrypt_skipped(self):
+        from pilotstd.core.security import get_password_hash, needs_upgrade
+
+        bcrypt_hash = get_password_hash("modern")
+        assert needs_upgrade(bcrypt_hash) is False
+
+    def test_empty_password_rejected(self):
+        from pilotstd.core.security import verify_password, verify_password_with_salt
+
+        assert verify_password("", "") is False
+        assert verify_password("anything", "") is False
+        assert verify_password_with_salt("anything", "", "salt") is False
+
+    def test_generate_salt_returns_hex(self):
+        from pilotstd.core.security import generate_salt
+
+        s = generate_salt()
+        assert len(s) == 32
+        assert all(c in "0123456789abcdef" for c in s)

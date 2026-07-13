@@ -43,7 +43,8 @@ const sidebarCollapsed = ref(!isDesktop.value)
 async function loadSidebarState() {
   try {
     const prefs = usePreferencesStore()
-    const saved = await prefs.get<boolean>('sidebar_collapsed')
+    const all = await prefs.getAll()
+    const saved = all.sidebar_collapsed
     if (typeof saved === 'boolean') sidebarCollapsed.value = saved
   } catch { /* 未登录时使用默认值 */ }
 }

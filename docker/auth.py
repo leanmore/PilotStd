@@ -29,7 +29,7 @@ from .users import (
 
 router = APIRouter(tags=["auth"])
 
-SECRET = os.environ.get("JWT_SECRET") or "pilotstd_jwt_secret_2026_fixed_key"
+SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)
 
 # 应用启动时确保用户表存在
 _init_done = False

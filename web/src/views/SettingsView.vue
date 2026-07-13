@@ -272,7 +272,8 @@ const systemSections = ref({ ...DEFAULT_SECTIONS })
 // 从后端恢复已保存的折叠状态
 async function loadSystemSections() {
   try {
-    const saved = await prefsStore.get<Record<string, boolean>>('system_sections')
+    const all = await prefsStore.getAll()
+    const saved = all.system_sections as Record<string, boolean> | undefined
     if (saved) systemSections.value = { ...DEFAULT_SECTIONS, ...saved }
   } catch { /* 未登录或无网络，使用默认值 */ }
 }
