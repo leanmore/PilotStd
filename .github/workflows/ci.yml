@@ -60,6 +60,8 @@ jobs:
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q --tb=short -n auto \
+            --ignore=tests/gui/ \
+            --ignore=tests/test_regression_architecture.py \
             --deselect "tests/test_manager.py" \
             --deselect "tests/test_organizer.py" \
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
@@ -182,7 +184,34 @@ jobs:
         run: python scripts/check_g_027_define_options.py
 
   # ════════════════════════════════════════════════════════════════
-  # Job 4: 入仓合规检查
+  # Job 4: GUI 测试（Windows，依赖 PyQt6）
+  # ════════════════════════════════════════════════════════════════
+  test-gui:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: desktop/requirements-win.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r desktop/requirements-win.txt
+          pip install pytest pytest-qt pytest-xdist
+
+      - name: Run GUI tests
+        shell: pwsh
+        env:
+          SUPERUSER: superadmin
+        run: python -m pytest tests/gui/ tests/test_regression_architecture.py -v --tb=short
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 5: 入仓合规检查
   # ════════════════════════════════════════════════════════════════
   repo-compliance:
     runs-on: ubuntu-latest
