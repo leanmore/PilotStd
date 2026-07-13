@@ -50,13 +50,16 @@ class FileIndexRepository:
         """启动后台校验所有索引路径是否存在，延迟时间根据记录数自适应（5~30s）。"""
 
         def _run() -> None:
+            # 先检查是否已被停止（测试环境下 fixture teardown 会立即设置）
+            if self._stop_event.is_set():
+                self._validation_complete.set()
+                return
             try:
                 row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                 row_count = row["cnt"] if row else 0
                 delay = min(30, max(5, row_count / 500))
             except Exception:
                 delay = 10
-            # 分段 sleep，每 0.5s 检查一次停止信号
             remaining = delay
             while remaining > 0 and not self._stop_event.is_set():
                 time.sleep(min(0.5, remaining))
@@ -70,11 +73,14 @@ class FileIndexRepository:
                 deleted = 0
             self._validation_complete.set()
             logger = logging.getLogger("pilotstd.file_index")
-            logger.info(
-                "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
-                delay,
-                deleted,
-            )
+            try:
+                logger.info(
+                    "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
+                    delay,
+                    deleted,
+                )
+            except Exception:
+                pass
 
         t = threading.Thread(target=_run, daemon=True)
         self._validation_thread = t
