@@ -51,7 +51,6 @@ from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .middleware import RequestSizeLimitMiddleware, SecurityHeadersMiddleware
 from .scheduler import _backup_database, register_job_func, start_scheduler, stop_scheduler
-from .websocket import websocket_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -144,51 +143,6 @@ def _shutdown_cleanup(_cron_mgr) -> None:
         pass
 
 
-def _setup_ws_broadcast(mgr) -> None:
-    """注入 WebSocket 广播回调。"""
-
-    def _ws_broadcast_callback(
-        event_type: str,
-        title: str,
-        body: str,
-        level: str,
-        link: str | None = None,
-        icon: str | None = None,
-        aggregated_count: int = 1,
-    ) -> None:
-        try:
-            from datetime import datetime
-
-            from .websocket import get_ws_manager
-
-            ws_manager = get_ws_manager()
-            if ws_manager.connection_count == 0:
-                return
-            import asyncio
-
-            payload = {
-                "event_type": event_type,
-                "title": title,
-                "body": body,
-                "level": level,
-                "sent_at": datetime.now().isoformat(),
-                "link": link,
-                "icon": icon,
-                "aggregated_count": aggregated_count,
-            }
-            try:
-                asyncio.create_task(ws_manager.broadcast(payload))
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(ws_manager.broadcast(payload))
-                loop.close()
-        except Exception:
-            pass
-
-    mgr.notification_mgr._ws_broadcast = _ws_broadcast_callback
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
@@ -218,8 +172,6 @@ async def lifespan(app: FastAPI):
     from .manager import get_manager as _get_mgr
 
     _cron_mgr = _get_mgr()
-
-    _setup_ws_broadcast(_cron_mgr)
 
     _start_all_schedulers(_cron_mgr)
 
@@ -293,12 +245,6 @@ app.include_router(logs_router)
 app.include_router(upload_router)
 app.include_router(tasks_router)
 app.include_router(auto_router)
-
-
-# ── WebSocket ──
-@app.websocket("/api/notification/ws")
-async def notification_websocket(websocket):
-    await websocket_endpoint(websocket)
 
 
 # 健康检查端点（Docker HEALTHCHECK 使用）

@@ -104,8 +104,4 @@ FACTORY_DEFAULTS = {
     # ── Phase 4b: 日期提醒 ──
     "tasks.date_reminder_enabled": False,
     "tasks.date_reminder_cron": "0 2 * * *",
-    # ── WebSocket 通知连接 ──
-    "websocket.enabled": False,
-    "websocket.url": "",
-    "websocket.auto_connect": False,
 }

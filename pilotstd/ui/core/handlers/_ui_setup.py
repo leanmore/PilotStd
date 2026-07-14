@@ -30,7 +30,6 @@ from PyQt6.QtWidgets import (
 
 from ....i18n import _
 from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
-from ...widgets import NotificationBellWidget
 from ...workers import LogHandler
 
 logger = logging.getLogger("pilotstd.ui")
@@ -228,10 +227,7 @@ class UISetupHandler:
         cancel_btn.setEnabled(False)
         buttons["btn_cancel"] = cancel_btn
 
-        notification_bell = NotificationBellWidget(window)
-        toolbar.addWidget(notification_bell)
         toolbar.addSeparator()
-        buttons["notification_bell"] = notification_bell
 
         return buttons
 

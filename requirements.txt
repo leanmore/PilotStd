@@ -33,6 +33,3 @@ python-multipart>=0.0.31
 
 python-dotenv>=1.2.2
 msgpack>=1.2.1
-
-# --- WinUI 通知中心 WebSocket 客户端 ---
-websocket-client>=1.9.0
