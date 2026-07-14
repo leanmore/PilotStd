@@ -16,10 +16,74 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QEvent, QObject, Qt, QTimer
+from PyQt6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QMessageBox, QPushButton
 
 from pilotstd import core
 from pilotstd.ui.main_window import MainWindow
+
+
+class ModalDialogAutoClicker(QObject):
+    """事件过滤器：模态对话框显示时自动点击确定/是按钮。"""
+
+    def __init__(self, qtbot):
+        super().__init__()
+        self.qtbot = qtbot
+        QApplication.instance().installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() in (QEvent.Type.Show, QEvent.Type.WindowActivate):
+            if isinstance(obj, (QDialog, QMessageBox)) and obj.isModal():
+                QTimer.singleShot(10, lambda: self._click_confirm_button(obj))
+        return super().eventFilter(obj, event)
+
+    def _click_confirm_button(self, modal):
+        if not modal or not modal.isVisible():
+            return
+        if isinstance(modal, QMessageBox):
+            for std in (
+                QMessageBox.StandardButton.Ok,
+                QMessageBox.StandardButton.Yes,
+                QMessageBox.StandardButton.Close,
+                QMessageBox.StandardButton.Cancel,
+            ):
+                btn = modal.button(std)
+                if btn and btn.isEnabled():
+                    self.qtbot.mouseClick(btn, Qt.MouseButton.LeftButton)
+                    return
+            for btn in modal.buttons():
+                if btn.isEnabled():
+                    self.qtbot.mouseClick(btn, Qt.MouseButton.LeftButton)
+                    return
+            return
+        if isinstance(modal, QDialog):
+            for child in modal.children():
+                if isinstance(child, QDialogButtonBox):
+                    for std in (
+                        QDialogButtonBox.StandardButton.Ok,
+                        QDialogButtonBox.StandardButton.Yes,
+                        QDialogButtonBox.StandardButton.Close,
+                        QDialogButtonBox.StandardButton.Cancel,
+                    ):
+                        btn = child.button(std)
+                        if btn and btn.isEnabled():
+                            self.qtbot.mouseClick(btn, Qt.MouseButton.LeftButton)
+                            return
+            for btn in modal.findChildren(QPushButton):
+                if btn.isEnabled() and btn.isVisible():
+                    self.qtbot.mouseClick(btn, Qt.MouseButton.LeftButton)
+                    return
+
+    def cleanup(self):
+        QApplication.instance().removeEventFilter(self)
+
+
+@pytest.fixture(autouse=True)
+def auto_handle_modal_dialogs(qtbot):
+    """自动点击所有测试中出现的模态对话框，无需手动处理。"""
+    clicker = ModalDialogAutoClicker(qtbot)
+    yield
+    clicker.cleanup()
 
 
 @pytest.fixture(autouse=True, scope="session")
