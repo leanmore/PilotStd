@@ -12,6 +12,7 @@ import shutil
 import tempfile
 import unittest
 
+from pilotstd.core.std_utils import parse_std_number
 from pilotstd.scan.parser import StandardParser
 
 # 直接从拆分后的模块导入（不依赖顶层包的 __init__.py）
@@ -448,6 +449,27 @@ class TestStandardParser(unittest.TestCase):
         self.assertIsNotNone(info)
         self.assertEqual(info.logical_code, "GB/T")
         self.assertEqual(info.number, 19001)
+
+    # ── parse_std_number 多词前缀回归 ──
+
+    def test_parse_din_en_dotted_format(self):
+        """DIN EN 1092.1-2018 点号分隔 — parse_std_number 应保留完整代号"""
+        result = parse_std_number("DIN EN 1092.1-2018")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["code"], "DINEN")
+        self.assertEqual(result["number"], 1092)
+        self.assertEqual(result["part"], 1)
+        self.assertEqual(result["year"], 2018)
+        self.assertEqual(result["num_prefix"], "")
+
+    def test_parse_bs_en_iso_dotted(self):
+        """BS EN ISO 16852.1-2016 — 三段前缀 + 点号分隔"""
+        result = parse_std_number("BS EN ISO 16852.1-2016")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["code"], "BSENISO")
+        self.assertEqual(result["number"], 16852)
+        self.assertEqual(result["part"], 1)
+        self.assertEqual(result["year"], 2016)
 
 
 class TestBoundaryConditions(unittest.TestCase):

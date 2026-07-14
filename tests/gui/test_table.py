@@ -52,3 +52,28 @@ def test_table_selection_is_item_based(window):
     from PyQt6.QtWidgets import QTableWidget
 
     assert window.work_table.selectionBehavior() == QTableWidget.SelectionBehavior.SelectItems
+
+
+def test_seq_dynamic_width(window):
+    """序号宽度随总数动态增长：1-9→2位，10-99→2位，100+→3位以上。"""
+    from pilotstd.organizer.industry_lookup import build_code_mapping
+    from pilotstd.scan.parser import StandardParser
+    from pilotstd.ui.workers._common import RowUpdate
+
+    parser = StandardParser(build_code_mapping())
+    window._clear_table()
+
+    # 扫描 150 个文件，序号应从 01 增长到 150，宽度从 2 位变成 3 位
+    for i in range(1, 151):
+        parsed = parser.parse("GB/T 1-2000.pdf")
+        parsed.source_path = f"test_{i}.pdf"
+        window._add_table_row(RowUpdate(seq=i, parsed=parsed, work_status="已扫描", total=150))
+
+    table = window.work_table
+    assert table.rowCount() == 150
+    # 第 1 行序号应为 "001"（宽度=3，因为 total=150）
+    assert table.item(0, 0).text() == "001"
+    # 第 100 行序号应为 "100"
+    assert table.item(99, 0).text() == "100"
+    # 第 150 行序号应为 "150"
+    assert table.item(149, 0).text() == "150"

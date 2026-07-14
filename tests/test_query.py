@@ -487,6 +487,22 @@ class TestRouting(unittest.TestCase):
                 f"{fc} 应分类为 foreign",
             )
 
+    def test_group_std_classify(self):
+        """T/ 开头标准应分类为 group"""
+        from pilotstd.core.std_utils import classify_std_code
+
+        self.assertEqual(classify_std_code("T/XXX"), "group")
+        self.assertEqual(classify_std_code("T/ZZZ"), "group")
+
+    def test_group_std_has_route(self):
+        """ADAPTER_TYPE_MAP 应有 group 条目，路由主站 ahbz"""
+        from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
+
+        group_route = ADAPTER_TYPE_MAP.get("group")
+        self.assertIsNotNone(group_route, "ADAPTER_TYPE_MAP 中应有 group 条目")
+        self.assertEqual(group_route.get("primary"), "ahbz")
+        self.assertEqual(group_route.get("fallback"), "njbz365")
+
 
 # ── 网络异常模拟测试 ─────────────────────────────────────
 

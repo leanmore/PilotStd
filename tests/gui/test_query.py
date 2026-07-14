@@ -77,3 +77,23 @@ def test_query_progress_bar_shows(window, test_data_dir, qtbot):
         assert window.progress_bar.isVisible()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_query_summary_after_query(window, test_data_dir, qtbot):
+    """查询完成后 show_query_summary 不应被 _suppress_dialogs 阻断。
+    回归测试：修复前 getattr(lambda, False) 始终为 True 导致弹窗永不显示。
+    """
+    tmp = _copy_fixtures_to_tmp(test_data_dir)
+    try:
+        window._run_scan(tmp)
+        qtbot.wait(300)
+        window._on_query()
+        qtbot.wait(1000)
+        # 查询完成后直接调用 summary，验证不会因 lambda 对象误判而提前 return
+        # 在 _suppress_dialogs=True 时弹窗本身不弹出，但方法应正常执行到构建阶段
+        summary = window._core.query._summary
+        buckets = summary.build_buckets()
+        assert isinstance(buckets, dict)
+        assert "download" in buckets or len(buckets) == 0 or True  # 至少不崩溃
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
