@@ -1,4 +1,9 @@
 # CHANGELOG
+## v0.67.0 (2026-07-14)
+
+### Fixed
+- 版本号自动同步（CI 更新）
+
 ## v0.67.0 (2026-07-13)
 
 ### Changed — 破坏性变更 (Breaking Changes)
