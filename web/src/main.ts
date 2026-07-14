@@ -7,6 +7,8 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import { createI18n } from 'vue-i18n'
 import ConfirmationService from 'primevue/confirmationservice'
+import ToastService from 'primevue/toastservice'
+import Toast from 'primevue/toast'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import Button from 'primevue/button'
@@ -71,6 +73,7 @@ app.use(PrimeVue, {
   ripple: true,
 })
 app.use(ConfirmationService)
+app.use(ToastService)
 app.use(i18n)
 
 // 语言切换时同步更新 PrimeVue 日历本地化
@@ -103,4 +106,5 @@ app.component('SelectButton', SelectButton)
 app.component('Tag', Tag)
 app.component('Textarea', Textarea)
 app.component('ToggleSwitch', ToggleSwitch)
+app.component('Toast', Toast)
 app.mount('#app')

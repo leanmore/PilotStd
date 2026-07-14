@@ -359,6 +359,10 @@ class BaseFacade:
         self._core.pending_svc = value
 
     @property
+    def user_service(self):
+        return self._user_service
+
+    @property
     def _scheduled_svc(self):
         return self._core.scheduled_svc
 
