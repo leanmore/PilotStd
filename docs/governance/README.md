@@ -1,4 +1,22 @@
-# PilotStd 能力遗产治理框架
+# PilotStd 治理文档中心
+
+## 文档索引
+
+| 文档 | 用途 | 状态 |
+|------|------|------|
+| [governance-principles.md](governance-principles.md) | 治理体系元原则（三件套、决策链、门禁设计） | v1.0 |
+| [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
+| [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
+| [refactoring_checklist.md](refactoring_checklist.md) | 重构前后操作清单 | 活跃 |
+| [archive_migration_protocol.md](archive_migration_protocol.md) | 归档文件强制迁移流程 | 活跃 |
+| [../testing/known-issues.md](../testing/known-issues.md) | 已知问题追踪 | v1.0 |
+| [../architecture/decisions/ADR-001-modal-dialog-auto-clicker.md](../architecture/decisions/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 | 已接受 |
+| [../architecture/technical-debt-registry.md](../architecture/technical-debt-registry.md) | 技术债登记 | 活跃 |
+| [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献指南 | 活跃 |
+
+---
+
+# 能力遗产治理框架
 
 ## 为什么有这个框架？
 
