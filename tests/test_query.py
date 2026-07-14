@@ -503,6 +503,19 @@ class TestRouting(unittest.TestCase):
         self.assertEqual(group_route.get("primary"), "ahbz")
         self.assertEqual(group_route.get("fallback"), "njbz365")
 
+    def test_group_std_routing_chain(self):
+        """团体标准 T/CSAE _resolve_base_route 返回非空链，包含 ahbz"""
+        from pilotstd.core.std_utils import classify_std_code
+        from pilotstd.query.engine._core_types import EngineCore
+        from pilotstd.query.engine._routing import RoutingHandler
+
+        core = EngineCore(adapters=[], adapter_map={})
+        routing = RoutingHandler(core)
+        self.assertEqual(classify_std_code("T/CSAE"), "group")
+        chain = routing._resolve_base_route("T/CSAE")
+        self.assertTrue(len(chain) > 0, "团体标准基础路由链不应为空")
+        self.assertIn("ahbz", chain, "团体标准主站点应为 ahbz")
+
 
 # ── 网络异常模拟测试 ─────────────────────────────────────
 
