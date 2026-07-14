@@ -1,11 +1,13 @@
 # tests/gui/conftest.py
 import logging
 import os
+import re
 import shutil
 import sys
 import tempfile
 
 import pytest
+import responses
 
 # 全局测试模式 — 禁止所有弹窗
 os.environ["PILOTSTD_TEST_MODE"] = "1"
@@ -18,6 +20,18 @@ from PyQt6.QtWidgets import QApplication
 
 from pilotstd import core
 from pilotstd.ui.main_window import MainWindow
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _block_all_network_requests():
+    """阻断 GUI 测试中的所有真实 HTTP 请求，防止泄漏到外部适配器。"""
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+        rsps.add(responses.GET, re.compile(r".*"), status=500)
+        rsps.add(responses.POST, re.compile(r".*"), status=500)
+        rsps.add(responses.OPTIONS, re.compile(r".*"), status=500)
+        rsps.add(responses.PUT, re.compile(r".*"), status=500)
+        rsps.add(responses.DELETE, re.compile(r".*"), status=500)
+        yield
 
 
 @pytest.fixture(scope="session")

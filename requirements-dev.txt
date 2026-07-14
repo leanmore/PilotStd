@@ -11,6 +11,7 @@ ruff>=0.5.0
 pytest>=8.3.0
 pytest-qt>=4.2.0
 pytest-cov>=6.0
+responses>=0.25
 
 # --- 打包构建 ---
 pyinstaller>=6.0

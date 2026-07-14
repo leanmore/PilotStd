@@ -202,7 +202,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r desktop/requirements-win.txt
-          pip install pytest pytest-qt pytest-xdist
+          pip install pytest pytest-qt pytest-xdist responses
 
       - name: Run GUI tests
         shell: pwsh
