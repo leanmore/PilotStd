@@ -5,6 +5,7 @@
 # --- 敏感数据加密 ---
 cryptography>=48.0.1
 passlib[bcrypt]>=1.7,<2
+bcrypt>=4.0.0,<5.0.0
 
 # --- 核心网络请求与网页解析 ---
 requests==2.34.0
