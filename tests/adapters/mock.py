@@ -45,4 +45,5 @@ class MockQueryAdapter(BaseAdapter):
             is_adopted=is_adopted,
             source_site=self.site_name,
             is_downloadable=not is_adopted,
+            match_status="exact",
         )

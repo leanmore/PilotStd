@@ -59,6 +59,7 @@ def mock_main_window(qapp, qtbot, test_data_dir, _template_db_path):
     config_path = os.path.join(tmpdir, "config.json")
     cfg = core.ConfigManager(filepath=config_path)
     cfg.set("query.use_cache", False)
+    cfg.set("query.use_announcement_match", False)
     cfg.set("storage.root_dir", os.path.join(tmpdir, "library"))
     cfg.set("appearance.skip_welcome", True)
 
