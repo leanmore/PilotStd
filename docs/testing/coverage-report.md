@@ -1,46 +1,74 @@
-# 测试覆盖率报告
+# 覆盖率报告
 
 | 属性 | 值 |
 |------|-----|
 | 生成日期 | 2026-07-14 |
-| 数据来源 | `pytest --cov=pilotstd --cov-report=term tests/ --ignore=tests/gui` |
-| 测试总数 | 900 passed, 7 skipped, 2 xfailed |
+| 测试框架 | pytest + pytest-cov |
+| 测试范围 | `tests/`（排除 gui/、e2e、pipeline_router 等） |
+| 测试结果 | 811 passed, 2 skipped, 85 deselected, 2 xfailed |
 
 ## 整体覆盖率
 
-| 指标 | 值 |
-|------|-----|
-| 总行数 | 18,595 |
-| 已覆盖 | 8,340 |
-| **整体行覆盖率** | **45%** |
+**行覆盖率: 36.7%**（18,595 条语句，11,774 条未覆盖）
 
-## 主要模块覆盖率
+> **注意**：`pilotstd/ui/` 子目录（6,092 条语句）在 headless 环境下覆盖率为 0%，GUI 测试在 CI 中由独立 `test-gui` job 运行。排除 UI 代码后，后端覆盖率为 **45.4%**。
 
-| 模块 | 估计覆盖率 | 说明 |
-|------|-----------|------|
-| `pilotstd/core/` | ~65% | 配置、数据库、标准号解析核心逻辑有较好测试覆盖 |
-| `pilotstd/query/` | ~60% | 引擎、路由、适配器、缓存均有单元测试 |
-| `pilotstd/scan/` | ~55% | 解析器测试较全面（54 tests），扫描器覆盖较低 |
-| `pilotstd/manager/` | ~40% | 通过集成测试间接覆盖，直接单测较少 |
-| `pilotstd/cli/` | ~30% | CLI 命令模块覆盖不完整 |
-| `pilotstd/ui/` | ~15% | GUI 代码覆盖率低（9%-57%），GUI 测试由独立 job 运行 |
-| `pilotstd/wechat_ip/` | 0% | 企业微信 IP 模块无测试 |
+## 各模块覆盖率
 
-## 低于 80% 的模块
+| 模块 | 语句数 | 覆盖率 | 状态 |
+|------|--------|--------|:--:|
+| `pilotstd/models.py` | 62 | 98.4% | ✅ |
+| `pilotstd/quality/` | 65 | 92.3% | ✅ |
+| `pilotstd/__init__.py` | 11 | 81.8% | ✅ |
+| `pilotstd/cli/` | 350 | 81.1% | ✅ |
+| `pilotstd/i18n/` | 35 | 74.3% | ❌ |
+| `pilotstd/task/` | 255 | 71.4% | ❌ |
+| `pilotstd/scan/` | 788 | 70.9% | ❌ |
+| `pilotstd/download/` | 417 | 69.1% | ❌ |
+| `pilotstd/query/` | 2,416 | 67.5% | ❌ |
+| `pilotstd/pipeline/` | 196 | 66.8% | ❌ |
+| `pilotstd/platform/` | 167 | 62.3% | ❌ |
+| `pilotstd/core/` | 3,128 | 62.3% | ❌ |
+| `pilotstd/organizer/` | 152 | 61.2% | ❌ |
+| `pilotstd/announcement/` | 1,316 | 41.4% | ❌ |
+| `pilotstd/manager/` | 2,342 | 37.9% | ❌ |
+| `pilotstd/tasks/` | 181 | 6.1% | ❌ |
+| `pilotstd/monitor/` | 226 | 0.0% | ❌ |
+| `pilotstd/ui/` | 6,092 | 0.0% | ❌ |
+| `pilotstd/wechat_ip/` | 396 | 0.0% | ❌ |
 
-以下模块覆盖率低于 80%，需要优先补充测试：
+## 低于 80% 阈值模块清单
 
-| 优先级 | 模块 | 问题 |
-|--------|------|------|
-| 高 | `pilotstd/cli/commands/` | CLI 命令缺少单元测试 |
-| 高 | `pilotstd/manager/facade/` | 门面层缺少直接单测 |
-| 中 | `pilotstd/scan/scanner.py` | 文件扫描器覆盖率不足 |
-| 中 | `pilotstd/ui/core/handlers/` | UI Handler 缺少单元测试 |
-| 低 | `pilotstd/ui/main_window/parts/` | GUI 部件覆盖率 9-26% |
-| 低 | `pilotstd/wechat_ip/` | 企业微信 IP 模块完全无测试 |
+以下 14 个模块覆盖率低于 80%，按覆盖率从高到低排列：
 
-## 备注
+| # | 模块 | 覆盖率 | 语句数 | 主要缺口 |
+|---|------|--------|--------|---------|
+| 1 | `pilotstd/i18n/` | 74.3% | 35 | 语言回退路径未覆盖 |
+| 2 | `pilotstd/task/` | 71.4% | 255 | `scheduler.py` 0% |
+| 3 | `pilotstd/scan/` | 70.9% | 788 | `watcher.py` 0%, `filename_normalizer.py` 0% |
+| 4 | `pilotstd/download/` | 69.1% | 417 | `openstd_download.py` 19% |
+| 5 | `pilotstd/query/` | 67.5% | 2,416 | `csres.py` 27%, `rotator.py` 32% |
+| 6 | `pilotstd/pipeline/` | 66.8% | 196 | `router.py` 67% |
+| 7 | `pilotstd/platform/` | 62.3% | 167 | `notify.py` 0% |
+| 8 | `pilotstd/core/` | 62.3% | 3,128 | 通知渠道(26-39%), `validity_checker.py` 34% |
+| 9 | `pilotstd/organizer/` | 61.2% | 152 | `mover.py` 42% |
+| 10 | `pilotstd/announcement/` | 41.4% | 1,316 | `monitor.py` 0%, `matcher.py` 16% |
+| 11 | `pilotstd/manager/` | 37.9% | 2,342 | 6 个 service 0%, facade 多数 <30% |
+| 12 | `pilotstd/tasks/` | 6.1% | 181 | `favorite_download.py` 0% |
+| 13 | `pilotstd/monitor/` | 0.0% | 226 | 全模块无测试 |
+| 14 | `pilotstd/wechat_ip/` | 0.0% | 396 | 全模块无测试 |
+| — | `pilotstd/ui/` | 0.0% | 6,092 | GUI 代码，需 Qt 环境（独立 job 运行） |
 
-- GUI 代码（`pilotstd/ui/`）覆盖率低是预期内的——Qt 组件测试在 CI 中由独立 `test-gui` job 运行，`pytest --cov` 不统计 Qt 事件循环内的覆盖
-- 覆盖率提升应按优先级从核心业务逻辑（core/query/scan）向外围逐步推进
-- `wechat_ip/` 模块依赖 Playwright 浏览器自动化，测试成本较高，可暂缓
+## 门禁状态
+
+| 门禁 | 阈值 | 当前值 | 状态 |
+|------|------|--------|:--:|
+| G-034 覆盖率阈值 | ≥ 80% | 36.7% | ❌ 不通过 |
+
+> **说明**：G-034 在当前覆盖率水平下会持续阻断。建议在覆盖率提升到 80% 之前暂不启用 G-034，或将阈值调整为阶段性目标（如 40% → 50% → 80% 渐进式提升）。
+
+## 覆盖率历史
+
+| 日期 | 覆盖率 | 测试数 | 变更说明 |
+|------|--------|--------|---------|
+| 2026-07-14 | 36.7% | 811 | 初始覆盖率基线（pytest --cov 实测） |
