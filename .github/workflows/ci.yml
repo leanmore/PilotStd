@@ -228,6 +228,11 @@ jobs:
       - name: G-026 — Docker 挂载黑名单
         run: python scripts/check_g_026_docker_mounts.py
 
+      - name: G-029 — 核心模块变更测试同步检查
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: python scripts/check_g_029_test_coverage.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
