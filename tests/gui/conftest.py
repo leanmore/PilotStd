@@ -24,7 +24,13 @@ from pilotstd.ui.main_window import MainWindow
 
 @pytest.fixture(autouse=True, scope="session")
 def _block_all_network_requests():
-    """阻断 GUI 测试中的所有真实 HTTP 请求，防止泄漏到外部适配器。"""
+    """阻断 GUI 测试中的所有真实 HTTP 请求，防止泄漏到外部适配器。
+
+    设置 PILOTSTD_ALLOW_NETWORK=1 可跳过阻断（压测需要真实网络）。
+    """
+    if os.environ.get("PILOTSTD_ALLOW_NETWORK") == "1":
+        yield
+        return
     with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
         rsps.add(responses.GET, re.compile(r".*"), status=500)
         rsps.add(responses.POST, re.compile(r".*"), status=500)
@@ -106,8 +112,6 @@ def mock_main_window(qapp, qtbot, test_data_dir, _template_db_path):
         session_manager=SessionManager(),
         save_root=os.path.join(tmpdir, "downloads"),
     )
-    window._use_threaded_query = True
-
     window._suppress_dialogs = True
     window.show()
     qtbot.addWidget(window)
