@@ -233,6 +233,11 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: python scripts/check_g_029_test_coverage.py
 
+      - name: Docs sync check
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: python scripts/check_docs_sync.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
