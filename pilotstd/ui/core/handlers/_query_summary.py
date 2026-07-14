@@ -357,8 +357,8 @@ class QuerySummaryHandler:
             ),
         )
 
-        # 检查当前对象的 _suppress_dialogs 标志
-        if getattr(self, "_suppress_dialogs", False):
+        # 检查 _suppress_dialogs（lambda 需要调用才能得到布尔值）
+        if callable(self._suppress_dialogs) and self._suppress_dialogs():
             return
 
         buckets = self.build_buckets()

@@ -85,6 +85,35 @@ def _try_parse_db_standard(text: str) -> dict[str, Any] | None:
 
 def _try_parse_general_format(text: str) -> dict[str, Any] | None:
     """尝试按通用格式解析: 纯字母代号 + 序号 + 可选 .数字/.P数字 + 分隔符 + 4位年份。"""
+    from ..scan.parser._constants import PRESERVED_MULTI_WORD
+
+    # 检测多词前缀（如 DIN EN、BS EN ISO），避免被正则拆分为 code + num_prefix
+    text_upper = text.upper()
+    multi_word_code = ""
+    for mw in sorted(PRESERVED_MULTI_WORD, key=len, reverse=True):
+        if text_upper.startswith(mw + " ") or text_upper.startswith(mw + ".") or text_upper.startswith(mw + "-"):
+            multi_word_code = mw
+            break
+
+    if multi_word_code:
+        remainder = text[len(multi_word_code) :].strip()
+        m = re.match(
+            r"(\d+)(?:\.(\d+))?(?:[Pp](\d+))?\s*[—\-:\s]\s*(\d{4})",
+            remainder,
+            re.IGNORECASE,
+        )
+        if not m:
+            return None
+        raw = multi_word_code.upper()
+        return {
+            "raw_code": raw,
+            "code": raw.replace("/", "").replace(" ", ""),
+            "number": int(m.group(1)),
+            "part": int(m.group(2)) if m.group(2) else (int(m.group(3)) if m.group(3) else None),
+            "year": int(m.group(4)),
+            "num_prefix": "",
+        }
+
     m = re.match(
         r"([A-Z]+(?:/[A-Z]+)?)\s*(?:([A-Z]+)\s+)?(\d+)(?:\.(\d+))?(?:[Pp](\d+))?\s*[—\-:\s]\s*(\d{4})",
         text,

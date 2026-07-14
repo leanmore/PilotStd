@@ -164,6 +164,9 @@ class AhbzAdapter(BaseAdapter):
         from ...core.std_utils import classify_std_code
 
         code = std_num.split()[0].upper() if " " in std_num else std_num.split("/")[0].upper()
+        # 团体标准无空格格式（如 T/XXX-2020）拆分后只剩 "T"，直接返回 group 类型
+        if code == "T" or code.startswith("T/"):
+            return AhbzAdapter._TYPE_MAP["group"]
         cat = classify_std_code(code)
         return AhbzAdapter._TYPE_MAP.get(cat)  # enterprise → None
 

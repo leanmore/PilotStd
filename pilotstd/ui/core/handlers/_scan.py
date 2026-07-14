@@ -162,7 +162,12 @@ class ScanUIHandler:
             parsed.source_path = file_path
             self._parsed_results.append(parsed)
             self._add_table_row(
-                RowUpdate(seq=self._work_table.rowCount() + 1, parsed=parsed, work_status="已扫描", total=1)
+                RowUpdate(
+                    seq=self._work_table.rowCount() + 1,
+                    parsed=parsed,
+                    work_status="已扫描",
+                    total=len(self._parsed_results),
+                )
             )
             self._status_cb(_("status_scan_single_ok"))
             self._register_task("扫描", 1, 1, 0)
@@ -208,7 +213,7 @@ class ScanUIHandler:
                         seq=seq,
                         parsed=parsed,
                         work_status="已扫描",
-                        total=len(self._parsed_results),
+                        total=0,
                     )
                 )
         finally:
