@@ -101,6 +101,7 @@ class QueryHandler:
         self,
         items: list[Any],
         result_callback: Callable[[int, Any], None] | None,
+        progress_callback: Callable[[int], None] | None = None,
     ) -> list[QueryResult]:
         """公告缓存优先模式：先查 Web 缓存，未命中降级到实时引擎。"""
         cache_hit_map: dict[int, QueryResult] = {}
@@ -147,7 +148,9 @@ class QueryHandler:
                 if result_callback:
                     result_callback(orig_idx, r)
 
-            engine_results = self._core.query_engine.query_standards(miss_tuples, result_callback=_fallback_callback)  # type: ignore[arg-type]
+            engine_results = self._core.query_engine.query_standards(
+                miss_tuples, result_callback=_fallback_callback, progress_callback=progress_callback
+            )  # type: ignore[arg-type]
             for j, r in enumerate(engine_results):
                 orig_idx = miss_indices[j]
                 if results[orig_idx] is _placeholder:
@@ -170,6 +173,7 @@ class QueryHandler:
         result_callback: Callable[[int, Any], None] | None,
         site: str | None = None,
         force_refresh: bool = False,
+        progress_callback: Callable[[int], None] | None = None,
     ) -> list[QueryResult]:
         """直接调用 QueryEngine 查询（无公告缓存的默认路径）。"""
         parsed_tuples = [
@@ -186,6 +190,7 @@ class QueryHandler:
         return self._core.query_engine.query_standards(
             parsed_tuples,
             result_callback=result_callback,
+            progress_callback=progress_callback,
             preferred_site=site,
             force_refresh=force_refresh,
         )
@@ -236,10 +241,22 @@ class QueryHandler:
         items = parsed_list or self._core.parsed_results
         self._core.queried_items = items
 
+        # 适配 progress_callback 签名: (current, total) → (completed_count)
+        total = len(items)
+        engine_progress: Callable[[int], None] | None = None
+        if progress_callback and total > 0:
+
+            def _engine_progress(count: int) -> None:
+                progress_callback(count, total)
+
+            engine_progress = _engine_progress
+
         if site or not self._core.cfg.get("query.use_announcement_match", False):
-            results = self._query_via_engine(items, result_callback, site=site, force_refresh=force_refresh)
+            results = self._query_via_engine(
+                items, result_callback, site=site, force_refresh=force_refresh, progress_callback=engine_progress
+            )
         else:
-            results = self._query_via_cache(items, result_callback)
+            results = self._query_via_cache(items, result_callback, progress_callback=engine_progress)
 
         return self._finalize_query(items, results)
 
