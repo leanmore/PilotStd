@@ -14,6 +14,7 @@
 | [STATUS.md](../STATUS.md) | 项目当前状态、版本、阻塞项 |
 | [CHANGELOG.md](../CHANGELOG.md) | 版本变更记录 |
 | [开发指南](development.md) | 环境搭建、测试、常用命令 |
+| [CI 修复经验](ci-lessons.md) | CI 常见问题分类、根因分析与防复发清单 |
 
 ### 架构与治理
 
@@ -51,6 +52,7 @@
 
 | 文档 | 说明 |
 |------|------|
+| [E2E 测试索引](testing/e2e-test-manifest.md) | E2E 测试用例清单（28 个，覆盖 18 个 Handler） |
 | [附录：标准代号清单](reference/附录一 标准代号完整清单.md) | 国内/国际标准代号全集 |
 | [环境需求](reference/环境需求.md) | Python/Docker/Node 版本 |
 | [版本管理规范](reference/版本管理规范.md) | 语义化版本 + 发布流程 |
