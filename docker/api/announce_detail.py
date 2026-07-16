@@ -26,12 +26,17 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
     """获取公告头 + 关联的所有标准记录。"""
     db = mgr.db
 
-    ann = db.fetchone(
-        "SELECT id, announce_no, title, publish_date, source_url, attachment_url"
-        " FROM announcements WHERE announce_no = ?",
+    # announcements 表仅在 v36 迁移时写入一次，新公告不在此表。
+    # 直接查 announcement_record（运行时持续写入）获取公告头。
+    header = db.fetchone(
+        "SELECT announce_no,"
+        " COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
+        " MAX(publish_date) AS publish_date"
+        " FROM announcement_record WHERE announce_no = ?"
+        " GROUP BY announce_no",
         (announce_no,),
     )
-    if not ann:
+    if not header:
         raise HTTPException(404, "公告不存在")
 
     records = db.fetchall(
@@ -46,14 +51,15 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     parse_status = "completed" if records else "pending"
 
+    # announcement_record 不含 source_url/attachment_url，返回空字符串
     return {
         "announcement": {
-            "id": ann["id"],
-            "announce_no": ann["announce_no"],
-            "title": ann["title"] or "",
-            "publish_date": ann["publish_date"] or "",
-            "source_url": ann["source_url"] or "",
-            "attachment_url": ann["attachment_url"] or "",
+            "id": hash(announce_no) & 0x7FFFFFFF,
+            "announce_no": header["announce_no"],
+            "title": header["title"] or "",
+            "publish_date": header["publish_date"] or "",
+            "source_url": "",
+            "attachment_url": "",
         },
         "records": [
             {
