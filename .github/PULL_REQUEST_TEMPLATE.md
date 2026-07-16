@@ -1,48 +1,20 @@
-## Description
-<!-- Please include a summary of the change -->
+## 变更说明
 
-## Capability Migration Status (Governance Required)
+<!-- 请简要描述本次变更的内容 -->
 
-> If this PR does NOT involve refactoring or migration, check "Not applicable" and skip the table.
+## 三位一体治理体系执行确认
 
-- [ ] Not applicable (new feature or bug fix, no refactoring)
-- [ ] Involves refactoring (fill table below)
+### 文档支柱
 
-| Capability Name | Source Location | Target Location | Status |
-|----------|----------|----------|----------|
-|          |          |          | migrated / abandoned / new |
-|          |          |          | migrated / abandoned / new |
+- [ ] **已阅读相关文档**：请列出本次任务阅读的文档名称
+- [ ] **已同步更新文档**：请贴出更新的文档及变更行，或填写 `N/A`
 
-**Verification**:
-- [ ] Ran `python tests/test_observability.py --check-all`, result: ___ (PASS / FAIL)
-- [ ] Updated `docs/governance/capabilities_registry.md` if capabilities changed
+### 测试支柱
 
----
+- [ ] **测试已通过**
+- [ ] **新增/修改代码已有对应测试**
 
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactoring
-- [ ] Documentation
+### 门禁支柱
 
-## Checklist
-- [ ] My code follows the project's style guidelines.
-- [ ] I have performed a self-review of my code.
-- [ ] I have commented my code, particularly in hard-to-understand areas.
-- [ ] I have made corresponding changes to the documentation.
-- [ ] My changes generate no new warnings.
-- [ ] I have ensured that no production code imports from `tests/` or any `*mock*.py` file.
-- [ ] I have added tests that prove my fix is effective or my feature works.
-- [ ] New and existing unit tests pass locally with my changes.
-- [ ] **【Mixin 检查】**：是否新增或修改了 Mixin？
-  - 若新增 → 请在 PR 描述中说明为何不能使用组合模式
-  - 若修改 → 请说明是否同时重构了涉及该 Mixin 的 UI 类
-- [ ] 本地运行 `mypy pilotstd/ --strict` 通过
-- [ ] 本地运行 `ruff check .` 通过
-
-## 文档同步检查
-- [ ] 代码变更对应的文档已同步更新（参考 [文档同步策略](docs/development/documentation-policy.md)）
-- [ ] 如有新增 API，已在接口文档中记录
-- [ ] 如有路径变更（文件移动/重命名），已在目录结构中更新
-- [ ] 如有技术债务消除，已在 [technical-debt-registry.md](docs/architecture/technical-debt-registry.md) 中标记
-- [ ] 如有新配置项或环境变量，已补充到环境配置文档
+- [ ] **本地检查已通过**（`scripts/check_all.sh` 零警告）
+- [ ] **文档与代码已在同一个 commit 中提交**

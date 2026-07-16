@@ -307,3 +307,75 @@ grep -rn '"ui\.' pilotstd/ docker/   # 禁止旧键名
         fi
     ```
   - 新增 workflow/job 时，先确认 `runs-on` 类型和各步骤语法，逐步骤指定正确 shell。
+
+---
+
+## 8. 三位一体治理体系执行规则（SOP）
+
+> ⚠️ **强制约束**：在执行任何代码修改任务前，必须严格按照以下五步工作流执行。交付报告中的确认清单是任务完成的唯一验收标准。
+
+三位一体治理体系 = 测试 + 门禁 + 文档。Claude 在执行任何代码修改任务前，**必须严格按照以下五步工作流执行**，并在交付报告中逐项确认。
+
+### 五步工作流
+
+**第一步：阅读相关文档（三位一体 → 文档支柱）**
+
+根据任务类型，阅读以下相关文档：
+- 涉及架构决策 → 阅读 `docs/adr/` 相关 ADR
+- 涉及架构整体 → 阅读 `docs/architecture.md`
+- 涉及 Handler/Engine 重构 → 阅读对应范式文档 `docs/guides/*.md`
+- 涉及 E2E 测试 → 阅读 `docs/testing/e2e-test-manifest.md`
+- 涉及技术债 → 阅读 `docs/technical-debt.md`（总表）和 `docs/architecture/technical-debt-registry.md`（详细登记）
+- 涉及测试覆盖率 → 阅读 `docs/testing/coverage-report.md`
+- 涉及已知问题 → 阅读 `docs/testing/known-issues.md`
+- 涉及 CI 修复 → 阅读 `docs/ci-lessons.md`
+- 涉及开发流程 → 阅读 `docs/development.md`
+- 涉及文档导航 → 阅读 `docs/index.md`
+- 涉及项目整体状态 → 阅读 `docs/governance-overview.md`
+
+**第二步：执行代码变更（三位一体 → 测试支柱）**
+
+- 基于文档理解进行开发
+- 遵循对应范式文档中的模式
+- 确保新增/修改代码有对应的测试覆盖
+
+**第三步：本地静态检查（三位一体 → 门禁支柱）**
+
+- 提交前执行 `scripts/check_all.sh`（包含 Ruff + Mypy + G-010 + G-011）
+- 确保零警告通过
+
+**第四步：同步更新文档（三位一体 → 文档支柱）**
+
+根据任务涉及的范围，同步更新以下文档：
+- 新增/修改 E2E 测试 → 更新 `docs/testing/e2e-test-manifest.md`
+- 修复 CI 报错 → 追加 `docs/ci-lessons.md`（追加到末尾，注明日期）
+- 涉及架构决策 → 创建或更新 `docs/adr/ADR-XXX.md`
+- 涉及架构整体 → 更新 `docs/architecture.md`
+- 涉及范式变更 → 更新 `docs/guides/*.md`
+- 涉及技术债状态变更 → 更新 `docs/technical-debt.md` 或 `docs/architecture/technical-debt-registry.md`
+- 涉及测试覆盖率 → 确认是否需要更新 `docs/testing/coverage-report.md`
+- 涉及已知问题 → 确认是否需要更新 `docs/testing/known-issues.md`
+- 涉及开发流程规则变更 → 更新 `docs/development.md`
+- 涉及文档导航 → 更新 `docs/index.md`
+- 涉及治理体系总览变更 → 更新 `docs/governance-overview.md`
+
+**第五步：提交（三位一体 → 门禁 + 文档）**
+
+- 文档和代码在同一个 commit 中提交
+- commit message 包含代码变更和文档变更说明
+
+### 交付报告确认清单
+
+Claude 在交付任务时，必须逐项打勾确认（对应三位一体治理体系三支柱）：
+
+**文档支柱（第一步 + 第四步）**
+- [ ] 已阅读相关文档（列出具体文档名称）
+- [ ] 已同步更新文档（列出具体文档及变更内容，或填写 N/A）
+
+**测试支柱（第二步）**
+- [ ] 已执行代码变更
+- [ ] 新增/修改代码已有对应测试
+
+**门禁支柱（第三步 + 第五步）**
+- [ ] 已执行本地静态检查（`scripts/check_all.sh` 零警告）
+- [ ] 文档和代码已在同一个 commit 中提交

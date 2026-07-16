@@ -55,6 +55,13 @@ repos:
         stages: [manual]
         always_run: true
 
+      - id: check-all
+        name: 三位一体治理体系 - 本地检查（门禁支柱）
+        entry: scripts/check_all.sh
+        language: script
+        files: \.py$
+        pass_filenames: false
+
       - id: gate-10
         name: G-010 代码规模控制 (阻断模式)
         entry: python scripts/check_g_010_code_size.py
