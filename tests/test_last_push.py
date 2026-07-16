@@ -7,6 +7,8 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path: sys.path.insert(0, root_dir)
 from tests.mocks.mock_database import MockDatabase
 
+_CI = os.environ.get("CI", "").lower() in ("true", "1")
+
 
 class TestFinalSmall(unittest.TestCase):
     def test_models_default_values(self):
@@ -152,6 +154,7 @@ class TestPipelinePlatformFinal(unittest.TestCase):
         from pilotstd.pipeline.router import PipelineRouter
         self.assertIsNotNone(PipelineRouter())
 
+    @unittest.skipIf(_CI, "CI 环境无 PyQt6 显示支持")
     def test_notify_service_import(self):
         from pilotstd.platform.notify import NotifyService
         self.assertTrue(hasattr(NotifyService, '__init__'))

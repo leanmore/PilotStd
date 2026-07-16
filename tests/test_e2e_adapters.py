@@ -18,6 +18,8 @@ from pilotstd.query.adapters.iso_gov import IsoGovAdapter
 from pilotstd.query.adapters.njbz365 import Njbz365Adapter
 from pilotstd.query.adapters.std_gov import StdGovAdapter
 
+_CI = os.environ.get("CI", "").lower() in ("true", "1")
+
 
 class TestE2EStdGov(unittest.TestCase):
     """全国标准平台 — GB 标准"""
@@ -25,6 +27,7 @@ class TestE2EStdGov(unittest.TestCase):
     def setUp(self):
         self.a = StdGovAdapter()
 
+    @unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
     @unittest.skip("外部 API 依赖 — CI 中跳过")
     def test_gb_exact_match(self):
         """GB/T 19001-2016 应返回 exact"""
@@ -36,6 +39,7 @@ class TestE2EStdGov(unittest.TestCase):
         self.assertIn("质量", r.standard_name or "", f"标准名称应包含'质量': {r.standard_name}")
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2ENjbz365(unittest.TestCase):
     """南京标准平台 — 国外 + 行业标准"""
 
@@ -80,6 +84,7 @@ class TestE2ENjbz365(unittest.TestCase):
         )
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2EHbba(unittest.TestCase):
     """行业标准平台 — 行业标准"""
 
@@ -113,6 +118,7 @@ class TestE2EHbba(unittest.TestCase):
         )
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2EDbba(unittest.TestCase):
     """地方标准平台 — 地方标准"""
 
@@ -132,6 +138,7 @@ class TestE2EDbba(unittest.TestCase):
         )
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2EIsoGov(unittest.TestCase):
     """国际标准平台 — ISO/IEC 标准"""
 
@@ -157,6 +164,7 @@ class TestE2EIsoGov(unittest.TestCase):
         )
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2ECrossAdapter(unittest.TestCase):
     """跨适配器一致性：同一条标准在不同站点应都能查到（第七维度）"""
 
@@ -212,6 +220,7 @@ class TestE2ECrossAdapter(unittest.TestCase):
         self.assertTrue(found, "GB/T 19001-2016 应在新站点 ahbz 或 std_gov 查到")
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestE2EAhbz(unittest.TestCase):
     """安徽标准平台 — 新站点端到端"""
 
@@ -284,6 +293,7 @@ class TestAllSitesCooled(unittest.TestCase):
                     rotator.force_cooldown(name, int(remaining))
 
 
+@unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
 class TestSiteUnavailable(unittest.TestCase):
     """异常韧性——站点不可用时引擎自动切换下一个站点，不崩溃（第三维度）"""
 

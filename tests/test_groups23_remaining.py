@@ -10,6 +10,8 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
+_CI = os.environ.get("CI", "").lower() in ("true", "1")
+
 
 class TestCoreRemaining(unittest.TestCase):
     def test_frozen(self):
@@ -87,6 +89,7 @@ class TestDownloadRemaining(unittest.TestCase):
 
 
 class TestPlatformRemaining(unittest.TestCase):
+    @unittest.skipIf(_CI, "CI 环境无 PyQt6 显示支持")
     def test_notify_service(self):
         from pilotstd.platform.notify import NotifyService
         self.assertTrue(hasattr(NotifyService, '__init__'))
