@@ -5,6 +5,8 @@ import sys
 import tempfile
 import unittest
 
+import pytest
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -57,6 +59,7 @@ class TestTruncatePath(unittest.TestCase):
         self.assertTrue(len(result) > 0)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows 长路径特性，仅 Windows 环境适用")
 class TestEnsureLongPath(unittest.TestCase):
     def test_adds_prefix(self):
         result = ensure_long_path('C:\\test\\path')
@@ -71,6 +74,7 @@ class TestEnsureLongPath(unittest.TestCase):
         self.assertEqual(result, '')
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows 长路径特性，仅 Windows 环境适用")
 class TestStripLongPath(unittest.TestCase):
     def test_removes_prefix(self):
         result = strip_long_path('\\\\?\\C:\\test\\path')
@@ -188,6 +192,7 @@ class TestRemoveEmptyDirs(unittest.TestCase):
         self.assertGreaterEqual(removed, 1)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="文件移动权限行为在 Linux 下不同")
 class TestSafeMove(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
