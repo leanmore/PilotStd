@@ -44,6 +44,13 @@ project_frontend_tree.txt
 crash_log.txt
 scripts/check_relative_imports_report.txt
 
+# 覆盖率产物
+.coverage
+coverage.json
+coverage_detail.txt
+coverage_summary.txt
+final_coverage.txt
+
 # 个人笔记
 *进度*.md
 *审核*.md
