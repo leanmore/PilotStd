@@ -31,7 +31,6 @@ tests/.fernet_key
 
 # 临时文件
 scripts/temp/
-tests/fixtures/
 tests/gui_test_files/
 tests/verify_downloads/
 temp_*.py
