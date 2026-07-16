@@ -63,6 +63,7 @@ class LogHandler(logging.Handler, QObject):
         logging.Handler.__init__(self)
         QObject.__init__(self)
         self.widget = widget
+        self._closed = False
         self.setFormatter(_TagFormatter())
         self._log_signal.connect(self._append_text, Qt.ConnectionType.QueuedConnection)
         self.setLevel(logging.DEBUG)
@@ -72,8 +73,14 @@ class LogHandler(logging.Handler, QObject):
         self._buf_timer.setInterval(200)
         self._buf_timer.timeout.connect(self._flush)
 
+    def close(self) -> None:
+        """在 Qt 对象销毁前关闭处理器，释放 Qt 引用"""
+        self._closed = True
+        self.widget = None
+        logging.getLogger().removeHandler(self)
+
     def _flush(self) -> None:
-        if not self._buf:
+        if self._closed or not self._buf:
             return
         try:
             w = self.widget
@@ -85,15 +92,20 @@ class LogHandler(logging.Handler, QObject):
             if sb is not None:
                 sb.setValue(sb.maximum())
         except RuntimeError:
-            pass
+            self._closed = True
+            self.widget = None
         self._buf.clear()
 
     def _append_text(self, msg: str) -> None:
+        if self._closed:
+            return
         self._buf.append(msg)
         if not self._buf_timer.isActive():
             self._buf_timer.start()
 
     def emit(self, record: Any) -> None:
+        if self._closed:
+            return
         try:
             msg = self.format(record)
             from PyQt6.QtCore import QThread as _QThread
@@ -104,13 +116,17 @@ class LogHandler(logging.Handler, QObject):
             else:
                 self._log_signal.emit(msg)
         except RuntimeError:
-            pass
+            self._closed = True
+            self.widget = None
 
     def flush(self) -> None:
+        if self._closed:
+            return
         try:
             self._flush()
         except RuntimeError:
-            pass
+            self._closed = True
+            self.widget = None
 
 
 def flush_logs() -> None:

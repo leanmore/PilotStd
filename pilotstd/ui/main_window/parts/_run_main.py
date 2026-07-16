@@ -56,10 +56,15 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     window._ui_translatable = True
     window.show()
 
-    # Qt 销毁前安全关闭 logging，避免 atexit 访问已析构 QTextEdit
-    from pilotstd.ui.workers._common import flush_logs
+    # Qt 销毁前关闭 LogHandler，释放对 QTextEdit 的引用
+    def _close_log_handlers() -> None:
+        from ...workers._common import LogHandler
 
-    app.aboutToQuit.connect(flush_logs)
+        for h in logging.getLogger().handlers:
+            if isinstance(h, LogHandler):
+                h.close()
+
+    app.aboutToQuit.connect(_close_log_handlers)
 
     QTimer.singleShot(50, window._init_manager)
     QTimer.singleShot(100, window.show_welcome_if_needed)
