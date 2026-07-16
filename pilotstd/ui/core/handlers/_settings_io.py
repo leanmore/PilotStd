@@ -273,11 +273,16 @@ class SettingsConfigIO:
     # ================================================================
 
     def _load_advanced(self) -> None:
-        """加载高级设置：网络代理、公告、缓存、OCR 密钥。"""
+        """加载高级配置入口"""
         h = self._h
         if not all([h._proxy, h._ua_cb, h._announcement_cb, h._cache_cb]):
             return
+        data = self._load_advanced_from_config()
+        self._apply_advanced_settings(data)
 
+    def _load_advanced_from_config(self) -> dict:
+        """从配置加载高级设置并反序列化"""
+        h = self._h
         raw = {
             "network.proxy": self._config.get(
                 "network.proxy", self._engine.DEFAULT_ADVANCED["network.proxy"]
@@ -305,26 +310,29 @@ class SettingsConfigIO:
             raw["query.announcement_api_key"] = self._config.get(
                 "query.announcement_api_key", self._engine.DEFAULT_ADVANCED["query.announcement_api_key"]
             )
+        return self._engine.deserialize_advanced(raw)
 
-        result = self._engine.deserialize_advanced(raw)
+    def _apply_advanced_settings(self, data: dict) -> None:
+        """应用高级设置到UI"""
+        h = self._h
 
-        h._proxy.setText(result["network.proxy"])
-        h._ua_cb.setChecked(result["network.ua_rotation"])
+        h._proxy.setText(data["network.proxy"])
+        h._ua_cb.setChecked(data["network.ua_rotation"])
 
         h._announcement_cb.blockSignals(True)
-        h._announcement_cb.setChecked(result["announcement.enabled"])
+        h._announcement_cb.setChecked(data["announcement.enabled"])
         h._announcement_cb.blockSignals(False)
 
-        h._cache_cb.setChecked(result["query.use_cache"])
+        h._cache_cb.setChecked(data["query.use_cache"])
 
         if h._announce_cache_cb:
             h._announce_cache_cb.blockSignals(True)
-            h._announce_cache_cb.setChecked(result["query.use_announcement_match"])
+            h._announce_cache_cb.setChecked(data["query.use_announcement_match"])
             h._announce_cache_cb.blockSignals(False)
         if h._announce_url_edit:
-            h._announce_url_edit.setText(result["query.announcement_url"])
+            h._announce_url_edit.setText(data["query.announcement_url"])
         if h._announce_api_key_edit:
-            h._announce_api_key_edit.setText(result["query.announcement_api_key"])
+            h._announce_api_key_edit.setText(data["query.announcement_api_key"])
 
         # 脏数据仲裁：公告和公告缓存不能同时开启
         if h._announcement_cb.isChecked() and h._announce_cache_cb and h._announce_cache_cb.isChecked():

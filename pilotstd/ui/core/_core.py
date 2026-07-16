@@ -145,6 +145,13 @@ class MainWindowCore:
         )
 
     def _init_query(self) -> None:
+        """查询初始化入口"""
+        self._init_query_ui()
+        self._init_query_connections()
+        self._init_query_state()
+
+    def _init_query_ui(self) -> None:
+        """初始化查询相关UI组件适配器"""
         # ── 适配器：将 MainWindowCore 的回调打包进协议接口 ──
 
         class _TableOpsAdapter:
@@ -212,6 +219,13 @@ class MainWindowCore:
 
                 QMessageBox.warning(self._c._parent, title, msg)
 
+        self._table_ops = _TableOpsAdapter(self)
+        self._dialog_ops = _DialogOpsAdapter(self)
+
+    def _init_query_connections(self) -> None:
+        """连接查询相关信号和创建依赖"""
+        core = self
+
         class _TaskOpsAdapter:
             def __init__(self, core: MainWindowCore) -> None:
                 self._c = core
@@ -246,19 +260,21 @@ class MainWindowCore:
 
                 return PendingQueryDialog(self._c._mgr, data, parent)
 
-        deps = type(
+        self._deps = type(
             "QueryDeps",
             (),
             {
-                "table": _TableOpsAdapter(self),
-                "dialog": _DialogOpsAdapter(self),
-                "task": _TaskOpsAdapter(self),
-                "worker_factory": _QueryWorkerFactoryAdapter(self),
+                "table": self._table_ops,
+                "dialog": self._dialog_ops,
+                "task": _TaskOpsAdapter(core),
+                "worker_factory": _QueryWorkerFactoryAdapter(core),
             },
         )()
 
+    def _init_query_state(self) -> None:
+        """初始化查询状态变量并创建 QueryUIHandler"""
         self.query = QueryUIHandler(
-            deps=deps,
+            deps=self._deps,
             config=self._config,
             mgr=self._mgr,
             parsed_results=self._parsed_results,
