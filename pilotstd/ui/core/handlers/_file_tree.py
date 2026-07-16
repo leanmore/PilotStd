@@ -7,28 +7,13 @@ import logging
 import os
 from typing import Any, Optional
 
-from PyQt6.QtCore import QDir, QStandardPaths, Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QStandardPaths, Qt
 from PyQt6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 
 from ....i18n import _
+from ...drive_enumerator import DriveEnumerator
 
 logger = logging.getLogger(__name__)
-
-
-class DriveEnumerator(QThread):
-    """后台线程枚举驱动器，避免网络驱动器阻塞 UI 主线程。"""
-
-    drives_ready = pyqtSignal(list)  # type: ignore[type-arg]
-
-    def run(self) -> None:
-        """在后台线程中枚举驱动器，将结果通过信号发回主线程。"""
-        drives = QDir.drives()
-        result = []
-        for d in drives:
-            path = d.absolutePath()
-            name = path.rstrip("/\\")
-            result.append((name, path))
-        self.drives_ready.emit(result)
 
 
 class FileTreeHandler:

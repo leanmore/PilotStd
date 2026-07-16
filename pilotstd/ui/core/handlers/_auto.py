@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 
 from ....i18n import _
 from ...workers import AutoWorker
+from ..event_bus import EventBus
+from .auto_flow_engine import AutoFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -150,12 +152,13 @@ class AutoUIHandler:
     # ── 自动管线回调 ─────────────────────────────────────────
 
     def _on_auto_error(self, msg: str) -> None:
-        """AutoWorker 异常 → 进度条变红 + 状态栏错误信息。"""
+        """AutoWorker 异常 → 进度条变红 + 状态栏错误信息 + 发布事件。"""
         self._show_auto_error_style()
         self._status_cb(f"{_('auto_run_failed')}: {msg}")
+        EventBus.instance().publish("auto.pipeline.error", {"error": msg})
 
     def _on_auto_stage_changed(self, stage: str, current: int, total: int) -> None:
-        """阶段切换 → 更新按钮状态和进度条。"""
+        """阶段切换 → 更新按钮状态和进度条，同步发布事件。"""
         stage_labels = {
             "scan": "扫描中...",
             "query": "查询中...",
@@ -172,9 +175,10 @@ class AutoUIHandler:
             self._set_cancel_btn_enabled(True)
         else:
             self._set_cancel_btn_enabled(False)
+        EventBus.instance().publish(f"auto.stage.{stage}", {"stage": stage, "current": current, "total": total})
 
     def _on_auto_pipeline_finished(self, report: dict[str, Any]) -> None:
-        """AutoWorker 完成 → 恢复 UI + 弹汇总。"""
+        """AutoWorker 完成 → 恢复 UI + 弹汇总 + 发布事件。"""
         self._force_finish_progress()
         self._set_suppress_dialogs(False)
         self._set_query_btn_enabled(True)
@@ -183,32 +187,31 @@ class AutoUIHandler:
         self._show_auto_run_summary()
         self._clear_table()
         self._parsed_results.clear()
+        EventBus.instance().publish("auto.pipeline.finished", report)
 
     # ── 汇总弹窗 ─────────────────────────────────────────────
 
     def _build_auto_summary_message(self, results: list[Any]) -> tuple[str, list[str]]:
-        """收集统计数据 + 构建汇总消息文本。返回 (msg, manual_all)。"""
-        total = len(results)
-        not_found = [p for p in results if not p.std_name]
-        expired = [p for p in results if p.effect_status in ("废止", "已废止", "作废")]
-        adopted = [p for p in results if p.is_adopted]
+        """委托 AutoFlowEngine 统计，Handler 负责 i18n 格式化。"""
+        stats = AutoFlowEngine.build_summary_stats(results)
 
         manual_all: list[str] = []
-        for p in not_found:
-            manual_all.append(f"{p.get_full_number()}  {_('auto_run_manual_row_not_found')}")
-        for p in adopted:
-            manual_all.append(f"{p.get_full_number()}  {_('auto_run_manual_row_adopted')}")
+        for item in stats["manual_all"]:
+            if item["reason"] == "not_found":
+                manual_all.append(f"{item['number']}  {_('auto_run_manual_row_not_found')}")
+            else:
+                manual_all.append(f"{item['number']}  {_('auto_run_manual_row_adopted')}")
 
         msg = (
-            _("auto_run_summary_total").format(total=total)
+            _("auto_run_summary_total").format(total=stats["total"])
             + "\n\n"
-            + _("auto_run_summary_found").format(count=total - len(not_found))
+            + _("auto_run_summary_found").format(count=stats["found_count"])
             + "\n"
-            + _("auto_run_summary_not_found").format(count=len(not_found))
+            + _("auto_run_summary_not_found").format(count=stats["not_found_count"])
             + "\n"
-            + _("auto_run_summary_expired").format(count=len(expired))
+            + _("auto_run_summary_expired").format(count=stats["expired_count"])
             + "\n"
-            + _("auto_run_summary_adopted").format(count=len(adopted))
+            + _("auto_run_summary_adopted").format(count=stats["adopted_count"])
         )
         return msg, manual_all
 

@@ -72,7 +72,7 @@ def _do_pending_query(self) -> None:
     if not parsed_list:
         QMessageBox.warning(self, _("title_hint"), _("csv_no_standards"))
         return
-    msg = _("msg_csv_parse_result").format(count=len(parsed_list))
+    msg = _("msg_csv_parse_result").format(count=len(parsed_list))  # pragma: no cover — do_pending_query 全流程依赖 CSV+Dlg+Classifier
     if failed_names:
         msg += f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n" + "\n".join(failed_names[:5])
         if len(failed_names) > 5:

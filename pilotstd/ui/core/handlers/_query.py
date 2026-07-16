@@ -1,11 +1,15 @@
 # pilotstd/ui/core/handlers/_query.py
-"""QueryUIHandler — 查询 UI 状态管理（Core + Pending）。"""
+"""QueryUIHandler — 查询 UI 状态管理（Core + Pending）。
+
+重构后 __init__ 从 30+ 参数收敛为 13 个（1 聚合接口 + 12 独立参数）。
+内部通过 self._deps.{table,dialog,task,worker_factory} 访问依赖。
+纯逻辑委托给 self._engine（QueryFlowEngine）。
+"""
 
 from __future__ import annotations
 
 import csv
 import logging
-import re
 from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtCore import Qt
@@ -14,8 +18,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QLabel,
     QMessageBox,
-    QTableWidget,
-    QWidget,
 )
 
 if TYPE_CHECKING:
@@ -24,10 +26,20 @@ if TYPE_CHECKING:
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
 from ...pending_query_dialog import PendingQueryDialog
-from ...workers import QueryWorker, RowUpdate
+from ..event_bus import EventBus
 from ._query_summary import QuerySummaryHandler
+from .protocols import IQueryDependencies, QueryCallbacks
+from .query_flow_engine import QueryFlowEngine
 
 logger = logging.getLogger(__name__)
+
+# hex → Qt.GlobalColor 映射（引擎返回 hex 字符串，Handler 负责转换为 Qt 枚举着色）
+_STATUS_HEX_TO_QT: dict[str, Qt.GlobalColor] = {
+    "#008000": Qt.GlobalColor.darkGreen,
+    "#0000ff": Qt.GlobalColor.blue,
+    "#ff0000": Qt.GlobalColor.red,
+    "#808000": Qt.GlobalColor.darkYellow,
+}
 
 
 class QueryUIHandler:
@@ -35,121 +47,47 @@ class QueryUIHandler:
 
     def __init__(
         self,
-        mgr: Any,
+        deps: IQueryDependencies,
         config: ConfigManager,
-        pause_event: Any,
-        parent_widget: QWidget | None,
-        work_table: QTableWidget,
+        mgr: Any,
         parsed_results: list[ParsedStdInfo],
-        # 回调依赖
-        add_table_row: Callable[[RowUpdate], None],
-        clear_table: Callable[[], None],
-        find_row_by_seq: Callable[[int], int],
-        question_dlg: Callable[[str, str], int],
-        stage_prereq_dialog: Callable[[str, str, str], str],
-        show_stage_dialog: Callable[..., None],
-        register_task: Callable[..., None],
-        status_callback: Callable[[str], None],
-        progress_callback: Callable[[int], None],
-        reset_progress: Callable[[], None],
-        force_finish_progress: Callable[[], None],
+        run_scan_cb: Callable[[str], None] | None = None,
+        status_changed: Callable[[str], None] | None = None,
+        progress_changed: Callable[[int], None] | None = None,
+        reset_progress: Callable[[], None] | None = None,
+        force_finish_progress: Callable[[], None] | None = None,
         suppress_dialogs: Callable[[], bool] | None = None,
         project_mark_dirty: Callable[[], None] | None = None,
         notify_worker_error: Callable[[str, str], None] | None = None,
-        # 外部流程委托
-        run_scan: Callable[[str], None] | None = None,
-        get_selected_path: Callable[[], str] | None = None,
-        on_download: Callable[[], None] | None = None,
+        on_download_cb: Callable[[], None] | None = None,
     ) -> None:
-        self.__init_tr(
-            mgr=mgr,
-            config=config,
-            pause_event=pause_event,
-            parent=parent_widget,
-            work_table=work_table,
-            parsed_results=parsed_results,
-            add_table_row=add_table_row,
-            clear_table=clear_table,
-            find_row_by_seq=find_row_by_seq,
-            question_dlg=question_dlg,
-            stage_prereq_dialog=stage_prereq_dialog,
-            show_stage_dialog=show_stage_dialog,
-            register_task=register_task,
-            status_callback=status_callback,
-            progress_callback=progress_callback,
-            reset_progress=reset_progress,
-            force_finish_progress=force_finish_progress,
-            suppress_dialogs=suppress_dialogs,
-            project_mark_dirty=project_mark_dirty,
-            notify_worker_error=notify_worker_error,
-            run_scan=run_scan,
-            get_selected_path=get_selected_path,
-            on_download=on_download,
-        )
-
-    def __init_tr(
-        self,
-        mgr: Any,
-        config: ConfigManager,
-        pause_event: Any,
-        parent: QWidget | None,
-        work_table: QTableWidget,
-        parsed_results: list[ParsedStdInfo],
-        # 回调依赖
-        add_table_row: Callable[[RowUpdate], None],
-        clear_table: Callable[[], None],
-        find_row_by_seq: Callable[[int], int],
-        question_dlg: Callable[[str, str], int],
-        stage_prereq_dialog: Callable[[str, str, str], str],
-        show_stage_dialog: Callable[..., None],
-        register_task: Callable[..., None],
-        status_callback: Callable[[str], None],
-        progress_callback: Callable[[int], None],
-        reset_progress: Callable[[], None],
-        force_finish_progress: Callable[[], None],
-        suppress_dialogs: Callable[[], bool] | None = None,
-        project_mark_dirty: Callable[[], None] | None = None,
-        notify_worker_error: Callable[[str, str], None] | None = None,
-        # 外部流程委托
-        run_scan: Callable[[str], None] | None = None,
-        get_selected_path: Callable[[], str] | None = None,
-        on_download: Callable[[], None] | None = None,
-    ) -> None:
-        self._mgr = mgr
+        self._deps = deps
         self._config = config
-        self._pause_event = pause_event
-        self._parent = parent
-        self._work_table = work_table
+        self._mgr = mgr
         self._parsed_results = parsed_results
-        self._add_table_row = add_table_row
-        self._clear_table = clear_table
-        self._find_row_by_seq = find_row_by_seq
-        self._question_dlg = question_dlg
-        self._stage_prereq_dialog = stage_prereq_dialog
-        self._show_stage_dialog = show_stage_dialog
-        self._register_task = register_task
-        self._status_cb = status_callback
-        self._progress_cb = progress_callback
+        self._run_scan_cb = run_scan_cb
+        self._status_changed = status_changed
+        self._progress_changed = progress_changed
         self._reset_progress = reset_progress
         self._force_finish_progress = force_finish_progress
         self._suppress_dialogs = suppress_dialogs
         self._project_mark_dirty = project_mark_dirty
         self._notify_worker_error = notify_worker_error
-        self._run_scan_cb = run_scan
-        self._get_selected_path_cb = get_selected_path
-        self._on_download_cb = on_download
-        self._query_worker: QueryWorker | None = None
+        self._on_download_cb = on_download_cb
+        self._query_worker: Any = None
+        # 纯逻辑引擎
+        self._engine = QueryFlowEngine(config)
         # 汇总弹窗委托
         self._summary = QuerySummaryHandler(
             mgr=mgr,
-            parent=parent,
-            work_table=work_table,
+            parent=deps.table.get_work_table().parentWidget(),
+            work_table=deps.table.get_work_table(),
             parsed_results=parsed_results,
             suppress_dialogs=suppress_dialogs,
-            register_task=register_task,
+            register_task=deps.task.register_task,
             project_mark_dirty=project_mark_dirty,
-            status_cb=status_callback,
-            on_download_cb=on_download,
+            status_cb=status_changed,
+            on_download_cb=on_download_cb,
             export_pending_csv=self.export_pending_csv,
             write_pending_to_db=self.write_pending_to_db,
         )
@@ -164,16 +102,18 @@ class QueryUIHandler:
                 w.terminate()
                 w.wait()
 
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Core — 核心查询执行
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     def on_query(self) -> None:
         """查询主入口：前置准备 → Worker 创建 → 信号连接。"""
         if not self._parsed_results:
-            choice = self._stage_prereq_dialog(tr("title_hint"), tr("msg_scan_prereq"), tr("task_scan"))
+            choice = self._deps.dialog.stage_prereq_dialog(
+                tr("title_hint"), tr("msg_scan_prereq"), tr("task_scan")
+            )
             if choice == "run_prereq" and self._run_scan_cb:
-                path = self._get_selected_path_cb() if self._get_selected_path_cb else ""
+                path = self._deps.table.get_selected_path()
                 self._run_scan_cb(path)
                 return
             if choice == "cancel":
@@ -186,45 +126,48 @@ class QueryUIHandler:
             if csres_count > 0:
                 self._mgr.get_quota_info()
                 msg = tr("query_quota_msg").format(total)
-                reply = self._question_dlg(tr("query_quota_title"), msg)
-                if reply != QMessageBox.StandardButton.Yes:
+                if not self._deps.dialog.question_dlg(tr("query_quota_title"), msg):
                     return
 
-        self._status_cb(tr("work_status_querying"))
+        if self._status_changed:
+            self._status_changed(tr("work_status_querying"))
         if self._reset_progress:
             self._reset_progress()
 
-        for row in range(self._work_table.rowCount()):
-            item = self._work_table.item(row, 1)
+        wt = self._deps.table.get_work_table()
+        for row in range(wt.rowCount()):
+            item = wt.item(row, 1)
             if item:
                 item.setText("查询中...")
 
         def on_progress(current: int) -> None:
-            if self._progress_cb:
-                self._progress_cb(current)
-
-        self._query_worker = QueryWorker(
-            self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self._parent
-        )
-        self._query_worker.batch_ready.connect(self.on_query_batch_ready)
-        self._query_worker.result_ready.connect(self.on_query_result_ready)
-        self._query_worker.progress.connect(on_progress)
-        if self._notify_worker_error:
-            self._query_worker.error.connect(
-                lambda msg: self._notify_worker_error("query", msg)  # type: ignore[misc]
-            )
+            if self._progress_changed:
+                self._progress_changed(current)
 
         def on_query_finished(_results: Any) -> None:
             if self._force_finish_progress:
                 self._force_finish_progress()
+            self._publish_event("query.finished", {"count": len(_results) if _results else 0})
             self.show_query_summary()
 
         def on_query_error(msg: str) -> None:
-            self._status_cb(f"查询失败: {msg}")
+            if self._status_changed:
+                self._status_changed(f"查询失败: {msg}")
             logger.error("查询线程异常: %s", msg)
+            if self._notify_worker_error:
+                self._notify_worker_error("query", msg)
+            self._publish_event("query.error", {"error": msg})
 
-        self._query_worker.finished_signal.connect(on_query_finished)
-        self._query_worker.error.connect(on_query_error)
+        callbacks = QueryCallbacks(
+            on_result_ready=self.on_query_result_ready,
+            on_batch_ready=self.on_query_batch_ready,
+            on_progress=on_progress,
+            on_finished=on_query_finished,
+            on_error=on_query_error,
+        )
+        self._query_worker = self._deps.worker_factory.create_query_worker(
+            self._parsed_results, callbacks
+        )
         self._query_worker.start()
 
     def on_query_result_ready(self, idx: int, result: Any) -> None:
@@ -232,47 +175,44 @@ class QueryUIHandler:
         parsed = self._parsed_results[idx]
         source_label = getattr(result, "source_site", "") or "未知"
 
-        row = self._find_row_by_seq(idx + 1)
+        row = self._deps.table.find_row_by_seq(idx + 1)
         if row < 0:
             return
-        cells = [
-            (1, f"已查询({source_label})"),
-            (3, result.standard_name or parsed.std_name),
-            (4, result.status),
-            (5, result.replaces if result.replaces != "网站无此分类" else ""),
-            (6, result.publish_date if result.publish_date != "网站无此分类" else ""),
-            (7, result.implementation_date if result.implementation_date != "网站无此分类" else ""),
-            (8, result.responsible_dept if result.responsible_dept != "网站无此分类" else ""),
-            (9, "采标" if result.is_adopted else ""),
-        ]
+        wt = self._deps.table.get_work_table()
+
+        # 纯逻辑：构建单元格列表
+        cells = self._engine.build_result_cells(result, parsed, source_label)
         for col, text in cells:
             if text:
-                item = self._work_table.item(row, col) or None
+                item = wt.item(row, col) or None
                 if item:
                     item.setText(str(text))
 
-        status_item = self._work_table.item(row, 4)
+        # 纯逻辑：确定状态颜色 → Handler 负责 Qt 着色
+        status_item = wt.item(row, 4)
         if status_item:
-            s = result.status
-            if s in ("现行",):
-                status_item.setForeground(Qt.GlobalColor.darkGreen)
-            elif s == "即将实施":
-                status_item.setForeground(Qt.GlobalColor.blue)
-            elif s in ("废止", "已废止", "作废"):
-                status_item.setForeground(Qt.GlobalColor.red)
-            elif s == "待确认":
-                status_item.setForeground(Qt.GlobalColor.darkYellow)
-            if not result.is_downloadable and s not in ("废止", "已废止", "作废", "待确认"):
-                status_item.setForeground(Qt.GlobalColor.darkYellow)
+            color_hex = self._engine.determine_status_color(
+                result.status, result.is_downloadable
+            )
+            qt_color = _STATUS_HEX_TO_QT.get(color_hex)
+            if qt_color is not None:
+                status_item.setForeground(qt_color)
+            elif color_hex:
+                logger.warning(
+                    "未知状态颜色: status=%s is_downloadable=%s hex=%s",
+                    result.status,
+                    result.is_downloadable,
+                    color_hex,
+                )
 
     def on_query_batch_ready(self, batch: list[Any]) -> None:
         """批量处理查询结果。"""
         for idx, result in batch:
             self.on_query_result_ready(idx, result)
 
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Pending — 待确认管理
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     def export_pending_csv(self, save_status: QLabel | None = None) -> str | None:
         """导出待确认条目为 CSV。返回保存路径，失败返回 None。"""
@@ -298,34 +238,9 @@ class QueryUIHandler:
         try:
             with open(path, "w", newline="", encoding="utf-8-sig") as f:
                 writer = csv.writer(f)
-                writer.writerow(
-                    [
-                        tr("query_pending_col_std_number"),
-                        tr("query_pending_col_source_filename"),
-                        tr("query_pending_col_web_name"),
-                        tr("query_pending_col_local_year"),
-                        tr("query_pending_col_web_number"),
-                        tr("query_pending_col_status"),
-                        tr("query_pending_col_confidence"),
-                        tr("query_pending_col_source_site"),
-                    ]
-                )
+                writer.writerow(self._engine.build_pending_csv_headers())
                 for row in rows:
-                    std_num = row.get("standard_number", "")
-                    year_match = re.search(r"[-–](\d{4})$", std_num)
-                    year = year_match.group(1) if year_match else ""
-                    writer.writerow(
-                        [
-                            std_num,
-                            row.get("std_name", ""),
-                            row.get("found_name", ""),
-                            year,
-                            row.get("found_number", ""),
-                            row.get("effect_status", ""),
-                            str(row.get("score", "")),
-                            row.get("source_site", ""),
-                        ]
-                    )
+                    writer.writerow(self._engine.build_pending_csv_row(row))
             if save_status is not None:
                 save_status.setText(f"已保存: pending_standards_{ts}.csv")
                 save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
@@ -344,53 +259,42 @@ class QueryUIHandler:
         except Exception as e:
             logger.exception("待确认查询异常")
             QMessageBox.critical(
-                self._parent,
+                self._deps.table.get_work_table().parentWidget(),
                 tr("title_error"),
                 tr("error_pending_query_failed").format(error=e),
             )
 
     def parse_pending_csv(self, path: str) -> tuple[list[ParsedStdInfo], list[str]]:
-        """解析待确认 CSV，返回 (parsed_list, failed_names)。"""
-        parsed_list: list[ParsedStdInfo] = []
-        failed_names: list[str] = []
-        with open(path, "r", encoding="utf-8-sig") as f:
-            reader = csv.reader(f)
-            rows = list(reader)
-        if not rows:
-            return parsed_list, failed_names
-        for i, row in enumerate(rows):
-            if i == 0:
-                continue
-            if not row or not row[0].strip():
-                continue
-            std_num = row[0].strip()
-            try:
-                parsed = self._mgr.parse_standard_number(std_num + ".pdf")
-            except Exception as e:
-                logger.warning("解析标准号失败: %s — %s", std_num, e)
-                failed_names.append(std_num)
-                continue
-            if parsed:
-                parsed.std_name = row[1].strip() if len(row) > 1 and row[1].strip() else parsed.std_name
-                parsed_list.append(parsed)
-            else:
-                failed_names.append(std_num)
-        return parsed_list, failed_names
+        """解析待确认 CSV，委托给 QueryFlowEngine。"""
+        return self._engine.parse_csv_content(path, self._mgr.parse_standard_number)
 
     # _archived: 此方法未被 UI 调用，实际待确认查询由 parts/_query_ops.py 处理
     def do_pending_query(self) -> None:
         """完整的待确认查询流程：打开 CSV → 解析 → PendingQueryDialog → 填充表格。"""
         if self._parsed_results:
-            QMessageBox.warning(self._parent, tr("title_hint"), tr("workspace_not_empty"))
+            QMessageBox.warning(
+                self._deps.table.get_work_table().parentWidget(),
+                tr("title_hint"),
+                tr("workspace_not_empty"),
+            )
             return
 
-        path, _ = QFileDialog.getOpenFileName(self._parent, tr("dialog_import_pending"), "", tr("file_filter_csv"))
+        path, _ = QFileDialog.getOpenFileName(
+            self._deps.table.get_work_table().parentWidget(),
+            tr("dialog_import_pending"),
+            "",
+            tr("file_filter_csv"),
+        )
         if not path:
             return
 
         parsed_list, failed_names = self.parse_pending_csv(path)
         if not parsed_list:
-            QMessageBox.warning(self._parent, tr("title_hint"), tr("csv_no_standards"))
+            QMessageBox.warning(
+                self._deps.table.get_work_table().parentWidget(),
+                tr("title_hint"),
+                tr("csv_no_standards"),
+            )
             return
 
         msg = tr("msg_csv_parse_result").format(count=len(parsed_list))
@@ -400,14 +304,15 @@ class QueryUIHandler:
             if len(failed_names) > 5:
                 msg += f"\n... 等共 {len(failed_names)} 条"
         msg += "\n\n是否继续？"
-        reply = self._question_dlg(tr("title_pending_query"), msg)
-        if reply != QMessageBox.StandardButton.Yes:
-            self._status_cb(tr("status_pending_cancelled"))
+        if not self._deps.dialog.question_dlg(tr("title_pending_query"), msg):
+            if self._status_changed:
+                self._status_changed(tr("status_pending_cancelled"))
             return
 
-        dlg = PendingQueryDialog(self._mgr, parsed_list, self._parent)
+        dlg = PendingQueryDialog(self._mgr, parsed_list, self._deps.table.get_work_table().parentWidget())
         if dlg.exec() != QDialog.DialogCode.Accepted:
-            self._status_cb(tr("status_pending_cancelled"))
+            if self._status_changed:
+                self._status_changed(tr("status_pending_cancelled"))
             return
 
         results = dlg.get_results()
@@ -419,23 +324,22 @@ class QueryUIHandler:
             self._mgr._pending_list,
         )
         self._mgr._queried_items = parsed_list
-        self._clear_table()
+        self._deps.table.clear_table()
         self._parsed_results.clear()
         self._parsed_results.extend(parsed_list)
 
         for i, p in enumerate(self._parsed_results):
-            self._add_table_row(
-                RowUpdate(
-                    seq=self._work_table.rowCount() + 1,
-                    parsed=p,
-                    work_status="已查询",
-                    total=len(self._parsed_results),
-                )
-            )
+            self._deps.table.add_table_row({
+                "seq": self._deps.table.get_work_table().rowCount() + 1,
+                "parsed": p,
+                "work_status": "已查询",
+                "total": len(self._parsed_results),
+            })
 
         total = len(self._parsed_results)
         found = sum(1 for p in self._parsed_results if p.found_name)
-        self._status_cb(f"待确认查询完成: {found}/{total}")
+        if self._status_changed:
+            self._status_changed(f"待确认查询完成: {found}/{total}")
         self.show_query_summary()
 
     def write_pending_to_db(self, pending_items: list[Any]) -> None:
@@ -446,10 +350,17 @@ class QueryUIHandler:
         """标记待确认项为已处理。"""
         self._mgr.resolve_pending(pending_items, resolution)
 
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
     # Summary — 委托给 QuerySummaryHandler
-    # ═══════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════
 
     def show_query_summary(self) -> None:
         """委托给 QuerySummaryHandler 构建汇总弹窗。"""
         self._summary.show_query_summary()
+
+    # ── 事件发布 ─────────────────────────────────────────────
+
+    @staticmethod
+    def _publish_event(event_name: str, data: Any) -> None:
+        """封装事件发布，便于统一加日志/监控。"""
+        EventBus.instance().publish(event_name, data)

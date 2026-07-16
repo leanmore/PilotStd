@@ -15,6 +15,7 @@ from ...drive_enumerator import DriveEnumerator
 logger = logging.getLogger("pilotstd.ui")
 
 _MAX_VISIBLE_ITEMS = 500
+_TREE_NODE_KEY = Qt.ItemDataRole.UserRole + 1  # 节点类型标记（用于 _retranslate_ui 纯文本更新）
 
 
 def _populate_quick_access(self) -> None:
@@ -22,15 +23,19 @@ def _populate_quick_access(self) -> None:
     self._drive_items: dict[str, QTreeWidgetItem] = {}
     desktop_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
     item = self._make_item(_("desktop"), desktop_path)
+    item.setData(0, _TREE_NODE_KEY, "desktop")
     self.file_tree.addTopLevelItem(item)
     doc_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
     item = self._make_item(_("documents"), doc_path)
+    item.setData(0, _TREE_NODE_KEY, "documents")
     self.file_tree.addTopLevelItem(item)
     dl_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
     item = self._make_item(_("downloads"), dl_path)
+    item.setData(0, _TREE_NODE_KEY, "downloads")
     self.file_tree.addTopLevelItem(item)
     self.this_pc = QTreeWidgetItem([_("this_pc")])
     self.this_pc.setData(0, Qt.ItemDataRole.UserRole, "")
+    self.this_pc.setData(0, _TREE_NODE_KEY, "this_pc")
     self.this_pc.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon))
     self.file_tree.addTopLevelItem(self.this_pc)
     self._drive_thread = DriveEnumerator()
@@ -39,6 +44,15 @@ def _populate_quick_access(self) -> None:
 
 
 def _on_drives_ready(self, drives: list[Any]) -> None:
+    # 防御：树被 _retranslate_file_tree 重建后，旧线程回调可能操作无效对象
+    if not hasattr(self, "this_pc") or self.this_pc is None:
+        return
+    try:
+        _sip = __import__("PyQt6.sip", fromlist=["isdeleted"])
+        if hasattr(_sip, "isdeleted") and _sip.isdeleted(self.this_pc):
+            return
+    except (ImportError, RuntimeError):
+        pass
     self.this_pc.takeChildren()
     for name, path in drives:
         item = self._make_drive_item(name, path)
@@ -68,52 +82,63 @@ def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
     if not parent_path or not os.path.isdir(parent_path):
         return
     logger.info("展开文件树: %s", parent_path)
+    tree = parent_item.treeWidget()
+    if tree:
+        tree.setUpdatesEnabled(False)
     try:
         entries = sorted(os.scandir(parent_path), key=lambda e: (not e.is_dir(), e.name.lower()))
     except PermissionError:
         logger.warning("无权限访问目录: %s", parent_path)
+        if tree:
+            tree.setUpdatesEnabled(True)
         return
     except OSError as e:
         logger.warning("无法读取目录 %s: %s", parent_path, e)
+        if tree:
+            tree.setUpdatesEnabled(True)
         return
     total = len(entries)
     truncated = total > _MAX_VISIBLE_ITEMS
     if truncated:
         logger.warning("目录条目过多(%d)，截断至 %d: %s", total, _MAX_VISIBLE_ITEMS, parent_path)
     added = 0
-    for entry in entries[:_MAX_VISIBLE_ITEMS]:
-        if entry.name.startswith(".") or entry.name == "__pycache__":
-            continue
-        try:
-            if entry.is_dir():
-                child = self._make_item(entry.name, entry.path)
-            else:
-                child = QTreeWidgetItem([entry.name])
-                child.setData(0, Qt.ItemDataRole.UserRole, entry.path)
-                ext = os.path.splitext(entry.name)[1].lower()
-                try:
-                    if ext == ".pdf":
-                        child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
-                    elif ext in (".doc", ".docx", ".txt"):
-                        child.setIcon(
-                            0,
-                            self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView),
-                        )
-                    else:
-                        child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
-                except Exception:
-                    pass
-                child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
-            parent_item.addChild(child)
-            added += 1
-        except OSError:
-            pass
-        except Exception:
-            logger.debug("跳过无法展示的条目: %s", entry.name)
-    if truncated:
-        hint = QTreeWidgetItem([f"... 还有 {total - added} 项，请使用搜索定位"])
-        hint.setFlags(hint.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-        parent_item.addChild(hint)
+    try:
+        for entry in entries[:_MAX_VISIBLE_ITEMS]:
+            if entry.name.startswith(".") or entry.name == "__pycache__":
+                continue
+            try:
+                if entry.is_dir():
+                    child = self._make_item(entry.name, entry.path)
+                else:
+                    child = QTreeWidgetItem([entry.name])
+                    child.setData(0, Qt.ItemDataRole.UserRole, entry.path)
+                    ext = os.path.splitext(entry.name)[1].lower()
+                    try:
+                        if ext == ".pdf":
+                            child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
+                        elif ext in (".doc", ".docx", ".txt"):
+                            child.setIcon(
+                                0,
+                                self.style().standardIcon(self.style().StandardPixmap.SP_FileDialogDetailedView),
+                            )
+                        else:
+                            child.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_FileIcon))
+                    except Exception:
+                        pass
+                    child.setChildIndicatorPolicy(QTreeWidgetItem.ChildIndicatorPolicy.DontShowIndicator)
+                parent_item.addChild(child)
+                added += 1
+            except OSError:
+                pass
+            except Exception:
+                logger.debug("跳过无法展示的条目: %s", entry.name)
+        if truncated:
+            hint = QTreeWidgetItem([f"... 还有 {total - added} 项，请使用搜索定位"])
+            hint.setFlags(hint.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+            parent_item.addChild(hint)
+    finally:
+        if tree:
+            tree.setUpdatesEnabled(True)
     logger.debug("文件树展开完成: %s, 展示 %d/%d 项", parent_path, added, total)
 
 
@@ -185,3 +210,18 @@ def _navigate_to(self, path: str) -> None:
         current = found
     self.file_tree.setCurrentItem(current)
     self.file_tree.scrollToItem(current)
+
+
+def _retranslate_file_tree(self) -> None:
+    """仅刷新文件树顶层节点文本，不重建树、不查注册表。"""
+    _node_labels = {
+        "desktop": _("desktop"),
+        "documents": _("documents"),
+        "downloads": _("downloads"),
+        "this_pc": _("this_pc"),
+    }
+    for i in range(self.file_tree.topLevelItemCount()):
+        item = self.file_tree.topLevelItem(i)
+        node_type = item.data(0, _TREE_NODE_KEY)
+        if node_type and node_type in _node_labels:
+            item.setText(0, _node_labels[node_type])

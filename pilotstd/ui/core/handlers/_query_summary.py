@@ -1,5 +1,8 @@
 # pilotstd/ui/core/handlers/_query_summary.py
-"""QuerySummaryHandler — 查询汇总弹窗管理，从 QueryUIHandler 拆分以控制文件大小。"""
+"""QuerySummaryHandler — 查询汇总弹窗管理，从 QueryUIHandler 拆分以控制文件大小。
+
+薄包装层：UI 构建 + 文件保存 + 弹窗管理。纯逻辑委托给 QuerySummaryFlowEngine。
+"""
 
 from __future__ import annotations
 
@@ -30,31 +33,9 @@ if TYPE_CHECKING:
 
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
+from .query_summary_flow_engine import QuerySummaryFlowEngine
 
 logger = logging.getLogger(__name__)
-
-# stage_status → 用户可读描述 i18n key
-_PENDING_REASON_KEYS = {
-    "chain_exhausted": "reason_chain_exhausted",
-    "match_not_exact": "reason_match_not_exact",
-    "name_conflict": "reason_name_conflict",
-    "source_path_empty": "reason_source_path_empty",
-    "replacement_manual": "reason_replacement_manual",
-    "user_retained": "reason_user_retained",
-    "version_mismatch": "reason_match_not_exact",
-}
-
-BUCKET_NAMES = ("organize", "normalize", "expire", "download", "manual_download", "pending", "not_found")
-
-_ACTION_TO_BUCKET = {
-    "archive": "organize",
-    "normalize": "normalize",
-    "expire": "expire",
-    "download": "download",
-    "manual_download": "manual_download",
-    "pending": "pending",
-    "not_found": "not_found",
-}
 
 SECTION_META = {
     "organize": ("📁", "section_organize"),
@@ -95,20 +76,15 @@ class QuerySummaryHandler:
         self._on_download_cb = on_download_cb
         self._export_pending_csv_cb = export_pending_csv
         self._write_pending_to_db_cb = write_pending_to_db
+        self._engine = QuerySummaryFlowEngine()
         # 汇总弹窗临时状态
         self._summary_sections: dict[str, QFrame] = {}
         self._summary_container_layout: QVBoxLayout | None = None
         self._summary_total_label: QLabel | None = None
 
     def build_buckets(self) -> dict[str, list[Any]]:
-        """将 _parsed_results 按 next_action 分组。"""
-        buckets: dict[str, list[Any]] = {k: [] for k in BUCKET_NAMES}
-        for p in self._parsed_results:
-            action = getattr(p, "next_action", "") or ""
-            key = _ACTION_TO_BUCKET.get(action)
-            if key is not None:
-                buckets[key].append(p)
-        return buckets
+        """将 _parsed_results 按 next_action 分组。委托 Engine。"""
+        return self._engine.build_buckets(self._parsed_results)
 
     def create_section(
         self,
@@ -144,9 +120,9 @@ class QuerySummaryHandler:
         list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         for item in items:
             fname = (
-                os.path.basename(self.safe_str(getattr(item, "source_path", "")))
-                or self.safe_str(getattr(item, "raw_filename", ""))
-                or self.safe_str(getattr(item, "std_name", ""))
+                os.path.basename(self._engine.safe_str(getattr(item, "source_path", "")))
+                or self._engine.safe_str(getattr(item, "raw_filename", ""))
+                or self._engine.safe_str(getattr(item, "std_name", ""))
                 or item.get_full_number()
             )
             if key == "pending":
@@ -167,23 +143,14 @@ class QuerySummaryHandler:
 
         return frame
 
-    @staticmethod
-    def safe_str(value: Any) -> str:
-        """确保值为字符串，防止布尔值 False 被隐式转换。"""
-        if isinstance(value, bool):
-            return ""
-        return str(value) if value else ""
-
-    @staticmethod
-    def _get_pending_reason(item: Any) -> str:
-        """获取 pending 条目的冲突原因（翻译后）。"""
+    def _get_pending_reason(self, item: Any) -> str:
+        """获取 pending 条目的冲突原因。委托 Engine。"""
         status = getattr(item, "stage_status", "") or ""
-        if status in _PENDING_REASON_KEYS:
-            return tr(_PENDING_REASON_KEYS[status])
+        reason = self._engine.get_pending_reason(status)
+        if reason:
+            return reason
         ms = getattr(item, "match_status", "") or ""
-        if ms in _PENDING_REASON_KEYS:
-            return tr(_PENDING_REASON_KEYS[ms])
-        return ""
+        return self._engine.get_pending_reason(ms)
 
     def save_csv(self, path: str, items: list[Any]) -> None:
         """保存条目列表为 CSV。"""
@@ -207,16 +174,16 @@ class QuerySummaryHandler:
                 adopted = "是" if getattr(item, "is_adopted", False) else "否"
                 writer.writerow(
                     [
-                        self.safe_str(item.get_full_number()),
-                        self.safe_str(getattr(item, "std_name", "")),
-                        self.safe_str(getattr(item, "next_action", "")),
-                        self.safe_str(getattr(item, "effect_status", "")),
-                        self.safe_str(getattr(item, "found_replaces", "")),
-                        self.safe_str(getattr(item, "found_publish_date", "")),
-                        self.safe_str(getattr(item, "found_impl_date", "")),
-                        self.safe_str(getattr(item, "found_responsible_dept", "")),
-                        self.safe_str(adopted),
-                        self.safe_str(getattr(item, "source_path", "")),
+                        self._engine.safe_str(item.get_full_number()),
+                        self._engine.safe_str(getattr(item, "std_name", "")),
+                        self._engine.safe_str(getattr(item, "next_action", "")),
+                        self._engine.safe_str(getattr(item, "effect_status", "")),
+                        self._engine.safe_str(getattr(item, "found_replaces", "")),
+                        self._engine.safe_str(getattr(item, "found_publish_date", "")),
+                        self._engine.safe_str(getattr(item, "found_impl_date", "")),
+                        self._engine.safe_str(getattr(item, "found_responsible_dept", "")),
+                        self._engine.safe_str(adopted),
+                        self._engine.safe_str(getattr(item, "source_path", "")),
                     ]
                 )
 
@@ -347,21 +314,14 @@ class QuerySummaryHandler:
 
         from ....platform.notify import NotifyService
 
-        NotifyService.get().show(
-            tr("query_toast_title"),
-            tr("query_toast_msg").format(
-                total=total,
-                archive=sum(1 for p in self._parsed_results if p.next_action == "archive"),
-                pending=sum(1 for p in self._parsed_results if p.next_action == "pending"),
-                expire=sum(1 for p in self._parsed_results if p.next_action == "expire"),
-            ),
-        )
+        buckets = self.build_buckets()
+        summary = self._engine.build_summary_message(buckets, total)
+        NotifyService.get().show(tr("query_toast_title"), summary)
 
         # 检查 _suppress_dialogs（lambda 需要调用才能得到布尔值）
         if callable(self._suppress_dialogs) and self._suppress_dialogs():
             return
 
-        buckets = self.build_buckets()
         has_download = len(buckets.get("download", [])) > 0
         dlg = self.build_summary_dialog(buckets, total, has_download)
         dlg.exec()

@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QFileDialog, QMenu, QMessageBox, QTableWidget, QWidg
 
 from ....i18n import _
 from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS, WORK_COLUMNS
+from .table_flow_engine import TableFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class TableHandler:
         self._config = config
         self._status = status_callback
         self._parent = parent
+        self._engine = TableFlowEngine()
 
     # ── 列可见性 ─────────────────────────────────────────
 
@@ -69,7 +71,8 @@ class TableHandler:
     ) -> None:
         """从配置恢复列可见性。"""
         default = [True] * len(WORK_COLUMNS)
-        visible = self._config.get("appearance.column_visibility", default) or default
+        raw = self._config.get("appearance.column_visibility", default)
+        visible = self._engine.validate_column_visibility(raw, len(WORK_COLUMNS), default)
         self.apply_column_visibility(work_table, visible, col_specs)
 
     def on_header_context_menu(
@@ -174,8 +177,11 @@ class TableHandler:
             header = "\t".join(c.ljust(widths[i]) for i, c in enumerate(cols))
             f.write(header + "\n")
             for row in rows:
-                line = "\t".join(self.row_get(row, k).ljust(widths[i]) for i, k in enumerate(data_keys))
-                f.write(line + "\n")
+                line = self._engine.format_txt_row(row, data_keys)
+                # 对齐：根据计算出的列宽填充
+                vals = line.split("\t")
+                padded = "\t".join(v.ljust(widths[i]) for i, v in enumerate(vals))
+                f.write(padded + "\n")
 
     def save_csv(
         self,
@@ -196,11 +202,8 @@ class TableHandler:
             w = csv.writer(f)
             w.writerow(cols)
             for row in rows:
-                w.writerow([self.row_get(row, k) for k in data_keys])
+                w.writerow(self._engine.format_csv_row(row, data_keys))
 
-    @staticmethod
-    def row_get(row: Any, key: str, default: str = "") -> str:
-        """安全获取字段值 — 兼容 dict 和 ParsedStdInfo 对象。"""
-        if isinstance(row, dict):
-            return str(row.get(key, default))
-        return str(getattr(row, key, default))
+    def row_get(self, row: Any, key: str, default: str = "") -> str:
+        """安全获取字段值 — 兼容 dict 和 ParsedStdInfo 对象。委托 Engine。"""
+        return self._engine.row_get(row, key, default)

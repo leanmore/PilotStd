@@ -111,3 +111,8 @@ class LogHandler(logging.Handler, QObject):
             self._flush()
         except RuntimeError:
             pass
+
+
+def flush_logs() -> None:
+    """在 Qt 销毁前安全关闭 logging，避免 atexit 访问已析构对象。"""
+    logging.shutdown()

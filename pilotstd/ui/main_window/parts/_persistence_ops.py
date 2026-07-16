@@ -5,9 +5,15 @@ from __future__ import annotations
 import logging
 
 from PyQt6.QtCore import QByteArray
-from PyQt6.QtCore import Qt as QC
+
+from pilotstd.ui.core.handlers.persistence_flow_engine import PersistenceFlowEngine
 
 logger = logging.getLogger("pilotstd.ui")
+
+# ── 默认值常量 ──────────────────────────────────────────────────
+_DEFAULT_WINDOW_GEOMETRY: dict[str, int] = {"x": 0, "y": 0, "width": 800, "height": 600}
+_DEFAULT_COLUMN_WIDTH = 100
+_ENGINE = PersistenceFlowEngine()
 
 
 def _restore_window_geometry(self) -> None:
@@ -15,10 +21,9 @@ def _restore_window_geometry(self) -> None:
     if hasattr(self, "_core") and self._core is not None:
         self._core.persistence.restore_window_geometry(self)
     else:
-        # _core 尚未初始化，直接从配置恢复
-        geo_b64 = self._config.get("appearance.window_geometry", "")
-        if geo_b64:
-            self.restoreGeometry(QByteArray.fromBase64(geo_b64.encode()))
+        data = self._config.get("appearance.window_geometry", _DEFAULT_WINDOW_GEOMETRY)
+        result = _ENGINE.deserialize_window_geometry(data, _DEFAULT_WINDOW_GEOMETRY)
+        self.setGeometry(result["x"], result["y"], result["width"], result["height"])
 
 
 def _save_window_geometry(self) -> None:
@@ -26,8 +31,9 @@ def _save_window_geometry(self) -> None:
     if hasattr(self, "_core") and self._core is not None:
         self._core.persistence.save_window_geometry(self)
     else:
-        geo_b64 = self.saveGeometry().toBase64().data().decode()
-        self._config.set("appearance.window_geometry", geo_b64)
+        g = self.geometry()
+        data = _ENGINE.serialize_window_geometry(g.x(), g.y(), g.width(), g.height())
+        self._config.set("appearance.window_geometry", data)
         self._config.save()
 
 
@@ -37,9 +43,15 @@ def _save_splitter_sizes(self) -> None:
         self._core.persistence.save_splitter_sizes(self._main_splitter, self._right_splitter)
     else:
         if hasattr(self, "_main_splitter"):
-            self._config.set("appearance.main_splitter", self._main_splitter.sizes())
+            self._config.set(
+                "appearance.main_splitter",
+                _ENGINE.serialize_splitter_sizes(self._main_splitter.sizes()),
+            )
         if hasattr(self, "_right_splitter"):
-            self._config.set("appearance.right_splitter", self._right_splitter.sizes())
+            self._config.set(
+                "appearance.right_splitter",
+                _ENGINE.serialize_splitter_sizes(self._right_splitter.sizes()),
+            )
         self._config.save()
 
 
@@ -49,11 +61,15 @@ def _restore_splitter_sizes(self) -> None:
         self._core.persistence.restore_splitter_sizes(self._main_splitter, self._right_splitter)
     else:
         sizes = self._config.get("appearance.main_splitter")
-        if sizes and hasattr(self, "_main_splitter"):
-            self._main_splitter.setSizes(sizes)
+        if hasattr(self, "_main_splitter"):
+            self._main_splitter.setSizes(
+                _ENGINE.deserialize_splitter_sizes(sizes, self._main_splitter.sizes())
+            )
         sizes = self._config.get("appearance.right_splitter")
-        if sizes and hasattr(self, "_right_splitter"):
-            self._right_splitter.setSizes(sizes)
+        if hasattr(self, "_right_splitter"):
+            self._right_splitter.setSizes(
+                _ENGINE.deserialize_splitter_sizes(sizes, self._right_splitter.sizes())
+            )
 
 
 def _save_sort_state(self) -> None:
@@ -62,8 +78,9 @@ def _save_sort_state(self) -> None:
         self._core.persistence.save_sort_state(self.work_table)
     else:
         header = self.work_table.horizontalHeader()
-        self._config.set("appearance.sort_column", header.sortIndicatorSection())
-        self._config.set("appearance.sort_order", header.sortIndicatorOrder().value)
+        state_bytes = header.saveState().data()
+        data = _ENGINE.serialize_header_state(state_bytes)
+        self._config.set("appearance.header_state", data)
         self._config.save()
 
 
@@ -72,11 +89,12 @@ def _restore_sort_state(self) -> None:
     if hasattr(self, "_core") and self._core is not None:
         self._core.persistence.restore_sort_state(self.work_table)
     else:
-        col = self._config.get("appearance.sort_column")
-        order_val = self._config.get("appearance.sort_order")
-        if col is not None and order_val is not None:
-            header = self.work_table.horizontalHeader()
-            header.setSortIndicator(col, QC.SortOrder(order_val))
+        data = self._config.get("appearance.header_state")
+        if data:
+            state_bytes = _ENGINE.deserialize_header_state(data)
+            if state_bytes:
+                header = self.work_table.horizontalHeader()
+                header.restoreState(QByteArray(state_bytes))
 
 
 def _save_column_widths(self) -> None:
@@ -85,7 +103,8 @@ def _save_column_widths(self) -> None:
         self._core.persistence.save_column_widths(self.work_table)
     else:
         widths = [self.work_table.columnWidth(c) for c in range(self.work_table.columnCount())]
-        self._config.set("appearance.column_widths", widths)
+        self._config.set("appearance.column_widths", _ENGINE.serialize_column_widths(widths))
+        self._config.save()
 
 
 def _restore_column_widths(self) -> None:
@@ -93,11 +112,14 @@ def _restore_column_widths(self) -> None:
     if hasattr(self, "_core") and self._core is not None:
         self._core.persistence.restore_column_widths(self.work_table)
     else:
+        col_count = self.work_table.columnCount()
         widths = self._config.get("appearance.column_widths")
-        if widths and len(widths) == self.work_table.columnCount():
-            for c, w in enumerate(widths):
-                if w > 0:
-                    self.work_table.setColumnWidth(c, w)
+        if widths is None:
+            return
+        result = _ENGINE.deserialize_column_widths(widths, col_count, _DEFAULT_COLUMN_WIDTH)
+        for c, w in enumerate(result):
+            if w > 0:
+                self.work_table.setColumnWidth(c, w)
 
 
 def _on_open_project(self) -> None:

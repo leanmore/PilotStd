@@ -1,5 +1,9 @@
 # pilotstd/ui/core/handlers/_cleanup.py
-"""CleanupHandler — 空文件夹清理 + 未识别文件收集，替代 CleanupMixin。"""
+"""CleanupHandler — 空文件夹清理 + 未识别文件收集，替代 CleanupMixin。
+
+薄包装层：实际文件系统遍历 + Worker 管理 + Qt 控件交互。
+纯逻辑委托给 CleanupFlowEngine。
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ import shutil
 import stat as _stat
 from typing import TYPE_CHECKING, Any, Callable
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -29,8 +33,39 @@ if TYPE_CHECKING:
 
 from ....core.file_utils import ensure_long_path, safe_move
 from ....i18n import _
+from .cleanup_flow_engine import CleanupFlowEngine
 
 logger = logging.getLogger(__name__)
+
+
+class FileMoveWorker(QThread):
+    """后台线程：逐文件搬迁到标准库，通过信号通知进度。"""
+
+    progress_changed = pyqtSignal(int)  # 当前进度 (1-based index)
+    move_done = pyqtSignal(int)  # 成功移动数
+    error_occurred = pyqtSignal(str)  # 错误信息
+
+    def __init__(self, selected: list[tuple[str, str]], root_dir: str, parent: Any = None) -> None:
+        super().__init__(parent)
+        self._selected = selected
+        self._root_dir = root_dir
+
+    def run(self) -> None:
+        moved = 0
+        for i, (src, rel) in enumerate(self._selected):
+            if self.isInterruptionRequested():
+                break
+            self.progress_changed.emit(i + 1)
+            dst = os.path.join(self._root_dir, rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            try:
+                safe_move(src, dst, on_exists="skip")
+                moved += 1
+                logger.info("未识别文件已搬迁: %s", rel)
+            except OSError as e:
+                logger.error("搬迁失败: %s: %s", src, e)
+                self.error_occurred.emit(str(e))
+        self.move_done.emit(moved)
 
 
 class CleanupHandler:
@@ -58,6 +93,7 @@ class CleanupHandler:
         self._clear_unrecognized_files = clear_unrecognized_files
         self._get_scan_source_root = get_scan_source_root
         self._parent = parent
+        self._engine = CleanupFlowEngine()
 
     # ── 只读属性确认 ─────────────────────────────────────────
 
@@ -77,22 +113,30 @@ class CleanupHandler:
     # ── 清理空文件夹 ─────────────────────────────────────────
 
     def scan_empty_dirs(self, path: str) -> tuple[list[str], list[str], str]:
-        """扫描目录：返回 (完全空目录列表, 仅含过期文件夹目录列表, 过期文件夹名)。"""
-        expire_folder = self._config.get("storage.expire_folder", "过期作废")
-        empty_dirs: list[str] = []
-        expire_only: list[str] = []
+        """扫描目录：返回 (完全空目录列表, 仅含过期文件夹目录列表, 过期文件夹名)。
 
-        for entry in sorted(os.scandir(path), key=lambda e: e.name):
-            if not entry.is_dir():
-                continue
-            try:
-                sub_items = list(os.scandir(entry.path))
-            except OSError:
-                continue
-            if not sub_items:
-                empty_dirs.append(entry.path)
-            elif len(sub_items) == 1 and sub_items[0].is_dir() and sub_items[0].name == expire_folder:
-                expire_only.append(entry.path)
+        Handler 负责文件系统遍历构建 dir_tree，Engine 负责纯内存分析。
+        """
+        expire_folder = self._config.get("storage.expire_folder", "过期作废")
+
+        # 文件系统遍历 → 构建 dir_tree（Handler 的 I/O 职责）
+        dir_tree: dict[str, list[str]] = {}
+        try:
+            for entry in os.scandir(path):
+                if not entry.is_dir():
+                    continue
+                try:
+                    children = list(os.scandir(entry.path))
+                    dir_tree[entry.path] = [c.name for c in children]
+                except OSError:
+                    continue
+        except OSError:
+            pass
+
+        # Engine：纯内存分析
+        empty_dirs, expire_only = self._engine.scan_empty_dirs(
+            dir_tree, expire_folder_name=expire_folder
+        )
 
         return empty_dirs, expire_only, expire_folder
 
@@ -167,7 +211,7 @@ class CleanupHandler:
     # ── 未识别文件处理 ───────────────────────────────────────
 
     def build_unrecognized_tree(self, root_dir: str) -> tuple[QTreeWidget, list[QTreeWidgetItem]]:
-        """构建未识别文件列表树（含复选框），三列：文件名/源目录/目标目录。"""
+        """构建未识别文件列表树（含复选框），按后缀分组，三列：文件名/源目录/目标目录。"""
         tree = QTreeWidget()
         tree.setHeaderLabels([_("header_file_name"), _("header_source_dir"), _("header_target_dir")])
         tree.setColumnWidth(0, 280)
@@ -175,18 +219,29 @@ class CleanupHandler:
         tree.setColumnWidth(2, 320)
         checkboxes: list[QTreeWidgetItem] = []
         scan_root = self._get_scan_source_root()
-        for fpath in self._get_unrecognized_files():
-            try:
-                rel = os.path.relpath(fpath, scan_root)
-            except ValueError:
-                rel = os.path.basename(fpath)
-            src_dir = os.path.dirname(fpath)
-            tgt_dir = os.path.join(root_dir, os.path.dirname(rel))
-            item = QTreeWidgetItem([os.path.basename(fpath), src_dir, tgt_dir])
-            item.setCheckState(0, Qt.CheckState.Checked)
-            item.setData(0, 1, fpath)
-            tree.addTopLevelItem(item)
-            checkboxes.append(item)
+
+        # Engine：按后缀分组
+        files = self._get_unrecognized_files()
+        grouped = self._engine.build_unrecognized_tree(files)
+
+        for suffix, suffix_files in sorted(grouped.items()):
+            suffix_label = suffix if suffix else _("no_extension")
+            group = QTreeWidgetItem([f"{suffix_label} ({len(suffix_files)})", "", ""])
+            tree.addTopLevelItem(group)
+            for fpath in suffix_files:
+                try:
+                    rel = os.path.relpath(fpath, scan_root)
+                except ValueError:
+                    rel = os.path.basename(fpath)
+                src_dir = os.path.dirname(fpath)
+                tgt_dir = os.path.join(root_dir, os.path.dirname(rel))
+                item = QTreeWidgetItem([os.path.basename(fpath), src_dir, tgt_dir])
+                item.setCheckState(0, Qt.CheckState.Checked)
+                item.setData(0, 1, fpath)
+                group.addChild(item)
+                checkboxes.append(item)
+            group.setExpanded(True)
+
         return tree, checkboxes
 
     def collect_selected_files(self, checkboxes: list[QTreeWidgetItem]) -> list[tuple[str, str]]:
@@ -207,28 +262,27 @@ class CleanupHandler:
         return selected
 
     def move_unrecognized_files(self, selected: list[tuple[str, str]], parent: QDialog) -> int:
-        """进度条 + 逐文件搬迁到标准库（保留源目录层级）。返回成功移动数。"""
+        """后台线程逐文件搬迁到标准库，UI 保持响应。返回成功移动数。"""
         root_dir = self._get_library_root()
         progress = QProgressDialog(_("msg_collect_progress"), _("btn_cancel"), 0, len(selected), parent)
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
         progress.setValue(0)
-        moved = 0
-        for i, (src, rel) in enumerate(selected):
-            progress.setValue(i + 1)
+
+        result = {"moved": 0}
+
+        worker = FileMoveWorker(selected, root_dir, parent)
+        worker.progress_changed.connect(progress.setValue)
+        progress.canceled.connect(worker.requestInterruption)
+        worker.move_done.connect(lambda n: result.update({"moved": n}))
+        worker.move_done.connect(progress.close)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+        # 保持对话框打开直到 worker 完成
+        while worker.isRunning():
             QApplication.processEvents()
-            if progress.wasCanceled():
-                break
-            dst = os.path.join(root_dir, rel)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            try:
-                safe_move(src, dst, on_exists="skip")
-                moved += 1
-                logger.info("未识别文件已搬迁: %s", rel)
-            except OSError as e:
-                logger.error("搬迁失败: %s: %s", src, e)
-        progress.close()
-        return moved
+        return result["moved"]
 
     def on_collect_unrecognized(self) -> None:
         """未识别文件处理：列出扫描中解析失败的文件，用户勾选后搬迁。"""

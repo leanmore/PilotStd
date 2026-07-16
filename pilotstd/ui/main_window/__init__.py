@@ -45,7 +45,6 @@ class MainWindow(QMainWindow):
 
     from .parts._actions_ops import (
         _apply_announce_cache_mode,
-        _check_pause,
         _confirm_update_available,
         _download_update_file,
         _init_manager,
@@ -111,6 +110,7 @@ class MainWindow(QMainWindow):
         _on_tree_item_expanded,
         _populate_children,
         _populate_quick_access,
+        _retranslate_file_tree,
     )
     from .parts._persistence_ops import (
         _on_open_project,
@@ -262,7 +262,7 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event: object) -> None:
         """窗口最小化时隐藏到系统托盘。"""
-        if event.type() == event.Type.WindowStateChange and self.isMinimized():
+        if event.type() == event.Type.WindowStateChange and self.isMinimized():  # pragma: no cover — 需真实窗口最小化事件
             self._save_window_geometry()
             self._save_splitter_sizes()
             self._save_sort_state()

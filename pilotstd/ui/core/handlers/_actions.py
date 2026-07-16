@@ -1,11 +1,13 @@
 # pilotstd/ui/core/handlers/_actions.py
-"""ActionsHandler — 动作处理器（_on_* 方法、_init_manager 等），替代 ActionsMixin。"""
+"""ActionsHandler — 动作处理器（_on_* 方法、_init_manager 等），替代 ActionsMixin。
+
+重构后纯逻辑委托给 self._engine（ActionsFlowEngine）。
+Handler 保留 Qt 控件交互、对话框、Worker 生命周期管理。
+"""
 
 from __future__ import annotations
 
 import logging
-import os
-import sys
 import threading
 from typing import Any, Callable, Optional
 
@@ -13,6 +15,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
 from ....i18n import _
 from ...workers import RowUpdate
+from .actions_flow_engine import ActionsFlowEngine
 
 logger = logging.getLogger("pilotstd.ui")
 
@@ -52,6 +55,8 @@ class ActionsHandler:
         self._parent = parent
         self._paused = False
         self._mgr_ready = False
+        # 纯逻辑引擎
+        self._engine = ActionsFlowEngine()
 
     # ── 延迟初始化 ──────────────────────────────────────────
 
@@ -77,17 +82,7 @@ class ActionsHandler:
 
     def set_toolbar_enabled(self, toolbar_buttons: dict[str, Any], enabled: bool) -> None:
         """统一控制工具栏按钮状态。管理器未就绪时禁用所有操作按钮。"""
-        keys = (
-            "btn_select",
-            "btn_query",
-            "btn_download",
-            "btn_normalize",
-            "btn_save",
-            "btn_auto",
-            "btn_announce",
-            "btn_pause",
-        )
-        for key in keys:
+        for key in self._engine.get_toolbar_button_keys():
             btn = toolbar_buttons.get(key)
             if btn is not None:
                 btn.setEnabled(enabled)
@@ -154,14 +149,6 @@ class ActionsHandler:
             self._status(_("resumed"))
             self._pause_event.set()
 
-    def check_pause(self) -> None:
-        """轮询等待暂停解除。"""
-        import time as _time
-
-        while self._paused:
-            QApplication.processEvents()
-            _time.sleep(0.05)
-
     # ── 规则/任务/设置 ──────────────────────────────────────
 
     def on_rule_query(self) -> None:
@@ -201,10 +188,8 @@ class ActionsHandler:
 
     def try_check_update_throttle(self, current: str) -> bool:
         """24h 节流检查——避免触发 GitHub API 限流。返回 True 表示应跳过。"""
-        import time as _time
-
         last_check = self._config.get("appearance.last_update_check", 0)
-        if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
+        if self._engine.is_update_throttled(last_check):
             QMessageBox.information(
                 self._parent,
                 _("title_no_update"),
@@ -235,43 +220,21 @@ class ActionsHandler:
         )
         return reply == QMessageBox.StandardButton.Yes
 
-    def download_update_file(self, release: dict) -> str:
-        """后台线程下载 + SHA256 校验 + 生成 update.bat。返回 bat 路径，失败抛异常。"""
-        from pilotstd.platform.updater import (
-            download_update,
-            extract_sha256_from_body,
-            generate_update_script,
+    def download_update_file(self, release: dict) -> None:
+        """启动后台线程下载更新文件，完成后通过信号触发重启提示。
+
+        不阻塞 UI 线程——下载在 QThread 中执行。
+        """
+        from pilotstd.ui.workers.update_download import UpdateDownloadWorker
+
+        worker = UpdateDownloadWorker(release, self._parent)
+        worker.progress_msg.connect(lambda msg: self._status(msg))
+        worker.download_ready.connect(self._prompt_restart)
+        worker.download_failed.connect(
+            lambda err: self._status(f"更新下载失败: {err}")
         )
-
-        download_url = release["download_url"]
-        filename = release["filename"]
-        self._status(_("update_downloading").format(filename=filename))
-
-        dl_path = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), filename)
-        sha256_expected = extract_sha256_from_body(release["body"])
-
-        result: dict = {"ok": False, "error": ""}
-
-        def _download() -> None:
-            try:
-                ok = download_update(download_url, dl_path, sha256_expected)
-                if ok:
-                    result["ok"] = True
-                else:
-                    result["error"] = "下载或校验失败"
-            except Exception as e:
-                result["error"] = str(e)
-
-        t = threading.Thread(target=_download, daemon=True)
-        t.start()
-        t.join(timeout=300)
-        if not result["ok"]:
-            raise RuntimeError(result["error"] or "下载超时")
-
-        exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(__file__)
-        if not os.access(exe_dir, os.W_OK):
-            raise PermissionError(f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录")
-        return generate_update_script(dl_path, exe_dir)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
 
     def _prompt_restart(self, bat_path: str) -> None:
         """弹窗询问是否立即重启，确认后启动 update.bat 并退出应用。"""
@@ -311,14 +274,13 @@ class ActionsHandler:
                 return
 
             # 源码运行模式不自动下载，引导手动 git pull
-            if not getattr(sys, "frozen", False):
+            if not self._engine.is_frozen():
                 import webbrowser
 
                 webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
                 return
 
-            bat_path = self.download_update_file(release)
-            self._prompt_restart(bat_path)
+            self.download_update_file(release)  # 异步：QThread 完成后触发 _prompt_restart
 
         except Exception as e:
             logger.warning("检查更新失败: %s", e)

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 from ....i18n import _
 from ...workers import RowUpdate, ScanWorker
+from ..event_bus import EventBus
+from .scan_flow_engine import ScanFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,7 @@ class ScanUIHandler:
         self._update_button_states = update_button_states
         self._question_dlg = question_dlg
         self._scan_worker: ScanWorker | None = None
+        self._engine = ScanFlowEngine()
 
         # 进度动画控制（Handler 内部管理）
         self._target_progress = 0
@@ -139,7 +142,7 @@ class ScanUIHandler:
     # ── 内部方法 ─────────────────────────────────────────────
 
     def _scan_single_file(self, file_path: str) -> None:
-        """直接解析单个文件，优先从索引恢复。"""
+        """直接解析单个文件，优先从索引恢复，其次 Engine 解析，最后回退 mgr 解析。"""
         from ....core.file_utils import hash_file_content
 
         filename = os.path.basename(file_path)
@@ -156,7 +159,20 @@ class ScanUIHandler:
                 parsed = self._mgr.restore_parsed_from_index(file_path)
 
         if parsed is None:
-            parsed = self._mgr.parse_standard_number(filename)
+            # 尝试 Engine 文件名解析 → PDF 头解析 → mgr 回退
+            std_info = self._engine.parse_filename_to_std(filename)
+            if std_info is None and filename.lower().endswith(".pdf"):
+                try:
+                    with open(file_path, "rb") as f:
+                        header = f.read(1024)
+                    std_info = self._engine.parse_pdf_header(header)
+                except OSError:
+                    std_info = None
+            if std_info is None:
+                parsed = self._mgr.parse_standard_number(filename)
+            # 当 Engine 解析成功时，仍用 mgr 获取完整 ParsedStdInfo 对象
+            if std_info is not None and parsed is None:
+                parsed = self._mgr.parse_standard_number(filename)
 
         if parsed:
             parsed.source_path = file_path
@@ -195,10 +211,22 @@ class ScanUIHandler:
         from PyQt6.QtCore import Qt
 
         self._scan_worker.batch_ready.connect(self.on_scan_batch_ready, Qt.ConnectionType.QueuedConnection)
+        self._scan_worker.batch_ready.connect(
+            lambda data: self._publish_event("scan.batch_ready", {"rows": data}),
+            Qt.ConnectionType.QueuedConnection,
+        )
         self._scan_worker.progress.connect(self.on_raw_progress, Qt.ConnectionType.QueuedConnection)
         self._scan_worker.finished_signal.connect(self.on_scan_finished, Qt.ConnectionType.QueuedConnection)
+        self._scan_worker.finished_signal.connect(
+            lambda s, f: self._publish_event("scan.finished", {"success": s, "failed": f}),
+            Qt.ConnectionType.QueuedConnection,
+        )
         self._scan_worker.error.connect(
             lambda msg: self._status_cb(f"扫描失败: {msg}"), Qt.ConnectionType.QueuedConnection
+        )
+        self._scan_worker.error.connect(
+            lambda msg: self._publish_event("scan.error", {"error": msg}),
+            Qt.ConnectionType.QueuedConnection,
         )
         self._scan_worker.start()
 
@@ -237,3 +265,10 @@ class ScanUIHandler:
                 _("msg_scan_complete").format(success=success, failed=failed) + "\n\n" + _("msg_scan_hint"),
             )
         self._update_button_states()
+
+    # ── 事件发布 ─────────────────────────────────────────────
+
+    @staticmethod
+    def _publish_event(event_name: str, data: Any) -> None:
+        """封装事件发布，便于统一加日志/监控。"""
+        EventBus.instance().publish(event_name, data)

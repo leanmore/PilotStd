@@ -10,7 +10,7 @@ from PyQt6.QtCore import QMessageLogContext, QTimer, QtMsgType, qInstallMessageH
 from PyQt6.QtWidgets import QApplication
 
 
-def run() -> None:
+def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不可达
     """启动 GUI 应用。"""
     from pilotstd.core.config import ConfigManager
     from pilotstd.core.frozen import is_frozen
@@ -55,6 +55,12 @@ def run() -> None:
     window._apply_icon()
     window._ui_translatable = True
     window.show()
+
+    # Qt 销毁前安全关闭 logging，避免 atexit 访问已析构 QTextEdit
+    from pilotstd.ui.workers._common import flush_logs
+
+    app.aboutToQuit.connect(flush_logs)
+
     QTimer.singleShot(50, window._init_manager)
     QTimer.singleShot(100, window.show_welcome_if_needed)
     sys.exit(app.exec())

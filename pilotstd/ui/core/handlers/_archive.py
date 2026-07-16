@@ -1,10 +1,14 @@
 # pilotstd/ui/core/handlers/_archive.py
-"""ArchiveUIHandler — 归档 UI 状态管理，替代 ArchiveMixin。"""
+"""ArchiveUIHandler — 归档 UI 状态管理，替代 ArchiveMixin。
+
+重构后纯逻辑委托给 self._engine（ArchiveFlowEngine），
+Worker 创建委托给 self._factory（ArchiveWorkerFactory）。
+Handler 仅保留 Qt 控件交互、对话框、信号连接。
+"""
 
 from __future__ import annotations
 
 import logging
-import os
 from typing import TYPE_CHECKING, Any, Callable
 
 from PyQt6.QtWidgets import QMessageBox, QTableWidget
@@ -12,9 +16,11 @@ from PyQt6.QtWidgets import QMessageBox, QTableWidget
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
-from ....core.config import get_library_root
 from ....i18n import _
-from ...workers import ArchiveWorker, NormalizeWorker, RowUpdate
+from ...workers import RowUpdate
+from ..event_bus import EventBus
+from .archive_flow_engine import ArchiveFlowEngine
+from .archive_worker_factory import ArchiveCallbacks, ArchiveWorkerFactory
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +53,6 @@ class ArchiveUIHandler:
         clear_table: Callable[[], None],
         update_button_states: Callable[[], None],
         find_row_by_seq: Callable[[int], int],
-        # 新增回调（替代 Mixin 中的跨 Handler 调用）
         run_scan_cb: Callable[[str], None],
         run_query_cb: Callable[[], None],
         get_selected_path_cb: Callable[[], str],
@@ -76,8 +81,12 @@ class ArchiveUIHandler:
         self._run_query_cb = run_query_cb
         self._get_selected_path_cb = get_selected_path_cb
         self._on_raw_progress = on_raw_progress
-        self._archive_worker: ArchiveWorker | None = None
-        self._normalize_worker: NormalizeWorker | None = None
+        # 纯逻辑引擎
+        self._engine = ArchiveFlowEngine()
+        # Worker 工厂
+        self._factory = ArchiveWorkerFactory(mgr, config, pause_event, parent_widget)
+        self._archive_worker: Any = None
+        self._normalize_worker: Any = None
         self._archive_results: list[tuple[int, str]] = []
 
     # ── 公开方法 ─────────────────────────────────────────────
@@ -109,8 +118,8 @@ class ArchiveUIHandler:
             if choice == "cancel":
                 return
 
-        # 标准名称缺失时提示查询补全
-        missing = [p.get_full_number() for p in self._parsed_results if not p.std_name and not p.found_name]
+        # 纯逻辑：查找缺失名称
+        missing = self._engine.find_missing_names(self._parsed_results)
         if missing:
             more = f"\n... 还有 {len(missing) - 5} 条" if len(missing) > 5 else ""
             reply = self._question_dlg(
@@ -135,18 +144,31 @@ class ArchiveUIHandler:
         self._clear_table()
         self._reset_progress()
 
-        self._normalize_worker = NormalizeWorker(
-            self._mgr, self._parsed_results, pause_event=self._pause_event, parent=self._parent
+        # 工厂：创建规范化 Worker
+        callbacks = ArchiveCallbacks(
+            on_batch_ready=self.on_normalize_batch_ready,
+            on_progress=lambda pct: (
+                self._on_raw_progress(pct, 100),
+                self._publish_event("archive.progress", {"pct": pct}),
+            ),  # type: ignore[func-returns-value]
+            on_error=lambda msg: (
+                self.notify_worker_error("normalize", msg),
+                self._publish_event("archive.error", {"error": msg}),
+            ),
+            on_finished=self._make_normalize_finished(),
         )
-        self._normalize_worker.batch_ready.connect(self.on_normalize_batch_ready)
-        self._normalize_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
-        self._normalize_worker.error.connect(lambda msg: self.notify_worker_error("normalize", msg))
+        self._normalize_worker = self._factory.create_normalize_worker(
+            self._parsed_results, callbacks
+        )
+        self._normalize_worker.start()
 
-        def on_normalize_finished() -> None:
+    def _make_normalize_finished(self) -> Callable[[], None]:
+        def on_finished() -> None:
             self._force_finish_progress()
             count = len(self._parsed_results)
             self._status_cb(_("normalize_complete").format(count))
             self._register_task("规范化", count, count)
+            self._publish_event("archive.finished", {"count": count})
             if not self._suppress_dialogs():
                 self._show_stage_dialog(
                     _("normalize_results_title"),
@@ -154,9 +176,7 @@ class ArchiveUIHandler:
                     next_action=self.on_save_to_folder,
                     next_label=_("next_step_save"),
                 )
-
-        self._normalize_worker.finished_signal.connect(on_normalize_finished)
-        self._normalize_worker.start()
+        return on_finished
 
     def on_normalize_batch_ready(self, batch: list[Any]) -> None:
         """批量更新规范化结果到表格。"""
@@ -181,27 +201,23 @@ class ArchiveUIHandler:
             if choice == "cancel":
                 return
 
-        root_dir = self._get_library_root()
+        root_dir = self._engine.get_library_root_from_config(self._config)
         proceed, overwrite_all = self._check_archive_conflicts(root_dir)
         if not proceed:
             return
 
         self._reset_progress()
-        self._archive_worker = ArchiveWorker(
-            self._mgr,
-            self._parsed_results,
-            root_dir,
-            config=self._config,
-            overwrite=overwrite_all,
-            pause_event=self._pause_event,
-            parent=self._parent,
-        )
-        self._archive_worker.batch_ready.connect(self.on_archive_batch_ready)
-        self._archive_worker.progress.connect(lambda pct: self._on_raw_progress(pct, 100))
-        self._archive_worker.error.connect(lambda msg: self.notify_worker_error("archive", msg))
-
+        # 工厂：创建归档 Worker
         self._archive_results = []
-        self._archive_worker.finished_signal.connect(lambda: self._handle_archive_completed(root_dir))
+        callbacks = ArchiveCallbacks(
+            on_batch_ready=self.on_archive_batch_ready,
+            on_progress=lambda pct: self._on_raw_progress(pct, 100),
+            on_error=lambda msg: self.notify_worker_error("archive", msg),
+            on_finished=lambda: self._handle_archive_completed(root_dir),
+        )
+        self._archive_worker = self._factory.create_archive_worker(
+            self._parsed_results, root_dir, overwrite_all, callbacks
+        )
         self._archive_worker.start()
 
     def on_archive_batch_ready(self, batch: list[Any]) -> None:
@@ -219,23 +235,21 @@ class ArchiveUIHandler:
 
     def _check_archive_conflicts(self, root_dir: str) -> tuple[bool, bool]:
         """冲突预检：扫描所有文件的源→目标路径，弹窗询问覆盖策略。
-        返回 (proceed, overwrite_all)。proceed=False 表示用户取消。"""
-        conflicts: list[tuple[str, str]] = []
-        for parsed in self._parsed_results:
-            if not parsed.source_path or not os.path.exists(parsed.source_path):
-                continue
-            dst = ArchiveWorker.target_path(parsed, root_dir, self._config)
-            if dst and os.path.exists(dst):
-                conflicts.append((os.path.basename(parsed.source_path), dst))
+
+        返回 (proceed, overwrite_all)。proceed=False 表示用户取消。
+        """
+        from ...workers import ArchiveWorker
+
+        # 纯逻辑：检测冲突
+        conflicts = self._engine.detect_file_conflicts(
+            self._parsed_results, root_dir, self._config, ArchiveWorker.target_path
+        )
 
         if not conflicts or self._suppress_dialogs():
             return True, False
 
-        count = len(conflicts)
-        sample = "\n".join(f"  {n} → {d}" for n, d in conflicts[:5])
-        if count > 5:
-            sample += f"\n  ... 等共 {count} 个"
-        msg = _("msg_file_overwrite").format(count=count, sample=sample)
+        # 纯逻辑：格式化消息
+        msg = self._engine.format_conflict_message(conflicts)
         reply = QMessageBox.question(
             self._parent,
             _("title_file_exists"),
@@ -249,8 +263,8 @@ class ArchiveUIHandler:
     def _handle_archive_completed(self, root_dir: str) -> None:
         """归档完成回调：统计结果 + 写入 file_index + 过期合并 + 汇总弹窗。"""
         self._force_finish_progress()
-        saved = sum(1 for i, s in self._archive_results if s == "已归档")
-        skipped = len(self._archive_results) - saved
+        # 纯逻辑：统计
+        saved, skipped = self._engine.count_archive_results(self._archive_results)
         self._status_cb(_("save_complete").format(saved, skipped))
         self._register_task("保存", len(self._archive_results), saved, skipped)
 
@@ -259,11 +273,7 @@ class ArchiveUIHandler:
                 continue
             parsed = self._parsed_results[idx]
             if parsed.source_path:
-                st = (
-                    "被代替"
-                    if parsed.effect_status == "被代替"
-                    else ("废止" if parsed.effect_status in ("废止", "已废止", "作废") else "现行")
-                )
+                st = self._engine.determine_status_label(parsed.effect_status)
                 self._mgr.upsert_file_index(
                     file_path=parsed.source_path,
                     logical_code=parsed.logical_code,
@@ -276,12 +286,10 @@ class ArchiveUIHandler:
 
         self._merge_expire_from_source(root_dir)
         if not self._suppress_dialogs():
-            skip_details: list[str] = []
-            for idx, status in self._archive_results:
-                if status != "已归档" and idx < len(self._parsed_results):
-                    p = self._parsed_results[idx]
-                    fname = os.path.basename(getattr(p, "source_path", "") or getattr(p, "raw_filename", "") or "")
-                    skip_details.append(_("msg_archive_skip_line").format(name=fname, reason=status))
+            # 纯逻辑：格式化跳过详情
+            skip_details = self._engine.format_skip_details(
+                self._archive_results, self._parsed_results
+            )
             detail_text = ""
             if skip_details:
                 shown = skip_details[:20]
@@ -308,7 +316,7 @@ class ArchiveUIHandler:
 
     def _auto_move_expired(self) -> int:
         """查询后将废止标准自动移入过期作废/（委托 manager）。"""
-        expired = [p for p in self._parsed_results if p.next_action == "expire"]
+        expired = self._engine.filter_by_action(self._parsed_results, "expire")
         if not expired:
             return 0
         result = self._mgr.handle_expired(expired)
@@ -316,10 +324,6 @@ class ArchiveUIHandler:
         if moved:
             self._status_cb(f"查询完成: 已自动将 {moved} 个废止标准移入过期作废/")
         return moved
-
-    def _get_library_root(self) -> str:
-        """返回标准库根目录路径。"""
-        return get_library_root(self._config)
 
     def _show_name_conflict_dialog(self, conflicts: list[Any]) -> list[Any]:
         """名称冲突弹窗：逐条让用户选择。返回用户已确认的条目列表。"""
@@ -350,3 +354,10 @@ class ArchiveUIHandler:
                 resolved.append(p)
             dlg.deleteLater()
         return resolved
+
+    # ── 事件发布 ─────────────────────────────────────────────
+
+    @staticmethod
+    def _publish_event(event_name: str, data: Any) -> None:
+        """封装事件发布。"""
+        EventBus.instance().publish(event_name, data)

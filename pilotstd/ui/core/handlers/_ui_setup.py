@@ -240,7 +240,7 @@ class UISetupHandler:
         file_tree = QTreeWidget()
         file_tree.setHeaderLabel(_("file_nav"))
         file_tree.setColumnCount(1)
-        file_tree.setAnimated(True)
+        file_tree.setAnimated(False)
         file_tree.itemExpanded.connect(window._on_tree_item_expanded)
         file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         file_tree.customContextMenuRequested.connect(window._on_file_tree_context_menu)

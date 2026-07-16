@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ....i18n import _
+from .dialog_flow_engine import DialogFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class DialogHandler:
         self._mgr = mgr
         self._is_suppressed = is_suppressed
         self._parent = parent
+        self._engine = DialogFlowEngine()
 
     # ── 通用确认对话框 ───────────────────────────────────
 
@@ -168,14 +170,17 @@ class DialogHandler:
         try:
             from ....task.models import TaskType
 
-            type_map = {
-                "扫描": TaskType.SCAN,
-                "查询": TaskType.QUERY,
-                "下载": TaskType.DOWNLOAD,
-                "规范化": TaskType.ORGANIZE,
-            }
-            task = self._mgr.task_queue.enqueue(type_map.get(label, TaskType.SCAN), total_items=total)
-            self._mgr.task_queue.update_progress(task, completed=completed, failed=failed)
-            logger.debug("任务记录: %s %d/%d", label, completed, total)
+            validated = self._engine.validate_task_params(label, total, completed, failed)
+            if not validated["is_valid"]:
+                logger.warning(self._engine.format_task_error("; ".join(validated["errors"])))
+                return
+
+            type_name = validated["type_name"]
+            task_type = getattr(TaskType, type_name, TaskType.SCAN)
+            task = self._mgr.task_queue.enqueue(task_type, total_items=validated["total"])
+            self._mgr.task_queue.update_progress(
+                task, completed=validated["completed"], failed=validated["failed"]
+            )
+            logger.debug("任务记录: %s %d/%d", validated["label"], validated["completed"], validated["total"])
         except Exception as e:
-            logger.warning("任务记录失败: %s", e)
+            logger.warning(self._engine.format_task_error(str(e)))

@@ -145,26 +145,130 @@ class MainWindowCore:
         )
 
     def _init_query(self) -> None:
+        # ── 适配器：将 MainWindowCore 的回调打包进协议接口 ──
+
+        class _TableOpsAdapter:
+            def __init__(self, core: MainWindowCore) -> None:
+                self._c = core
+
+            def add_table_row(self, data: dict) -> int:
+                from ...workers import RowUpdate
+
+                update = RowUpdate(
+                    seq=data.get("seq", 0),
+                    parsed=data.get("parsed"),
+                    work_status=data.get("work_status", ""),
+                    total=data.get("total", 0),
+                )
+                self._c._add_table_row(update)
+                return 0
+
+            def find_row_by_seq(self, seq: int) -> int:
+                return self._c._find_row_by_seq(seq)
+
+            def clear_table(self) -> None:
+                self._c._clear_table()
+
+            def get_table_as_list(self) -> list:
+                return []
+
+            def remove_selected_rows(self) -> None:
+                pass
+
+            def get_selected_path(self) -> str:
+                return self._c._get_selected_path_cb() if self._c._get_selected_path_cb else ""
+
+            def get_selected_seq(self) -> str | None:
+                return None
+
+            def get_work_table(self) -> Any:
+                return self._c._work_table
+
+        class _DialogOpsAdapter:
+            def __init__(self, core: MainWindowCore) -> None:
+                self._c = core
+
+            def question_dlg(self, title: str, msg: str) -> bool:
+                from PyQt6.QtWidgets import QMessageBox
+
+                result = self._c._question_dlg(title, msg)
+                return result == QMessageBox.StandardButton.Yes
+
+            def stage_prereq_dialog(self, title: str, msg: str, task_name: str) -> str | None:
+                return self._c._stage_prereq_dialog(title, msg, task_name)
+
+            def show_stage_dialog(
+                self, title: str, content: str, next_action: Any = None
+            ) -> None:
+                self._c._show_stage_dialog(title, content, next_action)
+
+            def info_dlg(self, title: str, msg: str) -> None:
+                from PyQt6.QtWidgets import QMessageBox
+
+                QMessageBox.information(self._c._parent, title, msg)
+
+            def warning_dlg(self, title: str, msg: str) -> None:
+                from PyQt6.QtWidgets import QMessageBox
+
+                QMessageBox.warning(self._c._parent, title, msg)
+
+        class _TaskOpsAdapter:
+            def __init__(self, core: MainWindowCore) -> None:
+                self._c = core
+
+            def register_task(self, *args: Any, **kwargs: Any) -> str:
+                self._c._register_task(*args, **kwargs)
+                return ""
+
+            def update_task_status(self, task_id: str, progress: int, msg: str = "") -> None:
+                pass
+
+            def task_completed(self, task_id: str) -> None:
+                pass
+
+            def get_task_status(self, task_id: str) -> dict | None:
+                return None
+
+        class _QueryWorkerFactoryAdapter:
+            def __init__(self, core: MainWindowCore) -> None:
+                from .handlers.query_worker_factory import QueryWorkerFactory
+
+                self._c = core
+                self._factory = QueryWorkerFactory(
+                    core._mgr, core._pause_event, core._parent
+                )
+
+            def create_query_worker(self, parsed_list: list, callbacks: Any) -> Any:
+                return self._factory.create_query_worker(parsed_list, callbacks)
+
+            def create_pending_query_dialog(self, data: list, parent: Any) -> Any:
+                from ...ui.pending_query_dialog import PendingQueryDialog
+
+                return PendingQueryDialog(self._c._mgr, data, parent)
+
+        deps = type(
+            "QueryDeps",
+            (),
+            {
+                "table": _TableOpsAdapter(self),
+                "dialog": _DialogOpsAdapter(self),
+                "task": _TaskOpsAdapter(self),
+                "worker_factory": _QueryWorkerFactoryAdapter(self),
+            },
+        )()
+
         self.query = QueryUIHandler(
-            mgr=self._mgr,
+            deps=deps,
             config=self._config,
-            pause_event=self._pause_event,
-            parent_widget=self._parent,
-            work_table=self._work_table,
+            mgr=self._mgr,
             parsed_results=self._parsed_results,
-            status_callback=self._status_callback,
-            suppress_dialogs=self._suppress_dialogs,
-            add_table_row=self._add_table_row,
-            clear_table=self._clear_table,
-            find_row_by_seq=self._find_row_by_seq,
-            question_dlg=self._question_dlg,
-            stage_prereq_dialog=self._stage_prereq_dialog,
-            show_stage_dialog=self._show_stage_dialog,
-            register_task=self._register_task,
-            project_mark_dirty=self._project_mark_dirty,
-            progress_callback=self._progress_callback,
+            run_scan_cb=self._run_scan_cb,
+            status_changed=self._status_callback,
+            progress_changed=self._progress_callback,
             reset_progress=self._reset_progress,
             force_finish_progress=self._force_finish_progress,
+            suppress_dialogs=self._suppress_dialogs,
+            project_mark_dirty=self._project_mark_dirty,
         )
 
     def _init_download(self) -> None:

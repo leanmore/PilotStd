@@ -1,5 +1,8 @@
 # pilotstd/ui/core/handlers/_download.py
-"""DownloadUIHandler — 下载 UI 状态管理，替代 DownloadMixin。"""
+"""DownloadUIHandler — 下载 UI 状态管理，替代 DownloadMixin。
+
+薄包装层：Worker 管理 + Qt 控件交互。纯逻辑委托给 DownloadFlowEngine。
+"""
 
 from __future__ import annotations
 
@@ -13,8 +16,9 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
-from ....query.search_strategy import is_recently_published
 from ...workers import DownloadWorker, RowUpdate
+from ..event_bus import EventBus
+from .download_flow_engine import DownloadFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,7 @@ class DownloadUIHandler:
         self._add_table_row = add_table_row
         self._find_row_by_seq = find_row_by_seq
         self._download_worker: DownloadWorker | None = None
+        self._engine = DownloadFlowEngine()
 
     # ── 公开方法 ─────────────────────────────────────────────
 
@@ -84,13 +89,22 @@ class DownloadUIHandler:
             self._status_cb(f"下载进度: {pct}%")
 
         self._download_worker.progress.connect(on_worker_progress)
+        self._download_worker.progress.connect(
+            lambda pct: self._publish_event("download.progress", {"pct": pct})
+        )
         self._download_worker.batch_ready.connect(self.on_download_batch_ready)
 
         def _on_finished() -> None:
             self.on_download_finished(to_download, too_new_set, total, download_list)
 
         self._download_worker.finished_signal.connect(_on_finished)
+        self._download_worker.finished_signal.connect(
+            lambda: self._publish_event("download.finished", {"total": total})
+        )
         self._download_worker.error.connect(self.on_download_error)
+        self._download_worker.error.connect(
+            lambda msg: self._publish_event("download.error", {"error": msg})
+        )
         self._download_worker.start()
 
     def on_import_download(self) -> None:
@@ -105,13 +119,30 @@ class DownloadUIHandler:
             return
         try:
             with open(path, "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f if line.strip()]
+                content = f.read()
         except OSError as e:
             QMessageBox.warning(self._parent, _("title_import_failed"), str(e))
             return
+
+        # CSV 文件走 Engine 解析
+        if path.lower().endswith(".csv"):
+            records = self._engine.parse_download_csv(content)
+            if not records:
+                QMessageBox.information(self._parent, _("title_hint"), _("csv_empty"))
+                return
+            first_key = list(records[0].keys())[0] if records else ""
+            lines = [r.get(first_key, "").strip() for r in records if r.get(first_key, "").strip()]
+        else:
+            lines = [line.strip() for line in content.splitlines() if line.strip()]
+
         if not lines:
             QMessageBox.information(self._parent, _("title_hint"), _("csv_empty"))
             return
+
+        # 去重
+        items = [{"number": line} for line in lines]
+        items = self._engine.deduplicate_downloads(items, "number")
+        lines = [item["number"] for item in items]
 
         self._status_cb(_("download_in_progress"))
         _tasks, stats = self._mgr.download_by_numbers(lines)
@@ -154,14 +185,20 @@ class DownloadUIHandler:
         return True, download_list
 
     def filter_too_new_standards(self, download_list: list) -> set:
-        """筛选发布不满 20 个工作日的标准，加入等待队列。"""
+        """筛选发布不满阈值的标准，加入等待队列。
+
+        Engine 负责判断哪些标准过新；Handler 负责入队 + 弹窗。
+        """
         too_new_set: set = set()
+        too_new = self._engine.filter_too_new_standards(download_list)
+
         too_new_list: list = []
         for orig_idx, p in enumerate(download_list):
-            if is_recently_published(getattr(p, "found_publish_date", "")):
+            if p in too_new:
                 too_new_list.append((orig_idx, p))
                 too_new_set.add(orig_idx)
                 self._mgr.enqueue_download_wait(p)
+
         if too_new_list and not self._suppress_dialogs():
             lines = [_("msg_new_std_too_new"), ""]
             for _idx, p in too_new_list[:10]:
@@ -265,3 +302,10 @@ class DownloadUIHandler:
         from ....platform.notify import NotifyService
 
         NotifyService.get().show("下载异常", f"download: {msg}", duration=5000)
+
+    # ── 事件发布 ─────────────────────────────────────────────
+
+    @staticmethod
+    def _publish_event(event_name: str, data: Any) -> None:
+        """封装事件发布。"""
+        EventBus.instance().publish(event_name, data)

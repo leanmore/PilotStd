@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
 
 from ....i18n import _
+from .project_flow_engine import ProjectFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class ProjectHandler:
         self._get_work_state = get_work_state
         self._set_unrecognized_files = set_unrecognized_files
         self._parent = parent
+        self._engine = ProjectFlowEngine()
 
     # ── 打开项目 ─────────────────────────────────────────────
 
@@ -70,15 +72,16 @@ class ProjectHandler:
 
     def restore_state(self, state: dict) -> None:
         """恢复项目状态（表格行 + 当前路径 + 未识别文件）。"""
-        rows = state.get("work_table_rows", [])
-        saved_path = state.get("current_path", "")
+        data = self._engine.deserialize_project_state(state)
+        rows = data.get("work_table_rows", [])
+        saved_path = data.get("current_path", "")
         self._clear_table()
         for row_data in rows:
             self._add_row_from_dict(row_data)
         if saved_path and os.path.exists(saved_path):
             self._navigate_to(saved_path)
         # 恢复未识别文件列表（只保留磁盘上仍然存在的文件）
-        unrecognized = state.get("unrecognized_files", [])
+        unrecognized = data.get("unrecognized_files", [])
         if unrecognized:
             self._set_unrecognized_files([f for f in unrecognized if os.path.exists(f)])
 

@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 from ....i18n import _
 from ...table_constants import WORK_COLUMNS
 from ...workers import RowUpdate
+from .table_helper_flow_engine import TableHelperFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class TableHelperHandler:
         self._run_scan = run_scan_callback
         self._get_selected_path = get_selected_path_callback
         self._parent = parent
+        self._engine = TableHelperFlowEngine()
 
     # ── 右键菜单 ─────────────────────────────────────────
 
@@ -263,7 +265,9 @@ class TableHelperHandler:
         if col in col_specs:
             mn = col_specs[col][1]
             if new < mn:
-                work_table.horizontalHeader().resizeSection(col, mn)
+                work_table.horizontalHeader().resizeSection(
+                    col, self._engine.enforce_min_column_width(new, mn)
+                )
         self._save_column_widths(work_table)
 
     def _save_column_widths(self, work_table: QTableWidget) -> None:

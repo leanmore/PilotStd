@@ -164,7 +164,7 @@ def _setup_file_tree(self) -> QWidget:
     self.file_tree = QTreeWidget()
     self.file_tree.setHeaderLabel(_("file_nav"))
     self.file_tree.setColumnCount(1)
-    self.file_tree.setAnimated(True)
+    self.file_tree.setAnimated(False)  # 关闭展开/折叠动画，减少主线程开销
     self.file_tree.itemExpanded.connect(self._on_tree_item_expanded)
     self.file_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
     self.file_tree.customContextMenuRequested.connect(self._on_file_tree_context_menu)

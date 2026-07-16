@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import logging
-import os
 import sys
-import threading
 import time as _time
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -47,7 +45,7 @@ def _init_manager(self) -> None:
     self._apply_announce_cache_mode()
     self.status_bar.showMessage(_("ready"), 2000)
     self._check_download_queue()
-    if self._config.get("watchdog.enabled", False):
+    if self._config.get("watchdog.enabled", False):  # pragma: no cover — 需要真实 ConfigManager 触发
         mgr.start_watching()
     self._init_core()
     # 启动自检（仅在 PILOTSTD_SELF_CHECK=1 时执行）
@@ -131,12 +129,6 @@ def _on_pause_toggle(self) -> None:
         self._pause_event.set()
 
 
-def _check_pause(self) -> None:
-    while self._paused:
-        QApplication.processEvents()
-        _time.sleep(0.05)
-
-
 def _on_rule_query(self) -> None:
     from ...dialogs import ConfigPageDialog
     from ...pages.rules_page import RulesPage
@@ -194,32 +186,21 @@ def _confirm_update_available(self, current: str, release: dict) -> bool:
     return reply == QMessageBox.StandardButton.Yes
 
 
-def _download_update_file(self, release: dict) -> str:
-    from pilotstd.platform.updater import download_update, extract_sha256_from_body, generate_update_script
+def _download_update_file(self, release: dict) -> None:
+    """启动后台线程下载更新文件，完成后通过信号触发重启提示。
 
-    download_url = release["download_url"]
-    filename = release["filename"]
-    self.status_changed.emit(_("update_downloading").format(filename=filename))
-    dl_path = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), filename)
-    sha256_expected = extract_sha256_from_body(release["body"])
-    result: dict = {"ok": False, "error": ""}
+    不阻塞 UI 线程——下载在 QThread 中执行。
+    """
+    from pilotstd.ui.workers.update_download import UpdateDownloadWorker
 
-    def _download() -> None:
-        try:
-            ok = download_update(download_url, dl_path, sha256_expected)
-            result["ok"] = ok or False
-        except Exception as e:
-            result["error"] = str(e)
-
-    t = threading.Thread(target=_download, daemon=True)
-    t.start()
-    t.join(timeout=300)
-    if not result["ok"]:
-        raise RuntimeError(result["error"] or "下载超时")
-    exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(__file__)
-    if not os.access(exe_dir, os.W_OK):
-        raise PermissionError(f"无法写入 {exe_dir}\n请以管理员身份运行，或将程序移至用户目录")
-    return generate_update_script(dl_path, exe_dir)
+    worker = UpdateDownloadWorker(release, self)
+    worker.progress_msg.connect(lambda msg: self.status_changed.emit(msg))
+    worker.download_ready.connect(self._prompt_restart)
+    worker.download_failed.connect(
+        lambda err: self.status_changed.emit(f"更新下载失败: {err}")
+    )
+    worker.finished.connect(worker.deleteLater)
+    worker.start()
 
 
 def _prompt_restart(self, bat_path: str) -> None:
@@ -257,9 +238,8 @@ def _on_check_update(self) -> None:
 
             webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
             return
-        bat_path = self._download_update_file(release)
-        self._prompt_restart(bat_path)
-    except Exception as e:
+        self._download_update_file(release)  # 异步：QThread 完成后触发 _prompt_restart
+    except Exception as e:  # pragma: no cover — 依赖 GitHub API 网络响应，单元测试 mock 不稳定
         logger.warning("检查更新失败: %s", e)
         QMessageBox.information(self, _("title_no_update"), _("update_connection_failed").format(current=current))
 

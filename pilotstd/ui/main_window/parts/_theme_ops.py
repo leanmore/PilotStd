@@ -39,6 +39,9 @@ def _apply_theme(self) -> None:
 
 def _load_qt_translator(self) -> None:
     lang = self._config.get("appearance.language", "zh_CN")
+    # 幂等保护：同语言已加载则跳过，避免重复 I/O + installTranslator 全树遍历
+    if getattr(self, "_loaded_qt_lang", None) == lang:
+        return
     from ....i18n import set_language
 
     set_language(lang)
@@ -72,6 +75,7 @@ def _load_qt_translator(self) -> None:
             if old:
                 QApplication.instance().removeTranslator(old)
                 setattr(self, attr, None)
+    self._loaded_qt_lang = lang
 
 
 def _apply_language(self) -> None:
@@ -99,7 +103,7 @@ def _retranslate_ui(self) -> None:
     self.status_bar.showMessage(_("ready"))
     if hasattr(self, "_log_label"):
         self._log_label.setText(_("work_log"))
-    self._populate_quick_access()
+    self._retranslate_file_tree()
     mb = self.menuBar()
     mb.clear()
     self._setup_menu()

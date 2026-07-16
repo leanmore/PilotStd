@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 from ....i18n import _
 from ...workers import AnnounceWorker
+from .announce_flow_engine import AnnounceFlowEngine
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ class AnnounceUIHandler:
         self._ann_progress_label: QLabel | None = None
         self._ann_progress_bar: QProgressBar | None = None
         self._ann_start_date: QDateEdit | None = None
+        self._engine = AnnounceFlowEngine()
 
     # ── 公开方法 ─────────────────────────────────────────────
 
@@ -81,6 +83,14 @@ class AnnounceUIHandler:
                 w.wait()
 
     # ── 内部方法 ─────────────────────────────────────────────
+
+    def _parse_announcement(self, raw: dict[str, Any]) -> dict[str, Any]:
+        """委托 AnnounceFlowEngine 标准化原始公告数据。"""
+        return self._engine.parse_announcement(raw)
+
+    def _filter_by_status(self, items: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
+        """委托 AnnounceFlowEngine 按状态过滤公告。"""
+        return self._engine.filter_by_status(items, status)
 
     def check_guard(self) -> bool:
         """前置检查：Manager 就绪 + Web 公告缓存互斥。返回 True 表示可继续。"""
