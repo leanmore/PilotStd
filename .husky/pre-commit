@@ -35,3 +35,8 @@ if [ -n "$DOC_HINT" ]; then
   printf "$DOC_HINT"
   echo "  （此提醒不阻断提交，仅作提示）"
 fi
+
+# ── 三位一体治理体系 — 门禁支柱（G-010 + G-011） ──────────
+cd "$ROOT" && python scripts/check_g_010_code_size.py || exit 1
+cd "$ROOT" && python scripts/check_g_011_attr_integrity.py || exit 1
+echo "✅ 门禁支柱 (G-010 + G-011) 通过"
