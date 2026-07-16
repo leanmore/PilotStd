@@ -23,6 +23,7 @@ class UpdateDownloadWorker(QThread):
     def __init__(self, release: dict[str, Any], parent: Any = None) -> None:
         super().__init__(parent)
         self._release = release
+        self.progress_msg = ""  # G-011 预声明
 
     def run(self) -> None:
         from pilotstd.platform.updater import download_update, extract_sha256_from_body, generate_update_script

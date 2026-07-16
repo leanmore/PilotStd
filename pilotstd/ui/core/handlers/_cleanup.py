@@ -94,6 +94,7 @@ class CleanupHandler:
         self._get_scan_source_root = get_scan_source_root
         self._parent = parent
         self._engine = CleanupFlowEngine()
+        self.move_done = False
 
     # ── 只读属性确认 ─────────────────────────────────────────
 
