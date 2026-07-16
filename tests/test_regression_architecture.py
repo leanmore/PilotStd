@@ -56,8 +56,9 @@ class TestNormalizeWorkerErrorSignal(unittest.TestCase):
         from pilotstd.ui.core.handlers._archive import ArchiveUIHandler
 
         source = inspect.getsource(ArchiveUIHandler.on_normalize)
-        # error.connect 必须在 batch_ready.connect 之后出现
-        self.assertIn("error.connect", source, "on_normalize 应包含 NormalizeWorker.error.connect")
+        # P9: ArchiveCallbacks 对象传递回调，不再直接 .connect
+        self.assertIn("callbacks = ArchiveCallbacks(", source)
+        self.assertIn("on_error=lambda msg", source)
 
 
 class TestPendingQueryButtonState(unittest.TestCase):
@@ -96,7 +97,9 @@ class TestQueryWorkerResultReadySignal(unittest.TestCase):
         from pilotstd.ui.core.handlers._query import QueryUIHandler
 
         source = inspect.getsource(QueryUIHandler.on_query)
-        self.assertIn("result_ready.connect", source, "on_query 应包含 QueryWorker.result_ready.connect")
+        # P9: QueryCallbacks 对象传递回调，不再直接 .connect
+        self.assertIn("callbacks = QueryCallbacks(", source)
+        self.assertIn("on_result_ready=self.on_query_result_ready", source)
 
 
 class TestHandlerImports(unittest.TestCase):
