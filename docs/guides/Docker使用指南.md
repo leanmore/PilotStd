@@ -1,3 +1,4 @@
+<!-- Meta: Last-Reviewed=2026-07-16 | Review-Cycle=90d | Status=Active -->
 # PilotStd Docker 使用指南
 
 **日期**: 2026-05-29 | **版本**: v1.0

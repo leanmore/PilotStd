@@ -17,9 +17,9 @@
 |------|-----|
 | 问题描述 | `parse_std_number` 多词前缀修复后（如 `DIN EN` → code=`DINEN`），njbz365 适配器的 `match_result` 逻辑未同步调整，导致多词前缀标准（DIN EN、BS EN ISO）的匹配状态返回 `"mismatch"` 而非 `"exact"` |
 | 影响范围 | njbz365 适配器对多词前缀国外标准的查询匹配 |
-| 当前状态 | 已标记 xfail（`test_din_exact_match`、`test_bs_exact_match`），不影响 CI |
-| 测试位置 | `tests/test_adapters.py::TestNjbz365Adapter::test_din_exact_match`、`test_bs_exact_match` |
-| 计划修复 | 同步 njbz365 适配器的 `match_result` 调用逻辑，使其与 `parse_std_number` 的多词前缀输出一致，然后移除 xfail |
+| 当前状态 | ✅ 已修复（2026-07-14），`_search_candidates` 新增从 `search_term` 自动解析标准编号字段，解析值优先于外部传入参数 |
+| 修复内容 | `_search_candidates` 中新增 `parsed_target = _parse_result_number(search_term)`，以解析值（如 `DINEN`）优先于外部传入的单词语义 code（如 `DIN`） |
+| 测试位置 | `tests/test_adapters.py::TestNjbz365Adapter::test_din_exact_match`、`test_bs_exact_match`（xfail 已移除） |
 
 ### 2. StdGovAdapter 端到端测试依赖外部 API
 
@@ -61,3 +61,4 @@
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
 | v1.0 | 2026-07-14 | 初始版本，记录 njbz365 match_status 和 StdGovAdapter e2e 两个已知问题 |
+| v1.1 | 2026-07-14 | njbz365 适配器 match_status 已修复（`_search_candidates` 自动解析 search_term），移除 xfail |

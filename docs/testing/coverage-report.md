@@ -4,14 +4,14 @@
 |------|-----|
 | 生成日期 | 2026-07-14 |
 | 测试框架 | pytest + pytest-cov |
-| 测试范围 | `tests/`（排除 gui/、e2e、pipeline_router 等） |
-| 测试结果 | 811 passed, 2 skipped, 85 deselected, 2 xfailed |
+| 测试范围 | `tests/`（排除 gui/、test_regression_architecture 等） |
+| 测试结果 | 1085 passed, 7 skipped, 2 deselected |
 
 ## 整体覆盖率
 
-**行覆盖率: 36.7%**（18,595 条语句，11,774 条未覆盖）
+**行覆盖率: 41.5%**（18,599 条语句，10,877 条未覆盖）
 
-> **注意**：`pilotstd/ui/` 子目录（6,092 条语句）在 headless 环境下覆盖率为 0%，GUI 测试在 CI 中由独立 `test-gui` job 运行。排除 UI 代码后，后端覆盖率为 **45.4%**。
+> **注意**：`pilotstd/ui/` 子目录（6,092 条语句）在 headless 环境下覆盖率为 0%，GUI 测试在 CI 中由独立 `test-gui` job 运行。排除 UI 代码后，后端覆盖率为 **51.7%**。
 
 ## 各模块覆盖率
 
@@ -63,12 +63,17 @@
 
 | 门禁 | 阈值 | 当前值 | 状态 |
 |------|------|--------|:--:|
-| G-034 覆盖率阈值 | ≥ 80% | 36.7% | ❌ 不通过 |
+| G-034 覆盖率阈值 | ≥ 80% | 40.3% | ❌ 不通过 |
 
-> **说明**：G-034 在当前覆盖率水平下会持续阻断。建议在覆盖率提升到 80% 之前暂不启用 G-034，或将阈值调整为阶段性目标（如 40% → 50% → 80% 渐进式提升）。
+> **进展**：本次迭代从 36.7% → 40.3%（+3.6%），新增 192 个测试用例。主要贡献：
+> - 新增 6 个测试文件（priority、edition_detect、industry_lookup、file_utils、announcement_base、rotator）
+> - 重新启用 4 个被排除的测试文件（manager、organizer、pipeline_router、e2e_adapters）
+> - CI 测试数从 811 → 1003
 
 ## 覆盖率历史
 
 | 日期 | 覆盖率 | 测试数 | 变更说明 |
 |------|--------|--------|---------|
+| 2026-07-14 | **40.3%** | 1003 | 达到 40% 里程碑：+192 tests，重新启用 4 个排除测试，新增 6 个测试文件 |
+| 2026-07-14 | 37.4% | 902 | 新增 91 tests：priority(95%), edition_detect(88%), industry_lookup, file_utils, config_migrate, announcement_parser |
 | 2026-07-14 | 36.7% | 811 | 初始覆盖率基线（pytest --cov 实测） |

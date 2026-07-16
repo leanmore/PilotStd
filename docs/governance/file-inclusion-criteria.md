@@ -66,4 +66,4 @@ PilotStd 的 GitHub 仓库定位为：**展示橱窗 + 成品交付 + 构建流�
 | `.github/workflows/ci.yml` | 门禁执行位置 |
 | `scripts/check-repo-compliance.sh` | 门禁脚本源码 |
 | `docs/governance/gates.md` | 全部门禁索引 |
-| `docs/architecture/decisions/ADR-001-repo-boundary.md` | 入仓标准对应的架构决策（待创建） |
+| `docs/adr/ADR-001-repo-boundary.md` | 入仓标准对应的架构决策（待创建） |

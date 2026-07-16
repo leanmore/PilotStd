@@ -89,9 +89,26 @@
 ### 3.5 文档联动义务（引用）
 
 改代码后必须检查关联文档是否过时，具体规则见 memory 中的 `feedback_linked_cleanup.md` 和 `feedback_document_management_rules.md`。重点：
-- `docs/superpowers/specs/` — 新增功能 / API 变更
-- `docs/superpowers/plans/` — 实现偏离计划
-- `project_progress_log.md` — 重要决策当日记录
+- `docs/adr/` — 涉及架构决策的任务完成后追加 ADR
+- `docs/architecture.md` — 架构策略变更
+- `docs/technical-debt.md` / `docs/architecture/technical-debt-registry.md` — 技术债状态变更
+
+### 3.6 支撑层文档防腐烂规则
+
+修改 `docs/guides/`（用户/运维指南）或 `docs/reference/`（规范/参考）下的文档时，**必须**同步更新文件顶部的防腐蚀元数据中的 `Last-Reviewed` 日期为当天：
+
+```
+<!-- Meta: Last-Reviewed=YYYY-MM-DD | Review-Cycle=90d | Status=Active -->
+```
+
+范式文档（`*-pattern.md` + `cleanup-io-isolation-2.0.md`）属于核心治理层，不受此机制约束。
+
+### 3.7 计划文档生命周期规则
+
+新增的计划与方案文档**必须**存放在 `docs/plans/` 目录下。当计划实施完毕并合入 main 后：
+1. 提炼核心决策形成 ADR（存入 `docs/adr/`）
+2. 将原计划文件移入 `docs/archive/` 归档
+3. **严禁**在 `docs/` 根目录或其他非归档目录下遗留已完成的计划文件
 
 ---
 

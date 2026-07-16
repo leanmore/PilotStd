@@ -38,7 +38,7 @@ PilotStd 治理体系基于三条不可分割的支柱：
 |------|--------|------|--------|--------|
 | P0 | 修复 | 修复 4 个功能退化 + 补充回归测试 | `tests/test_scanner.py`、`test_query.py`、`test_table.py` | `9c483137`、`13c324f7` |
 | P1 | 文档 | 记录已知问题（技术债） | `docs/testing/known-issues.md` | `75a607e2` |
-| P2 | 决策 | ADR-001 记录 ModalDialogAutoClicker 方案 | `docs/architecture/decisions/ADR-001-*.md` | `d3eca1f3` |
+| P2 | 决策 | ADR-001 记录 ModalDialogAutoClicker 方案 | `docs/adr/ADR-001-*.md` | `d3eca1f3` |
 | P3 | 门禁 | G-029 核心模块变更 → 测试同步检查 | `scripts/check_g_029_test_coverage.py` | `d551e3cf` |
 | — | 元文档 | 本文档 + 入口索引 | `docs/governance/governance-principles.md` | 当前 |
 
@@ -92,7 +92,7 @@ PilotStd 治理体系基于三条不可分割的支柱：
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 |
 | [../testing/known-issues.md](../testing/known-issues.md) | 已知问题及技术债追踪 |
-| [../architecture/decisions/ADR-001-modal-dialog-auto-clicker.md](../architecture/decisions/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 |
+| [../adr/ADR-001-modal-dialog-auto-clicker.md](../adr/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 |
 | [../architecture/technical-debt-registry.md](../architecture/technical-debt-registry.md) | 技术债登记 |
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献指南（含门禁脚本速查） |
 | [../../scripts/check_g_029_test_coverage.py](../../scripts/check_g_029_test_coverage.py) | G-029 测试覆盖门禁 |

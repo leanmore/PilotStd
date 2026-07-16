@@ -1,3 +1,4 @@
+<!-- Meta: Last-Reviewed=2026-07-16 | Review-Cycle=90d | Status=Active -->
 # 大函数拆分经验记录
 
 > 日期：2026-06-28 至 2026-06-30

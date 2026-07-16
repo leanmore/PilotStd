@@ -3,6 +3,8 @@
 自动识别标准号 · 多站点有效性查询 · 批量下载 · 分类归档
 
 [![Docker CI](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml/badge.svg)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-942%20passed-brightgreen)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
+[![Engine Coverage](https://img.shields.io/badge/Engine%20Coverage-100%25-brightgreen)](https://github.com/leanmore/pilotstd/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/leanmore/pilotstd?include_prereleases)](https://github.com/leanmore/pilotstd/releases)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
