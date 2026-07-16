@@ -247,6 +247,7 @@ class TestDatabase(unittest.TestCase):
 
         calls = []
         saved_m2 = MIGRATIONS.get(2)  # 保存原始迁移，测后恢复
+        saved_m3 = MIGRATIONS.get(3)
 
         @migration(2)
         def m2(db):
@@ -277,6 +278,8 @@ class TestDatabase(unittest.TestCase):
             MIGRATIONS.pop(3, None)
             if saved_m2:  # 恢复原始迁移，避免后续 TestFileIndexRepository 找不到表
                 MIGRATIONS[2] = saved_m2
+            if saved_m3:
+                MIGRATIONS[3] = saved_m3
             shutil.rmtree(os.path.join(self.tmp, "test_v2.db"), ignore_errors=True)
 
     def test_migration_lock_acquire_and_release(self):

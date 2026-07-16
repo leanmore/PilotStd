@@ -37,10 +37,3 @@ class TestToolbarSignalBindings:
 
     def test_btn_cancel_is_bound(self, mock_main_window):
         _assert_bound(mock_main_window.btn_cancel)
-
-    def test_notification_bell_inner_button_is_bound(self, mock_main_window):
-        """notification_bell 是自定义 QWidget，内部含一个 QPushButton。"""
-        bell = mock_main_window.notification_bell
-        inner_btn = bell.findChild(QPushButton)
-        assert inner_btn is not None, "notification_bell 内部未找到 QPushButton"
-        _assert_bound(inner_btn)

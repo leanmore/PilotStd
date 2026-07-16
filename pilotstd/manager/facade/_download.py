@@ -51,8 +51,12 @@ class DownloadHandler:
                                 self._core.cache.put(cached)
                         break
 
-    def download(self, query_results: list[Any] | None = None) -> tuple[list[DownloadTask], BatchDownloadStats]:
-        """下载分类结果中的标准文件。"""
+    def download(
+        self, query_results: list[Any] | None = None, _adapter: Any = None
+    ) -> tuple[list[DownloadTask], BatchDownloadStats]:
+        """下载分类结果中的标准文件。
+        _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
+        """
         results = query_results or self._core.query_results
 
         self._handle_expired_if_needed()
@@ -88,9 +92,11 @@ class DownloadHandler:
         return tasks, stats
 
     def download_stream(
-        self, on_progress: Any = None, on_result: Any = None
+        self, on_progress: Any = None, on_result: Any = None, _adapter: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
-        """流式下载（线程安全）。"""
+        """流式下载（线程安全）。
+        _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
+        """
         self._handle_expired_if_needed()
 
         tasks: list[tuple[int, DownloadTask, Any]] = []

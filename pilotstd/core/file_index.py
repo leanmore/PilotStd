@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 import os
 import threading
-import time
 from datetime import datetime
 from typing import Any, Optional
 
@@ -52,34 +51,47 @@ class FileIndexRepository:
             self._validation_thread.join(timeout=5)
 
     def _start_delayed_validation(self) -> None:
-        """启动后台校验所有索引路径是否存在，延迟时间根据记录数自适应（5~30s）。"""
+        """启动后台校验线程。
+
+        延迟策略：根据记录数自适应（5~30s），用 _stop_event.wait() 等待，
+        可被 stop() 立即中断。测试模式下跳过延迟。
+
+        校验逻辑（含 os.path.exists 等文件 IO）在 daemon 线程中执行，
+        不阻塞主线程。完成或失败均设置 _validation_complete。
+        """
 
         def _run() -> None:
-            # 先检查是否已被停止（测试环境下 fixture teardown 会立即设置）
             if self._stop_event.is_set():
                 self._validation_complete.set()
                 return
-            try:
-                row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
-                row_count = row["cnt"] if row else 0
-                delay = min(30, max(5, row_count / 500))
-            except Exception:
-                delay = 10
-            remaining = delay
-            while remaining > 0 and not self._stop_event.is_set():
-                time.sleep(min(0.5, remaining))
-                remaining -= 0.5
+
+            # 计算延迟（秒）
+            if os.environ.get("PILOTSTD_TEST_MODE") == "1":
+                delay = 0
+            else:
+                try:
+                    row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
+                    row_count = row["cnt"] if row else 0
+                    delay = min(30, max(5, row_count / 500))
+                except Exception:
+                    delay = 10
+
+            # 用 Event.wait() 替代 time.sleep()——可被 stop() 即时中断
+            if delay > 0:
+                self._stop_event.wait(delay)
+
             if self._stop_event.is_set():
                 self._validation_complete.set()
                 return
+
             try:
                 deleted = self.validate_paths()
             except Exception:
                 deleted = 0
             self._validation_complete.set()
-            logger = logging.getLogger("pilotstd.file_index")
+
             try:
-                logger.info(
+                logging.getLogger("pilotstd.file_index").info(
                     "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
                     delay,
                     deleted,

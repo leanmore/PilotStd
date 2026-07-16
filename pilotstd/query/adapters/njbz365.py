@@ -350,6 +350,14 @@ class Njbz365Adapter(BaseAdapter):
         if not items:
             return []
 
+        # 从 search_term 自动解析标准编号字段，优先于外部传入的参数
+        # 修复多词前缀（如 DIN EN → DINEN）：parse_std_number 返回合并后的 code，
+        # 外部可能传入单词语义 code（如 "DIN"），此处以解析值为准
+        parsed_target = _parse_result_number(search_term)
+        match_code = parsed_target.get("code", "") or target_code
+        match_number = parsed_target.get("number", 0) or target_number
+        match_year = parsed_target.get("year", 0) or target_year
+
         status_map = {"现行": "现行", "未生效": "即将实施", "废止": "废止"}
         results = []
         for item in items:
@@ -361,7 +369,7 @@ class Njbz365Adapter(BaseAdapter):
             is_adopted = bool(cybz)
             status = status_map.get(bzzt, bzzt)
 
-            matched, match_status = match_result(target_code, target_number, target_year, bzmc, bzbh)
+            matched, match_status = match_result(match_code, match_number, match_year, bzmc, bzbh)
 
             results.append(
                 QueryResult(

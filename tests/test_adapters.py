@@ -12,8 +12,6 @@ if root_dir not in sys.path:
 import unittest
 from unittest.mock import MagicMock
 
-import pytest
-
 from pilotstd.query.adapters.csres import CsresAdapter
 from pilotstd.query.adapters.dbba import DbbaAdapter
 from pilotstd.query.adapters.hbba import HbbaAdapter
@@ -169,14 +167,12 @@ class TestNjbz365Adapter(unittest.TestCase):
         r = self.a._search("ASME VIII.1 2021", "ASME", 8, 2021)
         self.assertEqual(r.match_status, "exact")
 
-    @pytest.mark.xfail(reason="njbz365 match_status 逻辑未同步，parse_std_number 多词前缀修复后 code 匹配方式需调整")
     def test_din_exact_match(self):
         """搜索 DIN EN 1092.1-2018 → exact"""
         self._mock_response([_njbz_item("DIN EN 1092.1-2018", "Flanges")])
         r = self.a._search("DIN EN 1092.1 2018", "DIN", 1092, 2018)
         self.assertEqual(r.match_status, "exact")
 
-    @pytest.mark.xfail(reason="njbz365 match_status 逻辑未同步，parse_std_number 多词前缀修复后 code 匹配方式需调整")
     def test_bs_exact_match(self):
         """搜索 BS EN ISO 16852-2016 → exact"""
         self._mock_response([_njbz_item("BS EN ISO 16852-2016", "Flame Arresters")])

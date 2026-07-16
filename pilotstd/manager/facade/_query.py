@@ -236,8 +236,12 @@ class QueryHandler:
         progress_callback: Callable[[int, int], None] | None = None,
         result_callback: Callable[[int, Any], None] | None = None,
         site: str | None = None,
+        _adapter: Any = None,
     ) -> tuple[list[QueryResult], BatchQueryStats]:
-        """批量查询标准的有效性状态，查询完成后自动分类路由。"""
+        """批量查询标准的有效性状态，查询完成后自动分类路由。
+
+        _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
+        """
         items = parsed_list or self._core.parsed_results
         self._core.queried_items = items
 

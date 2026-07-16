@@ -1,10 +1,17 @@
-# pytest 收集时忽略独立运行脚本（含模块级 sys.exit / parse_args 会导致收集失败）
+# pytest 收集时忽略独立运行脚本
 import shutil
 import tempfile
 
 import pytest
 
 from pilotstd.core.db import Database
+
+# ── 注册 fixtures 插件 ──
+pytest_plugins = [
+    "tests.fixtures.manager_core_fixture",
+    "tests.fixtures.notification_fixture",
+    "tests.fixtures.workspace_fixture",
+]
 
 collect_ignore = [
     "stress_selfcheck.py",

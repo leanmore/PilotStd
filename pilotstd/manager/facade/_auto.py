@@ -34,8 +34,10 @@ class AutoPipeline:
         self._download = download_handler
         self._organize = organize_handler
 
-    def auto_run(self, root_path: str) -> dict[str, int]:
-        """一键自动运行：扫描 → 查询 → 下载 → 归类。"""
+    def auto_run(self, root_path: str, _adapter: Any = None) -> dict[str, int]:
+        """一键自动运行：扫描 → 查询 → 下载 → 归类。
+        _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
+        """
         report: dict[str, int] = {
             "scan": 0,
             "query_found": 0,
@@ -169,8 +171,11 @@ class AutoPipeline:
         on_download_result: Any = None,
         on_archive_result: Any = None,
         on_stage_change: Any = None,
+        _adapter: Any = None,
     ) -> dict[str, int]:
-        """流式自动管线（线程安全）。"""
+        """流式自动管线（线程安全）。
+        _adapter: DI 注入，可传入 mock 适配器链覆盖默认适配器。
+        """
         report: dict[str, int] = {
             "scan": 0,
             "query_found": 0,

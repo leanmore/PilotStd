@@ -112,3 +112,68 @@ class TestNotificationManager(unittest.TestCase):
             nmgr.send_event("test_event", {"key": "val"})
 
             self.mock_db.execute.assert_called()
+
+    @patch("pilotstd.core.notification.manager.CredentialHelper")
+    @patch("pilotstd.core.notification.manager.WechatChannel")
+    @patch("pilotstd.core.notification.manager.TelegramChannel")
+    @patch("pilotstd.core.notification.manager.FeishuChannel")
+    @patch("pilotstd.core.notification.manager.DingTalkChannel")
+    def test_init_with_aggregator(self, _dt, _fs, _tg, _wc, _cred_cls):
+        """启用聚合器时正确初始化。"""
+        mock_cred = MagicMock()
+        mock_cred.get_all.return_value = {}
+        _cred_cls.return_value = mock_cred
+        self.mock_cfg.get.side_effect = lambda key, default=None: {
+            "notification.enabled": True,
+            "notification.aggregate_enabled": True,
+            "notification.aggregate_window_seconds": 10,
+            "notification.aggregate_max_events": 30,
+        }.get(key, default)
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        self.assertIsNotNone(nmgr.aggregator)
+
+    def test_send_event_disabled(self):
+        """通知关闭时 send_event 返回 None 且不记录日志。"""
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        result = nmgr.send_event("test_event", {"key": "val"})
+        self.assertIsNone(result)
+
+    def test_build_message_auto_backup(self):
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        msg = nmgr._build_message("auto_backup", {"path": "/backup", "size_mb": 50})
+        self.assertIsNotNone(msg)
+
+    def test_build_message_announcement_check(self):
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        msg = nmgr._build_message(
+            "announcement_check_complete",
+            {"source_site": "samr_gb", "total_fetched": 20, "new_standards": 5},
+        )
+        self.assertIsNotNone(msg)
+
+    def test_build_message_validity_system_failed(self):
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        msg = nmgr._build_message(
+            "validity_system_failed",
+            {"error": "Database connection lost"},
+        )
+        self.assertEqual(msg.level, "error")
+
+    def test_build_message_auto_scan_failed(self):
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        msg = nmgr._build_message(
+            "auto_scan_failed",
+            {"error": "Permission denied"},
+        )
+        self.assertEqual(msg.level, "error")
+
+    def test_init_event_builders_mapping(self):
+        self.mock_cfg.get.return_value = False
+        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
+        # _init_event_builders populates the dispatcher
+        self.assertTrue(hasattr(nmgr, '_init_event_builders'))

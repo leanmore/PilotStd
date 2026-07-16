@@ -37,12 +37,13 @@ class AdapterFrozenError(Exception):
 class BaseAnnounceCrawler(ABC):
     """公告抓取适配器基类。每个站点/公告类型一个子类。"""
 
-    def __init__(self, config: Any = None):
+    def __init__(self, config: Any = None, _http: Any = None):
         self._cb_freeze_count: int = 0
         self._cb_first_freeze_time: Optional[datetime] = None
         self._cb_frozen_until: Optional[datetime] = None
         self._cb_fail_streak: int = 0
         self._cb_loaded: bool = False
+        self._http = _http  # DI: 可注入 mock HTTP 会话，默认 None 时使用 requests
 
     # ── 熔断配置（实时读取 ConfigManager，支持热加载）──
 
@@ -225,7 +226,7 @@ class BaseAnnounceCrawler(ABC):
         当遇到早于 since_date 的记录时提前终止。
         """
         announcements: list[Any] = []
-        session = requests.Session()
+        session = self._http if self._http is not None else requests.Session()
         session.headers["User-Agent"] = CHROME_UA
         page = 1
         while True:

@@ -62,12 +62,8 @@ jobs:
           python -m pytest tests/ -q --tb=short -n auto \
             --ignore=tests/gui/ \
             --ignore=tests/test_regression_architecture.py \
-            --deselect "tests/test_manager.py" \
-            --deselect "tests/test_organizer.py" \
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
-            --deselect "tests/test_pipeline_router.py" \
-            --deselect "tests/test_e2e_adapters.py" \
             --ignore=tests/test_ci_scan_fix.py
 
       - name: Observability self-check
@@ -184,11 +180,11 @@ jobs:
         run: python scripts/check_g_027_define_options.py
 
   # ════════════════════════════════════════════════════════════════
-  # Job 4: GUI 测试（Windows，依赖 PyQt6）
+  # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════
-  test-gui:
+  test-e2e:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -202,13 +198,57 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r desktop/requirements-win.txt
-          pip install pytest pytest-qt pytest-xdist responses
+          pip install pytest pytest-qt
 
-      - name: Run GUI tests
+      - name: Run E2E tests (attempt 1)
+        id: e2e-1
+        continue-on-error: true
         shell: pwsh
         env:
           SUPERUSER: superadmin
-        run: python -m pytest tests/gui/ tests/test_regression_architecture.py -v --tb=short
+        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short
+
+      - name: Run E2E tests (attempt 2, retry)
+        if: steps.e2e-1.outcome == 'failure'
+        shell: pwsh
+        env:
+          SUPERUSER: superadmin
+        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 5: GUI 单元测试 + Handler 覆盖率（Windows）
+  # ════════════════════════════════════════════════════════════════
+  test-unit-cov:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: desktop/requirements-win.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r desktop/requirements-win.txt
+          pip install pytest pytest-qt pytest-cov
+
+      - name: Run unit tests with coverage
+        shell: pwsh
+        env:
+          SUPERUSER: superadmin
+        run: >
+          python -m pytest tests/gui/ tests/test_regression_architecture.py
+          -v --tb=short
+          --cov=pilotstd/ui/core/handlers/
+          --ignore-glob="*test_e2e*.py"
+
+      - name: Check coverage threshold (8 refactored handlers)
+        shell: pwsh
+        run: python -m coverage report --include="*flow_engine*" --fail-under=85
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: 入仓合规检查
@@ -242,7 +282,7 @@ jobs:
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
   version:
-    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-gui]
+    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

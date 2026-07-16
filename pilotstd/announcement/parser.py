@@ -484,10 +484,15 @@ def find_attachment_url(html: str) -> Optional[str]:
     return None
 
 
-def download_attachment(url: str) -> Optional[bytes]:
-    """下载附件文件 (.wps)。返回原始字节，失败返回 None。"""
+def download_attachment(url: str, _http: Any = None) -> Optional[bytes]:
+    """下载附件文件 (.wps)。返回原始字节，失败返回 None。
+    _http: DI 注入，可传入 mock HTTP 客户端，默认 None 时使用 safe_raw_get。
+    """
     from ..query.network import safe_raw_get
 
+    if _http is not None:
+        resp = _http.get(url)
+        return resp.content if resp is not None and getattr(resp, 'status_code', 0) == 200 else None
     resp = safe_raw_get(url, "announcement_attachment", timeout=60)
     if resp and resp.status_code == 200:
         return resp.content
