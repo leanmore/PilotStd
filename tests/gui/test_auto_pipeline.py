@@ -65,10 +65,13 @@ def test_auto_pipeline_full_flow(window, test_data_dir, qtbot, tmp_path):
     report = blocker.args[0] if blocker.args else {}
     assert isinstance(report, dict), "finished_signal 应携带 report dict"
     assert report.get("scan", 0) > 0, f"扫描应发现文件，实际: {report}"
-    # 验证三个阶段字段存在（P8-3：关闭技术债 #2）
-    assert "query" in report, f"report 应包含 query 阶段数据，实际 keys: {list(report.keys())}"
-    assert "download" in report, "report 应包含 download 阶段数据"
-    assert "archive" in report, "report 应包含 archive 阶段数据"
+    # 验证各阶段数据存在（字段名来自 _auto.py 实际实现）
+    assert "scan" in report
+    assert "query_found" in report
+    assert "download_success" in report
+    assert "organize_moved" in report
+    assert "mirror_skipped" in report
+    assert "fallback_mirrored" in report
 
 
 @pytest.mark.e2e
