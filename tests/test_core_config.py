@@ -52,7 +52,6 @@ class TestSettingsSchema(unittest.TestCase):
             FIELD_PASSWORD,
             FIELD_SELECT,
             FIELD_TAGS,
-            FIELD_TIME,
             FIELD_TOGGLE,
         )
 

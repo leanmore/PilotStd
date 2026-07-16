@@ -7,7 +7,7 @@
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch, call, ANY
+from unittest.mock import MagicMock, patch, call
 
 from pilotstd.core.file_index import (
     ANNOUNCEMENT_CACHE_TABLE,

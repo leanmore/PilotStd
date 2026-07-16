@@ -22,7 +22,7 @@ class TestMainWindowCoreInit(unittest.TestCase):
         self.parent = MagicMock()
 
     @patch.object(MainWindowCore, "_init_all_handlers")
-    def test_stores_basic_attributes(self, mock_init):
+    def test_stores_basic_attributes(self, _mock_init):
         core = MainWindowCore(
             mgr=self.mgr, work_table=self.work_table,
             progress_callback=self.progress_cb, status_callback=self.status_cb,
@@ -39,7 +39,7 @@ class TestMainWindowCoreInit(unittest.TestCase):
         self.assertIs(core._progress_callback, self.progress_cb)
 
     @patch.object(MainWindowCore, "_init_all_handlers")
-    def test_stores_all_callbacks(self, mock_init):
+    def test_stores_all_callbacks(self, _mock_init):
         cb = MagicMock()
         core = MainWindowCore(
             mgr=self.mgr, work_table=self.work_table,
@@ -76,7 +76,7 @@ class TestMainWindowCoreInit(unittest.TestCase):
         self.assertIs(core._run_query_cb, cb)
 
     @patch.object(MainWindowCore, "_init_all_handlers")
-    def test_suppress_dialogs_default_none(self, mock_init):
+    def test_suppress_dialogs_default_none(self, _mock_init):
         core = MainWindowCore(
             mgr=self.mgr, work_table=self.work_table,
             progress_callback=self.progress_cb, status_callback=self.status_cb,
@@ -86,7 +86,7 @@ class TestMainWindowCoreInit(unittest.TestCase):
         self.assertIsNone(core._suppress_dialogs)
 
     @patch.object(MainWindowCore, "_init_all_handlers")
-    def test_get_unrecognized_files_cb_lambda_is_none(self, mock_init):
+    def test_get_unrecognized_files_cb_lambda_is_none(self, _mock_init):
         core = MainWindowCore(
             mgr=self.mgr, work_table=self.work_table,
             progress_callback=self.progress_cb, status_callback=self.status_cb,

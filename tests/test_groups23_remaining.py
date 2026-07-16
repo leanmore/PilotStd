@@ -70,7 +70,7 @@ class TestScanRemaining(unittest.TestCase):
         self.assertIsNotNone(sp)
 
     def test_filename_normalizer_import(self):
-        from pilotstd.scan.filename_normalizer import _ZH_MARK, _EN_MARK
+        from pilotstd.scan.filename_normalizer import _ZH_MARK
         self.assertIsNotNone(_ZH_MARK)
 
     def test_lang_detect_import(self):

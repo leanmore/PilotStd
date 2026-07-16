@@ -228,13 +228,13 @@ class TestCircuitBreakerCheckFrozen(unittest.TestCase):
         patch.stopall()
 
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_not_frozen_passes(self, mock_load):
+    def test_not_frozen_passes(self, _mock_load):
         """未冻结：正常通过，不抛异常。"""
         self.crawler._cb_frozen_until = None
         self.crawler._cb_check_frozen()
 
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_frozen_raises_error(self, mock_load):
+    def test_frozen_raises_error(self, _mock_load):
         """冻结中：抛 AdapterFrozenError，含剩余秒数。"""
         future = datetime.now(timezone.utc) + timedelta(seconds=500)
         self.crawler._cb_frozen_until = future
@@ -246,7 +246,7 @@ class TestCircuitBreakerCheckFrozen(unittest.TestCase):
 
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_thaw_with_24h_window_reset(self, mock_load, mock_save):
+    def test_thaw_with_24h_window_reset(self, _mock_load, mock_save):
         """冻结到期 + 首次冻结超过24h窗口：计数归零。"""
         past = datetime.now(timezone.utc) - timedelta(seconds=10)
         self.crawler._cb_frozen_until = past
@@ -262,7 +262,7 @@ class TestCircuitBreakerCheckFrozen(unittest.TestCase):
 
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
     @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_thaw_within_24h_window_keeps_count(self, mock_load, mock_save):
+    def test_thaw_within_24h_window_keeps_count(self, _mock_load, mock_save):
         """冻结到期但首次冻结在24h内：不归零。"""
         past = datetime.now(timezone.utc) - timedelta(seconds=10)
         self.crawler._cb_frozen_until = past
@@ -584,7 +584,7 @@ class TestParseItems(unittest.TestCase):
         """纯附件：HTML 无表格但有附件链接。"""
         mock_find_url.return_value = "https://example.com/doc.pdf"
 
-        def parse_side_effect(html, att_bytes, att_url, ocr_provider=None):
+        def parse_side_effect(html, att_bytes, _att_url, ocr_provider=None):
             if att_bytes is None:
                 return ([], {"title": ""})
             return (

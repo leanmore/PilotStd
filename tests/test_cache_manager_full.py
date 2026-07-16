@@ -5,7 +5,7 @@
 """
 
 import unittest
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 from pilotstd.core.cache_manager import CacheManager, CacheState, DataSource
 

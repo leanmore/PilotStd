@@ -60,7 +60,7 @@ class TestConcreteCrawler(unittest.TestCase):
 
     @patch.object(ConcreteCrawler, "_cb_save_health")
     @patch.object(ConcreteCrawler, "_cb_load_health")
-    def test_check_frozen_not_frozen(self, mock_load, mock_save):
+    def test_check_frozen_not_frozen(self, _mock_load, mock_save):
         self.crawler._cb_check_frozen()
 
 
