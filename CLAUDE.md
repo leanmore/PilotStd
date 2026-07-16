@@ -346,18 +346,21 @@ grep -rn '"ui\.' pilotstd/ docker/   # 禁止旧键名
 
 **第四步：同步更新文档（三位一体 → 文档支柱）**
 
-根据任务涉及的范围，同步更新以下文档：
-- 新增/修改 E2E 测试 → 更新 `docs/testing/e2e-test-manifest.md`
-- 修复 CI 报错 → 追加 `docs/ci-lessons.md`（追加到末尾，注明日期）
-- 涉及架构决策 → 创建或更新 `docs/adr/ADR-XXX.md`
-- 涉及架构整体 → 更新 `docs/architecture.md`
-- 涉及范式变更 → 更新 `docs/guides/*.md`
-- 涉及技术债状态变更 → 更新 `docs/technical-debt.md` 或 `docs/architecture/technical-debt-registry.md`
-- 涉及测试覆盖率 → 确认是否需要更新 `docs/testing/coverage-report.md`
-- 涉及已知问题 → 确认是否需要更新 `docs/testing/known-issues.md`
-- 涉及开发流程规则变更 → 更新 `docs/development.md`
-- 涉及文档导航 → 更新 `docs/index.md`
-- 涉及治理体系总览变更 → 更新 `docs/governance-overview.md`
+⚠️ 硬约束：以下条件触发时，**必须**同步更新对应文档，否则任务视为未完成。N/A 仅在**不涉及任何触发条件**时可用，且必须写明原因。
+
+| 触发条件 | 必须更新的文档 | 验证方式 |
+|---------|--------------|---------|
+| API 行为变更（路由、参数、返回格式、查询逻辑） | `docs/architecture.md` 对应模块章节 | PR 中贴出更新的内容行 |
+| 数据库表结构/查询逻辑变更 | `docs/architecture.md` 数据模型章节 | 同上 |
+| 工具链配置变更（pre-commit、ruff、mypy、G-010/G-011） | `docs/development.md` 或 `docs/ci-lessons.md` | 同上 |
+| 新增或修改 E2E 测试 | `docs/testing/e2e-test-manifest.md` | 同上 |
+| 新增或修改 Handler/Engine 范式 | `docs/guides/*.md` | 同上 |
+| 架构决策（含纠正性决策） | `docs/adr/` 新建或更新 | 同上 |
+
+**N/A 的唯一合法使用方式**：
+- 填写 `N/A，原因：______`（必须写明原因）
+- 不涉及上述任何触发条件时，可填写 N/A
+- 禁止仅填写 `N/A` 而不说明原因
 
 **第五步：提交（三位一体 → 门禁 + 文档）**
 
@@ -370,7 +373,7 @@ Claude 在交付任务时，必须逐项打勾确认（对应三位一体治理�
 
 **文档支柱（第一步 + 第四步）**
 - [ ] 已阅读相关文档（列出具体文档名称）
-- [ ] 已同步更新文档（列出具体文档及变更内容，或填写 N/A）
+- [ ] 已同步更新文档（列出具体文档及变更行，或填写 `N/A，原因：______`）
 
 **测试支柱（第二步）**
 - [ ] 已执行代码变更

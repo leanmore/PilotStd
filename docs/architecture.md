@@ -1,0 +1,188 @@
+# 架构决策记录
+
+## Handler 组合模式（2026-07-11）
+
+### 背景
+
+项目早期大量使用 Mixin 混入类来实现代码复用，导致：
+- **多重继承链复杂**：`MainWindow` 继承 28 个 Mixin，MRO 难以追踪
+- **隐式依赖**：Mixin 之间通过 `self` 隐式调用对方方法，耦合度高
+- **测试困难**：混入类无法独立测试，必须创建完整继承链实例
+- **命名冲突**：多个 Mixin 定义同名方法，MRO 决定谁生效，行为不透明
+
+### 决策
+
+全面消除 Mixin 多重继承，改用 **Handler 组合模式**：
+
+```
+旧：class MainWindow(MixinA, MixinB, MixinC, QMainWindow):
+         def setup(self):
+             self.do_stuff()  # 来自哪个 Mixin？
+
+新：class MainWindow(QMainWindow):
+        def __init__(self):
+            self._handler_a = HandlerA(...)
+            self._handler_b = HandlerB(...)
+
+        def setup(self):
+            self._handler_a.do_stuff()
+            self._handler_b.do_stuff()
+```
+
+Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler` 调用，不存在 MRO 歧义。
+
+### 范围
+
+| 模块 | 原 Mixin 数 | 新 Handler 数 | 文件 |
+|------|------------|--------------|------|
+| `manager/facade/` | 7 | 7 | `manager/facade/_*.py` |
+| `query/engine/` | 6 | 6 | `query/engine/_*.py` |
+| `scan/parser/` | 1 | 5 | `scan/parser/_*_handler.py` |
+| `ui/` | 28 | 14 | `ui/core/handlers/_*.py` |
+| **合计** | **42** | **32** | — |
+
+### 无 Mixin 例外
+
+保留两处 MRO 用法（不涉及多重继承），视为无 Mixin：
+
+- `StandardParser(ExactMatchMixin, StandardParserBase)` — `ExactMatchMixin` 是方法注入容器，不定义 `__init__`，不持有状态
+- `ParserCore` — 5 个 Handler 的组合容器，纯委托代理
+
+### 验收标准
+
+- Mypy 零错误
+- Ruff 零错误
+- 后端测试 763 passed，0 failed
+- 相对导入 619 有效，0 失效
+
+### 参考
+
+- [Composition over inheritance](https://en.wikipedia.org/wiki/Composition_over_inheritance)
+- [Mixin 的反模式讨论](https://www.artima.com/articles/mixins-and-traits)
+
+---
+
+## Handler 层治理策略（2026-07-16）
+
+> **完整决策记录**：[ADR-002](adr/ADR-002-handler-governance.md) — Handler 层混合策略治理
+
+混合策略 D：Top 3 高流量 Handler 全量重构 + P5 高密度 Handler 纯逻辑提取 + 剩余 12 个 Handler E2E 兜底。
+
+核心原则：Engine 零 Qt 依赖、默认值集中管理、I/O 隔离、Handler 薄包装层。
+
+### 重构模式
+
+五个范式文档覆盖所有提取场景：
+
+| 范式 | 文档 | 代表 Engine | 核心约束 |
+|------|------|------------|---------|
+| 序列化/反序列化 | [persistence-engine-pattern.md](guides/persistence-engine-pattern.md) | PersistenceFlowEngine | 零 Qt，成对 serialize/deserialize |
+| 配置管理 | [settings-io-engine-pattern.md](guides/settings-io-engine-pattern.md) | SettingsConfigIOEngine | 默认值集中管理，严格类型检查 |
+| I/O 隔离 1.0 | [download-flow-engine-pattern.md](guides/download-flow-engine-pattern.md) | DownloadFlowEngine | 零 I/O，显式时间注入 |
+| I/O 隔离 2.0 | [cleanup-io-isolation-2.0.md](guides/cleanup-io-isolation-2.0.md) | CleanupFlowEngine | 目录树 dict 化，遍历与分析分离 |
+| 数据分组 | [query-summary-engine-pattern.md](guides/query-summary-engine-pattern.md) | QuerySummaryFlowEngine | 状态映射常量，安全字符串转换 |
+
+**核心原则（所有 Engine 通用）**：
+- Engine 零 Qt 依赖：禁止 `from PyQt6` / `import PyQt6`
+- 默认值集中管理：类常量 `DEFAULT_*`，Handler 禁止硬编码
+- I/O 隔离：文件读取/目录扫描由 Handler 完成，Engine 只接收内存数据
+- Handler 薄包装层：每个方法不超过 5 行逻辑（读控件 → 调 Engine → 写存储）
+
+### 测试分层与门禁
+
+> **详细规范**：[ADR-002](adr/ADR-002-handler-governance.md) 测试分层与门禁规则章节
+
+- E2E 测试（qtbot，真实 QApplication）验证 Handler 薄包装层行为不变
+- Engine 单元测试（纯 pytest，零 Qt）覆盖率 100%，验证纯逻辑正确性
+- 门禁：E2E 全绿 + 单元全绿 + Engine 覆盖率 ≥ 85% + Ruff/Mypy 零错误
+
+### 遗留工作
+
+| 优先级 | 工作项 | 预估 | 说明 | 状态 |
+|--------|-------|------|------|:--:|
+| ~~P1~~ | ~~剩余 Handler 纯逻辑提取~~ | 1.5 人日 | AutoFlowEngine + ScanFlowEngine + AnnounceFlowEngine 已提取（3 Engine / 65 测试） | ✅ 已完成（2026-07-16） |
+| ~~P1~~ | ~~`_auto.py` 全链路集成测试~~ | 0.5 人日 | test_auto_pipeline.py 已补充 query/download/archive 阶段字段存在性检查 | ✅ 已完成（2026-07-16） |
+| ~~P2~~ | ~~技术债务清理~~ | 1 人日 | DriveEnumerator 线程安全、LogHandler atexit 冲突 | ✅ 已清理（2026-07-16） |
+| ~~P3~~ | ~~跨 Handler 回调升级事件总线~~ | 2 人日 | 信号/槽 → 统一事件中心 | ✅ 已完成（P9 EventBus） |
+
+### 决策记录
+
+| 编号 | 日期 | 决策 | ADR | 变更范围 |
+|------|------|------|-----|---------|
+| P5-1 | 2026-07-16 | 序列化/反序列化薄层模式 | [ADR-003](adr/ADR-003-persistence-pattern.md) | `_persistence.py` → `persistence_flow_engine.py` |
+| P5-2 | 2026-07-16 | 默认值集中管理 + 4 组对称 load/save | — | `_settings_io.py` → `settings_io_flow_engine.py` |
+| P5-3 | 2026-07-16 | I/O 隔离 1.0 + 显式时间注入 | [ADR-004](adr/ADR-004-io-isolation.md) | `_download.py` → `download_flow_engine.py` |
+| P5-4 | 2026-07-16 | I/O 隔离 2.0 + 目录树 dict 化 | [ADR-004](adr/ADR-004-io-isolation.md) | `_cleanup.py` → `cleanup_flow_engine.py` |
+| P5-5 | 2026-07-16 | 数据分组 + 状态映射常量 | — | `_query_summary.py` → `query_summary_flow_engine.py` |
+| P5-B1 | 2026-07-16 | 对话框任务注册纯逻辑提取 | — | `_dialog.py` → `dialog_flow_engine.py` |
+| P5-B2 | 2026-07-16 | 批量提取 _table_helper/_table/_project | — | 3 个 Handler → 3 个 FlowEngine |
+| P6 | 2026-07-16 | _auto.py 全链路集成测试 | — | 2 个 E2E 测试，旧 skip 占位移除 |
+| P9 | 2026-07-16 | EventBus 事件总线重构 | [ADR-005](adr/ADR-005-event-bus.md) | 5 Handler 迁移 + _core.py 构造函数注入模式 |
+
+### 纯 UI 编排文件策略（2026-07-16 确认）
+
+> **完整决策记录**：[ADR-006](adr/ADR-006-ui-hold-strategy.md) — 纯 UI 编排文件维持策略
+
+`_settings`、`_theme`、`_file_tree`、`_export`、`_file_dialog` 五个 Handler 经审查确认为纯 Qt 控件构建 + UI 编排，不含可提取的业务逻辑。**停止底层拆解**，不再创建 Engine，仅通过 E2E 测试兜底行为底线。
+
+### 事件总线重构（2026-07-16）
+
+> **完整决策记录**：[ADR-005](adr/ADR-005-event-bus.md) — EventBus 事件总线重构
+
+引入单例 `EventBus`（`pilotstd/ui/core/event_bus.py`），提供 `subscribe`/`unsubscribe`/`publish` API。5 个 Handler（scan/query/download/archive/auto）已完成迁移，13 个集成测试覆盖。向后兼容：原有回调/信号连接完整保留，事件发布为追加行为。
+
+### 模块结构详解
+
+各核心模块的架构分析文档（Mixin→Handler 重构后的包结构）：
+
+- [Manager 模块](modules/manager.md) — 业务门面层结构
+- [Parser 模块](modules/parser.md) — 标准号解析器架构
+- [Query 模块](modules/query.md) — 查询引擎架构
+- [Scan 模块](modules/scan.md) — 文件扫描架构
+- [UI 模块](modules/ui.md) — PyQt6 桌面端组件结构
+
+### 治理体系总览
+
+完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系总览](../governance-overview.md)。
+
+---
+
+## 公告数据模型（2026-07-16）
+
+### 双表现状
+
+公告模块存在两个表，生命周期不同：
+
+| 表名 | 创建版本 | 写入时机 | 当前状态 |
+|------|---------|---------|---------|
+| `announcement_record` | v15 | **运行时持续写入**（matcher.py 每次提取公告时 INSERT） | 活跃，包含全部公告数据 |
+| `announcements` | v36 | **仅 v36 迁移时写入一次** | 停滞，v36 之后的新公告不在此表 |
+
+### 查询路由
+
+| API 端点 | 查询表 | 说明 |
+|----------|--------|------|
+| `GET /api/announce/results` | `announcement_record` | 公告列表（列表页） |
+| `GET /api/announcements/{announce_no}` | `announcement_record` | 公告详情（2026-07-16 修复，原查 `announcements` 导致新公告 404） |
+| `POST /api/announcements/{announce_no}/parse` | `announcement_record` | 附件解析触发 |
+| `GET /api/announcements/{announce_no}/parse-status` | `announcement_record` | 解析状态查询 |
+
+### 已知限制
+
+- `announcement_record` 不含 `source_url` 和 `attachment_url` 列，详情页暂无法显示原文链接和附件下载
+- `announcements` 表保留但不再写入，可作为历史数据快照参考
+- 未来如需支持附件功能，建议在 `announcement_record` 中添加 `source_url` 和 `attachment_url` 列，并在 matcher.py 写入时同步填充
+
+### 参考
+
+- 修复提交：`bb270717` — 公告详情页查 announcement_record
+- 迁移脚本：`pilotstd/core/db/_migrate_v31_plus.py` v36 announcements 表创建
+
+---
+
+## 相关文档
+
+- [ADR 目录](adr/README.md) — 6 个架构决策记录
+- [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
+- [技术债登记簿](technical-debt-registry.md) — 已跳过测试 + 已接受设计决策
+- [范式文档](../guides/) — 5 个 Engine 重构范式
