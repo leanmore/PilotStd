@@ -162,22 +162,31 @@ def get_announce_results(
         inner += " AND source_site = ?"
         params.append(source_site)
     if from_date:
-        inner += " AND publish_date >= ?"
+        inner += " AND date(publish_date) >= ?"
         params.append(from_date)
     if to_date:
-        inner += " AND publish_date <= ?"
+        inner += " AND date(publish_date) <= ?"
         params.append(to_date)
 
-    query = (
-        f"SELECT announce_no, announcement_title, standard_count,"
-        f" publish_date, fetched_at, source_site"
-        f" FROM ({inner}) WHERE rn = 1"
-        " ORDER BY"
-        " CAST(substr(announce_no, 1, 4) AS INTEGER) DESC,"
-        " CAST(substr(announce_no, instr(announce_no, '第')+1,"
-        " instr(announce_no, '号')-instr(announce_no, '第')-1) AS INTEGER) DESC,"
-        " publish_date DESC LIMIT 100"
-    )
+    try:
+        query = (
+            f"SELECT announce_no, announcement_title, standard_count,"
+            f" publish_date, fetched_at, source_site"
+            f" FROM ({inner}) WHERE rn = 1"
+            " ORDER BY"
+            " CAST(substr(announce_no, 1, 4) AS INTEGER) DESC,"
+            " CAST(substr(announce_no, instr(announce_no, '第')+1,"
+            " instr(announce_no, '号')-instr(announce_no, '第')-1) AS INTEGER) DESC,"
+            " publish_date DESC LIMIT 100"
+        )
+    except Exception:
+        logger.warning("排序逻辑异常（可能 announce_no 格式异常），降级为按抓取时间排序")
+        query = (
+            f"SELECT announce_no, announcement_title, standard_count,"
+            f" publish_date, fetched_at, source_site"
+            f" FROM ({inner}) WHERE rn = 1"
+            " ORDER BY fetched_at DESC LIMIT 100"
+        )
 
     rows = db.fetchall(query, params)
 
@@ -227,6 +236,16 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
         return _stats_cache["data"]
 
     db = mgr.db
+
+    # 首次调用时检查数据库时区，只执行一次
+    if not hasattr(get_announce_stats, "_tz_checked"):
+        try:
+            now = db.fetchone("SELECT datetime('now', 'localtime')")[0]
+            logger.info("数据库本地时间: %s", now)
+            get_announce_stats._tz_checked = True  # type: ignore[attr-defined]
+        except Exception as e:
+            logger.warning("无法获取数据库本地时间: %s", e)
+
     today = "date('now', 'localtime')"
 
     # 全量统计：COUNT(*) 统计行数，每条 (公告, 标准号) 计 1

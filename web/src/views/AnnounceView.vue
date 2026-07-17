@@ -136,8 +136,13 @@ function onPage(e: any) {
       </template>
     </DataView>
     <Paginator :rows="rows" :totalRecords="results.length" @page="onPage" class="mt-2" />
+    <LogBar class="mt-3" />
   </template>
-  <LogBar />
+  <div v-else class="empty-state mt-4">
+    <p style="color: var(--text-dim); text-align: center; padding: 40px 0;">
+      暂无公告数据，请调整日期或点击"立即抓取"
+    </p>
+  </div>
 </template>
 
 <style scoped>
