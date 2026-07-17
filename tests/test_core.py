@@ -322,16 +322,55 @@ class TestDatabase(unittest.TestCase):
         # 不抛异常即为通过
         self.db._verify_migration_checksums()
 
-    def test_checksum_mismatch_raises(self):
-        """checksum 不匹配时抛出 DatabaseError。"""
+    def test_checksum_mismatch_auto_heals(self):
+        """存储值错误但逻辑未变时，自愈机制自动修复（不再抛异常）。
+
+        原 test_checksum_mismatch_raises 已重构：自愈逻辑不再因注释变更报错，
+        而是检测到 raw != norm 时强制更新存储值为标准化值。
+        """
         self.db.execute(
             "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
             (2, "wrong_checksum_value"),
         )
+
+        # 自愈不应抛异常
+        self.db._verify_migration_checksums()
+
+        # 验证 checksum 已被更新为标准化值
+        from pilotstd.core.db.migrations import _migrate_v2_add_file_index
+
+        row = self.db.fetchone("SELECT checksum FROM _schema_version WHERE version=2")
+        self.assertIsNotNone(row)
+        expected = self.db._norm_checksum(_migrate_v2_add_file_index)
+        self.assertEqual(
+            row["checksum"],
+            expected,
+            "自愈后 checksum 应为标准化值",
+        )
+
+    def test_checksum_real_change_raises(self):
+        """真实 DDL 逻辑变更时抛出 DatabaseError 阻断启动。
+
+        通过 mock 让 _norm_checksum == _compute_checksum（模拟无注释的纯逻辑代码），
+        此时若存储值不匹配 → 确认为真实变更 → 抛错。
+        """
+        from unittest.mock import patch
+
         from pilotstd.core.db._constants import DatabaseError as DE
 
-        with self.assertRaises(DE):
-            self.db._verify_migration_checksums()
+        # 存储一个错误值
+        self.db.execute(
+            "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
+            (2, "wrong_checksum_value_for_real_change"),
+        )
+
+        fake_value = "fake_identical_checksum_no_comments"
+        with (
+            patch.object(self.db, "_norm_checksum", return_value=fake_value),
+            patch.object(self.db, "_compute_checksum", return_value=fake_value),
+        ):
+            with self.assertRaises(DE):
+                self.db._verify_migration_checksums()
 
     def test_schema_version_table_has_checksum_column(self):
         """_schema_version 表包含 checksum 列。"""

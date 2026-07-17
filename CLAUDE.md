@@ -138,6 +138,8 @@
 
 **G-012 豁免**：`_migrate_*.py` 文件豁免注释密度检查（迁移脚本注释不影响校验）。
 
+- **测试覆盖**：`test_checksum_mismatch_auto_heals` 验证自愈行为，`test_checksum_real_change_raises` 验证阻断机制
+
 ---
 
 ## 4. AI 编码流程（强制）
