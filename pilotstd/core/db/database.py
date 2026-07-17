@@ -179,14 +179,14 @@ class Database:
     def _verify_migration_checksums(self) -> None:
         """验证已执行迁移的脚本 checksum，支持注释/空行变更的自愈。
 
-        三级比较策略：
-        1. 标准化 checksum（剥离注释空行）匹配 → 通过
-        2. 标准化不匹配但原始 checksum 匹配 → 仅注释/空行变更，自动更新
-        3. 两者均不匹配 → 真实的 DDL 变更，抛出 DatabaseError
+        三级比较策略（根治版）：
+        1. 存储值 == 标准化值（剥离注释空行）→ 直接通过
+        2. 原始值 != 标准化值 → 仅注释/空行变化，强制更新存储值为标准化值
+           （无论存储值是什么——旧值、空值、错误值均覆盖）
+        3. 原始值 == 标准化值 但存储值 != 标准化值 → 真实 DDL 变更，抛错
         """
         logr = logging.getLogger("pilotstd.db")
         current = self.schema_version
-        # 遍历已执行的迁移，逐一校验 checksum
         for v in sorted(MIGRATIONS.keys()):
             if v > current:
                 continue
@@ -196,17 +196,18 @@ class Database:
             stored_checksum = stored["checksum"]
 
             norm_expected = self._norm_checksum(MIGRATIONS[v])
-            # 标准化 checksum 匹配 → 通过（包括已自愈为标准化格式的记录）
+            # 情况 1：存储值已对齐标准化 → 直接通过
             if norm_expected == stored_checksum:
                 continue
 
             raw_expected = self._compute_checksum(MIGRATIONS[v])
-            # 标准化不匹配但原始 checksum 匹配 → 仅注释/空行变更，自动修复
-            if raw_expected == stored_checksum:
+            # 情况 2：原始值 != 标准化值 → 仅注释/空行变化
+            # 无论存储值是什么（旧版本残留、中间态等），强制更新为标准化值
+            if raw_expected != norm_expected:
                 logr.warning(
-                    "迁移 v%d 的 checksum 已自动更新（逻辑未变，仅注释/空行变化）。存储值: %s… → 新值: %s…",
+                    "迁移 v%d 的 checksum 已自动修复（仅注释/空行变化）。存储值: %s → 标准化值: %s…",
                     v,
-                    stored_checksum[:16],
+                    (stored_checksum or "None")[:16],
                     norm_expected[:16],
                 )
                 self.execute(
@@ -215,15 +216,15 @@ class Database:
                 )
                 continue
 
-            # 两者均不匹配 → 真实的 DDL 变更
+            # 情况 3：原始值 == 标准化值（无注释差异），但存储值不匹配
+            # → 真实 DDL/逻辑变更，阻断启动
             logr.error(
-                "迁移 v%d 脚本已被修改！标准化 checksum=%s，原始 checksum=%s，存储 %s",
+                "迁移 v%d 的脚本逻辑已变更，checksum 不匹配。存储: %s…, 标准化: %s…",
                 v,
-                norm_expected,
-                raw_expected,
-                stored_checksum,
+                (stored_checksum or "None")[:16],
+                norm_expected[:16],
             )
-            raise DatabaseError(f"迁移 v{v} 的脚本已被修改，checksum 不匹配")
+            raise DatabaseError(f"迁移 v{v} 的脚本逻辑已变更，checksum 不匹配")
 
     @property
     def schema_version(self) -> int:
