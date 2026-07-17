@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")
+BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")  # CI 中可通过环境变量指定对比分支
 
 # 变更路径前缀 → 必须同时变更的测试路径（任一匹配即可）
 COVERAGE_MAP: list[tuple[list[str], list[str]]] = [
@@ -58,10 +58,12 @@ def get_changed_files() -> list[str]:
 
 
 def matches_any(path: str, prefixes: list[str]) -> bool:
+    """判断文件路径是否匹配任意一个前缀。"""
     return any(path.startswith(p) for p in prefixes)
 
 
 def main() -> int:
+    """入口：检查核心模块变更是否同步更新了对应测试文件。"""
     changed = get_changed_files()
     if not changed:
         print("[G-029] PASS: 无变更文件")
@@ -69,6 +71,7 @@ def main() -> int:
 
     failures: list[str] = []
     for src_prefixes, test_prefixes in COVERAGE_MAP:
+        # 筛选出匹配前缀的变更源文件
         changed_src = [f for f in changed if matches_any(f, src_prefixes)]
         if not changed_src:
             continue

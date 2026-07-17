@@ -72,9 +72,7 @@ def main() -> int:
         # 文档未被修改 — 检查文档是否存在
         doc_full = ROOT / doc_path
         if doc_full.exists():
-            failures.append(
-                f"[G-031] FAIL: {src_prefix} 已变更，但 {doc_path} 未同步更新"
-            )
+            failures.append(f"[G-031] FAIL: {src_prefix} 已变更，但 {doc_path} 未同步更新")
         else:
             msg = f"[G-031] WARN: {src_prefix} 已变更，但 {doc_path} 不存在（目标文档待创建）"
             if mode == "warn":
@@ -90,7 +88,7 @@ def main() -> int:
         print(f"\n{len(failures)} 项文档同步失败:")
         for f in failures:
             print(f"  {f}")
-        print(f"\nFAIL: 请同步更新上述文档后再提交。")
+        print("\nFAIL: 请同步更新上述文档后再提交。")
         return 1
 
     if warnings:

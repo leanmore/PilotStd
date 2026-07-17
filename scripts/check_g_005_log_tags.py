@@ -20,6 +20,7 @@ VALID_TAG_IMPORTS = {"PROGRESS_TAG", "LoggerManager", "get_logger"}
 
 
 def _find_py_files(root: Path) -> list[Path]:
+    """递归查找所有需检查的 Python 文件，排除日志基础设施和 CLI 目录。"""
     files: list[Path] = []
     for p in root.rglob("*.py"):
         if p.name in EXCLUDED_FILES:
@@ -48,6 +49,7 @@ def _is_logger_import_ok(tree: ast.Module) -> tuple[bool, str]:
 
 
 def check_file(file_path: Path) -> list[str]:
+    """检查单个文件的日志规范，返回违规列表。"""
     errors: list[str] = []
     try:
         source = file_path.read_text(encoding="utf-8")
@@ -66,6 +68,7 @@ def check_file(file_path: Path) -> list[str]:
 
 
 def main() -> int:
+    """入口：扫描 pilotstd/ 下所有 Python 文件，检查日志调用规范。"""
     all_errors: list[str] = []
     files = _find_py_files(SRC_DIR)
     for fp in files:

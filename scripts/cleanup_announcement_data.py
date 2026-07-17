@@ -30,6 +30,7 @@ conn = sqlite3.connect(DB_PATH)
 
 
 def query_count(sql: str) -> int:
+    """执行 SQL 查询并返回第一列的整数值。"""
     row = conn.execute(sql).fetchone()
     return int(row[0]) if row else 0
 

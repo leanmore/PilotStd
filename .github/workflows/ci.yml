@@ -105,6 +105,9 @@ jobs:
       - name: G-028 — 禁止硬编码 admin
         run: python scripts/check_g_028_no_hardcoded_admin.py
 
+      - name: Schema consistency check (warning mode)
+        run: python scripts/check_schema_consistency.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════

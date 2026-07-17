@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 def get_init_version() -> str:
+    """从 pilotstd/__init__.py 读取当前版本号。"""
     init_file = Path("pilotstd/__init__.py")
     if not init_file.exists():
         print("FAIL: pilotstd/__init__.py 不存在")
@@ -19,6 +20,7 @@ def get_init_version() -> str:
 
 
 def get_changelog_latest_version() -> str:
+    """从 CHANGELOG.md 提取最新版本号（第一个 ## vX.Y.Z 条目）。"""
     changelog_file = Path("CHANGELOG.md")
     if not changelog_file.exists():
         print("FAIL: CHANGELOG.md 不存在")
@@ -32,6 +34,7 @@ def get_changelog_latest_version() -> str:
 
 
 def update_init_version(new_version: str) -> None:
+    """将 pilotstd/__init__.py 中的 __version__ 更新为指定版本号。"""
     init_file = Path("pilotstd/__init__.py")
     content = init_file.read_text(encoding="utf-8")
     new_content = re.sub(
@@ -45,6 +48,7 @@ def update_init_version(new_version: str) -> None:
 
 
 def main() -> int:
+    """入口：比较 CHANGELOG 与 __init__.py 的版本号，不一致则自动同步。"""
     init_ver = get_init_version()
     cl_ver = get_changelog_latest_version()
     if not init_ver or not cl_ver:

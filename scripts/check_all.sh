@@ -30,12 +30,16 @@ echo "[2/4] Mypy..."
 mypy pilotstd/
 
 echo ""
-echo "[3/4] G-010 代码规模..."
+echo "[3/5] G-010 代码规模..."
 python scripts/check_g_010_code_size.py
 
 echo ""
-echo "[4/4] G-011 属性完整性..."
+echo "[4/5] G-011 属性完整性..."
 python scripts/check_g_011_attr_integrity.py
+
+echo ""
+echo "[5/5] G-012 SQL-表结构一致性..."
+python scripts/check_g_012_sql_schema.py
 
 echo ""
 echo "✅ 全部检查通过"

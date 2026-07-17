@@ -23,6 +23,7 @@ DOC_COVERAGE_MAP: dict[str, str] = {
 
 
 def get_changed_files() -> list[str]:
+    """获取当前分支相对于 base branch 的变更文件列表。"""
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", f"origin/{BASE_BRANCH}..HEAD"],
@@ -38,6 +39,7 @@ def get_changed_files() -> list[str]:
 
 
 def main() -> int:
+    """入口：检查核心模块变更是否同步更新了对应架构文档。"""
     changed = get_changed_files()
     if not changed:
         print("[docs-compliance] PASS: 无变更文件")

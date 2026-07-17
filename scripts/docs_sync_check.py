@@ -13,8 +13,8 @@ from pathlib import Path
 
 # ─── 路径常量 ────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-STATUS_FILE = PROJECT_ROOT / "STATUS.md"
-VERSION_FILE = PROJECT_ROOT / "pilotstd/__init__.py"
+STATUS_FILE = PROJECT_ROOT / "STATUS.md"  # 项目状态文件
+VERSION_FILE = PROJECT_ROOT / "pilotstd/__init__.py"  # 版本号来源
 
 
 # ─── 触发判断函数 ────────────────────────────────────────────
@@ -223,6 +223,7 @@ def _check_claude_available():
 
 
 def _build_claude_prompt(doc_path, current_content, diff_text, commit_msg, trigger_name):
+    """根据文档类型和变更内容构建传给 claude CLI 的提示词。"""
     doc_name = Path(doc_path).name
     prompts = {
         "模块与功能清单.md": (
@@ -274,6 +275,7 @@ def update_document(doc_relpath, strategy, in_repo, diff_text, commit_msg, trigg
     if strategy == "skip":
         return False
 
+    # 构建 prompt 并由 claude 生成新内容
     if strategy == "claude" and auto_fix:
         prompt = _build_claude_prompt(doc_relpath, current_content, diff_text, commit_msg, trigger_name)
         new_content = _call_claude(prompt, timeout=claude_timeout)

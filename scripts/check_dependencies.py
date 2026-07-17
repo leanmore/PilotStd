@@ -221,6 +221,7 @@ THIRD_PARTY_REMAP = {
 
 
 def extract_third_party_imports() -> set[str]:
+    """遍历 pilotstd/ 和 docker/ 下的所有 Python 文件，提取第三方库导入名。"""
     imports: set[str] = set()
     for py_file in ROOT_DIR.glob("pilotstd/**/*.py"):
         _collect_imports(py_file, imports)
@@ -230,6 +231,7 @@ def extract_third_party_imports() -> set[str]:
 
 
 def _collect_imports(py_file: Path, imports: set[str]) -> None:
+    """从单个 Python 文件中提取非标准库的 import 语句，追加到 imports 集合。"""
     try:
         content = py_file.read_text(encoding="utf-8")
     except Exception:
@@ -279,6 +281,7 @@ def _parse_file(filepath: Path, deps: set[str]) -> None:
 
 
 def main() -> int:
+    """入口：比较代码中实际 import 的第三方库与 requirements-docker.txt 声明的差异。"""
     imports = extract_third_party_imports()
     deps = parse_requirements()
 

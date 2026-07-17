@@ -14,6 +14,7 @@ _EXPECTED_ANNOUNCE = {"gb", "hb", "db"}
 
 
 def extract_allowed_adapters() -> set[str]:
+    """从 adapter.py 的 _ALL_ADAPTER_NAMES 列表中解析已注册的适配器名称集合。"""
     src = _ADAPTER.read_text(encoding="utf-8")
     tree = ast.parse(src)
     for node in ast.walk(tree):
@@ -28,6 +29,7 @@ def extract_allowed_adapters() -> set[str]:
 
 
 def check() -> int:
+    """入口：比较适配器注册列表与预期集合，检测遗漏或新增。"""
     allowed = extract_allowed_adapters()
     if not allowed:
         print("[G-025] FAIL: 无法解析 _ALL_ADAPTER_NAMES")

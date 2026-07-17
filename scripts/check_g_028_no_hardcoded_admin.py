@@ -43,6 +43,7 @@ EXCLUDE_DIRS = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", 
 
 
 def _is_comment(line: str, ext: str) -> bool:
+    """根据文件扩展名判断当前行是否为注释行。"""
     s = line.lstrip()
     if not s:
         return True
@@ -62,6 +63,7 @@ def _is_docstring_line(line: str, in_docstring: bool) -> tuple[bool, bool]:
 
 
 def main() -> int:
+    """入口：扫描前后端代码，检测硬编码 'admin' 作为权限判断标识的违规。"""
     found = 0
     self_name = Path(__file__).name
     for search_dir in SEARCH_DIRS:

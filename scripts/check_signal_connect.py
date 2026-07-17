@@ -227,6 +227,7 @@ def _print_signal_report(
 
 
 def main() -> int:
+    """入口：扫描 pilotstd/ui/ 下所有 Python 文件，检查 pyqtSignal 的 connect/emit 完整性。"""
     if not SCAN_DIR.exists():
         print(f"ERROR: 扫描目录不存在: {SCAN_DIR}")
         return 2

@@ -81,6 +81,7 @@ QT_BUILTIN_ATTRS = frozenset(
 
 
 def _is_comment_or_string(line: str) -> bool:
+    """判断是否为注释行、空行或文档字符串起始行（不应解析属性定义/引用）。"""
     stripped = line.lstrip()
     if not stripped:
         return True
@@ -92,6 +93,7 @@ def _is_comment_or_string(line: str) -> bool:
 
 
 def _should_skip_attr(attr: str) -> bool:
+    """判断属性名是否应跳过：Qt 内置、回调方法、信号后缀、全大写常量。"""
     if attr in QT_BUILTIN_ATTRS:
         return True
     if attr.startswith("_on_"):
@@ -118,6 +120,10 @@ def _is_tuple_unpack(line: str) -> bool:
 
 
 def extract_defs(file_path: Path) -> list[tuple[str, int]]:
+    """从文件中提取所有 self.xxx 属性定义（赋值、setattr、元组解包、方法定义）。
+
+    返回 [(属性名, 行号)] 列表。
+    """
     defs: list[tuple[str, int]] = []
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -193,6 +199,10 @@ def _find_dataclass_files(py_files: list[Path]) -> set[str]:
 
 
 def extract_refs(file_path: Path) -> list[tuple[str, int]]:
+    """从文件中提取所有 self.xxx 属性引用（非定义侧的属性访问）。
+
+    返回 [(属性名, 行号)] 列表。
+    """
     refs: list[tuple[str, int]] = []
     try:
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -256,6 +266,7 @@ def extract_refs(file_path: Path) -> list[tuple[str, int]]:
 
 
 def main() -> int:
+    """入口：扫描所有 Python 文件，检测引用但未定义的断裂属性。"""
     # ── 收集文件 ──
     py_files: list[Path] = []
     for scan_dir in SCAN_DIRS:

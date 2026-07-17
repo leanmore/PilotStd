@@ -33,6 +33,7 @@ def parse_coverage(text: str) -> float | None:
 
 
 def main() -> int:
+    """入口：从覆盖率报告解析行覆盖率百分比，与阈值对比。"""
     print("G-034: 覆盖率阈值检查")
     print("=" * 60)
 

@@ -28,6 +28,7 @@ def _resolve_name(name: str, package: str, level: int) -> str:
 
 
 def get_package_name(file_path: Path) -> str | None:
+    """获取文件所属的完整包名，通过检查 __init__.py 链确定。"""
     try:
         rel = file_path.resolve().parent.relative_to(SCAN_DIR.resolve())
     except ValueError:
@@ -46,6 +47,7 @@ def get_package_name(file_path: Path) -> str | None:
 
 
 def module_to_path(module_name: str) -> list[Path]:
+    """将绝对模块名转为可能的文件路径列表（.py 优先，__init__.py 次之）。"""
     if module_name == SCAN_DIR.name:
         return [SCAN_DIR / "__init__.py"]
     prefix = SCAN_DIR.name + "."
@@ -205,6 +207,7 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
 
 
 def main() -> None:
+    """入口：扫描并修复失效的相对导入语句，支持 --dry-run 预览模式。"""
     dry_run = "--dry-run" in sys.argv
     mode = "（预览模式，不修改）" if dry_run else ""
     sep = "=" * 60

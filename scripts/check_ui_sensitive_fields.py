@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Part A: 前端 Vue 组件 — 敏感字段 Password 保护
 # ════════════════════════════════════════════════════════
 
-SENSITIVE_PARTS = {
+SENSITIVE_PARTS = {  # 敏感字段关键词集合
     "secret",
     "password",
     "token",
@@ -28,15 +28,16 @@ SENSITIVE_PARTS = {
     "secret_id",
     "key",
 }
-_NON_SENSITIVE = {"key", "token"}
+_NON_SENSITIVE = {"key", "token"}  # 需要结合前缀上下文判断的关键词，单独出现不算敏感
 
 
 def _is_sensitive(name: str) -> bool:
+    """检查字段名是否与敏感关键词匹配（password/token/key/secret 等）。"""
     lower = name.lower()
     parts = re.split(r"[._\-]", lower)
     expanded: list[str] = []
     for p in parts:
-        expanded.extend(re.findall(r"[a-z]+|[A-Z][a-z]*", p))
+        expanded.extend(re.findall(r"[a-z]+|[A-Z][a-z]*", p))  # 驼峰分词：apiKey → [api, Key]
     for kw in SENSITIVE_PARTS:
         for i, p in enumerate(expanded):
             if p.lower() != kw:
@@ -53,18 +54,21 @@ def _is_sensitive(name: str) -> bool:
 
 
 def _has_password_protection(content: str, field: str) -> bool:
+    """检查字段所在上下文是否已使用 Password 组件或 type=password 保护。"""
     idx = content.find(field)
     if idx == -1:
         return True
-    ctx = content[max(0, idx - 300) : min(len(content), idx + 300)]
+    ctx = content[max(0, idx - 300) : min(len(content), idx + 300)]  # 截取字段周围 300 字符上下文
     return bool(re.search(r'type\s*=\s*["\']password["\']|Password\b', ctx, re.IGNORECASE))
 
 
 def _extract_vue_bindings(content: str) -> list[str]:
+    """从 Vue 模板中提取所有 v-model 绑定的字段名。"""
     return [m.group(1) for m in re.finditer(r"v-model[:\w]*\s*=\s*[\"']([^\"']+)[\"']", content)]
 
 
 def check_frontend() -> int:
+    """前端检查：扫描 Vue 组件中敏感字段是否使用了 Password 保护。"""
     web_dir = ROOT / "web" / "src"
     if not web_dir.exists():
         print("  [前端] SKIP: web/src 不存在")
@@ -101,6 +105,7 @@ _OCR_SENSITIVE = {
 
 
 def check_backend_ocr() -> int:
+    """后端检查：验证 settings.py 中 OCR 敏感字段是否已做掩码处理。"""
     settings = ROOT / "docker" / "api" / "settings.py"
     if not settings.exists():
         print("  [后端OCR] SKIP: settings.py 不存在")
@@ -137,6 +142,7 @@ _EXPECTED_OCR_FIELDS = [
 
 
 def check_ocr_consistency() -> int:
+    """一致性检查：验证 SettingsView.vue OCR Tab 中所有敏感字段的 HTML 属性是否完整。"""
     fp = ROOT / "web" / "src" / "views" / "SettingsView.vue"
     if not fp.exists():
         print("  [OCR一致性] SKIP: SettingsView.vue 不存在")
@@ -179,6 +185,7 @@ def check_ocr_consistency() -> int:
 
 
 def main() -> int:
+    """入口：依次执行前端、后端 OCR、OCR 一致性三项检查，汇总结果。"""
     print("G-018: 敏感字段保护检查")
     rc = 0
     rc |= check_frontend()

@@ -38,6 +38,7 @@ def check_mixin_in_file(file_path: str) -> list[str]:
 
 
 def main() -> int:
+    """入口：检查暂存区新增的 Python 文件是否定义了 Mixin 类。"""
     files = get_staged_py_files()
     if not files:
         print("[INFO] 无暂存 Python 文件，跳过 Mixin 检查")

@@ -427,6 +427,7 @@ def _check_undefined_names(py_files: list[Path]) -> None:
 
 
 def main() -> None:
+    """入口：扫描 pilotstd/ 下所有 Python 文件，验证相对导入有效性。"""
     warn_names = "--warn-undefined-names" in sys.argv
 
     py_files = sorted(p for p in SCAN_DIR.rglob("*.py") if "__pycache__" not in p.parts)

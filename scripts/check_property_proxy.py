@@ -169,12 +169,14 @@ def _print_proxy_report(
 
 
 def main() -> int:
+    """入口：扫描 BaseFacade，检查所有 self._core.xxx 属性是否有对应的 @property 代理。"""
     verbose = "--verbose" in sys.argv
     if not TARGET.exists():
         print(f"ERROR: 目标文件不存在: {TARGET}")
         return 2
 
     text = TARGET.read_text(encoding="utf-8")
+    # 提取四类信息：_core 赋值、_core 读取、@property 定义、_bind_methods 绑定
     core_assigns = extract_core_assigns(text)
     core_reads = extract_core_reads(text)
     properties = extract_properties(text)
@@ -187,6 +189,7 @@ def main() -> int:
     has_proxy: list[tuple[str, int]] = []
 
     for attr in sorted(check_attrs):
+        # 检查属性名或 _attr 形式的 @property 是否存在
         prop_name = properties.get(attr) or properties.get(f"_{attr}")
         if prop_name is not None:
             has_proxy.append((attr, properties.get(attr, 0) or properties.get(f"_{attr}", 0)))

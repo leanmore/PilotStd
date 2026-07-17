@@ -9,6 +9,7 @@ SEARCH_DIRS = ["web/src/components", "web/src/views"]
 
 
 def main() -> int:
+    """入口：扫描所有 <script setup> Vue 组件，确保显式声明了 defineOptions。"""
     failed: list[str] = []
     for dir_name in SEARCH_DIRS:
         search_dir = ROOT / dir_name
