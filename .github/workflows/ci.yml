@@ -87,6 +87,9 @@ jobs:
           pip install vulture
           vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
 
+      - name: Compile check — ui/core/
+        run: python -m compileall -f pilotstd/ui/core/
+
       - name: G-008 — Check dependency completeness
         run: python scripts/check_dependencies.py
 

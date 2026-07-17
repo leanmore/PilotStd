@@ -181,3 +181,11 @@ repos:
         files: \.(py|ts|vue)$
         pass_filenames: false
         stages: [manual]
+
+      - id: py-compile-core
+        name: Compile ui/core/
+        entry: python -m py_compile
+        files: ^pilotstd/ui/core/.*\.py$
+        language: system
+        pass_filenames: true
+        stages: [pre-commit]

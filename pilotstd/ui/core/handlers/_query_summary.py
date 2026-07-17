@@ -248,7 +248,7 @@ class QuerySummaryHandler:
 
     # ── 汇总弹窗构建与销毁 ──
 
-def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
+    def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
         """构建分栏式汇总弹窗。"""
         section_order = ["organize", "normalize", "expire", "pending", "manual_download", "download"]
         self._summary_sections = {}
