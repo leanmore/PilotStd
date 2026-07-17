@@ -19,6 +19,11 @@
 - sync_test_schema.py：自动同步 9 个测试文件的 CREATE TABLE 至生产 Schema
 - check_schema_consistency.py：EXTRA=0, MISSING=0
 
+**补充修复（第四轮）— 公告列表日期过滤 + 空状态优化**：
+- `date(publish_date)` 函数规范化日期比较，修复字符串比较导致 from_date/to_date 失效
+- stats 接口增加时区日志 + 排序异常降级为 `fetched_at DESC`
+- 前端 LogBar 移入 v-if 条件块 + 空状态友好提示
+
 **门禁落地**：
 - Pre-commit：`py-compile-core` hook 覆盖 `ui/core/`
 - CI：`compileall` 合并到 vulture job
