@@ -78,16 +78,15 @@ def client_and_db(tmp_path_factory):
 
     # ── 真实用户（用于 login 认证） ──
     db.execute(
-        "CREATE TABLE IF NOT EXISTS users (
+        """CREATE TABLE IF NOT EXISTS users (
     id INTEGER,
     username TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     salt TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',
     must_change_password INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT 'datetime('now', 'localtime')'
-);'
-);))"
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);"""
     )
     db.execute("CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT NOT NULL, attempt_time REAL NOT NULL)")
     from pilotstd.core.security import generate_salt, get_password_hash
