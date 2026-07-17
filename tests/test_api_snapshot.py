@@ -3,6 +3,9 @@
 
 用 TestClient + 真实 SQLite 数据库（迁移链生成 Schema），
 验证核心端点返回 200 且 JSON 包含预期顶层字段。
+
+认证策略：创建真实测试用户 + 真实 login 获取 cookie，
+不 bypass AuthMiddleware，保持鉴权链路真实执行。
 """
 
 import os
@@ -21,14 +24,15 @@ from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from docker.auth import COOKIE_NAME, AuthMiddleware, get_current_username, require_admin
+from docker.auth import COOKIE_NAME, AuthMiddleware
 from docker.auth import router as auth_router
 from docker.manager import get_manager_dep
 
 
 @pytest.fixture(scope="module")
 def client_and_db(tmp_path_factory):
-    """创建 TestClient + 真实 Database fixture。"""
+    """创建 TestClient + 真实 Database + 测试用户。"""
+
     tmpdir = tmp_path_factory.mktemp("snapshot")
     db_path = str(tmpdir / "test.db")
 
@@ -36,7 +40,7 @@ def client_and_db(tmp_path_factory):
 
     db = Database(db_path)
 
-    # 插入公告测试数据
+    # ── 公告测试数据 ──
     db.execute(
         "INSERT INTO announcement_record"
         " (source_site, pid, announce_no, standard_number, std_name,"
@@ -72,7 +76,7 @@ def client_and_db(tmp_path_factory):
         ),
     )
 
-    # 直接创建 users 表和超级用户（避免 init_users_table 的副作用）
+    # ── 真实用户（用于 login 认证） ──
     db.execute(
         "CREATE TABLE IF NOT EXISTS users ("
         " id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -83,25 +87,26 @@ def client_and_db(tmp_path_factory):
         " must_change_password INTEGER NOT NULL DEFAULT 0,"
         " created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')))"
     )
-    db.execute("CREATE TABLE IF NOT EXISTS login_attempts ( ip TEXT NOT NULL, attempt_time REAL NOT NULL)")
+    db.execute("CREATE TABLE IF NOT EXISTS login_attempts (ip TEXT NOT NULL, attempt_time REAL NOT NULL)")
     from pilotstd.core.security import generate_salt, get_password_hash
 
-    pwd = os.environ["ADMIN_PASSWORD"]
-    pw_hash = get_password_hash(pwd)
+    pw_hash = get_password_hash(os.environ["ADMIN_PASSWORD"])
     salt = generate_salt()
     db.execute(
-        "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password)"
+        "INSERT OR IGNORE INTO users"
+        " (username, password_hash, salt, role, must_change_password)"
         " VALUES (?, ?, ?, ?, ?)",
         (os.environ["SUPERUSER"], pw_hash, salt, "admin", 0),
     )
-    # 注入测试数据库到 users/auth 模块
+
+    # 注入测试数据库到 users/auth 模块，确保 login 端点使用测试 DB
     from docker import auth as auth_mod
     from docker import users as users_mod
 
     users_mod._db_instance = db
-    auth_mod._init_done = True  # 跳过 init_users_table，使用上面手动创建的用户
+    auth_mod._init_done = True
 
-    # 构造 mock manager
+    # ── mock manager（仅替换业务依赖，不绕过认证） ──
     mock_mgr = MagicMock()
     mock_mgr.db = db
     mock_mgr.file_index = MagicMock()
@@ -116,10 +121,11 @@ def client_and_db(tmp_path_factory):
     mock_mgr.pipeline_store = MagicMock()
     mock_mgr.query_by_numbers.return_value = ([], MagicMock())
 
+    # ── 构建 app：AuthMiddleware 真实执行，仅 override 业务依赖 ──
     app = FastAPI()
     app.add_middleware(AuthMiddleware)
-
     app.include_router(auth_router)
+
     from docker.api.announce import router as announce_router
     from docker.api.announce_detail import router as announce_detail_router
     from docker.api.query import router as query_router
@@ -131,23 +137,29 @@ def client_and_db(tmp_path_factory):
     app.include_router(query_router)
 
     app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-    app.dependency_overrides[get_current_username] = lambda: "snapshot_admin"
-    app.dependency_overrides[require_admin] = lambda: "snapshot_admin"
+    # 注意：不再 override get_current_username / require_admin
+    # AuthMiddleware 真实执行鉴权，受保护端点必须带 cookie
 
     client = TestClient(app)
     yield client, db
     db.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def auth_cookies(client_and_db):
-    """登录并返回 cookies。"""
+    """模块级：真实登录获取 cookie，所有测试共享。"""
     client, _ = client_and_db
     r = client.post(
         "/api/login",
-        data={"username": "snapshot_admin", "password": os.environ["ADMIN_PASSWORD"]},
+        data={
+            "username": os.environ["SUPERUSER"],
+            "password": os.environ["ADMIN_PASSWORD"],
+        },
     )
-    return dict(r.cookies)
+    assert r.status_code == 200, f"登录失败: {r.status_code} {r.text[:200]}"
+    cookies = dict(r.cookies)
+    assert COOKIE_NAME in cookies, "登录响应未包含 pilotstd_token cookie"
+    return cookies
 
 
 # ════════════════════════════════════════════════════════════════
@@ -160,12 +172,15 @@ class TestLogin:
         client, _ = client_and_db
         r = client.post(
             "/api/login",
-            data={"username": "snapshot_admin", "password": os.environ["ADMIN_PASSWORD"]},
+            data={
+                "username": os.environ["SUPERUSER"],
+                "password": os.environ["ADMIN_PASSWORD"],
+            },
         )
         assert r.status_code == 200
         data = r.json()
         assert data.get("ok")
-        assert data.get("username") == "snapshot_admin"
+        assert data.get("username") == os.environ["SUPERUSER"]
         assert "role" in data
         assert COOKIE_NAME in r.cookies
 
@@ -173,20 +188,20 @@ class TestLogin:
         client, _ = client_and_db
         r = client.post(
             "/api/login",
-            data={"username": "snapshot_admin", "password": "wrong_password"},
+            data={"username": os.environ["SUPERUSER"], "password": "wrong"},
         )
         assert r.status_code == 401
 
 
 # ════════════════════════════════════════════════════════════════
-# GET /api/stats
+# GET /api/stats（受保护端点 — 需认证 cookie）
 # ════════════════════════════════════════════════════════════════
 
 
-def test_stats_returns_200_and_fields(client_and_db):
+def test_stats_returns_200_and_fields(client_and_db, auth_cookies):
     client, _ = client_and_db
-    r = client.get("/api/stats")
-    assert r.status_code == 200
+    r = client.get("/api/stats", cookies=auth_cookies)
+    assert r.status_code == 200, f"stats 应返回 200，实际 {r.status_code}: {r.text[:200]}"
     data = r.json()
     for field in ("current", "expired", "pending"):
         assert field in data, f"stats 响应缺少字段: {field}"
@@ -245,7 +260,7 @@ def test_announcement_detail_unknown_returns_404(client_and_db, auth_cookies):
 
 
 # ════════════════════════════════════════════════════════════════
-# POST /api/query
+# POST /api/query（需 CSRF token + 认证 cookie）
 # ════════════════════════════════════════════════════════════════
 
 
