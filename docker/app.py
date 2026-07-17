@@ -266,8 +266,17 @@ if os.path.isdir(os.path.join(DIST, "assets")):
 
 @app.get("/{full_path:path}")
 async def spa_fallback(full_path: str):
-    """SPA 回退路由：非 API 路径返回前端 index.html。"""
+    """SPA 回退路由：非 API 路径优先返回静态文件，否则返回 index.html。"""
     if full_path.startswith("api/"):
         raise HTTPException(404)
+
+    # 先检查 dist 目录中是否存在对应文件（favicon.svg 等根目录静态资源）
+    file_path = os.path.normpath(os.path.join(DIST, full_path))
+    # 防止路径遍历攻击
+    if not file_path.startswith(os.path.normpath(DIST)):
+        raise HTTPException(404)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+
     index = os.path.join(DIST, "index.html")
     return FileResponse(index) if os.path.exists(index) else {"message": "前端未构建"}
