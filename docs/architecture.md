@@ -178,6 +178,13 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 - 修复提交：`bb270717` — 公告详情页查 announcement_record
 - 迁移脚本：`pilotstd/core/db/_migrate_v31_plus.py` v36 announcements 表创建
 
+#### 迁移校验机制
+
+- **设计目标**：防止迁移脚本被意外修改，同时避免注释/空行变更造成误报
+- **实现方案**：`_norm_source()` 剥离 `#` 注释和空行后计算 SHA-256（`_norm_checksum()`），仅保留代码逻辑行参与校验
+- **自愈能力**：当仅注释/空行变化时，自动更新数据库中的 checksum 记录（三级比较：标准化匹配 → 原始匹配自动更新 → 真实变更阻断）
+- **阻断条件**：真实 DDL 变更（新增表/字段/索引等）触发 `DatabaseError`
+
 ---
 
 ## 相关文档
