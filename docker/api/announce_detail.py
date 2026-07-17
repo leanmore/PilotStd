@@ -42,7 +42,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
     records = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
         " implement_date, expiry_date, superseded_by,"
-        " status, confidence, fetched_at AS created_at, updated_at"
+        " status, confidence, fetched_at AS created_at, approved_at AS updated_at"
         " FROM announcement_record"
         " WHERE announce_no = ?"
         " ORDER BY row_index",
