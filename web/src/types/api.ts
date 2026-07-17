@@ -130,6 +130,8 @@ export interface Announcement {
   publish_date: string
   source_url: string
   attachment_url: string
+  site_name: string
+  content: string
 }
 
 export interface AnnouncementRecord {

@@ -21,18 +21,20 @@ class TestValidityChecker(unittest.TestCase):
         # 创建表（模拟迁移 v16）
         self.db.execute("""
             CREATE TABLE IF NOT EXISTS standard_validity (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                standard_number TEXT NOT NULL UNIQUE,
-                status TEXT NOT NULL DEFAULT '未知',
-                last_checked_at TEXT,
-                next_check_at TEXT,
-                last_status TEXT,
-                last_status_updated_at TEXT,
-                check_count INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    id INTEGER,
+    standard_number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT '未知',
+    last_checked_at TEXT,
+    next_check_at TEXT,
+    last_status TEXT,
+    last_status_updated_at TEXT,
+    check_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT
+);""")
         self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity(next_check_at)")
         self.db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity(standard_number)")
         self.checker = ValidityChecker(self.db)

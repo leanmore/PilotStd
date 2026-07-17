@@ -3,6 +3,7 @@ defineOptions({ name: 'AnnounceDetail' })
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import DOMPurify from 'dompurify'
 import {
   getAnnouncementDetail,
   triggerParse,
@@ -46,6 +47,23 @@ const parseStatusSeverity = computed(() => {
     pending: 'secondary', parsing: 'info', completed: 'success', failed: 'danger',
   }
   return map[parseStatus.value] || 'secondary'
+})
+
+const parseButtonLabel = computed(() => {
+  if (parseStatus.value === 'completed') return '重新解析'
+  if (parsing.value) return '解析中'
+  if (!announcement.value?.attachment_url) return '无附件'
+  return '开始解析'
+})
+
+const parseButtonDisabled = computed(() => {
+  if (parsing.value) return true
+  if (!announcement.value?.attachment_url) return true
+  return false
+})
+
+const sanitizedContent = computed(() => {
+  return DOMPurify.sanitize(announcement.value?.content || '')
 })
 
 async function loadDetail() {
@@ -284,13 +302,15 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
             </div>
             <div class="col-6">
               <label class="text-sm text-color-secondary">来源</label>
-              <a
-                v-if="announcement?.source_url"
-                :href="announcement.source_url"
-                target="_blank"
-                class="text-primary hover:underline"
-              >查看原文</a>
-              <span v-else>-</span>
+              <p>
+                <a
+                  v-if="announcement?.source_url"
+                  :href="announcement.source_url"
+                  target="_blank"
+                  class="text-primary hover:underline"
+                >{{ announcement.site_name || announcement.source_url }}</a>
+                <span v-else>{{ announcement?.site_name || '未知来源' }}</span>
+              </p>
             </div>
             <div class="col-12">
               <label class="text-sm text-color-secondary">附件</label>
@@ -300,14 +320,23 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
                 </span>
                 <span v-else class="text-sm text-color-secondary">无附件</span>
                 <Button
-                  label="开始解析"
+                  :label="parseButtonLabel"
                   icon="pi pi-refresh"
                   size="small"
                   :loading="parsing"
-                  :disabled="!announcement?.attachment_url || parseStatus === 'completed'"
+                  :disabled="parseButtonDisabled"
                   @click="startParse"
                 />
+                <Tag v-if="parseStatus === 'completed'" severity="success" value="已解析" />
               </div>
+            </div>
+            <!-- 公告正文 -->
+            <div v-if="announcement?.content" class="col-12">
+              <label class="text-sm text-color-secondary">公告正文</label>
+              <div
+                class="content-body mt-1 p-3 border-round surface-100"
+                v-html="sanitizedContent"
+              />
             </div>
           </div>
         </template>
@@ -339,7 +368,11 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
             @cell-edit-complete="onCellEditComplete"
           >
             <Column selectionMode="multiple" headerStyle="width: 3rem" />
-            <Column field="row_index" header="#" style="width: 4rem" />
+            <Column field="row_index" header="#" style="width: 4rem">
+              <template #body="slotProps">
+                {{ String((slotProps.data.row_index ?? 0) + 1).padStart(2, '0') }}
+              </template>
+            </Column>
             <Column field="standard_number" header="标准号" style="min-width: 12rem">
               <template #editor="{ data, field }">
                 <InputText v-model="data[field]" class="w-full" />
@@ -424,5 +457,23 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
+}
+
+.content-body {
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.content-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.content-body :deep(td),
+.content-body :deep(th) {
+  border: 1px solid var(--p-surface-300);
+  padding: 0.25rem 0.5rem;
 }
 </style>

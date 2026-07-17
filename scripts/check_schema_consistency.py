@@ -81,7 +81,7 @@ def _extract_create_tables(filepath: Path) -> list[tuple[int, str, dict[str, str
         # 提取列定义：col_name TYPE [options], ...
         columns: dict[str, str] = {}
         col_pattern = re.compile(
-            r"(\w+)\s+(TEXT|INTEGER|REAL|BLOB|NUMERIC)(?:\s+(?:PRIMARY\s+KEY|NOT\s+NULL|UNIQUE|DEFAULT\s+\S+|AUTOINCREMENT))*",
+            r"(\w+)\s+(TEXT|INTEGER|REAL|BLOB|NUMERIC|BOOLEAN|DATETIME|JSON)(?:\s+(?:PRIMARY\s+KEY|NOT\s+NULL|UNIQUE|DEFAULT\s+\S+|AUTOINCREMENT))*",
             re.IGNORECASE,
         )
 

@@ -1,6 +1,7 @@
 # docker/api/announce_detail.py — Phase 3: 公告详情页 API
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.routing import APIRouter
@@ -10,6 +11,28 @@ from ..manager import get_manager_dep
 
 router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
+
+# 站点域名→中文名映射（后缀匹配兜底）
+SITE_NAME_MAP = {
+    "std.samr.gov.cn": "国家标准委",
+    "openstd.samr.gov.cn": "国家标准全文公开系统",
+    "gov.cn": "国家部委",
+}
+
+
+def get_site_name(url: str) -> str:
+    """从 URL 提取域名并映射到中文站点名，未知则返回域名。"""
+    if not url:
+        return "未知来源"
+    domain = urlparse(url).netloc
+    if domain.startswith("www."):
+        domain = domain[4:]
+    if domain in SITE_NAME_MAP:
+        return SITE_NAME_MAP[domain]
+    for suffix, name in SITE_NAME_MAP.items():
+        if domain.endswith(suffix):
+            return name
+    return domain
 
 
 def _now_iso() -> str:
@@ -26,18 +49,35 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
     """获取公告头 + 关联的所有标准记录。"""
     db = mgr.db
 
-    # announcements 表仅在 v36 迁移时写入一次，新公告不在此表。
-    # 直接查 announcement_record（运行时持续写入）获取公告头。
-    header = db.fetchone(
-        "SELECT announce_no,"
-        " COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
-        " MAX(publish_date) AS publish_date"
-        " FROM announcement_record WHERE announce_no = ?"
-        " GROUP BY announce_no",
+    # 优先从 announcements 表获取公告头（含 source_url 等字段）
+    ann = db.fetchone(
+        "SELECT id, title, publish_date, source_url, attachment_url, raw_data FROM announcements WHERE announce_no = ?",
         (announce_no,),
     )
-    if not header:
-        raise HTTPException(404, "公告不存在")
+
+    # 公告头信息：announcements 表有则取，无则从 announcement_record 回退
+    if ann:
+        title = ann["title"] or ""
+        publish_date = ann["publish_date"] or ""
+        source_url = ann["source_url"] or ""
+        attachment_url = ann["attachment_url"] or ""
+        content = ann["raw_data"] or ""
+    else:
+        # 回退：从 announcement_record 聚合基本头信息
+        header = db.fetchone(
+            "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
+            " MAX(publish_date) AS publish_date"
+            " FROM announcement_record WHERE announce_no = ?"
+            " GROUP BY announce_no",
+            (announce_no,),
+        )
+        if not header:
+            raise HTTPException(404, "公告不存在")
+        title = header["title"] or ""
+        publish_date = header["publish_date"] or ""
+        source_url = ""
+        attachment_url = ""
+        content = ""
 
     records = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
@@ -51,15 +91,16 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     parse_status = "completed" if records else "pending"
 
-    # announcement_record 不含 source_url/attachment_url，返回空字符串
     return {
         "announcement": {
             "id": hash(announce_no) & 0x7FFFFFFF,
-            "announce_no": header["announce_no"],
-            "title": header["title"] or "",
-            "publish_date": header["publish_date"] or "",
-            "source_url": "",
-            "attachment_url": "",
+            "announce_no": announce_no,
+            "title": title,
+            "publish_date": publish_date,
+            "source_url": source_url,
+            "attachment_url": attachment_url,
+            "site_name": get_site_name(source_url),
+            "content": content,
         },
         "records": [
             {
@@ -92,16 +133,50 @@ def trigger_parse(
     background_tasks: BackgroundTasks,
     mgr=Depends(get_manager_dep),
 ):
-    """异步触发附件解析。"""
+    """异步触发附件解析。先查 announcements，无则从 announcement_record 自愈。"""
     db = mgr.db
 
     ann = db.fetchone(
-        "SELECT id, announce_no, attachment_url FROM announcements WHERE announce_no = ?",
+        "SELECT id, announce_no, attachment_url, source_site, pid,"
+        " title, publish_date, source_url, raw_data"
+        " FROM announcements WHERE announce_no = ?",
         (announce_no,),
     )
     if not ann:
-        raise HTTPException(404, "公告不存在")
-    if not ann["attachment_url"]:
+        # 自愈：公告只在 announcement_record 中，不在 announcements 表
+        rec = db.fetchone(
+            "SELECT pid, source_site, announce_no,"
+            " MAX(announcement_title) AS title, MAX(publish_date) AS publish_date"
+            " FROM announcement_record WHERE announce_no = ?"
+            " GROUP BY announce_no",
+            (announce_no,),
+        )
+        if rec:
+            # 向 announcements 表补写记录
+            now = _now_iso()
+            db.execute(
+                "INSERT OR REPLACE INTO announcements"
+                " (source_site, pid, announce_no, title, publish_date,"
+                "  source_url, attachment_url, raw_data, created_at, updated_at)"
+                " VALUES (?, ?, ?, ?, ?, '', '', '', ?, ?)",
+                (
+                    rec["source_site"] or "",
+                    rec["pid"] or "",
+                    rec["announce_no"],
+                    rec["title"] or "",
+                    rec["publish_date"] or "",
+                    now,
+                    now,
+                ),
+            )
+            ann = db.fetchone(
+                "SELECT id, announce_no, attachment_url, source_site, pid,"
+                " title, publish_date, source_url, raw_data"
+                " FROM announcements WHERE announce_no = ?",
+                (announce_no,),
+            )
+
+    if not ann or not ann["attachment_url"]:
         raise HTTPException(400, "该公告没有附件")
 
     existing = db.fetchone(
@@ -116,12 +191,27 @@ def trigger_parse(
         ann["id"],
         ann["announce_no"],
         ann["attachment_url"],
+        ann.get("source_site", ""),
+        ann.get("pid", ""),
+        ann.get("title", ""),
+        ann.get("publish_date", ""),
+        ann.get("source_url", ""),
     )
     return {"status": "parsing_started", "announce_no": announce_no}
 
 
-def _parse_attachment_bg(announcement_id: int, announce_no: str, attachment_url: str):
-    """后台任务：下载附件 → 调用 parser → 写入 announcement_record。"""
+def _parse_attachment_bg(
+    announcement_id: int,
+    announce_no: str,
+    attachment_url: str,
+    source_site: str = "",
+    pid: str = "",
+    ann_title: str = "",
+    publish_date: str = "",
+    source_url: str = "",
+):
+    """后台任务：下载附件 → 调用 parser → 写入 announcement_record。
+    解析完成后同步更新 announcements 表头信息。"""
     from pilotstd.announcement.parser import download_attachment, parse_announcement_detail
 
     mgr = _get_mgr()
@@ -166,6 +256,27 @@ def _parse_attachment_bg(announcement_id: int, announce_no: str, attachment_url:
                     now,
                 ),
             )
+
+        # 解析完成后更新 announcements 表头信息（自愈：补充可能缺失的公告头）
+        resolved_title = ann_title or meta.get("title", "")
+        resolved_pub_date = publish_date or meta.get("publish_date", "")
+        db.execute(
+            "INSERT OR REPLACE INTO announcements"
+            " (source_site, pid, announce_no, title, publish_date,"
+            "  source_url, attachment_url, raw_data, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                source_site,
+                pid,
+                announce_no,
+                resolved_title,
+                resolved_pub_date,
+                source_url,
+                attachment_url,
+                "",  # raw_data 在解析流程中不可用
+                now,
+            ),
+        )
 
         logger.info("[解析] 完成: %s, %d 条", announce_no, len(items))
     except Exception as e:

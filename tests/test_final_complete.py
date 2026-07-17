@@ -82,7 +82,12 @@ class TestMonitor(unittest.TestCase):
         self.assertIn("watch_path", DEFAULTS)
 
     def test_get_config_with_db(self):
-        schema = "CREATE TABLE IF NOT EXISTS cache_config (id INTEGER PRIMARY KEY, config_key TEXT UNIQUE, config_value TEXT)"
+        schema = "CREATE TABLE IF NOT EXISTS cache_config (
+    id INTEGER,
+    config_key TEXT NOT NULL,
+    config_value TEXT NOT NULL,
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP'
+);"
         db = MockDatabase(schema).__enter__()
         try:
             db.execute("INSERT INTO cache_config (config_key,config_value) VALUES ('monitor.enabled','true')")

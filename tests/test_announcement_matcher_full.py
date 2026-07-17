@@ -10,48 +10,64 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from tests.mocks.mock_database import MockDatabase
-
 from pilotstd.announcement.matcher import AnnouncementMatcher
-
+from tests.mocks.mock_database import MockDatabase
 
 # ── 测试用数据 ──────────────────────────────────────────────────
 # 建表 SQL（模拟 announcement_record 和 announcement_match）
 INIT_SQL = """
 CREATE TABLE IF NOT EXISTS announcement_record (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source_site TEXT,
-    pid TEXT,
+    id INTEGER,
+    source_site TEXT NOT NULL,
+    pid TEXT NOT NULL,
     announce_no TEXT,
-    standard_number TEXT,
+    standard_number TEXT NOT NULL,
     std_name TEXT,
     publish_date TEXT,
-    fetched_at TEXT,
-    matched INTEGER,
+    fetched_at TEXT NOT NULL,
+    matched INTEGER DEFAULT 0,
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT,
     announcement_title TEXT,
-    standard_count INTEGER
-);
-CREATE TABLE IF NOT EXISTS announcement_match (
-    standard_number TEXT,
-    source_site TEXT,
-    result_json TEXT,
-    cached_at TEXT,
+    standard_count INTEGER,
+    announcement_id INTEGER,
+    row_index INTEGER,
+    implement_date TEXT,
+    expiry_date TEXT,
+    superseded_by TEXT,
+    status TEXT DEFAULT 'draft',
+    confidence REAL DEFAULT 0.0,
+    raw_text TEXT,
+    parser_engine TEXT,
+    approved_by INTEGER,
+    approved_at TEXT,
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP'
+);CREATE TABLE IF NOT EXISTS announcement_match (
+    id INTEGER,
+    standard_number TEXT NOT NULL,
+    source_site TEXT NOT NULL DEFAULT 'announcement',
+    result_json TEXT NOT NULL,
+    cached_at TEXT NOT NULL,
     expires_at TEXT,
-    PRIMARY KEY (standard_number, source_site)
-);
-CREATE TABLE IF NOT EXISTS file_index (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logical_code TEXT,
-    number INTEGER,
-    year INTEGER,
-    part TEXT,
-    std_name TEXT,
-    file_path TEXT,
-    file_hash TEXT,
-    status TEXT,
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT,
+    source TEXT NOT NULL DEFAULT 'announcement',
+    status_history TEXT NOT NULL DEFAULT ''
+);CREATE TABLE IF NOT EXISTS file_index (
+    id INTEGER,
+    file_path TEXT NOT NULL,
+    logical_code TEXT NOT NULL DEFAULT '',
+    number INTEGER NOT NULL DEFAULT 0,
+    year INTEGER NOT NULL DEFAULT 0,
+    part INTEGER NOT NULL DEFAULT '-1',
+    std_name TEXT NOT NULL DEFAULT '',
+    file_hash TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT '现行',
+    scanned_at TEXT NOT NULL DEFAULT '',
     last_checked TEXT
-);
-"""
+);"""
 
 
 class TestAnnouncementMatcherInit(unittest.TestCase):
@@ -68,8 +84,17 @@ class TestNormalize(unittest.TestCase):
 
     def test_single_group_unifies_metadata(self):
         items = [
-            {"announce_no": "2024-001", "publish_date": "2024-01-15", "announcement_title": "公告1", "std_code": "GB/T 1.1-2020"},
-            {"announce_no": "2024-001", "publish_date": "", "std_code": "GB/T 2.2-2020"},  # 无 announcement_title 键，setdefault 生效
+            {
+                "announce_no": "2024-001",
+                "publish_date": "2024-01-15",
+                "announcement_title": "公告1",
+                "std_code": "GB/T 1.1-2020",
+            },
+            {
+                "announce_no": "2024-001",
+                "publish_date": "",
+                "std_code": "GB/T 2.2-2020",
+            },  # 无 announcement_title 键，setdefault 生效
         ]
         result = AnnouncementMatcher._normalize(items)
         for item in result:
@@ -273,9 +298,7 @@ class TestProcessItem(unittest.TestCase):
 
     def test_matched_adds_log_and_cache(self):
         """匹配到 file_index：写日志和缓存。"""
-        self.db.fetchall.return_value = [
-            {"logical_code": "GB/T", "number": 1, "year": 2020, "std_name": "标准化导则"}
-        ]
+        self.db.fetchall.return_value = [{"logical_code": "GB/T", "number": 1, "year": 2020, "std_name": "标准化导则"}]
         log_rows = []
         cache_rows = []
         result = {"matched": 0, "updated": 0, "details": []}
@@ -485,6 +508,7 @@ class TestMatchAndUpdate(unittest.TestCase):
             self.assertIsNotNone(cache)
             # 用 json 检查缓存内容
             import json
+
             cache_data = json.loads(cache["result_json"])
             self.assertIn("即将实施", cache_data["status"])
 

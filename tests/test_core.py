@@ -462,14 +462,18 @@ class TestFileIndexRepository(unittest.TestCase):
         """)
         shared_db.execute("""
             CREATE TABLE IF NOT EXISTS announcement_match (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                standard_number TEXT NOT NULL,
-                source_site TEXT NOT NULL DEFAULT 'announcement',
-                result_json TEXT NOT NULL,
-                cached_at TEXT NOT NULL,
-                expires_at TEXT
-            )
-        """)
+    id INTEGER,
+    standard_number TEXT NOT NULL,
+    source_site TEXT NOT NULL DEFAULT 'announcement',
+    result_json TEXT NOT NULL,
+    cached_at TEXT NOT NULL,
+    expires_at TEXT,
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT,
+    source TEXT NOT NULL DEFAULT 'announcement',
+    status_history TEXT NOT NULL DEFAULT ''
+);""")
         yield
         shutil.rmtree(self.tmp, ignore_errors=True)
 
@@ -1135,11 +1139,21 @@ class TestDbMigrations(unittest.TestCase):
         db_path = os.path.join(self.tmp, "test.db")
         conn = sqlite3.connect(db_path)
         conn.execute("""
-            CREATE TABLE notification_log (
-                id INTEGER PRIMARY KEY, event_type TEXT, channel TEXT,
-                title TEXT, body TEXT, sent_at TEXT
-            )
-        """)
+            CREATE TABLE IF NOT EXISTS notification_log (
+    id INTEGER,
+    event_type TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    title TEXT,
+    body TEXT,
+    standard_number TEXT,
+    status TEXT NOT NULL DEFAULT 'success',
+    error_msg TEXT,
+    sent_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    is_read INTEGER DEFAULT 0,
+    aggregated_count INTEGER DEFAULT 1,
+    link TEXT,
+    icon TEXT
+);""")
         _migrate_v18_notification_fetch_task(conn)
 
         # 验证 is_read 列存在
@@ -1162,11 +1176,21 @@ class TestDbMigrations(unittest.TestCase):
         db_path = os.path.join(self.tmp, "test.db")
         conn = sqlite3.connect(db_path)
         conn.execute("""
-            CREATE TABLE notification_log (
-                id INTEGER PRIMARY KEY, event_type TEXT, channel TEXT,
-                title TEXT, body TEXT, sent_at TEXT
-            )
-        """)
+            CREATE TABLE IF NOT EXISTS notification_log (
+    id INTEGER,
+    event_type TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    title TEXT,
+    body TEXT,
+    standard_number TEXT,
+    status TEXT NOT NULL DEFAULT 'success',
+    error_msg TEXT,
+    sent_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    is_read INTEGER DEFAULT 0,
+    aggregated_count INTEGER DEFAULT 1,
+    link TEXT,
+    icon TEXT
+);""")
         _migrate_v18_notification_fetch_task(conn)
         # 第二次执行：v18 迁移未检测 is_read 列是否存在，会抛 duplicate column
         # 幂等性由上层迁移调度器检查已执行的迁移版本来保证
@@ -1185,11 +1209,21 @@ class TestDbMigrations(unittest.TestCase):
         db_path = os.path.join(self.tmp, "test.db")
         conn = sqlite3.connect(db_path)
         conn.execute("""
-            CREATE TABLE notification_log (
-                id INTEGER PRIMARY KEY, event_type TEXT, channel TEXT,
-                title TEXT, body TEXT, sent_at TEXT
-            )
-        """)
+            CREATE TABLE IF NOT EXISTS notification_log (
+    id INTEGER,
+    event_type TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    title TEXT,
+    body TEXT,
+    standard_number TEXT,
+    status TEXT NOT NULL DEFAULT 'success',
+    error_msg TEXT,
+    sent_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    is_read INTEGER DEFAULT 0,
+    aggregated_count INTEGER DEFAULT 1,
+    link TEXT,
+    icon TEXT
+);""")
         _migrate_v18_notification_fetch_task(conn)
 
         # 回滚操作（SQLite 不支持 DROP COLUMN，用重建方式）
