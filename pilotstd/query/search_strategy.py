@@ -52,6 +52,7 @@ def _is_code_variant(code1: str, code2: str) -> bool:
         return False
 
     def _split(c: str) -> tuple[str, str]:
+        """拆分代号为 (基础代号, 后缀)，如 'GB/T' → ('GB', 'T')，'GB' → ('GB', '')。"""
         c = c.upper()
         if "/" in c:
             base, suffix = c.split("/", 1)

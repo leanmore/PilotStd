@@ -134,6 +134,11 @@ from pilotstd.tasks.date_reminder import run_date_reminder  # noqa: E402
 
 
 def _date_reminder_wrapper(notification_mgr=None):
+    """日期提醒定时任务包装器：从 notification_mgr 获取通知管理器后调用核心提醒逻辑。
+
+    若未传入 notification_mgr，则通过 get_manager() 惰性获取。
+    异常被捕获并记录日志，不中断调度器循环。
+    """
     if notification_mgr is None:
         from .manager import get_manager
 

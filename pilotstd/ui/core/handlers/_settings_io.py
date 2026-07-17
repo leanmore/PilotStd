@@ -189,9 +189,7 @@ class SettingsConfigIO:
             "storage.mirror_fallback": self._config.get(
                 "storage.mirror_fallback", self._engine.DEFAULT_LIBRARY["storage.mirror_fallback"]
             ),
-            "watchdog.enabled": self._config.get(
-                "watchdog.enabled", self._engine.DEFAULT_LIBRARY["watchdog.enabled"]
-            ),
+            "watchdog.enabled": self._config.get("watchdog.enabled", self._engine.DEFAULT_LIBRARY["watchdog.enabled"]),
             "file.clear_readonly": self._config.get(
                 "file.clear_readonly", self._engine.DEFAULT_LIBRARY["file.clear_readonly"]
             ),
@@ -200,9 +198,7 @@ class SettingsConfigIO:
         raw["scan.skip_folders"] = self._config.get(
             "scan.skip_folders", self._engine.DEFAULT_LIBRARY["scan.skip_folders"]
         )
-        raw["scan.extensions"] = self._config.get(
-            "scan.extensions", self._engine.DEFAULT_LIBRARY["scan.extensions"]
-        )
+        raw["scan.extensions"] = self._config.get("scan.extensions", self._engine.DEFAULT_LIBRARY["scan.extensions"])
         raw["scan.exclude_patterns"] = self._config.get(
             "scan.exclude_patterns", self._engine.DEFAULT_LIBRARY["scan.exclude_patterns"]
         )
@@ -284,18 +280,14 @@ class SettingsConfigIO:
         """从配置加载高级设置并反序列化"""
         h = self._h
         raw = {
-            "network.proxy": self._config.get(
-                "network.proxy", self._engine.DEFAULT_ADVANCED["network.proxy"]
-            ),
+            "network.proxy": self._config.get("network.proxy", self._engine.DEFAULT_ADVANCED["network.proxy"]),
             "network.ua_rotation": self._config.get(
                 "network.ua_rotation", self._engine.DEFAULT_ADVANCED["network.ua_rotation"]
             ),
             "announcement.enabled": self._config.get(
                 "announcement.enabled", self._engine.DEFAULT_ADVANCED["announcement.enabled"]
             ),
-            "query.use_cache": self._config.get(
-                "query.use_cache", self._engine.DEFAULT_ADVANCED["query.use_cache"]
-            ),
+            "query.use_cache": self._config.get("query.use_cache", self._engine.DEFAULT_ADVANCED["query.use_cache"]),
         }
         if h._announce_cache_cb:
             raw["query.use_announcement_match"] = self._config.get(

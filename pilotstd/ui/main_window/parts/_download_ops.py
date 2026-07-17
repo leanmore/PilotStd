@@ -12,6 +12,7 @@ logger = logging.getLogger("pilotstd.ui")
 
 
 def _check_download_queue(self) -> None:
+    """检查下载等待队列中是否有到期的标准，弹窗询问是否立即下载。"""
     if not self._mgr_ready:
         return
     due = self._mgr.get_due_downloads()
@@ -30,6 +31,7 @@ def _check_download_queue(self) -> None:
 
 
 def _on_auto_run(self) -> None:
+    """自动运行入口：获取当前选中路径后启动自动管线。"""
     if not self._mgr_ready:
         return
     path = self._get_selected_path()

@@ -16,7 +16,11 @@ from ....i18n import _
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 图标加载 ──
+
+
 def _apply_icon(self) -> None:
+    """根据当前 icon_theme 设置加载对应的 .ico 文件作为窗口图标。"""
     theme = self._config.get("appearance.icon_theme", "default")
     if is_frozen():
         base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
@@ -30,14 +34,22 @@ def _apply_icon(self) -> None:
         self.setWindowIcon(QIcon(ico))
 
 
+# ── 主题应用 ──
+
+
 def _apply_theme(self) -> None:
+    """根据当前 theme 配置应用 QSS 样式表。"""
     from ...themes import apply_theme
 
     theme = self._config.get("appearance.theme", "经典白")
     apply_theme(QApplication.instance(), theme)
 
 
+# ── Qt 翻译器加载 ──
+
+
 def _load_qt_translator(self) -> None:
+    """加载 Qt 内置翻译文件（qtbase_*.qm），实现内建控件汉化。"""
     lang = self._config.get("appearance.language", "zh_CN")
     # 幂等保护：同语言已加载则跳过，避免重复 I/O + installTranslator 全树遍历
     if getattr(self, "_loaded_qt_lang", None) == lang:
@@ -78,12 +90,20 @@ def _load_qt_translator(self) -> None:
     self._loaded_qt_lang = lang
 
 
+# ── 语言切换入口 ──
+
+
 def _apply_language(self) -> None:
+    """加载 Qt 翻译并刷新所有 UI 文本。"""
     self._load_qt_translator()
     self._retranslate_ui()
 
 
+# ── UI 文本刷新 ──
+
+
 def _retranslate_ui(self) -> None:
+    """遍历所有可见 UI 控件，重新设置当前语言的文本。"""
     if not getattr(self, "_ui_translatable", False):
         return
     self.setWindowTitle(_("app.title"))

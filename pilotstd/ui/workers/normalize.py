@@ -26,13 +26,16 @@ class NormalizeWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行流式规范化，批量发射结果。"""
         try:
 
             def on_batch(batch_rows: Any) -> None:
+                """发射批次结果到 UI（非停止状态）。"""
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
 
             def on_progress(cur: Any, total: Any) -> None:
+                """更新规范化进度百分比。"""
                 if self._stopped:
                     return
                 if self._pause_event is not None:

@@ -79,6 +79,7 @@ class SettingsHandler:
     # ── 页面注册 ──
 
     def _add_page(self, name: str, widget: QWidget) -> None:
+        """注册一个设置页面到内部列表，供 build_all_pages 使用。"""
         self._page_names.append(name)
         self._pages.append(widget)
 
@@ -134,6 +135,7 @@ class SettingsHandler:
     # ================================================================
 
     def _build_storage_page(self) -> None:
+        """构建存储设置页：根目录、过期文件夹名、自动清理、只读清除、镜像、看门狗、下载目录。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("storage_group"))
@@ -173,6 +175,7 @@ class SettingsHandler:
         self._add_page(_("storage_group"), w)
 
     def _build_network_page(self) -> None:
+        """构建网络设置页：代理、UA 轮换、公告检查、查询缓存、Web 端公告服务地址。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("network_group"))
@@ -208,6 +211,7 @@ class SettingsHandler:
         self._add_page(_("network_group"), w)
 
     def _build_appearance_page(self) -> None:
+        """构建外观设置页：主题、图标、语言、跳过欢迎页。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ui_group"))
@@ -228,6 +232,7 @@ class SettingsHandler:
         self._add_page(_("ui_group"), w)
 
     def _build_scan_page(self) -> None:
+        """构建扫描设置页：跳过文件夹、文件扩展名、跳过关键词。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("scan_group"))
@@ -246,6 +251,7 @@ class SettingsHandler:
         self._add_page(_("scan_group"), w)
 
     def _build_compat_page(self) -> None:
+        """构建兼容性设置页：标准号横杠格式等兼容选项。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("compat_group"))
@@ -259,6 +265,7 @@ class SettingsHandler:
         self._add_page(_("compat_group"), w)
 
     def _build_notification_page(self) -> None:
+        """构建通知设置页：通知智能聚合、自动暂停、立即恢复。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox("通知智能聚合")
@@ -296,6 +303,7 @@ class SettingsHandler:
         self._add_page(_("settings_notification"), w)
 
     def _build_ocr_page(self) -> None:
+        """构建 OCR 设置页：百度云/腾讯云/阿里云 OCR 凭证配置。"""
         w = QWidget()
         layout = QVBoxLayout(w)
         gb = QGroupBox(_("ocr_group"))
@@ -332,6 +340,7 @@ class SettingsHandler:
         self._add_page(_("ocr_group"), w)
 
     def _build_columns_page(self) -> None:
+        """构建列显示设置页：勾选显示/隐藏工作表的哪些列。"""
         from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS
 
         w = QWidget()

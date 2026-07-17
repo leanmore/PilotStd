@@ -15,6 +15,10 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
 
+# ════════════════════════════════════════════════════════════════
+# 辅助函数：用户 ID 提取 + 通知管理器获取
+# ════════════════════════════════════════════════════════════════
+
 
 def _get_user_id(username: str = Depends(get_current_username), mgr=Depends(get_manager_dep)) -> int:
     """从 token 提取 user_id，找不到时返回 1（兼容系统调用）。"""
@@ -41,7 +45,9 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
     def mask(v: str) -> str:
         return "***" if v else ""
 
+    # 构建每个渠道的配置视图，敏感字段（webhook_url 等）做掩码处理
     def build_channel(ch_name: str, defaults: dict) -> dict:
+        """构建单个渠道的配置视图：合并用户凭证与默认参数，敏感字段做掩码处理。"""
         ch = creds.get(ch_name) or {}
         result: dict[str, object] = {}
         for k in defaults:
@@ -61,6 +67,7 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
 
     return {
         "enabled": mgr.cfg.get("notification.enabled", False),
+        # 四渠道配置：wechat / telegram / feishu / dingtalk
         "channels": {
             "wechat": build_channel(
                 "wechat",
@@ -229,6 +236,8 @@ def delete_notification_logs(
 
 
 class PolicyUpdateRequest(BaseModel):
+    """通知策略更新请求体：渠道名、启用状态和订阅事件列表。"""
+
     channel: str
     enabled: bool | None = None
     events: list[str] | None = None

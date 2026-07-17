@@ -1,4 +1,6 @@
 # pilotstd/scan/watcher.py — 增量文件监控（watchdog 事件驱动 + file_index 持久化）
+# FileWatchHandler 处理创建/修改/删除/移动四类事件，自动更新索引
+# FileWatcher 封装 Observer 生命周期，启动时先全量扫描再启动增量监控
 """基于 watchdog 的文件系统监控器，实现增量扫描。"""
 
 from __future__ import annotations
@@ -37,6 +39,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
                 return True
         return False
 
+    # _handle_new_or_modified — 计算哈希 → 解析 → 更新索引，异常静默丢弃
     def _handle_new_or_modified(self, path: str) -> None:
         """处理文件创建或修改：计算哈希 → 解析文件名 → 更新索引。"""
         if self._should_skip(path):
@@ -69,6 +72,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
         self._handle_new_or_modified(str(event.src_path))
 
     def on_deleted(self, event: FileSystemEvent) -> None:
+        """文件删除事件：从 file_index 中移除已删除的文件路径。"""
         if self._should_skip(str(event.src_path)):
             return
         try:
@@ -81,8 +85,8 @@ class FileWatchHandler(PatternMatchingEventHandler):
         if self._should_skip(str(event.dest_path)):
             return
         try:
-            self._file_index.remove(event.src_path)
-            self._handle_new_or_modified(str(event.dest_path))
+            self._file_index.remove(event.src_path)  # 先移除旧路径索引
+            self._handle_new_or_modified(str(event.dest_path))  # 再按新路径重新索引
         except Exception:
             pass
 
@@ -117,7 +121,7 @@ class FileWatcher:
         self._observer = Observer()
         for path in root_paths:
             if os.path.isdir(path):
-                self._observer.schedule(handler, path, recursive=True)
+                self._observer.schedule(handler, path, recursive=True)  # 递归监控整个目录树
                 logger.info("watcher 已启动: %s", path)
             else:
                 logger.warning("watcher 跳过不存在的目录: %s", path)

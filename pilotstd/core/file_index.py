@@ -14,6 +14,7 @@ from pilotstd.models import ParsedStdInfo
 from .db import Database
 from .file_utils import hash_file_content
 
+# 核心表名常量，统一管理避免硬编码字符串散布
 FILE_INDEX_TABLE = "file_index"
 NETWORK_CACHE_TABLE = "standard_info_cache"
 ANNOUNCEMENT_CACHE_TABLE = "announcement_match"
@@ -26,9 +27,11 @@ class FileIndexRepository:
 
     def __init__(self, db: Database):
         self._db = db
+        # 校验完成事件：扫描器初始化时需等待校验完成才能依赖索引去重
         self._validation_complete = threading.Event()
         self._stop_event = threading.Event()
         self._validation_thread: threading.Thread | None = None
+        # 延迟启动后台校验，避免阻塞启动流程
         self._start_delayed_validation()
 
     # ---- 校验 ----
@@ -136,12 +139,15 @@ class FileIndexRepository:
         file_hash: str = "",
         status: str = "现行",
     ) -> None:
+        # 文件存在时自动计算哈希，否则使用传入值（如从缓存恢复场景）
         if not file_hash and os.path.exists(file_path):
             file_hash = hash_file_content(file_path)
         now = datetime.now().isoformat()
+        # part 为 None 时用 -1 表示"无分篇"，SQLite 中 -1 便于统一查询
         part_val = part if part is not None else -1
         existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
         if existing:
+            # 已存在则更新，keep 原有 id 保证外键引用不失效
             self._db.execute(
                 f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
                 "part=?, std_name=?, file_hash=?, status=?, scanned_at=? WHERE id=?",
@@ -158,6 +164,7 @@ class FileIndexRepository:
                 ),
             )
         else:
+            # 新文件直接插入
             self._db.execute(
                 f"INSERT INTO {FILE_INDEX_TABLE} "
                 "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at) "
@@ -219,6 +226,7 @@ class FileIndexRepository:
         return deleted
 
     def count(self) -> int:
+        """返回索引表中的记录总数。"""
         row = self._db.fetchone(f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
         return row["cnt"] if row else 0
 
@@ -231,6 +239,7 @@ class FileIndexRepository:
             s = {r["status"]: r["cnt"] for r in rows}
         except Exception:
             return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
+        # 将废止和被代替合并为 expired，统一对外口径
         return {
             "current": s.get("现行", 0),
             "expired": s.get("废止", 0) + s.get("被代替", 0),
@@ -255,11 +264,12 @@ class FileIndexRepository:
             logical_code=row["logical_code"],
             number=row["number"],
             year=row["year"],
+            # part=-1 表示无分篇，恢复为 None 以保持类型一致性
             part=row["part"] if row["part"] != -1 else None,
             std_name=row["std_name"],
             source_path=file_path,
         )
-        # 查缓存恢复查询结果（仅置信度 100 的 exact 数据）
+        # 从缓存表补充查询结果字段（状态、名称、采标信息）
         self._restore_cache_fields(info)
         return info
 
@@ -284,7 +294,7 @@ class FileIndexRepository:
             self._apply_cache_result(row["result_json"], info)
             return
 
-        # 网络缓存未命中，查公告缓存
+        # 网络缓存未命中，回退到公告缓存（永久有效）
         ann_row = self._db.fetchone(
             f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number = ? LIMIT 1",
             (std_num,),
@@ -299,12 +309,14 @@ class FileIndexRepository:
 
         try:
             cached = json.loads(result_json)
+            # 仅 exact 匹配的结果才覆盖字段，避免不准确的数据污染
             if cached.get("match_status") == "exact":
                 info.effect_status = cached.get("status", "")
                 info.found_name = cached.get("standard_name", "")
                 info.is_adopted = cached.get("is_adopted", False)
                 info.match_status = "exact"
         except (json.JSONDecodeError, TypeError):
+            # 缓存 JSON 损坏时静默跳过，不影响主流程
             pass
 
     def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict[str, Any]]:

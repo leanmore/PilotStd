@@ -21,6 +21,7 @@ class ProjectManager:
 
     @property
     def current_path(self) -> Optional[str]:
+        """当前打开的项目文件路径，未保存时为 None。"""
         return self._current_path
 
     def save(self, filepath: str, state: Dict[str, Any]) -> bool:
@@ -68,6 +69,7 @@ class ProjectManager:
 
     @staticmethod
     def _serialize_state(state: Dict[str, Any]) -> Dict[str, Any]:
+        """将包含 dataclass/普通对象的字典序列化为纯 dict。"""
         result = {}
         for key, value in state.items():
             if hasattr(value, "__dict__"):
@@ -83,4 +85,5 @@ class ProjectManager:
 
     @staticmethod
     def _deserialize_state(data: Dict[str, Any]) -> Dict[str, Any]:
+        """反序列化项目状态（当前直接透传，预留未来 dataclass 重建逻辑）。"""
         return data

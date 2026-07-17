@@ -28,6 +28,7 @@ class StdGovAdapter(BaseAdapter):
     SEARCH_URL = "https://std.samr.gov.cn/search/stdPage"
 
     def __init__(self, session: requests.Session | None = None):
+        """初始化国家标准公开适配器，注入 requests session 并设置请求头。"""
         self._session = session or requests.Session()
         self._session.headers.update(
             {
@@ -193,6 +194,7 @@ class StdGovAdapter(BaseAdapter):
         return self._parse_meta(hcno, resp.text)
 
     def _parse_meta(self, hcno: str, html: str) -> Optional[dict[str, Any]]:
+        """解析新版详情页 HTML，提取标准名称、状态、预览/下载权限。"""
         soup = BeautifulSoup(html, "lxml")
         bor = soup.select_one("div.bor2")
         if not bor:

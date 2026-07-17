@@ -1,5 +1,7 @@
 # pilotstd/ui/workers/_common.py
 # 共享工具函数、常量、数据类 — 从 workers.py 拆分
+#
+# 所有 Worker 共用的批量处理常量、进度工具和日志处理器。
 
 import logging
 import time as _time
@@ -21,6 +23,9 @@ _WORKER_FLUSH_INTERVAL = 0.5
 _ANNOUNCEMENT_BATCH_SIZE = 20
 
 
+# ── 进度计算 ──
+
+
 def _pct(cur: int, total: int) -> int:
     """cur/total → 0-100 百分比。零除返回0。所有Worker共用。"""
     return int(cur / total * 100) if total > 0 else 0
@@ -38,6 +43,9 @@ def _log_progress(logr: Any, label: str, current: int, total: int, t_start: floa
     logr.info("%s: %d/%d (%d%%) 已耗时 %.0f秒", label, current, total, pct_val, elapsed)
 
 
+# ── RowUpdate：表格行更新数据类 ──
+
+
 @dataclass
 class RowUpdate:
     """工作表格行更新数据，替代 _add_table_row 的十参数签名。"""
@@ -52,6 +60,9 @@ class RowUpdate:
     publish_date: str = ""
     is_adopted: bool = False
     total: int = 0
+
+
+# ── LogHandler：日志 → QTextEdit 重定向 ──
 
 
 class LogHandler(logging.Handler, QObject):
@@ -79,7 +90,10 @@ class LogHandler(logging.Handler, QObject):
         self.widget = None
         logging.getLogger().removeHandler(self)
 
+    # ── 批量刷新缓冲区 ──
+
     def _flush(self) -> None:
+        """将缓冲区中的日志批量写入 QTextEdit 并滚动到底部。"""
         if self._closed or not self._buf:
             return
         try:
@@ -96,14 +110,20 @@ class LogHandler(logging.Handler, QObject):
             self.widget = None
         self._buf.clear()
 
+    # ── 追加日志到缓冲区 ──
+
     def _append_text(self, msg: str) -> None:
+        """将单条日志追加到缓冲区，触发批量刷新定时器。"""
         if self._closed:
             return
         self._buf.append(msg)
         if not self._buf_timer.isActive():
             self._buf_timer.start()
 
+    # ── logging.Handler 接口 ──
+
     def emit(self, record: Any) -> None:
+        """logging.Handler 的 emit 接口：格式化日志记录并线程安全地追加。"""
         if self._closed:
             return
         try:
@@ -120,6 +140,7 @@ class LogHandler(logging.Handler, QObject):
             self.widget = None
 
     def flush(self) -> None:
+        """logging.Handler 的 flush 接口：立即刷新缓冲区。"""
         if self._closed:
             return
         try:
@@ -127,6 +148,9 @@ class LogHandler(logging.Handler, QObject):
         except RuntimeError:
             self._closed = True
             self.widget = None
+
+
+# ── 安全关闭日志 ──
 
 
 def flush_logs() -> None:

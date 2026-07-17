@@ -64,14 +64,10 @@ class PersistenceHandler:
         """从配置恢复主分栏和右侧分栏的尺寸。"""
         sizes = self._config.get("appearance.main_splitter")
         if main_splitter:
-            main_splitter.setSizes(
-                self._engine.deserialize_splitter_sizes(sizes, main_splitter.sizes())
-            )
+            main_splitter.setSizes(self._engine.deserialize_splitter_sizes(sizes, main_splitter.sizes()))
         sizes = self._config.get("appearance.right_splitter")
         if right_splitter:
-            right_splitter.setSizes(
-                self._engine.deserialize_splitter_sizes(sizes, right_splitter.sizes())
-            )
+            right_splitter.setSizes(self._engine.deserialize_splitter_sizes(sizes, right_splitter.sizes()))
 
     # ── 排序/表头状态 ────────────────────────────────────────
 

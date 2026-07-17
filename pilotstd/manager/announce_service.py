@@ -21,11 +21,19 @@ class AnnounceService:
     """公告检查服务 + 异步抓取任务管理。"""
 
     def __init__(self, file_index: Any, ocr_config: dict[str, Any] | None = None, manager: Any = None):
-        self._file_index = file_index
+        """初始化公告服务。
+        Args:
+            file_index: 文件索引数据库连接
+            ocr_config: OCR 配置字典（可选）
+            manager: StandardManager 引用（供 API 层迁移使用）
+        """
         self._engine: Optional[AnnounceEngine] = None
         self._ocr_config = ocr_config or {}
         self._ocr_provider: Any = None
         self._mgr = manager  # StandardManager 引用（供 API 层迁移使用）
+        self._file_index = file_index  # 文件索引引用，供各子方法使用
+
+    # ── OCR 提供者懒加载 ──────────────────────────────────
 
     def _get_ocr_provider(self) -> Any:
         """懒加载 OCR provider，首次调用时从配置创建。"""
@@ -62,6 +70,7 @@ class AnnounceService:
     # ── 失败记录 ──────────────────────────────────────────
 
     def _record_fetch_failure(self, task_type: str, source_site: str, since_date: str, error: str) -> None:
+        """记录一次抓取失败到 fetch_failures 表。"""
         self._file_index._db.execute(
             "INSERT INTO fetch_failures (task_type, source_site, since_date, error_message) VALUES (?, ?, ?, ?)",
             (task_type, source_site, since_date, error),
@@ -70,6 +79,7 @@ class AnnounceService:
     # ── 并发锁 ────────────────────────────────────────────
 
     def _acquire_manual_lock(self) -> bool:
+        """获取手动抓取锁，防止定时任务与手动抓取冲突。返回 True 表示获取成功。"""
         try:
             self._file_index._db.execute(
                 "INSERT OR REPLACE INTO fetch_locks (lock_key, locked_at, locked_by) VALUES ('manual', ?, 'manual')",
@@ -80,22 +90,27 @@ class AnnounceService:
             return False
 
     def _release_manual_lock(self) -> None:
+        """释放手动抓取锁。"""
         self._file_index._db.execute("DELETE FROM fetch_locks WHERE lock_key='manual'")
 
     def _is_manual_running(self) -> bool:
+        """检查手动抓取任务是否正在运行。"""
         row = self._file_index._db.fetchone("SELECT 1 FROM fetch_locks WHERE lock_key='manual'")
         return row is not None
 
     # ── 用户偏好 ──────────────────────────────────────────
 
     def _get_user_since_date(self) -> str:
+        """从用户偏好中读取公告抓取起始日期。返回空字符串表示无偏好。"""
         row = self._file_index._db.fetchone("SELECT value FROM app_preferences WHERE key='announce_since_date'")
         return row["value"] if row and row["value"] else ""
 
     def _clear_user_since_date(self) -> None:
+        """清除用户偏好的公告抓取起始日期（回填后清空）。"""
         self._file_index._db.execute("UPDATE app_preferences SET value='' WHERE key='announce_since_date'")
 
     def save_user_preference(self, key: str, value: str) -> None:
+        """保存用户偏好键值对到 app_preferences 表。供 API 层迁移使用。"""
         self._file_index._db.execute(
             "INSERT OR REPLACE INTO app_preferences (key, value, updated_at) VALUES (?, ?, ?)",
             (key, value, datetime.now().isoformat()),
@@ -141,6 +156,8 @@ class AnnounceService:
                 CacheManager(mgr.db).invalidate_by_source(DataSource.ANNOUNCEMENT)
             except Exception:
                 pass
+
+    # ── 公告增量检查 ──────────────────────────────────────
 
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
@@ -301,6 +318,8 @@ class AnnounceService:
 
         return {"ok": True, "count": stats["total_announcements"], "failures": stats["failures"]}
 
+    # ── 任务状态查询 ──────────────────────────────────────
+
     def get_task_status(self, task_id: str) -> dict[str, Any]:
         """查询异步抓取任务进度。"""
         db = self._get_db()
@@ -339,6 +358,8 @@ class AnnounceService:
         else:
             return {"task_id": task_id, "status": status, "error": row["error_msg"] or "任务执行失败"}
 
+    # ── 公告查询接口（供 API 层迁移） ────────────────────
+
     def get_announcement_sources(self, limit: int = 200) -> list[dict[str, Any]]:
         """获取公告抓取记录（去重，供 API 层迁移）。"""
         db = self._get_db()
@@ -375,6 +396,8 @@ class AnnounceService:
             "std_name": r["std_name"],
             "fetched_at": r["fetched_at"],
         }
+
+    # ── 内部辅助方法 ──────────────────────────────────────
 
     def _get_db(self) -> Any:
         """获取数据库连接。优先使用 Manager 的 DB，回退到 file_index 的 DB。"""

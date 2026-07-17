@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ._core_types import EngineCore
 
 logger = logging.getLogger(__name__)
+# CsresHandler — CSRES 后台查询处理器，独立线程执行 CSRES 适配器查询，替代原 CsresMixin
 
 
 class CsresHandler:
@@ -23,22 +24,23 @@ class CsresHandler:
     替代原 CsresMixin，所有依赖通过 EngineCore 访问。
     """
 
-    _CSRES_LIMIT = 50
-    _CSRES_CIRCUIT_BREAK = 5
+    _CSRES_LIMIT = 50  # 每次后台查询最多处理 50 条
+    _CSRES_CIRCUIT_BREAK = 5  # 连续失败 5 次触发熔断，不再查询后续条目
 
     def __init__(self, core: "EngineCore") -> None:
         self._core = core
 
+    # _build_csres_pool — 计算 GB/行业各取多少条（GB 60% + 行业 40%）
     def _build_csres_pool(self, gb_items: list, industry_items: list) -> list:
         """计算 GB/行业各取多少条（GB 60% + 行业 40%）。"""
-        gb_take = int(self._CSRES_LIMIT * 0.6)
-        industry_take = self._CSRES_LIMIT - gb_take
+        gb_take = int(self._CSRES_LIMIT * 0.6)  # GB 类取 60%
+        industry_take = self._CSRES_LIMIT - gb_take  # 行业类取剩余 40%
         return gb_items[:gb_take] + industry_items[:industry_take]
 
     def _rate_limit_sleep(self, _last_ts: float, _t0: float) -> float:
         """计算并执行限速休眠，返回新的时间戳。"""
-        base_interval = 5.0
-        jitter = random.uniform(0, 1.0)
+        base_interval = 5.0  # CSRES 基础查询间隔（秒）
+        jitter = random.uniform(0, 1.0)  # 随机抖动，防止固定节律被识别
         query_elapsed = time.time() - _t0
         sleep_time = max(0, base_interval + jitter - query_elapsed)
         time.sleep(sleep_time)
@@ -53,6 +55,7 @@ class CsresHandler:
         )
         return now
 
+    # _run_csres_worker — CSRES 后台查询线程：从 GB/行业桶各取配额条目并发查询
     def _run_csres_worker(
         self,
         gb_items: list,

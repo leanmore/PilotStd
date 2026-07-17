@@ -54,6 +54,7 @@ def _migrate_rows(db, table, col_map):
         )
 
 
+# v33: 三表合一 — rotator_state + adapter_stats + adapter_health → adapter_state
 def _migrate_v33_adapter_state(db: Any) -> None:
     """合并 rotator_state + adapter_stats + adapter_health 为 adapter_state。"""
     db.execute(
@@ -119,6 +120,7 @@ def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
             pass  # 表不存在则跳过
 
 
+# v35: 通知策略配置 — 渠道事件订阅统一管理
 def _migrate_v35_notification_policy(db: Any) -> None:
     """新建 notification_policy 表，统一存储渠道事件订阅配置。"""
     import json
@@ -281,6 +283,7 @@ def _v36_migrate_data(db: Any) -> None:
 
 def _migrate_v36_announcement_structure(db: Any) -> None:
     """v36: 公告数据结构重构 — 拆分 announcements + 扩展 announcement_record + 新建收藏/提醒表。"""
+    # v36 分三步执行：建新表 → 扩展旧表字段 → 存量数据迁移
     _v36_new_tables(db)
     _v36_extend_record(db)
     _v36_migrate_data(db)

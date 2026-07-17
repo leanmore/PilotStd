@@ -28,11 +28,14 @@ class AutoPipeline:
         download_handler: "DownloadHandler",
         organize_handler: "OrganizeHandler",
     ):
+        """初始化自动管线，注入核心和四个阶段处理器。"""
         self._core = core
         self._scan = scan_handler
         self._query = query_handler
         self._download = download_handler
         self._organize = organize_handler
+
+    # ── 一键自动运行（同步版） ────────────────────────────
 
     def auto_run(self, root_path: str, _adapter: Any = None) -> dict[str, int]:
         """一键自动运行：扫描 → 查询 → 下载 → 归类。
@@ -51,11 +54,13 @@ class AutoPipeline:
         logger.info("阶段耗时 scan: %.1fs (%d 条)", _time.monotonic() - t_stage, len(parsed))
         t_stage = _time.monotonic()
 
+        # 查询阶段：调用 query_handler.query
         _, q_stats = self._query.query(parsed)
         report["query_found"] = q_stats.found
         logger.info("阶段耗时 query: %.1fs (%d 条)", _time.monotonic() - t_stage, q_stats.found)
         t_stage = _time.monotonic()
 
+        # 下载阶段：从 download_list 下载文件
         dl_tasks, dl_stats = self._download.download()
         report["download_success"] = dl_stats.success
         logger.info("阶段耗时 download: %.1fs (%d 成功)", _time.monotonic() - t_stage, report["download_success"])
@@ -86,6 +91,8 @@ class AutoPipeline:
         )
         logger.info("自动运行完成: %s", report)
         return report
+
+    # ── 内部阶段方法 ──────────────────────────────────────
 
     def _auto_stage_query(
         self,
@@ -159,6 +166,8 @@ class AutoPipeline:
         )
         logger.info("自动运行完成: %s", report)
         return report
+
+    # ── 流式自动运行（线程安全） ──────────────────────────
 
     def auto_run_stream(
         self,

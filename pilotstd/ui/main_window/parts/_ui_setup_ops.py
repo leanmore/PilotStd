@@ -31,7 +31,11 @@ from ...table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 系统托盘 ──
+
+
 def _setup_tray(self) -> None:
+    """初始化系统托盘图标和右键菜单。"""
     self._tray = QSystemTrayIcon(self)
     self._tray.setIcon(self.windowIcon())
     self._tray.setToolTip("PilotStd")
@@ -47,12 +51,20 @@ def _setup_tray(self) -> None:
     NotifyService.init(self._tray)
 
 
+# ── 托盘双击恢复 ──
+
+
 def _on_tray_activated(self, reason: object) -> None:
+    """系统托盘双击时恢复主窗口。"""
     if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
         self._restore_from_tray()
 
 
+# ── 菜单栏构建 ──
+
+
 def _setup_menu(self) -> None:
+    """构建主窗口菜单栏：文件 / 工具 / 设置 / 帮助。"""
     mb = self.menuBar()
     assert mb is not None, "menuBar() 不应为 None"
     self._file_menu = mb.addMenu(_("file"))
@@ -102,7 +114,11 @@ def _setup_menu(self) -> None:
     help_menu.addAction(_("about"), self._on_about)
 
 
+# ── 工具栏构建 ──
+
+
 def _setup_toolbar(self) -> None:
+    """构建工具栏：导入、查询、下载、规范化、保存、自动、公告、暂停、取消。"""
     self.toolbar = QToolBar(_("toolbar_main"))
     self.toolbar.setMovable(False)
     self.toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
@@ -160,7 +176,11 @@ def _setup_toolbar(self) -> None:
     self.toolbar.addSeparator()
 
 
+# ── 文件树构建 ──
+
+
 def _setup_file_tree(self) -> QWidget:
+    """构建左侧文件导航树控件。"""
     self.file_tree = QTreeWidget()
     self.file_tree.setHeaderLabel(_("file_nav"))
     self.file_tree.setColumnCount(1)
@@ -176,7 +196,11 @@ def _setup_file_tree(self) -> QWidget:
     return left_widget
 
 
+# ── 工作区表格构建 ──
+
+
 def _setup_work_table(self) -> None:
+    """构建中央工作区 QTableWidget，设置列宽、排序、右键菜单等。"""
     self.work_table = QTableWidget()
     self.work_table.setColumnCount(len(WORK_COLUMNS))
     self.work_table.setHorizontalHeaderLabels([_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS))])
@@ -216,7 +240,11 @@ def _setup_work_table(self) -> None:
     self._right_splitter.addWidget(self.work_table)
 
 
+# ── 日志面板构建 ──
+
+
 def _setup_log_panel(self) -> None:
+    """构建右侧日志面板：标题 + 进度条 + 只读 QTextEdit。"""
     log_widget = QWidget()
     log_layout = QVBoxLayout(log_widget)
     log_layout.setContentsMargins(0, 0, 10, 0)
@@ -238,7 +266,11 @@ def _setup_log_panel(self) -> None:
     self._right_splitter.addWidget(log_widget)
 
 
+# ── 中央布局组装 ──
+
+
 def _setup_central(self) -> None:
+    """组装主窗口中央区域：水平分割器（文件树 + 垂直分割器（表格 + 日志））。"""
     self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
     self._right_splitter = QSplitter(Qt.Orientation.Vertical)
     left_widget = self._setup_file_tree()
@@ -254,14 +286,22 @@ def _setup_central(self) -> None:
     self.setCentralWidget(self._main_splitter)
 
 
+# ── 状态栏 ──
+
+
 def _setup_status_bar(self) -> None:
+    """构建底部状态栏。"""
     self.status_bar = QStatusBar()
     self.status_bar.setStyleSheet("font-size: 10pt; color: #dcdcdc;")
     self.status_bar.showMessage(_("ready"))
     self.setStatusBar(self.status_bar)
 
 
+# ── 日志处理器 ──
+
+
 def _setup_log_handler(self) -> None:
+    """安装 LogHandler 将 Python logging 输出重定向到 QTextEdit 日志面板。"""
     from ...workers import LogHandler
 
     handler = LogHandler(self.log_view)
@@ -272,7 +312,11 @@ def _setup_log_handler(self) -> None:
     logger.info("PilotStd 启动完成")
 
 
+# ── 扫描器初始化 ──
+
+
 def _setup_scanner(self) -> None:
+    """初始化扫描结果列表和未识别文件列表。"""
     from ....models import ParsedStdInfo
 
     self._parsed_results: list[ParsedStdInfo] = []
@@ -281,7 +325,11 @@ def _setup_scanner(self) -> None:
     self._scan_source_root: str = ""
 
 
+# ── 自动保存 ──
+
+
 def _setup_auto_save(self) -> None:
+    """注册应用退出时的自动保存钩子（aboutToQuit + atexit + SIGTERM）。"""
     app = QApplication.instance()
     assert app is not None, "QApplication 未初始化"
     app.aboutToQuit.connect(self._on_auto_save)
@@ -295,7 +343,11 @@ def _setup_auto_save(self) -> None:
         pass
 
 
+# ── 关闭聚合器 ──
+
+
 def _on_shutdown_aggregator(self) -> None:
+    """应用退出时关闭通知聚合器。"""
     try:
         from pilotstd.core.notification_aggregator import NotificationAggregator
 

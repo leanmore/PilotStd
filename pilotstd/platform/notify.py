@@ -25,6 +25,7 @@ class NotifyService:
 
     @classmethod
     def get(cls) -> "NotifyService":
+        """获取 NotifyService 单例，未初始化时静默降级。"""
         if cls._instance is None:
             cls._instance = cls(None)  # 未初始化时静默降级
         return cls._instance

@@ -22,7 +22,11 @@ from ....i18n import _
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 对话框操作 ──
+
+
 def _question_dlg(self, title: str, msg: str) -> QMessageBox.StandardButton:
+    """弹出是/否确认对话框。自动运行时跳过对话框直接返回是。"""
     if self._suppress_dialogs:
         return QMessageBox.StandardButton.Yes
     dlg = QMessageBox(self)  # type: ignore[call-overload]
@@ -36,6 +40,7 @@ def _question_dlg(self, title: str, msg: str) -> QMessageBox.StandardButton:
 
 
 def _stage_prereq_dialog(self, title: str, msg: str, prereq_label: str = "") -> str:
+    """弹出阶段前置条件对话框。返回 'run_prereq' / 'skip' / 'cancel'。"""
     if self._suppress_dialogs:
         return "skip"
     dlg = QMessageBox(self)  # type: ignore[call-overload]
@@ -54,7 +59,11 @@ def _stage_prereq_dialog(self, title: str, msg: str, prereq_label: str = "") -> 
     return "cancel"
 
 
+# ── 阶段弹窗 ──
+
+
 def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, next_label: str = "") -> None:
+    """弹出阶段结果展示对话框，可选"下一步"按钮触发后续操作。"""
     if self._suppress_dialogs:
         if next_action:
             next_action()
@@ -92,7 +101,11 @@ def _show_stage_dialog(self, title: str, message: str, next_action: Any = None, 
     dlg.exec()
 
 
+# ── 任务注册 ──
+
+
 def _register_task(self, label: str, total: int, completed: int, failed: int = 0) -> None:
+    """将操作记录为后台任务（用于任务中心展示）。失败时静默降级。"""
     try:
         from ....task.models import TaskType
 
@@ -108,7 +121,11 @@ def _register_task(self, label: str, total: int, completed: int, failed: int = 0
         logger.warning("任务记录失败: %s", e)
 
 
+# ── 进度条动画（缓动效果）──
+
+
 def _on_raw_progress(self, cur: int, total: int) -> None:
+    """设置目标进度并启动平滑动画定时器（50ms 缓动效果）。"""
     if total > 0:
         self._target_progress = (cur / total) * 100
     else:
@@ -118,6 +135,7 @@ def _on_raw_progress(self, cur: int, total: int) -> None:
 
 
 def _animate_progress(self) -> None:
+    """定时器回调（50ms）：缓动动画逼近目标进度值，到达后停止定时器。"""
     diff = self._target_progress - self._current_progress
     if abs(diff) < 0.5:
         self._current_progress = self._target_progress
@@ -129,6 +147,7 @@ def _animate_progress(self) -> None:
 
 
 def _reset_progress_bar(self) -> None:
+    """停止动画定时器并将进度归零。"""
     self._progress_timer.stop()
     self._target_progress = 0
     self._current_progress = 0.0
@@ -136,6 +155,7 @@ def _reset_progress_bar(self) -> None:
 
 
 def _force_finish_progress(self) -> None:
+    """停止动画定时器并强制进度跳转到 100%。"""
     self._progress_timer.stop()
     self._target_progress = 100
     self._current_progress = 100.0

@@ -55,6 +55,7 @@ class AliyunOcrProvider(BaseOcrProvider):
         return base64.b64encode(signature).decode()
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
+        """识别 PDF 单页文本：HMAC-SHA1 签名 → multipart 上传 → 解析响应。"""
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         nonce = str(uuid.uuid4())
         base64.b64encode(pdf_bytes).decode()

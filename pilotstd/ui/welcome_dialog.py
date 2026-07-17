@@ -38,6 +38,8 @@ WELCOME_TEXT = """
 
 
 class WelcomeDialog(QDialog):
+    """首次启动欢迎对话框：展示功能简介和快速上手指南。"""
+
     def __init__(self, parent: Any = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(_("welcome_title"))

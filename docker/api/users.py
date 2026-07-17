@@ -13,11 +13,14 @@ router = APIRouter(tags=["users"])
 
 
 class AddUserRequest(BaseModel):
+    """添加用户请求体：用户名、密码和角色（默认 user）。"""
+
     username: str
     password: str
     role: str = "user"
 
 
+# 修改密码请求体（独立于 AddUserRequest，避免权限混淆）
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str

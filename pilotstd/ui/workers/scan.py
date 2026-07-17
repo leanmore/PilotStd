@@ -1,4 +1,6 @@
 # pilotstd/ui/workers/scan.py — ScanWorker，从 workers.py 拆分
+#
+# 后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。
 
 import logging
 import time as _time
@@ -31,12 +33,14 @@ class ScanWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行流式扫描，节流发射进度信号防止事件队列撑爆。"""
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
             _last_signal = _t_start
 
             def on_batch(batch_rows: Any) -> None:
+                """每批解析结果就绪时的回调，发射 batch_ready 信号。"""
                 if not self._stopped:
                     self.batch_ready.emit(batch_rows)
 

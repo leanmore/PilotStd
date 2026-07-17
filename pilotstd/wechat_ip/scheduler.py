@@ -102,6 +102,7 @@ def _get_cookie(config: Any) -> Optional[str]:
 
 
 def _notify(cb: Optional[Callable], title: str, body: str) -> None:
+    """安全调用通知回调，异常静默丢弃。"""
     if cb:
         try:
             cb(title, body)
@@ -117,6 +118,7 @@ def start(config: Any, interval: int = DEFAULT_INTERVAL, notify_cb: Optional[Cal
     _stop.clear()
 
     def loop():
+        """定时检测主循环：先立即执行一次，之后按间隔周期执行。"""
         logger.info("可信 IP 定时检测已启动 (间隔=%ds)", interval)
         try:
             run_check(config, notify_cb)

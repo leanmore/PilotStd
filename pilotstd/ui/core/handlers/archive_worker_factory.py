@@ -1,4 +1,7 @@
 # pilotstd/ui/core/handlers/archive_worker_factory.py
+# ArchiveWorkerFactory — 封装 NormalizeWorker + ArchiveWorker 创建和信号连接。
+#
+# 将 on_normalize / on_save_to_folder 中的信号连接逻辑从 Handler 迁移至工厂。
 """ArchiveWorkerFactory — 封装 NormalizeWorker + ArchiveWorker 创建和信号连接。
 
 将 on_normalize / on_save_to_folder 中的信号连接逻辑从 Handler 迁移至工厂。
@@ -9,6 +12,8 @@ from __future__ import annotations
 from typing import Any
 
 from ...workers import ArchiveWorker, NormalizeWorker
+
+# ── ArchiveCallbacks：回调集合数据类 ──
 
 
 class ArchiveCallbacks:
@@ -29,6 +34,9 @@ class ArchiveCallbacks:
         self.on_finished = on_finished
 
 
+# ── ArchiveWorkerFactory：Worker 创建工厂 ──
+
+
 class ArchiveWorkerFactory:
     """创建 NormalizeWorker / ArchiveWorker 并自动连接信号到回调。"""
 
@@ -38,9 +46,9 @@ class ArchiveWorkerFactory:
         self._pause_event = pause_event
         self._parent = parent
 
-    def create_normalize_worker(
-        self, parsed_list: list[Any], callbacks: ArchiveCallbacks
-    ) -> NormalizeWorker:
+    # ── NormalizeWorker 创建 ──
+
+    def create_normalize_worker(self, parsed_list: list[Any], callbacks: ArchiveCallbacks) -> NormalizeWorker:
         """创建规范化 Worker，连接 batch_ready/progress/error/finished 信号。"""
         worker = NormalizeWorker(
             self._mgr,
@@ -53,6 +61,8 @@ class ArchiveWorkerFactory:
         worker.error.connect(callbacks.on_error)
         worker.finished_signal.connect(callbacks.on_finished)
         return worker
+
+    # ── ArchiveWorker 创建 ──
 
     def create_archive_worker(
         self,

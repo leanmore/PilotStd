@@ -15,6 +15,7 @@ from ...core.file_utils import (
 from ._utils import _resolve_industry_in_path
 
 logger = logging.getLogger(__name__)
+# OrganizerMirrorMixin — 跳过目录镜像 + 兜底归档（混入 OrganizerService）
 
 
 class OrganizerMirrorMixin:
@@ -25,6 +26,7 @@ class OrganizerMirrorMixin:
     _FALLBACK_SKIP_PREFIX: Any
     _skipped_source_files: Any
 
+    # organize_skipped_dirs — 将扫描时跳过的目录原封不动镜像到新库
     def organize_skipped_dirs(self: Any, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。"""
         root = get_library_root(self._cfg)
@@ -82,6 +84,7 @@ class OrganizerMirrorMixin:
             return False
         return True
 
+    # _mirror_into_existing_dst — 目标已存在时逐文件移动到目标目录
     def _mirror_into_existing_dst(self, dst: str, src_dir: str, result: dict) -> None:
         """目标已存在 → 逐文件移动到目标目录。"""
         for fname in os.listdir(src_dir):
@@ -130,6 +133,7 @@ class OrganizerMirrorMixin:
         result["moved"] += 1
         result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
 
+    # organize_fallback — 归档收尾：将源目录中残留文件按目录结构镜像到输出目录
     def organize_fallback(self: Any, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""
         source_root = ensure_long_path(source_root)

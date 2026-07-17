@@ -28,6 +28,7 @@ class DirBuilder:
         return ensure_dir(os.path.join(code_dir, self._expire_name))
 
     def get_expire_dir(self, logical_code: str) -> str:
+        """返回指定代号的过期作废子目录路径（不保证目录存在）。"""
         code_dir = self.ensure_code_dir(logical_code)
         return os.path.join(code_dir, self._expire_name)
 

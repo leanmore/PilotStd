@@ -147,6 +147,7 @@ def verify_user(username: str, password: str) -> bool:
 
 
 def list_users() -> list[dict]:
+    """列出所有用户的 id、用户名、角色和创建时间（按 id 排序）。"""
     db = _get_db()
     rows = db.fetchall("SELECT id, username, role, created_at FROM users ORDER BY id")
     return [dict(r) for r in rows]

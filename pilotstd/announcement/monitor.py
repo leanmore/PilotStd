@@ -54,6 +54,7 @@ class AnnounceMonitor:
         return elapsed
 
     def inc_api_call(self, success: bool = True) -> None:
+        """记录一次 API 调用，success=False 时计入失败次数。"""
         self.api_calls += 1
         if not success:
             self.api_failures += 1
@@ -63,6 +64,7 @@ class AnnounceMonitor:
         return int((time.time() - self._t0) * 1000)
 
     def summary(self) -> str:
+        """生成单行监控摘要：公告数/标准数/HTML+附件+OCR命中/API成功率/各阶段耗时。"""
         total = self.total_announcements
         if total == 0:
             return "公告: 无数据"

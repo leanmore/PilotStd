@@ -106,9 +106,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, SettingsConfigIOEngine.DEFAULT_GENERAL)
 
     @staticmethod
-    def deserialize_general(
-        data: dict[str, Any] | None, default: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def deserialize_general(data: dict[str, Any] | None, default: dict[str, Any] | None = None) -> dict[str, Any]:
         """反序列化通用设置；default 可覆盖 DEFAULT_GENERAL 中的特定键。"""
         base = dict(SettingsConfigIOEngine.DEFAULT_GENERAL)
         if isinstance(default, dict):
@@ -127,9 +125,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, SettingsConfigIOEngine.DEFAULT_APPEARANCE)
 
     @staticmethod
-    def deserialize_appearance(
-        data: dict[str, Any] | None, default: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def deserialize_appearance(data: dict[str, Any] | None, default: dict[str, Any] | None = None) -> dict[str, Any]:
         """反序列化外观设置。"""
         base = dict(SettingsConfigIOEngine.DEFAULT_APPEARANCE)
         if isinstance(default, dict):
@@ -148,9 +144,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, SettingsConfigIOEngine.DEFAULT_LIBRARY)
 
     @staticmethod
-    def deserialize_library(
-        data: dict[str, Any] | None, default: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def deserialize_library(data: dict[str, Any] | None, default: dict[str, Any] | None = None) -> dict[str, Any]:
         """反序列化资源库设置。"""
         base = dict(SettingsConfigIOEngine.DEFAULT_LIBRARY)
         if isinstance(default, dict):
@@ -169,9 +163,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, SettingsConfigIOEngine.DEFAULT_ADVANCED)
 
     @staticmethod
-    def deserialize_advanced(
-        data: dict[str, Any] | None, default: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def deserialize_advanced(data: dict[str, Any] | None, default: dict[str, Any] | None = None) -> dict[str, Any]:
         """反序列化高级设置。"""
         base = dict(SettingsConfigIOEngine.DEFAULT_ADVANCED)
         if isinstance(default, dict):

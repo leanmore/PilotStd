@@ -101,6 +101,7 @@ class LoggerManager:
             return
         if log_dir is None:
             log_dir = _get_log_dir()
+        # 绝对路径，防止后续 os.chdir 导致日志路径漂移
         self._log_dir = os.path.abspath(log_dir)
         os.makedirs(self._log_dir, exist_ok=True)
 
@@ -112,7 +113,7 @@ class LoggerManager:
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        # 控制台日志
+        # 控制台日志 — 同上格式，INFO 级别
         console_fmt = _TagFormatter(
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
@@ -126,13 +127,15 @@ class LoggerManager:
 
         # 文件 handler 通过 QueueListener 专用线程持有，消除 Windows os.rename 并发冲突
         file_handler = self._file_handler("app.log", file_fmt)
+        # Queue(-1) 无限队列确保高并发时不丢日志
         log_queue: Queue = Queue(-1)
         root.addHandler(logging.handlers.QueueHandler(log_queue))
         LoggerManager._listener = logging.handlers.QueueListener(log_queue, file_handler)
         LoggerManager._listener.start()
+        # 注册 atexit 钩子确保进程退出时 listener 优雅停止
         atexit.register(self._stop_listener)
 
-        # 抑制第三方库日志噪音
+        # 抑制第三方库日志噪音，避免日志文件被无意义信息淹没
         for noisy in ("urllib3", "requests", "charset_normalizer", "lxml", "PIL"):
             logging.getLogger(noisy).setLevel(logging.WARNING)
 
@@ -143,6 +146,7 @@ class LoggerManager:
 
     @staticmethod
     def get_logger(name: str) -> logging.Logger:
+        """获取指定名称的 logger，自动确保 LoggerManager 已初始化。"""
         if LoggerManager._instance is None:
             with LoggerManager._lock:
                 if LoggerManager._instance is None:
@@ -151,6 +155,7 @@ class LoggerManager:
 
     @staticmethod
     def set_level(level: int) -> None:
+        """设置根 logger 的日志级别（全局生效）。"""
         logging.getLogger().setLevel(level)
 
     # ---- 内部 ----
@@ -175,13 +180,17 @@ class LoggerManager:
         return True
 
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
+        """创建按大小轮转的文件 handler（256KB/1备份）。"""
         path = os.path.join(self._log_dir, filename)
+        # maxBytes=256KB：小文件便于 grep 和跨平台传输
+        # backupCount=1：只保留 1 个备份，总日志 ≤ 512KB
         h = logging.handlers.RotatingFileHandler(
             path,
             maxBytes=256 * 1024,
             backupCount=1,
             encoding="utf-8",
         )
+        # 文件通道 DEBUG 级别，保留完整调试信息
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h

@@ -26,8 +26,8 @@ class MiniBucketHandler:
     替代原 MiniBucketMixin，依赖通过 EngineCore 访问。
     """
 
-    _MINI_BUCKET_SIZE = 50
-    _MINI_BUCKET_STAGGER = 5
+    _MINI_BUCKET_SIZE = 50  # 每个小桶最多 50 条，控制单次查询粒度
+    _MINI_BUCKET_STAGGER = 5  # 小桶间错峰间隔（秒），防止惊群效应
 
     def __init__(
         self,
@@ -38,6 +38,8 @@ class MiniBucketHandler:
         self._core = core
         self._routing = routing
         self._single = single
+
+    # ── 小桶构建 ──
 
     def _build_mini_buckets(
         self,
@@ -50,6 +52,7 @@ class MiniBucketHandler:
 
         if weights and len(weights) == len(chain):
             weights = cast(list[int], weights)
+            # 检测冷却中的站点，将其权重重新分配给活跃站点
             cooled_sites: set[str] = set()
             if rotator:
                 for site in chain:
@@ -78,6 +81,7 @@ class MiniBucketHandler:
                 if site in cooled_sites:
                     continue
                 if i == len(chain) - 1:
+                    # 最后一个站点拿走所有剩余条目
                     target = len(bucket_items) - start
                 else:
                     target = round(len(bucket_items) * active_weights[i] / total_w)
@@ -104,6 +108,8 @@ class MiniBucketHandler:
             site = chain[(i // self._MINI_BUCKET_SIZE) % len(chain)]
             mini_buckets.append((site, mb))
         return mini_buckets
+
+    # ── 单条查询处理 ──
 
     def _process_single_query(
         self,
@@ -185,6 +191,8 @@ class MiniBucketHandler:
             if not skip_overflow:
                 overflow_items.append((idx, item))
 
+    # ── 小桶批量查询 ──
+
     def _run_mini_bucket_queries(
         self,
         mini_buckets: list,
@@ -201,8 +209,9 @@ class MiniBucketHandler:
         overflow_items: list = []
         for mb_idx, (assigned_site, mini) in enumerate(mini_buckets):
             if mb_idx > 0:
-                time.sleep(self._MINI_BUCKET_STAGGER)
+                time.sleep(self._MINI_BUCKET_STAGGER)  # 小桶间错峰，防惊群效应
 
+            # 冷却检测：分配站点冷却中时尝试回退，无回退则整桶溢出
             if rotator and rotator.get_cooldown_remaining(assigned_site) > 0:
                 fallback_site = None
                 for s in chain:

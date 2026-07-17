@@ -18,7 +18,11 @@ logger = logging.getLogger("pilotstd.ui")
 _MAX_FOLDER_DEPTH = 50
 
 
+# ── 文件清单导出 ──
+
+
 def _on_export_file_list(self) -> None:
+    """导出文件清单到 txt/csv 文件（可选是否包含完整路径）。"""
     path = self._get_selected_path()
     if not path:
         path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
@@ -44,7 +48,11 @@ def _on_export_file_list(self) -> None:
     self.status_changed.emit(f"文件名清单已保存: {save_path} ({len(lines)} 项)")
 
 
+# ── 文件夹树导出 ──
+
+
 def _on_export_folder_tree(self) -> None:
+    """导出文件夹树形层次结构到 txt 文件。"""
     path = self._get_selected_path()
     if not path:
         path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
@@ -60,7 +68,11 @@ def _on_export_folder_tree(self) -> None:
     self.status_changed.emit(f"文件夹层次已保存: {save_path} ({len(lines)} 行)")
 
 
+# ── 树形结构递归收集 ──
+
+
 def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str, depth: int = 0) -> None:
+    """递归收集文件夹树形结构（带深度保护，跳过隐藏和过期目录）。"""
     if depth > _MAX_FOLDER_DEPTH:
         lines.append(f"{prefix}... (超过最大深度 {_MAX_FOLDER_DEPTH}，已截断)")
         return
@@ -93,7 +105,11 @@ def _collect_folder_tree(self, root: str, lines: list[Any], prefix: str, depth: 
         self._collect_folder_tree(entry.path, lines, child_prefix, depth + 1)
 
 
+# ── 诊断报告导出 ──
+
+
 def _on_export_diag(self) -> None:
+    """导出诊断报告到日志文件：配置 + 工作区状态 + 运行日志。"""
     import platform
     from datetime import datetime
 

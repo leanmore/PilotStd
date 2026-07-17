@@ -15,6 +15,7 @@ from ..manager import get_manager_dep
 router = APIRouter(prefix="/api/system", tags=["system"])
 logger = logging.getLogger(__name__)
 
+# 镜像仓库地址常量
 IMAGE_REGISTRY = "ghcr.io/leanmore/pilotstd"
 IMAGE_LATEST = f"{IMAGE_REGISTRY}:latest"
 IMAGE_VERSIONED = f"{IMAGE_REGISTRY}:v{__version__}"
@@ -25,6 +26,7 @@ def _get_container_id() -> str:
     try:
         with open("/proc/self/cgroup") as f:
             for line in f:
+                # Docker 容器 cgroup 行包含 "docker" 或 "containerd" 关键字
                 if "docker" in line or "containerd" in line:
                     return line.strip().split("/")[-1][:12]
     except Exception as e:
@@ -34,6 +36,7 @@ def _get_container_id() -> str:
 
 def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     """执行 docker 命令，docker.sock 未挂载时提前报错。"""
+    # 未挂载 docker.sock 时提前报错，避免后续超时等待
     if not os.path.exists("/var/run/docker.sock"):
         raise RuntimeError("docker.sock 未挂载，无法执行容器管理操作")
     return subprocess.run(
@@ -49,6 +52,7 @@ async def get_version():
     """返回当前版本和容器信息。"""
     cid = ""
     try:
+        # 获取容器 ID，失败不影响版本号返回
         cid = _get_container_id()
     except Exception as e:
         logger.warning("获取容器 ID 失败: %s", e)
@@ -63,11 +67,13 @@ async def get_version():
 
 def _get_current_digest(cid: str) -> str:
     """获取容器当前镜像的 RepoDigest，失败返回空字符串。"""
+    # docker inspect 获取容器元数据 → 从中提取 Image ID
     inspect = _run_docker(["inspect", cid])
     info = json.loads(inspect.stdout)[0]
     old_image = info.get("Image", "")
     old_digest = ""
     try:
+        # 查询镜像的 RepoDigests（含 sha256 hash）
         img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
         old_digest = img_inspect.stdout.strip()
     except Exception as e:
@@ -77,6 +83,7 @@ def _get_current_digest(cid: str) -> str:
 
 def _pull_and_compare(old_digest: str) -> tuple[str, bool]:
     """拉取最新镜像并比对 digest，返回 (new_digest, needs_update)。"""
+    # docker pull 最新镜像，timeout=300 秒以适应慢速网络
     pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
     pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
     if pulled_layers:

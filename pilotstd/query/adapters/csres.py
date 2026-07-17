@@ -40,6 +40,7 @@ class CsresAdapter(BaseAdapter):
     _cool_lock = threading.Lock()
 
     def __init__(self, session: requests.Session | None = None):
+        """初始化工标网适配器，注入 requests session 并设置请求头。"""
         self._session = session or requests.Session()
         if not CsresAdapter._http_warned:
             logger.info("csres.com 不支持 HTTPS，查询内容可能被网络中间人窃听")
@@ -58,6 +59,7 @@ class CsresAdapter(BaseAdapter):
         self._rotator = None
 
     def set_rotator(self, rotator: Any) -> None:
+        """注入站点轮转器实例，用于冷却时联动通知 rotator。"""
         self._rotator = rotator
 
     def _is_locally_cooled(self) -> bool:
@@ -142,6 +144,7 @@ class CsresAdapter(BaseAdapter):
 
     @staticmethod
     def _parse_total_pages(html: str) -> int:
+        """从工标网搜索结果页 HTML 中解析总页数，0 表示无结果或解析失败。"""
         m = re.search(r"共找到(\d+)条", html)
         if not m or int(m.group(1)) == 0:
             return 0

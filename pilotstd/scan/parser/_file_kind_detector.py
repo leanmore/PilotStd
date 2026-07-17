@@ -8,6 +8,7 @@ class FileKindDetector:
 
     @staticmethod
     def detect(basename: str) -> str:
+        """从文件名中检测文件属性标签：扫描版/水印版/文本版，无匹配返回空字符串。"""
         for kw, label in [
             ("扫描版", "扫描版"),
             ("扫描件", "扫描版"),

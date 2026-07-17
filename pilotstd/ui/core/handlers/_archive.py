@@ -157,13 +157,14 @@ class ArchiveUIHandler:
             ),
             on_finished=self._make_normalize_finished(),
         )
-        self._normalize_worker = self._factory.create_normalize_worker(
-            self._parsed_results, callbacks
-        )
+        self._normalize_worker = self._factory.create_normalize_worker(self._parsed_results, callbacks)
         self._normalize_worker.start()
 
     def _make_normalize_finished(self) -> Callable[[], None]:
+        """返回规范化完成回调闭包（捕获 self 以在回调中访问 Handler 方法）。"""
+
         def on_finished() -> None:
+            """规范化完成：强制结束进度条、更新状态、记录任务、弹出阶段对话框。"""
             self._force_finish_progress()
             count = len(self._parsed_results)
             self._status_cb(_("normalize_complete").format(count))
@@ -176,6 +177,7 @@ class ArchiveUIHandler:
                     next_action=self.on_save_to_folder,
                     next_label=_("next_step_save"),
                 )
+
         return on_finished
 
     def on_normalize_batch_ready(self, batch: list[Any]) -> None:
@@ -287,9 +289,7 @@ class ArchiveUIHandler:
         self._merge_expire_from_source(root_dir)
         if not self._suppress_dialogs():
             # 纯逻辑：格式化跳过详情
-            skip_details = self._engine.format_skip_details(
-                self._archive_results, self._parsed_results
-            )
+            skip_details = self._engine.format_skip_details(self._archive_results, self._parsed_results)
             detail_text = ""
             if skip_details:
                 shown = skip_details[:20]

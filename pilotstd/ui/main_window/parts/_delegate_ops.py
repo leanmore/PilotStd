@@ -7,12 +7,18 @@ import logging
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 基础守卫 ──
+
+
 def _require_core(self) -> bool:
     """检查 _core 是否就绪，未就绪时记录警告并返回 False。"""
     if not hasattr(self, "_core") or self._core is None:
         logger.warning("_core 未就绪，已跳过操作")
         return False
     return True
+
+
+# ── 委托方法：将工具栏按钮操作转发到对应 Handler ──
 
 
 def _on_check_announcements(self) -> None:

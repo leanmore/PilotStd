@@ -20,18 +20,24 @@ class StandardFileHandler(FileSystemEventHandler):
         super().__init__()
         self.callback = callback
         self.delay = delay_seconds
+        # 待处理文件路径 → 首次检测时间，用于去重
         self._pending: dict[str, float] = {}
         self._lock = threading.Lock()
 
+    # ── watchdog 事件回调：统一委托给 _handle ──
+    # on_created / on_modified / on_moved 三者仅处理文件事件，目录事件忽略
     def on_created(self, event):
+        """文件创建事件 → 委托 _handle 处理。"""
         if not event.is_directory:
             self._handle(event.src_path)
 
     def on_modified(self, event):
+        """文件修改事件 → 委托 _handle 处理。"""
         if not event.is_directory:
             self._handle(event.src_path)
 
     def on_moved(self, event):
+        """文件移动事件 → 委托 _handle 处理（使用目标路径）。"""
         if not event.is_directory:
             self._handle(event.dest_path)
 
@@ -46,6 +52,7 @@ class StandardFileHandler(FileSystemEventHandler):
             self._pending[path] = time.time()
 
         def delayed():
+            """延迟后确认文件稳定存在，触发回调处理。"""
             time.sleep(self.delay)
             with self._lock:
                 self._pending.pop(path, None)
@@ -58,6 +65,7 @@ class StandardFileHandler(FileSystemEventHandler):
         t.start()
 
     def _should_handle(self, path: str) -> bool:
+        """根据扩展名白名单和忽略模式判断文件是否应触发回调。"""
         basename = os.path.basename(path)
         if basename.startswith("."):
             return False

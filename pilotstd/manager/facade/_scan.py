@@ -14,14 +14,17 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
+# ScanHandler — 扫描处理器，封装所有扫描方法，替代原 ScanMixin
 
 
 class ScanHandler:
     """扫描处理器 — 封装所有扫描方法，替代原 ScanMixin。"""
 
     def __init__(self, core: "ManagerCore"):
+        """初始化扫描处理器，持有 ManagerCore 引用。"""
         self._core = core
 
+    # scan_directory — 扫描目录，识别文件名中的标准号
     def scan_directory(self, root_path: str) -> list[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。"""
         result = self._core.scanner.scan([root_path])
@@ -65,6 +68,7 @@ class ScanHandler:
 
         return parsed
 
+    # scan_directory_stream — 流式扫描目录（线程安全）
     def scan_directory_stream(
         self,
         root_path: str,
@@ -124,6 +128,7 @@ class ScanHandler:
 
         return parsed
 
+    # scan_and_index — 定时任务专用：扫描目录 → 解析 → 写入 file_index
     def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。"""
         try:

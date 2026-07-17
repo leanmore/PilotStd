@@ -27,6 +27,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     _qt_fatal_seen = False
 
     def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str) -> None:
+        """Qt 消息处理器：捕获 C++ 层致命/严重错误并写入 stderr。"""
         nonlocal _qt_fatal_seen
         level_map = {
             QtMsgType.QtDebugMsg: "DEBUG",
@@ -58,6 +59,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
 
     # Qt 销毁前关闭 LogHandler，释放对 QTextEdit 的引用
     def _close_log_handlers() -> None:
+        """应用退出前关闭所有 LogHandler，释放 QTextEdit 引用。"""
         from ...workers._common import LogHandler
 
         for h in logging.getLogger().handlers:

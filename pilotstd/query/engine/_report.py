@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 # ===== 模块级辅助函数 =====
 
+# ── 桶统计 ──
+
 
 def _log_bucket_quota(bucket_times: dict, site_usage: dict, _bucket_t0: float) -> None:
     """输出桶统计和站点配额日志。"""
@@ -35,6 +37,9 @@ def _log_bucket_quota(bucket_times: dict, site_usage: dict, _bucket_t0: float) -
     logger.info("[TIMELINE] 桶数=%d 并发耗时=%.1f秒", len(bucket_times), time.time() - _bucket_t0)
     for site in sorted(site_usage.keys()):
         logger.info("[QUOTA] 站点=%s 已用=%d", site, site_usage[site])
+
+
+# ── 溢出统计 ──
 
 
 def _log_overflow_stats(
@@ -58,12 +63,18 @@ def _log_overflow_stats(
         logger.info("[SCORE] 站点=%s %s", site, score_dist)
 
 
+# ── 条目详情 ──
+
+
 def _log_item_details(item_chains: dict, pending_reasons: list) -> None:
     """输出条目链追踪和待确认归因日志。"""
     for idx in sorted(item_chains.keys())[:20]:
         logger.info("[CHAIN] #%d %s", idx, "→".join(item_chains[idx]))
     for idx, chain_str in pending_reasons[:10]:
         logger.info("[PENDING] #%d 链=%s", idx, chain_str)
+
+
+# ── 漏斗汇总 ──
 
 
 def _log_funnel(
@@ -99,8 +110,8 @@ class ReportHandler:
     依赖通过 EngineCore 注入，提供批量查询摘要报告功能。
     """
 
-    _AHBZ_OVERFLOW_QUOTA: int = 170
-    _NJBZ_OVERFLOW_QUOTA: int = 200
+    _AHBZ_OVERFLOW_QUOTA: int = 170  # ahbz 溢出配额
+    _NJBZ_OVERFLOW_QUOTA: int = 200  # njbz365 溢出配额
 
     def __init__(self, core: "EngineCore") -> None:
         self._core = core

@@ -1,4 +1,6 @@
 # pilotstd/ui/workers/query.py — QueryWorker，从 workers.py 拆分
+#
+# 后台查询线程：调用业务门面的批量查询方法，通过信号通知 UI。
 
 import logging
 import time as _time
@@ -9,6 +11,9 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, _pct
 
 logger = logging.getLogger(__name__)
+
+
+# ── QueryWorker：查询线程 ──
 
 
 class QueryWorker(QThread):
@@ -41,6 +46,7 @@ class QueryWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行流式查询，逐条发射结果并批量发射。"""
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
@@ -49,6 +55,7 @@ class QueryWorker(QThread):
             _sent_indices: set[int] = set()
 
             def on_result(idx: int, result: Any) -> None:
+                """单条结果就绪时发射信号 + 累计批次。"""
                 nonlocal _result_batch, _last_flush, _sent_indices
                 if self._stopped:
                     return
@@ -63,6 +70,7 @@ class QueryWorker(QThread):
                     _last_flush = now
 
             def on_progress(current: int, total: int) -> None:
+                """更新查询进度，每 15 秒输出阶段日志。"""
                 nonlocal _last_log
                 if self._stopped:
                     return

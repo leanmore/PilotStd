@@ -3,6 +3,7 @@
 
 薄包装层：UI 构建 + 文件保存 + 弹窗管理。纯逻辑委托给 QuerySummaryFlowEngine。
 """
+# SECTION_META 控制分栏显示顺序和图标，key → (图标, i18n键名)
 
 from __future__ import annotations
 
@@ -37,7 +38,10 @@ from .query_summary_flow_engine import QuerySummaryFlowEngine
 
 logger = logging.getLogger(__name__)
 
+# ── 分栏元数据 ──
+
 SECTION_META = {
+    # 分栏元数据：key → (图标, i18n键名)
     "organize": ("📁", "section_organize"),
     "normalize": ("📝", "section_normalize"),
     "expire": ("🗑️", "section_expire"),
@@ -82,6 +86,7 @@ class QuerySummaryHandler:
         self._summary_container_layout: QVBoxLayout | None = None
         self._summary_total_label: QLabel | None = None
 
+    # build_buckets — 将解析结果按 next_action 分桶
     def build_buckets(self) -> dict[str, list[Any]]:
         """将 _parsed_results 按 next_action 分组。委托 Engine。"""
         return self._engine.build_buckets(self._parsed_results)
@@ -143,6 +148,8 @@ class QuerySummaryHandler:
 
         return frame
 
+    # ── pending 原因提取 ──
+
     def _get_pending_reason(self, item: Any) -> str:
         """获取 pending 条目的冲突原因。委托 Engine。"""
         status = getattr(item, "stage_status", "") or ""
@@ -152,8 +159,11 @@ class QuerySummaryHandler:
         ms = getattr(item, "match_status", "") or ""
         return self._engine.get_pending_reason(ms)
 
+    # ── 数据保存与 UI 更新 ──
+
+    # save_csv — 将条目列表导出为 CSV 文件，含完整标准信息列
     def save_csv(self, path: str, items: list[Any]) -> None:
-        """保存条目列表为 CSV。"""
+        """保存条目列表为 CSV 文件。"""
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(
@@ -236,7 +246,9 @@ class QuerySummaryHandler:
         self.remove_section_widget(key)
         self._status_cb(tr("msg_manual_saved").format(count=len(items)))
 
-    def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
+    # ── 汇总弹窗构建与销毁 ──
+
+def build_summary_dialog(self, buckets: dict, total: int, has_download: bool) -> QDialog:
         """构建分栏式汇总弹窗。"""
         section_order = ["organize", "normalize", "expire", "pending", "manual_download", "download"]
         self._summary_sections = {}
@@ -285,6 +297,7 @@ class QuerySummaryHandler:
         download_btn.setEnabled(has_download)
 
         def on_download_clicked() -> None:
+            """关闭汇总弹窗并触发下载流程。"""
             dlg.accept()
             if self._on_download_cb:
                 self._on_download_cb()

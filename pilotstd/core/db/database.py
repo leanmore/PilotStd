@@ -18,11 +18,13 @@ class Database:
     """SQLite 数据库管理器，启用 WAL 模式，支持版本迁移，线程本地连接复用。"""
 
     def __init__(self, db_path: str) -> None:
+        """打开/创建 SQLite 数据库：启用 WAL 模式 + 外键 + 自动迁移。"""
         self._db_path = os.path.abspath(db_path)
         self._write_lock = threading.Lock()
         self._local = threading.local()
         self._all_conns: list[Any] = []
         os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
+        # 初始化 pragma → 执行迁移，顺序不可颠倒
         self._init_pragma()
         self._run_migrations()
 
@@ -34,6 +36,7 @@ class Database:
         return False
 
     def _init_pragma(self) -> None:
+        """初始化数据库 pragma：WAL 模式（降级 DELETE）+ 外键强制。"""
         try:
             conn = sqlite3.connect(self._db_path)
             conn.text_factory = str
@@ -55,6 +58,7 @@ class Database:
         STALE_LOCK_SECONDS = 30
         lock_path = self._db_path + ".migration_lock"
         start = time.time()
+        # 轮询获取文件锁，超时或僵死锁自动清理
         while True:
             try:
                 fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -92,6 +96,7 @@ class Database:
             "CREATE TABLE IF NOT EXISTS _schema_version "
             "(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL DEFAULT '')"
         )
+        # 检查并补齐 checksum 列（兼容旧库）
         cols = {r["name"] for r in self.fetchall("PRAGMA table_info(_schema_version)")}
         if "checksum" not in cols:
             self.execute("ALTER TABLE _schema_version ADD COLUMN checksum TEXT NOT NULL DEFAULT ''")
@@ -116,6 +121,7 @@ class Database:
         """
         logr = logging.getLogger("pilotstd.db")
         current = self.schema_version
+        # 遍历已执行的迁移，逐一校验 checksum
         for v in sorted(MIGRATIONS.keys()):
             if v > current:
                 continue
@@ -147,6 +153,7 @@ class Database:
             return 0
 
     def _run_migrations(self) -> None:
+        """检查 schema 版本并按序执行未完成的迁移（带备份和 checksum 校验）。"""
         current = self.schema_version
         target = CURRENT_SCHEMA_VERSION
         if current >= target:
@@ -159,6 +166,7 @@ class Database:
             raise DatabaseError("无法获取迁移锁，另一个进程可能正在进行迁移")
 
         try:
+            # 非空库迁移前创建完整备份
             if current > 0:
                 backup_path = os.path.join(
                     os.path.dirname(self._db_path),
@@ -172,6 +180,7 @@ class Database:
             if current > 0:
                 self._verify_migration_checksums()
 
+            # 按版本号顺序执行所有未完成的迁移
             for v in range(current + 1, target + 1):
                 if v in MIGRATIONS:
                     logr.info("开始执行迁移 v%d...", v)
@@ -198,9 +207,11 @@ class Database:
             self._release_migration_lock()
 
     def _get_conn(self) -> sqlite3.Connection:
+        """获取当前线程的数据库连接（线程本地复用，Row 工厂）。"""
         if not hasattr(self._local, "conn") or self._local.conn is None:
             conn = sqlite3.connect(self._db_path)
             conn.text_factory = str
+            # 设置忙等待超时 + 外键强制 + Row 工厂
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
@@ -209,6 +220,7 @@ class Database:
         return self._local.conn  # type: ignore[no-any-return]
 
     def connect(self) -> sqlite3.Connection:
+        """创建独立的 SQLite 连接（不缓存，调用方负责关闭）。"""
         conn = sqlite3.connect(self._db_path)
         conn.text_factory = str
         conn.execute("PRAGMA busy_timeout=5000")
@@ -216,7 +228,9 @@ class Database:
         conn.row_factory = sqlite3.Row
         return conn
 
+    # 写操作加写锁，保证线程安全，异常自动回滚
     def execute(self, sql: str, params: Sequence[Any] = ()) -> sqlite3.Cursor:
+        """执行写 SQL（INSERT/UPDATE/DELETE），自动提交，异常时回滚。"""
         with self._write_lock:
             conn = self._get_conn()
             try:
@@ -232,6 +246,7 @@ class Database:
                 raise DatabaseError("数据库操作失败") from e
 
     def executemany(self, sql: str, seq: Sequence[Any]) -> sqlite3.Cursor:
+        """批量执行写 SQL，自动提交，异常时回滚。"""
         with self._write_lock:
             conn = self._get_conn()
             try:
@@ -244,6 +259,7 @@ class Database:
                 raise DatabaseError("数据库批量操作失败") from e
 
     def fetchall(self, sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]:
+        """执行查询并返回全部结果（每行转 dict）。"""
         conn = self._get_conn()
         try:
             rows = conn.execute(sql, params).fetchall()
@@ -253,6 +269,7 @@ class Database:
             raise DatabaseError("数据库查询失败") from e
 
     def fetchone(self, sql: str, params: Sequence[Any] = ()) -> Optional[dict[str, Any]]:
+        """执行查询并返回第一条结果（转 dict），无结果返回 None。"""
         rows = self.fetchall(sql, params)
         return rows[0] if rows else None
 
@@ -261,9 +278,11 @@ class Database:
         return self._db_path
 
     def backup(self, backup_path: str | None = None) -> str:
+        """备份数据库到指定路径（默认同目录 .bak）。返回备份路径。"""
         if backup_path is None:
             backup_path = self._db_path + ".bak"
         try:
+            # 确保备份目录存在
             os.makedirs(os.path.dirname(backup_path), exist_ok=True)
             backup_conn = sqlite3.connect(backup_path)
             backup_conn.text_factory = str
@@ -282,6 +301,7 @@ class Database:
             return ""
 
     def close(self) -> None:
+        """关闭当前线程的数据库连接。"""
         if hasattr(self._local, "conn") and self._local.conn is not None:
             try:
                 self._local.conn.close()
@@ -290,6 +310,8 @@ class Database:
             self._local.conn = None
 
     def close_all(self) -> None:
+        """关闭所有已知的数据库连接。"""
+        # 遍历关闭所有已知连接
         for conn in self._all_conns:
             try:
                 conn.close()
@@ -299,6 +321,7 @@ class Database:
         if hasattr(self._local, "conn"):
             self._local.conn = None
 
+    # UPSERT 模式：首次插入初始值，后续原子累加
     def update_adapter_stats(
         self,
         adapter_name: str,
@@ -307,7 +330,9 @@ class Database:
         cooldown_triggered: bool = False,
         cooldown_reason: str = "",
     ) -> None:
+        """更新适配器统计：查询次数、成功率、冷却次数等（静默失败）。"""
         try:
+            # UPSERT: INSERT OR REPLACE 配合 ON CONFLICT DO UPDATE 实现原子累加
             self.execute(
                 "INSERT INTO adapter_state "
                 "(adapter_name, total_queries, successful_queries, "
@@ -345,6 +370,7 @@ class Database:
             pass
 
     def get_adapter_success_rate(self, adapter_name: str) -> float:
+        """查询适配器成功率（0~1），无数据返回 -1.0。"""
         try:
             row = self.fetchone(
                 "SELECT total_queries, successful_queries FROM adapter_state WHERE adapter_name = ?",
@@ -356,7 +382,9 @@ class Database:
             pass
         return -1.0
 
+    # 聚合所有适配器统计，计算成功率和平均响应时间
     def get_adapter_stats_all(self) -> list[dict[str, Any]]:
+        """查询所有适配器的统计信息（成功率、平均响应时间等）。"""
         try:
             rows = self.fetchall(
                 "SELECT adapter_name, total_queries, successful_queries, "

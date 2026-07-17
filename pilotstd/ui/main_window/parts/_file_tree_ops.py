@@ -18,7 +18,11 @@ _MAX_VISIBLE_ITEMS = 500
 _TREE_NODE_KEY = Qt.ItemDataRole.UserRole + 1  # 节点类型标记（用于 _retranslate_ui 纯文本更新）
 
 
+# ── 快速访问填充 ──
+
+
 def _populate_quick_access(self) -> None:
+    """填充文件树快速访问节点：桌面、文档、下载、此电脑。"""
     self.file_tree.clear()
     self._drive_items: dict[str, QTreeWidgetItem] = {}
     desktop_path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
@@ -43,7 +47,11 @@ def _populate_quick_access(self) -> None:
     self._drive_thread.start()
 
 
+# ── 磁盘驱动器就绪回调 ──
+
+
 def _on_drives_ready(self, drives: list[Any]) -> None:
+    """后台线程返回磁盘列表后，填充此电脑子节点。"""
     # 防御：树被 _retranslate_file_tree 重建后，旧线程回调可能操作无效对象
     if not hasattr(self, "this_pc") or self.this_pc is None:
         return
@@ -60,7 +68,11 @@ def _on_drives_ready(self, drives: list[Any]) -> None:
         self._drive_items[path] = item
 
 
+# ── 节点创建 ──
+
+
 def _make_item(self, name: str, path: str) -> QTreeWidgetItem:
+    """创建普通目录树节点（含文件夹图标和展开指示器）。"""
     item = QTreeWidgetItem([name])
     item.setData(0, Qt.ItemDataRole.UserRole, path)
     item.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DirIcon))
@@ -69,7 +81,11 @@ def _make_item(self, name: str, path: str) -> QTreeWidgetItem:
     return item
 
 
+# ── 磁盘节点创建 ──
+
+
 def _make_drive_item(self, name: str, path: str) -> QTreeWidgetItem:
+    """创建磁盘驱动器树节点（含硬盘图标和展开指示器）。"""
     item = QTreeWidgetItem([name])
     item.setData(0, Qt.ItemDataRole.UserRole, path)
     item.setIcon(0, self.style().standardIcon(self.style().StandardPixmap.SP_DriveHDIcon))
@@ -77,7 +93,11 @@ def _make_drive_item(self, name: str, path: str) -> QTreeWidgetItem:
     return item
 
 
+# ── 子节点懒加载 ──
+
+
 def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
+    """展开目录节点时懒加载子目录和文件列表。"""
     parent_path = parent_item.data(0, Qt.ItemDataRole.UserRole)
     if not parent_path or not os.path.isdir(parent_path):
         return
@@ -142,7 +162,11 @@ def _populate_children(self, parent_item: QTreeWidgetItem) -> None:
     logger.debug("文件树展开完成: %s, 展示 %d/%d 项", parent_path, added, total)
 
 
+# ── 树节点展开事件 ──
+
+
 def _on_tree_item_expanded(self, item: QTreeWidgetItem) -> None:
+    """目录节点展开时触发懒加载。"""
     first_child = item.child(0)
     if item.childCount() == 1 and first_child is not None and first_child.data(0, Qt.ItemDataRole.UserRole) is None:
         item.takeChildren()
@@ -150,7 +174,11 @@ def _on_tree_item_expanded(self, item: QTreeWidgetItem) -> None:
         self._populate_children(item)
 
 
+# ── 文件树右键菜单 ──
+
+
 def _on_file_tree_context_menu(self, pos: Any) -> None:
+    """文件树右键菜单：导入工作区选项。"""
     item = self.file_tree.itemAt(pos)
     if not item:
         return
@@ -166,12 +194,17 @@ def _on_file_tree_context_menu(self, pos: Any) -> None:
         self._run_scan(path)
 
 
+# ── 文件树导航跳转 ──
+
+
 def _navigate_to(self, path: str) -> None:
+    """根据路径在文件树中展开并定位到目标节点。"""
     path = os.path.normpath(path)
     if not os.path.exists(path):
         return
 
     def _is_ancestor(ancestor: str, descendant: str) -> bool:
+        """判断 ancestor 是否为 descendant 的祖先目录。"""
         if descendant == ancestor:
             return True
         ancestor = ancestor.rstrip(os.sep)
@@ -210,6 +243,9 @@ def _navigate_to(self, path: str) -> None:
         current = found
     self.file_tree.setCurrentItem(current)
     self.file_tree.scrollToItem(current)
+
+
+# ── 文件树文本刷新（语言切换）──
 
 
 def _retranslate_file_tree(self) -> None:

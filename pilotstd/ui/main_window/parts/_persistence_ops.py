@@ -16,6 +16,9 @@ _DEFAULT_COLUMN_WIDTH = 100
 _ENGINE = PersistenceFlowEngine()
 
 
+# ── 窗口几何状态持久化 ──
+
+
 def _restore_window_geometry(self) -> None:
     """代理 → PersistenceHandler（在 _core 就绪前直接操作配置）。"""
     if hasattr(self, "_core") and self._core is not None:
@@ -35,6 +38,9 @@ def _save_window_geometry(self) -> None:
         data = _ENGINE.serialize_window_geometry(g.x(), g.y(), g.width(), g.height())
         self._config.set("appearance.window_geometry", data)
         self._config.save()
+
+
+# ── 分割器状态持久化 ──
 
 
 def _save_splitter_sizes(self) -> None:
@@ -62,14 +68,13 @@ def _restore_splitter_sizes(self) -> None:
     else:
         sizes = self._config.get("appearance.main_splitter")
         if hasattr(self, "_main_splitter"):
-            self._main_splitter.setSizes(
-                _ENGINE.deserialize_splitter_sizes(sizes, self._main_splitter.sizes())
-            )
+            self._main_splitter.setSizes(_ENGINE.deserialize_splitter_sizes(sizes, self._main_splitter.sizes()))
         sizes = self._config.get("appearance.right_splitter")
         if hasattr(self, "_right_splitter"):
-            self._right_splitter.setSizes(
-                _ENGINE.deserialize_splitter_sizes(sizes, self._right_splitter.sizes())
-            )
+            self._right_splitter.setSizes(_ENGINE.deserialize_splitter_sizes(sizes, self._right_splitter.sizes()))
+
+
+# ── 排序状态持久化 ──
 
 
 def _save_sort_state(self) -> None:
@@ -97,6 +102,9 @@ def _restore_sort_state(self) -> None:
                 header.restoreState(QByteArray(state_bytes))
 
 
+# ── 列宽持久化 ──
+
+
 def _save_column_widths(self) -> None:
     """代理 → PersistenceHandler。"""
     if hasattr(self, "_core") and self._core is not None:
@@ -120,6 +128,9 @@ def _restore_column_widths(self) -> None:
         for c, w in enumerate(result):
             if w > 0:
                 self.work_table.setColumnWidth(c, w)
+
+
+# ── 项目文件操作 ──
 
 
 def _on_open_project(self) -> None:

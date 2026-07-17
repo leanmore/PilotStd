@@ -17,11 +17,14 @@ class FeishuChannel(NotificationChannel):
         self._url = webhook_url
 
     def send(self, message: NotificationMessage) -> bool:
+        """发送交互式卡片通知到飞书群。"""
         if not self._url:
             return False
         try:
+            # 消息级别映射为飞书卡片 header 颜色
             color_map = {"info": "green", "warning": "yellow", "error": "red"}
             color = color_map.get(message.level, "green")
+            # 飞书交互式卡片格式：header + markdown 正文
             content = [
                 [
                     {"tag": "text", "text": message.body},
@@ -47,6 +50,7 @@ class FeishuChannel(NotificationChannel):
             with urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read())
+                    # 飞书返回 code=0 表示成功
                     if data.get("code") == 0:
                         return True
                     logger.warning("飞书通知失败: %s", data.get("msg", ""))
@@ -58,4 +62,5 @@ class FeishuChannel(NotificationChannel):
 
     @staticmethod
     def validate_config(config: dict) -> bool:
+        """飞书配置只需 webhook_url。"""
         return bool(config.get("webhook_url"))

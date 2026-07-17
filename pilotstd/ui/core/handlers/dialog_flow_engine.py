@@ -50,9 +50,7 @@ class DialogFlowEngine:
     # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
-    def validate_task_params(
-        label: str, total: int, completed: int, failed: int = 0
-    ) -> dict[str, Any]:
+    def validate_task_params(label: str, total: int, completed: int, failed: int = 0) -> dict[str, Any]:
         """校验任务注册参数并返回标准化结果。
 
         Args:
@@ -84,9 +82,7 @@ class DialogFlowEngine:
             errors.append(f"failed 无效: {failed}")
 
         type_name = (
-            DialogFlowEngine.get_task_type_name(label)
-            if isinstance(label, str)
-            else DialogFlowEngine.DEFAULT_TASK_TYPE
+            DialogFlowEngine.get_task_type_name(label) if isinstance(label, str) else DialogFlowEngine.DEFAULT_TASK_TYPE
         )
 
         return {

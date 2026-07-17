@@ -77,6 +77,7 @@ class NotificationManager(MessageBuildersMixin):
             )
 
     def _init_channels(self) -> None:
+        """从 user_credentials 表加载各渠道配置并初始化渠道实例。"""
         creds: dict[str, dict[str, str]] = {}
         if self._cred_helper:
             creds = self._cred_helper.get_all(self._user_id)
@@ -229,7 +230,7 @@ class NotificationManager(MessageBuildersMixin):
             self.aggregator.shutdown()
 
     def _init_event_builders(self) -> None:
-        """初始化事件构建器映射表"""
+        """初始化事件类型 → 消息构建函数的映射表。"""
         self._EVENT_BUILDERS = {
             "archive_complete": self._build_archive_complete_message,
             "standard_status_changed": self._build_standard_status_changed_message,
@@ -251,7 +252,7 @@ class NotificationManager(MessageBuildersMixin):
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
-        """根据事件类型构建通知消息（字典分发）"""
+        """根据事件类型查找构建器生成通知消息，找不到则用兜底构建器。"""
         builder = self._EVENT_BUILDERS.get(event_type)
         if builder is not None:
             return builder(data)
@@ -266,6 +267,7 @@ class NotificationManager(MessageBuildersMixin):
         error_msg: str,
         sent_at: str,
     ) -> None:
+        """写入通知发送日志到 notification_log 表（静默失败）。"""
         try:
             self._db.execute(
                 "INSERT INTO notification_log (event_type, channel, title, body, "
@@ -289,7 +291,7 @@ class NotificationManager(MessageBuildersMixin):
             logger.warning("通知日志写入失败: %s", e)
 
     def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
-        """在独立线程中向 WebSocket 连接广播通知。"""
+        """通过独立线程向 WebSocket 连接广播通知消息（非阻塞）。"""
         if self._ws_broadcast is None:
             return
 

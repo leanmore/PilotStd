@@ -6,6 +6,8 @@ from enum import Enum
 
 
 class TaskType(Enum):
+    """任务类型枚举：扫描、查询、下载、归档、过期处理。"""
+
     SCAN = "scan"
     QUERY = "query"
     DOWNLOAD = "download"
@@ -14,6 +16,8 @@ class TaskType(Enum):
 
 
 class TaskStatus(Enum):
+    """任务状态枚举：待处理、运行中、已暂停、已完成、失败、已取消。"""
+
     PENDING = "pending"
     RUNNING = "running"
     PAUSED = "paused"

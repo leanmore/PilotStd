@@ -21,36 +21,42 @@ __all__ = [
 
 # 适配器懒加载（避免启动时加载 requests/bs4/lxml）
 def _get_csres_adapter() -> Type[Any]:
+    """懒加载工标网适配器（CsresAdapter）。"""
     from .adapters.csres import CsresAdapter
 
     return CsresAdapter
 
 
 def _get_std_gov_adapter() -> Type[Any]:
+    """懒加载国家标准公开适配器（StdGovAdapter）。"""
     from .adapters.std_gov import StdGovAdapter
 
     return StdGovAdapter
 
 
 def _get_njbz365_adapter() -> Type[Any]:
+    """懒加载南京标准网适配器（Njbz365Adapter）。"""
     from .adapters.njbz365 import Njbz365Adapter
 
     return Njbz365Adapter
 
 
 def _get_hbba_adapter() -> Type[Any]:
+    """懒加载行业标准适配器（HbbaAdapter）。"""
     from .adapters.hbba import HbbaAdapter
 
     return HbbaAdapter
 
 
 def _get_iso_gov_adapter() -> Type[Any]:
+    """懒加载国际标准适配器（IsoGovAdapter）。"""
     from .adapters.iso_gov import IsoGovAdapter
 
     return IsoGovAdapter
 
 
 def _get_mock_adapter() -> Optional[Type[Any]]:
+    """懒加载 mock 适配器，供测试使用。未安装时返回 None。"""
     try:
         from .adapters.mock import MockQueryAdapter
 

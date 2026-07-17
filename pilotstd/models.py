@@ -84,14 +84,17 @@ class ScanResult:
     """扫描结果容器"""
 
     def __init__(self) -> None:
+        """初始化扫描结果容器，创建空的文件列表和统计。"""
         self.files: List[FileInfo] = []
         self.warnings: List[str] = []
         self.skipped_dirs: List[str] = []  # 被关键词排除的目录路径（后续原样归档）
         self.stats = ScanStats()
 
     def add_file(self, file: FileInfo) -> None:
+        """添加一个文件到扫描结果，同时更新计数统计。"""
         self.files.append(file)
         self.stats.total += 1
 
     def add_warning(self, msg: str) -> None:
+        """添加一条警告信息到扫描结果。"""
         self.warnings.append(msg)

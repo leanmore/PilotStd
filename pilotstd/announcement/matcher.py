@@ -45,6 +45,7 @@ class AnnouncementMatcher:
         for item in items:
             self._process_item(item, source_site, now, log_rows, cache_rows, result)
 
+        # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
             self._bulk_insert_records(log_rows)
         if cache_rows:
@@ -66,6 +67,7 @@ class AnnouncementMatcher:
         """
         from collections import defaultdict
 
+        # 按公告号分组，同公告条目汇聚以便统一元数据
         groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for item in items:
             anno = item.get("announce_no", "")
@@ -87,7 +89,7 @@ class AnnouncementMatcher:
                 if t:
                     best_title = t
                     break
-            # 实际条目数
+            # 实际条目数（非全局去重数，仅表示同公告下条目数量）
             total = len(group)
 
             for it in group:
@@ -100,6 +102,7 @@ class AnnouncementMatcher:
         return items
 
     def _process_item(self, item, source_site, now, log_rows, cache_rows, result):
+        """逐条处理公告明细：解析标准编号 → 查 file_index → 命中则写缓存和日志。"""
         std_code = item.get("std_code", "")
         replaces_code = item.get("replaces_code", "")
         pid = item.get("_pid", "")
@@ -114,6 +117,7 @@ class AnnouncementMatcher:
         matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
         match_type = "new"
 
+        # 直接匹配失败时，用 replaces_code 尝试替代号匹配
         if not matches and replaces_code:
             replaced_parsed = self._parse_std_code(replaces_code)
             if replaced_parsed:
@@ -173,11 +177,13 @@ class AnnouncementMatcher:
         now,
         cache_rows,
     ) -> bool:
+        """构建公告缓存行：根据实施日期判定状态（现行/即将实施/被代替），写入缓存列表。"""
         std_number = f"{fi_row['logical_code']} {fi_row['number']}-{fi_row['year']}"
         today = datetime.now().date()
         implementation_date = item.get("implementation_date", "")
         publish_date = item.get("publish_date", "")
 
+        # 状态判定优先级：被代替 > 即将实施 > 现行
         if match_type == "replaced":
             status = "被代替"
         elif implementation_date:
@@ -209,6 +215,8 @@ class AnnouncementMatcher:
         return True
 
     def _get_complete_pids(self, source_site: str) -> Set[str]:
+        """返回已完全解析的公告 PID 集合（所有条目 std_name 均非空）。"""
+        # HAVING COUNT(*) = COUNT(std_name) 确保该公告下所有条目都有名称
         cursor = self._db.execute(
             "SELECT pid FROM announcement_record "
             "WHERE source_site=? "
@@ -222,8 +230,10 @@ class AnnouncementMatcher:
     _BATCH_SIZE = 50
 
     def _bulk_insert_records(self, rows: list[tuple[Any, ...]]) -> None:
+        """批量插入公告记录到 announcement_record 表，按 _BATCH_SIZE 分批。"""
         if not rows:
             return
+        # 分批插入：避免单条 SQL 过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?)" for _ in batch)
@@ -237,8 +247,10 @@ class AnnouncementMatcher:
             )
 
     def _bulk_upsert_cache(self, rows: list[tuple[Any, ...]]) -> None:
+        """批量 upsert 公告缓存到 announcement_match 表，按 _BATCH_SIZE 分批。"""
         if not rows:
             return
+        # 用 INSERT OR REPLACE 实现幂等 upsert，以 standard_number 为主键
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?)" for _ in batch)

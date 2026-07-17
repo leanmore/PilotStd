@@ -1,5 +1,7 @@
 # pilotstd/ui/pending_query_dialog.py
 # 待确认二次查询对话框 — 从 main_window.py 提取
+#
+# 提供站点选择、冷却等待、批量查询功能。
 
 import logging
 from typing import Any, Optional
@@ -24,6 +26,9 @@ from .workers import QueryWorker
 logger = logging.getLogger(__name__)
 
 
+# ── PendingQueryDialog：待确认查询主对话框 ──
+
+
 class PendingQueryDialog(QDialog):
     """待确认二次查询对话框：选择网站/本地数据库、等待冷却、执行查询。"""
 
@@ -46,6 +51,8 @@ class PendingQueryDialog(QDialog):
 
         self._connect_signals_and_timer(cancel_btn)
 
+        # ── 初始化字段 ──
+
     def _init_fields(self, manager: Any, parsed_list: Any, parent: Any) -> None:
         """基类构造 + 成员变量初始化。"""
         super().__init__(parent)
@@ -56,6 +63,8 @@ class PendingQueryDialog(QDialog):
         self._worker: Optional[QThread] = None
         self._countdown_active = False
         self._has_local_db = self._check_local_db_available()
+
+    # ── UI 构建 ──
 
     def _build_info_label(self) -> QLabel:
         """创建信息栏 QLabel。"""
@@ -135,15 +144,20 @@ class PendingQueryDialog(QDialog):
         self._refresh_timer.start(1000)
         self._refresh_cooldown()
 
+    # ── 生命周期 ──
+
     def reject(self) -> None:
+        """取消对话框：清理 Worker + 定时器后关闭。"""
         self._cleanup()
         super().reject()
 
     def closeEvent(self, event: Any) -> None:
+        """关闭窗口事件：清理后台资源。"""
         self._cleanup()
         super().closeEvent(event)
 
     def _cleanup(self) -> None:
+        """停止定时器和后台 Worker 线程。"""
         self._refresh_timer.stop()
         if self._worker and self._worker.isRunning():
             self._worker.stop()
@@ -151,6 +165,8 @@ class PendingQueryDialog(QDialog):
             if not self._worker.wait(3000):
                 self._worker.terminate()
                 self._worker.wait()
+
+    # ── 冷却刷新 ──
 
     def _refresh_cooldown(self) -> None:
         """每秒刷新冷却显示。若所选站点冷却结束则自动发起查询。"""
@@ -177,6 +193,8 @@ class PendingQueryDialog(QDialog):
                 self._start_btn.setEnabled(True)
                 self._start_btn.setText(_("pq_start_query_btn"))
                 self._do_query()
+
+    # ── 查询流程 ──
 
     def _on_start(self) -> None:
         """用户点击开始查询。"""
@@ -260,6 +278,8 @@ class PendingQueryDialog(QDialog):
         self._worker.error.connect(lambda msg: self._notify_error("query_pending", msg))
         self._worker.start()
 
+    # ── 错误通知 ──
+
     def _notify_error(self, worker_name: str, error_msg: str) -> None:
         """Worker 异常时发送通知（失败静默）。"""
         try:
@@ -267,6 +287,8 @@ class PendingQueryDialog(QDialog):
                 self._mgr.notification_mgr.send_event("worker_error", {"worker": worker_name, "error": error_msg})
         except Exception:
             pass
+
+    # ── 本地数据库查询 ──
 
     def _check_local_db_available(self) -> bool:
         """检查用户是否已开启公告数据库（设置→网络→标准公告自动更新）。"""
@@ -290,11 +312,15 @@ class PendingQueryDialog(QDialog):
         self._progress.setValue(len(self._parsed_list))
         self._on_query_finished(None)
 
+    # ── 查询结果回调 ──
+
     def _on_single_result(self, idx: int, result: Any) -> None:
+        """单条查询结果就绪时更新进度条。"""
         self._results.append((idx, result))
         self._progress.setValue(len(self._results))
 
     def _on_query_finished(self, _results: Any) -> None:
+        """所有查询完成后：统计结果、更新重试计数、弹出摘要。"""
         self._refresh_timer.stop()
         self._start_btn.setText(_("completed"))
         total = len(self._parsed_list)
@@ -315,5 +341,8 @@ class PendingQueryDialog(QDialog):
         )
         self.accept()
 
+    # ── 获取查询结果 ──
+
     def get_results(self) -> list[Any]:
+        """返回查询结果列表。"""
         return self._results

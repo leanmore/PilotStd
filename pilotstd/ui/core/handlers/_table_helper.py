@@ -189,7 +189,7 @@ class TableHelperHandler:
         self._status(f"已移除 {removed} 行")
 
     def add_table_row(self, work_table: QTableWidget, update: RowUpdate) -> None:
-        """向表格末尾插入一行。"""
+        """向表格末尾插入一行，填充所有列。"""
         # [TRACE] 指令A-4: 输出最终传入add_table_row的parsed对象
         logger.debug(
             "[TRACE-A] add_table_row: 行号=%d 标准号=%r 标准名称=%r "
@@ -208,8 +208,10 @@ class TableHelperHandler:
         )
         row = work_table.rowCount()
         work_table.insertRow(row)
+        # 序号列宽根据总数位数动态调整
         width = max(2, len(str(update.total))) if update.total else max(2, len(str(update.seq)))
         std_num = update.parsed.get_full_number()
+        # 构建 10 列数据（序号、状态、标准号、名称、生效状态、代替、发布、实施、部门、采标）
         items = [
             QTableWidgetItem(f"{update.seq:0{width}d}"),
             QTableWidgetItem(update.work_status),
@@ -223,7 +225,9 @@ class TableHelperHandler:
             QTableWidgetItem("采标" if update.is_adopted else ""),
         ]
         for c, item in enumerate(items):
+            # 所有表格项设为只读可选择
             item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
+            # 采标列用紫色标记
             if c == 9 and update.is_adopted and item.text() == "采标":
                 item.setForeground(Qt.GlobalColor.darkMagenta)
             work_table.setItem(row, c, item)
@@ -265,9 +269,7 @@ class TableHelperHandler:
         if col in col_specs:
             mn = col_specs[col][1]
             if new < mn:
-                work_table.horizontalHeader().resizeSection(
-                    col, self._engine.enforce_min_column_width(new, mn)
-                )
+                work_table.horizontalHeader().resizeSection(col, self._engine.enforce_min_column_width(new, mn))
         self._save_column_widths(work_table)
 
     def _save_column_widths(self, work_table: QTableWidget) -> None:

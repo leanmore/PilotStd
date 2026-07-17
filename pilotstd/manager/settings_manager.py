@@ -10,6 +10,7 @@ from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
 
 logger = logging.getLogger(__name__)
+# UserPreferenceManager — 用户偏好管理器，参考 MoviePilot SystemConfigOper 的内存缓存模式
 
 
 class UserPreferenceManager:
@@ -47,6 +48,7 @@ class UserPreferenceManager:
 
     @classmethod
     def _get_db(cls) -> Database:
+        """获取数据库连接（每次调用新建，避免连接状态污染）。"""
         return Database(get_db_path())
 
     @classmethod
@@ -68,6 +70,7 @@ class UserPreferenceManager:
         logger.info("已创建 user_settings 表")
 
     @classmethod
+    # get_preferences — 获取用户完整偏好（合并默认值），优先读缓存
     def get_preferences(cls, user_id: int) -> Dict[str, Any]:
         """获取用户完整偏好（合并默认值），优先读缓存"""
         if user_id in cls._cache:

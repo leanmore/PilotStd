@@ -7,6 +7,8 @@ from typing import Any, Optional
 
 
 class DownloadStatus(Enum):
+    """下载任务状态枚举：待处理、运行中、成功、失败、跳过、重试中。"""
+
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"

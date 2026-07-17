@@ -250,6 +250,7 @@ app.include_router(auto_router)
 # 健康检查端点（Docker HEALTHCHECK 使用）
 @app.get("/api/health")
 async def health_check():
+    """健康检查端点，返回服务状态和版本号。供 Docker HEALTHCHECK 指令探测容器存活。"""
     return {
         "status": "ok",
         "version": _app_version,

@@ -245,6 +245,7 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _quit_app(self) -> None:
+        """备份数据库、关闭管理器、隐藏托盘并退出应用。"""
         if self._mgr_ready:
             try:
                 self._mgr.db.backup()
@@ -262,7 +263,9 @@ class MainWindow(QMainWindow):
 
     def changeEvent(self, event: object) -> None:
         """窗口最小化时隐藏到系统托盘。"""
-        if event.type() == event.Type.WindowStateChange and self.isMinimized():  # pragma: no cover — 需真实窗口最小化事件
+        if (
+            event.type() == event.Type.WindowStateChange and self.isMinimized()
+        ):  # pragma: no cover — 需真实窗口最小化事件
             self._save_window_geometry()
             self._save_splitter_sizes()
             self._save_sort_state()
@@ -297,6 +300,7 @@ class MainWindow(QMainWindow):
         self._start_auto_pipeline(source_dir)
 
     def _stop_workers(self) -> None:
+        """解除暂停并停止所有后台 Worker 线程（扫描/查询/下载/归档/公告/自动）。"""
         # 先解除暂停，防止 Worker 卡在 _pause_event.wait() 中无法退出
         if hasattr(self, "_pause_event"):
             self._pause_event.set()
@@ -325,6 +329,7 @@ class MainWindow(QMainWindow):
     # ================================================================
 
     def _on_auto_save(self) -> None:
+        """退出前自动保存：停止文件监控 + 保存脏项目状态。"""
         if self._mgr_ready:
             self._mgr.stop_watching()
         if self._project.current_path and self._project._dirty:
@@ -386,6 +391,7 @@ class MainWindow(QMainWindow):
     # ================================================================
 
     def show_welcome_if_needed(self) -> None:
+        """首次启动时显示欢迎对话框（可勾选"不再显示"跳过）。"""
         skip = self._config.get("appearance.skip_welcome", False)
         if skip:
             return

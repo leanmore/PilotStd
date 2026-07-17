@@ -117,6 +117,7 @@ class QueryEngineCore:
         return self._core.query_active
 
     def get_csres_status(self) -> dict[str, Any]:
+        """返回 CSRES 后台查询的当前状态快照，供 UI 轮询展示。"""
         return {
             "is_active": self._core.csres_active,
             "processed": self._core.csres_processed,

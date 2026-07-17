@@ -492,7 +492,7 @@ def download_attachment(url: str, _http: Any = None) -> Optional[bytes]:
 
     if _http is not None:
         resp = _http.get(url)
-        return resp.content if resp is not None and getattr(resp, 'status_code', 0) == 200 else None
+        return resp.content if resp is not None and getattr(resp, "status_code", 0) == 200 else None
     resp = safe_raw_get(url, "announcement_attachment", timeout=60)
     if resp and resp.status_code == 200:
         return resp.content

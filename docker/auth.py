@@ -281,6 +281,7 @@ def auth_me(request: Request):
 
 @router.post("/api/logout")
 def logout(request: Request):
+    """用户登出：从会话存储中移除 token，清除客户端 Cookie。"""
     token = request.cookies.get(COOKIE_NAME)
     if token:
         get_session_store().remove(token)
@@ -454,6 +455,7 @@ def _start_session_cleanup() -> None:
         _cleanup_started = True
 
     def _cleanup_loop() -> None:
+        """后台会话清理循环：每小时调用一次 cleanup_expired()，移除过期 token。"""
         while True:
             time.sleep(3600)
             try:

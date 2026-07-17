@@ -134,9 +134,7 @@ class QueryFlowEngine:
                 failed_names.append(std_num)
                 continue
             if parsed:
-                parsed.std_name = (
-                    row[1].strip() if len(row) > 1 and row[1].strip() else parsed.std_name
-                )
+                parsed.std_name = row[1].strip() if len(row) > 1 and row[1].strip() else parsed.std_name
                 parsed_list.append(parsed)
             else:
                 failed_names.append(std_num)

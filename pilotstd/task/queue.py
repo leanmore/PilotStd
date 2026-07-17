@@ -13,6 +13,8 @@ from .models import TaskInfo, TaskStatus, TaskType
 logger = logging.getLogger(__name__)
 
 TASK_TABLE = "task_queue"
+# TaskQueue — 后台任务队列，任务状态持久化到 SQLite，支持断点恢复
+# 任务支持暂停/继续/取消，重启后自动将 running/pending 状态重置为 failed
 
 
 class TaskQueue:
@@ -61,6 +63,7 @@ class TaskQueue:
         return self._set_status(task_id, TaskStatus.PAUSED)
 
     def resume(self, task: TaskInfo) -> None:
+        """恢复已暂停的任务，重新标记为 RUNNING 并启动。"""
         task.status = TaskStatus.RUNNING
         task.updated_at = datetime.now().isoformat()
         self._persist(task)
@@ -70,6 +73,7 @@ class TaskQueue:
         return self._set_status(task_id, TaskStatus.CANCELLED)
 
     def get(self, task_id: str) -> Optional[TaskInfo]:
+        """按任务 ID 查询单个任务。"""
         row = self._db.fetchone(f"SELECT * FROM {TASK_TABLE} WHERE task_id=?", (task_id,))
         return self._row_to_task(row) if row else None
 
@@ -85,14 +89,17 @@ class TaskQueue:
         return [dict(r) for r in rows]
 
     def list_all(self, limit: int = 50) -> List[TaskInfo]:
+        """返回最近更新的任务列表（默认 50 条）。"""
         rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} ORDER BY updated_at DESC LIMIT ?", (limit,))
         return [self._row_to_task(r) for r in rows]
 
     def get_pending(self) -> List[TaskInfo]:
+        """返回所有待处理或暂停状态的任务（按创建时间排序）。"""
         rows = self._db.fetchall(f"SELECT * FROM {TASK_TABLE} WHERE status IN ('pending','paused') ORDER BY created_at")
         return [self._row_to_task(r) for r in rows]
 
     def update_progress(self, task: TaskInfo, completed: int, failed: int = 0) -> None:
+        """更新任务进度，全部完成时自动标记为 COMPLETED。"""
         with self._lock:
             task.completed_items = completed
             task.failed_items = failed
@@ -108,6 +115,7 @@ class TaskQueue:
         exc_holder: list[Any] = [None]
 
         def wrapped_handler() -> None:
+            """在独立线程中执行 handler，捕获异常存入 exc_holder。"""
             try:
                 result_holder[0] = handler(task)
             except Exception as e:
@@ -145,6 +153,7 @@ class TaskQueue:
             self._persist(r)
 
     def _set_status(self, task_id: str, status: TaskStatus) -> bool:
+        """加锁设置任务状态并持久化，返回是否成功。"""
         with self._lock:
             task = self.get(task_id)
             if task is None:
@@ -155,6 +164,7 @@ class TaskQueue:
             return True
 
     def _persist(self, task: TaskInfo) -> None:
+        """将任务信息写入 SQLite：已存在则更新，否则插入。"""
         existing = self._db.fetchone(f"SELECT id FROM {TASK_TABLE} WHERE task_id=?", (task.task_id,))
         data = (
             task.task_type.value,
@@ -185,6 +195,7 @@ class TaskQueue:
 
     @staticmethod
     def _row_to_task(row: dict[str, Any]) -> TaskInfo:
+        """将数据库行字典转换为 TaskInfo 对象。"""
         return TaskInfo(
             task_id=row["task_id"],
             task_type=TaskType(row["task_type"]),
@@ -199,6 +210,7 @@ class TaskQueue:
         )
 
     def _ensure_table(self) -> None:
+        """确保任务队列表和索引存在，不存在则创建。"""
         self._db.execute(f"""
             CREATE TABLE IF NOT EXISTS {TASK_TABLE} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

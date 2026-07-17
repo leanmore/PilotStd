@@ -108,11 +108,7 @@ class ArchiveFlowEngine:
     @staticmethod
     def find_missing_names(parsed_results: list[Any]) -> list[str]:
         """查找标准名称缺失的条目，返回标准号列表。"""
-        return [
-            p.get_full_number()
-            for p in parsed_results
-            if not p.std_name and not p.found_name
-        ]
+        return [p.get_full_number() for p in parsed_results if not p.std_name and not p.found_name]
 
     # ═══════════════════════════════════════════════════════════
     # 格式化跳过详情
@@ -128,14 +124,8 @@ class ArchiveFlowEngine:
         for idx, status in archive_results:
             if status != "已归档" and idx < len(parsed_results):
                 p = parsed_results[idx]
-                fname = os.path.basename(
-                    getattr(p, "source_path", "")
-                    or getattr(p, "raw_filename", "")
-                    or ""
-                )
-                details.append(
-                    _("msg_archive_skip_line").format(name=fname, reason=status)
-                )
+                fname = os.path.basename(getattr(p, "source_path", "") or getattr(p, "raw_filename", "") or "")
+                details.append(_("msg_archive_skip_line").format(name=fname, reason=status))
         return details
 
     # ═══════════════════════════════════════════════════════════

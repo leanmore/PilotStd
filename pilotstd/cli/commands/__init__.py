@@ -113,6 +113,7 @@ def _add_file_ops_subparsers(sub: argparse._SubParsersAction) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """构建 CLI 参数解析器，注册所有子命令。"""
     parser = argparse.ArgumentParser(prog="pilotstd", description="PilotStd CLI")
     parser.add_argument("--storage-root", "-r", help="标准库存放根目录")
     sub = parser.add_subparsers(dest="command")
@@ -125,6 +126,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """CLI 统一入口：初始化日志 → 解析参数 → 派发到对应子命令函数。"""
     LoggerManager(level=logging.INFO)
     logger.info(
         "[CLI] 会话开始 PID=%d 命令=%s",

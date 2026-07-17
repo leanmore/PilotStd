@@ -14,11 +14,14 @@ _REMIND_DAYS = [30, 15, 7, 0]
 
 
 def _target_dates() -> dict[int, str]:
+    """计算未来需要提醒的日期（30/15/7/0 天后）。键=天数，值=ISO 日期字符串。"""
     today = date.today()
     return {d: (today + timedelta(days=d)).isoformat() for d in _REMIND_DAYS}
 
 
+# _fetch_due_records — 从公告数据库中查找即将到期的记录（实施/作废/代替三种类型）
 def _fetch_due_records(db: Database) -> list[dict[str, Any]]:
+    """从公告数据库中查找即将到期的记录。查询实施/作废/代替三种到期类型。"""
     target_dates = list(_target_dates().values())
     ph = ",".join("?" for _ in target_dates)
 
@@ -63,6 +66,7 @@ def _fetch_due_records(db: Database) -> list[dict[str, Any]]:
 
 
 def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any, stats: dict) -> None:
+    """处理单条到期记录：去重检查 → 查找关注用户 → 发送通知 → 记录日志。"""
     remind_type = rec["remind_type"]
     if not remind_type:
         return
@@ -124,6 +128,7 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
         )
 
 
+# run_date_reminder — 日期提醒主任务，由 scheduler 定时调用，扫描到期标准并推送通知
 def run_date_reminder(notification_mgr: Any = None) -> dict[str, Any]:
     """日期提醒主任务。由 scheduler 定时调用，notification_mgr 由包装器注入。"""
     if notification_mgr is None:

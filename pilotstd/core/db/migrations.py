@@ -7,8 +7,10 @@ from typing import Any
 from ._constants import migration
 
 
+# === 迁移函数：按版本号递增排列，每个函数对应一个 schema 版本 ===
 @migration(2)
 def _migrate_v2_add_file_index(db: Any) -> None:
+    """创建 file_index 表及其哈希和编码索引，用于本地文件索引。"""
     db.execute("""CREATE TABLE IF NOT EXISTS file_index (
         id INTEGER PRIMARY KEY AUTOINCREMENT, file_path TEXT NOT NULL UNIQUE,
         logical_code TEXT NOT NULL DEFAULT '', number INTEGER NOT NULL DEFAULT 0,
@@ -21,6 +23,7 @@ def _migrate_v2_add_file_index(db: Any) -> None:
 
 @migration(3)
 def _migrate_v3_queue_and_pending(db: Any) -> None:
+    """创建 download_queue 和 pending_lookup 表，补全 file_index 的 status 列。"""
     db.execute("""CREATE TABLE IF NOT EXISTS download_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL,
         standard_name TEXT NOT NULL DEFAULT '', publish_date TEXT NOT NULL DEFAULT '',
@@ -51,6 +54,7 @@ def _migrate_v4_add_fetch_checkpoint(db: Any) -> None:
 
 @migration(5)
 def _migrate_v5_announcement_match(db: Any) -> None:
+    """创建 announcement_match 表，缓存标准号与公告的匹配结果。"""
     db.execute("""CREATE TABLE IF NOT EXISTS announcement_match (
         id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL,
         source_site TEXT NOT NULL DEFAULT 'announcement', result_json TEXT NOT NULL,
@@ -63,6 +67,7 @@ def _migrate_v5_announcement_match(db: Any) -> None:
 
 @migration(6)
 def _migrate_v6_add_rotator_state(db: Any) -> None:
+    """创建 rotator_state 表，记录各站点轮询器的请求计数和冷却状态。"""
     db.execute("""CREATE TABLE IF NOT EXISTS rotator_state (
         site_name TEXT PRIMARY KEY, request_count INTEGER NOT NULL DEFAULT 0,
         daily_count INTEGER NOT NULL DEFAULT 0, daily_date TEXT NOT NULL DEFAULT '',
@@ -71,8 +76,10 @@ def _migrate_v6_add_rotator_state(db: Any) -> None:
         updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')))""")
 
 
+# v7-v10: 防御性表结构修改（ALTER TABLE 添加/删除列）
 @migration(7)
 def _migrate_v7_add_last_checked(db: Any) -> None:
+    """file_index 表新增 last_checked 列及索引，用于记录上次检查时间。"""
     try:
         db.execute("ALTER TABLE file_index ADD COLUMN last_checked TEXT")
     except Exception:
@@ -85,6 +92,7 @@ def _migrate_v7_add_last_checked(db: Any) -> None:
 
 @migration(8)
 def _migrate_v8_drop_expires_at(db: Any) -> None:
+    """删除 standard_info_cache 表中不再使用的 expires_at 列。"""
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(standard_info_cache)")}
     if not cols:
         logging.getLogger("pilotstd.db").debug("v8 迁移：standard_info_cache 表不存在，跳过")
@@ -95,6 +103,7 @@ def _migrate_v8_drop_expires_at(db: Any) -> None:
 
 @migration(9)
 def _migrate_v9_add_requery_count(db: Any) -> None:
+    """pending_lookup 表新增 requery_count 列，记录重查询次数。"""
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(pending_lookup)")}
     if not cols:
         return
@@ -104,6 +113,7 @@ def _migrate_v9_add_requery_count(db: Any) -> None:
 
 @migration(10)
 def _migrate_v10_add_source_and_status_history(db: Any) -> None:
+    """standard_info_cache 表新增 source 和 status_history 列。"""
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(standard_info_cache)")}
     if not cols:
         return
@@ -113,8 +123,10 @@ def _migrate_v10_add_source_and_status_history(db: Any) -> None:
         db.execute("ALTER TABLE standard_info_cache ADD COLUMN status_history TEXT NOT NULL DEFAULT ''")
 
 
+# v11-v12: 轮询器日限字段 + 适配器统计基础表
 @migration(11)
 def _migrate_v11_add_daily_limits(db: Any) -> None:
+    """rotator_state 表新增每日计数和日期字段，支持日配额限制。"""
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(rotator_state)")}
     if not cols:
         return
@@ -132,8 +144,10 @@ def _migrate_v12_adapter_stats(db: Any) -> None:
         last_updated TEXT DEFAULT (datetime('now', 'localtime')))""")
 
 
+# v13-v14: 适配器统计扩展 + API 密钥表
 @migration(13)
 def _migrate_v13_adapter_stats_extend(db: Any) -> None:
+    """adapter_stats 表动态补齐响应时间、冷却计数等扩展字段。"""
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(adapter_stats)")}
     if not cols:
         return
@@ -150,6 +164,7 @@ def _migrate_v13_adapter_stats_extend(db: Any) -> None:
 
 @migration(14)
 def _migrate_v14_api_keys(db: Any) -> None:
+    """创建 api_keys 表，存储 API 密钥的哈希、权限范围和启用状态。"""
     db.execute("""CREATE TABLE IF NOT EXISTS api_keys (
         id INTEGER PRIMARY KEY AUTOINCREMENT, key_id TEXT NOT NULL UNIQUE,
         key_hash TEXT NOT NULL UNIQUE, description TEXT NOT NULL DEFAULT '',
@@ -163,6 +178,7 @@ def _migrate_v14_api_keys(db: Any) -> None:
 
 @migration(15)
 def _migrate_v15_announcement_record(db: Any) -> None:
+    """创建 announcement_record 表，记录公告抓取的标准号匹配明细。"""
     db.execute("""CREATE TABLE IF NOT EXISTS announcement_record (
         id INTEGER PRIMARY KEY AUTOINCREMENT, source_site TEXT NOT NULL,
         pid TEXT NOT NULL, announce_no TEXT, standard_number TEXT NOT NULL,
@@ -175,6 +191,7 @@ def _migrate_v15_announcement_record(db: Any) -> None:
 
 @migration(16)
 def _migrate_v16_standard_validity(db: Any) -> None:
+    """创建 standard_validity 表，记录标准号的有效性状态及检查周期。"""
     db.execute("""CREATE TABLE IF NOT EXISTS standard_validity (
         id INTEGER PRIMARY KEY AUTOINCREMENT, standard_number TEXT NOT NULL UNIQUE,
         status TEXT NOT NULL DEFAULT '未知', last_checked_at TEXT, next_check_at TEXT,
@@ -186,6 +203,7 @@ def _migrate_v16_standard_validity(db: Any) -> None:
 
 @migration(17)
 def _migrate_v17_notification_log(db: Any) -> None:
+    """创建 notification_log 表，记录通知发送的事件类型、渠道和结果。"""
     db.execute("""CREATE TABLE IF NOT EXISTS notification_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
         channel TEXT NOT NULL, title TEXT, body TEXT, standard_number TEXT,
@@ -197,6 +215,7 @@ def _migrate_v17_notification_log(db: Any) -> None:
 
 @migration(18)
 def _migrate_v18_notification_fetch_task(db: Any) -> None:
+    """创建 fetch_task 和 adapter_health 表，通知日志新增已读标记。"""
     try:
         db.execute("ALTER TABLE notification_log ADD COLUMN is_read INTEGER DEFAULT 0")
     except Exception:
@@ -218,6 +237,7 @@ def _migrate_v18_notification_fetch_task(db: Any) -> None:
 
 @migration(19)
 def _migrate_v19_users(db: Any) -> None:
+    """创建 users 表，存储用户名、密码哈希、盐值和角色。"""
     db.execute("""CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL, salt TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user',
@@ -243,6 +263,7 @@ def _migrate_v21_user_layouts(db: Any) -> None:
 
 @migration(22)
 def _migrate_v22_user_preferences(db: Any) -> None:
+    """创建 user_preferences 表，以 KV 形式存储用户偏好设置。"""
     db.execute("""CREATE TABLE IF NOT EXISTS user_preferences (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
         preference_key TEXT NOT NULL, preference_value TEXT NOT NULL,
@@ -251,8 +272,10 @@ def _migrate_v22_user_preferences(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user_key ON user_preferences(user_id, preference_key)")
 
 
+# v23: 缓存系统初始化 — 数据源版本 + 缓存配置 + 多表缓存字段扩展
 @migration(23)
 def _migrate_v23_cache_system(db: Any) -> None:
+    """初始化缓存系统：数据源版本表 + 缓存配置表 + 多表缓存元数据字段扩展。"""
     db.execute("""CREATE TABLE IF NOT EXISTS data_source_versions (
         id INTEGER PRIMARY KEY AUTOINCREMENT, source_name TEXT NOT NULL UNIQUE,
         version TEXT NOT NULL, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
@@ -313,8 +336,10 @@ def _migrate_v23_cache_system(db: Any) -> None:
         pass
 
 
+# v24: 通用任务队列 — 支持优先级、重试、超时
 @migration(24)
 def _migrate_v24_task_queue(db: Any) -> None:
+    """创建通用 task_queue 表，支持优先级、重试、超时和队列分组。"""
     db.execute("""CREATE TABLE IF NOT EXISTS task_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT, task_id TEXT NOT NULL UNIQUE,
         task_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
@@ -341,8 +366,10 @@ def _migrate_v24_task_queue(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_queue_name ON task_queue(queue_name)")
 
 
+# v25-v27: 公告匹配缓存扩展 + 流水线记录 + 通知聚合
 @migration(25)
 def _migrate_v25_announcement_match_cache(db: Any) -> None:
+    """announcement_match 表新增 source 和 status_history 列。"""
     try:
         db.execute("ALTER TABLE announcement_match ADD COLUMN source TEXT NOT NULL DEFAULT 'announcement'")
     except Exception:
@@ -355,6 +382,7 @@ def _migrate_v25_announcement_match_cache(db: Any) -> None:
 
 @migration(26)
 def _migrate_v26_pipeline_runs(db: Any) -> None:
+    """创建 pipeline_runs 表，记录流水线执行的运行状态和步骤结果。"""
     db.execute("""CREATE TABLE IF NOT EXISTS pipeline_runs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL UNIQUE,
         current_step TEXT NOT NULL DEFAULT 'scan', status TEXT NOT NULL DEFAULT 'running',
@@ -366,6 +394,7 @@ def _migrate_v26_pipeline_runs(db: Any) -> None:
 
 @migration(27)
 def _migrate_v27_notification_aggregation(db: Any) -> None:
+    """notification_log 表新增聚合计数、链接和图标字段。"""
     try:
         db.execute("ALTER TABLE notification_log ADD COLUMN aggregated_count INTEGER DEFAULT 1")
     except Exception:
@@ -380,8 +409,10 @@ def _migrate_v27_notification_aggregation(db: Any) -> None:
         pass
 
 
+# v28-v29: 通知队列 + 公告记录扩展
 @migration(28)
 def _migrate_v28_notification_queue(db: Any) -> None:
+    """创建 notification_queue 表，支持通知的异步调度发送。"""
     db.execute("""CREATE TABLE IF NOT EXISTS notification_queue (
         id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL,
         event_data TEXT NOT NULL, status TEXT DEFAULT 'pending',
@@ -403,6 +434,7 @@ def _migrate_v29_announce_title_and_count(db: Any) -> None:
         pass  # 列已存在
 
 
+# v30: 抓取失败记录 + 补抓队列 + 并发锁 + 全局应用偏好配置
 @migration(30)
 def _migrate_v30_failure_tables(db: Any) -> None:
     """公告抓取失败记录 + 补抓队列 + 并发锁 + 用户偏好。"""
@@ -479,6 +511,7 @@ def _migrate_v38_user_settings(db) -> None:
     """新增 user_settings 表（JSON 聚合存储），与现有 user_preferences（KV 存储）并存。"""
     logger = logging.getLogger(__name__)
 
+    # 防御性检查：查询 sqlite_master 确认表是否已存在
     result = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'")
     if result:
         logger.info("user_settings 表已存在，跳过创建")

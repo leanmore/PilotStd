@@ -411,6 +411,7 @@ class BaseAnnounceCrawler(ABC):
         _ann_t0 = __import__("time").monotonic()
 
         def _bump(pid: str) -> None:
+            """进度推进：计数+1并输出日志，可选回调通知调用方。"""
             with lock:
                 completed[0] += 1
                 _elapsed = __import__("time").monotonic() - _ann_t0

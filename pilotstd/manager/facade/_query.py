@@ -15,12 +15,15 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
+# QueryHandler — 查询处理器，封装所有查询方法，替代原 QueryMixin
+# 支持的查询适配器由 ADAPTER_TYPE_MAP 统一注册，运行时按标准类型路由
 
 
 class QueryHandler:
     """查询处理器 — 封装所有查询方法，替代原 QueryMixin。"""
 
     def __init__(self, core: "ManagerCore"):
+        """初始化查询处理器，持有 ManagerCore 引用。"""
         self._core = core
 
     _CAT_LABEL = {
@@ -97,6 +100,7 @@ class QueryHandler:
             is_downloadable=data.get("is_downloadable", True),
         )
 
+    # _query_via_cache — 公告缓存优先模式：先查 Web 缓存，未命中降级到实时引擎
     def _query_via_cache(
         self,
         items: list[Any],
@@ -142,6 +146,7 @@ class QueryHandler:
             ]
 
             def _fallback_callback(miss_idx: int, r: QueryResult) -> None:
+                """未命中缓存时降级到实时引擎的回调，将结果回填到正确位置。"""
                 r.source = "live_fallback"
                 orig_idx = miss_indices[miss_idx]
                 results[orig_idx] = r
@@ -167,6 +172,7 @@ class QueryHandler:
                 )
         return results
 
+    # _query_via_engine — 直接调用 QueryEngine 查询（无公告缓存的默认路径）
     def _query_via_engine(
         self,
         items: list[Any],
@@ -195,6 +201,7 @@ class QueryHandler:
             force_refresh=force_refresh,
         )
 
+    # _finalize_query — 统计 + 分类路由 + 待确认持久化 + 汇总报告
     def _finalize_query(
         self, items: list[Any], results: list[QueryResult]
     ) -> tuple[list[QueryResult], BatchQueryStats]:
@@ -229,6 +236,8 @@ class QueryHandler:
             pass
         return results, stats
 
+    # query — 批量查询标准的有效性状态，查询完成后自动分类路由
+    # 支持公告缓存优先模式，未命中时自动降级到实时引擎
     def query(
         self,
         parsed_list: list[Any] | None = None,
@@ -264,6 +273,7 @@ class QueryHandler:
 
         return self._finalize_query(items, results)
 
+    # query_stream — 流式查询（线程安全），包装 query() 提供流式回调接口
     def query_stream(
         self,
         parsed_list: list[Any],
@@ -382,6 +392,7 @@ class QueryHandler:
 
         return QueryClassifier.parse_std_number(standard_number)
 
+    # _classify_after_query — 查询后分类：委托 classifier 统一分堆
     def _classify_after_query(self, parsed_list: list[Any], query_results: list[QueryResult]) -> None:
         """查询后分类：委托 classifier 统一分堆。"""
         self._core.classifier.classify(
@@ -399,12 +410,15 @@ class QueryHandler:
     # ── GUI 桥接方法 ──
 
     def get_quota_info(self) -> dict[str, int]:
+        """返回各站点配额信息（供 GUI 弹窗展示）。"""
         return self._core.query_engine.get_quota_info()
 
     def plan_batch(self, total: int) -> list[tuple[str, int]]:
+        """按站点配额预估分配方案（供 GUI 展示）。"""
         return self._core.query_engine.plan_batch(total)
 
     def get_stage_queue(self, stage: str) -> list[Any]:
+        """按阶段获取条目队列（供 GUI 展示）。stage 可选: download/expire/pending/query。"""
         if stage == "download":
             return list(self._core.download_list)
         if stage == "expire":
@@ -414,6 +428,7 @@ class QueryHandler:
         return list(self._core.queried_items) if self._core.queried_items else list(self._core.parsed_results)
 
     def get_stage_summary(self) -> dict[str, int]:
+        """返回各阶段条目数量汇总（供 GUI 展示）。"""
         return {
             "download": len(self._core.download_list),
             "expire": len(self._core.expire_list),
@@ -423,33 +438,43 @@ class QueryHandler:
 
     # ── 待确认清单 ──
 
+    # record_pending — 持久化保存待确认条目列表
     def record_pending(self, pending_items: list[Any]) -> None:
+        """持久化保存待确认条目列表。"""
         self._core.pending_svc.record_pending(pending_items)
 
     def resolve_pending(self, pending_items: list[dict[str, Any]], resolution: str) -> None:
+        """处理待确认条目（用户手动选择下载/跳过等操作）。"""
         self._core.pending_svc.resolve_pending(pending_items, resolution)
 
     def get_pending_items(self) -> list[dict[str, Any]]:
+        """获取待确认条目列表（委托 pending_svc）。"""
         return self._core.pending_svc.get_pending_items()  # type: ignore[no-any-return]
 
     def increment_requery_count(self, standard_number: str) -> int:
+        """递增指定标准号的重新查询计数，返回当前计数。"""
         return self._core.pending_svc.increment_requery_count(standard_number)  # type: ignore[no-any-return]
 
     def is_requery_exhausted(self, standard_number: str) -> bool:
+        """检查指定标准号的重新查询次数是否已耗尽。"""
         return self._core.pending_svc.is_requery_exhausted(standard_number)  # type: ignore[no-any-return]
 
     def mark_manual_required(self, standard_number: str) -> None:
+        """标记指定标准号需要人工处理。"""
         self._core.pending_svc.mark_manual_required(standard_number)
 
     def get_requery_count(self, standard_number: str) -> int:
+        """获取指定标准号的重新查询计数。"""
         return self._core.pending_svc.get_requery_count(standard_number)  # type: ignore[no-any-return]
 
     def query_local_cache(self, parsed_list: list[Any]) -> list[Any]:
+        """从本地缓存查询标准信息。"""
         return self._core.pending_svc.query_local_cache(parsed_list)  # type: ignore[no-any-return]
 
     def query_by_numbers(
         self, numbers: list[str], force_refresh: bool = False, preferred_site: str | None = None
     ) -> tuple[list[QueryResult], BatchQueryStats]:
+        """按标准号列表查询（供 API 层迁移）。"""
         return self._core.scheduled_svc.query_by_numbers(  # type: ignore[no-any-return]
             numbers, force_refresh, preferred_site
         )
@@ -457,15 +482,19 @@ class QueryHandler:
     # ── 引擎状态查询 ──
 
     def get_query_sites(self) -> list[str]:
+        """返回所有已注册查询站点名称。"""
         return self._core.query_engine.get_all_sites()
 
     def get_site_adapter(self, site_name: str) -> Any:
+        """获取指定站点的适配器实例。"""
         return self._core.query_engine.get_adapter(site_name)
 
     def get_site_cooldown(self, site_name: str) -> float:
+        """返回指定站点的剩余冷却秒数，0 表示不在冷却中。"""
         return self._core.query_engine.get_site_cooldown(site_name)
 
     def get_query_status(self) -> dict[str, bool | int]:
+        """返回查询引擎运行状态（供 GUI 展示）。"""
         return {
             "is_running": self._core.query_engine.is_query_running(),
             "overflow_count": self._core.query_engine.get_overflow_count(),
@@ -474,4 +503,5 @@ class QueryHandler:
         }
 
     def get_adapter_report(self) -> list[dict[str, Any]]:
+        """返回各适配器的统计报告数据。"""
         return self._core.db.get_adapter_stats_all()

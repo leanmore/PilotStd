@@ -12,10 +12,14 @@ import sqlite3
 import sys
 from datetime import date
 
-DB_PATH = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "pilotstd.db")
+DB_PATH = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "pilotstd.db")  # 公告数据库路径
 
 
 def connect() -> sqlite3.Connection:
+    """打开诊断数据库连接，设置 row_factory 为 sqlite3.Row 以便按列名访问。
+
+    若数据库文件不存在则打印错误并退出。
+    """
     if not os.path.exists(DB_PATH):
         print(f"❌ 数据库不存在: {DB_PATH}")
         sys.exit(1)
@@ -25,6 +29,7 @@ def connect() -> sqlite3.Connection:
 
 
 def divider(title: str = "") -> None:
+    """打印分隔线，可选标题。用于诊断报告各步骤之间的视觉分隔。"""
     print()
     print("=" * 60)
     if title:
@@ -33,7 +38,12 @@ def divider(title: str = "") -> None:
 
 
 def step1_date_distribution(conn: sqlite3.Connection) -> None:
+    """诊断步骤1：按 fetched_at 日期分组统计公告数量，检查是否超 50% 集中在同一天。
+
+    若集中度 >50%，说明存在全量抓取 Bug（数据非正常增量入库）。
+    """
     divider("步骤1 — fetched_at 日期分布 (Top 10)")
+    # 按抓取日期分组统计，取 Top 10
     rows = conn.execute(
         "SELECT date(fetched_at) AS fetch_date, COUNT(*) AS n "
         "FROM announcement_record "
@@ -53,7 +63,12 @@ def step1_date_distribution(conn: sqlite3.Connection) -> None:
 
 
 def step2_duplicates(conn: sqlite3.Connection) -> None:
+    """诊断步骤2：检查 announcement_record 表中是否存在重复记录。
+
+    按 (source_site, pid, standard_number) 组合分组，统计重复次数。
+    """
     divider("步骤2 — 重复记录检查")
+    # 按 (来源站点 + PID + 标准号) 组合查重，HAVING COUNT > 1
     rows = conn.execute(
         "SELECT source_site, pid, standard_number, COUNT(*) AS dup "
         "FROM announcement_record "
@@ -70,7 +85,12 @@ def step2_duplicates(conn: sqlite3.Connection) -> None:
 
 
 def step3_stats_comparison(conn: sqlite3.Connection) -> None:
+    """诊断步骤3：统计卡片对照 —— 对比总数、已匹配数、今日新增数（按国标/行标/地标拆分）。
+
+    若今日新增等于标准总数，则确认统计膨胀为同一天全量入库所致。
+    """
     divider("步骤3 — 统计卡片对照")
+    # 逐项查询：总数、已匹配数、今日新增、按来源分类统计
     total_all = conn.execute("SELECT COUNT(*) FROM announcement_record").fetchone()[0]
     matched = conn.execute("SELECT COUNT(*) FROM announcement_record WHERE matched=1").fetchone()[0]
     _today = "date('now','localtime')"
@@ -104,6 +124,7 @@ def step3_stats_comparison(conn: sqlite3.Connection) -> None:
 
 
 def step4_fix(conn: sqlite3.Connection) -> None:
+    """执行修复：先备份数据库，再清空公告相关 4 张表。"""
     divider("步骤4 — 执行修复")
     print("  将清空以下 4 张表的数据：")
     print("    - announcement_record（公告明细）")
@@ -144,6 +165,7 @@ def step4_fix(conn: sqlite3.Connection) -> None:
 
 
 def main() -> None:
+    """入口：解析命令行参数，依次执行诊断步骤，可选执行修复。"""
     if "--help" in sys.argv or "-h" in sys.argv:
         print(__doc__)
         return

@@ -16,12 +16,14 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
+# OrganizeHandler — 归档处理器，封装所有归档方法，替代原 OrganizeMixin
 
 
 class OrganizeHandler:
     """归档处理器 — 封装所有归档方法，替代原 OrganizeMixin。"""
 
     def __init__(self, core: "ManagerCore"):
+        """初始化归档处理器，持有 ManagerCore 引用。"""
         self._core = core
 
     _FALLBACK_SKIP_FILES = frozenset({"Thumbs.db", "sync.ffs_db"})
@@ -85,6 +87,7 @@ class OrganizeHandler:
                 on_progress(i + 1, total)
         return result
 
+    # _backfill_std_name — 回填单个 ParsedStdInfo 的 std_name，优先查本地缓存
     def _backfill_std_name(self, parsed: ParsedStdInfo) -> ParsedStdInfo:
         """回填单个 ParsedStdInfo 的 std_name。"""
         if parsed.std_name:
@@ -112,6 +115,7 @@ class OrganizeHandler:
             pass
         return parsed
 
+    # archive_standards — 统一归档入口，所有端（CLI/Web/WinUI）均通过此方法归档
     def archive_standards(
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
@@ -158,6 +162,7 @@ class OrganizeHandler:
         return OrganizerService._is_word_or_template(src_path)
 
     def organize_skipped_dirs(self, skipped_dirs: list[str], source_root: Optional[str] = None) -> dict[str, Any]:
+        """将扫描时跳过的目录原封不动镜像到新库（委托 OrganizerService）。"""
         return self._core.organizer_svc.organize_skipped_dirs(skipped_dirs, source_root)  # type: ignore[no-any-return]
 
     @staticmethod
@@ -166,17 +171,22 @@ class OrganizeHandler:
 
         return OrganizerService._resolve_industry_in_path(rel_path)
 
+    # organize_fallback — 归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录
     def organize_fallback(self, source_root: str) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""
         pending_paths = frozenset(p.source_path for p in self._core.pending_list if getattr(p, "source_path", ""))
         return self._core.organizer_svc.organize_fallback(source_root, pending_paths)  # type: ignore[no-any-return]
 
+    # handle_expired — 将过期文件移入「过期作废」目录（委托 OrganizerService）
     def handle_expired(self, parsed_list: Optional[list[ParsedStdInfo]] = None) -> dict[str, Any]:
+        """将过期文件移入「过期作废」目录（委托 OrganizerService）。"""
         return self._core.organizer_svc.handle_expired(parsed_list)  # type: ignore[no-any-return]
 
     def merge_expire_from_source(self, root_dir: str, parsed_list: list[ParsedStdInfo]) -> int:
+        """从源目录合并过期标准到「过期作废」目录（委托 OrganizerService）。"""
         return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
 
+    # organize_files — 接受文件路径列表，解析后走完整 organizer_service 归档
     def organize_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后走完整 organizer_service 归档。"""
         parsed: list[ParsedStdInfo] = []
@@ -191,6 +201,7 @@ class OrganizeHandler:
             return {"moved": 0, "failed": 0, "skipped_exists": 0, "details": ["无有效文件"]}
         return self.archive_standards(parsed)  # type: ignore[no-any-return]
 
+    # expire_files — 接受文件路径列表，解析后过期处理
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后过期处理。"""
         items: list[tuple[str, ParsedStdInfo]] = []
@@ -204,6 +215,7 @@ class OrganizeHandler:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}
         return self._core.organizer_svc.handle_expired(items)  # type: ignore[no-any-return]
 
+    # normalize_files — 返回文件规范化名称列表
     def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
         """返回文件规范化名称列表。"""
         from ...core.file_utils import make_standard_filename
@@ -240,6 +252,7 @@ class OrganizeHandler:
 
     @staticmethod
     def _make_archive_filename(parsed: ParsedStdInfo) -> str:
+        """根据解析后的标准信息生成归档文件名。"""
         from ...core.file_utils import make_standard_filename
 
         return make_standard_filename(

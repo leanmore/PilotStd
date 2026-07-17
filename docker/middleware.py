@@ -12,6 +12,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """为所有响应添加安全头，包括 CSP（PrimeVue + Vue 运行时需要 eval 和内联样式）。"""
 
     async def dispatch(self, request, call_next):
+        """拦截每个响应，注入安全头（CSP、HSTS、X-Frame-Options 等）。"""
         response = await call_next(request)
         headers = response.headers
         headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -36,6 +37,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """限制请求体大小，超限返回 413。"""
 
     async def dispatch(self, request, call_next):
+        """检查请求体 Content-Length，超限（>10MB）直接返回 413，否则放行。"""
         content_length = request.headers.get("content-length")
         if content_length and int(content_length) > MAX_REQUEST_BODY:
             return JSONResponse({"error": "请求体过大"}, status_code=413)

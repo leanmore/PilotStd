@@ -21,9 +21,7 @@ class QueryWorkerFactory:
         self._pause_event = pause_event
         self._parent = parent
 
-    def create_query_worker(
-        self, parsed_list: list[Any], callbacks: QueryCallbacks
-    ) -> QueryWorker:
+    def create_query_worker(self, parsed_list: list[Any], callbacks: QueryCallbacks) -> QueryWorker:
         """创建 QueryWorker，连接全部 5 个信号，返回已就绪（未启动）的 Worker。
 
         callbacks 结构：

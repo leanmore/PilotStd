@@ -89,6 +89,7 @@ class MonitorStats:
         self._ensure_date()
 
     def _get_db(self):
+        """惰性获取数据库连接实例。"""
         if self._db is None:
             from pilotstd.core.config import get_db_path
             from pilotstd.core.db import Database

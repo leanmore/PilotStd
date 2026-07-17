@@ -61,6 +61,11 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
     _validate_result = staticmethod(ResultBuilder.validate_result)  # type: ignore[assignment]
 
     def __init__(self, code_mapping: Dict[str, str], log: logging.Logger | None = None) -> None:
+        """初始化标准解析器。
+        Args:
+            code_mapping: 标准代号映射表（如 {'GB/T': 'GB/T', 'GBT': 'GB/T'}）
+            log: 日志记录器，默认使用模块级 logger
+        """
         self.code_mapping = code_mapping
         self.log = log or logger
         self._core = ParserCore(code_mapping, lambda: self._current_file_kind)
@@ -125,6 +130,7 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
+        """委托给 ParserCore 构建 ParsedStdInfo，供 ExactMatchMixin 内部调用。"""
         return self._core.build_result(
             text,
             match_end,

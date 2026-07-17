@@ -28,6 +28,7 @@ class StaleReferencesRule:
     }
 
     def check_file(self, filepath: str) -> list[Any]:
+        """解析单个 Python 文件，检测是否导入了已知已删除的符号。"""
         violations: list[Any] = []
         try:
             with open(filepath, "r", encoding="utf-8") as f:

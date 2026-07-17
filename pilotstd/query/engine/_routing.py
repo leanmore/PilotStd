@@ -30,12 +30,14 @@ class RoutingHandler:
     def __init__(self, core: "EngineCore") -> None:
         self._core = core
 
+    # ── 路由基础 ──
+
     def _resolve_base_route(self, logical_code: str) -> list[str]:
         """按标准代号/类型确定基础路由链。返回站点名称列表。"""
         if logical_code in CODE_ROUTES:
-            return list(CODE_ROUTES[logical_code])
+            return list(CODE_ROUTES[logical_code])  # 硬编码路由：按代号直接映射
         if logical_code and re.match(r"^DB\d{2,4}(?:/T)?$", logical_code):
-            return ["dbba", "njbz365"]
+            return ["dbba", "njbz365"]  # 地方标准：dbba 主站 + njbz365 兜底
 
         from ...core.std_utils import classify_std_code
 
@@ -59,6 +61,7 @@ class RoutingHandler:
         if logical_code:
             from ...scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
 
+            # 三层国外标准检测：前缀白名单 → ITU 系列 → CAC 民航类
             code_no_space = logical_code.upper().replace(" ", "")
             is_foreign = any(code_no_space.startswith(fc.upper().replace(" ", "")) for fc in FOREIGN_CODE_SET)
             if not is_foreign:
@@ -66,10 +69,10 @@ class RoutingHandler:
             if not is_foreign:
                 is_foreign = any(logical_code.upper().startswith(cac.upper()) for cac in CAC_PREFIXES)
             if is_foreign:
-                return list(FOREIGN_ROUTE)
+                return list(FOREIGN_ROUTE)  # 国外标准路由
             if len(logical_code) <= 4:
-                return list(INDUSTRY_ROUTE)
-            return list(FOREIGN_ROUTE)
+                return list(INDUSTRY_ROUTE)  # 短代号 → 行业标准路由
+            return list(FOREIGN_ROUTE)  # 未识别代号 → 按国外标准处理
 
         return list(PROD_PRIORITY)
 
@@ -97,6 +100,8 @@ class RoutingHandler:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
+    # ── 优先级链构建 ──
+
     def _get_priority(self, logical_code: str = "", preferred_site: str | None = None) -> list[str]:
         """按标准代号返回适配器优先级链。
 
@@ -115,6 +120,8 @@ class RoutingHandler:
         base = self._resolve_base_route(logical_code)
         base = self._apply_site_order(base)
         return self._filter_available_adapters(base)
+
+    # ── 配额与桶 █
 
     def plan_batch(self, total: int, logical_code: str = "") -> List[Tuple[str, int]]:
         """按配额预估分配方案（供 UI 展示）。返回 [(site_name, count), ...]"""

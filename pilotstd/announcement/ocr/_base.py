@@ -61,6 +61,7 @@ class OcrCounters:
         self._data = self._load()
 
     def _load(self) -> dict[str, Any]:
+        """从 JSON 文件加载计数器。跨月自动清零，文件缺失时返回默认值。"""
         try:
             with open(self._path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -72,26 +73,32 @@ class OcrCounters:
         return data  # type: ignore[no-any-return]  # json.load 返回 Any
 
     def _save(self) -> None:
+        """原子写入计数器到 JSON 文件：先写临时文件再替换，防止写中断损坏数据。"""
         os.makedirs(os.path.dirname(self._path), exist_ok=True)
+        # 先写 .tmp 再 os.replace，保证原子性——写入中断不会损坏正式文件
         tmp = self._path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self._data, f, ensure_ascii=False)
         os.replace(tmp, self._path)
 
     def can_accept(self, provider: str, pages: int) -> bool:
+        """检查指定 provider 的剩余配额是否足够处理给定页数。"""
         with self._lock:
             return self._data[provider] + pages <= self._LIMITS[provider]  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
     def remaining(self, provider: str) -> int:
+        """返回指定 provider 的剩余调用次数。"""
         with self._lock:
             return max(0, self._LIMITS[provider] - self._data[provider])  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
     def increment(self, provider: str) -> None:
+        """指定 provider 计数器 +1 并立即落盘，保证进程中断不丢计数。"""
         with self._lock:
             self._data[provider] += 1
             self._save()
 
     def get(self, provider: str) -> int:
+        """返回指定 provider 当月的累计调用次数。"""
         with self._lock:
             return self._data[provider]  # type: ignore[no-any-return]  # json 加载数据无精确类型
 
@@ -112,16 +119,21 @@ class ProviderCooling:
         self._until: dict[str, float] = {}
 
     def is_hot(self, name: str) -> bool:
+        """检查 provider 是否处于可用（未冷却）状态。"""
         with self._lock:
             return time.time() >= self._until.get(name, 0)
 
     def set(self, name: str, level: str) -> None:
+        """将 provider 设为冷却状态。qps级=5分钟，day级=次日零点，month级=次月首日零点。"""
         now = datetime.now()
         if level == "qps":
+            # QPS 超限：冷却 5 分钟
             until = time.time() + 300
         elif level == "day":
+            # 日配额超限：冷却到次日 00:00
             until = (now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)).timestamp()
         elif level == "month":
+            # 月配额超限：冷却到次月 1 日 00:00
             if now.month == 12:
                 nxt = now.replace(year=now.year + 1, month=1, day=1)
             else:
@@ -134,6 +146,7 @@ class ProviderCooling:
         logger.warning("[OCR] %s 进入冷却: 级别=%s 冷却至=%.0f", name, level, until)
 
     def remaining(self, name: str) -> float:
+        """返回 provider 冷却剩余秒数，0 表示已解冻。"""
         with self._lock:
             return max(0, self._until.get(name, 0) - time.time())
 
@@ -150,6 +163,7 @@ def _split_pdf_pages(pdf_bytes: bytes) -> list[bytes]:
 
         reader = PdfReader(BytesIO(pdf_bytes))
         total = len(reader.pages)
+        # 单页无需拆分，直接返回原 bytes
         if total <= 1:
             return [pdf_bytes]
         pages = []
@@ -218,10 +232,13 @@ class OcrSlot:
         self._interval = 1.0 / qps if qps > 0 else 0.1
 
     def is_available(self, total_pages: int) -> bool:
+        """检查槽位是否可用：provider 非空、未冷却、配额充足。"""
         if self.provider is None:
             return False
+        # 冷却中直接拒绝，避免无意义的 QPS 请求浪费配额
         if not self._cooling.is_hot(self.name):
             return False
+        # 检查月度配额是否够涵盖整个 PDF 的页数
         if not self._counters.can_accept(self.name, total_pages):
             logger.warning(
                 "[OCR] %s 计数超限: %d/%d 需%d页",
@@ -247,12 +264,14 @@ class OcrSlot:
             if stop_event.is_set():
                 logger.info("[OCR] %s 收到停止信号，已完成 %d/%d 页", self.name, i, total)
                 break
+            # QPS 限速：每页之间等待 _interval 秒
             time.sleep(self._interval)
             result = self.provider.recognize_pdf(page, page_num=1)
             if result.ok:
                 results.append(result.text)
                 self._counters.increment(self.name)
                 logger.info("[OCR] %s %s 第%d/%d页 成功", self.name, label, i + 1, total)
+                # 首页返回的 pdf_pages 与 pypdf 拆页数交叉验证
                 if i == 0 and result.pdf_pages > 0 and result.pdf_pages != total:
                     logger.warning(
                         "[OCR] %s API返回页数=%d ≠ pypdf=%d，以pypdf为准",
@@ -262,6 +281,7 @@ class OcrSlot:
                     )
             else:
                 err_type = result.error_type or "other"
+                # 限流类错误触发冷却，避免短时间内继续冲击 API
                 if err_type in ("qps", "month", "day"):
                     self._cooling.set(self.name, err_type)
                 logger.warning(
@@ -328,6 +348,7 @@ class OcrScheduler(BaseOcrProvider):
         counters: OcrCounters,
         cooling: ProviderCooling,
     ):
+        # 仅保留非空槽位，alibaba 作为应急备胎不在常规调度队列中
         self._slots = [s for s in (baidu_slot, tencent_slot) if s is not None]
         self._alibaba = aliyun_slot
         self._stop = stop_event
@@ -347,7 +368,7 @@ class OcrScheduler(BaseOcrProvider):
         total = len(pages)
         label = f"附件-{id(pdf_bytes):x}"
 
-        # 等待槽位
+        # 等待空闲槽位：用 Condition 实现生产者-消费者模式
         with self._active_lock:
             while self._active >= len(self._slots) and not self._stop.is_set():
                 self._active_lock.wait(timeout=1)
@@ -373,7 +394,7 @@ class OcrScheduler(BaseOcrProvider):
                 self._active_lock.notify_all()
 
     def _pick_slot(self, total_pages: int) -> Optional[OcrSlot]:
-        """选可用槽位——优先已用次数少的。"""
+        """选可用槽位——优先已用次数少的，实现简单负载均衡。"""
         available = [s for s in self._slots if s.is_available(total_pages)]
         if not available:
             return None

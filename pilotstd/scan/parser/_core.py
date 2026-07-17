@@ -75,6 +75,7 @@ class ParserCore:
         logical_code: str,
         require_year: bool = True,
     ) -> bool:
+        """委托 ResultBuilder 校验年份、编号、代号合法性。"""
         return self.result_builder.validate_result(year, number, logical_code, require_year)
 
     def build_result(
@@ -90,6 +91,7 @@ class ParserCore:
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
+        """委托 ResultBuilder 构造完整的 ParsedStdInfo 对象。"""
         return self.result_builder.build_result(
             text,
             match_end,

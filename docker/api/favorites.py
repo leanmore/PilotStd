@@ -36,6 +36,11 @@ def add_favorite(
     background_tasks: BackgroundTasks,
     username: str = Depends(get_current_username),
 ):
+    """收藏标准记录：插入 user_favorites 表并触发后台下载任务。
+
+    若已收藏则返回 already_exists 状态；若 record_id 不存在则 404。
+    后台通过 download_to_inbox 将标准文件下载到用户收件箱。
+    """
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
@@ -79,6 +84,7 @@ def add_favorite(
 
 @router.get("/api/favorites/{record_id}/status")
 def get_favorite_status(record_id: int, username: str = Depends(get_current_username)):
+    """查询指定记录的收藏状态，返回 status/favorite_id/local_path/error_message。"""
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
@@ -110,6 +116,7 @@ def get_favorite_status(record_id: int, username: str = Depends(get_current_user
 
 @router.delete("/api/favorites/{record_id}")
 def remove_favorite(record_id: int, username: str = Depends(get_current_username)):
+    """取消收藏：从 user_favorites 表中删除指定记录。"""
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
@@ -132,6 +139,10 @@ def remove_favorite(record_id: int, username: str = Depends(get_current_username
 
 @router.get("/api/favorites")
 def list_favorites(username: str = Depends(get_current_username), status: Optional[str] = None):
+    """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。
+
+    返回 user_favorites 与 announcement_record 的 JOIN 结果，含标准号、名称等信息。
+    """
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)

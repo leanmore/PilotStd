@@ -31,14 +31,17 @@ class NetworkMonitor:
         self._retried: dict[str, int] = {}  # {site_name: count}
 
     def record_error(self, site_name: str) -> None:
+        """记录一次站点网络错误（线程安全）。"""
         with self._lock:
             self._errors[site_name] = self._errors.get(site_name, 0) + 1
 
     def record_retry(self, site_name: str) -> None:
+        """记录一次站点重试（线程安全）。"""
         with self._lock:
             self._retried[site_name] = self._retried.get(site_name, 0) + 1
 
     def reset(self) -> None:
+        """清空所有错误和重试计数器（线程安全）。"""
         with self._lock:
             self._errors.clear()
             self._retried.clear()

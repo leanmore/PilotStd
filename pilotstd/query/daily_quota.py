@@ -45,6 +45,7 @@ class DailyQuotaTracker:
             self._ensure_today_rows()
 
     def _ensure_today_rows(self) -> None:
+        """确保所有已注册站点在今天有配额记录行。"""
         for site in self._limits:
             row = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",

@@ -1,5 +1,6 @@
 # pilotstd/core/notification/_message_builders.py
 # 通知消息构建器混入 — 从 manager.py 提取
+# 每个 _build_*_message 方法负责将原始数据字典转换为标准化的 NotificationMessage
 
 from pilotstd.i18n import _
 
@@ -8,11 +9,14 @@ from .channel import NotificationMessage
 
 def _make_link(standard_number: str | None) -> str | None:
     """根据标准号生成跳转链接。"""
+    # 前端使用 /standards/{number} 路由，此处生成对应链接
     return f"/standards/{standard_number}" if standard_number else None
 
 
 class MessageBuildersMixin:
     """事件消息构建器方法集合（混入 NotificationManager）。"""
+
+    # ── 归档事件 ──
 
     def _build_archive_complete_message(self, data: dict) -> NotificationMessage:
         count = data.get("count", 0)
@@ -20,6 +24,7 @@ class MessageBuildersMixin:
         if count == 0:
             body = _("未归档任何目录（所有目标均为空或已归档）")
         else:
+            # 最多展示 3 个目录名，超出用"等"省略
             dirs_preview = "、".join(directories[:3])
             if len(directories) > 3:
                 body = _("已归档 {count} 个目录：{preview} 等").format(count=count, preview=dirs_preview)
@@ -38,11 +43,14 @@ class MessageBuildersMixin:
             elapsed_ms=data.get("elapsed_ms", 0),
         )
 
+    # ── 标准状态变更事件 ──
+
     def _build_standard_status_changed_message(self, data: dict) -> NotificationMessage:
         std_no = data.get("standard_number", "")
         old_status = data.get("old_status", "")
         new_status = data.get("new_status", "")
         is_expired = data.get("is_expired", False)
+        # 废止类通知用 error 级别 + 红色图标，强调紧急性
         if is_expired:
             title = _("[废止] 标准已废止")
             body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
@@ -51,6 +59,7 @@ class MessageBuildersMixin:
         else:
             title = _("标准状态变更")
             body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
+            # 新状态为"已废止"时降级为 warning，否则 info
             level = "warning" if new_status == _("已废止") else "info"
             icon = "pi pi-refresh"
         return NotificationMessage(
@@ -65,6 +74,7 @@ class MessageBuildersMixin:
         )
 
     def _build_standard_expired_message(self, data: dict) -> NotificationMessage:
+        """构建标准已废止的通知消息。"""
         std_no = data.get("standard_number", "")
         return NotificationMessage(
             title=_("标准已废止"),
@@ -77,6 +87,7 @@ class MessageBuildersMixin:
         )
 
     def _build_standard_first_registered_message(self, data: dict) -> NotificationMessage:
+        """构建新标准首次登记的通知消息。"""
         std_no = data.get("standard_number", "")
         return NotificationMessage(
             title=_("新标准首次登记"),
@@ -89,8 +100,12 @@ class MessageBuildersMixin:
         )
 
     # check_batch_complete 和 auto_query_complete 保留函数定义但不再注册到 _EVENT_BUILDERS
+    # 原因：定时任务由新版通知管道处理后，不再通过旧版构建器生成桌面 toast
+
+    # ── 批量检查/公告事件 ──
 
     def _build_check_batch_complete_message(self, data: dict) -> NotificationMessage:
+        """构建批量检查完成的通知消息。"""
         total = data.get("total", 0)
         changed = data.get("changed", 0)
         expired = data.get("expired", 0)
@@ -110,6 +125,7 @@ class MessageBuildersMixin:
         )
 
     def _build_announcement_fetch_complete_message(self, data: dict) -> NotificationMessage:
+        """构建公告拉取完成的通知消息。"""
         return NotificationMessage(
             title=_("公告拉取完成"),
             body=_("新增 {count} 条公告").format(count=data.get("count", 0)),
@@ -118,11 +134,14 @@ class MessageBuildersMixin:
             icon="pi pi-megaphone",
         )
 
+    # ── 备份/同步事件 ──
+
     def _build_auto_backup_message(self, data: dict) -> NotificationMessage:
         success = data.get("success", False)
         path = data.get("path", "")
         size_mb = data.get("size_mb", 0)
         error = data.get("error", "")
+        # 成功和失败走不同消息模板，便于用户快速识别状态
         if success:
             return NotificationMessage(
                 title=_("自动备份成功"),
@@ -151,6 +170,7 @@ class MessageBuildersMixin:
         db_standards = data.get("db_standards", 0)
         failures = data.get("failures", 0)
 
+        # 分三级展示：来源 → 公告数量 → 涉及标准数量
         body = _("公告检查完成（{source}）").format(source=source) + "\n"
         body += (
             _("抓取 {total} 条公告（国标 {gb} / 行标 {hb} / 地标 {db}）").format(
@@ -173,10 +193,13 @@ class MessageBuildersMixin:
             icon="pi pi-check-circle",
         )
 
+    # ── 下载事件 ──
+
     def _build_batch_download_complete_message(self, data: dict) -> NotificationMessage:
         success = data.get("success", 0)
         failed = data.get("failed", 0)
         skipped = data.get("skipped", 0)
+        # 有失败时升级为 warning 级别，引导用户查看详情
         if failed == 0:
             return NotificationMessage(
                 title=_("批量下载完成"),
@@ -195,7 +218,10 @@ class MessageBuildersMixin:
             icon="pi pi-download",
         )
 
+    # ── 扫描/有效性检查事件 ──
+
     def _build_auto_scan_failed_message(self, data: dict) -> NotificationMessage:
+        """构建自动扫描失败的通知消息。"""
         return NotificationMessage(
             title=_("自动扫描失败"),
             body=_("{path}：{error}").format(path=data.get("path", ""), error=data.get("error", "")),
@@ -219,6 +245,7 @@ class MessageBuildersMixin:
             )
         adapters = data.get("adapters", {})
         summary = ", ".join([f"{k}: {v.get('status', '未知')}" for k, v in adapters.items()])
+        # 有适配器状态时展示详情，否则仅汇总
         if adapters:
             body = _("共 {count} 条标准，变更 {changed} 条，失败 {failed} 条，适配器状态：{summary}").format(
                 count=count, changed=changed, failed=failed, summary=summary
@@ -227,6 +254,7 @@ class MessageBuildersMixin:
             body = _("共 {count} 条标准，变更 {changed} 条，失败 {failed} 条").format(
                 count=count, changed=changed, failed=failed
             )
+        # 有变更或失败时升级为 warning
         level = "warning" if (changed > 0 or failed > 0) else "info"
         return NotificationMessage(
             title=_("有效性批量报告"),
@@ -242,6 +270,7 @@ class MessageBuildersMixin:
         total_changes = data.get("total_changes", 0)
         total_failures = data.get("total_failures", 0)
         change_list = data.get("change_list", [])
+        # 超过 5 项变更时截断展示，避免消息过长
         if len(change_list) > 5:
             changes_preview = "、".join(change_list[:5]) + _(" 等 {n} 项").format(n=len(change_list))
         else:
@@ -265,6 +294,7 @@ class MessageBuildersMixin:
         )
 
     def _build_validity_standard_failed_message(self, data: dict) -> NotificationMessage:
+        """构建单条标准有效性检查失败的通知消息。"""
         std_no = data.get("standard_number", "")
         return NotificationMessage(
             title=_("标准有效性检查失败"),
@@ -277,6 +307,7 @@ class MessageBuildersMixin:
         )
 
     def _build_validity_system_failed_message(self, data: dict) -> NotificationMessage:
+        """构建有效性检查系统级失败的通知消息。"""
         return NotificationMessage(
             title=_("有效性检查系统级失败"),
             body=_("{error}").format(error=data.get("error", "")),
@@ -286,6 +317,7 @@ class MessageBuildersMixin:
         )
 
     def _build_fallback_message(self, event_type: str, data: dict) -> NotificationMessage:
+        """构建未知事件类型的兜底通知消息。"""
         return NotificationMessage(
             title=event_type,
             body=str(data),
@@ -297,6 +329,7 @@ class MessageBuildersMixin:
     # ── 2026-07-01 新增事件 ──
 
     def _build_image_update_available_message(self, data: dict) -> NotificationMessage:
+        """构建镜像更新可用的通知消息。"""
         return NotificationMessage(
             title=_("镜像更新可用"),
             body=_("检测到新版本镜像，当前 {old} → 新版本 {new}").format(
@@ -307,10 +340,13 @@ class MessageBuildersMixin:
             icon="pi pi-cloud-upload",
         )
 
+    # ── 查询/汇总事件 ──
+
     def _build_batch_query_summary_message(self, data: dict) -> NotificationMessage:
         total = data.get("total", 0)
         found = data.get("found", 0)
         pending = data.get("pending", 0)
+        # 根据命中率决定通知级别：全命中=info，有待确认=warning
         if found == total:
             body = _("标准查询完成：共 {total} 条，全部找到").format(total=total)
             level = "info"
@@ -333,6 +369,7 @@ class MessageBuildersMixin:
     def _build_auto_query_complete_message(self, data: dict) -> NotificationMessage:
         changed = data.get("changed", 0)
         total = data.get("total", 0)
+        # 定时查询结果：区分有/无变更两套消息
         if changed > 0:
             body = _("定时查询完成：共检查 {total} 条，{changed} 条状态变更").format(total=total, changed=changed)
         else:
@@ -348,6 +385,7 @@ class MessageBuildersMixin:
     def _build_trust_ip_update_message(self, data: dict) -> NotificationMessage:
         title = data.get("title", "可信 IP 状态")
         body = data.get("body", "")
+        # "失败"关键词触发 warning 级别，提醒运维介入
         level = "warning" if "失败" in title else "info"
         return NotificationMessage(
             title=title,
@@ -358,6 +396,7 @@ class MessageBuildersMixin:
         )
 
     def _build_worker_error_message(self, data: dict) -> NotificationMessage:
+        """构建后台工作线程异常的通知消息。"""
         worker = data.get("worker", "未知")
         error = data.get("error", "")
         return NotificationMessage(

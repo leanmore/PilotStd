@@ -25,6 +25,7 @@ __all__ = [
 
 # StandardManager 延迟导入（其依赖 query/download 引擎和全部适配器）
 def get_manager() -> type[Any]:
+    """懒加载 StandardManager 类（避免启动时导入全部查询/下载引擎依赖）。"""
     from .manager import StandardManager
 
     return StandardManager

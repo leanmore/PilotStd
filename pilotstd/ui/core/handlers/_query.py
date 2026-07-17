@@ -109,9 +109,7 @@ class QueryUIHandler:
     def on_query(self) -> None:
         """查询主入口：前置准备 → Worker 创建 → 信号连接。"""
         if not self._parsed_results:
-            choice = self._deps.dialog.stage_prereq_dialog(
-                tr("title_hint"), tr("msg_scan_prereq"), tr("task_scan")
-            )
+            choice = self._deps.dialog.stage_prereq_dialog(tr("title_hint"), tr("msg_scan_prereq"), tr("task_scan"))
             if choice == "run_prereq" and self._run_scan_cb:
                 path = self._deps.table.get_selected_path()
                 self._run_scan_cb(path)
@@ -141,16 +139,19 @@ class QueryUIHandler:
                 item.setText("查询中...")
 
         def on_progress(current: int) -> None:
+            """查询进度回调：更新进度条百分比。"""
             if self._progress_changed:
                 self._progress_changed(current)
 
         def on_query_finished(_results: Any) -> None:
+            """查询完成回调：强制完成进度条 + 发布事件 + 弹出汇总。"""
             if self._force_finish_progress:
                 self._force_finish_progress()
             self._publish_event("query.finished", {"count": len(_results) if _results else 0})
             self.show_query_summary()
 
         def on_query_error(msg: str) -> None:
+            """查询错误回调：更新状态栏 + 记录日志 + 本地通知 + 发布事件。"""
             if self._status_changed:
                 self._status_changed(f"查询失败: {msg}")
             logger.error("查询线程异常: %s", msg)
@@ -165,9 +166,7 @@ class QueryUIHandler:
             on_finished=on_query_finished,
             on_error=on_query_error,
         )
-        self._query_worker = self._deps.worker_factory.create_query_worker(
-            self._parsed_results, callbacks
-        )
+        self._query_worker = self._deps.worker_factory.create_query_worker(self._parsed_results, callbacks)
         self._query_worker.start()
 
     def on_query_result_ready(self, idx: int, result: Any) -> None:
@@ -191,9 +190,7 @@ class QueryUIHandler:
         # 纯逻辑：确定状态颜色 → Handler 负责 Qt 着色
         status_item = wt.item(row, 4)
         if status_item:
-            color_hex = self._engine.determine_status_color(
-                result.status, result.is_downloadable
-            )
+            color_hex = self._engine.determine_status_color(result.status, result.is_downloadable)
             qt_color = _STATUS_HEX_TO_QT.get(color_hex)
             if qt_color is not None:
                 status_item.setForeground(qt_color)
@@ -329,12 +326,14 @@ class QueryUIHandler:
         self._parsed_results.extend(parsed_list)
 
         for i, p in enumerate(self._parsed_results):
-            self._deps.table.add_table_row({
-                "seq": self._deps.table.get_work_table().rowCount() + 1,
-                "parsed": p,
-                "work_status": "已查询",
-                "total": len(self._parsed_results),
-            })
+            self._deps.table.add_table_row(
+                {
+                    "seq": self._deps.table.get_work_table().rowCount() + 1,
+                    "parsed": p,
+                    "work_status": "已查询",
+                    "total": len(self._parsed_results),
+                }
+            )
 
         total = len(self._parsed_results)
         found = sum(1 for p in self._parsed_results if p.found_name)

@@ -11,11 +11,12 @@ class SessionStore:
     """线程安全的服务端会话存储（单例）。"""
 
     _instance: "SessionStore | None" = None
-    _lock = threading.Lock()
+    _lock = threading.Lock()  # 类级别锁，保护单例创建
     _store: dict[str, dict[str, Any]]
-    _store_lock: threading.Lock
+    _store_lock: threading.Lock  # 实例级别锁，保护会话字典的并发读写
 
     def __new__(cls) -> "SessionStore":
+        # 双重检查锁定实现线程安全单例
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -70,6 +71,7 @@ class SessionStore:
         now = time.time()
         removed = 0
         with self._store_lock:
+            # 收集所有过期 token，批量删除
             expired = [t for t, s in self._store.items() if s["expires_at"] <= now]
             for t in expired:
                 del self._store[t]
@@ -88,6 +90,7 @@ _session_store: SessionStore | None = None
 def get_session_store() -> SessionStore:
     """获取全局会话存储实例（惰性初始化）。"""
     global _session_store
+    # 惰性创建，首次调用时初始化
     if _session_store is None:
         _session_store = SessionStore()
     return _session_store

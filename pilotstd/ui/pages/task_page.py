@@ -1,5 +1,7 @@
 # pilotstd/ui/pages/task_page.py
 # 任务中心：历史记录、进度、日志
+#
+# 展示后台任务列表和详情信息。
 
 from typing import Any
 
@@ -21,6 +23,8 @@ from PyQt6.QtWidgets import (
 from ...i18n import _
 from ...task.models import TaskStatus
 from ...task.queue import TaskQueue
+
+# ── TaskPage：任务列表控件 ──
 
 
 class TaskPage(QWidget):
@@ -80,7 +84,10 @@ class TaskPage(QWidget):
         if self._queue:
             self._refresh()
 
+    # ── 刷新任务列表 ──
+
     def _refresh(self) -> None:
+        """从 TaskQueue 重新加载任务列表并填充表格。"""
         self.task_table.setRowCount(0)
         if not self._queue:
             return
@@ -98,7 +105,10 @@ class TaskPage(QWidget):
             self.task_table.setItem(row, 4, QTableWidgetItem(t.updated_at[:19] if t.updated_at else ""))
             self.task_table.setItem(row, 5, QTableWidgetItem(t.error_log))
 
+    # ── 清除已完成任务 ──
+
     def _clear_completed(self) -> None:
+        """清除所有已完成/已取消/已失败的任务记录。"""
         if self._queue:
             for t in self._queue.list_all(limit=200):
                 if t.status in (
@@ -108,6 +118,9 @@ class TaskPage(QWidget):
                 ):
                     self._queue.cancel(t.task_id)  # marks for cleanup
         self._refresh()
+
+
+# ── TaskCenterDialog：任务中心对话框 ──
 
 
 class TaskCenterDialog(QDialog):

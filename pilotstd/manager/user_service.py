@@ -11,14 +11,17 @@ class UserService:
     """用户管理业务逻辑。"""
 
     def __init__(self, manager: Any):
+        """初始化用户服务，持有 StandardManager 引用。"""
         self._mgr = manager
 
     @staticmethod
     def _hash_password(password: str) -> str:
+        """对密码加盐哈希，返回 salt:hash 格式字符串。"""
         salt = secrets.token_hex(16)
         return salt + ":" + hashlib.sha256((salt + password).encode()).hexdigest()
 
     def get_user_id(self, username: str) -> int | None:
+        """按用户名查询用户 ID，不存在时返回 None。"""
         row = self._mgr.db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
         return row["id"] if row else None
 
@@ -30,6 +33,7 @@ class UserService:
     # ── 布局 ─────────────────────────────────
 
     def get_layout(self, user_id: int) -> dict[str, Any]:
+        """获取用户仪表盘布局数据。"""
         row = self._mgr.db.fetchone(
             "SELECT layout_data FROM user_layouts WHERE user_id=? AND layout_key='dashboard'",
             (user_id,),
@@ -37,6 +41,7 @@ class UserService:
         return {"layout": row["layout_data"] if row else None}
 
     def save_layout(self, user_id: int, layout_data: str) -> dict[str, Any]:
+        """保存用户仪表盘布局数据（JSON 字符串）。"""
         if not layout_data:
             return {"error": "缺少 layout 字段"}
         self._mgr.db.execute(
@@ -47,6 +52,7 @@ class UserService:
         return {"ok": True}
 
     def delete_layout(self, user_id: int) -> dict[str, Any]:
+        """删除用户仪表盘布局数据。"""
         self._mgr.db.execute(
             "DELETE FROM user_layouts WHERE user_id=? AND layout_key='dashboard'",
             (user_id,),
@@ -56,6 +62,7 @@ class UserService:
     # ── 首选项 ─────────────────────────────────
 
     def get_preferences(self, user_id: int) -> dict[str, Any]:
+        """获取用户全部偏好设置（KV 表），返回 {preferences: {key: value}}。"""
         rows = self._mgr.db.fetchall(
             "SELECT preference_key, preference_value, updated_at "
             "FROM user_preferences WHERE user_id=? ORDER BY preference_key",
@@ -64,6 +71,7 @@ class UserService:
         return {"preferences": {r["preference_key"]: json.loads(r["preference_value"]) for r in rows}}
 
     def get_preference(self, user_id: int, key: str) -> dict[str, Any]:
+        """按 key 获取单个用户偏好值，不存在时返回 {key: key, value: None}。"""
         row = self._mgr.db.fetchone(
             "SELECT preference_key, preference_value, updated_at "
             "FROM user_preferences WHERE user_id=? AND preference_key=?",
@@ -78,6 +86,7 @@ class UserService:
         }
 
     def save_preference(self, user_id: int, key: str, value: Any) -> dict[str, Any]:
+        """保存单个用户偏好键值对（JSON 序列化存储）。"""
         self._mgr.db.execute(
             "INSERT OR REPLACE INTO user_preferences (user_id, preference_key, preference_value, updated_at) "
             "VALUES (?, ?, ?, datetime('now', 'localtime'))",
@@ -86,6 +95,7 @@ class UserService:
         return {"ok": True, "key": key}
 
     def save_preferences_batch(self, user_id: int, preferences: dict[str, Any]) -> dict[str, Any]:
+        """批量保存用户偏好（一次请求保存多个键值对）。"""
         if not isinstance(preferences, dict) or not preferences:
             return {"error": "缺少 preferences 字段"}
         for key, val in preferences.items():
@@ -97,6 +107,7 @@ class UserService:
         return {"ok": True, "count": len(preferences)}
 
     def delete_preference(self, user_id: int, key: str) -> dict[str, Any]:
+        """删除单个用户偏好键。"""
         self._mgr.db.execute(
             "DELETE FROM user_preferences WHERE user_id=? AND preference_key=?",
             (user_id, key),

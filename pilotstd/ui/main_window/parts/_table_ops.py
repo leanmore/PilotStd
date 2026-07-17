@@ -23,11 +23,16 @@ from ...workers import RowUpdate
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 列可见性管理 ──
+
+
 def _get_column_visibility(self) -> list[bool]:
+    """获取当前各列的可见状态（True=可见）。"""
     return [not self.work_table.isColumnHidden(c) for c in range(len(WORK_COLUMNS))]
 
 
 def _apply_column_visibility(self, visible: list[bool]) -> None:
+    """应用列可见性设置，前 4 列（序号/状态/标准号/名称）始终可见。"""
     header = self.work_table.horizontalHeader()
     for c in range(len(WORK_COLUMNS)):
         if c < 4:
@@ -42,16 +47,22 @@ def _apply_column_visibility(self, visible: list[bool]) -> None:
 
 
 def _save_column_visibility(self) -> None:
+    """保存当前列可见性到配置。"""
     self._config.set("appearance.column_visibility", self._get_column_visibility())
 
 
 def _load_column_visibility(self) -> None:
+    """从配置加载列可见性并应用。"""
     default = [True] * len(WORK_COLUMNS)
     visible = self._config.get("appearance.column_visibility", default) or default
     self._apply_column_visibility(visible)
 
 
+# ── 表头右键菜单 ──
+
+
 def _on_header_context_menu(self, pos: Any) -> None:
+    """表头右键菜单：显示/隐藏可切换列。"""
     header = self.work_table.horizontalHeader()
     menu = QMenu(self.work_table)
     for c in TOGGLEABLE_COLS:
@@ -72,11 +83,19 @@ def _on_header_context_menu(self, pos: Any) -> None:
         self._save_column_visibility()
 
 
+# ── 可见列名收集 ──
+
+
 def _get_visible_cols(self) -> list[str]:
+    """返回当前所有可见列的显示名称列表。"""
     return [_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if not self.work_table.isColumnHidden(c)]
 
 
+# ── 保存结果（txt/csv）──
+
+
 def _on_save_result(self, fmt: str) -> None:
+    """将工作区表格保存为 txt 或 csv 文件。"""
     if self.work_table.rowCount() == 0:
         QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
         return
@@ -106,9 +125,13 @@ def _on_save_result(self, fmt: str) -> None:
         QMessageBox.warning(self, _("title_save_failed"), str(e))
 
 
+# ── TXT 格式保存 ──
+
+
 def _save_txt(
     self, path: str, rows: list[dict[str, Any]], cols: list[str] | None = None, data_keys: list[str] | None = None
 ) -> None:
+    """将表格行数据保存为制表符分隔的文本文件。"""
     if cols is None:
         cols = [_(k) for k in WORK_COLUMN_KEYS]
         data_keys = list(WORK_COLUMNS)
@@ -126,15 +149,23 @@ def _save_txt(
             f.write(line + "\n")
 
 
+# ── 行数据读取 ──
+
+
 def _row_get(self, row: Any, key: str, default: str = "") -> str:
+    """从行对象（dict 或数据类）中安全读取字段值。"""
     if isinstance(row, dict):
         return str(row.get(key, default))
     return str(getattr(row, key, default))
 
 
+# ── CSV 格式保存 ──
+
+
 def _save_csv(
     self, path: str, rows: list[dict[str, Any]], cols: list[str] | None = None, data_keys: list[str] | None = None
 ) -> None:
+    """将表格行数据保存为 UTF-8 BOM CSV 文件。"""
     if cols is None:
         cols = [_(k) for k in WORK_COLUMN_KEYS]
         data_keys = list(WORK_COLUMNS)
@@ -147,7 +178,11 @@ def _save_csv(
             w.writerow([self._row_get(row, k) for k in data_keys])
 
 
+# ── 工作区右键菜单 ──
+
+
 def _on_work_table_context_menu(self, pos: Any) -> None:
+    """构建工作区表格右键菜单：复制、离线查看、添加文件/文件夹、删除行。"""
     menu = QMenu(self)
     copy_action = menu.addAction(f"\U0001f4cb {_('copy')}")
     copy_action.setToolTip("复制选中单元格内容至剪贴板")
@@ -193,7 +228,11 @@ def _on_work_table_context_menu(self, pos: Any) -> None:
         self.status_changed.emit(_("status_workspace_cleared"))
 
 
+# ── 离线查看 ──
+
+
 def _on_offline_view(self) -> None:
+    """从本地文件索引中查看标准完整信息（无需联网）。"""
     if not self._mgr_ready:
         return
     rows = {r.row() for r in self.work_table.selectedIndexes()}
@@ -231,7 +270,11 @@ def _on_offline_view(self) -> None:
     QMessageBox.information(self, _("offline_view"), "\n".join(lines))
 
 
+# ── 删除选中行 ──
+
+
 def _remove_selected_rows(self) -> None:
+    """从工作区表格中移除选中的行（不删除物理文件）。"""
     rows = set()
     for item in self.work_table.selectedItems():
         rows.add(item.row())
@@ -246,7 +289,11 @@ def _remove_selected_rows(self) -> None:
     self.status_changed.emit(f"已移除 {removed} 行")
 
 
+# ── 添加表格行 ──
+
+
 def _add_table_row(self, update: RowUpdate) -> None:
+    """根据 RowUpdate 数据向工作区表格添加一行。"""
     logger.debug(
         "[TRACE-A] _add_table_row: 行号=%d 标准号=%r 标准名称=%r 工作状态=%r 生效状态=%r 是否采标=%s",
         update.seq,
@@ -279,11 +326,19 @@ def _add_table_row(self, update: RowUpdate) -> None:
         self.work_table.setItem(row, c, item)
 
 
+# ── 清空表格 ──
+
+
 def _clear_table(self) -> None:
+    """清空工作区表格所有行。"""
     self.work_table.setRowCount(0)
 
 
+# ── 按序号查找行 ──
+
+
 def _find_row_by_seq(self, seq: int) -> int:
+    """根据序号在表格第一列中查找对应行索引，未找到返回 -1。"""
     for r in range(self.work_table.rowCount()):
         item = self.work_table.item(r, 0)
         if item and item.text() and int(item.text()) == seq:
@@ -291,7 +346,11 @@ def _find_row_by_seq(self, seq: int) -> int:
     return -1
 
 
+# ── 表格转列表 ──
+
+
 def _table_to_list(self) -> list[Any]:
+    """将工作区表格全部行数据导出为字典列表。"""
     rows = []
     for r in range(self.work_table.rowCount()):
         row_data = {}
@@ -302,7 +361,11 @@ def _table_to_list(self) -> list[Any]:
     return rows
 
 
+# ── 最小列宽强制 ──
+
+
 def _enforce_min_column_width(self, col: int, _old: int, new: int) -> None:
+    """确保列宽不小于预设最小值，并自动保存列宽到配置。"""
     if col in self._col_specs:
         mn = self._col_specs[col][1]
         if new < mn:
@@ -310,14 +373,22 @@ def _enforce_min_column_width(self, col: int, _old: int, new: int) -> None:
     self._save_column_widths()
 
 
+# ── 键盘事件 ──
+
+
 def _table_key_press_event(self, event: Any) -> None:
+    """处理表格键盘事件：Ctrl+C 复制选中单元格。"""
     if event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
         self._copy_selected_cells()
     else:
         QTableWidget.keyPressEvent(self.work_table, event)
 
 
+# ── 复制选中单元格 ──
+
+
 def _copy_selected_cells(self) -> None:
+    """将选中单元格内容以制表符分隔复制到剪贴板。"""
     selected = self.work_table.selectedIndexes()
     if not selected:
         return

@@ -126,17 +126,20 @@ class CacheRepository:
             self._db.execute(f"DELETE FROM {CACHE_TABLE} WHERE standard_number=?", (standard_number,))
 
     def get_history(self, limit: int = 100, offset: int = 0) -> list[Any]:
+        """分页查询缓存历史记录，按缓存时间倒序。"""
         return self._db.fetchall(
             f"SELECT * FROM {CACHE_TABLE} ORDER BY cached_at DESC LIMIT ? OFFSET ?",
             (limit, offset),
         )
 
     def clear_all(self) -> None:
+        """清空全部缓存数据。"""
         self._db.execute(f"DELETE FROM {CACHE_TABLE}")
 
     # ---- 内部 ----
 
     def _ensure_table(self) -> None:
+        """创建缓存表及联合索引（幂等），供 __init__ 在启动时调用。"""
         self._db.execute(f"""
             CREATE TABLE IF NOT EXISTS {CACHE_TABLE} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,4 +157,5 @@ class CacheRepository:
         self._db.execute(f"CREATE INDEX IF NOT EXISTS idx_cache_cached_at ON {CACHE_TABLE}(cached_at)")
 
     def _delete(self, row_id: int) -> None:
+        """按主键删除单条缓存记录。"""
         self._db.execute(f"DELETE FROM {CACHE_TABLE} WHERE id=?", (row_id,))

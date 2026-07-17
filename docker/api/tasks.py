@@ -26,6 +26,7 @@ def list_tasks(
     filtered = [t for t in tasks if not status or t.get("status") == status]
     total = len(filtered)
     offset = (page - 1) * page_size
+    # 构建分页响应，每个任务返回完整字段集合
     return {
         "total": total,
         "page": page,
@@ -73,6 +74,7 @@ def list_pipeline_runs(
 
 @router.get("/api/tasks/{task_id}")
 def get_task(task_id: str, mgr=Depends(get_manager_dep)):
+    """获取单个任务的详细信息，包括类型、状态、进度、错误日志和结果。"""
     task = mgr.task_queue.get(task_id)
     if task is None:
         return JSONResponse({"error": "任务不存在"}, 404)
@@ -95,6 +97,7 @@ def create_task(body: dict, mgr=Depends(get_manager_dep), user: str = Depends(re
     """创建任务并入队。Body: {task_type, total_items?, max_retries?, queue_name?}"""
     from pilotstd.task.models import TaskType
 
+    # 校验任务类型枚举
     task_type_str = body.get("task_type", "")
     try:
         task_type = TaskType(task_type_str)
@@ -115,6 +118,7 @@ def retry_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(r
     task = mgr.task_queue.get(task_id)
     if task is None:
         return JSONResponse({"error": "任务不存在"}, 404)
+    # 仅允许重试已失败的任务，运行中/已完成的任务不支持重试
     if task.status.value != "failed":
         return JSONResponse({"error": "只能重试已失败的任务"}, 400)
 

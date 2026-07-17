@@ -1,5 +1,6 @@
 # pilotstd/manager/organize/organizer.py
 # 核心归类逻辑 — 从 organizer_service.py 拆分
+# 负责 PDF 按标准号分类移动、Word/模板镜像归档、内容去重、索引写入
 
 import logging
 import os
@@ -31,6 +32,7 @@ class OrganizerCore:
         file_mover: Any,
         expire_handler: Any,
     ) -> None:
+        """初始化归类核心，注入配置、文件索引、目录构建器、文件移动器、过期处理器。"""
         self._cfg = cfg
         self._file_index = file_index
         self._dir_builder = dir_builder
@@ -39,6 +41,7 @@ class OrganizerCore:
         self._std_parser = StandardParser(self._cfg.get("scan.code_mapping", {}))
         self._skipped_source_files: set[str] = set()
 
+    # organize — 主入口，遍历 parsed_list 逐条归档，每 50 条输出进度
     def organize(
         self: Any, parsed_list: list[Any], word_source_root: str | None = None, overwrite: bool = False
     ) -> dict[str, Any]:
@@ -70,7 +73,7 @@ class OrganizerCore:
                 _pct = int(_org_count / _org_total * 100) if _org_total > 0 else 0
                 logger.info("归档进度: %d/%d (%d%%) 已耗时 %.0fs", _org_count, _org_total, _pct, _elapsed)
             if getattr(p, "next_action", "") == "pending":
-                continue
+                continue  # 待确认条目跳过归档
             src = getattr(p, "source_path", "")
             if not src or not os.path.isfile(src):
                 result["details"].append(f"跳过（无源文件）: {p.get_full_number()}")
@@ -156,6 +159,7 @@ class OrganizerCore:
             result["failed"] += 1
             result["details"].append(f"Word 归档失败: {os.path.basename(src)} - {e}")
 
+    # _organize_nonword_item — 非 Word 文件：哈希去重后移动，更新索引
     def _organize_nonword_item(self, p: Any, mover: Any, result: dict, content_hashes: dict, on_exists: str) -> None:
         """非 Word 文件去重 + 移动 + 索引更新。"""
         src = getattr(p, "source_path", "")
@@ -208,6 +212,7 @@ class OrganizerCore:
             result["failed"],
         )
 
+    # _dedup_standard — 相同标准号旧路径清理，避免分类变化导致双份文件
     def _dedup_standard(self: Any, parsed: Any, new_path: str) -> None:
         """去重：同标准号旧路径残留（分类变化导致双份文件）。"""
         if not self._file_index:

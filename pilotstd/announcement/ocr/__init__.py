@@ -82,6 +82,7 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
 
 
 def _create_baidu(config: dict[str, Any]) -> Optional["BaiduOcrProvider"]:
+    """根据配置创建百度云 OCR 提供商实例，未配置则返回 None。"""
     api_key = config.get("baidu_api_key", "") or config.get("api_key", "")
     secret_key = config.get("baidu_secret_key", "") or config.get("secret_key", "")
     if not api_key or not secret_key:
@@ -91,6 +92,7 @@ def _create_baidu(config: dict[str, Any]) -> Optional["BaiduOcrProvider"]:
 
 
 def _create_tencent(config: dict[str, Any]) -> Optional["TencentOcrProvider"]:
+    """根据配置创建腾讯云 OCR 提供商实例，未配置则返回 None。"""
     secret_id = config.get("tencent_secret_id", "") or config.get("secret_id", "")
     secret_key = config.get("tencent_secret_key", "") or config.get("secret_key", "")
     if not secret_id or not secret_key:
@@ -100,6 +102,7 @@ def _create_tencent(config: dict[str, Any]) -> Optional["TencentOcrProvider"]:
 
 
 def _create_aliyun(config: dict[str, Any]) -> Optional["AliyunOcrProvider"]:
+    """根据配置创建阿里云 OCR 提供商实例，未配置则返回 None。"""
     ak_id = config.get("aliyun_access_key_id", "") or config.get("access_key_id", "")
     ak_secret = config.get("aliyun_access_key_secret", "") or config.get("access_key_secret", "")
     if not ak_id or not ak_secret:

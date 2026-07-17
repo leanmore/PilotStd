@@ -59,6 +59,7 @@ class ExactMatchMixin:
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
+        """占位声明：具体实现由 StandardParser 通过 MRO 注入（ParserCore.build_result）。"""
         raise NotImplementedError
 
     # ── 精确匹配通道 ────────────────────────────────────────
@@ -158,6 +159,7 @@ class ExactMatchMixin:
         )
 
     def _exact_match(self, text: str) -> Optional[ParsedStdInfo]:
+        """精确匹配通道：按 regex 解析代号、编号、部分号、年份并构建结果。"""
         match = self.regex.match(text)
         if not match:
             return None
@@ -207,6 +209,7 @@ class ExactMatchMixin:
         )
 
     def _exact_match_typed(self, text: str) -> Optional[ParsedStdInfo]:
+        """带类型前缀的精确匹配通道：先尝试 regex_typed，失败回退到 regex_typed_v2。"""
         match = self.regex_typed.match(text)
         if not match:
             match = self.regex_typed_v2.match(text)

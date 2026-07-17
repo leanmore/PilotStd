@@ -20,6 +20,7 @@ class BaiduOcrProvider(BaseOcrProvider):
     def __init__(self, api_key: str, secret_key: str):
         self._api_key = api_key
         self._secret_key = secret_key
+        # Token 缓存：避免每次 OCR 调用都重新获取 access_token
         self._access_token: Optional[str] = None
         self._token_expire: float = 0
 
@@ -31,6 +32,7 @@ class BaiduOcrProvider(BaseOcrProvider):
         """获取百度云 access_token，带缓存。"""
         from ...query.network import safe_raw_get
 
+        # 缓存命中：token 未过期直接返回，提前 1 小时刷新留缓冲
         if self._access_token and time.time() < self._token_expire:
             return self._access_token
         resp = safe_raw_get(
@@ -50,6 +52,7 @@ class BaiduOcrProvider(BaseOcrProvider):
             data = resp.json()
             self._access_token = data.get("access_token", "")
             expires = data.get("expires_in", 2592000)
+            # 提前 1 小时过期，确保不会在请求中途 token 失效
             self._token_expire = time.time() + expires - 3600
             return self._access_token
         except Exception:
@@ -57,12 +60,14 @@ class BaiduOcrProvider(BaseOcrProvider):
             return None
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
+        """识别 PDF 单页文本：获取 token → base64 编码 → basicGeneral 接口调用。"""
         from ...query.network import safe_raw_post
 
         token = self._get_access_token()
         if not token:
             return OcrResult(error="access_token 获取失败", error_type="other")
         try:
+            # basicGeneral 接口：PDF 单页 base64 编码 + CHN_ENG 中英混合识别
             resp = safe_raw_post(
                 "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic",
                 "baidu_ocr",
@@ -79,6 +84,7 @@ class BaiduOcrProvider(BaseOcrProvider):
             result = resp.json()
             if "error_code" in result:
                 code = result["error_code"]
+                # 将百度云错误码映射为通用错误类型，上层统一处理冷却策略
                 return OcrResult(
                     error=f"code={code} msg={result.get('error_msg', '')}",
                     error_code=str(code),
@@ -94,6 +100,7 @@ class BaiduOcrProvider(BaseOcrProvider):
 
 
 def _baidu_error_type(code: int) -> str:
+    """将百度云错误码映射为通用错误类型：18=QPS超限, 17=日限额, 19=月限额。"""
     if code == 18:
         return "qps"
     if code == 17:

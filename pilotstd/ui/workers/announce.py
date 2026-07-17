@@ -27,9 +27,11 @@ class AnnounceWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行公告流式抓取，通过信号通知 UI 进度和错误。"""
         try:
 
             def on_progress(cur: int, total: int, matched: int) -> None:
+                """更新进度计数并发射 progress 信号。"""
                 if self._stopped:
                     return
                 if self._pause_event is not None:
@@ -39,6 +41,7 @@ class AnnounceWorker(QThread):
                 self.progress.emit(cur, total, matched)
 
             def on_adapter_done(std_type: Any, result: Any) -> None:
+                """单个适配器完成时记录结果或错误。"""
                 if result is None:
                     self._failures.append({"type": std_type, "error": "无响应"})
                 elif "error" in result:

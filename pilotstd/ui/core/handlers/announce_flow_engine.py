@@ -60,6 +60,7 @@ class AnnounceFlowEngine:
 
         # 字段映射 + 回退
         def _get(*keys: str) -> Any:
+            """从 raw dict 中按优先级取第一个非空值。"""
             for k in keys:
                 v = raw.get(k)
                 if v is not None and v != "":

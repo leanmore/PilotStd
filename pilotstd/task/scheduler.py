@@ -10,6 +10,8 @@ POLL_INTERVAL = 2  # 轮询间隔（秒）
 
 
 class TaskScheduler:
+    """后台轮询待处理任务，自动派发到 TaskQueue 执行。"""
+
     def __init__(self, task_queue=None):
         self._queue = task_queue  # TaskQueue 实例（启动时注入）
         self._running = False
@@ -18,12 +20,15 @@ class TaskScheduler:
 
     @property
     def running(self) -> bool:
+        """调度器是否正在运行。"""
         return self._running
 
     def set_queue(self, q):
+        """运行时注入 TaskQueue 实例。"""
         self._queue = q
 
     def start(self):
+        """启动后台轮询线程。"""
         if self._running:
             return
         if self._queue is None:
@@ -36,6 +41,7 @@ class TaskScheduler:
         logger.info("[TASK-SCHED] 启动 (间隔=%ds)", POLL_INTERVAL)
 
     def stop(self):
+        """停止调度器并等待线程结束。"""
         self._stop.set()
         self._running = False
         if self._thread:
@@ -43,6 +49,7 @@ class TaskScheduler:
         logger.info("[TASK-SCHED] 已停止")
 
     def _run(self):
+        """后台主循环：轮询待处理任务并自动派发执行。"""
         while not self._stop.is_set():
             try:
                 pending = self._queue.get_pending()
@@ -63,6 +70,7 @@ _scheduler: TaskScheduler | None = None
 
 
 def get_scheduler() -> TaskScheduler:
+    """获取全局单例 TaskScheduler。"""
     global _scheduler
     if _scheduler is None:
         _scheduler = TaskScheduler()

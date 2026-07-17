@@ -62,6 +62,7 @@ class SiteRotator:
             self._load(db)
 
     def register(self, site: SiteState) -> None:
+        """注册一个站点到轮转器（线程安全）。"""
         with self._lock:
             self._sites[site.name] = site
 
@@ -247,6 +248,7 @@ class SiteRotator:
                 )
 
     def all_in_cooldown(self, priority_order: List[str]) -> bool:
+        """检查优先级链上所有站点是否均在冷却中（线程安全）。"""
         with self._lock:
             now = time.time()
             for name in priority_order:

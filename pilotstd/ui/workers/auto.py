@@ -1,4 +1,6 @@
 # pilotstd/ui/workers/auto.py — AutoWorker，从 workers.py 拆分
+#
+# 统一自动管线 Worker：串行执行 scan→query→download→archive。
 
 from typing import Any
 
@@ -31,6 +33,7 @@ class AutoWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中启动自动管线，逐阶段发射信号到 UI。"""
         try:
             report = self._mgr.auto_run_stream(
                 self._root_path,
@@ -49,5 +52,6 @@ class AutoWorker(QThread):
         self.finished_signal.emit(report)
 
     def _emit_scan_batch(self, batch_rows: list[Any]) -> None:
+        """发射扫描批次信号（非停止状态下）。"""
         if not self._stopped:
             self.scan_batch.emit(batch_rows)

@@ -14,6 +14,7 @@ def migration(version: int) -> Callable[[Callable[..., Any]], Callable[..., Any]
     """装饰器：注册迁移函数到指定版本号。"""
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        # 将迁移函数注册到全局 MIGRATIONS 字典，按版本号索引
         MIGRATIONS[version] = fn
         return fn
 

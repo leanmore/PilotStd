@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 @dataclass
 class WechatIPConfig:
+    """企业微信可信 IP 配置。"""
+
     enabled: bool = False
     interval_hours: int = 6
     app_urls: str = ""  # 逗号分隔的多个应用管理 URL
@@ -23,6 +25,7 @@ class WechatIPConfig:
     last_check_at: str = ""
 
 
+# 配置 ↔ 字典互转（与 pilotstd 配置系统集成）
 def from_config_dict(data: dict) -> WechatIPConfig:
     """从配置字典加载。"""
     return WechatIPConfig(

@@ -26,6 +26,7 @@ class DownloadWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行流式下载，批量发射结果到 UI。"""
         import time as _time
 
         try:
@@ -33,6 +34,7 @@ class DownloadWorker(QThread):
             last_flush = _time.monotonic()
 
             def on_result(idx: Any, status: Any) -> None:
+                """收集下载结果到批次，达到阈值或超时后批量发射。"""
                 nonlocal batch, last_flush
                 if self._stopped:
                     return
@@ -45,6 +47,7 @@ class DownloadWorker(QThread):
                     last_flush = now
 
             def on_progress(cur: Any, total: Any) -> None:
+                """更新下载进度百分比。"""
                 if self._stopped:
                     return
                 if self._pause_event is not None:

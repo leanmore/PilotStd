@@ -1,5 +1,7 @@
 # pilotstd/ui/pages/rules_page.py
 # 网站规则配置：管理查询/下载网站的适配规则模板
+#
+# 提供规则列表展示和编辑功能，支持 JSON 导入/导出。
 
 import json
 from typing import Any, Optional
@@ -22,6 +24,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ...i18n import _
+
+# ── RulesPage：规则列表展示控件 ──
 
 
 class RulesPage(QWidget):
@@ -68,7 +72,10 @@ class RulesPage(QWidget):
         if self._config:
             self._refresh()
 
+    # ── 规则存取 ──
+
     def _get_rules(self) -> list[dict[str, Any]]:
+        """从配置中读取规则列表（支持 JSON 字符串和 Python list）。"""
         raw = self._config.get("sites.rules", "[]")
         if isinstance(raw, str):
             try:
@@ -81,20 +88,26 @@ class RulesPage(QWidget):
         return []
 
     def _save_rules(self, rules: list[dict[str, Any]]) -> None:
+        """将规则列表序列化为 JSON 并保存到配置。"""
         self._config.set("sites.rules", json.dumps(rules, ensure_ascii=False))
         self._config.save()
 
     def _refresh(self) -> None:
+        """重新加载规则列表并刷新树控件。"""
         self.rule_tree.clear()
         for r in self._get_rules():
             self._add_item(r)
 
     def _add_item(self, rule: dict[str, Any]) -> None:
+        """向规则树添加一条规则节点。"""
         item = QTreeWidgetItem([rule.get("name", ""), rule.get("type", ""), rule.get("url", "")])
         item.setData(0, 1, rule)
         self.rule_tree.addTopLevelItem(item)
 
+    # ── 规则操作 ──
+
     def _on_add_rule(self) -> None:
+        """弹出规则编辑对话框并添加新规则。"""
         dlg = RuleEditDialog(self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             rules = self._get_rules()
@@ -103,6 +116,7 @@ class RulesPage(QWidget):
             self._refresh()
 
     def _on_edit_rule(self, item: Any = None) -> None:
+        """弹出规则编辑对话框并保存修改后的规则。"""
         if item is None:
             items = self.rule_tree.selectedItems()
             if not items:
@@ -119,6 +133,7 @@ class RulesPage(QWidget):
                 self._refresh()
 
     def _on_delete_rule(self) -> None:
+        """删除选中的规则（弹出确认对话框）。"""
         items = self.rule_tree.selectedItems()
         if not items:
             return
@@ -134,7 +149,10 @@ class RulesPage(QWidget):
             self._save_rules(rules)
             self._refresh()
 
+    # ── JSON 导入/导出 ──
+
     def _on_import_json(self) -> None:
+        """从 JSON 文件导入规则配置。"""
         path, __ = QFileDialog.getOpenFileName(self, _("dialog_import_rules"), "", _("file_filter_json"))
         if not path:
             return
@@ -150,6 +168,7 @@ class RulesPage(QWidget):
         QMessageBox.information(self, _("title_import_done"), _("msg_import_success").format(count=added))
 
     def _on_export_json(self) -> None:
+        """将当前规则导出为 JSON 文件。"""
         rules = self._get_rules()
         if not rules:
             QMessageBox.information(self, _("title_hint"), _("msg_no_rules_to_export"))
@@ -168,7 +187,10 @@ class RulesPage(QWidget):
         else:
             QMessageBox.warning(self, _("title_export_failed"), "")
 
+    # ── 内置规则复制 ──
+
     def _on_copy_builtin(self) -> None:
+        """将内置规则模板复制到用户规则列表（不重复添加）。"""
         builtins = [
             {
                 "name": "工标网",
@@ -193,6 +215,9 @@ class RulesPage(QWidget):
                 rules.append(b)
         self._save_rules(rules)
         self._refresh()
+
+
+# ── RuleEditDialog：规则编辑对话框 ──
 
 
 class RuleEditDialog(QDialog):
@@ -255,14 +280,20 @@ class RuleEditDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         layout.addLayout(btn_layout)
 
+    # ── 校验并接受 ──
+
     def _on_accept(self) -> None:
+        """校验规则名不为空后接受对话框。"""
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, _("title_hint"), _("msg_enter_rule_name"))
             return
         self.accept()
 
+    # ── 获取规则数据 ──
+
     def get_rule(self) -> dict[str, Any]:
+        """从表单控件收集规则数据并返回字典。"""
         captcha_map = {0: "", 1: "digit", 2: "math", 3: "slide", 4: "click"}
         return {
             "name": self.name_edit.text().strip(),

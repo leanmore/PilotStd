@@ -77,6 +77,7 @@ def is_newer_version(latest: str, current: str) -> bool:
     """语义化版本比较：latest > current → True。v 前缀自动去除。"""
 
     def _parse(v: str) -> tuple[int, ...]:
+        """解析语义化版本号字符串为整数元组，自动去除 v 前缀。"""
         v = v.lstrip("v")
         parts: list[int] = []
         for p in v.split("."):

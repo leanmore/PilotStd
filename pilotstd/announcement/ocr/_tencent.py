@@ -93,6 +93,7 @@ class TencentOcrProvider(BaseOcrProvider):
         }
 
     def recognize_pdf(self, pdf_bytes: bytes, page_num: int = 1) -> OcrResult:
+        """识别 PDF 单页文本：TC3-HMAC-SHA256 签名 → JSON POST → 解析响应。"""
         b64 = base64.b64encode(pdf_bytes).decode()
         timestamp = int(time.time())
         payload = json.dumps(
@@ -131,6 +132,7 @@ class TencentOcrProvider(BaseOcrProvider):
 
 
 def _tencent_error_type(code: str) -> str:
+    """将腾讯云错误码映射为通用错误类型：RequestLimitExceeded=QPS超限, NoFreeAmount=月限额。"""
     if code == "RequestLimitExceeded":
         return "qps"
     if code == "FailedOperation.NoFreeAmount":

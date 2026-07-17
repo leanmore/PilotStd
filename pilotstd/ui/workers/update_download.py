@@ -25,6 +25,7 @@ class UpdateDownloadWorker(QThread):
         self._release = release
 
     def run(self) -> None:
+        """在线程中下载更新文件、校验 SHA256、生成更新脚本。"""
         from pilotstd.platform.updater import download_update, extract_sha256_from_body, generate_update_script
 
         download_url = self._release["download_url"]

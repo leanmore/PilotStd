@@ -70,17 +70,21 @@ class DownloadUIHandler:
 
     def on_download(self) -> None:
         """下载处理：前置检查 → 表格准备 → Worker 启动。"""
+        # 第一步：前置检查和准备下载列表
         ok, download_list = self.prepare_download()
         if not ok:
             return
 
         to_download = [(i, p) for i, p in enumerate(download_list)]
         total = len(to_download)
+        # 筛选发布不满阈值的标准，加入等待队列
         too_new_set = self.filter_too_new_standards(download_list)
 
         self._status_cb(_("download_in_progress"))
+        # 重置表格并预填充下载列表
         self.reset_ui_for_download(download_list, total)
 
+        # 创建下载 Worker 并连接信号
         self._download_worker = DownloadWorker(
             self._mgr, download_list, pause_event=self._pause_event, parent=self._parent
         )
@@ -89,9 +93,7 @@ class DownloadUIHandler:
             self._status_cb(f"下载进度: {pct}%")
 
         self._download_worker.progress.connect(on_worker_progress)
-        self._download_worker.progress.connect(
-            lambda pct: self._publish_event("download.progress", {"pct": pct})
-        )
+        self._download_worker.progress.connect(lambda pct: self._publish_event("download.progress", {"pct": pct}))
         self._download_worker.batch_ready.connect(self.on_download_batch_ready)
 
         def _on_finished() -> None:
@@ -102,9 +104,7 @@ class DownloadUIHandler:
             lambda: self._publish_event("download.finished", {"total": total})
         )
         self._download_worker.error.connect(self.on_download_error)
-        self._download_worker.error.connect(
-            lambda msg: self._publish_event("download.error", {"error": msg})
-        )
+        self._download_worker.error.connect(lambda msg: self._publish_event("download.error", {"error": msg}))
         self._download_worker.start()
 
     def on_import_download(self) -> None:
@@ -230,7 +230,8 @@ class DownloadUIHandler:
             self.update_download_row(idx, status)
 
     def on_download_finished(self, to_download: list, too_new_set: set, total: int, download_list: Any = None) -> None:
-        """下载完成：统计 → 通知 → 汇总弹窗。"""
+        """下载完成：统计成功/失败/过新数量 → 通知 → 汇总弹窗。"""
+        # 统计各项计数
         too_new_count = len(too_new_set)
         success_count = 0
         failed_details: list[str] = []
@@ -255,6 +256,7 @@ class DownloadUIHandler:
         self._project_mark_dirty()
         self._register_task("下载", total, success_count, failed_count + too_new_count)
 
+        # 发送本地通知（按成功/失败比例选择不同通知类型）
         from ....platform.notify import NotifyService
 
         if success_count > 0 and failed_count == 0:

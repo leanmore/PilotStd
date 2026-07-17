@@ -41,6 +41,7 @@ def _ensure_loaded() -> None:
 
 
 def set_language(lang: str) -> None:
+    """切换当前语言环境，更新 _current 翻译映射。"""
     global _lang, _current
     _ensure_loaded()
     _lang = lang

@@ -12,12 +12,14 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
+# DownloadHandler — 下载处理器，封装所有下载方法，替代原 DownloadMixin
 
 
 class DownloadHandler:
     """下载处理器 — 封装所有下载方法，替代原 DownloadMixin。"""
 
     def __init__(self, core: "ManagerCore"):
+        """初始化下载处理器，持有 ManagerCore 引用。"""
         self._core = core
         self._organize_handler: Any = None  # 由 BaseFacade 注入
 
@@ -51,6 +53,7 @@ class DownloadHandler:
                                 self._core.cache.put(cached)
                         break
 
+    # download — 批量下载分类结果中的标准文件
     def download(
         self, query_results: list[Any] | None = None, _adapter: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
@@ -91,6 +94,7 @@ class DownloadHandler:
         )
         return tasks, stats
 
+    # download_stream — 流式下载（线程安全），逐条下载并回调进度和结果
     def download_stream(
         self, on_progress: Any = None, on_result: Any = None, _adapter: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
@@ -159,10 +163,13 @@ class DownloadHandler:
     # ── 下载等待队列 ──
 
     def enqueue_download_wait(self, parsed: Any) -> None:
+        """将解析结果加入下载等待队列。"""
         self._core.pending_svc.enqueue_download_wait(parsed)
 
     def get_due_downloads(self) -> list[dict[str, Any]]:
+        """获取到期的下载等待队列项。"""
         return self._core.pending_svc.get_due_downloads()  # type: ignore[no-any-return]
 
     def remove_download_queue(self, standard_number: str) -> None:
+        """从下载等待队列中移除指定标准号。"""
         self._core.pending_svc.remove_download_queue(standard_number)

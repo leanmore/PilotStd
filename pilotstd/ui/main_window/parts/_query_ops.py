@@ -16,7 +16,11 @@ from ...workers import RowUpdate
 logger = logging.getLogger("pilotstd.ui")
 
 
+# ── 查询结果就绪：更新表格行 ──
+
+
 def _on_query_result_ready(self, idx: int, result: Any) -> None:
+    """查询结果就绪时更新对应行：状态、名称、日期、采标等列，并进行颜色标记。"""
     parsed = self._parsed_results[idx]
     source_label = getattr(result, "source_site", "") or "未知"
     row = self._find_row_by_seq(idx + 1)
@@ -51,7 +55,11 @@ def _on_query_result_ready(self, idx: int, result: Any) -> None:
             status_item.setForeground(Qt.GlobalColor.darkYellow)
 
 
+# ── 待确认查询入口 ──
+
+
 def _on_pending_query(self) -> None:
+    """待确认查询入口：捕获异常并弹出错误提示。"""
     try:
         self._do_pending_query()
     except Exception as e:
@@ -59,7 +67,11 @@ def _on_pending_query(self) -> None:
         QMessageBox.critical(self, _("title_error"), _("error_pending_query_failed").format(error=e))
 
 
+# ── 待确认查询完整流程 ──
+
+
 def _do_pending_query(self) -> None:
+    """完整的待确认查询流程：打开 CSV → 解析 → PendingQueryDialog → 填充表格。"""
     if not self._mgr_ready:
         return
     if self._parsed_results:
@@ -72,7 +84,9 @@ def _do_pending_query(self) -> None:
     if not parsed_list:
         QMessageBox.warning(self, _("title_hint"), _("csv_no_standards"))
         return
-    msg = _("msg_csv_parse_result").format(count=len(parsed_list))  # pragma: no cover — do_pending_query 全流程依赖 CSV+Dlg+Classifier
+    msg = _("msg_csv_parse_result").format(
+        count=len(parsed_list)
+    )  # pragma: no cover — do_pending_query 全流程依赖 CSV+Dlg+Classifier
     if failed_names:
         msg += f"，{_('msg_csv_unrecognized').format(count=len(failed_names))}:\n" + "\n".join(failed_names[:5])
         if len(failed_names) > 5:
@@ -112,7 +126,11 @@ def _do_pending_query(self) -> None:
     self._update_button_states()
 
 
+# ── CSV 解析 ──
+
+
 def _parse_pending_csv(self, path: str) -> tuple[list, list[str]]:
+    """解析待确认 CSV 文件，跳过标题行。返回 (解析成功列表, 解析失败标准号列表)。"""
     parsed_list: list = []
     failed_names: list[str] = []
     with open(path, "r", encoding="utf-8-sig") as f:
@@ -138,6 +156,9 @@ def _parse_pending_csv(self, path: str) -> tuple[list, list[str]]:
         else:
             failed_names.append(std_num)
     return parsed_list, failed_names
+
+
+# ── 查询汇总通知 ──
 
 
 def _show_query_summary(self) -> None:

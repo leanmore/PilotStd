@@ -92,6 +92,7 @@ class AutoUIHandler:
 
     def start_auto_pipeline(self, source_dir: str) -> None:
         """启动自动管线 Worker，连接所有信号。"""
+        # 初始化 UI 状态：显示进度条，清零，隐藏弹窗，清空表格
         self._set_progress_bar_visible(True)
         self._progress_cb(0)
         self._set_progress_format("%p%")
@@ -99,14 +100,20 @@ class AutoUIHandler:
         self._clear_table()
         self._parsed_results.clear()
 
+        # 创建 Worker 并连接各阶段信号
         self._auto_worker = AutoWorker(self._mgr, source_dir, parent=self._parent)
+        # 扫描阶段信号
         self._auto_worker.scan_batch.connect(self._on_scan_batch_ready)
         self._auto_worker.scan_progress.connect(self._on_raw_progress)
+        # 查询阶段信号
         self._auto_worker.query_result.connect(self._on_query_result_ready)
         self._auto_worker.query_progress.connect(self._on_raw_progress)
+        # 下载阶段信号
         self._auto_worker.download_result.connect(self._on_download_batch_ready_single)
         self._auto_worker.download_progress.connect(self._on_raw_progress)
+        # 归档阶段信号
         self._auto_worker.archive_result.connect(self._on_archive_batch_ready_single)
+        # 阶段切换和完成信号
         self._auto_worker.stage_changed.connect(self._on_auto_stage_changed)
         self._auto_worker.error.connect(self._on_auto_error)
         self._auto_worker.finished_signal.connect(self._on_auto_pipeline_finished)
@@ -243,6 +250,7 @@ class AutoUIHandler:
         layout.addLayout(btn_layout)
 
         def _export(fmt: str) -> None:
+            """内部函数：根据格式导出汇总数据到文件（txt 或 csv）。"""
             filter_str = _("file_filter_csv") if fmt == "csv" else _("file_filter_txt")
             path, _ignored = QFileDialog.getSaveFileName(
                 None, _("dialog_export_summary"), f"auto_run_summary.{fmt}", filter_str

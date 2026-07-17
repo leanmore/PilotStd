@@ -26,7 +26,10 @@ if TYPE_CHECKING:
     from ._routing import RoutingHandler
     from ._single import SingleQueryHandler
 
+# BatchHandler — 批量查询编排器，执行 6 阶段逐桶查询流水线，替代原 BatchMixin
+# 6 阶段：解析→分组→分发→CSRES 后台→小桶查询→溢出回收
 logger = logging.getLogger(__name__)
+# BatchHandler — 批量查询编排器，执行 6 阶段逐桶查询流水线，替代原 BatchMixin
 
 
 class BatchHandler:
@@ -35,8 +38,8 @@ class BatchHandler:
     替代原 BatchMixin，组合所有子 Handler，通过 EngineCore 访问共享状态。
     """
 
-    _AHBZ_OVERFLOW_QUOTA = 170
-    _NJBZ_OVERFLOW_QUOTA = 200
+    _AHBZ_OVERFLOW_QUOTA = 170  # ahbz 溢出回收配额上限
+    _NJBZ_OVERFLOW_QUOTA = 200  # njbz365 溢出回收配额上限
 
     def __init__(
         self,
@@ -58,6 +61,7 @@ class BatchHandler:
 
     # ── 统一入口 ──
 
+    # query_standards — 统一查询入口：所有端（CLI/Web/WinUI）均通过此方法查询
     def query_standards(
         self,
         items: List[Tuple[str, int, int, str, Optional[int], str]],
@@ -125,14 +129,15 @@ class BatchHandler:
         _bucket_t0 = time.time()
         results: Dict[int, QueryResult] = {}
         counter_lock = threading.Lock()
-        counter = [0]
+        counter = [0]  # 用单元素列表包装 int，供嵌套函数 bump() 修改（nonlocal 变通）
 
-        _prog_completed = [0]
-        _prog_ok = [0]
+        _prog_completed = [0]  # 进度：已完成计数
+        _prog_ok = [0]  # 进度：成功计数
         _prog_lock = threading.Lock()
         _prog_stop = threading.Event()
 
         def bump() -> None:
+            """原子递增进度计数器并回调，同时检查暂停事件。"""
             pause_event = self._core.pause_event
             if pause_event is not None:
                 pause_event.wait()
@@ -144,6 +149,7 @@ class BatchHandler:
                 _prog_completed[0] += 1
 
         def _progress_heartbeat() -> None:
+            """每 60 秒输出一次批量查询进度心跳日志（速率 + ETA）。"""
             while not _prog_stop.wait(60.0):
                 with _prog_lock:
                     c = _prog_completed[0]
@@ -176,6 +182,8 @@ class BatchHandler:
             "n": n,
         }
 
+    # ── 分桶与分发 ──
+
     def _bucket_items(
         self,
         parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],
@@ -198,12 +206,14 @@ class BatchHandler:
     ) -> None:
         """设置分发上下文：溢出配额、跟踪变量、匹配评分记录器。"""
         overflow_lock = threading.Lock()
+        # 溢出配额用单元素列表包装，供嵌套函数 _try_overflow 修改
         overflow_quota = {
             "ahbz": [self._AHBZ_OVERFLOW_QUOTA],
             "njbz365": [self._NJBZ_OVERFLOW_QUOTA],
         }
 
         def _try_overflow(site: str) -> bool:
+            """尝试消耗一个溢出配额，返回 True 表示有余量。"""
             if site not in overflow_quota:
                 return True
             with overflow_lock:
@@ -212,10 +222,10 @@ class BatchHandler:
                     return True
             return False
 
-        csres_results: Dict[int, QueryResult] = {}
-        csres_failures = [0]
+        csres_results: Dict[int, QueryResult] = {}  # CSRES 后台查询结果暂存
+        csres_failures = [0]  # CSRES 连续失败计数器
 
-        bucket_times: Dict[str, tuple[float, float, int, int]] = {}
+        bucket_times: Dict[str, tuple[float, float, int, int]] = {}  # 桶耗时统计
         site_usage: Dict[str, int] = {}
         usage_lock = threading.Lock()
 
@@ -254,6 +264,9 @@ class BatchHandler:
             }
         )
 
+    # ── 桶工作线程 + 调度编排 ──
+
+    # _bucket_worker — 二次分桶后委托 _run_mini_bucket_queries 执行查询
     def _bucket_worker(
         self,
         bucket_items: List[Tuple[int, Tuple[str, int, int, str, Optional[int], str]]],
@@ -305,6 +318,7 @@ class BatchHandler:
         done = len(bucket_items) - len(overflow_items)
         return (overflow_items, time.time() - _ts, done)
 
+    # _dispatch_queries — 调度编排：并行提交桶工作线程 + csres 后台线程
     def _dispatch_queries(
         self,
         buckets: Dict[str, List[Tuple[int, tuple[Any, ...]]]],
@@ -356,6 +370,8 @@ class BatchHandler:
                 pass
 
         state["all_overflow"] = all_overflow
+
+    # ── 结果收集与收尾 ──
 
     def _collect_csres_results(self, state: dict) -> None:
         """结果收集：将 csres 后台查询结果合并到主结果集。"""
@@ -421,6 +437,7 @@ class BatchHandler:
             for i in range(n)
         ]
 
+    # query_batch_parsed — [已废弃] 使用 query_standards(items, use_parallel=True) 替代
     def query_batch_parsed(
         self,
         parsed_list: List[Tuple[str, int, int, str, Optional[int], str]],

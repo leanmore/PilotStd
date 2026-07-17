@@ -51,6 +51,7 @@ class FileMoveWorker(QThread):
         self._root_dir = root_dir
 
     def run(self) -> None:
+        """后台线程主循环：逐文件搬迁到标准库，通过信号通知进度。"""
         moved = 0
         for i, (src, rel) in enumerate(self._selected):
             if self.isInterruptionRequested():
@@ -134,9 +135,7 @@ class CleanupHandler:
             pass
 
         # Engine：纯内存分析
-        empty_dirs, expire_only = self._engine.scan_empty_dirs(
-            dir_tree, expire_folder_name=expire_folder
-        )
+        empty_dirs, expire_only = self._engine.scan_empty_dirs(dir_tree, expire_folder_name=expire_folder)
 
         return empty_dirs, expire_only, expire_folder
 

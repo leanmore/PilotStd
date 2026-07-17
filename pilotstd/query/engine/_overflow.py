@@ -35,6 +35,8 @@ class OverflowHandler:
         self._core = core
         self._routing = routing
 
+    # ── 单站点溢出尝试 ──
+
     def _try_overflow_site(
         self,
         idx: int,
@@ -94,6 +96,8 @@ class OverflowHandler:
                 )
         return False
 
+    # ── 单条目链式重试 ──
+
     def _process_overflow_item(
         self,
         idx: int,
@@ -115,6 +119,7 @@ class OverflowHandler:
         adapter_map = self._core.adapter_map
         rotator = self._core.rotator
 
+        # 遍历站点链：跳过主站点（已查过），按优先级重试后续站点
         for site in chain[start:]:
             if site not in adapter_map:
                 continue
@@ -154,6 +159,8 @@ class OverflowHandler:
             )
             state["bump"]()
 
+    # ── 溢出总控 ──
+
     def _handle_overflow(
         self,
         state: dict,
@@ -169,8 +176,9 @@ class OverflowHandler:
             return 0
 
         if preferred_site:
-            return 0
+            return 0  # 用户指定站点时跳过溢出回收
 
+        # 按链长度升序排列：链短的条目优先处理，提升整体成功率
         all_overflow.sort(key=lambda x: len(self._routing._build_chain_for_item(x[1], preferred_site)))
 
         batch_size = 20

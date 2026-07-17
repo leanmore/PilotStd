@@ -20,12 +20,14 @@ class DingTalkChannel(NotificationChannel):
 
     def __init__(self, webhook_url: str, secret: str = ""):
         self._url = webhook_url
-        self._secret = secret
+        self._secret = secret  # 加签密钥，空字符串表示不加签
 
     def _sign(self) -> str:
         """钉钉加签：timestamp + secret → HMAC-SHA256 → Base64 → URL encode。"""
+        # 无 secret 时不加签，直接返回空字符串
         if not self._secret:
             return ""
+        # 钉钉要求毫秒级时间戳
         timestamp = str(round(time.time() * 1000))
         string_to_sign = f"{timestamp}\n{self._secret}"
         hmac_code = hmac.new(
@@ -33,6 +35,7 @@ class DingTalkChannel(NotificationChannel):
             string_to_sign.encode("utf-8"),
             hashlib.sha256,
         ).digest()
+        # URL encode 签名：钉钉要求对 Base64 结果进行 URL 编码
         sign = quote(base64.b64encode(hmac_code).decode("utf-8"))
         return f"&timestamp={timestamp}&sign={sign}"
 
@@ -43,6 +46,7 @@ class DingTalkChannel(NotificationChannel):
             return False
 
         try:
+            # 拼接加签参数到 URL
             url = self._url + self._sign()
             text = f"## {message.title}\n{message.body}"
             if message.standard_number:
@@ -64,6 +68,7 @@ class DingTalkChannel(NotificationChannel):
                     logger.warning("钉钉通知 HTTP %d", resp.status)
                     return False
                 data = json.loads(resp.read().decode("utf-8"))
+                # 钉钉返回 errcode=0 表示成功
                 if data.get("errcode") == 0:
                     return True
                 logger.warning("钉钉通知失败: %s", data.get("errmsg", "未知错误"))

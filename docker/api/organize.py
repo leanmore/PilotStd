@@ -49,6 +49,7 @@ def list_files(path: str = "/standards", mgr=Depends(get_manager_dep)):
         return JSONResponse({"error": "路径不存在"}, status_code=404)
     items = []
     try:
+        # 遍历目录，跳过 Synology 系统目录 @eaDir
         for entry in os.scandir(safe_path):
             if entry.name.startswith("@eaDir"):
                 continue
@@ -77,10 +78,12 @@ def clean_empty_dirs(path: str = "/standards", mgr=Depends(get_manager_dep)):
         return JSONResponse({"error": "路径不在允许的目录范围内"}, status_code=400)
 
     removed = 0
+    # 自底向上遍历（topdown=False），确保子目录先被清空
     for root, dirs, _files in os.walk(safe_path, topdown=False):
         for d in dirs:
             dpath = os.path.join(root, d)
             try:
+                # 仅删除空目录，非空目录跳过
                 if not os.listdir(dpath):
                     os.rmdir(dpath)
                     removed += 1

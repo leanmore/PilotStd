@@ -15,18 +15,23 @@ from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
 
 logger = logging.getLogger(__name__)
+# FavoriteArchiveError — 收藏下载归档过程中的异常
 
 
 class FavoriteArchiveError(Exception):
+    """收藏下载归档过程中的异常。"""
+
     pass
 
 
 def _get_inbox_dir() -> Path:
+    """从配置中获取 inbox 目录路径。"""
     cfg = ConfigManager()
     return Path(cfg.get("storage.inbox_dir", "/inbox"))
 
 
 def _get_download_url(standard_number: str, db: Database) -> Optional[str]:
+    """从缓存中查询标准的下载链接。"""
     cursor = db.execute(
         "SELECT result_json FROM standard_info_cache WHERE standard_number = ? ORDER BY cached_at DESC LIMIT 1",
         (standard_number,),
@@ -86,6 +91,7 @@ def _download_with_retry(
 
 
 def _safe_filename(standard_number: str, suffix: str) -> str:
+    """将标准号中的非法文件名字符替换为下划线，追加后缀。"""
     safe = standard_number
     for ch in r'\/:*?"<>|':
         safe = safe.replace(ch, "_")
@@ -110,6 +116,7 @@ def _notify_download_failed(user_id: int, standard_number: str, error: str, favo
         logger.warning("发送下载失败通知失败", exc_info=True)
 
 
+# download_to_inbox — 收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态
 def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
     """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。"""
     db = None

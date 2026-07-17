@@ -230,9 +230,7 @@ class ActionsHandler:
         worker = UpdateDownloadWorker(release, self._parent)
         worker.progress_msg.connect(lambda msg: self._status(msg))
         worker.download_ready.connect(self._prompt_restart)
-        worker.download_failed.connect(
-            lambda err: self._status(f"更新下载失败: {err}")
-        )
+        worker.download_failed.connect(lambda err: self._status(f"更新下载失败: {err}"))
         worker.finished.connect(worker.deleteLater)
         worker.start()
 

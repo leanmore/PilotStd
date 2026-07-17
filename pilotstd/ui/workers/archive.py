@@ -1,4 +1,6 @@
 # pilotstd/ui/workers/archive.py — ArchiveWorker，从 workers.py 拆分
+#
+# 后台归档线程：文件移动 + 磁盘空间检查 + 断点续做。
 
 import logging
 import os
@@ -13,6 +15,9 @@ from ...organizer.industry_lookup import get_folder_name
 from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, _pct
 
 logger = logging.getLogger(__name__)
+
+
+# ── ArchiveWorker：归档线程 ──
 
 
 class ArchiveWorker(QThread):
@@ -46,6 +51,7 @@ class ArchiveWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
+        """在线程中执行归档流式处理，批量通知 UI。"""
         try:
             total_size = 0
             for p in self.parsed_list:
@@ -63,6 +69,7 @@ class ArchiveWorker(QThread):
             _last_log = _t_start
 
             def on_result(idx: Any, status: Any) -> None:
+                """收集归档结果到批次，达到阈值或超时后批量发射。"""
                 nonlocal batch, last_flush
                 if self._stopped:
                     return
@@ -75,6 +82,7 @@ class ArchiveWorker(QThread):
                     last_flush = now
 
             def on_progress(cur: int, total: int) -> None:
+                """更新进度百分比，每 15 秒输出阶段日志。"""
                 nonlocal _last_log
                 if self._stopped:
                     return
@@ -95,8 +103,11 @@ class ArchiveWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
+    # ── 目标路径计算（静态方法）──
+
     @staticmethod
     def target_path(parsed: Any, library_root: str, config: Any = None) -> str | None:
+        """根据解析信息计算标准文件的目标归档路径。"""
         name = make_standard_filename(
             logical_code=parsed.logical_code,
             number=parsed.number,
@@ -114,5 +125,8 @@ class ArchiveWorker(QThread):
             target_dir = os.path.join(target_dir, "过期作废")
         return os.path.join(target_dir, name)
 
+    # ── 实例方法版本 ──
+
     def _target_path(self, parsed: Any) -> str | None:
+        """委托静态方法，使用当前实例的 library_root 和 config。"""
         return ArchiveWorker.target_path(parsed, self.library_root, self._config)

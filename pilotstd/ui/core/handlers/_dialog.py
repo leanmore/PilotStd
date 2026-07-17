@@ -178,9 +178,7 @@ class DialogHandler:
             type_name = validated["type_name"]
             task_type = getattr(TaskType, type_name, TaskType.SCAN)
             task = self._mgr.task_queue.enqueue(task_type, total_items=validated["total"])
-            self._mgr.task_queue.update_progress(
-                task, completed=validated["completed"], failed=validated["failed"]
-            )
+            self._mgr.task_queue.update_progress(task, completed=validated["completed"], failed=validated["failed"])
             logger.debug("任务记录: %s %d/%d", validated["label"], validated["completed"], validated["total"])
         except Exception as e:
             logger.warning(self._engine.format_task_error(str(e)))

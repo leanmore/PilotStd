@@ -20,6 +20,7 @@ logger = logging.getLogger("pilotstd.self_check")
 
 
 def _is_enabled() -> bool:
+    """检查自检是否通过环境变量启用。"""
     return os.getenv("PILOTSTD_SELF_CHECK", "0") == "1"
 
 
@@ -50,6 +51,7 @@ def _check_parsed_results_consistency(window: Any) -> bool:
         return True
 
     core = window._core
+    # 需要检查一致性的 Handler 列表
     handler_names = ["scan", "query", "archive", "auto", "actions"]
     ref_id = None
     ref_handler = None
@@ -61,6 +63,7 @@ def _check_parsed_results_consistency(window: Any) -> bool:
             continue
         if not hasattr(handler, "_parsed_results"):
             continue
+        # 检查各 Handler 的 _parsed_results 是否指向同一个列表对象
         hid = id(handler._parsed_results)
         if ref_id is None:
             ref_id = hid

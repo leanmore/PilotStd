@@ -3,6 +3,10 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+# ════════════════════════════════════════════════════════════════
+# Phase 1: 通用响应模型（健康检查、文件、扫描、下载、错误）
+# ════════════════════════════════════════════════════════════════
+
 
 class HealthResponse(BaseModel):
     """健康检查响应"""
@@ -82,6 +86,8 @@ class ErrorResponse(BaseModel):
 
 
 class AnnouncementResponse(BaseModel):
+    """公告摘要响应：公告号、标题、发布日期、来源和附件 URL。"""
+
     id: int
     announce_no: str
     title: str
@@ -91,6 +97,8 @@ class AnnouncementResponse(BaseModel):
 
 
 class AnnouncementRecordResponse(BaseModel):
+    """公告中的标准记录条目：标准号、名称、实施/废止日期、替代关系等。"""
+
     id: int
     row_index: int = 0
     standard_number: str = ""
@@ -105,17 +113,23 @@ class AnnouncementRecordResponse(BaseModel):
 
 
 class AnnouncementDetailResponse(BaseModel):
+    """公告详情响应：包含公告元数据和解析出的标准记录列表。"""
+
     announcement: AnnouncementResponse
     records: list[AnnouncementRecordResponse]
     parse_status: str  # pending | parsing | completed | failed
 
 
 class ParseStatusResponse(BaseModel):
+    """公告解析状态响应。"""
+
     status: str
     record_count: int = 0
 
 
 class BatchApproveResponse(BaseModel):
+    """批量审批响应：审批状态、批准数量和错误列表。"""
+
     status: str
     approved_count: int
     errors: list[str] = []

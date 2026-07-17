@@ -48,6 +48,7 @@ class ExportHandler:
 
     def on_export_file_list(self) -> None:
         """导出文件名清单，可选是否包含路径名。"""
+        # 获取默认路径（当前选中路径或桌面）
         path = self._get_selected_path()
         if not path:
             path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
@@ -57,14 +58,17 @@ class ExportHandler:
 
         root = dlg.source_path
         include_path = dlg.include_path
+        # 弹出保存文件对话框
         save_path, __ = QFileDialog.getSaveFileName(
             self._parent, "导出文件列表", "file_list.txt", "TXT (*.txt);;CSV (*.csv)"
         )
         if not save_path:
             return
 
+        # 遍历目录收集文件名
         lines = []
         for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+            # 跳过过期作废和 __pycache__ 目录
             dirnames[:] = [d for d in dirnames if d not in ("过期作废", "__pycache__")]
             for fn in filenames:
                 try:
@@ -85,16 +89,19 @@ class ExportHandler:
 
     def on_export_folder_tree(self) -> None:
         """导出文件夹层次结构。"""
+        # 获取默认路径
         path = self._get_selected_path()
         if not path:
             path = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         if not os.path.isdir(path):
             return
 
+        # 弹出保存对话框
         save_path, __ = QFileDialog.getSaveFileName(self._parent, "导出文件夹层次", "folder_tree.txt", "TXT (*.txt)")
         if not save_path:
             return
 
+        # 递归收集树形结构
         lines = []
         self._collect_folder_tree(path, lines, prefix="")
         with open(save_path, "w", encoding="utf-8") as f:
@@ -146,6 +153,7 @@ class ExportHandler:
         import platform
         from datetime import datetime
 
+        # 弹出保存文件对话框，默认文件名含时间戳
         path, __ = QFileDialog.getSaveFileName(
             self._parent,
             "导出诊断报告",
