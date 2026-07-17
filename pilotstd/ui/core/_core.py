@@ -168,9 +168,9 @@ class MainWindowCore:
         # ── TableOps 适配器 ──
 
         # _TableOpsAdapter — 将 MainWindowCore 回调包装进 ITableOps 协议接口
-    # 用于解耦 QueryUIHandler 和 MainWindowCore 之间的表格操作
+        # 用于解耦 QueryUIHandler 和 MainWindowCore 之间的表格操作
 
-    class _TableOpsAdapter:
+        class _TableOpsAdapter:
             """表格操作适配器：将 MainWindowCore 的回调包装进 ITableOps 协议接口。"""
 
             def __init__(self, core: MainWindowCore) -> None:
@@ -220,7 +220,7 @@ class MainWindowCore:
         # ── DialogOps 适配器 ──
 
         # _DialogOpsAdapter — 将 MainWindowCore 回调包装进 IDialogOps 协议接口
-    class _DialogOpsAdapter:
+        class _DialogOpsAdapter:
             """对话框操作适配器：将 MainWindowCore 的回调包装进 IDialogOps 协议接口。"""
 
             def __init__(self, core: MainWindowCore) -> None:
