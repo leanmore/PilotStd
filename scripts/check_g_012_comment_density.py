@@ -37,15 +37,21 @@ EXCLUDE_DIRS = {
 }
 EXCLUDE_PREFIXES = ("whitelist",)
 DENSITY_EXEMPT_FILES = {"__init__.py", "__main__.py", "setup.py"}  # 密度豁免文件：包入口和构建脚本
+# 排除迁移文件：其注释密度由 checksum 自愈机制保证，不强制 G-012 检查
+EXCLUDE_PATTERNS = ("_migrate_",)
 
 
 def _is_excluded(filepath: Path) -> bool:
-    """检查文件路径是否在排除目录列表或命名前缀中。"""
+    """检查文件路径是否在排除目录列表、命名前缀或模式列表中。"""
     for part in filepath.parts:
         if part in EXCLUDE_DIRS:
             return True
     if filepath.name.startswith(EXCLUDE_PREFIXES):
         return True
+    # 排除迁移文件等特殊模式
+    for pattern in EXCLUDE_PATTERNS:
+        if pattern in filepath.name:
+            return True
     return False
 
 

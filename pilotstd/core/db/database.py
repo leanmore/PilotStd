@@ -14,6 +14,24 @@ from ._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS, DatabaseError
 from .migrations import *  # noqa: F403 — 触发所有 @migration 装饰器，填充 MIGRATIONS 字典
 
 
+def _is_inside_string(line: str, pos: int) -> bool:
+    """判断给定位置是否在字符串字面量内部。用于避免误删字符串内的 # 字符。"""
+    in_single = False
+    in_double = False
+    i = 0
+    while i < pos:
+        ch = line[i]
+        if ch == "\\" and i + 1 < pos:
+            i += 2  # 跳过转义字符
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == "'" and not in_double:
+            in_single = not in_single
+        i += 1
+    return in_single or in_double
+
+
 class Database:
     """SQLite 数据库管理器，启用 WAL 模式，支持版本迁移，线程本地连接复用。"""
 
@@ -103,9 +121,10 @@ class Database:
 
     @staticmethod
     def _compute_checksum(fn: Any) -> str:
-        """计算迁移函数的源码 checksum。
+        """计算迁移函数的源码 checksum（原始，含注释和空行）。
 
         优先使用 inspect.getsource，失败时回退到 __code__.co_code 的哈希。
+        保留此方法用于向后兼容——历史数据库中存储的 checksum 由此方法生成。
         """
         try:
             source = inspect.getsource(fn)
@@ -113,11 +132,57 @@ class Database:
             source = str(fn.__code__.co_code) if hasattr(fn, "__code__") else repr(fn)
         return hashlib.sha256(source.encode()).hexdigest()
 
-    def _verify_migration_checksums(self) -> None:
-        """验证已执行迁移的脚本 checksum 是否与执行时一致。
+    @staticmethod
+    def _norm_source(source: str) -> str:
+        """剥离 Python 源码中的注释和空行，只保留逻辑行。
 
-        只校验 version <= schema_version 且 checksum 非空的记录，
-        跳过旧迁移的空 checksum（向后兼容）。
+        处理规则：
+        - 移除以 # 开头的整行注释（含前导空白）
+        - 移除行内 # 注释（保留注释前的代码部分）
+        - 移除空白行（仅含空白字符的行）
+        - 去除每行首尾空白
+        """
+        lines = []
+        for line in source.splitlines():
+            # 跳过 docstring 内的行不做处理（保守策略：只处理 # 注释）
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # 整行 # 注释 → 跳过
+            if stripped.startswith("#"):
+                continue
+            # 行内 # 注释 → 保留代码部分
+            # 注意：字符串内的 # 可能被误判，使用启发式——# 前必须有代码
+            comment_pos = stripped.find("#")
+            if comment_pos > 0 and not _is_inside_string(stripped, comment_pos):
+                code_part = stripped[:comment_pos].strip()
+                if code_part:
+                    lines.append(code_part)
+            else:
+                lines.append(stripped)
+        return "\n".join(lines)
+
+    @staticmethod
+    def _norm_checksum(fn: Any) -> str:
+        """计算迁移函数的标准化 checksum（剥离注释和空行后）。
+
+        当迁移脚本仅发生注释/空行变化时，标准化 checksum 保持不变，
+        从而避免因 G-012 注释密度修复等任务触发虚假的 checksum 不匹配。
+        """
+        try:
+            source = inspect.getsource(fn)
+        except (OSError, TypeError):
+            source = str(fn.__code__.co_code) if hasattr(fn, "__code__") else repr(fn)
+        normalized = Database._norm_source(source)
+        return hashlib.sha256(normalized.encode()).hexdigest()
+
+    def _verify_migration_checksums(self) -> None:
+        """验证已执行迁移的脚本 checksum，支持注释/空行变更的自愈。
+
+        三级比较策略：
+        1. 标准化 checksum（剥离注释空行）匹配 → 通过
+        2. 标准化不匹配但原始 checksum 匹配 → 仅注释/空行变更，自动更新
+        3. 两者均不匹配 → 真实的 DDL 变更，抛出 DatabaseError
         """
         logr = logging.getLogger("pilotstd.db")
         current = self.schema_version
@@ -125,16 +190,40 @@ class Database:
         for v in sorted(MIGRATIONS.keys()):
             if v > current:
                 continue
-            expected = self._compute_checksum(MIGRATIONS[v])
-            row = self.fetchone("SELECT checksum FROM _schema_version WHERE version=?", (v,))
-            if row and row["checksum"] and row["checksum"] != expected:
-                logr.error(
-                    "迁移 v%d 脚本已被修改！期望 checksum=%s，存储 %s",
+            stored = self.fetchone("SELECT checksum FROM _schema_version WHERE version=?", (v,))
+            if not stored or not stored["checksum"]:
+                continue
+            stored_checksum = stored["checksum"]
+
+            norm_expected = self._norm_checksum(MIGRATIONS[v])
+            # 标准化 checksum 匹配 → 通过（包括已自愈为标准化格式的记录）
+            if norm_expected == stored_checksum:
+                continue
+
+            raw_expected = self._compute_checksum(MIGRATIONS[v])
+            # 标准化不匹配但原始 checksum 匹配 → 仅注释/空行变更，自动修复
+            if raw_expected == stored_checksum:
+                logr.warning(
+                    "迁移 v%d 的 checksum 已自动更新（逻辑未变，仅注释/空行变化）。存储值: %s… → 新值: %s…",
                     v,
-                    expected,
-                    row["checksum"],
+                    stored_checksum[:16],
+                    norm_expected[:16],
                 )
-                raise DatabaseError(f"迁移 v{v} 的脚本已被修改，checksum 不匹配")
+                self.execute(
+                    "UPDATE _schema_version SET checksum=? WHERE version=?",
+                    (norm_expected, v),
+                )
+                continue
+
+            # 两者均不匹配 → 真实的 DDL 变更
+            logr.error(
+                "迁移 v%d 脚本已被修改！标准化 checksum=%s，原始 checksum=%s，存储 %s",
+                v,
+                norm_expected,
+                raw_expected,
+                stored_checksum,
+            )
+            raise DatabaseError(f"迁移 v{v} 的脚本已被修改，checksum 不匹配")
 
     @property
     def schema_version(self) -> int:
@@ -193,7 +282,7 @@ class Database:
                         elapsed = time.time() - t0
                         logr.exception("迁移 v%d 失败，耗时 %.2fs", v, elapsed)
                         raise DatabaseError(f"数据库迁移失败(v{v})，请从备份恢复") from e
-                    checksum = self._compute_checksum(MIGRATIONS[v])
+                    checksum = self._norm_checksum(MIGRATIONS[v])
                     self.execute(
                         "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
                         (v, checksum),
