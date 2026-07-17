@@ -6,6 +6,7 @@ import { getAnnounceResults, postAnnounceCheck } from '@/api'
 import http from '@/api/http'
 import { usePreferencesStore } from '@/stores/preferences'
 import { getItem, setItem } from '@/lib/storage'
+import { SOURCE_TO_URL } from '@/constants/sourceMapping'
 import Button from 'primevue/button'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
@@ -124,7 +125,7 @@ function onPage(e: any) {
   <template v-if="results.length">
     <DataView :value="paginatedResults" size="small" class="mt-3">
       <template #list="slotProps">
-        <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom announce-row" @click="router.push('/announce/' + encodeURIComponent(item.announce_no))">
+        <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom announce-row" @click="router.push('/announce/' + (SOURCE_TO_URL[item.source_site] || 'unknown') + '/' + encodeURIComponent(item.announce_no))">
           <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
             <strong style="min-width:140px;flex-shrink:0">{{ item.announce_no }}</strong>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.announcement_title }}</span>

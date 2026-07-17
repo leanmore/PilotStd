@@ -19,6 +19,16 @@ SITE_NAME_MAP = {
     "gov.cn": "国家部委",
 }
 
+# source_site → URL 标识符映射（前后端共用）
+SOURCE_MAP = {
+    "announcement_gb": "annc_gb",
+    "announcement_hb": "annc_hb",
+    "announcement_db": "annc_db",
+}
+
+# URL 标识符 → source_site 反向映射
+URL_SOURCE_MAP = {v: k for k, v in SOURCE_MAP.items()}
+
 
 def get_site_name(url: str) -> str:
     """从 URL 提取域名并映射到中文站点名，未知则返回域名。"""
@@ -51,7 +61,8 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     # 优先从 announcements 表获取公告头（含 source_url 等字段）
     ann = db.fetchone(
-        "SELECT id, title, publish_date, source_url, attachment_url, raw_data FROM announcements WHERE announce_no = ?",
+        "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site"
+        " FROM announcements WHERE announce_no = ?",
         (announce_no,),
     )
 
@@ -101,6 +112,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
             "attachment_url": attachment_url,
             "site_name": get_site_name(source_url),
             "content": content,
+            "source": SOURCE_MAP.get(ann["source_site"], "") if ann else "",
         },
         "records": [
             {
@@ -120,6 +132,22 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         ],
         "parse_status": parse_status,
     }
+
+
+# ════════════════════════════════════════════════════════════════
+# 1b. 按公告编号查询所有来源（旧链接兼容）
+# ════════════════════════════════════════════════════════════════
+
+
+@router.get("/api/announcements/by-no/{announce_no}")
+def get_announcement_by_no(announce_no: str, mgr=Depends(get_manager_dep)):
+    """旧链接兼容：返回该编号下所有来源的公告头列表。"""
+    db = mgr.db
+    rows = db.fetchall(
+        "SELECT source_site, announce_no, title FROM announcements WHERE announce_no = ?",
+        (announce_no,),
+    )
+    return [dict(r) for r in rows]
 
 
 # ════════════════════════════════════════════════════════════════

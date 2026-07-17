@@ -9,7 +9,20 @@ const routes = [
   { path: '/organize', component: () => import('./views/OrganizeView.vue') },
   { path: '/pending', component: () => import('./views/PendingView.vue') },
   { path: '/announce', component: () => import('./views/AnnounceView.vue') },
-  { path: '/announce/:announceNo', component: () => import('./views/AnnounceDetail.vue'), meta: { title: '公告详情' } },
+  // 新路由：标准格式 /announce/:source/:announceNo
+  {
+    path: '/announce/:source/:announceNo',
+    name: 'AnnouncementDetail',
+    component: () => import('./views/AnnounceDetail.vue'),
+    meta: { title: '公告详情' },
+  },
+  // 兼容路由：旧格式自动重定向
+  {
+    path: '/announce/:announceNo',
+    name: 'AnnouncementDetailLegacy',
+    component: () => import('./views/LegacyRedirect.vue'),
+    meta: { title: '正在跳转...' },
+  },
   { path: '/notification-logs', component: () => import('./views/NotificationLogsView.vue') },
   { path: '/standards-status', component: () => import('./views/StandardsStatusView.vue') },
   { path: '/settings', component: () => import('./views/SettingsView.vue') },

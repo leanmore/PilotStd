@@ -497,3 +497,44 @@ def download_attachment(url: str, _http: Any = None) -> Optional[bytes]:
     if resp and resp.status_code == 200:
         return resp.content
     return None
+
+
+def extract_content(html: str) -> str:
+    """从公告详情页 HTML 中提取正文内容。三层回退：精确选择器 → p标签 → 关键词启发式。"""
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+
+    # 1. 优先使用精确选择器
+    content_selectors = [
+        "div.content",
+        "div.article-content",
+        "div.main-text",
+        "div#Content",
+        ".announcement-body",
+    ]
+    for selector in content_selectors:
+        element = soup.select_one(selector)
+        if element:
+            paragraphs = element.find_all("p")
+            if paragraphs:
+                return "\n\n".join(p.get_text(strip=True) for p in paragraphs)
+            return element.get_text(strip=True)
+
+    # 2. 所有 p 标签（排除表格内）
+    all_p = soup.find_all("p")
+    if all_p:
+        return "\n\n".join(p.get_text(strip=True) for p in all_p if not p.find_parent("table"))
+
+    # 3. 启发式兜底：查找含关键词且长度 > 50 的块级元素
+    keywords = ["批准", "发布", "现予以", "公告如下"]
+    candidates = [
+        tag
+        for tag in soup.find_all(["div", "p"])
+        if any(kw in tag.get_text() for kw in keywords) and len(tag.get_text(strip=True)) > 50
+    ]
+    if candidates:
+        best_match = max(candidates, key=lambda x: len(x.get_text()))
+        return best_match.get_text(strip=True)
+
+    return ""

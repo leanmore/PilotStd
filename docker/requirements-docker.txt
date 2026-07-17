@@ -22,3 +22,6 @@ responses>=0.25.0
 
 # --- 系统监控 ---
 psutil==7.2.2
+
+# TODO: 待 passlib 官方修复 bcrypt 兼容性后，升级 passlib 并解锁 bcrypt 版本
+bcrypt==4.0.1

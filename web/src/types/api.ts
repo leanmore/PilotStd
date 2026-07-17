@@ -132,6 +132,7 @@ export interface Announcement {
   attachment_url: string
   site_name: string
   content: string
+  source: string
 }
 
 export interface AnnouncementRecord {

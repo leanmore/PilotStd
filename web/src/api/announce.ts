@@ -15,9 +15,13 @@ export const postAnnounceCheck = (sinceDate?: string, types?: string): Promise<S
 
 // ── Phase 3: 公告详情 ──────────────────────────────────
 
-/** 获取公告详情 */
-export const getAnnouncementDetail = (announceNo: string): Promise<AnnouncementDetail> =>
-  http.get(`/announcements/${announceNo}`).then(r => r.data)
+/** 旧格式兼容：通过 announce_no 查询所有来源的公告 */
+export const getAnnouncementByNo = (announceNo: string): Promise<Array<{ source_site: string; announce_no: string; title: string }>> =>
+  http.get(`/announcements/by-no/${encodeURIComponent(announceNo)}`).then(r => r.data)
+export const getAnnouncementDetail = (announceNo: string, source?: string): Promise<AnnouncementDetail> => {
+  const params = source ? { source } : {}
+  return http.get(`/announcements/${encodeURIComponent(announceNo)}`, { params }).then(r => r.data)
+}
 
 /** 触发附件解析 */
 export const triggerParse = (announceNo: string): Promise<{ status: string }> =>

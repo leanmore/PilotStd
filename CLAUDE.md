@@ -140,6 +140,35 @@
 
 - **测试覆盖**：`test_checksum_mismatch_auto_heals` 验证自愈行为，`test_checksum_real_change_raises` 验证阻断机制
 
+### 3.10 公告来源标识映射规则
+
+**Source 映射表**（前后端共用，唯一真相源在 `docker/api/announce_detail.py`）：
+
+| 数据库值（source_site） | URL 标识符 | 中文名 |
+|------------------------|-----------|--------|
+| `announcement_gb` | `annc_gb` | 国家标准 |
+| `announcement_hb` | `annc_hb` | 行业标准 |
+| `announcement_db` | `annc_db` | 地方标准 |
+
+**前端常量**：`web/src/constants/sourceMapping.ts` 提供 `SOURCE_TO_URL` / `URL_TO_SOURCE` / `SOURCE_LABEL` 三向映射。
+
+**旧链接兼容策略**：
+- 新路由格式：`/announce/:source/:announceNo`（如 `/announce/annc_gb/2026年第1号`）
+- 旧路由格式：`/announce/:announceNo` → `LegacyRedirect.vue` 调用 `/api/announcements/by-no/{announce_no}` → 唯一匹配则重定向，多条冲突则跳转列表页
+
+### 3.11 交付验证强制标准
+
+**规则**：执行者在交付报告中声明"全部完成"时，必须附以下证据：
+
+1. **代码变更证据**：`git diff --stat` 输出
+2. **功能验证证据**：针对每项声称已完成的修复，贴出对应的验证截图或命令输出
+3. **编译验证证据**：`python -m compileall tests/` 输出（零错误）
+4. **兼容性验证证据**：访问一个旧格式 URL，验证其能正确跳转到新格式（附截图）
+
+**禁止**：仅写"全部完成"而不附任何功能验证证据。
+
+**核验责任**：参谋在核验执行报告时，必须对照上述证据要求逐一核查。如执行者未附证据，参谋不得通过核验。
+
 ---
 
 ## 4. AI 编码流程（强制）

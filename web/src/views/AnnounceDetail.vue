@@ -26,6 +26,7 @@ import AppCalendar from '@/components/AppCalendar.vue'
 
 const route = useRoute()
 const toast = useToast()
+const source = route.params.source as string
 const announceNo = route.params.announceNo as string
 
 const loading = ref(true)
@@ -69,7 +70,7 @@ const sanitizedContent = computed(() => {
 async function loadDetail() {
   loading.value = true
   try {
-    const res = await getAnnouncementDetail(announceNo)
+    const res = await getAnnouncementDetail(announceNo, source)
     announcement.value = res.announcement
     records.value = res.records || []
     parseStatus.value = res.parse_status || 'pending'
