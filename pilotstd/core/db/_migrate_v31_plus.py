@@ -354,3 +354,22 @@ def _migrate_v37_user_notification_config(db: Any) -> None:
         cfg.save()
     except Exception:
         pass
+
+
+def _migrate_v39_announcement_source_type(db: Any) -> None:
+    """v39: 公告记录新增 source_type + announcements 新增 parse_status。"""
+    for col_name, col_def in [
+        ("source_type", "TEXT DEFAULT '网页解析'"),
+    ]:
+        try:
+            db.execute(f"ALTER TABLE announcement_record ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass
+
+    for col_name, col_def in [
+        ("parse_status", "TEXT DEFAULT 'pending'"),
+    ]:
+        try:
+            db.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
+        except Exception:
+            pass

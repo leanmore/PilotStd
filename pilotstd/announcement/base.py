@@ -326,7 +326,7 @@ class BaseAnnounceCrawler(ABC):
                 att_items, _meta = parse_announcement_detail(
                     raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
                 )
-                return self._finalize_items(att_items, attachment_url)
+                return self._finalize_items(att_items, attachment_url, "附件解析")
             return self._finalize_items(html_items, attachment_url)
 
         # 混合：HTML 有数据 + 有附件。下载附件存档，但直接返回 HTML 结果（不重新解析）
@@ -340,11 +340,14 @@ class BaseAnnounceCrawler(ABC):
         return self._finalize_items(html_items, attachment_url)
 
     @staticmethod
-    def _finalize_items(items: list[dict[str, Any]], attachment_url: str) -> list[dict[str, Any]]:
+    def _finalize_items(
+        items: list[dict[str, Any]], attachment_url: str, source_type: str = "网页解析"
+    ) -> list[dict[str, Any]]:
         """为每条标准补默认字段。"""
         for item in items:
             item.setdefault("attachment_url", attachment_url)
             item.setdefault("attachment_path", "")
+            item.setdefault("source_type", source_type)
         return items
 
     def _process_one_detail(

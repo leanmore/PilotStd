@@ -133,6 +133,8 @@ export interface Announcement {
   site_name: string
   content: string
   source: string
+  source_type: string
+  parse_status: string
 }
 
 export interface AnnouncementRecord {
@@ -149,6 +151,7 @@ export interface AnnouncementRecord {
   confidence: number
   raw_text: string | null
   parser_engine: string | null
+  source_type: string
   created_at: string
   updated_at: string
 }

@@ -494,6 +494,7 @@ from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v35_notification_policy,
     _migrate_v36_announcement_structure,
     _migrate_v37_user_notification_config,
+    _migrate_v39_announcement_source_type,
 )
 
 migration(31)(_migrate_v31_monitor_stats)
@@ -503,6 +504,7 @@ migration(34)(_migrate_v34_drop_old_adapter_tables)
 migration(35)(_migrate_v35_notification_policy)
 migration(36)(_migrate_v36_announcement_structure)
 migration(37)(_migrate_v37_user_notification_config)
+migration(39)(_migrate_v39_announcement_source_type)
 
 
 # v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）

@@ -310,12 +310,12 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
                   target="_blank"
                   class="text-primary hover:underline"
                 >{{ announcement.site_name || announcement.source_url }}</a>
-                <span v-else>{{ announcement?.site_name || '未知来源' }}</span>
+                <span v-else>{{ announcement?.source_type || announcement?.site_name || '未知来源' }}</span>
               </p>
             </div>
             <div class="col-12">
               <label class="text-sm text-color-secondary">附件</label>
-              <div class="flex align-items-center gap-2 mt-1">
+              <div class="attachment-area mt-1">
                 <span v-if="announcement?.attachment_url" class="text-sm">
                   {{ announcement.attachment_url.split('/').pop() }}
                 </span>
@@ -371,7 +371,7 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
             <Column selectionMode="multiple" headerStyle="width: 3rem" />
             <Column field="row_index" header="#" style="width: 4rem">
               <template #body="slotProps">
-                {{ String((slotProps.data.row_index ?? 0) + 1).padStart(2, '0') }}
+                {{ String(slotProps.data.row_index).padStart(2, '0') }}
               </template>
             </Column>
             <Column field="standard_number" header="标准号" style="min-width: 12rem">
@@ -476,5 +476,12 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
 .content-body :deep(th) {
   border: 1px solid var(--p-surface-300);
   padding: 0.25rem 0.5rem;
+}
+
+.attachment-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 </style>

@@ -61,7 +61,8 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     # 优先从 announcements 表获取公告头（含 source_url 等字段）
     ann = db.fetchone(
-        "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site"
+        "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
+        " COALESCE(parse_status, 'pending') AS parse_status"
         " FROM announcements WHERE announce_no = ?",
         (announce_no,),
     )
@@ -73,6 +74,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         source_url = ann["source_url"] or ""
         attachment_url = ann["attachment_url"] or ""
         content = ann["raw_data"] or ""
+        db_parse_status = ann["parse_status"] or "pending"
     else:
         # 回退：从 announcement_record 聚合基本头信息
         header = db.fetchone(
@@ -89,18 +91,24 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         source_url = ""
         attachment_url = ""
         content = ""
+        db_parse_status = "pending"
 
     records = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
         " implement_date, expiry_date, superseded_by,"
-        " status, confidence, fetched_at AS created_at, approved_at AS updated_at"
+        " status, confidence, source_type,"
+        " fetched_at AS created_at, approved_at AS updated_at"
         " FROM announcement_record"
         " WHERE announce_no = ?"
         " ORDER BY row_index",
         (announce_no,),
     )
 
-    parse_status = "completed" if records else "pending"
+    parse_status = db_parse_status if records else "pending"
+
+    # 公告级 source_type：取记录中的众数来源类型
+    source_types = [r["source_type"] for r in records if r.get("source_type")]
+    dominant_source_type = max(set(source_types), key=source_types.count) if source_types else ""
 
     return {
         "announcement": {
@@ -113,6 +121,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
             "site_name": get_site_name(source_url),
             "content": content,
             "source": SOURCE_MAP.get(ann["source_site"], "") if ann else "",
+            "source_type": dominant_source_type,
         },
         "records": [
             {
@@ -125,6 +134,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
                 "superseded_by": r["superseded_by"] or "",
                 "status": r["status"] or "draft",
                 "confidence": r["confidence"] or 0.0,
+                "source_type": r["source_type"] or "",
                 "created_at": r["created_at"] or "",
                 "updated_at": r["updated_at"] or "",
             }
@@ -262,37 +272,45 @@ def _parse_attachment_bg(
             return
 
         now = _now_iso()
-        for idx, item in enumerate(items):
-            db.execute(
-                "INSERT INTO announcement_record"
-                " (announcement_id, announce_no, row_index,"
-                "  standard_number, std_name, implement_date, expiry_date, superseded_by,"
-                "  status, confidence, raw_text, parser_engine, updated_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?)",
-                (
-                    announcement_id,
-                    announce_no,
-                    idx,
-                    item.get("std_code", ""),
-                    item.get("std_name", ""),
-                    item.get("implementation_date", ""),
-                    None,
-                    item.get("replaces_code", ""),
-                    float(item.get("confidence", 0.0)),
-                    item.get("raw_text", ""),
-                    meta.get("source", "attachment"),
-                    now,
-                ),
-            )
 
-        # 解析完成后更新 announcements 表头信息（自愈：补充可能缺失的公告头）
+        # 清理旧记录 + 批量写入新记录，确保 row_index 从 1 开始
+        db.execute("DELETE FROM announcement_record WHERE announce_no = ?", (announce_no,))
+
+        records_data = [
+            (
+                announcement_id,
+                announce_no,
+                idx + 1,  # row_index 从 1 开始
+                item.get("std_code", ""),
+                item.get("std_name", ""),
+                item.get("implementation_date", ""),
+                None,
+                item.get("replaces_code", ""),
+                float(item.get("confidence", 0.0)),
+                item.get("raw_text", ""),
+                meta.get("source", "attachment"),
+                "附件解析",  # 后台解析路径固定为附件解析
+                now,
+            )
+            for idx, item in enumerate(items)
+        ]
+        db.executemany(
+            "INSERT INTO announcement_record"
+            " (announcement_id, announce_no, row_index,"
+            "  standard_number, std_name, implement_date, expiry_date, superseded_by,"
+            "  status, confidence, raw_text, parser_engine, source_type, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)",
+            records_data,
+        )
+
+        # 解析完成后更新 announcements 表头信息 + 解析状态
         resolved_title = ann_title or meta.get("title", "")
         resolved_pub_date = publish_date or meta.get("publish_date", "")
         db.execute(
             "INSERT OR REPLACE INTO announcements"
             " (source_site, pid, announce_no, title, publish_date,"
-            "  source_url, attachment_url, raw_data, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "  source_url, attachment_url, raw_data, parse_status, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)",
             (
                 source_site,
                 pid,
