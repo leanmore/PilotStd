@@ -360,7 +360,7 @@ class TestProcessItem(unittest.TestCase):
         self.matcher._process_item(item, "announcement_gb", "2024-01-01T00:00:00", log_rows, cache_rows, result)
 
         row = log_rows[0]
-        self.assertEqual(len(row), 10)
+        self.assertEqual(len(row), 15)
         self.assertEqual(row[0], "announcement_gb")  # source_site
         self.assertEqual(row[1], "p001")  # pid
         self.assertEqual(row[2], "2024-001")  # announce_no
@@ -405,7 +405,9 @@ class TestBulkInsertRecords(unittest.TestCase):
         self.db.execute.assert_not_called()
 
     def test_single_row_insert(self):
-        rows = [("site", "p1", "ann1", "GB/T 1.1-2020", "name", "2024-01-15", "now", 1, "title", 5)]
+        rows = [
+            ("site", "p1", "ann1", "GB/T 1.1-2020", "name", "2024-01-15", "", "", 0.0, 1, "draft", "now", 1, "title", 5)
+        ]
         self.matcher._bulk_insert_records(rows)
         self.db.execute.assert_called_once()
         sql = self.db.execute.call_args[0][0]
@@ -414,7 +416,9 @@ class TestBulkInsertRecords(unittest.TestCase):
 
     def test_batch_splitting(self):
         """超过 BATCH_SIZE 时自动分批。"""
-        rows = [("site", f"p{i}", "ann", "GB/T X", "n", "d", "t", 1, "t", 5) for i in range(60)]
+        rows = [
+            ("site", f"p{i}", "ann", "GB/T X", "n", "d", "", "", 0.0, 1, "draft", "t", 1, "t", 5) for i in range(60)
+        ]
         self.matcher._bulk_insert_records(rows)
         # 60 行 -> 50 + 10 = 2 批
         self.assertEqual(self.db.execute.call_count, 2)
