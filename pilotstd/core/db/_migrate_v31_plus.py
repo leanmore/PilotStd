@@ -373,3 +373,39 @@ def _migrate_v39_announcement_source_type(db: Any) -> None:
             db.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
         except Exception:
             pass
+
+
+def _migrate_v40_ensure_columns(db: Any) -> None:
+    """v40: 逐列检查 announcement_record 和 announcements 表，补遗漏的列。"""
+    import logging as _logging
+
+    _log = _logging.getLogger("migrate.v40")
+
+    _record_cols: list[tuple[str, str]] = [
+        ("announcement_id", "INTEGER"),
+        ("row_index", "INTEGER"),
+        ("implement_date", "TEXT"),
+        ("expiry_date", "TEXT"),
+        ("superseded_by", "TEXT"),
+        ("status", "TEXT DEFAULT 'draft'"),
+        ("confidence", "REAL DEFAULT 0.0"),
+        ("raw_text", "TEXT"),
+        ("parser_engine", "TEXT"),
+        ("approved_by", "INTEGER"),
+        ("approved_at", "TEXT"),
+        ("updated_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
+        ("source_type", "TEXT DEFAULT '网页解析'"),
+    ]
+
+    existing = {r[1] for r in db.execute("PRAGMA table_info(announcement_record)")}
+    for col_name, col_def in _record_cols:
+        if col_name not in existing:
+            db.execute(f"ALTER TABLE announcement_record ADD COLUMN {col_name} {col_def}")
+            _log.info("补列 announcement_record.%s %s", col_name, col_def)
+
+    _ann_cols = [("parse_status", "TEXT DEFAULT 'pending'")]
+    existing_ann = {r[1] for r in db.execute("PRAGMA table_info(announcements)")}
+    for col_name, col_def in _ann_cols:
+        if col_name not in existing_ann:
+            db.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
+            _log.info("补列 announcements.%s %s", col_name, col_def)

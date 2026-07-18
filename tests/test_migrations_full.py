@@ -1,5 +1,5 @@
 # tests/test_migrations_full.py
-# migrations.py 完整单元测试 — 覆盖所有迁移函数 v2-v38
+# migrations.py 完整单元测试 — 覆盖所有迁移函数 v2-v40
 #
 # 设计原则：
 # 1. 所有迁移函数接受 db 参数（DI），测试中用 MagicMock
@@ -1054,14 +1054,14 @@ class TestMigrationRegistration(unittest.TestCase):
 
     def test_all_versions_registered(self) -> None:
         """验证 v2-v38 全部迁移函数已在 MIGRATIONS 中注册。"""
-        for version in range(2, 39):
+        for version in range(2, 41):
             self.assertIn(version, MIGRATIONS, f"v{version} 应在 MIGRATIONS 中注册")
 
     def test_migrations_dict_has_no_gaps(self) -> None:
         """验证 MIGRATIONS 字典各版本号无缺口。"""
         versions = sorted(MIGRATIONS.keys())
         self.assertEqual(versions[0], 2, "第一个迁移版本应为 v2")
-        self.assertEqual(versions[-1], 39, "最后一个迁移版本应为 v39")
+        self.assertEqual(versions[-1], 40, "最后一个迁移版本应为 v40")
         for i, v in enumerate(versions):
             expected = i + 2
             self.assertEqual(v, expected, f"MIGRATIONS 版本号不连续: 期望 {expected}, 实际 {v}")
