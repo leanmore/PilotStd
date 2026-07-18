@@ -76,7 +76,7 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 5. 创建/更新替代文档
 6. 在 PR 描述中注明归档操作
 
-**归档触发时机**：归档操作在每轮治理任务完成时由执行者手动执行（`git mv` 源文件 → `docs/archive/YYYY-MM-DD/`）。CI 不执行文件移动操作。
+**自动归档触发时机**：PR 合并到 `main`/`develop` 时，CI 自动将 `docs/pending/` 下文件移入 `docs/archive/YYYY-MM-DD/`。
 
 ## 六、相关文档
 
