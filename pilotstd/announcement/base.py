@@ -13,6 +13,39 @@ from ..query.network import CHROME_UA, safe_raw_get, safe_request
 
 logger = logging.getLogger(__name__)
 
+
+def _store_raw_content(
+    announce_no: str,
+    pid: str,
+    title: str,
+    notice_date: str,
+    source_site: str,
+    raw_html: str,
+) -> None:
+    """提取公告正文并写入 announcements 表（线程安全，失败静默）。"""
+    from .parser import extract_content
+
+    content = extract_content(raw_html)
+    if not announce_no:
+        return
+    try:
+        from pilotstd.core.config import get_db_path
+        from pilotstd.core.db import Database
+
+        now = datetime.now(timezone.utc).isoformat()
+        db = Database(get_db_path())
+        db.execute(
+            "INSERT OR REPLACE INTO announcements"
+            " (source_site, pid, announce_no, title, publish_date,"
+            "  source_url, attachment_url, raw_data, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, '', '', ?, ?)",
+            (source_site, pid, announce_no, title, notice_date, content, now),
+        )
+        db.close()
+    except Exception:
+        logger.debug("写入公告正文失败: %s", announce_no, exc_info=True)
+
+
 # 逐条详情抓取间隔（秒），多线程模式下仅在线程间抖动
 FETCH_DELAY_RANGE = (0.5, 1.0)
 # 详情获取最大并发数
@@ -367,6 +400,15 @@ class BaseAnnounceCrawler(ABC):
             )
             _bump(ann.get("pid", "?"))
             return []
+        # 提取公告正文写入 announcements.raw_data
+        _store_raw_content(
+            ann.get("code", ""),
+            ann.get("pid", ""),
+            ann.get("title", ""),
+            ann.get("notice_date", ""),
+            self.source_site,
+            raw,
+        )
         parsed = self._parse_items(raw, ocr_provider=ocr_provider)
         if not parsed:
             logger.warning(
