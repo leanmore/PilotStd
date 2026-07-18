@@ -92,12 +92,13 @@ class AnnouncementMatcher:
             # 实际条目数（非全局去重数，仅表示同公告下条目数量）
             total = len(group)
 
-            for it in group:
+            for idx, it in enumerate(group):
                 if best_date:
                     it["publish_date"] = best_date
                 if best_title:
                     it.setdefault("announcement_title", best_title)
                 it["standard_count"] = total
+                it["row_index"] = idx + 1  # 同公告内从 1 开始递增
 
         return items
 
@@ -109,6 +110,10 @@ class AnnouncementMatcher:
         announce_no = item.get("announce_no", "")
         publish_date = item.get("publish_date", "")
         std_name = item.get("std_name", "")
+        implement_date = item.get("implementation_date", "")
+        expiry_date = item.get("expiry_date", "")
+        confidence = item.get("confidence", 0.0)
+        row_index = item.get("row_index", 0)
 
         parsed = self._parse_std_code(std_code)
         if not parsed:
@@ -133,6 +138,11 @@ class AnnouncementMatcher:
                 std_code,
                 std_name or None,
                 publish_date,
+                implement_date,
+                expiry_date,
+                confidence,
+                row_index,
+                "draft",
                 now,
                 matched,
                 item.get("announcement_title", "") or None,
@@ -236,12 +246,13 @@ class AnnouncementMatcher:
         # 分批插入：避免单条 SQL 过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
-            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?)" for _ in batch)
+            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
-                "publish_date, fetched_at, matched, announcement_title, standard_count) "
+                "publish_date, implement_date, expiry_date, confidence, row_index,"
+                " status, fetched_at, matched, announcement_title, standard_count) "
                 f"VALUES {placeholders}",
                 flat_values,
             )

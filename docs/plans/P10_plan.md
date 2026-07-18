@@ -33,3 +33,17 @@
 - `STATUS.md`：更新最新进展
 - `docs/architecture.md`：数据库模块末尾追加迁移校验机制说明
 - `docs/plans/P10_plan.md`：本闭环记录
+
+**Part A 闭环记录（2026-07-18）**：
+- 数据库迁移 v39（source_type + parse_status）
+- 解析任务：DELETE+INSERT 覆盖策略 + row_index 递增 + source_type 写入
+- 前端：来源显示、序号格式化、附件布局、轮询超时
+- 全量重跑后所有历史数据修复完成
+
+**Part B 闭环记录（2026-07-18）— 日期字段存储层修复**：
+- matcher.py INSERT 从 10 列扩至 15 列（新增 implement_date/expiry_date/superseded_by/row_index/status）
+- matcher.py `_normalize` 分配同公告内 row_index 递增
+- announce_detail.py SELECT + INSERT + PATCH 增加 publish_date
+- AnnounceDetail.vue：新增发布日期列，删除置信度列
+- CI 测试 38→39 断言修复
+- 质量门禁：Ruff ✅ / Mypy ✅ / pytest 93/93 ✅ / vue-tsc ✅

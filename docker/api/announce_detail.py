@@ -95,7 +95,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     records = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
-        " implement_date, expiry_date, superseded_by,"
+        " publish_date, implement_date, expiry_date, superseded_by,"
         " status, confidence, source_type,"
         " fetched_at AS created_at, approved_at AS updated_at"
         " FROM announcement_record"
@@ -129,6 +129,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
                 "row_index": r["row_index"] or 0,
                 "standard_number": r["standard_number"] or "",
                 "std_name": r["std_name"] or "",
+                "publish_date": r["publish_date"] or "",
                 "implement_date": r["implement_date"] or "",
                 "expiry_date": r["expiry_date"] or "",
                 "superseded_by": r["superseded_by"] or "",
@@ -283,6 +284,7 @@ def _parse_attachment_bg(
                 idx + 1,  # row_index 从 1 开始
                 item.get("std_code", ""),
                 item.get("std_name", ""),
+                item.get("publish_date", ""),
                 item.get("implementation_date", ""),
                 None,
                 item.get("replaces_code", ""),
@@ -297,9 +299,9 @@ def _parse_attachment_bg(
         db.executemany(
             "INSERT INTO announcement_record"
             " (announcement_id, announce_no, row_index,"
-            "  standard_number, std_name, implement_date, expiry_date, superseded_by,"
+            "  standard_number, std_name, publish_date, implement_date, expiry_date, superseded_by,"
             "  status, confidence, raw_text, parser_engine, source_type, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)",
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?)",
             records_data,
         )
 
@@ -370,6 +372,7 @@ def update_record(record_id: int, data: dict, mgr=Depends(get_manager_dep)):
     allowed = {
         "standard_number",
         "std_name",
+        "publish_date",
         "implement_date",
         "expiry_date",
         "superseded_by",

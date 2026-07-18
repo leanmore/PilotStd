@@ -7,9 +7,10 @@
 # 3. 使用 unittest.TestCase 组织
 # 4. 使用 assert_any_call 验证 SQL 调用，不匹配完整 SQL 字符串
 
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+from pilotstd.core.db._constants import MIGRATIONS
 
 # ---------------------------------------------------------------------------
 # 导入被测试的迁移函数
@@ -53,11 +54,11 @@ from pilotstd.core.db.migrations import (  # type: ignore[import-untyped]
     _migrate_v37_user_notification_config,
     _migrate_v38_user_settings,
 )
-from pilotstd.core.db._constants import MIGRATIONS
 
 # ---------------------------------------------------------------------------
 # 辅助方法
 # ---------------------------------------------------------------------------
+
 
 # 用于 PRAGMA table_info 返回的列名 mock
 def _make_cols(*names: str):
@@ -76,10 +77,7 @@ class _AssertMixin:
             if args and sql_fragment in args[0]:
                 return
         calls = [c[0][0][:120] if c[0] else "()" for c in mock_db.execute.call_args_list]
-        raise AssertionError(
-            f"{msg}未找到包含 '{sql_fragment}' 的 execute 调用。\n"
-            f"实际调用（截取前120字符）: {calls}"
-        )
+        raise AssertionError(f"{msg}未找到包含 '{sql_fragment}' 的 execute 调用。\n实际调用（截取前120字符）: {calls}")
 
     @staticmethod
     def assert_exec_count(mock_db: MagicMock, expected: int, msg: str = "") -> None:
@@ -87,14 +85,13 @@ class _AssertMixin:
         actual = len(mock_db.execute.call_args_list)
         if actual != expected:
             calls = [c[0][0][:100] if c[0] else "()" for c in mock_db.execute.call_args_list]
-            raise AssertionError(
-                f"{msg}期望 execute 调用 {expected} 次，实际 {actual} 次。\n调用列表: {calls}"
-            )
+            raise AssertionError(f"{msg}期望 execute 调用 {expected} 次，实际 {actual} 次。\n调用列表: {calls}")
 
 
 # ---------------------------------------------------------------------------
 # v2 - v10 迁移测试
 # ---------------------------------------------------------------------------
+
 
 class TestMigrationsV2V10(unittest.TestCase, _AssertMixin):
     """测试 v2 到 v10 的迁移函数。"""
@@ -191,7 +188,7 @@ class TestMigrationsV2V10(unittest.TestCase, _AssertMixin):
         self.db.execute = MagicMock()
         self.db.execute.side_effect = [
             Exception("列已存在"),  # ALTER TABLE 失败
-            None,                   # CREATE INDEX 成功
+            None,  # CREATE INDEX 成功
         ]
 
         _migrate_v7_add_last_checked(self.db)
@@ -205,7 +202,7 @@ class TestMigrationsV2V10(unittest.TestCase, _AssertMixin):
         """v7: 索引创建抛异常时静默吞掉。"""
         self.db.execute = MagicMock()
         self.db.execute.side_effect = [
-            None,                   # ALTER TABLE 成功
+            None,  # ALTER TABLE 成功
             Exception("表不存在"),  # CREATE INDEX 失败
         ]
 
@@ -321,6 +318,7 @@ class TestMigrationsV2V10(unittest.TestCase, _AssertMixin):
 # v11 - v20 迁移测试
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationsV11V20(unittest.TestCase, _AssertMixin):
     """测试 v11 到 v20 的迁移函数。"""
 
@@ -384,8 +382,12 @@ class TestMigrationsV11V20(unittest.TestCase, _AssertMixin):
     def test_v13_skips_existing_columns(self) -> None:
         """v13: 所有列已存在时跳过全部 ALTER。"""
         self.db.fetchall.return_value = _make_cols(
-            "adapter_name", "avg_response_time", "total_response_time",
-            "cooldown_count", "last_cooldown_reason", "last_cooldown_at",
+            "adapter_name",
+            "avg_response_time",
+            "total_response_time",
+            "cooldown_count",
+            "last_cooldown_reason",
+            "last_cooldown_at",
         )
 
         _migrate_v13_adapter_stats_extend(self.db)
@@ -457,9 +459,9 @@ class TestMigrationsV11V20(unittest.TestCase, _AssertMixin):
         self.db.execute = MagicMock()
         self.db.execute.side_effect = [
             Exception("列已存在"),  # ALTER TABLE is_read 失败
-            None,                   # CREATE INDEX idx_notif_is_read 成功
-            None,                   # CREATE TABLE fetch_task 成功
-            None,                   # CREATE TABLE adapter_health 成功
+            None,  # CREATE INDEX idx_notif_is_read 成功
+            None,  # CREATE TABLE fetch_task 成功
+            None,  # CREATE TABLE adapter_health 成功
         ]
 
         _migrate_v18_notification_fetch_task(self.db)
@@ -495,6 +497,7 @@ class TestMigrationsV11V20(unittest.TestCase, _AssertMixin):
 # ---------------------------------------------------------------------------
 # v21 - v30 迁移测试
 # ---------------------------------------------------------------------------
+
 
 class TestMigrationsV21V30(unittest.TestCase, _AssertMixin):
     """测试 v21 到 v30 的迁移函数。"""
@@ -693,6 +696,7 @@ class TestMigrationsV21V30(unittest.TestCase, _AssertMixin):
 # v31 - v37 迁移测试（从 _migrate_v31_plus 导入）
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
     """测试 v31 到 v37 的迁移函数（实现位于 _migrate_v31_plus.py）。"""
 
@@ -717,9 +721,9 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
     def test_v31_migrates_monitor_data_from_cache_config(self) -> None:
         """v31: cache_config 中有旧监控数据时迁移到 monitor_stats。"""
         self.db.fetchone.side_effect = [
-            {"config_value": "42"},   # monitor.processed_today
-            {"config_value": "30"},   # monitor.success_today
-            {"config_value": "5"},    # monitor.failed_today
+            {"config_value": "42"},  # monitor.processed_today
+            {"config_value": "30"},  # monitor.success_today
+            {"config_value": "5"},  # monitor.failed_today
         ]
 
         _migrate_v31_monitor_stats(self.db)
@@ -728,8 +732,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
         self.assertEqual(self.db.fetchone.call_count, 3)
         # 验证写入 monitor_stats（3 条 INSERT OR REPLACE）
         insert_or_replace_calls = [
-            c for c in self.db.execute.call_args_list
-            if c[0] and "INSERT OR REPLACE INTO monitor_stats" in c[0][0]
+            c for c in self.db.execute.call_args_list if c[0] and "INSERT OR REPLACE INTO monitor_stats" in c[0][0]
         ]
         self.assertEqual(len(insert_or_replace_calls), 3)
         # 验证清理旧数据
@@ -761,10 +764,16 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
         """v33: rotator_state 有数据时逐行迁移到 adapter_state。"""
         self.db.fetchall.side_effect = [
             [  # rotator_state 数据
-                {"site_name": "std_gov", "request_count": 100, "daily_count": 10,
-                 "daily_date": "2026-01-01", "cooldown_until": 0.0,
-                 "consecutive_errors": 0, "active_url": "https://example.com",
-                 "updated_at": "2026-01-01"},
+                {
+                    "site_name": "std_gov",
+                    "request_count": 100,
+                    "daily_count": 10,
+                    "daily_date": "2026-01-01",
+                    "cooldown_until": 0.0,
+                    "consecutive_errors": 0,
+                    "active_url": "https://example.com",
+                    "updated_at": "2026-01-01",
+                },
             ],
             [],  # adapter_stats 无数据
             [],  # adapter_health 无数据
@@ -774,8 +783,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
 
         # 验证 INSERT OR REPLACE INTO adapter_state 被调用
         insert_calls = [
-            c for c in self.db.execute.call_args_list
-            if c[0] and "INSERT OR REPLACE INTO adapter_state" in c[0][0]
+            c for c in self.db.execute.call_args_list if c[0] and "INSERT OR REPLACE INTO adapter_state" in c[0][0]
         ]
         self.assertEqual(len(insert_calls), 1, "v33 应迁移 1 行 rotator_state 数据")
 
@@ -819,7 +827,8 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
         self.assert_exec_contains(self.db, "CREATE INDEX IF NOT EXISTS idx_policy_user")
         # 无旧规则数据时，不应有 INSERT
         insert_calls = [
-            c for c in self.db.execute.call_args_list
+            c
+            for c in self.db.execute.call_args_list
             if c[0] and "INSERT OR REPLACE INTO notification_policy" in c[0][0]
         ]
         self.assertEqual(len(insert_calls), 0, "v35 无旧规则时不插入数据")
@@ -837,7 +846,8 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
         _migrate_v35_notification_policy(self.db)
 
         insert_calls = [
-            c for c in self.db.execute.call_args_list
+            c
+            for c in self.db.execute.call_args_list
             if c[0] and "INSERT OR REPLACE INTO notification_policy" in c[0][0]
         ]
         self.assertEqual(len(insert_calls), 2, "v35 应迁移 2 个渠道规则")
@@ -899,10 +909,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
         self.assert_exec_contains(self.db, "SET announcement_id")
 
         # 验证 UPDATE announcement_record SET status = 'draft'
-        update_status_calls = [
-            c for c in self.db.execute.call_args_list
-            if c[0] and "SET status = 'draft'" in c[0][0]
-        ]
+        update_status_calls = [c for c in self.db.execute.call_args_list if c[0] and "SET status = 'draft'" in c[0][0]]
         self.assertGreaterEqual(len(update_status_calls), 1, "v36 应设置默认 status='draft'")
 
     # ---- v37 ---------------------------------------------------------------
@@ -961,8 +968,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
 
         # 验证两个渠道各写入一次
         insert_calls = [
-            c for c in self.db.execute.call_args_list
-            if c[0] and 'INSERT OR REPLACE INTO "user_credentials"' in c[0][0]
+            c for c in self.db.execute.call_args_list if c[0] and 'INSERT OR REPLACE INTO "user_credentials"' in c[0][0]
         ]
         self.assertEqual(len(insert_calls), 2, "v37 应迁移 2 个渠道凭证")
 
@@ -992,8 +998,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
 
         # 不应该插入凭证
         insert_calls = [
-            c for c in self.db.execute.call_args_list
-            if c[0] and 'INSERT OR REPLACE INTO "user_credentials"' in c[0][0]
+            c for c in self.db.execute.call_args_list if c[0] and 'INSERT OR REPLACE INTO "user_credentials"' in c[0][0]
         ]
         self.assertEqual(len(insert_calls), 0, "v37 无渠道时不插入凭证")
 
@@ -1001,6 +1006,7 @@ class TestMigrationsV31V37(unittest.TestCase, _AssertMixin):
 # ---------------------------------------------------------------------------
 # v38 迁移测试
 # ---------------------------------------------------------------------------
+
 
 class TestMigrationV38(unittest.TestCase, _AssertMixin):
     """测试 v38 迁移函数（user_settings 表）。"""
@@ -1042,6 +1048,7 @@ class TestMigrationV38(unittest.TestCase, _AssertMixin):
 # 迁移注册与模块 Mock 测试
 # ---------------------------------------------------------------------------
 
+
 class TestMigrationRegistration(unittest.TestCase):
     """测试迁移函数注册和 _migrate_v31_plus 模块 Mock。"""
 
@@ -1054,7 +1061,7 @@ class TestMigrationRegistration(unittest.TestCase):
         """验证 MIGRATIONS 字典各版本号无缺口。"""
         versions = sorted(MIGRATIONS.keys())
         self.assertEqual(versions[0], 2, "第一个迁移版本应为 v2")
-        self.assertEqual(versions[-1], 38, "最后一个迁移版本应为 v38")
+        self.assertEqual(versions[-1], 39, "最后一个迁移版本应为 v39")
         for i, v in enumerate(versions):
             expected = i + 2
             self.assertEqual(v, expected, f"MIGRATIONS 版本号不连续: 期望 {expected}, 实际 {v}")
@@ -1081,6 +1088,7 @@ class TestMigrationRegistration(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # v31-v37 函数完整性测试（直接调用真实函数 + mock db）
 # ---------------------------------------------------------------------------
+
 
 class TestV31V37DirectCall(unittest.TestCase, _AssertMixin):
     """对 v31-v37 真实函数做直接调用 + mock db 测试（非 mock 模块路径）。"""
@@ -1161,6 +1169,7 @@ class TestV31V37DirectCall(unittest.TestCase, _AssertMixin):
 # ---------------------------------------------------------------------------
 # 边缘条件 / 综合测试
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases(unittest.TestCase, _AssertMixin):
     """边界条件与综合测试。"""

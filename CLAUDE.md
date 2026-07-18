@@ -169,7 +169,30 @@
 
 **核验责任**：参谋在核验执行报告时，必须对照上述证据要求逐一核查。如执行者未附证据，参谋不得通过核验。
 
----
+### 3.12 公告解析数据写入规范
+
+**规则**：解析任务写入 `announcement_record` 时，必须：
+1. 先 `DELETE` 该 `announce_no` 的所有旧记录，再 `INSERT` 新数据（覆盖策略）
+2. 写入 `source_type` 字段，区分数据来源（`网页解析` / `附件解析`）
+3. `row_index` 从 1 开始递增（前端显示 `01, 02...`）
+4. 解析完成后更新 `announcements.parse_status = 'completed'`
+
+**v39 迁移**：新增 `announcement_record.source_type`（默认 `网页解析`）和 `announcements.parse_status`（默认 `pending`）。
+
+### 3.13 公告记录日期字段与存储层规范
+
+**背景**：初始抓取（matcher.py）INSERT 仅含 10 列，遗漏 `implement_date`/`expiry_date`/`superseded_by`/`row_index`，导致这三个字段填充率为 0%。
+
+**修复（2026-07-18）**：
+- matcher.py `_process_item`：新增 `implement_date`/`expiry_date`/`confidence`/`row_index` 读取
+- matcher.py `_bulk_insert_records`：INSERT 从 10 列扩至 15 列
+- matcher.py `_normalize`：同公告内 `row_index` 从 1 递增
+- announce_detail.py SELECT：新增 `publish_date`
+- announce_detail.py 附件 INSERT：新增 `publish_date`
+- announce_detail.py PATCH allowed：新增 `publish_date`
+- AnnounceDetail.vue：新增发布日期列，删除置信度列（无打分逻辑，恒显示"-"）
+
+**规则**：后续新增 `announcement_record` 字段时，必须同步更新 matcher.py 的 INSERT 列清单和 log_rows 元组。---
 
 ## 4. AI 编码流程（强制）
 

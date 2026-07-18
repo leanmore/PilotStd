@@ -394,6 +394,14 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
                 </span>
               </template>
             </Column>
+            <Column field="publish_date" header="发布日期" style="min-width: 10rem">
+              <template #editor="{ data, field }">
+                <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />
+              </template>
+              <template #body="{ data }">
+                {{ data.publish_date || '-' }}
+              </template>
+            </Column>
             <Column field="implement_date" header="实施日期" style="width: 10rem">
               <template #editor="{ data, field }">
                 <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />
@@ -421,12 +429,6 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
             <Column field="status" header="状态" style="width: 8rem">
               <template #body="{ data }">
                 <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" />
-              </template>
-            </Column>
-            <Column field="confidence" header="置信度" style="width: 6rem">
-              <template #body="{ data }">
-                <span v-if="data.confidence > 0">{{ (data.confidence * 100).toFixed(0) }}%</span>
-                <span v-else class="text-color-secondary">-</span>
               </template>
             </Column>
             <Column header="收藏" style="width: 6rem">
