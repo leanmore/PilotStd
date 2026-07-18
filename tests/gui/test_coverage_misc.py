@@ -1,40 +1,50 @@
 """覆盖 pilotstd/ui/ 下 misc 模块：rules_page, self_check。"""
+
 from unittest.mock import MagicMock, patch
-from PyQt6.QtWidgets import QDialog, QMessageBox
+
+from PyQt6.QtWidgets import QDialog
 
 
 # ═══ _core/_self_check.py ═══
 class TestSelfCheck:
     def test_is_enabled(self):
         import os
+
         with patch.dict(os.environ, {"PILOTSTD_SELF_CHECK": "1"}):
             from pilotstd.ui.core._self_check import _is_enabled
+
             assert _is_enabled() is True
 
     def test_is_disabled_by_default(self):
         import os
+
         with patch.dict(os.environ, {}, clear=True):
             from pilotstd.ui.core._self_check import _is_enabled
+
             assert _is_enabled() is False
 
     def test_run_self_check_no_core(self):
         from pilotstd.ui.core._self_check import run_self_check
+
         fake_window = MagicMock()
         fake_window._mgr = MagicMock()
         run_self_check(fake_window)
 
     def test_check_parsed_results_consistency(self):
         from pilotstd.ui.core._self_check import _check_parsed_results_consistency
+
         _check_parsed_results_consistency(MagicMock())
 
     def test_check_core_attributes(self):
         from pilotstd.ui.core._self_check import _check_core_attributes
+
         fake_window = MagicMock()
         fake_window._core = MagicMock()
         _check_core_attributes(fake_window)
 
     def test_check_mgr_proxy(self):
         from pilotstd.ui.core._self_check import _check_mgr_proxy
+
         fake_window = MagicMock()
         fake_window._mgr = MagicMock()
         _check_mgr_proxy(fake_window)
@@ -44,6 +54,7 @@ class TestSelfCheck:
 class TestRulesPage:
     def test_create_rules_page(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         page = RulesPage(cfg)
@@ -51,6 +62,7 @@ class TestRulesPage:
 
     def test_add_rule_creates_dialog(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         cfg.list_query_rules.return_value = []
@@ -62,6 +74,7 @@ class TestRulesPage:
 
     def test_import_json_cancelled(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         cfg.list_query_rules.return_value = []
@@ -71,6 +84,7 @@ class TestRulesPage:
 
     def test_import_json_success(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         cfg.list_query_rules.return_value = []
@@ -81,6 +95,7 @@ class TestRulesPage:
 
     def test_export_json_no_rules(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         cfg.list_query_rules.return_value = []
@@ -89,6 +104,7 @@ class TestRulesPage:
 
     def test_export_json_success(self, qapp):
         from pilotstd.ui.pages.rules_page import RulesPage
+
         cfg = MagicMock()
         cfg.get.return_value = True
         rule = {"name": "r1", "site_id": "std_gov", "type": "query", "captcha": "none"}
@@ -102,6 +118,7 @@ class TestRulesPage:
 class TestPendingQueryGap:
     def test_dialog_creates(self, qapp):
         from pilotstd.ui.pending_query_dialog import PendingQueryDialog
+
         mgr = MagicMock()
         mgr.get_cooldown_info.return_value = {}
         items = [MagicMock()]

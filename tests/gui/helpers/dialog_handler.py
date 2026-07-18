@@ -19,7 +19,6 @@ from unittest.mock import patch
 
 from PyQt6.QtCore import QEvent, QObject, QTimer
 from PyQt6.QtWidgets import (
-    QApplication,
     QDialog,
     QDialogButtonBox,
     QMessageBox,
@@ -62,17 +61,31 @@ class FileDialogAutoHandler:
 
     # ── 标题关键词（中英文 i18n）──
     TITLE_KEYWORDS = [
-        "选择", "打开", "保存", "导出", "导入", "另存为",
-        "Select", "Open", "Save", "Export", "Import",
+        "选择",
+        "打开",
+        "保存",
+        "导出",
+        "导入",
+        "另存为",
+        "Select",
+        "Open",
+        "Save",
+        "Export",
+        "Import",
     ]
 
     # ── 按钮文本关键词（优先级从高到低）──
     BUTTON_KEYWORDS = [
-        "选择文件夹", "Select Folder",
-        "打开", "Open",
-        "保存", "Save",
-        "确定", "OK",
-        "是", "Yes",
+        "选择文件夹",
+        "Select Folder",
+        "打开",
+        "Open",
+        "保存",
+        "Save",
+        "确定",
+        "OK",
+        "是",
+        "Yes",
     ]
 
     def __init__(
@@ -96,9 +109,7 @@ class FileDialogAutoHandler:
             )
             return
         self._stop_event.clear()
-        self._thread = threading.Thread(
-            target=self._listen_loop, daemon=True, name="pywinauto-listener"
-        )
+        self._thread = threading.Thread(target=self._listen_loop, daemon=True, name="pywinauto-listener")
         self._thread.start()
         logger.info("[Pywinauto] 后台监听已启动 target_dir=%s", self.target_dir)
 

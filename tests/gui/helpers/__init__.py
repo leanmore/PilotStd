@@ -11,10 +11,10 @@ from PyQt6.QtWidgets import QMainWindow, QMenu
 from pilotstd.i18n import _
 
 from .dialog_handler import (
-    FileDialogAutoHandler,
-    SmartDialogInterceptor,
     PYWAUTO_AVAILABLE,
     PYWAUTO_ERROR,
+    FileDialogAutoHandler,
+    SmartDialogInterceptor,
     get_qfiledialog_patches,
     get_qmessagebox_patches,
 )

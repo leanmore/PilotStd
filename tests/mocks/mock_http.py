@@ -13,7 +13,6 @@
 
 from __future__ import annotations
 
-import json as _json
 from typing import Any
 
 import responses as _responses
@@ -51,9 +50,7 @@ NJBZ365_SEARCH_RESPONSE: dict[str, Any] = {
 }
 
 
-def mock_njbz365_search(
-    results: list[dict[str, Any]] | None = None, total: int | None = None
-) -> None:
+def mock_njbz365_search(results: list[dict[str, Any]] | None = None, total: int | None = None) -> None:
     """注册 njbz365 搜索 API mock 响应。"""
     data = dict(NJBZ365_SEARCH_RESPONSE)
     if results is not None:
@@ -81,8 +78,20 @@ def mock_njbz365_empty() -> None:
 
 ANNOUNCEMENT_LIST_RESPONSE: dict[str, Any] = {
     "rows": [
-        {"PID": "pid001", "CODE": "2024-001", "TITLE": "国家标准公告2024年第1号", "NOTICE_DATE": "2024-01-15", "STD_COUNT": "2"},
-        {"PID": "pid002", "CODE": "2024-002", "TITLE": "国家标准公告2024年第2号", "NOTICE_DATE": "2024-02-20", "STD_COUNT": "1"},
+        {
+            "PID": "pid001",
+            "CODE": "2024-001",
+            "TITLE": "国家标准公告2024年第1号",
+            "NOTICE_DATE": "2024-01-15",
+            "STD_COUNT": "2",
+        },
+        {
+            "PID": "pid002",
+            "CODE": "2024-002",
+            "TITLE": "国家标准公告2024年第2号",
+            "NOTICE_DATE": "2024-02-20",
+            "STD_COUNT": "1",
+        },
     ],
     "total": 2,
 }
@@ -100,6 +109,7 @@ def mock_announcement_list(response: dict[str, Any] | None = None) -> None:
 
 
 # ── 通用 GET mock ──────────────────────────────────────────────
+
 
 def mock_get(url: str, body: str = "", status: int = 200, content_type: str = "text/html") -> None:
     """注册一个通用 GET mock。"""

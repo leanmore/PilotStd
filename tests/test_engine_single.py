@@ -9,13 +9,13 @@ _step_cache_lookup / _step_get_priority_chain / _step_query_adapters
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from pilotstd.query.engine._single import SingleQueryHandler
 from pilotstd.query.models import QueryResult
 
-
 # ── 辅助工厂 ──
+
 
 def _make_adapter(name: str, label: str = "", found_result: QueryResult | None = None):
     """用 type() 动态构造 mock 适配器，只暴露 _single.py 需要的属性。"""
@@ -42,6 +42,7 @@ def _make_handler(core=None, routing=None):
 # ═══════════════════════════════════════════════════════════════
 # Step 1: _step_cache_lookup
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestStepCacheLookup(unittest.TestCase):
     """_step_cache_lookup — 缓存查找"""
@@ -177,6 +178,7 @@ class TestStepCacheLookup(unittest.TestCase):
 # Step 2: _step_get_priority_chain
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestStepGetPriorityChain(unittest.TestCase):
     """_step_get_priority_chain — 获取适配器优先级链"""
 
@@ -248,6 +250,7 @@ class TestStepGetPriorityChain(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════════
 # Step 3: _step_query_adapters
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestStepQueryAdapters(unittest.TestCase):
     """_step_query_adapters — 逐适配器查询"""
@@ -562,6 +565,7 @@ class TestStepQueryAdapters(unittest.TestCase):
 # Step 4: _step_quota_exhausted
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestStepQuotaExhausted(unittest.TestCase):
     """_step_quota_exhausted — 配额耗尽兜底"""
 
@@ -589,14 +593,13 @@ class TestStepQuotaExhausted(unittest.TestCase):
 # Step 5: _step_not_found
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestStepNotFound(unittest.TestCase):
     """_step_not_found — 未找到兜底"""
 
     def test_returns_error_result(self):
         """返回正确的错误结构和消息"""
-        result = SingleQueryHandler._step_not_found(
-            "GB/T 19001-2020", tried=["site_a", "site_b"]
-        )
+        result = SingleQueryHandler._step_not_found("GB/T 19001-2020", tried=["site_a", "site_b"])
 
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.standard_number, "GB/T 19001-2020")
@@ -606,16 +609,12 @@ class TestStepNotFound(unittest.TestCase):
 
     def test_tried_list_not_affecting_result(self):
         """tried 列表不影响返回的 QueryResult 结构"""
-        result = SingleQueryHandler._step_not_found(
-            "ISO 9001-2015", tried=[]
-        )
+        result = SingleQueryHandler._step_not_found("ISO 9001-2015", tried=[])
         self.assertEqual(result.standard_number, "ISO 9001-2015")
         self.assertFalse(result.is_found())
 
     def test_tried_with_many_sites(self):
         """tried 列表包含多个站点时仍正常返回"""
-        result = SingleQueryHandler._step_not_found(
-            "GB/T 1.1-2020", tried=["ahbz", "std_gov", "njbz365", "hbba"]
-        )
+        result = SingleQueryHandler._step_not_found("GB/T 1.1-2020", tried=["ahbz", "std_gov", "njbz365", "hbba"])
         self.assertEqual(result.standard_number, "GB/T 1.1-2020")
         self.assertEqual(result.error_message, "所有来源均未找到该标准")

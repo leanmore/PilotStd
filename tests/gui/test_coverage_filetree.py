@@ -1,6 +1,8 @@
 """覆盖 _file_tree_ops.py 未覆盖行。"""
+
 import os
 from unittest.mock import MagicMock, patch
+
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtWidgets import QTreeWidgetItem
 

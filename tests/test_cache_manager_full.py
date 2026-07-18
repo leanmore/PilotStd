@@ -5,14 +5,14 @@
 """
 
 import unittest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from pilotstd.core.cache_manager import CacheManager, CacheState, DataSource
-
 
 # ═══════════════════════════════════════════════════════════
 # 辅助函数
 # ═══════════════════════════════════════════════════════════
+
 
 def _make_mock_db(tables_exist=True, config_values=None):
     """创建 mock_db，可配置 fetchall/fetchone 返回值。
@@ -51,6 +51,7 @@ def _make_mock_db(tables_exist=True, config_values=None):
 # DataSource 枚举
 # ═══════════════════════════════════════════════════════════
 
+
 class TestDataSourceEnum(unittest.TestCase):
     """DataSource 枚举值验证。"""
 
@@ -69,6 +70,7 @@ class TestDataSourceEnum(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════
 # CacheState 枚举
 # ═══════════════════════════════════════════════════════════
+
 
 class TestCacheStateEnum(unittest.TestCase):
     """CacheState 枚举值验证。"""
@@ -89,6 +91,7 @@ class TestCacheStateEnum(unittest.TestCase):
 # __init__ + _ensure_cache_tables
 # ═══════════════════════════════════════════════════════════
 
+
 class TestInitEnsureTables(unittest.TestCase):
     """测试 __init__ 和 _ensure_cache_tables。"""
 
@@ -99,8 +102,7 @@ class TestInitEnsureTables(unittest.TestCase):
 
         execute_sqls = [str(c[0][0]) for c in mock_db.execute.call_args_list if c[0]]
         create_calls = [s for s in execute_sqls if "CREATE TABLE" in s.upper() and "IF NOT EXISTS" in s.upper()]
-        self.assertEqual(len(create_calls), 0,
-                         "两表已存在时不应有 CREATE TABLE 调用")
+        self.assertEqual(len(create_calls), 0, "两表已存在时不应有 CREATE TABLE 调用")
 
     def test_both_tables_missing_creates_both(self):
         """两表都不存在 → 创建两表并插入默认数据。"""
@@ -108,10 +110,8 @@ class TestInitEnsureTables(unittest.TestCase):
         CacheManager(mock_db)
 
         execute_sqls = [str(c[0][0]) for c in mock_db.execute.call_args_list if c[0]]
-        self.assertTrue(any("cache_config" in s for s in execute_sqls),
-                        "应创建 cache_config 表")
-        self.assertTrue(any("data_source_versions" in s for s in execute_sqls),
-                        "应创建 data_source_versions 表")
+        self.assertTrue(any("cache_config" in s for s in execute_sqls), "应创建 cache_config 表")
+        self.assertTrue(any("data_source_versions" in s for s in execute_sqls), "应创建 data_source_versions 表")
 
         insert_count = sum(1 for s in execute_sqls if "INSERT" in s.upper())
         # 3 条 cache_config 默认值 + 3 条 data_source_versions 默认值 = 6
@@ -123,10 +123,8 @@ class TestInitEnsureTables(unittest.TestCase):
         CacheManager(mock_db)
 
         execute_sqls = [str(c[0][0]) for c in mock_db.execute.call_args_list if c[0]]
-        self.assertTrue(any("data_source_versions" in s for s in execute_sqls),
-                        "应创建 data_source_versions 表")
-        create_cc = [s for s in execute_sqls
-                     if "CREATE TABLE" in s.upper() and "cache_config" in s]
+        self.assertTrue(any("data_source_versions" in s for s in execute_sqls), "应创建 data_source_versions 表")
+        create_cc = [s for s in execute_sqls if "CREATE TABLE" in s.upper() and "cache_config" in s]
         self.assertEqual(len(create_cc), 0, "cache_config 已存在不应重复创建")
 
     def test_only_data_source_versions_exists(self):
@@ -135,19 +133,20 @@ class TestInitEnsureTables(unittest.TestCase):
         CacheManager(mock_db)
 
         execute_sqls = [str(c[0][0]) for c in mock_db.execute.call_args_list if c[0]]
-        self.assertTrue(any("cache_config" in s for s in execute_sqls),
-                        "应创建 cache_config 表")
-        create_dsv = [s for s in execute_sqls
-                      if "CREATE TABLE" in s.upper() and "data_source_versions" in s]
+        self.assertTrue(any("cache_config" in s for s in execute_sqls), "应创建 cache_config 表")
+        create_dsv = [s for s in execute_sqls if "CREATE TABLE" in s.upper() and "data_source_versions" in s]
         self.assertEqual(len(create_dsv), 0, "data_source_versions 已存在不应重复创建")
 
     def test_default_config_values(self):
         """配置表中无记录 → 使用默认值。"""
-        mock_db = _make_mock_db(tables_exist=True, config_values={
-            "max_size_mb": None,
-            "auto_cleanup": None,
-            "cleanup_ratio": None,
-        })
+        mock_db = _make_mock_db(
+            tables_exist=True,
+            config_values={
+                "max_size_mb": None,
+                "auto_cleanup": None,
+                "cleanup_ratio": None,
+            },
+        )
         cm = CacheManager(mock_db)
         self.assertEqual(cm._max_mb, 50)
         self.assertEqual(cm._auto_cleanup, True)
@@ -155,11 +154,14 @@ class TestInitEnsureTables(unittest.TestCase):
 
     def test_config_from_db(self):
         """配置表中有记录 → 使用 DB 中的值。"""
-        mock_db = _make_mock_db(tables_exist=True, config_values={
-            "max_size_mb": {"config_value": "100"},
-            "auto_cleanup": {"config_value": "false"},
-            "cleanup_ratio": {"config_value": "0.25"},
-        })
+        mock_db = _make_mock_db(
+            tables_exist=True,
+            config_values={
+                "max_size_mb": {"config_value": "100"},
+                "auto_cleanup": {"config_value": "false"},
+                "cleanup_ratio": {"config_value": "0.25"},
+            },
+        )
         cm = CacheManager(mock_db)
         self.assertEqual(cm._max_mb, 100)
         self.assertEqual(cm._auto_cleanup, False)
@@ -185,6 +187,7 @@ class TestInitEnsureTables(unittest.TestCase):
 # get()
 # ═══════════════════════════════════════════════════════════
 
+
 class TestGet(unittest.TestCase):
     """测试 get() 所有场景。"""
 
@@ -194,21 +197,24 @@ class TestGet(unittest.TestCase):
 
     def test_cache_miss_no_row(self):
         """查询行不存在 → 返回 None。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v1"},  # _get_source_version
-            None,               # SELECT * 无数据
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v1"},  # _get_source_version
+                None,  # SELECT * 无数据
+            ]
+        )
         result = self.cm.get("standard_info_cache", "standard_id", "GB/T 1.1", DataSource.FILE_INDEX)
         self.assertIsNone(result)
 
     def test_cache_hit(self):
         """版本匹配 → 返回完整 dict。"""
-        row = {"id": 1, "standard_id": "K1", "result_json": '{"t":"x"}',
-               "source_version": "v1", "data_state": "valid"}
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v1"},  # _get_source_version
-            row,                # SELECT *
-        ])
+        row = {"id": 1, "standard_id": "K1", "result_json": '{"t":"x"}', "source_version": "v1", "data_state": "valid"}
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v1"},  # _get_source_version
+                row,  # SELECT *
+            ]
+        )
         result = self.cm.get("standard_info_cache", "standard_id", "K1", DataSource.FILE_INDEX)
         self.assertIsNotNone(result)
         self.assertEqual(result["id"], 1)
@@ -216,53 +222,55 @@ class TestGet(unittest.TestCase):
 
     def test_version_expired_returns_none(self):
         """版本不匹配 → 标记 stale 并返回 None。"""
-        row = {"id": 1, "standard_id": "K1", "result_json": '{}',
-               "source_version": "v1", "data_state": "valid"}
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v2"},  # 新版本
-            row,                # 行中版本 v1
-        ])
+        row = {"id": 1, "standard_id": "K1", "result_json": "{}", "source_version": "v1", "data_state": "valid"}
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v2"},  # 新版本
+                row,  # 行中版本 v1
+            ]
+        )
         result = self.cm.get("standard_info_cache", "standard_id", "K1", DataSource.FILE_INDEX)
         self.assertIsNone(result)
 
         # 验证标记 stale 的 execute 调用
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])]
+        stale_calls = [c for c in self.mock_db.execute.call_args_list if "data_state='stale'" in str(c[0][0])]
         self.assertGreaterEqual(len(stale_calls), 1, "版本过期必须标记 stale")
 
     def test_updates_last_accessed_at(self):
         """每次命中都会更新 last_accessed_at。"""
-        row = {"id": 1, "standard_id": "K1", "result_json": '{}',
-               "source_version": "v1", "data_state": "valid"}
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v1"},
-            row,
-        ])
+        row = {"id": 1, "standard_id": "K1", "result_json": "{}", "source_version": "v1", "data_state": "valid"}
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v1"},
+                row,
+            ]
+        )
         self.cm.get("standard_info_cache", "standard_id", "K1", DataSource.FILE_INDEX)
 
-        access_calls = [c for c in self.mock_db.execute.call_args_list
-                        if "last_accessed_at" in str(c[0][0])]
+        access_calls = [c for c in self.mock_db.execute.call_args_list if "last_accessed_at" in str(c[0][0])]
         self.assertGreaterEqual(len(access_calls), 1, "必须更新 last_accessed_at")
 
     def test_get_with_announcement_source(self):
         """ANNOUNCEMENT 数据源也能正常读取。"""
-        row = {"id": 1, "announce_id": "A1", "result_json": '{}',
-               "source_version": "v1", "data_state": "valid"}
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v1"},
-            row,
-        ])
+        row = {"id": 1, "announce_id": "A1", "result_json": "{}", "source_version": "v1", "data_state": "valid"}
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v1"},
+                row,
+            ]
+        )
         result = self.cm.get("announcement_record", "announce_id", "A1", DataSource.ANNOUNCEMENT)
         self.assertIsNotNone(result)
 
     def test_get_with_validity_source(self):
         """VALIDITY 数据源也能正常读取。"""
-        row = {"id": 1, "standard_id": "K1", "result_json": '{}',
-               "source_version": "v1", "data_state": "valid"}
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"version": "v1"},
-            row,
-        ])
+        row = {"id": 1, "standard_id": "K1", "result_json": "{}", "source_version": "v1", "data_state": "valid"}
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"version": "v1"},
+                row,
+            ]
+        )
         result = self.cm.get("standard_validity", "standard_id", "K1", DataSource.VALIDITY)
         self.assertIsNotNone(result)
 
@@ -270,6 +278,7 @@ class TestGet(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════
 # set()
 # ═══════════════════════════════════════════════════════════
+
 
 class TestSet(unittest.TestCase):
     """测试 set()。"""
@@ -282,11 +291,9 @@ class TestSet(unittest.TestCase):
         """set 执行 INSERT OR REPLACE，包含版本和数据状态。"""
         self.mock_db.fetchone = MagicMock(return_value={"version": "v1"})
 
-        self.cm.set("standard_info_cache", "standard_id", "K1",
-                     {"title": "test"}, DataSource.FILE_INDEX)
+        self.cm.set("standard_info_cache", "standard_id", "K1", {"title": "test"}, DataSource.FILE_INDEX)
 
-        insert_calls = [c for c in self.mock_db.execute.call_args_list
-                        if "INSERT OR REPLACE" in str(c[0][0]).upper()]
+        insert_calls = [c for c in self.mock_db.execute.call_args_list if "INSERT OR REPLACE" in str(c[0][0]).upper()]
         self.assertGreaterEqual(len(insert_calls), 1, "应有 INSERT OR REPLACE")
         sql_str = str(insert_calls[0][0][0])
         # SQL 使用 VALUES (?, ?, ?, 'valid', ?) 格式，data_state 在列名中，
@@ -301,8 +308,7 @@ class TestSet(unittest.TestCase):
         self.cm.set_config("auto_cleanup", True)
 
         with patch.object(self.cm, "cleanup") as mock_cleanup:
-            self.cm.set("standard_info_cache", "standard_id", "K1",
-                         {"t": 1}, DataSource.FILE_INDEX)
+            self.cm.set("standard_info_cache", "standard_id", "K1", {"t": 1}, DataSource.FILE_INDEX)
             mock_cleanup.assert_called_once()
 
     def test_set_no_cleanup_when_disabled(self):
@@ -311,8 +317,7 @@ class TestSet(unittest.TestCase):
         self.cm.set_config("auto_cleanup", False)
 
         with patch.object(self.cm, "_check_and_cleanup") as mock_cc:
-            self.cm.set("standard_info_cache", "standard_id", "K1",
-                         {"t": 1}, DataSource.FILE_INDEX)
+            self.cm.set("standard_info_cache", "standard_id", "K1", {"t": 1}, DataSource.FILE_INDEX)
             mock_cc.assert_not_called()
 
     def test_set_check_and_cleanup_handles_exception(self):
@@ -322,13 +327,13 @@ class TestSet(unittest.TestCase):
 
         with patch.object(self.cm, "cleanup", side_effect=RuntimeError("boom")):
             # 不应抛出异常
-            self.cm.set("standard_info_cache", "standard_id", "K1",
-                         {"t": 1}, DataSource.FILE_INDEX)
+            self.cm.set("standard_info_cache", "standard_id", "K1", {"t": 1}, DataSource.FILE_INDEX)
 
 
 # ═══════════════════════════════════════════════════════════
 # invalidate_by_source
 # ═══════════════════════════════════════════════════════════
+
 
 class TestInvalidateBySource(unittest.TestCase):
     """测试 invalidate_by_source。"""
@@ -343,11 +348,12 @@ class TestInvalidateBySource(unittest.TestCase):
 
         self.cm.invalidate_by_source(DataSource.FILE_INDEX)
 
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])
-                       and "standard_info_cache" in str(c[0][0])]
-        self.assertGreaterEqual(len(stale_calls), 1,
-                                "应标记 standard_info_cache 为 stale")
+        stale_calls = [
+            c
+            for c in self.mock_db.execute.call_args_list
+            if "data_state='stale'" in str(c[0][0]) and "standard_info_cache" in str(c[0][0])
+        ]
+        self.assertGreaterEqual(len(stale_calls), 1, "应标记 standard_info_cache 为 stale")
 
     def test_invalidate_announcement(self):
         """ANNOUNCEMENT 失效 → 标记 announcement_record。"""
@@ -355,9 +361,11 @@ class TestInvalidateBySource(unittest.TestCase):
 
         self.cm.invalidate_by_source(DataSource.ANNOUNCEMENT)
 
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])
-                       and "announcement_record" in str(c[0][0])]
+        stale_calls = [
+            c
+            for c in self.mock_db.execute.call_args_list
+            if "data_state='stale'" in str(c[0][0]) and "announcement_record" in str(c[0][0])
+        ]
         self.assertGreaterEqual(len(stale_calls), 1)
 
     def test_invalidate_validity(self):
@@ -366,9 +374,11 @@ class TestInvalidateBySource(unittest.TestCase):
 
         self.cm.invalidate_by_source(DataSource.VALIDITY)
 
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])
-                       and "standard_validity" in str(c[0][0])]
+        stale_calls = [
+            c
+            for c in self.mock_db.execute.call_args_list
+            if "data_state='stale'" in str(c[0][0]) and "standard_validity" in str(c[0][0])
+        ]
         self.assertGreaterEqual(len(stale_calls), 1)
 
     def test_invalidate_bumps_version(self):
@@ -377,14 +387,14 @@ class TestInvalidateBySource(unittest.TestCase):
 
         self.cm.invalidate_by_source(DataSource.FILE_INDEX)
 
-        bump_calls = [c for c in self.mock_db.execute.call_args_list
-                      if "UPDATE data_source_versions" in str(c[0][0])]
+        bump_calls = [c for c in self.mock_db.execute.call_args_list if "UPDATE data_source_versions" in str(c[0][0])]
         self.assertGreaterEqual(len(bump_calls), 1, "应更新 data_source_versions")
 
 
 # ═══════════════════════════════════════════════════════════
 # mark_stale / mark_valid
 # ═══════════════════════════════════════════════════════════
+
 
 class TestMarkStaleValid(unittest.TestCase):
     """测试 mark_stale 和 mark_valid。"""
@@ -397,8 +407,7 @@ class TestMarkStaleValid(unittest.TestCase):
         """设置 data_state='stale'。"""
         self.cm.mark_stale("standard_info_cache", "standard_id", "K1")
 
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])]
+        stale_calls = [c for c in self.mock_db.execute.call_args_list if "data_state='stale'" in str(c[0][0])]
         self.assertGreaterEqual(len(stale_calls), 1)
 
     def test_mark_valid(self):
@@ -407,8 +416,7 @@ class TestMarkStaleValid(unittest.TestCase):
 
         self.cm.mark_valid("standard_info_cache", "standard_id", "K1", DataSource.FILE_INDEX)
 
-        valid_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='valid'" in str(c[0][0])]
+        valid_calls = [c for c in self.mock_db.execute.call_args_list if "data_state='valid'" in str(c[0][0])]
         self.assertGreaterEqual(len(valid_calls), 1)
 
     def test_mark_stale_multiple_tables(self):
@@ -417,8 +425,7 @@ class TestMarkStaleValid(unittest.TestCase):
         self.cm.mark_stale("announcement_record", "announce_id", "B")
         self.cm.mark_stale("standard_validity", "standard_id", "C")
 
-        stale_calls = [c for c in self.mock_db.execute.call_args_list
-                       if "data_state='stale'" in str(c[0][0])]
+        stale_calls = [c for c in self.mock_db.execute.call_args_list if "data_state='stale'" in str(c[0][0])]
         self.assertGreaterEqual(len(stale_calls), 3, "三次调用都应执行")
 
     def test_mark_valid_updates_version(self):
@@ -437,6 +444,7 @@ class TestMarkStaleValid(unittest.TestCase):
 # cleanup
 # ═══════════════════════════════════════════════════════════
 
+
 class TestCleanup(unittest.TestCase):
     """测试 cleanup 方法。"""
 
@@ -450,8 +458,7 @@ class TestCleanup(unittest.TestCase):
         with patch.object(self.cm, "get_total_size_mb", return_value=10.0):
             self.cm.cleanup(force=False)
         # 不应有任何 DELETE 调用
-        delete_calls = [c for c in self.mock_db.execute.call_args_list
-                        if "DELETE FROM" in str(c[0][0]).upper()]
+        delete_calls = [c for c in self.mock_db.execute.call_args_list if "DELETE FROM" in str(c[0][0]).upper()]
         self.assertEqual(len(delete_calls), 0, "低于阈值不应删除")
 
     def test_cleanup_force_always_runs(self):
@@ -474,15 +481,14 @@ class TestCleanup(unittest.TestCase):
             self.cm.cleanup(force=False)
 
         # 3 个受管理表 x 2 种状态 = 6 次 DELETE
-        delete_calls = [c for c in self.mock_db.execute.call_args_list
-                        if "DELETE FROM" in str(c[0][0]).upper()]
-        self.assertEqual(len(delete_calls), 6,
-                         "3 tables x 2 states = 6 DELETE calls")
+        delete_calls = [c for c in self.mock_db.execute.call_args_list if "DELETE FROM" in str(c[0][0]).upper()]
+        self.assertEqual(len(delete_calls), 6, "3 tables x 2 states = 6 DELETE calls")
 
 
 # ═══════════════════════════════════════════════════════════
 # _delete_oldest
 # ═══════════════════════════════════════════════════════════
+
 
 class TestDeleteOldest(unittest.TestCase):
     """测试 _delete_oldest。"""
@@ -545,6 +551,7 @@ class TestDeleteOldest(unittest.TestCase):
 # get_stats
 # ═══════════════════════════════════════════════════════════
 
+
 class TestGetStats(unittest.TestCase):
     """测试 get_stats。"""
 
@@ -554,10 +561,12 @@ class TestGetStats(unittest.TestCase):
 
     def test_structure(self):
         """返回结构完整，包含所有必要字段。"""
-        self.mock_db.fetchall = MagicMock(return_value=[
-            {"data_state": "valid", "cnt": 10},
-            {"data_state": "stale", "cnt": 3},
-        ])
+        self.mock_db.fetchall = MagicMock(
+            return_value=[
+                {"data_state": "valid", "cnt": 10},
+                {"data_state": "stale", "cnt": 3},
+            ]
+        )
 
         with patch.object(self.cm, "get_total_size_mb", return_value=2.5):
             stats = self.cm.get_stats()
@@ -597,6 +606,7 @@ class TestGetStats(unittest.TestCase):
 # get_total_size_mb（三条降级路径）
 # ═══════════════════════════════════════════════════════════
 
+
 class TestGetTotalSizeMb(unittest.TestCase):
     """测试 get_total_size_mb 三条降级路径。"""
 
@@ -614,13 +624,15 @@ class TestGetTotalSizeMb(unittest.TestCase):
 
     def test_dbstat_none_total_bytes_falls_back(self):
         """dbstat 返回 total_bytes=None → 降级到估算。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            {"total_bytes": None},       # dbstat
-            Exception("pragma failed"),  # pragma
-            {"cnt": 50},                 # standard_info_cache
-            {"cnt": 30},                 # standard_validity
-            {"cnt": 20},                 # announcement_record
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                {"total_bytes": None},  # dbstat
+                Exception("pragma failed"),  # pragma
+                {"cnt": 50},  # standard_info_cache
+                {"cnt": 30},  # standard_validity
+                {"cnt": 20},  # announcement_record
+            ]
+        )
         result = self.cm.get_total_size_mb()
         expected = 100 * 500 / (1024 * 1024)  # ≈ 0.0477
         self.assertAlmostEqual(result, expected, places=3)
@@ -629,13 +641,15 @@ class TestGetTotalSizeMb(unittest.TestCase):
 
     def test_pragma_path(self):
         """dbstat 异常 → 降级到 pragma 估算。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat not available"),  # dbstat 异常
-            {"db_bytes": 5242880},               # pragma: 5 MB
-            {"cnt": 100},                        # table 1
-            {"cnt": 0},                          # table 2
-            {"cnt": 0},                          # table 3
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat not available"),  # dbstat 异常
+                {"db_bytes": 5242880},  # pragma: 5 MB
+                {"cnt": 100},  # table 1
+                {"cnt": 0},  # table 2
+                {"cnt": 0},  # table 3
+            ]
+        )
         self.mock_db.fetchall = MagicMock(return_value=[{"cnt": 500}])
 
         result = self.cm.get_total_size_mb()
@@ -644,26 +658,30 @@ class TestGetTotalSizeMb(unittest.TestCase):
 
     def test_pragma_zero_rows(self):
         """pragma 路径，缓存表行数为 0 → 按 30% 估算。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat not available"),
-            {"db_bytes": 10485760},  # 10 MB
-            {"cnt": 0},
-            {"cnt": 0},
-            {"cnt": 0},
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat not available"),
+                {"db_bytes": 10485760},  # 10 MB
+                {"cnt": 0},
+                {"cnt": 0},
+                {"cnt": 0},
+            ]
+        )
         result = self.cm.get_total_size_mb()
         # 0 rows → 10 * 0.3 = 3.0
         self.assertAlmostEqual(result, 3.0, places=1)
 
     def test_pragma_none_db_bytes_falls_back(self):
         """pragma 返回 db_bytes=None → 降级到行数估算。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat not available"),
-            {"db_bytes": None},       # pragma: None
-            {"cnt": 10},
-            {"cnt": 20},
-            {"cnt": 30},
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat not available"),
+                {"db_bytes": None},  # pragma: None
+                {"cnt": 10},
+                {"cnt": 20},
+                {"cnt": 30},
+            ]
+        )
         result = self.cm.get_total_size_mb()
         expected = 60 * 500 / (1024 * 1024)
         self.assertAlmostEqual(result, expected, places=3)
@@ -671,13 +689,15 @@ class TestGetTotalSizeMb(unittest.TestCase):
     def test_pragma_exception_during_row_counts(self):
         """pragma 路径中，fetchall for sqlite_master 异常 → 降级。
         异常导致所有 fetchone side_effect 耗尽后方案3也返回 0。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat not available"),
-            {"db_bytes": 10485760},
-            {"cnt": 50},
-            {"cnt": 0},
-            {"cnt": 0},
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat not available"),
+                {"db_bytes": 10485760},
+                {"cnt": 50},
+                {"cnt": 0},
+                {"cnt": 0},
+            ]
+        )
         self.mock_db.fetchall = MagicMock(side_effect=Exception("master fail"))
 
         result = self.cm.get_total_size_mb()
@@ -688,39 +708,45 @@ class TestGetTotalSizeMb(unittest.TestCase):
 
     def test_fallback_path(self):
         """dbstat 和 pragma 都失败 → 行数 * 500 字节估算。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat failed"),
-            Exception("pragma failed"),
-            {"cnt": 100},
-            {"cnt": 50},
-            {"cnt": 50},
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat failed"),
+                Exception("pragma failed"),
+                {"cnt": 100},
+                {"cnt": 50},
+                {"cnt": 50},
+            ]
+        )
         result = self.cm.get_total_size_mb()
         expected = 200 * 500 / (1024 * 1024)
         self.assertAlmostEqual(result, expected, places=3)
 
     def test_fallback_individual_table_exception(self):
         """fallback 中单个表 COUNT 异常不影响其他表。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat failed"),
-            Exception("pragma failed"),
-            {"cnt": 100},                 # ok
-            Exception("table missing"),   # 异常，跳过
-            {"cnt": 50},                  # ok
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat failed"),
+                Exception("pragma failed"),
+                {"cnt": 100},  # ok
+                Exception("table missing"),  # 异常，跳过
+                {"cnt": 50},  # ok
+            ]
+        )
         result = self.cm.get_total_size_mb()
         expected = 150 * 500 / (1024 * 1024)
         self.assertAlmostEqual(result, expected, places=3)
 
     def test_fallback_all_tables_exception(self):
         """fallback 中所有表都异常 → 返回 0。"""
-        self.mock_db.fetchone = MagicMock(side_effect=[
-            Exception("dbstat failed"),
-            Exception("pragma failed"),
-            Exception("table1 missing"),
-            Exception("table2 missing"),
-            Exception("table3 missing"),
-        ])
+        self.mock_db.fetchone = MagicMock(
+            side_effect=[
+                Exception("dbstat failed"),
+                Exception("pragma failed"),
+                Exception("table1 missing"),
+                Exception("table2 missing"),
+                Exception("table3 missing"),
+            ]
+        )
         result = self.cm.get_total_size_mb()
         self.assertEqual(result, 0.0)
 
@@ -728,6 +754,7 @@ class TestGetTotalSizeMb(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════
 # get_config / set_config
 # ═══════════════════════════════════════════════════════════
+
 
 class TestGetSetConfig(unittest.TestCase):
     """测试 get_config 和 set_config。"""
@@ -802,6 +829,7 @@ class TestGetSetConfig(unittest.TestCase):
 # _get_source_version / _bump_version
 # ═══════════════════════════════════════════════════════════
 
+
 class TestSourceVersion(unittest.TestCase):
     """测试版本管理内部方法。"""
 
@@ -835,8 +863,7 @@ class TestSourceVersion(unittest.TestCase):
 
         self.cm._bump_version(DataSource.ANNOUNCEMENT)
 
-        update_calls = [c for c in self.mock_db.execute.call_args_list
-                        if "UPDATE data_source_versions" in str(c[0][0])]
+        update_calls = [c for c in self.mock_db.execute.call_args_list if "UPDATE data_source_versions" in str(c[0][0])]
         self.assertGreaterEqual(len(update_calls), 1)
 
     def test_bump_version_all_sources(self):
@@ -854,6 +881,7 @@ class TestSourceVersion(unittest.TestCase):
 # ═══════════════════════════════════════════════════════════
 # _load_config_int / _load_config_bool / _load_config_float
 # ═══════════════════════════════════════════════════════════
+
 
 class TestLoadConfig(unittest.TestCase):
     """测试 _load_config_* 三个内部方法。"""
@@ -900,7 +928,7 @@ class TestLoadConfig(unittest.TestCase):
         self.assertIs(cm._load_config_bool("auto_cleanup", True), False)
 
     def test_load_bool_non_true_value(self):
-        """"true" 以外的值都视为 False。"""
+        """ "true" 以外的值都视为 False。"""
         cm, mock_db = self._make_fresh_cm()
         mock_db.fetchone = MagicMock(return_value={"config_value": "yes"})
         self.assertIs(cm._load_config_bool("auto_cleanup", True), False)
@@ -949,6 +977,7 @@ class TestLoadConfig(unittest.TestCase):
 # 集成场景
 # ═══════════════════════════════════════════════════════════
 
+
 class TestIntegrationScenarios(unittest.TestCase):
     """端到端生命周期：set → get → invalidate → get → mark_valid。"""
 
@@ -964,16 +993,14 @@ class TestIntegrationScenarios(unittest.TestCase):
         with patch.object(cm, "get_total_size_mb", return_value=10.0):
             cm.cleanup(force=False)
         # 确认没有 DELETE
-        delete_calls = [c for c in mock_db.execute.call_args_list
-                        if "DELETE FROM" in str(c[0][0]).upper()]
+        delete_calls = [c for c in mock_db.execute.call_args_list if "DELETE FROM" in str(c[0][0]).upper()]
         self.assertEqual(len(delete_calls), 0)
 
         # 强制清理
         mock_db.execute.reset_mock()
         with patch.object(cm, "get_total_size_mb", return_value=1.0):
             cm.cleanup(force=True)
-        delete_calls = [c for c in mock_db.execute.call_args_list
-                        if "DELETE FROM" in str(c[0][0]).upper()]
+        delete_calls = [c for c in mock_db.execute.call_args_list if "DELETE FROM" in str(c[0][0]).upper()]
         self.assertGreater(len(delete_calls), 0)
 
 

@@ -7,10 +7,8 @@ import shutil
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import pytest
-from PyQt6.QtCore import Qt, QByteArray
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
-
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox
 
 # ════════════════════════════════════════════════════════════════
 # 1. MainWindow 初始化与属性
@@ -303,6 +301,7 @@ def test_on_settings(window, qtbot):
 def test_try_check_update_throttle(window, qtbot):
     """更新检查限流：24h 内重复检查显示提示。"""
     import time
+
     window._config.set("appearance.last_update_check", time.time())
     with patch.object(QMessageBox, "information", return_value=QMessageBox.StandardButton.Ok) as mock_info:
         result = window._try_check_update_throttle("v1.0")
@@ -313,6 +312,7 @@ def test_try_check_update_throttle(window, qtbot):
 def test_try_check_update_throttle_expired(window, qtbot):
     """更新检查限流：超过 24h 允许检查。"""
     import time
+
     window._config.set("appearance.last_update_check", time.time() - 100000)
     result = window._try_check_update_throttle("v1.0")
     assert result is False
@@ -568,8 +568,9 @@ def test_tray_icon(window, qtbot):
 
 def test_pick_folder(window, qtbot):
     """_pick_folder 调用 QFileDialog。"""
-    with patch("pilotstd.ui.main_window.parts._file_dialog_ops.QFileDialog.getExistingDirectory",
-               return_value="D:/selected") as mock_fd:
+    with patch(
+        "pilotstd.ui.main_window.parts._file_dialog_ops.QFileDialog.getExistingDirectory", return_value="D:/selected"
+    ) as mock_fd:
         result = window._pick_folder("选择文件夹", "D:/")
         assert result == "D:/selected"
         mock_fd.assert_called_once()
@@ -597,9 +598,10 @@ def test_collect_folder_tree(window, qtbot):
 def test_on_export_file_list(window, test_data_dir, qtbot):
     """_on_export_file_list 弹出导出选项对话框。"""
     window._menu_selected_path = test_data_dir
-    with patch("pilotstd.ui.main_window.parts._export_ops.ExportFileListDialog") as mock_dlg, \
-         patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName",
-               return_value=("", "")):
+    with (
+        patch("pilotstd.ui.main_window.parts._export_ops.ExportFileListDialog") as mock_dlg,
+        patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName", return_value=("", "")),
+    ):
         mock_instance = MagicMock()
         mock_instance.exec.return_value = QMessageBox.DialogCode.Accepted
         mock_instance.include_path = False

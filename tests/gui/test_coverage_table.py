@@ -9,7 +9,7 @@ from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QMenu, QMessageBox
 
-from pilotstd.ui.table_constants import TOGGLEABLE_COLS, WORK_COLUMNS
+from pilotstd.ui.table_constants import TOGGLEABLE_COLS
 from pilotstd.ui.workers._common import RowUpdate
 
 
@@ -60,8 +60,7 @@ def test_on_save_result_with_hidden_cols(window):
     window.work_table.setColumnHidden(5, True)
     tmp = tempfile.mktemp(suffix=".csv")
     try:
-        with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName",
-                   return_value=(tmp, "")):
+        with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName", return_value=(tmp, "")):
             window._on_save_result("csv")
         assert os.path.exists(tmp)
     finally:
@@ -75,10 +74,12 @@ def test_on_save_result_user_rejects_hidden(window):
     window.work_table.setColumnHidden(5, True)
     tmp = tempfile.mktemp(suffix=".csv")
     try:
-        with patch("pilotstd.ui.main_window.parts._table_ops.QMessageBox.question",
-                   return_value=QMessageBox.StandardButton.No):
-            with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName",
-                       return_value=(tmp, "")) as mock_save:
+        with patch(
+            "pilotstd.ui.main_window.parts._table_ops.QMessageBox.question", return_value=QMessageBox.StandardButton.No
+        ):
+            with patch(
+                "pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName", return_value=(tmp, "")
+            ) as mock_save:
                 window._on_save_result("csv")
                 mock_save.assert_not_called()
     finally:
@@ -89,8 +90,7 @@ def test_on_save_result_user_rejects_hidden(window):
 def test_on_save_result_no_path(window):
     window._clear_table()
     _fill_row(window)
-    with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName",
-               return_value=("", "")):
+    with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName", return_value=("", "")):
         window._on_save_result("csv")
 
 
@@ -187,8 +187,7 @@ def test_offline_view_no_file_index(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     window._mgr.get_file_index_full_info = MagicMock()
-    with patch.object(type(window._mgr), "file_index",
-                      new_callable=lambda: property(lambda s: None)):
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: None)):
         window._on_offline_view()
 
 
@@ -206,8 +205,7 @@ def test_offline_view_no_results(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     fi_mock = MagicMock()
-    with patch.object(type(window._mgr), "file_index",
-                      new_callable=lambda: property(lambda s: fi_mock)):
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock)):
         window._mgr.get_file_index_full_info = MagicMock(return_value=[])
         window._on_offline_view()
 
@@ -217,13 +215,20 @@ def test_offline_view_with_results(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     fi_mock = MagicMock()
-    with patch.object(type(window._mgr), "file_index",
-                      new_callable=lambda: property(lambda s: fi_mock)):
-        window._mgr.get_file_index_full_info = MagicMock(return_value=[{
-            "file_path": "/a/b.pdf", "std_name": "test", "found_name": "found",
-            "effect_status": "current", "is_adopted": True,
-            "confidence": 0.9, "cached_at": "2024-01-01",
-        }])
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock)):
+        window._mgr.get_file_index_full_info = MagicMock(
+            return_value=[
+                {
+                    "file_path": "/a/b.pdf",
+                    "std_name": "test",
+                    "found_name": "found",
+                    "effect_status": "current",
+                    "is_adopted": True,
+                    "confidence": 0.9,
+                    "cached_at": "2024-01-01",
+                }
+            ]
+        )
         window._on_offline_view()
 
 
@@ -257,8 +262,7 @@ def test_add_row_adopted_coloring(window):
     parsed.found_name = ""
     parsed.effect_status = ""
     parsed.is_adopted = True
-    row_upd = RowUpdate(seq=1, parsed=parsed, work_status="已扫描",
-                        effect_status="", is_adopted=True, total=1)
+    row_upd = RowUpdate(seq=1, parsed=parsed, work_status="已扫描", effect_status="", is_adopted=True, total=1)
     window._add_table_row(row_upd)
     # 第 10 列（index 9）应为"采标"且颜色为 darkMagenta
     item = window.work_table.item(0, 9)

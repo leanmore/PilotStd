@@ -70,9 +70,6 @@ class TestWorkersModule:
     def test_workers_package_all_exports(self):
         """workers/__init__.py 的 __all__ 包含所有预期导出。"""
         from pilotstd.ui.workers import __all__ as pkg_all
-        from pilotstd.ui.workers import AnnounceWorker, ArchiveWorker, AutoWorker
-        from pilotstd.ui.workers import DownloadWorker, LogHandler, NormalizeWorker
-        from pilotstd.ui.workers import QueryWorker, RowUpdate, ScanWorker, _pct
 
         for name in self.EXPECTED_ALL:
             assert name in pkg_all, f"workers/__init__.py __all__ 缺少 {name}"
@@ -82,8 +79,9 @@ class TestWorkersModule:
         from pilotstd.ui import workers as wm
         from pilotstd.ui.workers import __all__ as pkg_all
 
-        assert set(wm.__all__) == set(pkg_all), \
+        assert set(wm.__all__) == set(pkg_all), (
             f"workers.py 和 workers/__init__.py 的 __all__ 不一致:\n  只在前者: {set(wm.__all__) - set(pkg_all)}\n  只在后者: {set(pkg_all) - set(wm.__all__)}"
+        )
 
 
 # ============================================================================
@@ -126,7 +124,6 @@ class TestShouldLogProgress:
 
     def test_should_log_true(self):
         """距上次日志超过间隔时返回 True。"""
-        import time
         from pilotstd.ui.workers._common import _should_log_progress
 
         result = _should_log_progress(0.0, interval=0.0)
@@ -135,6 +132,7 @@ class TestShouldLogProgress:
     def test_should_log_false(self):
         """距上次日志未超过间隔时返回 False。"""
         import time
+
         from pilotstd.ui.workers._common import _should_log_progress
 
         now = time.monotonic()
@@ -148,6 +146,7 @@ class TestLogProgress:
     def test_log_progress_calls_info(self):
         """_log_progress 正确调用 logger.info，传入格式化参数。"""
         import time
+
         from pilotstd.ui.workers._common import _log_progress
 
         mock_logger = MagicMock()
@@ -163,6 +162,7 @@ class TestLogProgress:
     def test_log_progress_zero_total(self):
         """total 为 0 时 pct_val 计算结果为 0。"""
         import time
+
         from pilotstd.ui.workers._common import _log_progress
 
         mock_logger = MagicMock()
@@ -180,8 +180,8 @@ class TestRowUpdateDefaults:
 
     def test_row_update_all_defaults(self):
         """RowUpdate 创建时所有默认值字段生效。"""
-        from pilotstd.ui.workers._common import RowUpdate
         from pilotstd.models import ParsedStdInfo
+        from pilotstd.ui.workers._common import RowUpdate
 
         parsed = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T", number=1, year=2024)
         row = RowUpdate(seq=1, parsed=parsed)
@@ -200,8 +200,8 @@ class TestRowUpdateDefaults:
 
     def test_row_update_explicit_values(self):
         """RowUpdate 显式传入字段值覆盖默认值。"""
-        from pilotstd.ui.workers._common import RowUpdate
         from pilotstd.models import ParsedStdInfo
+        from pilotstd.ui.workers._common import RowUpdate
 
         parsed = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB/T", number=1, year=2024)
         row = RowUpdate(
@@ -233,8 +233,16 @@ class TestRowUpdateDefaults:
 
         field_names = {f.name for f in fields(RowUpdate)}
         expected = {
-            "seq", "parsed", "work_status", "effect_status", "implement_date",
-            "std_name_override", "responsible_dept", "publish_date", "is_adopted", "total",
+            "seq",
+            "parsed",
+            "work_status",
+            "effect_status",
+            "implement_date",
+            "std_name_override",
+            "responsible_dept",
+            "publish_date",
+            "is_adopted",
+            "total",
         }
         assert field_names == expected
 
@@ -350,8 +358,8 @@ class TestArchiveWorker:
 
     def test_target_path_returns_str(self, mock_mgr):
         """target_path 静态方法返回有效路径字符串。"""
-        from pilotstd.ui.workers.archive import ArchiveWorker
         from pilotstd.models import ParsedStdInfo
+        from pilotstd.ui.workers.archive import ArchiveWorker
 
         parsed = ParsedStdInfo(
             raw_filename="test.pdf",
@@ -368,8 +376,8 @@ class TestArchiveWorker:
 
     def test_target_path_with_effect_status_expired(self, mock_mgr):
         """废止标准的 target_path 包含'过期作废'子目录。"""
-        from pilotstd.ui.workers.archive import ArchiveWorker
         from pilotstd.models import ParsedStdInfo
+        from pilotstd.ui.workers.archive import ArchiveWorker
 
         parsed = ParsedStdInfo(
             raw_filename="test.pdf",
@@ -384,8 +392,8 @@ class TestArchiveWorker:
 
     def test_instance_target_path_delegates(self, mock_mgr):
         """实例方法 _target_path 委托到静态方法。"""
-        from pilotstd.ui.workers.archive import ArchiveWorker
         from pilotstd.models import ParsedStdInfo
+        from pilotstd.ui.workers.archive import ArchiveWorker
 
         parsed = ParsedStdInfo(
             raw_filename="test.pdf",
@@ -424,11 +432,16 @@ class TestAutoWorker:
 
         worker = AutoWorker(mgr=mock_mgr, root_path="/tmp/scan")
         expected_signals = [
-            "scan_batch", "scan_progress",
-            "query_progress", "query_result",
-            "download_progress", "download_result",
-            "archive_result", "stage_changed",
-            "finished_signal", "error",
+            "scan_batch",
+            "scan_progress",
+            "query_progress",
+            "query_result",
+            "download_progress",
+            "download_result",
+            "archive_result",
+            "stage_changed",
+            "finished_signal",
+            "error",
         ]
         for sig_name in expected_signals:
             assert hasattr(worker, sig_name), f"AutoWorker 缺少信号 {sig_name}"
@@ -706,13 +719,11 @@ class TestUpdateDownloadWorker:
         worker.progress_msg.connect(lambda msg: messages.append(msg))
 
         # Mock 内部依赖以阻止真实网络和文件操作
-        with patch(
-            "pilotstd.platform.updater.download_update", return_value=True
-        ) as mock_dl, patch(
-            "pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"
-        ) as mock_sha, patch(
-            "pilotstd.platform.updater.generate_update_script", return_value="/tmp/update.bat"
-        ) as mock_script:
+        with (
+            patch("pilotstd.platform.updater.download_update", return_value=True) as mock_dl,
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123") as mock_sha,
+            patch("pilotstd.platform.updater.generate_update_script", return_value="/tmp/update.bat") as mock_script,
+        ):
             worker.run()
 
             # 第一个进度消息应该是"正在下载 ..."
@@ -728,10 +739,9 @@ class TestUpdateDownloadWorker:
 
         worker.download_failed.connect(lambda msg: failures.append(msg))
 
-        with patch(
-            "pilotstd.platform.updater.download_update", return_value=False
-        ), patch(
-            "pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"
+        with (
+            patch("pilotstd.platform.updater.download_update", return_value=False),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
         ):
             worker.run()
             assert len(failures) == 1
@@ -746,10 +756,9 @@ class TestUpdateDownloadWorker:
 
         worker.download_failed.connect(lambda msg: failures.append(msg))
 
-        with patch(
-            "pilotstd.platform.updater.download_update", side_effect=Exception("网络错误")
-        ), patch(
-            "pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"
+        with (
+            patch("pilotstd.platform.updater.download_update", side_effect=Exception("网络错误")),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
         ):
             worker.run()
             assert len(failures) == 1
@@ -764,14 +773,11 @@ class TestUpdateDownloadWorker:
 
         worker.download_ready.connect(lambda path: ready_paths.append(path))
 
-        with patch(
-            "pilotstd.platform.updater.download_update", return_value=True
-        ), patch(
-            "pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"
-        ), patch(
-            "pilotstd.platform.updater.generate_update_script", return_value=str(tmp_path / "update.bat")
-        ), patch(
-            "os.access", return_value=True
+        with (
+            patch("pilotstd.platform.updater.download_update", return_value=True),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
+            patch("pilotstd.platform.updater.generate_update_script", return_value=str(tmp_path / "update.bat")),
+            patch("os.access", return_value=True),
         ):
             worker.run()
             assert len(ready_paths) == 1
@@ -785,12 +791,10 @@ class TestUpdateDownloadWorker:
 
         worker.download_failed.connect(lambda msg: failures.append(msg))
 
-        with patch(
-            "pilotstd.platform.updater.download_update", return_value=True
-        ), patch(
-            "pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"
-        ), patch(
-            "os.access", return_value=False
+        with (
+            patch("pilotstd.platform.updater.download_update", return_value=True),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
+            patch("os.access", return_value=False),
         ):
             worker.run()
             assert len(failures) == 1

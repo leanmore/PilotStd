@@ -4,9 +4,7 @@
 # 在 pytest-qt 环境下 qtbot.addWidget 会导致 session cleanup 挂起，
 # 因此本测试使用 qapp fixture 而非 qtbot，手动管理控件生命周期。
 
-import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMessageBox
 
 
 class TestWelcomeDialog:

@@ -1,6 +1,8 @@
 """覆盖 _export_ops.py 未覆盖行。所有对话框 exec() 均 mock。"""
+
 import os
 from unittest.mock import MagicMock, patch
+
 from PyQt6.QtWidgets import QDialog
 
 
@@ -8,6 +10,7 @@ class TestExportFileList:
     def test_export_file_list_no_selection(self, window, monkeypatch):
         monkeypatch.setattr(window, "_get_selected_path", lambda: "")
         from pilotstd.ui.dialogs import ExportFileListDialog
+
         with patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Rejected):
             window._on_export_file_list()
 
@@ -19,8 +22,11 @@ class TestExportFileList:
         save_path = str(tmp_path / "out.txt")
         monkeypatch.setattr(window, "_get_selected_path", lambda: str(sub))
         from pilotstd.ui.dialogs import ExportFileListDialog
-        with patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted), \
-             patch("PyQt6.QtWidgets.QFileDialog.getSaveFileName", return_value=(save_path, "")):
+
+        with (
+            patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted),
+            patch("PyQt6.QtWidgets.QFileDialog.getSaveFileName", return_value=(save_path, "")),
+        ):
             window._on_export_file_list()
         assert os.path.exists(save_path)
 
@@ -38,6 +44,7 @@ class TestExportFolderTree:
 
     def test_collect_folder_tree_max_depth(self, window):
         from pilotstd.ui.main_window.parts import _export_ops
+
         lines: list = []
         with patch.object(_export_ops, "_MAX_FOLDER_DEPTH", 2):
             window._collect_folder_tree("/", lines, prefix="", depth=3)

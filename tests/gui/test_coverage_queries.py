@@ -7,8 +7,6 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
-
 
 # ═══════════════════════════════════════════════════════════
 # _on_query_result_ready 覆盖 25-51
@@ -177,9 +175,7 @@ def test_on_pending_query_cancel_file_dialog(window, qtbot):
     """用户取消文件选择对话框时提前返回。"""
     window._mgr_ready = True
     window._parsed_results = []
-    with patch(
-        "pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName", return_value=("", "")
-    ):
+    with patch("pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName", return_value=("", "")):
         window._do_pending_query()
     # 不抛异常
 
@@ -201,9 +197,7 @@ def test_on_pending_query_csv_no_standards(window, qtbot):
             w = csv.writer(f)
             w.writerow(["标准号", "标准名称"])
 
-        with patch(
-            "pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName", return_value=(tmp, "")
-        ):
+        with patch("pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName", return_value=(tmp, "")):
             with patch("pilotstd.ui.main_window.parts._query_ops.QMessageBox.warning") as mock_warn:
                 window._do_pending_query()
                 mock_warn.assert_called_once()
@@ -245,9 +239,7 @@ def test_parse_pending_csv_with_invalid_std(window, qtbot):
             w = csv.writer(f)
             w.writerow(["标准号", "标准名称"])
             w.writerow(["INVALID-123", "无效标准"])
-        with patch.object(
-            window._mgr, "parse_standard_number", side_effect=ValueError("无法解析")
-        ):
+        with patch.object(window._mgr, "parse_standard_number", side_effect=ValueError("无法解析")):
             parsed_list, failed_names = window._parse_pending_csv(tmp)
         assert parsed_list == []
         assert "INVALID-123" in failed_names

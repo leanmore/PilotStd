@@ -3,14 +3,13 @@ _export_ops:50,52,55,76-77,85-86 | _dialog_ops:52-54 | _theme_ops:99
 _delegate_ops:71 | _file_tree_ops:54-55,125-127,131-134,165-166,193,209
 __init__:315-321,381
 """
+
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
 from PyQt6.QtCore import QPoint
-from PyQt6.QtWidgets import QMenu, QTreeWidgetItem, QMessageBox, QDialog
-
-from pilotstd.ui.workers._common import RowUpdate
+from PyQt6.QtWidgets import QMenu, QTreeWidgetItem
 
 
 # ═══ _export_ops.py: 50, 52, 55, 76-77, 85-86 ═══
@@ -19,11 +18,14 @@ class TestExportFinal:
         """覆盖 50,52,55: 无选中回退 Desktop, 非目录返回, 取消保存"""
         monkeypatch.setattr(window, "_get_selected_path", lambda: "")
         from PyQt6.QtCore import QStandardPaths
+
         desktop = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DesktopLocation)
         # 确保 desktop 路径存在且是目录
         if desktop and os.path.isdir(desktop):
-            with patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName",
-                       return_value=(str(tempfile.mktemp(suffix=".txt")), "")):
+            with patch(
+                "pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName",
+                return_value=(str(tempfile.mktemp(suffix=".txt")), ""),
+            ):
                 window._on_export_folder_tree()
 
     def test_export_folder_tree_no_dir(self, window, monkeypatch):
@@ -34,8 +36,7 @@ class TestExportFinal:
     def test_export_folder_tree_cancel(self, window, monkeypatch):
         """覆盖 55: 取消保存对话框 → 返回"""
         monkeypatch.setattr(window, "_get_selected_path", lambda: os.path.expanduser("~"))
-        with patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName",
-                   return_value=("", "")):
+        with patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName", return_value=("", "")):
             window._on_export_folder_tree()
 
     def test_collect_folder_tree_isdir_error(self, window, monkeypatch):
@@ -60,8 +61,11 @@ class TestDialogFinal:
         window._suppress_dialogs = False
         # SmartDialogInterceptor 会点第一个按钮(prereq), 我们 patch 掉它
         from pilotstd.ui.main_window.parts import _dialog_ops as dops
-        with patch.object(dops.QMessageBox, "exec", return_value=None), \
-             patch.object(dops.QMessageBox, "clickedButton", return_value=None):
+
+        with (
+            patch.object(dops.QMessageBox, "exec", return_value=None),
+            patch.object(dops.QMessageBox, "clickedButton", return_value=None),
+        ):
             result = window._stage_prereq_dialog("t", "m", prereq_label="Run")
             assert result == "cancel"
 
@@ -110,6 +114,7 @@ class TestFileTreeFinal:
         (sub / "c.other").write_text("x")
         parent = QTreeWidgetItem(["p"])
         from PyQt6.QtCore import Qt as QtCore
+
         parent.setData(0, QtCore.ItemDataRole.UserRole, str(sub))
         window.file_tree.addTopLevelItem(parent)
         window._populate_children(parent)

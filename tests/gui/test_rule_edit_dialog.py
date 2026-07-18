@@ -3,7 +3,6 @@
 
 from unittest.mock import patch
 
-import pytest
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox, QPushButton
 

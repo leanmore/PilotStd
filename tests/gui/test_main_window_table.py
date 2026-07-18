@@ -6,13 +6,9 @@ import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-import pytest
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
-
-from pilotstd.ui.workers import RowUpdate
-
+from PyQt6.QtWidgets import QMessageBox
 
 # ═══════════════════════════════════════════════════════════
 # _table_ops 核心函数
@@ -216,8 +212,7 @@ def test_on_pending_query_cancelled(window, qtbot):
     """用户取消待确认查询。"""
     window._mgr
     window._parsed_results.clear()
-    with patch("pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName",
-               return_value=("", "")):
+    with patch("pilotstd.ui.main_window.parts._query_ops.QFileDialog.getOpenFileName", return_value=("", "")):
         window._do_pending_query()
     # 取消后不抛异常
 
@@ -264,32 +259,37 @@ def test_parse_pending_csv_empty(window, qtbot):
 def test_on_check_announcements(window, qtbot):
     """_on_check_announcements 触发公告检查。"""
     window._suppress_dialogs = True
-    with patch("PyQt6.QtWidgets.QMessageBox.information"), \
-         patch("PyQt6.QtWidgets.QMessageBox.warning"), \
-         patch("PyQt6.QtWidgets.QMessageBox.question"):
+    with (
+        patch("PyQt6.QtWidgets.QMessageBox.information"),
+        patch("PyQt6.QtWidgets.QMessageBox.warning"),
+        patch("PyQt6.QtWidgets.QMessageBox.question"),
+    ):
         window._on_check_announcements()
 
 
 def test_on_cleanup_empty_dirs(window, qtbot):
     """_on_cleanup_empty_dirs 清理空目录。"""
-    with patch("PyQt6.QtWidgets.QFileDialog.getExistingDirectory", return_value=""), \
-         patch("PyQt6.QtWidgets.QMessageBox.information"), \
-         patch("PyQt6.QtWidgets.QMessageBox.question"):
+    with (
+        patch("PyQt6.QtWidgets.QFileDialog.getExistingDirectory", return_value=""),
+        patch("PyQt6.QtWidgets.QMessageBox.information"),
+        patch("PyQt6.QtWidgets.QMessageBox.question"),
+    ):
         window._on_cleanup_empty_dirs()
 
 
 def test_on_collect_unrecognized(window, qtbot):
     """_on_collect_unrecognized 收集未识别文件。"""
-    with patch("PyQt6.QtWidgets.QMessageBox.information"), \
-         patch("PyQt6.QtWidgets.QDialog.exec", return_value=0):
+    with patch("PyQt6.QtWidgets.QMessageBox.information"), patch("PyQt6.QtWidgets.QDialog.exec", return_value=0):
         window._on_collect_unrecognized()
 
 
 def test_on_import_download(window, qtbot):
     """_on_import_download 导入下载文件。"""
-    with patch("PyQt6.QtWidgets.QFileDialog.getOpenFileName", return_value=("", "")), \
-         patch("PyQt6.QtWidgets.QMessageBox.information"), \
-         patch("PyQt6.QtWidgets.QMessageBox.warning"):
+    with (
+        patch("PyQt6.QtWidgets.QFileDialog.getOpenFileName", return_value=("", "")),
+        patch("PyQt6.QtWidgets.QMessageBox.information"),
+        patch("PyQt6.QtWidgets.QMessageBox.warning"),
+    ):
         window._on_import_download()
 
 

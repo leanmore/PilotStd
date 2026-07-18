@@ -6,12 +6,9 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 
 from pilotstd.ui.core.handlers.query_summary_flow_engine import QuerySummaryFlowEngine
-
 
 # ═══════════════════════════════════════════════════════════════════
 # 测试辅助

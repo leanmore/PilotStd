@@ -18,10 +18,8 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from PyQt6.QtCore import Qt
 
 from pilotstd.query.models import QueryResult
-
 
 # ── 工具函数 ─────────────────────────────────────────────────
 
@@ -115,9 +113,7 @@ def test_query_result_fields_and_coloring_e2e(window, test_data_dir, qtbot):
 
             # 工作状态列必填
             assert status_cell is not None, f"行 {row}: col1 工作状态不应为 None"
-            assert "查询" in status_cell.text(), (
-                f"行 {row}: 工作状态应包含'查询', 实际='{status_cell.text()}'"
-            )
+            assert "查询" in status_cell.text(), f"行 {row}: 工作状态应包含'查询', 实际='{status_cell.text()}'"
 
             # ── 生效状态列 — 至少大部分行应有值（Mock 适配器可能跳过个别行） ──
             assert effect_cell is not None, f"行 {row}: col4 生效状态不应为 None"
@@ -134,19 +130,15 @@ def test_query_result_fields_and_coloring_e2e(window, test_data_dir, qtbot):
             if effect in ("现行",):
                 # 现行通常为绿色，但若 is_adopted=True（不可下载）会被覆盖为 darkYellow
                 assert color.name() in ("#008000", "#808000"), (
-                    f"行 {row}: 现行状态应为绿色或darkYellow(采标覆盖), "
-                    f"实际 effect='{effect}' color={color.name()}"
+                    f"行 {row}: 现行状态应为绿色或darkYellow(采标覆盖), 实际 effect='{effect}' color={color.name()}"
                 )
             elif effect == "即将实施":
                 # 即将实施本应为蓝色，但 handler 中 is_downloadable=False 会覆盖为 darkYellow
                 assert color.name() in ("#0000ff", "#808000"), (
-                    f"行 {row}: 即将实施应为蓝色或darkYellow(不可下载覆盖), "
-                    f"实际 effect='{effect}' color={color.name()}"
+                    f"行 {row}: 即将实施应为蓝色或darkYellow(不可下载覆盖), 实际 effect='{effect}' color={color.name()}"
                 )
             elif effect in ("废止", "已废止", "作废"):
-                assert color.name() == "#ff0000", (
-                    f"行 {row}: 废止状态应为红色, 实际 effect='{effect}'"
-                )
+                assert color.name() == "#ff0000", f"行 {row}: 废止状态应为红色, 实际 effect='{effect}'"
 
             # 其余字段至少可读（mock 数据可能为空，不崩溃即可）
             _ = replaces_cell.text() if replaces_cell else ""
@@ -210,9 +202,7 @@ def test_on_query_result_ready_direct(window, qtbot):
 
         # ── 状态着色验证 ──
         status_item = table.item(0, 4)
-        assert status_item.foreground().color().name() == "#008000", (
-            "现行状态应为绿色(darkGreen)"
-        )
+        assert status_item.foreground().color().name() == "#008000", "现行状态应为绿色(darkGreen)"
 
         # ── 废止状态着色验证 ──
         mock_result2 = QueryResult(
@@ -230,9 +220,7 @@ def test_on_query_result_ready_direct(window, qtbot):
             match_status="exact",
         )
         handler.on_query_result_ready(0, mock_result2)
-        assert table.item(0, 4).foreground().color().name() == "#ff0000", (
-            "废止状态应为红色"
-        )
+        assert table.item(0, 4).foreground().color().name() == "#ff0000", "废止状态应为红色"
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -258,16 +246,42 @@ def test_parse_pending_csv_valid_standards(window, qtbot):
     csv_path = os.path.join(tmpdir, "pending.csv")
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
-        writer.writerow([
-            "标准编号", "标准名称", "网站名称", "本地年份",
-            "网站编号", "状态", "置信度", "来源站点",
-        ])
-        writer.writerow([
-            "GB/T 1.1-2020", "标准化工作导则", "", "2020", "", "", "", "",
-        ])
-        writer.writerow([
-            "NB/T 47013-2021", "承压设备无损检测", "", "2021", "", "", "", "",
-        ])
+        writer.writerow(
+            [
+                "标准编号",
+                "标准名称",
+                "网站名称",
+                "本地年份",
+                "网站编号",
+                "状态",
+                "置信度",
+                "来源站点",
+            ]
+        )
+        writer.writerow(
+            [
+                "GB/T 1.1-2020",
+                "标准化工作导则",
+                "",
+                "2020",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
+        writer.writerow(
+            [
+                "NB/T 47013-2021",
+                "承压设备无损检测",
+                "",
+                "2021",
+                "",
+                "",
+                "",
+                "",
+            ]
+        )
         writer.writerow(["", "", "", "", "", "", "", ""])  # 空行 — 应跳过
 
     try:

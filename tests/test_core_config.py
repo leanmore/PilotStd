@@ -1,11 +1,10 @@
 # tests/test_core_config.py — core/config/ 子模块补充测试
 
-import json
 import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
@@ -14,7 +13,7 @@ if root_dir not in sys.path:
 
 class TestSettingsSchema(unittest.TestCase):
     def test_setting_def_defaults(self):
-        from pilotstd.core.config.settings_schema import FIELD_INPUT, FIELD_TOGGLE, SettingDef
+        from pilotstd.core.config.settings_schema import FIELD_INPUT, SettingDef
 
         s = SettingDef(key="test.key", tab="test")
         self.assertEqual(s.key, "test.key")
@@ -46,12 +45,8 @@ class TestSettingsSchema(unittest.TestCase):
 
     def test_field_constants(self):
         from pilotstd.core.config.settings_schema import (
-            FIELD_CRON,
             FIELD_INPUT,
-            FIELD_NUMBER,
-            FIELD_PASSWORD,
             FIELD_SELECT,
-            FIELD_TAGS,
             FIELD_TOGGLE,
         )
 
@@ -126,6 +121,7 @@ class TestConfigCrypto(unittest.TestCase):
             self.assertEqual(result["storage_root_dir"], "/data")
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_walk_sensitive_decrypt(self):
@@ -155,6 +151,7 @@ class TestConfigCrypto(unittest.TestCase):
             self.assertNotEqual(result["provider"]["api_key"], "nested_secret")
         finally:
             import shutil
+
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 
@@ -191,9 +188,9 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(len(salt), 32)  # hex(16 bytes) = 32 chars
 
     def test_verify_old_desktop_format(self):
-        from pilotstd.core.security import verify_password
-
         import hashlib
+
+        from pilotstd.core.security import verify_password
 
         salt = "randomsalt"
         password = "mypassword"
@@ -203,9 +200,9 @@ class TestSecurity(unittest.TestCase):
         self.assertFalse(verify_password("wrong", old_hash))
 
     def test_verify_pbkdf2_format(self):
-        from pilotstd.core.security import verify_password_with_salt
-
         import hashlib
+
+        from pilotstd.core.security import verify_password_with_salt
 
         salt = "randomsalt32bytes!!"
         password = "mypassword"

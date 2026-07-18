@@ -62,21 +62,25 @@ def _make_manager_core():
 # 通知渠道测试
 # ═══════════════════════════════════════════════════════
 
+
 class TestTelegramChannelFull(unittest.TestCase):
     def test_validate_config_ok(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
+
         self.assertTrue(TelegramChannel.validate_config({"bot_token": "x", "chat_id": "1"}))
         self.assertFalse(TelegramChannel.validate_config({"bot_token": "x"}))
 
     def test_log_dedup(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel
+
         ch = TelegramChannel("tok", "chat")
         ch._log_dedup("unique error")
         self.assertEqual(ch._last_error_key, "unique error")
 
     def test_log_dedup_suppressed(self):
+
         from pilotstd.core.notification.channels.telegram import TelegramChannel
-        import time as _time
+
         ch = TelegramChannel("tok", "chat")
         ch._log_dedup("repeat")
         t1 = ch._last_error_time
@@ -85,8 +89,9 @@ class TestTelegramChannelFull(unittest.TestCase):
 
     @patch("pilotstd.core.notification.channels.telegram.urlopen")
     def test_send_ok(self, mock_urlopen):
-        from pilotstd.core.notification.channels.telegram import TelegramChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.telegram import TelegramChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"ok":true}')
         ch = TelegramChannel("tok123", "chat456")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
@@ -94,8 +99,9 @@ class TestTelegramChannelFull(unittest.TestCase):
 
     @patch("pilotstd.core.notification.channels.telegram.urlopen")
     def test_send_api_error(self, mock_urlopen):
-        from pilotstd.core.notification.channels.telegram import TelegramChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.telegram import TelegramChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"ok":false,"description":"bad"}')
         ch = TelegramChannel("tok", "chat")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
@@ -105,13 +111,15 @@ class TestTelegramChannelFull(unittest.TestCase):
 class TestWechatChannelFull(unittest.TestCase):
     def test_validate_config(self):
         from pilotstd.core.notification.channels.wechat import WechatChannel
+
         self.assertTrue(WechatChannel.validate_config({"webhook_url": "https://e.com"}))
         self.assertFalse(WechatChannel.validate_config({}))
 
     @patch("pilotstd.core.notification.channels.wechat.urlopen")
     def test_send_success(self, mock_urlopen):
-        from pilotstd.core.notification.channels.wechat import WechatChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.wechat import WechatChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success()
         ch = WechatChannel("https://e.com/webhook")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e", standard_number="S001")
@@ -121,13 +129,15 @@ class TestWechatChannelFull(unittest.TestCase):
 class TestFeishuChannelFull(unittest.TestCase):
     def test_validate_config(self):
         from pilotstd.core.notification.channels.feishu import FeishuChannel
+
         self.assertTrue(FeishuChannel.validate_config({"webhook_url": "https://e.com"}))
         self.assertFalse(FeishuChannel.validate_config({"webhook_url": ""}))
 
     @patch("pilotstd.core.notification.channels.feishu.urlopen")
     def test_send_success(self, mock_urlopen):
-        from pilotstd.core.notification.channels.feishu import FeishuChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"code":0}')
         ch = FeishuChannel("https://open.feishu.cn/test")
         msg = NotificationMessage(title="T", body="B", level="warning", event_type="e")
@@ -135,8 +145,9 @@ class TestFeishuChannelFull(unittest.TestCase):
 
     @patch("pilotstd.core.notification.channels.feishu.urlopen")
     def test_send_api_error(self, mock_urlopen):
-        from pilotstd.core.notification.channels.feishu import FeishuChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"code":1,"msg":"error"}')
         ch = FeishuChannel("https://e.com")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
@@ -146,16 +157,19 @@ class TestFeishuChannelFull(unittest.TestCase):
 class TestDingTalkChannelFull(unittest.TestCase):
     def test_validate_config(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
         self.assertTrue(DingTalkChannel.validate_config({"webhook_url": "https://e.com"}))
         self.assertFalse(DingTalkChannel.validate_config({"webhook_url": ""}))
 
     def test_sign_empty(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
         ch = DingTalkChannel("https://e.com", secret="")
         self.assertEqual(ch._sign(), "")
 
     def test_sign_with_secret(self):
         from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
         ch = DingTalkChannel("https://e.com", secret="mysecret")
         sig = ch._sign()
         self.assertIn("timestamp", sig)
@@ -163,8 +177,9 @@ class TestDingTalkChannelFull(unittest.TestCase):
 
     @patch("pilotstd.core.notification.channels.dingtalk.urlopen")
     def test_send_success(self, mock_urlopen):
-        from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"errcode":0}')
         ch = DingTalkChannel("https://oapi.dingtalk.com/test")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
@@ -172,8 +187,9 @@ class TestDingTalkChannelFull(unittest.TestCase):
 
     @patch("pilotstd.core.notification.channels.dingtalk.urlopen")
     def test_send_with_secret(self, mock_urlopen):
-        from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
         from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
+
         mock_urlopen.side_effect = _mock_urlopen_success(b'{"errcode":0}')
         ch = DingTalkChannel("https://e.com", secret="SEC")
         msg = NotificationMessage(title="T", body="B", level="info", event_type="e")
@@ -184,23 +200,27 @@ class TestDingTalkChannelFull(unittest.TestCase):
 # Manager Facade 测试
 # ═══════════════════════════════════════════════════════
 
+
 class TestQueryHandler(unittest.TestCase):
     def setUp(self):
         self.core = _make_manager_core()
 
     def test_init(self):
         from pilotstd.manager.facade._query import QueryHandler
+
         h = QueryHandler(self.core)
         self.assertEqual(h._core, self.core)
 
     def test_set_pause_event(self):
         from pilotstd.manager.facade._query import QueryHandler
+
         h = QueryHandler(self.core)
         h.set_pause_event("event_obj")
         self.core.query_engine.set_pause_event.assert_called_with("event_obj")
 
     def test_query_announcement_no_api_key(self):
         from pilotstd.manager.facade._query import QueryHandler
+
         self.core.cfg.get.return_value = ""
         h = QueryHandler(self.core)
         result = h._query_announcement_match("GB/T 1.1")
@@ -208,12 +228,14 @@ class TestQueryHandler(unittest.TestCase):
 
     def test_build_result_from_cache(self):
         from pilotstd.manager.facade._query import QueryHandler
+
         cache_data = {"standard_number": "GB/T 1.1", "standard_name": "Test", "status": "现行"}
         result = QueryHandler._build_result_from_cache("GB/T 1.1", cache_data)
         self.assertEqual(result.standard_number, "GB/T 1.1")
 
     def test_cat_label_mapping(self):
         from pilotstd.manager.facade._query import QueryHandler
+
         h = QueryHandler(self.core)
         self.assertEqual(h._CAT_LABEL["gb"], "国标")
         self.assertEqual(h._CAT_LABEL["foreign"], "国外标准")
@@ -225,11 +247,13 @@ class TestDownloadHandler(unittest.TestCase):
 
     def test_init(self):
         from pilotstd.manager.facade._download import DownloadHandler
+
         h = DownloadHandler(self.core)
         self.assertEqual(h._core, self.core)
 
     def test_set_organize_handler(self):
         from pilotstd.manager.facade._download import DownloadHandler
+
         h = DownloadHandler(self.core)
         mock_org = MagicMock()
         h._set_organize_handler(mock_org)
@@ -237,11 +261,13 @@ class TestDownloadHandler(unittest.TestCase):
 
     def test_handle_expired_if_needed_empty(self):
         from pilotstd.manager.facade._download import DownloadHandler
+
         h = DownloadHandler(self.core)
         h._handle_expired_if_needed()  # empty expire_list → no action
 
     def test_handle_expired_if_needed_with_items(self):
         from pilotstd.manager.facade._download import DownloadHandler
+
         mock_org = MagicMock()
         h = DownloadHandler(self.core)
         h._set_organize_handler(mock_org)
@@ -256,6 +282,7 @@ class TestAutoPipeline(unittest.TestCase):
 
     def test_init(self):
         from pilotstd.manager.facade._auto import AutoPipeline
+
         scan = MagicMock()
         query = MagicMock()
         download = MagicMock()
@@ -265,6 +292,7 @@ class TestAutoPipeline(unittest.TestCase):
 
     def test_auto_run(self):
         from pilotstd.manager.facade._auto import AutoPipeline
+
         scan = MagicMock()
         scan.scan_directory.return_value = [MagicMock(), MagicMock()]
         query = MagicMock()

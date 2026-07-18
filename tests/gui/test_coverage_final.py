@@ -1,11 +1,10 @@
 """覆盖 pilotstd.ui.main_window 模块最终剩余未覆盖行。"""
+
 import os
-import csv
-import tempfile
 from unittest.mock import MagicMock, patch
 
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtWidgets import QMenu, QTreeWidgetItem, QMessageBox, QDialog
+from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtWidgets import QDialog, QMenu, QTreeWidgetItem
 
 from pilotstd.ui.workers._common import RowUpdate
 
@@ -13,7 +12,6 @@ from pilotstd.ui.workers._common import RowUpdate
 # ═══ _delegate_ops.py:71 ═══
 class TestDelegateRemaining:
     def test_start_auto_pipeline_guard(self, window):
-        from pilotstd.ui.main_window.parts._delegate_ops import _require_core
         saved = window._core
         window._core = None
         try:
@@ -48,11 +46,13 @@ class TestDownloadRemaining:
 class TestThemeRemaining:
     def test_load_qt_translator_load_fails(self, window, monkeypatch):
         from PyQt6.QtCore import QTranslator
+
         monkeypatch.setattr(window, "_loaded_qt_lang", None)
         orig = window._config.get
-        monkeypatch.setattr(window._config, "get", lambda k, d=None: "zh_CN" if k == "appearance.language" else orig(k, d))
-        with patch("os.path.exists", return_value=True), \
-             patch.object(QTranslator, "load", return_value=False):
+        monkeypatch.setattr(
+            window._config, "get", lambda k, d=None: "zh_CN" if k == "appearance.language" else orig(k, d)
+        )
+        with patch("os.path.exists", return_value=True), patch.object(QTranslator, "load", return_value=False):
             window._load_qt_translator()
 
 
@@ -72,18 +72,24 @@ class TestExportRemaining:
         save_path = str(tmp_path / "out2.txt")
         monkeypatch.setattr(window, "_get_selected_path", lambda: str(sub))
         from pilotstd.ui.dialogs import ExportFileListDialog
-        with patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted), \
-             patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName",
-                   return_value=(save_path, "")), \
-             patch("pilotstd.ui.main_window.parts._export_ops.os.path.join",
-                   side_effect=OSError("fake")):
+
+        with (
+            patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted),
+            patch(
+                "pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName", return_value=(save_path, "")
+            ),
+            patch("pilotstd.ui.main_window.parts._export_ops.os.path.join", side_effect=OSError("fake")),
+        ):
             window._on_export_file_list()
 
     def test_export_file_list_no_path_fallback(self, window, tmp_path, monkeypatch):
         monkeypatch.setattr(window, "_get_selected_path", lambda: str(tmp_path))
         from pilotstd.ui.dialogs import ExportFileListDialog
-        with patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted), \
-             patch("PyQt6.QtWidgets.QFileDialog.getSaveFileName", return_value=("", "")):
+
+        with (
+            patch.object(ExportFileListDialog, "exec", return_value=QDialog.DialogCode.Accepted),
+            patch("PyQt6.QtWidgets.QFileDialog.getSaveFileName", return_value=("", "")),
+        ):
             window._on_export_file_list()
 
     def test_collect_folder_tree_dotfiles_skip(self, window, tmp_path):
@@ -163,6 +169,7 @@ class TestFileTreeRemaining:
 class TestTableRemaining:
     def test_on_header_context_menu_restore_width(self, window):
         from pilotstd.ui.table_constants import TOGGLEABLE_COLS
+
         header = window.work_table.horizontalHeader()
         toggle_col = TOGGLEABLE_COLS[0]
         window.work_table.setColumnHidden(toggle_col, True)
@@ -185,8 +192,9 @@ class TestTableRemaining:
         parsed.is_adopted = False
         window._add_table_row(RowUpdate(seq=1, parsed=parsed, work_status="done", total=1))
         save_path = str(tmp_path / "out.txt")
-        with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName",
-                   return_value=(save_path, "")):
+        with patch(
+            "pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName", return_value=(save_path, "")
+        ):
             window._on_save_result("txt")
         assert os.path.exists(save_path)
 
@@ -202,8 +210,9 @@ class TestTableRemaining:
         parsed.is_adopted = False
         window._add_table_row(RowUpdate(seq=1, parsed=parsed, work_status="done", total=1))
         save_path = str(tmp_path / "out.csv")
-        with patch("pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName",
-                   return_value=(save_path, "")):
+        with patch(
+            "pilotstd.ui.main_window.parts._table_ops.QFileDialog.getSaveFileName", return_value=(save_path, "")
+        ):
             with patch("builtins.open", side_effect=OSError("disk full")):
                 window._on_save_result("csv")
 
@@ -222,12 +231,19 @@ class TestTableRemaining:
         window._parsed_results = [parsed]
         window.work_table.selectRow(0)
         fi_mock = MagicMock()
-        with patch.object(type(window._mgr), "file_index",
-                          new_callable=lambda: property(lambda s: fi_mock)):
-            window._mgr.get_file_index_full_info = MagicMock(return_value=[{
-                "file_path": "/a.pdf", "std_name": "test_name", "found_name": "web",
-                "effect_status": "active", "is_adopted": True,
-                "confidence": 0.95, "cached_at": "2024-06-01",
-                "match_status": "现行",
-            }])
+        with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock)):
+            window._mgr.get_file_index_full_info = MagicMock(
+                return_value=[
+                    {
+                        "file_path": "/a.pdf",
+                        "std_name": "test_name",
+                        "found_name": "web",
+                        "effect_status": "active",
+                        "is_adopted": True,
+                        "confidence": 0.95,
+                        "cached_at": "2024-06-01",
+                        "match_status": "现行",
+                    }
+                ]
+            )
             window._on_offline_view()

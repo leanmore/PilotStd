@@ -7,16 +7,16 @@ from unittest.mock import MagicMock, patch
 
 from pilotstd.core.validity_checker import (
     ValidityChecker,
-    _sample_due_standards,
-    _process_validity_batch,
     _finalize_validity_round,
+    _process_validity_batch,
+    _sample_due_standards,
     run_validity_check,
 )
-
 
 # ════════════════════════════════════════════════════════════════════
 # 辅助：构造带 __getitem__ 的 mock fetchone/fetchall 返回值
 # ════════════════════════════════════════════════════════════════════
+
 
 def _row(**kwargs):
     """构造模拟行（支持 dict 式访问和 .get()）。"""
@@ -34,6 +34,7 @@ def _rows(*dicts):
 # ════════════════════════════════════════════════════════════════════
 # TestInitAndEnsureColumn: __init__ + _ensure_last_changed_at_column
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestInitAndEnsureColumn(unittest.TestCase):
     """覆盖 __init__ 中的 _ensure_last_changed_at_column 三种分支。"""
@@ -80,6 +81,7 @@ class TestInitAndEnsureColumn(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # TestRegisterNewStandard
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestRegisterNewStandard(unittest.TestCase):
     """覆盖 register_new_standard：新标准/已存在/带通知/通知异常。"""
@@ -139,6 +141,7 @@ class TestRegisterNewStandard(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # TestUpdateStatus
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestUpdateStatus(unittest.TestCase):
     """覆盖 update_status：状态变更/不变/新记录/通知/通知异常。"""
@@ -241,6 +244,7 @@ class TestUpdateStatus(unittest.TestCase):
 # TestGetDueStandards
 # ════════════════════════════════════════════════════════════════════
 
+
 class TestGetDueStandards(unittest.TestCase):
     """覆盖 get_due_standards：有结果/空结果。"""
 
@@ -271,6 +275,7 @@ class TestGetDueStandards(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # TestCountDueStandards
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestCountDueStandards(unittest.TestCase):
     """覆盖 count_due_standards：有/无/零。"""
@@ -305,6 +310,7 @@ class TestCountDueStandards(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # TestGetDueStandardsRandom
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestGetDueStandardsRandom(unittest.TestCase):
     """覆盖 get_due_standards_random：有结果/空/limit 传递。"""
@@ -343,6 +349,7 @@ class TestGetDueStandardsRandom(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # TestRandomSlice
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestRandomSlice(unittest.TestCase):
     """覆盖 random_slice 静态方法：空列表/正常切片/同周一致/不同周/小批量/不改原列表。"""
@@ -399,6 +406,7 @@ class TestRandomSlice(unittest.TestCase):
 # TestCheckStandard
 # ════════════════════════════════════════════════════════════════════
 
+
 class TestCheckStandard(unittest.TestCase):
     """覆盖 check_standard：L1 命中/L2 命中/L3 命中/全部未命中。"""
 
@@ -451,8 +459,6 @@ class TestCheckStandard(unittest.TestCase):
         """L1 未命中 → L2 query_engine 返回 is_found=True → 返回状态。"""
         self.mock_db.fetchone.return_value = None
         mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
-
-        from pilotstd.query.models import QueryResult
 
         mock_result = MagicMock()
         mock_result.is_found.return_value = True
@@ -553,14 +559,13 @@ class TestCheckStandard(unittest.TestCase):
 # TestDetermineStatus
 # ════════════════════════════════════════════════════════════════════
 
+
 class TestDetermineStatus(unittest.TestCase):
     """覆盖 _determine_status：6 种废止关键词/现行/空名称/None名称。"""
 
     def setUp(self):
         mock_db = MagicMock()
-        mock_db.fetchall.return_value = _rows(
-            {"name": "id"}, {"name": "standard_number"}, {"name": "last_changed_at"}
-        )
+        mock_db.fetchall.return_value = _rows({"name": "id"}, {"name": "standard_number"}, {"name": "last_changed_at"})
         self.checker = ValidityChecker(mock_db)
 
     def test_keyword_fei_zhi(self):
@@ -613,6 +618,7 @@ class TestDetermineStatus(unittest.TestCase):
 # TestGetStatusSummary
 # ════════════════════════════════════════════════════════════════════
 
+
 class TestGetStatusSummary(unittest.TestCase):
     """覆盖 get_status_summary：有数据/空数据。"""
 
@@ -641,6 +647,7 @@ class TestGetStatusSummary(unittest.TestCase):
 # ════════════════════════════════════════════════════════════════════
 # 模块级函数测试
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestSampleDueStandards(unittest.TestCase):
     """覆盖 _sample_due_standards：无到期/有到期/最小采样数。"""
@@ -679,9 +686,7 @@ class TestProcessValidityBatch(unittest.TestCase):
 
     def test_empty_candidates(self):
         mock_checker = MagicMock()
-        changed, changed_list, failed = _process_validity_batch(
-            [], mock_checker, self.mock_db, self.mock_notif, 50, 5
-        )
+        changed, changed_list, failed = _process_validity_batch([], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(changed, 0)
         self.assertEqual(changed_list, [])
         self.assertEqual(failed, [])
@@ -712,18 +717,14 @@ class TestProcessValidityBatch(unittest.TestCase):
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = None
 
-        changed, _, _ = _process_validity_batch(
-            ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
-        )
+        changed, _, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(changed, 0)
 
     def test_exception_adds_failed(self):
         mock_checker = MagicMock()
         mock_checker.check_standard.side_effect = RuntimeError("boom")
 
-        _, _, failed = _process_validity_batch(
-            ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
-        )
+        _, _, failed = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed[0]["standard"], "GB/T 1")
         self.assertIn("boom", failed[0]["error"])
@@ -739,13 +740,8 @@ class TestProcessValidityBatch(unittest.TestCase):
         self.mock_db.fetchone.return_value = _row(status="现行")
 
         candidates = [f"GB/T {i}" for i in range(12)]
-        _process_validity_batch(
-            candidates, mock_checker, self.mock_db, self.mock_notif, 50, 0
-        )
-        batch_calls = [
-            c for c in self.mock_notif.send_event.call_args_list
-            if c[0][0] == "validity_batch_report"
-        ]
+        _process_validity_batch(candidates, mock_checker, self.mock_db, self.mock_notif, 50, 0)
+        batch_calls = [c for c in self.mock_notif.send_event.call_args_list if c[0][0] == "validity_batch_report"]
         self.assertGreaterEqual(len(batch_calls), 1)
 
     def test_no_notification_mgr(self):
@@ -753,9 +749,7 @@ class TestProcessValidityBatch(unittest.TestCase):
         mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
         self.mock_db.fetchone.return_value = _row(status="现行")
 
-        changed, changed_list, _ = _process_validity_batch(
-            ["GB/T 1"], mock_checker, self.mock_db, None, 50, 0
-        )
+        changed, changed_list, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, None, 50, 0)
         self.assertEqual(changed, 1)
 
     def test_notification_raises_in_loop(self):
@@ -765,9 +759,7 @@ class TestProcessValidityBatch(unittest.TestCase):
         self.mock_notif.send_event.side_effect = RuntimeError("notif boom")
 
         # 不应抛异常
-        _process_validity_batch(
-            ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 0
-        )
+        _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 0)
 
     def test_old_status_none_skips_change(self):
         """数据库无旧记录 (old_status=None) → 不计为变更。"""
@@ -784,15 +776,14 @@ class TestProcessValidityBatch(unittest.TestCase):
     def test_batch_interval_sleep(self):
         """batch_size 间隔触发 sleep。"""
         import time
+
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
         self.mock_db.fetchone.return_value = _row(status="现行")
 
         # 候选 3 条，batch_size=1 → i=1,2 时触发 2 次 sleep
         with patch.object(time, "sleep") as mock_sleep:
-            _process_validity_batch(
-                ["A", "B", "C"], mock_checker, self.mock_db, None, batch_size=1, batch_interval=2
-            )
+            _process_validity_batch(["A", "B", "C"], mock_checker, self.mock_db, None, batch_size=1, batch_interval=2)
             self.assertEqual(mock_sleep.call_count, 2)
 
 
@@ -807,8 +798,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
 
     def test_update_counters_false(self):
         result = _finalize_validity_round(
-            self.mock_config, self.mock_db, [], [], [],
-            self.mock_adapter, self.mock_notif, update_counters=False,
+            self.mock_config,
+            self.mock_db,
+            [],
+            [],
+            [],
+            self.mock_adapter,
+            self.mock_notif,
+            update_counters=False,
         )
         self.mock_config.set.assert_not_called()
         self.mock_config.save.assert_not_called()
@@ -819,8 +816,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.return_value = _row(cnt=10)
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            self.mock_adapter, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            self.mock_adapter,
+            None,
+            update_counters=True,
         )
         self.mock_config.save.assert_called_once()
 
@@ -830,12 +833,17 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.return_value = _row(cnt=100)
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            None, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            None,
+            None,
+            update_counters=True,
         )
         completed_calls = [
-            c for c in self.mock_config.set.call_args_list
-            if c[0][0] == "validity.round_completed" and c[0][1] is True
+            c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed" and c[0][1] is True
         ]
         self.assertEqual(len(completed_calls), 0)
 
@@ -852,14 +860,16 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchall.return_value = _rows()
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db,
-            ["GB/T 1"] * 5, [], [],
-            None, self.mock_notif, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"] * 5,
+            [],
+            [],
+            None,
+            self.mock_notif,
+            update_counters=True,
         )
-        completed_calls = [
-            c for c in self.mock_config.set.call_args_list
-            if c[0][0] == "validity.round_completed"
-        ]
+        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
         self.assertEqual(len(completed_calls), 1)
         self.assertTrue(completed_calls[0][0][1])
 
@@ -879,10 +889,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_adapter.get_all_status.return_value = {"std_gov": "ok"}
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db,
+            self.mock_config,
+            self.mock_db,
             ["GB/T 1", "GB/T 2", "GB/T 3"],
-            ["GB/T 1"], [],
-            self.mock_adapter, self.mock_notif, update_counters=True,
+            ["GB/T 1"],
+            [],
+            self.mock_adapter,
+            self.mock_notif,
+            update_counters=True,
         )
         self.mock_notif.send_event.assert_called_once()
         call_args = self.mock_notif.send_event.call_args[0]
@@ -897,8 +911,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.side_effect = RuntimeError("db error")
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            None, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            None,
+            None,
+            update_counters=True,
         )
         self.mock_config.save.assert_called_once()
 
@@ -915,9 +935,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_notif.send_event.side_effect = RuntimeError("notif boom")
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db,
-            ["GB/T 1"], ["GB/T 1"], [],
-            None, self.mock_notif, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            ["GB/T 1"],
+            [],
+            None,
+            self.mock_notif,
+            update_counters=True,
         )
         self.mock_config.save.assert_called_once()
 
@@ -926,8 +951,14 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.return_value = _row(cnt=10)
 
         adapters = _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            None, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            None,
+            None,
+            update_counters=True,
         )
         self.assertEqual(adapters, {})
 
@@ -937,13 +968,16 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.return_value = _row(cnt=0)
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            None, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            None,
+            None,
+            update_counters=True,
         )
-        completed_calls = [
-            c for c in self.mock_config.set.call_args_list
-            if c[0][0] == "validity.round_completed"
-        ]
+        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
         self.assertEqual(len(completed_calls), 0)
 
     def test_total_fetchone_returns_none(self):
@@ -952,19 +986,23 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_db.fetchone.return_value = None
 
         _finalize_validity_round(
-            self.mock_config, self.mock_db, ["GB/T 1"], [], [],
-            None, None, update_counters=True,
+            self.mock_config,
+            self.mock_db,
+            ["GB/T 1"],
+            [],
+            [],
+            None,
+            None,
+            update_counters=True,
         )
-        completed_calls = [
-            c for c in self.mock_config.set.call_args_list
-            if c[0][0] == "validity.round_completed"
-        ]
+        completed_calls = [c for c in self.mock_config.set.call_args_list if c[0][0] == "validity.round_completed"]
         self.assertEqual(len(completed_calls), 0)
 
 
 # ════════════════════════════════════════════════════════════════════
 # TestRunValidityCheck
 # ════════════════════════════════════════════════════════════════════
+
 
 class TestRunValidityCheck(unittest.TestCase):
     """覆盖 run_validity_check 所有分支。"""
@@ -995,7 +1033,11 @@ class TestRunValidityCheck(unittest.TestCase):
     @patch("pilotstd.core.validity_checker._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_with_candidates_success(
-        self, mock_cm_cls, mock_sample, mock_finalize, mock_process,
+        self,
+        mock_cm_cls,
+        mock_sample,
+        mock_finalize,
+        mock_process,
     ):
         """有候选 → 完整流程成功，发送 validity_batch_report 通知。"""
         mock_cm = MagicMock()
@@ -1011,7 +1053,9 @@ class TestRunValidityCheck(unittest.TestCase):
 
         notif_mgr = MagicMock()
         result = run_validity_check(
-            notification_mgr=notif_mgr, db=MagicMock(), update_counters=True,
+            notification_mgr=notif_mgr,
+            db=MagicMock(),
+            update_counters=True,
         )
         self.assertTrue(result["ok"])
         self.assertEqual(result["checked"], 2)
@@ -1093,7 +1137,11 @@ class TestRunValidityCheck(unittest.TestCase):
     @patch("pilotstd.core.validity_checker._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_success_notification_raises(
-        self, mock_cm_cls, mock_sample, mock_finalize, mock_process,
+        self,
+        mock_cm_cls,
+        mock_sample,
+        mock_finalize,
+        mock_process,
     ):
         """成功路径通知抛异常 → 被捕获，仍返回 ok=True。"""
         mock_cm = MagicMock()
@@ -1119,7 +1167,11 @@ class TestRunValidityCheck(unittest.TestCase):
     @patch("pilotstd.core.validity_checker._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_with_adapter_mgr(
-        self, mock_cm_cls, mock_sample, mock_finalize, mock_process,
+        self,
+        mock_cm_cls,
+        mock_sample,
+        mock_finalize,
+        mock_process,
     ):
         """adapter_mgr 传入 → 传递给 _finalize_validity_round。"""
         mock_cm = MagicMock()
@@ -1135,7 +1187,9 @@ class TestRunValidityCheck(unittest.TestCase):
 
         adapter_mgr = MagicMock()
         result = run_validity_check(
-            db=MagicMock(), adapter_mgr=adapter_mgr, update_counters=False,
+            db=MagicMock(),
+            adapter_mgr=adapter_mgr,
+            update_counters=False,
         )
         self.assertTrue(result["ok"])
         mock_finalize.assert_called_once()

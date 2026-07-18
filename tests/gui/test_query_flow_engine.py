@@ -6,9 +6,6 @@
 
 from __future__ import annotations
 
-import csv
-import os
-import tempfile
 from dataclasses import dataclass
 from typing import Any
 from unittest.mock import MagicMock
@@ -18,13 +15,13 @@ import pytest
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.core.handlers.query_flow_engine import QueryFlowEngine
 
-
 # ── 测试辅助 ─────────────────────────────────────────────────
 
 
 @dataclass
 class _MockResult:
     """模拟 QueryResult 的最小字段集。"""
+
     standard_name: str = ""
     status: str = ""
     replaces: str = ""
@@ -51,6 +48,7 @@ _SENTINEL = object()
 
 def _make_parse_fn(returns=_SENTINEL):
     """创建可控的 parse_fn：接收 "标准号.pdf"，返回指定值或 ParsedStdInfo。"""
+
     def _parse(filename: str) -> Any:
         if returns == "raise":
             raise ValueError("模拟解析异常")
@@ -178,10 +176,13 @@ class TestBuildResultCells:
         assert cells[7] == (9, "采标")
 
     def test_website_no_category_replaces(self, engine):
-        result = _MockResult(replaces="网站无此分类", publish_date="网站无此分类",
-                             implementation_date="网站无此分类",
-                             responsible_dept="网站无此分类",
-                             source_site="mock")
+        result = _MockResult(
+            replaces="网站无此分类",
+            publish_date="网站无此分类",
+            implementation_date="网站无此分类",
+            responsible_dept="网站无此分类",
+            source_site="mock",
+        )
         parsed = _make_parsed()
         cells = engine.build_result_cells(result, parsed, "mock")
         assert cells[3] == (5, "")
@@ -206,9 +207,7 @@ class TestParseCsvContent:
     def test_valid_csv(self, engine, tmp_path):
         csv_path = tmp_path / "pending.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,标准化导则\n"
-            "NB/T 47013-2021,无损检测\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,标准化导则\nNB/T 47013-2021,无损检测\n",
             encoding="utf-8-sig",
         )
         parsed_list, failed = engine.parse_csv_content(str(csv_path), _make_parse_fn())
@@ -234,11 +233,10 @@ class TestParseCsvContent:
     def test_invalid_standard(self, engine, tmp_path):
         csv_path = tmp_path / "mixed.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,有效\n"
-            "INVALID-!!,无效\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,有效\nINVALID-!!,无效\n",
             encoding="utf-8-sig",
         )
+
         # 自定义 parse_fn：INVALID 标准返回 None
         def _selective_parse(filename: str) -> Any:
             if "INVALID" in filename:
@@ -252,8 +250,7 @@ class TestParseCsvContent:
     def test_parse_fn_returns_none(self, engine, tmp_path):
         csv_path = tmp_path / "none.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,名称\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,名称\n",
             encoding="utf-8-sig",
         )
         parsed_list, failed = engine.parse_csv_content(str(csv_path), _make_parse_fn(returns=None))
@@ -263,8 +260,7 @@ class TestParseCsvContent:
     def test_parse_fn_raises_exception(self, engine, tmp_path):
         csv_path = tmp_path / "error.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,异常测试\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,异常测试\n",
             encoding="utf-8-sig",
         )
         parsed_list, failed = engine.parse_csv_content(str(csv_path), _make_parse_fn(returns="raise"))
@@ -274,11 +270,7 @@ class TestParseCsvContent:
     def test_skip_empty_lines(self, engine, tmp_path):
         csv_path = tmp_path / "with_gaps.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,有效\n"
-            "\n"
-            ",,\n"
-            "NB/T 47013-2021,无损检测\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,有效\n\n,,\nNB/T 47013-2021,无损检测\n",
             encoding="utf-8-sig",
         )
         parsed_list, failed = engine.parse_csv_content(str(csv_path), _make_parse_fn())
@@ -287,8 +279,7 @@ class TestParseCsvContent:
     def test_no_std_name_in_csv(self, engine, tmp_path):
         csv_path = tmp_path / "no_name.csv"
         csv_path.write_text(
-            "标准编号,标准名称\n"
-            "GB/T 1.1-2020,\n",
+            "标准编号,标准名称\nGB/T 1.1-2020,\n",
             encoding="utf-8-sig",
         )
         parsed_list, _ = engine.parse_csv_content(str(csv_path), _make_parse_fn())
@@ -410,9 +401,7 @@ class TestDeduplicateStandards:
 
 class TestBatchParseStandards:
     def test_all_success(self, engine):
-        results = engine.batch_parse_standards(
-            ["GB/T 1.1-2020", "NB/T 47013-2021"], _make_parse_fn()
-        )
+        results = engine.batch_parse_standards(["GB/T 1.1-2020", "NB/T 47013-2021"], _make_parse_fn())
         assert len(results) == 2
         assert results[0]["parsed"] is not None
         assert results[0]["error"] is None
@@ -425,18 +414,14 @@ class TestBatchParseStandards:
                 raise ValueError("bad")
             return _make_parsed()
 
-        results = engine.batch_parse_standards(
-            ["GB/T 1.1-2020", "INVALID", "NB/T 47013-2021"], _mixed_parse
-        )
+        results = engine.batch_parse_standards(["GB/T 1.1-2020", "INVALID", "NB/T 47013-2021"], _mixed_parse)
         assert len(results) == 3
         assert results[0]["error"] is None
         assert results[1]["error"] == "bad"
         assert results[2]["error"] is None
 
     def test_all_failure(self, engine):
-        results = engine.batch_parse_standards(
-            ["A", "B"], _make_parse_fn(returns="raise")
-        )
+        results = engine.batch_parse_standards(["A", "B"], _make_parse_fn(returns="raise"))
         assert all(r["error"] is not None for r in results)
 
     def test_empty_list(self, engine):

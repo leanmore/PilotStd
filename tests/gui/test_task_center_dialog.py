@@ -1,7 +1,7 @@
 # tests/gui/test_task_center_dialog.py
 # TaskCenterDialog 测试 — 任务中心对话框
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtCore import Qt
@@ -124,10 +124,7 @@ class TestTaskPage:
         page = TaskPage()
         qtbot.addWidget(page)
         assert page.task_table.columnCount() == 6
-        headers = [
-            page.task_table.horizontalHeaderItem(i).text()
-            for i in range(6)
-        ]
+        headers = [page.task_table.horizontalHeaderItem(i).text() for i in range(6)]
         assert any("ID" in h or "id" in h.lower() for h in headers)
         assert any("类型" in h or "Type" in h for h in headers)
 

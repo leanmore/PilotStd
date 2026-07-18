@@ -8,14 +8,12 @@ from __future__ import annotations
 
 import os
 import tempfile
-from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.core.handlers.archive_flow_engine import ArchiveFlowEngine
-
 
 # ── 测试辅助 ─────────────────────────────────────────────────
 
@@ -118,9 +116,7 @@ class TestDetectFileConflicts:
             tmp_path = f.name
         try:
             p = _make_mock_parsed(source_path=tmp_path)
-            result = engine.detect_file_conflicts(
-                [p], "/lib", {}, lambda p, r, c: None
-            )
+            result = engine.detect_file_conflicts([p], "/lib", {}, lambda p, r, c: None)
             assert result == []
         finally:
             os.unlink(tmp_path)
@@ -130,9 +126,7 @@ class TestDetectFileConflicts:
             tmp_path = f.name
         try:
             p = _make_mock_parsed(source_path=tmp_path)
-            result = engine.detect_file_conflicts(
-                [p], "/lib", {}, lambda p, r, c: "/lib/nonexistent.pdf"
-            )
+            result = engine.detect_file_conflicts([p], "/lib", {}, lambda p, r, c: "/lib/nonexistent.pdf")
             assert result == []
         finally:
             os.unlink(tmp_path)
@@ -143,9 +137,7 @@ class TestDetectFileConflicts:
         try:
             p = _make_mock_parsed(source_path=src_path)
             # target_path_fn 返回源文件自身路径 → 肯定存在
-            result = engine.detect_file_conflicts(
-                [p], "/lib", {}, lambda p, r, c: src_path
-            )
+            result = engine.detect_file_conflicts([p], "/lib", {}, lambda p, r, c: src_path)
             assert len(result) == 1
             assert result[0][0] == os.path.basename(src_path)
             assert result[0][1] == src_path

@@ -1,6 +1,7 @@
 """覆盖 _actions_ops.py 未覆盖行。"""
-import time as _time
+
 from unittest.mock import MagicMock, patch
+
 from PyQt6.QtWidgets import QMessageBox
 
 
@@ -38,8 +39,10 @@ class TestTaskCenter:
 
 class TestUpdateFlow:
     def test_prompt_restart_no(self, window):
-        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.No), \
-             patch("subprocess.Popen") as mock_popen:
+        with (
+            patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.No),
+            patch("subprocess.Popen") as mock_popen,
+        ):
             window._prompt_restart("/tmp/test.bat")
             mock_popen.assert_not_called()
 
@@ -49,8 +52,10 @@ class TestUpdateFlow:
             assert result is False
 
     def test_confirm_update_available_user_accepts(self, window):
-        with patch("pilotstd.platform.updater.is_newer_version", return_value=True), \
-             patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes):
+        with (
+            patch("pilotstd.platform.updater.is_newer_version", return_value=True),
+            patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes),
+        ):
             result = window._confirm_update_available("v1.0", {"tag_name": "v2.0", "body": "new stuff"})
             assert result is True
 
@@ -61,8 +66,10 @@ class TestUpdateFlow:
             mock_w.return_value.start.assert_called_once()
 
     def test_prompt_restart_ok_button(self, window):
-        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Ok), \
-             patch("subprocess.Popen") as mock_popen:
+        with (
+            patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Ok),
+            patch("subprocess.Popen") as mock_popen,
+        ):
             window._prompt_restart("C:\\test.bat")
             mock_popen.assert_called_once()
 
@@ -77,11 +84,8 @@ class TestUpdateFlow:
 
     def test_on_check_update_exception(self, window):
         window._last_check_time = 0
-        with patch("pilotstd.platform.updater.check_latest_version",
-                   side_effect=ConnectionError("network down")):
+        with patch("pilotstd.platform.updater.check_latest_version", side_effect=ConnectionError("network down")):
             window._on_check_update()
         window._last_check_time = 0
-        with patch("pilotstd.platform.updater.check_latest_version",
-                   side_effect=ConnectionError("network down")):
+        with patch("pilotstd.platform.updater.check_latest_version", side_effect=ConnectionError("network down")):
             window._on_check_update()
-

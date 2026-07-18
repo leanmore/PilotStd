@@ -3,9 +3,8 @@
 
 from unittest.mock import patch
 
-import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLabel, QMessageBox
+from PyQt6.QtWidgets import QLabel
 
 
 class TestConfigPageDialog:
@@ -93,8 +92,9 @@ class TestExportFileListDialog:
 
     def test_cancel_button_rejects(self, qtbot) -> None:
         """点击取消按钮触发 reject。"""
-        from pilotstd.ui.dialogs import ExportFileListDialog
         from PyQt6.QtWidgets import QPushButton
+
+        from pilotstd.ui.dialogs import ExportFileListDialog
 
         dlg = ExportFileListDialog(None, "D:/test/path")
         qtbot.addWidget(dlg)
@@ -108,8 +108,9 @@ class TestExportFileListDialog:
 
     def test_ok_button_sets_include_path_and_accepts(self, qtbot) -> None:
         """点击确定按钮设置 include_path 并 accept。"""
-        from pilotstd.ui.dialogs import ExportFileListDialog
         from PyQt6.QtWidgets import QPushButton
+
+        from pilotstd.ui.dialogs import ExportFileListDialog
 
         dlg = ExportFileListDialog(None, "D:/test/path")
         qtbot.addWidget(dlg)

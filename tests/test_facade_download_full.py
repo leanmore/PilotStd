@@ -6,8 +6,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
 from pilotstd.manager.facade._download import DownloadHandler
-from pilotstd.download.models import BatchDownloadStats, DownloadTask, DownloadStatus
 from pilotstd.query.models import QueryResult
 
 

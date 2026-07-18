@@ -10,12 +10,10 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-
 # ════════════════════════════════════════════════════════════════════
 # Helper: 临时设置 _core=None 并自动恢复，避免 teardown 崩溃
 # ════════════════════════════════════════════════════════════════════
+
 
 class _core_guard:
     """上下文管理器：将 window._core 临时置为 mock（含 announce 属性），测试完成后恢复。"""
@@ -56,7 +54,6 @@ class _core_null:
 
 
 class TestDelegateOpsGuards:
-
     def test_require_core_returns_false_when_core_is_none(self, window):
         from pilotstd.ui.main_window.parts._delegate_ops import _require_core
 
@@ -110,7 +107,6 @@ class TestDelegateOpsGuards:
 
 
 class TestDownloadOps:
-
     def test_check_download_queue_mgr_not_ready(self, window):
         window._mgr_ready = False
         window._check_download_queue()
@@ -149,7 +145,6 @@ class TestDownloadOps:
 
 
 class TestFileDialogOps:
-
     def test_on_open_file_with_selection(self, window, qtbot):
         mock_path = "/mock/selected/file.pdf"
         window._run_scan = MagicMock()
@@ -187,15 +182,12 @@ class TestFileDialogOps:
 
 
 class TestUiSetupOpsExceptionHandling:
-
     def test_setup_auto_save_signal_failure_is_suppressed(self, window):
         with patch("signal.signal", side_effect=ValueError("不允许在此线程设置信号处理")):
             window._setup_auto_save()
 
     def test_on_shutdown_aggregator_exception_suppressed(self, window):
-        with patch(
-            "pilotstd.core.notification_aggregator.NotificationAggregator"
-        ) as mock_agg_class:
+        with patch("pilotstd.core.notification_aggregator.NotificationAggregator") as mock_agg_class:
             mock_instance = MagicMock()
             mock_instance.shutdown.side_effect = RuntimeError("shutdown 失败")
             mock_agg_class.return_value = mock_instance
@@ -208,7 +200,6 @@ class TestUiSetupOpsExceptionHandling:
 
 
 class TestPersistenceOpsWithCore:
-
     def test_restore_window_geometry_delegates_to_handler(self, window):
         with _core_guard(window) as mock_core:
             mock_persistence = MagicMock()

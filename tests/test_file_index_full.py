@@ -7,12 +7,10 @@
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from pilotstd.core.file_index import (
-    ANNOUNCEMENT_CACHE_TABLE,
     FILE_INDEX_TABLE,
-    NETWORK_CACHE_TABLE,
     FileIndexRepository,
 )
 from pilotstd.models import ParsedStdInfo
@@ -338,9 +336,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
     @patch("pilotstd.core.file_index.datetime")
     @patch("os.path.exists")
-    def test_upsert_new_file_not_on_disk_no_hash(
-        self, mock_exists: MagicMock, mock_dt: MagicMock
-    ) -> None:
+    def test_upsert_new_file_not_on_disk_no_hash(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """新文件但文件不存在 → hash 保持空字符串"""
         repo = self._make_repo()
         mock_exists.return_value = False
@@ -360,9 +356,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
     @patch("pilotstd.core.file_index.datetime")
     @patch("os.path.exists")
-    def test_upsert_hash_provided_no_recalculation(
-        self, mock_exists: MagicMock, mock_dt: MagicMock
-    ) -> None:
+    def test_upsert_hash_provided_no_recalculation(self, mock_exists: MagicMock, mock_dt: MagicMock) -> None:
         """已提供 hash 时，即使文件存在也不重新计算"""
         repo = self._make_repo()
         mock_exists.return_value = True
@@ -990,7 +984,14 @@ class TestFileIndexRepository(unittest.TestCase):
     def test_find_moved_files_multiple_candidates(self) -> None:
         """多个 candidate 混合场景"""
         repo = self._make_repo()
-        old_row = {"file_path": "/old/a.pdf", "logical_code": "GB", "number": 1, "year": 2023, "part": -1, "std_name": "A"}
+        old_row = {
+            "file_path": "/old/a.pdf",
+            "logical_code": "GB",
+            "number": 1,
+            "year": 2023,
+            "part": -1,
+            "std_name": "A",
+        }
 
         # side_effect 对应 find_by_hash 的调用顺序
         self.mock_db.fetchone.side_effect = [
@@ -1025,7 +1026,9 @@ class TestFileIndexRepository(unittest.TestCase):
     def test_get_full_info_network_cache_priority(self) -> None:
         """网络缓存有值时优先使用，忽略公告缓存"""
         repo = self._make_repo()
-        nc_json = json.dumps({"match_status": "exact", "status": "现行", "standard_name": "网络版名称", "is_adopted": True})
+        nc_json = json.dumps(
+            {"match_status": "exact", "status": "现行", "standard_name": "网络版名称", "is_adopted": True}
+        )
         ac_json = json.dumps({"match_status": "exact", "status": "废止", "standard_name": "公告版名称"})
         self.mock_db.fetchall.return_value = [
             {

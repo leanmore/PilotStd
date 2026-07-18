@@ -6,7 +6,6 @@ pywinauto 模式下不做 patch，需要显式 monkeypatch 避免阻塞。
 """
 
 from __future__ import annotations
-from unittest.mock import patch
 
 import pytest
 

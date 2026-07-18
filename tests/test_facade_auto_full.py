@@ -4,11 +4,11 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+from pilotstd.download.models import BatchDownloadStats
 from pilotstd.manager.facade._auto import AutoPipeline
 from pilotstd.query.models import BatchQueryStats, QueryResult
-from pilotstd.download.models import BatchDownloadStats, DownloadTask, DownloadStatus
 
 
 class TestAutoPipeline(unittest.TestCase):
@@ -109,9 +109,7 @@ class TestAutoPipeline(unittest.TestCase):
         self.core.last_skipped_dirs = ["/fake/skipped"]
 
         self.pipeline.auto_run("/fake/root")
-        self.organize_handler.organize_skipped_dirs.assert_called_once_with(
-            ["/fake/skipped"], source_root="/fake/root"
-        )
+        self.organize_handler.organize_skipped_dirs.assert_called_once_with(["/fake/skipped"], source_root="/fake/root")
 
     def test_auto_run_mirror_disabled(self):
         """mirror_skipped_dirs=False 时不调用 organize_skipped_dirs。"""

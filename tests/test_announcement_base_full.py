@@ -5,7 +5,7 @@ import os
 import sys
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
@@ -36,8 +36,9 @@ class ConcreteCrawler(BaseAnnounceCrawler):
 
 
 # ── 动态创建子类（验证 ABC 行为）──────────────────────────────────
-def _make_dynamic_crawler(site_name="dyn_site", standard_type="hb",
-                          list_url="http://dyn/list", detail_url="http://dyn/detail"):
+def _make_dynamic_crawler(
+    site_name="dyn_site", standard_type="hb", list_url="http://dyn/list", detail_url="http://dyn/detail"
+):
     """用 type() 动态创建 BaseAnnounceCrawler 子类并返回实例。"""
     DynCrawler = type(
         "DynCrawler",
@@ -74,8 +75,7 @@ class TestBaseAnnounceCrawlerInit(unittest.TestCase):
         self.assertEqual(c.source_site, "announcement_gb")
 
     def test_dynamic_subclass_with_type(self):
-        c = _make_dynamic_crawler(site_name="dyn", standard_type="db",
-                                  list_url="http://a", detail_url="http://b")
+        c = _make_dynamic_crawler(site_name="dyn", standard_type="db", list_url="http://a", detail_url="http://b")
         self.assertEqual(c.site_name, "dyn")
         self.assertEqual(c.standard_type, "db")
         self.assertEqual(c._list_url, "http://a")
@@ -414,20 +414,40 @@ class TestFetchList(unittest.TestCase):
     @patch("pilotstd.announcement.base.safe_request")
     def test_pagination_multiple_pages(self, mock_safe_request):
         """多页数据：模拟 page1 返回 page_size 条，page2 返回 0 条。"""
+
         def make_resp(session, method, url, site_name, timeout, params):
             resp = MagicMock()
             page = params.get("pageNumber", 1)
             if page == 1:
                 resp.json.return_value = {
-                    "rows": [{"PID": f"p{i}", "CODE": f"C{i}", "TITLE": f"T{i}", "NOTICE_DATE": "2024-01-15", "STD_COUNT": "1"} for i in range(1, 21)],
+                    "rows": [
+                        {
+                            "PID": f"p{i}",
+                            "CODE": f"C{i}",
+                            "TITLE": f"T{i}",
+                            "NOTICE_DATE": "2024-01-15",
+                            "STD_COUNT": "1",
+                        }
+                        for i in range(1, 21)
+                    ],
                     "total": 30,
                 }
             elif page == 2:
                 resp.json.return_value = {
-                    "rows": [{"PID": f"p{i}", "CODE": f"C{i}", "TITLE": f"T{i}", "NOTICE_DATE": "2024-01-14", "STD_COUNT": "1"} for i in range(21, 31)],
+                    "rows": [
+                        {
+                            "PID": f"p{i}",
+                            "CODE": f"C{i}",
+                            "TITLE": f"T{i}",
+                            "NOTICE_DATE": "2024-01-14",
+                            "STD_COUNT": "1",
+                        }
+                        for i in range(21, 31)
+                    ],
                     "total": 30,
                 }
             return resp
+
         mock_safe_request.side_effect = make_resp
 
         result = self.crawler._fetch_list("2024-01-01", 20)
@@ -438,6 +458,7 @@ class TestFetchList(unittest.TestCase):
     @patch("pilotstd.announcement.base.safe_request")
     def test_date_filtering_stops_early(self, mock_safe_request):
         """遇到早于 since_date 的记录时提前终止。"""
+
         def make_resp(session, method, url, site_name, timeout, params):
             resp = MagicMock()
             resp.json.return_value = {
@@ -448,6 +469,7 @@ class TestFetchList(unittest.TestCase):
                 "total": 2,
             }
             return resp
+
         mock_safe_request.side_effect = make_resp
 
         result = self.crawler._fetch_list("2024-01-15", 20)
@@ -591,6 +613,7 @@ class TestParseItems(unittest.TestCase):
                 [{"std_code": "GB/T 2.2-2020", "std_name": "附件标准"}],
                 {"title": ""},
             )
+
         mock_parse.side_effect = parse_side_effect
         mock_download.return_value = b"fake pdf bytes"
 
@@ -684,9 +707,7 @@ class TestFetchDetailsParallel(unittest.TestCase):
     @patch.object(ConcreteCrawler, "_process_one_detail")
     def test_parallel_processing_aggregates_results(self, mock_process):
         """多公告并行处理，结果汇总。"""
-        mock_process.side_effect = lambda ann, ocr, bump: (
-            [{"std_code": f"{ann['code']}-item1"}]
-        )
+        mock_process.side_effect = lambda ann, ocr, bump: ([{"std_code": f"{ann['code']}-item1"}])
 
         ann_list = [
             {"pid": "p1", "code": "C1"},

@@ -6,11 +6,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pilotstd.ui.core._self_check import (
-    _is_enabled,
-    run_self_check,
-    _check_parsed_results_consistency,
     _check_core_attributes,
     _check_mgr_proxy,
+    _check_parsed_results_consistency,
+    _is_enabled,
+    run_self_check,
 )
 
 
