@@ -237,14 +237,12 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
     db = mgr.db
 
-    # 首次调用时检查数据库时区，只执行一次
+    # 首次调用时记录服务器时间，只执行一次
     if not hasattr(get_announce_stats, "_tz_checked"):
-        try:
-            now = db.fetchone("SELECT datetime('now', 'localtime')")[0]
-            logger.info("数据库本地时间: %s", now)
-            get_announce_stats._tz_checked = True  # type: ignore[attr-defined]
-        except Exception as e:
-            logger.warning("无法获取数据库本地时间: %s", e)
+        from datetime import datetime
+
+        logger.info("当前服务器时间: %s", datetime.now().isoformat())
+        get_announce_stats._tz_checked = True  # type: ignore[attr-defined]
 
     today = "date('now', 'localtime')"
 
