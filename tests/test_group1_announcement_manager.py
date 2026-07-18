@@ -15,7 +15,13 @@ from tests.mocks.mock_database import MockDatabase
 # announcement/matcher.py
 # ═══════════════════════════════════════════════════════
 
-_MATCHER_SCHEMA = """CREATE TABLE IF NOT EXISTS announcement_match (
+_MATCHER_SCHEMA = """CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    announce_no TEXT,
+    parse_status TEXT DEFAULT 'pending',
+    updated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS announcement_match (
     id INTEGER,
     standard_number TEXT NOT NULL,
     source_site TEXT NOT NULL DEFAULT 'announcement',

@@ -16,6 +16,19 @@ from tests.mocks.mock_database import MockDatabase
 # ── 测试用数据 ──────────────────────────────────────────────────
 # 建表 SQL（模拟 announcement_record 和 announcement_match）
 INIT_SQL = """
+CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_site TEXT,
+    pid TEXT,
+    announce_no TEXT,
+    title TEXT,
+    publish_date TEXT,
+    source_url TEXT,
+    attachment_url TEXT,
+    raw_data TEXT,
+    parse_status TEXT DEFAULT 'pending',
+    updated_at TEXT
+);
 CREATE TABLE IF NOT EXISTS announcement_record (
     id INTEGER,
     source_site TEXT NOT NULL,

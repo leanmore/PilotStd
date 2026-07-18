@@ -15,7 +15,6 @@ from pilotstd.announcement.parser import (
     _clean_wps_name,
     _code_key,
     _find_col,
-    _find_field_text,
     _parse_entry_fields,
     download_attachment,
     find_attachment_url,
@@ -26,7 +25,6 @@ from pilotstd.announcement.parser import (
     parse_text_table,
     parse_wps_text,
 )
-
 
 # ── 真实 HTML 片段 ───────────────────────────────────────────────
 HTML_GB_TABLE = """<!DOCTYPE html>
@@ -202,7 +200,8 @@ class TestBuildHeaderMap(unittest.TestCase):
 
     def test_chinese_keywords(self):
         from bs4 import BeautifulSoup
-        html = '<table><tr><th>标准编号</th><th>标准名称</th></tr></table>'
+
+        html = "<table><tr><th>标准编号</th><th>标准名称</th></tr></table>"
         soup = BeautifulSoup(html, "lxml")
         col_map = _build_header_map(soup.find("table"))
         self.assertEqual(col_map.get(0), "std_code")
@@ -210,7 +209,8 @@ class TestBuildHeaderMap(unittest.TestCase):
 
     def test_alias_keywords(self):
         from bs4 import BeautifulSoup
-        html = '<table><tr><th>编号</th><th>名称</th></tr></table>'
+
+        html = "<table><tr><th>编号</th><th>名称</th></tr></table>"
         soup = BeautifulSoup(html, "lxml")
         col_map = _build_header_map(soup.find("table"))
         self.assertEqual(col_map.get(0), "std_code")
@@ -218,6 +218,7 @@ class TestBuildHeaderMap(unittest.TestCase):
 
     def test_empty_table(self):
         from bs4 import BeautifulSoup
+
         soup = BeautifulSoup("<table></table>", "lxml")
         col_map = _build_header_map(soup.find("table"))
         self.assertEqual(col_map, {})
@@ -318,10 +319,7 @@ class TestParseTextTable(unittest.TestCase):
         self.assertIn("标准化工作导则", results[0]["std_name"])
 
     def test_multiple_standards(self):
-        text = (
-            "GB/T 1.1-2020 标准化工作导则 第1部分 2020-03-31\n"
-            "GB/T 19000-2016 质量管理体系 基础和术语 2016-12-30"
-        )
+        text = "GB/T 1.1-2020 标准化工作导则 第1部分 2020-03-31\nGB/T 19000-2016 质量管理体系 基础和术语 2016-12-30"
         results = parse_text_table(text)
         self.assertGreaterEqual(len(results), 2)
 
@@ -478,21 +476,22 @@ class TestParseEntryFields(unittest.TestCase):
     """_parse_entry_fields 测试。"""
 
     def test_extracts_name_and_publish_date(self):
-        name, replaces, date = _parse_entry_fields("标准化导则 第1部分 2020-03-31")
+        name, replaces, date, impl_date = _parse_entry_fields("标准化导则 第1部分 2020-03-31")
         self.assertIn("标准化导则", name)
         self.assertEqual(date, "2020-03-31")
+        # 只有一个日期时，实施日期应为空
+        self.assertEqual(impl_date, "")
 
     def test_extracts_replaces_code(self):
-        name, replaces, date = _parse_entry_fields(
-            "工作导则 第1部分 GB/T 1.1-2009 2020-03-31"
-        )
+        name, replaces, date, impl_date = _parse_entry_fields("工作导则 第1部分 GB/T 1.1-2009 2020-03-31")
         self.assertIn("工作导则", name)
         self.assertEqual(replaces, "GB/T 1.1-2009")
         self.assertEqual(date, "2020-03-31")
 
     def test_no_date(self):
-        name, replaces, date = _parse_entry_fields("只有名称没有日期")
+        name, replaces, date, impl_date = _parse_entry_fields("只有名称没有日期")
         self.assertEqual(date, "")
+        self.assertEqual(impl_date, "")
         self.assertIn("只有名称", name)
 
 
