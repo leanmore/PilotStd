@@ -140,6 +140,7 @@ class AnnouncementMatcher:
                 publish_date,
                 implement_date,
                 expiry_date,
+                replaces_code,
                 confidence,
                 row_index,
                 "draft",
@@ -246,12 +247,12 @@ class AnnouncementMatcher:
         # 分批插入：避免单条 SQL 过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
-            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
+            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
-                "publish_date, implement_date, expiry_date, confidence, row_index,"
+                "publish_date, implement_date, expiry_date, superseded_by, confidence, row_index,"
                 " status, fetched_at, matched, announcement_title, standard_count) "
                 f"VALUES {placeholders}",
                 flat_values,

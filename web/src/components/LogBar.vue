@@ -41,7 +41,7 @@ let startHeight = 0
 async function fetchLogs() {
   try {
     const r = await axios.get('/api/logs', { params: { tail: 80 } })
-    lines.value = r.data.lines || []
+    lines.value = (r.data.lines || []).reverse()
     err.value = false
     // 悬停时不自动滚动，否则自动滚动到底部
     requestAnimationFrame(() => {
@@ -143,11 +143,11 @@ watch(() => route?.path, () => {
 }
 .log-toggle { font-size: 11px; opacity: 0.7; }
 .log-body {
-  overflow-y: auto;
+  overflow: auto;
   padding: 6px 12px;
   transition: max-height 0.2s ease;
 }
-.log-line { color: #c8d6e5; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.log-line { color: #c8d6e5; line-height: 1.5; white-space: pre; }
 .log-line.log-warn { color: #f0c040; }
 .log-line.log-err { color: #e74c3c; }
 .log-empty { color: #555; text-align: center; padding: 12px; }

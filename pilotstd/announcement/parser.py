@@ -151,6 +151,8 @@ _HEADER_KEYWORD_MAP = [
     ("实施日期", "implementation_date"),
     ("发布日期", "publish_date"),
     ("批准日期", "publish_date"),
+    ("作废日期", "expiry_date"),
+    ("废止日期", "expiry_date"),
     ("备案号", "record_no"),
     ("主管部门", "dept"),
 ]
@@ -221,6 +223,7 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
                 "replaces_code": "",
                 "publish_date": "",
                 "implementation_date": "",
+                "expiry_date": "",
                 "record_no": "",
                 "dept": "",
             }
