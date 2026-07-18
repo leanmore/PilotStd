@@ -110,7 +110,7 @@ watch(() => route?.path, () => {
       <div v-for="(l, i) in lines" :key="i" class="log-line" :class="{
         'log-warn': l.includes('[W]') || l.includes('WARNING'),
         'log-err': l.includes('[E]') || l.includes('ERROR'),
-      }">{{ l }}</div>
+      }" :title="l">{{ l }}</div>
       <div v-if="err" class="log-empty log-err-msg">日志加载失败（已停止轮询）</div>
       <div v-else-if="!lines.length" class="log-empty">暂无日志</div>
     </div>
