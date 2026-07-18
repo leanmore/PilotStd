@@ -51,9 +51,8 @@ const parseStatusSeverity = computed(() => {
 })
 
 const parseButtonLabel = computed(() => {
-  if (parseStatus.value === 'completed') return '重新解析'
   if (parsing.value) return '解析中'
-  if (!announcement.value?.attachment_url) return '无附件'
+  if (parseStatus.value === 'completed') return '重新解析'
   return '开始解析'
 })
 
@@ -283,6 +282,18 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
     </div>
 
     <div v-else>
+      <!-- 顶部导航：返回按钮 -->
+      <div class="mb-3">
+        <Button
+          label="返回列表"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          text
+          size="small"
+          @click="$router.back()"
+        />
+      </div>
+
       <!-- 公告头 -->
       <Card class="mb-4">
         <template #title>

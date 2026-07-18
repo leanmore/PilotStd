@@ -217,6 +217,12 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             if not STD_CODE_PATTERN.match(std_code):
                 continue
 
+            # 标准名称列去重：BS4 get_text() 会递归拼接嵌套元素文本，
+            # 源站表格常见 <td><span>名称</span><a>名称</a></td> 导致重复
+            if name_col < len(cells):
+                name_parts = list(dict.fromkeys(cells[name_col].stripped_strings))
+                cell_texts[name_col] = " ".join(name_parts)
+
             item = {
                 "std_code": std_code,
                 "std_name": cell_texts[name_col] if name_col < len(cell_texts) else "",
@@ -230,6 +236,10 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             for col_idx, field_name in col_map.items():
                 if col_idx < len(cell_texts) and field_name in item:
                     item[field_name] = cell_texts[col_idx]
+            # 日期字段占位符归一化：源站用 -/——/无 表示空值
+            for date_field in ("publish_date", "implementation_date", "expiry_date"):
+                if item.get(date_field, "") in ("-", "/", "——", "—", "--", "无"):
+                    item[date_field] = ""
             results.append(item)
 
         return results
@@ -293,8 +303,9 @@ def _find_field_text(text: str, matches: list[re.Match[str]], i: int, skip_indic
     return field_text, replaces_code, next_idx
 
 
-def _parse_entry_fields(field_text: str) -> tuple[str, str, str]:
-    """从字段文本中提取标准名称、代替号、发布日期。返回 (std_name, replaces_code, publish_date)。"""
+def _parse_entry_fields(field_text: str) -> tuple[str, str, str, str]:
+    """从字段文本中提取标准名称、代替号、发布日期、实施日期。
+    返回 (std_name, replaces_code, publish_date, implementation_date)。"""
     replaces_code = ""
     std_name = _clean_wps_name(field_text)
 
@@ -305,10 +316,12 @@ def _parse_entry_fields(field_text: str) -> tuple[str, str, str]:
         replaces_code = replaces_match.group(0)
         field_text = field_text[replaces_match.end() :]
 
-    date_match = re.search(r"(\d{4}-\d{2}-\d{2})", field_text)
-    publish_date = date_match.group(1) if date_match else ""
+    dates = re.findall(r"(\d{4}-\d{2}-\d{2})", field_text)
+    publish_date = dates[0] if dates else ""
+    # 附件文本中日期按序排列：发布日期在前，实施日期在后
+    implementation_date = dates[1] if len(dates) >= 2 else ""
 
-    return std_name, replaces_code, publish_date
+    return std_name, replaces_code, publish_date, implementation_date
 
 
 def parse_text_table(text: str) -> list[dict[str, Any]]:
@@ -340,7 +353,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
         if not replaces_code_adjacent:
             replaces_code_adjacent = ""  # _find_field_text may return ""
 
-        std_name, replaces_code, publish_date = _parse_entry_fields(field_text)
+        std_name, replaces_code, publish_date, implementation_date = _parse_entry_fields(field_text)
         # 如果 _find_field_text 检测到了代替号但 REPLACES_PATTERN 没扫到，用前者
         if not replaces_code and replaces_code_adjacent:
             replaces_code = replaces_code_adjacent
@@ -354,7 +367,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
                 "std_name": std_name,
                 "replaces_code": replaces_code,
                 "publish_date": publish_date,
-                "implementation_date": "",
+                "implementation_date": implementation_date,
             }
         )
 
@@ -503,33 +516,21 @@ def download_attachment(url: str, _http: Any = None) -> Optional[bytes]:
 
 
 def extract_content(html: str) -> str:
-    """从公告详情页 HTML 中提取正文内容。三层回退：精确选择器 → p标签 → 关键词启发式。"""
+    """从公告详情页 HTML 中提取正文内容。DOM剪枝：先移除表格节点，再从剩余元素提取文本。"""
     if not html:
         return ""
     soup = BeautifulSoup(html, "html.parser")
 
-    # 1. 优先使用精确选择器
-    content_selectors = [
-        "div.content",
-        "div.article-content",
-        "div.main-text",
-        "div#Content",
-        ".announcement-body",
-    ]
-    for selector in content_selectors:
-        element = soup.select_one(selector)
-        if element:
-            paragraphs = element.find_all("p")
-            if paragraphs:
-                return "\n\n".join(p.get_text(strip=True) for p in paragraphs)
-            return element.get_text(strip=True)
+    # 移除所有表格节点（标准清单数据），防止表格数据混入正文
+    for table in soup.find_all("table"):
+        table.decompose()
 
-    # 2. 所有 p 标签（排除表格内）
+    # 从剩余 p 标签提取正文
     all_p = soup.find_all("p")
     if all_p:
-        return "\n\n".join(p.get_text(strip=True) for p in all_p if not p.find_parent("table"))
+        return "\n\n".join(p.get_text(strip=True) for p in all_p)
 
-    # 3. 启发式兜底：查找含关键词且长度 > 50 的块级元素
+    # 无 p 标签时用启发式兜底：查找含关键词且长度 > 50 的块级元素
     keywords = ["批准", "发布", "现予以", "公告如下"]
     candidates = [
         tag

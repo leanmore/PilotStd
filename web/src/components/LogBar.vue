@@ -41,14 +41,16 @@ let startHeight = 0
 async function fetchLogs() {
   try {
     const r = await axios.get('/api/logs', { params: { tail: 80 } })
-    lines.value = (r.data.lines || []).reverse()
+    lines.value = r.data.lines || []
     err.value = false
-    // 悬停时不自动滚动，否则自动滚动到底部
-    requestAnimationFrame(() => {
-      if (container.value && !isHovering.value) {
-        container.value.scrollTop = container.value.scrollHeight
-      }
-    })
+    // 最新日志在上方可见，无需自动滚动；悬停时不干扰
+    if (!isHovering.value) {
+      requestAnimationFrame(() => {
+        if (container.value) {
+          container.value.scrollTop = 0
+        }
+      })
+    }
   } catch {
     if (!err.value) err.value = true
     if (timer) { clearInterval(timer); timer = null }

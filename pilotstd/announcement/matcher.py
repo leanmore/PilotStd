@@ -48,6 +48,13 @@ class AnnouncementMatcher:
         # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
             self._bulk_insert_records(log_rows)
+            # 入库成功后回写 parse_status，确保有数据的公告不显示"待解析"
+            announce_nos = {row[2] for row in log_rows}
+            for anno in announce_nos:
+                self._db.execute(
+                    "UPDATE announcements SET parse_status='completed', updated_at=? WHERE announce_no=?",
+                    (now, anno),
+                )
         if cache_rows:
             self._bulk_upsert_cache(cache_rows)
         return result

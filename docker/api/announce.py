@@ -299,9 +299,14 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
 
 def _get_check_stats(db: Any, since: str) -> dict[str, Any]:
-    """从 announcement_record 表查询 since 之后新增公告的分类统计。"""
+    """从 announcement_record 表查询 since 之后新增公告的分类统计。
+    - 公告数 = COUNT(DISTINCT announce_no)（一个公告号对应多条标准记录）
+    - 标准数 = COUNT(*)（每条记录代表一项标准）
+    - 严禁使用 SUM(standard_count)，standard_count 是公告内条目数，
+      同一公告的多条记录共享此值，SUM 会产生 N² 膨胀。"""
     rows = db.fetchall(
-        "SELECT source_site, COUNT(*) AS cnt, SUM(standard_count) AS std_cnt "
+        "SELECT source_site,"
+        " COUNT(DISTINCT announce_no) AS ann_cnt, COUNT(*) AS std_cnt "
         "FROM announcement_record WHERE fetched_at >= ? GROUP BY source_site",
         (since,),
     )
@@ -316,18 +321,18 @@ def _get_check_stats(db: Any, since: str) -> dict[str, Any]:
         "db_standards": 0,
     }
     for r in rows:
-        cnt = r["cnt"] or 0
-        std = r["std_cnt"] or 0
+        ann_cnt = r["ann_cnt"] or 0
+        std_cnt = r["std_cnt"] or 0
         source = r["source_site"]
         if source == "announcement_gb":
-            stats["gb_count"] = cnt
-            stats["gb_standards"] = std
+            stats["gb_count"] = ann_cnt
+            stats["gb_standards"] = std_cnt
         elif source == "announcement_hb":
-            stats["hb_count"] = cnt
-            stats["hb_standards"] = std
+            stats["hb_count"] = ann_cnt
+            stats["hb_standards"] = std_cnt
         elif source == "announcement_db":
-            stats["db_count"] = cnt
-            stats["db_standards"] = std
-        stats["total_announcements"] += cnt
-        stats["total_standards"] += std
+            stats["db_count"] = ann_cnt
+            stats["db_standards"] = std_cnt
+        stats["total_announcements"] += ann_cnt
+        stats["total_standards"] += std_cnt
     return stats
