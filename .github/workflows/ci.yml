@@ -348,14 +348,23 @@ jobs:
       - name: Commit version bump
         if: steps.bump.outputs.bumped == 'true'
         run: |
+          TARGET_VER="${{ steps.bump.outputs.version }}"
+          CURRENT_VER=$(cat VERSION 2>/dev/null || echo "")
+
+          # 防重：若 VERSION 已为目标值则跳过（前一个 CI 已完成 bump）
+          if [ "$CURRENT_VER" = "$TARGET_VER" ]; then
+            echo "VERSION already at $TARGET_VER, commit skipped"
+            exit 0
+          fi
+
           # 1. 更新 VERSION 文件
-          echo "${{ steps.bump.outputs.version }}" > VERSION
+          echo "$TARGET_VER" > VERSION
 
           # 2. 精准替换 pilotstd/__init__.py 第 10 行的 __version__
-          sed -i "10s/__version__ = .*/__version__ = \"${{ steps.bump.outputs.version }}\"/" pilotstd/__init__.py
+          sed -i "10s/__version__ = .*/__version__ = \"$TARGET_VER\"/" pilotstd/__init__.py
 
           # 3. 同步 CHANGELOG（在 # CHANGELOG 行后插入新版本条目）
-          export V="${{ steps.bump.outputs.version }}"
+          export V="$TARGET_VER"
           export DATE=$(date +%Y-%m-%d)
           python3 << 'PYEOF'
           import os
@@ -374,7 +383,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add VERSION pilotstd/__init__.py CHANGELOG.md
-          git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
+          git commit -m "chore: bump version to v$TARGET_VER" || { echo "Nothing to commit, skipped"; exit 0; }
           for i in 1 2 3; do
             if git push; then
               echo "Push succeeded on attempt $i"
@@ -397,8 +406,8 @@ jobs:
         if: steps.bump.outputs.bumped == 'true'
         run: |
           TAG="v${{ steps.bump.outputs.version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping creation"
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+            echo "Tag $TAG already exists on remote, skipping creation"
           else
             git tag -a "$TAG" -m "Release $TAG"
             git push origin "$TAG"
