@@ -46,3 +46,33 @@ pilotstd_env/
 *.bak
 .env
 .env.local
+
+# ===== AI 与 CI 运行时产物 =====
+.claude/
+STATUS.md
+coverage*.json
+coverage*.txt
+final_coverage.txt
+crash_log.txt
+
+# ===== 运行时数据与日志 =====
+data/
+logs/
+
+# ===== 测试缓存与敏感残留 =====
+tests/.cache/
+tests/.fernet_key
+tests/verify_downloads/
+
+# ===== 前端构建产物与脚手架模板 =====
+web/stats.html
+web/README.md
+web/src/assets/vite.svg
+web/src/assets/vue.svg
+
+# ===== 含敏感凭证 =====
+tests/test_config.json
+
+# ===== 本地笔记与历史归档 =====
+docs/.local/
+docs/archive/
