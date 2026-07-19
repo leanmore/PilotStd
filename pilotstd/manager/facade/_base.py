@@ -202,6 +202,10 @@ class BaseFacade:
 
         self.wechat_ip_service = WechatIPService(self)
 
+        from ..monitor_service import MonitorService
+
+        self.monitor_service = MonitorService(self)
+
     def _init_notification(self) -> None:
         """重新初始化通知模块（配置变更后调用）。"""
         self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)

@@ -104,7 +104,7 @@ def _start_all_schedulers(_cron_mgr) -> None:
 
         get_monitor_stats()
     except Exception:
-        pass
+        logger.warning("文件监控启动失败", exc_info=True)
 
     # 企业微信可信 IP 自动更新（独立线程，不占用 APScheduler）
     try:
@@ -128,7 +128,7 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 
         get_monitor_stats().flush_and_close()
     except Exception:
-        pass
+        logger.warning("文件监控关闭失败", exc_info=True)
 
     try:
         _cron_mgr.wechat_ip_service.stop_scheduler()
