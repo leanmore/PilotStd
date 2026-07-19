@@ -1,5 +1,6 @@
 # docker/api/logs.py — 应用日志读取 API（供前端日志栏 + 压测远端取回使用）
 import os
+import re
 
 from fastapi import Depends
 from fastapi.responses import FileResponse
@@ -14,29 +15,77 @@ router = APIRouter(tags=["logs"])
 # 日志文件路径（LoggerManager 写入的 app.log）
 _LOG_PATH = os.path.join(_get_log_dir(), "app.log")
 
+# 日志时间戳正则：MM-DD HH:MM:SS
+_TIMESTAMP_PATTERN = re.compile(r"^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})")
+
+
+def _extract_timestamp(line: str) -> str | None:
+    """从日志行提取时间戳 'MM-DD HH:MM:SS'，失败返回 None。"""
+    m = _TIMESTAMP_PATTERN.match(line)
+    if m:
+        return m.group(1)
+    # 兼容 ISO 格式 2026-07-19T10:30:00
+    m2 = re.match(r"^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})", line)
+    return m2.group(1) if m2 else None
+
 
 @router.get("/api/logs")
-def get_logs(tail: int = 50, offset: int = 0):
-    """返回最近 N 行日志。tail=0 表示全量（最大 10000 行）。"""
+def get_logs(tail: int = 50, since: str = ""):
+    """返回日志行。支持增量模式。
+
+    - since 为空：返回最近 tail 条日志（首次加载）
+    - since 有值：从文件末尾向前搜索 since 对应的位置，仅返回增量行
+    - tail: 增量模式下保护上限，默认 50
+
+    返回格式: {lines, total, lastTimestamp}
+    """
     if not os.path.exists(_LOG_PATH):
         return {"lines": [], "path": _LOG_PATH, "note": "日志文件尚未生成"}
+
     try:
         with open(_LOG_PATH, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-        total = len(lines)
-        if tail > 0 and total > tail:
-            lines = lines[-tail:]
-        elif total > 10000:
-            lines = lines[-10000:]
-        if offset > 0 and offset < len(lines):
-            lines = lines[offset:]
-        return {
-            "lines": [line.rstrip("\n") for line in lines],
-            "path": _LOG_PATH,
-            "total": total,
-        }
+            all_lines = f.readlines()
     except OSError as e:
         return {"lines": [f"[日志读取失败] {e}"], "path": _LOG_PATH}
+
+    total = len(all_lines)
+
+    if not since:
+        # 首次加载：返回最近 tail 条
+        lines = all_lines[-tail:] if tail > 0 and total > tail else all_lines
+        lines = [line.rstrip("\n") for line in lines]
+        last_ts = _extract_timestamp(lines[-1]) if lines else None
+        return {
+            "lines": lines,
+            "total": total,
+            "lastTimestamp": last_ts,
+        }
+
+    # 增量模式：从末尾向前找 since 对应位置，返回之后的新行
+    # 从文件末尾开始扫描比全量 readlines 后 filter 更高效
+    start_idx = None
+    for i in range(total - 1, -1, -1):
+        ts = _extract_timestamp(all_lines[i])
+        if ts and ts <= since:
+            start_idx = i + 1
+            break
+
+    if start_idx is None:
+        # 未匹配到 since，可能日志已轮转，返回最近 tail 条
+        lines = all_lines[-tail:] if tail > 0 and total > tail else all_lines
+    else:
+        lines = all_lines[start_idx:]
+        # 增量过多时截断保护（避免日志洪峰撑爆前端）
+        if tail > 0 and len(lines) > tail:
+            lines = lines[-tail:]
+
+    lines = [line.rstrip("\n") for line in lines]
+    last_ts = _extract_timestamp(lines[-1]) if lines else None
+    return {
+        "lines": lines,
+        "total": total,
+        "lastTimestamp": last_ts,
+    }
 
 
 @router.get("/api/admin/logs/app")

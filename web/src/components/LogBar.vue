@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'LogBar' })
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { getItem, setItem } from '@/lib/storage'
@@ -12,7 +12,10 @@ const container = ref<HTMLElement | null>(null)
 const err = ref(false)
 const route = useRoute()
 
-// 各页面默认高度（根据内容量预设）
+// 增量游标：上次请求获取到的最后一条日志的时间戳
+const lastTimestamp = ref<string>('')
+
+// 每个页面默认日志面板高度
 const defaultHeights: Record<string, number> = {
   '/task': 300,
   '/pending': 150,
@@ -33,27 +36,54 @@ const defaultHeight = computed(() => {
 const logHeight = ref(
   Number(getItem(heightKey.value)) || defaultHeight.value
 )
-const isHovering = ref(false)
+
+// 用户手动滚离顶部时置 true，暂停自动滚动
+const userScrolled = ref(false)
 let timer: ReturnType<typeof setInterval> | null = null
 let startY = 0
 let startHeight = 0
 
+// 行内容稳定 hash（前 32 字符，避免长行性能开销）
+function lineHash(l: string): string {
+  return l.substring(0, 32)
+}
+
+function onScroll() {
+  if (!container.value) return
+  // 用户向上滚动超过 50px → 锁定；滚回顶部 → 解锁
+  userScrolled.value = container.value.scrollTop > 50
+}
+
 async function fetchLogs() {
   try {
-    const r = await axios.get('/api/logs', { params: { tail: 80 } })
-    lines.value = r.data.lines || []
+    // 增量请求：传入上次游标，后端只返回新行
+    const params: Record<string, string | number> = { tail: 80 }
+    if (lastTimestamp.value) {
+      params.since = lastTimestamp.value
+    }
+    const r = await axios.get('/api/logs', { params })
+    const newLines: string[] = r.data.lines || []
     err.value = false
-    // 最新日志在上方可见，无需自动滚动；悬停时不干扰
-    if (!isHovering.value) {
-      requestAnimationFrame(() => {
-        if (container.value) {
-          container.value.scrollTop = 0
-        }
-      })
+
+    if (r.data.lastTimestamp) {
+      lastTimestamp.value = r.data.lastTimestamp
+    }
+
+    if (newLines.length > 0) {
+      // 增量追加，保留最近 200 行（防止日志洪峰撑爆内存）
+      lines.value = [...lines.value, ...newLines].slice(-200)
+    }
+
+    // 仅当用户未锁定且日志面板展开时，滚到顶部（最新日志在上）
+    if (!userScrolled.value && expanded.value) {
+      await nextTick()
+      if (container.value) {
+        container.value.scrollTop = 0
+      }
     }
   } catch {
     if (!err.value) err.value = true
-    if (timer) { clearInterval(timer); timer = null }
+    // 网络错误时不清除定时器，等待下次重试
   }
 }
 
@@ -63,7 +93,11 @@ onMounted(() => {
 })
 onUnmounted(() => { if (timer) clearInterval(timer) })
 
-watch(() => props.refreshKey, () => fetchLogs())
+watch(() => props.refreshKey, () => {
+  // 手动刷新：清空游标重新加载
+  lastTimestamp.value = ''
+  fetchLogs()
+})
 
 function toggle() { expanded.value = !expanded.value; setItem('logbar_expanded', expanded.value ? '1' : '0') }
 
@@ -106,10 +140,9 @@ watch(() => route?.path, () => {
       ref="container"
       class="log-body"
       :style="{ maxHeight: logHeight + 'px' }"
-      @mouseenter="isHovering = true"
-      @mouseleave="isHovering = false"
+      @scroll="onScroll"
     >
-      <div v-for="(l, i) in lines" :key="i" class="log-line" :class="{
+      <div v-for="l in lines" :key="lineHash(l)" class="log-line" :class="{
         'log-warn': l.includes('[W]') || l.includes('WARNING'),
         'log-err': l.includes('[E]') || l.includes('ERROR'),
       }" :title="l">{{ l }}</div>
