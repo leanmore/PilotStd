@@ -42,4 +42,8 @@ echo "[5/5] G-012 SQL-表结构一致性..."
 python scripts/check_g_012_sql_schema.py
 
 echo ""
+echo "[6/6] Schema 一致性检查..."
+python scripts/check_schema_consistency.py
+
+echo ""
 echo "✅ 全部检查通过"

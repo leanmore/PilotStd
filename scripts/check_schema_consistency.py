@@ -5,10 +5,10 @@
 所有 .py 文件中的 CREATE TABLE 语句，对比列定义是否一致。
 
 不一致类型：
-- EXTRA: 测试表有生产表没有的列（如之前 test_announce_detail.py 的 created_at）
-- MISSING: 生产表有测试表没有的列（测试表可能过于简化）
+- EXTRA: 测试表有生产表没有的列
+- MISSING: 生产表有测试表没有的列
 
-警告模式：发现问题时打印警告，exit 0（不阻断 CI）。
+阻断模式：MISSING > 0 时 sys.exit(1)，阻断提交和 CI。
 """
 
 import os
@@ -193,14 +193,18 @@ def main() -> int:
         missing = sum(1 for v in all_issues.values() for _, it, _ in v if it == "MISSING")
         print()
         print("=" * 60)
-        print(f"汇总: EXTRA={extras} (严重), MISSING={missing} (提示)")
-        print("警告: 请逐步修复上述不一致（不阻断 CI）。")
+        print(f"汇总: EXTRA={extras} (严重), MISSING={missing}")
+        if missing > 0:
+            print("错误: Schema 不一致，请同步测试表结构后重新提交。")
+            return 1
+        else:
+            print("警告: 请逐步修复 EXTRA 项。")
+            return 0
     else:
         print("=" * 60)
         print("汇总: 0 处不一致")
         print("PASS: 测试表结构与生产 Schema 一致。")
-
-    return 0
+        return 0
 
 
 if __name__ == "__main__":
