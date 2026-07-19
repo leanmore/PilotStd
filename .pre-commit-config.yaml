@@ -189,3 +189,9 @@ repos:
         language: system
         pass_filenames: true
         stages: [pre-commit]
+
+      - id: commit-msg-format
+        name: 提交信息格式校验
+        entry: bash -c 'MSG=$(cat "$1"); if ! echo "$MSG" | grep -qE "^(feat|fix|refactor|docs|test|chore|ci|style|perf|build|revert)(\([a-z\-]+\))?: .+"; then echo ""; echo "❌ 提交信息格式错误！"; echo "   当前内容: $MSG"; echo ""; echo "   正确格式: <type>(<scope>): <description>"; echo "   示例: feat(parser): 支持 PDF 公告解析"; echo "   示例: fix(query): 修复空结果集崩溃"; echo "   示例: refactor(core): 提取状态机逻辑"; echo ""; echo "   允许的 type: feat|fix|refactor|docs|test|chore|ci|style|perf|build|revert"; echo ""; exit 1; fi' --
+        language: system
+        stages: [commit-msg]
