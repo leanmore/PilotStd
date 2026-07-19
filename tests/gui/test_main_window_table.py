@@ -314,7 +314,7 @@ def test_make_item(window, qtbot):
 
 def test_populate_quick_access(window, qtbot):
     """_populate_quick_access 填充快速访问列表。"""
-    cnt_before = window.file_tree.topLevelItemCount()
+    window.file_tree.topLevelItemCount()
     window._populate_quick_access()  # 不抛异常
     # 快速访问节点已存在时不会重复添加
 

@@ -20,7 +20,7 @@ from stress_utils import (  # type: ignore[import-not-found]
 from pilotstd.query.engine import PROGRESS_TAG
 
 
-def _check_directories(config: dict, result_dir: str) -> bool:
+def _check_directories(config, result_dir: str) -> bool:
     """Check input/output directories, list files, write to log."""
     from stress_utils import log_to_file_and_console
 
@@ -40,7 +40,6 @@ def _check_directories(config: dict, result_dir: str) -> bool:
 
 def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: str = "", yes: bool = False) -> bool:
     """Execute Docker API verification phase. Returns True if passed."""
-    global BASE, USERNAME, PASSWORD
     from stress_utils import check as _check
     from stress_utils import verdict as _verdict
 

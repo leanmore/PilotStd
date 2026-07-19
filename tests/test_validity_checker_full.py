@@ -797,7 +797,7 @@ class TestFinalizeValidityRound(unittest.TestCase):
         self.mock_adapter = MagicMock()
 
     def test_update_counters_false(self):
-        result = _finalize_validity_round(
+        _finalize_validity_round(
             self.mock_config,
             self.mock_db,
             [],

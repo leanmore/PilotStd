@@ -80,7 +80,9 @@ class TestWorkersModule:
         from pilotstd.ui.workers import __all__ as pkg_all
 
         assert set(wm.__all__) == set(pkg_all), (
-            f"workers.py 和 workers/__init__.py 的 __all__ 不一致:\n  只在前者: {set(wm.__all__) - set(pkg_all)}\n  只在后者: {set(pkg_all) - set(wm.__all__)}"
+            f"workers.py 和 workers/__init__.py 的 __all__ 不一致:\n"
+            f"  只在前者: {set(wm.__all__) - set(pkg_all)}\n"
+            f"  只在后者: {set(pkg_all) - set(wm.__all__)}"
         )
 
 
@@ -720,9 +722,9 @@ class TestUpdateDownloadWorker:
 
         # Mock 内部依赖以阻止真实网络和文件操作
         with (
-            patch("pilotstd.platform.updater.download_update", return_value=True) as mock_dl,
-            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123") as mock_sha,
-            patch("pilotstd.platform.updater.generate_update_script", return_value="/tmp/update.bat") as mock_script,
+            patch("pilotstd.platform.updater.download_update", return_value=True),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
+            patch("pilotstd.platform.updater.generate_update_script", return_value="/tmp/update.bat"),
         ):
             worker.run()
 

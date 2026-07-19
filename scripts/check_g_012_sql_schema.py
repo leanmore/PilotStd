@@ -576,7 +576,7 @@ def main() -> int:
 
     # 2. 扫描文件
     print(f"扫描目录: {', '.join(str(d.relative_to(ROOT)) for d in SCAN_DIRS)}")
-    py_files = []
+    py_files: list[Path] = []
     for d in SCAN_DIRS:
         if d.exists():
             py_files.extend(d.rglob("*.py"))
@@ -589,7 +589,6 @@ def main() -> int:
 
     # 3. 检查每个文件
     all_errors: dict[tuple[str, str, str], list[tuple[int, str]]] = defaultdict(list)
-    skipped_count = 0
     total_sql = 0
 
     for f in sorted(py_files):

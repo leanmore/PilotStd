@@ -120,11 +120,13 @@ class TestValidityCheckerRemaining(unittest.TestCase):
 
         now = datetime.now(timezone.utc).isoformat()
         self.db.execute(
-            "INSERT INTO standard_validity (standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
+            "INSERT INTO standard_validity "
+            "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
             ("STD-A", "现行", now, now, now),
         )
         self.db.execute(
-            "INSERT INTO standard_validity (standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
+            "INSERT INTO standard_validity "
+            "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
             ("STD-B", "废止", now, now, now),
         )
         vc = ValidityChecker(self.db)
@@ -136,7 +138,9 @@ class TestValidityCheckerRemaining(unittest.TestCase):
 # ═══ core/ cache_manager (71.8→80%) ═══
 class TestCacheManagerRemaining(unittest.TestCase):
     def setUp(self):
-        schema = """CREATE TABLE IF NOT EXISTS standard_info_cache (id INTEGER PRIMARY KEY, data_state TEXT DEFAULT 'valid', source_version TEXT DEFAULT 'initial', last_accessed_at TEXT, result_json TEXT);
+        schema = """CREATE TABLE IF NOT EXISTS standard_info_cache (
+            id INTEGER PRIMARY KEY, data_state TEXT DEFAULT 'valid',
+            source_version TEXT DEFAULT 'initial', last_accessed_at TEXT, result_json TEXT);
         CREATE TABLE IF NOT EXISTS standard_validity (
     id INTEGER,
     standard_number TEXT NOT NULL,
@@ -193,7 +197,8 @@ class TestCacheManagerRemaining(unittest.TestCase):
         from pilotstd.core.cache_manager import DataSource
 
         self.db.execute(
-            "INSERT INTO standard_info_cache (id,data_state,source_version,last_accessed_at) VALUES (1,'valid','old','2024-01-01')"
+            "INSERT INTO standard_info_cache "
+            "(id,data_state,source_version,last_accessed_at) VALUES (1,'valid','old','2024-01-01')"
         )
         self.cm.mark_stale("standard_info_cache", "id", 1)
         row = self.db.fetchone("SELECT data_state FROM standard_info_cache WHERE id=1")
@@ -223,7 +228,11 @@ class TestFileIndexRemaining(unittest.TestCase):
         from pilotstd.core.file_index import FILE_INDEX_TABLE, FileIndexRepository
 
         db = MockDatabase(
-            f"CREATE TABLE IF NOT EXISTS {FILE_INDEX_TABLE} (id INTEGER PRIMARY KEY, filepath TEXT, logical_code TEXT, standard_number TEXT, standard_name TEXT, year INTEGER, kind TEXT, language TEXT, file_hash TEXT, file_size INTEGER, modified_at TEXT, indexed_at TEXT)"
+            f"CREATE TABLE IF NOT EXISTS {FILE_INDEX_TABLE} ("
+            f"id INTEGER PRIMARY KEY, filepath TEXT, logical_code TEXT, "
+            f"standard_number TEXT, standard_name TEXT, year INTEGER, "
+            f"kind TEXT, language TEXT, file_hash TEXT, file_size INTEGER, "
+            f"modified_at TEXT, indexed_at TEXT)"
         ).__enter__()
         try:
             repo = FileIndexRepository(db)

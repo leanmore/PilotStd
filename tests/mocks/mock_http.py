@@ -102,7 +102,7 @@ def mock_announcement_list(response: dict[str, Any] | None = None) -> None:
     data = response or ANNOUNCEMENT_LIST_RESPONSE
     _responses.add(
         _responses.GET,
-        _responses.matchers.query_param_matcher({"pageNumber": "1"}),
+        _responses.matchers.query_param_matcher({"pageNumber": "1"}),  # type: ignore[arg-type]
         json=data,
         status=200,
     )

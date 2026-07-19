@@ -71,7 +71,7 @@ def main():
                 step1_data = json.load(f)
             print(f"  从 {step1_path} 加载 step1 数据")
     else:
-        from stress_cli import run_cli_phase
+        from stress_cli import run_cli_phase  # type: ignore[import-not-found]
 
         step1_data = run_cli_phase(
             source=args.source,
@@ -88,7 +88,7 @@ def main():
     if skip_docker:
         print("第二阶段跳过（--skip-docker）")
     else:
-        from stress_docker import run_docker_phase
+        from stress_docker import run_docker_phase  # type: ignore[import-not-found]
 
         step1_path = args.step1 or os.path.join(RESULT_DIR, "step1.json")
         step3_ok = run_docker_phase(
@@ -173,7 +173,7 @@ def main():
             print(f"WinUI 甲轮完成: 判定={step2_data.get('verdict', '?')}")
 
         # 乙轮：web 缓存命中率验证（从 Docker 的 announce_sample.json 读取公告号）
-        from stress_winui import precheck_winui_round_b, run_winui_round_b
+        from stress_winui import precheck_winui_round_b, run_winui_round_b  # type: ignore[import-not-found]
 
         test_config = _load_test_config(args.config)
         precheck_status, precheck_msg = precheck_winui_round_b(test_config, RESULT_DIR)

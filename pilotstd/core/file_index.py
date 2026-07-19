@@ -75,7 +75,7 @@ class FileIndexRepository:
                 try:
                     row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                     row_count = row["cnt"] if row else 0
-                    delay = min(30, max(5, row_count / 500))
+                    delay = min(30, max(5, row_count / 500))  # type: ignore[assignment]
                 except Exception:
                     delay = 10
 

@@ -74,7 +74,7 @@ class TestNotificationManager(unittest.TestCase):
                 "new_status": "已废止",
             },
         )
-        self.assertIn("已废止", msg.body)
+        self.assertEqual(msg.blocks[0].new_value, "已废止")
         self.assertEqual(msg.level, "warning")
 
     def test_build_message_unknown_event_fallback(self):
@@ -176,4 +176,4 @@ class TestNotificationManager(unittest.TestCase):
         self.mock_cfg.get.return_value = False
         nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
         # _init_event_builders populates the dispatcher
-        self.assertTrue(hasattr(nmgr, '_init_event_builders'))
+        self.assertTrue(hasattr(nmgr, "_init_event_builders"))

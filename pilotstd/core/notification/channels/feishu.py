@@ -6,6 +6,7 @@ import logging
 from urllib.request import Request, urlopen
 
 from ..channel import NotificationChannel, NotificationMessage
+from ..renderer import FeishuCardRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -15,35 +16,24 @@ class FeishuChannel(NotificationChannel):
 
     def __init__(self, webhook_url: str):
         self._url = webhook_url
+        self._renderer = FeishuCardRenderer()
 
     def send(self, message: NotificationMessage) -> bool:
         """发送交互式卡片通知到飞书群。"""
         if not self._url:
             return False
         try:
-            # 消息级别映射为飞书卡片 header 颜色
-            color_map = {"info": "green", "warning": "yellow", "error": "red"}
-            color = color_map.get(message.level, "green")
-            # 飞书交互式卡片格式：header + markdown 正文
-            content = [
-                [
-                    {"tag": "text", "text": message.body},
-                ]
-            ]
+            # 使用 FeishuCardRenderer 渲染卡片 dict
+            card = self._renderer.render(message)
+
+            # 标准号在卡片底部追加为备注元素
             if message.standard_number:
-                content.append([{"tag": "text", "text": f"标准号: {message.standard_number}"}])
+                card["elements"].append({"tag": "markdown", "content": f"标准号: {message.standard_number}"})
+
             payload = json.dumps(
                 {
                     "msg_type": "interactive",
-                    "card": {
-                        "header": {
-                            "title": {"tag": "plain_text", "content": message.title},
-                            "template": color,
-                        },
-                        "elements": [
-                            {"tag": "markdown", "content": message.body},
-                        ],
-                    },
+                    "card": card,
                 }
             ).encode("utf-8")
             req = Request(self._url, data=payload, headers={"Content-Type": "application/json"})

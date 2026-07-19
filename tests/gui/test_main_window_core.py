@@ -197,7 +197,7 @@ def test_get_pipeline_stats_before_ready(window, qtbot):
 
 def test_get_pipeline_stats_after_ready(window, qtbot):
     """_mgr 就绪后 get_pipeline_stats 返回完整统计。"""
-    mgr = window._mgr  # 触发延迟初始化
+    window._mgr  # 触发延迟初始化
     stats = window.get_pipeline_stats()
     assert "scan_count" in stats
     assert "query_total" in stats

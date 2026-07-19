@@ -6,6 +6,7 @@ import logging
 from urllib.request import Request, urlopen
 
 from ..channel import NotificationChannel, NotificationMessage
+from ..renderer import MarkdownRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -15,19 +16,21 @@ class WechatChannel(NotificationChannel):
 
     def __init__(self, webhook_url: str):
         self._url = webhook_url
+        self._renderer = MarkdownRenderer()
 
     def send(self, message: NotificationMessage) -> bool:
         if not self._url:
             return False
         try:
-            # markdown 格式：标题加粗 + 正文
-            md_content = f"## {message.title}\n{message.body}"
+            # 使用 MarkdownRenderer 渲染消息体
+            rendered = self._renderer.render(message)
+            # 标准号以引用块形式追加
             if message.standard_number:
-                md_content += f"\n> 标准号: {message.standard_number}"
+                rendered += f"\n> 标准号: {message.standard_number}"
             payload = json.dumps(
                 {
                     "msgtype": "markdown",
-                    "markdown": {"content": md_content},
+                    "markdown": {"content": rendered},
                 }
             ).encode("utf-8")
             req = Request(self._url, data=payload, headers={"Content-Type": "application/json"})

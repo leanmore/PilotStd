@@ -11,7 +11,7 @@ import pytest
 
 
 @pytest.fixture
-def temp_workspace() -> str:
+def temp_workspace() -> str:  # type: ignore[misc]
     """创建临时工作空间目录，测试结束后自动清理。
 
     用法:
@@ -51,4 +51,4 @@ def temp_workspace_with_files(temp_workspace: str) -> dict[str, str]:
         full.write_text("test content", encoding="utf-8")
         created.append(str(full))
 
-    return {"root": str(root), "files": created}
+    return {"root": str(root), "files": created}  # type: ignore[dict-item]

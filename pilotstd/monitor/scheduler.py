@@ -29,7 +29,7 @@ def get_scheduler():
 # 全局单例模式，通过 get_scheduler() 获取，start/stop 管理生命周期
 class FileMonitorScheduler:
     def __init__(self, manager: Any = None):
-        self.observer: Observer | None = None
+        self.observer: Observer | None = None  # type: ignore[valid-type]
         self.handler: StandardFileHandler | None = None
         self.running = False
         self._thread: threading.Thread | None = None

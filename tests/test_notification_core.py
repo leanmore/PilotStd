@@ -35,15 +35,14 @@ class TestMessageBuilders(unittest.TestCase):
         self.mixin = MessageBuildersMixin()
 
     def test_archive_complete_with_dirs(self):
-        msg = self.mixin._build_archive_complete_message(
-            {"count": 5, "directories": ["d1", "d2", "d3", "d4", "d5"]}
-        )
+        msg = self.mixin._build_archive_complete_message({"count": 5, "directories": ["d1", "d2", "d3", "d4", "d5"]})
         self.assertEqual(msg.level, "info")
-        self.assertIn("5", msg.body)
+        # blocks[0] 为 TextBlock("已归档 5 个目录"), blocks[1] 为 ListBlock
+        self.assertIn("5", msg.blocks[0].text)
 
     def test_archive_complete_zero(self):
         msg = self.mixin._build_archive_complete_message({"count": 0, "directories": []})
-        self.assertIn("未归档", msg.body)
+        self.assertIn("未归档", msg.blocks[0].text)
 
     def test_status_changed_expired(self):
         msg = self.mixin._build_standard_status_changed_message(
@@ -71,7 +70,8 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_batch_download_with_failures(self):
         msg = self.mixin._build_batch_download_complete_message({"count": 5, "failed": 2})
-        self.assertIn("2", msg.body)
+        # blocks[1] 为 KeyValueBlock(key="失败", value="2")
+        self.assertEqual(msg.blocks[1].value, "2")
 
     def test_worker_error(self):
         msg = self.mixin._build_worker_error_message(
@@ -88,9 +88,7 @@ class TestMessageBuilders(unittest.TestCase):
         self.assertIsNotNone(msg)
 
     def test_validity_batch_report(self):
-        msg = self.mixin._build_validity_batch_report_message(
-            {"total": 50, "changed": 3, "expired": 1, "details": []}
-        )
+        msg = self.mixin._build_validity_batch_report_message({"total": 50, "changed": 3, "expired": 1, "details": []})
         self.assertIsNotNone(msg)
 
     def test_validity_round_summary(self):

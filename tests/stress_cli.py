@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(ROOT, ".env"))
 
 # 必须先import stress_driver模块本体，才能设置其模块级全局变量（TS/RESULT_DIR）
-import stress_driver
+import stress_driver  # type: ignore[import-not-found]
 from stress_driver import (
     _step0_clear_db,
     _step1_cli_cold,

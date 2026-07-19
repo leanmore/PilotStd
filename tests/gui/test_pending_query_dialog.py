@@ -26,11 +26,11 @@ def mock_parsed_list() -> list:
     parsed_a = MagicMock()
     parsed_a.get_full_number.return_value = "GB/T 1-2020"
     parsed_a.std_name = "基础规范"
-    parsed_a.__str__.return_value = "GB/T 1-2020"
+    parsed_a.__str__.return_value = "GB/T 1-2020"  # type: ignore[attr-defined]
     parsed_b = MagicMock()
     parsed_b.get_full_number.return_value = "SH/T 2-2010"
     parsed_b.std_name = "化工标准"
-    parsed_b.__str__.return_value = "SH/T 2-2010"
+    parsed_b.__str__.return_value = "SH/T 2-2010"  # type: ignore[attr-defined]
     return [parsed_a, parsed_b]
 
 
@@ -146,8 +146,10 @@ class TestPendingQueryDialog:
         qtbot.addWidget(dlg)
         dlg._radio_group["site_a"].setChecked(True)
 
-        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes) as mock_q, \
-             patch.object(dlg, "_do_query") as mock_do:
+        with (
+            patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.Yes) as mock_q,
+            patch.object(dlg, "_do_query") as mock_do,
+        ):
             dlg._on_start()
             # 两个已解析项各触发一次询问
             assert mock_q.call_count == 2
@@ -164,8 +166,10 @@ class TestPendingQueryDialog:
         qtbot.addWidget(dlg)
         dlg._radio_group["site_a"].setChecked(True)
 
-        with patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.No) as mock_q, \
-             patch.object(dlg, "_do_query") as mock_do:
+        with (
+            patch.object(QMessageBox, "question", return_value=QMessageBox.StandardButton.No) as mock_q,
+            patch.object(dlg, "_do_query") as mock_do,
+        ):
             dlg._on_start()
             mock_q.assert_called_once()
             mock_do.assert_not_called()
@@ -178,7 +182,7 @@ class TestPendingQueryDialog:
         qtbot.addWidget(dlg)
         dlg._has_local_db = True
         dlg._radio_group[PendingQueryDialog.LOCAL_DB_KEY] = MagicMock()
-        dlg._radio_group[PendingQueryDialog.LOCAL_DB_KEY].isChecked.return_value = True
+        dlg._radio_group[PendingQueryDialog.LOCAL_DB_KEY].isChecked.return_value = True  # type: ignore[attr-defined]
 
         with patch.object(dlg, "_do_local_query") as mock_local:
             dlg._on_start()
@@ -369,4 +373,4 @@ class TestPendingQueryDialog:
 
         dlg = PendingQueryDialog(mock_manager, mock_parsed_list)
         qtbot.addWidget(dlg)
-        assert "2" in dlg.layout().itemAt(0).widget().text()
+        assert "2" in dlg.layout().itemAt(0).widget().text()  # type: ignore[union-attr]

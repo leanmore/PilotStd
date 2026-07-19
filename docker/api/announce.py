@@ -105,7 +105,7 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
             return {"ok": False, "count": 0, "failures": 1, "error": "任务丢失"}
         _time.sleep(1)
 
-    return JSONResponse(
+    return JSONResponse(  # type: ignore[return-value]
         {"code": 408, "msg": "同步等待超时，请改用异步模式 POST /api/announcements/fetch", "task_id": task_id},
         408,
     )
@@ -116,7 +116,7 @@ def api_check_announce(
     since_date: str = "",
     sync: bool = False,
     types: str = "",
-    background_tasks: BackgroundTasks = None,
+    background_tasks: BackgroundTasks | None = None,
     mgr=Depends(get_manager_dep),
 ):
     """抓取最新公告。

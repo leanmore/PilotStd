@@ -175,7 +175,7 @@ class TestInitEnsureTables(unittest.TestCase):
         # fetchone 默认返回 None
         mock_db.fetchone = MagicMock(return_value=None)
 
-        cm = CacheManager(mock_db)
+        CacheManager(mock_db)
 
         # 应创建两表
         execute_sqls = [str(c[0][0]) for c in mock_db.execute.call_args_list if c[0]]

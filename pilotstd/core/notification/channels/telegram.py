@@ -8,6 +8,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from ..channel import NotificationChannel, NotificationMessage
+from ..renderer import TelegramRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +17,12 @@ _ERROR_DEBOUNCE_SECONDS = 120
 
 
 class TelegramChannel(NotificationChannel):
-    """Telegram Bot API。支持 parse_mode=Markdown。"""
+    """Telegram Bot API。支持 parse_mode=MarkdownV2。"""
 
     def __init__(self, bot_token: str, chat_id: str):
         self._token = bot_token.strip()
         self._chat_id = chat_id.strip()
+        self._renderer = TelegramRenderer()
         # 去重：记录上次错误信息及时间戳
         self._last_error_key: str = ""
         self._last_error_time: float = 0.0
@@ -29,14 +31,16 @@ class TelegramChannel(NotificationChannel):
         if not self._token or not self._chat_id:
             return False
         try:
-            text = f"*{message.title}*\n{message.body}"
+            # 使用 TelegramRenderer 渲染 MarkdownV2 文本
+            text = self._renderer.render(message)
+            # 标准号以等宽格式追加
             if message.standard_number:
-                text += f"\n`{message.standard_number}`"
+                text += f"\n`{self._renderer._escape(message.standard_number)}`"
             payload = json.dumps(
                 {
                     "chat_id": self._chat_id,
                     "text": text,
-                    "parse_mode": "Markdown",
+                    "parse_mode": "MarkdownV2",
                 }
             ).encode("utf-8")
             url = f"https://api.telegram.org/bot{self._token}/sendMessage"

@@ -100,7 +100,7 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            f1 = _get_fernet(tmpdir)
+            _get_fernet(tmpdir)
             f2 = _get_fernet(tmpdir)
             # 同一个 Fernet 实例（或至少密钥相同）
             self.assertIsNotNone(f2)

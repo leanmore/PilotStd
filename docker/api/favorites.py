@@ -70,7 +70,7 @@ def add_favorite(
         )
         favorite_id = cursor.lastrowid
 
-        background_tasks.add_task(download_to_inbox, favorite_id, user_id, data.record_id)
+        background_tasks.add_task(download_to_inbox, favorite_id, user_id, data.record_id)  # type: ignore[arg-type]
 
         return {"status": "pending", "favorite_id": favorite_id}
     finally:

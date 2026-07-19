@@ -105,7 +105,7 @@ set_language(_orig)
 logger.info("--- 通知 ---")
 _notify_ok = False
 try:
-    from pilotstd.core.notify import NotifyService
+    from pilotstd.core.notify import NotifyService  # type: ignore[import-not-found]
 
     _notify_ok = True
 except Exception as e:
@@ -483,7 +483,7 @@ if _worker_ok:
     _mgr3 = MagicMock()
     _mgr3.query = _stoppable_query
     _w3 = QueryWorker(_mgr3, _make_items())
-    _batch_got = []
+    _batch_got: list = []
     _w3.batch_ready.connect(lambda b: _batch_got.append(b))
     _w3.start()
     _w3.stop()

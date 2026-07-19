@@ -4,6 +4,13 @@
 
 from pilotstd.i18n import _
 
+from .blocks import (
+    KeyValueBlock,
+    ListBlock,
+    NotificationBlock,
+    StatusChangeBlock,
+    TextBlock,
+)
 from .channel import NotificationMessage
 
 
@@ -19,20 +26,26 @@ class MessageBuildersMixin:
     # ── 归档事件 ──
 
     def _build_archive_complete_message(self, data: dict) -> NotificationMessage:
+        """构建归档完成通知——成功展示目录清单，空归档展示提示文本。"""
         count = data.get("count", 0)
         directories = data.get("directories", [])
+        blocks: list[NotificationBlock]
         if count == 0:
-            body = _("未归档任何目录（所有目标均为空或已归档）")
+            blocks = [TextBlock(text=_("未归档任何目录（所有目标均为空或已归档）"))]
         else:
-            # 最多展示 3 个目录名，超出用"等"省略
-            dirs_preview = "、".join(directories[:3])
-            if len(directories) > 3:
-                body = _("已归档 {count} 个目录：{preview} 等").format(count=count, preview=dirs_preview)
-            else:
-                body = _("已归档 {count} 个目录：{preview}").format(count=count, preview=dirs_preview)
+            blocks = [TextBlock(text=_("已归档 {count} 个目录").format(count=count))]
+            if directories:
+                blocks.append(
+                    ListBlock(
+                        title=_("归档目录清单"),
+                        items=[{"name": d} for d in directories],
+                        total=count,
+                        detail_url=_make_link(data.get("standard_number")),
+                    )
+                )
         return NotificationMessage(
             title=_("归档完成"),
-            body=body,
+            blocks=blocks,
             level="info",
             standard_number=data.get("standard_number"),
             event_type="archive_complete",
@@ -50,21 +63,20 @@ class MessageBuildersMixin:
         old_status = data.get("old_status", "")
         new_status = data.get("new_status", "")
         is_expired = data.get("is_expired", False)
+        blocks: list[NotificationBlock] = [StatusChangeBlock(label=std_no, old_value=old_status, new_value=new_status)]
         # 废止类通知用 error 级别 + 红色图标，强调紧急性
         if is_expired:
             title = _("[废止] 标准已废止")
-            body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
             level = "error"
             icon = "pi pi-times-circle"
         else:
             title = _("标准状态变更")
-            body = _("{std_no} 状态变更：{old} → {new}").format(std_no=std_no, old=old_status, new=new_status)
             # 新状态为"已废止"时降级为 warning，否则 info
             level = "warning" if new_status == _("已废止") else "info"
             icon = "pi pi-refresh"
         return NotificationMessage(
             title=title,
-            body=body,
+            blocks=blocks,
             level=level,
             standard_number=std_no,
             event_type="standard_status_changed",
@@ -76,9 +88,18 @@ class MessageBuildersMixin:
     def _build_standard_expired_message(self, data: dict) -> NotificationMessage:
         """构建标准已废止的通知消息。"""
         std_no = data.get("standard_number", "")
+        blocks: list[NotificationBlock] = [
+            StatusChangeBlock(
+                label=std_no,
+                old_value=data.get("old_status", ""),
+                new_value=_("已废止"),
+            )
+        ]
+        if data.get("changed_at"):
+            blocks.append(TextBlock(text=_("变更时间：{t}").format(t=data["changed_at"])))
         return NotificationMessage(
             title=_("标准已废止"),
-            body=_("{std_no} 状态变更为已废止").format(std_no=std_no),
+            blocks=blocks,
             level="error",
             standard_number=std_no,
             event_type="standard_expired",
@@ -88,14 +109,33 @@ class MessageBuildersMixin:
 
     def _build_standard_first_registered_message(self, data: dict) -> NotificationMessage:
         """构建新标准首次登记的通知消息。"""
-        std_no = data.get("standard_number", "")
+        standards = data.get("standards", [])
+        # 兼容旧版单条调用：无 standards 列表时用 standard_number/name 构造
+        if not standards:
+            std_no = data.get("standard_number", "")
+            name = data.get("name", "")
+            if std_no:
+                standards = [{"number": std_no, "name": name}]
+        n = len(standards)
+        blocks: list[NotificationBlock] = [TextBlock(text=_("共 {n} 条标准完成首次登记").format(n=n))]
+        if standards:
+            blocks.append(
+                ListBlock(
+                    title=_("登记标准清单"),
+                    items=[{"number": s["number"], "name": s.get("name", "")} for s in standards],
+                    total=n,
+                    detail_url=data.get("detail_url"),
+                )
+            )
+        if data.get("elapsed_ms"):
+            blocks.append(TextBlock(text=_("窗口耗时：{ms}ms").format(ms=data["elapsed_ms"])))
         return NotificationMessage(
             title=_("新标准首次登记"),
-            body=_("{std_no} - {name}").format(std_no=std_no, name=data.get("name", "")),
+            blocks=blocks,
             level="info",
-            standard_number=std_no,
+            standard_number=data.get("standard_number"),
             event_type="standard_first_registered",
-            link=_make_link(std_no),
+            link=_make_link(data.get("standard_number")),
             icon="pi pi-star",
         )
 
@@ -110,15 +150,20 @@ class MessageBuildersMixin:
         changed = data.get("changed", 0)
         expired = data.get("expired", 0)
         soon = data.get("soon", 0)
-        if changed:
-            body = _("标准检查完成：共 {total} 条，变更 {changed} 条，过期 {expired} 条，即将过期 {soon} 条").format(
-                total=total, changed=changed, expired=expired, soon=soon
-            )
-        else:
-            body = _("标准检查完成：共 {total} 条，无变更").format(total=total)
+        blocks: list[NotificationBlock] = []
+        if changed == 0:
+            blocks.append(TextBlock(text=_("本次检查未发现状态变更")))
+        blocks.extend(
+            [
+                KeyValueBlock(key=_("检查总数"), value=str(total)),
+                KeyValueBlock(key=_("状态变更"), value=str(changed)),
+                KeyValueBlock(key=_("已过期"), value=str(expired)),
+                KeyValueBlock(key=_("即将过期"), value=str(soon)),
+            ]
+        )
         return NotificationMessage(
             title=_("标准检查完成"),
-            body=body,
+            blocks=blocks,
             level="info",
             event_type="check_batch_complete",
             icon="pi pi-check-circle",
@@ -126,9 +171,12 @@ class MessageBuildersMixin:
 
     def _build_announcement_fetch_complete_message(self, data: dict) -> NotificationMessage:
         """构建公告拉取完成的通知消息。"""
+        blocks: list[NotificationBlock] = [KeyValueBlock(key=_("新增公告"), value=str(data.get("new_count", 0)))]
+        if data.get("source"):
+            blocks.append(TextBlock(text=_("来源：{s}").format(s=data["source"])))
         return NotificationMessage(
             title=_("公告拉取完成"),
-            body=_("新增 {count} 条公告").format(count=data.get("count", 0)),
+            blocks=blocks,
             level="info",
             event_type="announcement_fetch_complete",
             icon="pi pi-megaphone",
@@ -139,55 +187,49 @@ class MessageBuildersMixin:
     def _build_auto_backup_message(self, data: dict) -> NotificationMessage:
         success = data.get("success", False)
         path = data.get("path", "")
-        size_mb = data.get("size_mb", 0)
-        error = data.get("error", "")
+        size = data.get("size", "")
         # 成功和失败走不同消息模板，便于用户快速识别状态
         if success:
+            blocks: list[NotificationBlock] = [
+                KeyValueBlock(key=_("备份路径"), value=path),
+                KeyValueBlock(key=_("文件大小"), value=size),
+            ]
             return NotificationMessage(
                 title=_("自动备份成功"),
-                body=_("数据库已备份至：{path}（{size_mb:.1f} MB）").format(path=path, size_mb=size_mb),
+                blocks=blocks,
                 level="info",
                 event_type="auto_backup",
                 icon="pi pi-database",
             )
+        blocks = [TextBlock(text=_("备份失败：{err}").format(err=data.get("error", _("未知错误"))))]
         return NotificationMessage(
             title=_("自动备份失败"),
-            body=_("{error}").format(error=error),
+            blocks=blocks,
             level="error",
             event_type="auto_backup",
             icon="pi pi-database",
         )
 
     def _build_announcement_check_complete_message(self, data: dict) -> NotificationMessage:
-        source = data.get("source", "定时")
-        total = data.get("total_announcements", 0)
-        gb_count = data.get("gb_count", 0)
-        hb_count = data.get("hb_count", 0)
-        db_count = data.get("db_count", 0)
-        total_standards = data.get("total_standards", 0)
-        gb_standards = data.get("gb_standards", 0)
-        hb_standards = data.get("hb_standards", 0)
-        db_standards = data.get("db_standards", 0)
-        failures = data.get("failures", 0)
-
-        # 分三级展示：来源 → 公告数量 → 涉及标准数量
-        body = _("公告检查完成（{source}）").format(source=source) + "\n"
-        body += (
-            _("抓取 {total} 条公告（国标 {gb} / 行标 {hb} / 地标 {db}）").format(
-                total=total, gb=gb_count, hb=hb_count, db=db_count
-            )
-            + "\n"
+        """构建公告检查完成通知——分来源/公告数量/涉及标准三层展示。"""
+        source = data.get("source", "")
+        blocks: list[NotificationBlock] = []
+        if source:
+            blocks.append(TextBlock(text=_("来源：{s}").format(s=source)))
+        blocks.extend(
+            [
+                KeyValueBlock(key=_("公告总数"), value=str(data.get("total_announcements", 0))),
+                KeyValueBlock(key=_("国标"), value=str(data.get("gb_count", 0))),
+                KeyValueBlock(key=_("行标"), value=str(data.get("hb_count", 0))),
+                KeyValueBlock(key=_("地标"), value=str(data.get("db_count", 0))),
+                KeyValueBlock(key=_("涉及标准"), value=str(data.get("total_standards", 0))),
+            ]
         )
-        body += _("涉及标准 {total} 项（国标 {gb} / 行标 {hb} / 地标 {db}）").format(
-            total=total_standards, gb=gb_standards, hb=hb_standards, db=db_standards
-        )
-
-        if failures > 0:
-            body += "\n" + _("注意：{failures} 个站点检查失败").format(failures=failures)
-
+        if data.get("failures", 0) > 0:
+            blocks.append(TextBlock(text=_("注意：{n} 个站点检查失败").format(n=data["failures"])))
         return NotificationMessage(
             title=_("公告检查完成"),
-            body=body,
+            blocks=blocks,
             level="info",
             event_type="announcement_check_complete",
             icon="pi pi-check-circle",
@@ -199,20 +241,23 @@ class MessageBuildersMixin:
         success = data.get("success", 0)
         failed = data.get("failed", 0)
         skipped = data.get("skipped", 0)
+        blocks: list[NotificationBlock] = [
+            KeyValueBlock(key=_("成功"), value=str(success)),
+            KeyValueBlock(key=_("失败"), value=str(failed)),
+            KeyValueBlock(key=_("跳过"), value=str(skipped)),
+        ]
         # 有失败时升级为 warning 级别，引导用户查看详情
         if failed == 0:
             return NotificationMessage(
                 title=_("批量下载完成"),
-                body=_("成功 {success} 条，跳过 {skipped} 条").format(success=success, skipped=skipped),
+                blocks=blocks,
                 level="info",
                 event_type="batch_download_complete",
                 icon="pi pi-download",
             )
         return NotificationMessage(
             title=_("批量下载完成（有失败）"),
-            body=_("成功 {success} 条，失败 {failed} 条，跳过 {skipped} 条").format(
-                success=success, failed=failed, skipped=skipped
-            ),
+            blocks=blocks,
             level="warning",
             event_type="batch_download_complete",
             icon="pi pi-download",
@@ -222,9 +267,12 @@ class MessageBuildersMixin:
 
     def _build_auto_scan_failed_message(self, data: dict) -> NotificationMessage:
         """构建自动扫描失败的通知消息。"""
+        blocks: list[NotificationBlock] = [TextBlock(text=_("路径：{p}").format(p=data.get("path", "")))]
+        if data.get("error"):
+            blocks.append(TextBlock(text=_("错误：{e}").format(e=data["error"])))
         return NotificationMessage(
             title=_("自动扫描失败"),
-            body=_("{path}：{error}").format(path=data.get("path", ""), error=data.get("error", "")),
+            blocks=blocks,
             level="error",
             event_type="auto_scan_failed",
             icon="pi pi-exclamation-triangle",
@@ -234,60 +282,58 @@ class MessageBuildersMixin:
         count = data.get("count", 0)
         changed = data.get("changed", 0)
         failed = data.get("failed", 0)
-        # 中间进度通知：无实际数据时不显示"共 0 条标准"
+        # 中间进度通知：无实际数据时不显示统计
         if count == 0 and changed == 0 and failed == 0:
             return NotificationMessage(
                 title=_("开始有效性检查"),
-                body=_("开始有效性检查"),
+                blocks=[TextBlock(text=_("开始有效性检查"))],
                 level="info",
                 event_type="validity_batch_report",
                 icon="pi pi-chart-bar",
             )
-        adapters = data.get("adapters", {})
-        summary = ", ".join([f"{k}: {v.get('status', '未知')}" for k, v in adapters.items()])
-        # 有适配器状态时展示详情，否则仅汇总
-        if adapters:
-            body = _("共 {count} 条标准，变更 {changed} 条，失败 {failed} 条，适配器状态：{summary}").format(
-                count=count, changed=changed, failed=failed, summary=summary
-            )
-        else:
-            body = _("共 {count} 条标准，变更 {changed} 条，失败 {failed} 条").format(
-                count=count, changed=changed, failed=failed
-            )
+        blocks: list[NotificationBlock] = [
+            KeyValueBlock(key=_("检查总数"), value=str(count)),
+            KeyValueBlock(key=_("变更数"), value=str(changed)),
+            KeyValueBlock(key=_("失败数"), value=str(failed)),
+        ]
+        if data.get("adapter_status"):
+            blocks.append(TextBlock(text=_("适配器状态：{s}").format(s=data["adapter_status"])))
         # 有变更或失败时升级为 warning
         level = "warning" if (changed > 0 or failed > 0) else "info"
         return NotificationMessage(
             title=_("有效性批量报告"),
-            body=body,
+            blocks=blocks,
             level=level,
             event_type="validity_batch_report",
             icon="pi pi-chart-bar",
         )
 
     def _build_validity_round_summary_message(self, data: dict) -> NotificationMessage:
+        """构建有效性轮次汇总——统计数据 + 可选变更明细列表。"""
         round_num = data.get("round", 0)
         total_checks = data.get("total_checks", 0)
         total_changes = data.get("total_changes", 0)
         total_failures = data.get("total_failures", 0)
         change_list = data.get("change_list", [])
-        # 超过 5 项变更时截断展示，避免消息过长
-        if len(change_list) > 5:
-            changes_preview = "、".join(change_list[:5]) + _(" 等 {n} 项").format(n=len(change_list))
-        else:
-            changes_preview = "、".join(change_list) if change_list else _("无变更")
-        body = _(
-            "第 {round} 轮：检查 {total_checks} 条，变更 {total_changes} 条，"
-            "失败 {total_failures} 条，变更详情：{changes}"
-        ).format(
-            round=round_num,
-            total_checks=total_checks,
-            total_changes=total_changes,
-            total_failures=total_failures,
-            changes=changes_preview,
-        )
+        blocks: list[NotificationBlock] = [
+            KeyValueBlock(key=_("轮次"), value=str(round_num)),
+            KeyValueBlock(key=_("检查总数"), value=str(total_checks)),
+            KeyValueBlock(key=_("变更数"), value=str(total_changes)),
+            KeyValueBlock(key=_("失败数"), value=str(total_failures)),
+        ]
+        if change_list:
+            items = [{"detail": c} for c in change_list]
+            blocks.append(
+                ListBlock(
+                    title=_("变更详情"),
+                    items=items,
+                    total=total_changes,
+                )
+            )
+        title = _("第 {round} 轮有效性汇总报告").format(round=round_num)
         return NotificationMessage(
-            title=_("有效性轮次汇总"),
-            body=body,
+            title=title,
+            blocks=blocks,
             level="info",
             event_type="validity_round_summary",
             icon="pi pi-list",
@@ -296,9 +342,12 @@ class MessageBuildersMixin:
     def _build_validity_standard_failed_message(self, data: dict) -> NotificationMessage:
         """构建单条标准有效性检查失败的通知消息。"""
         std_no = data.get("standard_number", "")
+        blocks: list[NotificationBlock] = [TextBlock(text=_("标准号：{n}").format(n=std_no))]
+        if data.get("error"):
+            blocks.append(TextBlock(text=_("错误：{e}").format(e=data["error"])))
         return NotificationMessage(
             title=_("标准有效性检查失败"),
-            body=_("{std_no}：{error}").format(std_no=std_no, error=data.get("error", "")),
+            blocks=blocks,
             level="error",
             standard_number=std_no,
             event_type="validity_standard_failed",
@@ -308,9 +357,12 @@ class MessageBuildersMixin:
 
     def _build_validity_system_failed_message(self, data: dict) -> NotificationMessage:
         """构建有效性检查系统级失败的通知消息。"""
+        blocks: list[NotificationBlock] = [TextBlock(text=data.get("error", _("未知系统错误")))]
+        if data.get("context"):
+            blocks.append(TextBlock(text=_("上下文：{c}").format(c=data["context"])))
         return NotificationMessage(
             title=_("有效性检查系统级失败"),
-            body=_("{error}").format(error=data.get("error", "")),
+            blocks=blocks,
             level="error",
             event_type="validity_system_failed",
             icon="pi pi-times",
@@ -318,9 +370,14 @@ class MessageBuildersMixin:
 
     def _build_fallback_message(self, event_type: str, data: dict) -> NotificationMessage:
         """构建未知事件类型的兜底通知消息。"""
+        blocks: list[NotificationBlock] = [
+            TextBlock(text=_("事件类型：{t}").format(t=data.get("event_type", "unknown")))
+        ]
+        if data:
+            blocks.append(TextBlock(text=str(data)))
         return NotificationMessage(
             title=event_type,
-            body=str(data),
+            blocks=blocks,
             level="info",
             event_type=event_type,
             icon="pi pi-bell",
@@ -330,11 +387,18 @@ class MessageBuildersMixin:
 
     def _build_image_update_available_message(self, data: dict) -> NotificationMessage:
         """构建镜像更新可用的通知消息。"""
+        blocks: list[NotificationBlock] = [
+            StatusChangeBlock(
+                label=_("镜像版本"),
+                old_value=data.get("old_version", ""),
+                new_value=data.get("new_version", ""),
+            )
+        ]
+        if data.get("release_notes"):
+            blocks.append(TextBlock(text=data["release_notes"]))
         return NotificationMessage(
             title=_("镜像更新可用"),
-            body=_("检测到新版本镜像，当前 {old} → 新版本 {new}").format(
-                old=data.get("old_digest", "")[:12], new=data.get("new_digest", "")[:12]
-            ),
+            blocks=blocks,
             level="info",
             event_type="image_update_available",
             icon="pi pi-cloud-upload",
@@ -346,21 +410,28 @@ class MessageBuildersMixin:
         total = data.get("total", 0)
         found = data.get("found", 0)
         pending = data.get("pending", 0)
-        # 根据命中率决定通知级别：全命中=info，有待确认=warning
-        if found == total:
-            body = _("标准查询完成：共 {total} 条，全部找到").format(total=total)
-            level = "info"
-        elif pending > 0:
-            body = _("标准查询完成：共 {total} 条，找到 {found} 条，{pending} 条待确认").format(
-                total=total, found=found, pending=pending
+        results = data.get("results", [])
+        n = len(results) if results else total
+        blocks: list[NotificationBlock] = [TextBlock(text=_("查询完成，共 {n} 条结果").format(n=n))]
+        if results:
+            items = [{"number": r["number"], "name": r.get("name", "")} for r in results]
+            blocks.append(
+                ListBlock(
+                    title=_("查询结果"),
+                    items=items,
+                    total=n,
+                )
             )
+        # 根据命中率决定通知级别：全命中=info，有待确认=warning
+        if pending > 0:
             level = "warning"
+        elif found == total:
+            level = "info"
         else:
-            body = _("标准查询完成：共 {total} 条，找到 {found} 条").format(total=total, found=found)
             level = "info"
         return NotificationMessage(
             title=_("标准查询完成"),
-            body=body,
+            blocks=blocks,
             level=level,
             event_type="batch_query_summary",
             icon="pi pi-search",
@@ -371,12 +442,13 @@ class MessageBuildersMixin:
         total = data.get("total", 0)
         # 定时查询结果：区分有/无变更两套消息
         if changed > 0:
-            body = _("定时查询完成：共检查 {total} 条，{changed} 条状态变更").format(total=total, changed=changed)
+            text = _("定时查询完成：共检查 {total} 条，{changed} 条状态变更").format(total=total, changed=changed)
         else:
-            body = _("定时查询完成：共检查 {total} 条，无状态变更").format(total=total)
+            text = _("定时查询完成：共检查 {total} 条，无状态变更").format(total=total)
+        blocks: list[NotificationBlock] = [TextBlock(text=text)]
         return NotificationMessage(
             title=_("定时查询完成"),
-            body=body,
+            blocks=blocks,
             level="info",
             event_type="auto_query_complete",
             icon="pi pi-clock",
@@ -384,12 +456,17 @@ class MessageBuildersMixin:
 
     def _build_trust_ip_update_message(self, data: dict) -> NotificationMessage:
         title = data.get("title", "可信 IP 状态")
-        body = data.get("body", "")
+        text = data.get("body", "")
+        blocks: list[NotificationBlock] = [TextBlock(text=text)]
+        # 有额外的键值对信息（如 IP 地址、更新时间）时追加 KeyValueBlock
+        extra_keys = [k for k in ("ip", "update_time", "status") if data.get(k)]
+        for k in extra_keys:
+            blocks.append(KeyValueBlock(key=k, value=str(data[k])))
         # "失败"关键词触发 warning 级别，提醒运维介入
         level = "warning" if "失败" in title else "info"
         return NotificationMessage(
             title=title,
-            body=body,
+            blocks=blocks,
             level=level,
             event_type="trust_ip_update",
             icon="pi pi-shield",
@@ -399,9 +476,16 @@ class MessageBuildersMixin:
         """构建后台工作线程异常的通知消息。"""
         worker = data.get("worker", "未知")
         error = data.get("error", "")
+        blocks: list[NotificationBlock] = [
+            TextBlock(text=_("{worker} 工作线程异常").format(worker=worker)),
+        ]
+        if error:
+            blocks.append(TextBlock(text=_("错误：{error}").format(error=error)))
+        if data.get("traceback"):
+            blocks.append(TextBlock(text=data["traceback"]))
         return NotificationMessage(
             title=_("后台任务异常"),
-            body=_("{worker} 工作线程异常：{error}").format(worker=worker, error=error),
+            blocks=blocks,
             level="error",
             event_type="worker_error",
             icon="pi pi-cog",

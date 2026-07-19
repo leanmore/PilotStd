@@ -35,7 +35,7 @@ def _fill_row(window):
 
 
 def test_on_header_context_menu_toggle_col(window):
-    header = window.work_table.horizontalHeader()
+    window.work_table.horizontalHeader()
     toggle_col = TOGGLEABLE_COLS[0]
     window.work_table.setColumnHidden(toggle_col, False)
     mock_action = MagicMock()

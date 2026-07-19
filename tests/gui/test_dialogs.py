@@ -55,7 +55,7 @@ class TestConfigPageDialog:
         qtbot.addWidget(dlg)
         # 页面控件应该是布局的第一个子项
         layout = dlg.layout()
-        assert layout.itemAt(0).widget() is page
+        assert layout.itemAt(0).widget() is page  # type: ignore[union-attr]
 
 
 class TestExportFileListDialog:

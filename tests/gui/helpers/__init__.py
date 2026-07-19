@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import QMainWindow, QMenu
 
 from pilotstd.i18n import _
 
-from .dialog_handler import (
+# 对话框处理器——供测试模块通过 from tests.gui.helpers import ... 引用
+from .dialog_handler import (  # noqa: F401
     PYWAUTO_AVAILABLE,
     PYWAUTO_ERROR,
     FileDialogAutoHandler,

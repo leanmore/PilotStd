@@ -26,7 +26,12 @@ _VALIDITY_SCHEMA = """CREATE TABLE IF NOT EXISTS standard_validity (
     last_accessed_at TEXT
 );"""
 
-_CACHE_SCHEMA = """CREATE TABLE IF NOT EXISTS standard_info_cache (id INTEGER PRIMARY KEY, standard_number TEXT, data_state TEXT DEFAULT 'valid');
+_CACHE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS standard_info_cache (
+    id INTEGER PRIMARY KEY,
+    standard_number TEXT,
+    data_state TEXT DEFAULT 'valid'
+);
 CREATE TABLE IF NOT EXISTS standard_validity (
     id INTEGER,
     standard_number TEXT NOT NULL,
@@ -122,7 +127,9 @@ class TestValidityChecker(unittest.TestCase):
 
         past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         self.db.execute(
-            "INSERT INTO standard_validity (standard_number,status,next_check_at,created_at,updated_at) VALUES (?,'未知',?,?,?)",
+            "INSERT INTO standard_validity "
+            "(standard_number,status,next_check_at,created_at,updated_at) "
+            "VALUES (?,'未知',?,?,?)",
             ("GB/T 1.1-2020", past, past, past),
         )
         vc = ValidityChecker(self.db)
@@ -136,7 +143,9 @@ class TestValidityChecker(unittest.TestCase):
 
         past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         self.db.execute(
-            "INSERT INTO standard_validity (standard_number,status,next_check_at,created_at,updated_at) VALUES (?,'未知',?,?,?)",
+            "INSERT INTO standard_validity "
+            "(standard_number,status,next_check_at,created_at,updated_at) "
+            "VALUES (?,'未知',?,?,?)",
             ("TEST-1", past, past, past),
         )
         vc = ValidityChecker(self.db)

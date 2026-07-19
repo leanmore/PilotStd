@@ -124,7 +124,7 @@ class TestTaskPage:
         page = TaskPage()
         qtbot.addWidget(page)
         assert page.task_table.columnCount() == 6
-        headers = [page.task_table.horizontalHeaderItem(i).text() for i in range(6)]
+        headers = [page.task_table.horizontalHeaderItem(i).text() for i in range(6)]  # type: ignore[union-attr]
         assert any("ID" in h or "id" in h.lower() for h in headers)
         assert any("类型" in h or "Type" in h for h in headers)
 

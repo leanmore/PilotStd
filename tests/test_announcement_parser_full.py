@@ -89,7 +89,8 @@ HTML_GB_8COL = """<!DOCTYPE html>
 <tr><th>序号</th><th>标准编号</th><th>标准名称</th><th>代替标准</th><th>发布日期</th><th>实施日期</th><th>备案号</th><th>主管部门</th></tr>
 </thead>
 <tbody>
-<tr><td>1</td><td>GB 12345-2020</td><td>安全规范</td><td>GB 12345-2000</td><td>2020-06-01</td><td>2021-01-01</td><td>12345-2020</td><td>应急管理部</td></tr>
+<tr><td>1</td><td>GB 12345-2020</td><td>安全规范</td><td>GB 12345-2000</td>
+<td>2020-06-01</td><td>2021-01-01</td><td>12345-2020</td><td>应急管理部</td></tr>
 </tbody>
 </table>
 </body></html>"""

@@ -151,7 +151,7 @@ class TestNotificationAggregator(unittest.TestCase):
 
     def test_should_show_forwards_to_new_aggregator(self) -> None:
         """should_show 正确调用了新版聚合器的 push 方法。"""
-        self.agg._new.push = MagicMock()
+        self.agg._new.push = MagicMock()  # type: ignore[method-assign]
         self.agg.should_show("info", "扫描完成", "100 files", lambda t, b, _lv: None)
         self.agg._new.push.assert_called_once()
         kwargs = self.agg._new.push.call_args.kwargs
@@ -161,13 +161,13 @@ class TestNotificationAggregator(unittest.TestCase):
 
     def test_error_level_maps_to_failure_status(self) -> None:
         """error 级别映射为 status='failure'。"""
-        self.agg._new.push = MagicMock()
+        self.agg._new.push = MagicMock()  # type: ignore[method-assign]
         self.agg.should_show("error", "下载失败", "err", lambda t, b, _lv: None)
         kwargs = self.agg._new.push.call_args.kwargs
         assert kwargs["status"] == "failure"
 
     def test_shutdown_delegates_to_new_aggregator(self) -> None:
         """shutdown() 调用新版聚合器的 shutdown()。"""
-        self.agg._new.shutdown = MagicMock()
+        self.agg._new.shutdown = MagicMock()  # type: ignore[method-assign]
         self.agg.shutdown()
         self.agg._new.shutdown.assert_called_once()

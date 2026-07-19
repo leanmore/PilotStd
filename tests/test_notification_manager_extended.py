@@ -19,12 +19,14 @@ class TestNotificationManagerExtended(unittest.TestCase):
 
     def test_init_disabled_no_channels(self):
         from pilotstd.core.notification import NotificationManager
+
         nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
         self.assertFalse(nmgr._enabled)
 
     @patch("pilotstd.core.notification.manager.CredentialHelper")
     def test_init_with_ws_broadcast(self, _cred):
         from pilotstd.core.notification import NotificationManager
+
         _cred.return_value = MagicMock()
         _cred.return_value.get_all.return_value = {}
         ws = MagicMock()
@@ -36,6 +38,7 @@ class TestNotificationManagerExtended(unittest.TestCase):
     @patch("pilotstd.core.notification.manager.WechatChannel")
     def test_send_event_with_aggregator_disabled(self, _wc, _cred):
         from pilotstd.core.notification import NotificationManager
+
         _cred.return_value = MagicMock()
         _cred.return_value.get_all.return_value = {}
         mock_ch = MagicMock()
@@ -55,11 +58,15 @@ class TestNotificationManagerExtended(unittest.TestCase):
     def test_build_message_all_events(self):
         """验证所有已知事件的消息构建不抛出异常。"""
         from pilotstd.core.notification import NotificationManager
+
         self.mock_cfg.get.return_value = False
         nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
         events = [
             ("archive_complete", {"count": 1, "directories": ["d1"]}),
-            ("standard_status_changed", {"standard_number": "T", "old_status": "A", "new_status": "B", "is_expired": False}),
+            (
+                "standard_status_changed",
+                {"standard_number": "T", "old_status": "A", "new_status": "B", "is_expired": False},
+            ),
             ("standard_expired", {"standard_number": "T"}),
             ("standard_first_registered", {"standard_number": "T"}),
             ("check_batch_complete", {"total": 10, "success": 9, "failed": 1}),

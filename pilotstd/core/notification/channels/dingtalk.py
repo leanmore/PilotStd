@@ -11,6 +11,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from ..channel import NotificationChannel, NotificationMessage
+from ..renderer import MarkdownRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class DingTalkChannel(NotificationChannel):
     def __init__(self, webhook_url: str, secret: str = ""):
         self._url = webhook_url
         self._secret = secret  # 加签密钥，空字符串表示不加签
+        self._renderer = MarkdownRenderer()
 
     def _sign(self) -> str:
         """钉钉加签：timestamp + secret → HMAC-SHA256 → Base64 → URL encode。"""
@@ -48,16 +50,19 @@ class DingTalkChannel(NotificationChannel):
         try:
             # 拼接加签参数到 URL
             url = self._url + self._sign()
-            text = f"## {message.title}\n{message.body}"
+
+            # 使用 MarkdownRenderer 渲染消息体
+            rendered = self._renderer.render(message)
+            # 钉钉需要标准号以引用块形式追加
             if message.standard_number:
-                text += f"\n\n> 标准号: {message.standard_number}"
+                rendered += f"\n\n> 标准号: {message.standard_number}"
 
             payload = json.dumps(
                 {
                     "msgtype": "markdown",
                     "markdown": {
                         "title": message.title[:50],  # 钉钉标题上限 50 字符
-                        "text": text,
+                        "text": rendered,
                     },
                 }
             ).encode("utf-8")

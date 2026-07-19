@@ -1,8 +1,12 @@
 # pilotstd/core/notification/channel.py
 """通知消息数据类 + 渠道抽象基类。"""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from .blocks import NotificationBlock
 
 
 @dataclass
@@ -10,7 +14,8 @@ class NotificationMessage:
     """统一通知消息结构。"""
 
     title: str
-    body: str
+    blocks: list[NotificationBlock] = field(default_factory=list)
+    body: str = ""  # 向后兼容：blocks 为空时回退渲染 body
     level: str = "info"  # info / warning / error
     standard_number: str | None = None
     event_type: str = ""

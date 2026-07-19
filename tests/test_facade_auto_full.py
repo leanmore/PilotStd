@@ -72,7 +72,7 @@ class TestAutoPipeline(unittest.TestCase):
         self.scan_handler.scan_directory.return_value = parsed
 
         stats = BatchQueryStats(found=1)
-        fake_result = QueryResult(standard_number="GB/T 19001-2016", standard_name="质量管理体系")
+        QueryResult(standard_number="GB/T 19001-2016", standard_name="质量管理体系")
         self.query_handler.query.return_value = (None, stats)
 
         dl_stats = BatchDownloadStats(success=1)

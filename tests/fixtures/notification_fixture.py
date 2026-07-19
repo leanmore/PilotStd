@@ -30,7 +30,7 @@ def mock_channels() -> dict[str, MagicMock]:
 
 
 @pytest.fixture
-def patched_channels(mock_channels: dict[str, MagicMock]) -> dict[str, MagicMock]:
+def patched_channels(mock_channels: dict[str, MagicMock]) -> dict[str, MagicMock]:  # type: ignore[misc]
     """patch 掉 4 个通知渠道的构造函数，返回 mock 实例。
 
     用法:

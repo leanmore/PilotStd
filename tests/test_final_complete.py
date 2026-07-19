@@ -140,7 +140,8 @@ class TestTasks(unittest.TestCase):
         from pilotstd.tasks.favorite_download import _get_download_url
 
         db = MockDatabase(
-            "CREATE TABLE IF NOT EXISTS standard_info_cache (id INTEGER PRIMARY KEY, standard_number TEXT, result_json TEXT, cached_at TEXT)"
+            "CREATE TABLE IF NOT EXISTS standard_info_cache ("
+            "id INTEGER PRIMARY KEY, standard_number TEXT, result_json TEXT, cached_at TEXT)"
         ).__enter__()
         try:
             self.assertIsNone(_get_download_url("GB/T 1.1", db))

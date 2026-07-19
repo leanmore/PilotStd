@@ -127,12 +127,12 @@ def check_file(filepath: Path, root: Path) -> list[str]:
         return errors
 
     # 分离非空行和逻辑行用于密度计算
-    non_blank = [l for l in lines if not _is_blank_line(l)]
-    logical_lines = [l for l in non_blank if not _is_comment_line(l)]
+    non_blank = [line for line in lines if not _is_blank_line(line)]
+    logical_lines = [line for line in non_blank if not _is_comment_line(line)]
 
     # 文件级注释密度
     if len(logical_lines) >= MIN_DENSITY_LOGICAL_LINES and filepath.name not in DENSITY_EXEMPT_FILES:
-        comment_count = sum(1 for l in non_blank if _is_comment_line(l))
+        comment_count = sum(1 for line in non_blank if _is_comment_line(line))
         density = comment_count / len(non_blank) if non_blank else 1.0
         if density < MIN_COMMENT_DENSITY:
             errors.append(f"[DENSITY] {rel}: 注释密度 {density:.1%} (< {MIN_COMMENT_DENSITY:.0%})")

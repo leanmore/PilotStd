@@ -110,14 +110,14 @@ class TestNotificationAggregator(unittest.TestCase):
     def test_format_summary_single_item(self) -> None:
         """单条消息保持原样。"""
         msg = NotificationMessage(title="测试", body="hello", event_type="test")
-        entries = [(msg, [], time.monotonic())]
+        entries: list[tuple[NotificationMessage, list, float]] = [(msg, [], time.monotonic())]
         result = self.agg.format_summary("test", entries)
         self.assertEqual(result, "hello")
 
     def test_format_summary_with_success_failure(self) -> None:
         """多条带 status 的消息生成成功/失败统计。"""
         now = time.monotonic()
-        entries = [
+        entries: list[tuple[NotificationMessage, list, float]] = [
             (NotificationMessage(title="任务", body="file_a.txt", status="success", event_type="test"), [], now),
             (NotificationMessage(title="任务", body="file_b.txt", status="success", event_type="test"), [], now + 0.1),
             (NotificationMessage(title="任务", body="file_c.txt", status="failure", event_type="test"), [], now + 0.2),
@@ -132,7 +132,7 @@ class TestNotificationAggregator(unittest.TestCase):
     def test_format_summary_worst_level(self) -> None:
         """聚合后级别取所有条目中最严重的。"""
         now = time.monotonic()
-        entries = [
+        entries: list[tuple[NotificationMessage, list, float]] = [
             (NotificationMessage(title="任务", body="ok", level="info", event_type="test"), [], now),
             (NotificationMessage(title="任务", body="warn", level="warning", event_type="test"), [], now + 0.1),
             (NotificationMessage(title="任务", body="err", level="error", event_type="test"), [], now + 0.2),

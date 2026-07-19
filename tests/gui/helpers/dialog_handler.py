@@ -122,7 +122,7 @@ class FileDialogAutoHandler:
 
     def _listen_loop(self) -> None:
         """后台轮询主循环。每 0.3s 扫描一次桌面窗口。"""
-        from pywinauto import Desktop  # 懒加载，避免 COM STA 警告
+        from pywinauto import Desktop  # type: ignore[import-untyped]  # 懒加载，避免 COM STA 警告
 
         deadline = time.time() + self.timeout
         desktop = Desktop(backend="uia")
@@ -255,7 +255,7 @@ class SmartDialogInterceptor(QObject):
         self.auto_accept = auto_accept
         self._handled: set[int] = set()
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:  # type: ignore[override]
         if event.type() == QEvent.Type.Show:
             if isinstance(obj, (QDialog, QMessageBox)) and id(obj) not in self._handled:
                 self._handled.add(id(obj))
@@ -297,9 +297,9 @@ class SmartDialogInterceptor(QObject):
                 if default_btn and default_btn.isEnabled():
                     default_btn.click()
                     return
-                for btn in dialog.buttons():
-                    if btn.isEnabled():
-                        btn.click()
+                for btn in dialog.buttons():  # type: ignore[assignment]
+                    if btn.isEnabled():  # type: ignore[union-attr]
+                        btn.click()  # type: ignore[union-attr]
                         return
 
             # 4. 最后手段：accept

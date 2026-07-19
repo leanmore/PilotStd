@@ -73,7 +73,7 @@ def _should_use_pywinauto() -> bool:
 
     # 本地环境：pywinauto 已安装则自动启用
     try:
-        import pywinauto  # noqa: F401
+        import pywinauto  # type: ignore[import-untyped]  # noqa: F401
 
         return True
     except ImportError:

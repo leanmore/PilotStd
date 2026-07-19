@@ -154,8 +154,10 @@ class QueryHandler:
                     result_callback(orig_idx, r)
 
             engine_results = self._core.query_engine.query_standards(
-                miss_tuples, result_callback=_fallback_callback, progress_callback=progress_callback
-            )  # type: ignore[arg-type]
+                miss_tuples,
+                result_callback=_fallback_callback,
+                progress_callback=progress_callback,  # type: ignore[arg-type]
+            )
             for j, r in enumerate(engine_results):
                 orig_idx = miss_indices[j]
                 if results[orig_idx] is _placeholder:

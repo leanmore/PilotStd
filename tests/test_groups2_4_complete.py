@@ -106,7 +106,8 @@ class TestCoreDeepComplete(unittest.TestCase):
             past = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
             for i in range(5):
                 db.execute(
-                    "INSERT INTO standard_validity (standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
+                    "INSERT INTO standard_validity "
+                    "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
                     (f"DUE-{i}", "未知", past, past, past),
                 )
             vc = ValidityChecker(db)
@@ -118,7 +119,8 @@ class TestCoreDeepComplete(unittest.TestCase):
     def test_cache_manager_cleanup_force(self):
         from pilotstd.core.cache_manager import CacheManager
 
-        schema = """CREATE TABLE IF NOT EXISTS standard_info_cache (id INTEGER PRIMARY KEY, data_state TEXT, source_version TEXT, last_accessed_at TEXT);
+        schema = """CREATE TABLE IF NOT EXISTS standard_info_cache (
+            id INTEGER PRIMARY KEY, data_state TEXT, source_version TEXT, last_accessed_at TEXT);
         CREATE TABLE IF NOT EXISTS standard_validity (
     id INTEGER,
     standard_number TEXT NOT NULL,

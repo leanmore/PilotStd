@@ -103,7 +103,7 @@ def _scan_schema_keys() -> set[str]:
         if isinstance(node, ast.Call):
             for kw in getattr(node, "keywords", []):
                 if kw.arg == "key" and isinstance(kw.value, ast.Constant):
-                    keys.add(kw.value.value)
+                    keys.add(kw.value.value)  # type: ignore[arg-type]
     return keys
 
 
@@ -158,6 +158,9 @@ def _extract_keys_from_ast(node: ast.AST, keys: set[str], prefix: str) -> None:
 
 class TestSettingsE2EConsistency(unittest.TestCase):
     """端到端配置字段一致性。"""
+
+    frontend_keys: set[str]
+    backend_keys: set[str]
 
     @classmethod
     def setUpClass(cls) -> None:

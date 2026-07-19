@@ -6,7 +6,12 @@ Windows 原生 QSystemTrayIcon.showMessage() 对这些字符渲染不稳定，
 旧版系统可能显示为乱码。本模块提供去 Emoji + 长度保护的纯净格式化。
 """
 
+from __future__ import annotations
+
 import re
+
+from .channel import NotificationMessage
+from .renderer import DesktopRenderer
 
 # Windows Toast 气泡空间有限
 MAX_TITLE_LENGTH = 40
@@ -22,6 +27,18 @@ EMOJI_MAP = {
     "📦": "",
     "📋": "",
 }
+
+# 模块级渲染器实例——桌面端只有一种渲染风格，不需要每次 new
+_desktop_renderer = DesktopRenderer()
+
+
+def render_for_desktop(message: NotificationMessage) -> tuple[str, str]:
+    """使用 DesktopRenderer 渲染消息，再经 Emoji 替换 + 截断保护。
+
+    返回 (safe_title, safe_body) 可直接传给 QSystemTrayIcon.showMessage()。
+    """
+    body = _desktop_renderer.render(message)
+    return format_for_desktop(message.title, body)
 
 
 def format_for_desktop(title: str, body: str) -> tuple[str, str]:

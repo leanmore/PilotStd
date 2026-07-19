@@ -706,13 +706,13 @@ class TestFileIndexRepository(unittest.TestCase):
         result = repo.restore_parsed(SAMPLE_PATH)
 
         self.assertIsInstance(result, ParsedStdInfo)
-        self.assertEqual(result.logical_code, "GB")
-        self.assertEqual(result.number, 12345)
-        self.assertEqual(result.year, 2020)
-        self.assertIsNone(result.part)  # -1 → None
-        self.assertEqual(result.std_name, "测试标准名称")
-        self.assertEqual(result.source_path, SAMPLE_PATH)
-        self.assertEqual(result.raw_filename, _os.path.basename(SAMPLE_PATH))
+        self.assertEqual(result.logical_code, "GB")  # type: ignore[union-attr]
+        self.assertEqual(result.number, 12345)  # type: ignore[union-attr]
+        self.assertEqual(result.year, 2020)  # type: ignore[union-attr]
+        self.assertIsNone(result.part)  # type: ignore[union-attr]  # -1 → None
+        self.assertEqual(result.std_name, "测试标准名称")  # type: ignore[union-attr]
+        self.assertEqual(result.source_path, SAMPLE_PATH)  # type: ignore[union-attr]
+        self.assertEqual(result.raw_filename, _os.path.basename(SAMPLE_PATH))  # type: ignore[union-attr]
 
     def test_restore_parsed_part_positive_preserved(self) -> None:
         """part > 0 时保留原值"""
@@ -722,7 +722,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
         result = repo.restore_parsed(SAMPLE_PATH)
 
-        self.assertEqual(result.part, 3)
+        self.assertEqual(result.part, 3)  # type: ignore[union-attr]
 
     def test_restore_parsed_calls_cache_restore(self) -> None:
         """restore_parsed 应调用 _restore_cache_fields 填充查询结果"""
@@ -749,7 +749,7 @@ class TestFileIndexRepository(unittest.TestCase):
             year=2020,
             source_path="/tmp/test.pdf",
         )
-        std_num = info.get_full_number()
+        info.get_full_number()
         net_cache_json = json.dumps(
             {"match_status": "exact", "status": "现行", "standard_name": "国标名称", "is_adopted": True}
         )
@@ -778,7 +778,7 @@ class TestFileIndexRepository(unittest.TestCase):
             year=2020,
             source_path="/tmp/test.pdf",
         )
-        std_num = info.get_full_number()
+        info.get_full_number()
         ann_cache_json = json.dumps(
             {"match_status": "exact", "status": "废止", "standard_name": "旧标准名", "is_adopted": False}
         )
