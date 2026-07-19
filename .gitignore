@@ -1,129 +1,48 @@
-# Python
+# ===== Python =====
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 *.egg-info/
 dist/
 build/
-
-# venv
-pilotstd_env/
-
-# IDE
-.idea/
-
-# Node
-node_modules/
-
-# 运行时产物
-data/
-logs/
-app.log
-*.db
-
-# 文档（仅本地保留）
-docs/
-
-# 测试缓存
+*.egg
+.venv/
+venv/
+env/
+.mypy_cache/
+.ruff_cache/
 .pytest_cache/
-tests/standards/
-tests/.cache/
-tests/.fernet_key
-
-# 临时文件
-scripts/temp/
-tests/gui_test_files/
-tests/verify_downloads/
-temp_*.py
-*.patch
-
-# 诊断输出
-mypy_errors.txt
-project_backend_tree.txt
-project_frontend_tree.txt
-crash_log.txt
-scripts/check_relative_imports_report.txt
-
-# 覆盖率产物
+.vulture_cache/
 .coverage
-coverage.json
-coverage_detail.txt
-coverage_summary.txt
-final_coverage.txt
+htmlcov/
+.tox/
 
-# 个人笔记
-*进度*.md
-*审核*.md
-*日志*.md
-
-# IDE 个人配置
-.vscode/
-
-# AI 助手
-CLAUDE.md
-memory/
-
-# 外部工具
-.claude/
-.superpowers/
-.qwen/
-
-# Vue 脚手架模板文件
-web/README.md
-web/src/components/HelloWorld.vue
-web/src/assets/vite.svg
-web/src/assets/vue.svg
-capture_*.bmp
-capture_*.png
+# ===== Node / Frontend =====
+node_modules/
 web/dist/
-web/stats.html
+web/.nuxt/
+web/.output/
+.npm
+.eslintcache
 
-# 压测本地配置（含凭证，不上传）
-tests/test_config.json
-
-# 环境变量（不要提交实际值）
-.env
-
-# Docker 容器输出目录（运行时生成）
-/output/
-
-# 隐私数据保护
-.env
-.env.*
-!.env.example
-*.local
-*.pem
-*.key
-*.crt
-*.p12
-*.log
-logs/
-*.db
-*.sqlite
-*.sqlite3
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+
+# ===== 门禁脚本缓存 =====
+.qwen/
+.superpowers/
+pilotstd_env/
+
+# ===== 日志与临时文件 =====
+*.log
 *.tmp
-*.temp
-*~
-
-# 不入仓——过程文件与内部工具
-docs/.local/
-docs/archive/
-docs/pending/
-docs/superpowers/plans/
-docs/superpowers/specs/
-reports/
-CLAUDE_DOCS_GUIDE.md
-STATUS.md
-announce_sample.json
-image.png
-docs/notification_remaining_triggers.md
-docs/governance/code_diff_modification_list.md
-docs/governance/ANNOUNCEMENT.txt
-docs/governance/refactoring_checklist.md
-docs/governance/capabilities_registry.md
-docs/压力测试方案.md
-
-# 桌面端构建产物
-desktop/build/
-desktop/dist/
+*.bak
+.env
+.env.local
