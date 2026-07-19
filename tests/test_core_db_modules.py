@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     parser_engine TEXT,
     approved_by INTEGER,
     approved_at TEXT,
-    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP'
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    source_type TEXT DEFAULT '网页解析'
 );
 CREATE TABLE IF NOT EXISTS cache_metadata (source TEXT PRIMARY KEY, version TEXT, state TEXT, updated_at TEXT);"""
 

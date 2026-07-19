@@ -17,7 +17,15 @@ from tests.mocks.mock_database import MockDatabase
 
 _MATCHER_SCHEMA = """CREATE TABLE IF NOT EXISTS announcements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_site TEXT NOT NULL,
+    pid TEXT NOT NULL,
     announce_no TEXT,
+    title TEXT NOT NULL,
+    publish_date TEXT,
+    source_url TEXT,
+    attachment_url TEXT,
+    raw_data TEXT,
+    created_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
     parse_status TEXT DEFAULT 'pending',
     updated_at TEXT
 );
@@ -60,7 +68,8 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     parser_engine TEXT,
     approved_by INTEGER,
     approved_at TEXT,
-    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP'
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    source_type TEXT DEFAULT '网页解析'
 );
 CREATE TABLE IF NOT EXISTS file_index (
     id INTEGER,

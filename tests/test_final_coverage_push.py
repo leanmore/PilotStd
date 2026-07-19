@@ -178,7 +178,8 @@ class TestCacheManagerRemaining(unittest.TestCase):
     parser_engine TEXT,
     approved_by INTEGER,
     approved_at TEXT,
-    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP'
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    source_type TEXT DEFAULT '网页解析'
 );"""
         self.db = MockDatabase(schema).__enter__()
         from pilotstd.core.cache_manager import CacheManager
