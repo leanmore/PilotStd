@@ -38,12 +38,12 @@ def scan_directory(
 
     # 创建管道运行记录（可选：不传则自动生成）
     run_id = run_id or str(uuid.uuid4())
-    mgr._core.pipeline_store.create(run_id)
+    mgr.pipeline_store.create(run_id)
 
     try:
         parsed_list = mgr.scan_directory(safe_path)
     except Exception as exc:
-        mgr._core.pipeline_store.update_step(
+        mgr.pipeline_store.update_step(
             run_id,
             "scan",
             "failed",
@@ -75,7 +75,7 @@ def scan_directory(
         )
 
     # 更新管道：扫描完成
-    mgr._core.pipeline_store.update_step(
+    mgr.pipeline_store.update_step(
         run_id,
         "scan",
         "completed",

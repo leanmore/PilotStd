@@ -13,6 +13,11 @@ from ._base import BaseFacade
 class StandardManager(BaseFacade):
     """标准管理统一 API — 业务逻辑门面。"""
 
+    @property
+    def pipeline_store(self):
+        """代理底层核心组件的管道运行存储。"""
+        return self._core.pipeline_store
+
     # ===== 兼容旧代码：静态方法 =====
 
     @staticmethod
