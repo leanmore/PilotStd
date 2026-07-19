@@ -27,6 +27,7 @@ from .api.cache import router as cache_router
 from .api.download import router as download_router
 from .api.export import router as export_router
 from .api.favorites import router as favorites_router
+from .api.health import router as health_router
 from .api.logs import router as logs_router
 from .api.monitor import router as monitor_router
 from .api.normalize import router as normalize_router
@@ -239,6 +240,7 @@ app.include_router(cache_router)
 # ── 系统与监控 ──
 app.include_router(system_router)
 app.include_router(monitor_router)
+app.include_router(health_router)
 app.include_router(logs_router)
 
 # ── 文件与自动化 ──

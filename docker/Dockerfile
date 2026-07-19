@@ -44,6 +44,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 # 前端构建产物（由 CI npm run build 生成后 COPY 进镜像）
 # FRONTEND_CACHE_BUST 参数用于前端代码变更时强制刷新此层
 ARG FRONTEND_CACHE_BUST
+ARG APP_VERSION=unknown
+ENV APP_VERSION=$APP_VERSION
 RUN mkdir -p /app/web/dist
 COPY web/dist/ ./web/dist/
 # 验证前端文件存在
