@@ -516,8 +516,10 @@ class TestMatchAndUpdate(unittest.TestCase):
         """有匹配项：写 announcement_record 和 announcement_match。"""
         with MockDatabase(INIT_SQL) as db:
             # 预先插入 file_index 记录
+            fi_sql = "INSERT INTO file_index (logical_code, number, year, part, std_name, file_path)"
+            fi_sql += " VALUES (?, ?, ?, ?, ?, ?)"
             db.execute(
-                "INSERT INTO file_index (logical_code, number, year, part, std_name, file_path) VALUES (?, ?, ?, ?, ?, ?)",
+                fi_sql,
                 ("GBT", 1, 2020, "", "标准化工作导则", "/path/to/file.pdf"),  # parse_std_number 返回 code="GBT"
             )
             matcher = AnnouncementMatcher(db)
@@ -549,8 +551,10 @@ class TestMatchAndUpdate(unittest.TestCase):
     def test_multiple_items_mixed_results(self):
         """混合：部分匹配、部分不匹配。"""
         with MockDatabase(INIT_SQL) as db:
+            fi_sql = "INSERT INTO file_index (logical_code, number, year, part, std_name, file_path)"
+            fi_sql += " VALUES (?, ?, ?, ?, ?, ?)"
             db.execute(
-                "INSERT INTO file_index (logical_code, number, year, part, std_name, file_path) VALUES (?, ?, ?, ?, ?, ?)",
+                fi_sql,
                 ("GBT", 1, 2020, "", "标准化导则", "/path/to/file.pdf"),
             )
             matcher = AnnouncementMatcher(db)
