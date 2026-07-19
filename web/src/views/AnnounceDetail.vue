@@ -283,13 +283,14 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
 
     <div v-else>
       <!-- 顶部导航：返回按钮 -->
-      <div class="mb-3">
+      <div class="back-nav mb-4">
         <Button
           label="返回列表"
           icon="pi pi-arrow-left"
           severity="secondary"
           text
           size="small"
+          class="back-btn"
           @click="$router.back()"
         />
       </div>
@@ -332,6 +333,7 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
                 </span>
                 <span v-else class="text-sm text-color-secondary">无附件</span>
                 <Button
+                  v-if="announcement?.attachment_url"
                   :label="parseButtonLabel"
                   icon="pi pi-refresh"
                   size="small"
@@ -339,7 +341,6 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
                   :disabled="parseButtonDisabled"
                   @click="startParse"
                 />
-                <Tag v-if="parseStatus === 'completed'" severity="success" value="已解析" />
               </div>
             </div>
             <!-- 公告正文 -->
@@ -470,6 +471,19 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
+}
+
+.back-nav {
+  padding-left: 0;
+}
+
+.back-btn {
+  color: #a0aec0 !important;
+  transition: color 0.2s;
+}
+
+.back-btn:hover {
+  color: var(--p-primary-color) !important;
 }
 
 .announce-title {
