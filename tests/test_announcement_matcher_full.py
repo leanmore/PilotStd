@@ -10,7 +10,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from pilotstd.announcement.matcher import AnnouncementMatcher
+from pilotstd.announcement.matcher import AnnouncementMatcher, clean_announcement_content
 from tests.mocks.mock_database import MockDatabase
 
 # ── 测试用数据 ──────────────────────────────────────────────────
@@ -639,6 +639,118 @@ class TestMatchAndUpdateWithMockDb(unittest.TestCase):
         self.matcher.match_and_update([], "site")
         mock_insert.assert_not_called()
         mock_upsert.assert_not_called()
+
+
+# ── clean_announcement_content 测试样例 ──────────────────────
+
+# 国标公告正文样例（含标准号表格 + 引言 + 落款）
+GB_CONTENT_SAMPLE = """国家市场监督管理总局（国家标准化管理委员会）批准发布以下国家标准，现予以公告。
+
+序号\t标准编号\t标准名称\t代替标准\t实施日期
+1\tGB/T 1.1-2020\t标准化工作导则 第1部分\tGB/T 1.1-2009\t2020-10-01
+2\tGB/T 19000-2016\t质量管理体系 基础和术语\t\t2017-07-01
+3\tGB/T 20000.1-2014\t标准化工作指南 第1部分\tGB/T 20000.1-2014\t2015-06-01
+
+一、上述标准中，GB/T 1.1-2020《标准化工作导则 第1部分：标准化文件的结构和起草规则》代替 GB/T 1.1-2009。
+
+国家市场监督管理总局 国家标准化管理委员会 2026-07-02"""
+
+# 行业月报正文样例（含统计汇总表 + 废止段落）
+HB_MONTHLY_SAMPLE = """工业和信息化部发布行业标准备案月报。
+
+序号\t标准发布部门\t省市区\t行业领域\t备案数量
+1\t工业和信息化部\t北京市\t化工\t15
+2\t国家能源局\t山东省\t能源\t8
+合计\t\t\t\t23
+
+2026年5月工业和信息化部、国家能源局等3个部门8个省市共发布278项行业标准，共废止21项行业标准。
+
+工业和信息化部 2026-07-02"""
+
+# 地方月报正文样例（含统计汇总表 + 废止段落）
+DB_MONTHLY_SAMPLE = """国家标准化管理委员会发布地方标准备案月报。
+
+序号\t省市区\t标准发布部门\t行业领域\t备案数量
+1\t浙江省\t浙江省市场监督管理局\t农业\t12
+2\t广东省\t广东省市场监督管理局\t服务业\t8
+合计\t\t\t\t20
+
+2026年5月浙江省、广东省等2个省市区共发布20项地方标准，共废止5项地方标准。
+
+国家标准化管理委员会 2026-07-02"""
+
+
+class TestCleanAnnouncementContent(unittest.TestCase):
+    """clean_announcement_content 状态机清洗测试。"""
+
+    def test_empty_content(self):
+        self.assertEqual(clean_announcement_content(""), "")
+
+    def test_gb_strips_standard_table(self):
+        """国标公告：表格行剥离，引言和总结段落保留。"""
+        result = clean_announcement_content(GB_CONTENT_SAMPLE)
+        # 表头关键词不应出现
+        self.assertNotIn("代替标准", result)
+        self.assertNotIn("实施日期", result)
+        # 表格行首的数字序号+标准号组合不应出现
+        self.assertNotIn("\tGB/T", result)
+        # 正文引言应保留
+        self.assertIn("批准发布以下国家标准", result)
+        self.assertIn("现予以公告", result)
+        # 总结段落应保留（含标准号引用是正文正常内容）
+        self.assertIn("上述标准中", result)
+        self.assertIn("代替", result)
+        # 落款应保留
+        self.assertIn("国家市场监督管理总局", result)
+        self.assertIn("国家标准化管理委员会", result)
+        self.assertIn("2026-07-02", result)
+        self.assertIn("<p>", result)
+
+    def test_gb_date_split(self):
+        """国标公告：落款日期拆分为独立右对齐行。"""
+        result = clean_announcement_content(GB_CONTENT_SAMPLE)
+        self.assertIn('style="text-align:right"', result)
+        self.assertIn("2026-07-02", result)
+
+    def test_hb_monthly_preserves_abolition(self):
+        """行业月报：废止段落和末尾日期保留，统计表剥离。"""
+        result = clean_announcement_content(HB_MONTHLY_SAMPLE)
+        # 不应含统计表数据
+        self.assertNotIn("工业和信息化部\t北京市", result)
+        self.assertNotIn("备案数量", result)
+        # 应保留废止段落
+        self.assertIn("共废止21项", result)
+        self.assertIn("共发布278项", result)
+        # 应保留落款
+        self.assertIn("工业和信息化部", result)
+        self.assertIn("2026-07-02", result)
+
+    def test_db_monthly_preserves_abolition(self):
+        """地方月报：废止段落和末尾日期保留，统计表剥离。"""
+        result = clean_announcement_content(DB_MONTHLY_SAMPLE)
+        # 不应含统计表数据
+        self.assertNotIn("浙江省市场监督管理局", result)
+        self.assertNotIn("备案数量", result)
+        # 应保留废止段落
+        self.assertIn("共废止5项", result)
+        self.assertIn("共发布20项", result)
+        # 应保留落款
+        self.assertIn("国家标准化管理委员会", result)
+        self.assertIn("2026-07-02", result)
+
+    def test_pure_text_passthrough(self):
+        """纯文本无表格时原样保留。"""
+        text = "这是一段普通的公告正文，没有任何表格数据。"
+        result = clean_announcement_content(text)
+        self.assertIn("没有任何表格数据", result)
+        self.assertIn("<p>", result)
+
+    def test_paragraph_wrapping(self):
+        """多段落文本正确包裹 p 标签。"""
+        text = "第一段内容。\n\n第二段内容。"
+        result = clean_announcement_content(text)
+        self.assertIn("第一段内容", result)
+        self.assertIn("第二段内容", result)
 
 
 if __name__ == "__main__":

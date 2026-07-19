@@ -23,9 +23,12 @@ def _store_raw_content(
     raw_html: str,
 ) -> None:
     """提取公告正文并写入 announcements 表（线程安全，失败静默）。"""
+    from .matcher import clean_announcement_content
     from .parser import extract_content
 
     content = extract_content(raw_html)
+    # 状态机清洗：剥离标准清单表格，保留公文引言 + 落款日期拆分
+    content = clean_announcement_content(content)
     if not announce_no:
         return
     try:

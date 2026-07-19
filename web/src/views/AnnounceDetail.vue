@@ -306,7 +306,7 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
           <div class="grid">
             <div class="col-12">
               <label class="text-sm text-color-secondary">标题</label>
-              <p class="font-medium">{{ announcement?.title }}</p>
+              <p class="announce-title">{{ announcement?.title }}</p>
             </div>
             <div class="col-6">
               <label class="text-sm text-color-secondary">发布日期</label>
@@ -345,10 +345,9 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
             <!-- 公告正文 -->
             <div v-if="announcement?.content" class="col-12">
               <label class="text-sm text-color-secondary">公告正文</label>
-              <div
-                class="content-body mt-1 p-3 border-round surface-100"
-                v-html="sanitizedContent"
-              />
+              <div class="official-doc mt-1 p-3 border-round surface-100">
+                <div class="doc-content" v-html="sanitizedContent" />
+              </div>
             </div>
           </div>
         </template>
@@ -473,20 +472,34 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
   padding: 1rem;
 }
 
-.content-body {
-  max-height: 400px;
-  overflow-y: auto;
-  font-size: 0.9rem;
-  line-height: 1.6;
+.announce-title {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.8;
+  margin: 0.5rem 0;
 }
 
-.content-body :deep(table) {
+.official-doc {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.doc-content :deep(p) {
+  font-size: 16px;
+  color: #333;
+  text-indent: 2em;
+  line-height: 1.8;
+  margin: 0.25em 0;
+}
+
+.doc-content :deep(table) {
   border-collapse: collapse;
   width: 100%;
 }
 
-.content-body :deep(td),
-.content-body :deep(th) {
+.doc-content :deep(td),
+.doc-content :deep(th) {
   border: 1px solid var(--p-surface-300);
   padding: 0.25rem 0.5rem;
 }
