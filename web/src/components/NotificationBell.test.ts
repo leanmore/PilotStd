@@ -17,8 +17,6 @@ vi.mock('@/composables/useNotification', () => ({
     messages,
     unreadCount: computed(() => messages.value.filter(m => !m.is_read).length),
     markAsRead: vi.fn().mockResolvedValue({ ok: true }),
-    isConnected: ref(true),
-    error: ref(null),
   }),
 }))
 
