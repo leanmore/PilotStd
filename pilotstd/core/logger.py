@@ -196,8 +196,13 @@ class LoggerManager:
         return h
 
     def _stop_listener(self) -> None:
-        if LoggerManager._listener:
-            LoggerManager._listener.stop()
+        """安全停止 QueueListener，空值保护。"""
+        listener = LoggerManager._listener
+        if listener is not None:
+            try:
+                listener.stop()
+            except Exception:
+                pass
 
     def _cleanup_old_logs(self) -> None:
         """轮转由 RotatingFileHandler 自动管理（backupCount=1），无需手动清理。"""
