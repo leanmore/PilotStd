@@ -249,7 +249,7 @@ class TestCore(unittest.TestCase):
         self.assertIn("code", result)
 
     def test_validity_module_lock(self):
-        from pilotstd.core.validity_checker import _VALIDITY_LOCK
+        from pilotstd.core._validity_pipeline import _VALIDITY_LOCK
 
         self.assertIsNotNone(_VALIDITY_LOCK)
 

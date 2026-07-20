@@ -113,7 +113,7 @@ class TestQueryHandler(unittest.TestCase):
 
     # ── _query_announcement_match ──
 
-    @patch("pilotstd.manager.facade._query.requests.get")
+    @patch("pilotstd.manager.facade._query_exec.requests.get")
     def test_announcement_match_disabled_no_api_key(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -124,7 +124,7 @@ class TestQueryHandler(unittest.TestCase):
         self.assertIsNone(result)
         mock_get.assert_not_called()
 
-    @patch("pilotstd.manager.facade._query.requests.get")
+    @patch("pilotstd.manager.facade._query_exec.requests.get")
     def test_announcement_match_found(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -140,7 +140,7 @@ class TestQueryHandler(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(result["data"]["standard_name"] == "测试")
 
-    @patch("pilotstd.manager.facade._query.requests.get")
+    @patch("pilotstd.manager.facade._query_exec.requests.get")
     def test_announcement_match_not_found(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -155,7 +155,7 @@ class TestQueryHandler(unittest.TestCase):
         result = self.handler._query_announcement_match("GB/T 1-2020")
         self.assertIsNone(result)
 
-    @patch("pilotstd.manager.facade._query.requests.get")
+    @patch("pilotstd.manager.facade._query_exec.requests.get")
     def test_announcement_match_timeout(self, mock_get):
         import requests as rq
 
@@ -168,7 +168,7 @@ class TestQueryHandler(unittest.TestCase):
         result = self.handler._query_announcement_match("GB/T 1-2020")
         self.assertIsNone(result)
 
-    @patch("pilotstd.manager.facade._query.requests.get")
+    @patch("pilotstd.manager.facade._query_exec.requests.get")
     def test_announcement_match_connection_error(self, mock_get):
         import requests as rq
 
