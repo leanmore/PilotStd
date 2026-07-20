@@ -24,9 +24,13 @@ class TestMainWindowCoreInit(unittest.TestCase):
     @patch.object(MainWindowCore, "_init_all_handlers")
     def test_stores_basic_attributes(self, _mock_init):
         core = MainWindowCore(
-            mgr=self.mgr, work_table=self.work_table,
-            progress_callback=self.progress_cb, status_callback=self.status_cb,
-            parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+            mgr=self.mgr,
+            work_table=self.work_table,
+            progress_callback=self.progress_cb,
+            status_callback=self.status_cb,
+            parsed_results=self.parsed,
+            config=self.config,
+            pause_event=self.pause,
             parent_widget=self.parent,
         )
         self.assertIs(core._mgr, self.mgr)
@@ -42,24 +46,49 @@ class TestMainWindowCoreInit(unittest.TestCase):
     def test_stores_all_callbacks(self, _mock_init):
         cb = MagicMock()
         core = MainWindowCore(
-            mgr=self.mgr, work_table=self.work_table,
-            progress_callback=self.progress_cb, status_callback=self.status_cb,
-            parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+            mgr=self.mgr,
+            work_table=self.work_table,
+            progress_callback=self.progress_cb,
+            status_callback=self.status_cb,
+            parsed_results=self.parsed,
+            config=self.config,
+            pause_event=self.pause,
             parent_widget=self.parent,
-            show_stage_dialog=cb, stage_prereq_dialog=cb, register_task=cb,
-            project_mark_dirty=cb, suppress_dialogs=cb,
-            add_table_row=cb, find_row_by_seq=cb, clear_table=cb,
-            update_button_states=cb, stop_workers_cb=cb, on_auto_save_cb=cb,
-            question_dlg=cb, reset_progress=cb, force_finish_progress=cb,
-            on_raw_progress=cb, run_scan_cb=cb, run_query_cb=cb,
-            get_selected_path_cb=cb, get_scan_source_root_cb=cb,
-            get_unrecognized_files_cb=cb, clear_unrecognized_files_cb=cb,
-            set_suppress_dialogs=cb, set_query_btn_enabled=cb,
-            set_download_btn_enabled=cb, set_cancel_btn_enabled=cb,
-            set_progress_format=cb, set_progress_bar_visible=cb,
-            show_auto_error_style=cb, get_parsed_results_cb=cb,
-            get_work_table_cb=cb, get_log_view_cb=cb, project=cb,
-            add_row_from_dict_cb=cb, navigate_to_cb=cb, get_work_state_cb=cb,
+            show_stage_dialog=cb,
+            stage_prereq_dialog=cb,
+            register_task=cb,
+            project_mark_dirty=cb,
+            suppress_dialogs=cb,
+            add_table_row=cb,
+            find_row_by_seq=cb,
+            clear_table=cb,
+            update_button_states=cb,
+            stop_workers_cb=cb,
+            on_auto_save_cb=cb,
+            question_dlg=cb,
+            reset_progress=cb,
+            force_finish_progress=cb,
+            on_raw_progress=cb,
+            run_scan_cb=cb,
+            run_query_cb=cb,
+            get_selected_path_cb=cb,
+            get_scan_source_root_cb=cb,
+            get_unrecognized_files_cb=cb,
+            clear_unrecognized_files_cb=cb,
+            set_suppress_dialogs=cb,
+            set_query_btn_enabled=cb,
+            set_download_btn_enabled=cb,
+            set_cancel_btn_enabled=cb,
+            set_progress_format=cb,
+            set_progress_bar_visible=cb,
+            show_auto_error_style=cb,
+            get_parsed_results_cb=cb,
+            get_work_table_cb=cb,
+            get_log_view_cb=cb,
+            project=cb,
+            add_row_from_dict_cb=cb,
+            navigate_to_cb=cb,
+            get_work_state_cb=cb,
             set_unrecognized_files_cb=cb,
         )
         self.assertIs(core._show_stage_dialog, cb)
@@ -78,9 +107,13 @@ class TestMainWindowCoreInit(unittest.TestCase):
     @patch.object(MainWindowCore, "_init_all_handlers")
     def test_suppress_dialogs_default_none(self, _mock_init):
         core = MainWindowCore(
-            mgr=self.mgr, work_table=self.work_table,
-            progress_callback=self.progress_cb, status_callback=self.status_cb,
-            parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+            mgr=self.mgr,
+            work_table=self.work_table,
+            progress_callback=self.progress_cb,
+            status_callback=self.status_cb,
+            parsed_results=self.parsed,
+            config=self.config,
+            pause_event=self.pause,
             parent_widget=self.parent,
         )
         self.assertIsNone(core._suppress_dialogs)
@@ -88,9 +121,13 @@ class TestMainWindowCoreInit(unittest.TestCase):
     @patch.object(MainWindowCore, "_init_all_handlers")
     def test_get_unrecognized_files_cb_lambda_is_none(self, _mock_init):
         core = MainWindowCore(
-            mgr=self.mgr, work_table=self.work_table,
-            progress_callback=self.progress_cb, status_callback=self.status_cb,
-            parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+            mgr=self.mgr,
+            work_table=self.work_table,
+            progress_callback=self.progress_cb,
+            status_callback=self.status_cb,
+            parsed_results=self.parsed,
+            config=self.config,
+            pause_event=self.pause,
             parent_widget=self.parent,
         )
         self.assertIsNone(core._get_unrecognized_files_cb)
@@ -111,31 +148,48 @@ class TestInitAllHandlers(unittest.TestCase):
         self.parent = MagicMock()
 
     def test_calls_all_init_methods(self):
-        with patch.object(MainWindowCore, "_init_scan") as m1, \
-             patch.object(MainWindowCore, "_init_query") as m2, \
-             patch.object(MainWindowCore, "_init_download") as m3, \
-             patch.object(MainWindowCore, "_init_archive") as m4, \
-             patch.object(MainWindowCore, "_init_auto") as m5, \
-             patch.object(MainWindowCore, "_init_announce") as m6, \
-             patch.object(MainWindowCore, "_init_file_dialog") as m7, \
-             patch.object(MainWindowCore, "_init_export") as m8, \
-             patch.object(MainWindowCore, "_init_cleanup") as m9, \
-             patch.object(MainWindowCore, "_init_persistence") as m10, \
-             patch.object(MainWindowCore, "_init_project") as m11, \
-             patch.object(MainWindowCore, "_init_ui_setup") as m12, \
-             patch.object(MainWindowCore, "_init_theme") as m13, \
-             patch.object(MainWindowCore, "_init_actions") as m14:
+        with (
+            patch.object(MainWindowCore, "_init_scan") as m1,
+            patch.object(MainWindowCore, "_init_query") as m2,
+            patch.object(MainWindowCore, "_init_download") as m3,
+            patch.object(MainWindowCore, "_init_archive") as m4,
+            patch.object(MainWindowCore, "_init_auto") as m5,
+            patch.object(MainWindowCore, "_init_announce") as m6,
+            patch.object(MainWindowCore, "_init_file_dialog") as m7,
+            patch.object(MainWindowCore, "_init_export") as m8,
+            patch.object(MainWindowCore, "_init_cleanup") as m9,
+            patch.object(MainWindowCore, "_init_persistence") as m10,
+            patch.object(MainWindowCore, "_init_project") as m11,
+            patch.object(MainWindowCore, "_init_ui_setup") as m12,
+            patch.object(MainWindowCore, "_init_theme") as m13,
+            patch.object(MainWindowCore, "_init_actions") as m14,
+        ):
             MainWindowCore(
-                mgr=self.mgr, work_table=self.work_table,
-                progress_callback=self.progress_cb, status_callback=self.status_cb,
-                parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+                mgr=self.mgr,
+                work_table=self.work_table,
+                progress_callback=self.progress_cb,
+                status_callback=self.status_cb,
+                parsed_results=self.parsed,
+                config=self.config,
+                pause_event=self.pause,
                 parent_widget=self.parent,
             )
-        for name, m in [("scan", m1), ("query", m2), ("download", m3),
-                         ("archive", m4), ("auto", m5), ("announce", m6),
-                         ("file_dialog", m7), ("export", m8), ("cleanup", m9),
-                         ("persistence", m10), ("project", m11),
-                         ("ui_setup", m12), ("theme", m13), ("actions", m14)]:
+        for name, m in [
+            ("scan", m1),
+            ("query", m2),
+            ("download", m3),
+            ("archive", m4),
+            ("auto", m5),
+            ("announce", m6),
+            ("file_dialog", m7),
+            ("export", m8),
+            ("cleanup", m9),
+            ("persistence", m10),
+            ("project", m11),
+            ("ui_setup", m12),
+            ("theme", m13),
+            ("actions", m14),
+        ]:
             m.assert_called_once(), f"_init_{name} 未被调用"
 
 
@@ -154,9 +208,13 @@ class TestInitIndividualHandlers(unittest.TestCase):
 
     def _make_core(self, **overrides):
         kwargs = dict(
-            mgr=self.mgr, work_table=self.work_table,
-            progress_callback=self.progress_cb, status_callback=self.status_cb,
-            parsed_results=self.parsed, config=self.config, pause_event=self.pause,
+            mgr=self.mgr,
+            work_table=self.work_table,
+            progress_callback=self.progress_cb,
+            status_callback=self.status_cb,
+            parsed_results=self.parsed,
+            config=self.config,
+            pause_event=self.pause,
             parent_widget=self.parent,
             **overrides,
         )
@@ -165,8 +223,7 @@ class TestInitIndividualHandlers(unittest.TestCase):
 
     @patch("pilotstd.ui.core._core.ScanUIHandler")
     def test_init_scan(self, mock_handler_cls):
-        core = self._make_core(get_unrecognized_files_cb=lambda: ["f1.pdf"],
-                                get_scan_source_root_cb=lambda: "/root")
+        core = self._make_core(get_unrecognized_files_cb=lambda: ["f1.pdf"], get_scan_source_root_cb=lambda: "/root")
         core._init_scan()
         mock_handler_cls.assert_called_once()
         call_kwargs = mock_handler_cls.call_args[1]
@@ -183,7 +240,7 @@ class TestInitIndividualHandlers(unittest.TestCase):
         self.assertEqual(call_kwargs["unrecognized_files"], [])
         self.assertEqual(call_kwargs["scan_source_root"], "")
 
-    @patch("pilotstd.ui.core._core.QueryUIHandler")
+    @patch("pilotstd.ui.core.handlers._query.QueryUIHandler")
     def test_init_query(self, mock_handler_cls):
         core = self._make_core()
         core._init_query()
@@ -191,7 +248,7 @@ class TestInitIndividualHandlers(unittest.TestCase):
         call_kwargs = mock_handler_cls.call_args[1]
         self.assertIs(call_kwargs["mgr"], self.mgr)
         self.assertIs(call_kwargs["config"], self.config)
-        self.assertIs(call_kwargs["pause_event"], self.pause)
+        self.assertIsNotNone(call_kwargs.get("deps"))
 
     @patch("pilotstd.ui.core._core.DownloadUIHandler")
     def test_init_download(self, mock_handler_cls):
@@ -203,8 +260,7 @@ class TestInitIndividualHandlers(unittest.TestCase):
 
     @patch("pilotstd.ui.core._core.ArchiveUIHandler")
     def test_init_archive(self, mock_handler_cls):
-        core = self._make_core(run_scan_cb=lambda: None, run_query_cb=lambda: None,
-                                get_selected_path_cb=lambda: "/p")
+        core = self._make_core(run_scan_cb=lambda: None, run_query_cb=lambda: None, get_selected_path_cb=lambda: "/p")
         core._init_archive()
         mock_handler_cls.assert_called_once()
         call_kwargs = mock_handler_cls.call_args[1]
@@ -234,17 +290,18 @@ class TestInitIndividualHandlers(unittest.TestCase):
 
     @patch("pilotstd.ui.core._core.FileDialogHandler")
     def test_init_file_dialog(self, mock_handler_cls):
-        core = self._make_core(run_scan_cb=lambda: None,
-                                get_selected_path_cb=lambda: "/p")
+        core = self._make_core(run_scan_cb=lambda: None, get_selected_path_cb=lambda: "/p")
         core._init_file_dialog()
         mock_handler_cls.assert_called_once()
 
     @patch("pilotstd.ui.core._core.ExportHandler")
     def test_init_export(self, mock_handler_cls):
-        core = self._make_core(get_selected_path_cb=lambda: "/p",
-                                get_parsed_results_cb=lambda: [],
-                                get_work_table_cb=lambda: None,
-                                get_log_view_cb=lambda: None)
+        core = self._make_core(
+            get_selected_path_cb=lambda: "/p",
+            get_parsed_results_cb=lambda: [],
+            get_work_table_cb=lambda: None,
+            get_log_view_cb=lambda: None,
+        )
         core._init_export()
         mock_handler_cls.assert_called_once()
 
@@ -252,9 +309,11 @@ class TestInitIndividualHandlers(unittest.TestCase):
     @patch("pilotstd.ui.core._core.get_library_root")
     def test_init_cleanup(self, mock_get_root, mock_handler_cls):
         mock_get_root.return_value = "/lib"
-        core = self._make_core(get_unrecognized_files_cb=lambda: ["f.pdf"],
-                                clear_unrecognized_files_cb=lambda: None,
-                                get_scan_source_root_cb=lambda: "/src")
+        core = self._make_core(
+            get_unrecognized_files_cb=lambda: ["f.pdf"],
+            clear_unrecognized_files_cb=lambda: None,
+            get_scan_source_root_cb=lambda: "/src",
+        )
         core._init_cleanup()
         mock_handler_cls.assert_called_once()
         call_kwargs = mock_handler_cls.call_args[1]
@@ -269,11 +328,13 @@ class TestInitIndividualHandlers(unittest.TestCase):
     @patch("pilotstd.ui.core._core.ProjectHandler")
     def test_init_project(self, mock_handler_cls):
         fake_project = MagicMock()
-        core = self._make_core(project=fake_project,
-                                add_row_from_dict_cb=lambda d: None,
-                                navigate_to_cb=lambda p: None,
-                                get_work_state_cb=lambda: {},
-                                set_unrecognized_files_cb=lambda f: None)
+        core = self._make_core(
+            project=fake_project,
+            add_row_from_dict_cb=lambda d: None,
+            navigate_to_cb=lambda p: None,
+            get_work_state_cb=lambda: {},
+            set_unrecognized_files_cb=lambda f: None,
+        )
         core._init_project()
         mock_handler_cls.assert_called_once()
 
@@ -293,11 +354,13 @@ class TestInitIndividualHandlers(unittest.TestCase):
     @patch("pilotstd.ui.core._core.ActionsHandler")
     def test_init_actions(self, mock_handler_cls):
         fake_project = MagicMock()
-        core = self._make_core(project=fake_project,
-                                get_selected_path_cb=lambda: "/p",
-                                clear_table=lambda: None,
-                                stop_workers_cb=lambda: None,
-                                update_button_states=lambda: None)
+        core = self._make_core(
+            project=fake_project,
+            get_selected_path_cb=lambda: "/p",
+            clear_table=lambda: None,
+            stop_workers_cb=lambda: None,
+            update_button_states=lambda: None,
+        )
         core._init_actions()
         mock_handler_cls.assert_called_once()
         call_kwargs = mock_handler_cls.call_args[1]

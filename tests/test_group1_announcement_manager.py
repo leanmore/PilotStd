@@ -169,14 +169,14 @@ class TestAnnouncementBaseDeep(unittest.TestCase):
         self.assertEqual(self.crawler.source_site, "announcement_gb")
 
     def test_cb_threshold_default(self):
-        from pilotstd.announcement.base import _DEFAULT_FAILURE_THRESHOLD
+        from pilotstd.announcement._circuit_breaker import _DEFAULT_FAILURE_THRESHOLD
 
         with patch("pilotstd.core.config.ConfigManager") as mock_cm:
             mock_cm.return_value.get.return_value = None
             self.assertEqual(self.crawler._cb._threshold, _DEFAULT_FAILURE_THRESHOLD)
 
     def test_cb_durations_default(self):
-        from pilotstd.announcement.base import _DEFAULT_FREEZE_DURATIONS
+        from pilotstd.announcement._circuit_breaker import _DEFAULT_FREEZE_DURATIONS
 
         with patch("pilotstd.core.config.ConfigManager") as mock_cm:
             mock_cm.return_value.get.return_value = None
@@ -377,7 +377,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
             "network.timeout": 5,
         }.get(k, d)
         h = QueryHandler(self.core)
-        with patch("pilotstd.manager.facade._query.requests.get", side_effect=requests.exceptions.Timeout()):
+        with patch("pilotstd.manager.facade._query_exec.requests.get", side_effect=requests.exceptions.Timeout()):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNone(result)
 
@@ -392,7 +392,9 @@ class TestQueryHandlerDeep(unittest.TestCase):
             "network.timeout": 5,
         }.get(k, d)
         h = QueryHandler(self.core)
-        with patch("pilotstd.manager.facade._query.requests.get", side_effect=requests.exceptions.ConnectionError()):
+        with patch(
+            "pilotstd.manager.facade._query_exec.requests.get", side_effect=requests.exceptions.ConnectionError()
+        ):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNone(result)
 
@@ -407,7 +409,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
         h = QueryHandler(self.core)
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"found": True, "data": {"standard_name": "Test"}, "cached_at": "2024-01-01"}
-        with patch("pilotstd.manager.facade._query.requests.get", return_value=mock_resp):
+        with patch("pilotstd.manager.facade._query_exec.requests.get", return_value=mock_resp):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNotNone(result)
             self.assertEqual(result["data"]["standard_name"], "Test")
