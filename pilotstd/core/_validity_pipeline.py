@@ -10,7 +10,15 @@ import time as _time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .validity_checker import ValidityChecker
+    from .validity_checker import ValidityChecker  # 仅类型标注用，运行时延迟导入以避免循环引用
+
+
+def _get_validity_checker_class():
+    """延迟导入 ValidityChecker，避免 _validity_pipeline ↔ validity_checker 循环引用。"""
+    from .validity_checker import ValidityChecker as VC
+
+    return VC
+
 
 _TABLE = "standard_validity"
 
@@ -165,7 +173,7 @@ def run_validity_check(
         from .config import ConfigManager
 
         config = ConfigManager()
-        checker = ValidityChecker(db)
+        checker = _get_validity_checker_class()(db)
         check_ratio = config.get("validity.check_ratio", 25)
         batch_size = config.get("validity.batch_size", 50)
         batch_interval = config.get("validity.batch_interval", 5)

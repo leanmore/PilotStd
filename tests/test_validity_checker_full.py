@@ -1007,9 +1007,9 @@ class TestFinalizeValidityRound(unittest.TestCase):
 class TestRunValidityCheck(unittest.TestCase):
     """覆盖 run_validity_check 所有分支。"""
 
-    @patch("pilotstd.core.validity_checker._process_validity_batch")
-    @patch("pilotstd.core.validity_checker._finalize_validity_round")
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._process_validity_batch")
+    @patch("pilotstd.core._validity_pipeline._finalize_validity_round")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_no_candidates(self, mock_cm_cls, mock_sample, mock_finalize, mock_process):
         """无候选 → 返回 ok=True, checked=0, changed=0。"""
@@ -1028,9 +1028,9 @@ class TestRunValidityCheck(unittest.TestCase):
         self.assertEqual(result["changed"], 0)
         mock_process.assert_not_called()
 
-    @patch("pilotstd.core.validity_checker._process_validity_batch")
-    @patch("pilotstd.core.validity_checker._finalize_validity_round")
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._process_validity_batch")
+    @patch("pilotstd.core._validity_pipeline._finalize_validity_round")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_with_candidates_success(
         self,
@@ -1064,7 +1064,7 @@ class TestRunValidityCheck(unittest.TestCase):
         call_args = notif_mgr.send_event.call_args[0]
         self.assertEqual(call_args[0], "validity_batch_report")
 
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_db_is_none_creates_new(self, mock_cm_cls, mock_sample):
         """db=None → 内部创建 Database 实例。"""
@@ -1087,7 +1087,7 @@ class TestRunValidityCheck(unittest.TestCase):
                 mock_db_cls.assert_called_once_with("/fake/path.db")
                 self.assertTrue(result["ok"])
 
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_exception_sends_notification(self, mock_cm_cls, mock_sample):
         """异常 → 返回 ok=False，发送 validity_system_failed。"""
@@ -1104,7 +1104,7 @@ class TestRunValidityCheck(unittest.TestCase):
         call_args = notif_mgr.send_event.call_args[0]
         self.assertEqual(call_args[0], "validity_system_failed")
 
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_exception_no_notification_mgr(self, mock_cm_cls, mock_sample):
         """异常 + notification_mgr=None → 不尝试发通知。"""
@@ -1116,7 +1116,7 @@ class TestRunValidityCheck(unittest.TestCase):
         result = run_validity_check(notification_mgr=None, db=MagicMock())
         self.assertFalse(result["ok"])
 
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_exception_notification_raises(self, mock_cm_cls, mock_sample):
         """异常后通知也失败 → 不影响返回。"""
@@ -1132,9 +1132,9 @@ class TestRunValidityCheck(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("unexpected", result["error"])
 
-    @patch("pilotstd.core.validity_checker._process_validity_batch")
-    @patch("pilotstd.core.validity_checker._finalize_validity_round")
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._process_validity_batch")
+    @patch("pilotstd.core._validity_pipeline._finalize_validity_round")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_success_notification_raises(
         self,
@@ -1162,9 +1162,9 @@ class TestRunValidityCheck(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["checked"], 1)
 
-    @patch("pilotstd.core.validity_checker._process_validity_batch")
-    @patch("pilotstd.core.validity_checker._finalize_validity_round")
-    @patch("pilotstd.core.validity_checker._sample_due_standards")
+    @patch("pilotstd.core._validity_pipeline._process_validity_batch")
+    @patch("pilotstd.core._validity_pipeline._finalize_validity_round")
+    @patch("pilotstd.core._validity_pipeline._sample_due_standards")
     @patch("pilotstd.core.config.ConfigManager")
     def test_with_adapter_mgr(
         self,
