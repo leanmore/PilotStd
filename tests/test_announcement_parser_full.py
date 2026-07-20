@@ -423,21 +423,21 @@ class TestParseAttachmentText(unittest.TestCase):
         result = parse_attachment_text(wps_bytes, filename="test.wps")
         self.assertIsInstance(result, str)
 
-    @patch("pilotstd.announcement.parser._parse_pdf_text")
+    @patch("pilotstd.announcement._attachment_parser._parse_pdf_text")
     def test_pdf_route(self, mock_pdf_parse):
         """.pdf 后缀路由到 PDF 解析器。"""
         mock_pdf_parse.return_value = "GB/T 1.1-2020 PDF标准"
         result = parse_attachment_text(b"fake pdf", filename="test.pdf")
         self.assertIn("PDF标准", result)
 
-    @patch("pilotstd.announcement.parser._parse_docx_text")
+    @patch("pilotstd.announcement._attachment_parser._parse_docx_text")
     def test_docx_route(self, mock_docx_parse):
         """.docx 后缀路由到 DOCX 解析器。"""
         mock_docx_parse.return_value = "GB/T 1.1-2020 DOCX标准"
         result = parse_attachment_text(b"fake docx", filename="test.docx")
         self.assertIn("DOCX标准", result)
 
-    @patch("pilotstd.announcement.parser._parse_docx_text")
+    @patch("pilotstd.announcement._attachment_parser._parse_docx_text")
     def test_doc_route(self, mock_docx_parse):
         """.doc 后缀也路由到 DOCX 解析器。"""
         mock_docx_parse.return_value = "GB/T 1.1-2020 DOC标准"

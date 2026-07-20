@@ -366,8 +366,8 @@ class TestDatabase(unittest.TestCase):
 
         fake_value = "fake_identical_checksum_no_comments"
         with (
-            patch.object(self.db, "_norm_checksum", return_value=fake_value),
-            patch.object(self.db, "_compute_checksum", return_value=fake_value),
+            patch("pilotstd.core.db._migration_checksum.norm_checksum", return_value=fake_value),
+            patch("pilotstd.core.db._migration_checksum.compute_checksum", return_value=fake_value),
         ):
             with self.assertRaises(DE):
                 self.db._verify_migration_checksums()
