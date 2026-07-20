@@ -150,6 +150,9 @@ class MainWindowCore:
             clear_table=self._clear_table,
             update_button_states=self._update_button_states,
             question_dlg=self._question_dlg,
+            progress_callback=self._on_raw_progress,
+            reset_progress=self._reset_progress,
+            force_finish_progress=self._force_finish_progress,
             unrecognized_files=self._get_unrecognized_files_cb() if self._get_unrecognized_files_cb else [],
             scan_source_root=self._get_scan_source_root_cb() if self._get_scan_source_root_cb else "",
         )

@@ -52,6 +52,7 @@ QT_SIGNAL_SUFFIXES = (
     "_failed",
     "_done",
     "_msg",
+    "_updated",
 )
 
 QT_BUILTIN_ATTRS = frozenset(

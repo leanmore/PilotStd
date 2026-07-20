@@ -90,7 +90,9 @@ class DownloadUIHandler:
         )
 
         def on_worker_progress(pct: int) -> None:
+            """更新状态栏文字和进度条。"""
             self._status_cb(f"下载进度: {pct}%")
+            self._progress_cb(pct)
 
         self._download_worker.progress.connect(on_worker_progress)
         self._download_worker.progress.connect(lambda pct: self._publish_event("download.progress", {"pct": pct}))

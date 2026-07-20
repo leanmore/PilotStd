@@ -37,7 +37,7 @@ def _get_download_url(standard_number: str, db: Database) -> Optional[str]:
         (standard_number,),
     )
     row = cursor.fetchone()
-    if row and row.get("result_json"):
+    if row and row["result_json"]:
         try:
             data = json.loads(row["result_json"])
             return data.get("download_url")
@@ -127,7 +127,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         row = cursor.fetchone()
         if not row:
             raise FavoriteArchiveError(f"记录不存在: {record_id}")
-        standard_number = row.get("standard_number")
+        standard_number = row["standard_number"]
         if not standard_number:
             raise FavoriteArchiveError(f"标准号为空: {record_id}")
 

@@ -367,6 +367,10 @@ class BaseFacade:
         self._core.pending_svc = value
 
     @property
+    def validity_service(self):
+        return self._validity_service
+
+    @property
     def user_service(self):
         return self._user_service
 

@@ -121,42 +121,4 @@ def _register_task(self, label: str, total: int, completed: int, failed: int = 0
         logger.warning("任务记录失败: %s", e)
 
 
-# ── 进度条动画（缓动效果）──
-
-
-def _on_raw_progress(self, cur: int, total: int) -> None:
-    """设置目标进度并启动平滑动画定时器（50ms 缓动效果）。"""
-    if total > 0:
-        self._target_progress = (cur / total) * 100
-    else:
-        self._target_progress = 0
-    if not self._progress_timer.isActive():
-        self._progress_timer.start()
-
-
-def _animate_progress(self) -> None:
-    """定时器回调（50ms）：缓动动画逼近目标进度值，到达后停止定时器。"""
-    diff = self._target_progress - self._current_progress
-    if abs(diff) < 0.5:
-        self._current_progress = self._target_progress
-        self.progress_changed.emit(int(self._current_progress))
-        self._progress_timer.stop()
-    else:
-        self._current_progress += diff * 0.2
-        self.progress_changed.emit(int(self._current_progress))
-
-
-def _reset_progress_bar(self) -> None:
-    """停止动画定时器并将进度归零。"""
-    self._progress_timer.stop()
-    self._target_progress = 0
-    self._current_progress = 0.0
-    self.progress_changed.emit(0)
-
-
-def _force_finish_progress(self) -> None:
-    """停止动画定时器并强制进度跳转到 100%。"""
-    self._progress_timer.stop()
-    self._target_progress = 100
-    self._current_progress = 100.0
-    self.progress_changed.emit(100)
+# 进度条缓动已迁移至 pilotstd.ui.core.unified_progress.UnifiedProgressPipeline

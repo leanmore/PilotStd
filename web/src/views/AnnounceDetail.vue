@@ -10,11 +10,10 @@ import {
   getParseStatus,
   updateRecord,
   batchApprove,
-  addFavorite,
-  getFavoriteStatus,
-  removeFavorite,
 } from '@/api/announce'
 import type { Announcement, AnnouncementRecord } from '@/types/api'
+import { useDetailCache } from '@/composables/useDetailCache'
+import { useFavorite } from '@/composables/useFavorite'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
@@ -28,6 +27,8 @@ const route = useRoute()
 const toast = useToast()
 const source = route.params.source as string
 const announceNo = route.params.announceNo as string
+
+const { get: getCache, set: setCache, clear: clearDetailCache } = useDetailCache(source, announceNo)
 
 const loading = ref(true)
 const parsing = ref(false)
@@ -67,12 +68,29 @@ const sanitizedContent = computed(() => {
 })
 
 async function loadDetail() {
+  // 1. 优先读 sessionStorage 缓存
+  const cached = getCache()
+  if (cached) {
+    announcement.value = cached.announcement
+    records.value = cached.records
+    parseStatus.value = cached.parse_status || 'pending'
+    loading.value = false
+    loadFavStatuses()
+    return
+  }
+
+  // 2. 缓存未命中，正常请求
   loading.value = true
   try {
     const res = await getAnnouncementDetail(announceNo, source)
     announcement.value = res.announcement
     records.value = res.records || []
     parseStatus.value = res.parse_status || 'pending'
+    setCache({
+      announcement: res.announcement,
+      records: res.records,
+      parse_status: res.parse_status,
+    })
     loadFavStatuses()
   } catch {
     toast.add({ severity: 'error', summary: '加载失败', detail: '无法加载公告详情', life: 3000 })
@@ -101,6 +119,7 @@ async function startParse() {
           clearInterval(poll)
           parseStatus.value = 'completed'
           parsing.value = false
+          clearDetailCache()
           await loadDetail()
           toast.add({ severity: 'success', summary: '解析完成', detail: `共 ${records.value.length} 条标准`, life: 3000 })
         } else if (statusRes.status === 'failed') {
@@ -164,6 +183,7 @@ async function handleBatchApprove() {
     const res = await batchApprove(ids)
     toast.add({ severity: 'success', summary: '确认成功', detail: `已确认 ${res.approved_count} 条标准`, life: 3000 })
     selectedRecords.value = []
+    clearDetailCache()
     await loadDetail()
   } catch (e: any) {
     const detail = e?.response?.data?.detail
@@ -175,104 +195,12 @@ async function handleBatchApprove() {
   }
 }
 
-// ── Phase 4a: 收藏 ──────────────────────────────────────
+// ── Phase 4a: 收藏（委托给 useFavorite composable）──
 
-const favStatusMap = ref<Record<number, string>>({})
-const favLoadingMap = ref<Record<number, boolean>>({})
-const favPollTimers = ref<Record<number, ReturnType<typeof setInterval>>>({})
-
-function favLabel(status: string) {
-  const map: Record<string, string> = { pending: '待处理', downloading: '下载中', archiving: '归档中' }
-  return map[status] || status
-}
-
-function favIcon(recordId: number) {
-  const s = favStatusMap.value[recordId]
-  if (s === 'done') return 'pi pi-star-fill'
-  if (s === 'downloading' || s === 'archiving') return 'pi pi-spin pi-spinner'
-  if (s === 'failed') return 'pi pi-exclamation-triangle'
-  return 'pi pi-star'
-}
-
-function isFavLoading(recordId: number) {
-  return !!favLoadingMap.value[recordId]
-}
-
-async function toggleFavorite(record: AnnouncementRecord) {
-  const current = favStatusMap.value[record.id]
-  if (current === 'done') {
-    try {
-      await removeFavorite(record.id)
-      delete favStatusMap.value[record.id]
-      stopFavPoll(record.id)
-      toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
-    } catch {
-      toast.add({ severity: 'error', summary: '取消失败', life: 3000 })
-    }
-    return
-  }
-  if (current && current !== 'failed') return
-
-  favLoadingMap.value[record.id] = true
-  try {
-    const res = await addFavorite(record.id)
-    favStatusMap.value[record.id] = res.status
-    if (res.status === 'pending') startFavPoll(record.id)
-  } catch {
-    toast.add({ severity: 'error', summary: '收藏失败', life: 3000 })
-  } finally {
-    favLoadingMap.value[record.id] = false
-  }
-}
-
-function startFavPoll(recordId: number) {
-  stopFavPoll(recordId)
-  let attempts = 0
-  favPollTimers.value[recordId] = setInterval(async () => {
-    attempts++
-    try {
-      const res = await getFavoriteStatus(recordId)
-      if (res.status === 'done' || res.status === 'failed') {
-        stopFavPoll(recordId)
-        favStatusMap.value[recordId] = res.status || 'failed'
-        toast.add({
-          severity: res.status === 'done' ? 'success' : 'error',
-          summary: res.status === 'done' ? '归档完成' : '归档失败',
-          detail: res.status === 'done' ? '已归档到标准库' : (res.error_message || '请重试'),
-          life: 3000,
-        })
-        return
-      }
-      if (res.status) favStatusMap.value[recordId] = res.status
-    } catch { /* continue */ }
-    if (attempts >= 30) {
-      stopFavPoll(recordId)
-      favStatusMap.value[recordId] = 'failed'
-      toast.add({ severity: 'warn', summary: '超时', detail: '归档处理超时', life: 5000 })
-    }
-  }, 2000)
-}
-
-function stopFavPoll(recordId: number) {
-  if (favPollTimers.value[recordId]) {
-    clearInterval(favPollTimers.value[recordId])
-    delete favPollTimers.value[recordId]
-  }
-}
-
-async function loadFavStatuses() {
-  const results = await Promise.allSettled(
-    records.value.map(r => getFavoriteStatus(r.id).catch(() => ({ status: null })))
-  )
-  results.forEach((res, i) => {
-    if (res.status === 'fulfilled' && res.value.status) {
-      favStatusMap.value[records.value[i].id] = res.value.status
-    }
-  })
-}
+const { favStatusMap, favLabel, favIcon, isFavLoading, toggleFavorite, loadFavStatuses, cleanup } = useFavorite(records)
 
 onMounted(loadDetail)
-onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Number(id))))
+onUnmounted(cleanup)
 </script>
 
 <template>
@@ -463,6 +391,12 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
         </template>
       </Card>
     </div>
+
+    <!-- 悬浮返回按钮 -->
+    <div class="floating-back-btn" @click="$router.back()" title="返回列表">
+      <i class="pi pi-arrow-left"></i>
+      <span>返回列表</span>
+    </div>
   </div>
 </template>
 
@@ -478,7 +412,7 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
 }
 
 .back-btn {
-  color: #a0aec0 !important;
+  color: var(--text-dim) !important;
   transition: color 0.2s;
 }
 
@@ -499,9 +433,13 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
   margin: 0 auto;
 }
 
+.doc-content {
+  color: var(--text);
+}
+
 .doc-content :deep(p) {
   font-size: 16px;
-  color: #333;
+  color: var(--text);
   text-indent: 2em;
   line-height: 1.8;
   margin: 0.25em 0;
@@ -523,5 +461,44 @@ onUnmounted(() => Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Num
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* 悬浮返回按钮 */
+.floating-back-btn {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 50px;
+  background-color: var(--primary);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-back-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.floating-back-btn i {
+  font-size: 1.1em;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .floating-back-btn {
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
 }
 </style>

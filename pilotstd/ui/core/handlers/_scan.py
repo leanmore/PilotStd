@@ -7,7 +7,6 @@ import logging
 import os
 from typing import TYPE_CHECKING, Any, Callable
 
-from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox, QTableWidget
 
 if TYPE_CHECKING:
@@ -45,6 +44,9 @@ class ScanUIHandler:
         clear_table: Callable[[], None],
         update_button_states: Callable[[], None],
         question_dlg: Callable[..., Any],
+        progress_callback: Callable[[int, int], None] | None = None,
+        reset_progress: Callable[[], None] | None = None,
+        force_finish_progress: Callable[[], None] | None = None,
     ) -> None:
         self._mgr = mgr
         self._config = config
@@ -62,15 +64,11 @@ class ScanUIHandler:
         self._clear_table = clear_table
         self._update_button_states = update_button_states
         self._question_dlg = question_dlg
+        self._progress_cb = progress_callback
+        self._reset_cb = reset_progress
+        self._finish_cb = force_finish_progress
         self._scan_worker: ScanWorker | None = None
         self._engine = ScanFlowEngine()
-
-        # 进度动画控制（Handler 内部管理）
-        self._target_progress = 0
-        self._current_progress = 0.0
-        self._progress_timer = QTimer()
-        self._progress_timer.setInterval(50)
-        self._progress_timer.timeout.connect(self._animate_progress)
 
     # ── 公开方法 ─────────────────────────────────────────────
 
@@ -110,34 +108,22 @@ class ScanUIHandler:
                 w.terminate()
                 w.wait()
 
-    # ── 进度管理 ─────────────────────────────────────────────
+    # ── 进度管理（委托给外部注入的回调，统一走 UnifiedProgressPipeline）──
 
     def on_raw_progress(self, current: int, total: int) -> None:
-        """原始进度更新（来自 Worker 信号）。"""
-        self._target_progress = int(current / max(total, 1) * 100)
-        if not self._progress_timer.isActive():
-            self._progress_timer.start()
+        """原始进度更新（来自 Worker 信号），委托给外部 pipeline。"""
+        if self._progress_cb:
+            self._progress_cb(current, total)
 
     def reset_progress_bar(self) -> None:
-        """重置进度状态。"""
-        self._target_progress = 0
-        self._current_progress = 0.0
-        self._progress_timer.stop()
+        """重置进度状态，委托给外部 pipeline。"""
+        if self._reset_cb:
+            self._reset_cb()
 
     def force_finish_progress(self) -> None:
-        """强制完成进度。"""
-        self._target_progress = 100
-        self._current_progress = 100.0
-        self._progress_timer.stop()
-
-    def _animate_progress(self) -> None:
-        """进度动画：平滑逼近目标值。"""
-        diff = self._target_progress - self._current_progress
-        if abs(diff) < 0.5:
-            self._current_progress = float(self._target_progress)
-            self._progress_timer.stop()
-        else:
-            self._current_progress += diff * 0.3
+        """强制完成进度，委托给外部 pipeline。"""
+        if self._finish_cb:
+            self._finish_cb()
 
     # ── 内部方法 ─────────────────────────────────────────────
 

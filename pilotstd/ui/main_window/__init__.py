@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QSystemTrayIcon, QTableWi
 
 from ... import core
 from ...i18n import _
+from ..core.unified_progress import UnifiedProgressPipeline
 from ..table_constants import WORK_COLUMN_KEYS, WORK_COLUMNS
 from .parts._run_main import run as run
 
@@ -76,12 +77,8 @@ class MainWindow(QMainWindow):
         _start_auto_pipeline,
     )
     from .parts._dialog_ops import (
-        _animate_progress,
-        _force_finish_progress,
-        _on_raw_progress,
         _question_dlg,
         _register_task,
-        _reset_progress_bar,
         _show_stage_dialog,
         _stage_prereq_dialog,
     )
@@ -216,12 +213,9 @@ class MainWindow(QMainWindow):
         self.status_changed.connect(self._on_status)
         self.query_result_ready.connect(self._on_query_result_ready)
 
-        # 进度条平滑动画（50ms 定时器，20FPS 缓动效果）
-        self._target_progress = 0
-        self._current_progress = 0.0
-        self._progress_timer = QTimer(self)
-        self._progress_timer.setInterval(50)
-        self._progress_timer.timeout.connect(self._animate_progress)
+        # 统一进度管道（替代旧 easing 定时器，所有 Handler 共用）
+        self._progress_pipeline = UnifiedProgressPipeline(self)
+        self._progress_pipeline.progress_updated.connect(self._on_progress)
 
     # ── _mgr 延迟属性：首次访问时自动初始化 StandardManager ──
 
@@ -414,7 +408,7 @@ class MainWindow(QMainWindow):
         self._core = MainWindowCore(
             mgr=self._mgr,
             work_table=self.work_table,
-            progress_callback=lambda v: self.progress_changed.emit(v),
+            progress_callback=self._progress_pipeline.push_pct,
             status_callback=lambda msg: self.status_changed.emit(msg),
             parsed_results=self._parsed_results,
             config=self._config,
@@ -430,9 +424,9 @@ class MainWindow(QMainWindow):
             clear_table=self._clear_table,
             update_button_states=self._update_button_states,
             question_dlg=self._question_dlg,
-            reset_progress=self._reset_progress_bar,
-            force_finish_progress=self._force_finish_progress,
-            on_raw_progress=self._on_raw_progress,
+            reset_progress=self._progress_pipeline.reset,
+            force_finish_progress=self._progress_pipeline.finish,
+            on_raw_progress=self._progress_pipeline.push,
             run_scan_cb=self._run_scan,
             run_query_cb=self._on_query,
             get_selected_path_cb=self._get_selected_path,

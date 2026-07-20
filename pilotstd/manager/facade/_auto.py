@@ -107,7 +107,7 @@ class AutoPipeline:
         if on_query_progress:
 
             def _wrapped(cur: int, total: int) -> None:
-                scaled = 90 + int(cur / total * 9) if total > 0 else 90
+                scaled = int(cur / total * 100) if total > 0 else 0
                 on_query_progress(scaled, 100)
 
             _progress_cb = _wrapped
