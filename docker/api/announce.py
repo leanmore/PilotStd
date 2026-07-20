@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from typing import Any
 
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
@@ -116,7 +116,7 @@ def api_check_announce(
     since_date: str = "",
     sync: bool = False,
     types: str = "",
-    background_tasks=None,
+    background_tasks: BackgroundTasks = None,
     mgr=Depends(get_manager_dep),
 ):
     """抓取最新公告。
