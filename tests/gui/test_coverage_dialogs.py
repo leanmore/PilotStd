@@ -46,7 +46,7 @@ def test_register_task_failure(window, qtbot):
         window._register_task("扫描", 10, 5, 0)
 
 
-def test_on_raw_progress_zero_total(window, qtbot):
-    """覆盖 115：total=0 时 _target_progress 设为 0。"""
-    window._on_raw_progress(0, 0)
-    assert window._target_progress == 0
+def test_push_zero_total(window, qtbot):
+    """覆盖 push(0,0)：total=0 时 _target 设为 0。"""
+    window._progress_pipeline.push(0, 0)
+    assert window._progress_pipeline._target == 0

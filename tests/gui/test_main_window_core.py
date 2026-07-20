@@ -153,34 +153,10 @@ def test_register_task(window, qtbot):
     # task_queue 应有记录（不抛异常即通过）
 
 
-def test_on_raw_progress(window, qtbot):
-    """_on_raw_progress 设置目标进度并启动定时器。"""
-    window._on_raw_progress(5, 10)
-    assert window._target_progress == 50
-
-
-def test_animate_progress(window, qtbot):
-    """_animate_progress 逐步推进进度条。"""
-    window._target_progress = 100
-    window._current_progress = 0
-    window._animate_progress()
-    assert window._current_progress > 0
-
-
-def test_reset_progress_bar(window, qtbot):
-    """_reset_progress_bar 重置进度为 0。"""
-    window._target_progress = 100
-    window._current_progress = 50
-    window._reset_progress_bar()
-    assert window._target_progress == 0
-    assert window._current_progress == 0.0
-
-
-def test_force_finish_progress(window, qtbot):
-    """_force_finish_progress 直接跳到 100%。"""
-    window._force_finish_progress()
-    assert window._target_progress == 100
-    assert window._current_progress == 100.0
+def test_push_progress(window, qtbot):
+    """_progress_pipeline.push 设置目标进度。"""
+    window._progress_pipeline.push(5, 10)
+    assert window._progress_pipeline._target == 50
 
 
 # ════════════════════════════════════════════════════════════════
