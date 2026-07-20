@@ -173,26 +173,26 @@ class TestAnnouncementBaseDeep(unittest.TestCase):
 
         with patch("pilotstd.core.config.ConfigManager") as mock_cm:
             mock_cm.return_value.get.return_value = None
-            self.assertEqual(self.crawler._cb_threshold, _DEFAULT_FAILURE_THRESHOLD)
+            self.assertEqual(self.crawler._cb._threshold, _DEFAULT_FAILURE_THRESHOLD)
 
     def test_cb_durations_default(self):
         from pilotstd.announcement.base import _DEFAULT_FREEZE_DURATIONS
 
         with patch("pilotstd.core.config.ConfigManager") as mock_cm:
             mock_cm.return_value.get.return_value = None
-            self.assertEqual(self.crawler._cb_durations, list(_DEFAULT_FREEZE_DURATIONS))
+            self.assertEqual(self.crawler._cb._durations, list(_DEFAULT_FREEZE_DURATIONS))
 
     def test_record_success_resets_streak(self):
-        self.crawler._cb_fail_streak = 10
+        self.crawler._cb.fail_streak = 10
         with patch.object(self.crawler, "_cb_save_health"):
             self.crawler._cb_record_success()
-        self.assertEqual(self.crawler._cb_fail_streak, 0)
+        self.assertEqual(self.crawler._cb.fail_streak, 0)
 
     def test_record_failure_increments(self):
-        self.crawler._cb_fail_streak = 0
+        self.crawler._cb.fail_streak = 0
         with patch.object(self.crawler, "_cb_save_health"):
             result = self.crawler._cb_record_failure()
-        self.assertEqual(self.crawler._cb_fail_streak, 1)
+        self.assertEqual(self.crawler._cb.fail_streak, 1)
         self.assertFalse(result)
 
 
