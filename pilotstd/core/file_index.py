@@ -301,7 +301,6 @@ class FileIndexRepository:
         )
         if ann_row and ann_row["result_json"]:
             self._apply_cache_result(ann_row["result_json"], info)
-
     @staticmethod
     def _apply_cache_result(result_json: str, info: "ParsedStdInfo") -> None:
         """将缓存的 JSON 结果应用到 ParsedStdInfo 对象。"""
@@ -321,7 +320,6 @@ class FileIndexRepository:
 
     def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict[str, Any]]:
         """检测文件移动/重命名：哈希命中但路径不同的返回原索引记录。
-
         Args:
             candidates: [(file_path, file_hash), ...] 未被路径匹配到的文件列表
         Returns:
@@ -348,7 +346,6 @@ class FileIndexRepository:
 
     def get_full_info(self, logical_code: str, number: int) -> list[dict[str, Any]]:
         """联合本地文件索引与两个缓存表，返回离线完整信息。
-
         JOIN 使用 LIKE 前缀匹配，兼容新旧两种连接号格式。
         网络缓存优先，过期后回退到公告缓存。
         """
@@ -366,9 +363,7 @@ class FileIndexRepository:
             f"WHERE fi.logical_code = ? AND fi.number = ?",
             (logical_code, number),
         )
-
         import json
-
         result = []
         for row in rows:
             info = {

@@ -242,10 +242,13 @@ def start_scheduler():
         ("auto_announce", "tasks.auto_announce_cron", "tasks.auto_announce_enabled"),
         ("auto_backup", "tasks.auto_backup_cron", "tasks.auto_backup_enabled"),
         ("date_reminder", "tasks.date_reminder_cron", "tasks.date_reminder_enabled"),
+        ("auto_archive_retry", "tasks.auto_archive_retry_cron", "tasks.auto_archive_retry_enabled"),
     ]:
         default_enabled = (job_id == "auto_backup") or cfg.get(enabled_key, False)
         if cfg.get(enabled_key, default_enabled):
             default_cron = "0 3 * * 0" if job_id == "auto_backup" else "0 0 * * *"
+            if job_id == "auto_archive_retry":
+                default_cron = "0 4 * * *"
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
     # 通知日志定期清理（从配置读取间隔）
     cleanup_interval = int(cfg.get("notification.log_cleanup_interval_hours", 24))

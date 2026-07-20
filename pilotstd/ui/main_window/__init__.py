@@ -24,7 +24,7 @@ import os
 import threading
 from typing import Any, Optional
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import QApplication, QMainWindow, QSystemTrayIcon, QTableWidgetItem
 
 from ... import core

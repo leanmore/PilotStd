@@ -1,5 +1,5 @@
 // web/src/composables/useFavorite.ts
-// 收藏/归档状态管理 — 从 AnnounceDetail.vue Phase 4a 提取
+// 收藏状态管理 — 仅处理收藏/取消收藏关系，不触发下载或归档轮询
 
 import { ref, type Ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
@@ -10,19 +10,29 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
   const toast = useToast()
 
   const favStatusMap = ref<Record<number, string>>({})
+  const favCooldownMap = ref<Record<number, boolean>>({})
   const favLoadingMap = ref<Record<number, boolean>>({})
-  const favPollTimers = ref<Record<number, ReturnType<typeof setInterval>>>({})
 
   function favLabel(status: string) {
-    const map: Record<string, string> = { pending: '待处理', downloading: '下载中', archiving: '归档中' }
-    return map[status] || status
+    const map: Record<string, string> = {
+      pending: '待归档',
+      downloading: '下载中',
+      archiving: '归档中',
+      already_exists: '已收藏',
+    }
+    const label = map[status]
+    if (!label) {
+      console.warn('[useFavorite] 未映射的收藏状态:', status)
+      return status
+    }
+    return label
   }
 
   function favIcon(recordId: number) {
     const s = favStatusMap.value[recordId]
     if (s === 'done') return 'pi pi-star-fill'
     if (s === 'downloading' || s === 'archiving') return 'pi pi-spin pi-spinner'
-    if (s === 'failed') return 'pi pi-exclamation-triangle'
+    if (s === 'failed' || s === 'abandoned') return 'pi pi-exclamation-triangle'
     return 'pi pi-star'
   }
 
@@ -36,59 +46,30 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       try {
         await removeFavorite(record.id)
         delete favStatusMap.value[record.id]
-        stopFavPoll(record.id)
         toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
       } catch {
         toast.add({ severity: 'error', summary: '取消失败', life: 3000 })
       }
       return
     }
-    if (current && current !== 'failed') return
+    // already_exists / pending / downloading / archiving 均视为已收藏，不重复提交
+    if (current && current !== 'failed' && current !== 'abandoned') return
 
     favLoadingMap.value[record.id] = true
     try {
       const res = await addFavorite(record.id)
-      favStatusMap.value[record.id] = res.status
-      if (res.status === 'pending') startFavPoll(record.id)
+      if (res.status === 'already_exists') {
+        // 恢复后端存储的真实状态，避免前端显示 "already_exists"
+        favStatusMap.value[record.id] = (res as any).current_status || 'pending'
+        toast.add({ severity: 'info', summary: '已收藏', life: 2000 })
+      } else {
+        favStatusMap.value[record.id] = res.status
+        toast.add({ severity: 'success', summary: '已收藏', life: 2000 })
+      }
     } catch {
       toast.add({ severity: 'error', summary: '收藏失败', life: 3000 })
     } finally {
       favLoadingMap.value[record.id] = false
-    }
-  }
-
-  function startFavPoll(recordId: number) {
-    stopFavPoll(recordId)
-    let attempts = 0
-    favPollTimers.value[recordId] = setInterval(async () => {
-      attempts++
-      try {
-        const res = await getFavoriteStatus(recordId)
-        if (res.status === 'done' || res.status === 'failed') {
-          stopFavPoll(recordId)
-          favStatusMap.value[recordId] = res.status || 'failed'
-          toast.add({
-            severity: res.status === 'done' ? 'success' : 'error',
-            summary: res.status === 'done' ? '归档完成' : '归档失败',
-            detail: res.status === 'done' ? '已归档到标准库' : (res.error_message || '请重试'),
-            life: 3000,
-          })
-          return
-        }
-        if (res.status) favStatusMap.value[recordId] = res.status
-      } catch { /* continue */ }
-      if (attempts >= 30) {
-        stopFavPoll(recordId)
-        favStatusMap.value[recordId] = 'failed'
-        toast.add({ severity: 'warn', summary: '超时', detail: '归档处理超时', life: 5000 })
-      }
-    }, 2000)
-  }
-
-  function stopFavPoll(recordId: number) {
-    if (favPollTimers.value[recordId]) {
-      clearInterval(favPollTimers.value[recordId])
-      delete favPollTimers.value[recordId]
     }
   }
 
@@ -99,21 +80,18 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     results.forEach((res, i) => {
       if (res.status === 'fulfilled' && res.value.status) {
         favStatusMap.value[records.value[i].id] = res.value.status
+        favCooldownMap.value[records.value[i].id] = !!(res.value as any).in_cooldown
       }
     })
   }
 
-  function cleanup() {
-    Object.keys(favPollTimers.value).forEach(id => stopFavPoll(Number(id)))
-  }
-
   return {
     favStatusMap,
+    favCooldownMap,
     favLabel,
     favIcon,
     isFavLoading,
     toggleFavorite,
     loadFavStatuses,
-    cleanup,
   }
 }

@@ -3,12 +3,17 @@
 
 import logging
 import re
-from io import BytesIO
 from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
-from ._wps_utils import _clean_wps_fulltext, _split_wps_entries
+from ._attachment_parser import (  # noqa: F401 — 重导出
+    download_attachment,
+    extract_content,
+    find_attachment_url,
+    parse_attachment_text,
+    parse_wps_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,103 +21,6 @@ logger = logging.getLogger(__name__)
 STD_CODE_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?)\s*(\d+(?:\.\d+)?)\s*[—\-\s]\s*(\d{4})")
 # 代替标准在表格中的位置模式（"代替" 列的后面）
 REPLACES_PATTERN = re.compile(r"([A-Z]+(?:\d+)?(?:\s*/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})")
-
-
-def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
-    """根据附件文件名后缀选择合适的解析方法，提取纯文本。"""
-    name_lower = filename.lower()
-    if name_lower.endswith(".wps"):
-        return parse_wps_text(attachment_bytes)
-    if name_lower.endswith(".pdf"):
-        return _parse_pdf_text(attachment_bytes)
-    if name_lower.endswith((".doc", ".docx")):
-        return _parse_docx_text(attachment_bytes)
-    # 后缀未知时尝试各解析器
-    for parser in (parse_wps_text, _parse_pdf_text, _parse_docx_text):
-        try:
-            text = parser(attachment_bytes)
-            if text and len(text) > 20:
-                return text
-        except Exception:
-            continue
-    logger.warning("无法解析附件：未知格式")
-    return ""
-
-
-def parse_wps_text(raw_bytes: bytes) -> str:
-    """从 .wps 文件的原始字节中提取可读文本。
-
-    .wps 文件是 OLE2 容器内包 UTF-16LE 编码的文本。
-    直接按 UTF-16LE 解码，清洗格式标记后按标准号切分条目。
-    """
-    try:
-        text = raw_bytes.decode("utf-16-le", errors="ignore")
-    except Exception:
-        logger.debug("WPS 解码失败", exc_info=True)
-        return ""
-
-    # 全文级清洗：去 WPS 格式标记、压缩空白
-    text = _clean_wps_fulltext(text)
-
-    # 按标准号位置切分粘连条目
-    entries = _split_wps_entries(text, STD_CODE_PATTERN)
-
-    # 逐条清洗字段级垃圾
-    cleaned = []
-    for entry in entries:
-        # 过滤不可打印字符
-        chars = [ch for ch in entry if ch.isprintable() or ch in "\n\r\t"]
-        entry = "".join(chars)
-        entry = _clean_wps_name(entry)
-        if entry:
-            cleaned.append(entry)
-
-    return "\n".join(cleaned)
-
-
-def _parse_pdf_text(raw_bytes: bytes) -> str:
-    """从 PDF 原始字节中提取纯文本（使用 pypdf）。"""
-    from pypdf import PdfReader
-
-    try:
-        reader = PdfReader(BytesIO(raw_bytes))
-        pages = []
-        for page in reader.pages:
-            text = page.extract_text()
-            if text:
-                pages.append(text)
-        return "\n".join(pages)
-    except Exception as e:
-        logger.debug("PDF 解析失败: %s", e, exc_info=True)
-        return ""
-
-
-def _parse_docx_text(raw_bytes: bytes) -> str:
-    """从 DOCX 原始字节中提取纯文本（使用 python-docx）。
-    优先提取表格文本（公告标准清单通常在表格中），无表格则提取段落。
-    """
-    from docx import Document
-
-    try:
-        doc = Document(BytesIO(raw_bytes))
-        lines = []
-        # 优先提取表格内容
-        for table in doc.tables:
-            for row in table.rows:
-                cells = [cell.text.strip() for cell in row.cells]
-                # 过滤全空行
-                if any(c for c in cells):
-                    lines.append("\t".join(cells))
-        if not lines:
-            # 无表格时提取段落文本
-            for para in doc.paragraphs:
-                text = para.text.strip()
-                if text:
-                    lines.append(text)
-        return "\n".join(lines)
-    except Exception as e:
-        logger.debug("DOCX 解析失败: %s", e, exc_info=True)
-        return ""
 
 
 def parse_announcement_meta(html: str) -> dict[str, str]:
@@ -487,58 +395,3 @@ def parse_announcement_detail(
     return [], meta
 
 
-def find_attachment_url(html: str) -> Optional[str]:
-    """从公告详情页 HTML 中提取附件下载链接（支持 .wps / .docx / .doc / .pdf）。"""
-    # zxd.sacinfo.org.cn 附件服务器
-    for pattern in [
-        r'href="(http://zxd\.sacinfo\.org\.cn/gb_notice/[^"]+)"',
-        r'href="(https?://[^"]+\.(?:wps|docx?|pdf))"',
-    ]:
-        m = re.search(pattern, html, re.IGNORECASE)
-        if m:
-            return m.group(1)
-    return None
-
-
-def download_attachment(url: str, _http: Any = None) -> Optional[bytes]:
-    """下载附件文件 (.wps)。返回原始字节，失败返回 None。
-    _http: DI 注入，可传入 mock HTTP 客户端，默认 None 时使用 safe_raw_get。
-    """
-    from ..query.network import safe_raw_get
-
-    if _http is not None:
-        resp = _http.get(url)
-        return resp.content if resp is not None and getattr(resp, "status_code", 0) == 200 else None
-    resp = safe_raw_get(url, "announcement_attachment", timeout=60)
-    if resp and resp.status_code == 200:
-        return resp.content
-    return None
-
-
-def extract_content(html: str) -> str:
-    """从公告详情页 HTML 中提取正文内容。DOM剪枝：先移除表格节点，再从剩余元素提取文本。"""
-    if not html:
-        return ""
-    soup = BeautifulSoup(html, "html.parser")
-
-    # 移除所有表格节点（标准清单数据），防止表格数据混入正文
-    for table in soup.find_all("table"):
-        table.decompose()
-
-    # 从剩余 p 标签提取正文
-    all_p = soup.find_all("p")
-    if all_p:
-        return "\n\n".join(p.get_text(strip=True) for p in all_p)
-
-    # 无 p 标签时用启发式兜底：查找含关键词且长度 > 50 的块级元素
-    keywords = ["批准", "发布", "现予以", "公告如下"]
-    candidates = [
-        tag
-        for tag in soup.find_all(["div", "p"])
-        if any(kw in tag.get_text() for kw in keywords) and len(tag.get_text(strip=True)) > 50
-    ]
-    if candidates:
-        best_match = max(candidates, key=lambda x: len(x.get_text()))
-        return best_match.get_text(strip=True)
-
-    return ""

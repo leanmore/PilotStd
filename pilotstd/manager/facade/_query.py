@@ -154,7 +154,7 @@ class QueryHandler:
                     result_callback(orig_idx, r)
 
             engine_results = self._core.query_engine.query_standards(
-                miss_tuples,
+                miss_tuples,  # type: ignore[arg-type]
                 result_callback=_fallback_callback,
                 progress_callback=progress_callback,  # type: ignore[arg-type]
             )

@@ -22,6 +22,8 @@ from ._base import (
     OcrScheduler,
     OcrSlot,
     ProviderCooling,
+)
+from ._pdf_utils import (
     _pdf_page_count,
     _set_thread_priority_idle,
     _split_pdf_pages,

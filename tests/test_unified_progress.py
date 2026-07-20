@@ -35,13 +35,13 @@ def _wait_for_value(spy: QSignalSpy, target: int, timeout_ms: int = 2000) -> boo
     for _ in range(timeout_ms // 10):
         if len(spy) > 0 and spy[-1][0] == target:
             return True
-        QTest.qWait(10)
+        QTest.qWait(10)  # type: ignore[arg-type,call-arg]
     return False
 
 
 def _collect_values(spy: QSignalSpy) -> list[int]:
     """从 QSignalSpy 提取所有信号值。"""
-    return [s[0] for s in spy]
+    return [s[0] for s in spy]  # type: ignore[attr-defined]
 
 
 # ════════════════════════════════════════════════════════════════
@@ -178,7 +178,7 @@ class TestEasing:
         while time.monotonic() < deadline:
             if len(collected) > 0 and collected[-1] == 80:
                 break
-            QTest.qWait(10)
+            QTest.qWait(10)  # type: ignore[arg-type,call-arg]
 
         assert len(collected) > 3, f"缓动过程应产生多次信号，实际只有 {len(collected)} 次"
         for i in range(1, len(collected)):

@@ -55,6 +55,8 @@ function statusSeverity(s: string): 'success' | 'danger' | 'info' {
 function statusLabel(s: string): string {
   if (s === 'frozen') return '冻结中'
   if (s === 'normal') return '正常'
+  if (s === 'error') return '异常'
+  console.warn('[AdapterStatusCard] 未映射的适配器状态:', s)
   return s
 }
 

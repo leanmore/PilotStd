@@ -37,11 +37,9 @@ def _migrate_v31_monitor_stats(db: Any) -> None:
         ),
     )
 
-
 def _migrate_v32_cleanup_dead_tables(db: Any) -> None:
     """删除 announcement_fetch_failures 表（补抓队列功能未启用）。"""
     db.execute("DROP TABLE IF EXISTS announcement_fetch_failures")
-
 
 def _migrate_rows(db, table, col_map):
     """将旧表行迁移到 adapter_state。col_map: [(src_col, dst_col), ...]"""
@@ -52,7 +50,6 @@ def _migrate_rows(db, table, col_map):
             f"INSERT OR REPLACE INTO adapter_state ({cols}) VALUES ({phs})",
             [row[c[0]] for c in col_map],
         )
-
 
 # v33: 三表合一 — rotator_state + adapter_stats + adapter_health → adapter_state
 def _migrate_v33_adapter_state(db: Any) -> None:
@@ -110,7 +107,6 @@ def _migrate_v33_adapter_state(db: Any) -> None:
         ],
     )
 
-
 def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
     """将合并后被取代的三张旧表重命名为备份表，确认稳定后可手动删除。"""
     for table in ("rotator_state", "adapter_stats", "adapter_health"):
@@ -118,7 +114,6 @@ def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
             db.execute(f"ALTER TABLE {table} RENAME TO {table}_backup_v34")
         except Exception:
             pass  # 表不存在则跳过
-
 
 # v35: 通知策略配置 — 渠道事件订阅统一管理
 def _migrate_v35_notification_policy(db: Any) -> None:
@@ -159,7 +154,6 @@ def _migrate_v35_notification_policy(db: Any) -> None:
     except Exception:
         pass  # 配置文件不可用时跳过数据迁移
 
-
 def _v36_new_tables(db: Any) -> None:
     """创建 announcements / user_favorites / date_reminder_log 三张新表。"""
     db.execute(
@@ -199,6 +193,17 @@ def _v36_new_tables(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_favorites_status ON user_favorites(status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_favorites_record_id ON user_favorites(record_id)")
 
+    # 收藏归档重试字段（v36 追加）
+    for col, col_def in [
+        ("publish_date", "TEXT"),
+        ("last_archive_attempt", "TEXT"),
+        ("archive_retry_count", "INTEGER DEFAULT 0"),
+    ]:
+        try:
+            db.execute(f"ALTER TABLE user_favorites ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass  # 列已存在，跳过
+
     db.execute(
         "CREATE TABLE IF NOT EXISTS date_reminder_log ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -213,7 +218,6 @@ def _v36_new_tables(db: Any) -> None:
     )
     db.execute("CREATE INDEX IF NOT EXISTS idx_date_reminder_log_user_id ON date_reminder_log(user_id)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_date_reminder_log_record_id ON date_reminder_log(record_id)")
-
 
 def _v36_extend_record(db: Any) -> None:
     """扩展 announcement_record：新增字段 + 索引（announce_no 已存在，跳过）。"""
@@ -249,7 +253,6 @@ def _v36_extend_record(db: Any) -> None:
     )
     db.execute("CREATE INDEX IF NOT EXISTS idx_announcement_record_expiry_date ON announcement_record(expiry_date)")
 
-
 def _v36_migrate_data(db: Any) -> None:
     """存量数据迁移：按 (source_site, pid) 提取公告头 → announcements，回填 announcement_id。"""
     rows = db.fetchall(
@@ -280,7 +283,6 @@ def _v36_migrate_data(db: Any) -> None:
     )
     db.execute("UPDATE announcement_record SET status = 'draft' WHERE status IS NULL")
 
-
 def _migrate_v36_announcement_structure(db: Any) -> None:
     """v36: 公告数据结构重构 — 拆分 announcements + 扩展 announcement_record + 新建收藏/提醒表。"""
     # v36 分三步执行：建新表 → 扩展旧表字段 → 存量数据迁移
@@ -288,124 +290,3 @@ def _migrate_v36_announcement_structure(db: Any) -> None:
     _v36_extend_record(db)
     _v36_migrate_data(db)
 
-
-def _migrate_v37_user_notification_config(db: Any) -> None:
-    """v37: 通知渠道配置按用户隔离。
-
-    1. 防御性加列（notification_policy.user_id，v35 已建但兜底）
-    2. 新建 user_credentials 表
-    3. 从 config.json 迁移渠道凭证到 user_credentials (user_id=1)
-    4. notification_policy 现有记录分配 user_id=1
-    5. 标记 config.json 已迁移
-    """
-    import json as _json
-    import os as _os
-
-    # 1. 防御性加列
-    try:
-        db.execute("ALTER TABLE notification_policy ADD COLUMN user_id INTEGER")
-    except Exception:
-        pass
-
-    # 2. 建表
-    db.execute(
-        'CREATE TABLE IF NOT EXISTS "user_credentials" ('
-        '"id" INTEGER PRIMARY KEY AUTOINCREMENT,'
-        '"user_id" INTEGER NOT NULL,'
-        '"channel" TEXT NOT NULL,'
-        '"credentials" TEXT NOT NULL,'
-        '"created_at" TEXT DEFAULT CURRENT_TIMESTAMP,'
-        '"updated_at" TEXT DEFAULT CURRENT_TIMESTAMP,'
-        'UNIQUE("user_id", "channel"))'
-    )
-    db.execute('CREATE INDEX IF NOT EXISTS "idx_user_creds_user" ON "user_credentials"("user_id")')
-
-    # 3. 从 config.json 迁移渠道凭证
-    try:
-        from pilotstd.core.config import ConfigManager as _CM
-        from pilotstd.core.config.crypto import _get_fernet
-
-        cfg = _CM()
-        channels = (cfg._data.get("notification") or {}).get("channels") or {}
-        if channels:
-            config_dir = _os.path.dirname(cfg._filepath)
-            fernet = _get_fernet(config_dir)
-            for ch_name, ch_cfg in channels.items():
-                if isinstance(ch_cfg, dict) and ch_cfg:
-                    plain = _json.dumps(ch_cfg, ensure_ascii=False)
-                    encrypted = fernet.encrypt(plain.encode()).decode()
-                    db.execute(
-                        'INSERT OR REPLACE INTO "user_credentials"'
-                        ' ("user_id", "channel", "credentials") VALUES (1, ?, ?)',
-                        (ch_name, encrypted),
-                    )
-    except Exception:
-        pass
-
-    # 4. 更新策略表
-    db.execute('UPDATE "notification_policy" SET "user_id" = 1 WHERE "user_id" IS NULL')
-
-    # 5. 标记已迁移
-    try:
-        from pilotstd.core.config import ConfigManager as _CM
-
-        cfg = _CM()
-        cfg.set("notification._migrated_to_db", True)
-        cfg.save()
-    except Exception:
-        pass
-
-
-def _migrate_v39_announcement_source_type(db: Any) -> None:
-    """v39: 公告记录新增 source_type + announcements 新增 parse_status。"""
-    for col_name, col_def in [
-        ("source_type", "TEXT DEFAULT '网页解析'"),
-    ]:
-        try:
-            db.execute(f"ALTER TABLE announcement_record ADD COLUMN {col_name} {col_def}")
-        except Exception:
-            pass
-
-    for col_name, col_def in [
-        ("parse_status", "TEXT DEFAULT 'pending'"),
-    ]:
-        try:
-            db.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
-        except Exception:
-            pass
-
-
-def _migrate_v40_ensure_columns(db: Any) -> None:
-    """v40: 逐列检查 announcement_record 和 announcements 表，补遗漏的列。"""
-    import logging as _logging
-
-    _log = _logging.getLogger("migrate.v40")
-
-    _record_cols: list[tuple[str, str]] = [
-        ("announcement_id", "INTEGER"),
-        ("row_index", "INTEGER"),
-        ("implement_date", "TEXT"),
-        ("expiry_date", "TEXT"),
-        ("superseded_by", "TEXT"),
-        ("status", "TEXT DEFAULT 'draft'"),
-        ("confidence", "REAL DEFAULT 0.0"),
-        ("raw_text", "TEXT"),
-        ("parser_engine", "TEXT"),
-        ("approved_by", "INTEGER"),
-        ("approved_at", "TEXT"),
-        ("updated_at", "TEXT DEFAULT CURRENT_TIMESTAMP"),
-        ("source_type", "TEXT DEFAULT '网页解析'"),
-    ]
-
-    existing = {r[1] for r in db.execute("PRAGMA table_info(announcement_record)")}
-    for col_name, col_def in _record_cols:
-        if col_name not in existing:
-            db.execute(f"ALTER TABLE announcement_record ADD COLUMN {col_name} {col_def}")
-            _log.info("补列 announcement_record.%s %s", col_name, col_def)
-
-    _ann_cols = [("parse_status", "TEXT DEFAULT 'pending'")]
-    existing_ann = {r[1] for r in db.execute("PRAGMA table_info(announcements)")}
-    for col_name, col_def in _ann_cols:
-        if col_name not in existing_ann:
-            db.execute(f"ALTER TABLE announcements ADD COLUMN {col_name} {col_def}")
-            _log.info("补列 announcements.%s %s", col_name, col_def)

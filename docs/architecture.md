@@ -173,6 +173,35 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 - `announcements` 表保留但不再写入，可作为历史数据快照参考
 - 未来如需支持附件功能，建议在 `announcement_record` 中添加 `source_url` 和 `attachment_url` 列，并在 matcher.py 写入时同步填充
 
+### 收藏与归档（Phase 4a）
+
+收藏功能于 v36 引入，2026-07-20 重构为收藏与下载解耦架构（[[ADR-007]]）。
+
+**`user_favorites` 表结构**（v36 创建，v36+ 扩展）：
+
+| 列名 | 类型 | 说明 |
+|------|------|------|
+| `id` | INTEGER PK | 主键 |
+| `user_id` | INTEGER FK | 用户外键 |
+| `record_id` | INTEGER FK | 标准记录外键 |
+| `status` | TEXT | pending/downloading/archiving/done/failed/abandoned |
+| `local_path` | TEXT | 归档文件路径 |
+| `error_message` | TEXT | 失败原因 |
+| `publish_date` | TEXT | 标准发布日期（用于冷却期计算） |
+| `last_archive_attempt` | TEXT | 最近一次归档尝试时间 |
+| `archive_retry_count` | INTEGER | 重试计数（默认 0） |
+
+**API 端点**：
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/favorites` | POST | 创建收藏（仅记录关系，不触发下载） |
+| `/api/favorites` | GET | 收藏列表 |
+| `/api/favorites/{record_id}/status` | GET | 状态查询（含 in_cooldown/abandoned） |
+| `/api/favorites/{record_id}` | DELETE | 取消收藏 |
+
+**归档流程**：定时任务 `auto_archive_retry`（每天 04:00）扫描 pending/failed 记录，冷却期满后逐条调用 `download_to_inbox`，最多重试 7 次，超过则标记 abandoned 并通知用户。
+
 ### 参考
 
 - 修复提交：`bb270717` — 公告详情页查 announcement_record

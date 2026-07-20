@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceDetail' })
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import DOMPurify from 'dompurify'
@@ -197,10 +197,9 @@ async function handleBatchApprove() {
 
 // ── Phase 4a: 收藏（委托给 useFavorite composable）──
 
-const { favStatusMap, favLabel, favIcon, isFavLoading, toggleFavorite, loadFavStatuses, cleanup } = useFavorite(records)
+const { favStatusMap, favCooldownMap, favLabel, favIcon, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(records)
 
 onMounted(loadDetail)
-onUnmounted(cleanup)
 </script>
 
 <template>
@@ -380,10 +379,14 @@ onUnmounted(cleanup)
                     :severity="favStatusMap[data.id] === 'done' ? 'warn' : 'secondary'"
                     @click.stop="toggleFavorite(data)"
                   />
-                  <Tag v-if="favStatusMap[data.id] && favStatusMap[data.id] !== 'done' && favStatusMap[data.id] !== 'failed'"
+                  <Tag v-if="favCooldownMap[data.id]"
+                    value="等待上线" severity="info" style="font-size:10px" />
+                  <Tag v-else-if="favStatusMap[data.id] && favStatusMap[data.id] !== 'done' && favStatusMap[data.id] !== 'failed' && favStatusMap[data.id] !== 'abandoned'"
                     :value="favLabel(favStatusMap[data.id])" severity="info" style="font-size:10px" />
                   <Tag v-else-if="favStatusMap[data.id] === 'failed'"
-                    value="失败" severity="danger" style="font-size:10px" />
+                    value="归档失败" severity="danger" style="font-size:10px" />
+                  <Tag v-else-if="favStatusMap[data.id] === 'abandoned'"
+                    value="归档已放弃" severity="warn" style="font-size:10px" />
                 </div>
               </template>
             </Column>
@@ -392,11 +395,15 @@ onUnmounted(cleanup)
       </Card>
     </div>
 
-    <!-- 悬浮返回按钮 -->
-    <div class="floating-back-btn" @click="$router.back()" title="返回列表">
-      <i class="pi pi-arrow-left"></i>
-      <span>返回列表</span>
-    </div>
+    <!-- 悬浮返回按钮（纯图标） -->
+    <button
+      class="floating-back-btn"
+      @click="$router.back()"
+      aria-label="返回列表页"
+      title="返回列表"
+    >
+      <i class="pi pi-arrow-left" aria-hidden="true"></i>
+    </button>
   </div>
 </template>
 
@@ -463,33 +470,36 @@ onUnmounted(cleanup)
   flex-wrap: wrap;
 }
 
-/* 悬浮返回按钮 */
+/* 悬浮返回按钮 — 纯图标圆形，主题适配 + 毛玻璃 */
 .floating-back-btn {
   position: fixed;
   bottom: 40px;
   right: 40px;
   z-index: 1000;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border-radius: 50px;
-  background-color: var(--primary);
-  color: #ffffff;
-  font-weight: 600;
+  justify-content: center;
   box-shadow: var(--shadow-md);
+  backdrop-filter: blur(4px);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .floating-back-btn:hover {
-  background-color: var(--primary-hover);
-  transform: translateY(-2px);
+  background: var(--primary-hover);
+  transform: scale(1.1);
   box-shadow: var(--shadow-lg);
 }
 
 .floating-back-btn i {
-  font-size: 1.1em;
+  line-height: 1;
 }
 
 /* 移动端适配 */
@@ -497,8 +507,9 @@ onUnmounted(cleanup)
   .floating-back-btn {
     bottom: 20px;
     right: 20px;
-    padding: 10px 16px;
-    font-size: 14px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 }
 </style>

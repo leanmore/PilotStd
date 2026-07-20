@@ -4,225 +4,45 @@
 import concurrent.futures
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
 
 import requests
 
 from ..query.network import CHROME_UA, safe_raw_get, safe_request
+from ._circuit_breaker import AdapterFrozenError, CircuitBreaker  # noqa: F401 — 重导出
+from ._raw_store import _store_raw_content
 
 logger = logging.getLogger(__name__)
-
-
-def _store_raw_content(
-    announce_no: str,
-    pid: str,
-    title: str,
-    notice_date: str,
-    source_site: str,
-    raw_html: str,
-) -> None:
-    """提取公告正文并写入 announcements 表（线程安全，失败静默）。"""
-    from .matcher import clean_announcement_content
-    from .parser import extract_content
-
-    content = extract_content(raw_html)
-    # 状态机清洗：剥离标准清单表格，保留公文引言 + 落款日期拆分
-    content = clean_announcement_content(content)
-    if not announce_no:
-        return
-    try:
-        from pilotstd.core.config import get_db_path
-        from pilotstd.core.db import Database
-
-        now = datetime.now(timezone.utc).isoformat()
-        db = Database(get_db_path())
-        db.execute(
-            "INSERT OR REPLACE INTO announcements"
-            " (source_site, pid, announce_no, title, publish_date,"
-            "  source_url, attachment_url, raw_data, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, '', '', ?, ?)",
-            (source_site, pid, announce_no, title, notice_date, content, now),
-        )
-        db.close()
-    except Exception:
-        logger.debug("写入公告正文失败: %s", announce_no, exc_info=True)
-
 
 # 逐条详情抓取间隔（秒），多线程模式下仅在线程间抖动
 FETCH_DELAY_RANGE = (0.5, 1.0)
 # 详情获取最大并发数
 _MAX_DETAIL_WORKERS = 3
 
-# ── 熔断默认参数 ──
-_DEFAULT_FREEZE_DURATIONS = [1800, 7200, 21600, 43200]  # 秒：30m/2h/6h/12h
-_DEFAULT_FAILURE_THRESHOLD = 3
-_DEFAULT_RESET_WINDOW_HOURS = 24
-_HEALTH_TABLE = "adapter_state"
-
-
-class AdapterFrozenError(Exception):
-    """适配器处于冻结状态，请求被熔断拦截。"""
-
-    def __init__(self, adapter_name: str, remaining_seconds: int):
-        self.adapter_name = adapter_name
-        self.remaining_seconds = remaining_seconds
-        super().__init__(f"{adapter_name} 冻结中，剩余 {remaining_seconds} 秒")
-
 
 class BaseAnnounceCrawler(ABC):
     """公告抓取适配器基类。每个站点/公告类型一个子类。"""
 
     def __init__(self, config: Any = None, _http: Any = None):
-        self._cb_freeze_count: int = 0
-        self._cb_first_freeze_time: Optional[datetime] = None
-        self._cb_frozen_until: Optional[datetime] = None
-        self._cb_fail_streak: int = 0
-        self._cb_loaded: bool = False
-        self._http = _http  # DI: 可注入 mock HTTP 会话，默认 None 时使用 requests
+        self._cb = CircuitBreaker(lambda: self.site_name)  # 组合，非继承
+        self._http = _http
 
-    # ── 熔断配置（实时读取 ConfigManager，支持热加载）──
-
-    @property
-    def _cb_threshold(self) -> int:
-        try:
-            from pilotstd.core.config import ConfigManager
-
-            v = ConfigManager().get("adapter.circuit_breaker.failure_threshold")
-            return v if v is not None else _DEFAULT_FAILURE_THRESHOLD
-        except Exception:
-            return _DEFAULT_FAILURE_THRESHOLD
-
-    @property
-    def _cb_durations(self) -> list[int]:
-        try:
-            from pilotstd.core.config import ConfigManager
-
-            durations = ConfigManager().get("adapter.circuit_breaker.freeze_durations")
-            if durations and isinstance(durations, list) and len(durations) > 0:
-                return [int(m) * 60 for m in durations]
-        except Exception:
-            pass
-        return list(_DEFAULT_FREEZE_DURATIONS)
-
-    @property
-    def _cb_reset_hours(self) -> int:
-        try:
-            from pilotstd.core.config import ConfigManager
-
-            v = ConfigManager().get("adapter.circuit_breaker.reset_window_hours")
-            return v if v is not None else _DEFAULT_RESET_WINDOW_HOURS
-        except Exception:
-            return _DEFAULT_RESET_WINDOW_HOURS
-
-    # ── 熔断：数据库读写 ──
+    # ── 熔断委托（→ CircuitBreaker）──
 
     def _cb_load_health(self) -> None:
-        """从 adapter_health 表加载健康状态。"""
-        if self._cb_loaded:
-            return
-        try:
-            from pilotstd.core.config import get_db_path
-            from pilotstd.core.db import Database
-
-            db = Database(get_db_path())
-            row = db.fetchone(f"SELECT * FROM {_HEALTH_TABLE} WHERE adapter_name=?", (self.site_name,))
-            if row:
-                self._cb_freeze_count = row["freeze_count"] or 0
-                self._cb_fail_streak = row["fail_streak"] or 0
-                ft = row["first_freeze_time"]
-                fu = row["frozen_until"]
-                self._cb_first_freeze_time = datetime.fromisoformat(ft) if ft else None
-                self._cb_frozen_until = datetime.fromisoformat(fu) if fu else None
-            else:
-                now = datetime.now(timezone.utc).isoformat()
-                db.execute(
-                    f"INSERT INTO {_HEALTH_TABLE} (adapter_name, freeze_count, fail_streak, updated_at) "
-                    "VALUES (?, 0, 0, ?)",
-                    (self.site_name, now),
-                )
-            db.close()
-            self._cb_loaded = True
-        except Exception as e:
-            logger.warning("[CB] %s: 加载健康状态失败: %s", self.site_name, e)
+        self._cb.load_health()
 
     def _cb_save_health(self) -> None:
-        """全量保存健康状态到 adapter_health 表。"""
-        try:
-            from pilotstd.core.config import get_db_path
-            from pilotstd.core.db import Database
-
-            now = datetime.now(timezone.utc).isoformat()
-            ft = self._cb_first_freeze_time.isoformat() if self._cb_first_freeze_time else None
-            fu = self._cb_frozen_until.isoformat() if self._cb_frozen_until else None
-            db = Database(get_db_path())
-            db.execute(
-                f"INSERT OR REPLACE INTO {_HEALTH_TABLE} "
-                "(adapter_name, freeze_count, first_freeze_time, frozen_until, fail_streak, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (self.site_name, self._cb_freeze_count, ft, fu, self._cb_fail_streak, now),
-            )
-            db.close()
-        except Exception as e:
-            logger.warning("[CB] %s: 保存健康状态失败: %s", self.site_name, e)
-
-    # ── 熔断检查（请求前调用）──
+        self._cb.save_health()
 
     def _cb_check_frozen(self) -> None:
-        """检查是否处于冻结状态。冻结中→抛 AdapterFrozenError。冻结到期→解冻（含24h归零）。"""
-        self._cb_load_health()
-        if self._cb_frozen_until is None:
-            return
-        now = datetime.now(timezone.utc)
-        if now < self._cb_frozen_until:
-            remaining = int((self._cb_frozen_until - now).total_seconds())
-            logger.info("[FREEZE] %s 冻结中，剩余 %d 秒", self.site_name, remaining)
-            raise AdapterFrozenError(self.site_name, remaining)
-        # 触发点B：冻结到期，检查24h窗口归零
-        self._cb_frozen_until = None
-        if self._cb_first_freeze_time:
-            if (now - self._cb_first_freeze_time) >= timedelta(hours=self._cb_reset_hours):
-                self._cb_freeze_count = 0
-                self._cb_first_freeze_time = None
-                logger.info("[THAW] %s 24小时窗口到期，冻结计数归零", self.site_name)
-        logger.info("[THAW] %s 冻结到期，已自动解冻", self.site_name)
-        self._cb_save_health()
-
-    # ── 成功/失败记录 ──
+        self._cb.check_frozen()
 
     def _cb_record_success(self) -> None:
-        """请求成功：重置 fail_streak。"""
-        self._cb_fail_streak = 0
-        self._cb_save_health()
+        self._cb.record_success()
 
     def _cb_record_failure(self) -> bool:
-        """请求失败：累加 fail_streak，达到阈值时触发冻结。返回 True 表示触发了冻结。"""
-        self._cb_fail_streak += 1
-        self._cb_save_health()
-        if self._cb_fail_streak < self._cb_threshold:
-            return False
-        # 触发点A：即将冻结时检查24h窗口
-        now = datetime.now(timezone.utc)
-        if self._cb_first_freeze_time:
-            if (now - self._cb_first_freeze_time) >= timedelta(hours=self._cb_reset_hours):
-                self._cb_freeze_count = 0
-                self._cb_first_freeze_time = None
-                logger.info("[THAW] %s 24小时窗口到期，冻结计数归零", self.site_name)
-        idx = min(self._cb_freeze_count, len(self._cb_durations) - 1)
-        duration = self._cb_durations[idx]
-        self._cb_freeze_count += 1
-        self._cb_frozen_until = now + timedelta(seconds=duration)
-        if self._cb_first_freeze_time is None:
-            self._cb_first_freeze_time = now
-        self._cb_fail_streak = 0
-        self._cb_save_health()
-        logger.info(
-            "[FREEZE] %s 触发冻结，第 %d 次，持续 %d 分钟",
-            self.site_name,
-            self._cb_freeze_count,
-            duration // 60,
-        )
-        return True
+        return self._cb.record_failure()
 
     # ── 子类必须定义 ──
 

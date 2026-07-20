@@ -14,6 +14,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+# PDF 工具函数（从 _pdf_utils 重导出以兼容旧引用）
+from ._pdf_utils import (  # noqa: F401
+    _pdf_page_count,
+    _set_thread_priority_idle,
+    _split_pdf_pages,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -152,57 +159,6 @@ class ProviderCooling:
 
 
 # ── PDF 拆页工具 ──────────────────────────────────────────────────
-
-
-def _split_pdf_pages(pdf_bytes: bytes) -> list[bytes]:
-    """pypdf 拆 PDF 为单页 bytes 列表。失败降级为 [pdf_bytes]。"""
-    try:
-        from io import BytesIO
-
-        from pypdf import PdfReader, PdfWriter
-
-        reader = PdfReader(BytesIO(pdf_bytes))
-        total = len(reader.pages)
-        # 单页无需拆分，直接返回原 bytes
-        if total <= 1:
-            return [pdf_bytes]
-        pages = []
-        for i in range(total):
-            writer = PdfWriter()
-            writer.add_page(reader.pages[i])
-            buf = BytesIO()
-            writer.write(buf)
-            pages.append(buf.getvalue())
-        return pages
-    except Exception:
-        logger.warning("pypdf 拆页失败，降级为整文件处理")
-        return [pdf_bytes]
-
-
-def _pdf_page_count(pdf_bytes: bytes) -> int:
-    """返回 PDF 总页数。失败返回 1。"""
-    try:
-        from io import BytesIO
-
-        from pypdf import PdfReader
-
-        return len(PdfReader(BytesIO(pdf_bytes)).pages)
-    except Exception:
-        return 1
-
-
-# ── 线程优先级 ──────────────────────────────────────────────────────
-
-
-def _set_thread_priority_idle() -> None:
-    """Windows: 当前线程设为 THREAD_PRIORITY_IDLE(-15)。非 Windows 静默跳过。"""
-    try:
-        import ctypes
-
-        handle = ctypes.windll.kernel32.GetCurrentThread()
-        ctypes.windll.kernel32.SetThreadPriority(handle, -15)
-    except Exception:
-        pass
 
 
 # ── OcrSlot 单槽位 ────────────────────────────────────────────────

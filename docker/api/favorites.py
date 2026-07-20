@@ -1,16 +1,18 @@
 # docker/api/favorites.py
 # Phase 4a: 收藏 API — 收藏/状态查询/取消/列表
 
+import os
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
-from pilotstd.tasks.favorite_download import download_to_inbox
 
 from ..auth import get_current_username
+
+_COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 
 router = APIRouter()
 
@@ -33,14 +35,14 @@ def _get_user_id(username: str, db: Database) -> Optional[int]:
 @router.post("/api/favorites")
 def add_favorite(
     data: FavoriteCreate,
-    background_tasks: BackgroundTasks,
     username: str = Depends(get_current_username),
 ):
-    """收藏标准记录：插入 user_favorites 表并触发后台下载任务。
+    """收藏标准记录：仅创建收藏关系，不触发下载。
+    下载由定时任务 archive_retry_service 在冷却期过后统一调度。
 
     若已收藏则返回 already_exists 状态；若 record_id 不存在则 404。
-    后台通过 download_to_inbox 将标准文件下载到用户收件箱。
     """
+
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
@@ -63,14 +65,20 @@ def add_favorite(
         if not cursor.fetchone():
             raise HTTPException(404, "标准记录不存在")
 
+        # 读取 publish_date，用于冷却期计算
+        pub_cursor = db.execute(
+            "SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,)
+        )
+        pub_row = pub_cursor.fetchone()
+        publish_date = pub_row["publish_date"] if pub_row else None
+
         cursor = db.execute(
-            "INSERT INTO user_favorites (user_id, record_id, status, created_at, updated_at)"
-            " VALUES (?, ?, 'pending', datetime('now'), datetime('now'))",
-            (user_id, data.record_id),
+            "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
+            " created_at, updated_at)"
+            " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
+            (user_id, data.record_id, publish_date),
         )
         favorite_id = cursor.lastrowid
-
-        background_tasks.add_task(download_to_inbox, favorite_id, user_id, data.record_id)  # type: ignore[arg-type]
 
         return {"status": "pending", "favorite_id": favorite_id}
     finally:
@@ -84,7 +92,11 @@ def add_favorite(
 
 @router.get("/api/favorites/{record_id}/status")
 def get_favorite_status(record_id: int, username: str = Depends(get_current_username)):
-    """查询指定记录的收藏状态，返回 status/favorite_id/local_path/error_message。"""
+    """查询指定记录的收藏状态。
+    返回 status/favorite_id/local_path/error_message/in_cooldown/abandoned/archive_retry_count。
+    """
+    from datetime import date
+
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
@@ -92,18 +104,31 @@ def get_favorite_status(record_id: int, username: str = Depends(get_current_user
             raise HTTPException(401, "用户不存在")
 
         cursor = db.execute(
-            "SELECT id, status, local_path, error_message FROM user_favorites WHERE user_id = ? AND record_id = ?",
+            "SELECT id, status, local_path, error_message, publish_date, archive_retry_count"
+            " FROM user_favorites WHERE user_id = ? AND record_id = ?",
             (user_id, record_id),
         )
         row = cursor.fetchone()
         if not row:
             return {"status": None, "favorite_id": None}
 
+        # 冷却期：publish_date 存在且距今不足 _COOLDOWN_DAYS 天
+        in_cooldown = False
+        if row["publish_date"]:
+            try:
+                pub = date.fromisoformat(row["publish_date"])
+                in_cooldown = (date.today() - pub).days < _COOLDOWN_DAYS
+            except (ValueError, TypeError):
+                pass
+
         return {
             "status": row["status"],
             "favorite_id": row["id"],
             "local_path": row["local_path"],
             "error_message": row["error_message"],
+            "in_cooldown": in_cooldown,
+            "abandoned": row["status"] == "abandoned",
+            "archive_retry_count": row["archive_retry_count"] or 0,
         }
     finally:
         db.close()

@@ -116,7 +116,7 @@ def api_check_announce(
     since_date: str = "",
     sync: bool = False,
     types: str = "",
-    background_tasks: BackgroundTasks = None,
+    background_tasks: BackgroundTasks = None,  # type: ignore[assignment]
     mgr=Depends(get_manager_dep),
 ):
     """抓取最新公告。
