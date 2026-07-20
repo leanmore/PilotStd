@@ -1,5 +1,6 @@
 # pilotstd/core/file_index.py
-# 本地文件索引表 — ParsedStdInfo 持久化，避免每次启动重扫
+# 本地文件索引表 — 写入与校验管理。查询方法已提取至 _file_index_query.py
+# THREADING: single-threaded, no lock needed
 
 from __future__ import annotations
 
@@ -7,31 +8,30 @@ import logging
 import os
 import threading
 from datetime import datetime
-from typing import Any, Optional
 
-from pilotstd.models import ParsedStdInfo
-
+from ._file_index_query import (  # noqa: F401 — 由外部模块导入消费
+    ANNOUNCEMENT_CACHE_TABLE,
+    FILE_INDEX_TABLE,
+    NETWORK_CACHE_TABLE,
+    _FileIndexQueryMixin,
+)
 from .db import Database
 from .file_utils import hash_file_content
-
-# 核心表名常量，统一管理避免硬编码字符串散布
-FILE_INDEX_TABLE = "file_index"
-NETWORK_CACHE_TABLE = "standard_info_cache"
-ANNOUNCEMENT_CACHE_TABLE = "announcement_match"
 
 logger = logging.getLogger(__name__)
 
 
-class FileIndexRepository:
-    """本地文件索引仓库。"""
+class FileIndexRepository(_FileIndexQueryMixin):
+    """本地文件索引仓库。
+
+    查询方法由 _FileIndexQueryMixin 提供；本类管理校验线程、写入和清理逻辑。
+    """
 
     def __init__(self, db: Database):
         self._db = db
-        # 校验完成事件：扫描器初始化时需等待校验完成才能依赖索引去重
         self._validation_complete = threading.Event()
         self._stop_event = threading.Event()
         self._validation_thread: threading.Thread | None = None
-        # 延迟启动后台校验，避免阻塞启动流程
         self._start_delayed_validation()
 
     # ---- 校验 ----
@@ -64,22 +64,21 @@ class FileIndexRepository:
         """
 
         def _run() -> None:
+            """后台校验线程入口：自适应延迟后逐条校验文件路径是否存在。"""
             if self._stop_event.is_set():
                 self._validation_complete.set()
                 return
 
-            # 计算延迟（秒）
             if os.environ.get("PILOTSTD_TEST_MODE") == "1":
                 delay = 0
             else:
                 try:
                     row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                     row_count = row["cnt"] if row else 0
-                    delay = min(30, max(5, row_count / 500))  # type: ignore[assignment]
+                    delay = min(30, max(5, row_count / 500))
                 except Exception:
                     delay = 10
 
-            # 用 Event.wait() 替代 time.sleep()——可被 stop() 即时中断
             if delay > 0:
                 self._stop_event.wait(delay)
 
@@ -134,78 +133,33 @@ class FileIndexRepository:
         logical_code: str,
         number: int,
         year: int,
-        part: Optional[int] = None,
+        part: int | None = None,
         std_name: str = "",
         file_hash: str = "",
         status: str = "现行",
     ) -> None:
-        # 文件存在时自动计算哈希，否则使用传入值（如从缓存恢复场景）
+        """插入或更新文件索引记录。若文件存在则自动计算哈希。"""
         if not file_hash and os.path.exists(file_path):
             file_hash = hash_file_content(file_path)
         now = datetime.now().isoformat()
-        # part 为 None 时用 -1 表示"无分篇"，SQLite 中 -1 便于统一查询
         part_val = part if part is not None else -1
         existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
         if existing:
-            # 已存在则更新，keep 原有 id 保证外键引用不失效
             self._db.execute(
                 f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
                 "part=?, std_name=?, file_hash=?, status=?, scanned_at=? WHERE id=?",
-                (
-                    logical_code,
-                    number,
-                    year,
-                    part_val,
-                    std_name,
-                    file_hash,
-                    status,
-                    now,
-                    existing["id"],
-                ),
+                (logical_code, number, year, part_val, std_name, file_hash, status, now, existing["id"]),
             )
         else:
-            # 新文件直接插入
             self._db.execute(
                 f"INSERT INTO {FILE_INDEX_TABLE} "
                 "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    file_path,
-                    logical_code,
-                    number,
-                    year,
-                    part_val,
-                    std_name,
-                    file_hash,
-                    status,
-                    now,
-                ),
+                (file_path, logical_code, number, year, part_val, std_name, file_hash, status, now),
             )
 
     def remove(self, file_path: str) -> None:
         self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
-
-    # ---- 读取 ----
-
-    def get(self, file_path: str) -> Optional[dict[str, Any]]:
-        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
-
-    def get_all(self) -> list[dict[str, Any]]:
-        return self._db.fetchall(f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part")
-
-    def find_by_standard(
-        self, logical_code: str, number: int, year: int, part: Optional[int] = None
-    ) -> list[dict[str, Any]]:
-        """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
-        part_val = part if part is not None else -1
-        return self._db.fetchall(
-            f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=? AND year=? AND part=?",
-            (logical_code, number, year, part_val),
-        )
-
-    def find_by_hash(self, file_hash: str) -> Optional[dict[str, Any]]:
-        """通过文件哈希查找（用于检测移动/重命名）。"""
-        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,))
 
     def clear_stale(self) -> int:
         """清除文件已不存在的索引记录（增量：仅检查超过 7 天未验证或从未验证的记录），返回清除数量。"""
@@ -225,176 +179,5 @@ class FileIndexRepository:
                 deleted += 1
         return deleted
 
-    def count(self) -> int:
-        """返回索引表中的记录总数。"""
-        row = self._db.fetchone(f"SELECT COUNT(*) as cnt FROM {FILE_INDEX_TABLE}")
-        return row["cnt"] if row else 0
-
-    def get_status_stats(self) -> dict[str, int]:
-        """返回按状态分组的统计：现行/废止/待确认/即将实施数量。"""
-        try:
-            rows = self._db.fetchall(
-                f"SELECT status, COUNT(*) as cnt FROM {FILE_INDEX_TABLE} WHERE status IS NOT NULL GROUP BY status"
-            )
-            s = {r["status"]: r["cnt"] for r in rows}
-        except Exception:
-            return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
-        # 将废止和被代替合并为 expired，统一对外口径
-        return {
-            "current": s.get("现行", 0),
-            "expired": s.get("废止", 0) + s.get("被代替", 0),
-            "pending": s.get("待确认", 0),
-            "upcoming": s.get("即将实施", 0),
-        }
-
     def clear_all(self) -> None:
         self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE}")
-
-    # ---- 内部 ----
-
-    def restore_parsed(self, file_path: str) -> Optional["ParsedStdInfo"]:
-        """从索引恢复 ParsedStdInfo，同时查缓存填充查询结果字段。"""
-        row = self.get(file_path)
-        if not row:
-            return None
-        from ..models import ParsedStdInfo  # 延迟导入，避免循环引用
-
-        info = ParsedStdInfo(
-            raw_filename=os.path.basename(file_path),
-            logical_code=row["logical_code"],
-            number=row["number"],
-            year=row["year"],
-            # part=-1 表示无分篇，恢复为 None 以保持类型一致性
-            part=row["part"] if row["part"] != -1 else None,
-            std_name=row["std_name"],
-            source_path=file_path,
-        )
-        # 从缓存表补充查询结果字段（状态、名称、采标信息）
-        self._restore_cache_fields(info)
-        return info
-
-    def _restore_cache_fields(self, info: "ParsedStdInfo") -> None:
-        """从缓存表恢复查询结果字段。
-
-        优先级：网络缓存（主数据源）> 公告缓存（补充）。
-        网络缓存须检查过期时间，公告缓存永久有效。
-        """
-        from datetime import datetime
-
-        std_num = info.get_full_number()
-        datetime.now().isoformat()
-
-        # 先查网络缓存（主数据源，事件驱动失效）
-        row = self._db.fetchone(
-            f"SELECT result_json FROM {NETWORK_CACHE_TABLE} WHERE standard_number = ? LIMIT 1",
-            (std_num,),
-        )
-
-        if row and row["result_json"]:
-            self._apply_cache_result(row["result_json"], info)
-            return
-
-        # 网络缓存未命中，回退到公告缓存（永久有效）
-        ann_row = self._db.fetchone(
-            f"SELECT result_json FROM {ANNOUNCEMENT_CACHE_TABLE} WHERE standard_number = ? LIMIT 1",
-            (std_num,),
-        )
-        if ann_row and ann_row["result_json"]:
-            self._apply_cache_result(ann_row["result_json"], info)
-    @staticmethod
-    def _apply_cache_result(result_json: str, info: "ParsedStdInfo") -> None:
-        """将缓存的 JSON 结果应用到 ParsedStdInfo 对象。"""
-        import json
-
-        try:
-            cached = json.loads(result_json)
-            # 仅 exact 匹配的结果才覆盖字段，避免不准确的数据污染
-            if cached.get("match_status") == "exact":
-                info.effect_status = cached.get("status", "")
-                info.found_name = cached.get("standard_name", "")
-                info.is_adopted = cached.get("is_adopted", False)
-                info.match_status = "exact"
-        except (json.JSONDecodeError, TypeError):
-            # 缓存 JSON 损坏时静默跳过，不影响主流程
-            pass
-
-    def find_moved_files(self, candidates: list[tuple[str, str]]) -> list[dict[str, Any]]:
-        """检测文件移动/重命名：哈希命中但路径不同的返回原索引记录。
-        Args:
-            candidates: [(file_path, file_hash), ...] 未被路径匹配到的文件列表
-        Returns:
-            [{"old_path": ..., "new_path": ..., "logical_code": ..., ...}, ...]
-        """
-        result = []
-        for new_path, file_hash in candidates:
-            if not file_hash:
-                continue
-            row = self.find_by_hash(file_hash)
-            if row and row["file_path"] != new_path:
-                result.append(
-                    {
-                        "old_path": row["file_path"],
-                        "new_path": new_path,
-                        "logical_code": row["logical_code"],
-                        "number": row["number"],
-                        "year": row["year"],
-                        "part": row["part"],
-                        "std_name": row["std_name"],
-                    }
-                )
-        return result
-
-    def get_full_info(self, logical_code: str, number: int) -> list[dict[str, Any]]:
-        """联合本地文件索引与两个缓存表，返回离线完整信息。
-        JOIN 使用 LIKE 前缀匹配，兼容新旧两种连接号格式。
-        网络缓存优先，过期后回退到公告缓存。
-        """
-        rows = self._db.fetchall(
-            f"SELECT fi.*, "
-            f"nc.result_json AS nc_result_json, "
-            f"nc.cached_at AS nc_cached_at, "
-            f"ac.result_json AS ac_result_json, "
-            f"ac.cached_at AS ac_cached_at "
-            f"FROM {FILE_INDEX_TABLE} fi "
-            f"LEFT JOIN {NETWORK_CACHE_TABLE} nc "
-            f"ON nc.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
-            f"LEFT JOIN {ANNOUNCEMENT_CACHE_TABLE} ac "
-            f"ON ac.standard_number LIKE (fi.logical_code || ' ' || fi.number || '%') "
-            f"WHERE fi.logical_code = ? AND fi.number = ?",
-            (logical_code, number),
-        )
-        import json
-        result = []
-        for row in rows:
-            info = {
-                "file_path": row["file_path"],
-                "logical_code": row["logical_code"],
-                "number": row["number"],
-                "year": row["year"],
-                "part": row["part"] if row["part"] != -1 else None,
-                "std_name": row["std_name"],
-                "effect_status": "",
-                "found_name": "",
-                "is_adopted": False,
-                "match_status": "",
-                "cached_at": "",
-            }
-            # 优先网络缓存（事件驱动失效，不再按时间过期），回退到公告缓存
-            cache_json = None
-            if row["nc_result_json"]:
-                cache_json = row["nc_result_json"]
-                info["cached_at"] = row["nc_cached_at"] or ""
-            if cache_json is None and row["ac_result_json"]:
-                cache_json = row["ac_result_json"]
-                info["cached_at"] = row["ac_cached_at"] or ""
-            if cache_json:
-                try:
-                    cached = json.loads(cache_json)
-                    info["effect_status"] = cached.get("status", "")
-                    info["found_name"] = cached.get("standard_name", "")
-                    info["is_adopted"] = cached.get("is_adopted", False)
-                    info["match_status"] = cached.get("match_status", "")
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            result.append(info)
-        return result
