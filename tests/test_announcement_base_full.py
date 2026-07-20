@@ -11,6 +11,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
+from pilotstd.announcement._circuit_breaker import CircuitBreaker
 from pilotstd.announcement.base import AdapterFrozenError, BaseAnnounceCrawler
 
 
@@ -58,11 +59,11 @@ class TestBaseAnnounceCrawlerInit(unittest.TestCase):
 
     def test_initial_state_defaults(self):
         c = ConcreteCrawler()
-        self.assertEqual(c._cb_freeze_count, 0)
-        self.assertIsNone(c._cb_first_freeze_time)
-        self.assertIsNone(c._cb_frozen_until)
-        self.assertEqual(c._cb_fail_streak, 0)
-        self.assertFalse(c._cb_loaded)
+        self.assertEqual(c._cb.freeze_count, 0)
+        self.assertIsNone(c._cb.first_freeze_time)
+        self.assertIsNone(c._cb.frozen_until)
+        self.assertEqual(c._cb.fail_streak, 0)
+        self.assertFalse(c._cb._loaded)
         self.assertIsNone(c._http)
 
     def test_di_http_session(self):
@@ -123,8 +124,8 @@ class TestCircuitBreakerLoadHealth(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_load_health_existing_row_restores_state(self, mock_db_cls, mock_get_db_path):
         """已有记录：应恢复 freeze_count/fail_streak 等字段。"""
         mock_db = MagicMock()
@@ -138,15 +139,15 @@ class TestCircuitBreakerLoadHealth(unittest.TestCase):
 
         self.crawler._cb_load_health()
 
-        self.assertEqual(self.crawler._cb_freeze_count, 2)
-        self.assertEqual(self.crawler._cb_fail_streak, 1)
-        self.assertIsNotNone(self.crawler._cb_first_freeze_time)
-        self.assertIsNotNone(self.crawler._cb_frozen_until)
-        self.assertTrue(self.crawler._cb_loaded)
+        self.assertEqual(self.crawler._cb.freeze_count, 2)
+        self.assertEqual(self.crawler._cb.fail_streak, 1)
+        self.assertIsNotNone(self.crawler._cb.first_freeze_time)
+        self.assertIsNotNone(self.crawler._cb.frozen_until)
+        self.assertTrue(self.crawler._cb._loaded)
         mock_db.close.assert_called_once()
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_load_health_no_existing_row_inserts(self, mock_db_cls, mock_get_db_path):
         """无记录：应插入一行初始记录。"""
         mock_db = MagicMock()
@@ -158,13 +159,13 @@ class TestCircuitBreakerLoadHealth(unittest.TestCase):
         mock_db.execute.assert_called_once()
         call_args = mock_db.execute.call_args[0]
         self.assertIn("INSERT INTO adapter_state", call_args[0])
-        self.assertTrue(self.crawler._cb_loaded)
+        self.assertTrue(self.crawler._cb._loaded)
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_load_health_already_loaded_skips(self, mock_db_cls, mock_get_db_path):
         """_cb_loaded=True 时直接跳过。"""
-        self.crawler._cb_loaded = True
+        self.crawler._cb._loaded = True
         mock_db = MagicMock()
         mock_db_cls.return_value = mock_db
 
@@ -172,15 +173,15 @@ class TestCircuitBreakerLoadHealth(unittest.TestCase):
 
         mock_db.fetchone.assert_not_called()
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_load_health_db_error_swallowed(self, mock_db_cls, mock_get_db_path):
         """DB 异常不应抛出，仅保持 _cb_loaded=False。"""
         mock_db_cls.side_effect = RuntimeError("DB 挂了")
 
         self.crawler._cb_load_health()
 
-        self.assertFalse(self.crawler._cb_loaded)
+        self.assertFalse(self.crawler._cb._loaded)
 
 
 class TestCircuitBreakerSaveHealth(unittest.TestCase):
@@ -192,15 +193,15 @@ class TestCircuitBreakerSaveHealth(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_save_health_persists_state(self, mock_db_cls, mock_get_db_path):
         mock_db = MagicMock()
         mock_db_cls.return_value = mock_db
         now = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        self.crawler._cb_freeze_count = 1
-        self.crawler._cb_fail_streak = 3
-        self.crawler._cb_frozen_until = now + timedelta(hours=1)
+        self.crawler._cb.freeze_count = 1
+        self.crawler._cb.fail_streak = 3
+        self.crawler._cb.frozen_until = now + timedelta(hours=1)
 
         self.crawler._cb_save_health()
 
@@ -209,8 +210,8 @@ class TestCircuitBreakerSaveHealth(unittest.TestCase):
         sql = mock_db.execute.call_args[0][0]
         self.assertIn("INSERT OR REPLACE", sql)
 
-    @patch("pilotstd.core.config.paths.get_db_path")
-    @patch("pilotstd.core.db.Database")
+    @patch("pilotstd.announcement._circuit_breaker.get_db_path")
+    @patch("pilotstd.announcement._circuit_breaker.Database")
     def test_save_health_error_swallowed(self, mock_db_cls, mock_get_db_path):
         mock_db_cls.side_effect = RuntimeError("写入失败")
 
@@ -227,53 +228,53 @@ class TestCircuitBreakerCheckFrozen(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_not_frozen_passes(self, _mock_load):
+    @patch("pilotstd.announcement.base.CircuitBreaker.load_health")
+    def test_not_frozen_passes(self, _mock_load):  # _mock_load unused, suppresses real load_health
         """未冻结：正常通过，不抛异常。"""
-        self.crawler._cb_frozen_until = None
+        self.crawler._cb.frozen_until = None
         self.crawler._cb_check_frozen()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
+    @patch("pilotstd.announcement.base.CircuitBreaker.load_health")
     def test_frozen_raises_error(self, _mock_load):
         """冻结中：抛 AdapterFrozenError，含剩余秒数。"""
         future = datetime.now(timezone.utc) + timedelta(seconds=500)
-        self.crawler._cb_frozen_until = future
+        self.crawler._cb.frozen_until = future
 
         with self.assertRaises(AdapterFrozenError) as ctx:
             self.crawler._cb_check_frozen()
         self.assertEqual(ctx.exception.adapter_name, self.crawler.site_name)
         self.assertGreater(ctx.exception.remaining_seconds, 0)
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_thaw_with_24h_window_reset(self, _mock_load, mock_save):
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch("pilotstd.announcement.base.CircuitBreaker.load_health")
+    def test_thaw_with_24h_window_reset(self, mock_save, _mock_load):
         """冻结到期 + 首次冻结超过24h窗口：计数归零。"""
         past = datetime.now(timezone.utc) - timedelta(seconds=10)
-        self.crawler._cb_frozen_until = past
-        self.crawler._cb_first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=25)
-        self.crawler._cb_freeze_count = 3
+        self.crawler._cb.frozen_until = past
+        self.crawler._cb.first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=25)
+        self.crawler._cb.freeze_count = 3
 
         self.crawler._cb_check_frozen()
 
-        self.assertIsNone(self.crawler._cb_frozen_until)
-        self.assertEqual(self.crawler._cb_freeze_count, 0)
-        self.assertIsNone(self.crawler._cb_first_freeze_time)
+        self.assertIsNone(self.crawler._cb.frozen_until)
+        self.assertEqual(self.crawler._cb.freeze_count, 0)
+        self.assertIsNone(self.crawler._cb.first_freeze_time)
         mock_save.assert_called_once()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_load_health")
-    def test_thaw_within_24h_window_keeps_count(self, _mock_load, mock_save):
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch("pilotstd.announcement.base.CircuitBreaker.load_health")
+    def test_thaw_within_24h_window_keeps_count(self, mock_save, _mock_load):
         """冻结到期但首次冻结在24h内：不归零。"""
         past = datetime.now(timezone.utc) - timedelta(seconds=10)
-        self.crawler._cb_frozen_until = past
-        self.crawler._cb_first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=1)
-        self.crawler._cb_freeze_count = 2
+        self.crawler._cb.frozen_until = past
+        self.crawler._cb.first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=1)
+        self.crawler._cb.freeze_count = 2
 
         self.crawler._cb_check_frozen()
 
-        self.assertIsNone(self.crawler._cb_frozen_until)
-        self.assertEqual(self.crawler._cb_freeze_count, 2)
-        self.assertIsNotNone(self.crawler._cb_first_freeze_time)
+        self.assertIsNone(self.crawler._cb.frozen_until)
+        self.assertEqual(self.crawler._cb.freeze_count, 2)
+        self.assertIsNotNone(self.crawler._cb.first_freeze_time)
 
 
 class TestCircuitBreakerRecordSuccess(unittest.TestCase):
@@ -285,18 +286,18 @@ class TestCircuitBreakerRecordSuccess(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
     def test_resets_fail_streak(self, mock_save):
-        self.crawler._cb_fail_streak = 5
+        self.crawler._cb.fail_streak = 5
         self.crawler._cb_record_success()
-        self.assertEqual(self.crawler._cb_fail_streak, 0)
+        self.assertEqual(self.crawler._cb.fail_streak, 0)
         mock_save.assert_called_once()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
     def test_keeps_freeze_count_unchanged(self, mock_save):
-        self.crawler._cb_freeze_count = 2
+        self.crawler._cb.freeze_count = 2
         self.crawler._cb_record_success()
-        self.assertEqual(self.crawler._cb_freeze_count, 2)
+        self.assertEqual(self.crawler._cb.freeze_count, 2)
 
 
 class TestCircuitBreakerRecordFailure(unittest.TestCase):
@@ -308,81 +309,81 @@ class TestCircuitBreakerRecordFailure(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch.object(ConcreteCrawler, "_cb_threshold", new_callable=PropertyMock)
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch.object(CircuitBreaker, "_threshold", new_callable=PropertyMock)
     def test_below_threshold_no_freeze(self, mock_threshold, mock_save):
         """失败次数低于阈值：不触发冻结，返回 False。"""
         mock_threshold.return_value = 5
-        self.crawler._cb_fail_streak = 2
+        self.crawler._cb.fail_streak = 2
 
         result = self.crawler._cb_record_failure()
 
-        self.assertEqual(self.crawler._cb_fail_streak, 3)
+        self.assertEqual(self.crawler._cb.fail_streak, 3)
         self.assertFalse(result)
-        self.assertIsNone(self.crawler._cb_frozen_until)
+        self.assertIsNone(self.crawler._cb.frozen_until)
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch.object(ConcreteCrawler, "_cb_threshold", new_callable=PropertyMock)
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch.object(CircuitBreaker, "_threshold", new_callable=PropertyMock)
     def test_reaches_threshold_triggers_freeze(self, mock_threshold, mock_save):
         """失败次数达到阈值：触发冻结，返回 True。"""
         mock_threshold.return_value = 3
-        self.crawler._cb_fail_streak = 2  # 累加后=3 等于阈值
+        self.crawler._cb.fail_streak = 2  # 累加后=3 等于阈值
 
         result = self.crawler._cb_record_failure()
 
         self.assertTrue(result)
-        self.assertIsNotNone(self.crawler._cb_frozen_until)
-        self.assertEqual(self.crawler._cb_freeze_count, 1)
-        self.assertEqual(self.crawler._cb_fail_streak, 0)  # 冻结后重置
+        self.assertIsNotNone(self.crawler._cb.frozen_until)
+        self.assertEqual(self.crawler._cb.freeze_count, 1)
+        self.assertEqual(self.crawler._cb.fail_streak, 0)  # 冻结后重置
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch.object(ConcreteCrawler, "_cb_threshold", new_callable=PropertyMock)
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch.object(CircuitBreaker, "_threshold", new_callable=PropertyMock)
     def test_duration_index_capped(self, mock_threshold, mock_save):
         """冻结次数超过 duration 数组长度时，使用最大时长。"""
         mock_threshold.return_value = 1
-        self.crawler._cb_freeze_count = 10  # 远超数组长度
+        self.crawler._cb.freeze_count = 10  # 远超数组长度
         before_freeze = datetime.now(timezone.utc)
 
         self.crawler._cb_record_failure()
 
-        expected_duration = self.crawler._cb_durations[-1]  # 最大时长
-        actual_duration = (self.crawler._cb_frozen_until - before_freeze).total_seconds()
+        expected_duration = self.crawler._cb._durations[-1]  # 最大时长
+        actual_duration = (self.crawler._cb.frozen_until - before_freeze).total_seconds()
         # 允许 5 秒误差
         self.assertAlmostEqual(actual_duration, expected_duration, delta=5)
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch.object(ConcreteCrawler, "_cb_threshold", new_callable=PropertyMock)
-    @patch.object(ConcreteCrawler, "_cb_reset_hours", new_callable=PropertyMock)
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch.object(CircuitBreaker, "_threshold", new_callable=PropertyMock)
+    @patch.object(CircuitBreaker, "_reset_hours", new_callable=PropertyMock)
     def test_24h_window_reset_before_freeze(self, mock_reset, mock_threshold, mock_save):
         """触发冻结前检查 24h 窗口，超期则归零计数后冻结。"""
         mock_threshold.return_value = 1
         mock_reset.return_value = 24
-        self.crawler._cb_freeze_count = 3
-        self.crawler._cb_first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=25)
+        self.crawler._cb.freeze_count = 3
+        self.crawler._cb.first_freeze_time = datetime.now(timezone.utc) - timedelta(hours=25)
 
         result = self.crawler._cb_record_failure()
 
         self.assertTrue(result)
-        self.assertEqual(self.crawler._cb_freeze_count, 1)  # 归零后累加到 1
+        self.assertEqual(self.crawler._cb.freeze_count, 1)  # 归零后累加到 1
         # _cb_first_freeze_time 在归零后立刻被冻结逻辑重新设为 now
-        self.assertIsNotNone(self.crawler._cb_first_freeze_time)
+        self.assertIsNotNone(self.crawler._cb.first_freeze_time)
 
-    @patch("pilotstd.announcement.base.BaseAnnounceCrawler._cb_save_health")
-    @patch.object(ConcreteCrawler, "_cb_threshold", new_callable=PropertyMock)
+    @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")
+    @patch.object(CircuitBreaker, "_threshold", new_callable=PropertyMock)
     def test_first_freeze_time_set_once(self, mock_threshold, mock_save):
         """首次冻结时设置 _cb_first_freeze_time。后续冻结不重置。"""
         mock_threshold.return_value = 1
-        self.crawler._cb_first_freeze_time = None
+        self.crawler._cb.first_freeze_time = None
 
         self.crawler._cb_record_failure()
-        first_time = self.crawler._cb_first_freeze_time
+        first_time = self.crawler._cb.first_freeze_time
         self.assertIsNotNone(first_time)
 
         # 模拟解冻后再次触发
-        self.crawler._cb_frozen_until = None
-        self.crawler._cb_fail_streak = 0
+        self.crawler._cb.frozen_until = None
+        self.crawler._cb.fail_streak = 0
         self.crawler._cb_record_failure()
-        self.assertEqual(self.crawler._cb_first_freeze_time, first_time)
+        self.assertEqual(self.crawler._cb.first_freeze_time, first_time)
 
 
 class TestFetchList(unittest.TestCase):
@@ -826,19 +827,19 @@ class TestCircuitBreakerConfigProperties(unittest.TestCase):
         self.crawler = ConcreteCrawler()
 
     def test_cb_threshold_has_default(self):
-        self.assertIsInstance(self.crawler._cb_threshold, int)
-        self.assertGreater(self.crawler._cb_threshold, 0)
+        self.assertIsInstance(self.crawler._cb._threshold, int)
+        self.assertGreater(self.crawler._cb._threshold, 0)
 
     def test_cb_durations_has_default(self):
-        durations = self.crawler._cb_durations
+        durations = self.crawler._cb._durations
         self.assertIsInstance(durations, list)
         self.assertGreater(len(durations), 0)
         for d in durations:
             self.assertIsInstance(d, int)
 
     def test_cb_reset_hours_has_default(self):
-        self.assertIsInstance(self.crawler._cb_reset_hours, int)
-        self.assertGreater(self.crawler._cb_reset_hours, 0)
+        self.assertIsInstance(self.crawler._cb._reset_hours, int)
+        self.assertGreater(self.crawler._cb._reset_hours, 0)
 
 
 if __name__ == "__main__":

@@ -46,17 +46,17 @@ class TestConcreteCrawler(unittest.TestCase):
         self.assertEqual(self.crawler.source_site, "announcement_gb")
 
     def test_initial_state(self):
-        self.assertEqual(self.crawler._cb_freeze_count, 0)
-        self.assertIsNone(self.crawler._cb_first_freeze_time)
-        self.assertIsNone(self.crawler._cb_frozen_until)
-        self.assertEqual(self.crawler._cb_fail_streak, 0)
-        self.assertFalse(self.crawler._cb_loaded)
+        self.assertEqual(self.crawler._cb.freeze_count, 0)
+        self.assertIsNone(self.crawler._cb.first_freeze_time)
+        self.assertIsNone(self.crawler._cb.frozen_until)
+        self.assertEqual(self.crawler._cb.fail_streak, 0)
+        self.assertFalse(self.crawler._cb._loaded)
 
     @patch.object(ConcreteCrawler, "_cb_save_health")
     def test_record_success_resets_fail_streak(self, mock_save):
-        self.crawler._cb_fail_streak = 5
+        self.crawler._cb.fail_streak = 5
         self.crawler._cb_record_success()
-        self.assertEqual(self.crawler._cb_fail_streak, 0)
+        self.assertEqual(self.crawler._cb.fail_streak, 0)
 
     @patch.object(ConcreteCrawler, "_cb_save_health")
     @patch.object(ConcreteCrawler, "_cb_load_health")
