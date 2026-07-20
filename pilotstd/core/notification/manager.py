@@ -27,6 +27,7 @@ _CHANNEL_CLASSES = {
     "dingtalk": DingTalkChannel,
 }
 
+
 class NotificationManager(MessageBuildersMixin):
     """通知管理器。
 
@@ -383,13 +384,13 @@ class NotificationManager(MessageBuildersMixin):
     def test_send(
         self, channel: str, message: NotificationMessage, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
+        """通过指定渠道发送测试消息，返回发送结果。"""
         return do_test_send(self, channel, message, params)
 
     # ── 聚合格式化器 ──────────────────────────────────────────
 
     def _format_standard_status_changed_aggregated(self, _event_type: str, entries: list, count: int) -> str:
         return format_standard_status_changed_aggregated(_event_type, entries, count)
-
 
     # ── 策略表读写（委托 _policy helper） ──
 

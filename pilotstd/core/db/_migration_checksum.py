@@ -18,6 +18,7 @@ def _is_inside_string(line: str, pos: int) -> bool:
     i = 0
     while i < pos:
         ch = line[i]
+        # 跳过转义字符，避免 \" 或 \' 干扰状态判断
         if ch == "\\" and i + 1 < pos:
             i += 2
             continue
@@ -47,6 +48,7 @@ def norm_source(source: str) -> str:
             continue
         if stripped.startswith("#"):
             continue
+        # 处理行内注释：找到 # 位置并去除，跳过字符串内的 # 符号
         comment_pos = stripped.find("#")
         if comment_pos > 0 and not _is_inside_string(stripped, comment_pos):
             code_part = stripped[:comment_pos].strip()
@@ -84,15 +86,19 @@ def verify_migration_checksums(db: Any) -> None:
             continue
         stored_checksum = stored["checksum"]
 
+        # 先比较标准化 checksum（剥离注释后）
         norm_expected = norm_checksum(MIGRATIONS[v])
         if norm_expected == stored_checksum:
             continue
 
+        # 标准化不等 → 检查原始 checksum，判断是否为仅注释变化
         raw_expected = compute_checksum(MIGRATIONS[v])
         if raw_expected != norm_expected:
             logr.warning(
                 "迁移 v%d 的 checksum 已自动修复（仅注释/空行变化）。存储值: %s → 标准化值: %s…",
-                v, (stored_checksum or "None")[:16], norm_expected[:16],
+                v,
+                (stored_checksum or "None")[:16],
+                norm_expected[:16],
             )
             db.execute(
                 "UPDATE _schema_version SET checksum=? WHERE version=?",
@@ -102,6 +108,8 @@ def verify_migration_checksums(db: Any) -> None:
 
         logr.error(
             "迁移 v%d 的脚本逻辑已变更，checksum 不匹配。存储: %s…, 标准化: %s…",
-            v, (stored_checksum or "None")[:16], norm_expected[:16],
+            v,
+            (stored_checksum or "None")[:16],
+            norm_expected[:16],
         )
         raise DatabaseError(f"迁移 v{v} 的脚本逻辑已变更，checksum 不匹配")

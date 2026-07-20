@@ -1,8 +1,10 @@
-"""Extracted table management methods for MainWindow."""
+"""表格管理与交互操作 — 列可见性控制、右键菜单、增删行、复制粘贴。
+
+数据导出函数已提取到 _table_io.py，此处重导出以保持向后兼容。
+"""
 
 from __future__ import annotations
 
-import csv
 import logging
 from typing import Any
 
@@ -19,6 +21,16 @@ from PyQt6.QtWidgets import (
 from ....i18n import _
 from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS, WORK_COLUMNS
 from ...workers import RowUpdate
+
+# 重导出数据 I/O 函数，保持 MainWindow 类体导入链路不中断
+from ._table_io import (  # noqa: F401 — 由 MainWindow 类体导入消费
+    _get_visible_cols,
+    _on_save_result,
+    _row_get,
+    _save_csv,
+    _save_txt,
+    _table_to_list,
+)
 
 logger = logging.getLogger("pilotstd.ui")
 
@@ -83,101 +95,6 @@ def _on_header_context_menu(self, pos: Any) -> None:
         self._save_column_visibility()
 
 
-# ── 可见列名收集 ──
-
-
-def _get_visible_cols(self) -> list[str]:
-    """返回当前所有可见列的显示名称列表。"""
-    return [_(WORK_COLUMN_KEYS[c]) for c in range(len(WORK_COLUMNS)) if not self.work_table.isColumnHidden(c)]
-
-
-# ── 保存结果（txt/csv）──
-
-
-def _on_save_result(self, fmt: str) -> None:
-    """将工作区表格保存为 txt 或 csv 文件。"""
-    if self.work_table.rowCount() == 0:
-        QMessageBox.information(self, _("title_hint"), _("no_data_to_save"))
-        return
-    vis_names = self._get_visible_cols()
-    hidden = [_(WORK_COLUMN_KEYS[c]) for c in range(4, len(WORK_COLUMNS)) if self.work_table.isColumnHidden(c)]
-    if hidden:
-        msg = _("msg_export_hidden_warning").format(
-            hidden_count=len(hidden), hidden_list=", ".join(hidden), visible_count=len(vis_names)
-        )
-        reply = QMessageBox.question(
-            self, _("title_export_hint"), msg, QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
-            return
-    ext_map = {"txt": "TXT (*.txt)", "csv": "CSV (*.csv)"}
-    path, __ = QFileDialog.getSaveFileName(None, _("dialog_save_sheet"), f"results.{fmt}", ext_map.get(fmt, "All (*)"))
-    if not path:
-        return
-    rows = self._table_to_list()
-    visible_data_keys = [WORK_COLUMNS[c] for c in range(len(WORK_COLUMNS)) if not self.work_table.isColumnHidden(c)]
-    try:
-        if fmt == "txt":
-            self._save_txt(path, rows, vis_names, visible_data_keys)
-        elif fmt == "csv":
-            self._save_csv(path, rows, vis_names, visible_data_keys)
-    except OSError as e:  # pragma: no cover — 需文件系统级 OSError，mock 不稳定
-        QMessageBox.warning(self, _("title_save_failed"), str(e))
-
-
-# ── TXT 格式保存 ──
-
-
-def _save_txt(
-    self, path: str, rows: list[dict[str, Any]], cols: list[str] | None = None, data_keys: list[str] | None = None
-) -> None:
-    """将表格行数据保存为制表符分隔的文本文件。"""
-    if cols is None:
-        cols = [_(k) for k in WORK_COLUMN_KEYS]
-        data_keys = list(WORK_COLUMNS)
-    elif data_keys is None:
-        data_keys = cols
-    widths = [len(c) for c in cols]
-    for row in rows:
-        for i, k in enumerate(data_keys):
-            widths[i] = max(widths[i], len(self._row_get(row, k)))
-    with open(path, "w", encoding="utf-8") as f:
-        header = "\t".join(c.ljust(widths[i]) for i, c in enumerate(cols))
-        f.write(header + "\n")
-        for row in rows:
-            line = "\t".join(self._row_get(row, k).ljust(widths[i]) for i, k in enumerate(data_keys))
-            f.write(line + "\n")
-
-
-# ── 行数据读取 ──
-
-
-def _row_get(self, row: Any, key: str, default: str = "") -> str:
-    """从行对象（dict 或数据类）中安全读取字段值。"""
-    if isinstance(row, dict):
-        return str(row.get(key, default))
-    return str(getattr(row, key, default))
-
-
-# ── CSV 格式保存 ──
-
-
-def _save_csv(
-    self, path: str, rows: list[dict[str, Any]], cols: list[str] | None = None, data_keys: list[str] | None = None
-) -> None:
-    """将表格行数据保存为 UTF-8 BOM CSV 文件。"""
-    if cols is None:
-        cols = [_(k) for k in WORK_COLUMN_KEYS]
-        data_keys = list(WORK_COLUMNS)
-    elif data_keys is None:
-        data_keys = cols
-    with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(cols)
-        for row in rows:
-            w.writerow([self._row_get(row, k) for k in data_keys])
-
-
 # ── 工作区右键菜单 ──
 
 
@@ -207,7 +124,7 @@ def _on_work_table_context_menu(self, pos: Any) -> None:
         remove_all.setEnabled(False)
     if not self.work_table.selectedItems():
         remove_selected.setEnabled(False)
-    chosen = menu.exec(self.work_table.viewport().mapToGlobal(pos))  # pragma: no cover — QMenu 交互依赖真实用户点击
+    chosen = menu.exec(self.work_table.viewport().mapToGlobal(pos))
     if chosen == add_file:
         path, _filter = QFileDialog.getOpenFileName(
             self, _("dialog_select_file"), "", "标准文件 (*.pdf *.doc *.docx *.txt);;所有文件 (*)"
@@ -244,7 +161,7 @@ def _on_offline_view(self) -> None:
     row = min(rows)
     if row >= len(self._parsed_results):
         return
-    parsed = self._parsed_results[row]  # pragma: no cover — 离线详情格式依赖完整数据链路
+    parsed = self._parsed_results[row]
     results = self._mgr.get_file_index_full_info(parsed.logical_code, parsed.number)
     if not results:
         QMessageBox.information(
@@ -344,21 +261,6 @@ def _find_row_by_seq(self, seq: int) -> int:
         if item and item.text() and int(item.text()) == seq:
             return r
     return -1
-
-
-# ── 表格转列表 ──
-
-
-def _table_to_list(self) -> list[Any]:
-    """将工作区表格全部行数据导出为字典列表。"""
-    rows = []
-    for r in range(self.work_table.rowCount()):
-        row_data = {}
-        for c in range(self.work_table.columnCount()):
-            item = self.work_table.item(r, c)
-            row_data[WORK_COLUMNS[c]] = item.text() if item else ""
-        rows.append(row_data)
-    return rows
 
 
 # ── 最小列宽强制 ──

@@ -45,6 +45,7 @@ class ArchiveRetryService:
         today = date.today().isoformat()
         cooldown_cutoff = (date.today() - timedelta(days=_COOLDOWN_DAYS)).isoformat()
         try:
+            # 公平调度：按上次重试时间升序，保证等最久的先处理
             rows = db.fetchall(
                 "SELECT id, user_id, record_id, publish_date, archive_retry_count, error_message"
                 " FROM user_favorites"
@@ -62,7 +63,7 @@ class ArchiveRetryService:
             for row in rows:
                 try:
                     download_to_inbox(row["id"], row["user_id"], row["record_id"])
-                    # 成功后重置计数
+                    # 成功后重置重试计数
                     db.execute(
                         "UPDATE user_favorites SET archive_retry_count = 0,"
                         " last_archive_attempt = ?, updated_at = datetime('now')"
@@ -74,7 +75,7 @@ class ArchiveRetryService:
                     new_count = (row["archive_retry_count"] or 0) + 1
                     error_msg = str(e)[:500]
                     if new_count >= _MAX_RETRIES:
-                        # 超过重试上限，标记 abandoned 并通知用户
+                        # 超上限：标记 abandoned 并通知用户，不再重试
                         db.execute(
                             "UPDATE user_favorites SET status = 'abandoned',"
                             " archive_retry_count = ?, error_message = ?,"
@@ -92,7 +93,9 @@ class ArchiveRetryService:
                         )
                     logger.warning(
                         "归档重试失败 favorite_id=%s (第%d次): %s",
-                        row["id"], new_count, e,
+                        row["id"],
+                        new_count,
+                        e,
                     )
             logger.info("归档重试完成: %d/%d 成功", success, len(rows))
             return {"ok": True, "total": len(rows), "success": success}

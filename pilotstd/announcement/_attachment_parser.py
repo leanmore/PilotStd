@@ -22,6 +22,7 @@ def parse_attachment_text(attachment_bytes: bytes, filename: str = "") -> str:
         return _parse_pdf_text(attachment_bytes)
     if name_lower.endswith((".doc", ".docx")):
         return _parse_docx_text(attachment_bytes)
+    # 文件类型未知时依次尝试所有解析器，取首个有意义的输出
     for parser in (parse_wps_text, _parse_pdf_text, _parse_docx_text):
         try:
             text = parser(attachment_bytes)
@@ -52,6 +53,7 @@ def parse_wps_text(raw_bytes: bytes) -> str:
 
     cleaned = []
     for entry in entries:
+        # 去除不可打印字符，保留换行制表符
         chars = [ch for ch in entry if ch.isprintable() or ch in "\n\r\t"]
         entry = "".join(chars)
         entry = _clean_wps_name(entry)
@@ -105,6 +107,7 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
 
 def find_attachment_url(html: str) -> Optional[str]:
     """从公告详情页 HTML 中提取附件下载链接（支持 .wps / .docx / .doc / .pdf）。"""
+    # 优先匹配 sacinfo 标准公告附件链接，其次匹配通用文件下载链接
     for pattern in [
         r'href="(http://zxd\.sacinfo\.org\.cn/gb_notice/[^"]+)"',
         r'href="(https?://[^"]+\.(?:wps|docx?|pdf))"',
@@ -137,6 +140,7 @@ def extract_content(html: str) -> str:
     for table in soup.find_all("table"):
         table.decompose()
 
+    # 提取所有段落文本；无段落时回退到关键词匹配的 div/p 元素
     all_p = soup.find_all("p")
     if all_p:
         return "\n\n".join(p.get_text(strip=True) for p in all_p)

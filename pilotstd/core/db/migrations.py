@@ -38,6 +38,8 @@ migration(13)(_migrate_v13_adapter_stats_extend)
 migration(14)(_migrate_v14_api_keys)
 migration(15)(_migrate_v15_announcement_record)
 
+
+@migration(16)
 def _migrate_v16_standard_validity(db: Any) -> None:
     """创建 standard_validity 表，记录标准号的有效性状态及检查周期。"""
     db.execute("""CREATE TABLE IF NOT EXISTS standard_validity (
@@ -47,6 +49,7 @@ def _migrate_v16_standard_validity(db: Any) -> None:
         created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_validity_next_check ON standard_validity(next_check_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_validity_standard ON standard_validity(standard_number)")
+
 
 @migration(17)
 def _migrate_v17_notification_log(db: Any) -> None:
@@ -58,6 +61,7 @@ def _migrate_v17_notification_log(db: Any) -> None:
         sent_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_sent_at ON notification_log(sent_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_notif_event_type ON notification_log(event_type)")
+
 
 @migration(18)
 def _migrate_v18_notification_fetch_task(db: Any) -> None:
@@ -80,6 +84,7 @@ def _migrate_v18_notification_fetch_task(db: Any) -> None:
         first_freeze_time TIMESTAMP, frozen_until TIMESTAMP, fail_streak INTEGER DEFAULT 0,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""")
 
+
 @migration(19)
 def _migrate_v19_users(db: Any) -> None:
     """创建 users 表，存储用户名、密码哈希、盐值和角色。"""
@@ -89,6 +94,7 @@ def _migrate_v19_users(db: Any) -> None:
         must_change_password INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')))""")
 
+
 @migration(20)
 def _migrate_v20_announce_since_date(db: Any) -> None:
     try:
@@ -96,12 +102,14 @@ def _migrate_v20_announce_since_date(db: Any) -> None:
     except Exception:
         pass
 
+
 @migration(21)
 def _migrate_v21_user_layouts(db: Any) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS user_layouts (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
         layout_key TEXT NOT NULL DEFAULT 'dashboard', layout_data TEXT NOT NULL,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, layout_key))""")
+
 
 @migration(22)
 def _migrate_v22_user_preferences(db: Any) -> None:
@@ -112,6 +120,7 @@ def _migrate_v22_user_preferences(db: Any) -> None:
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, preference_key))""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user_key ON user_preferences(user_id, preference_key)")
+
 
 # v23: 缓存系统初始化 — 数据源版本 + 缓存配置 + 多表缓存字段扩展
 @migration(23)
@@ -176,6 +185,7 @@ def _migrate_v23_cache_system(db: Any) -> None:
     except Exception:
         pass
 
+
 # v24: 通用任务队列 — 支持优先级、重试、超时
 @migration(24)
 def _migrate_v24_task_queue(db: Any) -> None:
@@ -205,6 +215,7 @@ def _migrate_v24_task_queue(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_status_priority ON task_queue(status, priority, created_at)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_queue_name ON task_queue(queue_name)")
 
+
 # v25-v27: 公告匹配缓存扩展 + 流水线记录 + 通知聚合
 @migration(25)
 def _migrate_v25_announcement_match_cache(db: Any) -> None:
@@ -218,6 +229,7 @@ def _migrate_v25_announcement_match_cache(db: Any) -> None:
     except Exception:
         pass
 
+
 @migration(26)
 def _migrate_v26_pipeline_runs(db: Any) -> None:
     """创建 pipeline_runs 表，记录流水线执行的运行状态和步骤结果。"""
@@ -228,6 +240,7 @@ def _migrate_v26_pipeline_runs(db: Any) -> None:
         error_message TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_pipeline_runs_run_id ON pipeline_runs(run_id)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_pipeline_runs_status ON pipeline_runs(status)")
+
 
 @migration(27)
 def _migrate_v27_notification_aggregation(db: Any) -> None:
@@ -245,6 +258,7 @@ def _migrate_v27_notification_aggregation(db: Any) -> None:
     except Exception:
         pass
 
+
 # v28-v29: 通知队列 + 公告记录扩展
 @migration(28)
 def _migrate_v28_notification_queue(db: Any) -> None:
@@ -255,6 +269,7 @@ def _migrate_v28_notification_queue(db: Any) -> None:
         scheduled_time TEXT, error_msg TEXT DEFAULT '', created_at TEXT NOT NULL)""")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_status ON notification_queue(status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_nq_scheduled ON notification_queue(scheduled_time)")
+
 
 @migration(29)
 def _migrate_v29_announce_title_and_count(db: Any) -> None:
@@ -267,6 +282,7 @@ def _migrate_v29_announce_title_and_count(db: Any) -> None:
         db.execute("ALTER TABLE announcement_record ADD COLUMN standard_count INTEGER")
     except Exception:
         pass  # 列已存在
+
 
 # v30: 抓取失败记录 + 补抓队列 + 并发锁 + 全局应用偏好配置
 @migration(30)
@@ -318,6 +334,7 @@ def _migrate_v30_failure_tables(db: Any) -> None:
     )
     db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")
 
+
 # v31-v36 迁移实现（拆分到独立模块）
 from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v31_monitor_stats,
@@ -344,6 +361,7 @@ migration(36)(_migrate_v36_announcement_structure)
 migration(37)(_migrate_v37_user_notification_config)
 migration(39)(_migrate_v39_announcement_source_type)
 migration(40)(_migrate_v40_ensure_columns)
+
 
 # v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）
 @migration(38)
