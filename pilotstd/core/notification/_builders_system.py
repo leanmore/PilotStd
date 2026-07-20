@@ -13,6 +13,11 @@ from .blocks import (
 from .channel import NotificationMessage
 
 
+def _make_link(standard_number: str | None) -> str | None:
+    """根据标准号生成跳转链接。"""
+    return f"/standards/{standard_number}" if standard_number else None
+
+
 class _SystemBuildersMixin:
     """系统/备份/错误消息构建方法集合。"""
 
