@@ -1,5 +1,7 @@
 # pilotstd/manager/facade/_organize.py
 """OrganizeHandler：归档、规范化、过期处理、兜底镜像，替代原 OrganizeMixin。"""
+# 边界条件：同名文件追加序号而非覆盖（SHA-256 先比对）；废止标准走 normalize_filename 自动追加过期作废子目录；
+# Word/模板文件按源目录镜像归档（无标准号无法按代号归类，镜像保留原始结构便于追溯）
 
 from __future__ import annotations
 
@@ -138,7 +140,9 @@ class OrganizeHandler:
         if backfilled:
             logger.info("archive_standards: 回填 std_name %d/%d 条", backfilled, total)
         result = self._core.organizer_svc.organize(items, word_source_root, overwrite=overwrite)
-        if result.get("moved", 0) > 0:
+        moved = result.get("moved", 0)
+        _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+        if moved > 0:
             for p in items:
                 std_no = f"{p.logical_code} {p.number}"
                 if p.year:
@@ -148,11 +152,20 @@ class OrganizeHandler:
                         self._core.validity_checker.register_new_standard(std_no, self._core.notification_mgr)
                 except Exception:
                     pass
-            try:
-                if self._core.notification_mgr:
-                    self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": result["moved"]})
-            except Exception:
-                pass
+                # 废止标准同步触发 expire_standard_moved（与 archive_complete 同时触发）
+                try:
+                    if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
+                        self._core.notification_mgr.send_event(
+                            "expire_standard_moved",
+                            {"standard_number": std_no, "target_path": getattr(p, "source_path", "")},
+                        )
+                except Exception:
+                    pass
+        try:
+            if self._core.notification_mgr:
+                self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": moved})
+        except Exception:
+            pass
         return result
 
     @staticmethod
@@ -177,13 +190,9 @@ class OrganizeHandler:
         pending_paths = frozenset(p.source_path for p in self._core.pending_list if getattr(p, "source_path", ""))
         return self._core.organizer_svc.organize_fallback(source_root, pending_paths)  # type: ignore[no-any-return]
 
-    # handle_expired — 将过期文件移入「过期作废」目录（委托 OrganizerService）
-    def handle_expired(self, parsed_list: Optional[list[ParsedStdInfo]] = None) -> dict[str, Any]:
-        """将过期文件移入「过期作废」目录（委托 OrganizerService）。"""
-        return self._core.organizer_svc.handle_expired(parsed_list)  # type: ignore[no-any-return]
-
     def merge_expire_from_source(self, root_dir: str, parsed_list: list[ParsedStdInfo]) -> int:
         """从源目录合并过期标准到「过期作废」目录（委托 OrganizerService）。"""
+        return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
         return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
 
     # organize_files — 接受文件路径列表，解析后走完整 organizer_service 归档
@@ -201,19 +210,21 @@ class OrganizeHandler:
             return {"moved": 0, "failed": 0, "skipped_exists": 0, "details": ["无有效文件"]}
         return self.archive_standards(parsed)  # type: ignore[no-any-return]
 
-    # expire_files — 接受文件路径列表，解析后过期处理
+    # expire_files — 接受文件路径列表，解析后标记废止并走主线归档
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
-        """接受文件路径列表，解析后过期处理。"""
-        items: list[tuple[str, ParsedStdInfo]] = []
+        """接受文件路径列表，解析后标记废止并走主线 organize() 归档。"""
+        parsed: list[ParsedStdInfo] = []
         for path in file_paths:
             if not os.path.isfile(path):
                 continue
             info = self._core.parser.parse(os.path.basename(path))
             if info:
-                items.append((path, info))
-        if not items:
+                info.source_path = path
+                info.effect_status = "废止"
+                parsed.append(info)
+        if not parsed:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}
-        return self._core.organizer_svc.handle_expired(items)  # type: ignore[no-any-return]
+        return self._core.organizer_svc.organize(parsed)  # type: ignore[no-any-return]
 
     # normalize_files — 返回文件规范化名称列表
     def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
@@ -232,7 +243,7 @@ class OrganizeHandler:
                 {
                     "source": path,
                     "logical_code": info.logical_code,
-                    "number": info.number,
+                    "number": info.raw_number or str(info.number),
                     "year": info.year,
                     "normalized": make_standard_filename(
                         logical_code=info.logical_code,
@@ -244,6 +255,7 @@ class OrganizeHandler:
                         num_prefix=info.num_prefix,
                         num_suffix=info.num_suffix,
                         ext=info.ext,
+                        raw_number=info.raw_number or None,
                     ),
                     "folder": get_folder_name(info.logical_code),
                 }
@@ -265,6 +277,7 @@ class OrganizeHandler:
             num_prefix=getattr(parsed, "num_prefix", ""),
             num_suffix=getattr(parsed, "num_suffix", ""),
             ext=getattr(parsed, "ext", "pdf"),
+            raw_number=parsed.raw_number or None,
         )
 
     def normalize_files_stream(
@@ -279,26 +292,47 @@ class OrganizeHandler:
         results: list[dict[str, Any]] = []
         total = len(parsed_list)
         batch: list[tuple[int, ParsedStdInfo, str]] = []
-        for i, parsed in enumerate(parsed_list):
-            src_path = getattr(parsed, "source_path", "") or ""
-            name = self._make_archive_filename(parsed)
-            folder = get_folder_name(parsed.logical_code)
-            results.append(
-                {
-                    "source": src_path,
-                    "logical_code": parsed.logical_code,
-                    "number": parsed.number,
-                    "year": parsed.year,
-                    "normalized": name,
-                    "folder": folder,
-                }
-            )
-            batch.append((i, parsed, name))
-            if on_batch and len(batch) >= 50:
-                on_batch(batch)
-                batch = []
-            if on_progress:
-                on_progress(i + 1, total)
+        try:
+            for i, parsed in enumerate(parsed_list):
+                src_path = getattr(parsed, "source_path", "") or ""
+                name = self._make_archive_filename(parsed)
+                folder = get_folder_name(parsed.logical_code)
+                results.append(
+                    {
+                        "source": src_path,
+                        "logical_code": parsed.logical_code,
+                        "number": parsed.raw_number or str(parsed.number),
+                        "year": parsed.year,
+                        "normalized": name,
+                        "folder": folder,
+                    }
+                )
+                batch.append((i, parsed, name))
+                if on_batch and len(batch) >= 50:
+                    on_batch(batch)
+                    batch = []
+                if on_progress:
+                    on_progress(i + 1, total)
+        except Exception as e:
+            try:
+                if self._core.notification_mgr:
+                    self._core.notification_mgr.send_event(
+                        "normalize_failed",
+                        {"total": total, "error": str(e)},
+                    )
+            except Exception:
+                pass
+            raise
         if on_batch and batch:
             on_batch(batch)
+
+        try:
+            if self._core.notification_mgr:
+                self._core.notification_mgr.send_event(
+                    "normalize_complete",
+                    {"total": total, "success": len(results), "failed": 0},
+                )
+        except Exception:
+            pass
+
         return results

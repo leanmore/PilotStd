@@ -181,6 +181,7 @@ class ScanUIHandler:
                 part=parsed.part,
                 std_name=parsed.std_name,
                 status="现行",
+                raw_number=parsed.raw_number,
             )
         else:
             self._status_cb(f"无法识别标准号: {filename}")

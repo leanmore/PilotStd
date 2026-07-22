@@ -1,5 +1,8 @@
 # pilotstd/core/notification/manager.py
 """NotificationManager——多渠道通知分发与日志记录。"""
+# 交互契约：send_event() 统一入口（策略表→渠道路由→聚合器→发送）；聚合器默认 5s 窗口合并同类事件，
+# bypass_aggregation 事件实时发送（系统异常须及时感知）；静音时段暂存 queue 表定时补发；
+# 日志与渠道发送在同一 try 块（避免"发送成功但无日志"的审计盲区）
 
 import json
 import logging
@@ -248,6 +251,21 @@ class NotificationManager(MessageBuildersMixin):
             "batch_query_summary": self._build_batch_query_summary_message,
             "trust_ip_update": self._build_trust_ip_update_message,
             "worker_error": self._build_worker_error_message,
+            "download_failed": self._build_download_failed_message,
+            "archive_abandoned": self._build_archive_abandoned_message,
+            "normalize_complete": self._build_normalize_complete_message,
+            "scan_complete": self._build_scan_complete_message,
+            "task_execution_failed": self._build_task_execution_failed_message,
+            "date_reminder": self._build_date_reminder_message,
+            "scan_empty": self._build_scan_empty_message,
+            "query_failed": self._build_query_failed_message,
+            "query_empty": self._build_query_empty_message,
+            "archive_failed": self._build_archive_failed_message,
+            "announcement_fetch_failed": self._build_announcement_fetch_failed_message,
+            "normalize_failed": self._build_normalize_failed_message,
+            "expire_standard_moved": self._build_expire_standard_moved_message,
+            "replacement_not_found": self._build_replacement_not_found_message,
+            "quota_exhausted": self._build_quota_exhausted_message,
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:

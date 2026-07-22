@@ -37,7 +37,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
                 [
                     i + 1,
                     p.logical_code,
-                    p.number,
+                    p.raw_number or str(p.number),
                     p.year,
                     p.part or "",
                     p.std_name,

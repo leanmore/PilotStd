@@ -88,6 +88,7 @@ class ExactMatchMixin:
             raw_filename=text,
             logical_code=logical_code,
             number=number,
+            raw_number=number_str,
             year=year,
             std_name=name,
             source_name=name,
@@ -165,14 +166,16 @@ class ExactMatchMixin:
             return None
         prefix = self._trim_prefix(match.group("prefix"), text)
         num_str = match.group("number")
-        number, num_suffix = self._extract_number(num_str)
+        number, num_suffix, raw_number_str = self._extract_number(num_str)
         if number is None:
             return None
         num_prefix = self._extract_num_prefix(num_str)
         part = self._extract_part(match.group("part"))
         year = self._normalize_year(match.group("year"))
         logical_code = self.code_mapping.get(prefix, prefix)
-        return self._build_result(text, match.end(), logical_code, number, part, year, num_prefix, num_suffix)
+        return self._build_result(
+            text, match.end(), logical_code, number, part, year, num_prefix, num_suffix, raw_number=raw_number_str
+        )
 
     def _exact_match_no_year(self, text: str) -> Optional[ParsedStdInfo]:
         """无年份精确匹配——仅接受带字母后缀的修订版标准（如 MIL-STD-810G）。
@@ -186,7 +189,7 @@ class ExactMatchMixin:
             return None
         prefix = self._trim_prefix(match.group("prefix"), text)
         num_str = match.group("number")
-        number, num_suffix = self._extract_number(num_str)
+        number, num_suffix, raw_number_str = self._extract_number(num_str)
         if number is None:
             return None
         # 仅接受有字母后缀的修订版（如 810G），拒绝无版本标识的裸编号
@@ -205,6 +208,7 @@ class ExactMatchMixin:
             0,
             num_prefix,
             num_suffix,
+            raw_number=raw_number_str,
             require_year=False,
         )
 
@@ -218,7 +222,7 @@ class ExactMatchMixin:
 
         prefix = self._trim_prefix(match.group("prefix"), text)
         num_str = match.group("number")
-        number, num_suffix = self._extract_number(num_str)
+        number, num_suffix, raw_number_str = self._extract_number(num_str)
         if number is None:
             return None
         num_prefix = self._extract_num_prefix(num_str)
@@ -236,7 +240,9 @@ class ExactMatchMixin:
         else:
             logical_code = self.code_mapping.get(prefix, prefix)
 
-        return self._build_result(text, match.end(), logical_code, number, part, year, num_prefix, num_suffix)
+        return self._build_result(
+            text, match.end(), logical_code, number, part, year, num_prefix, num_suffix, raw_number=raw_number_str
+        )
 
     # ── 模糊匹配 ────────────────────────────────────────────
 

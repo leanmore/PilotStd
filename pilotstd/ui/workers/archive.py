@@ -118,6 +118,7 @@ class ArchiveWorker(QThread):
             num_prefix=getattr(parsed, "num_prefix", ""),
             num_suffix=getattr(parsed, "num_suffix", ""),
             ext=getattr(parsed, "ext", "pdf"),
+            raw_number=getattr(parsed, "raw_number", None),
         )
         folder = get_folder_name(parsed.logical_code)
         target_dir = os.path.join(library_root, folder)

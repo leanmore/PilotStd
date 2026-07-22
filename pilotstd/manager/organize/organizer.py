@@ -30,14 +30,12 @@ class OrganizerCore:
         file_index: Any,
         dir_builder: Any,
         file_mover: Any,
-        expire_handler: Any,
     ) -> None:
-        """初始化归类核心，注入配置、文件索引、目录构建器、文件移动器、过期处理器。"""
+        """初始化归类核心，注入配置、文件索引、目录构建器、文件移动器。"""
         self._cfg = cfg
         self._file_index = file_index
         self._dir_builder = dir_builder
         self._file_mover = file_mover
-        self._expire_handler = expire_handler
         self._std_parser = StandardParser(self._cfg.get("scan.code_mapping", {}))
         self._skipped_source_files: set[str] = set()
 
@@ -47,6 +45,17 @@ class OrganizerCore:
     ) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。Word/模板文件按源目录镜像归档。"""
         items = parsed_list
+        # 按 (logical_code, number, year) 去重，防止同一废止标准重复归档
+        seen: set[tuple[str, int, int]] = set()
+        dedup_items: list[Any] = []
+        for p in items:
+            key = (getattr(p, "logical_code", ""), getattr(p, "number", 0), getattr(p, "year", 0))
+            if key not in seen:
+                seen.add(key)
+                dedup_items.append(p)
+        if len(dedup_items) < len(items):
+            logger.info("organize 入口去重: %d → %d 条（按标准号去重）", len(items), len(dedup_items))
+        items = dedup_items
         root = get_library_root(self._cfg)
         mover = self._file_mover
         on_exists = "overwrite" if overwrite else "skip"
@@ -187,6 +196,7 @@ class OrganizerCore:
                     part=getattr(p, "part", None),
                     std_name=p.std_name or "",
                     status=getattr(p, "effect_status", "") or "现行",
+                    raw_number=p.raw_number or "",
                 )
         elif os.path.exists(mover.normalize_filename(p)):
             result["skipped_exists"] += 1
@@ -211,6 +221,14 @@ class OrganizerCore:
             result["dedup_skipped"],
             result["failed"],
         )
+        try:
+            if result.get("failed", 0) > 0 and self._core.notification_mgr:
+                self._core.notification_mgr.send_event(
+                    "archive_failed",
+                    {"count": result["failed"], "error": "部分文件归档失败，请检查日志"},
+                )
+        except Exception:
+            pass
 
     # _dedup_standard — 相同标准号旧路径清理，避免分类变化导致双份文件
     def _dedup_standard(self: Any, parsed: Any, new_path: str) -> None:

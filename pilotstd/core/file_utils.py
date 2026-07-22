@@ -97,6 +97,14 @@ def safe_code_for_filename(logical_code: str) -> str:
     return code
 
 
+def safe_name_for_filename(name: str) -> str:
+    """将 Windows 非法字符替换为全角等效字符，仅用于文件名生成。"""
+    replacements = {"/": "／", "\\": "＼", ":": "：", "*": "＊", "?": "？", '"': "”", "<": "＜", ">": "＞", "|": "｜"}
+    for char, repl in replacements.items():
+        name = name.replace(char, repl)
+    return name
+
+
 def truncate_path(root_dir: str, folder: str, filename: str) -> str:
     """若完整路径超过 MAX_PATH_LENGTH，截断文件名中的名称部分，保留编号和扩展名。"""
     full = os.path.join(root_dir, folder, filename)
@@ -286,21 +294,24 @@ def make_standard_filename(
     language: str = "",
     num_prefix: str = "",
     file_kind: str = "",
+    raw_number: Optional[str] = None,
 ) -> str:
     """根据标准信息生成规范文件名：{代号} {编号}[.{部分号}]-{年份} {名称}[ 语言][ file_kind].<ext>
+    raw_number 非空时优先使用（保留前导零等原始格式），为空则回退 str(number)。
     num_prefix 为罗马数字时直接作为编号显示，多字母前缀时加空格（如 'Spec 6D'）。"""
     win_code = safe_code_for_filename(logical_code)
     part_str = f".{part}" if part else ""
-    name_part = f" {re.sub(r'<[^>]+>', '', std_name)}" if std_name else ""
+    name_part = f" {safe_name_for_filename(re.sub(r'<[^>]+>', '', std_name))}" if std_name else ""
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
+    num_display = raw_number if raw_number else str(number)
     # 罗马数字前缀（≥2字符，如 VIII/IX/XII）：直接用罗马数字替代阿拉伯数字
     if num_prefix and len(num_prefix) >= 2 and all(c in "IVXLCDM" for c in num_prefix.upper()):
         num_str = f"{num_prefix}{num_suffix}"
     elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():
-        num_str = f"{num_prefix} {number}{num_suffix}"
+        num_str = f"{num_prefix} {num_display}{num_suffix}"
     elif num_prefix:
-        num_str = f"{num_prefix}{number}{num_suffix}"
+        num_str = f"{num_prefix}{num_display}{num_suffix}"
     else:
-        num_str = f"{number}{num_suffix}"
+        num_str = f"{num_display}{num_suffix}"
     return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"

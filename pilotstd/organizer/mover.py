@@ -51,6 +51,7 @@ class FileMover:
             num_prefix=parsed.num_prefix,
             language=parsed.language,
             file_kind=parsed.file_kind,
+            raw_number=parsed.raw_number or None,
         )
         return truncate_path(self._dirs.root, folder, filename)
 
@@ -70,7 +71,7 @@ class FileMover:
             "移动: %s → 代号=%s 号=%s 年=%s",
             os.path.basename(src_path),
             parsed.logical_code,
-            parsed.number,
+            parsed.raw_number or str(parsed.number),
             parsed.year,
         )
         dst = self.normalize_filename(parsed)
@@ -78,17 +79,3 @@ class FileMover:
             logger.error("路径越界被拒绝: %s", dst)
             return None
         return self.archive(src_path, dst, on_exists=on_exists)
-
-    def move_to_expire(self, src_path: str, parsed: ParsedStdInfo) -> Optional[str]:
-        """将过期文件移动到过期作废子目录。"""
-        get_folder_name(parsed.logical_code)
-        expire_dir = self._dirs.get_expire_dir(parsed.logical_code)
-        basename = os.path.basename(src_path)
-        dst = os.path.join(expire_dir, basename)
-
-        if not self._is_safe_path(dst):
-            logger.error("路径越界被拒绝: %s", dst)
-            return None
-        if safe_move(src_path, dst):
-            return dst
-        return None

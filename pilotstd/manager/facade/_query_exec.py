@@ -140,7 +140,7 @@ class _QueryExecMixin:
                 p = items[i]
                 part_str = f".{getattr(p, 'part', '')}" if getattr(p, "part", None) else ""
                 results[i] = QueryResult(
-                    standard_number=f"{p.logical_code} {p.number}{part_str}-{p.year}",
+                    standard_number=f"{p.logical_code} {p.raw_number or str(p.number)}{part_str}-{p.year}",
                     error_message="查询未执行",
                 )
         return results
@@ -187,6 +187,22 @@ class _QueryExecMixin:
             if getattr(r, "match_status", "") == "exact":
                 stats.exact += 1
 
+        # 单条查询失败通知（最多报 5 条，避免批量时通知轰炸）
+        failed_items = [
+            (r.standard_number, getattr(r, "error_message", "") or "未知错误")
+            for r in results
+            if getattr(r, "error_message", "") and r.standard_number
+        ]
+        try:
+            if self._core.notification_mgr and failed_items:
+                for std_no, err in failed_items[:5]:
+                    self._core.notification_mgr.send_event(
+                        "query_failed",
+                        {"standard_number": std_no, "error": err},
+                    )
+        except Exception:
+            pass
+
         self._classify_after_query(items, results)
         if self._core.pending_list:
             self.record_pending(self._core.pending_list)
@@ -195,10 +211,16 @@ class _QueryExecMixin:
         try:
             pending_count = len(self._core.pending_list)
             if self._core.notification_mgr:
-                self._core.notification_mgr.send_event(
-                    "batch_query_summary",
-                    {"total": stats.total, "found": stats.found, "pending": pending_count},
-                )
+                if stats.found == 0 and stats.total > 0:
+                    self._core.notification_mgr.send_event(
+                        "query_empty",
+                        {"total": stats.total},
+                    )
+                else:
+                    self._core.notification_mgr.send_event(
+                        "batch_query_summary",
+                        {"total": stats.total, "found": stats.found, "pending": pending_count},
+                    )
         except Exception:
             pass
         return results, stats

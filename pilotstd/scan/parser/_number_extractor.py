@@ -17,23 +17,22 @@ class NumberExtractor:
         return year
 
     @staticmethod
-    def extract_number(number_str: str) -> tuple[Optional[int], str]:
-        """从编号字符串提取整数和后缀字母。如 '6D'→(6,'D'), 'B16'→(16,''), '500'→(500,'')。"""
+    def extract_number(number_str: str) -> tuple[Optional[int], str, str]:
+        """从编号字符串提取整数、后缀字母和原始字符串。如 '6D'→(6,'D','6D'), '001'→(1,'','001')。
+        返回三元组 (int_val, suffix, raw_str)，raw_str 保留前导零等原始信息。"""
         if not number_str:
-            return None, ""
+            return None, "", ""
         clean = number_str
-        # 去掉前导字母（如 ASME 的 B16, ASTM 的 D4236）
         while clean and clean[0].isalpha():
             clean = clean[1:]
-        # 去掉后缀字母（如 API 的 6D, 6A）
         suffix = ""
         while clean and clean[-1].isalpha():
             suffix = clean[-1] + suffix
             clean = clean[:-1]
         try:
-            return (int(clean), suffix) if clean else (None, "")
+            return (int(clean), suffix, number_str) if clean else (None, "", "")
         except ValueError:
-            return None, ""
+            return None, "", ""
 
     @staticmethod
     def extract_num_prefix(number_str: str) -> str:

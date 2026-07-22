@@ -335,6 +335,15 @@ def _migrate_v30_failure_tables(db: Any) -> None:
     db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")
 
 
+# v41: file_index 表新增 raw_number 列，保留原始编号字符串（含前导零）
+@migration(41)
+def _migrate_v41_file_index_raw_number(db: Any) -> None:
+    try:
+        db.execute("ALTER TABLE file_index ADD COLUMN raw_number TEXT NOT NULL DEFAULT ''")
+    except Exception:
+        pass  # 列已存在
+
+
 # v31-v36 迁移实现（拆分到独立模块）
 from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v31_monitor_stats,

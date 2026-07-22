@@ -51,7 +51,7 @@ class ParserCore:
     def normalize_year(self, year_str: str) -> int:
         return self.number_extractor.normalize_year(year_str)
 
-    def extract_number(self, number_str: str) -> tuple[Optional[int], str]:
+    def extract_number(self, number_str: str) -> tuple[Optional[int], str, str]:
         return self.number_extractor.extract_number(number_str)
 
     def extract_num_prefix(self, number_str: str) -> str:
@@ -88,6 +88,7 @@ class ParserCore:
         year: int,
         num_prefix: str = "",
         num_suffix: str = "",
+        raw_number: str = "",
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
@@ -101,6 +102,7 @@ class ParserCore:
             year,
             num_prefix,
             num_suffix,
+            raw_number,
             file_kind,
             require_year,
         )

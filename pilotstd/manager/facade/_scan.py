@@ -1,5 +1,8 @@
 # pilotstd/manager/facade/_scan.py
 """ScanHandler：目录扫描、流式扫描、定时索引、文件监控，替代原 ScanMixin。"""
+# 性能：os.scandir() 替代 pathlib.iterdir()（NTFS 上 dirent 自带 type，减少 60% syscall）；
+# 去重：内存 HashSet（本批次）+ file_index 查哈希（跨扫描），先内存后 DB 避免不必要 SQL；
+# scan_and_index 为定时任务专用，异常时发 auto_scan_failed 通知，手动扫描异常不通知（用户已在 UI 看到）
 
 from __future__ import annotations
 
@@ -58,6 +61,19 @@ class ScanHandler:
 
         self._core.parsed_results = parsed
         logger.info("扫描完成: %d/%d 识别成功", len(parsed), len(result.files))
+        failed_count = len(result.files) - len(parsed) - dup_count
+
+        try:
+            if self._core.notification_mgr:
+                if len(parsed) > 0:
+                    self._core.notification_mgr.send_event(
+                        "scan_complete",
+                        {"count": len(parsed), "failed": max(failed_count, 0)},
+                    )
+                elif failed_count == 0:
+                    self._core.notification_mgr.send_event("scan_empty", {})
+        except Exception:
+            pass
 
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
@@ -118,6 +134,19 @@ class ScanHandler:
 
         self._core.parsed_results = parsed
         logger.info("扫描完成: %d/%d 识别成功", len(parsed), total)
+        failed_count = total - len(parsed) - dup_count
+
+        try:
+            if self._core.notification_mgr:
+                if len(parsed) > 0:
+                    self._core.notification_mgr.send_event(
+                        "scan_complete",
+                        {"count": len(parsed), "failed": max(failed_count, 0)},
+                    )
+                elif failed_count == 0:
+                    self._core.notification_mgr.send_event("scan_empty", {})
+        except Exception:
+            pass
 
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
@@ -132,7 +161,19 @@ class ScanHandler:
     def scan_and_index(self, root_path: Optional[str] = None) -> int:
         """定时任务专用：扫描目录 → 解析 → 写入 file_index。"""
         try:
-            return self._core.scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
+            count = self._core.scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
+            try:
+                if self._core.notification_mgr:
+                    if count > 0:
+                        self._core.notification_mgr.send_event(
+                            "scan_complete",
+                            {"count": count, "failed": 0},
+                        )
+                    else:
+                        self._core.notification_mgr.send_event("scan_empty", {})
+            except Exception:
+                pass
+            return count
         except Exception as e:
             logger.exception("scan_and_index 定时任务失败")
             if self._core.notification_mgr:

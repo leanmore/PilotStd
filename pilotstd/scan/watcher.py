@@ -59,6 +59,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
                     std_name=getattr(parsed, "std_name", ""),
                     file_hash=file_hash,
                     status=getattr(parsed, "effect_status", "") or "",
+                    raw_number=getattr(parsed, "raw_number", ""),
                 )
         except OSError:
             pass  # 文件被锁定或已删除

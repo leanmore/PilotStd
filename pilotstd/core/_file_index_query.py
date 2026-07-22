@@ -84,6 +84,7 @@ class _FileIndexQueryMixin:
             raw_filename=os.path.basename(file_path),
             logical_code=row["logical_code"],
             number=row["number"],
+            raw_number=row.get("raw_number", ""),
             year=row["year"],
             part=row["part"] if row["part"] != -1 else None,
             std_name=row["std_name"],

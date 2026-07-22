@@ -71,6 +71,7 @@ class ScheduledService:
                     info.part,
                     info.std_name,
                     status="现行",
+                    raw_number=info.raw_number,
                 )
                 count += 1
         logger.info(f"scan_and_index: {count} 文件入库")

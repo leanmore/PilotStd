@@ -127,6 +127,7 @@ class ResultBuilder:
         year: int,
         num_prefix: str = "",
         num_suffix: str = "",
+        raw_number: str = "",
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
@@ -147,7 +148,7 @@ class ResultBuilder:
         # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
         logger.debug(
             "[TRACE-A] 解析信息: 代号=%s 编号=%d 年份=%d 部分号=%s "
-            "标准名称=%r 源名称=%r 编号前缀=%r 编号后缀=%r 扩展名=%r",
+            "标准名称=%r 源名称=%r 编号前缀=%r 编号后缀=%r 扩展名=%r 原始编号=%r",
             logical_code,
             number,
             year,
@@ -163,6 +164,7 @@ class ResultBuilder:
             raw_filename=text,
             logical_code=logical_code,
             number=number,
+            raw_number=raw_number,
             num_prefix=num_prefix,
             num_suffix=num_suffix,
             part=part,

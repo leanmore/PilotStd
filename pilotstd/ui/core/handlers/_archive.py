@@ -284,6 +284,7 @@ class ArchiveUIHandler:
                     part=parsed.part,
                     std_name=parsed.std_name,
                     status=st,
+                    raw_number=parsed.raw_number,
                 )
 
         self._merge_expire_from_source(root_dir)
@@ -313,17 +314,6 @@ class ArchiveUIHandler:
         merged = self._mgr.merge_expire_from_source(root_dir, self._parsed_results)
         if merged:
             self._status_cb(f"源过期目录合并: {merged} 个文件")
-
-    def _auto_move_expired(self) -> int:
-        """查询后将废止标准自动移入过期作废/（委托 manager）。"""
-        expired = self._engine.filter_by_action(self._parsed_results, "expire")
-        if not expired:
-            return 0
-        result = self._mgr.handle_expired(expired)
-        moved = result.get("moved", 0)
-        if moved:
-            self._status_cb(f"查询完成: 已自动将 {moved} 个废止标准移入过期作废/")
-        return moved
 
     def _show_name_conflict_dialog(self, conflicts: list[Any]) -> list[Any]:
         """名称冲突弹窗：逐条让用户选择。返回用户已确认的条目列表。"""

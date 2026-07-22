@@ -109,10 +109,12 @@ class ForeignHandlerMixin:
                     # 三段格式: GOST 8.417.2 → 类别.顺序号.子编号
                     info.num_prefix = parts[0]
                     info.number = int(parts[1])
+                    info.raw_number = parts[1]
                     info.part = int(parts[2])
                 else:
                     # 两段格式: GOST R 52857.1 → 顺序号.部分号（不要覆盖 num_prefix）
                     info.number = int(parts[0])
+                    info.raw_number = parts[0]
                     info.part = int(parts[1])
             # 年份：紧跟点号数字后的 -年份
             ym = re.search(r"[\-]\s*((?:19|20)\d{2})\b", raw)

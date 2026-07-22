@@ -1,5 +1,7 @@
 # pilotstd/models.py
 # 通用数据模型，供各模块共享
+# 设计决策：dataclass 而非 ORM（生命周期独立）、number(int)+raw_number(str) 双字段（避免信息丢失）、
+# effect_status 字符串枚举而非关联表（状态机固定，查询频率远高于定义变更频率）
 
 from dataclasses import dataclass
 from typing import List, Optional
@@ -11,8 +13,9 @@ class ParsedStdInfo:
 
     raw_filename: str
     logical_code: str  # 如 GB/T, SH/T
-    number: int  # 顺序号（纯数字部分）
+    number: int  # 顺序号（纯数字部分，int 类型保持现有语义）
     year: int  # 四位年份
+    raw_number: str = ""  # 原始数字字符串（保留前导零，如 "01"，仅用于展示/文件名）
     num_prefix: str = ""  # 编号字母前缀（如 ASME B16.5 中的 "B"，API RP 中的 "RP"）
     num_suffix: str = ""  # 编号字母后缀（如 API 6D 中的 "D"）
     part: Optional[int] = None  # 部分号
@@ -45,12 +48,11 @@ class ParsedStdInfo:
         prefix = self.num_prefix or ""
         suffix = self.num_suffix or ""
         year_str = f"-{self.year}" if self.year else ""
-        # 罗马数字前缀（≥2字符，如 VIII/IX/XII）直接用罗马数字替代阿拉伯数字
+        num_display = self.raw_number or str(self.number)
         if prefix and len(prefix) >= 2 and all(c in "IVXLCDM" for c in prefix.upper()):
             return f"{self.logical_code} {prefix}{suffix}{part_str}{year_str}"
-        # 多字母前缀加空格分隔（API Spec 6D），单字母紧贴（ASME B16.5）
         sep = " " if len(prefix) > 1 and prefix.isalpha() else ""
-        return f"{self.logical_code} {prefix}{sep}{self.number}{suffix}{part_str}{year_str}"
+        return f"{self.logical_code} {prefix}{sep}{num_display}{suffix}{part_str}{year_str}"
 
     @property
     def is_valid_standard(self) -> bool:

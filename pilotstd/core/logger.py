@@ -37,7 +37,6 @@ _TAG_MAP = {
     "task": "TASK",
     "mover": "ORG",
     "dir_builder": "ORG",
-    "expire_handler": "ORG",
     "config": "CONFIG",
     "db": "DB",
     "logger": "LOG",
@@ -182,12 +181,12 @@ class LoggerManager:
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         """创建按大小轮转的文件 handler（256KB/1备份）。"""
         path = os.path.join(self._log_dir, filename)
-        # maxBytes=256KB：小文件便于 grep 和跨平台传输
-        # backupCount=1：只保留 1 个备份，总日志 ≤ 512KB
+        # maxBytes=512KB：单文件可控，便于 grep 和跨平台传输
+        # backupCount=10：保留 10 个历史备份，总占用 ≤ 5.5MB
         h = logging.handlers.RotatingFileHandler(
             path,
-            maxBytes=256 * 1024,
-            backupCount=1,
+            maxBytes=512 * 1024,
+            backupCount=10,
             encoding="utf-8",
         )
         # 文件通道 DEBUG 级别，保留完整调试信息

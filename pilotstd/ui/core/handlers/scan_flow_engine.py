@@ -62,9 +62,10 @@ class ScanFlowEngine:
 
         # 优先：项目标准解析器（完整覆盖 94 类代号）
         try:
+            from pilotstd.organizer.industry_lookup import build_code_mapping
             from pilotstd.scan.parser import StandardParser
 
-            parser = StandardParser({})  # 空映射回退到内置匹配
+            parser = StandardParser(build_code_mapping())
             parsed = parser.parse(filename)
             if parsed is not None and parsed.logical_code and parsed.number > 0:
                 return {

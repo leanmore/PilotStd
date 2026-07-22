@@ -91,8 +91,8 @@ class PipelineRouter:
     def _route_replaced_or_obsolete(
         p: Any, buckets: dict[str, list[Any]], has_valid_replaces: bool, replaces: str
     ) -> None:
-        """路由规则: 有替代关系 → 替代为GB→download，替代为非GB→manual_download，否则→expire。
-        规格要求检查替代标准（而非当前标准）的 GB/非GB 属性。"""
+        """路由规则: 有替代关系 → 替代为GB→download，替代为非GB→manual_download，否则→organize。
+        废止标准统一走主线 organize() 归档，由 normalize_filename 根据 effect_status 追加过期作废子目录。"""
         if has_valid_replaces:
             replacement_code = _parse_code_from_std_number(replaces)
             if replacement_code and is_gb_code(replacement_code):
@@ -105,7 +105,7 @@ class PipelineRouter:
                 buckets["manual_download"].append(p)
                 p.stage_status = "replacement_manual"
         else:
-            buckets["expire"].append(p)
+            buckets["organize"].append(p)
 
     @staticmethod
     def _route_current_status(p: Any, buckets: dict[str, list[Any]]) -> None:
@@ -120,6 +120,7 @@ class PipelineRouter:
             num_prefix=getattr(p, "num_prefix", ""),
             num_suffix=getattr(p, "num_suffix", ""),
             ext=getattr(p, "ext", "pdf"),
+            raw_number=getattr(p, "raw_number", None),
         )
         actual = os.path.basename(p.source_path or "")
         if actual == expected:
@@ -156,7 +157,7 @@ class PipelineRouter:
                 buckets["pending"].append(p)
             elif self._newer_exists_locally(p, items):
                 logger.debug("路由: %s | 新版已本地存在，跳过下载→归档过期", p.get_full_number())
-                buckets["expire"].append(p)
+                buckets["organize"].append(p)
             else:
                 buckets["download"].append(p)
             return
@@ -200,7 +201,6 @@ class PipelineRouter:
         buckets: dict[str, list[Any]] = {
             "organize": [],
             "normalize": [],
-            "expire": [],
             "download": [],
             "manual_download": [],
             "pending": [],
@@ -212,12 +212,11 @@ class PipelineRouter:
         _ce_count = sum(1 for p in buckets.get("pending", []) if getattr(p, "match_status", "") == "chain_exhausted")
         logger.info(
             "[ROUTER] 分类结果: pending=%d (chain_exhausted=%d) "
-            "organize=%d normalize=%d expire=%d download=%d manual_download=%d fallback=%d",
+            "organize=%d normalize=%d download=%d manual_download=%d fallback=%d",
             len(buckets["pending"]),
             _ce_count,
             len(buckets["organize"]),
             len(buckets["normalize"]),
-            len(buckets["expire"]),
             len(buckets["download"]),
             len(buckets["manual_download"]),
             len(buckets["fallback"]),

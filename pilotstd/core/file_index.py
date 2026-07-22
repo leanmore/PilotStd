@@ -1,6 +1,9 @@
 # pilotstd/core/file_index.py
 # 本地文件索引表 — 写入与校验管理。查询方法已提取至 _file_index_query.py
 # THREADING: single-threaded, no lock needed
+# 选型：SQLite 而非内存字典（跨进程共享，WAL 模式读并发）；
+# hash_file_content 采样策略（≤1MB 全量，>1MB 前 1MB+末 64KB+文件大小）平衡碰撞率与 I/O；
+# 后台 daemon 延迟校验路径有效性（自适应 5~30s），失效直接 DELETE 而非标记
 
 from __future__ import annotations
 
@@ -137,25 +140,27 @@ class FileIndexRepository(_FileIndexQueryMixin):
         std_name: str = "",
         file_hash: str = "",
         status: str = "现行",
+        raw_number: str = "",
     ) -> None:
         """插入或更新文件索引记录。若文件存在则自动计算哈希。"""
         if not file_hash and os.path.exists(file_path):
             file_hash = hash_file_content(file_path)
         now = datetime.now().isoformat()
         part_val = part if part is not None else -1
+        raw = raw_number if raw_number else str(number)
         existing = self._db.fetchone(f"SELECT id FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
         if existing:
             self._db.execute(
                 f"UPDATE {FILE_INDEX_TABLE} SET logical_code=?, number=?, year=?, "
-                "part=?, std_name=?, file_hash=?, status=?, scanned_at=? WHERE id=?",
-                (logical_code, number, year, part_val, std_name, file_hash, status, now, existing["id"]),
+                "part=?, std_name=?, file_hash=?, status=?, scanned_at=?, raw_number=? WHERE id=?",
+                (logical_code, number, year, part_val, std_name, file_hash, status, now, raw, existing["id"]),
             )
         else:
             self._db.execute(
                 f"INSERT INTO {FILE_INDEX_TABLE} "
-                "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (file_path, logical_code, number, year, part_val, std_name, file_hash, status, now),
+                "(file_path, logical_code, number, year, part, std_name, file_hash, status, scanned_at, raw_number) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (file_path, logical_code, number, year, part_val, std_name, file_hash, status, now, raw),
             )
 
     def remove(self, file_path: str) -> None:

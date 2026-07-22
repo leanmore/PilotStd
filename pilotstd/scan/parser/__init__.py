@@ -127,6 +127,7 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
         year: int,
         num_prefix: str = "",
         num_suffix: str = "",
+        raw_number: str = "",
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
@@ -140,6 +141,7 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
             year,
             num_prefix,
             num_suffix,
+            raw_number,
             file_kind,
             require_year,
         )

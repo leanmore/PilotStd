@@ -1,5 +1,7 @@
 # pilotstd/manager/facade/_file_index.py
 """FileIndexHandler：文件索引读写操作，替代原 FileIndexMixin。"""
+# 薄包装层：透传 file_index 仓库调用，不包含业务逻辑；
+# upsert 支持 raw_number 参数保留前导零（Q28），get_full_info JOIN 缓存表提供离线完整视图
 
 from __future__ import annotations
 
@@ -24,6 +26,7 @@ class FileIndexHandler:
         part: Any = None,
         std_name: str = "",
         status: str = "现行",
+        raw_number: str = "",
     ) -> None:
         """封装 file_index.upsert，供 UI 层在归档完成后写入索引。"""
         if self._core.file_index:
@@ -35,6 +38,7 @@ class FileIndexHandler:
                 part=part,
                 std_name=std_name,
                 status=status,
+                raw_number=raw_number,
             )
 
     def get_file_index(self, file_path: str) -> dict[str, Any] | None:
