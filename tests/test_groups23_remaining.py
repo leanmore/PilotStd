@@ -3,7 +3,6 @@
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
@@ -163,14 +162,12 @@ class TestOrganizerFinal(unittest.TestCase):
 
         self.assertTrue(hasattr(FileMover, "__init__"))
 
-    def test_expire_handler_process(self):
-        from pilotstd.organizer.expire_handler import ExpireHandler
+    def test_expire_handler_removed(self):
+        """Q26: ExpireHandler 已删除，废止标准统一走主线 organize() 归档。"""
+        # 验证 pilotstd.organizer 不再导出 ExpireHandler
+        import pilotstd.organizer
 
-        mock_mover = MagicMock()
-        mock_mover.move_to_expire.return_value = "/tmp/dst"
-        eh = ExpireHandler(mock_mover)
-        result = eh.process_expired([])
-        self.assertEqual(result["moved"], 0)
+        self.assertFalse(hasattr(pilotstd.organizer, "ExpireHandler"))
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
@@ -25,30 +24,11 @@ class TestOrganizerRemaining(unittest.TestCase):
 
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
-    def test_expire_handler_with_missing_file(self):
-        from pilotstd.models import ParsedStdInfo
-        from pilotstd.organizer.expire_handler import ExpireHandler
+    def test_expire_handler_removed(self):
+        """Q26: ExpireHandler 已删除，废止标准统一走主线 organize() 归档。"""
+        import pilotstd.organizer
 
-        mock_mover = MagicMock()
-        mock_mover.move_to_expire.return_value = None
-        eh = ExpireHandler(mock_mover)
-        info = ParsedStdInfo(raw_filename="t.pdf", logical_code="GB/T", number=1, year=2020, std_name="T")
-        result = eh.process_expired([("/nonexistent/file.pdf", info)])
-        self.assertEqual(result["failed"], 1)
-
-    def test_expire_handler_success(self):
-        from pilotstd.models import ParsedStdInfo
-        from pilotstd.organizer.expire_handler import ExpireHandler
-
-        src = os.path.join(self.tmpdir, "old.pdf")
-        with open(src, "w") as f:
-            f.write("test")
-        mock_mover = MagicMock()
-        mock_mover.move_to_expire.return_value = os.path.join(self.tmpdir, "expired", "old.pdf")
-        eh = ExpireHandler(mock_mover)
-        info = ParsedStdInfo(raw_filename="t.pdf", logical_code="GB/T", number=1, year=2000, std_name="Old")
-        result = eh.process_expired([(src, info)])
-        self.assertEqual(result["moved"], 1)
+        self.assertFalse(hasattr(pilotstd.organizer, "ExpireHandler"))
 
     def test_mover_move_to_code_dir_safe_path_fail(self):
         from pilotstd.models import ParsedStdInfo

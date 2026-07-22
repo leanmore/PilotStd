@@ -11,13 +11,10 @@ import shutil
 import tempfile
 import unittest
 
-import pytest
-
 from pilotstd.models import ParsedStdInfo
 from pilotstd.organizer.dir_builder import DirBuilder
 
 _CI = os.environ.get("CI", "").lower() in ("true", "1")
-from pilotstd.organizer.expire_handler import ExpireHandler
 from pilotstd.organizer.industry_lookup import (
     INDUSTRY_MAP,
     get_base_code,
@@ -126,43 +123,6 @@ class TestFileMover(unittest.TestCase):
         finally:
             self.mover.normalize_filename = original
 
-    @unittest.skipIf(_CI, "CI 环境文件权限问题待排查")
-    def test_move_to_expire(self):
-        src = os.path.join(self.tmp, "old.pdf")
-        with open(src, "w") as f:
-            f.write("old")
-        parsed = ParsedStdInfo(raw_filename="old.pdf", logical_code="GB", number=1234, year=1986)
-        dst = self.mover.move_to_expire(src, parsed)
-        self.assertIsNotNone(dst)
-        self.assertTrue(os.path.exists(dst))
-        self.assertIn("过期作废", dst)
-
-
-class TestExpireHandler(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
-        self.builder = DirBuilder(self.tmp)
-        self.mover = FileMover(self.builder)
-        self.handler = ExpireHandler(self.mover)
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp)
-
-    @pytest.mark.xfail(reason="Linux /tmp 权限问题待排查")
-    def test_process_expired(self):
-        src = os.path.join(self.tmp, "expired.pdf")
-        with open(src, "w") as f:
-            f.write("data")
-        parsed = ParsedStdInfo(raw_filename="expired.pdf", logical_code="GB", number=1, year=1990)
-        result = self.handler.process_expired([(src, parsed)])
-        self.assertEqual(result["moved"], 1)
-        self.assertEqual(result["failed"], 0)
-
-    def test_process_missing_file(self):
-        parsed = ParsedStdInfo(raw_filename="ghost.pdf", logical_code="GB", number=2, year=1995)
-        result = self.handler.process_expired([(os.path.join(self.tmp, "ghost.pdf"), parsed)])
-        self.assertEqual(result["failed"], 1)
-
 
 # === _utils.py 覆盖 ===
 
@@ -196,27 +156,6 @@ class TestOrganizerExpireMixin(unittest.TestCase):
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
-
-    def test_handle_expired_delegates_to_handler(self):
-        """handle_expired 委托 _expire_handler.process_expired，返回结果。"""
-        from unittest.mock import MagicMock
-
-        from pilotstd.manager.organize.expire import OrganizerExpireMixin
-
-        # mock expire_handler.process_expired
-        mock_handler = MagicMock()
-        mock_handler.process_expired.return_value = {"moved": 2, "failed": 0}
-        # 构造带 _expire_handler 的类实例
-        obj = type("_Mock", (OrganizerExpireMixin,), {"_expire_handler": mock_handler})()
-
-        parsed = ParsedStdInfo(raw_filename="old.pdf", logical_code="GB", number=1, year=2000)
-        parsed.source_path = os.path.join(self.tmp, "old.pdf")
-        with open(parsed.source_path, "w") as f:
-            f.write("data")
-
-        result = obj.handle_expired([parsed])
-        self.assertIn("moved", result)
-        mock_handler.process_expired.assert_called_once()
 
     def test_merge_expire_from_source_no_expire_dir(self):
         """合并时若无 expires 目录则 merged=0，不报错。"""

@@ -22,16 +22,11 @@ class TestFinalSmall(unittest.TestCase):
         self.assertEqual(info.num_prefix, "")
         self.assertEqual(info.num_suffix, "")
 
-    def test_organizer_expire_handler_failed_move(self):
-        from pilotstd.models import ParsedStdInfo
-        from pilotstd.organizer.expire_handler import ExpireHandler
+    def test_expire_handler_removed(self):
+        """Q26: ExpireHandler 已删除。"""
+        import pilotstd.organizer
 
-        mock_mover = MagicMock()
-        mock_mover.move_to_expire.return_value = None
-        eh = ExpireHandler(mock_mover)
-        info = ParsedStdInfo(raw_filename="t.pdf", logical_code="GB", number=1, year=2020, std_name="T")
-        result = eh.process_expired([("/tmp/exists.pdf", info)])
-        self.assertEqual(result["failed"], 1)
+        self.assertFalse(hasattr(pilotstd.organizer, "ExpireHandler"))
 
 
 class TestI18nFinal(unittest.TestCase):

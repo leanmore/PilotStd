@@ -259,21 +259,12 @@ class TestDownloadHandler(unittest.TestCase):
         h._set_organize_handler(mock_org)
         self.assertEqual(h._organize_handler, mock_org)
 
-    def test_handle_expired_if_needed_empty(self):
+    def test_handle_expired_if_needed_noop(self):
+        """Q26: _handle_expired_if_needed 已改为空操作。"""
         from pilotstd.manager.facade._download import DownloadHandler
 
         h = DownloadHandler(self.core)
-        h._handle_expired_if_needed()  # empty expire_list → no action
-
-    def test_handle_expired_if_needed_with_items(self):
-        from pilotstd.manager.facade._download import DownloadHandler
-
-        mock_org = MagicMock()
-        h = DownloadHandler(self.core)
-        h._set_organize_handler(mock_org)
-        self.core.expire_list = ["item1"]
-        h._handle_expired_if_needed()
-        mock_org.handle_expired.assert_called_once()
+        h._handle_expired_if_needed()  # no-op, 不抛异常
 
 
 class TestAutoPipeline(unittest.TestCase):

@@ -197,15 +197,13 @@ class TestAnnouncement(unittest.TestCase):
 
 
 class TestManager(unittest.TestCase):
-    def test_organize_expire_mixin(self):
+    def test_expire_mixin_merge(self):
+        """Q26: merge_expire_from_source 保留，handle_expired 已删除。"""
         from pilotstd.manager.organize.expire import OrganizerExpireMixin
 
         mixin = OrganizerExpireMixin()
-        mixin._expire_handler = MagicMock()
-        mixin._expire_handler.process_expired.return_value = {"moved": 0}
-        mixin._cfg = MagicMock()
-        result = mixin.handle_expired([])
-        self.assertEqual(result["moved"], 0)
+        self.assertFalse(hasattr(mixin, "handle_expired"))
+        self.assertTrue(hasattr(mixin, "merge_expire_from_source"))
 
     def test_facade_base_init(self):
         from pilotstd.manager.facade._base import BaseFacade

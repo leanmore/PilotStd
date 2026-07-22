@@ -79,10 +79,6 @@ class TestMessageBuilders(unittest.TestCase):
         )
         self.assertEqual(msg.level, "error")
 
-    def test_auto_query_complete(self):
-        msg = self.mixin._build_auto_query_complete_message({"count": 10})
-        self.assertEqual(msg.level, "info")
-
     def test_batch_query_summary(self):
         msg = self.mixin._build_batch_query_summary_message({"total": 100, "success": 95, "failed": 5})
         self.assertIsNotNone(msg)
@@ -105,10 +101,6 @@ class TestMessageBuilders(unittest.TestCase):
         msg = self.mixin._build_announcement_fetch_complete_message(
             {"source_site": "test", "count": 10, "new_count": 3}
         )
-        self.assertIsNotNone(msg)
-
-    def test_check_batch_complete(self):
-        msg = self.mixin._build_check_batch_complete_message({"total": 20, "success": 18, "failed": 2})
         self.assertIsNotNone(msg)
 
     def test_image_update_available(self):

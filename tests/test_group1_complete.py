@@ -211,20 +211,12 @@ class TestFileMoverComplete(unittest.TestCase):
         result = fm.move_to_code_dir(src, info)
         self.assertIsNotNone(result)
 
-    @unittest.skipIf(_CI, "CI 环境文件权限问题待排查")
-    def test_move_to_expire(self):
-        from pilotstd.models import ParsedStdInfo
+    @unittest.skipIf(_CI, "Q26: move_to_expire 已删除，废止标准统一走主线归档")
+    def test_move_to_expire_removed(self):
+        """Q26: move_to_expire 已删除，废止标准由 normalize_filename 追加过期作废子目录。"""
         from pilotstd.organizer.mover import FileMover
 
-        src = os.path.join(self.tmpdir, "old.pdf")
-        with open(src, "w") as f:
-            f.write("test")
-        fm = FileMover(self.db)
-        info = ParsedStdInfo(
-            raw_filename="test.pdf", logical_code="GB/T", number=1, year=2000, std_name="Old", ext=".pdf"
-        )
-        result = fm.move_to_expire(src, info)
-        self.assertIsNotNone(result)
+        self.assertFalse(hasattr(FileMover, "move_to_expire"))
 
 
 if __name__ == "__main__":

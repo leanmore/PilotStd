@@ -50,40 +50,14 @@ class TestDownloadHandler(unittest.TestCase):
 
     # ── __init__ ──
 
-    def test_init_stores_core_and_organize_none(self):
+    def test_init_stores_core(self):
         self.assertIs(self.handler._core, self.core)
-        self.assertIsNone(self.handler._organize_handler)
 
-    # ── _set_organize_handler ──
+    # ── _handle_expired_if_needed (Q26: 已改为 no-op) ──
 
-    def test_set_organize_handler(self):
-        mock_org = MagicMock()
-        self.handler._set_organize_handler(mock_org)
-        self.assertIs(self.handler._organize_handler, mock_org)
-
-    # ── _handle_expired_if_needed ──
-
-    def test_handle_expired_when_list_and_handler_present(self):
-        item = _make_parsed_item()
-        self.core.expire_list = [item]
-        mock_org = MagicMock()
-        self.handler._set_organize_handler(mock_org)
-
-        self.handler._handle_expired_if_needed()
-        mock_org.handle_expired.assert_called_once_with([item])
-
-    def test_handle_expired_when_list_empty(self):
-        self.core.expire_list = []
-        mock_org = MagicMock()
-        self.handler._set_organize_handler(mock_org)
-
-        self.handler._handle_expired_if_needed()
-        mock_org.handle_expired.assert_not_called()
-
-    def test_handle_expired_when_handler_none(self):
+    def test_handle_expired_is_noop(self):
+        """Q26: _handle_expired_if_needed 已改为空操作，废止标准统一走主线归档。"""
         self.core.expire_list = [_make_parsed_item()]
-        self.handler._organize_handler = None
-
         # 不应抛异常
         self.handler._handle_expired_if_needed()
 

@@ -6,12 +6,17 @@ import pytest
 
 from pilotstd.core.db import Database
 
-# ── 注册 fixtures 插件 ──
+# ── 自定义 markers ──
 pytest_plugins = [
     "tests.fixtures.manager_core_fixture",
     "tests.fixtures.notification_fixture",
     "tests.fixtures.workspace_fixture",
 ]
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "integration: 集成测试标记（需要完整运行环境）")
+
 
 collect_ignore = [
     "stress_selfcheck.py",
