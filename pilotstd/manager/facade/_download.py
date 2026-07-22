@@ -21,16 +21,9 @@ class DownloadHandler:
     def __init__(self, core: "ManagerCore"):
         """初始化下载处理器，持有 ManagerCore 引用。"""
         self._core = core
-        self._organize_handler: Any = None  # 由 BaseFacade 注入
-
-    def _set_organize_handler(self, organize_handler: Any) -> None:
-        """注入 OrganizeHandler 引用（用于 handle_expired 调用）。"""
-        self._organize_handler = organize_handler
 
     def _handle_expired_if_needed(self) -> None:
-        """如果有过期列表，调用 OrganizeHandler.handle_expired。"""
-        if self._core.expire_list and self._organize_handler:
-            self._organize_handler.handle_expired(self._core.expire_list)
+        """（已废弃）废止标准统一走主线 organize() 归档，不再独立处理。保留方法签名供测试兼容。"""
 
     def _post_process_download(self, completed: list[DownloadTask], tasks: list[DownloadTask]) -> None:
         """下载后处理：更新 source_path 和缓存状态。"""
@@ -61,8 +54,6 @@ class DownloadHandler:
         _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
         """
         results = query_results or self._core.query_results
-
-        self._handle_expired_if_needed()
 
         tasks: list[DownloadTask] = []
         queried = self._core.queried_items if self._core.queried_items else self._core.parsed_results
@@ -101,7 +92,6 @@ class DownloadHandler:
         """流式下载（线程安全）。
         _adapter: DI 注入，可传入 mock 下载适配器覆盖默认适配器。
         """
-        self._handle_expired_if_needed()
 
         tasks: list[tuple[int, DownloadTask, Any]] = []
         queried = self._core.queried_items if self._core.queried_items else self._core.parsed_results

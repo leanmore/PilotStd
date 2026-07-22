@@ -85,7 +85,6 @@ class BaseFacade(_BasePropertiesMixin):
         self._scan_handler = ScanHandler(self._core)
         self._organize_handler = OrganizeHandler(self._core)
         self._file_index_handler = FileIndexHandler(self._core)
-        self._download_handler._set_organize_handler(self._organize_handler)
         self._auto_pipeline = AutoPipeline(
             self._core,
             self._scan_handler,
@@ -191,12 +190,15 @@ class BaseFacade(_BasePropertiesMixin):
 
         from ..user_service import UserService
         from ..validity_service import ValidityService
+        from ..standard_service import StandardService
 
         self._core.validity_checker = ValidityChecker(self._core.db)
         self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)
+        self._core.quota_tracker.set_notification_mgr(self._core.notification_mgr)
         self._core.pipeline_store = PipelineRunStore(self._core.db)
 
         self._validity_service = ValidityService(self)
+        self._standard_service = StandardService(self)
         self._user_service = UserService(self)
 
         from ..wechat_ip_service import WechatIPService
@@ -256,7 +258,6 @@ class BaseFacade(_BasePropertiesMixin):
         self.archive_standards = self._organize_handler.archive_standards
         self.organize_skipped_dirs = self._organize_handler.organize_skipped_dirs
         self.organize_fallback = self._organize_handler.organize_fallback
-        self.handle_expired = self._organize_handler.handle_expired
         self.merge_expire_from_source = self._organize_handler.merge_expire_from_source
         self.organize_files = self._organize_handler.organize_files
         self.expire_files = self._organize_handler.expire_files

@@ -1,5 +1,4 @@
 from .dir_builder import DirBuilder
-from .expire_handler import ExpireHandler
 from .industry_lookup import (
     INDUSTRY_MAP,
     build_code_mapping,
@@ -17,5 +16,4 @@ __all__ = [
     "get_folder_name",
     "DirBuilder",
     "FileMover",
-    "ExpireHandler",
 ]

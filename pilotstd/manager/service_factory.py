@@ -5,7 +5,6 @@ from typing import Any
 
 from ..core.config import get_library_root
 from ..organizer.dir_builder import DirBuilder
-from ..organizer.expire_handler import ExpireHandler
 from ..organizer.mover import FileMover
 from .announce_service import AnnounceService
 from .classifier import QueryClassifier
@@ -28,7 +27,6 @@ def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
     root = get_library_root(mgr.cfg)
     dir_builder = DirBuilder(root)
     file_mover = FileMover(dir_builder)
-    expire_handler = ExpireHandler(file_mover)
 
     # ── 查询分类服务 ──
     classifier = QueryClassifier(
@@ -44,7 +42,6 @@ def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
         file_index=mgr.file_index,
         dir_builder=dir_builder,
         file_mover=file_mover,
-        expire_handler=expire_handler,
     )
 
     # ── 公告服务 ──

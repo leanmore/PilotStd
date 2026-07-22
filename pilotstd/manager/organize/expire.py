@@ -11,17 +11,7 @@ logger = logging.getLogger(__name__)
 class OrganizerExpireMixin:
     """过期处理方法（混入 OrganizerService）。"""
 
-    _expire_handler: Any
     _cfg: Any
-
-    def handle_expired(self: Any, parsed_list: list[Any]) -> dict[str, Any]:
-        """将查询结果为「废止」的标准移入 过期作废 目录。"""
-        pairs = []
-        for p in parsed_list:
-            src = getattr(p, "source_path", "")
-            if src and os.path.isfile(src):
-                pairs.append((src, p))
-        return self._expire_handler.process_expired(pairs)
 
     def merge_expire_from_source(self: Any, root_dir: str, parsed_list: list[Any]) -> int:
         """将源目录中的过期作废文件夹合并到标准库对应目录。返回合并文件数。"""

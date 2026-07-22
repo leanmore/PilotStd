@@ -60,6 +60,7 @@ class QueryClassifier:
         download_list: Any,
         expire_list: Any,
         pending_list: Any,
+        notification_mgr: Any = None,
     ) -> None:
         """查询后分类：回写状态 → 跨站补查替代关系 → 委托路由调度器分堆。
 
@@ -75,14 +76,14 @@ class QueryClassifier:
             download_list: 输出列表，将被清空并填入需下载的条目
             expire_list: 输出列表，将被清空并填入需过期处理的条目
             pending_list: 输出列表，将被清空并填入需人工确认的条目
+            notification_mgr: 可选，通知管理器，用于发送 replacement_not_found 事件
         """
         items = parsed_list
         results = query_results
 
         self._write_back_results(items, results)
-        self._resolve_cross_site_replaces(items, results)
+        self._resolve_cross_site_replaces(items, results, notification_mgr)
         self._dispatch_by_router(items, download_list, expire_list, pending_list)
-        self._sync_expired_downloads(download_list, expire_list)
 
     def _write_back_results(self, items: list, results: list) -> None:
         """将 QueryResult 字段写回 ParsedStdInfo（原地修改）。"""
@@ -99,7 +100,7 @@ class QueryClassifier:
             p.found_abolition_date = getattr(r, "abolition_date", "") or ""
             p.found_source_site = getattr(r, "source_site", "") or ""
 
-    def _resolve_cross_site_replaces(self, items: list, results: list) -> None:
+    def _resolve_cross_site_replaces(self, items: list, results: list, notification_mgr: Any = None) -> None:
         """跨站补查替代关系：废止/被代替/作废 + 无 replaces + GB 代码。"""
         for p, r in zip(items, results):
             if (
@@ -108,7 +109,7 @@ class QueryClassifier:
                 and is_gb_code(p.logical_code)
                 and r.match_status != "newer"
             ):
-                replaced_by = self.resolve_replaces(p.get_full_number())
+                replaced_by = self.resolve_replaces(p.get_full_number(), notification_mgr)
                 if not replaced_by:
                     continue
                 r.replaces = replaced_by
@@ -139,22 +140,17 @@ class QueryClassifier:
         for p in buckets.get("organize", []) + buckets.get("normalize", []):
             p.stage_status = "archive_ready"
 
-    def _sync_expired_downloads(self, download_list: list, expire_list: list) -> None:
-        """下载桶中的废止项也加入过期列表（下载新版同时归档旧版）。"""
-        for p in download_list:
-            if p.effect_status in self._EXPIRE_STATUSES and p not in expire_list:
-                expire_list.append(p)
-
-    def resolve_replaces(self, standard_number: str) -> str:
+    def resolve_replaces(self, standard_number: str, notification_mgr: Any = None) -> str:
         """跨站点补查替代关系。遍历所有适配器，由适配器声明能力而非硬编码站点名。"""
 
+        searched_sources: list[str] = []
         for adapter in self._query_adapters:
             site = adapter.site_name
             if self._quota_tracker and not self._quota_tracker.can_use_for_detail(site):
                 continue
-            # 适配器需声明 supports_replaces_detail 能力
             if not getattr(adapter, "supports_replaces_detail", False):
                 continue
+            searched_sources.append(site)
             try:
                 from ..core.std_utils import parse_std_number
 
@@ -171,12 +167,20 @@ class QueryClassifier:
                     continue
                 if self._query_engine._use_cache:
                     self._query_engine._cache.put(result)
-                # 委托适配器自己的 replaces 提取逻辑
                 replaces = adapter.fetch_replaces_detail(result)
                 if replaces:
                     return str(replaces)
             except Exception:
                 logger.warning(f"替代关系补查失败 ({site}): {standard_number}", exc_info=True)
                 continue
+
+        if searched_sources and notification_mgr:
+            try:
+                notification_mgr.send_event(
+                    "replacement_not_found",
+                    {"standard_number": standard_number, "searched_sources": searched_sources},
+                )
+            except Exception:
+                pass
 
         return ""
