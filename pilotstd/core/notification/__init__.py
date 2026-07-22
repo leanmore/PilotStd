@@ -4,7 +4,6 @@
 from .channel import NotificationChannel, NotificationMessage
 from .events import (
     EVENT_ARCHIVE_COMPLETE,
-    EVENT_CHECK_BATCH_COMPLETE,
     EVENT_EXPIRED,
     EVENT_FIRST_REGISTERED,
     EVENT_STATUS_CHANGED,
@@ -19,5 +18,4 @@ __all__ = [
     "EVENT_STATUS_CHANGED",
     "EVENT_EXPIRED",
     "EVENT_FIRST_REGISTERED",
-    "EVENT_CHECK_BATCH_COMPLETE",
 ]

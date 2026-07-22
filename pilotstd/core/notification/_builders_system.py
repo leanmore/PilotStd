@@ -1,6 +1,8 @@
 # pilotstd/core/notification/_builders_system.py
 # 通知消息构建器混入(系统/备份/错误) — 从 _message_builders.py 提取
 
+import logging
+
 from pilotstd.i18n import _
 
 from .blocks import (
@@ -11,6 +13,8 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+
+logger = logging.getLogger(__name__)
 
 
 def _make_link(standard_number: str | None) -> str | None:
@@ -56,8 +60,8 @@ class _SystemBuildersMixin:
 
     def _build_auto_backup_message(self, data: dict) -> NotificationMessage:
         success = data.get("success", False)
-        path = data.get("path", "")
-        size = data.get("size", "")
+        path = data.get("backup_path", "")
+        size = data.get("size_mb", "")
         # 成功和失败走不同消息模板，便于用户快速识别状态
         if success:
             blocks: list[NotificationBlock] = [
@@ -97,10 +101,19 @@ class _SystemBuildersMixin:
         )
         if data.get("failures", 0) > 0:
             blocks.append(TextBlock(text=_("注意：{n} 个站点检查失败").format(n=data["failures"])))
+        # 根据失败情况决定通知级别：全失败→error，部分失败→warning，成功→info
+        failures = data.get("failures", 0)
+        total = data.get("total_announcements", 0)
+        if failures > 0 and total == 0:
+            level = "error"
+        elif failures > 0:
+            level = "warning"
+        else:
+            level = "info"
         return NotificationMessage(
             title=_("公告检查完成"),
             blocks=blocks,
-            level="info",
+            level=level,
             event_type="announcement_check_complete",
             icon="pi pi-check-circle",
         )
@@ -125,14 +138,27 @@ class _SystemBuildersMixin:
     # ── 2026-07-01 新增事件 ──
 
     def _build_image_update_available_message(self, data: dict) -> NotificationMessage:
-        """构建镜像更新可用的通知消息。"""
+        """构建镜像更新可用的通知消息。失败时发送 error 级别通知。"""
+        if data.get("error"):
+            blocks: list[NotificationBlock] = [TextBlock(text=_("镜像检查失败：{e}").format(e=data["error"]))]
+            return NotificationMessage(
+                title=_("镜像更新检查失败"),
+                blocks=blocks,
+                level="error",
+                event_type="image_update_available",
+                icon="pi pi-cloud-upload",
+            )
         blocks: list[NotificationBlock] = [
             StatusChangeBlock(
                 label=_("镜像版本"),
-                old_value=data.get("old_version", ""),
-                new_value=data.get("new_version", ""),
+                old_value=data.get("old_digest", ""),
+                new_value=data.get("new_digest", ""),
             )
         ]
+        old_digest = data.get("old_digest", "")
+        new_digest = data.get("new_digest", "")
+        if not old_digest or not new_digest:
+            logger.debug("image_update_available: old_digest or new_digest is empty")
         if data.get("release_notes"):
             blocks.append(TextBlock(text=data["release_notes"]))
         return NotificationMessage(
@@ -180,4 +206,50 @@ class _SystemBuildersMixin:
             level="error",
             event_type="worker_error",
             icon="pi pi-cog",
+        )
+
+    def _build_task_execution_failed_message(self, data: dict) -> NotificationMessage:
+        """构建定时任务执行失败的通知消息。"""
+        task_name = data.get("task_name", _("未知任务"))
+        error = data.get("error", _("未知错误"))
+        blocks: list[NotificationBlock] = [
+            TextBlock(text=_("{task_name} 执行失败：{error}").format(task_name=task_name, error=error)),
+        ]
+        return NotificationMessage(
+            title=_("定时任务执行失败"),
+            blocks=blocks,
+            level="error",
+            event_type="task_execution_failed",
+            icon="pi pi-clock",
+        )
+
+    def _build_announcement_fetch_failed_message(self, data: dict) -> NotificationMessage:
+        """构建公告抓取失败的通知消息。"""
+        source = data.get("source", _("未知来源"))
+        error = data.get("error", _("未知错误"))
+        return NotificationMessage(
+            title=_("公告抓取失败"),
+            blocks=[TextBlock(text=_("{source} 抓取失败：{error}").format(source=source, error=error))],
+            level="error",
+            event_type="announcement_fetch_failed",
+            icon="pi pi-megaphone",
+        )
+
+    def _build_quota_exhausted_message(self, data: dict) -> NotificationMessage:
+        """构建适配器日配额耗尽的通知消息。"""
+        site_name = data.get("site_name", _("未知站点"))
+        quota_limit = data.get("quota_limit", "0")
+        reset_time = data.get("reset_time", _("明日 0:00"))
+        return NotificationMessage(
+            title=_("适配器日配额已耗尽"),
+            blocks=[
+                TextBlock(
+                    text=_("{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置").format(
+                        site_name=site_name, quota_limit=quota_limit, reset_time=reset_time
+                    )
+                )
+            ],
+            level="warning",
+            event_type="quota_exhausted",
+            icon="pi pi-exclamation-triangle",
         )

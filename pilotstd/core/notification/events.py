@@ -22,7 +22,6 @@ EVENT_ARCHIVE_COMPLETE = "archive_complete"
 EVENT_STATUS_CHANGED = "standard_status_changed"
 EVENT_EXPIRED = "standard_expired"
 EVENT_FIRST_REGISTERED = "standard_first_registered"
-EVENT_CHECK_BATCH_COMPLETE = "check_batch_complete"
 EVENT_ANNOUNCEMENT_FETCH = "announcement_fetch_complete"
 EVENT_AUTO_BACKUP = "auto_backup"
 EVENT_ANNOUNCEMENT_CHECK = "announcement_check_complete"
@@ -33,6 +32,20 @@ EVENT_VALIDITY_ROUND_SUMMARY = "validity_round_summary"
 EVENT_VALIDITY_STANDARD_FAILED = "validity_standard_failed"
 EVENT_VALIDITY_SYSTEM_FAILED = "validity_system_failed"
 EVENT_DATE_REMINDER = "date_reminder"
+EVENT_DOWNLOAD_FAILED = "download_failed"
+EVENT_ARCHIVE_ABANDONED = "archive_abandoned"
+EVENT_NORMALIZE_COMPLETE = "normalize_complete"
+EVENT_SCAN_COMPLETE = "scan_complete"
+EVENT_TASK_EXECUTION_FAILED = "task_execution_failed"
+EVENT_SCAN_EMPTY = "scan_empty"
+EVENT_QUERY_FAILED = "query_failed"
+EVENT_QUERY_EMPTY = "query_empty"
+EVENT_ARCHIVE_FAILED = "archive_failed"
+EVENT_ANNOUNCEMENT_FETCH_FAILED = "announcement_fetch_failed"
+EVENT_NORMALIZE_FAILED = "normalize_failed"
+EVENT_EXPIRE_STANDARD_MOVED = "expire_standard_moved"
+EVENT_REPLACEMENT_NOT_FOUND = "replacement_not_found"
+EVENT_QUOTA_EXHAUSTED = "quota_exhausted"
 
 # ── 唯一数据源：所有事件定义 ──
 
@@ -41,7 +54,6 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_STATUS_CHANGED),
     EventDef(EVENT_EXPIRED),
     EventDef(EVENT_FIRST_REGISTERED),
-    EventDef(EVENT_CHECK_BATCH_COMPLETE),
     EventDef(EVENT_ANNOUNCEMENT_FETCH),
     EventDef(EVENT_AUTO_BACKUP, bypass_aggregation=True),
     EventDef(EVENT_ANNOUNCEMENT_CHECK),
@@ -56,6 +68,20 @@ ALL_EVENTS: list[EventDef] = [
     EventDef("trust_ip_update", bypass_aggregation=True),
     EventDef("worker_error", bypass_aggregation=True),
     EventDef(EVENT_DATE_REMINDER),
+    EventDef(EVENT_DOWNLOAD_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_ARCHIVE_ABANDONED, bypass_aggregation=True),
+    EventDef(EVENT_NORMALIZE_COMPLETE),
+    EventDef(EVENT_SCAN_COMPLETE),
+    EventDef(EVENT_TASK_EXECUTION_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_SCAN_EMPTY),
+    EventDef(EVENT_QUERY_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_QUERY_EMPTY),
+    EventDef(EVENT_ARCHIVE_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_ANNOUNCEMENT_FETCH_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_NORMALIZE_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_EXPIRE_STANDARD_MOVED),
+    EventDef(EVENT_REPLACEMENT_NOT_FOUND, bypass_aggregation=True),
+    EventDef(EVENT_QUOTA_EXHAUSTED, bypass_aggregation=True),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

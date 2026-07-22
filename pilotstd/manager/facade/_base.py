@@ -188,9 +188,9 @@ class BaseFacade(_BasePropertiesMixin):
         self._announce_svc = announce_svc
         self._announce_svc._mgr = self  # type: ignore[attr-defined]
 
+        from ..standard_service import StandardService
         from ..user_service import UserService
         from ..validity_service import ValidityService
-        from ..standard_service import StandardService
 
         self._core.validity_checker = ValidityChecker(self._core.db)
         self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)

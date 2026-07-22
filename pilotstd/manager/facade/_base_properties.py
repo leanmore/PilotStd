@@ -103,6 +103,10 @@ class _BasePropertiesMixin:
         return self._validity_service
 
     @property
+    def standard_service(self):
+        return self._standard_service
+
+    @property
     def user_service(self):
         return self._user_service
 

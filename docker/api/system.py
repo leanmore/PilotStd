@@ -128,6 +128,18 @@ def _build_update_response(restart_ok: bool, old_digest: str, new_digest: str) -
     }
 
 
+def _notify_update_failed(mgr: Any, error: str) -> None:
+    """镜像更新检查失败时发送通知（静默失败）。"""
+    try:
+        if hasattr(mgr, "notification_mgr") and mgr.notification_mgr:
+            mgr.notification_mgr.send_event(
+                "image_update_available",
+                {"error": error},
+            )
+    except Exception:
+        pass
+
+
 @router.post("/update")
 async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_manager_dep)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
@@ -167,11 +179,14 @@ async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_man
             pass
         return _build_update_response(restart_ok, old_digest, new_digest)
     except subprocess.TimeoutExpired:
+        _notify_update_failed(mgr, "docker pull 超时")
         raise HTTPException(504, "docker pull 超时")
     except RuntimeError as e:
+        _notify_update_failed(mgr, str(e))
         raise HTTPException(503, str(e))
     except Exception as e:
         logger.error("自更新失败: %s", e)
+        _notify_update_failed(mgr, str(e))
         raise HTTPException(500, f"更新失败: {e}")
 
 

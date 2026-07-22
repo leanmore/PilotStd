@@ -63,7 +63,6 @@ FACTORY_DEFAULTS = {
     "notification.rules.standard_status_changed": ["wechat"],
     "notification.rules.standard_expired": ["wechat"],
     "notification.rules.standard_first_registered": ["wechat"],
-    "notification.rules.check_batch_complete": ["wechat"],
     "notification.rules.announcement_fetch_complete": ["wechat"],
     "notification.rules.auto_backup": ["wechat"],
     "notification.rules.announcement_check_complete": ["wechat"],
@@ -104,4 +103,6 @@ FACTORY_DEFAULTS = {
     # ── Phase 4b: 日期提醒 ──
     "tasks.date_reminder_enabled": False,
     "tasks.date_reminder_cron": "0 2 * * *",
+    "tasks.auto_archive_retry_enabled": True,
+    "tasks.auto_archive_retry_cron": "0 4 * * *",
 }

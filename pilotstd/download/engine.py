@@ -187,6 +187,7 @@ class DownloadEngine:
                     "total": stats.total,
                     "success": stats.success,
                     "failed": stats.failed + stats.errors,
+                    "skipped": stats.skipped_adopted,
                 },
             )
         except Exception:

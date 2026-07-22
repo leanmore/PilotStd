@@ -103,6 +103,15 @@ class ValidityChecker:
                                 "changed_at": datetime.now().isoformat(),
                             },
                         )
+                        if is_expired:
+                            notification_mgr.send_event(
+                                "standard_expired",
+                                {
+                                    "standard_number": standard_number,
+                                    "old_status": row["status"],
+                                    "new_status": new_status,
+                                },
+                            )
                     except Exception:
                         pass
             else:

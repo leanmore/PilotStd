@@ -231,6 +231,27 @@ def _heartbeat_loop() -> None:
             pass
 
 
+def _scheduler_error_listener(event):
+    """APScheduler 全局错误监听器：任务执行异常时发送通知。"""
+    try:
+        from .manager import get_manager
+
+        mgr = get_manager()
+        if hasattr(mgr, "notification_mgr") and mgr.notification_mgr:
+            job_id = getattr(event, "job_id", "unknown") if event else "unknown"
+            exception = getattr(event, "exception", None) if event else None
+            error_msg = str(exception) if exception else "未知异常"
+            mgr.notification_mgr.send_event(
+                "task_execution_failed",
+                {"task_name": job_id, "error": error_msg[:500]},
+            )
+    except Exception:
+        pass
+
+
+scheduler.add_listener(_scheduler_error_listener, mask=2**0)  # EVENT_JOB_ERROR
+
+
 def start_scheduler():
     """启动调度器：获取互斥锁 → 注册定时任务 → 启动心跳线程。"""
     if not _acquire_scheduler_lock():
