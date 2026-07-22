@@ -121,6 +121,7 @@ class _QueryReportMixin:
             self._core.download_list,
             self._core.expire_list,
             self._core.pending_list,
+            notification_mgr=self._core.notification_mgr,
         )
 
     def _resolve_replaces(self, standard_number: str) -> str:

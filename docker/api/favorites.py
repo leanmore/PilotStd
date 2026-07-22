@@ -40,7 +40,8 @@ def add_favorite(
     """收藏标准记录：仅创建收藏关系，不触发下载。
     下载由定时任务 archive_retry_service 在冷却期过后统一调度。
 
-    若已收藏则返回 already_exists 状态；若 record_id 不存在则 404。
+    等待时间：最长 28（冷却期）+ 1（cron 每日执行窗口）= 29 天。
+    publish_date 当天收藏 → 首次尝试最早 D+28 04:00，最晚 D+29 04:00。
     """
 
     db = Database(get_db_path())
@@ -65,21 +66,33 @@ def add_favorite(
         if not cursor.fetchone():
             raise HTTPException(404, "标准记录不存在")
 
-        # 读取 publish_date，用于冷却期计算
-        pub_cursor = db.execute(
-            "SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,)
-        )
+        pub_cursor = db.execute("SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,))
         pub_row = pub_cursor.fetchone()
         publish_date = pub_row["publish_date"] if pub_row else None
 
-        cursor = db.execute(
-            "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
-            " created_at, updated_at)"
-            " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
-            (user_id, data.record_id, publish_date),
-        )
-        favorite_id = cursor.lastrowid
+        try:
+            cursor = db.execute(
+                "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
+                " created_at, updated_at)"
+                " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
+                (user_id, data.record_id, publish_date),
+            )
+        except Exception:
+            # 并发插入触发 UNIQUE(user_id, record_id) 约束 → 回退查现有记录
+            cursor = db.execute(
+                "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
+                (user_id, data.record_id),
+            )
+            existing2 = cursor.fetchone()
+            if existing2:
+                return {
+                    "status": "already_exists",
+                    "favorite_id": existing2["id"],
+                    "current_status": existing2["status"],
+                }
+            raise HTTPException(500, "收藏失败")
 
+        favorite_id = cursor.lastrowid
         return {"status": "pending", "favorite_id": favorite_id}
     finally:
         db.close()
@@ -141,18 +154,52 @@ def get_favorite_status(record_id: int, username: str = Depends(get_current_user
 
 @router.delete("/api/favorites/{record_id}")
 def remove_favorite(record_id: int, username: str = Depends(get_current_username)):
-    """取消收藏：从 user_favorites 表中删除指定记录。"""
+    """取消收藏：按状态分级处理。
+
+    - pending/failed/abandoned → 直接删除
+    - downloading/archiving    → 标记 cancelled（无法中断已启动的 download_to_inbox）
+    - done                     → 仅删除收藏记录，不删除已归档文件
+    """
     db = Database(get_db_path())
     try:
         user_id = _get_user_id(username, db)
         if not user_id:
             raise HTTPException(401, "用户不存在")
 
-        db.execute(
-            "DELETE FROM user_favorites WHERE user_id = ? AND record_id = ?",
+        cursor = db.execute(
+            "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
             (user_id, record_id),
         )
-        return {"status": "removed"}
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(404, "收藏记录不存在")
+
+        fav_status = row["status"]
+        if fav_status in ("pending", "failed", "abandoned"):
+            db.execute(
+                "DELETE FROM user_favorites WHERE id = ?",
+                (row["id"],),
+            )
+            return {"status": "removed"}
+        elif fav_status in ("downloading", "archiving"):
+            db.execute(
+                "UPDATE user_favorites SET status = 'cancelled', updated_at = datetime('now') WHERE id = ?",
+                (row["id"],),
+            )
+            return {"status": "cancelled", "note": "下载任务已在执行中，无法立即中断，已标记取消"}
+        elif fav_status == "done":
+            db.execute(
+                "DELETE FROM user_favorites WHERE id = ?",
+                (row["id"],),
+            )
+            return {"status": "removed", "note": "已归档文件保留在标准库中"}
+        else:
+            # cancelled 等其余状态直接删除
+            db.execute(
+                "DELETE FROM user_favorites WHERE id = ?",
+                (row["id"],),
+            )
+            return {"status": "removed"}
     finally:
         db.close()
 

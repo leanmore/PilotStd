@@ -3,6 +3,12 @@
 
 由 APScheduler 定时任务（每天凌晨4点）调用 retry_pending()。
 
+等待时间量化：
+  最长等待天数 = 28（冷却期） + 1（cron 每日执行窗口） = 29 天
+  若用户在 publish_date 当天收藏，首次归档尝试最早在 D+28 的 04:00 触发；
+  最晚在 D+29 的 04:00 触发。
+  每次重试间隔 24h（每天一次），最多 7 次，共 7 天窗口。
+
 环境变量：
   ARCHIVE_COOLDOWN_DAYS  冷却期天数（默认 28）
   ARCHIVE_MAX_RETRIES    最大重试次数（默认 7）
@@ -35,8 +41,12 @@ class ArchiveRetryService:
 
         筛选条件：
         - status IN ('pending', 'failed')
-        - archive_retry_count < 7（未达上限）
+        - archive_retry_count < 7（未达上限，共 7 天重试窗口）
         - publish_date 为 NULL 或已过 28 天冷却期
+        - 每天 04:00 执行一次，单次失败次日重试
+
+        最长等待：28（冷却）+ 1（cron 窗口）= 29 天。
+        完整链路：首日 04:00 → 若失败 → 次日 04:00 重试 → ... → 第 7 次仍失败 → abandoned。
 
         公平调度：ORDER BY last_archive_attempt ASC NULLS FIRST, updated_at ASC
         每批最多处理 20 条。

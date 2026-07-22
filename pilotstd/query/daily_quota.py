@@ -5,7 +5,7 @@
 import logging
 import threading
 from datetime import date
-from typing import Dict
+from typing import Any, Dict
 
 from ..core.db import Database
 
@@ -36,12 +36,21 @@ class DailyQuotaTracker:
         self._limits = dict(limits or {})
         self._lock = threading.RLock()
         self._ensure_today_rows()
+        # 当日已发送配额耗尽通知的站点集合（防重复）
+        self._quota_exhausted_notified: set[str] = set()
+        # 可选的 notification_mgr，用于发送配额耗尽事件
+        self._notification_mgr: Any = None
+
+    def set_notification_mgr(self, mgr: Any) -> None:
+        """注入通知管理器，供配额耗尽时发送事件。"""
+        self._notification_mgr = mgr
 
     def _ensure_date(self) -> None:
         """跨天自动更新日期标记并初始化新日期的配额行"""
         today = str(date.today())
         if self._today != today:
             self._today = today
+            self._quota_exhausted_notified.clear()
             self._ensure_today_rows()
 
     def _ensure_today_rows(self) -> None:
@@ -58,7 +67,7 @@ class DailyQuotaTracker:
                 )
 
     def get_remaining(self, site_name: str) -> int:
-        """返回该站点今日剩余可用次数。"""
+        """返回该站点今日剩余可用次数。配额首次耗尽时发送通知（每日每站点一次）。"""
         with self._lock:
             self._ensure_date()
             limit = self._limits.get(site_name, 500)
@@ -66,10 +75,23 @@ class DailyQuotaTracker:
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
                 (site_name, self._today),
             )
-            if row is None:
-                return limit
-            used: int = row["count"]
-            return max(0, limit - used)
+            used: int = row["count"] if row else 0
+            remaining = max(0, limit - used)
+            if remaining == 0 and site_name not in self._quota_exhausted_notified:
+                self._quota_exhausted_notified.add(site_name)
+                if self._notification_mgr:
+                    try:
+                        self._notification_mgr.send_event(
+                            "quota_exhausted",
+                            {
+                                "site_name": site_name,
+                                "quota_limit": str(limit),
+                                "reset_time": _("明日 0:00"),
+                            },
+                        )
+                    except Exception:
+                        pass
+            return remaining
 
     def record_usage(self, site_name: str, count: int) -> int:
         """记录消耗次数，返回剩余可用次数。"""

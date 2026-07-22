@@ -77,6 +77,15 @@ class _AnnounceFetchMixin:
                 mgr.notification_mgr.send_event("announcement_check_complete", stats)
             except Exception:
                 pass
+            try:
+                # 全站点失败时发送独立失败通知
+                if stats.get("total_announcements", 0) == 0 and stats.get("failures", 0) > 0:
+                    mgr.notification_mgr.send_event(
+                        "announcement_fetch_failed",
+                        {"source": source, "error": result.get("error", "所有站点检查失败")},
+                    )
+            except Exception:
+                pass
         if mgr:
             try:
                 from ..core.cache_manager import CacheManager, DataSource
