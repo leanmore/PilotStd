@@ -24,9 +24,7 @@ const runResult = ref('')
 const errMsg = ref('')
 
 const freqOptions = [
-  { label: '每日', value: 'daily' },
   { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' },
 ]
 
 async function loadConfig() {

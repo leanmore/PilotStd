@@ -23,10 +23,10 @@ import SettingsTabAppearanceMixed from '@/components/SettingsTabAppearanceMixed.
 import SettingsTabSites from './settings/SettingsTabSites.vue'
 import SettingsTabUsers from './settings/SettingsTabUsers.vue'
 import SettingsTabToken from './settings/SettingsTabToken.vue'
-import SettingsTabCircuit from './settings/SettingsTabCircuit.vue'
 import SettingsTabNotification from './settings/SettingsTabNotification.vue'
 import SettingsTabValidity from './settings/SettingsTabValidity.vue'
 import SettingsTabSystem from './settings/SettingsTabSystem.vue'
+import SettingsTabSchedule from './settings/SettingsTabSchedule.vue'
 
 import 'primeicons/primeicons.css'
 
@@ -153,7 +153,6 @@ const tabs = [
   { key: 'sites', label: t('settings.tabs.sites') },
   { key: 'users', label: t('settings.tabs.users') },
   { key: 'token', label: t('settings.tabs.token') },
-  { key: 'circuit', label: t('settings.tabs.circuit') },
   { key: 'notification', label: t('settings.tabs.notification') },
   { key: 'validity', label: t('settings.tabs.validity') },
   { key: 'system', label: t('settings.tabs.system') },
@@ -166,13 +165,12 @@ const tabs = [
     network: SettingsTabSchema,
     query: SettingsTabSchema,
     scan: SettingsTabSchema,
-    tasks: SettingsTabSchema,
+    tasks: SettingsTabSchedule,
     ocr: SettingsTabSchema,
     ui: SettingsTabAppearanceMixed,
     sites: SettingsTabSites,
     users: SettingsTabUsers,
     token: SettingsTabToken,
-    circuit: SettingsTabCircuit,
     notification: SettingsTabNotification,
     validity: SettingsTabValidity,
     system: SettingsTabSystem,
@@ -236,14 +234,12 @@ async function applyCurrentTab() {
   applyLoading.value = true
   try {
     switch (tabKey) {
-      case 'circuit':
-        await dynamicRef.value?.saveCircuitConfig()
-        break
       case 'notification':
         await dynamicRef.value?.saveConfig()
         break
       case 'validity':
         await dynamicRef.value?.doSave()
+        await dynamicRef.value?.saveCircuitConfig()
         break
       default: {
         const payload = extractTabConfig(tabKey)
@@ -266,7 +262,7 @@ async function applyCurrentTab() {
 // ═══════════════════════════════════════════
 // 系统 Tab 折叠状态（持久化到用户首选项）
 // ═══════════════════════════════════════════
-const DEFAULT_SECTIONS = { fileMonitor: true, cacheManager: true, taskManager: true }
+const DEFAULT_SECTIONS = { cacheManager: true, taskManager: true }
 const prefsStore = usePreferencesStore()
 
 const systemSections = ref({ ...DEFAULT_SECTIONS })
@@ -309,7 +305,7 @@ onMounted(() => { loadCfg(); loadSystemSections() })
 
   <!-- Tab: dynamic component -->
   <KeepAlive>
-    <component :is="currentTabComponent" :ref="setComponentRef" v-bind="tabProps" @update:sections="(val: { fileMonitor: boolean; cacheManager: boolean; taskManager: boolean }) => systemSections = val" />
+    <component :is="currentTabComponent" :ref="setComponentRef" v-bind="tabProps" @update:sections="(val: { cacheManager: boolean; taskManager: boolean }) => systemSections = val" />
   </KeepAlive>
 
   <!-- 底部操作栏 -->

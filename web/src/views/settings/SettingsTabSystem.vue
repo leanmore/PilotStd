@@ -1,17 +1,15 @@
 <script setup lang="ts">
 /**
  * SettingsTabSystem — 系统管理 Tab
- * 包含文件监控、缓存管理、任务管理三个可折叠区域。
- * 折叠状态通过 props 传入，支持双向绑定。
+ * Q18: 文件监控已迁移至 SettingsTabSchedule
+ * 包含缓存管理、任务管理两个可折叠区域。
  */
 import CacheManager from '@/components/CacheManager.vue'
-import FileMonitor from '@/components/FileMonitor.vue'
 import TaskManager from '@/components/TaskManager.vue'
 
 defineOptions({ name: 'SettingsTabSystem' })
 
 interface SystemSections {
-  fileMonitor: boolean
   cacheManager: boolean
   taskManager: boolean
 }
@@ -31,19 +29,6 @@ function toggle(key: keyof SystemSections) {
 
 <template>
   <div class="mt-2 system-sections">
-    <!-- 文件监控 -->
-    <div class="collapsible-card">
-      <div class="collapsible-header" @click="toggle('fileMonitor')">
-        <span class="collapsible-title">文件监控</span>
-        <i :class="sections.fileMonitor ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
-      </div>
-      <transition name="collapsible">
-        <div v-show="sections.fileMonitor" class="collapsible-content">
-          <FileMonitor />
-        </div>
-      </transition>
-    </div>
-
     <!-- 缓存管理 -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="toggle('cacheManager')">
