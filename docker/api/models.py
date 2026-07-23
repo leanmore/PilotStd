@@ -35,6 +35,14 @@ class ScanResponse(BaseModel):
     files: list[FileItem]
 
 
+class ScanIndexResponse(BaseModel):
+    """Q6-1: scan_and_index 响应模型。仅 UPDATE pending 记录，不新增 standards 条目。"""
+
+    indexed: int
+    skipped: int
+    failed: int
+
+
 class DirItem(BaseModel):
     """文件/目录条目"""
 

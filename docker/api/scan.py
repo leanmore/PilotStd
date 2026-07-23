@@ -9,6 +9,7 @@ from fastapi.routing import APIRouter
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
 from ..manager import get_manager_dep
+from .models import ScanIndexResponse
 
 router = APIRouter(tags=["scan"])
 
@@ -94,16 +95,19 @@ def scan_directory(
     }
 
 
-@router.post("/api/scan-and-index")
+@router.post("/api/scan-and-index", response_model=ScanIndexResponse)
 def scan_and_index(
     path: str | None = None,
     mgr=Depends(get_manager_dep),
 ):
     """Q6-1: 扫描标准库 → 四要素匹配 → UPDATE standards 表扫描状态。
     path 参数保留向后兼容但不再使用，始终扫描配置的 library_root。
+
+    返回 indexed/skipped/failed 三项计数。
+    仅 UPDATE scan_status='pending' 的记录为 'indexed'，不新增 standards 条目。
     """
     try:
         result = mgr.scan_and_index(path)
-        return {"ok": True, **result, "path": path or "(library root)"}
+        return result
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

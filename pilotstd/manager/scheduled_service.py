@@ -6,7 +6,7 @@ import os
 from typing import Any, Dict, List
 
 from ..core.config import get_library_root
-from ..core.file_utils import hash_file_content
+from ..core.file_utils import ensure_dot_ext, hash_file_content
 from ..download.models import DownloadTask
 
 logger = logging.getLogger(__name__)
@@ -92,11 +92,10 @@ class ScheduledService:
                         continue
 
                     # 终点防御：确保 ext 带点号
-                    if parsed.ext and not parsed.ext.startswith("."):
-                        parsed.ext = f".{parsed.ext}"
+                    parsed.ext = ensure_dot_ext(parsed.ext)
 
                     # 3c. 四要素精确查询
-                    row = self._file_index._db.execute(
+                    row = self._file_index.db.execute(
                         "SELECT id FROM standards WHERE sha256=? AND code=? AND name=? AND size=?",
                         (file_hash, parsed.logical_code, parsed.std_name or "", file_size),
                     ).fetchone()  # type: ignore[union-attr]
@@ -107,7 +106,7 @@ class ScheduledService:
                         continue
 
                     # 3d. 条件更新（仅 scan_status='pending'）
-                    cursor = self._file_index._db.execute(
+                    cursor = self._file_index.db.execute(
                         """UPDATE standards
                            SET scan_status='indexed',
                                local_path=?,

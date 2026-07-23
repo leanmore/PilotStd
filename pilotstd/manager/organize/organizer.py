@@ -227,7 +227,7 @@ class OrganizerCore:
             VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
         """
         try:
-            self._file_index._db.execute(sql, (file_hash, parsed.logical_code, parsed.std_name or "", file_size))
+            self._file_index.db.execute(sql, (file_hash, parsed.logical_code, parsed.std_name or "", file_size))
         except Exception as e:
             logger.error(
                 "standards 表写入失败（文件已归档成功）: code=%s, hash=%s..., error=%s",

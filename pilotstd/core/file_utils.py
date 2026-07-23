@@ -322,8 +322,17 @@ def make_standard_filename(
         num_str = f"{num_prefix}{num_display}{num_suffix}"
     else:
         num_str = f"{num_display}{num_suffix}"
-    safe_ext = ext if ext.startswith(".") else f".{ext}"
+    safe_ext = ensure_dot_ext(ext)
     return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{safe_ext}"
+
+
+def ensure_dot_ext(ext: str) -> str:
+    """确保文件扩展名以 '.' 开头。
+    空字符串原样返回；已带点号不重复添加。
+    """
+    if not ext:
+        return ext
+    return ext if ext.startswith(".") else f".{ext}"
 
 
 def move_to_unparseable(file_path: str, archive_root: str, error: Exception | None = None) -> str:

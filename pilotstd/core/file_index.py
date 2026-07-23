@@ -37,6 +37,13 @@ class FileIndexRepository(_FileIndexQueryMixin):
         self._validation_thread: threading.Thread | None = None
         self._start_delayed_validation()
 
+    @property
+    def db(self) -> Database:
+        """公共只读数据库连接访问器。
+        替代外部直接访问 _db 私有属性，为未来连接池/事务封装预留扩展点。
+        """
+        return self._db
+
     # ---- 校验 ----
 
     @property
