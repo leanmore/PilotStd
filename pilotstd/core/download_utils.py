@@ -1,6 +1,27 @@
 # pilotstd/core/download_utils.py
 # Q24: 下载导入共享工具 — 文本解析 + 标准号校验 + 去重
 # Web API 与桌面 GUI 共用
+"""
+下载列表导入工具
+
+支持的文件格式：
+- TXT: 每行一个标准号，UTF-8 编码
+- CSV: 必须包含 standard_number 列，UTF-8 编码（自动跳过 BOM）
+
+CSV 列名契约：
+- standard_number: 必填，标准号字符串（如 "GB/T 12345-2020"）
+- year: 可选，年份字段（若存在则用于校验，但不强制）
+
+编码容错规则：
+- 优先尝试 UTF-8 解码
+- 若失败，回退至 GBK 解码（兼容 Windows 导出的 CSV）
+- 解码失败的行自动跳过，记录 warning 日志
+
+无效条目处理：
+- 空行自动跳过
+- 无法通过 parse_std_number() 校验的标准号归入 invalid 列表
+- 输入内重复的标准号归入 duplicates 列表，不提交下载
+"""
 
 from __future__ import annotations
 
