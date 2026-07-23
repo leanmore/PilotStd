@@ -1,5 +1,5 @@
 # docker/api/normalize.py — 文件规范化 API（通过 StandardManager 统一入口）
-from fastapi import Body, Depends
+from fastapi import Body, Depends, HTTPException
 from fastapi.routing import APIRouter
 
 from pilotstd.models import ParsedStdInfo
@@ -11,11 +11,23 @@ router = APIRouter(tags=["normalize"])
 
 def _dict_to_parsed(item: dict) -> ParsedStdInfo:
     """JSON dict → ParsedStdInfo，供 normalize_files_stream 使用。"""
+    logical_code = item.get("logical_code", "")
+    number = item.get("number", 0)
+    year = item.get("year", 0)
+
+    # 前置校验：禁止占位符和非法零值静默入库，Web API 返回 400
+    if logical_code == "" or logical_code is None:
+        raise HTTPException(status_code=400, detail="logical_code is required")
+    if number == 0:
+        raise HTTPException(status_code=400, detail="standard number cannot be zero")
+    if year == 0:
+        raise HTTPException(status_code=400, detail="standard year cannot be zero")
+
     return ParsedStdInfo(
         raw_filename=item.get("name", item.get("full_path", "")),
-        logical_code=item.get("logical_code", ""),
-        number=item.get("number", 0),
-        year=item.get("year", 0),
+        logical_code=logical_code,
+        number=number,
+        year=year,
         std_name=item.get("standard_name", item.get("std_name", "")),
         part=item.get("part"),
         num_prefix=item.get("num_prefix", ""),

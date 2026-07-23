@@ -69,14 +69,14 @@ class ExactMatchMixin:
         m = self.regex_db.match(text)
         if not m:
             return None
-        prefix = m.group("prefix")  # DB11, DB3501
+        code = m.group("code")  # 50, 3501
         std_type = m.group("type")  # T 或 None
-        logical_code = f"{prefix}/{std_type}" if std_type else prefix
         number_str = m.group("number")
         try:
             number = int(number_str)
         except ValueError:
             return None
+        logical_code = f"DB {code}/{std_type}{number}" if std_type else f"DB {code} {number}"
         year = self._normalize_year(m.group("year")) if m.group("year") else 0
         remaining = text[m.end() :].strip()
         name = re.sub(r"^[-–—\s]+", "", remaining)

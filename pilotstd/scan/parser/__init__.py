@@ -102,9 +102,9 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
             _YEAR_LOOSE,
             r"?",
         )
-        # 地方标准 — "DB11/T 1951-2021", "DB3501/T 002-2023"
+        # 地方标准 — "DB11/T 1951-2021", "DB3501/T 002-2023", "DB 50/T 1982-2026"
         self.regex_db = _compile(
-            r"(?P<prefix>DB\d{2,4})",  # DB + 2~4位行政区划代码
+            r"DB\s?(?P<code>\d{2,4})",  # DB + 可选空格 + 2~4位行政区划代码
             r"(?:/(?P<type>T))?",  # 可选 /T 推荐性标识
             _SEP,
             r"(?P<number>\d{2,5})",  # 顺序号 2~5位

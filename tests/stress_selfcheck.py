@@ -315,25 +315,25 @@ _parser = StandardParser(build_code_mapping())
 _info = _parser.parse("DB11/T 1951-2021 城市照明规划标准.pdf")
 _check(
     "DB解析: DB11/T 1951-2021",
-    _info is not None and _info.logical_code == "DB11/T" and _info.number == 1951 and _info.year == 2021,
+    _info is not None and _info.logical_code == "DB 11/T1951" and _info.number == 1951 and _info.year == 2021,
 )
 # 省级强制
 _info = _parser.parse("DB44 123-2018 广东强制标准.pdf")
 _check(
     "DB解析: DB44 123-2018",
-    _info is not None and _info.logical_code == "DB44" and _info.number == 123 and _info.year == 2018,
+    _info is not None and _info.logical_code == "DB 44 123" and _info.number == 123 and _info.year == 2018,
 )
 # 市级
 _info = _parser.parse("DB3501/T 002-2023 福州标准.pdf")
 _check(
     "DB解析: DB3501/T 002-2023",
-    _info is not None and _info.logical_code == "DB3501/T" and _info.number == 2 and _info.year == 2023,
+    _info is not None and _info.logical_code == "DB 3501/T2" and _info.number == 2 and _info.year == 2023,
 )
 # 市级强制
 _info = _parser.parse("DB4201 001-2020 武汉标准.pdf")
 _check(
     "DB解析: DB4201 001-2020",
-    _info is not None and _info.logical_code == "DB4201" and _info.number == 1 and _info.year == 2020,
+    _info is not None and _info.logical_code == "DB 4201 1" and _info.number == 1 and _info.year == 2020,
 )
 
 # --- v2.2 新增：语言标记 ---

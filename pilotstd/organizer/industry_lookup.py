@@ -185,18 +185,26 @@ _DB_PROVINCE_MAP = {
 }
 
 
+def _extract_db_code(logical_code: str) -> str:
+    """从地方标准逻辑代号中提取行政区划数字部分。DB 50/T → 50, DB3501 → 3501。"""
+    import re
+
+    m = re.match(r"^DB\s?(\d{2,4})", logical_code)
+    return m.group(1) if m else ""
+
+
 def is_db_code(logical_code: str) -> bool:
     """判断是否为地方标准代号（DB + 2~4位数字，可选 /T）。"""
     import re
 
-    return bool(re.match(r"^DB\d{2,4}(?:/T)?$", logical_code))
+    return bool(re.match(r"^DB\s?\d{2,4}(?:\s\d+)?(?:/T\d*)?$", logical_code))
 
 
 def get_db_region(logical_code: str) -> str:
     """根据地方标准代号返回省级行政区名称。DB3501/T → 福建, DB11 → 北京。"""
     import re
 
-    m = re.match(r"^DB(\d{2})", logical_code)
+    m = re.match(r"^DB\s?(\d{2})", logical_code)
     if m:
         return _DB_PROVINCE_MAP.get(m.group(1), "地方标准")
     return "地方标准"
@@ -263,10 +271,11 @@ def get_industry_name(base_code: str) -> str:
 def get_folder_name(logical_code: str) -> str:
     """根据逻辑文件代号生成第二层目录名。国际标准直接使用代号，国内标准追加行业名。
     地方标准（DB + 数字）统一放入 DB 地方标准/省份 子目录。"""
-    # 地方标准: DB11→DB 地方标准/北京, DB3501/T→DB 地方标准/福建
+    # 地方标准: DB11→DB 地方标准/北京 11, DB3501/T→DB 地方标准/福建 3501
     if is_db_code(logical_code):
         region = get_db_region(logical_code)
-        return f"DB 地方标准{os.sep}{region}"
+        code = _extract_db_code(logical_code)
+        return f"DB 地方标准{os.sep}{region} {code}"
     base = get_base_code(logical_code)
     if base in FOREIGN_CODES:
         return f"{base} {INDUSTRY_MAP.get(base, '国外标准')}"

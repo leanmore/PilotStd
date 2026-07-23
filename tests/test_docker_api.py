@@ -262,7 +262,10 @@ class TestAPIEndpoints(unittest.TestCase):
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
         r = self.client.post(
             "/api/normalize",
-            json={"items": [{"source_path": "/inbox/test.pdf", "logical_code": "GB/T 1-2020"}], "run_id": "test-run"},
+            json={
+                "items": [{"source_path": "/inbox/test.pdf", "logical_code": "GB/T", "number": 1, "year": 2020}],
+                "run_id": "test-run",
+            },
         )
         self.assertEqual(r.status_code, 200)
         results = r.json()["results"]
