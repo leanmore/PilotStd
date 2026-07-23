@@ -119,7 +119,7 @@ class PipelineRouter:
             language=getattr(p, "language", ""),
             num_prefix=getattr(p, "num_prefix", ""),
             num_suffix=getattr(p, "num_suffix", ""),
-            ext=getattr(p, "ext", "pdf"),
+            ext=getattr(p, "ext", ".pdf"),
             raw_number=getattr(p, "raw_number", None),
         )
         actual = os.path.basename(p.source_path or "")

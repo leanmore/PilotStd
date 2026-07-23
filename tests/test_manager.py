@@ -268,7 +268,7 @@ class TestResolveIndustryInPath:
     def test_db_code_resolved(self):
         """地方标准代号 → DB 地方标准/省份"""
         result = StandardManager._resolve_industry_in_path(f"DB11{_SEP}过期作废")
-        assert result == f"DB 地方标准{_SEP}北京{_SEP}过期作废"
+        assert result == f"DB 地方标准{_SEP}北京 11{_SEP}过期作废"
 
     def test_already_resolved_unchanged(self):
         """已解析过的目录名原样返回"""

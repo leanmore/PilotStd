@@ -314,4 +314,5 @@ def make_standard_filename(
         num_str = f"{num_prefix}{num_display}{num_suffix}"
     else:
         num_str = f"{num_display}{num_suffix}"
-    return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{ext}"
+    safe_ext = ext if ext.startswith(".") else f".{ext}"
+    return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{safe_ext}"

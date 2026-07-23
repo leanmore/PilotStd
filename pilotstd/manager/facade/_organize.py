@@ -276,7 +276,7 @@ class OrganizeHandler:
             language=getattr(parsed, "language", ""),
             num_prefix=getattr(parsed, "num_prefix", ""),
             num_suffix=getattr(parsed, "num_suffix", ""),
-            ext=getattr(parsed, "ext", "pdf"),
+            ext=getattr(parsed, "ext", ".pdf"),
             raw_number=parsed.raw_number or None,
         )
 

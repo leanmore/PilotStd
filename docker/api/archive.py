@@ -43,7 +43,7 @@ def archive_files(
                 num_prefix=item.get("num_prefix", ""),
                 num_suffix=item.get("num_suffix", ""),
                 language=item.get("language", ""),
-                ext=item.get("ext", "pdf"),
+                ext=item.get("ext", ".pdf"),
             )
             parsed_list.append(parsed)
 
