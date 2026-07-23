@@ -3,7 +3,7 @@ defineOptions({ name: 'LoginView' })
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { login, getSettings } from '@/api'
+import { login, getSettingsCached } from '@/api'
 import Button from 'primevue/button'
 
 const username = ref('')
@@ -24,7 +24,7 @@ async function submit() {
 }
 
 onMounted(async () => {
-  try { const c = await getSettings(); bgUrl.value = (c.appearance?.login_bg || c.login_bg_url || '') as string } catch {}
+  try { const c = await getSettingsCached(); bgUrl.value = (c.appearance?.login_bg || c.login_bg_url || '') as string } catch {}
 })
 </script>
 
