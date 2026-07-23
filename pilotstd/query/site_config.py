@@ -63,4 +63,11 @@ def create_default_sites() -> list[SiteState]:
             max_requests=50,
             daily_limit=200,
         ),
+        SiteState(
+            name="ttbz",
+            base_url="https://www.ttbz.org.cn",
+            max_requests=100,
+            daily_limit=400,
+            cooldown_seconds=1,
+        ),
     ]

@@ -272,7 +272,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "api": {"primary": "iso_gov", "fallback": "csres"},
     "foreign": {"primary": "njbz365", "fallback": "ahbz"},
     # 团体标准 → ahbz 专业平台（type=5），njbz365 兜底
-    "group": {"primary": "ahbz", "fallback": "njbz365"},
+    "group": {"primary": "ttbz", "fallback": "ahbz"},
 }
 
 

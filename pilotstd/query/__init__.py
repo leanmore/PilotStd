@@ -63,3 +63,10 @@ def _get_mock_adapter() -> Optional[Type[Any]]:
         return MockQueryAdapter  # type: ignore[no-any-return]  # 动态导入类无精确类型
     except ImportError:
         return None
+
+
+def _get_ttbz_adapter() -> Type[Any]:
+    """懒加载团体标准适配器（TTBZAdapter）。"""
+    from .adapters.ttbz import TTBZAdapter
+
+    return TTBZAdapter

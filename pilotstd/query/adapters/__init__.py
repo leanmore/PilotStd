@@ -6,6 +6,7 @@ from .hbba import HbbaAdapter
 from .iso_gov import IsoGovAdapter
 from .njbz365 import Njbz365Adapter
 from .std_gov import StdGovAdapter
+from .ttbz import TTBZAdapter
 
 __all__ = [
     "BaseAdapter",
@@ -15,4 +16,5 @@ __all__ = [
     "Njbz365Adapter",
     "HbbaAdapter",
     "IsoGovAdapter",
+    "TTBZAdapter",
 ]
