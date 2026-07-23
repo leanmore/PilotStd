@@ -275,7 +275,7 @@ onMounted(loadDetail)
             <!-- 公告正文 -->
             <div v-if="announcement?.content" class="col-12">
               <label class="text-sm text-color-secondary">公告正文</label>
-              <div class="official-doc mt-1 p-3 border-round surface-100">
+              <div class="official-doc mt-1 p-3 border-round" :style="{ background: 'var(--announce-bg)' }">
                 <div class="doc-content" v-html="sanitizedContent" />
               </div>
             </div>
@@ -462,7 +462,7 @@ onMounted(loadDetail)
 
 .doc-content :deep(td),
 .doc-content :deep(th) {
-  border: 1px solid var(--p-surface-300);
+  border: 1px solid var(--border);
   padding: 0.25rem 0.5rem;
 }
 

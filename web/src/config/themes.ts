@@ -37,6 +37,7 @@ export interface ThemeConfig {
     shadowLg: string
     disabledBg: string
     disabledText: string
+    announceBg: string
   }
 }
 
@@ -76,6 +77,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.18)',
       disabledBg: '#e2e8f0',
       disabledText: '#94a3b8',
+      announceBg: '#ffffff',
     },
   },
   dark: {
@@ -113,6 +115,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.7)',
       disabledBg: '#475569',
       disabledText: '#94a3b8',
+      announceBg: '#1e293b',
     },
   },
   green: {
@@ -150,6 +153,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.18)',
       disabledBg: '#bbf7d0',
       disabledText: '#86efac',
+      announceBg: '#f6fbf7',
     },
   },
   blue: {
@@ -187,6 +191,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.7)',
       disabledBg: '#1e293b',
       disabledText: '#475569',
+      announceBg: '#151e32',
     },
   },
 }
@@ -237,6 +242,8 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--shadow': c.shadow,
     '--shadow-md': c.shadowMd,
     '--shadow-lg': c.shadowLg,
+    // Q8: 公告页背景色
+    '--announce-bg': c.announceBg,
     // 向后兼容别名
     '--accent': c.primary,
     '--accent-dim': c.primaryHover,
