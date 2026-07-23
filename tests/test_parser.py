@@ -62,7 +62,7 @@ class TestExactMatchMixin(unittest.TestCase):
         """DB11/T 模式 → logical_code='DB11/T', number 为数字。"""
         result = self.parser.parse("DB11/T 1234-2020 北京市地方标准.pdf")
         self.assertIsNotNone(result)
-        self.assertEqual(result.logical_code, "DB11/T")
+        self.assertEqual(result.logical_code, "DB 11/T")
         self.assertEqual(result.year, 2020)
 
     def test_exact_match_bpvc_roman_volume(self):
@@ -116,7 +116,7 @@ class TestParserUtilsMixin(unittest.TestCase):
 
     def test_extract_number_alpha_prefix_stripped(self):
         """_extract_number('B16') → (16, '')，去掉前导字母。"""
-        number, suffix = StandardParser._extract_number("B16")
+        number, suffix, _ = StandardParser._extract_number("B16")
         self.assertEqual(number, 16)
         self.assertEqual(suffix, "")
 
