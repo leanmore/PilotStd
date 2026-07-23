@@ -25,7 +25,20 @@
     "organize": { "auto_clean_source": "歸檔後清理原始檔" },
     "file": { "clear_readonly": "自動清理唯讀屬性" },
     "tabs": {
-      "tasks": "定時任務"
+      "tasks": "定時任務",
+      "storage": "儲存",
+      "network": "網路",
+      "query": "查詢",
+      "scan": "掃描",
+      "ui": "介面",
+      "ocr": "OCR",
+      "sites": "站點",
+      "users": "用戶",
+      "token": "API 令牌",
+      "circuit": "熔斷",
+      "notification": "通知",
+      "validity": "時效性",
+      "system": "系統"
     },
     "tasks": {
       "auto_scan_enabled": "啟用自動掃描",

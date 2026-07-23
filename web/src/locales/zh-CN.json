@@ -26,7 +26,20 @@
     "organize": { "auto_clean_source": "归档后清理源文件" },
     "file": { "clear_readonly": "自动清理只读属性" },
     "tabs": {
-      "tasks": "定时任务"
+      "tasks": "定时任务",
+      "storage": "存储",
+      "network": "网络",
+      "query": "查询",
+      "scan": "扫描",
+      "ui": "界面",
+      "ocr": "OCR",
+      "sites": "站点",
+      "users": "用户",
+      "token": "API 令牌",
+      "circuit": "熔断",
+      "notification": "通知",
+      "validity": "时效性",
+      "system": "系统"
     },
     "tasks": {
       "auto_scan_enabled": "启用自动扫描",

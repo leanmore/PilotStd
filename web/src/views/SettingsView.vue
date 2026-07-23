@@ -143,20 +143,20 @@ const { t } = useI18n()
 const activeTab = ref((route.query.tab as string) || 'storage')
 
 const tabs = [
-  { key: 'storage', label: '存储' },
-  { key: 'network', label: '网络' },
-  { key: 'query', label: '查询' },
-  { key: 'scan', label: '扫描' },
+  { key: 'storage', label: t('settings.tabs.storage') },
+  { key: 'network', label: t('settings.tabs.network') },
+  { key: 'query', label: t('settings.tabs.query') },
+  { key: 'scan', label: t('settings.tabs.scan') },
   { key: 'tasks', label: t('settings.tabs.tasks') },
-  { key: 'ui', label: '界面' },
-  { key: 'ocr', label: 'OCR' },
-  { key: 'sites', label: '站点' },
-  { key: 'users', label: '用户' },
-  { key: 'token', label: 'API 令牌' },
-  { key: 'circuit', label: '熔断' },
-  { key: 'notification', label: '通知' },
-  { key: 'validity', label: '时效性' },
-  { key: 'system', label: '系统' },
+  { key: 'ui', label: t('settings.tabs.ui') },
+  { key: 'ocr', label: t('settings.tabs.ocr') },
+  { key: 'sites', label: t('settings.tabs.sites') },
+  { key: 'users', label: t('settings.tabs.users') },
+  { key: 'token', label: t('settings.tabs.token') },
+  { key: 'circuit', label: t('settings.tabs.circuit') },
+  { key: 'notification', label: t('settings.tabs.notification') },
+  { key: 'validity', label: t('settings.tabs.validity') },
+  { key: 'system', label: t('settings.tabs.system') },
 ]
 
   // Schema 驱动 Tab → 通用 SettingsTabSchema 组件

@@ -25,7 +25,20 @@
     "organize": { "auto_clean_source": "Auto Clean After Archive" },
     "file": { "clear_readonly": "Auto Clear Read-only" },
     "tabs": {
-      "tasks": "Scheduled Tasks"
+      "tasks": "Scheduled Tasks",
+      "storage": "Storage",
+      "network": "Network",
+      "query": "Query",
+      "scan": "Scan",
+      "ui": "Interface",
+      "ocr": "OCR",
+      "sites": "Sites",
+      "users": "Users",
+      "token": "API Tokens",
+      "circuit": "Circuit Breaker",
+      "notification": "Notifications",
+      "validity": "Validity",
+      "system": "System"
     },
     "tasks": {
       "auto_scan_enabled": "Enable Auto Scan",
