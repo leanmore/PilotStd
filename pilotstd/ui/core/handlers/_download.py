@@ -126,25 +126,19 @@ class DownloadUIHandler:
             QMessageBox.warning(self._parent, _("title_import_failed"), str(e))
             return
 
-        # CSV 文件走 Engine 解析
-        if path.lower().endswith(".csv"):
-            records = self._engine.parse_download_csv(content)
-            if not records:
-                QMessageBox.information(self._parent, _("title_hint"), _("csv_empty"))
-                return
-            first_key = list(records[0].keys())[0] if records else ""
-            lines = [r.get(first_key, "").strip() for r in records if r.get(first_key, "").strip()]
-        else:
-            lines = [line.strip() for line in content.splitlines() if line.strip()]
+        # Q24: 使用共享解析函数（CSV/TXT 自动识别 + 校验 + 去重）
+        from pilotstd.core.download_utils import parse_download_sources
 
+        parsed = parse_download_sources(text=content)
+        if parsed["invalid"]:
+            logger.warning("无效标准号: %s", ", ".join(parsed["invalid"][:10]))
+        if parsed["duplicates"]:
+            logger.info("重复标准号: %s", ", ".join(parsed["duplicates"][:10]))
+
+        lines = parsed["valid"]
         if not lines:
             QMessageBox.information(self._parent, _("title_hint"), _("csv_empty"))
             return
-
-        # 去重
-        items = [{"number": line} for line in lines]
-        items = self._engine.deduplicate_downloads(items, "number")
-        lines = [item["number"] for item in items]
 
         self._status_cb(_("download_in_progress"))
         _tasks, stats = self._mgr.download_by_numbers(lines)

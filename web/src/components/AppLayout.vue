@@ -30,6 +30,7 @@ const navItems = [
   { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
   { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
   { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
+  { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
 ]
 
 // ── 响应式断点 ──

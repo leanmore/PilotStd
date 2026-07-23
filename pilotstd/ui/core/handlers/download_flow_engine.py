@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
 import logging
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -22,10 +20,6 @@ DEFAULT_THRESHOLD_DAYS = 28
 
 class DownloadFlowEngine:
     """下载流程的纯逻辑处理：过滤、解析、校验、去重。"""
-
-    # ═══════════════════════════════════════════════════════════════
-    # 过滤过新标准
-    # ═══════════════════════════════════════════════════════════════
 
     @staticmethod
     def filter_too_new_standards(
@@ -58,32 +52,6 @@ class DownloadFlowEngine:
             except (ValueError, TypeError):
                 continue
         return too_new
-
-    # ═══════════════════════════════════════════════════════════════
-    # CSV 解析（纯内存操作，不碰文件系统）
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def parse_download_csv(csv_content: str) -> list[dict[str, str]]:
-        """解析 CSV 内容字符串为 dict 列表。
-
-        Args:
-            csv_content: 完整的 CSV 文本内容
-
-        Returns:
-            dict 列表，每行的键为 CSV 表头，值为该行对应列内容。
-            空内容或只有表头时返回空列表。
-        """
-        if not csv_content or not csv_content.strip():
-            return []
-        try:
-            reader = csv.DictReader(io.StringIO(csv_content))
-            rows = list(reader)
-            # 过滤全空行
-            return [r for r in rows if any(v.strip() for v in r.values())]
-        except Exception:
-            logger.debug("CSV 解析失败", exc_info=True)
-            return []
 
     # ═══════════════════════════════════════════════════════════════
     # 路径有效性校验（纯字符串操作，不检查文件系统）
@@ -125,27 +93,3 @@ class DownloadFlowEngine:
         return result
 
     # ═══════════════════════════════════════════════════════════════
-    # 去重
-    # ═══════════════════════════════════════════════════════════════
-
-    @staticmethod
-    def deduplicate_downloads(items: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
-        """按指定字段去重，保留首次出现的项。
-
-        Args:
-            items: dict 列表
-            key: 用于去重的字段名
-
-        Returns:
-            去重后的新列表。
-        """
-        seen: set[Any] = set()
-        result: list[dict[str, Any]] = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            val = item.get(key)
-            if val is not None and val not in seen:
-                seen.add(val)
-                result.append(item)
-        return result

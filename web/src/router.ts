@@ -32,6 +32,7 @@ const routes = [
   { path: '/resources', component: () => import('./views/SystemResources.vue') },
   { path: '/query-history', component: () => import('./views/QueryHistory.vue') },
   { path: '/download-queue', component: () => import('./views/DownloadQueue.vue') },
+  { path: '/download/import', component: () => import('./views/DownloadImport.vue') },
 ]
 
 const router = createRouter({ history: createWebHistory(), routes })
