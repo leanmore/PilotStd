@@ -24,6 +24,9 @@
     },
     "organize": { "auto_clean_source": "Auto Clean After Archive" },
     "file": { "clear_readonly": "Auto Clear Read-only" },
+    "tabs": {
+      "tasks": "Scheduled Tasks"
+    },
     "tasks": {
       "auto_scan_enabled": "Enable Auto Scan",
       "auto_scan_cron": "Scan Interval (cron)",

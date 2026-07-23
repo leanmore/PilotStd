@@ -39,6 +39,8 @@ const isMobile = ref(window.innerWidth < 768)
 
 // 侧边栏折叠 - 从偏好恢复，平板/移动端默认折叠
 const sidebarCollapsed = ref(!isDesktop.value)
+// 顶部栏折叠 - 从偏好恢复
+const headerCollapsed = ref(false)
 
 async function loadSidebarState() {
   try {
@@ -46,6 +48,8 @@ async function loadSidebarState() {
     const all = await prefs.getAll()
     const saved = all.sidebar_collapsed
     if (typeof saved === 'boolean') sidebarCollapsed.value = saved
+    const savedHeader = all.header_collapsed
+    if (typeof savedHeader === 'boolean') headerCollapsed.value = savedHeader
   } catch { /* 未登录时使用默认值 */ }
 }
 
@@ -73,6 +77,10 @@ function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
   usePreferencesStore().set('sidebar_collapsed', sidebarCollapsed.value).catch(() => {})
 }
+function toggleHeader() {
+  headerCollapsed.value = !headerCollapsed.value
+  usePreferencesStore().set('header_collapsed', headerCollapsed.value).catch(() => {})
+}
 function toggleTheme() { store.theme = isDark.value ? 'light' : 'dark' }
 function logout() { router.push('/login') }
 </script>
@@ -83,10 +91,12 @@ function logout() { router.push('/login') }
     <AppHeader
       :is-mobile="isMobile"
       :sidebar-collapsed="sidebarCollapsed"
+      :header-collapsed="headerCollapsed"
       :page-title="pageTitle"
       :is-dark="isDark"
       :username="store.username"
       @toggle-sidebar="toggleSidebar"
+      @toggle-header="toggleHeader"
       @toggle-theme="toggleTheme"
       @logout="logout"
     />
@@ -122,6 +132,17 @@ function logout() { router.push('/login') }
         <span>{{ item.label }}</span>
       </router-link>
     </nav>
+
+    <!-- ═══ Q2: 悬浮工作台按钮（桌面端右下角） ═══ -->
+    <button
+      v-if="!isMobile"
+      class="floating-workspace-btn"
+      @click="$router.push('/')"
+      aria-label="工作台"
+      title="工作台"
+    >
+      <i class="pi pi-home" />
+    </button>
   </div>
 </template>
 
@@ -267,5 +288,37 @@ function logout() { router.push('/login') }
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
   .tab { padding: 10px 4px; }
+}
+
+/* ═══════════════════════════════════════════
+   Q2: 悬浮工作台按钮
+   ═══════════════════════════════════════════ */
+.floating-workspace-btn {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  z-index: 1000;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.floating-workspace-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-lg);
+}
+.floating-workspace-btn i {
+  line-height: 1;
 }
 </style>

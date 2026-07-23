@@ -10,6 +10,7 @@ defineOptions({ name: 'AppHeader' })
 defineProps<{
   isMobile: boolean
   sidebarCollapsed: boolean
+  headerCollapsed: boolean
   pageTitle: string
   isDark: boolean
   username: string
@@ -18,12 +19,13 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-sidebar'): void
   (e: 'toggle-theme'): void
+  (e: 'toggle-header'): void
   (e: 'logout'): void
 }>()
 </script>
 
 <template>
-  <header class="topbar">
+  <header class="topbar" :class="{ collapsed: headerCollapsed }">
     <div class="topbar-left">
       <button
         v-if="!isMobile"
@@ -33,10 +35,10 @@ const emit = defineEmits<{
       >
         <i class="pi pi-bars" />
       </button>
-      <span class="topbar-brand" v-if="isMobile">PilotStd</span>
-      <span class="topbar-title">{{ pageTitle }}</span>
+      <span class="topbar-brand">PilotStd</span>
+      <span class="topbar-title" v-show="!headerCollapsed">{{ pageTitle }}</span>
     </div>
-    <div class="topbar-right">
+    <div class="topbar-right" v-show="!headerCollapsed">
       <!-- 通知铃铛 -->
       <NotificationBell />
       <!-- 主题切换 -->
@@ -58,6 +60,15 @@ const emit = defineEmits<{
         <span class="hide-mobile">退出</span>
       </button>
     </div>
+    <!-- 顶部栏折叠切换 -->
+    <button
+      v-if="!isMobile"
+      class="topbar-btn header-collapse-btn"
+      @click="emit('toggle-header')"
+      :title="headerCollapsed ? '展开顶部栏' : '收起顶部栏'"
+    >
+      <i :class="headerCollapsed ? 'pi pi-chevron-down' : 'pi pi-chevron-up'" />
+    </button>
   </header>
 </template>
 
@@ -199,5 +210,21 @@ const emit = defineEmits<{
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
   .topbar-btn { padding: 10px 14px; }
+}
+
+/* 顶部栏折叠态：收缩至40px，仅保留 LOGO 和折叠按钮 */
+.topbar.collapsed {
+  height: 40px;
+  padding: 0 16px;
+}
+.topbar.collapsed .topbar-brand {
+  font-size: 15px;
+}
+.header-collapse-btn {
+  position: absolute;
+  right: 16px;
+}
+.topbar {
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

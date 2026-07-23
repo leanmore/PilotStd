@@ -7,6 +7,7 @@
  */
 import { ref, onMounted, watch, provide, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
 import { getSettings, putSettings, getSettingsSchema, uploadFile } from '@/api'
@@ -138,6 +139,7 @@ const sites = [
 // ═══════════════════════════════════════════
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const activeTab = ref((route.query.tab as string) || 'storage')
 
 const tabs = [
@@ -145,7 +147,7 @@ const tabs = [
   { key: 'network', label: '网络' },
   { key: 'query', label: '查询' },
   { key: 'scan', label: '扫描' },
-  { key: 'tasks', label: '定时任务' },
+  { key: 'tasks', label: t('settings.tabs.tasks') },
   { key: 'ui', label: '界面' },
   { key: 'ocr', label: 'OCR' },
   { key: 'sites', label: '站点' },

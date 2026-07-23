@@ -24,6 +24,9 @@
     },
     "organize": { "auto_clean_source": "歸檔後清理原始檔" },
     "file": { "clear_readonly": "自動清理唯讀屬性" },
+    "tabs": {
+      "tasks": "定時任務"
+    },
     "tasks": {
       "auto_scan_enabled": "啟用自動掃描",
       "auto_scan_cron": "掃描間隔 (cron)",
