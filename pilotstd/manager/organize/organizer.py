@@ -198,6 +198,13 @@ class OrganizerCore:
                     status=getattr(p, "effect_status", "") or "现行",
                     raw_number=p.raw_number or "",
                 )
+            # Q6-0: 归档成功后注册到 standards 表
+            if fhash:
+                try:
+                    file_size = os.path.getsize(dst)
+                except OSError:
+                    file_size = 0
+                self._register_standard(p, fhash, file_size)
         elif os.path.exists(mover.normalize_filename(p)):
             result["skipped_exists"] += 1
             result["skipped_source"] += 1
@@ -209,6 +216,25 @@ class OrganizerCore:
                     pass
         else:
             result["failed"] += 1
+
+    def _register_standard(self, parsed: Any, file_hash: str, file_size: int) -> None:
+        """Q6-0: 将成功归档的标准注册到 standards 表。
+        使用 INSERT OR IGNORE，四要素冲突时静默跳过。
+        失败不回滚归档结果，仅记录错误日志。
+        """
+        sql = """
+            INSERT OR IGNORE INTO standards (sha256, code, name, size, scan_status, updated_at)
+            VALUES (?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
+        """
+        try:
+            self._file_index._db.execute(sql, (file_hash, parsed.logical_code, parsed.std_name or "", file_size))
+        except Exception as e:
+            logger.error(
+                "standards 表写入失败（文件已归档成功）: code=%s, hash=%s..., error=%s",
+                getattr(parsed, "logical_code", "?"),
+                file_hash[:16] if file_hash else "",
+                e,
+            )
 
     def _log_organize_summary(self, result: dict) -> None:
         """输出归类汇总日志。"""

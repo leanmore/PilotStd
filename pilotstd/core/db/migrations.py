@@ -397,3 +397,27 @@ def _migrate_v38_user_settings(db) -> None:
     db.execute("CREATE INDEX idx_user_settings_user_id ON user_settings(user_id)")
 
     logger.info("user_settings 表创建完成")
+
+
+@migration(42)
+def _migrate_v42_create_standards_table(db: Any) -> None:
+    """Q6-0: 创建 standards 表 — 标准归档四要素精确匹配表。
+    sha256 使用 hash_file_content() 混合哈希，非标准 SHA-256。
+    """
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS standards (
+            id          INTEGER  PRIMARY KEY AUTOINCREMENT,
+            sha256      TEXT     NOT NULL,
+            code        TEXT     NOT NULL,
+            name        TEXT     NOT NULL,
+            size        INTEGER  NOT NULL,
+            scan_status TEXT     NOT NULL DEFAULT 'pending'
+                CHECK (scan_status IN ('pending', 'indexed')),
+            local_path  TEXT     NULL,
+            created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_standards_four_elements ON standards (sha256, code, name, size)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_standards_scan_status ON standards (scan_status)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_standards_code_name ON standards (code, name)")

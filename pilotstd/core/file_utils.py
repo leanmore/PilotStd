@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import shutil
+from datetime import datetime
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -121,11 +122,18 @@ def truncate_path(root_dir: str, folder: str, filename: str) -> str:
 
 
 def hash_file_content(path: str) -> str:
-    """计算文件内容指纹用于去重比对。
+    """计算文件内容指纹（非标准混合哈希）。
 
-    策略：≤1MB 全量哈希，>1MB 采样（前 1MB + 末 64KB + 文件大小）。
-    文件大小参与哈希可区分类似前缀但后续内容不同的文件。
-    扫描器与文件索引共享此函数，保证去重一致性。
+    ⚠️ 重要：此函数返回的不是标准 SHA-256！
+    算法：≤1MB 全量哈希，>1MB 采样（前 1MB + 末 64KB + 文件大小）。
+    全项目所有涉及文件内容指纹的场景（standards 表、file_index 表、
+    下载引擎校验等）必须且只能使用此函数。
+    🚫 禁止在任何位置直接调用 hashlib.sha256() 计算文件指纹。
+
+    Args:
+        path: 文件绝对路径
+    Returns:
+        128字符十六进制哈希字符串，文件不可读时返回空字符串
     """
     import hashlib
 
@@ -316,3 +324,28 @@ def make_standard_filename(
         num_str = f"{num_display}{num_suffix}"
     safe_ext = ext if ext.startswith(".") else f".{ext}"
     return f"{win_code} {num_str}{part_str}-{year}{name_part}{lang_part}{kind_part}{safe_ext}"
+
+
+def move_to_unparseable(file_path: str, archive_root: str, error: Exception | None = None) -> str:
+    """Q6-0: 将解析失败的文件移至 _unparseable/ 目录。
+    同名文件自动追加时间戳后缀，不覆盖已有文件。
+    """
+    unparseable_dir = os.path.join(archive_root, "_unparseable")
+    os.makedirs(unparseable_dir, exist_ok=True)
+
+    basename = os.path.basename(file_path)
+    dest = os.path.join(unparseable_dir, basename)
+
+    if os.path.exists(dest):
+        ts = datetime.now().strftime("%Y%m%d%H%M%S")
+        name, ext = os.path.splitext(basename)
+        dest = os.path.join(unparseable_dir, f"{name}_{ts}{ext}")
+
+    shutil.move(file_path, dest)
+    logger.warning(
+        "解析失败，已移至 _unparseable/: %s -> %s, error=%s",
+        file_path,
+        dest,
+        error,
+    )
+    return dest
