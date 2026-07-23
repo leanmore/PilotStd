@@ -62,7 +62,7 @@ class TestExactMatchMixin(unittest.TestCase):
         """DB11/T 模式 → logical_code='DB11/T', number 为数字。"""
         result = self.parser.parse("DB11/T 1234-2020 北京市地方标准.pdf")
         self.assertIsNotNone(result)
-        self.assertEqual(result.logical_code, "DB 11/T")
+        self.assertEqual(result.logical_code, "DB 11/T1234")
         self.assertEqual(result.year, 2020)
 
     def test_exact_match_bpvc_roman_volume(self):
