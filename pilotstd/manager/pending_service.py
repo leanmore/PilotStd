@@ -77,6 +77,15 @@ class PendingService:
                 (resolution, now, std_num),
             )
 
+    def resolve_pending_by_numbers(self, numbers: list[str], resolution: str) -> None:
+        """Q31: 按标准号字符串列表标记待确认项为已处理。供 Web API 等仅有字符串的调用方使用。"""
+        now = datetime.now().isoformat()
+        for num in numbers:
+            self._db.execute(
+                "UPDATE pending_lookup SET status=?, resolved_at=? WHERE standard_number=? AND status='pending'",
+                (resolution, now, num),
+            )
+
     def get_pending_items(self) -> list[dict[str, Any]]:
         """获取所有待确认项。"""
         return self._db.fetchall(  # type: ignore[no-any-return]

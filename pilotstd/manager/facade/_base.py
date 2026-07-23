@@ -233,6 +233,7 @@ class BaseFacade(_BasePropertiesMixin):
         self.get_stage_summary = self._query_handler.get_stage_summary
         self.record_pending = self._query_handler.record_pending
         self.resolve_pending = self._query_handler.resolve_pending
+        self.resolve_pending_by_numbers = self._query_handler.resolve_pending_by_numbers
         self.get_pending_items = self._query_handler.get_pending_items
         self.increment_requery_count = self._query_handler.increment_requery_count
         self.is_requery_exhausted = self._query_handler.is_requery_exhausted

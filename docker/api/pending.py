@@ -18,6 +18,15 @@ def get_pending(mgr=Depends(get_manager_dep)):
 def requery_pending(numbers: list[str] = Body(), site: str = "", mgr=Depends(get_manager_dep)):
     """对待确认标准进行重新查询。指定 site 时置顶该站点，否则引擎自动路由。"""
     results, _ = mgr.query_by_numbers(numbers, preferred_site=site)
+
+    # Q31: 查询成功的条目从待确认列表移除
+    confirmed: list[str] = []
+    for r in results:
+        if r.standard_name:
+            confirmed.append(r.standard_number)
+    if confirmed:
+        mgr.resolve_pending_by_numbers(confirmed, "confirmed")
+
     return {
         "results": [
             {

@@ -16,6 +16,7 @@
   "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
   "download": { "importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果" },
   "pending": { "importResult": "已导入 {n} 条待确认标准", "importEmpty": "暂无待确认标准", "importFailed": "导入失败" },
+  "export": { "pending_list": "待确认清单", "manual_download_list": "手动下载清单" },
   "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" },
   "settings": {
     "storage": {

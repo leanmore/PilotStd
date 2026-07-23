@@ -220,13 +220,13 @@ class QueryUIHandler:
                 save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
             return None
 
-        from datetime import datetime
+        from pilotstd.core.export_utils import generate_export_batch_timestamp, get_export_filename
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = generate_export_batch_timestamp()
         path, _ = QFileDialog.getSaveFileName(
             None,
             tr("dialog_save_pending"),
-            f"pending_standards_{ts}.csv",
+            get_export_filename(tr("export_pending_list"), ts),
             tr("file_filter_csv"),
         )
         if not path:
@@ -239,7 +239,7 @@ class QueryUIHandler:
                 for row in rows:
                     writer.writerow(self._engine.build_pending_csv_row(row))
             if save_status is not None:
-                save_status.setText(f"已保存: pending_standards_{ts}.csv")
+                save_status.setText(f"已保存: {get_export_filename(tr('export_pending_list'), ts)}")
                 save_status.setStyleSheet("color: #2a7d2a; font-size: 9pt;")
             return path
         except OSError as e:

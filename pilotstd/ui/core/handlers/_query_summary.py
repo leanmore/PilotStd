@@ -231,10 +231,10 @@ class QuerySummaryHandler:
         if not items:
             return
 
-        from datetime import datetime
+        from pilotstd.core.export_utils import generate_export_batch_timestamp, get_export_filename
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        default_name = f"手动下载清单_{ts}.csv"
+        ts = generate_export_batch_timestamp()
+        default_name = get_export_filename(tr("export_manual_download_list"), ts)
         path, _ = QFileDialog.getSaveFileName(None, tr("title_save_csv"), default_name, tr("filter_csv_files"))
         if not path:
             return

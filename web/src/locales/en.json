@@ -15,6 +15,7 @@
   "query": { "saveResults": "Save Query Results", "saved": "Saved {n} results", "saveFailed": "Save failed" },
   "download": { "importResult": "Imported {n} downloadable standards", "importEmpty": "No data to import. Please save query results first.", "importFailed": "Import failed. Please save query results first." },
   "pending": { "importResult": "Imported {n} pending standards", "importEmpty": "No pending items", "importFailed": "Import failed" },
+  "export": { "pending_list": "Pending Standards", "manual_download_list": "Manual Download List" },
   "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" },
   "settings": {
     "storage": {

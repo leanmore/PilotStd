@@ -326,14 +326,20 @@ class PendingQueryDialog(QDialog):
         total = len(self._parsed_list)
         found = sum(1 for _, r in self._results if r.standard_name)
         failed = total - found
-        # 更新重试计数
+        # Q31: 查询成功的条目从待确认列表移除
+        confirmed_items = []
         for idx, result in self._results:
             parsed = self._parsed_list[idx]
             num = parsed.get_full_number()
-            if not (result and result.standard_name):
+            if result and result.standard_name:
+                confirmed_items.append(parsed)
+            else:
                 new_count = self._mgr.increment_requery_count(num)
                 if new_count >= 3:
                     self._mgr.mark_manual_required(num)
+
+        if confirmed_items:
+            self._mgr.resolve_pending(confirmed_items, "confirmed")
         QMessageBox.information(
             self,
             _("title_pending_query_complete"),

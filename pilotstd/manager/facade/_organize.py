@@ -94,6 +94,12 @@ class OrganizeHandler:
         """回填单个 ParsedStdInfo 的 std_name。"""
         if parsed.std_name:
             return parsed
+
+        # Q30: found_name 存在且非空时直接回填，避免遗漏查询结果中的名称
+        if parsed.found_name and parsed.found_name.strip():
+            parsed.std_name = parsed.found_name.strip()
+            return parsed
+
         std_no = f"{parsed.logical_code} {parsed.number}"
         if parsed.year:
             std_no += f"-{parsed.year}"

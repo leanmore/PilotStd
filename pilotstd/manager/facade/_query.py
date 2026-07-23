@@ -84,6 +84,9 @@ class QueryHandler(_QueryExecMixin, _QueryReportMixin):
     def resolve_pending(self, pending_items: list[dict[str, Any]], resolution: str) -> None:
         self._core.pending_svc.resolve_pending(pending_items, resolution)
 
+    def resolve_pending_by_numbers(self, numbers: list[str], resolution: str) -> None:
+        self._core.pending_svc.resolve_pending_by_numbers(numbers, resolution)
+
     def get_pending_items(self) -> list[dict[str, Any]]:
         return self._core.pending_svc.get_pending_items()
 
