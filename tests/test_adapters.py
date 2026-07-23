@@ -413,5 +413,201 @@ class TestBaseQueryWithStrategy(unittest.TestCase):
         self.assertTrue(r.error_message)
 
 
+# ════════════════════════════════════════════════════════════════
+# 辅助：构造 ttbz API 返回结果的工具函数
+# ════════════════════════════════════════════════════════════════
+
+
+def _make_ttbz_response(*rows):
+    """构造 ttbz API 返回格式。data.rows 为列表。"""
+    return {"code": 200, "message": "操作成功", "data": {"total": len(rows), "rows": list(rows)}}
+
+
+def _ttbz_row(
+    standard_no="T/CAS 123-2024",
+    title_cn="团体标准中文名称",
+    title_en="Group Standard English Name",
+    publish_date="2024-01-01",
+    implement_date="2024-07-01",
+    status_name="现行",
+    organ_name="中国标准化协会",
+    standard_field="化工",
+    unique_id="abc123def456",
+):
+    return {
+        "standardUniqueId": unique_id,
+        "standardNo": standard_no,
+        "standardTitleCn": title_cn,
+        "standardTitleEn": title_en,
+        "publishDate": publish_date,
+        "implementDate": implement_date,
+        "standardStatusName": status_name,
+        "organName": organ_name,
+        "standardField": standard_field,
+    }
+
+
+class TestTTBZAdapter(unittest.TestCase):
+    """ttbz.org.cn 团体标准适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.ttbz import TTBZAdapter
+
+        self.a = TTBZAdapter()
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_maps_all_fields(self):
+        """验证所有字段正确映射到 QueryResult。"""
+        rec = _ttbz_row()
+        r = self.a._parse_result(rec, "T/CAS 123-2024")
+        self.assertEqual(r.standard_number, "T/CAS 123-2024")
+        self.assertEqual(r.standard_name, "团体标准中文名称")
+        self.assertEqual(r.publish_date, "2024-01-01")
+        self.assertEqual(r.implementation_date, "2024-07-01")
+        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.responsible_dept, "中国标准化协会")
+        self.assertEqual(r.source_site, "ttbz")
+        self.assertEqual(r.hcno, "abc123def456")
+
+    def test_parse_result_dynamic_attrs_standard_name_en(self):
+        """验证动态属性 standard_name_en 存在且类型正确。"""
+        rec = _ttbz_row()
+        r = self.a._parse_result(rec, "")
+        self.assertTrue(hasattr(r, "standard_name_en"), "动态属性 standard_name_en 必须存在")
+        self.assertEqual(r.standard_name_en, "Group Standard English Name")
+        self.assertIsInstance(r.standard_name_en, str)
+
+    def test_parse_result_dynamic_attrs_field(self):
+        """验证动态属性 field 存在且类型正确。"""
+        rec = _ttbz_row()
+        r = self.a._parse_result(rec, "")
+        self.assertTrue(hasattr(r, "field"), "动态属性 field 必须存在")
+        self.assertEqual(r.field, "化工")
+        self.assertIsInstance(r.field, str)
+
+    def test_parse_result_empty_fields_use_defaults(self):
+        """验证 API 返回空值时使用默认值。"""
+        rec = _ttbz_row(
+            standard_no="",
+            title_cn="",
+            title_en="",
+            publish_date="",
+            implement_date="",
+            status_name="",
+            organ_name="",
+            standard_field="",
+            unique_id="",
+        )
+        r = self.a._parse_result(rec, "")
+        self.assertEqual(r.standard_number, "")
+        self.assertEqual(r.standard_name, "")
+        self.assertEqual(r.publish_date, "")
+        self.assertEqual(r.implementation_date, "")
+        self.assertEqual(r.status, "未知")
+        self.assertEqual(r.responsible_dept, "")
+        self.assertEqual(r.hcno, "")
+        self.assertEqual(r.standard_name_en, "")
+
+    def test_parse_result_unknown_status_preserved(self):
+        """验证非标准状态值原样保留。"""
+        rec = _ttbz_row(status_name="已废止")
+        r = self.a._parse_result(rec, "")
+        self.assertEqual(r.status, "已废止")
+
+    def test_parse_result_is_adopted_false(self):
+        """验证团体标准不应标记为采标。"""
+        rec = _ttbz_row()
+        r = self.a._parse_result(rec, "")
+        self.assertFalse(r.is_adopted)
+
+    # ── _search 单元测试（mock HTTP） ──
+
+    def _mock_response(self, rows):
+        from unittest.mock import MagicMock
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = _make_ttbz_response(*rows)
+        self.a._session.request = MagicMock(return_value=mock_resp)
+
+    def test_search_exact_match(self):
+        """验证精确匹配搜索返回正确结果。"""
+        self._mock_response([_ttbz_row(standard_no="T/CAS 123-2024")])
+        r = self.a._search("T/CAS 123-2024")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "T/CAS 123-2024")
+        self.assertEqual(r.match_status, "exact")
+
+    def test_search_no_results(self):
+        """验证无结果返回 None。"""
+        self._mock_response([])
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """验证网络异常返回 None 而非抛出异常。"""
+        from unittest.mock import MagicMock
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.json.side_effect = ValueError("bad json")
+        self.a._session.request = MagicMock(return_value=mock_resp)
+        r = self.a._search("T/CAS 123-2024")
+        self.assertIsNone(r)
+
+    # ── query_standards 单元测试（mock HTTP） ──
+
+    def test_query_standards_returns_list(self):
+        """验证 query_standards 返回 list[QueryResult]。"""
+        self._mock_response(
+            [
+                _ttbz_row(standard_no="T/CAS 001-2024"),
+                _ttbz_row(standard_no="T/CAS 002-2024"),
+            ]
+        )
+        results = self.a.query_standards("T/CAS")
+        self.assertIsInstance(results, list)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0].standard_number, "T/CAS 001-2024")
+
+    def test_query_standards_empty_keyword(self):
+        """验证空关键词返回空列表，不报错。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+    def test_query_standards_network_timeout(self):
+        """验证网络超时返回空列表，不抛出异常。"""
+        from unittest.mock import MagicMock
+
+        self.a._session.request = MagicMock(side_effect=Exception("Connection timed out"))
+        results = self.a.query_standards("T/CAS 123")
+        self.assertEqual(results, [])
+
+    def test_query_standards_passes_kwargs_as_form_data(self):
+        """验证 **kwargs 透传为 form data 参数。"""
+        self._mock_response([])
+        self.a.query_standards(
+            "T/CAS",
+            organName="中国标准化协会",
+            publishDateBegin="2024-01-01",
+            publishDateEnd="2024-12-31",
+        )
+        call_args = self.a._session.request.call_args
+        data = call_args[1]["data"]
+        self.assertIn(("organName", "中国标准化协会"), data.items())
+        self.assertIn(("publishDateBegin", "2024-01-01"), data.items())
+        self.assertIn(("publishDateEnd", "2024-12-31"), data.items())
+
+    def test_query_standards_sets_required_headers(self):
+        """验证 POST 请求包含必要的 headers。"""
+        self._mock_response([])
+        self.a.query_standards("T/CAS")
+        call_args = self.a._session.request.call_args
+        headers = call_args[1].get("headers", {})
+        self.assertIn("X-Requested-With", headers)
+        self.assertIn("Referer", headers)
+
+
 if __name__ == "__main__":
     unittest.main()
