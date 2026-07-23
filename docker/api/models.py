@@ -1,7 +1,7 @@
 # docker/api/models.py — API 响应 Pydantic 模型，自动生成 OpenAPI 文档
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ════════════════════════════════════════════════════════════════
 # Phase 1: 通用响应模型（健康检查、文件、扫描、下载、错误）
@@ -38,9 +38,9 @@ class ScanResponse(BaseModel):
 class ScanIndexResponse(BaseModel):
     """Q6-1: scan_and_index 响应模型。仅 UPDATE pending 记录，不新增 standards 条目。"""
 
-    indexed: int
-    skipped: int
-    failed: int
+    indexed: int = Field(description="本次新匹配并 UPDATE 的记录数")
+    skipped: int = Field(description="解析失败、未匹配四要素、或非 pending 状态的记录数")
+    failed: int = Field(description="处理过程中抛出异常的文件数")
 
 
 class DirItem(BaseModel):

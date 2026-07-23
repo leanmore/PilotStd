@@ -39,8 +39,13 @@ class FileIndexRepository(_FileIndexQueryMixin):
 
     @property
     def db(self) -> Database:
-        """公共只读数据库连接访问器。
-        替代外部直接访问 _db 私有属性，为未来连接池/事务封装预留扩展点。
+        """公共数据库连接访问器。
+
+        ⚠️ 使用约束：
+        - 仅用于只读查询（SELECT）和受控更新（UPDATE）
+        - 禁止在该连接上执行 DDL（CREATE/DROP/ALTER）
+        - 禁止显式事务管理（BEGIN/COMMIT/ROLLBACK）
+        - 连接由 FileIndexRepository 管理，调用方不应自行关闭
         """
         return self._db
 
