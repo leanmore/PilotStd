@@ -99,11 +99,11 @@ def scan_and_index(
     path: str | None = None,
     mgr=Depends(get_manager_dep),
 ):
-    """扫描目录 → 解析标准号 → 写入 file_index 表（使首页统计生效）。
-    不传 path 时使用配置的 library_root。
+    """Q6-1: 扫描标准库 → 四要素匹配 → UPDATE standards 表扫描状态。
+    path 参数保留向后兼容但不再使用，始终扫描配置的 library_root。
     """
     try:
-        count = mgr.scan_and_index(path)
-        return {"ok": True, "indexed": count, "path": path or "(library root)"}
+        result = mgr.scan_and_index(path)
+        return {"ok": True, **result, "path": path or "(library root)"}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

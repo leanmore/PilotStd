@@ -157,23 +157,25 @@ class ScanHandler:
 
         return parsed
 
-    # scan_and_index — 定时任务专用：扫描目录 → 解析 → 写入 file_index
-    def scan_and_index(self, root_path: Optional[str] = None) -> int:
-        """定时任务专用：扫描目录 → 解析 → 写入 file_index。"""
+    # scan_and_index — 定时任务专用：四要素匹配 → UPDATE standards 表
+    def scan_and_index(self, root_path: Optional[str] = None) -> dict[str, int]:
+        """Q6-1: 定时任务专用。root_path 参数保留向后兼容但不再使用，
+        始终扫描 get_library_root() 返回的根目录。
+        """
         try:
-            count = self._core.scheduled_svc.scan_and_index(root_path)  # type: ignore[no-any-return]
+            result: dict[str, int] = self._core.scheduled_svc.scan_and_index()  # type: ignore[attr-defined,no-any-return]
             try:
                 if self._core.notification_mgr:
-                    if count > 0:
+                    if result.get("indexed", 0) > 0:
                         self._core.notification_mgr.send_event(
                             "scan_complete",
-                            {"count": count, "failed": 0},
+                            {"count": result["indexed"], "failed": result.get("failed", 0)},
                         )
-                    else:
+                    elif result.get("indexed", 0) == 0 and result.get("failed", 0) == 0:
                         self._core.notification_mgr.send_event("scan_empty", {})
             except Exception:
                 pass
-            return count
+            return result
         except Exception as e:
             logger.exception("scan_and_index 定时任务失败")
             if self._core.notification_mgr:
@@ -184,7 +186,7 @@ class ScanHandler:
                     )
                 except Exception:
                     pass
-            return 0
+            return {"indexed": 0, "skipped": 0, "failed": 1}
 
     def start_watching(self, root_paths: Optional[list[str]] = None) -> None:
         """启动增量文件监控。需安装 watchdog 包。"""
