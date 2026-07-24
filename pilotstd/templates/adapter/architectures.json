@@ -1,0 +1,109 @@
+{
+  "schema_version": "v2.0",
+  "architectures": {
+    "json_api_post": {
+      "sample_adapter": "ttbz",
+      "method": "POST",
+      "response_type": "json",
+      "description": "JSON REST API，POST 请求体带搜索参数，返回结构化 JSON",
+      "field_mapping": {
+        "standard_number": "standardNo",
+        "standard_name": "standardTitleCn",
+        "publish_date": "publishDate",
+        "implement_date": "implementDate",
+        "status": "standardStatusName",
+        "responsible_dept": "organName"
+      }
+    },
+    "json_api_get": {
+      "sample_adapter": "jjg",
+      "method": "GET",
+      "response_type": "json",
+      "description": "JSON REST API，GET URL 参数搜索，返回结构化 JSON",
+      "field_mapping": {
+        "standard_number": "code",
+        "standard_name": "title",
+        "publish_date": "publishDate",
+        "implement_date": "implementDate",
+        "status": "status"
+      }
+    },
+    "json_api_mixed": {
+      "sample_adapter": "sppt",
+      "method": "GET",
+      "response_type": "json",
+      "description": "JSON 数组响应，需过滤公告/非标条目，自签名 SSL",
+      "field_mapping": {
+        "standard_number": "CODE",
+        "standard_name": "TITLE",
+        "publish_date": "PDATE",
+        "implement_date": "SSRQ"
+      }
+    },
+    "html_table": {
+      "sample_adapter": "nrsis",
+      "method": "GET",
+      "response_type": "html",
+      "description": "服务端渲染 HTML 表格，GBK 编码，需识别数据表",
+      "field_mapping": {
+        "standard_number": 1,
+        "standard_name": 2,
+        "publish_date": 3,
+        "implement_date": 4,
+        "status": 5
+      }
+    },
+    "html_list": {
+      "sample_adapter": "mee",
+      "method": "GET",
+      "response_type": "html",
+      "description": "政务 CMS 静态列表，分类过滤 + 正则提取标准号",
+      "field_mapping": {
+        "standard_number": "",
+        "standard_name": "",
+        "publish_date": "",
+        "implement_date": "",
+        "status": ""
+      }
+    },
+    "iframe_card": {
+      "sample_adapter": "jtst",
+      "method": "GET",
+      "response_type": "html",
+      "description": "iframe 内嵌卡片式 HTML，需从卡片子元素提取字段",
+      "field_mapping": {
+        "standard_number": "",
+        "standard_name": "",
+        "publish_date": "",
+        "implement_date": "",
+        "status": ""
+      }
+    },
+    "vue_datalist": {
+      "sample_adapter": "sppt_local",
+      "method": "POST",
+      "response_type": "vue_datalist",
+      "description": "SSR HTML 内嵌 Vue.js dataList JSON，正则提取 + 省份映射",
+      "field_mapping": {
+        "standard_number": "standard_code",
+        "standard_name": "title",
+        "publish_date": "",
+        "implement_date": "",
+        "responsible_dept": "province"
+      }
+    },
+    "viewstate": {
+      "sample_adapter": "ccsn",
+      "method": "POST",
+      "response_type": "viewstate",
+      "description": "ASP.NET WebForms，GET 搜索 + ViewState POST 翻页，GBK 编码",
+      "field_mapping": {
+        "standard_number": 2,
+        "standard_name": 1,
+        "publish_date": 3,
+        "implement_date": 4,
+        "status": 5
+      }
+    }
+  }
+}
