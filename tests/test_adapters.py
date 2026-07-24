@@ -1592,5 +1592,115 @@ class TestSPPTAdapter(unittest.TestCase):
         self.assertEqual(results, [])
 
 
+# ════════════════════════════════════════════════════════════════
+# SPPT Local (8087) 适配器测试
+# ════════════════════════════════════════════════════════════════
+
+
+class TestSPPTLocalAdapter(unittest.TestCase):
+    """sppt.cfsa.net.cn:8087 食品安全地方标准适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.sppt_local import SPPTLocalAdapter
+
+        self.a = SPPTLocalAdapter()
+
+    # ── _extract_datalist 测试 ──
+
+    def test_extract_datalist_from_real_fixture(self):
+        """从真实 SSR HTML 提取 dataList。"""
+
+        fixture = "tests/fixtures/sppt_8087_search2.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            html = f.read()
+        data = self.a._extract_datalist(html)
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
+        self.assertIn("standard_code", data[0])
+
+    def test_extract_datalist_empty_html(self):
+        """无效 HTML 返回空列表。"""
+        self.assertEqual(self.a._extract_datalist(""), [])
+        self.assertEqual(self.a._extract_datalist("<html></html>"), [])
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_fields(self):
+        """字段映射：standard_code→standard_number, title→standard_name, province→额外信息。"""
+        rec = {
+            "standard_code": "DB 31/2009-2026",
+            "title": "食品安全地方标准 预包装冷藏膳食",
+            "province": "上海",
+        }
+        r = self.a._parse_result(rec, "DB 31")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "DB 31/2009-2026")
+        self.assertEqual(r.standard_name, "食品安全地方标准 预包装冷藏膳食")
+        self.assertEqual(r.responsible_dept, "上海市")
+        self.assertEqual(r.source_site, "sppt_local")
+
+    def test_parse_result_empty_record(self):
+        """空记录返回 None。"""
+        self.assertIsNone(self.a._parse_result({}, ""))
+
+    # ── _search 单元测试 ──
+
+    def test_search_returns_result(self):
+        """搜索返回 QueryResult。"""
+
+        fixture = "tests/fixtures/sppt_8087_search2.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            html = f.read()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._client.post = MagicMock(return_value=mock_resp)
+        r = self.a._search("DB")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """无结果返回 None。"""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "<html>var app = new Vue({data:{dataList: []}})</html>"
+        self.a._client.post = MagicMock(return_value=mock_resp)
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None。"""
+        self.a._client.post = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("DB")
+        self.assertIsNone(r)
+
+    # ── query_standards 测试 ──
+
+    def test_query_standards_returns_list(self):
+        """返回 list[QueryResult]。"""
+        fixture = "tests/fixtures/sppt_8087_search2.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            html = f.read()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._client.post = MagicMock(return_value=mock_resp)
+        results = self.a.query_standards("DB")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表。"""
+        self.assertEqual(self.a.query_standards(""), [])
+
+
 if __name__ == "__main__":
     unittest.main()
