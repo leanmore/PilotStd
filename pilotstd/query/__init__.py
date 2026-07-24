@@ -77,3 +77,10 @@ def _get_mee_adapter() -> Type[Any]:
     from .adapters.mee import MEEAdapter
 
     return MEEAdapter
+
+
+def _get_nrsis_adapter() -> Type[Any]:
+    """懒加载自然资源标准适配器（NRSISAdapter）。"""
+    from .adapters.nrsis import NRSISAdapter
+
+    return NRSISAdapter

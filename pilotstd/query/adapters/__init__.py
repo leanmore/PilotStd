@@ -6,6 +6,7 @@ from .hbba import HbbaAdapter
 from .iso_gov import IsoGovAdapter
 from .mee import MEEAdapter
 from .njbz365 import Njbz365Adapter
+from .nrsis import NRSISAdapter
 from .std_gov import StdGovAdapter
 from .ttbz import TTBZAdapter
 
@@ -18,5 +19,6 @@ __all__ = [
     "HbbaAdapter",
     "IsoGovAdapter",
     "MEEAdapter",
+    "NRSISAdapter",
     "TTBZAdapter",
 ]

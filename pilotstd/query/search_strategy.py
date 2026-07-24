@@ -275,6 +275,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "group": {"primary": "ttbz", "fallback": "ahbz"},
     # 生态环境标准 → mee 官网优先，std_gov 兜底
     "env": {"primary": "mee", "fallback": "std_gov"},
+    # 自然资源标准 → nrsis 官网优先，hbba 兜底
+    "natural_resources": {"primary": "nrsis", "fallback": "hbba"},
 }
 
 

@@ -77,4 +77,11 @@ def create_default_sites() -> list[SiteState]:
             daily_limit=500,
             cooldown_seconds=2,
         ),
+        SiteState(
+            name="nrsis",
+            base_url="http://www.nrsis.org.cn",
+            max_requests=30,
+            daily_limit=300,
+            cooldown_seconds=3,
+        ),
     ]

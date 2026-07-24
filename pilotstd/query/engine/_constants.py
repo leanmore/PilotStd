@@ -10,7 +10,7 @@ PROGRESS_TAG = "[PROGRESS]"
 logger = logging.getLogger(__name__)
 
 # 默认站点优先级（兜底，无代号匹配时使用）
-PROD_PRIORITY = ["ahbz", "std_gov", "mee", "hbba", "iso_gov", "njbz365", "ttbz", "csres"]
+PROD_PRIORITY = ["ahbz", "std_gov", "mee", "nrsis", "hbba", "iso_gov", "njbz365", "ttbz", "csres"]
 # 国外标准默认路由：ahbz免鉴权优先，njbz365次选
 FOREIGN_ROUTE = ["ahbz", "njbz365"]
 

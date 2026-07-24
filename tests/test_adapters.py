@@ -785,5 +785,199 @@ class TestMEEAdapter(unittest.TestCase):
         self.assertEqual(params["page"], 2)
 
 
+# ════════════════════════════════════════════════════════════════
+# NRSIS 适配器测试（基于真实 API 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestNRSISAdapter(unittest.TestCase):
+    """nrsis.org.cn 自然资源标准适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.nrsis import NRSISAdapter
+
+        self.a = NRSISAdapter()
+
+    # ── HEADER_MAP 定义 ──
+
+    def test_header_map_defined(self):
+        """验证表头映射已定义且包含所有必要字段。"""
+        self.assertIsNotNone(self.a.HEADER_MAP)
+        required_keys = ["标准编号", "标准名称", "发布日期", "实施日期", "状态"]
+        for key in required_keys:
+            self.assertIn(key, self.a.HEADER_MAP, f"Header map missing: {key}")
+
+    # ── _decode_content 单元测试 ──
+
+    def test_decode_content_utf8_bom(self):
+        """UTF-8 BOM 正确处理。"""
+        result = self.a._decode_content(b"\xef\xbb\xbf\xe6\xa0\x87\xe5\x87\x86")
+        self.assertIn("标准", result)
+
+    def test_decode_content_utf8(self):
+        """纯 UTF-8 正确处理。"""
+        result = self.a._decode_content(b"\xe6\xa0\x87\xe5\x87\x86")
+        self.assertIn("标准", result)
+
+    def test_decode_content_gbk(self):
+        """GBK 编码正确处理。"""
+        result = self.a._decode_content(b"\xb1\xea\xd7\xbc")
+        self.assertIn("标准", result)
+
+    def test_decode_content_bom_plus_gbk(self):
+        """BOM + GBK 回退链正确处理（现实中不存在但验证回退健壮性）。"""
+        result = self.a._decode_content(b"\xef\xbb\xbf\xb1\xea\xd7\xbc")
+        self.assertIn("标准", result)
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实 API 响应表格解析第一条结果。"""
+        from bs4 import BeautifulSoup
+
+        fixture_path = "tests/fixtures/nrsis_search_gbt.html"
+        if not os.path.exists(fixture_path):
+            self.skipTest("Fixture not found; run Task 0 first.")
+        with open(fixture_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        soup = BeautifulSoup(html, "lxml")
+        rows = soup.select("table tbody tr")
+        self.assertGreater(len(rows), 0, "Fixture must contain at least one data row.")
+        r = self.a._parse_result(rows[0], "GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+        self.assertTrue(
+            re.match(r"^(GB/T?|HB|DB)\s*\d+", r.standard_number),
+            f"Invalid standard number: {r.standard_number}",
+        )
+        self.assertTrue(r.standard_name, "Standard name should not be empty")
+
+    def test_parse_result_maps_fields_correctly(self):
+        """表头映射驱动的字段映射正确。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <table><tbody><tr>
+            <td>1</td>
+            <td>GB/T 12345-2020</td>
+            <td>自然资源标准名称</td>
+            <td>2020-01-01</td>
+            <td>2020-07-01</td>
+            <td>现行</td>
+        </tr></tbody></table>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        row = soup.select_one("tbody tr")
+        r = self.a._parse_result(row, "GB/T 12345-2020")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "GB/T 12345-2020")
+        self.assertEqual(r.standard_name, "自然资源标准名称")
+        self.assertEqual(r.publish_date, "2020-01-01")
+        self.assertEqual(r.implementation_date, "2020-07-01")
+        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.responsible_dept, "自然资源部")
+        self.assertEqual(r.source_site, "nrsis")
+
+    def test_parse_result_abandoned_status(self):
+        """废止状态正确映射。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <table><tbody><tr>
+            <td>1</td><td>GB/T 99999-2000</td><td>已废止标准</td>
+            <td>2000-01-01</td><td>2000-07-01</td><td>废止</td>
+        </tr></tbody></table>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        row = soup.select_one("tbody tr")
+        r = self.a._parse_result(row, "GB/T 99999")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.status, "废止")
+
+    def test_parse_result_empty_row(self):
+        """空行返回 None。"""
+        from bs4 import BeautifulSoup
+
+        html = "<table><tbody><tr><td></td><td></td></tr></tbody></table>"
+        soup = BeautifulSoup(html, "lxml")
+        row = soup.select_one("tbody tr")
+        r = self.a._parse_result(row, "")
+        self.assertIsNone(r)
+
+    # ── _search 单元测试（mock httpx） ──
+
+    def _mock_httpx_response(self, html_fixture_file):
+        with open(html_fixture_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.content = html.encode("utf-8")
+        self.a._client.get = MagicMock(return_value=mock_resp)
+
+    def test_search_returns_result(self):
+        """验证搜索返回 QueryResult。"""
+        fixture = "tests/fixtures/nrsis_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_httpx_response(fixture)
+        r = self.a._search("GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """空结果表返回 None。"""
+        html = "<html><body>暂无数据</body></html>"
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.content = html.encode("utf-8")
+        self.a._client.get = MagicMock(return_value=mock_resp)
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None 而非抛出异常。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("GB/T")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试（mock httpx） ──
+
+    def test_query_standards_returns_list(self):
+        """验证 query_standards 返回 list[QueryResult]。"""
+        fixture = "tests/fixtures/nrsis_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_httpx_response(fixture)
+        results = self.a.query_standards("GB/T")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表，不报错。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+    def test_query_standards_network_timeout(self):
+        """网络超时返回空列表，不抛出异常。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection timed out"))
+        results = self.a.query_standards("GB/T")
+        self.assertEqual(results, [])
+
+    def test_query_standards_passes_filter_params(self):
+        """验证 level、repeFlag、zxd 参数透传。"""
+        fixture = "tests/fixtures/nrsis_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_httpx_response(fixture)
+        self.a.query_standards("GB/T", level="HB", repeFlag="现行", zxd="01")
+        call_args = self.a._client.get.call_args
+        params = call_args[1]["params"]
+        self.assertEqual(params["level"], "HB")
+        self.assertEqual(params["repeFlag"], "现行")
+        self.assertEqual(params["zxd"], "01")
+
+
 if __name__ == "__main__":
     unittest.main()

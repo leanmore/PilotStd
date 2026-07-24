@@ -1,0 +1,491 @@
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>自然资源标准化信息服务平台</title>
+    <link href="/resources/portal/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/resources/portal/filtermore/filtermore.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/resources/cdn/css/font-awesome.min.css" />
+    <link href="/resources/portal/css/rb-v1.css?t=1784862765229" rel="stylesheet">
+    <link href="/resources/portal/jq-cycle/css/slideshows.css?t=1784862765229" rel="stylesheet">
+    
+    <!--[if lt IE 9]>
+    <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+    <![endif]-->
+    <style type="text/css">
+    	.nav-menu li{
+    		width:100px
+    	}
+		.navbar-default .navbar-nav>li>a:hover {
+			color: #fff;
+		}
+		.my-link{
+			display: inline-block;
+			width: 80%;
+			text-overflow: ellipsis;
+			overflow: hidden;
+			white-space: nowrap;
+			word-wrap: normal;
+			margin-bottom: -10px;
+		}
+		@media (max-width:767px){
+			.my-link{
+				width: 66%;
+			}
+			.basic-info .basicInfo-block .basicInfo-item.value {
+				width: 51% !important;
+			}
+		}
+		.xwdt-thumb{
+			width: 83px;height: 68px;
+		}
+		@media (min-width: 768px) {
+			.xwdt-thumb{
+				width: 152px;height: 107px;
+			}
+		}
+		.tit3 .my-title {
+			border-bottom: 2px #2251ab solid;
+			width: 100px;
+			text-align: center;
+			color: #2251ab;
+			font-size: 16px;
+			font-weight: bold;
+		}
+		.tc-card{
+			border: solid 1px #eee;
+			margin-bottom: 10px;
+			padding: 10px;
+		}
+		/*.list1 li a{*/
+			/*color:#337ab7 !important;*/
+		/*}*/
+    </style>
+	<script>
+	var _hmt = _hmt || [];
+	(function() {
+	  var hm = document.createElement("script");
+	  hm.src = "https://hm.baidu.com/hm.js?373359fe25edbea64b695515550ee46c";
+	  var s = document.getElementsByTagName("script")[0]; 
+	  s.parentNode.insertBefore(hm, s);
+	})();
+	</script>    
+</head>
+
+<body>
+<div style="background:url(/resources/portal/web/images/bgpic.jpg) top right no-repeat;">
+<div class="container" >
+    <div class="row">
+        <div class="col-sm-8">
+            <img src="/resources/portal/web/images/logo.jpg" style="margin:16px 0 8px;max-width: 100%;">
+        </div>
+        <div class="col-sm-4" style="line-height: 114px;text-align: right;">
+        </div>
+    </div>
+</div>
+<div class="nav-menu">
+    <div class="container">
+	 <nav class="navbar navbar-default" style="z-index: 99;">
+	      <div class="container">
+	        <!--小屏幕导航按钮和logo--><!--响应式导航栏-->
+	       <div class="navbar-header">
+	            <button class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse"><!--将图标和导航栏同一个类连接起来，注意有一个点.navbar-collapse-->
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	            <span class="icon-bar"></span>
+	        </button>
+	       </div>
+	            <!--小屏幕导航按钮和logo-->
+	
+	              <!--导航-->
+	              <div class="navbar-collapse collapse" ><!--响应式导航栏-->
+	                  <ul class="nav navbar-nav navbar-center">
+		                    <li  ><a href="/portal/">首  页</a></li>
+		                    <li  ><a href="/portal/tzgg">通知公告</a></li>
+		                    <li  ><a href="/portal/gzdt">工作动态</a></li><!--新闻动态xwdt-->
+		                    <li class="hidden-xs"><a href="/admin" target="_blank">制修订管理</a></li>
+		                    <li  ><a href="/portal/xmsb">标准申报</a></li><!-- 项目申报 -->
+		                    <li class="nav_in" ><a href="/portal/xxcx/std">标准公开</a></li>
+		                    <li  ><a href="/portal/zqyj">征求意见</a></li>
+		                    <li class="hidden-xs"  ><a href="/portal/ssfk">实施反馈</a></li>
+		                    <li  ><a href="/portal/bzzs">标准知识</a></li>
+		                    <li  ><a href="/portal/xzzx">下载中心</a></li>
+	                  </ul>
+	              </div>
+	      </div>
+	   </nav>    
+
+    </div>
+</div>
+<div style="background:url(/resources/portal/web/images/bgbottom.jpg) center bottom repeat-x;">
+<style>
+    a{color: #333;}
+    th{cursor:pointer;}
+</style>
+<div class="container" style="padding-top:15px; padding-bottom:16px;">
+    <div class="col-sm-12 bor2">
+        <ul class="nav nav-tabs">
+            <li role="presentation" class="active"><a href="#">标准查询</a></li>
+            <li role="presentation"><a href="/portal/xxcx/plan">计划查询</a></li>
+            <li role="presentation"><a href="/portal/xxcx/tc">机构查询</a></li>
+        </ul>
+        
+        <div class="search-area">
+            <div class="input-group" style="width: 90%; margin: 0 auto;">
+                <input id="keyword" type="text" class="form-control" value="GB/T" required placeholder="请输入标准名称或编号" />
+                <div id="searchBtn" class="input-group-addon" style="background-color: #428bca; color: white;cursor: pointer;" onclick="page.query()">
+                    <span class="glyphicon glyphicon-search"></span> 查询
+                </div>
+            </div>
+        </div>
+
+        <div class="searchbox"></div>
+
+		<div class="alert alert-warning alert-dismissible" role="alert">
+		  <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		  <strong>纸质标准购买</strong> 自然资源国家标准（GB）可咨询中国标准出版社（010-58523946）购买纸质版；自然资源与国土空间规划领域行业标准（DZ、TD）可咨询地质出版社（010-66554646，13520774434，010-66554578，13488693665）购买纸质版；海洋领域行业标准（HY）可咨询中国标准出版社（010-68523946）或国家海洋标准计量中心（022-27539520，13001371833）购买纸质版；测绘领域行业标准（CH）可咨询测绘出版社（010-68580735，13810399734）购买纸质版。感谢支持！
+		  <br/>
+		  《自然资源标准体系》已由中国大地出版社出版，购买可咨询010-66554403
+		  <br/>
+		  
+		  <b>注：由于出版社出版标准需要时间，因此在标准发布一定时间后，方能购买到标准正式出版物，开展标准公开工作。</b>
+		</div>
+
+        <table class="table table-bordered hidden-xs">
+            <thead>
+            <tr>
+                <th>序号</th>
+                <th data-sort="stdCode" class="sortCss"  >标准号</th>
+                <th data-sort="cName"   class="sortCss"    >标准名称</th>
+                <th data-sort="issueTime"   class="sortCss" >发布日期</th>
+                <th data-sort="actTime"   class="sortCss" >实施日期</th>
+                <th data-sort="repeFlag"   class="sortCss" > 标准状态</th>
+            </tr>
+            </thead>
+            <tbody>
+            
+            
+                <tr>
+                    <td style="text-align: center;">1</td>
+                    <td>GB/T 19492-2004</td>
+                    <td><a href="/portal/stdDetail/210718" target="_blank">石油天然气资源/储量分类</a></td>
+                    <td>2004-04-30</td>
+                    <td>2004-10-01</td>
+                    <td>废止</td>
+                </tr>
+            
+                <tr>
+                    <td style="text-align: center;">2</td>
+                    <td>GB/T 18341-2001</td>
+                    <td><a href="/portal/stdDetail/210715" target="_blank">地质矿产勘查测量规范</a></td>
+                    <td>2001-03-19</td>
+                    <td>2001-10-01</td>
+                    <td>废止</td>
+                </tr>
+            
+                <tr>
+                    <td style="text-align: center;">3</td>
+                    <td>GB/T 17766-1999</td>
+                    <td><a href="/portal/stdDetail/210714" target="_blank">固体矿产资源/储量分类</a></td>
+                    <td>1999-06-08</td>
+                    <td>1999-12-01</td>
+                    <td>废止</td>
+                </tr>
+            
+                <tr>
+                    <td style="text-align: center;">4</td>
+                    <td>GB/T 15218-1994</td>
+                    <td><a href="/portal/stdDetail/210706" target="_blank">地下水资源分类分级标准</a></td>
+                    <td>1994-09-24</td>
+                    <td>1995-08-01</td>
+                    <td>废止</td>
+                </tr>
+            
+                <tr>
+                    <td style="text-align: center;">5</td>
+                    <td>GB/T 14157-1993</td>
+                    <td><a href="/portal/stdDetail/210698" target="_blank">水文地质术语</a></td>
+                    <td>1993-02-12</td>
+                    <td>1993-11-01</td>
+                    <td>废止</td>
+                </tr>
+            
+            </tbody>
+        </table>
+        <div class="visible-xs">
+            
+                <div class="tc-card">
+                    <p><b>GB/T 19492-2004</b></p>
+                    <p><a href="/portal/stdDetail/210718" target="_blank">石油天然气资源/储量分类</a></p>
+                    <p>2004-04-30~2004-10-01
+                        <span style="float: right;">废止</span>
+                    </p>
+                </div>
+                </tr>
+            
+                <div class="tc-card">
+                    <p><b>GB/T 18341-2001</b></p>
+                    <p><a href="/portal/stdDetail/210715" target="_blank">地质矿产勘查测量规范</a></p>
+                    <p>2001-03-19~2001-10-01
+                        <span style="float: right;">废止</span>
+                    </p>
+                </div>
+                </tr>
+            
+                <div class="tc-card">
+                    <p><b>GB/T 17766-1999</b></p>
+                    <p><a href="/portal/stdDetail/210714" target="_blank">固体矿产资源/储量分类</a></p>
+                    <p>1999-06-08~1999-12-01
+                        <span style="float: right;">废止</span>
+                    </p>
+                </div>
+                </tr>
+            
+                <div class="tc-card">
+                    <p><b>GB/T 15218-1994</b></p>
+                    <p><a href="/portal/stdDetail/210706" target="_blank">地下水资源分类分级标准</a></p>
+                    <p>1994-09-24~1995-08-01
+                        <span style="float: right;">废止</span>
+                    </p>
+                </div>
+                </tr>
+            
+                <div class="tc-card">
+                    <p><b>GB/T 14157-1993</b></p>
+                    <p><a href="/portal/stdDetail/210698" target="_blank">水文地质术语</a></p>
+                    <p>1993-02-12~1993-11-01
+                        <span style="float: right;">废止</span>
+                    </p>
+                </div>
+                </tr>
+            
+        </div>
+        <!-- 分页 -->
+        
+<div class="zxd-table-footer sui-row-fluid" style="padding-bottom: 55px;">
+    <div class="span4 zxd-pagesize hidden-xs">
+    	共7条数据，每页显示
+    	<select class="zxd-select-pagesize">
+    	<option>10</option>
+    	<option>20</option>
+    	<option>30</option>
+    	<option>50</option>
+    	<option>100</option>
+    	<option>150</option>
+    	</select>条
+    </div>
+    <div class="span8 zxd-page"></div>
+</div>
+    </div>
+</div>
+
+
+<div class="foot">
+    版权所有：自然资源部      <span class="hidden-xs">通讯地址：北京市259信箱</span><br>
+    技术支持：国家市场监督管理总局国家标准技术审评中心      <span class="hidden-xs">QQ咨询：1749832702</span><br>
+    <span class="hidden-xs"> 公安机关备案号13101002000059</span><br>
+ <a href="http://www.beian.miit.gov.cn" style="color:white;" target="_blank">京ICP备19046226号-2</a>   
+
+</div>
+<!-- jQuery (Bootstrap 的所有 JavaScript 插件都依赖 jQuery，所以必须放在前边) -->
+<script src="/resources/cdn/js/jquery.min.js"></script>
+<!-- 加载 Bootstrap 的所有 JavaScript 插件。你也可以根据需要只加载单个插件。 -->
+<script src="/resources/portal/js/bootstrap.min.js"></script>
+<script src="/resources/cdn/js/sui.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/resources/portal/filtermore/filtermore.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/resources/cdn/js/layer/layer.js" type="text/javascript" charset="utf-8"></script>
+<script src="/resources/portal/jq-cycle/js/jquery.cycle.all.js" type="text/javascript" charset="utf-8"></script>
+<script src="/resources/portal/jq-cycle/js/jquery.easing.1.3.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+//轮播图
+$('#slideshow_2').cycle({
+    fx: 'fade',		
+	speed:  900, 
+	timeout: 5000, 
+	pager: '.ss2_wrapper .slideshow_paging', 
+    prev: '.ss2_wrapper .slideshow_prev',
+    next: '.ss2_wrapper .slideshow_next',
+	before: function(currSlideElement, nextSlideElement) {
+		var data = $('.data', $(nextSlideElement)).html();
+		$('.ss2_wrapper .slideshow_box').stop(true, true).animate({ bottom:'-110px'}, 400, function(){
+			$('.ss2_wrapper .slideshow_box .data').html(data);
+		});
+		$('.ss2_wrapper .slideshow_box').delay(100).animate({ bottom:'0'}, 400);
+	}
+});
+
+$('.ss2_wrapper').mouseenter(function(){
+	$('#slideshow_2').cycle('pause');
+	$('.ss2_wrapper .slideshow_prev').stop(true, true).animate({ left:'20px'}, 200);
+	$('.ss2_wrapper .slideshow_next').stop(true, true).animate({ right:'20px'}, 200);
+}).mouseleave(function(){
+	$('#slideshow_2').cycle('resume');
+	$('.ss2_wrapper .slideshow_prev').stop(true, true).animate({ left:'-40px'}, 200);
+	$('.ss2_wrapper .slideshow_next').stop(true, true).animate({ right:'-40px'}, 200);
+});
+
+//a标签缩略
+/* $("a").each(function(index, element) {
+    var oldText = this.text;
+    if (oldText.length > 29) {
+        var newText = oldText.substring(0,29)+"...";
+        $(this).html(newText)
+    }
+}); */
+</script>
+ 
+</div>
+</div>
+</body>
+</html>
+
+<script type="text/javascript">
+    var page={
+        url:location.pathname,
+        pages:parseInt('2'),
+        currentPage:parseInt('1'),
+        pageSize:parseInt('5'),
+        initTable :function(currentPage,pages){
+            $('.zxd-page').pagination({
+                currentPage:currentPage,
+                pages: pages,
+                styleClass: ['pagination-large'],
+                displayPage: 5,
+                onSelect: function (num) {
+                    page.currentPage=num;
+                    page.query();
+                }
+            });
+
+            $('.zxd-select-pagesize').val(page.pageSize).bind('change',function(){
+                var val=$(this).val();
+                page.pageSize=val;
+                page.query();
+            });
+        },
+        getParam:function(){
+            var param='?';
+            $.each(page.ids,function(i,n){
+                param+='ids='+n+'&';
+            });
+            param=param.substring(0,param.length-1);
+            return param;
+        },
+        //查询
+        query:function(){
+            location.href=page.url+'?pageNo='+page.currentPage+'&pageSize='+page.pageSize;
+        },
+    };
+    page.initTable(page.currentPage,page.pages);
+</script>
+
+<script type="text/javascript">
+    page.level='GB';
+    page.key='GB/T';
+    page.tmId='';
+    page.zxd='';
+    page.pubStdNutureId='';
+    
+    page.repeFlag='废止';
+	page.pageOrderBy='';
+	page.pageOrderType='';    
+    page.query=function(){
+        layer.load()
+        page.key=$.trim($('#keyword').val());
+        location.href=encodeURI(page.url+'?pageNo='+page.currentPage
+                +(page.key?('&key='+page.key):'')
+                +(page.level?('&level='+page.level):'')
+                +(page.tmId?('&tmId='+page.tmId):'')
+                +(page.zxd?('&zxd='+page.zxd):'')
+                +(page.pubStdNutureId?('&pubStdNutureId='+page.pubStdNutureId):'')
+                +(page.repeFlag?('&repeFlag='+page.repeFlag):'')
+                +(page.pageSize?('&pageSize='+page.pageSize):'')+'&pageOrderBy='+page.pageOrderBy+'&pageOrderType='+page.pageOrderType);
+    }
+    var options={
+        //查询事件
+        "search": function (paramList) {
+            page.level=paramList[0].ValueList[0]?paramList[0].ValueList[0]:'';
+            page.repeFlag=paramList[1].ValueList[0]?paramList[1].ValueList[0]:'';
+            page.zxd=paramList[2].ValueList[0]?paramList[2].ValueList[0]:'';
+            page.pubStdNutureId=paramList[3].ValueList[0]?paramList[3].ValueList[0]:'';
+            page.tmId=paramList[4].ValueList[0]?paramList[4].ValueList[0]:'';
+            page.query()
+        },
+        //默认展开条件数
+        "expandRow": 10,
+        //查询条件
+        "searchBoxs": [
+            {
+                "id": "level",
+                "title": "标准层级",
+                "defaults":page.level?[page.level]:null,
+                "isMultiple":false,
+                "data": [{value:'GB',text:'国家标准'},{value:'HB',text:'行业标准'}]
+            },
+            {
+                "id": "repeFlag",
+                "title": "标准状态",
+                "defaults":page.repeFlag?[page.repeFlag]:null,
+                "isMultiple":false,
+                "data": [{'value':'即将实施','text':'即将实施'},{value:'现行',text:'现行'},{value:'废止',text:'废止'}]
+            },
+            {
+                "id": "zxd",
+                "title": "制修订",
+                "defaults":page.zxd?[page.zxd]:null,
+                "isMultiple":false,
+                "data":[{'value':'1','text':'制定'},{value:'2',text:'修订'}]
+            },
+            {
+                "id": "pubStdNutureId",
+                "title": "标准性质",
+                "defaults":page.pubStdNutureId?[page.pubStdNutureId]:null,
+                "isMultiple":false,
+                "data":[{'value':'1001','text':'推荐性'},{value:'1000',text:'强制性'},{value:'1002',text:'指导性技术文件'}]
+            },            
+            {
+                "id": "tmId",
+                "title": "归口单位",
+                "defaults":page.tmId?[Number(page.tmId)]:null,
+                "isMultiple":false,
+                "data":[{"text":"自然资源与国土空间规划(TC93)","value":346},{"text":"地理信息(TC230)","value":757},{"text":"海洋(TC283)","value":874},{"text":"珠宝玉石(TC298)","value":911},{"text":"地质矿产调查评价(TC93SC1)","value":347},{"text":"地质灾害防治(TC93SC2)","value":348},{"text":"勘查技术与实验测试(TC93SC3)","value":349},{"text":"国土空间规划(TC93SC4)","value":350},{"text":"土地资源利用(TC93SC5)","value":351},{"text":"自然资源调查监测(TC93SC6)","value":352},{"text":"保护与修复(TC93SC7)","value":353},{"text":"矿产资源利用(TC93SC8)","value":354},{"text":"海域使用及海洋能开发利用(TC283SC1)","value":875},{"text":"海洋调查观测监测(TC283SC2)","value":876},{"text":"海洋生物资源开发与保护(TC283SC3)","value":877},{"text":"海水淡化与综合利用(TC283SC4)","value":878},{"text":"信息化(TC230SC1)","value":1561},{"text":"测绘(TC230SC2)","value":1562},{"text":"卫星应用(TC230SC3)","value":1563}]
+            }
+        ]
+    }
+	$('.sortCss').append("<img src='/resources/images/sort.png' style='width:16px;' data-orderType=''/>");
+	$('th[data-sort="'+page.pageOrderBy+'"]').find("img").remove();
+	$('th[data-sort="'+page.pageOrderBy+'"]').append("<img src='/resources/images/.png' style='width:16px;' data-orderType=''/>");
+    $(".searchbox").fiterMore(options);
+    $('#keyword').bind('keyup', function (e) {
+        if(e.keyCode==13){
+            page.query()
+        }
+    });
+    $(function(){
+    	$('.sortCss').bind('click',function(){
+    		page.pageOrderBy =$(this).data('sort');
+    		if(typeof( $(this).find('img').data('ordertype')) == 'undefined' || $(this).find('img').data('ordertype') ==''){
+    			page.pageOrderType='desc';
+    		}else if($(this).find('img').data('ordertype') =='desc'){
+    			page.pageOrderType='asc';
+    		}else{
+    			page.pageOrderBy = '';
+    			page.pageOrderType='';
+    		}
+    		page.query();
+    	});
+    });
+</script>
