@@ -23,7 +23,7 @@ The hooks will automatically check for forbidden imports before each commit.
 - [ ] 修改 `path_guard.py` 时，确认 `/inbox` 和 `/standards` 在白名单中（G-019 检查）
 - [ ] 修改 `logger.py` 的 `_TAG_MAP` 时，确认 `[PROGRESS]` 等标签不受影响（G-005 检查）
 - [ ] 新增 OCR 敏感字段时，同步添加到 `settings.py` 掩码列表（G-018 检查）
-- [ ] 修改 `_ALL_ADAPTER_NAMES` 时，同步更新 `capabilities_registry.md`（G-025 检查）
+- [ ] 修改 `ADAPTER_TYPE_MAP` 时，确认新增适配器已定义 `DISPLAY_NAME` 且 G-025 通过
 - [ ] 修改 `docker-compose.yml` 时，已确认未挂载 `/app` 目录（G-026 检查）
 - [ ] 新增挂载点时，已确认不覆盖容器内代码或配置目录
 - [ ] 修改 `SENSITIVE_FIELDS` 时，已确认所有 OCR 敏感字段均已掩码（LOG-02）

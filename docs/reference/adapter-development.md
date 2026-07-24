@@ -63,7 +63,31 @@
 - 常见：UTF-8（多数）、GBK（老旧政府站）
 - 不要假设 UTF-8
 
-### 5. 新适配器检查清单
+### 5. 新增适配器标准流程（4 步，FIX-20260724-002 生效）
+
+新增一个查询适配器只需以下 4 步。**系统自动识别，无需修改任何硬编码列表或前端代码。**
+
+```
+1. 创建 pilotstd/query/adapters/new_site.py
+   - 继承 BaseAdapter，实现 site_name/site_label/_search/_parse_result
+   - 定义模块级常量 DISPLAY_NAME = "新站点中文名"（≤20 字符）
+
+2. 在 ADAPTER_TYPE_MAP 注册路由（search_strategy.py）
+   - 若为标准代号前缀（如 WW/T），添加入口到对应类型的 chain
+   - 若为新类型，添加 {"primary": "new_site", "fallback": "std_gov"}
+
+3. 在 PROD_PRIORITY 注册优先级（engine/_constants.py）
+   - 在合适位置插入 "new_site"
+
+4. 创建测试 + fixture + 冒烟脚本
+   - tests/test_new_site.py（≥7 用例）
+   - tests/fixtures/new_site_sample.json
+   - scripts/smoke_test_new_site.py
+```
+
+**不再需要**：修改 `docker/api/adapter.py`、前端 `fullName()`、`_ALL_ADAPTER_NAMES`、`target_names` 或任何其他硬编码列表。`/api/adapter/status` 自动纳入新适配器，首页集群卡片自动显示其中文名。
+
+### 6. 新适配器检查清单（Task 0 侦查）
 
 - [ ] 真实 API 端点已 curl 验证
 - [ ] 编码已确认（非假设）
@@ -74,7 +98,7 @@
 - [ ] 特殊参数已记录（tid/channelid/op/repeFlag）
 - [ ] Fixture 文件已提交
 
-### 6. 纯 IP 站点对接范式（Q22-10 Energy 实战总结）
+### 7. 纯 IP 站点对接范式（Q22-10 Energy 实战总结）
 
 政府/国企内部标准平台常见部署在纯 IP（无域名）的 HTTPS 服务器上，使用自签名证书。此类站点的对接要点：
 
@@ -121,7 +145,7 @@ GET https://114.251.111.103:18080/zxd/portal/stdPage
 - 建议在 `_fetch_candidates` 中增加 `total` 与 `len(rows)` 的比对 warning 日志。
 - 完整分页需循环 `offset += limit` 直到 `offset >= total`。
 
-### 7. NCHA 文物保护标准 — 微服务端口注意事项
+### 8. NCHA 文物保护标准 — 微服务端口注意事项
 
 - **API 端口 9005**：后端 API 部署在 9005 端口（非标准 80/443），80 端口仅提供 Vue SPA 静态资源。
 - **运维风险**：防火墙策略变更可能阻断 9005 端口访问。建议在生产环境监控中加入 `tcping bz.ncha.gov.cn:9005` 连通性探针。
