@@ -1,0 +1,32 @@
+{
+  "total": 3,
+  "rows": [
+    {
+      "stdCode": "NB/T 10456-2021",
+      "stdId": 10001,
+      "replacedStd": null,
+      "stdName": "能源管理系统技术规范",
+      "state": "现行",
+      "issueDate": "2021-07-01",
+      "actDate": "2021-10-01"
+    },
+    {
+      "stdCode": "NB/T 10457-2021",
+      "stdId": 10002,
+      "replacedStd": "NB/T 10457-2015",
+      "stdName": "能源审计技术导则",
+      "state": "现行",
+      "issueDate": "2021-07-01",
+      "actDate": "2021-10-01"
+    },
+    {
+      "stdCode": "GB/T 2589-2020",
+      "stdId": 10003,
+      "replacedStd": "GB/T 2589-2008",
+      "stdName": "综合能耗计算通则",
+      "state": "现行",
+      "issueDate": "2020-09-29",
+      "actDate": "2021-04-01"
+    }
+  ]
+}
