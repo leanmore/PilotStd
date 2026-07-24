@@ -125,3 +125,38 @@ def _get_sppt_local_adapter() -> Type[Any]:
     from .adapters.sppt_local import SPPTLocalAdapter
 
     return SPPTLocalAdapter
+
+
+def _get_energy_adapter() -> Type[Any]:
+    """懒加载能源标准适配器（EnergyAdapter）。"""
+    from .adapters.energy import EnergyAdapter
+
+    return EnergyAdapter
+
+
+def _get_tdpress_adapter() -> Type[Any]:
+    """懒加载铁路标准适配器（TDPressAdapter）。"""
+    from .adapters.tdpress import TDPressAdapter
+
+    return TDPressAdapter
+
+
+def _get_ncha_adapter() -> Type[Any]:
+    """懒加载文物保护标准适配器（NCHAAdapter）。"""
+    from .adapters.ncha import NCHAAdapter
+
+    return NCHAAdapter
+
+
+def _get_miit_adapter() -> Type[Any]:
+    """懒加载工信部行业标准适配器（MIITAdapter）。"""
+    from .adapters.miit import MIITAdapter
+
+    return MIITAdapter
+
+
+def _get_cssn_adapter() -> Type[Any]:
+    """懒加载中国标准服务网适配器（CSSNAdapter）。"""
+    from .adapters.cssn import CSSNAdapter
+
+    return CSSNAdapter

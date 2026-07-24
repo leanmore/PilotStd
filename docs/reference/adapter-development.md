@@ -15,8 +15,11 @@
 | SPPT | 食品安全国标 (8086) | JSON 数组过滤 | 自签名 SSL，混合公告/标准需过滤 CODE | UTF-8 | 无需 | 8 |
 | SPPT_Local | 食品安全地标 (8087) | Vue dataList 嵌入 | SSR HTML 内嵌 JSON，正则提取+省份映射 | UTF-8 | 无(仅首页) | 9 |
 | GongBiaoKu | 工标库 | HTML key-value `<ul>` 分组 | 每 ul 4 个 li 键值对，正则提取标签前缀 | UTF-8 | 无(单页) | 9 |
+| Energy | 能源标准信息服务平台 | JSON API (GET) | 纯 IP + 自签名证书，Bootstrap Table AJAX 加载，Host Header 显式声明 | UTF-8 | GET limit/offset | 13 |
+| TDPress | 铁路标准信息服务平台 | JSON API (GET) | jQuery EasyUI，GET 请求，TRUE/FALSE 状态映射，毫秒时间戳 | UTF-8 | GET page/rows | 17 |
+| NCHA | 文物保护标准平台 | JSON API (POST) | 微服务架构（API 在 9005 端口），itemCode 分类过滤，非标日期格式 | UTF-8 | POST currentPage/pageSize | 16 |
 
-**合计：9 种架构，93 个测试，零复用。**
+**合计：12 种架构，139 个测试，零复用。**
 
 ## 核心原则
 
@@ -70,3 +73,56 @@
 - [ ] 空结果行为已测试
 - [ ] 特殊参数已记录（tid/channelid/op/repeFlag）
 - [ ] Fixture 文件已提交
+
+### 6. 纯 IP 站点对接范式（Q22-10 Energy 实战总结）
+
+政府/国企内部标准平台常见部署在纯 IP（无域名）的 HTTPS 服务器上，使用自签名证书。此类站点的对接要点：
+
+**协议探测**
+- 先尝试 `https://`。若 HTTP 返回 400 "plain HTTP request was sent to HTTPS port"，即确认 HTTPS。
+- 自签名证书需 `verify=False`（httpx）或 `verify=False`（requests）。
+
+**Host Header 显式声明**
+- 纯 IP 站点的 Host 头必须为 `IP:Port`，否则反向代理可能路由失败。
+- 在 httpx.Client 初始化时显式设置 `headers={"Host": "IP:Port"}`。
+
+**AJAX 端点发现**
+- Bootstrap Table 页面通常是空壳 `<table>`，数据由 JS 异步加载。
+- 搜索页面源码中的 `bootstrapTable({url: ...})` 调用，找到真实 AJAX 端点。
+- `queryParams` 函数定义了附加参数（如 `tid`、`op`），需一并传递。
+
+**Energy 站点 AJAX 接口规格（可复用范式）**
+
+```
+GET https://114.251.111.103:18080/zxd/portal/stdPage
+  ?keyword=<关键词>
+  &tid=0              # 标准分类 ID（0=全部）
+  &op=                # 操作类型（留空）
+  &limit=15           # 每页条数（Bootstrap Table server-side pagination）
+  &offset=0           # 偏移量
+
+响应:
+{
+  "total": 19,        # 总条数（用于分页判断）
+  "rows": [{
+    "stdCode": "NB/T 10456-2021",   # 标准编号
+    "stdId": 116255,                 # 内部 ID
+    "replacedStd": "NB/T ...",       # 代替标准（null 表示无）
+    "stdName": "标准名称",           # 标准名称
+    "state": "现行",                 # 状态（现行/废止）
+    "issueDate": "2021-07-01",       # 发布日期
+    "actDate": "2021-10-01"          # 实施日期
+  }]
+}
+```
+
+**分页兜底**
+- 当前 `limit=15`，若 `total > len(rows)` 表示有未拉取的结果页。
+- 建议在 `_fetch_candidates` 中增加 `total` 与 `len(rows)` 的比对 warning 日志。
+- 完整分页需循环 `offset += limit` 直到 `offset >= total`。
+
+### 7. NCHA 文物保护标准 — 微服务端口注意事项
+
+- **API 端口 9005**：后端 API 部署在 9005 端口（非标准 80/443），80 端口仅提供 Vue SPA 静态资源。
+- **运维风险**：防火墙策略变更可能阻断 9005 端口访问。建议在生产环境监控中加入 `tcping bz.ncha.gov.cn:9005` 连通性探针。
+- **WW 路由修正**：`classify_std_code("WW")` 返回 `"industry"` 而非 `"cultural"`，导致通用路由层无法自动匹配 ncha。已在 `CODE_ROUTES` 中添加 `"WW": ["ncha", "std_gov"]` 和 `"WW/T": ["ncha", "std_gov"]` 硬路由。未来若新增其他行业代号的专业站点，需注意 `classify_std_code` 的返回值与 `ADAPTER_TYPE_MAP` 的匹配关系。

@@ -22,7 +22,10 @@
 
 ## 二、待处理（已登记，未排期）
 
-（当前无待处理项）
+| # | 项目 | 位置 | 错误类型 | 说明 | 登记日期 |
+|---|------|------|---------|------|---------|
+| 1 | system.py F821 | `docker/api/system.py:131` | Ruff F821 | `Undefined name 'Any'`，缺少 `from typing import Any` | 2026-07-24 |
+| 2 | Mixin 类型标注 | `pilotstd/scan/parser/_exact.py` 等 13 文件 | Mypy `[attr-defined]` | Mixin 模式导致 92 处属性解析失败，需逐文件标注或重构为显式组合 | 2026-07-24 |
 
 ---
 

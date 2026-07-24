@@ -11,6 +11,7 @@ license = { text = "MIT" }
 [tool.mypy]
 exclude = [
     "pilotstd_env/",          # 虚拟环境目录，始终排除
+    "pilotstd/templates/",    # Jinja2 模板目录含 {{ }} 占位符，非 Python 源码
     "whitelist.py",           # Vulture 白名单（非 Python 代码）
 ]
 explicit_package_bases = true
@@ -40,7 +41,7 @@ ignore_errors = true
 [tool.ruff]
 target-version = "py312"
 line-length = 120
-extend-exclude = ["whitelist.py"]
+extend-exclude = ["whitelist.py", "pilotstd/templates/**"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

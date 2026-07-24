@@ -73,6 +73,11 @@ web/src/assets/vue.svg
 # ===== 含敏感凭证 =====
 tests/test_config.json
 
+# ===== 适配器侦查临时产物 =====
+*_cookies.json
+*_captured_apis.json
+*_probe_result.json
+
 # ===== 本地笔记与历史归档 =====
 docs/.local/
 docs/archive/

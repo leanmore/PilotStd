@@ -21,6 +21,11 @@ PROD_PRIORITY = [
     "sppt",
     "sppt_local",
     "gongbiaoku",
+    "energy",
+    "tdpress",
+    "ncha",
+    "miit",
+    "cssn",
     "hbba",
     "iso_gov",
     "njbz365",
@@ -38,6 +43,9 @@ def _build_default_code_routes() -> dict[str, list[str]]:
     routes: dict[str, list[str]] = {
         "ISO": ["iso_gov", "ahbz", "njbz365"],
         "IEC": ["iso_gov", "ahbz", "njbz365"],
+        # 文物保护行业标准 → ncha 专业平台优先
+        "WW": ["ncha", "std_gov"],
+        "WW/T": ["ncha", "std_gov"],
     }
     # 地方标准省级代码：DB11, DB11/T, DB35, DB35/T 等 → dbba 优先
     for province_code in _DB_PROVINCE_MAP:

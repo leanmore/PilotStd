@@ -256,7 +256,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
         "weights": [30, 40, 25, 5],
     },
     # 行标类 → hbba 专业平台，njbz365 二线，csres 兜底
-    "industry": {"chain": ["hbba", "njbz365", "csres"]},
+    "industry": {"chain": ["cssn", "miit", "hbba", "njbz365", "csres"]},
     # 地标类 → dbba 专业平台
     "db": {"primary": "dbba", "fallback": "csres"},
     "db11": {"primary": "dbba", "fallback": "csres"},
@@ -288,6 +288,9 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     # 食品安全地方标准 → sppt_local 官网优先
     "food_safety_local": {"primary": "sppt_local", "fallback": "sppt"},
     "construction_std": {"primary": "gongbiaoku", "fallback": "std_gov"},
+    "energy": {"primary": "energy", "fallback": "std_gov"},
+    "railway": {"primary": "tdpress", "fallback": "std_gov"},
+    "cultural": {"primary": "ncha", "fallback": "std_gov"},
 }
 
 

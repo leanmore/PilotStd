@@ -55,7 +55,7 @@ class RoutingHandler:
                 base.extend(extras[:2])
                 if fallback and fallback not in base:
                     base.append(fallback)
-            logger.debug("[ROUTE] 代号=%s 类型=%s 路由=%s", logical_code, std_type, "→".join(base))
+            logger.info("[ROUTE] 代号=%s 类型=%s 路由=%s", logical_code, std_type, "→".join(base))
             return base
 
         if logical_code:

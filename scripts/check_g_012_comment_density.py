@@ -35,7 +35,7 @@ EXCLUDE_DIRS = {
     ".superpowers",
     "tests",
 }
-EXCLUDE_PREFIXES = ("whitelist",)
+EXCLUDE_PREFIXES = ("whitelist", "probe_")
 DENSITY_EXEMPT_FILES = {"__init__.py", "__main__.py", "setup.py"}  # 密度豁免文件：包入口和构建脚本
 # 排除迁移文件：其注释密度由 checksum 自愈机制保证，不强制 G-012 检查
 EXCLUDE_PATTERNS = ("_migrate_",)

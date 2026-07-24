@@ -33,7 +33,7 @@ EXCLUDE_DIRS = {
     ".superpowers",
     "tests",
 }
-EXCLUDE_PREFIXES = ("whitelist",)
+EXCLUDE_PREFIXES = ("whitelist", "probe_")
 
 
 def _is_comment_or_blank(line: str) -> bool:
