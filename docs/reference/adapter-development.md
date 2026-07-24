@@ -150,3 +150,46 @@ GET https://114.251.111.103:18080/zxd/portal/stdPage
 - **API 端口 9005**：后端 API 部署在 9005 端口（非标准 80/443），80 端口仅提供 Vue SPA 静态资源。
 - **运维风险**：防火墙策略变更可能阻断 9005 端口访问。建议在生产环境监控中加入 `tcping bz.ncha.gov.cn:9005` 连通性探针。
 - **WW 路由修正**：`classify_std_code("WW")` 返回 `"industry"` 而非 `"cultural"`，导致通用路由层无法自动匹配 ncha。已在 `CODE_ROUTES` 中添加 `"WW": ["ncha", "std_gov"]` 和 `"WW/T": ["ncha", "std_gov"]` 硬路由。未来若新增其他行业代号的专业站点，需注意 `classify_std_code` 的返回值与 `ADAPTER_TYPE_MAP` 的匹配关系。
+
+### 9. 站点侦查方法论（Q23 五站实战总结）
+
+**curl 探测 → Playwright 侦查的两阶段模型**：
+
+| 阶段 | 工具 | 目标 | 耗时 |
+|------|------|------|------|
+| 第一阶段 | curl/httpx | 页面可达性、协议、SSL、响应头 | 2 分钟/站 |
+| 第二阶段 | Playwright | XHR 捕获、JSL 绕过、API 端点发现 | 5-10 分钟/站 |
+
+**核心发现**：JSL/CDN 反爬仅保护页面加载，不保护 API 端点。Playwright 的核心价值不是"绕过反爬"，而是"在执行 JS 的过程中自动触发 API 调用，暴露端点 URL"。
+
+**Playwright 侦查模板**：
+
+```python
+# 1. 页面加载 + on_response 监听
+page.on("response", lambda r: capture_if_json(r))
+page.goto(url)
+
+# 2. 自动触发搜索（暴露 XHR 端点）
+page.fill('input[placeholder*="标准"]', "GB/T")
+page.click('button:has-text("搜索")')
+
+# 3. 导出 Cookies + 捕获的 API 列表
+# 4. curl 独立复现验证（关键步骤——确认 API 脱离浏览器可用）
+```
+
+**五站侦查结论**：
+
+| 站点 | 第一阶段 | 第二阶段 | 最终 |
+|------|---------|---------|------|
+| cssn.net.cn | JSL 壳 (527B) | Playwright 自动触发 API | VIABLE |
+| miit.gov.cn | JSL + Vue SPA | Playwright 捕获 XHR | VIABLE |
+| nhc.gov.cn | 412 WAF | Playwright 仍被阻断 | **BLOCKED** |
+| ncha.gov.cn | Vue SPA 壳 | Playwright 发现 9005 端口 | VIABLE |
+| tdpress.com | jQuery EasyUI | curl 即可用 | VIABLE |
+
+**放弃标准**（满足任一即放弃）：
+- Playwright headless 仍返回空响应或 WAF 页面
+- 搜索 API 需要登录/付费/验证码
+- DNS 不存在且无替代域名
+
+**NHC 卫健委是唯一触发放弃标准的站点**（企业级 WAF 检测 TLS 指纹，39 字节空响应）。
