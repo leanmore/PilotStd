@@ -4,26 +4,32 @@
 
 五个站点，五种完全不同的技术架构。没有任何两个可以复用同一套解析策略。
 
-| 适配器 | 站点 | 架构类型 | 核心特征 | 编码 | 分页 |
-|--------|------|----------|---------|------|------|
-| TTBZ | 团体标准平台 | REST API | JSON 直连，结构化程度最高 | UTF-8 | POST pageNum |
-| MEE | 生态环境部子栏目 | 服务端渲染列表 | 政务 CMS 静态 `<li>` 列表，GET 参数驱动 | UTF-8 | GET page |
-| NRSIS | 自然资源标准平台 | 服务端渲染表格 | Portal 框架内嵌，GBK 编码 | GBK | GET pageNo |
-| JTST | 交通运输部子功能 | iframe + 卡片式 HTML | Hash 路由门户内嵌，GET 分页 | UTF-8 | GET iframe |
-| CCSN | 工程建设标准化协会 | GET 跳转 + ViewState 分页 | WebForms 混合模式，顺序翻页，双表格干扰 | GBK | POST btnNext |
+| 适配器 | 站点 | 架构类型 | 核心特征 | 编码 | 分页 | 测试 |
+|--------|------|----------|---------|------|------|------|
+| TTBZ | 团体标准平台 | REST API | JSON 直连，结构化程度最高 | UTF-8 | POST pageNum | 10 |
+| MEE | 生态环境部子栏目 | 服务端渲染列表 | 政务 CMS 静态 `<li>` 列表，GET 参数驱动 | UTF-8 | GET page | 10 |
+| NRSIS | 自然资源标准平台 | 服务端渲染表格 | Portal 框架内嵌，GBK 编码 | GBK | GET pageNo | 12 |
+| JTST | 交通运输部子功能 | iframe + 卡片式 HTML | Hash 路由门户内嵌，GET 分页 | UTF-8 | GET iframe | 12 |
+| CCSN | 工程建设标准化协会 | GET + ViewState 分页 | WebForms 混合模式，顺序翻页，双表格干扰 | GBK | POST btnNext | 10 |
+| JJG | 国家计量技术规范 | JSON REST API | 隐藏 API 端点（`/api/standard/search/page`），结构化数据 | UTF-8 | GET pageNum | 9 |
+
+**合计：6 种架构，67 个测试，零复用。**
 
 ## 核心原则
 
 ### 1. 永远不要根据域名/后缀猜测技术栈
 
 - `.aspx` 不等于 POST 表单搜索（CCSN 实际是 GET `?KeyWord=`）
-- `#/` 不等于 REST API（需抓包确认）
+- `#/` 不等于 SPA（JJG 的 `#` 仅为锚点，实际是纯 SSR + 隐藏 JSON API）
 - 深层路径不等于静态页
+- HTML 页面不等于无 API（JJG 的 JSON API 隐藏在 SSR 页面之下）
 - 每个政府/协会站点是独立历史产物，必须逐个逆向
 
 ### 2. Task 0 是不可压缩的
 
-Q22-05 若跳过 Task 0 直接按计划编码，产出物将 100% 不可用：
+6 个适配器中 **5 个的计划假设被 Task 0 部分或完全推翻**。跳过 Task 0 的代价是 100% 返工。
+
+典型案例——Q22-05 CCSN：
 
 | 计划假设 | 实际 | 后果 |
 |----------|------|------|
