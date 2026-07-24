@@ -979,5 +979,196 @@ class TestNRSISAdapter(unittest.TestCase):
         self.assertEqual(params["zxd"], "01")
 
 
+# ════════════════════════════════════════════════════════════════
+# JTST 适配器测试（基于真实 iframe API 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestJTSTAdapter(unittest.TestCase):
+    """jtst.mot.gov.cn 交通运输部标准适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.jtst import JTSTAdapter
+
+        self.a = JTSTAdapter()
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实 API 响应解析第一条标准结果。"""
+        from bs4 import BeautifulSoup
+
+        fixture_path = "tests/fixtures/jtst_search_gbt_iframe.html"
+        if not os.path.exists(fixture_path):
+            self.skipTest("Fixture not found; run Task 0 first.")
+        with open(fixture_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        soup = BeautifulSoup(html, "lxml")
+        cards = soup.select(".panel.panel-default.post")
+        self.assertGreater(len(cards), 0, "Fixture must contain result cards.")
+        r = self.a._parse_result(cards[0], "GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+        self.assertTrue(
+            re.match(r"^(GB/T?|JT/?T?|JTG)\s*\d+", r.standard_number),
+            f"Invalid standard number: {r.standard_number}",
+        )
+        self.assertTrue(r.standard_name, "Standard name should not be empty")
+
+    def test_parse_result_maps_fields_correctly(self):
+        """卡片字段映射正确。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <div class="panel panel-default post">
+            <div class="panel-body">
+                <div class="media top-media">
+                    <div class="media-left"><table class="s-logo"><tr><td>
+                        <span class="line11">国家标准</span>
+                    </td></tr></table></div>
+                    <div class="media-body">
+                        <div class="page-header">
+                            <div class="post-head">
+                                <table class="s-title"><tr><td>
+                                    <a href="#" pid="abc123" tid="BV_GB">
+                                        <span class="en-code">GB/T 12345-2020</span>
+                                        交通标准名称
+                                    </a>
+                                </td><td>
+                                    <span class="s-status label label-info">现行</span>
+                                </td></tr></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <span>发布日期</span><time class="post-date">2020-01-01</time>
+                <span>实施日</span><time class="post-date">2020-07-01</time>
+            </div>
+        </div>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        card = soup.select_one(".panel.panel-default.post")
+        r = self.a._parse_result(card, "GB/T 12345-2020")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "GB/T 12345-2020")
+        self.assertEqual(r.standard_name, "交通标准名称")
+        self.assertEqual(r.publish_date, "2020-01-01")
+        self.assertEqual(r.implementation_date, "2020-07-01")
+        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.responsible_dept, "交通运输部")
+        self.assertEqual(r.source_site, "jtst")
+
+    def test_parse_result_plan_card(self):
+        """标准计划卡片（无 .en-code）正确识别为计划状态。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <div class="panel panel-default post">
+            <div class="panel-body">
+                <div class="media top-media">
+                    <div class="media-left"><table class="s-logo"><tr><td>
+                        <span class="line11">国家 计划</span>
+                    </td></tr></table></div>
+                    <div class="media-body">
+                        <div class="page-header">
+                            <div class="post-head">
+                                <table class="s-title"><tr><td>
+                                    <a href="#" pid="plan001" tid="BV_GB_PLAN">
+                                        20263174-T-469
+                                        公路协同信息交互技术要求
+                                    </a>
+                                </td><td>
+                                    <span class="s-status label label-info">制定中</span>
+                                </td></tr></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-footer">
+                <span>发布日期</span><time class="post-date">2026-06-27</time>
+            </div>
+        </div>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        card = soup.select_one(".panel.panel-default.post")
+        r = self.a._parse_result(card, "")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "20263174-T-469")
+        self.assertEqual(r.status, "制定中")
+
+    def test_parse_result_empty_card(self):
+        """空卡片返回 None。"""
+        from bs4 import BeautifulSoup
+
+        html = "<div class='panel panel-default post'></div>"
+        soup = BeautifulSoup(html, "lxml")
+        card = soup.select_one(".panel.panel-default.post")
+        r = self.a._parse_result(card, "")
+        self.assertIsNone(r)
+
+    # ── _search 单元测试（mock httpx） ──
+
+    def _mock_httpx_html(self, html):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._client.get = MagicMock(return_value=mock_resp)
+
+    def _load_fixture_html(self, path):
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def test_search_returns_result(self):
+        """验证搜索返回 QueryResult。"""
+        fixture = "tests/fixtures/jtst_search_gbt_iframe.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_httpx_html(self._load_fixture_html(fixture))
+        r = self.a._search("GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """空结果返回 None。"""
+        html = '<div class="nums">为您找到相关结果约 <span>0</span> 条</div>'
+        self._mock_httpx_html(html)
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None 而非抛出异常。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("GB/T")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试 ──
+
+    def test_query_standards_returns_list(self):
+        """验证 query_standards 返回 list[QueryResult]。"""
+        fixture = "tests/fixtures/jtst_search_gbt_iframe.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_httpx_html(self._load_fixture_html(fixture))
+        results = self.a.query_standards("GB/T")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表，不报错。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+    def test_query_standards_network_timeout(self):
+        """网络超时返回空列表，不抛出异常。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection timed out"))
+        results = self.a.query_standards("GB/T")
+        self.assertEqual(results, [])
+
+
 if __name__ == "__main__":
     unittest.main()

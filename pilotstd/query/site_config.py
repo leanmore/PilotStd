@@ -6,82 +6,30 @@ from .rotator import SiteState
 
 
 def create_default_sites() -> list[SiteState]:
-    """创建默认站点配置，返回按优先级排序的 SiteState 列表。
-
-    ahbz:    安徽标准化信息服务平台（免鉴权，230万条，全员模糊code匹配后精确过滤）
-    njbz365: 南京标准公共服务平台（新站 .cn，2026-05-25 上线，含token/sign）
-    std_gov: 全国标准信息公共服务平台（GB主力）
-    hbba:    行业标准信息服务平台（行标主力）
-    iso_gov: ISO 国际标准平台（国内镜像）
-    dbba:    地方标准信息服务平台
-    csres:   工标网（仅 HTTP，24h 拒绝冷却）
-    """
+    """创建默认站点配置，返回按优先级排序的 SiteState 列表。"""
+    S = SiteState  # noqa: N806 — 本地别名
     return [
-        SiteState(
-            name="ahbz",
-            base_url="https://bzxx.ahbz.org.cn",
-            max_requests=200,
-            daily_limit=800,
-            cooldown_seconds=300,
-        ),
-        SiteState(
+        S(name="ahbz", base_url="https://bzxx.ahbz.org.cn", max_requests=200, daily_limit=800, cooldown_seconds=300),
+        S(
             name="std_gov",
             base_url="https://openstd.samr.gov.cn",
             max_requests=200,
             daily_limit=800,
             cooldown_seconds=300,
         ),
-        SiteState(
-            name="hbba",
-            base_url="https://hbba.sacinfo.org.cn",
-            max_requests=200,
-            daily_limit=800,
-            cooldown_seconds=900,
-        ),
-        SiteState(
-            name="iso_gov",
-            base_url="https://std.samr.gov.cn",
-            max_requests=200,
-            daily_limit=800,
-        ),
-        SiteState(
-            name="njbz365",
-            base_url="https://www.njbz365.cn",
-            max_requests=200,
-            daily_limit=800,
-        ),
-        SiteState(
-            name="dbba",
-            base_url="https://dbba.sacinfo.org.cn",
-            max_requests=200,
-            daily_limit=800,
-        ),
-        SiteState(
+        S(name="hbba", base_url="https://hbba.sacinfo.org.cn", max_requests=200, daily_limit=800, cooldown_seconds=900),
+        S(name="iso_gov", base_url="https://std.samr.gov.cn", max_requests=200, daily_limit=800),
+        S(name="njbz365", base_url="https://www.njbz365.cn", max_requests=200, daily_limit=800),
+        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", max_requests=200, daily_limit=800),
+        S(
             name="csres",
             base_url="http://www.csres.com",
             fallback_urls=["http://222.73.18.35"],
             max_requests=50,
             daily_limit=200,
         ),
-        SiteState(
-            name="ttbz",
-            base_url="https://www.ttbz.org.cn",
-            max_requests=100,
-            daily_limit=400,
-            cooldown_seconds=1,
-        ),
-        SiteState(
-            name="mee",
-            base_url="https://www.mee.gov.cn",
-            max_requests=50,
-            daily_limit=500,
-            cooldown_seconds=2,
-        ),
-        SiteState(
-            name="nrsis",
-            base_url="http://www.nrsis.org.cn",
-            max_requests=30,
-            daily_limit=300,
-            cooldown_seconds=3,
-        ),
+        S(name="ttbz", base_url="https://www.ttbz.org.cn", max_requests=100, daily_limit=400, cooldown_seconds=1),
+        S(name="mee", base_url="https://www.mee.gov.cn", max_requests=50, daily_limit=500, cooldown_seconds=2),
+        S(name="nrsis", base_url="http://www.nrsis.org.cn", max_requests=30, daily_limit=300, cooldown_seconds=3),
+        S(name="jtst", base_url="https://jtst.mot.gov.cn", max_requests=50, daily_limit=500, cooldown_seconds=2),
     ]

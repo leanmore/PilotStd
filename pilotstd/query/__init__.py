@@ -84,3 +84,10 @@ def _get_nrsis_adapter() -> Type[Any]:
     from .adapters.nrsis import NRSISAdapter
 
     return NRSISAdapter
+
+
+def _get_jtst_adapter() -> Type[Any]:
+    """懒加载交通运输部标准适配器（JTSTAdapter）。"""
+    from .adapters.jtst import JTSTAdapter
+
+    return JTSTAdapter
