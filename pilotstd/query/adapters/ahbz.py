@@ -16,6 +16,8 @@ from ..models import QueryResult
 from ..network import CHROME_UA, safe_request
 from .base import BaseAdapter
 
+DISPLAY_NAME = "安徽标准"
+
 logger = logging.getLogger(__name__)
 
 # 搜索端点

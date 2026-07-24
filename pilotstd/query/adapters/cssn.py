@@ -17,6 +17,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "中国标准服务网"
+
 logger = logging.getLogger(__name__)
 
 REQUEST_TIMEOUT = 15.0

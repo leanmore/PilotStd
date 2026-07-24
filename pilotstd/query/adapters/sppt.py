@@ -18,6 +18,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "食品安全国标"
+
 # 抑制自签名证书警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

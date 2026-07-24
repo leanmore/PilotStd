@@ -17,6 +17,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "铁路标准平台"
+
 logger = logging.getLogger(__name__)
 
 # 铁路标准平台数据源时区为 CST (UTC+8)，显式指定避免容器 UTC 环境日期偏移

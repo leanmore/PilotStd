@@ -17,6 +17,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "工标库"
+
 logger = logging.getLogger(__name__)
 
 # 字段标签匹配正则（兼容全角/半角冒号）

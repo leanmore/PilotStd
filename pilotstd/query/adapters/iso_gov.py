@@ -13,6 +13,8 @@ from ..network import safe_get
 from ..search_strategy import _parse_result_number, map_status, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "ISO标准"
+
 logger = logging.getLogger(__name__)
 
 

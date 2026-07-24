@@ -1,8 +1,9 @@
-# docker/api/adapter.py — 适配器熔断管理 API（v18）
+# docker/api/adapter.py — 适配器熔断管理 API（v19）
 # GET  /api/adapter/status → 所有适配器状态
 # GET  /api/adapter/config → 当前熔断配置
 # PUT  /api/adapter/config → 更新熔断配置
 
+import importlib
 import logging
 from datetime import datetime, timezone
 
@@ -20,32 +21,55 @@ _DEFAULT_CONFIG = {
     "freeze_durations": [30, 120, 360, 720],
     "reset_window_hours": 24,
 }
-_ALL_ADAPTER_NAMES = [
-    # 公告适配器
-    "gb",
-    "hb",
-    "db",
-    # 标准查询适配器
-    "ahbz",
-    "std_gov",
-    "hbba",
-    "iso_gov",
-    "njbz365",
-    "csres",
-    "dbba",
-]
+# 公告适配器（非查询类）
+_ANNOUNCE_ADAPTERS = {"gb", "hb", "db"}
+_MAX_DISPLAY_NAME_LEN = 20
+
+
+def _get_display_name(adapter_name: str) -> str:
+    """从适配器模块读取 DISPLAY_NAME 常量，校验后返回。异常时用适配器名作为 fallback。"""
+    try:
+        mod = importlib.import_module(f"pilotstd.query.adapters.{adapter_name}")
+        dn = getattr(mod, "DISPLAY_NAME", "")
+        if isinstance(dn, str) and dn.strip():
+            dn = dn.strip()
+            if len(dn) > _MAX_DISPLAY_NAME_LEN:
+                logger.warning("DISPLAY_NAME 超长 (%d>%d): %s=%r", len(dn), _MAX_DISPLAY_NAME_LEN, adapter_name, dn)
+            return dn
+    except Exception:
+        pass
+    logger.debug("无法读取 %s 的 DISPLAY_NAME，使用 fallback", adapter_name)
+    return adapter_name
+
+
+def _get_all_query_adapters() -> list[str]:
+    """从 ADAPTER_TYPE_MAP 动态派生全部查询适配器名称（去重）。"""
+    from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
+
+    names: set[str] = set()
+    for route in ADAPTER_TYPE_MAP.values():
+        if isinstance(route, dict):
+            chain = route.get("chain", [])
+            if chain:
+                names.update(chain)
+            primary = route.get("primary", "")
+            if primary:
+                names.add(primary)
+            fallback = route.get("fallback", "")
+            if fallback:
+                names.add(fallback)
+    return sorted(names)
 
 
 @router.get("/api/adapter/status")
 def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
     """查询适配器的熔断状态。可选 type=announcement 仅公告适配器，type=query 仅查询适配器。"""
-    # 按类型过滤
     if type == "announcement":
-        target_names = ["gb", "hb", "db"]
+        target_names = sorted(_ANNOUNCE_ADAPTERS)
     elif type == "query":
-        target_names = ["ahbz", "std_gov", "hbba", "iso_gov", "njbz365", "csres", "dbba"]
+        target_names = _get_all_query_adapters()
     else:
-        target_names = _ALL_ADAPTER_NAMES
+        target_names = sorted(_ANNOUNCE_ADAPTERS) + _get_all_query_adapters()
 
     now = datetime.now(timezone.utc)
     adapters = []
@@ -72,13 +96,14 @@ def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
                     status = "frozen"
                     remaining = int((frozen_until - now).total_seconds())
                 else:
-                    frozen_until = None  # 已过期，展示为 normal
+                    frozen_until = None
             ft = row["first_freeze_time"]
             first_freeze_time = ft if ft else None
 
         adapters.append(
             {
                 "name": name,
+                "display_name": _get_display_name(name) if name not in _ANNOUNCE_ADAPTERS else name,
                 "status": status,
                 "frozen_until": frozen_until.isoformat() if frozen_until else None,
                 "remaining_seconds": remaining,

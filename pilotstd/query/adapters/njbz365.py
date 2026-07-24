@@ -14,6 +14,8 @@ from ..search_strategy import match_result
 from ._njbz365_session import _Njbz365SessionMixin
 from .base import BaseAdapter
 
+DISPLAY_NAME = "南京标准网"
+
 logger = logging.getLogger(__name__)
 
 

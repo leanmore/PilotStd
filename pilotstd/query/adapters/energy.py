@@ -18,6 +18,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, map_status, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "能源标准平台"
+
 logger = logging.getLogger(__name__)
 
 

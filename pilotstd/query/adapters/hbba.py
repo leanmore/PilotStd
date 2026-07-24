@@ -20,6 +20,8 @@ from ..search_strategy import (
 )
 from .base import BaseAdapter
 
+DISPLAY_NAME = "行业标准平台"
+
 logger = logging.getLogger(__name__)
 
 

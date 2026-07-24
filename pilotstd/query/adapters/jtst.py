@@ -24,6 +24,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "交通运输部"
+
 logger = logging.getLogger(__name__)
 
 # 结果总数提取正则

@@ -17,6 +17,8 @@ from ..network import safe_get
 from ..search_strategy import is_adopted, map_status
 from .base import BaseAdapter
 
+DISPLAY_NAME = "工标网"
+
 logger = logging.getLogger(__name__)
 
 # 冷却时长（秒）：被工标网拒绝访问后强制冷却 24 小时

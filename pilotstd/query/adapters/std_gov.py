@@ -19,6 +19,8 @@ from ..network import safe_get
 from ..search_strategy import map_status
 from .base import BaseAdapter
 
+DISPLAY_NAME = "国家标准公开"
+
 logger = logging.getLogger(__name__)
 
 

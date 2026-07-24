@@ -24,6 +24,8 @@ from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
 
+DISPLAY_NAME = "自然资源标准"
+
 logger = logging.getLogger(__name__)
 
 # 分页总数提取正则

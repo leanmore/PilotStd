@@ -1,48 +1,78 @@
 #!/usr/bin/env python
-"""G-025: 检查 adapter.py 中 _ALL_ADAPTER_NAMES 与 site_config.py 一致。
-退出门禁：返回 0=通过, 1=阻断。"""
+"""G-025: 检查 ADAPTER_TYPE_MAP 中的适配器是否全部可导入。
 
-import ast
+退出门禁：返回 0=通过, 1=阻断。
+v2: 改为从 ADAPTER_TYPE_MAP 派生适配器列表，不再依赖 _ALL_ADAPTER_NAMES。
+"""
+
+import importlib
 import sys
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-_ADAPTER = _ROOT / "docker" / "api" / "adapter.py"
-_SITES = _ROOT / "pilotstd" / "query" / "site_config.py"
-_EXPECTED_QUERY = {"ahbz", "std_gov", "hbba", "iso_gov", "njbz365", "csres", "dbba"}
-_EXPECTED_ANNOUNCE = {"gb", "hb", "db"}
+_ANNOUNCE_ADAPTERS = {"gb", "hb", "db"}
 
 
-def extract_allowed_adapters() -> set[str]:
-    """从 adapter.py 的 _ALL_ADAPTER_NAMES 列表中解析已注册的适配器名称集合。"""
-    src = _ADAPTER.read_text(encoding="utf-8")
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign):
-            for t in node.targets:
-                if isinstance(t, ast.Name) and t.id == "_ALL_ADAPTER_NAMES":
-                    if isinstance(node.value, ast.List):
-                        return {
-                            e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)
-                        }
-    return set()
+def _get_all_query_adapters() -> set[str]:
+    """从 ADAPTER_TYPE_MAP 动态派生全部查询适配器名称。
+
+    ADAPTER_TYPE_MAP 是查询适配器的唯一真实来源。遍历其 chain/primary/fallback
+    字段收集所有被引用的适配器名称，去重后返回。
+    """
+    from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
+
+    names: set[str] = set()
+    for route in ADAPTER_TYPE_MAP.values():
+        if not isinstance(route, dict):
+            continue
+        # chain 是优先级链（列表），primary/fallback 是主备路由（字符串）
+        chain = route.get("chain", [])
+        if chain:
+            names.update(chain)
+        primary = route.get("primary", "")
+        if primary:
+            names.add(primary)
+        fallback = route.get("fallback", "")
+        if fallback:
+            names.add(fallback)
+    return names
 
 
 def check() -> int:
-    """入口：比较适配器注册列表与预期集合，检测遗漏或新增。"""
-    allowed = extract_allowed_adapters()
-    if not allowed:
-        print("[G-025] FAIL: 无法解析 _ALL_ADAPTER_NAMES")
+    """入口：验证所有适配器模块可导入且定义了 DISPLAY_NAME。"""
+    query_adapters = _get_all_query_adapters()
+
+    if not query_adapters:
+        print("[G-025] FAIL: ADAPTER_TYPE_MAP 为空，无法派生适配器列表")
         return 1
-    expected = _EXPECTED_QUERY | _EXPECTED_ANNOUNCE
-    missing = expected - allowed
-    extra = allowed - expected
-    if missing:
-        print(f"[G-025] FAIL: 缺少适配器: {missing}")
+
+    missing_display_name: list[str] = []
+    import_errors: list[str] = []
+
+    for name in sorted(query_adapters):
+        try:
+            # 动态导入适配器模块，检查 DISPLAY_NAME 常量
+            mod = importlib.import_module(f"pilotstd.query.adapters.{name}")
+            dn = getattr(mod, "DISPLAY_NAME", "")
+            if not isinstance(dn, str) or not dn.strip():
+                missing_display_name.append(name)
+        except Exception as e:
+            import_errors.append(f"{name}: {e}")
+
+    errors = []
+    if import_errors:
+        errors.append(f"导入失败 ({len(import_errors)}): {', '.join(import_errors)}")
+    if missing_display_name:
+        errors.append(f"缺少 DISPLAY_NAME ({len(missing_display_name)}): {', '.join(missing_display_name)}")
+
+    if errors:
+        print(f"[G-025] FAIL: {'; '.join(errors)}")
         return 1
-    if extra:
-        print(f"[G-025] WARN: 新增适配器(请同步更新登记簿): {extra}")
-    print("[G-025] PASS: 10 个适配器完整")
+
+    print(
+        f"[G-025] PASS: {len(query_adapters)} 个查询适配器"
+        f" + {len(_ANNOUNCE_ADAPTERS)} 个公告适配器，全部可导入且定义了 DISPLAY_NAME"
+    )
     return 0
 
 

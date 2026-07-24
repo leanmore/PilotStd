@@ -18,6 +18,8 @@ from ..search_strategy import (
 )
 from .base import BaseAdapter
 
+DISPLAY_NAME = "地方标准"
+
 logger = logging.getLogger(__name__)
 
 
