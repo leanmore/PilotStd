@@ -279,6 +279,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "natural_resources": {"primary": "nrsis", "fallback": "hbba"},
     # 交通运输标准 → jtst 官网优先，std_gov 兜底
     "transport": {"primary": "jtst", "fallback": "std_gov"},
+    # 工程建设标准 → ccsn 官网优先，std_gov 兜底
+    "construction": {"primary": "ccsn", "fallback": "std_gov"},
 }
 
 

@@ -1170,5 +1170,154 @@ class TestJTSTAdapter(unittest.TestCase):
         self.assertEqual(results, [])
 
 
+# ════════════════════════════════════════════════════════════════
+# CCSN 适配器测试（基于真实 ASP.NET WebForms 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestCCSNAdapter(unittest.TestCase):
+    """ccsn.org.cn 工程建设标准化协会适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.ccsn import CCSNAdapter
+
+        self.a = CCSNAdapter()
+
+    # ── _extract_state 单元测试 ──
+
+    def test_extract_state_from_initial_page(self):
+        """从初始页面提取 ViewState 和 ViewStateGenerator。"""
+        fixture = "tests/fixtures/ccsn_initial.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="gbk") as f:
+            html = f.read()
+        vs, vsg = self.a._extract_state_from_html(html)
+        self.assertIsNotNone(vs, "ViewState must be extracted")
+        self.assertGreater(len(vs), 100, "ViewState should be substantial")
+        self.assertIsNotNone(vsg, "ViewStateGenerator must be extracted")
+
+    def test_extract_state_from_search_response(self):
+        """从搜索结果页提取新的 ViewState（验证逐页变化）。"""
+        fixture = "tests/fixtures/ccsn_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="gbk") as f:
+            html = f.read()
+        vs, vsg = self.a._extract_state_from_html(html)
+        self.assertIsNotNone(vs)
+        self.assertGreater(len(vs), 100)
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实搜索结果表格解析标准。"""
+        from bs4 import BeautifulSoup
+
+        fixture = "tests/fixtures/ccsn_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="gbk") as f:
+            html = f.read()
+        soup = BeautifulSoup(html, "lxml")
+        rows = self.a._find_data_rows(soup)
+        self.assertGreater(len(rows), 0, "Must find data rows.")
+        r = self.a._parse_result(rows[0], "GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+        self.assertTrue(
+            re.match(r"^(GB/T?|CECS|JGJ|CJJ)\s*\d+", r.standard_number),
+            f"Invalid standard number: {r.standard_number}",
+        )
+        self.assertTrue(r.standard_name, "Standard name should not be empty")
+
+    def test_parse_result_maps_fields_correctly(self):
+        """字段映射：标准名称[1] 标准编号[2] 发布日期[3] 实施日期[4]。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <table><tr>
+            <td>1</td>
+            <td>工程建设标准名称</td>
+            <td>GB/T 12345-2020</td>
+            <td>2020/1/1</td>
+            <td>2020/7/1</td>
+        </tr></table>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        rows = soup.select("table tr")
+        r = self.a._parse_result(rows[0], "GB/T 12345-2020")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "GB/T 12345-2020")
+        self.assertEqual(r.standard_name, "工程建设标准名称")
+        self.assertEqual(r.publish_date, "2020/1/1")
+        self.assertEqual(r.implementation_date, "2020/7/1")
+        self.assertEqual(r.responsible_dept, "中国工程建设标准化协会")
+        self.assertEqual(r.source_site, "ccsn")
+
+    def test_parse_result_header_row_skipped(self):
+        """表头行（含 th）被跳过。"""
+        from bs4 import BeautifulSoup
+
+        html = "<table><tr><th>序号</th><th>标准名称</th></tr></table>"
+        soup = BeautifulSoup(html, "lxml")
+        rows = self.a._find_data_rows(soup)
+        self.assertEqual(len(rows), 0)
+
+    # ── _search 单元测试 ──
+
+    def _mock_search_html(self, html):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._client.get = MagicMock(return_value=mock_resp)
+
+    def test_search_returns_result(self):
+        """验证搜索返回 QueryResult。"""
+        fixture = "tests/fixtures/ccsn_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="gbk") as f:
+            html = f.read()
+        self._mock_search_html(html)
+        r = self.a._search("GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """空结果返回 None。"""
+        html = "<html><body>没有找到相关标准</body></html>"
+        self._mock_search_html(html)
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("GB/T")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试 ──
+
+    def test_query_standards_returns_list(self):
+        """验证返回 list[QueryResult]。"""
+        fixture = "tests/fixtures/ccsn_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="gbk") as f:
+            html = f.read()
+        self._mock_search_html(html)
+        results = self.a.query_standards("GB/T")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+
 if __name__ == "__main__":
     unittest.main()

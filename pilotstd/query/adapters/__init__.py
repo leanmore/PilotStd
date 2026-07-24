@@ -1,5 +1,6 @@
 # pilotstd/query/adapters/__init__.py
 from .base import BaseAdapter
+from .ccsn import CCSNAdapter
 from .csres import CsresAdapter
 from .dbba import DbbaAdapter
 from .hbba import HbbaAdapter
@@ -13,6 +14,7 @@ from .ttbz import TTBZAdapter
 
 __all__ = [
     "BaseAdapter",
+    "CCSNAdapter",
     "CsresAdapter",
     "DbbaAdapter",
     "StdGovAdapter",

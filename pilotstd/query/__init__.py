@@ -91,3 +91,10 @@ def _get_jtst_adapter() -> Type[Any]:
     from .adapters.jtst import JTSTAdapter
 
     return JTSTAdapter
+
+
+def _get_ccsn_adapter() -> Type[Any]:
+    """懒加载工程建设标准化协会适配器（CCSNAdapter）。"""
+    from .adapters.ccsn import CCSNAdapter
+
+    return CCSNAdapter
