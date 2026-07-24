@@ -51,6 +51,7 @@ select = ["E", "F", "W", "I"]
 "tests/**/*.py" = ["E402"]
 "pilotstd/ui/themes.py" = ["E501"]
 "tests/test_announce_parser_unit.py" = ["E501"]
+"scripts/probe_*.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
