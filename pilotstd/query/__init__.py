@@ -105,3 +105,10 @@ def _get_jjg_adapter() -> Type[Any]:
     from .adapters.jjg import JJGAdapter
 
     return JJGAdapter
+
+
+def _get_sppt_adapter() -> Type[Any]:
+    """懒加载食品安全国家标准适配器（SPPTAdapter）。"""
+    from .adapters.sppt import SPPTAdapter
+
+    return SPPTAdapter

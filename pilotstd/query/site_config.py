@@ -34,4 +34,5 @@ def create_default_sites() -> list[SiteState]:
         S(name="jtst", base_url="https://jtst.mot.gov.cn", max_requests=50, daily_limit=500, cooldown_seconds=2),
         S(name="ccsn", base_url="https://www.ccsn.org.cn", max_requests=50, daily_limit=500, cooldown_seconds=3),
         S(name="jjg", base_url="https://jjg.spc.org.cn", max_requests=100, daily_limit=1000, cooldown_seconds=1),
+        S(name="sppt", base_url="https://sppt.cfsa.net.cn:8086", max_requests=50, daily_limit=500, cooldown_seconds=2),
     ]

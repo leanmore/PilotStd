@@ -10,6 +10,7 @@ from .jtst import JTSTAdapter
 from .mee import MEEAdapter
 from .njbz365 import Njbz365Adapter
 from .nrsis import NRSISAdapter
+from .sppt import SPPTAdapter
 from .std_gov import StdGovAdapter
 from .ttbz import TTBZAdapter
 
@@ -26,5 +27,6 @@ __all__ = [
     "JTSTAdapter",
     "MEEAdapter",
     "NRSISAdapter",
+    "SPPTAdapter",
     "TTBZAdapter",
 ]

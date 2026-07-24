@@ -283,6 +283,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "construction": {"primary": "ccsn", "fallback": "std_gov"},
     # 计量技术规范 → jjg 官网优先，std_gov 兜底
     "measurement": {"primary": "jjg", "fallback": "std_gov"},
+    # 食品安全国家标准 → sppt 官网优先，std_gov 兜底
+    "food_safety": {"primary": "sppt", "fallback": "std_gov"},
 }
 
 

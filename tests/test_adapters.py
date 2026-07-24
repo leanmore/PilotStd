@@ -1487,5 +1487,110 @@ class TestJJGAdapter(unittest.TestCase):
         self.assertEqual(len(results), 25)
 
 
+# ════════════════════════════════════════════════════════════════
+# SPPT 适配器测试（基于真实 JSON API 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestSPPTAdapter(unittest.TestCase):
+    """sppt.cfsa.net.cn:8086 食品安全国家标准适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.sppt import SPPTAdapter
+
+        self.a = SPPTAdapter()
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实 JSON API 响应解析标准（过滤公告仅保留标准）。"""
+        import json
+
+        fixture = "tests/fixtures/sppt_api_gb2760.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        # 过滤出标准条目
+        stds = [d for d in data if d.get("CODE")]
+        self.assertGreater(len(stds), 0, "Must contain standard entries.")
+        r = self.a._parse_result(stds[0], "GB 2760")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+        self.assertEqual(r.standard_number, "GB 2760-2024")
+        self.assertIn("食品添加剂", r.standard_name)
+        self.assertEqual(r.publish_date, "2024-02-08")
+        self.assertEqual(r.implementation_date, "2025-02-08")
+        self.assertEqual(r.source_site, "sppt")
+
+    def test_parse_result_filters_announcement(self):
+        """公告条目（CODE 为 null）返回 None。"""
+        r = self.a._parse_result({"CODE": None, "TITLE": "公告标题", "TABLENAME": "1"}, "")
+        self.assertIsNone(r)
+
+    def test_parse_result_empty_record(self):
+        """空记录返回 None。"""
+        r = self.a._parse_result({}, "")
+        self.assertIsNone(r)
+
+    # ── _search 单元测试 ──
+
+    def _mock_json_response(self, data):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = data
+        self.a._client.get = MagicMock(return_value=mock_resp)
+
+    def test_search_returns_result(self):
+        """搜索返回标准 QueryResult。"""
+        import json
+
+        fixture = "tests/fixtures/sppt_api_gb2760.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self._mock_json_response(data)
+        r = self.a._search("GB 2760")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """无标准返回 None。"""
+        self._mock_json_response([{"CODE": None, "TITLE": "公告", "TABLENAME": "1"}])
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("GB 2760")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试 ──
+
+    def test_query_standards_returns_list(self):
+        """返回 list[QueryResult]，仅含标准不含公告。"""
+        import json
+
+        fixture = "tests/fixtures/sppt_api_gb2760.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self._mock_json_response(data)
+        results = self.a.query_standards("GB 2760")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+            self.assertIsNotNone(r.standard_number)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+
 if __name__ == "__main__":
     unittest.main()

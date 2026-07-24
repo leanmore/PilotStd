@@ -18,6 +18,7 @@ PROD_PRIORITY = [
     "jtst",
     "ccsn",
     "jjg",
+    "sppt",
     "hbba",
     "iso_gov",
     "njbz365",
