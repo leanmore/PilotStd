@@ -98,3 +98,10 @@ def _get_ccsn_adapter() -> Type[Any]:
     from .adapters.ccsn import CCSNAdapter
 
     return CCSNAdapter
+
+
+def _get_jjg_adapter() -> Type[Any]:
+    """懒加载国家计量技术规范适配器（JJGAdapter）。"""
+    from .adapters.jjg import JJGAdapter
+
+    return JJGAdapter

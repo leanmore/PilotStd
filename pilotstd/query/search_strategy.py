@@ -281,6 +281,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "transport": {"primary": "jtst", "fallback": "std_gov"},
     # 工程建设标准 → ccsn 官网优先，std_gov 兜底
     "construction": {"primary": "ccsn", "fallback": "std_gov"},
+    # 计量技术规范 → jjg 官网优先，std_gov 兜底
+    "measurement": {"primary": "jjg", "fallback": "std_gov"},
 }
 
 

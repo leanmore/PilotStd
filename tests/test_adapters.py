@@ -1319,5 +1319,173 @@ class TestCCSNAdapter(unittest.TestCase):
         self.assertEqual(results, [])
 
 
+# ════════════════════════════════════════════════════════════════
+# JJG 适配器测试（基于真实 JSON API 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestJJGAdapter(unittest.TestCase):
+    """jjg.spc.org.cn 国家计量技术规范适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.jjg import JJGAdapter
+
+        self.a = JJGAdapter()
+
+    # ── _parse_result 单元测试 ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实 JSON API 响应解析标准。"""
+        import json
+
+        fixture = "tests/fixtures/jjg_api_search.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertGreater(len(data["rows"]), 0)
+        r = self.a._parse_result(data["rows"][0], "JJG")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+        self.assertTrue(
+            re.match(r"^(JJG|JJF)\s*\d+", r.standard_number),
+            f"Invalid standard number: {r.standard_number}",
+        )
+        self.assertTrue(r.standard_name, "Standard name should not be empty")
+        self.assertIn(r.status, ["现行", "现行有效", "即将实施", "废止", "未知"])
+
+    def test_parse_result_maps_fields_correctly(self):
+        """JSON 字段映射正确。"""
+        rec = {
+            "code": "JJG 123-2020",
+            "title": "计量检定规程名称",
+            "status": "现行有效",
+            "publishDate": "2020-01-01",
+            "implementDate": "2020-07-01",
+        }
+        r = self.a._parse_result(rec, "JJG 123-2020")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "JJG 123-2020")
+        self.assertEqual(r.standard_name, "计量检定规程名称")
+        self.assertEqual(r.publish_date, "2020-01-01")
+        self.assertEqual(r.implementation_date, "2020-07-01")
+        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.source_site, "jjg")
+
+    def test_parse_result_empty_record(self):
+        """空记录返回 None。"""
+        r = self.a._parse_result({}, "")
+        self.assertIsNone(r)
+
+    # ── _search 单元测试 ──
+
+    def _mock_json_response(self, data):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = data
+        self.a._client.get = MagicMock(return_value=mock_resp)
+
+    def test_search_returns_result(self):
+        """搜索返回 QueryResult。"""
+        import json
+
+        fixture = "tests/fixtures/jjg_api_search.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self._mock_json_response(data)
+        r = self.a._search("JJG")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """无结果返回 None。"""
+        self._mock_json_response({"total": 0, "rows": []})
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None。"""
+        self.a._client.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("JJG")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试 ──
+
+    def test_query_standards_returns_list(self):
+        """返回 list[QueryResult]。"""
+        import json
+
+        fixture = "tests/fixtures/jjg_api_search.json"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        with open(fixture, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self._mock_json_response(data)
+        results = self.a.query_standards("JJG")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+    def test_query_standards_pagination(self):
+        """分页：多页结果聚合。"""
+        page1 = {
+            "total": 25,
+            "rows": [
+                {
+                    "code": f"JJG {i}-2020",
+                    "title": f"Test {i}",
+                    "status": "现行",
+                    "publishDate": "2020-01-01",
+                    "implementDate": "2020-07-01",
+                }
+                for i in range(1, 11)
+            ],
+        }
+        page2 = {
+            "total": 25,
+            "rows": [
+                {
+                    "code": f"JJG {i}-2020",
+                    "title": f"Test {i}",
+                    "status": "现行",
+                    "publishDate": "2020-01-01",
+                    "implementDate": "2020-07-01",
+                }
+                for i in range(11, 21)
+            ],
+        }
+        page3 = {
+            "total": 25,
+            "rows": [
+                {
+                    "code": f"JJG {i}-2020",
+                    "title": f"Test {i}",
+                    "status": "现行",
+                    "publishDate": "2020-01-01",
+                    "implementDate": "2020-07-01",
+                }
+                for i in range(21, 26)
+            ],
+        }
+
+        self.a._client.get = MagicMock(
+            side_effect=[
+                MagicMock(status_code=200, json=MagicMock(return_value=page1)),
+                MagicMock(status_code=200, json=MagicMock(return_value=page2)),
+                MagicMock(status_code=200, json=MagicMock(return_value=page3)),
+            ]
+        )
+        results = self.a.query_standards("JJG", max_pages=3)
+        self.assertEqual(len(results), 25)
+
+
 if __name__ == "__main__":
     unittest.main()
