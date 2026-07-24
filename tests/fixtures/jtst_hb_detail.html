@@ -1,0 +1,1984 @@
+
+
+
+
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>工程建设标准 - 公路服务设施设计规范</title>
+<link href="/resources/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link href="/css/platform.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="/css/socialPublicity.css" />
+<link rel="stylesheet" href="/css/detail.css" type="text/css" />
+</head>
+<body style="background:#f5f5f5;">
+
+
+
+
+<link rel="stylesheet" href="/resources/bootstrap/css/bootstrap.min.css" type="text/css" />
+<link rel="stylesheet" href="/resources/bootstrap/css/bootstrap-table.min.css" />
+<link rel="stylesheet" href="/resources/filterMore/css/filterMore.min.css"/>
+
+<script type="text/javascript" src="/resources/jquery/jquery-3.7.1.min.js"></script>
+<script type="text/javascript" src="/resources/filterMore/filterMore.min.js"></script>
+<script type="text/javascript" src="/resources/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="/resources/bootstrap/js/bootstrap-table.js"></script>
+<script type="text/javascript" src="/resources/bootstrap/js/bootstrap-table-mobile.min.js"></script>
+<script type="text/javascript" src="/resources/bootstrap/js/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="/resources/bootstrap/js/bootstrap.autocomplete.js"></script>
+
+<script>
+	var hrefTarget = '';
+	var hrefUrl = '';
+	var hrefTime;
+	var hrefTimer;
+	var hrefClose = false;
+	
+	var nativeOpen = window.open;
+	
+	function openHref(isOpen){
+		clearInterval(hrefTimer);
+		$('#myModal').modal('hide');
+		if(isOpen) {
+			if(hrefTarget=='_blank') {
+				nativeOpen(hrefUrl);
+			} else {
+				window.location.href = hrefUrl;
+			}
+		} else if(hrefClose) {
+			window.opener=null;
+			window.open('','_self');
+			window.close();
+		}
+	}
+	
+	function timeHref(){
+		hrefTime--;
+		if(hrefTime==0) {
+			openHref(true);
+		}
+		$('#open-time').text(hrefTime);
+	}
+	
+	function windowOpen(href, target){
+		hrefUrl = href;
+		hrefTarget = target;
+		
+		if(hrefUrl){
+			if(hrefUrl.indexOf('http')==0&&hrefUrl.indexOf('mot.gov.cn')<=-1) {
+				hrefTime = 3;
+				$('#open-time').text(hrefTime);
+				$('#myModal').modal('show');
+				
+				hrefTimer = setInterval("timeHref()", 1000);
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	window.open = function(url, windowName, windowFeatures){
+		if(windowOpen(url, windowName)) {
+			return nativeOpen(url, windowName, windowFeatures);
+		}
+		return false;
+	};
+	$(function() {
+		$(document).on('click','a',function(){
+			return windowOpen($(this).attr('href'), $(this).attr('target'));
+		});
+		$('#navbar-toggle').click(function(){
+			$('#nav-menu').toggleClass("nav-menu-show");
+		});
+		$(".switch-btn").mouseover(function(event){
+			var rel = $(this).attr('rel');
+			$('.switch-more.'+rel).attr('href',$(this).attr('more'));
+			$(this).siblings().removeClass('active');
+			$(this).addClass('active');
+			$('.news-table.'+rel).siblings().addClass('hidden');
+			$('.news-table.'+rel).removeClass('hidden');
+		});
+		$(".news-table:not(.gbnocList):not(.adviceList) a.news-a").each(function(){
+			$(this).attr('href', '/search/newsDetailed?id='+$(this).attr('news_id'));
+			$(this).attr('target','_blank');
+		});
+		$(".gbnocList a.news-a").each(function(){
+			var type = $(this).attr('news_type');
+			if(type=='LINK'){
+				$(this).attr('href', '/search/newsDetailed?id='+$(this).attr('news_id'));
+			} else {
+				$(this).attr('href', '/search/nocDetailed?id='+$(this).attr('news_id'));
+			}
+			$(this).attr('target','_blank');
+		});
+		$(".adviceList a.news-a").each(function(){
+			var type = $(this).attr('news_type');
+			if(type=='LINK'){
+				$(this).attr('href', '/search/newsDetailed?id='+$(this).attr('news_id'));
+			} else {
+				$(this).attr('href', 'https://jtst.mot.gov.cn//zxd/seekPublicAdvice/pagePublishAdviceStdList/'+$(this).attr('news_id'));
+			}
+			$(this).attr('target','_blank');
+		});
+		
+		$("img.news-a").click(function(){
+			window.open('/search/newsDetailed?id='+$(this).attr('news_id'));
+		});
+		
+		$(".lylink td").click(function(event){
+			if($(this).attr('href')!=null)
+			window.location.href = $(this).attr('href');
+		});
+		$(".banner-title").click(function(event){
+			if($(this).find('a').attr('href')!=null)
+			window.location.href = $(this).find('a').attr('href');
+		});
+		$(".search-head li")
+				.each(
+						function(index) {
+							$(this)
+									.click(
+											function() {
+												$(".search-head li")
+														.removeClass("active");
+												var key = $(
+														".search-form:visible .input-group input")
+														.val();
+												$(this).addClass("active");
+												$(".search-form").hide();
+												if (index == 0 || index == 4) {
+													$('.dropdown-toggle')
+															.html(
+																	"全部<span class=\"caret\"></span>");
+													$('.dropdown-toggle').attr(
+															"tid", "");
+												}
+												$(
+														".search-body>div:eq("
+																+ index + ")")
+														.find(
+																'.input-group input')
+														.val(key);
+												$(
+														".search-body>div:eq("
+																+ index + ")")
+														.show();
+											});
+						});
+
+		$(document).on(
+				'click',
+				".search-form .hotword a",
+				function() {
+					if ($(this).parent().parent().attr("rid") == '0')
+						$(this).attr(
+								"href",
+								'/search/std?q='
+										+ encodeURIComponent($(this).text()));
+					if ($(this).parent().parent().attr("rid") == '1')
+						$(this).attr(
+								"href",
+								'/search/org?q='
+										+ encodeURIComponent($(this).text()));
+					if ($(this).parent().parent().attr("rid") == '2')
+						$(this).attr(
+								"href",
+								'/search/person?q='
+										+ encodeURIComponent($(this).text()));
+					if ($(this).parent().parent().attr("rid") == '3')
+						$(this).attr(
+								"href",
+								'/search/kpi?q='
+										+ encodeURIComponent($(this).text()));
+					if ($(this).parent().parent().attr("rid") == '4')
+						$(this).attr(
+								"href",
+								'/search/iso?tid=&q='
+										+ encodeURIComponent($(this).text()));
+				});
+		$(".nda").each(function(index){
+			var clickNum = 1;
+			$(this).click(function(){
+				if(index<3){
+					var ps=new Array("stdKeysPage","orgKeysPage","perKeysPage");
+					$.ajax({
+						type: "post",
+						dataType:'json',
+						cache:false,
+						url: "/home/"+ps[index],
+						data:{"pageNumber":clickNum, "pageSize":8},
+						success: function(data){
+							var con = "";
+							$.each(data, function(index, item){
+								con += '<div class="col-xs-4 col-md-3"><a href="#">'+item.NAME+'</a></div>';
+							});
+							if(con.length>0)$("#"+ps[index]).html(con);
+							clickNum++;
+						}
+		      		});
+				}
+			 })
+		 });
+		$("#nav-menu .btn-primary")
+				.each(
+						function(index) {
+							$(this)
+									.click(
+											function() {
+												var q = $(
+														".form-control:eq("
+																+ index + ")")
+														.val();
+												var params = [ "std", "org",
+														"person", "kpi", "iso" ];
+												var uri = '/search/'
+														+ params[index] + '?q='
+														+ encodeURIComponent(q);
+												if ($('.dropdown-toggle:eq(0)')
+														.attr("tid")) {
+													uri = uri
+															+ '&tid='
+															+ $(
+																	'.dropdown-toggle:eq(0)')
+																	.attr("tid");
+												}
+												$(document.body)
+														.append(
+																$('<a href="'+uri+'" target="_blank" id="openNewWin"></a>'))
+												document.getElementById(
+														"openNewWin").click();
+												$('#openNewWin').remove();
+											})
+						});
+		$(".btn-std").click(function(){
+			var uri = $(this).attr("href");
+			if(uri==null){
+				uri = '/search/std?q=&tid=' + $(this).attr("tid");
+			}
+			window.location.href = uri;
+			return false;
+		});
+		$(".dropdown-menu li")
+				.each(
+						function(index) {
+							$(this)
+									.click(
+											function() {
+												var idx = $(this).parent(
+														'.dropdown-menu').attr(
+														"idx")
+												$(
+														'.dropdown-toggle:eq('
+																+ idx + ')')
+														.html(
+																$(this).text()
+																		+ "<span class=\"caret\"></span>");
+												$(
+														'.dropdown-toggle:eq('
+																+ idx + ')')
+														.attr(
+																"tid",
+																$(this).attr(
+																		"tid"));
+											})
+						});
+	});
+</script>
+<style>
+.banner-bg {
+	background: url(/images/banner_bg.jpg) center top no-repeat
+		#0367cd;
+}
+
+.nav-bg {
+	background-color: #0a4bb8;
+	height: 46px;
+}
+
+.nav-bg .nav_in {
+	background-color: #0f89eb;
+}
+
+.menu-container {
+	position: relative;
+}
+
+.menu-container .list-menu {
+	height: 46px;
+	margin-bottom: 0;
+}
+.menu-container .banner-item {
+	float: left;
+}
+
+.menu-container .banner-item .glyphicon {
+	margin-right: 4px;
+}
+
+.menu-container .banner-item .banner-title {
+	list-style: none;
+	padding: 0 24px;
+	height: 46px;
+	line-height: 46px;
+	text-align: center;
+	color: #fff;
+	font-size: 17px;
+}
+
+.menu-container .banner-item .banner-title a {
+	color: #fff;
+}
+
+.menu-container .banner-item:hover .banner-title {
+	background-color: white;
+	color: #005da8 !important;
+	cursor: pointer;
+}
+
+.menu-container .banner-item:hover .banner-title a {
+	color: #005da8 !important;
+}
+
+.list-menu .banner-item:hover>.banner-div {
+	box-shadow: 0 0 10px #ccc;
+	display: block;
+}
+
+.list-menu .banner-item .banner-div {
+	position: absolute;
+	display: none;
+	width: 100%;
+	top: 46px;;
+	left: 0;
+	z-index: 999;
+	background: #fff;
+	border: 1px solid #005da8;
+	border-top: 0;
+	border-radius: 2px;
+	color: black;
+	height: 350px;
+	line-height: initial;
+}
+
+.dcpsp-search-area .search-form .input-group, .menu-container .search-form .hot-area,
+	.menu-container .search-form .hot-title {
+	width: 85%;
+	margin: 0 auto;
+}
+
+.dcpsp-search-area .search-form .input-group {
+	margin-top: 40px;
+}
+
+.dcpsp-search-area .search-form .hot-title {
+	margin-top: 25px;
+}
+
+.dcpsp-search-area .search-form .hot-title .sub-img {
+	margin-top: -20px;
+	margin-left: -5px;
+}
+
+.dcpsp-search-area .gb-list .sub-img {
+	position: absolute;
+	top: -5px;
+	left: 48px;
+	width: 16px;
+}
+
+.dcpsp-search-area .search-form .hot-title .nda {
+	margin-left: 10px;
+}
+
+.dcpsp-search-area .search-body .search-form .hot-area .hotword {
+	margin-top: 5px;
+}
+
+.dcpsp-search-area .search-body .search-form .hot-area .hotword div {
+	padding: 4px 15px;
+	padding-right: 0;
+}
+
+.dcpsp-search-area .search-body .search-form .hotword a {
+	display: inline-block;
+	height: 18px;
+	color: gray;
+	overflow: hidden;
+}
+
+.dcpsp-search-area .nav li a {
+	height: 34px;
+	overflow: hidden;
+}
+
+.dcpsp-search-area .search-head li a {
+	color: #000 !important;
+	font-size: 16px;
+	font-family: 'Microsoft YaHei';
+	background: #e5e5e5;
+	border-top: 2px solid #d0d0d0;
+	margin-right: 2px !important;
+	border-radius: 0 !important;
+	padding: 5px;
+	font-family: Arial, "Microsoft YaHei", SimSun;
+	letter-spacing: 2px;
+}
+
+.dcpsp-search-area .search-head li:first-child {
+	border-left: 1px dotted #a3a3a3;
+}
+
+.dcpsp-search-area .search-head li:last-child {
+	border-right: 1px dotted #a3a3a3;
+}
+
+.dcpsp-search-area .search-head li:last-child a {
+	margin-right: 0 !important;
+}
+
+.dcpsp-search-area .search-head li a {
+	border-left: 0 !important;
+	border-right: 0 !important;
+}
+
+.dcpsp-search-area .search-head li a:hover {
+	color: #000 !important;
+	background: #e5e5e5;
+	border-top: 2px solid #d0d0d0;
+	text-decoration: underline;
+	border-left: 0 !important;
+	border-right: 0 !important;
+}
+
+.dcpsp-search-area .search-head li.active a {
+	font-weight: bold;
+	background: white !important;
+	border-top: 2px solid #555 !important;
+}
+
+.dcpsp-search-area .search-body {
+	position: relative;
+	width: 100%;
+	height: 272px;
+	background-color: white;
+	border-bottom: 1px dotted #a3a3a3;
+	border-right: 1px dotted #a3a3a3;
+	border-left: 1px dotted #a3a3a3;
+}
+
+.dcpsp-search-area .search-body .search-type {
+	display: inline-block;
+	position: absolute;
+	width: 20%;
+	height: 280px;
+	border-left: 1px dotted #a3a3a3;
+	border-right: 1px dotted #a3a3a3;
+	box-sizing: content-box;
+}
+
+.dcpsp-search-area .search-body .search-type .tit {
+	display: inline-block;
+	border: 1px solid #eee;
+	border-left-width: 5px;
+	border-left-color: #2369A5;
+	border-right: 0;
+	margin-top: 15px;
+	filter: alpha(opacity = 100 finishopacity = 50 style = 1 startx = 0, starty = 0,
+		finishx = 0, finishy = 150) progid:DXImageTransform.Microsoft.gradient(startcolorstr=red,
+		endcolorstr=blue, gradientType=0);
+	-ms-filter: alpha(opacity = 100 finishopacity = 50 style = 1 startx = 0, starty = 0,
+		finishx = 0, finishy = 150) progid:DXImageTransform.Microsoft.gradient(startcolorstr=red,
+		endcolorstr=blue, gradientType=0); /*IE8*/
+	background: red; /* 一些不支持背景渐变的浏览器 */
+	background: -moz-linear-gradient(right, #2369A5, rgba(0, 0, 255, 0.5));
+	background: -webkit-gradient(linear, 0 0, right 0, from(#2369A5),
+		to(white));
+	background: -o-linear-gradient(right, #2369A5, rgba(0, 0, 255, 0.5));
+	width: 115%;
+	height: 30px;
+	color: white;
+	font-weight: bold;
+	margin-left: -4px;
+	padding-top: 3px;
+	padding-left: 25px;
+}
+
+.dcpsp-search-area .search-body .search-type .type-area .badge {
+	display: block;
+	margin: 0 auto;
+	margin-top: 8px;
+	padding: 5px 1px;
+	background: #EAEAEA;
+	border-radius: 4px;
+	color: #8A8A8A;
+	font-weight: normal;
+	cursor: pointer;
+	font-size: 12px;
+	width: 80%;
+	font-family: Arial, "Microsoft YaHei", SimSun;
+	letter-spacing: 1px;
+	opacity: 0.95;
+}
+
+.dcpsp-search-area .search-body .search-type .tit-btn {
+	position: absolute;
+	width: 100%;
+	bottom: 10px;
+	text-align: center;
+}
+
+.dcpsp-search-area .search-body .search-type .tit-btn .badge {
+	border-radius: 2px;
+	background-color: #F5F5F5;
+	color: #8A8A8A;
+	font-weight: normal;
+	border: 1px #CECACA solid;
+	cursor: pointer;
+}
+
+.search-form {
+	display: none;
+}
+
+.consh {
+	display: block !important;
+}
+
+.consh * {
+	display: block !important;
+}
+
+.dcpsp-search-area .search-body .search-form {
+	position: absolute;
+	width: 100%;
+	height: 240px;
+}
+.list3 li{line-height:36px; height:36px; background:url(../images/tranble.jpg) left center no-repeat; padding-left:20px; width:100%; padding-left:10px; text-align:left;}
+.list3 li a{color:#333; font-size:16px; padding-left:10px; text-align:left;width: 100%;}
+.list3 li a:hover{color:#333;}
+
+.nrlink{width:100%; height:40px; line-height:40px; color:#fff; font-size:16px; font-weight:bold; margin-bottom:14px;}
+.nrlink a{color:#fff !important;}
+.nrlink a:hover{color:#fff !important;}
+.wid230{width:230px;}
+.wid260{width:260px;}
+.nrlink2{ padding-left:20px; height:40px; line-height:40px; background-color:#c43960; color:#fff; font-size:16px; font-weight:bold; margin-bottom:14px; text-align:left;}
+.nrlink2 a{color:#fff !important;}
+.nrlink2 a:hover{color:#fff !important;}
+.nrlink3{ width:170px; height:55px; line-height:55px;; color:#fff; font-size:16px; font-weight:bold; margin-bottom:10px; text-align:center; border-radius:3px;}
+.nrlink3 a{color:#fff !important;}
+.nrlink3 a:hover{color:#fff !important;}
+
+.color1{background-color:#de4752;}
+.color2{background-color:#feb72d;}
+.color3{background-color:#5fc1dd;}
+.color4{background-color:#3c96f3;}
+.color5{background-color:#3c74f3;}
+.color6{background-color:#fdad29;}
+.color7{background-color:#3eadfa;}
+.color8{background-color:#3085e1;}
+
+
+
+.list4 li{ width:240px; float:left; margin-right:10px; margin-bottom:10px; text-align:left;}
+.list4 li a{ display:block;}
+.navstyle-wx{padding: 24px;}
+	.list3>li>a{display: block;
+		text-overflow: ellipsis;
+		overflow: hidden;
+		white-space: nowrap;
+		word-wrap: normal;}
+.pr-top-btn{
+	line-height: 60px;
+	font-weight: bold;
+	font-size: 18px;
+	color: black;
+}
+.pr-top-btn img{
+	margin-right: 15px;
+}
+.pr-line{
+	border-left: 2px solid red;
+	padding-left: 15px;
+	height: 90px;
+	margin-left: 15px;
+	color: #aaa;
+	font-weight: normal;
+	font-size: 15px;
+}
+.main-body{
+	margin-top: 15px;
+}
+@media (max-width: 768px) {
+	#nav-menu {
+	    height: 0;
+	    background-color: #3f75b7;
+	    transition: height 500ms;
+	    -moz-transition: height 500ms;
+	    -webkit-transition: height 500ms;
+	    -o-transition: height 500ms;
+	    overflow: hidden;
+	}
+	#nav-menu ul li {
+		display: block;
+	    width: 33.33333%;
+	    border-top: 1px solid #ddd;
+	}
+	#nav-menu .list-menu {
+		overflow: inherit;
+	}
+	#nav-menu ul li .banner-title{
+		padding: 0;
+		font-size: 16px;
+		height: 65px;
+	    line-height: 65px;
+	}
+	.nav-menu-show{
+		display:block !important;
+		height:127px !important;
+	}
+	#nav-menu ul li:nth-child(-1n+4) {
+	    border-top: 0;
+	}
+	.con_bg {
+    	padding-top: 0;
+    }
+    .list-menu .banner-item:hover>.banner-div {
+		display: none;
+	}
+}
+.lylink-outer {
+	position: relative;
+	border: 2px solid #ddd;
+	padding: 5px;
+}
+.lylink-outer .lylink-title {
+	position: absolute;
+	top: -12px;
+	left: 50%;
+	width: 160px;
+	margin-left: -80px;
+	text-align: center;
+	font-size: 15px;
+	font-weight: bold;
+	color: #0a63c6;
+	background-color: white;
+	z-index: 9;
+}
+.lylink-outer .lylink-more {
+	position: absolute;
+	top: -12px;
+	right: 10px;
+	width: 75px;
+	text-align: center;
+	font-size: 14px;
+	font-weight: bold;
+	color: #727272;
+	background-color: white;
+	cursor: pointer;
+}
+.lylink{
+	width:100%;
+	height: 240px;
+	table-layout: fixed;
+	border-spacing: 10px;
+    border-collapse: inherit;
+    background-color: white;
+}
+.lylink td{
+	overflow:hidden;
+	background-color: #f2f2f2;
+	text-align:center;
+	vertical-align:middle;
+	cursor: pointer;
+	padding: 10px;
+}
+.lylink td:hover{
+	overflow:hidden;
+	background-color: #e1ebf6;
+	text-align:center;
+	vertical-align:center;
+}
+.lylink img{
+	 margin-bottom: -15px;
+	 margin-right: -40px;
+	 width: 100%;
+     max-width: 96px;
+}
+.lylink img.origin{
+	margin-bottom: 0;
+	margin-right: 0;
+}
+.yw-outter{
+	height:250px;
+	background-color:#eee;
+	padding: 20px;
+}
+.yw-outter .btn {
+	width: 100%;
+    font-size: 18px;
+    height: 40px;
+    background-color: #3eadfa;
+}
+.yw-outter .yw-line {
+	border-bottom:2px solid #8cc3ea;
+	width:100%;
+	margin-top:10px;
+}
+.btn-std {
+	position: relative;
+	color: #fff;
+    background-color:#b4295a;
+    border-color: #cb3272;
+    width: 100%;
+    font-weight: bold;
+    padding: 10px 12px;
+    margin-bottom: 11px;
+}
+.btn .glyphicon-triangle-right {
+	font-size: 50%;
+}
+.btn-std .glyphicon-triangle-right{
+	position: absolute;
+	left: 15px;
+	top: 14px;
+}
+.btn-std:hover {
+	color: #fff;
+    background-color: #eb3374;
+}
+#myModal {
+	top: 50%;
+	margin-top: -150px;
+}
+</style>
+<!-- $('.navbar-toggle').click(function(){
+		$('.nav-menu').toggleClass("nav-menu-show");
+	}); -->
+<div class="banner-bg">
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12 hidden-xs">
+				<img src="/images/logo.png"/>
+				<a role="button" class="btn btn-default btn-sm " style="margin-top: 55px;margin-left: 10px;background-color: rgba(72, 167, 239, 0.48);color:white;" href="http://www.mot.gov.cn/">返回部网站>></a> 
+				<div style="float:right;margin-top: 35px;">
+					<a role="button" class="btn btn-default btn-sm " style="background-color: rgba(72, 167, 239, 0.48);color:white;" href="https://jtst.mot.gov.cn/zxd"><img style="width: 11px;" src="https://jtst.mot.gov.cn/uac/images/user.png"/>&nbsp;登录</a> 
+					<a role="button" class="btn btn-default btn-sm " style="margin-left: 10px;background-color: rgba(72, 167, 239, 0.48);color:white;" href="/pr"><span class="glyphicon glyphicon-education"></span>&nbsp;注册</a>
+				</div>
+			</div>
+			<div class="col-sm-12 visible-xs">
+				<div class="visible-xs navbar-header">
+					<button id="navbar-toggle" class="navbar-toggle collapsed" type="button" style="padding: 6px 10px;margin-right: 0;color: white;">
+						<span class="glyphicon glyphicon-align-justify"></span>
+					</button>
+					<a style="color:white;padding:15px 0;" href="/" class="navbar-brand">
+						交通运输标准化信息系统
+					</a>
+					<div style="clear:both;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div id="nav-menu" class="nav-bg">
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12">
+				<div class="menu-container">
+					<ul class="list-menu">
+						<li class="banner-item hidden-xs">
+							<div class="banner-title nav_in">
+								<span class="glyphicon glyphicon-home"></span> <a href="/">首页</a>
+							</div>
+						</li>
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-list-alt"></span> <a href="/arch/prof">标准体系</a>
+							</div>
+							<div class="banner-div navstyle-wx">
+								<div class="row">
+									<div class="col-xs-2">
+										<div class="lylink-outer">
+											<table class="lylink">
+												<tr>
+													<td href="/arch/prof">
+														<img class="origin" src="/images/tb1.png"/>
+													</td>
+												</tr>
+												<tr>
+													<td href="/arch/prof?domain=jjg">
+														<img class="origin" src="/images/tb7-3.png"/>
+													</td>
+												</tr>
+											</table>
+										</div>
+									</div>
+									<div class="col-xs-10" style="padding-left: 0;">
+										<div class="row">
+											<div class="col-xs-12">
+												<div class="lylink-outer">
+													<span class="lylink-title">重点领域标准体系</span>
+													<a class="lylink-more" href="/search/news?cate=21&menuSelect=1">更多动态</a>
+													<div class="row">
+														<div class="col-xs-6">
+															<table class="lylink">
+																<col style="width:33.3333%;"/>
+																<col style="width:16.6666%;"/>
+																<col style="width:16.6666%;"/>
+																<col style="width:33.3333%;"/>
+																<tr>
+																	<td colspan="2" href="/arch/import?domain=1">
+																		<img src="/images/tb2.png"/>
+																	</td>
+																	<td colspan="2" href="/arch/import?domain=2">
+																		<img src="/images/tb3.png"/>
+																	</td>
+																</tr>
+																<tr>
+																	<td href="/arch/import?domain=3">
+																		<img src="/images/tb4.png"/>
+																	</td>
+																	<td colspan="2" href="/arch/import?domain=4">
+																		<img src="/images/tb5.png"/>
+																	</td>
+																	<td href="/arch/import?domain=5">
+																		<img src="/images/tb6.png"/>
+																	</td>
+																</tr>
+															</table>
+														</div>
+														<div class="col-xs-6" style="padding-left: 0;padding-top: 13px;">
+															<ul class="list3 news-table">
+																<li><a class="news-a" href="#" news_id="5b2bf6652b17ed28fca973608391f334" title="交通运输部办公厅关于印发《交通运输安全应急标准体系（2022年）》的通知">交通运输部办公厅关于印发《交通运输安全应急标准体系（2022年）》的通知</a></li>
+																<li><a class="news-a" href="#" news_id="37c55e77d1d2e7637cf034809f7bbfc8" title="交通运输部 国家标准化管理委员会关于印发《交通运输智慧物流标准体系建设指南》的通知">交通运输部 国家标准化管理委员会关于印发《交通运输智慧物流标准体系建设指南》的通知</a></li>
+																<li><a class="news-a" href="#" news_id="c95de9da2af1890a82d9a3298088599c" title="交通运输部办公厅关于印发《综合交通运输标准体系（2022年）》的通知">交通运输部办公厅关于印发《综合交通运输标准体系（2022年）》的通知</a></li>
+																<li><a class="news-a" href="#" news_id="0279e766f2874f7d5e2e751f97f18f78" title="交通运输部办公厅关于印发《绿色交通标准体系（2022年）》的通知">交通运输部办公厅关于印发《绿色交通标准体系（2022年）》的通知</a></li>
+																<li><a class="news-a" href="#" news_id="bb2f70cd008a693913087e2fa6c2132f" title="工业和信息化部 交通运输部 国家标准化管理委员会关于印发《国家车联网产业标准体系建设指南（智能交通相关）》的通知">工业和信息化部 交通运输部 国家标准化管理委员会关于印发《国家车联网产业标准体系建设指南（智能交通相关）》的通知</a></li>
+																<li><a class="news-a" href="#" news_id="7871ef89b858d2e0cb198730ca4cfa63" title="交通运输部办公厅关于发布《交通运输信息化标准体系（2019年）》的通知">交通运输部办公厅关于发布《交通运输信息化标准体系（2019年）》的通知</a></li>
+															</ul>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-book"></span> <a href="/search/std?q=">标准公开</a>
+							</div>
+							<div class="banner-div navstyle-wx">
+								<div class="row">
+									<div class="col-sm-3" style="text-align: center;">
+										<a tid="gb" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>交通标准文本</a>
+										<a tid="plan" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>交通标准计划</a>
+										<a tid="jjg" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>计量技术规范</a>
+										<a tid="research" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>研究项目</a>
+										<a tid="gbf" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>标准外文版</a>
+										<a tid="implement" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>标准实施规范</a>
+									</div>
+									<div class="col-sm-9">
+										<div class="dcpsp-search-area">
+											<ul class="nav nav-tabs nav-justified search-head">
+												<li role="presentation" class="active"><a
+													href="javascript:void(0)">标准</a></li>
+												<li role="presentation"><a href="javascript:void(0)">机构</a></li>
+												<li role="presentation"><a href="javascript:void(0)">专家</a></li>
+											</ul>
+											<div class="search-body">
+												<!-- 标准搜索区 -->
+												<div class="search-form" style="display: block;">
+													<div class="input-group">
+														<span class="input-group-btn">
+															<button type="button"
+																class="btn btn-default dropdown-toggle"
+																data-toggle="dropdown" aria-haspopup="true"
+																aria-expanded="false">
+																全部 <span class="caret"></span>
+															</button>
+															<ul class="dropdown-menu" idx="0">
+																<li tid=""><a href="#">全部</a></li>
+																<li tid="gb"><a href="#">标准</a></li>
+																<li tid="plan"><a href="#">标准计划</a></li>
+																<li tid="jjg"><a href="#">计量技术规范</a></li>
+																<li tid="research"><a href="#">研究项目</a></li>
+																<li tid="gbf"><a href="#">标准外文版</a></li>
+															</ul>
+														</span> <input type="text" class="form-control"
+															placeholder="请输入关键词" rid="std" /> <span
+															class="input-group-btn">
+															<button class="btn btn-primary " type="button">检索</button>
+														</span>
+													</div>
+													<div class="hot-title">
+														<span class="text-danger">实时热搜</span> <img class="sub-img"
+															src="/images/hot.jpg" /> <a class="nda"><span
+															class="glyphicon glyphicon-refresh text-default"></span>&nbsp;<span
+															class="text-default">换一批</span></a>
+															<a style="float:right;margin-top:-15px;" href="/gb/search/gbAdvancedSearch" target="_blank"><span class="text-default">高级检索</span></a>
+													</div>
+													<div class="hot-area">
+														<div class="row hotword" rid="0" id="stdKeysPage">
+															<div class="col-xs-4 col-md-3"><a href="#">停车诱导信息集</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">车载导航系统</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">通信信息集要求</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">交通网络</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">包装</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">港口装卸术语</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">系统框架模型</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">集装箱术语</a></div>
+														</div>
+													</div>
+												</div>
+												<!-- 机构搜索区 -->
+												<div class="search-form">
+													<div class="input-group">
+														<input type="text" class="form-control"
+															placeholder="请输入关键词" rid="org" /> <span
+															class="input-group-btn">
+															<button class="btn btn-primary " type="button">检索</button>
+														</span>
+													</div>
+													<div class="hot-title">
+														<span class="text-danger">实时热搜</span> <img class="sub-img"
+															src="/images/hot.jpg" /> <a class="nda"><span
+															class="glyphicon glyphicon-refresh text-default"></span>&nbsp;<span
+															class="text-default">换一批</span></a>
+													</div>
+													<div class="hot-area">
+														<div class="row hotword" rid="1" id="orgKeysPage">
+															<div class="col-xs-4 col-md-3"><a href="#">城市客运</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">港口</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">疏浚装备</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">综合交通运输</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">航海安全</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">航测</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">环境保护</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">通信及导航</a></div>
+														</div>
+													</div>
+												</div>
+												<!-- 人才搜索区 -->
+												<div class="search-form">
+													<div class="input-group">
+														<input type="text" class="form-control"
+															placeholder="请输入关键词" rid="person" /> <span
+															class="input-group-btn">
+															<button class="btn btn-primary " type="button">检索</button>
+														</span>
+													</div>
+													<div class="hot-title">
+														<span class="text-danger">实时热搜</span> <img class="sub-img"
+															src="/images/hot.jpg" /> <a class="nda"><span
+															class="glyphicon glyphicon-refresh text-default"></span>&nbsp;<span
+															class="text-default">换一批</span></a>
+													</div>
+													<div class="hot-area">
+														<div class="row hotword" rid="2" id="perKeysPage">
+															<div class="col-xs-4 col-md-3"><a href="#">交通工程</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">道路交通安全</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">交通气象</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">交通安全</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">公路勘察设计</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">公路工程管理</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">机电工程</a></div>
+															<div class="col-xs-4 col-md-3"><a href="#">公路养护</a></div>
+														</div>
+													</div>
+												</div>
+												<!-- 指标搜索区 -->
+												<div class="search-form">
+													<div class="info">该功能为演示功能</div>
+													<div class="input-group">
+														<input type="text" class="form-control"
+															placeholder="请输入关键词" rid="kpi" /> <span
+															class="input-group-btn">
+															<button class="btn btn-primary " type="button">检索</button>
+														</span>
+													</div>
+													<div class="hot-title">
+														<span class="text-danger">实时热搜</span> <img class="sub-img"
+															src="/images/hot.jpg" /> <a class="nda"><span
+															class="glyphicon glyphicon-refresh text-default"></span>&nbsp;<span
+															class="text-default">换一批</span></a>
+													</div>
+													<div class="hot-area">
+														<div class="row hotword" rid="3">
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">PH值<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">机械强度<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">耐潮湿<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">耐热和耐燃<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">易燃</a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">蒸馏水</a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">邻苯二甲酸酯<span
+																	class="news-logo news-logo-hot"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">染料<span
+																	class="news-logo news-logo-hot"></span></a>
+															</div>
+														</div>
+													</div>
+												</div>
+												<!-- 国际国外搜索区 -->
+												<div class="search-form">
+													<div class="input-group">
+														<span class="input-group-btn">
+															<button type="button"
+																class="btn btn-default dropdown-toggle"
+																data-toggle="dropdown" aria-haspopup="true"
+																aria-expanded="false">
+																全部 <span class="caret"></span>
+															</button>
+															<ul class="dropdown-menu" idx="1">
+																<li tid=""><a href="#">全部</a></li>
+																<li tid="iso"><a href="#">ISO</a></li>
+																<li tid="iec"><a href="#">IEC</a></li>
+																<li tid="din"><a href="#">DIN</a></li>
+																<li tid="afnor"><a href="#">AFNOR</a></li>
+															</ul>
+														</span> <input type="text" class="form-control"
+															placeholder="请输入关键词" rid="iso" /> <span
+															class="input-group-btn">
+															<button class="btn btn-primary " type="button">检索</button>
+														</span>
+													</div>
+													<div class="hot-title">
+														<span class="text-danger">实时热搜</span> <img class="sub-img"
+															src="/images/hot.jpg" /> <a class="nda"><span
+															class="glyphicon glyphicon-refresh text-default"></span>&nbsp;<span
+															class="text-default">换一批</span></a>
+													</div>
+													<div class="hot-area">
+														<div class="row hotword" rid="4">
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO 9001<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO 14001<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO/IEC 27001<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO/TS 29001<span
+																	class="news-logo news-logo-new"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO 13485</a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO 9004</a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO 9000<span
+																	class="news-logo news-logo-hot"></span></a>
+															</div>
+															<div class="col-xs-4 col-md-3">
+																<a href="#" target="_blank">ISO/IEC 90003<span
+																	class="news-logo news-logo-hot"></span></a>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-user"></span> <a href="/committee">技术委员会</a>
+							</div>
+						</li>
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-inbox"></span> <a href="/search/news?cate=3&menuSelect=4">政策法规</a>
+							</div>
+							<div class="banner-div navstyle-wx">
+								<div class="row">
+									<div class="col-md-6 col-sm-12">
+										<ul class="list4">
+											<li>
+												<a href="/search/news?cate=3&cateSelect=8&menuSelect=4" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>法律</a>
+												<a href="/search/news?cate=3&cateSelect=9&menuSelect=4" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>行政法规</a>
+												<a href="/search/news?cate=3&cateSelect=10&menuSelect=4" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>部门规章</a>
+											</li>
+											<li>
+												<a href="/search/news?cate=3&cateSelect=11&menuSelect=4" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>其他管理文件</a>
+												<a href="/search/news?cate=3&cateSelect=12&menuSelect=4" role="button" class="btn btn-std"><span class="glyphicon glyphicon-triangle-right"></span>国际标准化</a>
+										</ul>
+									</div>
+									<div class="col-md-6 hidden-sm">
+										<ul class="list3 news-table">
+											<li><a class="news-a" href="#" news_id="a66a8c2254d9e3d199a93dcb606d5e86" title="中华人民共和国标准化法">中华人民共和国标准化法</a></li>
+											<li><a class="news-a" href="#" news_id="edadb86bc145cdf4e156cb42f00c7429" title="中华人民共和国计量法">中华人民共和国计量法</a></li>
+											<li><a class="news-a" href="#" news_id="a049e9c7bee9aa56d55cb2deb50a4a94" title="中华人民共和国产品质量法">中华人民共和国产品质量法</a></li>
+											<li><a class="news-a" href="#" news_id="39564fce25c97250e6b802850608adc9" title="中华人民共和国环境保护法">中华人民共和国环境保护法</a></li>
+											<li><a class="news-a" href="#" news_id="ee0f34e1aafbf4e22efe6048488576bd" title="中华人民共和国节约能源法">中华人民共和国节约能源法</a></li>
+											<li><a class="news-a" href="#" news_id="1d53e2517b8478b25c5f072a19b7d119" title="国际电工委员会（IEC）章程和程序规则">国际电工委员会（IEC）章程和程序规则</a></li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</li>
+						<!--<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-bell"></span><a href="https://jtst.mot.gov.cn//zxd">业务办理</a>
+							</div>
+							<div class="banner-div navstyle-wx">
+								<div class="row">
+									<div class="col-xs-6">
+										<div class="yw-outter">
+											<a target="_blank" href="https://jtst.mot.gov.cn//zxd" class="btn btn-info btn-large"><span class="glyphicon glyphicon-triangle-right"></span>交通运输标准化业务管理平台</a>
+											<div class="yw-line"></div>
+											<div style="margin-top:10px;clear:both;color: gray;">交通标准制修订立项、编制、报批、批准发布研究项目征集、实施、验收...</div>
+										</div>
+									</div>
+									<div class="col-xs-6">
+										<div class="yw-outter">
+											<a target="_blank" href="/pr" class="btn btn-info btn-large"><span class="glyphicon glyphicon-triangle-right"></span>项目提案申报入口</a>
+											<div class="yw-line"></div>
+											<div style="margin-top:10px;clear:both;color: gray;">标准制修订项目、研究项目申报注册入口.
+												<a href="/search/newsDetailed?id=74c29f522736eeceb0dded56a1ca5470" style="color:red;float: right;">如何申报项目？</a>
+											</div>
+											<div class="pr-top-btn" style="margin-top:10px;">
+												<span style="display:inline-block;width:200px;">
+													<a href="https://jtst.mot.gov.cn//uac/register/register-index.do?registerType=organization" target="_blank">
+													<img src="/images/pr-dwicon.png"/>项目承担单位注册</a>
+												</span>
+												<span class="pr-line">项目承担单位快速注册入口</span>
+											</div>
+											<div class="pr-top-btn">
+												<span style="display:inline-block;width:200px;"><a href="https://jtst.mot.gov.cn//uac/register/register-index.do?registerType=individual" target="_blank"><img src="/images/pr-fzricon.png"/>项目负责人注册</a></span>
+												<span class="pr-line">项目负责人快速注册入口</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</li>-->
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-blackboard"></span> <a href="/search/news?cate=19&menuSelect=5">产品抽查</a>
+							</div>
+						</li>
+						<li class="banner-item">
+							<div class="banner-title">
+								<span class="glyphicon glyphicon-save"></span> <a href="/search/news?cate=4&menuSelect=6">下载中心</a>
+							</div>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="modal fad bs-example-modal-sme" tabindex="-1" role="dialog" id="myModal">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">跳转提示</h4>
+      </div>
+      <div class="modal-body">
+        <p>您已跳出交通运输标准化信息系统</p>
+      </div>
+      <div class="modal-footer">
+       	 <span style="float: left;margin-top: 5px;color:gray;"><span id="open-time">3</span>秒后自动跳转</span> 
+       	 <button type="button" class="btn btn-success" onclick="openHref(true)">直接跳转</button> 
+       	 <button type="button" class="btn btn-default" onclick="openHref()">取消</button> 
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+<div class="container main-body">
+	<div class="row">
+		<div class="col-sm-12">
+			<div style="width:100%;min-height:800px;background: #fff;border: 1px solid #e5e5e5;padding:0 20px;position:relative;overflow:visible;">
+				<div class="page-header" style="margin-top:20px;">
+					<h4 style="font-family: arial,tahoma,'Microsoft Yahei','\5b8b\4f53',sans-serif;">公路服务设施设计规范</h4>
+					<h5 style="font-family: arial,tahoma,'Microsoft Yahei','\5b8b\4f53',sans-serif;color:gray;margin-top:5px;">Design Specifications for Highway Service Facilities</h5> 
+					<div style="font-size:16px;margin-top:5px">
+						<span class="s-status label label-info">工程建设标准</span>  
+						<span class="s-status label label-success">推荐性标准</span>
+						<span class="s-status label label-primary">现行</span>
+					</div>
+				</div>
+				<p>工程建设标准《公路服务设施设计规范》。</p>
+				
+				<p>主要起草单位
+											
+					
+						<span DRAFT_UNIT="1">交通运输部公路科学研究院</span>
+					
+						、<span DRAFT_UNIT="1">北京交科公路勘察设计研究院有限公司</span>
+					
+						、<span DRAFT_UNIT="1">公安部交通管理科学研究所</span>
+					
+				。</p>
+				
+				
+					<p>
+					主要起草人
+					吴京梅、陈瑜、干小东、李楠、张建军、王静、姜明、晁遂、王建强。
+					</p>
+				
+				<div class="catalog">
+					<div class="catalog-inner">
+						<h2 class="catalog-title">目录</h2>
+						<div class="catalog-list">
+							<ol>
+							</ol>
+							<ol>
+							</ol>
+							<ol>
+							</ol>
+						</div>
+					</div>
+				</div>
+				<div class="para-title">
+					<h2 class="title-text">标准状态</h2>
+				</div>
+				<div class="timeline">
+					<div class="events-wrapper">
+						<div class="events" style="width: 100%;">
+							<ol>  
+								<li><a href="#" style="left:16.5%;">发布<span class="hidden-xs">于&nbsp;2026-01-26</span></a></li>
+								<li><a href="#" style="left:45%;">实施<span class="hidden-xs">于&nbsp;2026-05-01</span></a></li>
+								<li class="stop" style="display:none"><a href="#" style="left:61%;margin-left:-14px;">上次复审</a></li>
+								<li><a href="#" style="left:78.5%;">废止</a></li>
+							</ol>
+							<span class="filling-line" aria-hidden="true" ></span> 
+						</div> <!-- .events -->
+					</div> <!-- .events-wrapper -->
+				</div>
+				<div class="para-title">
+					<h2 class="title-text">基础信息</h2>
+				</div>
+				<div class="basic-info cmn-clearfix">
+				
+					<dl class="basicInfo-block basicInfo-left">
+						
+						<dt class="basicInfo-item name">标准号</dt>
+						<dd class="basicInfo-item value">JTG/T 3382-2026</dd>
+						
+						
+						<dt class="basicInfo-item name">发布日期</dt>
+						<dd class="basicInfo-item value">2026-01-26</dd>
+						
+						
+						
+						
+						<dt class="basicInfo-item name">实施日期</dt>
+						<dd class="basicInfo-item value">
+							2026-05-01
+						</dd>
+						
+						
+						
+						
+						
+						
+						
+					</dl>
+					<dl class="basicInfo-block basicInfo-right">
+						
+						
+						
+						<dt class="basicInfo-item name">归口单位</dt>
+						<dd class="basicInfo-item value"><a class="triggers" href="" TA_CODE="1" target="_blank">交通运输部公路局</a></dd>
+						
+						
+						
+						<dt class="basicInfo-item name">执行单位</dt>
+						<dd class="basicInfo-item value"><a class="triggers" href="" TM_CODE="1" target="_blank">交通运输部公路局</a></dd>
+						
+							
+						
+					</dl>
+					<dl style="clear:both;"></dl>
+				</div>
+				
+				
+				
+				
+				
+				<div class="para-title" >
+					<h2 class="title-text">起草单位</h2>
+				</div>
+										
+				<div class="basic-info cmn-clearfix">
+					<dl class="basicInfo-block basicInfo-left">
+						
+							
+							<dd class="basicInfo-item value"><a class="triggers" href="" target="_blank" DRAFT_UNIT="1"><span class="glyphicon glyphicon-link"></span>交通运输部公路科学研究院</a></dd>
+							
+						
+							
+						
+							
+							<dd class="basicInfo-item value"><a class="triggers" href="" target="_blank" DRAFT_UNIT="1"><span class="glyphicon glyphicon-link"></span>公安部交通管理科学研究所</a></dd>
+							
+						
+					</dl>
+					<dl class="basicInfo-block basicInfo-right">
+						 
+							
+						 
+							
+							<dd class="basicInfo-item value"><a class="triggers" href="" target="_blank" DRAFT_UNIT="1"><span class="glyphicon glyphicon-link"></span>北京交科公路勘察设计研究院有限公司</a></dd>
+							
+						 
+							
+						
+					</dl>
+					<dl style="clear:both;"></dl>
+				</div>	
+				
+				
+				<div class="para-title">
+					<h2 class="title-text">起草人</h2>
+				</div>				
+				<div class="basic-info cmn-clearfix">
+					<dl class="basicInfo-block basicInfo-left">
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>吴京梅</dd>
+									
+								
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>陈瑜</dd>
+									
+								
+							
+						
+							
+						
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>张建军</dd>
+									
+								
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>王静</dd>
+									
+								
+							
+						
+							
+						
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>王建强</dd>
+									
+								
+							
+						
+					</dl>
+					<dl class="basicInfo-block basicInfo-right">
+						
+							
+						
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>干小东</dd>
+									
+								
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>李楠</dd>
+									
+								
+							
+						
+							
+						
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>姜明</dd>
+									
+								
+							
+						
+							
+								
+									
+									
+										<dd class="basicInfo-item twod" style="color: #999"><span class="glyphicon glyphicon-user"></span>晁遂</dd>
+									
+								
+							
+						
+							
+						
+					</dl>
+					<dl style="clear:both;"></dl>
+				</div>	
+				
+				
+				
+				
+				
+				<div class="para-title" >
+					<h2 class="title-text">相近标准(计划)</h2>
+				</div>					
+				<div class="basic-info cmn-clearfix">
+					<dl class="basicInfo-block basicInfo-left" style="width: auto;">
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=17055bc55d2cf9e4f9a232fb075bacfc" target="_blank" ><span class="glyphicon glyphicon-link"></span>JTG D81-2017 &nbsp;公路交通安全设施设计规范</a></dd>
+								
+								
+								
+							
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=7078186af12a887dc92eb86fa9ac6aee" target="_blank" ><span class="glyphicon glyphicon-link"></span>JTG/T 3381-04-2025 &nbsp;城镇化地区公路交通安全设施设计规范</a></dd>
+								
+								
+								
+							
+						
+							
+								
+								
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/gb/search/gbDetailed?id=bb21212685626140b7512ad8a7e85d8c" target="_blank" ><span class="glyphicon glyphicon-link"></span>JT 2023-61 &nbsp;公路服务设施雨水循环利用技术要求</a></dd>
+								
+							
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=02cb249768bb781becbea0260cc20346" target="_blank" ><span class="glyphicon glyphicon-link"></span>JT/T 1559-2025 &nbsp;公路服务设施雨水循环利用技术要求</a></dd>
+								
+								
+								
+							
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=be601e29e20aaaa4dfb76a8f50f3d6c6" target="_blank" ><span class="glyphicon glyphicon-link"></span>JTJ 305-2001 &nbsp;船闸总体设计规范(JTJ305-2001)局部修订(船闸附属设施设计部分)</a></dd>
+								
+								
+								
+							
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=cb2de81ddc0b0cc955ac4254c2807055" target="_blank" ><span class="glyphicon glyphicon-link"></span>JTG/T D81-2017 &nbsp;公路交通安全设施设计细则</a></dd>
+								
+								
+								
+							
+						
+							
+								
+									<dd class="basicInfo-item value"  style="width: 100%"><a href="/hb/search/stdHBDetailed?id=1551931a2927ea5c99bef7c85b229dd8" target="_blank" ><span class="glyphicon glyphicon-link"></span>JTG D80-2006 &nbsp;高速公路交通工程及沿线设施设计通用规范</a></dd>
+								
+								
+								
+							
+						
+					</dl>
+					<dl style="clear:both;"></dl>
+				</div>	
+				
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+.foot{background-color:#eff1f3; border-top:1px #0f59a5 solid; text-align:center; line-height:26px; padding:10px 0; margin-top:10px;}
+@media (max-width: 768px) {
+		 	#_span_jiucuo{
+		 		display: none;
+		 	}
+		}
+</style>
+<div class="foot">
+	<div class="container">
+		<div class="row">
+			<div class="col-sm-12">
+				版权所有：中华人民共和国交通运输部 | 开发维护单位：交通运输部科学研究院
+				&nbsp;&nbsp;<a role="button" href="/publicSug" target="_blank" class="btn btn-primary btn-sm"><span class="glyphicon glyphicon-envelope"></span>&nbsp;公众留言</a>
+				<br/> 单位地址：北京市朝阳区惠新里240号 邮编：100029<br/>
+				ICP备案编号 京ICP备05046837号
+				<script id="_jiucuo_" class="hidden-sm" sitecode='bm19000004' src='https://zfwzgl.www.gov.cn/exposure/jiucuo.js'></script>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?b6f7783faa4ca57e5995dd16d40953a7";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+<style type="text/css">
+.sidebar {
+	position: fixed;
+	right: 50%;
+	top: 0px;
+	width: 36px;
+	height: 100%;
+	overflow: visible;
+	display:none;
+}
+@media (min-width: 768px) {
+	.sidebar {
+	    margin-right: -395px;
+	   display: inline;
+	}
+}
+@media (min-width: 992px) {
+	.sidebar {
+	    margin-right:-505px;
+	    display: inline;
+	}
+}
+@media (min-width: 1200px){
+	.sidebar {
+	    margin-right:-604px;
+	    display: inline;
+	}
+}
+.sidebar-tabs {
+	position: absolute;
+	top: 30%;
+	left: 0px; 
+	width: 35px;
+	font-size: 45px;
+	overflow: visible;
+}
+.tab-ico{
+	margin-left: 1px; 
+	position: relative; 
+	cursor: pointer;
+	display: inline-block; 
+}
+.tab-text{
+	width: 105px; 
+	height: 25px;
+	font-size: 14px;
+	line-height: 25px; 
+	color: #FFF; 
+	text-align: center; 
+	font-family: "微软雅黑"; 
+	position: absolute; 
+	right: 35px;
+	top: 0px;
+	background-color: #7A6E6E; 
+	border-radius: 10px; 
+	font-style: normal; 
+	cursor: pointer;
+	display:none;
+}
+.sidebar-btn:hover .tab-text{
+	display:inline-block;
+}
+.sidebar-btn{
+	position:relative;
+	overflow: visible;
+	background-color: #4c9cda;
+	transition: all .3s ease;
+    -o-transition: all .3s ease;
+    -moz-transition: all .3s ease;
+    -webkit-transition: all .3s ease;
+    box-shadow: 0 5px 5px rgba(146,146,146,.5);
+    margin-top: 10px;
+    font-size: 16px;
+    text-align:center;
+    color:white;
+    font-family: arial,tahoma,'Microsoft Yahei','\5b8b\4f53',sans-serif;
+    cursor:pointer;
+}
+.sidebar-btn:first-child{
+	 margin-top: 0;
+}
+.sidebar-btn:hover{
+	background-color: #2da3ff;
+}
+.sidebar-btn:hover .infoCode{
+	display: inline-block;
+}
+.infoCode{
+	width: 120px;
+	height:120px;
+	position: absolute;
+	top: 50%;
+	right: 35px;
+	margin-top: -60px;
+	display: none;
+	border: 1px solid black;
+	box-sizing: content-box;
+	padding: 10px; 
+}
+.share{
+	display:block;
+	width:100%;
+	height:35px;
+	background-color:white;
+
+}
+.share em{
+	display:block;
+	width:35px;
+	height:35px;
+	background-image:url(/images/login-type.png);
+}
+#wbshare em{
+	background-position: -94px 1px;;
+}
+#wbshare:hover{  
+	background-color:#dd137b;
+}
+#wbshare:hover em{
+	background-position: -94px -32px;;
+}
+#qqshare em{
+	background-position: 1px 1px;
+}
+#qqshare:hover{  
+	background-color:#279dd6;
+}
+#qqshare:hover em{
+	background-position: 1px -32px;
+}
+#wxshare em{
+	background-position: -50px 1px;;
+}
+#wxshare:hover{  
+	background-color:#1cb319;
+}
+#wxshare:hover em{
+	background-position: -50px -32px;;
+}
+.qrcode-wrapper {
+    position: fixed;
+    left: 50%;
+    margin-left: -120px;
+    top: 50%;
+    margin-top: -138px;
+    padding: 10px;
+    width: 240px;
+    height: 295px;
+    background: #fff;
+    border: solid 1px #d8d8d8;
+    z-index: 11001;
+    font-size: 12px;
+    box-shadow: 0 5px 5px rgba(146,146,146,.5);
+}
+.qrcode-wrapper .popup_header {
+    margin: 10px 0 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    line-height: 16px;
+    height: 16px;
+    position: relative;
+    color: gray;
+    text-align:center;
+}
+.qrcode-wrapper .icons_close {
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+     -webkit-transition: -webkit-transform 218ms;
+    -moz-transition: -moz-transform 218ms;
+    transition: transform 218ms;
+}
+.qrcode-wrapper .icons_close:hover {
+    transform:rotate(90deg);
+	-ms-transform:rotate(90deg); 	/* IE 9 */
+	-moz-transform:rotate(90deg); 	/* Firefox */
+	-webkit-transform:rotate(90deg); /* Safari 和 Chrome */
+	-o-transform:rotate(90deg); 	/* Opera */
+}
+.qrcode-wrapper #wechat-qrcode-img {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+}
+.qrcode-wrapper .popup_footer {
+    margin-top: 20px;
+    font-size: 12px;
+    text-align: left;
+    line-height: 22px;
+    color: #666;
+    text-align:center;
+}
+.qrcode-wrapper #wechat-qrcode-img .qr-logo{
+	width:24px;
+	height:24px;
+	position:absolute;
+	top:50%;
+	left:50%;
+	margin-top:-12px;
+	margin-left:-12px;
+	background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAZ0SURBVEhLfZZbjF1VGcd/e+3rucx0zkw7ZdpS7GitLa1oqyC1sVCmBWxjIk30QaJiHG1UiMKD0RgM4IMJTQzRF2JClCCEmIiNliaV+oDJoFAsiRWspZYSzLSd+7nu69r+TxljfWFN9pmZddb51nf5X47zq6kL5aHHT4IXkpcBxhhKW1CWYIKU1HpkjotrHKIsw/TfuGqVxiMpc1w8PBuSeIPUyiZpPs/Pv7YD5+P3/6Y8nYzoZKqIMYkC+a5PGec4ZYbreTgKEscxbhBQ4iyHfndZR8FLhS8N5Dm9MGeFzWiagGjRxVxsF4TFZQrjkiceA05I2M0YsgZrVqiaCnlPZ0yFoHDx9QS2/1tF64yX13BT/0oFvdJST1zibFjvKzHHQf0ISN2GDiQENZWb9HDCCjOFPkymQyWVWh2rrFyj/MtEl/awxKq4x0A+ozpiekVC5Kq1/QLVWk8X5E6qC5aXKZWSSsQfIFc1vkmJ05y406bZ6vfUoZ0G5JklbWfYcIys2WXBNuhRI+8WeG64HG15aV7OtZNHyrmgpsxi9dfHuh6jziJfuXMLG4YGqFAouCqpVvnlixf42LqI6kCdX7/wTx44uO3KjILeHL3KSr779Gu04oLc67dO9Xfb/6ugdHwStaXoNnlo8ja+s3staxoRo3UYH9VFQcSmRsz3PruZifUukwe28oXtDTYMu1y7dpTp2SZLC53laP1V6kdzUvPVq4LB1OqSJklH3U0Smu0BfvbcCaGi4E+vrqAaXuK1wwcxuSWLQowNWHBd9j/yIkvtQfzhRSr1lWphRmG7uLaOEWBMkQmWgliiYrxKhBke4YFHj/D9J48xccM4R++9i09vvsizDx7g3IUWPz0xTUV4N4LzSOoxWCkYGGph1ZI4ubqCd5dBmLf9rHxlnlWoxQm/e+zL/ODz+zi44/20ioKdW8f51NoajbqGW3WUXUKrnFf9HlMP38GJw5/h+tFBRft/jvSX55CTa7DVItQ4Z7VV8tiTJ7l50wDzGvrlacvzp9+hWV+Dn1imzs0zc8nlmT+/yXzTMKja/zrd4fXLMWk0SL0QfK9azrqvHymnwyo1kSkVU2NbxXWXBPFADF6idCPqYvliVqpYl2oS0fOawvoYbjyn9IQTv0LkpyKi+OBUJS2xyBhhe2p8XXN2PM07yGnYC0S2jfVq+H4PNxInsoBuNk9ZVAWGEKeigJIQEyzgDsf4jZVivxKKmyyYYXrJomYqcEeKq54YI2iymODPzXP8kX18VIOu987pAsvnPlzl0O4hHr1nL5O3rpfG5ATOLA/dfRvJrFr7dhVal1j0VgrisDWc5v47P8i2oVxa1sGIeKaV+xy4aYyfTN6ETQ07t7V49t793DG+jvt2jXPf7jGW3phiYvswSbvLlhFfgbp86/ZVHHnwRhpuzIZqzI/u3sE9t36I/VsG2bV5DEfgyPNSCuHBUmuees2KEhF37d3DD584gWkYzs8scs2aYUbXjNNZarF5c4PD39zH6jUOGwZqePFlJnZs5K2ZNi+dOsfeG6/jhutGiYQmKzW1kgqBv4UAwRefOstfzrbY9Y1jnEwqGmbKSNDm6Mtd6jqTVkd5/cwZ3llMefmV87SLCrG/nr+dvchXPznKzk0rOXaqS8ORrDTfpib9yn3xahlNkupEcusQ1GU6fsj52YTf/qPkx3+YoloZo9JrMrLqGp545ji37PkEjSjm9KvPc/NHNvL0qUUe/v2bNFZEPPUKXH/LHvZOfACvc0kwPfRcOSc19OjypYkt/OLov0hWBISdDqmMxnGrrHZnJXBDnJkzrIoyBiQvvSyhUi3494KRV5QEbsnG963jpb/PyLAk3YJ+qys1/e8FrrHYbEGwGhKrS2whR6KFSV0RyJCJ7bXQI+2lQliIUE8h4jryBldmlPelXru+9ClQ7/ufz3P5gcahN+Q7Ym0cNCTX4o081lFWma3RrIjhVmIWDEk2HDL9H0voQnm3VyiA5woxGZEkmkgCJxdM5GR9kYz7Yleq94na48hwPLlXrnOppBt5rZUvSqnA7VCUHaFMhCyUnby7LcVMVXVWyIBcK9ORTmVdveayYPFAl7vmMmbtyGqxMtJ2gptp8z0ev080JRI4lvCq58qenv7fjgyn57Upo5qMSNX98Y2ZcvLwcd5iBDcXHd9jlVd9Zekbev8LxpU9u7zfb7j2+mobxIbHv72d/wDT+PwkA4G1LQAAAABJRU5ErkJggg==");
+}
+.cz { 
+	padding:5px;
+	font-size: 14px;
+}
+.catalog-btn{
+	margin-right:10px;
+}
+</style>
+
+	<div class="sidebar">
+		<div class="sidebar-tabs">
+			
+				<div class="sidebar-btn cz openpdf">
+					<span class="tab-ico glyphicon glyphicon-file" style="margin-bottom:3px;"></span>
+					<span>全文</span>  
+				</div>
+			
+			
+				<div class="sidebar-btn pub_review cz" pId="12365">
+					<span>实施反馈</span>
+				</div>
+			
+			<div class="sidebar-btn" id="share" style="background-color:#9da5ab;">
+				<span class="tab-ico glyphicon glyphicon-share" style="padding:5px;"></span>
+				<span id="wbshare" class="share">
+					<em></em>
+				</span>
+				<span id="qqshare" class="share">
+					<em></em>
+				</span>
+			</div>
+		</div>
+	</div>
+	<div class="qrcode-wrapper" id="layer" style="display:none;">
+	<div class="popup_header">
+	<em class="glyphicon glyphicon-remove icons_close"></em>
+	<span>分享到微信朋友圈</span>
+	</div>
+	<div id="wechat-qrcode-img">
+	<img class="qr-logo"/>
+	</div>
+	<div class="popup_footer">打开微信“扫一扫”分享至朋友圈</div>
+	</div>
+	<div class="modal fade" id="sugModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" id="myModalLabel">实施反馈</h4>
+				</div>
+				<div class="modal-body">
+					<div class="embed-responsive embed-responsive-16by9">
+						<iframe id="sug-iframe" class="embed-responsive-item" src=""></iframe>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+<script type="text/javascript">
+$(function(){
+	var $btnContainer = $('<div class="visible-xs"></div>');
+	
+	$btn = null;
+	
+	if($btn!=null){
+		$btn.prepend('<span class="tab-ico glyphicon glyphicon-edit" style="margin-right:3px;"></span>');
+		$btnContainer.append($btn);
+	}
+	$('.catalog').before($btnContainer);
+	var p = {
+			url:location.href, /*获取URL，可加上来自分享到QQ标识，方便统计*/
+			desc:'', /*分享理由(风格应模拟用户对话),支持多分享语随机展现（使用|分隔）*/
+			title:SHARE_TITLE, /*分享标题(可选)*/
+			summary:SHARE_SUMMARY, /*分享摘要(可选)*/
+			pics:'/images/shareLogo.png', /*分享图片(可选)*/
+			pic:'/images/shareLogo.png', /*分享图片(可选)*/
+			flash: '', /*视频地址(可选)*/
+			site:'', /*分享来源(可选) 如：QQ分享*/
+			style:'101',
+			width:96,
+			height:24
+	};
+	var s = [];
+	for(var i in p){
+		s.push(i + '=' + encodeURIComponent(p[i]||''));
+	}
+	$('#wbshare').click(function(){
+		window.open('http://service.weibo.com/share/share.php?'+s.join('&'));
+	});
+	$('#qqshare').click(function(){
+		window.open('http://connect.qq.com/widget/shareqq/index.html?'+s.join('&'));
+	});
+	
+	$(".openpdf").click(function(){
+		var type= 'BV_HB';
+		if(type == 'BV_GB'){
+			window.open('http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=','_blank');
+		} else if(type == 'BV_HB' || type == 'BV_JJG_JT'){
+			window.open('/hb/search/stdHBView?id=5973ff067e517ba7436eed86fe9fb063','_blank');
+		} else if(type == 'BV_JJG'){
+			
+		}
+	})
+	//弹出对话框
+	$('.pub_review').click(function(){
+		var pId = $(this).attr('pId');
+		var url = 'https://jtst.mot.gov.cn/zxd/seekPublicAdvice/publicShowPublishAdviceIframe?adviceBatchId=0&ybStdProjectId='+pId;
+		
+		url += '&st=db';
+		
+		$('#sug-iframe').attr('src', url);
+		$('#sugModal').modal("show");
+	});
+	function closeWindow() {
+		$('#sugModal').modal("close");
+	}
+	
+	if(window.location.href.indexOf("review=true") != -1){ 
+		$('.pub_review:visible').click();
+	}
+});
+</script>
+<script type="text/javascript" src="/js/socialPublicity.js"></script>
+<script type="text/javascript" src="/js/detail.js"></script>
+<script>
+	$(function () {
+		$('.list-menu>li>.nav_in').removeClass('nav_in')
+		$('.list-menu>li>.banner-title:eq(2)').addClass('nav_in')
+	});
+</script>
+	<script type="text/javascript">
+	var CURRENT_LINK='';
+	var STAGE_CODE='';
+	var REEXAM_RESULT = '';
+	var LAST_REEXAM_DATE = '';
+	var SHARE_TITLE = '-公路服务设施设计规范';
+	var SHARE_SUMMARY = '《公路服务设施设计规范}》。';
+	var STATE='现行';
+	var STATE_IND=0;
+	$(function() {
+		var cll = 0;
+		if(STATE=='即将实施') {
+			STATE_IND = 0;
+		} else if(STATE=='现行') {
+			STATE_IND = 1;
+			if(REEXAM_RESULT!=''&&LAST_REEXAM_DATE!=''){
+				STATE_IND = 2;
+				$('.timeline .events li.stop').show();
+			}
+		} else if(STATE=='废止') {
+			STATE_IND = 3;
+		}
+		$('.timeline .events li a').each(function(index){
+			if(index>=STATE_IND){
+				$(this).addClass('selected');
+				cll = $(this).offset().left+$(this).width()/2;
+				return false;
+			} else {
+				$(this).addClass('older-event');
+			}
+		});
+		cll -= $('.timeline .events ol').offset().left;
+		$('.timeline .filling-line ').css('transform','scaleX('+(cll/$('.timeline .events ol').width())+')');
+		$(".triggers").each(function(i){
+			$(this).click(function(){
+				if($(this).attr("TA_CODE")){
+					if($(this).text()){
+						var txt = $(this).text().toUpperCase();
+						if('BGLJ'.indexOf("TC")==0 || 'BGLJ'.indexOf("JTC")==0|| 'BGLJ'.indexOf("MTC")==0)
+							$(this).attr("href", "/search/orgDetailView?tcCode=BGLJ");
+						else
+							$(this).attr("href", "/search/orgOthers?q="+encodeURIComponent('交通运输部公路局')); 
+					}
+				} else if($(this).attr("TM_CODE")){
+					if('BGLJ'.indexOf("TC")==0 || 'BGLJ'.indexOf("JTC")==0|| 'BGLJ'.indexOf("MTC")==0)
+    				   $(this).attr("href", "/search/orgDetailView?tcCode=BGLJ");
+					else 
+    				   $(this).attr("href", "/search/orgOthers?q="+encodeURIComponent('交通运输部公路局')); 
+				} else if($(this).attr("CD_CODE")){
+					$(this).attr("href", "/search/orgOthers?q="+encodeURIComponent($(this).text())); 
+				} else if($(this).attr("DRAFT_UNIT")){
+					$(this).attr("href", "/search/orgOthers?q="+encodeURIComponent($(this).text())); 
+				} else if($(this).attr("DRAFT_USERS")){
+					if($(this).attr("id")!=null) {
+						$(this).attr("href", "/search/personDetailed?id="+$(this).attr("id")); 
+					}
+				}
+			})
+		});
+	})
+	</script>
+</body>
+</html>
