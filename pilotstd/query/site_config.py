@@ -70,4 +70,11 @@ def create_default_sites() -> list[SiteState]:
             daily_limit=400,
             cooldown_seconds=1,
         ),
+        SiteState(
+            name="mee",
+            base_url="https://www.mee.gov.cn",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=2,
+        ),
     ]

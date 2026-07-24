@@ -3,6 +3,7 @@
 # 使用 mock HTTP 响应，验证各适配器对 GB/行业/国外/地方标准的匹配正确性
 
 import os
+import re
 import sys
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -18,6 +19,7 @@ from pilotstd.query.adapters.hbba import HbbaAdapter
 from pilotstd.query.adapters.iso_gov import IsoGovAdapter
 from pilotstd.query.adapters.njbz365 import Njbz365Adapter
 from pilotstd.query.adapters.std_gov import StdGovAdapter
+from pilotstd.query.models import QueryResult
 
 # ════════════════════════════════════════════════════════════════
 # 辅助：构造 API 返回结果的工具函数
@@ -607,6 +609,180 @@ class TestTTBZAdapter(unittest.TestCase):
         headers = call_args[1].get("headers", {})
         self.assertIn("X-Requested-With", headers)
         self.assertIn("Referer", headers)
+
+
+# ════════════════════════════════════════════════════════════════
+# MEE 适配器测试（基于真实 WAS5 API 响应）
+# ════════════════════════════════════════════════════════════════
+
+
+class TestMEEAdapter(unittest.TestCase):
+    """mee.gov.cn 生态环境部适配器单元测试。"""
+
+    def setUp(self):
+        from pilotstd.query.adapters.mee import MEEAdapter
+
+        self.a = MEEAdapter()
+
+    # ── _parse_result 单元测试（使用真实片段） ──
+
+    def test_parse_result_from_real_fixture(self):
+        """从真实API响应片段解析第一条法规标准结果。"""
+        from bs4 import BeautifulSoup
+
+        fixture_path = "tests/fixtures/mee_search_gbt.html"
+        if not os.path.exists(fixture_path):
+            self.skipTest("Fixture not found; run Task 0 first.")
+        with open(fixture_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        soup = BeautifulSoup(html, "lxml")
+        items = soup.select("li.li")
+        self.assertGreater(len(items), 0, "Fixture must contain at least one result item.")
+        # 找到第一个法规标准条目
+        found = None
+        for item in items:
+            r = self.a._parse_result(item, "GB/T")
+            if r is not None:
+                found = r
+                break
+        self.assertIsNotNone(found, "Fixture must contain at least one valid standard result.")
+        self.assertIsInstance(found, QueryResult)
+        self.assertTrue(
+            re.match(r"^(GB/T?|HJ|DB)\s*\d+", found.standard_number),
+            f"Invalid standard number: {found.standard_number}",
+        )
+        self.assertTrue(found.standard_name, "Standard name should not be empty")
+
+    def test_parse_result_filters_non_standard_category(self):
+        """非法规标准分类（要闻动态/互动交流）应被过滤。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <li class="li">
+            <a href="/news/123" target="_blank">
+                <h2 class="h2"><em class="fl ll_gjjs_list_title">要闻动态</em>某新闻标题 GB/T 12345-2020</h2>
+            </a>
+            <span class="span">2024-01-01</span>
+            <p class="p">新闻内容</p>
+        </li>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        item = soup.select_one("li.li")
+        r = self.a._parse_result(item, "GB/T")
+        self.assertIsNone(r, "Non-standard category should be filtered.")
+
+    def test_parse_result_maps_fields_correctly(self):
+        """法规标准条目字段映射正确。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <li class="li">
+            <a href="/detail/123" target="_blank">
+                <h2 class="h2"><em class="fl ll_gjjs_list_title">法规标准</em>生态环境标准名称</h2>
+            </a>
+            <span class="span">2020-07-01</span>
+            <p class="p">生态环境标准名称（GB/T 12345-2020）</p>
+        </li>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        item = soup.select_one("li.li")
+        r = self.a._parse_result(item, "GB/T 12345-2020")
+        self.assertIsNotNone(r)
+        self.assertEqual(r.standard_number, "GB/T 12345-2020")
+        self.assertEqual(r.standard_name, "生态环境标准名称")
+        self.assertEqual(r.implementation_date, "2020-07-01")
+        self.assertEqual(r.responsible_dept, "生态环境部")
+        self.assertEqual(r.source_site, "mee")
+
+    def test_parse_result_no_standard_number(self):
+        """无标准号的法规标准行返回None。"""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <li class="li">
+            <a href="/detail/123" target="_blank">
+                <h2 class="h2"><em class="fl ll_gjjs_list_title">法规标准</em>某通知</h2>
+            </a>
+            <span class="span">2024-01-01</span>
+            <p class="p">没有标准号的内容</p>
+        </li>
+        """
+        soup = BeautifulSoup(html, "lxml")
+        item = soup.select_one("li.li")
+        r = self.a._parse_result(item, "GB/T")
+        self.assertIsNone(r)
+
+    # ── _search 单元测试（mock） ──
+
+    def _mock_api_response(self, html_fixture_file):
+        with open(html_fixture_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._session.get = MagicMock(return_value=mock_resp)
+
+    def test_search_returns_result(self):
+        """验证搜索返回 QueryResult。"""
+        fixture = "tests/fixtures/mee_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_api_response(fixture)
+        r = self.a._search("GB/T")
+        self.assertIsNotNone(r)
+        self.assertIsInstance(r, QueryResult)
+
+    def test_search_no_results(self):
+        """空结果页面返回 None。"""
+        html = '<ul id="list2"></ul>'
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = html
+        self.a._session.get = MagicMock(return_value=mock_resp)
+        r = self.a._search("NONEXISTENT")
+        self.assertIsNone(r)
+
+    def test_search_network_error(self):
+        """网络异常返回 None 而非抛出异常。"""
+        self.a._session.get = MagicMock(side_effect=Exception("Connection error"))
+        r = self.a._search("GB/T")
+        self.assertIsNone(r)
+
+    # ── query_standards 集成测试（mock） ──
+
+    def test_query_standards_returns_list(self):
+        """验证 query_standards 返回 list[QueryResult]。"""
+        fixture = "tests/fixtures/mee_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_api_response(fixture)
+        results = self.a.query_standards("GB/T")
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        for r in results:
+            self.assertIsInstance(r, QueryResult)
+
+    def test_query_standards_empty_keyword(self):
+        """空关键词返回空列表，不报错。"""
+        results = self.a.query_standards("")
+        self.assertEqual(results, [])
+
+    def test_query_standards_network_timeout(self):
+        """网络超时返回空列表，不抛出异常。"""
+        self.a._session.get = MagicMock(side_effect=TimeoutError("Timeout"))
+        results = self.a.query_standards("GB/T")
+        self.assertEqual(results, [])
+
+    def test_query_standards_passes_page_param(self):
+        """验证 pageNo 透传为 page 参数。"""
+        fixture = "tests/fixtures/mee_search_gbt.html"
+        if not os.path.exists(fixture):
+            self.skipTest("Fixture not found.")
+        self._mock_api_response(fixture)
+        self.a.query_standards("GB/T", pageNo=2)
+        call_args = self.a._session.get.call_args
+        params = call_args[1]["params"]
+        self.assertEqual(params["page"], 2)
 
 
 if __name__ == "__main__":

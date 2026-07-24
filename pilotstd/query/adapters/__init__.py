@@ -4,6 +4,7 @@ from .csres import CsresAdapter
 from .dbba import DbbaAdapter
 from .hbba import HbbaAdapter
 from .iso_gov import IsoGovAdapter
+from .mee import MEEAdapter
 from .njbz365 import Njbz365Adapter
 from .std_gov import StdGovAdapter
 from .ttbz import TTBZAdapter
@@ -16,5 +17,6 @@ __all__ = [
     "Njbz365Adapter",
     "HbbaAdapter",
     "IsoGovAdapter",
+    "MEEAdapter",
     "TTBZAdapter",
 ]

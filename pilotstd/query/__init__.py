@@ -70,3 +70,10 @@ def _get_ttbz_adapter() -> Type[Any]:
     from .adapters.ttbz import TTBZAdapter
 
     return TTBZAdapter
+
+
+def _get_mee_adapter() -> Type[Any]:
+    """懒加载生态环境部标准适配器（MEEAdapter）。"""
+    from .adapters.mee import MEEAdapter
+
+    return MEEAdapter

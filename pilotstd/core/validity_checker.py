@@ -252,7 +252,7 @@ class ValidityChecker:
 
 # ── 流水线函数（已提取至 _validity_pipeline.py）──
 
-from ._validity_pipeline import (  # noqa: F401 — 由 API/调度器导入消费
+from ._validity_pipeline import (  # noqa: E402, F401 — 由 API/调度器导入消费
     _finalize_validity_round,
     _process_validity_batch,
     _sample_due_standards,

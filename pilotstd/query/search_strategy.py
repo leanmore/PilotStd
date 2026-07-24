@@ -273,6 +273,8 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "foreign": {"primary": "njbz365", "fallback": "ahbz"},
     # 团体标准 → ahbz 专业平台（type=5），njbz365 兜底
     "group": {"primary": "ttbz", "fallback": "ahbz"},
+    # 生态环境标准 → mee 官网优先，std_gov 兜底
+    "env": {"primary": "mee", "fallback": "std_gov"},
 }
 
 

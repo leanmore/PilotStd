@@ -25,7 +25,7 @@ import threading
 from typing import Any, Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QApplication, QMainWindow, QSystemTrayIcon, QTableWidgetItem
+from PyQt6.QtWidgets import QMainWindow, QTableWidgetItem
 
 from ... import core
 from ...i18n import _

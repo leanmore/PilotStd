@@ -8,6 +8,7 @@ from datetime import date
 from typing import Any, Dict
 
 from ..core.db import Database
+from ..i18n import _
 
 logger = logging.getLogger(__name__)
 
