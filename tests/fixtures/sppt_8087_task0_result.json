@@ -1,0 +1,169 @@
+{
+  "api_calls": [],
+  "cookies": [
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    },
+    {
+      "name": "cookieName",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "JSESSIONID",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": true
+    },
+    {
+      "name": "name",
+      "domain": "sppt.cfsa.net.cn",
+      "expires": -1,
+      "httpOnly": false
+    }
+  ],
+  "anti_crawl": false,
+  "standards_found": []
+}

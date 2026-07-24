@@ -1,0 +1,355 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食品安全地方标准数据检索平台</title>
+    <script src="/website/js/vue.js"></script>
+    <link href="/wapsite/css/boilerplate.css" rel="stylesheet" type="text/css"/>
+    <link href="/wapsite/css/css.css" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="/website/css/index_df_new.css">
+    <script type="text/javascript" src="/website/js/public.js"></script>
+    <script type="text/javascript" src="/website/js/index.js"></script>
+    <link href="/website/css/list.css" rel="stylesheet" type="text/css">
+    <script type="text/javascript" src="/website/js/list.js"></script>
+    <script type="text/javascript" defer="defer" src="/component_v1.0/component/datepicker/WdatePicker.js"></script>
+    <script type="text/javascript" src="/component_v1.0/component/jquery/jquery-1.8.2.min.js"></script>
+<link rel="STYLESHEET" type="text/css" href="/component_v1.0/component/jqueryui/css/jquery-ui-1.9.0.custom.css"></link>
+<script type="text/javascript" src="/component_v1.0/component/jqueryui/js/jquery-ui-1.9.0.custom.min.js"></script>
+
+<script type="text/javascript" src="/component_v1.0/component/jqueryui/js/jquery.blockUI.js"></script>
+
+
+</head>
+<body>
+<div class="pages" id="app">
+    <div class="header" id="headerid" :style="tabActive==1?'height:252px':'height:359px'">
+        <img class="headerBackImg" src="/website/img/index_new_back.png" alt="" srcset="">
+        <div class="headerTitle layout">
+            <img src="/website/img/index_new_title.png" alt="">
+            <span>食品安全地方标准数据检索平台</span>
+        </div>
+        <div class="headerContent layout">
+            <div class="headerTabs">
+                <div @click="changeTabs(1)" class="headerTabsItem" :class="tabActive==1?'tabActive':''">普通搜索</div>
+                <div @click="changeTabs(2)" class="headerTabsItem" :class="tabActive==2?'tabActive':''">高级筛查</div>
+            </div>
+            <form name="form1" id="form1" method="post" action="/db">
+                <input type="hidden" id="pto" name="pto" value="1">
+                <input type="hidden" id="tabActive" name="tabActive" value="">
+                <input type="hidden" name="task" value="">
+                <input type="hidden" name="accessData" id="accessData" value="df">
+                
+                <input type="hidden" name="status"  value="1,2">
+                <input type="hidden" name="num" value="">
+                <input type="hidden" id="pageIndex" name="pageIndex" value="1">
+                <input type="hidden" name="query" value="">
+                <input type="hidden" name="ctrl" value="yes">
+                <input type="hidden" name="search" value="">
+                <input type="hidden" name="status" value="0">
+                <input type="hidden" name="filePath" id="filePath" value="/opt/tomcat/Res_upload/swfupload/"/>
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+
+                <div class="headerPtss" v-if="tabActive==1" id="d1">
+                    <input type="text" id="keyword" name="keyword" onkeypress="scheck()"
+                           value="" placeholder="请输入食品安全地方标准名称查询">
+                    <button type="button" @click="listSearch('')" style="right: -10px">搜索</button>
+                </div>
+                <div class="headerGjsc" v-if="tabActive==2" id="d2">
+                    <div class="oneLayout">
+                        <div class="searchLabel">搜索词：</div>
+                        <div class="searchContent"><input type="text" name="keyword" value=""/></div>
+                    </div>
+                    <div class="threeLayout">
+                        <div class="threeLayoutItem">
+                            <div class="threeLayoutLabel searchLabel">标准号：</div>
+                            <div class="threeLayoutContent"><input type="text" id="standard_code" name="standard_code" value=""/></div>
+                        </div>
+                        <div class="threeLayoutItem">
+                            <div class="threeLayoutLabel searchLabel">文本类别：</div>
+                            <select name="standard_type" id="standard_type" search="true" class="threeLayoutContent"
+                                    style="height: 33px">
+                                <option value="0" selected>--请选择--</option>
+                                <option value="1603" >食品产品类</option>
+                                <option value="1604" >检验方法类</option>
+                                <option value="1605" >生产规范类</option>
+                            </select>
+                            
+                        </div>
+                        <div class="threeLayoutItem">
+                            <div class="threeLayoutLabel searchLabel">省份：</div>
+                            <select name="province_df" id="province_df" class="threeLayoutContent" style="height: 33px">
+                                <option value="-1">
+                                    --请选择--
+                                </option>
+                                <option value="1082" >北京</option>
+<option value="1083" >天津</option>
+<option value="1084" >河北</option>
+<option value="1085" >山西</option>
+<option value="1086" >内蒙古</option>
+<option value="1087" >辽宁</option>
+<option value="1088" >吉林</option>
+<option value="1089" >黑龙江</option>
+<option value="1090" >上海</option>
+<option value="1091" >江苏</option>
+<option value="1092" >浙江</option>
+<option value="1093" >安徽</option>
+<option value="1094" >福建</option>
+<option value="1095" >江西</option>
+<option value="1096" >山东</option>
+<option value="1097" >河南</option>
+<option value="1098" >湖北</option>
+<option value="1099" >湖南</option>
+<option value="1100" >广东</option>
+<option value="1101" >广西</option>
+<option value="1102" >海南</option>
+<option value="1103" >重庆</option>
+<option value="1104" >四川</option>
+<option value="1105" >贵州</option>
+<option value="1106" >云南</option>
+<option value="1107" >西藏</option>
+<option value="1108" >陕西</option>
+<option value="1109" >甘肃</option>
+<option value="1110" >青海</option>
+<option value="1111" >宁夏</option>
+<option value="1112" >新疆</option>
+<option value="1565" >兵团</option>
+
+                            </select>
+                        </div>
+                    </div>
+                    <div class="threeLayout">
+                        <div class="threeLayoutItem">
+                            <div class="threeLayoutLabel searchLabel">实施日期：</div>
+                            <div class="threeLayoutContent">
+                                
+                                <input name="s_impl_date" id="d5221" type="text" value="" search="true"
+                                       class="input_time Wdate"
+                                       onFocus="var d5222=$dp.$('d5222');WdatePicker({onpicked:function(){d5222.focus();},maxDate:'#F{$dp.$D(\'d5222\')}',dateFmt:'yyyy-MM-dd'})"/>
+                                <span style="color: #00B2E2">~</span>
+                                
+                                <input name="e_impl_date" id="d5222" type="text" value="" search="true"
+                                       class="input_time Wdate"
+                                       onFocus="WdatePicker({minDate:'#F{$dp.$D(\'d5221\')}',dateFmt:'yyyy-MM-dd'})"/>
+
+                            </div>
+                        </div>
+                        <div class="threeLayoutItem">
+                            <div class="threeLayoutLabel searchLabel">发布日期：</div>
+                            <div class="threeLayoutContent">
+                                
+                                <input name="startTime" id="d5223" type="text" value=""
+                                       search="true"
+                                       class="input_time Wdate"
+                                       onFocus="var d5224=$dp.$('d5224');WdatePicker({onpicked:function(){d5224.focus();},maxDate:'#F{$dp.$D(\'d5224\')}',dateFmt:'yyyy-MM-dd'})"/>
+                                
+                                <span style="color: #00B2E2">~</span>
+                                <input name="endTime" id="d5224" type="text" value=""
+                                       search="true"
+                                       class="input_time Wdate"
+                                       onFocus="WdatePicker({minDate:'#F{$dp.$D(\'d5223\')}',dateFmt:'yyyy-MM-dd'})"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="searchButton">
+                        <button type="button" @click="listSearch('')" class="submit">提交</button>
+                        <button type="button" class="reast" onclick="fresh()">重置</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="content layout" :style="'min-height:'+contentHeight+'px'">
+        <div style="position: absolute; margin-top: -25px;right: 10px">
+            <a href="javascript:void(0)" style="color: #1D99DA" onclick="listDf()">全部>></a>
+        </div>
+        <table>
+            <tr>
+                <th style="width: 20%;">标准号</th>
+                <th style="width: 70%;">标准名称</th>
+                <th style="width: 10%;">省份</th>
+            </tr>
+            <tr v-for="(item ,index) in dataList" :key="index">
+                <td>{{item.standard_code}}</td>
+                <td><a href="javascript:void(0)" style="text-decoration: none" @click="goto(item.id,'2')">{{item.title}}</a></td>
+                <td>{{item.province}}</td>
+            </tr>
+        </table>
+        <div class="listPaging">
+            <div class="yahoo">
+                
+                    
+                        
+                        
+                            
+	
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title></title>
+		<meta http-equiv="pragma" content="no-cache">
+		<meta http-equiv="cache-control" content="no-cache">
+		<meta http-equiv="expires" content="0">
+	</head>
+	<body>
+			
+			
+				
+					
+							<span class="current">1</span>
+						</s:if>
+					
+					
+				
+			
+				
+			
+			&nbsp;&nbsp;&nbsp;
+			
+				<span align="left" style="font-size: 12px;">当前是<font color="red">1
+				</font>/1页 </span>
+			
+	</body>
+</html>
+
+
+
+                        
+                    
+                
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footerContent layout">
+            <div class="footerFwl">访问量:265043</div>
+            <div class="footerInfo">
+                <span>Copyright© 国家食品安全风险评估中心版权所有京ICP备20024162号</span>
+                <span>联系地址:北京市朝阳区广渠路37号院2号楼电话:52165518传真:52165519</span>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            tabActive: '1',
+            // tabActive: '1',
+            contentHeight: 0,
+            divHeight: window.innerHeight,
+            dataList: [{"province":"江苏","id":"2051C156-7A1A-4E89-BE27-3657B7FE5E10","title":"食品安全地方标准  集体用餐配送膳食","rn":"1","standard_code":"DB S32/003-2025"},{"province":"上海","id":"26430670-C45C-43B0-8F64-8BA7EE677804","title":"食品安全地方标准 团体膳食外卖卫生规范","rn":"2","standard_code":"DB 31/2009-2026"},{"province":"广西","id":"92761DD9-CA6C-40DF-8311-5650754EEFD4","title":"食品安全地方标准 南宁老友粉","rn":"3","standard_code":"DB S45/053-2024"},{"province":"湖北","id":"E4F42921-3D84-4EB9-978F-C8D55B685AE7","title":"食品安全地方标准 武汉热干面（方便型）","rn":"4","standard_code":"DB S42/005-2026"},{"province":"湖北","id":"B5AFE45C-8C6C-43AC-BDE1-BE286EE9FAC6","title":"食品安全地方标准 蟠龙菜生产卫生规范","rn":"5","standard_code":"DB S42/018-2026"},{"province":"湖北","id":"4B5E551F-4625-4CE4-B632-604731F95514","title":"食品安全地方标准 预包装襄阳牛肉（杂）面生产卫生规范","rn":"6","standard_code":"DB S42/019-2026"}]
+        },
+        mounted() {
+            this.getHeaderHeight()
+            window.addEventListener('resize', this.handleResize)
+        },
+        watch: {
+            divHeight(newValue) {
+                this.getHeaderHeight()
+            }
+        },
+        methods: {
+            handleResize() {
+                this.divHeight = window.innerHeight
+            },
+            changeTabs(e) {
+                this.tabActive = e
+                this.getHeaderHeight(e)
+            },
+            getHeaderHeight(e) {
+                var box = document.getElementById("headerid")
+                var contentHeight = window.getComputedStyle(box).height.split('px')[0]
+                var appBox = document.getElementById("app")
+                var appContentHeight = window.getComputedStyle(appBox).height.split('px')[0]
+                if (this.tabActive == 1) {
+                    this.contentHeight = Number(appContentHeight) - 252 - 160
+                } else {
+                    this.contentHeight = Number(appContentHeight) - 359 - 160
+                }
+            },
+            goto(guid, type) {
+                goto(guid, type)
+            },
+            listSearch(kw) {
+                listSearch(kw)
+            }
+        }
+    })
+
+    //enter事件
+    function scheck() {
+        if (event.keyCode == 13) {
+            listSearch('');
+        }
+    }
+
+    //搜索
+    function listSearch(kw) {
+        if (app.tabActive == 1) {
+            var keyword = '';
+            if (kw != '') {
+                keyword = kw;
+            } else {
+                keyword = $('input[name=keyword]').val()
+                // keyword=document.getElementById("keyword").value;
+                if (keyword == '') {
+                    alert("请输入要搜索的关键词！");
+                    return false;
+                }
+            }
+            form1.tabActive.value = "1"
+            form1.keyword.value = keyword;
+            form1.task.value = 'index';
+            form1.action = '/db';
+            form1.submit();
+        } else {
+            debugger
+            if ($('input[name=keyword]').val().length == 0 && $('#standard_code').val() != null) {
+                form1.keyword.value = $('#standard_code').val()
+            }
+            form1.tabActive.value = "2"
+            form1.task.value = 'index';
+            form1.action = '/db';
+            form1.submit();
+        }
+    }
+
+    // 地方标准列表
+    function listDf(){
+        form1.task.value="listStandardDF";
+        form1.action='/db';
+        form1.submit();
+    }
+    function fresh()
+    {
+        window.location.reload();
+    }
+</script>
+</body>
+</html>
