@@ -6,14 +6,17 @@
 
 | 适配器 | 站点 | 架构类型 | 核心特征 | 编码 | 分页 | 测试 |
 |--------|------|----------|---------|------|------|------|
-| TTBZ | 团体标准平台 | REST API | JSON 直连，结构化程度最高 | UTF-8 | POST pageNum | 10 |
-| MEE | 生态环境部子栏目 | 服务端渲染列表 | 政务 CMS 静态 `<li>` 列表，GET 参数驱动 | UTF-8 | GET page | 10 |
-| NRSIS | 自然资源标准平台 | 服务端渲染表格 | Portal 框架内嵌，GBK 编码 | GBK | GET pageNo | 12 |
-| JTST | 交通运输部子功能 | iframe + 卡片式 HTML | Hash 路由门户内嵌，GET 分页 | UTF-8 | GET iframe | 12 |
-| CCSN | 工程建设标准化协会 | GET + ViewState 分页 | WebForms 混合模式，顺序翻页，双表格干扰 | GBK | POST btnNext | 10 |
-| JJG | 国家计量技术规范 | JSON REST API | 隐藏 API 端点（`/api/standard/search/page`），结构化数据 | UTF-8 | GET pageNum | 9 |
+| TTBZ | 团体标准平台 | JSON API (POST) | JSON 直连，结构化程度最高 | UTF-8 | POST pageNum | 10 |
+| MEE | 生态环境部 | HTML key-value `<li>` 列表 | 政务 CMS，分类过滤+正则提取标准号 | UTF-8 | GET page | 10 |
+| NRSIS | 自然资源标准平台 | HTML 表格 | Portal 框架内嵌，GBK 编码，首列数字检测 | GBK | GET pageNo | 12 |
+| JTST | 交通运输部 | iframe 卡片 HTML | Hash 路由门户内嵌，卡片式解析 | UTF-8 | GET iframe | 12 |
+| CCSN | 工程建设标准化协会 | ViewState 分页 | WebForms 混合模式，双表格干扰 | GBK | POST btnNext | 10 |
+| JJG | 国家计量技术规范 | JSON API (GET) | 隐藏 API 端点，纯结构化数据 | UTF-8 | GET pageNum | 9 |
+| SPPT | 食品安全国标 (8086) | JSON 数组过滤 | 自签名 SSL，混合公告/标准需过滤 CODE | UTF-8 | 无需 | 8 |
+| SPPT_Local | 食品安全地标 (8087) | Vue dataList 嵌入 | SSR HTML 内嵌 JSON，正则提取+省份映射 | UTF-8 | 无(仅首页) | 9 |
+| GongBiaoKu | 工标库 | HTML key-value `<ul>` 分组 | 每 ul 4 个 li 键值对，正则提取标签前缀 | UTF-8 | 无(单页) | 9 |
 
-**合计：6 种架构，67 个测试，零复用。**
+**合计：9 种架构，93 个测试，零复用。**
 
 ## 核心原则
 
