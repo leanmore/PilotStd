@@ -1,0 +1,3302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>检索 - 工标库</title>
+    <!-- SuperSlide -->
+
+    
+<link href="/std/css/base.css?t=44" rel="stylesheet" type="text/css" />
+
+<link href="/std/css/master.css?t=44" rel="stylesheet" type="text/css" />
+<link href="/std/plug-ins/font-awesome/css/font-awesome.min.css?t=44" rel="stylesheet" />
+<script type="text/javascript" src="/std/js/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="/std/plug-ins/SuperSlide/jquery.SuperSlide.2.1.3.js"></script>
+
+<script type="text/javascript" src="/std/js/web.js?t=44"></script>
+<script type="text/javascript" src="/std/js/jquery.tmpl.min.js"></script>
+<link href="/std/css/web.css?t=44" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript" src="/std/plug-ins/layer/layer.js"></script>
+<script type="text/javascript" src="/std/js/jquery.cookie.js"></script>
+<script type="text/javascript" src="/std/js/sso.js"></script>
+<script type="text/javascript" src="/std/js/sockjs.min.js"></script>
+<script type="text/javascript" src="/std/js/showdown.js"></script>
+<script type="text/javascript" src="/std/js/lottie.min.js"></script>
+<meta name="sogou_site_verification" content="STkzyrXI7n" />    <link href="/std/plug-ins/page/css/pagination.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="/std/plug-ins/page/js/jquery.pagination.js?t=1"></script>
+    <style>
+        .search-list-top .screen label{
+            font-weight: bold;
+            color: #1A5284;
+        }
+        .search-list-top .screen{
+            margin-right: 20px;
+        }
+        .search-list-top .screen label input{
+            margin-right: 5px;
+        }
+        .search-list-top .min-search input{
+            width: 120px;
+        }
+        .compiling,.publish {
+            padding: 0 16px;
+            height: 28px;
+            background: #DA251C;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-align: center;
+            line-height: 28px;
+            display: inline-block;
+            cursor: pointer;
+            border-radius: 5px;
+            animation: sh0 0.5s ease-in-out 5 forwards
+        }
+        @keyframes sh0 {
+            0% {
+                transform: rotate(0deg) translate3d(0, 0, 0);
+            }
+
+            25% {
+                transform: rotate(7deg) translate3d(0, 0, 0);
+            }
+
+            50% {
+                transform: rotate(-7deg) translate3d(0, 0, 0);
+            }
+
+            75% {
+                transform: rotate(1deg) translate3d(0, 0, 0);
+            }
+
+            100% {
+                transform: rotate(0deg) translate3d(0, 0, 0);
+            }
+        }
+        .compiling input,.publish input{
+            opacity: 0;
+            width: 1px;
+        }
+    </style>
+</head>
+
+<body>
+<link rel="stylesheet" href="/layuiadmin/layui/css/layui.css" media="all">
+<script src="/layuiadmin/layui/layui.js"></script>
+<style>
+    input::-webkit-input-placeholder{
+        font-size: 14px;
+        color: #aaa;
+    }
+    .purchase{
+        width: 88px;
+        height: 22px;
+    }
+    .purchase img{
+        width: 100%;
+        height: 22px;
+        vertical-align: inherit;
+    }
+    .top-other{
+        display: flex;
+        align-items: center;
+        height: 30px;
+    }
+
+    .service:hover .informa{
+        display: block;
+    }
+    .informa{
+        position: absolute;
+        background: #FAFDFF;
+        box-shadow: 0px 1px 5px 0px rgba(5,5,5,.17);
+        z-index: 3;
+        display: none;
+    }
+    .informa li{
+        height: 42px;
+        line-height: 42px;
+        width: 100%;
+        border-bottom: 1px solid #E6E6E6;
+    }
+    .informa li a{
+        color: #333333;
+        font-size: 14px;
+        text-align: center;
+        padding: 0px 20px;
+        line-height: 42px;
+    }
+    .informa li:hover,.informa li a:hover{
+        background: none !important;
+    }
+    .informa li:hover a{
+        color: #DA251C;
+    }
+    .top-zsfw{
+        position: relative;
+        margin-right: 10px;
+    }
+    .top-zsfw a {
+        color: #333333;
+        font-size: 12px;
+        margin: 0;
+    }
+    .top-zsfw p{
+        width: 116px;
+        position: absolute;
+        top: 24px;
+        background: linear-gradient(-90deg, #EBF3F9 0%, #E5F1FB 100%);
+        box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1500);
+        border-radius: 2px;
+        z-index: 9;
+        left: 0px;
+        padding: 10px 15px;
+        box-sizing: border-box;
+        display: none;
+    }
+    .top-zsfw p a{
+        display: block;
+        margin: 0;
+        text-align: left;
+        height: 30px;
+        line-height: 30px;
+        color: #164875;
+    }
+    .top-zsfw .topHover{
+        width: 116px;
+        height: 22px;
+        background: linear-gradient(-90deg, #9BBFE0 0%, #D4E6F7 100%);
+        border-radius: 11px;
+        text-align: center;
+        line-height: 22px;
+        color: #164875;
+    }
+    .top-zsfw .topHover img{
+        vertical-align: middle;
+        margin-right: 3px;
+    }
+    .zsgm img{
+        width: 14px;vertical-align: middle;margin-bottom: 2px;
+        margin-right: 3px;
+    }
+    .nav li a{
+        padding: 0 3px;
+    }
+    .c-grey:hover{
+        color: #1a5284;
+    }
+    .c-grey .institution-ul{
+        position: absolute;
+        background: #F0F0F0;
+        width: 100px;
+        left: -10px;
+        display: none;
+    }
+    .c-grey:hover .institution-ul{
+        display: block;
+    }
+    .c-grey .institution-ul a{
+        height: 38px;
+        text-align: center;
+        line-height: 38px;
+        margin: 0;
+        display: block;
+        font-size: 14px;
+        color: #333333;
+    }
+    .c-grey .institution-ul a:hover{
+        background: #DBDBDB;
+        color: #1a5284;
+    }
+    .soinput{
+        position: relative;
+        z-index: 2;
+        background: none;
+    }
+    .layui-carousel{
+        position: absolute;
+        left: 120px;
+        top: 0;
+        color: #999;
+    }
+    .layui-carousel p{
+        line-height: 42px;
+        background: #fff !important;
+    }
+</style>
+<div class="box-top w-warp">
+    <div class="w-box clearfix">
+        <div class="top-link fl">
+            <a href="/search/advance">高级检索</a>
+            <a href="/term">术语库</a>
+            <a href="/announce/all">公告</a>
+            <a href="/std/images/chuban.jpg?v=2" target="_blank">网络出版服务许可证：（署）网出证（京）第457号</a>
+        </div>
+        <div class="top-other fr">
+            <div class="top-zsfw">
+                <a href="https://knowledge.gongbiaoku.com" target="_blank" class="topHover"><img src="/std/images/lxblogo.png">知识服务平台</a>
+                <p>
+                    <a href="https://hongtu.gongbiaoku.com" target="_blank">宏图悦读</a>
+                    <a href="http://weike.jhpress.com/" target="_blank">发改社微课程</a>
+                </p>
+            </div>
+            <a href="/center/vip" class="purchase"><img src="/std/images/goumai.png"></a>
+
+            <a class="zsgm" href="javascript:;"><img src="/std/img/zsgm.png">纸书购买</a>
+            <div id="zsgm-popup" class="login-popup popup" style="width: 220px;margin: 0 0 0 130px;left:auto;top:30px;">
+                                <div class="popup-con terprop" style="height: 200px">
+                    <div style="text-align: center">
+                        <img src="/std/img/zsgmsm.jpg" style="width: 200px">
+                    </div>
+
+                </div>
+            </div>
+
+            <a class="wechat" href="javascript:;">扫码关注</a>
+
+            <div id="wx-popup" class="login-popup popup" style="width: 220px;margin: 0 0 0 130px;left:auto;top:30px;">
+                <div class="popup-con terprop" style="height: 220px">
+                    <div class="text" style="padding: 0">
+                        <p>扫码关注</p>
+                    </div>
+                    <div style="text-align: center">
+                        <img src="/std/img/qrcode.jpg" style="width: 200px">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="box-header w-box" style="display: flex">
+    <a class="logo" href="/">
+        <img class="img-logo" src="/std/images/logo.png?t=1">
+    </a>
+    <div class="header-search" style="display: flex;justify-content: space-between;">
+        <div class="search-input css3" style="display: flex">
+            <div class="selectbox" id="change">
+                <div class="xlcd">
+                    <span id="value">
+                             标准规范
+                                                 </span></div>
+                <div class="option">
+                    <ul>
+<!--                        <li><a href="javascript:changeSearchUrl('/search');" class="chose" data-value="全部">全部</a></li>-->
+                        <li><a href="javascript:changeSearchUrl('/search');" class="chose" data-value="标准规范">标准规范</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search?people=1');" class="chose" data-value="相关人">相关人</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search?ins=1');" class="chose" data-value="相关单位">相关单位</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search/item');" class="chose" data-value="全(条)文">全(条)文</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search/item?isCompulsory=1');" class="chose" data-value="强条">强条</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search/video/count');" class="chose" data-value="解读">解读</a></li>
+                        <li><a href="javascript:changeSearchUrl('/search/excel');" class="chose" data-value="实用表格">实用表格</a></li>
+                            <li><a href="javascript:changeSearchUrl('/search/pic');" class="chose" data-value="标准图集">标准图集</a></li>
+                            <li><a href="javascript:changeSearchUrl('/search/ebook');" class="chose" data-value="电子书">电子书</a></li>
+                            <li><a href="javascript:changeSearchUrl('/search/gbVideoGeneral');" class="chose" data-value="视频">视频</a></li>
+                            <li><a href="javascript:changeSearchUrl('/statute/list');" class="chose" data-value="法律法规">法律法规</a></li>
+                        <li><a href="javascript:changeSearchUrl('/announce/list');" class="chose" data-value="服务资讯">服务资讯</a></li>
+                    </ul>
+                </div>
+            </div>
+            <input id="queryTop" onkeydown="if(event.keyCode == '13') queryTop()" name="txt" type="text" class="soinput"
+                   placeholder=""
+                   value=""  />
+                <div class="layui-carousel" id="placeholder-text">
+                    <div carousel-item>
+                        <p>搜索 关键词 / 标准名 / 标准号 </p>
+                        <p>AI智能检索  输入您的问题</p>
+                    </div>
+                </div>
+
+            <input type="hidden" id="zQuery" value="">
+            <button class="css3" onclick="queryTop()"></button>
+
+            <div class="box-keyword padding clearfix">
+                <div class="keyword-l clearfix fl">
+                    <ul id="key-recommend" class="ul-keyword fl"></ul>
+                </div>
+            </div>
+
+        </div>
+        <a class="advanced-search" href="/search/advance">高级检索</a>
+    </div>
+
+        <!-- 未登录 -->
+        <div class="login clearfix">
+            <div class="user-img fl">
+                <img src="/std/images/no-login.png" />
+            </div>
+            <div class="user-other fl">
+                <a href="javascript:toLoginPage()">登录/注册</a>
+            </div>
+        </div>
+
+
+
+</div>
+
+<div class="box-nav w-warp">
+    <ul class="nav w-box" style="width: 1300px;display: flex;justify-content: space-between">
+        <li ><a  href="/"><i class="icon icon-nav-01"></i>首页</a></li>
+        <li id="serItemNum" class="service" style="position:relative;">
+            <a class="on" href="javascript:goWithQuery('/search?query=')"><i class="icon icon-nav-04"></i>标准规范</a>
+            <ul class="informa" style="width: 100%;">
+                <li><a href="javascript:goWithQuery('/search?query=')">标准规范</a></li>
+                <li><a href="javascript:goWithQuery('/search/item?query=')">全(条)文检索</a></li>
+                <li><a href="javascript:goWithQuery('/search/item?isCompulsory=1&query=')">强制性条文</a></li>
+                <li><a href="javascript:goWithQuery('/search/video/count?query=')">解读</a></li>
+                <li><a href="javascript:goWithQuery('/search/excel?query=')">实用表格</a></li>
+                <li><a href="javascript:goWithQuery('/search/pic?query=')">标准图集</a></li>
+            </ul>
+        </li>
+        <li><a  href="/cecs"><i class="icon icon-nav-ce"></i>CECS专栏</a></li>
+            <li style="position:relative;" class="service" id="serBookNum">
+                <a  href="javascript:goWithQuery('/search/ebook?query=')"><i class="icon icon-nav-09"></i>图书</a>
+                <ul class="informa">
+                    <li><a href="javascript:goWithQuery('/search/ebook?query=')">电子书</a></li>
+                    <li><a href="javascript:goWithQuery('/search/gbVideoGeneral?query=')">视频</a></li>
+                </ul>
+            </li>
+        <li style="position:relative;" class="service" id="serGongSum"><a  href="/announce/all"><i class="icon icon-nav-06"></i>服务资讯</a>
+           <ul class="informa">
+               <li><a href="javascript:goWithQuery('/announce/list?type=1&query=')" >最新公告</a></li>
+               <li><a href="javascript:goWithQuery('/announce/list?type=2&query=')" >政策发布</a></li>
+               <li><a href="javascript:goWithQuery('/announce/list?type=3&query=')" >征求意见</a></li>
+               <li><a href="javascript:goWithQuery('/announce/list?type=4&query=')" >CECS公告</a></li>
+           </ul>
+        </li>
+            <li id="serStatuesNum"><a  href="javascript:goWithQuery('/statute/list?query=')"><i class="icon icon-nav-10"></i>法律法规</a></li>
+        <li id="serSuyuNum"><a  href="/term"><i class="icon icon-nav-07"></i>术语库</a></li>
+        <li style="position:relative;" class="service" id="serBianshen">
+            <a  href="/duplicate"><i class="icon icon-nav-11"></i>智能编审</a>
+            <ul class="informa">
+                <li><a href="/duplicate">标准查重</a></li>
+                <li><a href="/ai/editor">智能审校</a></li>
+            </ul>
+        </li>
+        <li><a  href="/introduction"><i class="icon icon-nav-02"></i>会员中心</a></li>
+        <li><a  href="/plat"><i class="icon icon-nav-08"></i>关于平台</a></li>
+    </ul>
+</div>
+
+<input type="hidden" id="search_url" value="
+/search
+">
+
+<script>
+    //输入框提示词滚动
+    layui.use(['carousel', 'jquery'], function(){
+        var carousel = layui.carousel;
+        var $ = layui.jquery;
+
+        // 初始化轮播
+        var inst = carousel.render({
+            elem: '#placeholder-text',  // 容器ID
+            width: '386px',
+            height: '40px',
+            anim: 'updown',   // 上下滚动
+            arrow: 'none',    // 隐藏箭头
+            indicator: 'none',
+            autoplay: true,   // 自动播放
+            interval: 5000    // 2秒切换一次
+        });
+
+        // 获取输入框和轮播元素
+        var $input = $('#queryTop');
+        var $carousel = $('#placeholder-text');
+
+        // 检查输入框状态的函数
+        function checkInputState() {
+            if ($input.val().trim() !== '' || $input.is(':focus')) {
+                $carousel.hide();
+            } else {
+                $carousel.show();
+            }
+        }
+
+        // 绑定事件
+        $input.on({
+            'focus': checkInputState,
+            'blur': checkInputState,
+            'input': checkInputState
+        });
+
+        // 初始检查
+        checkInputState();
+    });
+
+
+    $(".top-other .zsgm").hover(function(){
+        $("#zsgm-popup").fadeToggle()
+    })
+
+    $(".top-other .wechat").hover(function(){
+        $("#wx-popup").fadeToggle()
+    })
+
+    function changeSearchUrl(url){
+        let holder = $("#zQuery");
+        if(url==='/search'){
+            holder.attr('placeholder','搜索 关键词 / 标准名 / 标准号 / 审查人 / 起草人')
+        }else{
+            holder.attr('placeholder','请输入关键词')
+        }
+        $("#search_url").val(url)
+    }
+
+    function branchLogout(){
+        $.get("/branch/logout", {}, function (data) {
+            location.reload();
+        });
+    }
+
+    function queryTop(){
+        if($("#search_url").val().indexOf("?") != -1){
+            location.href=$("#search_url").val()+'&query='+encodeURIComponent($("#queryTop").val())
+        }else{
+            location.href=$("#search_url").val()+'?query='+encodeURIComponent($("#queryTop").val())
+        }
+    }
+
+    function queryRe(re){
+        if($("#search_url").val().indexOf("?") != -1){
+            location.href=$("#search_url").val()+'&query='+encodeURI(re);
+        }else{
+            location.href=$("#search_url").val()+'?query='+encodeURI(re);
+        }
+    }
+
+    $(function(){
+        $("#queryTop").keyup(function () {
+            let query = this.value;
+            if(query===undefined || query===''){
+                $(".box-keyword").css({"display":"none"});
+            }else{
+                if($("#search_url").val()=='/search'){
+                    $.ajax({
+                        url:"/search/recommend/contains",
+                        data:{
+                            query:query
+                        },
+                        success:function(res){
+                            $("#key-recommend").html('')
+                            let arr = res.data;
+                            console.log(arr.length)
+                            for(let i in arr){
+                                let t = arr[i].replace(query,'<span class="c-red">'+query+'</span>')
+                                $("#key-recommend").append("<li onclick='queryRe(\""+arr[i]+"\")'>"+t+"</li>")
+                            }
+                            if(arr.length>0){
+                                $(".box-keyword").css({"display":"block"});
+                            }
+                            if(arr.length===0){
+                                $(".box-keyword").css({"display":"none"});
+                            }
+                        }
+                    })
+                }
+            }
+        });
+    });
+    $(".top-zsfw").mouseenter(function (){
+        $(".top-zsfw p").show()
+    }).mouseleave(function (){
+        $(".top-zsfw p").hide()
+    })
+
+    $(".xlcd").click(function (){
+        $(".box-keyword").css({"display":"none"});
+    })
+
+    var inputElement = document.getElementById('queryTop');
+    inputElement.addEventListener('blur', function() {
+        // 当 input 失去焦点时执行的函数
+        setTimeout(function() {
+            $('.box-keyword').hide();
+        }, 150);
+    });
+</script>
+<div class="mbx w-box">
+    <a href="/">首页</a>
+    <font>></font><span>检索结果</span>
+</div>
+
+<div class="box-center w-box clearfix">
+
+<div class="search-left search-menu fl" style="z-index: 1">
+    <div class="box-title-line"></div>
+    <ul class="menu-01">
+        <li class="active" style="border-bottom: 1px solid #e9e9e9;">
+            <div>
+                <a style="padding-left: 5px;" href="javascript:chooseCat('')" title="">全部<font></font></a>
+            </div>
+        </li>
+                <li class="cat_1190 zone" style="border: none;">
+                    <div class="icon-class-01"><a href="javascript:;">标准等级</a><span></span>
+                    </div>
+                        <ul class="menu-02 menu_1190 ztwo" style="display:none;">
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1191')" title="国家标准">国家标准</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1244')" title="行业标准">行业标准</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1245')" title="">电力工程（DL）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1246')" title="">有色冶金（YS）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1247')" title="">城镇建设（CJ）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1248')" title="">建筑工业（JG）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2307')" title="">能源行业（NB）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2309')" title="">化工行业（HG）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2406')" title="">人民防空（RF）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2408')" title="">电子行业（SJ）</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1252')" title="团体标准">团体标准</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1253')" title="">中国工程建设标准化协会（CECS）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1254')" title="">中国建设工程造价管理协会（CECA/GC）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2255')" title="">中国市政工程协会（CMEA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2262')" title="">中国勘察设计协会（CECA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2263')" title="">中国电力企业联合会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2264')" title="">中国建筑装饰协会（CBDA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2265')" title="">中国土木工程学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2266')" title="">中国建筑业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2267')" title="">中国模板脚手架协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2268')" title="">中国施工企业管理协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2269')" title="">中国建筑学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2270')" title="">中国安装协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2272')" title="">中国水利学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2306')" title="">中国钢结构协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2318')" title="">中国消防协会（CFPA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2329')" title="">中国城市科学研究会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2330')" title="">中国城镇供水排水协会（CUWA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2331')" title="">中国风景园林学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2332')" title="">中国建筑节能协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2333')" title="">中国气象服务协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2336')" title="">中国安全产业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2337')" title="">中国建筑金属结构协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2338')" title="">中国房地产业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2339')" title="">全联房地产商会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2340')" title="">中关村标准化协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2341')" title="">中国电源学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2342')" title="">中国环境保护产业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2343')" title="">中国汽车维修行业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2344')" title="">中国图学学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2345')" title="">中国对外承包工程商会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2350')" title="">中国工程机械工业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2352')" title="">中国计算机用户协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2372')" title="">中国有色金属工业协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2373')" title="">中国地方铁路协会（ZDTX）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2383')" title="">山东土木建筑学会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2385')" title="">中国工程咨询协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2386')" title="">上海市工程建设质量管理协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2387')" title="">北京市建设工程招标投标和造价管理协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2388')" title="">中国通信工业协会（CA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2389')" title="">广西勘察设计协会（GEDA）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2399')" title="">浙江省土木建筑学会 </a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2400')" title="">广西工程建设标准化协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2403')" title="">重庆市勘察设计协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2404')" title="">河北省医院协会</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2405')" title="">深圳建筑业协会</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1255')" title="地方标准">地方标准</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1256')" title="">北京</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1257')" title="">天津</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1258')" title="">上海</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1259')" title="">重庆</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1260')" title="">河北</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1261')" title="">山西</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1262')" title="">辽宁</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1263')" title="">吉林</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1264')" title="">黑龙江</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1265')" title="">江苏</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1266')" title="">浙江</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1267')" title="">安徽</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1268')" title="">福建</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1269')" title="">山东</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1270')" title="">湖北</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1271')" title="">湖南</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1272')" title="">广东</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1273')" title="">海南</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1274')" title="">广西</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1275')" title="">四川</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1276')" title="">贵州</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1277')" title="">云南</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1278')" title="">西藏</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1279')" title="">陕西</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1280')" title="">甘肃</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1281')" title="">青海</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2317')" title="">宁夏</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2320')" title="">河南</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2325')" title="">新疆</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2326')" title="">江西</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2328')" title="">深圳市</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2353')" title="">内蒙古</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2260')" title="建标">建标</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2310')" title="Standard of China">Standard of China</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2334')" title="">Industry Standard </a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2335')" title="">National Standard</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                        </ul>
+                </li>
+                <li class="cat_1293 zone" style="border: none;">
+                    <div class="icon-class-02"><a href="javascript:;">细分行业</a><span></span>
+                    </div>
+                        <ul class="menu-02 menu_1293 ztwo" style="display:none;">
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1294')" title="城乡规划">城乡规划</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2120')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2121')" title="">区域规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2123')" title="">居住区规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2125')" title="">交通规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2126')" title="">环境规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2127')" title="">景观规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2128')" title="">历史文化规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2129')" title="">公共服务设施</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2130')" title="">防灾规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2131')" title="">水务工程规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2132')" title="">公用工程规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2133')" title="">其他规划</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2134')" title="">用地规划</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1317')" title="市政工程">市政工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1318')" title="">城市道路工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1319')" title="">城市轨道工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1320')" title="">城镇给水排水</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1321')" title="">城镇供热、供气工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1322')" title="">城市桥梁、隧道工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1323')" title="">环卫工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1324')" title="">园林及景区工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('1325')" title="">城市交通工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2135')" title="">城市公共广场</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2136')" title="">城市消防工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2137')" title="">城市景观工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2138')" title="">人防工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2139')" title="">无障碍设施工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2140')" title="">其他市政工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1330')" title="建材工程">建材工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2149')" title="">水泥</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2150')" title="">混凝土</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2151')" title="">玻璃</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2152')" title="">陶瓷、耐火材料</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2153')" title="">复合材料</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2154')" title="">石材</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2155')" title="">金属材料</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2156')" title="">其他</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2258')" title="">木质材料</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2393')" title="">高分子材料</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1331')" title="冶金工程">冶金工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2157')" title="">通用标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2158')" title="">钢铁冶金</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2159')" title="">有色金属冶金</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1332')" title="医疗卫生">医疗卫生</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1333')" title="电力工程">电力工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2160')" title="">火力发电</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2161')" title="">水力发电</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2162')" title="">核电工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2163')" title="">其他新能源</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2254')" title="">通用标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2409')" title="">其他</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1334')" title="轻工工程">轻工工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2164')" title="">制浆造纸工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2165')" title="">食品工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2166')" title="">制盐工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2167')" title="">制烟工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2168')" title="">酿造工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2169')" title="">家电及日用机械</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2170')" title="">日用化工工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2171')" title="">日用硅酸盐工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2172')" title="">皮革毛皮及制品</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2173')" title="">其他轻工工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1335')" title="化工工程">化工工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2179')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2180')" title="">无机化工工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2181')" title="">有机化工工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2182')" title="">合成材料及加工</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2183')" title="">其他化工工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1336')" title="电子通信">电子通信</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2184')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2185')" title="">电子工业工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2186')" title="">信息通信工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2187')" title="">通用设备、零件</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1337')" title="交通运输">交通运输</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2188')" title="">铁路</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2189')" title="">公路</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2190')" title="">航空</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2191')" title="">水运</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2192')" title="">桥梁、隧道</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2193')" title="">物流</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2194')" title="">其他</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1338')" title="水利工程">水利工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2195')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2196')" title="">拦河坝工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2197')" title="">泄洪工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2198')" title="">航运工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2199')" title="">过木工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2200')" title="">水闸工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2201')" title="">过鱼工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2202')" title="">港口、海岸及近海工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2203')" title="">其他水利工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1339')" title="纺织工程">纺织工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2204')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2205')" title="">化纤纺织</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2206')" title="">棉纺织工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2207')" title="">毛、麻、丝纺织</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2208')" title="">印染工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1340')" title="农林工程">农林工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2209')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2210')" title="">农业工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2211')" title="">林业工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2212')" title="">粮食工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1341')" title="航空航天">航空航天</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1342')" title="煤炭矿山">煤炭矿山</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2174')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2175')" title="">矿井工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2176')" title="">露天矿工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2177')" title="">选煤厂工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2178')" title="">矿山配套工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1343')" title="兵器与船舶">兵器与船舶</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2213')" title="">兵器工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2214')" title="">船舶工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1344')" title="广电工程">广电工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2215')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2216')" title="">广电中心工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2217')" title="">广电发射台（塔）</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2218')" title="">广电传输与监测</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2219')" title="">电影工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2259')" title="">其他</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('1345')" title="消防工程">消防工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2220')" title="">通用标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2221')" title="">综合与建筑</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2222')" title="">给水与灭火</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2223')" title="">防烟排烟与暖通空调</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2224')" title="">电气与智能化</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2225')" title="">结构与构造</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2226')" title="">其他</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2141')" title="房屋建筑">房屋建筑</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2142')" title="">建筑设计</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2143')" title="">结构工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2144')" title="">给水排水</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2145')" title="">暖通空调</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2146')" title="">建筑电气</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2148')" title="">其他</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2394')" title="">装饰装修</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2395')" title="">外墙工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2397')" title="">物业服务</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2398')" title="">屋面地面</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2227')" title="机械工程">机械工程</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2228')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2229')" title="">通用设备</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2230')" title="">专用设备</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2231')" title="海洋工程">海洋工程</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2232')" title="测绘工程">测绘工程</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2233')" title="石油天然气">石油天然气</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2234')" title="">基础标准</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2235')" title="">油气田地面工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2236')" title="">管道输送工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2237')" title="">油气库工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2238')" title="">石化工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2239')" title="">接收站工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2240')" title="">油气机械制造与修理工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2257')" title="">其他气体工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2241')" title="工程综合">工程综合</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2242')" title="">工程造价</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2243')" title="">工程管理</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2244')" title="">岩土工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2245')" title="">防灾减灾及防护工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2246')" title="">安全卫生与劳动保护</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2247')" title="">通用标准</a>
+                                                </li>
+                                                <li class="have-level">
+                                                    <a  href="javascript:chooseCat('2248')" title="">工业工程综合</a>
+                                                        <ul class="menu-04">
+                                                                <li><a  href="javascript:chooseCat('2249')" title="">通用标准</a></li>
+                                                                <li><a  href="javascript:chooseCat('2250')" title="">设备及管道工程</a></li>
+                                                                <li><a  href="javascript:chooseCat('2251')" title="">工业用水系统工程</a></li>
+                                                                <li><a  href="javascript:chooseCat('2252')" title="">厂区道路工程</a></li>
+                                                                <li><a  href="javascript:chooseCat('2253')" title="">其他工业工程</a></li>
+                                                        </ul>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2256')" title="核工业">核工业</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2392')" title="环保工程">环保工程</a>
+                                </li>
+                        </ul>
+                </li>
+                <li class="cat_1282 zone" style="border: none;">
+                    <div class="icon-class-03"><a href="javascript:;">职业工种</a><span></span>
+                    </div>
+                        <ul class="menu-02 menu_1282 ztwo" style="display:none;">
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2323')" title="建筑师">建筑师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2311')" title="结构工程师">结构工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2305')" title="电气工程师（建筑电气）">电气工程师（建筑电气）</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2312')" title="暖通工程师">暖通工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2314')" title="给排水工程师">给排水工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2322')" title="规划（景观）师">规划（景观）师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1285')" title="岩土工程师">岩土工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1291')" title="消防工程师">消防工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1289')" title="造价工程师">造价工程师</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1292')" title="房地产估价师">房地产估价师</a>
+                                </li>
+                        </ul>
+                </li>
+                <li class="cat_1179 zone" style="border: none;">
+                    <div class="icon-class-04"><a href="javascript:;">热点专题</a><span></span>
+                    </div>
+                        <ul class="menu-02 menu_1179 ztwo" style="display:none;">
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2354')" title="双碳">双碳</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2384')" title="城市更新">城市更新</a>
+                                </li>
+                                <li class="">
+                                        <style>
+                                            .ezt{color: #d00101;font-size: 16px;font-weight: bold;font-family: songti;}
+                                            .ezt.on{background-color: #DA251C;color: #FFFFFF;font-size: 14px;font-weight: normal;background-position-y: -24px;font-family: songti;}
+                                        </style>
+                                        <a class=" ezt"  href="javascript:chooseCat('2349')" title="全文强制规范">全文强制规范</a>
+                                </li>
+                                <li class="">
+                                        <style>
+                                            .ezt2{color: #1a5bff;font-size: 16px;font-weight: bold;font-family: songti;}
+                                            .ezt2.on{background-color: #DA251C;color: #FFFFFF;font-size: 14px;font-weight: normal;background-position-y: -24px;font-family: songti;}
+                                        </style>
+                                        <a class=" ezt2" href="javascript:chooseCat('2348')" title="CECS团标">CECS团标</a>
+                                </li>
+                                <li class="have-level">
+                                        <a  href="javascript:chooseCat('2271')" title="消防e掌通">消防e掌通</a>
+                                        <ul class="menu-03">
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2273')" title="">综合与建筑</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2274')" title="">给水与灭火</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2275')" title="">防烟排烟与暖通空调</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2276')" title="">电气与智能化</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2277')" title="">结构与构造</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2278')" title="">城市建设</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2279')" title="">铁路工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2280')" title="">民航工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2281')" title="">公路工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2282')" title="">水运工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2283')" title="">农业工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2284')" title="">林业工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2285')" title="">水利工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2286')" title="">火电工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2287')" title="">水电工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2288')" title="">核电工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2289')" title="">建材工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2290')" title="">煤炭矿山工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2291')" title="">冶金工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2292')" title="">有色金属工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2293')" title="">石油天然气工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2294')" title="">石化工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2295')" title="">化工工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2296')" title="">医药工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2297')" title="">机械工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2298')" title="">航天与航空工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2299')" title="">兵器与船舶工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2300')" title="">轻工工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2301')" title="">纺织工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2302')" title="">电子与通信工程</a>
+                                                </li>
+                                                <li class="">
+                                                    <a  href="javascript:chooseCat('2303')" title="">广播电影电视工程</a>
+                                                </li>
+                                        </ul>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('2327')" title="医疗与生物">医疗与生物</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1186')" title="建筑节能">建筑节能</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1185')" title="绿色建筑">绿色建筑</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1183')" title="海绵城市">海绵城市</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1184')" title="智慧城市">智慧城市</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1182')" title="建筑信息模型（BIM）">建筑信息模型（BIM）</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1181')" title="综合管廊">综合管廊</a>
+                                </li>
+                                <li class="">
+                                        <a  href="javascript:chooseCat('1180')" title="装配式建筑">装配式建筑</a>
+                                </li>
+                        </ul>
+                </li>
+            <script>
+                if ($(".cat_1179").length >= 1) {
+                    $(".cat_1179").addClass("active");
+                    $(".menu_1179").css("display","block");
+                }else{
+                    $(".zone:first").addClass("active");
+                    $(".ztwo:first").css("display","block");
+                }
+            </script>
+    </ul>
+</div>
+
+
+    <div class="search-right fr css3">
+        <div class="box-label clearfix">
+<style>
+    .box-label a{
+        width: auto;
+        min-width: 135px;
+        float: inherit;
+    }
+    .serMenu a{
+        margin-right: 10px;
+    }
+</style>
+
+<div class="serFlex" id="serLinkNum">
+     <div class="serMenu">
+         <a class="on" href="javascript:goWithQuery('/search?query=')" title="标准规范"><i class="icon icon-label-01"></i>标准规范</a>
+         <a  href="javascript:goWithQuery('/search/item?query=')" title="全(条)文检索"><i class="icon icon-label-02"></i>全(条)文检索</a>
+         <a  href="javascript:goWithQuery('/search/item?isCompulsory=1&query=')" title="强制性条文"><i class="icon icon-label-03"></i>强制性条文</a>
+         <a  href="javascript:goWithQuery('/search/video/count?query=')" title="解读"><i class="icon icon-label-05"></i>解读</a>
+         <a  href="javascript:goWithQuery('/search/excel?query=')" title="实用表格"><i class="icon icon-label-06"></i>实用表格</a>
+             <a  href="javascript:goWithQuery('/search/pic?query=')" title="标准图集"><i class="icon icon-label-04"></i>标准图集</a>
+     </div>
+    <div id="aiBtn" style="display: none"><img src="/std/images/aiBtn.png"></div>
+</div>        </div>
+        <div class="search-list-top clearfix">
+                <div class="sort fl">
+                    <a class="sort-up" data-order-field="top" href="javascript:;">默认</a>
+                    <a  data-order-field="serialNo" href="javascript:;">标准号<i class="icon icon-sort"></i></a>
+                    <a  data-order-field="publishDate" href="javascript:;">发布日期<i class="icon icon-sort"></i></a>
+                    <a  data-order-field="implementDate" href="javascript:;">实施日期<i class="icon icon-sort"></i></a>
+                </div>
+            <div class="screen fl" >
+                    <label onclick="chooseStatus(0)"><input type="checkbox" value="" >现行</label>
+                    <label onclick="chooseStatus(2)"><input type="checkbox" value="" >废止</label>
+                    <label onclick="chooseStatus(1)"><input type="checkbox" value="" >即将实施</label>
+                    
+            </div>
+            <div class="list-style fr">
+                <a class="on" href="javascript:chooseStyle(0)" title="平铺模式"><i class="icon icon-type-01"></i></a>
+                <a  href="javascript:chooseStyle(1)" title="列表模式"><i class="icon icon-type-02"></i></a>
+            </div>
+            <div class="min-search fr clearfix">
+                <input class="fl" type="text" name="" id="research" placeholder="在结果中搜索" onkeydown="if(event.keyCode == '13') research()">
+                <button class="fl" value="搜索" onclick="research()"></button>
+            </div>
+        </div>
+        <div class="search-list">
+
+<ul class="box-list">
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/m8h17168jrh?query="><img src="https://img.gongbiaoku.com/standards/book/17168/3E035BD1-8796-4c5b-8391-BCE42F6BCC4E.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/m8h17168jrh?query=">消防给水及消火栓系统技术规范
+                        &nbsp;GB 50974-2014</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>消防给水及消火栓系统技术规范</li>
+                        <li><span>标准编号：</span>GB 50974-2014</li>
+                        <li><span>发布日期：</span>2014-01-29</li>
+                        <li><span>实施日期：</span>2014-10-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2014-01-29</span>
+                    <span>实施日期：2014-10-01</span>
+                </div>
+                <div class="label">
+
+
+                    <p class="line2">
+                        <font class="c-grey">适用范围：</font>本规范适用于新建、扩建、改建的工业、民用、市政等建设工程的消防给水及消火栓系统的设计、施工、验收和维护管理。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/m8h17168jrh')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/m8h17168jrh?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                        <button class="button btn-blue" type="button"  onclick="window.open('/book/video/m8h17168jrh')"><i
+                                    class="icon icon-btn-jhyd"></i>专家解读
+                        </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-m8h17168jrh icon-add" href="javascript:addCompare('消防给水及消火栓系统技术规范','m8h17168jrh')" title="添加对比"></a>
+                    <a class="icon-sc sc_m8h17168jrh " href="javascript:void(0)" onclick="collect('m8h17168jrh')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('m8h17168jrh',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/ue116739ngg?query="><img src="https://img.gongbiaoku.com/standards/book/16739/44D9E7A3-9BC9-4734-8F3E-6F233F89C9D5.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/ue116739ngg?query=">民用建筑设计统一标准
+                        &nbsp;GB 50352-2019</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>民用建筑设计统一标准</li>
+                        <li><span>标准编号：</span>GB 50352-2019</li>
+                        <li><span>发布日期：</span>2019-03-13</li>
+                        <li><span>实施日期：</span>2019-10-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2019-03-13</span>
+                    <span>实施日期：2019-10-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50352-2005
+                        </p>
+
+                    <p class="line">
+                        <font class="c-grey">适用范围：</font>本标准适用于新建、扩建和改建的民用建筑设计。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/ue116739ngg')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/ue116739ngg?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-ue116739ngg icon-add" href="javascript:addCompare('民用建筑设计统一标准','ue116739ngg')" title="添加对比"></a>
+                    <a class="icon-sc sc_ue116739ngg " href="javascript:void(0)" onclick="collect('ue116739ngg')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('ue116739ngg',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/k6s17916ve7?query="><img src="https://img.gongbiaoku.com/standards/book/17916/830561.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/k6s17916ve7?query=">建筑给水排水设计标准
+                        &nbsp;GB 50015-2019</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>建筑给水排水设计标准</li>
+                        <li><span>标准编号：</span>GB 50015-2019</li>
+                        <li><span>发布日期：</span>2019-06-19</li>
+                        <li><span>实施日期：</span>2020-03-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2019-06-19</span>
+                    <span>实施日期：2020-03-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50015-2003
+                        </p>
+
+                    <p class="line2">
+                        <font class="c-grey">适用范围：</font>本标准适用于民用建筑、工业建筑与小区的生活给水排水以及小区的雨水排水工程设计。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/k6s17916ve7')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/k6s17916ve7?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-k6s17916ve7 icon-add" href="javascript:addCompare('建筑给水排水设计标准','k6s17916ve7')" title="添加对比"></a>
+                    <a class="icon-sc sc_k6s17916ve7 " href="javascript:void(0)" onclick="collect('k6s17916ve7')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('k6s17916ve7',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/kwk16973wy7?query="><img src="https://img.gongbiaoku.com/standards/book/16973/6139A0EA-C66C-44c7-9A2C-8A4E6E9EA173.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/kwk16973wy7?query=">建筑工程施工质量验收统一标准
+                        &nbsp;GB 50300-2013</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>建筑工程施工质量验收统一标准</li>
+                        <li><span>标准编号：</span>GB 50300-2013</li>
+                        <li><span>发布日期：</span>2013-11-01</li>
+                        <li><span>实施日期：</span>2014-06-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2013-11-01</span>
+                    <span>实施日期：2014-06-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50300-2001
+                        </p>
+
+                    <p class="line2">
+                        <font class="c-grey">适用范围：</font>本标准适用于建筑工程施工质量的验收，并作为建筑工程各专业验收规范编制的统一准则。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/kwk16973wy7')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/kwk16973wy7?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-kwk16973wy7 icon-add" href="javascript:addCompare('建筑工程施工质量验收统一标准','kwk16973wy7')" title="添加对比"></a>
+                    <a class="icon-sc sc_kwk16973wy7 " href="javascript:void(0)" onclick="collect('kwk16973wy7')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('kwk16973wy7',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/29517528hxc?query="><img src="https://img.gongbiaoku.com/standards/book/17528/E9C6351C-F711-4327-AABE-006ED4AF741A.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/29517528hxc?query=">建筑电气工程施工质量验收规范
+                        &nbsp;GB 50303-2015</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>建筑电气工程施工质量验收规范</li>
+                        <li><span>标准编号：</span>GB 50303-2015</li>
+                        <li><span>发布日期：</span>2015-12-03</li>
+                        <li><span>实施日期：</span>2016-08-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2015-12-03</span>
+                    <span>实施日期：2016-08-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50303-2002
+                        </p>
+
+                    <p class="line">
+                        <font class="c-grey">适用范围：</font>本规范适用于电压等级为35KV及以下建筑电气安装工程的施工质量验收。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/29517528hxc')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/29517528hxc?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-29517528hxc icon-add" href="javascript:addCompare('建筑电气工程施工质量验收规范','29517528hxc')" title="添加对比"></a>
+                    <a class="icon-sc sc_29517528hxc " href="javascript:void(0)" onclick="collect('29517528hxc')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('29517528hxc',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/71i24629kpf?query="><img src="https://img.gongbiaoku.com/standards/book/24629/1511238389.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/71i24629kpf?query=">建筑与市政工程防水通用规范
+                        &nbsp;GB 55030-2022</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>建筑与市政工程防水通用规范</li>
+                        <li><span>标准编号：</span>GB 55030-2022</li>
+                        <li><span>发布日期：</span>2022-09-27</li>
+                        <li><span>实施日期：</span>2023-04-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2022-09-27</span>
+                    <span>实施日期：2023-04-01</span>
+                </div>
+                <div class="label">
+
+
+                    <p class="line">
+                        <font class="c-grey">适用范围：</font>建筑与市政工程防水必须执行本规范。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/71i24629kpf')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/71i24629kpf')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-71i24629kpf icon-add" href="javascript:addCompare('建筑与市政工程防水通用规范','71i24629kpf')" title="添加对比"></a>
+                    <a class="icon-sc sc_71i24629kpf " href="javascript:void(0)" onclick="collect('71i24629kpf')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('71i24629kpf',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/69623708fya?query="><img src="https://img.gongbiaoku.com/standards/book/23708/1551820938.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/69623708fya?query=">消防设施通用规范
+                        &nbsp;GB 55036-2022</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>消防设施通用规范</li>
+                        <li><span>标准编号：</span>GB 55036-2022</li>
+                        <li><span>发布日期：</span>2022-07-15</li>
+                        <li><span>实施日期：</span>2023-03-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2022-07-15</span>
+                    <span>实施日期：2023-03-01</span>
+                </div>
+                <div class="label">
+
+
+                    <p class="line">
+                        <font class="c-grey">适用范围：</font>本规范规定了建设工程中消防设施的设计、施工、验收、使用和维护的控制性底线要求和关键技术措施,新建、扩建和改建的建设工程中设置的消防设施和既有建筑的消防设施改造的设计、施工、验收、使用和维护均应符合本规范。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/69623708fya')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/69623708fya')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                        <button class="button btn-blue" type="button"  onclick="window.open('/book/video/69623708fya')"><i
+                                    class="icon icon-btn-jhyd"></i>专家解读
+                        </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-69623708fya icon-add" href="javascript:addCompare('消防设施通用规范','69623708fya')" title="添加对比"></a>
+                    <a class="icon-sc sc_69623708fya " href="javascript:void(0)" onclick="collect('69623708fya')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('69623708fya',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/bki183672rp?query="><img src="https://img.gongbiaoku.com/standards/book/18367/13B0F35F-DFCC-46c6-91C3-1AF6F801D1DD.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/bki183672rp?query=">火灾自动报警系统设计规范
+                        &nbsp;GB 50116-2013</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>火灾自动报警系统设计规范</li>
+                        <li><span>标准编号：</span>GB 50116-2013</li>
+                        <li><span>发布日期：</span>2013-09-06</li>
+                        <li><span>实施日期：</span>2014-05-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2013-09-06</span>
+                    <span>实施日期：2014-05-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50116-98
+                        </p>
+
+                    <p class="line2">
+                        <font class="c-grey">适用范围：</font>本规范适用于新建、扩建和改建的建、构筑物中设置的火灾自动报警系统的设计，不适用于生产和贮存火药、炸药、弹药、火工品等场所设置的火灾自动报警系统的设计。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/bki183672rp')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/bki183672rp?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                        <button class="button btn-blue" type="button"  onclick="window.open('/book/video/bki183672rp')"><i
+                                    class="icon icon-btn-jhyd"></i>专家解读
+                        </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-bki183672rp icon-add" href="javascript:addCompare('火灾自动报警系统设计规范','bki183672rp')" title="添加对比"></a>
+                    <a class="icon-sc sc_bki183672rp " href="javascript:void(0)" onclick="collect('bki183672rp')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('bki183672rp',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/ygt19302h0z?query="><img src="https://img.gongbiaoku.com/standards/book/19302/830626.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/ygt19302h0z?query=">钢结构工程施工质量验收标准
+                        &nbsp;GB 50205-2020</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>钢结构工程施工质量验收标准</li>
+                        <li><span>标准编号：</span>GB 50205-2020</li>
+                        <li><span>发布日期：</span>2020-01-16</li>
+                        <li><span>实施日期：</span>2020-08-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2020-01-16</span>
+                    <span>实施日期：2020-08-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50205-2001
+                        </p>
+
+                    <p class="line2">
+                        <font class="c-grey">适用范围：</font>本标准适用于工业与民用建筑及构筑物的钢结构工程施工质量的验收。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/ygt19302h0z')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/ygt19302h0z?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-ygt19302h0z icon-add" href="javascript:addCompare('钢结构工程施工质量验收标准','ygt19302h0z')" title="添加对比"></a>
+                    <a class="icon-sc sc_ygt19302h0z " href="javascript:void(0)" onclick="collect('ygt19302h0z')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('ygt19302h0z',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+
+        <li class="clearfix">
+            <a class="img fl" target="_blank" href="/book/1zc17967whl?query="><img src="https://img.gongbiaoku.com/standards/book/17967/255AEA03-C8C0-42e2-8845-129B2F45F0D9.jpg?h=300" onerror="this.src='/std/img/default_book_img.png';">
+                
+            </a>
+            <div class="img-r fl">
+                <h3 class="clearfix">
+                    <a class="fl" target="_blank" href="/book/1zc17967whl?query=">建筑结构荷载规范
+                        &nbsp;GB 50009-2012</a>
+                    <span class="label-xx fl">
+                                现行
+                    </span>
+                    <ul class="name-intr">
+                        <li><span>标准名称：</span>建筑结构荷载规范</li>
+                        <li><span>标准编号：</span>GB 50009-2012</li>
+                        <li><span>发布日期：</span>2012-05-28</li>
+                        <li><span>实施日期：</span>2012-10-01</li>
+                    </ul>
+                </h3>
+                <div class="date">
+                    <span>发布日期：2012-05-28</span>
+                    <span>实施日期：2012-10-01</span>
+                </div>
+                <div class="label">
+
+                        <p class="line">
+                            <font class="c-grey">替代以下标准：</font>GB 50009-2001
+                        </p>
+
+                    <p class="line">
+                        <font class="c-grey">适用范围：</font>本规范适用于建筑工程的结构设计。
+                    </p>
+
+                </div>
+                <div class="btnbox css3">
+                    <button class="button btn-blue" type="button" onclick="window.open('/read/1zc17967whl')"><i
+                                class="icon icon-btn-jhyd"></i>计划版阅读
+                    </button>
+                    </button>
+                    <button class="button btn-red" type="button"  onclick="window.open('/read/1zc17967whl?compulsory=1')"><i
+                                class="icon icon-btn-qztw"></i>强制性条文
+                    </button>
+                </div>
+                <div class="iconbox">
+                    <a class="icon icon-compare icon-compare-1zc17967whl icon-add" href="javascript:addCompare('建筑结构荷载规范','1zc17967whl')" title="添加对比"></a>
+                    <a class="icon-sc sc_1zc17967whl " href="javascript:void(0)" onclick="collect('1zc17967whl')" title="收藏"><i></i></a>
+                    <a class="icon-share" href="javascript:void(0)" onclick="toShare('1zc17967whl',0)" title="分享"></a>
+                </div>
+            </div>
+        </li>
+</ul>
+
+<script>
+    $(function(){
+        $('.M-box').pagination({
+            pageCount: 845,
+            totalData: 8450,
+            showData: 10,
+            jump: true,
+            coping: true,
+            current:1,
+            homePage: '首页',
+            endPage: '末页',
+            prevContent: '<',
+            nextContent: '>',
+            callback: function (api) {
+                $("#pageNo").val(api.getCurrent())
+                page()
+            }
+        });
+    })
+</script>        </div>
+
+    </div>
+</div>
+
+<form id="condition" method="post">
+    <input type="hidden" id="pageNo" name="pageNo" value="1">
+    <input type="hidden" id="query" name="query" value="">
+    <input type="hidden" id="status" name="status" value="">
+    <input type="hidden" id="itemCatIds" name="itemCatIds" value="">
+    <input type="hidden" id="orderField" name="orderField" value="top">
+    <input type="hidden" id="asc" name="asc" value="0">
+    <input type="hidden" id="style" name="style" value="">
+    <input type="hidden" id="people" name="people" value="">
+    <input type="hidden" id="ins" name="ins" value="">
+</form>
+
+<!--分页-->
+    <div class="pagebox">
+        <div class="w-box clearfix">
+            <div class="search-right cen fr">
+                <div class="M-box"></div>
+            </div>
+        </div>
+    </div>
+
+
+<div class="box-zydb" style="display: none">
+    <h2>资源对比 <span style="float: right" class="pointer" onclick="closeCompare()">X</span></h2>
+    <ul id="book-compare">
+
+    </ul>
+    <button class="button fr" type="button" onclick="commitCompare()">提交对比</button>
+</div>
+
+
+
+<div class="box-footer clearfix">
+    <div class="w-box">
+        <div class="footer-l fl">
+            <ul>
+                <li>主办：<a href="https://www.ndrc.gov.cn/fzggw/wzslxdw/201402/t20140213_951914.html" target="_blank" style="cursor: pointer;color: white">中国发展改革出版社</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="/std/images/chuban.jpg?v=2" target="_blank" style="cursor: pointer;color: white">网络出版服务许可证：（署）网出证（京）第457号</a></li>
+                <li>合作共建单位：<a href="http://www.cecs.org.cn" target="_blank" style="cursor: pointer;color: white">中国工程建设标准化协会</a></li>
+                <li style="cursor: pointer"><x onclick="openUrl('http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11010202009407')"><img src="/std/images/gongan.png">&nbsp;京公网安备&nbsp;11010202009407号</x>&nbsp;&nbsp;&nbsp;&nbsp;<x onclick="openUrl('https://beian.miit.gov.cn/')">京ICP备05021380号-5</x></li>
+                <li>版权所有 侵权必究 &nbsp;&nbsp;当前访问IP:183.162.98.239</li>
+            </ul>
+        </div>
+
+        <div class="footer-ewm fr">
+            <ul class="clearfix">
+                <li>
+                    <a href="javascript:;" style="width: 72px;">
+                        <div class="img" style="margin: 0 auto;">
+                            <img src="/std/images/gbk.png" >
+                        </div>
+                        <p>
+                            工标库移动端
+                        </p>
+                    </a>
+                    <div class="bigEwm css3">
+                        <div class="img">
+                            <img src="/std/images/gbk.png" >
+                        </div>
+                        <p>
+                            工标库移动端
+                        </p>
+                    </div>
+                </li>
+                <li>
+                    <a href="javascript:;">
+                        <div class="img">
+                            <img src="/std/images/wkc.png" >
+                        </div>
+                        <p>
+                            发改社微课程
+                        </p>
+                    </a>
+                    <div class="bigEwm css3">
+                        <div class="img">
+                            <img src="/std/images/wkc.png" >
+                        </div>
+                        <p>
+                            发改社微课程
+                        </p>
+                    </div>
+                </li>
+                <li>
+                    <a href="javascript:;">
+                        <div class="img">
+                            <img src="/std/images/htyd.jpg" >
+                        </div>
+                        <p>
+                            宏图悦读
+                        </p>
+                    </a>
+                    <div class="bigEwm css3">
+                        <div class="img">
+                            <img src="/std/images/htyd.jpg" >
+                        </div>
+                        <p>
+                            宏图悦读
+                        </p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="footer-r fr">
+            <a href="javascript:feedBack()" title="留言反馈">留言反馈</a>
+            <a href="/connect" title="联系我们">联系我们</a>
+            <a href="/help" title="帮助中心">帮助中心</a>
+        </div>
+    </div>
+</div>
+<!-- 弹窗3 -->
+<div class="backGround" onclick="$('.note-popup,.backGround,.text-popup,.img-popup,.ewm-popup,.add-popup,.popup').hide();" ></div>
+<div class="ewm-popup login-popup">
+    <div class="popup-title clearfix">
+        <a class="close-popup" href="javascript:;" onclick="$('.ewm-popup,.backGround').hide();"></a>
+    </div>
+    <div class="popup-con">
+        <d id="ewm2"></d>
+        <span>扫码分享</span>
+        <p id="foo"></p>
+        <a href="javascript:void(0)" class="copyBtn fuzhi" data-clipboard-action="copy"  data-clipboard-target="#foo">复制链接</a>
+    </div>
+</div>
+
+<div id="login-popup" class="login-popup popup" style="position: fixed">
+    <div class="popup-title clearfix">
+        <a class="close-popup" href="javascript:;" onclick="$('.login-popup,.backGround').hide();"></a>
+    </div>
+    <div class="popup-con terprop">
+        <div class="noaccessVip">
+            <p>登录会员账号，解锁更多资源</p>
+            <div class="noaccessTips">新用户注册<span style="color: #F41E1E;font-weight: bold;">免费</span>获取一周<span onclick="$('#checkMore-modal,.checkMoreBackGround').show()" style="color: #8B501E;cursor:pointer;font-weight: bold;">高级会员</span>权限</div>
+            <button class="go-log btn-blue" type="button" onclick="footLogin()">登录</button>
+            <div class="vipTips" onclick="$('#checkMore-modal,.checkMoreBackGround').show()">了解会员></div>
+        </div>
+    </div>
+</div>
+
+<div id="sign-login-popup" class="login-popup popup" style="position: fixed">
+    <input type="hidden" id="returnUrl1" class="sign-re-input">
+    <input type="hidden" value=""  id="unionid1">
+    <div class="popup-con terprop">
+         <form action="">
+           <div class="box-login">
+               <div class="bd">
+                    <div class="log-type" style="display: none">
+                        <div class="goRes"><span>还没有账号？去<a href="/register">注册</a></span></div>
+                        <div class="login-title">密码登录</div>
+                        <span style="margin-top:10px;color:red; position: absolute;top: 65px;" id="errorMsg1"></span>
+                        <input name="phone" type="text" onkeyup="value=value.replace(/[^\d]/g,'')" maxlength=11 id="phone1" placeholder="请输入手机号">
+                        <input name="pwd" type="password" id="password1" placeholder="请输入密码">
+                        <div class="text clearfix">
+                            <a class="fl" href="/forgetPwd">忘记密码？</a>
+                        </div>
+                        <button class="button btn-blue css3" type="button" onclick="footDoLogin();">登 录</button>
+                    </div>
+                    <div class="log-type" style="display: none">
+                        <div class="login-title" style="margin: 40px 0 15px 0">验证码登录</div>
+                        <span style="margin-top:10px;color:red;position: absolute;top: 45px;" id="errorCodeMsg1"></span>
+                        <input name="phone" id="mobile1" type="text" onkeyup="value=value.replace(/[^\d]/g,'')" maxlength=11 placeholder="请输入手机号">
+                        <div class="yzm clearfix">
+                            <input name="code" id="code_input1" type="text" placeholder="输入验证码">
+                            <img id="imgCode1" src="" onclick="footGetImgCode()">
+                        </div>
+                        <div class="yzm clearfix"><input name="code" id="js_input1" type="text" placeholder="输入验证码"><a class="fr" href="javascript:;">发送验证码</a></div>
+                        <button class="button btn-blue css3" type="button" onclick="footCommitPhoneLogin();">登 录</button>
+                    </div>
+                   <div class="log-type">
+                       <p style="margin: 30px 0;display: flex;align-items: center;justify-content: center;font-size: 18px;">
+                           <img src="/std/images/icon-wechat.png" style="margin: 0 10px 0 0;"/><span style="color: #4d4d4d;margin-right: 5px">微信</span>扫码登录（注册）
+                       </p>
+                       <!-- 修改后 -->
+                       <div style="align-items: center">
+                           <div id="modal-qrcode" style="border: 1px solid #E6E6E6;width: 230px;height: 230px;margin: auto;" onclick="footGetWxLoginImgCode()"></div>
+                       </div>
+                       <br>
+                   </div>
+                </div>
+                <div class="jumpTab">
+                    <div class="jumpTabFlex jumpTabFoot">
+                        <p style="display: none">
+                            <img src="/std/images/icon-wechat.png">
+                            微信登录
+                        </p>
+                        <p id="phoneLoginLi">
+                            <img src="/std/images/dlyzm.png">
+                            验证码
+                        </p>
+                        <p>
+                            <img src="/std/images/dlmm.png">
+                            账号密码登录
+                        </p>
+                    </div>
+                </div>
+               <div style="text-align: center;color: #A6A6A6;margin-top: 20px;">未注册手机验证后自动登录</div>
+               <div style="text-align: center;color: #A6A6A6;">登录即表示已阅读并同意<font class="c-red" style="cursor: pointer;" onclick="window.open('/agreement')">《用户协议》</font></div>
+           </div>
+        </form>
+    </div>
+</div>
+
+
+<div id="force-login-popup" class="login-popup popup" style="position: fixed">
+    <div class="popup-title clearfix">
+        <a class="close-popup" href="javascript:;" onclick="$('.login-popup,.backGround').hide();"></a>
+    </div>
+    <div class="popup-con terprop">
+        <div class="text">
+            登录以查看更多内容
+        </div>
+        <div class="buttons">
+            <a class="button" href="javascript:footLogin();">登录</a>&nbsp;&nbsp;
+            <a class="button grey" onclick="$('.login-popup,.backGround').hide();" href="javascript:;">取消</a>
+        </div>
+    </div>
+</div>
+
+
+<div id="auth-popup" class="login-popup popup" style="position: fixed">
+    <div class="popup-title clearfix">
+        <a class="close-popup" href="javascript:;" onclick="$('.login-popup,.backGround').hide();"></a>
+    </div>
+    <div class="popup-con terprop">
+        <div class="text">
+            <p>暂无权限</p>
+            <p>升级本库会员，立享海量资源</p>
+        </div>
+        <div class="buttons">
+            <a class="button" href="/center/vip">升级会员</a>&nbsp;&nbsp;
+        </div>
+    </div>
+</div>
+
+
+
+<!-- 添加收藏弹窗 -->
+<div class="mangage-popup add-popup login-popup" id="add-popup">
+    <div class="popup-title clearfix">
+        <h3 class="fl">选择收藏夹</h3>
+        <a class="close-popup" href="javascript:;" onclick="$('.add-popup,.backGround').hide();"></a>
+    </div>
+    <div class="popup-con">
+        <div class="addfavorites"><a class="c-blue2" href="/center/collect">管理收藏夹</a></div>
+        <ul class="fav-name"></ul>
+        <button class="btn-blue css3" onclick="tosaveCollect();" type="button">确定</button>
+    </div>
+</div>
+<script type="text/javascript" src="/std/js/wxLogin.js"></script>
+<script type="text/javascript" src="/std/js/qrcode.min.js"></script>
+<script type="text/javascript" src="/std/js/clipboard.min.js"></script>
+<script type="text/template" id="fav-name_sc">
+    {{each list}}
+    {{if $value.id!="-1"}}
+    <li id="fa_na_li_{{= $value.id}}" class="changeColl pointer" xid="{{= $value.id}}">
+        <h4><span></span>{{= $value.title}}</h4>
+    </li>
+    {{/if}}
+    {{/each}}
+</script>
+<script>
+    $(".jumpTabFoot p").click(function (){
+        $(this).hide().siblings().show()
+        var index = $(this).index()
+        if (index === 0){
+            $("#sign-login-popup .bd .log-type:eq(2)").show().siblings().hide()
+        } else if (index === 1){
+            $("#sign-login-popup .bd .log-type:eq(1)").show().siblings().hide()
+        } else if (index === 2){
+            $("#sign-login-popup .bd .log-type:eq(0)").show().siblings().hide()
+        }
+    })
+    //检索用跳转
+    function goWithQuery(url){
+        location.href=url+encodeURIComponent('');
+    }
+
+    //留言反馈
+    function feedBack() {
+        layer.open({
+            type: 2
+            ,title: '留言反馈'
+            ,content: '/feedback'
+            ,area: ['550px', '500px']
+            ,btn: ['确定', '取消']
+            ,yes: function(index, layero){
+                //点击确认触发 iframe 内容中的按钮提交
+                var submit = layero.find('iframe').contents().find("#layuiadmin-app-form-submit");
+                submit.click();
+            }
+        });
+    }
+
+    function openUrl(url){
+        window.open(url)
+    }
+
+    function wxCode(){
+        $("#wx-popup,.backGround").fadeIn("fast");
+    }
+
+    function toLogin(){
+        /*$("#login-popup,.backGround").fadeIn("fast");*/
+        footLogin()
+    }
+
+    function noAuth(){
+        /*$("#auth-popup,.backGround").fadeIn("fast");*/
+        try{
+            readBuyVipD()
+        }catch (e){
+            $("#auth-popup,.backGround").fadeIn("fast");
+        }
+    }
+
+    let footer_login_inv;
+    function footLogin(){
+        $(".login-popup").hide()
+        $("#sign-login-popup,.backGround").fadeIn("fast");
+        let url = window.location.href;
+        url = url.replace('https://','');
+        url = url.replace('http://','');
+        url = url.replace(window.location.host,'')
+        $(".sign-re-input").val(url);
+        // 每隔1秒执行一次
+        footer_login_inv = setInterval(footCheckLoginStatus, 1000);
+    }
+
+    function footLogout(){
+        let url = window.location.href;
+        url = url.replace('https://','');
+        url = url.replace('http://','');
+        url = url.replace(window.location.host,'')
+        if(url.indexOf("center")>-1){
+            url = "/";
+        }
+        location.href='/logout?returnUrl='+url;
+    }
+
+    function toLoginPage(){
+        let url = window.location.href;
+        url = url.replace('https://','');
+        url = url.replace('http://','');
+        url = encodeURIComponent(url.replace(window.location.host,''))
+        location.href='/login?returnUrl='+url;
+    }
+
+    $('.backGround').click(function (){
+        $('#sign-login-popup, .backGround').hide()
+        setTimeout(() => {
+            clearInterval(footer_login_inv);
+        }, 30000)
+    })
+
+
+    window.onload = function(){
+        var clipboard = new Clipboard('.copyBtn').on('success', function(e) {
+            var e = e || window.event;
+            layer.msg('复制成功');
+            $('.ewm-popup,.backGround').hide();
+        }).on('error', function(e) { alert('复制失败了，请尝试选中链接并复制！');});
+    }
+
+    function toShare(uuid,type){
+        $.ajax({
+            type: "post",
+            url: "/api/share",
+            data: {
+                "uuid":uuid,
+                "shareType":type
+            },
+            success: function(res){
+                if(res.status=="success"){
+                    $("#ewm2").html("");
+                    var qrcode = new QRCode(document.getElementById("ewm2"), {
+                        width : 136,
+                        height : 136
+                    });
+                    qrcode.makeCode(res.message);
+                    $("#foo").html(res.message);
+                    $(".backGround,.ewm-popup").show();
+                }else{
+                    if(res.needLogin=="Y"){
+                        toLogin();
+                    }else{
+                        Xalert(res.message);
+                    }
+                }
+            }
+        });
+    }
+
+    $(".backGround").click(function (){
+        $(".login-popup").hide()
+    })
+
+
+  function footDoLogin(){
+        var phone = $("#phone1").val();
+        var pwd = $("#password1").val();
+        var unionid = $("#unionid1").val();
+        if(phone===undefined || phone===''){
+            $("#errorMsg1").html("请填写手机号");
+            return;
+        }
+
+        if(!(/^1[3456789]\d{9}$/.test(phone))){
+            $("#errorMsg1").html("请填写正确的手机号");
+            return;
+        }
+
+        if(pwd===undefined || pwd===''){
+            $("#errorMsg1").html("请填写密码");
+            return;
+        }
+
+        if(pwd.length<6){
+            $("#errorMsg1").html("请填写正确的密码");
+            return;
+        }
+
+        $.ajax({
+            url:"/doLogin",
+            dataType:"json",
+            data:{
+                phone:phone,pwd:pwd,unionid:unionid
+            },success:function(data){
+                if(data=="success"){
+                    var returnUrl=$("#returnUrl1").val();
+                    if(returnUrl!=""&&returnUrl!=undefined){
+                        location.href=returnUrl;
+                    }else{
+                        location.href="/";
+                    }
+                }else if(data=="error"){
+                    $("#errorMsg1").html("用户名或密码错误");
+                }
+            }
+        })
+    }
+    //验证码获得焦点隐藏错误信息
+    $("#code_input1").on('focus', function() {
+        $("#errorCodeMsg1").html('')
+    })
+    function footGenerateUUID() {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    }
+    var loginUuid1 = footGenerateUUID();
+    //获取图形验证码
+    $(document).ready(function(){
+        footGetImgCode()
+        var qrcode1 = new QRCode(document.getElementById("modal-qrcode"), {
+            width: 205,
+            height: 205
+        });
+        qrcode1.makeCode('https://www.gongbiaoku.com/mobile/wlogin/'+loginUuid1)
+    })
+    var footImgUuid ;
+    function footGetImgCode(){
+        $.ajax({
+            url:"/captcha_image",
+            dataType:"json",
+            success:function(res){
+                if(res.status==="success"){
+                    $("#imgCode1").attr('src','data:image/png;base64,' +  res.img)
+                    footImgUuid = res.uuid
+                }
+                if(res.status=="error"){
+
+                }
+            }
+        })
+    }
+
+    //验证码倒计时
+    var second1=60;
+    var timer1;
+    $("#sign-login-popup .yzm .fr").click(function(){
+        if($(this).hasClass("on")){
+            return;
+        }
+
+        var that=$(this);
+        var phone = $("#mobile1").val();
+        if(phone===undefined || phone===''){
+            $('#errorCodeMsg1').html('手机号不能为空');
+            return;
+        }
+
+        if(!(/^1[3456789]\d{9}$/.test(phone))){
+            $('#errorCodeMsg1').html('请填写正确的手机号');
+            return;
+        }
+        var imgVal = $("#code_input1").val()
+        if (imgVal===undefined || imgVal===''){
+            $('#errorCodeMsg1').html('请填写图片验证码');
+            return;
+        }
+        $(this).addClass("on");
+        footGetCode()
+    });
+    function footGetCode(){
+        var phone = $("#mobile1").val();
+        var imgVal = $("#code_input1").val();
+        if(phone===undefined || phone===''){
+            $('#errorCodeMsg1').html('手机号不能为空');
+            return;
+        }
+        if (imgVal===undefined || imgVal===''){
+            $('#errorCodeMsg1').html('请填写图片验证码');
+            return;
+        }
+        $.ajax({
+            url:"/sendCode",
+            data:{
+                phone:phone,
+                uuid:footImgUuid,
+                imageCode: imgVal,
+            },
+            success:function(data){
+                if(data==="success"){
+                    $('#errorCodeMsg1').html('');
+                    var second1=60;
+                    var timer1;
+                    timer1=setInterval(function(){
+                        second1--;
+                        $(".yzm .fr").html(second1+"&nbsp;秒");
+                        if(second1==0){
+                            clearInterval(timer1);
+                            $(".yzm .fr").html("发送验证码");
+                            second1=60;
+                            $(".yzm .fr").removeClass("on");
+                        }
+                    },1000)
+                    layer.msg("验证码已发送");
+                }
+                if (data=="code_error"){
+                    $('#errorCodeMsg1').html('图片验证码错误');
+                    $(".yzm .fr").removeClass("on");
+                    footGetImgCode()
+                }
+                if(data=="error"){
+                    footGetImgCode()
+                    $('#errorCodeMsg1').html('验证码发送失败');
+                    $(".yzm .fr").removeClass("on");
+                }
+            }
+        })
+
+    }
+    function footCommitPhoneLogin() {
+        var phone = $("#mobile1").val();
+        var code = $("#js_input1").val();
+        var unionid = $("#unionid1").val();
+
+        if(phone===undefined || phone===''){
+            $("#errorCodeMsg1").html("请填写手机号");
+            return;
+        }
+
+        if(!(/^1[3456789]\d{9}$/.test(phone))){
+            $("#errorCodeMsg1").html("请填写正确的手机号");
+            return;
+        }
+
+        if(code===undefined || code===''){
+            $("#errorCodeMsg1").html("请填写验证码");
+            return;
+        }
+
+        if(!(/^\d{6}$/.test(code))){
+            $("#errorCodeMsg1").html("请填写正确的验证码");
+            return;
+        }
+
+        $.ajax({
+            url:"/commitPhone",
+            dataType:"json",
+            data:{
+                phone:phone,code:code,unionid:unionid
+            },success:function(data){
+                if(data==="fail"){
+                    $("#errorCodeMsg1").html("验证码错误");
+                }
+                if(data==="success"){
+                    var returnUrl=$("#returnUrl1").val();
+                    if(returnUrl!=""&&returnUrl!=undefined){
+                        location.href=returnUrl;
+                    }else{
+                        location.href="/";
+                    }
+                }
+
+            }
+        })
+
+    }
+    function footGetWxLoginImgCode() {
+        // 重新加载页面刷新二维码
+        location.reload();
+    }
+    // 获取URL参数
+    var footUrlParams = new URLSearchParams(window.location.search);
+    // 获取参数值
+    var footReturnUrl = footUrlParams.get('returnUrl');
+
+    // 定时查询当前uuid是否登录
+    function footCheckLoginStatus() {
+        $.ajax({
+            url: "/check_login",
+            dataType: "json",
+            data: {
+                uuid: loginUuid1
+            },
+            success: function (res) {
+                if (res.status === "success") {
+                    console.log(footReturnUrl)
+                    if(footReturnUrl==null||footReturnUrl==="")
+                        footReturnUrl="/";
+                    location.href = footReturnUrl;
+                }
+                if (res.status === "error") {
+                    console.log("error")
+                }
+            }
+        })
+    }
+
+</script>
+<script>
+    const fpPromise = import('/std/js/fingerprint.js')
+        .then(FingerprintJS => FingerprintJS.load())
+    fpPromise
+        .then(fp => fp.get())
+        .then(result => {
+            const visitorId = result.visitorId
+            console.log(visitorId)
+            $.cookie('fgp', visitorId, { expires: 30 });
+        })
+        .catch(error => console.error(error))
+</script>
+<script>
+    $("body").on("click", '.changeColl', function() {
+        $(this).addClass("on");
+        $(this).parents(".read-l").find(".box-catalog").show();
+        $(this).siblings().removeClass("on").parents(".read-l").find(".left-note").hide();
+    });
+    function closeCollect(){
+        $('.add-popup,.backGround').hide();
+    }
+
+    function initAddCollect(){
+            toLogin();
+    }
+</script>
+<style>
+    .lhalertDialog{z-index: 999999999999999;position: fixed; left:0; right:0; top:0; bottom:0; background:rgba(0, 0, 0, .12);display: none}
+    .lhalertDialog .lhalert{position: fixed; width:371px; background:white; border-radius:6px; -webkit-border-radius:6px; -moz-border-radius:6px; -ms-border-radius:6px; left:50%; top:50%; margin-left:-185px; margin-top:-115px; padding-top:46px;
+        padding-bottom:37px;text-align: center;}
+    .lhalertDialog .lhalert .p1{font-size:16px; color:#333333; line-height:54px; padding:0 57px; height:93px;}
+    .lhalertDialog .lhalert .p1 a{color:#1a5284;}
+    .lhalertDialog .lhalert .p1 a:hover{color:#da251c;}
+    .lhalertDialog .lhalert .btns{padding:0 35px; overflow: hidden; text-align:center;}
+    .lhalertDialog .lhalert .btns a{display: inline-block; width:130px; height:40px; line-height:40px; text-align: center; background:#1a5284; color:white; font-size:14px; margin:0 8px; border-radius:6px; -webkit-border-radius:6px;
+        -moz-border-radius:6px; -ms-border-radius:6px;}
+    .lhalertDialog .lhalert .btns a:hover{background:#235989;}
+    .lhalert_close{position: absolute; right:11px; top:11px; width:20px; height:20px; background:url(/std/images/icon-close3.png) no-repeat center center;}
+    .lhalert_close:hover{background:url(/std/images/icon-close3-h.png) no-repeat center center;}
+    .layer-msg{z-index: 999999999999999;position: fixed;padding: 12px 25px;text-align: center;font-size: 14px;line-height: 24px;word-break: break-all;box-shadow: 1px 1px 50px rgba(0,0,0,.4); -webkit-box-shadow: 1px 1px 50px rgba(0,0,0,.4); -moz-box-shadow: 1px 1px 50px rgba(0,0,0,.4);
+        -ms-box-shadow: 1px 1px 50px rgba(0,0,0,.4);min-width: 100px;background-color: #000;background-color: rgba(0,0,0,.6); color:white; left:50%; top:50%; margin-top:-24px;  display: none;
+        box-sizing: border-box; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; -ms-box-sizing: border-box; transform: translateX(-50%); -webkit-transform: translateX(-50%); -moz-transform: translateX(-50%); -ms-transform: translateX(-50%);}
+</style>
+<div class="lhalertDialog">
+    <div class="lhalert">
+        <p class="p1"><span class="lhte" style="display: inline-block;line-height: 26px;vertical-align: middle;"></span></p>
+        <p class="btns">
+            <a href="javascript:;">确定</a>
+            <a href="javascript:;" id="cancleAlert" style="display: none;">取消</a>
+        </p>
+        <a href="javascript:;" class="lhalert_close"></a>
+    </div>
+</div>
+
+<div class="layer-msg"></div>
+<script>
+    function Xalert(text,showCancle){
+        if(showCancle==1){
+            $("#cancleAlert").show();
+        }else{
+            $("#cancleAlert").hide();
+        }
+        $(".lhte").html(text);
+        $(".lhalertDialog").fadeIn("fast");
+    }
+    $(".lhalertDialog,.lhalert_close,.lhalert .btns a").click(function(){
+        $('.lhalertDialog').hide();
+    });
+    $(".lhalert").click(function(){
+        window.event? window.event.cancelBubble = true : e.stopPropagation();
+    });
+
+    function Lalert(text){
+        $(".layer-msg").html(text);
+        $(".layer-msg").fadeIn("fast");
+        setTimeout(function(){
+            $(".layer-msg").fadeOut("fast");
+        },1500)
+    }
+
+</script><style>
+    .vipModal{
+        position: fixed;
+        width: 750px;
+        z-index: 2;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        height: calc(100vh - 15%);
+        display: none;
+    }
+    .vipBackGround,.wbuyBackGround,.checkMoreBackGround{
+        position: fixed;
+        height: 100%;
+        top: 0%;
+        left: 0%;
+        width: 100%;
+        background-color: #000000;
+        z-index: 1;
+        -moz-opacity: 0.2;
+        opacity: .2;
+        display: none;
+    }
+    .relatedHeight {
+        max-height: 100%;
+        overflow-y: auto;
+        background: #ffffff;
+        border-radius: 20px 20px 0px 0px
+    }
+    .bifEwm{
+        position: absolute;
+        padding: 10px;
+        box-shadow: 0 0 16px 0 rgba(20, 20, 20, .1);
+        top: -200px;
+        left: -30px;
+        z-index: 3;
+        background: #fff;
+        display: none;
+        text-indent: 0;
+    }
+    .bifEwm img{
+        width: 181px;
+        max-width: 181px;
+        margin-bottom: 0;
+        padding-right: 0 !important;
+    }
+    .firm:hover .bifEwm{
+        display: block;
+    }
+</style>
+<div class="checkMoreBackGround"></div>
+<!-- 查看更多-->
+<div id="checkMore-modal" class="checkMore-popup">
+    <div class="popup-title clearfix">
+        <a class="close-popup" href="javascript:;"></a>
+    </div>
+    <div class="per-details vipModal-details">
+        <table border="1" cellspacing="0" cellpadding="0">
+            <thead>
+            <tr>
+                <th style="background: #F6EFE2;">功能项目</th>
+                <th style="background: #E8E1D5;">注册用户</th>
+                <th style="background: linear-gradient(0deg, #D39863 0%, #EEC493 100%);">普通会员</th>
+                <th style="color: #F1D1AF;background: linear-gradient(0deg, #242A2F 0%, #6B7178 100%);">高级会员/企业版</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>计划版标准阅读</td>
+                <td>仅限国标条文</td>
+                <td>库内全部标准</td>
+                <td>库内全部标准</td>
+            </tr>
+            <tr>
+                <td>AI智能检索</td>
+                <td><img src="/std/images/dui.png"></td>
+                <td><img src="/std/images/dui.png"></td>
+                <td><img src="/std/images/dui.png"></td>
+            </tr>
+            <tr>
+                <td>标准关联查询</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>强制性条文聚合</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>标准资源对比</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>术语查询</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>知识库管理</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>服务资讯查看</td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>原版标准阅读</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>条文说明阅读</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>标准文字复制(200字/次)</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td>100次/月</td>
+                <td>不限</td>
+            </tr>
+            <tr>
+                <td>标准追踪</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>行业定制</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>实用表格下载(仅PC端)</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>电子书与视频</td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hycuo.png"></td>
+                <td><img src="/std/images/hydui.png"></td>
+            </tr>
+            <tr>
+                <td>专家解读视频</td>
+                <td>免费视频</td>
+                <td>免费视频</td>
+                <td>全部视频</td>
+            </tr>
+            <tr>
+                <td>标准查重(审校)</td>
+                <td><img src="/std/images/cha.png"></td>
+                <td><img src="/std/images/cha.png"></td>
+                <td>企业版定制</td>
+            </tr>
+            <tr>
+                <td>数字阅读终端</td>
+                <td><img src="/std/images/cha.png"></td>
+                <td><img src="/std/images/cha.png"></td>
+                <td>企业版定制</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    $(function() {
+        //关闭查看更多
+        $("#checkMore-modal .close-popup").click(function (){
+            $("body").removeClass("fixed");
+            $(".close-popup").parent().parent().hide();
+            $(".checkMoreBackGround").hide();
+            readBuyVipD()
+        })
+        $(".checkMoreBackGround").click(function (){
+            $(this).hide();
+            $("#checkMore-modal").hide()
+            readBuyVipD()
+        })
+    })
+</script><script>
+    (function(){
+        var el = document.createElement("script");
+        el.src = "https://lf1-cdn-tos.bytegoofy.com/goofy/ttzz/push.js?efc8afe15884d2f241c2707d2f5ea29cfefab30ca3706e6f65991c2fe53cd027fd5c4a3974f9cd3eeb674bde712b4782cc4f323247d55c2ed2efd47b7c83521adc648ee828d46e7d3689a9c59fd080f6";
+        el.id = "ttzz";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(el, s);
+    })(window)
+</script>
+</body>
+
+<script type="text/javascript">
+
+    $(document).ready(function(){
+        renderCompare()
+
+        const element = document.querySelector('.compiling');
+        if (element) {
+            element.addEventListener('mouseover', () => {
+                // 移除CSS动画
+                element.style.animation = 'none';
+            });
+        }
+        const element1 = document.querySelector('.publish');
+        if (element1){
+            element1.addEventListener('mouseover', () => {
+                // 移除CSS动画
+                element1.style.animation = 'none';
+            });
+        }
+    })
+
+    function renderCompare() {
+        if(window.localStorage){
+            $("#book-compare").html('')
+            if($(".icon-compare").hasClass("icon")){
+                $(".icon-compare").removeClass('icon-ok').addClass('icon-add')
+            }else{
+                $(".icon-compare").removeClass('addokbtn').addClass('addbtn')
+            }
+            let store = window.localStorage;
+            if(store.bookCompare!==undefined){
+                let bookCompare = JSON.parse(store.bookCompare);
+                if(bookCompare.length>0){
+                    $(".box-zydb").css("display","block")
+                }
+                for(let i in bookCompare){
+                    $("#book-compare").append('<li>\n' +
+                        '            <a class="fr" href="javascript:removeCompare(\''+bookCompare[i].uuid+'\');">移除</a>\n' +
+                        '            <span class="line '+bookCompare[i].uuid+'">'+bookCompare[i].name+'</span>\n' +
+                        '        </li>')
+
+                    if($(".icon-compare").hasClass("icon")){
+                        $(".icon-compare-"+bookCompare[i].uuid).removeClass('icon-add').addClass('icon-ok')
+                    }else{
+                        $(".icon-compare-"+bookCompare[i].uuid).removeClass('addbtn').addClass('addokbtn')
+                    }
+                }
+            }
+        }
+    }
+
+    function closeCompare(){
+        $(".box-zydb").css("display","none")
+        if(window.localStorage){
+            let store = window.localStorage;
+            let arr = [];
+            store.bookCompare = JSON.stringify(arr);
+            renderCompare()
+        }
+    }
+
+    function addCompare(name,uuid){
+        if(window.localStorage){
+            let store = window.localStorage;
+            let bookCompare = store.bookCompare;
+            let arr = [];
+            if(bookCompare!==undefined){
+                arr = JSON.parse(bookCompare);
+                for(let i in arr){
+                    if(arr[i].uuid===uuid){
+                        layer.msg("已存在");
+                        return;
+                    }
+                }
+            }
+            if(arr.length>=4){
+                layer.msg("最多添加4个,已添加4个");
+                return;
+            }
+            arr.push({"name":name, "uuid":uuid})
+            store.bookCompare = JSON.stringify(arr)
+
+            renderCompare()
+        }
+    }
+
+    function removeCompare(uuid){
+        if(window.localStorage){
+            let store = window.localStorage;
+            let arr = [];
+            if(store.bookCompare!==undefined){
+                let bookCompare = JSON.parse(store.bookCompare);
+                for(let i in bookCompare){
+                    if(bookCompare[i].uuid!==uuid){
+                        arr.push(bookCompare[i])
+                    }
+                }
+                store.bookCompare = JSON.stringify(arr);
+                renderCompare()
+            }
+        }
+    }
+
+    function commitCompare(){
+        if(window.localStorage){
+            let uuids = "";
+            let store = window.localStorage;
+            if(store.bookCompare!==undefined){
+                let bookCompare = JSON.parse(store.bookCompare);
+                for(let i in bookCompare){
+                    uuids=uuids+bookCompare[i].uuid+",";
+                }
+            }
+            if(uuids.length>0){
+                uuids = uuids.substr(0,uuids.length-1);
+                window.open('/book/compare?uuids='+uuids)
+            }
+        }
+    }
+
+    //分页调用
+
+
+    $('.sort a').on('click',function(){
+        let orderField = $(this).attr('data-order-field')
+        let asc = '';
+
+        if(orderField ===''){
+            $("#orderField").val(orderField)
+            $("#asc").val(asc)
+            $("#pageNo").val(1)
+            page()
+            return;
+        }
+
+        if(!$(this).hasClass('sort-up') && !$(this).hasClass('sort-down')){
+            asc = 0;
+        }
+
+        if($(this).hasClass('sort-down')){
+            asc = 1;
+        }
+
+        if($(this).hasClass('sort-up')){
+            asc = 0;
+        }
+
+        $("#orderField").val(orderField)
+        $("#asc").val(asc)
+        $("#pageNo").val(1)
+
+        page()
+    })
+
+    function chooseStyle(style){
+        $("#style").val(style)
+        $("#pageNo").val(1)
+        page()
+    }
+
+    function research(){
+        $("#query").val($("#query").val()+' '+$("#research").val())
+        $("#pageNo").val(1)
+        page()
+    }
+
+    function chooseStatus(status){
+        $("#status").val(status)
+        $("#pageNo").val(1)
+        page()
+    }
+
+    function chooseCat(id){
+        $("#itemCatIds").val(id)
+        $("#pageNo").val(1)
+        page()
+    }
+
+    function chooseQuery(query){
+        location.href='/search?query='+encodeURIComponent(query);
+    }
+
+    function page(){
+        $('#condition').attr("action","/search");
+        $('#condition').submit();
+    }
+
+    function collect(id){
+        if($(".sc_"+id).hasClass("on")){
+            delCollect(id);
+        }else{
+            initAddCollect();
+            $("#add-popup").attr("x-uuid",id);
+        }
+    }
+    function tosaveCollect(){
+        var id = $("#add-popup").attr("x-uuid");
+        $.ajax({
+            type: "post",
+            url: "/api/collect/add",
+            data: {
+                "uuid":id,
+                "itemType":0,
+                "folderId":$(".changeColl.on").attr("xid")
+            },
+            beforeSend: function(){
+                closeCollect();
+                $(".sc_"+id).addClass("on");
+            },
+            success: function(res){
+                if(res.status!="success"){
+                    $(".sc_"+id).removeClass("on");
+                    if(res.needLogin=="Y"){
+                        toLogin();
+                    }else{
+                        Xalert(res.message);
+                    }
+                }
+            }
+        });
+    }
+    function delCollect(id){
+        $.ajax({
+            type: "post",
+            url: "/api/collect/del",
+            data: {
+                "bookId":id,
+                "itemType":0
+            },
+            beforeSend: function(){
+                $(".sc_"+id).removeClass("on");
+            },
+            success: function(res){
+                if(res.status!="success"){
+                    $(".sc_"+id).addClass("on");
+                    if(res.needLogin=="Y"){
+                        toLogin();
+                    }else{
+                        Xalert(res.message);
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+</html>
