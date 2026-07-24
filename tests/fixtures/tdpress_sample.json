@@ -1,0 +1,56 @@
+{
+  "total": 3,
+  "rows": [
+    {
+      "standardNumber": "TB 10621-2014",
+      "standardName": "高速铁路设计规范",
+      "engStandardName": "Code for Design of High Speed Railway",
+      "standardStatus": "FALSE",
+      "replaceStandard": "TB 10621-2009",
+      "implementDate": 1422720000000,
+      "publicationDate": 1417363200000,
+      "supervisorDept": "国家铁路局",
+      "chiefEditorUnit": "中铁工程设计咨询集团有限公司",
+      "standardFilingNum": "J 1942-2014",
+      "standardLevel": "hybz",
+      "pageNumber": "266",
+      "bookNum": "15113.4283",
+      "bookPrice": "50.00",
+      "profession": "zh"
+    },
+    {
+      "standardNumber": "TB 10623-2014",
+      "standardName": "城际铁路设计规范",
+      "engStandardName": "Code for Design of Intercity Railway",
+      "standardStatus": "TRUE",
+      "replaceStandard": "",
+      "implementDate": 1422720000000,
+      "publicationDate": 1417363200000,
+      "supervisorDept": "国家铁路局",
+      "chiefEditorUnit": "",
+      "standardFilingNum": "",
+      "standardLevel": "hybz",
+      "pageNumber": "180",
+      "bookNum": "",
+      "bookPrice": "",
+      "profession": "zh"
+    },
+    {
+      "standardNumber": "GB/T 19001-2016",
+      "standardName": "质量管理体系 要求",
+      "engStandardName": "",
+      "standardStatus": "TRUE",
+      "replaceStandard": "GB/T 19001-2008",
+      "implementDate": 1488297600000,
+      "publicationDate": 1480521600000,
+      "supervisorDept": "",
+      "chiefEditorUnit": "",
+      "standardFilingNum": "",
+      "standardLevel": "guobiao",
+      "pageNumber": "",
+      "bookNum": "",
+      "bookPrice": "",
+      "profession": ""
+    }
+  ]
+}
