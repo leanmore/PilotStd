@@ -20,6 +20,7 @@ PROD_PRIORITY = [
     "jjg",
     "sppt",
     "sppt_local",
+    "gongbiaoku",
     "hbba",
     "iso_gov",
     "njbz365",

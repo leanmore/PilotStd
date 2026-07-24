@@ -287,6 +287,7 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "food_safety": {"primary": "sppt", "fallback": "std_gov"},
     # 食品安全地方标准 → sppt_local 官网优先
     "food_safety_local": {"primary": "sppt_local", "fallback": "sppt"},
+    "construction_std": {"primary": "gongbiaoku", "fallback": "std_gov"},
 }
 
 

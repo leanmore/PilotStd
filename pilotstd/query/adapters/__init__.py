@@ -3,6 +3,7 @@ from .base import BaseAdapter
 from .ccsn import CCSNAdapter
 from .csres import CsresAdapter
 from .dbba import DbbaAdapter
+from .gongbiaoku import GongBiaoKuAdapter
 from .hbba import HbbaAdapter
 from .iso_gov import IsoGovAdapter
 from .jjg import JJGAdapter
@@ -20,6 +21,7 @@ __all__ = [
     "CCSNAdapter",
     "CsresAdapter",
     "DbbaAdapter",
+    "GongBiaoKuAdapter",
     "StdGovAdapter",
     "Njbz365Adapter",
     "HbbaAdapter",

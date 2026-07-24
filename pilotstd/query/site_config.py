@@ -42,4 +42,11 @@ def create_default_sites() -> list[SiteState]:
             daily_limit=300,
             cooldown_seconds=3,
         ),
+        S(
+            name="gongbiaoku",
+            base_url="https://www.gongbiaoku.com",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=2,
+        ),
     ]

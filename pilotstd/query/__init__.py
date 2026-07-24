@@ -114,6 +114,12 @@ def _get_sppt_adapter() -> Type[Any]:
     return SPPTAdapter
 
 
+def _get_gongbiaoku_adapter() -> Type[Any]:
+    from .adapters.gongbiaoku import GongBiaoKuAdapter
+
+    return GongBiaoKuAdapter
+
+
 def _get_sppt_local_adapter() -> Type[Any]:
     """懒加载食品安全地方标准适配器（SPPTLocalAdapter）。"""
     from .adapters.sppt_local import SPPTLocalAdapter
