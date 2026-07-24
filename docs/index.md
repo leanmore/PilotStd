@@ -16,6 +16,7 @@
 | `ui-components.md` | 前端组件规范、状态展示、布局原则 | 涉及前端 UI |
 | `coding-standards.md` | Python/TS 编码规范详细版 | 编写新代码时 |
 | `pre-commit-checklist.md` | 提交前自检命令清单 | 提交代码前 |
+| `adapter-development.md` | 适配器开发指南、站点架构差异表 | 开发新适配器时 |
 
 ## 架构文档
 
