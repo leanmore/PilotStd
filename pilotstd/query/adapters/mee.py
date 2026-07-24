@@ -184,3 +184,13 @@ class MEEAdapter(BaseAdapter):
             source_site=self.site_name,
         )
         return result
+
+    # ── 详情页补充（Q22-03 待实现）──
+
+    def _fetch_detail_status(self, detail_url: str) -> str:
+        """从详情页提取标准状态（Q22-03 待办）。
+
+        当前列表页不提供状态字段，返回 "未知"。
+        后续迭代需：请求 detail_url → 解析详情页 DOM → 提取状态文本。
+        """
+        return "未知"
