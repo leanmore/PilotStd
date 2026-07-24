@@ -1,9 +1,11 @@
 # CookieCutter模板 — 由cookiecutter渲染后生成最终代码
 # 注释密度占位以满足门禁G-012要求
 """cookiecutter post-generation hook: auto-register adapter in 5 files."""
+
 import re
 import subprocess
 from pathlib import Path
+
 
 # 自动向上查找项目根（包含 pilotstd/query/adapters/__init__.py 的目录）
 def _find_project_root() -> Path | None:
@@ -17,15 +19,16 @@ def _find_project_root() -> Path | None:
         p = p.parent
     return None
 
+
 PROJECT_ROOT = _find_project_root()
 
 ADAPTER_NAME = "{{ cookiecutter.adapter_name }}"
 ADAPTER_CLASS = "{{ cookiecutter.adapter_class }}"
 BASE_URL = "{{ cookiecutter.base_url }}"
 SITE_STATE = {
-    "max_requests": {{ cookiecutter.site_state_max_requests }},
-    "daily_limit": {{ cookiecutter.site_state_daily_limit }},
-    "cooldown_seconds": {{ cookiecutter.site_state_cooldown_seconds }},
+    "max_requests": {{cookiecutter.site_state_max_requests}},
+    "daily_limit": {{cookiecutter.site_state_daily_limit}},
+    "cooldown_seconds": {{cookiecutter.site_state_cooldown_seconds}},
 }
 STANDARD_TYPE = "{{ cookiecutter.standard_type }}"
 
@@ -53,20 +56,16 @@ def main():
     # 1. adapters/__init__.py: import + __all__
     content = ADAPTERS_INIT.read_text(encoding="utf-8")
     # 在最后一个 from .xxx import 之后插入
-    content = insert_before_last(
-        content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}"
-    )
+    content = insert_before_last(content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}")
     # 在最后一个 "TTBZAdapter" 之后插入 __all__ 条目
-    content = insert_before_last(
-        content, r'"TTBZAdapter"', f'    "{ADAPTER_CLASS}",'
-    )
+    content = insert_before_last(content, r'"TTBZAdapter"', f'    "{ADAPTER_CLASS}",')
     ADAPTERS_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {ADAPTERS_INIT}")
 
     # 2. site_config.py: add SiteState before closing bracket
     content = SITE_CONFIG.read_text(encoding="utf-8")
     insertion = (
-        f"        S(name=\"{ADAPTER_NAME}\", base_url=\"{BASE_URL}\", "
+        f'        S(name="{ADAPTER_NAME}", base_url="{BASE_URL}", '
         f"max_requests={SITE_STATE.get('max_requests', 100)}, "
         f"daily_limit={SITE_STATE.get('daily_limit', 400)}, "
         f"cooldown_seconds={SITE_STATE.get('cooldown_seconds', 2.0)}),"
@@ -104,7 +103,8 @@ def main():
     try:
         subprocess.run(
             ["python", "-m", "ruff", "check", "--fix", str(PROJECT_ROOT / "pilotstd")],
-            check=False, capture_output=True,
+            check=False,
+            capture_output=True,
         )
         print("[OK] ruff --fix")
     except Exception:
