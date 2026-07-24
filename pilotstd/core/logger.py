@@ -17,7 +17,10 @@ from typing import Optional
 
 from .frozen import is_frozen
 
-# 模块名缩写映射，便于日志筛选和阅读
+# 模块名缩写映射，便于日志筛选和阅读。
+# 未列出的模块自动使用 last.upper()[:6] 作为标签（见 _TagFormatter.format()），
+# 日志不会丢失。此处仅覆盖需要"更短可读标签"的历史模块，非适配器注册列表。
+# 新增适配器无需修改此映射——自动获得模块名前6字符大写作为标签。
 _TAG_MAP = {
     "ui": "UI",
     "main_window": "UI",

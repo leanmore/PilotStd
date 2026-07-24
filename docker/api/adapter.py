@@ -23,7 +23,7 @@ _DEFAULT_CONFIG = {
 }
 # 公告适配器（非查询类）
 _ANNOUNCE_ADAPTERS = {"gb", "hb", "db"}
-_MAX_DISPLAY_NAME_LEN = 20
+_MAX_DISPLAY_NAME_LEN = 50  # 安全阈值：防止异常长字符串污染日志，无 UI/DB 硬约束
 
 
 def _get_display_name(adapter_name: str) -> str:
