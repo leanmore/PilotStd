@@ -70,7 +70,8 @@
 ```
 1. 创建 pilotstd/query/adapters/new_site.py
    - 继承 BaseAdapter，实现 site_name/site_label/_search/_parse_result
-   - 定义模块级常量 DISPLAY_NAME = "新站点中文名"（≤20 字符）
+   - 定义模块级常量 DISPLAY_NAME = "新站点中文名"（≤50 字符）
+   - DISPLAY_NAME 会被 API 自动暴露为 display_name 字段，前端自动显示
 
 2. 在 ADAPTER_TYPE_MAP 注册路由（search_strategy.py）
    - 若为标准代号前缀（如 WW/T），添加入口到对应类型的 chain

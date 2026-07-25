@@ -20,6 +20,22 @@
 4. **更文档**：涉及架构/API/DB/技术债变更时，同步更新对应文档
 5. **交付**：输出交付报告，包含文件清单、测试结果、门禁结果、自审报告
 
+### Inline 指令分级与文档要求
+
+| 指令类型 | 判断条件 | 文档要求 |
+|----------|----------|----------|
+| 热修复 | 修bug、改配置、调整参数 | 直接执行，commit message 标注 [hotfix] |
+| 功能开发 | 新增模块/适配器/接口 | 生成 spec-lite.md（≤30行） |
+| 架构变更 | 跨模块重构、接口变更、数据模型变更、体系加固 | 完整 spec + plan |
+
+spec-lite.md 模板（4个必填区块）：
+- 用户指令摘要（≤5行）
+- 采纳的关键设计决策（≤5条）
+- 识别到的风险点及与现有架构的冲突（≤5条）
+- 验证方式（测试用例/手动验证步骤）
+
+模板文件：`docs/superpowers/specs/spec-lite-template.md`
+
 ### 读文档触发条件表
 
 | 触发条件 | 必须读取的文档 |
@@ -60,9 +76,29 @@
 | G-030 全量测试 | CI | 耗时较长，本地全量运行不现实 |
 | G-034 新函数有测试 | CI | 需分析 diff 判断是否新增函数 |
 
+G-025 触发条件扩展：
+- `adapters/` 目录下任何 .py 文件变更 → 检查 `docs/reference/adapter-development.md` 是否同步更新
+- 新增适配器 → 检查 `docs/superpowers/specs/` 目录下是否存在对应 spec-lite.md
+
 完整门禁清单见 `docs/governance/gates.md`。
 
-## 4. 交付报告模板
+## 4. 验证与交付
+
+### 4.1 .test_pass 验证文件
+
+.test_pass 文件由 pytest session-finish hook 自动生成，也支持手动写入。
+
+- 测试全通过 → 自动写入（`verification_type: "auto"`，含 `commit_hash`）
+- 测试失败 → 自动删除 auto 类型文件
+- 手动验证通过 → 允许执行者手动写入/追加（`verification_type: "manual"`，含时间戳+验证描述）
+- Code Review 步骤检查：文件存在 + 时间戳在24小时内 + verification_type 有效 + commit_hash 与当前 HEAD 一致（或为 manual 类型） → 通过。否则阻断。
+
+.test_pass 写入前置条件：
+- 功能开发任务：spec-lite.md 必须存在于 `docs/superpowers/specs/` 目录
+- 架构变更任务：spec + plan 双文档必须存在
+- 无对应文档 → 验证无效，退回执行
+
+### 4.2 交付报告模板
 
 任务结束时必须输出以下清单。每一项都必须如实填写，禁止留空。
 
@@ -78,7 +114,31 @@
 - 前端测试：`npm run test`
 - 死代码检查：`vulture pilotstd/` / `npx ts-prune`
 
-## 6. Ruff/MyPy 报错处理（"动哪改哪"的边界规则）
+## 6. 收工流程
+
+### 6.1 每日收工 — Knowledge Trigger
+
+每次执行以下操作时，必须同步更新 `.claude/memory.md`：
+
+| 触发事件 | 写入要求 |
+|----------|----------|
+| commit message 含"决策""范式""放弃""规范""重构"关键词 | 在 Memory 中追加对应条目 |
+| 生成 spec/plan 文档 | 提取"设计决策"部分同步到 Memory |
+| 放弃某个站点/方案/技术路线 | 必须在 Memory 中记录放弃原因和最终结论 |
+| 新增/修改适配器开发规范 | 必须在 Memory 中记录规范变更 |
+
+**兜底确认（不可省略）**：无论 commit message 是否包含关键词，收工前必须显式自问："本次工作是否产生了值得记录的设计决策/范式/放弃？"若答案为是，立即写入 Memory。
+
+Memory 最后更新时间检查：CI pre-push hook 检查 `.claude/memory.md` 的 last commit 时间。
+- >7天未更新 → 警告（不阻断）
+- >14天未更新 → 阻断推送，要求先更新 Memory
+
+### 6.2 每日收工 — 进度日志
+
+收工前执行 `python scripts/gen_daily_log.py >> docs/archive/项目进度日志.md`
+脚本自动生成当日 commit 列表草稿，执行者补充"关键进展"和"阻塞项"两个部分。
+
+## 7. Ruff/MyPy 报错处理（"动哪改哪"的边界规则）
 
 在修改文件时，如遇到 ruff/mypy 报错，按以下规则处理：
 
