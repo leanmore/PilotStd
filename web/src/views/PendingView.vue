@@ -1,14 +1,18 @@
 <script setup lang="ts">
 defineOptions({ name: 'PendingView' })
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
+import ProgressSpinner from 'primevue/progressspinner'
 import { getPendingItems, postRequery } from '@/api'
 import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
+import { useQueryAdapters } from '@/composables/useQueryAdapters'
+
+const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters()
 
 const input = ref('')
 const results = ref<any[]>([])
@@ -30,16 +34,6 @@ function onPage(e: any) {
   page.value = e.page
   setItem('pending_page', String(e.page))
 }
-
-const sites = [
-  { name: 'ahbz', label: '安徽标准平台', desc: '免鉴权，覆盖国标/行标/地标/国际/团体' },
-  { name: 'njbz365', label: '南京标准网', desc: '覆盖国内外标准' },
-  { name: 'std_gov', label: '国家标准公开', desc: 'GB/GB/T 国标' },
-  { name: 'hbba', label: '行业标准平台', desc: 'SH/NB/HG/JB 等行标' },
-  { name: 'dbba', label: '地方标准平台', desc: 'DB 地方标准' },
-  { name: 'iso_gov', label: '国际标准平台', desc: 'ISO/IEC 国际标准' },
-  { name: 'csres', label: '工标网', desc: '国标/行标兜底' },
-]
 
 async function requery() {
   const numbers = input.value.split('\n').map(s => s.trim()).filter(Boolean)
@@ -68,6 +62,8 @@ function severity(s: string) {
   if (s === '待确认') return 'warn'
   return 'info'
 }
+
+onMounted(() => { ensure() })
 </script>
 
 <template>
@@ -85,19 +81,33 @@ function severity(s: string) {
     </div>
   </div>
 
-  <!-- 站点选择 —— 卡片网格，参考设置页样式 -->
+  <!-- 站点选择 —— 动态加载，带 loading/error/refresh -->
   <div class="card mt-2">
     <div class="card-header">选择查询站点</div>
-    <div class="site-grid">
-      <div v-for="s in sites" :key="s.name" class="site-card" :class="{ active: selectedSite === s.name }" @click="selectedSite = s.name">
+
+    <div v-if="adaptersLoading" class="flex align-items-center gap-2 py-3">
+      <ProgressSpinner style="width:20px;height:20px" strokeWidth="4" />
+      <span class="text-dim">加载站点列表…</span>
+    </div>
+
+    <div v-else-if="adaptersError" class="py-2">
+      <p class="err-msg">{{ adaptersError }}</p>
+      <Button label="刷新" icon="pi pi-refresh" size="small" severity="secondary" @click="refreshAdapters" />
+    </div>
+
+    <div v-else class="site-grid">
+      <div v-for="a in adapters" :key="a.name" class="site-card"
+           :class="{ active: selectedSite === a.name }"
+           @click="selectedSite = a.name">
         <div class="site-head">
-          <span class="site-name">{{ s.label }}</span>
-          <Tag :value="s.name" severity="info" />
+          <span class="site-name">{{ a.display_name }}</span>
+          <Tag :value="a.name" severity="info" />
         </div>
-        <div class="site-desc">{{ s.desc }}</div>
       </div>
     </div>
-    <Button label="重新查询" icon="pi pi-search" :loading="loading" @click="requery" size="small" class="mt-2" />
+    <Button label="重新查询" icon="pi pi-search" :loading="loading"
+            :disabled="adaptersLoading || !!adaptersError"
+            @click="requery" size="small" class="mt-2" />
   </div>
   <p v-if="error" class="err-msg">{{ error }}</p>
 
