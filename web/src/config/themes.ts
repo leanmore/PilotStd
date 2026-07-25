@@ -38,6 +38,13 @@ export interface ThemeConfig {
     disabledBg: string
     disabledText: string
     announceBg: string
+    // P0-2: MoviePilot 卡片变量（纳入动态注入）
+    mpCardBg: string
+    mpCardBorder: string
+    mpCardDarkBg: string
+    mpCardDarkBorder: string
+    // P1-6: 主按钮阴影（四主题各自匹配主色发光值）
+    buttonPrimaryShadow: string
   }
 }
 
@@ -78,6 +85,11 @@ export const THEMES: Record<string, ThemeConfig> = {
       disabledBg: '#e2e8f0',
       disabledText: '#94a3b8',
       announceBg: '#ffffff',
+      mpCardBg: 'rgba(255, 255, 255, 0.7)',
+      mpCardBorder: '1px solid rgba(0, 0, 0, 0.06)',
+      mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
+      mpCardDarkBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      buttonPrimaryShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
     },
   },
   dark: {
@@ -116,6 +128,11 @@ export const THEMES: Record<string, ThemeConfig> = {
       disabledBg: '#475569',
       disabledText: '#94a3b8',
       announceBg: '#1e293b',
+      mpCardBg: 'rgba(30, 41, 59, 0.85)',
+      mpCardBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
+      mpCardDarkBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      buttonPrimaryShadow: '0 4px 14px rgba(129, 140, 248, 0.4)',
     },
   },
   green: {
@@ -154,6 +171,11 @@ export const THEMES: Record<string, ThemeConfig> = {
       disabledBg: '#bbf7d0',
       disabledText: '#86efac',
       announceBg: '#f6fbf7',
+      mpCardBg: 'rgba(246, 251, 247, 0.85)',
+      mpCardBorder: '1px solid rgba(0, 0, 0, 0.06)',
+      mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
+      mpCardDarkBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      buttonPrimaryShadow: '0 4px 14px rgba(34, 197, 94, 0.4)',
     },
   },
   blue: {
@@ -192,6 +214,11 @@ export const THEMES: Record<string, ThemeConfig> = {
       disabledBg: '#1e293b',
       disabledText: '#475569',
       announceBg: '#151e32',
+      mpCardBg: 'rgba(21, 30, 50, 0.85)',
+      mpCardBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
+      mpCardDarkBorder: '1px solid rgba(255, 255, 255, 0.08)',
+      buttonPrimaryShadow: '0 4px 14px rgba(14, 165, 233, 0.4)',
     },
   },
 }
@@ -244,6 +271,13 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--shadow-lg': c.shadowLg,
     // Q8: 公告页背景色
     '--announce-bg': c.announceBg,
+    // P0-2: MoviePilot 卡片变量
+    '--mp-card-bg': c.mpCardBg,
+    '--mp-card-border': c.mpCardBorder,
+    '--mp-card-dark-bg': c.mpCardDarkBg,
+    '--mp-card-dark-border': c.mpCardDarkBorder,
+    // P1-6: 主按钮阴影
+    '--button-primary-shadow': c.buttonPrimaryShadow,
     // 向后兼容别名
     '--accent': c.primary,
     '--accent-dim': c.primaryHover,

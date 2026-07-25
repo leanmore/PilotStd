@@ -53,6 +53,9 @@
   --shadow-md: 0 8px 16px -6px rgba(0, 0, 0, 0.15), 0 4px 8px -4px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 16px 32px -12px rgba(0, 0, 0, 0.18);
 
+  /* 公告页（Q8）*/
+  --announce-bg: #ffffff;
+
   /* 圆角 */
   --radius-sm: 6px;
   --radius: 10px;
@@ -88,30 +91,6 @@
 }
 
 /* ═══════════════════════════════════════════
-   深色模式变量覆盖
-   ═══════════════════════════════════════════ */
-.dark {
-  --surface: #1f2937;
-  --surface-raised: #111827;
-  --border: #374151;
-  --border-light: #374151;
-  --text-heading: #f9fafb;
-  --text-dim: #9ca3af;
-  --primary: #818cf8;
-  --primary-bg: rgba(129, 140, 248, 0.1);
-  --primary-border: rgba(129, 140, 248, 0.3);
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --info: #60a5fa;
-  --bg: #0f172a;
-  --mp-card-bg: rgba(30, 41, 59, 0.85);
-  --mp-card-border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.dark .mp-dot-success { box-shadow: 0 0 8px rgba(74, 222, 128, 0.8); }
-.dark .mp-dot-danger { box-shadow: 0 0 8px rgba(248, 113, 113, 0.8); }
-
-/* ═══════════════════════════════════════════
    MoviePilot 风格基础组件类
    ═══════════════════════════════════════════ */
 .mp-card {
@@ -128,9 +107,9 @@
   display: inline-flex; align-items: center; gap: 4px;
   padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
 }
-.mp-badge-success { background: rgba(34,197,94,0.12); color: #16a34a; }
-.mp-badge-danger  { background: rgba(239,68,68,0.12); color: #dc2626; }
-.mp-badge-warning { background: rgba(245,158,11,0.12); color: #d97706; }
+.mp-badge-success { background: rgba(34,197,94,0.12); color: var(--success); }
+.mp-badge-danger  { background: rgba(239,68,68,0.12); color: var(--danger); }
+.mp-badge-warning { background: rgba(245,158,11,0.12); color: var(--warning); }
 .mp-list-row {
   display: flex; align-items: center; padding: 10px 14px;
   border-bottom: 1px solid var(--border-light); transition: background 0.2s;
@@ -308,18 +287,18 @@ h4 {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--button-primary-shadow);
 }
 
 .p-button.p-button-primary:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  box-shadow: var(--button-primary-shadow);
 }
 
 .p-button.p-button-primary:active {
   transform: translateY(1px);
-  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.25);
+  box-shadow: var(--button-primary-shadow);
 }
 
 .p-button.p-button-success {

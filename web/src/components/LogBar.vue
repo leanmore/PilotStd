@@ -154,6 +154,7 @@ watch(() => route?.path, () => {
 </template>
 
 <style scoped>
+/* intentionally hardcoded terminal style — not theme-aware */
 .log-bar {
   background: #1a1a2e;
   border: 1px solid #333;

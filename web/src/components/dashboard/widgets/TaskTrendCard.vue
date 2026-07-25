@@ -6,6 +6,7 @@ import { getStats } from '@/api'
 const stats = ref({ current: 0, expired: 0, pending: 0, upcoming: 0 })
 const total = computed(() => stats.value.current + stats.value.expired + stats.value.pending + stats.value.upcoming)
 
+/* semantic color — consistent across all themes */
 const statusList = computed(() => [
   { label: '现行', value: stats.value.current, color: '#22c55e' },
   { label: '废止', value: stats.value.expired, color: '#ef4444' },

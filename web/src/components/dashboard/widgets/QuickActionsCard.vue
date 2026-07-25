@@ -10,10 +10,10 @@ const scanMsg = ref('')
 const scanErr = ref(false)
 
 const actions = [
-  { label: '任务流水线', iconClass: 'pi pi-play', color: '#6366f1', to: '/task' },
-  { label: '文件管理', iconClass: 'pi pi-folder', color: '#f59e0b', to: '/organize' },
-  { label: '待确认清单', iconClass: 'pi pi-hourglass', color: '#3b82f6', to: '/pending' },
-  { label: '公告检查', iconClass: 'pi pi-megaphone', color: '#10b981', to: '/announce' },
+  { label: '任务流水线', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task' },
+  { label: '文件管理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize' },
+  { label: '待确认清单', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending' },
+  { label: '公告检查', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce' },
 ]
 
 async function scanAndIndex() {
