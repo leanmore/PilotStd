@@ -30,6 +30,7 @@ describe('AdapterStatusQueryCard 名称映射', () => {
       data: {
         adapters: [{
           name: 'hbba',
+          display_name: '行业标准',
           status: 'normal',
           frozen_until: null,
           remaining_seconds: 0,
@@ -50,6 +51,7 @@ describe('AdapterStatusQueryCard 名称映射', () => {
       data: {
         adapters: [{
           name: 'csres',
+          display_name: '工标网',
           status: 'normal',
           frozen_until: null,
           remaining_seconds: 0,

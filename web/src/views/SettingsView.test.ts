@@ -87,7 +87,7 @@ describe('SettingsView', () => {
   it('renders tab bar with all expected tabs', () => {
     const wrapper = mountComponent()
     const tabs = wrapper.findAll('.tab-bar button')
-    expect(tabs.length).toBe(14)
+    expect(tabs.length).toBe(13)
   })
 
   it('defaults active tab to storage', () => {
@@ -99,9 +99,9 @@ describe('SettingsView', () => {
 
   it('has valid tabComponentMap with all 13 entries', () => {
     const wrapper = mountComponent()
-    // 动态组件映射完整性 — 14 个 Tab 按钮 = 14 个组件映射
+    // 动态组件映射完整性 — 13 个 Tab 按钮 = 13 个组件映射
     const tabs = wrapper.findAll('.tab-bar button')
-    expect(tabs.length).toBe(14)
+    expect(tabs.length).toBe(13)
     // 每个 Tab 按钮的 key 与 tabComponentMap 键对应
     const labels = tabs.map(btn => btn.text())
     expect(labels).toContain('存储')
