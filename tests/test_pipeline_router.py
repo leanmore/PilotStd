@@ -1,6 +1,7 @@
 """路由调度器测试 — 按状态标记分堆，冷启动/热启动兼容。规格 v1.0。"""
 
 import os
+from pathlib import PurePosixPath
 
 import pytest
 
@@ -77,7 +78,7 @@ class TestPipelineRouter:
         """查询后现行→归档（文件名已符合规范格式）"""
         monkeypatch.setattr(os.path, "exists", lambda _: True)
         items = [make_parsed(effect_status="现行")]
-        items[0].source_path = "C:\\test\\GB 19001-2020 测试标准.pdf"
+        items[0].source_path = str(PurePosixPath("/test/GB 19001-2020 测试标准.pdf"))
         result = router.classify_after_query(items)
         assert result["organize"] == items
         assert result["normalize"] == []
@@ -130,7 +131,7 @@ class TestPipelineRouter:
         """混合状态：各归各堆"""
         monkeypatch.setattr(os.path, "exists", lambda _: True)
         current = make_parsed(effect_status="现行")
-        current.source_path = "C:\\test\\GB 19001-2020 测试标准.pdf"
+        current.source_path = str(PurePosixPath("/test/GB 19001-2020 测试标准.pdf"))
         expired = make_parsed(effect_status="废止")
         pending = make_parsed(effect_status="待确认")
         nf = make_parsed(effect_status="")  # 空状态 → pending（与 manager 统一）
@@ -145,7 +146,7 @@ class TestPipelineRouter:
         """apply_actions 分类并设置 next_action"""
         monkeypatch.setattr(os.path, "exists", lambda _: True)
         current = make_parsed(effect_status="现行")
-        current.source_path = "C:\\test\\GB 19001-2020 测试标准.pdf"
+        current.source_path = str(PurePosixPath("/test/GB 19001-2020 测试标准.pdf"))
         expired = make_parsed(effect_status="废止")
         pending = make_parsed(effect_status="待确认")
         nf = make_parsed(effect_status="")  # 空状态 → pending（与 manager 统一）
