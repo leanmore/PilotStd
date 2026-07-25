@@ -111,7 +111,7 @@ async function fetchLayout() {
   if (fetchVersion !== version) return  // 竞态：已过期
 
   // 3. 无数据 → 默认布局
-  if (!layout.value.length) resetLayout()
+  resetLayout()
 }
 
 async function saveLayoutToServer(newLayout?: any[]) {

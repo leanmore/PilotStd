@@ -711,12 +711,12 @@ class TestCleanAnnouncementContent(unittest.TestCase):
         self.assertIn("国家市场监督管理总局", result)
         self.assertIn("国家标准化管理委员会", result)
         self.assertIn("2026-07-02", result)
-        self.assertIn("<p>", result)
+        self.assertIn('<p class="announce-body">', result)
 
     def test_gb_date_split(self):
         """国标公告：落款日期拆分为独立右对齐行。"""
         result = clean_announcement_content(GB_CONTENT_SAMPLE)
-        self.assertIn('style="text-align:right"', result)
+        self.assertIn('<p class="announce-date">', result)
         self.assertIn("2026-07-02", result)
 
     def test_hb_monthly_preserves_abolition(self):
@@ -750,7 +750,7 @@ class TestCleanAnnouncementContent(unittest.TestCase):
         text = "这是一段普通的公告正文，没有任何表格数据。"
         result = clean_announcement_content(text)
         self.assertIn("没有任何表格数据", result)
-        self.assertIn("<p>", result)
+        self.assertIn('<p class="announce-body">', result)
 
     def test_paragraph_wrapping(self):
         """多段落文本正确包裹 p 标签。"""

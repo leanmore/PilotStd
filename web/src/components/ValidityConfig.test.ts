@@ -43,7 +43,7 @@ describe('ValidityConfig', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.html()).toContain('检查策略')
-    expect(wrapper.html()).toContain('检查频率')
+    // #17 移除检查频率字段
     expect(wrapper.html()).toContain('执行时间')
     expect(wrapper.html()).toContain('单批大小')
   })
