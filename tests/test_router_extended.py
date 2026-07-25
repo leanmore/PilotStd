@@ -86,7 +86,7 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
     def test_gb_repealed_no_replaces(self):
         p = _p("GB", 12345, 1990, "废止", "exact", found_replaces="")
         b = self._buckets([p])
-        self.assertEqual(len(b["expire"]), 1)
+        self.assertEqual(len(b["organize"]), 1)
 
     def test_gb_pending_goes_to_pending(self):
         p = _p("GB", 99999, 2099, "待确认", "related")
@@ -161,7 +161,7 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
 
     def test_empty_items(self):
         b = self._buckets([])
-        for k in ("organize", "normalize", "expire", "download", "manual_download", "pending"):
+        for k in ("organize", "normalize", "download", "manual_download", "pending"):
             self.assertEqual(len(b.get(k, [])), 0)
 
     def test_即将实施_goes_to_fallback(self):
@@ -185,7 +185,7 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
         self.assertEqual(total, 6, "6条标准应全部分配")
         self.assertEqual(len(b["download"]), 1)  # GB newer → download
         self.assertEqual(len(b["pending"]), 1)  # DIN
-        self.assertEqual(len(b["expire"]), 1)  # GB 废止
+        self.assertEqual(len(b["organize"]), 1)  # GB 废止
         self.assertGreaterEqual(len(b["normalize"]), 1)  # 现行 exact → normalize
 
 
@@ -209,7 +209,7 @@ class TestRouterApplyActions(unittest.TestCase):
         actions = {p.next_action for p in items}
         self.assertIn("normalize", actions)  # GB/T exact 现行 → normalize
         self.assertIn("not_found", actions)  # 即将实施 → not_found（经fallback桶）
-        self.assertIn("expire", actions)  # GB/T newer + 新版已本地存在 → expire
+        self.assertIn("archive", actions)  # GB/T newer + 新版已本地存在 → archive
 
 
 if __name__ == "__main__":

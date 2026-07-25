@@ -251,13 +251,12 @@ class TestDownloadHandler(unittest.TestCase):
         h = DownloadHandler(self.core)
         self.assertEqual(h._core, self.core)
 
-    def test_set_organize_handler(self):
+    def test_set_organize_handler_removed(self):
+        """_set_organize_handler 已随 expire→archive 重命名而移除"""
         from pilotstd.manager.facade._download import DownloadHandler
 
         h = DownloadHandler(self.core)
-        mock_org = MagicMock()
-        h._set_organize_handler(mock_org)
-        self.assertEqual(h._organize_handler, mock_org)
+        self.assertFalse(hasattr(h, "_set_organize_handler"), "_set_organize_handler 方法已移除，不应存在")
 
     def test_handle_expired_if_needed_noop(self):
         """Q26: _handle_expired_if_needed 已改为空操作。"""

@@ -1061,7 +1061,7 @@ class TestMigrationRegistration(unittest.TestCase):
         """验证 MIGRATIONS 字典各版本号无缺口。"""
         versions = sorted(MIGRATIONS.keys())
         self.assertEqual(versions[0], 2, "第一个迁移版本应为 v2")
-        self.assertEqual(versions[-1], 40, "最后一个迁移版本应为 v40")
+        self.assertEqual(versions[-1], 42, "最后一个迁移版本应为 v42")
         for i, v in enumerate(versions):
             expected = i + 2
             self.assertEqual(v, expected, f"MIGRATIONS 版本号不连续: 期望 {expected}, 实际 {v}")

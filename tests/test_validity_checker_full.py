@@ -172,14 +172,14 @@ class TestUpdateStatus(unittest.TestCase):
         self.assertIn("UPDATE", sql_text)
         self.assertIn("last_changed_at", sql_text)
 
-        # 验证通知发送，is_expired=True
-        notif_mgr.send_event.assert_called_once()
-        args = notif_mgr.send_event.call_args[0]
-        self.assertEqual(args[0], "standard_status_changed")
-        self.assertEqual(args[1]["standard_number"], "GB/T 12345")
-        self.assertEqual(args[1]["old_status"], "现行")
-        self.assertEqual(args[1]["new_status"], "已废止")
-        self.assertTrue(args[1]["is_expired"])
+        # 验证通知发送，is_expired=True → standard_status_changed + standard_expired 共 2 次
+        self.assertEqual(notif_mgr.send_event.call_count, 2)
+        first_call_args = notif_mgr.send_event.call_args_list[0][0]
+        self.assertEqual(first_call_args[0], "standard_status_changed")
+        self.assertEqual(first_call_args[1]["standard_number"], "GB/T 12345")
+        self.assertEqual(first_call_args[1]["old_status"], "现行")
+        self.assertEqual(first_call_args[1]["new_status"], "已废止")
+        self.assertTrue(first_call_args[1]["is_expired"])
 
     @patch("pilotstd.core.config.ConfigManager")
     def test_status_unchanged(self, mock_cm_cls):

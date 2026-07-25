@@ -495,13 +495,13 @@ class TestRouting(unittest.TestCase):
         self.assertEqual(classify_std_code("T/ZZZ"), "group")
 
     def test_group_std_has_route(self):
-        """ADAPTER_TYPE_MAP 应有 group 条目，路由主站 ahbz"""
+        """ADAPTER_TYPE_MAP 应有 group 条目，路由主站 ttbz"""
         from pilotstd.query.search_strategy import ADAPTER_TYPE_MAP
 
         group_route = ADAPTER_TYPE_MAP.get("group")
         self.assertIsNotNone(group_route, "ADAPTER_TYPE_MAP 中应有 group 条目")
-        self.assertEqual(group_route.get("primary"), "ahbz")
-        self.assertEqual(group_route.get("fallback"), "njbz365")
+        self.assertEqual(group_route.get("primary"), "ttbz")
+        self.assertEqual(group_route.get("fallback"), "ahbz")
 
     def test_group_std_routing_chain(self):
         """团体标准 T/CSAE _resolve_base_route 返回非空链，包含 ahbz"""

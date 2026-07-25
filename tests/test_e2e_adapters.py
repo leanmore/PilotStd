@@ -28,7 +28,7 @@ class TestE2EStdGov(unittest.TestCase):
         self.a = StdGovAdapter()
 
     @unittest.skipIf(_CI, "CI 环境跳过网络依赖测试")
-    @unittest.skip("外部 API 依赖 — CI 中跳过")
+    @unittest.skip("外部 API 行为不稳定，std_gov 搜索结果可能变更")
     def test_gb_exact_match(self):
         """GB/T 19001-2016 应返回 exact"""
         r = self.a.query_with_strategy("GB/T", 19001, 2016)
@@ -260,12 +260,18 @@ class TestE2EAhbz(unittest.TestCase):
 class TestAllSitesCooled(unittest.TestCase):
     """异常韧性——全部站点冷却后查询不崩溃，返回明确错误（第三维度）"""
 
+    def setUp(self):
+        from pilotstd.manager.facade import StandardManager
+        from pilotstd.query.rotator import SiteRotator
+
+        self.mgr = StandardManager()
+        if not getattr(self.mgr.query_engine, "_rotator", None):
+            self.mgr.query_engine._core.rotator = SiteRotator()
+
     def test_all_sites_cooled_returns_graceful(self):
         """模拟全部站点冷却，查询应不崩溃并返回错误信息。"""
-        from pilotstd.manager.facade import StandardManager
-
-        mgr = StandardManager()
-        rotator = getattr(mgr.query_engine, "_rotator", None)
+        mgr = self.mgr
+        rotator = mgr.query_engine.rotator
         if not rotator:
             self.skipTest("轮转器未初始化")
 

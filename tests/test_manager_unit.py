@@ -139,12 +139,11 @@ class TestQueryClassifier(unittest.TestCase):
         self.assertIn(p, download)
 
     def test_gb_repealed_no_replaces_goes_to_expire(self):
-        """GB 废止 + 无替代 → expire"""
+        """GB 废止 + 无替代 → archive（过期作废走 organize 桶，next_action=archive）"""
         p = _make_parsed("GB", 12345, 1990, "旧标准")
         r = _make_result("GB 12345-1990", "旧标准", status="废止", replaces="")
         download, expire, pending = self._classify([p], [r])
-        self.assertEqual(p.next_action, "expire")
-        self.assertIn(p, expire)
+        self.assertEqual(p.next_action, "archive")
 
     # ── 非 GB 标准 — 不路由到 download ───────────────────
 
@@ -216,8 +215,8 @@ class TestQueryClassifier(unittest.TestCase):
         r_old = _make_result("GB/T 19001-2020", "质量管理体系", match_status="newer")
         r_new = _make_result("GB/T 19001-2020", "质量管理体系", match_status="exact")
         download, expire, pending = self._classify([p_old, p_new], [r_old, r_new])
-        # p_old: newer + 新版已本地存在 → expire
-        self.assertEqual(p_old.next_action, "expire")
+        # p_old: newer + 新版已本地存在 → archive（走 organize 桶）
+        self.assertEqual(p_old.next_action, "archive")
         # p_new: exact → archive
         self.assertEqual(p_new.next_action, "archive")
         self.assertEqual(len(download), 0)

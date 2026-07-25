@@ -146,6 +146,7 @@ class ResultBuilder:
             return None
 
         # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
+        # NOTE: debug format string has 10 placeholders — keep args in sync
         logger.debug(
             "[TRACE-A] 解析信息: 代号=%s 编号=%d 年份=%d 部分号=%s "
             "标准名称=%r 源名称=%r 编号前缀=%r 编号后缀=%r 扩展名=%r 原始编号=%r",
@@ -158,6 +159,7 @@ class ResultBuilder:
             num_prefix,
             num_suffix,
             file_kind,
+            raw_number,
         )
 
         return ParsedStdInfo(

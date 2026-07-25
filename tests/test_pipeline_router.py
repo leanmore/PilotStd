@@ -41,7 +41,6 @@ def make_parsed(
     return p
 
 
-@pytest.mark.xfail(_CI, reason="CI 环境 Pipeline Router 断言问题待排查", strict=False)
 class TestPipelineRouter:
     @pytest.fixture
     def router(self):
@@ -82,7 +81,6 @@ class TestPipelineRouter:
         result = router.classify_after_query(items)
         assert result["organize"] == items
         assert result["normalize"] == []
-        assert result["expire"] == []
         assert result["download"] == []
 
     def test_after_query_current_nonmatching_goes_to_normalize(self, router):
@@ -98,8 +96,7 @@ class TestPipelineRouter:
         expired = make_parsed(effect_status="废止")
         abolished = make_parsed(effect_status="作废")
         result = router.classify_after_query([expired, abolished])
-        assert result["expire"] == [expired, abolished]
-        assert result["organize"] == []
+        assert result["organize"] == [expired, abolished]
 
     def test_after_query_has_new_version_goes_to_download(self, router):
         """查询后有替代标准→下载新版"""
@@ -113,7 +110,7 @@ class TestPipelineRouter:
         non_gb = make_parsed(code="HG", effect_status="被代替", found_replaces="HG/T 1234-2026")
         result = router.classify_after_query([non_gb])
         assert result["manual_download"] == [non_gb]
-        assert result["expire"] == []
+        assert result["organize"] == []
         assert result["download"] == []
 
     def test_after_query_gb_with_replaces_goes_to_download(self, router):
@@ -121,7 +118,7 @@ class TestPipelineRouter:
         gb_replaced = make_parsed(code="GB/T", effect_status="被代替", found_replaces="GB/T 19001-2026")
         result = router.classify_after_query([gb_replaced])
         assert result["download"] == [gb_replaced]
-        assert result["expire"] == []
+        assert result["organize"] == []
 
     def test_after_query_not_found_goes_to_fallback(self, router):
         """查询后仍未查到→兜底镜像"""
@@ -138,8 +135,7 @@ class TestPipelineRouter:
         pending = make_parsed(effect_status="待确认")
         nf = make_parsed(effect_status="")  # 空状态 → pending（与 manager 统一）
         result = router.classify_after_query([current, expired, pending, nf])
-        assert result["organize"] == [current]
-        assert result["expire"] == [expired]
+        assert result["organize"] == [current, expired]
         assert result["pending"] == [pending, nf]
         assert result["fallback"] == []
 
@@ -156,11 +152,10 @@ class TestPipelineRouter:
         items = [current, expired, pending, nf]
         buckets = router.apply_actions(items)
         assert current.next_action == "archive"
-        assert expired.next_action == "expire"
+        assert expired.next_action == "archive"
         assert pending.next_action == "pending"
         assert nf.next_action == "pending"
-        assert buckets["organize"] == [current]
-        assert buckets["expire"] == [expired]
+        assert buckets["organize"] == [current, expired]
         assert buckets["pending"] == [pending, nf]
         assert buckets["fallback"] == []
 
@@ -198,7 +193,7 @@ class TestPipelineRouter:
         )
         result = router.classify_after_query([item])
         assert result["download"] == [item]
-        assert result["expire"] == []
+        assert result["organize"] == []
 
     def test_match_status_newer_non_gb_not_download(self, router):
         """match_status="newer" + 非GB → normalize（规则1限GB，继续走到规则8现行）"""
@@ -231,7 +226,7 @@ class TestPipelineRouter:
         )
         result = router.classify_after_query([old, newer])
         assert result["download"] == []
-        assert result["expire"] == [old]
+        assert result["organize"] == [old]
 
     def test_newer_exists_locally_same_code_diff_part(self, router):
         """同代号同序号但不同部分号 newer → expire（部分号不同也被 newer_exists_locally 视为不同版本）"""
@@ -254,7 +249,7 @@ class TestPipelineRouter:
         result = router.classify_after_query([old, newer])
         # 部分号不同 → newer_exists_locally 找不到匹配 → download
         assert result["download"] == [old]
-        assert result["expire"] == []
+        assert result["organize"] == []
 
     def test_newer_exists_locally_with_part_match(self, router):
         """同代号同序号同部分号 newer → expire（新版已本地存在）"""
@@ -276,7 +271,7 @@ class TestPipelineRouter:
         newer.part = 3
         result = router.classify_after_query([old, newer])
         assert result["download"] == []
-        assert result["expire"] == [old]
+        assert result["organize"] == [old]
 
     def test_newer_exists_locally_is_static(self):
         """_newer_exists_locally 静态方法可直接调用"""

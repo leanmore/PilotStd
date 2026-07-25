@@ -392,7 +392,12 @@ class TestQueryHandler(unittest.TestCase):
         results = [QueryResult(standard_number="a", standard_name="x")]
         self.handler._classify_after_query(items, results)
         self.core.classifier.classify.assert_called_once_with(
-            results, items, self.core.download_list, self.core.expire_list, self.core.pending_list
+            results,
+            items,
+            self.core.download_list,
+            self.core.expire_list,
+            self.core.pending_list,
+            notification_mgr=self.core.notification_mgr,
         )
 
     # ── _resolve_replaces ──

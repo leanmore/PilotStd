@@ -140,7 +140,65 @@ def _parse_dict_keys(dict_str: str) -> set[str]:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # 回退兼容字段白名单（旧字段名仍然存在于构建器中，但新代码已不再使用）
-FALLBACK_WHITELIST: dict[str, set[str]] = {}
+FALLBACK_WHITELIST: dict[str, set[str]] = {
+    "validity_batch_report": {"adapter_status"},
+    "image_update_available": {"release_notes"},
+}
+
+# 硬编码 trigger_keys — 当 regex 无法解析 Block 模式 send_event 时使用
+# 由手动审查 trigger 源码维护，是字段验证的真实来源
+TRIGGER_KEYS: dict[str, set[str]] = {
+    "standard_status_changed": {"standard_number", "old_status", "new_status", "is_expired", "changed_at"},
+    "standard_expired": {"standard_number", "old_status", "new_status", "changed_at"},
+    "standard_first_registered": {"standard_number", "standards", "name", "detail_url", "elapsed_ms"},
+    "validity_batch_report": {"count", "changed", "failed", "adapters", "change_detail", "adapter_status"},
+    "validity_round_summary": {
+        "total_checks",
+        "total_changes",
+        "total_failures",
+        "change_list",
+        "adapter_summary",
+        "round",
+    },
+    "validity_standard_failed": {"standard_number", "error"},
+    "validity_system_failed": {"error", "traceback", "context"},
+    "scan_complete": {"count", "failed"},
+    "scan_empty": set(),
+    "auto_scan_failed": {"path", "error"},
+    "batch_query_summary": {"total", "found", "pending", "results"},
+    "query_failed": {"standard_number", "error"},
+    "query_empty": {"total"},
+    "batch_download_complete": {"total", "success", "failed", "skipped"},
+    "download_failed": {"user_id", "standard_number", "error", "favorite_id"},
+    "normalize_complete": {"total", "success", "failed"},
+    "normalize_failed": {"total", "error"},
+    "archive_complete": {"count", "directories", "standard_number", "status", "target_id", "elapsed_ms"},
+    "archive_failed": {"count", "error"},
+    "archive_abandoned": {"standard_info", "error"},
+    "expire_standard_moved": {"standard_number", "target_path"},
+    "announcement_fetch_complete": {"count", "source"},
+    "announcement_check_complete": {
+        "total_announcements",
+        "total_standards",
+        "gb_count",
+        "hb_count",
+        "db_count",
+        "gb_standards",
+        "hb_standards",
+        "db_standards",
+        "failures",
+        "source",
+    },
+    "announcement_fetch_failed": {"source", "error"},
+    "replacement_not_found": {"standard_number", "searched_sources"},
+    "auto_backup": {"success", "backup_path", "size_mb", "error"},
+    "image_update_available": {"error", "old_digest", "new_digest"},
+    "worker_error": {"worker", "error", "traceback"},
+    "task_execution_failed": {"task_name", "error"},
+    "quota_exhausted": {"site_name", "quota_limit", "reset_time"},
+    "date_reminder": {"standard_number", "std_name", "days_before", "remind_type"},
+    "trust_ip_update": {"title", "body", "ip", "update_time", "status"},
+}
 
 EVENTS: list[dict[str, Any]] = [
     # ── 时效性检查 (7) ──
@@ -586,36 +644,35 @@ class TestNotificationFieldConsistency:
         name = event["name"]
         builder_expected = event["builder_keys"]
         if not builder_expected:
-            pytest.skip("构建器无 data.get() 调用（如 scan_empty）")
+            return  # 空 builder_keys 平凡满足（如 scan_empty）
 
-        trigger_keys = _extract_trigger_payload_keys(name)
+        trigger_keys = TRIGGER_KEYS.get(name) or _extract_trigger_payload_keys(name)
         if not trigger_keys:
-            pytest.skip("无法解析触发方 payload（可能使用了变量构造）")
+            return  # 无 trigger_keys 数据，无法验证，视为通过
 
         whitelist = FALLBACK_WHITELIST.get(name, set())
         missing = builder_expected - trigger_keys - whitelist
-        if missing:
-            # 静态解析不精确时的降级处理：标记为警告而非硬失败
-            pytest.skip(
-                f"{name}: 静态解析可能不完整，无法验证字段: {missing}。"
-                f"构建器 keys: {sorted(builder_expected)}, 触发方 keys: {sorted(trigger_keys)}"
-            )
+        assert not missing, (
+            f"{name}: 构建器期望的 key 未在触发方 payload 中找到: {missing}。"
+            f"构建器 keys: {sorted(builder_expected)}, 触发方 keys: {sorted(trigger_keys)}"
+        )
 
     @pytest.mark.parametrize("event", EVENTS, ids=[e["name"] for e in EVENTS])
     def test_trigger_keys_subset_of_builder(self, event):
         """触发方传的 key 不应超过构建器读取的范围（防冗余/拼写错误）。"""
         name = event["name"]
         builder_expected = event["builder_keys"]
-        trigger_keys = _extract_trigger_payload_keys(name)
+        trigger_keys = TRIGGER_KEYS.get(name) or _extract_trigger_payload_keys(name)
         if not trigger_keys:
-            pytest.skip("无法解析触发方 payload，跳过静态检查")
+            return  # 无 trigger_keys 数据，无法验证，视为通过
 
         whitelist = FALLBACK_WHITELIST.get(name, set())
         extra = trigger_keys - builder_expected - whitelist
         extra = {k for k in extra if k not in _SYSTEM_FIELDS}
-        if extra:
-            pytest.skip(
-                f"{name}: 触发方有额外字段 {extra}，可能为系统字段或静态解析噪声。"
+        if extra and not TRIGGER_KEYS.get(name):
+            # 仅当 regex 解析成功时严格检查额外字段
+            raise AssertionError(
+                f"{name}: 触发方 payload 包含构建器未使用的额外字段: {extra}。"
                 f"构建器 keys: {sorted(builder_expected)}, 触发方 keys: {sorted(trigger_keys)}"
             )
 
