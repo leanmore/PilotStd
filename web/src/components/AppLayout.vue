@@ -5,11 +5,12 @@
  * 职责：响应式断点检测、侧边栏折叠状态管理、子组件编排。
  * Header / Sidebar 已拆分为独立组件。
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
+import { useDashboard } from '@/composables/useDashboard'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
@@ -26,11 +27,12 @@ const navItems = [
   { label: t('nav.task'), icon: 'pi pi-play', to: '/task' },
   { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
   { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
+  // #36 导入下载移至待确认下方
+  { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
   { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
   { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
   { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
   { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
-  { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
 ]
 
 // ── 响应式断点 ──
@@ -40,8 +42,6 @@ const isMobile = ref(window.innerWidth < 768)
 
 // 侧边栏折叠 - 从偏好恢复，平板/移动端默认折叠
 const sidebarCollapsed = ref(!isDesktop.value)
-// 顶部栏折叠 - 从偏好恢复
-const headerCollapsed = ref(false)
 
 async function loadSidebarState() {
   try {
@@ -49,8 +49,6 @@ async function loadSidebarState() {
     const all = await prefs.getAll()
     const saved = all.sidebar_collapsed
     if (typeof saved === 'boolean') sidebarCollapsed.value = saved
-    const savedHeader = all.header_collapsed
-    if (typeof savedHeader === 'boolean') headerCollapsed.value = savedHeader
   } catch { /* 未登录时使用默认值 */ }
 }
 
@@ -78,12 +76,55 @@ function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
   usePreferencesStore().set('sidebar_collapsed', sidebarCollapsed.value).catch(() => {})
 }
-function toggleHeader() {
-  headerCollapsed.value = !headerCollapsed.value
-  usePreferencesStore().set('header_collapsed', headerCollapsed.value).catch(() => {})
-}
 function toggleTheme() { store.theme = isDark.value ? 'light' : 'dark' }
 function logout() { router.push('/login') }
+
+// ── 悬浮工作台按钮（统一入口，路由动态切换）──
+const { availableCards, isLocked, addCard, toggleLayoutLock, resetLayout } = useDashboard()
+const menuOpen = ref(false)
+const triggerBtnId = 'workspace-menu-trigger'
+const dropdownId = 'workspace-dropdown'
+const isHomeRoute = computed(() => route.path === '/')
+const isAnnounceDetail = computed(() => !!(route.params.source && route.params.announceNo))
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+  if (menuOpen.value) {
+    // 展开后将焦点移至菜单首项
+    requestAnimationFrame(() => {
+      const first = document.getElementById(dropdownId)?.querySelector<HTMLElement>('[role="menuitem"]')
+      first?.focus()
+    })
+  }
+}
+
+function closeMenu() {
+  menuOpen.value = false
+  // 焦点归还触发按钮
+  document.getElementById(triggerBtnId)?.focus()
+}
+
+function onClickOutside(e: MouseEvent) {
+  const menu = document.querySelector('.floating-workspace-menu')
+  if (menu && !menu.contains(e.target as Node)) closeMenu()
+}
+
+function onMenuKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') { e.preventDefault(); closeMenu(); return }
+  if (e.key === 'Tab') {
+    const items = document.getElementById(dropdownId)?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
+    if (!items || items.length === 0) return
+    const first = items[0]; const last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+}
+
+// 增强 #1：路由切换自动关闭菜单
+watch(() => route.path, () => closeMenu())
+
+onMounted(() => document.addEventListener('click', onClickOutside))
+onUnmounted(() => document.removeEventListener('click', onClickOutside))
 </script>
 
 <template>
@@ -92,12 +133,10 @@ function logout() { router.push('/login') }
     <AppHeader
       :is-mobile="isMobile"
       :sidebar-collapsed="sidebarCollapsed"
-      :header-collapsed="headerCollapsed"
       :page-title="pageTitle"
       :is-dark="isDark"
       :username="store.username"
       @toggle-sidebar="toggleSidebar"
-      @toggle-header="toggleHeader"
       @toggle-theme="toggleTheme"
       @logout="logout"
     />
@@ -134,16 +173,81 @@ function logout() { router.push('/login') }
       </router-link>
     </nav>
 
-    <!-- ═══ Q2: 悬浮工作台按钮（桌面端右下角） ═══ -->
-    <button
-      v-if="!isMobile"
-      class="floating-workspace-btn"
-      @click="$router.push('/')"
-      aria-label="工作台"
-      title="工作台"
-    >
-      <i class="pi pi-home" />
-    </button>
+    <!-- ═══ 全局悬浮按钮（桌面端右下角，路由动态切换） ═══ -->
+    <div v-if="!isMobile" class="floating-workspace-menu" :class="{ open: menuOpen }">
+
+      <!-- 模式1：公告详情页 — 返回列表 -->
+      <button
+        v-if="isAnnounceDetail"
+        class="floating-workspace-btn"
+        @click="router.back()"
+        aria-label="返回列表"
+      >
+        <i class="pi pi-reply" />
+      </button>
+
+      <!-- 模式2：首页 — 展开菜单 -->
+      <template v-else-if="isHomeRoute">
+        <button
+          :id="triggerBtnId"
+          class="floating-workspace-btn"
+          @click.stop="toggleMenu"
+          aria-label="工作台菜单"
+          aria-haspopup="true"
+          :aria-expanded="menuOpen"
+          :aria-controls="menuOpen ? dropdownId : undefined"
+        >
+          <i class="pi pi-th-large" />
+        </button>
+        <Transition name="menu-fade">
+          <div
+            v-show="menuOpen"
+            :id="dropdownId"
+            class="workspace-dropdown"
+            role="menu"
+            :aria-labelledby="triggerBtnId"
+            @click.stop
+            @keydown="onMenuKeydown"
+          >
+            <!-- ① 添加卡片 -->
+            <button v-for="card in availableCards" :key="card.key"
+                    role="menuitem" class="menu-item" tabindex="0"
+                    @click="addCard(card.key); closeMenu()">
+              <i class="pi pi-plus" /><span>添加 {{ card.label }}</span>
+            </button>
+            <div v-if="availableCards.length === 0"
+                 class="menu-item disabled" role="menuitem" aria-disabled="true">
+              <span>所有卡片已添加</span>
+            </div>
+            <div class="menu-divider" role="separator" />
+            <!-- ② 锁定/解锁布局 -->
+            <button role="menuitem" class="menu-item" tabindex="0"
+                    @click="toggleLayoutLock(); closeMenu()">
+              <i :class="isLocked ? 'pi pi-lock-open' : 'pi pi-lock'" />
+              <span>{{ isLocked ? '解锁布局' : '锁定布局' }}</span>
+            </button>
+            <div class="menu-divider" role="separator" />
+            <!-- ③ 重置布局 -->
+            <button role="menuitem" class="menu-item" tabindex="0"
+                    @click="resetLayout(); closeMenu()">
+              <i class="pi pi-refresh" />
+              <span>重置布局</span>
+            </button>
+          </div>
+        </Transition>
+      </template>
+
+      <!-- 模式3：其他页面 — 返回工作台 -->
+      <button
+        v-else
+        class="floating-workspace-btn"
+        @click="router.push('/')"
+        aria-label="返回工作台"
+      >
+        <i class="pi pi-home" />
+      </button>
+
+    </div>
   </div>
 </template>
 
@@ -210,8 +314,9 @@ function logout() { router.push('/login') }
   box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06);
   z-index: 100;
 }
-/* 暗色主题下的毛玻璃 */
-:root[data-theme="dark"] .bottom-nav {
+/* 暗色主题下的毛玻璃（dark + blue） */
+:root[data-theme="dark"] .bottom-nav,
+:root[data-theme="blue"] .bottom-nav {
   background: rgba(15, 23, 42, 0.9);
   border-top-color: rgba(51, 65, 85, 0.5);
 }
@@ -292,15 +397,18 @@ function logout() { router.push('/login') }
 }
 
 /* ═══════════════════════════════════════════
-   Q2: 悬浮工作台按钮
+   全局悬浮按钮（桌面端右下角，路由动态切换）
    ═══════════════════════════════════════════ */
-.floating-workspace-btn {
+.floating-workspace-menu {
   position: fixed;
-  bottom: 40px;
-  right: 40px;
+  bottom: 32px;
+  right: 24px;
   z-index: 1000;
-  width: 48px;
-  height: 48px;
+}
+
+.floating-workspace-btn {
+  width: 56px;
+  height: 56px;
   border: none;
   border-radius: 50%;
   background: var(--primary);
@@ -309,17 +417,71 @@ function logout() { router.push('/login') }
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .floating-workspace-btn:hover {
   background: var(--primary-hover);
-  transform: scale(1.1);
-  box-shadow: var(--shadow-lg);
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
-.floating-workspace-btn i {
-  line-height: 1;
+.floating-workspace-btn i { line-height: 1; }
+.floating-workspace-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* 下拉菜单面板（向上展开） */
+.workspace-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.menu-item:hover { background: var(--selected); color: var(--text-bright); }
+.menu-item:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.menu-item i { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.menu-item.disabled { color: var(--text-dim); cursor: default; pointer-events: none; }
+.menu-item.disabled:hover { background: none; color: var(--text-dim); }
+
+.menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+/* 菜单过渡动画（向上展开，translateY 取正） */
+.menu-fade-enter-active,
+.menu-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.menu-fade-enter-from,
+.menu-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
 }
 </style>

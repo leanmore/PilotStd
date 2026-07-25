@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * AppHeader — 顶部导航栏
- * 显示侧边栏切换按钮、页面标题、通知铃铛、主题切换、用户信息、退出按钮。
+ * 默认折叠(40px)，悬停展开(60px)，向下滚动超过80px隐藏，向上滚动恢复。
  */
+import { ref, onMounted, onUnmounted } from 'vue'
 import NotificationBell from '@/components/NotificationBell.vue'
 
 defineOptions({ name: 'AppHeader' })
@@ -10,7 +11,6 @@ defineOptions({ name: 'AppHeader' })
 defineProps<{
   isMobile: boolean
   sidebarCollapsed: boolean
-  headerCollapsed: boolean
   pageTitle: string
   isDark: boolean
   username: string
@@ -19,13 +19,40 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-sidebar'): void
   (e: 'toggle-theme'): void
-  (e: 'toggle-header'): void
   (e: 'logout'): void
 }>()
+
+// ── 悬停展开 / 滚动隐藏 ──
+const isHovered = ref(false)
+const isScrollHidden = ref(false)
+let lastScrollY = 0
+
+function onScroll() {
+  const currentScrollY = window.scrollY
+  if (currentScrollY > lastScrollY && currentScrollY > 80) {
+    isScrollHidden.value = true
+  } else {
+    isScrollHidden.value = false
+  }
+  lastScrollY = currentScrollY
+}
+
+onMounted(() => {
+  lastScrollY = window.scrollY
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+})
 </script>
 
 <template>
-  <header class="topbar" :class="{ collapsed: headerCollapsed }">
+  <header
+    class="topbar"
+    :class="{ collapsed: !isHovered, hidden: isScrollHidden }"
+    @mouseenter="isHovered = true"
+    @mouseleave="isHovered = false"
+  >
     <div class="topbar-left">
       <button
         v-if="!isMobile"
@@ -36,9 +63,9 @@ const emit = defineEmits<{
         <i class="pi pi-bars" />
       </button>
       <span class="topbar-brand">PilotStd</span>
-      <span class="topbar-title" v-show="!headerCollapsed">{{ pageTitle }}</span>
+      <span class="topbar-title" v-show="isHovered">{{ pageTitle }}</span>
     </div>
-    <div class="topbar-right" v-show="!headerCollapsed">
+    <div class="topbar-right" v-show="isHovered">
       <!-- 通知铃铛 -->
       <NotificationBell />
       <!-- 主题切换 -->
@@ -60,15 +87,6 @@ const emit = defineEmits<{
         <span class="hide-mobile">退出</span>
       </button>
     </div>
-    <!-- 顶部栏折叠切换 -->
-    <button
-      v-if="!isMobile"
-      class="topbar-btn header-collapse-btn"
-      @click="emit('toggle-header')"
-      :title="headerCollapsed ? '展开顶部栏' : '收起顶部栏'"
-    >
-      <i :class="headerCollapsed ? 'pi pi-chevron-down' : 'pi pi-chevron-up'" />
-    </button>
   </header>
 </template>
 
@@ -93,8 +111,9 @@ const emit = defineEmits<{
   top: 0;
 }
 
-/* 暗色主题下的顶部导航栏 */
-:root[data-theme="dark"] .topbar {
+/* 暗色主题下的顶部导航栏（dark + blue） */
+:root[data-theme="dark"] .topbar,
+:root[data-theme="blue"] .topbar {
   background: rgba(30, 41, 59, 0.85);
 }
 
@@ -212,7 +231,7 @@ const emit = defineEmits<{
   .topbar-btn { padding: 10px 14px; }
 }
 
-/* 顶部栏折叠态：收缩至40px，仅保留 LOGO 和折叠按钮 */
+/* 顶部栏折叠态：默认收缩至40px */
 .topbar.collapsed {
   height: 40px;
   padding: 0 16px;
@@ -220,11 +239,14 @@ const emit = defineEmits<{
 .topbar.collapsed .topbar-brand {
   font-size: 15px;
 }
-.header-collapse-btn {
-  position: absolute;
-  right: 16px;
+
+/* 滚动隐藏：完全滑出视口 */
+.topbar.hidden {
+  transform: translateY(-100%);
 }
+
 .topbar {
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>
