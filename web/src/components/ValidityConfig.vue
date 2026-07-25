@@ -13,7 +13,7 @@ import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHist
 import { getItem, setItem } from '@/lib/storage'
 
 const config = ref<ValidityConfig>({
-  frequency: 'weekly', execute_time: '03:00', batch_size: 50,
+  execute_time: '03:00', batch_size: 50,
   batch_interval: 5, check_ratio: 25, total_weeks: 4,
 })
 const loading = ref(false)
@@ -22,10 +22,6 @@ const running = ref(false)
 const saved = ref(false)
 const runResult = ref('')
 const errMsg = ref('')
-
-const freqOptions = [
-  { label: '每周', value: 'weekly' },
-]
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
@@ -134,10 +130,6 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     <!-- 检查策略 -->
     <div class="section-title">检查策略</div>
     <div class="form-grid">
-      <div class="field">
-        <label>检查频率</label>
-        <Select v-model="config.frequency" :options="freqOptions" optionLabel="label" optionValue="value" />
-      </div>
       <div class="field">
         <label>执行时间</label>
         <InputText v-model="config.execute_time" type="time" />

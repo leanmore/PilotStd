@@ -2,7 +2,6 @@
 import http from './http'
 
 export interface ValidityConfig {
-  frequency: string
   execute_time: string
   batch_size: number
   batch_interval: number
