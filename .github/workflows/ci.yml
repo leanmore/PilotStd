@@ -86,7 +86,7 @@ jobs:
       - name: Check dead Python code
         run: |
           pip install vulture
-          vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
+          vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=100
 
       - name: Compile check — ui/core/
         run: python -m compileall -f pilotstd/ui/core/

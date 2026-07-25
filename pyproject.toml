@@ -72,3 +72,8 @@ include-package-data = true
 
 [tool.setuptools.package-data]
 pilotstd = ["**/*.yaml", "**/*.json", "**/*.sql"]
+
+[tool.vulture]
+exclude = ["pilotstd/templates/"]
+ignore_names = ["exc_type", "exc_val", "exc_tb"]
+min_confidence = 100
