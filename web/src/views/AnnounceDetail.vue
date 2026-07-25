@@ -21,7 +21,6 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
-import { ChevronLeftIcon } from '@primevue/icons'
 import AppCalendar from '@/components/AppCalendar.vue'
 
 const route = useRoute()
@@ -220,7 +219,7 @@ onMounted(loadDetail)
           class="back-btn"
           @click="$router.back()"
         >
-          <template #icon><ChevronLeftIcon /></template>
+          <template #icon><i class="pi pi-chevron-left"></i></template>
         </Button>
       </div>
 
@@ -404,7 +403,7 @@ onMounted(loadDetail)
       aria-label="返回列表页"
       title="返回列表"
     >
-      <ChevronLeftIcon />
+      <i class="pi pi-chevron-left"></i>
     </button>
   </div>
 </template>
