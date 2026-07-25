@@ -140,23 +140,27 @@ const sites = [
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+import { SETTINGS_TAB_KEYS } from './settings/constants'
+
 const activeTab = ref((route.query.tab as string) || 'storage')
 
-const tabs = [
-  { key: 'storage', label: t('settings.tabs.storage') },
-  { key: 'network', label: t('settings.tabs.network') },
-  { key: 'query', label: t('settings.tabs.query') },
-  { key: 'scan', label: t('settings.tabs.scan') },
-  { key: 'tasks', label: t('settings.tabs.tasks') },
-  { key: 'ui', label: t('settings.tabs.ui') },
-  { key: 'ocr', label: t('settings.tabs.ocr') },
-  { key: 'sites', label: t('settings.tabs.sites') },
-  { key: 'users', label: t('settings.tabs.users') },
-  { key: 'token', label: t('settings.tabs.token') },
-  { key: 'notification', label: t('settings.tabs.notification') },
-  { key: 'validity', label: t('settings.tabs.validity') },
-  { key: 'system', label: t('settings.tabs.system') },
-]
+const TAB_LABEL_MAP: Record<string, string> = {
+  storage: t('settings.tabs.storage'),
+  network: t('settings.tabs.network'),
+  query: t('settings.tabs.query'),
+  scan: t('settings.tabs.scan'),
+  tasks: t('settings.tabs.tasks'),
+  ui: t('settings.tabs.ui'),
+  ocr: t('settings.tabs.ocr'),
+  sites: t('settings.tabs.sites'),
+  users: t('settings.tabs.users'),
+  token: t('settings.tabs.token'),
+  notification: t('settings.tabs.notification'),
+  validity: t('settings.tabs.validity'),
+  system: t('settings.tabs.system'),
+}
+
+const tabs = SETTINGS_TAB_KEYS.map(key => ({ key, label: TAB_LABEL_MAP[key] }))
 
   // Schema 驱动 Tab → 通用 SettingsTabSchema 组件
   // 非 Schema Tab → 各自独立组件

@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsView from './SettingsView.vue'
+import { SETTINGS_TAB_KEYS } from './settings/constants'
 import zhCN from '@/locales/zh-CN.json'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
@@ -87,7 +88,7 @@ describe('SettingsView', () => {
   it('renders tab bar with all expected tabs', () => {
     const wrapper = mountComponent()
     const tabs = wrapper.findAll('.tab-bar button')
-    expect(tabs.length).toBe(13)
+    expect(tabs.length).toBe(SETTINGS_TAB_KEYS.length)
   })
 
   it('defaults active tab to storage', () => {
@@ -101,7 +102,7 @@ describe('SettingsView', () => {
     const wrapper = mountComponent()
     // 动态组件映射完整性 — 13 个 Tab 按钮 = 13 个组件映射
     const tabs = wrapper.findAll('.tab-bar button')
-    expect(tabs.length).toBe(13)
+    expect(tabs.length).toBe(SETTINGS_TAB_KEYS.length)
     // 每个 Tab 按钮的 key 与 tabComponentMap 键对应
     const labels = tabs.map(btn => btn.text())
     expect(labels).toContain('存储')
