@@ -34,7 +34,7 @@ class Database:
     def __enter__(self) -> "Database":
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Literal[False]:  # type: ignore[unused-argument]
         self.close_all()
         return False
 
