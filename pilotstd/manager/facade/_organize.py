@@ -199,7 +199,6 @@ class OrganizeHandler:
     def merge_expire_from_source(self, root_dir: str, parsed_list: list[ParsedStdInfo]) -> int:
         """从源目录合并过期标准到「过期作废」目录（委托 OrganizerService）。"""
         return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
-        return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
 
     # organize_files — 接受文件路径列表，解析后走完整 organizer_service 归档
     def organize_files(self, file_paths: list[str]) -> dict[str, Any]:
