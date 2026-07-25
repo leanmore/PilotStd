@@ -1,5 +1,5 @@
 // web/src/composables/useFavorite.ts
-// 收藏状态管理 — 仅处理收藏/取消收藏关系，不触发下载或归档轮询
+// 收藏状态管理 — 二元状态机（已收藏/未收藏），与归档任务彻底解耦
 
 import { ref, type Ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
@@ -9,87 +9,73 @@ import type { AnnouncementRecord } from '@/types/api'
 export function useFavorite(records: Ref<AnnouncementRecord[]>) {
   const toast = useToast()
 
-  const favStatusMap = ref<Record<number, string>>({})
-  const favCooldownMap = ref<Record<number, boolean>>({})
+  // 二元状态：recordId → isFavorited
+  const favMap = ref<Record<number, boolean>>({})
+  // 请求中防抖标记
   const favLoadingMap = ref<Record<number, boolean>>({})
-
-  function favLabel(status: string) {
-    const map: Record<string, string> = {
-      pending: '待归档',
-      downloading: '下载中',
-      archiving: '归档中',
-      already_exists: '已收藏',
-    }
-    const label = map[status]
-    if (!label) {
-      console.warn('[useFavorite] 未映射的收藏状态:', status)
-      return status
-    }
-    return label
-  }
-
-  function favIcon(recordId: number) {
-    const s = favStatusMap.value[recordId]
-    if (s === 'done') return 'pi pi-star-fill'
-    if (s === 'downloading' || s === 'archiving') return 'pi pi-spin pi-spinner'
-    if (s === 'failed' || s === 'abandoned') return 'pi pi-exclamation-triangle'
-    return 'pi pi-star'
-  }
 
   function isFavLoading(recordId: number) {
     return !!favLoadingMap.value[recordId]
   }
 
+  // ── 乐观更新 + 回滚 ──
+
   async function toggleFavorite(record: AnnouncementRecord) {
-    const current = favStatusMap.value[record.id]
-    if (current === 'done') {
+    const id = record.id
+    if (favLoadingMap.value[id]) return  // 防重复提交
+
+    const wasFavorited = !!favMap.value[id]
+    favLoadingMap.value[id] = true
+
+    if (wasFavorited) {
+      // ── 取消收藏（乐观）──
+      favMap.value[id] = false
       try {
-        await removeFavorite(record.id)
-        delete favStatusMap.value[record.id]
+        await removeFavorite(id)
         toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
       } catch {
-        toast.add({ severity: 'error', summary: '取消失败', life: 3000 })
+        favMap.value[id] = true  // 回滚
+        toast.add({ severity: 'error', summary: '操作失败，请检查网络后重试', life: 3000 })
+      } finally {
+        favLoadingMap.value[id] = false
       }
-      return
-    }
-    // already_exists / pending / downloading / archiving 均视为已收藏，不重复提交
-    if (current && current !== 'failed' && current !== 'abandoned') return
-
-    favLoadingMap.value[record.id] = true
-    try {
-      const res = await addFavorite(record.id)
-      if (res.status === 'already_exists') {
-        // 恢复后端存储的真实状态，避免前端显示 "already_exists"
-        favStatusMap.value[record.id] = (res as any).current_status || 'pending'
-        toast.add({ severity: 'info', summary: '已收藏', life: 2000 })
-      } else {
-        favStatusMap.value[record.id] = res.status
+    } else {
+      // ── 收藏（乐观）──
+      favMap.value[id] = true
+      try {
+        await addFavorite(id)
         toast.add({ severity: 'success', summary: '已收藏', life: 2000 })
+      } catch {
+        favMap.value[id] = false  // 回滚
+        toast.add({ severity: 'error', summary: '操作失败，请检查网络后重试', life: 3000 })
+      } finally {
+        favLoadingMap.value[id] = false
       }
-    } catch {
-      toast.add({ severity: 'error', summary: '收藏失败', life: 3000 })
-    } finally {
-      favLoadingMap.value[record.id] = false
     }
   }
+
+  // ── 初始化：兼容旧归档状态 → 二元布尔 ──
 
   async function loadFavStatuses() {
     const results = await Promise.allSettled(
       records.value.map(r => getFavoriteStatus(r.id).catch(() => ({ status: null })))
     )
     results.forEach((res, i) => {
-      if (res.status === 'fulfilled' && res.value.status) {
-        favStatusMap.value[records.value[i].id] = res.value.status
-        favCooldownMap.value[records.value[i].id] = !!(res.value as any).in_cooldown
-      }
+      if (res.status !== 'fulfilled' || !res.value.status) return
+      const raw = res.value.status
+      // 兼容旧归档状态枚举 → boolean
+      favMap.value[records.value[i].id] = (
+        raw === 'done' ||
+        raw === 'pending' ||
+        raw === 'downloading' ||
+        raw === 'archiving'
+      )
     })
   }
 
   return {
-    favStatusMap,
-    favCooldownMap,
-    favLabel,
-    favIcon,
+    favMap,
+    favLoadingMap,
     isFavLoading,
     toggleFavorite,
     loadFavStatuses,
