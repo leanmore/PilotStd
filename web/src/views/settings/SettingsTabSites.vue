@@ -3,12 +3,15 @@
  * SettingsTabSites — Q15: 站点限额/冷却可编辑 + 剩余配额显示
  */
 import { ref, onMounted } from 'vue'
+import { useToast } from 'primevue/usetoast'
 import Tag from 'primevue/tag'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
 import http from '@/api/http'
 
 defineOptions({ name: 'SettingsTabSites' })
+
+const toast = useToast()
 
 interface SiteConfig {
   name: string
@@ -43,7 +46,7 @@ async function loadSites() {
     }))
     original = JSON.parse(JSON.stringify(sites.value))
   } catch {
-    // 接口未就绪时使用默认数据兼容
+    toast.add({ severity: 'error', summary: '站点列表加载失败', detail: '请检查网络后刷新重试', life: 5000 })
   } finally {
     loading.value = false
   }
@@ -93,7 +96,8 @@ onMounted(() => { loadSites() })
         <p class="text-dim mb-2">窗口上限 = 每轮冷却前最大请求数 | 日上限 = 当日累计超过后暂停使用（次日重置）</p>
         <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
         <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
-        <div class="site-grid">
+        <p v-if="!loading && sites.length === 0" class="text-dim text-center py-3">暂无可用站点</p>
+        <div v-if="sites.length > 0" class="site-grid">
           <div v-for="s in sites" :key="s.name" class="site-card">
             <div class="site-head">
               <span class="site-priority">#{{ s.priority }}</span>

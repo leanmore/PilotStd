@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
 
 from docker.scheduler import update_job
@@ -114,6 +114,124 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
         update_job(job_id, cron, enabled)
     cfg.save()
     return {"ok": True}
+
+
+# ── 站点配置管理（Q15）──────────────────────────────────────────
+
+from pydantic import BaseModel, Field
+
+
+class SiteConfigUpdate(BaseModel):
+    """站点限额配置更新请求体 — 窗口上限/日限额/冷却时间。"""
+
+    max_requests: int = Field(ge=0, description="窗口查询限额")
+    daily_limit: int = Field(ge=0, description="日限额")
+    cooling_seconds: int = Field(ge=0, description="冷却时间（秒）")
+
+
+def _build_site_config(name: str, mgr) -> dict | None:
+    """聚合单个适配器的 9 字段配置。label 动态导入容错，单个适配器异常不影响整体。"""
+    try:
+        status = mgr.adapter_manager.get_adapter_status(name)
+        remaining_quota = mgr.adapter_manager._quota.get_remaining(name) if mgr.adapter_manager._quota else 0
+        cooling_remaining = (
+            mgr.adapter_manager._rotator.get_cooldown_remaining(name) if mgr.adapter_manager._rotator else 0
+        )
+
+        # label 动态导入
+        try:
+            import importlib
+
+            mod = importlib.import_module(f"pilotstd.query.adapters.{name}")
+            label = getattr(mod, "DISPLAY_NAME", name.title())
+            if not isinstance(label, str) or not label.strip():
+                label = name.title()
+        except Exception:
+            label = name.title()
+
+        # url 从 rotator 获取
+        site_state = mgr.adapter_manager._rotator._sites.get(name) if mgr.adapter_manager._rotator else None
+        url = site_state.active_url if site_state else ""
+        priority = list(mgr.adapter_manager._rotator._sites.keys()).index(name) + 1 if site_state else 0
+        max_requests = site_state.max_requests if site_state else 200
+        cooling_seconds = site_state.cooldown_seconds if site_state else 600
+        daily_limit = mgr.adapter_manager._quota._limits.get(name, 800) if mgr.adapter_manager._quota else 800
+
+        return {
+            "name": name,
+            "label": label,
+            "url": url,
+            "priority": priority,
+            "maxRequests": max_requests,
+            "dailyLimit": daily_limit,
+            "coolingSeconds": cooling_seconds,
+            "remainingQuota": remaining_quota,
+            "coolingRemaining": int(cooling_remaining),
+        }
+    except Exception:
+        logger.warning("站点配置聚合失败: %s", name, exc_info=True)
+        return None
+
+
+@router.get("/api/settings/sites")
+def get_sites(mgr=Depends(get_manager_dep)):
+    """返回全部查询适配器的站点配置（9 字段 / 站点），单站点异常不影响整体。"""
+    names = mgr.adapter_manager.list_adapters()
+    sites = []
+    for name in names:
+        cfg = _build_site_config(name, mgr)
+        if cfg:
+            sites.append(cfg)
+    return {"sites": sites}
+
+
+@router.put("/api/settings/sites/{name}")
+def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
+    """更新站点限额配置，持久化 + 内存热更新。"""
+    if name not in mgr.adapter_manager.list_adapters():
+        raise HTTPException(status_code=404, detail=f"适配器 {name} 不存在")
+
+    cfg = mgr.cfg
+    rotator = mgr.adapter_manager._rotator
+    quota = mgr.adapter_manager._quota
+
+    # 1. 持久化（先写 Config，失败则不更新内存）
+    try:
+        cfg.set(f"query.sites.{name}.window_limit", data.max_requests)
+        cfg.set(f"query.sites.{name}.daily_limit", data.daily_limit)
+        cfg.set(f"query.sites.{name}.cooling_seconds", data.cooling_seconds)
+        cfg.save()
+    except Exception as e:
+        logger.exception("站点配置持久化失败: %s", name)
+        raise HTTPException(status_code=500, detail=f"配置保存失败: {e}")
+
+    # 2. 内存热更新（原子：任一失败则回滚已更新的部分）
+    old_rotator = None
+    old_quota = None
+    try:
+        if rotator and name in rotator._sites:
+            old_rotator = (
+                rotator._sites[name].max_requests,
+                rotator._sites[name].cooldown_seconds,
+            )
+            rotator._sites[name].max_requests = data.max_requests
+            rotator._sites[name].cooldown_seconds = data.cooling_seconds
+        if quota and name in quota._limits:
+            old_quota = quota._limits[name]
+            quota._limits[name] = data.daily_limit
+    except Exception as e:
+        # 回滚内存
+        if old_rotator and rotator:
+            rotator._sites[name].max_requests = old_rotator[0]
+            rotator._sites[name].cooldown_seconds = old_rotator[1]
+        if old_quota is not None and quota:
+            quota._limits[name] = old_quota
+        logger.exception("站点内存热更新失败: %s", name)
+        raise HTTPException(status_code=500, detail=f"热更新失败: {e}")
+
+    # 返回更新后的完整配置
+    updated = _build_site_config(name, mgr)
+    return {"success": True, "site": updated}
 
 
 # ── 静态令牌管理 ──────────────────────────────────────────────────

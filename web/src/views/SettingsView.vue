@@ -122,19 +122,6 @@ const localeOptions = [
 ]
 
 // ═══════════════════════════════════════════
-// 站点列表（Sites Tab 使用）
-// ═══════════════════════════════════════════
-const sites = [
-  { name: 'ahbz', label: '安徽标准平台', url: 'bzxx.ahbz.org.cn', priority: 1, maxRequests: 200, dailyLimit: 800 },
-  { name: 'std_gov', label: '国家标准公开', url: 'openstd.samr.gov.cn', priority: 2, maxRequests: 200, dailyLimit: 800 },
-  { name: 'hbba', label: '行业标准平台', url: 'hbba.sacinfo.org.cn', priority: 3, maxRequests: 200, dailyLimit: 800 },
-  { name: 'iso_gov', label: '国际标准平台', url: 'std.samr.gov.cn', priority: 4, maxRequests: 200, dailyLimit: 800 },
-  { name: 'njbz365', label: '南京标准网', url: 'www.njbz365.cn', priority: 5, maxRequests: 200, dailyLimit: 800 },
-  { name: 'dbba', label: '地方标准平台', url: 'dbba.sacinfo.org.cn', priority: 6, maxRequests: 200, dailyLimit: 800 },
-  { name: 'csres', label: '工标网', url: 'www.csres.com', priority: 7, maxRequests: 50, dailyLimit: 200 },
-]
-
-// ═══════════════════════════════════════════
 // 标签页导航
 // ═══════════════════════════════════════════
 const route = useRoute()
@@ -191,8 +178,6 @@ const tabs = SETTINGS_TAB_KEYS.map(key => ({ key, label: TAB_LABEL_MAP[key] }))
     switch (key) {
       case 'ui':
         return { selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
-      case 'sites':
-        return { sites }
       case 'system':
         return { sections: systemSections.value }
       default:
