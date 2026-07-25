@@ -82,7 +82,8 @@ CREATE TABLE IF NOT EXISTS file_index (
     file_hash TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT '现行',
     scanned_at TEXT NOT NULL DEFAULT '',
-    last_checked TEXT
+    last_checked TEXT,
+    raw_number TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS announcement_log (id INTEGER PRIMARY KEY);"""
 
