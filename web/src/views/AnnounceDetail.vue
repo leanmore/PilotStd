@@ -21,7 +21,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
-import ChevronLeftIcon from '@primevue/icons/chevronleft'
+import { ChevronLeftIcon } from '@primevue/icons'
 import AppCalendar from '@/components/AppCalendar.vue'
 
 const route = useRoute()
