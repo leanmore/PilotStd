@@ -195,9 +195,9 @@ async function handleBatchApprove() {
   }
 }
 
-// ── Phase 4a: 收藏（委托给 useFavorite composable）──
+// ── Phase 4a: 收藏（二元状态：已收藏/未收藏）──
 
-const { favStatusMap, favCooldownMap, favLabel, favIcon, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(records)
+const { favMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(records)
 
 onMounted(loadDetail)
 </script>
@@ -209,26 +209,18 @@ onMounted(loadDetail)
     </div>
 
     <div v-else>
-      <!-- 顶部导航：返回按钮 -->
-      <div class="back-nav mb-4">
-        <Button
-          label="返回列表"
-          severity="secondary"
-          text
-          size="small"
-          class="back-btn"
-          @click="$router.back()"
-        >
-          <template #icon><i class="pi pi-chevron-left"></i></template>
-        </Button>
-      </div>
-
       <!-- 公告头 -->
       <Card class="mb-4">
         <template #title>
           <div class="flex justify-content-between align-items-center">
-            <span class="text-xl font-semibold">{{ announcement?.announce_no }}</span>
+            <span class="flex-1 text-center truncate px-2 text-xl font-semibold">{{ announcement?.announce_no }}</span>
             <Tag :value="parseStatusLabel" :severity="parseStatusSeverity" />
+            <Button
+              icon="pi pi-reply"
+              aria-label="返回列表"
+              class="p-button-text p-button-rounded ml-3"
+              @click="$router.back()"
+            />
           </div>
         </template>
         <template #content>
@@ -372,39 +364,19 @@ onMounted(loadDetail)
             </Column>
             <Column header="收藏" style="width: 6rem">
               <template #body="{ data }">
-                <div class="flex align-items-center gap-1">
-                  <Button
-                    :icon="favIcon(data.id)"
-                    :loading="isFavLoading(data.id)"
-                    rounded text size="small"
-                    :severity="favStatusMap[data.id] === 'done' ? 'warn' : 'secondary'"
-                    @click.stop="toggleFavorite(data)"
-                  />
-                  <Tag v-if="favCooldownMap[data.id]"
-                    value="等待上线" severity="info" style="font-size:10px" />
-                  <Tag v-else-if="favStatusMap[data.id] && favStatusMap[data.id] !== 'done' && favStatusMap[data.id] !== 'failed' && favStatusMap[data.id] !== 'abandoned'"
-                    :value="favLabel(favStatusMap[data.id])" severity="info" style="font-size:10px" />
-                  <Tag v-else-if="favStatusMap[data.id] === 'failed'"
-                    value="归档失败" severity="danger" style="font-size:10px" />
-                  <Tag v-else-if="favStatusMap[data.id] === 'abandoned'"
-                    value="归档已放弃" severity="warn" style="font-size:10px" />
-                </div>
+                <Button
+                  :icon="favMap[data.id] ? 'pi pi-star-fill' : 'pi pi-star'"
+                  :loading="isFavLoading(data.id)"
+                  rounded text size="small"
+                  :severity="favMap[data.id] ? 'warn' : 'secondary'"
+                  @click.stop="toggleFavorite(data)"
+                />
               </template>
             </Column>
           </DataTable>
         </template>
       </Card>
     </div>
-
-    <!-- 悬浮返回按钮（SVG图标） -->
-    <button
-      class="floating-back-btn"
-      @click="$router.back()"
-      aria-label="返回列表页"
-      title="返回列表"
-    >
-      <i class="pi pi-chevron-left"></i>
-    </button>
   </div>
 </template>
 
@@ -415,17 +387,9 @@ onMounted(loadDetail)
   padding: 1rem;
 }
 
-.back-nav {
-  padding-left: 0;
-}
-
-.back-btn {
-  color: var(--text-dim) !important;
-  transition: color 0.2s;
-}
-
-.back-btn:hover {
-  color: var(--p-primary-color) !important;
+.p-button-text.p-button-rounded:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 .announce-title {
@@ -445,11 +409,40 @@ onMounted(loadDetail)
   color: var(--text);
 }
 
-.doc-content :deep(p) {
+/* 公告标题行 — 居中、无缩进、加粗 */
+.doc-content :deep(.announce-heading) {
+  text-align: center;
+  text-indent: 0;
+  font-weight: bold;
+  margin-bottom: 1em;
+}
+
+/* 正文段落 — 两端对齐、首行缩进 */
+.doc-content :deep(.announce-body) {
   font-size: 16px;
   color: var(--text);
   text-indent: 2em;
   text-align: justify;
+  line-height: 1.8;
+  margin: 0.25em 0;
+}
+
+/* 落款机关 — 右对齐、无缩进 */
+.doc-content :deep(.announce-signature) {
+  font-size: 16px;
+  color: var(--text);
+  text-align: right;
+  text-indent: 0;
+  line-height: 1.8;
+  margin: 0.25em 0;
+}
+
+/* 落款日期 — 右对齐、无缩进 */
+.doc-content :deep(.announce-date) {
+  font-size: 16px;
+  color: var(--text);
+  text-align: right;
+  text-indent: 0;
   line-height: 1.8;
   margin: 0.25em 0;
 }
@@ -470,48 +463,5 @@ onMounted(loadDetail)
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-/* 悬浮返回按钮 — 纯图标圆形，主题适配 + 毛玻璃 */
-.floating-back-btn {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.floating-back-btn:hover {
-  background: var(--primary-hover);
-  transform: scale(1.1);
-  box-shadow: var(--shadow-lg);
-}
-
-.floating-back-btn i {
-  line-height: 1;
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .floating-back-btn {
-    bottom: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-  }
 }
 </style>

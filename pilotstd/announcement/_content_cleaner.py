@@ -9,23 +9,41 @@ import re
 _STD_CODE_LINE_PATTERN = re.compile(
     r"^(GB|GB/T|GB/Z|HG|HG/T|JB|JB/T|SN|SN/T|WS|WS/T|MH|MH/T|"
     r"YB|YB/T|YS|YS/T|JT|JT/T|TY|TY/T|DB|DB/T|DY|DY/T|"
-    r"FZ|QB|QC|SJ|WJ|YD|GY|LY|MT|NB|YC|JR|DZ|HY|TD|"
+    r"FZ|QB|QC|SJ|WJ|YD|GY|LY|MT|NB|YC|JR|DZ|HY/T|HY|TD|"
     r"DL|TB|YY|AQ)\s*[\d ]"
 )
+
+# 通用标准号行首兜底：2+大写字母 + 可选数字(地区码) + 可选/T或/Z + 空格 + 数字
+# 匹配未被 _STD_CODE_LINE_PATTERN 白名单覆盖的行业/地方标准前缀（如 HY/T、DB44/T）
+_GENERIC_STD_CODE_LINE = re.compile(r"^[A-Z]{2,}\d*(?:/[A-Z])?\s+\d")
 
 # 统计汇总表 + 标准清单表列名关键词
 _STATS_COLUMN_KEYWORDS = [
     # 统计汇总表（备案月报）
-    "标准发布部门", "省市区", "行业领域", "备案数量", "发布部门", "备案单位", "统计", "合计",
+    "标准发布部门",
+    "省市区",
+    "行业领域",
+    "备案数量",
+    "发布部门",
+    "备案单位",
+    "统计",
+    "合计",
     # 标准清单表（国标/行标/地标公告）
-    "标准编号", "标准名称", "代替标准", "实施日期", "发布日期", "作废日期", "废止日期",
-    "主管部门", "代替标准号", "备案号", "复审结论",
+    "标准编号",
+    "标准名称",
+    "代替标准",
+    "实施日期",
+    "发布日期",
+    "作废日期",
+    "废止日期",
+    "主管部门",
+    "代替标准号",
+    "备案号",
+    "复审结论",
 ]
 
 # 公告引言段落模式（退出表格区块的信号）
-_ANNOUNCEMENT_INTRO_PATTERN = re.compile(
-    r"\d{4}年\d{1,2}月.*(?:共(?:发布|废止)|批准|公告如下|现予以|现发布)\d*项?"
-)
+_ANNOUNCEMENT_INTRO_PATTERN = re.compile(r"\d{4}年\d{1,2}月.*(?:共(?:发布|废止)|批准|公告如下|现予以|现发布)\d*项?")
 
 # 独立日期行模式
 _DATE_LINE_PATTERN = re.compile(r"^\d{4}[-年]\d{1,2}[-月]\d{1,2}日?$")
@@ -37,6 +55,12 @@ _APPENDIX_TITLE_PATTERN = re.compile(r"^附表\d+")
 _SIGNATURE_DATE_PATTERN = re.compile(
     r"(.{4,}(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会))\s+(\d{4}[-年]\d{1,2}[-月]\d{1,2}日?)$"
 )
+
+# 公告标题行精确匹配集合（阶段B：语义分类）
+_HEADING_LINES = {"公告", "备案月报"}
+
+# 落款机关后缀模式（阶段B：扩展规则）
+_ORG_SUFFIX_PATTERN = re.compile(r"(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会)$")
 
 
 # ── 公开 API ──────────────────────────────────────────
@@ -109,14 +133,33 @@ def clean_announcement_content(content: str) -> str:
                 paragraphs[-1] = org
             paragraphs.append(date_str)
 
-    html_parts = ["<p>" + p + "</p>" for p in paragraphs]
-    if paragraphs and _DATE_LINE_PATTERN.match(paragraphs[-1]):
-        html_parts[-1] = '<p style="text-align:right">' + paragraphs[-1] + "</p>"
+    html_parts = [_build_paragraph_tag(p) for p in paragraphs]
 
     return "\n".join(html_parts)
 
 
 # ── 内部辅助 ──────────────────────────────────────────
+
+
+def _classify_paragraph(text: str) -> str:
+    """段落语义分类，按优先级匹配（命中即停）。
+    优先级：date > heading > signature > body
+    """
+    if _DATE_LINE_PATTERN.match(text):
+        return "announce-date"
+    if text.strip() in _HEADING_LINES:
+        return "announce-heading"
+    # 取最后一个空格分隔片段，判断是否以机关后缀结尾
+    segments = text.strip().split()
+    if segments and _ORG_SUFFIX_PATTERN.search(segments[-1]):
+        return "announce-signature"
+    return "announce-body"
+
+
+def _build_paragraph_tag(text: str) -> str:
+    """根据语义分类构建带 class 的 <p> 标签。"""
+    cls = _classify_paragraph(text)
+    return f'<p class="{cls}">{text}</p>'
 
 
 def _is_table_entry(stripped: str) -> bool:
@@ -129,6 +172,9 @@ def _is_table_entry(stripped: str) -> bool:
     if _APPENDIX_TITLE_PATTERN.match(stripped):
         return True
     if _STD_CODE_LINE_PATTERN.match(stripped):
+        return True
+    if _GENERIC_STD_CODE_LINE.match(stripped) and len(stripped) < 80:
+        # 兜底：匹配白名单遗漏的标准号行首，长度限制防误伤长文本
         return True
     if stripped.startswith("中文名称：") or stripped.startswith("中文名称:"):
         return True
