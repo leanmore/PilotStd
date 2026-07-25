@@ -93,3 +93,55 @@ class DownloadFlowEngine:
         return result
 
     # ═══════════════════════════════════════════════════════════════
+    # CSV 解析（纯字符串操作，零文件 I/O）
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def parse_download_csv(csv_content: str | None) -> list[dict[str, str]]:
+        """解析下载清单 CSV 字符串，返回 list[dict]。
+
+        Args:
+            csv_content: CSV 格式字符串，首行为表头
+
+        Returns:
+            每行一个 dict（key=表头），空行自动过滤。
+            输入为空/None/非 str 类型时返回空列表。
+        """
+        import csv
+        import io
+
+        if not isinstance(csv_content, str) or not csv_content.strip():
+            return []
+        try:
+            reader = csv.DictReader(io.StringIO(csv_content))
+            return [row for row in reader if any(v.strip() for v in row.values())]
+        except Exception:
+            return []
+
+    # ═══════════════════════════════════════════════════════════════
+    # 下载去重（纯数据结构操作）
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def deduplicate_downloads(items: list[Any], key: str) -> list[Any]:
+        """按指定 key 去重，保留首次出现，维持原始顺序。
+
+        Args:
+            items: dict 列表
+            key: 去重依据的字段名
+
+        Returns:
+            去重后的列表。非 dict 元素或 key 值为 None 的元素被跳过。
+        """
+        seen: set[Any] = set()
+        result: list[Any] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            val = item.get(key)
+            if val is None:
+                continue
+            if val not in seen:
+                seen.add(val)
+                result.append(item)
+        return result
