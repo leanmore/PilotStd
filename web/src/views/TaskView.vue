@@ -11,7 +11,7 @@ import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
-import LogBar from '@/components/LogBar.vue'
+import { parseStandardNumber } from '@/utils/standardParser'
 
 const paths = ref<string[]>(['/inbox', '/standards'])
 const { taskPath: selectedPath } = useUserPreferences()
@@ -200,7 +200,28 @@ async function runPipeline() {
 
     // 步骤 3：规范化
     currentStep.value = 3; setStep(3, 'running')
-    const normItems = (scan.files || []).filter((f: any) => f.standard_number).map((f: any) => ({ source_path: f.full_path, new_filename: f.standard_number || f.logical_code || f.name }))
+    const normItems = (scan.files || [])
+      .filter((f: any) => f.standard_number)
+      .map((f: any) => {
+        // 优先透传 scan 返回的结构化字段，仅在缺失时回退到正则解析
+        const parsed = (f.logical_code && f.number && f.year)
+          ? { logical_code: f.logical_code, number: f.number, year: f.year }
+          : parseStandardNumber(f.standard_number)
+
+        if (!parsed) {
+          console.warn('[Normalize] 跳过无法解析的标准号:', f.standard_number, '| 文件:', f.full_path)
+          return null
+        }
+
+        return {
+          source_path: f.full_path,
+          new_filename: f.standard_number || f.logical_code || f.name,
+          logical_code: parsed.logical_code,
+          number: parsed.number,
+          year: parsed.year,
+        }
+      })
+      .filter((item): item is NonNullable<typeof item> => item != null)
     const norm = await postNormalize(normItems, runId.value!)
     normalizeResult.value = norm
     setStep(3, 'done', `${norm.results?.length || 0} 个文件`)

@@ -1,4 +1,6 @@
 # docker/api/normalize.py — 文件规范化 API（通过 StandardManager 统一入口）
+import logging
+
 from fastapi import Body, Depends, HTTPException
 from fastapi.routing import APIRouter
 
@@ -6,6 +8,7 @@ from pilotstd.models import ParsedStdInfo
 
 from ..manager import get_manager_dep
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["normalize"])
 
 
@@ -17,10 +20,31 @@ def _dict_to_parsed(item: dict) -> ParsedStdInfo:
 
     # 前置校验：禁止占位符和非法零值静默入库，Web API 返回 400
     if logical_code == "" or logical_code is None:
+        logger.error(
+            "规范化失败: source_path=%s, logical_code=%r, number=%s, year=%s",
+            item.get("source_path"),
+            logical_code,
+            number,
+            year,
+        )
         raise HTTPException(status_code=400, detail="logical_code is required")
     if number == 0:
+        logger.error(
+            "规范化失败: source_path=%s, logical_code=%r, number=%s, year=%s",
+            item.get("source_path"),
+            logical_code,
+            number,
+            year,
+        )
         raise HTTPException(status_code=400, detail="standard number cannot be zero")
     if year == 0:
+        logger.error(
+            "规范化失败: source_path=%s, logical_code=%r, number=%s, year=%s",
+            item.get("source_path"),
+            logical_code,
+            number,
+            year,
+        )
         raise HTTPException(status_code=400, detail="standard year cannot be zero")
 
     return ParsedStdInfo(
