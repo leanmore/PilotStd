@@ -44,10 +44,9 @@ const parseStatus = ref<'pending' | 'parsing' | 'completed' | 'failed'>('pending
 const {
   displayRecords,
   isLoadingMore,
-  isAllLoaded,
-  maxDisplay,
-  resetDisplay,
-} = useIncrementalScroll(records, { batchSize: 50, maxDisplay: 300 })
+  showLoadAllButton,
+  loadAllRemaining,
+} = useIncrementalScroll(records)
 
 const parseStatusLabel = computed(() => {
   const map: Record<string, string> = {
@@ -86,7 +85,6 @@ async function loadDetail() {
   if (cached) {
     announcement.value = cached.announcement
     records.value = cached.records
-    resetDisplay()
     parseStatus.value = cached.parse_status || 'pending'
     loading.value = false
     loadFavStatuses()
@@ -99,7 +97,6 @@ async function loadDetail() {
     const res = await getAnnounceDetailLite(announceNo, source)
     announcement.value = res.announcement
     records.value = res.records || []
-    resetDisplay()
     parseStatus.value = res.parse_status || 'pending'
     setCache({
       announcement: res.announcement,
@@ -391,11 +388,11 @@ onMounted(loadDetail)
           </DataTable>
 
           <TableLoadFooter
-            :total-count="records.length"
-            :display-count="displayRecords.length"
+            :displayed="displayRecords.length"
+            :total="records.length"
             :is-loading="isLoadingMore"
-            :is-all-loaded="isAllLoaded"
-            :max-display="maxDisplay"
+            :show-load-all-button="showLoadAllButton"
+            @load-all="loadAllRemaining"
           />
         </template>
       </Card>

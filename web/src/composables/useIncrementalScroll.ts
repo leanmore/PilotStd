@@ -1,124 +1,101 @@
 // web/src/composables/useIncrementalScroll.ts
 // #40 增量加载：首屏 50 条，滚动触底自动追加，最多 300 条
-import { ref, nextTick, onMounted, onUnmounted, type Ref } from 'vue'
+// 支持"加载全部"按钮一次性跳过上限
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, type Ref } from 'vue'
 
-interface UseIncrementalScrollOptions {
-  batchSize?: number
-  maxDisplay?: number
-  minLoadingMs?: number
-  scrollThreshold?: number
-  throttleMs?: number
-}
+const MAX_DISPLAY = 300
+const BATCH_SIZE = 50
+const SCROLL_THRESHOLD = 100
 
-export function useIncrementalScroll<T>(
-  allRecords: Ref<T[]>,
-  options: UseIncrementalScrollOptions = {},
-) {
-  const {
-    batchSize = 50,
-    maxDisplay = 300,
-    minLoadingMs = 300,
-    scrollThreshold = 100,
-    throttleMs = 150,
-  } = options
-
-  const displayRecords = ref<T[]>([]) as Ref<T[]>
+export function useIncrementalScroll(allRecords: Ref<any[]>) {
+  const displayRecords = ref<any[]>([])
   const isLoadingMore = ref(false)
-  const isAllLoaded = ref(false)
-  let _scrollEl: HTMLElement | null = null
+  // 永久标志位：用户点"加载全部"后增量逻辑永久停止
+  const isFullyLoadedByUser = ref(false)
 
-  function throttleFn(fn: (...args: any[]) => void, delay: number) {
-    let lastCall = 0
-    let timer: ReturnType<typeof setTimeout> | null = null
-    return (...args: any[]) => {
-      const now = Date.now()
-      const remaining = delay - (now - lastCall)
-      if (remaining <= 0) {
-        if (timer) { clearTimeout(timer); timer = null }
-        lastCall = now
-        fn(...args)
-      } else if (!timer) {
-        timer = setTimeout(() => { timer = null; lastCall = Date.now(); fn(...args) }, remaining)
-      }
-    }
+  let _scrollEl: HTMLElement | null = null
+  let _lastScrollTs = 0
+
+  function initialize() {
+    isFullyLoadedByUser.value = false
+    displayRecords.value = allRecords.value.slice(0, BATCH_SIZE)
   }
 
-  async function loadNextBatch() {
-    if (isLoadingMore.value || isAllLoaded.value) return
+  // 数据源变更（排序/筛选/重新加载）时自动重置
+  watch(allRecords, () => { initialize() }, { immediate: true })
 
-    const currentCount = displayRecords.value.length
-    const totalCount = allRecords.value.length
-
-    if (currentCount >= totalCount || currentCount >= maxDisplay) {
-      isAllLoaded.value = true
-      return
-    }
+  async function loadMore() {
+    if (
+      isLoadingMore.value ||
+      isFullyLoadedByUser.value ||
+      displayRecords.value.length >= Math.min(MAX_DISPLAY, allRecords.value.length)
+    ) return
 
     isLoadingMore.value = true
-    const start = performance.now()
-
     await nextTick()
 
-    const nextBatch = allRecords.value.slice(
-      currentCount,
-      Math.min(currentCount + batchSize, totalCount, maxDisplay),
-    )
-    displayRecords.value = [...displayRecords.value, ...nextBatch]
-
-    const elapsed = performance.now() - start
-    if (elapsed < minLoadingMs) {
-      await new Promise(r => setTimeout(r, minLoadingMs - elapsed))
-    }
+    const currentLen = displayRecords.value.length
+    const remaining = allRecords.value.slice(currentLen, currentLen + BATCH_SIZE)
+    displayRecords.value = [...displayRecords.value, ...remaining]
 
     isLoadingMore.value = false
+  }
 
-    if (displayRecords.value.length >= maxDisplay || displayRecords.value.length >= totalCount) {
-      isAllLoaded.value = true
-    }
+  async function loadAllRemaining() {
+    if (isFullyLoadedByUser.value) return
+
+    isLoadingMore.value = true
+    await nextTick()
+
+    const remaining = allRecords.value.slice(displayRecords.value.length)
+    displayRecords.value = [...displayRecords.value, ...remaining]
+
+    isFullyLoadedByUser.value = true
+    isLoadingMore.value = false
   }
 
   function handleScroll() {
-    if (!_scrollEl) return
+    if (!_scrollEl || isFullyLoadedByUser.value) return
+    const now = Date.now()
+    if (now - _lastScrollTs < 150) return
+    _lastScrollTs = now
     const d = _scrollEl.scrollHeight - _scrollEl.scrollTop - _scrollEl.clientHeight
-    if (d < scrollThreshold) loadNextBatch()
+    if (d < SCROLL_THRESHOLD) loadMore()
   }
 
-  const throttledScroll = throttleFn(handleScroll, throttleMs)
-
-  function bindScrollListener() {
+  function bindScroll() {
     _scrollEl = document.querySelector('.p-datatable-wrapper') as HTMLElement | null
     if (_scrollEl) {
-      _scrollEl.addEventListener('scroll', throttledScroll, { passive: true })
+      _scrollEl.addEventListener('scroll', handleScroll, { passive: true })
     }
   }
 
-  function unbindScrollListener() {
+  function unbindScroll() {
     if (_scrollEl) {
-      _scrollEl.removeEventListener('scroll', throttledScroll)
+      _scrollEl.removeEventListener('scroll', handleScroll)
       _scrollEl = null
     }
   }
 
-  function resetDisplay() {
-    displayRecords.value = allRecords.value.slice(0, batchSize)
-    isAllLoaded.value = allRecords.value.length <= batchSize
-    isLoadingMore.value = false
-  }
+  onMounted(async () => { await nextTick(); bindScroll() })
+  onUnmounted(() => { unbindScroll() })
 
-  onMounted(async () => {
-    await nextTick()
-    bindScrollListener()
-  })
+  const showLoadAllButton = computed(() =>
+    !isFullyLoadedByUser.value &&
+    displayRecords.value.length >= MAX_DISPLAY &&
+    displayRecords.value.length < allRecords.value.length
+  )
 
-  onUnmounted(() => {
-    unbindScrollListener()
-  })
+  const isAllLoaded = computed(() =>
+    displayRecords.value.length >= allRecords.value.length
+  )
 
   return {
     displayRecords,
     isLoadingMore,
     isAllLoaded,
-    maxDisplay,
-    resetDisplay,
+    showLoadAllButton,
+    loadMore,
+    loadAllRemaining,
   }
 }
