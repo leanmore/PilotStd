@@ -14,6 +14,8 @@ import {
 import type { Announcement, AnnouncementRecord } from '@/types/api'
 import { useDetailCache } from '@/composables/useDetailCache'
 import { useFavorite } from '@/composables/useFavorite'
+import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
+import { fixAnnounceHeadings } from '@/utils/announceHeadings'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
@@ -22,6 +24,7 @@ import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
+import TableLoadFooter from '@/components/TableLoadFooter.vue'
 
 const route = useRoute()
 const toast = useToast()
@@ -36,6 +39,15 @@ const announcement = ref<Announcement | null>(null)
 const records = ref<AnnouncementRecord[]>([])
 const selectedRecords = ref<AnnouncementRecord[]>([])
 const parseStatus = ref<'pending' | 'parsing' | 'completed' | 'failed'>('pending')
+
+// ═══ #40 增量加载：每批 50 条，最多渲染 300 条 ═══
+const {
+  displayRecords,
+  isLoadingMore,
+  isAllLoaded,
+  maxDisplay,
+  resetDisplay,
+} = useIncrementalScroll(records, { batchSize: 50, maxDisplay: 300 })
 
 const parseStatusLabel = computed(() => {
   const map: Record<string, string> = {
@@ -68,43 +80,13 @@ const sanitizedContent = computed(() => {
   return fixAnnounceHeadings(raw)
 })
 
-/**
- * 前端兜底修正：将后端误分类为 announce-body 的标题/文号行
- * 替换为 announce-heading，使其应用居中加粗样式。
- */
-function fixAnnounceHeadings(html: string): string {
-  const fixedTitles = [
-    '中华人民共和国国家标准',
-    '行业标准公告',
-    '行业标准备案公告',
-    '地方标准公告',
-  ]
-
-  let result = html
-
-  for (const title of fixedTitles) {
-    const pattern = new RegExp(
-      `<p class="announce-body">${title}</p>`,
-      'g'
-    )
-    result = result.replace(pattern, `<p class="announce-heading">${title}</p>`)
-  }
-
-  // 动态文号：如 "2025年第8号"、"2024年第12号"
-  result = result.replace(
-    /<p class="announce-body">(\d{4}年第\d+号)<\/p>/g,
-    '<p class="announce-heading">$1</p>'
-  )
-
-  return result
-}
-
 async function loadDetail() {
   // 1. 优先读 sessionStorage 缓存
   const cached = getCache()
   if (cached) {
     announcement.value = cached.announcement
     records.value = cached.records
+    resetDisplay()
     parseStatus.value = cached.parse_status || 'pending'
     loading.value = false
     loadFavStatuses()
@@ -117,6 +99,7 @@ async function loadDetail() {
     const res = await getAnnounceDetailLite(announceNo, source)
     announcement.value = res.announcement
     records.value = res.records || []
+    resetDisplay()
     parseStatus.value = res.parse_status || 'pending'
     setCache({
       announcement: res.announcement,
@@ -324,7 +307,7 @@ onMounted(loadDetail)
         <template #content>
           <DataTable
             v-model:selection="selectedRecords"
-            :value="records"
+            :value="displayRecords"
             editMode="cell"
             dataKey="id"
             stripedRows
@@ -406,6 +389,14 @@ onMounted(loadDetail)
               </template>
             </Column>
           </DataTable>
+
+          <TableLoadFooter
+            :total-count="records.length"
+            :display-count="displayRecords.length"
+            :is-loading="isLoadingMore"
+            :is-all-loaded="isAllLoaded"
+            :max-display="maxDisplay"
+          />
         </template>
       </Card>
     </div>
