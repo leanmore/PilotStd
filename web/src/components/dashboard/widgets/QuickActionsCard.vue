@@ -1,27 +1,26 @@
 <script setup lang="ts">
 defineOptions({ name: 'QuickActionsCard' })
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/app'
 import http from '@/api/http'
 
 const router = useRouter()
+const store = useAppStore()
 const scanning = ref(false)
 const scanMsg = ref('')
 const scanErr = ref(false)
 
-const actions = [
-  { label: '任务流水线', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task' },
-  { label: '文件管理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize' },
-  { label: '待确认清单', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending' },
-  { label: '公告检查', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce' },
-]
+// #49: 动作型 handler 注册表（显式 Map，禁止 eval / 动态 import）
+const actionHandlers: Record<string, () => Promise<void>> = {
+  scanAndIndex,
+}
 
 async function scanAndIndex() {
   scanning.value = true
   try {
     const r = await http.post('/scan-and-index')
-    const count = r.data?.indexed ?? 0
-    scanMsg.value = `扫描完成，入库 ${count} 条标准`
+    scanMsg.value = `扫描完成，入库 ${r.data?.indexed ?? 0} 条标准`
     scanErr.value = false
   } catch (e: any) {
     scanMsg.value = e.response?.data?.error || '扫描失败'
@@ -31,6 +30,49 @@ async function scanAndIndex() {
     setTimeout(() => { scanMsg.value = '' }, 4000)
   }
 }
+
+function handleActionClick(action: { type: string; to?: string; handler?: string }) {
+  if (action.type === 'action' && action.handler) {
+    const fn = actionHandlers[action.handler]
+    if (fn) { fn(); return }
+  }
+  if (action.to) {
+    router.push(action.to)
+  }
+}
+
+// #49: 从路由 meta 动态生成快捷操作，替代硬编码数组
+// TODO: Remove fallback after #49 verification - deadline 2026-08-09
+const actions = computed(() => {
+  const routes = router.getRoutes() as any[]
+  const items = routes
+    .filter((r: any) => r.meta.showInQuickActions)
+    .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
+    .sort((a: any, b: any) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
+    .map((r: any) => ({
+      label: r.meta.titleKey || r.meta.title || r.path,
+      iconClass: r.meta.icon || 'pi pi-circle',
+      color: r.meta.color || 'var(--text-dim)',
+      to: r.path.startsWith('/__action/') ? undefined : r.path,
+      type: r.meta.quickActionType || 'navigation',
+      handler: r.meta.handler,
+    }))
+
+  // Fallback: 若路由 meta 未正确配置，回退到旧硬编码列表
+  if (items.length === 0) {
+    return [
+      { label: '任务流水线', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
+      { label: '文件管理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize', type: 'navigation' },
+      { label: '待确认清单', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending', type: 'navigation' },
+      { label: '公告检查', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce', type: 'navigation' },
+      { label: '扫描入库', iconClass: 'pi pi-cloud-upload', color: '#ec4899', type: 'action', handler: 'scanAndIndex' },
+    ]
+  }
+  return items
+})
+
+const isLoading = (a: any) =>
+  a.type === 'action' && a.handler === 'scanAndIndex' && scanning.value
 </script>
 
 <template>
@@ -44,15 +86,12 @@ async function scanAndIndex() {
 
     <div class="grid">
       <div
-        v-for="a in actions" :key="a.to"
-        class="btn" @click="router.push(a.to)"
+        v-for="a in actions" :key="a.label"
+        class="btn" :class="{ disabled: isLoading(a) }"
+        @click="handleActionClick(a)"
       >
         <i :class="['icon', a.iconClass]" :style="{ color: a.color }" />
-        <span class="label">{{ a.label }}</span>
-      </div>
-      <div class="btn" :class="{ disabled: scanning }" @click="scanAndIndex">
-        <i class="icon pi pi-cloud-upload" style="color: #ec4899" />
-        <span class="label">{{ scanning ? '扫描中…' : '扫描入库' }}</span>
+        <span class="label">{{ isLoading(a) ? '扫描中…' : a.label }}</span>
       </div>
     </div>
     <div v-if="scanMsg" class="scan-msg" :class="{ error: scanErr }">{{ scanMsg }}</div>

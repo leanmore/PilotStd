@@ -22,18 +22,33 @@ const router = useRouter()
 const store = useAppStore()
 
 // ── 导航项配置 ──
-const navItems = [
-  { label: t('nav.home'), icon: 'pi pi-home', to: '/' },
-  { label: t('nav.task'), icon: 'pi pi-play', to: '/task' },
-  { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
-  { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
-  // #36 导入下载移至待确认下方
-  { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
-  { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
-  { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
-  { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
-  { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
-]
+// #49: navItems 改为 computed，从路由 meta 动态生成
+  // TODO: Remove fallback after #49 verification - deadline 2026-08-09
+  const navItems = computed(() => {
+    const items = router.getRoutes()
+      .filter((r: any) => r.meta.showInSidebar && !r.path.startsWith('/__action/'))
+      .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
+      .sort((a: any, b: any) => (a.meta.sidebarOrder || 99) - (b.meta.sidebarOrder || 99))
+      .map((r: any) => ({
+        label: r.meta.titleKey ? t(r.meta.titleKey) : (r.meta.title || r.path),
+        icon: r.meta.icon || 'pi pi-circle',
+        to: r.path,
+      }))
+    if (items.length === 0) {
+      return [
+        { label: t('nav.home'), icon: 'pi pi-home', to: '/' },
+        { label: t('nav.task'), icon: 'pi pi-play', to: '/task' },
+        { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
+        { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
+        { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
+        { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
+        { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
+        { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
+        { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
+      ]
+    }
+    return items
+  })
 
 // ── 响应式断点 ──
 const isDesktop = ref(window.innerWidth >= 1024)
@@ -65,7 +80,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 
 // ── 计算属性 ──
 const pageTitle = computed(() => {
-  const item = navItems.find(n => n.to === route.path)
+  const item = navItems.value.find((n: any) => n.to === route.path)
   return item?.label ?? 'PilotStd'
 })
 

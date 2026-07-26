@@ -11,15 +11,19 @@ const adapterCount = ref(0)
 const loading = ref(true)
 
 const dbOk = computed(() => standardCount.value > 0)
-const adapterOk = computed(() => adapterCount.value >= 7)
+const adapterOk = computed(() => adapterCount.value > 0)
 
 onMounted(async () => {
   try {
-    const [verResp, stats] = await Promise.all([http.get('/system/version'), getStats()])
+    const [verResp, stats, adapterResp] = await Promise.all([
+      http.get('/system/version'),
+      getStats(),
+      http.get('/adapter/status', { params: { type: 'query' } }),
+    ])
     version.value = verResp.data.version || '—'
     standardCount.value = (stats.current || 0) + (stats.expired || 0) + (stats.pending || 0) + (stats.upcoming || 0)
     dbStatus.value = standardCount.value > 0 ? '正常' : '空库'
-    adapterCount.value = 7
+    adapterCount.value = (adapterResp.data?.adapters || []).length
   } finally { loading.value = false }
 })
 </script>

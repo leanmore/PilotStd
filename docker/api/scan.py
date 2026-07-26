@@ -8,6 +8,7 @@ from fastapi.routing import APIRouter
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
+from ..auth import require_admin
 from ..manager import get_manager_dep
 from .models import ScanIndexResponse
 
@@ -99,6 +100,7 @@ def scan_directory(
 def scan_and_index(
     path: str | None = None,
     mgr=Depends(get_manager_dep),
+    _admin: str = Depends(require_admin),
 ):
     """Q6-1: 扫描标准库 → 四要素匹配 → UPDATE standards 表扫描状态。
     path 参数保留向后兼容但不再使用，始终扫描配置的 library_root。

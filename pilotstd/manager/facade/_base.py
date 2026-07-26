@@ -17,12 +17,6 @@ from ...download.engine import DownloadEngine
 from ...download.session import SessionManager
 from ...organizer.industry_lookup import build_code_mapping
 from ...query.adapters.base import BaseAdapter
-from ...query.adapters.csres import CsresAdapter
-from ...query.adapters.dbba import DbbaAdapter
-from ...query.adapters.hbba import HbbaAdapter
-from ...query.adapters.iso_gov import IsoGovAdapter
-from ...query.adapters.njbz365 import Njbz365Adapter
-from ...query.adapters.std_gov import StdGovAdapter
 from ...query.cache import CacheRepository
 from ...query.daily_quota import DailyQuotaTracker
 from ...query.engine import QueryEngine
@@ -115,25 +109,22 @@ class BaseFacade(_BasePropertiesMixin):
 
     def _init_query_subsystem(self, query_adapters: Optional[List[BaseAdapter]]) -> None:
         """初始化查询子系统：适配器、站点轮转器、配额追踪、缓存、QueryEngine。"""
-        from ...query.adapters.ahbz import AhbzAdapter
+        from ...query.adapters.registry import instantiate_all
 
-        csres = CsresAdapter()
-        adapters = query_adapters or [
-            AhbzAdapter(),
-            Njbz365Adapter(),
-            StdGovAdapter(),
-            HbbaAdapter(),
-            IsoGovAdapter(),
-            DbbaAdapter(),
-            csres,
-        ]
+        if query_adapters:
+            adapters = query_adapters
+        else:
+            adapters, _disabled = instantiate_all()
+
+        csres = next((a for a in adapters if a.site_name == "csres"), None)
         self._core._query_adapters = adapters  # type: ignore[attr-defined]
 
         from ...query.site_config import create_default_sites
 
         sites = create_default_sites()
         rotator = SiteRotator(sites, db=self._core.db)
-        csres.set_rotator(rotator)
+        if csres is not None:
+            csres.set_rotator(rotator)
 
         daily_limits = {s.name: s.daily_limit for s in sites if s.daily_limit > 0}
         self._core.quota_tracker = DailyQuotaTracker(self._core.db, limits=daily_limits)
