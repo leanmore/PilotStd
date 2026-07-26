@@ -47,6 +47,9 @@ export const addFavorite = (recordId: number): Promise<{ status: string; favorit
 export const getFavoriteStatus = (recordId: number): Promise<{ status: string | null; favorite_id: number | null; local_path?: string; error_message?: string }> =>
   http.get(`/favorites/${recordId}/status`).then(r => r.data)
 
+export const getBatchFavoriteStatus = (recordIds: number[]): Promise<{ statuses: Record<string, { favorite_id: number; status: string } | null> }> =>
+  http.post('/favorites/batch-status', { record_ids: recordIds }).then(r => r.data)
+
 export const removeFavorite = (recordId: number): Promise<{ status: string }> =>
   http.delete(`/favorites/${recordId}`).then(r => r.data)
 

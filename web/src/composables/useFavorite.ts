@@ -3,7 +3,7 @@
 
 import { ref, type Ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { addFavorite, getFavoriteStatus, removeFavorite } from '@/api/announce'
+import { addFavorite, getBatchFavoriteStatus, removeFavorite } from '@/api/announce'
 import type { AnnouncementRecord } from '@/types/api'
 
 export function useFavorite(records: Ref<AnnouncementRecord[]>) {
@@ -54,23 +54,35 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     }
   }
 
-  // ── 初始化：兼容旧归档状态 → 二元布尔 ──
+  // ── 批量加载收藏状态（单次请求替代 N+1）──
 
   async function loadFavStatuses() {
-    const results = await Promise.allSettled(
-      records.value.map(r => getFavoriteStatus(r.id).catch(() => ({ status: null })))
-    )
-    results.forEach((res, i) => {
-      if (res.status !== 'fulfilled' || !res.value.status) return
-      const raw = res.value.status
-      // 兼容旧归档状态枚举 → boolean
-      favMap.value[records.value[i].id] = (
-        raw === 'done' ||
-        raw === 'pending' ||
-        raw === 'downloading' ||
-        raw === 'archiving'
-      )
-    })
+    if (!records.value.length) return
+
+    try {
+      const res = await getBatchFavoriteStatus(records.value.map(r => r.id))
+      const statuses = res.statuses || {}
+
+      for (const r of records.value) {
+        const data = statuses[String(r.id)]
+        if (data) {
+          favMap.value[r.id] = (
+            data.status === 'done' ||
+            data.status === 'pending' ||
+            data.status === 'downloading' ||
+            data.status === 'archiving'
+          )
+        } else {
+          favMap.value[r.id] = false
+        }
+      }
+    } catch (e) {
+      console.warn('[Favorite] 批量获取状态失败，降级为未收藏', e)
+      // 降级兜底：全部设为未收藏，不阻断页面渲染
+      records.value.forEach(r => {
+        favMap.value[r.id] = false
+      })
+    }
   }
 
   return {

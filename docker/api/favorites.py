@@ -1,11 +1,11 @@
 # docker/api/favorites.py
-# Phase 4a: 收藏 API — 收藏/状态查询/取消/列表
+# Phase 4a: 收藏 API — 收藏/状态查询/取消/列表/批量状态
 
 import os
-from typing import Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
@@ -17,13 +17,40 @@ _COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 router = APIRouter()
 
 
+# ════════════════════════════════════════════════════════════════
+# 依赖注入：请求级 Database 实例，避免每次请求新建连接
+# ════════════════════════════════════════════════════════════════
+
+
+def get_db():
+    """请求级 Database 依赖注入，请求结束自动关闭连接。"""
+    db = Database(get_db_path())
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ════════════════════════════════════════════════════════════════
+# Pydantic 模型
+# ════════════════════════════════════════════════════════════════
+
+
 class FavoriteCreate(BaseModel):
     record_id: int
 
 
+class BatchStatusRequest(BaseModel):
+    record_ids: List[int] = Field(..., max_length=500)
+
+
+# ════════════════════════════════════════════════════════════════
+# 内部辅助
+# ════════════════════════════════════════════════════════════════
+
+
 def _get_user_id(username: str, db: Database) -> Optional[int]:
-    cursor = db.execute("SELECT id FROM users WHERE username = ?", (username,))
-    row = cursor.fetchone()
+    row = db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
     return row["id"] if row else None
 
 
@@ -36,6 +63,7 @@ def _get_user_id(username: str, db: Database) -> Optional[int]:
 def add_favorite(
     data: FavoriteCreate,
     username: str = Depends(get_current_username),
+    db: Database = Depends(get_db),
 ):
     """收藏标准记录：仅创建收藏关系，不触发下载。
     下载由定时任务 archive_retry_service 在冷却期过后统一调度。
@@ -43,108 +71,95 @@ def add_favorite(
     等待时间：最长 28（冷却期）+ 1（cron 每日执行窗口）= 29 天。
     publish_date 当天收藏 → 首次尝试最早 D+28 04:00，最晚 D+29 04:00。
     """
+    user_id = _get_user_id(username, db)
+    if not user_id:
+        raise HTTPException(401, "用户不存在")
 
-    db = Database(get_db_path())
+    existing = db.fetchone(
+        "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
+        (user_id, data.record_id),
+    )
+    if existing:
+        return {
+            "status": "already_exists",
+            "favorite_id": existing["id"],
+            "current_status": existing["status"],
+        }
+
+    record = db.fetchone("SELECT id FROM announcement_record WHERE id = ?", (data.record_id,))
+    if not record:
+        raise HTTPException(404, "标准记录不存在")
+
+    pub_row = db.fetchone("SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,))
+    publish_date = pub_row["publish_date"] if pub_row else None
+
     try:
-        user_id = _get_user_id(username, db)
-        if not user_id:
-            raise HTTPException(401, "用户不存在")
-
         cursor = db.execute(
+            "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
+            " created_at, updated_at)"
+            " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
+            (user_id, data.record_id, publish_date),
+        )
+    except Exception:
+        existing2 = db.fetchone(
             "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
             (user_id, data.record_id),
         )
-        existing = cursor.fetchone()
-        if existing:
+        if existing2:
             return {
                 "status": "already_exists",
-                "favorite_id": existing["id"],
-                "current_status": existing["status"],
+                "favorite_id": existing2["id"],
+                "current_status": existing2["status"],
             }
+        raise HTTPException(500, "收藏失败")
 
-        cursor = db.execute("SELECT id FROM announcement_record WHERE id = ?", (data.record_id,))
-        if not cursor.fetchone():
-            raise HTTPException(404, "标准记录不存在")
-
-        pub_cursor = db.execute("SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,))
-        pub_row = pub_cursor.fetchone()
-        publish_date = pub_row["publish_date"] if pub_row else None
-
-        try:
-            cursor = db.execute(
-                "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
-                " created_at, updated_at)"
-                " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
-                (user_id, data.record_id, publish_date),
-            )
-        except Exception:
-            # 并发插入触发 UNIQUE(user_id, record_id) 约束 → 回退查现有记录
-            cursor = db.execute(
-                "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
-                (user_id, data.record_id),
-            )
-            existing2 = cursor.fetchone()
-            if existing2:
-                return {
-                    "status": "already_exists",
-                    "favorite_id": existing2["id"],
-                    "current_status": existing2["status"],
-                }
-            raise HTTPException(500, "收藏失败")
-
-        favorite_id = cursor.lastrowid
-        return {"status": "pending", "favorite_id": favorite_id}
-    finally:
-        db.close()
+    favorite_id = cursor.lastrowid
+    return {"status": "pending", "favorite_id": favorite_id}
 
 
 # ════════════════════════════════════════════════════════════════
-# 2. 查询收藏状态
+# 2. 查询收藏状态（单条）
 # ════════════════════════════════════════════════════════════════
 
 
 @router.get("/api/favorites/{record_id}/status")
-def get_favorite_status(record_id: int, username: str = Depends(get_current_username)):
-    """查询指定记录的收藏状态。
-    返回 status/favorite_id/local_path/error_message/in_cooldown/abandoned/archive_retry_count。
-    """
+def get_favorite_status(
+    record_id: int,
+    username: str = Depends(get_current_username),
+    db: Database = Depends(get_db),
+):
+    """查询指定记录的收藏状态。"""
     from datetime import date
 
-    db = Database(get_db_path())
-    try:
-        user_id = _get_user_id(username, db)
-        if not user_id:
-            raise HTTPException(401, "用户不存在")
+    user_id = _get_user_id(username, db)
+    if not user_id:
+        raise HTTPException(401, "用户不存在")
 
-        cursor = db.execute(
-            "SELECT id, status, local_path, error_message, publish_date, archive_retry_count"
-            " FROM user_favorites WHERE user_id = ? AND record_id = ?",
-            (user_id, record_id),
-        )
-        row = cursor.fetchone()
-        if not row:
-            return {"status": None, "favorite_id": None}
+    row = db.fetchone(
+        "SELECT id, status, local_path, error_message, publish_date, archive_retry_count"
+        " FROM user_favorites WHERE user_id = ? AND record_id = ?",
+        (user_id, record_id),
+    )
+    if not row:
+        return {"status": None, "favorite_id": None}
 
-        # 冷却期：publish_date 存在且距今不足 _COOLDOWN_DAYS 天
-        in_cooldown = False
-        if row["publish_date"]:
-            try:
-                pub = date.fromisoformat(row["publish_date"])
-                in_cooldown = (date.today() - pub).days < _COOLDOWN_DAYS
-            except (ValueError, TypeError):
-                pass
+    in_cooldown = False
+    if row["publish_date"]:
+        try:
+            pub = date.fromisoformat(row["publish_date"])
+            in_cooldown = (date.today() - pub).days < _COOLDOWN_DAYS
+        except (ValueError, TypeError):
+            pass
 
-        return {
-            "status": row["status"],
-            "favorite_id": row["id"],
-            "local_path": row["local_path"],
-            "error_message": row["error_message"],
-            "in_cooldown": in_cooldown,
-            "abandoned": row["status"] == "abandoned",
-            "archive_retry_count": row["archive_retry_count"] or 0,
-        }
-    finally:
-        db.close()
+    return {
+        "status": row["status"],
+        "favorite_id": row["id"],
+        "local_path": row["local_path"],
+        "error_message": row["error_message"],
+        "in_cooldown": in_cooldown,
+        "abandoned": row["status"] == "abandoned",
+        "archive_retry_count": row["archive_retry_count"] or 0,
+    }
 
 
 # ════════════════════════════════════════════════════════════════
@@ -153,55 +168,39 @@ def get_favorite_status(record_id: int, username: str = Depends(get_current_user
 
 
 @router.delete("/api/favorites/{record_id}")
-def remove_favorite(record_id: int, username: str = Depends(get_current_username)):
-    """取消收藏：按状态分级处理。
+def remove_favorite(
+    record_id: int,
+    username: str = Depends(get_current_username),
+    db: Database = Depends(get_db),
+):
+    """取消收藏：按状态分级处理。"""
+    user_id = _get_user_id(username, db)
+    if not user_id:
+        raise HTTPException(401, "用户不存在")
 
-    - pending/failed/abandoned → 直接删除
-    - downloading/archiving    → 标记 cancelled（无法中断已启动的 download_to_inbox）
-    - done                     → 仅删除收藏记录，不删除已归档文件
-    """
-    db = Database(get_db_path())
-    try:
-        user_id = _get_user_id(username, db)
-        if not user_id:
-            raise HTTPException(401, "用户不存在")
+    row = db.fetchone(
+        "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
+        (user_id, record_id),
+    )
+    if not row:
+        raise HTTPException(404, "收藏记录不存在")
 
-        cursor = db.execute(
-            "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
-            (user_id, record_id),
+    fav_status = row["status"]
+    if fav_status in ("pending", "failed", "abandoned"):
+        db.execute("DELETE FROM user_favorites WHERE id = ?", (row["id"],))
+        return {"status": "removed"}
+    elif fav_status in ("downloading", "archiving"):
+        db.execute(
+            "UPDATE user_favorites SET status = 'cancelled', updated_at = datetime('now') WHERE id = ?",
+            (row["id"],),
         )
-        row = cursor.fetchone()
-        if not row:
-            raise HTTPException(404, "收藏记录不存在")
-
-        fav_status = row["status"]
-        if fav_status in ("pending", "failed", "abandoned"):
-            db.execute(
-                "DELETE FROM user_favorites WHERE id = ?",
-                (row["id"],),
-            )
-            return {"status": "removed"}
-        elif fav_status in ("downloading", "archiving"):
-            db.execute(
-                "UPDATE user_favorites SET status = 'cancelled', updated_at = datetime('now') WHERE id = ?",
-                (row["id"],),
-            )
-            return {"status": "cancelled", "note": "下载任务已在执行中，无法立即中断，已标记取消"}
-        elif fav_status == "done":
-            db.execute(
-                "DELETE FROM user_favorites WHERE id = ?",
-                (row["id"],),
-            )
-            return {"status": "removed", "note": "已归档文件保留在标准库中"}
-        else:
-            # cancelled 等其余状态直接删除
-            db.execute(
-                "DELETE FROM user_favorites WHERE id = ?",
-                (row["id"],),
-            )
-            return {"status": "removed"}
-    finally:
-        db.close()
+        return {"status": "cancelled", "note": "下载任务已在执行中，无法立即中断，已标记取消"}
+    elif fav_status == "done":
+        db.execute("DELETE FROM user_favorites WHERE id = ?", (row["id"],))
+        return {"status": "removed", "note": "已归档文件保留在标准库中"}
+    else:
+        db.execute("DELETE FROM user_favorites WHERE id = ?", (row["id"],))
+        return {"status": "removed"}
 
 
 # ════════════════════════════════════════════════════════════════
@@ -210,35 +209,64 @@ def remove_favorite(record_id: int, username: str = Depends(get_current_username
 
 
 @router.get("/api/favorites")
-def list_favorites(username: str = Depends(get_current_username), status: Optional[str] = None):
-    """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。
+def list_favorites(
+    username: str = Depends(get_current_username),
+    status: Optional[str] = None,
+    db: Database = Depends(get_db),
+):
+    """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。"""
+    user_id = _get_user_id(username, db)
+    if not user_id:
+        raise HTTPException(401, "用户不存在")
 
-    返回 user_favorites 与 announcement_record 的 JOIN 结果，含标准号、名称等信息。
-    """
-    db = Database(get_db_path())
-    try:
-        user_id = _get_user_id(username, db)
-        if not user_id:
-            raise HTTPException(401, "用户不存在")
+    sql = (
+        "SELECT f.id, f.user_id, f.record_id, f.status, f.local_path,"
+        " f.error_message, f.created_at, f.updated_at,"
+        " r.standard_number, r.std_name, r.announce_no"
+        " FROM user_favorites f"
+        " JOIN announcement_record r ON f.record_id = r.id"
+        " WHERE f.user_id = ?"
+    )
+    params: list = [user_id]
 
-        sql = (
-            "SELECT f.id, f.user_id, f.record_id, f.status, f.local_path,"
-            " f.error_message, f.created_at, f.updated_at,"
-            " r.standard_number, r.std_name, r.announce_no"
-            " FROM user_favorites f"
-            " JOIN announcement_record r ON f.record_id = r.id"
-            " WHERE f.user_id = ?"
-        )
-        params: list = [user_id]
+    if status:
+        sql += " AND f.status = ?"
+        params.append(status)
 
-        if status:
-            sql += " AND f.status = ?"
-            params.append(status)
+    sql += " ORDER BY f.created_at DESC"
 
-        sql += " ORDER BY f.created_at DESC"
+    rows = db.fetchall(sql, params)
+    return {"favorites": [dict(r) for r in rows]}
 
-        cursor = db.execute(sql, params)
-        rows = cursor.fetchall()
-        return {"favorites": [dict(r) for r in rows]}
-    finally:
-        db.close()
+
+# ════════════════════════════════════════════════════════════════
+# 5. 批量查询收藏状态（替代 N 次单条查询）
+# ════════════════════════════════════════════════════════════════
+
+
+@router.post("/api/favorites/batch-status")
+def batch_get_favorite_status(
+    req: BatchStatusRequest,
+    username: str = Depends(get_current_username),
+    db: Database = Depends(get_db),
+):
+    """批量查询多条记录的收藏状态，单次 SQL 替代 N+1 问题。"""
+    if not req.record_ids:
+        return {"statuses": {}}
+
+    user_id = _get_user_id(username, db)
+    if not user_id:
+        raise HTTPException(401, "用户不存在")
+
+    placeholders = ",".join(["?"] * len(req.record_ids))
+    sql = f"SELECT record_id, id, status FROM user_favorites WHERE user_id = ? AND record_id IN ({placeholders})"
+    rows = db.fetchall(sql, (user_id, *req.record_ids))
+
+    result: Dict[str, Optional[dict]] = {str(rid): None for rid in req.record_ids}
+    for row in rows:
+        result[str(row["record_id"])] = {
+            "favorite_id": row["id"],
+            "status": row["status"],
+        }
+
+    return {"statuses": result}
