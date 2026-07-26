@@ -146,6 +146,93 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
 
 # ════════════════════════════════════════════════════════════════
+# 1a. 获取公告详情（轻量版 — 裁剪 DataTable 冗余字段）
+# ════════════════════════════════════════════════════════════════
+
+
+@router.get("/api/announcements/{announce_no}/lite")
+def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep)):
+    """轻量版详情：records 仅返回 DataTable 必需的 9 个字段，省略 confidence/source_type/created_at/updated_at。"""
+    db = mgr.db
+
+    ann = db.fetchone(
+        "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
+        " COALESCE(parse_status, 'pending') AS parse_status"
+        " FROM announcements WHERE announce_no = ?",
+        (announce_no,),
+    )
+
+    if ann:
+        title = ann["title"] or ""
+        publish_date = ann["publish_date"] or ""
+        source_url = ann["source_url"] or ""
+        attachment_url = ann["attachment_url"] or ""
+        content = ann["raw_data"] or ""
+        db_parse_status = ann["parse_status"] or "pending"
+    else:
+        header = db.fetchone(
+            "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
+            " MAX(publish_date) AS publish_date"
+            " FROM announcement_record WHERE announce_no = ?"
+            " GROUP BY announce_no",
+            (announce_no,),
+        )
+        if not header:
+            raise HTTPException(404, "公告不存在")
+        title = header["title"] or ""
+        publish_date = header["publish_date"] or ""
+        source_url = ""
+        attachment_url = ""
+        content = ""
+        db_parse_status = "pending"
+
+    # 字段白名单：仅查询 DataTable 渲染必需的列 + source_type（聚合统计用）
+    records = db.fetchall(
+        "SELECT id, row_index, standard_number, std_name,"
+        " publish_date, implement_date, expiry_date, superseded_by, status, source_type"
+        " FROM announcement_record"
+        " WHERE announce_no = ?"
+        " ORDER BY row_index",
+        (announce_no,),
+    )
+
+    parse_status = db_parse_status if records else "pending"
+
+    source_types = [r["source_type"] for r in records if r.get("source_type")]
+    dominant_source_type = max(set(source_types), key=source_types.count) if source_types else ""
+
+    return {
+        "announcement": {
+            "id": hash(announce_no) & 0x7FFFFFFF,
+            "announce_no": announce_no,
+            "title": title,
+            "publish_date": publish_date,
+            "source_url": source_url,
+            "attachment_url": attachment_url,
+            "site_name": get_site_name(source_url),
+            "content": content,
+            "source": SOURCE_MAP.get(ann["source_site"], "") if ann else "",
+            "source_type": dominant_source_type,
+        },
+        "records": [
+            {
+                "id": r["id"],
+                "row_index": r["row_index"] or 0,
+                "standard_number": r["standard_number"] or "",
+                "std_name": r["std_name"] or "",
+                "publish_date": r["publish_date"] or "",
+                "implement_date": r["implement_date"] or "",
+                "expiry_date": r["expiry_date"] or "",
+                "superseded_by": r["superseded_by"] or "",
+                "status": r["status"] or "draft",
+            }
+            for r in records
+        ],
+        "parse_status": parse_status,
+    }
+
+
+# ════════════════════════════════════════════════════════════════
 # 1b. 按公告编号查询所有来源（旧链接兼容）
 # ════════════════════════════════════════════════════════════════
 

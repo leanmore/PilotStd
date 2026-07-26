@@ -5,7 +5,7 @@ import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import DOMPurify from 'dompurify'
 import {
-  getAnnouncementDetail,
+  getAnnounceDetailLite,
   triggerParse,
   getParseStatus,
   updateRecord,
@@ -64,8 +64,40 @@ const parseButtonDisabled = computed(() => {
 })
 
 const sanitizedContent = computed(() => {
-  return DOMPurify.sanitize(announcement.value?.content || '')
+  const raw = DOMPurify.sanitize(announcement.value?.content || '')
+  return fixAnnounceHeadings(raw)
 })
+
+/**
+ * 前端兜底修正：将后端误分类为 announce-body 的标题/文号行
+ * 替换为 announce-heading，使其应用居中加粗样式。
+ */
+function fixAnnounceHeadings(html: string): string {
+  const fixedTitles = [
+    '中华人民共和国国家标准',
+    '行业标准公告',
+    '行业标准备案公告',
+    '地方标准公告',
+  ]
+
+  let result = html
+
+  for (const title of fixedTitles) {
+    const pattern = new RegExp(
+      `<p class="announce-body">${title}</p>`,
+      'g'
+    )
+    result = result.replace(pattern, `<p class="announce-heading">${title}</p>`)
+  }
+
+  // 动态文号：如 "2025年第8号"、"2024年第12号"
+  result = result.replace(
+    /<p class="announce-body">(\d{4}年第\d+号)<\/p>/g,
+    '<p class="announce-heading">$1</p>'
+  )
+
+  return result
+}
 
 async function loadDetail() {
   // 1. 优先读 sessionStorage 缓存
@@ -82,7 +114,7 @@ async function loadDetail() {
   // 2. 缓存未命中，正常请求
   loading.value = true
   try {
-    const res = await getAnnouncementDetail(announceNo, source)
+    const res = await getAnnounceDetailLite(announceNo, source)
     announcement.value = res.announcement
     records.value = res.records || []
     parseStatus.value = res.parse_status || 'pending'
@@ -409,12 +441,12 @@ onMounted(loadDetail)
   color: var(--text);
 }
 
-/* 公告标题行 — 居中、无缩进、加粗 */
-.doc-content :deep(.announce-heading) {
+/* v-html 注入内容的标题居中 — 仅作用于 official-doc 容器内 */
+:deep(.official-doc .announce-heading) {
   text-align: center;
+  font-weight: 700;
   text-indent: 0;
-  font-weight: bold;
-  margin-bottom: 1em;
+  margin-bottom: 0.5em;
 }
 
 /* 正文段落 — 两端对齐、首行缩进 */

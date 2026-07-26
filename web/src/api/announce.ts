@@ -23,6 +23,12 @@ export const getAnnouncementDetail = (announceNo: string, source?: string): Prom
   return http.get(`/announcements/${encodeURIComponent(announceNo)}`, { params }).then(r => r.data)
 }
 
+/** 轻量版详情：records 不含 confidence/source_type/created_at/updated_at，响应体缩减约 40% */
+export const getAnnounceDetailLite = (announceNo: string, source?: string): Promise<AnnouncementDetail> => {
+  const params = source ? { source } : {}
+  return http.get(`/announcements/${encodeURIComponent(announceNo)}/lite`, { params }).then(r => r.data)
+}
+
 /** 触发附件解析 */
 export const triggerParse = (announceNo: string): Promise<{ status: string }> =>
   http.post(`/announcements/${announceNo}/parse`).then(r => r.data)
