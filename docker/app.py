@@ -39,6 +39,7 @@ from .api.query import router as query_router
 from .api.scan import router as scan_router
 from .api.scheduler import router as scheduler_router
 from .api.settings import router as settings_router
+from .api.standards import router as standards_router
 from .api.stats import router as stats_router
 from .api.system import router as system_router
 from .api.tasks import router as tasks_router
@@ -218,6 +219,7 @@ app.include_router(download_router)
 app.include_router(scan_router)
 app.include_router(organize_router)
 app.include_router(archive_router)
+app.include_router(standards_router)
 app.include_router(stats_router)
 app.include_router(normalize_router)
 
