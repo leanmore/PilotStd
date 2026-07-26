@@ -11,7 +11,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
   async function getAll(): Promise<Record<string, unknown>> {
     loading.value = true
     try {
-      const r = await http.get('/api/user-preference')
+      const r = await http.get('/user-preference')
       const data = r.data?.data || {}
       cache.value = { ...data }
     } catch { /* 后端不可用 */ }
@@ -29,7 +29,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
   async function set(key: string, value: unknown): Promise<void> {
     cache.value[key] = value
     try {
-      await http.patch('/api/user-preference', { updates: cache.value })
+      await http.patch('/user-preference', { updates: cache.value })
       pendingSync.value[key] = false
     } catch {
       pendingSync.value[key] = true
@@ -41,7 +41,7 @@ export const usePreferencesStore = defineStore('preferences', () => {
       cache.value[k] = v
     }
     try {
-      await http.patch('/api/user-preference', { updates: cache.value })
+      await http.patch('/user-preference', { updates: cache.value })
     } catch {
       for (const k of Object.keys(preferences)) pendingSync.value[k] = true
     }
@@ -50,13 +50,13 @@ export const usePreferencesStore = defineStore('preferences', () => {
   async function remove(key: string): Promise<void> {
     delete cache.value[key]
     try {
-      await http.patch('/api/user-preference', { updates: cache.value })
+      await http.patch('/user-preference', { updates: cache.value })
     } catch { /* ignore */ }
   }
 
   async function resetAll(): Promise<void> {
     try {
-      await http.delete('/api/user-preference')
+      await http.delete('/user-preference')
       cache.value = {}
       pendingSync.value = {}
     } catch { /* ignore */ }
