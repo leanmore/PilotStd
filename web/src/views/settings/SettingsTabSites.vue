@@ -37,7 +37,7 @@ let original: SiteConfig[] = []
 async function loadSites() {
   loading.value = true; errMsg.value = ''
   try {
-    const r = await http.get('/api/settings/sites')
+    const r = await http.get('/settings/sites')
     sites.value = (r.data.sites || []).map((s: any) => ({
       ...s,
       coolingSeconds: s.cooling_seconds ?? 600,
@@ -65,7 +65,7 @@ async function updateSite(site: SiteConfig) {
       site.coolingSeconds === orig.coolingSeconds
     ) return
     try {
-      await http.put(`/api/settings/sites/${site.name}`, {
+      await http.put(`/settings/sites/${site.name}`, {
         window_limit: site.maxRequests,
         daily_limit: site.dailyLimit,
         cooling_seconds: site.coolingSeconds,
