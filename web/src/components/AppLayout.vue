@@ -183,7 +183,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         @click="router.back()"
         aria-label="返回列表"
       >
-        <i class="pi pi-reply" />
+        <i class="pi pi-undo" />
       </button>
 
       <!-- 模式2：首页 — 展开菜单 -->
@@ -428,6 +428,12 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 .floating-workspace-btn i { line-height: 1; }
+
+/* 返回图标加粗 — 仅作用于悬浮按钮内的 undo 图标 */
+.floating-workspace-btn .pi-undo {
+  font-weight: 700;
+  -webkit-text-stroke: 0.6px currentColor;
+}
 .floating-workspace-btn:focus-visible {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;

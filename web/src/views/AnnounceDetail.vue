@@ -216,7 +216,7 @@ onMounted(loadDetail)
             <span class="flex-1 text-center truncate px-2 text-xl font-semibold">{{ announcement?.announce_no }}</span>
             <Tag :value="parseStatusLabel" :severity="parseStatusSeverity" />
             <Button
-              icon="pi pi-reply"
+              icon="pi pi-undo"
               aria-label="返回列表"
               class="p-button-text p-button-rounded ml-3"
               @click="$router.back()"

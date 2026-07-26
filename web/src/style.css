@@ -358,6 +358,12 @@ h4 {
   font-size: 14px;
 }
 
+/* 返回图标加粗 — 仅作用于详情页标题栏返回按钮（p-button-text + p-button-rounded 组合） */
+.p-button-text.p-button-rounded .pi-undo {
+  font-weight: 700;
+  -webkit-text-stroke: 0.6px currentColor;
+}
+
 .p-button .p-button-label {
   font-weight: 500;
 }
