@@ -1,0 +1,16 @@
+name: Governance Docs Check
+
+on:
+  pull_request:
+    paths:
+      - 'docs/governance/**'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run governance check script
+        run: bash scripts/check_governance_docs.sh

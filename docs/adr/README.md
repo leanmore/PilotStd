@@ -15,9 +15,26 @@
 | 004 | [ADR-004](ADR-004-io-isolation.md) | I/O 隔离模式（零 I/O + 显式时间注入） | 2026-07-16 | ✅ |
 | 005 | [ADR-005](ADR-005-event-bus.md) | EventBus 事件总线重构 | 2026-07-16 | ✅ |
 | 006 | [ADR-006](ADR-006-ui-hold-strategy.md) | 纯 UI 编排文件维持策略 | 2026-07-16 | ✅ |
+| 007 | [ADR-007](ADR-007-favorite-archive-decouple.md) | 收藏与归档解耦 | 2026-Q1→Q3 | ♻ 已修订(v44) |
+| 008 | — | 首页公告三栏分类 | 2026-Q2 | ✅ |
+| 009 | — | CronTrigger 替代间隔式时效性调度 | 2026-Q3 | ✅ |
 
----
+## ADR-007 演进链
 
+### 原方案（2026-Q1）：时间维度解耦
+- 收藏不触发即时下载，由定时任务异步执行
+- 所有状态存于 `user_favorites` 单表
+- 问题：状态耦合（6/7 状态值描述归档），重试失败，扩展困难
+
+### 修订（2026-Q3, v44）：表级彻底解耦
+- 新建 `favorite_downloads` 表独立承载归档状态机 [src: `_migrate_v44.py`]
+- `user_favorites` 回归纯粹收藏语义（pending/cancelled）
+- 三个服务文件改造为操作 `favorite_downloads` [src: `favorite_download.py`, `archive_retry_service.py`, `date_reminder.py`]
+
+### ADR-009：CronTrigger 时效性调度
+- **原方案缺陷**：5分钟轮询 + next_run 手动计算，99% 唤醒无效；时区不一致
+- **新方案**：`CronTrigger(day_of_week, hour, minute, timezone=timezone.utc)` [src: `docker/scheduler.py:286`]
+- **关键**：`reschedule_validity_job()` 配置变更后即时生效，无需重启
 ## 关联文档
 
 - [架构决策摘要](../architecture.md) — 历史决策 + 快速参考
