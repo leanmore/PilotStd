@@ -73,7 +73,7 @@
 | Job | 命令 | 超时 | 重试 |
 |-----|------|------|------|
 | `test-e2e` | `pytest tests/gui/ -m e2e -v --maxfail=1` | 10 min | 1 次 |
-| `test-unit-cov` | `pytest tests/gui/ --ignore-glob="*test_e2e*.py"` + `coverage report --include="*flow_engine*" --fail-under=85` | 5 min | 不重试 |
+| `test-unit-cov` | `pytest tests/gui/ --ignore-glob="*test_e2e*.py"` + `coverage report --include="*flow_engine*" --fail-under=85` | 25 min (985 tests on windows-2025-vs2026) | 不重试 |
 
 ### 门禁规则
 

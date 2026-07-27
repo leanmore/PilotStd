@@ -175,7 +175,7 @@ class TestEnergyAdapter(unittest.TestCase):
     # ── 分页兜底 ──
 
     def test_pagination_warning(self):
-        """total > len(rows) 时发出 warning 日志。"""
+        """翻页结果不完整时发出 warning 日志（v2.1: 适配翻页循环后的新警告格式）。"""
         overflow_data = {"total": 50, "rows": [{"stdCode": "NB/T 10456-2021", "stdName": "测试"}]}
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -183,12 +183,14 @@ class TestEnergyAdapter(unittest.TestCase):
         self.a._client.get = MagicMock(return_value=mock_resp)
         with patch("pilotstd.query.adapters.energy.logger.warning") as mock_warn:
             results = self.a._search_candidates("NB")
+            # 翻页循环：首页返回 1 条（< PAGE_SIZE）→ 循环退出，仅 1 条结果
             self.assertEqual(len(results), 1)
             mock_warn.assert_called_once()
-            # logger.warning(msg, total, limit, len_rows) → args[0] 是 msg，args[1:] 是参数
-            self.assertEqual(mock_warn.call_args[0][1], 50)
-            self.assertEqual(mock_warn.call_args[0][2], 15)
-            self.assertEqual(mock_warn.call_args[0][3], 1)
+            # 新警告格式: "energy 搜索结果 %d 条超出最大翻页数 %d 页（已获取 %d/%d）"
+            self.assertEqual(mock_warn.call_args[0][1], 50)  # total_seen
+            # PAGE_SIZE=15 为局部变量无模块级常量可引用，见 v2.1 §4.7
+            self.assertEqual(mock_warn.call_args[0][3], 1)  # len(all_rows)
+            self.assertEqual(mock_warn.call_args[0][4], 50)  # total_seen
 
 
 if __name__ == "__main__":

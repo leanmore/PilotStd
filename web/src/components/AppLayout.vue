@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useDashboard } from '@/composables/useDashboard'
+import { SUPERUSER_USERNAME } from '@/config'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
@@ -27,7 +28,7 @@ const store = useAppStore()
   const navItems = computed(() => {
     const items = router.getRoutes()
       .filter((r: any) => r.meta.showInSidebar && !r.path.startsWith('/__action/'))
-      .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
+      .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === SUPERUSER_USERNAME)
       .sort((a: any, b: any) => (a.meta.sidebarOrder || 99) - (b.meta.sidebarOrder || 99))
       .map((r: any) => ({
         label: r.meta.titleKey ? t(r.meta.titleKey) : (r.meta.title || r.path),

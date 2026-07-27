@@ -41,6 +41,11 @@ _FRONTEND_PATTERNS: list[tuple[str, str, set[str]]] = [
 
 EXCLUDE_DIRS = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", ".venv", "venv"}
 
+# G-028: 唯一允许包含 'admin' 字面量的文件（常量定义点本身）
+WHITELIST_FILES = {
+    "web/src/config/index.ts",
+}
+
 
 def _is_comment(line: str, ext: str) -> bool:
     """根据文件扩展名判断当前行是否为注释行。"""
@@ -83,6 +88,10 @@ def main() -> int:
             except Exception:
                 continue
 
+            rel_path = str(file_path.relative_to(ROOT)).replace("\\", "/")
+            if rel_path in WHITELIST_FILES:
+                continue
+
             in_docstring = False  # Python 三引号文档字符串追踪
             for i, line in enumerate(lines, 1):
                 # 跳过注释和文档字符串
@@ -108,7 +117,7 @@ def main() -> int:
                         var = re.search(r"([A-Z_]+)\s*:\s*['\"]?admin['\"]?", line)
                         if var and var.group(1) == "SUPERUSER":
                             continue
-                    print(f"FAIL: {file_path.relative_to(ROOT)}:{i}: {desc} → {line.strip()}")
+                    print(f"FAIL: {rel_path}:{i}: {desc} → {line.strip()}")
                     found += 1
 
     if found:

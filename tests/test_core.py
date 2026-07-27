@@ -994,14 +994,16 @@ class TestDbConstants(unittest.TestCase):
     """MIGRATIONS 注册表与 CURRENT_SCHEMA_VERSION 一致性。"""
 
     def test_current_schema_ge_max_migration(self):
-        """CURRENT_SCHEMA_VERSION 至少等于 MIGRATIONS 中最大版本号。"""
+        """CURRENT_SCHEMA_VERSION 严格等于 MIGRATIONS 中最大版本号（v2.1 §4.6 契约精确性）。"""
         from pilotstd.core.db._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS
 
-        max_migration = max(MIGRATIONS.keys()) if MIGRATIONS else 0
-        self.assertGreaterEqual(
+        assert MIGRATIONS, "MIGRATIONS 字典不应为空，请检查迁移模块导入"
+        max_version = max(MIGRATIONS.keys())
+        self.assertEqual(
             CURRENT_SCHEMA_VERSION,
-            max_migration,
-            f"CURRENT_SCHEMA_VERSION={CURRENT_SCHEMA_VERSION} 应 >= 最大迁移版本 {max_migration}",
+            max_version,
+            f"CURRENT_SCHEMA_VERSION={CURRENT_SCHEMA_VERSION} 应 == 最大迁移版本 {max_version}，"
+            f"使用 >= 会掩盖常量超前于迁移脚本的严重同步错误",
         )
 
     def test_migration_decorator_registers_in_migrations(self):

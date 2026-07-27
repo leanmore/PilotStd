@@ -234,7 +234,8 @@ jobs:
   # ════════════════════════════════════════════════════════════════
   test-unit-cov:
     runs-on: windows-latest
-    timeout-minutes: 10
+    # G-CI-003: 985 tests ≈ 18min on windows-2025-vs2026, 25min with safety margin
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
