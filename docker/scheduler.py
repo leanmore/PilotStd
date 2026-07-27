@@ -4,6 +4,7 @@ import os
 import threading
 import time
 from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -14,6 +15,9 @@ from pilotstd.core.db import Database
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
+
+# ✅ #43: Job ID 提取为模块级常量
+_VALIDITY_JOB_ID = "validity_check"
 
 # 调度器互斥锁：多 worker 部署时，只有一个能抢到锁并启动调度器
 _HEARTBEAT_INTERVAL = 30  # 心跳间隔（秒）
@@ -276,6 +280,22 @@ def start_scheduler():
     _add_interval_job("notification_cleanup", cleanup_interval * 3600)
     # 静音时段补发：每 5 分钟检查一次
     _add_interval_job("release_suppressed", 300)
+
+    # ✅ #43: 注册时效性检查 CronTrigger 调度任务
+    v_kwargs = _get_validity_cron_kwargs()
+    scheduler.add_job(
+        _check_validity_schedule,
+        trigger=CronTrigger(timezone=timezone.utc, **v_kwargs),
+        id=_VALIDITY_JOB_ID,
+        replace_existing=True,
+    )
+    logger.info(
+        "已注册 validity_check: CronTrigger(day_of_week=%d, hour=%d, minute=%d UTC)",
+        v_kwargs["day_of_week"],
+        v_kwargs["hour"],
+        v_kwargs["minute"],
+    )
+
     scheduler.start()
     _heartbeat_stop.clear()
     threading.Thread(target=_heartbeat_loop, daemon=True, name="scheduler-heartbeat").start()
@@ -283,60 +303,73 @@ def start_scheduler():
 
 
 def _check_validity_schedule(notification_mgr=None, adapter_mgr=None):
-    """APScheduler 唤醒函数：检查是否到了 validity 执行时间。"""
-    import math
-    from datetime import datetime, timedelta
+    """APScheduler CronTrigger 唤醒函数：直接执行时效性检查。
 
-    config = ConfigManager()
-    first_execution_str = config.get("validity.first_execution")
-    next_run_str = config.get("validity.next_run")
-    round_completed = config.get("validity.round_completed", False)
-
-    if first_execution_str is None:
-        return
-
-    if round_completed:
-        config.set("validity.round_completed", False)
-        config.set("validity.checked_count", 0)
-        now = datetime.now()
-        config.set("validity.next_run", (now + timedelta(minutes=1)).isoformat())
-        config.save()
-        logger.info("validity 轮次完成，自动重置，下一轮将于 1 分钟后开始")
-        return
-
-    now = datetime.now()
-
-    if next_run_str is None:
-        try:
-            first_execution = datetime.fromisoformat(first_execution_str)
-        except (ValueError, TypeError):
-            logger.warning("validity.first_execution 格式无效: %s", first_execution_str)
-            return
-        if now < first_execution:
-            return
-    else:
-        try:
-            next_run = datetime.fromisoformat(next_run_str)
-        except (ValueError, TypeError):
-            logger.warning("validity.next_run 格式无效: %s", next_run_str)
-            return
-        if now < next_run:
-            return
-
+    ✅ #43: 使用 CronTrigger 替代 5 分钟轮询 + next_run 比较。
+    调度频率由 CronTrigger(day_of_week, hour, minute) 控制，
+    此函数每次被唤醒即执行一次检查。
+    """
     from pilotstd.core.validity_checker import run_validity_check
+
+    # ✅ #43: 统一使用 timezone.utc
+    config = ConfigManager()
+    now_utc = datetime.now(timezone.utc)
+
+    # 记录首次执行时间（如果未设置）
+    first_execution = config.get("validity.first_execution")
+    if first_execution is None:
+        config.set("validity.first_execution", now_utc.isoformat())
+        config.save()
 
     run_validity_check(notification_mgr=notification_mgr, update_counters=True, adapter_mgr=adapter_mgr)
 
-    check_ratio = config.get("validity.check_ratio", 25)
-    total_weeks = config.get("validity.total_weeks", 4)
-    total_runs = math.ceil(100 / check_ratio)
-    total_days = total_weeks * 7
-    interval_days = math.ceil(total_days / total_runs)
-
-    next_dt = now + timedelta(days=interval_days)
-    config.set("validity.next_run", next_dt.isoformat())
+    # 更新下次预计执行时间（日志展示用）
+    next_job = scheduler.get_job(_VALIDITY_JOB_ID)
+    if next_job:
+        next_fire = next_job.next_run_time
+        if next_fire:
+            config.set("validity.next_run", next_fire.isoformat())
     config.save()
-    logger.info("validity 下次执行时间: %s（间隔 %d 天）", next_dt.isoformat(), interval_days)
+    logger.info("validity 检查完成，下次执行时间: %s", config.get("validity.next_run"))
+
+
+# 注册时效性检查任务执行函数
+register_job_func(_VALIDITY_JOB_ID, _check_validity_schedule)
+
+
+def _get_validity_cron_kwargs():
+    """从配置读取时效性检查的 CronTrigger 参数。"""
+    config = ConfigManager()
+    weekday_1_7 = int(config.get("validity.first_weekday", 1))
+    # ✅ #43: APScheduler day_of_week: 0=Monday, 6=Sunday；前端传入 1=Monday, 7=Sunday
+    day_of_week = max(0, min(6, weekday_1_7 - 1))
+    execute_time = config.get("validity.execute_time", "03:00")
+    try:
+        hour, minute = map(int, execute_time.split(":"))
+    except (ValueError, TypeError):
+        hour, minute = 3, 0
+    return {"day_of_week": day_of_week, "hour": hour, "minute": minute}
+
+
+def reschedule_validity_job():
+    """✅ #43: 配置变更后更新调度器 CronTrigger。异常向上抛出，由调用方处理。"""
+    kwargs = _get_validity_cron_kwargs()
+    trigger = CronTrigger(timezone=timezone.utc, **kwargs)
+    if scheduler.get_job(_VALIDITY_JOB_ID):
+        scheduler.reschedule_job(_VALIDITY_JOB_ID, trigger=trigger)
+    else:
+        scheduler.add_job(
+            _check_validity_schedule,
+            trigger=trigger,
+            id=_VALIDITY_JOB_ID,
+            replace_existing=True,
+        )
+    logger.info(
+        "validity 调度已更新: day_of_week=%d, %02d:%02d UTC",
+        kwargs["day_of_week"],
+        kwargs["hour"],
+        kwargs["minute"],
+    )
 
 
 def stop_scheduler():

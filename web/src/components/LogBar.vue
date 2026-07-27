@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'LogBar' })
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { getItem, setItem } from '@/lib/storage'
@@ -39,6 +39,8 @@ const logHeight = ref(
 
 // 用户手动滚离顶部时置 true，暂停自动滚动
 const userScrolled = ref(false)
+// ✅ #45: 滚动阈值常量（原硬编码 50）
+const SCROLL_THRESHOLD = 50
 let timer: ReturnType<typeof setInterval> | null = null
 let startY = 0
 let startHeight = 0
@@ -50,8 +52,8 @@ function lineHash(l: string): string {
 
 function onScroll() {
   if (!container.value) return
-  // 用户向上滚动超过 50px → 锁定；滚回顶部 → 解锁
-  userScrolled.value = container.value.scrollTop > 50
+  // 用户向上滚动超过阈值 → 锁定；滚回顶部 → 解锁
+  userScrolled.value = container.value.scrollTop > SCROLL_THRESHOLD
 }
 
 async function fetchLogs() {
@@ -91,7 +93,15 @@ onMounted(() => {
   fetchLogs()
   timer = setInterval(fetchLogs, 3000)
 })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+// ✅ #45: onBeforeUnmount 防御性清理拖拽监听器 + 定时器
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+})
 
 watch(() => props.refreshKey, () => {
   // 手动刷新：清空游标重新加载

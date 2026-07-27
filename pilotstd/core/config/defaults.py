@@ -91,15 +91,18 @@ FACTORY_DEFAULTS = {
     "adapter.circuit_breaker.reset_window_hours": 24,
     "validity.first_execution": None,
     "validity.total_weeks": 4,
+    "validity.frequency_weeks": 1,  # ✅ #43: 执行频率（周），≥1
+    "validity.first_weekday": 1,  # ✅ #43: 首次执行周几（1=周一, 7=周日）
+    "validity.execute_time": "03:00",  # ✅ #43: 首次执行时间（HH:MM），调度器使用
     "validity.next_run": None,
     "validity.checked_count": 0,
     "validity.round_completed": False,
     "validity.batch_size": 50,
     "validity.batch_interval": 5,
     "validity.check_ratio": 25,
-    "validity.frequency": "weekly",
-    "validity.execute_time": "03:00",
-    "validity.update_interval": 28,
+    # ── 已废弃字段（兼容旧前端）──
+    "validity.frequency": "weekly",  # @deprecated 已废弃，用 frequency_weeks 替代
+    "validity.update_interval": 28,  # @deprecated 已废弃，用 total_weeks 替代
     # ── Phase 4b: 日期提醒 ──
     "tasks.date_reminder_enabled": False,
     "tasks.date_reminder_cron": "0 2 * * *",

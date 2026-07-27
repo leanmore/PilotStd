@@ -1,16 +1,40 @@
 <script setup lang="ts">
 defineOptions({ name: 'RecentAnnounceCard' })
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getAnnounceResults } from '@/api'
+import type { AnnounceItem } from '@/types/api'
 
-const list = ref<any[]>([])
+const announcements = ref<AnnounceItem[]>([])
 const loading = ref(true)
+
+// ✅ #47: 类型标签（使用 sourceMapping 已有关键词）
+const typeLabels: Record<string, string> = {
+  gb: '国家公告',
+  hb: '行业公告',
+  db: '地方公告',
+  other: '其他公告',
+}
+
+// ✅ #47: 按 standard_type 分组，每类取最新 3 条
+const groupedAnnouncements = computed(() => {
+  const groups: Record<string, AnnounceItem[]> = { gb: [], hb: [], db: [], other: [] }
+  announcements.value.forEach(item => {
+    const key = item.standard_type || 'other'
+    if (groups[key]) groups[key].push(item)
+  })
+  return {
+    gb: groups.gb.slice(0, 3),
+    hb: groups.hb.slice(0, 3),
+    db: groups.db.slice(0, 3),
+    other: groups.other.slice(0, 3),
+  }
+})
 
 onMounted(async () => {
   try {
     const data = await getAnnounceResults()
-    list.value = (data.results || []).slice(0, 6)
-  } catch { list.value = [] }
+    announcements.value = data.results || []
+  } catch { announcements.value = [] }
   finally { loading.value = false }
 })
 </script>
@@ -28,18 +52,31 @@ onMounted(async () => {
     </div>
 
     <div v-if="loading" class="empty">加载中...</div>
-    <div v-else-if="!list.length" class="empty">暂无新公告</div>
+    <div v-else-if="!announcements.length" class="empty">暂无新公告</div>
 
-    <div v-else class="timeline">
-      <div v-for="(item, idx) in list" :key="item.announce_no || idx" class="tl-item">
-        <div class="tl-dot" :class="{ 'tl-dot-active': idx === 0 }" />
-        <div class="tl-line" v-if="idx !== list.length - 1" />
-        <div class="tl-content">
-          <div class="tl-title">
-            {{ item.announcement_title || item.announce_no || '无标题' }}
-            <span v-if="item.standard_count" class="tl-count">({{ item.standard_count }}项)</span>
+    <!-- ✅ #47: 三栏分组展示，按 standard_type 分类 -->
+    <div v-else class="three-columns">
+      <div
+        v-for="(items, type) in groupedAnnouncements"
+        :key="type"
+        class="column"
+      >
+        <div class="column-header">
+          <span class="type-label">{{ typeLabels[type as string] }}</span>
+          <span class="count">{{ items.length }}</span>
+        </div>
+        <div class="announce-list">
+          <div
+            v-for="item in items"
+            :key="item.announce_no"
+            class="announce-item"
+          >
+            <span class="title-text">
+              {{ item.announcement_title || item.announce_no || '无标题' }}
+            </span>
+            <span class="date">{{ item.publish_date || '' }}</span>
           </div>
-          <div class="tl-meta">{{ item.publish_date || '' }}</div>
+          <div v-if="items.length === 0" class="empty-state">暂无公告</div>
         </div>
       </div>
     </div>
@@ -62,24 +99,95 @@ onMounted(async () => {
 .header-title { font-size: 13px; font-weight: 700; color: var(--text-heading); }
 .header-sub { font-size: 10px; color: var(--text-dim); }
 
-.timeline { flex: 1; display: flex; flex-direction: column; gap: 0; overflow-y: auto; padding-left: 8px; }
-.tl-item { display: flex; position: relative; padding: 8px 0 8px 20px; }
-.tl-dot {
-  position: absolute; left: 0; top: 12px; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border); border: 2px solid var(--surface); z-index: 1;
+/* ✅ #47: 三栏 grid 布局 */
+.three-columns {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  overflow: hidden;
 }
-.tl-dot-active { background: var(--primary); box-shadow: 0 0 6px rgba(99,102,241,0.5); }
-.tl-line {
-  position: absolute; left: 3.5px; top: 20px; bottom: -8px; width: 1px; background: var(--border-light);
+
+/* 移动端降级为单栏 */
+@media (max-width: 768px) {
+  .three-columns {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
-.tl-content { flex: 1; min-width: 0; }
-.tl-title {
-  font-size: 12px; font-weight: 600; color: var(--text-heading); font-family: var(--mono);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
-.tl-meta {
-  font-size: 11px; color: var(--text-dim); margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
-.empty { color: var(--text-dim); font-size: 12px; text-align: center; padding: 30px 0; flex: 1; display: flex; align-items: center; justify-content: center; }
+
+.type-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-heading);
+}
+
+.count {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface-raised);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.announce-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.announce-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+}
+
+.announce-item:hover {
+  background: var(--selected);
+}
+
+.title-text {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.empty {
+  color: var(--text-dim); font-size: 12px; text-align: center;
+  padding: 30px 0; flex: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.empty-state {
+  padding: 12px 0;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
 </style>

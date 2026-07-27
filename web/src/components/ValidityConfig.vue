@@ -3,6 +3,7 @@ defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
 import Button from 'primevue/button'
+import SelectButton from 'primevue/selectbutton'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
@@ -12,9 +13,21 @@ import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 
+// ✅ #43: 工作日选项（1=周一, 7=周日）
+const weekdayOptions = [
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 },
+  { label: '周六', value: 6 },
+  { label: '周日', value: 7 },
+]
+
 const config = ref<ValidityConfig>({
-  execute_time: '03:00', batch_size: 50,
-  batch_interval: 5, check_ratio: 25, total_weeks: 4,
+  first_weekday: 1, execute_time: '03:00',
+  total_weeks: 4, frequency_weeks: 1,
+  batch_size: 50, batch_interval: 5, check_ratio: 25,
 })
 const loading = ref(false)
 const saving = ref(false)
@@ -22,6 +35,42 @@ const running = ref(false)
 const saved = ref(false)
 const runResult = ref('')
 const errMsg = ref('')
+
+// ✅ #43: 计算执行次数
+const executionCount = computed(() => {
+  const { total_weeks, frequency_weeks } = config.value
+  if (!total_weeks || !frequency_weeks || frequency_weeks < 1) return 0
+  return total_weeks / frequency_weeks
+})
+
+// ✅ #43: 计算每次覆盖比例
+const checkRatioDisplay = computed(() => {
+  const total = config.value.total_weeks
+  if (!total || total < 4) return 0
+  return (100 / total).toFixed(1)
+})
+
+// ✅ #43: 首次执行时间（展示用）
+const firstExecutionTime = computed(() => {
+  const w = weekdayOptions.find(o => o.value === config.value.first_weekday)
+  return `${w?.label || '周一'} ${config.value.execute_time}`
+})
+
+// ✅ #43: 校验是否可保存
+const isValid = computed(() => {
+  const { total_weeks, frequency_weeks } = config.value
+  if (!total_weeks || total_weeks < 4) return false
+  if (!frequency_weeks || frequency_weeks < 1) return false
+  if (frequency_weeks > total_weeks) return false
+  if (executionCount.value < 4) return false
+  return true
+})
+
+function onFrequencyChange() {
+  if (config.value.frequency_weeks > config.value.total_weeks) {
+    config.value.frequency_weeks = config.value.total_weeks
+  }
+}
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
@@ -43,7 +92,9 @@ async function doSave() {
     await putValidityConfig(config.value)
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
-  } catch (e: any) { errMsg.value = e.response?.data?.error || '保存失败' }
+  } catch (e: any) {
+    errMsg.value = e.response?.data?.error || (e.response?.data?.details?.join('; ') || '保存失败')
+  }
   finally { saving.value = false }
 }
 
@@ -130,9 +181,39 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     <!-- 检查策略 -->
     <div class="section-title">检查策略</div>
     <div class="form-grid">
+      <!-- ✅ #43: 首次执行周几 -->
       <div class="field">
-        <label>执行时间</label>
+        <label>首次执行（周几）</label>
+        <SelectButton
+          v-model="config.first_weekday"
+          :options="weekdayOptions"
+          optionLabel="label"
+          optionValue="value"
+        />
+      </div>
+      <!-- ✅ #43: 首次执行时间 -->
+      <div class="field">
+        <label>首次执行（时间）</label>
         <InputText v-model="config.execute_time" type="time" />
+      </div>
+      <!-- ✅ #43: 总周期 -->
+      <div class="field">
+        <label>总周期（周）</label>
+        <InputNumber v-model="config.total_weeks" :min="4" :max="52" :step="1" show-buttons />
+        <small class="field-hint">完成全部检查所需总周数，最低 4 周</small>
+      </div>
+      <!-- ✅ #43: 执行频率 -->
+      <div class="field">
+        <label>执行频率（周）</label>
+        <InputNumber
+          v-model="config.frequency_weeks"
+          :min="1"
+          :max="config.total_weeks"
+          :step="1"
+          show-buttons
+          @update:modelValue="onFrequencyChange"
+        />
+        <small class="field-hint">每隔几周执行一次</small>
       </div>
       <div class="field">
         <label>单批大小（条/批）</label>
@@ -146,12 +227,35 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
         <label>检查比例（%）</label>
         <InputNumber v-model="config.check_ratio" :min="1" :max="100" show-buttons />
       </div>
-      <div class="field">
-        <label>状态更新间隔（周）</label>
-        <InputNumber v-model="config.total_weeks" :min="4" :max="52" show-buttons />
+    </div>
+
+    <!-- ✅ #43: 自动计算结果 -->
+    <div class="computed-info">
+      <div class="info-item">
+        <span class="info-label">执行次数：</span>
+        <span class="info-value" :class="{ 'info-error': executionCount < 4 }">
+          {{ executionCount.toFixed(1) }} 次
+          <span v-if="executionCount < 4" class="error-msg">（需 >= 4 次）</span>
+        </span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">每次覆盖：</span>
+        <span class="info-value">约 {{ checkRatioDisplay }}%</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">首次执行时间：</span>
+        <span class="info-value">{{ firstExecutionTime }}</span>
       </div>
     </div>
+
     <div class="actions-row">
+      <Button
+        label="保存配置"
+        icon="pi pi-save"
+        :loading="saving"
+        :disabled="!isValid"
+        @click="doSave"
+      />
       <Button icon="pi pi-play" label="立即执行一次" severity="secondary" :loading="running" @click="doRun" />
     </div>
 
@@ -219,6 +323,20 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.field-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ✅ #43: 自动计算结果区 */
+.computed-info {
+  display: flex; gap: 24px; padding: 12px 16px;
+  background: var(--surface-raised); border-radius: var(--radius-sm);
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.info-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.info-label { color: var(--text-dim); }
+.info-value { font-weight: 600; color: var(--text-bright); }
+.info-error { color: var(--danger); }
+.error-msg { font-size: 12px; font-weight: 400; }
+
 .actions-row { display: flex; gap: 10px; margin-bottom: 8px; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
 .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }

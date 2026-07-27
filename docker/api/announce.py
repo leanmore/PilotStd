@@ -15,6 +15,13 @@ from ..manager import get_manager_dep
 router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
 
+# ✅ #47: source_site → standard_type 映射常量
+SOURCE_SITE_TO_TYPE = {
+    "announcement_gb": "gb",
+    "announcement_hb": "hb",
+    "announcement_db": "db",
+}
+
 FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
 
 
@@ -199,6 +206,8 @@ def get_announce_results(
                 "standard_count": row["standard_count"],
                 "publish_date": row["publish_date"] or "",
                 "source_site": row["source_site"],
+                # ✅ #47: 新增 standard_type 字段，前端三栏分组使用
+                "standard_type": SOURCE_SITE_TO_TYPE.get(row.get("source_site", ""), "other"),
             }
         )
 

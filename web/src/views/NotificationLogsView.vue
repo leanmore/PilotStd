@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationLogsView' })
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
@@ -226,6 +226,11 @@ const pages = () => {
 }
 
 onMounted(() => { loadNotifFilters(); loadLogs() })
+// ✅ #45: 防御性清理拖拽监听器
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', onResizeEnd)
+})
 </script>
 
 <template>

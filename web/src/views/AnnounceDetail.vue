@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceDetail' })
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import DOMPurify from 'dompurify'
@@ -116,6 +116,11 @@ async function startParse() {
     toast.add({ severity: 'warn', summary: '提示', detail: '该公告没有附件', life: 3000 })
     return
   }
+  // ✅ #45: 防御性清理已有定时器
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
   parsing.value = true
   parseStatus.value = 'parsing'
   try {
@@ -123,24 +128,27 @@ async function startParse() {
     let retries = 0
     const maxRetries = 30
     const interval = 2000
-    const poll = setInterval(async () => {
+    pollTimer = setInterval(async () => {
       retries++
       try {
         const statusRes = await getParseStatus(announceNo)
         if (statusRes.status === 'completed') {
-          clearInterval(poll)
+          clearInterval(pollTimer!)
+          pollTimer = null
           parseStatus.value = 'completed'
           parsing.value = false
           clearDetailCache()
           await loadDetail()
           toast.add({ severity: 'success', summary: '解析完成', detail: `共 ${records.value.length} 条标准`, life: 3000 })
         } else if (statusRes.status === 'failed') {
-          clearInterval(poll)
+          clearInterval(pollTimer!)
+          pollTimer = null
           parseStatus.value = 'failed'
           parsing.value = false
           toast.add({ severity: 'error', summary: '解析失败', detail: '请检查附件格式', life: 3000 })
         } else if (retries >= maxRetries) {
-          clearInterval(poll)
+          clearInterval(pollTimer!)
+          pollTimer = null
           parsing.value = false
           toast.add({ severity: 'warn', summary: '超时', detail: '解析超时，请稍后刷新查看', life: 3000 })
         }
@@ -211,7 +219,18 @@ async function handleBatchApprove() {
 
 const { favMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(records)
 
+// ✅ #45: 组件级 pollTimer，确保 onBeforeUnmount 可访问
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(loadDetail)
+
+// ✅ #45: 组件卸载时清理轮询定时器
+onBeforeUnmount(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+})
 </script>
 
 <template>

@@ -114,6 +114,8 @@ export interface AnnounceItem {
   standard_count: number | null
   publish_date: string
   source_site: string
+  /** ✅ #47: 标准类型，由后端从 source_site 映射，前端三栏分组使用 */
+  standard_type: 'gb' | 'hb' | 'db' | 'other'
 }
 
 /** 公告响应包装 */

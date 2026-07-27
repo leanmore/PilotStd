@@ -62,7 +62,7 @@ const emit = defineEmits<{
    侧边栏
    ═══════════════════════════════════════════ */
 .sidebar {
-  width: 250px;
+  width: var(--sidebar-width-expanded);  /* ✅ #50: 原 250px */
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -72,7 +72,7 @@ const emit = defineEmits<{
   overflow: hidden;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
 }
-.sidebar.collapsed { width: 72px; }
+.sidebar.collapsed { width: var(--sidebar-width-collapsed); }  /* ✅ #50: 原 72px */
 
 /* 品牌区 */
 .brand {
@@ -163,7 +163,7 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 }
 .nav-item:hover i { transform: scale(1.1); }
 .nav-item.active i { transform: scale(1.15); }
-.nav-label { flex: 1; }
+.nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* ✅ #50: 溢出保护 */
 
 /* 侧边栏底部折叠按钮 */
 .sidebar-footer {
