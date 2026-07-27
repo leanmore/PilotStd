@@ -109,6 +109,10 @@ class MIITAdapter(BaseAdapter):
                 len(rows),
                 keyword,
             )
+            # ✅ 任务5：为每条结果附加截断标记，透传至前端
+            for rec in rows:
+                rec["_truncated"] = True
+                rec["_truncated_message"] = f"结果可能不完整，共{len(rows)}条仅展示前15条"
 
         return [self._parse_result(rec, keyword) for rec in rows]
 
@@ -129,10 +133,13 @@ class MIITAdapter(BaseAdapter):
             std_no,
         )
 
+        # ✅ #46 P2: 尝试从响应中提取真实状态字段，替代硬编码"现行"
+        raw_status = rec.get("bpiBzstatus") or rec.get("standardStatus") or rec.get("status") or ""
+
         return QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status="现行",
+            status=raw_status if raw_status else "现行",  # 兜底仍用"现行"
             match_status=match_status,
             implementation_date=rec.get("bpiJysstime", "") or "",
             publish_date=rec.get("createTime", "") or "",

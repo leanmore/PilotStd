@@ -116,9 +116,11 @@ def _notify_download_failed(user_id: int, standard_number: str, error: str, favo
         logger.warning("发送下载失败通知失败", exc_info=True)
 
 
-# download_to_inbox — 收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态
+# download_to_inbox — 收藏下载任务（v44 解耦后操作 favorite_downloads 表）
 def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
-    """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。"""
+    """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。
+    所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。"""
+    # v44：所有状态 UPDATE 目标表为 favorite_downloads（非 user_favorites）
     db = None
     try:
         db = Database(get_db_path())
@@ -135,14 +137,15 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         existing = _find_in_file_index(standard_number, db)
         if existing:
             db.execute(
-                "UPDATE user_favorites SET status = 'done', local_path = ?, updated_at = datetime('now') WHERE id = ?",
+                "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
+                " updated_at = datetime('now') WHERE favorite_id = ?",
                 (existing, favorite_id),
             )
             logger.info("复用已有文件: %s", existing)
             return
 
         db.execute(
-            "UPDATE user_favorites SET status = 'downloading', updated_at = datetime('now') WHERE id = ?",
+            "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
             (favorite_id,),
         )
 
@@ -162,7 +165,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
                 raise FavoriteArchiveError(f"下载失败(重试3次): {standard_number}, {err}")
 
         db.execute(
-            "UPDATE user_favorites SET status = 'archiving', local_path = ?, updated_at = datetime('now') WHERE id = ?",
+            "UPDATE favorite_downloads SET status = 'archiving', local_path = ?,"
+            " updated_at = datetime('now') WHERE favorite_id = ?",
             (str(inbox_path), favorite_id),
         )
 
@@ -171,15 +175,16 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
             found = _find_in_file_index(standard_number, db)
             if found:
                 db.execute(
-                    "UPDATE user_favorites SET status = 'done', local_path = ?,"
-                    " updated_at = datetime('now') WHERE id = ?",
+                    "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
+                    " updated_at = datetime('now') WHERE favorite_id = ?",
                     (found, favorite_id),
                 )
                 logger.info("归档完成: %s", found)
                 return
 
         db.execute(
-            "UPDATE user_favorites SET status = 'failed', error_message = ?, updated_at = datetime('now') WHERE id = ?",
+            "UPDATE favorite_downloads SET status = 'failed', error_message = ?,"
+            " updated_at = datetime('now') WHERE favorite_id = ?",
             ("归档超时：文件未被扫描器处理", favorite_id),
         )
         logger.warning("收藏归档超时: favorite_id=%s", favorite_id)
@@ -188,8 +193,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         logger.error("收藏失败: favorite_id=%s, %s", favorite_id, e, exc_info=True)
         if db:
             db.execute(
-                "UPDATE user_favorites SET status = 'failed', error_message = ?,"
-                " updated_at = datetime('now') WHERE id = ?",
+                "UPDATE favorite_downloads SET status = 'failed', error_message = ?,"
+                " updated_at = datetime('now') WHERE favorite_id = ?",
                 (str(e), favorite_id),
             )
     finally:

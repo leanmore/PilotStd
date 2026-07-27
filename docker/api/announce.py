@@ -9,18 +9,13 @@ from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
+from pilotstd.constants.announce_types import SOURCE_SITE_TO_TYPE
+
 from ..manager import get_manager as _get_mgr
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["announce"])
 logger = logging.getLogger(__name__)
-
-# ✅ #47: source_site → standard_type 映射常量
-SOURCE_SITE_TO_TYPE = {
-    "announcement_gb": "gb",
-    "announcement_hb": "hb",
-    "announcement_db": "db",
-}
 
 FAILURES_FILE = os.path.join(os.environ.get("DATA_DIR", "/app/data"), "announce_failures.json")
 

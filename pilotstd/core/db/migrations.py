@@ -361,6 +361,9 @@ from ._migrate_v37_plus import (  # noqa: E402
     _migrate_v40_ensure_columns,
 )
 
+# v44 迁移实现（拆分到独立模块）
+from ._migrate_v44 import _migrate_v44_favorite_downloads  # noqa: E402, F401
+
 migration(31)(_migrate_v31_monitor_stats)
 migration(32)(_migrate_v32_cleanup_dead_tables)
 migration(33)(_migrate_v33_adapter_state)
@@ -421,3 +424,40 @@ def _migrate_v42_create_standards_table(db: Any) -> None:
     db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_standards_four_elements ON standards (sha256, code, name, size)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_standards_scan_status ON standards (scan_status)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_standards_code_name ON standards (code, name)")
+
+
+# v43: 批量查询断点续传 + 指标收集（#46 修复基础设施）
+@migration(43)
+def _migrate_v43_batch_state_and_metrics(db: Any) -> None:
+    """批量查询断点续传状态表 + 查询指标表。
+
+    batch_state: 批次任务进度持久化，支持中断后断点续传。
+    query_metrics: 独立指标表，与 batch_state 分离避免写锁竞争。
+    """
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS batch_state (
+            batch_id TEXT PRIMARY KEY,
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending','running','completed','failed','paused')),
+            total_items INTEGER NOT NULL DEFAULT 0,
+            completed_items INTEGER DEFAULT 0,
+            failed_items INTEGER DEFAULT 0,
+            overflow_pool TEXT,
+            adapter_quota_snapshot TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )"""
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_batch_state_status ON batch_state (status)")
+
+    db.execute(
+        """CREATE TABLE IF NOT EXISTS query_metrics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            batch_id TEXT NOT NULL,
+            metric_key TEXT NOT NULL,
+            metric_value INTEGER NOT NULL DEFAULT 0,
+            recorded_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (batch_id) REFERENCES batch_state(batch_id)
+        )"""
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_query_metrics_batch ON query_metrics (batch_id, metric_key)")

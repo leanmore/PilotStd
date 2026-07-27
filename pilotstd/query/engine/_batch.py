@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from ..models import QueryResult
@@ -103,12 +105,32 @@ class BatchHandler(_BatchDispatchMixin):
         self._core.query_active = True
         n = len(parsed_list)
 
-        # 6阶段流水线
-        state = self._init_batch_state(n, progress_callback)
-        buckets = self._bucket_items(parsed_list, preferred_site)
-        self._setup_dispatch_context(state, result_callback, progress_callback)
-        self._dispatch_queries(buckets, state, preferred_site)
-        self._collect_csres_results(state)
+        # ✅ #46 P1: 创建批次级 Metrics 实例
+        from ._metrics import QueryMetrics
 
-        temp_cooldown_skips = self._overflow._handle_overflow(state, result_callback, preferred_site)
-        return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
+        metrics = QueryMetrics(batch_id=f"batch-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}")
+
+        try:
+            # 6阶段流水线
+            state = self._init_batch_state(n, progress_callback, metrics)
+            buckets = self._bucket_items(parsed_list, preferred_site)
+            self._setup_dispatch_context(state, result_callback, progress_callback)
+            self._dispatch_queries(buckets, state, preferred_site)
+            self._collect_csres_results(state)
+
+            temp_cooldown_skips = self._overflow._handle_overflow(state, result_callback, preferred_site)
+            return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
+        finally:
+            # ✅ 任务4：归入 validate_failed 计数器 + 持久化 metrics
+            try:
+                from pilotstd.scan.parser._result_builder import get_validate_fail_count
+
+                fail_count = get_validate_fail_count()
+                if fail_count > 0:
+                    metrics.increment("validate_failed", count=fail_count)
+            except Exception:
+                logger.exception("validate_failed 归入失败（非阻断）")
+            try:
+                metrics.persist_to_db()
+            except Exception:
+                logger.exception("metrics 持久化失败（非阻断）")

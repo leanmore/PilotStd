@@ -143,6 +143,10 @@ class MiniBucketHandler:
         except Exception:
             ctx["item_chains"].setdefault(idx, []).append(assigned_site)
             logger.warning("查询 [%s %s-%s] 异常 @%s", item[0], item[1], item[2], assigned_site)
+            # ✅ #46 P1: parse_failed 计数器（异常类解析失败）
+            m = ctx.get("metrics")
+            if m:
+                m.increment("parse_failed")
             if not skip_overflow:
                 overflow_items.append((idx, item))
             return
@@ -233,6 +237,10 @@ class MiniBucketHandler:
                         assigned_site,
                         len(mini),
                     )
+                    # ✅ #46 P1: 冷却溢出计数器
+                    m = ctx.get("metrics")
+                    if m:
+                        m.increment("overflow", count=len(mini))
                     overflow_items.extend(mini)
                     continue
 
@@ -244,6 +252,10 @@ class MiniBucketHandler:
                     len(mini),
                     len(mini),
                 )
+                # ✅ #46 P1: 溢出计数器
+                m = ctx.get("metrics")
+                if m:
+                    m.increment("overflow", count=len(mini))
                 overflow_items.extend(mini)
                 continue
 

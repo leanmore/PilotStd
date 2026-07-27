@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.routing import APIRouter
 
+from pilotstd.constants.announce_types import SOURCE_SITE_TO_ANNC as SOURCE_MAP
+
 from ..manager import get_manager as _get_mgr
 from ..manager import get_manager_dep
 
@@ -17,13 +19,6 @@ SITE_NAME_MAP = {
     "std.samr.gov.cn": "国家标准委",
     "openstd.samr.gov.cn": "国家标准全文公开系统",
     "gov.cn": "国家部委",
-}
-
-# source_site → URL 标识符映射（前后端共用）
-SOURCE_MAP = {
-    "announcement_gb": "annc_gb",
-    "announcement_hb": "annc_hb",
-    "announcement_db": "annc_db",
 }
 
 # URL 标识符 → source_site 反向映射

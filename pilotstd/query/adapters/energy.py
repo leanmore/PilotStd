@@ -81,36 +81,85 @@ class EnergyAdapter(BaseAdapter):
         return candidates
 
     def _fetch_candidates(self, keyword: str) -> list[QueryResult]:
-        """GET AJAX 端点获取搜索结果。"""
-        params: dict[str, Any] = {"keyword": keyword, "tid": "0", "op": "", "limit": 15, "offset": 0}
-        try:
-            resp = self._client.get(self.API_URL, params=params, timeout=15)
-        except Exception as e:
-            logger.debug(f"能源标准平台请求失败: {e}")
+        """GET AJAX 端点获取搜索结果，支持翻页循环。"""
+
+        # ✅ #46 P2: 翻页循环 + 备用域名列表
+        FALLBACK_URLS = [
+            "http://114.251.111.103:18080",  # IP 不变（HTTP 降级）
+            "https://energy.nbse.org.cn:18080",  # 可能的域名（待验证）
+        ]
+        MAX_PAGES = 5  # 最大翻页数，防止无限循环
+        PAGE_SIZE = 15
+
+        all_rows: list[dict[str, Any]] = []
+        total_seen: int | None = None
+        limit = PAGE_SIZE
+
+        for page in range(MAX_PAGES):
+            offset = page * PAGE_SIZE
+            params: dict[str, Any] = {"keyword": keyword, "tid": "0", "op": "", "limit": limit, "offset": offset}
+
+            # ✅ 任务6：首页使用 fallback URLs，翻页仅用主 URL
+            if page == 0:
+                urls_to_try = [self.API_URL] + FALLBACK_URLS
+            else:
+                urls_to_try = [self.API_URL]
+
+            resp = None
+            for url in urls_to_try:
+                try:
+                    resp = self._client.get(url, params=params, timeout=15)
+                    if resp.status_code == 200:
+                        break
+                except Exception:
+                    continue
+
+            if resp is None or resp.status_code != 200:
+                if page == 0:
+                    logger.debug("能源标准平台请求失败（含 fallback）: keyword=%r", keyword)
+                else:
+                    # ✅ 任务6：翻页失败返回已有数据，不静默丢弃
+                    if all_rows:
+                        logger.warning("energy 第%d页请求失败，返回已获取的%d条", page + 1, len(all_rows))
+                    else:
+                        logger.debug("energy 第%d页请求失败: keyword=%r", page + 1, keyword)
+                break
+
+            try:
+                payload = resp.json()
+            except ValueError:
+                break
+
+            rows = payload.get("rows", [])
+            if not rows:
+                break
+
+            all_rows.extend(rows)
+
+            # 首页确定 total
+            if total_seen is None:
+                total_seen = payload.get("total", 0)
+                if total_seen <= PAGE_SIZE:
+                    break  # 只有一页
+
+            # 已拉取足够记录或已到最后一页
+            if len(all_rows) >= total_seen or len(rows) < PAGE_SIZE:
+                break
+
+        if not all_rows:
             return []
 
-        if resp.status_code != 200:
-            return []
-
-        try:
-            payload = resp.json()
-        except ValueError:
-            return []
-
-        rows = payload.get("rows", [])
-        if not rows:
-            return []
-
-        total = payload.get("total", 0)
-        if total > len(rows):
+        # 翻页后仍不完整的告警
+        if total_seen and len(all_rows) < total_seen:
             logger.warning(
-                "energy 搜索结果 %d 条超出单页 limit=%d，当前仅返回首页 %d 条",
-                total,
-                params.get("limit", 15),
-                len(rows),
+                "energy 搜索结果 %d 条超出最大翻页数 %d 页（已获取 %d/%d）",
+                total_seen,
+                MAX_PAGES,
+                len(all_rows),
+                total_seen,
             )
 
-        return [self._parse_result(rec, keyword) for rec in rows]
+        return [self._parse_result(rec, keyword) for rec in all_rows]
 
     def _parse_result(self, rec: dict[str, Any], search_term: str = "") -> QueryResult:
         """将 JSON 记录映射为 QueryResult。"""

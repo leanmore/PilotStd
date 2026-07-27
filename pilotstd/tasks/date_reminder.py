@@ -85,8 +85,12 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
         return
 
     record_id = rec["id"]
+    # ✅ 任务2-B：favorite_downloads 无 publish_date，JOIN 获取；
+    # status='done' 现在在 favorite_downloads 表中
     cursor = db.execute(
-        "SELECT DISTINCT user_id FROM user_favorites WHERE record_id=? AND status='done'",
+        "SELECT DISTINCT uf.user_id FROM favorite_downloads fd"
+        " JOIN user_favorites uf ON fd.favorite_id = uf.id"
+        " WHERE fd.record_id=? AND fd.status='done'",
         (record_id,),
     )
     user_ids = [r["user_id"] for r in cursor.fetchall()]

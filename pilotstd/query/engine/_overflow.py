@@ -149,6 +149,10 @@ class OverflowHandler:
             chain_str = "→".join(state["item_chains"].get(idx, [])) or "none"
             _td2 = f"{item[0]} {item[1]}-{item[2]}"
             logger.info("查询 [%s] [NG] tried=%s", _td2, chain_str)
+            # ✅ #46 P1: chain_exhausted 计数器
+            m = state.get("metrics")
+            if m:
+                m.increment("chain_exhausted")
             state["pending_reasons"].append((idx, chain_str))
             state["results"][idx] = QueryResult(
                 standard_number=f"{item[0]} {item[1]}-{item[2]}",

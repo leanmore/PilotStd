@@ -11,6 +11,17 @@ from ._constants import PRESERVED_MULTI_WORD
 
 logger = logging.getLogger(__name__)
 
+# ✅ #46 P1: 模块级校验失败计数器
+_result_builder_fail_count = [0]
+
+
+def get_validate_fail_count() -> int:
+    """获取 validate_result 累计失败次数。"""
+    return _result_builder_fail_count[0]
+
+
+logger = logging.getLogger(__name__)
+
 
 class ResultBuilder:
     """标准解析结果构建 — 前缀截断、名称清理、校验、结果组装。
@@ -103,16 +114,28 @@ class ResultBuilder:
           - number 必须为正整数（> 0）。
           - logical_code 必须为非空字符串。
         """
+        failures = []
         if not logical_code or not isinstance(logical_code, str):
-            return False
+            failures.append("missing_logical_code")
         if not isinstance(number, int) or number <= 0:
-            return False
+            failures.append(f"invalid_number({number})")
         if require_year:
             if not isinstance(year, int) or year <= 0:
-                return False
+                failures.append(f"year_non_positive({year})")
             # 两位年份（1-99）或四位年份（1900-2099）
             if year > 99 and (year < 1900 or year > 2099):
-                return False
+                failures.append(f"year_out_of_range({year})")
+        if failures:
+            logger.warning(
+                "[VALIDATE_FAILED] code=%r number=%d year=%d reasons=%s",
+                logical_code,
+                number,
+                year,
+                failures,
+            )
+            # ✅ #46 P1: 合并计数，无论几个条件，只计 1 次
+            _result_builder_fail_count[0] += 1
+            return False
         return True
 
     # ── 结果构建 ────────────────────────────────────────────

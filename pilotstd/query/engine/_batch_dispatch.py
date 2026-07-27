@@ -5,10 +5,14 @@
 from __future__ import annotations
 
 import concurrent.futures
+import json
 import logging
 import threading
 import time
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+
+from pilotstd.core.config.paths import get_db_path
+from pilotstd.core.db import Database
 
 from ..models import QueryResult
 from ..search_strategy import ADAPTER_TYPE_MAP
@@ -30,6 +34,7 @@ class _BatchDispatchMixin:
         self,
         n: int,
         progress_callback: Optional[Callable[[int], None]],
+        metrics=None,  # ✅ #46 P1: QueryMetrics 实例
     ) -> dict:
         """初始化批量查询共享状态：计数器、进度心跳线程、结果容器。"""
         _bucket_t0 = time.time()
@@ -80,6 +85,7 @@ class _BatchDispatchMixin:
         return {
             "results": results,
             "bump": bump,
+            "metrics": metrics,  # ✅ #46 P1: 批次级 Metrics
             "_prog_completed": _prog_completed,
             "_prog_ok": _prog_ok,
             "_prog_lock": _prog_lock,
@@ -253,6 +259,7 @@ class _BatchDispatchMixin:
                 csres_pool_industry,
                 state["csres_results"],
                 state["csres_failures"],
+                state.get("metrics"),  # ✅ #46 P1
             )
 
             for future in concurrent.futures.as_completed(bucket_futures):
@@ -268,6 +275,13 @@ class _BatchDispatchMixin:
                     all_overflow.extend(overflow)
                 except Exception:
                     logger.exception("桶执行异常: %s", bucket_futures[future])
+                    # ✅ #46 P1: bucket_crash 安全计数器，禁止二次崩溃
+                    try:
+                        m = state.get("metrics")
+                        if m:
+                            m.increment("bucket_crash")
+                    except Exception:
+                        pass
 
             try:
                 csres_future.result(timeout=600)
@@ -286,6 +300,32 @@ class _BatchDispatchMixin:
                 with state["_prog_lock"]:
                     state["_prog_ok"][0] += 1
                 state["bump"]()
+
+    @staticmethod
+    def _persist_batch_state(state: dict, n: int, completed: int) -> None:
+        """✅ 任务3：batch_state 持久化写入（提取为独立方法，G-010 合规）。"""
+        metrics = state.get("metrics")
+        batch_id = metrics.batch_id if metrics else f"batch-legacy-{int(time.time())}"
+        try:
+            db = Database(get_db_path())
+            overflow_json = json.dumps(
+                [(idx, list(item)) for idx, item in state.get("all_overflow", [])[:200]],
+                ensure_ascii=False,
+            )
+            snapshot_json = json.dumps(
+                metrics.take_adapter_snapshot(state.get("_rotator")) if metrics and state.get("_rotator") else {},
+                ensure_ascii=False,
+            )
+            db.execute(
+                """INSERT OR REPLACE INTO batch_state
+                   (batch_id, status, total_items, completed_items, failed_items,
+                    overflow_pool, adapter_quota_snapshot, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""",
+                (batch_id, "completed", n, completed, n - completed, overflow_json, snapshot_json),
+            )
+            logger.info("batch_state 已持久化: %s (completed=%d/%d)", batch_id, completed, n)
+        except Exception:
+            logger.exception("batch_state 持久化失败（非阻断）")
 
     def _finalize_batch(
         self,
@@ -330,6 +370,10 @@ class _BatchDispatchMixin:
         self._core.query_active = False
         self._core.overflow_item_count = 0
         self._core.csres_active = False
+
+        # ✅ 任务3：batch_state 持久化写入（已提取为独立方法）
+        self._persist_batch_state(state, n, c)
+
         # 按原始索引组装结果列表，未完成的填充占位 QueryResult
         return [
             state["results"].get(

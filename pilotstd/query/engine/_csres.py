@@ -62,6 +62,7 @@ class CsresHandler:
         industry_items: list,
         csres_results: dict,
         csres_failures: list,
+        metrics=None,  # ✅ #46 P1: QueryMetrics 实例
     ) -> None:
         """CSRES 后台查询线程：从 GB/行业桶各取配额条目并发查询。
 
@@ -79,6 +80,18 @@ class CsresHandler:
         _last_ts = time.time()
         for idx, item in pool:
             if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
+                # ✅ #46 P1: CSRES 熔断计数器（含剩余丢弃条目数）
+                items_processed = len(csres_results)
+                items_dropped = len(pool) - items_processed
+                if metrics:
+                    metrics.increment("csres_meltdown", count=max(1, items_dropped))
+                logger.warning(
+                    "[CSRES_MELTDOWN] 连续失败=%d/%d 已处理=%d 丢弃=%d",
+                    csres_failures[0],
+                    self._CSRES_CIRCUIT_BREAK,
+                    items_processed,
+                    items_dropped,
+                )
                 break
 
             _t0 = time.time()

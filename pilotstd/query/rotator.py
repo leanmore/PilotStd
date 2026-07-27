@@ -2,6 +2,7 @@
 # 查询网站轮转冷却机制：限流保护、故障冷却、备用地址切换
 
 import logging
+import random
 import threading
 import time
 from dataclasses import dataclass, field
@@ -323,7 +324,10 @@ class SiteRotator:
 
     @staticmethod
     def _enter_cooldown(site: SiteState) -> None:
-        site.cooldown_until = time.time() + site.cooldown_seconds
+        # ✅ #46 P1: 冷却倒计时 ±10% jitter，防止多线程同时恢复导致请求风暴
+        jitter = site.cooldown_seconds * 0.1
+        actual = max(1.0, site.cooldown_seconds + random.uniform(-jitter, jitter))
+        site.cooldown_until = time.time() + actual
         site.request_count = 0
         site.consecutive_errors = 0
 

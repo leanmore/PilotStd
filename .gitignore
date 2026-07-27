@@ -49,6 +49,9 @@ pilotstd_env/
 
 # ===== AI 与 CI 运行时产物 =====
 .claude/
+
+# ===== 会话运行时上下文（禁止入仓）=====
+local-session-notes.md
 STATUS.md
 coverage*.json
 coverage*.txt

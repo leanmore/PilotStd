@@ -117,6 +117,14 @@ class SPPTLocalAdapter(BaseAdapter):
         if not data_list:
             return []
 
+        # ✅ #46 P2: 服务端忽略分页，仅返回首页（≤6条），添加告警
+        max_first_page = len(data_list)
+        logger.warning(
+            "SPPT Local 仅返回首页 %d 条结果（服务端忽略 pageIndex 参数），关键词 %r 的结果可能不完整",
+            max_first_page,
+            keyword,
+        )
+
         results: list[QueryResult] = []
         for row in data_list:
             r = self._parse_result(row, keyword)

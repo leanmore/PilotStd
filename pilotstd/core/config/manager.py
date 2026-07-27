@@ -84,6 +84,9 @@ class ConfigManager:
             if os.name != "nt":
                 os.chmod(tmp_path, 0o600)
             # 原子替换：先写临时文件再 rename，避免写入中途崩溃导致文件损坏
+            dir_path = os.path.dirname(self._filepath)
+            if dir_path:  # 避免对空字符串调用 makedirs（相对路径场景）
+                os.makedirs(dir_path, exist_ok=True)
             os.replace(tmp_path, self._filepath)
 
     def reset(self, key: str | None = None) -> None:

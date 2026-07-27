@@ -1,5 +1,7 @@
 <!-- #40 增量加载底部状态指示器（终版：含"加载全部"按钮） -->
 <script setup lang="ts">
+defineOptions({ name: 'TableLoadFooter' })
+
 defineProps<{
   displayed: number
   total: number

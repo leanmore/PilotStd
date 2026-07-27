@@ -81,14 +81,16 @@ class SingleQueryHandler:
         adapter_map: dict[str, "BaseAdapter"],
         quota: Any,
         cache: Any,
+        rotator: Any = None,
+        metrics: Any = None,
     ) -> tuple[QueryResult | None, list[str], bool]:
         """Step 3：按优先级链逐适配器查询。
 
+        增加运行时冷却检查，防止 _get_priority 返回后到实际查询前
+        站点进入冷却导致的无效请求。
+
         Returns:
             (result | None, tried_sites, quota_exhausted)
-            - result: 查询命中时返回 QueryResult，否则 None
-            - tried_sites: 实际尝试过的站点名列表
-            - quota_exhausted: 是否因全部站点配额耗尽而退出
         """
         quota_exhausted = True
         tried: list[str] = []
@@ -96,8 +98,16 @@ class SingleQueryHandler:
             adp = adapter_map.get(name)
             if adp is None:
                 continue
+            # ✅ #46 P0: 运行时冷却检查（_get_priority 返回后到实际查询前的窗口）
+            if rotator and rotator.get_cooldown_remaining(name) > 0:
+                logger.debug("[RUNTIME_COOLDOWN] 跳过=%s 原因=运行时冷却", name)
+                if metrics:
+                    metrics.increment("site_cooling")
+                continue
             if quota and quota.get_search_remaining(name) <= 0:
                 logger.warning("%s(%s) 今日配额已用尽，跳过", adp.site_label, name)
+                if metrics:
+                    metrics.increment("quota_exhausted")  # ✅ #46 P1
                 continue
             quota_exhausted = False
             tried.append(name)
@@ -110,6 +120,8 @@ class SingleQueryHandler:
                 if getattr(result, "match_status", "") == "exact" and cache is not None:
                     cache.put(result)
                 self._core.record(name, 1)
+                if metrics:
+                    metrics.increment("matched")  # ✅ #46 P1: 原子单元埋点
                 logger.info(
                     "查询 [%s] ✓%s(%s) tried=%s",
                     target,
@@ -180,7 +192,7 @@ class SingleQueryHandler:
 
         logger.debug("查询 [%s] 路由=%s", target, "→".join(priority) if priority else "(全部冷却)")
 
-        # Step 3: 逐适配器查询
+        # Step 3: 逐适配器查询（含运行时冷却检查）
         result, tried, quota_exhausted = self._step_query_adapters(
             target=target,
             logical_code=logical_code,
@@ -193,6 +205,8 @@ class SingleQueryHandler:
             adapter_map=self._core.adapter_map,
             quota=self._core.quota,
             cache=self._core.cache,
+            rotator=self._core.rotator,  # ✅ #46 P0: 运行时冷却检查
+            metrics=getattr(self._core, "metrics", None),
         )
         if result is not None:
             return result

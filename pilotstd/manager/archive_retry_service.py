@@ -41,28 +41,32 @@ class ArchiveRetryService:
 
         筛选条件：
         - status IN ('pending', 'failed')
-        - archive_retry_count < 7（未达上限，共 7 天重试窗口）
+        - retry_count < 7（未达上限，共 7 天重试窗口）
         - publish_date 为 NULL 或已过 28 天冷却期
         - 每天 04:00 执行一次，单次失败次日重试
 
         最长等待：28（冷却）+ 1（cron 窗口）= 29 天。
         完整链路：首日 04:00 → 若失败 → 次日 04:00 重试 → ... → 第 7 次仍失败 → abandoned。
 
-        公平调度：ORDER BY last_archive_attempt ASC NULLS FIRST, updated_at ASC
+        公平调度：ORDER BY last_attempt ASC NULLS FIRST, updated_at ASC
         每批最多处理 20 条。
         """
         db = Database(get_db_path())
         today = date.today().isoformat()
         cooldown_cutoff = (date.today() - timedelta(days=_COOLDOWN_DAYS)).isoformat()
         try:
-            # 公平调度：按上次重试时间升序，保证等最久的先处理
+            # ✅ 任务2-B：改为查询 favorite_downloads，JOIN user_favorites 获取 user_id，
+            # JOIN announcement_record 获取 publish_date（favorite_downloads 无此字段）
             rows = db.fetchall(
-                "SELECT id, user_id, record_id, publish_date, archive_retry_count, error_message"
-                " FROM user_favorites"
-                " WHERE status IN ('pending','failed')"
-                " AND (archive_retry_count IS NULL OR archive_retry_count < ?)"
-                " AND (publish_date IS NULL OR publish_date <= ?)"
-                " ORDER BY last_archive_attempt ASC NULLS FIRST, updated_at ASC"
+                "SELECT fd.id, fd.favorite_id, uf.user_id, fd.record_id, ar.publish_date,"
+                " fd.retry_count AS retry_count, fd.error_message AS error_message"
+                " FROM favorite_downloads AS fd"
+                " JOIN user_favorites AS uf ON fd.favorite_id = uf.id"
+                " JOIN announcement_record AS ar ON fd.record_id = ar.id"
+                " WHERE fd.status IN ('pending','failed')"
+                " AND (fd.retry_count IS NULL OR fd.retry_count < ?)"
+                " AND (ar.publish_date IS NULL OR ar.publish_date <= ?)"
+                " ORDER BY fd.last_attempt ASC NULLS FIRST, fd.updated_at ASC"
                 " LIMIT ?",
                 (_MAX_RETRIES, cooldown_cutoff, _BATCH_LIMIT),
             )
@@ -72,32 +76,33 @@ class ArchiveRetryService:
             success = 0
             for row in rows:
                 try:
-                    download_to_inbox(row["id"], row["user_id"], row["record_id"])
-                    # 成功后重置重试计数
+                    # favorite_id = user_favorites.id = favorite_downloads.favorite_id
+                    download_to_inbox(row["favorite_id"], row["user_id"], row["record_id"])
+                    # 成功后重置重试计数（favorite_downloads.id 用于定位记录）
                     db.execute(
-                        "UPDATE user_favorites SET archive_retry_count = 0,"
-                        " last_archive_attempt = ?, updated_at = datetime('now')"
+                        "UPDATE favorite_downloads SET retry_count = 0,"
+                        " last_attempt = ?, updated_at = datetime('now')"
                         " WHERE id = ?",
                         (today, row["id"]),
                     )
                     success += 1
                 except Exception as e:
-                    new_count = (row["archive_retry_count"] or 0) + 1
+                    new_count = (row["retry_count"] or 0) + 1
                     error_msg = str(e)[:500]
                     if new_count >= _MAX_RETRIES:
                         # 超上限：标记 abandoned 并通知用户，不再重试
                         db.execute(
-                            "UPDATE user_favorites SET status = 'abandoned',"
-                            " archive_retry_count = ?, error_message = ?,"
-                            " last_archive_attempt = ?, updated_at = datetime('now')"
+                            "UPDATE favorite_downloads SET status = 'abandoned',"
+                            " retry_count = ?, error_message = ?,"
+                            " last_attempt = ?, updated_at = datetime('now')"
                             " WHERE id = ?",
                             (new_count, error_msg, today, row["id"]),
                         )
                         self._notify_abandoned(row["user_id"], row["record_id"], error_msg)
                     else:
                         db.execute(
-                            "UPDATE user_favorites SET archive_retry_count = ?,"
-                            " error_message = ?, last_archive_attempt = ?,"
+                            "UPDATE favorite_downloads SET retry_count = ?,"
+                            " error_message = ?, last_attempt = ?,"
                             " updated_at = datetime('now') WHERE id = ?",
                             (new_count, error_msg, today, row["id"]),
                         )
