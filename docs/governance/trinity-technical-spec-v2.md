@@ -82,7 +82,7 @@ class BootstrapResult(TypedDict):
 
 | 键 | 类型 | 说明 |
 |----|------|------|
-| `version` | string | 本规范文档的版本（如 "2.0"），用于人工对齐 |
+| `version` | string | 本规范文档的版本（如 "2.1"），用于人工对齐 |
 | `schema_version` | string | BootstrapResult 数据结构的版本（如 "1.0"），用于机器解析兼容性判断 |
 | `bootstrap_duration_ms` | string | 引导耗时（毫秒） |
 | `session_id` | string | 会话标识 |
@@ -370,9 +370,10 @@ Commit `a291cccc` 将 26 个文件的运行时修复与批量增强合为单次�
 | :--- | :--- | :--- | :--- |
 | `daily_limit_hit` | 适配器日限额触顶次数 | 次 | >5次/天 → 检查权重或提升限额 |
 | `batch_limit_hit` | 批次限额触顶次数 | 次 | >10次/批 → 检查并发配置 |
-| `request_interval_wait_total` | 请求间隔等待累计时长 | 秒（Counter） | `rate()[1m]` >30s/min → 检查 interval 配置 |
+| `request_interval_wait` | 请求间隔等待累计时长 | 毫秒（Counter） | `rate()[1m]` >30000ms/s → 检查 interval 配置 |
 
-> **注：** `request_interval_wait_total` 为 Counter 类型，Grafana 查询时需使用 `rate(request_interval_wait_total[1m])` 获取每秒等待时长速率。
+> **注：** `request_interval_wait` 为 Counter 类型，内部以毫秒为单位累加（`count=int(_interval * 1000)`）。
+> Grafana 查询时需使用 `rate(request_interval_wait[1m]) / 1000` 转换为秒/秒速率。
 
 ### 5.3.4 可观测性接口
 
