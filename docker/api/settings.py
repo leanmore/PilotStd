@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
+from pydantic import BaseModel, Field
 
 from docker.scheduler import update_job
 
@@ -118,21 +119,20 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
 
 # ── 站点配置管理（Q15）──────────────────────────────────────────
 
-from pydantic import BaseModel, Field
-
 
 class SiteConfigUpdate(BaseModel):
-    """站点限额配置更新请求体 — 窗口上限/日限额/冷却时间。"""
+    """站点限额配置更新请求体 — 窗口上限/日限额/冷却时间/请求间隔。"""
 
     max_requests: int = Field(ge=0, description="窗口查询限额")
-    daily_limit: int = Field(ge=0, description="日限额")
+    daily_limit: int = Field(ge=0, le=1000, description="日限额（上限1000）")
     cooling_seconds: int = Field(ge=0, description="冷却时间（秒）")
+    request_interval: float = Field(ge=0.1, le=10.0, description="单次查询间隔（秒）")
 
 
 def _build_site_config(name: str, mgr) -> dict | None:
     """聚合单个适配器的 9 字段配置。label 动态导入容错，单个适配器异常不影响整体。"""
     try:
-        status = mgr.adapter_manager.get_adapter_status(name)
+        mgr.adapter_manager.get_adapter_status(name)  # 融断状态预检（不阻塞）
         remaining_quota = mgr.adapter_manager._quota.get_remaining(name) if mgr.adapter_manager._quota else 0
         cooling_remaining = (
             mgr.adapter_manager._rotator.get_cooldown_remaining(name) if mgr.adapter_manager._rotator else 0
@@ -156,6 +156,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
         max_requests = site_state.max_requests if site_state else 200
         cooling_seconds = site_state.cooldown_seconds if site_state else 600
         daily_limit = mgr.adapter_manager._quota._limits.get(name, 800) if mgr.adapter_manager._quota else 800
+        request_interval = site_state.request_interval if site_state else 0.5
 
         return {
             "name": name,
@@ -165,6 +166,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
             "maxRequests": max_requests,
             "dailyLimit": daily_limit,
             "coolingSeconds": cooling_seconds,
+            "requestInterval": request_interval,
             "remainingQuota": remaining_quota,
             "coolingRemaining": int(cooling_remaining),
         }
@@ -200,6 +202,7 @@ def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
         cfg.set(f"query.sites.{name}.window_limit", data.max_requests)
         cfg.set(f"query.sites.{name}.daily_limit", data.daily_limit)
         cfg.set(f"query.sites.{name}.cooling_seconds", data.cooling_seconds)
+        cfg.set(f"query.sites.{name}.request_interval", data.request_interval)
         cfg.save()
     except Exception as e:
         logger.exception("站点配置持久化失败: %s", name)
@@ -213,17 +216,20 @@ def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
             old_rotator = (
                 rotator._sites[name].max_requests,
                 rotator._sites[name].cooldown_seconds,
+                rotator._sites[name].request_interval,
             )
             rotator._sites[name].max_requests = data.max_requests
             rotator._sites[name].cooldown_seconds = data.cooling_seconds
+            rotator._sites[name].request_interval = data.request_interval
         if quota and name in quota._limits:
             old_quota = quota._limits[name]
-            quota._limits[name] = data.daily_limit
+            quota._limits[name] = min(data.daily_limit, 1000)
     except Exception as e:
         # 回滚内存
         if old_rotator and rotator:
             rotator._sites[name].max_requests = old_rotator[0]
             rotator._sites[name].cooldown_seconds = old_rotator[1]
+            rotator._sites[name].request_interval = old_rotator[2]
         if old_quota is not None and quota:
             quota._limits[name] = old_quota
         logger.exception("站点内存热更新失败: %s", name)

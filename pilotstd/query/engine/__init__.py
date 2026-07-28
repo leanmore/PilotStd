@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple
 
 from ..models import QueryResult
 from ._batch import BatchHandler
-from ._constants import CODE_ROUTES, FOREIGN_ROUTE, INDUSTRY_ROUTE, PROD_PRIORITY, PROGRESS_TAG
+from ._constants import _DEFAULT_FALLBACK_CHAIN, CODE_ROUTES, PROGRESS_TAG
 from ._core import QueryEngineCore
 from ._core_types import EngineCore
 from ._csres import CsresHandler
@@ -140,7 +140,7 @@ class QueryEngine(QueryEngineCore):
     def _build_chain_for_item(
         self, item: Tuple[str, int, int, str, Optional[int], str], preferred_site: str | None = None
     ) -> list[str]:
-        """返回条目对应的完整优先级链（不含 csres）。"""
+        """返回条目对应的完整优先级链。"""
         return self._routing._build_chain_for_item(item, preferred_site)
 
     def _build_mini_buckets(self, bucket_items: list, chain: list, weights: Any) -> list[tuple[str, list]]:
@@ -241,8 +241,6 @@ __all__ = [
     "OverflowHandler",
     "ReportHandler",
     "PROGRESS_TAG",
-    "PROD_PRIORITY",
-    "FOREIGN_ROUTE",
     "CODE_ROUTES",
-    "INDUSTRY_ROUTE",
+    "_DEFAULT_FALLBACK_CHAIN",
 ]

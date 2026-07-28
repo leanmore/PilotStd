@@ -1,46 +1,389 @@
 # pilotstd/query/site_config.py
 # 默认站点配置 — 单一事实来源。
 # manager / main_window / cli 均从此导入，不再各自手写。
+# Phase 3.1: 新增 ADAPTER_DEFAULT_PROFILES 字典（21 适配器完整画像）+ request_interval 字段
 
 from .rotator import SiteState
 
+# ── 适配器默认画像字典（Phase 3.1 路由评分器数据源）────────────────
+# 键 = 适配器 site_name，值 = 完整默认配置画像
+# 字段说明：
+#   label: 中文显示名
+#   industries: 行业关键词列表（用于行业匹配加分）
+#   std_prefixes: 标准号前缀列表（用于前缀精确匹配 +30 分）
+#   is_general: 是否通用适配器（True → -10 降权）
+#   reliability: 可靠性评级（high/medium/low）
+#   default_weight: 基础权重分
+#   rate_limit: 速率限制子字典（request_interval/batch_limit/batch_cooldown/daily_limit）
+#   cooling_threshold: 连续错误触发冷却阈值
+#   cooling_duration: 冷却持续秒数
+#   role: 路由角色（primary=主力站点, background=后台补偿）
 
-def create_default_sites() -> list[SiteState]:
-    """创建默认站点配置，返回按优先级排序的 SiteState 列表。"""
-    S = SiteState  # noqa: N806 — 本地别名
+ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
+    "std_gov": {
+        "label": "全国标准信息公共服务平台",
+        "industries": [],
+        "std_prefixes": ["GB", "GB/T", "GB/Z"],
+        "is_general": True,
+        "reliability": "high",
+        "default_weight": 70,
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 100, "batch_cooldown": 5, "daily_limit": 1000},
+        "cooling_threshold": 5,
+        "cooling_duration": 30,
+        "role": "primary",
+    },
+    "csres": {
+        "label": "工标网",
+        "industries": [],
+        "std_prefixes": ["GB", "GB/T", "GB/Z"],
+        "is_general": True,
+        "reliability": "low",
+        "default_weight": 30,
+        "rate_limit": {"request_interval": 2.0, "batch_limit": 10, "batch_cooldown": 120, "daily_limit": 150},
+        "cooling_threshold": 1,
+        "cooling_duration": 86400,
+        "role": "background",
+    },
+    "cssn": {
+        "label": "中国标准服务网",
+        "industries": [],
+        "std_prefixes": ["GB", "GB/T"],
+        "is_general": True,
+        "reliability": "high",
+        "default_weight": 60,
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5, "daily_limit": 1000},
+        "cooling_threshold": 5,
+        "cooling_duration": 30,
+        "role": "primary",
+    },
+    "jjg": {
+        "label": "国家计量技术规范全文公开系统",
+        "industries": ["计量"],
+        "std_prefixes": ["JJG", "JJF"],
+        "is_general": False,
+        "reliability": "high",
+        "default_weight": 60,
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5, "daily_limit": 1000},
+        "cooling_threshold": 5,
+        "cooling_duration": 30,
+        "role": "primary",
+    },
+    "ahbz": {
+        "label": "安徽标准化信息服务平台",
+        "industries": [],
+        "std_prefixes": ["GB", "GB/T", "DB"],
+        "is_general": True,
+        "reliability": "high",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "hbba": {
+        "label": "行业标准信息服务平台",
+        "industries": [],
+        "std_prefixes": ["SH", "NB", "HG", "JB", "YB", "SY", "CB", "QB", "FZ"],
+        "is_general": False,
+        "reliability": "high",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 900,
+        "role": "primary",
+    },
+    "miit": {
+        "label": "工信部行业标准查询",
+        "industries": ["工业"],
+        "std_prefixes": ["YD", "SJ"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "jtst": {
+        "label": "交通运输部标准查询",
+        "industries": ["交通"],
+        "std_prefixes": ["JT", "JTG", "JTS"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "mee": {
+        "label": "生态环境部标准查询",
+        "industries": ["环保"],
+        "std_prefixes": ["HJ", "GB"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "nrsis": {
+        "label": "自然资源标准信息服务平台",
+        "industries": ["自然资源"],
+        "std_prefixes": ["DZ", "TD"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "sppt": {
+        "label": "食品安全国家标准数据检索平台",
+        "industries": ["食品"],
+        "std_prefixes": ["GB"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "sppt_local": {
+        "label": "食品安全地方标准数据检索平台",
+        "industries": ["食品"],
+        "std_prefixes": ["DB"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 50,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "tdpress": {
+        "label": "铁路标准信息服务平台",
+        "industries": ["铁路"],
+        "std_prefixes": ["TB"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "ncha": {
+        "label": "文物保护标准查询",
+        "industries": ["文物"],
+        "std_prefixes": ["WW"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "gongbiaoku": {
+        "label": "工标库",
+        "industries": [],
+        "std_prefixes": [],
+        "is_general": True,
+        "reliability": "low",
+        "default_weight": 40,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "energy": {
+        "label": "能源标准信息服务平台",
+        "industries": ["能源"],
+        "std_prefixes": ["NB", "DL"],
+        "is_general": False,
+        "reliability": "low",
+        "default_weight": 50,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "iso_gov": {
+        "label": "ISO/IEC国际标准（全国标准平台子站）",
+        "industries": [],
+        "std_prefixes": ["ISO", "IEC", "IEEE"],
+        "is_general": False,
+        "reliability": "high",
+        "default_weight": 60,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 600,
+        "role": "primary",
+    },
+    "njbz365": {
+        "label": "南京标准公共服务平台",
+        "industries": [],
+        "std_prefixes": [],
+        "is_general": True,
+        "reliability": "medium",
+        "default_weight": 45,
+        "rate_limit": {"request_interval": 3.0, "batch_limit": 20, "batch_cooldown": 30, "daily_limit": 500},
+        "cooling_threshold": 3,
+        "cooling_duration": 600,
+        "role": "primary",
+    },
+    "ccsn": {
+        "label": "中国工程建设标准化协会",
+        "industries": ["工程建设"],
+        "std_prefixes": ["CECS"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 50,
+        "rate_limit": {"request_interval": 1.0, "batch_limit": 15, "batch_cooldown": 10, "daily_limit": 500},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+    "dbba": {
+        "label": "地方标准信息服务平台",
+        "industries": [],
+        "std_prefixes": ["DB"],
+        "is_general": False,
+        "reliability": "high",
+        "default_weight": 55,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 600,
+        "role": "primary",
+    },
+    "ttbz": {
+        "label": "全国团体标准信息平台",
+        "industries": [],
+        "std_prefixes": ["T/"],
+        "is_general": False,
+        "reliability": "medium",
+        "default_weight": 50,
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "cooling_threshold": 3,
+        "cooling_duration": 300,
+        "role": "primary",
+    },
+}
+
+
+def _create_sites_part1() -> list[SiteState]:
+    """第一批默认站点（前11个适配器）。"""
+    S = SiteState  # noqa: N806
     return [
-        S(name="ahbz", base_url="https://bzxx.ahbz.org.cn", max_requests=200, daily_limit=800, cooldown_seconds=300),
+        S(
+            name="ahbz",
+            base_url="https://bzxx.ahbz.org.cn",
+            max_requests=200,
+            daily_limit=800,
+            cooldown_seconds=300,
+            request_interval=0.5,
+        ),
         S(
             name="std_gov",
             base_url="https://openstd.samr.gov.cn",
             max_requests=200,
             daily_limit=800,
             cooldown_seconds=300,
+            request_interval=0.3,
         ),
-        S(name="hbba", base_url="https://hbba.sacinfo.org.cn", max_requests=200, daily_limit=800, cooldown_seconds=900),
-        S(name="iso_gov", base_url="https://std.samr.gov.cn", max_requests=200, daily_limit=800),
-        S(name="njbz365", base_url="https://www.njbz365.cn", max_requests=200, daily_limit=800),
-        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", max_requests=200, daily_limit=800),
+        S(
+            name="hbba",
+            base_url="https://hbba.sacinfo.org.cn",
+            max_requests=200,
+            daily_limit=800,
+            cooldown_seconds=900,
+            request_interval=0.5,
+        ),
+        S(name="iso_gov", base_url="https://std.samr.gov.cn", max_requests=200, daily_limit=800, request_interval=0.5),
+        S(name="njbz365", base_url="https://www.njbz365.cn", max_requests=200, daily_limit=800, request_interval=3.0),
+        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", max_requests=200, daily_limit=800, request_interval=0.5),
         S(
             name="csres",
             base_url="http://www.csres.com",
             fallback_urls=["http://222.73.18.35"],
             max_requests=50,
             daily_limit=200,
+            request_interval=2.0,
         ),
-        S(name="ttbz", base_url="https://www.ttbz.org.cn", max_requests=100, daily_limit=400, cooldown_seconds=1),
-        S(name="mee", base_url="https://www.mee.gov.cn", max_requests=50, daily_limit=500, cooldown_seconds=2),
-        S(name="nrsis", base_url="http://www.nrsis.org.cn", max_requests=30, daily_limit=300, cooldown_seconds=3),
-        S(name="jtst", base_url="https://jtst.mot.gov.cn", max_requests=50, daily_limit=500, cooldown_seconds=2),
-        S(name="ccsn", base_url="https://www.ccsn.org.cn", max_requests=50, daily_limit=500, cooldown_seconds=3),
-        S(name="jjg", base_url="https://jjg.spc.org.cn", max_requests=100, daily_limit=1000, cooldown_seconds=1),
-        S(name="sppt", base_url="https://sppt.cfsa.net.cn:8086", max_requests=50, daily_limit=500, cooldown_seconds=2),
+        S(
+            name="ttbz",
+            base_url="https://www.ttbz.org.cn",
+            max_requests=100,
+            daily_limit=400,
+            cooldown_seconds=1,
+            request_interval=0.5,
+        ),
+        S(
+            name="mee",
+            base_url="https://www.mee.gov.cn",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=2,
+            request_interval=0.5,
+        ),
+        S(
+            name="nrsis",
+            base_url="http://www.nrsis.org.cn",
+            max_requests=30,
+            daily_limit=300,
+            cooldown_seconds=3,
+            request_interval=0.5,
+        ),
+        S(
+            name="jtst",
+            base_url="https://jtst.mot.gov.cn",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=2,
+            request_interval=0.5,
+        ),
+    ]
+
+
+def _create_sites_part2() -> list[SiteState]:
+    """第二批默认站点（中间5个适配器）。"""
+    S = SiteState  # noqa: N806
+    return [
+        S(
+            name="ccsn",
+            base_url="https://www.ccsn.org.cn",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=3,
+            request_interval=1.0,
+        ),
+        S(
+            name="jjg",
+            base_url="https://jjg.spc.org.cn",
+            max_requests=100,
+            daily_limit=1000,
+            cooldown_seconds=1,
+            request_interval=0.3,
+        ),
+        S(
+            name="sppt",
+            base_url="https://sppt.cfsa.net.cn:8086",
+            max_requests=50,
+            daily_limit=500,
+            cooldown_seconds=2,
+            request_interval=0.5,
+        ),
         S(
             name="sppt_local",
             base_url="https://sppt.cfsa.net.cn:8087",
             max_requests=30,
             daily_limit=300,
             cooldown_seconds=3,
+            request_interval=0.5,
         ),
         S(
             name="gongbiaoku",
@@ -48,13 +391,22 @@ def create_default_sites() -> list[SiteState]:
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=2,
+            request_interval=0.5,
         ),
+    ]
+
+
+def _create_sites_part3() -> list[SiteState]:
+    """第三批默认站点（后5个适配器）。"""
+    S = SiteState  # noqa: N806
+    return [
         S(
             name="energy",
             base_url="https://114.251.111.103:18080",
             max_requests=30,
             daily_limit=100,
             cooldown_seconds=2,
+            request_interval=0.5,
         ),
         S(
             name="tdpress",
@@ -62,6 +414,7 @@ def create_default_sites() -> list[SiteState]:
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=1,
+            request_interval=0.5,
         ),
         S(
             name="ncha",
@@ -69,6 +422,7 @@ def create_default_sites() -> list[SiteState]:
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=1,
+            request_interval=0.5,
         ),
         S(
             name="miit",
@@ -76,6 +430,7 @@ def create_default_sites() -> list[SiteState]:
             max_requests=50,
             daily_limit=300,
             cooldown_seconds=2,
+            request_interval=0.5,
         ),
         S(
             name="cssn",
@@ -83,5 +438,11 @@ def create_default_sites() -> list[SiteState]:
             max_requests=100,
             daily_limit=1000,
             cooldown_seconds=1,
+            request_interval=0.3,
         ),
     ]
+
+
+def create_default_sites() -> list[SiteState]:
+    """创建默认站点配置，返回按优先级排序的 SiteState 列表。"""
+    return _create_sites_part1() + _create_sites_part2() + _create_sites_part3()

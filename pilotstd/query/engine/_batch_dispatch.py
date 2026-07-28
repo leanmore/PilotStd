@@ -202,7 +202,6 @@ class _BatchDispatchMixin:
             return (overflow_items, time.time() - _ts, done)
 
         chain = self._routing._get_priority(bucket_items[0][1][0] if bucket_items else "", preferred_site)
-        chain = [s for s in chain if s != "csres"]
         if primary_site in chain:
             chain = chain[chain.index(primary_site) :]
         if not chain:

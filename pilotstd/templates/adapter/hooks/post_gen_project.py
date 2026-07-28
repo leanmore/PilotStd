@@ -74,7 +74,7 @@ def main():
     SITE_CONFIG.write_text(content, encoding="utf-8")
     print(f"[OK] {SITE_CONFIG}")
 
-    # 3. _constants.py: add to PROD_PRIORITY
+    # 3. site_config.py: add to ADAPTER_DEFAULT_PROFILES (Phase 3.2: PROD_PRIORITY 已移除)
     content = CONSTANTS.read_text(encoding="utf-8")
     content = insert_before_last(content, r'"csres"', f'    "{ADAPTER_NAME}",')
     CONSTANTS.write_text(content, encoding="utf-8")

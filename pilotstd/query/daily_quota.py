@@ -12,6 +12,9 @@ from ..i18n import _
 
 logger = logging.getLogger(__name__)
 
+# 日限额强制上限（Phase 3.1: 约束条件 #1）
+MAX_DAILY_LIMIT = 1000
+
 # 详情页查询保底次数——特定站点需为详情查询预留配额，避免搜索耗尽。
 # 未列出的站点默认预留 0 次。这不是适配器注册列表，新增适配器无需修改此处。
 # 若新站点经验上需要预留配额，按需添加条目即可。
@@ -36,7 +39,8 @@ class DailyQuotaTracker:
             )
         """)
         self._today = str(date.today())
-        self._limits = dict(limits or {})
+        # Phase 3.1: 日限额强制上限 1000
+        self._limits = {k: min(v, MAX_DAILY_LIMIT) for k, v in dict(limits or {}).items()}
         self._lock = threading.RLock()
         self._ensure_today_rows()
         # 当日已发送配额耗尽通知的站点集合（防重复）

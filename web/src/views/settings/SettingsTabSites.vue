@@ -21,6 +21,7 @@ interface SiteConfig {
   maxRequests: number
   dailyLimit: number
   coolingSeconds: number
+  requestInterval: number
   remainingQuota: number | null
   coolingRemaining: number | null
 }
@@ -41,6 +42,7 @@ async function loadSites() {
     sites.value = (r.data.sites || []).map((s: any) => ({
       ...s,
       coolingSeconds: s.cooling_seconds ?? 600,
+      requestInterval: s.request_interval ?? 0.5,
       remainingQuota: s.remaining_quota ?? null,
       coolingRemaining: s.cooling_remaining ?? null,
     }))
@@ -62,13 +64,15 @@ async function updateSite(site: SiteConfig) {
     if (
       site.maxRequests === orig.maxRequests &&
       site.dailyLimit === orig.dailyLimit &&
-      site.coolingSeconds === orig.coolingSeconds
+      site.coolingSeconds === orig.coolingSeconds &&
+      site.requestInterval === orig.requestInterval
     ) return
     try {
       await http.put(`/settings/sites/${site.name}`, {
         window_limit: site.maxRequests,
         daily_limit: site.dailyLimit,
         cooling_seconds: site.coolingSeconds,
+        request_interval: site.requestInterval,
       })
       await loadSites()
       saved.value = true
@@ -77,6 +81,7 @@ async function updateSite(site: SiteConfig) {
       site.maxRequests = orig.maxRequests
       site.dailyLimit = orig.dailyLimit
       site.coolingSeconds = orig.coolingSeconds
+      site.requestInterval = orig.requestInterval
       errMsg.value = '保存失败，已回滚'
     }
   }, 300)
@@ -113,11 +118,15 @@ onMounted(() => { loadSites() })
               </div>
               <div class="site-field">
                 <label>日限额</label>
-                <InputNumber v-model="s.dailyLimit" :min="1" :max="100000" @update:modelValue="updateSite(s)" />
+                <InputNumber v-model="s.dailyLimit" :min="1" :max="1000" @update:modelValue="updateSite(s)" />
               </div>
               <div class="site-field">
                 <label>冷却时间（秒）</label>
                 <InputNumber v-model="s.coolingSeconds" :min="0" :max="3600" @update:modelValue="updateSite(s)" />
+              </div>
+              <div class="site-field">
+                <label>请求间隔（秒）</label>
+                <InputNumber v-model="s.requestInterval" :min="0.1" :max="10" :step="0.1" suffix="s" @update:modelValue="updateSite(s)" />
               </div>
             </div>
             <!-- Q15: 剩余配额显示 -->

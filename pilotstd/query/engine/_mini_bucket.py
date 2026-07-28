@@ -20,6 +20,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Phase 3.1: request_interval 执行层辅助函数（提取以降低 _process_single_query 圈复杂度）
+def _apply_request_interval(rotator: Any, site_name: str, ctx: dict) -> None:
+    """从 SiteState 读取 request_interval 并 time.sleep，记录到 metrics。"""
+    if rotator and site_name in rotator._sites:
+        interval = rotator._sites[site_name].request_interval
+        if interval > 0:
+            time.sleep(interval)
+            m = ctx.get("metrics")
+            if m:
+                m.increment("request_interval_wait", count=int(interval * 1000))
+
+
 class MiniBucketHandler:
     """小桶处理器 — 小桶拆分 + 逐桶查询执行。
 
@@ -132,6 +144,8 @@ class MiniBucketHandler:
 
         try:
             _t0 = time.time()
+            # Phase 3.1: request_interval 执行层落地
+            _apply_request_interval(rotator, assigned_site, ctx)
             result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
             _elapsed = round(time.time() - _t0, 3)
             if rotator:
