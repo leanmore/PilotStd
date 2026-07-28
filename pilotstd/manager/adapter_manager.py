@@ -1,8 +1,11 @@
 # pilotstd/manager/adapter_manager.py
 # 适配器状态管理器 — 聚合 SiteRotator + DailyQuotaTracker + adapter_health 表
 
+import logging
 import time
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class AdapterManager:
@@ -77,6 +80,24 @@ class AdapterManager:
             return [dict(r) for r in rows]
         except Exception:
             return []
+
+    # Phase 3.1: request_interval 执行层落地
+    def get_request_interval(self, name: str) -> float:
+        """返回指定站点的请求间隔（秒），未注册返回 0。"""
+        if self._rotator and name in self._rotator._sites:
+            return float(self._rotator._sites[name].request_interval)
+        return 0.0
+
+    def execute_request_interval(self, name: str) -> None:
+        """执行 request_interval 等待（在每次适配器查询前调用）。
+
+        从 SiteState.request_interval 读取间隔值并 time.sleep。
+        若值为 0 或站点不存在则跳过。
+        """
+        interval = self.get_request_interval(name)
+        if interval > 0:
+            time.sleep(interval)
+            logger.debug("request_interval_wait: site=%s interval=%.1fs", name, interval)
 
     def test_adapter(self, name: str) -> dict[str, Any]:
         """测试单个适配器连通性。"""

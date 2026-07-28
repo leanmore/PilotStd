@@ -157,3 +157,8 @@ class QueryMetrics:
     KEY_BATCH_CRASH = "batch_crash"
     KEY_CSRES_CIRCUIT_BREAK = "csres_circuit_break"
     KEY_CSRES_DROPPED = "csres_dropped"
+
+    # Phase 3.1: 路由评分器流量控制计数器
+    KEY_DAILY_LIMIT_HIT = "daily_limit_hit"  # 日限额触发剔除次数
+    KEY_BATCH_LIMIT_HIT = "batch_limit_hit"  # 批次限额触发剔除次数
+    KEY_REQUEST_INTERVAL_WAIT = "request_interval_wait"  # 请求间隔等待总毫秒数（累加值）

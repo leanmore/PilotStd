@@ -225,7 +225,21 @@ export interface UploadResponse {
   filename?: string
 }
 
-// ── 通用 ──────────────────────────────────────────────
+// ── 站点配置 ──────────────────────────────────────────
+
+/** Phase 3.1: 站点配置（对应 GET/PUT /api/settings/sites） */
+export interface SiteConfig {
+  name: string
+  label: string
+  url: string
+  priority: number
+  maxRequests: number
+  dailyLimit: number
+  coolingSeconds: number
+  requestInterval?: number  // 单次查询间隔（秒），Phase 3.1 新增
+  remainingQuota: number | null
+  coolingRemaining: number | null
+}
 
 export interface SuccessResponse {
   ok?: boolean
