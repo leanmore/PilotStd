@@ -202,6 +202,8 @@ class _BatchDispatchMixin:
             return (overflow_items, time.time() - _ts, done)
 
         chain = self._routing._get_priority(bucket_items[0][1][0] if bucket_items else "", preferred_site)
+        # TODO(v2.2): 待评分器验证稳定后，移除此 csres 硬编码排除逻辑
+        # 当前保留原因：csres 日限额仅150，评分器刚上线权重未经验证
         chain = [s for s in chain if s != "csres"]
         if primary_site in chain:
             chain = chain[chain.index(primary_site) :]

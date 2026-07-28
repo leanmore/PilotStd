@@ -10,6 +10,7 @@ PROGRESS_TAG = "[PROGRESS]"
 logger = logging.getLogger(__name__)
 
 # 默认站点优先级（兜底，无代号匹配时使用）
+# DEPRECATED(Phase 3.1): 由 routing.scorer.get_priority_chain 替代，此处仅作兜底
 PROD_PRIORITY = [
     "ahbz",
     "std_gov",
@@ -33,6 +34,7 @@ PROD_PRIORITY = [
     "csres",
 ]
 # 国外标准默认路由：ahbz免鉴权优先，njbz365次选
+# DEPRECATED(Phase 3.1): 由评分器动态路由替代
 FOREIGN_ROUTE = ["ahbz", "njbz365"]
 
 
@@ -56,4 +58,5 @@ def _build_default_code_routes() -> dict[str, list[str]]:
 
 CODE_ROUTES = _build_default_code_routes()
 # 行业标准（SH/NB/HG/JB 等）：行标平台优先，njbz365二线，csres兜底
+# DEPRECATED(Phase 3.1): 由评分器动态路由替代
 INDUSTRY_ROUTE = ["hbba", "njbz365", "csres"]

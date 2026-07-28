@@ -26,6 +26,7 @@ class SiteState:
     max_requests: int = 200  # 每轮冷却前最大请求数
     daily_limit: int = 800  # 每日最大请求数（次日凌晨自动重置）
     cooldown_seconds: int = 600  # 冷却时长（10分钟）
+    request_interval: float = 0.5  # 单次查询间隔（秒），执行层 time.sleep 落地
     request_count: int = 0  # 当前轮次请求计数（冷却后归零）
     daily_count: int = 0  # 当日累计请求数
     daily_date: str = ""  # 日计数器日期（YYYY-MM-DD，跨天自动重置）

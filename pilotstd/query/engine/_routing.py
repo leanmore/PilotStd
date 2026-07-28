@@ -12,6 +12,7 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from ..adapters.base import BaseAdapter
+from ..routing.scorer import _collect_runtime_state, get_priority_chain
 from ..search_strategy import ADAPTER_TYPE_MAP
 from ._constants import CODE_ROUTES, FOREIGN_ROUTE, INDUSTRY_ROUTE, PROD_PRIORITY
 
@@ -33,7 +34,23 @@ class RoutingHandler:
     # ── 路由基础 ──
 
     def _resolve_base_route(self, logical_code: str) -> list[str]:
-        """按标准代号/类型确定基础路由链。返回站点名称列表。"""
+        """按标准代号/类型确定基础路由链。返回站点名称列表。
+
+        Phase 3.1: 优先使用评分器动态路由；旧硬编码路由作为兜底。
+        """
+        # Phase 3.1: 评分器动态路由（优先）
+        try:
+            rotator = self._core.rotator
+            quota = self._core.quota
+            runtime_state = _collect_runtime_state(rotator, quota)
+            dynamic_chain = get_priority_chain(logical_code, runtime_state)
+            if dynamic_chain:
+                logger.info("[ROUTE] 代号=%s 评分器路由=%s", logical_code, "→".join(dynamic_chain))
+                return dynamic_chain
+        except Exception:
+            logger.debug("评分器路由失败，回退到硬编码路由", exc_info=True)
+
+        # 兜底：旧硬编码路由
         if logical_code in CODE_ROUTES:
             return list(CODE_ROUTES[logical_code])  # 硬编码路由：按代号直接映射
         if logical_code and re.match(r"^DB\d{2,4}(?:/T)?$", logical_code):
@@ -174,7 +191,12 @@ class RoutingHandler:
         item: Tuple[str, int, int, str, Optional[int], str],
         preferred_site: str | None = None,
     ) -> list[str]:
-        """返回条目对应的完整优先级链（不含 csres）。"""
+        """返回条目对应的完整优先级链（不含 csres）。
+
+        TODO(v2.2): 待评分器验证稳定后，移除此 csres 硬编码排除逻辑。
+        当前保留原因：csres 日限额仅150，评分器刚上线权重未经验证。
+        """
         logical_code = item[0]
         chain = self._get_priority(logical_code, preferred_site)
+        # TODO(v2.2): csres 硬编码排除 — 待评分器稳定后移除
         return [s for s in chain if s != "csres"]
