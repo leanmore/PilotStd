@@ -69,34 +69,32 @@ class ConfigManager:
                 node = node[part]
             node[parts[-1]] = value
 
-    def save(self) -> None:
-        """将当前配置原子写入 JSON 文件（先写 .tmp 再 replace，敏感字段加密）。"""
-        with self._lock:
-            # 确保配置目录存在（首次运行 / CI xdist 并发下可能不存在）
-            Path(self._filepath).parent.mkdir(parents=True, exist_ok=True)
-            tmp_path = self._filepath + ".tmp"
-            from .crypto import _get_fernet, _walk_sensitive
+    def save(self, retries: int = 3, delay: float = 0.1) -> None:
+        """将当前配置原子写入 JSON 文件（先写 .tmp 再 replace，敏感字段加密）。
 
-            f = _get_fernet(os.path.dirname(self._filepath))
-            # 磁盘数据需加密敏感字段（密钥、密码等），防止明文泄露
-            data_on_disk = _walk_sensitive(self._data, encrypt=True, fernet=f)
-            with open(tmp_path, "w", encoding="utf-8") as fh:
-                json.dump(data_on_disk, fh, ensure_ascii=False, indent=2)
-            # Unix 下限制权限为仅当前用户可读写
-            if os.name != "nt":
-                os.chmod(tmp_path, 0o600)
-            # 原子替换：先写临时文件再 rename，避免写入中途崩溃导致文件损坏
-            # Windows 下 os.replace 可能因目标文件被其他进程持有而触发 PermissionError，
-            # 使用指数退避重试（最多 3 次，总等待 ≤ 700ms）
-            Path(self._filepath).parent.mkdir(parents=True, exist_ok=True)
-            for attempt in range(3):
+        mkdir / open / os.replace 全部纳入重试循环，消除 xdist 并发竞态。
+        """
+        target = Path(self._filepath)
+        tmp_path = target.with_suffix(target.suffix + ".tmp")
+
+        from .crypto import _get_fernet, _walk_sensitive
+
+        with self._lock:
+            for attempt in range(retries):
                 try:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    f = _get_fernet(os.path.dirname(self._filepath))
+                    data_on_disk = _walk_sensitive(self._data, encrypt=True, fernet=f)
+                    with open(tmp_path, "w", encoding="utf-8") as fh:
+                        json.dump(data_on_disk, fh, ensure_ascii=False, indent=2)
+                    if os.name != "nt":
+                        os.chmod(tmp_path, 0o600)
                     os.replace(tmp_path, self._filepath)
-                    break
-                except (PermissionError, FileNotFoundError):
-                    if attempt == 2:
+                    return
+                except (PermissionError, FileNotFoundError, OSError):
+                    if attempt == retries - 1:
                         raise
-                    time.sleep(0.1 * (2**attempt))
+                    time.sleep(delay * (2**attempt))
 
     def reset(self, key: str | None = None) -> None:
         """重置配置项。key 为 None 时清空全部配置，否则删除指定键。"""

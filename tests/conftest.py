@@ -34,6 +34,17 @@ collect_ignore = [
 ]
 
 
+@pytest.fixture(scope="session", autouse=True)
+def ensure_data_dir():
+    """预创建 data/ 目录和空配置文件，消除所有测试文件的 first-run 竞态。"""
+    from pathlib import Path
+
+    config_path = Path("data/config.json")
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if not config_path.exists():
+        config_path.write_text("{}", encoding="utf-8")
+
+
 @pytest.fixture(scope="session")
 def shared_db():
     """会话级共享数据库（临时文件），所有测试复用同一个 Database 实例。"""
