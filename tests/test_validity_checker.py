@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
+from pathlib import Path
 
 import pytest
 
@@ -15,6 +16,14 @@ from pilotstd.core.validity_checker import ValidityChecker
 
 
 class TestValidityChecker(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """预创建配置文件目录，消除 xdist 并发下的 first-run 竞争。"""
+        config_path = Path("data/config.json")
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        if not config_path.exists():
+            config_path.write_text("{}", encoding="utf-8")
+
     @pytest.fixture(autouse=True)
     def _setup_db(self, shared_db):
         self.db: Database = shared_db

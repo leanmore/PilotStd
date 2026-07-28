@@ -4,7 +4,9 @@
 import json
 import os
 import threading
+import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from .defaults import FACTORY_DEFAULTS  # 工厂默认值字典，所有未设置键的兜底
@@ -70,8 +72,8 @@ class ConfigManager:
     def save(self) -> None:
         """将当前配置原子写入 JSON 文件（先写 .tmp 再 replace，敏感字段加密）。"""
         with self._lock:
-            # 确保配置目录存在（首次运行时可能不存在）
-            os.makedirs(os.path.dirname(self._filepath), exist_ok=True)
+            # 确保配置目录存在（首次运行 / CI xdist 并发下可能不存在）
+            Path(self._filepath).parent.mkdir(parents=True, exist_ok=True)
             tmp_path = self._filepath + ".tmp"
             from .crypto import _get_fernet, _walk_sensitive
 
@@ -84,8 +86,17 @@ class ConfigManager:
             if os.name != "nt":
                 os.chmod(tmp_path, 0o600)
             # 原子替换：先写临时文件再 rename，避免写入中途崩溃导致文件损坏
-            os.makedirs(os.path.dirname(self._filepath) or ".", exist_ok=True)
-            os.replace(tmp_path, self._filepath)
+            # Windows 下 os.replace 可能因目标文件被其他进程持有而触发 PermissionError，
+            # 使用指数退避重试（最多 3 次，总等待 ≤ 700ms）
+            Path(self._filepath).parent.mkdir(parents=True, exist_ok=True)
+            for attempt in range(3):
+                try:
+                    os.replace(tmp_path, self._filepath)
+                    break
+                except PermissionError:
+                    if attempt == 2:
+                        raise
+                    time.sleep(0.1 * (2**attempt))
 
     def reset(self, key: str | None = None) -> None:
         """重置配置项。key 为 None 时清空全部配置，否则删除指定键。"""
