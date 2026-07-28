@@ -93,7 +93,7 @@ class ConfigManager:
                 try:
                     os.replace(tmp_path, self._filepath)
                     break
-                except PermissionError:
+                except (PermissionError, FileNotFoundError):
                     if attempt == 2:
                         raise
                     time.sleep(0.1 * (2**attempt))
