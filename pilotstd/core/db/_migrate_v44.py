@@ -44,18 +44,24 @@ def _migrate_v44_favorite_downloads(db: Any) -> None:
 
     # ── 2. 迁移现有数据 ──
     # 将 user_favorites 中所有归档状态记录迁移到 favorite_downloads
-    rows_migrated = db.execute(
-        """INSERT OR IGNORE INTO favorite_downloads
-           (favorite_id, record_id, status, local_path, error_message,
-            retry_count, last_attempt, created_at, updated_at)
-           SELECT id, record_id, status, local_path, error_message,
-                  archive_retry_count, last_archive_attempt,
-                  created_at, updated_at
-           FROM user_favorites
-           WHERE status IN ('downloading', 'archiving', 'done', 'failed', 'abandoned')
-             AND record_id IS NOT NULL"""
-    )
-    logger.info("favorite_downloads 数据迁移完成，迁移行数: %s", rows_migrated.rowcount if rows_migrated else 0)
+    # 防御性检查：确保 archive_retry_count 列存在（v36 的 ALTER TABLE 可能在特定条件下静默失败）
+    existing_cols = {r["name"] for r in db.fetchall("PRAGMA table_info(user_favorites)")}
+    if "archive_retry_count" in existing_cols and "last_archive_attempt" in existing_cols:
+        rows_migrated = db.execute(
+            """INSERT OR IGNORE INTO favorite_downloads
+               (favorite_id, record_id, status, local_path, error_message,
+                retry_count, last_attempt, created_at, updated_at)
+               SELECT id, record_id, status, local_path, error_message,
+                      archive_retry_count, last_archive_attempt,
+                      created_at, updated_at
+               FROM user_favorites
+               WHERE status IN ('downloading', 'archiving', 'done', 'failed', 'abandoned')
+                 AND record_id IS NOT NULL"""
+        )
+        logger.info("favorite_downloads 数据迁移完成，迁移行数: %s", rows_migrated.rowcount if rows_migrated else 0)
+    else:
+        logger.warning("user_favorites 缺少 archive_retry_count/last_archive_attempt 列，跳过存量数据迁移")
+        rows_migrated = None
 
     # ── 3. 清理 user_favorites 归档状态 ──
     # 已成功迁移的记录，状态重置为 'pending'（回归纯粹收藏语义）
