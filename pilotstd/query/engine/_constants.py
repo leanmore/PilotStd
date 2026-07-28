@@ -1,41 +1,34 @@
 # pilotstd/query/engine/_constants.py
 # 查询引擎常量 — 站点优先级、路由表
-"""PROGRESS_TAG、默认站点优先级、按标准代号分流路由表。"""
+"""PROGRESS_TAG、按标准代号分流路由表。"""
 
 import logging
+
+from pilotstd.query.site_config import ADAPTER_DEFAULT_PROFILES
 
 # 跨进程日志解析协议标识 — 压测脚本依赖此字符串进行心跳检测和进度解析
 PROGRESS_TAG = "[PROGRESS]"
 
 logger = logging.getLogger(__name__)
 
-# 默认站点优先级（兜底，无代号匹配时使用）
-# DEPRECATED(Phase 3.1): 由 routing.scorer.get_priority_chain 替代，此处仅作兜底
-PROD_PRIORITY = [
-    "ahbz",
-    "std_gov",
-    "mee",
-    "nrsis",
-    "jtst",
-    "ccsn",
-    "jjg",
-    "sppt",
-    "sppt_local",
-    "gongbiaoku",
-    "energy",
-    "tdpress",
-    "ncha",
-    "miit",
-    "cssn",
-    "hbba",
-    "iso_gov",
-    "njbz365",
-    "ttbz",
-    "csres",
-]
-# 国外标准默认路由：ahbz免鉴权优先，njbz365次选
-# DEPRECATED(Phase 3.1): 由评分器动态路由替代
-FOREIGN_ROUTE = ["ahbz", "njbz365"]
+# Phase 3.2: 默认站点优先级已迁移至 ADAPTER_DEFAULT_PROFILES + 评分器动态路由
+# 兜底链：按 default_weight 降序排列的完整适配器列表
+_DEFAULT_FALLBACK_CHAIN: list[str] = sorted(
+    ADAPTER_DEFAULT_PROFILES.keys(),
+    key=lambda n: ADAPTER_DEFAULT_PROFILES[n].get("default_weight", 50),
+    reverse=True,
+)
+
+# 国外标准兜底路由（评分器失败时的硬编码回退）
+_FOREIGN_FALLBACK = ["ahbz", "njbz365"]
+
+# 行业标准兜底路由（评分器失败时的硬编码回退）
+_INDUSTRY_FALLBACK = ["hbba", "njbz365", "csres"]
+
+
+def get_fallback_chain() -> list[str]:
+    """返回按权重排序的完整兜底链（评分器失败时使用）。"""
+    return list(_DEFAULT_FALLBACK_CHAIN)
 
 
 # 按标准代号分流：专业站点优先，njbz365 二线，csres 国标/行业兜底
@@ -57,6 +50,3 @@ def _build_default_code_routes() -> dict[str, list[str]]:
 
 
 CODE_ROUTES = _build_default_code_routes()
-# 行业标准（SH/NB/HG/JB 等）：行标平台优先，njbz365二线，csres兜底
-# DEPRECATED(Phase 3.1): 由评分器动态路由替代
-INDUSTRY_ROUTE = ["hbba", "njbz365", "csres"]

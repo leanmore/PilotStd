@@ -7,19 +7,25 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
+import random
 import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from ..adapters.base import BaseAdapter
 from ..routing.scorer import _collect_runtime_state, get_priority_chain
 from ..search_strategy import ADAPTER_TYPE_MAP
-from ._constants import CODE_ROUTES, FOREIGN_ROUTE, INDUSTRY_ROUTE, PROD_PRIORITY
+from ._constants import _DEFAULT_FALLBACK_CHAIN, _FOREIGN_FALLBACK, _INDUSTRY_FALLBACK, CODE_ROUTES
 
 if TYPE_CHECKING:
     from ._core_types import EngineCore
 
 logger = logging.getLogger(__name__)
+
+# Phase 3.2: 路由决策结构化日志采样率（默认 1%，环境变量可覆盖）
+ROUTING_DEBUG_SAMPLE_RATE = float(os.environ.get("ROUTING_DEBUG_SAMPLE_RATE", "0.01"))
 
 
 class RoutingHandler:
@@ -45,6 +51,24 @@ class RoutingHandler:
             runtime_state = _collect_runtime_state(rotator, quota)
             dynamic_chain = get_priority_chain(logical_code, runtime_state)
             if dynamic_chain:
+                # Phase 3.2: 路由决策采样日志（默认 1%）
+                if random.random() < ROUTING_DEBUG_SAMPLE_RATE:
+                    from ..routing.scorer import score_adapter
+
+                    top = score_adapter(dynamic_chain[0], logical_code, runtime_state.get(dynamic_chain[0], {}))
+                    logger.info(
+                        json.dumps(
+                            {
+                                "event": "route_decision",
+                                "query": logical_code[:100],
+                                "chain_length": len(dynamic_chain),
+                                "top_adapter": dynamic_chain[0],
+                                "top_score": top.score,
+                                "top_reasons": top.reasons,
+                            },
+                            ensure_ascii=False,
+                        )
+                    )
                 logger.info("[ROUTE] 代号=%s 评分器路由=%s", logical_code, "→".join(dynamic_chain))
                 return dynamic_chain
         except Exception:
@@ -68,7 +92,7 @@ class RoutingHandler:
                 primary = str(type_route.get("primary", ""))
                 fallback = str(type_route.get("fallback", ""))
                 base = [primary] if primary else []
-                extras = [s for s in PROD_PRIORITY if s not in base and s != fallback]
+                extras = [s for s in _DEFAULT_FALLBACK_CHAIN if s not in base and s != fallback]
                 base.extend(extras[:2])
                 if fallback and fallback not in base:
                     base.append(fallback)
@@ -86,12 +110,12 @@ class RoutingHandler:
             if not is_foreign:
                 is_foreign = any(logical_code.upper().startswith(cac.upper()) for cac in CAC_PREFIXES)
             if is_foreign:
-                return list(FOREIGN_ROUTE)  # 国外标准路由
+                return list(_FOREIGN_FALLBACK)  # 国外标准路由
             if len(logical_code) <= 4:
-                return list(INDUSTRY_ROUTE)  # 短代号 → 行业标准路由
-            return list(FOREIGN_ROUTE)  # 未识别代号 → 按国外标准处理
+                return list(_INDUSTRY_FALLBACK)  # 短代号 → 行业标准路由
+            return list(_FOREIGN_FALLBACK)  # 未识别代号 → 按国外标准处理
 
-        return list(PROD_PRIORITY)
+        return list(_DEFAULT_FALLBACK_CHAIN)
 
     def _apply_site_order(self, base: list[str]) -> list[str]:
         """用户自定义 site_order 置顶叠加。"""
@@ -113,7 +137,7 @@ class RoutingHandler:
         pri = [n for n in base if n in known]
         if not pri and known:
             pri = [a.site_name for a in adapters]
-            if base == FOREIGN_ROUTE:
+            if base == _FOREIGN_FALLBACK:
                 pri = [n for n in pri if n not in ("std_gov", "hbba")]
         return pri
 
@@ -191,12 +215,6 @@ class RoutingHandler:
         item: Tuple[str, int, int, str, Optional[int], str],
         preferred_site: str | None = None,
     ) -> list[str]:
-        """返回条目对应的完整优先级链（不含 csres）。
-
-        TODO(v2.2): 待评分器验证稳定后，移除此 csres 硬编码排除逻辑。
-        当前保留原因：csres 日限额仅150，评分器刚上线权重未经验证。
-        """
+        """返回条目对应的完整优先级链（Phase 3.2: 已移除 csres 硬编码排除）。"""
         logical_code = item[0]
-        chain = self._get_priority(logical_code, preferred_site)
-        # TODO(v2.2): csres 硬编码排除 — 待评分器稳定后移除
-        return [s for s in chain if s != "csres"]
+        return self._get_priority(logical_code, preferred_site)

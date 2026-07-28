@@ -36,6 +36,7 @@ from .api.organize import router as organize_router
 from .api.pending import router as pending_router
 from .api.quality import router as quality_router
 from .api.query import router as query_router
+from .api.query_debug import router as query_debug_router
 from .api.scan import router as scan_router
 from .api.scheduler import router as scheduler_router
 from .api.settings import router as settings_router
@@ -233,6 +234,7 @@ app.include_router(announcements_router)
 app.include_router(settings_router)
 app.include_router(notification_router)
 app.include_router(adapter_router)
+app.include_router(query_debug_router)
 app.include_router(scheduler_router)
 app.include_router(backup_router)
 app.include_router(export_router)

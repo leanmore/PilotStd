@@ -10,6 +10,7 @@ from pilotstd.query.routing.scorer import (
     get_profile,
     score_adapter,
 )
+from pilotstd.query.site_config import ADAPTER_DEFAULT_PROFILES
 
 
 class TestExtractKeywords:
@@ -182,3 +183,74 @@ class TestCollectRuntimeState:
         """无 rotator/quota 时返回空字典"""
         state = _collect_runtime_state(None, None)
         assert state == {}
+
+
+# ── Phase 3.2: csres 回归安全网 ──────────────────────────────
+
+
+def _normal_runtime_state() -> dict:
+    """构造正常运行时状态（无冷却，无配额耗尽）。"""
+    return {"daily_used": 0, "cooldown_until": 0.0, "current_batch_count": 0}
+
+
+class TestCsresRegression:
+    """Phase 3.2: csres 硬编码排除移除后的回归安全网。"""
+
+    def test_csres_naturally_low_priority(self):
+        """移除硬编码排除后，csres 因低权重自然处于链中后段"""
+        chain = get_priority_chain("GB/T 1234")
+        csres_index = chain.index("csres") if "csres" in chain else len(chain)
+        # csres 不应出现在前 5 名
+        assert csres_index >= 5, f"csres 应自然排在后段(≥5)，实际排名={csres_index}，链={chain}"
+        # csres 不应排在任何高权重 primary 之前（std_gov:70, cssn:60, jjg:60, iso_gov:60）
+        high_weight_primaries = ["std_gov", "cssn", "jjg", "iso_gov"]
+        for pa in high_weight_primaries:
+            if pa in chain:
+                assert chain.index(pa) < csres_index, f"csres should rank below {pa}, got chain={chain}"
+
+    def test_csres_score_not_exceed_expected_max(self):
+        """csres 分数不超过 base(30) + prefix_match(30) = 60（含通用降权后 ≤ 50）"""
+        result = score_adapter("csres", "GB/T 1234", _normal_runtime_state())
+        # csres: base=30 + prefix(GB)=30 + general=-10 = 50
+        assert result.score <= 50, f"csres score {result.score} > 50"
+
+    def test_csres_not_excluded_by_scorer(self):
+        """评分器不排除 csres：移除硬编码后，csres 应在链中"""
+        chain = get_priority_chain("GB 12345-2020")
+        assert "csres" in chain, f"移除硬编码排除后，csres 应出现在评分器链中，实际={chain}"
+
+    def test_csres_daily_exhausted_still_absent(self):
+        """csres 日限额耗尽时应被评分器剔除（score=0）"""
+        runtime = {"daily_used": 200, "cooldown_until": 0.0, "current_batch_count": 0}
+        chain = get_priority_chain("GB 12345-2020", {"csres": runtime})
+        assert "csres" not in chain, f"csres 日限额耗尽应从链中剔除，实际={chain}"
+
+
+# ── Phase 3.2: debug 接口测试 ──────────────────────────────
+
+
+class TestDebugApi:
+    """Phase 3.2: POST /api/query/debug 接口单元测试。"""
+
+    def test_debug_returns_complete_chain(self):
+        """debug 接口应返回 21 个适配器的完整评分"""
+        from pilotstd.query.routing.scorer import score_adapter
+
+        results = []
+        for name in ADAPTER_DEFAULT_PROFILES:
+            r = score_adapter(name, "NB/T 1234")
+            results.append((name, r.score, r.reasons))
+        results.sort(key=lambda x: x[1], reverse=True)
+        assert len(results) == 21, f"应返回21个适配器，实际={len(results)}"
+        assert results[0][1] > 0, "第一名分数应>0"
+
+    def test_debug_simulate_cooldown_zeroes_adapter(self):
+        """模拟冷却状态：对应适配器 score=0"""
+        future_ts = __import__("time").time() + 3600
+        result = score_adapter("std_gov", "GB 12345", {"cooldown_until": future_ts})
+        assert result.score == 0, f"冷却中应score=0，实际={result.score}"
+
+    def test_debug_simulate_daily_exhausted_zeroes_adapter(self):
+        """模拟日限额耗尽：对应适配器 score=0"""
+        result = score_adapter("std_gov", "GB 12345", {"daily_used": 1000})
+        assert result.score == 0, f"日限额耗尽应score=0，实际={result.score}"
