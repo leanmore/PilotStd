@@ -422,22 +422,22 @@ class TestRouting(unittest.TestCase):
         )
 
     def test_njbz365_in_priority(self):
-        """njbz365 在默认优先级中"""
-        from pilotstd.query.engine import PROD_PRIORITY
+        """njbz365 在默认优先级中（Phase 3.2: PROD_PRIORITY → _DEFAULT_FALLBACK_CHAIN）"""
+        from pilotstd.query.engine import _DEFAULT_FALLBACK_CHAIN
 
-        self.assertIn("njbz365", PROD_PRIORITY)
+        self.assertIn("njbz365", _DEFAULT_FALLBACK_CHAIN)
 
     def test_njbz365_in_industry(self):
-        """njbz365 在行业路由中作为二线"""
-        from pilotstd.query.engine import INDUSTRY_ROUTE
+        """njbz365 在行业路由中作为二线（Phase 3.2: INDUSTRY_ROUTE → _INDUSTRY_FALLBACK）"""
+        from pilotstd.query.engine._constants import _INDUSTRY_FALLBACK
 
-        self.assertIn("njbz365", INDUSTRY_ROUTE)
+        self.assertIn("njbz365", _INDUSTRY_FALLBACK)
 
     def test_njbz365_in_foreign(self):
-        """njbz365 在国外路由中（唯一覆盖国外标准的站点）"""
-        from pilotstd.query.engine import FOREIGN_ROUTE
+        """njbz365 在国外路由中（Phase 3.2: FOREIGN_ROUTE → _FOREIGN_FALLBACK）"""
+        from pilotstd.query.engine._constants import _FOREIGN_FALLBACK
 
-        self.assertIn("njbz365", FOREIGN_ROUTE)
+        self.assertIn("njbz365", _FOREIGN_FALLBACK)
 
     def test_foreign_codes_have_routes(self):
         """所有 FOREIGN_CODE_SET 中的代号通过 classify_std_code → ADAPTER_TYPE_MAP 获取路由。
@@ -905,9 +905,14 @@ class TestBucketConcurrency(unittest.TestCase):
         self.assertGreater(sum(1 for r in results if r.is_found()), 200)
 
     def test_02_csres_chain_isolated(self):
-        """csres 从链中完全移除"""
+        """csres 自然降权位于链尾（Phase 3.2: 移除硬编码排除，靠 default_weight=30 + daily_limit=150）"""
         chain = self._engine()._build_chain_for_item(("GB", 1, 2020, "t", None))
-        self.assertNotIn("csres", chain)
+        self.assertIn("csres", chain, "csres 应在链中，由评分器自然降权而非硬编码排除")
+        self.assertGreater(
+            chain.index("csres"),
+            len(chain) // 2,
+            f"csres 应在链后半段(>{len(chain) // 2})，实际排名={chain.index('csres')}",
+        )
 
     def test_03_overflow_exhausted_pending(self):
         """全部站点不命中→待确认"""
