@@ -320,7 +320,90 @@ Commit `a291cccc` 将 26 个文件的运行时修复与批量增强合为单次�
 
 ---
 
-> **版本**：v2.0
+## §5.3 路由策略配置化重构（Phase 3.1 + 3.2）
+
+本节记录从 v2.0 硬编码路由到 v2.1 配置化评分路由的架构演进。
+
+### 5.3.1 重构前后对比
+
+| 维度 | 重构前 (v2.0) | 重构后 (v2.1) |
+| :--- | :--- | :--- |
+| 路由决策 | 硬编码常量 `PROD_PRIORITY` / `FOREIGN_ROUTE` / `INDUSTRY_ROUTE` | 评分器动态计算 + 7级回退链（L1-L7） |
+| 适配器画像 | 隐式分散在代码各处 | `ADAPTER_DEFAULT_PROFILES` 集中定义（21个适配器完整画像） |
+| csres 处理 | `if s != "csres"` 硬编码排除（3处） | `default_weight=30` + `daily_limit=150` 自然降权，移除硬编码排除 |
+| 请求间隔 | 全局固定 sleep | 每适配器独立 `request_interval` 配置 |
+| 日限额 | 无上限约束 | `MAX_DAILY_LIMIT=1000` 前后端双重校验 |
+| 可观测性 | 仅成功/失败计数 | 评分链 debug API + 1% 采样结构化日志 |
+| 测试覆盖 | 基础功能测试 | +75 用例（评分器/联合/csres安全网/debug API） |
+
+### 5.3.2 关键设计决策
+
+**决策 1：废弃常量处置策略**
+
+原计划直接删除 `PROD_PRIORITY` 等常量，实际执行中重命名为：
+
+- `_DEFAULT_FALLBACK_CHAIN` — 通用兜底链
+- `_FOREIGN_FALLBACK` — 国外标准兜底链
+- `_INDUSTRY_FALLBACK` — 行业标准兜底链
+
+触发条件：
+
+- 评分器 `get_priority_chain()` 返回空列表
+- 评分器执行时抛出未捕获异常
+
+告警：触发兜底时记录 WARNING 级别日志，便于发现评分器异常。
+
+决策理由：保留语义化命名的兜底链，避免评分器空链时系统静默失效。同时避免 Dict key 与硬编码列表不同步风险。
+
+**决策 2：csres 从硬编码排除到自然降权**
+
+移除 3 处 `if s != "csres"` 硬编码排除，改用评分器权重控制：
+
+- `csres.default_weight = 30`（远低于行业适配器的 80-90 分）
+- `csres.daily_limit = 150`（日限额低，评分器中会被快速剔除）
+
+安全网：回归测试新增 4 个用例验证 csres 不会因误评分而被过度路由。
+
+### 5.3.3 新增 Metrics 速查
+
+| Metric | 含义 | 单位 | 告警阈值建议 |
+| :--- | :--- | :--- | :--- |
+| `daily_limit_hit` | 适配器日限额触顶次数 | 次 | >5次/天 → 检查权重或提升限额 |
+| `batch_limit_hit` | 批次限额触顶次数 | 次 | >10次/批 → 检查并发配置 |
+| `request_interval_wait_total` | 请求间隔等待累计时长 | 秒（Counter） | `rate()[1m]` >30s/min → 检查 interval 配置 |
+
+> **注：** `request_interval_wait_total` 为 Counter 类型，Grafana 查询时需使用 `rate(request_interval_wait_total[1m])` 获取每秒等待时长速率。
+
+### 5.3.4 可观测性接口
+
+**Debug API：** `POST /api/query/debug`
+
+- 输入：`{"query": "GB/T 12345", "simulate_runtime": {...}}`
+- 输出：完整评分链（每个适配器的 score + reasons）
+- 用途：人工排查路由决策依据、what-if 模拟分析
+
+**日志采样：** `ROUTING_DEBUG_SAMPLE_RATE = 1%`
+
+- 结构化 JSON 输出，含查询词、评分链、选中的适配器
+- 用于生产环境被动分析，环境变量可覆盖采样率
+
+### 5.3.5 迁移检查清单
+
+部署 v2.1 前确认：
+
+| # | 检查项 | 状态 |
+| :--- | :--- | :--- |
+| 1 | `ADAPTER_DEFAULT_PROFILES` 覆盖全部 21 个适配器 | ✅ |
+| 2 | 所有 `daily_limit ≤ 1000` | ✅ |
+| 3 | csres 硬编码排除已移除 | ✅ |
+| 4 | 废弃常量已替换为 Fallback 常量 | ✅ |
+| 5 | `POST /api/query/debug` 可用 | ✅ |
+| 6 | 评分器单元测试 ≥ 27 个 | ✅ |
+| 7 | 故意传入评分器无法处理的 query，确认 WARNING 日志包含 `_DEFAULT_FALLBACK_CHAIN` 关键字 | ✅ |
+
+---
+
+> **版本**：v2.1
 > **状态**：已评审 / 可执行
-> **生效日期**：2026-07-27
+> **生效日期**：2026-07-27（§5.3 追加于 2026-07-28）
 > **维护责任**：Qwen / DeepSeek 共同维护，修订需双方共识
