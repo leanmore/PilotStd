@@ -17,9 +17,20 @@ _CLEANUP_EVERY_N = 10
 _write_count = 0
 _cleanup_lock = threading.Lock()
 
+# 测试注入：允许外部设置 DB 实例覆盖（仅用于测试）
+_db_override: Optional[Database] = None
+
+
+def _set_db_override(db: Optional[Database]) -> None:
+    """设置 DB 覆盖实例（仅测试使用）。传 None 恢复默认。"""
+    global _db_override
+    _db_override = db
+
 
 def _get_db() -> Database:
-    """惰性创建共享的 Database 实例（当前线程复用）。"""
+    """返回 DB 实例：优先使用测试覆盖，否则创建默认连接。"""
+    if _db_override is not None:
+        return _db_override
     return Database(get_db_path())
 
 
