@@ -377,8 +377,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
             raise HTTPException(401, "认证失败")
         return False
 
-    def _authenticate_session(self, request) -> None:
-        """Origin/Referer 跨源校验 + Cookie JWT 校验 + CSRF 检查。失败直接抛 HTTPException。"""
+    def _authenticate_session(self, request) -> dict:
+        """Origin/Referer 跨源校验 + Cookie JWT 校验 + CSRF 检查。
+
+        失败直接抛 HTTPException。成功返回解码后的 JWT payload (dict)。
+        """
         origin = request.headers.get("Origin", "") or request.headers.get("Referer", "")
         if origin:
             from urllib.parse import urlparse
@@ -395,7 +398,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not token:
             raise HTTPException(401, "认证失败")
         try:
-            jwt.decode(token, SECRET, algorithms=["HS256"])
+            payload = jwt.decode(token, SECRET, algorithms=["HS256"])
         except JWTError:
             raise HTTPException(401, "认证失败")
 
@@ -407,6 +410,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             csrf_cookie = request.cookies.get("csrf_token", "")
             if not csrf_header or csrf_header != csrf_cookie:
                 raise HTTPException(403, "认证失败")
+
+        return payload
 
     async def dispatch(self, request, call_next):
         path = request.url.path
@@ -429,11 +434,33 @@ class AuthMiddleware(BaseHTTPMiddleware):
         except HTTPException:
             return JSONResponse({"error": "认证失败"}, 401)
 
-        # Cookie JWT + CSRF 校验
+        # Cookie JWT + CSRF 校验 → 注入 ContextVar
         try:
-            self._authenticate_session(request)
+            payload = self._authenticate_session(request)
         except HTTPException as e:
             return JSONResponse({"error": "认证失败"}, e.status_code)
+
+        # v3.0: 注入 user_id 到请求上下文（try/finally 防止异步泄漏）
+        from pilotstd.core.config import get_db_path
+        from pilotstd.core.context import _current_user_id, set_current_user_id
+        from pilotstd.core.db import Database
+
+        user_id = None
+        sub = payload.get("sub", "")
+        if sub.isdigit():
+            user_id = int(sub)
+        else:
+            db = Database(get_db_path())
+            row = db.fetchone("SELECT id FROM users WHERE username = ?", (sub,))
+            if row:
+                user_id = row["id"]
+
+        if user_id is not None:
+            token_ctx = set_current_user_id(user_id)
+            try:
+                return await call_next(request)
+            finally:
+                _current_user_id.reset(token_ctx)
 
         return await call_next(request)
 

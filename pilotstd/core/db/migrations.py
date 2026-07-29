@@ -375,6 +375,48 @@ migration(39)(_migrate_v39_announcement_source_type)
 migration(40)(_migrate_v40_ensure_columns)
 
 
+# v45: 审计日志表（v3.0 多用户基础架构）
+@migration(45)
+def _migrate_v45_audit_logs(db: Any) -> None:
+    """创建 audit_logs 表 — 无 FK 约束，user_id 允许 NULL（未认证场景）。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            action TEXT NOT NULL,
+            resource TEXT NOT NULL DEFAULT '',
+            detail TEXT NOT NULL DEFAULT '{}',
+            timestamp TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_logs(user_id, timestamp DESC)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action)")
+
+
+# v46: 默认用户偏好（v3.0 — 幂等 INSERT OR IGNORE）
+@migration(46)
+def _migrate_v46_default_user_preferences(db: Any) -> None:
+    """为所有现有用户插入默认偏好（幂等，已有则跳过）。"""
+    import json
+
+    defaults = {"ui.theme": "light", "ui.lang": "zh-CN"}
+    users = db.fetchall("SELECT id FROM users")
+    for user in users:
+        uid = user["id"]
+        existing = db.fetchone(
+            "SELECT COUNT(*) as cnt FROM user_preferences"
+            " WHERE user_id=? AND preference_key IN ('ui.theme', 'ui.lang')",
+            (uid,),
+        )
+        if existing and existing["cnt"] == len(defaults):
+            continue
+        for key, value in defaults.items():
+            db.execute(
+                "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) VALUES (?, ?, ?)",
+                (uid, key, json.dumps(value)),
+            )
+
+
 # v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）
 @migration(38)
 def _migrate_v38_user_settings(db) -> None:

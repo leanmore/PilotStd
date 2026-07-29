@@ -4,9 +4,11 @@
 from .defaults import FACTORY_DEFAULTS
 from .manager import ConfigManager
 from .paths import get_data_dir, get_db_path, get_library_root, get_network_timeout
+from .service import ConfigService
 
 __all__ = [
     "ConfigManager",
+    "ConfigService",
     "FACTORY_DEFAULTS",
     "get_data_dir",
     "get_db_path",
