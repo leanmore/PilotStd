@@ -40,12 +40,18 @@ def _get_db() -> Database:
     return _scheduler_db
 
 
+# 不接入统一异常捕获的任务（已有独立异常处理链路）
+_EXCLUDED_FROM_CAPTURE = {"validity_check", "auto_backup"}
+
+
 def register_job_func(job_id: str, func: Callable):
     """注册定时任务执行函数。app.py 启动时调用，将业务函数与 job_id 绑定。
-    公告类任务包装为独立线程执行，不占用调度器线程池；
-    auto_announce 统一由 capture_task_error 装饰器记录状态并上报异常。"""
-    if "announce" in job_id:
+    所有任务统一由 capture_task_error 装饰器记录状态并上报异常；
+    validity_check / auto_backup 保留独立异常处理链路，不接入。
+    公告类任务额外包装为独立线程执行，不占用调度器线程池。"""
+    if job_id not in _EXCLUDED_FROM_CAPTURE:
         func = capture_task_error(job_id)(func)
+    if "announce" in job_id:
 
         def _wrapped():
             t = threading.Thread(target=func, daemon=True, name=f"sched-{job_id}")
