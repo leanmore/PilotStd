@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api.adapter import router as adapter_router
+from .api.admin_db import router as admin_db_router
 from .api.announce import router as announce_router
 from .api.announce_detail import router as announce_detail_router
 from .api.announce_lookup import router as announce_lookup_router
@@ -238,6 +239,7 @@ app.include_router(notification_router)
 app.include_router(adapter_router)
 app.include_router(query_debug_router)
 app.include_router(scheduler_router)
+app.include_router(admin_db_router)
 app.include_router(backup_router)
 app.include_router(export_router)
 app.include_router(favorites_router)
