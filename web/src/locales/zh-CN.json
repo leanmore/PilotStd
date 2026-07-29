@@ -9,10 +9,13 @@
   "action": { "scan_index": "扫描索引" },
   "announce": {
     "type": {
+      "national": "国家公告",
+      "industry": "行业公告",
+      "local": "地方公告",
+      "other": "其他公告",
       "gb": "国家公告",
       "hb": "行业公告",
-      "db": "地方公告",
-      "other": "其他公告"
+      "db": "地方公告"
     }
   },
   "home": { "stats": "标准库概览", "current": "现行", "expired": "废止",
@@ -25,7 +28,8 @@
   "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中",
               "success": "操作成功", "saved": "已保存", "save_failed": "保存失败",
               "error": "错误", "retry": "请重试", "check_network": "请检查网络后刷新重试",
-              "confirm": "确认操作", "confirm_discard": "放弃修改" },
+              "confirm": "确认操作", "confirm_discard": "放弃修改",
+              "no_data": "暂无数据" },
   "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
   "download": { "importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果" },
   "pending": { "importResult": "已导入 {n} 条待确认标准", "importEmpty": "暂无待确认标准", "importFailed": "导入失败" },

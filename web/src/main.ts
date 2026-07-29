@@ -29,6 +29,12 @@ import Password from 'primevue/password'
 import ProgressBar from 'primevue/progressbar'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
+import Badge from 'primevue/badge'
 import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
@@ -107,4 +113,10 @@ app.component('Tag', Tag)
 app.component('Textarea', Textarea)
 app.component('ToggleSwitch', ToggleSwitch)
 app.component('Toast', Toast)
+app.component('Tabs', Tabs)
+app.component('TabList', TabList)
+app.component('Tab', Tab)
+app.component('TabPanels', TabPanels)
+app.component('TabPanel', TabPanel)
+app.component('Badge', Badge)
 app.mount('#app')

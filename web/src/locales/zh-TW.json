@@ -10,10 +10,13 @@
   "action": { "scan_index": "掃描索引" },
   "announce": {
     "type": {
+      "national": "國家公告",
+      "industry": "行業公告",
+      "local": "地方公告",
+      "other": "其他公告",
       "gb": "國家公告",
       "hb": "行業公告",
-      "db": "地方公告",
-      "other": "其他公告"
+      "db": "地方公告"
     }
   },
   "home": { "stats": "標準庫概覽", "current": "現行", "expired": "廢止",
@@ -24,7 +27,8 @@
   "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中",
               "success": "操作成功", "saved": "已儲存", "save_failed": "儲存失敗",
               "error": "錯誤", "retry": "請重試", "check_network": "請檢查網路後重新整理",
-              "confirm": "確認操作", "confirm_discard": "放棄修改" },
+              "confirm": "確認操作", "confirm_discard": "放棄修改",
+              "no_data": "暫無資料" },
   "query": { "saveResults": "儲存查詢結果", "saved": "已儲存 {n} 條查詢結果", "saveFailed": "儲存失敗" },
   "download": { "importResult": "已匯入 {n} 條可下載標準", "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果", "importFailed": "匯入失敗，請確認已儲存查詢結果" },
   "pending": { "importResult": "已匯入 {n} 條待確認標準", "importEmpty": "暫無待確認標準", "importFailed": "匯入失敗" },

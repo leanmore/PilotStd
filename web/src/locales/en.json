@@ -10,10 +10,13 @@
   "action": { "scan_index": "Scan Index" },
   "announce": {
     "type": {
+      "national": "National Announcement",
+      "industry": "Industry Announcement",
+      "local": "Local Announcement",
+      "other": "Other Announcement",
       "gb": "National Announcement",
       "hb": "Industry Announcement",
-      "db": "Local Announcement",
-      "other": "Other Announcement"
+      "db": "Local Announcement"
     }
   },
   "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
@@ -24,7 +27,8 @@
   "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading",
               "success": "Success", "saved": "Saved", "save_failed": "Save Failed",
               "error": "Error", "retry": "Please retry", "check_network": "Check network and refresh",
-              "confirm": "Confirm", "confirm_discard": "Discard Changes" },
+              "confirm": "Confirm", "confirm_discard": "Discard Changes",
+              "no_data": "No data" },
   "query": { "saveResults": "Save Query Results", "saved": "Saved {n} results", "saveFailed": "Save failed" },
   "download": { "importResult": "Imported {n} downloadable standards", "importEmpty": "No data to import. Please save query results first.", "importFailed": "Import failed. Please save query results first." },
   "pending": { "importResult": "Imported {n} pending standards", "importEmpty": "No pending items", "importFailed": "Import failed" },

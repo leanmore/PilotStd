@@ -2,7 +2,6 @@
 defineOptions({ name: 'SchedulerStatus' })
 import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
-import Badge from 'primevue/badge'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
