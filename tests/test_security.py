@@ -166,7 +166,7 @@ class TestJWTToken:
         token = _generate_token()
         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
         assert "sub" in payload
-        assert payload["sub"] == "admin"
+        assert payload["sub"].isdigit(), f"sub 应为数字字符串(user_id)，实际: {payload['sub']}"
         assert "iat" in payload
         assert "exp" in payload
 
