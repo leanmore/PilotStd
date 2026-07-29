@@ -12,6 +12,7 @@ import ProgressBar from 'primevue/progressbar'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import { parseStandardNumber } from '@/utils/standardParser'
+import LogBar from '@/components/LogBar.vue'
 
 const paths = ref<string[]>(['/inbox', '/standards'])
 const { taskPath: selectedPath } = useUserPreferences()
