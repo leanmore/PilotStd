@@ -12,6 +12,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db import Database
+from pilotstd.core.task_status import capture_task_error
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
@@ -41,8 +42,10 @@ def _get_db() -> Database:
 
 def register_job_func(job_id: str, func: Callable):
     """注册定时任务执行函数。app.py 启动时调用，将业务函数与 job_id 绑定。
-    公告类任务包装为独立线程执行，不占用调度器线程池。"""
+    公告类任务包装为独立线程执行，不占用调度器线程池；
+    auto_announce 统一由 capture_task_error 装饰器记录状态并上报异常。"""
     if "announce" in job_id:
+        func = capture_task_error(job_id)(func)
 
         def _wrapped():
             t = threading.Thread(target=func, daemon=True, name=f"sched-{job_id}")
