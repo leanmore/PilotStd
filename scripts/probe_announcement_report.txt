@@ -1,0 +1,124 @@
+# 公告内容 HTML 治理审计报告（管线级）
+
+审计日期: 2026-07-29
+审计范围: `pilotstd/announcement/_content_cleaner.py` — `clean_announcement_content()` 输出
+样本量: 11 条（含 3 种公告类型 + 8 种边界场景）
+
+> 注：由于生产数据库不可达，本次审计以清洗管线输出为分析对象。
+> `_content_cleaner.py` 是所有公告正文入库前必须经过的网关，其输出格式即为前端实际接收到的 HTML。
+
+## 一、审计统计表
+
+| # | 样本 | 段落数 | class 分布 | 非p标签 | 内联样式 | 评分 | 输出预览 |
+|---|------|--------|-----------|---------|---------|------|---------|
+| 1 | GB_CONTENT | 4 | announce-body:2, announce-signature:1, announce-date:1 | - | OK | OK 100 | <p class="announce-body">国家市场监督管理总局（国家标准化管理委员会）批准发布以下国家标准，现予 |
+| 2 | HB_MONTHLY | 4 | announce-body:2, announce-signature:1, announce-date:1 | - | OK | OK 100 | <p class="announce-body">工业和信息化部发布行业标准备案月报。</p>\n<p class="a |
+| 3 | DB_MONTHLY | 4 | announce-body:2, announce-signature:1, announce-date:1 | - | OK | OK 100 | <p class="announce-body">国家标准化管理委员会发布地方标准备案月报。</p>\n<p class |
+| 4 | 纯文本单段落 | 1 | announce-body:1 | - | OK | OK 100 | <p class="announce-body">这是一段普通的公告正文，没有任何表格数据。</p> |
+| 5 | 多段落纯文本 | 3 | announce-body:3 | - | OK | OK 100 | <p class="announce-body">第一段内容。</p>\n<p class="announce-body |
+| 6 | 仅表格无正文 | 0 |  | - | OK | OK 100 |  |
+| 7 | 空内容 | 0 |  | - | OK | OK 100 |  |
+| 8 | 含日期+落款 | 2 | announce-signature:1, announce-date:1 | - | OK | OK 100 | <p class="announce-signature">浙江省市场监督管理局 浙江省标准化研究院</p>\n<p c |
+| 9 | 仅日期 | 1 | announce-date:1 | - | OK | OK 100 | <p class="announce-date">2026-07-02</p> |
+| 10 | 标题行 | 1 | announce-heading:1 | - | OK | OK 100 | <p class="announce-heading">公告</p> |
+| 11 | 中文序号段落 | 1 | announce-body:1 | - | OK | OK 100 | <p class="announce-body">一、本次发布标准的主要特点如下：技术标准占比提升。 二、实施建议：各单 |
+
+## 二、健康度汇总
+
+| 指标 | 值 |
+|------|----|
+| 平均分 | 100.0 |
+| ≥75 分占比 | 11/11 (100%) |
+| 有内联样式 | 0/11 |
+| 有废弃标签/属性 | 0/11 |
+| 有非 p 标签 | 0/11 |
+
+## 三、管线架构评估
+
+### 3.1 数据流
+
+```
+原始HTML (源网站)
+    ↓ extract_content() — 提取正文文本
+纯文本
+    ↓ clean_announcement_content() — 状态机清洗
+<p class="announce-body">...</p>
+    ↓ 存储到 announcements.raw_data
+SQLite TEXT
+    ↓ API (announce_detail.py:71/165)
+HTTP JSON → 前端 v-html + DOMPurify
+    ↓ AnnounceDetail.vue CSS
+渲染结果
+```
+
+### 3.2 输出格式
+
+清洗管线产出 4 种语义 class：
+
+| class | 语义 | 判定逻辑 | CSS 样式 |
+|-------|------|---------|---------|
+| `announce-heading` | 公告标题 | 精确匹配 `{"公告", "备案月报"}` | `text-align: center; font-weight: 700` |
+| `announce-body` | 正文段落 | 默认（未命中其他规则） | `text-align: justify; text-indent: 2em; line-height: 1.8` |
+| `announce-signature` | 落款机关 | 最后一个空格分隔片段匹配机关后缀正则 | `text-align: right` |
+| `announce-date` | 落款日期 | 正则 `^\d{4}[-年]\d{1,2}[-月]\d{1,2}日?$` | `text-align: right` |
+
+### 3.3 前端 CSS 分层覆盖
+
+| 层级 | 选择器 | 作用 |
+|------|--------|------|
+| 精确匹配 | `.doc-content :deep(.announce-body)` | 已知语义 class，优先级最高 |
+| 通用回退 | `.doc-content :where(p, section>p, div>p)` | 未知格式段落，低优先级兜底 |
+| 容器级 | `.doc-content { text-align: justify; line-height: 1.8 }` | 最小保证 |
+
+## 四、风险分级结论
+
+| 指标 | 当前值 | 高危阈值 | 判定 |
+|------|--------|---------|------|
+| 内联样式率 | 0% | >30% | OK |
+| 废弃标签率 | 0% | >10% | OK |
+| 无p标签包裹率 | 0% | >20% | OK |
+
+**综合评级: [LOW] 低危**
+
+当前清洗管线 (`_content_cleaner.py`) 输出格式健康，所有样本均通过语义 class 标记。
+前端 CSS 分层策略（精确匹配 + :where() 通用回退）可同时覆盖管线输出和潜在的非标输入。
+
+### 业务影响矩阵
+
+| 业务场景 | 影响程度 | 说明 |
+|---------|---------|------|
+| 全文搜索/关键词高亮 | [LOW] | 清洗后的纯 HTML 无干扰标签，文本提取准确 |
+| 无障碍阅读器 (Screen Reader) | [LOW] | 语义 class 可映射为 ARIA role，结构清晰 |
+| 自动生成目录/摘要 | [LOW] | `announce-heading` 可直接作为锚点提取 |
+| 多端适配 (小程序/WebView) | [LOW] | 无内联样式，完全由 CSS 变量控制 |
+| 主题切换 | [LOW] | `var(--surface)` 自动适配 4 套主题 |
+
+## 五、潜在风险点与监控
+
+### 5.1 已识别的薄弱环节
+
+| # | 风险 | 位置 | 影响 | 缓解 |
+|---|------|------|------|------|
+| 1 | 非管线入口 | 直接 INSERT raw_data 绕过 `clean_announcement_content` | 存储原始 HTML/Word 格式 | 检查所有 INSERT 路径，确保统一走 `_raw_store.py` |
+| 2 | 公告标题硬编码 | `_content_cleaner.py:60` 仅匹配 `{"公告","备案月报"}` | 其他标题格式无法识别为 heading | 当新增公告来源时同步扩展 `_HEADING_LINES` 集合 |
+| 3 | 机关后缀正则局限 | `_ORG_SUFFIX_PATTERN` 固定列表 | 新机构名可能不匹配 | 建议改为 fallback：最后一段无标点且长度 < 30 字符时视为落款 |
+| 4 | 附件内容未清洗 | 附件 PDF 解析后的内容可能包含原始排版 | 附件正文显示异常 | `startParse` 流程中增加清洗步骤 |
+
+### 5.2 监控阈值建议
+
+| 指标 | 触发条件 | 动作 |
+|------|---------|------|
+| 新增公告来源 | 新 `source_site` 首次入库 | 抽样 5 条审计 HTML 结构，按需扩展清洗规则 |
+| `_HEADING_LINES` 未命中 | 有内容但无 `announce-heading` class | 日志告警，人工确认是否需扩展标题关键词 |
+| `_ORG_SUFFIX_PATTERN` 未命中 | 末段有疑似机关名但未标记 `announce-signature` | 日志记录未匹配文本，定期审查 |
+| 前端 CSS 异常告警 | `v-html` 渲染后段落首行无缩进 | 检查 DOMPurify 是否误删 class 属性 |
+
+## 六、行动项
+
+| 优先级 | 行动 | 说明 |
+|-------|------|------|
+| 低 | 扩展 `_HEADING_LINES` 覆盖更多公告标题变体 | 如"国家标准公告"、"行业标准公告"等 |
+| 低 | 机关后缀 fallback 逻辑 | 减少对固定正则的依赖 |
+| 观察 | 新增公告来源后首次审计 | 每次新接入站点完成后执行本脚本验证 |
+| — | 当前 CSS 兜底策略 | **无需修改**，`:where()` 选择器已充分覆盖 |
+

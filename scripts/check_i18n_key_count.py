@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """i18n key 数量监控与键名对齐检查 — 轻量级，适合 CI 集成。
 
+版本历史:
+  v1.0.0  2026-07-29  初始版本：顶层 key 对齐检查 + 数量阈值监控 (50warn/60fail)
+  v1.0.1  2026-07-29  修复 extra 检测逻辑：改用“其他文件并集”替代“全集”比较
+
 触发阈值（技术债 #3）：
   - key 数 >= 50: workflow warning annotation
   - key 数 >= 60: 阻断（error），强制启动自动化检查方案
 
 同时检测各 locale 文件顶层 key 是否对齐，发现缺失立即报错。
+
+关联测试: tests/test_i18n_key_count.py (11 用例)
+关联文档: docs/technical-debt.md #3, docs/reference/i18n-troubleshooting-sop.md
 """
 
 from __future__ import annotations
