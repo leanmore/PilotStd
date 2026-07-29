@@ -239,6 +239,7 @@ class NotificationManager(MessageBuildersMixin):
             "standard_expired": self._build_standard_expired_message,
             "standard_first_registered": self._build_standard_first_registered_message,
             "announcement_fetch_complete": self._build_announcement_fetch_complete_message,
+            "announce_fetch_summary": self._build_announce_fetch_summary_message,
             "auto_backup": self._build_auto_backup_message,
             "announcement_check_complete": self._build_announcement_check_complete_message,
             "batch_download_complete": self._build_batch_download_complete_message,

@@ -46,6 +46,7 @@ EVENT_NORMALIZE_FAILED = "normalize_failed"
 EVENT_EXPIRE_STANDARD_MOVED = "expire_standard_moved"
 EVENT_REPLACEMENT_NOT_FOUND = "replacement_not_found"
 EVENT_QUOTA_EXHAUSTED = "quota_exhausted"
+EVENT_ANNOUNCE_FETCH_SUMMARY = "announce_fetch_summary"
 
 # ── 唯一数据源：所有事件定义 ──
 
@@ -82,6 +83,7 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_EXPIRE_STANDARD_MOVED),
     EventDef(EVENT_REPLACEMENT_NOT_FOUND, bypass_aggregation=True),
     EventDef(EVENT_QUOTA_EXHAUSTED, bypass_aggregation=True),
+    EventDef(EVENT_ANNOUNCE_FETCH_SUMMARY, bypass_aggregation=True),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

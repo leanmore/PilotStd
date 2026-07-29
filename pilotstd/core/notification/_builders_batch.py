@@ -284,3 +284,41 @@ class _BatchBuildersMixin:
             event_type="replacement_not_found",
             icon="pi pi-question-circle",
         )
+
+    # ── 公告抓取汇总 ──
+
+    def _build_announce_fetch_summary_message(self, data: dict) -> NotificationMessage:
+        """构建公告抓取 per-adapter 明细汇总通知消息。"""
+        adapters = data.get("adapters", [])
+        total = data.get("total_count", 0)
+        has_error = data.get("has_error", False)
+
+        MAX_ADAPTER_DISPLAY = 10
+        blocks: list[NotificationBlock] = [KeyValueBlock(key=_("总计"), value=str(total))]
+
+        display_adapters = adapters[:MAX_ADAPTER_DISPLAY]
+        for a in display_adapters:
+            if a["status"] == "success":
+                status_text = _("{count} 条").format(count=a["count"])
+            else:
+                status_text = _("失败: {error}").format(error=a.get("error_msg", _("未知错误")))
+            blocks.append(KeyValueBlock(key=a["name"], value=status_text))
+
+        if len(adapters) > MAX_ADAPTER_DISPLAY:
+            blocks.append(
+                KeyValueBlock(
+                    key=_("其他"),
+                    value=_("等共 {total} 个适配器").format(total=len(adapters)),
+                )
+            )
+
+        title = _("公告抓取完成") if not has_error else _("公告抓取完成（有异常）")
+        level = "info" if not has_error else "warning"
+
+        return NotificationMessage(
+            title=title,
+            blocks=blocks,
+            level=level,
+            event_type="announce_fetch_summary",
+            icon="pi pi-megaphone",
+        )

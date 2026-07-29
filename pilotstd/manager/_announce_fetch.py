@@ -15,6 +15,13 @@ from ..core.config import get_data_dir
 
 logger = logging.getLogger(__name__)
 
+# standard_type → 展示类型名映射
+_STD_TYPE_DISPLAY: dict[str, str] = {
+    "gb": "national",
+    "hb": "industry",
+    "db": "local",
+}
+
 
 class _AnnounceFetchMixin:
     """公告抓取与检查方法集合（混入 AnnounceService）。
@@ -63,6 +70,17 @@ class _AnnounceFetchMixin:
             (task_type, source_site, since_date, error),
         )
 
+    def _build_fetch_summary(self, adapter_results: list[dict[str, Any]]) -> dict[str, Any]:
+        """构建 per-adapter 抓取汇总 payload。"""
+        from datetime import datetime, timezone
+
+        return {
+            "fetch_time": datetime.now(timezone.utc).isoformat(),
+            "adapters": adapter_results,
+            "total_count": sum(a["count"] for a in adapter_results),
+            "has_error": any(a["status"] == "error" for a in adapter_results),
+        }
+
     # ── 并发锁 ────────────────────────────────────────────
 
     def _after_fetch(self, result: dict[str, Any], source: str = "定时") -> None:
@@ -86,6 +104,14 @@ class _AnnounceFetchMixin:
                     )
             except Exception:
                 pass
+            try:
+                # per-adapter 明细汇总
+                adapter_list = result.get("adapters", [])
+                if adapter_list:
+                    summary = self._build_fetch_summary(adapter_list)
+                    mgr.notification_mgr.send_event("announce_fetch_summary", summary)
+            except Exception:
+                pass
         if mgr:
             try:
                 from ..core.cache_manager import CacheManager, DataSource
@@ -97,7 +123,9 @@ class _AnnounceFetchMixin:
     # ── 公告增量检查 ──────────────────────────────────────
 
     def check_announcements(self) -> dict[str, Any]:
-        """检查各公告源的新公告，匹配本地标准，返回 {matched: int, error: str}。"""
+        """检查各公告源的新公告，匹配本地标准。
+        返回 {matched: int, error: str, adapters: list[dict]}，
+        其中 adapters 为 per-adapter 明细（含 count/status/error_msg）。"""
 
         data_dir = get_data_dir()
         for std_type in ("gb", "hb", "db"):
@@ -106,6 +134,7 @@ class _AnnounceFetchMixin:
         engine = self._get_or_create_engine()
         ocr = self._get_ocr_provider()
         total_matched = 0
+        adapter_results: list[dict[str, Any]] = []
 
         for adapter in engine.adapters:
             log_row = self._file_index._db.fetchone(
@@ -117,11 +146,30 @@ class _AnnounceFetchMixin:
             if "error" in result:
                 logger.warning("公告适配器 %s 异常: %s", adapter.source_site, result.get("error", ""))
                 self._record_fetch_failure("scheduled", adapter.source_site, since, result.get("error", ""))
+                adapter_results.append(
+                    {
+                        "name": adapter.site_name,
+                        "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),
+                        "count": 0,
+                        "status": "error",
+                        "error_msg": result.get("error", ""),
+                    }
+                )
                 continue
-            total_matched += result.get("matched", 0)
+            count = result.get("matched", 0) + result.get("updated", 0)
+            total_matched += count
+            adapter_results.append(
+                {
+                    "name": adapter.site_name,
+                    "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),
+                    "count": count,
+                    "status": "success",
+                    "error_msg": "",
+                }
+            )
             self._write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
 
-        return {"matched": total_matched, "error": ""}
+        return {"matched": total_matched, "error": "", "adapters": adapter_results}
 
     def check_announcements_filtered(
         self,
@@ -149,7 +197,8 @@ class _AnnounceFetchMixin:
         if types:
             adapters = [a for a in adapters if a.standard_type in types]
 
-        results = {}
+        results: dict[str, Any] = {}
+        adapter_results: list[dict[str, Any]] = []
         for adapter in adapters:
             result = engine.check_one(
                 adapter.standard_type,
@@ -158,8 +207,20 @@ class _AnnounceFetchMixin:
                 progress_callback=progress_callback,
             )
             results[adapter.standard_type] = result
-            if "error" not in result:
+            count = result.get("matched", 0) + result.get("updated", 0)
+            is_error = "error" in result
+            adapter_results.append(
+                {
+                    "name": adapter.site_name,
+                    "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),
+                    "count": count,
+                    "status": "error" if is_error else "success",
+                    "error_msg": result.get("error", ""),
+                }
+            )
+            if not is_error:
                 self._write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
+        results["adapters"] = adapter_results
 
         return results
 
@@ -240,6 +301,11 @@ class _AnnounceFetchMixin:
                     "announcement_fetch_complete",
                     {"count": stats["total_announcements"]},
                 )
+                # per-adapter 明细汇总
+                adapter_list = result.get("adapters", [])
+                if adapter_list:
+                    summary = self._build_fetch_summary(adapter_list)
+                    mgr.notification_mgr.send_event("announce_fetch_summary", summary)
             except Exception:
                 pass
 
