@@ -14,7 +14,7 @@ _task_status_cache: dict[str, dict] = {}
 
 
 def record_task_result(task_name: str, status: str, error_msg: Optional[str] = None) -> None:
-    """记录任务最近一次执行结果。"""
+    """记录任务最近一次执行结果（内存缓存，Phase1 API 使用）。"""
     _task_status_cache[task_name] = {
         "last_run_time": datetime.now(timezone.utc).isoformat(),
         "last_run_status": status,
@@ -36,19 +36,39 @@ def get_all_task_status() -> dict[str, dict]:
 
 
 def capture_task_error(task_name: str):
-    """定时任务异常捕获装饰器：记录状态 + 上报异常事件。
-    不重新抛出异常，保证调度器线程不退出。"""
+    """定时任务异常捕获装饰器：DB 持久化 + 内存缓存 + 异常上报。
+    不重新抛出异常，保证调度器线程不退出。
+    签名和调用方式不变（零侵入）。"""
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            import time as _time
+
+            _start = _time.monotonic()
             try:
                 result = func(*args, **kwargs)
+                _duration_ms = int((_time.monotonic() - _start) * 1000)
                 record_task_result(task_name, "success")
+                # Phase2: DB 持久化写入
+                try:
+                    from .task_history import write_execution_record
+
+                    write_execution_record(task_name, "success", duration_ms=_duration_ms)
+                except Exception:
+                    logger.exception("Failed to write execution record for %s", task_name)
                 return result
             except Exception as e:
+                _duration_ms = int((_time.monotonic() - _start) * 1000)
                 logger.exception("Task %s failed: %s", task_name, e)
                 record_task_result(task_name, "error", str(e))
+                # Phase2: DB 持久化写入
+                try:
+                    from .task_history import write_execution_record
+
+                    write_execution_record(task_name, "error", str(e)[:1000], _duration_ms)
+                except Exception:
+                    logger.exception("Failed to write execution record for %s", task_name)
                 # 上报任务异常事件（复用现有通知渠道）
                 try:
                     from pilotstd.manager.facade import StandardManager
