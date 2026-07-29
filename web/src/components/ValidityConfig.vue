@@ -2,6 +2,7 @@
 defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import SelectButton from 'primevue/selectbutton'
 import Select from 'primevue/select'
@@ -13,16 +14,18 @@ import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 
-// ✅ #43: 工作日选项（1=周一, 7=周日）— label 去"周"字，标题已含"周几"
-const weekdayOptions = [
-  { label: '一', value: 1 },
-  { label: '二', value: 2 },
-  { label: '三', value: 3 },
-  { label: '四', value: 4 },
-  { label: '五', value: 5 },
-  { label: '六', value: 6 },
-  { label: '日', value: 7 },
-]
+const { t } = useI18n()
+
+// ✅ #43: 工作日选项（1=周一, 7=周日）— i18n 多语言支持
+const weekdayOptions = computed(() => [
+  { label: t('date.weekday.short.mon'), value: 1 },
+  { label: t('date.weekday.short.tue'), value: 2 },
+  { label: t('date.weekday.short.wed'), value: 3 },
+  { label: t('date.weekday.short.thu'), value: 4 },
+  { label: t('date.weekday.short.fri'), value: 5 },
+  { label: t('date.weekday.short.sat'), value: 6 },
+  { label: t('date.weekday.short.sun'), value: 7 },
+])
 
 const config = ref<ValidityConfig>({
   first_weekday: 1, execute_time: '03:00',
@@ -50,10 +53,12 @@ const checkRatioDisplay = computed(() => {
   return (100 / total).toFixed(1)
 })
 
-// ✅ #43: 首次执行时间（展示用，补齐"周"字）
+// ✅ #43: 首次执行时间（展示用，i18n prefix + label）
 const firstExecutionTime = computed(() => {
-  const w = weekdayOptions.find(o => o.value === config.value.first_weekday)
-  return `周${w?.label || '一'} ${config.value.execute_time}`
+  const w = weekdayOptions.value.find(o => o.value === config.value.first_weekday)
+  const prefix = t('date.weekday.prefix')
+  const label = w?.label || t('date.weekday.short.mon')
+  return `${prefix}${label} ${config.value.execute_time}`
 })
 
 // ✅ #43: 校验是否可保存

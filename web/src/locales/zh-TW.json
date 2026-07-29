@@ -71,5 +71,11 @@
       "aliyun_access_key_id": "阿里雲 Access Key ID",
       "aliyun_access_key_secret": "阿里雲 Access Key Secret"
     }
+  },
+  "date": {
+    "weekday": {
+      "prefix": "週",
+      "short": { "mon": "一", "tue": "二", "wed": "三", "thu": "四", "fri": "五", "sat": "六", "sun": "日" }
+    }
   }
 }

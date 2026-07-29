@@ -1,8 +1,33 @@
 // components/ValidityConfig.test.ts — 时效性检查配置组件测试
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
 import ValidityConfig from './ValidityConfig.vue'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  fallbackLocale: 'zh-CN',
+  messages: {
+    'zh-CN': {
+      date: {
+        weekday: {
+          prefix: '周',
+          short: { mon: '一', tue: '二', wed: '三', thu: '四', fri: '五', sat: '六', sun: '日' },
+        },
+      },
+    },
+    en: {
+      date: {
+        weekday: {
+          prefix: '',
+          short: { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' },
+        },
+      },
+    },
+  },
+})
 
 const { getValidityConfigMock, putValidityConfigMock, runValidityCheckMock, getValidityHistoryMock } = vi.hoisted(() => ({
   getValidityConfigMock: vi.fn(),
@@ -20,7 +45,7 @@ vi.mock('@/api/validity', () => ({
 
 function mountValidityConfig() {
   return mount(ValidityConfig, {
-    global: { plugins: [PrimeVue] },
+    global: { plugins: [PrimeVue, i18n] },
   })
 }
 

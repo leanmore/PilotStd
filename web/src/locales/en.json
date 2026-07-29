@@ -71,5 +71,11 @@
       "aliyun_access_key_id": "Aliyun Access Key ID",
       "aliyun_access_key_secret": "Aliyun Access Key Secret"
     }
+  },
+  "date": {
+    "weekday": {
+      "prefix": "",
+      "short": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" }
+    }
   }
 }
