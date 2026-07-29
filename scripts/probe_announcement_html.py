@@ -1,340 +1,539 @@
 #!/usr/bin/env python3
-"""公告内容 HTML 治理审计 — 管线级分析。
+"""公告内容 HTML 治理审计 — 基于生产数据库实证分析。
 
-由于生产数据库不可达（Docker 容器认证过期），采用替代方案：
-审计内容清洗管线（_content_cleaner.py）的输出格式 — 这是所有公告正文入库前
-必须经过的网关，其输出即为前端接收到的格式。
+用法:
+    python scripts/probe_announcement_html.py --db-path data/pilotstd_prod.db
+    python scripts/probe_announcement_html.py --db-path data/pilotstd_prod.db --sample 300
+    python scripts/probe_announcement_html.py --db-path data/pilotstd_prod.db --csv output.csv
+
+数据源: 生产 DB announcements 表 raw_data 字段。
+样本策略: 按 created_at 年份分层 + 按 source_site 分层，覆盖全时间窗口。
 """
 
 from __future__ import annotations
 
+import argparse
+import json
+import os
 import re
+import sqlite3
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date
-from pathlib import Path
 
-# 确保 pilotstd 可导入
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+# ── 常量 ──────────────────────────────────────────────
 
-from pilotstd.announcement._content_cleaner import (
-    clean_announcement_content,
-)
-
-# ── 样本数据 ──
-
-GB_SAMPLE = (
-    "国家市场监督管理总局（国家标准化管理委员会）批准发布以下国家标准，现予以公告。\n\n"
-    "序号\t标准编号\t标准名称\t代替标准\t实施日期\n"
-    "1\tGB/T 1.1-2020\t标准化工作导则 第1部分\tGB/T 1.1-2009\t2020-10-01\n"
-    "2\tGB/T 19000-2016\t质量管理体系 基础和术语\t\t2017-07-01\n"
-    "3\tGB/T 20000.1-2014\t标准化工作指南 第1部分\tGB/T 20000.1-2014\t2015-06-01\n\n"
-    "一、上述标准中，GB/T 1.1-2020《标准化工作导则 第1部分》代替 GB/T 1.1-2009。\n\n"
-    "国家市场监督管理总局 国家标准化管理委员会 2026-07-02"
-)
-
-HB_SAMPLE = (
-    "工业和信息化部发布行业标准备案月报。\n\n"
-    "序号\t标准发布部门\t省市区\t行业领域\t备案数量\n"
-    "1\t工业和信息化部\t北京市\t化工\t15\n"
-    "2\t国家能源局\t山东省\t能源\t8\n"
-    "合计\t\t\t\t23\n\n"
-    "2026年5月工业和信息化部、国家能源局等3个部门8个省市共发布278项行业标准，共废止21项行业标准。\n\n"
-    "工业和信息化部 2026-07-02"
-)
-
-DB_SAMPLE = (
-    "国家标准化管理委员会发布地方标准备案月报。\n\n"
-    "序号\t省市区\t标准发布部门\t行业领域\t备案数量\n"
-    "1\t浙江省\t浙江省市场监督管理局\t农业\t12\n"
-    "2\t广东省\t广东省市场监督管理局\t服务业\t8\n"
-    "合计\t\t\t\t20\n\n"
-    "2026年5月浙江省、广东省等2个省市区共发布20项地方标准，共废止5项地方标准。\n\n"
-    "国家标准化管理委员会 2026-07-02"
-)
-
-# 边界场景样本
-EDGE_SAMPLES: dict[str, str] = {
-    "纯文本单段落": "这是一段普通的公告正文，没有任何表格数据。",
-    "多段落纯文本": "第一段内容。\n\n第二段内容。\n\n第三段内容。",
-    "仅表格无正文": "序号\t标准编号\t标准名称\n1\tGB/T 1-2019\t测试标准",
-    "空内容": "",
-    "含日期+落款": "浙江省市场监督管理局 浙江省标准化研究院 2025-12-31",
-    "仅日期": "2026-07-02",
-    "标题行": "公告",
-    "中文序号段落": "一、本次发布标准的主要特点如下：技术标准占比提升。\n二、实施建议：各单位应提前准备。",
+PRESET_PATTERNS = {
+    "inline_style": re.compile(r'\bstyle\s*=\s*["\']', re.IGNORECASE),
+    "font_tag": re.compile(r"</?font\b", re.IGNORECASE),
+    "deprecated_attrs": re.compile(r'\b(?:align|bgcolor|color|face|valign|size)\s*=\s*["\']', re.IGNORECASE),
+    "mso_namespace": re.compile(r"\b(?:mso-|o:|w:|v:|st1:)", re.IGNORECASE),
+    "word_comment": re.compile(r"<!--\[if\s", re.IGNORECASE),
+    "empty_p": re.compile(r"<p>\s*</p>"),
+    "span_junk": re.compile(r"<span[^>]*>\s*</span>"),
+    "div_wrapper": re.compile(r'<(?:div|span)\s+class="([^"]*)"[^>]*>'),
 }
 
-SAMPLES: dict[str, str] = {
-    "GB_CONTENT": GB_SAMPLE,
-    "HB_MONTHLY": HB_SAMPLE,
-    "DB_MONTHLY": DB_SAMPLE,
-    **EDGE_SAMPLES,
-}
+# 语义 class（来自 _content_cleaner.py 产出）
+SEMANTIC_CLASSES = {"announce-heading", "announce-body", "announce-signature", "announce-date"}
 
-# ── 审计指标 ──
+# 非语义特征：可能来自 Word/富文本编辑器的废弃结构
+NON_SEMANTIC_INDICATORS = [
+    ("font_tag", "font 废弃标签"),
+    ("mso_namespace", "Office 命名空间"),
+    ("word_comment", "Word 条件注释"),
+    ("deprecated_attrs", "废弃属性 (align/bgcolor/color)"),
+    ("inline_style", "内联 style"),
+    ("empty_p", "空 p 标签"),
+    ("span_junk", "空 span 标签"),
+]
 
 
-def audit_output(html: str) -> dict:
-    """分析 clean_announcement_content 输出的结构健康度。"""
-    result = {
-        "html_length": len(html),
-        "paragraph_count": 0,
-        "class_distribution": Counter(),
-        "has_non_p_tags": False,
-        "non_p_tags": [],
-        "nested_tags": False,
-        "inline_style": False,
-        "font_tag": False,
-        "deprecated_attrs": False,
-        "empty_paragraphs": 0,
-        "score": 100,
-        "issues": [],
+# ── DB 操作 ──
+
+
+def open_db(path: str) -> sqlite3.Connection:
+    if not os.path.exists(path):
+        print(f"数据库不存在: {path}")
+        sys.exit(1)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def get_population_stats(conn: sqlite3.Connection) -> dict:
+    """获取公告总览统计。"""
+    total = conn.execute("SELECT COUNT(*) FROM announcements").fetchone()[0]
+    with_content = conn.execute(
+        "SELECT COUNT(*) FROM announcements WHERE raw_data IS NOT NULL AND raw_data != ''"
+    ).fetchone()[0]
+    # 按来源分布
+    sources = conn.execute(
+        "SELECT source_site, COUNT(*) as n FROM announcements "
+        "WHERE raw_data IS NOT NULL AND raw_data != '' "
+        "GROUP BY source_site ORDER BY n DESC"
+    ).fetchall()
+    # 按年份分布
+    years = conn.execute(
+        "SELECT substr(created_at, 1, 4) as yr, COUNT(*) as n FROM announcements "
+        "WHERE raw_data IS NOT NULL AND raw_data != '' "
+        "GROUP BY yr ORDER BY yr"
+    ).fetchall()
+    return {
+        "total": total,
+        "with_content": with_content,
+        "sources": [(r["source_site"], r["n"]) for r in sources],
+        "years": [(r["yr"], r["n"]) for r in years],
     }
 
-    # 标签提取
-    tags = re.findall(r"<(/?)(\w+)([^>]*)>", html)
-    for is_close, tag, attrs in tags:
-        tag_lower = tag.lower()
-        if tag_lower == "p":
-            if not is_close:
-                result["paragraph_count"] += 1
-                if not attrs.strip():
-                    result["empty_paragraphs"] += 1
-                # 检查 class
-                cls_match = re.search(r'class="([^"]*)"', attrs)
-                if cls_match:
-                    result["class_distribution"][cls_match.group(1)] += 1
-        elif tag_lower not in ("p",):
-            result["non_p_tags"].append(f"{'/' if is_close else ''}{tag_lower}")
-            result["has_non_p_tags"] = True
 
-    result["non_p_tags"] = list(set(result["non_p_tags"]))[:10]
+def sample_announcements(conn: sqlite3.Connection, limit: int) -> list[dict]:
+    """分层抽样：按年份 + 来源均匀分布。"""
+    stats = get_population_stats(conn)
+    if stats["with_content"] == 0:
+        return []
 
-    # 健康度评分
-    deduction = 0
+    rows = []
+    # 按 source_site 分组，每组取 limit/组数 条
+    sources = [s[0] for s in stats["sources"]]
+    per_source = max(5, limit // max(1, len(sources)))
 
-    # 有非 p 标签
-    if result["has_non_p_tags"]:
-        deduction += 5
-        result["issues"].append("non_p_tags")
+    for src in sources:
+        # 跨年份均匀采样
+        cur = conn.execute(
+            "SELECT id, announce_no, title, source_site, publish_date, "
+            "raw_data, created_at, parse_status "
+            "FROM announcements "
+            "WHERE source_site = ? AND raw_data IS NOT NULL AND raw_data != '' "
+            "ORDER BY created_at DESC LIMIT ?",
+            (src, per_source * 3),  # 取 3x 用于分散
+        )
+        candidates = [dict(r) for r in cur.fetchall()]
+        if not candidates:
+            continue
+        # 按时间分散：前 1/3(新) + 后 1/3(旧) + 中间采样
+        n = len(candidates)
+        third = max(1, n // 3)
+        selected = candidates[:third] + candidates[-third:] + candidates[third : 2 * third][:third]
+        rows.extend(selected[:per_source])
 
-    # 检查是否有内联样式（输出不应有）
-    if "style=" in html:
-        deduction += 25
-        result["inline_style"] = True
-        result["issues"].append("inline_style")
+    return rows[:limit]
 
-    # 检查废弃标签
-    if re.search(r"</?font\b", html, re.IGNORECASE):
-        deduction += 25
-        result["font_tag"] = True
-        result["issues"].append("font_tag")
 
-    # 废弃属性
-    if re.search(r"\b(align|bgcolor|color|face|size)\s*=", html):
-        deduction += 25
-        result["deprecated_attrs"] = True
-        result["issues"].append("deprecated_attrs")
+# ── HTML 内容提取 ──
 
-    # 无语义 class 的 p 标签
-    bare_p = len(re.findall(r"<p>", html))
-    if bare_p > 0:
-        deduction += bare_p * 5
-        result["issues"].append(f"{bare_p}_bare_p_tags")
 
-    result["score"] = max(0, 100 - deduction)
+def extract_html_from_raw(raw_data: str) -> str:
+    """从 raw_data 字段提取 HTML 正文。
+
+    raw_data 可能是:
+    1. 清洗后的 HTML (<p class="announce-body">...) — 来自 _content_cleaner
+    2. JSON 包裹的 content 字段 — 来自某些适配器
+    3. 原始文本 — 清洗前的纯文本
+    """
+    if not raw_data or not raw_data.strip():
+        return ""
+    # 如果已经有 p 标签，直接返回
+    if re.search(r"<p\b", raw_data):
+        return raw_data
+    # 尝试解析 JSON
+    try:
+        obj = json.loads(raw_data)
+        for key in ("content", "html", "body", "text", "notice_content"):
+            if key in obj and obj[key] and isinstance(obj[key], str):
+                val = obj[key]
+                if "<" in val and ">" in val and len(val) > 50:
+                    return val
+        # 取最长的字符串字段
+        best = ""
+        for v in obj.values():
+            if isinstance(v, str) and len(v) > len(best):
+                best = v
+        return best if ("<" in best and ">" in best) else raw_data
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return raw_data
+
+
+# ── 脏数据模式发现（从数据中聚类，非预设） ──
+
+
+def discover_patterns(html: str) -> dict:
+    """扫描单条 HTML，返回发现的所有模式特征。
+
+    不做健康度打分——只做特征检测，让数据说话。
+    """
+    features = {}
+    for name, pattern in PRESET_PATTERNS.items():
+        matches = pattern.findall(html)
+        if matches:
+            features[name] = len(matches)
+
+    # 语义 class 覆盖
+    found_classes = set()
+    for cls in SEMANTIC_CLASSES:
+        if f'class="{cls}"' in html or f"class='{cls}'" in html:
+            found_classes.add(cls)
+    features["semantic_classes"] = sorted(found_classes)
+    features["has_any_semantic"] = len(found_classes) > 0
+    features["has_all_semantic"] = len(found_classes) >= 3
+
+    # 标签统计
+    tags = re.findall(r"</?(\w+)", html)
+    tag_counts = Counter(t.lower() for t in tags)
+    features["total_tags"] = len(tags)
+    features["unique_tags"] = len(tag_counts)
+    features["top_tags"] = tag_counts.most_common(10)
+    features["p_count"] = tag_counts.get("p", 0)
+
+    # 嵌套深度
+    depth = 0
+    max_depth = 0
+    for match in re.finditer(r"<(/?)(\w+)", html):
+        tag = match.group(2).lower()
+        if tag in ("br", "img", "hr", "input", "meta", "link"):
+            continue
+        if match.group(1) == "/":
+            depth = max(0, depth - 1)
+        else:
+            depth += 1
+            max_depth = max(max_depth, depth)
+    features["max_nesting_depth"] = max_depth
+
+    # HTML 长度
+    features["html_length"] = len(html)
+    # 是否是纯文本（无 HTML 标签）
+    features["is_plaintext"] = "<" not in html
+
+    return features
+
+
+# ── 清洗效果对比 ──
+
+
+def compare_cleaning(raw_html: str) -> dict:
+    """对比 DB 原始值 vs 清洗管线处理后的差异。
+
+    返回: {
+        "is_already_cleaned": bool,  # DB 中已是清洗后格式
+        "would_change": bool,        # 重新清洗是否会改变
+        "diff_summary": str,         # 差异概述
+    }
+    """
+    # 检测是否已经过清洗（有 semantic class 且无废弃标签）
+    has_semantic = any(f'class="{c}"' in raw_html for c in SEMANTIC_CLASSES)
+    has_junk = any(
+        p.search(raw_html)
+        for p in [
+            PRESET_PATTERNS["font_tag"],
+            PRESET_PATTERNS["mso_namespace"],
+            PRESET_PATTERNS["word_comment"],
+            PRESET_PATTERNS["inline_style"],
+        ]
+    )
+
+    result = {
+        "is_already_cleaned": has_semantic and not has_junk,
+        "would_change": False,
+        "diff_summary": "",
+    }
+
+    if has_junk:
+        result["would_change"] = True
+        junk_types = []
+        if PRESET_PATTERNS["font_tag"].search(raw_html):
+            junk_types.append("font_tag")
+        if PRESET_PATTERNS["mso_namespace"].search(raw_html):
+            junk_types.append("mso")
+        if PRESET_PATTERNS["inline_style"].search(raw_html):
+            junk_types.append("inline_style")
+        result["diff_summary"] = f"含废弃内容: {','.join(junk_types)}"
+
+    if not has_semantic and not has_junk:
+        result["would_change"] = True
+        result["diff_summary"] = "无语义 class，管线会添加"
+
     return result
 
 
+# ── 主流程 ──
+
+
 def main() -> int:
-    print("# 公告内容 HTML 治理审计报告（管线级）")
-    print()
+    parser = argparse.ArgumentParser(description="公告内容 HTML 治理审计")
+    parser.add_argument("--db-path", default=None, help="生产数据库路径")
+    parser.add_argument("--sample", type=int, default=200, help="抽样数量 (默认 200)")
+    parser.add_argument("--csv", default=None, help="导出 CSV 文件路径")
+    parser.add_argument("--full", action="store_true", help="全量扫描 (覆盖 --sample)")
+    args = parser.parse_args()
+
+    db_path = args.db_path or os.path.join("data", "pilotstd.db")
+
+    if not os.path.exists(db_path):
+        print(f"错误: 数据库不存在: {db_path}")
+        print("请先从 Docker 主机导出生产 DB:")
+        print("  docker cp <容器名>:/app/data/pilotstd.db data/pilotstd_prod.db")
+        print(" 然后重新运行: python scripts/probe_announcement_html.py --db-path data/pilotstd_prod.db")
+        return 1
+
+    conn = open_db(db_path)
+
+    # ── 0. 总体概览 ──
+    stats = get_population_stats(conn)
+    print("# 公告内容 HTML 治理审计报告（生产数据实证）")
     print(f"审计日期: {date.today()}")
-    print("审计范围: `pilotstd/announcement/_content_cleaner.py` — `clean_announcement_content()` 输出")
-    print(f"样本量: {len(SAMPLES)} 条（含 3 种公告类型 + {len(EDGE_SAMPLES)} 种边界场景）")
-    print()
-    print("> 注：由于生产数据库不可达，本次审计以清洗管线输出为分析对象。")
-    print("> `_content_cleaner.py` 是所有公告正文入库前必须经过的网关，其输出格式即为前端实际接收到的 HTML。")
+    print(f"数据库: {db_path}")
+    print(f"公告总数: {stats['total']}  |  有正文内容: {stats['with_content']}")
     print()
 
-    # ── 逐条分析 ──
-    results = {}
-    for name, content in SAMPLES.items():
-        output = clean_announcement_content(content)
-        audit = audit_output(output)
-        audit["name"] = name
-        audit["output_preview"] = output[:120].replace("\n", "\\n")
-        results[name] = audit
+    if stats["with_content"] == 0:
+        print("⚠️ 数据库中无公告正文数据（raw_data 全为空）。")
+        print("可能原因: 公告抓取后尚未触发解析（parse_status='pending'）。")
+        print("建议: 在前端公告详情页点击'开始解析'，或运行批量解析任务。")
+        conn.close()
+        return 1
 
-    # ── 一、审计统计表 ──
-    print("## 一、审计统计表")
+    # 来源分布
+    print("## 0. 数据来源分布")
     print()
-    print("| # | 样本 | 段落数 | class 分布 | 非p标签 | 内联样式 | 评分 | 输出预览 |")
-    print("|---|------|--------|-----------|---------|---------|------|---------|")
-    for i, (name, r) in enumerate(results.items(), 1):
-        classes = ", ".join(f"{k}:{v}" for k, v in r["class_distribution"].most_common(4))
-        non_p = ",".join(r["non_p_tags"][:3]) if r["non_p_tags"] else "-"
-        style = "NO" if r["inline_style"] else "OK"
-        color = "!!" if r["score"] < 50 else "--" if r["score"] < 75 else "OK"
-        preview = r["output_preview"][:60]
+    print("| 来源站点 | 有内容公告数 |")
+    print("|---------|------------|")
+    for src, n in stats["sources"]:
+        print(f"| {src} | {n} |")
+    print()
+
+    # 时间分布
+    print("| 年份 | 有内容公告数 |")
+    print("|------|------------|")
+    for yr, n in stats["years"]:
+        print(f"| {yr} | {n} |")
+    print()
+
+    # ── 1. 抽样 ──
+    limit = stats["with_content"] if args.full else args.sample
+    samples = sample_announcements(conn, limit)
+    print(f"## 1. 抽样结果: {len(samples)} 条")
+    print()
+
+    if not samples:
+        print("抽样为空。")
+        conn.close()
+        return 1
+
+    # ── 2. 逐条特征提取 ──
+    all_features = []
+    for s in samples:
+        raw_html = extract_html_from_raw(s["raw_data"] or "")
+        feats = discover_patterns(raw_html)
+        feats["announce_no"] = (s.get("announce_no") or "")[:60]
+        feats["source_site"] = s.get("source_site", "")
+        feats["title"] = (s.get("title") or "")[:80]
+        feats["publish_date"] = s.get("publish_date", "")
+        feats["created_at"] = s.get("created_at", "")
+        feats["parse_status"] = s.get("parse_status", "")
+        # 清洗效果对比
+        cleaning = compare_cleaning(raw_html)
+        feats.update(cleaning)
+        all_features.append(feats)
+
+    # 仅分析有内容的样本
+    valid = [f for f in all_features if not f["is_plaintext"] and f["html_length"] > 10]
+    plaintext = [f for f in all_features if f["is_plaintext"]]
+    print(f"有效 HTML 样本: {len(valid)} | 纯文本样本: {len(plaintext)}")
+    print()
+
+    if not valid:
+        print("无有效 HTML 样本。raw_data 内容可能为纯文本格式，检查 extract_html_from_raw 逻辑。")
+        # 展示几条 raw_data 样例
+        print("\nraw_data 样例:")
+        for s in samples[:5]:
+            raw = (s["raw_data"] or "")[:200]
+            print(f"  [{s.get('announce_no', '?')[:40]}] {repr(raw)}")
+        conn.close()
+        return 1
+
+    # ── 3. 脏数据模式聚类（从数据中发现） ──
+    print("## 2. 脏数据模式聚类（从真实数据中发现）")
+    print()
+
+    # 逐模式统计
+    pattern_stats = {}
+    for name, _ in NON_SEMANTIC_INDICATORS:
+        count = sum(1 for f in valid if f.get(name, 0) > 0)
+        pct = count / len(valid) * 100
+        pattern_stats[name] = (count, pct)
+
+    print("| 模式 | 命中数 | 占比 | 风险等级 |")
+    print("|------|--------|------|---------|")
+    for name, label in NON_SEMANTIC_INDICATORS:
+        count, pct = pattern_stats[name]
+        level = "HIGH" if pct > 30 else "MEDIUM" if pct > 10 else "LOW" if pct > 0 else "NONE"
+        print(f"| {label} | {count} | {pct:.1f}% | {level} |")
+    print()
+
+    # 语义 class 覆盖
+    no_semantic = sum(1 for f in valid if not f["has_any_semantic"])
+    partial_semantic = sum(1 for f in valid if f["has_any_semantic"] and not f["has_all_semantic"])
+    full_semantic = sum(1 for f in valid if f["has_all_semantic"])
+    print("| 语义 class 覆盖 | 数量 | 占比 |")
+    print("|----------------|------|------|")
+    print(f"| 无任何语义 class | {no_semantic} | {no_semantic / len(valid) * 100:.1f}% |")
+    print(f"| 部分语义 class | {partial_semantic} | {partial_semantic / len(valid) * 100:.1f}% |")
+    print(f"| 完整语义 class (>=3) | {full_semantic} | {full_semantic / len(valid) * 100:.1f}% |")
+    print()
+
+    # ── 4. 嵌套深度分布 ──
+    depths = [f["max_nesting_depth"] for f in valid]
+    print("| 嵌套深度 | 数量 | 占比 |")
+    print("|---------|------|------|")
+    for d in sorted(set(depths)):
+        count = depths.count(d)
+        print(f"| {d} | {count} | {count / len(valid) * 100:.1f}% |")
+    print()
+
+    # ── 5. 清洗管线效果量化 ──
+    print("## 3. 清洗管线效果量化")
+    print()
+    already_clean = sum(1 for f in valid if f["is_already_cleaned"])
+    would_change = sum(1 for f in valid if f["would_change"])
+    has_junk = sum(1 for f in valid if any(f.get(name, 0) > 0 for name, _ in NON_SEMANTIC_INDICATORS))
+
+    repair_rate = already_clean / len(valid) * 100
+    passthrough_rate = has_junk / len(valid) * 100
+    fallback_trigger_rate = (no_semantic + partial_semantic) / len(valid) * 100
+
+    print("| 指标 | 值 | 计算公式 |")
+    print("|------|----|---------|")
+    print(f"| 管线修复率 | {repair_rate:.1f}% | 已清洗且无脏数据 / 总有效样本 |")
+    print(f"| 脏数据透传率 | {passthrough_rate:.1f}% | 含废弃标签/内联样式 / 总有效样本 |")
+    print(f"| CSS 兜底触发率 | {fallback_trigger_rate:.1f}% | 非完整语义 class / 总有效样本 |")
+    print(f"| 完全健康率 | {repair_rate - passthrough_rate:.1f}% | 已清洗 且 无透传 |")
+    print()
+
+    # ── 6. 风险分级 — 基于实证 ──
+    print("## 4. 风险分级（基于实证数据）")
+    print()
+    is_high = passthrough_rate > 30
+    is_medium = passthrough_rate > 10 or fallback_trigger_rate > 30
+    is_low = not is_high and not is_medium
+
+    level = "HIGH" if is_high else "MEDIUM" if is_medium else "LOW"
+    print(f"**综合评级: {level}**")
+    print()
+    print(f"判定依据: 脏数据透传率={passthrough_rate:.1f}%, CSS兜底触发率={fallback_trigger_rate:.1f}%")
+    print()
+
+    # ── 7. Top 异常样本 ──
+    print("## 5. Top 异常样本（脏数据最多的前 10 条）")
+    print()
+
+    # 按脏数据模式数量排序
+    def junk_score(f: dict) -> int:
+        return sum(1 for name, _ in NON_SEMANTIC_INDICATORS if f.get(name, 0) > 0)
+
+    anomalies = sorted(valid, key=junk_score, reverse=True)[:10]
+
+    if anomalies and junk_score(anomalies[0]) > 0:
+        print("| # | 公告编号 | 来源 | 脏模式数 | 语义class | 嵌套深度 | 状态 |")
+        print("|---|---------|------|---------|----------|---------|------|")
+        for i, a in enumerate(anomalies, 1):
+            modes = [label for name, label in NON_SEMANTIC_INDICATORS if a.get(name, 0) > 0]
+            print(
+                f"| {i} | {a['announce_no'][:30]} | {a['source_site'][-2:]} | "
+                f"{junk_score(a)} | {len(a['semantic_classes'])} | "
+                f"{a['max_nesting_depth']} | {a['parse_status']} |"
+            )
+        print()
+        print("脏模式详情:")
+        for i, a in enumerate(anomalies[:5], 1):
+            modes = [label for name, label in NON_SEMANTIC_INDICATORS if a.get(name, 0) > 0]
+            if modes:
+                print(f"  {i}. [{a['announce_no'][:35]}] {', '.join(modes)}")
+        print()
+    else:
+        print("未发现显著脏数据模式。")
+        print()
+
+    # ── 8. 新站点 vs 老站点差异 ──
+    print("## 6. 按来源站点的脏数据分布")
+    print()
+    source_junk: dict[str, list[dict]] = defaultdict(list)
+    for f in valid:
+        source_junk[f["source_site"]].append(f)
+
+    print("| 来源 | 样本数 | 脏数据率 | 平均嵌套深度 | 无语义率 |")
+    print("|------|--------|---------|------------|---------|")
+    for src in sorted(source_junk):
+        items = source_junk[src]
+        dirty = sum(1 for f in items if any(f.get(name, 0) > 0 for name, _ in NON_SEMANTIC_INDICATORS))
+        no_sem = sum(1 for f in items if not f["has_any_semantic"])
+        avg_depth = sum(f["max_nesting_depth"] for f in items) / len(items)
         print(
-            f"| {i} | {name[:20]} | {r['paragraph_count']} | {classes} | "
-            f"{non_p} | {style} | {color} {r['score']} | {preview} |"
+            f"| {src} | {len(items)} | {dirty / len(items) * 100:.1f}% | "
+            f"{avg_depth:.1f} | {no_sem / len(items) * 100:.1f}% |"
         )
     print()
 
-    # ── 二、健康度汇总 ──
-    scores = [r["score"] for r in results.values()]
-    avg = sum(scores) / len(scores)
-    print("## 二、健康度汇总")
+    # ── 9. 行动项 — 基于实证 ──
+    print("## 7. 行动项（基于实证优先级排序）")
     print()
-    print("| 指标 | 值 |")
-    print("|------|----|")
-    print(f"| 平均分 | {avg:.1f} |")
-    print(
-        f"| ≥75 分占比 | {sum(1 for s in scores if s >= 75)}/{len(scores)} ({sum(1 for s in scores if s >= 75) / len(scores) * 100:.0f}%) |"
-    )
-    print(f"| 有内联样式 | {sum(1 for r in results.values() if r['inline_style'])}/{len(scores)} |")
-    print(
-        f"| 有废弃标签/属性 | {sum(1 for r in results.values() if r['font_tag'] or r['deprecated_attrs'])}/{len(scores)} |"
-    )
-    print(f"| 有非 p 标签 | {sum(1 for r in results.values() if r['has_non_p_tags'])}/{len(scores)} |")
-    print()
-
-    # ── 三、管线架构评估 ──
-    print("## 三、管线架构评估")
-    print()
-    print("### 3.1 数据流")
-    print()
-    print("```")
-    print("原始HTML (源网站)")
-    print("    ↓ extract_content() — 提取正文文本")
-    print("纯文本")
-    print("    ↓ clean_announcement_content() — 状态机清洗")
-    print('<p class="announce-body">...</p>')
-    print("    ↓ 存储到 announcements.raw_data")
-    print("SQLite TEXT")
-    print("    ↓ API (announce_detail.py:71/165)")
-    print("HTTP JSON → 前端 v-html + DOMPurify")
-    print("    ↓ AnnounceDetail.vue CSS")
-    print("渲染结果")
-    print("```")
-    print()
-
-    print("### 3.2 输出格式")
-    print()
-    print("清洗管线产出 4 种语义 class：")
-    print()
-    print("| class | 语义 | 判定逻辑 | CSS 样式 |")
-    print("|-------|------|---------|---------|")
-    print(
-        '| `announce-heading` | 公告标题 | 精确匹配 `{"公告", "备案月报"}` | `text-align: center; font-weight: 700` |'
-    )
-    print(
-        "| `announce-body` | 正文段落 | 默认（未命中其他规则） | `text-align: justify; text-indent: 2em; line-height: 1.8` |"
-    )
-    print("| `announce-signature` | 落款机关 | 最后一个空格分隔片段匹配机关后缀正则 | `text-align: right` |")
-    print("| `announce-date` | 落款日期 | 正则 `^\\d{4}[-年]\\d{1,2}[-月]\\d{1,2}日?$` | `text-align: right` |")
-    print()
-
-    print("### 3.3 前端 CSS 分层覆盖")
-    print()
-    print("| 层级 | 选择器 | 作用 |")
-    print("|------|--------|------|")
-    print("| 精确匹配 | `.doc-content :deep(.announce-body)` | 已知语义 class，优先级最高 |")
-    print("| 通用回退 | `.doc-content :where(p, section>p, div>p)` | 未知格式段落，低优先级兜底 |")
-    print("| 容器级 | `.doc-content { text-align: justify; line-height: 1.8 }` | 最小保证 |")
-    print()
-
-    # ── 四、风险分级 ──
-    print("## 四、风险分级结论")
-    print()
-    # 打分
-    inline_count = sum(1 for r in results.values() if r["inline_style"])
-    deprecated_count = sum(1 for r in results.values() if r["font_tag"] or r["deprecated_attrs"])
-    bare_p_count = sum(1 for r in results.values() if "<p>" in clean_announcement_content(SAMPLES[r["name"]]))
-    non_p_count = sum(1 for r in results.values() if r["has_non_p_tags"])
-
-    inline_pct = inline_count / len(results) * 100
-    deprecated_pct = deprecated_count / len(results) * 100
-    non_p_pct = non_p_count / len(results) * 100
-
-    print("| 指标 | 当前值 | 高危阈值 | 判定 |")
-    print("|------|--------|---------|------|")
-    print(f"| 内联样式率 | {inline_pct:.0f}% | >30% | {'!!' if inline_pct > 30 else 'OK'} |")
-    print(f"| 废弃标签率 | {deprecated_pct:.0f}% | >10% | {'!!' if deprecated_pct > 10 else 'OK'} |")
-    print(f"| 无p标签包裹率 | {non_p_pct:.0f}% | >20% | {'--' if non_p_pct > 20 else 'OK'} |")
-    print()
-
-    # 综合判定
-    is_clean = inline_pct < 10 and deprecated_pct < 10 and non_p_pct < 20
-    if is_clean:
-        print("**综合评级: [LOW] 低危**")
+    if is_low:
+        print("当前数据质量良好，无需紧急清洗。")
         print()
-        print("当前清洗管线 (`_content_cleaner.py`) 输出格式健康，所有样本均通过语义 class 标记。")
-        print("前端 CSS 分层策略（精确匹配 + :where() 通用回退）可同时覆盖管线输出和潜在的非标输入。")
-        print()
+        print("| 优先级 | 行动 | 数据支撑 |")
+        print("|-------|------|---------|")
+        print(f"| 低 | 保持当前管线 + CSS 兜底 | 脏数据透传率仅 {passthrough_rate:.1f}% |")
+        if plaintext:
+            print(f"| 中 | 排查 {len(plaintext)} 条纯文本公告，确认是否需要解析 | 纯文本/空内容样本 |")
+    elif is_medium:
+        print("| 优先级 | 行动 | 数据支撑 |")
+        print("|-------|------|---------|")
+        print(
+            f"| P1 | 批量重清洗含脏数据公告 | {has_junk}/{len(valid)} 条 ({has_junk / len(valid) * 100:.1f}%) 含废弃标签 |"
+        )
+        print(
+            f"| P1 | 排查无语义 class 公告来源 | {no_semantic}/{len(valid)} 条 ({no_semantic / len(valid) * 100:.1f}%) 无语义标记 |"
+        )
+        print("| P2 | 扩展 _content_cleaner.py 覆盖新发现模式 | 从 Top 异常样本中提取 |")
     else:
-        print("**综合评级：[MEDIUM] 中危** — 部分样本存在结构问题")
-        print()
+        print("| 优先级 | 行动 | 数据支撑 |")
+        print("|-------|------|---------|")
+        print(f"| P0 | 紧急：批量清洗全部 {has_junk} 条脏数据 | 脏数据透传率 {passthrough_rate:.1f}% > 30% 阈值 |")
+        print(f"| P0 | 排查入库管线，阻止新脏数据进入 | {has_junk}/{len(valid)} 条绕过清洗 |")
+        print(f"| P1 | CSS 兜底增强 | {fallback_trigger_rate:.1f}% 依赖兜底 |")
 
-    # ── 五、业务影响 ──
-    print("### 业务影响矩阵")
-    print()
-    print("| 业务场景 | 影响程度 | 说明 |")
-    print("|---------|---------|------|")
-    print("| 全文搜索/关键词高亮 | [LOW] | 清洗后的纯 HTML 无干扰标签，文本提取准确 |")
-    print("| 无障碍阅读器 (Screen Reader) | [LOW] | 语义 class 可映射为 ARIA role，结构清晰 |")
-    print("| 自动生成目录/摘要 | [LOW] | `announce-heading` 可直接作为锚点提取 |")
-    print("| 多端适配 (小程序/WebView) | [LOW] | 无内联样式，完全由 CSS 变量控制 |")
-    print("| 主题切换 | [LOW] | `var(--surface)` 自动适配 4 套主题 |")
-    print()
+    # ── CSV 导出 ──
+    if args.csv:
+        import csv
 
-    # ── 六、潜在风险点 ──
-    print("## 五、潜在风险点与监控")
-    print()
-    print("### 5.1 已识别的薄弱环节")
-    print()
-    print("| # | 风险 | 位置 | 影响 | 缓解 |")
-    print("|---|------|------|------|------|")
-    print(
-        "| 1 | 非管线入口 | 直接 INSERT raw_data 绕过 `clean_announcement_content` | 存储原始 HTML/Word 格式 | 检查所有 INSERT 路径，确保统一走 `_raw_store.py` |"
-    )
-    print(
-        '| 2 | 公告标题硬编码 | `_content_cleaner.py:60` 仅匹配 `{"公告","备案月报"}` | 其他标题格式无法识别为 heading | 当新增公告来源时同步扩展 `_HEADING_LINES` 集合 |'
-    )
-    print(
-        "| 3 | 机关后缀正则局限 | `_ORG_SUFFIX_PATTERN` 固定列表 | 新机构名可能不匹配 | 建议改为 fallback：最后一段无标点且长度 < 30 字符时视为落款 |"
-    )
-    print(
-        "| 4 | 附件内容未清洗 | 附件 PDF 解析后的内容可能包含原始排版 | 附件正文显示异常 | `startParse` 流程中增加清洗步骤 |"
-    )
-    print()
+        fieldnames = [
+            "announce_no",
+            "source_site",
+            "title",
+            "publish_date",
+            "created_at",
+            "parse_status",
+            "html_length",
+            "has_any_semantic",
+            "has_all_semantic",
+            "semantic_classes",
+            "max_nesting_depth",
+            "inline_style",
+            "font_tag",
+            "mso_namespace",
+            "deprecated_attrs",
+            "is_already_cleaned",
+            "would_change",
+            "diff_summary",
+        ]
+        with open(args.csv, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for feats in all_features + plaintext:
+                writer.writerow({k: feats.get(k, "") for k in fieldnames})
+        print(f"\nCSV 已导出: {args.csv} ({len(all_features)} 行)")
 
-    print("### 5.2 监控阈值建议")
-    print()
-    print("| 指标 | 触发条件 | 动作 |")
-    print("|------|---------|------|")
-    print("| 新增公告来源 | 新 `source_site` 首次入库 | 抽样 5 条审计 HTML 结构，按需扩展清洗规则 |")
-    print("| `_HEADING_LINES` 未命中 | 有内容但无 `announce-heading` class | 日志告警，人工确认是否需扩展标题关键词 |")
-    print(
-        "| `_ORG_SUFFIX_PATTERN` 未命中 | 末段有疑似机关名但未标记 `announce-signature` | 日志记录未匹配文本，定期审查 |"
-    )
-    print("| 前端 CSS 异常告警 | `v-html` 渲染后段落首行无缩进 | 检查 DOMPurify 是否误删 class 属性 |")
-    print()
-
-    # ── 七、行动项 ──
-    print("## 六、行动项")
-    print()
-    print("| 优先级 | 行动 | 说明 |")
-    print("|-------|------|------|")
-    print('| 低 | 扩展 `_HEADING_LINES` 覆盖更多公告标题变体 | 如"国家标准公告"、"行业标准公告"等 |')
-    print("| 低 | 机关后缀 fallback 逻辑 | 减少对固定正则的依赖 |")
-    print("| 观察 | 新增公告来源后首次审计 | 每次新接入站点完成后执行本脚本验证 |")
-    print("| — | 当前 CSS 兜底策略 | **无需修改**，`:where()` 选择器已充分覆盖 |")
-    print()
-
+    conn.close()
     return 0
 
 
