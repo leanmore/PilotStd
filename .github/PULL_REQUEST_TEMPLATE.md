@@ -18,4 +18,4 @@
 
 - [ ] **本地检查已通过**（`scripts/check_all.sh` 零警告）
 - [ ] **文档与代码已在同一个 commit 中提交**
-- [ ] **已确认新增/修改的 i18n key 在所有 locale 文件中存在**（`web/src/locales/*.json` 键名对齐，无遗漏）
+- [ ] **已确认新增/修改的 i18n key 在所有 locale 文件中存在**（`web/src/locales/*.json` 键名对齐，无遗漏）→ 排查指南见 [i18n-troubleshooting-sop.md](docs/reference/i18n-troubleshooting-sop.md)
