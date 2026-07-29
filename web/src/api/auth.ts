@@ -16,3 +16,6 @@ export const deleteUser = (id: number): Promise<SuccessResponse> =>
 
 export const changePassword = (oldPassword: string, newPassword: string): Promise<SuccessResponse> =>
   http.put('/users/password', { old_password: oldPassword, new_password: newPassword }).then(r => r.data)
+
+export const register = (username: string, password: string): Promise<SuccessResponse> =>
+  http.post('/auth/register', new URLSearchParams({ username, password })).then(r => r.data)

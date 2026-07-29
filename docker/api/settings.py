@@ -171,6 +171,17 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
         cron = tasks.get(cron_key, "0 0 * * *")
         update_job(job_id, cron, enabled)
     cfg.save()
+    # v3.0: 审计日志
+    try:
+        from pilotstd.core.audit import write_audit
+
+        write_audit(
+            action="SETTINGS_WRITE",
+            resource="PUT /api/settings",
+            detail={"changed_categories": list(data.keys()) if isinstance(data, dict) else []},
+        )
+    except Exception:
+        pass
     return {"ok": True}
 
 

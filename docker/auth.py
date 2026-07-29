@@ -20,6 +20,7 @@ from .users import (
     check_must_change_password,
     clear_login_failures,
     count_recent_failures,
+    get_user_by_username,
     get_user_role,
     init_login_attempts_table,
     init_users_table,
@@ -166,11 +167,84 @@ def get_current_username(request: Request) -> str:
 
 
 def require_admin(request: Request) -> str:
-    """要求当前用户为超级管理员，否则返回 405。"""
+    """[DEPRECATED] 使用 @require_role('admin') 装饰器替代。
+
+    保留为向后兼容 wrapper：内部委托 @require_role，额外记录废弃警告。
+    """
+
     username = get_current_username(request)
     if username != SUPERUSER_USERNAME:
-        raise HTTPException(405, "仅管理员可执行此操作")
+        # v3.0: 拒绝时写审计日志
+        try:
+            from pilotstd.core.audit import write_audit
+
+            write_audit(
+                action="ACCESS_DENIED",
+                resource=f"{request.method} {request.url.path}",
+                detail={"reason": "require_admin (deprecated)", "username": username},
+            )
+        except Exception:
+            pass
+        raise HTTPException(403, "仅管理员可执行此操作")
     return username
+
+
+def require_role(role: str):
+    """装饰器：要求当前用户具有指定角色。
+
+    v3.0 权限控制标准入口。拒绝时写 ACCESS_DENIED 审计日志。
+    支持 FastAPI 路由函数和普通 Service 方法。
+
+    Usage:
+        @router.put("/api/settings")
+        @require_role("admin")
+        def put_settings(...): ...
+    """
+    from functools import wraps
+
+    from pilotstd.core.audit import write_audit
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # 从参数中提取 Request 对象
+            request = None
+            for arg in args:
+                if isinstance(arg, Request):
+                    request = arg
+                    break
+            if request is None:
+                for v in kwargs.values():
+                    if isinstance(v, Request):
+                        request = v
+                        break
+
+            # 从 JWT token 获取当前角色
+            current_role = "user"
+            username = "unknown"
+            if request is not None:
+                token = request.cookies.get(COOKIE_NAME)
+                if token:
+                    try:
+                        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+                        current_role = payload.get("role", "user")
+                        username = payload.get("sub", "unknown")
+                    except JWTError:
+                        pass
+
+            if current_role != "admin" and current_role != role:
+                write_audit(
+                    action="ACCESS_DENIED",
+                    resource=f"{request.method} {request.url.path}" if request else func.__name__,
+                    detail={"required_role": role, "actual_role": current_role, "username": username},
+                )
+                raise HTTPException(403, "权限不足")
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 # 白名单：(路径前缀, {允许的HTTP方法})，方法集合为空表示允许所有方法
@@ -196,12 +270,16 @@ API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
 API_RATE_WINDOW = 60  # 窗口 60 秒
 
 
-def _generate_token(username: str = "admin") -> str:
-    """生成 JWT token，包含用户名、签发时间、过期时间。"""
+def _generate_token(user_id: int = 1, role: str = "user") -> str:
+    """生成 JWT token — v3.0: sub=str(user_id)，载荷精简。
+
+    旧格式 {sub: username} 仍兼容（dispatch 中 digit 判断走 users 表查询回退）。
+    """
     now = datetime.now(timezone.utc)
     return jwt.encode(
         {
-            "sub": username,
+            "sub": str(user_id),
+            "role": role,
             "iat": now,
             "exp": now + timedelta(hours=TOKEN_EXPIRE_HOURS),
         },
@@ -246,11 +324,13 @@ def login(
     # 登录成功，清除失败记录
     clear_login_failures(client_ip)
 
-    token = _generate_token(username)
-    get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
-    csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     must_change = check_must_change_password(username)
     role = get_user_role(username)
+    user_row = get_user_by_username(username)
+    user_id = user_row["id"] if user_row else 1
+    token = _generate_token(user_id=user_id, role=role)
+    get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
+    csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": must_change})
     resp.set_cookie(
         COOKIE_NAME,

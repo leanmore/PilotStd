@@ -21,6 +21,7 @@ from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.api_keys import router as api_keys_router
 from .api.archive import router as archive_router
+from .api.auth_register import router as auth_register_router
 from .api.auto import router as auto_router
 from .api.backup import router as backup_router
 from .api.cache import router as cache_router
@@ -209,6 +210,7 @@ app.add_middleware(AuthMiddleware)
 
 # ── 鉴权与用户 ──
 app.include_router(auth_router)
+app.include_router(auth_register_router)
 app.include_router(users_router)
 app.include_router(user_layout_router)
 app.include_router(user_preference_router)

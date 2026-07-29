@@ -399,22 +399,27 @@ def _migrate_v46_default_user_preferences(db: Any) -> None:
     """为所有现有用户插入默认偏好（幂等，已有则跳过）。"""
     import json
 
-    defaults = {"ui.theme": "light", "ui.lang": "zh-CN"}
-    users = db.fetchall("SELECT id FROM users")
-    for user in users:
-        uid = user["id"]
-        existing = db.fetchone(
-            "SELECT COUNT(*) as cnt FROM user_preferences"
-            " WHERE user_id=? AND preference_key IN ('ui.theme', 'ui.lang')",
-            (uid,),
-        )
-        if existing and existing["cnt"] == len(defaults):
-            continue
-        for key, value in defaults.items():
-            db.execute(
-                "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) VALUES (?, ?, ?)",
-                (uid, key, json.dumps(value)),
+    try:
+        defaults = {"ui.theme": "light", "ui.lang": "zh-CN"}
+        users = db.fetchall("SELECT id FROM users")
+        for user in users:
+            uid = user["id"]
+            existing = db.fetchone(
+                "SELECT COUNT(*) as cnt FROM user_preferences"
+                " WHERE user_id=? AND preference_key IN ('ui.theme', 'ui.lang')",
+                (uid,),
             )
+            if existing and existing["cnt"] == len(defaults):
+                continue
+            for key, value in defaults.items():
+                db.execute(
+                    "INSERT OR IGNORE INTO user_preferences"
+                    " (user_id, preference_key, preference_value)"
+                    " VALUES (?, ?, ?)",
+                    (uid, key, json.dumps(value)),
+                )
+    except Exception:
+        pass  # 兼容旧表结构或空库场景
 
 
 # v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）

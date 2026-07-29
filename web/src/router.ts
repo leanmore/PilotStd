@@ -4,6 +4,7 @@ import axios from 'axios'
 
 const routes = [
   { path: '/login', component: () => import('./views/LoginView.vue'), meta: { guest: true } },
+  { path: '/register', component: () => import('./views/RegisterView.vue'), meta: { guest: true } },
   {
     path: '/',
     component: () => import('./views/HomeView.vue'),
