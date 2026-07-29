@@ -62,11 +62,20 @@ def _get_stmt_type(parsed: Any) -> str | None:
 
 
 def _has_where_clause(parsed: Any) -> bool:
-    """检查 AST 中是否存在 WHERE 子句节点。"""
-    for token in parsed.flatten():
-        if type(token).__name__ == "Where":
-            return True
-    return False
+    """检查 AST 中是否存在 WHERE 子句节点（递归遍历 token 树）。"""
+    from sqlparse.sql import Where
+
+    def _walk(tokens):
+        """递归遍历 token 树查找 Where 节点。"""
+        for token in tokens:
+            if isinstance(token, Where):
+                return True
+            if hasattr(token, "tokens") and token.tokens:
+                if _walk(token.tokens):
+                    return True
+        return False
+
+    return _walk(parsed.tokens)
 
 
 def _has_limit_clause(parsed: Any) -> bool:
@@ -139,6 +148,7 @@ def _execute_with_timeout(
     deadline = start + timeout_s
 
     def _check():
+        """Progress handler：每次触发检查是否超时。"""
         if _time.monotonic() > deadline:
             raise TimeoutError(f"查询超时 ({timeout_s}s)")
 
