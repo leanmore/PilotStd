@@ -297,7 +297,7 @@ onBeforeUnmount(() => {
             <!-- 公告正文 -->
             <div v-if="announcement?.content" class="col-12">
               <label class="text-sm text-color-secondary">公告正文</label>
-              <div class="official-doc mt-1 p-3 border-round" :style="{ background: 'var(--announce-bg)' }">
+              <div class="official-doc mt-1 p-3 border-round">
                 <div class="doc-content" v-html="sanitizedContent" />
               </div>
             </div>
@@ -442,10 +442,20 @@ onBeforeUnmount(() => {
 .official-doc {
   max-width: 800px;
   margin: 0 auto;
+  background: var(--surface);
 }
 
+/* 正文通用容器 — 两端对齐 + 舒适行距，作为无特定 class 段落的回退 */
 .doc-content {
   color: var(--text);
+  text-align: justify;
+  line-height: 1.8;
+}
+
+/* 通用段落缩进 — 作用于正文区所有段落，优先级低于特定 class */
+.doc-content :where(p, section > p, div > p) {
+  text-indent: 2em;
+  margin: 0.5em 0;
 }
 
 /* v-html 注入内容的标题居中 — 仅作用于 official-doc 容器内 */

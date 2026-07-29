@@ -57,8 +57,7 @@
   --shadow-md: 0 8px 16px -6px rgba(0, 0, 0, 0.15), 0 4px 8px -4px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 16px 32px -12px rgba(0, 0, 0, 0.18);
 
-  /* 公告页（Q8）*/
-  --announce-bg: #ffffff;
+  /* 公告正文区使用 --surface 变量，随主题切换自动适配 */
 
   /* 圆角 */
   --radius-sm: 6px;

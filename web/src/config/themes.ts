@@ -37,7 +37,6 @@ export interface ThemeConfig {
     shadowLg: string
     disabledBg: string
     disabledText: string
-    announceBg: string
     // P0-2: MoviePilot 卡片变量（纳入动态注入）
     mpCardBg: string
     mpCardBorder: string
@@ -84,7 +83,6 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.18)',
       disabledBg: '#e2e8f0',
       disabledText: '#94a3b8',
-      announceBg: '#ffffff',
       mpCardBg: 'rgba(255, 255, 255, 0.7)',
       mpCardBorder: '1px solid rgba(0, 0, 0, 0.06)',
       mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
@@ -127,7 +125,6 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.7)',
       disabledBg: '#475569',
       disabledText: '#94a3b8',
-      announceBg: '#1e293b',
       mpCardBg: 'rgba(30, 41, 59, 0.85)',
       mpCardBorder: '1px solid rgba(255, 255, 255, 0.08)',
       mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
@@ -170,7 +167,6 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.18)',
       disabledBg: '#bbf7d0',
       disabledText: '#86efac',
-      announceBg: '#f6fbf7',
       mpCardBg: 'rgba(246, 251, 247, 0.85)',
       mpCardBorder: '1px solid rgba(0, 0, 0, 0.06)',
       mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
@@ -213,7 +209,6 @@ export const THEMES: Record<string, ThemeConfig> = {
       shadowLg: '0 16px 32px -12px rgba(0, 0, 0, 0.7)',
       disabledBg: '#1e293b',
       disabledText: '#475569',
-      announceBg: '#151e32',
       mpCardBg: 'rgba(21, 30, 50, 0.85)',
       mpCardBorder: '1px solid rgba(255, 255, 255, 0.08)',
       mpCardDarkBg: 'rgba(15, 23, 42, 0.85)',
@@ -269,8 +264,6 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--shadow': c.shadow,
     '--shadow-md': c.shadowMd,
     '--shadow-lg': c.shadowLg,
-    // Q8: 公告页背景色
-    '--announce-bg': c.announceBg,
     // P0-2: MoviePilot 卡片变量
     '--mp-card-bg': c.mpCardBg,
     '--mp-card-border': c.mpCardBorder,
