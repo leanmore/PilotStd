@@ -13,15 +13,15 @@ import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 
-// ✅ #43: 工作日选项（1=周一, 7=周日）
+// ✅ #43: 工作日选项（1=周一, 7=周日）— label 去"周"字，标题已含"周几"
 const weekdayOptions = [
-  { label: '周一', value: 1 },
-  { label: '周二', value: 2 },
-  { label: '周三', value: 3 },
-  { label: '周四', value: 4 },
-  { label: '周五', value: 5 },
-  { label: '周六', value: 6 },
-  { label: '周日', value: 7 },
+  { label: '一', value: 1 },
+  { label: '二', value: 2 },
+  { label: '三', value: 3 },
+  { label: '四', value: 4 },
+  { label: '五', value: 5 },
+  { label: '六', value: 6 },
+  { label: '日', value: 7 },
 ]
 
 const config = ref<ValidityConfig>({
@@ -50,10 +50,10 @@ const checkRatioDisplay = computed(() => {
   return (100 / total).toFixed(1)
 })
 
-// ✅ #43: 首次执行时间（展示用）
+// ✅ #43: 首次执行时间（展示用，补齐"周"字）
 const firstExecutionTime = computed(() => {
   const w = weekdayOptions.find(o => o.value === config.value.first_weekday)
-  return `${w?.label || '周一'} ${config.value.execute_time}`
+  return `周${w?.label || '一'} ${config.value.execute_time}`
 })
 
 // ✅ #43: 校验是否可保存
