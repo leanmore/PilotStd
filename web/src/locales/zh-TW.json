@@ -6,6 +6,7 @@
            "download_import": "匯入下載",
            "notification_logs": "通知記錄",
            "standards_status": "標準狀態",
+           "scheduler": "排程器",
            "settings": "設定" },
   "action": { "scan_index": "掃描索引" },
   "announce": {

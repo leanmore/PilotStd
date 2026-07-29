@@ -86,7 +86,10 @@ const routes = [
       showInSidebar: true, permission: 'user', sidebarOrder: 9,
     },
   },
-  { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue') },
+  { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue'), meta: {
+    titleKey: 'nav.scheduler', icon: 'pi pi-clock', color: 'var(--text-dim)',
+    showInSidebar: true, sidebarOrder: 10,
+  } },
   { path: '/quality', component: () => import('./views/QualityView.vue') },
   { path: '/backup', component: () => import('./views/BackupView.vue') },
   { path: '/resources', component: () => import('./views/SystemResources.vue') },

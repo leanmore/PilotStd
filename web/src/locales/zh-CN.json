@@ -5,6 +5,7 @@
            "download_import": "导入下载",
            "notification_logs": "通知日志",
            "standards_status": "标准状态",
+           "scheduler": "调度器",
            "settings": "设置" },
   "action": { "scan_index": "扫描索引" },
   "announce": {

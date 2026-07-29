@@ -6,6 +6,7 @@
            "download_import": "Import & Download",
            "notification_logs": "Notification Logs",
            "standards_status": "Standards Status",
+           "scheduler": "Scheduler",
            "settings": "Settings" },
   "action": { "scan_index": "Scan Index" },
   "announce": {
