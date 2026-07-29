@@ -41,3 +41,8 @@ export const getToken = (): Promise<{ token: string }> =>
 
 export const refreshToken = (): Promise<{ token: string; refreshed_at: string }> =>
   http.post('/settings/token/refresh').then(r => r.data)
+
+export interface TabMeta { key: string; scope: string; order: number; label: string }
+
+export const getSettingsMetadata = (): Promise<{ tabs: TabMeta[] }> =>
+  http.get('/settings/metadata').then(r => r.data)

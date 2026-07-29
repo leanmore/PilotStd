@@ -14,6 +14,63 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["settings"])
 
+# ═══════════════════════════════════════════════════════════════
+# v3.0: Tab scope 定义（单一数据源）
+# ═══════════════════════════════════════════════════════════════
+TAB_SCOPES: dict[str, str] = {
+    "ui": "user",
+    "sites": "system-read",
+    "validity": "system-read",
+    "system": "system-read",
+    "storage": "system-admin",
+    "network": "system-admin",
+    "query": "system-admin",
+    "scan": "system-admin",
+    "tasks": "system-admin",
+    "ocr": "system-admin",
+    "users": "system-admin",
+    "token": "system-admin",
+    "notification": "system-admin",
+}
+
+TAB_LABELS: dict[str, str] = {
+    "ui": "外观",
+    "sites": "站点",
+    "validity": "时效性",
+    "system": "系统",
+    "storage": "存储",
+    "network": "网络",
+    "query": "查询",
+    "scan": "扫描",
+    "tasks": "定时任务",
+    "ocr": "OCR",
+    "users": "用户",
+    "token": "API 令牌",
+    "notification": "通知",
+}
+
+
+@router.get("/api/settings/metadata")
+def get_settings_metadata():
+    """返回设置页 Tab 元数据：scope 分级 + order 排序。
+
+    前端根据 scope 决定 Tab 可见性 + 写操作启用/禁用：
+      - user:          所有已登录用户可见，可读写
+      - system-read:   所有用户可见，仅可读
+      - system-admin:  仅 admin 可见，可读写
+    """
+    tabs = []
+    for idx, (key, scope) in enumerate(TAB_SCOPES.items()):
+        tabs.append(
+            {
+                "key": key,
+                "scope": scope,
+                "order": (idx + 1) * 100,
+                "label": TAB_LABELS.get(key, key),
+            }
+        )
+    return {"tabs": tabs}
+
 
 @router.get("/api/settings")
 def get_settings(mgr=Depends(get_manager_dep)):

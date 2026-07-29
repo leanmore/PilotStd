@@ -81,7 +81,7 @@ const routes = [
     component: () => import('./views/SettingsView.vue'),
     meta: {
       titleKey: 'nav.settings', icon: 'pi pi-cog', color: 'var(--text-dim)',
-      showInSidebar: true, permission: 'admin', sidebarOrder: 9,
+      showInSidebar: true, permission: 'user', sidebarOrder: 9,
     },
   },
   { path: '/scheduler', component: () => import('./views/SchedulerStatus.vue') },

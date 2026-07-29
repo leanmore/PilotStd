@@ -10,7 +10,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ConfirmDialog from 'primevue/confirmdialog'
 import Toast from 'primevue/toast'
-import { getSettings, putSettings, getSettingsSchema, uploadFile } from '@/api'
+import { getSettings, putSettings, getSettingsSchema, uploadFile, getSettingsMetadata } from '@/api'
+import type { TabMeta } from '@/api/settings'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import Button from 'primevue/button'
@@ -149,6 +150,52 @@ const TAB_LABEL_MAP: Record<string, string> = {
 
 const tabs = SETTINGS_TAB_KEYS.map(key => ({ key, label: TAB_LABEL_MAP[key] }))
 
+// ═══════════════════════════════════════════════════════════
+// v3.0: scope 分级 — Tab 可见性过滤 + 写操作禁用
+// ═══════════════════════════════════════════════════════════
+const tabMeta = ref<TabMeta[]>([])
+const tabMetaErr = ref(false)
+
+async function loadTabMeta() {
+  try {
+    const r = await getSettingsMetadata()
+    tabMeta.value = r.tabs
+    tabMetaErr.value = false
+  } catch { tabMetaErr.value = true }
+}
+
+const allowedTabs = computed(() => {
+  if (tabMeta.value.length === 0) {
+    // fallback: API 不可用时显示全部 Tab（避免空白页）
+    return tabs
+  }
+  const userRole = store.role
+  return tabMeta.value
+    .filter(t => {
+      if (t.scope === 'user') return true
+      if (t.scope === 'system-read') return userRole === 'admin'
+      if (t.scope === 'system-admin') return userRole === 'admin'
+      return false
+    })
+    .sort((a, b) => a.order - b.order)
+    .map(t => ({ key: t.key, label: TAB_LABEL_MAP[t.key] || t.label }))
+})
+
+// 当前激活 Tab 的 scope 和写权限
+const currentTabScope = computed(() => {
+  const meta = tabMeta.value.find(t => t.key === activeTab.value)
+  return meta?.scope || 'system-admin'
+})
+
+const currentTabCanWrite = computed(() => {
+  if (currentTabScope.value === 'user') return true
+  if (currentTabScope.value === 'system-admin' && store.role === 'admin') return true
+  return false
+})
+
+// v3.0: 向子组件注入写权限标志
+provide('settingsCanWrite', currentTabCanWrite)
+
   // Schema 驱动 Tab → 通用 SettingsTabSchema 组件
   // 非 Schema Tab → 各自独立组件
   const tabComponentMap: Record<string, any> = {
@@ -171,17 +218,18 @@ const tabs = SETTINGS_TAB_KEYS.map(key => ({ key, label: TAB_LABEL_MAP[key] }))
   // Schema Tab 通用 props（tabKey） + 界面 Tab 特殊 props
   const tabProps = computed(() => {
     const key = activeTab.value
+    const base = { canWrite: currentTabCanWrite.value }
     // Schema 驱动的 Tab：传递 tabKey
     if (['storage', 'network', 'query', 'scan', 'ocr', 'tasks'].includes(key)) {
-      return { tabKey: key }
+      return { ...base, tabKey: key }
     }
     switch (key) {
       case 'ui':
-        return { selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
+        return { ...base, selectedLocale: selectedLocale.value, localeOptions, onUploadBg: uploadBg }
       case 'system':
-        return { sections: systemSections.value }
+        return { ...base, sections: systemSections.value }
       default:
-        return {}
+        return base
     }
   })
 
@@ -273,7 +321,7 @@ watch(systemSections, (val) => {
 // ═══════════════════════════════════════════
 // 生命周期
 // ═══════════════════════════════════════════
-onMounted(() => { loadCfg(); loadSystemSections() })
+onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
 </script>
 
 <template>
@@ -284,7 +332,7 @@ onMounted(() => { loadCfg(); loadSystemSections() })
   <!-- 标签页导航栏 -->
   <div class="tab-bar mt-2">
     <button
-      v-for="t in tabs"
+      v-for="t in allowedTabs"
       :key="t.key"
       :class="{ active: activeTab === t.key }"
       @click="activeTab = t.key"

@@ -3,7 +3,6 @@ defineOptions({ name: 'QuickActionsCard' })
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
-import { SUPERUSER_USERNAME } from '@/config'
 import http from '@/api/http'
 
 const router = useRouter()
@@ -48,7 +47,7 @@ const actions = computed(() => {
   const routes = router.getRoutes() as any[]
   const items = routes
     .filter((r: any) => r.meta.showInQuickActions)
-    .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === SUPERUSER_USERNAME)
+    .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
     .sort((a: any, b: any) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
     .map((r: any) => ({
       label: r.meta.titleKey || r.meta.title || r.path,
