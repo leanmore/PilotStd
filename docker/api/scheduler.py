@@ -1,7 +1,7 @@
 # docker/api/scheduler.py — 调度器状态 API
 from datetime import datetime
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.routing import APIRouter
 
 from ..manager import get_manager_dep
@@ -38,3 +38,24 @@ def get_scheduler_status(mgr=Depends(get_manager_dep)):
         "jobs": jobs,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@router.get("/api/scheduler/history")
+def get_scheduler_history(
+    task_name: str = Query(default=""),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+):
+    """分页查询任务执行历史，支持按 task_name 过滤。"""
+    from pilotstd.core.task_history import get_task_history
+
+    name = task_name.strip() if task_name else None
+    return get_task_history(task_name=name, page=page, size=size)
+
+
+@router.get("/api/scheduler/history/stats")
+def get_scheduler_history_stats():
+    """获取每个任务的聚合统计：成功率、平均耗时、最近错误。"""
+    from pilotstd.core.task_history import get_task_stats
+
+    return {"tasks": get_task_stats()}
