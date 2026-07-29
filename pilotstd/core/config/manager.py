@@ -82,14 +82,13 @@ class ConfigManager:
         with self._lock:
             for attempt in range(retries):
                 try:
-                    target.parent.mkdir(parents=True, exist_ok=True)
+                    os.makedirs(os.path.dirname(str(target)), exist_ok=True)
                     f = _get_fernet(os.path.dirname(self._filepath))
                     data_on_disk = _walk_sensitive(self._data, encrypt=True, fernet=f)
                     with open(tmp_path, "w", encoding="utf-8") as fh:
                         json.dump(data_on_disk, fh, ensure_ascii=False, indent=2)
-                    if os.name != "nt":
-                        os.chmod(tmp_path, 0o600)
-                    os.replace(tmp_path, self._filepath)
+                    os.chmod(tmp_path, 0o600)
+                    os.replace(tmp_path, str(target))
                     return
                 except (PermissionError, FileNotFoundError, OSError):
                     if attempt == retries - 1:
