@@ -7,16 +7,33 @@
  *   2. 公告自动检查  — Schema 驱动 DynamicSettingField
  *   3. 主题 / 语言   — Pinia store 管理
  */
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Select from 'primevue/select'
 import { THEMES } from '@/config/themes'
 import { useAppStore } from '@/stores/app'
 
 defineOptions({ name: 'SettingsTabAppearanceMixed' })
 
+const { t } = useI18n()
 const store = useAppStore()
 const getp = inject<(path: string, def?: any) => any>('settingsGetp')!
 const setp = inject<(path: string, val: any) => void>('settingsSetp')!
+
+const fileError = ref('')
+
+function handleBgInput(e: Event) {
+  const target = e.target as HTMLInputElement
+  const val = target.value
+  if (val.startsWith('file://')) {
+    fileError.value = t('settings.appearance.unsupported_local_path')
+    setp('appearance.login_bg', '')
+    target.value = ''
+  } else {
+    fileError.value = ''
+    setp('appearance.login_bg', val)
+  }
+}
 
 const props = defineProps<{
   selectedLocale: string
@@ -48,7 +65,7 @@ function handleLocaleChange(val: string) {
       <div style="display:flex;gap:8px">
         <input
           :value="getp('appearance.login_bg')"
-          @input="setp('appearance.login_bg', ($event.target as any).value)"
+          @input="handleBgInput"
           class="fi" style="flex:1" placeholder="https://... 或留空使用默认"
         />
         <label class="upload-btn">
@@ -56,7 +73,7 @@ function handleLocaleChange(val: string) {
           <input type="file" accept="image/*" style="display:none" @change="props.onUploadBg" />
         </label>
       </div>
-      <span></span>
+      <span v-if="fileError" class="field-error">{{ fileError }}</span>
       <span class="text-dim" style="font-size:11px">支持手动上传图片或填入 API 网络地址</span>
 
       <!-- 2. 主题（Pinia store 管理，非 Schema） -->
@@ -95,4 +112,5 @@ function handleLocaleChange(val: string) {
 
 <style scoped>
 @import '@/views/settings/shared.css';
+.field-error { color: var(--danger, #e53e3e); font-size: 11px; }
 </style>

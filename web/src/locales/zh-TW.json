@@ -69,7 +69,7 @@
     "network": { "proxy": "代理地址", "ua_rotation": "UA 輪轉" },
     "query": { "query_interval": "查詢間隔(秒)", "use_cache": "啟用快取" },
     "scan": { "skip_folders": "跳過資料夾", "extensions": "檔案副檔名", "exclude_patterns": "跳過檔案關鍵詞" },
-    "appearance": { "login_bg": "登入頁背景圖" },
+    "appearance": { "login_bg": "登入頁背景圖", "unsupported_local_path": "不支援本機檔案路徑，請上傳圖片或使用網路連結" },
     "ocr": {
       "baidu_api_key": "百度雲 API Key",
       "baidu_secret_key": "百度雲 Secret Key",

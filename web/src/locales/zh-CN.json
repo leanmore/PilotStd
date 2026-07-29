@@ -70,7 +70,7 @@
     "network": { "proxy": "代理地址", "ua_rotation": "UA 轮转" },
     "query": { "query_interval": "查询间隔(秒)", "use_cache": "启用缓存" },
     "scan": { "skip_folders": "跳过文件夹", "extensions": "文件扩展名", "exclude_patterns": "跳过文件关键词" },
-    "appearance": { "login_bg": "登录页背景图" },
+    "appearance": { "login_bg": "登录页背景图", "unsupported_local_path": "不支持本地文件路径，请上传图片或使用网络链接" },
     "ocr": {
       "baidu_api_key": "百度云 API Key",
       "baidu_secret_key": "百度云 Secret Key",

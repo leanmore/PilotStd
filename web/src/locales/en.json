@@ -69,7 +69,7 @@
     "network": { "proxy": "Proxy Address", "ua_rotation": "UA Rotation" },
     "query": { "query_interval": "Query Interval (s)", "use_cache": "Enable Cache" },
     "scan": { "skip_folders": "Skip Folders", "extensions": "File Extensions", "exclude_patterns": "Skip File Keywords" },
-    "appearance": { "login_bg": "Login Background" },
+    "appearance": { "login_bg": "Login Background", "unsupported_local_path": "Local file paths are not supported. Please upload an image or use a network URL" },
     "ocr": {
       "baidu_api_key": "Baidu API Key",
       "baidu_secret_key": "Baidu Secret Key",
