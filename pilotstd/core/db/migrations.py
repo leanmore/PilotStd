@@ -508,3 +508,26 @@ def _migrate_v43_batch_state_and_metrics(db: Any) -> None:
         )"""
     )
     db.execute("CREATE INDEX IF NOT EXISTS idx_query_metrics_batch ON query_metrics (batch_id, metric_key)")
+
+
+# NOTE: Phase1 内存缓存中的执行记录不迁移，Phase2 从本次部署后开始记录
+# v47: 定时任务执行历史表（Phase2 持久化）
+@migration(47)
+def _migrate_v47_task_execution_history(db: Any) -> None:
+    """创建 task_execution_history 表及索引（幂等）。"""
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS task_execution_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_name TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('success', 'error')),
+            error_message TEXT,
+            started_at TEXT,
+            finished_at TEXT NOT NULL,
+            duration_ms INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_task_hist_name_time ON task_execution_history (task_name, finished_at DESC)"
+    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_task_hist_cleanup ON task_execution_history (task_name, finished_at)")
