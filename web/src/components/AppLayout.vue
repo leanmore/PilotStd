@@ -41,7 +41,7 @@ const store = useAppStore()
         { label: t('nav.task'), icon: 'pi pi-play', to: '/task' },
         { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
         { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
-        { label: '导入下载', icon: 'pi pi-download', to: '/download/import' },
+        { label: t('nav.download_import'), icon: 'pi pi-download', to: '/download/import' },
         { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
         { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
         { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
