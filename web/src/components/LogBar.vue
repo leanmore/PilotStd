@@ -60,6 +60,7 @@ async function fetchLogs() {
   try {
     // 增量请求：传入上次游标，后端只返回新行
     const params: Record<string, string | number> = { tail: 80 }
+    const isFirstLoad = !lastTimestamp.value
     if (lastTimestamp.value) {
       params.since = lastTimestamp.value
     }
@@ -72,8 +73,13 @@ async function fetchLogs() {
     }
 
     if (newLines.length > 0) {
-      // 增量追加，保留最近 200 行（防止日志洪峰撑爆内存）
-      lines.value = [...lines.value, ...newLines].slice(-200)
+      if (isFirstLoad) {
+        // 首次全量：后端返回正序（旧→新），反转使最新日志置顶
+        lines.value = [...newLines].reverse().slice(0, 200)
+      } else {
+        // 增量：新日志前置追加，保持倒序，最新在顶
+        lines.value = [...newLines, ...lines.value].slice(0, 200)
+      }
     }
 
     // 仅当用户未锁定且日志面板展开时，滚到顶部（最新日志在上）
