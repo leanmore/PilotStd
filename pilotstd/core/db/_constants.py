@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的 schema 版本号（每次新增迁移 +1）
-CURRENT_SCHEMA_VERSION = 46  # v45: audit_logs, v46: default user preferences
+CURRENT_SCHEMA_VERSION = 47  # v45: audit_logs, v46: default user preferences, v47: task_execution_history
 
 # 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
