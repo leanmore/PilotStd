@@ -37,9 +37,11 @@ def _migrate_v31_monitor_stats(db: Any) -> None:
         ),
     )
 
+
 def _migrate_v32_cleanup_dead_tables(db: Any) -> None:
     """删除 announcement_fetch_failures 表（补抓队列功能未启用）。"""
     db.execute("DROP TABLE IF EXISTS announcement_fetch_failures")
+
 
 def _migrate_rows(db, table, col_map):
     """将旧表行迁移到 adapter_state。col_map: [(src_col, dst_col), ...]"""
@@ -51,9 +53,32 @@ def _migrate_rows(db, table, col_map):
             [row[c[0]] for c in col_map],
         )
 
+
 # v33: 三表合一 — rotator_state + adapter_stats + adapter_health → adapter_state
 def _migrate_v33_adapter_state(db: Any) -> None:
     """合并 rotator_state + adapter_stats + adapter_health 为 adapter_state。"""
+    # 确保源表存在（空库首次迁移时可能未创建），列定义与后续 SELECT * 一致
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS rotator_state ("
+        " site_name TEXT PRIMARY KEY, request_count INTEGER DEFAULT 0,"
+        " daily_count INTEGER DEFAULT 0, daily_date TEXT, cooldown_until REAL DEFAULT 0.0,"
+        " consecutive_errors INTEGER DEFAULT 0, active_url TEXT DEFAULT '',"
+        " updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+    )
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS adapter_stats ("
+        " adapter_name TEXT PRIMARY KEY, total_queries INTEGER DEFAULT 0,"
+        " successful_queries INTEGER DEFAULT 0, avg_response_time REAL DEFAULT 0,"
+        " total_response_time REAL DEFAULT 0, cooldown_count INTEGER DEFAULT 0,"
+        " last_cooldown_reason TEXT, last_cooldown_at TEXT,"
+        " last_updated TEXT DEFAULT CURRENT_TIMESTAMP)"
+    )
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS adapter_health ("
+        " adapter_name TEXT PRIMARY KEY, freeze_count INTEGER DEFAULT 0,"
+        " first_freeze_time TEXT, frozen_until TEXT, fail_streak INTEGER DEFAULT 0,"
+        " updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+    )
     db.execute(
         "CREATE TABLE IF NOT EXISTS adapter_state ("
         "adapter_name TEXT PRIMARY KEY, request_count INTEGER DEFAULT 0,"
@@ -107,6 +132,7 @@ def _migrate_v33_adapter_state(db: Any) -> None:
         ],
     )
 
+
 def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
     """将合并后被取代的三张旧表重命名为备份表，确认稳定后可手动删除。"""
     for table in ("rotator_state", "adapter_stats", "adapter_health"):
@@ -114,6 +140,7 @@ def _migrate_v34_drop_old_adapter_tables(db: Any) -> None:
             db.execute(f"ALTER TABLE {table} RENAME TO {table}_backup_v34")
         except Exception:
             pass  # 表不存在则跳过
+
 
 # v35: 通知策略配置 — 渠道事件订阅统一管理
 def _migrate_v35_notification_policy(db: Any) -> None:
@@ -153,6 +180,7 @@ def _migrate_v35_notification_policy(db: Any) -> None:
             )
     except Exception:
         pass  # 配置文件不可用时跳过数据迁移
+
 
 def _v36_new_tables(db: Any) -> None:
     """创建 announcements / user_favorites / date_reminder_log 三张新表。"""
@@ -219,6 +247,7 @@ def _v36_new_tables(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_date_reminder_log_user_id ON date_reminder_log(user_id)")
     db.execute("CREATE INDEX IF NOT EXISTS idx_date_reminder_log_record_id ON date_reminder_log(record_id)")
 
+
 def _v36_extend_record(db: Any) -> None:
     """扩展 announcement_record：新增字段 + 索引（announce_no 已存在，跳过）。"""
     _cols = [
@@ -253,6 +282,7 @@ def _v36_extend_record(db: Any) -> None:
     )
     db.execute("CREATE INDEX IF NOT EXISTS idx_announcement_record_expiry_date ON announcement_record(expiry_date)")
 
+
 def _v36_migrate_data(db: Any) -> None:
     """存量数据迁移：按 (source_site, pid) 提取公告头 → announcements，回填 announcement_id。"""
     rows = db.fetchall(
@@ -283,10 +313,10 @@ def _v36_migrate_data(db: Any) -> None:
     )
     db.execute("UPDATE announcement_record SET status = 'draft' WHERE status IS NULL")
 
+
 def _migrate_v36_announcement_structure(db: Any) -> None:
     """v36: 公告数据结构重构 — 拆分 announcements + 扩展 announcement_record + 新建收藏/提醒表。"""
     # v36 分三步执行：建新表 → 扩展旧表字段 → 存量数据迁移
     _v36_new_tables(db)
     _v36_extend_record(db)
     _v36_migrate_data(db)
-
