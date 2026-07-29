@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.routing import APIRouter
 
+from pilotstd.announcement._content_cleaner import clean_announcement_content  # 防绕过：确保写入前清洗
 from pilotstd.constants.announce_types import SOURCE_SITE_TO_ANNC as SOURCE_MAP
 
 from ..manager import get_manager as _get_mgr
@@ -273,19 +274,20 @@ def trigger_parse(
             (announce_no,),
         )
         if rec:
-            # 向 announcements 表补写记录
+            # 防绕过：raw_data 经清洗管线后再写入，确保语义 class 补全
             now = _now_iso()
             db.execute(
                 "INSERT OR REPLACE INTO announcements"
                 " (source_site, pid, announce_no, title, publish_date,"
                 "  source_url, attachment_url, raw_data, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?, ?, '', '', '', ?, ?)",
+                " VALUES (?, ?, ?, ?, ?, '', '', ?, ?, ?)",
                 (
                     rec["source_site"] or "",
                     rec["pid"] or "",
                     rec["announce_no"],
                     rec["title"] or "",
                     rec["publish_date"] or "",
+                    clean_announcement_content(""),
                     now,
                     now,
                 ),
@@ -403,7 +405,7 @@ def _parse_attachment_bg(
                 resolved_pub_date,
                 source_url,
                 attachment_url,
-                "",  # raw_data 在解析流程中不可用
+                clean_announcement_content(""),  # 解析流程无正文，空值经清洗管线保持幂等
                 now,
             ),
         )

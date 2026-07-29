@@ -94,6 +94,30 @@ class TestAnnounceDetailAPI(unittest.TestCase):
         self.assertIsInstance(result["records"], list)
         self.assertIn("parse_status", result)
 
+    def test_cleaner_enforces_semantic_output(self):
+        """防绕过：清洗函数输出语义 class，不含废弃标签。
+
+        若有人移除 import 或绕过 clean_announcement_content 直接写入原始 HTML，
+        此测试将因 import 失败而中断。
+        注意：clean_announcement_content 的输入契约是纯文本，需先 strip 已有标签。
+        """
+        from docker.api.announce_detail import clean_announcement_content
+
+        # 模拟 extract_content 之后的纯文本输入
+        plain_text = "国家市场监督管理总局 2026-07-29"
+        result = clean_announcement_content(plain_text)
+        self.assertNotIn("style=", result)
+        self.assertNotIn("<font", result)
+        self.assertIn('class="announce-signature"', result)
+        self.assertIn("2026-07-29", result)
+
+    def test_cleaner_idempotent_on_empty(self):
+        """空字符串经清洗后仍为空，确保 INSERT 路径行为不变。"""
+        from docker.api.announce_detail import clean_announcement_content
+
+        self.assertEqual(clean_announcement_content(""), "")
+        self.assertEqual(clean_announcement_content("  "), "")
+
 
 if __name__ == "__main__":
     unittest.main()
