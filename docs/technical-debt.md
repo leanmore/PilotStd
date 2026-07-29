@@ -26,6 +26,7 @@
 |---|------|------|---------|------|---------|
 | 1 | system.py F821 | `docker/api/system.py:131` | Ruff F821 | `Undefined name 'Any'`，缺少 `from typing import Any` | 2026-07-24 |
 | 2 | Mixin 类型标注 | `pilotstd/scan/parser/_exact.py` 等 13 文件 | Mypy `[attr-defined]` | Mixin 模式导致 92 处属性解析失败，需逐文件标注或重构为显式组合 | 2026-07-24 |
+| 3 | i18n key 一致性自动化检查 | `web/src/locales/*.json`（当前 3 文件 / zh-CN 约 45 key） | 人工遗漏 | 各 locale 文件键名未对齐时 vue-i18n 静默降级为显示原始 key，需自动化检查防回归 | 2026-07-29 |
 
 ---
 
@@ -42,6 +43,21 @@
 | `_file_dialog.py` | ~40 | QFileDialog 封装，零业务逻辑 | E2E 兜底 |
 
 **策略**：关注增量——未来若沉淀复杂业务逻辑（如动态对比度计算、复杂联动校验），再考虑局部提取。
+
+---
+
+## 三-B、i18n key 一致性检查（#3 详情）
+
+- **触发阈值**：单个 locale 文件的顶层 key 数量 ≥ 60（当前 zh-CN.json ≈ 45 key，en.json ≈ 45 key，zh-TW.json ≈ 45 key）
+- **推荐工具**（按优先级）：
+  1. `i18n-check` — 专为 vue-i18n 设计，CLI 对比各 locale 文件键名并支持 CI 集成
+  2. `vue-i18n-extract` — 可从源码自动提取缺失 key 并生成报告
+  3. 自研脚本 — 遍历 JSON key 树做 diff，适合不想引入新依赖的场景
+- **当前手动卡点**：PR 模板中已增加 `☑️ 已确认新增 i18n key 在所有 locale 文件中存在` 检查项，技术债解决前由 Reviewer 人工确认
+- **实施时注意事项**：
+  - 需排除 `home.pending` vs `nav.pending` 这种同名不同层级的 key（它们合法共存，不应报错）
+  - 建议按完整路径（如 `nav.download_import`）做 diff，而非仅比较叶子 key 名
+  - zh-TW.json 当前与 zh-CN.json 结构一致，可作为对齐参照
 
 ---
 
