@@ -22,7 +22,10 @@
             "autoBtn": "一键更新" },
   "login": { "title": "PilotStd 登录", "password": "密码", "submit": "登录",
              "error": "密码错误" },
-  "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中" },
+  "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中",
+              "success": "操作成功", "saved": "已保存", "save_failed": "保存失败",
+              "error": "错误", "retry": "请重试", "check_network": "请检查网络后刷新重试",
+              "confirm": "确认操作", "confirm_discard": "放弃修改" },
   "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
   "download": { "importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果" },
   "pending": { "importResult": "已导入 {n} 条待确认标准", "importEmpty": "暂无待确认标准", "importFailed": "导入失败" },
@@ -71,6 +74,30 @@
       "tencent_secret_key": "腾讯云 Secret Key",
       "aliyun_access_key_id": "阿里云 Access Key ID",
       "aliyun_access_key_secret": "阿里云 Access Key Secret"
+    }
+  },
+  "sites": {
+    "title": "查询站点配置",
+    "description": "窗口上限 = 每轮冷却前最大请求数 | 日上限 = 当日累计超过后暂停使用（次日重置）",
+    "empty": "暂无可用站点",
+    "load_failed": "站点列表加载失败",
+    "unlock_edit": "点击解锁编辑",
+    "save_edit": "保存修改",
+    "discard_changes": "放弃修改",
+    "discard_confirm": "当前有未保存的修改，是否放弃？",
+    "validation_failed": "数据校验未通过",
+    "saved": "{label} 配置已更新",
+    "max_requests": "窗口查询限额",
+    "daily_limit": "日限额",
+    "cooling_seconds": "冷却时间（秒）",
+    "request_interval": "请求间隔（秒）",
+    "today_remaining": "今日剩余",
+    "cooling_remaining": "冷却剩余",
+    "validation": {
+      "max_requests_negative": "窗口查询限额不能为负数",
+      "daily_limit_negative": "日限额不能为负数",
+      "cooling_negative": "冷却时间不能为负数",
+      "interval_min": "请求间隔最小 0.1 秒"
     }
   },
   "date": {

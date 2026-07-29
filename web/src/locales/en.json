@@ -21,7 +21,10 @@
             "queryBtn": "Manual Query", "autoBtn": "Auto Run" },
   "login": { "title": "PilotStd Login", "password": "Password", "submit": "Login",
              "error": "Wrong password" },
-  "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading" },
+  "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading",
+              "success": "Success", "saved": "Saved", "save_failed": "Save Failed",
+              "error": "Error", "retry": "Please retry", "check_network": "Check network and refresh",
+              "confirm": "Confirm", "confirm_discard": "Discard Changes" },
   "query": { "saveResults": "Save Query Results", "saved": "Saved {n} results", "saveFailed": "Save failed" },
   "download": { "importResult": "Imported {n} downloadable standards", "importEmpty": "No data to import. Please save query results first.", "importFailed": "Import failed. Please save query results first." },
   "pending": { "importResult": "Imported {n} pending standards", "importEmpty": "No pending items", "importFailed": "Import failed" },
@@ -70,6 +73,30 @@
       "tencent_secret_key": "Tencent Secret Key",
       "aliyun_access_key_id": "Aliyun Access Key ID",
       "aliyun_access_key_secret": "Aliyun Access Key Secret"
+    }
+  },
+  "sites": {
+    "title": "Query Site Config",
+    "description": "Window limit = max requests before cooldown | Daily limit = pause after exceeded (resets next day)",
+    "empty": "No sites available",
+    "load_failed": "Failed to load site list",
+    "unlock_edit": "Click to unlock editing",
+    "save_edit": "Save changes",
+    "discard_changes": "Discard changes",
+    "discard_confirm": "You have unsaved changes. Discard?",
+    "validation_failed": "Validation failed",
+    "saved": "{label} config updated",
+    "max_requests": "Window Limit",
+    "daily_limit": "Daily Limit",
+    "cooling_seconds": "Cooldown (s)",
+    "request_interval": "Request Interval (s)",
+    "today_remaining": "Today Remaining",
+    "cooling_remaining": "Cooldown Remaining",
+    "validation": {
+      "max_requests_negative": "Window limit cannot be negative",
+      "daily_limit_negative": "Daily limit cannot be negative",
+      "cooling_negative": "Cooldown cannot be negative",
+      "interval_min": "Request interval minimum 0.1s"
     }
   },
   "date": {

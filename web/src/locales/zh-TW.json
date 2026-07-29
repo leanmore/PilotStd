@@ -21,7 +21,10 @@
             "queryBtn": "手動查詢", "autoBtn": "一鍵更新" },
   "login": { "title": "PilotStd 登入", "password": "密碼", "submit": "登入",
              "error": "密碼錯誤" },
-  "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中" },
+  "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中",
+              "success": "操作成功", "saved": "已儲存", "save_failed": "儲存失敗",
+              "error": "錯誤", "retry": "請重試", "check_network": "請檢查網路後重新整理",
+              "confirm": "確認操作", "confirm_discard": "放棄修改" },
   "query": { "saveResults": "儲存查詢結果", "saved": "已儲存 {n} 條查詢結果", "saveFailed": "儲存失敗" },
   "download": { "importResult": "已匯入 {n} 條可下載標準", "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果", "importFailed": "匯入失敗，請確認已儲存查詢結果" },
   "pending": { "importResult": "已匯入 {n} 條待確認標準", "importEmpty": "暫無待確認標準", "importFailed": "匯入失敗" },
@@ -70,6 +73,30 @@
       "tencent_secret_key": "騰訊雲 Secret Key",
       "aliyun_access_key_id": "阿里雲 Access Key ID",
       "aliyun_access_key_secret": "阿里雲 Access Key Secret"
+    }
+  },
+  "sites": {
+    "title": "查詢站點配置",
+    "description": "視窗上限 = 每輪冷卻前最大請求數 | 日上限 = 當日累計超過後暫停使用（次日重置）",
+    "empty": "暫無可用站點",
+    "load_failed": "站點列表載入失敗",
+    "unlock_edit": "點擊解鎖編輯",
+    "save_edit": "儲存修改",
+    "discard_changes": "放棄修改",
+    "discard_confirm": "當前有未儲存的修改，是否放棄？",
+    "validation_failed": "資料校驗未通過",
+    "saved": "{label} 配置已更新",
+    "max_requests": "視窗查詢限額",
+    "daily_limit": "日限額",
+    "cooling_seconds": "冷卻時間（秒）",
+    "request_interval": "請求間隔（秒）",
+    "today_remaining": "今日剩餘",
+    "cooling_remaining": "冷卻剩餘",
+    "validation": {
+      "max_requests_negative": "視窗查詢限額不能為負數",
+      "daily_limit_negative": "日限額不能為負數",
+      "cooling_negative": "冷卻時間不能為負數",
+      "interval_min": "請求間隔最小 0.1 秒"
     }
   },
   "date": {
