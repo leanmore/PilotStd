@@ -40,14 +40,28 @@ class TestSchedulerModule(unittest.TestCase):
         func = MagicMock()
         register_job_func("test_job", func)
         self.assertIn("test_job", _job_funcs)
-        self.assertEqual(_job_funcs["test_job"], func)
+        stored = _job_funcs["test_job"]
+        self.assertTrue(callable(stored), "注册后的函数应可调用")
+        # 验证包装后的函数执行原逻辑（不抛异常即通过）
+        func.return_value = 42
+        result = stored()
+        func.assert_called_once()
+        self.assertEqual(result, 42)
 
     def test_register_job_func_overwrites_existing(self):
         func1 = MagicMock()
         func2 = MagicMock()
         register_job_func("test_job", func1)
         register_job_func("test_job", func2)
-        self.assertEqual(_job_funcs["test_job"], func2)
+        # Phase1 装饰器包装后不再直接持有原始引用，验证可调用 + 最新函数被执行
+        stored = _job_funcs["test_job"]
+        self.assertTrue(callable(stored))
+        func1.return_value = "old"
+        func2.return_value = "new"
+        result = stored()
+        self.assertFalse(func1.called, "func1 不应被调用")
+        self.assertTrue(func2.called, "func2 应被调用")
+        self.assertEqual(result, "new")
 
     def test_job_func_not_called_on_register(self):
         """注册只存储，不立即执行"""
