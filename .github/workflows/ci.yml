@@ -193,6 +193,9 @@ jobs:
       - name: G-027 — Vue 组件 defineOptions 检查
         run: python scripts/check_g_027_define_options.py
 
+      - name: i18n key count & alignment check
+        run: python scripts/check_i18n_key_count.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════

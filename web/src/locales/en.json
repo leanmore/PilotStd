@@ -8,6 +8,14 @@
            "standards_status": "Standards Status",
            "settings": "Settings" },
   "action": { "scan_index": "Scan Index" },
+  "announce": {
+    "type": {
+      "gb": "National Announcement",
+      "hb": "Industry Announcement",
+      "db": "Local Announcement",
+      "other": "Other Announcement"
+    }
+  },
   "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
             "pending": "Pending", "upcoming": "Upcoming", "scanBtn": "Manual Scan",
             "queryBtn": "Manual Query", "autoBtn": "Auto Run" },

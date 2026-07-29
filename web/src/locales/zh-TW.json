@@ -1,11 +1,21 @@
 {
   "app": { "title": "PilotStd" },
-  "nav": { "home": "首頁", "scan": "掃描", "query": "查詢", "download": "下載",
+  "nav": { "home": "首頁", "task": "任務", "scan": "掃描", "query": "查詢", "download": "下載",
            "normalize": "規範化", "archive": "歸檔",
-           "organize": "檔案管理", "pending": "待確認", "announce": "公告",
+           "organize": "整理", "pending": "待處理", "announce": "公告",
+           "download_import": "匯入下載",
            "notification_logs": "通知記錄",
            "standards_status": "標準狀態",
            "settings": "設定" },
+  "action": { "scan_index": "掃描索引" },
+  "announce": {
+    "type": {
+      "gb": "國家公告",
+      "hb": "行業公告",
+      "db": "地方公告",
+      "other": "其他公告"
+    }
+  },
   "home": { "stats": "標準庫概覽", "current": "現行", "expired": "廢止",
             "pending": "待確認", "upcoming": "即將實施", "scanBtn": "手動掃描",
             "queryBtn": "手動查詢", "autoBtn": "一鍵更新" },
