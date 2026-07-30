@@ -10,6 +10,7 @@ from .scan import FileScanner, StandardParser
 __version__ = "0.88.0"
 FRONTEND_VERSION = __version__  # 与后端保持一致，更新脚本据此下载前端 dist.zip
 SUPERUSER_USERNAME = os.getenv("SUPERUSER")  # 超级管理员用户名（权限判断唯一依据，须通过环境变量显式设置）
+ADMIN_ROLE = "admin"  # 内部角色标识符（与 SUPERUSER_USERNAME 无关，前者是用户名，后者是角色名）
 # 启动校验已迁移至应用入口（docker/app.py lifespan + main.py），避免 bump_version.py 导入时触发
 
 __all__ = [

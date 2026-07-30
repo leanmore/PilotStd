@@ -13,7 +13,7 @@ from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from pilotstd import SUPERUSER_USERNAME
+from pilotstd import ADMIN_ROLE, SUPERUSER_USERNAME
 
 from .session_store import get_session_store
 from .users import (
@@ -232,7 +232,7 @@ def require_role(role: str):
                     except JWTError:
                         pass
 
-            if current_role != "admin" and current_role != role:
+            if current_role != ADMIN_ROLE and current_role != role:
                 write_audit(
                     action="ACCESS_DENIED",
                     resource=f"{request.method} {request.url.path}" if request else func.__name__,

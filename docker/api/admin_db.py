@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlparse.tokens import DDL, DML, Keyword
 
 from docker.auth import require_role
+from pilotstd import ADMIN_ROLE
 from pilotstd.core.audit import write_audit
 from pilotstd.core.config import get_db_path
 
@@ -177,7 +178,7 @@ def _audit_and_respond(action: str, sql: str, params: list[Any], detail: dict, c
 
 
 @router.post("/query")
-@require_role("admin")
+@require_role(ADMIN_ROLE)
 def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     """Admin 数据库安全查询/操作端点。"""
     # Step 1: SQL 解析

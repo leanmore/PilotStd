@@ -4,7 +4,7 @@ import logging
 import os
 import secrets
 
-from pilotstd import SUPERUSER_USERNAME
+from pilotstd import ADMIN_ROLE, SUPERUSER_USERNAME
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
 from pilotstd.core.security import (
@@ -97,14 +97,14 @@ def _ensure_superuser(db: Database, username: str) -> None:
         db.execute(
             "INSERT OR IGNORE INTO users (username, password_hash, salt, role, must_change_password) "
             "VALUES (?, ?, ?, ?, ?)",
-            (username, password_hash, salt, "admin", must_change),
+            (username, password_hash, salt, ADMIN_ROLE, must_change),
         )
         print(f"[Init] 超级用户 '{username}' 已创建 (role=admin, bcrypt)")
         return
 
     # 已存在：校准角色
-    if existing["role"] != "admin":
-        db.execute("UPDATE users SET role = 'admin' WHERE username = ?", (username,))
+    if existing["role"] != ADMIN_ROLE:
+        db.execute("UPDATE users SET role = ? WHERE username = ?", (ADMIN_ROLE, username))
         print(f"[Init] 已升级现有用户 '{username}' 为 admin")
     else:
         print(f"[Init] 超级用户 '{username}' 角色已正确")
@@ -173,7 +173,7 @@ def _determine_role(username: str, superuser_name: str) -> str:
     if username.lower() == "admin":
         return "user"
     if username == superuser_name:
-        return "admin"
+        return ADMIN_ROLE
     return "user"
 
 

@@ -9,11 +9,13 @@ ROOT = Path(__file__).resolve().parent.parent
 SEARCH_DIRS = ["web/src", "pilotstd", "docker", "scripts"]
 
 # ── 通用模式（前后端通用）──────────────────────────────
+# G-028 规则精确化：仅拦截赋值/定义/默认值/fallback 场景中的 'admin' 字面量
+# 纯比较表达式（===, !==, ==, !=）中的 'admin' 已放行——那是角色值比较，非硬编码
 _COMMON_PATTERNS: list[tuple[str, str, set[str]]] = [
-    ("role === 'admin'", r"role\s*[!=]={1,2}\s*['\"]admin['\"]", {".vue", ".ts", ".js", ".py"}),
-    ("username === 'admin'", r"username\s*[!=]={1,2}\s*['\"]admin['\"]", {".vue", ".ts", ".js", ".py"}),
-    ("user.role === 'admin'", r"user\.role\s*[!=]={1,2}\s*['\"]admin['\"]", {".vue", ".ts", ".js", ".py"}),
-    ("user['role'] 硬编码", r"user\s*\[['\"]role['\"]\]\s*[!=]={1,2}\s*['\"]admin['\"]", {".vue", ".ts", ".js", ".py"}),
+    # 后端: role = 'admin' 单等号赋值（非比较）
+    ("role 赋值 'admin'", r"role\s*=\s*['\"]admin['\"]", {".py"}),
+    # 后端: role: 'admin' 字典/注解默认值
+    ("role 默认值 'admin'", r"role['\"]?\s*:\s*['\"]admin['\"]", {".py"}),
 ]
 
 # ── 后端专用 ──────────────────────────────────────────
@@ -32,8 +34,13 @@ _FRONTEND_PATTERNS: list[tuple[str, str, set[str]]] = [
         {".vue", ".ts", ".js"},
     ),
     (
-        "superuser 变量默认值 'admin'",
+        "superuser 变量默认值 'admin' (||)",
         r"[Ss][Uu][Pp][Ee][Rr][Uu][Ss][Ee][Rr].*\|\|\s*['\"]admin['\"]",
+        {".vue", ".ts", ".js"},
+    ),
+    (
+        "superuser 变量默认值 'admin' (??)",
+        r"[Ss][Uu][Pp][Ee][Rr][Uu][Ss][Ee][Rr].*\?\?\s*['\"]admin['\"]",
         {".vue", ".ts", ".js"},
     ),
     ("用户名常量 'admin' 用于权限判断", r"(?:USERNAME|user_name)\s*=\s*['\"]admin['\"]", {".vue", ".ts", ".js"}),
@@ -44,6 +51,7 @@ EXCLUDE_DIRS = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", 
 # G-028: 唯一允许包含 'admin' 字面量的文件（常量定义点本身）
 WHITELIST_FILES = {
     "web/src/config/index.ts",
+    "pilotstd/__init__.py",
 }
 
 

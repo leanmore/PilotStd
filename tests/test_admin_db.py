@@ -162,8 +162,18 @@ def test_api_select_returns_data(tmp_path):
     import sqlite3 as _sqlite3
 
     conn = _sqlite3.connect(db_path)
-    conn.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT)")
-    conn.execute("INSERT INTO users (id, username) VALUES (1, 'testuser')")
+    conn.execute("""CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        must_change_password INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+    )""")
+    conn.execute(
+        "INSERT INTO users (id, username, password_hash, salt, role) VALUES (1, 'testuser', 'dummy_hash', 'dummy_salt', 'user')"
+    )
     conn.commit()
     conn.close()
 
