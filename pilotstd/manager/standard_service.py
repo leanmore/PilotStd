@@ -92,7 +92,7 @@ class StandardService:
         # 构造 standard_number 字段，兼容原 standard_validity 接口契约
         rows = db.fetchall(
             f"SELECT id, (logical_code || ' ' || number) AS standard_number, status,"
-            f" NULL AS last_checked_at, NULL AS next_check_at, 0 AS check_count"
+            f" std_name"
             f" FROM file_index {where_sql}"
             f" ORDER BY logical_code, number, part LIMIT ? OFFSET ?",
             tuple(params + [size, offset]),

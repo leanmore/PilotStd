@@ -179,17 +179,15 @@ onMounted(() => {
           <thead>
             <tr>
               <th>标准号</th>
+              <th>标准名称</th>
               <th>状态</th>
-              <th>最后检查时间</th>
-              <th>检查次数</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in items" :key="item.id">
               <td><strong>{{ item.standard_number }}</strong></td>
+              <td>{{ item.standard_name || '—' }}</td>
               <td><Tag :severity="statusSeverity(item.status)" :value="item.status" /></td>
-              <td>{{ item.last_checked_at?.replace('T', ' ').substring(0, 16) || '—' }}</td>
-              <td>{{ item.check_count }}</td>
             </tr>
           </tbody>
         </table>

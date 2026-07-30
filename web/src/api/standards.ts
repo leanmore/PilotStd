@@ -10,10 +10,8 @@ export interface StandardStats {
 export interface StandardStatusItem {
   id: number
   standard_number: string
+  standard_name: string
   status: string
-  last_checked_at: string | null
-  next_check_at: string | null
-  check_count: number
 }
 
 export interface StandardStatusResponse {
