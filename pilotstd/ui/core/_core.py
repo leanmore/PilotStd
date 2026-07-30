@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 from ...core.config import get_library_root
 from ._core_init_query import _CoreInitQueryMixin
-from .handlers._actions import ActionsHandler
 from .handlers._announce import AnnounceUIHandler
 from .handlers._archive import ArchiveUIHandler
 from .handlers._auto import AutoUIHandler
@@ -128,7 +127,6 @@ class MainWindowCore(_CoreInitQueryMixin):
         self._init_project()
         self._init_ui_setup()
         self._init_theme()
-        self._init_actions()
 
     def _init_scan(self) -> None:
         """创建 ScanUIHandler 实例，注入扫描所需的回调函数和共享数据。"""
@@ -309,20 +307,3 @@ class MainWindowCore(_CoreInitQueryMixin):
 
     def _init_theme(self) -> None:
         self.theme = ThemeHandler(config=self._config, parent=self._parent)
-
-    def _init_actions(self) -> None:
-        """创建 ActionsHandler，注入全局操作（暂停、取消、停止 Worker）所需的回调。"""
-        self.actions = ActionsHandler(
-            config=self._config,
-            mgr=self._mgr,
-            project=self._project,
-            pause_event=self._pause_event,
-            status_callback=self._status_callback,
-            progress_callback=self._progress_callback,
-            parsed_results=self._parsed_results,
-            get_selected_path=self._get_selected_path_cb or (lambda: ""),
-            clear_table=self._clear_table or (lambda: None),
-            stop_workers=self._stop_workers_cb or (lambda: None),
-            update_button_states=self._update_button_states or (lambda: None),
-            parent=self._parent,
-        )

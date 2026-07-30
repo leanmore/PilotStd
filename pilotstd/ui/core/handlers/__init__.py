@@ -1,6 +1,5 @@
 # pilotstd/ui/core/handlers/ — UI 状态管理 Handler
 
-from ._actions import ActionsHandler
 from ._cleanup import CleanupHandler
 from ._dialog import DialogHandler
 from ._export import ExportHandler
@@ -15,7 +14,6 @@ from ._theme import ThemeHandler
 from ._ui_setup import UISetupHandler
 
 __all__ = [
-    "ActionsHandler",
     "CleanupHandler",
     "DialogHandler",
     "ExportHandler",
