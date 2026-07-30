@@ -233,6 +233,74 @@ jobs:
         run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short
 
   # ════════════════════════════════════════════════════════════════
+  # Job 4b: 前端 E2E 回归测试（Playwright，依赖前端 Lint 通过）
+  # ════════════════════════════════════════════════════════════════
+  frontend-e2e:
+    runs-on: ubuntu-latest
+    needs: test-frontend
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start backend
+        env:
+          SUPERUSER: superadmin
+        run: |
+          python main.py &
+          # 等待后端就绪
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:9028/api/health > /dev/null 2>&1; then
+              echo "后端就绪"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run E2E Tests
+        working-directory: web
+        run: pnpm exec playwright test e2e/dashboard/quick-actions.spec.ts
+        env:
+          VITE_API_BASE_URL: http://localhost:9028
+
+      - name: Upload Test Report on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
+
+      - name: Stop backend
+        if: always()
+        run: kill $(lsof -t -i:9028) 2>/dev/null || true
+
+  # ════════════════════════════════════════════════════════════════
   # Job 5: GUI 单元测试 + Handler 覆盖率（Windows）
   # ════════════════════════════════════════════════════════════════
   test-unit-cov:

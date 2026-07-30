@@ -1,6 +1,6 @@
 // eslint-plugin-custom/rules/no-raw-i18n-key.js
 // 禁止将 *Key 字段直接赋值给变量或模板，必须经 t() 包装
-module.exports = {
+export default {
   meta: {
     type: 'problem',
     docs: { description: '禁止将 *Key 字段直接赋值给变量或模板，必须经 t() 包装' },

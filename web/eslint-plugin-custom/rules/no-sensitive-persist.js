@@ -2,7 +2,7 @@
 // Pinia 持久化白名单检查：禁止全量持久化或持久化敏感字段
 const SENSITIVE_FIELDS = ['role', 'permission', 'token', 'accessToken', 'refreshToken'];
 
-module.exports = {
+export default {
   meta: { type: 'problem', schema: [] },
   create(context) {
     return {
