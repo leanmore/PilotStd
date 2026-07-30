@@ -20,7 +20,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ....i18n import _
-from ._settings_io import ICON_OPTIONS, SettingsConfigIO
+from ._settings_io import SettingsConfigIO
+from .settings_io_flow_engine import ICON_OPTIONS
 
 
 class SettingsHandler:

@@ -309,3 +309,129 @@ class TestRoundtrip:
         restored = engine.deserialize_advanced(serialized)
         for key in original:
             assert restored[key] == original[key]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 新增：模块级常量
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestModuleConstants:
+    def test_icon_options_has_four_entries(self):
+        from pilotstd.ui.core.handlers.settings_io_flow_engine import ICON_OPTIONS
+
+        assert len(ICON_OPTIONS) == 4
+        assert ICON_OPTIONS["默认"] == "default"
+
+    def test_lang_codes_order(self):
+        from pilotstd.ui.core.handlers.settings_io_flow_engine import LANG_CODES
+
+        assert LANG_CODES == ["zh_CN", "zh_TW", "en"]
+
+    def test_ocr_credential_fields_structure(self):
+        from pilotstd.ui.core.handlers.settings_io_flow_engine import OCR_CREDENTIAL_FIELDS
+
+        assert len(OCR_CREDENTIAL_FIELDS) == 6
+        for item in OCR_CREDENTIAL_FIELDS:
+            assert len(item) == 3
+            attr, key, hint = item
+            assert attr.startswith("_ocr_")
+            assert key.startswith("ocr.")
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 新增：图标主题映射
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestIconMapping:
+    def test_get_icon_internal_key_known(self, engine):
+        assert engine.get_icon_internal_key("指南针") == "compass_book"
+        assert engine.get_icon_internal_key("默认") == "default"
+
+    def test_get_icon_internal_key_unknown_returns_default(self, engine):
+        assert engine.get_icon_internal_key("不存在") == "default"
+        assert engine.get_icon_internal_key("") == "default"
+
+    def test_get_icon_display_name_known(self, engine):
+        assert engine.get_icon_display_name("compass_book") == "指南针"
+        assert engine.get_icon_display_name("lighthouse_folder") == "灯塔"
+
+    def test_get_icon_display_name_unknown_returns_default(self, engine):
+        assert engine.get_icon_display_name("nonexistent") == "默认"
+        assert engine.get_icon_display_name("") == "默认"
+
+    def test_icon_roundtrip(self, engine):
+        """显示名 → 内部键 → 显示名 应一致。"""
+        for display in ["默认", "指南针", "放大镜", "灯塔"]:
+            key = engine.get_icon_internal_key(display)
+            back = engine.get_icon_display_name(key)
+            assert back == display
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 新增：语言代码解析
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestLanguageCode:
+    def test_resolve_valid_indices(self, engine):
+        assert engine.resolve_language_code(0) == "zh_CN"
+        assert engine.resolve_language_code(1) == "zh_TW"
+        assert engine.resolve_language_code(2) == "en"
+
+    def test_resolve_out_of_bounds_returns_default(self, engine):
+        assert engine.resolve_language_code(-1) == "zh_CN"
+        assert engine.resolve_language_code(3) == "zh_CN"
+        assert engine.resolve_language_code(999) == "zh_CN"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 新增：逗号分隔文本解析
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestParseCommaSeparated:
+    def test_normal(self, engine):
+        assert engine.parse_comma_separated("a, b, c") == ["a", "b", "c"]
+
+    def test_no_spaces(self, engine):
+        assert engine.parse_comma_separated("pdf,doc,txt") == ["pdf", "doc", "txt"]
+
+    def test_extra_whitespace(self, engine):
+        assert engine.parse_comma_separated("  a  ,  b  ,  c  ") == ["a", "b", "c"]
+
+    def test_empty_string(self, engine):
+        assert engine.parse_comma_separated("") == []
+
+    def test_whitespace_only(self, engine):
+        assert engine.parse_comma_separated("   ") == []
+
+    def test_none_input(self, engine):
+        assert engine.parse_comma_separated(None) == []  # type: ignore[arg-type]
+
+    def test_single_item(self, engine):
+        assert engine.parse_comma_separated(".pdf") == [".pdf"]
+
+    def test_empty_items_filtered(self, engine):
+        assert engine.parse_comma_separated("a,,b, ,c") == ["a", "b", "c"]
+
+
+class TestParseCommaSeparatedWithFallback:
+    def test_normal_ignores_fallback(self, engine):
+        result = engine.parse_comma_separated_with_fallback("a, b", ["x"])
+        assert result == ["a", "b"]
+
+    def test_empty_uses_fallback(self, engine):
+        result = engine.parse_comma_separated_with_fallback("", [".pdf", ".doc"])
+        assert result == [".pdf", ".doc"]
+
+    def test_whitespace_only_uses_fallback(self, engine):
+        result = engine.parse_comma_separated_with_fallback("   ", ["fallback"])
+        assert result == ["fallback"]
+
+    def test_fallback_not_mutated(self, engine):
+        """验证 fallback 列表不被原方法修改。"""
+        fb = ["x", "y"]
+        engine.parse_comma_separated_with_fallback("", fb)
+        assert fb == ["x", "y"]

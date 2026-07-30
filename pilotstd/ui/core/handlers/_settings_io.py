@@ -9,18 +9,7 @@ from typing import Any
 from PyQt6.QtCore import QStandardPaths
 
 from ....i18n import _
-from .settings_io_flow_engine import SettingsConfigIOEngine
-
-# 图标主题选项映射（显示名 → 内部键）
-ICON_OPTIONS = {
-    "默认": "default",
-    "指南针": "compass_book",
-    "放大镜": "magnifier_check",
-    "灯塔": "lighthouse_folder",
-}
-
-# 语言代码列表，按 ComboBox 索引对应
-LANG_CODES = ["zh_CN", "zh_TW", "en"]
+from .settings_io_flow_engine import LANG_CODES, OCR_CREDENTIAL_FIELDS, SettingsConfigIOEngine
 
 
 class SettingsConfigIO:
@@ -107,7 +96,7 @@ class SettingsConfigIO:
         if h._lang_combo:
             idx = h._lang_combo.currentIndex()
             if 0 <= idx < len(LANG_CODES):
-                data["appearance.language"] = LANG_CODES[idx]
+                data["appearance.language"] = self._engine.resolve_language_code(idx)
         if h._skip_welcome_cb:
             data["appearance.skip_welcome"] = h._skip_welcome_cb.isChecked()
 
@@ -145,7 +134,7 @@ class SettingsConfigIO:
         result = self._engine.deserialize_appearance(raw)
 
         h._theme_combo.setCurrentText(result["appearance.theme"])
-        icon_display = {v: k for k, v in ICON_OPTIONS.items()}.get(result["appearance.icon_theme"], "默认")
+        icon_display = self._engine.get_icon_display_name(result["appearance.icon_theme"])
         h._icon_combo.setCurrentText(icon_display)
 
     def _save_appearance(self) -> None:
@@ -155,7 +144,7 @@ class SettingsConfigIO:
         if h._theme_combo:
             data["appearance.theme"] = h._theme_combo.currentText()
         if h._icon_combo:
-            data["appearance.icon_theme"] = ICON_OPTIONS.get(h._icon_combo.currentText(), "default")
+            data["appearance.icon_theme"] = self._engine.get_icon_internal_key(h._icon_combo.currentText())
 
         result = self._engine.serialize_appearance(data)
         for key, value in result.items():
@@ -251,14 +240,17 @@ class SettingsConfigIO:
         if h._clear_readonly_cb:
             data["file.clear_readonly"] = h._clear_readonly_cb.isChecked()
         if h._skip_folders:
-            skip = [s.strip() for s in h._skip_folders.text().split(",") if s.strip()]
-            data["scan.skip_folders"] = skip or self._engine.DEFAULT_LIBRARY["scan.skip_folders"]
+            data["scan.skip_folders"] = self._engine.parse_comma_separated_with_fallback(
+                h._skip_folders.text(), self._engine.DEFAULT_LIBRARY["scan.skip_folders"]
+            )
         if h._scan_extensions:
-            exts = [s.strip() for s in h._scan_extensions.text().split(",") if s.strip()]
-            data["scan.extensions"] = exts or self._engine.DEFAULT_LIBRARY["scan.extensions"]
+            data["scan.extensions"] = self._engine.parse_comma_separated_with_fallback(
+                h._scan_extensions.text(), self._engine.DEFAULT_LIBRARY["scan.extensions"]
+            )
         if h._skip_file_keywords:
-            keywords = [s.strip() for s in h._skip_file_keywords.text().split(",") if s.strip()]
-            data["scan.exclude_patterns"] = keywords or self._engine.DEFAULT_LIBRARY["scan.exclude_patterns"]
+            data["scan.exclude_patterns"] = self._engine.parse_comma_separated_with_fallback(
+                h._skip_file_keywords.text(), self._engine.DEFAULT_LIBRARY["scan.exclude_patterns"]
+            )
 
         result = self._engine.serialize_library(data)
         for key, value in result.items():
@@ -347,14 +339,7 @@ class SettingsConfigIO:
                 h._ocr_access_key_secret,
             ]
         ):
-            for attr, key, hint in [
-                ("_ocr_api_key", "ocr.baidu_api_key", "百度云 API Key"),
-                ("_ocr_secret_key", "ocr.baidu_secret_key", "百度云 Secret Key"),
-                ("_ocr_secret_id", "ocr.tencent_secret_id", "腾讯云 Secret ID"),
-                ("_ocr_tencent_secret_key", "ocr.tencent_secret_key", "腾讯云 Secret Key"),
-                ("_ocr_access_key_id", "ocr.aliyun_access_key_id", "阿里云 Access Key ID"),
-                ("_ocr_access_key_secret", "ocr.aliyun_access_key_secret", "阿里云 Access Key Secret"),
-            ]:
+            for attr, key, hint in OCR_CREDENTIAL_FIELDS:
                 widget = getattr(h, attr)
                 widget.setPlaceholderText("已保存" if self._config.get(key, "") else hint)
 

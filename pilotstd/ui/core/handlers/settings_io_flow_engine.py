@@ -12,6 +12,31 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════
+# 常量（Handler 层的唯一真相源）
+# ═══════════════════════════════════════════════════════════════
+
+# 图标主题选项映射（显示名 → 内部键）
+ICON_OPTIONS: dict[str, str] = {
+    "默认": "default",
+    "指南针": "compass_book",
+    "放大镜": "magnifier_check",
+    "灯塔": "lighthouse_folder",
+}
+
+# 语言代码列表，按 ComboBox 索引对应
+LANG_CODES: list[str] = ["zh_CN", "zh_TW", "en"]
+
+# OCR 凭证字段定义：(Handler 属性名, 配置键, 占位提示)
+OCR_CREDENTIAL_FIELDS: list[tuple[str, str, str]] = [
+    ("_ocr_api_key", "ocr.baidu_api_key", "百度云 API Key"),
+    ("_ocr_secret_key", "ocr.baidu_secret_key", "百度云 Secret Key"),
+    ("_ocr_secret_id", "ocr.tencent_secret_id", "腾讯云 Secret ID"),
+    ("_ocr_tencent_secret_key", "ocr.tencent_secret_key", "腾讯云 Secret Key"),
+    ("_ocr_access_key_id", "ocr.aliyun_access_key_id", "阿里云 Access Key ID"),
+    ("_ocr_access_key_secret", "ocr.aliyun_access_key_secret", "阿里云 Access Key Secret"),
+]
+
 
 class SettingsConfigIOEngine:
     """设置配置的纯逻辑序列化/反序列化。
@@ -171,3 +196,46 @@ class SettingsConfigIOEngine:
                 if k in default:
                     base[k] = default[k]
         return SettingsConfigIOEngine._fill_missing(data, base)
+
+    # ═══════════════════════════════════════════════════════════════
+    # 图标主题映射
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def get_icon_internal_key(display_name: str) -> str:
+        """显示名 → 内部键，未匹配返回 'default'。"""
+        return ICON_OPTIONS.get(display_name, "default")
+
+    @staticmethod
+    def get_icon_display_name(internal_key: str) -> str:
+        """内部键 → 显示名，未匹配返回 '默认'。"""
+        reverse = {v: k for k, v in ICON_OPTIONS.items()}
+        return reverse.get(internal_key, "默认")
+
+    # ═══════════════════════════════════════════════════════════════
+    # 语言代码
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def resolve_language_code(combo_index: int) -> str:
+        """ComboBox 索引 → 语言代码，越界返回 'zh_CN'。"""
+        if 0 <= combo_index < len(LANG_CODES):
+            return LANG_CODES[combo_index]
+        return "zh_CN"
+
+    # ═══════════════════════════════════════════════════════════════
+    # 文本解析
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def parse_comma_separated(text: str) -> list[str]:
+        """逗号分隔文本 → 去空白字符串列表，空字符串返回空列表。"""
+        if not text or not text.strip():
+            return []
+        return [s.strip() for s in text.split(",") if s.strip()]
+
+    @staticmethod
+    def parse_comma_separated_with_fallback(text: str, fallback: list[str]) -> list[str]:
+        """解析逗号分隔文本，结果为空时返回 fallback。"""
+        result = SettingsConfigIOEngine.parse_comma_separated(text)
+        return result if result else list(fallback)
