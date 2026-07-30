@@ -353,10 +353,32 @@ def login(
 
 @router.get("/api/auth/me")
 def auth_me(request: Request):
-    """返回当前登录用户的身份信息（用户名 + 角色），供前端权限渲染用。"""
+    """返回当前登录用户的身份信息（用户名 + 角色），供前端权限渲染用。
+
+    get_current_username() 返回 JWT sub (user_id)，需通过 id 查 users 表获取
+    实际 username 和 role，而非直接传给 get_user_role()（该函数期望 username）。
+    """
+    user_id = get_current_username(request)
+
+    if user_id:
+        try:
+            from pilotstd.core.config import get_db_path
+            from pilotstd.core.db import Database
+
+            db = Database(get_db_path())
+            row = db.fetchone(
+                "SELECT username, role FROM users WHERE id = ?",
+                (user_id,),
+            )
+            if row:
+                return {"username": row["username"], "role": row["role"]}
+        except Exception:
+            pass
+
+    # 降级兜底：兼容旧版 JWT (sub=username) 或 DB 查询失败场景
     username = get_current_username(request)
     role = get_user_role(username)
-    return {"username": username, "role": role}
+    return {"username": username or "", "role": role or ""}
 
 
 @router.post("/api/logout")
