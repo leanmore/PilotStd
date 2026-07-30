@@ -166,5 +166,6 @@ export function useDashboard() {
     resetLayout,
     hydrateLayout,
     handleLayoutUpdated,
+    saveLayoutToServer,
   }
 }

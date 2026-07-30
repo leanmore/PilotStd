@@ -100,7 +100,7 @@ async function logout() {
 }
 
 // ── 悬浮工作台按钮（统一入口，路由动态切换）──
-const { availableCards, isLocked, addCard, toggleLayoutLock, resetLayout } = useDashboard()
+const { availableCards, addCard, resetLayout } = useDashboard()
 const menuOpen = ref(false)
 const triggerBtnId = 'workspace-menu-trigger'
 const dropdownId = 'workspace-dropdown'
@@ -242,9 +242,9 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
             <div class="menu-divider" role="separator" />
             <!-- ② 锁定/解锁布局 -->
             <button role="menuitem" class="menu-item" tabindex="0"
-                    @click="toggleLayoutLock(); closeMenu()">
-              <i :class="isLocked ? 'pi pi-lock-open' : 'pi pi-lock'" />
-              <span>{{ isLocked ? '解锁布局' : '锁定布局' }}</span>
+                    @click="store.toggleDashboardLock(); closeMenu()">
+              <i :class="store.dashboardLocked ? 'pi pi-lock-open' : 'pi pi-lock'" />
+              <span>{{ store.dashboardLocked ? '解锁布局' : '锁定布局' }}</span>
             </button>
             <div class="menu-divider" role="separator" />
             <!-- ③ 重置布局 -->

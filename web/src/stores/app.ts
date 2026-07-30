@@ -16,6 +16,7 @@ export const useAppStore = defineStore('app', () => {
   const loggedIn = ref(false)
   const username = ref('')
   const role = ref('user')
+  const dashboardLocked = ref(true)
   const _initialized = ref(false)
 
   /** 从后端拉取偏好并覆盖本地（登录后调用） */
@@ -51,7 +52,13 @@ export const useAppStore = defineStore('app', () => {
     loggedIn.value = false
     username.value = ''
     role.value = 'user'
+    dashboardLocked.value = true
     _initialized.value = false
+  }
+
+  /** 切换仪表盘布局锁定状态 */
+  function toggleDashboardLock() {
+    dashboardLocked.value = !dashboardLocked.value
   }
 
   watch(theme, v => {
@@ -68,5 +75,5 @@ export const useAppStore = defineStore('app', () => {
     })
   } catch { /* SSR */ }
 
-  return { theme, locale, loggedIn, username, role, loadPreferences, clearUser }
+  return { theme, locale, loggedIn, username, role, dashboardLocked, loadPreferences, clearUser, toggleDashboardLock }
 })

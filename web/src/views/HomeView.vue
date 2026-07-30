@@ -1,12 +1,29 @@
 <script setup lang="ts">
 defineOptions({ name: 'HomeView' })
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useDashboard } from '@/composables/useDashboard'
+import { useAppStore } from '@/stores/app'
 
-const { layout, isLocked, fetchLayout, handleLayoutUpdated, removeCard } = useDashboard()
+const appStore = useAppStore()
+const { layout, fetchLayout, handleLayoutUpdated, removeCard, saveLayoutToServer } = useDashboard()
 
 onMounted(fetchLayout)
+
+// 解锁时强制重建 GridLayout 子组件，规避 grid-layout-plus v1.1.1 动态切换缺陷
+watch(
+  () => appStore.dashboardLocked,
+  (locked, wasLocked) => {
+    // 解锁：克隆数组触发 GridItem 重新挂载，确保拖拽监听器正确注册
+    if (!locked && wasLocked) {
+      layout.value = [...layout.value]
+    }
+    // 锁定：保存当前布局
+    if (locked && !wasLocked) {
+      saveLayoutToServer()
+    }
+  },
+)
 </script>
 
 <template>
@@ -17,8 +34,8 @@ onMounted(fetchLayout)
           v-model:layout="layout"
           :col-num="12"
           :row-height="30"
-          :is-draggable="!isLocked"
-          :is-resizable="!isLocked"
+          :is-draggable="!appStore.dashboardLocked"
+          :is-resizable="!appStore.dashboardLocked"
           :vertical-compact="true"
           :use-css-transforms="true"
           :margin="[12, 12]"
@@ -37,7 +54,7 @@ onMounted(fetchLayout)
             :min-h="item.minH || 4"
           >
             <div class="card-wrapper">
-              <button v-if="!isLocked" class="remove-btn" @click.stop="removeCard(item.i)">&times;</button>
+              <button v-if="!appStore.dashboardLocked" class="remove-btn" @click.stop="removeCard(item.i)">&times;</button>
               <component :is="item.component" class="card-inner" :zh-name="item.zhName" />
             </div>
           </GridItem>

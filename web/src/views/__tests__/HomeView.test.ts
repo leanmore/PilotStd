@@ -8,7 +8,19 @@ import http from '@/api/http'
 import zhCN from '@/locales/zh-CN.json'
 
 vi.mock('@/api/http', () => ({ default: { get: vi.fn(), put: vi.fn() } }))
-vi.mock('@/stores/app', () => ({ useAppStore: () => ({ loggedIn: true }) }))
+
+// 共享 mock 状态，测试中可随意修改
+const { mockStore } = vi.hoisted(() => ({
+  mockStore: {
+    loggedIn: true,
+    dashboardLocked: true,
+    toggleDashboardLock() {
+      mockStore.dashboardLocked = !mockStore.dashboardLocked
+    },
+  },
+}))
+
+vi.mock('@/stores/app', () => ({ useAppStore: () => mockStore }))
 
 vi.mock('grid-layout-plus', () => ({
   GridLayout: { name: 'GridLayout', template: '<div class="mock-grid"><slot /></div>', props: ['layout', 'colNum', 'rowHeight', 'isDraggable', 'isResizable', 'verticalCompact', 'useCssTransforms', 'margin'], emits: ['update:layout', 'layout-updated'] },
@@ -91,22 +103,21 @@ describe('HomeView 布局与持久化', () => {
 
   it('锁定：默认锁定，GridLayout 不可拖拽不可缩放', async () => {
     vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    mockStore.dashboardLocked = true
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    expect(wrapper.vm.isLocked).toBe(true)
     const grid = wrapper.findComponent({ name: 'GridLayout' })
     expect(grid.props('isDraggable')).toBe(false)
     expect(grid.props('isResizable')).toBe(false)
   })
 
-  it('解锁：isLocked=false 后 GridLayout 可拖拽可缩放', async () => {
+  it('解锁：dashboardLocked=false 后 GridLayout 可拖拽可缩放', async () => {
     vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    mockStore.dashboardLocked = false
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    wrapper.vm.isLocked = false
-    await wrapper.vm.$nextTick()
     const grid = wrapper.findComponent({ name: 'GridLayout' })
     expect(grid.props('isDraggable')).toBe(true)
     expect(grid.props('isResizable')).toBe(true)
