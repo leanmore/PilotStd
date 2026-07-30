@@ -2,7 +2,19 @@
 ## v0.89.0 (2026-07-30)
 
 ### Fixed
-- 版本号自动同步（CI 更新）
+- /api/auth/me 刷新页面后角色丢失 — JWT sub 存储 user_id 但 get_user_role() 误当 username 查询导致 role 返回空字符串
+- 仪表盘解锁后拖拽失效 — grid-layout-plus v1.1.1 动态切换 isDraggable 时微任务调度器与 Vue 不同步，解锁时通过 [...layout] 强制重建 GridItem
+- 快捷操作卡片英文键名显示 + 操作数量减少 — QuickActionsCard 未调用 t() 翻译 + store.role 刷新后回退
+
+### Refactored
+- get_current_username() → get_current_user_id()，消除函数名与实际返回值的语义混淆，保留 DeprecationWarning 别名
+- 角色常量 ADMIN_ROLE 与用户名常量 SUPERUSER_USERNAME 分离，消除隐式魔法字符串
+
+### Added
+- ESLint 自定义规则 no-raw-i18n-key + no-sensitive-persist，集成到 pre-commit lint-staged
+- Playwright E2E 回归用例 e2e/dashboard/quick-actions.spec.ts
+- CI frontend-e2e job（Playwright，依赖 test-frontend）
+- PR 模板质量门禁五条 Checklist
 
 ## v0.88.0 (2026-07-29)
 
