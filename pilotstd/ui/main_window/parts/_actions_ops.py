@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import sys
 import time as _time
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from ....i18n import _
+from ...core.handlers.actions_flow_engine import ActionsFlowEngine
 from ...workers import RowUpdate
 
 logger = logging.getLogger("pilotstd.ui")
@@ -68,14 +68,10 @@ def _init_manager(self) -> None:
 
 def _set_toolbar_enabled(self, enabled: bool) -> None:
     """统一启用/禁用所有工具栏按钮。"""
-    self.btn_select.setEnabled(enabled)
-    self.btn_query.setEnabled(enabled)
-    self.btn_download.setEnabled(enabled)
-    self.btn_normalize.setEnabled(enabled)
-    self.btn_save.setEnabled(enabled)
-    self.btn_auto.setEnabled(enabled)
-    self.btn_announce.setEnabled(enabled)
-    self.btn_pause.setEnabled(enabled)
+    for key in ActionsFlowEngine.get_toolbar_button_keys():
+        btn = getattr(self, key, None)
+        if btn is not None:
+            btn.setEnabled(enabled)
 
 
 def _apply_announce_cache_mode(self, enabled: bool | None = None) -> None:
@@ -209,7 +205,7 @@ def _on_settings(self) -> None:
 def _try_check_update_throttle(self, current: str) -> bool:
     """检查更新节流：24 小时内已检查过则跳过并提示。"""
     last_check = self._config.get("appearance.last_update_check", 0)
-    if isinstance(last_check, (int, float)) and _time.time() - last_check < 86400:
+    if ActionsFlowEngine.is_update_throttled(last_check):
         QMessageBox.information(self, _("title_no_update"), _("update_already_latest").format(current=current))
         return True
     return False
@@ -286,7 +282,7 @@ def _on_check_update(self) -> None:
             raise RuntimeError("无法获取最新版本信息")
         if not self._confirm_update_available(current, release):
             return
-        if not getattr(sys, "frozen", False):
+        if not ActionsFlowEngine.is_frozen():
             import webbrowser
 
             webbrowser.open("https://github.com/leanmore/PilotStd/releases/latest")
