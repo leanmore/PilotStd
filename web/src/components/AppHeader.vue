@@ -82,7 +82,7 @@ onUnmounted(() => {
         <span class="hide-mobile">{{ username }}</span>
       </span>
       <!-- 退出 -->
-      <button class="topbar-btn logout-btn" @click="emit('logout')" title="退出登录">
+      <button class="topbar-btn logout-btn" data-testid="user-menu-logout" @click="emit('logout')" title="退出登录">
         <i class="pi pi-sign-out" />
         <span class="hide-mobile">退出</span>
       </button>

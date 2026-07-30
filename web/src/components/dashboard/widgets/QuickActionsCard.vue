@@ -88,7 +88,7 @@ const isLoading = (a: any) =>
 </script>
 
 <template>
-  <div class="root">
+  <div class="root" data-testid="quick-actions-card">
     <div class="header">
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-bolt" /></div>
@@ -100,6 +100,7 @@ const isLoading = (a: any) =>
       <div
         v-for="a in actions" :key="a.label"
         class="btn" :class="{ disabled: isLoading(a) }"
+        data-testid="quick-action-item"
         @click="handleActionClick(a)"
       >
         <i :class="['icon', a.iconClass]" :style="{ color: a.color }" />
