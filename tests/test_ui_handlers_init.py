@@ -4,7 +4,6 @@
 import unittest
 
 from pilotstd.ui.core.handlers import (
-    ActionsHandler,
     CleanupHandler,
     DialogHandler,
     ExportHandler,
@@ -26,10 +25,18 @@ class TestHandlersInit(unittest.TestCase):
     def test_all_classes_importable(self):
         """__all__ 中列出的所有类都能成功导入"""
         classes = [
-            ActionsHandler, CleanupHandler, DialogHandler, ExportHandler,
-            FileDialogHandler, FileTreeHandler, PersistenceHandler,
-            ProjectHandler, SettingsHandler, TableHandler,
-            TableHelperHandler, ThemeHandler, UISetupHandler,
+            CleanupHandler,
+            DialogHandler,
+            ExportHandler,
+            FileDialogHandler,
+            FileTreeHandler,
+            PersistenceHandler,
+            ProjectHandler,
+            SettingsHandler,
+            TableHandler,
+            TableHelperHandler,
+            ThemeHandler,
+            UISetupHandler,
         ]
         for cls in classes:
             self.assertIsNotNone(cls, f"{cls.__name__} 不应为 None")
@@ -37,17 +44,22 @@ class TestHandlersInit(unittest.TestCase):
     def test_all_list_matches_imports(self):
         """验证 __all__ 与导出的类一致"""
         from pilotstd.ui.core.handlers import __all__
+
         expected = [
-            "ActionsHandler", "CleanupHandler", "DialogHandler",
-            "ExportHandler", "FileDialogHandler", "FileTreeHandler",
-            "PersistenceHandler", "ProjectHandler", "SettingsHandler",
-            "TableHandler", "TableHelperHandler", "ThemeHandler",
+            "CleanupHandler",
+            "DialogHandler",
+            "ExportHandler",
+            "FileDialogHandler",
+            "FileTreeHandler",
+            "PersistenceHandler",
+            "ProjectHandler",
+            "SettingsHandler",
+            "TableHandler",
+            "TableHelperHandler",
+            "ThemeHandler",
             "UISetupHandler",
         ]
         self.assertEqual(sorted(__all__), sorted(expected))
-
-    def test_actions_handler_is_class(self):
-        self.assertTrue(isinstance(ActionsHandler, type))
 
     def test_settings_handler_is_class(self):
         self.assertTrue(isinstance(SettingsHandler, type))

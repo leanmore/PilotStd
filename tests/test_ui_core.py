@@ -351,23 +351,6 @@ class TestInitIndividualHandlers(unittest.TestCase):
         core._init_theme()
         mock_handler_cls.assert_called_once_with(config=self.config, parent=self.parent)
 
-    @patch("pilotstd.ui.core._core.ActionsHandler")
-    def test_init_actions(self, mock_handler_cls):
-        fake_project = MagicMock()
-        core = self._make_core(
-            project=fake_project,
-            get_selected_path_cb=lambda: "/p",
-            clear_table=lambda: None,
-            stop_workers_cb=lambda: None,
-            update_button_states=lambda: None,
-        )
-        core._init_actions()
-        mock_handler_cls.assert_called_once()
-        call_kwargs = mock_handler_cls.call_args[1]
-        self.assertIs(call_kwargs["mgr"], self.mgr)
-        self.assertIs(call_kwargs["config"], self.config)
-        self.assertIs(call_kwargs["project"], fake_project)
-
     @patch("pilotstd.ui.core._core.PersistenceHandler")
     def test_init_persistence_stores_on_core(self, mock_handler_cls):
         mock_handler = MagicMock()

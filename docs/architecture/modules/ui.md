@@ -22,7 +22,6 @@ MainWindow (QMainWindow)
 │   ├── 中间: 工作表格 (stretch)
 │   └── 右侧: 操作日志 (240px)
 ├── MainWindowCore (组合容器)
-│   ├── ActionsHandler       — 菜单/工具栏动作
 │   ├── ScanUIHandler        — 扫描触发与进度
 │   ├── QueryUIHandler       — 查询结果展示
 │   ├── DownloadUIHandler    — 下载队列管理
