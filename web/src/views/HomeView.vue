@@ -10,15 +10,17 @@ const { layout, fetchLayout, handleLayoutUpdated, removeCard, saveLayoutToServer
 
 onMounted(fetchLayout)
 
-// 解锁时强制重建 GridLayout 子组件，规避 grid-layout-plus v1.1.1 动态切换缺陷
+// ── grid-layout-plus v1.1.1 已知缺陷 workaround ──
+// 动态切换 isDraggable 时库内部微任务调度器（he/Ze）与 Vue 响应式队列不同步，
+// 导致 GridItem 的 interact.js 拖拽监听器未重新绑定。解锁时通过 [...layout] 克隆
+// 数组强制 GridItem 重新挂载以触发 Ze() 重跑，目录下 k.value.draggable() 正确执行。
+// TODO: 升级 grid-layout-plus 后重新评估是否仍需此 workaround。
 watch(
   () => appStore.dashboardLocked,
   (locked, wasLocked) => {
-    // 解锁：克隆数组触发 GridItem 重新挂载，确保拖拽监听器正确注册
     if (!locked && wasLocked) {
       layout.value = [...layout.value]
     }
-    // 锁定：保存当前布局
     if (locked && !wasLocked) {
       saveLayoutToServer()
     }
