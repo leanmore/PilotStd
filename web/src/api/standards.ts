@@ -12,6 +12,8 @@ export interface StandardStatusItem {
   standard_number: string
   standard_name: string
   status: string
+  last_checked_at: string | null
+  check_count: number
 }
 
 export interface StandardStatusResponse {

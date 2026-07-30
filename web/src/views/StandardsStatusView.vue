@@ -189,6 +189,12 @@ onMounted(() => {
               <Tag :severity="statusSeverity(data.status)" :value="data.status" />
             </template>
           </Column>
+          <Column field="last_checked_at" header="最后检查时间" style="width: 10rem">
+            <template #body="{ data }">
+              {{ data.last_checked_at ? data.last_checked_at.substring(0, 10) : '—' }}
+            </template>
+          </Column>
+          <Column field="check_count" header="检查次数" style="width: 6rem; text-align: right" />
         </DataTable>
 
         <p v-if="!loading && displayRecords.length === 0" class="empty">暂无标准状态数据</p>

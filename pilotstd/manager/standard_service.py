@@ -26,9 +26,12 @@ class StandardService:
         return ([filter_status], None)
 
     @staticmethod
-    def _build_where(filters: dict[str, Any] | None) -> tuple[str, list[Any]]:
-        """构建 file_index 查询的 WHERE 子句，与首页卡片过滤条件一致。"""
-        clauses = ["status IS NOT NULL"]
+    def _build_where(filters: dict[str, Any] | None, alias: str = "") -> tuple[str, list[Any]]:
+        """构建 file_index 查询的 WHERE 子句，与首页卡片过滤条件一致。
+        alias: 可选表别名前缀（如 'f.'），用于多表 JOIN 时消除列名歧义。
+        """
+        p = f"{alias}." if alias else ""
+        clauses = [f"{p}status IS NOT NULL"]
         params: list[Any] = []
         if not filters:
             return "WHERE " + " AND ".join(clauses), params
@@ -37,18 +40,18 @@ class StandardService:
             values, op = StandardService._map_filter_status(filters["status"])
             if op == "IN":
                 placeholders = ", ".join("?" for _ in values)
-                clauses.append(f"status IN ({placeholders})")
+                clauses.append(f"{p}status IN ({placeholders})")
                 params.extend(values)
             elif op == "NOT IN":
                 placeholders = ", ".join("?" for _ in values)
-                clauses.append(f"status NOT IN ({placeholders})")
+                clauses.append(f"{p}status NOT IN ({placeholders})")
                 params.extend(values)
             else:
-                clauses.append("status = ?")
+                clauses.append(f"{p}status = ?")
                 params.append(values[0])
 
         if filters.get("keyword"):
-            clauses.append("((logical_code || ' ' || number) LIKE ? OR std_name LIKE ?)")
+            clauses.append(f"(({p}logical_code || ' ' || {p}number) LIKE ? OR {p}std_name LIKE ?)")
             kw = f"%{filters['keyword']}%"
             params.extend([kw, kw])
 
@@ -85,16 +88,20 @@ class StandardService:
         db = self._mgr.db
         offset = (page - 1) * size
 
-        where_sql, params = self._build_where(filters)
+        where_sql, params = self._build_where(filters, alias="f")
 
         total = db.fetchone(f"SELECT COUNT(*) AS cnt FROM file_index {where_sql}", tuple(params))
 
-        # 构造 standard_number 字段，兼容原 standard_validity 接口契约
+        # LEFT JOIN standard_validity 获取检查时间与次数（1:1 关系，无需 GROUP BY）
         rows = db.fetchall(
-            f"SELECT id, (logical_code || ' ' || number) AS standard_number, status,"
-            f" std_name"
-            f" FROM file_index {where_sql}"
-            f" ORDER BY logical_code, number, part LIMIT ? OFFSET ?",
+            f"SELECT f.id, (f.logical_code || ' ' || f.number) AS standard_number,"
+            f" f.status, f.std_name,"
+            f" v.last_checked_at, COALESCE(v.check_count, 0) AS check_count"
+            f" FROM file_index f"
+            f" LEFT JOIN standard_validity v"
+            f" ON (f.logical_code || ' ' || f.number) = v.standard_number"
+            f" {where_sql}"
+            f" ORDER BY f.logical_code, f.number, f.part LIMIT ? OFFSET ?",
             tuple(params + [size, offset]),
         )
 
