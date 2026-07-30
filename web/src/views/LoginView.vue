@@ -33,9 +33,9 @@ onMounted(async () => {
     <div class="login-card">
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
       <p class="hint">标准管理控制台</p>
-      <input v-model="username" placeholder="用户名" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" type="password" placeholder="密码" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
-      <Button label="登 录" @click="submit" severity="primary" style="width:100%;margin-top:8px" />
+      <input v-model="username" name="username" placeholder="用户名" class="login-input" @keyup.enter="submit" />
+      <input v-model="password" name="password" type="password" placeholder="密码" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
+      <Button label="登 录" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:8px" />
       <p v-if="error" class="error">{{ error }}</p>
     </div>
   </div>
