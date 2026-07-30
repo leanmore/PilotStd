@@ -10,12 +10,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
-  webServer: process.env.CI
-    ? undefined // CI 中由 Docker service 提供后端
-    : {
-        command: 'python ../main.py',
-        port: 9028,
-        reuseExistingServer: true,
-        timeout: 30000,
-      },
+  webServer: {
+    command: 'pnpm dev --port 9028',
+    port: 9028,
+    timeout: 120_000,
+    reuseExistingServer: process.env.CI ? false : true,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  },
 });

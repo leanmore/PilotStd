@@ -215,22 +215,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r desktop/requirements-win.txt
-          pip install pytest pytest-qt
+          pip install pytest pytest-qt pytest-rerunfailures
 
-      - name: Run E2E tests (attempt 1)
-        id: e2e-1
-        continue-on-error: true
+      - name: Run E2E tests
         shell: pwsh
         env:
           SUPERUSER: superadmin
-        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short
-
-      - name: Run E2E tests (attempt 2, retry)
-        if: steps.e2e-1.outcome == 'failure'
-        shell: pwsh
-        env:
-          SUPERUSER: superadmin
-        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short
+        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short --reruns 3 --reruns-delay 2
 
   # ════════════════════════════════════════════════════════════════
   # Job 4b: 前端 E2E 回归测试（Playwright，依赖前端 Lint 通过）
