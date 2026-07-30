@@ -302,3 +302,65 @@ class TestDeduplicateDownloads:
 
 def test_default_threshold_days():
     assert DEFAULT_THRESHOLD_DAYS == 28
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Phase 2 预抽取纯逻辑测试
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestParseDownloadUrl:
+    def test_valid_https_url(self, engine):
+        result = engine.parse_download_url("https://example.com/path?key=val")
+        assert result["valid"] is True
+        assert result["scheme"] == "https"
+        assert result["host"] == "example.com"
+        assert result["params"] == {"key": ["val"]}
+
+    def test_valid_http_url(self, engine):
+        result = engine.parse_download_url("http://example.com/")
+        assert result["valid"] is True
+        assert result["scheme"] == "http"
+
+    def test_invalid_protocol(self, engine):
+        assert engine.parse_download_url("ftp://example.com")["valid"] is False
+
+    def test_empty_or_none(self, engine):
+        assert engine.parse_download_url("")["valid"] is False
+        assert engine.parse_download_url(None)["valid"] is False  # type: ignore[arg-type]
+
+    def test_missing_host(self, engine):
+        assert engine.parse_download_url("http:///path")["valid"] is False
+
+
+class TestCalculateRetryDelay:
+    def test_exponential_growth(self, engine):
+        d0 = engine.calculate_retry_delay(0, base_delay=1.0)
+        d3 = engine.calculate_retry_delay(3, base_delay=1.0)
+        assert d3 > d0
+
+    def test_max_cap(self, engine):
+        delay = engine.calculate_retry_delay(100, base_delay=1.0, max_delay=60.0)
+        assert delay <= 66.0  # max_delay + 10% jitter
+
+    def test_negative_attempt(self, engine):
+        assert engine.calculate_retry_delay(-1, base_delay=2.0) == 2.0
+
+
+class TestValidateFileSize:
+    def test_valid(self, engine):
+        assert engine.validate_file_size(1024, min_size=0, max_size=2048)["valid"] is True
+
+    def test_too_small(self, engine):
+        r = engine.validate_file_size(50, min_size=100)
+        assert r["valid"] is False
+        assert "过小" in r["message"]
+
+    def test_too_large(self, engine):
+        r = engine.validate_file_size(5000, max_size=1000)
+        assert r["valid"] is False
+        assert "过大" in r["message"]
+
+    def test_invalid_type(self, engine):
+        assert engine.validate_file_size(-1)["valid"] is False
+        assert engine.validate_file_size("abc")["valid"] is False  # type: ignore[arg-type]

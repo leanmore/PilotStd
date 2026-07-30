@@ -145,3 +145,69 @@ class DownloadFlowEngine:
                 seen.add(val)
                 result.append(item)
         return result
+
+    # ═══════════════════════════════════════════════════════════════
+    # Phase 2 预抽取纯逻辑（待后续 Handler 集成）
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def parse_download_url(raw_url: str) -> dict:
+        """解析并标准化下载URL，提取协议、主机、路径及查询参数。
+
+        纯字符串处理，不发起网络请求。
+        """
+        if not raw_url or not isinstance(raw_url, str):
+            return {"valid": False, "error": "URL为空或非字符串"}
+        url = raw_url.strip()
+        if not url.startswith(("http://", "https://")):
+            return {"valid": False, "error": "不支持的协议，仅允许http/https"}
+        try:
+            from urllib.parse import parse_qs, urlparse
+
+            parsed = urlparse(url)
+            if not parsed.netloc:
+                return {"valid": False, "error": "缺少主机名"}
+            return {
+                "valid": True,
+                "scheme": parsed.scheme,
+                "host": parsed.netloc,
+                "path": parsed.path,
+                "params": parse_qs(parsed.query),
+                "original": url,
+            }
+        except Exception as e:
+            return {"valid": False, "error": f"URL解析失败: {str(e)}"}
+
+    @staticmethod
+    def calculate_retry_delay(attempt: int, base_delay: float = 1.0, max_delay: float = 60.0) -> float:
+        """计算指数退避重试延迟（含 10% 随机抖动）。
+
+        Args:
+            attempt: 重试次数（0-based）
+            base_delay: 基础延迟秒数
+            max_delay: 延迟上限秒数
+        """
+        if attempt < 0:
+            return base_delay
+        import random
+
+        exponential = min(base_delay * (2**attempt), max_delay)
+        jitter = random.uniform(0, exponential * 0.1)
+        return round(exponential + jitter, 3)
+
+    @staticmethod
+    def validate_file_size(file_size: int, min_size: int = 0, max_size: int | None = None) -> dict:
+        """校验文件大小是否在允许范围内。
+
+        Args:
+            file_size: 文件大小（字节）
+            min_size: 最小允许大小
+            max_size: 最大允许大小，None 表示不限制
+        """
+        if not isinstance(file_size, (int, float)) or file_size < 0:
+            return {"valid": False, "message": "文件大小无效"}
+        if file_size < min_size:
+            return {"valid": False, "message": f"文件过小({file_size}B < {min_size}B)"}
+        if max_size is not None and file_size > max_size:
+            return {"valid": False, "message": f"文件过大({file_size}B > {max_size}B)"}
+        return {"valid": True, "message": "大小合规"}
