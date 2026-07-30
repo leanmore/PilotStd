@@ -9,7 +9,7 @@ import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import { getStandardsStats, getStandardsStatus, type StandardStatusItem } from '@/api/standards'
+import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem } from '@/api/standards'
 import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
@@ -44,9 +44,10 @@ function saveFilters() {
   }))
 }
 
-// 筛选条件变化时持久化 + 重新加载（useIncrementalScroll 内部 watch 自动重置首屏）
+// 筛选条件变化时持久化 + 清除缓存 + 重新加载（useIncrementalScroll 内部 watch 自动重置首屏）
 watch([filterStatus, filterStandardNo, filterName], () => {
   saveFilters()
+  clearStandardsStatusCache()
   loadList()
 })
 
@@ -151,6 +152,7 @@ onMounted(() => {
           </div>
           <div class="filter-actions">
             <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
+            <Button icon="pi pi-refresh" label="刷新" size="small" severity="secondary" @click="clearStandardsStatusCache(); loadList()" />
           </div>
         </div>
       </template>
