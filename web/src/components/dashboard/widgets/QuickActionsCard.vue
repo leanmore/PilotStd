@@ -2,9 +2,11 @@
 defineOptions({ name: 'QuickActionsCard' })
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import http from '@/api/http'
 
+const { t } = useI18n()
 const router = useRouter()
 const store = useAppStore()
 const scanning = ref(false)
@@ -49,22 +51,32 @@ const actions = computed(() => {
     .filter((r: any) => r.meta.showInQuickActions)
     .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
     .sort((a: any, b: any) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
-    .map((r: any) => ({
-      label: r.meta.titleKey || r.meta.title || r.path,
-      iconClass: r.meta.icon || 'pi pi-circle',
-      color: r.meta.color || 'var(--text-dim)',
-      to: r.path.startsWith('/__action/') ? undefined : r.path,
-      type: r.meta.quickActionType || 'navigation',
-      handler: r.meta.handler,
-    }))
+    .map((r: any) => {
+      // 翻译 titleKey，翻译缺失时降级到 meta.title 或路径
+      let label: string
+      if (r.meta.titleKey) {
+        const translated = t(r.meta.titleKey)
+        label = translated !== r.meta.titleKey ? translated : (r.meta.title || r.path)
+      } else {
+        label = r.meta.title || r.path
+      }
+      return {
+        label,
+        iconClass: r.meta.icon || 'pi pi-circle',
+        color: r.meta.color || 'var(--text-dim)',
+        to: r.path.startsWith('/__action/') ? undefined : r.path,
+        type: r.meta.quickActionType || 'navigation',
+        handler: r.meta.handler,
+      }
+    })
 
   // Fallback: 若路由 meta 未正确配置，回退到旧硬编码列表
   if (items.length === 0) {
     return [
-      { label: '任务流水线', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
-      { label: '文件管理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize', type: 'navigation' },
-      { label: '待确认清单', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending', type: 'navigation' },
-      { label: '公告检查', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce', type: 'navigation' },
+      { label: '任务', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
+      { label: '整理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize', type: 'navigation' },
+      { label: '待处理', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending', type: 'navigation' },
+      { label: '公告', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce', type: 'navigation' },
       { label: '扫描入库', iconClass: 'pi pi-cloud-upload', color: '#ec4899', type: 'action', handler: 'scanAndIndex' },
     ]
   }

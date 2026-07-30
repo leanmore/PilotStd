@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useDashboard } from '@/composables/useDashboard'
+import axios from 'axios'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 
@@ -92,7 +93,11 @@ function toggleSidebar() {
   usePreferencesStore().set('sidebar_collapsed', sidebarCollapsed.value).catch(() => {})
 }
 function toggleTheme() { store.theme = isDark.value ? 'light' : 'dark' }
-function logout() { router.push('/login') }
+async function logout() {
+  try { await axios.post('/api/logout') } catch { /* 即使服务端登出失败也清除本地状态 */ }
+  store.clearUser()
+  router.push('/login')
+}
 
 // ── 悬浮工作台按钮（统一入口，路由动态切换）──
 const { availableCards, isLocked, addCard, toggleLayoutLock, resetLayout } = useDashboard()
