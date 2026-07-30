@@ -323,9 +323,26 @@ jobs:
           --cov=pilotstd/ui/core/handlers/
           --ignore-glob="*test_e2e*.py"
 
-      - name: Check coverage threshold (8 refactored handlers)
+      - name: Check coverage — engine layer (core business logic)
         shell: pwsh
-        run: python -m coverage report --include="*flow_engine*" --fail-under=85
+        run: >
+          python -m coverage report
+          --include="pilotstd/ui/core/handlers/*_flow_engine.py"
+          --fail-under=95
+          --skip-empty
+
+      - name: Check coverage — handler glue layer (Qt adapters)
+        shell: pwsh
+        run: >
+          python -m coverage report
+          --include="pilotstd/ui/core/handlers/*.py"
+          --omit="pilotstd/ui/core/handlers/*_flow_engine.py"
+          --fail-under=20
+          --skip-empty
+
+      - name: Check coverage — overall (macro health)
+        shell: pwsh
+        run: python -m coverage report --fail-under=68
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: 入仓合规检查

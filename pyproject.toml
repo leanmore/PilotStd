@@ -77,3 +77,17 @@ pilotstd = ["**/*.yaml", "**/*.json", "**/*.sql"]
 exclude = ["pilotstd/templates/"]
 ignore_names = ["exc_type", "exc_val", "exc_tb"]
 min_confidence = 100
+
+[tool.coverage.report]
+# 整体门禁由 CI 分层命令控制，此处设为 0 避免冲突
+fail_under = 0
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if False:",
+]
