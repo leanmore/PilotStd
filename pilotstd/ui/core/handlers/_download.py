@@ -169,6 +169,31 @@ class DownloadUIHandler:
         due = self._mgr.get_due_downloads()
         return due if due else None
 
+    # ── Phase 3 C1: 下载增强功能（基于 FlowEngine 预抽取逻辑） ──
+
+    def validate_download_url(self, raw_url: str) -> dict:
+        """校验并解析下载URL，返回标准化结果。
+
+        供外部调用或 UI 输入验证使用，委托给 DownloadFlowEngine。
+        """
+        return self._engine.parse_download_url(raw_url)
+
+    def get_retry_delay(self, attempt: int) -> float:
+        """获取指定重试次数的退避延迟秒数。
+
+        供调度器或重试队列使用，替代硬编码延迟。
+        """
+        return self._engine.calculate_retry_delay(attempt)
+
+    def check_file_size_compliance(self, file_size: int) -> dict:
+        """检查文件大小是否符合当前配置的限制。
+
+        可在下载完成回调或预检阶段调用。
+        """
+        min_size = self._config.get("download.min_file_size", 0)
+        max_size = self._config.get("download.max_file_size", None)
+        return self._engine.validate_file_size(file_size, min_size, max_size)
+
     # ── 内部方法 ─────────────────────────────────────────────
 
     def prepare_download(self) -> tuple[bool, Any]:
