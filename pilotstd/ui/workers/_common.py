@@ -85,10 +85,24 @@ class LogHandler(logging.Handler, QObject):
         self._buf_timer.timeout.connect(self._flush)
 
     def close(self) -> None:
-        """在 Qt 对象销毁前关闭处理器，释放 Qt 引用"""
+        """在 Qt 对象销毁前关闭处理器，释放 Qt 引用。
+
+        防御 C++ 对象已被 Qt 析构（atexit 期间先于 logging shutdown 触发），
+        避免 RuntimeError 淹没 CI 日志。
+        """
         self._closed = True
+        try:
+            _sip = __import__("PyQt6.sip", fromlist=["isdeleted"])
+            if hasattr(_sip, "isdeleted") and _sip.isdeleted(self):
+                self.widget = None
+                return
+        except (AttributeError, ImportError):
+            pass
         self.widget = None
-        logging.getLogger().removeHandler(self)
+        try:
+            logging.getLogger().removeHandler(self)
+        except Exception:
+            pass
 
     # ── 批量刷新缓冲区 ──
 
