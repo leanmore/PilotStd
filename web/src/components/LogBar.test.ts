@@ -60,6 +60,7 @@ describe('LogBar', () => {
 
   it('refreshKey 变化时重新获取日志', async () => {
     mockGet.mockResolvedValue({ data: { lines: ['first'] } })
+    // eslint-disable-next-line custom/no-raw-i18n-key -- refreshKey 是组件 prop (number)，非 i18n 翻译键
     const wrapper = mountLogBar({ refreshKey: 0 })
 
     await waitForAsync()
@@ -67,6 +68,7 @@ describe('LogBar', () => {
     expect(wrapper.text()).toContain('first')
 
     mockGet.mockResolvedValue({ data: { lines: ['second'] } })
+    // eslint-disable-next-line custom/no-raw-i18n-key -- refreshKey 是组件 prop，用于触发重取而非翻译
     await wrapper.setProps({ refreshKey: 1 })
     await waitForAsync()
     await wrapper.vm.$nextTick()

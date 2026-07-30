@@ -219,8 +219,9 @@ provide('settingsCanWrite', currentTabCanWrite)
   const tabProps = computed(() => {
     const key = activeTab.value
     const base = { canWrite: currentTabCanWrite.value }
-    // Schema 驱动的 Tab：传递 tabKey
+    // Schema 驱动的 Tab：传递 tabKey（组件 prop 标识符，非 i18n 翻译键）
     if (['storage', 'network', 'query', 'scan', 'ocr', 'tasks'].includes(key)) {
+      // eslint-disable-next-line custom/no-raw-i18n-key -- tabKey 是 prop 名，用作对象属性查找 schemaTabs[tabKey]
       return { ...base, tabKey: key }
     }
     switch (key) {
