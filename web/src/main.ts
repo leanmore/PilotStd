@@ -44,6 +44,7 @@ import zhCN from './locales/zh-CN.json'
 import en from './locales/en.json'
 import zhTW from './locales/zh-TW.json'
 import { isDarkTheme } from '@/config/themes'
+import { SUPERUSER_USERNAME } from './config'
 import { getItem } from '@/lib/storage'
 
 import { primevueLocales } from '@/lib/primevueLocale'
@@ -119,4 +120,13 @@ app.component('Tab', Tab)
 app.component('TabPanels', TabPanels)
 app.component('TabPanel', TabPanel)
 app.component('Badge', Badge)
+
+// G-028 启动校验：生产环境缺少 SUPERUSER 配置时阻止挂载
+if (!SUPERUSER_USERNAME) {
+  console.error('❌ VITE_SUPERUSER_ROLE 未设置，前端超管功能不可用')
+  if (import.meta.env.PROD) {
+    throw new Error('VITE_SUPERUSER_ROLE 环境变量未设置，无法启动生产环境')
+  }
+}
+
 app.mount('#app')
