@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
-from ..auth import get_current_username, require_admin
+from ..auth import get_current_user_id, require_admin
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ router = APIRouter(tags=["notification"])
 # ════════════════════════════════════════════════════════════════
 
 
-def _get_user_id(username: str = Depends(get_current_username), mgr=Depends(get_manager_dep)) -> int:
+def _get_user_id(username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)) -> int:
     """从 token 提取 user_id，找不到时返回 1（兼容系统调用）。"""
     user_id = mgr.user_service.get_user_id(username)
     return user_id if user_id is not None else 1

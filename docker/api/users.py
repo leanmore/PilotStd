@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from pilotstd import SUPERUSER_USERNAME
 
-from ..auth import get_current_username, require_admin
+from ..auth import get_current_user_id, require_admin
 from ..manager import get_manager_dep
 from ..users import add_user, change_password, delete_user, list_users
 
@@ -63,7 +63,7 @@ def api_delete_user(user_id: int, _: bool = Depends(require_admin), mgr=Depends(
 @router.put("/api/users/password")
 def api_change_password(body: ChangePasswordRequest, request: Request):
     """修改当前登录用户的密码。"""
-    username = get_current_username(request)
+    username = get_current_user_id(request)
     if not body.new_password or len(body.new_password) < 4:
         raise HTTPException(400, "新密码至少4个字符")
     if not change_password(username, body.old_password, body.new_password):

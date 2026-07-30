@@ -4,6 +4,7 @@ import os
 import secrets
 import threading
 import time
+import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -152,8 +153,11 @@ def refresh_static_token() -> str:
     return new_token
 
 
-def get_current_username(request: Request) -> str:
-    """从请求 Cookie 中解码 JWT，返回当前用户名（含会话存储检查）。"""
+def get_current_user_id(request: Request) -> str:
+    """从请求 Cookie 中解码 JWT，返回当前用户 ID（JWT sub 字段）。
+
+    v3.0: JWT sub 存储的是 user_id（非 username），函数名准确反映语义。
+    """
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise HTTPException(401, "未登录")
@@ -166,13 +170,27 @@ def get_current_username(request: Request) -> str:
     return payload.get("sub", "")
 
 
+def get_current_username(request: Request) -> str:
+    """⚠️ DEPRECATED: 实际返回 user_id 而非 username，函数名具有误导性。
+
+    请使用 get_current_user_id() 获取用户 ID。
+    将在后续版本移除。
+    """
+    warnings.warn(
+        "get_current_username() is deprecated — returns user_id, not username. Use get_current_user_id() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return get_current_user_id(request)
+
+
 def require_admin(request: Request) -> str:
     """[DEPRECATED] 使用 @require_role('admin') 装饰器替代。
 
     保留为向后兼容 wrapper：内部委托 @require_role，额外记录废弃警告。
     """
 
-    username = get_current_username(request)
+    username = get_current_user_id(request)
     if username != SUPERUSER_USERNAME:
         # v3.0: 拒绝时写审计日志
         try:
@@ -355,10 +373,10 @@ def login(
 def auth_me(request: Request):
     """返回当前登录用户的身份信息（用户名 + 角色），供前端权限渲染用。
 
-    get_current_username() 返回 JWT sub (user_id)，需通过 id 查 users 表获取
+    get_current_user_id() 返回 JWT sub (user_id)，需通过 id 查 users 表获取
     实际 username 和 role，而非直接传给 get_user_role()（该函数期望 username）。
     """
-    user_id = get_current_username(request)
+    user_id = get_current_user_id(request)
 
     if user_id:
         try:
@@ -376,9 +394,9 @@ def auth_me(request: Request):
             pass
 
     # 降级兜底：兼容旧版 JWT (sub=username) 或 DB 查询失败场景
-    username = get_current_username(request)
-    role = get_user_role(username)
-    return {"username": username or "", "role": role or ""}
+    fallback_id = get_current_user_id(request)
+    role = get_user_role(fallback_id) if fallback_id else ""
+    return {"username": "", "role": role or ""}
 
 
 @router.post("/api/logout")

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
 
-from ..auth import get_current_username
+from ..auth import get_current_user_id
 
 _COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 
@@ -62,7 +62,7 @@ def _get_user_id(username: str, db: Database) -> Optional[int]:
 @router.post("/api/favorites")
 def add_favorite(
     data: FavoriteCreate,
-    username: str = Depends(get_current_username),
+    username: str = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """收藏标准记录：仅创建收藏关系，不触发下载。
@@ -125,7 +125,7 @@ def add_favorite(
 @router.get("/api/favorites/{record_id}/status")
 def get_favorite_status(
     record_id: int,
-    username: str = Depends(get_current_username),
+    username: str = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """查询指定记录的收藏状态。"""
@@ -170,7 +170,7 @@ def get_favorite_status(
 @router.delete("/api/favorites/{record_id}")
 def remove_favorite(
     record_id: int,
-    username: str = Depends(get_current_username),
+    username: str = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """取消收藏：按状态分级处理。"""
@@ -210,7 +210,7 @@ def remove_favorite(
 
 @router.get("/api/favorites")
 def list_favorites(
-    username: str = Depends(get_current_username),
+    username: str = Depends(get_current_user_id),
     status: Optional[str] = None,
     db: Database = Depends(get_db),
 ):
@@ -247,7 +247,7 @@ def list_favorites(
 @router.post("/api/favorites/batch-status")
 def batch_get_favorite_status(
     req: BatchStatusRequest,
-    username: str = Depends(get_current_username),
+    username: str = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """批量查询多条记录的收藏状态，单次 SQL 替代 N+1 问题。"""

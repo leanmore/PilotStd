@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from docker.api.user_preference import router
-from docker.auth import get_current_username
+from docker.auth import get_current_user_id
 
 
 def _build_client():
@@ -18,8 +18,8 @@ def _build_client():
 
 
 def _mock_auth(app, username="testuser"):
-    """注入 get_current_username 依赖覆盖，模拟已登录用户。"""
-    app.dependency_overrides[get_current_username] = lambda: username
+    """注入 get_current_user_id 依赖覆盖，模拟已登录用户。"""
+    app.dependency_overrides[get_current_user_id] = lambda: username
 
 
 class TestUserPreferenceAPI:
@@ -109,8 +109,8 @@ class TestUserPreferenceAPI:
         assert r.status_code == 404
 
     def test_unauthenticated_returns_401(self):
-        """无认证时端点返回 401（FastAPI dependency override 未设时，get_current_username 抛出 401）。"""
+        """无认证时端点返回 401（FastAPI dependency override 未设时，get_current_user_id 抛出 401）。"""
         client = _build_client()
-        # 不设置 dependency_overrides，让真实的 get_current_username 执行
+        # 不设置 dependency_overrides，让真实的 get_current_user_id 执行
         r = client.get("/api/user-preference")
         assert r.status_code == 401

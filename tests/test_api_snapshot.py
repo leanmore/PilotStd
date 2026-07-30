@@ -138,7 +138,7 @@ def client_and_db(tmp_path_factory):
     app.include_router(query_router)
 
     app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-    # 注意：不再 override get_current_username / require_admin
+    # 注意：不再 override get_current_user_id / require_admin
     # AuthMiddleware 真实执行鉴权，受保护端点必须带 cookie
 
     client = TestClient(app)

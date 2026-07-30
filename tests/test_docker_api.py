@@ -55,12 +55,12 @@ class TestAPIEndpoints(unittest.TestCase):
         cls.client = TestClient(app)
 
     def setUp(self):
-        """注入认证覆盖，避免 401。必须同时覆盖 require_admin 和 get_current_username。"""
-        from docker.auth import get_current_username
+        """注入认证覆盖，避免 401。必须同时覆盖 require_admin 和 get_current_user_id。"""
+        from docker.auth import get_current_user_id
 
         self.client.app.dependency_overrides.clear()
         self.client.app.dependency_overrides[require_admin] = lambda: "admin"
-        self.client.app.dependency_overrides[get_current_username] = lambda: "admin"
+        self.client.app.dependency_overrides[get_current_user_id] = lambda: "admin"
 
     def tearDown(self):
         """清除 dependency_overrides，防止测试间污染。"""
@@ -520,7 +520,7 @@ class TestAPIEndpoints(unittest.TestCase):
         r = self.client.delete("/api/users/99")
         self.assertEqual(r.status_code, 400)
 
-    @patch("docker.api.users.get_current_username")
+    @patch("docker.api.users.get_current_user_id")
     @patch("docker.api.users.change_password")
     def test_change_password_returns_ok(self, mock_change, mock_user):
         """PUT /api/users/password 修改密码成功返回 ok。"""
@@ -533,7 +533,7 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
-    @patch("docker.api.users.get_current_username")
+    @patch("docker.api.users.get_current_user_id")
     def test_change_password_short_returns_400(self, mock_user):
         """新密码不足 4 个字符返回 400。"""
         mock_user.return_value = "admin"
