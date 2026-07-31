@@ -91,3 +91,7 @@ exclude_lines = [
     "if 0:",
     "if False:",
 ]
+
+[tool.coverage.run]
+# GUI 多进程覆盖率收集：Qt Worker 子进程需 concurrency=multiprocessing
+concurrency = ["multiprocessing"]

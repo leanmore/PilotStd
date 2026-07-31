@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest pytest-xdist
+          pip install pytest pytest-xdist pytest-cov
           pip install -e .
 
       - name: Forbid production imports from test modules
@@ -60,6 +60,7 @@ jobs:
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/ -q --tb=short -n auto \
+            --cov=pilotstd --cov-fail-under=45 \
             --ignore=tests/gui/ \
             --ignore=tests/test_regression_architecture.py \
             --ignore-glob="*test_ui*.py" \
@@ -318,6 +319,7 @@ jobs:
         shell: pwsh
         env:
           SUPERUSER: superadmin
+          PILOTSTD_GUI_TEST: "1"
         run: >
           python -m pytest tests/gui/ tests/test_regression_architecture.py
           -v --tb=short

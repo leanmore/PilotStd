@@ -30,6 +30,12 @@ import responses
 # 全局测试模式 — 禁止所有弹窗
 os.environ["PILOTSTD_TEST_MODE"] = "1"
 
+# 多进程覆盖率收集：GUI Worker 子进程需在 fork 后初始化 coverage
+if os.environ.get("PILOTSTD_GUI_TEST") == "1":
+    import coverage
+
+    coverage.process_startup()
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
