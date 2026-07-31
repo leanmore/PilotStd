@@ -186,3 +186,19 @@ Memory 最后更新时间检查：CI pre-push hook 检查 `.claude/memory.md` �
 验收标准须包含 N×N 交叉验证矩阵，确保每个工具的豁免仅作用于预期目标，不产生副作用。
 
 > 📌 **来源**：CI-FIX-20260725-006 初版 Vulture+mypy 合并表述导致执行偏差，本规范为该事件的治理沉淀。
+
+## 8. 能力矩阵同步规则（强制）
+
+当本次修改涉及以下任一情形时，**必须在 git commit 之前**执行能力矩阵重新生成：
+- 新增、修改或删除 ADR（`docs/adr/*.md`）
+- 修改架构相关代码（`pilotstd/core/`、`pilotstd/query/engine/`、`docker/api/`）
+- 修改 `docs/` 目录下任何治理文档
+- `docs/governance/capabilities_registry.md` 本身被删除或意外丢失
+
+执行命令：
+```bash
+python scripts/generate_capabilities.py
+```
+
+并将生成的 `docs/governance/capabilities_registry.md` 与本次变更一并纳入同一 commit。
+若未同步更新导致 CI 门禁 G-032 失败，视为提交不完整，需立即补跑上述命令并 amend commit。

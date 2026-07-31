@@ -60,9 +60,23 @@ jobs:
             || true
 
       - name: Run Trinity Gate (--deep + --docs)
+        id: trinity_gate
         run: bash scripts/check_all.sh --deep --docs
         env:
           CI: "true"
+
+      - name: G-032 Failure Guidance
+        if: failure() && steps.trinity_gate.outcome == 'failure'
+        run: |
+          echo "::error::❌ G-032 FAILED: capabilities_registry.md is out of sync with codebase."
+          echo ""
+          echo "🔧 FIX: Run the following command locally and amend your commit:"
+          echo "  python scripts/generate_capabilities.py"
+          echo "  git add docs/governance/capabilities_registry.md"
+          echo "  git commit --amend --no-edit"
+          echo ""
+          echo "💡 This check ensures the capability matrix always reflects current architecture."
+          exit 1
 
       - name: Upload generated docs as artifact
         if: always()
