@@ -1,4 +1,6 @@
 # pilotstd/wechat_ip/browser.py
+# pragma: no cover — 需浏览器环境，暂不纳入单元测试覆盖率考核
+# 详见 docs/testing/known-issues.md
 """企业微信可信 IP 更新——浏览器自动化。
 
 优先使用 CloakBrowser（源码级反指纹），不可用时回退 Playwright。

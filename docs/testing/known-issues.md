@@ -46,6 +46,19 @@
 | `stress_winui.py` | 由 stress_runner.py 显式调用 |
 | `gui/` | GUI 测试需 Qt 环境，CI 中由独立 job 运行 |
 
+### 3. pilotstd/wechat_ip/ — 暂不纳入单元测试覆盖率考核
+
+| 属性 | 值 |
+|------|-----|
+| 状态 | 已豁免 |
+| 版本 | v1.0 |
+| 创建日期 | 2026-07-31 |
+| 关联 | `pilotstd/wechat_ip/browser.py`、`scheduler.py`、`cookie_mgr.py`、`detector.py` |
+
+- **原因**：核心逻辑依赖 Playwright 浏览器自动化（模拟登录企微后台），需真实浏览器环境，Mock CDP 协议栈投入产出比极低
+- **当前保障**：`docker/app.py` 中注册为生产 API 路由，可通过集成测试验证；故障影响局限于"企业微信 IP 白名单更新失败"，属于可容忍的边缘功能降级
+- **后续计划**：评估 Playwright E2E 容器化测试替代方案
+
 ## 三、门禁联动
 
 当以下文件发生变更时，需确认关联的已知问题是否有进展或需更新：
@@ -62,3 +75,4 @@
 |------|------|---------|
 | v1.0 | 2026-07-14 | 初始版本，记录 njbz365 match_status 和 StdGovAdapter e2e 两个已知问题 |
 | v1.1 | 2026-07-14 | njbz365 适配器 match_status 已修复（`_search_candidates` 自动解析 search_term），移除 xfail |
+| v1.2 | 2026-07-31 | 新增 wechat_ip 单元测试豁免（P2-2 处置审批），浏览器自动化模块暂不纳入覆盖率考核 |
