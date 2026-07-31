@@ -99,8 +99,14 @@ pip install -r requirements-dev.txt
 # 运行后端全量测试（含 SQLite 临时数据库隔离）
 python -m pytest tests/ -k "not gui"
 
-# 运行前端测试
+# 运行前端单元测试
 cd web && npx vitest run
+
+# 运行前端 E2E 测试（Playwright，后端用 docker/app.py，不依赖 PyQt6）
+# 终端 1：启动 API 服务
+uvicorn docker.app:app --host 0.0.0.0 --port 9028
+# 终端 2：运行 E2E
+cd web && npx playwright test e2e/
 
 # 相对导入有效性检查
 python scripts/fix_relative_imports.py

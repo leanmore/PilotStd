@@ -2,6 +2,16 @@
 
 ## Development Guidelines
 
+### E2E 测试后端入口
+
+前端 E2E 测试（Playwright）的后端使用 Docker 生产级 API 入口，**不依赖 PyQt6**：
+
+- **入口文件**：[docker/app.py](docker/app.py) — FastAPI 应用，零 GUI 依赖
+- **启动命令**：`uvicorn docker.app:app --host 0.0.0.0 --port 9028`
+- **依赖安装**：`pip install -r docker/requirements-docker.txt`
+
+禁止使用 `python main.py` 作为 E2E 后端——`main.py` 是 GUI 入口，依赖 PyQt6，无法在 Linux CI 环境启动。
+
 ### Code Organization
 - **Production code** lives under `pilotstd/`. It must NOT import any module from `tests/` or any file named `*mock*.py`, `*test*.py`, `*fake*.py` within `pilotstd/`.
 - **Test code** lives under `tests/`. Test helpers (mocks, fixtures) must be placed in `tests/` and never imported by production code.

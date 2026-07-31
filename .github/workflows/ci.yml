@@ -263,6 +263,7 @@ jobs:
         env:
           SUPERUSER: superadmin
         run: |
+          # 使用生产级 API 入口，不依赖 PyQt6（禁止改回 python main.py）
           uvicorn docker.app:app --host 0.0.0.0 --port 9028 &
           # 等待后端就绪
           for i in $(seq 1 30); do
