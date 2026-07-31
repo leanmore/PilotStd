@@ -239,7 +239,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r docker/requirements-docker.txt
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -263,7 +263,7 @@ jobs:
         env:
           SUPERUSER: superadmin
         run: |
-          python main.py &
+          uvicorn docker.app:app --host 0.0.0.0 --port 9028 &
           # 等待后端就绪
           for i in $(seq 1 30); do
             if curl -s http://localhost:9028/api/health > /dev/null 2>&1; then
