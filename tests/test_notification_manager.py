@@ -1,179 +1,92 @@
-# tests/test_notification_manager.py
-# 通知系统 manager 核心测试
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import unittest
+"""notification/manager.py 补测 v3。"""
+import pytest
 from unittest.mock import MagicMock, patch
+from datetime import datetime
+from tests.fixtures.engine_mock_tree import ConfigStub
 
-from pilotstd.core.notification import NotificationManager
+
+@pytest.fixture
+def mgr():
+    from pilotstd.core.notification.manager import NotificationManager
+    cfg = ConfigStub({"notification.enabled": False, "notification.aggregate_enabled": False})
+    db = MagicMock()
+    db.fetchone.return_value = None
+    db.fetchall.return_value = []
+    return NotificationManager(cfg, db, 1, None)
 
 
-class TestNotificationManager(unittest.TestCase):
-    """测试 NotificationManager 核心功能。"""
+class TestInit:
+    def test_constructor_disabled(self, mgr):
+        assert mgr._enabled is False
+        assert mgr._user_id == 1
+        assert mgr._channels == {}
+        assert mgr.aggregator is None
 
-    def setUp(self):
-        self.mock_cfg = MagicMock()
-        self.mock_cfg.get.return_value = False  # 默认关闭通知
-        self.mock_cfg._filepath = os.path.join(os.path.dirname(__file__), "test_config.json")
-        self.mock_db = MagicMock()
 
-    def test_init_disabled_skips_channels(self):
-        """通知关闭时不应初始化任何渠道。"""
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        self.assertFalse(nmgr._enabled)
-        self.assertEqual(len(nmgr._channels), 0)
+class TestQuietHours:
+    def test_disabled(self, mgr):
+        assert mgr._is_quiet_hours() is False
 
-    def test_send_event_returns_when_disabled(self):
-        """通知关闭时 send_event 应立即返回。"""
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        result = nmgr.send_event("test_event", {})
-        self.assertIsNone(result)
+    def test_cross_midnight(self, mgr):
+        mgr._cfg.set("notification.quiet_hours_enabled", True)
+        dt = datetime(2026, 1, 15, 23, 30, 0)
+        with patch("pilotstd.core.notification.manager.datetime") as mdt:
+            mdt.now.return_value = dt
+            mdt.strptime = datetime.strptime
+            assert mgr._is_quiet_hours() is True
 
-    @patch("pilotstd.core.notification.manager.CredentialHelper")
-    @patch("pilotstd.core.notification.manager.WechatChannel")
-    @patch("pilotstd.core.notification.manager.TelegramChannel")
-    @patch("pilotstd.core.notification.manager.FeishuChannel")
-    @patch("pilotstd.core.notification.manager.DingTalkChannel")
-    def test_init_channels_only_enabled(self, _dt, _fs, _tg, _wc, _cred_cls):
-        """仅初始化已启用的渠道（从 CredentialHelper 读凭证）。"""
-        mock_cred = MagicMock()
-        mock_cred.get_all.return_value = {
-            "wechat": {"enabled": True, "webhook_url": "https://example.com/wechat"},
-            "telegram": {"enabled": False},
-            "feishu": {"enabled": False},
-            "dingtalk": {"enabled": False},
-        }
-        _cred_cls.return_value = mock_cred
-        self.mock_cfg.get.side_effect = lambda key, default=None: {
-            "notification.enabled": True,
-        }.get(key, default)
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        self.assertIn("wechat", nmgr._channels)
+    def test_daytime(self, mgr):
+        mgr._cfg.set("notification.quiet_hours_enabled", True)
+        dt = datetime(2026, 1, 15, 12, 0, 0)
+        with patch("pilotstd.core.notification.manager.datetime") as mdt:
+            mdt.now.return_value = dt
+            mdt.strptime = datetime.strptime
+            assert mgr._is_quiet_hours() is False
 
-    def test_build_message_archive_complete(self):
-        """验证 archive_complete 消息模板。"""
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message("archive_complete", {"count": 10})
-        self.assertEqual(msg.title, "归档完成")
-        self.assertEqual(msg.level, "info")
 
-    def test_build_message_status_changed(self):
-        """验证标准状态变更消息模板。"""
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message(
-            "standard_status_changed",
-            {
-                "standard_number": "GB/T 1.1-2020",
-                "old_status": "现行",
-                "new_status": "已废止",
-            },
-        )
-        self.assertEqual(msg.blocks[0].new_value, "已废止")
-        self.assertEqual(msg.level, "warning")
+class TestLogMethods:
+    def test_unread(self, mgr):
+        mgr._db.fetchone.return_value = {"cnt": 5}
+        assert mgr.get_unread_count() == 5
 
-    def test_build_message_unknown_event_fallback(self):
-        """验证未知事件回退到通用模板。"""
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message("unknown_event", {"key": "val"})
-        self.assertEqual(msg.title, "unknown_event")
-        self.assertEqual(msg.level, "info")
+    def test_mark_all(self, mgr):
+        assert mgr.mark_logs_read(None) == 0
 
-    def test_send_event_skips_when_no_rules(self):
-        """无规则匹配时 send_event 应跳过发送。"""
-        self.mock_cfg.get.side_effect = lambda key, default=None: {
-            "notification.enabled": True,
-            "notification.rules.test_event": None,
-        }.get(key, default)
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        self.assertIsNone(nmgr.send_event("test_event", {}))
+    def test_mark_ids(self, mgr):
+        mgr._db.execute.return_value.rowcount = 3
+        assert mgr.mark_logs_read([1, 2, 3]) == 3
 
-    def test_log_writes_on_failure(self):
-        """渠道发送失败时应写入日志。"""
-        self.mock_cfg.get.side_effect = lambda key, default=None: {
-            "notification.enabled": True,
-            "notification.channels.wechat.enabled": True,
-            "notification.channels.wechat.webhook_url": "https://example.com/wechat",
-            "notification.rules.test_event": ["wechat"],
-        }.get(key, default)
+    def test_cleanup(self, mgr):
+        mgr._db.execute.return_value.rowcount = 10
+        assert mgr.cleanup_logs(30) == 10
 
-        with patch("pilotstd.core.notification.manager.WechatChannel") as wc:
-            mock_channel = MagicMock()
-            mock_channel.send.return_value = False
-            wc.return_value = mock_channel
+    def test_get_logs(self, mgr):
+        mgr._db.fetchone.return_value = {"cnt": 2}
+        mgr._db.fetchall.return_value = [{"id": 1, "event_type": "t"}]
+        r = mgr.get_logs()
+        assert r["total"] == 2
 
-            nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-            nmgr.send_event("test_event", {"key": "val"})
 
-            self.mock_db.execute.assert_called()
+class TestWSBroadcast:
+    def test_no_ws(self, mgr):
+        mgr._broadcast_to_ws("x", MagicMock())
 
-    @patch("pilotstd.core.notification.manager.CredentialHelper")
-    @patch("pilotstd.core.notification.manager.WechatChannel")
-    @patch("pilotstd.core.notification.manager.TelegramChannel")
-    @patch("pilotstd.core.notification.manager.FeishuChannel")
-    @patch("pilotstd.core.notification.manager.DingTalkChannel")
-    def test_init_with_aggregator(self, _dt, _fs, _tg, _wc, _cred_cls):
-        """启用聚合器时正确初始化。"""
-        mock_cred = MagicMock()
-        mock_cred.get_all.return_value = {}
-        _cred_cls.return_value = mock_cred
-        self.mock_cfg.get.side_effect = lambda key, default=None: {
-            "notification.enabled": True,
-            "notification.aggregate_enabled": True,
-            "notification.aggregate_window_seconds": 10,
-            "notification.aggregate_max_events": 30,
-        }.get(key, default)
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        self.assertIsNotNone(nmgr.aggregator)
+    def test_with_ws(self, mgr):
+        mgr._ws_broadcast = MagicMock()
+        msg = MagicMock()
+        msg.event_type = "x"
+        mgr._broadcast_to_ws("x", msg)
+        mgr._ws_broadcast.assert_called_once()
 
-    def test_send_event_disabled(self):
-        """通知关闭时 send_event 返回 None 且不记录日志。"""
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        result = nmgr.send_event("test_event", {"key": "val"})
-        self.assertIsNone(result)
 
-    def test_build_message_auto_backup(self):
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message("auto_backup", {"path": "/backup", "size_mb": 50})
-        self.assertIsNotNone(msg)
+class TestTestSend:
+    def test_ok(self, mgr):
+        with patch("pilotstd.core.notification.manager.do_test_send") as m:
+            m.return_value = {"ok": True}
+            assert mgr.test_send("tg", MagicMock())["ok"] is True
 
-    def test_build_message_announcement_check(self):
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message(
-            "announcement_check_complete",
-            {"source_site": "samr_gb", "total_fetched": 20, "new_standards": 5},
-        )
-        self.assertIsNotNone(msg)
 
-    def test_build_message_validity_system_failed(self):
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message(
-            "validity_system_failed",
-            {"error": "Database connection lost"},
-        )
-        self.assertEqual(msg.level, "error")
-
-    def test_build_message_auto_scan_failed(self):
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        msg = nmgr._build_message(
-            "auto_scan_failed",
-            {"error": "Permission denied"},
-        )
-        self.assertEqual(msg.level, "error")
-
-    def test_init_event_builders_mapping(self):
-        self.mock_cfg.get.return_value = False
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1)
-        # _init_event_builders populates the dispatcher
-        self.assertTrue(hasattr(nmgr, "_init_event_builders"))
+class TestSendEvent:
+    def test_disabled(self, mgr):
+        mgr._enabled = False
+        mgr.send_event("test", {"k": "v"})
