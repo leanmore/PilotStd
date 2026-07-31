@@ -14,13 +14,14 @@ env/
 .ruff_cache/
 .pytest_cache/
 .vulture_cache/
-.coverage
+.coverage*
 htmlcov/
 .tox/
 
 # ===== Node / Frontend =====
 node_modules/
 web/dist/
+web/coverage/
 web/.nuxt/
 web/.output/
 .npm
