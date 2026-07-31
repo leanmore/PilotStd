@@ -80,7 +80,7 @@ min_confidence = 100
 
 [tool.coverage.report]
 # 整体门禁由 CI 分层命令控制，此处设为 0 避免冲突
-fail_under = 0
+fail_under = 55
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
