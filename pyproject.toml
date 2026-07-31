@@ -94,4 +94,6 @@ exclude_lines = [
 
 [tool.coverage.run]
 # GUI 多进程覆盖率收集：Qt Worker 子进程需 concurrency=multiprocessing
+# parallel=true 确保 xdist 多 worker 覆盖率数据正确合并
 concurrency = ["multiprocessing"]
+parallel = true
