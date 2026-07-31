@@ -48,5 +48,15 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.ts'],
     setupFiles: [resolve(__dirname, 'src/test-setup.ts')],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      thresholds: {
+        lines: 48.07,
+        branches: 32.12,
+        functions: 23.42,
+        statements: 44.11,
+      },
+    },
   },
 })
