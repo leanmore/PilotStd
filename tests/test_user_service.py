@@ -48,3 +48,52 @@ class TestUserService:
     def test_get_user_by_id_not_found(self, svc):
         svc._mgr.db.fetchone.return_value = None
         assert svc.get_user_by_id(999) is None
+
+    def test_get_preferences(self, svc):
+        svc._mgr.db.fetchall.return_value = [
+            {"preference_key": "theme", "preference_value": '"dark"'},
+            {"preference_key": "lang", "preference_value": '"zh"'},
+        ]
+        r = svc.get_preferences(1)
+        assert r["preferences"]["theme"] == "dark"
+
+    def test_get_preference_found(self, svc):
+        svc._mgr.db.fetchone.return_value = {
+            "preference_key": "theme", "preference_value": '"light"', "updated_at": "2026-01-01"
+        }
+        r = svc.get_preference(1, "theme")
+        assert r["value"] == "light"
+
+    def test_get_preference_not_found(self, svc):
+        svc._mgr.db.fetchone.return_value = None
+        r = svc.get_preference(1, "missing")
+        assert r["value"] is None
+
+    def test_save_preference(self, svc):
+        r = svc.save_preference(1, "theme", "dark")
+        assert r["ok"] is True
+
+    def test_save_preferences_batch(self, svc):
+        r = svc.save_preferences_batch(1, {"a": 1, "b": 2})
+        assert r["ok"] is True
+        assert r["count"] == 2
+
+    def test_save_preferences_batch_empty(self, svc):
+        r = svc.save_preferences_batch(1, {})
+        assert "error" in r
+
+    def test_delete_preference(self, svc):
+        r = svc.delete_preference(1, "theme")
+        assert r["ok"] is True
+
+    def test_get_user_settings(self, svc):
+        svc._mgr.db.fetchone.return_value = {"layout_data": '{"x":1}'}
+        svc._mgr.db.fetchall.return_value = [
+            {"preference_key": "k", "preference_value": '"v"'}
+        ]
+        r = svc.get_user_settings(1)
+        assert r["layout"] == '{"x":1}'
+
+    def test_save_user_settings(self, svc):
+        r = svc.save_user_settings(1, {"layout": '{"y":2}', "preferences": {"k": "v"}})
+        assert r["ok"] is True

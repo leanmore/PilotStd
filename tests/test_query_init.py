@@ -38,3 +38,15 @@ class TestLazyLoader:
         assert q.QueryResult is not None
         assert q.QueryEngine is not None
         assert q.SiteRotator is not None
+
+    def test_get_std_gov_adapter(self):
+        from pilotstd.query import _get_std_gov_adapter
+        assert _get_std_gov_adapter().__name__ == "StdGovAdapter"
+
+    def test_get_mee_adapter(self):
+        from pilotstd.query import _get_mee_adapter
+        assert _get_mee_adapter().__name__ == "MEEAdapter"
+
+    def test_get_energy_adapter(self):
+        from pilotstd.query import _get_energy_adapter
+        assert _get_energy_adapter().__name__ == "EnergyAdapter"
