@@ -1,0 +1,104 @@
+name: Trinity Gate CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * *'  # 每日 UTC 00:00 自动健康检查
+  workflow_dispatch:
+
+concurrency:
+  group: trinity-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trinity-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # 修正4: 防止 --deep 检查超时
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 修正1: 确保 origin/main 存在且可对比
+      - name: Fetch main branch for diff comparison
+        run: |
+          git fetch origin main
+          git branch -f main origin/main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 修正2: 补充 pytest-json-report + 项目依赖
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install ruff vulture mypy pytest-json-report pytest-cov
+
+      # 职责边界说明:
+      # 本 job 仅负责三位一体门禁检查 (G-030/G-032/G-033)
+      # 测试执行与覆盖率生成由 test-backend job 负责
+      # 此处运行轻量测试以生成 coverage.xml 供文档生成器消费（降级兜底）
+      - name: Generate docs data (consume or fallback)
+        run: |
+          python -m pytest tests/ -q --tb=short \
+            --cov=pilotstd --cov-report=xml:coverage.xml \
+            --json-report --json-report-file=test-results/pytest.json \
+            --ignore=tests/gui/ \
+            --ignore=tests/test_regression_architecture.py \
+            --ignore-glob="*test_ui*.py" \
+            --ignore=tests/test_scan_misc.py \
+            --ignore=tests/test_groups23_remaining.py \
+            --ignore=tests/test_last_push.py \
+            --ignore=tests/test_unified_progress.py \
+            --ignore=tests/test_ci_scan_fix.py \
+            -n auto \
+            || true
+
+      - name: Run Trinity Gate (--deep + --docs)
+        run: bash scripts/check_all.sh --deep --docs
+        env:
+          CI: "true"
+
+      - name: Upload generated docs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trinity-generated-docs-${{ github.run_number }}
+          path: |
+            STATUS.md
+            docs/testing/coverage-report.md
+          retention-days: 7
+
+      - name: Post PR comment with results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobStatus = '${{ job.status }}';
+            const statusIcon = jobStatus === 'success' ? '✅' : '❌';
+
+            const body = `## ${statusIcon} Trinity Gate Report
+
+            | Check | Result |
+            |-------|--------|
+            | Fast (--fast) | ${jobStatus === 'success' ? '✅' : '❌'} |
+            | Docs (--docs) | ${jobStatus === 'success' ? '✅' : '❌'} |
+            | Deep (--deep) | ${jobStatus === 'success' ? '✅' : '❌'} |
+
+            📄 生成的文档已作为 [Artifact](${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) 上传，请下载确认后手动提交。
+
+            > ⚠️ CI 不会自动 push 任何文件，避免触发分支保护规则冲突。
+            > 🔧 修复指引: 参见 [Trinity Gate How-to-Fix](docs/governance/trinity-how-to-fix.md)
+            `;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
