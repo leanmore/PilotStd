@@ -106,7 +106,6 @@ class TestHandlerImports(unittest.TestCase):
     """A: handlers 目录下所有模块均可正常导入"""
 
     HANDLER_MODULES = [
-        "pilotstd.ui.core.handlers._actions",
         "pilotstd.ui.core.handlers._announce",
         "pilotstd.ui.core.handlers._archive",
         "pilotstd.ui.core.handlers._auto",
