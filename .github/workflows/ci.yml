@@ -154,6 +154,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r docker/requirements-docker.txt
+          pip install PyQt6
           pip install pytest pytest-qt pytest-cov pytest-timeout responses
           pip install -e .
 
@@ -361,16 +362,22 @@ jobs:
 
       - name: Wait for backend health
         run: |
+          BACKEND_PORT=9028
+          # 优先尝试 /api/health，若不存在则回退到 /docs
+          HEALTH_ENDPOINTS="/api/health /docs /openapi.json /"
           for i in $(seq 1 15); do
-            if curl -sf http://localhost:9028/api/health 2>/dev/null; then
-              echo "Backend is healthy"
-              exit 0
-            fi
-            echo "Waiting for backend... ($i/15)"
+            for endpoint in ${HEALTH_ENDPOINTS}; do
+              if curl -sf http://localhost:${BACKEND_PORT}${endpoint} >/dev/null 2>&1; then
+                echo "Backend is healthy on port ${BACKEND_PORT} (endpoint: ${endpoint})"
+                exit 0
+              fi
+            done
+            echo "Waiting for backend on port ${BACKEND_PORT}... ($i/15)"
             sleep 2
           done
           echo "Backend not healthy after 30s"
-          curl -v http://localhost:9028/api/health || true
+          echo "Tried endpoints: ${HEALTH_ENDPOINTS}"
+          curl -v http://localhost:${BACKEND_PORT}/ || true
           exit 1
 
       - name: Run E2E Tests
