@@ -56,6 +56,17 @@ class TestBlockRenderer:
         r = BlockRenderer().render(make_msg(blocks=[b]))
         assert "共 99 条" in r
 
+    def test_render_unknown_block_type(self):
+        """未知 Block 类型回退 str()。"""
+        from pilotstd.core.notification.blocks import NotificationBlock
+        b = NotificationBlock()
+        r = BlockRenderer().render(make_msg(blocks=[b]))
+        assert "NotificationBlock" in r
+
+    def test_render_title_empty(self):
+        r = BlockRenderer().render(make_msg(title="", body="body", blocks=[]))
+        assert r == "body"
+
 
 class TestTelegramRenderer:
     def test_render_title_bold_with_block(self):
@@ -63,14 +74,43 @@ class TestTelegramRenderer:
         r = TelegramRenderer().render(make_msg(title="Alert", blocks=[b]))
         assert "*Alert*" in r
 
+    def test_render_title_empty(self):
+        r = TelegramRenderer()._render_title("")
+        assert r == ""
+
     def test_escape_special_chars(self):
         r = TelegramRenderer()
         assert r._escape("a_b") == r"a\_b"
+
+    def test_escape_empty(self):
+        r = TelegramRenderer()
+        assert r._escape("") == ""
+
+    def test_render_key_value(self):
+        b = KeyValueBlock(key="K", value="V")
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        assert "K: V" in r
+
+    def test_render_status_change(self):
+        b = StatusChangeBlock(label="L", old_value="A", new_value="B")
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        assert "L:" in r
 
     def test_render_list_number_bold(self):
         b = ListBlock(title="R", items=[{"number": "GB/T 1", "status": "现行"}])
         r = TelegramRenderer().render(make_msg(blocks=[b]))
         assert "*GB/T 1*" in r
+
+    def test_render_list_with_detail_url(self):
+        b = ListBlock(title="L", items=[{"k": "v"}], detail_url="https://t.me")
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        assert "https://t" in r  # Telegram 渲染器转义特殊字符（. → \.）
+
+    def test_bold(self):
+        assert TelegramRenderer()._bold("x") == "*x*"
+
+    def test_mono(self):
+        assert TelegramRenderer()._mono("x") == "`x`"
 
 
 class TestMarkdownRenderer:
@@ -79,10 +119,29 @@ class TestMarkdownRenderer:
         r = MarkdownRenderer().render(make_msg(title="H", blocks=[b]))
         assert "## H" in r
 
+    def test_render_title_empty(self):
+        r = MarkdownRenderer()._render_title("")
+        assert r == ""
+
+    def test_render_key_value(self):
+        b = KeyValueBlock(key="K", value="V")
+        r = MarkdownRenderer().render(make_msg(blocks=[b]))
+        assert "**K**" in r
+
+    def test_render_status_change(self):
+        b = StatusChangeBlock(label="L", old_value="A", new_value="B")
+        r = MarkdownRenderer().render(make_msg(blocks=[b]))
+        assert "**L**" in r
+
     def test_render_list_with_url(self):
         b = ListBlock(title="L", items=[{"k": "v"}], detail_url="http://x.com")
         r = MarkdownRenderer().render(make_msg(blocks=[b]))
         assert "http://x.com" in r
+
+    def test_render_list_number_bold(self):
+        b = ListBlock(title="L", items=[{"number": "GB/T 1", "name": "std"}])
+        r = MarkdownRenderer().render(make_msg(blocks=[b]))
+        assert "**GB/T 1**" in r
 
 
 class TestFeishuCardRenderer:
@@ -107,6 +166,19 @@ class TestFeishuCardRenderer:
         r = FeishuCardRenderer().render(make_msg(blocks=[b]))
         assert isinstance(r["elements"], list)
 
+    def test_render_empty_list(self):
+        b = ListBlock(title="Empty", items=[])
+        r = FeishuCardRenderer().render(make_msg(blocks=[b]))
+        assert "无数据" in str(r["elements"])
+
+    def test_render_fallback_body(self):
+        r = FeishuCardRenderer().render(make_msg(title="T", body="fallback"))
+        assert r["elements"][0]["content"] == "fallback"
+
+    def test_render_title_returns_empty(self):
+        """飞书标题在 header 中处理，_render_title 返回空。"""
+        assert FeishuCardRenderer()._render_title("Any") == ""
+
 
 class TestDesktopRenderer:
     def test_render_text_block(self):
@@ -123,3 +195,13 @@ class TestDesktopRenderer:
         b = ListBlock(title="L", items=[{"a": "1"}])
         r = DesktopRenderer().render(make_msg(blocks=[b]))
         assert "L" in r
+
+    def test_render_status_change(self):
+        b = StatusChangeBlock(label="State", old_value="A", new_value="B")
+        r = DesktopRenderer().render(make_msg(blocks=[b]))
+        assert "State" in r
+
+    def test_render_empty_list(self):
+        b = ListBlock(title="NoItems", items=[])
+        r = DesktopRenderer().render(make_msg(blocks=[b]))
+        assert "NoItems" in r

@@ -4,6 +4,7 @@ from pilotstd.core.notification.desktop_formatter import (
     MAX_BODY_LENGTH,
     MAX_TITLE_LENGTH,
     format_for_desktop,
+    render_for_desktop,
 )
 
 
@@ -154,3 +155,21 @@ class TestEdgeCases:
         result = format_for_desktop("标题", "内容")
         assert isinstance(result, tuple)
         assert len(result) == 2
+
+
+class TestRenderForDesktop:
+    def test_renders_message_via_desktop_renderer(self):
+        from pilotstd.core.notification.channel import NotificationMessage
+        from pilotstd.core.notification.blocks import TextBlock
+        msg = NotificationMessage(title="Test", body="fallback")
+        msg.blocks = [TextBlock(text="hello world")]
+        title, body = render_for_desktop(msg)
+        assert isinstance(title, str)
+        assert isinstance(body, str)
+        assert "hello world" in body
+
+    def test_renders_fallback_body(self):
+        from pilotstd.core.notification.channel import NotificationMessage
+        msg = NotificationMessage(title="Test", body="plain text")
+        title, body = render_for_desktop(msg)
+        assert "plain text" in body

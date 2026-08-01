@@ -51,6 +51,15 @@ class TestCredentialHelper(unittest.TestCase):
         result = self.helper.get_channel(1, "dingtalk")
         self.assertIsNone(result)
 
+    def test_get_channel_returns_decrypted(self):
+        """get_channel 成功解密返回凭证。"""
+        creds = {"webhook_url": "https://hook.example.com"}
+        plain = json.dumps(creds, ensure_ascii=False)
+        encrypted = self.helper._fernet.encrypt(plain.encode()).decode()
+        self.mock_db.fetchone.return_value = {"credentials": encrypted}
+        result = self.helper.get_channel(1, "feishu")
+        self.assertEqual(result, creds)
+
     def test_set_channel_encrypts_and_inserts(self):
         self.mock_db.fetchone.return_value = None
         creds = {"webhook_url": "https://new.example.com"}
@@ -72,3 +81,63 @@ class TestCredentialHelper(unittest.TestCase):
         self.mock_db.execute.assert_called_once()
         call_args = self.mock_db.execute.call_args[0]
         self.assertIn("dingtalk", call_args[1])
+
+    # ── 补充覆盖：fallback 有数据 / 解密异常 / _try_fallback_from_config ──
+
+    def test_get_all_with_fallback_data_migrates(self):
+        """fallback 返回数据时自动回迁到 DB。"""
+        self.mock_db.fetchall.return_value = []
+        fb_data = {"telegram": {"bot_token": "tok", "chat_id": "123"}}
+        with unittest.mock.patch.object(self.helper, "_try_fallback_from_config", return_value=fb_data):
+            result = self.helper.get_all(1)
+            self.assertEqual(result, fb_data)
+            self.mock_db.execute.assert_called()  # 自动迁移写入 DB
+
+    def test_get_all_decrypt_failure_skips(self):
+        """解密失败时跳过该条，不阻断整体。"""
+        self.mock_db.fetchall.return_value = [
+            {"channel": "bad", "credentials": "not-encrypted"},
+            {"channel": "good", "credentials": self.helper._fernet.encrypt(
+                json.dumps({"k": "v"}).encode()
+            ).decode()},
+        ]
+        result = self.helper.get_all(1)
+        self.assertIn("good", result)
+        self.assertNotIn("bad", result)
+
+    def test_get_channel_decrypt_failure_returns_none(self):
+        """解密失败时 get_channel 返回 None。"""
+        self.mock_db.fetchone.return_value = {
+            "credentials": "not-encrypted",
+        }
+        result = self.helper.get_channel(1, "dingtalk")
+        self.assertIsNone(result)
+
+    @unittest.mock.patch("pilotstd.core.config.ConfigManager")
+    def test_try_fallback_returns_channels(self, mock_cm):
+        """_try_fallback_from_config 从 config.json 读取旧渠道配置。"""
+        mock_cm.return_value._data = {
+            "notification": {
+                "channels": {
+                    "telegram": {"bot_token": "tok", "chat_id": "456"},
+                }
+            }
+        }
+        result = self.helper._try_fallback_from_config()
+        self.assertIsNotNone(result)
+        self.assertIn("telegram", result)
+        self.assertEqual(result["telegram"]["bot_token"], "tok")
+
+    @unittest.mock.patch("pilotstd.core.config.ConfigManager")
+    def test_try_fallback_empty_channels_returns_none(self, mock_cm):
+        """无渠道配置时返回 None。"""
+        mock_cm.return_value._data = {}
+        result = self.helper._try_fallback_from_config()
+        self.assertIsNone(result)
+
+    @unittest.mock.patch("pilotstd.core.config.ConfigManager")
+    def test_try_fallback_exception_returns_none(self, mock_cm):
+        """ConfigManager 异常时返回 None。"""
+        mock_cm.side_effect = RuntimeError("config error")
+        result = self.helper._try_fallback_from_config()
+        self.assertIsNone(result)

@@ -51,6 +51,24 @@ class TestNotificationAggregator(unittest.TestCase):
         topic = NotificationAggregator._extract_topic("例行维护", "")
         assert topic == "_例行维护"
 
+    def test_extract_topic_archive(self) -> None:
+        assert NotificationAggregator._extract_topic("归档文件", "") == "archive"
+
+    def test_extract_topic_query(self) -> None:
+        assert NotificationAggregator._extract_topic("查询结果", "") == "query"
+
+    def test_extract_topic_backup(self) -> None:
+        assert NotificationAggregator._extract_topic("备份数据", "") == "backup"
+
+    def test_extract_topic_announce(self) -> None:
+        assert NotificationAggregator._extract_topic("公告通知", "") == "announce"
+
+    def test_extract_topic_update(self) -> None:
+        assert NotificationAggregator._extract_topic("更新镜像", "") == "update"
+
+    def test_extract_topic_ip(self) -> None:
+        assert NotificationAggregator._extract_topic("IP变更", "") == "ip"
+
     # ── should_show 基础行为 ──
 
     def test_should_show_always_returns_false(self) -> None:
@@ -171,3 +189,26 @@ class TestNotificationAggregator(unittest.TestCase):
         self.agg._new.shutdown = MagicMock()  # type: ignore[method-assign]
         self.agg.shutdown()
         self.agg._new.shutdown.assert_called_once()
+
+    # ── 边界路径 ──
+
+    def test_on_new_flush_no_on_show(self) -> None:
+        """_on_show 为 None 时 _on_new_flush 直接返回。"""
+        self.agg._on_show = None
+        from pilotstd.core.notification.channel import NotificationMessage
+        msg = NotificationMessage(title="T", body="B", level="info")
+        self.agg._on_new_flush(msg, [])
+        self.agg._on_show = self._capture
+
+    @patch("pilotstd.core.config.manager.ConfigManager")
+    def test_auto_pause_enabled_default(self, mock_cm) -> None:
+        """auto_pause_enabled 属性读取配置值。"""
+        mock_cm.return_value.get.return_value = False
+        assert self.agg.auto_pause_enabled is False
+        mock_cm.return_value.get.assert_called_with("notification.auto_pause", True)
+
+    @patch("pilotstd.core.config.manager.ConfigManager")
+    def test_auto_pause_enabled_exception_fallback(self, mock_cm) -> None:
+        """ConfigManager 抛异常时 auto_pause_enabled 返回 True。"""
+        mock_cm.side_effect = RuntimeError("cfg error")
+        assert self.agg.auto_pause_enabled is True

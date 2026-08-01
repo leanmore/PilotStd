@@ -1,7 +1,11 @@
 """core/notification/_format_utils.py 补测。"""
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import pytest
-from pilotstd.core.notification._format_utils import format_standard_status_changed_aggregated
+from pilotstd.core.notification._format_utils import (
+    format_standard_status_changed_aggregated,
+    do_test_send,
+)
+from tests.fixtures.engine_mock_tree import ChannelStub, ConfigStub
 
 
 def _make_entry(num, new_status="现行", old_status="现行"):
@@ -36,15 +40,289 @@ class TestFormatAggregated:
         result = format_standard_status_changed_aggregated("", entries, 15)
         assert "等 5 项" in result
 
-        msg.standard_name = "Y"
+    def test_missing_name_and_changed_at(self):
+        # 无 standard_name 且无 changed_at 的边界路径
+        msg = MagicMock()
+        msg.standard_number = "X"
+        msg.standard_name = ""
         msg.new_status = "现行"
         msg.old_status = "现行"
         msg.changed_at = ""
         entries = [(msg, "ch", "ts")]
         result = format_standard_status_changed_aggregated("", entries, 1)
         assert "X" in result
+        # 名称部分不出现"（"（无名称时不追加括号内容）
+        assert "（" not in result
+        # 无 changed_at，不追加时间分隔符
+        assert "，" not in result
 
     def test_expired_in_overflow_range(self):
         entries = [_make_entry(i, new_status="废止" if i >= 10 else "现行") for i in range(12)]
         result = format_standard_status_changed_aggregated("", entries, 12)
         assert "废止" in result
+
+
+# ── do_test_send 全覆盖 ──
+
+def _make_mgr(channels=None, cfg_data=None):
+    """构建模拟 NotificationManager，含 _channels 和 _cfg。"""
+    mgr = MagicMock()
+    mgr._channels = channels or {}
+    mgr._cfg = ConfigStub(cfg_data or {})
+    return mgr
+
+
+class TestDoTestSendChannelExists:
+    """渠道已在 _channels 中存在时的路径。"""
+
+    def test_channel_exists_send_ok(self):
+        ch = ChannelStub("telegram", should_succeed=True)
+        mgr = _make_mgr(channels={"telegram": ch})
+        result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": True, "error": ""}
+        assert len(ch.sent) == 1
+
+    def test_channel_exists_send_fails(self):
+        ch = ChannelStub("telegram", should_succeed=False)
+        mgr = _make_mgr(channels={"telegram": ch})
+        result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": False, "error": "发送失败"}
+
+    def test_channel_exists_send_raises(self):
+        ch = MagicMock()
+        ch.send.side_effect = RuntimeError("boom")
+        mgr = _make_mgr(channels={"telegram": ch})
+        result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": False, "error": "boom"}
+
+
+class TestDoTestSendUnknownChannel:
+    """未知渠道路径。"""
+
+    def test_unknown_channel(self):
+        mgr = _make_mgr()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES", {}
+        ):
+            result = do_test_send(mgr, "no_such", "hello")
+        assert result["ok"] is False
+        assert "未知渠道" in result["error"]
+
+
+class TestDoTestSendTelegram:
+    """Telegram 渠道初始化路径。"""
+
+    def test_missing_token(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": False, "error": "缺少 bot_token"}
+
+    def test_missing_chat_id(self):
+        mgr = _make_mgr(cfg_data={
+            "notification.channels.telegram.bot_token": "tok",
+        })
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": False, "error": "缺少 chat_id"}
+
+    def test_success_with_override(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "telegram", "hello",
+                params={"bot_token": "t", "chat_id": "c"},
+            )
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("t", "c")
+
+    def test_success_with_config_fallback(self):
+        mgr = _make_mgr(cfg_data={
+            "notification.channels.telegram.bot_token": "cfg_tok",
+            "notification.channels.telegram.chat_id": "cfg_cid",
+        })
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("cfg_tok", "cfg_cid")
+
+
+class TestDoTestSendDingtalk:
+    """钉钉渠道初始化路径。"""
+
+    def test_missing_url(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"dingtalk": mock_cls},
+        ):
+            result = do_test_send(mgr, "dingtalk", "hello")
+        assert result == {"ok": False, "error": "缺少 webhook_url（钉钉群机器人必填）"}
+
+    def test_success_with_override(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"dingtalk": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "dingtalk", "hello",
+                params={"webhook_url": "http://x", "secret": "s"},
+            )
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("http://x", "s")
+
+
+class TestDoTestSendFeishu:
+    """飞书渠道初始化路径。"""
+
+    def test_missing_url(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"feishu": mock_cls},
+        ):
+            result = do_test_send(mgr, "feishu", "hello")
+        assert result == {"ok": False, "error": "缺少 webhook_url（飞书机器人必填）"}
+
+    def test_success(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"feishu": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "feishu", "hello",
+                params={"webhook_url": "http://fs"},
+            )
+        assert result == {"ok": True, "error": ""}
+
+
+class TestDoTestSendWechat:
+    """企业微信渠道初始化路径 — 应用消息 vs 群机器人。"""
+
+    def test_app_message_mode(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"wechat": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "wechat", "hello",
+                params={"corpid": "c1", "agentid": "a1", "corpsecret": "s1"},
+            )
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("c1", "a1", "s1")
+
+    def test_webhook_mode(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"wechat": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "wechat", "hello",
+                params={"webhook_url": "http://wx"},
+            )
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("http://wx")
+
+    def test_missing_both_modes(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"wechat": mock_cls},
+        ):
+            result = do_test_send(mgr, "wechat", "hello")
+        assert result["ok"] is False
+        assert "缺少" in result["error"]
+
+
+class TestDoTestSendGeneric:
+    """未知渠道类型走通用 webhook 路径。"""
+
+    def test_generic_missing_url(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"custom": mock_cls},
+        ):
+            result = do_test_send(mgr, "custom", "hello")
+        assert result["ok"] is False
+        assert "缺少" in result["error"]
+
+    def test_generic_success(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"custom": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "custom", "hello",
+                params={"webhook_url": "http://g"},
+            )
+        assert result == {"ok": True, "error": ""}
+
+
+class TestDoTestSendInitError:
+    """初始化异常路径。"""
+
+    def test_init_raises(self):
+        mgr = _make_mgr()
+        mock_cls = MagicMock(side_effect=ValueError("init fail"))
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(
+                mgr, "telegram", "hello",
+                params={"bot_token": "t", "chat_id": "c"},
+            )
+        assert result["ok"] is False
+        assert "渠道初始化失败" in result["error"]

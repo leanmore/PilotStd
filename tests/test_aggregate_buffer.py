@@ -196,3 +196,98 @@ class TestNotificationAggregator(unittest.TestCase):
         msg, _ = self.calls[0]
         self.assertEqual(msg.title, "归档完成")
         self.assertEqual(msg.aggregated_count, 1)
+
+    # ── flush 手动刷新 ──
+
+    def test_flush_sends_buffered_entries(self):
+        """flush() 立即发送缓冲中的条目。"""
+        agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=999.0,
+        )
+        agg.push(event_type="test", title="T", content="c")
+        agg.flush("test")
+        self.assertEqual(len(self.calls), 1)
+        agg.shutdown()
+
+    def test_flush_empty_buffer_noop(self):
+        """flush() 空缓冲不崩溃。"""
+        self.agg.flush("no_such_event")
+        self.assertEqual(len(self.calls), 0)
+
+    def test_flush_all_multiple_groups(self):
+        """flush_all() 刷新所有分组。"""
+        agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=999.0,
+        )
+        agg.push(event_type="a", title="A", content="1")
+        agg.push(event_type="b", title="B", content="2")
+        agg.flush_all()
+        self.assertEqual(len(self.calls), 2)
+        agg.shutdown()
+
+    # ── 注册格式化器 ──
+
+    def test_registered_formatter_used_in_send_merged(self):
+        """注册的自定义格式化器在 _send_merged 中被调用。"""
+        agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=999.0,
+            batch_size=2,
+        )
+        agg.register_formatter("test", lambda et, entries, count: f"CUSTOM:{count}")
+        agg.push(event_type="test", title="T", content="c1")
+        agg.push(event_type="test", title="T", content="c2")
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0].body, "CUSTOM:2")
+        agg.shutdown()
+
+    # ── _on_timer 窗口满路径 ──
+
+    def test_on_timer_full_window_flushes(self):
+        """_on_timer 在超过 MAX_WINDOW_SECONDS 时强制发送。"""
+        agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=0.1,
+        )
+        agg.push(event_type="test", title="T", content="c")
+        # 手动把窗口开始时间调到远超 MAX_WINDOW_SECONDS
+        agg._window_start["test"] = time.monotonic() - 301
+        agg._on_timer("test")
+        self.assertEqual(len(self.calls), 1)
+        agg.shutdown()
+
+    # ── format_summary 边界 ──
+
+    def test_format_summary_failures_truncated_gt3(self):
+        """>3 条失败时截断预览。"""
+        now = time.monotonic()
+        entries = [
+            (NotificationMessage(title="T", body=f"fail_{i}", status="failure", event_type="test"), [], now + i * 0.1)
+            for i in range(5)
+        ]
+        result = self.agg.format_summary("test", entries)
+        self.assertIn("❌ 失败：5 条", result)
+        self.assertIn("…等", result)  # 截断标记
+
+    def test_format_summary_elapsed_ms_displayed(self):
+        """单条耗时 > 0 时显示总耗时行。"""
+        now = time.monotonic()
+        entries = [
+            (NotificationMessage(title="T", body="a", status="success", event_type="test", elapsed_ms=100), [], now),
+            (NotificationMessage(title="T", body="b", status="success", event_type="test", elapsed_ms=200), [], now + 0.1),
+        ]
+        result = self.agg.format_summary("test", entries)
+        self.assertIn("总耗时", result)
+
+    def test_format_summary_neutral_truncated_gt3(self):
+        """>3 条中性条目时截断预览。"""
+        now = time.monotonic()
+        entries = [
+            (NotificationMessage(title="T", body=f"neutral_{i}", status="", event_type="test"), [], now + i * 0.1)
+            for i in range(5)
+        ]
+        result = self.agg.format_summary("test", entries)
+        self.assertIn("📋 其他：5 条", result)
+        self.assertIn("…等", result)

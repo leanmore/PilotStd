@@ -125,10 +125,79 @@ class TestCacheRepository(unittest.TestCase):
         cache = CacheRepository(self.db, active_ttl=-1, inactive_ttl=-1)
         r = QueryResult(standard_number="GB/T 4-2020", status="现行", source_site="mock")
         cache.put(r)
-        # TTL 为负值时仍能命中，因为不再按时间淘汰缓存
         result = cache.get("GB/T 4-2020", "mock")
         self.assertIsNotNone(result)
         self.assertEqual(result.standard_number, "GB/T 4-2020")
+
+    def test_get_falls_back_to_announcement(self):
+        """standard_info_cache 不命中时回退查 announcement_match。"""
+        import json
+        from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
+        self.db.execute(
+            f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",
+            ("GB/T ANNOUNCE", json.dumps({"standard_name": "来自公告", "status": "废止"}), "2026-01-01"),
+        )
+        cached = self.cache.get("GB/T ANNOUNCE", "mock")
+        self.assertIsNotNone(cached)
+        self.assertEqual(cached.standard_name, "来自公告")
+        self.assertEqual(cached.source_site, "announcement")
+
+    def test_append_status_history(self):
+        """append_status_history 追加状态变更记录到 JSON 数组。"""
+        import json
+        r = QueryResult(standard_number="GB/T SH", status="现行", source_site="mock")
+        self.cache.put(r)
+        self.cache.append_status_history("GB/T SH", "mock", {"status": "废止"})
+        row = self.db.fetchone(
+            "SELECT status_history FROM standard_info_cache WHERE standard_number=? AND source_site=?",
+            ("GB/T SH", "mock"),
+        )
+        self.assertIsNotNone(row)
+        history = json.loads(row["status_history"])
+        self.assertIsInstance(history, list)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["status"], "废止")
+
+    def test_refresh_all_sites(self):
+        """refresh 不指定 source_site 时清除所有来源的缓存。"""
+        r = QueryResult(standard_number="GB/T ALL", status="现行", source_site="mock")
+        self.cache.put(r)
+        self.cache.refresh("GB/T ALL")
+        self.assertIsNone(self.cache.get("GB/T ALL", "mock"))
+
+    def test_clear_all(self):
+        """clear_all 清空全部缓存数据。"""
+        r = QueryResult(standard_number="GB/T CLR", status="现行", source_site="mock")
+        self.cache.put(r)
+        self.cache.clear_all()
+        self.assertIsNone(self.cache.get("GB/T CLR", "mock"))
+
+    def test_delete_by_id(self):
+        """_delete 按主键删除单条记录。"""
+        r = QueryResult(standard_number="GB/T DEL", status="现行", source_site="mock")
+        self.cache.put(r)
+        row = self.db.fetchone(
+            "SELECT id FROM standard_info_cache WHERE standard_number=? AND source_site=?",
+            ("GB/T DEL", "mock"),
+        )
+        self.assertIsNotNone(row)
+        self.cache._delete(row["id"])
+        self.assertIsNone(self.cache.get("GB/T DEL", "mock"))
+
+    def test_put_update_existing(self):
+        """已存在记录时 put 执行 UPDATE 而非 INSERT。"""
+        r = QueryResult(standard_number="GB/T UPD", standard_name="原始", status="现行", source_site="mock")
+        self.cache.put(r)
+        # 再次 put 同一条，走 UPDATE 路径
+        r2 = QueryResult(standard_number="GB/T UPD", standard_name="更新后", status="废止", source_site="mock")
+        self.cache.put(r2)
+        cached = self.cache.get("GB/T UPD", "mock")
+        self.assertEqual(cached.status, "废止")
+
+    def test_append_status_history_no_row(self):
+        """无匹配标准号时 append_status_history 静默返回。"""
+        self.cache.append_status_history("不存在的标准", "mock", {"status": "废止"})
+        # 不应崩溃
 
 
 class TestQueryEngine(unittest.TestCase):
