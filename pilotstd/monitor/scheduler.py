@@ -63,16 +63,20 @@ class FileMonitorScheduler:
         """后台主循环：启动 Observer 并阻塞等待停止信号。"""
         cfg = get_config()
         watch_path = (
-            cfg.get("watch_path")
-            or os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
+            os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
+            or cfg.get("watch_path")
             or "/tmp/pilotstd-inbox"
         )
         delay = cfg.get("delay_seconds", 5)
         recursive = cfg.get("recursive", True)
 
         logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path,
-                    "db" if cfg.get("watch_path") else ("env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else "default"))
-        os.makedirs(watch_path, exist_ok=True)
+                    "env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else ("db" if cfg.get("watch_path") else "default"))
+        try:
+            os.makedirs(watch_path, exist_ok=True)
+        except OSError as e:
+            logger.error("[MONITOR] 无法创建 watch_path=%s: %s — 文件监控已禁用", watch_path, e)
+            return
 
         self.handler = StandardFileHandler(callback=self._on_file, delay_seconds=delay)
         self.observer = Observer()
