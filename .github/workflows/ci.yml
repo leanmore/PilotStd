@@ -345,6 +345,20 @@ jobs:
             sleep 1
           done
 
+      - name: Wait for port 9028 to be free
+        run: |
+          for i in $(seq 1 10); do
+            if ! ss -tlnp | grep -q ':9028 '; then
+              echo "Port 9028 is free"
+              exit 0
+            fi
+            echo "Port 9028 occupied, waiting... ($i/10)"
+            sleep 2
+          done
+          echo "Port 9028 not freed after 20s, force killing..."
+          fuser -k 9028/tcp 2>/dev/null || true
+          sleep 1
+
       - name: Run E2E Tests
         working-directory: web
         run: pnpm exec playwright test e2e/dashboard/quick-actions.spec.ts

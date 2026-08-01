@@ -273,7 +273,7 @@ class TestDoRequest(unittest.TestCase):
 
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
-    def test_successful_search(self, mock_ensure):
+    def test_successful_search(self, _mock_ensure):
         responses.add(
             responses.POST,
             "https://www.njbz365.cn/apis/std_base/web/jg_sel_standardcode",
@@ -288,7 +288,7 @@ class TestDoRequest(unittest.TestCase):
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
     @patch("time.sleep")
-    def test_token_expired_refresh(self, mock_sleep, mock_ensure):
+    def test_token_expired_refresh(self, mock_sleep, _mock_ensure):
         """token 过期 → 刷新 session 重试。"""
         # 第1次：token 过期
         responses.add(
@@ -314,7 +314,7 @@ class TestDoRequest(unittest.TestCase):
     @patch.object(_TestableSession, "_ensure_session")
     @patch.object(_TestableSession, "_refresh_csrf")
     @patch("time.sleep")
-    def test_csrf_expired_refresh(self, mock_sleep, mock_refresh_csrf, mock_ensure):
+    def test_csrf_expired_refresh(self, mock_sleep, mock_refresh_csrf, _mock_ensure):
         """CSRF 过期 → 刷新 csrf 重试。"""
         responses.add(
             responses.POST,
@@ -336,7 +336,7 @@ class TestDoRequest(unittest.TestCase):
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
     @patch("time.sleep")
-    def test_timeout_retry_then_success(self, mock_sleep, mock_ensure):
+    def test_timeout_retry_then_success(self, mock_sleep, _mock_ensure):
         """超时重试后成功。"""
         responses.add(
             responses.POST,
@@ -356,7 +356,7 @@ class TestDoRequest(unittest.TestCase):
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
     @patch("time.sleep")
-    def test_all_attempts_fail(self, mock_sleep, mock_ensure):
+    def test_all_attempts_fail(self, mock_sleep, _mock_ensure):
         """全部 3 次尝试失败 → 返回 None。"""
         for _ in range(3):
             responses.add(
@@ -370,7 +370,7 @@ class TestDoRequest(unittest.TestCase):
 
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
-    def test_non_network_exception_returns_none(self, mock_ensure):
+    def test_non_network_exception_returns_none(self, _mock_ensure):
         """非 Timeout/ConnectionError 的 RequestException → 返回 None。"""
         responses.add(
             responses.POST,
@@ -383,7 +383,7 @@ class TestDoRequest(unittest.TestCase):
 
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
-    def test_unknown_error_code_returns_none(self, mock_ensure):
+    def test_unknown_error_code_returns_none(self, _mock_ensure):
         """未知错误 code（非 0/1001/1002/1003）→ 返回 None。"""
         responses.add(
             responses.POST,
@@ -397,7 +397,7 @@ class TestDoRequest(unittest.TestCase):
 
     @responses.activate
     @patch.object(_TestableSession, "_ensure_session")
-    def test_invalid_json_response_returns_none(self, mock_ensure):
+    def test_invalid_json_response_returns_none(self, _mock_ensure):
         """响应非 JSON → ValueError → 返回 None。"""
         responses.add(
             responses.POST,

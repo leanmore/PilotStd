@@ -236,7 +236,7 @@ class TestNotificationAggregator(unittest.TestCase):
             window_seconds=999.0,
             batch_size=2,
         )
-        agg.register_formatter("test", lambda et, entries, count: f"CUSTOM:{count}")
+        agg.register_formatter("test", lambda _et, _entries, count: f"CUSTOM:{count}")
         agg.push(event_type="test", title="T", content="c1")
         agg.push(event_type="test", title="T", content="c2")
         self.assertEqual(len(self.calls), 1)

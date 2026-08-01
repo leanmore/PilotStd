@@ -14,7 +14,7 @@ export default defineConfig({
     command: 'pnpm dev --port 9028',
     port: 9028,
     timeout: 120_000,
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     stdout: 'pipe',
     stderr: 'pipe',
   },
