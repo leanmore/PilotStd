@@ -1,0 +1,1120 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0 -- D:\PilotStd\pilotstd_env\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt6 6.11.0 -- Qt runtime 6.11.0 -- Qt compiled 6.11.0
+rootdir: D:\PilotStd
+configfile: pyproject.toml
+plugins: anyio-4.13.0, locust-2.44.4, cov-7.1.0, qt-4.2.0, timeout-2.4.0, xdist-3.8.0
+collecting ... collected 635 items
+
+tests/test_docker_api.py::TestAPIEndpoints::test_add_user_duplicate_returns_409 PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_add_user_empty_username_returns_400 PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_add_user_returns_ok PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_announce_results_initially_empty PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_archive_calls_organize PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_backgrounds_not_found_returns_404 PASSED [  0%]
+tests/test_docker_api.py::TestAPIEndpoints::test_change_password_returns_ok PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_change_password_short_returns_400 PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_check_announce_returns_count PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_clean_empty_removes_dirs PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_delete_user_not_found_returns_400 PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_delete_user_returns_ok PASSED [  1%]
+tests/test_docker_api.py::TestAPIEndpoints::test_download_standards_returns_results PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_files_lists_directory PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_files_nonexistent_path_returns_404 PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_get_allowed_roots_includes_inbox_and_standards PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_get_pending_returns_items PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_get_settings_returns_all_sections PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_list_users_returns_list PASSED [  2%]
+tests/test_docker_api.py::TestAPIEndpoints::test_logs_file_not_exist_returns_note PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_logs_returns_lines PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_normalize_accepts_list_body PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_normalize_returns_results PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_put_settings_calls_update_job PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_query_results_initially_empty PASSED [  3%]
+tests/test_docker_api.py::TestAPIEndpoints::test_query_save_persists_results PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_query_standards_returns_results PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_requery_pending_returns_results PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_scan_invalid_path_returns_400 PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_scan_returns_file_list PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_stats_returns_zero_counts_when_empty PASSED [  4%]
+tests/test_docker_api.py::TestAPIEndpoints::test_system_version_returns_ok PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_compose_fails_returns_restarted_false PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_docker_sock_not_found_returns_503 PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_no_compose_returns_restarted_false PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_no_container_id_returns_500 PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_old_digest_empty_still_triggers_update PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_pull_timeout_returns_504 PASSED [  5%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_same_digest_returns_not_updated PASSED [  6%]
+tests/test_docker_api.py::TestAPIEndpoints::test_update_with_compose_succeeds PASSED [  6%]
+tests/test_docker_api.py::TestAPIEndpoints::test_upload_invalid_extension_returns_400 PASSED [  6%]
+tests/test_docker_api.py::TestAPIEndpoints::test_upload_valid_image_returns_url PASSED [  6%]
+tests/test_docker_api.py::TestAPIEndpoints::test_upload_wrong_magic_returns_400 PASSED [  6%]
+tests/test_docker_auth.py::TestAuthModule::test_get_settings_whitelisted_no_auth PASSED [  6%]
+tests/test_docker_auth.py::TestAuthModule::test_health_whitelisted_no_auth PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_login_correct_password_returns_ok_and_cookie PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_login_wrong_password_returns_401 PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_logout_clears_cookie PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_protected_no_cookie_returns_401 PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_protected_with_invalid_token_returns_401 PASSED [  7%]
+tests/test_docker_auth.py::TestAuthModule::test_protected_with_valid_cookie_returns_200 PASSED [  8%]
+tests/test_docker_auth.py::TestAuthModule::test_put_settings_unauthenticated_returns_401 PASSED [  8%]
+tests/test_docker_auth.py::TestAuthModule::test_spa_non_api_path_passes_through PASSED [  8%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_job_func_not_called_on_register PASSED [  8%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_register_job_func_overwrites_existing PASSED [  8%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_register_job_func_stores_callable PASSED [  8%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_start_scheduler_adds_enabled_jobs PASSED [  8%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_start_scheduler_no_enabled_jobs_does_nothing PASSED [  9%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_stop_scheduler_shuts_down PASSED [  9%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_update_job_adds_when_not_exists PASSED [  9%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_update_job_does_nothing_for_unknown_job PASSED [  9%]
+tests/test_docker_scheduler.py::TestSchedulerModule::test_update_job_removes_when_disabled PASSED [  9%]
+tests/test_download.py::TestDownloadModels::test_stats_accumulate PASSED [  9%]
+tests/test_download.py::TestDownloadModels::test_task_defaults PASSED    [ 10%]
+tests/test_download.py::TestSessionManager::test_create_session_sets_headers PASSED [ 10%]
+tests/test_download.py::TestSessionManager::test_default_user_agents PASSED [ 10%]
+tests/test_download.py::TestSessionManager::test_delay_respects_bounds PASSED [ 10%]
+tests/test_download.py::TestSessionManager::test_proxy_config PASSED     [ 10%]
+tests/test_download.py::TestSessionManager::test_ua_rotation PASSED      [ 10%]
+tests/test_download.py::TestDownloadEngine::test_batch_download_stats PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_content_disposition_filename_extraction PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_content_disposition_quoted_filename PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_download_failure PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_download_retry_on_network_error PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_empty_content_from_adapter PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_file_validity_minimum_size_and_pdf_header PASSED [ 11%]
+tests/test_download.py::TestDownloadEngine::test_find_adapter_exact_match PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_find_adapter_returns_none_for_unknown_site PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_no_matching_adapter PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_saved_file_naming PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_single_download_success PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_skip_adopted_standard PASSED [ 12%]
+tests/test_download.py::TestDownloadEngine::test_skip_existing_file PASSED [ 13%]
+tests/test_download_utils.py::TestParseDownloadSources::test_normal_txt_each_line_one_number PASSED [ 13%]
+tests/test_download_utils.py::TestParseDownloadSources::test_normal_csv_with_standard_number_column PASSED [ 13%]
+tests/test_download_utils.py::TestParseDownloadSources::test_boundary_empty_and_whitespace_input PASSED [ 13%]
+tests/test_download_utils.py::TestParseDownloadSources::test_exception_invalid_and_duplicate_numbers PASSED [ 13%]
+tests/test_download_utils.py::TestParseDownloadSources::test_state_mixed_valid_invalid_duplicate_counts PASSED [ 13%]
+tests/test_download_utils.py::TestLooksLikeCsv::test_detect_csv_header_with_comma PASSED [ 14%]
+tests/test_download_utils.py::TestLooksLikeCsv::test_detect_csv_header_with_tab PASSED [ 14%]
+tests/test_download_utils.py::TestLooksLikeCsv::test_detect_not_csv_plain_text PASSED [ 14%]
+tests/test_download_utils.py::TestLooksLikeCsv::test_boundary_empty_input PASSED [ 14%]
+tests/test_download_utils.py::TestLooksLikeCsv::test_detect_csv_case_insensitive PASSED [ 14%]
+tests/test_download_utils.py::TestParseCsvContent::test_extract_standard_number_column PASSED [ 14%]
+tests/test_download_utils.py::TestParseCsvContent::test_skip_empty_values_in_csv PASSED [ 14%]
+tests/test_download_utils.py::TestParseCsvContent::test_exception_malformed_csv_returns_empty PASSED [ 15%]
+tests/test_download_utils.py::TestParseCsvContent::test_exception_csv_parse_error_returns_empty PASSED [ 15%]
+tests/test_edition_detect.py::TestExtractEdition::test_chinese_edition_no_prefix PASSED [ 15%]
+tests/test_edition_detect.py::TestExtractEdition::test_chinese_number_edition PASSED [ 15%]
+tests/test_edition_detect.py::TestExtractEdition::test_english_ordinal_kept_for_english PASSED [ 15%]
+tests/test_edition_detect.py::TestExtractEdition::test_english_ordinal_to_chinese PASSED [ 15%]
+tests/test_edition_detect.py::TestExtractEdition::test_english_word_edition PASSED [ 16%]
+tests/test_edition_detect.py::TestExtractEdition::test_english_word_to_chinese PASSED [ 16%]
+tests/test_edition_detect.py::TestExtractEdition::test_no_edition_returns_empty PASSED [ 16%]
+tests/test_edition_detect.py::TestExtractEdition::test_unknown_ordinal PASSED [ 16%]
+tests/test_edition_detect.py::TestEditionSkipPattern::test_matches_chinese_edition PASSED [ 16%]
+tests/test_edition_detect.py::TestEditionSkipPattern::test_matches_english_edition PASSED [ 16%]
+tests/test_edition_detect.py::TestEditionSkipPattern::test_returns_non_empty PASSED [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_host_header_explicit PASSED [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_host_header_preserved_with_custom_client PASSED [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_pagination_warning PASSED  [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_parse_result_empty PASSED  [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_parse_result_from_fixture PASSED [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_parse_result_maps_fields PASSED [ 17%]
+tests/test_energy.py::TestEnergyAdapter::test_parse_result_partial_fields PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_query_standards_empty_keyword PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_query_standards_returns_list PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_search_candidates_network_error PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_search_candidates_no_results PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_search_candidates_non_200 PASSED [ 18%]
+tests/test_energy.py::TestEnergyAdapter::test_search_candidates_returns_list PASSED [ 19%]
+tests/test_energy.py::TestEnergyAdapter::test_year_fallback PASSED       [ 19%]
+tests/test_engine_single.py::TestStepCacheLookup::test_cache_is_none PASSED [ 19%]
+tests/test_engine_single.py::TestStepCacheLookup::test_empty_adapters PASSED [ 19%]
+tests/test_engine_single.py::TestStepCacheLookup::test_force_refresh_skips PASSED [ 19%]
+tests/test_engine_single.py::TestStepCacheLookup::test_hit_first_adapter PASSED [ 19%]
+tests/test_engine_single.py::TestStepCacheLookup::test_hit_second_adapter PASSED [ 20%]
+tests/test_engine_single.py::TestStepCacheLookup::test_miss_all_adapters PASSED [ 20%]
+tests/test_engine_single.py::TestStepCacheLookup::test_preferred_site_skips PASSED [ 20%]
+tests/test_engine_single.py::TestStepCacheLookup::test_use_cache_false_skips PASSED [ 20%]
+tests/test_engine_single.py::TestStepGetPriorityChain::test_all_cooldown_no_rotator PASSED [ 20%]
+tests/test_engine_single.py::TestStepGetPriorityChain::test_all_cooldown_with_rotator PASSED [ 20%]
+tests/test_engine_single.py::TestStepGetPriorityChain::test_normal_chain PASSED [ 20%]
+tests/test_engine_single.py::TestStepGetPriorityChain::test_normal_chain_no_rotator PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_adapter_not_in_map_skipped PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_adapters_all_fail PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_detects_adoption PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_fills_standard_number_when_empty PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_first_adapter_hits PASSED [ 21%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_hit_caches_exact_match PASSED [ 22%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_hit_non_exact_skips_cache PASSED [ 22%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_quota_all_exhausted PASSED [ 22%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_quota_is_none PASSED [ 22%]
+tests/test_engine_single.py::TestStepQueryAdapters::test_skip_exhausted_then_hit PASSED [ 22%]
+tests/test_engine_single.py::TestStepQuotaExhausted::test_different_targets PASSED [ 22%]
+tests/test_engine_single.py::TestStepQuotaExhausted::test_returns_error_result PASSED [ 22%]
+tests/test_engine_single.py::TestStepNotFound::test_returns_error_result PASSED [ 23%]
+tests/test_engine_single.py::TestStepNotFound::test_tried_list_not_affecting_result PASSED [ 23%]
+tests/test_engine_single.py::TestStepNotFound::test_tried_with_many_sites PASSED [ 23%]
+tests/test_export_utils.py::TestGenerateExportBatchTimestamp::test_normal_returns_yyyymmdd_hhmmss_format PASSED [ 23%]
+tests/test_export_utils.py::TestGenerateExportBatchTimestamp::test_normal_two_calls_in_same_batch_close_in_time PASSED [ 23%]
+tests/test_export_utils.py::TestGenerateExportBatchTimestamp::test_boundary_fixed_time_known_output PASSED [ 23%]
+tests/test_export_utils.py::TestGenerateExportBatchTimestamp::test_exception_midnight_rollover_preserves_format PASSED [ 24%]
+tests/test_export_utils.py::TestGenerateExportBatchTimestamp::test_state_consecutive_batches_unique_timestamps PASSED [ 24%]
+tests/test_export_utils.py::TestGetExportFilename::test_normal_csv_filename PASSED [ 24%]
+tests/test_export_utils.py::TestGetExportFilename::test_normal_custom_extension PASSED [ 24%]
+tests/test_export_utils.py::TestGetExportFilename::test_boundary_spaces_in_name_replaced_with_underscore PASSED [ 24%]
+tests/test_export_utils.py::TestGetExportFilename::test_exception_special_fs_characters_preserved PASSED [ 24%]
+tests/test_export_utils.py::TestGetExportFilename::test_state_consecutive_spaces_all_replaced PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_full_pipeline PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_mirror_disabled PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_mirror_skipped PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_stream_empty_parsed PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_stream_full PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_stream_no_download_when_list_empty PASSED [ 25%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_run_stream_stage_callbacks PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_stage_archive_and_fallback PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_stage_archive_no_mirror_when_disabled PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_stage_archive_skips_pending PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_stage_query_no_progress PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_auto_stage_query_with_progress PASSED [ 26%]
+tests/test_facade_auto_full.py::TestAutoPipeline::test_init_stores_all_refs PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_by_numbers PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_constructs_tasks_and_calls_engine PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_no_match_skipped PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_stream PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_stream_failed PASSED [ 27%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_stream_skipped PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_stream_with_callbacks PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_download_with_explicit_query_results PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_enqueue_download_wait PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_get_due_downloads PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_handle_expired_is_noop PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_init_stores_core PASSED [ 28%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_cached_status_update PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_failed_does_not_update PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_newer_status_update PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_no_status_change PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_skipped_does_not_update PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_post_process_download_success_updates_source_path PASSED [ 29%]
+tests/test_facade_download_full.py::TestDownloadHandler::test_remove_download_queue PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_announcement_match_connection_error PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_announcement_match_disabled_no_api_key PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_announcement_match_found PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_announcement_match_not_found PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_announcement_match_timeout PASSED [ 30%]
+tests/test_facade_query_full.py::TestQueryHandler::test_build_result_from_cache_basic PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_build_result_from_cache_empty_data PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_build_result_from_cache_fallback_fields PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_build_result_from_cache_is_adopted PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_build_result_from_cache_none_data PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_cat_label_keys PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_classify_after_query PASSED [ 31%]
+tests/test_facade_query_full.py::TestQueryHandler::test_finalize_query_basic PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_finalize_query_notification_disabled PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_finalize_query_with_pending PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_adapter_report PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_pending_items PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_query_sites PASSED [ 32%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_query_status PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_quota_info PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_requery_count PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_site_adapter PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_site_cooldown PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_queue_download PASSED [ 33%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_queue_expire PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_queue_parsed_fallback PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_queue_pending PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_queue_queried PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_get_stage_summary PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_increment_requery_count PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_init_stores_core PASSED [ 34%]
+tests/test_facade_query_full.py::TestQueryHandler::test_is_requery_exhausted PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_mark_manual_required PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_plan_batch PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_by_numbers PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_by_numbers_with_opts PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_local_cache PASSED [ 35%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_stream_delegates_to_query PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_uses_cache_when_no_site PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_uses_engine_with_site PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_via_cache_all_hit PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_via_cache_partial_hit PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_via_cache_with_result_callback PASSED [ 36%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_via_engine_calls_query_standards PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_via_engine_with_site_and_force_refresh PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_query_with_progress_callback PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_record_pending PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_report_category_breakdown PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_report_category_breakdown_with_pending PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_report_download_queue PASSED [ 37%]
+tests/test_facade_query_full.py::TestQueryHandler::test_report_query_summary PASSED [ 38%]
+tests/test_facade_query_full.py::TestQueryHandler::test_resolve_pending PASSED [ 38%]
+tests/test_facade_query_full.py::TestQueryHandler::test_resolve_replaces PASSED [ 38%]
+tests/test_facade_query_full.py::TestQueryHandler::test_set_pause_event PASSED [ 38%]
+tests/test_favorite_download.py::TestFavoriteArchiveError::test_is_exception_subclass PASSED [ 38%]
+tests/test_favorite_download.py::TestFavoriteArchiveError::test_instantiate_with_message PASSED [ 38%]
+tests/test_favorite_download.py::TestSafeFilename::test_normal_standard_number PASSED [ 39%]
+tests/test_favorite_download.py::TestSafeFilename::test_forbidden_chars_replaced PASSED [ 39%]
+tests/test_favorite_download.py::TestSafeFilename::test_backslash_and_pipe_replaced PASSED [ 39%]
+tests/test_favorite_download.py::TestSafeFilename::test_boundary_empty_number PASSED [ 39%]
+tests/test_favorite_download.py::TestSafeFilename::test_state_all_forbidden_chars_in_one_string PASSED [ 39%]
+tests/test_favorite_download.py::TestGetDownloadUrl::test_normal_url_from_cache PASSED [ 39%]
+tests/test_favorite_download.py::TestGetDownloadUrl::test_no_cache_returns_none PASSED [ 40%]
+tests/test_favorite_download.py::TestGetDownloadUrl::test_invalid_json_returns_none PASSED [ 40%]
+tests/test_favorite_download.py::TestGetInboxDir::test_returns_path_from_config PASSED [ 40%]
+tests/test_favorite_download.py::TestFindInFileIndex::test_found_file_returns_path PASSED [ 40%]
+tests/test_favorite_download.py::TestFindInFileIndex::test_not_found_returns_none PASSED [ 40%]
+tests/test_favorite_download.py::TestFindInFileIndex::test_exception_returns_none PASSED [ 40%]
+tests/test_favorite_download.py::TestNotifyDownloadFailed::test_notify_sends_event PASSED [ 40%]
+tests/test_favorite_download.py::TestNotifyDownloadFailed::test_notify_exception_silent PASSED [ 41%]
+tests/test_favorite_download.py::TestDownloadWithRetry::test_success_first_attempt PASSED [ 41%]
+tests/test_favorite_download.py::TestDownloadWithRetry::test_failure_all_retries_exhausted PASSED [ 41%]
+tests/test_favorite_download.py::TestDownloadWithRetry::test_retry_on_failure_then_succeed PASSED [ 41%]
+tests/test_favorite_download.py::TestDownloadToInbox::test_record_not_found_raises PASSED [ 41%]
+tests/test_favorite_download.py::TestDownloadToInbox::test_empty_standard_number_raises PASSED [ 41%]
+tests/test_file_utils.py::TestSanitizeFilename::test_keeps_chinese PASSED [ 42%]
+tests/test_file_utils.py::TestSanitizeFilename::test_keeps_normal_chars PASSED [ 42%]
+tests/test_file_utils.py::TestSanitizeFilename::test_removes_forbidden_chars PASSED [ 42%]
+tests/test_file_utils.py::TestSanitizeFilename::test_strips_whitespace PASSED [ 42%]
+tests/test_file_utils.py::TestSafeCodeForFilename::test_empty PASSED     [ 42%]
+tests/test_file_utils.py::TestSafeCodeForFilename::test_normal_code PASSED [ 42%]
+tests/test_file_utils.py::TestSafeCodeForFilename::test_slash_replaced PASSED [ 42%]
+tests/test_file_utils.py::TestTruncatePath::test_returns_string PASSED   [ 43%]
+tests/test_file_utils.py::TestTruncatePath::test_short_path_unchanged PASSED [ 43%]
+tests/test_file_utils.py::TestEnsureLongPath::test_adds_prefix PASSED    [ 43%]
+tests/test_file_utils.py::TestEnsureLongPath::test_empty PASSED          [ 43%]
+tests/test_file_utils.py::TestEnsureLongPath::test_no_double_prefix PASSED [ 43%]
+tests/test_file_utils.py::TestStripLongPath::test_no_prefix_unchanged PASSED [ 43%]
+tests/test_file_utils.py::TestStripLongPath::test_removes_prefix PASSED  [ 44%]
+tests/test_file_utils.py::TestNormalizeStdFilename::test_extra_spaces_collapsed PASSED [ 44%]
+tests/test_file_utils.py::TestNormalizeStdFilename::test_fullwidth_to_halfwidth PASSED [ 44%]
+tests/test_file_utils.py::TestNormalizeStdFilename::test_garbage_suffix_stripped PASSED [ 44%]
+tests/test_file_utils.py::TestNormalizeStdFilename::test_html_tags_stripped PASSED [ 44%]
+tests/test_file_utils.py::TestNormalizeStdFilename::test_unicode_slash_normalized PASSED [ 44%]
+tests/test_file_utils.py::TestEnsureDir::test_creates_directory PASSED   [ 45%]
+tests/test_file_utils.py::TestEnsureDir::test_creates_file_parent PASSED [ 45%]
+tests/test_file_utils.py::TestEnsureDir::test_existing_dir PASSED        [ 45%]
+tests/test_file_utils.py::TestMakeStandardFilename::test_basic_filename PASSED [ 45%]
+tests/test_file_utils.py::TestMakeStandardFilename::test_empty_title PASSED [ 45%]
+tests/test_file_utils.py::TestMakeStandardFilename::test_ext_with_dot_unchanged PASSED [ 45%]
+tests/test_file_utils.py::TestMakeStandardFilename::test_ext_without_dot_auto_fixed PASSED [ 45%]
+tests/test_file_utils.py::TestEnsureDotExt::test_bare_ext PASSED         [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_compound_ext PASSED     [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_dotted_ext PASSED       [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_double_dot PASSED       [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_empty PASSED            [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_pure_dot PASSED         [ 46%]
+tests/test_file_utils.py::TestEnsureDotExt::test_uppercase PASSED        [ 47%]
+tests/test_file_utils.py::TestHashFileContent::test_hashes_file PASSED   [ 47%]
+tests/test_file_utils.py::TestHashFileContent::test_nonexistent_file PASSED [ 47%]
+tests/test_file_utils.py::TestRemoveEmptyDirs::test_removes_empty_dirs PASSED [ 47%]
+tests/test_file_utils.py::TestSafeMove::test_moves_file PASSED           [ 47%]
+tests/test_file_utils.py::TestSafeMove::test_skip_existing PASSED        [ 47%]
+tests/test_filename_normalizer.py::TestZhMark::test_match_parentheses_chinese PASSED [ 48%]
+tests/test_filename_normalizer.py::TestZhMark::test_match_chinese_translation_and_cn_suffix PASSED [ 48%]
+tests/test_filename_normalizer.py::TestZhMark::test_boundary_cn_not_in_standard_code PASSED [ 48%]
+tests/test_filename_normalizer.py::TestZhMark::test_exception_empty_input PASSED [ 48%]
+tests/test_filename_normalizer.py::TestZhMark::test_state_cn_after_chinese_char_vs_english PASSED [ 48%]
+tests/test_filename_normalizer.py::TestEnMark::test_match_english_markers PASSED [ 48%]
+tests/test_filename_normalizer.py::TestEnMark::test_match_en_after_chinese_char PASSED [ 48%]
+tests/test_filename_normalizer.py::TestEnMark::test_boundary_en_not_in_standard_code PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnMark::test_exception_case_insensitive PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnMark::test_state_english_in_parentheses_vs_bare PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnCnCode::test_match_cn_after_digit PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnCnCode::test_match_en_after_chinese_or_digit PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnCnCode::test_boundary_en_not_in_bs_en_prefix PASSED [ 49%]
+tests/test_filename_normalizer.py::TestEnCnCode::test_exception_standalone_en PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEnCnCode::test_state_digit_followed_by_cn_then_separator PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEditionAll::test_match_chinese_edition PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEditionAll::test_match_english_ordinal_edition PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEditionAll::test_boundary_not_match_random_number PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEditionAll::test_exception_empty_input PASSED [ 50%]
+tests/test_filename_normalizer.py::TestEditionAll::test_state_hybrid_edition_language_in_parens PASSED [ 51%]
+tests/test_filename_normalizer.py::TestEditionHybrid::test_match_underscore_ordinal PASSED [ 51%]
+tests/test_filename_normalizer.py::TestEditionHybrid::test_match_dash_ordinal_with_language PASSED [ 51%]
+tests/test_filename_normalizer.py::TestEditionHybrid::test_boundary_not_match_without_text_after PASSED [ 51%]
+tests/test_filename_normalizer.py::TestEditionHybrid::test_exception_single_digit_not_ordinal PASSED [ 51%]
+tests/test_filename_normalizer.py::TestEditionHybrid::test_state_ordinal_with_en_suffix PASSED [ 51%]
+tests/test_filename_normalizer.py::TestExtraDesc::test_match_bilingual_description PASSED [ 51%]
+tests/test_filename_normalizer.py::TestExtraDesc::test_match_word_count_and_illustration PASSED [ 52%]
+tests/test_filename_normalizer.py::TestExtraDesc::test_boundary_not_match_plain_plus_sign PASSED [ 52%]
+tests/test_filename_normalizer.py::TestExtraDesc::test_exception_multiple_extensions PASSED [ 52%]
+tests/test_filename_normalizer.py::TestExtraDesc::test_state_nested_descriptions_in_filename PASSED [ 52%]
+tests/test_final_coverage_push.py::TestOrganizerRemaining::test_expire_handler_removed PASSED [ 52%]
+tests/test_final_coverage_push.py::TestOrganizerRemaining::test_mover_move_to_code_dir_safe_path_fail PASSED [ 52%]
+tests/test_final_coverage_push.py::TestI18nRemaining::test_set_language_invalid_fallback PASSED [ 53%]
+tests/test_final_coverage_push.py::TestI18nRemaining::test_set_language_to_en PASSED [ 53%]
+tests/test_final_coverage_push.py::TestI18nRemaining::test_set_language_to_zh_tw PASSED [ 53%]
+tests/test_final_coverage_push.py::TestValidityCheckerRemaining::test_ensure_column PASSED [ 53%]
+tests/test_final_coverage_push.py::TestValidityCheckerRemaining::test_get_status_summary PASSED [ 53%]
+tests/test_final_coverage_push.py::TestCacheManagerRemaining::test_delete_oldest_with_data PASSED [ 53%]
+tests/test_final_coverage_push.py::TestCacheManagerRemaining::test_invalidate_by_source_bumps_version PASSED [ 54%]
+tests/test_final_coverage_push.py::TestCacheManagerRemaining::test_mark_stale_and_valid_cycle PASSED [ 54%]
+tests/test_final_coverage_push.py::TestFileIndexRemaining::test_repo_stop_cleans_up PASSED [ 54%]
+tests/test_final_coverage_push.py::TestScannerRemaining::test_scanner_module_importable PASSED [ 54%]
+tests/test_final_coverage_push.py::TestOpenstdDownloadRemaining::test_adapter_can_instantiate PASSED [ 54%]
+tests/test_final_coverage_push.py::TestPlatformUpdaterRemaining::test_is_newer_version_basic PASSED [ 54%]
+tests/test_final_coverage_push.py::TestCliCommandsRemaining::test_commands_list_not_empty PASSED [ 54%]
+tests/test_final_coverage_push.py::TestCliCommandsRemaining::test_make_manager_callable PASSED [ 55%]
+tests/test_final_coverage_push.py::TestPipelineRouterRemaining::test_router_has_init PASSED [ 55%]
+tests/test_final_coverage_push.py::TestQueryRemaining::test_csres_importable PASSED [ 55%]
+tests/test_final_coverage_push.py::TestQueryRemaining::test_rotator_cooldown_expired_resets PASSED [ 55%]
+tests/test_final_coverage_push.py::TestQueryRemaining::test_rotator_daily_limit_with_date PASSED [ 55%]
+tests/test_format_utils.py::TestFormatAggregated::test_single_entry PASSED [ 55%]
+tests/test_format_utils.py::TestFormatAggregated::test_expired_count_in_header PASSED [ 56%]
+tests/test_format_utils.py::TestFormatAggregated::test_multiple_entries_under_10 PASSED [ 56%]
+tests/test_format_utils.py::TestFormatAggregated::test_over_10_entries_truncated PASSED [ 56%]
+tests/test_format_utils.py::TestFormatAggregated::test_missing_name_and_changed_at PASSED [ 56%]
+tests/test_format_utils.py::TestFormatAggregated::test_expired_in_overflow_range PASSED [ 56%]
+tests/test_format_utils.py::TestDoTestSendChannelExists::test_channel_exists_send_ok PASSED [ 56%]
+tests/test_format_utils.py::TestDoTestSendChannelExists::test_channel_exists_send_fails PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendChannelExists::test_channel_exists_send_raises PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendUnknownChannel::test_unknown_channel PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendTelegram::test_missing_token PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendTelegram::test_missing_chat_id PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendTelegram::test_success_with_override PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendTelegram::test_success_with_config_fallback PASSED [ 57%]
+tests/test_format_utils.py::TestDoTestSendDingtalk::test_missing_url PASSED [ 58%]
+tests/test_format_utils.py::TestDoTestSendDingtalk::test_success_with_override PASSED [ 58%]
+tests/test_format_utils.py::TestDoTestSendFeishu::test_missing_url PASSED [ 58%]
+tests/test_format_utils.py::TestDoTestSendFeishu::test_success PASSED    [ 58%]
+tests/test_format_utils.py::TestDoTestSendWechat::test_app_message_mode PASSED [ 58%]
+tests/test_format_utils.py::TestDoTestSendWechat::test_webhook_mode PASSED [ 58%]
+tests/test_format_utils.py::TestDoTestSendWechat::test_missing_both_modes PASSED [ 59%]
+tests/test_format_utils.py::TestDoTestSendGeneric::test_generic_missing_url PASSED [ 59%]
+tests/test_format_utils.py::TestDoTestSendGeneric::test_generic_success PASSED [ 59%]
+tests/test_format_utils.py::TestDoTestSendInitError::test_init_raises PASSED [ 59%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_parse_ul_all_fields PASSED [ 59%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_parse_ul_empty PASSED [ 59%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_parse_ul_from_fixture PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_parse_ul_partial_fields PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_query_standards_empty_keyword PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_query_standards_returns_list PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_search_network_error PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_search_no_results PASSED [ 60%]
+tests/test_gongbiaoku.py::TestGongBiaoKuAdapter::test_search_returns_result PASSED [ 60%]
+tests/test_group1_complete.py::TestModelsComplete::test_parsed_std_info_all_fields PASSED [ 61%]
+tests/test_group1_complete.py::TestQualityRunnerComplete::test_run_on_directory PASSED [ 61%]
+tests/test_group1_complete.py::TestQualityRunnerComplete::test_run_on_py_file PASSED [ 61%]
+tests/test_group1_complete.py::TestQualityRunnerComplete::test_run_skips_non_py_files PASSED [ 61%]
+tests/test_group1_complete.py::TestStaleReferencesComplete::test_check_file_no_violations PASSED [ 61%]
+tests/test_group1_complete.py::TestStaleReferencesComplete::test_check_file_syntax_error PASSED [ 61%]
+tests/test_group1_complete.py::TestStaleReferencesComplete::test_check_file_with_stale_attribute PASSED [ 62%]
+tests/test_group1_complete.py::TestStaleReferencesComplete::test_check_file_with_stale_import PASSED [ 62%]
+tests/test_group1_complete.py::TestStaleReferencesComplete::test_quality_models PASSED [ 62%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_archive PASSED [ 62%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_is_safe_path_false PASSED [ 62%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_is_safe_path_true PASSED [ 62%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_move_to_code_dir PASSED [ 62%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_move_to_expire_removed PASSED [ 63%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_normalize_expired PASSED [ 63%]
+tests/test_group1_complete.py::TestFileMoverComplete::test_normalize_filename PASSED [ 63%]
+tests/test_groups23_remaining.py::TestCoreRemaining::test_config_manager_init PASSED [ 63%]
+tests/test_groups23_remaining.py::TestCoreRemaining::test_frozen PASSED  [ 63%]
+tests/test_groups23_remaining.py::TestCoreRemaining::test_notification_aggregator PASSED [ 63%]
+tests/test_groups23_remaining.py::TestCoreRemaining::test_project_manager_init PASSED [ 64%]
+tests/test_groups23_remaining.py::TestCoreRemaining::test_std_utils_classify PASSED [ 64%]
+tests/test_groups23_remaining.py::TestQueryRemaining::test_cache_repo PASSED [ 64%]
+tests/test_groups23_remaining.py::TestQueryRemaining::test_daily_quota_init PASSED [ 64%]
+tests/test_groups23_remaining.py::TestQueryRemaining::test_engine_init PASSED [ 64%]
+tests/test_groups23_remaining.py::TestQueryRemaining::test_network_safe_get PASSED [ 64%]
+tests/test_groups23_remaining.py::TestQueryRemaining::test_search_strategy_functions PASSED [ 65%]
+tests/test_groups23_remaining.py::TestScanRemaining::test_filename_normalizer_import PASSED [ 65%]
+tests/test_groups23_remaining.py::TestScanRemaining::test_lang_detect_import PASSED [ 65%]
+tests/test_groups23_remaining.py::TestScanRemaining::test_parser_init PASSED [ 65%]
+tests/test_groups23_remaining.py::TestDownloadRemaining::test_models_task PASSED [ 65%]
+tests/test_groups23_remaining.py::TestDownloadRemaining::test_session_manager PASSED [ 65%]
+tests/test_groups23_remaining.py::TestPlatformRemaining::test_notify_service PASSED [ 65%]
+tests/test_groups23_remaining.py::TestPlatformRemaining::test_updater_sha256 PASSED [ 66%]
+tests/test_groups23_remaining.py::TestPlatformRemaining::test_updater_version_compare PASSED [ 66%]
+tests/test_groups23_remaining.py::TestCliRemaining::test_commands_module PASSED [ 66%]
+tests/test_groups23_remaining.py::TestCliRemaining::test_shared_utils PASSED [ 66%]
+tests/test_groups23_remaining.py::TestTasksRemaining::test_pipeline_store PASSED [ 66%]
+tests/test_groups23_remaining.py::TestTasksRemaining::test_task_models PASSED [ 66%]
+tests/test_groups23_remaining.py::TestTasksRemaining::test_task_queue_init PASSED [ 67%]
+tests/test_groups23_remaining.py::TestTasksRemaining::test_task_scheduler_init PASSED [ 67%]
+tests/test_groups23_remaining.py::TestOrganizerFinal::test_expire_handler_removed PASSED [ 67%]
+tests/test_groups23_remaining.py::TestOrganizerFinal::test_mover_init PASSED [ 67%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_cache_manager_cleanup_force PASSED [ 67%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_config_migrate_export_import PASSED [ 67%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_db_database_crud PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_file_utils_garbage_suffix PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_file_utils_safe_copy PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_file_utils_sha256 PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestCoreDeepComplete::test_validity_get_due_random PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestQueryScanDownloadPlatform::test_download_engine_has_init PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestQueryScanDownloadPlatform::test_platform_verify_bad_checksum PASSED [ 68%]
+tests/test_groups2_4_complete.py::TestQueryScanDownloadPlatform::test_rotator_save PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestQueryScanDownloadPlatform::test_scanner_with_config PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestPipelineCliI18n::test_i18n_set_get_language PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestPipelineCliI18n::test_pipeline_router_has_init PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestManagerServicesComplete::test_all_services_importable PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestAnnouncementComplete::test_all_crawlers_have_site_name PASSED [ 69%]
+tests/test_groups2_4_complete.py::TestAnnouncementComplete::test_engine_has_init PASSED [ 70%]
+tests/test_groups2_4_complete.py::TestAnnouncementComplete::test_ocr_create_provider_callable PASSED [ 70%]
+tests/test_groups2_4_complete.py::TestHardModulesComplete::test_monitor_imports PASSED [ 70%]
+tests/test_groups2_4_complete.py::TestHardModulesComplete::test_tasks_imports PASSED [ 70%]
+tests/test_groups2_4_complete.py::TestHardModulesComplete::test_wechat_ip_imports PASSED [ 70%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_four_fields_present PASSED [ 70%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_cleanup_report_fields PASSED [ 71%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_signal_fields PASSED [ 71%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_metadata_required_keys PASSED [ 71%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_allowed_callers_not_empty PASSED [ 71%]
+tests/test_guardrails_contract.py::TestBootstrapResultContract::test_protected_paths_not_empty PASSED [ 71%]
+tests/test_guardrails_contract.py::TestValidatePromptContract::test_accepts_valid_prompt PASSED [ 71%]
+tests/test_guardrails_contract.py::TestValidatePromptContract::test_rejects_missing_meta PASSED [ 71%]
+tests/test_guardrails_contract.py::TestValidatePromptContract::test_rejects_missing_required_fields PASSED [ 72%]
+tests/test_guardrails_contract.py::TestValidatePromptContract::test_rejects_invalid_rollback PASSED [ 72%]
+tests/test_guardrails_contract.py::TestValidateDecisionRequestContract::test_accepts_valid_output PASSED [ 72%]
+tests/test_guardrails_contract.py::TestValidateDecisionRequestContract::test_rejects_invalid_trigger_type PASSED [ 72%]
+tests/test_guardrails_contract.py::TestValidateDecisionRequestContract::test_rejects_too_few_options PASSED [ 72%]
+tests/test_guardrails_contract.py::TestValidateDecisionRequestContract::test_rejects_missing_dual_mode_timeout PASSED [ 72%]
+tests/test_guardrails_contract.py::TestRetryBudgetIsolation::test_independent_retry_counters PASSED [ 73%]
+tests/test_guardrails_contract.py::TestRetryBudgetIsolation::test_retry_budget_exhaustion PASSED [ 73%]
+tests/test_guardrails_contract.py::TestAtomicWriteWhitelist::test_allowed_caller_no_error PASSED [ 73%]
+tests/test_guardrails_contract.py::TestAtomicWriteWhitelist::test_blocked_caller_raises PASSED [ 73%]
+tests/test_guardrails_contract.py::TestNegativeCases::test_missing_required_field_triggers_error PASSED [ 73%]
+tests/test_guardrails_contract.py::TestNegativeCases::test_extra_field_not_in_contract PASSED [ 73%]
+tests/test_guardrails_contract.py::TestNegativeCases::test_whitelist_immutable PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_1_bootstrap_success PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_2_missing_notes_aborts PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_3_full_prompt_validation PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_4_full_decision_validation PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_5_retry_lifecycle PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_6_unauthorized_write_blocked PASSED [ 74%]
+tests/test_guardrails_integration.py::test_scenario_7_authorized_write_succeeds PASSED [ 75%]
+tests/test_guardrails_integration.py::test_scenario_8_all_valid_trigger_types[\u4e1a\u52a1\u6b67\u4e49] PASSED [ 75%]
+tests/test_guardrails_integration.py::test_scenario_8_all_valid_trigger_types[\u56de\u6eda\u7f3a\u5931] PASSED [ 75%]
+tests/test_guardrails_integration.py::test_scenario_8_all_valid_trigger_types[\u5916\u90e8\u4f9d\u8d56\u672a\u5c31\u7eea] PASSED [ 75%]
+tests/test_guardrails_integration.py::test_scenario_8_all_valid_trigger_types[\u6388\u6743\u8d8a\u754c] PASSED [ 75%]
+tests/test_guardrails_integration.py::test_scenario_8_all_valid_trigger_types[\u89c4\u5219\u51b2\u7a81] PASSED [ 75%]
+tests/test_health.py::test_all_services_ok PASSED                        [ 76%]
+tests/test_health.py::test_database_unavailable PASSED                   [ 76%]
+tests/test_health.py::test_monitor_service_not_initialized PASSED        [ 76%]
+tests/test_health.py::test_production_external_ip_403 PASSED             [ 76%]
+tests/test_health.py::test_production_internal_ip_allowed PASSED         [ 76%]
+tests/test_i18n_key_count.py::test_all_aligned_passes PASSED             [ 76%]
+tests/test_i18n_key_count.py::test_missing_key_fails PASSED              [ 77%]
+tests/test_i18n_key_count.py::test_unique_key_warns PASSED               [ 77%]
+tests/test_i18n_key_count.py::test_nested_keys_not_misreported PASSED    [ 77%]
+tests/test_i18n_key_count.py::test_deeply_nested_values_ignored PASSED   [ 77%]
+tests/test_i18n_key_count.py::test_single_file_passes PASSED             [ 77%]
+tests/test_i18n_key_count.py::test_empty_locale_dir PASSED               [ 77%]
+tests/test_i18n_key_count.py::test_missing_directory PASSED              [ 77%]
+tests/test_i18n_key_count.py::test_invalid_json PASSED                   [ 78%]
+tests/test_i18n_key_count.py::test_warn_threshold PASSED                 [ 78%]
+tests/test_i18n_key_count.py::test_fail_threshold PASSED                 [ 78%]
+tests/test_industry_lookup.py::TestIsDbCode::test_db_with_city_code PASSED [ 78%]
+tests/test_industry_lookup.py::TestIsDbCode::test_db_with_province_code PASSED [ 78%]
+tests/test_industry_lookup.py::TestIsDbCode::test_db_with_t_suffix PASSED [ 78%]
+tests/test_industry_lookup.py::TestIsDbCode::test_non_db_codes PASSED    [ 79%]
+tests/test_industry_lookup.py::TestGetDbRegion::test_known_provinces PASSED [ 79%]
+tests/test_industry_lookup.py::TestGetDbRegion::test_non_db_code PASSED  [ 79%]
+tests/test_industry_lookup.py::TestGetDbRegion::test_unknown_region PASSED [ 79%]
+tests/test_industry_lookup.py::TestGetDbRegion::test_with_t_suffix PASSED [ 79%]
+tests/test_industry_lookup.py::TestGetBaseCode::test_composite_prefix PASSED [ 79%]
+tests/test_industry_lookup.py::TestGetBaseCode::test_historical_variants PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetBaseCode::test_multi_word_foreign_prefix PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetBaseCode::test_standard_codes PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetIndustryName::test_foreign_code PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetIndustryName::test_industry_code PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetIndustryName::test_national_code PASSED [ 80%]
+tests/test_industry_lookup.py::TestGetIndustryName::test_unknown_code PASSED [ 80%]
+tests/test_industry_lookup.py::TestBuildCodeMapping::test_foreign_codes_no_t_variant PASSED [ 81%]
+tests/test_industry_lookup.py::TestBuildCodeMapping::test_includes_db_province_codes PASSED [ 81%]
+tests/test_industry_lookup.py::TestBuildCodeMapping::test_includes_gb_variants PASSED [ 81%]
+tests/test_industry_lookup.py::TestBuildCodeMapping::test_includes_industry_t_variants PASSED [ 81%]
+tests/test_industry_lookup.py::TestGetFolderName::test_db_folder PASSED  [ 81%]
+tests/test_industry_lookup.py::TestGetFolderName::test_foreign_folder PASSED [ 81%]
+tests/test_industry_lookup.py::TestGetFolderName::test_gb_folder PASSED  [ 82%]
+tests/test_last_push.py::TestFinalSmall::test_expire_handler_removed PASSED [ 82%]
+tests/test_last_push.py::TestFinalSmall::test_models_default_values PASSED [ 82%]
+tests/test_last_push.py::TestI18nFinal::test_fallback_key PASSED         [ 82%]
+tests/test_last_push.py::TestCoreConfigFinal::test_crypto_sensitive_suffixes PASSED [ 82%]
+tests/test_last_push.py::TestCoreConfigFinal::test_migrate_export_invalid_json PASSED [ 82%]
+tests/test_last_push.py::TestCoreConfigFinal::test_paths_network_timeout PASSED [ 82%]
+tests/test_last_push.py::TestCoreConfigFinal::test_priority_get_with_source_not_found PASSED [ 83%]
+tests/test_last_push.py::TestCoreConfigFinal::test_security_needs_upgrade PASSED [ 83%]
+tests/test_last_push.py::TestCoreUtilsFinal::test_file_index_validation PASSED [ 83%]
+tests/test_last_push.py::TestCoreUtilsFinal::test_logger_import PASSED   [ 83%]
+tests/test_last_push.py::TestNotificationChannelsFinal::test_dingtalk_validate PASSED [ 83%]
+tests/test_last_push.py::TestNotificationChannelsFinal::test_feishu_validate PASSED [ 83%]
+tests/test_last_push.py::TestNotificationChannelsFinal::test_telegram_validate PASSED [ 84%]
+tests/test_last_push.py::TestNotificationChannelsFinal::test_wechat_validate PASSED [ 84%]
+tests/test_last_push.py::TestDownloadScanFinal::test_download_engine_import PASSED [ 84%]
+tests/test_last_push.py::TestDownloadScanFinal::test_download_session PASSED [ 84%]
+tests/test_last_push.py::TestDownloadScanFinal::test_scan_watcher_import PASSED [ 84%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_adapter_manager_import PASSED [ 84%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_classifier_import PASSED [ 85%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_export_service_import PASSED [ 85%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_ocr_aliyun PASSED [ 85%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_ocr_baidu PASSED [ 85%]
+tests/test_last_push.py::TestManagerAnnouncementFinal::test_ocr_tencent PASSED [ 85%]
+tests/test_last_push.py::TestCliCommandsFinal::test_all_commands_importable PASSED [ 85%]
+tests/test_last_push.py::TestCliCommandsFinal::test_shared_make_manager PASSED [ 85%]
+tests/test_last_push.py::TestPipelinePlatformFinal::test_notify_service_import PASSED [ 86%]
+tests/test_last_push.py::TestPipelinePlatformFinal::test_router_init PASSED [ 86%]
+tests/test_last_push.py::TestWechatIPFinal::test_browser_xpaths PASSED   [ 86%]
+tests/test_last_push.py::TestWechatIPFinal::test_cookie_mask PASSED      [ 86%]
+tests/test_last_push.py::TestWechatIPFinal::test_detector_sources PASSED [ 86%]
+tests/test_manager.py::TestStandardManager::test_auto_run PASSED         [ 86%]
+tests/test_manager.py::TestStandardManager::test_download_after_query PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_download_matches_subset_correctly PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_full_pipeline_integration PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_manager_init_defaults PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_mock_full_pipeline_e2e PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_organize_no_source_files PASSED [ 87%]
+tests/test_manager.py::TestStandardManager::test_query_with_mock PASSED  [ 88%]
+tests/test_manager.py::TestStandardManager::test_scan_directory PASSED   [ 88%]
+tests/test_manager.py::TestStandardManager::test_scan_empty_directory PASSED [ 88%]
+tests/test_manager.py::TestResolveIndustryInPath::test_foreign_code_resolved PASSED [ 88%]
+tests/test_manager.py::TestResolveIndustryInPath::test_domestic_code_resolved PASSED [ 88%]
+tests/test_manager.py::TestResolveIndustryInPath::test_db_code_resolved PASSED [ 88%]
+tests/test_manager.py::TestResolveIndustryInPath::test_already_resolved_unchanged PASSED [ 88%]
+tests/test_manager.py::TestResolveIndustryInPath::test_non_code_unchanged PASSED [ 89%]
+tests/test_manager.py::TestResolveIndustryInPath::test_empty_path PASSED [ 89%]
+tests/test_manager.py::TestResolveIndustryInPath::test_single_component PASSED [ 89%]
+tests/test_manager.py::TestAutoMixin::test_auto_run_all_stages_complete PASSED [ 89%]
+tests/test_manager.py::TestAutoMixin::test_auto_run_stream_short_circuit_empty PASSED [ 89%]
+tests/test_manager.py::TestDownloadMixin::test_download_by_numbers_delegates PASSED [ 89%]
+tests/test_manager.py::TestDownloadMixin::test_download_enqueue_wait_delegates PASSED [ 90%]
+tests/test_manager.py::TestOrganizeMixin::test_expire_files_no_valid_input PASSED [ 90%]
+tests/test_manager.py::TestOrganizeMixin::test_normalize_files_returns_correct_keys PASSED [ 90%]
+tests/test_manager.py::TestScanMixin::test_scan_directory_skipped_dirs_set PASSED [ 90%]
+tests/test_manager.py::TestScanMixin::test_stop_watching_noop_when_none PASSED [ 90%]
+tests/test_miit.py::TestMIITAdapter::test_fetch_uses_stadardnum PASSED   [ 90%]
+tests/test_miit.py::TestMIITAdapter::test_no_warning_under_15 PASSED     [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_parse_result_empty PASSED      [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_parse_result_from_fixture PASSED [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_query_standards_empty_keyword PASSED [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_search_candidates_api_error_code PASSED [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_search_candidates_network_error PASSED [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_search_candidates_no_results PASSED [ 91%]
+tests/test_miit.py::TestMIITAdapter::test_search_candidates_non_200 PASSED [ 92%]
+tests/test_miit.py::TestMIITAdapter::test_search_candidates_returns_list PASSED [ 92%]
+tests/test_miit.py::TestMIITAdapter::test_truncation_warning_at_15 PASSED [ 92%]
+tests/test_mini_bucket.py::TestApplyRequestInterval::test_with_interval PASSED [ 92%]
+tests/test_mini_bucket.py::TestApplyRequestInterval::test_no_interval PASSED [ 92%]
+tests/test_mini_bucket.py::TestApplyRequestInterval::test_no_rotator PASSED [ 92%]
+tests/test_mini_bucket.py::TestApplyRequestInterval::test_no_metrics PASSED [ 93%]
+tests/test_mini_bucket.py::TestMiniBucketHandler::test_init PASSED       [ 93%]
+tests/test_mini_bucket.py::TestMiniBucketHandler::test_build_buckets_no_weights PASSED [ 93%]
+tests/test_mini_bucket.py::TestMiniBucketHandler::test_build_buckets_with_weights PASSED [ 93%]
+tests/test_mini_bucket.py::TestMiniBucketHandler::test_build_buckets_cooled_site PASSED [ 93%]
+tests/test_ncha.py::TestNCHAAdapter::test_build_body_contains_keyword PASSED [ 93%]
+tests/test_ncha.py::TestNCHAAdapter::test_format_date_already_iso PASSED [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_format_date_empty PASSED       [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_format_date_none PASSED        [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_format_date_with_time PASSED   [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_format_date_without_time PASSED [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_parse_result_empty PASSED      [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_parse_result_gbt PASSED        [ 94%]
+tests/test_ncha.py::TestNCHAAdapter::test_parse_result_wwt PASSED        [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_query_standards_empty_keyword PASSED [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_query_standards_returns_list PASSED [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_search_candidates_api_error_code PASSED [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_search_candidates_network_error PASSED [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_search_candidates_no_results PASSED [ 95%]
+tests/test_ncha.py::TestNCHAAdapter::test_search_candidates_non_200 PASSED [ 96%]
+tests/test_ncha.py::TestNCHAAdapter::test_search_candidates_wwt PASSED   [ 96%]
+tests/test_njbz365_session.py::TestComputeSign::test_basic_sign PASSED   [ 96%]
+tests/test_njbz365_session.py::TestComputeSign::test_contains_private_key PASSED [ 96%]
+tests/test_njbz365_session.py::TestComputeSign::test_empty_values_filtered PASSED [ 96%]
+tests/test_njbz365_session.py::TestComputeSign::test_json_data_key_excluded PASSED [ 96%]
+tests/test_njbz365_session.py::TestComputeSign::test_keys_sorted PASSED  [ 97%]
+tests/test_njbz365_session.py::TestBuildBaseParams::test_returns_dict_with_required_fields PASSED [ 97%]
+tests/test_njbz365_session.py::TestEnsureSession::test_already_initialized_skips PASSED [ 97%]
+tests/test_njbz365_session.py::TestEnsureSession::test_first_call_initializes PASSED [ 97%]
+tests/test_njbz365_session.py::TestEnsureSession::test_invalid_token_json_handled PASSED [ 97%]
+tests/test_njbz365_session.py::TestRefreshCsrf::test_all_retries_fail PASSED [ 97%]
+tests/test_njbz365_session.py::TestRefreshCsrf::test_retry_on_failure PASSED [ 97%]
+tests/test_njbz365_session.py::TestRefreshCsrf::test_successful_csrf_refresh PASSED [ 98%]
+tests/test_njbz365_session.py::TestRetryRequest::test_all_retries_exhausted PASSED [ 98%]
+tests/test_njbz365_session.py::TestRetryRequest::test_request_exception_returns_none PASSED [ 98%]
+tests/test_njbz365_session.py::TestRetryRequest::test_retry_on_timeout PASSED [ 98%]
+tests/test_njbz365_session.py::TestRetryRequest::test_successful_request PASSED [ 98%]
+tests/test_njbz365_session.py::TestDoRequest::test_all_attempts_fail PASSED [ 98%]
+tests/test_njbz365_session.py::TestDoRequest::test_csrf_expired_refresh PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_invalid_json_response_returns_none PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_non_network_exception_returns_none PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_successful_search PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_timeout_retry_then_success PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_token_expired_refresh PASSED [ 99%]
+tests/test_njbz365_session.py::TestDoRequest::test_unknown_error_code_returns_none PASSED [100%]C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F2DA2200>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F2DA26B0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F2DA33D0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F2DA3970>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3270130>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F32705E0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F32706D0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3270A90>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3271F30>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F32727A0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3272890>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3272020>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F32722F0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3271B70>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3273970>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3273A60>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3273E20>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F3273F10>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F5680400>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F56805E0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F5680B80>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F5681030>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F56815D0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F56818A0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F5683100>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67B4E50>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67B65C0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EC400>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ECA90>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EC6D0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ECE50>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ECF40>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ED300>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ED3F0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ED7B0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67ED8A0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EDC60>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EDD50>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EE110>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EE200>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\ast.py:46: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F67EE5C0>
+  return compile(source, filename, mode, flags,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:453: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F18B8C70>
+  @classmethod
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:453: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F19BBA60>
+  @classmethod
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:453: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000247F16D1C60>
+  @classmethod
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+
+ERROR: Coverage failure: total of 43 is less than fail-under=51
+
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.2-final-0 _______________
+
+Name                                                     Stmts   Miss  Cover
+----------------------------------------------------------------------------
+pilotstd\__init__.py                                        12      2    83%
+pilotstd\announcement\__init__.py                            4      0   100%
+pilotstd\announcement\_attachment_parser.py                103     51    50%
+pilotstd\announcement\_circuit_breaker.py                  119      7    94%
+pilotstd\announcement\_content_cleaner.py                   97     10    90%
+pilotstd\announcement\_raw_store.py                         19      3    84%
+pilotstd\announcement\_wps_utils.py                         27     11    59%
+pilotstd\announcement\adapters\__init__.py                   4      0   100%
+pilotstd\announcement\adapters\samr_db.py                   14      4    71%
+pilotstd\announcement\adapters\samr_gb.py                   14      4    71%
+pilotstd\announcement\adapters\samr_hb.py                   14      4    71%
+pilotstd\announcement\base.py                              184     29    84%
+pilotstd\announcement\engine.py                             55     42    24%
+pilotstd\announcement\matcher.py                           142      2    99%
+pilotstd\announcement\monitor.py                            47      0   100%
+pilotstd\announcement\ocr\__init__.py                       61     45    26%
+pilotstd\announcement\ocr\_aliyun.py                        47     27    43%
+pilotstd\announcement\ocr\_baidu.py                         61     47    23%
+pilotstd\announcement\ocr\_base.py                         195    139    29%
+pilotstd\announcement\ocr\_pdf_utils.py                     35     30    14%
+pilotstd\announcement\ocr\_tencent.py                       71     48    32%
+pilotstd\announcement\parser.py                            190     32    83%
+pilotstd\cli\__init__.py                                     0      0   100%
+pilotstd\cli\commands\__init__.py                          102      4    96%
+pilotstd\cli\commands\__main__.py                            3      0   100%
+pilotstd\cli\commands\_shared.py                            12      1    92%
+pilotstd\cli\commands\announce.py                           36     31    14%
+pilotstd\cli\commands\auto.py                                8      4    50%
+pilotstd\cli\commands\download.py                           27     23    15%
+pilotstd\cli\commands\expire.py                              9      0   100%
+pilotstd\cli\commands\move.py                               22      8    64%
+pilotstd\cli\commands\normalize.py                          15      9    40%
+pilotstd\cli\commands\organize.py                           14      9    36%
+pilotstd\cli\commands\pending.py                            21     15    29%
+pilotstd\cli\commands\query.py                              44     38    14%
+pilotstd\cli\commands\scan.py                               18      0   100%
+pilotstd\cli\commands\task.py                               19     13    32%
+pilotstd\constants\announce_types.py                         2      0   100%
+pilotstd\core\__init__.py                                    7      0   100%
+pilotstd\core\_file_index_query.py                          90     66    27%
+pilotstd\core\_validity_pipeline.py                        117    102    13%
+pilotstd\core\audit.py                                      40     24    40%
+pilotstd\core\cache_manager.py                             170      0   100%
+pilotstd\core\config\__init__.py                             5      0   100%
+pilotstd\core\config\crypto.py                              36      7    81%
+pilotstd\core\config\defaults.py                             2      0   100%
+pilotstd\core\config\manager.py                            115     32    72%
+pilotstd\core\config\migrate.py                             70     23    67%
+pilotstd\core\config\paths.py                               51     29    43%
+pilotstd\core\config\priority.py                            93      5    95%
+pilotstd\core\config\service.py                             77     10    87%
+pilotstd\core\config\settings_schema.py                     26      0   100%
+pilotstd\core\context.py                                     6      0   100%
+pilotstd\core\db\__init__.py                                 4      0   100%
+pilotstd\core\db\_constants.py                              10      0   100%
+pilotstd\core\db\_migrate_v2_v15.py                         77     16    79%
+pilotstd\core\db\_migrate_v31_plus.py                       95     21    78%
+pilotstd\core\db\_migrate_v37_plus.py                       59     12    80%
+pilotstd\core\db\_migrate_v44.py                            17      2    88%
+pilotstd\core\db\_migration_checksum.py                     68     19    72%
+pilotstd\core\db\database.py                               240     94    61%
+pilotstd\core\db\migrations.py                             241     52    78%
+pilotstd\core\download_utils.py                             43      1    98%
+pilotstd\core\export_utils.py                                6      0   100%
+pilotstd\core\file_index.py                                103     25    76%
+pilotstd\core\file_utils.py                                188     46    76%
+pilotstd\core\frozen.py                                      3      0   100%
+pilotstd\core\logger.py                                     98     25    74%
+pilotstd\core\notification\__init__.py                       4      0   100%
+pilotstd\core\notification\_builders_batch.py              109     72    34%
+pilotstd\core\notification\_builders_system.py              91     74    19%
+pilotstd\core\notification\_builders_validity.py            74     62    16%
+pilotstd\core\notification\_credentials.py                  58     43    26%
+pilotstd\core\notification\_format_utils.py                 84      0   100%
+pilotstd\core\notification\_message_builders.py              7      1    86%
+pilotstd\core\notification\_policy.py                       40     30    25%
+pilotstd\core\notification\aggregate_buffer.py             150      0   100%
+pilotstd\core\notification\blocks.py                        23      0   100%
+pilotstd\core\notification\channel.py                       26      1    96%
+pilotstd\core\notification\channels\__init__.py              5      0   100%
+pilotstd\core\notification\channels\dingtalk.py             50      0   100%
+pilotstd\core\notification\channels\feishu.py               33      0   100%
+pilotstd\core\notification\channels\telegram.py             56      0   100%
+pilotstd\core\notification\channels\wechat.py               30      0   100%
+pilotstd\core\notification\desktop_formatter.py             24      0   100%
+pilotstd\core\notification\events.py                        36      0   100%
+pilotstd\core\notification\manager.py                      213    147    31%
+pilotstd\core\notification\renderer.py                     171     99    42%
+pilotstd\core\notification_aggregator.py                   127    104    18%
+pilotstd\core\path_guard.py                                 22      4    82%
+pilotstd\core\project.py                                    59     39    34%
+pilotstd\core\security.py                                   36      2    94%
+pilotstd\core\std_utils.py                                  97      3    97%
+pilotstd\core\task_history.py                               59     30    49%
+pilotstd\core\task_status.py                                47     21    55%
+pilotstd\core\validity_checker.py                          110     57    48%
+pilotstd\download\__init__.py                                6      0   100%
+pilotstd\download\adapters\__init__.py                       3      0   100%
+pilotstd\download\adapters\base.py                          17      3    82%
+pilotstd\download\adapters\openstd_download.py             109     90    17%
+pilotstd\download\engine.py                                198     39    80%
+pilotstd\download\models.py                                 29      0   100%
+pilotstd\download\session.py                                58      5    91%
+pilotstd\i18n\__init__.py                                   35      5    86%
+pilotstd\manager\__init__.py                                 8      0   100%
+pilotstd\manager\_announce_fetch.py                        161    135    16%
+pilotstd\manager\adapter_manager.py                         62     17    73%
+pilotstd\manager\announce_service.py                        98     71    28%
+pilotstd\manager\archive_retry_service.py                   50     18    64%
+pilotstd\manager\classifier.py                             101     50    50%
+pilotstd\manager\export_service.py                           8      4    50%
+pilotstd\manager\facade\__init__.py                         52     37    29%
+pilotstd\manager\facade\_auto.py                           115      8    93%
+pilotstd\manager\facade\_base.py                           168      4    98%
+pilotstd\manager\facade\_base_properties.py                143     17    88%
+pilotstd\manager\facade\_core.py                            38     16    58%
+pilotstd\manager\facade\_download.py                        80      1    99%
+pilotstd\manager\facade\_file_index.py                      24     13    46%
+pilotstd\manager\facade\_organize.py                       192     92    52%
+pilotstd\manager\facade\_query.py                           63      2    97%
+pilotstd\manager\facade\_query_exec.py                     129     18    86%
+pilotstd\manager\facade\_query_report.py                    87      6    93%
+pilotstd\manager\facade\_scan.py                           141     64    55%
+pilotstd\manager\monitor_service.py                         35     22    37%
+pilotstd\manager\organize\__init__.py                        8      0   100%
+pilotstd\manager\organize\_utils.py                         14      0   100%
+pilotstd\manager\organize\expire.py                         46     40    13%
+pilotstd\manager\organize\mirror.py                        130    100    23%
+pilotstd\manager\organize\organizer.py                     173     76    56%
+pilotstd\manager\organizer_service.py                        2      0   100%
+pilotstd\manager\pending_service.py                         85     61    28%
+pilotstd\manager\quality_service.py                         11      7    36%
+pilotstd\manager\scheduled_service.py                       92     70    24%
+pilotstd\manager\service_factory.py                         20      0   100%
+pilotstd\manager\settings_manager.py                        69     43    38%
+pilotstd\manager\standard_service.py                        50     40    20%
+pilotstd\manager\system_service.py                           8      4    50%
+pilotstd\manager\user_service.py                            60     39    35%
+pilotstd\manager\validity_service.py                        20     14    30%
+pilotstd\manager\wechat_ip_service.py                       84     70    17%
+pilotstd\models.py                                          64      3    95%
+pilotstd\monitor\__init__.py                                 3      0   100%
+pilotstd\monitor\config.py                                  87     70    20%
+pilotstd\monitor\handler.py                                 53     39    26%
+pilotstd\monitor\scheduler.py                               83     65    22%
+pilotstd\organizer\__init__.py                               4      0   100%
+pilotstd\organizer\dir_builder.py                           21      6    71%
+pilotstd\organizer\industry_lookup.py                       65      0   100%
+pilotstd\organizer\mover.py                                 32      2    94%
+pilotstd\pipeline\__init__.py                                0      0   100%
+pilotstd\pipeline\router.py                                196    121    38%
+pilotstd\platform\__init__.py                                0      0   100%
+pilotstd\platform\notify.py                                 55     35    36%
+pilotstd\platform\updater.py                               112     67    40%
+pilotstd\quality\__init__.py                                 2      0   100%
+pilotstd\quality\models.py                                  15      1    93%
+pilotstd\quality\rules\__init__.py                           0      0   100%
+pilotstd\quality\rules\stale_references.py                  25      0   100%
+pilotstd\quality\runner.py                                  23      0   100%
+pilotstd\query\__init__.py                                  70     43    39%
+pilotstd\query\adapters\__init__.py                         22      0   100%
+pilotstd\query\adapters\_njbz365_session.py                120      3    98%
+pilotstd\query\adapters\ahbz.py                             79     35    56%
+pilotstd\query\adapters\base.py                            125     48    62%
+pilotstd\query\adapters\ccsn.py                            121     15    88%
+pilotstd\query\adapters\csres.py                           183     96    48%
+pilotstd\query\adapters\cssn.py                             71      6    92%
+pilotstd\query\adapters\dbba.py                             47      8    83%
+pilotstd\query\adapters\energy.py                           93      7    92%
+pilotstd\query\adapters\gongbiaoku.py                       69      3    96%
+pilotstd\query\adapters\hbba.py                             91     14    85%
+pilotstd\query\adapters\iso_gov.py                          58     18    69%
+pilotstd\query\adapters\jjg.py                              74      5    93%
+pilotstd\query\adapters\jtst.py                             86      5    94%
+pilotstd\query\adapters\mee.py                              84      5    94%
+pilotstd\query\adapters\miit.py                             62      5    92%
+pilotstd\query\adapters\mock.py                             18     18     0%
+pilotstd\query\adapters\ncha.py                             79      8    90%
+pilotstd\query\adapters\njbz365.py                          84     10    88%
+pilotstd\query\adapters\nrsis.py                           108      8    93%
+pilotstd\query\adapters\registry.py                         38      4    89%
+pilotstd\query\adapters\sppt.py                             64      6    91%
+pilotstd\query\adapters\sppt_local.py                       85      8    91%
+pilotstd\query\adapters\std_gov.py                         118     36    69%
+pilotstd\query\adapters\tdpress.py                          67     41    39%
+pilotstd\query\adapters\ttbz.py                             73      7    90%
+pilotstd\query\cache.py                                     63     24    62%
+pilotstd\query\daily_quota.py                               69     13    81%
+pilotstd\query\engine\__init__.py                           81     26    68%
+pilotstd\query\engine\_batch.py                             69     16    77%
+pilotstd\query\engine\_batch_dispatch.py                   177     37    79%
+pilotstd\query\engine\_constants.py                         17      1    94%
+pilotstd\query\engine\_core.py                              61     22    64%
+pilotstd\query\engine\_core_types.py                        36      7    81%
+pilotstd\query\engine\_csres.py                             63     13    79%
+pilotstd\query\engine\_metrics.py                           80     27    66%
+pilotstd\query\engine\_mini_bucket.py                      159     50    69%
+pilotstd\query\engine\_overflow.py                          95     65    32%
+pilotstd\query\engine\_report.py                            84      4    95%
+pilotstd\query\engine\_routing.py                          129     72    44%
+pilotstd\query\engine\_single.py                            99     16    84%
+pilotstd\query\models.py                                    33      0   100%
+pilotstd\query\network.py                                   76     35    54%
+pilotstd\query\rotator.py                                  226    114    50%
+pilotstd\query\routing\__init__.py                           2      0   100%
+pilotstd\query\routing\scorer.py                           104     14    87%
+pilotstd\query\search_strategy.py                          125     29    77%
+pilotstd\query\site_config.py                               13      0   100%
+pilotstd\scan\__init__.py                                    3      0   100%
+pilotstd\scan\edition_detect.py                             25      1    96%
+pilotstd\scan\filename_normalizer.py                         7      0   100%
+pilotstd\scan\lang_detect.py                                 9      2    78%
+pilotstd\scan\parser\__init__.py                            87      7    92%
+pilotstd\scan\parser\_constants.py                          30      0   100%
+pilotstd\scan\parser\_core.py                               36      9    75%
+pilotstd\scan\parser\_exact.py                             146    106    27%
+pilotstd\scan\parser\_file_kind_detector.py                  7      1    86%
+pilotstd\scan\parser\_foreign.py                            97     69    29%
+pilotstd\scan\parser\_language_detector.py                   5      0   100%
+pilotstd\scan\parser\_number_extractor.py                   43      8    81%
+pilotstd\scan\parser\_result_builder.py                     81     17    79%
+pilotstd\scan\parser\_text_cleaner.py                       12      0   100%
+pilotstd\scan\parser\_utils.py                               1      1     0%
+pilotstd\scan\scanner.py                                   120     56    53%
+pilotstd\scan\watcher.py                                    82     61    26%
+pilotstd\task\__init__.py                                    3      0   100%
+pilotstd\task\models.py                                     54      3    94%
+pilotstd\task\pipeline_store.py                             27     12    56%
+pilotstd\task\queue.py                                     120     83    31%
+pilotstd\task\scheduler.py                                  51     37    27%
+pilotstd\tasks\__init__.py                                   0      0   100%
+pilotstd\tasks\date_reminder.py                             68      0   100%
+pilotstd\tasks\favorite_download.py                        113     29    74%
+pilotstd\ui\__init__.py                                      3      3     0%
+pilotstd\ui\core\__init__.py                                 0      0   100%
+pilotstd\ui\core\_core.py                                   84     84     0%
+pilotstd\ui\core\_core_adapters.py                          63     63     0%
+pilotstd\ui\core\_core_init_query.py                        16     16     0%
+pilotstd\ui\core\_self_check.py                             77     77     0%
+pilotstd\ui\core\event_bus.py                               88     88     0%
+pilotstd\ui\core\handlers\__init__.py                       13     13     0%
+pilotstd\ui\core\handlers\_announce.py                     108    108     0%
+pilotstd\ui\core\handlers\_archive.py                      190    190     0%
+pilotstd\ui\core\handlers\_auto.py                         164    164     0%
+pilotstd\ui\core\handlers\_cleanup.py                      219    219     0%
+pilotstd\ui\core\handlers\_dialog.py                       121    121     0%
+pilotstd\ui\core\handlers\_download.py                     186    186     0%
+pilotstd\ui\core\handlers\_export.py                       122    122     0%
+pilotstd\ui\core\handlers\_file_dialog.py                   41     41     0%
+pilotstd\ui\core\handlers\_file_tree.py                    176    176     0%
+pilotstd\ui\core\handlers\_persistence.py                   60     60     0%
+pilotstd\ui\core\handlers\_project.py                       57     57     0%
+pilotstd\ui\core\handlers\_query.py                        196    196     0%
+pilotstd\ui\core\handlers\_query_summary.py                201    201     0%
+pilotstd\ui\core\handlers\_scan.py                         142    142     0%
+pilotstd\ui\core\handlers\_settings.py                     329    329     0%
+pilotstd\ui\core\handlers\_settings_io.py                  214    214     0%
+pilotstd\ui\core\handlers\_table.py                        114    114     0%
+pilotstd\ui\core\handlers\_table_helper.py                 160    160     0%
+pilotstd\ui\core\handlers\_theme.py                         90     90     0%
+pilotstd\ui\core\handlers\_ui_layout.py                     86     86     0%
+pilotstd\ui\core\handlers\_ui_setup.py                      69     69     0%
+pilotstd\ui\core\handlers\_ui_toolbar.py                    90     90     0%
+pilotstd\ui\core\handlers\actions_flow_engine.py            17     17     0%
+pilotstd\ui\core\handlers\announce_flow_engine.py           41     41     0%
+pilotstd\ui\core\handlers\archive_flow_engine.py            55     55     0%
+pilotstd\ui\core\handlers\archive_worker_factory.py         30     30     0%
+pilotstd\ui\core\handlers\auto_flow_engine.py               18     18     0%
+pilotstd\ui\core\handlers\cleanup_flow_engine.py            41     41     0%
+pilotstd\ui\core\handlers\dialog_flow_engine.py             28     28     0%
+pilotstd\ui\core\handlers\download_flow_engine.py          100    100     0%
+pilotstd\ui\core\handlers\file_tree_flow_engine.py          34     34     0%
+pilotstd\ui\core\handlers\persistence_flow_engine.py        48     48     0%
+pilotstd\ui\core\handlers\project_flow_engine.py            25     25     0%
+pilotstd\ui\core\handlers\protocols.py                      38     38     0%
+pilotstd\ui\core\handlers\query_flow_engine.py              87     87     0%
+pilotstd\ui\core\handlers\query_summary_flow_engine.py      38     38     0%
+pilotstd\ui\core\handlers\query_worker_factory.py           17     17     0%
+pilotstd\ui\core\handlers\scan_flow_engine.py               92     92     0%
+pilotstd\ui\core\handlers\settings_io_flow_engine.py        91     91     0%
+pilotstd\ui\core\handlers\table_flow_engine.py              25     25     0%
+pilotstd\ui\core\handlers\table_helper_flow_engine.py       20     20     0%
+pilotstd\ui\core\handlers\toolbar_flow_engine.py            25     25     0%
+pilotstd\ui\core\unified_progress.py                        45     45     0%
+pilotstd\ui\dialogs.py                                      43     43     0%
+pilotstd\ui\drive_enumerator.py                             11     11     0%
+pilotstd\ui\main_window\__init__.py                        106    106     0%
+pilotstd\ui\main_window\_window_lifecycle.py                79     79     0%
+pilotstd\ui\main_window\parts\__init__.py                    0      0   100%
+pilotstd\ui\main_window\parts\_actions_ops.py              161    161     0%
+pilotstd\ui\main_window\parts\_delegate_ops.py              48     48     0%
+pilotstd\ui\main_window\parts\_dialog_ops.py                79     79     0%
+pilotstd\ui\main_window\parts\_download_ops.py              29     29     0%
+pilotstd\ui\main_window\parts\_export_ops.py               101    101     0%
+pilotstd\ui\main_window\parts\_file_dialog_ops.py           34     34     0%
+pilotstd\ui\main_window\parts\_file_tree_ops.py            187    187     0%
+pilotstd\ui\main_window\parts\_persistence_ops.py           87     87     0%
+pilotstd\ui\main_window\parts\_query_ops.py                109    109     0%
+pilotstd\ui\main_window\parts\_run_main.py                   6      6     0%
+pilotstd\ui\main_window\parts\_table_io.py                  72     72     0%
+pilotstd\ui\main_window\parts\_table_ops.py                182    182     0%
+pilotstd\ui\main_window\parts\_theme_ops.py                 85     85     0%
+pilotstd\ui\main_window\parts\_ui_setup_ops.py             239    239     0%
+pilotstd\ui\pages\__init__.py                                0      0   100%
+pilotstd\ui\pages\rules_page.py                            174    174     0%
+pilotstd\ui\pages\settings\__init__.py                       2      2     0%
+pilotstd\ui\pages\settings\_core.py                         28     28     0%
+pilotstd\ui\pages\settings\_dialog.py                       25     25     0%
+pilotstd\ui\pages\settings_page.py                           1      1     0%
+pilotstd\ui\pages\task_page.py                              72     72     0%
+pilotstd\ui\pending_query_dialog.py                        224    224     0%
+pilotstd\ui\table_constants.py                               3      3     0%
+pilotstd\ui\themes.py                                       27     27     0%
+pilotstd\ui\welcome_dialog.py                               26     26     0%
+pilotstd\ui\widgets\__init__.py                              0      0   100%
+pilotstd\ui\workers.py                                       9      9     0%
+pilotstd\ui\workers\__init__.py                              9      9     0%
+pilotstd\ui\workers\_common.py                             104    104     0%
+pilotstd\ui\workers\announce.py                             39     39     0%
+pilotstd\ui\workers\archive.py                              77     77     0%
+pilotstd\ui\workers\auto.py                                 30     30     0%
+pilotstd\ui\workers\download.py                             43     43     0%
+pilotstd\ui\workers\normalize.py                            31     31     0%
+pilotstd\ui\workers\query.py                                65     65     0%
+pilotstd\ui\workers\scan.py                                 46     46     0%
+pilotstd\ui\workers\update_download.py                      35     35     0%
+pilotstd\wechat_ip\__init__.py                               0      0   100%
+pilotstd\wechat_ip\browser.py                              134    113    16%
+pilotstd\wechat_ip\config.py                                22      2    91%
+pilotstd\wechat_ip\cookie_mgr.py                            95     76    20%
+pilotstd\wechat_ip\detector.py                              44     33    25%
+pilotstd\wechat_ip\scheduler.py                            101    101     0%
+----------------------------------------------------------------------------
+TOTAL                                                    22582  12798    43%
+FAIL Required test coverage of 51.0% not reached. Total coverage: 43.33%
+======================= 635 passed in 195.87s (0:03:15) =======================

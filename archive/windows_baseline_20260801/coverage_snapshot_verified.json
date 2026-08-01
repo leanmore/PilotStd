@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-08-01T07:26:14.622746+00:00",
+  "modules": [
+    {
+      "path": "pilotstd/announcement/_wps_utils.py",
+      "stmts": 27,
+      "cover": 100,
+      "tests": 17,
+      "time_s": 1.51
+    },
+    {
+      "path": "pilotstd/tasks/date_reminder.py",
+      "stmts": 68,
+      "cover": 100,
+      "tests": 24,
+      "time_s": 1.87
+    },
+    {
+      "path": "pilotstd/announcement/_raw_store.py",
+      "stmts": 19,
+      "cover": 100,
+      "tests": 4,
+      "time_s": 1.36
+    },
+    {
+      "path": "pilotstd/query/adapters/_njbz365_session.py",
+      "stmts": 120,
+      "cover": 98,
+      "tests": 24,
+      "time_s": 1.75,
+      "missed_lines": [
+        215,
+        216,
+        241
+      ],
+      "note": "ValueError catch + final return None in _do_request"
+    }
+  ],
+  "summary": {
+    "total_stmts": 234,
+    "total_covered": 231,
+    "avg_cover": 99.5,
+    "total_tests": 69,
+    "total_time_s": 6.49
+  }
+}

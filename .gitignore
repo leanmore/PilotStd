@@ -57,6 +57,12 @@ STATUS.md
 coverage*.json
 coverage*.txt
 final_coverage.txt
+
+# ===== 分批测试临时产物 =====
+console_batch_*.txt
+pytest_batch_*.log
+test_inventory*.txt
+baseline_phase2*.txt
 crash_log.txt
 
 # ===== 运行时数据与日志 =====

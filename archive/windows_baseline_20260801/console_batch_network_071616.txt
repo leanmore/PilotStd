@@ -1,0 +1,116 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0 -- D:\PilotStd\pilotstd_env\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt6 6.11.0 -- Qt runtime 6.11.0 -- Qt compiled 6.11.0
+rootdir: D:\PilotStd
+configfile: pyproject.toml
+plugins: anyio-4.13.0, locust-2.44.4, cov-7.1.0, qt-4.2.0, timeout-2.4.0, xdist-3.8.0
+timeout: 30.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 17 items
+
+tests/test_e2e_adapters.py::TestE2EStdGov::test_gb_exact_match SKIPPED   [  5%]
+tests/test_e2e_adapters.py::TestE2ENjbz365::test_api_exact_match +++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~ Stack of MainThread (10484) ~~~~~~~~~~~~~~~~~~~~~~~~~
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pytest\__main__.py", line 9, in <module>
+    raise SystemExit(pytest.console_main())
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\config\__init__.py", line 223, in console_main
+    code = main()
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\config\__init__.py", line 199, in main
+    ret: ExitCode | int = config.hook.pytest_cmdline_main(config=config)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\main.py", line 365, in pytest_cmdline_main
+    return wrap_session(config, _main)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\main.py", line 318, in wrap_session
+    session.exitstatus = doit(config, session) or 0
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\main.py", line 372, in _main
+    config.hook.pytest_runtestloop(session=session)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\main.py", line 396, in pytest_runtestloop
+    item.config.hook.pytest_runtest_protocol(item=item, nextitem=nextitem)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 118, in pytest_runtest_protocol
+    runtestprotocol(item, nextitem=nextitem)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 137, in runtestprotocol
+    reports.append(call_and_report(item, "call", log))
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 244, in call_and_report
+    call = CallInfo.from_call(
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 353, in from_call
+    result: TResult | None = func()
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 245, in <lambda>
+    lambda: runtest_hook(item=item, **kwds),
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\runner.py", line 179, in pytest_runtest_call
+    item.runtest()
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\_pytest\unittest.py", line 389, in runtest
+    testcase(result=self)
+  File "C:\Program Files\Python314\Lib\unittest\case.py", line 725, in __call__
+    return self.run(*args, **kwds)
+  File "C:\Program Files\Python314\Lib\unittest\case.py", line 669, in run
+    self._callTestMethod(testMethod)
+  File "C:\Program Files\Python314\Lib\unittest\case.py", line 615, in _callTestMethod
+    result = method()
+  File "D:\PilotStd\tests\test_e2e_adapters.py", line 51, in test_api_exact_match
+    r = self.a.query_with_strategy("API", 610, 2004)
+  File "D:\PilotStd\pilotstd\query\adapters\base.py", line 129, in query_with_strategy
+    result = self._search_progressive(logical_code, number, year, part, num_prefix, num_suffix, target)
+  File "D:\PilotStd\pilotstd\query\adapters\base.py", line 86, in _search_progressive
+    result = self._try_exact_search(target, logical_code, number, year, part)
+  File "D:\PilotStd\pilotstd\query\adapters\base.py", line 61, in _try_exact_search
+    result = self._search(search_term)
+  File "D:\PilotStd\pilotstd\query\adapters\njbz365.py", line 71, in _search
+    candidates = self._search_candidates(search_term, target_code, target_number, target_year)
+  File "D:\PilotStd\pilotstd\query\adapters\njbz365.py", line 82, in _search_candidates
+    data = self._do_request(search_term)
+  File "D:\PilotStd\pilotstd\query\adapters\_njbz365_session.py", line 226, in _do_request
+    self._ensure_session()
+  File "D:\PilotStd\pilotstd\query\adapters\_njbz365_session.py", line 35, in _ensure_session
+    self._retry_request("get", HOME_URL, timeout=30, err_msg="访问njbz365首页获取token")
+  File "D:\PilotStd\pilotstd\query\adapters\_njbz365_session.py", line 94, in _retry_request
+    resp = self._session.request(method, url, timeout=timeout, **kwargs)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\requests\sessions.py", line 651, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\requests\sessions.py", line 827, in send
+    r.content
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\requests\models.py", line 1042, in content
+    self._content = b"".join(self.iter_content(CONTENT_CHUNK_SIZE)) or b""
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\requests\models.py", line 937, in generate
+    yield from self.raw.stream(chunk_size, decode_content=True)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\urllib3\response.py", line 1260, in stream
+    yield from self.read_chunked(amt, decode_content=decode_content)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\urllib3\response.py", line 1434, in read_chunked
+    chunk = self._handle_chunk(amt)
+  File "D:\PilotStd\pilotstd_env\Lib\site-packages\urllib3\response.py", line 1373, in _handle_chunk
+    returned_chunk = self._fp._safe_read(self.chunk_left)  # type: ignore[union-attr]
+  File "C:\Program Files\Python314\Lib\http\client.py", line 648, in _safe_read
+    data = self.fp.read(cursize)
+  File "C:\Program Files\Python314\Lib\socket.py", line 725, in readinto
+    return self._sock.recv_into(b)
+  File "C:\Program Files\Python314\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+  File "C:\Program Files\Python314\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
++++++++++++++++++++++++++++++++++++ Timeout +++++++++++++++++++++++++++++++++++

@@ -1,0 +1,1070 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.2, pytest-9.0.3, pluggy-1.6.0 -- D:\PilotStd\pilotstd_env\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt6 6.11.0 -- Qt runtime 6.11.0 -- Qt compiled 6.11.0
+rootdir: D:\PilotStd
+configfile: pyproject.toml
+plugins: anyio-4.13.0, locust-2.44.4, cov-7.1.0, qt-4.2.0, timeout-2.4.0, xdist-3.8.0
+collecting ... collected 298 items
+
+tests/gui/test_actions_flow_engine.py::TestGetToolbarButtonKeys::test_returns_8_keys PASSED [  0%]
+tests/gui/test_actions_flow_engine.py::TestGetToolbarButtonKeys::test_all_start_with_btn PASSED [  0%]
+tests/gui/test_actions_flow_engine.py::TestGetToolbarButtonKeys::test_contains_expected_keys PASSED [  1%]
+tests/gui/test_actions_flow_engine.py::TestGetToolbarButtonKeys::test_returns_tuple PASSED [  1%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_int_timestamp_within_24h PASSED [  1%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_float_timestamp_within_24h PASSED [  2%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_old_timestamp_outside_24h PASSED [  2%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_int_zero PASSED [  2%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_non_numeric_type PASSED [  3%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_none PASSED [  3%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_negative_timestamp PASSED [  3%]
+tests/gui/test_actions_flow_engine.py::TestIsUpdateThrottled::test_exactly_24h PASSED [  4%]
+tests/gui/test_actions_flow_engine.py::TestIsFrozen::test_not_frozen_by_default PASSED [  4%]
+tests/gui/test_actions_flow_engine.py::TestIsFrozen::test_frozen_when_true PASSED [  4%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_normal_input PASSED [  5%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_alternate_field_names PASSED [  5%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_missing_fields_get_defaults PASSED [  5%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_none_input PASSED [  6%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_empty_dict PASSED [  6%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_not_a_dict PASSED [  6%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_standard_count_type_error PASSED [  7%]
+tests/gui/test_announce_flow_engine.py::TestParseAnnouncement::test_standard_count_string_int PASSED [  7%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_empty_list PASSED [  7%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_all_match PASSED [  8%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_none_match PASSED [  8%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_mixed_status PASSED [  8%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_effect_status_field PASSED [  9%]
+tests/gui/test_announce_flow_engine.py::TestFilterByStatus::test_empty_status_arg PASSED [  9%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_empty_list PASSED [  9%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_descending_order PASSED [ 10%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_ascending_order PASSED [ 10%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_same_date_preserves_order PASSED [ 10%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_notice_date_fallback PASSED [ 11%]
+tests/gui/test_announce_flow_engine.py::TestSortByDate::test_missing_date_goes_last PASSED [ 11%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_replaced PASSED [ 11%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_abolished PASSED [ 12%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_abolished_variant PASSED [ 12%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_cancelled PASSED [ 12%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_current PASSED [ 13%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_about_to_implement PASSED [ 13%]
+tests/gui/test_archive_flow_engine.py::TestDetermineStatusLabel::test_empty_string PASSED [ 13%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_empty_list PASSED [ 14%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_no_source_path PASSED [ 14%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_source_file_not_exist PASSED [ 14%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_target_is_none PASSED [ 15%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_target_not_exist PASSED [ 15%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_detects_conflict PASSED [ 15%]
+tests/gui/test_archive_flow_engine.py::TestDetectFileConflicts::test_mixed PASSED [ 16%]
+tests/gui/test_archive_flow_engine.py::TestFormatConflictMessage::test_empty PASSED [ 16%]
+tests/gui/test_archive_flow_engine.py::TestFormatConflictMessage::test_under_5 PASSED [ 16%]
+tests/gui/test_archive_flow_engine.py::TestFormatConflictMessage::test_over_5 PASSED [ 17%]
+tests/gui/test_archive_flow_engine.py::TestFilterByAction::test_empty PASSED [ 17%]
+tests/gui/test_archive_flow_engine.py::TestFilterByAction::test_exact_match PASSED [ 17%]
+tests/gui/test_archive_flow_engine.py::TestFilterByAction::test_no_match PASSED [ 18%]
+tests/gui/test_archive_flow_engine.py::TestFilterByAction::test_default_empty_string PASSED [ 18%]
+tests/gui/test_archive_flow_engine.py::TestCountArchiveResults::test_empty PASSED [ 18%]
+tests/gui/test_archive_flow_engine.py::TestCountArchiveResults::test_all_saved PASSED [ 19%]
+tests/gui/test_archive_flow_engine.py::TestCountArchiveResults::test_all_skipped PASSED [ 19%]
+tests/gui/test_archive_flow_engine.py::TestCountArchiveResults::test_mixed PASSED [ 19%]
+tests/gui/test_archive_flow_engine.py::TestFindMissingNames::test_empty PASSED [ 20%]
+tests/gui/test_archive_flow_engine.py::TestFindMissingNames::test_all_have_names PASSED [ 20%]
+tests/gui/test_archive_flow_engine.py::TestFindMissingNames::test_some_missing PASSED [ 20%]
+tests/gui/test_archive_flow_engine.py::TestFindMissingNames::test_all_missing PASSED [ 21%]
+tests/gui/test_archive_flow_engine.py::TestFormatSkipDetails::test_empty_results PASSED [ 21%]
+tests/gui/test_archive_flow_engine.py::TestFormatSkipDetails::test_all_archived PASSED [ 21%]
+tests/gui/test_archive_flow_engine.py::TestFormatSkipDetails::test_skipped_items PASSED [ 22%]
+tests/gui/test_archive_flow_engine.py::TestFormatSkipDetails::test_idx_out_of_range PASSED [ 22%]
+tests/gui/test_archive_flow_engine.py::TestFormatSkipDetails::test_no_source_or_raw PASSED [ 22%]
+tests/gui/test_archive_flow_engine.py::TestGetLibraryRoot::test_returns_string PASSED [ 23%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_empty_results PASSED [ 23%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_all_found_valid PASSED [ 23%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_not_found_detected PASSED [ 24%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_expired_detected PASSED [ 24%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_adopted_detected PASSED [ 24%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_mixed_results PASSED [ 25%]
+tests/gui/test_auto_flow_engine.py::TestAutoFlowEngine::test_none_results_handled PASSED [ 25%]
+tests/gui/test_auto_pipeline.py::test_auto_pipeline_full_flow PASSED     [ 25%]
+tests/gui/test_auto_pipeline.py::test_auto_pipeline_empty_source PASSED  [ 26%]
+tests/gui/test_coverage_actions.py::TestInitManager::test_init_manager_already_done PASSED [ 26%]
+tests/gui/test_coverage_actions.py::TestSwitchToStage::test_switch_to_stage_not_ready PASSED [ 26%]
+tests/gui/test_coverage_actions.py::TestSwitchToStage::test_switch_to_stage_ready PASSED [ 27%]
+tests/gui/test_coverage_actions.py::TestUpdateButtons::test_update_button_states_not_ready PASSED [ 27%]
+tests/gui/test_coverage_actions.py::TestTaskCenter::test_on_task_center_not_ready PASSED [ 27%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_prompt_restart_no PASSED [ 28%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_confirm_update_available_no_newer PASSED [ 28%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_confirm_update_available_user_accepts PASSED [ 28%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_download_update_file PASSED [ 29%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_prompt_restart_ok_button PASSED [ 29%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_on_check_update_throttled PASSED [ 29%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_on_check_update_api_none PASSED [ 30%]
+tests/gui/test_coverage_actions.py::TestUpdateFlow::test_on_check_update_exception PASSED [ 30%]
+tests/gui/test_coverage_dialogs.py::test_question_dlg_not_suppressed PASSED [ 30%]
+tests/gui/test_coverage_dialogs.py::test_stage_prereq_dialog_not_suppressed PASSED [ 31%]
+tests/gui/test_coverage_dialogs.py::test_show_stage_dialog_not_suppressed_no_action PASSED [ 31%]
+tests/gui/test_coverage_dialogs.py::test_show_stage_dialog_not_suppressed_with_action PASSED [ 31%]
+tests/gui/test_coverage_dialogs.py::test_register_task_failure PASSED    [ 32%]
+tests/gui/test_coverage_dialogs.py::test_push_zero_total PASSED          [ 32%]
+tests/gui/test_coverage_export.py::TestExportFileList::test_export_file_list_no_selection PASSED [ 32%]
+tests/gui/test_coverage_export.py::TestExportFileList::test_export_file_list_ok PASSED [ 33%]
+tests/gui/test_coverage_export.py::TestExportFolderTree::test_export_folder_tree PASSED [ 33%]
+tests/gui/test_coverage_export.py::TestExportFolderTree::test_collect_folder_tree_max_depth PASSED [ 33%]
+tests/gui/test_coverage_export.py::TestExportFolderTree::test_collect_folder_tree_permission_error PASSED [ 34%]
+tests/gui/test_coverage_export.py::TestExportDiag::test_export_diag PASSED [ 34%]
+tests/gui/test_coverage_export.py::TestExportDiag::test_export_diag_cancelled PASSED [ 34%]
+tests/gui/test_coverage_filetree.py::TestDrivesReady::test_drives_ready_sip_deleted PASSED [ 35%]
+tests/gui/test_coverage_filetree.py::TestDrivesReady::test_drives_ready_no_this_pc PASSED [ 35%]
+tests/gui/test_coverage_filetree.py::TestPopulateChildren::test_normal PASSED [ 35%]
+tests/gui/test_coverage_filetree.py::TestPopulateChildren::test_over_max PASSED [ 36%]
+tests/gui/test_coverage_filetree.py::TestPopulateChildren::test_empty_dir PASSED [ 36%]
+tests/gui/test_coverage_filetree.py::TestPopulateChildren::test_invalid_path PASSED [ 36%]
+tests/gui/test_coverage_filetree.py::TestPopulateChildren::test_permission_error PASSED [ 37%]
+tests/gui/test_coverage_filetree.py::TestTreeItemExpanded::test_with_fake_child PASSED [ 37%]
+tests/gui/test_coverage_filetree.py::TestTreeItemExpanded::test_no_children PASSED [ 37%]
+tests/gui/test_coverage_filetree.py::TestContextMenu::test_no_item PASSED [ 38%]
+tests/gui/test_coverage_filetree.py::TestContextMenu::test_path_not_exist PASSED [ 38%]
+tests/gui/test_coverage_filetree.py::TestRetranslate::test_retranslate PASSED [ 38%]
+tests/gui/test_coverage_filetree.py::TestNavigate::test_not_exist PASSED [ 39%]
+tests/gui/test_coverage_filetree.py::TestNavigate::test_top_level PASSED [ 39%]
+tests/gui/test_coverage_final.py::TestDelegateRemaining::test_start_auto_pipeline_guard PASSED [ 39%]
+tests/gui/test_coverage_final.py::TestDialogRemaining::test_stage_prereq_dialog_cancel_branch PASSED [ 40%]
+tests/gui/test_coverage_final.py::TestDownloadRemaining::test_check_download_queue_more_than_5 PASSED [ 40%]
+tests/gui/test_coverage_final.py::TestThemeRemaining::test_load_qt_translator_load_fails PASSED [ 40%]
+tests/gui/test_coverage_final.py::TestMainWindowRemaining::test_add_row_from_dict_translated_col_fallback PASSED [ 41%]
+tests/gui/test_coverage_final.py::TestExportRemaining::test_export_file_list_oserror_handling PASSED [ 41%]
+tests/gui/test_coverage_final.py::TestExportRemaining::test_export_file_list_no_path_fallback PASSED [ 41%]
+tests/gui/test_coverage_final.py::TestExportRemaining::test_collect_folder_tree_dotfiles_skip PASSED [ 42%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_populate_children_oserror PASSED [ 42%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_populate_children_hidden_skip PASSED [ 42%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_populate_children_pdf_icon PASSED [ 43%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_context_menu_import_action PASSED [ 43%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_navigate_to_ancestor PASSED [ 43%]
+tests/gui/test_coverage_final.py::TestFileTreeRemaining::test_retranslate_file_tree_nodes_updated PASSED [ 44%]
+tests/gui/test_coverage_final.py::TestTableRemaining::test_on_header_context_menu_restore_width PASSED [ 44%]
+tests/gui/test_coverage_final.py::TestTableRemaining::test_on_save_result_txt_format PASSED [ 44%]
+tests/gui/test_coverage_final.py::TestTableRemaining::test_on_save_result_oserror_file_write PASSED [ 45%]
+tests/gui/test_coverage_final.py::TestTableRemaining::test_on_save_result_oserror PASSED [ 45%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_require_core_returns_false_when_core_is_none PASSED [ 45%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_check_announcements_guard PASSED [ 46%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_download_guard PASSED [ 46%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_import_download_guard PASSED [ 46%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_run_scan_guard PASSED [ 47%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_query_guard PASSED [ 47%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_save_to_folder_guard PASSED [ 47%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_normalize_guard PASSED [ 48%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_start_auto_pipeline_guard PASSED [ 48%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_cleanup_empty_dirs_guard PASSED [ 48%]
+tests/gui/test_coverage_guards.py::TestDelegateOpsGuards::test_on_collect_unrecognized_guard PASSED [ 49%]
+tests/gui/test_coverage_guards.py::TestDownloadOps::test_check_download_queue_mgr_not_ready PASSED [ 49%]
+tests/gui/test_coverage_guards.py::TestDownloadOps::test_check_download_queue_with_due PASSED [ 50%]
+tests/gui/test_coverage_guards.py::TestDownloadOps::test_on_auto_run_mgr_not_ready PASSED [ 50%]
+tests/gui/test_coverage_guards.py::TestDownloadOps::test_on_auto_run_with_path PASSED [ 50%]
+tests/gui/test_coverage_guards.py::TestFileDialogOps::test_on_open_file_with_selection PASSED [ 51%]
+tests/gui/test_coverage_guards.py::TestFileDialogOps::test_on_open_folder_with_selection PASSED [ 51%]
+tests/gui/test_coverage_guards.py::TestFileDialogOps::test_on_select_with_selection PASSED [ 51%]
+tests/gui/test_coverage_guards.py::TestUiSetupOpsExceptionHandling::test_setup_auto_save_signal_failure_is_suppressed PASSED [ 52%]
+tests/gui/test_coverage_guards.py::TestUiSetupOpsExceptionHandling::test_on_shutdown_aggregator_exception_suppressed PASSED [ 52%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_restore_window_geometry_delegates_to_handler PASSED [ 52%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_restore_splitter_sizes_delegates_to_handler PASSED [ 53%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_restore_sort_state_delegates_to_handler PASSED [ 53%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_restore_column_widths_delegates_to_handler PASSED [ 53%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_on_open_project_delegates_to_handler PASSED [ 54%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_on_save_query_project_delegates_to_handler PASSED [ 54%]
+tests/gui/test_coverage_guards.py::TestPersistenceOpsWithCore::test_on_save_download_project_delegates_to_handler PASSED [ 54%]
+tests/gui/test_coverage_mainwindow.py::TestQuitApp::test_quit_app_db_backup_fails PASSED [ 55%]
+tests/gui/test_coverage_mainwindow.py::TestQuitApp::test_quit_app_shutdown_fails PASSED [ 55%]
+tests/gui/test_coverage_mainwindow.py::TestRunAuto::test_run_auto PASSED [ 55%]
+tests/gui/test_coverage_mainwindow.py::TestAutoSave::test_on_auto_save_dirty PASSED [ 56%]
+tests/gui/test_coverage_mainwindow.py::TestAutoSave::test_on_auto_save_not_dirty PASSED [ 56%]
+tests/gui/test_coverage_mainwindow.py::TestAutoSave::test_on_atexit_save PASSED [ 56%]
+tests/gui/test_coverage_mainwindow.py::TestAddRowFromDict::test_add_row_from_dict_translated_col PASSED [ 57%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_is_enabled PASSED   [ 57%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_is_disabled_by_default PASSED [ 57%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_run_self_check_no_core PASSED [ 58%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_check_parsed_results_consistency PASSED [ 58%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_check_core_attributes PASSED [ 58%]
+tests/gui/test_coverage_misc.py::TestSelfCheck::test_check_mgr_proxy PASSED [ 59%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_create_rules_page PASSED [ 59%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_add_rule_creates_dialog PASSED [ 59%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_import_json_cancelled PASSED [ 60%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_import_json_success PASSED [ 60%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_export_json_no_rules PASSED [ 60%]
+tests/gui/test_coverage_misc.py::TestRulesPage::test_export_json_success PASSED [ 61%]
+tests/gui/test_coverage_misc.py::TestPendingQueryGap::test_dialog_creates PASSED [ 61%]
+tests/gui/test_coverage_queries.py::test_on_query_result_ready_populates_table PASSED [ 61%]
+tests/gui/test_coverage_queries.py::test_on_query_result_ready_website_no_category PASSED [ 62%]
+tests/gui/test_coverage_queries.py::test_on_query_result_ready_status_colors PASSED [ 62%]
+tests/gui/test_coverage_queries.py::test_on_pending_query_exception PASSED [ 62%]
+tests/gui/test_coverage_queries.py::test_on_pending_query_mgr_not_ready PASSED [ 63%]
+tests/gui/test_coverage_queries.py::test_on_pending_query_workspace_not_empty PASSED [ 63%]
+tests/gui/test_coverage_queries.py::test_on_pending_query_cancel_file_dialog PASSED [ 63%]
+tests/gui/test_coverage_queries.py::test_on_pending_query_csv_no_standards PASSED [ 64%]
+tests/gui/test_coverage_queries.py::test_parse_pending_csv_empty PASSED  [ 64%]
+tests/gui/test_coverage_queries.py::test_parse_pending_csv_with_invalid_std PASSED [ 64%]
+tests/gui/test_coverage_queries.py::test_parse_pending_csv_parse_none PASSED [ 65%]
+tests/gui/test_coverage_queries.py::test_parse_pending_csv_skip_header PASSED [ 65%]
+tests/gui/test_coverage_queries.py::test_parse_pending_csv_skip_empty_row PASSED [ 65%]
+tests/gui/test_coverage_table.py::test_on_header_context_menu_toggle_col PASSED [ 66%]
+tests/gui/test_coverage_table.py::test_on_save_result_empty PASSED       [ 66%]
+tests/gui/test_coverage_table.py::test_on_save_result_with_hidden_cols PASSED [ 66%]
+tests/gui/test_coverage_table.py::test_on_save_result_user_rejects_hidden PASSED [ 67%]
+tests/gui/test_coverage_table.py::test_on_save_result_no_path PASSED     [ 67%]
+tests/gui/test_coverage_table.py::test_save_txt_without_cols PASSED      [ 67%]
+tests/gui/test_coverage_table.py::test_save_txt_with_cols PASSED         [ 68%]
+tests/gui/test_coverage_table.py::test_save_csv_without_keys PASSED      [ 68%]
+tests/gui/test_coverage_table.py::test_work_table_context_menu_add_file_flow PASSED [ 68%]
+tests/gui/test_coverage_table.py::test_work_table_context_menu_remove_all_flow PASSED [ 69%]
+tests/gui/test_coverage_table.py::test_offline_view_mgr_not_ready PASSED [ 69%]
+tests/gui/test_coverage_table.py::test_offline_view_no_selection PASSED  [ 69%]
+tests/gui/test_coverage_table.py::test_offline_view_no_file_index PASSED [ 70%]
+tests/gui/test_coverage_table.py::test_offline_view_row_out_of_range PASSED [ 70%]
+tests/gui/test_coverage_table.py::test_offline_view_no_results PASSED    [ 70%]
+tests/gui/test_coverage_table.py::test_offline_view_with_results PASSED  [ 71%]
+tests/gui/test_coverage_table.py::test_remove_selected_rows_clears_parsed PASSED [ 71%]
+tests/gui/test_coverage_table.py::test_add_row_adopted_coloring PASSED   [ 71%]
+tests/gui/test_coverage_table.py::test_table_key_press_non_copy PASSED   [ 72%]
+tests/gui/test_coverage_workers.py::TestWorkersModule::test_workers_py_all_exports PASSED [ 72%]
+tests/gui/test_coverage_workers.py::TestWorkersModule::test_workers_package_all_exports PASSED [ 72%]
+tests/gui/test_coverage_workers.py::TestWorkersModule::test_workers_py_re_exports_match_package PASSED [ 73%]
+tests/gui/test_coverage_workers.py::TestPctFunction::test_pct_normal PASSED [ 73%]
+tests/gui/test_coverage_workers.py::TestPctFunction::test_pct_zero_total PASSED [ 73%]
+tests/gui/test_coverage_workers.py::TestPctFunction::test_pct_full PASSED [ 74%]
+tests/gui/test_coverage_workers.py::TestPctFunction::test_pct_zero_current PASSED [ 74%]
+tests/gui/test_coverage_workers.py::TestShouldLogProgress::test_should_log_true PASSED [ 74%]
+tests/gui/test_coverage_workers.py::TestShouldLogProgress::test_should_log_false PASSED [ 75%]
+tests/gui/test_coverage_workers.py::TestLogProgress::test_log_progress_calls_info PASSED [ 75%]
+tests/gui/test_coverage_workers.py::TestLogProgress::test_log_progress_zero_total PASSED [ 75%]
+tests/gui/test_coverage_workers.py::TestRowUpdateDefaults::test_row_update_all_defaults PASSED [ 76%]
+tests/gui/test_coverage_workers.py::TestRowUpdateDefaults::test_row_update_explicit_values PASSED [ 76%]
+tests/gui/test_coverage_workers.py::TestRowUpdateDefaults::test_row_update_fields_count PASSED [ 76%]
+tests/gui/test_coverage_workers.py::TestAnnounceWorker::test_create PASSED [ 77%]
+tests/gui/test_coverage_workers.py::TestAnnounceWorker::test_signals_exist PASSED [ 77%]
+tests/gui/test_coverage_workers.py::TestAnnounceWorker::test_stop_sets_flag PASSED [ 77%]
+tests/gui/test_coverage_workers.py::TestAnnounceWorker::test_init_with_optional_params PASSED [ 78%]
+tests/gui/test_coverage_workers.py::TestAnnounceWorker::test_init_with_empty_since_date_defaults_to_none PASSED [ 78%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_create PASSED [ 78%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_signals_exist PASSED [ 79%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_stop_sets_flag PASSED [ 79%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_init_with_optional_params PASSED [ 79%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_target_path_returns_str PASSED [ 80%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_target_path_with_effect_status_expired PASSED [ 80%]
+tests/gui/test_coverage_workers.py::TestArchiveWorker::test_instance_target_path_delegates PASSED [ 80%]
+tests/gui/test_coverage_workers.py::TestAutoWorker::test_create PASSED   [ 81%]
+tests/gui/test_coverage_workers.py::TestAutoWorker::test_all_signals_exist PASSED [ 81%]
+tests/gui/test_coverage_workers.py::TestAutoWorker::test_stop_sets_flag PASSED [ 81%]
+tests/gui/test_coverage_workers.py::TestAutoWorker::test_emit_scan_batch_when_not_stopped PASSED [ 82%]
+tests/gui/test_coverage_workers.py::TestAutoWorker::test_emit_scan_batch_when_stopped PASSED [ 82%]
+tests/gui/test_coverage_workers.py::TestDownloadWorker::test_create PASSED [ 82%]
+tests/gui/test_coverage_workers.py::TestDownloadWorker::test_signals_exist PASSED [ 83%]
+tests/gui/test_coverage_workers.py::TestDownloadWorker::test_stop_sets_flag PASSED [ 83%]
+tests/gui/test_coverage_workers.py::TestDownloadWorker::test_init_with_pause_event PASSED [ 83%]
+tests/gui/test_coverage_workers.py::TestNormalizeWorker::test_create PASSED [ 84%]
+tests/gui/test_coverage_workers.py::TestNormalizeWorker::test_signals_exist PASSED [ 84%]
+tests/gui/test_coverage_workers.py::TestNormalizeWorker::test_stop_sets_flag PASSED [ 84%]
+tests/gui/test_coverage_workers.py::TestNormalizeWorker::test_init_with_pause_event PASSED [ 85%]
+tests/gui/test_coverage_workers.py::TestQueryWorker::test_create PASSED  [ 85%]
+tests/gui/test_coverage_workers.py::TestQueryWorker::test_signals_exist PASSED [ 85%]
+tests/gui/test_coverage_workers.py::TestQueryWorker::test_stop_sets_flag PASSED [ 86%]
+tests/gui/test_coverage_workers.py::TestQueryWorker::test_init_with_all_optional_params PASSED [ 86%]
+tests/gui/test_coverage_workers.py::TestScanWorker::test_create PASSED   [ 86%]
+tests/gui/test_coverage_workers.py::TestScanWorker::test_signals_exist PASSED [ 87%]
+tests/gui/test_coverage_workers.py::TestScanWorker::test_stop_sets_flag PASSED [ 87%]
+tests/gui/test_coverage_workers.py::TestScanWorker::test_init_with_pause_event PASSED [ 87%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_create PASSED [ 88%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_signals_exist PASSED [ 88%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_run_emits_progress_msg PASSED [ 88%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_run_download_failed PASSED [ 89%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_run_exception_emits_failed PASSED [ 89%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_run_success_emits_download_ready PASSED [ 89%]
+tests/gui/test_coverage_workers.py::TestUpdateDownloadWorker::test_run_write_permission_denied PASSED [ 90%]
+tests/gui/test_coverage_workers.py::TestWorkersViaCompatImport::test_import_all_workers_from_compat_module PASSED [ 90%]
+tests/gui/test_coverage_workers.py::TestWorkersViaCompatImport::test_import_common_items_from_compat_module PASSED [ 90%]
+tests/gui/test_dialogs.py::TestConfigPageDialog::test_create_with_widget PASSED [ 91%]
+tests/gui/test_dialogs.py::TestConfigPageDialog::test_close_button_accepts PASSED [ 91%]
+tests/gui/test_dialogs.py::TestConfigPageDialog::test_different_title PASSED [ 91%]
+tests/gui/test_dialogs.py::TestConfigPageDialog::test_layout_contains_page_widget PASSED [ 92%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_create_dialog PASSED [ 92%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_include_checkbox_toggle PASSED [ 92%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_include_checkbox_unchecked PASSED [ 93%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_cancel_button_rejects PASSED [ 93%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_ok_button_sets_include_path_and_accepts PASSED [ 93%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_change_folder_mock PASSED [ 94%]
+tests/gui/test_dialogs.py::TestExportFileListDialog::test_change_folder_cancelled PASSED [ 94%]
+tests/gui/test_download.py::test_download_requires_scan_and_query PASSED [ 94%]
+tests/gui/test_download.py::test_download_mock_after_query PASSED        [ 95%]
+tests/gui/test_download.py::test_download_progress_bar_shows PASSED      [ 95%]
+tests/gui/test_e2e_announce.py::test_check_guard_returns_true_when_enabled PASSED [ 95%]
+tests/gui/test_e2e_announce.py::test_check_guard_returns_false_when_disabled PASSED [ 96%]
+tests/gui/test_e2e_auto.py::test_auto_pipeline_registered PASSED         [ 96%]
+tests/gui/test_e2e_cleanup.py::test_scan_empty_dirs_finds_empty PASSED   [ 96%]
+tests/gui/test_e2e_cleanup.py::test_scan_empty_dirs_detects_expire_only PASSED [ 97%]
+tests/gui/test_e2e_dialog.py::test_dialog_handler_not_in_core SKIPPED    [ 97%]
+tests/gui/test_e2e_download.py::test_filter_too_new_standards_empty PASSED [ 97%]
+tests/gui/test_e2e_download.py::test_prepare_download_empty_guard PASSED [ 98%]
+tests/gui/test_e2e_export.py::test_export_handler_collect_tree PASSED    [ 98%]
+tests/gui/test_e2e_file_dialog.py::test_pick_folder_returns_path PASSED  [ 98%]
+tests/gui/test_e2e_file_tree.py::test_file_tree_handler_not_in_core SKIPPED [ 99%]
+tests/gui/test_e2e_persistence.py::test_window_geometry_roundtrip PASSED [ 99%]
+tests/gui/test_e2e_persistence.py::test_splitter_sizes_roundtrip PASSED  [100%]C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A76A0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A7C40>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A0220>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A07C0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A0A90>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A0E50>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A15D0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A1E40>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A23E0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A2980>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A2F20>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A31F0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A3A60>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF4040>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF4310>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF48B0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF4E50>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF53F0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF6110>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF5C60>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF7100>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF75B0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF7F10>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF7C40>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA70A90>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA70400>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA70F40>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA716C0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA70220>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA717B0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA706D0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA71C60>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA722F0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA72F20>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA734C0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA73A60>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847BD8C040>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847BD8CD60>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847BD8D3F0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414926110>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430366F20>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:453: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A4400>
+  @classmethod
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A62F0>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+C:\Program Files\Python314\Lib\collections\__init__.py:455: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A6980>
+  result = tuple_new(cls, iterable)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.2-final-0 _______________
+
+Name                                                     Stmts   Miss  Cover
+----------------------------------------------------------------------------
+pilotstd\__init__.py                                        12      2    83%
+pilotstd\announcement\__init__.py                            4      0   100%
+pilotstd\announcement\_attachment_parser.py                103     51    50%
+pilotstd\announcement\_circuit_breaker.py                  119      7    94%
+pilotstd\announcement\_content_cleaner.py                   97     10    90%
+pilotstd\announcement\_raw_store.py                         19      0   100%
+pilotstd\announcement\_wps_utils.py                         27      0   100%
+pilotstd\announcement\adapters\__init__.py                   4      0   100%
+pilotstd\announcement\adapters\samr_db.py                   14      3    79%
+pilotstd\announcement\adapters\samr_gb.py                   14      3    79%
+pilotstd\announcement\adapters\samr_hb.py                   14      3    79%
+pilotstd\announcement\base.py                              184     29    84%
+pilotstd\announcement\engine.py                             55     22    60%
+pilotstd\announcement\matcher.py                           142      2    99%
+pilotstd\announcement\monitor.py                            47      0   100%
+pilotstd\announcement\ocr\__init__.py                       61      8    87%
+pilotstd\announcement\ocr\_aliyun.py                        47     27    43%
+pilotstd\announcement\ocr\_baidu.py                         61     42    31%
+pilotstd\announcement\ocr\_base.py                         195    102    48%
+pilotstd\announcement\ocr\_pdf_utils.py                     35     11    69%
+pilotstd\announcement\ocr\_tencent.py                       71     48    32%
+pilotstd\announcement\parser.py                            190     32    83%
+pilotstd\cli\__init__.py                                     0      0   100%
+pilotstd\cli\commands\__init__.py                          102      4    96%
+pilotstd\cli\commands\__main__.py                            3      0   100%
+pilotstd\cli\commands\_shared.py                            12      1    92%
+pilotstd\cli\commands\announce.py                           36      6    83%
+pilotstd\cli\commands\auto.py                                8      0   100%
+pilotstd\cli\commands\download.py                           27     12    56%
+pilotstd\cli\commands\expire.py                              9      0   100%
+pilotstd\cli\commands\move.py                               22      1    95%
+pilotstd\cli\commands\normalize.py                          15      1    93%
+pilotstd\cli\commands\organize.py                           14      1    93%
+pilotstd\cli\commands\pending.py                            21      3    86%
+pilotstd\cli\commands\query.py                              44     13    70%
+pilotstd\cli\commands\scan.py                               18      0   100%
+pilotstd\cli\commands\task.py                               19      8    58%
+pilotstd\constants\announce_types.py                         2      0   100%
+pilotstd\core\__init__.py                                    7      0   100%
+pilotstd\core\_file_index_query.py                          90      0   100%
+pilotstd\core\_validity_pipeline.py                        117      4    97%
+pilotstd\core\audit.py                                      40     24    40%
+pilotstd\core\cache_manager.py                             170      0   100%
+pilotstd\core\config\__init__.py                             5      0   100%
+pilotstd\core\config\crypto.py                              36      4    89%
+pilotstd\core\config\defaults.py                             2      0   100%
+pilotstd\core\config\manager.py                            115     14    88%
+pilotstd\core\config\migrate.py                             70     14    80%
+pilotstd\core\config\paths.py                               51     26    49%
+pilotstd\core\config\priority.py                            93      5    95%
+pilotstd\core\config\service.py                             77     10    87%
+pilotstd\core\config\settings_schema.py                     26      0   100%
+pilotstd\core\context.py                                     6      0   100%
+pilotstd\core\db\__init__.py                                 4      0   100%
+pilotstd\core\db\_constants.py                              10      0   100%
+pilotstd\core\db\_migrate_v2_v15.py                         77      0   100%
+pilotstd\core\db\_migrate_v31_plus.py                       95      6    94%
+pilotstd\core\db\_migrate_v37_plus.py                       59      8    86%
+pilotstd\core\db\_migrate_v44.py                            17      2    88%
+pilotstd\core\db\_migration_checksum.py                     68      9    87%
+pilotstd\core\db\database.py                               240     58    76%
+pilotstd\core\db\migrations.py                             241     46    81%
+pilotstd\core\download_utils.py                             43      1    98%
+pilotstd\core\export_utils.py                                6      0   100%
+pilotstd\core\file_index.py                                103      2    98%
+pilotstd\core\file_utils.py                                188     37    80%
+pilotstd\core\frozen.py                                      3      0   100%
+pilotstd\core\logger.py                                     98     19    81%
+pilotstd\core\notification\__init__.py                       4      0   100%
+pilotstd\core\notification\_builders_batch.py              109      0   100%
+pilotstd\core\notification\_builders_system.py              91      0   100%
+pilotstd\core\notification\_builders_validity.py            74      0   100%
+pilotstd\core\notification\_credentials.py                  58      0   100%
+pilotstd\core\notification\_format_utils.py                 84      0   100%
+pilotstd\core\notification\_message_builders.py              7      0   100%
+pilotstd\core\notification\_policy.py                       40      3    92%
+pilotstd\core\notification\aggregate_buffer.py             150      0   100%
+pilotstd\core\notification\blocks.py                        23      0   100%
+pilotstd\core\notification\channel.py                       26      1    96%
+pilotstd\core\notification\channels\__init__.py              5      0   100%
+pilotstd\core\notification\channels\dingtalk.py             50      0   100%
+pilotstd\core\notification\channels\feishu.py               33      0   100%
+pilotstd\core\notification\channels\telegram.py             56      0   100%
+pilotstd\core\notification\channels\wechat.py               30      0   100%
+pilotstd\core\notification\desktop_formatter.py             24      0   100%
+pilotstd\core\notification\events.py                        36      0   100%
+pilotstd\core\notification\manager.py                      213     51    76%
+pilotstd\core\notification\renderer.py                     171      0   100%
+pilotstd\core\notification_aggregator.py                   127      8    94%
+pilotstd\core\path_guard.py                                 22      4    82%
+pilotstd\core\project.py                                    59     10    83%
+pilotstd\core\security.py                                   36      2    94%
+pilotstd\core\std_utils.py                                  97      3    97%
+pilotstd\core\task_history.py                               59      6    90%
+pilotstd\core\task_status.py                                47      7    85%
+pilotstd\core\validity_checker.py                          110      0   100%
+pilotstd\download\__init__.py                                6      0   100%
+pilotstd\download\adapters\__init__.py                       3      0   100%
+pilotstd\download\adapters\base.py                          17      3    82%
+pilotstd\download\adapters\openstd_download.py             109     88    19%
+pilotstd\download\engine.py                                198     34    83%
+pilotstd\download\models.py                                 29      0   100%
+pilotstd\download\session.py                                58      5    91%
+pilotstd\i18n\__init__.py                                   35      5    86%
+pilotstd\manager\__init__.py                                 8      0   100%
+pilotstd\manager\_announce_fetch.py                        161    123    24%
+pilotstd\manager\adapter_manager.py                         62     17    73%
+pilotstd\manager\announce_service.py                        98     68    31%
+pilotstd\manager\archive_retry_service.py                   50     18    64%
+pilotstd\manager\classifier.py                             101     40    60%
+pilotstd\manager\export_service.py                           8      4    50%
+pilotstd\manager\facade\__init__.py                         52     37    29%
+pilotstd\manager\facade\_auto.py                           115      6    95%
+pilotstd\manager\facade\_base.py                           168      2    99%
+pilotstd\manager\facade\_base_properties.py                143     16    89%
+pilotstd\manager\facade\_core.py                            38     16    58%
+pilotstd\manager\facade\_download.py                        80      1    99%
+pilotstd\manager\facade\_file_index.py                      24     12    50%
+pilotstd\manager\facade\_organize.py                       192     92    52%
+pilotstd\manager\facade\_query.py                           63      2    97%
+pilotstd\manager\facade\_query_exec.py                     129     17    87%
+pilotstd\manager\facade\_query_report.py                    87      6    93%
+pilotstd\manager\facade\_scan.py                           141     45    68%
+pilotstd\manager\monitor_service.py                         35     22    37%
+pilotstd\manager\organize\__init__.py                        8      0   100%
+pilotstd\manager\organize\_utils.py                         14      0   100%
+pilotstd\manager\organize\expire.py                         46     28    39%
+pilotstd\manager\organize\mirror.py                        130     78    40%
+pilotstd\manager\organize\organizer.py                     173     54    69%
+pilotstd\manager\organizer_service.py                        2      0   100%
+pilotstd\manager\pending_service.py                         85     18    79%
+pilotstd\manager\quality_service.py                         11      0   100%
+pilotstd\manager\scheduled_service.py                       92     57    38%
+pilotstd\manager\service_factory.py                         20      0   100%
+pilotstd\manager\settings_manager.py                        69      0   100%
+pilotstd\manager\standard_service.py                        50      0   100%
+pilotstd\manager\system_service.py                           8      4    50%
+pilotstd\manager\user_service.py                            60      0   100%
+pilotstd\manager\validity_service.py                        20     14    30%
+pilotstd\manager\wechat_ip_service.py                       84     70    17%
+pilotstd\models.py                                          64      1    98%
+pilotstd\monitor\__init__.py                                 3      0   100%
+pilotstd\monitor\config.py                                  87     55    37%
+pilotstd\monitor\handler.py                                 53     39    26%
+pilotstd\monitor\scheduler.py                               83     18    78%
+pilotstd\organizer\__init__.py                               4      0   100%
+pilotstd\organizer\dir_builder.py                           21      2    90%
+pilotstd\organizer\industry_lookup.py                       65      0   100%
+pilotstd\organizer\mover.py                                 32      0   100%
+pilotstd\pipeline\__init__.py                                0      0   100%
+pilotstd\pipeline\router.py                                196     66    66%
+pilotstd\platform\__init__.py                                0      0   100%
+pilotstd\platform\notify.py                                 55      3    95%
+pilotstd\platform\updater.py                               112      6    95%
+pilotstd\quality\__init__.py                                 2      0   100%
+pilotstd\quality\models.py                                  15      0   100%
+pilotstd\quality\rules\__init__.py                           0      0   100%
+pilotstd\quality\rules\stale_references.py                  25      0   100%
+pilotstd\quality\runner.py                                  23      0   100%
+pilotstd\query\__init__.py                                  70     24    66%
+pilotstd\query\adapters\__init__.py                         22      0   100%
+pilotstd\query\adapters\_njbz365_session.py                120      3    98%
+pilotstd\query\adapters\ahbz.py                             79     10    87%
+pilotstd\query\adapters\base.py                            125     12    90%
+pilotstd\query\adapters\ccsn.py                            121     15    88%
+pilotstd\query\adapters\csres.py                           183     96    48%
+pilotstd\query\adapters\cssn.py                             71      6    92%
+pilotstd\query\adapters\dbba.py                             47      4    91%
+pilotstd\query\adapters\energy.py                           93      7    92%
+pilotstd\query\adapters\gongbiaoku.py                       69      3    96%
+pilotstd\query\adapters\hbba.py                             91     13    86%
+pilotstd\query\adapters\iso_gov.py                          58      7    88%
+pilotstd\query\adapters\jjg.py                              74      5    93%
+pilotstd\query\adapters\jtst.py                             86      5    94%
+pilotstd\query\adapters\mee.py                              84      5    94%
+pilotstd\query\adapters\miit.py                             62      5    92%
+pilotstd\query\adapters\mock.py                             18      8    56%
+pilotstd\query\adapters\ncha.py                             79      8    90%
+pilotstd\query\adapters\njbz365.py                          84      9    89%
+pilotstd\query\adapters\nrsis.py                           108      8    93%
+pilotstd\query\adapters\registry.py                         38      4    89%
+pilotstd\query\adapters\sppt.py                             64      6    91%
+pilotstd\query\adapters\sppt_local.py                       85      8    91%
+pilotstd\query\adapters\std_gov.py                         118     36    69%
+pilotstd\query\adapters\tdpress.py                          67      3    96%
+pilotstd\query\adapters\ttbz.py                             73      7    90%
+pilotstd\query\cache.py                                     63      2    97%
+pilotstd\query\daily_quota.py                               69      8    88%
+pilotstd\query\engine\__init__.py                           81     17    79%
+pilotstd\query\engine\_batch.py                             69     14    80%
+pilotstd\query\engine\_batch_dispatch.py                   177     23    87%
+pilotstd\query\engine\_constants.py                         17      1    94%
+pilotstd\query\engine\_core.py                              61     22    64%
+pilotstd\query\engine\_core_types.py                        36      7    81%
+pilotstd\query\engine\_csres.py                             63     12    81%
+pilotstd\query\engine\_metrics.py                           80     25    69%
+pilotstd\query\engine\_mini_bucket.py                      159     37    77%
+pilotstd\query\engine\_overflow.py                          95     25    74%
+pilotstd\query\engine\_report.py                            84      2    98%
+pilotstd\query\engine\_routing.py                          129     61    53%
+pilotstd\query\engine\_single.py                            99      8    92%
+pilotstd\query\models.py                                    33      0   100%
+pilotstd\query\network.py                                   76     21    72%
+pilotstd\query\rotator.py                                  226     88    61%
+pilotstd\query\routing\__init__.py                           2      0   100%
+pilotstd\query\routing\scorer.py                           104      4    96%
+pilotstd\query\search_strategy.py                          125     19    85%
+pilotstd\query\site_config.py                               13      0   100%
+pilotstd\scan\__init__.py                                    3      0   100%
+pilotstd\scan\edition_detect.py                             25      1    96%
+pilotstd\scan\filename_normalizer.py                         7      0   100%
+pilotstd\scan\lang_detect.py                                 9      0   100%
+pilotstd\scan\parser\__init__.py                            87      0   100%
+pilotstd\scan\parser\_constants.py                          30      0   100%
+pilotstd\scan\parser\_core.py                               36      9    75%
+pilotstd\scan\parser\_exact.py                             146     13    91%
+pilotstd\scan\parser\_file_kind_detector.py                  7      1    86%
+pilotstd\scan\parser\_foreign.py                            97     30    69%
+pilotstd\scan\parser\_language_detector.py                   5      0   100%
+pilotstd\scan\parser\_number_extractor.py                   43      7    84%
+pilotstd\scan\parser\_result_builder.py                     81      0   100%
+pilotstd\scan\parser\_text_cleaner.py                       12      0   100%
+pilotstd\scan\parser\_utils.py                               1      0   100%
+pilotstd\scan\scanner.py                                   120     48    60%
+pilotstd\scan\watcher.py                                    82      4    95%
+pilotstd\task\__init__.py                                    3      0   100%
+pilotstd\task\models.py                                     54      0   100%
+pilotstd\task\pipeline_store.py                             27     12    56%
+pilotstd\task\queue.py                                     120     10    92%
+pilotstd\task\scheduler.py                                  51     37    27%
+pilotstd\tasks\__init__.py                                   0      0   100%
+pilotstd\tasks\date_reminder.py                             68      0   100%
+pilotstd\tasks\favorite_download.py                        113     29    74%
+pilotstd\ui\__init__.py                                      3      0   100%
+pilotstd\ui\core\__init__.py                                 0      0   100%
+pilotstd\ui\core\_core.py                                   84      1    99%
+pilotstd\ui\core\_core_adapters.py                          63     23    63%
+pilotstd\ui\core\_core_init_query.py                        16      0   100%
+pilotstd\ui\core\_self_check.py                             77      0   100%
+pilotstd\ui\core\event_bus.py                               88     52    41%
+pilotstd\ui\core\handlers\__init__.py                       13      0   100%
+pilotstd\ui\core\handlers\_announce.py                     108     70    35%
+pilotstd\ui\core\handlers\_archive.py                      190    134    29%
+pilotstd\ui\core\handlers\_auto.py                         164     39    76%
+pilotstd\ui\core\handlers\_cleanup.py                      219    170    22%
+pilotstd\ui\core\handlers\_dialog.py                       121    106    12%
+pilotstd\ui\core\handlers\_download.py                     186     86    54%
+pilotstd\ui\core\handlers\_export.py                       122     92    25%
+pilotstd\ui\core\handlers\_file_dialog.py                   41     22    46%
+pilotstd\ui\core\handlers\_file_tree.py                    176    156    11%
+pilotstd\ui\core\handlers\_persistence.py                   60     16    73%
+pilotstd\ui\core\handlers\_project.py                       57     31    46%
+pilotstd\ui\core\handlers\_query.py                        196     98    50%
+pilotstd\ui\core\handlers\_query_summary.py                201    148    26%
+pilotstd\ui\core\handlers\_scan.py                         142     50    65%
+pilotstd\ui\core\handlers\_settings.py                     329    299     9%
+pilotstd\ui\core\handlers\_settings_io.py                  214    196     8%
+pilotstd\ui\core\handlers\_table.py                        114     92    19%
+pilotstd\ui\core\handlers\_table_helper.py                 160    138    14%
+pilotstd\ui\core\handlers\_theme.py                         90     69    23%
+pilotstd\ui\core\handlers\_ui_layout.py                     86     74    14%
+pilotstd\ui\core\handlers\_ui_setup.py                      69     41    41%
+pilotstd\ui\core\handlers\_ui_toolbar.py                    90     81    10%
+pilotstd\ui\core\handlers\actions_flow_engine.py            17      0   100%
+pilotstd\ui\core\handlers\announce_flow_engine.py           41      0   100%
+pilotstd\ui\core\handlers\archive_flow_engine.py            55      0   100%
+pilotstd\ui\core\handlers\archive_worker_factory.py         30     16    47%
+pilotstd\ui\core\handlers\auto_flow_engine.py               18      0   100%
+pilotstd\ui\core\handlers\cleanup_flow_engine.py            41      0   100%
+pilotstd\ui\core\handlers\dialog_flow_engine.py             28      0   100%
+pilotstd\ui\core\handlers\download_flow_engine.py          100      4    96%
+pilotstd\ui\core\handlers\file_tree_flow_engine.py          34     34     0%
+pilotstd\ui\core\handlers\persistence_flow_engine.py        48     14    71%
+pilotstd\ui\core\handlers\project_flow_engine.py            25     14    44%
+pilotstd\ui\core\handlers\protocols.py                      38      0   100%
+pilotstd\ui\core\handlers\query_flow_engine.py              87     48    45%
+pilotstd\ui\core\handlers\query_summary_flow_engine.py      38      8    79%
+pilotstd\ui\core\handlers\query_worker_factory.py           17      0   100%
+pilotstd\ui\core\handlers\scan_flow_engine.py               92     76    17%
+pilotstd\ui\core\handlers\settings_io_flow_engine.py        91     51    44%
+pilotstd\ui\core\handlers\table_flow_engine.py              25     14    44%
+pilotstd\ui\core\handlers\table_helper_flow_engine.py       20     13    35%
+pilotstd\ui\core\handlers\toolbar_flow_engine.py            25     25     0%
+pilotstd\ui\core\unified_progress.py                        45      0   100%
+pilotstd\ui\dialogs.py                                      43      0   100%
+pilotstd\ui\drive_enumerator.py                             11      0   100%
+pilotstd\ui\main_window\__init__.py                        106     13    88%
+pilotstd\ui\main_window\_window_lifecycle.py                79     14    82%
+pilotstd\ui\main_window\parts\__init__.py                    0      0   100%
+pilotstd\ui\main_window\parts\_actions_ops.py              161     43    73%
+pilotstd\ui\main_window\parts\_delegate_ops.py              48      7    85%
+pilotstd\ui\main_window\parts\_dialog_ops.py                79      5    94%
+pilotstd\ui\main_window\parts\_download_ops.py              29      2    93%
+pilotstd\ui\main_window\parts\_export_ops.py               101      4    96%
+pilotstd\ui\main_window\parts\_file_dialog_ops.py           34      1    97%
+pilotstd\ui\main_window\parts\_file_tree_ops.py            187     12    94%
+pilotstd\ui\main_window\parts\_persistence_ops.py           87     31    64%
+pilotstd\ui\main_window\parts\_query_ops.py                109     32    71%
+pilotstd\ui\main_window\parts\_run_main.py                   6      0   100%
+pilotstd\ui\main_window\parts\_table_io.py                  72      4    94%
+pilotstd\ui\main_window\parts\_table_ops.py                182     30    84%
+pilotstd\ui\main_window\parts\_theme_ops.py                 85      3    96%
+pilotstd\ui\main_window\parts\_ui_setup_ops.py             239      2    99%
+pilotstd\ui\pages\__init__.py                                0      0   100%
+pilotstd\ui\pages\rules_page.py                            174     93    47%
+pilotstd\ui\pages\settings\__init__.py                       2      2     0%
+pilotstd\ui\pages\settings\_core.py                         28     28     0%
+pilotstd\ui\pages\settings\_dialog.py                       25     25     0%
+pilotstd\ui\pages\settings_page.py                           1      1     0%
+pilotstd\ui\pages\task_page.py                              72     72     0%
+pilotstd\ui\pending_query_dialog.py                        224    136    39%
+pilotstd\ui\table_constants.py                               3      0   100%
+pilotstd\ui\themes.py                                       27     27     0%
+pilotstd\ui\welcome_dialog.py                               26     18    31%
+pilotstd\ui\widgets\__init__.py                              0      0   100%
+pilotstd\ui\workers.py                                       9      9     0%
+pilotstd\ui\workers\__init__.py                              9      0   100%
+pilotstd\ui\workers\_common.py                             104     32    69%
+pilotstd\ui\workers\announce.py                             39     20    49%
+pilotstd\ui\workers\archive.py                              77     40    48%
+pilotstd\ui\workers\auto.py                                 30      3    90%
+pilotstd\ui\workers\download.py                             43     17    60%
+pilotstd\ui\workers\normalize.py                            31     14    55%
+pilotstd\ui\workers\query.py                                65      8    88%
+pilotstd\ui\workers\scan.py                                 46      5    89%
+pilotstd\ui\workers\update_download.py                      35      0   100%
+pilotstd\wechat_ip\__init__.py                               0      0   100%
+pilotstd\wechat_ip\browser.py                              134    107    20%
+pilotstd\wechat_ip\config.py                                22      2    91%
+pilotstd\wechat_ip\cookie_mgr.py                            95     68    28%
+pilotstd\wechat_ip\detector.py                              44      5    89%
+pilotstd\wechat_ip\scheduler.py                            101     79    22%
+----------------------------------------------------------------------------
+TOTAL                                                    22582   6557    71%
+Required test coverage of 51.0% reached. Total coverage: 70.96%
+================= 296 passed, 2 skipped in 1028.66s (0:17:08) =================
+Exception ignored in atexit callback <function shutdown at 0x000001846693D640>:
+Traceback (most recent call last):
+  File "C:\Program Files\Python314\Lib\logging\__init__.py", line 2244, in shutdown
+    if getattr(h, 'flushOnClose', True):
+RuntimeError: wrapped C/C++ object of type LogHandler has been deleted
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847BD8C9A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A71F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A72E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270DA80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018472305210>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184726925C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270D210>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270DE40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270E7A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270EE30>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D14E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D16C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D1D50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D23E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D31F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D3010>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018403EF44F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AA2F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AA980>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AB2E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AB5B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406900220>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406900400>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184069009A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406901D50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406901E40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184069025C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406902B60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406903970>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018406903010>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400274310>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400274D60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184002744F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400275030>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400275A80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184002755D0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400276020>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184002765C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400276B60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400277790>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184002771F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F024040>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F024220>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F0248B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F024E50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F0253F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F025990>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F025F30>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F0266B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F026890>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F026F20>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F0274C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E88B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E89A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E97B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EA4D0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EAC50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EB2E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EB790>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EB5B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414924220>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414924400>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414924F40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184149253F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EA980>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013EB4C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E9F30>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E8310>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F026B60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F027100>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001840F025030>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184002745E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400274B80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184069015D0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184069013F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184069018A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AB880>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AAC50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AAE30>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847E2D2C50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270E200>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847270D4E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414925210>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414926C50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430364310>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430364400>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430364B80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430365120>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184303656C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430365C60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430366200>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184303667A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414927100>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018400275D50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184013E9E40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430365E40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430365300>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018430367B50>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A44F0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184067AAA70>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414925120>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414926980>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A58A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A5990>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018414926A70>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001846C8623E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A4310>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A5210>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A6E30>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A73D0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x00000184462A7A60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A0400>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A1030>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A14E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A1A80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A1990>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A1C60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A2200>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A27A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A36A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A35B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001845D8A3880>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF4220>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF4D60>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF5300>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF58A0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF5E40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF6020>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF6F20>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA70C70>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF6D40>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA71A80>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x0000018464FF72E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA707C0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA71120>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA71300>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA72020>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA72980>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA72A70>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA732E0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001848EA73880>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<sys>:0: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x000001847BD8C8B0>
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
