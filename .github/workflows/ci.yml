@@ -113,6 +113,58 @@ jobs:
       - name: Schema consistency check (warning mode)
         run: python scripts/check_schema_consistency.py
 
+      - name: Upload coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-data
+          path: .coverage
+          retention-days: 1
+          include-hidden-files: true
+
+  # ════════════════════════════════════════════════════════════════
+  # Job 1b: Linux GUI 覆盖率补充（xvfb + artifact 传递）
+  # ════════════════════════════════════════════════════════════════
+  test-gui-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: test-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-data
+          path: .
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install pytest pytest-qt pytest-cov pytest-timeout responses
+          pip install -e .
+
+      - name: Run GUI tests with xvfb
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            python -m pytest tests/gui/ \
+              --cov=pilotstd --cov-append \
+              --timeout=15 --timeout_method=signal \
+              -v --tb=long -p no:warnings
+
+      - name: Report coverage delta
+        run: |
+          python -m coverage report --show-missing
+
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
