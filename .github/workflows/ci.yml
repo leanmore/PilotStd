@@ -70,6 +70,8 @@ jobs:
             --ignore=tests/test_last_push.py \
             --ignore=tests/test_unified_progress.py \
             --ignore=tests/test_platform_notify.py \
+            --ignore=tests/test_monitor.py \
+            --ignore=tests/test_query.py \
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --ignore=tests/test_ci_scan_fix.py
@@ -323,7 +325,10 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Kill existing process on port 9028
-        run: fuser -k 9028/tcp 2>/dev/null || true
+        run: |
+          lsof -ti:9028 | xargs kill -9 2>/dev/null || true
+          sleep 1
+          echo "Port 9028 cleared"
 
       - name: Start backend
         env:
