@@ -170,6 +170,8 @@ jobs:
           pip install -e .
 
       - name: Run GUI tests with xvfb
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" \
             python -m pytest tests/gui/ \
@@ -383,17 +385,17 @@ jobs:
           BACKEND_PORT=9028
           # 优先尝试 /api/health，若不存在则回退到 /docs
           HEALTH_ENDPOINTS="/api/health /docs /openapi.json /"
-          for i in $(seq 1 15); do
+          for i in $(seq 1 30); do
             for endpoint in ${HEALTH_ENDPOINTS}; do
               if curl -sf http://localhost:${BACKEND_PORT}${endpoint} >/dev/null 2>&1; then
                 echo "Backend is healthy on port ${BACKEND_PORT} (endpoint: ${endpoint})"
                 exit 0
               fi
             done
-            echo "Waiting for backend on port ${BACKEND_PORT}... ($i/15)"
+            echo "Waiting for backend on port ${BACKEND_PORT}... ($i/30)"
             sleep 2
           done
-          echo "Backend not healthy after 30s"
+          echo "Backend not healthy after 60s"
           echo "Tried endpoints: ${HEALTH_ENDPOINTS}"
           echo "=== Backend log at timeout ==="
           cat /tmp/backend.log || echo "(no log file found)"
