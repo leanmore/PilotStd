@@ -65,13 +65,13 @@ class FileMonitorScheduler:
         watch_path = (
             cfg.get("watch_path")
             or os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
-            or cfg.get("storage.inbox_dir")
-            or "/tmp/pilotstd-inbox"  # CI-safe default, never /inbox
+            or "/tmp/pilotstd-inbox"
         )
         delay = cfg.get("delay_seconds", 5)
         recursive = cfg.get("recursive", True)
 
-        logger.debug("[MONITOR] watch_path resolved to: %s (env=%s)", watch_path, os.environ.get("PILOTSTD_STORAGE_INBOX_DIR", "<unset>"))
+        logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path,
+                    "db" if cfg.get("watch_path") else ("env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else "default"))
         os.makedirs(watch_path, exist_ok=True)
 
         self.handler = StandardFileHandler(callback=self._on_file, delay_seconds=delay)
