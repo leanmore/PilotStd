@@ -140,10 +140,21 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install system dependencies
+      - name: Install system dependencies for PyQt6
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libegl1-mesa \
+            libgl1-mesa-glx \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xfixes0 \
+            xvfb
 
       - name: Download backend coverage
         uses: actions/download-artifact@v4
@@ -331,20 +342,24 @@ jobs:
           sleep 1
           echo "Port 9028 cleared"
 
-      - name: Start backend
+      - name: Start backend with diagnostics
         env:
           SUPERUSER: superadmin
         run: |
-          # 使用生产级 API 入口，不依赖 PyQt6（禁止改回 python main.py）
-          uvicorn docker.app:app --host 0.0.0.0 --port 9028 &
-          # 等待后端就绪
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:9028/api/health > /dev/null 2>&1; then
-              echo "后端就绪"
-              break
-            fi
-            sleep 1
-          done
+          uvicorn docker.app:app --host 0.0.0.0 --port 9028 > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          echo "Backend PID: ${BACKEND_PID}"
+
+          sleep 3
+
+          if ! kill -0 ${BACKEND_PID} 2>/dev/null; then
+            echo "❌ Backend process exited prematurely!"
+            echo "=== Backend startup log ==="
+            cat /tmp/backend.log
+            exit 1
+          fi
+
+          echo "✅ Backend process is running (PID: ${BACKEND_PID})"
 
       - name: Wait for port 9028 to be free
         run: |
@@ -377,6 +392,8 @@ jobs:
           done
           echo "Backend not healthy after 30s"
           echo "Tried endpoints: ${HEALTH_ENDPOINTS}"
+          echo "=== Backend log at timeout ==="
+          cat /tmp/backend.log || echo "(no log file found)"
           curl -v http://localhost:${BACKEND_PORT}/ || true
           exit 1
 
