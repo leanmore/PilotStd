@@ -306,13 +306,25 @@ jobs:
   # Job 4b: 前端 E2E 回归测试（Playwright，依赖前端 Lint 通过）
   # ════════════════════════════════════════════════════════════════
   frontend-e2e:
-    runs-on: ubuntu-latest
+    name: frontend-e2e
+    runs-on: ubuntu-24.04
     needs: test-frontend
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 30
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: leanmore/pilotstd
+      PYTHON_VERSION: "3.12"
+      NODE_VERSION: "22"
+      SUPERUSER: superadmin
+      PILOTSTD_STORAGE_INBOX_DIR: /tmp/pilotstd-inbox
+      STANDARD_ROOT: /tmp/pilotstd-lib
+      BACKEND_PORT: "9028"
 
-      - name: Setup Python
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -320,7 +332,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r docker/requirements-docker.txt
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -334,91 +346,106 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright Browsers
+      - name: Install Playwright browsers
         working-directory: web
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Kill existing process on port 9028
+      # Step 1: 确保端口空闲（必须在启动 backend 之前执行）
+      - name: Ensure port 9028 is free
         run: |
-          lsof -ti:9028 | xargs kill -9 2>/dev/null || true
+          set -euo pipefail
+          # 先尝试优雅终止
+          lsof -ti:${{ env.BACKEND_PORT }} | xargs kill -9 2>/dev/null || true
           sleep 1
-          echo "Port 9028 cleared"
 
-      - name: Start backend with diagnostics
-        env:
-          SUPERUSER: superadmin
-          PILOTSTD_STORAGE_INBOX_DIR: /tmp/pilotstd-inbox
-          STANDARD_ROOT: /tmp/pilotstd-lib
+          # 等待端口完全释放
+          for i in $(seq 1 10); do
+            if ! ss -tlnp | grep -q ':${{ env.BACKEND_PORT }} '; then
+              echo "✅ Port ${{ env.BACKEND_PORT }} is free"
+              exit 0
+            fi
+            echo "Port ${{ env.BACKEND_PORT }} still occupied, waiting... ($i/10)"
+            sleep 2
+          done
+
+          # 兜底强制清理
+          echo "Force killing remaining process on port ${{ env.BACKEND_PORT }}..."
+          fuser -k ${{ env.BACKEND_PORT }}/tcp 2>/dev/null || true
+          sleep 1
+
+          # 最终确认
+          if ss -tlnp | grep -q ':${{ env.BACKEND_PORT }} '; then
+            echo "❌ Port ${{ env.BACKEND_PORT }} still occupied after force kill"
+            exit 1
+          fi
+          echo "✅ Port ${{ env.BACKEND_PORT }} is free (after force kill)"
+
+      # Step 2: 启动 backend（不再包含端口检查逻辑）
+      - name: Start backend
         run: |
-          mkdir -p "${PILOTSTD_STORAGE_INBOX_DIR}" "${STANDARD_ROOT}"
-          uvicorn docker.app:app --host 0.0.0.0 --port 9028 > /tmp/backend.log 2>&1 &
+          set -euo pipefail
+          mkdir -p "$PILOTSTD_STORAGE_INBOX_DIR" "$STANDARD_ROOT"
+
+          uvicorn docker.app:app --host 0.0.0.0 --port ${{ env.BACKEND_PORT }} > /tmp/backend.log 2>&1 &
           BACKEND_PID=$!
-          echo "Backend PID: ${BACKEND_PID}"
+          echo "Backend PID: $BACKEND_PID"
 
           sleep 3
 
-          if ! kill -0 ${BACKEND_PID} 2>/dev/null; then
-            echo "❌ Backend process exited prematurely!"
+          if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+            echo "❌ Backend exited prematurely"
             echo "=== Backend startup log ==="
             cat /tmp/backend.log
             exit 1
           fi
+          echo "✅ Backend is running (PID: $BACKEND_PID)"
 
-          echo "✅ Backend process is running (PID: ${BACKEND_PID})"
-
-      - name: Wait for port 9028 to be free
+      # Step 3: 健康检查（backend 存活期间执行，不会被误杀）
+      - name: Wait for backend healthy
         run: |
-          for i in $(seq 1 10); do
-            if ! ss -tlnp | grep -q ':9028 '; then
-              echo "Port 9028 is free"
-              exit 0
-            fi
-            echo "Port 9028 occupied, waiting... ($i/10)"
-            sleep 2
-          done
-          echo "Port 9028 not freed after 20s, force killing..."
-          fuser -k 9028/tcp 2>/dev/null || true
-          sleep 1
+          set -euo pipefail
+          ENDPOINTS=("/api/health" "/docs" "/openapi.json" "/")
 
-      - name: Wait for backend health
-        run: |
-          BACKEND_PORT=9028
-          # 优先尝试 /api/health，若不存在则回退到 /docs
-          HEALTH_ENDPOINTS="/api/health /docs /openapi.json /"
           for i in $(seq 1 30); do
-            for endpoint in ${HEALTH_ENDPOINTS}; do
-              if curl -sf http://localhost:${BACKEND_PORT}${endpoint} >/dev/null 2>&1; then
-                echo "Backend is healthy on port ${BACKEND_PORT} (endpoint: ${endpoint})"
+            for endpoint in "${ENDPOINTS[@]}"; do
+              if curl -sf "http://localhost:${{ env.BACKEND_PORT }}${endpoint}" >/dev/null 2>&1; then
+                echo "✅ Backend healthy on endpoint: ${endpoint}"
                 exit 0
               fi
             done
-            echo "Waiting for backend on port ${BACKEND_PORT}... ($i/30)"
+            echo "Waiting for backend on port ${{ env.BACKEND_PORT }}... ($i/30)"
             sleep 2
           done
-          echo "Backend not healthy after 60s"
-          echo "Tried endpoints: ${HEALTH_ENDPOINTS}"
+
+          echo "❌ Backend not healthy after 60s"
+          echo "Tried endpoints: ${ENDPOINTS[*]}"
           echo "=== Backend log at timeout ==="
           cat /tmp/backend.log || echo "(no log file found)"
-          curl -v http://localhost:${BACKEND_PORT}/ || true
+          curl -v "http://localhost:${{ env.BACKEND_PORT }}/" || true
           exit 1
 
-      - name: Run E2E Tests
+      # Step 4: 运行 E2E 测试
+      - name: Run Playwright E2E tests
         working-directory: web
-        run: pnpm exec playwright test e2e/dashboard/quick-actions.spec.ts
         env:
-          VITE_API_BASE_URL: http://localhost:9028
+          VITE_API_BASE_URL: http://localhost:${{ env.BACKEND_PORT }}
+        run: pnpm exec playwright test e2e/dashboard/quick-actions.spec.ts
 
-      - name: Upload Test Report on Failure
-        if: failure()
+      # Step 5: 上传测试报告（即使失败也执行）
+      - name: Upload Playwright report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: web/playwright-report/
           retention-days: 7
 
-      - name: Stop backend
+      # Step 6: 清理 backend 进程
+      - name: Cleanup backend
         if: always()
-        run: kill $(lsof -t -i:9028) 2>/dev/null || true
+        run: |
+          kill $(lsof -t -i:${{ env.BACKEND_PORT }}) 2>/dev/null || true
+          echo "Backend cleanup completed"
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: GUI 单元测试 + Handler 覆盖率（Windows）
@@ -506,7 +533,7 @@ jobs:
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
   version:
-    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov, test-gui-coverage]
+    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov, test-gui-coverage, frontend-e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
