@@ -350,9 +350,6 @@ jobs:
           PILOTSTD_STORAGE_INBOX_DIR: /tmp/pilotstd-inbox
           STANDARD_ROOT: /tmp/pilotstd-lib
         run: |
-          # 临时修复：确保 /inbox 可写（硬编码路径应急措施）
-          sudo mkdir -p /inbox && sudo chmod 777 /inbox
-
           mkdir -p "${PILOTSTD_STORAGE_INBOX_DIR}" "${STANDARD_ROOT}"
           uvicorn docker.app:app --host 0.0.0.0 --port 9028 > /tmp/backend.log 2>&1 &
           BACKEND_PID=$!

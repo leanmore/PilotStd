@@ -62,7 +62,7 @@ class FileMonitorScheduler:
     def _run(self):
         """后台主循环：启动 Observer 并阻塞等待停止信号。"""
         cfg = get_config()
-        watch_path = cfg.get("watch_path", "/inbox")
+        watch_path = cfg.get("watch_path") or cfg.get("storage.inbox_dir", "/inbox")
         delay = cfg.get("delay_seconds", 5)
         recursive = cfg.get("recursive", True)
 
