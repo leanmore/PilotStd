@@ -75,74 +75,90 @@ NOTIFICATION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS notification_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL,
+    channel TEXT NOT NULL,
     title TEXT,
     body TEXT,
-    level TEXT DEFAULT 'info',
-    channels TEXT,
-    user_id INTEGER,
-    status TEXT DEFAULT 'success',
-    read INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    standard_number TEXT,
+    status TEXT NOT NULL DEFAULT 'success',
+    error_msg TEXT,
+    sent_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    is_read INTEGER DEFAULT 0,
+    aggregated_count INTEGER DEFAULT 1,
+    link TEXT,
+    icon TEXT
 );
 
 CREATE TABLE IF NOT EXISTS notification_queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL,
-    event_data TEXT,
-    status TEXT DEFAULT 'suppressed',
+    event_data TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
     scheduled_time TEXT,
-    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    error_msg TEXT DEFAULT '',
+    created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS notification_policy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id INTEGER,
     channel TEXT NOT NULL,
     enabled INTEGER DEFAULT 1,
-    events TEXT DEFAULT '[]',
+    events TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, channel)
 );
 
 CREATE TABLE IF NOT EXISTS user_favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    standard_number TEXT,
-    record_id INTEGER,
+    user_id INTEGER NOT NULL,
+    record_id INTEGER NOT NULL,
     status TEXT DEFAULT 'pending',
+    local_path TEXT,
+    error_message TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     publish_date TEXT,
     last_archive_attempt TEXT,
     archive_retry_count INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (record_id) REFERENCES announcement_record(id),
+    UNIQUE(user_id, record_id)
 );
 
 CREATE TABLE IF NOT EXISTS favorite_downloads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    favorite_id INTEGER,
-    user_id INTEGER,
-    record_id INTEGER,
+    favorite_id INTEGER NOT NULL,
+    record_id INTEGER NOT NULL,
     status TEXT DEFAULT 'pending',
-    retry_count INTEGER DEFAULT 0,
-    error_message TEXT,
-    last_attempt TEXT,
     local_path TEXT,
-    updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    last_attempt TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (favorite_id) REFERENCES user_favorites(id) ON DELETE CASCADE,
+    FOREIGN KEY (record_id) REFERENCES announcement_record(id),
+    UNIQUE(favorite_id, record_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_preferences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     preference_key TEXT NOT NULL,
-    preference_value TEXT,
-    updated_at TEXT DEFAULT (datetime('now', 'localtime')),
-    PRIMARY KEY (user_id, preference_key)
+    preference_value TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, preference_key)
 );
 
 CREATE TABLE IF NOT EXISTS user_credentials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     channel TEXT NOT NULL,
-    cred_key TEXT NOT NULL,
-    cred_value TEXT,
-    UNIQUE(user_id, channel, cred_key)
+    credentials TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, channel)
 );
 """
 

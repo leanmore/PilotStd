@@ -6,6 +6,8 @@ test.describe('快捷操作卡片修复回归', () => {
     await page.fill('input[name="username"]', 'admin');
     await page.fill('input[name="password"]', 'Admin@123');
     await page.click('button[type="submit"]');
+    // DEBUG: capture post-login state before waiting
+    await page.screenshot({ path: 'test-results/debug-post-login.png' });
     await page.waitForFunction(() =>
       window.__STORE_INITIALIZED__ === true ||
       document.querySelector('[data-testid="quick-actions-card"]') !== null
