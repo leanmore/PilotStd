@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest pytest-xdist pytest-cov
+          pip install pytest pytest-xdist pytest-cov pytest-timeout
           pip install -e .
 
       - name: Forbid production imports from test modules
@@ -61,6 +61,7 @@ jobs:
           mkdir -p /tmp/standards
           python -m pytest tests/ -q --tb=short -n auto \
             --cov=pilotstd --cov-fail-under=45 \
+            --timeout=30 --timeout_method=thread \
             --ignore=tests/gui/ \
             --ignore=tests/test_regression_architecture.py \
             --ignore-glob="*test_ui*.py" \
@@ -164,6 +165,14 @@ jobs:
       - name: Report coverage delta
         run: |
           python -m coverage report --show-missing
+
+      - name: Upload merged coverage data
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-coverage-merged
+          path: .coverage
+          retention-days: 30
+          include-hidden-files: true
 
   # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
@@ -431,7 +440,7 @@ jobs:
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
   version:
-    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov]
+    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov, test-gui-coverage]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -530,9 +539,9 @@ jobs:
             fi
             echo "Push attempt $i failed, fetching and retrying..."
             git pull --rebase origin main
-            # 解决 CHANGELOG.md 可能产生的冲突：保留两方的版本条目
+            # 解决 CHANGELOG.md 可能产生的冲突：清除冲突标记保留内容
             if [ -f CHANGELOG.md ] && git diff --name-only --diff-filter=U | grep -q CHANGELOG.md; then
-              git checkout --theirs CHANGELOG.md 2>/dev/null || true
+              python3 -c "import re; c=open('CHANGELOG.md').read(); open('CHANGELOG.md','w').write(re.sub(r'<<<<<<<[^\n]*\n|=======\n|>>>>>>>[^\n]*\n','',c))"
               git add CHANGELOG.md
               GIT_EDITOR=true git rebase --continue 2>/dev/null || true
             fi
