@@ -62,10 +62,16 @@ class FileMonitorScheduler:
     def _run(self):
         """后台主循环：启动 Observer 并阻塞等待停止信号。"""
         cfg = get_config()
-        watch_path = cfg.get("watch_path") or cfg.get("storage.inbox_dir", "/inbox")
+        watch_path = (
+            cfg.get("watch_path")
+            or os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
+            or cfg.get("storage.inbox_dir")
+            or "/tmp/pilotstd-inbox"  # CI-safe default, never /inbox
+        )
         delay = cfg.get("delay_seconds", 5)
         recursive = cfg.get("recursive", True)
 
+        logger.debug("[MONITOR] watch_path resolved to: %s (env=%s)", watch_path, os.environ.get("PILOTSTD_STORAGE_INBOX_DIR", "<unset>"))
         os.makedirs(watch_path, exist_ok=True)
 
         self.handler = StandardFileHandler(callback=self._on_file, delay_seconds=delay)
