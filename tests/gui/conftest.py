@@ -27,6 +27,30 @@ from unittest.mock import patch
 import pytest
 import responses
 
+# ── atexit safety for PyQt6 + pytest-qt ──
+# logging.shutdown() accesses C++ LogHandler objects that may already be
+# deleted during interpreter teardown.  Unregister the original handler
+# and replace with a RuntimeError-safe wrapper.
+# This is a known PyQt6/pytest-qt compatibility issue, not a test bug.
+_original_logging_shutdown = logging.shutdown
+
+
+def _safe_logging_shutdown():
+    try:
+        _original_logging_shutdown()
+    except RuntimeError:
+        pass
+
+
+def _patch_atexit_logging_shutdown():
+    import atexit as _atexit
+    _atexit.unregister(_original_logging_shutdown)
+    _atexit.register(_safe_logging_shutdown)
+
+
+_patch_atexit_logging_shutdown()
+# ── end atexit safety ──
+
 # 全局测试模式 — 禁止所有弹窗
 os.environ["PILOTSTD_TEST_MODE"] = "1"
 
