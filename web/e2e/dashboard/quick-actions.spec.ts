@@ -9,7 +9,7 @@ test.describe('快捷操作卡片修复回归', () => {
 
     // Step 2: 验证登录接口本身是否正常（排除 DB/Seed 问题）
     const loginResp = await page.request.post('http://localhost:9028/api/login', {
-      data: { username: 'admin', password: 'Admin@123' },
+      form: { username: 'admin', password: 'Admin@123' },
       timeout: 15000,
     });
     console.log('Login API status:', loginResp.status());
