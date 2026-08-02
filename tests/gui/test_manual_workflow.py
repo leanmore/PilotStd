@@ -62,11 +62,17 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
 
         # 查询
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 跳过下载 → 直接规范化
         window._on_normalize()
-        _wait_worker(qtbot, window, "_normalize_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_normalize_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 验证：规范化后所有行的 next_action 不是 download
         for p in window._parsed_results:
@@ -105,7 +111,10 @@ def test_cancel_button_enabled_during_query(window, test_data_dir, qtbot):
         window._on_query()
         # 查询过程中取消按钮状态由 _update_button_states 控制
         assert not window.btn_cancel.isEnabled() or window.btn_cancel.isEnabled(), "查询中取消按钮状态已设置"
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 查询完成后取消按钮应恢复置灰
         assert not window.btn_cancel.isEnabled(), "查询完成后取消按钮应置灰"
@@ -221,12 +230,18 @@ def test_query_twice_does_not_double_classify(window, test_data_dir, qtbot):
         )
 
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
         count1 = window.work_table.rowCount()
 
         # 第二次查询
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
         count2 = window.work_table.rowCount()
 
         # 行数应与第一次一致
@@ -301,7 +316,10 @@ def test_progress_bar_visible_during_task(window, test_data_dir, qtbot):
         window._on_query()
         # 查询开始后进度条应可见
         assert window.progress_bar.isVisible(), "查询中进度条应可见"
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 查询完成后进度条可能保持可见（显示100%），但值应为100
         assert window.progress_bar.value() >= 0
@@ -335,8 +353,6 @@ def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
             if os.path.isfile(src):
                 shutil.copy2(src, tmp)
 
-        from tests.gui.test_full_pipeline import _wait_worker
-
         window._run_scan(tmp)
         wait_for_worker_and_ui(
             qtbot, window, "_scan_worker",
@@ -345,7 +361,10 @@ def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
         assert window.work_table.rowCount() > 0
 
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
         # 验证所有行有工作状态
         for r in range(window.work_table.rowCount()):
             item = window.work_table.item(r, 1)
@@ -353,10 +372,16 @@ def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
             assert item.text(), f"行 {r} 无工作状态"
 
         window._on_download()
-        _wait_worker(qtbot, window, "_download_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_download_worker",
+            ui_predicate=lambda: True,
+        )
 
         window._on_normalize()
-        _wait_worker(qtbot, window, "_normalize_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_normalize_worker",
+            ui_predicate=lambda: True,
+        )
 
         window._on_save_to_folder()
         _wait_worker(qtbot, window, "_archive_worker")
@@ -413,7 +438,10 @@ def test_switch_to_stage_after_query(window, test_data_dir, qtbot):
             ui_predicate=lambda: len(window._parsed_results) > 0,
         )
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         dl_items = window._mgr.get_stage_queue("download")
         all_items = window._mgr.get_stage_queue("all")
@@ -438,7 +466,10 @@ def test_get_stage_summary(window, test_data_dir, qtbot):
             ui_predicate=lambda: len(window._parsed_results) > 0,
         )
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         s = window._mgr.get_stage_summary()
         assert "download" in s and "pending" in s and "total" in s
@@ -503,12 +534,18 @@ def test_download_uses_independent_queue(window, test_data_dir, qtbot):
             ui_predicate=lambda: len(window._parsed_results) > 0,
         )
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         dl_count = len(window._mgr.get_stage_queue("download"))
         if dl_count > 0:
             window._on_download()
             assert window.work_table.rowCount() == dl_count
-            _wait_worker(qtbot, window, "_download_worker")
+            wait_for_worker_and_ui(
+            qtbot, window, "_download_worker",
+            ui_predicate=lambda: True,
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
