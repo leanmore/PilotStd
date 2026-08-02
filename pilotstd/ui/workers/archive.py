@@ -96,9 +96,11 @@ class ArchiveWorker(QThread):
                     _log_progress(logger, "归档", cur, total, _t_start)
                     _last_log = now
 
+            logger.info("[ArchiveWorker] about to call archive_standards")
             self._mgr.archive_standards(
                 self.parsed_list, progress_callback=on_progress, on_result=on_result, overwrite=self._overwrite
             )
+            logger.info("[ArchiveWorker] archive_standards returned")
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
         except Exception as e:
@@ -128,9 +130,3 @@ class ArchiveWorker(QThread):
         if parsed.effect_status in ("废止", "已废止", "作废", "被代替", "过期"):
             target_dir = os.path.join(target_dir, "过期作废")
         return os.path.join(target_dir, name)
-
-    # ── 实例方法版本 ──
-
-    def _target_path(self, parsed: Any) -> str | None:
-        """委托静态方法，使用当前实例的 library_root 和 config。"""
-        return ArchiveWorker.target_path(parsed, self.library_root, self._config)

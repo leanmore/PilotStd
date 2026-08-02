@@ -392,23 +392,6 @@ class TestArchiveWorker:
         result = ArchiveWorker.target_path(parsed, "/tmp/lib")
         assert "过期作废" in result
 
-    def test_instance_target_path_delegates(self, mock_mgr):
-        """实例方法 _target_path 委托到静态方法。"""
-        from pilotstd.models import ParsedStdInfo
-        from pilotstd.ui.workers.archive import ArchiveWorker
-
-        parsed = ParsedStdInfo(
-            raw_filename="test.pdf",
-            logical_code="GB/T",
-            number=99999,
-            year=2023,
-            std_name="实例测试",
-        )
-        worker = ArchiveWorker(mgr=mock_mgr, parsed_list=[parsed], library_root="/tmp/lib")
-        result = worker._target_path(parsed)
-        assert isinstance(result, str)
-        assert "99999" in result
-
 
 # ============================================================================
 # 测试 5：auto.py — AutoWorker（9 行未覆盖）

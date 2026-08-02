@@ -1,10 +1,13 @@
 # pilotstd/ui/workers/download.py — DownloadWorker，从 workers.py 拆分
 
+import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _pct
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadWorker(QThread):
@@ -56,7 +59,9 @@ class DownloadWorker(QThread):
                     self._pause_event.wait()
                 self.progress.emit(_pct(cur, total))
 
+            logger.info("[DownloadWorker] about to call download_stream")
             self._mgr.download_stream(on_progress=on_progress, on_result=on_result)
+            logger.info("[DownloadWorker] download_stream returned")
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
         except Exception as e:
