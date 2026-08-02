@@ -4,6 +4,8 @@ import sys
 import tempfile
 import time
 
+from tests.gui.helpers import wait_for_worker_and_ui
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -76,15 +78,12 @@ def test_normalize_generates_standard_names(window, test_data_dir, qtbot):
             if not p.std_name:
                 p.std_name = f"标准_{p.logical_code}_{p.number}"
         window._on_normalize()
-        _wait_worker(qtbot, window, "_normalize_worker")
 
         table = window.work_table
-        # 关键：等待 UI 状态收敛，确保 finished_signal → handler 回调 → table 填充链完成
-        qtbot.waitUntil(
-            lambda: table.rowCount() > 0,
-            timeout=5000,
+        wait_for_worker_and_ui(
+            qtbot, window, "_normalize_worker",
+            ui_predicate=lambda: table.rowCount() > 0,
         )
-        print(f"[DIAG] final rowCount={table.rowCount()}")
 
         assert table.rowCount() > 0
         for row in range(table.rowCount()):
