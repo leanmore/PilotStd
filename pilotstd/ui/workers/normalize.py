@@ -35,6 +35,7 @@ class NormalizeWorker(QThread):
         import time as _time
 
         _t_start = _time.monotonic()
+        logger.info("[NormalizeWorker] entry, items=%d", len(self.parsed_list))
         try:
 
             def on_batch(batch_rows: Any) -> None:
@@ -50,8 +51,11 @@ class NormalizeWorker(QThread):
                     self._pause_event.wait()
                 self.progress.emit(_pct(cur, total))
 
+            logger.info("[NormalizeWorker] about to call normalize_files_stream, items=%d", len(self.parsed_list))
             self._mgr.normalize_files_stream(self.parsed_list, on_progress=on_progress, on_batch=on_batch)
+            logger.info("[NormalizeWorker] normalize_files_stream returned")
         except Exception as e:
+            logger.error("[NormalizeWorker] exception: %s", e)
             self.error.emit(str(e))
         finally:
             _elapsed = _time.monotonic() - _t_start

@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -9,7 +10,9 @@ if root_dir not in sys.path:
 
 
 def _wait_worker(qtbot, window, attr, timeout=30000):
-    """等待 Worker 线程完成（兼容新旧 Handler 架构）。"""
+    """等待 Worker 线程完成（兼容新旧 Handler 架构）。
+    qtbot.waitUntil 轮询 isRunning() 状态，避免 finished_signal 竞态。
+    """
     w = getattr(window, attr, None)
     if w is None and hasattr(window, "_core"):
         _worker_handler_map = {
@@ -23,8 +26,19 @@ def _wait_worker(qtbot, window, attr, timeout=30000):
         handler = getattr(window._core, handler_name, None)
         if handler is not None:
             w = getattr(handler, attr, None)
-    if w is not None and w.isRunning():
-        with qtbot.waitSignal(w.finished_signal, timeout=timeout):
+
+    if w is not None:
+        t0 = time.monotonic()
+
+        def _on_signal(*args):
+            elapsed = time.monotonic() - t0
+            print(f"DIAG: {attr} finished in {elapsed:.1f}s")
+
+        w.finished_signal.connect(_on_signal)
+        qtbot.waitUntil(lambda: not w.isRunning(), timeout=timeout)
+        try:
+            w.finished_signal.disconnect(_on_signal)
+        except (TypeError, RuntimeError):
             pass
 
 
