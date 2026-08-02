@@ -172,7 +172,7 @@ jobs:
       - name: Verify worker fix and clean pyc
         run: |
           echo "=== Verifying finished_signal.emit in workers ==="
-          grep -n "finished_signal.emit" pilotstd/ui/workers/scan.py pilotstd/ui/workers/download.py pilotstd/ui/workers/normalize.py pilotstd/ui/workers/archive.py || echo "WARNING: Worker fix not found!"
+          grep -n "finished_signal.emit" pilotstd/ui/workers/scan.py pilotstd/ui/workers/download.py pilotstd/ui/workers/normalize.py pilotstd/ui/workers/archive.py pilotstd/ui/workers/query.py pilotstd/ui/workers/auto.py || echo "WARNING: Worker fix not found!"
           echo "=== Cleaning pycache ==="
           find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
@@ -430,6 +430,32 @@ jobs:
           cat /tmp/backend.log || echo "(no log file found)"
           curl -v "http://localhost:${{ env.BACKEND_PORT }}/" || true
           exit 1
+
+      # Step 2b: Seed admin 测试用户（CI 环境默认为 superadmin，需补建 admin 供 E2E 使用）
+      - name: Initialize test admin user
+        run: |
+          set -euo pipefail
+          python -c "
+          import os, sys
+          sys.path.insert(0, '.')
+          os.environ.setdefault('SUPERUSER', '${{ env.SUPERUSER }}')
+          from pilotstd.core.db import Database
+          from pilotstd.core.config import get_db_path
+          from pilotstd.core.security import get_password_hash, generate_salt
+          from docker.users import init_users_table
+          init_users_table()
+          db = Database(get_db_path())
+          row = db.fetchone('SELECT id FROM users WHERE username = ?', ('admin',))
+          if not row:
+              db.execute(
+                  'INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)',
+                  ('admin', get_password_hash('Admin@123'), generate_salt(), 'admin'),
+              )
+              print('✅ Admin user created (role=admin, password=Admin@123)')
+          else:
+              print('ℹ️ Admin user already exists')
+          db.close()
+          "
 
       # Step 4: 启动前端 dev server（proxy 目标通过 VITE_API_TARGET 指向本地 backend）
       - name: Start frontend dev server
