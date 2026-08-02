@@ -468,6 +468,87 @@ class TestAutoWorker:
 
 
 # ============================================================================
+# 测试 5a：AutoWorker.run() — 补覆盖 L40-61
+# ============================================================================
+
+
+class TestAutoWorkerRun:
+    """AutoWorker.run() 方法补测试 — 覆盖 L40-61 全部路径"""
+
+    @pytest.fixture
+    def auto_worker(self):
+        """创建带 mock manager 的 AutoWorker 实例"""
+        from pilotstd.ui.workers.auto import AutoWorker
+
+        mgr = MagicMock()
+        worker = AutoWorker(mgr=mgr, root_path="/fake/root")
+        return worker, mgr
+
+    def test_run_normal_completion_emits_finished_and_stage_signals(self, qtbot, auto_worker):
+        """正常路径：auto_run_stream 返回 report → finished_signal 收到完整 dict"""
+        worker, mgr = auto_worker
+        expected_report = {"scanned": 4, "queried": 4, "downloaded": 4, "archived": 4}
+        mgr.auto_run_stream.return_value = expected_report
+
+        with qtbot.waitSignal(worker.finished_signal, timeout=3000) as blocker:
+            worker.run()
+
+        assert blocker.args == [expected_report]
+        assert mgr.auto_run_stream.call_count == 1
+
+    def test_run_exception_emits_error_and_empty_finished(self, qtbot, auto_worker):
+        """异常路径：auto_run_stream 抛异常 → error 信号 + finally 仍发空 report"""
+        worker, mgr = auto_worker
+        mgr.auto_run_stream.side_effect = RuntimeError("boom")
+
+        with qtbot.waitSignals([worker.error, worker.finished_signal], timeout=3000) as blocker:
+            worker.run()
+
+        events = blocker.all_signals_and_args
+        assert len(events) == 2
+        assert events[0].args == ("boom",)
+        assert events[1].args == ({},)
+
+    def test_run_callbacks_emit_corresponding_signals(self, qtbot, auto_worker):
+        """回调路径：验证 on_* 回调正确转发为 Qt Signal"""
+        worker, mgr = auto_worker
+
+        def fake_stream(*args, **kwargs):
+            on_scan_batch = kwargs.get("on_scan_batch")
+            if on_scan_batch:
+                on_scan_batch([{"id": 1}])
+
+            on_query_progress = kwargs.get("on_query_progress")
+            if on_query_progress:
+                on_query_progress(5, 10)
+
+            on_download_result = kwargs.get("on_download_result")
+            if on_download_result:
+                on_download_result(0, "ok")
+
+            on_stage_change = kwargs.get("on_stage_change")
+            if on_stage_change:
+                on_stage_change("download", 1, 4)
+
+            return {"scanned": 2}
+
+        mgr.auto_run_stream.side_effect = fake_stream
+
+        with qtbot.waitSignals(
+            [worker.scan_batch, worker.query_progress, worker.download_result, worker.stage_changed],
+            timeout=3000
+        ) as blocker:
+            worker.run()
+
+        args_list = [e.args for e in blocker.all_signals_and_args]
+        assert len(args_list) == 4
+        assert args_list[0] == ([{"id": 1}],)
+        assert args_list[1] == (5, 10)
+        assert args_list[2] == (0, "ok")
+        assert args_list[3] == ("download", 1, 4)
+
+
+# ============================================================================
 # 测试 6：download.py — DownloadWorker（18 行未覆盖）
 # ============================================================================
 
