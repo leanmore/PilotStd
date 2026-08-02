@@ -695,6 +695,31 @@ class TestQueryWorker:
         assert worker._force_refresh is True
 
 
+class TestQueryWorkerPauseEvent:
+    """QueryWorker set_pause_event 补测试 — 覆盖 L89-90"""
+
+    def test_run_calls_set_pause_event_when_provided(self, qtbot):
+        """构造时传入 pause_event → run() 中调用 mgr.set_pause_event"""
+        import threading
+
+        from pilotstd.ui.workers.query import QueryWorker
+
+        mgr = MagicMock()
+        pause_event = threading.Event()
+        worker = QueryWorker(
+            manager=mgr,
+            parsed_list=[],
+            pause_event=pause_event,
+        )
+
+        mgr.query_stream.return_value = ([], MagicMock())
+
+        with qtbot.waitSignal(worker.finished_signal, timeout=3000):
+            worker.run()
+
+        mgr.set_pause_event.assert_called_once_with(pause_event)
+
+
 # ============================================================================
 # 测试 9：scan.py — ScanWorker（6 行未覆盖）
 # ============================================================================
