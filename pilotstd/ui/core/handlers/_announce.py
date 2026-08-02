@@ -7,6 +7,9 @@ import logging
 import os
 from typing import TYPE_CHECKING, Any
 
+from PyQt6 import sip as _sip
+
+# sip.isdeleted() 检查 C++ 对象存活，防御异步回调中 Widget 已析构的竞态
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
     QDateEdit,
@@ -185,11 +188,13 @@ class AnnounceUIHandler:
                 )
 
     def _on_progress(self, current: int, total: int, matched: int) -> None:
-        """更新公告检查进度。"""
-        if self._ann_progress_bar is not None:
+        """更新公告检查进度——防御 Widget 已销毁的竞态条件。
+        sip.isdeleted 检查 C++ 对象是否已析构，比 try/except RuntimeError 更精确。
+        """
+        if self._ann_progress_bar is not None and not _sip.isdeleted(self._ann_progress_bar):
             self._ann_progress_bar.setMaximum(total)
             self._ann_progress_bar.setValue(current)
-        if self._ann_progress_label is not None:
+        if self._ann_progress_label is not None and not _sip.isdeleted(self._ann_progress_label):
             self._ann_progress_label.setText(
                 _("announcement_progress").format(current=current, total=total, matched=matched)
             )
