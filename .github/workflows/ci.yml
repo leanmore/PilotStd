@@ -175,6 +175,8 @@ jobs:
           grep -n "finished_signal.emit" pilotstd/ui/workers/scan.py pilotstd/ui/workers/download.py pilotstd/ui/workers/normalize.py pilotstd/ui/workers/archive.py pilotstd/ui/workers/query.py pilotstd/ui/workers/auto.py || echo "WARNING: Worker fix not found!"
           echo "=== Cleaning pycache ==="
           find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+          echo "=== Removing stale workers.py (if any) ==="
+          find . -path "*/workers/workers.py" -delete 2>/dev/null || true
 
       - name: Run GUI tests with xvfb
         env:
@@ -459,20 +461,21 @@ jobs:
           "
 
       # Step 2c: 验证 admin 用户可登录（seed 后确认哈希匹配）
+      # 注意：登录端点为 /api/login（Form 数据，非 JSON）
       - name: Verify admin login works
         run: |
           set -euo pipefail
           sleep 2
           RESP=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST http://localhost:${{ env.BACKEND_PORT }}/api/auth/login \
-            -H "Content-Type: application/json" \
-            -d '{"username":"admin","password":"Admin@123"}')
+            -X POST http://localhost:${{ env.BACKEND_PORT }}/api/login \
+            -F "username=admin" \
+            -F "password=Admin@123")
           echo "Login verification status: $RESP"
           if [ "$RESP" != "200" ]; then
             echo "❌ Seed admin cannot login! Hash mismatch suspected."
-            curl -s -X POST http://localhost:${{ env.BACKEND_PORT }}/api/auth/login \
-              -H "Content-Type: application/json" \
-              -d '{"username":"admin","password":"Admin@123"}'
+            curl -s -X POST http://localhost:${{ env.BACKEND_PORT }}/api/login \
+              -F "username=admin" \
+              -F "password=Admin@123"
             exit 1
           fi
           echo "✅ Admin login verified"
