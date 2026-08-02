@@ -309,6 +309,7 @@ def test_progress_bar_shows_percentage(window, qtbot):
 # ════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.timeout(60)
 def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
     """完全手动操作：扫描→查询→下载→规范化→归档，不崩溃。"""
     window._suppress_dialogs = True

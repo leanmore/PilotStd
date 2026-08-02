@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('快捷操作卡片修复回归', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
+    await page.waitForSelector('input[name="username"]', { timeout: 15000 });
     await page.fill('input[name="username"]', 'admin');
     await page.fill('input[name="password"]', 'Admin@123');
     await page.click('button[type="submit"]');

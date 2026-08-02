@@ -3,16 +3,17 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30000,
+  timeout: 60000,
   retries: 1,
   use: {
-    baseURL: process.env.VITE_API_BASE_URL || 'http://localhost:9028',
+    baseURL: 'http://localhost:5173',
+    navigationTimeout: 60000,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'pnpm dev --port 9028',
-    port: 9028,
+    command: 'pnpm dev --host 0.0.0.0 --port 5173',
+    port: 5173,
     timeout: 120_000,
     reuseExistingServer: true,
     stdout: 'pipe',

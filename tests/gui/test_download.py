@@ -3,6 +3,8 @@ import shutil
 import sys
 import tempfile
 
+import pytest
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -27,6 +29,7 @@ def test_download_requires_scan_and_query(window, qtbot):
     assert len(window._parsed_results) == 0
 
 
+@pytest.mark.timeout(60)
 def test_download_mock_after_query(window, test_data_dir, qtbot):
     """mock 模式下扫描→查询→下载全流程不崩溃。"""
     from tests.gui.test_full_pipeline import _wait_worker

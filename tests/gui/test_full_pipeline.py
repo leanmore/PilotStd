@@ -42,6 +42,7 @@ def _copy_fixtures_to_tmp(test_data_dir):
     return tmp
 
 
+@pytest.mark.timeout(60)
 def test_full_pipeline_scan_query_download(window, test_data_dir, qtbot):
     """完整链路：扫描→查询→下载→规范化→存档，mock 模式下不抛异常。"""
     window._suppress_dialogs = True
@@ -91,6 +92,7 @@ def test_auto_run_suppresses_dialogs(window, test_data_dir, qtbot):
     assert window._suppress_dialogs is True
 
 
+@pytest.mark.timeout(60)
 def test_full_pipeline_no_exceptions(window, test_data_dir, qtbot):
     """全链路执行不应有未捕获异常。"""
     window._suppress_dialogs = True
