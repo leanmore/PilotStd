@@ -110,11 +110,7 @@ class TestHandlerImports(unittest.TestCase):
         "pilotstd.ui.core.handlers._archive",
         "pilotstd.ui.core.handlers._auto",
         "pilotstd.ui.core.handlers._cleanup",
-        "pilotstd.ui.core.handlers._dialog",
         "pilotstd.ui.core.handlers._download",
-        "pilotstd.ui.core.handlers._export",
-        "pilotstd.ui.core.handlers._file_dialog",
-        "pilotstd.ui.core.handlers._file_tree",
         "pilotstd.ui.core.handlers._persistence",
         "pilotstd.ui.core.handlers._project",
         "pilotstd.ui.core.handlers._query",
@@ -122,10 +118,6 @@ class TestHandlerImports(unittest.TestCase):
         "pilotstd.ui.core.handlers._scan",
         "pilotstd.ui.core.handlers._settings",
         "pilotstd.ui.core.handlers._settings_io",
-        "pilotstd.ui.core.handlers._table",
-        "pilotstd.ui.core.handlers._table_helper",
-        "pilotstd.ui.core.handlers._theme",
-        "pilotstd.ui.core.handlers._ui_setup",
     ]
 
     def test_all_handler_modules_importable(self):

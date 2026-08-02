@@ -8,7 +8,6 @@ from pilotstd.ui.core.handlers import (
     PersistenceHandler,
     ProjectHandler,
     SettingsHandler,
-    TableHelperHandler,
 )
 
 
@@ -22,7 +21,6 @@ class TestHandlersInit(unittest.TestCase):
             PersistenceHandler,
             ProjectHandler,
             SettingsHandler,
-            TableHelperHandler,
         ]
         for cls in classes:
             self.assertIsNotNone(cls, f"{cls.__name__} 不应为 None")
@@ -36,7 +34,6 @@ class TestHandlersInit(unittest.TestCase):
             "PersistenceHandler",
             "ProjectHandler",
             "SettingsHandler",
-            "TableHelperHandler",
         ]
         self.assertEqual(sorted(__all__), sorted(expected))
 
