@@ -445,17 +445,37 @@ jobs:
           from docker.users import init_users_table
           init_users_table()
           db = Database(get_db_path())
-          row = db.fetchone('SELECT id FROM users WHERE username = ?', ('admin',))
-          if not row:
-              db.execute(
-                  'INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)',
-                  ('admin', get_password_hash('Admin@123'), generate_salt(), 'admin'),
-              )
-              print('✅ Admin user created (role=admin, password=Admin@123)')
-          else:
-              print('ℹ️ Admin user already exists')
+          # UPSERT: ON CONFLICT DO UPDATE 确保密码哈希始终与当前代码一致
+          db.execute(
+              'INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?) '
+              'ON CONFLICT(username) DO UPDATE SET '
+              'password_hash=excluded.password_hash, '
+              'salt=excluded.salt, '
+              'role=excluded.role',
+              ('admin', get_password_hash('Admin@123'), generate_salt(), 'admin'),
+          )
+          print('✅ Admin user upserted (role=admin, password=Admin@123)')
           db.close()
           "
+
+      # Step 2c: 验证 admin 用户可登录（seed 后确认哈希匹配）
+      - name: Verify admin login works
+        run: |
+          set -euo pipefail
+          sleep 2
+          RESP=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST http://localhost:${{ env.BACKEND_PORT }}/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"Admin@123"}')
+          echo "Login verification status: $RESP"
+          if [ "$RESP" != "200" ]; then
+            echo "❌ Seed admin cannot login! Hash mismatch suspected."
+            curl -s -X POST http://localhost:${{ env.BACKEND_PORT }}/api/auth/login \
+              -H "Content-Type: application/json" \
+              -d '{"username":"admin","password":"Admin@123"}'
+            exit 1
+          fi
+          echo "✅ Admin login verified"
 
       # Step 4: 启动前端 dev server（proxy 目标通过 VITE_API_TARGET 指向本地 backend）
       - name: Start frontend dev server

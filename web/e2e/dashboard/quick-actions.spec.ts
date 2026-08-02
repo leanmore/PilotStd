@@ -13,6 +13,7 @@ test.describe('快捷操作卡片修复回归', () => {
       timeout: 15000,
     });
     console.log('Login API status:', loginResp.status());
+    console.log('Login API body:', await loginResp.text());
     expect(loginResp.ok()).toBeTruthy();
 
     // Step 3: 导航到前端登录页
