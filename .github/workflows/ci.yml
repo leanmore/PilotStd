@@ -325,6 +325,7 @@ jobs:
       PYTHON_VERSION: "3.12"
       NODE_VERSION: "22"
       SUPERUSER: superadmin
+      ADMIN_PASSWORD: Admin@123
       PILOTSTD_STORAGE_INBOX_DIR: /tmp/pilotstd-inbox
       STANDARD_ROOT: /tmp/pilotstd-lib
       BACKEND_PORT: "9028"
