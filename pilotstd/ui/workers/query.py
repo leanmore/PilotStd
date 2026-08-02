@@ -52,8 +52,8 @@ class QueryWorker(QThread):
         results: list[Any] = []
         _result_batch: list[Any] = []
         _sent_indices: set[int] = set()
+        _t_start = _time.monotonic()
         try:
-            _t_start = _time.monotonic()
             _last_log = _t_start
             _last_flush = _t_start
 
@@ -98,6 +98,8 @@ class QueryWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
         finally:
+            _elapsed = _time.monotonic() - _t_start
+            logger.info("[QueryWorker] elapsed=%.1fs results=%d", _elapsed, len(results))
             if not self._stopped:
                 remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
                 if _result_batch:

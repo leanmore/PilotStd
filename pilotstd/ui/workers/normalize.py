@@ -1,10 +1,13 @@
 # pilotstd/ui/workers/normalize.py — NormalizeWorker，从 workers.py 拆分
 
+import logging
 from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ._common import _pct
+
+logger = logging.getLogger(__name__)
 
 
 class NormalizeWorker(QThread):
@@ -29,6 +32,9 @@ class NormalizeWorker(QThread):
         """在线程中执行流式规范化，批量发射结果。
         try/finally 保证任何退出路径都恰好发射一次 finished_signal。
         """
+        import time as _time
+
+        _t_start = _time.monotonic()
         try:
 
             def on_batch(batch_rows: Any) -> None:
@@ -48,4 +54,6 @@ class NormalizeWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
         finally:
+            _elapsed = _time.monotonic() - _t_start
+            logger.info("[NormalizeWorker] elapsed=%.1fs", _elapsed)
             self.finished_signal.emit()

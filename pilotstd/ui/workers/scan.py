@@ -38,8 +38,8 @@ class ScanWorker(QThread):
         """
         parsed_count = 0
         failed_count = 0
+        _t_start = _time.monotonic()
         try:
-            _t_start = _time.monotonic()
             _last_log = _t_start
             _last_signal = _t_start
 
@@ -70,4 +70,6 @@ class ScanWorker(QThread):
             self.error.emit(str(e))
             failed_count = 1
         finally:
+            _elapsed = _time.monotonic() - _t_start
+            logger.info("[ScanWorker] elapsed=%.1fs success=%d failed=%d", _elapsed, parsed_count, failed_count)
             self.finished_signal.emit(parsed_count, failed_count)

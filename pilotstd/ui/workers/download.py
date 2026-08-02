@@ -34,6 +34,7 @@ class DownloadWorker(QThread):
         """
         import time as _time
 
+        _t_start = _time.monotonic()
         try:
             batch: list[tuple[Any, ...]] = []
             last_flush = _time.monotonic()
@@ -67,5 +68,7 @@ class DownloadWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
         finally:
+            _elapsed = _time.monotonic() - _t_start
+            logger.info("[DownloadWorker] elapsed=%.1fs", _elapsed)
             # finally 块保证 finished_signal 在正常/异常/提前返回 三条路径都恰好发射一次
             self.finished_signal.emit()

@@ -54,6 +54,7 @@ class ArchiveWorker(QThread):
         """在线程中执行归档流式处理，批量通知 UI。
         try/finally 保证任何退出路径（含磁盘不足提前 return）都恰好发射一次 finished_signal。
         """
+        _t_start = _time.monotonic()
         try:
             total_size = 0
             for p in self.parsed_list:
@@ -67,7 +68,6 @@ class ArchiveWorker(QThread):
 
             batch: list[tuple[Any, ...]] = []
             last_flush = _time.monotonic()
-            _t_start = _time.monotonic()
             _last_log = _t_start
 
             def on_result(idx: Any, status: Any) -> None:
@@ -106,6 +106,8 @@ class ArchiveWorker(QThread):
         except Exception as e:
             self.error.emit(str(e))
         finally:
+            _elapsed = _time.monotonic() - _t_start
+            logger.info("[ArchiveWorker] elapsed=%.1fs", _elapsed)
             self.finished_signal.emit()
 
     # ── 目标路径计算（静态方法）──
