@@ -51,7 +51,9 @@ class ArchiveWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中执行归档流式处理，批量通知 UI。"""
+        """在线程中执行归档流式处理，批量通知 UI。
+        try/finally 保证任何退出路径（含磁盘不足提前 return）都恰好发射一次 finished_signal。
+        """
         try:
             total_size = 0
             for p in self.parsed_list:
@@ -61,10 +63,7 @@ class ArchiveWorker(QThread):
             _, _, free = shutil.disk_usage(_disk_root)
             if total_size > free * 0.9:
                 self.error.emit(f"磁盘空间不足: 需要 {total_size / 1024 / 1024:.0f}MB, 剩余 {free / 1024 / 1024:.0f}MB")
-                # 信号签名 pyqtSignal(): 无参数
-                # 磁盘不足路径补发 finished_signal，防止 waitSignal 永久阻塞
-                self.finished_signal.emit()
-                return
+                return  # 提前返回，finally 保证 finished_signal 发射
 
             batch: list[tuple[Any, ...]] = []
             last_flush = _time.monotonic()
@@ -102,13 +101,10 @@ class ArchiveWorker(QThread):
             )
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
-            self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
-            # 信号签名 pyqtSignal(): 无参数
-            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+        finally:
             self.finished_signal.emit()
-            return
 
     # ── 目标路径计算（静态方法）──
 

@@ -473,6 +473,10 @@ jobs:
           retention-days: 7
 
       # Step 7: 清理 backend + frontend 进程
+      - name: Dump backend log on failure
+        if: failure()
+        run: cat /tmp/backend.log || echo "No backend log found"
+
       - name: Cleanup backend and frontend
         if: always()
         run: |

@@ -46,13 +46,16 @@ class QueryWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中执行流式查询，逐条发射结果并批量发射。"""
+        """在线程中执行流式查询，逐条发射结果并批量发射。
+        try/finally 保证任何退出路径都恰好发射一次 finished_signal。
+        """
+        results: list[Any] = []
+        _result_batch: list[Any] = []
+        _sent_indices: set[int] = set()
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
-            _result_batch: list[Any] = []
             _last_flush = _t_start
-            _sent_indices: set[int] = set()
 
             def on_result(idx: int, result: Any) -> None:
                 """单条结果就绪时发射信号 + 累计批次。"""
@@ -94,12 +97,11 @@ class QueryWorker(QThread):
             )
         except Exception as e:
             self.error.emit(str(e))
-            results = []
-
-        if not self._stopped:
-            remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
-            if _result_batch:
-                self.batch_ready.emit(_result_batch)
-            if remaining:
-                self.batch_ready.emit(remaining)
-        self.finished_signal.emit(results)
+        finally:
+            if not self._stopped:
+                remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
+                if _result_batch:
+                    self.batch_ready.emit(_result_batch)
+                if remaining:
+                    self.batch_ready.emit(remaining)
+            self.finished_signal.emit(results)

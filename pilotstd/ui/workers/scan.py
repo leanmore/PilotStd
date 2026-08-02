@@ -33,7 +33,11 @@ class ScanWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中执行流式扫描，节流发射进度信号防止事件队列撑爆。"""
+        """在线程中执行流式扫描，节流发射进度信号防止事件队列撑爆。
+        try/finally 保证任何退出路径（正常/异常/提前返回）都恰好发射一次 finished_signal。
+        """
+        parsed_count = 0
+        failed_count = 0
         try:
             _t_start = _time.monotonic()
             _last_log = _t_start
@@ -62,10 +66,8 @@ class ScanWorker(QThread):
             parsed = self._mgr.scan_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
             self.unrecognized = []
             parsed_count = len(parsed)
-            self.finished_signal.emit(parsed_count, 0)
         except Exception as e:
             self.error.emit(str(e))
-            # 信号签名 pyqtSignal(int, int): (success, failed)
-            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
-            self.finished_signal.emit(0, 1)
-            return
+            failed_count = 1
+        finally:
+            self.finished_signal.emit(parsed_count, failed_count)

@@ -2,22 +2,41 @@ import { test, expect } from '@playwright/test';
 
 test.describe('快捷操作卡片修复回归', () => {
   test.beforeEach(async ({ page }) => {
-    // 防御性 API 健康检查，确保 backend 可达后再渲染登录页
+    // Step 1: 防御性 API 健康检查，确保 backend 可达
     // 健康检查端点取自 docker/app.py 的 /api/health 路由
-    const response = await page.request.get('http://localhost:9028/api/health', { timeout: 30000 });
-    expect(response.ok()).toBeTruthy();
+    const healthResp = await page.request.get('http://localhost:9028/api/health', { timeout: 30000 });
+    expect(healthResp.ok()).toBeTruthy();
 
+    // Step 2: 验证登录接口本身是否正常（排除 DB/Seed 问题）
+    const loginResp = await page.request.post('http://localhost:9028/api/auth/login', {
+      data: { username: 'admin', password: 'Admin@123' },
+      timeout: 15000,
+    });
+    console.log('Login API status:', loginResp.status());
+    expect(loginResp.ok()).toBeTruthy();
+
+    // Step 3: 导航到前端登录页
     await page.goto('/login');
     await page.waitForSelector('input[name="username"]', { timeout: 15000 });
     await page.fill('input[name="username"]', 'admin');
     await page.fill('input[name="password"]', 'Admin@123');
     await page.click('button[type="submit"]');
-    // DEBUG: capture post-login state before waiting
-    await page.screenshot({ path: 'test-results/debug-post-login.png' });
-    await page.waitForFunction(() =>
-      window.__STORE_INITIALIZED__ === true ||
-      document.querySelector('[data-testid="quick-actions-card"]') !== null
-    );
+
+    // Step 4: 等待 Store 初始化，带超时诊断快照
+    try {
+      await page.waitForFunction(
+        () => window.__STORE_INITIALIZED__ === true ||
+              document.querySelector('[data-testid="quick-actions-card"]') !== null,
+        { timeout: 45000 }
+      );
+    } catch (e) {
+      const url = page.url();
+      const storeFlag = await page.evaluate(() => (window as any).__STORE_INITIALIZED__);
+      const cardExists = await page.evaluate(() => !!document.querySelector('[data-testid="quick-actions-card"]'));
+      await page.screenshot({ path: 'test-results/store-init-timeout.png' });
+      console.error(`[Store Init Timeout] URL: ${url} | Flag: ${storeFlag} | Card: ${cardExists}`);
+      throw e;
+    }
   });
 
   test('Admin 刷新后 scan_index 操作仍可见', async ({ page }) => {

@@ -33,7 +33,10 @@ class AutoWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中启动自动管线，逐阶段发射信号到 UI。"""
+        """在线程中启动自动管线，逐阶段发射信号到 UI。
+        try/finally 保证任何退出路径都恰好发射一次 finished_signal。
+        """
+        report: dict = {}
         try:
             report = self._mgr.auto_run_stream(
                 self._root_path,
@@ -48,8 +51,8 @@ class AutoWorker(QThread):
             )
         except Exception as e:
             self.error.emit(str(e))
-            return
-        self.finished_signal.emit(report)
+        finally:
+            self.finished_signal.emit(report)
 
     def _emit_scan_batch(self, batch_rows: list[Any]) -> None:
         """发射扫描批次信号（非停止状态下）。"""

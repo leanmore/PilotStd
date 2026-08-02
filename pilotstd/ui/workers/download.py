@@ -26,7 +26,9 @@ class DownloadWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中执行流式下载，批量发射结果到 UI。"""
+        """在线程中执行流式下载，批量发射结果到 UI。
+        try/finally 保证任何退出路径都恰好发射一次 finished_signal。
+        """
         import time as _time
 
         try:
@@ -57,10 +59,8 @@ class DownloadWorker(QThread):
             self._mgr.download_stream(on_progress=on_progress, on_result=on_result)
             if batch and not self._stopped:
                 self.batch_ready.emit(batch)
-            self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
-            # 信号签名 pyqtSignal(): 无参数
-            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+        finally:
+            # finally 块保证 finished_signal 在正常/异常/提前返回 三条路径都恰好发射一次
             self.finished_signal.emit()
-            return

@@ -26,7 +26,9 @@ class NormalizeWorker(QThread):
         self._stopped = True
 
     def run(self) -> None:
-        """在线程中执行流式规范化，批量发射结果。"""
+        """在线程中执行流式规范化，批量发射结果。
+        try/finally 保证任何退出路径都恰好发射一次 finished_signal。
+        """
         try:
 
             def on_batch(batch_rows: Any) -> None:
@@ -43,10 +45,7 @@ class NormalizeWorker(QThread):
                 self.progress.emit(_pct(cur, total))
 
             self._mgr.normalize_files_stream(self.parsed_list, on_progress=on_progress, on_batch=on_batch)
-            self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
-            # 信号签名 pyqtSignal(): 无参数
-            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+        finally:
             self.finished_signal.emit()
-            return
