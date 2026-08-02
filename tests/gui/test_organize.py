@@ -77,7 +77,15 @@ def test_normalize_generates_standard_names(window, test_data_dir, qtbot):
                 p.std_name = f"标准_{p.logical_code}_{p.number}"
         window._on_normalize()
         _wait_worker(qtbot, window, "_normalize_worker")
+
         table = window.work_table
+        # 关键：等待 UI 状态收敛，确保 finished_signal → handler 回调 → table 填充链完成
+        qtbot.waitUntil(
+            lambda: table.rowCount() > 0,
+            timeout=5000,
+        )
+        print(f"[DIAG] final rowCount={table.rowCount()}")
+
         assert table.rowCount() > 0
         for row in range(table.rowCount()):
             item = table.item(row, 3)
