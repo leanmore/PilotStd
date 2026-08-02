@@ -31,23 +31,22 @@ def _wait_worker(qtbot, window, attr, timeout=30000):
             w = getattr(handler, attr, None)
 
     if w is not None:
-        # 诊断信号连接（仅用于日志，不依赖它等待）
         t0 = time.monotonic()
+        already_done = not w.isRunning()
 
-        def _on_signal(*args):
-            elapsed = time.monotonic() - t0
-            print(f"DIAG: {attr} finished in {elapsed:.1f}s")
+        if not already_done:
+            def _on_signal(*args):
+                elapsed = time.monotonic() - t0
+                print(f"DIAG: {attr} finished in {elapsed:.1f}s")
 
-        w.finished_signal.connect(_on_signal)
-
-        # 使用 isRunning 状态轮询等待，避免信号竞态
-        qtbot.waitUntil(lambda: not w.isRunning(), timeout=timeout)
-
-        # 断开诊断连接，防止内存泄漏
-        try:
-            w.finished_signal.disconnect(_on_signal)
-        except (TypeError, RuntimeError):
-            pass
+            w.finished_signal.connect(_on_signal)
+            qtbot.waitUntil(lambda: not w.isRunning(), timeout=timeout)
+            try:
+                w.finished_signal.disconnect(_on_signal)
+            except (TypeError, RuntimeError):
+                pass
+        else:
+            print(f"DIAG: {attr} already finished before wait")
 
 
 def _copy_fixtures_to_tmp(test_data_dir):
