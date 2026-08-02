@@ -384,7 +384,10 @@ def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
         )
 
         window._on_save_to_folder()
-        _wait_worker(qtbot, window, "_archive_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_archive_worker",
+            ui_predicate=lambda: True,
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
