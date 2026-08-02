@@ -46,3 +46,7 @@ class NormalizeWorker(QThread):
             self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
+            # 信号签名 pyqtSignal(): 无参数
+            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+            self.finished_signal.emit()
+            return

@@ -65,3 +65,7 @@ class ScanWorker(QThread):
             self.finished_signal.emit(parsed_count, 0)
         except Exception as e:
             self.error.emit(str(e))
+            # 信号签名 pyqtSignal(int, int): (success, failed)
+            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+            self.finished_signal.emit(0, 1)
+            return

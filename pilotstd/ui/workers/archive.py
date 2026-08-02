@@ -61,6 +61,9 @@ class ArchiveWorker(QThread):
             _, _, free = shutil.disk_usage(_disk_root)
             if total_size > free * 0.9:
                 self.error.emit(f"磁盘空间不足: 需要 {total_size / 1024 / 1024:.0f}MB, 剩余 {free / 1024 / 1024:.0f}MB")
+                # 信号签名 pyqtSignal(): 无参数
+                # 磁盘不足路径补发 finished_signal，防止 waitSignal 永久阻塞
+                self.finished_signal.emit()
                 return
 
             batch: list[tuple[Any, ...]] = []
@@ -102,6 +105,10 @@ class ArchiveWorker(QThread):
             self.finished_signal.emit()
         except Exception as e:
             self.error.emit(str(e))
+            # 信号签名 pyqtSignal(): 无参数
+            # 异常路径补发 finished_signal，防止 waitSignal 永久阻塞
+            self.finished_signal.emit()
+            return
 
     # ── 目标路径计算（静态方法）──
 
