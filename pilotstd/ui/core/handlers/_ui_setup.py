@@ -1,7 +1,7 @@
 # pilotstd/ui/core/handlers/_ui_setup.py
 """UISetupHandler — UI 构建（系统托盘、日志桥接、自动保存、扫描器状态管理）。
 
-菜单栏/工具栏已提取至 _ui_toolbar.py，中央区域布局已提取至 _ui_layout.py。
+中央区域布局已提取至 _ui_layout.py。
 """
 
 from __future__ import annotations
@@ -21,16 +21,15 @@ from PyQt6.QtWidgets import (
 from ....i18n import _
 from ...workers import LogHandler
 from ._ui_layout import _UISetupLayoutMixin
-from ._ui_toolbar import _UISetupToolbarMixin
 
 logger = logging.getLogger("pilotstd.ui")
 
 
-class UISetupHandler(_UISetupToolbarMixin, _UISetupLayoutMixin):
+class UISetupHandler(_UISetupLayoutMixin):
     """UI 构建 — 提供所有 setup_* 方法。
 
     通过依赖注入替代多重继承，window 作为方法参数传入以访问 MainWindow 的回调。
-    菜单栏/工具栏由 _UISetupToolbarMixin 提供，中央区域布局由 _UISetupLayoutMixin 提供。
+    中央区域布局由 _UISetupLayoutMixin 提供。
     """
 
     def __init__(
