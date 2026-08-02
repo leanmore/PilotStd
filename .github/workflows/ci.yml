@@ -457,7 +457,15 @@ jobs:
               'role=excluded.role',
               ('admin', get_password_hash('Admin@123'), generate_salt(), 'admin'),
           )
-          print('✅ Admin user upserted (role=admin, password=Admin@123)')
+          db.execute(
+              'INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?) '
+              'ON CONFLICT(username) DO UPDATE SET '
+              'password_hash=excluded.password_hash, '
+              'salt=excluded.salt, '
+              'role=excluded.role',
+              ('user', get_password_hash('User@123'), generate_salt(), 'user'),
+          )
+          print('✅ Admin and user upserted')
           db.close()
           "
 
