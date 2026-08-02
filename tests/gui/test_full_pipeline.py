@@ -12,31 +12,41 @@ if root_dir not in sys.path:
 
 
 def _wait_worker(qtbot, window, attr, timeout=30000):
-    """等待 Worker 线程完成（兼容新旧 Handler 架构）。"""
+    """等待 Worker 线程完成（兼容新旧 Handler 架构）。
+    qtbot.waitUntil 轮询 isRunning() 状态，避免 finished_signal 竞态。
+    """
     w = getattr(window, attr, None)
     # 新架构：worker 在 window._core.<handler>.<attr> 下
     if w is None and hasattr(window, "_core"):
-        # attr → handler 映射
         _worker_handler_map = {
             "_scan_worker": "scan",
             "_query_worker": "query",
             "_download_worker": "download",
-            "_normalize_worker": "archive",  # normalize 是 archive handler 的子功能
+            "_normalize_worker": "archive",
             "_archive_worker": "archive",
         }
         handler_name = _worker_handler_map.get(attr, attr.replace("_worker", ""))
         handler = getattr(window._core, handler_name, None)
         if handler is not None:
             w = getattr(handler, attr, None)
-    if w is not None and w.isRunning():
+
+    if w is not None:
+        # 诊断信号连接（仅用于日志，不依赖它等待）
         t0 = time.monotonic()
 
         def _on_signal(*args):
             elapsed = time.monotonic() - t0
-            print(f"⏱️ DIAG: {attr} finished in {elapsed:.1f}s")
+            print(f"DIAG: {attr} finished in {elapsed:.1f}s")
 
         w.finished_signal.connect(_on_signal)
-        with qtbot.waitSignal(w.finished_signal, timeout=timeout):
+
+        # 使用 isRunning 状态轮询等待，避免信号竞态
+        qtbot.waitUntil(lambda: not w.isRunning(), timeout=timeout)
+
+        # 断开诊断连接，防止内存泄漏
+        try:
+            w.finished_signal.disconnect(_on_signal)
+        except (TypeError, RuntimeError):
             pass
 
 

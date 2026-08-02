@@ -64,7 +64,10 @@ test.describe('快捷操作卡片修复回归', () => {
   });
 
   test('登出后重新登录不残留旧角色状态', async ({ page }) => {
-    await page.click('[data-testid="user-menu-logout"]');
+    // AppHeader 的 .topbar-right 由 v-show="isHovered" 控制显隐，
+    // CI headless 环境下需先 hover header 触发 mouseenter 展开按钮区域
+    await page.hover('header.topbar');
+    await page.click('[data-testid="user-menu-logout"]', { state: 'visible' });
     await page.waitForURL('/login');
 
     await page.fill('input[name="username"]', 'user');
