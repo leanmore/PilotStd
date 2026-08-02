@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 
 import pytest
 
@@ -28,6 +29,13 @@ def _wait_worker(qtbot, window, attr, timeout=30000):
         if handler is not None:
             w = getattr(handler, attr, None)
     if w is not None and w.isRunning():
+        t0 = time.monotonic()
+
+        def _on_signal(*args):
+            elapsed = time.monotonic() - t0
+            print(f"⏱️ DIAG: {attr} finished in {elapsed:.1f}s")
+
+        w.finished_signal.connect(_on_signal)
         with qtbot.waitSignal(w.finished_signal, timeout=timeout):
             pass
 
