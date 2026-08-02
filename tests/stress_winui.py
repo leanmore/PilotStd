@@ -25,6 +25,8 @@ if root_dir not in sys.path:
 
 import pytest
 from PyQt6.QtWidgets import QApplication
+from tests.gui.helpers import wait_for_worker_and_ui
+from tests.gui.helpers.predicates import worker_done
 
 logger = logging.getLogger("stress_winui")
 
@@ -89,14 +91,6 @@ def window(qapp, qtbot, request):
 # ── Worker 等待工具 ──────────────────────────────────────────
 
 
-def _wait_worker(qtbot, window, attr, timeout=3600000):
-    """等待 Worker 完成。默认 1 小时超时，远大于正常管线耗时。"""
-    w = getattr(window, attr, None)
-    if w is not None and w.isRunning():
-        with qtbot.waitSignal(w.finished_signal, timeout=timeout):
-            pass
-
-
 # ── 测试: 热启 auto + 交叉对比 ────────────────────────────────
 
 
@@ -134,7 +128,7 @@ def test_winui_hot_cross_compare(window, qtbot, request):
 
     # 等待统一 AutoWorker（替代原有 5 个独立 Worker）
     logger.info("等待 AutoWorker...")
-    _wait_worker(qtbot, win, "_auto_worker")
+    wait_for_worker_and_ui(qtbot, win, "_auto_worker", ui_predicate=worker_done)
 
     elapsed = time.time() - t0
     logger.info(f"WinUI auto 完成: {elapsed:.1f}s")

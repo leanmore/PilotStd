@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from typing import Callable, Optional
 
 import pytestqt.qtbot
@@ -124,22 +123,3 @@ def wait_for_worker_and_ui(
         qtbot.waitUntil(ui_predicate, timeout=timeout)
     except Exception:
         raise AssertionError(message)
-
-
-def _wait_worker(qtbot, window, worker_attr, timeout=5000):
-    """Deprecated: 请使用 :func:`wait_for_worker_and_ui` 代替。
-
-    此函数仅等待 Worker 线程结束，不保证 UI 状态收敛，
-    在跨线程信号回调场景下会导致测试不稳定。
-    """
-    warnings.warn(
-        "_wait_worker is deprecated. Use wait_for_worker_and_ui instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    worker = getattr(window, worker_attr, None)
-    if worker is not None and worker.isRunning():
-        qtbot.waitUntil(
-            lambda: not worker.isRunning(),
-            timeout=timeout,
-        )
