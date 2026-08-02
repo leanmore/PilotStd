@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('快捷操作卡片修复回归', () => {
   test.beforeEach(async ({ page }) => {
+    // 防御性 API 健康检查，确保 backend 可达后再渲染登录页
+    // 健康检查端点取自 docker/app.py 的 /api/health 路由
+    const response = await page.request.get('http://localhost:9028/api/health', { timeout: 30000 });
+    expect(response.ok()).toBeTruthy();
+
     await page.goto('/login');
     await page.waitForSelector('input[name="username"]', { timeout: 15000 });
     await page.fill('input[name="username"]', 'admin');

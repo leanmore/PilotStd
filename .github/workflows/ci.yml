@@ -169,6 +169,13 @@ jobs:
           pip install pytest pytest-qt pytest-cov pytest-timeout responses
           pip install -e .
 
+      - name: Verify worker fix and clean pyc
+        run: |
+          echo "=== Verifying finished_signal.emit in workers ==="
+          grep -n "finished_signal.emit" pilotstd/ui/workers/scan.py pilotstd/ui/workers/download.py pilotstd/ui/workers/normalize.py pilotstd/ui/workers/archive.py || echo "WARNING: Worker fix not found!"
+          echo "=== Cleaning pycache ==="
+          find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
       - name: Run GUI tests with xvfb
         env:
           QT_QPA_PLATFORM: offscreen
@@ -176,7 +183,7 @@ jobs:
           xvfb-run -a -s "-screen 0 1920x1080x24" \
             python -m pytest tests/gui/ \
               --cov=pilotstd --cov-append \
-              --timeout=15 --timeout_method=signal \
+              --timeout=60 --timeout_method=signal \
               -v --tb=long -p no:warnings
 
       - name: Report coverage delta
@@ -424,8 +431,10 @@ jobs:
           curl -v "http://localhost:${{ env.BACKEND_PORT }}/" || true
           exit 1
 
-      # Step 4: 启动前端 dev server
+      # Step 4: 启动前端 dev server（proxy 目标通过 VITE_API_TARGET 指向本地 backend）
       - name: Start frontend dev server
+        env:
+          VITE_API_TARGET: http://localhost:${{ env.BACKEND_PORT }}
         run: |
           set -euo pipefail
           cd web

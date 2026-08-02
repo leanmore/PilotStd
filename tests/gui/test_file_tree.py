@@ -2,6 +2,8 @@
 import os
 import sys
 
+import pytest
+
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -26,6 +28,7 @@ def test_file_tree_left_width_is_200(window, qtbot):
     assert sizes[0] == 200
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-only: requires multiple drives")
 def test_file_tree_expand_drives(window, qtbot):
     """展开「此电脑」应显示驱动器。"""
     # 找到"此电脑"节点
