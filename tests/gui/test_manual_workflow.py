@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 import pytest
+from tests.gui.helpers import wait_for_worker_and_ui
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -53,9 +54,10 @@ def test_skip_download_after_query(window, test_data_dir, qtbot):
 
         # 扫描
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         assert len(window._parsed_results) > 0
 
         # 查询
@@ -94,9 +96,10 @@ def test_cancel_button_enabled_during_query(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
 
         # 发起查询，检查取消按钮状态
         window._on_query()
@@ -121,9 +124,10 @@ def test_cancel_stops_query_worker(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
 
         window._on_query()
         # 立即点取消
@@ -165,7 +169,6 @@ def test_pause_button_still_works(window, qtbot):
 def test_scan_twice_overwrites_results(window, test_data_dir, qtbot):
     """扫描两次 → _parsed_results 被第二次扫描覆盖。"""
     window._suppress_dialogs = True
-    from tests.gui.test_full_pipeline import _wait_worker
 
     # 第一次扫描
     tmp1 = tempfile.mkdtemp(prefix="pilotstd_scan1_")
@@ -176,7 +179,10 @@ def test_scan_twice_overwrites_results(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp1)
 
         window._run_scan(tmp1)
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         count1 = len(window._parsed_results)
         assert count1 > 0
 
@@ -184,7 +190,11 @@ def test_scan_twice_overwrites_results(window, test_data_dir, qtbot):
         tmp2 = tempfile.mkdtemp(prefix="pilotstd_scan2_")
         try:
             window._run_scan(tmp2)
-            _wait_worker(qtbot, window, "_scan_worker")
+            # 空目录扫描 → 仅等待线程结束，不检查 _parsed_results（预期为 0）
+            wait_for_worker_and_ui(
+                qtbot, window, "_scan_worker",
+                ui_predicate=lambda: True,
+            )
             count2 = len(window._parsed_results)
             # 第二次扫描空目录 → 应覆盖为 0
             assert count2 == 0, f"第二次扫描空目录应清空结果，实际 {count2}"
@@ -205,9 +215,10 @@ def test_query_twice_does_not_double_classify(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
 
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
@@ -252,9 +263,10 @@ def test_buttons_enabled_after_cancel(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
 
         window._on_query()
         window._on_cancel()
@@ -281,9 +293,10 @@ def test_progress_bar_visible_during_task(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
 
         window._on_query()
         # 查询开始后进度条应可见
@@ -325,7 +338,10 @@ def test_full_manual_workflow_no_auto(window, test_data_dir, qtbot):
         from tests.gui.test_full_pipeline import _wait_worker
 
         window._run_scan(tmp)
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: window.work_table.rowCount() > 0,
+        )
         assert window.work_table.rowCount() > 0
 
         window._on_query()
@@ -361,9 +377,10 @@ def test_status_bar_shows_cancel_message(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._on_query()
 
         spy = QSignalSpy(window.status_changed)
@@ -391,9 +408,10 @@ def test_switch_to_stage_after_query(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
 
@@ -415,9 +433,10 @@ def test_get_stage_summary(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
 
@@ -452,9 +471,10 @@ def test_button_states_after_scan(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._update_button_states()
         # 扫描后按钮状态由数据决定 — 验证按钮存在且可交互
         assert window.btn_query.isEnabled() or not window.btn_query.isEnabled()
@@ -478,9 +498,10 @@ def test_download_uses_independent_queue(window, test_data_dir, qtbot):
                 shutil.copy2(src, tmp)
 
         window._run_scan(tmp)
-        from tests.gui.test_full_pipeline import _wait_worker
-
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._on_query()
         _wait_worker(qtbot, window, "_query_worker")
 
