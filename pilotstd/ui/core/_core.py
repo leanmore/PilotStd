@@ -19,13 +19,9 @@ from .handlers._archive import ArchiveUIHandler
 from .handlers._auto import AutoUIHandler
 from .handlers._cleanup import CleanupHandler
 from .handlers._download import DownloadUIHandler
-from .handlers._export import ExportHandler
-from .handlers._file_dialog import FileDialogHandler
 from .handlers._persistence import PersistenceHandler
 from .handlers._project import ProjectHandler
 from .handlers._scan import ScanUIHandler
-from .handlers._theme import ThemeHandler
-from .handlers._ui_setup import UISetupHandler
 
 
 class MainWindowCore(_CoreInitQueryMixin):
@@ -120,13 +116,9 @@ class MainWindowCore(_CoreInitQueryMixin):
         self._init_archive()
         self._init_auto()
         self._init_announce()
-        self._init_file_dialog()
-        self._init_export()
         self._init_cleanup()
         self._init_persistence()
         self._init_project()
-        self._init_ui_setup()
-        self._init_theme()
 
     def _init_scan(self) -> None:
         """创建 ScanUIHandler 实例，注入扫描所需的回调函数和共享数据。"""
@@ -240,28 +232,6 @@ class MainWindowCore(_CoreInitQueryMixin):
             pause_event=self._pause_event,
         )
 
-    def _init_file_dialog(self) -> None:
-        """创建 FileDialogHandler，注入文件选择对话框所需的配置和路径回调。"""
-        self.file_dialog = FileDialogHandler(
-            config=self._config,
-            status_callback=self._status_callback,
-            run_scan_callback=self._run_scan_cb,
-            get_selected_path_callback=self._get_selected_path_cb,
-            parent=self._parent,
-        )
-
-    def _init_export(self) -> None:
-        """创建 ExportHandler，注入导出功能所需的懒加载回调（表格、日志视图等）。"""
-        self.export = ExportHandler(
-            config=self._config,
-            status_callback=self._status_callback,
-            get_selected_path=self._get_selected_path_cb,
-            get_parsed_results=self._get_parsed_results_cb,
-            get_work_table=self._get_work_table_cb,
-            get_log_view=self._get_log_view_cb,
-            parent=self._parent,
-        )
-
     def _init_cleanup(self) -> None:
         """创建 CleanupHandler，注入清理功能所需的目录路径回调和交互对话框。"""
         self.cleanup = CleanupHandler(
@@ -291,19 +261,3 @@ class MainWindowCore(_CoreInitQueryMixin):
             set_unrecognized_files=self._set_unrecognized_files_cb or (lambda f: None),
             parent=self._parent,
         )
-
-    # _init_ui_setup — 界面布局 Handler
-    def _init_ui_setup(self) -> None:
-        """创建 UISetupHandler，注入界面布局初始化所需的配置和信号。"""
-        self.ui_setup = UISetupHandler(
-            config=self._config,
-            mgr=self._mgr,
-            project=self._project,
-            status_callback=self._status_callback,
-            progress_callback=self._progress_callback,
-            on_auto_save=self._on_auto_save_cb or (lambda: None),
-            parent=self._parent,
-        )
-
-    def _init_theme(self) -> None:
-        self.theme = ThemeHandler(config=self._config, parent=self._parent)

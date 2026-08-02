@@ -155,14 +155,9 @@ class TestInitAllHandlers(unittest.TestCase):
             patch.object(MainWindowCore, "_init_archive") as m4,
             patch.object(MainWindowCore, "_init_auto") as m5,
             patch.object(MainWindowCore, "_init_announce") as m6,
-            patch.object(MainWindowCore, "_init_file_dialog") as m7,
-            patch.object(MainWindowCore, "_init_export") as m8,
-            patch.object(MainWindowCore, "_init_cleanup") as m9,
-            patch.object(MainWindowCore, "_init_persistence") as m10,
-            patch.object(MainWindowCore, "_init_project") as m11,
-            patch.object(MainWindowCore, "_init_ui_setup") as m12,
-            patch.object(MainWindowCore, "_init_theme") as m13,
-            patch.object(MainWindowCore, "_init_actions") as m14,
+            patch.object(MainWindowCore, "_init_cleanup") as m7,
+            patch.object(MainWindowCore, "_init_persistence") as m8,
+            patch.object(MainWindowCore, "_init_project") as m9,
         ):
             MainWindowCore(
                 mgr=self.mgr,
@@ -181,14 +176,9 @@ class TestInitAllHandlers(unittest.TestCase):
             ("archive", m4),
             ("auto", m5),
             ("announce", m6),
-            ("file_dialog", m7),
-            ("export", m8),
-            ("cleanup", m9),
-            ("persistence", m10),
-            ("project", m11),
-            ("ui_setup", m12),
-            ("theme", m13),
-            ("actions", m14),
+            ("cleanup", m7),
+            ("persistence", m8),
+            ("project", m9),
         ]:
             m.assert_called_once(), f"_init_{name} 未被调用"
 
@@ -288,23 +278,6 @@ class TestInitIndividualHandlers(unittest.TestCase):
         call_kwargs = mock_handler_cls.call_args[1]
         self.assertIs(call_kwargs["mgr"], self.mgr)
 
-    @patch("pilotstd.ui.core._core.FileDialogHandler")
-    def test_init_file_dialog(self, mock_handler_cls):
-        core = self._make_core(run_scan_cb=lambda: None, get_selected_path_cb=lambda: "/p")
-        core._init_file_dialog()
-        mock_handler_cls.assert_called_once()
-
-    @patch("pilotstd.ui.core._core.ExportHandler")
-    def test_init_export(self, mock_handler_cls):
-        core = self._make_core(
-            get_selected_path_cb=lambda: "/p",
-            get_parsed_results_cb=lambda: [],
-            get_work_table_cb=lambda: None,
-            get_log_view_cb=lambda: None,
-        )
-        core._init_export()
-        mock_handler_cls.assert_called_once()
-
     @patch("pilotstd.ui.core._core.CleanupHandler")
     @patch("pilotstd.ui.core._core.get_library_root")
     def test_init_cleanup(self, mock_get_root, mock_handler_cls):
@@ -338,19 +311,6 @@ class TestInitIndividualHandlers(unittest.TestCase):
         core._init_project()
         mock_handler_cls.assert_called_once()
 
-    @patch("pilotstd.ui.core._core.UISetupHandler")
-    def test_init_ui_setup(self, mock_handler_cls):
-        fake_project = MagicMock()
-        core = self._make_core(project=fake_project, on_auto_save_cb=lambda: None)
-        core._init_ui_setup()
-        mock_handler_cls.assert_called_once()
-
-    @patch("pilotstd.ui.core._core.ThemeHandler")
-    def test_init_theme(self, mock_handler_cls):
-        core = self._make_core()
-        core._init_theme()
-        mock_handler_cls.assert_called_once_with(config=self.config, parent=self.parent)
-
     @patch("pilotstd.ui.core._core.PersistenceHandler")
     def test_init_persistence_stores_on_core(self, mock_handler_cls):
         mock_handler = MagicMock()
@@ -358,11 +318,3 @@ class TestInitIndividualHandlers(unittest.TestCase):
         core = self._make_core()
         core._init_persistence()
         self.assertIs(core.persistence, mock_handler)
-
-    @patch("pilotstd.ui.core._core.ThemeHandler")
-    def test_init_theme_stores_on_core(self, mock_handler_cls):
-        mock_handler = MagicMock()
-        mock_handler_cls.return_value = mock_handler
-        core = self._make_core()
-        core._init_theme()
-        self.assertIs(core.theme, mock_handler)

@@ -5,17 +5,10 @@ import unittest
 
 from pilotstd.ui.core.handlers import (
     CleanupHandler,
-    DialogHandler,
-    ExportHandler,
-    FileDialogHandler,
-    FileTreeHandler,
     PersistenceHandler,
     ProjectHandler,
     SettingsHandler,
-    TableHandler,
     TableHelperHandler,
-    ThemeHandler,
-    UISetupHandler,
 )
 
 
@@ -26,17 +19,10 @@ class TestHandlersInit(unittest.TestCase):
         """__all__ 中列出的所有类都能成功导入"""
         classes = [
             CleanupHandler,
-            DialogHandler,
-            ExportHandler,
-            FileDialogHandler,
-            FileTreeHandler,
             PersistenceHandler,
             ProjectHandler,
             SettingsHandler,
-            TableHandler,
             TableHelperHandler,
-            ThemeHandler,
-            UISetupHandler,
         ]
         for cls in classes:
             self.assertIsNotNone(cls, f"{cls.__name__} 不应为 None")
@@ -47,22 +33,15 @@ class TestHandlersInit(unittest.TestCase):
 
         expected = [
             "CleanupHandler",
-            "DialogHandler",
-            "ExportHandler",
-            "FileDialogHandler",
-            "FileTreeHandler",
             "PersistenceHandler",
             "ProjectHandler",
             "SettingsHandler",
-            "TableHandler",
             "TableHelperHandler",
-            "ThemeHandler",
-            "UISetupHandler",
         ]
         self.assertEqual(sorted(__all__), sorted(expected))
 
     def test_settings_handler_is_class(self):
         self.assertTrue(isinstance(SettingsHandler, type))
 
-    def test_theme_handler_is_class(self):
-        self.assertTrue(isinstance(ThemeHandler, type))
+    def test_cleanup_handler_is_class(self):
+        self.assertTrue(isinstance(CleanupHandler, type))
