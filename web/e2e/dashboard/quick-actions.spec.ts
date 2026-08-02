@@ -23,19 +23,17 @@ test.describe('快捷操作卡片修复回归', () => {
     await page.fill('input[name="password"]', 'Admin@123');
     await page.click('button[type="submit"]');
 
-    // Step 4: 等待 Store 初始化，带超时诊断快照
+    // Step 4: 等待 dashboard 渲染（QuickActionsCard 无条件渲染，是所有角色默认布局的一部分）
     try {
       await page.waitForFunction(
-        () => window.__STORE_INITIALIZED__ === true ||
-              document.querySelector('[data-testid="quick-actions-card"]') !== null,
+        () => document.querySelector('[data-testid="quick-actions-card"]') !== null,
         { timeout: 45000 }
       );
     } catch (e) {
       const url = page.url();
-      const storeFlag = await page.evaluate(() => (window as any).__STORE_INITIALIZED__);
       const cardExists = await page.evaluate(() => !!document.querySelector('[data-testid="quick-actions-card"]'));
       await page.screenshot({ path: 'test-results/store-init-timeout.png' });
-      console.error(`[Store Init Timeout] URL: ${url} | Flag: ${storeFlag} | Card: ${cardExists}`);
+      console.error(`[Dashboard Init Timeout] URL: ${url} | Card: ${cardExists}`);
       throw e;
     }
   });
@@ -73,6 +71,12 @@ test.describe('快捷操作卡片修复回归', () => {
     await page.fill('input[name="username"]', 'user');
     await page.fill('input[name="password"]', 'User@123');
     await page.click('button[type="submit"]');
+
+    // 诊断：记录 user 登录后的页面状态
+    console.log('Current URL after user login:', page.url());
+    await page.screenshot({ path: 'test-results/debug-after-user-login.png' });
+
+    // user 角色的 dashboard 默认布局同样包含 QuickActionsCard
     await page.waitForSelector('[data-testid="quick-actions-card"]');
 
     const actions = page.locator('[data-testid="quick-action-item"]');
