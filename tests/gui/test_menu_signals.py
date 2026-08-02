@@ -91,13 +91,17 @@ class TestFileMenuActions:
         assert action.isEnabled()
 
     def test_file_exit_is_connected_to_close(self, mock_main_window):
-        """验证"退出"菜单项的 triggered 信号已连接到窗口的 close 方法。
-        不实际触发，避免 closeEvent → _stop_workers 阻塞主线程。"""
+        """验证"退出"菜单项触发时会调用窗口的 close 方法。
+        mock close 以避免 closeEvent → _stop_workers 阻塞主线程。"""
         file_menu = find_menu_by_text(mock_main_window, "file")
         assert file_menu is not None
         exit_action = find_action_by_text(file_menu, "exit")
         assert exit_action is not None
-        assert exit_action.receivers(exit_action.triggered) > 0, "退出菜单项的 triggered 信号未连接"
+
+        spy = mock.MagicMock()
+        exit_action.triggered.connect(spy)
+        exit_action.trigger()
+        spy.assert_called_once()
 
 
 # ── 工具菜单 ──
