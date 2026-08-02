@@ -4,6 +4,7 @@ import sys
 import tempfile
 
 import pytest
+from tests.gui.helpers import wait_for_worker_and_ui
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -32,17 +33,24 @@ def test_download_requires_scan_and_query(window, qtbot):
 @pytest.mark.timeout(60)
 def test_download_mock_after_query(window, test_data_dir, qtbot):
     """mock 模式下扫描→查询→下载全流程不崩溃。"""
-    from tests.gui.test_full_pipeline import _wait_worker
-
     tmp = _copy_fixtures_to_tmp(test_data_dir)
     try:
         window._run_scan(tmp)
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: window.work_table.rowCount() > 0,
+        )
         assert window.work_table.rowCount() > 0, "扫描后应有数据"
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
         window._on_download()
-        _wait_worker(qtbot, window, "_download_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_download_worker",
+            ui_predicate=lambda: True,
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
