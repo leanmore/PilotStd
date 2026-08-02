@@ -104,6 +104,21 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | ~~P1~~ | ~~`_auto.py` 全链路集成测试~~ | 0.5 人日 | test_auto_pipeline.py 已补充 query/download/archive 阶段字段存在性检查 | ✅ 已完成（2026-07-16） |
 | ~~P2~~ | ~~技术债务清理~~ | 1 人日 | DriveEnumerator 线程安全、LogHandler atexit 冲突 | ✅ 已清理（2026-07-16） |
 | ~~P3~~ | ~~跨 Handler 回调升级事件总线~~ | 2 人日 | 信号/槽 → 统一事件中心 | ✅ 已完成（P9 EventBus） |
+| ~~P2~~ | ~~9f9bd828 双轨残留清理~~ | 1.25 人日 | Phase 1+2：15 死文件 / 20 幽灵测试 / -3323 行 / handlers/ -67% | ✅ 已完成（2026-08-02） |
+
+### 死代码清理记录（2026-08-02）
+
+**Phase 1**（cfb166f）：A+B+D 组 — 实例化但零调用 / 从未实例化 / 传递性孤立
+- 删除 8 Handler：FileDialog / Export / Theme / UISetup / Dialog / Table / FileTree / _UISetupLayoutMixin
+- 删除 6 E2E skip 测试
+- 同步清理 _core.py 4 个死 init 方法 + test_ui_core.py 5 个死测试
+
+**Phase 2**（978a5d9）：C 组 FlowEngine + _table_helper
+- 删除 5 FlowEngine：toolbar / file_tree / dialog / table / table_helper
+- 删除 _table_helper.py（296 行，从未生产实例化）
+- 删除 9 幽灵测试：5 个 FlowEngine 测试 + 3 个 table_helper 测试 + 1 个 E2E skip
+
+**现状**：handlers/ 21→7 实际使用类（+14 FlowEngine），总文件 48→28。
 
 ### 决策记录
 

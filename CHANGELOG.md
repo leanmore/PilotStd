@@ -1,4 +1,15 @@
 # CHANGELOG
+## v0.91.0 (2026-08-02)
+
+### Refactored
+- 死代码批量清理 Phase 1+2：删除 15 个 Handler/Mixin/FlowEngine 文件（-3323 行，handlers/ 目录 -67%）
+- 根因为 9f9bd828 重构双轨残留：Handler 组合模式提取后未接线，parts/ 直连路径为唯一运行时路径
+- 清理 20 个幽灵测试文件（被删 Handler 的单元/E2E 测试，覆盖率数字虚高来源）
+
+### Fixed
+- test_menu_signals.py CI RuntimeError：receivers() 在 Linux 触发 Shiboken 保护 → 改为 spy slot 行为验证
+- test_regression_architecture.py：Phase 1 删除 7 个 Handler 后模块导入列表未同步更新
+
 ## v0.90.1 (2026-07-30)
 
 ### Fixed
