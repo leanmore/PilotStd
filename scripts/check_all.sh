@@ -61,6 +61,16 @@ run_fast() {
             log_fail "vue-tsc 类型检查"
         fi
     fi
+
+    # G-XXX: _wait_worker 防回潮（ADR-008）
+    _wait_violations=$(grep -rn '_wait_worker' tests/ --include='*.py' \
+        --exclude='helpers/__init__.py' 2>/dev/null || true)
+    if [ -z "$_wait_violations" ]; then
+        log_pass "G-XXX _wait_worker 防回潮"
+    else
+        echo "$_wait_violations"
+        log_fail "G-XXX _wait_worker 防回潮 — 请使用 wait_for_worker_and_ui"
+    fi
 }
 
 # ============================================================
