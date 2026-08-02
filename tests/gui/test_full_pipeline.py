@@ -2,51 +2,14 @@ import os
 import shutil
 import sys
 import tempfile
-import time
 
 import pytest
+
+from tests.gui.helpers import wait_for_worker_and_ui
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
-
-
-def _wait_worker(qtbot, window, attr, timeout=30000):
-    """等待 Worker 线程完成（兼容新旧 Handler 架构）。
-    qtbot.waitUntil 轮询 isRunning() 状态，避免 finished_signal 竞态。
-    """
-    w = getattr(window, attr, None)
-    # 新架构：worker 在 window._core.<handler>.<attr> 下
-    if w is None and hasattr(window, "_core"):
-        _worker_handler_map = {
-            "_scan_worker": "scan",
-            "_query_worker": "query",
-            "_download_worker": "download",
-            "_normalize_worker": "archive",
-            "_archive_worker": "archive",
-        }
-        handler_name = _worker_handler_map.get(attr, attr.replace("_worker", ""))
-        handler = getattr(window._core, handler_name, None)
-        if handler is not None:
-            w = getattr(handler, attr, None)
-
-    if w is not None:
-        t0 = time.monotonic()
-        already_done = not w.isRunning()
-
-        if not already_done:
-            def _on_signal(*args):
-                elapsed = time.monotonic() - t0
-                print(f"DIAG: {attr} finished in {elapsed:.1f}s")
-
-            w.finished_signal.connect(_on_signal)
-            qtbot.waitUntil(lambda: not w.isRunning(), timeout=timeout)
-            try:
-                w.finished_signal.disconnect(_on_signal)
-            except (TypeError, RuntimeError):
-                pass
-        else:
-            print(f"DIAG: {attr} already finished before wait")
 
 
 def _copy_fixtures_to_tmp(test_data_dir):
@@ -72,7 +35,10 @@ def test_full_pipeline_scan_query_download(window, test_data_dir, qtbot):
 
         # 扫描（后台线程）
         window._run_scan(tmp)
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         assert len(window._parsed_results) > 0
         assert window.work_table.rowCount() > 0
 
@@ -83,21 +49,33 @@ def test_full_pipeline_scan_query_download(window, test_data_dir, qtbot):
 
         # 查询（后台线程）
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 下载（后台线程）
         window._on_download()
-        _wait_worker(qtbot, window, "_download_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_download_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 规范化（后台线程）
         window._on_normalize()
-        _wait_worker(qtbot, window, "_normalize_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_normalize_worker",
+            ui_predicate=lambda: True,
+        )
 
         # 归档（后台线程）
         window._on_save_to_folder()
-        _wait_worker(qtbot, window, "_archive_worker")
         from pilotstd.core.config import get_library_root
 
+        wait_for_worker_and_ui(
+            qtbot, window, "_archive_worker",
+            ui_predicate=lambda: os.path.isdir(get_library_root(window._config)),
+        )
         root = get_library_root(window._config)
         assert os.path.isdir(root)
     finally:
@@ -116,11 +94,20 @@ def test_full_pipeline_no_exceptions(window, test_data_dir, qtbot):
     tmp = _copy_fixtures_to_tmp(test_data_dir)
     try:
         window._run_scan(tmp)
-        _wait_worker(qtbot, window, "_scan_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_scan_worker",
+            ui_predicate=lambda: len(window._parsed_results) > 0,
+        )
         window._on_query()
-        _wait_worker(qtbot, window, "_query_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_query_worker",
+            ui_predicate=lambda: True,
+        )
         window._on_download()
-        _wait_worker(qtbot, window, "_download_worker")
+        wait_for_worker_and_ui(
+            qtbot, window, "_download_worker",
+            ui_predicate=lambda: True,
+        )
     except Exception as e:
         pytest.fail(f"全链路异常: {e}")
     finally:
