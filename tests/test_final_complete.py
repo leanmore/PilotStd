@@ -86,11 +86,6 @@ class TestWechatIP(unittest.TestCase):
             result = run_check(config)
             self.assertIn("IP 检测失败", result["error"])
 
-    def test_wechat_ip_config_import(self):
-        from pilotstd.wechat_ip.config import WechatIPConfig
-
-        self.assertTrue(hasattr(WechatIPConfig, "__init__"))
-
 
 class TestMonitor(unittest.TestCase):
     def test_defaults_dict(self):

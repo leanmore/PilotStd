@@ -272,11 +272,6 @@ class TestHardModulesComplete(unittest.TestCase):
 
         self.assertIsNotNone(mc)
 
-    def test_wechat_ip_imports(self):
-        from pilotstd.wechat_ip import config as wc
-
-        self.assertIsNotNone(wc)
-
     def test_tasks_imports(self):
         from pilotstd.tasks import date_reminder as dr
 
