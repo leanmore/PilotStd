@@ -24,6 +24,11 @@ from ._settings_io import SettingsConfigIO
 from .settings_io_flow_engine import ICON_OPTIONS
 
 
+def sanitize_setting_value(raw: str) -> str:
+    """清洗设置输入值：去除首尾空白，保留内部空格。"""
+    return raw.strip()
+
+
 class SettingsHandler:
     """设置页 Handler：构建所有 Tab 的 UI 控件、加载/保存配置。"""
 
@@ -402,22 +407,20 @@ class SettingsHandler:
         """地址输入框变化：即时写入配置。"""
         if not self._config:
             return
-        self._config.set("query.announcement_url", text.strip())
+        self._config.set("query.announcement_url", sanitize_setting_value(text))
         self._config.save()
 
     def _on_announce_api_key_changed(self, text: str) -> None:
         """API Key 输入框变化：即时写入配置。"""
         if not self._config:
             return
-        self._config.set("query.announcement_api_key", text.strip())
+        self._config.set("query.announcement_api_key", sanitize_setting_value(text))
         self._config.save()
 
     def _on_auto_pause_toggled(self, checked: bool) -> None:
         """自动暂停开关变化。"""
-        from pilotstd.core.config.manager import ConfigManager
-
-        ConfigManager().set("notification.auto_pause", checked)
-        ConfigManager().save()
+        self._config.set("notification.auto_pause", checked)
+        self._config.save()
 
     def _resume_notifications(self) -> None:
         """立即恢复通知。"""
