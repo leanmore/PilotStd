@@ -9,6 +9,8 @@ from __future__ import annotations
 import pytest
 import responses
 
+collect_ignore_glob = ["../conftest.py"]
+
 
 @pytest.fixture
 def mocked_http():
