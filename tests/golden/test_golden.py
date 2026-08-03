@@ -5,11 +5,11 @@ CRITICAL_FIELDS = ("std_code", "std_name", "publish_date", "implementation_date"
 
 
 def _normalize(items: list[dict]) -> list[dict]:
-    """Sort by std_code + strip whitespace to eliminate ordering/format diffs."""
+    """Sort by std_code + strip whitespace + normalize line endings."""
     for it in items:
         for k, v in it.items():
             if isinstance(v, str):
-                it[k] = v.strip()
+                it[k] = v.replace("\r\n", "\n").strip()
     return sorted(items, key=lambda x: x.get("std_code", ""))
 
 
