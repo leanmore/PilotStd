@@ -19,14 +19,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ....core.settings_utils import sanitize_setting_value  # noqa: F401  # re-exported for backward compat
 from ....i18n import _
 from ._settings_io import SettingsConfigIO
 from .settings_io_flow_engine import ICON_OPTIONS
-
-
-def sanitize_setting_value(raw: str) -> str:
-    """清洗设置输入值：去除首尾空白，保留内部空格。"""
-    return raw.strip()
 
 
 class SettingsHandler:

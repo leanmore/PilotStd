@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from pilotstd.ui.core.handlers._settings import sanitize_setting_value
+from pilotstd.core.settings_utils import sanitize_setting_value
 
 
 class TestSanitizeSettingValue:
