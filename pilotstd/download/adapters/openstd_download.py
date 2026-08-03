@@ -102,10 +102,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             return None
 
         # ═══ 步骤2-4：验证码处理 ═══
-        captcha_result = self._handle_captcha(hcno, task)
-        if captcha_result:
-            return captcha_result
-        # _handle_captcha 返回 None 表示验证通过但未直接下载（需继续步骤5）
+        self._handle_captcha(hcno, task)
+        if task.error_message:
+            return None
 
         # ═══ 步骤5：下载 PDF ⚠️ 不可跳过 ═══
         # viewGb 必须在 verifyCode 返回 "success" 之后调用，
@@ -141,6 +140,8 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
 
             m = re.search(r'filename[^;=\n]*=(["\']?)([^"\';\n]+)\1', cd)
             if m:
+                if task.extra is None:
+                    task.extra = {}
                 task.extra["filename_from_header"] = m.group(2)
                 logger.debug("Content-Disposition 文件名: %s", m.group(2))
 
