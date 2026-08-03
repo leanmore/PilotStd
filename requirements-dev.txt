@@ -13,6 +13,7 @@ pytest-qt>=4.2.0
 pytest-cov>=6.0
 responses>=0.25
 respx>=0.24
+pytest-httpserver>=1.1
 
 # --- 打包构建 ---
 pyinstaller>=6.0
