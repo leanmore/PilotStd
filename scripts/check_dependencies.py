@@ -219,6 +219,9 @@ THIRD_PARTY_REMAP = {
     "websocket": "websocket-client",
 }
 
+# GUI 专属依赖：仅在桌面环境中需要，Docker/CI 后端无需安装
+GUI_ONLY_DEPS = {"PyQt6", "PyQt6-WebEngine"}
+
 
 def extract_third_party_imports() -> set[str]:
     """遍历 pilotstd/ 和 docker/ 下的所有 Python 文件，提取第三方库导入名。"""
@@ -284,6 +287,9 @@ def main() -> int:
     """入口：比较代码中实际 import 的第三方库与 requirements-docker.txt 声明的差异。"""
     imports = extract_third_party_imports()
     deps = parse_requirements()
+
+    # 过滤 GUI 专属依赖
+    imports = {imp for imp in imports if imp not in GUI_ONLY_DEPS}
 
     # 应用 remap
     resolved_imports: set[str] = set()
