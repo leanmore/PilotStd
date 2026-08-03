@@ -219,7 +219,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest pytest-cov responses respx pytest-httpserver
+          pip install pytest pytest-cov pytest-timeout responses respx pytest-httpserver
           pip install -e .
 
       - name: Run E2E with coverage
