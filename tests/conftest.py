@@ -11,11 +11,15 @@ import pytest
 from pilotstd.core.db import Database
 
 # ── 自定义 markers ──
-pytest_plugins = [
-    "tests.fixtures.manager_core_fixture",
-    "tests.fixtures.notification_fixture",
-    "tests.fixtures.workspace_fixture",
-]
+# e2e 模式下跳过插件注册，避免 PytestAssertRewriteWarning
+if os.environ.get("PYTEST_RUNNING_MODE") == "e2e":
+    pytest_plugins: list[str] = []
+else:
+    pytest_plugins = [
+        "tests.fixtures.manager_core_fixture",
+        "tests.fixtures.notification_fixture",
+        "tests.fixtures.workspace_fixture",
+    ]
 
 
 def pytest_configure(config):

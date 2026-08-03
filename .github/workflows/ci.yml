@@ -225,6 +225,7 @@ jobs:
       - name: Run E2E with coverage
         env:
           COVERAGE_FILE: .coverage.e2e
+          PYTEST_RUNNING_MODE: e2e
         run: |
           mkdir -p /tmp/standards
           python -m pytest tests/e2e/ \

@@ -9,11 +9,6 @@ from __future__ import annotations
 import pytest
 import responses
 
-# 阻断根 conftest 发现，防止 tests/conftest.py 的 pytest_plugins
-# (notification_fixture / workspace_fixture) 泄漏到 e2e session
-collect_ignore = ["../conftest.py"]
-collect_ignore_glob = ["../conftest.py"]
-
 
 @pytest.fixture
 def mocked_http():
