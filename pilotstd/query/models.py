@@ -29,6 +29,9 @@ class QueryResult:
     error_message: str = ""  # 查询失败时的错误信息
 
     def is_found(self) -> bool:
+        """查询结果是否有效。
+        契约：standard_name 非空 且 error_message 为空。
+        构造 QueryResult 时若遗漏 standard_name，此方法返回 False。"""
         return bool(self.standard_name) and not self.error_message
 
 

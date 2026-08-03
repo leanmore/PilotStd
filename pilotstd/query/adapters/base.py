@@ -183,7 +183,10 @@ class BaseAdapter(ABC):
         return {"current": 1, "size": 15, "key": search_term}
 
     def _post_search_candidates(self, search_term: str) -> list[QueryResult]:
-        """POST 搜索候选（通用实现）。子类的 _search_candidates 可委托此方法。"""
+        """POST 搜索候选（通用实现）。子类的 _search_candidates 可委托此方法。
+
+        注意：safe_post 通过懒加载导入（pilotstd.query.network），测试 mock 时
+        需 patch 'pilotstd.query.network.safe_post' 而非本模块。"""
         data = self._build_search_data(search_term)
         from ..network import safe_post
 
@@ -209,7 +212,7 @@ class BaseAdapter(ABC):
         return [self._parse_result(rec, search_term) for rec in records]  # type: ignore[attr-defined]
 
     def _post_process_result(self, result: QueryResult) -> None:
-        """结果后处理钩子，子类可重写（如从详情页提取 replaces）。"""
+        """结果后处理钩子。基类为空实现，子类按需重写（如 csres/hbba/njbz365）。"""
 
     @staticmethod
     def _detect_split_parts(candidates: list[Tuple[QueryResult, int]], local_number: int) -> str:
