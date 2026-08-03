@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest pytest-xdist pytest-cov pytest-timeout
+          pip install pytest pytest-xdist pytest-cov pytest-timeout responses respx
           pip install -e .
 
       - name: Forbid production imports from test modules
@@ -166,7 +166,7 @@ jobs:
         run: |
           pip install -r docker/requirements-docker.txt
           pip install PyQt6
-          pip install pytest pytest-qt pytest-cov pytest-timeout responses
+          pip install pytest pytest-qt pytest-cov pytest-timeout responses respx
           pip install -e .
 
       - name: Verify worker fix and clean pyc

@@ -1,6 +1,13 @@
 # CHANGELOG
 ## v0.91.0 (2026-08-03)
 
+### Added
+- E2E 测试体系建立（P3 核心闭环）：8 用例覆盖 requests/httpx 双 HTTP 边界
+  - `detect_ip`: 4 用例（众数/平票/全败/无效内容过滤）— `responses` mock
+  - `gongbiaoku.query_standards`: 4 用例（解析/空结果/HTTP错误/网络错误）— `respx` mock
+  - 基础设施：`tests/e2e/conftest.py` + `docs/testing/e2e-guide.md`
+  - CI 依赖：`test-backend` job 新增 `responses` `respx`
+
 ### Fixed
 - 版本号自动同步（CI 更新）
 
