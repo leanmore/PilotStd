@@ -22,6 +22,18 @@ _STD_TYPE_DISPLAY: dict[str, str] = {
 }
 
 
+def build_fetch_summary(adapter_results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build per-adapter fetch summary payload (extracted from old Mixin)."""
+    from datetime import datetime, timezone
+
+    return {
+        "fetch_time": datetime.now(timezone.utc).isoformat(),
+        "adapters": adapter_results,
+        "total_count": sum(a["count"] for a in adapter_results),
+        "has_error": any(a["status"] == "error" for a in adapter_results),
+    }
+
+
 class AnnounceCrawler:
     """公告抓取服务：增量检查 + 类型过滤。"""
 

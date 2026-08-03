@@ -1,5 +1,5 @@
 # tests/test_announce_fetch_notification.py
-# 公告抓取 per-adapter 明细事件通知 — 单元测试
+# Per-adapter fetch summary + notification message — unit tests
 
 import os
 import sys
@@ -12,16 +12,12 @@ if root_dir not in sys.path:
 
 
 class TestBuildFetchSummary(unittest.TestCase):
-    """_build_fetch_summary() — payload 构建测试。"""
+    """build_fetch_summary() — payload construction tests."""
 
     def setUp(self):
-        from pilotstd.manager._announce_fetch import _AnnounceFetchMixin
+        from pilotstd.announce.crawler_service import build_fetch_summary
 
-        # 构造一个最小可用实例（不触发真实 I/O）
-        self.mixin = _AnnounceFetchMixin()
-        self.mixin._file_index = MagicMock()
-        self.mixin._file_index._db = MagicMock()
-        self.mixin._mgr = None
+        self._build = build_fetch_summary
 
     def test_all_zero(self):
         """全部适配器返回 0 条——count 均为 0，status 均为 success。"""
@@ -30,7 +26,7 @@ class TestBuildFetchSummary(unittest.TestCase):
             {"name": "samr_hb", "type": "industry", "count": 0, "status": "success", "error_msg": ""},
             {"name": "samr_db", "type": "local", "count": 0, "status": "success", "error_msg": ""},
         ]
-        summary = self.mixin._build_fetch_summary(adapter_results)
+        summary = self._build(adapter_results)
         self.assertEqual(summary["total_count"], 0)
         self.assertFalse(summary["has_error"])
         self.assertEqual(len(summary["adapters"]), 3)
@@ -45,7 +41,7 @@ class TestBuildFetchSummary(unittest.TestCase):
             {"name": "samr_hb", "type": "industry", "count": 0, "status": "success", "error_msg": ""},
             {"name": "samr_db", "type": "local", "count": 5, "status": "success", "error_msg": ""},
         ]
-        summary = self.mixin._build_fetch_summary(adapter_results)
+        summary = self._build(adapter_results)
         self.assertEqual(summary["total_count"], 8)
         self.assertFalse(summary["has_error"])
         self.assertEqual(summary["adapters"][0]["count"], 3)
@@ -58,7 +54,7 @@ class TestBuildFetchSummary(unittest.TestCase):
             {"name": "samr_gb", "type": "national", "count": 10, "status": "success", "error_msg": ""},
             {"name": "samr_hb", "type": "industry", "count": 7, "status": "success", "error_msg": ""},
         ]
-        summary = self.mixin._build_fetch_summary(adapter_results)
+        summary = self._build(adapter_results)
         self.assertEqual(summary["total_count"], 17)
         self.assertFalse(summary["has_error"])
 
@@ -69,7 +65,7 @@ class TestBuildFetchSummary(unittest.TestCase):
             {"name": "samr_hb", "type": "industry", "count": 0, "status": "error", "error_msg": "连接超时"},
             {"name": "samr_db", "type": "local", "count": 1, "status": "success", "error_msg": ""},
         ]
-        summary = self.mixin._build_fetch_summary(adapter_results)
+        summary = self._build(adapter_results)
         self.assertEqual(summary["total_count"], 3)
         self.assertTrue(summary["has_error"])
         err_adapter = summary["adapters"][1]
@@ -82,7 +78,7 @@ class TestBuildFetchSummary(unittest.TestCase):
         adapter_results = [
             {"name": "samr_gb", "type": "national", "count": 1, "status": "success", "error_msg": ""},
         ]
-        summary = self.mixin._build_fetch_summary(adapter_results)
+        summary = self._build(adapter_results)
         ft = summary["fetch_time"]
         self.assertIn("T", ft)
         self.assertIn("+00:00", ft)

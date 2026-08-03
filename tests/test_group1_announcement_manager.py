@@ -301,14 +301,14 @@ class TestAnnounceService(unittest.TestCase):
         from pilotstd.manager.announce_service import AnnounceService
 
         svc = AnnounceService(self.mock_file_index)
-        engine = svc._get_or_create_engine()
+        engine = svc.crawler.engine
         self.assertIsNotNone(engine)
 
     def test_write_checkpoint_new(self):
         from pilotstd.manager.announce_service import AnnounceService
 
         svc = AnnounceService(self.mock_file_index)
-        svc._write_checkpoint("test_site", "2024-06-01")
+        svc.persistence.write_checkpoint("test_site", "2024-06-01")
         row = self.db.fetchone("SELECT * FROM fetch_checkpoint WHERE source_site=?", ("test_site",))
         self.assertIsNotNone(row)
 
@@ -316,7 +316,7 @@ class TestAnnounceService(unittest.TestCase):
         from pilotstd.manager.announce_service import AnnounceService
 
         svc = AnnounceService(self.mock_file_index)
-        svc._write_checkpoint("test_site", "")
+        svc.persistence.write_checkpoint("test_site", "")
         row = self.db.fetchone("SELECT * FROM fetch_checkpoint WHERE source_site=?", ("test_site",))
         self.assertIsNone(row)
 
@@ -324,7 +324,7 @@ class TestAnnounceService(unittest.TestCase):
         from pilotstd.manager.announce_service import AnnounceService
 
         svc = AnnounceService(self.mock_file_index)
-        svc._record_fetch_failure("fetch", "site_a", "2024-01-01", "timeout")
+        svc.persistence.record_failure("site_a", "timeout")
         rows = self.db.fetchall("SELECT * FROM fetch_failures")
         self.assertEqual(len(rows), 1)
 
@@ -339,7 +339,7 @@ class TestAnnounceService(unittest.TestCase):
         from pilotstd.manager.announce_service import AnnounceService
 
         svc = AnnounceService(self.mock_file_index, ocr_config={"test": True})
-        self.assertIsNone(svc._ocr_provider)
+        self.assertIsNone(svc.crawler._ocr_provider)
 
 
 # ═══════════════════════════════════════════════════════
