@@ -31,8 +31,8 @@ Phase 1+2 死代码清理后的 handlers/ 目录健康度快照。
 | query_summary_flow_engine.py | 130 | 100% | test_query_summary_flow_engine.py | ✅ |
 | scan_flow_engine.py | 252 | 89% | test_scan_flow_engine.py | ⚠️ |
 | settings_io_flow_engine.py | 241 | 100% | test_settings_io_flow_engine.py | ✅ |
-| archive_worker_factory.py | 88 | **0%** | — | 🔴 缺测试 |
-| query_worker_factory.py | 45 | **0%** | — | 🔴 缺测试 |
+| archive_worker_factory.py | 88 | **100%** | test_worker_factories.py | ✅ 已补测 (2026-08-03) |
+| query_worker_factory.py | 45 | **100%** | test_worker_factories.py | ✅ 已补测 (2026-08-03) |
 | protocols.py | 70 | **0%** | — | 🔵 Protocol 定义 |
 
 ### Handler 类（Qt 包装层，通过 GUI/E2E 测试覆盖）
@@ -76,8 +76,8 @@ Phase 1+2 死代码清理后的 handlers/ 目录健康度快照。
 
 | 优先级 | 目标 | 建议用例数 | 理由 |
 |:------:|------|:---------:|------|
-| P2 | archive_worker_factory.py | 3-5 | 0% 覆盖，工厂逻辑独立可测 |
-| P2 | query_worker_factory.py | 2-3 | 0% 覆盖，创建逻辑简单 |
+| P2 | ~~archive_worker_factory.py~~ | ~~3-5~~ | ✅ 已补测 5 用例，100% 覆盖 (2026-08-03) |
+| P2 | ~~query_worker_factory.py~~ | ~~2-3~~ | ✅ 已补测 3 用例，100% 覆盖 (2026-08-03) |
 | P3 | scan_flow_engine.py 89%→100% | 2-3 | 10 行未覆盖，低优先级 |
 | P3 | download_flow_engine.py 96%→100% | 1-2 | 4 行未覆盖 |
 
@@ -93,6 +93,8 @@ Phase 1+2 死代码清理后的 handlers/ 目录健康度快照。
 
 - **代码库健康度**：✅ 清洁
 - **新发现死代码**：0（Phase 1+2 已清零）
+- **Phase 3-B 补测**：Worker Factory 0%→100%（8 用例，2026-08-03）
+- **Phase 3-B 清理**：wechat_ip/config.py（68 行死代码 + 幽灵测试）
 - **需深入排查**：0
 - **可立即清理**：0
-- **补测缺口**：2 个 worker_factory（P2，约 133 行缺测试）
+- **补测缺口**：0（全部 🔴 盲区已消除）
