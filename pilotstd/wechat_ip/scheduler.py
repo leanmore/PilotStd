@@ -10,6 +10,7 @@ from typing import Any, Callable, Optional
 from .browser import BrowserError, WechatIPUpdater
 from .cookie_mgr import decrypt_cookie, encrypt_cookie, fetch_cookiecloud, mask_cookie
 from .detector import detect_ip as do_detect_ip
+from .logic import build_update_result, is_ip_changed, parse_app_urls
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,15 @@ _stop = threading.Event()
 
 
 def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
-    """执行一次 IP 检测 + 更新流程。返回结果字典。"""
+    """执行一次 IP 检测 + 更新流程。返回结果字典。
+
+    .. note:: E2E-Scope
+       Pure logic (IP comparison, URL parsing, result building) tested in
+       tests/unit/test_wechat_ip_logic.py.
+       This function's network detection + browser automation chain requires
+       integration/E2E testing.
+       See: docs/testing/playbook.md §UI-layer skip rule #3
+    """
     result = {"ip": "", "changed": False, "updated": False, "error": ""}
 
     # 1. 检测 IP
@@ -32,7 +41,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
 
     # 2. 对比
     last_ip = config.get("wechat_ip.last_ip", "")
-    if ip == last_ip:
+    if not is_ip_changed(ip, last_ip):
         return result
     result["changed"] = True
     logger.info("IP 变化: %s → %s", last_ip, ip)
@@ -46,7 +55,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
 
     # 4. 获取应用列表
     urls_str = config.get("wechat_ip.app_urls", "")
-    app_urls = [u.strip() for u in urls_str.split(",") if u.strip()]
+    app_urls = parse_app_urls(urls_str)
     if not app_urls:
         result["error"] = "未配置应用管理地址"
         return result
@@ -60,7 +69,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     try:
         updater = WechatIPUpdater(headless=headless, cache_dir=cache_dir, engine=engine)
         results = updater.update_multiple(app_urls, ip, cookie, mode)
-        ok = all(results.values()) and len(results) > 0
+        ok, failed = build_update_result(results)
         result["updated"] = ok
 
         if ok:
@@ -68,7 +77,6 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
             config.save()
             _notify(notify_cb, "可信 IP 已更新", f"公网 IP 已变更为 {ip}")
         else:
-            failed = [u for u, v in results.items() if not v]
             _notify(notify_cb, "IP 更新部分失败", f"失败: {', '.join(failed[:3])}")
     except BrowserError as e:
         result["error"] = str(e)

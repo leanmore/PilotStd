@@ -9,6 +9,8 @@
 import logging
 import os
 
+from .logic import merge_ip_list, parse_cookie_string
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = os.environ.get("CLOAKBROWSER_CACHE", "/app/browser_cache")
@@ -113,21 +115,8 @@ class WechatIPUpdater:
             pass
 
     def _parse_cookie(self, cookie_str: str) -> list[dict]:
-        """将 HeaderString 格式 Cookie 转为浏览器格式。"""
-        result = []
-        for part in cookie_str.split(";"):
-            part = part.strip()
-            if "=" in part:
-                k, v = part.split("=", 1)
-                result.append(
-                    {
-                        "name": k.strip(),
-                        "value": v.strip(),
-                        "domain": ".work.weixin.qq.com",
-                        "path": "/",
-                    }
-                )
-        return result
+        """将 HeaderString 格式 Cookie 转为浏览器格式。委托给 logic.parse_cookie_string。"""
+        return parse_cookie_string(cookie_str)
 
     def _check_login_page(self) -> bool:
         """检查是否在登录页面。返回 True 表示需要登录。"""
@@ -146,7 +135,12 @@ class WechatIPUpdater:
         cookie_str: str,
         mode: str = "append",
     ) -> bool:
-        """更新单个应用的可信 IP。
+        """更新单个应用的可信 IP——通过 Playwright/CloakBrowser 浏览器自动化。
+
+        .. note:: E2E-Scope
+           Pure logic (cookie parsing, IP merge) tested in tests/unit/test_wechat_ip_logic.py.
+           This function's Playwright interaction chain requires integration/E2E testing.
+           See: docs/testing/playbook.md §UI-layer skip rule #3
 
         Args:
             app_url: 应用管理页完整 URL
@@ -189,10 +183,11 @@ class WechatIPUpdater:
                 textarea.fill(ip_addr)
             else:
                 current = textarea.input_value()
-                if ip_addr in current:
+                merged, skipped = merge_ip_list(current, ip_addr)
+                if skipped:
                     logger.info("IP %s 已在列表中，跳过", ip_addr)
                     return True
-                textarea.fill(f"{current};{ip_addr}" if current else ip_addr)
+                textarea.fill(merged)
 
             # 6. 点击确认
             confirm = page.wait_for_selector(XPATH_CONFIRM, timeout=5000)
