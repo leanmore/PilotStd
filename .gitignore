@@ -8,6 +8,7 @@ dist/
 build/
 *.egg
 .venv/
+.perf-baseline.json
 venv/
 env/
 .mypy_cache/
