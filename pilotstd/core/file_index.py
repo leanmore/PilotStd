@@ -60,13 +60,13 @@ class FileIndexRepository(_FileIndexQueryMixin):
         """停止后台校验线程。设置停止信号，关闭 DB，等待线程退出。"""
         self._stop_event.set()
         self._validation_complete.set()
+        if self._validation_thread is not None and self._validation_thread.is_alive():
+            self._validation_thread.join(timeout=5)
         if hasattr(self, "_db") and self._db is not None:
             try:
                 self._db.close_all()
             except Exception:
                 pass
-        if self._validation_thread is not None and self._validation_thread.is_alive():
-            self._validation_thread.join(timeout=5)
 
     def _start_delayed_validation(self) -> None:
         """启动后台校验线程。
@@ -107,14 +107,15 @@ class FileIndexRepository(_FileIndexQueryMixin):
                 deleted = 0
             self._validation_complete.set()
 
-            try:
-                logging.getLogger("pilotstd.file_index").info(
-                    "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
-                    delay,
-                    deleted,
-                )
-            except Exception:
-                pass
+            if not self._stop_event.is_set():
+                try:
+                    logger.info(
+                        "file_index 启动校验完成（延迟 %.1fs），清理 %d 条失效记录",
+                        delay,
+                        deleted,
+                    )
+                except (ValueError, OSError):
+                    pass
 
         t = threading.Thread(target=_run, daemon=True)
         self._validation_thread = t
