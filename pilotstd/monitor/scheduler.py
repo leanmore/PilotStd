@@ -17,6 +17,25 @@ logger = logging.getLogger(__name__)
 _instance = None
 
 
+def resolve_monitor_config(cfg: dict | None = None) -> dict:
+    """Resolve monitor config with env override. Pure, zero I/O when cfg provided.
+
+    .. note:: Testable Unit
+       Pass cfg explicitly in tests to avoid get_config() I/O.
+    """
+    if cfg is None:
+        cfg = get_config()
+    return {
+        "watch_path": (
+            os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
+            or cfg.get("watch_path")
+            or "/tmp/pilotstd-inbox"
+        ),
+        "delay_seconds": cfg.get("delay_seconds", 5),
+        "recursive": cfg.get("recursive", True),
+    }
+
+
 def get_scheduler():
     """返回全局单例 FileMonitorScheduler 实例。"""
     global _instance
@@ -60,18 +79,20 @@ class FileMonitorScheduler:
         logger.info("[MONITOR] 已停止")
 
     def _run(self):
-        """后台主循环：启动 Observer 并阻塞等待停止信号。"""
-        cfg = get_config()
-        watch_path = (
-            os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
-            or cfg.get("watch_path")
-            or "/tmp/pilotstd-inbox"
-        )
-        delay = cfg.get("delay_seconds", 5)
-        recursive = cfg.get("recursive", True)
+        """Background monitoring loop.
+
+        .. note:: E2E-Scope
+           Config resolution tested via resolve_monitor_config().
+           Observer lifecycle + sleep loop requires integration/E2E testing.
+           See: docs/testing/playbook.md §UI-layer skip rule #3
+        """
+        resolved = resolve_monitor_config()
+        watch_path = resolved["watch_path"]
+        delay = resolved["delay_seconds"]
+        recursive = resolved["recursive"]
 
         logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path,
-                    "env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else ("db" if cfg.get("watch_path") else "default"))
+                    "env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else ("db" if get_config().get("watch_path") else "default"))
         try:
             os.makedirs(watch_path, exist_ok=True)
         except OSError as e:

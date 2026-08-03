@@ -1,9 +1,14 @@
 """pilotstd/monitor/scheduler.py 补测 — 单例/启停/禁用生命周期全覆盖。"""
+import logging
 import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pilotstd.monitor.scheduler import FileMonitorScheduler, get_scheduler
+from pilotstd.monitor.scheduler import (
+    FileMonitorScheduler,
+    get_scheduler,
+    resolve_monitor_config,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -110,6 +115,49 @@ class TestOnFile:
                     MockMgr.return_value.scan_directory.return_value = ["a", "b"]
                     s._on_file("/p/f.pdf")
                     assert s._mgr is not None
+
+    def test_empty_scan_result_logs_zero(self, caplog):
+        """L117: scanned 为空列表 → '扫描完成: 0 条'。"""
+        s = FileMonitorScheduler()
+        s._mgr = MagicMock()
+        s._mgr.scan_directory.return_value = []
+
+        with patch("pilotstd.monitor.scheduler.get_config") as mock_cfg:
+            mock_cfg.return_value = {"auto_archive": True}
+            with patch("pilotstd.monitor.scheduler.get_monitor_stats"):
+                with caplog.at_level(logging.INFO):
+                    s._on_file("/fake/path.pdf")
+
+        assert "扫描完成: 0 条" in caplog.text
+
+
+class TestResolveMonitorConfig:
+    def test_env_override_takes_priority(self, monkeypatch):
+        monkeypatch.setenv("PILOTSTD_STORAGE_INBOX_DIR", "/env/path")
+        result = resolve_monitor_config({"watch_path": "/cfg/path"})
+        assert result["watch_path"] == "/env/path"
+
+    def test_cfg_fallback_when_no_env(self, monkeypatch):
+        monkeypatch.delenv("PILOTSTD_STORAGE_INBOX_DIR", raising=False)
+        result = resolve_monitor_config({"watch_path": "/cfg/path"})
+        assert result["watch_path"] == "/cfg/path"
+
+    def test_default_values(self):
+        result = resolve_monitor_config({})
+        assert result == {
+            "watch_path": "/tmp/pilotstd-inbox",
+            "delay_seconds": 5,
+            "recursive": True,
+        }
+
+    def test_cfg_values_override_defaults(self):
+        result = resolve_monitor_config({
+            "watch_path": "/custom",
+            "delay_seconds": 10,
+            "recursive": False,
+        })
+        assert result["delay_seconds"] == 10
+        assert result["recursive"] is False
 
 
 class TestGetStatus:
