@@ -49,3 +49,29 @@
 - 手动刷新基线：GitHub Actions → E2E Coverage Baseline → Run workflow
 - 下载报告：Actions run → Artifacts → e2e-coverage-html
 - 更新本文档：从 e2e-coverage.xml 读取 line-rate
+
+## P4 总结 (2026-08-03)
+
+### 交付成果
+
+| 步骤 | 内容 | 状态 |
+|:--:|------|:--:|
+| 1 | openstd_download 5 步状态机方案 | 方案锁定（待实现） |
+| 2 | BaiduOcrProvider 集成测试 (3 用例) | ✅ |
+| 3 | E2E 覆盖率度量 (workflow + 基线) | ✅ |
+| 4 | 性能回归基线 | ⏸️ 延后 P2 |
+| 5 | CHANGELOG + integration-guide.md | ✅ |
+
+### 测试矩阵
+
+| 层级 | 目录 | 用例数 | 工具 | 耗时 |
+|------|------|:--:|------|------|
+| E2E (HTTP mock) | `tests/e2e/` | 8 | responses + respx | 3.3s |
+| Integration (状态机) | `tests/integration/` | 3 | pytest-httpserver | 13.3s |
+| **合计** | | **11** | | **16.0s** |
+
+### 相关文档
+
+- [E2E 测试指南](e2e-guide.md) — mock 策略 + 用例矩阵
+- [集成测试指南](integration-guide.md) — 架构决策 + monkeypatch 模式 + 故障排查
+- [CHANGELOG](../../CHANGELOG.md) — v0.91.0 完整变更记录

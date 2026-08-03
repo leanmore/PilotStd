@@ -12,6 +12,23 @@
   - `gongbiaoku.query_standards`: 4 用例（解析/空结果/HTTP错误/网络错误）— `respx` mock
   - 基础设施：`tests/e2e/conftest.py` + `docs/testing/e2e-guide.md`
   - CI 依赖：`test-backend` job 新增 `responses` `respx`
+- P4 集成测试体系建立：3 用例 + pytest-httpserver 状态机 mock
+  - `BaiduOcrProvider`: 3 用例（token/OCR识别/无效token降级）— `pytest-httpserver`
+  - 基础设施：`tests/integration/conftest.py` + `docs/testing/integration-guide.md`
+  - CI 依赖：`pytest-httpserver>=1.1`
+- E2E 覆盖率独立度量：workflow `e2e-coverage.yml` + 基线文档（11用例/12.4%）
+  - 不设 fail 条件，不阻塞合并，仅作为质量趋势追踪
+
+### Changed
+- 测试目录重组：`tests/e2e/`（HTTP mock）+ `tests/integration/`（状态机 mock）分层管理
+- `settings_utils.py` 提取 `sanitize_setting_value` 至 `core/`，消除 GUI 依赖链
+- `wechat_ip/logic.py` 提取 5 纯函数，覆盖率 100%
+- `monitor/scheduler.py` 提取 `resolve_monitor_config`，`_run()` 标记 E2E scope
+
+### Fixed
+- `_on_auto_pause_toggled` 消除 `ConfigManager()` 单例反模式
+- `test_menu_signals.py` CI RuntimeError：`receivers()` → spy slot
+- `check_dependencies.py` 白名单 PyQt6，消除 Docker headless 误报
 
 ### Fixed
 - 版本号自动同步（CI 更新）
