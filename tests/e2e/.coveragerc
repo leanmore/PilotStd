@@ -1,0 +1,21 @@
+[run]
+source = pilotstd
+omit =
+    */tests/*
+    */vendor/*
+    */migrations/*
+    */site-packages/*
+    */__pycache__/*
+parallel = true
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    pass
+show_missing = true
+skip_covered = false
+precision = 1
