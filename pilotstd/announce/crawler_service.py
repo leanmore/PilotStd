@@ -1,0 +1,121 @@
+# pilotstd/announce/crawler_service.py
+"""公告爬取服务 — 编排 AnnounceEngine + checkpoint + 持久化。
+
+check_all: 遍历 gb/hb/db 适配器增量抓取，写 checkpoint。
+check_filtered: 按 types 过滤的变体，供 CLI 调用。
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Any
+
+from pilotstd.announcement.adapters import SamrDbCrawler, SamrGbCrawler, SamrHbCrawler
+from pilotstd.announcement.engine import AnnounceEngine
+from pilotstd.announcement.matcher import AnnouncementMatcher
+from pilotstd.core.config import get_data_dir
+
+_STD_TYPE_DISPLAY: dict[str, str] = {
+    "gb": "national",
+    "hb": "industry",
+    "db": "local",
+}
+
+
+class AnnounceCrawler:
+    """公告抓取服务：增量检查 + 类型过滤。"""
+
+    def __init__(self, file_index: Any, persistence: Any, ocr_config: dict | None = None):
+        self._file_index = file_index
+        self._persistence = persistence
+        self._ocr_config = ocr_config
+        self._engine: AnnounceEngine | None = None
+        self._ocr_provider: Any = None
+
+    @property
+    def engine(self) -> AnnounceEngine:
+        if self._engine is None:
+            adapters = [SamrGbCrawler(), SamrHbCrawler(), SamrDbCrawler()]
+            matcher = AnnouncementMatcher(self._file_index._db)
+            self._engine = AnnounceEngine(adapters=adapters, matcher=matcher)
+        return self._engine
+
+    def _get_ocr_provider(self) -> Any:
+        """懒加载 OCR provider，首次调用时从 _ocr_config 创建。"""
+        if self._ocr_provider is None and self._ocr_config:
+            from pilotstd.announcement.ocr import create_ocr_provider
+
+            self._ocr_provider = create_ocr_provider(self._ocr_config)
+        return self._ocr_provider
+
+    # ── 主入口 ──────────────────────────────────────────────
+
+    def check_all(self, adapter_name: str = "") -> dict[str, Any]:
+        """Run full announcement check across gb/hb/db adapters, return summary."""
+        # Ensure per-type output directories exist
+        data_dir = get_data_dir()
+        for std_type in ("gb", "hb", "db"):
+            os.makedirs(os.path.join(data_dir, "announcements", std_type), exist_ok=True)
+
+        engine = self.engine
+        ocr = self._get_ocr_provider()
+        total_matched = 0
+        total_updated = 0
+        adapter_results: list[dict[str, Any]] = []
+        errors: list[dict[str, str]] = []
+
+        for adapter in engine.adapters:
+            if adapter_name and adapter.standard_type != adapter_name:
+                continue
+            # Read checkpoint for incremental fetch
+            since = self._persistence.get_checkpoint(adapter.source_site) or ""
+
+            result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)
+            if "error" in result:
+                self._persistence.record_failure(adapter.source_site, result.get("error", ""))
+                adapter_results.append({
+                    "name": adapter.site_name,
+                    "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),
+                    "count": 0,
+                    "status": "error",
+                    "error_msg": result.get("error", ""),
+                })
+                errors.append({"source": adapter.source_site, "error": result.get("error", "")})
+                continue
+
+            count = result.get("matched", 0) + result.get("updated", 0)
+            total_matched += result.get("matched", 0)
+            total_updated += result.get("updated", 0)
+            # Per-adapter success entry
+            adapter_results.append({
+                "name": adapter.site_name,
+                "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),
+                "count": count,
+                "status": "success",
+                "error_msg": "",
+            })
+            self._persistence.write_checkpoint(adapter.source_site, result.get("last_notice_date", ""))
+
+        return {
+            "matched": total_matched,
+            "updated": total_updated,
+            "total_announcements": sum(a["count"] for a in adapter_results),
+            "adapters": adapter_results,
+            "errors": errors,
+        }
+
+    def check_filtered(self, types: list[str] | None = None, since_date: str = "") -> dict[str, Any]:
+        """带类型过滤的公告检查。types 如 ['gb', 'hb']，None 表示全部。"""
+        engine = self.engine
+        ocr = self._get_ocr_provider()
+
+        adapters = engine.adapters
+        if types:
+            adapters = [a for a in adapters if a.standard_type in types]
+
+        results: dict[str, Any] = {}
+        for adapter in adapters:
+            result = engine.check_one(adapter.standard_type, since_date=since_date, ocr_provider=ocr)
+            results[adapter.standard_type] = result
+
+        return results
