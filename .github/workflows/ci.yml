@@ -201,6 +201,47 @@ jobs:
           include-hidden-files: true
 
   # ════════════════════════════════════════════════════════════════
+  # Job 1c: E2E 覆盖率基线（与 test-backend 并行，不阻塞）
+  # ════════════════════════════════════════════════════════════════
+  e2e-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: []
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install pytest pytest-cov responses respx pytest-httpserver
+          pip install -e .
+
+      - name: Run E2E with coverage
+        run: |
+          mkdir -p /tmp/standards
+          python -m pytest tests/e2e/ \
+            --cov=pilotstd \
+            --cov-report=xml:e2e-coverage.xml \
+            --cov-report=html:htmlcov/e2e \
+            --timeout=60 \
+            -q
+
+      - name: Upload E2E coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-coverage-report
+          path: |
+            e2e-coverage.xml
+            htmlcov/e2e/
+          retention-days: 30
+
+  # ════════════════════════════════════════════════════════════════
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
   security-scan:

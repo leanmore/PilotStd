@@ -75,3 +75,39 @@
 - [E2E 测试指南](e2e-guide.md) — mock 策略 + 用例矩阵
 - [集成测试指南](integration-guide.md) — 架构决策 + monkeypatch 模式 + 故障排查
 - [CHANGELOG](../../CHANGELOG.md) — v0.91.0 完整变更记录
+
+## 性能回归基线 (Phase 1 A线 · 2026-08-03)
+
+| 指标 | 值 | 备注 |
+|------|-----|------|
+| `parse_cookie_string` | <0.001ms (n=100) | 纯函数，无需持续监控 |
+| `merge_ip_list` | <0.001ms (n=200) | 纯函数，无需持续监控 |
+| `parse_app_urls` | <0.001ms (n=200) | 纯函数，无需持续监控 |
+| `pdf_gen_100kb` | **1.0ms** median (n=10) | IO 密集锚点 |
+| `pdf_gen_800kb` | **2.3ms** median (n=10) | IO 密集锚点 |
+
+> `parse_cookie_string` / `merge_ip_list` / `parse_app_urls` 均为亚毫秒级纯函数，未来无需纳入性能回归监控。
+
+### 刷新 SOP
+
+1. 本地运行 `pytest tests/perf/ -v`
+2. 检查 `.perf-baseline.json` 数字是否显著偏离上表
+3. 若偏离 >20%，更新本表并附注原因
+
+## E2E 覆盖率设计意图说明
+
+### UI 层排除声明
+
+`pilotstd/ui/*` 全部模块 E2E 覆盖率为 0%，这是**设计意图而非遗漏**：
+- GUI 层由手动验收 + Playwright 独立套件守护
+- pytest E2E 仅覆盖非 GUI 业务逻辑路径
+- 新人请勿将 UI 0% 视为测试缺口
+
+### 分层测试策略备注
+
+| 模块 | E2E 覆盖 | 单元覆盖 | 说明 |
+|------|:--:|:--:|------|
+| `wechat_ip/logic` | 0% | **100%** | 纯逻辑层，单测已完全守护，E2E 不重复 |
+| `wechat_ip/detector` | 82% | — | 主路径 + 降级已由 E2E 守护 |
+| `announcement/ocr/_baidu` | 79% | — | Integration 已覆盖两步协议 + 降级 |
+| `query/adapters/gongbiaoku` | 部分 | — | HTML 解析主路径已覆盖 |
