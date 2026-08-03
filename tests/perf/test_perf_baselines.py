@@ -84,17 +84,3 @@ class TestPdfGenPerf:
         result = perf_benchmark(_gen, n=10)
         _write_baseline("pdf_gen_800kb", result)
         print(f"\n📊 pdf_gen_800kb: median={result['median']}s p95={result['p95']}s (n=10)")
-
-
-class TestBaiduOcrPerf:
-    """BaiduOcrProvider 状态机延迟（mock HTTP）"""
-
-    def test_ocr_recognize_latency(self, baidu_provider):
-        """完整 token→OCR 链路延迟（含 mock server）"""
-        from tests.integration.conftest import MINIMAL_PDF
-
-        result = perf_benchmark(
-            baidu_provider.recognize_pdf, MINIMAL_PDF, page_num=1, n=10
-        )
-        _write_baseline("baidu_ocr_recognize", result)
-        print(f"\n📊 baidu_ocr_recognize: median={result['median']}s p95={result['p95']}s (n=10)")

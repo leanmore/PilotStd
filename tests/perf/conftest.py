@@ -11,9 +11,6 @@ import pytest
 
 from tests.perf.utils import generate_minimal_pdf
 
-# 复用 integration/conftest.py 的 baidu_provider fixture
-pytest_plugins = ["tests.integration.conftest"]
-
 
 # ── Fixtures ──────────────────────────────────────────
 
