@@ -11,6 +11,10 @@ import responses
 
 collect_ignore_glob = ["../conftest.py"]
 
+# 覆盖父级 tests/conftest.py 的 pytest_plugins
+# e2e 不需要 notification_fixture / workspace_fixture
+pytest_plugins: list[str] = []
+
 
 @pytest.fixture
 def mocked_http():
