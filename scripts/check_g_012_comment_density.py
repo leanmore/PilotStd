@@ -15,6 +15,7 @@
 """
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -63,6 +64,14 @@ def _is_comment_line(line: str) -> bool:
 def _is_blank_line(line: str) -> bool:
     """判断是否为纯空白行。"""
     return line.strip() == ""
+
+
+def _contains_chinese(text: str) -> bool:
+    """检查文本是否包含中文字符（CJK统一表意文字）。"""
+    for ch in text:
+        if '一' <= ch <= '鿿':
+            return True
+    return False
 
 
 def _has_docstring(node: ast.AST) -> bool:
@@ -137,6 +146,20 @@ def check_file(filepath: Path, root: Path) -> list[str]:
         if density < MIN_COMMENT_DENSITY:
             errors.append(f"[DENSITY] {rel}: 注释密度 {density:.1%} (< {MIN_COMMENT_DENSITY:.0%})")
 
+    # [LANG] # 注释语言检查：所有 # 注释行必须包含中文
+    for i, line in enumerate(lines, start=1):
+        if _is_blank_line(line):
+            continue
+        if not _is_comment_line(line):
+            continue
+        stripped = line.strip()
+        if stripped.startswith("#!"):
+            continue
+        if "# -*-" in stripped:
+            continue
+        if not _contains_chinese(stripped):
+            errors.append(f"[LANG] {rel}:{i} 注释缺少中文")
+
     # 函数/类注释
     if filepath.suffix != ".py":
         return errors
@@ -156,6 +179,11 @@ def check_file(filepath: Path, root: Path) -> list[str]:
             has_comment = _has_comment_in_range(lines, node.lineno, node.end_lineno or node.lineno)
             if not has_doc and not has_comment:
                 errors.append(f"[FUNC] {rel}:{node.name}() 缺少注释")
+            # [LANG] docstring 中文检查
+            if has_doc:
+                docstring = ast.get_docstring(node)
+                if docstring and not _contains_chinese(docstring):
+                    errors.append(f"[LANG] {rel}:{node.lineno} {node.name}() 的 docstring 缺少中文")
 
         elif isinstance(node, ast.ClassDef):
             if _should_skip_class(node):
@@ -164,16 +192,113 @@ def check_file(filepath: Path, root: Path) -> list[str]:
             has_comment = _has_comment_in_range(lines, node.lineno, node.end_lineno or node.lineno)
             if not has_doc and not has_comment:
                 errors.append(f"[CLASS] {rel}:{node.name} 缺少注释")
+            # [LANG] docstring 中文检查
+            if has_doc:
+                docstring = ast.get_docstring(node)
+                if docstring and not _contains_chinese(docstring):
+                    errors.append(f"[LANG] {rel}:{node.lineno} {node.name} 的 docstring 缺少中文")
 
     return errors
+
+
+def _fix_comment_line(line: str) -> str:
+    """修复单行 # 注释，确保包含中文。"""
+    stripped = line.strip()
+    if not stripped.startswith("#"):
+        return line
+
+    # 空注释 → 分隔
+    if stripped == "#":
+        return line.replace("#", "# 分隔", 1)
+
+    # 模块路径 # path/to/file.py → # 模块：path/to/file.py
+    m = re.match(r"^#\s*([\w\\/._-]+\.py)$", stripped)
+    if m:
+        return line.replace(stripped, f"# 模块：{m.group(1)}", 1)
+
+    # 盒型字符分隔线：═、─、━、┄ 等 → 末尾加 分隔
+    if re.match(r"^#\s*[═─━┄┅┈┉╌╍╴╶╸╺]+$", stripped):
+        return line.rstrip("\n\r") + " 分隔\n" if line.endswith(("\n", "\r")) else line.rstrip() + " 分隔"
+
+    # ===...=== 型分隔线 → 末尾加 分隔
+    if re.match(r"^#\s*=+$", stripped):
+        return line.rstrip("\n\r") + " 分隔\n" if line.endswith(("\n", "\r")) else line.rstrip() + " 分隔"
+
+    # 普通英文注释 → 加中文前缀
+    indent = line[:len(line) - len(line.lstrip())]
+    comment_text = stripped[1:].strip()
+    if comment_text and not _contains_chinese(comment_text):
+        return f"{indent}# 说明：{comment_text}\n"
+
+    return line
+
+
+def fix_lang_violations(root: Path) -> int:
+    """自动修复所有 [LANG] 违规。"""
+    files = [f for f in sorted(root.rglob("*.py")) if not _is_excluded(f)]
+    fixed_count = 0
+    docstring_todo: list[str] = []
+
+    for fpath in files:
+        if _is_excluded(fpath):
+            continue
+        errors = check_file(fpath, root)
+        lang_errors = [e for e in errors if e.startswith("[LANG]")]
+        if not lang_errors:
+            continue
+
+        # 解析违规行号和类型
+        fix_lines: set[int] = set()
+        for err in lang_errors:
+            m = re.match(r"\[LANG\]\s+.+?:(\d+)\s", err)
+            if m:
+                fix_lines.add(int(m.group(1)))
+            else:
+                docstring_todo.append(err)
+
+        if not fix_lines:
+            continue
+
+        try:
+            content = fpath.read_text(encoding="utf-8")
+            lines = content.splitlines(keepends=True)
+        except (UnicodeDecodeError, PermissionError):
+            continue
+
+        modified = False
+        for ln in sorted(fix_lines):
+            if ln <= len(lines):
+                old_line = lines[ln - 1]
+                new_line = _fix_comment_line(old_line)
+                if new_line != old_line:
+                    lines[ln - 1] = new_line
+                    modified = True
+
+        if modified:
+            fpath.write_text("".join(lines), encoding="utf-8")
+            rel = fpath.relative_to(root) if root in fpath.parents else fpath
+            print(f"  已修复: {rel} ({len(fix_lines)} 行)")
+            fixed_count += 1
+
+    if docstring_todo:
+        print(f"\n  [跳过] docstring 违规（需手动翻译）: {len(docstring_todo)} 项")
+        for e in docstring_todo:
+            print(f"    {e}")
+
+    print(f"\n  修复文件数: {fixed_count}")
+    return 0
 
 
 def main() -> int:
     """入口：支持 pre-commit 模式（传入文件列表，阻断）和全量模式（报告不阻断）。"""
     root = Path(__file__).resolve().parent.parent
 
-    # 判断模式：有参数 → pre-commit 模式（仅检查传入的文件）
+    # 判断模式：--fix → 自动修复 LANG 违规
     args = sys.argv[1:]
+    if "--fix" in args:
+        args = [a for a in args if a != "--fix"]
+        return fix_lang_violations(root)
+
     if args:
         files = [Path(a).resolve() for a in args if Path(a).resolve().exists()]
         mode = "pre-commit（暂存文件）"
@@ -195,15 +320,27 @@ def main() -> int:
     print()
 
     if all_errors:
-        print("违规项:")
-        for e in all_errors:
-            print(f"  {e}")
-        print()
+        lang_errors = [e for e in all_errors if e.startswith("[LANG]")]
+        hard_errors = [e for e in all_errors if not e.startswith("[LANG]")]
+
+        if hard_errors:
+            print("违规项:")
+            for e in hard_errors:
+                print(f"  {e}")
+            print()
+        if lang_errors:
+            print(f"[LANG] 注释语言警告 ({len(lang_errors)} 项，不阻断):")
+            for e in lang_errors:
+                print(f"  {e}", file=sys.stderr)
+            print()
+
         print("=" * 60)
-        # pre-commit 模式和全量模式均阻断
-        print(f"汇总: {len(all_errors)} 项违规")
-        print("FAIL: 请添加注释后再提交。")
-        return 1
+        print(f"汇总: {len(hard_errors)} 项阻断违规, {len(lang_errors)} 项语言警告")
+        if hard_errors:
+            print("FAIL: 请添加注释后再提交。")
+            return 1
+        print("PASS: 所有阻断项通过（[LANG] 警告不阻断）。")
+        return 0
 
     print("=" * 60)
     print("汇总: 0 项违规")

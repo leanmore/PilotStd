@@ -79,6 +79,14 @@ repos:
         pass_filenames: false
         stages: [manual]
 
+      - id: gate-13
+        name: G-013 — 测试覆盖率伴随检查
+        entry: python scripts/check_g_013_test_coverage.py
+        language: python
+        files: \.py$
+        pass_filenames: false
+        always_run: true
+
       - id: docs-sync-check
         name: 文档自动同步门禁（检测+修复）
         entry: python scripts/docs_sync_check.py
