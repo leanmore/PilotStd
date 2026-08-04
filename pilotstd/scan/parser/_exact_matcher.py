@@ -205,6 +205,7 @@ class ExactMatcher:
     def _fuzzy_match_with_context(self, raw_name: str) -> Optional[ParsedStdInfo]:
         """上下文感知模糊匹配：取最后一个年份 → 找最靠近年份的编号 → 代号验证。"""
         # 1. 找所有候选年份（1900-2099），取最后一个
+        year_matches = re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", raw_name)
         year_candidates = [
             self._parser._normalize_year(y)
             for y in year_matches
