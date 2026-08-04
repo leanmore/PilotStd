@@ -187,7 +187,7 @@ def test_offline_view_no_file_index(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     window._mgr.get_file_index_full_info = MagicMock()
-    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: None)):
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: None), create=True):
         window._on_offline_view()
 
 
@@ -205,7 +205,7 @@ def test_offline_view_no_results(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     fi_mock = MagicMock()
-    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock)):
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock), create=True):
         window._mgr.get_file_index_full_info = MagicMock(return_value=[])
         window._on_offline_view()
 
@@ -215,7 +215,7 @@ def test_offline_view_with_results(window):
     _fill_row(window)
     window.work_table.selectRow(0)
     fi_mock = MagicMock()
-    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock)):
+    with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock), create=True):
         window._mgr.get_file_index_full_info = MagicMock(
             return_value=[
                 {
