@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/manager.py
-# ConfigManager 核心类 — 从 config.py 拆分
+# 模块：项目/核心/配置/管理器脚本
+# 核心类—从配置脚本拆分
 
 import json
 import os
@@ -28,10 +28,10 @@ class ConfigManager:
         self._data: dict[str, Any] = {}
         self._load()
 
-        # 环境变量覆盖：优先级高于文件配置，用于 Docker/CI 场景
+        # 环境变量覆盖：优先级高于文件配置，用于/持续集成场景
         if os.environ.get("STANDARD_ROOT"):
             self.set("storage.root_dir", os.environ["STANDARD_ROOT"])
-        # OCR 密钥映射：标准化的环境变量名 → 配置键名，统一走 set 接口
+        # 文字识别密钥映射：标准化的环境变量名→配置键名，统一走接口
         for key, env_var in [
             ("ocr.baidu_api_key", "OCR_BAIDU_API_KEY"),
             ("ocr.baidu_secret_key", "OCR_BAIDU_SECRET_KEY"),
@@ -43,13 +43,13 @@ class ConfigManager:
             if os.environ.get(env_var):
                 self.set(key, os.environ[env_var])
 
-    # ── 公共 API ────────────────────────
+    # ──公共接口────────────────────────
 
     def get(self, key: str, default: Any = None) -> Any:
         """按点分隔路径读取配置值，不存在时返回 default。"""
         with self._lock:
             node = self._data
-            # 逐级深入嵌套字典，支持 "appearance.column_widths" 形式
+            # 逐级深入嵌套字典，支持"._"形式
             for part in key.split("."):
                 if isinstance(node, dict) and part in node:
                     node = node[part]
@@ -62,7 +62,7 @@ class ConfigManager:
         with self._lock:
             parts = key.split(".")
             node = self._data
-            # 逐级创建中间节点，确保 set("a.b.c", v) 在 a 或 a.b 不存在时也能正常写入
+            # 逐级创建中间节点，确保("..",)在或.不存在时也能正常写入
             for part in parts[:-1]:
                 if part not in node or not isinstance(node[part], dict):
                     node[part] = {}
@@ -100,7 +100,7 @@ class ConfigManager:
     def reset(self, key: str | None = None) -> None:
         """重置配置项。key 为 None 时清空全部配置，否则删除指定键。"""
         with self._lock:
-            # key=None 为全量重置，用于"恢复出厂设置"场景
+            # =为全量重置，用于"恢复出厂设置"场景
             if key is None:
                 self._data.clear()
                 return
@@ -115,21 +115,21 @@ class ConfigManager:
 
     def populate_defaults(self, defaults: dict[str, Any]) -> None:
         """将工厂默认值中尚未设置的键填充到当前配置（不覆盖已有值）。"""
-        # 仅在键值为 None 时才填充，保留用户已有的自定义值
+        # 仅在键值为时才填充，保留用户已有的自定义值
         for k, v in defaults.items():
             if self.get(k) is None:
                 self.set(k, v)
 
     def export_rules(self, file_path: str) -> bool:
         """将当前所有站点规则导出到指定 JSON 文件。返回 True/False 表示成功/失败。"""
-        # 委托给 migrate 模块的 export_rules 函数，保持单一导出逻辑入口
+        # 委托给迁移模块的_规则函数，保持单一导出逻辑入口
         from .migrate import export_rules as _export
 
         return _export(self, file_path)
 
     def import_rules(self, file_path: str) -> int:
         """从 JSON 文件导入规则并合并到已有配置。返回成功导入数量，-1 表示失败。"""
-        # 委托给 migrate 模块的 import_rules 函数，保证导入逻辑唯一
+        # 委托给迁移模块的_规则函数，保证导入逻辑唯一
         from .migrate import import_rules as _import
 
         return _import(self, file_path)
@@ -138,7 +138,7 @@ class ConfigManager:
 
     def _load(self) -> None:
         """从 JSON 文件加载配置：先清理残留 .tmp → 读取解密 → 填充默认值 → 迁移旧键。"""
-        # 清理上次崩溃可能残留的 .tmp 文件，避免占用磁盘
+        # 清理上次崩溃可能残留的.文件，避免占用磁盘
         cfg_dir = os.path.dirname(self._filepath)
         if os.path.isdir(cfg_dir):
             for name in os.listdir(cfg_dir):
@@ -162,7 +162,7 @@ class ConfigManager:
                 self.save()
                 return
         except (json.JSONDecodeError, OSError):
-            # JSON 损坏时备份原文件，避免数据彻底丢失
+            # 数据损坏时备份原文件，避免数据彻底丢失
             backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
             try:
                 os.rename(self._filepath, backup)
@@ -174,7 +174,7 @@ class ConfigManager:
 
     def _populate_first_run(self) -> None:
         """首次运行时用工厂默认值初始化并保存。"""
-        # 逐键 set 确保中间节点正确创建
+        # 逐键确保中间节点正确创建
         for k, v in FACTORY_DEFAULTS.items():
             self.set(k, v)
         self.save()

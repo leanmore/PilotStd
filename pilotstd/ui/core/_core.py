@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/_core.py
+# 模块：项目//核心/_核心脚本
 """MainWindowCore — UI 核心容器，组合所有 Handler，替代多重继承 Mixin。
 
 查询子系统初始化已提取至 _core_init_query.py，适配器类已提取至 _core_adapters.py。
@@ -76,9 +76,9 @@ class MainWindowCore:
     ) -> None:
         self._mgr, self._config, self._pause_event = mgr, config, pause_event
         self._parent, self._work_table = parent_widget, work_table
-        # 共享解析结果列表（所有 Handler 共享同一引用）
+        # 共享解析结果列表（所有共享同一引用）
         self._parsed_results, self._status_callback = parsed_results, status_callback
-        # UI 交互回调：进度、对话框、表格操作
+        # 用户界面交互回调：进度、对话框、表格操作
         self._progress_callback, self._suppress_dialogs = progress_callback, suppress_dialogs
         self._register_task, self._project_mark_dirty = register_task, project_mark_dirty
         self._add_table_row, self._find_row_by_seq = add_table_row, find_row_by_seq
@@ -141,7 +141,7 @@ class MainWindowCore:
             scan_source_root=self._get_scan_source_root_cb() if self._get_scan_source_root_cb else "",
         )
 
-    # _init_download — 下载 Handler
+    # __下载—下载
     def _init_download(self) -> None:
         """创建 DownloadUIHandler，注入下载所需的所有 UI 回调函数。"""
         self.download = DownloadUIHandler(
@@ -162,7 +162,7 @@ class MainWindowCore:
             find_row_by_seq=self._find_row_by_seq,
         )
 
-    # _init_archive — 归档 Handler
+    # __归档—归档
     def _init_archive(self) -> None:
         """创建 ArchiveUIHandler，注入归档/规范化所需的回调、表格操作和信号连接。"""
         self.archive = ArchiveUIHandler(
@@ -191,7 +191,7 @@ class MainWindowCore:
             on_raw_progress=self._on_raw_progress,
         )
 
-    # _init_auto — 自动管线 Handler
+    # __—自动管线
     def _init_auto(self) -> None:
         """创建 AutoUIHandler，注入自动管线所需的所有 Handler 引用和 UI 控制回调。"""
         self.auto = AutoUIHandler(

@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/base.py
+# 模块：项目/查询/适配器/脚本
 # 查询网站适配器抽象基类
 
 import logging
@@ -32,7 +32,7 @@ class BaseAdapter(ABC):
     @abstractmethod
     def site_label(self) -> str: ...
 
-    # ── 搜索（子类通常不需要重写，只需实现 _search_candidates 和钩子）──
+    # ──搜索（子类通常不需要重写，只需实现__和钩子）──
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
         """单结果兼容接口。调 _search_candidates，精确匹配优先，否则选最新。
@@ -94,7 +94,7 @@ class BaseAdapter(ABC):
             if result is not None:
                 return result
 
-        # 第三步：去除 num_prefix 回退（如 ANSI C78.81 → ANSI 78.81）
+        # 第三步：去除_回退（如78.81→78.81）
         if num_prefix:
             no_prefix = f"{logical_code} {number}{num_suffix or ''}{part_str}-{year}"
             if no_prefix != target:
@@ -130,7 +130,7 @@ class BaseAdapter(ABC):
         if result is not None:
             return result
 
-        # 第五步：代号变体补充（API Std/Spec、ASME BPVC、DIN EN 等）
+        # 第五步：代号变体补充（接口/、、等）
         variants = build_code_variants(logical_code, number, year, num_prefix)
         best_score = -1
         best_result: Optional[QueryResult] = None

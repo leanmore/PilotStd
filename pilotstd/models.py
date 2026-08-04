@@ -1,7 +1,7 @@
-# 模块：pilotstd/models.py
+# 模块：项目/模型脚本
 # 通用数据模型，供各模块共享
-# 设计决策：dataclass 而非 ORM（生命周期独立）、number(int)+raw_number(str) 双字段（避免信息丢失）、
-# effect_status 字符串枚举而非关联表（状态机固定，查询频率远高于定义变更频率）
+# 设计决策：而非（生命周期独立）、()+_()双字段（避免信息丢失）、
+# _字符串枚举而非关联表（状态机固定，查询频率远高于定义变更频率）
 
 from dataclasses import dataclass
 from typing import List, Optional

@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/adapters/samr_hb.py
-# SAMR 行业标准公告适配器
+# 模块：项目//适配器/_脚本
+# 行业标准公告适配器
 
 from ..base import BaseAnnounceCrawler
 

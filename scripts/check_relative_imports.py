@@ -22,7 +22,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # d:/PilotStd
 SCAN_DIR = PROJECT_ROOT / "pilotstd"
 
-# GBK 终端兼容输出
+# 终端兼容输出
 _OUT = print
 
 
@@ -32,7 +32,7 @@ def _out(*args, **kwargs):
     try:
         _OUT(*args, **kwargs)
     except UnicodeEncodeError:
-        # GBK 等窄编码终端 fallback：替换非 ASCII 字符
+        # 等窄编码终端回退：替换非持续集成字符
         text = " ".join(str(a) for a in args)
         safe = text.encode("ascii", errors="replace").decode("ascii")
         _OUT(safe, **kwargs)
@@ -87,7 +87,7 @@ def module_to_path(module_name: str, scan_root: Path) -> list[Path]:
 
     返回扫描根目录内的路径，全部相对于 scan_root。
     """
-    # 处理顶层包自身（module_name 就是 "pilotstd"）
+    # 处理顶层包自身（_就是"项目"）
     if module_name == scan_root.name:
         return [scan_root / "__init__.py"]
 
@@ -115,9 +115,9 @@ def is_inside_try(root: ast.Module, target_node: ast.ImportFrom) -> bool:
     """判断 ImportFrom 节点是否在 try/except 块内。"""
     for node in ast.walk(root):
         if isinstance(node, ast.Try):
-            # 检查 try 体内的语句是否包含目标节点的行号范围
+            # 检查体内的语句是否包含目标节点的行号范围
             start_line = node.lineno
-            # TryStar 也用 end_lineno
+            # 也用_
             end_line = getattr(node, "end_lineno", start_line)
             if start_line <= target_node.lineno <= end_line:
                 return True
@@ -179,17 +179,17 @@ def check_import(
     except ValueError as e:
         return (f"<{e}>", [])
 
-    # ── 模式 A: `from ...module import name` ──
+    # ──模式:`...`──
     if module:
         candidates = module_to_path(abs_module, scan_root)
         if any(cp.exists() for cp in candidates):
             return None
         return (abs_module, candidates)
 
-    # ── 模式 B: `from ... import name` ──
-    # abs_module 是锚点包名（如 "pilotstd" 或 "pilotstd.ui.main_window.parts"）
-    # imported_names 是导入的名称列表（如 core, MainWindow）
-    # 找到锚点包目录：锚点包的 __init__.py 所在目录
+    # ──模式:`...`──
+    # _是锚点包名（如"项目"或"项目..入口_."）
+    # _是导入的名称列表（如核心,）
+    # 找到锚点包目录：锚点包的____脚本所在目录
     anchor_pkg_dir: Path | None = None
     for cp in module_to_path(abs_module, scan_root):
         if cp.name == "__init__.py" and cp.exists():
@@ -199,7 +199,7 @@ def check_import(
         init_candidates = module_to_path(abs_module, scan_root)
         return (f"{abs_module} (<init>.py 不存在)", init_candidates)
 
-    # 对每个导入的名称，检查它是否是锚点包下的子模块/文件 或 __init__.py 中定义的属性
+    # 对每个导入的名称，检查它是否是锚点包下的子模块/文件或____脚本中定义的属性
     missing_submodules = []
     anchor_init = anchor_pkg_dir / "__init__.py"
     defined_in_init = get_defined_names(anchor_init) if anchor_init.exists() else set()
@@ -292,12 +292,12 @@ def _categorize_issues(
                 (rel, lineno, stmt, "改用 from ...X (themes 在 pilotstd.ui.themes)")
             )
         elif is_handler and stmt.startswith("from ..") and not stmt.startswith("from ..."):
-            # 说明：from ..X → 2 dots
+            # 说明：..→2
             cat["handlers: ..X 应改为 ...X"].append(
                 (rel, lineno, stmt, "改用 from ...X (目标在 pilotstd.ui.X, 不在 pilotstd.ui.core.X)")
             )
         elif is_handler and stmt.startswith("from ..."):
-            # 3 dots — 确保不是 4 dots (已在上面处理)
+            # 3—确保不是4(已在上面处理)
             if not stmt.startswith("from ...."):
                 cat["handlers: ...X 应改为 ....X"].append(
                     (rel, lineno, stmt, "改用 from ....X (目标在 pilotstd.X, 不在 pilotstd.ui.X)")

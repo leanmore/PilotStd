@@ -1,5 +1,5 @@
-# pilotstd/query/network.py — 网络请求重试 + 异常监控（线程安全）
-# 区分临时性错误（超时/连接重置/DNS/5xx → 重试1次）和永久性错误（4xx/解析失败 → 不重试）
+# 项目/查询/脚本—网络请求重试+异常监控（线程安全）
+# 区分临时性错误（超时/连接重置//5→重试1次）和永久性错误（4/解析失败→不重试）
 # 限制最大重定向次数 5 次，防止恶意重定向链
 
 import logging
@@ -16,7 +16,7 @@ MAX_RETRIES = 1  # 最多重试 1 次（避免过度消耗）
 MAX_REDIRECTS = 5  # 最大重定向次数，防恶意重定向链
 DEFAULT_TIMEOUT = 15  # 默认请求超时秒数
 
-# 通用 User-Agent（公告适配器等模块可复用）
+# 通用-（公告适配器等模块可复用）
 CHROME_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"  # noqa: E501
 )
@@ -66,7 +66,7 @@ class NetworkMonitor:
             return " | ".join(parts)
 
 
-# 模块级唯一单例：Python import 天然保证仅执行一次
+# 模块级唯一单例：程序天然保证仅执行一次
 _monitor = NetworkMonitor()
 
 

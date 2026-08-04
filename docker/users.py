@@ -1,4 +1,4 @@
-# docker/users.py — 多用户管理（SQLite 持久化）
+# 容器/脚本—多用户管理（数据库查询持久化）
 import hashlib
 import logging
 import os
@@ -51,10 +51,10 @@ def init_users_table() -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
     """)
-    # 迁移：从旧表结构补齐可能缺失的列（须在 SELECT 之前，否则新列查询失败）
-    # 先检查列是否存在再 ALTER，避免列已存在时产生 ERROR 日志误报
+    # 迁移：从旧表结构补齐可能缺失的列（须在查询之前，否则新列查询失败）
+    # 先检查列是否存在再修改，避免列已存在时产生错误日志误报
     cols = {r["name"] for r in db.fetchall("PRAGMA table_info(users)")}
-    # ── 列名迁移兜底：若有 'user' 列但无 'username'，重命名 ──
+    # ──列名迁移兜底：若有''列但无''，重命名──
     if "user" in cols and "username" not in cols:
         db.execute("ALTER TABLE users RENAME COLUMN user TO username")
         print("[MIGRATION] 已将 users 表列名 user 重命名为 username")
@@ -109,7 +109,7 @@ def _ensure_superuser(db: Database, username: str) -> None:
     else:
         print(f"[Init] 超级用户 '{username}' 角色已正确")
 
-    # 检测弱密码（兼容 bcrypt 与旧 PBKDF2 格式）
+    # 检测弱密码（兼容与旧2格式）
     if not existing["must_change_password"]:
         for weak in WEAK_PASSWORDS:
             if verify_password_with_salt(weak, existing["password_hash"], existing["salt"]):
@@ -134,7 +134,7 @@ def verify_user(username: str, password: str) -> bool:
     if not verify_password_with_salt(password, password_hash, salt):
         return False
 
-    # 旧格式（PBKDF2）自动升级为 bcrypt
+    # 旧格式（2）自动升级为
     if needs_upgrade(password_hash):
         new_hash = get_password_hash(password)
         db.execute(
@@ -179,7 +179,7 @@ def _determine_role(username: str, superuser_name: str) -> str:
 
 def add_user(username: str, password: str, role: str = "user") -> bool:
     """添加用户，使用 bcrypt 存储密码。"""
-    # admin 用户名保护：admin 强制降级为 user，admin* 禁止创建
+    # 用户名保护：强制降级为，*禁止创建
     _su = SUPERUSER_USERNAME
     if not _su:
         raise RuntimeError("SUPERUSER_USERNAME is not set — 启动守卫应已拦截，此为防御性检查")
@@ -205,7 +205,7 @@ def add_user(username: str, password: str, role: str = "user") -> bool:
 
 def delete_user(user_id: int) -> bool:
     db = _get_db()
-    # 不允许删除超级用户（由环境变量 SUPERUSER 指定）
+    # 不允许删除超级用户（由环境变量指定）
     row = db.fetchone("SELECT username FROM users WHERE id = ?", (user_id,))
     if not row:
         return False

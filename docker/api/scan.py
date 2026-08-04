@@ -1,4 +1,4 @@
-# docker/api/scan.py — 标准文件扫描 API（含路径遍历防护 + 管道运行追踪）
+# 容器//扫描脚本—标准文件扫描接口（含路径遍历防护+管道运行追踪）
 import os
 import uuid
 

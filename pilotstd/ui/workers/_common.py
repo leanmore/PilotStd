@@ -1,7 +1,7 @@
-# 模块：pilotstd/ui/workers/_common.py
-# 共享工具函数、常量、数据类 — 从 workers.py 拆分
+# 模块：项目//工作者/_脚本
+# 共享工具函数、常量、数据类—从工作者脚本拆分
 # 分隔
-# 所有 Worker 共用的批量处理常量、进度工具和日志处理器。
+# 所有共用的批量处理常量、进度工具和日志处理器。
 
 import logging
 import time as _time
@@ -17,7 +17,7 @@ from ...models import ParsedStdInfo
 
 logger = logging.getLogger(__name__)
 
-# Worker 批量处理常量
+# 批量处理常量
 _WORKER_BATCH_SIZE = 50
 _WORKER_FLUSH_INTERVAL = 0.5
 _ANNOUNCEMENT_BATCH_SIZE = 20
@@ -43,7 +43,7 @@ def _log_progress(logr: Any, label: str, current: int, total: int, t_start: floa
     logr.info("%s: %d/%d (%d%%) 已耗时 %.0f秒", label, current, total, pct_val, elapsed)
 
 
-# ── RowUpdate：表格行更新数据类 ──
+# ──：表格行更新数据类──
 
 
 @dataclass
@@ -62,7 +62,7 @@ class RowUpdate:
     total: int = 0
 
 
-# ── LogHandler：日志 → QTextEdit 重定向 ──
+# ──：日志→重定向──
 
 
 class LogHandler(logging.Handler, QObject):
@@ -134,7 +134,7 @@ class LogHandler(logging.Handler, QObject):
         if not self._buf_timer.isActive():
             self._buf_timer.start()
 
-    # ── logging.Handler 接口 ──
+    # ──.接口──
 
     def emit(self, record: Any) -> None:
         """logging.Handler 的 emit 接口：格式化日志记录并线程安全地追加。"""

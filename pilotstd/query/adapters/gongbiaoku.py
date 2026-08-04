@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/gongbiaoku.py
+# 模块：项目/查询/适配器/脚本
 """
 工标库 (gongbiaoku.com) 适配器
 

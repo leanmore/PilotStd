@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/notification/_policy.py
-# 通知策略表读写 Helper — 从 manager.py 拆分以控制文件规模
+# 模块：项目/核心//_脚本
+# 通知策略表读写—从管理器脚本拆分以控制文件规模
 
 import json as _json
 from typing import Any
@@ -35,7 +35,7 @@ class NotificationPolicyHelper:
         except Exception:
             pass
 
-        # 回退：从 config.json 读取旧版 rules
+        # 回退：从配置脚本读取旧版规则
         rules = self._cfg.get(f"notification.rules.{event_type}")
         if not rules:
             return []

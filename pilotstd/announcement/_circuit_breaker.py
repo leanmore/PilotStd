@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/_circuit_breaker.py
-# 适配器熔断器 — 从 base.py 拆分，组合模式（非 Mixin）
+# 模块：项目//__脚本
+# 适配器熔断器—从脚本拆分，组合模式（非）
 
 import logging
 from datetime import datetime, timedelta, timezone
@@ -44,7 +44,7 @@ class CircuitBreaker:
     def _site(self) -> str:
         return self._get_site_name()
 
-    # ── 配置（实时读取 ConfigManager，支持热加载）──
+    # ──配置（实时读取，支持热加载）──
 
     @property
     def _threshold(self) -> int:

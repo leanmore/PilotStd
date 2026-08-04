@@ -1,4 +1,4 @@
-# docker/api/upload.py — 文件上传 API（登录页背景图等）
+# 容器//上传脚本—文件上传接口（登录页背景图等）
 import os
 import uuid
 
@@ -28,18 +28,18 @@ _MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
 def _validate_image(content: bytes, ext: str) -> None:
     """通过文件头魔数和扩展名双重校验图片类型。"""
-    # SVG 是 XML 文本，不适用魔数检测，简单检查是否以 < 开头
+    # 是文本，不适用魔数检测，简单检查是否以<开头
     if ext == ".svg":
         text = content.decode("utf-8", errors="ignore").lstrip()
         if not (text.startswith("<svg") or text.startswith("<?xml")):
             raise HTTPException(400, "文件内容不是有效的 SVG 图片")
         return
-    # WebP: RIFF 容器需检查 WEBP 标识（偏移 8 字节）
+    # :容器需检查标识（偏移8字节）
     if ext == ".webp":
         if len(content) < 12 or content[:4] != b"RIFF" or content[8:12] != b"WEBP":
             raise HTTPException(400, "文件内容不是有效的 WebP 图片")
         return
-    # JPEG/PNG/GIF: 文件头魔数精确匹配
+    # //:文件头魔数精确匹配
     for magic, mime in _MAGIC_SIGNATURES.items():
         if content.startswith(magic):
             # 额外校验：扩展名与魔数一致

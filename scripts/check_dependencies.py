@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
-# Python 标准库（Python 3.12）
+# 程序标准库（程序3.12）
 STDLIB = {
     "abc",
     "argparse",
@@ -203,7 +203,7 @@ STDLIB = {
 }
 
 THIRD_PARTY_REMAP = {
-    # pip 包名 vs import 名不一致的映射
+    # 包名名不一致的映射
     "PIL": "pillow",
     "yaml": "pyyaml",
     "bs4": "beautifulsoup4",
@@ -219,7 +219,7 @@ THIRD_PARTY_REMAP = {
     "websocket": "websocket-client",
 }
 
-# GUI 专属依赖：仅在桌面环境中需要，Docker/CI 后端无需安装
+# 图形界面专属依赖：仅在桌面环境中需要，/持续集成后端无需安装
 GUI_ONLY_DEPS = {"PyQt6", "PyQt6-WebEngine"}
 
 
@@ -239,12 +239,12 @@ def _collect_imports(py_file: Path, imports: set[str]) -> None:
         content = py_file.read_text(encoding="utf-8")
     except Exception:
         return
-    # 说明：import xxx / import xxx.yyy
+    # 说明：/.
     for m in re.finditer(r"^import\s+([a-zA-Z_][a-zA-Z0-9_]*)", content, re.MULTILINE):
         name = m.group(1)
         if name not in STDLIB:
             imports.add(name)
-    # 说明：from xxx import yyy
+    # 说明：
     for m in re.finditer(r"^from\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+import", content, re.MULTILINE):
         name = m.group(1)
         if name not in STDLIB:
@@ -265,7 +265,7 @@ def _parse_file(filepath: Path, deps: set[str]) -> None:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        # 处理 -r 引用
+        # 处理-引用
         if line.startswith("-r "):
             ref_name = line[3:].strip()
             ref_path = filepath.parent / ref_name
@@ -274,7 +274,7 @@ def _parse_file(filepath: Path, deps: set[str]) -> None:
             else:
                 print(f"  警告: -r 引用文件不存在: {ref_path}")
             continue
-        # 跳过其他特殊标记（-e 等）
+        # 跳过其他特殊标记（-等）
         if line.startswith("-"):
             continue
         name = re.split(r"[=<>~]", line)[0].strip().lower()
@@ -288,10 +288,10 @@ def main() -> int:
     imports = extract_third_party_imports()
     deps = parse_requirements()
 
-    # 过滤 GUI 专属依赖
+    # 过滤图形界面专属依赖
     imports = {imp for imp in imports if imp not in GUI_ONLY_DEPS}
 
-    # 应用 remap
+    # 应用
     resolved_imports: set[str] = set()
     unresolved: list[str] = []
     for imp in sorted(imports):

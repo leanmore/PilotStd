@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-# 适配器懒加载（避免启动时加载 requests/bs4/lxml）
+# 适配器懒加载（避免启动时加载请求/4/）
 def _get_csres_adapter() -> Type[Any]:
     """懒加载工标网适配器（CsresAdapter）。"""
     from .adapters.csres import CsresAdapter

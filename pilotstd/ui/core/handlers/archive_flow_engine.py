@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/archive_flow_engine.py
+# 模块：项目//核心/处理器/归档__引擎脚本
 """ArchiveFlowEngine — 归档相关的纯逻辑层（无 Qt 依赖）。
 
 从 ArchiveUIHandler 中提取所有数据转换、校验、格式化方法。

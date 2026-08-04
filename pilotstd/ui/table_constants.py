@@ -1,5 +1,5 @@
-# 模块：pilotstd/ui/table_constants.py
-# 工作表列定义常量（从 table_mixin.py 提取，table_mixin.py 即将删除）
+# 模块：项目//_常量脚本
+# 工作表列定义常量（从_混入脚本提取，_混入脚本即将删除）
 
 WORK_COLUMNS = [
     "序号",

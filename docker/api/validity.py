@@ -1,9 +1,9 @@
-# docker/api/validity.py — 时效性检查配置与历史 API
-# GET  /api/validity/config → 读取时效性检查配置
-# PUT  /api/validity/config → 更新时效性检查配置
-# POST /api/validity/run → 立即执行一次检查
-# GET  /api/validity/history → 获取执行历史
-# POST /api/validity/enqueue → 将指定文件加入时效性检查队列
+# 容器//脚本—时效性检查配置与历史接口
+# ///配置→读取时效性检查配置
+# ///配置→更新时效性检查配置
+# ///→立即执行一次检查
+# ///→获取执行历史
+# ///队列→将指定文件加入时效性检查队列
 import logging
 
 from fastapi import Depends, Query
@@ -27,7 +27,7 @@ _DEFAULT_CONFIG = {
 }
 
 
-# ✅ #43: Pydantic 校验模型
+# ✅#43:校验模型
 class ValidityConfigUpdate(BaseModel):
     """时效性检查配置更新请求体，含前后端双重校验"""
 
@@ -72,8 +72,8 @@ def get_validity_config(mgr=Depends(get_manager_dep)):
 def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
     """更新时效性检查配置。
 
-    ✅ #43: 保存后立即调用 reschedule_validity_job() 更新 CronTrigger。
-    调度器实例与 scheduler_service 为同一全局单例。
+    保存后立即调用调度更新函数更新定时触发器。
+    调度器实例与调度服务为同一全局单例。
     """
     errors: list[str] = []
 
@@ -90,7 +90,7 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
             errors.append("execute_time 格式必须为 HH:MM")
 
     total_weeks = body.get("total_weeks")
-    # 兼容旧前端：如果发的是 update_interval（天数），转换为 total_weeks（周数）
+    # 兼容旧前端：如果发的是_（天数），转换为_（周数）
     if total_weeks is None:
         raw_interval = body.get("update_interval")
         if raw_interval is not None and isinstance(raw_interval, (int, float)):
@@ -105,7 +105,7 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
         elif total_weeks and frequency_weeks > total_weeks:
             errors.append("frequency_weeks 不能超过 total_weeks")
 
-    # ✅ #43: execution_count 校验（前后端双重拒绝）
+    # ✅#43:_校验（前后端双重拒绝）
     if total_weeks and frequency_weeks:
         exec_count = total_weeks / frequency_weeks
         if exec_count < 4:
@@ -156,8 +156,8 @@ def update_validity_config(body: dict, mgr=Depends(get_manager_dep)):
         logger.exception("时效性检查配置写入失败")
         return JSONResponse({"error": f"配置写入失败: {e}"}, status_code=500)
 
-    # ✅ #43: 配置保存后立即更新调度器 CronTrigger
-    # 注意：必须在 mgr.cfg.save() 之后、HTTP 响应返回之前调用
+    # ✅#43:配置保存后立即更新调度器
+    # 注意：必须在配置.()之后、网络响应返回之前调用
     try:
         from docker.scheduler import reschedule_validity_job
 

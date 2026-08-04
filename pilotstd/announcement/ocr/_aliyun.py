@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/ocr/_aliyun.py
-# 阿里云 OCR 提供商实现
+# 模块：项目///_脚本
+# 阿里云文字识别提供商实现
 """阿里云 OCR 统一识别 — 支持 PDF 直接上传。
 
 HMAC-SHA1 签名 + Base64，直接 HTTP 调用，无需 SDK。
@@ -44,7 +44,7 @@ class AliyunOcrProvider(BaseOcrProvider):
 
     def _sign_aliyun(self, params: dict[str, Any]) -> str:
         """阿里云 HMAC-SHA1 签名，返回 Signature 字符串。"""
-        # 参数排序 + URL 编码
+        # 参数排序+链接编码
         sorted_keys = sorted(params.keys())
         canonical = "&".join(
             f"{urllib.parse.quote(k, safe='')}={urllib.parse.quote(str(params[k]), safe='')}" for k in sorted_keys

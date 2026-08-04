@@ -1,6 +1,6 @@
-# 模块：pilotstd/manager/organize/mirror.py
-# 镜像/兜底归档 — 从 organizer_service.py 拆分
-# 原 OrganizerMirrorMixin，现为独立类 OrganizerMirror（组合注入 cfg）
+# 模块：项目/管理器/归类/脚本
+# 镜像/兜底归档—从归类_服务脚本拆分
+# 原，现为独立类（组合注入）
 
 import logging
 import os
@@ -36,7 +36,7 @@ class OrganizerMirror:
         self._FALLBACK_SKIP_PREFIX = fallback_skip_prefix
         self._skipped_source_files: set[str] = set()
 
-    # organize_skipped_dirs — 将扫描时跳过的目录原封不动镜像到新库
+    # 归类__—将扫描时跳过的目录原封不动镜像到新库
     def organize_skipped_dirs(self, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。"""
         root = get_library_root(self._cfg)
@@ -94,7 +94,7 @@ class OrganizerMirror:
             return False
         return True
 
-    # _mirror_into_existing_dst — 目标已存在时逐文件移动到目标目录
+    # ____—目标已存在时逐文件移动到目标目录
     def _mirror_into_existing_dst(self, dst: str, src_dir: str, result: dict) -> None:
         """目标已存在 → 逐文件移动到目标目录。"""
         for fname in os.listdir(src_dir):
@@ -143,7 +143,7 @@ class OrganizerMirror:
         result["moved"] += 1
         result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
 
-    # organize_fallback — 归档收尾：将源目录中残留文件按目录结构镜像到输出目录
+    # 归类_回退—归档收尾：将源目录中残留文件按目录结构镜像到输出目录
     def organize_fallback(self, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""
         source_root = ensure_long_path(source_root)

@@ -23,7 +23,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # ── Qt 消息处理器：捕获 Qt C++ 层致命/严重错误 → crash_log.txt ──
+    # ──界面框架消息处理器：捕获界面框架++层致命/严重错误→_文本──
     _qt_fatal_seen = False
 
     def _qt_message_handler(msg_type: QtMsgType, ctx: QMessageLogContext, msg: str) -> None:
@@ -46,7 +46,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     cfg = ConfigManager()
     prj = ProjectManager()
 
-    # exe 模式下预创建下载目录
+    # 模式下预创建下载目录
     if is_frozen():
         dl_dir = os.path.join(os.path.dirname(sys.executable), "downloads")
         os.makedirs(dl_dir, exist_ok=True)
@@ -57,7 +57,7 @@ def run() -> None:  # pragma: no cover — app.exec() 入口，单元测试不�
     window._ui_translatable = True
     window.show()
 
-    # Qt 销毁前关闭 LogHandler，释放对 QTextEdit 的引用
+    # 界面框架销毁前关闭，释放对的引用
     def _close_log_handlers() -> None:
         """应用退出前关闭所有 LogHandler，释放 QTextEdit 引用。"""
         from ...workers._common import LogHandler

@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/channels/feishu.py
+# 模块：项目/核心//渠道/脚本
 """飞书机器人 Webhook 通知渠道。"""
 
 import json
@@ -23,7 +23,7 @@ class FeishuChannel(NotificationChannel):
         if not self._url:
             return False
         try:
-            # 使用 FeishuCardRenderer 渲染卡片 dict
+            # 使用飞书渲染卡片
             card = self._renderer.render(message)
 
             # 标准号在卡片底部追加为备注元素
@@ -40,7 +40,7 @@ class FeishuChannel(NotificationChannel):
             with urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read())
-                    # 飞书返回 code=0 表示成功
+                    # 飞书返回=0表示成功
                     if data.get("code") == 0:
                         return True
                     logger.warning("飞书通知失败: %s", data.get("msg", ""))

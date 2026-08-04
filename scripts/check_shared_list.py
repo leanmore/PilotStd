@@ -52,11 +52,11 @@ def check_file(file_path: Path, list_names: list[str]) -> list[tuple[int, str, s
             if stripped.startswith("#"):
                 continue
 
-            # 模式1: self._parsed_results = some_list (赋值新引用)
+            # 模式1:.__=_(赋值新引用)
             m = re.search(rf"self\.{list_name}\s*=\s*(\w+)", stripped)
             if m:
                 rhs = m.group(1)
-                # 构造器参数传递是安全的: self._xxx = xxx
+                # 构造器参数传递是安全的:._=
                 if rhs == list_name.lstrip("_"):  # self._parsed_results = parsed_results
                     continue  # 构造器传递，安全
                 # 初始化为 [] 安全（但应在构造器中）
@@ -64,23 +64,23 @@ def check_file(file_path: Path, list_names: list[str]) -> list[tuple[int, str, s
                     continue  # 初始化，通常安全
                 issues.append((i, "中", f"self.{list_name} = {rhs} → 赋值新引用，可能断裂共享"))
 
-            # 模式2: self._parsed_results[:] = ... (切片赋值)
+            # 模式2:.__[:]=...(切片赋值)
             if re.search(rf"self\.{list_name}\[:]\s*=", stripped):
                 issues.append((i, "高", f"self.{list_name}[:] = ... → 切片赋值修改共享列表"))
 
-            # 模式3: self._parsed_results.clear() (安全)
+            # 模式3:.__.()(安全)
             if re.search(rf"self\.{list_name}\.clear\(\)", stripped):
                 pass  # 原地清空，安全
 
-            # 模式4: self._parsed_results.extend(...) (安全)
+            # 模式4:.__.(...)(安全)
             if re.search(rf"self\.{list_name}\.extend\(.+\)", stripped):
                 pass  # 原地扩展，安全
 
-            # 模式5: self._parsed_results.append(...) (安全)
+            # 模式5:.__.(...)(安全)
             if re.search(rf"self\.{list_name}\.append\(.+\)", stripped):
                 pass  # 原地追加，安全
 
-            # 模式6: del self._parsed_results[idx] (安全，原地删除)
+            # 模式6:.__[](安全，原地删除)
             if re.search(rf"del\s+self\.{list_name}\[", stripped):
                 pass  # 原地删除，安全
 

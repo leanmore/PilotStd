@@ -1,4 +1,4 @@
-# docker/api/scheduler.py — 调度器状态 API
+# 容器//调度器脚本—调度器状态接口
 from datetime import datetime
 
 from fastapi import Depends, Query
@@ -25,7 +25,7 @@ def get_scheduler_status(mgr=Depends(get_manager_dep)):
                 "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
                 "trigger": str(job.trigger),
                 "pending": bool(job.pending),
-                # Phase1: 合并任务执行状态缓存
+                # 阶段1:合并任务执行状态缓存
                 "last_run_time": cached["last_run_time"] if cached else None,
                 "last_run_status": cached["last_run_status"] if cached else None,
                 "last_error_message": cached["last_error_message"] if cached else None,

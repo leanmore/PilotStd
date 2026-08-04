@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/ocr/_pdf_utils.py
-# PDF 工具函数 — 从 _base.py 拆分，供内部和测试使用
+# 模块：项目///__工具脚本
+# 便携文档工具函数—从_脚本拆分，供内部和测试使用
 
 import logging
 

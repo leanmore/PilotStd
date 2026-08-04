@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_overflow.py
+# 模块：项目/查询/引擎/_脚本
 """溢出链式重试处理器 — 独立类，替代原 OverflowHandler（Mixin）。
 
 组合模式重构：OverflowHandler → 独立类，依赖通过 EngineCore + RoutingHandler 注入。
@@ -149,7 +149,7 @@ class OverflowHandler:
             chain_str = "→".join(state["item_chains"].get(idx, [])) or "none"
             _td2 = f"{item[0]} {item[1]}-{item[2]}"
             logger.info("查询 [%s] [NG] tried=%s", _td2, chain_str)
-            # ✅ #46 P1: chain_exhausted 计数器
+            # ✅#461:_计数器
             m = state.get("metrics")
             if m:
                 m.increment("chain_exhausted")

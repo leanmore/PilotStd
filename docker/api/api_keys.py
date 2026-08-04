@@ -1,5 +1,5 @@
-# docker/api/api_keys.py — API Key 管理已迁移至 /api/settings/token
-# 保留此文件返回 410 Gone，避免旧链接 404 混淆
+# 容器//_脚本—接口管理已迁移至///
+# 保留此文件返回410，避免旧链接404混淆
 import logging
 
 from fastapi import Depends, HTTPException

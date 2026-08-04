@@ -45,13 +45,13 @@ def _apply_theme(self) -> None:
     apply_theme(QApplication.instance(), theme)
 
 
-# ── Qt 翻译器加载 ──
+# ──界面框架翻译器加载──
 
 
 def _load_qt_translator(self) -> None:
     """加载 Qt 内置翻译文件（qtbase_*.qm），实现内建控件汉化。"""
     lang = self._config.get("appearance.language", "zh_CN")
-    # 幂等保护：同语言已加载则跳过，避免重复 I/O + installTranslator 全树遍历
+    # 幂等保护：同语言已加载则跳过，避免重复/+全树遍历
     if getattr(self, "_loaded_qt_lang", None) == lang:
         return
     from ....i18n import set_language
@@ -99,7 +99,7 @@ def _apply_language(self) -> None:
     self._retranslate_ui()
 
 
-# ── UI 文本刷新 ──
+# ──用户界面文本刷新──
 
 
 def _retranslate_ui(self) -> None:

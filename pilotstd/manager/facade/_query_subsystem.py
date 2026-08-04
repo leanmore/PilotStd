@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_query_subsystem.py
+# 模块：项目/管理器/门面/_查询_脚本
 """QuerySubsystem — 查询执行 + 报告统计的组合类。
 
 原 _QueryExecMixin + _QueryReportMixin，合并为独立类（组合注入到 QueryHandler）。
@@ -6,8 +6,8 @@
 模块依赖: requests (HTTP), core.std_utils (分类), query.models (数据类)
 """
 
-# 设计决策: 为何不拆为 QueryExecutor + QueryReporter 两个类？
-# 两个原 Mixin 之间存在单向交叉调用 (_finalize_query → _classify_after_query / _report_query_summary)，
+# 设计决策:为何不拆为+两个类？
+# 两个原之间存在单向交叉调用(__查询→___查询/__查询_)，
 # 拆分会引入循环依赖或额外的回调注册。合并保持内聚性。
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class QuerySubsystem:
     """查询执行与报告统计。组合注入到 QueryHandler。"""
 
-    # 原定义在 QueryHandler 上的类常量
+    # 原定义在上的类常量
     _CAT_LABEL = {
         "gb": "国标",
         "industry": "行业标准",
@@ -51,7 +51,7 @@ class QuerySubsystem:
         self._core = core
 
     # ══════════════════════════════════════════════════════════ 分隔
-    # 原 _QueryExecMixin 方法
+    # 原_方法
     # ══════════════════════════════════════════════════════════ 分隔
 
     def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
@@ -148,7 +148,7 @@ class QuerySubsystem:
                 for p in miss_items
             ]
 
-            # 闭包：将 miss_idx 映射回原始索引，回填到 results 列表
+            # 闭包：将_映射回原始索引，回填到列表
             def _fallback_callback(miss_idx: int, r: QueryResult) -> None:
                 """未命中缓存时降级到实时引擎，将结果回填到正确位置。"""
                 r.source = "live_fallback"
@@ -304,7 +304,7 @@ class QuerySubsystem:
         )
 
     # ══════════════════════════════════════════════════════════ 分隔
-    # 原 _QueryReportMixin 方法
+    # 原_方法
     # ══════════════════════════════════════════════════════════ 分隔
 
     def _report_category_breakdown(self, items: list[Any], results: list[QueryResult]) -> None:
@@ -419,7 +419,7 @@ class QuerySubsystem:
         return self._core.classifier.resolve_replaces(standard_number)
 
     # ══════════════════════════════════════════════════════════ 分隔
-    # 原 QueryHandler 上的方法（被 _finalize_query 调用）
+    # 原上的方法（被__查询调用）
     # ══════════════════════════════════════════════════════════ 分隔
 
     def record_pending(self, pending_items: list[Any]) -> None:

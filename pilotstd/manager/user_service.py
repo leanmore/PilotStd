@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/user_service.py
-# 用户管理服务 — 供 API 层调用
+# 模块：项目/管理器/_服务脚本
+# 用户管理服务—供接口层调用
 
 import hashlib
 import json
@@ -114,7 +114,7 @@ class UserService:
         )
         return {"ok": True, "key": key}
 
-    # ── 统一设置（v31：减少 HTTP 请求数） ─────
+    # ──统一设置（31：减少网络请求数）─────
 
     def get_user_settings(self, user_id: int) -> dict[str, Any]:
         """一次返回 layout + preferences。"""

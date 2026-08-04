@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/crypto.py
-# 敏感字段加解密 — 从 config.py 拆分
+# 模块：项目/核心/配置/脚本
+# 敏感字段加解密—从配置脚本拆分
 
 import os
 from typing import Any

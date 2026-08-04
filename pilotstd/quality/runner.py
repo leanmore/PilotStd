@@ -1,4 +1,4 @@
-# 模块：pilotstd/quality/runner.py
+# 模块：项目//运行器脚本
 # 质量检查运行器——扫描目录，汇总违规
 
 import os

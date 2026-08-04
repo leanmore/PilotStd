@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_settings_io.py
+# 模块：项目//核心/处理器/__脚本
 """SettingsConfigIO — 配置加载/保存，从 SettingsHandler 拆分以控制文件大小。
 
 薄包装层：仅负责 Qt 控件 ↔ dict 数据搬运，序列化/反序列化委托给 SettingsConfigIOEngine。
@@ -20,7 +20,7 @@ class SettingsConfigIO:
         self._h = handler  # SettingsHandler 实例
         self._engine = SettingsConfigIOEngine()
 
-    # ── 公共 API ──
+    # ──公共接口──
 
     def load_all_configs(self) -> None:
         """从 ConfigManager 加载所有设置到 UI 控件。"""
@@ -48,7 +48,7 @@ class SettingsConfigIO:
                 )
 
     # ================================================================ 分隔
-    # General — 语言、启动行为、列可见性
+    # 语言、启动行为、列可见性
     # ================================================================ 分隔
 
     def _load_general(self) -> None:
@@ -114,7 +114,7 @@ class SettingsConfigIO:
             mw._apply_column_visibility(result["appearance.column_visibility"])
 
     # ================================================================ 分隔
-    # Appearance — 主题、图标
+    # 主题、图标
     # ================================================================ 分隔
 
     def _load_appearance(self) -> None:
@@ -151,7 +151,7 @@ class SettingsConfigIO:
             self._config.set(key, value)
 
     # ================================================================ 分隔
-    # Library — 存储路径、扫描选项
+    # 存储路径、扫描选项
     # ================================================================ 分隔
 
     def _load_library(self) -> None:
@@ -183,7 +183,7 @@ class SettingsConfigIO:
                 "file.clear_readonly", self._engine.DEFAULT_LIBRARY["file.clear_readonly"]
             ),
         }
-        # 扫描字段用 Engine 默认值兜底
+        # 扫描字段用默认值兜底
         raw["scan.skip_folders"] = self._config.get(
             "scan.skip_folders", self._engine.DEFAULT_LIBRARY["scan.skip_folders"]
         )
@@ -192,7 +192,7 @@ class SettingsConfigIO:
             "scan.exclude_patterns", self._engine.DEFAULT_LIBRARY["scan.exclude_patterns"]
         )
 
-        # storage.root_dir 用运行时默认值覆盖 Engine 静态默认值
+        # ._用运行时默认值覆盖静态默认值
         overrides = {"storage.root_dir": default_root}
         result = self._engine.deserialize_library(raw, overrides)
 
@@ -257,7 +257,7 @@ class SettingsConfigIO:
             self._config.set(key, value)
 
     # ================================================================ 分隔
-    # Advanced — 网络代理、OCR 密钥、缓存、公告
+    # 网络代理、文字识别密钥、缓存、公告
     # ================================================================ 分隔
 
     def _load_advanced(self) -> None:
@@ -328,7 +328,7 @@ class SettingsConfigIO:
             self._config.set("query.use_announcement_match", False)
             self._config.save()
 
-        # OCR 密钥占位符（不加载实际值到文本框，只显示提示）
+        # 文字识别密钥占位符（不加载实际值到文本框，只显示提示）
         if all(
             [
                 h._ocr_api_key,
@@ -363,7 +363,7 @@ class SettingsConfigIO:
         if h._announce_api_key_edit:
             data["query.announcement_api_key"] = h._announce_api_key_edit.text().strip()
 
-        # OCR 密钥
+        # 文字识别密钥
         if all(
             [
                 h._ocr_api_key,

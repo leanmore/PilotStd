@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/settings_io_flow_engine.py
+# 模块：项目//核心/处理器/___引擎脚本
 """SettingsConfigIOEngine — 设置配置的序列化/反序列化纯逻辑层（零 Qt 依赖）。
 
 将 SettingsConfigIO 中的键值映射与默认值回填逻辑提取为纯静态方法，
@@ -13,7 +13,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════ 分隔
-# 常量（Handler 层的唯一真相源）
+# 常量（层的唯一真相源）
 # ═══════════════════════════════════════════════════════════════ 分隔
 
 # 图标主题选项映射（显示名 → 内部键）
@@ -24,10 +24,10 @@ ICON_OPTIONS: dict[str, str] = {
     "灯塔": "lighthouse_folder",
 }
 
-# 语言代码列表，按 ComboBox 索引对应
+# 语言代码列表，按索引对应
 LANG_CODES: list[str] = ["zh_CN", "zh_TW", "en"]
 
-# OCR 凭证字段定义：(Handler 属性名, 配置键, 占位提示)
+# 文字识别凭证字段定义：(属性名,配置键,占位提示)
 OCR_CREDENTIAL_FIELDS: list[tuple[str, str, str]] = [
     ("_ocr_api_key", "ocr.baidu_api_key", "百度云 API Key"),
     ("_ocr_secret_key", "ocr.baidu_secret_key", "百度云 Secret Key"),
@@ -122,7 +122,7 @@ class SettingsConfigIOEngine:
         return result
 
     # ═══════════════════════════════════════════════════════════════ 分隔
-    # General — 语言、启动行为
+    # 语言、启动行为
     # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
@@ -141,7 +141,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, base)
 
     # ═══════════════════════════════════════════════════════════════ 分隔
-    # Appearance — 主题、图标
+    # 主题、图标
     # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
@@ -160,7 +160,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, base)
 
     # ═══════════════════════════════════════════════════════════════ 分隔
-    # Library — 存储路径、扫描选项
+    # 存储路径、扫描选项
     # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
@@ -179,7 +179,7 @@ class SettingsConfigIOEngine:
         return SettingsConfigIOEngine._fill_missing(data, base)
 
     # ═══════════════════════════════════════════════════════════════ 分隔
-    # Advanced — 网络代理、OCR 密钥、缓存
+    # 网络代理、文字识别密钥、缓存
     # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod

@@ -1,4 +1,4 @@
-# pilotstd/ui/workers/announce.py — AnnounceWorker，从 workers.py 拆分
+# 项目//工作者/脚本—，从工作者脚本拆分
 
 from typing import Any
 

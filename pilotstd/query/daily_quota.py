@@ -1,6 +1,6 @@
-# 模块：pilotstd/query/daily_quota.py
-# 每日查询配额追踪器（SQLite 持久化）
-# 日限额统一从 site_config.SiteState.daily_limit 读取，此处不再硬编码
+# 模块：项目/查询/_脚本
+# 每日查询配额追踪器（数据库查询持久化）
+# 日限额统一从_配置.._读取，此处不再硬编码
 
 import logging
 import threading
@@ -12,7 +12,7 @@ from ..i18n import _
 
 logger = logging.getLogger(__name__)
 
-# 日限额强制上限（Phase 3.1: 约束条件 #1）
+# 日限额强制上限（阶段3.1:约束条件#1）
 MAX_DAILY_LIMIT = 1000
 
 # 详情页查询保底次数——特定站点需为详情查询预留配额，避免搜索耗尽。
@@ -39,13 +39,13 @@ class DailyQuotaTracker:
             )
         """)
         self._today = str(date.today())
-        # Phase 3.1: 日限额强制上限 1000
+        # 阶段3.1:日限额强制上限1000
         self._limits = {k: min(v, MAX_DAILY_LIMIT) for k, v in dict(limits or {}).items()}
         self._lock = threading.RLock()
         self._ensure_today_rows()
         # 当日已发送配额耗尽通知的站点集合（防重复）
         self._quota_exhausted_notified: set[str] = set()
-        # 可选的 notification_mgr，用于发送配额耗尽事件
+        # 可选的_，用于发送配额耗尽事件
         self._notification_mgr: Any = None
 
     def set_notification_mgr(self, mgr: Any) -> None:
@@ -104,7 +104,7 @@ class DailyQuotaTracker:
         """记录消耗次数，返回剩余可用次数。"""
         with self._lock:
             self._ensure_date()
-            # 确保该站点的今日行存在（_ensure_today_rows 只覆盖 _limits 中的站点）
+            # 确保该站点的今日行存在（___只覆盖_中的站点）
             existing = self._db.fetchone(
                 "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
                 (site_name, self._today),

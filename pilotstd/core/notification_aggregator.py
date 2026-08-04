@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/notification_aggregator.py
-# 通知智能聚合器 — 适配层（内部委托新版 NotificationAggregator）
+# 模块：项目/核心/_聚合器脚本
+# 通知智能聚合器—适配层（内部委托新版）
 """单例聚合器：缓冲合并 + 熔断暂停（与 Web 端行为等价）。
 
 内部持有新版 pilotstd.core.notification.aggregate_buffer.NotificationAggregator，
@@ -16,7 +16,7 @@ _BUFFER_WINDOW = 0.3  # 秒
 _COUNT_WINDOW = 30  # 秒
 # 暂停时长：触发暂停后 5 分钟内不弹通知
 _PAUSE_DURATION = 300  # 秒 (5分钟)
-# 配置键名：暂停状态持久化到 config.json
+# 配置键名：暂停状态持久化到配置脚本
 _PAUSE_CONFIG_KEY = "notification.aggregation"
 
 
@@ -41,7 +41,7 @@ class NotificationAggregator:
 
     def _init(self) -> None:
         """初始化内部状态：警告计数器、暂停标记、回调引用、新版聚合器。"""
-        # 时间戳列表，用于滑动窗口统计 warning/error 频率
+        # 时间戳列表，用于滑动窗口统计/频率
         self._warning_errors: list[float] = []  # 时间戳
         self._paused = False
         self._paused_until: float | None = None
@@ -49,7 +49,7 @@ class NotificationAggregator:
         # 从持久化配置恢复暂停状态（服务重启后保留）
         self._load_pause_state()
 
-        # 初始化新版聚合器（线程安全 + 滑动窗口 + format_summary）
+        # 初始化新版聚合器（线程安全+滑动窗口+_）
         from pilotstd.core.notification.aggregate_buffer import NotificationAggregator as NewAggregator
 
         self._new = NewAggregator(
@@ -58,7 +58,7 @@ class NotificationAggregator:
             batch_size=50,
         )
 
-    # ── 主题提取（保留，用于设置 target_id） ──
+    # ──主题提取（保留，用于设置_）──
 
     @staticmethod
     def _extract_topic(title: str, _body: str) -> str:
@@ -96,7 +96,7 @@ class NotificationAggregator:
 
             cfg = ConfigManager()
             saved = cfg.get(_PAUSE_CONFIG_KEY)
-            # 仅当暂停标记为 True 且暂停截止时间未过期时才恢复
+            # 仅当暂停标记为且暂停截止时间未过期时才恢复
             if saved and isinstance(saved, dict):
                 if saved.get("paused") and isinstance(saved.get("paused_until"), (int, float)):
                     if saved["paused_until"] > time.time():
@@ -148,7 +148,7 @@ class NotificationAggregator:
                 return True
         return False
 
-    # ── 新版聚合器回调 → 桥接到旧版 _on_show（线程安全） ──
+    # ──新版聚合器回调→桥接到旧版__（线程安全）──
 
     def _on_new_flush(self, msg: Any, _channels: list[str]) -> None:
         """新版聚合器合并后的回调。
@@ -179,7 +179,7 @@ class NotificationAggregator:
 
         self._on_show(safe_title, safe_body, msg.level)
 
-    # ── 公共 API ──
+    # ──公共接口──
 
     def should_show(self, level: str, title: str, body: str, on_show: Any = None) -> bool:
         """判断是否应显示通知。委托新版聚合器处理缓冲合并。
@@ -200,7 +200,7 @@ class NotificationAggregator:
             else:
                 return False
 
-        # 提取主题作为 target_id，复用新版的分组能力
+        # 提取主题作为_，复用新版的分组能力
         topic = self._extract_topic(title, body)
         status = "failure" if level in ("warning", "error") else "success"
 
@@ -212,7 +212,7 @@ class NotificationAggregator:
             target_id=topic,
             status=status,
         )
-        # 始终返回 False：通知不立即显示，由聚合器合并后统一推送
+        # 始终返回：通知不立即显示，由聚合器合并后统一推送
         return False
 
     def get_pause_state(self) -> dict:

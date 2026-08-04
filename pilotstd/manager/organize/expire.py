@@ -1,6 +1,6 @@
-# 模块：pilotstd/manager/organize/expire.py
-# 过期处理 — 从 organizer_service.py 拆分
-# 原 OrganizerExpireMixin，现为模块级纯函数
+# 模块：项目/管理器/归类/脚本
+# 过期处理—从归类_服务脚本拆分
+# 原，现为模块级纯函数
 
 import logging
 import os

@@ -1,5 +1,5 @@
-# docker/api/health.py — 健康检查端点
-# 无鉴权（仅生产环境限制内网IP），用于部署后快速验证核心服务可用性
+# 容器//脚本—健康检查端点
+# 无鉴权（仅生产环境限制内网），用于部署后快速验证核心服务可用性
 import ipaddress
 import logging
 import os
@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# 允许的私有网络段（RFC1918 + loopback）
+# 允许的私有网络段（1918+）
 _PRIVATE_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),

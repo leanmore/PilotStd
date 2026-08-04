@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# 模块：scripts/smoke_test_cssn.py
+# 模块：/__脚本
 """CSSN 适配器冒烟测试 — 独立可执行。
 
 用法：python scripts/smoke_test_cssn.py

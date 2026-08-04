@@ -1,9 +1,9 @@
-# 模块：pilotstd/query/routing/scorer.py
-# Phase 3.1: 路由评分器 — 数据驱动、配置化的适配器优先级评分
+# 模块：项目/查询/路由/核心脚本
+# 阶段3.1:路由评分器—数据驱动、配置化的适配器优先级评分
 # 分隔
 # 设计原则：
-#   1. 所有评分参数来自 ADAPTER_DEFAULT_PROFILES（可被 config.json 覆盖）
-#   2. 评分器不排除 csres —— 排除逻辑保留在 _routing.py / _batch_dispatch.py 硬编码层
+# 1.所有评分参数来自__合并请求（可被配置脚本覆盖）
+# 2.评分器不排除——排除逻辑保留在_路由脚本/__补丁脚本硬编码层
 #   3. 运行时状态（冷却/配额/批次计数）通过参数传入，评分器无副作用
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # ── 预编译正则（性能优化，避免每次调用重新编译）─────────────────
 
-# 标准号前缀提取：匹配开头的 1-4 个大写字母，可选跟 /T 或 /Z 后缀
+# 标准号前缀提取：匹配开头的1-4个大写字母，可选跟/或/后缀
 STD_PREFIX_PATTERN = re.compile(r"^([A-Z]{1,4})(?:/T|/Z)?$")
 
 # 行业关键词 → 正则映射（预编译）
@@ -89,18 +89,18 @@ def get_profile(adapter_name: str) -> dict:
     if not profile:
         return {}
 
-    # Phase 3.1: 从 config.json 读取用户覆盖值
+    # 阶段3.1:从配置脚本读取用户覆盖值
     try:
         from pilotstd.core.config.manager import ConfigManager
 
         cfg = ConfigManager()
         user_overrides = cfg.get(f"query.sites.{adapter_name}", {})
         if isinstance(user_overrides, dict):
-            # 仅覆盖 profile 中已有的顶层键
+            # 仅覆盖分析中已有的顶层键
             for key in profile:
                 if key in user_overrides and key != "rate_limit":
                     profile[key] = user_overrides[key]
-            # rate_limit 子字典逐字段覆盖
+            # _子字典逐字段覆盖
             if "rate_limit" in user_overrides and isinstance(user_overrides["rate_limit"], dict):
                 profile.setdefault("rate_limit", {}).update(user_overrides["rate_limit"])
     except Exception:

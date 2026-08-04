@@ -1,8 +1,8 @@
-# 模块：pilotstd/core/notification/_builders_system.py
-# 通知消息构建器(系统/备份/错误) — 原 _SystemBuildersMixin，现为模块级纯函数
+# 模块：项目/核心//_构建器_脚本
+# 通知消息构建器(系统/备份/错误)—原_，现为模块级纯函数
 # 分隔
-# 覆盖事件：归档完成、自动备份、公告检查、镜像更新、可信IP、Worker异常、
-# 任务失败、公告抓取失败、配额耗尽。每个构建器独立返回 NotificationMessage。
+# 覆盖事件：归档完成、自动备份、公告检查、镜像更新、可信、异常、
+# 任务失败、公告抓取失败、配额耗尽。每个构建器独立返回。
 
 import logging
 
@@ -174,7 +174,7 @@ def _build_trust_ip_update_message(data: dict) -> NotificationMessage:
     text = data.get("body", "")
     blocks: list[NotificationBlock] = [TextBlock(text=text)]
     extra_keys = [k for k in ("ip", "update_time", "status") if data.get(k)]
-    # 有额外键值对信息时追加 KeyValueBlock
+    # 有额外键值对信息时追加锁
     for k in extra_keys:
         blocks.append(KeyValueBlock(key=k, value=str(data[k])))
     level = "warning" if "失败" in title else "info"

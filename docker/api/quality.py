@@ -1,4 +1,4 @@
-# docker/api/quality.py — 数据质量检查 API
+# 容器//脚本—数据质量检查接口
 import logging
 
 from fastapi import Depends

@@ -1,21 +1,21 @@
-# 模块：pilotstd/manager/standard_service.py
-# 标准统计与列表查询服务 — 统一数据源为 file_index
+# 模块：标准统计与列表查询服务
+# 统一数据源为文件索引表
 
 from typing import Any
 
 
 class StandardService:
-    """标准统计与列表查询（数据源：file_index，与首页卡片口径一致）。"""
+    """标准统计与列表查询（数据源：文件索引表，与首页卡片口径一致）。"""
 
     def __init__(self, manager: Any):
         self._mgr = manager
 
-    # ── 状态映射：前端筛选值 → file_index 实际值 ──
+    # ── 状态映射：前端筛选值映射到文件索引表实际值 ──
 
     @staticmethod
     def _map_filter_status(filter_status: str) -> tuple[list[str], str | None]:
-        """将前端筛选状态值映射到 file_index 的 WHERE 子句。
-        Returns: (values_list, operator) — operator 为 'IN'/'NOT IN'/None(=)
+        """将前端筛选状态值映射到文件索引表的查询条件子句。
+        返回：(值列表, 操作符) —— 操作符为包含、不包含或等于。
         """
         if filter_status == "现行":
             return (["现行"], None)
@@ -27,8 +27,8 @@ class StandardService:
 
     @staticmethod
     def _build_where(filters: dict[str, Any] | None, alias: str = "") -> tuple[str, list[Any]]:
-        """构建 file_index 查询的 WHERE 子句，与首页卡片过滤条件一致。
-        alias: 可选表别名前缀（如 'f.'），用于多表 JOIN 时消除列名歧义。
+        """构建文件索引表查询的条件子句，与首页卡片过滤条件一致。
+        alias: 可选表别名前缀（如 'f.'），用于多表连接时消除列名歧义。
         """
         p = f"{alias}." if alias else ""
         clauses = [f"{p}status IS NOT NULL"]
@@ -60,8 +60,8 @@ class StandardService:
     # ── 统计 ──
 
     def get_stats(self) -> dict[str, Any]:
-        """获取标准统计信息（按状态分组计数），数据源 file_index。
-        SQL 与首页卡片 get_status_stats() 完全一致。
+        """获取标准统计信息（按状态分组计数），数据源为文件索引表。
+        查询语句与首页卡片 get_status_stats() 完全一致。
         """
         db = self._mgr.db
         rows = db.fetchall("SELECT status, COUNT(*) AS cnt FROM file_index WHERE status IS NOT NULL GROUP BY status")
@@ -84,7 +84,7 @@ class StandardService:
         size: int = 20,
         filters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """获取标准状态列表（分页 + 可选过滤），数据源 file_index。"""
+        """获取标准状态列表（分页加可选过滤），数据源为文件索引表。"""
         db = self._mgr.db
         offset = (page - 1) * size
 
@@ -92,7 +92,7 @@ class StandardService:
 
         total = db.fetchone(f"SELECT COUNT(*) AS cnt FROM file_index {where_sql}", tuple(params))
 
-        # LEFT JOIN standard_validity 获取检查时间与次数（1:1 关系，无需 GROUP BY）
+        # 左连接标准有效性表获取检查时间与次数（一对一关系，无需分组）
         rows = db.fetchall(
             f"SELECT f.id, (f.logical_code || ' ' || f.number) AS standard_number,"
             f" f.status, f.std_name,"

@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/scan.py — scan 子命令
+# 项目//命令/扫描脚本—扫描子命令
 import argparse
 import csv
 import json

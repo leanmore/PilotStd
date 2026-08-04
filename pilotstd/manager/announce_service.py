@@ -1,6 +1,6 @@
-# 模块：pilotstd/manager/announce_service.py
-# AnnounceService — 公告检查、任务状态与用户偏好。
-# 抓取/爬取逻辑已提取至 pilotstd.announce 组件。
+# 模块：项目/管理器/_服务脚本
+# 公告检查、任务状态与用户偏好。
+# 抓取/爬取逻辑已提取至项目.组件。
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class AnnounceService:
         self.crawler = AnnounceCrawler(file_index=file_index,
                                        persistence=self.persistence,
                                        ocr_config=ocr_config)
-        # notifier / task_runner 依赖 crawler，在 mgr 设置后连线
+        # 通知器/_运行器依赖爬取，在设置后连线
         self._notifier: AnnounceNotifier | None = None
         self._task_runner: AnnounceTaskRunner | None = None
 
@@ -121,7 +121,7 @@ class AnnounceService:
         self._after_fetch(result, source="定时")
         return result
 
-    # -- 胶水方法：委托至 crawler / task_runner ------------ 分隔
+    # 胶水方法：委托至爬取/_运行器------------分隔
 
     def check_announcements(self) -> dict[str, Any]:
         return self.crawler.check_all()

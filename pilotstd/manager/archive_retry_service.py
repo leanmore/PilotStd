@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/archive_retry_service.py
+# 模块：项目/管理器/归档_重试_服务脚本
 """收藏归档重试服务 — 冷却期 + 重试上限 + 公平调度 + 失败通知。
 
 由 APScheduler 定时任务（每天凌晨4点）调用 retry_pending()。
@@ -55,8 +55,8 @@ class ArchiveRetryService:
         today = date.today().isoformat()
         cooldown_cutoff = (date.today() - timedelta(days=_COOLDOWN_DAYS)).isoformat()
         try:
-            # ✅ 任务2-B：改为查询 favorite_downloads，JOIN user_favorites 获取 user_id，
-            # JOIN announcement_record 获取 publish_date（favorite_downloads 无此字段）
+            # ✅任务2-：改为查询_下载，连接_获取_，
+            # 连接_获取_（_下载无此字段）
             rows = db.fetchall(
                 "SELECT fd.id, fd.favorite_id, uf.user_id, fd.record_id, ar.publish_date,"
                 " fd.retry_count AS retry_count, fd.error_message AS error_message"
@@ -76,9 +76,9 @@ class ArchiveRetryService:
             success = 0
             for row in rows:
                 try:
-                    # 说明：favorite_id = user_favorites.id = favorite_downloads.favorite_id
+                    # 说明：_=_.=_下载._
                     download_to_inbox(row["favorite_id"], row["user_id"], row["record_id"])
-                    # 成功后重置重试计数（favorite_downloads.id 用于定位记录）
+                    # 成功后重置重试计数（_下载.用于定位记录）
                     db.execute(
                         "UPDATE favorite_downloads SET retry_count = 0,"
                         " last_attempt = ?, updated_at = datetime('now')"
@@ -90,7 +90,7 @@ class ArchiveRetryService:
                     new_count = (row["retry_count"] or 0) + 1
                     error_msg = str(e)[:500]
                     if new_count >= _MAX_RETRIES:
-                        # 超上限：标记 abandoned 并通知用户，不再重试
+                        # 超上限：标记并通知用户，不再重试
                         db.execute(
                             "UPDATE favorite_downloads SET status = 'abandoned',"
                             " retry_count = ?, error_message = ?,"

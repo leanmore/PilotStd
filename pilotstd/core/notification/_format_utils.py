@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/notification/_format_utils.py
-# 聚合格式化器 — 从 manager.py 拆分
+# 模块：项目/核心//__工具脚本
+# 聚合格式化器—从管理器脚本拆分
 from typing import Any
 
 from pilotstd.i18n import _
@@ -52,7 +52,7 @@ def do_test_send(
     override = params or {}
     ch = mgr._channels.get(channel)
     if ch is None:
-        # 尝试实时初始化（优先使用 params 中的参数）
+        # 尝试实时初始化（优先使用中的参数）
         cls = _CHANNEL_CLASSES.get(channel)
         if cls is None:
             return {"ok": False, "error": f"未知渠道: {channel}"}
@@ -82,7 +82,7 @@ def do_test_send(
                     return {"ok": False, "error": "缺少 webhook_url（飞书机器人必填）"}
                 ch = cls(url, secret)
             elif channel == "wechat":
-                # 企业微信：优先应用消息 (corpid+agentid+corpsecret)，其次群机器人 (webhook_url)
+                # 企业微信：优先应用消息(++)，其次群机器人(_)
                 corpid = override.get("corpid") or mgr._cfg.get("notification.channels.wechat.corpid", "")
                 agentid = override.get("agentid") or mgr._cfg.get("notification.channels.wechat.agentid", "")
                 corpsecret = override.get("corpsecret") or mgr._cfg.get(

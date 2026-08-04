@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/auto_flow_engine.py
+# 模块：项目//核心/处理器/__引擎脚本
 """AutoFlowEngine — 自动管线汇总统计的纯逻辑层（零 Qt 依赖）。
 
 提取 _build_auto_summary_message 中的数据统计逻辑：
@@ -21,24 +21,11 @@ class AutoFlowEngine:
     def build_summary_stats(results: list[Any]) -> dict[str, Any]:
         """从查询结果列表构建汇总统计数据。
 
-        对每条结果按 std_name / effect_status / is_adopted 分类，
-        生成完整统计 dict，供 Handler 层做 i18n 格式化。
+        对每条结果按标准名、效力状态、是否采标分类，
+        生成完整统计字典，供处理器层做国际化格式化。
 
-        Args:
-            results: 查询结果列表，每条须有 std_name, effect_status, is_adopted, get_full_number() 属性
-
-        Returns:
-            {
-                "total": int,              # 总条数
-                "not_found_count": int,    # 未找到条数（std_name 为空）
-                "expired_count": int,      # 已废止条数
-                "adopted_count": int,      # 采标条数
-                "found_count": int,        # 已找到条数（total - not_found）
-                "manual_all": [            # 需人工处理的条目
-                    {"number": str, "reason": "not_found" | "adopted"},
-                    ...
-                ],
-            }
+        参数接收查询结果列表，每条须有标准名、效力状态、是否采标、获取完整编号等属性。
+        返回包含总数、未找到数、废止数、采标数、已找到数、需人工处理列表的字典。
         """
         if not results:
             return {

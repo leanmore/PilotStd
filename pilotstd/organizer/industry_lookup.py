@@ -1,4 +1,4 @@
-# 模块：pilotstd/organizer/industry_lookup.py
+# 模块：项目/归类/_脚本
 # 行业代号 → 行业名称映射（依据附录一）
 
 import os
@@ -146,7 +146,7 @@ FOREIGN_CODES = {
     "AWWA",
 }
 
-# 地方标准：DB + 行政区划代码 → 省级行政区名称（依据GB/T 2260）
+# 地方标准：数据库+行政区划代码→省级行政区名称（依据/2260）
 _DB_PROVINCE_MAP = {
     "11": "北京",
     "12": "天津",
@@ -229,7 +229,7 @@ def build_code_mapping() -> dict[str, str]:
     mapping["GBT"] = "GB/T"
     mapping["GBZ"] = "GB/Z"
     mapping["GSB"] = "GSB"
-    # 地方标准：DB + 省级行政区划代码（市级由 DB 正则运行时匹配）
+    # 地方标准：数据库+省级行政区划代码（市级由数据库正则运行时匹配）
     for province_code in _DB_PROVINCE_MAP:
         mapping[f"DB{province_code}"] = f"DB{province_code}"
         mapping[f"DB{province_code}T"] = f"DB{province_code}/T"
@@ -242,12 +242,12 @@ def get_base_code(logical_code: str) -> str:
     # 历史变体统一归入主代号
     if base in ("SHB", "SHJ", "SHS"):
         return "SH"
-    # 多段前缀：BS EN → BS, DIN EN ISO → DIN
+    # 多段前缀：→,→
     if " " in base:
         first = base.split()[0]
         if first in FOREIGN_CODES:
             return first
-    # 字母串复合前缀：NBSHT→NB, JBZQ→JB
+    # 字母串复合前缀：→,→
     # 遍历已知代号，取最长前缀匹配（最具体的基础代号）
     best = None
     for code in INDUSTRY_MAP:
@@ -271,7 +271,7 @@ def get_industry_name(base_code: str) -> str:
 def get_folder_name(logical_code: str) -> str:
     """根据逻辑文件代号生成第二层目录名。国际标准直接使用代号，国内标准追加行业名。
     地方标准（DB + 数字）统一放入 DB 地方标准/省份 子目录。"""
-    # 地方标准: DB11→DB 地方标准/北京 11, DB3501/T→DB 地方标准/福建 3501
+    # 地方标准:数据库11→数据库地方标准/北京11,数据库3501/→数据库地方标准/福建3501
     if is_db_code(logical_code):
         region = get_db_region(logical_code)
         code = _extract_db_code(logical_code)

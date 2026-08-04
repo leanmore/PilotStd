@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_settings.py
+# 模块：项目//核心/处理器/_脚本
 """SettingsHandler — 设置页面 Tab 构建、配置加载/保存，替代原有 Mixin 多重继承。"""
 
 from typing import Any, Optional
@@ -36,11 +36,11 @@ class SettingsHandler:
         self._config = config
         self._parent = parent
 
-        # 存储构建好的页面（由 _build_xxx_page 填充）
+        # 存储构建好的页面（由___填充）
         self._pages: list[QWidget] = []
         self._page_names: list[str] = []
 
-        # ── UI 控件引用（由 _build_xxx_page 创建，供 load/save 使用）──
+        # ──用户界面控件引用（由___创建，供/使用）──
         self._theme_combo: Optional[QComboBox] = None
         self._icon_combo: Optional[QComboBox] = None
         self._lang_combo: Optional[QComboBox] = None
@@ -75,7 +75,7 @@ class SettingsHandler:
         self._scan_extensions: Optional[QLineEdit] = None
         self._skip_file_keywords: Optional[QLineEdit] = None
 
-        # 配置 IO 委托
+        # 配置输入输出委托
         self._io = SettingsConfigIO(config, self)
 
     # ── 页面注册 ──
@@ -89,7 +89,7 @@ class SettingsHandler:
     def page_names(self) -> list[str]:
         return list(self._page_names)
 
-    # ── 公共 API ──
+    # ──公共接口──
 
     def build_all_pages(self, stack: QStackedWidget) -> None:
         """构建所有 8 个 Tab 页面并加入 QStackedWidget。"""

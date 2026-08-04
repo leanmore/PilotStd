@@ -1,5 +1,5 @@
-# pilotstd/manager/ — StandardManager 门面 + 子服务模块
-# 服务类提取自原 pilotstd/manager.py，保持门面模式向后兼容
+# 项目/管理器/—门面+子服务模块
+# 服务类提取自原项目/管理器脚本，保持门面模式向后兼容
 
 from .announce_service import AnnounceService
 from .classifier import QueryClassifier

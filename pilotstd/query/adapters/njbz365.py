@@ -1,6 +1,6 @@
-# 模块：pilotstd/query/adapters/njbz365.py
-# 南京标准公共服务平台查询适配器（njbz365.cn 新站，2026-05-25上线）
-# 会话管理/签名/请求重试已提取至 _njbz365_session.py
+# 模块：项目/查询/适配器/365脚本
+# 南京标准公共服务平台查询适配器（365.新站，2026-05-25上线）
+# 会话管理/签名/请求重试已提取至_365_脚本
 
 import logging
 import re
@@ -49,7 +49,7 @@ class Njbz365Adapter(BaseAdapter):
     def site_label(self) -> str:
         return "南京标准公共服务平台"
 
-    # 详情页 URL 模板
+    # 详情页链接模板
     DETAIL_URL = "https://www.njbz365.cn/details/{}"
 
     def _search(
@@ -80,7 +80,7 @@ class Njbz365Adapter(BaseAdapter):
         if data is None:
             return []
 
-        # 从 search_term 自动解析标准编号字段
+        # 从_自动解析标准编号字段
         items = data.get("data", {}).get("datalist", [])
         if not items:
             return []
@@ -155,7 +155,7 @@ class Njbz365Adapter(BaseAdapter):
             return self._fetch_replaces(result.hcno, result.standard_number) or ""
         return ""
 
-    # ---- 会话管理代理（委托 Njz365SessionManager，供外部测试访问）----
+    # 会话管理代理（委托365，供外部测试访问）
 
     def _do_request(self, search_term: str):
         return self._session_mgr._do_request(search_term)

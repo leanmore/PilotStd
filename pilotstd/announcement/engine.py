@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/engine.py
-# 公告引擎 — 编排多个适配器，GB/HB/DB 并发抓取
+# 模块：项目//引擎脚本
+# 公告引擎—编排多个适配器，//数据库并发抓取
 
 import concurrent.futures
 import logging
@@ -15,7 +15,7 @@ class AnnounceEngine:
     """公告抓取编排器。GB/HB/DB 并发执行，互不阻塞。"""
 
     def __init__(self, adapters: list[BaseAnnounceCrawler], matcher: AnnouncementMatcher):
-        # 用 dict 按 standard_type 索引，O(1) 查找适配器
+        # 用按_索引，(1)查找适配器
         self._adapters = {a.standard_type: a for a in adapters}
         self._matcher = matcher
 
@@ -37,7 +37,7 @@ class AnnounceEngine:
                 adapter = self._adapters.get(std_type)
                 if adapter is None:
                     continue
-                # 提交抓取任务，future→std_type 映射用于收集结果时识别来源
+                # 提交抓取任务，→_映射用于收集结果时识别来源
                 futures[executor.submit(self._check_one_adapter, adapter, since_date, ocr_provider)] = std_type
 
             for future in concurrent.futures.as_completed(futures):
@@ -78,7 +78,7 @@ class AnnounceEngine:
         progress_callback: Any = None,
     ) -> dict[str, Any]:
         """单适配器运行：跳过已完全解析的公告 → 抓取 → 交叉比对。"""
-        # 先查已完全解析的 PID，跳过重复抓取详情页以节省资源
+        # 先查已完全解析的，跳过重复抓取详情页以节省资源
         complete_pids = self._matcher._get_complete_pids(adapter.source_site)
         logger.info("公告 %s: 已完全解析 %d 条，将跳过详情页抓取", adapter.standard_type, len(complete_pids))
         try:
@@ -93,10 +93,10 @@ class AnnounceEngine:
             return {"matched": 0, "updated": 0, "total_announcements": 0, "last_notice_date": "", "error": "抓取异常"}
         if not items:
             return {"matched": 0, "updated": 0, "total_announcements": 0, "last_notice_date": ""}
-        # 交叉比对：将公告清单与本地 file_index 匹配，更新缓存
+        # 交叉比对：将公告清单与本地_索引匹配，更新缓存
         result = self._matcher.match_and_update(items, source_site=adapter.source_site)
         result["total_announcements"] = len(items)
-        # 提取本次抓取中最晚的公告日期，用于下次抓取的 since_date 基准
+        # 提取本次抓取中最晚的公告日期，用于下次抓取的_基准
         max_date = ""
         for item in items:
             d = item.get("notice_date", "")

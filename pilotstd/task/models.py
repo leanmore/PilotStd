@@ -1,4 +1,4 @@
-# 模块：pilotstd/task/models.py
+# 模块：项目//模型脚本
 # 任务数据模型
 
 from dataclasses import dataclass
@@ -26,7 +26,7 @@ class TaskStatus(Enum):
     CANCELLED = "cancelled"
 
 
-# ── 管道运行追踪（pipeline_runs 表） ──
+# ──管道运行追踪（流水线_表）──
 
 
 class PipelineStep(Enum):

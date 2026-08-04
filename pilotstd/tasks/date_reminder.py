@@ -1,5 +1,5 @@
-# 模块：pilotstd/tasks/date_reminder.py
-# Phase 4b: 日期提醒 — 扫描实施/作废/代替标准的到期日期，通过通知管道推送
+# 模块：项目//_脚本
+# 阶段4:日期提醒—扫描实施/作废/代替标准的到期日期，通过通知管道推送
 
 import logging
 from datetime import date, timedelta
@@ -19,7 +19,7 @@ def _target_dates() -> dict[int, str]:
     return {d: (today + timedelta(days=d)).isoformat() for d in _REMIND_DAYS}
 
 
-# _fetch_due_records — 从公告数据库中查找即将到期的记录（实施/作废/代替三种类型）
+# _抓取__—从公告数据库中查找即将到期的记录（实施/作废/代替三种类型）
 def _fetch_due_records(db: Database) -> list[dict[str, Any]]:
     """从公告数据库中查找即将到期的记录。查询实施/作废/代替三种到期类型。"""
     target_dates = list(_target_dates().values())
@@ -60,7 +60,7 @@ def _fetch_due_records(db: Database) -> list[dict[str, Any]]:
                   ))
           )
     """
-    # 6 处 IN ({ph})，每处需要相同的 target_dates 参数
+    # 6处({})，每处需要相同的_参数
     cursor = db.execute(sql, target_dates * 6)
     return cursor.fetchall()
 
@@ -85,8 +85,8 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
         return
 
     record_id = rec["id"]
-    # ✅ 任务2-B：favorite_downloads 无 publish_date，JOIN 获取；
-    # status='done' 现在在 favorite_downloads 表中
+    # ✅任务2-：_下载无_，连接获取；
+    # =''现在在_下载表中
     cursor = db.execute(
         "SELECT DISTINCT uf.user_id FROM favorite_downloads fd"
         " JOIN user_favorites uf ON fd.favorite_id = uf.id"
@@ -132,7 +132,7 @@ def _process_record(rec: dict, today: date, db: Database, notification_mgr: Any,
         )
 
 
-# run_date_reminder — 日期提醒主任务，由 scheduler 定时调用，扫描到期标准并推送通知
+# __—日期提醒主任务，由调度器定时调用，扫描到期标准并推送通知
 def run_date_reminder(notification_mgr: Any = None) -> dict[str, Any]:
     """日期提醒主任务。由 scheduler 定时调用，notification_mgr 由包装器注入。"""
     if notification_mgr is None:

@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/event_bus.py
+# 模块：项目//核心/_脚本
 """EventBus — 单例事件总线，替代跨 Handler 回调链。
 
 特性：
@@ -35,7 +35,7 @@ class EventBus(QObject):
     def __init__(self) -> None:
         super().__init__()
         self._subscribers: dict[str, list[Callable[..., Any]]] = {}
-        # 存储 weakref 引用追踪，用于清理
+        # 存储引用追踪，用于清理
         self._weak_subscribers: dict[str, list[weakref.ref[Any]]] = {}
 
     @classmethod

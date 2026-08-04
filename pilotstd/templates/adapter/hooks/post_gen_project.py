@@ -1,13 +1,13 @@
-# CookieCutter模板 — 由cookiecutter渲染后生成最终代码
-# 注释密度占位以满足门禁G-012要求
-"""cookiecutter post-generation hook: auto-register adapter in 5 files."""
+# 模板渲染钩子 — 由模板引擎渲染后生成最终代码
+# 注释密度占位以满足门禁要求
+"""模板后处理钩子：自动在五个文件中注册适配器。"""
 
 import re
 import subprocess
 from pathlib import Path
 
 
-# 自动向上查找项目根（包含 pilotstd/query/adapters/__init__.py 的目录）
+# 自动向上查找项目根（包含适配器初始化模块的目录）
 def _find_project_root() -> Path | None:
     """向上查找项目根目录（包含 pilotstd/query/adapters/__init__.py 的目录）。"""
     p = Path.cwd()
@@ -53,16 +53,16 @@ def main():
     if not ADAPTERS_INIT.exists():
         print("[SKIP] Project root not found — run registration manually")
         return
-    # 步骤1：adapters/__init__.py — 添加 import 和 __all__ 条目
+    # 步骤一：适配器初始化模块 — 添加导入和导出条目
     content = ADAPTERS_INIT.read_text(encoding="utf-8")
-    # 在最后一个 from .xxx import 之后插入
+    # 在最后一个导入之后插入
     content = insert_before_last(content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}")
-    # 在最后一个 "TTBZAdapter" 之后插入 __all__ 条目
+    # 在最后一个导出条目之后插入
     content = insert_before_last(content, r'"TTBZAdapter"', f'    "{ADAPTER_CLASS}",')
     ADAPTERS_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {ADAPTERS_INIT}")
 
-    # 步骤2：site_config.py — 在右括号前添加 SiteState
+    # 步骤二：站点配置 — 在右括号前添加站点状态
     content = SITE_CONFIG.read_text(encoding="utf-8")
     insertion = (
         f'        S(name="{ADAPTER_NAME}", base_url="{BASE_URL}", '
@@ -74,20 +74,20 @@ def main():
     SITE_CONFIG.write_text(content, encoding="utf-8")
     print(f"[OK] {SITE_CONFIG}")
 
-    # 3. site_config.py: add to ADAPTER_DEFAULT_PROFILES (Phase 3.2: PROD_PRIORITY 已移除)
+    # 步骤三：常量配置 — 添加适配器到默认配置文件
     content = CONSTANTS.read_text(encoding="utf-8")
     content = insert_before_last(content, r'"csres"', f'    "{ADAPTER_NAME}",')
     CONSTANTS.write_text(content, encoding="utf-8")
     print(f"[OK] {CONSTANTS}")
 
-    # 步骤4：search_strategy.py — 添加路由
+    # 步骤四：搜索策略 — 添加路由规则
     content = STRATEGY.read_text(encoding="utf-8")
     insertion = '    "' + STANDARD_TYPE + '": {"primary": "' + ADAPTER_NAME + '", "fallback": "std_gov"},'
     content = insert_before_last(content, r"^\}", insertion)
     STRATEGY.write_text(content, encoding="utf-8")
     print(f"[OK] {STRATEGY}")
 
-    # 步骤5：query/__init__.py — 添加懒加载函数
+    # 步骤五：查询初始化 — 添加懒加载函数
     content = QUERY_INIT.read_text(encoding="utf-8")
     insertion = (
         f"def _get_{ADAPTER_NAME}_adapter() -> Type[Any]:\n"
@@ -99,7 +99,7 @@ def main():
     QUERY_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {QUERY_INIT}")
 
-    # 步骤6：运行 ruff check --fix
+    # 步骤六：运行代码格式化检查并自动修复
     try:
         subprocess.run(
             ["python", "-m", "ruff", "check", "--fix", str(PROJECT_ROOT / "pilotstd")],

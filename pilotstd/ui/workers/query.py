@@ -1,6 +1,6 @@
-# pilotstd/ui/workers/query.py — QueryWorker，从 workers.py 拆分
+# 项目//工作者/查询脚本—，从工作者脚本拆分
 # 分隔
-# 后台查询线程：调用业务门面的批量查询方法，通过信号通知 UI。
+# 后台查询线程：调用业务门面的批量查询方法，通过信号通知用户界面。
 
 import logging
 import time as _time
@@ -13,7 +13,7 @@ from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, 
 logger = logging.getLogger(__name__)
 
 
-# ── QueryWorker：查询线程 ──
+# ──：查询线程──
 
 
 class QueryWorker(QThread):

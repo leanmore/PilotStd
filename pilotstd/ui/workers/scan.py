@@ -1,6 +1,6 @@
-# pilotstd/ui/workers/scan.py — ScanWorker，从 workers.py 拆分
+# 项目//工作者/扫描脚本—，从工作者脚本拆分
 # 分隔
-# 后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。
+# 后台扫描线程：文件遍历+解析在后台执行，主线程只更新用户界面。
 
 import logging
 import time as _time
@@ -55,7 +55,7 @@ class ScanWorker(QThread):
                 if self._pause_event is not None:
                     self._pause_event.wait()
                 now = _time.monotonic()
-                # 节流：每 50 个文件 / 每 500ms / 最后一批 才发射一次信号，防止事件队列撑爆
+                # 节流：每50个文件/每500/最后一批才发射一次信号，防止事件队列撑爆
                 if cur % 50 == 0 or cur == total or now - _last_signal >= 0.5:
                     self.progress.emit(cur, total)
                     _last_signal = now

@@ -1,11 +1,11 @@
-# 模块：pilotstd/query/engine/_metrics.py
-# QueryMetrics — 线程安全的批次查询计数器（#46 修复配套基础设施）
+# 模块：项目/查询/引擎/_脚本
+# 线程安全的批次查询计数器（#46修复配套基础设施）
 # 分隔
 # 设计约束：
-# - batch_id 维度隔离，不同批次互不干扰
-# - 线程安全（threading.Lock）
-# - 与 batch_state 表分离，避免写锁竞争
-# - adapter_quota_snapshot 接口预留，待调查返回后填充
+# _维度隔离，不同批次互不干扰
+# 线程安全（线程.）
+# 与_表分离，避免写锁竞争
+# 适配器__接口预留，待调查返回后填充
 import logging
 import threading
 import time
@@ -17,7 +17,7 @@ from pilotstd.core.db import Database
 
 logger = logging.getLogger(__name__)
 
-# ✅ #46 P0: adapter_quota_snapshot schema 版本号
+# ✅#460:适配器__表结构版本号
 SNAPSHOT_SCHEMA_VERSION = 1
 
 
@@ -62,7 +62,7 @@ class QueryMetrics:
                 **dict(self.counters),
             }
 
-    # ✅ 任务4：持久化到 query_metrics 表
+    # ✅任务4：持久化到查询_表
     def persist_to_db(self) -> None:
         """将非零计数器批量写入 query_metrics 表。
 
@@ -83,7 +83,7 @@ class QueryMetrics:
         except Exception:
             logger.exception("query_metrics 持久化失败（非阻断）: batch=%s", batch_id)
 
-    # ── 适配器状态快照（#46 P0：调查1确认冷却为全局进程级+Lock保护）──
+    # ──适配器状态快照（#460：调查1确认冷却为全局进程级+保护）──
 
     def take_adapter_snapshot(self, rotator, quota_tracker=None, adapter_names: Optional[list[str]] = None) -> dict:
         """创建中断时的适配器全局状态快照。
@@ -158,7 +158,7 @@ class QueryMetrics:
     KEY_CSRES_CIRCUIT_BREAK = "csres_circuit_break"
     KEY_CSRES_DROPPED = "csres_dropped"
 
-    # Phase 3.1: 路由评分器流量控制计数器
+    # 阶段3.1:路由评分器流量控制计数器
     KEY_DAILY_LIMIT_HIT = "daily_limit_hit"  # 日限额触发剔除次数
     KEY_BATCH_LIMIT_HIT = "batch_limit_hit"  # 批次限额触发剔除次数
     KEY_REQUEST_INTERVAL_WAIT = "request_interval_wait"  # 请求间隔等待总毫秒数（累加值）

@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_single.py
+# 模块：项目/查询/引擎/_脚本
 """单条查询处理器 — 缓存优先 + 适配器优先级链 + 配额感知。
 
 组合模式重构：SingleMixin → SingleQueryHandler，依赖通过 EngineCore 注入。
@@ -29,7 +29,7 @@ class SingleQueryHandler:
         self._core = core
         self._routing = routing
 
-    # ── 5 步搜索链路（从 _query_one 提取） ──
+    # ──5步搜索链路（从_查询_提取）──
 
     def _step_cache_lookup(
         self,
@@ -98,7 +98,7 @@ class SingleQueryHandler:
             adp = adapter_map.get(name)
             if adp is None:
                 continue
-            # ✅ #46 P0: 运行时冷却检查（_get_priority 返回后到实际查询前的窗口）
+            # ✅#460:运行时冷却检查（__返回后到实际查询前的窗口）
             if rotator and rotator.get_cooldown_remaining(name) > 0:
                 logger.debug("[RUNTIME_COOLDOWN] 跳过=%s 原因=运行时冷却", name)
                 if metrics:
@@ -111,7 +111,7 @@ class SingleQueryHandler:
                 continue
             quota_exhausted = False
             tried.append(name)
-            # Phase 3.1: request_interval 执行层落地（单条查询路径）
+            # 阶段3.1:_执行层落地（单条查询路径）
             if rotator and name in rotator._sites:
                 _interval = rotator._sites[name].request_interval
                 if _interval > 0:
@@ -179,7 +179,7 @@ class SingleQueryHandler:
         part_str = f".{part}" if part else ""
         target = f"{logical_code} {number}{part_str}-{year}"
 
-        # Step 1: 缓存查找
+        # 步骤1:缓存查找
         cached = self._step_cache_lookup(
             target=target,
             adapters=self._core.adapters,
@@ -191,7 +191,7 @@ class SingleQueryHandler:
         if cached is not None:
             return cached
 
-        # Step 2: 获取适配器优先级链
+        # 步骤2:获取适配器优先级链
         priority = self._step_get_priority_chain(
             logical_code=logical_code,
             preferred_site=preferred_site,
@@ -201,7 +201,7 @@ class SingleQueryHandler:
 
         logger.debug("查询 [%s] 路由=%s", target, "→".join(priority) if priority else "(全部冷却)")
 
-        # Step 3: 逐适配器查询（含运行时冷却检查）
+        # 步骤3:逐适配器查询（含运行时冷却检查）
         result, tried, quota_exhausted = self._step_query_adapters(
             target=target,
             logical_code=logical_code,
@@ -220,12 +220,12 @@ class SingleQueryHandler:
         if result is not None:
             return result
 
-        # Step 4: 配额耗尽兜底
+        # 步骤4:配额耗尽兜底
         if quota_exhausted:
             logger.info("查询 [%s] ✗配额耗尽", target)
             return self._step_quota_exhausted(target)
 
-        # Step 5: 未找到兜底
+        # 步骤5:未找到兜底
         logger.info("查询 [%s] ✗ tried=%s", target, "→".join(tried))
         return self._step_not_found(target, tried)
 

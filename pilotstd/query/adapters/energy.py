@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/energy.py
+# 模块：项目/查询/适配器/脚本
 """
 能源标准查询适配器
 
@@ -29,7 +29,7 @@ class EnergyAdapter(BaseAdapter):
     BASE_URL = "https://114.251.111.103:18080"
     API_URL = "https://114.251.111.103:18080/zxd/portal/stdPage"
 
-    # 纯 IP 站点：Host Header 显式声明 + 自签名证书跳过
+    # 纯站点：显式声明+自签名证书跳过
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
             timeout=15.0,
@@ -72,7 +72,7 @@ class EnergyAdapter(BaseAdapter):
         candidates = self._fetch_candidates(keyword)
         if candidates:
             return candidates
-        # 年份回退：去除末尾 -YYYY 重新搜索
+        # 年份回退：去除末尾-重新搜索
         m = re.search(r"-(\d{4})$", keyword)
         if m:
             no_year = keyword[: m.start()]
@@ -83,7 +83,7 @@ class EnergyAdapter(BaseAdapter):
     def _fetch_candidates(self, keyword: str) -> list[QueryResult]:
         """GET AJAX 端点获取搜索结果，支持翻页循环。"""
 
-        # ✅ #46 P2: 翻页循环 + 备用域名列表
+        # ✅#462:翻页循环+备用域名列表
         FALLBACK_URLS = [
             "http://114.251.111.103:18080",  # IP 不变（HTTP 降级）
             "https://energy.nbse.org.cn:18080",  # 可能的域名（待验证）
@@ -99,7 +99,7 @@ class EnergyAdapter(BaseAdapter):
             offset = page * PAGE_SIZE
             params: dict[str, Any] = {"keyword": keyword, "tid": "0", "op": "", "limit": limit, "offset": offset}
 
-            # ✅ 任务6：首页使用 fallback URLs，翻页仅用主 URL
+            # ✅任务6：首页使用回退链接，翻页仅用主链接
             if page == 0:
                 urls_to_try = [self.API_URL] + FALLBACK_URLS
             else:
@@ -136,7 +136,7 @@ class EnergyAdapter(BaseAdapter):
 
             all_rows.extend(rows)
 
-            # 首页确定 total
+            # 首页确定
             if total_seen is None:
                 total_seen = payload.get("total", 0)
                 if total_seen <= PAGE_SIZE:

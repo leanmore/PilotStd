@@ -93,7 +93,7 @@ def _find_create_table_matches(content: str) -> list[tuple[int, int, str]]:
                 depth -= 1
             pos += 1
 
-        # pos 现在指向匹配闭括号之后的位置
+        # 现在指向匹配闭括号之后的位置
         end = pos
         # 跳过尾部的空白和分号
         while end < len(content) and content[end] in (" ", "\t", "\n", "\r", ";"):
@@ -140,7 +140,7 @@ def main() -> int:
     print("测试 Schema 同步工具")
     print("=" * 60)
 
-    # 构建参考 Schema
+    # 构建参考
     print("构建参考 Schema（迁移链）...")
     try:
         ref_schema = _build_reference_schema()

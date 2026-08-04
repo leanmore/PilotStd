@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/__init__.py
+# 模块：项目/管理器/门面/____脚本
 """StandardManager — 业务逻辑门面，统一 API 封装扫描→查询→下载→归类完整流程。
 
 组合模式重构：所有 Mixin 已拆分为独立 Handler，通过 BaseFacade 组合。
@@ -27,7 +27,7 @@ class StandardManager(BaseFacade):
 
         return OrganizeHandler._resolve_industry_in_path(rel_path)
 
-    # ===== 公告检查 delegation（→ AnnounceService） =====
+    # =====公告检查（→）=====
 
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准。"""

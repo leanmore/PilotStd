@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/download.py — download 子命令
+# 项目//命令/下载脚本—下载子命令
 import argparse
 import sys
 

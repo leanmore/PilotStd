@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/organize.py — organize 子命令
+# 项目//命令/归类脚本—归类子命令
 import argparse
 import json
 

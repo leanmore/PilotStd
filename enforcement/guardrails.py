@@ -1,8 +1,8 @@
-# 模块：enforcement/guardrails.py
-# 三位一体治理体系 D5 强制执行层
+# 模块：/脚本
+# 三位一体治理体系5强制执行层
 # 分隔
-# 规范基准: docs/governance/trinity-technical-spec-v2.md §4
-# 核心接口: validate_prompt / session_bootstrap / validate_decision_request / atomic_write_notes
+# 规范基准://---版本二§4
+# 核心接口:_/_/__/__
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ class UnauthorizedWriteError(EnforcementError):
 
 
 # ═══════════════════════════════════════════ 分隔
-# 4.1 预检: validate_prompt
+# 4.1预检:_
 # ═══════════════════════════════════════════ 分隔
 
 _VALID_TRIGGER_TYPES = frozenset(
@@ -78,7 +78,7 @@ def validate_prompt(prompt: str) -> None:
       - rollback 分级合规
       - 规则编号有效性
     """
-    # 提取 prompt-meta YAML 区块
+    # 提取-区块
     meta = _extract_prompt_meta(prompt)
     if not meta:
         raise EnforcementError("[生成阻断] 缺少 prompt-meta 元数据头")
@@ -88,12 +88,12 @@ def validate_prompt(prompt: str) -> None:
         if field not in meta:
             raise EnforcementError(f"[生成阻断] 缺少必填元数据字段: {field}")
 
-    # context-ref 校验（可选字段，存在时校验）
+    # 校验（可选字段，存在时校验）
     context_ref = meta.get("context-ref")
     if context_ref:
         _validate_context_ref(context_ref, meta)
 
-    # rollback 分级合规
+    # 分级合规
     rollback = meta["rollback"]
     if rollback not in _VALID_ROLLBACK_LEVELS:
         raise EnforcementError(f"[生成阻断] rollback 字段不符合三级规格: {rollback}，有效值为 {_VALID_ROLLBACK_LEVELS}")
@@ -136,7 +136,7 @@ def _extract_prompt_meta(prompt: str) -> dict | None:
 
 def _validate_context_ref(context_ref: str, meta: dict) -> None:
     """context-ref v2 硬性校验：存在性 + 时效性 + 文件哈希。"""
-    # 格式: "local-session-notes.md#anchor-id"
+    # 格式:"--文档#-"
     parts = context_ref.split("#", 1)
     file_path = parts[0]
     anchor_id = parts[1] if len(parts) > 1 else None
@@ -145,7 +145,7 @@ def _validate_context_ref(context_ref: str, meta: dict) -> None:
     if not os.path.exists(file_path):
         raise EnforcementError(f"[生成阻断] context-ref 引用不存在: {file_path}")
 
-    # 2. 时效性（默认 3d）
+    # 2.时效性（默认3）
     max_age_seconds = _parse_max_age(meta.get("assumptions-max-age", "3d"))
     file_mtime = os.path.getmtime(file_path)
     age = time.time() - file_mtime
@@ -155,7 +155,7 @@ def _validate_context_ref(context_ref: str, meta: dict) -> None:
             f"(距今 {age / 86400:.1f}天，超过 {max_age_seconds / 86400:.0f}天)"
         )
 
-    # 3. 哈希匹配（若锚点包含 file-hashes）
+    # 3.哈希匹配（若锚点包含-哈希）
     if anchor_id:
         _check_file_hashes(file_path, anchor_id, meta)
 
@@ -173,14 +173,14 @@ def _parse_max_age(raw: str) -> int:
 def _check_file_hashes(file_path: str, anchor_id: str, meta: dict) -> None:
     """检查假设中涉及的文件哈希是否与锚点记录一致。"""
     assumptions = meta.get("assumptions", "")
-    # 从 assumptions 提取文件路径
+    # 从提取文件路径
     import re
 
     paths = re.findall(r"(?:src|pilotstd|docker|web|docs)/[\w/\-_.]+", assumptions)
     if not paths:
         return
 
-    # 解析锚点中记录的 file-hashes
+    # 解析锚点中记录的-哈希
     try:
         with open(file_path, encoding="utf-8") as f:
             content = f.read()
@@ -214,7 +214,7 @@ def _sha256_file(path: str) -> str:
 
 
 # ═══════════════════════════════════════════ 分隔
-# 4.1 会话启动: session_bootstrap
+# 4.1会话启动:_
 # ═══════════════════════════════════════════ 分隔
 
 SESSION_NOTES = "local-session-notes.md"
@@ -313,7 +313,7 @@ def _collect_signals(ctx: Dict[str, Any]) -> List[Signal]:
         for r in rules_found:
             rule_counts[r] += 1
 
-    # 30天/3次/同向 → pending-evaluation
+    # 30天/3次/同向→
     for rule, count in rule_counts.items():
         status = "monitoring" if count < 3 else "pending-evaluation"
         signals.append(
@@ -364,7 +364,7 @@ def _run_cleanup() -> CleanupReport:
 
 
 # ═══════════════════════════════════════════ 分隔
-# 4.1 输出后校验: validate_decision_request
+# 4.1输出后校验:__
 # ═══════════════════════════════════════════ 分隔
 
 _MAX_RETRIES = 3
@@ -454,7 +454,7 @@ def _log_retry_exhaustion(output: str, retry_count: int) -> None:
 
 
 # ═══════════════════════════════════════════ 分隔
-# 4.1 原子写入 SDK: atomic_write_notes
+# 4.1原子写入:__
 # ═══════════════════════════════════════════ 分隔
 
 

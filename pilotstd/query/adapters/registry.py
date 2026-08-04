@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/registry.py
+# 模块：项目/查询/适配器/脚本
 # 适配器统一注册表 — #44/#48 单一数据源
 # 所有查询适配器的类引用、站点名、实例化均从此读取
 import logging
@@ -28,7 +28,7 @@ from .ttbz import TTBZAdapter
 
 logger = logging.getLogger(__name__)
 
-# 完整注册表：site_name → 适配器类
+# 完整注册表：_→适配器类
 ALL_ADAPTERS: dict[str, type[BaseAdapter]] = {
     "ahbz": AhbzAdapter,
     "ccsn": CCSNAdapter,

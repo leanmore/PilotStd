@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_download.py
+# 模块：项目//核心/处理器/_下载脚本
 """DownloadUIHandler — 下载 UI 状态管理，替代 DownloadMixin。
 
 薄包装层：Worker 管理 + Qt 控件交互。纯逻辑委托给 DownloadFlowEngine。
@@ -84,7 +84,7 @@ class DownloadUIHandler:
         # 重置表格并预填充下载列表
         self.reset_ui_for_download(download_list, total)
 
-        # 创建下载 Worker 并连接信号
+        # 创建下载并连接信号
         self._download_worker = DownloadWorker(
             self._mgr, download_list, pause_event=self._pause_event, parent=self._parent
         )
@@ -126,7 +126,7 @@ class DownloadUIHandler:
             QMessageBox.warning(self._parent, _("title_import_failed"), str(e))
             return
 
-        # Q24: 使用共享解析函数（CSV/TXT 自动识别 + 校验 + 去重）
+        # 24:使用共享解析函数（/自动识别+校验+去重）
         from pilotstd.core.download_utils import parse_download_sources
 
         parsed = parse_download_sources(text=content)
@@ -169,7 +169,7 @@ class DownloadUIHandler:
         due = self._mgr.get_due_downloads()
         return due if due else None
 
-    # ── Phase 3 C1: 下载增强功能（基于 FlowEngine 预抽取逻辑） ──
+    # ──阶段31:下载增强功能（基于预抽取逻辑）──
 
     def validate_download_url(self, raw_url: str) -> dict:
         """校验并解析下载URL，返回标准化结果。

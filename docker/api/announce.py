@@ -1,4 +1,4 @@
-# docker/api/announce.py — 标准公告抓取 API（通过 StandardManager 统一入口）
+# 容器//脚本—标准公告抓取接口（通过统一入口）
 import json
 import logging
 import os
@@ -61,7 +61,7 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
     failure_count = len(failures)
     if mgr and mgr.notification_mgr:
         try:
-            # 从 announcement_record 表查询本次新增公告的分类统计
+            # 从_表查询本次新增公告的分类统计
             stats = _get_check_stats(mgr.db, check_start)
             stats["failures"] = failure_count
             stats["source"] = "手动"
@@ -90,7 +90,7 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
     """sync=true 兼容模式：通过 AnnounceService 创建异步任务后同步等待。"""
     import time as _time
 
-    # 委托 AnnounceService 创建抓取任务
+    # 委托创建抓取任务
     result = mgr.announce_service.trigger_fetch()
     task_id = result["task_id"]
 
@@ -201,7 +201,7 @@ def get_announce_results(
                 "standard_count": row["standard_count"],
                 "publish_date": row["publish_date"] or "",
                 "source_site": row["source_site"],
-                # ✅ #47: 新增 standard_type 字段，前端三栏分组使用
+                # ✅#47:新增_字段，前端三栏分组使用
                 "standard_type": SOURCE_SITE_TO_TYPE.get(row.get("source_site", ""), "other"),
             }
         )
@@ -250,7 +250,7 @@ def get_announce_stats(mgr=Depends(get_manager_dep)):
 
     today = "date('now', 'localtime')"
 
-    # 全量统计：COUNT(*) 统计行数，每条 (公告, 标准号) 计 1
+    # 全量统计：计数(*)统计行数，每条(公告,标准号)计1
     all_row = db.fetchone(
         "SELECT COUNT(*) as total,"
         " SUM(CASE WHEN source_site='announcement_gb' THEN 1 ELSE 0 END) as gb,"

@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/export_utils.py
-# Q29: 统一导出文件名生成 — 批次固定时间戳 + i18n 名称
+# 模块：项目/核心/_工具脚本
+# 29:统一导出文件名生成—批次固定时间戳+18名称
 import datetime
 
 

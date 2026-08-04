@@ -1,4 +1,4 @@
-# docker/api/query.py — 标准有效性查询 API
+# 容器//查询脚本—标准有效性查询接口
 import json
 import os
 

@@ -1,4 +1,4 @@
-# docker/api/logs.py — 应用日志读取 API（供前端日志栏 + 压测远端取回使用）
+# 容器//脚本—应用日志读取接口（供前端日志栏+压测远端取回使用）
 import os
 import re
 
@@ -12,10 +12,10 @@ from ..auth import require_admin
 
 router = APIRouter(tags=["logs"])
 
-# 日志文件路径（LoggerManager 写入的 app.log）
+# 日志文件路径（写入的.）
 _LOG_PATH = os.path.join(_get_log_dir(), "app.log")
 
-# 日志时间戳正则：MM-DD HH:MM:SS
+# 日志时间戳正则：-::
 _TIMESTAMP_PATTERN = re.compile(r"^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})")
 
 
@@ -24,7 +24,7 @@ def _extract_timestamp(line: str) -> str | None:
     m = _TIMESTAMP_PATTERN.match(line)
     if m:
         return m.group(1)
-    # 兼容 ISO 格式 2026-07-19T10:30:00
+    # 兼容格式2026-07-1910:30:00
     m2 = re.match(r"^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})", line)
     return m2.group(1) if m2 else None
 
@@ -51,7 +51,7 @@ def get_logs(tail: int = 50, since: str = ""):
     total = len(all_lines)
 
     if not since:
-        # 首次加载：返回最近 tail 条
+        # 首次加载：返回最近条
         lines = all_lines[-tail:] if tail > 0 and total > tail else all_lines
         lines = [line.rstrip("\n") for line in lines]
         last_ts = _extract_timestamp(lines[-1]) if lines else None
@@ -61,8 +61,8 @@ def get_logs(tail: int = 50, since: str = ""):
             "lastTimestamp": last_ts,
         }
 
-    # 增量模式：从末尾向前找 since 对应位置，返回之后的新行
-    # 从文件末尾开始扫描比全量 readlines 后 filter 更高效
+    # 增量模式：从末尾向前找对应位置，返回之后的新行
+    # 从文件末尾开始扫描比全量后更高效
     start_idx = None
     for i in range(total - 1, -1, -1):
         ts = _extract_timestamp(all_lines[i])
@@ -71,7 +71,7 @@ def get_logs(tail: int = 50, since: str = ""):
             break
 
     if start_idx is None:
-        # 未匹配到 since，可能日志已轮转，返回最近 tail 条
+        # 未匹配到，可能日志已轮转，返回最近条
         lines = all_lines[-tail:] if tail > 0 and total > tail else all_lines
     else:
         lines = all_lines[start_idx:]
@@ -130,14 +130,14 @@ def clear_logs(
                 f.write("")
             return {"ok": True, "deleted": total}
 
-        # 保留最近 before_hours 小时内的日志
+        # 保留最近_小时内的日志
         from datetime import datetime, timedelta
 
         cutoff = datetime.now() - timedelta(hours=before_hours)
         kept = []
         deleted = 0
         for line in lines:
-            # 日志格式: "MM-DD HH:MM:SS [LEVEL] TAG message"
+            # 日志格式:"-::[]"
             try:
                 ts_str = line[:14]  # "MM-DD HH:MM:SS"
                 # 补齐年份（假设当前年）

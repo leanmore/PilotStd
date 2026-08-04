@@ -26,14 +26,14 @@ SCAN_DIRS = [ROOT / "pilotstd", ROOT / "docker"]  # scripts/ 排除，为工具�
 # ── 正则 ──
 DEF_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*) *(?::[^=\n]+)?= (?!=)")
 SETATTR_RE = re.compile(r'setattr\s*\(\s*self\s*,\s*["\']([a-zA-Z_][a-zA-Z0-9_]*)["\']')
-# 单例模式: cls._instance.xxx = ... → self.xxx 可用
+# 单例模式:._.=...→.可用
 SINGLETON_DEF_RE = re.compile(r"cls\._instance\.([a-zA-Z_][a-zA-Z0-9_]*) *(?::[^=\n]+)?=")
 REF_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*)")
 METHOD_DEF_RE = re.compile(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(self\b")
 MULTILINE_DEF_RE = re.compile(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(")  # self 在下一行的多行定义
 MAGIC_RE = re.compile(r"^__[a-z].*__$")
 UPPER_CONST_RE = re.compile(r"^_?[A-Z][A-Z_0-9]*$")
-# 元组解包: (self.xxx, self.yyy, ...) = expr
+# 元组解包:(.,.,...)=
 TUPLE_UNPACK_RE = re.compile(r"self\.([a-zA-Z_][a-zA-Z0-9_]*)")
 
 EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", ".pytest_cache", "pilotstd_env", "tests"}
@@ -112,7 +112,7 @@ def _is_tuple_unpack(line: str) -> bool:
     # 括号包裹的元组解包
     if stripped.startswith("(") and "self." in stripped[: stripped.index(")") if ")" in stripped else len(stripped)]:
         return True
-    # 逗号分割的多重赋值: self.x, self.y = ...
+    # 逗号分割的多重赋值:.,.=...
     if ", self." in stripped or stripped.startswith("self.") and ", " in stripped and "=" in stripped:
         parts = stripped.split("=", 1)
         if len(parts) == 2 and "self." in parts[0]:
@@ -135,19 +135,19 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
         if _is_comment_or_string(line):
             continue
 
-        # 说明：setattr(self, "xxx", ...)
+        # 说明：(,"",...)
         for m in SETATTR_RE.finditer(line):
             attr = m.group(1)
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
 
-        # 单例模式: cls._instance.xxx = ... → self.xxx 可用
+        # 单例模式:._.=...→.可用
         for m in SINGLETON_DEF_RE.finditer(line):
             attr = m.group(1)
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
 
-        # 元组解包: (self.xxx, self.yyy) = expr
+        # 元组解包:(.,.)=
         if _is_tuple_unpack(line):
             for m in TUPLE_UNPACK_RE.finditer(line.split("=", 1)[0]):
                 attr = m.group(1)
@@ -155,7 +155,7 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
                     defs.append((attr, i))
             continue  # 元组解包行不再用 DEF_RE 处理
 
-        # 说明：self.xxx =
+        # 说明：.=
         for m in DEF_RE.finditer(line):
             after = line[m.end() :].strip()
             if after.startswith("="):
@@ -164,19 +164,19 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
 
-        # def xxx(self, ...) — 方法定义也是合法属性（含多行）
+        # (,...)—方法定义也是合法属性（含多行）
         md = METHOD_DEF_RE.search(line)
         if md is not None:
             attr = md.group(1)
             if not MAGIC_RE.match(attr):
                 defs.append((attr, i))
         else:
-            # 多行定义: def xxx( ... self 在下一行
+            # 多行定义:(...在下一行
             ml = MULTILINE_DEF_RE.search(line)
             if ml is not None:
                 attr = ml.group(1)
                 if not MAGIC_RE.match(attr):
-                    # 检查后续 1-2 行是否包含 self
+                    # 检查后续1-2行是否包含
                     for offset in (1, 2):
                         if i + offset <= len(lines):
                             if "self" in lines[i + offset - 1]:
@@ -278,7 +278,7 @@ def main() -> int:
                 continue
             py_files.append(f)
 
-    # ── 找出 dataclass 文件 ──
+    # ──找出文件──
     dc_files = _find_dataclass_files(py_files)
 
     # ── 定义索引 ──
@@ -299,7 +299,7 @@ def main() -> int:
         if attr not in def_index:
             key = (str(fpath), attr)
             if key not in broken:
-                # dataclass 文件中的属性引用通常来自类字段定义，跳过
+                # 文件中的属性引用通常来自类字段定义，跳过
                 if str(fpath.resolve()) in dc_files:
                     continue
                 broken[key] = (attr, fpath, lineno)

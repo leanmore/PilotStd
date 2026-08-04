@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/task_history.py
-# Phase2: 定时任务执行历史持久化 — 写入 DB + 自动清理 + 查询
+# 模块：项目/核心/_脚本
+# 阶段2:定时任务执行历史持久化—写入数据库+自动清理+查询
 
 import logging
 import threading
@@ -12,12 +12,12 @@ from .task_status import record_task_result
 
 logger = logging.getLogger(__name__)
 
-# 清理节流：每 _CLEANUP_EVERY_N 次写入触发一次清理
+# 清理节流：每___次写入触发一次清理
 _CLEANUP_EVERY_N = 10
 _write_count = 0
 _cleanup_lock = threading.Lock()
 
-# 测试注入：允许外部设置 DB 实例覆盖（仅用于测试）
+# 测试注入：允许外部设置数据库实例覆盖（仅用于测试）
 _db_override: Optional[Database] = None
 
 
@@ -58,7 +58,7 @@ def write_execution_record(
         logger.exception("写入 task_execution_history 失败: %s", task_name)
         return
 
-    # 同步更新 Phase1 内存缓存（保持向前兼容）
+    # 同步更新阶段1内存缓存（保持向前兼容）
     record_task_result(task_name, status, error_message)
 
     # 节流清理

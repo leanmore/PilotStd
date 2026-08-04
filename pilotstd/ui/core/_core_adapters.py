@@ -1,20 +1,20 @@
-# 模块：pilotstd/ui/core/_core_adapters.py
-# UI 协议适配器 — 从 _core.py 提取
-# 每个适配器将 MainWindowCore 回调解耦为协议接口，供 QueryUIHandler 等消费。
+# 模块：项目//核心/_核心_适配器脚本
+# 用户界面协议适配器—从_核心脚本提取
+# 每个适配器将回调解耦为协议接口，供用户界面等消费。
 # 分隔
-# 适配器期望的宿主接口契约（通过 core 参数注入）：
-#   _c._add_table_row(update)        → 向工作区表格添加行
-#   _c._find_row_by_seq(seq)         → 按序号查找行号
-#   _c._clear_table()                → 清空表格
-#   _c._get_selected_path_cb()       → 获取选中路径
-#   _c._work_table                   → QTableWidget 引用
-#   _c._question_dlg(title,msg)      → 弹出确认对话框
-#   _c._stage_prereq_dialog(...)     → 弹出前置条件对话框
-#   _c._show_stage_dialog(...)       → 弹出阶段结果对话框
-#   _c._parent                       → 父级 QWidget
-#   _c._register_task(*args,**kw)    → 注册新任务
-#   _c._mgr                          → StandardManager 实例
-#   _c._pause_event                  → threading.Event 暂停控制
+# 适配器期望的宿主接口契约（通过核心参数注入）：
+# _.___()→向工作区表格添加行
+# _.____()→按序号查找行号
+# _.__()→清空表格
+# _.____()→获取选中路径
+# _.__→引用
+# _.__(,)→弹出确认对话框
+# _.___(...)→弹出前置条件对话框
+# _.___(...)→弹出阶段结果对话框
+# _._→父级
+# _.__(*,**)→注册新任务
+# _._→实例
+# _.__→线程.暂停控制
 
 from __future__ import annotations
 

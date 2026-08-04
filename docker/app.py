@@ -1,5 +1,5 @@
-# docker/app.py — FastAPI 入口（模块组装 + 安全头 + 健康检查 + 请求体限制）
-# ruff: noqa: E402  — load_dotenv() 必须在其他模块导入前执行
+# 容器/脚本—接口入口（模块组装+安全头+健康检查+请求体限制）
+# ::402—_()必须在其他模块导入前执行
 import logging
 import os
 import sys
@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
-# 加载 .env 文件（Docker 容器内路径 /app/.env，通过卷挂载注入）
+# 加载.文件（容器内路径//.，通过卷挂载注入）
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", "..", ".env"))
 
 from fastapi import FastAPI, HTTPException, Request
@@ -115,7 +115,7 @@ def _start_all_schedulers(_cron_mgr) -> None:
     except Exception:
         logger.warning("文件监控启动失败", exc_info=True)
 
-    # 企业微信可信 IP 自动更新（独立线程，不占用 APScheduler）
+    # 企业微信可信自动更新（独立线程，不占用）
     try:
         if _cron_mgr.cfg.get("wechat_ip.enabled", False):
             _cron_mgr.wechat_ip_service.start_scheduler()
@@ -155,7 +155,7 @@ def _shutdown_cleanup(_cron_mgr) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：延迟初始化业务模块 → 注册定时任务 → 启动调度器 → 关闭时停止。"""
-    # ── SUPERUSER 启动校验（守卫从 pilotstd/__init__.py 迁移至此） ──
+    # ──启动校验（守卫从项目/____脚本迁移至此）──
     _su = os.getenv("SUPERUSER")
     if not _su:
         print("FATAL: SUPERUSER environment variable is not set", file=sys.stderr)
@@ -164,7 +164,7 @@ async def lifespan(app: FastAPI):
         print("FATAL: SUPERUSER cannot be 'admin', please use a different username", file=sys.stderr)
         sys.exit(1)
 
-    # 日志持久化：Docker 容器需显式初始化 LoggerManager（与 Windows GUI 对齐）
+    # 日志持久化：容器需显式初始化（与图形界面对齐）
     from pilotstd.core.logger import LoggerManager
 
     LoggerManager(level=logging.INFO)
@@ -177,7 +177,7 @@ async def lifespan(app: FastAPI):
     # 清理启动前遗留的僵尸抓取任务
     _clean_zombie_tasks()
 
-    # StandardManager 初始化较重（DB连接/适配器加载），在 lifespan 内延迟执行
+    # 初始化较重（数据库连接/适配器加载），在内延迟执行
     from .manager import get_manager as _get_mgr
 
     _cron_mgr = _get_mgr()
@@ -261,7 +261,7 @@ app.include_router(tasks_router)
 app.include_router(auto_router)
 
 
-# 健康检查端点（Docker HEALTHCHECK 使用）
+# 健康检查端点（使用）
 @app.get("/api/health")
 async def health_check():
     """健康检查端点，返回服务状态和版本号。供 Docker HEALTHCHECK 指令探测容器存活。"""
@@ -271,7 +271,7 @@ async def health_check():
     }
 
 
-# 挂载 Vue 静态文件 + SPA 回退
+# 挂载静态文件+回退
 _DOCKER_DIR = os.path.dirname(os.path.abspath(__file__))  # docker/ 目录
 _PROJ_ROOT = os.path.dirname(_DOCKER_DIR)  # 项目根目录
 DIST = os.path.join(_PROJ_ROOT, "web", "dist")
@@ -285,7 +285,7 @@ async def spa_fallback(full_path: str):
     if full_path.startswith("api/"):
         raise HTTPException(404)
 
-    # 先检查 dist 目录中是否存在对应文件（favicon.svg 等根目录静态资源）
+    # 先检查目录中是否存在对应文件（.等根目录静态资源）
     file_path = os.path.normpath(os.path.join(DIST, full_path))
     # 防止路径遍历攻击
     if not file_path.startswith(os.path.normpath(DIST)):

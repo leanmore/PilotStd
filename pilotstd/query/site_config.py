@@ -1,23 +1,23 @@
-# 模块：pilotstd/query/site_config.py
+# 模块：项目/查询/_配置脚本
 # 默认站点配置 — 单一事实来源。
-# manager / main_window / cli 均从此导入，不再各自手写。
-# Phase 3.1: 新增 ADAPTER_DEFAULT_PROFILES 字典（21 适配器完整画像）+ request_interval 字段
+# 管理器/入口_/均从此导入，不再各自手写。
+# 阶段3.1:新增__合并请求字典（21适配器完整画像）+_字段
 
 from .rotator import SiteState
 
-# ── 适配器默认画像字典（Phase 3.1 路由评分器数据源）────────────────
-# 键 = 适配器 site_name，值 = 完整默认配置画像
+# ──适配器默认画像字典（阶段3.1路由评分器数据源）────────────────
+# 键=适配器_，值=完整默认配置画像
 # 字段说明：
-#   label: 中文显示名
-#   industries: 行业关键词列表（用于行业匹配加分）
-#   std_prefixes: 标准号前缀列表（用于前缀精确匹配 +30 分）
-#   is_general: 是否通用适配器（True → -10 降权）
-#   reliability: 可靠性评级（high/medium/low）
-#   default_weight: 基础权重分
-#   rate_limit: 速率限制子字典（request_interval/batch_limit/batch_cooldown/daily_limit）
-#   cooling_threshold: 连续错误触发冷却阈值
-#   cooling_duration: 冷却持续秒数
-#   role: 路由角色（primary=主力站点, background=后台补偿）
+# :中文显示名
+# :行业关键词列表（用于行业匹配加分）
+# _:标准号前缀列表（用于前缀精确匹配+30分）
+# _:是否通用适配器（→-10降权）
+# :可靠性评级（//）
+# _:基础权重分
+# _:速率限制子字典（_/_/_冷却/_）
+# _:连续错误触发冷却阈值
+# _:冷却持续秒数
+# :路由角色（=主力站点,=后台补偿）
 
 ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
     "std_gov": {

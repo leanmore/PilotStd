@@ -1,5 +1,5 @@
-# 模块：pilotstd/query/cache.py
-# 查询结果本地持久化缓存（SQLite）— 双表回退，事件驱动失效
+# 模块：项目/查询/缓存脚本
+# 查询结果本地持久化缓存（数据库查询）—双表回退，事件驱动失效
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class CacheRepository:
         self._inactive_ttl = inactive_ttl
         self._ensure_table()
 
-    # ---- 公共 API ----
+    # 公共接口
 
     def get(self, standard_number: str, source_site: str) -> Optional[QueryResult]:
         """查缓存：先 standard_info_cache，不命中回退 announcement_match。"""
@@ -43,7 +43,7 @@ class CacheRepository:
             (standard_number, source_site),
         )
         if row:
-            # 过滤 QueryResult 不接受的字段（适配器可能挂临时属性，如 csres 的 _csres_detail_url）
+            # 过滤不接受的字段（适配器可能挂临时属性，如的___）
             _valid = {f.name for f in QueryResult.__dataclass_fields__.values()}
             data = {k: v for k, v in json.loads(row["result_json"]).items() if k in _valid}
             return QueryResult(**data)
@@ -55,10 +55,10 @@ class CacheRepository:
         )
         if ann_row:
             data = json.loads(ann_row["result_json"])
-            # 公告缓存 JSON 不含 standard_number，需注入
+            # 公告缓存数据不含_，需注入
             data["standard_number"] = ann_row["standard_number"]
             data.setdefault("source_site", "announcement")
-            # 过滤 QueryResult 不接受的公告元数据字段
+            # 过滤不接受的公告元数据字段
             _valid = {f.name for f in QueryResult.__dataclass_fields__.values()}
             data = {k: v for k, v in data.items() if k in _valid}
             return QueryResult(**data)
@@ -74,7 +74,7 @@ class CacheRepository:
         result_json = json.dumps(result.__dict__, ensure_ascii=False)
 
         if existing:
-            # 已有记录时不覆盖 source（保留首次数据来源标记）
+            # 已有记录时不覆盖（保留首次数据来源标记）
             self._db.execute(
                 f"UPDATE {CACHE_TABLE} SET result_json=?, cached_at=? WHERE id=?",
                 (result_json, datetime.now().isoformat(), existing["id"]),

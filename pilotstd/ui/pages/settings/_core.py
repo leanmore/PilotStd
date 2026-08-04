@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/pages/settings/_core.py
+# 模块：项目//页面//_核心脚本
 """SettingsPage — 设置页面，组合 SettingsHandler 管理导航与布局。"""
 
 from typing import Any
@@ -30,7 +30,7 @@ class SettingsPage(QWidget):
         self._stack = QStackedWidget()
         self._handler.build_all_pages(self._stack)
 
-        # ── 从 handler 获取页面名称填充导航 ──
+        # ──从处理器获取页面名称填充导航──
         for name in self._handler.page_names:
             item = QListWidgetItem(name)
             self._nav.addItem(item)

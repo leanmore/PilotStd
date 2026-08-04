@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/sppt.py
+# 模块：项目/查询/适配器/脚本
 """
 食品安全国家标准数据检索平台适配器
 
@@ -91,7 +91,7 @@ class SPPTAdapter(BaseAdapter):
         if not isinstance(data, list):
             return []
 
-        # 仅保留标准条目（TABLENAME=2, CODE 非空），过滤公告（TABLENAME=1）
+        # 仅保留标准条目（表=2,非空），过滤公告（表=1）
         results: list[QueryResult] = []
         for row in data:
             result = self._parse_result(row, keyword)
@@ -114,7 +114,7 @@ class SPPTAdapter(BaseAdapter):
 
     def _parse_result(self, row: dict[str, Any], search_term: str = "") -> Optional[QueryResult]:
         """从 JSON 行解析标准信息，过滤公告条目。"""
-        # 过滤公告（CODE 为 null 或 TABLENAME 不为 2）
+        # 过滤公告（为或表不为2）
         std_no = (row.get("CODE") or "").strip()
         if not std_no:
             return None
@@ -123,7 +123,7 @@ class SPPTAdapter(BaseAdapter):
         pub_date = (row.get("PDATE") or "").strip()
         imp_date = (row.get("SSRQ") or "").strip()
 
-        # 状态：此 API 不返回状态字段，默认"现行"
+        # 状态：此接口不返回状态字段，默认"现行"
         status = "现行" if pub_date else "未知"
 
         target = _parse_result_number(search_term) if search_term else {}

@@ -10,7 +10,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Windows 控制台 UTF-8 编码兼容
+# 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
@@ -66,7 +66,7 @@ def check_noqa_suppression() -> tuple[bool, str]:
         for py_file in target_path.rglob("*.py"):
             content = py_file.read_text(encoding="utf-8", errors="ignore")
             if "# noqa" in content:
-                # 统计 noqa 数量
+                # 统计数量
                 count = content.count("# noqa")
                 noqa_files.append(f"  {py_file.relative_to(PROJECT_ROOT)} ({count} 处)")
 
@@ -84,17 +84,17 @@ def check_noqa_suppression() -> tuple[bool, str]:
 def main() -> int:
     errors: list[str] = []
 
-    # 1. Ruff 检查
+    # 1.检查
     ruff_passed, ruff_output = run_ruff()
     if not ruff_passed:
         errors.append(f"Ruff 检查失败：\n{ruff_output}")
 
-    # 2. Mypy 检查
+    # 2.检查
     mypy_passed, mypy_output = run_mypy()
     if not mypy_passed:
         errors.append(f"Mypy 检查失败：\n{mypy_output}")
 
-    # 3. noqa 静默检查
+    # 3.静默检查
     noqa_passed, noqa_output = check_noqa_suppression()
     if not noqa_passed:
         errors.append(noqa_output)

@@ -24,7 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCAN_DIR = ROOT / "pilotstd" / "ui"
 
-# ── 已知的 PyQt 内置信号（不需要检查 connect/emit 完整性） ──
+# ──已知的界面框架内置信号（不需要检查/完整性）──
 PYQT_BUILTIN_SIGNALS = {
     "clicked",
     "triggered",
@@ -62,7 +62,7 @@ def find_signal_defs(file_path: Path) -> list[tuple[str, int, str]]:
         stripped = line.strip()
         if stripped.startswith("#"):
             continue
-        # 匹配: xxx = pyqtSignal(...) 或 xxx = pyqtSignal(int, str) 等
+        # 匹配:=(...)或=(,)等
         m = re.search(r"(\w+)\s*=\s*pyqtSignal\b", stripped)
         if m:
             sig_name = m.group(1)
@@ -86,23 +86,23 @@ def find_connects(file_path: Path) -> list[tuple[str, int, str]]:
             continue
 
         # 匹配模式:
-        # 1. self._xxx.yyy.connect(...)  → yyy 是信号名
-        # 2. self._xxx.connect(...)      → _xxx 是 worker 的信号组
-        # 3. self.xxx.connect(...)       → xxx 是信号名
+        # 1.._..(...)→是信号名
+        # 2.._.(...)→_是工作者的信号组
+        # 3...(...)→是信号名
 
-        # 提取 .connect( 前面的部分
+        # 提取.(前面的部分
         for m in re.finditer(r"(\w+)\.connect\s*\(", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS:
                 results.append((sig, i, stripped[:80]))
 
-        # 提取 self._xxx_worker.zzz.connect( → zzz 是信号
+        # 提取.__工作者..(→是信号
         for m in re.finditer(r"_worker\.(\w+)\.connect\s*\(", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS:
                 results.append((sig, i, stripped[:80]))
 
-        # 提取 self._xxx_worker.error.connect( 等
+        # 提取.__工作者..(等
         for m in re.finditer(r"\.(\w+)\.connect\s*\(", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS and sig not in {"set", "get", "add", "remove"}:
@@ -124,7 +124,7 @@ def find_emits(file_path: Path) -> list[tuple[str, int, str]]:
         if stripped.startswith("#"):
             continue
 
-        # 说明：self._xxx.emit(...)
+        # 说明：._.(...)
         for m in re.finditer(r"(\w+)\.emit\s*\(", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS:

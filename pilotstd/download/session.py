@@ -1,5 +1,5 @@
-# 模块：pilotstd/download/session.py
-# HTTP 会话管理：UA 轮换、重试退避、代理、随机延迟
+# 模块：项目/下载/脚本
+# 网络会话管理：轮换、重试退避、代理、随机延迟
 
 import logging
 import os
@@ -51,7 +51,7 @@ class SessionManager:
         """创建带重试策略和默认超时的新会话。"""
         s = requests.Session()
         s.headers.update({"User-Agent": self._next_ua()})
-        # 设置默认超时（适配器可用 per-request timeout 覆盖）
+        # 设置默认超时（适配器可用-超时覆盖）
         s.request = lambda method, url, **kwargs: (  # type: ignore[method-assign]
             super(requests.Session, s).request(  # type: ignore[misc]
                 method, url, timeout=self._default_timeout, **kwargs

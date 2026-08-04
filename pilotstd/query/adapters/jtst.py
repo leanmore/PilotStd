@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/jtst.py
+# 模块：项目/查询/适配器/脚本
 """
 交通运输部标准查询适配器
 
@@ -122,15 +122,15 @@ class JTSTAdapter(BaseAdapter):
 
     def _parse_result(self, card: Any, search_term: str = "") -> Optional[QueryResult]:
         """从 BeautifulSoup 卡片解析标准信息。"""
-        # 1. 标准号（已发布标准有 .en-code，计划直接在 a 文本中）
+        # 1.标准号（已发布标准有.-，计划直接在文本中）
         en_code = card.select_one(".en-code")
         if en_code:
             std_no = en_code.text.strip()
         else:
-            # 计划编号：a 标签直接文本的第一个非空行
+            # 计划编号：标签直接文本的第一个非空行
             a_tag = card.select_one(".post-head a")
             if a_tag:
-                # lxml 可能合并多行为单个 NavigableString，按行分割取第一段
+                # 可能合并多行为单个，按行分割取第一段
                 raw = "".join(c for c in a_tag.children if isinstance(c, str))
                 lines = [ln.strip() for ln in raw.split("\n") if ln.strip()]
                 std_no = lines[0] if lines else a_tag.get_text(" ", strip=True)
@@ -140,7 +140,7 @@ class JTSTAdapter(BaseAdapter):
         if not std_no:
             return None
 
-        # 2. 标准名称：a 标签中去除标准号后的文本
+        # 2.标准名称：标签中去除标准号后的文本
         name = ""
         a_tag = card.select_one(".post-head a")
         if a_tag:
@@ -154,7 +154,7 @@ class JTSTAdapter(BaseAdapter):
         status_map = {"现行": "现行", "即将实施": "即将实施", "废止": "废止", "已废止": "废止", "现行有效": "现行"}
         status = status_map.get(status_text, status_text) if status_text else "未知"
 
-        # 4. 日期（第一个 time 是发布日期，第二个是实施日期）
+        # 4.日期（第一个是发布日期，第二个是实施日期）
         time_tags = card.select(".panel-footer time.post-date")
         publish_date = time_tags[0].text.strip() if len(time_tags) > 0 else ""
         implement_date = time_tags[1].text.strip() if len(time_tags) > 1 else ""

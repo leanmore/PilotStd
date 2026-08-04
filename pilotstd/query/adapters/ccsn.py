@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/ccsn.py
+# 模块：项目/查询/适配器/脚本
 """
 中国工程建设标准化协会标准查询适配器
 
@@ -30,7 +30,7 @@ class CCSNAdapter(BaseAdapter):
     BASE_URL = "https://www.ccsn.org.cn"
     SEARCH_URL = "https://www.ccsn.org.cn/Zbbz/ZbbzList.aspx"
 
-    # Task 0 确认的字段列索引: [0]序号 [1]标准名称 [2]标准编号 [3]发布日期 [4]实施日期
+    # 0确认的字段列索引:[0]序号[1]标准名称[2]标准编号[3]发布日期[4]实施日期
     COL_STANDARD_NUMBER = 2
     COL_STANDARD_NAME = 1
     COL_PUBLISH_DATE = 3
@@ -64,7 +64,7 @@ class CCSNAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "中国工程建设标准化协会"
 
-    # ── ViewState 提取 ──
+    # ──提取──
 
     def _extract_state_from_html(self, html: str) -> tuple[Optional[str], Optional[str]]:
         """从 HTML 提取 __VIEWSTATE 和 __VIEWSTATEGENERATOR。"""
@@ -87,7 +87,7 @@ class CCSNAdapter(BaseAdapter):
             rows = table.find_all("tr")
             if len(rows) < 2:
                 continue
-            # 收集不含 th 的行
+            # 收集不含的行
             data_rows = [r for r in rows if not r.find("th")]
             # 检查：每行 5 列，且首列是纯数字
             valid_rows = []
@@ -109,7 +109,7 @@ class CCSNAdapter(BaseAdapter):
         if not keyword:
             return []
 
-        # 第 1 页：GET 搜索
+        # 第1页：搜索
         try:
             resp = self._client.get(self.SEARCH_URL, params={"KeyWord": keyword}, timeout=15)
         except Exception as e:

@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/move.py — move 子命令
+# 项目//命令/脚本—子命令
 import argparse
 import os
 

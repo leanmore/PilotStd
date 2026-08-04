@@ -1,6 +1,6 @@
-# pilotstd/ui/workers/auto.py — AutoWorker，从 workers.py 拆分
+# 项目//工作者/脚本—，从工作者脚本拆分
 # 分隔
-# 统一自动管线 Worker：串行执行 scan→query→download→archive。
+# 统一自动管线：串行执行扫描→查询→下载→归档。
 
 import logging
 from typing import Any

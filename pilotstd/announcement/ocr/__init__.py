@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/ocr/__init__.py
-# OCR 提供商抽象层 — 工厂函数与公开 API
+# 模块：项目///____脚本
+# 文字识别提供商抽象层—工厂函数与公开接口
 """公告 PDF OCR 识别。默认百度云 basicGeneralPdf 接口，用户可配腾讯云/阿里云。
 
 各平台均直接接收 PDF 文件（base64 编码后 ≤4~10MB），无需 PDF→图片转换。
@@ -46,7 +46,7 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
     旧键（兼容，单 provider 模式）：
       api_key / secret_key / secret_id / access_key_id / access_key_secret
     """
-    # 旧模式兼容：显式指定 provider 时走单 provider 路径
+    # 旧模式兼容：显式指定时走单路径
     explicit = config.get("provider", "")
     if explicit in ("baidu", "tencent", "aliyun"):
         if explicit == "baidu":
@@ -56,7 +56,7 @@ def create_ocr_provider(config: dict[str, Any], data_dir: str = "") -> Optional[
         else:
             return _create_aliyun(config)
 
-    # 新模式：创建全部有凭据的 provider，返回调度器
+    # 新模式：创建全部有凭据的，返回调度器
     if not data_dir:
         from ...core.config import get_data_dir
 

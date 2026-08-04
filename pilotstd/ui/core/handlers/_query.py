@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_query.py
+# 模块：项目//核心/处理器/_查询脚本
 """QueryUIHandler — 查询 UI 状态管理（Core + Pending）。
 
 重构后 __init__ 从 30+ 参数收敛为 13 个（1 聚合接口 + 12 独立参数）。
@@ -33,7 +33,7 @@ from .query_flow_engine import QueryFlowEngine
 
 logger = logging.getLogger(__name__)
 
-# hex → Qt.GlobalColor 映射（引擎返回 hex 字符串，Handler 负责转换为 Qt 枚举着色）
+# →界面框架.映射（引擎返回字符串，负责转换为界面框架枚举着色）
 _STATUS_HEX_TO_QT: dict[str, Qt.GlobalColor] = {
     "#008000": Qt.GlobalColor.darkGreen,
     "#0000ff": Qt.GlobalColor.blue,
@@ -103,7 +103,7 @@ class QueryUIHandler:
                 w.wait()
 
     # ═══════════════════════════════════════════════════════════ 分隔
-    # Core — 核心查询执行
+    # 核心查询执行
     # ═══════════════════════════════════════════════════════════ 分隔
 
     def on_query(self) -> None:
@@ -187,7 +187,7 @@ class QueryUIHandler:
                 if item:
                     item.setText(str(text))
 
-        # 纯逻辑：确定状态颜色 → Handler 负责 Qt 着色
+        # 纯逻辑：确定状态颜色→负责界面框架着色
         status_item = wt.item(row, 4)
         if status_item:
             color_hex = self._engine.determine_status_color(result.status, result.is_downloadable)
@@ -208,7 +208,7 @@ class QueryUIHandler:
             self.on_query_result_ready(idx, result)
 
     # ═══════════════════════════════════════════════════════════ 分隔
-    # Pending — 待确认管理
+    # 待确认管理
     # ═══════════════════════════════════════════════════════════ 分隔
 
     def export_pending_csv(self, save_status: QLabel | None = None) -> str | None:
@@ -248,7 +248,7 @@ class QueryUIHandler:
                 save_status.setStyleSheet("color: #e74c3c; font-size: 9pt;")
             return None
 
-    # _archived: 此方法未被 UI 调用，实际待确认查询由 parts/_query_ops.py 处理
+    # _归档:此方法未被用户界面调用，实际待确认查询由/_查询_脚本处理
     def on_pending_query(self) -> None:
         """待确认二次查询入口。"""
         try:
@@ -265,7 +265,7 @@ class QueryUIHandler:
         """解析待确认 CSV，委托给 QueryFlowEngine。"""
         return self._engine.parse_csv_content(path, self._mgr.parse_standard_number)
 
-    # _archived: 此方法未被 UI 调用，实际待确认查询由 parts/_query_ops.py 处理
+    # _归档:此方法未被用户界面调用，实际待确认查询由/_查询_脚本处理
     def do_pending_query(self) -> None:
         """完整的待确认查询流程：打开 CSV → 解析 → PendingQueryDialog → 填充表格。"""
         if self._parsed_results:
@@ -350,7 +350,7 @@ class QueryUIHandler:
         self._mgr.resolve_pending(pending_items, resolution)
 
     # ═══════════════════════════════════════════════════════════ 分隔
-    # Summary — 委托给 QuerySummaryHandler
+    # 委托给
     # ═══════════════════════════════════════════════════════════ 分隔
 
     def show_query_summary(self) -> None:

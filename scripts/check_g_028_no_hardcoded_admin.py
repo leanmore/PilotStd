@@ -9,12 +9,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SEARCH_DIRS = ["web/src", "pilotstd", "docker", "scripts"]
 
 # ── 通用模式（前后端通用）──────────────────────────────
-# G-028 规则精确化：仅拦截赋值/定义/默认值/fallback 场景中的 'admin' 字面量
-# 纯比较表达式（===, !==, ==, !=）中的 'admin' 已放行——那是角色值比较，非硬编码
+# 028规则精确化：仅拦截赋值/定义/默认值/回退场景中的''字面量
+# 纯比较表达式（===,!==,==,!=）中的''已放行——那是角色值比较，非硬编码
 _COMMON_PATTERNS: list[tuple[str, str, set[str]]] = [
-    # 后端: role = 'admin' 单等号赋值（非比较）
+    # 后端:=''单等号赋值（非比较）
     ("role 赋值 'admin'", r"role\s*=\s*['\"]admin['\"]", {".py"}),
-    # 后端: role: 'admin' 字典/注解默认值
+    # 后端::''字典/注解默认值
     ("role 默认值 'admin'", r"role['\"]?\s*:\s*['\"]admin['\"]", {".py"}),
 ]
 
@@ -24,7 +24,7 @@ _BACKEND_PATTERNS: list[tuple[str, str, set[str]]] = [
     ("常量定义 ADMIN_ROLE = 'admin'", r"ADMIN_ROLE\s*=\s*['\"]admin['\"]", {".py"}),
 ]
 
-# ── 前端专用（原 GATE-13）──────────────────────────────
+# ──前端专用（原-13）──────────────────────────────
 _FRONTEND_PATTERNS: list[tuple[str, str, set[str]]] = [
     ("SUPERUSER_USERNAME = 'admin'", r"SUPERUSER_USERNAME\s*=\s*['\"]admin['\"]", {".vue", ".ts", ".js"}),
     ("superuserUsername = 'admin'", r"superuserUsername\s*=\s*['\"]admin['\"]", {".vue", ".ts", ".js"}),
@@ -48,7 +48,7 @@ _FRONTEND_PATTERNS: list[tuple[str, str, set[str]]] = [
 
 EXCLUDE_DIRS = {"node_modules", "dist", ".git", "__pycache__", ".pytest_cache", ".venv", "venv"}
 
-# G-028: 唯一允许包含 'admin' 字面量的文件（常量定义点本身）
+# 028:唯一允许包含''字面量的文件（常量定义点本身）
 WHITELIST_FILES = {
     "web/src/config/index.ts",
     "pilotstd/__init__.py",
@@ -115,12 +115,12 @@ def main() -> int:
                     m = re.search(pattern, line)
                     if not m:
                         continue
-                    # 豁免: SH 中 export SUPERUSER=admin 是合法配置
+                    # 豁免:中=是合法配置
                     if ext == ".sh":
                         var = re.search(r"(?:export\s+)?([A-Z_]+)\s*=\s*['\"]admin['\"]", line)
                         if var and var.group(1) in {"SUPERUSER", "SUPERUSER_USERNAME"}:
                             continue
-                    # 豁免: yaml 中 SUPERUSER: admin
+                    # 豁免:中:
                     if ext in {".yaml", ".yml", ".toml"}:
                         var = re.search(r"([A-Z_]+)\s*:\s*['\"]?admin['\"]?", line)
                         if var and var.group(1) == "SUPERUSER":

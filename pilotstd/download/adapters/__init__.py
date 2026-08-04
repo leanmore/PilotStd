@@ -1,4 +1,4 @@
-# 模块：pilotstd/download/adapters/__init__.py
+# 模块：项目/下载/适配器/____脚本
 from .base import BaseDownloadAdapter
 from .openstd_download import OpenstdDownloadAdapter
 

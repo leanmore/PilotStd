@@ -1,4 +1,4 @@
-# docker/api/query_debug.py — Phase 3.2: 路由评分决策链调试接口
+# 容器//查询_脚本—阶段3.2:路由评分决策链调试接口
 """POST /api/query/debug — 返回完整评分链，支持模拟运行时状态进行 what-if 分析。"""
 
 import logging

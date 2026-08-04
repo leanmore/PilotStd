@@ -108,7 +108,7 @@ def update_status() -> None:
         content,
     )
 
-    # ── 更新 G-010 违规数 ──
+    # ──更新-010违规数──
     gate10_line = f"| G-010 违规 | {gate10} |"
     content = re.sub(
         r"\| G-010 违规 \|.*\|",

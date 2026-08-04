@@ -1,4 +1,4 @@
-# 模块：pilotstd/announcement/base.py
+# 模块：项目//脚本
 # 公告抓取适配器抽象基类
 
 import concurrent.futures
@@ -27,7 +27,7 @@ class BaseAnnounceCrawler(ABC):
         self._cb = CircuitBreaker(lambda: self.site_name)  # 组合，非继承
         self._http = _http
 
-    # ── 熔断委托（→ CircuitBreaker）──
+    # ──熔断委托（→）──
 
     def _cb_load_health(self) -> None:
         self._cb.load_health()
@@ -75,7 +75,7 @@ class BaseAnnounceCrawler(ABC):
         """写入 announcement_match 的 source_site 值。"""
         return f"announcement_{self.standard_type}"
 
-    # ── 列表拉取（通用实现，子类只需提供 _list_url 和 site_name）
+    # ──列表拉取（通用实现，子类只需提供__和_）
 
     def _fetch_list(self, since_date: str, page_size: int) -> list[dict[str, Any]]:
         """分页拉取公告列表，按日期降序排列。
@@ -128,10 +128,10 @@ class BaseAnnounceCrawler(ABC):
             page += 1
         return announcements
 
-    # ── 详情获取（通用实现，子类只需提供 _detail_url 和 site_name）──
+    # ──详情获取（通用实现，子类只需提供__和_）──
 
-    # _parse_items 提供默认实现（页面结构路由），子类可重写
-    # _download_attachment 提供默认实现，子类可重写
+    # __提供默认实现（页面结构路由），子类可重写
+    # _下载_提供默认实现，子类可重写
 
     def _download_attachment(self, url: str) -> Optional[bytes]:
         """下载附件，子类可重写。"""
@@ -171,11 +171,11 @@ class BaseAnnounceCrawler(ABC):
         html_items, meta = parse_announcement_detail(raw_detail, None, "", ocr_provider=ocr_provider)
         attachment_url = find_attachment_url(raw_detail) or ""
 
-        # 纯网页：HTML 已拿到数据
+        # 纯网页：网页已拿到数据
         if html_items and not attachment_url:
             return self._finalize_items(html_items, attachment_url)
 
-        # 纯附件：HTML 无表格
+        # 纯附件：网页无表格
         if not html_items and attachment_url:
             att_bytes = self._download_attachment(attachment_url)
             if att_bytes:
@@ -185,7 +185,7 @@ class BaseAnnounceCrawler(ABC):
                 return self._finalize_items(att_items, attachment_url, "附件解析")
             return self._finalize_items(html_items, attachment_url)
 
-        # 混合：HTML 有数据 + 有附件。下载附件存档，但直接返回 HTML 结果（不重新解析）
+        # 混合：网页有数据+有附件。下载附件存档，但直接返回网页结果（不重新解析）
         if html_items and attachment_url:
             import concurrent.futures
 
@@ -223,7 +223,7 @@ class BaseAnnounceCrawler(ABC):
             )
             _bump(ann.get("pid", "?"))
             return []
-        # 提取公告正文写入 announcements.raw_data
+        # 提取公告正文写入._
         _store_raw_content(
             ann.get("code", ""),
             ann.get("pid", ""),
@@ -256,9 +256,9 @@ class BaseAnnounceCrawler(ABC):
             item["announce_no"] = ann.get("code", "")
             raw_std_count = ann.get("std_count", "")
             item["standard_count"] = int(raw_std_count) if raw_std_count else len(parsed)
-            # 列表API的NOTICE_DATE是公告权威发布日期，覆盖所有条目
-            # HTML表格和附件解析可能产生不同的publish_date（甚至为空），
-            # 不一致会导致SELECT DISTINCT返回重复行
+            # 列表接口的_是公告权威发布日期，覆盖所有条目
+            # 网页表格和附件解析可能产生不同的_（甚至为空），
+            # 不一致会导致查询返回重复行
             if notice_date:
                 item["publish_date"] = notice_date
             item["notice_date"] = notice_date

@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_base.py
+# 模块：项目/管理器/门面/_脚本
 """BaseFacade：构建 ManagerCore，初始化各子系统，组合 Handler。"""
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class BaseFacade:
     属性代理：_CORE_PROXY_WHITELIST 中的属性自动委托到 self._core（替代原 _BasePropertiesMixin）。
     """
 
-    # 原 _BasePropertiesMixin 的 42 个 @property 委托，压缩为白名单 + __getattr__/__setattr__
+    # 原_的42个@委托，压缩为白名单+____/____
     _CORE_PROXY_WHITELIST: frozenset[str] = frozenset({
         # 核心组件
         "cfg", "db", "parser", "scanner", "query_engine", "cache", "quota_tracker",
@@ -56,7 +56,7 @@ class BaseFacade:
         "download_tasks", "last_skipped_dirs", "_file_watcher",
     })
 
-    # 自身属性（非 _core 代理，由 _init_services 直接设置）
+    # 自身属性（非_核心代理，由__服务直接设置）
     @property
     def validity_service(self):
         return self._validity_service
@@ -91,7 +91,7 @@ class BaseFacade:
         query_adapters: Optional[List[BaseAdapter]] = None,
         download_adapters: Optional[List[BaseDownloadAdapter]] = None,
     ) -> None:
-        # ---- 1. 初始化 _core 容器（先占位，后面逐步填充） ----
+        # 1.初始化_核心容器（先占位，后面逐步填充）
         self._core = ManagerCore(
             cfg=None,  # type: ignore[arg-type]
             db=None,  # type: ignore[arg-type]
@@ -111,13 +111,13 @@ class BaseFacade:
             pipeline_store=None,  # type: ignore[arg-type]
         )
 
-        # ---- 2. 初始化各子系统（填充 _core） ----
+        # 2.初始化各子系统（填充_核心）
         self._init_config_and_scanner(config)
         self._init_query_subsystem(query_adapters)
         self._init_download(download_adapters)
         self._init_services()
 
-        # ---- 3. 初始化 Handler（注入 _core） ----
+        # 3.初始化（注入_核心）
         self._query_handler = QueryHandler(self._core)
         self._download_handler = DownloadHandler(self._core)
         self._scan_handler = ScanHandler(self._core)
@@ -131,10 +131,10 @@ class BaseFacade:
             self._organize_handler,
         )
 
-        # ---- 4. 绑定方法到 self（对外 API 不变） ----
+        # 4.绑定方法到（对外接口不变）
         self._bind_methods()
 
-        # ---- 5. 初始化运行时状态列表（原 Mixin 中定义的） ----
+        # 5.初始化运行时状态列表（原中定义的）
         self._parsed_results = []
         self._queried_items = []
         self._query_results = []
@@ -219,7 +219,7 @@ class BaseFacade:
         self._core.pending_svc = pending_svc
         self._core.scheduled_svc = scheduled_svc
 
-        # 兼容旧代码：外部可能直接访问 self._announce_svc
+        # 兼容旧代码：外部可能直接访问.__
         self._announce_svc = announce_svc
         self._announce_svc._mgr = self  # type: ignore[attr-defined]
 
@@ -311,7 +311,7 @@ class BaseFacade:
         self.auto_run = self._auto_pipeline.auto_run
         self.auto_run_stream = self._auto_pipeline.auto_run_stream
 
-        # ---- 兼容旧代码：_classifier 已由 __getattr__ 代理到 _core ----
+        # 兼容旧代码：_分类器已由____代理到_核心
 
     def shutdown(self) -> None:
         """关闭数据库连接，应用退出时调用。"""

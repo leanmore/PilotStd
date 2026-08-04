@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/notify.py
-# Windows Toast 通知服务 — 封装系统托盘 QSystemTrayIcon.showMessage()
+# 模块：项目/核心/脚本
+# 通知服务—封装系统托盘脚本()
 
 import time
 from typing import Any

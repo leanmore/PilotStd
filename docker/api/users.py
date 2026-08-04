@@ -1,4 +1,4 @@
-# docker/api/users.py — 用户管理 API
+# 容器//脚本—用户管理接口
 from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -20,7 +20,7 @@ class AddUserRequest(BaseModel):
     role: str = "user"
 
 
-# 修改密码请求体（独立于 AddUserRequest，避免权限混淆）
+# 修改密码请求体（独立于，避免权限混淆）
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str

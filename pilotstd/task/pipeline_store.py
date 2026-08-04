@@ -1,5 +1,5 @@
-# 模块：pilotstd/task/pipeline_store.py
-# pipeline_runs 表 CRUD 封装
+# 模块：项目//流水线_脚本
+# 流水线_表封装
 
 import json
 import uuid

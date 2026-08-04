@@ -1,4 +1,4 @@
-# docker/scheduler.py — APScheduler 定时任务调度器（含自动备份 + 优雅关闭 + DB 互斥锁）
+# 容器/调度器脚本—定时任务调度器（含自动备份+优雅关闭+数据库互斥锁）
 import logging
 import os
 import threading
@@ -17,18 +17,18 @@ from pilotstd.core.task_status import capture_task_error
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
 
-# ✅ #43: Job ID 提取为模块级常量
+# ✅#43:提取为模块级常量
 _VALIDITY_JOB_ID = "validity_check"
 
-# 调度器互斥锁：多 worker 部署时，只有一个能抢到锁并启动调度器
+# 调度器互斥锁：多工作者部署时，只有一个能抢到锁并启动调度器
 _HEARTBEAT_INTERVAL = 30  # 心跳间隔（秒）
 _STALE_TIMEOUT = 90  # 心跳超时（秒），超过则认为前 worker 已死
 _heartbeat_stop = threading.Event()
 
-# 已注册的任务执行函数表：job_id -> callable
+# 已注册的任务执行函数表：_->
 _job_funcs: dict[str, Callable] = {}
 
-# 进程级 DB 连接缓存，避免四个函数各自 new Database
+# 进程级数据库连接缓存，避免四个函数各自
 _scheduler_db: Optional[Database] = None
 
 
@@ -142,7 +142,7 @@ def _cleanup_notification_logs(notification_mgr=None):
 
 register_job_func("notification_cleanup", _cleanup_notification_logs)
 
-# Phase 4b: 日期提醒
+# 阶段4:日期提醒
 from pilotstd.tasks.date_reminder import run_date_reminder  # noqa: E402
 
 
@@ -231,7 +231,7 @@ def _heartbeat_loop() -> None:
                 (time.strftime("%Y-%m-%d %H:%M:%S"),),
             )
             if result.rowcount == 0:
-                # 兜底：id=1 记录被 stop_scheduler 清理后，重建并更新
+                # 兜底：=1记录被_调度器清理后，重建并更新
                 db.execute(
                     "INSERT OR IGNORE INTO scheduler_lock (id, pid, started_at, heartbeat_at) "
                     "VALUES (1, 0, datetime('now', 'localtime'), datetime('now', 'localtime'))"
@@ -290,7 +290,7 @@ def start_scheduler():
     # 静音时段补发：每 5 分钟检查一次
     _add_interval_job("release_suppressed", 300)
 
-    # ✅ #43: 注册时效性检查 CronTrigger 调度任务
+    # ✅#43:注册时效性检查调度任务
     v_kwargs = _get_validity_cron_kwargs()
     scheduler.add_job(
         _check_validity_schedule,
@@ -312,15 +312,15 @@ def start_scheduler():
 
 
 def _check_validity_schedule(notification_mgr=None, adapter_mgr=None):
-    """APScheduler CronTrigger 唤醒函数：直接执行时效性检查。
+    """定时调度器定时触发器唤醒函数：直接执行时效性检查。
 
-    ✅ #43: 使用 CronTrigger 替代 5 分钟轮询 + next_run 比较。
-    调度频率由 CronTrigger(day_of_week, hour, minute) 控制，
+    第四十三号：使用定时触发器替代五分钟轮询与下次运行比较。
+    调度频率由时间表达式（周几、时、分）控制，
     此函数每次被唤醒即执行一次检查。
     """
     from pilotstd.core.validity_checker import run_validity_check
 
-    # ✅ #43: 统一使用 timezone.utc
+    # ✅#43:统一使用.
     config = ConfigManager()
     now_utc = datetime.now(timezone.utc)
 
@@ -350,7 +350,7 @@ def _get_validity_cron_kwargs():
     """从配置读取时效性检查的 CronTrigger 参数。"""
     config = ConfigManager()
     weekday_1_7 = int(config.get("validity.first_weekday", 1))
-    # ✅ #43: APScheduler day_of_week: 0=Monday, 6=Sunday；前端传入 1=Monday, 7=Sunday
+    # ✅#43:__:0=,6=；前端传入1=,7=
     day_of_week = max(0, min(6, weekday_1_7 - 1))
     execute_time = config.get("validity.execute_time", "03:00")
     try:
@@ -361,7 +361,7 @@ def _get_validity_cron_kwargs():
 
 
 def reschedule_validity_job():
-    """✅ #43: 配置变更后更新调度器 CronTrigger。异常向上抛出，由调用方处理。"""
+    """第四十三号：配置变更后更新调度器定时触发器。异常向上抛出，由调用方处理。"""
     kwargs = _get_validity_cron_kwargs()
     trigger = CronTrigger(timezone=timezone.utc, **kwargs)
     if scheduler.get_job(_VALIDITY_JOB_ID):

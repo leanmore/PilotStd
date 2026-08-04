@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/ncha.py
+# 模块：项目/查询/适配器/脚本
 """
 文物保护标准查询适配器
 
@@ -39,7 +39,7 @@ def _format_date(date_str: str) -> str:
     date_str = date_str.strip()
     if not date_str:
         return ""
-    # 已是 YYYY-MM-DD 格式直接返回
+    # 已是--格式直接返回
     if len(date_str) == 10 and date_str[4] == "-" and date_str[7] == "-":
         return date_str
     for fmt in _DATE_FORMATS:

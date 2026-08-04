@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/parser/_file_kind_detector.py
-# 文件属性标记 Handler
+# 模块：项目/扫描/解析器/___检测器脚本
+# 文件属性标记
 """提供文件名文件属性标签检测功能。"""
 
 

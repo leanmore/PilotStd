@@ -18,7 +18,7 @@ def _require_core(self) -> bool:
     return True
 
 
-# ── 委托方法：将工具栏按钮操作转发到对应 Handler ──
+# ──委托方法：将工具栏按钮操作转发到对应──
 
 
 def _on_check_announcements(self) -> None:

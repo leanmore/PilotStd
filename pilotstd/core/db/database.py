@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/db/database.py
-# Database 核心类 — 从 db.py 拆分
+# 模块：项目/核心//脚本
+# 核心类—从脚本拆分
 
 import logging
 import os
@@ -27,7 +27,7 @@ class Database:
         self._local = threading.local()
         self._all_conns: list[Any] = []
         os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
-        # 初始化 pragma → 执行迁移，顺序不可颠倒
+        # 初始化→执行迁移，顺序不可颠倒
         self._init_pragma()
         self._run_migrations()
 
@@ -99,12 +99,12 @@ class Database:
             "CREATE TABLE IF NOT EXISTS _schema_version "
             "(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL DEFAULT '')"
         )
-        # 检查并补齐 checksum 列（兼容旧库）
+        # 检查并补齐校验和列（兼容旧库）
         cols = {r["name"] for r in self.fetchall("PRAGMA table_info(_schema_version)")}
         if "checksum" not in cols:
             self.execute("ALTER TABLE _schema_version ADD COLUMN checksum TEXT NOT NULL DEFAULT ''")
 
-    # ── 迁移 checksum 校验（委托给 _migration_checksum 模块）──
+    # ──迁移校验和校验（委托给_迁移_校验和模块）──
 
     @staticmethod
     def _compute_checksum(fn: Any) -> str:
@@ -196,7 +196,7 @@ class Database:
         if not hasattr(self._local, "conn") or self._local.conn is None:
             conn = sqlite3.connect(self._db_path)
             conn.text_factory = str
-            # 设置忙等待超时 + 外键强制 + Row 工厂
+            # 设置忙等待超时+外键强制+工厂
             conn.execute("PRAGMA busy_timeout=5000")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.row_factory = sqlite3.Row
@@ -306,7 +306,7 @@ class Database:
         if hasattr(self._local, "conn"):
             self._local.conn = None
 
-    # UPSERT 模式：首次插入初始值，后续原子累加
+    # 模式：首次插入初始值，后续原子累加
     def update_adapter_stats(
         self,
         adapter_name: str,
@@ -317,7 +317,7 @@ class Database:
     ) -> None:
         """更新适配器统计：查询次数、成功率、冷却次数等（静默失败）。"""
         try:
-            # UPSERT: INSERT OR REPLACE 配合 ON CONFLICT DO UPDATE 实现原子累加
+            # :插入配合更新实现原子累加
             self.execute(
                 "INSERT INTO adapter_state "
                 "(adapter_name, total_queries, successful_queries, "

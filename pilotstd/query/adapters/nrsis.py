@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/nrsis.py
+# 模块：项目/查询/适配器/脚本
 """
 自然资源标准查询适配器
 
@@ -37,10 +37,10 @@ class NRSISAdapter(BaseAdapter):
 
     SEARCH_URL = "http://www.nrsis.org.cn/portal/xxcx/std"
 
-    # Task 0 产出：结果行选择器（实际表格 class="table table-bordered hidden-xs"）
+    # 0产出：结果行选择器（实际表格="--"）
     ROW_SELECTOR = "table.table tbody tr"
 
-    # Task 0 产出：语义名 → 列索引映射
+    # 0产出：语义名→列索引映射
     # 实际表头: 序号/标准号/标准名称/发布日期/实施日期/标准状态
     HEADER_MAP = {
         "标准编号": 1,
@@ -83,15 +83,15 @@ class NRSISAdapter(BaseAdapter):
 
     def _decode_content(self, content: bytes) -> str:
         """多策略解码：BOM → UTF-8 → GBK → 兜底。"""
-        # 1. BOM 剥离
+        # 1.剥离
         if content.startswith(b"\xef\xbb\xbf"):
             content = content[3:]
-        # 2. UTF-8（严格模式）
+        # 2.-8（严格模式）
         try:
             return content.decode("utf-8")
         except UnicodeDecodeError:
             pass
-        # 3. GBK（覆盖 GB2312 超集）
+        # 3.（覆盖2312超集）
         try:
             return content.decode("gbk")
         except UnicodeDecodeError:
@@ -136,7 +136,7 @@ class NRSISAdapter(BaseAdapter):
 
         html = self._decode_content(resp.content)
 
-        # 空结果判定（注意：用 kw 避免遮蔽外层 keyword）
+        # 空结果判定（注意：用避免遮蔽外层）
         for kw in self.EMPTY_RESULT_KEYWORDS:
             if kw in html:
                 return []

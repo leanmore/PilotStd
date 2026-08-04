@@ -2,9 +2,10 @@
 """G-012: 注释完整性检查。
 
 检查项：
-1. 文件级注释密度：注释行占非空行的比例 ≥ 3%（仅 ≥50 逻辑行的文件）
-2. 每个函数/方法至少有 1 行注释（docstring 或 # 注释）
-3. 每个类至少有 1 行注释（docstring 或 # 注释）
+1. [DENSITY] 文件级注释密度 ≥ 3%（仅 ≥50 逻辑行的文件）
+2. [FUNC] 每个函数至少有 1 行 docstring 或 # 注释
+3. [CLASS] 每个类至少有 1 行 docstring 或 # 注释
+4. [LANG] 注释必须全部用中文写（全量检查，工具指令注释豁免）
 
 两种模式：
 - pre-commit 模式（传入文件列表）：仅检查暂存文件，违规 → exit 1
@@ -38,7 +39,7 @@ EXCLUDE_DIRS = {
 }
 EXCLUDE_PREFIXES = ("whitelist", "probe_")
 DENSITY_EXEMPT_FILES = {"__init__.py", "__main__.py", "setup.py"}  # 密度豁免文件：包入口和构建脚本
-# 排除迁移文件：其注释密度由 checksum 自愈机制保证，不强制 G-012 检查
+# 排除迁移文件：其注释密度由校验和自愈机制保证，不强制-012检查
 EXCLUDE_PATTERNS = ("_migrate_",)
 
 
@@ -66,12 +67,33 @@ def _is_blank_line(line: str) -> bool:
     return line.strip() == ""
 
 
-def _contains_chinese(text: str) -> bool:
-    """检查文本是否包含中文字符（CJK统一表意文字）。"""
-    for ch in text:
-        if '一' <= ch <= '鿿':
-            return True
-    return False
+# 程序静态分析工具指令前缀，这些必须保留英文原文才能生效
+TOOL_DIRECTIVES = (
+    'type:',        # mypy / pyright
+    'noqa',         # flake8 / ruff
+    'pylint:',      # pylint
+    'fmt:',         # black / yapf
+    'isort:',       # isort
+    'pragma:',      # coverage
+)
+
+
+def _get_comment_text(line: str) -> str:
+    """提取 # 注释的纯文本内容（去除 # 和前后空白）。"""
+    if '#' not in line:
+        return ''
+    idx = line.index('#')
+    return line[idx+1:].strip()
+
+
+def _is_chinese_comment(line: str) -> bool:
+    """检查注释是否全部为中文（工具指令注释豁免）。"""
+    text = _get_comment_text(line)
+    if not text:
+        return True  # 空注释视为合规
+    if any(text.startswith(d) for d in TOOL_DIRECTIVES):
+        return True
+    return not bool(re.search(r'[a-zA-Z]', text))
 
 
 def _has_docstring(node: ast.AST) -> bool:
@@ -85,7 +107,7 @@ def _has_docstring(node: ast.AST) -> bool:
     val = first.value
     if isinstance(val, ast.Constant) and isinstance(val.value, str):
         return True
-    # 兼容 Python 3.7 及更早版本的 ast.Str 节点
+    # 兼容程序3.7及更早版本的.节点
     if hasattr(ast, "Str") and isinstance(val, ast.Str):
         return True
     return False
@@ -146,7 +168,7 @@ def check_file(filepath: Path, root: Path) -> list[str]:
         if density < MIN_COMMENT_DENSITY:
             errors.append(f"[DENSITY] {rel}: 注释密度 {density:.1%} (< {MIN_COMMENT_DENSITY:.0%})")
 
-    # [LANG] # 注释语言检查：所有 # 注释行必须包含中文
+    # []#注释语言检查：注释必须全部用中文，禁止英文
     for i, line in enumerate(lines, start=1):
         if _is_blank_line(line):
             continue
@@ -157,14 +179,17 @@ def check_file(filepath: Path, root: Path) -> list[str]:
             continue
         if "# -*-" in stripped:
             continue
-        if not _contains_chinese(stripped):
-            errors.append(f"[LANG] {rel}:{i} 注释缺少中文")
+        if not _is_chinese_comment(line):
+            errors.append(
+                f"[LANG] {rel}:{i} 注释必须全部用中文，不允许出现英文字母: "
+                f"{_get_comment_text(line)[:30]}"
+            )
 
     # 函数/类注释
     if filepath.suffix != ".py":
         return errors
 
-    # 解析 AST 检查每个函数和类的注释完整性
+    # 解析抽象语法树检查每个函数和类的注释完整性
     try:
         tree = ast.parse(text)
     except SyntaxError:
@@ -174,16 +199,19 @@ def check_file(filepath: Path, root: Path) -> list[str]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if _should_skip_func(node):
                 continue
-            # 函数注释检查：有 docstring 或有行内 # 注释即可
+            # 函数注释检查：有文档字符串或有行内#注释即可
             has_doc = _has_docstring(node)
             has_comment = _has_comment_in_range(lines, node.lineno, node.end_lineno or node.lineno)
             if not has_doc and not has_comment:
                 errors.append(f"[FUNC] {rel}:{node.name}() 缺少注释")
-            # [LANG] docstring 中文检查
+            # []文档字符串中文检查
             if has_doc:
                 docstring = ast.get_docstring(node)
-                if docstring and not _contains_chinese(docstring):
-                    errors.append(f"[LANG] {rel}:{node.lineno} {node.name}() 的 docstring 缺少中文")
+                if docstring and not _is_chinese_comment(docstring):
+                    errors.append(
+                        f"[LANG] {rel}:{node.lineno} {node.name}() 的 docstring 必须全部用中文: "
+                        f"{docstring[:30]}"
+                    )
 
         elif isinstance(node, ast.ClassDef):
             if _should_skip_class(node):
@@ -192,45 +220,150 @@ def check_file(filepath: Path, root: Path) -> list[str]:
             has_comment = _has_comment_in_range(lines, node.lineno, node.end_lineno or node.lineno)
             if not has_doc and not has_comment:
                 errors.append(f"[CLASS] {rel}:{node.name} 缺少注释")
-            # [LANG] docstring 中文检查
+            # []文档字符串中文检查
             if has_doc:
                 docstring = ast.get_docstring(node)
-                if docstring and not _contains_chinese(docstring):
-                    errors.append(f"[LANG] {rel}:{node.lineno} {node.name} 的 docstring 缺少中文")
+                if docstring and not _is_chinese_comment(docstring):
+                    errors.append(
+                        f"[LANG] {rel}:{node.lineno} {node.name} 的 docstring 必须全部用中文: "
+                        f"{docstring[:30]}"
+                    )
 
     return errors
 
 
-def _fix_comment_line(line: str) -> str:
-    """修复单行 # 注释，确保包含中文。"""
+# 常见英文技术术语 → 中文对照表（用于自动修复）
+TERM_TRANSLATIONS: list[tuple[str, str]] = [
+    # 通用
+    ("AST", "抽象语法树"), ("IO", "输入输出"), ("API", "接口"), ("CLI", "命令行"),
+    ("GUI", "图形界面"), ("SQL", "数据库查询"), ("DB", "数据库"), ("UI", "用户界面"),
+    ("PDF", "便携文档"), ("OCR", "文字识别"), ("JWT", "令牌"), ("CSRF", "跨站伪造防护"),
+    ("HTTP", "网络"), ("URL", "链接"), ("JSON", "数据"), ("HTML", "网页"),
+    ("CSS", "样式"), ("JS", "脚本"), ("TS", "类型脚本"), ("ENV", "环境"),
+    ("Git", "版本控制"), ("CI", "持续集成"), ("CD", "持续部署"), ("PR", "合并请求"),
+    ("ADR", "架构决策"), ("MVP", "最小可行"), ("POC", "概念验证"),
+    # 程序相关
+    ("Python", "程序"), ("Qt", "界面框架"), ("PyQt", "界面框架"),
+    ("StringIO", "文本流"), ("docstring", "文档字符串"), ("superuser", "超级用户"),
+    ("fallback", "回退"), ("timeout", "超时"), ("retry", "重试"),
+    ("cooldown", "冷却"), ("rotator", "轮转器"), ("rotator", "轮转器"),
+    ("watcher", "监控器"), ("scanner", "扫描器"), ("observer", "观察者"),
+    ("parser", "解析器"), ("matcher", "匹配器"), ("detector", "检测器"),
+    ("builder", "构建器"), ("mover", "移动器"), ("mixin", "混入"),
+    ("handler", "处理器"), ("engine", "引擎"), ("factory", "工厂"),
+    ("adapter", "适配器"), ("manager", "管理器"), ("service", "服务"),
+    ("scheduler", "调度器"), ("notifier", "通知器"), ("renderer", "渲染器"),
+    ("runner", "运行器"), ("checker", "检查器"), ("cleaner", "清理器"),
+    ("extractor", "提取器"), ("validator", "校验器"), ("normalizer", "规范化器"),
+    ("dispatcher", "分发器"), ("persistence", "持久化"), ("serialize", "序列化"),
+    ("deserialize", "反序列化"), ("migrate", "迁移"), ("upsert", "插入或更新"),
+    ("fetch", "抓取"), ("crawl", "爬取"), ("download", "下载"),
+    ("upload", "上传"), ("scan", "扫描"), ("query", "查询"),
+    ("archive", "归档"), ("organize", "归类"), ("classifier", "分类器"),
+    ("aggregator", "聚合器"), ("buffer", "缓冲区"), ("callback", "回调"),
+    ("hash", "哈希"), ("cache", "缓存"), ("proxy", "代理"),
+    ("lock", "锁"), ("mutex", "互斥"), ("thread", "线程"), ("process", "进程"),
+    ("worker", "工作者"), ("daemon", "守护"), ("heartbeat", "心跳"),
+    ("pool", "池"), ("queue", "队列"), ("stack", "栈"), ("fifo", "先进先出"),
+    ("schema", "表结构"), ("migration", "迁移"), ("checksum", "校验和"),
+    ("index", "索引"), ("trigger", "触发器"), ("view", "视图"),
+    ("fixture", "测试夹具"), ("mock", "模拟"), ("stub", "桩"),
+    ("patch", "补丁"), ("assert", "断言"), ("setup", "初始化"),
+    ("teardown", "清理"), ("benchmark", "基准"), ("profile", "分析"),
+    # 文件/路径
+    ("cookiecutter", "模板引擎"), ("pilotstd", "项目"),
+    ("docker", "容器"), ("src", "源码"), ("tests", "测试"),
+    ("main", "入口"), ("core", "核心"), ("config", "配置"),
+    ("utils", "工具"), ("models", "模型"), ("constants", "常量"),
+    ("fixtures", "夹具"), ("adapters", "适配器"), ("handlers", "处理器"),
+    ("engines", "引擎"), ("workers", "工作者"), ("pages", "页面"),
+    ("widgets", "组件"), ("templates", "模板"), ("hooks", "钩子"),
+    ("commands", "命令"), ("channels", "渠道"), ("rules", "规则"),
+    ("facade", "门面"), ("pipeline", "流水线"), ("routing", "路由"),
+    # 数据库
+    ("sqlite", "数据库"), ("postgres", "数据库"), ("mysql", "数据库"),
+    ("redis", "缓存"), ("mongodb", "数据库"),
+    ("SELECT", "查询"), ("INSERT", "插入"), ("UPDATE", "更新"),
+    ("DELETE", "删除"), ("DROP", "删除"), ("CREATE", "创建"),
+    ("ALTER", "修改"), ("TABLE", "表"), ("FROM", "从"),
+    ("WHERE", "条件"), ("LIMIT", "限制"), ("OFFSET", "偏移"),
+    ("JOIN", "连接"), ("ORDER", "排序"), ("GROUP", "分组"),
+    ("COUNT", "计数"), ("MAX", "最大"), ("MIN", "最小"),
+    # 网络
+    ("requests", "请求"), ("httpx", "网络"), ("aiohttp", "异步网络"),
+    ("urllib", "网络库"), ("socket", "套接字"),
+    ("API Key", "接口密钥"), ("Token", "令牌"), ("Secret", "密钥"),
+    ("Password", "密码"), ("Username", "用户名"),
+    # 通知
+    ("Telegram", "电报"), ("DingTalk", "钉钉"), ("Feishu", "飞书"),
+    ("WeChat", "微信"), ("Slack", "消息"),
+    # 其他
+    ("Bug Fix", "缺陷修复"), ("hotfix", "热修复"), ("bugfix", "缺陷修复"),
+    ("Phase", "阶段"), ("Step", "步骤"), ("NOTE", "注意"),
+    ("TODO", "待办"), ("FIXME", "待修复"), ("HACK", "临时方案"),
+    ("XXX", "待定"), ("WIP", "进行中"), ("TBD", "待确定"),
+    ("N/A", "不适用"), ("OK", "通过"), ("FAIL", "失败"),
+    ("PASS", "通过"), ("ERROR", "错误"), ("WARN", "警告"),
+    ("INFO", "信息"), ("DEBUG", "调试"), ("TRACE", "追踪"),
+    ("v0.", "版本零"), ("v1.", "版本一"), ("v2.", "版本二"), ("v3.", "版本三"),
+    ("v4.", "版本四"), ("v5.", "版本五"),
+    # 文件扩展名
+    (".py", "脚本"), (".js", "脚本"), (".ts", "脚本"), (".vue", "组件"),
+    (".json", "数据"), (".yaml", "配置"), (".yml", "配置"), (".toml", "配置"),
+    (".cfg", "配置"), (".ini", "配置"), (".md", "文档"), (".txt", "文本"),
+    (".pdf", "文档"), (".doc", "文档"), (".docx", "文档"), (".csv", "表格"),
+    (".sql", "数据库"), (".sh", "脚本"), (".bat", "脚本"), (".ps1", "脚本"),
+    (".exe", "可执行文件"), (".dll", "库文件"),
+]
+
+
+def _remove_english_from_comment(line: str) -> str:
+    """从注释行中删除英文，保留中文描述。"""
     stripped = line.strip()
     if not stripped.startswith("#"):
         return line
 
-    # 空注释 → 分隔
-    if stripped == "#":
-        return line.replace("#", "# 分隔", 1)
-
-    # 模块路径 # path/to/file.py → # 模块：path/to/file.py
-    m = re.match(r"^#\s*([\w\\/._-]+\.py)$", stripped)
-    if m:
-        return line.replace(stripped, f"# 模块：{m.group(1)}", 1)
-
-    # 盒型字符分隔线：═、─、━、┄ 等 → 末尾加 分隔
-    if re.match(r"^#\s*[═─━┄┅┈┉╌╍╴╶╸╺]+$", stripped):
-        return line.rstrip("\n\r") + " 分隔\n" if line.endswith(("\n", "\r")) else line.rstrip() + " 分隔"
-
-    # ===...=== 型分隔线 → 末尾加 分隔
-    if re.match(r"^#\s*=+$", stripped):
-        return line.rstrip("\n\r") + " 分隔\n" if line.endswith(("\n", "\r")) else line.rstrip() + " 分隔"
-
-    # 普通英文注释 → 加中文前缀
     indent = line[:len(line) - len(line.lstrip())]
-    comment_text = stripped[1:].strip()
-    if comment_text and not _contains_chinese(comment_text):
-        return f"{indent}# 说明：{comment_text}\n"
+    text = _get_comment_text(line)
 
-    return line
+    if not text:
+        return f"{indent}# 分隔\n" if line.endswith(("\n", "\r")) else f"{indent}# 分隔"
+
+    # 工具指令豁免：不修改
+    if any(text.startswith(d) for d in TOOL_DIRECTIVES):
+        return line
+
+    # 已经是纯中文，不修改
+    if _is_chinese_comment(line):
+        return line
+
+    # 盒型字符分隔线 → 已经是纯中文（"分隔"二字）
+    if re.match(r"^[═─━┄┅┈┉╌╍╴╶╸╺]+$", text) or re.match(r"^=+$", text):
+        return line
+
+    # 应用术语翻译
+    result = text
+    for en, zh in TERM_TRANSLATIONS:
+        result = result.replace(en, zh)
+
+    # 删除残留的英文字母（只保留中文、数字、标点、空格）
+    cleaned = re.sub(r'[a-zA-Z]', '', result)
+    # 清理多余空格
+    cleaned = re.sub(r'\s+', '', cleaned).strip()
+    # 清理多余标点
+    cleaned = re.sub(r'[-—]+$', '', cleaned).strip()
+    cleaned = re.sub(r'^[-—]+', '', cleaned).strip()
+
+    if not cleaned:
+        cleaned = "（说明已省略）"
+
+    suffix = "\n" if line.endswith(("\n", "\r")) else ""
+    return f"{indent}# {cleaned}{suffix}"
+
+
+def _fix_comment_line(line: str) -> str:
+    """修复单行 # 注释，确保全部为中文。"""
+    return _remove_english_from_comment(line)
 
 
 def fix_lang_violations(root: Path) -> int:
@@ -293,7 +426,7 @@ def main() -> int:
     """入口：支持 pre-commit 模式（传入文件列表，阻断）和全量模式（报告不阻断）。"""
     root = Path(__file__).resolve().parent.parent
 
-    # 判断模式：--fix → 自动修复 LANG 违规
+    # 判断模式：--→自动修复违规
     args = sys.argv[1:]
     if "--fix" in args:
         args = [a for a in args if a != "--fix"]

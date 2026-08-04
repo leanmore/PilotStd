@@ -22,7 +22,7 @@ from ....i18n import _
 from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS, WORK_COLUMNS
 from ...workers import RowUpdate
 
-# 重导出数据 I/O 函数，保持 MainWindow 类体导入链路不中断
+# 重导出数据/函数，保持类体导入链路不中断
 from ._table_io import (  # noqa: F401 — 由 MainWindow 类体导入消费
     _get_visible_cols,
     _on_save_result,

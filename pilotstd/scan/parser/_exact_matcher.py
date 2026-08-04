@@ -1,4 +1,4 @@
-# 模块：pilotstd/scan/parser/_exact_matcher.py
+# 模块：项目/扫描/解析器/__匹配器脚本
 """ExactMatcher — 精确匹配通道独立类（原 ExactMatchMixin 的 7 个匹配方法）。
 
 通过组合注入 parser 引用，替代 MRO 隐式依赖。
@@ -19,9 +19,9 @@ class ExactMatcher:
     """精确匹配通道集合 — 组合注入到 StandardParser。"""
 
     def __init__(self, parser):
-        # 共享引用：直接复制 parser 的属性引用，避免同步维护
+        # 共享引用：直接复制解析器的属性引用，避免同步维护
         self._parser = parser
-        # 共享引用（直接从 parser 复制，同一个对象）
+        # 共享引用（直接从解析器复制，同一个对象）
         self.regex: Pattern[str] = parser.regex
         self.regex_no_year: Pattern[str] = parser.regex_no_year
         self.regex_typed: Pattern[str] = parser.regex_typed
@@ -36,7 +36,7 @@ class ExactMatcher:
         m = self.regex_db.match(text)
         if not m:
             return None
-        # 提取行政区划代码和可选推荐性标识 T
+        # 提取行政区划代码和可选推荐性标识
         code = m.group("code")
         std_type = m.group("type")
         number_str = m.group("number")
@@ -128,7 +128,7 @@ class ExactMatcher:
         match = self.regex.match(text)
         if not match:
             return None
-        # 提取各字段并委托 parser 的辅助方法处理
+        # 提取各字段并委托解析器的辅助方法处理
         prefix = self._parser._trim_prefix(match.group("prefix"), text)
         num_str = match.group("number")
         number, num_suffix, raw_number_str = self._parser._extract_number(num_str)

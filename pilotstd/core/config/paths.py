@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/paths.py
-# 目录/路径相关函数 — 从 config.py 拆分
+# 模块：项目/核心/配置/脚本
+# 目录/路径相关函数—从配置脚本拆分
 
 import os
 import sys

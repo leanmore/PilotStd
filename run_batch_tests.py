@@ -1,5 +1,5 @@
-# 分批全量测试执行器 v7
-# GUI 全量隔离 + 死锁/网络隔离 + 自动完成检测
+# 分批全量测试执行器7
+# 图形界面全量隔离+死锁/网络隔离+自动完成检测
 
 import json
 import os
@@ -37,7 +37,7 @@ deadlock_root_list = [f for f in root_all if f in DEADLOCK_ROOT_FILES]
 root_clean = [f for f in root_all if f not in isolated]
 root_batches = [root_clean[i:i+32] for i in range(0, len(root_clean), 32)]
 
-# GUI 全量隔离 — Windows timeout_method=thread 无法中断 Qt C++ 事件循环
+# 图形界面全量隔离—超时_=线程无法中断界面框架++事件循环
 gui_all = sorted(f for f in os.listdir(os.path.join(PROJECT_ROOT, "tests/gui"))
                  if f.startswith("test_") and f.endswith(".py"))
 gui_batches = []  # GUI 全量隔离，无法用 timeout 修复
@@ -50,7 +50,7 @@ for i, bf in enumerate(root_batches):
 batches.append({"name": "cli", "dir": "tests/cli/",
                 "files": ["tests/cli/test_argparse.py", "tests/cli/test_execution.py"], "file_count": 2})
 
-# GUI 批次恢复：--timeout=15 替代全量隔离
+# 图形界面批次恢复：--超时=15替代全量隔离
 for i, bf in enumerate(gui_batches):
     batches.append({"name": f"gui_{chr(65+i)}", "dir": "tests/gui/",
                     "files": [f"tests/gui/{f}" for f in bf], "file_count": len(bf),
@@ -59,14 +59,14 @@ for i, bf in enumerate(gui_batches):
 batches.append({"name": "web", "dir": "tests/web/",
                 "files": ["tests/web/test_http_mock.py"], "file_count": 1})
 
-# 网络依赖批次（CI=1 跳过真实 HTTP，--timeout=30, 独立）
+# 网络依赖批次（持续集成=1跳过真实网络，--超时=30,独立）
 if network_list:
     batches.append({"name": "network", "dir": "tests/",
                     "files": [f"tests/{f}" for f in network_list],
                     "file_count": len(network_list), "independent": True,
                     "env_ci": True})
 
-# 死锁批次（仅 root 并发文件，--timeout=30, 独立）
+# 死锁批次（仅并发文件，--超时=30,独立）
 if deadlock_root_list:
     batches.append({"name": "deadlock", "dir": "tests/",
                     "files": [f"tests/{f}" for f in deadlock_root_list],

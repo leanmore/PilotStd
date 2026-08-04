@@ -1,5 +1,5 @@
-# 模块：pilotstd/ui/pending_query_dialog.py
-# 待确认二次查询对话框 — 从 main_window.py 提取
+# 模块：项目//_查询_脚本
+# 待确认二次查询对话框—从入口_脚本提取
 # 分隔
 # 提供站点选择、冷却等待、批量查询功能。
 
@@ -26,7 +26,7 @@ from .workers import QueryWorker
 logger = logging.getLogger(__name__)
 
 
-# ── PendingQueryDialog：待确认查询主对话框 ──
+# ──：待确认查询主对话框──
 
 
 class PendingQueryDialog(QDialog):
@@ -64,7 +64,7 @@ class PendingQueryDialog(QDialog):
         self._countdown_active = False
         self._has_local_db = self._check_local_db_available()
 
-    # ── UI 构建 ──
+    # ──用户界面构建──
 
     def _build_info_label(self) -> QLabel:
         """创建信息栏 QLabel。"""
@@ -268,7 +268,7 @@ class PendingQueryDialog(QDialog):
             self.reject()
             return
 
-        # QueryWorker 接收 site 参数，由 manager.query() 透传给路由引擎
+        # 接收参数，由管理器.查询()透传给路由引擎
         self._results = []
         self._worker = QueryWorker(
             self._mgr, self._parsed_list, site=self._selected_site, force_refresh=True, parent=self
@@ -326,7 +326,7 @@ class PendingQueryDialog(QDialog):
         total = len(self._parsed_list)
         found = sum(1 for _, r in self._results if r.standard_name)
         failed = total - found
-        # Q31: 查询成功的条目从待确认列表移除
+        # 31:查询成功的条目从待确认列表移除
         confirmed_items = []
         for idx, result in self._results:
             parsed = self._parsed_list[idx]

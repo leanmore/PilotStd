@@ -1,6 +1,6 @@
-# pilotstd/scan/watcher.py — 增量文件监控（watchdog 事件驱动 + file_index 持久化）
-# FileWatchHandler 处理创建/修改/删除/移动四类事件，自动更新索引
-# FileWatcher 封装 Observer 生命周期，启动时先全量扫描再启动增量监控
+# 项目/扫描/监控器脚本—增量文件监控（事件驱动+_索引持久化）
+# 处理创建/修改/删除/移动四类事件，自动更新索引
+# 封装生命周期，启动时先全量扫描再启动增量监控
 """基于 watchdog 的文件系统监控器，实现增量扫描。"""
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ class FileWatchHandler(PatternMatchingEventHandler):
                 return True
         return False
 
-    # _handle_new_or_modified — 计算哈希 → 解析 → 更新索引，异常静默丢弃
+    # ____—计算哈希→解析→更新索引，异常静默丢弃
     def _handle_new_or_modified(self, path: str) -> None:
         """处理文件创建或修改：计算哈希 → 解析文件名 → 更新索引。"""
         if self._should_skip(path):
@@ -101,7 +101,7 @@ class FileWatcher:
         self._observer: Any = None  # watchdog Observer 类型桩不完整
         self._watched_dirs: List[str] = []
 
-        # 从配置获取过滤规则（与 FileScanner 保持一致）
+        # 从配置获取过滤规则（与保持一致）
         exts = config_manager.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])
         self._patterns = [f"*{ext}" for ext in exts]
         self._skip_dir_names = config_manager.get("scan.skip_folders", ["过期作废"])

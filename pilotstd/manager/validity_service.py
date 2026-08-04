@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/validity_service.py
-# 时效性检查服务 — 供 API 层调用
+# 模块：项目/管理器/_服务脚本
+# 时效性检查服务—供接口层调用
 
 from typing import Any
 

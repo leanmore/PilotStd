@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/parser/_foreign.py
-# 标准解析器国外标准后处理模块 — 原 ForeignHandlerMixin，现为模块级纯函数
+# 模块：项目/扫描/解析器/_脚本
+# 标准解析器国外标准后处理模块—原，现为模块级纯函数
 """国外标准定向后处理 — 按分组路由到对应 handler。"""
 
 import re
@@ -35,7 +35,7 @@ def _dispatch_foreign_handler(info: ParsedStdInfo, raw: str, group: str) -> None
         _handle_special_sep(info, raw)
     elif group == "unique":
         _handle_unique(info, raw)
-    # pure_numeric / multi_prefix：无需后处理
+    # _/_：无需后处理
 
 
 def _handle_letter_class(info: ParsedStdInfo, raw: str) -> None:
@@ -121,8 +121,8 @@ def _handle_special_sep(info: ParsedStdInfo, raw: str) -> None:
             info.year = int(ym.group(1))
 
     elif code.startswith("ASME"):
-        # BPVC 罗马数字卷号由 _exact_match_bpvc 在 post_process 之前处理
-        # 此处仅处理非 BPVC 的 ASME 标准，当前无需额外后处理
+        # 罗马数字卷号由___在_进程之前处理
+        # 此处仅处理非的标准，当前无需额外后处理
         pass
 
 
@@ -131,19 +131,19 @@ def _handle_unique(info: ParsedStdInfo, raw: str) -> None:
     code = info.logical_code.upper()
 
     if code.startswith("ANSI"):
-        # 双重署名由 regex_typed 的 endorser 捕获组处理，无需后处理
+        # 双重署名由_的捕获组处理，无需后处理
         return
 
     if code.startswith("CAC"):
-        # 尝试匹配 CAC 特殊前缀（Codex Stan/CXS/CXA/CXP/CXG/CAC）
+        # 尝试匹配特殊前缀（/////）
         for cac_pfx in CAC_PREFIXES:
             if cac_pfx.upper() in raw.upper():
                 info.logical_code = cac_pfx
                 break
 
     elif code.startswith("ITU"):
-        # ITU-T/R/D 部门后缀已在 logical_code 中保留
-        # 尝试从 raw 补全年份（若无）
+        # //部门后缀已在_中保留
+        # 尝试从补全年份（若无）
         if info.year == 0:
             ym = re.search(r"[\-]\s*((?:19|20)\d{2})\b", raw)
             if ym:

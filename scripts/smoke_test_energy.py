@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# 模块：scripts/smoke_test_energy.py
+# 模块：/__脚本
 """能源标准适配器网络冒烟测试。
 
 用途：验证 EnergyAdapter 在真实网络环境下能正常访问 114.251.111.103:18080。
@@ -12,10 +12,10 @@ from pathlib import Path
 
 import urllib3
 
-# 适配器内部已设置 verify=False，此处消除控制台警告
+# 适配器内部已设置=，此处消除控制台警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 确保项目根目录在 sys.path
+# 确保项目根目录在.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -32,7 +32,7 @@ def main() -> int:
     print(f"\n[1/5] 适配器初始化: {adapter.site_label} ({adapter.site_name})")
     print(f"      API_URL: {adapter.API_URL}")
 
-    # 2. 验证 Host Header
+    # 2.验证
     host = adapter._client.headers.get("Host", "")
     print(f"\n[2/5] Host Header: {host}")
     assert host == "114.251.111.103:18080", f"Host Header 不正确: {host}"

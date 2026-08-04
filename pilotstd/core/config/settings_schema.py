@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/config/settings_schema.py
+# 模块：项目/核心/配置/_表结构脚本
 """配置 Schema 注册表 —— 单一数据源（SSOT）。
 
 所有可配置项的元数据集中定义于此。
@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-# 控件类型：前端根据此字段选择渲染的 UI 组件
+# 控件类型：前端根据此字段选择渲染的用户界面组件
 FIELD_INPUT = "input"  # <input> 文本框
 FIELD_PASSWORD = "password"  # <input type="password">
 FIELD_SELECT = "select"  # <select> 下拉（options 必填）
@@ -34,10 +34,10 @@ class SettingDef:
     required: bool = False  # 是否必填
 
 
-# ── 完整配置 Schema ──
+# ──完整配置──
 
 SCHEMA: list[SettingDef] = [
-    # ── 存储 Tab ──
+    # ──存储──
     SettingDef(
         key="storage.root_dir",
         tab="storage",
@@ -91,7 +91,7 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 3 * * *",
         help_text="定时扫描的 cron 表达式",
     ),
-    # ── 网络 Tab ──
+    # ──网络──
     SettingDef(
         key="network.proxy",
         tab="network",
@@ -107,7 +107,7 @@ SCHEMA: list[SettingDef] = [
         default=True,
         help_text="启用 User-Agent 轮转，降低反爬检测风险",
     ),
-    # ── 查询 Tab ──
+    # ──查询──
     SettingDef(
         key="query.query_interval",
         tab="query",
@@ -122,7 +122,7 @@ SCHEMA: list[SettingDef] = [
         default=True,
         help_text="启用查询结果缓存，减少重复请求",
     ),
-    # ── 扫描 Tab ──
+    # ──扫描──
     SettingDef(
         key="scan.skip_folders",
         tab="scan",
@@ -147,7 +147,7 @@ SCHEMA: list[SettingDef] = [
         placeholder="~$",
         help_text="文件名包含这些关键词时跳过扫描",
     ),
-    # ── 界面 Tab ──
+    # ──界面──
     SettingDef(
         key="appearance.login_bg",
         tab="ui",
@@ -186,7 +186,7 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 2 * * *",
         help_text="日期提醒的 cron 表达式",
     ),
-    # 说明：── OCR Tab ──
+    # 说明：──文字识别──
     SettingDef(
         key="ocr.baidu_api_key",
         tab="ocr",

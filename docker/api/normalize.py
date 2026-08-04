@@ -1,4 +1,4 @@
-# docker/api/normalize.py — 文件规范化 API（通过 StandardManager 统一入口）
+# 容器//脚本—文件规范化接口（通过统一入口）
 import logging
 
 from fastapi import Body, Depends, HTTPException
@@ -18,7 +18,7 @@ def _dict_to_parsed(item: dict) -> ParsedStdInfo:
     number = item.get("number", 0)
     year = item.get("year", 0)
 
-    # 前置校验：禁止占位符和非法零值静默入库，Web API 返回 400
+    # 前置校验：禁止占位符和非法零值静默入库，接口返回400
     if logical_code == "" or logical_code is None:
         logger.error(
             "规范化失败: source_path=%s, logical_code=%r, number=%s, year=%s",

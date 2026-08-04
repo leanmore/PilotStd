@@ -1,5 +1,5 @@
-# 模块：pilotstd/cli/commands/__main__.py
-# 允许 python -m pilotstd.cli.commands 方式启动
+# 模块：项目//命令/__入口__脚本
+# 允许-项目..命令方式启动
 import sys
 
 from pilotstd.cli.commands import main

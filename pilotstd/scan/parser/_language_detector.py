@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/parser/_language_detector.py
-# 语言检测 Handler
+# 模块：项目/扫描/解析器/__检测器脚本
+# 语言检测
 """提供文件名语言版本检测功能。"""
 
 from ..lang_detect import detect_language

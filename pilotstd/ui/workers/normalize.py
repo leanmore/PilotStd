@@ -1,4 +1,4 @@
-# pilotstd/ui/workers/normalize.py — NormalizeWorker，从 workers.py 拆分
+# 项目//工作者/脚本—，从工作者脚本拆分
 
 import logging
 from typing import Any

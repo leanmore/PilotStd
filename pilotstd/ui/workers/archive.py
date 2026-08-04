@@ -1,4 +1,4 @@
-# pilotstd/ui/workers/archive.py — ArchiveWorker，从 workers.py 拆分
+# 项目//工作者/归档脚本—，从工作者脚本拆分
 # 分隔
 # 后台归档线程：文件移动 + 磁盘空间检查 + 断点续做。
 
@@ -17,7 +17,7 @@ from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, 
 logger = logging.getLogger(__name__)
 
 
-# ── ArchiveWorker：归档线程 ──
+# ──：归档线程──
 
 
 class ArchiveWorker(QThread):

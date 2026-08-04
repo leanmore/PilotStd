@@ -1,8 +1,8 @@
-# docker/api/wechat_ip.py — 企业微信可信 IP 自动更新 API
-# GET  /api/wechat-ip/config   → 获取配置
-# PUT  /api/wechat-ip/config   → 保存配置
-# POST /api/wechat-ip/check    → 立即检测并更新
-# GET  /api/wechat-ip/status   → 当前状态
+# 容器//_脚本—企业微信可信自动更新接口
+# //-/配置→获取配置
+# //-/配置→保存配置
+# //-/→立即检测并更新
+# //-/→当前状态
 import logging
 
 from fastapi import Depends

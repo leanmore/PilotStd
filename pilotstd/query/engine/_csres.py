@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_csres.py
+# 模块：项目/查询/引擎/_脚本
 """CSRES 后台查询处理器 — 独立线程查询，替代原 CsresMixin。
 
 组合模式重构：CsresMixin → CsresHandler，依赖通过 EngineCore 注入。
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ._core_types import EngineCore
 
 logger = logging.getLogger(__name__)
-# CsresHandler — CSRES 后台查询处理器，独立线程执行 CSRES 适配器查询，替代原 CsresMixin
+# 后台查询处理器，独立线程执行适配器查询，替代原
 
 
 class CsresHandler:
@@ -30,7 +30,7 @@ class CsresHandler:
     def __init__(self, core: "EngineCore") -> None:
         self._core = core
 
-    # _build_csres_pool — 计算 GB/行业各取多少条（GB 60% + 行业 40%）
+    # ___池—计算/行业各取多少条（60%+行业40%）
     def _build_csres_pool(self, gb_items: list, industry_items: list) -> list:
         """计算 GB/行业各取多少条（GB 60% + 行业 40%）。"""
         gb_take = int(self._CSRES_LIMIT * 0.6)  # GB 类取 60%
@@ -55,7 +55,7 @@ class CsresHandler:
         )
         return now
 
-    # _run_csres_worker — CSRES 后台查询线程：从 GB/行业桶各取配额条目并发查询
+    # ___工作者—后台查询线程：从/行业桶各取配额条目并发查询
     def _run_csres_worker(
         self,
         gb_items: list,
@@ -80,7 +80,7 @@ class CsresHandler:
         _last_ts = time.time()
         for idx, item in pool:
             if csres_failures[0] >= self._CSRES_CIRCUIT_BREAK:
-                # ✅ #46 P1: CSRES 熔断计数器（含剩余丢弃条目数）
+                # ✅#461:熔断计数器（含剩余丢弃条目数）
                 items_processed = len(csres_results)
                 items_dropped = len(pool) - items_processed
                 if metrics:

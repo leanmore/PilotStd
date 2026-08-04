@@ -1,6 +1,6 @@
-# 模块：pilotstd/core/download_utils.py
-# Q24: 下载导入共享工具 — 文本解析 + 标准号校验 + 去重
-# Web API 与桌面 GUI 共用
+# 模块：项目/核心/下载_工具脚本
+# 24:下载导入共享工具—文本解析+标准号校验+去重
+# 接口与桌面图形界面共用
 """
 下载列表导入工具
 
@@ -54,7 +54,7 @@ def parse_download_sources(text: str | None = None) -> dict[str, Any]:
     if not text or not text.strip():
         return {"valid": [], "invalid": [], "duplicates": []}
 
-    # CSV 自动识别：首行含 standard_number 列名
+    # 自动识别：首行含_列名
     if _looks_like_csv(text):
         raw_numbers = _parse_csv_content(text)
     else:

@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/classifier.py
-# QueryClassifier — 查询后分类，将查询结果按状态/替代关系分堆
+# 模块：项目/管理器/分类器脚本
+# 查询后分类，将查询结果按状态/替代关系分堆
 
 import logging
 import re
@@ -40,7 +40,7 @@ class QueryClassifier:
         self._query_engine = query_engine
 
     # ════════════════════════════════════════════════════════════════ 分隔
-    # 公共 API
+    # 公共接口
     # ════════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod

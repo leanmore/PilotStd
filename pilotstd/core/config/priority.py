@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/priority.py
-# 配置优先级管理器 — 在现有 ConfigManager 基础上提供 ENV > FILE > FACTORY 优先级查询
+# 模块：项目/核心/配置/脚本
+# 配置优先级管理器—在现有基础上提供环境>>优先级查询
 
 import json
 import logging
@@ -7,7 +7,7 @@ import os
 from enum import IntEnum
 from typing import Any, Dict, Optional, Tuple
 
-# 使用标准 logging 而非 LoggerManager，因为此模块可能在 LoggerManager 初始化前被加载
+# 使用标准而非，因为此模块可能在初始化前被加载
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +25,7 @@ class PriorityConfigManager:
 
     def __init__(self, config_path: Optional[str] = None):
         """初始化优先级配置管理器：加载工厂默认值 → 文件配置 → 环境变量。"""
-        # config_path 支持通过环境变量 PILOTSTD_CONFIG_PATH 覆盖，便于 Docker 场景
+        # 配置_支持通过环境变量类型脚本__覆盖，便于场景
         self.config_path: str = config_path or os.getenv("PILOTSTD_CONFIG_PATH") or "config.json"
         # 缓存层：存储已解析的 (值, 优先级) 元组，避免重复查找
         self._cache: Dict[str, Tuple[Any, ConfigPriority]] = {}
@@ -66,7 +66,7 @@ class PriorityConfigManager:
         self._env_new = {}
         self._env_legacy = {}
 
-        # 旧版兼容变量名集合，v0.6 后推荐统一使用 PILOTSTD_ 前缀
+        # 旧版兼容变量名集合，版本零6后推荐统一使用类型脚本_前缀
         legacy_vars = {
             "STANDARD_ROOT",
             "OCR_BAIDU_API_KEY",
@@ -77,7 +77,7 @@ class PriorityConfigManager:
 
         for env_key, env_value in os.environ.items():
             if env_key.startswith("PILOTSTD_"):
-                # 去掉 PILOTSTD_ 前缀作为配置键名，保持层级一致性
+                # 去掉类型脚本_前缀作为配置键名，保持层级一致性
                 config_key = env_key[9:]  # 去掉 "PILOTSTD_" 前缀
                 self._env_new[config_key] = self._parse_env_value(env_value)
             elif env_key in legacy_vars:
@@ -99,7 +99,7 @@ class PriorityConfigManager:
         if key in self._cache:
             return self._cache[key][0]
 
-        # 按优先级从高到低排列，新 ENV > 旧 ENV > FILE > FACTORY
+        # 按优先级从高到低排列，新环境>旧环境>>
         sources = [
             (self._env_new, ConfigPriority.ENV_NEW),
             (self._env_legacy, ConfigPriority.ENV_LEGACY),
@@ -161,7 +161,7 @@ class PriorityConfigManager:
 
 
 # ── 全局单例 ──
-# 模块级惰性初始化，首次调用 get_priority_config() 时创建实例
+# 模块级惰性初始化，首次调用__配置()时创建实例
 _default_manager: Optional[PriorityConfigManager] = None
 
 

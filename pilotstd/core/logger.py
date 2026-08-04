@@ -1,9 +1,9 @@
-# 模块：pilotstd/core/logger.py
-# 日志管理器：双通道（控制台+文件）、按大小轮转(256KB)、1个备份
-# 文件通道使用 QueueHandler + QueueListener 架构：
-#   - 业务线程写 QueueHandler（非阻塞入队）
-#   - 专用 QueueListener 线程持有 RotatingFileHandler 执行 os.rename
-#   - 彻底消除 Windows 下日志滚动 PermissionError
+# 模块：项目/核心/脚本
+# 日志管理器：双通道（控制台+文件）、按大小轮转(256)、1个备份
+# 文件通道使用+架构：
+# 业务线程写（非阻塞入队）
+# 专用线程持有执行.
+# 彻底消除下日志滚动
 
 import atexit
 import io
@@ -18,7 +18,7 @@ from typing import Optional
 from .frozen import is_frozen
 
 # 模块名缩写映射，便于日志筛选和阅读。
-# 未列出的模块自动使用 last.upper()[:6] 作为标签（见 _TagFormatter.format()），
+# 未列出的模块自动使用.()[:6]作为标签（见_.()），
 # 日志不会丢失。此处仅覆盖需要"更短可读标签"的历史模块，非适配器注册列表。
 # 新增适配器无需修改此映射——自动获得模块名前6字符大写作为标签。
 _TAG_MAP = {
@@ -98,12 +98,12 @@ class LoggerManager:
         level: int = logging.INFO,
         retain_days: int = 14,
     ) -> None:
-        # 防止重复初始化：get_logger 和入口点可能先后调用 __init__
+        # 防止重复初始化：_和入口点可能先后调用____
         if LoggerManager._instance is not None:
             return
         if log_dir is None:
             log_dir = _get_log_dir()
-        # 绝对路径，防止后续 os.chdir 导致日志路径漂移
+        # 绝对路径，防止后续.导致日志路径漂移
         self._log_dir = os.path.abspath(log_dir)
         os.makedirs(self._log_dir, exist_ok=True)
 
@@ -115,7 +115,7 @@ class LoggerManager:
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        # 控制台日志 — 同上格式，INFO 级别
+        # 控制台日志—同上格式，信息级别
         console_fmt = _TagFormatter(
             "%(asctime)s [%(levelname).1s] %(tag)-6s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
@@ -123,18 +123,18 @@ class LoggerManager:
 
         root = logging.getLogger()
         root.setLevel(level)
-        # 控制台 handler：仅在有效终端环境下启用（PyInstaller -w 模式跳过）
+        # 控制台处理器：仅在有效终端环境下启用（-模式跳过）
         if self._console_available():
             root.addHandler(self._console_handler(console_fmt))
 
-        # 文件 handler 通过 QueueListener 专用线程持有，消除 Windows os.rename 并发冲突
+        # 文件处理器通过专用线程持有，消除.并发冲突
         file_handler = self._file_handler("app.log", file_fmt)
-        # Queue(-1) 无限队列确保高并发时不丢日志
+        # (-1)无限队列确保高并发时不丢日志
         log_queue: Queue = Queue(-1)
         root.addHandler(logging.handlers.QueueHandler(log_queue))
         LoggerManager._listener = logging.handlers.QueueListener(log_queue, file_handler)
         LoggerManager._listener.start()
-        # 注册 atexit 钩子确保进程退出时 listener 优雅停止
+        # 注册钩子确保进程退出时优雅停止
         atexit.register(self._stop_listener)
 
         # 抑制第三方库日志噪音，避免日志文件被无意义信息淹没
@@ -173,7 +173,7 @@ class LoggerManager:
         """检查是否有可用控制台——PyInstaller -w 模式下返回 False。"""
         if not sys.stderr or not sys.stdout:
             return False
-        # --noconsole 打包后流无 fileno，StreamHandler 会崩溃
+        # 打包后流无，会崩溃
         for stream in (sys.stderr, sys.stdout):
             try:
                 stream.fileno()
@@ -184,15 +184,15 @@ class LoggerManager:
     def _file_handler(self, filename: str, fmt: logging.Formatter) -> logging.Handler:
         """创建按大小轮转的文件 handler（256KB/1备份）。"""
         path = os.path.join(self._log_dir, filename)
-        # maxBytes=512KB：单文件可控，便于 grep 和跨平台传输
-        # backupCount=10：保留 10 个历史备份，总占用 ≤ 5.5MB
+        # =512：单文件可控，便于和跨平台传输
+        # =10：保留10个历史备份，总占用≤5.5
         h = logging.handlers.RotatingFileHandler(
             path,
             maxBytes=512 * 1024,
             backupCount=10,
             encoding="utf-8",
         )
-        # 文件通道 DEBUG 级别，保留完整调试信息
+        # 文件通道调试级别，保留完整调试信息
         h.setLevel(logging.DEBUG)
         h.setFormatter(fmt)
         return h

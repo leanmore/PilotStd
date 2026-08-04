@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/settings_utils.py
+# 模块：项目/核心/_工具脚本
 """Settings pure utilities — zero GUI/I/O dependencies."""
 
 

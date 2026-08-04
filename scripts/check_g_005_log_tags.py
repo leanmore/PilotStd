@@ -9,10 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = ROOT / "pilotstd"
 
-# 这些文件是日志基础设施（定义标签、LoggerManager），不参与业务代码的日志检查
+# 这些文件是日志基础设施（定义标签、），不参与业务代码的日志检查
 EXCLUDED_FILES = {"_core.py", "logger.py"}
 
-# 这些目录中的 print() 是合法的用户交互输出，不检查
+# 这些目录中的()是合法的用户交互输出，不检查
 EXCLUDED_DIRS = {"cli", "scripts"}
 
 # 日志标签的唯一合法来源
@@ -34,11 +34,11 @@ def _find_py_files(root: Path) -> list[Path]:
 
 def _is_logger_import_ok(tree: ast.Module) -> tuple[bool, str]:
     """检查是否通过合法路径获取 logger，而非自定义 _log() 或裸 print。"""
-    # 检查模块顶层：禁止模块级 def _log()
+    # 检查模块顶层：禁止模块级_()
     for stmt in tree.body:
         if isinstance(stmt, ast.FunctionDef) and stmt.name == "_log":
             return False, f"禁止模块级 _log() 函数 (行 {stmt.lineno})"
-    # 检查全部节点：禁止 print() 调用（含 print(stderr) 等变体）
+    # 检查全部节点：禁止()调用（含()等变体）
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name) and node.func.id == "print":

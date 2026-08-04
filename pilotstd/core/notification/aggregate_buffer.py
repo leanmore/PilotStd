@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/aggregate_buffer.py
+# 模块：项目/核心//_缓冲区脚本
 """线程安全的通知聚合缓冲（固定窗口 + 首次延时策略）。
 
 同类事件在固定窗口内累积，1 分钟首次触发，5 分钟强制发送。
@@ -48,18 +48,18 @@ class NotificationAggregator:
         self._max = batch_size
         self._bypass = bypass_events or set()
         self._lock = threading.Lock()
-        # 说明：event_type → list of (msg, channels, enqueued_at)
+        # 说明：_→(,渠道,队列_)
         self._buffers: dict[str, list[_Entry]] = {}
         self._timers: dict[str, threading.Timer | None] = {}
         self._window_start: dict[str, float] = {}
-        # 事件特定格式化回调：event_type → (entries, count) → str
+        # 事件特定格式化回调：_→(,)→
         self._formatters: dict[str, Callable[..., str]] = {}
 
     def register_formatter(self, event_type: str, formatter: Callable[..., str]) -> None:
         """注册事件特定的聚合摘要格式化回调。"""
         self._formatters[event_type] = formatter
 
-    # ── 公开 API ──
+    # ──公开接口──
 
     def push(
         self,

@@ -1,4 +1,4 @@
-# docker/api/auto.py — 一键处理 API
+# 容器//脚本—一键处理接口
 from fastapi import Depends
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter

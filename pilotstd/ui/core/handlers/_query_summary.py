@@ -1,9 +1,9 @@
-# 模块：pilotstd/ui/core/handlers/_query_summary.py
+# 模块：项目//核心/处理器/_查询_脚本
 """QuerySummaryHandler — 查询汇总弹窗管理，从 QueryUIHandler 拆分以控制文件大小。
 
 薄包装层：UI 构建 + 文件保存 + 弹窗管理。纯逻辑委托给 QuerySummaryFlowEngine。
 """
-# SECTION_META 控制分栏显示顺序和图标，key → (图标, i18n键名)
+# 输入输出_控制分栏显示顺序和图标，→(图标,18键名)
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # ── 分栏元数据 ──
 
 SECTION_META = {
-    # 分栏元数据：key → (图标, i18n键名)
+    # 分栏元数据：→(图标,18键名)
     "organize": ("📁", "section_organize"),
     "normalize": ("📝", "section_normalize"),
     "expire": ("🗑️", "section_expire"),
@@ -86,7 +86,7 @@ class QuerySummaryHandler:
         self._summary_container_layout: QVBoxLayout | None = None
         self._summary_total_label: QLabel | None = None
 
-    # build_buckets — 将解析结果按 next_action 分桶
+    # _—将解析结果按_分桶
     def build_buckets(self) -> dict[str, list[Any]]:
         """将 _parsed_results 按 next_action 分组。委托 Engine。"""
         return self._engine.build_buckets(self._parsed_results)
@@ -148,7 +148,7 @@ class QuerySummaryHandler:
 
         return frame
 
-    # ── pending 原因提取 ──
+    # ──原因提取──
 
     def _get_pending_reason(self, item: Any) -> str:
         """获取 pending 条目的冲突原因。委托 Engine。"""
@@ -159,9 +159,9 @@ class QuerySummaryHandler:
         ms = getattr(item, "match_status", "") or ""
         return self._engine.get_pending_reason(ms)
 
-    # ── 数据保存与 UI 更新 ──
+    # ──数据保存与用户界面更新──
 
-    # save_csv — 将条目列表导出为 CSV 文件，含完整标准信息列
+    # _—将条目列表导出为文件，含完整标准信息列
     def save_csv(self, path: str, items: list[Any]) -> None:
         """保存条目列表为 CSV 文件。"""
         with open(path, "w", newline="", encoding="utf-8-sig") as f:
@@ -331,7 +331,7 @@ class QuerySummaryHandler:
         summary = self._engine.build_summary_message(buckets, total)
         NotifyService.get().show(tr("query_toast_title"), summary)
 
-        # 检查 _suppress_dialogs（lambda 需要调用才能得到布尔值）
+        # 检查__（需要调用才能得到布尔值）
         if callable(self._suppress_dialogs) and self._suppress_dialogs():
             return
 

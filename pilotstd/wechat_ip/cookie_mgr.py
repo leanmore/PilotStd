@@ -1,4 +1,4 @@
-# 模块：pilotstd/wechat_ip/cookie_mgr.py
+# 模块：项目/_/_脚本
 """Cookie 管理器——CookieCloud 拉取 + 手动导入 + 加密存储。
 
 支持三种来源：CookieCloud > 手动导入 > 自动登录（暂未实现）
@@ -62,7 +62,7 @@ def _decrypt_cookiecloud_aes(data_b64: str, key_b64: str) -> str:
     try:
         raw = base64.b64decode(data_b64)
         key = base64.b64decode(key_b64)
-        # CookieCloud 使用 16 字节 IV + ciphertext + 16 字节 tag
+        # 使用16字节++16字节
         if len(raw) < 32:
             return ""
         iv = raw[:16]
@@ -92,7 +92,7 @@ def fetch_cookiecloud(server_url: str, user_key: str, password: str = "") -> Opt
         logger.warning("CookieCloud 返回数据未加密或格式异常")
         return None
 
-    # 派生解密密钥：md5(user_key + '-' + password)
+    # 派生解密密钥：5(_+'-'+)
     key_str = user_key
     if password:
         key_str = user_key + "-" + password
@@ -108,14 +108,14 @@ def fetch_cookiecloud(server_url: str, user_key: str, password: str = "") -> Opt
         logger.warning("CookieCloud 解密后非有效 JSON")
         return None
 
-    # 查找 work.weixin.qq.com 的 Cookie
+    # 查找...的
     for domain_info in cookie_data.get("cookie_data", {}).values():
         if not isinstance(domain_info, list):
             continue
         for item in domain_info:
             if isinstance(item, dict) and "work.weixin.qq.com" in item.get("domain", ""):
                 cookies = item.get("cookies", [])
-                # 构造 Cookie 字符串
+                # 构造字符串
                 parts = []
                 for c in cookies:
                     if isinstance(c, dict):
@@ -124,7 +124,7 @@ def fetch_cookiecloud(server_url: str, user_key: str, password: str = "") -> Opt
                 logger.info("CookieCloud: 提取到企业微信 Cookie (%d 个键)", len(parts))
                 return result
 
-    # 回退：遍历所有域名的 Cookie
+    # 回退：遍历所有域名的
     all_parts = []
     for domain_info in cookie_data.get("cookie_data", {}).values():
         if not isinstance(domain_info, list):

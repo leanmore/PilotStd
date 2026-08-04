@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/announce_flow_engine.py
+# 模块：项目//核心/处理器/__引擎脚本
 """AnnounceFlowEngine — 公告数据处理的纯逻辑层（零 Qt、零 I/O、零事件总线）。
 
 提取公告解析、状态过滤、日期排序等纯数据变换逻辑。
@@ -26,27 +26,19 @@ class AnnounceFlowEngine:
 
     _DEFAULT_DATE = "0000-00-00"
 
-    # ── parse_announcement（解析公告数据）──────────────────────────────
+    # ──_（解析公告数据）──────────────────────────────
 
     @staticmethod
     def parse_announcement(raw: dict[str, Any] | None) -> dict[str, Any]:
         """将原始公告数据标准化为统一格式。
 
         处理：字段名映射（兼容多数据源）、类型转换、缺失字段补默认值。
-        不执行任何 I/O。
+        不执行任何输入输出操作。
 
-        Args:
-            raw: 原始公告 dict（可能来自不同适配器，字段名各异）
+        参数：
+            raw: 原始公告字典（可能来自不同适配器，字段名各异）
 
-        Returns:
-            {
-                "title": str,           # 公告标题
-                "code": str,            # 公告编号
-                "pid": str,             # 公告唯一标识
-                "publish_date": str,    # 发布日期（YYYY-MM-DD）
-                "standard_count": int,  # 含标准数量
-                "is_valid": bool,       # 是否为有效公告（至少有 title 或 code）
-            }
+        返回值字典包含：标题、编号、唯一标识、发布日期、含标准数量、是否有效公告。
         """
         if not raw or not isinstance(raw, dict):
             return {
@@ -87,7 +79,7 @@ class AnnounceFlowEngine:
             "is_valid": bool(title or code),
         }
 
-    # ── filter_by_status（按状态过滤公告列表）────────────────────────────
+    # ──__（按状态过滤公告列表）────────────────────────────
 
     @staticmethod
     def filter_by_status(items: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
@@ -109,7 +101,7 @@ class AnnounceFlowEngine:
 
         return [item for item in items if _matches(item)]
 
-    # ── sort_by_date（按发布日期排序公告）──────────────────────────────
+    # ──__（按发布日期排序公告）──────────────────────────────
 
     @staticmethod
     def sort_by_date(items: list[dict[str, Any]], descending: bool = True) -> list[dict[str, Any]]:

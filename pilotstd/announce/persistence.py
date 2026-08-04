@@ -1,4 +1,4 @@
-# 模块：pilotstd/announce/persistence.py
+# 模块：项目//持久化脚本
 """Fetch checkpoint, failure log, and async task persistence.
 
 Compatible with both Database (fetchone/execute returning dicts) and

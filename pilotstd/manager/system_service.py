@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/system_service.py
-# 系统状态服务 — 供 API 层迁移使用
+# 模块：项目/管理器/_服务脚本
+# 系统状态服务—供接口层迁移使用
 
 from typing import Any
 

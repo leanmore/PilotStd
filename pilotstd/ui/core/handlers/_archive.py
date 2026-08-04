@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_archive.py
+# 模块：项目//核心/处理器/_归档脚本
 """ArchiveUIHandler — 归档 UI 状态管理，替代 ArchiveMixin。
 
 重构后纯逻辑委托给 self._engine（ArchiveFlowEngine），
@@ -83,7 +83,7 @@ class ArchiveUIHandler:
         self._on_raw_progress = on_raw_progress
         # 纯逻辑引擎
         self._engine = ArchiveFlowEngine()
-        # Worker 工厂
+        # 工厂
         self._factory = ArchiveWorkerFactory(mgr, config, pause_event, parent_widget)
         self._archive_worker: Any = None
         self._normalize_worker: Any = None
@@ -144,7 +144,7 @@ class ArchiveUIHandler:
         self._clear_table()
         self._reset_progress()
 
-        # 工厂：创建规范化 Worker
+        # 工厂：创建规范化
         callbacks = ArchiveCallbacks(
             on_batch_ready=self.on_normalize_batch_ready,
             on_progress=lambda pct: (
@@ -209,7 +209,7 @@ class ArchiveUIHandler:
             return
 
         self._reset_progress()
-        # 工厂：创建归档 Worker
+        # 工厂：创建归档
         self._archive_results = []
         callbacks = ArchiveCallbacks(
             on_batch_ready=self.on_archive_batch_ready,

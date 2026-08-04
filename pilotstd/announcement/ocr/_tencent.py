@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/ocr/_tencent.py
-# 腾讯云 OCR 提供商实现
+# 模块：项目///_脚本
+# 腾讯云文字识别提供商实现
 """腾讯云通用文字识别 — 支持 PDF 直接上传。
 
 TC3-HMAC-SHA256 签名，直接 HTTP 调用，无需 SDK。
@@ -77,7 +77,7 @@ class TencentOcrProvider(BaseOcrProvider):
         secret_signing = _sign(secret_service, "tc3_request")
         signature = hmac.new(secret_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
 
-        # 步骤4: Authorization 头
+        # 步骤4:头
         authorization = (
             f"{algorithm} Credential={self._secret_id}/{credential_scope}, "
             f"SignedHeaders={signed_headers}, Signature={signature}"

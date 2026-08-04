@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/__init__.py
+# 模块：项目/查询/适配器/____脚本
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
 from .csres import CsresAdapter

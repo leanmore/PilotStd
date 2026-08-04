@@ -1,4 +1,4 @@
-# 模块：pilotstd/announcement/adapters/__init__.py
+# 模块：项目//适配器/____脚本
 # 适配器注册中心
 
 from .samr_db import SamrDbCrawler

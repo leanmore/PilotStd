@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/scheduled_service.py
-# ScheduledService — 定时任务专用方法：扫描入库、更新检测、批量查询/下载
+# 模块：项目/管理器/_服务脚本
+# 定时任务专用方法：扫描入库、更新检测、批量查询/下载
 
 import logging
 import os
@@ -11,7 +11,7 @@ from ..download.models import DownloadTask
 
 logger = logging.getLogger(__name__)
 
-# Q6-1: 扫描排除规则
+# 6-1:扫描排除规则
 _EXCLUDED_DIRS = {"_unparseable"}
 _EXCLUDED_PREFIXES = (".",)
 _EXCLUDED_SUFFIXES = (".tmp", ".partial")
@@ -70,7 +70,7 @@ class ScheduledService:
             return result
 
         for dirpath, dirnames, filenames in os.walk(scan_root):
-            # 原地修改 dirnames 阻止递归进入排除目录
+            # 原地修改阻止递归进入排除目录
             dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS and not d.startswith(".")]
 
             for filename in filenames:
@@ -80,21 +80,21 @@ class ScheduledService:
                 file_path = os.path.join(dirpath, filename)
 
                 try:
-                    # 3a. 计算哈希 + 获取文件大小
+                    # 3.计算哈希+获取文件大小
                     file_hash = hash_file_content(file_path)
                     file_size = os.path.getsize(file_path)
 
-                    # 3b. 解析 code + name（仅传文件名，与解析器约定一致）
+                    # 3.解析+（仅传文件名，与解析器约定一致）
                     parsed = self._parser.parse(os.path.basename(file_path))
                     if parsed is None:
                         logger.warning("文件名解析失败，跳过: %s", file_path)
                         result["skipped"] += 1
                         continue
 
-                    # 终点防御：确保 ext 带点号
+                    # 终点防御：确保带点号
                     parsed.ext = ensure_dot_ext(parsed.ext)
 
-                    # 3c. 四要素精确查询
+                    # 3.四要素精确查询
                     row = self._file_index.db.execute(
                         "SELECT id FROM standards WHERE sha256=? AND code=? AND name=? AND size=?",
                         (file_hash, parsed.logical_code, parsed.std_name or "", file_size),
@@ -105,7 +105,7 @@ class ScheduledService:
                         result["skipped"] += 1
                         continue
 
-                    # 3d. 条件更新（仅 scan_status='pending'）
+                    # 3.条件更新（仅扫描_=''）
                     cursor = self._file_index.db.execute(
                         """UPDATE standards
                            SET scan_status='indexed',
@@ -161,7 +161,7 @@ class ScheduledService:
             for n, p in parsed
         ]
         results = self._query_engine.query_standards(items, use_parallel=True, preferred_site=preferred_site)
-        # 构建兼容的 stats（旧调用方期望 tuple）
+        # 构建兼容的（旧调用方期望）
         total = len(results)
         found = sum(1 for r in results if r.is_found())
         from ..query.models import BatchQueryStats

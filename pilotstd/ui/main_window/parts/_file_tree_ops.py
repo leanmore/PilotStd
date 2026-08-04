@@ -52,7 +52,7 @@ def _populate_quick_access(self) -> None:
 
 def _on_drives_ready(self, drives: list[Any]) -> None:
     """后台线程返回磁盘列表后，填充此电脑子节点。"""
-    # 防御：树被 _retranslate_file_tree 重建后，旧线程回调可能操作无效对象
+    # 防御：树被___重建后，旧线程回调可能操作无效对象
     if not hasattr(self, "this_pc") or self.this_pc is None:
         return
     try:

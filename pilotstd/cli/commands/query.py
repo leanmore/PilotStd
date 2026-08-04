@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/query.py — query 子命令
+# 项目//命令/查询脚本—查询子命令
 import argparse
 import csv
 import sys
@@ -21,7 +21,7 @@ def cmd_query(args: argparse.Namespace) -> int:
         with open(args.file, "r", encoding="utf-8") as f:
             numbers = [line.strip() for line in f if line.strip()]
     else:
-        # 从 stdin 管道读取标准号列表
+        # 从管道读取标准号列表
         numbers = [line.strip() for line in sys.stdin if line.strip()]
 
     if not numbers:
@@ -57,7 +57,7 @@ def cmd_query(args: argparse.Namespace) -> int:
 
     results, stats = mgr.query(parsed_list, progress_callback=_progress)
 
-    # 输出 CSV 格式的查询结果
+    # 输出格式的查询结果
     writer = csv.writer(sys.stdout)
     writer.writerow(["标准号", "标准名称", "状态", "匹配状态", "下一步", "来源站点", "是否采标"])
     for p, r in zip(parsed_list, results):

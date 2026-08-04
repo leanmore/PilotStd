@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/miit.py
+# 模块：项目/查询/适配器/脚本
 """
 工信部行业标准适配器
 
@@ -133,7 +133,7 @@ class MIITAdapter(BaseAdapter):
             std_no,
         )
 
-        # ✅ #46 P2: 尝试从响应中提取真实状态字段，替代硬编码"现行"
+        # ✅#462:尝试从响应中提取真实状态字段，替代硬编码"现行"
         raw_status = rec.get("bpiBzstatus") or rec.get("standardStatus") or rec.get("status") or ""
 
         return QueryResult(

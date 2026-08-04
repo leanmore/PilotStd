@@ -1,4 +1,4 @@
-# docker/api/system.py — 系统管理 API（版本信息、自更新、重启、资源监控）
+# 容器//脚本—系统管理接口（版本信息、自更新、重启、资源监控）
 import json
 import logging
 import os
@@ -27,7 +27,7 @@ def _get_container_id() -> str:
     try:
         with open("/proc/self/cgroup") as f:
             for line in f:
-                # Docker 容器 cgroup 行包含 "docker" 或 "containerd" 关键字
+                # 容器行包含"容器"或""关键字
                 if "docker" in line or "containerd" in line:
                     return line.strip().split("/")[-1][:12]
     except Exception as e:
@@ -37,7 +37,7 @@ def _get_container_id() -> str:
 
 def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     """执行 docker 命令，docker.sock 未挂载时提前报错。"""
-    # 未挂载 docker.sock 时提前报错，避免后续超时等待
+    # 未挂载容器.时提前报错，避免后续超时等待
     if not os.path.exists("/var/run/docker.sock"):
         raise RuntimeError("docker.sock 未挂载，无法执行容器管理操作")
     return subprocess.run(
@@ -53,7 +53,7 @@ async def get_version():
     """返回当前版本和容器信息。"""
     cid = ""
     try:
-        # 获取容器 ID，失败不影响版本号返回
+        # 获取容器，失败不影响版本号返回
         cid = _get_container_id()
     except Exception as e:
         logger.warning("获取容器 ID 失败: %s", e)
@@ -68,13 +68,13 @@ async def get_version():
 
 def _get_current_digest(cid: str) -> str:
     """获取容器当前镜像的 RepoDigest，失败返回空字符串。"""
-    # docker inspect 获取容器元数据 → 从中提取 Image ID
+    # 容器获取容器元数据→从中提取
     inspect = _run_docker(["inspect", cid])
     info = json.loads(inspect.stdout)[0]
     old_image = info.get("Image", "")
     old_digest = ""
     try:
-        # 查询镜像的 RepoDigests（含 sha256 hash）
+        # 查询镜像的（含256哈希）
         img_inspect = _run_docker(["image", "inspect", old_image, "--format", "{{.RepoDigests}}"])
         old_digest = img_inspect.stdout.strip()
     except Exception as e:
@@ -84,7 +84,7 @@ def _get_current_digest(cid: str) -> str:
 
 def _pull_and_compare(old_digest: str) -> tuple[str, bool]:
     """拉取最新镜像并比对 digest，返回 (new_digest, needs_update)。"""
-    # docker pull 最新镜像，timeout=300 秒以适应慢速网络
+    # 容器最新镜像，超时=300秒以适应慢速网络
     pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
     pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
     if pulled_layers:
@@ -170,7 +170,7 @@ async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_man
 
         logger.info("检测到新镜像: %s → %s", old_digest[:80], new_digest[:80])
         restart_ok = _restart_via_compose()
-        # 镜像更新通知 (B1.7)
+        # 镜像更新通知(1.7)
         try:
             if hasattr(mgr, "notification_mgr"):
                 mgr.notification_mgr.send_event(

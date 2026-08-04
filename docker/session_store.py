@@ -1,5 +1,5 @@
-# 模块：docker/session_store.py
-# 服务端会话存储 — JWT token 与用户会话映射，支持登出/刷新/过期清理
+# 模块：容器/_脚本
+# 服务端会话存储—令牌与用户会话映射，支持登出/刷新/过期清理
 """内存会话存储：记录活跃 token，支持主动登出和定期清理过期条目。"""
 
 import threading
@@ -71,7 +71,7 @@ class SessionStore:
         now = time.time()
         removed = 0
         with self._store_lock:
-            # 收集所有过期 token，批量删除
+            # 收集所有过期，批量删除
             expired = [t for t, s in self._store.items() if s["expires_at"] <= now]
             for t in expired:
                 del self._store[t]

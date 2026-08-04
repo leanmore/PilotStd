@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_mini_bucket.py
+# 模块：项目/查询/引擎/__脚本
 """小桶构建与逐桶查询执行处理器 — 替代原 MiniBucketMixin。
 
 组合模式重构：MiniBucketMixin → MiniBucketHandler，依赖通过 EngineCore 注入。
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Phase 3.1: request_interval 执行层辅助函数（提取以降低 _process_single_query 圈复杂度）
+# 阶段3.1:_执行层辅助函数（提取以降低_进程__查询圈复杂度）
 def _apply_request_interval(rotator: Any, site_name: str, ctx: dict) -> None:
     """从 SiteState 读取 request_interval 并 time.sleep，记录到 metrics。"""
     if rotator and site_name in rotator._sites:
@@ -144,7 +144,7 @@ class MiniBucketHandler:
 
         try:
             _t0 = time.time()
-            # Phase 3.1: request_interval 执行层落地
+            # 阶段3.1:_执行层落地
             _apply_request_interval(rotator, assigned_site, ctx)
             result = adapter.query_with_strategy(item[0], item[1], item[2], item[3], item[4])
             _elapsed = round(time.time() - _t0, 3)
@@ -157,7 +157,7 @@ class MiniBucketHandler:
         except Exception:
             ctx["item_chains"].setdefault(idx, []).append(assigned_site)
             logger.warning("查询 [%s %s-%s] 异常 @%s", item[0], item[1], item[2], assigned_site)
-            # ✅ #46 P1: parse_failed 计数器（异常类解析失败）
+            # ✅#461:_计数器（异常类解析失败）
             m = ctx.get("metrics")
             if m:
                 m.increment("parse_failed")
@@ -251,7 +251,7 @@ class MiniBucketHandler:
                         assigned_site,
                         len(mini),
                     )
-                    # ✅ #46 P1: 冷却溢出计数器
+                    # ✅#461:冷却溢出计数器
                     m = ctx.get("metrics")
                     if m:
                         m.increment("overflow", count=len(mini))
@@ -266,7 +266,7 @@ class MiniBucketHandler:
                     len(mini),
                     len(mini),
                 )
-                # ✅ #46 P1: 溢出计数器
+                # ✅#461:溢出计数器
                 m = ctx.get("metrics")
                 if m:
                     m.increment("overflow", count=len(mini))

@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_report.py
+# 模块：项目/查询/引擎/_脚本
 """批量查询统计报告处理器 — 替代原 ReportMixin。
 
 组合模式重构：ReportMixin → ReportHandler，依赖通过 EngineCore 注入。

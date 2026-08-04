@@ -1,4 +1,4 @@
-# 模块：pilotstd/announce/notifier.py
+# 模块：项目//通知器脚本
 """公告抓取完成后的通知与缓存失效。"""
 
 from __future__ import annotations

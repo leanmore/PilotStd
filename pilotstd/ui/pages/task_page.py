@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/pages/task_page.py
+# 模块：项目//页面/_脚本
 # 任务中心：历史记录、进度、日志
 # 分隔
 # 展示后台任务列表和详情信息。
@@ -24,7 +24,7 @@ from ...i18n import _
 from ...task.models import TaskStatus
 from ...task.queue import TaskQueue
 
-# ── TaskPage：任务列表控件 ──
+# ──：任务列表控件──
 
 
 class TaskPage(QWidget):
@@ -120,7 +120,7 @@ class TaskPage(QWidget):
         self._refresh()
 
 
-# ── TaskCenterDialog：任务中心对话框 ──
+# ──：任务中心对话框──
 
 
 class TaskCenterDialog(QDialog):

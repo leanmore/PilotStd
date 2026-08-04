@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_auto.py
+# 模块：项目//核心/处理器/_脚本
 """AutoUIHandler — 自动管线 UI 状态管理，替代 AutoRunMixin。"""
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class AutoUIHandler:
         parsed_results: list[Any],
         status_callback: Callable[[str], None],
         progress_callback: Callable[[int], None],
-        # UI 回调
+        # 用户界面回调
         clear_table: Callable[[], None],
         force_finish_progress: Callable[[], None],
         reset_progress: Callable[[], None],
@@ -57,7 +57,7 @@ class AutoUIHandler:
         set_progress_format: Callable[[str], None],
         set_progress_bar_visible: Callable[[bool], None],
         show_auto_error_style: Callable[[], None],
-        # Handler 引用（用于信号路由）
+        # 引用（用于信号路由）
         scan_handler: Any = None,
         query_handler: Any = None,
         download_handler: Any = None,
@@ -92,7 +92,7 @@ class AutoUIHandler:
 
     def start_auto_pipeline(self, source_dir: str) -> None:
         """启动自动管线 Worker，连接所有信号。"""
-        # 初始化 UI 状态：显示进度条，清零，隐藏弹窗，清空表格
+        # 初始化用户界面状态：显示进度条，清零，隐藏弹窗，清空表格
         self._set_progress_bar_visible(True)
         self._progress_cb(0)
         self._set_progress_format("%p%")
@@ -100,7 +100,7 @@ class AutoUIHandler:
         self._clear_table()
         self._parsed_results.clear()
 
-        # 创建 Worker 并连接各阶段信号
+        # 创建并连接各阶段信号
         self._auto_worker = AutoWorker(self._mgr, source_dir, parent=self._parent)
         # 扫描阶段信号
         self._auto_worker.scan_batch.connect(self._on_scan_batch_ready)

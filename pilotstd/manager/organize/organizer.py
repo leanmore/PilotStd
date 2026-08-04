@@ -1,6 +1,6 @@
-# 模块：pilotstd/manager/organize/organizer.py
-# 核心归类逻辑 — 从 organizer_service.py 拆分
-# 负责 PDF 按标准号分类移动、Word/模板镜像归档、内容去重、索引写入
+# 模块：项目/管理器/归类/归类脚本
+# 核心归类逻辑—从归类_服务脚本拆分
+# 负责便携文档按标准号分类移动、/模板镜像归档、内容去重、索引写入
 
 import logging
 import os
@@ -39,13 +39,13 @@ class OrganizerCore:
         self._std_parser = StandardParser(self._cfg.get("scan.code_mapping", {}))
         self._skipped_source_files: set[str] = set()
 
-    # organize — 主入口，遍历 parsed_list 逐条归档，每 50 条输出进度
+    # 归类—主入口，遍历_逐条归档，每50条输出进度
     def organize(
         self: Any, parsed_list: list[Any], word_source_root: str | None = None, overwrite: bool = False
     ) -> dict[str, Any]:
         """将已处理的文件移动到分类目录。Word/模板文件按源目录镜像归档。"""
         items = parsed_list
-        # 按 (logical_code, number, year) 去重，防止同一废止标准重复归档
+        # 按(_,,)去重，防止同一废止标准重复归档
         seen: set[tuple[str, int, int]] = set()
         dedup_items: list[Any] = []
         for p in items:
@@ -109,7 +109,7 @@ class OrganizerCore:
         parsed = self._std_parser.parse(os.path.basename(clean_src)) if self._std_parser else None
 
         if parsed and parsed.logical_code and parsed.number > 0 and parsed.year > 0:
-            # 有标准号 → 走分类归档，复用 PDF 路径生成，保留原扩展名
+            # 有标准号→走分类归档，复用便携文档路径生成，保留原扩展名
             dst = self._file_mover.normalize_filename(parsed)
             dst = os.path.splitext(dst)[0] + ext
             logical_code = parsed.logical_code
@@ -168,7 +168,7 @@ class OrganizerCore:
             result["failed"] += 1
             result["details"].append(f"Word 归档失败: {os.path.basename(src)} - {e}")
 
-    # _organize_nonword_item — 非 Word 文件：哈希去重后移动，更新索引
+    # _归类__—非文件：哈希去重后移动，更新索引
     def _organize_nonword_item(self, p: Any, mover: Any, result: dict, content_hashes: dict, on_exists: str) -> None:
         """非 Word 文件去重 + 移动 + 索引更新。"""
         src = getattr(p, "source_path", "")
@@ -198,7 +198,7 @@ class OrganizerCore:
                     status=getattr(p, "effect_status", "") or "现行",
                     raw_number=p.raw_number or "",
                 )
-            # Q6-0: 归档成功后注册到 standards 表
+            # 6-0:归档成功后注册到表
             if fhash:
                 try:
                     file_size = os.path.getsize(dst)
@@ -256,7 +256,7 @@ class OrganizerCore:
         except Exception:
             pass
 
-    # _dedup_standard — 相同标准号旧路径清理，避免分类变化导致双份文件
+    # __—相同标准号旧路径清理，避免分类变化导致双份文件
     def _dedup_standard(self: Any, parsed: Any, new_path: str) -> None:
         """去重：同标准号旧路径残留（分类变化导致双份文件）。"""
         if not self._file_index:

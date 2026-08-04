@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/__init__.py
+# 模块：项目/核心//____脚本
 """通知模块——多渠道消息分发。"""
 
 from .channel import NotificationChannel, NotificationMessage

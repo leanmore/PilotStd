@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/defaults.py
-# 出厂默认值常量 — 从 config.py 拆分
+# 模块：项目/核心/配置/脚本
+# 出厂默认值常量—从配置脚本拆分
 
 import os
 
@@ -80,8 +80,8 @@ FACTORY_DEFAULTS = {
     "notification.aggregate_enabled": True,
     "notification.aggregate_window_seconds": 5,
     "notification.aggregate_max_events": 50,
-    # aggregate_bypass_events 默认值由 events.BYPASS_EVENTS 派生，
-    # 此处留空由 manager 层在读取时做回退，用户可通过 config.json 覆盖
+    # __默认值由.通过_类型脚本派生，
+    # 此处留空由管理器层在读取时做回退，用户可通过配置脚本覆盖
     # 静音时段
     "notification.quiet_hours_enabled": False,
     "notification.quiet_hours_start": "22:00",
@@ -103,7 +103,7 @@ FACTORY_DEFAULTS = {
     # ── 已废弃字段（兼容旧前端）──
     "validity.frequency": "weekly",  # @deprecated 已废弃，用 frequency_weeks 替代
     "validity.update_interval": 28,  # @deprecated 已废弃，用 total_weeks 替代
-    # ── Phase 4b: 日期提醒 ──
+    # ──阶段4:日期提醒──
     "tasks.date_reminder_enabled": False,
     "tasks.date_reminder_cron": "0 2 * * *",
     "tasks.auto_archive_retry_enabled": True,

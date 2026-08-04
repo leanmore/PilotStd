@@ -1,4 +1,4 @@
-# docker/api/settings.py — 系统配置读写 API + 静态令牌管理
+# 容器//脚本—系统配置读写接口+静态令牌管理
 import logging
 from datetime import datetime, timezone
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["settings"])
 
 # ═══════════════════════════════════════════════════════════════ 分隔
-# v3.0: Tab scope 定义（单一数据源）
+# 版本三0:定义（单一数据源）
 # ═══════════════════════════════════════════════════════════════ 分隔
 TAB_SCOPES: dict[str, str] = {
     "ui": "user",
@@ -137,7 +137,7 @@ def get_settings(mgr=Depends(get_manager_dep)):
 def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
     """保存系统配置并更新定时任务调度。"""
     cfg = mgr.cfg
-    # 只读字段：GET 返回供前端展示，但不允许通过 PUT 回写 config
+    # 只读字段：返回供前端展示，但不允许通过回写配置
     _READONLY_KEYS = {"storage.scan_paths"}
     mappings = {
         "storage": "storage",
@@ -160,7 +160,7 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
                 if f"{cfg_prefix}.{k}" in _READONLY_KEYS:
                     continue
                 cfg.set(f"{cfg_prefix}.{k}", v)
-    # 同步定时任务 cron 配置到调度器
+    # 同步定时任务配置到调度器
     tasks = data.get("tasks", {})
     for job_id, cron_key in [
         ("auto_scan", "auto_scan_cron"),
@@ -171,7 +171,7 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
         cron = tasks.get(cron_key, "0 0 * * *")
         update_job(job_id, cron, enabled)
     cfg.save()
-    # v3.0: 审计日志
+    # 版本三0:审计日志
     try:
         from pilotstd.core.audit import write_audit
 
@@ -185,7 +185,7 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(r
     return {"ok": True}
 
 
-# ── 站点配置管理（Q15）──────────────────────────────────────────
+# ──站点配置管理（15）──────────────────────────────────────────
 
 
 class SiteConfigUpdate(BaseModel):
@@ -206,7 +206,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
             mgr.adapter_manager._rotator.get_cooldown_remaining(name) if mgr.adapter_manager._rotator else 0
         )
 
-        # label 动态导入
+        # 动态导入
         try:
             import importlib
 
@@ -217,7 +217,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
         except Exception:
             label = name.title()
 
-        # url 从 rotator 获取
+        # 从轮转器获取
         site_state = mgr.adapter_manager._rotator._sites.get(name) if mgr.adapter_manager._rotator else None
         url = site_state.active_url if site_state else ""
         priority = list(mgr.adapter_manager._rotator._sites.keys()).index(name) + 1 if site_state else 0
@@ -265,7 +265,7 @@ def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
     rotator = mgr.adapter_manager._rotator
     quota = mgr.adapter_manager._quota
 
-    # 1. 持久化（先写 Config，失败则不更新内存）
+    # 1.持久化（先写，失败则不更新内存）
     try:
         cfg.set(f"query.sites.{name}.window_limit", data.max_requests)
         cfg.set(f"query.sites.{name}.daily_limit", data.daily_limit)
@@ -330,7 +330,7 @@ def refresh_token(user: str = Depends(require_admin)):
     return {"token": new_token, "refreshed_at": now_iso}
 
 
-# ── 配置 Schema（单一数据源）─────────────────────────────────────
+# ──配置（单一数据源）─────────────────────────────────────
 
 
 @router.get("/api/settings/schema")

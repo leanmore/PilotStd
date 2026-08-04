@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")
 
 # 映射规则: (源路径前缀, 目标文档路径, 阻断模式)
-# 阻断模式: "block" = 文档存在时阻断, "warn" = 仅告警
+# 阻断模式:"锁"=文档存在时阻断,""=仅告警
 DOC_SYNC_MAP: list[tuple[str, str, str]] = [
     ("pilotstd/core/parser.py", "docs/architecture/modules/parser.md", "block"),
     ("pilotstd/query/adapters/", "docs/architecture/modules/query.md", "block"),

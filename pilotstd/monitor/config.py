@@ -1,4 +1,4 @@
-# 模块：pilotstd/monitor/config.py
+# 模块：项目//配置脚本
 """文件监控配置读写——存储到数据库 cache_config 表。统计值由 MonitorStats 管理。"""
 
 import threading

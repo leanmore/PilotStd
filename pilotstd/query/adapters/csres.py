@@ -1,5 +1,5 @@
-# 模块：pilotstd/query/adapters/csres.py
-# 工标网查询适配器（csres.com）
+# 模块：项目/查询/适配器/脚本
+# 工标网查询适配器（.）
 # 逐页逐行搜索，标准编号精确比对后才返回
 
 import logging
@@ -36,8 +36,8 @@ class CsresAdapter(BaseAdapter):
 
     SEARCH_URL = "http://www.csres.com/s.jsp?keyword={}"
     _http_warned = False  # HTTP 明文风险只提示一次
-    # 本地冷却标记（秒级时间戳）——多线程竞态下 _set_local_cooldown 和
-    # _is_locally_cooled 之间存在时间窗口，用锁保护。
+    # 本地冷却标记（秒级时间戳）——多线程竞态下___冷却和
+    # ___之间存在时间窗口，用锁保护。
     _local_cooldown_until: float = 0.0
     _cool_lock = threading.Lock()
 
@@ -84,7 +84,7 @@ class CsresAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "工标网"
 
-    # ── 覆盖：多页搜索 + 详情页 replaces ─────────────────────
+    # ──覆盖：多页搜索+详情页─────────────────────
 
     def _search_candidates(self, search_term: str) -> list[Any]:
         """工标网翻页搜索，返回多页所有候选结果。"""
@@ -115,7 +115,7 @@ class CsresAdapter(BaseAdapter):
                 break
             resp.encoding = "gbk"
 
-            # 检测被拒：302→/error/noright.html 或页面内容为错误页
+            # 检测被拒：302→//.或页面内容为错误页
             if resp.status_code != 200 or "noright" in resp.url or "noright" in resp.text[:200].lower():
                 logger.warning("工标网拒绝访问，自动冷却站点(24h)")
                 self._set_local_cooldown(COOLDOWN_ON_REJECT)
@@ -142,7 +142,7 @@ class CsresAdapter(BaseAdapter):
             logger.debug(f"搜索词 '{search_term}' 未找到匹配")
         return candidates
 
-    # ── HTML 解析 ────────────────────────────────────────────
+    # ──网页解析────────────────────────────────────────────
 
     @staticmethod
     def _parse_total_pages(html: str) -> int:
@@ -178,7 +178,7 @@ class CsresAdapter(BaseAdapter):
             found_number = cells[0].get_text(strip=True)
             if not re.match(r"[A-Z]+", found_number):
                 continue
-            # 提取详情页 ID
+            # 提取详情页
             detail_url = ""
             a_tag = cells[0].find("a")
             if a_tag:
@@ -206,7 +206,7 @@ class CsresAdapter(BaseAdapter):
             is_downloadable=not is_adopted(std_name),
             source_site=self.site_name,
         )
-        # 暂存详情页 URL，由 query_with_strategy 择机提取 replaces
+        # 暂存详情页链接，由查询__择机提取
         result._csres_detail_url = detail_url  # type: ignore[attr-defined]
         return result
 
@@ -219,7 +219,7 @@ class CsresAdapter(BaseAdapter):
             if resp is None or resp.status_code != 200:
                 return ""
             resp.encoding = "gbk"
-            # 匹配 \"被GB/T 713.2-2023代替\"
+            # 匹配\"被/713.2-2023代替\"
             m = re.search(
                 r"被\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-:]\s*\d{4})\s*代替",
                 resp.text,

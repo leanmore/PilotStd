@@ -1,4 +1,4 @@
-# pilotstd/core/std_utils.py — 标准代号/编号通用工具函数
+# 项目/核心/_工具脚本—标准代号/编号通用工具函数
 """标准体系通用工具：GB 代号判断、标准号解析等。"""
 
 import re
@@ -24,22 +24,22 @@ def classify_std_code(logical_code: str) -> str:
 
     code = logical_code.upper().replace(" ", "")
 
-    # GB 类
+    # 类
     if code in GB_CODES:
         return "gb"
 
-    # 国外标准（必须在 ISO/IEC 之前检查，避免 IEEE 被 IEC startswith 误匹配）
+    # 国外标准（必须在/之前检查，避免被误匹配）
     for fc in FOREIGN_CODE_SET:
         fc_norm = fc.upper().replace(" ", "")
         if code.startswith(fc_norm):
             return "foreign"
 
-    # 说明：ISO/IEC
+    # 说明：/
     for iso in ISO_IEC_SET:
         if code.startswith(iso.upper().replace(" ", "")):
             return "iso_iec"
 
-    # 地方标准（DB + 数字）
+    # 地方标准（数据库+数字）
     if re.match(r"^DB\d{2,4}(?:/T)?$", code):
         return "db"
 
@@ -47,14 +47,14 @@ def classify_std_code(logical_code: str) -> str:
     if code == "SG":
         return "enterprise"
 
-    # 行业标准：≤4 字符且在 code_mapping 中（含去斜杠形式）
-    # 必须在团体标准检查之前，避免 TSG 等 T 开头行业标准被误判为团体标准
+    # 行业标准：≤4字符且在_中（含去斜杠形式）
+    # 必须在团体标准检查之前，避免类型脚本等开头行业标准被误判为团体标准
     mapping = build_code_mapping()
     code_no_slash = code.replace("/", "")
     if logical_code in mapping or code in mapping or code_no_slash in mapping:
         return "industry"
 
-    # 团体标准（T/xxx 或其无斜杠形式）
+    # 团体标准（/或其无斜杠形式）
     if code.startswith("T/") or re.match(r"^T[A-Z]{2,}", code):
         return "group"
 
@@ -87,7 +87,7 @@ def _try_parse_general_format(text: str) -> dict[str, Any] | None:
     """尝试按通用格式解析: 纯字母代号 + 序号 + 可选 .数字/.P数字 + 分隔符 + 4位年份。"""
     from ..scan.parser._constants import PRESERVED_MULTI_WORD
 
-    # 检测多词前缀（如 DIN EN、BS EN ISO），避免被正则拆分为 code + num_prefix
+    # 检测多词前缀（如、），避免被正则拆分为+_
     text_upper = text.upper()
     multi_word_code = ""
     for mw in sorted(PRESERVED_MULTI_WORD, key=len, reverse=True):

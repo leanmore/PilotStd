@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/protocols.py
+# 模块：项目//核心/处理器/脚本
 """Query Handler 依赖接口协议。
 
 将 QueryUIHandler 的 30+ 构造参数收敛为 4 个子接口 + 1 个聚合接口，

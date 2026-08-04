@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/rotator.py
+# 模块：项目/查询/轮转器脚本
 # 查询网站轮转冷却机制：限流保护、故障冷却、备用地址切换
 
 import logging
@@ -114,7 +114,7 @@ class SiteRotator:
                             site.cooldown_seconds,
                         )
                         self._last_cooldown_log[name] = now
-                    # [TRACE] 指令7: 记录冷却跳过对配额的影响
+                    # [追踪]指令7:记录冷却跳过对配额的影响
                     logger.debug(
                         "[配额] 站点=%s 因冷却不可用 剩余秒=%.0f",
                         name,
@@ -135,7 +135,7 @@ class SiteRotator:
                         site.cooldown_seconds,
                     )
                 elif was_cooling and site.cooldown_until == 0:
-                    # 冷却被 reset_all_cooldowns 或其他方式清零
+                    # 冷却被__冷却或其他方式清零
                     self._was_cooling[name] = False
                 if site.request_count >= site.max_requests:
                     self._enter_cooldown(site)
@@ -178,9 +178,9 @@ class SiteRotator:
                         site.daily_count,
                         site.daily_limit,
                     )
-                # 达到 max_requests 上限 → 立即进入冷却
-                # 此前冷却仅在 get_available() 中触发，但 query_batch_parsed
-                # 的 mini-bucket 循环不调用 get_available()，导致超额。
+                # 达到_请求上限→立即进入冷却
+                # 此前冷却仅在_()中触发，但查询__
+                # 的-循环不调用_()，导致超额。
                 if site.max_requests > 0 and site.request_count >= site.max_requests:
                     self._enter_cooldown(site)
                     self._save()
@@ -325,7 +325,7 @@ class SiteRotator:
 
     @staticmethod
     def _enter_cooldown(site: SiteState) -> None:
-        # ✅ #46 P1: 冷却倒计时 ±10% jitter，防止多线程同时恢复导致请求风暴
+        # ✅#461:冷却倒计时±10%，防止多线程同时恢复导致请求风暴
         jitter = site.cooldown_seconds * 0.1
         actual = max(1.0, site.cooldown_seconds + random.uniform(-jitter, jitter))
         site.cooldown_until = time.time() + actual
@@ -379,7 +379,7 @@ class SiteRotator:
                 if row["cooldown_until"] > now:
                     site.cooldown_until = row["cooldown_until"]
                 else:
-                    # 冷却已过期，request_count 清零
+                    # 冷却已过期，_清零
                     site.request_count = 0
                     continue
                 site.request_count = row["request_count"]

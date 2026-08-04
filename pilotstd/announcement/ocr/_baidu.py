@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/ocr/_baidu.py
-# 百度云 OCR 提供商实现
+# 模块：项目///_脚本
+# 百度云文字识别提供商实现
 """百度云通用文字识别（标准版）— basicGeneral 接口收 PDF。"""
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ class BaiduOcrProvider(BaseOcrProvider):
     def __init__(self, api_key: str, secret_key: str):
         self._api_key = api_key
         self._secret_key = secret_key
-        # Token 缓存：避免每次 OCR 调用都重新获取 access_token
+        # 令牌缓存：避免每次文字识别调用都重新获取_
         self._access_token: Optional[str] = None
         self._token_expire: float = 0
 
@@ -32,7 +32,7 @@ class BaiduOcrProvider(BaseOcrProvider):
         """获取百度云 access_token，带缓存。"""
         from ...query.network import safe_raw_get
 
-        # 缓存命中：token 未过期直接返回，提前 1 小时刷新留缓冲
+        # 缓存命中：未过期直接返回，提前1小时刷新留缓冲
         if self._access_token and time.time() < self._token_expire:
             return self._access_token
         resp = safe_raw_get(
@@ -52,7 +52,7 @@ class BaiduOcrProvider(BaseOcrProvider):
             data = resp.json()
             self._access_token = data.get("access_token", "")
             expires = data.get("expires_in", 2592000)
-            # 提前 1 小时过期，确保不会在请求中途 token 失效
+            # 提前1小时过期，确保不会在请求中途失效
             self._token_expire = time.time() + expires - 3600
             return self._access_token
         except Exception:
@@ -67,7 +67,7 @@ class BaiduOcrProvider(BaseOcrProvider):
         if not token:
             return OcrResult(error="access_token 获取失败", error_type="other")
         try:
-            # basicGeneral 接口：PDF 单页 base64 编码 + CHN_ENG 中英混合识别
+            # 接口：便携文档单页64编码+_中英混合识别
             resp = safe_raw_post(
                 "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic",
                 "baidu_ocr",

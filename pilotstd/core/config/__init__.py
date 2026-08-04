@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/config/__init__.py
+# 模块：项目/核心/配置/____脚本
 # 配置管理包 — 重导出所有公开符号，保持外部接口不变
 
 from .defaults import FACTORY_DEFAULTS

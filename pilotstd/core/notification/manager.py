@@ -1,8 +1,8 @@
-# 模块：pilotstd/core/notification/manager.py
+# 模块：项目/核心//管理器脚本
 """NotificationManager——多渠道通知分发与日志记录。"""
-# 交互契约：send_event() 统一入口（策略表→渠道路由→聚合器→发送）；聚合器默认 5s 窗口合并同类事件，
-# bypass_aggregation 事件实时发送（系统异常须及时感知）；静音时段暂存 queue 表定时补发；
-# 日志与渠道发送在同一 try 块（避免"发送成功但无日志"的审计盲区）
+# 交互契约：_()统一入口（策略表→渠道路由→聚合器→发送）；聚合器默认5窗口合并同类事件，
+# _事件实时发送（系统异常须及时感知）；静音时段暂存队列表定时补发；
+# 日志与渠道发送在同一块（避免"发送成功但无日志"的审计盲区）
 
 import json
 import logging
@@ -350,7 +350,7 @@ class NotificationManager:
 
         import threading
 
-        # 通过回调注入执行广播（回调内部处理 WebSocket/event loop 细节）
+        # 通过回调注入执行广播（回调内部处理/细节）
         threading.Thread(
             target=self._ws_broadcast,
             args=(event_type, msg.title, msg.body, msg.level, msg.link, msg.icon, msg.aggregated_count),
@@ -358,7 +358,7 @@ class NotificationManager:
             name="notif-ws-broadcast",
         ).start()
 
-    # ── 公开查询方法（替代直接访问 _db）──────────────────────
+    # ──公开查询方法（替代直接访问_）──────────────────────
 
     def get_logs(
         self,
@@ -446,7 +446,7 @@ class NotificationManager:
     def _format_standard_status_changed_aggregated(self, _event_type: str, entries: list, count: int) -> str:
         return format_standard_status_changed_aggregated(_event_type, entries, count)
 
-    # ── 策略表读写（委托 _policy helper） ──
+    # ──策略表读写（委托_）──
 
     def get_policies(self, user_id: int) -> list[dict[str, Any]]:
         return self._policy.get_policies(user_id)

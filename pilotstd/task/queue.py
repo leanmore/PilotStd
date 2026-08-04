@@ -1,5 +1,5 @@
-# 模块：pilotstd/task/queue.py
-# 任务队列：后台执行、断点续传（SQLite 持久化）、暂停/继续/取消
+# 模块：项目//队列脚本
+# 任务队列：后台执行、断点续传（数据库查询持久化）、暂停/继续/取消
 
 import logging
 import threading
@@ -13,8 +13,8 @@ from .models import TaskInfo, TaskStatus, TaskType
 logger = logging.getLogger(__name__)
 
 TASK_TABLE = "task_queue"
-# TaskQueue — 后台任务队列，任务状态持久化到 SQLite，支持断点恢复
-# 任务支持暂停/继续/取消，重启后自动将 running/pending 状态重置为 failed
+# 后台任务队列，任务状态持久化到数据库查询，支持断点恢复
+# 任务支持暂停/继续/取消，重启后自动将/状态重置为
 
 
 class TaskQueue:
@@ -27,7 +27,7 @@ class TaskQueue:
         self._task_timeout = task_timeout  # handler 超时秒数，超时后任务标记 FAILED
         self._ensure_table()
 
-    # ---- 公共 API ----
+    # 公共接口
 
     def register_handler(self, task_type: TaskType, handler: Callable[..., Any]) -> None:
         """注册任务类型的处理函数。handler(task: TaskInfo) -> TaskInfo"""
@@ -126,7 +126,7 @@ class TaskQueue:
         t.join(timeout=self._task_timeout)
 
         if t.is_alive():
-            # handler 仍在执行 → 超时
+            # 处理器仍在执行→超时
             logger.error("任务超时 (%ds): %s", self._task_timeout, task.task_id)
             with self._lock:
                 task.status = TaskStatus.FAILED

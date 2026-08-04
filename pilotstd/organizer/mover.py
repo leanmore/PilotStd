@@ -1,4 +1,4 @@
-# 模块：pilotstd/organizer/mover.py
+# 模块：项目/归类/移动器脚本
 # 文件移动与规范化：将标准文件归入对应代号目录
 
 import logging

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""G-012: SQL-表结构一致性检查。
+"""门禁零一二：查询与表结构一致性检查。
 
-通过迁移链构建生产 Schema，扫描 .py 文件中的 SQL 字符串，
-提取 INSERT/UPDATE/SELECT 中的列名并与 Schema 对照。
-f-string 动态片段和 SELECT * 跳过。
+通过迁移链构建生产数据结构，扫描派森文件中的查询字符串，
+提取插入/更新/查询中的列名并与数据结构对照。
+格式化字符串动态片段和查询星号跳过。
 """
 
 import os
@@ -16,10 +16,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# G-012 豁免：对含有 JOIN 且使用表别名的 SQL 字符串，
-# 列名→表归属在静态分析层面不可判定，人工审核确认无误后豁免
+# 门禁零一二豁免：含连接且用表别名的查询字符串，
+# 列名到表归属在静态分析层面不可判定，人工审核确认无误后豁免
 _SQL_CHECK_SKIP = {
-    # archive_retry_service.py:61 — fd.retry_count/fd.favorite_id 经表别名正确归属
+    # 备份重试服务第六十一行 — 重试计数和收藏编号经表别名正确归属
     ("pilotstd\\manager\\archive_retry_service.py", 61): True,
 }
 SCAN_DIRS = [
@@ -29,7 +29,7 @@ SCAN_DIRS = [
     ROOT / "pilotstd" / "tasks",
 ]
 
-# ── SQL 关键字（用于排除非列名的标识符） ──
+# ── 结构化查询关键字（排除非列名的标识符） ──
 SQL_KEYWORDS = frozenset(
     {
         "SELECT",
@@ -150,7 +150,7 @@ SQL_KEYWORDS = frozenset(
     }
 )
 
-# ── Python 内置名称（可能出现在 SQL 字符串中） ──
+# ── 派森内置名称（可能出现在查询字符串中） ──
 PYTHON_BUILTINS = frozenset(
     {
         "True",
@@ -163,7 +163,7 @@ PYTHON_BUILTINS = frozenset(
 
 
 def _build_schema() -> dict[str, set[str]]:
-    """通过真实 Database 运行迁移链，构建 {table_name: {col1, col2, ...}} 字典。"""
+    """通过真实数据库运行迁移链，构建表名的列集合字典。"""
     if "SUPERUSER" not in os.environ:
         os.environ["SUPERUSER"] = "g012_schema_checker"
     if "ADMIN_PASSWORD" not in os.environ:
@@ -194,7 +194,7 @@ def _build_schema() -> dict[str, set[str]]:
         return schema
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
-        # 清理 sys.path
+        # 清理系统路径
         if str(ROOT) in sys.path:
             sys.path.remove(str(ROOT))
 
@@ -217,7 +217,7 @@ def _merge_string_literals(lines: list[str]) -> list[tuple[str, int]]:
             if current_parts:
                 merged.append((" ".join(current_parts), current_start))
                 current_parts = []
-            # 同时处理 f-string
+            # 同时处理格式化字符串
             fm = re.match(r'^\s*f["\'](.*?)["\']\s*$', line)
             if fm:
                 merged.append((fm.group(1), i))
@@ -250,7 +250,7 @@ def _find_sql_strings(file_path: Path) -> list[tuple[str, int]]:
 def _extract_insert_cols(sql: str) -> list[tuple[str, str]]:
     """从 INSERT INTO t (col1, col2) 中提取列名列表。返回 [(table, col), ...]"""
     results: list[tuple[str, str]] = []
-    # 说明：INSERT [OR ...] INTO table_name (col1, col2, ...)
+    # 说明：插入[或替换]到 表名(列一, 列二, ...)
     pattern = re.compile(
         r"INSERT\s+(?:OR\s+\w+\s+)?INTO\s+(\w+)\s*\(([^)]+)\)",
         re.IGNORECASE,
@@ -269,18 +269,18 @@ def _extract_insert_cols(sql: str) -> list[tuple[str, str]]:
 def _extract_update_cols(sql: str) -> list[tuple[str, str]]:
     """从 UPDATE t SET col1=?, col2=? 中提取列名列表。"""
     results: list[tuple[str, str]] = []
-    # 说明：UPDATE table SET col=val, col2=val [WHERE ...]
-    # 先找 table 名
+    # 说明：更新 表 设值 列=值, 列二=值 [条件子句 ...]
+    # 先找表名
     table_m = re.search(r"UPDATE\s+(\w+)\s+SET\s+", sql, re.IGNORECASE)
     if not table_m:
         return results
     table = table_m.group(1)
 
-    # 提取 SET 到 WHERE/END/; 之间的部分
+    # 提取设值到条件/结束/分号之间的部分
     set_start = table_m.end()
     rest = sql[set_start:]
 
-    # 截断到 WHERE, FROM, RETURNING, ;, 或字符串结束
+    # 截断到条件子句、来源、返回子句、分号或字符串结尾
     set_end = len(rest)
     for kw in ("WHERE", "FROM", "RETURNING", ";"):
         m = re.search(r"\b" + kw + r"\b", rest, re.IGNORECASE)
@@ -289,10 +289,10 @@ def _extract_update_cols(sql: str) -> list[tuple[str, str]]:
 
     set_clause = rest[:set_end]
 
-    # 处理 f-string 动态片段
+    # 处理格式化字符串动态片段
     if "{" in set_clause:
         # 尝试提取静态部分的列名
-        # 移除 {xxx} 部分后再解析
+        # 移除花括号占位部分后再解析
         set_clause = re.sub(r"\{[^}]*\}", "", set_clause)
 
     # 按逗号分割（注意函数调用中的逗号）
@@ -305,12 +305,12 @@ def _extract_update_cols(sql: str) -> list[tuple[str, str]]:
 
 
 def _extract_from_tables(sql: str) -> set[str]:
-    """从 SQL 的 FROM/JOIN 子句提取所有引用的表名。"""
+    """从查询的来源与连接子句中提取所有引用的表名。"""
     tables: set[str] = set()
-    # 说明：FROM table [alias]
+    # 说明：来自 表 [别名]
     for m in re.finditer(r"\bFROM\s+(\w+)", sql, re.IGNORECASE):
         tables.add(m.group(1))
-    # 说明：JOIN table [alias]
+    # 说明：连接 表 [别名]
     for m in re.finditer(r"\bJOIN\s+(\w+)", sql, re.IGNORECASE):
         tables.add(m.group(1))
     return tables
@@ -324,7 +324,7 @@ def _extract_select_cols(sql: str) -> list[tuple[set[str], str]]:
     results: list[tuple[set[str], str]] = []
     referenced = _extract_from_tables(sql)
 
-    # 找 SELECT ... FROM table 模式
+    # 找查询...来自表模式
     pattern = re.compile(
         r"SELECT\s+(.+?)\s+FROM\s+(\w+(?:\s+AS\s+\w+)?)",
         re.IGNORECASE | re.DOTALL,
@@ -332,13 +332,13 @@ def _extract_select_cols(sql: str) -> list[tuple[set[str], str]]:
     for m in pattern.finditer(sql):
         cols_str = m.group(1)
 
-        # 跳过 SELECT * 和子查询中的 SELECT
+        # 跳过查询星号和子查询中的查询
         if cols_str.strip() == "*":
             continue
         if cols_str.strip().upper().startswith("SELECT"):
             continue
 
-        # 处理 f-string 动态片段
+        # 处理格式化字符串动态片段
         if "{" in cols_str:
             cols_str = re.sub(r"\{[^}]*\}", "", cols_str)
 
@@ -351,7 +351,7 @@ def _extract_select_cols(sql: str) -> list[tuple[set[str], str]]:
     return results
 
 
-# ── SQL 内置函数名（用于列名提取时识别函数调用） ──
+# ── 结构化查询内置函数名（列名提取时识别函数调用） ──
 _SQL_FUNCTIONS = frozenset(
     {
         "MAX",
@@ -428,7 +428,7 @@ def _split_expression(col: str) -> str:
             col = col.split(op)[0].strip()
             break
 
-    # IS NULL, IN, LIKE 等关键字
+    # 为空、在其中、像 等关键字
     for kw in (" IS ", " IN ", " NOT ", " LIKE ", " GLOB ", " BETWEEN "):
         pos = col.upper().find(kw)
         if pos > 0:
@@ -450,16 +450,16 @@ def _clean_column(raw: str) -> str:
     if not col:
         return ""
 
-    # 跳过 f-string 占位符、字符串/数字字面量
+    # 跳过格式化字符串占位符、字符串/数字字面量
     if "{" in col or "}" in col:
         return ""
     if re.match(r'^["\']', col) or re.match(r"^\d+", col):
         return ""
 
-    # 去除 AS 别名
+    # 去除作为别名后缀
     col = _strip_as_alias(col)
 
-    # 处理函数调用：MAX(x) → x；COALESCE(x, y) → 跳过
+    # 处理函数调用：取大值参数 → 提取；合并参数 → 跳过
     func_result = _extract_func_arg(col)
     if func_result:
         return func_result
@@ -467,12 +467,12 @@ def _clean_column(raw: str) -> str:
     if re.match(r"^\w+\s*\(", col):
         return ""
 
-    # 跳过 SQL 关键字和 Python 内置名
+    # 跳过查询关键字和派森内置名
     upper = col.upper().strip()
     if upper in SQL_KEYWORDS or upper in PYTHON_BUILTINS:
         return ""
 
-    # 表前缀：table.column → column
+    # 表前缀：表名点列名 → 列名
     if "." in col:
         col = col.split(".")[-1].strip()
 
@@ -535,17 +535,17 @@ def _check_file(file_path: Path, schema: dict[str, set[str]], rel_path: Path) ->
         # 豁免检查
         if _SQL_CHECK_SKIP.get((str(rel_path), lineno)):
             continue
-        # INSERT 列名 — 精确匹配目标表
+        # 插入列名 — 精确匹配目标表
         for table, col in _extract_insert_cols(sql):
             if table in schema and col not in schema[table]:
                 errors.append((lineno, table, col, f"INSERT INTO {table}"))
 
-        # UPDATE 列名 — 精确匹配目标表
+        # 更新列名 — 精确匹配目标表
         for table, col in _extract_update_cols(sql):
             if table in schema and col not in schema[table]:
                 errors.append((lineno, table, col, f"UPDATE {table}"))
 
-        # SELECT 列名 — 检查 FROM+JOIN 的表，回退到全库
+        # 查询列名 — 检查来源与连接的表，回退到全库
         for ref_tables, col in _extract_select_cols(sql):
             if ref_tables:
                 # 检查列是否存在于任一引用表
@@ -568,7 +568,7 @@ def main() -> int:
     print("G-012: SQL-表结构一致性检查")
     print("=" * 60)
 
-    # 1. 构建 Schema
+    # 第一步：构建数据结构
     print("构建数据库 Schema（迁移链）...")
     try:
         schema = _build_schema()

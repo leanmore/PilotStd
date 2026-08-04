@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/desktop_formatter.py
+# 模块：项目/核心//_脚本
 """桌面端 Windows Toast 格式化——剥离 Emoji、截断长度、纯文本排版。
 
 新版聚合器 format_summary 面向 Telegram/飞书等 Web 渠道，使用了 ✅❌⏱️ 等 Emoji。
@@ -13,7 +13,7 @@ import re
 from .channel import NotificationMessage
 from .renderer import DesktopRenderer
 
-# Windows Toast 气泡空间有限
+# 气泡空间有限
 MAX_TITLE_LENGTH = 40
 MAX_BODY_LENGTH = 120
 
@@ -28,7 +28,7 @@ EMOJI_MAP = {
     "📋": "",
 }
 
-# 模块级渲染器实例——桌面端只有一种渲染风格，不需要每次 new
+# 模块级渲染器实例——桌面端只有一种渲染风格，不需要每次
 _desktop_renderer = DesktopRenderer()
 
 

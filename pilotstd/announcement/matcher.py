@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/matcher.py
-# 公告交叉比对器 — 公告标准清单 ↔ file_index，更新 announcement_match
+# 模块：项目//匹配器脚本
+# 公告交叉比对器—公告标准清单↔_索引，更新_
 
 import json
 import logging
@@ -49,7 +49,7 @@ class AnnouncementMatcher:
         # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
             self._bulk_insert_records(log_rows)
-            # 入库成功后回写 parse_status，确保有数据的公告不显示"待解析"
+            # 入库成功后回写_，确保有数据的公告不显示"待解析"
             announce_nos = {row[2] for row in log_rows}
             for anno in announce_nos:
                 self._db.execute(
@@ -83,14 +83,14 @@ class AnnouncementMatcher:
                 groups[anno].append(item)
 
         for anno, group in groups.items():
-            # 找第一个非空的 publish_date
+            # 找第一个非空的_
             best_date = ""
             for it in group:
                 d = it.get("publish_date", "")
                 if d:
                     best_date = d
                     break
-            # 找第一个非空的 title
+            # 找第一个非空的
             best_title = ""
             for it in group:
                 t = it.get("announcement_title", "")
@@ -130,7 +130,7 @@ class AnnouncementMatcher:
         matches = self._find_in_file_index(parsed["logical_code"], parsed["number"])
         match_type = "new"
 
-        # 直接匹配失败时，用 replaces_code 尝试替代号匹配
+        # 直接匹配失败时，用_尝试替代号匹配
         if not matches and replaces_code:
             replaced_parsed = self._parse_std_code(replaces_code)
             if replaced_parsed:
@@ -235,7 +235,7 @@ class AnnouncementMatcher:
 
     def _get_complete_pids(self, source_site: str) -> Set[str]:
         """返回已完全解析的公告 PID 集合（所有条目 std_name 均非空）。"""
-        # HAVING COUNT(*) = COUNT(std_name) 确保该公告下所有条目都有名称
+        # 计数(*)=计数(_)确保该公告下所有条目都有名称
         cursor = self._db.execute(
             "SELECT pid FROM announcement_record "
             "WHERE source_site=? "
@@ -252,7 +252,7 @@ class AnnouncementMatcher:
         """批量插入公告记录到 announcement_record 表，按 _BATCH_SIZE 分批。"""
         if not rows:
             return
-        # 分批插入：避免单条 SQL 过长导致性能下降
+        # 分批插入：避免单条数据库查询过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
@@ -270,7 +270,7 @@ class AnnouncementMatcher:
         """批量 upsert 公告缓存到 announcement_match 表，按 _BATCH_SIZE 分批。"""
         if not rows:
             return
-        # 用 INSERT OR REPLACE 实现幂等 upsert，以 standard_number 为主键
+        # 用插入实现幂等插入或更新，以_为主键
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
             placeholders = ",".join("(?,?,?,?,?)" for _ in batch)

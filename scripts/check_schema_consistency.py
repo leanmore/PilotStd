@@ -66,7 +66,7 @@ def _extract_create_tables(filepath: Path) -> list[tuple[int, str, dict[str, str
     except (UnicodeDecodeError, PermissionError):
         return results
 
-    # 匹配 CREATE TABLE [IF NOT EXISTS] name ( ... )
+    # 匹配创建表[类型脚本](...)
     # 使用非贪婪匹配处理多行
     pattern = re.compile(
         r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\((.*?)\)\s*;?",
@@ -78,7 +78,7 @@ def _extract_create_tables(filepath: Path) -> list[tuple[int, str, dict[str, str
         body = m.group(2)
         lineno = text[: m.start()].count("\n") + 1
 
-        # 提取列定义：col_name TYPE [options], ...
+        # 提取列定义：_[],...
         columns: dict[str, str] = {}
         col_pattern = re.compile(
             r"(\w+)\s+(TEXT|INTEGER|REAL|BLOB|NUMERIC|BOOLEAN|DATETIME|JSON)(?:\s+(?:PRIMARY\s+KEY|NOT\s+NULL|UNIQUE|DEFAULT\s+\S+|AUTOINCREMENT))*",
@@ -121,7 +121,7 @@ def _check_file(filepath: Path, ref_schema: dict[str, dict[str, str]]) -> list[t
 
         ref_columns = ref_schema[table_name]
 
-        # 测试表有但生产表没有的列（EXTRA — 严重问题）
+        # 测试表有但生产表没有的列（—严重问题）
         extra = set(test_columns) - set(ref_columns)
         for col in sorted(extra):
             issues.append(
@@ -133,7 +133,7 @@ def _check_file(filepath: Path, ref_schema: dict[str, dict[str, str]]) -> list[t
                 )
             )
 
-        # 生产表有但测试表没有的列（MISSING — 可能是有意省略）
+        # 生产表有但测试表没有的列（—可能是有意省略）
         missing = set(ref_columns) - set(test_columns)
         for col in sorted(missing):
             issues.append(
@@ -153,7 +153,7 @@ def main() -> int:
     print("Schema 一致性检查")
     print("=" * 60)
 
-    # 构建参考 Schema
+    # 构建参考
     print("构建参考 Schema（迁移链）...")
     try:
         ref_schema = _build_reference_schema()

@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/quality_service.py
-# 数据质量检查服务 — 供 API 层使用
+# 模块：项目/管理器/_服务脚本
+# 数据质量检查服务—供接口层使用
 
 from typing import Any
 

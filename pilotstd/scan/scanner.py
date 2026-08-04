@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/scanner.py
-# 文件系统扫描器（防御性遍历，跳过指定目录）
+# 模块：文件系统扫描器
+# 防御性遍历，跳过指定目录
 
 import logging
 import os
@@ -15,8 +15,8 @@ class FileScanner:
     """防御性文件扫描器，支持跳过特定目录、长路径前缀、异常容错、内容去重。
 
     去重机制（两层）：
-      1. 内存 HashSet — 本批次内相同 SHA-256 的文件只保留第一个
-      2. file_index 查哈希 — 跨扫描持久化去重，可选
+      1. 内存哈希集合 —— 本批次内相同摘要的文件只保留第一个
+      2. 文件索引表查摘要 —— 跨扫描持久化去重，可选
     """
 
     def __init__(
@@ -34,7 +34,7 @@ class FileScanner:
         self.skip_dir_names = config_manager.get("scan.skip_folders", ["过期作废"])
         self.supported_exts = config_manager.get("scan.extensions", [".pdf", ".doc", ".docx", ".txt"])
         self.skip_file_keywords = config_manager.get("scan.exclude_patterns", [])
-        # Word/模板文件不参与标准号查询（由 archive 阶段以 logical_code="WORD" 写 file_index）
+        # /模板文件不参与标准号查询（由归档阶段以_=""写_索引）
         self.skip_query_exts = config_manager.get("scan.skip_query_exts", [".doc", ".docx"])
         self.log = log or logger
         # 去重：内存哈希集合（本批次）+ 可选的持久化索引（跨扫描）
@@ -43,7 +43,7 @@ class FileScanner:
         self._dup_count = 0  # 去重计数
 
     def scan(self, root_paths: List[str]) -> ScanResult:
-        """扫描多个根目录，返回 ScanResult"""
+        """扫描多个根目录，返回扫描结果"""
         from ..core.file_utils import ensure_long_path
 
         result = ScanResult()
@@ -76,7 +76,7 @@ class FileScanner:
             result.add_warning(f"获取文件状态失败 {entry.path}: {e}")
             self.log.warning(f"stat失败: {entry.path} - {e}")
             return
-        # 内容级去重：计算 SHA-256，本批次 + 跨扫描两层过滤
+        # 内容级去重：计算摘要，本批次加跨扫描两层过滤
         try:
             file_hash = hash_file_content(entry.path)
             # 第1层：本批次已见过
@@ -96,7 +96,7 @@ class FileScanner:
         except OSError:
             file_hash = ""  # 读取失败不阻塞扫描
 
-        # Word/模板文件标记为跳过查询，但仍保留在扫描结果中供归档
+        # /模板文件标记为跳过查询，但仍保留在扫描结果中供归档
         file_status = "word_template" if self._is_skip_query_file(entry.name) else "pending"
         file_info = FileInfo(
             full_path=entry.path,
@@ -107,7 +107,7 @@ class FileScanner:
         )
         result.add_file(file_info)
         file_count[0] += 1
-        # 每 100 个文件输出一次进度（CLI 大目录扫描时有用）
+        # 每一百个文件输出一次进度（命令行大目录扫描时有用）
         if file_count[0] % 100 == 0:
             import time as _time
 
@@ -149,7 +149,7 @@ class FileScanner:
                             self.log.warning(f"权限错误: {entry.path} - {e}")
                         except OSError as e:
                             result.add_warning(f"文件系统错误: {entry.path} - {e}")
-                            self.log.warning(f"OS错误: {entry.path} - {e}")
+                            self.log.warning(f"系统错误: {entry.path} - {e}")
                         except (ValueError, RuntimeError) as e:
                             result.add_warning(f"处理错误 {entry.path}: {str(e)}")
                             self.log.exception(f"处理条目异常: {entry.path}")

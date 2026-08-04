@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Windows 控制台 UTF-8 编码兼容
+# 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
@@ -110,7 +110,7 @@ def main():
     cov_data = parse_coverage()
     print(f"   测试数={tests}, 行覆盖={cov_data['line_cov']}%, 分支覆盖={cov_data['branch_cov']}%")
 
-    # 读取现有 STATUS.md
+    # 读取现有文档
     old_content = ""
     if STATUS_FILE.exists():
         old_content = STATUS_FILE.read_text(encoding="utf-8")
@@ -131,7 +131,7 @@ def main():
             # 在文件开头插入自动区块，保留原文件所有人工内容
             new_content = f"{header_block}\n{block}\n\n{old_content}"
         else:
-            # STATUS.md 不存在，创建最小文件
+            # 文档不存在，创建最小文件
             new_content = f"{header_block}\n{block}\n"
     else:
         # 正常更新：替换已有区块

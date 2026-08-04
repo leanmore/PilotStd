@@ -1,4 +1,4 @@
-# docker/api/notification.py — 通知配置与发送日志 API（v2：四渠道全参数）
+# 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
 import logging
 
 from fastapi import Depends, Query
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 辅助函数：用户 ID 提取 + 通知管理器获取
+# 辅助函数：用户提取+通知管理器获取
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
@@ -45,7 +45,7 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
     def mask(v: str) -> str:
         return "***" if v else ""
 
-    # 构建每个渠道的配置视图，敏感字段（webhook_url 等）做掩码处理
+    # 构建每个渠道的配置视图，敏感字段（_等）做掩码处理
     def build_channel(ch_name: str, defaults: dict) -> dict:
         """构建单个渠道的配置视图：合并用户凭证与默认参数，敏感字段做掩码处理。"""
         ch = creds.get(ch_name) or {}
@@ -67,7 +67,7 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
 
     return {
         "enabled": mgr.cfg.get("notification.enabled", False),
-        # 四渠道配置：wechat / telegram / feishu / dingtalk
+        # 四渠道配置：///
         "channels": {
             "wechat": build_channel(
                 "wechat",
@@ -139,7 +139,7 @@ def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
         level="info",
         event_type="test",
     )
-    # 渠道参数覆盖（如测试前端的临时 webhook_url）
+    # 渠道参数覆盖（如测试前端的临时_）
     params = body.get("params") or {}
     result = nmgr.test_send(channel, msg, params)
     return result
@@ -194,7 +194,7 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
     try:
         ids = [request.id] if request.id is not None else None
         if request.id is not None:
-            # 验证 ID 存在
+            # 验证存在
             result = nmgr.get_logs(page=1, size=1, start_date=None, end_date=None)
             existing_ids = {r["id"] for r in result["items"]}
             if request.id not in existing_ids:
@@ -232,7 +232,7 @@ def delete_notification_logs(
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-# ── 通知策略 API ──
+# ──通知策略接口──
 
 
 class PolicyUpdateRequest(BaseModel):

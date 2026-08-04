@@ -1,11 +1,11 @@
-# 模块：pilotstd/query/adapters/std_gov.py
-# 全国标准信息公共服务平台（std.samr.gov.cn）查询适配器
-# 参考 OpenSTD_Spider (SocialSisterYi, 2024-2025)
+# 模块：项目/查询/适配器/_脚本
+# 全国标准信息公共服务平台（...）查询适配器
+# 参考_(,2024-2025)
 # 分隔
-# 2026-05 适配网站改版：搜索结果从 table 改为 Bootstrap panel 布局
-# 搜索入口: std.samr.gov.cn/search/stdPage?q=<term>
-# 详情入口: std.samr.gov.cn/gb/search/gbDetailed?id=<pid>
-# 下载入口: openstd.samr.gov.cn/bzgk/gb/viewGb?hcno=<hcno> (pid 即 hcno)
+# 2026-05适配网站改版：搜索结果从改为布局
+# 搜索入口:...//?=<>
+# 详情入口:...///?=<>
+# 下载入口:...///视图?=<>(即)
 
 import logging
 import re
@@ -86,7 +86,7 @@ class StdGovAdapter(BaseAdapter):
             if span and span.get_text(strip=True) == "0":
                 return []
 
-        # 新版页面每条结果为 div.panel.post
+        # 新版页面每条结果为..
         panels = soup.select("div.panel.post")
         if not panels:
             return []
@@ -106,14 +106,14 @@ class StdGovAdapter(BaseAdapter):
             return None
         full_text = name_link.get_text(" ", strip=True)
 
-        # 优先用 en-code 解析标准号（新版两格式均可靠），回退到正则
+        # 优先用-解析标准号（新版两格式均可靠），回退到正则
         en_code = panel.select_one("span.en-code")
         if en_code:
             raw = en_code.get_text(strip=True)
-            # en-code 有 "GB 4053.1-2025" 和 "GB30000.30-2025" 两格式，
+            # 有"4053.1-2025"和"30000.30-2025"两格式，
             # 统一插入代号与序号间的空格
             std_number = re.sub(r"([A-Z]+(?:/[A-Z]+)?)(\d)", r"\1 \2", raw)
-            # 从 full_text 去掉编号前缀得到名称
+            # 从_去掉编号前缀得到名称
             if full_text.upper().replace(" ", "").startswith(std_number.upper().replace(" ", "")):
                 std_name = full_text[len(std_number) :].strip().lstrip("-/ ")
             else:
@@ -131,9 +131,9 @@ class StdGovAdapter(BaseAdapter):
             else:
                 return None
 
-        # pid → 用作 hcno
+        # →用作
         pid = name_link.get("pid", "")
-        # 发布日期：panel-footer 中第一个 time
+        # 发布日期：-中第一个
         pub_date = ""
         impl_date = ""
         footer = panel.select_one("div.panel-footer")
@@ -144,7 +144,7 @@ class StdGovAdapter(BaseAdapter):
             if len(times) >= 2:
                 impl_date = times[1].get_text(strip=True)
 
-        # 标准状态：现行(label-success) / 即将实施(label-info) / 废止(label-danger)
+        # 标准状态：现行(-)/即将实施(-)/废止(-)
         status_text = ""
         for label_cls, default_text in [
             ("span.s-status.label-success", "现行"),
@@ -159,7 +159,7 @@ class StdGovAdapter(BaseAdapter):
                 status_text = txt if txt else default_text
                 break
 
-        # 是否采标：label-default 且文本为 "采"
+        # 是否采标：-且文本为"采"
         is_ref = False
         ref_labels = panel.select("span.s-status.label-default")
         for rl in ref_labels:

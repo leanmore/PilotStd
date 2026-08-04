@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/mee.py
+# 模块：项目/查询/适配器/脚本
 """
 生态环境部标准查询适配器
 
@@ -30,7 +30,7 @@ DISPLAY_NAME = "生态环境部"
 logger = logging.getLogger(__name__)
 
 # 标准号提取正则：前缀 + 空格 + 序号 + 连接符 + 年份
-# 前缀示例：GB/T, GB, HJ, HJ/T, DBxx/T, DBxx
+# 前缀示例：/,,,/,数据库/,数据库
 # 序号可选带部分号（如 43871.1），连接符可能是 - — –
 _STD_NO_RE = re.compile(
     r"(GB\s*/\s*[TZ]|HJ\s*/\s*T|DB\d{2}\s*/\s*T|GB|HJ|DB\d{2})"
@@ -49,7 +49,7 @@ class MEEAdapter(BaseAdapter):
     """生态环境部标准查询适配器。"""
 
     SEARCH_API = "https://www.mee.gov.cn/was5/web/search"
-    # channelid=270514 对应"标准发布"栏目，若未来改版需从首页JS中提取新值
+    # =270514对应"标准发布"栏目，若未来改版需从首页脚本中提取新值
     CHANNEL_ID = "270514"
 
     def __init__(self, session: requests.Session | None = None):
@@ -105,7 +105,7 @@ class MEEAdapter(BaseAdapter):
 
         soup = BeautifulSoup(resp.text, "lxml")
 
-        # 查找结果项（ul#list2 下的 li.li）
+        # 查找结果项（#2下的.）
         items = soup.select("ul#list2 li.li")
         if not items:
             return []
@@ -140,13 +140,13 @@ class MEEAdapter(BaseAdapter):
         if category != _VALID_CATEGORY:
             return None
 
-        # 2. 提取 h2 文本（去掉分类前缀）
+        # 2.提取2文本（去掉分类前缀）
         h2 = item.select_one("h2.h2")
         h2_text = h2.get_text(" ", strip=True) if h2 else ""
         if category and h2_text.startswith(category):
             h2_text = h2_text[len(category) :].strip()
 
-        # 3. 提取 p 文本，合并后用正则提取标准号
+        # 3.提取文本，合并后用正则提取标准号
         p_tag = item.select_one("p.p")
         p_text = p_tag.get_text(" ", strip=True) if p_tag else ""
         full_text = h2_text + " " + p_text
@@ -158,7 +158,7 @@ class MEEAdapter(BaseAdapter):
         prefix = re.sub(r"\s+", "", m.group(1))
         std_no = f"{prefix} {m.group(2)}-{m.group(3)}"
 
-        # 4. 标准名称取 h2 文本（不含分类前缀）
+        # 4.标准名称取2文本（不含分类前缀）
         std_name = h2_text
 
         # 5. 提取实施日期
@@ -187,7 +187,7 @@ class MEEAdapter(BaseAdapter):
         )
         return result
 
-    # ── 详情页补充（Q22-03 待实现）──
+    # ──详情页补充（22-03待实现）──
 
     def _fetch_detail_status(self, detail_url: str) -> str:
         """从详情页提取标准状态（Q22-03 待办）。

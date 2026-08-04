@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/service_factory.py
-# 服务工厂 — 从 StandardManager 实例创建所有子服务
+# 模块：项目/管理器/服务_工厂脚本
+# 服务工厂—从实例创建所有子服务
 
 from typing import Any
 
@@ -56,7 +56,7 @@ def create_services(mgr: Any) -> tuple[Any, Any, Any, Any, Any]:
         # 阿里云
         "aliyun_access_key_id": mgr.cfg.get("ocr.aliyun_access_key_id", ""),
         "aliyun_access_key_secret": mgr.cfg.get("ocr.aliyun_access_key_secret", ""),
-        # 旧键兼容（单 provider 模式时可能存了值）
+        # 旧键兼容（单模式时可能存了值）
         "api_key": mgr.cfg.get("ocr.api_key", ""),
         "secret_key": mgr.cfg.get("ocr.secret_key", ""),
         "secret_id": mgr.cfg.get("ocr.secret_id", ""),

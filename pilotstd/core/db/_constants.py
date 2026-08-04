@@ -1,12 +1,12 @@
-# 模块：pilotstd/core/db/_constants.py
-# 常量 + 装饰器 + 异常类 — 从 db.py 拆分
+# 模块：项目/核心//_常量脚本
+# 常量+装饰器+异常类—从脚本拆分
 
 from typing import Any, Callable
 
-# 当前期望的 schema 版本号（每次新增迁移 +1）
+# 当前期望的表结构版本号（每次新增迁移+1）
 CURRENT_SCHEMA_VERSION = 47  # v45: audit_logs, v46: default user preferences, v47: task_execution_history
 
-# 迁移注册表：版本号 → 迁移函数（接收 Database 实例）
+# 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}
 
 
@@ -14,7 +14,7 @@ def migration(version: int) -> Callable[[Callable[..., Any]], Callable[..., Any]
     """装饰器：注册迁移函数到指定版本号。"""
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
-        # 将迁移函数注册到全局 MIGRATIONS 字典，按版本号索引
+        # 将迁移函数注册到全局输入输出字典，按版本号索引
         MIGRATIONS[version] = fn
         return fn
 

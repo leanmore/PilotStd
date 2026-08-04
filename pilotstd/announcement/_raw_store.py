@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/_raw_store.py
-# 公告正文存储 — 从 base.py 拆分
+# 模块：项目//__脚本
+# 公告正文存储—从脚本拆分
 
 import logging
 from datetime import datetime, timezone

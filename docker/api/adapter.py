@@ -1,7 +1,7 @@
-# docker/api/adapter.py — 适配器熔断管理 API（v19）
-# GET  /api/adapter/status → 所有适配器状态
-# GET  /api/adapter/config → 当前熔断配置
-# PUT  /api/adapter/config → 更新熔断配置
+# 容器//适配器脚本—适配器熔断管理接口（19）
+# //适配器/→所有适配器状态
+# //适配器/配置→当前熔断配置
+# //适配器/配置→更新熔断配置
 
 import importlib
 import logging
@@ -133,12 +133,12 @@ def get_adapter_config(mgr=Depends(get_manager_dep)):
 def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
     """更新熔断配置，立即生效（热加载）。"""
     errors = []
-    # 校验 failure_threshold
+    # 校验_
     threshold = body.get("failure_threshold")
     if threshold is not None:
         if not isinstance(threshold, int) or threshold < 1:
             errors.append("failure_threshold 必须为 >=1 的整数")
-    # 校验 freeze_durations
+    # 校验_
     durations = body.get("freeze_durations")
     if durations is not None:
         if not isinstance(durations, list) or len(durations) < 1:
@@ -153,7 +153,7 @@ def update_adapter_config(body: dict, mgr=Depends(get_manager_dep)):
                     if durations[i] <= durations[i - 1]:
                         errors.append("freeze_durations 必须严格递增")
                         break
-    # 校验 reset_window_hours
+    # 校验__
     reset_hours = body.get("reset_window_hours")
     if reset_hours is not None:
         if not isinstance(reset_hours, int) or reset_hours < 1:

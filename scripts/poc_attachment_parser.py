@@ -36,10 +36,10 @@ def make_patched_parse_items(original_func):
         # 先走原始流程（正常入库）
         items = original_func(self, raw_detail, ocr_provider)
 
-        # ── POC 附加：捕获附件解析的完整过程 ──
+        # ──概念验证附加：捕获附件解析的完整过程──
         attachment_url = _find_url(raw_detail) or ""
 
-        # 解析 HTML 表格（Layer 1）
+        # 解析网页表格（1）
         html_items, html_meta = parse_announcement_detail(raw_detail, None, "", ocr_provider=ocr_provider)
 
         entry: dict[str, Any] = {
@@ -60,7 +60,7 @@ def make_patched_parse_items(original_func):
                     att_items, _att_meta = parse_announcement_detail(
                         raw_detail, att_bytes, attachment_url, ocr_provider=ocr_provider
                     )
-                    # 只保留附件独有、HTML 未覆盖的条目
+                    # 只保留附件独有、网页未覆盖的条目
                     html_codes = {(i.get("std_code", ""), i.get("std_name", "")[:20]) for i in html_items}
                     att_only = [
                         i for i in att_items if (i.get("std_code", ""), i.get("std_name", "")[:20]) not in html_codes
@@ -82,7 +82,7 @@ def main():
     print("Phase 2a POC: 公告附件解析效果评估")
     print("=" * 50)
 
-    # 挂载 patch
+    # 挂载补丁
     original = SamrGbCrawler._parse_items
     SamrGbCrawler._parse_items = make_patched_parse_items(original)
 
@@ -110,7 +110,7 @@ def main():
         print(f"│  └─ 附件下载/解析失败: {len(att_error)} 条")
         print(f"└─ 纯 HTML 公告: {len(no_att)} 条")
 
-        # 输出 JSON
+        # 输出数据
         out_path = PROJECT_ROOT / "data" / "poc_attachment_results.json"
         out_path.parent.mkdir(parents=True, exist_ok=True)
 

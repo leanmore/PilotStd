@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/audit.py
+# 模块：项目/核心/脚本
 """审计日志写入/读取 — detail 用 json.dumps/loads 保证 SQLite TEXT 兼容。
 
 用法:
@@ -37,7 +37,7 @@ def write_audit(
     写入失败静默吞异常，不阻断业务。
     """
     uid = user_id if user_id is not None else get_current_user_id()
-    # json.dumps 保证嵌套结构在 TEXT 列中正确存取
+    # .保证嵌套结构在列中正确存取
     detail_json = json.dumps(detail or {}, ensure_ascii=False)
 
     try:
@@ -78,7 +78,7 @@ def read_audit(
     result = []
     for r in rows:
         item = dict(r)
-        # json.loads 反序列化，失败时保留原字符串
+        # .反序列化，失败时保留原字符串
         try:
             item["detail"] = json.loads(item["detail"])
         except (json.JSONDecodeError, TypeError):

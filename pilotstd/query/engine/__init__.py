@@ -1,5 +1,5 @@
-# 模块：pilotstd/query/engine/__init__.py
-# 说明：mypy: disable-error-code="no-any-return"
+# 模块：项目/查询/引擎/____脚本
+# 说明：:--="--"
 """查询引擎 — 组合模式重构。
 
 QueryEngine 通过组合 Handler（RoutingHandler、SingleQueryHandler、BatchHandler、
@@ -61,7 +61,7 @@ class QueryEngine(QueryEngineCore):
         query_interval: Optional[tuple[float, float]] = None,
         quota_tracker: Optional["DailyQuotaTracker"] = None,
     ) -> None:
-        # 1. 初始化基类（创建 _core 容器）
+        # 1.初始化基类（创建_核心容器）
         super().__init__(
             adapters=adapters,
             cache=cache,
@@ -74,7 +74,7 @@ class QueryEngine(QueryEngineCore):
         )
         self.quota_tracker = quota_tracker
 
-        # 2. 创建所有 Handler（依赖注入）
+        # 2.创建所有（依赖注入）
         self._routing = RoutingHandler(self._core)
         self._single = SingleQueryHandler(self._core, self._routing)
         self._csres = CsresHandler(self._core)

@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/tdpress.py
+# 模块：项目/查询/适配器/脚本
 """
 铁路标准查询适配器
 
@@ -21,7 +21,7 @@ DISPLAY_NAME = "铁路标准平台"
 
 logger = logging.getLogger(__name__)
 
-# 铁路标准平台数据源时区为 CST (UTC+8)，显式指定避免容器 UTC 环境日期偏移
+# 铁路标准平台数据源时区为(+8)，显式指定避免容器环境日期偏移
 CST = timezone(timedelta(hours=8))
 
 

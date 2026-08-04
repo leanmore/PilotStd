@@ -1,6 +1,5 @@
-# 模块：pilotstd/scan/parser/_core.py
-# 解析器 Handler 组合容器
-"""ParserCore — 持有 5 个 Handler 实例，对外暴露统一快捷方法。"""
+# 模块：解析器核心组合容器
+"""解析核心 —— 持有五个子处理器实例，对外暴露统一快捷方法。"""
 
 from typing import Callable, Optional
 
@@ -13,11 +12,11 @@ from ._text_cleaner import TextCleaner
 
 
 class ParserCore:
-    """解析器核心 — 组合 5 个 Handler，暴露与原来 UtilsMixin 兼容的快捷方法。
+    """解析器核心 —— 组合五个子处理器，暴露与原有混入类兼容的快捷方法。
 
-    初始化要求:
-      - code_mapping: 标准代号映射表，用于前缀截断和代号标准化
-      - file_kind_provider: 无参回调，返回当前文件对应的 file_kind
+    初始化要求：
+      - 标准代号映射表：用于前缀截断和代号标准化
+      - 文件类别提供器：无参回调，返回当前文件对应的文件类别
     """
 
     def __init__(
@@ -75,7 +74,7 @@ class ParserCore:
         logical_code: str,
         require_year: bool = True,
     ) -> bool:
-        """委托 ResultBuilder 校验年份、编号、代号合法性。"""
+        """委托结果构建器校验年份、编号、代号合法性。"""
         return self.result_builder.validate_result(year, number, logical_code, require_year)
 
     def build_result(
@@ -92,7 +91,7 @@ class ParserCore:
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
-        """委托 ResultBuilder 构造完整的 ParsedStdInfo 对象。"""
+        """委托结果构建器构造完整的已解析标准信息对象。"""
         return self.result_builder.build_result(
             text,
             match_end,

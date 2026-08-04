@@ -1,23 +1,23 @@
-# 模块：pilotstd/ui/main_window/__init__.py
-# 主窗口：菜单栏 + QToolBar + 左右分栏（文件浏览 | 工作区 | 日志）
+# 模块：项目//入口_/____脚本
+# 主窗口：菜单栏++左右分栏（文件浏览|工作区|日志）
 # 分隔
 # 架构说明：
-#   主窗口是 PilotStd 的 UI 入口，负责协调所有前端组件。
+# 主窗口是的用户界面入口，负责协调所有前端组件。
 #   布局采用三段式：顶部菜单栏+工具栏 / 中间左右分栏 / 底部状态栏。
 # 分隔
 #   屏幕空间分配：
-#     左侧 200px：文件导航树（QTreeWidget，懒加载子目录）
-#     中间 stretch：工作表（QTableWidget，显示扫描/查询/下载/归类结果）
-#     右侧 240px：操作日志（QTextEdit，只读）
+# 左侧200：文件导航树（，懒加载子目录）
+# 中间：工作表（，显示扫描/查询/下载/归类结果）
+# 右侧240：操作日志（，只读）
 # 分隔
 #   工作流（典型用户操作路径）：
 #     扫描 → 查询 → 下载 → 规范化 → 归档（工具栏按钮依次驱动）
 #     或一键自动运行（跳过中间确认对话框）
 # 分隔
 #   语言切换：
-#     _apply_language() 加载 Qt 翻译文件 + 调用 _retranslate_ui() 刷新所有可见文本。
-#     新增 UI 文字时必须在 _retranslate_ui() 中添加对应的 setText 调用。
-#     QPushButton 初始文本可用 _() 直接包裹，工具栏按钮由 _retranslate_ui 统一管理。
+# __()加载界面框架翻译文件+调用__()刷新所有可见文本。
+# 新增用户界面文字时必须在__()中添加对应的调用。
+# 初始文本可用_()直接包裹，工具栏按钮由__统一管理。
 
 import logging
 import os
@@ -43,7 +43,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
     status_changed = pyqtSignal(str)
     query_result_ready = pyqtSignal(int, object)
 
-    # ── 导入方法片段（从 parts/ 注入，替代原 Mixin 内联）──
+    # ──导入方法片段（从/注入，替代原内联）──
 
     from .parts._actions_ops import (
         _apply_announce_cache_mode,
@@ -192,7 +192,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         self._menu_selected_path: str = ""  # 文件菜单选择的路径（独立于文件树）
         self._suppress_dialogs: bool = False  # 自动运行时抑制中间弹窗
 
-        # Qt 翻译器须在控件创建前安装，否则内置右键菜单无法翻译
+        # 界面框架翻译器须在控件创建前安装，否则内置右键菜单无法翻译
         self._load_qt_translator()
 
         self._setup_menu()
@@ -202,7 +202,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         self._setup_central()
         self._setup_scanner()
         # ── 业务门面（唯一后端入口）──
-        # 延迟初始化：__init__ 中仅设置占位，首次访问或 QTimer 触发时才创建
+        # 延迟初始化：____中仅设置占位，首次访问或触发时才创建
         self.__mgr: Any = None  # 私有 backing field，由 _mgr property 管理
         self._mgr_ready = False
         self._setup_status_bar()
@@ -214,11 +214,11 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
         self.status_changed.connect(self._on_status)
         self.query_result_ready.connect(self._on_query_result_ready)
 
-        # 统一进度管道（替代旧 easing 定时器，所有 Handler 共用）
+        # 统一进度管道（替代旧定时器，所有共用）
         self._progress_pipeline = UnifiedProgressPipeline(self)
         self._progress_pipeline.progress_updated.connect(self._on_progress)
 
-    # ── _mgr 延迟属性：首次访问时自动初始化 StandardManager ──
+    # ──_延迟属性：首次访问时自动初始化──
 
     @property
     def _mgr(self) -> Any:
@@ -286,7 +286,7 @@ class MainWindow(_WindowLifecycleMixin, QMainWindow):
             self._config.save()
 
     # ================================================================ 分隔
-    # UI 核心 Handler（组合模式，替代 Mixin 多重继承）
+    # 用户界面核心（组合模式，替代多重继承）
     # ================================================================ 分隔
 
     def _init_core(self) -> None:

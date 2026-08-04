@@ -1,12 +1,12 @@
-# 模块：pilotstd/core/config/service.py
-"""ConfigService — 统一配置访问层。
+# 模块：统一配置访问层
+"""统一配置访问入口。
 
-路由规则:
-  - get_system(key)        → config.json (ConfigManager) + 内存缓存
-  - get_user_pref(key)     → user_preferences 表 + LRU 缓存
-  - set_user_pref(key,val) → 校验前缀 → 写入 KV 表 → 清除缓存
+路由规则：
+  - 获取系统设置         → 配置文件加内存缓存
+  - 获取用户偏好         → 用户偏好表加最近使用缓存
+  - 设置用户偏好         → 校验前缀 → 写入键值表 → 清除缓存
 
-三级 fallback: DB 记录 → 系统默认值 → 调用者传入的 default
+三级回退：数据库记录 → 系统默认值 → 调用者传入的默认值
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ from .paths import get_db_path
 
 logger = logging.getLogger(__name__)
 
-# 保留前缀 — 禁止用户写入
+# 保留前缀 —— 禁止用户写入
 _RESERVED_PREFIXES = ("system.", "auth.", "role.")
 
-# 用户偏好系统默认值 — DB 无记录时的兜底
+# 用户偏好系统默认值 —— 数据库无记录时的兜底
 _SYSTEM_DEFAULT_PREFS: dict[str, str] = {
     "ui.theme": "light",
     "ui.lang": "zh-CN",
@@ -34,7 +34,7 @@ _SYSTEM_DEFAULT_PREFS: dict[str, str] = {
 
 
 class ConfigService:
-    """统一配置访问：用户偏好(DB) + 系统设置(config.json)。"""
+    """统一配置访问：用户偏好（数据库）加系统设置（配置文件）。"""
 
     _instance: ConfigService | None = None
     _lock = threading.Lock()
@@ -64,7 +64,7 @@ class ConfigService:
         return Database(get_db_path())
 
     def get_user_pref(self, key: str, default: Any = None, user_id: int | None = None) -> Any:
-        """读取用户偏好，三级 fallback: DB → 系统默认值 → 参数 default。"""
+        """读取用户偏好，三级回退：数据库 → 系统默认值 → 参数默认值。"""
         uid = user_id or get_current_user_id()
         if uid is None:
             return default
@@ -93,14 +93,14 @@ class ConfigService:
             except (json.JSONDecodeError, TypeError):
                 return value
 
-        # fallback → 系统默认值
+        # 回退到系统默认值
         if key in _SYSTEM_DEFAULT_PREFS:
             return _SYSTEM_DEFAULT_PREFS[key]
 
         return default
 
     def set_user_pref(self, key: str, value: Any, user_id: int | None = None) -> None:
-        """写入用户偏好。拒绝 system./auth./role. 前缀。"""
+        """写入用户偏好。拒绝系统、认证、角色前缀。"""
         uid = user_id or get_current_user_id()
         if uid is None:
             raise RuntimeError("No user_id in context")
@@ -124,7 +124,7 @@ class ConfigService:
             self._pref_cache[cache_key] = json_val
 
     def invalidate_user_cache(self, user_id: int | None = None) -> None:
-        """清除用户偏好缓存（set_user_pref 内部自动调用，外部无需手动管理）。"""
+        """清除用户偏好缓存（写偏好时内部自动调用，外部无需手动管理）。"""
         with self._cache_lock:
             if user_id is None:
                 self._pref_cache.clear()

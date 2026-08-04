@@ -22,13 +22,13 @@ def main() -> int:
         if stripped.startswith("volumes:"):
             in_volumes = True
             continue
-        # volumes 段结束（下一个顶级 key 或空行后非列表项）
+        # 段结束（下一个顶级或空行后非列表项）
         if in_volumes and not stripped.startswith("-") and not stripped.startswith("#") and stripped:
             if not stripped.startswith("volumes:"):
                 in_volumes = False
                 continue
         if in_volumes and stripped.startswith("-"):
-            # 提取冒号后的容器内路径（如 "./output:/app/output" → "/app/output"）
+            # 提取冒号后的容器内路径（如"./://"→"//"）
             parts = stripped.lstrip("- ").split(":")
             if len(parts) >= 2:
                 target = parts[1].strip()

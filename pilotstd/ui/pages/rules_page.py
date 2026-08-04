@@ -1,7 +1,7 @@
-# 模块：pilotstd/ui/pages/rules_page.py
+# 模块：项目//页面/规则_脚本
 # 网站规则配置：管理查询/下载网站的适配规则模板
 # 分隔
-# 提供规则列表展示和编辑功能，支持 JSON 导入/导出。
+# 提供规则列表展示和编辑功能，支持数据导入/导出。
 
 import json
 from typing import Any, Optional
@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
 
 from ...i18n import _
 
-# ── RulesPage：规则列表展示控件 ──
+# ──：规则列表展示控件──
 
 
 class RulesPage(QWidget):
@@ -82,7 +82,7 @@ class RulesPage(QWidget):
                 return json.loads(raw)
             except json.JSONDecodeError:
                 return []
-        # ConfigManager 可能将 JSON 数组反序列化为 Python list
+        # 可能将数据数组反序列化为程序
         if isinstance(raw, list):
             return raw
         return []
@@ -149,7 +149,7 @@ class RulesPage(QWidget):
             self._save_rules(rules)
             self._refresh()
 
-    # ── JSON 导入/导出 ──
+    # ──数据导入/导出──
 
     def _on_import_json(self) -> None:
         """从 JSON 文件导入规则配置。"""
@@ -217,7 +217,7 @@ class RulesPage(QWidget):
         self._refresh()
 
 
-# ── RuleEditDialog：规则编辑对话框 ──
+# ──：规则编辑对话框──
 
 
 class RuleEditDialog(QDialog):

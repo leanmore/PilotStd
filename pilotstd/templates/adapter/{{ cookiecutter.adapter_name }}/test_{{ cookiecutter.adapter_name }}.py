@@ -1,6 +1,6 @@
-# CookieCutter模板 — 由cookiecutter渲染后生成最终代码
-# 注释密度占位以满足门禁G-012要求
-# 测试模块：tests/test_{{ cookiecutter.adapter_name }}.py
+# 模板—由模板引擎渲染后生成最终代码
+# 注释密度占位以满足门禁-012要求
+# 测试模块：测试/_{{模板引擎.适配器_}}脚本
 """{{ cookiecutter.site_label }} 适配器单元测试（100% mock）。"""
 import json
 import os
@@ -19,7 +19,7 @@ class Test{{ cookiecutter.adapter_class }}(unittest.TestCase):
         from pilotstd.query.adapters.{{ cookiecutter.adapter_name }} import {{ cookiecutter.adapter_class }}
         self.a = {{ cookiecutter.adapter_class }}()
 
-    # ── _parse_result（解析结果映射）────────────────────────────────
+    # ──__（解析结果映射）────────────────────────────────
 
     {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] -%}
     def test_parse_result_maps_fields(self):
@@ -61,7 +61,7 @@ class Test{{ cookiecutter.adapter_class }}(unittest.TestCase):
         r = self.a._parse_result({}, "")
         self.assertIsNone(r)
 
-    # ── _search（搜索测试）────────────────────────────────────────
+    # ──_（搜索测试）────────────────────────────────────────
 
     def _mock_response(self, rows):
         mock_resp = MagicMock()
@@ -117,7 +117,7 @@ class Test{{ cookiecutter.adapter_class }}(unittest.TestCase):
         {% endif -%}
         self.assertIsNone(self.a._search("GB"))
 
-    # ── query_standards（查询标准列表）──────────────────────────────
+    # ──查询_（查询标准列表）──────────────────────────────
 
     def test_query_standards_returns_list(self):
         {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] -%}

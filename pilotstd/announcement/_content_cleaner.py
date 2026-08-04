@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/_content_cleaner.py
-# 公告正文清洗 — 从 matcher.py 拆分
+# 模块：项目//__清理器脚本
+# 公告正文清洗—从匹配器脚本拆分
 
 import re
 
@@ -13,8 +13,8 @@ _STD_CODE_LINE_PATTERN = re.compile(
     r"DL|TB|YY|AQ)\s*[\d ]"
 )
 
-# 通用标准号行首兜底：2+大写字母 + 可选数字(地区码) + 可选/T或/Z + 空格 + 数字
-# 匹配未被 _STD_CODE_LINE_PATTERN 白名单覆盖的行业/地方标准前缀（如 HY/T、DB44/T）
+# 通用标准号行首兜底：2+大写字母+可选数字(地区码)+可选/或/+空格+数字
+# 匹配未被____白名单覆盖的行业/地方标准前缀（如/、数据库44/）
 _GENERIC_STD_CODE_LINE = re.compile(r"^[A-Z]{2,}\d*(?:/[A-Z])?\s+\d")
 
 # 统计汇总表 + 标准清单表列名关键词
@@ -56,14 +56,14 @@ _SIGNATURE_DATE_PATTERN = re.compile(
     r"(.{4,}(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会))\s+(\d{4}[-年]\d{1,2}[-月]\d{1,2}日?)$"
 )
 
-# 公告标题行精确匹配集合（阶段B：语义分类）
+# 公告标题行精确匹配集合（阶段：语义分类）
 _HEADING_LINES = {"公告", "备案月报"}
 
-# 落款机关后缀模式（阶段B：扩展规则）
+# 落款机关后缀模式（阶段：扩展规则）
 _ORG_SUFFIX_PATTERN = re.compile(r"(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会)$")
 
 
-# ── 公开 API ──────────────────────────────────────────
+# ──公开接口──────────────────────────────────────────
 
 
 def clean_announcement_content(content: str) -> str:
@@ -102,7 +102,7 @@ def clean_announcement_content(content: str) -> str:
 
         result.append(stripped)
 
-    # ── 后处理：包裹 <p> 标签 ──
+    # ──后处理：包裹<>标签──
     paragraphs: list[str] = []
     current: list[str] = []
     for line in result:

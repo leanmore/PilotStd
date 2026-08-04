@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/task_status.py
-# 定时任务执行状态内存缓存 — Phase1 基础设施（重启丢失，Phase2 历史表解决持久化）
+# 模块：项目/核心/_脚本
+# 定时任务执行状态内存缓存—阶段1基础设施（重启丢失，阶段2历史表解决持久化）
 
 import functools
 import logging
@@ -50,7 +50,7 @@ def capture_task_error(task_name: str):
                 result = func(*args, **kwargs)
                 _duration_ms = int((_time.monotonic() - _start) * 1000)
                 record_task_result(task_name, "success")
-                # Phase2: DB 持久化写入
+                # 阶段2:数据库持久化写入
                 try:
                     from .task_history import write_execution_record
 
@@ -62,7 +62,7 @@ def capture_task_error(task_name: str):
                 _duration_ms = int((_time.monotonic() - _start) * 1000)
                 logger.exception("Task %s failed: %s", task_name, e)
                 record_task_result(task_name, "error", str(e))
-                # Phase2: DB 持久化写入
+                # 阶段2:数据库持久化写入
                 try:
                     from .task_history import write_execution_record
 
@@ -81,7 +81,7 @@ def capture_task_error(task_name: str):
                         )
                 except Exception:
                     logger.exception("Failed to emit error notification for %s", task_name)
-            # 不重新抛出，保证 daemon 线程不退出
+            # 不重新抛出，保证守护线程不退出
             return None
 
         return wrapper

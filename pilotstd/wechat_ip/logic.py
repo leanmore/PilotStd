@@ -1,4 +1,4 @@
-# 模块：pilotstd/wechat_ip/logic.py
+# 模块：项目/_/脚本
 """从浏览器/调度器中提取的纯逻辑，供单元测试使用。
 
 所有函数均为零 I/O、零 Qt/Playwright/加密依赖。

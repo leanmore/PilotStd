@@ -1,8 +1,8 @@
-# docker/api/cache.py — 缓存管理 API
-# GET  /api/cache/config   → 获取缓存配置
-# PUT  /api/cache/config   → 保存缓存配置
-# GET  /api/cache/stats    → 缓存统计
-# POST /api/cache/cleanup  → 手动触发清理
+# 容器//缓存脚本—缓存管理接口
+# //缓存/配置→获取缓存配置
+# //缓存/配置→保存缓存配置
+# //缓存/→缓存统计
+# //缓存/→手动触发清理
 import logging
 
 from fastapi import Depends

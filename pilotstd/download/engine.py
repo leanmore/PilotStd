@@ -1,4 +1,4 @@
-# 模块：pilotstd/download/engine.py
+# 模块：项目/下载/引擎脚本
 # 下载引擎：适配器编排、后处理命名、并发控制、统计收集
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ class DownloadEngine:
 
         ensure_dir(self._save_root)
 
-    # ---- 公共 API ----
+    # 公共接口
 
     def download_single(self, task: DownloadTask, skip_adopted: bool = True) -> DownloadTask:
         """下载单个任务，返回更新后的任务对象（含状态和本地路径）。"""
@@ -66,7 +66,7 @@ class DownloadEngine:
             logger.info(f"跳过采标: {task.standard_number}")
             return task
 
-        # 下载前去重：目标文件已存在则跳过 HTTP 请求
+        # 下载前去重：目标文件已存在则跳过网络请求
         logger.debug("下载: %s | 适配器=%s", task.standard_number, task.source_site or "auto")
         existing_path = self._get_existing_file(task)
         if existing_path:
@@ -203,7 +203,7 @@ class DownloadEngine:
         _total = len(tasks)
         stats = BatchDownloadStats(total=_total)
         results: List[Optional[DownloadTask]] = [None] * len(tasks)
-        # 预建任务到索引的映射，避免 retry 循环中 O(n²) 的 tasks.index() 调用
+        # 预建任务到索引的映射，避免重试循环中(²)的.索引()调用
         task_index = {id(t): i for i, t in enumerate(tasks)}
 
         for batch_start in range(0, len(tasks), self._batch_size):
@@ -260,7 +260,7 @@ class DownloadEngine:
         target_path = self._resolve_target_path(task)
         return target_path if os.path.exists(target_path) else None
 
-    # 查询站点名 → 下载适配器名 映射（查询和下载的 site_name 命名体系不同）
+    # 查询站点名→下载适配器名映射（查询和下载的_命名体系不同）
     _QUERY_TO_DOWNLOAD_SITE = {
         "std_gov": "openstd_download",
     }
@@ -280,7 +280,7 @@ class DownloadEngine:
                 for a in self._adapters:
                     if a.site_name == mapped:
                         return a
-        # 回退到 can_handle
+        # 回退到_
         for a in self._adapters:
             if a.can_handle(task):
                 return a

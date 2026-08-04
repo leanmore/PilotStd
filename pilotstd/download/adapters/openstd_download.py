@@ -1,15 +1,15 @@
-# 模块：pilotstd/download/adapters/openstd_download.py
-# 国家标准全文公开系统下载适配器 — openstd.samr.gov.cn 新平台
+# 模块：项目/下载/适配器/_下载脚本
+# 国家标准全文公开系统下载适配器—...新平台
 # 分隔
 # ⚠️ 2026-06-04 实测验证通过的完整下载链路（5步，不可跳过）：
-#   步骤1. GET showGb?type=download&hcno=<H>  →  302 + Set-Cookie: JSESSIONID
-#      （建立会话，获取 cookie——跳过此步则后续全部 404）
-#   2. GET gc?_<ts>  →  验证码图片（~4KB）
-#   3. ddddocr 识别 4 位验证码
-#   4. POST verifyCode  body: verifyCode=<4位码>  →  "success"
-#      （验证通过后服务端授权当前会话的 viewGb 访问）
-#   步骤5. GET viewGb?hcno=<H>  →  Content-Disposition: attachment;filename=xxx.pdf
-#      返回完整 PDF 字节流
+# 步骤1.?=下载&=<>→302+-:脚本输入输出
+# （建立会话，获取——跳过此步则后续全部404）
+# 2.?_<>→验证码图片（~4）
+# 3.识别4位验证码
+# 4.:=<4位码>→""
+# （验证通过后服务端授权当前会话的视图访问）
+# 步骤5.视图?=<>→-:;=文档
+# 返回完整便携文档字节流
 
 import logging
 import time
@@ -30,7 +30,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
     无需额外搜索步骤。query_result.hcno 直接使用。
     """
 
-    # 新平台基础 URL（2026-06-04 起 gb688.cn 已停用）
+    # 新平台基础链接（2026-06-04起688.已停用）
     BASE_URL = "https://openstd.samr.gov.cn/bzgk/gb"
 
     def __init__(
@@ -91,8 +91,8 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         5. viewGb 下载 PDF
         """
         # ═══ 步骤1：建立会话 ⚠️ 不可跳过 ═══
-        # showGb 在首次访问时 302 重定向并设置 JSESSIONID cookie，
-        # 此 cookie 是后续 gc / verifyCode / viewGb 的会话凭证。
+        # 在首次访问时302重定向并设置脚本输入输出，
+        # 此是后续//视图的会话凭证。
         show_url = f"{self.BASE_URL}/showGb?type=download&hcno={hcno}&request_locale=zh"
         try:
             self._session.get(show_url, timeout=30)
@@ -106,9 +106,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         if task.error_message:
             return None
 
-        # ═══ 步骤5：下载 PDF ⚠️ 不可跳过 ═══
-        # viewGb 必须在 verifyCode 返回 "success" 之后调用，
-        # 否则服务端返回 Content-Range: bytes 0-0/0（空文件）。
+        # ═══步骤5：下载便携文档⚠️不可跳过═══
+        # 视图必须在返回""之后调用，
+        # 否则服务端返回-:0-0/0（空文件）。
         view_url = f"{self.BASE_URL}/viewGb?hcno={hcno}"
         try:
             resp = self._session.get(view_url, timeout=120, stream=True)
@@ -133,7 +133,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
             logger.warning("下载失败(空内容): %s hcno=%s", task.standard_number, hcno)
             return None
 
-        # 从 Content-Disposition 响应头提取服务器建议的文件名
+        # 从-响应头提取服务器建议的文件名
         cd = resp.headers.get("Content-Disposition", "")
         if cd and "filename=" in cd:
             import re
@@ -145,7 +145,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 task.extra["filename_from_header"] = m.group(2)
                 logger.debug("Content-Disposition 文件名: %s", m.group(2))
 
-        # 校验 PDF 文件头
+        # 校验便携文档文件头
         if content[:5] == b"%PDF-":
             return content
         if len(content) > 1000 and b"html" not in content[:50].lower():
@@ -182,7 +182,7 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
                 logger.warning("下载失败(验证码): %s | 图片获取失败: %s", task.standard_number, e)
                 return None
 
-            # ═══ 步骤3：ddddocr 识别 ═══
+            # ═══步骤3：识别═══
             captcha_text = ""
             try:
                 import ddddocr

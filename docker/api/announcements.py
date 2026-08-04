@@ -1,4 +1,4 @@
-# docker/api/announcements.py — 公告抓取异步 API（v19：通过 AnnounceService 委派）
+# 容器//脚本—公告抓取异步接口（19：通过委派）
 import logging
 
 from fastapi import Depends

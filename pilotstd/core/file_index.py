@@ -1,9 +1,9 @@
-# 模块：pilotstd/core/file_index.py
-# 本地文件索引表 — 写入与校验管理。查询方法已提取至 _file_index_query.py
-# 说明：THREADING: single-threaded, no lock needed
-# 选型：SQLite 而非内存字典（跨进程共享，WAL 模式读并发）；
-# hash_file_content 采样策略（≤1MB 全量，>1MB 前 1MB+末 64KB+文件大小）平衡碰撞率与 I/O；
-# 后台 daemon 延迟校验路径有效性（自适应 5~30s），失效直接 DELETE 而非标记
+# 模块：项目/核心/_索引脚本
+# 本地文件索引表—写入与校验管理。查询方法已提取至__索引_查询脚本
+# 说明：:-线程,锁
+# 选型：数据库查询而非内存字典（跨进程共享，模式读并发）；
+# 哈希__采样策略（≤1全量，>1前1+末64+文件大小）平衡碰撞率与/；
+# 后台守护延迟校验路径有效性（自适应5~30），失效直接删除而非标记
 
 from __future__ import annotations
 
@@ -201,7 +201,7 @@ class FileIndexRepository:
     def clear_all(self) -> None:
         self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE}")
 
-    # ---- 查询代理（委托 FileIndexQuery）----
+    # 查询代理（委托）
 
     def get(self, file_path: str):
         return self._query.get(file_path)

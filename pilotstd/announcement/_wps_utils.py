@@ -1,19 +1,19 @@
-# 模块：pilotstd/announcement/_wps_utils.py
-# Phase 2a: WPS 文本清洗 + 条目切分工具函数
-# 从 parser.py 拆分以控制文件大小
+# 模块：项目//__工具脚本
+# 阶段2:文本清洗+条目切分工具函数
+# 从解析器脚本拆分以控制文件大小
 
 import re
 
 
 def _clean_wps_fulltext(text: str) -> str:
     """全文级 WPS 文本清洗：去格式标记、控制字符、压缩空白。"""
-    # WPS 页脚标记（含前后 — 和页码，跨行匹配）
+    # 页脚标记（含前后—和页码，跨行匹配）
     text = re.sub(r"\s*—+\s*PAGE\s*\n?\s*MERGEFORMAT\s*\d*\s*—*\s*", " ", text, flags=re.IGNORECASE)
-    # 页码标记：PAGE 1 OF 2
+    # 页码标记：12
     text = re.sub(r"PAGE\s*\d+\s*OF\s*\d+", " ", text, flags=re.IGNORECASE)
-    # ASCII 控制字符（保留换行 \n 和制表 \t）
+    # 持续集成控制字符（保留换行\和制表\）
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", " ", text)
-    # 3 个以上连续空白 → 换行（WPS 表格单元格间常有多空格分隔）
+    # 3个以上连续空白→换行（表格单元格间常有多空格分隔）
     text = re.sub(r"[ \t]{3,}", "\n", text)
     # 3 个以上连续换行 → 压缩为 2 个
     text = re.sub(r"\n{3,}", "\n\n", text)

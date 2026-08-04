@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_batch_dispatcher.py
+# 模块：项目/查询/引擎/__分发器脚本
 """BatchDispatcher — 批量查询分发编排独立类（原 _BatchDispatchMixin 的 13 个方法）。
 
 通过 _DispatchContext 注入 5 个组件 + 2 个配额常量，替代 MRO 隐式依赖。
@@ -254,7 +254,7 @@ class BatchDispatcher:
         preferred_site: str | None = None,
     ) -> None:
         """调度编排：并行提交桶工作线程 + csres 后台线程，收集桶结果。"""
-        # 国标/行标分流：ahbz/std_gov → csres 国标池，hbba → csres 行业池
+        # 国标/行标分流：/_→国标池，→行业池
         csres_pool_gb: list = []
         csres_pool_industry: list = []
         all_overflow: list = []
@@ -357,7 +357,7 @@ class BatchDispatcher:
         temp_cooldown_skips: int,
     ) -> List[QueryResult]:
         """收尾：输出批量摘要报告 → 停止心跳 → 组装结果 → 重置状态。"""
-        # 组装报告摘要并委托 report handler 输出
+        # 组装报告摘要并委托处理器输出
         report = {
             "bucket_times": state["bucket_times"],
             "site_usage": state["site_usage"],

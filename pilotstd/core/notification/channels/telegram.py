@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/channels/telegram.py
+# 模块：项目/核心//渠道/脚本
 """Telegram Bot API 通知渠道。"""
 
 import json
@@ -31,7 +31,7 @@ class TelegramChannel(NotificationChannel):
         if not self._token or not self._chat_id:
             return False
         try:
-            # 使用 TelegramRenderer 渲染 MarkdownV2 文本
+            # 使用电报渲染2文本
             text = self._renderer.render(message)
             # 标准号以等宽格式追加
             if message.standard_number:
@@ -57,8 +57,8 @@ class TelegramChannel(NotificationChannel):
                     return False
                 return False
         except HTTPError as e:
-            # 404/401 → 配置错误（token无效/已撤销），不应重试
-            # 5xx → 服务端临时故障，可重试但不在本层做
+            # 404/401→配置错误（无效/已撤销），不应重试
+            # 5→服务端临时故障，可重试但不在本层做
             if e.code == 404:
                 self._log_dedup(
                     "Telegram 404 — bot token 无效或已撤销，请检查配置中的 bot_token。"

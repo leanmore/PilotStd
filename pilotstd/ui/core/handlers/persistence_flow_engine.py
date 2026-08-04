@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/persistence_flow_engine.py
+# 模块：项目//核心/处理器/持久化__引擎脚本
 """PersistenceFlowEngine — 持久化数据序列化/反序列化纯逻辑层（零 Qt 依赖）。
 
 所有方法输入/输出均为 Python 原生类型（dict、list、int、str、bytes），

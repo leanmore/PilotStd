@@ -1,6 +1,6 @@
-# docker/api/standards.py — 标准状态查询 API
-# GET  /api/standards/status/stats → 状态统计计数
-# GET  /api/standards/status → 分页列表（含筛选）
+# 容器//脚本—标准状态查询接口
+# ////→状态统计计数
+# ///→分页列表（含筛选）
 import logging
 
 from fastapi import Depends, Query

@@ -73,7 +73,7 @@ def _save_txt(
 
 def _row_get(self, row: Any, key: str, default: str = "") -> str:
     """从行对象（dict 或数据类）中安全读取字段值。"""
-    # 兼容 dict 和对象两种行数据格式
+    # 兼容和对象两种行数据格式
     if isinstance(row, dict):
         return str(row.get(key, default))
     return str(getattr(row, key, default))

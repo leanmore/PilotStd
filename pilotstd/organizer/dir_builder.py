@@ -1,5 +1,5 @@
-# 模块：pilotstd/organizer/dir_builder.py
-# 目录结构生成：{root}/{基础代号} {行业名称}/{过期作废}/
+# 模块：项目/归类/_构建器脚本
+# 目录结构生成：{}/{基础代号}{行业名称}/{过期作废}/
 
 import logging
 import os

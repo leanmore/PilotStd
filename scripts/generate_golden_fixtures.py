@@ -23,7 +23,7 @@ SUPPORTED_EXT = {".html", ".htm", ".pdf", ".doc", ".docx", ".wps",
 
 def discover_files(source_dir: Path, allowed_ext: set[str]) -> tuple[dict, dict]:
     """递归扫描 source_dir，按扩展名分组，跳过空文件及超大文件。"""
-    # 使用 rglob 递归扫描；按大小和扩展名过滤
+    # 使用递归扫描；按大小和扩展名过滤
     grouped: dict[str, list[Path]] = {}
     skipped = {"empty": 0, "too_large": 0, "unsupported": 0}
     max_bytes = MAX_FILE_MB * 1024 * 1024
@@ -49,7 +49,7 @@ def discover_files(source_dir: Path, allowed_ext: set[str]) -> tuple[dict, dict]
 
 def sample_files(grouped: dict, sample_size: int, strategy: str) -> list[tuple[Path, str]]:
     """分层抽样：diverse（按大小分桶），random 或 largest-first。"""
-    # diverse 策略：分入 3 个大小桶，从每桶均匀选取
+    # 策略：分入3个大小桶，从每桶均匀选取
     selected: list[tuple[Path, str]] = []
 
     for ext, files in sorted(grouped.items()):
@@ -95,7 +95,7 @@ def run_parser(fixture_path: Path, ext: str) -> dict:
 
     raw = fixture_path.read_bytes()
 
-    # 根据文件类型路由：HTML 走 html 参数，其他走附件流程
+    # 根据文件类型路由：网页走参数，其他走附件流程
     try:
         if ext in (".html", ".htm"):
             html = raw.decode("utf-8", errors="replace")
@@ -166,7 +166,7 @@ def _generate_expected(selected: list, args, fixtures_dir: Path,
         idx = ext_counter.get(ext, 0) + 1
         ext_counter[ext] = idx
 
-        # 复制固件并同步生成预期 JSON
+        # 复制固件并同步生成预期数据
         fixture_name = make_fixture_name(src_path, ext, idx)
         fixture_dst = fixtures_dir / fixture_name
         expected_dst = expected_dir / f"{fixture_dst.stem}.json"
@@ -250,7 +250,7 @@ def main():
         print(f"\n{len(selected)} files. remove --dry-run to execute.")
         return
 
-    # 在输出目标下构造 fixtures/ 和 expected/ 目录
+    # 在输出目标下构造测试夹具/和/目录
     fixtures_dir = args.target / "fixtures"
     expected_dir = args.target / "expected"
     fixtures_dir.mkdir(parents=True, exist_ok=True)
@@ -265,7 +265,7 @@ def main():
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
     conftest_path = args.target / "conftest.py"
-    # 如 conftest 不存在则生成（绝不复写用户已有改动）
+    # 如不存在则生成（绝不复写用户已有改动）
     if not conftest_path.exists():
         conftest_path.write_text(CONFTEST_TEMPLATE, encoding="utf-8")
         print(f"\ngenerated {conftest_path}")

@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/db/migrations.py
-# Schema 迁移函数（v16+）— v2-v15 已拆至 _migrate_v2_v15.py
+# 模块：项目/核心//迁移脚本
+# 迁移函数（16+）—2-15已拆至_迁移_2_15脚本
 
 import logging
 from typing import Any
@@ -22,7 +22,7 @@ from ._migrate_v2_v15 import (  # noqa: F401 — 触发装饰器
     _migrate_v15_announcement_record,
 )
 
-# ── v2-v15 装饰器注册 ──
+# ──2-15装饰器注册──
 migration(2)(_migrate_v2_add_file_index)
 migration(3)(_migrate_v3_queue_and_pending)
 migration(4)(_migrate_v4_add_fetch_checkpoint)
@@ -122,7 +122,7 @@ def _migrate_v22_user_preferences(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user_key ON user_preferences(user_id, preference_key)")
 
 
-# v23: 缓存系统初始化 — 数据源版本 + 缓存配置 + 多表缓存字段扩展
+# 23:缓存系统初始化—数据源版本+缓存配置+多表缓存字段扩展
 @migration(23)
 def _migrate_v23_cache_system(db: Any) -> None:
     """初始化缓存系统：数据源版本表 + 缓存配置表 + 多表缓存元数据字段扩展。"""
@@ -186,7 +186,7 @@ def _migrate_v23_cache_system(db: Any) -> None:
         pass
 
 
-# v24: 通用任务队列 — 支持优先级、重试、超时
+# 24:通用任务队列—支持优先级、重试、超时
 @migration(24)
 def _migrate_v24_task_queue(db: Any) -> None:
     """创建通用 task_queue 表，支持优先级、重试、超时和队列分组。"""
@@ -216,7 +216,7 @@ def _migrate_v24_task_queue(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_queue_queue_name ON task_queue(queue_name)")
 
 
-# v25-v27: 公告匹配缓存扩展 + 流水线记录 + 通知聚合
+# 25-27:公告匹配缓存扩展+流水线记录+通知聚合
 @migration(25)
 def _migrate_v25_announcement_match_cache(db: Any) -> None:
     """announcement_match 表新增 source 和 status_history 列。"""
@@ -259,7 +259,7 @@ def _migrate_v27_notification_aggregation(db: Any) -> None:
         pass
 
 
-# v28-v29: 通知队列 + 公告记录扩展
+# 28-29:通知队列+公告记录扩展
 @migration(28)
 def _migrate_v28_notification_queue(db: Any) -> None:
     """创建 notification_queue 表，支持通知的异步调度发送。"""
@@ -284,7 +284,7 @@ def _migrate_v29_announce_title_and_count(db: Any) -> None:
         pass  # 列已存在
 
 
-# v30: 抓取失败记录 + 补抓队列 + 并发锁 + 全局应用偏好配置
+# 30:抓取失败记录+补抓队列+并发锁+全局应用偏好配置
 @migration(30)
 def _migrate_v30_failure_tables(db: Any) -> None:
     """公告抓取失败记录 + 补抓队列 + 并发锁 + 用户偏好。"""
@@ -324,7 +324,7 @@ def _migrate_v30_failure_tables(db: Any) -> None:
         )"""
     )
 
-    # 4. app_preferences — 独立全局配置表（不动 v22 创建的 user_preferences）
+    # 4._—独立全局配置表（不动22创建的_）
     db.execute(
         """CREATE TABLE IF NOT EXISTS app_preferences (
             key TEXT PRIMARY KEY,
@@ -335,7 +335,7 @@ def _migrate_v30_failure_tables(db: Any) -> None:
     db.execute("INSERT OR IGNORE INTO app_preferences (key, value) VALUES ('announce_since_date', '')")
 
 
-# v41: file_index 表新增 raw_number 列，保留原始编号字符串（含前导零）
+# 41:_索引表新增_列，保留原始编号字符串（含前导零）
 @migration(41)
 def _migrate_v41_file_index_raw_number(db: Any) -> None:
     try:
@@ -344,7 +344,7 @@ def _migrate_v41_file_index_raw_number(db: Any) -> None:
         pass  # 列已存在
 
 
-# v31-v36 迁移实现（拆分到独立模块）
+# 31-36迁移实现（拆分到独立模块）
 from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v31_monitor_stats,
     _migrate_v32_cleanup_dead_tables,
@@ -354,14 +354,14 @@ from ._migrate_v31_plus import (  # noqa: E402
     _migrate_v36_announcement_structure,
 )
 
-# v37-v40 迁移实现（拆分到独立模块）
+# 37-40迁移实现（拆分到独立模块）
 from ._migrate_v37_plus import (  # noqa: E402
     _migrate_v37_user_notification_config,
     _migrate_v39_announcement_source_type,
     _migrate_v40_ensure_columns,
 )
 
-# v44 迁移实现（拆分到独立模块）
+# 44迁移实现（拆分到独立模块）
 from ._migrate_v44 import _migrate_v44_favorite_downloads  # noqa: E402, F401
 
 migration(31)(_migrate_v31_monitor_stats)
@@ -375,7 +375,7 @@ migration(39)(_migrate_v39_announcement_source_type)
 migration(40)(_migrate_v40_ensure_columns)
 
 
-# v45: 审计日志表（v3.0 多用户基础架构）
+# 45:审计日志表（版本三0多用户基础架构）
 @migration(45)
 def _migrate_v45_audit_logs(db: Any) -> None:
     """创建 audit_logs 表 — 无 FK 约束，user_id 允许 NULL（未认证场景）。"""
@@ -393,7 +393,7 @@ def _migrate_v45_audit_logs(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action)")
 
 
-# v46: 默认用户偏好（v3.0 — 幂等 INSERT OR IGNORE）
+# 46:默认用户偏好（版本三0—幂等插入）
 @migration(46)
 def _migrate_v46_default_user_preferences(db: Any) -> None:
     """为所有现有用户插入默认偏好（幂等，已有则跳过）。"""
@@ -422,13 +422,13 @@ def _migrate_v46_default_user_preferences(db: Any) -> None:
         pass  # 兼容旧表结构或空库场景
 
 
-# v38: 用户偏好聚合存储表（JSON 格式，与现有 user_preferences KV 表并存）
+# 38:用户偏好聚合存储表（数据格式，与现有_表并存）
 @migration(38)
 def _migrate_v38_user_settings(db) -> None:
     """新增 user_settings 表（JSON 聚合存储），与现有 user_preferences（KV 存储）并存。"""
     logger = logging.getLogger(__name__)
 
-    # 防御性检查：查询 sqlite_master 确认表是否已存在
+    # 防御性检查：查询数据库_确认表是否已存在
     result = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'")
     if result:
         logger.info("user_settings 表已存在，跳过创建")
@@ -473,7 +473,7 @@ def _migrate_v42_create_standards_table(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_standards_code_name ON standards (code, name)")
 
 
-# v43: 批量查询断点续传 + 指标收集（#46 修复基础设施）
+# 43:批量查询断点续传+指标收集（#46修复基础设施）
 @migration(43)
 def _migrate_v43_batch_state_and_metrics(db: Any) -> None:
     """批量查询断点续传状态表 + 查询指标表。
@@ -510,8 +510,8 @@ def _migrate_v43_batch_state_and_metrics(db: Any) -> None:
     db.execute("CREATE INDEX IF NOT EXISTS idx_query_metrics_batch ON query_metrics (batch_id, metric_key)")
 
 
-# NOTE: Phase1 内存缓存中的执行记录不迁移，Phase2 从本次部署后开始记录
-# v47: 定时任务执行历史表（Phase2 持久化）
+# 注意:阶段1内存缓存中的执行记录不迁移，阶段2从本次部署后开始记录
+# 47:定时任务执行历史表（阶段2持久化）
 @migration(47)
 def _migrate_v47_task_execution_history(db: Any) -> None:
     """创建 task_execution_history 表及索引（幂等）。"""

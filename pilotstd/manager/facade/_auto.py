@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_auto.py
+# 模块：项目/管理器/门面/_脚本
 """AutoPipeline：一键自动运行管线（扫描→查询→下载→归档→收容），替代原 AutoMixin。"""
 
 from __future__ import annotations
@@ -54,13 +54,13 @@ class AutoPipeline:
         logger.info("阶段耗时 scan: %.1fs (%d 条)", _time.monotonic() - t_stage, len(parsed))
         t_stage = _time.monotonic()
 
-        # 查询阶段：调用 query_handler.query
+        # 查询阶段：调用查询_处理器.查询
         _, q_stats = self._query.query(parsed)
         report["query_found"] = q_stats.found
         logger.info("阶段耗时 query: %.1fs (%d 条)", _time.monotonic() - t_stage, q_stats.found)
         t_stage = _time.monotonic()
 
-        # 下载阶段：从 download_list 下载文件
+        # 下载阶段：从下载_下载文件
         dl_tasks, dl_stats = self._download.download()
         report["download_success"] = dl_stats.success
         logger.info("阶段耗时 download: %.1fs (%d 成功)", _time.monotonic() - t_stage, report["download_success"])

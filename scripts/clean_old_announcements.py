@@ -27,14 +27,14 @@ def _find_db() -> str:
     if db and os.path.exists(db):
         return db
 
-    # 2) DATA_DIR（Docker 兼容）
+    # 2)_（兼容）
     data_dir = os.environ.get("DATA_DIR")
     if data_dir:
         candidate = os.path.join(data_dir, "pilotstd.db")
         if os.path.exists(candidate):
             return candidate
 
-    # 3) 从 pilotstd.core 推导（本地开发）
+    # 3)从项目.核心推导（本地开发）
     try:
         from pilotstd.core.config.paths import get_db_path
 

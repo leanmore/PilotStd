@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/db/_migration_checksum.py
-# 迁移脚本 checksum 校验 — 从 database.py 拆分
+# 模块：项目/核心//_迁移_校验和脚本
+# 迁移脚本校验和校验—从脚本拆分
 
 import hashlib
 import inspect
@@ -86,12 +86,12 @@ def verify_migration_checksums(db: Any) -> None:
             continue
         stored_checksum = stored["checksum"]
 
-        # 先比较标准化 checksum（剥离注释后）
+        # 先比较标准化校验和（剥离注释后）
         norm_expected = norm_checksum(MIGRATIONS[v])
         if norm_expected == stored_checksum:
             continue
 
-        # 标准化不等 → 检查原始 checksum，判断是否为仅注释变化
+        # 标准化不等→检查原始校验和，判断是否为仅注释变化
         raw_expected = compute_checksum(MIGRATIONS[v])
         if raw_expected != norm_expected:
             logr.warning(

@@ -1,11 +1,11 @@
-# 模块：pilotstd/query/adapters/ahbz.py
-# 安徽标准化信息服务平台适配器 (https://bzxx.ahbz.org.cn)
+# 模块：项目/查询/适配器/脚本
+# 安徽标准化信息服务平台适配器(://...)
 # 分隔
-# 说明：API: POST /standard/query
-# 参数: type(1=国标/2=行标/3=地标/4=国际/5=团标), code(标准号), size, page
-# 免鉴权、免 Sign、免 Token——最简单的一类站点
-# code 字段模糊匹配(likes %code%)，搜索结果需客户端按标准号精确过滤
-# 覆盖范围: GB/行业/地方/国际/团体 ~230万条
+# 说明：接口://查询
+# 参数:(1=国标/2=行标/3=地标/4=国际/5=团标),(标准号),,
+# 免鉴权、免、免令牌——最简单的一类站点
+# 字段模糊匹配(%%)，搜索结果需客户端按标准号精确过滤
+# 覆盖范围:/行业/地方/国际/团体~230万条
 
 import logging
 from typing import Any, Optional
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # 搜索端点
 SEARCH_URL = "https://bzxx.ahbz.org.cn/standard/query"
 
-# status字段映射
+# 字段映射
 _STATUS_MAP = {
     "A": "现行",
     "W": "作废",
@@ -53,7 +53,7 @@ class AhbzAdapter(BaseAdapter):
 
     def _search_single(self, standard_number: str, session: requests.Session) -> QueryResult:
         """搜索单个标准号，在模糊匹配结果中过滤精确匹配。"""
-        # 从标准号提取 code + type
+        # 从标准号提取+
         std_type = self._get_type(standard_number)
         if std_type is None:
             return QueryResult(
@@ -64,8 +64,8 @@ class AhbzAdapter(BaseAdapter):
 
         code = self._normalize_code(standard_number)
 
-        # 请求API — 使用 keyWord 全文检索（同网页搜索框），非 code 字段模糊匹配
-        # code 参数对空格敏感（"API 685 2000"→0行），keyWord 不限格式
+        # 请求接口—使用全文检索（同网页搜索框），非字段模糊匹配
+        # 参数对空格敏感（"接口6852000"→0行），不限格式
         payload = {"type": std_type, "keyWord": code, "size": 20, "page": 1}
         resp = safe_request(session, "POST", SEARCH_URL, self.site_name, timeout=15, json=payload)
         if resp is None:
@@ -99,7 +99,7 @@ class AhbzAdapter(BaseAdapter):
                 source_site=self.site_name,
             )
 
-        # 结构化匹配：用 StandardParser 解析双方 code，按 (code, number, year, prefix, suffix) 比对
+        # 结构化匹配：用解析双方，按(,,,,)比对
         match = self._match_structured(standard_number, rows)
 
         if not match:
@@ -109,7 +109,7 @@ class AhbzAdapter(BaseAdapter):
                 source_site=self.site_name,
             )
 
-        # 构造QueryResult，补提闲置字段
+        # 构造，补提闲置字段
         return QueryResult(
             standard_number=match.get("code", standard_number),
             standard_name=match.get("csName") or match.get("egName") or "",
@@ -166,7 +166,7 @@ class AhbzAdapter(BaseAdapter):
         from ...core.std_utils import classify_std_code
 
         code = std_num.split()[0].upper() if " " in std_num else std_num.split("/")[0].upper()
-        # 团体标准无空格格式（如 T/XXX-2020）拆分后只剩 "T"，直接返回 group 类型
+        # 团体标准无空格格式（如/待定-2020）拆分后只剩""，直接返回类型
         if code == "T" or code.startswith("T/"):
             return AhbzAdapter._TYPE_MAP["group"]
         cat = classify_std_code(code)

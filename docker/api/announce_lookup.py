@@ -1,4 +1,4 @@
-# docker/api/announce_lookup.py — 公告缓存精确查询 API
+# 容器//_脚本—公告缓存精确查询接口
 from fastapi import Depends, Query
 from fastapi.routing import APIRouter
 

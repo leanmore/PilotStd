@@ -1,8 +1,8 @@
-# 模块：pilotstd/core/notification/_builders_batch.py
-# 通知消息构建器(批次/查询/下载) — 原 _BatchBuildersMixin，现为模块级纯函数
+# 模块：项目/核心//_构建器_脚本
+# 通知消息构建器(批次/查询/下载)—原_，现为模块级纯函数
 # 分隔
-# 每个 _build_*_message(data) 函数签名一致：接收 dict → 返回 NotificationMessage。
-# level 决策内聚在构建器内部（如 failed > 0 → warning）。
+# 每个__*_()函数签名一致：接收→返回。
+# 决策内聚在构建器内部（如>0→）。
 # 设计原则：方法签名即文档，每个事件独立构建避免参数爆炸。
 
 from pilotstd.i18n import _
@@ -35,7 +35,7 @@ def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
     success = data.get("success", 0)
     failed = data.get("failed", 0)
     skipped = data.get("skipped", 0)
-    # 根据失败数决定消息级别：有失败 → warning，否则 info
+    # 根据失败数决定消息级别：有失败→，否则
     blocks: list[NotificationBlock] = [
         KeyValueBlock(key=_("成功"), value=str(success)),
         KeyValueBlock(key=_("失败"), value=str(failed)),

@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/config/migrate.py
-# 配置迁移 + 规则导入导出 — 从 config.py 拆分
+# 模块：项目/核心/配置/迁移脚本
+# 配置迁移+规则导入导出—从配置脚本拆分
 
 import json
 import logging
@@ -9,8 +9,8 @@ from typing import Any
 _log = logging.getLogger("pilotstd.config")
 
 
-# ── 键名映射表：旧版 ui.* → 新版 appearance.* ──
-# v0.5.x 使用 "ui." 前缀，v0.6 起统一为 "appearance."
+# ──键名映射表：旧版.*→新版.*──
+# 版本零5.使用"."前缀，版本零6起统一为"."
 # 此映射确保老用户升级后配置不丢失
 _UI_MIGRATION_MAP = {
     "ui.column_widths": "appearance.column_widths",
@@ -47,19 +47,19 @@ def _migrate_ui_keys(config: Any) -> None:
 def export_rules(config: Any, file_path: str) -> bool:
     """将当前所有规则导出到 JSON 文件。返回 True/False。"""
     try:
-        # 规则以 JSON 字符串形式存储在 sites.rules 中，需先解析
+        # 规则以数据字符串形式存储在.规则中，需先解析
         rules_raw = config.get("sites.rules", "[]")
         if isinstance(rules_raw, str):
             try:
                 rules = json.loads(rules_raw)
             except json.JSONDecodeError:
-                # 存储的 JSON 损坏时导出空列表，不阻断用户操作
+                # 存储的数据损坏时导出空列表，不阻断用户操作
                 rules = []
         elif isinstance(rules_raw, list):
             rules = rules_raw
         else:
             rules = []
-        # 统一导出格式：version + description + rules 列表
+        # 统一导出格式：++规则列表
         payload = {
             "version": "1.0",
             "description": "PilotStd 网站规则导出",
@@ -83,7 +83,7 @@ def import_rules(config: Any, file_path: str) -> int:
         _log.error("读取规则文件失败: %s", e)
         return -1
 
-    # 兼容两种格式：{"rules": [...]} 或直接的列表
+    # 兼容两种格式：{"规则":[...]}或直接的列表
     imported = data.get("rules", []) if isinstance(data, dict) else data
     if not isinstance(imported, list):
         _log.error("规则数据格式无效：期望列表或对象")
@@ -101,7 +101,7 @@ def import_rules(config: Any, file_path: str) -> int:
     else:
         existing = []
 
-    # 按 name 去重合并：同名规则不重复导入
+    # 按去重合并：同名规则不重复导入
     added = 0
     for rule in imported:
         if not isinstance(rule, dict) or "name" not in rule:
@@ -120,7 +120,7 @@ def import_rules(config: Any, file_path: str) -> int:
             )
             added += 1
 
-    # 写回 JSON 字符串存储，并立即落盘
+    # 写回数据字符串存储，并立即落盘
     config.set("sites.rules", json.dumps(existing, ensure_ascii=False))
     config.save()
     return added

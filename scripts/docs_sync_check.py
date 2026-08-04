@@ -219,7 +219,7 @@ def _check_claude_available():
         return False
 
 
-# ─── Prompt 构建函数 ─────────────────────────────────────────
+# ───构建函数─────────────────────────────────────────
 
 
 def _build_claude_prompt(doc_path, current_content, diff_text, commit_msg, trigger_name):
@@ -275,7 +275,7 @@ def update_document(doc_relpath, strategy, in_repo, diff_text, commit_msg, trigg
     if strategy == "skip":
         return False
 
-    # 构建 prompt 并由 claude 生成新内容
+    # 构建并由生成新内容
     if strategy == "claude" and auto_fix:
         prompt = _build_claude_prompt(doc_relpath, current_content, diff_text, commit_msg, trigger_name)
         new_content = _call_claude(prompt, timeout=claude_timeout)
@@ -299,7 +299,7 @@ def update_document(doc_relpath, strategy, in_repo, diff_text, commit_msg, trigg
     # 写入文件
     _write_file(doc_path, new_content)
 
-    # 入仓文档执行 git add
+    # 入仓文档执行
     if in_repo:
         _git_add(doc_path)
     else:
@@ -395,7 +395,7 @@ def main():
     diff_text = _run_git(["diff", "--cached"])
     commit_msg = _get_commit_message()
 
-    # 3. 检查 claude 可用
+    # 3.检查可用
     if auto_fix and not _check_claude_available():
         print("  claude 不可用，降级为仅检查模式")
         auto_fix = False

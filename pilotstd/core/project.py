@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/project.py
-# 项目管理：工作状态保存/恢复（.pilotstd JSON 格式）
+# 模块：项目/核心/脚本
+# 项目管理：工作状态保存/恢复（.项目数据格式）
 
 import json
 import logging

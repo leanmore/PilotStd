@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/organize/_utils.py
-# 静态工具函数 — 从 organizer_service.py 拆分
+# 模块：项目/管理器/归类/_工具脚本
+# 静态工具函数—从归类_服务脚本拆分
 
 import os
 

@@ -1,4 +1,4 @@
-# docker/auth.py — JWT 鉴权模块（多用户 + 速率限制 + CSRF 保护 + Cookie 安全标记 + API Key）
+# 鉴权模块（多用户 + 速率限制 + 跨站伪造防护 + 会话安全标记 + 接口密钥）
 import hashlib
 import os
 import secrets
@@ -41,7 +41,7 @@ COOKIE_NAME = "pilotstd_token"
 CSRF_HEADER = "X-CSRF-Token"
 API_TOKEN_HEADER = "X-API-KEY"  # 静态令牌 Header（参考 MoviePilot）
 
-# 静态 API 令牌：从 PILOTSTD_API_TOKEN 环境变量读取，未设置则自动生成
+# 静态接口令牌：从类型脚本_接口_通过环境变量读取，未设置则自动生成
 _STATIC_API_TOKEN = os.environ.get("PILOTSTD_API_TOKEN") or secrets.token_hex(32)
 _STATIC_TOKEN_INITIALIZED = False
 
@@ -130,7 +130,7 @@ def refresh_static_token() -> str:
         db.close()
     except Exception:
         pass
-    # 回写 .env 文件，确保重启后令牌不丢失
+    # 回写.文件，确保重启后令牌不丢失
     _dotenv_path = os.path.join(os.path.dirname(__file__) or ".", "..", ".env")
     try:
         if os.path.exists(_dotenv_path):
@@ -192,7 +192,7 @@ def require_admin(request: Request) -> str:
 
     username = get_current_user_id(request)
     if username != SUPERUSER_USERNAME:
-        # v3.0: 拒绝时写审计日志
+        # 版本三0:拒绝时写审计日志
         try:
             from pilotstd.core.audit import write_audit
 
@@ -225,7 +225,7 @@ def require_role(role: str):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # 从参数中提取 Request 对象
+            # 从参数中提取对象
             request = None
             for arg in args:
                 if isinstance(arg, Request):
@@ -237,7 +237,7 @@ def require_role(role: str):
                         request = v
                         break
 
-            # 从 JWT token 获取当前角色
+            # 从令牌获取当前角色
             current_role = "user"
             username = "unknown"
             if request is not None:
@@ -265,7 +265,7 @@ def require_role(role: str):
     return decorator
 
 
-# 白名单：(路径前缀, {允许的HTTP方法})，方法集合为空表示允许所有方法
+# 白名单：(路径前缀,{允许的网络方法})，方法集合为空表示允许所有方法
 AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/login", set()),
     ("/api/logout", set()),
@@ -277,11 +277,11 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/assets", set()),
 ]
 
-# 登录失败计数（持久化到 SQLite），仅保留 5 分钟内的记录
+# 登录失败计数（持久化到数据库查询），仅保留5分钟内的记录
 MAX_ATTEMPTS = 100  # 5 分钟内最多 100 次失败（压测放宽）
 LOCKOUT_SECONDS = 300  # 锁定 5 分钟
 
-# API 全局速率限制：{key: [timestamp, ...]}，key = 用户名 或 IP
+# 接口全局速率限制：{:[,...]}，=用户名或
 _api_rate_limit: dict[str, list[float]] = defaultdict(list)
 _api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
 API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
@@ -331,7 +331,7 @@ def login(
     now = time.time()
     cutoff = now - LOCKOUT_SECONDS
 
-    # 超限检查（持久化到 SQLite，进程重启后仍有效）
+    # 超限检查（持久化到数据库查询，进程重启后仍有效）
     if count_recent_failures(client_ip, cutoff) >= MAX_ATTEMPTS:
         raise HTTPException(429, "请求过于频繁，请稍后重试")
 
@@ -393,7 +393,7 @@ def auth_me(request: Request):
         except Exception:
             pass
 
-    # 降级兜底：兼容旧版 JWT (sub=username) 或 DB 查询失败场景
+    # 降级兜底：兼容旧版令牌(=)或数据库查询失败场景
     fallback_id = get_current_user_id(request)
     role = get_user_role(fallback_id) if fallback_id else ""
     return {"username": "", "role": role or ""}
@@ -429,7 +429,7 @@ def verify_api_key(token: str) -> dict | None:
     )
     if row is None:
         return None
-    # 更新 last_used_at
+    # 更新__
     db.execute(
         "UPDATE api_keys SET last_used_at = datetime('now', 'localtime') WHERE key_hash = ?",
         (key_hash,),
@@ -492,7 +492,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             request.state.api_key_id = key_info["key_id"]
             request.state.api_key_scopes = key_info["scopes"]
             return True
-        # pst_ 前缀 token 验证失败直接 401（不回落 JWT）
+        # _前缀验证失败直接401（不回落令牌）
         if api_token.startswith("pst_"):
             raise HTTPException(401, "认证失败")
         return False
@@ -538,7 +538,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         _ensure_static_token_in_db()
 
-        # 白名单 + 非 API 路径放行
+        # 白名单+非接口路径放行
         if await self._check_public_path(request, path):
             return await call_next(request)
 
@@ -547,20 +547,20 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if rate_limit_resp:
             return rate_limit_resp
 
-        # API Key 校验
+        # 接口校验
         try:
             if self._authenticate_api_key(request):
                 return await call_next(request)
         except HTTPException:
             return JSONResponse({"error": "认证失败"}, 401)
 
-        # Cookie JWT + CSRF 校验 → 注入 ContextVar
+        # 令牌+跨站伪造防护校验→注入
         try:
             payload = self._authenticate_session(request)
         except HTTPException as e:
             return JSONResponse({"error": "认证失败"}, e.status_code)
 
-        # v3.0: 注入 user_id 到请求上下文（try/finally 防止异步泄漏）
+        # 版本三0:注入_到请求上下文（/防止异步泄漏）
         from pilotstd.core.config import get_db_path
         from pilotstd.core.context import _current_user_id, set_current_user_id
         from pilotstd.core.db import Database
@@ -585,7 +585,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-# ── 会话清理后台线程（每小时清理过期 token）────────────────────
+# ──会话清理后台线程（每小时清理过期）────────────────────
 
 _cleanup_started = False
 _cleanup_lock = threading.Lock()

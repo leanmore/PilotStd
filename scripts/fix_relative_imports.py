@@ -101,7 +101,7 @@ def check_level(file_path: Path, module: str, level: int, imported_names: list[s
     if module:
         return any(p.exists() for p in module_to_path(abs_mod))
 
-    # from ... import Name — 检查 Name 是否为子模块或 __init__.py 属性
+    # ...—检查是否为子模块或____脚本属性
     for cp in module_to_path(abs_mod):
         if cp.name == "__init__.py" and cp.exists():
             pkg_dir = cp.parent
@@ -111,7 +111,7 @@ def check_level(file_path: Path, module: str, level: int, imported_names: list[s
                 sub_pkg = pkg_dir / name / "__init__.py"
                 if sub_py.exists() or sub_pkg.exists():
                     continue
-                # 检查 __init__.py 属性
+                # 检查____脚本属性
                 defined = get_defined_names(cp)
                 if name not in defined:
                     return False
@@ -184,7 +184,7 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
 
             # 在源码中定位行
             lineno = node.lineno - 1  # 0-indexed
-            # 在行内替换 import 语句（处理缩进）
+            # 在行内替换语句（处理缩进）
             new_line = lines[lineno].replace(old_stmt, new_stmt, 1)
 
             if dry_run:

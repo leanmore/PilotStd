@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_announce.py
+# 模块：项目//核心/处理器/_脚本
 """AnnounceUIHandler — 公告检查 UI 状态管理，替代 AnnounceMixin。"""
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from PyQt6 import sip as _sip
 
-# sip.isdeleted() 检查 C++ 对象存活，防御异步回调中 Widget 已析构的竞态
+# .()检查++对象存活，防御异步回调中已析构的竞态
 from PyQt6.QtCore import QDate
 from PyQt6.QtWidgets import (
     QDateEdit,
@@ -58,7 +58,7 @@ class AnnounceUIHandler:
         self._config = config
         self._parent = parent_widget
         self._pause_event = pause_event
-        # Worker 实例（QThread 壳，在 _run_dialog 中创建）
+        # 实例（壳，在__中创建）
         self._ann_worker: AnnounceWorker | None = None
         # 对话框控件
         self._ann_progress_label: QLabel | None = None

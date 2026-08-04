@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/announce.py — announce + validity 子命令
+# 项目//命令/脚本—+子命令
 import argparse
 
 from pilotstd.cli.commands._shared import _make_manager

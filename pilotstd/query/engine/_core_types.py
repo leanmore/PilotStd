@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_core_types.py
+# 模块：项目/查询/引擎/_核心_脚本
 """EngineCore 依赖容器 — 查询引擎组合模式重构。
 
 替代 Mixin 通过 MRO 隐式访问属性。所有持久依赖和运行时状态集中管理，

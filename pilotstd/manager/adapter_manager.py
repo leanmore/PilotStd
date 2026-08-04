@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/adapter_manager.py
-# 适配器状态管理器 — 聚合 SiteRotator + DailyQuotaTracker + adapter_health 表
+# 模块：项目/管理器/适配器_管理器脚本
+# 适配器状态管理器—聚合++适配器_表
 
 import logging
 import time
@@ -40,7 +40,7 @@ class AdapterManager:
         if site_state and site_state.cooldown_until > 0:
             remaining = max(0, site_state.cooldown_until - time.time())
 
-        # 应用层推导 status（adapter_health 表无 status 列）
+        # 应用层推导（适配器_表无列）
         h_status = "normal"
         if health:
             frozen_until = health["frozen_until"]
@@ -81,7 +81,7 @@ class AdapterManager:
         except Exception:
             return []
 
-    # Phase 3.1: request_interval 执行层落地
+    # 阶段3.1:_执行层落地
     def get_request_interval(self, name: str) -> float:
         """返回指定站点的请求间隔（秒），未注册返回 0。"""
         if self._rotator and name in self._rotator._sites:

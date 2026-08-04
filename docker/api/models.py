@@ -1,10 +1,10 @@
-# docker/api/models.py — API 响应 Pydantic 模型，自动生成 OpenAPI 文档
+# 容器//模型脚本—接口响应模型，自动生成接口文档
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# Phase 1: 通用响应模型（健康检查、文件、扫描、下载、错误）
+# 阶段1:通用响应模型（健康检查、文件、扫描、下载、错误）
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
@@ -90,7 +90,7 @@ class ErrorResponse(BaseModel):
     error: str
 
 
-# ── Phase 3: 公告详情 ──────────────────────────────────
+# ──阶段3:公告详情──────────────────────────────────
 
 
 class AnnouncementResponse(BaseModel):

@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/parser/_result_builder.py
-# 结果构建 Handler
+# 模块：项目/扫描/解析器/__构建器脚本
+# 结果构建
 """提供标准解析结果构建和名称清理功能。"""
 
 import logging
@@ -11,7 +11,7 @@ from ._constants import PRESERVED_MULTI_WORD
 
 logger = logging.getLogger(__name__)
 
-# ✅ #46 P1: 模块级校验失败计数器
+# ✅#461:模块级校验失败计数器
 _result_builder_fail_count = [0]
 
 
@@ -49,10 +49,10 @@ class ResultBuilder:
         words = prefix.split()
         for i in range(len(words), 0, -1):
             candidate = " ".join(words[:i])
-            # 整体匹配（如 BS EN、BS EN ISO）
+            # 整体匹配（如、）
             if candidate in self._code_mapping or candidate in PRESERVED_MULTI_WORD:
                 return candidate
-            # 逐词验证：每个词是否都是已知代号（如 ANSI + API）
+            # 逐词验证：每个词是否都是已知代号（如+接口）
             if all(w in self._code_mapping for w in words[:i]):
                 return candidate
         return words[0]  # 没匹配到至少保留第一个词
@@ -77,7 +77,7 @@ class ResultBuilder:
         # 语言代码
         name = re.sub(r"\s*[_\s\-]CN\s*", " ", name, flags=re.IGNORECASE)
         name = re.sub(r"\s*[_\s\-\d]EN\s*", " ", name, flags=re.IGNORECASE)
-        # 附加描述（parser 已将 + 替换为空格，匹配空格分隔版本）
+        # 附加描述（解析器已将+替换为空格，匹配空格分隔版本）
         name = re.sub(r"\s*中英对照(?:\s+\d+万字注解)?(?:\s+\d+张附图)?", "", name)
         name = re.sub(r"\s*\d+万字注解(?:\s+\d+张附图)?", "", name)
         name = re.sub(r"\s*\d+张附图", "", name)
@@ -86,12 +86,12 @@ class ResultBuilder:
         name = re.sub(r"\s*第\s*\d+\s*版\s*", " ", name)
         name = re.sub(r"\s*\d{1,2}\s*(?:st|nd|rd|th)\s*", " ", name, flags=re.IGNORECASE)
         name = re.sub(r"\s*[A-Za-z]+\s+Edition\s*", " ", name, flags=re.IGNORECASE)
-        # 嵌入版次-语种残留（-5th-中文版 的残留碎片）+ 孤儿版字
+        # 嵌入版次-语种残留（-5-中文版的残留碎片）+孤儿版字
         name = re.sub(r"^\s*版\s*", " ", name)  # 孤儿版字（如 "版 石油..."）
         name = re.sub(r"^[-–—_\s]+", "", name)  # 开头残留分隔符
         name = re.sub(r"[-–—_\s]+$", "", name)  # 末尾残留分隔符
         name = re.sub(r"\s{2,}", " ", name)  # 多余空格
-        # 清除剥离版次/语种后残留的空括号（如 "(5th中文版)" → "( )" → ""）
+        # 清除剥离版次/语种后残留的空括号（如"(5中文版)"→"()"→""）
         name = re.sub(r"[（(]\s*[）)]", "", name)
         return name.strip()
 
@@ -133,7 +133,7 @@ class ResultBuilder:
                 year,
                 failures,
             )
-            # ✅ #46 P1: 合并计数，无论几个条件，只计 1 次
+            # ✅#461:合并计数，无论几个条件，只计1次
             _result_builder_fail_count[0] += 1
             return False
         return True
@@ -164,12 +164,12 @@ class ResultBuilder:
             name = ""
         name = self.clean_std_name(name)  # 剥离语种/版次标记，避免归档时重复
 
-        # 自查校验：require_year=False 时跳过年份校验（字母修订版如 MIL-STD-810G）
+        # 自查校验：_=时跳过年份校验（字母修订版如--810）
         if not self.validate_result(year, number, logical_code, require_year):
             return None
 
-        # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
-        # 说明：NOTE: debug format string has 10 placeholders — keep args in sync
+        # [追踪]指令-2:输出完整字段
+        # 说明：注意:10
         logger.debug(
             "[TRACE-A] 解析信息: 代号=%s 编号=%d 年份=%d 部分号=%s "
             "标准名称=%r 源名称=%r 编号前缀=%r 编号后缀=%r 扩展名=%r 原始编号=%r",

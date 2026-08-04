@@ -1,7 +1,7 @@
-# 模块：pilotstd/core/updater.py
-# 半自动升级：GitHub Release 检查、下载、校验、生成更新脚本
+# 模块：项目/核心/脚本
+# 半自动升级：版本控制检查、下载、校验、生成更新脚本
 # 分隔
-# UI 层只负责对话框交互，本模块处理所有网络/文件/校验逻辑。
+# 用户界面层只负责对话框交互，本模块处理所有网络/文件/校验逻辑。
 
 import hashlib
 import json
@@ -48,7 +48,7 @@ def check_latest_version() -> Optional[dict[str, Any]]:
 
         body = data.get("body", "")
 
-        # 找到 zip 下载资源
+        # 找到下载资源
         download_url = ""
         filename = f"PilotStd-{tag_name}.zip"
         for a in data.get("assets", []):
@@ -121,17 +121,17 @@ def download_update(download_url: str, save_path: str, expected_sha256: str = ""
                     dst.write(chunk)
                     actual_size += len(chunk)
 
-        # Content-Length 大小校验
+        # 大小校验
         if expected_size and actual_size != expected_size:
             logger.error("下载不完整：期望 %s 字节，实际 %s", expected_size, actual_size)
             return False
 
-        # 合法 zip 校验
+        # 合法校验
         if not zipfile.is_zipfile(save_path):
             logger.error("下载的文件不是有效的 zip 包")
             return False
 
-        # SHA256 校验
+        # 256校验
         if expected_sha256 and not verify_checksum(save_path, expected_sha256):
             return False
 

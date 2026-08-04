@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/cleanup_flow_engine.py
+# 模块：项目//核心/处理器/__引擎脚本
 """CleanupFlowEngine — 清理相关的纯逻辑层（零 Qt 依赖，纯内存操作）。
 
 空目录检测和未识别文件分类的纯逻辑提取。

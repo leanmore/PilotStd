@@ -1,6 +1,6 @@
-# 模块：pilotstd/core/validity_checker.py
+# 模块：项目/核心/_检查器脚本
 # 标准时效性检查模块 — 跟踪标准现行/废止状态变更
-# L1: 本地公告缓存表  L2: 网络适配器查询  L3: 历史状态对比
+# 1:本地公告缓存表2:网络适配器查询3:历史状态对比
 
 import logging
 import random
@@ -162,7 +162,7 @@ class ValidityChecker:
         """从候选列表中随机切片取约 1/4（固定种子，同周结果一致）。"""
         if not candidates:
             return []
-        # 复制后 shuffle，避免修改原列表
+        # 复制后，避免修改原列表
         shuffled = list(candidates)
         rng = random.Random(week_number)
         rng.shuffle(shuffled)
@@ -184,7 +184,7 @@ class ValidityChecker:
 
         返回: {"status": str, "previous": str|None} 或 None（查询失败）
         """
-        # ── L1: 公告缓存表 ──
+        # ──1:公告缓存表──
         for table in ("announcement_match", "announcement_record"):
             try:
                 row = self._db.fetchone(
@@ -198,7 +198,7 @@ class ValidityChecker:
             except Exception:
                 pass
 
-        # ── L2: 适配器实时查询 ──
+        # ──2:适配器实时查询──
         if query_engine:
             try:
                 from ..core.std_utils import parse_std_number
@@ -216,7 +216,7 @@ class ValidityChecker:
             except Exception:
                 pass
 
-        # ── L3: 历史状态对比 ──
+        # ──3:历史状态对比──
         row = self._db.fetchone(
             f"SELECT status, last_status FROM {_TABLE} WHERE standard_number=?",
             (standard_number,),
@@ -250,7 +250,7 @@ class ValidityChecker:
         return {r["status"]: r["cnt"] for r in rows}
 
 
-# ── 流水线函数（已提取至 _validity_pipeline.py）──
+# ──流水线函数（已提取至__流水线脚本）──
 
 from ._validity_pipeline import (  # noqa: E402, F401 — 由 API/调度器导入消费
     _finalize_validity_round,

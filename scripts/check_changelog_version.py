@@ -20,12 +20,12 @@ def get_init_version() -> str:
 
 
 def get_changelog_latest_version() -> str:
-    """从 CHANGELOG.md 提取最新版本号（第一个 ## vX.Y.Z 条目）。"""
+    """从变更日志文件提取最新版本号（第一个二级标题版本条目）。"""
     changelog_file = Path("CHANGELOG.md")
     if not changelog_file.exists():
         print("FAIL: CHANGELOG.md 不存在")
         return ""
-    # 匹配第一个 ## vX.Y.Z 或 ## X.Y.Z
+    # 匹配第一个##..或##..
     m = re.search(r"^##\s+v?(\d+\.\d+\.\d+)", changelog_file.read_text(encoding="utf-8"), re.M)
     if not m:
         print("FAIL: CHANGELOG.md 中没有找到版本条目")

@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Windows 控制台 UTF-8 编码兼容
+# 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
@@ -37,7 +37,7 @@ DEBT_PATTERNS = [
 # 检测范围：仅源代码目录
 SOURCE_DIRS = ["pilotstd/", "docker/", "web/src/"]
 
-# 排除路径（文档、测试、脚本中的标记不触发 G-030）
+# 排除路径（文档、测试、脚本中的标记不触发-030）
 EXCLUDE_PREFIXES = ["docs/", "tests/", "scripts/", "web/node_modules/"]
 
 
@@ -52,7 +52,7 @@ def get_staged_diff() -> str:
         if result.stdout.strip():
             return result.stdout
 
-        # 2. CI PR 场景
+        # 2.持续集成合并请求场景
         result = subprocess.run(
             ["git", "diff", "-U0", "origin/main..."],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
@@ -82,7 +82,7 @@ def get_staged_files() -> list[str]:
         if result.stdout.strip():
             return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
 
-        # 说明：2. CI PR
+        # 说明：2.持续集成合并请求
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
@@ -130,13 +130,13 @@ def extract_new_debt_markers(diff_text: str) -> list[tuple[str, int, str]]:
     for line in diff_text.split("\n"):
         # 跟踪当前文件
         if line.startswith("+++ "):
-            # 提取文件路径 (去除 a/ 或 b/ 前缀)
+            # 提取文件路径(去除/或/前缀)
             path = line[4:].strip()
             if path.startswith("b/"):
                 path = path[2:]
             current_file = path
 
-        # 跟踪行号 (@@ -a,b +c,d @@)
+        # 跟踪行号(@@-,+,@@)
         elif line.startswith("@@ "):
             match = re.search(r"\+(\d+)", line)
             if match:

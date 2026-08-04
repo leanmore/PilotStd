@@ -14,7 +14,7 @@ class MockQueryAdapter(BaseAdapter):
 
     MOCK_DATA: list[dict[str, Any]] = [
         {
-            # 模拟 std_gov 风格：有 hcno，无 replaces
+            # 模拟_风格：有，无
             "standard_number": "GB/T 12345-2024",
             "standard_name": "信息技术 测试标准规范",
             "status": "现行",
@@ -28,7 +28,7 @@ class MockQueryAdapter(BaseAdapter):
             "is_downloadable": True,
         },
         {
-            # 模拟 dbba 风格：API 直返 replaces，有 hcno，DB 标准不可下载
+            # 模拟风格：接口直返，有，数据库标准不可下载
             "standard_number": "DB11/T 678-2023",
             "standard_name": "北京市 数据安全管理规范",
             "status": "现行",
@@ -42,7 +42,7 @@ class MockQueryAdapter(BaseAdapter):
             "is_downloadable": False,
         },
         {
-            # 模拟 njbz365 风格：有 hcno，有 replaces
+            # 模拟365风格：有，有
             "standard_number": "DB32/T 4567-2024",
             "standard_name": "江苏省 政务服务数据共享规范",
             "status": "现行",
@@ -56,7 +56,7 @@ class MockQueryAdapter(BaseAdapter):
             "is_downloadable": True,
         },
         {
-            # 模拟 ahbz 风格：有 abolition_date，无 hcno，恒可下载
+            # 模拟风格：有_，无，恒可下载
             "standard_number": "DB34/T 8901-2022",
             "standard_name": "安徽省 智慧园区建设指南",
             "status": "现行",

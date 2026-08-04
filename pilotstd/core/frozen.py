@@ -1,4 +1,4 @@
-# pilotstd/core/frozen.py — PyInstaller/Nuitka 统一打包检测
+# 项目/核心/脚本—/统一打包检测
 import sys
 
 

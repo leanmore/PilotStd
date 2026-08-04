@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/pending_service.py
-# PendingService — 待确认清单管理 + 下载等待队列 + 本地缓存查询
+# 模块：项目/管理器/_服务脚本
+# 待确认清单管理+下载等待队列+本地缓存查询
 
 import json
 import logging
@@ -142,7 +142,7 @@ class PendingService:
             (standard_number,),
         )
         if cur is None:
-            # 自动插入新行，初始 requery_count=1
+            # 自动插入新行，初始查询_=1
             self._db.execute(
                 "INSERT INTO pending_lookup (standard_number, requery_count) VALUES (?, 1)",
                 (standard_number,),

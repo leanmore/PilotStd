@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/engine/_batch.py
+# 模块：项目/查询/引擎/_脚本
 """批量查询编排器 — 6 阶段流水线入口。分发/分桶/收尾委托 BatchDispatcher。
 
 流水线阶段：初始化状态 → 按站点分桶 → 分发上下文 → 并行调度 → 收集 csres → 收尾。
@@ -46,7 +46,7 @@ class BatchHandler:
         overflow: "OverflowHandler",
         report: "ReportHandler",
     ) -> None:
-        # 注入组件引用（BatchHandler 自身 + BatchDispatcher 各取所需）
+        # 注入组件引用（自身+补丁各取所需）
         self._core = core
         self._routing = routing
         self._single = single
@@ -66,7 +66,7 @@ class BatchHandler:
         )
         self._dispatcher = BatchDispatcher(ctx)
 
-    # ── 薄代理（委托 BatchDispatcher）──
+    # ──薄代理（委托补丁）──
 
     def _init_batch_state(self, n, progress_callback, metrics=None):
         return self._dispatcher._init_batch_state(n, progress_callback, metrics)
@@ -101,7 +101,7 @@ class BatchHandler:
         n = len(items)
         if n == 0:
             return []
-        # 单条目 or 显式串行 → 走 _single 逐条查询路径
+        # 单条目显式串行→走_逐条查询路径
         if use_parallel is False or (use_parallel is None and n <= 1):
             results: list[QueryResult] = []
             pause_event = self._core.pause_event

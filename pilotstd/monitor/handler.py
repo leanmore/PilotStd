@@ -1,4 +1,4 @@
-# 模块：pilotstd/monitor/handler.py
+# 模块：项目//处理器脚本
 """watchdog EventHandler——延迟 + 去重处理新文件。"""
 
 import logging
@@ -24,8 +24,8 @@ class StandardFileHandler(FileSystemEventHandler):
         self._pending: dict[str, float] = {}
         self._lock = threading.Lock()
 
-    # ── watchdog 事件回调：统一委托给 _handle ──
-    # on_created / on_modified / on_moved 三者仅处理文件事件，目录事件忽略
+    # ──事件回调：统一委托给_──
+    # _/_/_三者仅处理文件事件，目录事件忽略
     def on_created(self, event):
         """文件创建事件 → 委托 _handle 处理。"""
         if not event.is_directory:

@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/db/__init__.py
-# 数据库模块 — 从 db.py 拆分为 4 个子模块
+# 模块：项目/核心//____脚本
+# 数据库模块—从脚本拆分为4个子模块
 
 from . import migrations  # noqa: F401 — 触发 @migration 装饰器注册，确保 MIGRATIONS 非空
 from ._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS, DatabaseError, migration

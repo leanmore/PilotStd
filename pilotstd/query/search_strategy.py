@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/search_strategy.py
+# 模块：项目/查询/_脚本
 # 搜索策略 + 查询结果比对
 
 import logging
@@ -14,18 +14,18 @@ def build_code_variants(logical_code: str, number: int, year: int, num_prefix: s
     variants = []
     upper = logical_code.upper().replace("/", "")
 
-    # ASME + 罗马数字前缀 → 追加 BPVC 分类标记
+    # +罗马数字前缀→追加分类标记
     if upper == "ASME" and num_prefix and re.match(r"^[IVXLCDM]+$", num_prefix):
         variants.append(f"ASME BPVC {num_prefix}.{number}-{year}")
         variants.append(f"ASME BPVC {num_prefix}.{number}")
         variants.append(f"ASME BPVC {num_prefix}-{year}")
 
-    # API → 追加 Std / Spec 出版类型前缀
+    # 接口→追加/出版类型前缀
     if upper == "API":
         variants.append(f"API Std {number}-{year}")
         variants.append(f"API Spec {number}-{year}")
 
-    # DIN（非 EN 前缀）→ 追加 DIN EN 变体
+    # （非前缀）→追加变体
     if upper == "DIN" and "EN" not in logical_code.upper():
         variants.append(f"DIN EN {number}-{year}")
 
@@ -66,7 +66,7 @@ def _is_code_variant(code1: str, code2: str) -> bool:
 
 # ── 前缀变体 ────────────────────────────────────────────────
 
-# 存在推荐性/强制性变体关系的代号对（2017年1077项 GB→GB/T 转换公告）
+# 存在推荐性/强制性变体关系的代号对（2017年1077项→/转换公告）
 _VARIANT_PAIRS = [
     ("GB", "GB/T"),
     ("GA", "GA/T"),
@@ -183,7 +183,7 @@ MATCH_SCORE = {
     "code_only": 20,
     "mismatch": 0,
 }
-# 别名，main_window 两处引用使用不同名称
+# 别名，入口_两处引用使用不同名称
 CONFIDENCE_SCORE = MATCH_SCORE
 
 # 匹配分数阈值：代号+编号确认（等同号或新版号），达到此分数即可停止宽搜
@@ -199,7 +199,7 @@ STATUS_MAP = [
     ("已废止", "废止"),
     ("未实施", "未实施"),
     ("被代替", "被代替"),
-    # 国外标准英文状态映射（njbz365 返回英文，csres 返回中文；两者都覆盖）
+    # 国外标准英文状态映射（365返回英文，返回中文；两者都覆盖）
     ("Active", "现行"),
     ("active", "现行"),
     ("Withdrawn", "废止"),
@@ -245,23 +245,23 @@ def is_adopted(name: str, en_name: str = "") -> bool:
 
 
 # ── 查询调度：按标准类型映射适配器优先级 ────────────────────
-# 键 = 标准代号（小写）或 classify_std_code() 分类标签
-# 值 = {"primary": 主适配器, "fallback": 兜底适配器}
+# 键=标准代号（小写）或__()分类标签
+# 值={"":主适配器,"回退":兜底适配器}
 # 设计目标：动态评分 + 实时负载感知替代固定优先级路由
 
 ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
-    # GB 类 → ahbz:std_gov:njbz365:csres = 30:40:25:5 加权分配
+    # 类→:_:365:=30:40:25:5加权分配
     "gb": {
         "chain": ["ahbz", "std_gov", "njbz365", "csres"],
         "weights": [30, 40, 25, 5],
     },
-    # 行标类 → hbba 专业平台，njbz365 二线，csres 兜底
+    # 行标类→专业平台，365二线，兜底
     "industry": {"chain": ["cssn", "miit", "hbba", "njbz365", "csres"]},
-    # 地标类 → dbba 专业平台
+    # 地标类→专业平台
     "db": {"primary": "dbba", "fallback": "csres"},
     "db11": {"primary": "dbba", "fallback": "csres"},
     "db31": {"primary": "dbba", "fallback": "csres"},
-    # 国际标准 → iso_gov
+    # 国际标准→_
     "iso": {"primary": "iso_gov", "fallback": "csres"},
     "iec": {"primary": "iso_gov", "fallback": "csres"},
     "ieee": {"primary": "iso_gov", "fallback": "csres"},
@@ -271,21 +271,21 @@ ADAPTER_TYPE_MAP: dict[str, dict[str, str | list[str] | list[int]]] = {
     "asme": {"primary": "iso_gov", "fallback": "csres"},
     "api": {"primary": "iso_gov", "fallback": "csres"},
     "foreign": {"primary": "njbz365", "fallback": "ahbz"},
-    # 团体标准 → ahbz 专业平台（type=5），njbz365 兜底
+    # 团体标准→专业平台（=5），365兜底
     "group": {"primary": "ttbz", "fallback": "ahbz"},
-    # 生态环境标准 → mee 官网优先，std_gov 兜底
+    # 生态环境标准→官网优先，_兜底
     "env": {"primary": "mee", "fallback": "std_gov"},
-    # 自然资源标准 → nrsis 官网优先，hbba 兜底
+    # 自然资源标准→官网优先，兜底
     "natural_resources": {"primary": "nrsis", "fallback": "hbba"},
-    # 交通运输标准 → jtst 官网优先，std_gov 兜底
+    # 交通运输标准→官网优先，_兜底
     "transport": {"primary": "jtst", "fallback": "std_gov"},
-    # 工程建设标准 → ccsn 官网优先，std_gov 兜底
+    # 工程建设标准→官网优先，_兜底
     "construction": {"primary": "ccsn", "fallback": "std_gov"},
-    # 计量技术规范 → jjg 官网优先，std_gov 兜底
+    # 计量技术规范→官网优先，_兜底
     "measurement": {"primary": "jjg", "fallback": "std_gov"},
-    # 食品安全国家标准 → sppt 官网优先，std_gov 兜底
+    # 食品安全国家标准→官网优先，_兜底
     "food_safety": {"primary": "sppt", "fallback": "std_gov"},
-    # 食品安全地方标准 → sppt_local 官网优先
+    # 食品安全地方标准→_官网优先
     "food_safety_local": {"primary": "sppt_local", "fallback": "sppt"},
     "construction_std": {"primary": "gongbiaoku", "fallback": "std_gov"},
     "energy": {"primary": "energy", "fallback": "std_gov"},

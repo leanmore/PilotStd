@@ -1,15 +1,15 @@
-# 模块：pilotstd/core/security.py
-# 密码安全模块 — 支持 bcrypt（新）与 PBKDF2/SHA256（旧，兼容过渡）
+# 模块：项目/核心/脚本
+# 密码安全模块—支持（新）与2/256（旧，兼容过渡）
 
 import hashlib
 import secrets
 
 from passlib.context import CryptContext  # type: ignore[import-untyped]
 
-# bcrypt 上下文，标记旧算法为 deprecated
+# 上下文，标记旧算法为
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# PBKDF2 参数（与 docker/users.py 保持一致）
+# 2参数（与容器/脚本保持一致）
 PBKDF2_ITERATIONS = 100_000
 PBKDF2_ALGORITHM = "sha256"
 
@@ -36,7 +36,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     if is_bcrypt_hash(hashed_password):
         return _pwd_context.verify(plain_password, hashed_password)
 
-    # 桌面端旧格式：salt:hexdigest
+    # 桌面端旧格式：:
     if ":" in hashed_password:
         salt, digest = hashed_password.split(":", 1)
         if len(digest) == 64:
@@ -62,7 +62,7 @@ def verify_password_with_salt(
     if is_bcrypt_hash(password_hash):
         return _pwd_context.verify(plain_password, password_hash)
 
-    # Docker 端旧格式：PBKDF2-HMAC-SHA256
+    # 端旧格式：2--256
     if salt:
         computed = hashlib.pbkdf2_hmac(
             PBKDF2_ALGORITHM,

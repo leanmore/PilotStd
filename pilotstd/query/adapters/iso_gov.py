@@ -1,6 +1,6 @@
-# 模块：pilotstd/query/adapters/iso_gov.py
-# 全国标准信息公共服务平台 — ISO/IEC 国际标准查询适配器
-# 说明：API: std.samr.gov.cn/gj/search/gjPage
+# 模块：项目/查询/适配器/_脚本
+# 全国标准信息公共服务平台—/国际标准查询适配器
+# 说明：接口:...///
 
 import logging
 import re
@@ -51,7 +51,7 @@ class IsoGovAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "国际标准平台"
 
-    # _search 继承自 BaseAdapter（基类实现已覆盖：_search_candidates → 精确匹配 → 取最新）
+    # _继承自（基类实现已覆盖：__→精确匹配→取最新）
 
     def _search_candidates(self, search_term: str) -> list[QueryResult]:
         """返回 API 全部候选结果，供 base 层统一打分。"""
@@ -91,7 +91,7 @@ class IsoGovAdapter(BaseAdapter):
         return [self._parse_result(row, search_term) for row in rows]
 
     def _parse_result(self, row: dict[str, Any], search_term: str = "") -> QueryResult:
-        # 使用无 HTML 标签的字段
+        # 使用无网页标签的字段
         std_no = self._clean_std_no(row.get("STANDARD_NO", ""))
         en_name = row.get("ENGLISH_NAME", "")
         state_raw = row.get("STATE", "")
@@ -103,10 +103,10 @@ class IsoGovAdapter(BaseAdapter):
         if std_status == "WITHDRAWN" and status not in ("废止",):
             status = "废止"
 
-        # ISO 采标判定：名称含 "adoption" → 是国内采标版本，不可下载
+        # 采标判定：名称含""→是国内采标版本，不可下载
         is_adopted = "adoption" in en_name.lower()
 
-        # 用搜索目标（search_term）与 API 返回结果（std_no）比对，避免自比较
+        # 用搜索目标（_）与接口返回结果（_）比对，避免自比较
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
             target.get("code", ""),

@@ -1,4 +1,4 @@
-# 模块：pilotstd/announce/task_runner.py
+# 模块：项目//_运行器脚本
 """公告抓取异步任务管理 — ThreadPoolExecutor 替代裸线程。"""
 
 from __future__ import annotations

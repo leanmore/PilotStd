@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/wechat_ip_service.py
-# 微信 IP 检测服务 — 供 API 层 + app.py 生命周期使用
+# 模块：项目/管理器/__服务脚本
+# 微信检测服务—供接口层+脚本生命周期使用
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class WechatIPService:
         except Exception:
             pass
 
-    # ── API 端点方法 ─────────────────────────────────────────
+    # ──接口端点方法─────────────────────────────────────────
 
     def get_config(self) -> dict[str, Any]:
         """获取可信 IP 配置（含 Cookie 状态）。"""
@@ -146,7 +146,7 @@ class WechatIPService:
             "last_check_at": cfg.get("wechat_ip.last_check_at", ""),
         }
 
-    # ── app.py 生命周期专用 ─────────────────────────────────
+    # ──脚本生命周期专用─────────────────────────────────
 
     def start_scheduler(self) -> None:
         """启动定时检测线程（app.py lifespan 用）。"""

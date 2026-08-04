@@ -1,4 +1,4 @@
-# docker/api/auth_register.py — v3.0: 用户注册端点（从 auth.py 拆分，控制文件行数）
+# 容器//_脚本—版本三0:用户注册端点（从脚本拆分，控制文件行数）
 import json
 import os
 import secrets
@@ -36,7 +36,7 @@ def register(request: Request, username: str = Form(""), password: str = Form(..
     if not _ENABLE_REGISTRATION:
         raise HTTPException(403, "注册功能未开放")
 
-    # IP 限流：滑动窗口计数
+    # 限流：滑动窗口计数
     client_ip = request.client.host if request.client else "unknown"
     now_ts = time.time()
     cutoff = now_ts - REGISTER_WINDOW
@@ -55,7 +55,7 @@ def register(request: Request, username: str = Form(""), password: str = Form(..
     # 确保用户表存在
     init_users_table()
 
-    # 创建用户（bcrypt）
+    # 创建用户（）
     try:
         if not add_user(username, password, role="user"):
             raise HTTPException(409, "用户名已存在")
@@ -71,7 +71,7 @@ def register(request: Request, username: str = Form(""), password: str = Form(..
     get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)
     resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": False})
-    # Cookie安全属性：httpOnly + Secure + SameSite
+    # 安全属性：++
     resp.set_cookie(COOKIE_NAME, token, httponly=True, secure=_is_https(request), samesite="strict", path="/")
     resp.set_cookie("csrf_token", csrf_token, httponly=False, secure=_is_https(request), samesite="strict", path="/")
     return resp

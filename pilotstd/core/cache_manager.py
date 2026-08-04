@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/cache_manager.py
+# 模块：项目/核心/缓存_管理器脚本
 """统一缓存管理器——版本驱动失效 + LRU 淘汰 + 大小限制。
 
 设计原则：
@@ -45,9 +45,7 @@ class CacheState(Enum):
 class CacheManager:
     """统一缓存管理器。
 
-    用法:
-        from pilotstd.core.cache_manager import CacheManager
-        mgr = CacheManager(db)  # db 为 pilotstd.core.db.Database 实例
+    用法示例：传入数据库实例创建缓存管理对象。
     """
 
     def __init__(self, db):
@@ -105,13 +103,13 @@ class CacheManager:
         if not row:
             return None
 
-        # 更新访问时间（用于 LRU 淘汰排序）
+        # 更新访问时间（用于淘汰排序）
         self._db.execute(
             f"UPDATE {table} SET last_accessed_at=? WHERE {key_field}=?",
             (datetime.now(timezone.utc).isoformat(), key_value),
         )
 
-        # 版本不匹配 → 标记为 stale → 返回 None，触发上游重新查询
+        # 版本不匹配→标记为→返回，触发上游重新查询
         if row.get("source_version") != current_version:
             self._db.execute(
                 f"UPDATE {table} SET data_state='stale' WHERE {key_field}=?",
@@ -132,7 +130,7 @@ class CacheManager:
     def set(self, table: str, key_field: str, key_value: Any, data: dict, source: DataSource):
         """写入缓存（带版本标记）。写入后检查大小。"""
         version = self._get_source_version(source)
-        # 数据序列化为 JSON 存储，便于后续读取和调试
+        # 数据序列化为数据存储，便于后续读取和调试
         data_json = json.dumps(data, ensure_ascii=False)
         now = datetime.now(timezone.utc).isoformat()
 
@@ -143,7 +141,7 @@ class CacheManager:
             (key_value, data_json, version, now),
         )
 
-        # 写入后自动检查是否需要 LRU 淘汰
+        # 写入后自动检查是否需要淘汰
         if self._auto_cleanup:
             self._check_and_cleanup()
 
@@ -175,7 +173,7 @@ class CacheManager:
             (version, key_value),
         )
 
-    # ── LRU 淘汰 ──────────────────────────────
+    # ──淘汰──────────────────────────────
 
     def cleanup(self, force: bool = False):
         """执行 LRU 淘汰。force=True 时无视大小阈值直接清理。"""
@@ -190,11 +188,11 @@ class CacheManager:
         deleted_total = 0
 
         for table in _MANAGED_TABLES:
-            # 先删除 stale
+            # 先删除
             deleted = self._delete_oldest(table, "stale", ratio)
             deleted_total += deleted
 
-            # 再删除 valid 中最久未访问的
+            # 再删除中最久未访问的
             deleted = self._delete_oldest(table, "valid", ratio)
             deleted_total += deleted
 
@@ -253,7 +251,7 @@ class CacheManager:
         优先 dbstat 虚拟表，降级使用 page_count/page_size，
         最后降级为行数估算。
         """
-        # 方案1: dbstat（需编译时启用 SQLITE_ENABLE_DBSTAT_VTAB）
+        # 方案1:（需编译时启用数据库查询__数据库_）
         try:
             names = "','".join(_MANAGED_TABLES)
             row = self._db.fetchone(
@@ -264,7 +262,7 @@ class CacheManager:
         except Exception:
             pass
 
-        # 方案2: page_count * page_size（数据库文件总大小）
+        # 方案2:_*_（数据库文件总大小）
         try:
             row = self._db.fetchone(
                 "SELECT page_count * page_size as db_bytes FROM pragma_page_count(), pragma_page_size()"

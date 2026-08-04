@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/actions_flow_engine.py
+# 模块：项目//核心/处理器/__引擎脚本
 """ActionsFlowEngine — 动作处理相关的纯逻辑层（无 Qt 依赖）。"""
 
 from __future__ import annotations

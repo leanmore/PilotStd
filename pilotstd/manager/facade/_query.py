@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_query.py
+# 模块：项目/管理器/门面/_查询脚本
 """QueryHandler：标准查询入口与 GUI 桥接。查询执行→QuerySubsystem，报告→QuerySubsystem。"""
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class QueryHandler:
     _GB_CODES = GB_CODES
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
-    # ---- 查询执行代理（委托 QuerySubsystem）----
+    # 查询执行代理（委托）
 
     def query(
         self,
@@ -72,7 +72,7 @@ class QueryHandler:
     def _report_query_summary(self, stats, items, results) -> None:
         self._qs._report_query_summary(stats, items, results)
 
-    # ---- QuerySubsystem 静态方法代理 ----
+    # 静态方法代理
 
     @staticmethod
     def _build_result_from_cache(standard_number: str, cache_data: dict[str, Any]) -> QueryResult:
@@ -82,7 +82,7 @@ class QueryHandler:
     def _parse_std_number(standard_number: str) -> tuple[str | None, int | None]:
         return QuerySubsystem._parse_std_number(standard_number)
 
-    # ---- GUI 桥接方法 ----
+    # 图形界面桥接方法
 
     def set_pause_event(self, event: Any) -> None:
         self._core.query_engine.set_pause_event(event)

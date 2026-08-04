@@ -1,4 +1,4 @@
-# 模块：docker/api/announce_detail.py — Phase 3: 公告详情页 API
+# 模块：容器//_脚本—阶段3:公告详情页接口
 import logging
 from datetime import datetime, timezone
 from urllib.parse import urlparse
@@ -22,7 +22,7 @@ SITE_NAME_MAP = {
     "gov.cn": "国家部委",
 }
 
-# URL 标识符 → source_site 反向映射
+# 链接标识符→_反向映射
 URL_SOURCE_MAP = {v: k for k, v in SOURCE_MAP.items()}
 
 
@@ -55,7 +55,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
     """获取公告头 + 关联的所有标准记录。"""
     db = mgr.db
 
-    # 优先从 announcements 表获取公告头（含 source_url 等字段）
+    # 优先从表获取公告头（含_等字段）
     ann = db.fetchone(
         "SELECT id, title, publish_date, source_url, attachment_url, raw_data, source_site,"
         " COALESCE(parse_status, 'pending') AS parse_status"
@@ -63,7 +63,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         (announce_no,),
     )
 
-    # 公告头信息：announcements 表有则取，无则从 announcement_record 回退
+    # 公告头信息：表有则取，无则从_回退
     if ann:
         title = ann["title"] or ""
         publish_date = ann["publish_date"] or ""
@@ -72,7 +72,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
         content = ann["raw_data"] or ""
         db_parse_status = ann["parse_status"] or "pending"
     else:
-        # 回退：从 announcement_record 聚合基本头信息
+        # 回退：从_聚合基本头信息
         header = db.fetchone(
             "SELECT COALESCE(MAX(announcement_title), '公告 ' || announce_no) AS title,"
             " MAX(publish_date) AS publish_date"
@@ -102,7 +102,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
     parse_status = db_parse_status if records else "pending"
 
-    # 公告级 source_type：取记录中的众数来源类型
+    # 公告级_：取记录中的众数来源类型
     source_types = [r["source_type"] for r in records if r.get("source_type")]
     dominant_source_type = max(set(source_types), key=source_types.count) if source_types else ""
 
@@ -142,7 +142,7 @@ def get_announcement_detail(announce_no: str, mgr=Depends(get_manager_dep)):
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 1a. 获取公告详情（轻量版 — 裁剪 DataTable 冗余字段）
+# 1.获取公告详情（轻量版—裁剪冗余字段）
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
@@ -182,7 +182,7 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
         content = ""
         db_parse_status = "pending"
 
-    # 字段白名单：仅查询 DataTable 渲染必需的列 + source_type（聚合统计用）
+    # 字段白名单：仅查询渲染必需的列+_（聚合统计用）
     records = db.fetchall(
         "SELECT id, row_index, standard_number, std_name,"
         " publish_date, implement_date, expiry_date, superseded_by, status, source_type"
@@ -229,7 +229,7 @@ def get_announcement_detail_lite(announce_no: str, mgr=Depends(get_manager_dep))
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 1b. 按公告编号查询所有来源（旧链接兼容）
+# 1.按公告编号查询所有来源（旧链接兼容）
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
@@ -265,7 +265,7 @@ def trigger_parse(
         (announce_no,),
     )
     if not ann:
-        # 自愈：公告只在 announcement_record 中，不在 announcements 表
+        # 自愈：公告只在_中，不在表
         rec = db.fetchone(
             "SELECT pid, source_site, announce_no,"
             " MAX(announcement_title) AS title, MAX(publish_date) AS publish_date"
@@ -274,7 +274,7 @@ def trigger_parse(
             (announce_no,),
         )
         if rec:
-            # 防绕过：raw_data 经清洗管线后再写入，确保语义 class 补全
+            # 防绕过：_经清洗管线后再写入，确保语义补全
             now = _now_iso()
             db.execute(
                 "INSERT OR REPLACE INTO announcements"
@@ -358,7 +358,7 @@ def _parse_attachment_bg(
 
         now = _now_iso()
 
-        # 清理旧记录 + 批量写入新记录，确保 row_index 从 1 开始
+        # 清理旧记录+批量写入新记录，确保_索引从1开始
         db.execute("DELETE FROM announcement_record WHERE announce_no = ?", (announce_no,))
 
         records_data = [
@@ -389,7 +389,7 @@ def _parse_attachment_bg(
             records_data,
         )
 
-        # 解析完成后更新 announcements 表头信息 + 解析状态
+        # 解析完成后更新表头信息+解析状态
         resolved_title = ann_title or meta.get("title", "")
         resolved_pub_date = publish_date or meta.get("publish_date", "")
         db.execute(

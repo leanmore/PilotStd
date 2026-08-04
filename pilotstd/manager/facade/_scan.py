@@ -1,8 +1,8 @@
-# 模块：pilotstd/manager/facade/_scan.py
+# 模块：项目/管理器/门面/_扫描脚本
 """ScanHandler：目录扫描、流式扫描、定时索引、文件监控，替代原 ScanMixin。"""
-# 性能：os.scandir() 替代 pathlib.iterdir()（NTFS 上 dirent 自带 type，减少 60% syscall）；
-# 去重：内存 HashSet（本批次）+ file_index 查哈希（跨扫描），先内存后 DB 避免不必要 SQL；
-# scan_and_index 为定时任务专用，异常时发 auto_scan_failed 通知，手动扫描异常不通知（用户已在 UI 看到）
+# 性能：.扫描()替代.()（上自带，减少60%）；
+# 去重：内存（本批次）+_索引查哈希（跨扫描），先内存后数据库避免不必要数据库查询；
+# 扫描__索引为定时任务专用，异常时发_扫描_通知，手动扫描异常不通知（用户已在用户界面看到）
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
-# ScanHandler — 扫描处理器，封装所有扫描方法，替代原 ScanMixin
+# 扫描处理器，封装所有扫描方法，替代原
 
 
 class ScanHandler:
@@ -27,7 +27,7 @@ class ScanHandler:
         """初始化扫描处理器，持有 ManagerCore 引用。"""
         self._core = core
 
-    # scan_directory — 扫描目录，识别文件名中的标准号
+    # 扫描_—扫描目录，识别文件名中的标准号
     def scan_directory(self, root_path: str) -> list[ParsedStdInfo]:
         """扫描目录，识别文件名中的标准号。"""
         result = self._core.scanner.scan([root_path])
@@ -84,7 +84,7 @@ class ScanHandler:
 
         return parsed
 
-    # scan_directory_stream — 流式扫描目录（线程安全）
+    # 扫描__—流式扫描目录（线程安全）
     def scan_directory_stream(
         self,
         root_path: str,
@@ -157,7 +157,7 @@ class ScanHandler:
 
         return parsed
 
-    # scan_and_index — 定时任务专用：四要素匹配 → UPDATE standards 表
+    # 扫描__索引—定时任务专用：四要素匹配→更新表
     def scan_and_index(self, root_path: Optional[str] = None) -> dict[str, int]:
         """Q6-1: 定时任务专用。root_path 参数保留向后兼容但不再使用，
         始终扫描 get_library_root() 返回的根目录。

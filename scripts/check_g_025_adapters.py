@@ -25,7 +25,7 @@ def _get_all_query_adapters() -> set[str]:
     for route in ADAPTER_TYPE_MAP.values():
         if not isinstance(route, dict):
             continue
-        # chain 是优先级链（列表），primary/fallback 是主备路由（字符串）
+        # 是优先级链（列表），/回退是主备路由（字符串）
         chain = route.get("chain", [])
         if chain:
             names.update(chain)
@@ -51,7 +51,7 @@ def check() -> int:
 
     for name in sorted(query_adapters):
         try:
-            # 动态导入适配器模块，检查 DISPLAY_NAME 常量
+            # 动态导入适配器模块，检查_常量
             mod = importlib.import_module(f"pilotstd.query.adapters.{name}")
             dn = getattr(mod, "DISPLAY_NAME", "")
             if not isinstance(dn, str) or not dn.strip():

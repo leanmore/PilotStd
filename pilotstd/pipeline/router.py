@@ -1,4 +1,4 @@
-# 模块：pilotstd/pipeline/router.py
+# 模块：项目/流水线/脚本
 # 流水线路由调度器 — 每完成一个阶段后重读状态标记，决定下一站
 
 import logging
@@ -35,7 +35,7 @@ class PipelineRouter:
     - classify_after_download: 下载完成后→全部归档
     """
 
-    # openstd 仅支持下载 GB 类标准，非国标不可路由到 download
+    # 仅支持下载类标准，非国标不可路由到下载
     _GB_CODES = GB_CODES  # 定义见 pilotstd.core.std_utils
 
     @staticmethod
@@ -83,7 +83,7 @@ class PipelineRouter:
             elif action == "not_found":
                 buckets["fallback"].append(p)
             else:
-                # pending 及未设置 next_action 的默认送查询
+                # 及未设置_的默认送查询
                 buckets["query"].append(p)
         return buckets
 
@@ -101,7 +101,7 @@ class PipelineRouter:
                 else:
                     buckets["download"].append(p)
             else:
-                # 替代标准为非GB（或无法解析代号）→ 手动下载
+                # 替代标准为非（或无法解析代号）→手动下载
                 buckets["manual_download"].append(p)
                 p.stage_status = "replacement_manual"
         else:
@@ -145,13 +145,13 @@ class PipelineRouter:
         has_valid_replaces = bool(replaces and replaces not in ("网站无此分类",))
         is_gb = is_gb_code(code)
 
-        # 规则0.1: 名称决策 — std_name 和 found_name 均为空 → pending
+        # 规则0.1:名称决策—_和_均为空→
         src = (getattr(p, "source_name", "") or "").strip()
         qry = (getattr(p, "found_name", "") or "").strip()
         if not src and not qry:
             buckets["pending"].append(p)
             return
-        # 规则1: match_status=="newer" + GB + 非采标 → download
+        # 规则1:_==""++非采标→下载
         if match_status == "newer" and is_gb:
             if getattr(p, "is_adopted", False):
                 buckets["pending"].append(p)
@@ -173,7 +173,7 @@ class PipelineRouter:
         if status in ("废止", "已废止", "作废", "被代替", "过期"):
             self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, replaces)
             return
-        # 规则4.5: 本地无文件 → GB 进 download，非GB 进 manual_download
+        # 规则4.5:本地无文件→进下载，非进_下载
         source_path = getattr(p, "source_path", "") or ""
         if not source_path or not os.path.exists(source_path):
             if is_gb:
@@ -183,11 +183,11 @@ class PipelineRouter:
                 buckets["manual_download"].append(p)
                 p.stage_status = "need_manual_download"
             return
-        # 规则8: 现行 → organize/normalize
+        # 规则8:现行→归类/
         if status == "现行":
             self._route_current_status(p, buckets)
             return
-        # 规则9: 非 exact 匹配兜底 → pending（排在所有具体判定之后，仅捕获无法归类的条目）
+        # 规则9:非匹配兜底→（排在所有具体判定之后，仅捕获无法归类的条目）
         if match_status and match_status != "exact":
             buckets["pending"].append(p)
             if match_status in ("older", "newer"):
@@ -249,8 +249,8 @@ class PipelineRouter:
             p.next_action = "pending"
         for p in buckets.get("fallback", []):
             p.next_action = "not_found"
-        # 名称决策：仅对进入下载队列的条目（GB 类标准）比较源名称与查询名称，
-        # 实质差异条目移入 pending。非 GB 标准不参与名称决策，保持 organize/normalize 状态。
+        # 名称决策：仅对进入下载队列的条目（类标准）比较源名称与查询名称，
+        # 实质差异条目移入。非标准不参与名称决策，保持归类/状态。
         name_conflicts = self._resolve_names(buckets.get("download", []))
         if name_conflicts:
             for p in name_conflicts:
@@ -283,7 +283,7 @@ class PipelineRouter:
                         p.normalized_name = norm_src
                         p.final_name = norm_src
                     else:
-                        # 实质差异：不自动赋值，移入 pending
+                        # 实质差异：不自动赋值，移入
                         conflicts.append(p)
                         continue
             elif src and not qry:
@@ -291,7 +291,7 @@ class PipelineRouter:
             elif not src and qry:
                 p.final_name = qry
 
-            # 过渡期：回写 std_name，归档链路零改动
+            # 过渡期：回写_，归档链路零改动
             if p.final_name:
                 p.std_name = p.final_name
         return conflicts

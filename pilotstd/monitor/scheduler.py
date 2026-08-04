@@ -1,4 +1,4 @@
-# 模块：pilotstd/monitor/scheduler.py
+# 模块：项目//调度器脚本
 """文件监控调度器——管理 watchdog Observer 生命周期。"""
 
 import logging
@@ -44,8 +44,8 @@ def get_scheduler():
     return _instance
 
 
-# FileMonitorScheduler — 后台线程驱动 watchdog Observer，文件就绪后触发自动归档
-# 全局单例模式，通过 get_scheduler() 获取，start/stop 管理生命周期
+# 后台线程驱动，文件就绪后触发自动归档
+# 全局单例模式，通过_调度器()获取，/管理生命周期
 class FileMonitorScheduler:
     def __init__(self, manager: Any = None):
         self.observer: Observer | None = None  # type: ignore[valid-type]
@@ -125,7 +125,7 @@ class FileMonitorScheduler:
 
         try:
             if self._mgr is None:
-                # 兼容未注入 manager 的场景（自动降级）
+                # 兼容未注入管理器的场景（自动降级）
                 from pilotstd.manager.facade import StandardManager  # noqa: PLC0415
 
                 self._mgr = StandardManager()

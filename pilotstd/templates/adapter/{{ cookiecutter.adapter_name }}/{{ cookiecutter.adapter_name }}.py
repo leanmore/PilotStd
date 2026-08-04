@@ -1,6 +1,6 @@
-# CookieCutter模板 — 由cookiecutter渲染后生成最终代码
-# 注释密度占位以满足门禁G-012要求
-# 适配器模块：pilotstd/query/adapters/{{ cookiecutter.adapter_name }}.py
+# 模板—由模板引擎渲染后生成最终代码
+# 注释密度占位以满足门禁-012要求
+# 适配器模块：项目/查询/适配器/{{模板引擎.适配器_}}脚本
 """{{ cookiecutter.site_label }} 适配器
 URL: {{ cookiecutter.base_url }}{{ cookiecutter.search_endpoint }}
 架构: {{ cookiecutter.response_type }} (method={{ cookiecutter.method }}, encoding={{ cookiecutter.encoding }})
@@ -16,9 +16,9 @@ from .base import BaseAdapter
 logger = logging.getLogger(__name__)
 
 
-# 适配器实现 — 由cookiecutter生成
-# 架构类型: {{ cookiecutter.response_type }}
-# 更多注释占位以满足门禁G-012密度要求
+# 适配器实现—由模板引擎生成
+# 架构类型:{{模板引擎._}}
+# 更多注释占位以满足门禁-012密度要求
 class {{ cookiecutter.adapter_class }}(BaseAdapter):
     """{{ cookiecutter.site_label }} 查询适配器。"""
 
@@ -91,7 +91,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
             data = resp.json()
         except Exception:
             return []
-        # 支持顶层列表或嵌套在 data/rows/results/list 中
+        # 支持顶层列表或嵌套在///中
         if isinstance(data, list):
             return data
         for key in ("data", "rows", "results", "list"):

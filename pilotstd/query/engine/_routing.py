@@ -1,5 +1,5 @@
-# 模块：pilotstd/query/engine/_routing.py
-# 说明：mypy: disable-error-code="no-any-return"
+# 模块：项目/查询/引擎/_路由脚本
+# 说明：:--="--"
 """查询引擎路由处理器 — 优先级计算、配额分配、站点轮转、桶分片逻辑。
 
 组合模式重构：RoutingMixin → RoutingHandler，依赖通过 EngineCore 注入。
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Phase 3.2: 路由决策结构化日志采样率（默认 1%，环境变量可覆盖）
+# 阶段3.2:路由决策结构化日志采样率（默认1%，环境变量可覆盖）
 ROUTING_DEBUG_SAMPLE_RATE = float(os.environ.get("ROUTING_DEBUG_SAMPLE_RATE", "0.01"))
 
 
@@ -44,14 +44,14 @@ class RoutingHandler:
 
         Phase 3.1: 优先使用评分器动态路由；旧硬编码路由作为兜底。
         """
-        # Phase 3.1: 评分器动态路由（优先）
+        # 阶段3.1:评分器动态路由（优先）
         try:
             rotator = self._core.rotator
             quota = self._core.quota
             runtime_state = _collect_runtime_state(rotator, quota)
             dynamic_chain = get_priority_chain(logical_code, runtime_state)
             if dynamic_chain:
-                # Phase 3.2: 路由决策采样日志（默认 1%）
+                # 阶段3.2:路由决策采样日志（默认1%）
                 if random.random() < ROUTING_DEBUG_SAMPLE_RATE:
                     from ..routing.scorer import score_adapter
 
@@ -102,7 +102,7 @@ class RoutingHandler:
         if logical_code:
             from ...scan.parser import CAC_PREFIXES, FOREIGN_CODE_SET, ITU_CODES
 
-            # 三层国外标准检测：前缀白名单 → ITU 系列 → CAC 民航类
+            # 三层国外标准检测：前缀白名单→系列→民航类
             code_no_space = logical_code.upper().replace(" ", "")
             is_foreign = any(code_no_space.startswith(fc.upper().replace(" ", "")) for fc in FOREIGN_CODE_SET)
             if not is_foreign:

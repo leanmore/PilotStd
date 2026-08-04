@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/query_summary_flow_engine.py
+# 模块：项目//核心/处理器/查询___引擎脚本
 """QuerySummaryFlowEngine — 查询汇总的纯逻辑层（零 Qt 依赖）。
 
 数据分组、状态描述映射、安全字符串转换、统计消息构建。

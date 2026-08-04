@@ -1,8 +1,8 @@
-# 模块：src/types/bootstrap.py
-# BootstrapResult 类型契约 — 三位一体治理体系 D5 强制层
+# 模块：源码//脚本
+# 类型契约—三位一体治理体系5强制层
 # 分隔
-# 规范基准: docs/governance/trinity-technical-spec-v2.md §4.2
-# 版本: schema_version=1.0, spec_version=2.0
+# 规范基准://---版本二§4.2
+# 版本:表结构_=1.0,_=2.0
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ class BootstrapResult(TypedDict):
     metadata: Dict[str, str]
 
 
-# 受保护治理文档路径（Pre-commit Hook + CI 强制校验）
+# 受保护治理文档路径（-+持续集成强制校验）
 PROTECTED_GOVERNANCE_PATHS = (
     "docs/governance/prompt-crafting-guide.md",
     "docs/governance/rule-quickref.md",
@@ -61,7 +61,7 @@ PROTECTED_GOVERNANCE_PATHS = (
     "docs/governance/phase1-startup-checklist.md",
 )
 
-# 原子写入调用栈白名单（Phase 1）
+# 原子写入调用栈白名单（阶段1）
 ALLOWED_CALLERS = frozenset(
     {
         "claude_code",

@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_download.py
+# 模块：项目/管理器/门面/_下载脚本
 """DownloadHandler：下载执行、流式下载、下载等待队列，替代原 DownloadMixin。"""
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
-# DownloadHandler — 下载处理器，封装所有下载方法，替代原 DownloadMixin
+# 下载处理器，封装所有下载方法，替代原
 
 
 class DownloadHandler:
@@ -46,7 +46,7 @@ class DownloadHandler:
                                 self._core.cache.put(cached)
                         break
 
-    # download — 批量下载分类结果中的标准文件
+    # 下载—批量下载分类结果中的标准文件
     def download(
         self, query_results: list[Any] | None = None, _adapter: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:
@@ -85,7 +85,7 @@ class DownloadHandler:
         )
         return tasks, stats
 
-    # download_stream — 流式下载（线程安全），逐条下载并回调进度和结果
+    # 下载_—流式下载（线程安全），逐条下载并回调进度和结果
     def download_stream(
         self, on_progress: Any = None, on_result: Any = None, _adapter: Any = None
     ) -> tuple[list[DownloadTask], BatchDownloadStats]:

@@ -1,4 +1,4 @@
-# pilotstd/ui/workers/download.py — DownloadWorker，从 workers.py 拆分
+# 项目//工作者/下载脚本—，从工作者脚本拆分
 
 import logging
 from typing import Any
@@ -70,5 +70,5 @@ class DownloadWorker(QThread):
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[DownloadWorker] elapsed=%.1fs", _elapsed)
-            # finally 块保证 finished_signal 在正常/异常/提前返回 三条路径都恰好发射一次
+            # 块保证_在正常/异常/提前返回三条路径都恰好发射一次
             self.finished_signal.emit()

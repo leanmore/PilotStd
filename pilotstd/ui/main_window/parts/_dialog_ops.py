@@ -121,4 +121,4 @@ def _register_task(self, label: str, total: int, completed: int, failed: int = 0
         logger.warning("任务记录失败: %s", e)
 
 
-# 进度条缓动已迁移至 pilotstd.ui.core.unified_progress.UnifiedProgressPipeline
+# 进度条缓动已迁移至项目..核心._.

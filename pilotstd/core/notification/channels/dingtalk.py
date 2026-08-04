@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/channels/dingtalk.py
+# 模块：项目/核心//渠道/脚本
 """钉钉群机器人 Webhook 通知渠道。"""
 
 import base64
@@ -26,7 +26,7 @@ class DingTalkChannel(NotificationChannel):
 
     def _sign(self) -> str:
         """钉钉加签：timestamp + secret → HMAC-SHA256 → Base64 → URL encode。"""
-        # 无 secret 时不加签，直接返回空字符串
+        # 无时不加签，直接返回空字符串
         if not self._secret:
             return ""
         # 钉钉要求毫秒级时间戳
@@ -37,7 +37,7 @@ class DingTalkChannel(NotificationChannel):
             string_to_sign.encode("utf-8"),
             hashlib.sha256,
         ).digest()
-        # URL encode 签名：钉钉要求对 Base64 结果进行 URL 编码
+        # 链接签名：钉钉要求对64结果进行链接编码
         sign = quote(base64.b64encode(hmac_code).decode("utf-8"))
         return f"&timestamp={timestamp}&sign={sign}"
 
@@ -48,10 +48,10 @@ class DingTalkChannel(NotificationChannel):
             return False
 
         try:
-            # 拼接加签参数到 URL
+            # 拼接加签参数到链接
             url = self._url + self._sign()
 
-            # 使用 MarkdownRenderer 渲染消息体
+            # 使用渲染消息体
             rendered = self._renderer.render(message)
             # 钉钉需要标准号以引用块形式追加
             if message.standard_number:
@@ -73,7 +73,7 @@ class DingTalkChannel(NotificationChannel):
                     logger.warning("钉钉通知 HTTP %d", resp.status)
                     return False
                 data = json.loads(resp.read().decode("utf-8"))
-                # 钉钉返回 errcode=0 表示成功
+                # 钉钉返回=0表示成功
                 if data.get("errcode") == 0:
                     return True
                 logger.warning("钉钉通知失败: %s", data.get("errmsg", "未知错误"))

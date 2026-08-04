@@ -43,7 +43,7 @@ def step1_date_distribution(conn: sqlite3.Connection) -> None:
     若集中度 >50%，说明存在全量抓取 Bug（数据非正常增量入库）。
     """
     divider("步骤1 — fetched_at 日期分布 (Top 10)")
-    # 按抓取日期分组统计，取 Top 10
+    # 按抓取日期分组统计，取10
     rows = conn.execute(
         "SELECT date(fetched_at) AS fetch_date, COUNT(*) AS n "
         "FROM announcement_record "
@@ -68,7 +68,7 @@ def step2_duplicates(conn: sqlite3.Connection) -> None:
     按 (source_site, pid, standard_number) 组合分组，统计重复次数。
     """
     divider("步骤2 — 重复记录检查")
-    # 按 (来源站点 + PID + 标准号) 组合查重，HAVING COUNT > 1
+    # 按(来源站点++标准号)组合查重，计数>1
     rows = conn.execute(
         "SELECT source_site, pid, standard_number, COUNT(*) AS dup "
         "FROM announcement_record "

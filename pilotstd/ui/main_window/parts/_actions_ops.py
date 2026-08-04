@@ -56,7 +56,7 @@ def _init_manager(self) -> None:
     if self._config.get("watchdog.enabled", False):  # pragma: no cover — 需要真实 ConfigManager 触发
         mgr.start_watching()
     self._init_core()
-    # 启动自检（仅在 PILOTSTD_SELF_CHECK=1 时执行）
+    # 启动自检（仅在类型脚本__=1时执行）
     from ...core._self_check import run_self_check
 
     run_self_check(self)

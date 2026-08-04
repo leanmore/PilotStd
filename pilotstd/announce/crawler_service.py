@@ -1,4 +1,4 @@
-# 模块：pilotstd/announce/crawler_service.py
+# 模块：项目//爬取_服务脚本
 """公告爬取服务 — 编排 AnnounceEngine + checkpoint + 持久化。
 
 check_all: 遍历 gb/hb/db 适配器增量抓取，写 checkpoint。
@@ -79,7 +79,7 @@ class AnnounceCrawler:
         for adapter in engine.adapters:
             if adapter_name and adapter.standard_type != adapter_name:
                 continue
-            # 读取 checkpoint 实现增量抓取
+            # 读取实现增量抓取
             since = self._persistence.get_checkpoint(adapter.source_site) or ""
 
             result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)

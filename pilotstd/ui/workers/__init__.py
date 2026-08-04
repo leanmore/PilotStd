@@ -1,5 +1,5 @@
-# 模块：pilotstd/ui/workers/__init__.py
-# 后台 Worker 线程包 — 从 workers.py 拆分为 8 个子模块
+# 模块：项目//工作者/____脚本
+# 后台线程包—从工作者脚本拆分为8个子模块
 
 from ._common import LogHandler, RowUpdate, _pct
 from .announce import AnnounceWorker

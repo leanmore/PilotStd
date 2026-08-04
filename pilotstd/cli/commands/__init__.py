@@ -1,5 +1,5 @@
-# 模块：pilotstd/cli/commands/__init__.py
-# CLI 子命令入口 — 组装参数解析器并派发到各子命令模块
+# 模块：项目//命令/____脚本
+# 命令行子命令入口—组装参数解析器并派发到各子命令模块
 
 import argparse
 import logging

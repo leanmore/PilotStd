@@ -1,4 +1,4 @@
-# docker/api/pending.py — 待确认标准重新查询 API
+# 容器//脚本—待确认标准重新查询接口
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
@@ -19,7 +19,7 @@ def requery_pending(numbers: list[str] = Body(), site: str = "", mgr=Depends(get
     """对待确认标准进行重新查询。指定 site 时置顶该站点，否则引擎自动路由。"""
     results, _ = mgr.query_by_numbers(numbers, preferred_site=site)
 
-    # Q31: 查询成功的条目从待确认列表移除
+    # 31:查询成功的条目从待确认列表移除
     confirmed: list[str] = []
     for r in results:
         if r.standard_name:

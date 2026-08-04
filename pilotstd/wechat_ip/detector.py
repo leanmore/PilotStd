@@ -1,4 +1,4 @@
-# 模块：pilotstd/wechat_ip/ip_detector.py
+# 模块：项目/_/_检测器脚本
 """多源公网 IP 检测——取众数确保准确性。"""
 
 import logging

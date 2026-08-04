@@ -39,14 +39,14 @@ def preprocess(html: str) -> str:
     """
     if not html or not html.strip():
         return ""
-    # 如果已经是纯文本（无 HTML 标签），直接返回
+    # 如果已经是纯文本（无网页标签），直接返回
     if "<" not in html:
         return html
-    # 提取所有 p 标签内的文本，保持段落分隔
+    # 提取所有标签内的文本，保持段落分隔
     paragraphs = re.findall(r"<p[^>]*>(.*?)</p>", html, re.DOTALL)
     if paragraphs:
         return "\n\n".join(p.strip() for p in paragraphs if p.strip())
-    # 回退：去除所有 HTML 标签
+    # 回退：去除所有网页标签
     clean = re.sub(r"<[^>]+>", "", html)
     return clean.strip()
 

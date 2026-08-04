@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/query_flow_engine.py
+# 模块：项目//核心/处理器/查询__引擎脚本
 """QueryFlowEngine — 查询相关的纯逻辑层（无 Qt 依赖）。
 
 所有方法输入/输出均为 Python 原生类型或项目 dataclass，
@@ -17,7 +17,7 @@ from ....models import ParsedStdInfo
 
 logger = logging.getLogger(__name__)
 
-# ── 状态 → hex 颜色映射常量 ──────────────────────────────────
+# ──状态→颜色映射常量──────────────────────────────────
 _STATUS_COLOR_MAP: dict[str, str] = {
     "现行": "#008000",
     "即将实施": "#0000ff",
@@ -55,15 +55,10 @@ class QueryFlowEngine:
 
     @staticmethod
     def determine_status_color(status: str, is_downloadable: bool) -> str:
-        """根据生效状态和可下载性返回 hex 颜色代码。
+        """根据生效状态和可下载性返回十六进制颜色代码。
 
-        规则：
-          - 现行 → #008000 (darkGreen)
-          - 即将实施 → #0000ff (blue)
-          - 废止/已废止/作废 → #ff0000 (red)
-          - 待确认 → #808000 (darkYellow)
-          - 不可下载且非废止/待确认 → #808000 (darkYellow 覆盖)
-          - 其他 → "" (无特殊着色)
+        规则：现行 → 深绿、即将实施 → 蓝、废止/已废止/作废 → 红、
+        待确认 → 暗黄、不可下载且非废止/待确认 → 暗黄覆盖、其他 → 无特殊着色。
         """
         color = _STATUS_COLOR_MAP.get(status, "")
         if not is_downloadable and status not in _EXCLUDED_FROM_OVERRIDE:

@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/cssn.py
+# 模块：项目/查询/适配器/脚本
 """
 中国标准服务网适配器
 
@@ -95,12 +95,12 @@ class CSSNAdapter(BaseAdapter):
                 if result:
                     all_results.append(result)
 
-            # count 上限告警
+            # 上限告警
             count = payload.get("count", 0)
             if count >= 10000:
                 logger.warning("CSSN count=%d 达到上限（固定 10000），实际结果可能更多", count)
 
-            # 用 next 判终
+            # 用判终
             if not payload.get("next"):
                 break
 
@@ -138,7 +138,7 @@ class CSSNAdapter(BaseAdapter):
             hcno=row.get("yf001", "") or "",
             source_site=self.site_name,
         )
-        # 附加信息（非 QueryResult 标准字段）
+        # 附加信息（非标准字段）
         result.standard_type = row.get("a104name", "") or ""  # type: ignore[attr-defined]
         result.ccs = row.get("a825name", "") or ""  # type: ignore[attr-defined]
         result.ics = row.get("a826name", "") or ""  # type: ignore[attr-defined]

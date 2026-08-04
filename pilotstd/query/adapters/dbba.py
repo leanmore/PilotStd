@@ -1,6 +1,6 @@
-# 模块：pilotstd/query/adapters/dbba.py
-# 地方标准信息服务平台（dbba.sacinfo.org.cn）查询适配器
-# 覆盖全国各省/市地方标准（DB 标准）的查询
+# 模块：项目/查询/适配器/脚本
+# 地方标准信息服务平台（...）查询适配器
+# 覆盖全国各省/市地方标准（数据库标准）的查询
 
 import logging
 from datetime import datetime
@@ -80,7 +80,7 @@ class DbbaAdapter(BaseAdapter):
         issue_date = ts_to_date(rec.get("issueDate"))
         act_date = ts_to_date(rec.get("actDate"))
 
-        # 状态修正：actDate 在未来 → 即将实施
+        # 状态修正：在未来→即将实施
         mapped = map_status(raw_status)
         if mapped == "现行" and act_date:
             try:
@@ -92,7 +92,7 @@ class DbbaAdapter(BaseAdapter):
 
         adopted = is_adopted(ch_name)
 
-        # 用搜索目标（search_term）与 API 返回结果（code）比对，避免自比较
+        # 用搜索目标（_）与接口返回结果（）比对，避免自比较
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
             target.get("code", ""),
@@ -102,7 +102,7 @@ class DbbaAdapter(BaseAdapter):
             code,
         )
 
-        # 代替标准：API 直接返回 reviseStdCodes，无需查详情页
+        # 代替标准：接口直接返回，无需查详情页
         replaces = rec.get("reviseStdCodes", "") or ""
 
         return QueryResult(

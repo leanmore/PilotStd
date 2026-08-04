@@ -1,4 +1,4 @@
-# 模块：pilotstd/scan/parser/__init__.py
+# 模块：项目/扫描/解析器/____脚本
 # 标准文件名解析器 — 按代号分流：国内/国际/国外三路解析
 
 import logging
@@ -50,7 +50,7 @@ class StandardParser:
     匹配通道委托给 ExactMatcher（组合注入），辅助方法为 staticmethod 绑定。
     """
 
-    # 静态方法代理（供 ExactMatcher 通过 self._parser._xxx() 回调）
+    # 静态方法代理（供通过._解析器._()回调）
     _clean = staticmethod(TextCleaner.clean)  # type: ignore[assignment]
     _detect_language = staticmethod(LanguageDetector.detect)  # type: ignore[assignment]
     _detect_file_kind = staticmethod(FileKindDetector.detect)  # type: ignore[assignment]
@@ -71,11 +71,11 @@ class StandardParser:
         self.log = log or logger
         self._core = ParserCore(code_mapping, lambda: self._current_file_kind)
 
-        # 精确匹配（带年份） — "API 610-2004", "BS EN 1092.1-2018", "ISO 9001:2015"
+        # 精确匹配（带年份）—"接口610-2004","1092.1-2018","9001:2015"
         self.regex = _compile(_PFX, _SEP, _NUM, _PART_SHORT, _EDITION_SKIP, _SEP, _YEAR4)
-        # 精确匹配（无年份） — "MIL-STD-810G"（字母修订版，无年份）
+        # 精确匹配（无年份）—"--810"（字母修订版，无年份）
         self.regex_no_year = _compile(_PFX, _SEP, _NUM, _PART_SHORT)
-        # 带类型前缀的精确匹配 — "ANSI/UL 560-1980", "API Spec 6A-2023", "GB 1234-86"
+        # 带类型前缀的精确匹配—"/560-1980","接口6-2023","1234-86"
         self.regex_typed = _compile(
             _PFX,
             _ENDORSER,
@@ -90,7 +90,7 @@ class StandardParser:
             _PART_LONG,
             _SEP,
         )
-        # regex_typed 回退（无分册号） — 当 typed 因尾部分册号匹配失败时使用
+        # _回退（无分册号）—当因尾部分册号匹配失败时使用
         self.regex_typed_v2 = _compile(
             _PFX,
             _ENDORSER,
@@ -103,7 +103,7 @@ class StandardParser:
             _YEAR_LOOSE,
             r"?",
         )
-        # 地方标准 — "DB11/T 1951-2021", "DB3501/T 002-2023", "DB 50/T 1982-2026"
+        # 地方标准—"数据库11/1951-2021","数据库3501/002-2023","数据库50/1982-2026"
         self.regex_db = _compile(
             r"DB\s?(?P<code>\d{2,4})",  # DB + 可选空格 + 2~4位行政区划代码
             r"(?:/(?P<type>T))?",  # 可选 /T 推荐性标识
@@ -112,10 +112,10 @@ class StandardParser:
             _SEP,
             _YEAR_DB,
         )
-        # ExactMatcher 组合实例（匹配通道委托）
+        # 组合实例（匹配通道委托）
         self._matcher = ExactMatcher(self)
 
-    # ── 实例方法代理（委托 ParserCore，供 ExactMatcher 通过 self._parser 回调）──
+    # ──实例方法代理（委托，供通过._解析器回调）──
 
     def _trim_prefix(self, prefix: str, text: str) -> str:
         return self._core.trim_prefix(prefix, text)
@@ -149,7 +149,7 @@ class StandardParser:
             require_year,
         )
 
-    # ── 公共 API ────────────────────────────────────────────
+    # ──公共接口────────────────────────────────────────────
 
     def _preprocess_input(self, filename: str) -> tuple[str, str, str, str]:
         """输入规范化：路径→文件名、清理、语言检测、文件属性标记。
@@ -204,7 +204,7 @@ class StandardParser:
         内部委托 classify_std_code()，再做返回值映射。"""
         from ...core.std_utils import classify_std_code
 
-        # IEC 带类型前缀（TR/TS/PAS）按国外标准处理，触发 _handle_type_prefix 修正
+        # 带类型前缀（/类型脚本/）按国外标准处理，触发___修正
         parts = logical_code.split()
         if len(parts) > 1 and parts[0].upper() == "IEC" and parts[1].upper() in IEC_TYPES:
             return "foreign"

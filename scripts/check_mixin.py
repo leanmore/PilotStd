@@ -27,7 +27,7 @@ def check_mixin_in_file(file_path: str) -> list[str]:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
-            # 匹配类定义中包含 Mixin 后缀的类
+            # 匹配类定义中包含后缀的类
             matches = re.findall(r"class\s+(\w*Mixin\w*)\s*[(:]", content)
             if matches:
                 for mixin in matches:

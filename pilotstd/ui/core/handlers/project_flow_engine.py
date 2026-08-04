@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/project_flow_engine.py
+# 模块：项目//核心/处理器/__引擎脚本
 """ProjectFlowEngine — 项目状态的纯逻辑层（零 Qt 依赖）。
 
 提取项目状态序列化/反序列化、路径校验的纯计算逻辑。

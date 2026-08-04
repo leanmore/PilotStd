@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/_validity_pipeline.py
-# 有效性检查流水线函数 — 从 validity_checker.py 提取
+# 模块：项目/核心/__流水线脚本
+# 有效性检查流水线函数—从_检查器脚本提取
 
 from __future__ import annotations
 

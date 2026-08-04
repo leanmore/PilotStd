@@ -1,5 +1,5 @@
-# 模块：pilotstd/core/notification/_builders_validity.py
-# 通知消息构建器(有效性检查) — 原 _ValidityBuildersMixin，现为模块级纯函数
+# 模块：项目/核心//_构建器_脚本
+# 通知消息构建器(有效性检查)—原_，现为模块级纯函数
 
 from pilotstd.i18n import _
 
@@ -25,14 +25,14 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
     new_status = data.get("new_status", "")
     is_expired = data.get("is_expired", False)
     blocks: list[NotificationBlock] = [StatusChangeBlock(label=std_no, old_value=old_status, new_value=new_status)]
-    # 废止类通知用 error 级别 + 红色图标，强调紧急性
+    # 废止类通知用级别+红色图标，强调紧急性
     if is_expired:
         title = _("[废止] 标准已废止")
         level = "error"
         icon = "pi pi-times-circle"
     else:
         title = _("标准状态变更")
-        # 新状态为"已废止"时降级为 warning，否则 info
+        # 新状态为"已废止"时降级为，否则
         level = "warning" if new_status == _("已废止") else "info"
         icon = "pi pi-refresh"
     return NotificationMessage(
@@ -73,7 +73,7 @@ def _build_standard_expired_message(data: dict) -> NotificationMessage:
 def _build_standard_first_registered_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     standards = data.get("standards", [])
-    # 兼容旧版单条调用：无 standards 列表时用 standard_number/name 构造
+    # 兼容旧版单条调用：无列表时用_/构造
     if not standards:
         std_no = data.get("standard_number", "")
         name = data.get("name", "")
@@ -103,8 +103,8 @@ def _build_standard_first_registered_message(data: dict) -> NotificationMessage:
     )
 
 
-# check_batch_complete 和 auto_query_complete 保留函数定义但不再注册到 _EVENT_BUILDERS
-# 原因：定时任务由新版通知管道处理后，不再通过旧版构建器生成桌面 toast
+# __和_查询_保留函数定义但不再注册到__用户界面
+# 原因：定时任务由新版通知管道处理后，不再通过旧版构建器生成桌面
 
 # ── 批量检查/公告事件 ──
 
@@ -130,7 +130,7 @@ def _build_validity_batch_report_message(data: dict) -> NotificationMessage:
     ]
     if data.get("adapter_status"):
         blocks.append(TextBlock(text=_("适配器状态：{s}").format(s=data["adapter_status"])))
-    # 有变更或失败时升级为 warning
+    # 有变更或失败时升级为
     level = "warning" if (changed > 0 or failed > 0) else "info"
     return NotificationMessage(
         title=_("有效性批量报告"),

@@ -1,5 +1,5 @@
-# 模块：pilotstd/ui/core/_core_init_query.py
-# 查询子系统初始化 — 原 _CoreInitQueryMixin，现为工厂函数
+# 模块：项目//核心/_核心__查询脚本
+# 查询子系统初始化—原_，现为工厂函数
 
 from __future__ import annotations
 
@@ -17,11 +17,11 @@ def init_query_subsystem(core) -> None:
     原 _CoreInitQueryMixin 的 4 个方法合并为一个工厂函数。
     core 即 MainWindowCore 实例。
     """
-    # 原 _init_query_ui
+    # 原__查询_
     core._table_ops = _TableOpsAdapter(core)
     core._dialog_ops = _DialogOpsAdapter(core)
 
-    # 原 _init_query_connections
+    # 原__查询_
     deps = type(
         "QueryDeps",
         (),
@@ -34,7 +34,7 @@ def init_query_subsystem(core) -> None:
     )()
     core._deps = deps
 
-    # 原 _init_query_state
+    # 原__查询_
     from .handlers._query import QueryUIHandler
 
     core.query = QueryUIHandler(

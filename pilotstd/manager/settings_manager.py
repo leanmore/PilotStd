@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/settings_manager.py
-# 用户偏好管理器（Web 端）— 使用 user_settings 表（JSON 聚合存储），带内存缓存
+# 模块：项目/管理器/_管理器脚本
+# 用户偏好管理器（端）—使用_表（数据聚合存储），带内存缓存
 
 import json
 import logging
@@ -10,7 +10,7 @@ from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
 
 logger = logging.getLogger(__name__)
-# UserPreferenceManager — 用户偏好管理器，参考 MoviePilot SystemConfigOper 的内存缓存模式
+# 用户偏好管理器，参考的内存缓存模式
 
 
 class UserPreferenceManager:
@@ -70,7 +70,7 @@ class UserPreferenceManager:
         logger.info("已创建 user_settings 表")
 
     @classmethod
-    # get_preferences — 获取用户完整偏好（合并默认值），优先读缓存
+    # _—获取用户完整偏好（合并默认值），优先读缓存
     def get_preferences(cls, user_id: int) -> Dict[str, Any]:
         """获取用户完整偏好（合并默认值），优先读缓存"""
         if user_id in cls._cache:

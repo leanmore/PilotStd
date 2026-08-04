@@ -200,7 +200,7 @@ def main():
             print(f"  - {s}")
         print()
 
-    # YAML 输出
+    # 输出
     yaml_lines = [
         r
         for r in recommendations

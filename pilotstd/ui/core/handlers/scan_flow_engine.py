@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/scan_flow_engine.py
+# 模块：项目//核心/处理器/扫描__引擎脚本
 """ScanFlowEngine — 扫描文件解析的纯逻辑层（零 Qt、零 I/O、零事件总线）。
 
 提取文件名解析、PDF 头解析、已知结果过滤、结果合并、扫描统计。
@@ -14,43 +14,31 @@ from typing import Any
 class ScanFlowEngine:
     """扫描相关纯逻辑：文件名解析、PDF 头提取、去重合并、统计生成。"""
 
-    # ── 文件名解析用正则（轻量，不依赖 StandardParser 即可覆盖常见格式）──
+    # ──文件名解析用正则（轻量，不依赖即可覆盖常见格式）──
     _STD_NUMBER_RE = re.compile(
         r"(?P<code>[A-Z]{2,}/?[A-Z]{0,3})\s*"
         r"(?P<number>\d+(?:\.\d+)?)"
         r"(?:[._-]?(?P<year>\d{4}))?"
     )
 
-    # ── PDF 头部标准号匹配（二进制流中搜索）──
+    # ──便携文档头部标准号匹配（二进制流中搜索）──
     _PDF_STD_RE = re.compile(
         rb"(?P<code>[A-Z]{2,}(?:/[A-Z]{1,3})?)\s*"
         rb"(?P<number>\d+(?:\.\d+)?)"
         rb"(?:[._-](?P<year>\d{4}))?"
     )
 
-    # ── parse_filename_to_std（解析文件名得到标准号）──────────────────────────
+    # ──___（解析文件名得到标准号）──────────────────────────
 
     @staticmethod
     def parse_filename_to_std(filename: str) -> dict[str, Any] | None:
         """从文件名解析标准号信息。
 
-        优先使用项目标准解析器 StandardParser，解析失败时退化为轻量正则匹配。
-        不执行任何文件 I/O。
+        优先使用项目标准解析器，解析失败时退化为轻量正则匹配。
+        不执行任何输入输出操作。
 
-        Args:
-            filename: 文件名（如 "GB/T 12345-2020.pdf"、"ISO 9001.pdf"）
-
-        Returns:
-            {
-                "std_number": str,       # 标准号（如 "GB/T 12345-2020"）
-                "logical_code": str,     # 逻辑代号
-                "number": int,           # 顺序号
-                "year": int,             # 年份（0 表示无年份）
-                "part": int | None,      # 部分号
-                "std_name": str,         # 标准名称
-                "is_valid": bool,        # 是否有效标准号
-            }
-            或 None（无法解析）
+        参数接收文件名，返回标准号信息字典（含标准号、逻辑代号、顺序号、年份、部分号、标准名、是否有
+        效）或空值表示无法解析。
         """
         if not filename or not isinstance(filename, str):
             return None
@@ -107,7 +95,7 @@ class ScanFlowEngine:
             "is_valid": bool(code and number > 0),
         }
 
-    # ── parse_pdf_header（解析 PDF 头部获取标准号）──────────────────────────
+    # ──__（解析便携文档头部获取标准号）──────────────────────────
 
     @staticmethod
     def parse_pdf_header(header_bytes: bytes) -> dict[str, Any] | None:
@@ -126,7 +114,7 @@ class ScanFlowEngine:
         if not header_bytes or not isinstance(header_bytes, bytes):
             return None
 
-        # 截取前 4096 字节（PDF 头部+信息字典通常在文件开头）
+        # 截取前4096字节（便携文档头部+信息字典通常在文件开头）
         chunk = header_bytes[:4096] if len(header_bytes) > 4096 else header_bytes
 
         matches = list(ScanFlowEngine._PDF_STD_RE.finditer(chunk))
@@ -153,7 +141,7 @@ class ScanFlowEngine:
             "title": "",
         }
 
-    # ── filter_known_results（过滤已知结果）──────────────────────────────
+    # ──__（过滤已知结果）──────────────────────────────
 
     @staticmethod
     def filter_known_results(results: list[dict[str, Any]], known_numbers: set[str]) -> list[dict[str, Any]]:
@@ -173,7 +161,7 @@ class ScanFlowEngine:
 
         return [r for r in results if r.get("std_number", "") not in known_numbers]
 
-    # ── merge_results（合并结果并按标准号去重）─────────────────────────────
+    # ──_（合并结果并按标准号去重）─────────────────────────────
 
     @staticmethod
     def merge_results(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -216,23 +204,14 @@ class ScanFlowEngine:
 
         return merged
 
-    # ── build_scan_stats（生成扫描统计信息）──────────────────────────────
+    # ──_扫描_（生成扫描统计信息）──────────────────────────────
 
     @staticmethod
     def build_scan_stats(results: list[dict[str, Any]]) -> dict[str, Any]:
         """从解析结果列表生成扫描统计信息。
 
-        Args:
-            results: 解析结果列表（每项含 "is_valid"、"std_number"、"std_name" 等键）
-
-        Returns:
-            {
-                "total": int,              # 总文件数
-                "success": int,            # 成功识别数（is_valid=True）
-                "failed": int,             # 未识别数（is_valid=False 或 None 结果）
-                "with_name": int,          # 含标准名称的条目数
-                "unique_codes": list[str], # 涉及的标准代号（去重排序）
-            }
+        参数接收解析结果列表，每项含是否有效、标准号、标准名等键。
+        返回字典包含：文件总数、成功识别数、未识别数、含标准名数、涉及标准代号列表。
         """
         if not results:
             return {"total": 0, "success": 0, "failed": 0, "with_name": 0, "unique_codes": []}

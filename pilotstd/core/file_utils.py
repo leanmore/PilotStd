@@ -1,5 +1,5 @@
-# pilotstd/core/file_utils.py — 文件工具：路径截断、安全移动/复制、文件名清理
-# safe_move 改为先复制到临时文件再原子替换，防止跨文件系统移动中断导致数据丢失
+# 项目/核心/_工具脚本—文件工具：路径截断、安全移动/复制、文件名清理
+# _改为先复制到临时文件再原子替换，防止跨文件系统移动中断导致数据丢失
 
 import logging
 import os
@@ -10,7 +10,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Windows 路径上限 260 字符，保留 20 字符给系统追加的后缀（如 ".tmp"、"(1)"）
+# 路径上限260字符，保留20字符给系统追加的后缀（如"."、"(1)"）
 MAX_PATH_LENGTH = 240
 
 
@@ -47,16 +47,16 @@ def normalize_std_filename(filename: str) -> str:
     缺斜杠还原 → 方括号/特殊符号清理 → 垃圾后缀截断 → 多余空格压缩。
     返回清洗后的文件名字符串（不含扩展名处理，由调用方负责）。
     """
-    # 0. HTML 标签剥离：防止 <em>/<b>/<span> 等导致解析失败或 WinError 123
+    # 0.网页标签剥离：防止<>/<>/<>等导致解析失败或123
     filename = re.sub(r"<[^>]+>", "", filename)
 
-    # 1. Unicode 斜杠 → ASCII /
+    # 1.斜杠→持续集成/
     for ch in ("∕", "／", "⁄"):
         filename = filename.replace(ch, "/")
 
-    # 2. 全角转半角（NFKC 归一化：全角字母/数字/符号 → 半角）
-    # 预检：若文件名含孤立代理项（U+D800–U+DFFF），unicodedata.normalize
-    # 在 Windows C 运行时会触发 c0000005 访问违例，Python 的 except Exception
+    # 2.全角转半角（归一化：全角字母/数字/符号→半角）
+    # 预检：若文件名含孤立代理项（+800–+），.
+    # 在运行时会触发0000005访问违例，程序的
     # 无法捕获此类内核级崩溃。检测到则跳过归一化。
     import unicodedata
 
@@ -68,8 +68,8 @@ def normalize_std_filename(filename: str) -> str:
             # 安全降级：保留原始文件名（非代理项导致的异常，罕见但兜底）
             pass
 
-    # 3. 缺斜杠还原（SHT→SH/T, GBT→GB/T, DB22T→DB22/T 等）
-    #    在步骤1之后执行：如果文件名本来就有 /T，步骤1 已处理，此正则不会误匹配
+    # 3.缺斜杠还原（→/,→/,数据库22→数据库22/等）
+    # 在步骤1之后执行：如果文件名本来就有/，步骤1已处理，此正则不会误匹配
     filename = re.sub(r"^(DB\d{2,4})([TZ])(?=\s*\d)", r"\1/\2", filename)
     filename = re.sub(r"^(GB)([TZ])(?=\s*\d)", r"\1/\2", filename)
     filename = re.sub(
@@ -261,7 +261,7 @@ def remove_empty_dirs(root: str) -> int:
     """自底向上删除所有空子目录，返回删除数量。不删除 root 本身。
     含系统垃圾文件（Thumbs.db/~$锁文件等）的目录也视为空目录处理。
     """
-    # Windows 长路径支持
+    # 长路径支持
     if os.name == "nt" and not root.startswith("\\\\?\\"):
         root = "\\\\?\\" + os.path.abspath(root)
     deleted = 0
@@ -313,7 +313,7 @@ def make_standard_filename(
     lang_part = f"({language})" if language else ""
     kind_part = f" {file_kind}" if file_kind else ""
     num_display = raw_number if raw_number else str(number)
-    # 罗马数字前缀（≥2字符，如 VIII/IX/XII）：直接用罗马数字替代阿拉伯数字
+    # 罗马数字前缀（≥2字符，如//）：直接用罗马数字替代阿拉伯数字
     if num_prefix and len(num_prefix) >= 2 and all(c in "IVXLCDM" for c in num_prefix.upper()):
         num_str = f"{num_prefix}{num_suffix}"
     elif num_prefix and len(num_prefix) > 1 and num_prefix.isalpha():

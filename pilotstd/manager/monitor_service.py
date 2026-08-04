@@ -1,5 +1,5 @@
-# 模块：pilotstd/manager/monitor_service.py
-# 文件监控服务 — 供 API 层 + app.py 生命周期使用
+# 模块：项目/管理器/_服务脚本
+# 文件监控服务—供接口层+脚本生命周期使用
 
 from datetime import date
 from typing import Any
@@ -58,7 +58,7 @@ class MonitorService:
         scheduler.stop()
         return {"ok": True, "running": False}
 
-    # ── app.py 生命周期专用 ─────────────────────────────────
+    # ──脚本生命周期专用─────────────────────────────────
 
     def start_scheduler(self) -> None:
         """启动监控调度器（app.py lifespan 用）。"""

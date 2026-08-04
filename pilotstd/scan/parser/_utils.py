@@ -1,4 +1,4 @@
-# 模块：pilotstd/scan/parser/_utils.py
+# 模块：项目/扫描/解析器/_工具脚本
 # 标准解析器工具函数兼容模块
 """兼容层 — 保留 UtilsMixin 符号，委托给 ParserCore。
 

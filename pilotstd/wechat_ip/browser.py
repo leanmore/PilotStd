@@ -1,6 +1,6 @@
-# 模块：pilotstd/wechat_ip/browser.py
+# 模块：项目/_/脚本
 # pragma: no cover — 需浏览器环境，暂不纳入单元测试覆盖率考核
-# 详见 docs/testing/known-issues.md
+# 详见//-文档
 """企业微信可信 IP 更新——浏览器自动化。
 
 优先使用 CloakBrowser（源码级反指纹），不可用时回退 Playwright。
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = os.environ.get("CLOAKBROWSER_CACHE", "/app/browser_cache")
 
-# XPath 定位器（来自 weworkip v2.5 参考）
+# 定位器（来自版本二5参考）
 XPATH_SET_IP = '//div[contains(@class, "app_card_operate") and contains(@class, "js_show_ipConfig_dialog")]'
 XPATH_TEXTAREA = '//textarea[@class="js_ipConfig_textarea"]'
 XPATH_CONFIRM = '//a[@class="qui_btn ww_btn ww_btn_Blue js_ipConfig_confirmBtn"]'
@@ -135,27 +135,27 @@ class WechatIPUpdater:
         cookie_str: str,
         mode: str = "append",
     ) -> bool:
-        """更新单个应用的可信 IP——通过 Playwright/CloakBrowser 浏览器自动化。
+        """更新单个应用的可信网际协议地址——通过剧作家与隐身浏览器自动化。
 
-        .. note:: E2E-Scope
-           Pure logic (cookie parsing, IP merge) tested in tests/unit/test_wechat_ip_logic.py.
-           This function's Playwright interaction chain requires integration/E2E testing.
-           See: docs/testing/playbook.md §UI-layer skip rule #3
+        说明：端到端范围
+          纯逻辑部分（曲奇解析、地址合并）在单元测试文件中验证。
+          此函数的剧作家交互链需要集成与端到端测试。
+          参见：测试文档手册界面层跳过规则第三号
 
-        Args:
-            app_url: 应用管理页完整 URL
-            ip_addr: 新公网 IP
-            cookie_str: Cookie (HeaderString 格式)
-            mode: 'append' 追加 | 'replace' 覆盖
+        参数：
+            app_url: 应用管理页完整网址
+            ip_addr: 新公网网际协议地址
+            cookie_str: 曲奇字串（头字符串格式）
+            mode: 追加模式追加或替换模式覆盖
 
-        Returns: 是否成功
+        返回：是否成功
         """
         try:
             self._launch()
             assert self._page is not None, "浏览器启动失败"
             page = self._page
 
-            # 1. 设置 Cookie
+            # 1.设置
             cookies = self._parse_cookie(cookie_str)
             page.context.add_cookies(cookies)
 
@@ -163,18 +163,18 @@ class WechatIPUpdater:
             page.goto(app_url, wait_until="networkidle", timeout=30000)
             page.wait_for_timeout(1000)
 
-            # 3. 检测 Cookie 是否有效
+            # 3.检测是否有效
             if self._check_login_page():
                 raise BrowserError("Cookie 已失效——检测到登录页面")
 
-            # 4. 点击"配置IP"按钮
+            # 4.点击"配置"按钮
             btn = page.wait_for_selector(XPATH_SET_IP, timeout=10000)
             if not btn:
                 raise BrowserError("未找到「配置IP」按钮——可能页面结构已变更")
             btn.click()
             page.wait_for_timeout(500)
 
-            # 5. 定位文本域并输入 IP
+            # 5.定位文本域并输入
             textarea = page.wait_for_selector(XPATH_TEXTAREA, timeout=5000)
             if not textarea:
                 raise BrowserError("未找到 IP 文本域")

@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/channels/wechat.py
+# 模块：项目/核心//渠道/脚本
 """企业微信机器人 Webhook 通知渠道。"""
 
 import json
@@ -22,7 +22,7 @@ class WechatChannel(NotificationChannel):
         if not self._url:
             return False
         try:
-            # 使用 MarkdownRenderer 渲染消息体
+            # 使用渲染消息体
             rendered = self._renderer.render(message)
             # 标准号以引用块形式追加
             if message.standard_number:

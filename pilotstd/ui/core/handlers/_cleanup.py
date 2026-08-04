@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_cleanup.py
+# 模块：项目//核心/处理器/_脚本
 """CleanupHandler — 空文件夹清理 + 未识别文件收集，替代 CleanupMixin。
 
 薄包装层：实际文件系统遍历 + Worker 管理 + Qt 控件交互。
@@ -120,7 +120,7 @@ class CleanupHandler:
         """
         expire_folder = self._config.get("storage.expire_folder", "过期作废")
 
-        # 文件系统遍历 → 构建 dir_tree（Handler 的 I/O 职责）
+        # 文件系统遍历→构建_（的/职责）
         dir_tree: dict[str, list[str]] = {}
         try:
             for entry in os.scandir(path):
@@ -134,7 +134,7 @@ class CleanupHandler:
         except OSError:
             pass
 
-        # Engine：纯内存分析
+        # ：纯内存分析
         empty_dirs, expire_only = self._engine.scan_empty_dirs(dir_tree, expire_folder_name=expire_folder)
 
         return empty_dirs, expire_only, expire_folder
@@ -164,7 +164,7 @@ class CleanupHandler:
             except OSError as e:
                 logger.error("删除空目录失败: %s: %s", d, e)
 
-        # 对仅含过期文件夹的目录，逐个确认后 rmtree
+        # 对仅含过期文件夹的目录，逐个确认后
         for d in expire_only:
             name = os.path.basename(d)
             reply2 = self._question(
@@ -219,7 +219,7 @@ class CleanupHandler:
         checkboxes: list[QTreeWidgetItem] = []
         scan_root = self._get_scan_source_root()
 
-        # Engine：按后缀分组
+        # ：按后缀分组
         files = self._get_unrecognized_files()
         grouped = self._engine.build_unrecognized_tree(files)
 
@@ -278,7 +278,7 @@ class CleanupHandler:
         worker.finished.connect(worker.deleteLater)
         worker.start()
 
-        # 保持对话框打开直到 worker 完成
+        # 保持对话框打开直到工作者完成
         while worker.isRunning():
             QApplication.processEvents()
         return result["moved"]

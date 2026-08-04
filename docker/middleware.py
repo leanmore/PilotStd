@@ -1,10 +1,10 @@
-# 模块：docker/middleware.py
-# FastAPI 中间件定义 — 从 app.py 提取，降低主文件复杂度
+# 模块：容器/脚本
+# 接口中间件定义—从脚本提取，降低主文件复杂度
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# 请求体大小上限 10MB，防内存耗尽
+# 请求体大小上限10，防内存耗尽
 MAX_REQUEST_BODY = 10 * 1024 * 1024
 
 

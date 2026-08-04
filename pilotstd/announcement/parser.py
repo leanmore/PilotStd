@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/parser.py
-# 公告数据解析 — 公告元数据提取 + HTML表格解析 + WPS附件文本提取
+# 模块：项目//解析器脚本
+# 公告数据解析—公告元数据提取+网页表格解析+附件文本提取
 
 import logging
 import re
@@ -32,7 +32,7 @@ def parse_announcement_meta(html: str) -> dict[str, str]:
     meta = {"title": "", "publish_date": ""}
     soup = BeautifulSoup(html, "lxml")
 
-    # 公告标题：<title> 标签内容
+    # 公告标题：<>标签内容
     title_tag = soup.find("title")
     if title_tag:
         meta["title"] = title_tag.get_text(strip=True)
@@ -49,7 +49,7 @@ def parse_announcement_meta(html: str) -> dict[str, str]:
     return meta
 
 
-# 统一表头关键词 → 字段名映射（GB/HB/DB 三站点共用）
+# 统一表头关键词→字段名映射（//数据库三站点共用）
 _HEADER_KEYWORD_MAP = [
     ("标准编号", "std_code"),
     ("编号", "std_code"),
@@ -125,8 +125,8 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
             if not STD_CODE_PATTERN.match(std_code):
                 continue
 
-            # 标准名称列去重：BS4 get_text() 会递归拼接嵌套元素文本，
-            # 源站表格常见 <td><span>名称</span><a>名称</a></td> 导致重复
+            # 标准名称列去重：4_()会递归拼接嵌套元素文本，
+            # 源站表格常见<><>名称</><>名称</></>导致重复
             if name_col < len(cells):
                 name_parts = list(dict.fromkeys(cells[name_col].stripped_strings))
                 cell_texts[name_col] = " ".join(name_parts)
@@ -157,7 +157,7 @@ def parse_html_table(html: str) -> list[dict[str, Any]]:
 
 def _clean_wps_name(name: str) -> str:
     """清理 WPS 提取文本中的二进制垃圾和非表头残留。"""
-    # WPS 页脚标记（安全网：_clean_wps_fulltext 遗漏的在这里补刀）
+    # 页脚标记（安全网：___遗漏的在这里补刀）
     name = re.sub(r"\s*—+\s*PAGE\s*\n?\s*MERGEFORMAT\s*\d*\s*—*\s*", " ", name, flags=re.IGNORECASE)
     name = re.sub(r"PAGE\s*\d+\s*OF\s*\d+", " ", name, flags=re.IGNORECASE)
     # 去除不可打印字符和控制字符（保留中英文、数字、常见标点）
@@ -167,7 +167,7 @@ def _clean_wps_name(name: str) -> str:
         "",
         name,
     )
-    # 去除 WPS 表格表头关键词残留
+    # 去除表格表头关键词残留
     for kw in [
         "国家标准",
         "行业标准",
@@ -262,7 +262,7 @@ def parse_text_table(text: str) -> list[dict[str, Any]]:
             replaces_code_adjacent = ""  # _find_field_text may return ""
 
         std_name, replaces_code, publish_date, implementation_date = _parse_entry_fields(field_text)
-        # 如果 _find_field_text 检测到了代替号但 REPLACES_PATTERN 没扫到，用前者
+        # 如果___检测到了代替号但_没扫到，用前者
         if not replaces_code and replaces_code_adjacent:
             replaces_code = replaces_code_adjacent
 
@@ -289,7 +289,7 @@ def _code_key(item: dict[str, Any]) -> str:
 
 def _ocr_pdf(pdf_bytes: bytes, ocr_provider: Any) -> str:
     """用 OCR 提供商识别 PDF 全部页面，返回合并文本。"""
-    # OcrScheduler 内部已拆页+调度，直接返回全文，无需逐页循环
+    # 内部已拆页+调度，直接返回全文，无需逐页循环
     from pilotstd.announcement.ocr import OcrScheduler
 
     if isinstance(ocr_provider, OcrScheduler):
@@ -351,7 +351,7 @@ def parse_announcement_detail(
     meta = parse_announcement_meta(html)
     html_items = parse_html_table(html) or []
 
-    # HTML 缺发布日期时用公告落款日期补
+    # 网页缺发布日期时用公告落款日期补
     for item in html_items:
         if not item.get("publish_date") and meta["publish_date"]:
             item["publish_date"] = meta["publish_date"]
@@ -362,7 +362,7 @@ def parse_announcement_detail(
         text = parse_attachment_text(attachment_bytes, filename=attachment_filename)
         if text:
             att_items = parse_text_table(text)
-        # PDF 文本提取失败 → 尝试 OCR
+        # 便携文档文本提取失败→尝试文字识别
         elif attachment_filename.lower().endswith(".pdf") or (
             attachment_filename and ".pdf" in attachment_filename.lower()
         ):
@@ -371,7 +371,7 @@ def parse_announcement_detail(
                 if att_text:
                     att_items = parse_text_table(att_text)
 
-    # 交叉去重：HTML 为主，附件补充未覆盖的标准号
+    # 交叉去重：网页为主，附件补充未覆盖的标准号
     if html_items and att_items:
         codes = {_code_key(i) for i in html_items}
         new_count = 0

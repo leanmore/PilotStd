@@ -1,6 +1,6 @@
-# 模块：pilotstd/ui/main_window/_window_lifecycle.py
-# 窗口生命周期混入 — 从 __init__.py 提取
-# 系统托盘恢复、关闭退出、窗口事件、Worker管理、自动保存
+# 模块：项目//入口_/__脚本
+# 窗口生命周期混入—从____脚本提取
+# 系统托盘恢复、关闭退出、窗口事件、管理、自动保存
 
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ class _WindowLifecycleMixin:
         event.accept()
 
     # ================================================================ 分隔
-    # Worker 管理
+    # 管理
     # ================================================================ 分隔
 
     def run_auto(self, source_dir: str) -> None:
@@ -93,7 +93,7 @@ class _WindowLifecycleMixin:
 
     def _stop_workers(self) -> None:
         """解除暂停并停止所有后台 Worker 线程（扫描/查询/下载/归档/公告/自动）。"""
-        # 先解除暂停，防止 Worker 卡在 _pause_event.wait() 中无法退出
+        # 先解除暂停，防止卡在__.()中无法退出
         if hasattr(self, "_pause_event"):
             self._pause_event.set()
         if hasattr(self, "_core"):

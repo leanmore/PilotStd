@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/_self_check.py
+# 模块：项目//核心/__脚本
 """启动自检 — 在 MainWindow.__init__ 完成后调用，验证 Handler 组合模式的完整性。
 
 仅在环境变量 PILOTSTD_SELF_CHECK=1 时执行，输出检查结果到 stderr。
@@ -51,7 +51,7 @@ def _check_parsed_results_consistency(window: Any) -> bool:
         return True
 
     core = window._core
-    # 需要检查一致性的 Handler 列表
+    # 需要检查一致性的列表
     handler_names = ["scan", "query", "archive", "auto", "actions"]
     ref_id = None
     ref_handler = None
@@ -63,7 +63,7 @@ def _check_parsed_results_consistency(window: Any) -> bool:
             continue
         if not hasattr(handler, "_parsed_results"):
             continue
-        # 检查各 Handler 的 _parsed_results 是否指向同一个列表对象
+        # 检查各的__是否指向同一个列表对象
         hid = id(handler._parsed_results)
         if ref_id is None:
             ref_id = hid

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# 模块：scripts/smoke_test_miit.py
+# 模块：/__脚本
 """MIIT 适配器冒烟测试 — 独立可执行。
 
 用途：验证 MIITAdapter 在真实网络环境下正常访问 std.miit.gov.cn。

@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/blocks.py
+# 模块：项目/核心//锁脚本
 """通知消息的 Block 数据类——替代字符串拼接的结构化消息体。
 
 每个 Block 代表消息中的一个语义单元（文本、键值对、状态变更、列表）。

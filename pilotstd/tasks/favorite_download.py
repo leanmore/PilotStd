@@ -1,5 +1,5 @@
-# 模块：pilotstd/tasks/favorite_download.py
-# Phase 4a: 收藏下载归档任务
+# 模块：项目//_下载脚本
+# 阶段4:收藏下载归档任务
 
 import json
 import logging
@@ -15,7 +15,7 @@ from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
 
 logger = logging.getLogger(__name__)
-# FavoriteArchiveError — 收藏下载归档过程中的异常
+# 收藏下载归档过程中的异常
 
 
 class FavoriteArchiveError(Exception):
@@ -116,11 +116,11 @@ def _notify_download_failed(user_id: int, standard_number: str, error: str, favo
         logger.warning("发送下载失败通知失败", exc_info=True)
 
 
-# download_to_inbox — 收藏下载任务（v44 解耦后操作 favorite_downloads 表）
+# 下载__—收藏下载任务（44解耦后操作_下载表）
 def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
     """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。
     所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。"""
-    # v44：所有状态 UPDATE 目标表为 favorite_downloads（非 user_favorites）
+    # 44：所有状态更新目标表为_下载（非_）
     db = None
     try:
         db = Database(get_db_path())

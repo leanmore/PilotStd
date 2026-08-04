@@ -1,6 +1,6 @@
-# 模块：pilotstd/query/adapters/hbba.py
-# 行业标准信息服务平台（hbba.sacinfo.org.cn）查询适配器
-# 替代 openstd 对非国标（行业标准）的查询
+# 模块：项目/查询/适配器/脚本
+# 行业标准信息服务平台（...）查询适配器
+# 替代对非国标（行业标准）的查询
 
 import logging
 import re
@@ -78,7 +78,7 @@ class HbbaAdapter(BaseAdapter):
         candidates = self._post_search_candidates(search_term)
         if candidates:
             return candidates
-        # 年份回退：去除末尾 -YYYY 重新搜索
+        # 年份回退：去除末尾-重新搜索
         m = re.search(r"-(\d{4})$", search_term)
         if m:
             no_year = search_term[: m.start()]
@@ -91,7 +91,7 @@ class HbbaAdapter(BaseAdapter):
         candidates = self._search_candidates(search_term)
         if not candidates:
             return None
-        # 精确匹配：standard_number 与 search_term 完全一致
+        # 精确匹配：_与_完全一致
         for c in candidates:
             if c.standard_number == search_term:
                 self._post_process_result(c)
@@ -132,7 +132,7 @@ class HbbaAdapter(BaseAdapter):
         issue_date = ts_to_date(rec.get("issueDate"))
         act_date = ts_to_date(rec.get("actDate"))
 
-        # 状态修正：前端 JS 会将 actDate 在未来者显示为"即将实施"
+        # 状态修正：前端脚本会将在未来者显示为"即将实施"
         mapped = map_status(raw_status)
         if mapped == "现行" and act_date:
             try:
@@ -144,7 +144,7 @@ class HbbaAdapter(BaseAdapter):
 
         adopted = is_adopted(ch_name)
 
-        # 用搜索目标（search_term）与 API 返回结果（code）比对，避免自比较
+        # 用搜索目标（_）与接口返回结果（）比对，避免自比较
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
             target.get("code", ""),
@@ -168,7 +168,7 @@ class HbbaAdapter(BaseAdapter):
             hcno=str(pk) if pk else "",
         )
 
-    # 详情页 URL 模板
+    # 详情页链接模板
     DETAIL_URL = "https://hbba.sacinfo.org.cn/stdDetail/{}"
 
     def _fetch_detail_replaces(self, pk: str) -> str:
@@ -180,7 +180,7 @@ class HbbaAdapter(BaseAdapter):
             resp = safe_get(self._session, url, self.site_name, timeout=10)
             if resp is None or resp.status_code != 200:
                 return ""
-            # 匹配 \"代替标准\\nSH/T 1752—2006\"
+            # 匹配\"代替标准\\/1752—2006\"
             m = re.search(
                 r"代替标准\s*\n\s*([A-Z]+(?:/[A-Z]+)?\s*\d+(?:\.\d+)?\s*[—\-]\s*\d{4})",
                 resp.text,

@@ -1,5 +1,5 @@
-# PilotStd — 标准文件管理工具
-# 入口脚本：默认启动 PyQt6 GUI，--cli 进入命令行模式
+# 标准文件管理工具
+# 入口脚本：默认启动图形界面，命令行参数进入命令行模式
 
 import argparse
 import datetime
@@ -11,41 +11,21 @@ import traceback
 
 from dotenv import load_dotenv
 
-# class _SafeStream(io.StringIO):  # 已弃用：防御性安全流包装类
-#     """防御性文本流：替代 io.StringIO，提供 fileno/isatty 避免崩溃。
-# （空行）
-#     PyInstaller --noconsole 模式下 sys.stderr/stdout 为 None，
-#     但 faulthandler、logging.StreamHandler、第三方库可能调用
-#     .fileno() 或 .isatty()。普通 StringIO 缺少这两个方法会抛
-#     io.UnsupportedOperation 异常。
-#     """  # 已废弃的文档字符串
-# （空行）
-#     def fileno(self) -> int:  # 返回文件描述符（已废弃）
-#         raise io.UnsupportedOperation("fileno")  # 抛出"不支持操作"异常
-# （空行）
-#     def isatty(self) -> bool:  # 检测是否为终端（已废弃）
-#         return False  # 始终返回 False（已废弃）
+# 已废弃：防御性安全流包装类（详见历史）
 
+# 打包模式：替换缺失的标准流（详见历史）
 
-# PyInstaller --noconsole 模式：替换缺失的标准流
-# if getattr(sys, "frozen", False):  # 检测 PyInstaller 打包环境
-#     if sys.stderr is None:  # stderr 为空则替换
-#         sys.stderr = _SafeStream()  # 替换标准错误流
-#     if sys.stdout is None:  # stdout 为空则替换
-#         sys.stdout = _SafeStream()  # 替换标准输出流
-#         sys.stdin = _SafeStream()  # 替换标准输入流
-
-# faulthandler 仅开发时启用，打包交付后禁用（避免无控制台报错）
+# 故障处理器仅开发时启用，打包交付后禁用（避免无控制台报错）
 if not getattr(sys, "frozen", False):
     try:
         faulthandler.enable(file=sys.stderr, all_threads=True)
     except Exception:
         pass
 
-# 加载 .env 文件（优先级：系统环境变量 > .env 文件）
+# 加载环境配置文件（优先级：系统环境变量 > 配置文件）
 load_dotenv(os.path.join(os.path.dirname(__file__) or ".", ".env"))
 
-# ── 全局异常捕获：未捕获异常写入 crash_log.txt ──
+# ── 全局异常捕获：未捕获异常写入崩溃日志文件 ──
 if getattr(sys, "frozen", False):
     _CRASH_LOG = os.path.join(os.path.dirname(sys.executable), "crash_log.txt")
 else:
@@ -53,7 +33,7 @@ else:
 
 
 def _global_excepthook(exc_type, exc_value, exc_tb):
-    """将所有未捕获的 Python 异常写入 crash_log.txt 后调用默认处理器。"""
+    """将所有未捕获的异常写入崩溃日志文件后调用默认处理器。"""
     tb_lines = traceback.format_exception(exc_type, exc_value, exc_tb)
     msg = "".join(tb_lines)
     try:
@@ -93,7 +73,7 @@ def main():
 
     logger = LoggerManager.get_logger("PilotStd")
 
-    # ── SUPERUSER 环境变量处理 ──
+    # ── 超级用户环境变量处理 ──
     is_packaged = getattr(sys, "frozen", False)
 
     if is_packaged:
@@ -116,7 +96,7 @@ def main():
     args, remaining = parser.parse_known_args()
 
     if args.cli:
-        # 将 --cli 之后的参数传给 CLI 子解析器，避免 "unrecognized arguments: --cli"
+        # 将命令行参数传给子解析器，避免参数无法识别
         import sys as _sys
 
         _sys.argv = [_sys.argv[0], *remaining]
@@ -129,7 +109,7 @@ def main():
     try:
         run()
     except Exception:
-        # 兜底：极端情况下 sys.excepthook 未能触发时仍写入 crash_log（已禁用）
+        # 兜底：极端情况下全局异常钩子未能触发时仍写入崩溃日志（已禁用）
         raise
     return 0
 

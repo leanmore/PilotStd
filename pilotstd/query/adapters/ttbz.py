@@ -1,7 +1,7 @@
-# 模块：pilotstd/query/adapters/ttbz.py
-# 全国团体标准信息平台（ttbz.org.cn）查询适配器
-# 说明：API: POST https://www.ttbz.org.cn/cms-proxy/ms/portal/standardInfo/getPortalStandardList
-# 响应 JSON 的 data.rows 包含标准列表
+# 模块：项目/查询/适配器/脚本
+# 全国团体标准信息平台（..）查询适配器
+# 说明：接口:://.../-代理////
+# 响应数据的.包含标准列表
 
 import logging
 from typing import Any, Optional
@@ -95,7 +95,7 @@ class TTBZAdapter(BaseAdapter):
             if key in kwargs:
                 data[key] = kwargs.pop(key)
 
-        # 显式传递 headers，确保 mock 能检测到（session.headers 在 mock 下不会自动合并）
+        # 显式传递，确保模拟能检测到（.在模拟下不会自动合并）
         try:
             resp = safe_post(
                 self._session,
@@ -123,7 +123,7 @@ class TTBZAdapter(BaseAdapter):
 
         return [self._parse_result(rec, keyword) for rec in rows]
 
-    # ── 引擎层：融入 BaseAdapter 渐进搜索体系 ──
+    # ──引擎层：融入渐进搜索体系──
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
         """搜索并返回最佳匹配。多候选时选 standard_number 精确匹配或最新发布者。"""
@@ -185,7 +185,7 @@ class TTBZAdapter(BaseAdapter):
             source_site=self.site_name,
             hcno=unique_id,
         )
-        # 动态属性：QueryResult 无对应字段，以动态属性承载
+        # 动态属性：无对应字段，以动态属性承载
         result.standard_name_en = en_name  # type: ignore[attr-defined]
         result.field = field  # type: ignore[attr-defined]
         return result

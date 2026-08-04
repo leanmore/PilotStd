@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/events.py
+# 模块：项目/核心//脚本
 """预置通知事件类型——单一数据源（SSOT）。
 
 所有后端事件定义集中于此。新增事件只需在 ALL_EVENTS 中加一行，

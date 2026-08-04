@@ -126,7 +126,7 @@ def _do_pending_query(self) -> None:
     self._update_button_states()
 
 
-# ── CSV 解析 ──
+# ──解析──
 
 
 def _parse_pending_csv(self, path: str) -> tuple[list, list[str]]:

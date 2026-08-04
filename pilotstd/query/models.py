@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/models.py
+# 模块：项目/查询/模型脚本
 # 查询结果数据模型
 
 from dataclasses import dataclass

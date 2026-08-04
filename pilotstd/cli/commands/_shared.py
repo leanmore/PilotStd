@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/_shared.py — 共享工具函数
+# 项目//命令/_脚本—共享工具函数
 import logging
 from typing import Any
 

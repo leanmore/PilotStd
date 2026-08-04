@@ -1,4 +1,4 @@
-# 覆盖率分析辅助脚本 — 从 coverage report 提取高 ROI 补测模块
+# 覆盖率分析辅助脚本—从提取高补测模块
 import re
 import sys
 
@@ -8,7 +8,7 @@ def parse_coverage_report(filepath):
     modules = []
     with open(filepath, encoding="utf-8") as f:
         for line in f:
-            # 匹配 coverage 行: "pilotstd/path/file.py   120   45   62%"
+            # 匹配行:"项目//脚本1204562%"
             m = re.match(r"(\S+\.py)\s+(\d+)\s+(\d+)\s+(\d+)%", line)
             if m:
                 path = m.group(1)
@@ -33,7 +33,7 @@ def main():
         print("未找到覆盖率数据，请确认文件路径: " + filepath)
         return
 
-    # 按 missed 降序排列
+    # 按降序排列
     modules.sort(key=lambda m: m["missed"], reverse=True)
 
     total_stmts = sum(m["stmts"] for m in modules)

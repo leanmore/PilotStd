@@ -1,7 +1,7 @@
-# pilotstd/core/path_guard.py — 路径遍历防护统一校验函数
+# 项目/核心/_脚本—路径遍历防护统一校验函数
 import os
 
-# Docker 环境允许访问的额外目录（独立挂载点，与库根目录分离）
+# 环境允许访问的额外目录（独立挂载点，与库根目录分离）
 _DOCKER_EXTRA_ROOTS = ["/inbox", "/standards"]
 
 

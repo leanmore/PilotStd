@@ -41,16 +41,16 @@ BUSINESS_DIRS = [
     "i18n",
 ]
 
-# AST 解析超时（秒）
+# 抽象语法树解析超时（秒）
 AST_PARSE_TIMEOUT_SEC = 3.0
 
 # 私有函数升级为阻断的阈值：函数体行数超过此值
 PRIVATE_FUNC_BODY_LINE_THRESHOLD = 50
 
-# Bug Fix 关键字正则
+# 缺陷修复关键字正则
 BUGFIX_PATTERN = re.compile(r'\b(fix|bugfix|hotfix|bug)\b', re.IGNORECASE)
 
-# IO 调用检测正则（比集合成员检查更精确）
+# 输入输出调用检测正则（比集合成员检查更精确）
 IO_PATTERN = re.compile(
     r'\b(open|connect|execute|fetchall|fetchone|'
     r'requests\.get|requests\.post|requests\.put|requests\.delete|'
@@ -59,7 +59,7 @@ IO_PATTERN = re.compile(
 
 
 # ============================================================================ 分隔
-# AST 工具函数
+# 抽象语法树工具函数
 # ============================================================================ 分隔
 
 def _hash_node(node: ast.AST) -> str:
@@ -85,10 +85,10 @@ def _hash_node(node: ast.AST) -> str:
                 elif isinstance(item, str):
                     hasher.update(item.encode())
                 else:
-                    # 非 AST/str 类型也参与哈希（如数字字面量）
+                    # 非抽象语法树/类型也参与哈希（如数字字面量）
                     hasher.update(str(item).encode())
         elif isinstance(value, str):
-            # 仅函数名/类名参与 hash；其他字符串（如变量名、docstring）不参与
+            # 仅函数名/类名参与哈希；其他字符串（如变量名、文档字符串）不参与
             if field == 'name':
                 hasher.update(value.encode())
         elif isinstance(value, (int, float, bool)):
@@ -118,7 +118,7 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
         is_private = name.startswith('_') and not name.startswith('__')
         api_type = 'private' if is_private else 'public'
 
-        # 提取参数列表（ClassDef 没有 args，跳过）
+        # 提取参数列表（没有，跳过）
         args = []
         if hasattr(node, 'args') and node.args is not None:
             args = [arg.arg for arg in node.args.args]
@@ -132,13 +132,13 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
                 except Exception:
                     decorators.append(type(d).__name__)
 
-        # 计算 body 结构哈希
+        # 计算结构哈希
         body_hash = _hash_node(node)
 
         # 统计行数
         line_count = getattr(node, 'end_lineno', 0) - getattr(node, 'lineno', 0) + 1
 
-        # 检测是否包含异常处理或外部 IO
+        # 检测是否包含异常处理或外部输入输出
         has_exception = False
         has_io = False
         for child in ast.walk(node):
@@ -153,7 +153,7 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
                         func_name = ast.unparse(child.func)
                     except Exception:
                         pass
-                # 使用正则精确匹配 IO 调用
+                # 使用正则精确匹配输入输出调用
                 if IO_PATTERN.search(func_name):
                     has_io = True
 
@@ -171,7 +171,7 @@ def _extract_api_signatures(tree: ast.Module) -> Dict[str, dict]:
 
 
 # ============================================================================ 分隔
-# Git 安全交互
+# 版本控制安全交互
 # ============================================================================ 分隔
 
 def get_old_content(filepath: str) -> str:
@@ -191,12 +191,12 @@ def get_old_content(filepath: str) -> str:
 def get_commit_message() -> str:
     """获取当前暂存区或最近一次 commit message。"""
     try:
-        # 优先读取暂存区的 commit message（amend / commit --edit 场景）
+        # 优先读取暂存区的（/--场景）
         msg_file = '.git/COMMIT_EDITMSG'
         if os.path.exists(msg_file):
             with open(msg_file, 'r', encoding='utf-8') as f:
                 return f.read()
-        # 回退到 HEAD commit message
+        # 回退到
         result = subprocess.run(
             ['git', 'log', '-1', '--format=%s%n%b'],
             capture_output=True, text=True, check=False, timeout=10
@@ -229,8 +229,8 @@ def get_changed_files() -> List[str]:
         if r2.returncode == 0:
             files.update(r2.stdout.strip().splitlines())
 
-        # 注意：不包含未跟踪文件（git ls-files --others）
-        # 未跟踪文件不应触发门禁，只有被 git add 后才进入暂存区检查
+        # 注意：不包含未跟踪文件（---）
+        # 未跟踪文件不应触发门禁，只有被后才进入暂存区检查
     except Exception:
         pass
     return [f for f in files if f]
@@ -245,7 +245,7 @@ def is_business_file(filepath: str) -> bool:
     if 'test_' in Path(filepath).stem or filepath.startswith('tests/'):
         return False
 
-    # 排除 __init__.py（纯导出）
+    # 排除____脚本（纯导出）
     if Path(filepath).name == '__init__.py':
         return False
 
@@ -278,7 +278,7 @@ def get_expected_test_files(business_file: str) -> List[str]:
         f"tests/test_{clean_stem}.py",
     ]
 
-    # 去掉可能的 src/ 或 app/ 前缀，再映射到 tests/
+    # 去掉可能的源码/或/前缀，再映射到测试/
     clean_parent = str(parent)
     for prefix in ['src/', 'app/']:
         if clean_parent.startswith(prefix):
@@ -327,7 +327,7 @@ def has_functional_change(old_content: str, new_content: str) -> Dict[str, dict]
     old_tree = safe_parse(old_content)
     new_tree = safe_parse(new_content)
 
-    # 新文件场景：所有 API 都是新增
+    # 新文件场景：所有接口都是新增
     if old_tree is None and new_tree is not None:
         new_apis = _extract_api_signatures(new_tree)
         for name, info in new_apis.items():
@@ -342,20 +342,20 @@ def has_functional_change(old_content: str, new_content: str) -> Dict[str, dict]
     old_apis = _extract_api_signatures(old_tree)
     new_apis = _extract_api_signatures(new_tree)
 
-    # 新增 API
+    # 新增接口
     for name, info in new_apis.items():
         if name not in old_apis:
             info['change_reason'] = 'added'
             result[name] = info
 
-    # 删除 API → 降级为警告级别（强制标记为 private，由后续逻辑处理为 WARNING）
+    # 删除接口→降级为警告级别（强制标记为，由后续逻辑处理为警告）
     for name, info in old_apis.items():
         if name not in new_apis:
             info['change_reason'] = 'deleted'
             info['type'] = 'private'
             result[name] = info
 
-    # 修改 API
+    # 修改接口
     for name, new_info in new_apis.items():
         if name in old_apis:
             old_info = old_apis[name]
@@ -405,7 +405,7 @@ def run_check(changed_files: Optional[List[str]] = None, commit_msg: Optional[st
     errors = []
     warnings = []
 
-    # --- 规则 0: Bug Fix 强制要求测试 ---
+    # 规则0:缺陷修复强制要求测试
     is_bugfix = bool(BUGFIX_PATTERN.search(commit_msg))
     has_test_change = any('test' in f.lower() for f in changed_files)
     if is_bugfix and not has_test_change:
@@ -437,7 +437,7 @@ def run_check(changed_files: Optional[List[str]] = None, commit_msg: Optional[st
             api_type = info['type']
             reason = info['change_reason']
 
-            # 删除 API 已降级为 private，此处会进入警告流程
+            # 删除接口已降级为，此处会进入警告流程
             if api_type == 'public':
                 if not test_changed:
                     errors.append(
@@ -474,7 +474,7 @@ def run_check(changed_files: Optional[List[str]] = None, commit_msg: Optional[st
 
 
 # ============================================================================ 分隔
-# CLI 入口
+# 命令行入口
 # ============================================================================ 分隔
 
 def main():

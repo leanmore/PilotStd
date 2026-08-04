@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_persistence.py
+# 模块：项目//核心/处理器/_持久化脚本
 """PersistenceHandler — 窗口几何/分栏/排序列宽持久化，替代 PersistenceMixin。
 
 纯 Qt 控件 ↔ 配置的薄包装层，序列化/反序列化逻辑委托给 PersistenceFlowEngine。

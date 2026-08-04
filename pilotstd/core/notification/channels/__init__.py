@@ -1,4 +1,4 @@
-# 模块：pilotstd/core/notification/channels/__init__.py
+# 模块：项目/核心//渠道/____脚本
 """通知渠道实现。"""
 
 from .dingtalk import DingTalkChannel

@@ -1,5 +1,5 @@
-# 模块：pilotstd/scan/parser/_number_extractor.py
-# 数字提取 Handler
+# 模块：项目/扫描/解析器/__提取器脚本
+# 数字提取
 """提供标准号中年份/编号/分册号提取功能。"""
 
 from typing import Optional

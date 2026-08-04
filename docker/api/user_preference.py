@@ -1,11 +1,11 @@
-# docker/api/user_preference.py — 用户偏好存取 API（重构版）
+# 容器//_脚本—用户偏好存取接口（重构版）
 # 分隔
-# ⚠️ 破坏性变更 (Breaking Change)：
-# 旧端点（POST /api/user-preference?key=xxx&value=yyy / GET ?key=xxx）已删除。
+# ⚠️破坏性变更()：
+# 旧端点（//-?=&=/?=）已删除。
 # 替代方案：
-#   - 读取全部偏好：GET /api/user-preference
-#   - 增量更新：     PATCH /api/user-preference
-#   - 重置为默认值： DELETE /api/user-preference
+# 读取全部偏好：//
+# 增量更新：//
+# 重置为默认值：删除//
 
 from typing import Any, Dict
 

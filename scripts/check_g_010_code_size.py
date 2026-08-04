@@ -86,7 +86,7 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
             if logical > MAX_FILE_LINES:
                 errors.append(f"[FILE] {rel}: {logical} 逻辑行 (>{MAX_FILE_LINES})")
 
-            # Python 文件超过 10 行时，进一步检查每个函数
+            # 程序文件超过10行时，进一步检查每个函数
             if fpath.suffix == ".py" and logical > 10:
                 try:
                     tree = ast.parse("".join(lines))

@@ -11,14 +11,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-# ── 追踪规则：每条对应 registry 中的一个条目 ──
-# key: 条目在 registry 中的"功能模块"列的值（用于行内匹配）
-# file: 源代码文件路径（相对于项目根目录）
-# pattern: 匹配模式（函数名或正则）
-# kind: 'func'（AST 查函数定义行号）或 'regex'（正则扫描行号）
+# ──追踪规则：每条对应中的一个条目──
+# :条目在中的"功能模块"列的值（用于行内匹配）
+# :源代码文件路径（相对于项目根目录）
+# :匹配模式（函数名或正则）
+# :''（抽象语法树查函数定义行号）或''（正则扫描行号）
 
 TRACKERS: dict[str, dict] = {
-    # ── 来源：docker/scheduler.py ──
+    # ──来源：容器/调度器脚本──
     "调度器实例": {
         "file": "docker/scheduler.py",
         "pattern": r"scheduler = BackgroundScheduler\(\)",
@@ -44,13 +44,13 @@ TRACKERS: dict[str, dict] = {
         "pattern": "def stop_scheduler",
         "kind": "func",
     },
-    # ── 来源：docker/app.py ──
+    # ──来源：容器/脚本──
     "FastAPI 生命周期": {
         "file": "docker/app.py",
         "pattern": "async def lifespan",
         "kind": "func",
     },
-    # ── 来源：engine.py ──
+    # ──来源：引擎脚本──
     "引擎进度心跳": {
         "file": "pilotstd/query/engine.py",
         "pattern": "def _progress_heartbeat",
@@ -111,13 +111,13 @@ TRACKERS: dict[str, dict] = {
         "pattern": r"\[CHAIN\]|\[PENDING\]",
         "kind": "regex",
     },
-    # ── 来源：cache.py ──
+    # ──来源：缓存脚本──
     "缓存仓库": {
         "file": "pilotstd/query/cache.py",
         "pattern": "class CacheRepository",
         "kind": "regex",
     },
-    # ── 来源：rotator.py ──
+    # ──来源：轮转器脚本──
     "轮转器里程碑日志": {
         "file": "pilotstd/query/rotator.py",
         "pattern": r"\[轮转器\]",
@@ -128,25 +128,25 @@ TRACKERS: dict[str, dict] = {
         "pattern": "冷却剩余",
         "kind": "regex",
     },
-    # ── 来源：daily_quota.py ──
+    # ──来源：_脚本──
     "日配额追踪": {
         "file": "pilotstd/query/daily_quota.py",
         "pattern": "class DailyQuotaTracker",
         "kind": "regex",
     },
-    # ── 来源：queue.py ──
+    # ──来源：队列脚本──
     "任务队列执行": {
         "file": "pilotstd/task/queue.py",
         "pattern": r"def _run|def wrapped_handler|Thread\(target=wrapped_handler",
         "kind": "regex",
     },
-    # ── 来源：download/engine.py ──
+    # ──来源：下载/引擎脚本──
     "下载线程池": {
         "file": "pilotstd/download/engine.py",
         "pattern": r"ThreadPoolExecutor",
         "kind": "regex",
     },
-    # ── 来源：announcement/ ──
+    # ──来源：/──
     "公告引擎调度": {
         "file": "pilotstd/announcement/engine.py",
         "pattern": "class AnnounceEngine",
@@ -167,7 +167,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": r"threading\.Event\(\)",
         "kind": "regex",
     },
-    # ── 来源：core/ ──
+    # ──来源：核心/──
     "文件索引清理线程": {
         "file": "pilotstd/core/file_index.py",
         "pattern": r"threading\.Thread\(target=_run",
@@ -178,7 +178,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": "class FileWatcher",
         "kind": "regex",
     },
-    # ── 来源：ui/ ──
+    # ──来源：/──
     "主窗口 atexit": {
         "file": "pilotstd/ui/main_window.py",
         "pattern": r"atexit\.register",
@@ -219,7 +219,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": "class _ThrottledProgress",
         "kind": "regex",
     },
-    # ── 来源：tests/ ──
+    # ──来源：测试/──
     "压力测试看门狗": {
         "file": "tests/stress_driver.py",
         "pattern": "def _progress_watchdog",
@@ -305,14 +305,14 @@ def update_registry(root: Path) -> bool:
         if not new_str:
             continue
 
-        # 在 registry 中定位该条目行并更新行号列
+        # 在中定位该条目行并更新行号列
         for i, line in enumerate(lines):
             if not line.startswith("| "):
                 continue
             if key not in line:
                 continue
             parts = line.split("|")
-            # 行号在第 4 列（index 3）
+            # 行号在第4列（索引3）
             if len(parts) < 5:
                 continue
             old_lineno = parts[4].strip()  # 行号在第 5 列 (index 4)

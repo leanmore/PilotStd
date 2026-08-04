@@ -1,4 +1,4 @@
-# docker/api/user.py — 用户配置 API（v23：统一首选项 + 布局兼容，通过 UserService 委派）
+# 容器//脚本—用户配置接口（23：统一首选项+布局兼容，通过委派）
 import logging
 
 from fastapi import Depends, Request
@@ -47,7 +47,7 @@ def delete_layout(request: Request, username: str = Depends(get_current_user_id)
     return mgr.user_service.delete_layout(user_id)
 
 
-# ── 统一首选项（v22） ──────────────────────
+# ──统一首选项（22）──────────────────────
 
 
 @router.get("/api/user/preferences")
@@ -109,7 +109,7 @@ def delete_preference(
     return mgr.user_service.delete_preference(user_id, key)
 
 
-# ── 统一设置（v31：合并 layout + preferences，减少 HTTP 请求数） ──
+# ──统一设置（31：合并+，减少网络请求数）──
 
 
 @router.get("/api/user/settings")

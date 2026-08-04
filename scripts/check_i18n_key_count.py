@@ -53,7 +53,7 @@ def main() -> int:
         print("::warning::No locale files found")
         return 0
 
-    # 收集各文件的顶层 key 集合
+    # 收集各文件的顶层集合
     file_keys: dict[str, set[str]] = {}
     for name, data in locales.items():
         file_keys[name] = top_level_keys(data)
@@ -63,12 +63,12 @@ def main() -> int:
     for keys in file_keys.values():
         all_keys.update(keys)
 
-    # ── 对齐检查：每个文件的顶层 key 必须与全集一致 ──
+    # ──对齐检查：每个文件的顶层必须与全集一致──
     aligned = True
     for name, keys in sorted(file_keys.items()):
-        # 本文件缺失的 key（其他文件有，本文件没有）
+        # 本文件缺失的（其他文件有，本文件没有）
         missing = all_keys - keys
-        # 本文件独有的 key（本文件有，其他所有文件都没有）
+        # 本文件独有的（本文件有，其他所有文件都没有）
         others = set().union(*(v for k, v in file_keys.items() if k != name))
         extra = keys - others
         if missing:

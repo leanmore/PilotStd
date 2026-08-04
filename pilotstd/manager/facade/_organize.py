@@ -1,7 +1,7 @@
-# 模块：pilotstd/manager/facade/_organize.py
+# 模块：项目/管理器/门面/_归类脚本
 """OrganizeHandler：归档、规范化、过期处理、兜底镜像，替代原 OrganizeMixin。"""
-# 边界条件：同名文件追加序号而非覆盖（SHA-256 先比对）；废止标准走 normalize_filename 自动追加过期作废子目录；
-# Word/模板文件按源目录镜像归档（无标准号无法按代号归类，镜像保留原始结构便于追溯）
+# 边界条件：同名文件追加序号而非覆盖（-256先比对）；废止标准走_自动追加过期作废子目录；
+# /模板文件按源目录镜像归档（无标准号无法按代号归类，镜像保留原始结构便于追溯）
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
-# OrganizeHandler — 归档处理器，封装所有归档方法，替代原 OrganizeMixin
+# 归档处理器，封装所有归档方法，替代原
 
 
 class OrganizeHandler:
@@ -89,13 +89,13 @@ class OrganizeHandler:
                 on_progress(i + 1, total)
         return result
 
-    # _backfill_std_name — 回填单个 ParsedStdInfo 的 std_name，优先查本地缓存
+    # ___—回填单个的_，优先查本地缓存
     def _backfill_std_name(self, parsed: ParsedStdInfo) -> ParsedStdInfo:
         """回填单个 ParsedStdInfo 的 std_name。"""
         if parsed.std_name:
             return parsed
 
-        # Q30: found_name 存在且非空时直接回填，避免遗漏查询结果中的名称
+        # 30:_存在且非空时直接回填，避免遗漏查询结果中的名称
         if parsed.found_name and parsed.found_name.strip():
             parsed.std_name = parsed.found_name.strip()
             return parsed
@@ -123,7 +123,7 @@ class OrganizeHandler:
             pass
         return parsed
 
-    # archive_standards — 统一归档入口，所有端（CLI/Web/WinUI）均通过此方法归档
+    # 归档_—统一归档入口，所有端（命令行//用户界面）均通过此方法归档
     def archive_standards(
         self,
         parsed_list: list[ParsedStdInfo] | None = None,
@@ -158,7 +158,7 @@ class OrganizeHandler:
                         self._core.validity_checker.register_new_standard(std_no, self._core.notification_mgr)
                 except Exception:
                     pass
-                # 废止标准同步触发 expire_standard_moved（与 archive_complete 同时触发）
+                # 废止标准同步触发__（与归档_同时触发）
                 try:
                     if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
                         self._core.notification_mgr.send_event(
@@ -190,7 +190,7 @@ class OrganizeHandler:
 
         return OrganizerService._resolve_industry_in_path(rel_path)
 
-    # organize_fallback — 归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录
+    # 归类_回退—归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录
     def organize_fallback(self, source_root: str) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""
         pending_paths = frozenset(p.source_path for p in self._core.pending_list if getattr(p, "source_path", ""))
@@ -200,7 +200,7 @@ class OrganizeHandler:
         """从源目录合并过期标准到「过期作废」目录（委托 OrganizerService）。"""
         return self._core.organizer_svc.merge_expire_from_source(root_dir, parsed_list)  # type: ignore[no-any-return]
 
-    # organize_files — 接受文件路径列表，解析后走完整 organizer_service 归档
+    # 归类_—接受文件路径列表，解析后走完整归类_服务归档
     def organize_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后走完整 organizer_service 归档。"""
         parsed: list[ParsedStdInfo] = []
@@ -215,7 +215,7 @@ class OrganizeHandler:
             return {"moved": 0, "failed": 0, "skipped_exists": 0, "details": ["无有效文件"]}
         return self.archive_standards(parsed)  # type: ignore[no-any-return]
 
-    # expire_files — 接受文件路径列表，解析后标记废止并走主线归档
+    # _—接受文件路径列表，解析后标记废止并走主线归档
     def expire_files(self, file_paths: list[str]) -> dict[str, Any]:
         """接受文件路径列表，解析后标记废止并走主线 organize() 归档。"""
         parsed: list[ParsedStdInfo] = []
@@ -231,7 +231,7 @@ class OrganizeHandler:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}
         return self._core.organizer_svc.organize(parsed)  # type: ignore[no-any-return]
 
-    # normalize_files — 返回文件规范化名称列表
+    # _—返回文件规范化名称列表
     def normalize_files(self, file_paths: list[str]) -> list[dict[str, Any]]:
         """返回文件规范化名称列表。"""
         from ...core.file_utils import make_standard_filename

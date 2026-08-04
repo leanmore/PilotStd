@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/sppt_local.py
+# 模块：项目/查询/适配器/_脚本
 """
 食品安全地方标准数据检索平台适配器（8087）
 
@@ -27,7 +27,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-# dataList 提取正则（3 种模式，按置信度降序）
+# 提取正则（3种模式，按置信度降序）
 _DATALIST_PATTERNS = [
     re.compile(r"dataList\s*:\s*(\[.*?\])\s*,\s*\w+\s*:", re.DOTALL),  # Vue data()
     re.compile(r"dataList\s*:\s*(\[.*?\])\s*[,}]", re.DOTALL),  # 宽松匹配
@@ -66,7 +66,7 @@ class SPPTLocalAdapter(BaseAdapter):
     def site_label(self) -> str:
         return "食品安全地方标准"
 
-    # ── dataList 提取 ──
+    # ──提取──
 
     def _extract_datalist(self, html: str) -> list[dict[str, Any]]:
         """从 SSR HTML 提取 Vue dataList JSON 数组（3 种正则降级）。"""
@@ -117,7 +117,7 @@ class SPPTLocalAdapter(BaseAdapter):
         if not data_list:
             return []
 
-        # ✅ #46 P2: 服务端忽略分页，仅返回首页（≤6条），添加告警
+        # ✅#462:服务端忽略分页，仅返回首页（≤6条），添加告警
         max_first_page = len(data_list)
         logger.warning(
             "SPPT Local 仅返回首页 %d 条结果（服务端忽略 pageIndex 参数），关键词 %r 的结果可能不完整",

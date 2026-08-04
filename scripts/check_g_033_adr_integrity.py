@@ -16,7 +16,7 @@ import re
 import sys
 from pathlib import Path
 
-# Windows 控制台 UTF-8 编码兼容
+# 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
@@ -42,7 +42,7 @@ ARCH_PATTERNS = [
 def get_changed_files() -> list[str]:
     """获取本次变更的文件列表（三级回退）。"""
     try:
-        # 1. 优先检查暂存区（pre-commit 场景）
+        # 1.优先检查暂存区（-场景）
         result = subprocess.run(
             ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
@@ -52,7 +52,7 @@ def get_changed_files() -> list[str]:
             print(f"   📋 检测暂存区变更: {len(files)} 个文件")
             return files
 
-        # 2. CI PR 场景：对比 origin/main
+        # 2.持续集成合并请求场景：对比/入口
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
@@ -62,7 +62,7 @@ def get_changed_files() -> list[str]:
             print(f"   📋 检测 PR 变更 (origin/main...): {len(files)} 个文件")
             return files
 
-        # 3. 回退：最近一次 commit
+        # 3.回退：最近一次
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACMR", "HEAD~1"],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10
@@ -87,7 +87,7 @@ def is_architecture_change(filepath: str) -> bool:
 
 def parse_adr_status(content: str) -> str | None:
     """从 ADR 文档内容中提取 Status 字段。"""
-    # 尝试多种 Status 格式
+    # 尝试多种格式
     patterns = [
         r"##\s*Status\s*\n\s*(\S+)",
         r"\*\*Status\*\*:\s*(\S+)",
@@ -120,7 +120,7 @@ def validate_adr() -> bool:
         print(f"❌ G-033: ADR 目录 {ADR_DIR} 不存在，请创建 docs/adr/")
         return False
 
-    # 收集所有 ADR 及其状态
+    # 收集所有架构决策及其状态
     adr_files = list(ADR_DIR.glob("ADR-*.md"))
     if not adr_files:
         print(f"❌ G-033: 架构变更需伴随有效 ADR，但 {ADR_DIR} 中无 ADR 文件")
@@ -155,7 +155,7 @@ def validate_adr() -> bool:
         print(f"   ⚠️  另有 {len(pending_adrs)} 个未生效 ADR (proposed/draft): "
               f"{', '.join([n for n, _ in pending_adrs])}")
 
-    # MVP 阶段：关联性手动确认提示
+    # 最小可行阶段：关联性手动确认提示
     print(f"⚠️  G-033: 请手动确认上述 ADR 与本次架构变更的关联性")
     print(f"   变更范围: {', '.join(arch_changes[:3])}"
           f"{'...' if len(arch_changes) > 3 else ''}")

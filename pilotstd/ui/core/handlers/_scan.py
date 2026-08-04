@@ -1,4 +1,4 @@
-# 模块：pilotstd/ui/core/handlers/_scan.py
+# 模块：项目//核心/处理器/_扫描脚本
 """ScanUIHandler — 扫描 UI 状态管理，替代 ScanMixin。"""
 
 from __future__ import annotations
@@ -108,7 +108,7 @@ class ScanUIHandler:
                 w.terminate()
                 w.wait()
 
-    # ── 进度管理（委托给外部注入的回调，统一走 UnifiedProgressPipeline）──
+    # ──进度管理（委托给外部注入的回调，统一走）──
 
     def on_raw_progress(self, current: int, total: int) -> None:
         """原始进度更新（来自 Worker 信号），委托给外部 pipeline。"""
@@ -145,7 +145,7 @@ class ScanUIHandler:
                 parsed = self._mgr.restore_parsed_from_index(file_path)
 
         if parsed is None:
-            # 尝试 Engine 文件名解析 → PDF 头解析 → mgr 回退
+            # 尝试文件名解析→便携文档头解析→回退
             std_info = self._engine.parse_filename_to_std(filename)
             if std_info is None and filename.lower().endswith(".pdf"):
                 try:
@@ -156,7 +156,7 @@ class ScanUIHandler:
                     std_info = None
             if std_info is None:
                 parsed = self._mgr.parse_standard_number(filename)
-            # 当 Engine 解析成功时，仍用 mgr 获取完整 ParsedStdInfo 对象
+            # 当解析成功时，仍用获取完整对象
             if std_info is not None and parsed is None:
                 parsed = self._mgr.parse_standard_number(filename)
 

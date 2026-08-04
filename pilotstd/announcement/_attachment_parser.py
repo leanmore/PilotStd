@@ -1,5 +1,5 @@
-# 模块：pilotstd/announcement/_attachment_parser.py
-# 附件解析与正文提取 — 从 parser.py 拆分
+# 模块：项目//__解析器脚本
+# 附件解析与正文提取—从解析器脚本拆分
 
 import logging
 import re
@@ -107,7 +107,7 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
 
 def find_attachment_url(html: str) -> Optional[str]:
     """从公告详情页 HTML 中提取附件下载链接（支持 .wps / .docx / .doc / .pdf）。"""
-    # 优先匹配 sacinfo 标准公告附件链接，其次匹配通用文件下载链接
+    # 优先匹配标准公告附件链接，其次匹配通用文件下载链接
     for pattern in [
         r'href="(http://zxd\.sacinfo\.org\.cn/gb_notice/[^"]+)"',
         r'href="(https?://[^"]+\.(?:wps|docx?|pdf))"',
@@ -140,7 +140,7 @@ def extract_content(html: str) -> str:
     for table in soup.find_all("table"):
         table.decompose()
 
-    # 提取所有段落文本；无段落时回退到关键词匹配的 div/p 元素
+    # 提取所有段落文本；无段落时回退到关键词匹配的/元素
     all_p = soup.find_all("p")
     if all_p:
         return "\n\n".join(p.get_text(strip=True) for p in all_p)

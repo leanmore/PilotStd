@@ -20,11 +20,11 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
     """根据 commit 规范计算新版本号。"""
     major, minor, patch = map(int, version.split("."))
 
-    # 剥离 UTF-8 BOM（U+FEFF），防止 feat/fix 前缀被吞导致版本号不升
+    # 剥离-8（+），防止/前缀被吞导致版本号不升
     cleaned = [msg.removeprefix("\ufeff") for msg in commit_messages]
 
     has_breaking = any("BREAKING CHANGE:" in msg for msg in cleaned)
-    # 兼容 '@ ' 前缀（bash heredoc 残留）和标准格式
+    # 兼容'@'前缀（残留）和标准格式
     has_feat = any(re.search(r"^(@ )?feat(\(.+\))?:", msg) for msg in cleaned)
     has_fix = any(re.search(r"^(@ )?fix(\(.+\))?:", msg) for msg in cleaned)
 
@@ -39,9 +39,9 @@ def bump_version(version: str, commit_messages: list[str]) -> str | None:
 
 
 if __name__ == "__main__":
-    # 1. 获取 commit 信息
+    # 1.获取信息
     msgs_str = os.environ.get("COMMIT_MSGS", "")
-    # CI 用 | 分隔（GitHub output 不支持多行），本地用换行
+    # 持续集成用|分隔（版本控制不支持多行），本地用换行
     separator = "|" if "|" in msgs_str else "\n"
     commit_msgs = [msg.strip() for msg in msgs_str.split(separator) if msg.strip()]
 
@@ -49,6 +49,6 @@ if __name__ == "__main__":
     current = get_base_version()
     new_version = bump_version(current, commit_msgs)
 
-    # 3. 如果有新版本，打印到标准输出供 CI 捕获；如果没有，静默退出
+    # 3.如果有新版本，打印到标准输出供持续集成捕获；如果没有，静默退出
     if new_version:
         print(new_version)

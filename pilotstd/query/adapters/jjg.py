@@ -1,4 +1,4 @@
-# 模块：pilotstd/query/adapters/jjg.py
+# 模块：项目/查询/适配器/脚本
 """
 国家计量技术规范全文公开系统适配器
 
@@ -56,7 +56,7 @@ class JJGAdapter(BaseAdapter):
 
     def query_standards(self, standard_number: str, **kwargs: Any) -> list[QueryResult]:
         """按标准号或关键词查询计量技术规范，返回全部匹配结果列表。"""
-        # 注意：keyword 参数是 URL query string，服务端大小写敏感
+        # 注意：参数是链接查询，服务端大小写敏感
         keyword = standard_number.strip() if standard_number else ""
         if not keyword:
             return []
@@ -94,7 +94,7 @@ class JJGAdapter(BaseAdapter):
                 if r:
                     all_results.append(r)
 
-            # 终止条件：返回行数不足一页，或已取满 total
+            # 终止条件：返回行数不足一页，或已取满
             total = data.get("total", 0)
             if len(all_results) >= total:
                 break

@@ -19,7 +19,7 @@ import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-# Windows 控制台 UTF-8 编码兼容
+# 控制台-8编码兼容
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
@@ -52,7 +52,7 @@ HUMAN_DOC_RULES = [
 ]
 
 # ─── 交叉引用规则 ───
-# 格式: (源文档, 引用的目标文件glob)
+# 格式:(源文档,引用的目标文件)
 CROSS_REF_RULES = [
     ("docs/governance/gates.md", "scripts/check_g_*.py"),
     ("docs/governance/trinity-technical-spec-v2.md", "docs/governance/development-flow.md"),
@@ -149,13 +149,13 @@ def check_cross_references():
             continue
 
         content = src.read_text(encoding="utf-8")
-        # 提取所有 markdown 链接和裸路径引用
+        # 提取所有链接和裸路径引用
         refs = set()
         refs.update(re.findall(r"\[.*?\]\(([^)]+)\)", content))  # [text](path)
         refs.update(re.findall(r"`([^`]+\.(?:py|md|sh|yml|yaml))`", content))  # `path/file.py`
 
         for ref in refs:
-            # 跳过外部 URL
+            # 跳过外部链接
             if ref.startswith("http://") or ref.startswith("https://"):
                 continue
             # 跳过锚点

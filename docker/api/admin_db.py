@@ -1,4 +1,4 @@
-# docker/api/admin_db.py — Admin 数据库操作 API（安全查询/修改，sqlparse AST 校验）
+# 容器//_脚本—数据库操作接口（安全查询/修改，抽象语法树校验）
 """Admin 数据库操作 API：SQL 安全校验 + 执行 + 审计，仅 admin 角色可访问。"""
 
 import logging
@@ -45,7 +45,7 @@ class DbQueryRequest(BaseModel):
     confirm_dangerous: bool = False
 
 
-# ── sqlparse AST 校验工具 ─────────────────────────────────
+# ──抽象语法树校验工具─────────────────────────────────
 
 
 def _get_stmt_type(parsed: Any) -> str | None:
@@ -102,11 +102,11 @@ def _validate_sql(parsed: Any, confirm_dangerous: bool) -> tuple[bool, str]:
     stmt_type = _get_stmt_type(parsed)
     sql_upper = str(parsed).upper()
 
-    # DROP DATABASE → 无条件拒绝
+    # 删除→无条件拒绝
     if stmt_type == "DROP" and "DATABASE" in sql_upper:
         return False, "DROP DATABASE 不允许执行"
 
-    # DROP TABLE 删表操作
+    # 删除表删表操作
     if stmt_type == "DROP" and "TABLE" in sql_upper:
         if not confirm_dangerous:
             return False, "DROP TABLE 必须设置 confirm_dangerous=true"
@@ -115,7 +115,7 @@ def _validate_sql(parsed: Any, confirm_dangerous: bool) -> tuple[bool, str]:
             bad = tables - _ALLOWED_TABLES
             return False, f"表不在白名单内: {', '.join(sorted(bad))}"
 
-    # DELETE / UPDATE 必须带 WHERE
+    # 删除/更新必须带条件
     if stmt_type in ("DELETE", "UPDATE"):
         if not _has_where_clause(parsed):
             return False, f"{stmt_type} 必须包含 WHERE 子句"
@@ -145,7 +145,7 @@ def _execute_with_timeout(
     conn.row_factory = _sqlite3.Row
     conn.text_factory = str
 
-    # Progress handler：每 1000 条 VM 指令检查一次超时
+    # 处理器：每1000条指令检查一次超时
     deadline = start + timeout_s
 
     def _check():
@@ -166,7 +166,7 @@ def _execute_with_timeout(
     return rows, elapsed
 
 
-# ── API 端点 ──────────────────────────────────────────────
+# ──接口端点──────────────────────────────────────────────
 
 
 def _audit_and_respond(action: str, sql: str, params: list[Any], detail: dict, code: str, msg: str, status: int):
@@ -181,7 +181,7 @@ def _audit_and_respond(action: str, sql: str, params: list[Any], detail: dict, c
 @require_role(ADMIN_ROLE)
 def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     """Admin 数据库安全查询/操作端点。"""
-    # Step 1: SQL 解析
+    # 步骤1:数据库查询解析
     try:
         parsed = sqlparse.parse(req.sql)[0]
     except Exception as e:
@@ -197,7 +197,7 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
 
     stmt_type = _get_stmt_type(parsed) or "UNKNOWN"
 
-    # Step 2: 安全校验
+    # 步骤2:安全校验
     ok, err = _validate_sql(parsed, req.confirm_dangerous)
     if not ok:
         return _audit_and_respond(
@@ -210,13 +210,13 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
             400,
         )
 
-    # Step 3: SELECT 自动包装 LIMIT
+    # 步骤3:查询自动包装限制
     is_select = stmt_type == "SELECT"
     sql_to_execute = req.sql
     if is_select and not _has_limit_clause(parsed):
         sql_to_execute = _wrap_select_limit(req.sql)
 
-    # Step 4: 执行（带超时保护）
+    # 步骤4:执行（带超时保护）
     db_path = get_db_path()
     try:
         rows, elapsed_ms = _execute_with_timeout(db_path, sql_to_execute, req.params, req.timeout)
@@ -241,13 +241,13 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
             500,
         )
 
-    # Step 5: 结果截断
+    # 步骤5:结果截断
     row_count = len(rows)
     truncated = False
     if is_select and row_count == 1001:
         truncated, rows, row_count = True, rows[:1000], 1000
 
-    # Step 6: 审计
+    # 步骤6:审计
     write_audit(
         action="DB_QUERY",
         resource="/api/admin/db/query",

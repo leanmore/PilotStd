@@ -1,13 +1,13 @@
-# 模块：pilotstd/query/adapters/_njbz365_session_manager.py
-# njbz365 会话管理与请求签名 — 原 _Njbz365SessionMixin，现为独立类
+# 模块：项目/查询/适配器/_365__管理器脚本
+# 365会话管理与请求签名—原_365，现为独立类
 # 分隔
 # 会话管理流程（3 步）：
-#   1. GET 首页 → 获取 token cookie + JWT
-#   2. OPTIONS → 获取 csrf_token + session
-#   3. POST 搜索 → 带 sign 签名（token/csrf 过期时自动刷新）
+# 1.首页→获取+令牌
+# 2.输入输出→获取_+
+# 3.搜索→带签名（/过期时自动刷新）
 # 分隔
-# 签名算法：过滤空值 → key 排序 → 拼接 → 拼接私钥 → MD5 大写
-# 重试策略：指数退避（2^attempt 秒），最多 3 次
+# 签名算法：过滤空值→排序→拼接→拼接私钥→5大写
+# 重试策略：指数退避（2^秒），最多3次
 
 import base64
 import hashlib
@@ -21,11 +21,11 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# API 基地址
+# 接口基地址
 BASE_API = "https://www.njbz365.cn/apis"
 HOME_URL = "https://www.njbz365.cn/"
 
-# Sign 算法签名私钥
+# 算法签名私钥
 _PRIVATE_KEY_B64 = "OlFnZH0rZFIyZmExRkZiV1tzQU8+LWQ6Si9QSEdxU1M="
 _PRIVATE_KEY = base64.b64decode(_PRIVATE_KEY_B64).decode()
 
@@ -255,5 +255,5 @@ class Njz365SessionManager:
         return None
 
 
-# 保留旧模块 _PRIVATE_KEY 导出兼容
+# 保留旧模块_合并请求_导出兼容
 _PRIVATE_KEY = _PRIVATE_KEY

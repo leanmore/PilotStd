@@ -1,4 +1,4 @@
-# 模块：pilotstd/manager/facade/_core.py
+# 模块：项目/管理器/门面/_核心脚本
 """ManagerCore 依赖容器 — 组合模式重构，消除 Mixin MRO 隐式依赖。"""
 
 from dataclasses import dataclass, field
@@ -51,7 +51,7 @@ class ManagerCore:
     router: "PipelineRouter"
     _file_watcher: Any = field(default=None)
 
-    # ---- 服务层（由 BaseFacade._init_services 填充） ----
+    # 服务层（由.__服务填充）
     classifier: Any = field(default=None)
     organizer_svc: Any = field(default=None)
     announce_svc: Any = field(default=None)
@@ -63,7 +63,7 @@ class ManagerCore:
     notification_mgr: Optional["NotificationManager"] = field(default=None)
     pipeline_store: Optional["PipelineRunStore"] = field(default=None)
 
-    # ---- 运行时状态（原 Mixin 中通过 self.xxx 访问的列表） ----
+    # 运行时状态（原中通过.访问的列表）
     parsed_results: list[Any] = field(default_factory=list)
     queried_items: list[Any] = field(default_factory=list)
     query_results: list[Any] = field(default_factory=list)

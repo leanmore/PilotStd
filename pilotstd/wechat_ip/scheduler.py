@@ -1,6 +1,6 @@
-# 模块：pilotstd/wechat_ip/scheduler.py
+# 模块：项目/_/调度器脚本
 # pragma: no cover — 需浏览器环境，暂不纳入单元测试覆盖率考核
-# 详见 docs/testing/known-issues.md
+# 详见//-文档
 """可信 IP 定时更新调度器。使用 daemon 线程定期检测 IP 变化。"""
 
 import logging
@@ -31,7 +31,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     """
     result = {"ip": "", "changed": False, "updated": False, "error": ""}
 
-    # 1. 检测 IP
+    # 1.检测
     ip = do_detect_ip()
     if not ip:
         result["error"] = "IP 检测失败"
@@ -46,7 +46,7 @@ def run_check(config: Any, notify_cb: Optional[Callable] = None) -> dict:
     result["changed"] = True
     logger.info("IP 变化: %s → %s", last_ip, ip)
 
-    # 3. 获取 Cookie
+    # 3.获取
     cookie = _get_cookie(config)
     if not cookie:
         result["error"] = "无法获取 Cookie"
