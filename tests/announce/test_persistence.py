@@ -14,18 +14,24 @@ def db():
     conn.row_factory = sqlite3.Row
     conn.execute("""
         CREATE TABLE fetch_checkpoint (
-            source_site TEXT PRIMARY KEY,
-            last_fetched_at TEXT,
-            last_notice_date TEXT NOT NULL
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_site TEXT NOT NULL UNIQUE,
+            last_fetched_at TEXT NOT NULL DEFAULT '',
+            last_notice_date TEXT NOT NULL DEFAULT '',
+            since_date_override TEXT DEFAULT ''
         )
     """)
     conn.execute("""
         CREATE TABLE fetch_failures (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            task_type TEXT,
-            source_site TEXT,
-            since_date TEXT,
-            error_message TEXT
+            task_type TEXT NOT NULL,
+            source_site TEXT NOT NULL,
+            since_date TEXT NOT NULL,
+            error_message TEXT,
+            retry_count INTEGER DEFAULT 0,
+            last_retry_at TEXT,
+            resolved BOOLEAN DEFAULT FALSE,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
     conn.execute("""
