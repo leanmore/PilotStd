@@ -69,7 +69,7 @@ with mini_bucket_mock_tree({"site_a": {"cooldown_until": 0}}) as (core, routing,
 | `manager.py` | 47% (+8pp vs 基线39%) | `_init_channels` 需 mock `_CHANNEL_CLASSES` 字典和 `CredentialHelper` | 渠道类字典桩 |
 | `_mini_bucket.py` | 40% | `_process_single_query`/`_run_mini_bucket_queries` 需完整查询引擎 | 单查询桩+线程池桩 |
 | `channel.py` | 接口已验证 | `NotificationChannel` 是 ABC，具体实现在 channels/ 子模块 | 各渠道子类测试 |
-| `_batch.py` | 60% 基线 | `BatchHandler` 需 `_BatchDispatchMixin` + EngineCore | 批量分派桩 |
+| `_batch.py` | 60% 基线 | `BatchHandler` 需 `BatchDispatcher` + EngineCore | 批量分派桩 |
 | `_single.py` | 65% 基线 | `SingleQueryHandler` 需 Engine + adapter 注册表 | 适配器注册桩 |
 | `_routing.py` | 48% 基线 | 评分器 + 全适配器链 | 评分器桩 |
 
@@ -123,5 +123,5 @@ with mini_bucket_mock_tree({"site_a": {"cooldown_until": 0}}) as (core, routing,
 1. **渠道类字典桩** — mock `_CHANNEL_CLASSES` 使 `_init_channels` 可测试
 2. **`_format_utils.py`** — 纯逻辑，最高 ROI（49 missed, 无依赖）
 3. **单查询桩** — mock `SingleQueryHandler` 的 search 方法
-4. **批量分派桩** — mock `_BatchDispatchMixin` 的线程池
+4. **批量分派桩** — mock `BatchDispatcher` 的线程池
 5. **适配器注册桩** — mock adapter registry 的懒加载函数

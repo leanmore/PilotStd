@@ -43,9 +43,9 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ### 无 Mixin 例外
 
-保留两处 MRO 用法（不涉及多重继承），视为无 Mixin：
+保留一处 MRO 用法（不涉及多重继承），视为无 Mixin：
 
-- `StandardParser(ExactMatchMixin, StandardParserBase)` — `ExactMatchMixin` 是方法注入容器，不定义 `__init__`，不持有状态
+- `StandardParser` — 匹配通道委托给 `ExactMatcher`（组合注入），辅助方法为 staticmethod 绑定
 - `ParserCore` — 5 个 Handler 的组合容器，纯委托代理
 
 ### 验收标准

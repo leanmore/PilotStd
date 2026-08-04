@@ -17,8 +17,8 @@
 
 ```
 StandardParser (入口)
-├── ExactMatchMixin      — 正则精确/模糊匹配（7 通道分流）
-├── ForeignHandlerMixin  — 国外标准后处理
+├── ExactMatcher (组合注入) — 正则精确/模糊匹配（7 通道分流）
+├── _post_process_foreign   — 国外标准后处理（模块级纯函数）
 └── ParserCore (组合容器)
     ├── TextCleaner       — 文本清洗（全角→半角、特殊字符替换）
     ├── LanguageDetector  — 中/英文检测
@@ -27,7 +27,8 @@ StandardParser (入口)
     └── ResultBuilder     — 构建并校验 ParsedStdInfo
 ```
 
-> 旧版 `UtilsMixin` 已被拆分为 5 个独立 Handler，通过 `ParserCore` 组合。参见 [ADR-001](../decisions/ADR-001-modal-dialog-auto-clicker.md)。
+> 旧版 `ExactMatchMixin` 已替换为 `ExactMatcher` 组合类，`ForeignHandlerMixin` 已纯函数化。
+> 旧版 `UtilsMixin` 已被拆分为 5 个独立 Handler，通过 `ParserCore` 组合。
 
 ## 关键接口
 
@@ -43,7 +44,7 @@ StandardParser (入口)
 输入文件名
   → _preprocess_input (TextCleaner + LanguageDetector + FileKindDetector)
   → 7 通道分流 (DB / BPVC / ITU / exact / typed / fuzzy / no_year)
-  → _post_process (ForeignHandlerMixin 按代号分类处理)
+  → _post_process (_post_process_foreign 按代号分类处理)
   → 输出 ParsedStdInfo { code, number, year, part, kind, ... }
 ```
 
