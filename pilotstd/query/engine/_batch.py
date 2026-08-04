@@ -1,5 +1,9 @@
 # pilotstd/query/engine/_batch.py
-"""批量查询编排器 — 6 阶段流水线入口。分发/分桶/收尾已提取至 _batch_dispatch.py。"""
+"""批量查询编排器 — 6 阶段流水线入口。分发/分桶/收尾委托 BatchDispatcher。
+
+流水线阶段：初始化状态 → 按站点分桶 → 分发上下文 → 并行调度 → 收集 csres → 收尾。
+单条目走 _single 串行路径，多条目走 BatchDispatcher 并行路径。
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ import time
 from typing import TYPE_CHECKING, Callable, List, Optional, Tuple
 
 from ..models import QueryResult
-from ._batch_dispatch import _BatchDispatchMixin
+from ._batch_dispatcher import BatchDispatcher, _DispatchContext
 
 if TYPE_CHECKING:
     from ._core_types import EngineCore
@@ -23,16 +27,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class BatchHandler(_BatchDispatchMixin):
+class BatchHandler:
     """批量查询编排器 — 执行 6 阶段逐桶查询流水线。
 
-    分发编排由 _BatchDispatchMixin 提供；本类负责入口调度和6阶段流水线编排。
+    分发编排由 BatchDispatcher 提供（组合注入）；本类负责入口调度和流水线编排。
     """
 
     _AHBZ_OVERFLOW_QUOTA = 170
     _NJBZ_OVERFLOW_QUOTA = 200
-
-    # ── 入口 ──
 
     def __init__(
         self,
@@ -44,6 +46,7 @@ class BatchHandler(_BatchDispatchMixin):
         overflow: "OverflowHandler",
         report: "ReportHandler",
     ) -> None:
+        # 注入组件引用（BatchHandler 自身 + BatchDispatcher 各取所需）
         self._core = core
         self._routing = routing
         self._single = single
@@ -51,6 +54,39 @@ class BatchHandler(_BatchDispatchMixin):
         self._mini_bucket = mini_bucket
         self._overflow = overflow
         self._report = report
+
+        ctx = _DispatchContext(
+            core=core,
+            routing=routing,
+            mini_bucket=mini_bucket,
+            csres=csres,
+            report=report,
+            ahbz_overflow_quota=self._AHBZ_OVERFLOW_QUOTA,
+            njbz_overflow_quota=self._NJBZ_OVERFLOW_QUOTA,
+        )
+        self._dispatcher = BatchDispatcher(ctx)
+
+    # ── 薄代理（委托 BatchDispatcher）──
+
+    def _init_batch_state(self, n, progress_callback, metrics=None):
+        return self._dispatcher._init_batch_state(n, progress_callback, metrics)
+
+    def _bucket_items(self, parsed_list, preferred_site=None):
+        return self._dispatcher._bucket_items(parsed_list, preferred_site)
+
+    def _setup_dispatch_context(self, state, result_callback, progress_callback):
+        self._dispatcher._setup_dispatch_context(state, result_callback, progress_callback)
+
+    def _dispatch_queries(self, buckets, state, preferred_site=None):
+        self._dispatcher._dispatch_queries(buckets, state, preferred_site)
+
+    def _collect_csres_results(self, state):
+        self._dispatcher._collect_csres_results(state)
+
+    def _finalize_batch(self, state, parsed_list, n, temp_cooldown_skips):
+        return self._dispatcher._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
+
+    # ── 入口 ──
 
     def query_standards(
         self,
@@ -65,8 +101,7 @@ class BatchHandler(_BatchDispatchMixin):
         n = len(items)
         if n == 0:
             return []
-
-        # 单条目或显式串行 → 逐条查询
+        # 单条目 or 显式串行 → 走 _single 逐条查询路径
         if use_parallel is False or (use_parallel is None and n <= 1):
             results: list[QueryResult] = []
             pause_event = self._core.pause_event
@@ -105,13 +140,11 @@ class BatchHandler(_BatchDispatchMixin):
         self._core.query_active = True
         n = len(parsed_list)
 
-        # ✅ #46 P1: 创建批次级 Metrics 实例
         from ._metrics import QueryMetrics
 
         metrics = QueryMetrics(batch_id=f"batch-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}")
 
         try:
-            # 6阶段流水线
             state = self._init_batch_state(n, progress_callback, metrics)
             buckets = self._bucket_items(parsed_list, preferred_site)
             self._setup_dispatch_context(state, result_callback, progress_callback)
@@ -121,7 +154,6 @@ class BatchHandler(_BatchDispatchMixin):
             temp_cooldown_skips = self._overflow._handle_overflow(state, result_callback, preferred_site)
             return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
         finally:
-            # ✅ 任务4：归入 validate_failed 计数器 + 持久化 metrics
             try:
                 from pilotstd.scan.parser._result_builder import get_validate_fail_count
 
