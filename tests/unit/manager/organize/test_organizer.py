@@ -90,10 +90,12 @@ def organizer(mock_cfg, mock_file_index, mock_dir_builder, mock_file_mover):
 
 
 class TestOrganize:
-    def test_empty_list_returns_zero_results(self, organizer):
+    def test_empty_list_returns_zero_results(self, organizer, tmp_path):
         """空列表 → result 全零 + 汇总日志"""
+        lib_root = tmp_path / "lib"
+        lib_root.mkdir()
         with patch("pilotstd.manager.organize.organizer.get_library_root") as mock_root:
-            mock_root.return_value = "/fake/lib"
+            mock_root.return_value = str(lib_root)
             result = organizer.organize([])
             assert result["moved"] == 0
             assert result["failed"] == 0
@@ -114,15 +116,17 @@ class TestOrganize:
             result = organizer.organize([item])
             assert result["moved"] == 0
 
-    def test_skips_missing_source_file(self, organizer):
+    def test_skips_missing_source_file(self, organizer, tmp_path):
         """source_path 不存在 → details 记录跳过"""
+        lib_root = tmp_path / "lib"
+        lib_root.mkdir()
         item = _make_item("/nonexistent/file.pdf")
 
         with (
             patch("pilotstd.manager.organize.organizer.get_library_root") as mock_root,
             patch("pilotstd.manager.organize.organizer.os.path.isfile") as mock_isfile,
         ):
-            mock_root.return_value = "/fake/lib"
+            mock_root.return_value = str(lib_root)
             mock_isfile.return_value = False
             result = organizer.organize([item])
             assert result["moved"] == 0
