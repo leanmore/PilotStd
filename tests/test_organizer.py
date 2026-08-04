@@ -148,7 +148,7 @@ class TestOrganizerUtils(unittest.TestCase):
 # === expire.py 覆盖 ===
 
 
-class TestOrganizerExpireMixin(unittest.TestCase):
+class TestOrganizerExpire(unittest.TestCase):
     """merge_expire_from_source 测试。"""
 
     def setUp(self):
@@ -178,7 +178,7 @@ class TestOrganizerExpireMixin(unittest.TestCase):
 # === mirror.py 覆盖 ===
 
 
-class TestOrganizerMirrorMixin(unittest.TestCase):
+class TestOrganizerMirror(unittest.TestCase):
     """OrganizerMirror.organize_skipped_dirs / organize_fallback 测试。"""
 
     def setUp(self):

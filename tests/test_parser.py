@@ -51,7 +51,7 @@ class TestParserValidation(unittest.TestCase):
 # === _exact.py 覆盖 ===
 
 
-class TestExactMatchMixin(unittest.TestCase):
+class TestExactMatcher(unittest.TestCase):
     parser: StandardParser
 
     @classmethod
@@ -76,7 +76,7 @@ class TestExactMatchMixin(unittest.TestCase):
 # === _foreign.py 覆盖 ===
 
 
-class TestForeignHandlerMixin(unittest.TestCase):
+class TestForeignHandler(unittest.TestCase):
     parser: StandardParser
 
     @classmethod
