@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_auto.py
+# 模块：pilotstd/manager/facade/_auto.py
 """AutoPipeline：一键自动运行管线（扫描→查询→下载→归档→收容），替代原 AutoMixin。"""
 
 from __future__ import annotations

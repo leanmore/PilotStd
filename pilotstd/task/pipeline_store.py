@@ -1,4 +1,4 @@
-# pilotstd/task/pipeline_store.py
+# 模块：pilotstd/task/pipeline_store.py
 # pipeline_runs 表 CRUD 封装
 
 import json

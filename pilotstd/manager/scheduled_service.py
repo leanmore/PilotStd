@@ -1,4 +1,4 @@
-# pilotstd/manager/scheduled_service.py
+# 模块：pilotstd/manager/scheduled_service.py
 # ScheduledService — 定时任务专用方法：扫描入库、更新检测、批量查询/下载
 
 import logging
@@ -52,9 +52,9 @@ class ScheduledService:
         self._quota_tracker = quota_tracker
         self._download_engine = download_engine
 
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
     # 扫描入库
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
 
     def scan_and_index(self) -> Dict[str, int]:
         """Q6-1: 扫描标准库根目录，四要素精确匹配后 UPDATE standards 表。
@@ -134,9 +134,9 @@ class ScheduledService:
         )
         return result
 
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
     # 批量查询/下载
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
 
     def query_by_numbers(
         self, numbers: List[str], force_refresh: bool = False, preferred_site: str | None = None

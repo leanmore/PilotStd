@@ -1,4 +1,4 @@
-# pilotstd/core/config/settings_schema.py
+# 模块：pilotstd/core/config/settings_schema.py
 """配置 Schema 注册表 —— 单一数据源（SSOT）。
 
 所有可配置项的元数据集中定义于此。
@@ -186,7 +186,7 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 2 * * *",
         help_text="日期提醒的 cron 表达式",
     ),
-    # ── OCR Tab ──
+    # 说明：── OCR Tab ──
     SettingDef(
         key="ocr.baidu_api_key",
         tab="ocr",

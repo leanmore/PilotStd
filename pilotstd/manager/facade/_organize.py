@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_organize.py
+# 模块：pilotstd/manager/facade/_organize.py
 """OrganizeHandler：归档、规范化、过期处理、兜底镜像，替代原 OrganizeMixin。"""
 # 边界条件：同名文件追加序号而非覆盖（SHA-256 先比对）；废止标准走 normalize_filename 自动追加过期作废子目录；
 # Word/模板文件按源目录镜像归档（无标准号无法按代号归类，镜像保留原始结构便于追溯）

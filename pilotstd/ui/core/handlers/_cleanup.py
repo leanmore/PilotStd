@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_cleanup.py
+# 模块：pilotstd/ui/core/handlers/_cleanup.py
 """CleanupHandler — 空文件夹清理 + 未识别文件收集，替代 CleanupMixin。
 
 薄包装层：实际文件系统遍历 + Worker 管理 + Qt 控件交互。

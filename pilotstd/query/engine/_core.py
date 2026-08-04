@@ -1,5 +1,5 @@
-# pilotstd/query/engine/_core.py
-# mypy: disable-error-code="no-any-return"
+# 模块：pilotstd/query/engine/_core.py
+# 说明：mypy: disable-error-code="no-any-return"
 """查询引擎核心基类 — 组合模式重构，提供 EngineCore 容器和状态查询。"""
 
 from __future__ import annotations

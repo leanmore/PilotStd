@@ -1,4 +1,4 @@
-# pilotstd/core/task_status.py
+# 模块：pilotstd/core/task_status.py
 # 定时任务执行状态内存缓存 — Phase1 基础设施（重启丢失，Phase2 历史表解决持久化）
 
 import functools

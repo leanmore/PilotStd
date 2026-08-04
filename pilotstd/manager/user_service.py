@@ -1,4 +1,4 @@
-# pilotstd/manager/user_service.py
+# 模块：pilotstd/manager/user_service.py
 # 用户管理服务 — 供 API 层调用
 
 import hashlib

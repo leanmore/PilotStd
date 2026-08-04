@@ -1,4 +1,4 @@
-# pilotstd/announcement/engine.py
+# 模块：pilotstd/announcement/engine.py
 # 公告引擎 — 编排多个适配器，GB/HB/DB 并发抓取
 
 import concurrent.futures

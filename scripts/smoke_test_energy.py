@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# scripts/smoke_test_energy.py
+# 模块：scripts/smoke_test_energy.py
 """能源标准适配器网络冒烟测试。
 
 用途：验证 EnergyAdapter 在真实网络环境下能正常访问 114.251.111.103:18080。

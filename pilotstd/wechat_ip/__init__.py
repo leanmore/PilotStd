@@ -1,4 +1,4 @@
-# pilotstd/wechat_ip/__init__.py
+# 模块：pilotstd/wechat_ip/__init__.py
 """企业微信可信 IP 自动更新模块。
 
 子模块：

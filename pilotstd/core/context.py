@@ -1,4 +1,4 @@
-# pilotstd/core/context.py
+# 模块：pilotstd/core/context.py
 """请求级用户身份上下文 — ContextVar 传播，无需显式传参。
 
 用法:

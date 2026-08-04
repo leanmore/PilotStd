@@ -1,4 +1,4 @@
-# pilotstd/announcement/ocr/_tencent.py
+# 模块：pilotstd/announcement/ocr/_tencent.py
 # 腾讯云 OCR 提供商实现
 """腾讯云通用文字识别 — 支持 PDF 直接上传。
 

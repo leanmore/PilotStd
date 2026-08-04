@@ -1,4 +1,4 @@
-# pilotstd/announcement/_content_cleaner.py
+# 模块：pilotstd/announcement/_content_cleaner.py
 # 公告正文清洗 — 从 matcher.py 拆分
 
 import re

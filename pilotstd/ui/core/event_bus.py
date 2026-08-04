@@ -1,4 +1,4 @@
-# pilotstd/ui/core/event_bus.py
+# 模块：pilotstd/ui/core/event_bus.py
 """EventBus — 单例事件总线，替代跨 Handler 回调链。
 
 特性：

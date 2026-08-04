@@ -1,4 +1,4 @@
-# pilotstd/manager/validity_service.py
+# 模块：pilotstd/manager/validity_service.py
 # 时效性检查服务 — 供 API 层调用
 
 from typing import Any

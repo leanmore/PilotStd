@@ -1,5 +1,5 @@
 # pilotstd/ui/workers/auto.py — AutoWorker，从 workers.py 拆分
-#
+# 分隔
 # 统一自动管线 Worker：串行执行 scan→query→download→archive。
 
 import logging

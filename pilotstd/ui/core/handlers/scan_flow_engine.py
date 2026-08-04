@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/scan_flow_engine.py
+# 模块：pilotstd/ui/core/handlers/scan_flow_engine.py
 """ScanFlowEngine — 扫描文件解析的纯逻辑层（零 Qt、零 I/O、零事件总线）。
 
 提取文件名解析、PDF 头解析、已知结果过滤、结果合并、扫描统计。
@@ -28,7 +28,7 @@ class ScanFlowEngine:
         rb"(?:[._-](?P<year>\d{4}))?"
     )
 
-    # ── parse_filename_to_std ──────────────────────────────────
+    # ── parse_filename_to_std（解析文件名得到标准号）──────────────────────────
 
     @staticmethod
     def parse_filename_to_std(filename: str) -> dict[str, Any] | None:
@@ -107,7 +107,7 @@ class ScanFlowEngine:
             "is_valid": bool(code and number > 0),
         }
 
-    # ── parse_pdf_header ───────────────────────────────────────
+    # ── parse_pdf_header（解析 PDF 头部获取标准号）──────────────────────────
 
     @staticmethod
     def parse_pdf_header(header_bytes: bytes) -> dict[str, Any] | None:
@@ -153,7 +153,7 @@ class ScanFlowEngine:
             "title": "",
         }
 
-    # ── filter_known_results ───────────────────────────────────
+    # ── filter_known_results（过滤已知结果）──────────────────────────────
 
     @staticmethod
     def filter_known_results(results: list[dict[str, Any]], known_numbers: set[str]) -> list[dict[str, Any]]:
@@ -173,7 +173,7 @@ class ScanFlowEngine:
 
         return [r for r in results if r.get("std_number", "") not in known_numbers]
 
-    # ── merge_results ──────────────────────────────────────────
+    # ── merge_results（合并结果并按标准号去重）─────────────────────────────
 
     @staticmethod
     def merge_results(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -216,7 +216,7 @@ class ScanFlowEngine:
 
         return merged
 
-    # ── build_scan_stats ───────────────────────────────────────
+    # ── build_scan_stats（生成扫描统计信息）──────────────────────────────
 
     @staticmethod
     def build_scan_stats(results: list[dict[str, Any]]) -> dict[str, Any]:

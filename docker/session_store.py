@@ -1,4 +1,4 @@
-# docker/session_store.py
+# 模块：docker/session_store.py
 # 服务端会话存储 — JWT token 与用户会话映射，支持登出/刷新/过期清理
 """内存会话存储：记录活跃 token，支持主动登出和定期清理过期条目。"""
 

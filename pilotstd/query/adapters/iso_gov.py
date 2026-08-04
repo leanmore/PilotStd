@@ -1,6 +1,6 @@
-# pilotstd/query/adapters/iso_gov.py
+# 模块：pilotstd/query/adapters/iso_gov.py
 # 全国标准信息公共服务平台 — ISO/IEC 国际标准查询适配器
-# API: std.samr.gov.cn/gj/search/gjPage
+# 说明：API: std.samr.gov.cn/gj/search/gjPage
 
 import logging
 import re

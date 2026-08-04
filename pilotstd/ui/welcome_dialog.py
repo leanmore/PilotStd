@@ -1,4 +1,4 @@
-# pilotstd/ui/welcome_dialog.py
+# 模块：pilotstd/ui/welcome_dialog.py
 # 首次启动欢迎对话框
 
 from typing import Any

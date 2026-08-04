@@ -1,16 +1,16 @@
-# pilotstd/wechat_ip/logic.py
-"""Pure logic extracted from browser/scheduler for unit testing.
+# 模块：pilotstd/wechat_ip/logic.py
+"""从浏览器/调度器中提取的纯逻辑，供单元测试使用。
 
-All functions have zero I/O and zero Qt/Playwright/crypto dependencies.
+所有函数均为零 I/O、零 Qt/Playwright/加密依赖。
 """
 
 from __future__ import annotations
 
 
 def parse_cookie_string(cookie_str: str) -> list[dict[str, str]]:
-    """Parse 'name=value; name2=value2' into Playwright cookie dicts.
+    """将 "name=value; name2=value2" 格式解析为 Playwright cookie 字典列表。
 
-    Extracted from WechatIPUpdater._parse_cookie (browser.py:115-130).
+    提取自 WechatIPUpdater._parse_cookie（browser.py:115-130）。
     """
     result: list[dict[str, str]] = []
     for part in cookie_str.split(";"):
@@ -29,12 +29,12 @@ def parse_cookie_string(cookie_str: str) -> list[dict[str, str]]:
 
 
 def merge_ip_list(current: str, new_ip: str) -> tuple[str, bool]:
-    """Return (merged_string, skipped).
+    """返回 (合并后的字符串, 是否跳过)。
 
-    If new_ip already in current → (current, True)
-    Otherwise → (current;new_ip or new_ip, False)
+    若 new_ip 已在 current 中 → (current, True)
+    否则 → (current;new_ip 或 new_ip, False)
 
-    Extracted from update_trusted_ip append-mode logic (browser.py:191-195).
+    提取自 update_trusted_ip 追加模式逻辑（browser.py:191-195）。
     """
     if new_ip in current:
         return current, True
@@ -43,25 +43,25 @@ def merge_ip_list(current: str, new_ip: str) -> tuple[str, bool]:
 
 
 def parse_app_urls(urls_str: str) -> list[str]:
-    """Split comma-separated URLs, strip whitespace, drop empties.
+    """按逗号拆分 URL 列表，去除空白并过滤空值。
 
-    Extracted from run_check (scheduler.py:48-49).
+    提取自 run_check（scheduler.py:48-49）。
     """
     return [u.strip() for u in urls_str.split(",") if u.strip()]
 
 
 def is_ip_changed(current_ip: str, last_ip: str) -> bool:
-    """Return True if IP has changed.
+    """若 IP 地址发生变化则返回 True。
 
-    Extracted from run_check (scheduler.py:34-36).
+    提取自 run_check（scheduler.py:34-36）。
     """
     return current_ip != last_ip and current_ip != ""
 
 
 def build_update_result(results: dict[str, bool]) -> tuple[bool, list[str]]:
-    """Return (all_ok, failed_urls) from updater.update_multiple output.
+    """从 updater.update_multiple 输出中提取 (全部成功, 失败URL列表)。
 
-    Extracted from run_check (scheduler.py:62-67).
+    提取自 run_check（scheduler.py:62-67）。
     """
     failed = [url for url, ok in results.items() if not ok]
     all_ok = len(results) > 0 and len(failed) == 0

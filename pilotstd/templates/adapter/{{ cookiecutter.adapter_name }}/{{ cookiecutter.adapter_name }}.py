@@ -1,6 +1,6 @@
 # CookieCutter模板 — 由cookiecutter渲染后生成最终代码
 # 注释密度占位以满足门禁G-012要求
-# pilotstd/query/adapters/{{ cookiecutter.adapter_name }}.py
+# 适配器模块：pilotstd/query/adapters/{{ cookiecutter.adapter_name }}.py
 """{{ cookiecutter.site_label }} 适配器
 URL: {{ cookiecutter.base_url }}{{ cookiecutter.search_endpoint }}
 架构: {{ cookiecutter.response_type }} (method={{ cookiecutter.method }}, encoding={{ cookiecutter.encoding }})

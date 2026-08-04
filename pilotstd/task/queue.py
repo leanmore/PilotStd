@@ -1,4 +1,4 @@
-# pilotstd/task/queue.py
+# 模块：pilotstd/task/queue.py
 # 任务队列：后台执行、断点续传（SQLite 持久化）、暂停/继续/取消
 
 import logging

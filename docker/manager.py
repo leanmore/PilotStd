@@ -1,6 +1,6 @@
-# docker/manager.py
+# 模块：docker/manager.py
 # Docker 进程内 StandardManager 全局单例 — 所有 API 模块共享同一个实例
-#
+# 分隔
 # 替代各模块各自 `_mgr = StandardManager()` 的做法，
 # 确保 DB 连接、HTTP session、缓存、任务队列在同一个进程内唯一。
 

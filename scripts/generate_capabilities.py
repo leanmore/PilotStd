@@ -38,32 +38,32 @@ DO_NOT_EDIT = "<!-- DO NOT EDIT MANUALLY. Lines above this marker are auto-maint
 # kind: 'class' → AST 查找类定义行号
 
 TRACK_RULES: list[dict] = [
-    # docker/scheduler.py
+    # docker/scheduler.py（来源文件）
     {"file": "docker/scheduler.py", "pattern": r"scheduler\s*=\s*BackgroundScheduler", "kind": "regex", "label": "调度器实例"},
     {"file": "docker/scheduler.py", "pattern": r"_heartbeat_loop", "kind": "func", "label": "调度器心跳循环"},
     {"file": "docker/scheduler.py", "pattern": r"_acquire_scheduler_lock", "kind": "func", "label": "调度器互斥锁"},
     {"file": "docker/scheduler.py", "pattern": r"stop_scheduler", "kind": "func", "label": "调度器优雅关闭"},
-    # docker/app.py
+    # docker/app.py（来源文件）
     {"file": "docker/app.py", "pattern": r"lifespan", "kind": "func", "label": "FastAPI 生命周期"},
-    # query/engine.py
+    # query/engine.py（来源文件）
     {"file": "pilotstd/query/engine.py", "pattern": r"_progress_heartbeat", "kind": "func", "label": "引擎进度心跳"},
     {"file": "pilotstd/query/engine.py", "pattern": r"ThreadPoolExecutor", "kind": "regex", "label": "引擎线程池"},
-    # query/rotator.py
+    # query/rotator.py（来源文件）
     {"file": "pilotstd/query/rotator.py", "pattern": r"cooldown|_enter_cooldown", "kind": "regex", "label": "轮转器冷却"},
-    # scan/watcher.py
+    # scan/watcher.py（来源文件）
     {"file": "pilotstd/scan/watcher.py", "pattern": r"Observer|watchdog", "kind": "regex", "label": "文件监控"},
-    # download/engine.py
+    # download/engine.py（来源文件）
     {"file": "pilotstd/download/engine.py", "pattern": r"ThreadPoolExecutor|_download", "kind": "regex", "label": "下载线程池"},
-    # announcement
+    # announcement（来源目录）
     {"file": "pilotstd/announcement/base.py", "pattern": r"_MAX_DETAIL_WORKERS|ThreadPoolExecutor", "kind": "regex", "label": "公告基础并行"},
     {"file": "pilotstd/announcement/monitor.py", "pattern": r"elapsed|_track", "kind": "regex", "label": "公告阶段耗时"},
-    # core
+    # core（来源目录）
     {"file": "pilotstd/core/file_index.py", "pattern": r"_cleanup|daemon", "kind": "regex", "label": "文件索引清理线程"},
     {"file": "pilotstd/core/logger.py", "pattern": r"LoggerManager", "kind": "class", "label": "LoggerManager"},
     {"file": "pilotstd/core/updater.py", "pattern": r"download.*update|_verify", "kind": "regex", "label": "软件自更新"},
-    # manager
+    # manager（来源目录）
     {"file": "pilotstd/manager/scheduled_service.py", "pattern": r"ScheduledService", "kind": "class", "label": "定时任务编排"},
-    # docker/auth.py
+    # docker/auth.py（来源文件）
     {"file": "docker/auth.py", "pattern": r"create_access_token|verify.*token", "kind": "func", "label": "JWT + API Key"},
 ]
 

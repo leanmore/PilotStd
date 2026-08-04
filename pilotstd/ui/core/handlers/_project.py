@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_project.py
+# 模块：pilotstd/ui/core/handlers/_project.py
 """ProjectHandler — 项目打开/恢复/保存，替代 ProjectMixin。"""
 
 from __future__ import annotations

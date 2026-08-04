@@ -1,5 +1,5 @@
 # pilotstd/ui/workers/scan.py — ScanWorker，从 workers.py 拆分
-#
+# 分隔
 # 后台扫描线程：文件遍历+解析在后台执行，主线程只更新 UI。
 
 import logging

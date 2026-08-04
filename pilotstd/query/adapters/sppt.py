@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/sppt.py
+# 模块：pilotstd/query/adapters/sppt.py
 """
 食品安全国家标准数据检索平台适配器
 

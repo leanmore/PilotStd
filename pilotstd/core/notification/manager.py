@@ -1,4 +1,4 @@
-# pilotstd/core/notification/manager.py
+# 模块：pilotstd/core/notification/manager.py
 """NotificationManager——多渠道通知分发与日志记录。"""
 # 交互契约：send_event() 统一入口（策略表→渠道路由→聚合器→发送）；聚合器默认 5s 窗口合并同类事件，
 # bypass_aggregation 事件实时发送（系统异常须及时感知）；静音时段暂存 queue 表定时补发；

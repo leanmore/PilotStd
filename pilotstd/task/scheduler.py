@@ -1,4 +1,4 @@
-# pilotstd/task/scheduler.py
+# 模块：pilotstd/task/scheduler.py
 """任务调度器——后台轮询 pending 任务，自动派发到 TaskQueue 执行。"""
 
 import logging

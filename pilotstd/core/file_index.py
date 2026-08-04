@@ -1,6 +1,6 @@
-# pilotstd/core/file_index.py
+# 模块：pilotstd/core/file_index.py
 # 本地文件索引表 — 写入与校验管理。查询方法已提取至 _file_index_query.py
-# THREADING: single-threaded, no lock needed
+# 说明：THREADING: single-threaded, no lock needed
 # 选型：SQLite 而非内存字典（跨进程共享，WAL 模式读并发）；
 # hash_file_content 采样策略（≤1MB 全量，>1MB 前 1MB+末 64KB+文件大小）平衡碰撞率与 I/O；
 # 后台 daemon 延迟校验路径有效性（自适应 5~30s），失效直接 DELETE 而非标记

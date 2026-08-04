@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_auto.py
+# 模块：pilotstd/ui/core/handlers/_auto.py
 """AutoUIHandler — 自动管线 UI 状态管理，替代 AutoRunMixin。"""
 
 from __future__ import annotations

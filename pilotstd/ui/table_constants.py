@@ -1,4 +1,4 @@
-# pilotstd/ui/table_constants.py
+# 模块：pilotstd/ui/table_constants.py
 # 工作表列定义常量（从 table_mixin.py 提取，table_mixin.py 即将删除）
 
 WORK_COLUMNS = [

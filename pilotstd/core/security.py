@@ -1,4 +1,4 @@
-# pilotstd/core/security.py
+# 模块：pilotstd/core/security.py
 # 密码安全模块 — 支持 bcrypt（新）与 PBKDF2/SHA256（旧，兼容过渡）
 
 import hashlib

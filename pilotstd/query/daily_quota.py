@@ -1,4 +1,4 @@
-# pilotstd/query/daily_quota.py
+# 模块：pilotstd/query/daily_quota.py
 # 每日查询配额追踪器（SQLite 持久化）
 # 日限额统一从 site_config.SiteState.daily_limit 读取，此处不再硬编码
 

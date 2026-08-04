@@ -1,4 +1,4 @@
-# docker/middleware.py
+# 模块：docker/middleware.py
 # FastAPI 中间件定义 — 从 app.py 提取，降低主文件复杂度
 
 from fastapi.responses import JSONResponse

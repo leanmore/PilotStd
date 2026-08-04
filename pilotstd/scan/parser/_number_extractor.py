@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_number_extractor.py
+# 模块：pilotstd/scan/parser/_number_extractor.py
 # 数字提取 Handler
 """提供标准号中年份/编号/分册号提取功能。"""
 

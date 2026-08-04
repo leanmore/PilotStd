@@ -1,4 +1,4 @@
-# pilotstd/organizer/industry_lookup.py
+# 模块：pilotstd/organizer/industry_lookup.py
 # 行业代号 → 行业名称映射（依据附录一）
 
 import os

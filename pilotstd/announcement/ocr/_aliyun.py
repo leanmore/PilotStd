@@ -1,4 +1,4 @@
-# pilotstd/announcement/ocr/_aliyun.py
+# 模块：pilotstd/announcement/ocr/_aliyun.py
 # 阿里云 OCR 提供商实现
 """阿里云 OCR 统一识别 — 支持 PDF 直接上传。
 

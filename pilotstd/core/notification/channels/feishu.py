@@ -1,4 +1,4 @@
-# pilotstd/core/notification/channels/feishu.py
+# 模块：pilotstd/core/notification/channels/feishu.py
 """飞书机器人 Webhook 通知渠道。"""
 
 import json

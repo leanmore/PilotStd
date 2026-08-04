@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_exact_matcher.py
+# 模块：pilotstd/scan/parser/_exact_matcher.py
 """ExactMatcher — 精确匹配通道独立类（原 ExactMatchMixin 的 7 个匹配方法）。
 
 通过组合注入 parser 引用，替代 MRO 隐式依赖。

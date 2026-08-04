@@ -14,7 +14,7 @@ import requests
 
 from pilotstd.announcement.parser import parse_announcement_detail
 
-# Announcement detail page URLs (GB / HB / DB)
+# 说明：Announcement detail page URLs (GB / HB / DB)
 CASES = [
     ("001_gb_2026_31",
      "https://std.sacinfo.org.cn/gnoc/queryInfo?id=A183E1BFFEAAF0A1E9924E82AF7F0E5E"),

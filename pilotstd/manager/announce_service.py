@@ -1,6 +1,6 @@
-# pilotstd/manager/announce_service.py
-# AnnounceService -- announcement check, task status, and user preferences.
-# Fetch/crawl logic extracted to pilotstd.announce components.
+# 模块：pilotstd/manager/announce_service.py
+# AnnounceService — 公告检查、任务状态与用户偏好。
+# 抓取/爬取逻辑已提取至 pilotstd.announce 组件。
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class AnnounceService:
-    """Announcement check service -- delegates to announce subsystem."""
+    """公告检查服务 — 委托至公告子系统。"""
 
     def __init__(self, file_index: Any,
                  ocr_config: dict[str, Any] | None = None,
@@ -31,12 +31,12 @@ class AnnounceService:
         self.crawler = AnnounceCrawler(file_index=file_index,
                                        persistence=self.persistence,
                                        ocr_config=ocr_config)
-        # notifier / task_runner depend on crawler, wired after mgr is set
+        # notifier / task_runner 依赖 crawler，在 mgr 设置后连线
         self._notifier: AnnounceNotifier | None = None
         self._task_runner: AnnounceTaskRunner | None = None
 
     def _init_notifier(self) -> AnnounceNotifier:
-        """Lazy-init the notifier, wiring mgr.notification_mgr and mgr.db."""
+        """延迟初始化通知器，接入 mgr.notification_mgr 和 mgr.db。"""
         if self._notifier is None:
             self._notifier = AnnounceNotifier(
                 notification_mgr=self._mgr.notification_mgr if self._mgr else None,
@@ -45,7 +45,7 @@ class AnnounceService:
         return self._notifier
 
     def _init_task_runner(self) -> AnnounceTaskRunner:
-        """Lazy-init the task runner, wiring persistence + crawler + notifier."""
+        """延迟初始化任务运行器，接入 persistence + crawler + notifier。"""
         if self._task_runner is None:
             self._task_runner = AnnounceTaskRunner(
                 persistence=self.persistence,
@@ -54,10 +54,10 @@ class AnnounceService:
             )
         return self._task_runner
 
-    # -- concurrency lock --------------------------------------------
+    # -- 并发锁 -------------------------------------------- 分隔
 
     def _acquire_manual_lock(self) -> bool:
-        """Acquire exclusive manual fetch lock to prevent timer collision."""
+        """获取独占式手动抓取锁，防止定时器冲突。"""
         try:
             self._file_index._db.execute(
                 "INSERT OR REPLACE INTO fetch_locks "
@@ -79,7 +79,7 @@ class AnnounceService:
         )
         return row is not None
 
-    # -- user preferences -------------------------------------------
+    # -- 用户偏好 ------------------------------------------- 分隔
 
     def _get_user_since_date(self) -> str:
         row = self._file_index._db.fetchone(
@@ -93,17 +93,17 @@ class AnnounceService:
         )
 
     def save_user_preference(self, key: str, value: str) -> None:
-        """Persist a user preference key-value pair (upsert)."""
+        """持久化用户偏好键值对（upsert）。"""
         self._file_index._db.execute(
             "INSERT OR REPLACE INTO app_preferences (key, value, updated_at) "
             "VALUES (?, ?, ?)",
             (key, value, datetime.now().isoformat()),
         )
 
-    # -- scheduled entry point --------------------------------------
+    # -- 定时入口 -------------------------------------- 分隔
 
     def check_announce_scheduled(self) -> dict[str, Any]:
-        """Scheduled task: skip if manual running -> backfill -> incremental."""
+        """定时任务：手动运行时跳过 → 回填 → 增量。"""
         if self._is_manual_running():
             logger.info("manual fetch running, scheduled task skipped")
             return {"skipped": True, "reason": "manual_running"}
@@ -121,7 +121,7 @@ class AnnounceService:
         self._after_fetch(result, source="定时")
         return result
 
-    # -- glue methods: delegate to crawler / task_runner ------------
+    # -- 胶水方法：委托至 crawler / task_runner ------------ 分隔
 
     def check_announcements(self) -> dict[str, Any]:
         return self.crawler.check_all()
@@ -133,7 +133,7 @@ class AnnounceService:
         progress_callback: Any = None,
         types: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Filtered announcement check — delegate to crawler.check_filtered."""
+        """筛选式公告检查 — 委托至 crawler.check_filtered。"""
         return self.crawler.check_filtered(types=types, since_date=since_date)
 
     def trigger_fetch(self, adapter_name: str = "") -> dict[str, Any]:
@@ -142,10 +142,10 @@ class AnnounceService:
     def _after_fetch(self, result: dict[str, Any], source: str = "") -> None:
         self._init_notifier().after_fetch(result, source)
 
-    # -- task status queries ----------------------------------------
+    # -- 任务状态查询 ---------------------------------------- 分隔
 
     def get_task_status(self, task_id: str) -> dict[str, Any]:
-        """Query async fetch task progress by id."""
+        """按 ID 查询异步抓取任务进度。"""
         db = self._get_db()
         row = db.fetchone("SELECT * FROM fetch_task WHERE id=?", (task_id,))
         if row is None:
@@ -160,7 +160,7 @@ class AnnounceService:
         }
 
     def get_task_results(self, task_id: str) -> dict[str, Any]:
-        """Get async fetch task result data (JSON from result_data column)."""
+        """获取异步抓取任务结果数据（从 result_data 列的 JSON）。"""
         import json as _json
 
         db = self._get_db()
@@ -184,7 +184,7 @@ class AnnounceService:
                     "error": row["error_msg"] or "task failed"}
 
     def get_announcement_sources(self, limit: int = 200) -> list[dict[str, Any]]:
-        """Return distinct announcement records (standard_number + source + title)."""
+        """返回去重公告记录（standard_number + source + title）。"""
         db = self._get_db()
         rows = db.fetchall(
             "SELECT DISTINCT standard_number, source_site, std_name, fetched_at "
@@ -202,7 +202,7 @@ class AnnounceService:
         ]
 
     def lookup_announcement(self, number: str) -> dict[str, Any] | None:
-        """Exact-match lookup of announcement cache by standard number."""
+        """按标准号精确匹配查询公告缓存。"""
         db = self._get_db()
         rows = db.fetchall(
             "SELECT standard_number, source_site, std_name, fetched_at "
@@ -226,7 +226,7 @@ class AnnounceService:
         return self._file_index._db
 
     def _get_announcement_stats(self, since: str) -> dict[str, Any]:
-        """Query per-source announcement stats (counts + standard totals) since a timestamp."""
+        """查询按来源的公告统计（计数 + 标准总数），自指定时间戳起。"""
         rows = self._file_index._db.fetchall(
             "SELECT source_site, COUNT(*) AS cnt, SUM(standard_count) AS std_cnt "
             "FROM announcement_record WHERE fetched_at >= ? GROUP BY source_site",

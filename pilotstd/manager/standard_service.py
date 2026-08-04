@@ -1,4 +1,4 @@
-# pilotstd/manager/standard_service.py
+# 模块：pilotstd/manager/standard_service.py
 # 标准统计与列表查询服务 — 统一数据源为 file_index
 
 from typing import Any

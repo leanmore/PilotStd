@@ -1,7 +1,7 @@
-# pilotstd/ui/core/_core_adapters.py
+# 模块：pilotstd/ui/core/_core_adapters.py
 # UI 协议适配器 — 从 _core.py 提取
 # 每个适配器将 MainWindowCore 回调解耦为协议接口，供 QueryUIHandler 等消费。
-#
+# 分隔
 # 适配器期望的宿主接口契约（通过 core 参数注入）：
 #   _c._add_table_row(update)        → 向工作区表格添加行
 #   _c._find_row_by_seq(seq)         → 按序号查找行号

@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_csres.py
+# 模块：pilotstd/query/engine/_csres.py
 """CSRES 后台查询处理器 — 独立线程查询，替代原 CsresMixin。
 
 组合模式重构：CsresMixin → CsresHandler，依赖通过 EngineCore 注入。

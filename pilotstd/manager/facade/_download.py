@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_download.py
+# 模块：pilotstd/manager/facade/_download.py
 """DownloadHandler：下载执行、流式下载、下载等待队列，替代原 DownloadMixin。"""
 
 from __future__ import annotations

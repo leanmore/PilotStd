@@ -1,4 +1,4 @@
-# pilotstd/wechat_ip/cookie_mgr.py
+# 模块：pilotstd/wechat_ip/cookie_mgr.py
 """Cookie 管理器——CookieCloud 拉取 + 手动导入 + 加密存储。
 
 支持三种来源：CookieCloud > 手动导入 > 自动登录（暂未实现）

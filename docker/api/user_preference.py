@@ -1,5 +1,5 @@
 # docker/api/user_preference.py — 用户偏好存取 API（重构版）
-#
+# 分隔
 # ⚠️ 破坏性变更 (Breaking Change)：
 # 旧端点（POST /api/user-preference?key=xxx&value=yyy / GET ?key=xxx）已删除。
 # 替代方案：

@@ -1,4 +1,4 @@
-# pilotstd/core/db/database.py
+# 模块：pilotstd/core/db/database.py
 # Database 核心类 — 从 db.py 拆分
 
 import logging

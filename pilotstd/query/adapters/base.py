@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/base.py
+# 模块：pilotstd/query/adapters/base.py
 # 查询网站适配器抽象基类
 
 import logging

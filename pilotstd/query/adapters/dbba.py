@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/dbba.py
+# 模块：pilotstd/query/adapters/dbba.py
 # 地方标准信息服务平台（dbba.sacinfo.org.cn）查询适配器
 # 覆盖全国各省/市地方标准（DB 标准）的查询
 

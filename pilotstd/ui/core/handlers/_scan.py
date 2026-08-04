@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_scan.py
+# 模块：pilotstd/ui/core/handlers/_scan.py
 """ScanUIHandler — 扫描 UI 状态管理，替代 ScanMixin。"""
 
 from __future__ import annotations

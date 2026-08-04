@@ -1,6 +1,6 @@
-# pilotstd/core/notification/_builders_batch.py
+# 模块：pilotstd/core/notification/_builders_batch.py
 # 通知消息构建器(批次/查询/下载) — 原 _BatchBuildersMixin，现为模块级纯函数
-#
+# 分隔
 # 每个 _build_*_message(data) 函数签名一致：接收 dict → 返回 NotificationMessage。
 # level 决策内聚在构建器内部（如 failed > 0 → warning）。
 # 设计原则：方法签名即文档，每个事件独立构建避免参数爆炸。

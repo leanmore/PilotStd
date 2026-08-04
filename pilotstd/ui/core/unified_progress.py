@@ -1,4 +1,4 @@
-# pilotstd/ui/core/unified_progress.py
+# 模块：pilotstd/ui/core/unified_progress.py
 """统一进度管道 — 所有 Handler 共用一套缓动 + 信号发射。
 
 两个入口：

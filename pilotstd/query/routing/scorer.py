@@ -1,6 +1,6 @@
-# pilotstd/query/routing/scorer.py
+# 模块：pilotstd/query/routing/scorer.py
 # Phase 3.1: 路由评分器 — 数据驱动、配置化的适配器优先级评分
-#
+# 分隔
 # 设计原则：
 #   1. 所有评分参数来自 ADAPTER_DEFAULT_PROFILES（可被 config.json 覆盖）
 #   2. 评分器不排除 csres —— 排除逻辑保留在 _routing.py / _batch_dispatch.py 硬编码层

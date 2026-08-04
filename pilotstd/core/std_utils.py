@@ -34,7 +34,7 @@ def classify_std_code(logical_code: str) -> str:
         if code.startswith(fc_norm):
             return "foreign"
 
-    # ISO/IEC
+    # 说明：ISO/IEC
     for iso in ISO_IEC_SET:
         if code.startswith(iso.upper().replace(" ", "")):
             return "iso_iec"

@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_announce.py
+# 模块：pilotstd/ui/core/handlers/_announce.py
 """AnnounceUIHandler — 公告检查 UI 状态管理，替代 AnnounceMixin。"""
 
 from __future__ import annotations

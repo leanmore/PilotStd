@@ -1,4 +1,4 @@
-# pilotstd/core/notification/channel.py
+# 模块：pilotstd/core/notification/channel.py
 """通知消息数据类 + 渠道抽象基类。"""
 
 from __future__ import annotations

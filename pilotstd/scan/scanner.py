@@ -1,4 +1,4 @@
-# pilotstd/scan/scanner.py
+# 模块：pilotstd/scan/scanner.py
 # 文件系统扫描器（防御性遍历，跳过指定目录）
 
 import logging

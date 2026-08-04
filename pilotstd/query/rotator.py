@@ -1,4 +1,4 @@
-# pilotstd/query/rotator.py
+# 模块：pilotstd/query/rotator.py
 # 查询网站轮转冷却机制：限流保护、故障冷却、备用地址切换
 
 import logging

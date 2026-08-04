@@ -1,4 +1,4 @@
-# pilotstd/manager/pending_service.py
+# 模块：pilotstd/manager/pending_service.py
 # PendingService — 待确认清单管理 + 下载等待队列 + 本地缓存查询
 
 import json

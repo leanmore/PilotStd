@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_batch.py
+# 模块：pilotstd/query/engine/_batch.py
 """批量查询编排器 — 6 阶段流水线入口。分发/分桶/收尾委托 BatchDispatcher。
 
 流水线阶段：初始化状态 → 按站点分桶 → 分发上下文 → 并行调度 → 收集 csres → 收尾。

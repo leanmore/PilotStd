@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/announce_flow_engine.py
+# 模块：pilotstd/ui/core/handlers/announce_flow_engine.py
 """AnnounceFlowEngine — 公告数据处理的纯逻辑层（零 Qt、零 I/O、零事件总线）。
 
 提取公告解析、状态过滤、日期排序等纯数据变换逻辑。
@@ -26,7 +26,7 @@ class AnnounceFlowEngine:
 
     _DEFAULT_DATE = "0000-00-00"
 
-    # ── parse_announcement ──────────────────────────────────────
+    # ── parse_announcement（解析公告数据）──────────────────────────────
 
     @staticmethod
     def parse_announcement(raw: dict[str, Any] | None) -> dict[str, Any]:
@@ -87,7 +87,7 @@ class AnnounceFlowEngine:
             "is_valid": bool(title or code),
         }
 
-    # ── filter_by_status ────────────────────────────────────────
+    # ── filter_by_status（按状态过滤公告列表）────────────────────────────
 
     @staticmethod
     def filter_by_status(items: list[dict[str, Any]], status: str) -> list[dict[str, Any]]:
@@ -109,7 +109,7 @@ class AnnounceFlowEngine:
 
         return [item for item in items if _matches(item)]
 
-    # ── sort_by_date ────────────────────────────────────────────
+    # ── sort_by_date（按发布日期排序公告）──────────────────────────────
 
     @staticmethod
     def sort_by_date(items: list[dict[str, Any]], descending: bool = True) -> list[dict[str, Any]]:

@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/__init__.py
+# 模块：pilotstd/scan/parser/__init__.py
 # 标准文件名解析器 — 按代号分流：国内/国际/国外三路解析
 
 import logging

@@ -250,7 +250,7 @@ def _find_sql_strings(file_path: Path) -> list[tuple[str, int]]:
 def _extract_insert_cols(sql: str) -> list[tuple[str, str]]:
     """从 INSERT INTO t (col1, col2) 中提取列名列表。返回 [(table, col), ...]"""
     results: list[tuple[str, str]] = []
-    # INSERT [OR ...] INTO table_name (col1, col2, ...)
+    # 说明：INSERT [OR ...] INTO table_name (col1, col2, ...)
     pattern = re.compile(
         r"INSERT\s+(?:OR\s+\w+\s+)?INTO\s+(\w+)\s*\(([^)]+)\)",
         re.IGNORECASE,
@@ -269,7 +269,7 @@ def _extract_insert_cols(sql: str) -> list[tuple[str, str]]:
 def _extract_update_cols(sql: str) -> list[tuple[str, str]]:
     """从 UPDATE t SET col1=?, col2=? 中提取列名列表。"""
     results: list[tuple[str, str]] = []
-    # UPDATE table SET col=val, col2=val [WHERE ...]
+    # 说明：UPDATE table SET col=val, col2=val [WHERE ...]
     # 先找 table 名
     table_m = re.search(r"UPDATE\s+(\w+)\s+SET\s+", sql, re.IGNORECASE)
     if not table_m:
@@ -307,10 +307,10 @@ def _extract_update_cols(sql: str) -> list[tuple[str, str]]:
 def _extract_from_tables(sql: str) -> set[str]:
     """从 SQL 的 FROM/JOIN 子句提取所有引用的表名。"""
     tables: set[str] = set()
-    # FROM table [alias]
+    # 说明：FROM table [alias]
     for m in re.finditer(r"\bFROM\s+(\w+)", sql, re.IGNORECASE):
         tables.add(m.group(1))
-    # JOIN table [alias]
+    # 说明：JOIN table [alias]
     for m in re.finditer(r"\bJOIN\s+(\w+)", sql, re.IGNORECASE):
         tables.add(m.group(1))
     return tables

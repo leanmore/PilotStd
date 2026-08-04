@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_download.py
+# 模块：pilotstd/ui/core/handlers/_download.py
 """DownloadUIHandler — 下载 UI 状态管理，替代 DownloadMixin。
 
 薄包装层：Worker 管理 + Qt 控件交互。纯逻辑委托给 DownloadFlowEngine。

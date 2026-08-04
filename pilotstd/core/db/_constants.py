@@ -1,4 +1,4 @@
-# pilotstd/core/db/_constants.py
+# 模块：pilotstd/core/db/_constants.py
 # 常量 + 装饰器 + 异常类 — 从 db.py 拆分
 
 from typing import Any, Callable

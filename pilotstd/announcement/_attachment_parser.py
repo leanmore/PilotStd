@@ -1,4 +1,4 @@
-# pilotstd/announcement/_attachment_parser.py
+# 模块：pilotstd/announcement/_attachment_parser.py
 # 附件解析与正文提取 — 从 parser.py 拆分
 
 import logging

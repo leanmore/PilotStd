@@ -1,4 +1,4 @@
-# pilotstd/manager/archive_retry_service.py
+# 模块：pilotstd/manager/archive_retry_service.py
 """收藏归档重试服务 — 冷却期 + 重试上限 + 公平调度 + 失败通知。
 
 由 APScheduler 定时任务（每天凌晨4点）调用 retry_pending()。
@@ -76,7 +76,7 @@ class ArchiveRetryService:
             success = 0
             for row in rows:
                 try:
-                    # favorite_id = user_favorites.id = favorite_downloads.favorite_id
+                    # 说明：favorite_id = user_favorites.id = favorite_downloads.favorite_id
                     download_to_inbox(row["favorite_id"], row["user_id"], row["record_id"])
                     # 成功后重置重试计数（favorite_downloads.id 用于定位记录）
                     db.execute(

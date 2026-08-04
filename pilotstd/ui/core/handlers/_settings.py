@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_settings.py
+# 模块：pilotstd/ui/core/handlers/_settings.py
 """SettingsHandler — 设置页面 Tab 构建、配置加载/保存，替代原有 Mixin 多重继承。"""
 
 from typing import Any, Optional
@@ -132,9 +132,9 @@ class SettingsHandler:
             self._pause_status_label.hide()
             self._resume_btn.hide()
 
-    # ================================================================
+    # ================================================================ 分隔
     # 页面构建方法
-    # ================================================================
+    # ================================================================ 分隔
 
     def _build_storage_page(self) -> None:
         """构建存储设置页：根目录、过期文件夹名、自动清理、只读清除、镜像、看门狗、下载目录。"""
@@ -359,9 +359,9 @@ class SettingsHandler:
         layout.addStretch()
         self._add_page(_("columns_group"), w)
 
-    # ================================================================
+    # ================================================================ 分隔
     # 辅助回调（目录浏览、网络互斥、通知暂停）
-    # ================================================================
+    # ================================================================ 分隔
 
     def _browse_root(self) -> None:
         path = QFileDialog.getExistingDirectory(None, _("dialog_select_library"))

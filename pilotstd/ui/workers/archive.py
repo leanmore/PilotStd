@@ -1,5 +1,5 @@
 # pilotstd/ui/workers/archive.py — ArchiveWorker，从 workers.py 拆分
-#
+# 分隔
 # 后台归档线程：文件移动 + 磁盘空间检查 + 断点续做。
 
 import logging

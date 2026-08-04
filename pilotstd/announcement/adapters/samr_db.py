@@ -1,4 +1,4 @@
-# pilotstd/announcement/adapters/samr_db.py
+# 模块：pilotstd/announcement/adapters/samr_db.py
 # SAMR 地方标准公告适配器（详情页使用 gnocDb 独立端点）
 
 from ..base import BaseAnnounceCrawler

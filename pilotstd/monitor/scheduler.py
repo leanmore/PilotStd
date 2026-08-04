@@ -1,4 +1,4 @@
-# pilotstd/monitor/scheduler.py
+# 模块：pilotstd/monitor/scheduler.py
 """文件监控调度器——管理 watchdog Observer 生命周期。"""
 
 import logging
@@ -18,10 +18,10 @@ _instance = None
 
 
 def resolve_monitor_config(cfg: dict | None = None) -> dict:
-    """Resolve monitor config with env override. Pure, zero I/O when cfg provided.
+    """解析监控配置，支持环境变量覆盖。传入cfg时可纯函数运行，零I/O。
 
-    .. note:: Testable Unit
-       Pass cfg explicitly in tests to avoid get_config() I/O.
+    .. note:: 可测试单元
+       在测试中显式传入cfg以避免get_config()的I/O依赖。
     """
     if cfg is None:
         cfg = get_config()
@@ -79,12 +79,12 @@ class FileMonitorScheduler:
         logger.info("[MONITOR] 已停止")
 
     def _run(self):
-        """Background monitoring loop.
+        """后台监控循环。
 
-        .. note:: E2E-Scope
-           Config resolution tested via resolve_monitor_config().
-           Observer lifecycle + sleep loop requires integration/E2E testing.
-           See: docs/testing/playbook.md §UI-layer skip rule #3
+        .. note:: E2E范围
+           配置解析通过resolve_monitor_config()测试。
+           Observer生命周期+sleep循环需集成/E2E测试。
+           参见：docs/testing/playbook.md §UI-layer skip rule #3
         """
         resolved = resolve_monitor_config()
         watch_path = resolved["watch_path"]

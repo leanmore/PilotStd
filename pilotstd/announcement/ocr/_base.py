@@ -1,4 +1,4 @@
-# pilotstd/announcement/ocr/_base.py
+# 模块：pilotstd/announcement/ocr/_base.py
 # OCR 共享基类、数据模型、基础设施与工具函数
 """公告 PDF OCR 识别 —— 基类与调度基础设施。"""
 

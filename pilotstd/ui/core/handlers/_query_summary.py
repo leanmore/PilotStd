@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_query_summary.py
+# 模块：pilotstd/ui/core/handlers/_query_summary.py
 """QuerySummaryHandler — 查询汇总弹窗管理，从 QueryUIHandler 拆分以控制文件大小。
 
 薄包装层：UI 构建 + 文件保存 + 弹窗管理。纯逻辑委托给 QuerySummaryFlowEngine。

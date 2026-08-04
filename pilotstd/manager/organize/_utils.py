@@ -1,4 +1,4 @@
-# pilotstd/manager/organize/_utils.py
+# 模块：pilotstd/manager/organize/_utils.py
 # 静态工具函数 — 从 organizer_service.py 拆分
 
 import os

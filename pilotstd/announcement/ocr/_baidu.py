@@ -1,4 +1,4 @@
-# pilotstd/announcement/ocr/_baidu.py
+# 模块：pilotstd/announcement/ocr/_baidu.py
 # 百度云 OCR 提供商实现
 """百度云通用文字识别（标准版）— basicGeneral 接口收 PDF。"""
 

@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_core.py
+# 模块：pilotstd/manager/facade/_core.py
 """ManagerCore 依赖容器 — 组合模式重构，消除 Mixin MRO 隐式依赖。"""
 
 from dataclasses import dataclass, field

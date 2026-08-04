@@ -1,4 +1,4 @@
-# pilotstd/tasks/favorite_download.py
+# 模块：pilotstd/tasks/favorite_download.py
 # Phase 4a: 收藏下载归档任务
 
 import json

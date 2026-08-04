@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/miit.py
+# 模块：pilotstd/query/adapters/miit.py
 """
 工信部行业标准适配器
 

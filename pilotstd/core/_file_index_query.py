@@ -1,7 +1,7 @@
-# pilotstd/core/_file_index_query.py
+# 模块：pilotstd/core/_file_index_query.py
 # 文件索引查询 — 从 file_index.py 提取
 # 原 _FileIndexQueryMixin，现为独立类 FileIndexQuery（组合注入 db）
-# THREADING: single-threaded, no lock needed
+# 线程模型：单线程，无需锁
 
 from __future__ import annotations
 

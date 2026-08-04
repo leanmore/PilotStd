@@ -1,4 +1,4 @@
-# pilotstd/ui/dialogs.py
+# 模块：pilotstd/ui/dialogs.py
 # 通用小对话框 — 从 main_window.py 提取
 
 from typing import Any

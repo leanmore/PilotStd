@@ -18,7 +18,7 @@ from pathlib import Path
 # kind: 'func'（AST 查函数定义行号）或 'regex'（正则扫描行号）
 
 TRACKERS: dict[str, dict] = {
-    # ── docker/scheduler.py ──
+    # ── 来源：docker/scheduler.py ──
     "调度器实例": {
         "file": "docker/scheduler.py",
         "pattern": r"scheduler = BackgroundScheduler\(\)",
@@ -44,13 +44,13 @@ TRACKERS: dict[str, dict] = {
         "pattern": "def stop_scheduler",
         "kind": "func",
     },
-    # ── docker/app.py ──
+    # ── 来源：docker/app.py ──
     "FastAPI 生命周期": {
         "file": "docker/app.py",
         "pattern": "async def lifespan",
         "kind": "func",
     },
-    # ── engine.py ──
+    # ── 来源：engine.py ──
     "引擎进度心跳": {
         "file": "pilotstd/query/engine.py",
         "pattern": "def _progress_heartbeat",
@@ -111,13 +111,13 @@ TRACKERS: dict[str, dict] = {
         "pattern": r"\[CHAIN\]|\[PENDING\]",
         "kind": "regex",
     },
-    # ── cache.py ──
+    # ── 来源：cache.py ──
     "缓存仓库": {
         "file": "pilotstd/query/cache.py",
         "pattern": "class CacheRepository",
         "kind": "regex",
     },
-    # ── rotator.py ──
+    # ── 来源：rotator.py ──
     "轮转器里程碑日志": {
         "file": "pilotstd/query/rotator.py",
         "pattern": r"\[轮转器\]",
@@ -128,25 +128,25 @@ TRACKERS: dict[str, dict] = {
         "pattern": "冷却剩余",
         "kind": "regex",
     },
-    # ── daily_quota.py ──
+    # ── 来源：daily_quota.py ──
     "日配额追踪": {
         "file": "pilotstd/query/daily_quota.py",
         "pattern": "class DailyQuotaTracker",
         "kind": "regex",
     },
-    # ── queue.py ──
+    # ── 来源：queue.py ──
     "任务队列执行": {
         "file": "pilotstd/task/queue.py",
         "pattern": r"def _run|def wrapped_handler|Thread\(target=wrapped_handler",
         "kind": "regex",
     },
-    # ── download/engine.py ──
+    # ── 来源：download/engine.py ──
     "下载线程池": {
         "file": "pilotstd/download/engine.py",
         "pattern": r"ThreadPoolExecutor",
         "kind": "regex",
     },
-    # ── announcement/ ──
+    # ── 来源：announcement/ ──
     "公告引擎调度": {
         "file": "pilotstd/announcement/engine.py",
         "pattern": "class AnnounceEngine",
@@ -167,7 +167,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": r"threading\.Event\(\)",
         "kind": "regex",
     },
-    # ── core/ ──
+    # ── 来源：core/ ──
     "文件索引清理线程": {
         "file": "pilotstd/core/file_index.py",
         "pattern": r"threading\.Thread\(target=_run",
@@ -178,7 +178,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": "class FileWatcher",
         "kind": "regex",
     },
-    # ── ui/ ──
+    # ── 来源：ui/ ──
     "主窗口 atexit": {
         "file": "pilotstd/ui/main_window.py",
         "pattern": r"atexit\.register",
@@ -219,7 +219,7 @@ TRACKERS: dict[str, dict] = {
         "pattern": "class _ThrottledProgress",
         "kind": "regex",
     },
-    # ── tests/ ──
+    # ── 来源：tests/ ──
     "压力测试看门狗": {
         "file": "tests/stress_driver.py",
         "pattern": "def _progress_watchdog",

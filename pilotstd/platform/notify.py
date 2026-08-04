@@ -1,4 +1,4 @@
-# pilotstd/core/notify.py
+# 模块：pilotstd/core/notify.py
 # Windows Toast 通知服务 — 封装系统托盘 QSystemTrayIcon.showMessage()
 
 import time

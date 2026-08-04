@@ -53,7 +53,7 @@ def main():
     if not ADAPTERS_INIT.exists():
         print("[SKIP] Project root not found — run registration manually")
         return
-    # 1. adapters/__init__.py: import + __all__
+    # 步骤1：adapters/__init__.py — 添加 import 和 __all__ 条目
     content = ADAPTERS_INIT.read_text(encoding="utf-8")
     # 在最后一个 from .xxx import 之后插入
     content = insert_before_last(content, r"^from \.std_gov import", f"from .{ADAPTER_NAME} import {ADAPTER_CLASS}")
@@ -62,7 +62,7 @@ def main():
     ADAPTERS_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {ADAPTERS_INIT}")
 
-    # 2. site_config.py: add SiteState before closing bracket
+    # 步骤2：site_config.py — 在右括号前添加 SiteState
     content = SITE_CONFIG.read_text(encoding="utf-8")
     insertion = (
         f'        S(name="{ADAPTER_NAME}", base_url="{BASE_URL}", '
@@ -80,14 +80,14 @@ def main():
     CONSTANTS.write_text(content, encoding="utf-8")
     print(f"[OK] {CONSTANTS}")
 
-    # 4. search_strategy.py: add route
+    # 步骤4：search_strategy.py — 添加路由
     content = STRATEGY.read_text(encoding="utf-8")
     insertion = '    "' + STANDARD_TYPE + '": {"primary": "' + ADAPTER_NAME + '", "fallback": "std_gov"},'
     content = insert_before_last(content, r"^\}", insertion)
     STRATEGY.write_text(content, encoding="utf-8")
     print(f"[OK] {STRATEGY}")
 
-    # 5. query/__init__.py: add lazy load function
+    # 步骤5：query/__init__.py — 添加懒加载函数
     content = QUERY_INIT.read_text(encoding="utf-8")
     insertion = (
         f"def _get_{ADAPTER_NAME}_adapter() -> Type[Any]:\n"
@@ -99,7 +99,7 @@ def main():
     QUERY_INIT.write_text(content, encoding="utf-8")
     print(f"[OK] {QUERY_INIT}")
 
-    # 6. ruff check --fix
+    # 步骤6：运行 ruff check --fix
     try:
         subprocess.run(
             ["python", "-m", "ruff", "check", "--fix", str(PROJECT_ROOT / "pilotstd")],

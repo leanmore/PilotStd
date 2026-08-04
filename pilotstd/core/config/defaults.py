@@ -1,4 +1,4 @@
-# pilotstd/core/config/defaults.py
+# 模块：pilotstd/core/config/defaults.py
 # 出厂默认值常量 — 从 config.py 拆分
 
 import os

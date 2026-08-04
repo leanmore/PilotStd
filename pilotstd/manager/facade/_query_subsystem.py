@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_query_subsystem.py
+# 模块：pilotstd/manager/facade/_query_subsystem.py
 """QuerySubsystem — 查询执行 + 报告统计的组合类。
 
 原 _QueryExecMixin + _QueryReportMixin，合并为独立类（组合注入到 QueryHandler）。
@@ -50,9 +50,9 @@ class QuerySubsystem:
     def __init__(self, core):
         self._core = core
 
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
     # 原 _QueryExecMixin 方法
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
 
     def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
         """向 Web 端公告缓存服务查询单个标准号。"""
@@ -303,9 +303,9 @@ class QuerySubsystem:
             site=site,
         )
 
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
     # 原 _QueryReportMixin 方法
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
 
     def _report_category_breakdown(self, items: list[Any], results: list[QueryResult]) -> None:
         """按标准类型分组统计：国标/行业/地方/国际/国外，含待确认计数。"""
@@ -418,9 +418,9 @@ class QuerySubsystem:
         """跨站点补查替代关系。"""
         return self._core.classifier.resolve_replaces(standard_number)
 
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
     # 原 QueryHandler 上的方法（被 _finalize_query 调用）
-    # ══════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════ 分隔
 
     def record_pending(self, pending_items: list[Any]) -> None:
         """待确认清单持久化。"""

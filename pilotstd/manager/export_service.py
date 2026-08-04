@@ -1,4 +1,4 @@
-# pilotstd/manager/export_service.py
+# 模块：pilotstd/manager/export_service.py
 # 数据导出服务 — 供 API 层迁移使用
 
 from typing import Any

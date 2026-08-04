@@ -124,7 +124,7 @@ def find_emits(file_path: Path) -> list[tuple[str, int, str]]:
         if stripped.startswith("#"):
             continue
 
-        # self._xxx.emit(...)
+        # 说明：self._xxx.emit(...)
         for m in re.finditer(r"(\w+)\.emit\s*\(", stripped):
             sig = m.group(1)
             if sig not in PYQT_BUILTIN_SIGNALS:

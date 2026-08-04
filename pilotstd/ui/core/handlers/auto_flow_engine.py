@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/auto_flow_engine.py
+# 模块：pilotstd/ui/core/handlers/auto_flow_engine.py
 """AutoFlowEngine — 自动管线汇总统计的纯逻辑层（零 Qt 依赖）。
 
 提取 _build_auto_summary_message 中的数据统计逻辑：

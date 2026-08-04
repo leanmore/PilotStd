@@ -1,4 +1,4 @@
-# pilotstd/scan/edition_detect.py
+# 模块：pilotstd/scan/edition_detect.py
 # 统一版次识别 — parser 跳过版次、归档规则翻译版次，共用同一套模式
 
 import re

@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/registry.py
+# 模块：pilotstd/query/adapters/registry.py
 # 适配器统一注册表 — #44/#48 单一数据源
 # 所有查询适配器的类引用、站点名、实例化均从此读取
 import logging

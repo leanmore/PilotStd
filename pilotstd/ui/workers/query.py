@@ -1,5 +1,5 @@
 # pilotstd/ui/workers/query.py — QueryWorker，从 workers.py 拆分
-#
+# 分隔
 # 后台查询线程：调用业务门面的批量查询方法，通过信号通知 UI。
 
 import logging

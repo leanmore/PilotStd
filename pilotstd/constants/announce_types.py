@@ -1,6 +1,6 @@
-# pilotstd/constants/announce_types.py
+# 模块：pilotstd/constants/announce_types.py
 # 公告类型映射常量 — 单一真实来源
-#
+# 分隔
 # 用途：announce.py 和 announce_detail.py 共用此映射，
 # 新增公告适配器时只需在此处追加条目，无需双处同步。
 

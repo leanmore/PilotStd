@@ -106,7 +106,7 @@ def _validate_sql(parsed: Any, confirm_dangerous: bool) -> tuple[bool, str]:
     if stmt_type == "DROP" and "DATABASE" in sql_upper:
         return False, "DROP DATABASE 不允许执行"
 
-    # DROP TABLE
+    # DROP TABLE 删表操作
     if stmt_type == "DROP" and "TABLE" in sql_upper:
         if not confirm_dangerous:
             return False, "DROP TABLE 必须设置 confirm_dangerous=true"

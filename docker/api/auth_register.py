@@ -71,7 +71,7 @@ def register(request: Request, username: str = Form(""), password: str = Form(..
     get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)
     resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": False})
-    # httpOnly + Secure + SameSite
+    # Cookie安全属性：httpOnly + Secure + SameSite
     resp.set_cookie(COOKIE_NAME, token, httponly=True, secure=_is_https(request), samesite="strict", path="/")
     resp.set_cookie("csrf_token", csrf_token, httponly=False, secure=_is_https(request), samesite="strict", path="/")
     return resp

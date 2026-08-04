@@ -1,4 +1,4 @@
-# pilotstd/pipeline/router.py
+# 模块：pilotstd/pipeline/router.py
 # 流水线路由调度器 — 每完成一个阶段后重读状态标记，决定下一站
 
 import logging

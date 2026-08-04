@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_single.py
+# 模块：pilotstd/query/engine/_single.py
 """单条查询处理器 — 缓存优先 + 适配器优先级链 + 配额感知。
 
 组合模式重构：SingleMixin → SingleQueryHandler，依赖通过 EngineCore 注入。

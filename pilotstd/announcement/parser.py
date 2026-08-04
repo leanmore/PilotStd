@@ -1,4 +1,4 @@
-# pilotstd/announcement/parser.py
+# 模块：pilotstd/announcement/parser.py
 # 公告数据解析 — 公告元数据提取 + HTML表格解析 + WPS附件文本提取
 
 import logging

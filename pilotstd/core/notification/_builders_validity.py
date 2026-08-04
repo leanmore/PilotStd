@@ -1,4 +1,4 @@
-# pilotstd/core/notification/_builders_validity.py
+# 模块：pilotstd/core/notification/_builders_validity.py
 # 通知消息构建器(有效性检查) — 原 _ValidityBuildersMixin，现为模块级纯函数
 
 from pilotstd.i18n import _

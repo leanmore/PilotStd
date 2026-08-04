@@ -1,4 +1,4 @@
-# pilotstd/core/notification_aggregator.py
+# 模块：pilotstd/core/notification_aggregator.py
 # 通知智能聚合器 — 适配层（内部委托新版 NotificationAggregator）
 """单例聚合器：缓冲合并 + 熔断暂停（与 Web 端行为等价）。
 

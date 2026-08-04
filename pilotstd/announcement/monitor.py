@@ -1,4 +1,4 @@
-# pilotstd/announcement/monitor.py
+# 模块：pilotstd/announcement/monitor.py
 # 公告查询阶段监控：耗时 + 成功率 + 异常计数
 """公告查询各阶段耗时与成功率统计。"""
 

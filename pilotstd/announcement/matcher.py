@@ -1,4 +1,4 @@
-# pilotstd/announcement/matcher.py
+# 模块：pilotstd/announcement/matcher.py
 # 公告交叉比对器 — 公告标准清单 ↔ file_index，更新 announcement_match
 
 import json

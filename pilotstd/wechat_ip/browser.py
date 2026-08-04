@@ -1,4 +1,4 @@
-# pilotstd/wechat_ip/browser.py
+# 模块：pilotstd/wechat_ip/browser.py
 # pragma: no cover — 需浏览器环境，暂不纳入单元测试覆盖率考核
 # 详见 docs/testing/known-issues.md
 """企业微信可信 IP 更新——浏览器自动化。

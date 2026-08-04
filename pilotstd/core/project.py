@@ -1,4 +1,4 @@
-# pilotstd/core/project.py
+# 模块：pilotstd/core/project.py
 # 项目管理：工作状态保存/恢复（.pilotstd JSON 格式）
 
 import json

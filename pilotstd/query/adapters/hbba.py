@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/hbba.py
+# 模块：pilotstd/query/adapters/hbba.py
 # 行业标准信息服务平台（hbba.sacinfo.org.cn）查询适配器
 # 替代 openstd 对非国标（行业标准）的查询
 

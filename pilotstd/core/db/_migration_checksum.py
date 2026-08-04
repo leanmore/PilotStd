@@ -1,4 +1,4 @@
-# pilotstd/core/db/_migration_checksum.py
+# 模块：pilotstd/core/db/_migration_checksum.py
 # 迁移脚本 checksum 校验 — 从 database.py 拆分
 
 import hashlib

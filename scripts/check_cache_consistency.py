@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# scripts/check_cache_consistency.py
+# 模块：scripts/check_cache_consistency.py
 # 对比 standard_info_cache 当前状态与最新基线报告
 # 用途：WinUI 甲轮开始前调用，校验缓存环境未被污染
 # 用法：python scripts/check_cache_consistency.py [--db data/pilotstd.db]

@@ -1,4 +1,4 @@
-# pilotstd/ui/workers.py
+# 模块：pilotstd/ui/workers.py
 # 重导出到 workers/ 子包，保持向后兼容
 
 from .workers._common import LogHandler, RowUpdate, _pct

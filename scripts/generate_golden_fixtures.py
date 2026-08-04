@@ -22,8 +22,8 @@ SUPPORTED_EXT = {".html", ".htm", ".pdf", ".doc", ".docx", ".wps",
 
 
 def discover_files(source_dir: Path, allowed_ext: set[str]) -> tuple[dict, dict]:
-    """Recursively scan source_dir, group by extension, skip empty/oversized."""
-    # rglob for recursive scan; filter by size and extension
+    """递归扫描 source_dir，按扩展名分组，跳过空文件及超大文件。"""
+    # 使用 rglob 递归扫描；按大小和扩展名过滤
     grouped: dict[str, list[Path]] = {}
     skipped = {"empty": 0, "too_large": 0, "unsupported": 0}
     max_bytes = MAX_FILE_MB * 1024 * 1024
@@ -48,8 +48,8 @@ def discover_files(source_dir: Path, allowed_ext: set[str]) -> tuple[dict, dict]
 
 
 def sample_files(grouped: dict, sample_size: int, strategy: str) -> list[tuple[Path, str]]:
-    """Stratified sampling: diverse (by size bucket), random, or largest-first."""
-    # diverse: split into 3 size buckets, pick evenly from each
+    """分层抽样：diverse（按大小分桶），random 或 largest-first。"""
+    # diverse 策略：分入 3 个大小桶，从每桶均匀选取
     selected: list[tuple[Path, str]] = []
 
     for ext, files in sorted(grouped.items()):
@@ -80,14 +80,14 @@ def sample_files(grouped: dict, sample_size: int, strategy: str) -> list[tuple[P
 
 
 def make_fixture_name(path: Path, ext: str, index: int) -> str:
-    """Generate readable, unique fixture filename with content hash suffix."""
+    """生成可读且唯一的固件文件名，含内容哈希后缀。"""
     h = hashlib.md5(path.read_bytes()).hexdigest()[:4]
     stem = path.stem[:40].replace(" ", "_").replace("/", "_")
     return f"{ext.lstrip('.')}_{index:03d}_{stem}_{h}{ext}"
 
 
 def run_parser(fixture_path: Path, ext: str) -> dict:
-    """Run parse_announcement_detail on fixture, return cleaned dict result."""
+    """对固件运行 parse_announcement_detail，返回清理后的 dict 结果。"""
     try:
         from pilotstd.announcement.parser import parse_announcement_detail
     except ImportError as e:
@@ -95,7 +95,7 @@ def run_parser(fixture_path: Path, ext: str) -> dict:
 
     raw = fixture_path.read_bytes()
 
-    # Route based on file type: HTML goes to html param, others to attachment
+    # 根据文件类型路由：HTML 走 html 参数，其他走附件流程
     try:
         if ext in (".html", ".htm"):
             html = raw.decode("utf-8", errors="replace")
@@ -110,7 +110,7 @@ def run_parser(fixture_path: Path, ext: str) -> dict:
         return {"_error": f"{type(e).__name__}: {e}", "items": [], "meta": {}}
 
     def _clean(obj):
-        """Recursively convert non-JSON-serializable values to primitives."""
+        """递归将非 JSON 可序列化值转换为基础类型。"""
         if isinstance(obj, list):
             return [_clean(x) for x in obj]
         if isinstance(obj, dict):
@@ -127,7 +127,7 @@ def run_parser(fixture_path: Path, ext: str) -> dict:
 
 
 def build_skeleton(ext: str) -> dict:
-    """Return an empty expected.json skeleton for manual annotation."""
+    """返回空 expected.json 骨架，供人工标注使用。"""
     return {
         "_source_ext": ext,
         "_verified": False,
@@ -145,7 +145,7 @@ def build_skeleton(ext: str) -> dict:
 
 
 def _print_scan_summary(grouped: dict, skipped: dict) -> int:
-    """Print scan results, return total file count."""
+    """打印扫描结果，返回文件总数。"""
     total = sum(len(v) for v in grouped.values())
     print(f"  {total} files in {len(grouped)} types")
     for ext, files in sorted(grouped.items()):
@@ -158,7 +158,7 @@ def _print_scan_summary(grouped: dict, skipped: dict) -> int:
 
 def _generate_expected(selected: list, args, fixtures_dir: Path,
                        expected_dir: Path) -> list:
-    """Copy fixtures and generate expected JSONs. Return manifest list."""
+    """复制固件并生成预期 JSON，返回清单列表。"""
     ext_counter: dict[str, int] = {}
     manifest = []
 
@@ -166,7 +166,7 @@ def _generate_expected(selected: list, args, fixtures_dir: Path,
         idx = ext_counter.get(ext, 0) + 1
         ext_counter[ext] = idx
 
-        # Copy fixture + generate expected JSON side-by-side
+        # 复制固件并同步生成预期 JSON
         fixture_name = make_fixture_name(src_path, ext, idx)
         fixture_dst = fixtures_dir / fixture_name
         expected_dst = expected_dir / f"{fixture_dst.stem}.json"
@@ -206,7 +206,7 @@ def _generate_expected(selected: list, args, fixtures_dir: Path,
 
 
 def main():
-    """CLI entry point: scan -> sample -> copy fixtures -> generate expected."""
+    """CLI 入口：扫描 → 抽样 → 复制固件 → 生成预期文件。"""
     p = argparse.ArgumentParser(
         description="Generate Golden File test scaffolding")
     p.add_argument("--source", "-s", required=True, type=Path)
@@ -221,7 +221,7 @@ def main():
     args = p.parse_args()
     random.seed(args.seed)
 
-    # Validate source directory exists
+    # 校验源目录是否存在
     if not args.source.is_dir():
         print(f"source dir not found: {args.source}", file=sys.stderr)
         sys.exit(1)
@@ -241,7 +241,7 @@ def main():
     selected = sample_files(grouped, args.sample, args.strategy)
     print(f"\nsampled ({args.strategy}, seed={args.seed}): {len(selected)}")
 
-    # Dry-run: print selection without writing anything
+    # 预演模式：仅打印选择结果，不写入任何文件
     if args.dry_run:
         print("\n-- DRY RUN --")
         for i, (src, ext) in enumerate(selected, 1):
@@ -250,7 +250,7 @@ def main():
         print(f"\n{len(selected)} files. remove --dry-run to execute.")
         return
 
-    # Build fixtures/ and expected/ directories in output target
+    # 在输出目标下构造 fixtures/ 和 expected/ 目录
     fixtures_dir = args.target / "fixtures"
     expected_dir = args.target / "expected"
     fixtures_dir.mkdir(parents=True, exist_ok=True)
@@ -259,13 +259,13 @@ def main():
     print(f"\nwriting to {args.target}/")
     manifest = _generate_expected(selected, args, fixtures_dir, expected_dir)
 
-    # Write manifest for traceability back to source files
+    # 写入清单文件，支持回溯到源文件
     manifest_path = args.target / "manifest.json"
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
     conftest_path = args.target / "conftest.py"
-    # Generate conftest if it doesn't exist (never overwrite user changes)
+    # 如 conftest 不存在则生成（绝不复写用户已有改动）
     if not conftest_path.exists():
         conftest_path.write_text(CONFTEST_TEMPLATE, encoding="utf-8")
         print(f"\ngenerated {conftest_path}")

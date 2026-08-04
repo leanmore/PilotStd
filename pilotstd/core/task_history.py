@@ -1,4 +1,4 @@
-# pilotstd/core/task_history.py
+# 模块：pilotstd/core/task_history.py
 # Phase2: 定时任务执行历史持久化 — 写入 DB + 自动清理 + 查询
 
 import logging

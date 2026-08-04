@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/nrsis.py
+# 模块：pilotstd/query/adapters/nrsis.py
 """
 自然资源标准查询适配器
 

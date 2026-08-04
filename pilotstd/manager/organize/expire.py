@@ -1,4 +1,4 @@
-# pilotstd/manager/organize/expire.py
+# 模块：pilotstd/manager/organize/expire.py
 # 过期处理 — 从 organizer_service.py 拆分
 # 原 OrganizerExpireMixin，现为模块级纯函数
 

@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/mee.py
+# 模块：pilotstd/query/adapters/mee.py
 """
 生态环境部标准查询适配器
 

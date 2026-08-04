@@ -1,4 +1,4 @@
-# pilotstd/core/notification/channels/telegram.py
+# 模块：pilotstd/core/notification/channels/telegram.py
 """Telegram Bot API 通知渠道。"""
 
 import json

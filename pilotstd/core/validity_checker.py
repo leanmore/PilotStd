@@ -1,4 +1,4 @@
-# pilotstd/core/validity_checker.py
+# 模块：pilotstd/core/validity_checker.py
 # 标准时效性检查模块 — 跟踪标准现行/废止状态变更
 # L1: 本地公告缓存表  L2: 网络适配器查询  L3: 历史状态对比
 

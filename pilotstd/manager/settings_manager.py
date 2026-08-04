@@ -1,4 +1,4 @@
-# pilotstd/manager/settings_manager.py
+# 模块：pilotstd/manager/settings_manager.py
 # 用户偏好管理器（Web 端）— 使用 user_settings 表（JSON 聚合存储），带内存缓存
 
 import json

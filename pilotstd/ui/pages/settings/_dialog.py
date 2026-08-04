@@ -1,4 +1,4 @@
-# pilotstd/ui/pages/settings/_dialog.py
+# 模块：pilotstd/ui/pages/settings/_dialog.py
 # SettingsDialog — 包裹 SettingsPage 的对话框
 
 from typing import Any

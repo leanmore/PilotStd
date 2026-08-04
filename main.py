@@ -11,30 +11,29 @@ import traceback
 
 from dotenv import load_dotenv
 
-# class _SafeStream(io.StringIO):
+# class _SafeStream(io.StringIO):  # 已弃用：防御性安全流包装类
 #     """防御性文本流：替代 io.StringIO，提供 fileno/isatty 避免崩溃。
-#
+# （空行）
 #     PyInstaller --noconsole 模式下 sys.stderr/stdout 为 None，
 #     但 faulthandler、logging.StreamHandler、第三方库可能调用
 #     .fileno() 或 .isatty()。普通 StringIO 缺少这两个方法会抛
-#     io.UnsupportedOperation。
-#     """
-#
-#     def fileno(self) -> int:
-#         raise io.UnsupportedOperation("fileno")
-#
-#     def isatty(self) -> bool:
-#         return False
+#     io.UnsupportedOperation 异常。
+#     """  # 已废弃的文档字符串
+# （空行）
+#     def fileno(self) -> int:  # 返回文件描述符（已废弃）
+#         raise io.UnsupportedOperation("fileno")  # 抛出"不支持操作"异常
+# （空行）
+#     def isatty(self) -> bool:  # 检测是否为终端（已废弃）
+#         return False  # 始终返回 False（已废弃）
 
 
 # PyInstaller --noconsole 模式：替换缺失的标准流
-# if getattr(sys, "frozen", False):
-#     if sys.stderr is None:
-#         sys.stderr = _SafeStream()
-#     if sys.stdout is None:
-#         sys.stdout = _SafeStream()
-#     if sys.stdin is None:
-#         sys.stdin = _SafeStream()
+# if getattr(sys, "frozen", False):  # 检测 PyInstaller 打包环境
+#     if sys.stderr is None:  # stderr 为空则替换
+#         sys.stderr = _SafeStream()  # 替换标准错误流
+#     if sys.stdout is None:  # stdout 为空则替换
+#         sys.stdout = _SafeStream()  # 替换标准输出流
+#         sys.stdin = _SafeStream()  # 替换标准输入流
 
 # faulthandler 仅开发时启用，打包交付后禁用（避免无控制台报错）
 if not getattr(sys, "frozen", False):

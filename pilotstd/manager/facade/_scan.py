@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_scan.py
+# 模块：pilotstd/manager/facade/_scan.py
 """ScanHandler：目录扫描、流式扫描、定时索引、文件监控，替代原 ScanMixin。"""
 # 性能：os.scandir() 替代 pathlib.iterdir()（NTFS 上 dirent 自带 type，减少 60% syscall）；
 # 去重：内存 HashSet（本批次）+ file_index 查哈希（跨扫描），先内存后 DB 避免不必要 SQL；

@@ -1,4 +1,4 @@
-# pilotstd/announce/persistence.py
+# 模块：pilotstd/announce/persistence.py
 """Fetch checkpoint, failure log, and async task persistence.
 
 Compatible with both Database (fetchone/execute returning dicts) and
@@ -12,29 +12,29 @@ from typing import Any
 
 
 class AnnouncePersistence:
-    """Checkpoint, failure log, and async task state SQL persistence."""
+    """检查点、失败日志和异步任务状态的 SQL 持久化。"""
 
     def __init__(self, db: Any):
         self._db = db
 
     def _query_one(self, sql: str, params: tuple = ()) -> Any:
-        """Execute SELECT and return a single row (dict or sqlite3.Row)."""
+        """执行 SELECT 查询并返回单行（dict 或 sqlite3.Row）。"""
         if hasattr(self._db, "fetchone"):
             return self._db.fetchone(sql, params)
         cur = self._db.execute(sql, params)
         return cur.fetchone()
 
     def _exec(self, sql: str, params: tuple = ()) -> None:
-        """Execute DML (INSERT/UPDATE/DELETE), dual-backend compat."""
+        """执行 DML（INSERT/UPDATE/DELETE），双后端兼容。"""
         if hasattr(self._db, "fetchone"):
             self._db.execute(sql, params)
         else:
             self._db.execute(sql, params)
 
-    # -- checkpoint -------------------------------------------------
+    # -- 检查点 -------------------------------------------------
 
     def get_checkpoint(self, source_site: str) -> str | None:
-        """Return last_notice_date for source_site, or None if not found."""
+        """返回 source_site 的 last_notice_date，未找到则返回 None。"""
         row = self._query_one(
             "SELECT last_notice_date FROM fetch_checkpoint WHERE source_site=?",
             (source_site,),
@@ -44,7 +44,7 @@ class AnnouncePersistence:
         return row["last_notice_date"] or None
 
     def write_checkpoint(self, source_site: str, last_notice_date: str) -> None:
-        """Write checkpoint with anti-regression guard (older dates ignored)."""
+        """写入检查点，含防回退保护（更旧的日期将被忽略）。"""
         if not last_notice_date:
             return
         current = self._query_one(
@@ -60,10 +60,10 @@ class AnnouncePersistence:
             (source_site, now, last_notice_date),
         )
 
-    # -- failure log ------------------------------------------------
+    # -- 失败日志 ------------------------------------------------
 
     def record_failure(self, source_site: str, error_msg: str) -> None:
-        """Record a fetch failure to fetch_failures table."""
+        """记录获取失败到 fetch_failures 表。"""
         now = datetime.now().isoformat()
         self._exec(
             "INSERT INTO fetch_failures (task_type, source_site, since_date, error_message) "
@@ -71,10 +71,10 @@ class AnnouncePersistence:
             ("scheduled", source_site, "", error_msg),
         )
 
-    # -- async task ------------------------------------------------
+    # -- 异步任务 ------------------------------------------------
 
     def create_task(self, task_id: str) -> None:
-        """Insert a new fetch_task row with status='pending'."""
+        """插入一条新的 fetch_task 行，状态为 'pending'。"""
         now = datetime.now().isoformat()
         self._exec(
             "INSERT INTO fetch_task (id, task_type, status, progress, created_at, updated_at) "
@@ -84,7 +84,7 @@ class AnnouncePersistence:
 
     def update_task(self, task_id: str, status: str, progress: int,
                     error_msg: str = "") -> None:
-        """Update fetch_task status and progress, optionally setting error_msg."""
+        """更新 fetch_task 的状态和进度，可选设置错误信息。"""
         now = datetime.now().isoformat()
         if error_msg:
             self._exec(

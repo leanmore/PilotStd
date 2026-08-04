@@ -1,4 +1,4 @@
-# pilotstd/manager/monitor_service.py
+# 模块：pilotstd/manager/monitor_service.py
 # 文件监控服务 — 供 API 层 + app.py 生命周期使用
 
 from datetime import date

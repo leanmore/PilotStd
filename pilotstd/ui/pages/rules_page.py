@@ -1,6 +1,6 @@
-# pilotstd/ui/pages/rules_page.py
+# 模块：pilotstd/ui/pages/rules_page.py
 # 网站规则配置：管理查询/下载网站的适配规则模板
-#
+# 分隔
 # 提供规则列表展示和编辑功能，支持 JSON 导入/导出。
 
 import json

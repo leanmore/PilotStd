@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/query_worker_factory.py
+# 模块：pilotstd/ui/core/handlers/query_worker_factory.py
 """QueryWorkerFactory — 封装 QueryWorker 创建和信号连接。
 
 将 on_query 中的 6 行信号连接逻辑从 Handler 迁移至工厂，

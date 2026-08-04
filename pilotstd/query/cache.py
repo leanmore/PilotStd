@@ -1,4 +1,4 @@
-# pilotstd/query/cache.py
+# 模块：pilotstd/query/cache.py
 # 查询结果本地持久化缓存（SQLite）— 双表回退，事件驱动失效
 
 from __future__ import annotations

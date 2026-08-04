@@ -292,7 +292,7 @@ def _categorize_issues(
                 (rel, lineno, stmt, "改用 from ...X (themes 在 pilotstd.ui.themes)")
             )
         elif is_handler and stmt.startswith("from ..") and not stmt.startswith("from ..."):
-            # from ..X → 2 dots
+            # 说明：from ..X → 2 dots
             cat["handlers: ..X 应改为 ...X"].append(
                 (rel, lineno, stmt, "改用 from ...X (目标在 pilotstd.ui.X, 不在 pilotstd.ui.core.X)")
             )

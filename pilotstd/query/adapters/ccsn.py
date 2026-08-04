@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/ccsn.py
+# 模块：pilotstd/query/adapters/ccsn.py
 """
 中国工程建设标准化协会标准查询适配器
 

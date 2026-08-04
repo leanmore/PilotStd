@@ -1,14 +1,14 @@
-# pilotstd/download/adapters/openstd_download.py
+# 模块：pilotstd/download/adapters/openstd_download.py
 # 国家标准全文公开系统下载适配器 — openstd.samr.gov.cn 新平台
-#
+# 分隔
 # ⚠️ 2026-06-04 实测验证通过的完整下载链路（5步，不可跳过）：
-#   1. GET showGb?type=download&hcno=<H>  →  302 + Set-Cookie: JSESSIONID
+#   步骤1. GET showGb?type=download&hcno=<H>  →  302 + Set-Cookie: JSESSIONID
 #      （建立会话，获取 cookie——跳过此步则后续全部 404）
 #   2. GET gc?_<ts>  →  验证码图片（~4KB）
 #   3. ddddocr 识别 4 位验证码
 #   4. POST verifyCode  body: verifyCode=<4位码>  →  "success"
 #      （验证通过后服务端授权当前会话的 viewGb 访问）
-#   5. GET viewGb?hcno=<H>  →  Content-Disposition: attachment;filename=xxx.pdf
+#   步骤5. GET viewGb?hcno=<H>  →  Content-Disposition: attachment;filename=xxx.pdf
 #      返回完整 PDF 字节流
 
 import logging
@@ -77,9 +77,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         logger.debug("下载开始: %s hcno=%s", task.standard_number, hcno)
         return self._do_download(hcno, task)
 
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
     # 核心下载流程
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
 
     def _do_download(self, hcno: str, task: DownloadTask) -> Optional[bytes]:
         """⚠️ 5 步下载链路，每步不可跳过。
@@ -160,9 +160,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
         )
         return None
 
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
     # 验证码处理
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
 
     def _handle_captcha(self, hcno: str, task: DownloadTask) -> Optional[bytes]:
         """⚠️ 验证码识别与提交。

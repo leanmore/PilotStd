@@ -1,4 +1,4 @@
-# pilotstd/core/notification/channels/dingtalk.py
+# 模块：pilotstd/core/notification/channels/dingtalk.py
 """钉钉群机器人 Webhook 通知渠道。"""
 
 import base64

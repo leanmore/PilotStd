@@ -1,4 +1,4 @@
-# pilotstd/core/config/crypto.py
+# 模块：pilotstd/core/config/crypto.py
 # 敏感字段加解密 — 从 config.py 拆分
 
 import os

@@ -1,4 +1,4 @@
-# pilotstd/i18n/__init__.py
+# 模块：pilotstd/i18n/__init__.py
 # 国际化模块：中文简体、中文繁体、英文
 
 import json

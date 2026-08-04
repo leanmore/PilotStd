@@ -1,4 +1,4 @@
-# pilotstd/announcement/_circuit_breaker.py
+# 模块：pilotstd/announcement/_circuit_breaker.py
 # 适配器熔断器 — 从 base.py 拆分，组合模式（非 Mixin）
 
 import logging

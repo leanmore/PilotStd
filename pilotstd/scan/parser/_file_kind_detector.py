@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_file_kind_detector.py
+# 模块：pilotstd/scan/parser/_file_kind_detector.py
 # 文件属性标记 Handler
 """提供文件名文件属性标签检测功能。"""
 

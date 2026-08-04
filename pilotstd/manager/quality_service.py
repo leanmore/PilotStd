@@ -1,4 +1,4 @@
-# pilotstd/manager/quality_service.py
+# 模块：pilotstd/manager/quality_service.py
 # 数据质量检查服务 — 供 API 层使用
 
 from typing import Any

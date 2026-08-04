@@ -1,4 +1,4 @@
-# pilotstd/core/config/priority.py
+# 模块：pilotstd/core/config/priority.py
 # 配置优先级管理器 — 在现有 ConfigManager 基础上提供 ENV > FILE > FACTORY 优先级查询
 
 import json

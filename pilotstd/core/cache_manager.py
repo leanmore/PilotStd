@@ -1,4 +1,4 @@
-# pilotstd/core/cache_manager.py
+# 模块：pilotstd/core/cache_manager.py
 """统一缓存管理器——版本驱动失效 + LRU 淘汰 + 大小限制。
 
 设计原则：

@@ -1,4 +1,4 @@
-# pilotstd/core/logger.py
+# 模块：pilotstd/core/logger.py
 # 日志管理器：双通道（控制台+文件）、按大小轮转(256KB)、1个备份
 # 文件通道使用 QueueHandler + QueueListener 架构：
 #   - 业务线程写 QueueHandler（非阻塞入队）

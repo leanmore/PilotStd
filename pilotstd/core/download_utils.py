@@ -1,4 +1,4 @@
-# pilotstd/core/download_utils.py
+# 模块：pilotstd/core/download_utils.py
 # Q24: 下载导入共享工具 — 文本解析 + 标准号校验 + 去重
 # Web API 与桌面 GUI 共用
 """

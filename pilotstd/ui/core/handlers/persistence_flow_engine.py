@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/persistence_flow_engine.py
+# 模块：pilotstd/ui/core/handlers/persistence_flow_engine.py
 """PersistenceFlowEngine — 持久化数据序列化/反序列化纯逻辑层（零 Qt 依赖）。
 
 所有方法输入/输出均为 Python 原生类型（dict、list、int、str、bytes），
@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 class PersistenceFlowEngine:
     """持久化相关数据的序列化与反序列化纯逻辑。"""
 
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
     # 窗口几何
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
     def serialize_window_geometry(x: int, y: int, width: int, height: int) -> dict[str, int]:
@@ -39,9 +39,9 @@ class PersistenceFlowEngine:
         except (ValueError, TypeError):
             return default
 
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
     # 分栏尺寸
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
     def serialize_splitter_sizes(sizes: list[int]) -> list[int]:
@@ -55,9 +55,9 @@ class PersistenceFlowEngine:
             return list(data)
         return list(default)
 
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
     # 列宽
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
     def serialize_column_widths(widths: list[int]) -> list[int]:
@@ -71,9 +71,9 @@ class PersistenceFlowEngine:
             return list(data)
         return [default] * col_count
 
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
     # 表头状态
-    # ═══════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
     def serialize_header_state(state: bytes) -> str:

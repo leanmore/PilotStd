@@ -1,4 +1,4 @@
-# pilotstd/announcement/base.py
+# 模块：pilotstd/announcement/base.py
 # 公告抓取适配器抽象基类
 
 import concurrent.futures

@@ -1,4 +1,4 @@
-# pilotstd/core/config/service.py
+# 模块：pilotstd/core/config/service.py
 """ConfigService — 统一配置访问层。
 
 路由规则:

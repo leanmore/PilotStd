@@ -1,4 +1,4 @@
-# pilotstd/quality/rules/stale_references.py
+# 模块：pilotstd/quality/rules/stale_references.py
 # 陈旧引用检测——导入了已删除函数/方法的文件
 
 import ast

@@ -82,7 +82,7 @@ def get_staged_files() -> list[str]:
         if result.stdout.strip():
             return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
 
-        # 2. CI PR
+        # 说明：2. CI PR
         result = subprocess.run(
             ["git", "diff", "--name-only", "--diff-filter=ACMR", "origin/main..."],
             capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(PROJECT_ROOT), timeout=10

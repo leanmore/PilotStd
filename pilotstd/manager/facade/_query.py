@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_query.py
+# 模块：pilotstd/manager/facade/_query.py
 """QueryHandler：标准查询入口与 GUI 桥接。查询执行→QuerySubsystem，报告→QuerySubsystem。"""
 
 from __future__ import annotations

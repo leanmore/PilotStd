@@ -1,4 +1,4 @@
-# pilotstd/download/models.py
+# 模块：pilotstd/download/models.py
 # 下载任务数据模型
 
 from dataclasses import dataclass, field

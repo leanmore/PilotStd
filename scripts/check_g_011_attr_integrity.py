@@ -135,7 +135,7 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
         if _is_comment_or_string(line):
             continue
 
-        # setattr(self, "xxx", ...)
+        # 说明：setattr(self, "xxx", ...)
         for m in SETATTR_RE.finditer(line):
             attr = m.group(1)
             if not MAGIC_RE.match(attr):
@@ -155,7 +155,7 @@ def extract_defs(file_path: Path) -> list[tuple[str, int]]:
                     defs.append((attr, i))
             continue  # 元组解包行不再用 DEF_RE 处理
 
-        # self.xxx =
+        # 说明：self.xxx =
         for m in DEF_RE.finditer(line):
             after = line[m.end() :].strip()
             if after.startswith("="):

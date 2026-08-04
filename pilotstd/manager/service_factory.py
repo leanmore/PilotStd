@@ -1,4 +1,4 @@
-# pilotstd/manager/service_factory.py
+# 模块：pilotstd/manager/service_factory.py
 # 服务工厂 — 从 StandardManager 实例创建所有子服务
 
 from typing import Any

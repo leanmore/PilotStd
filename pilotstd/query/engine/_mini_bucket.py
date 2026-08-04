@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_mini_bucket.py
+# 模块：pilotstd/query/engine/_mini_bucket.py
 """小桶构建与逐桶查询执行处理器 — 替代原 MiniBucketMixin。
 
 组合模式重构：MiniBucketMixin → MiniBucketHandler，依赖通过 EngineCore 注入。

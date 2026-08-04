@@ -101,17 +101,17 @@ def check_level(file_path: Path, module: str, level: int, imported_names: list[s
     if module:
         return any(p.exists() for p in module_to_path(abs_mod))
 
-    # from ... import Name — check Name as submodule or __init__.py attribute
+    # from ... import Name — 检查 Name 是否为子模块或 __init__.py 属性
     for cp in module_to_path(abs_mod):
         if cp.name == "__init__.py" and cp.exists():
             pkg_dir = cp.parent
-            # Check submodule
+            # 检查子模块
             for name in imported_names:
                 sub_py = pkg_dir / f"{name}.py"
                 sub_pkg = pkg_dir / name / "__init__.py"
                 if sub_py.exists() or sub_pkg.exists():
                     continue
-                # Check __init__.py attribute
+                # 检查 __init__.py 属性
                 defined = get_defined_names(cp)
                 if name not in defined:
                     return False
@@ -120,7 +120,7 @@ def check_level(file_path: Path, module: str, level: int, imported_names: list[s
 
 
 def format_import_stmt(level: int, module: str, names: list[tuple[str, str | None]]) -> str:
-    """Reconstruct import statement string."""
+    """重构 import 语句字符串。"""
     dots = "." * level
     mod_part = f"{dots}{module}" if module else dots
     name_parts = []
@@ -151,7 +151,7 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
         if pkg is None:
             continue
 
-        # Process in reverse so line numbers stay valid
+        # 倒序处理以保持行号不变
         for node in reversed(list(ast.walk(tree))):
             if not isinstance(node, ast.ImportFrom) or not node.level or node.level <= 0:
                 continue
@@ -160,11 +160,11 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
             names = [(a.name, a.asname) for a in node.names]
             current_level = node.level
 
-            # Not broken — skip
+            # 未损坏 — 跳过
             if check_level(file_path, module, current_level, [n for n, _ in names]):
                 continue
 
-            # Try all candidate levels in [1, 5]
+            # 尝试 [1, 5] 范围内所有候选层级
             best_level: int | None = None
             for candidate in range(1, 6):
                 if candidate == current_level:
@@ -178,13 +178,13 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
                 print(f"  [SKIP] {rel}:{node.lineno} — 无有效级别: {format_import_stmt(current_level, module, names)}")
                 continue
 
-            # Build old and new line text
+            # 构造旧行和新行文本
             old_stmt = format_import_stmt(current_level, module, names)
             new_stmt = format_import_stmt(best_level, module, names)
 
-            # Locate line in source
+            # 在源码中定位行
             lineno = node.lineno - 1  # 0-indexed
-            # Replace the import statement within the line (handles indentation)
+            # 在行内替换 import 语句（处理缩进）
             new_line = lines[lineno].replace(old_stmt, new_stmt, 1)
 
             if dry_run:
@@ -198,7 +198,7 @@ def collect_fixes(dry_run: bool) -> list[Fix]:
 
             fixes.append((file_path, node.lineno, old_stmt, new_stmt))
 
-        # Write back if any fixes in this file
+        # 如果此文件有修复则写回
         had_fix = any(f[0] == file_path for f in fixes)
         if not dry_run and had_fix:
             file_path.write_text("".join(lines), encoding="utf-8")

@@ -1,5 +1,5 @@
-# pilotstd/query/engine/_routing.py
-# mypy: disable-error-code="no-any-return"
+# 模块：pilotstd/query/engine/_routing.py
+# 说明：mypy: disable-error-code="no-any-return"
 """查询引擎路由处理器 — 优先级计算、配额分配、站点轮转、桶分片逻辑。
 
 组合模式重构：RoutingMixin → RoutingHandler，依赖通过 EngineCore 注入。

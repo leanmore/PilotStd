@@ -1,6 +1,6 @@
-# src/types/bootstrap.py
+# 模块：src/types/bootstrap.py
 # BootstrapResult 类型契约 — 三位一体治理体系 D5 强制层
-#
+# 分隔
 # 规范基准: docs/governance/trinity-technical-spec-v2.md §4.2
 # 版本: schema_version=1.0, spec_version=2.0
 

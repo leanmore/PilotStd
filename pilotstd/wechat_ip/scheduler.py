@@ -1,4 +1,4 @@
-# pilotstd/wechat_ip/scheduler.py
+# 模块：pilotstd/wechat_ip/scheduler.py
 # pragma: no cover — 需浏览器环境，暂不纳入单元测试覆盖率考核
 # 详见 docs/testing/known-issues.md
 """可信 IP 定时更新调度器。使用 daemon 线程定期检测 IP 变化。"""

@@ -1,11 +1,11 @@
-# pilotstd/query/adapters/_njbz365_session_manager.py
+# 模块：pilotstd/query/adapters/_njbz365_session_manager.py
 # njbz365 会话管理与请求签名 — 原 _Njbz365SessionMixin，现为独立类
-#
+# 分隔
 # 会话管理流程（3 步）：
 #   1. GET 首页 → 获取 token cookie + JWT
 #   2. OPTIONS → 获取 csrf_token + session
 #   3. POST 搜索 → 带 sign 签名（token/csrf 过期时自动刷新）
-#
+# 分隔
 # 签名算法：过滤空值 → key 排序 → 拼接 → 拼接私钥 → MD5 大写
 # 重试策略：指数退避（2^attempt 秒），最多 3 次
 

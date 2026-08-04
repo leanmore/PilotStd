@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_language_detector.py
+# 模块：pilotstd/scan/parser/_language_detector.py
 # 语言检测 Handler
 """提供文件名语言版本检测功能。"""
 

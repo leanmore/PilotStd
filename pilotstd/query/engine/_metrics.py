@@ -1,6 +1,6 @@
-# pilotstd/query/engine/_metrics.py
+# 模块：pilotstd/query/engine/_metrics.py
 # QueryMetrics — 线程安全的批次查询计数器（#46 修复配套基础设施）
-#
+# 分隔
 # 设计约束：
 # - batch_id 维度隔离，不同批次互不干扰
 # - 线程安全（threading.Lock）

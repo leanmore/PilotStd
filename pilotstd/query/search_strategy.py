@@ -1,4 +1,4 @@
-# pilotstd/query/search_strategy.py
+# 模块：pilotstd/query/search_strategy.py
 # 搜索策略 + 查询结果比对
 
 import logging

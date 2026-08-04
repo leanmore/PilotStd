@@ -1,4 +1,4 @@
-# pilotstd/manager/adapter_manager.py
+# 模块：pilotstd/manager/adapter_manager.py
 # 适配器状态管理器 — 聚合 SiteRotator + DailyQuotaTracker + adapter_health 表
 
 import logging

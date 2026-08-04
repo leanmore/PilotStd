@@ -1,4 +1,4 @@
-# pilotstd/core/config/manager.py
+# 模块：pilotstd/core/config/manager.py
 # ConfigManager 核心类 — 从 config.py 拆分
 
 import json

@@ -1,4 +1,4 @@
-# pilotstd/core/export_utils.py
+# 模块：pilotstd/core/export_utils.py
 # Q29: 统一导出文件名生成 — 批次固定时间戳 + i18n 名称
 import datetime
 

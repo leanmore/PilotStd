@@ -15,9 +15,9 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
 
-# ════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════ 分隔
 # 辅助函数：用户 ID 提取 + 通知管理器获取
-# ════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════ 分隔
 
 
 def _get_user_id(username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)) -> int:

@@ -1,4 +1,4 @@
-# pilotstd/quality/models.py
+# 模块：pilotstd/quality/models.py
 # 数据模型
 
 from dataclasses import dataclass, field

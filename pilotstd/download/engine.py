@@ -1,4 +1,4 @@
-# pilotstd/download/engine.py
+# 模块：pilotstd/download/engine.py
 # 下载引擎：适配器编排、后处理命名、并发控制、统计收集
 
 from __future__ import annotations

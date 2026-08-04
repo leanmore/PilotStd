@@ -1,4 +1,4 @@
-# pilotstd/announce/crawler_service.py
+# 模块：pilotstd/announce/crawler_service.py
 """公告爬取服务 — 编排 AnnounceEngine + checkpoint + 持久化。
 
 check_all: 遍历 gb/hb/db 适配器增量抓取，写 checkpoint。
@@ -23,7 +23,7 @@ _STD_TYPE_DISPLAY: dict[str, str] = {
 
 
 def build_fetch_summary(adapter_results: list[dict[str, Any]]) -> dict[str, Any]:
-    """Build per-adapter fetch summary payload (extracted from old Mixin)."""
+    """构建各适配器抓取摘要数据（提取自旧 Mixin 类）。"""
     from datetime import datetime, timezone
 
     return {
@@ -63,8 +63,8 @@ class AnnounceCrawler:
     # ── 主入口 ──────────────────────────────────────────────
 
     def check_all(self, adapter_name: str = "") -> dict[str, Any]:
-        """Run full announcement check across gb/hb/db adapters, return summary."""
-        # Ensure per-type output directories exist
+        """对 gb/hb/db 适配器执行全量公告检查，返回摘要数据。"""
+        # 确保各类型输出目录存在
         data_dir = get_data_dir()
         for std_type in ("gb", "hb", "db"):
             os.makedirs(os.path.join(data_dir, "announcements", std_type), exist_ok=True)
@@ -79,7 +79,7 @@ class AnnounceCrawler:
         for adapter in engine.adapters:
             if adapter_name and adapter.standard_type != adapter_name:
                 continue
-            # Read checkpoint for incremental fetch
+            # 读取 checkpoint 实现增量抓取
             since = self._persistence.get_checkpoint(adapter.source_site) or ""
 
             result = engine.check_one(adapter.standard_type, since_date=since, ocr_provider=ocr)
@@ -98,7 +98,7 @@ class AnnounceCrawler:
             count = result.get("matched", 0) + result.get("updated", 0)
             total_matched += result.get("matched", 0)
             total_updated += result.get("updated", 0)
-            # Per-adapter success entry
+            # 各适配器成功记录
             adapter_results.append({
                 "name": adapter.site_name,
                 "type": _STD_TYPE_DISPLAY.get(adapter.standard_type, adapter.standard_type),

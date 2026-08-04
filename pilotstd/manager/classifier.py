@@ -1,4 +1,4 @@
-# pilotstd/manager/classifier.py
+# 模块：pilotstd/manager/classifier.py
 # QueryClassifier — 查询后分类，将查询结果按状态/替代关系分堆
 
 import logging
@@ -39,9 +39,9 @@ class QueryClassifier:
         self._quota_tracker = quota_tracker
         self._query_engine = query_engine
 
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
     # 公共 API
-    # ════════════════════════════════════════════════════════════════
+    # ════════════════════════════════════════════════════════════════ 分隔
 
     @staticmethod
     def parse_std_number(standard_number: str) -> tuple[str | None, int | None]:

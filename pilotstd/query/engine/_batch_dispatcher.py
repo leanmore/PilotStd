@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_batch_dispatcher.py
+# 模块：pilotstd/query/engine/_batch_dispatcher.py
 """BatchDispatcher — 批量查询分发编排独立类（原 _BatchDispatchMixin 的 13 个方法）。
 
 通过 _DispatchContext 注入 5 个组件 + 2 个配额常量，替代 MRO 隐式依赖。

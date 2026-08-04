@@ -1,4 +1,4 @@
-# pilotstd/core/_validity_pipeline.py
+# 模块：pilotstd/core/_validity_pipeline.py
 # 有效性检查流水线函数 — 从 validity_checker.py 提取
 
 from __future__ import annotations

@@ -1,7 +1,7 @@
-# pilotstd/query/adapters/std_gov.py
+# 模块：pilotstd/query/adapters/std_gov.py
 # 全国标准信息公共服务平台（std.samr.gov.cn）查询适配器
 # 参考 OpenSTD_Spider (SocialSisterYi, 2024-2025)
-#
+# 分隔
 # 2026-05 适配网站改版：搜索结果从 table 改为 Bootstrap panel 布局
 # 搜索入口: std.samr.gov.cn/search/stdPage?q=<term>
 # 详情入口: std.samr.gov.cn/gb/search/gbDetailed?id=<pid>

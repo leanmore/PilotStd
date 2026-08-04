@@ -1,4 +1,4 @@
-# pilotstd/tasks/date_reminder.py
+# 模块：pilotstd/tasks/date_reminder.py
 # Phase 4b: 日期提醒 — 扫描实施/作废/代替标准的到期日期，通过通知管道推送
 
 import logging

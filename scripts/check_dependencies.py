@@ -239,12 +239,12 @@ def _collect_imports(py_file: Path, imports: set[str]) -> None:
         content = py_file.read_text(encoding="utf-8")
     except Exception:
         return
-    # import xxx / import xxx.yyy
+    # 说明：import xxx / import xxx.yyy
     for m in re.finditer(r"^import\s+([a-zA-Z_][a-zA-Z0-9_]*)", content, re.MULTILINE):
         name = m.group(1)
         if name not in STDLIB:
             imports.add(name)
-    # from xxx import yyy
+    # 说明：from xxx import yyy
     for m in re.finditer(r"^from\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+import", content, re.MULTILINE):
         name = m.group(1)
         if name not in STDLIB:

@@ -1,4 +1,4 @@
-# pilotstd/announce/notifier.py
+# 模块：pilotstd/announce/notifier.py
 """公告抓取完成后的通知与缓存失效。"""
 
 from __future__ import annotations
@@ -14,10 +14,7 @@ class AnnounceNotifier:
         self.mgr_db = mgr_db
 
     def after_fetch(self, result: dict[str, Any], source: str = "") -> None:
-        """Fetch post-processing: notify + cache invalidation.
-
-        Cache is only invalidated when updated > 0 (actual new data).
-        """
+        """抓取后处理：通知 + 缓存失效。仅在有实际新数据（updated > 0）时失效缓存。"""
         updated = result.get("updated", 0)
         if self.notification_mgr:
             self._send_notifications(result, source)
@@ -25,7 +22,7 @@ class AnnounceNotifier:
             self._invalidate_cache()
 
     def _send_notifications(self, result: dict[str, Any], source: str) -> None:
-        """Dispatch announcement_check_complete notification event."""
+        """派发 announcement_check_complete 通知事件。"""
         matched = result.get("matched", 0)
         updated = result.get("updated", 0)
         adapters = result.get("adapters", [])
@@ -47,7 +44,7 @@ class AnnounceNotifier:
             pass
 
     def _invalidate_cache(self) -> None:
-        """Invalidate announcement cache via CacheManager."""
+        """通过 CacheManager 失效公告缓存。"""
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
 

@@ -1,4 +1,4 @@
-# pilotstd/ui/core/_core_init_query.py
+# 模块：pilotstd/ui/core/_core_init_query.py
 # 查询子系统初始化 — 原 _CoreInitQueryMixin，现为工厂函数
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
-# pilotstd/query/adapters/ttbz.py
+# 模块：pilotstd/query/adapters/ttbz.py
 # 全国团体标准信息平台（ttbz.org.cn）查询适配器
-# API: POST https://www.ttbz.org.cn/cms-proxy/ms/portal/standardInfo/getPortalStandardList
+# 说明：API: POST https://www.ttbz.org.cn/cms-proxy/ms/portal/standardInfo/getPortalStandardList
 # 响应 JSON 的 data.rows 包含标准列表
 
 import logging

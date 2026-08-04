@@ -1,4 +1,4 @@
-# pilotstd/ui/pages/settings/_core.py
+# 模块：pilotstd/ui/pages/settings/_core.py
 """SettingsPage — 设置页面，组合 SettingsHandler 管理导航与布局。"""
 
 from typing import Any

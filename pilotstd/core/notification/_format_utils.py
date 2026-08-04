@@ -1,4 +1,4 @@
-# pilotstd/core/notification/_format_utils.py
+# 模块：pilotstd/core/notification/_format_utils.py
 # 聚合格式化器 — 从 manager.py 拆分
 from typing import Any
 

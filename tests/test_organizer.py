@@ -68,6 +68,12 @@ class TestDirBuilder(unittest.TestCase):
         path = self.builder.ensure_expire_dir("GB/T")
         self.assertTrue(os.path.isdir(path))
 
+    def test_get_expire_dir_path_only(self):
+        """get_expire_dir 仅返回路径，不创建目录（L32-33）。"""
+        path = self.builder.get_expire_dir("GB/T")
+        self.assertIn("过期作废", path)
+        self.assertFalse(os.path.isdir(path))  # 目录未被创建
+
 
 class TestFileMover(unittest.TestCase):
     def setUp(self):
@@ -122,6 +128,31 @@ class TestFileMover(unittest.TestCase):
             self.assertIsNone(dst, "越界路径应被拒绝返回 None")
         finally:
             self.mover.normalize_filename = original
+
+    def test_normalize_filename_expired_appends_expire_dir(self):
+        """effect_status='废止' → 路径追加'过期作废'子目录（L42）。"""
+        parsed = ParsedStdInfo(
+            raw_filename="old.pdf",
+            logical_code="GB",
+            number=1,
+            year=2010,
+            std_name="旧标准",
+        )
+        parsed.effect_status = "废止"
+        path = self.mover.normalize_filename(parsed)
+        self.assertIn("过期作废", path)
+
+    def test_archive_returns_none_when_move_fails(self):
+        """safe_move 返回 False → archive 返回 None（L64）。"""
+        src = os.path.join(self.tmp, "src.pdf")
+        with open(src, "w") as f:
+            f.write("x")
+        dst = os.path.join(self.tmp, "dst.pdf")
+        from unittest.mock import patch
+
+        with patch("pilotstd.organizer.mover.safe_move", return_value=False):
+            result = self.mover.archive(src, dst)
+            self.assertIsNone(result)
 
 
 # === _utils.py 覆盖 ===

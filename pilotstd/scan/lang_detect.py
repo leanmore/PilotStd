@@ -1,4 +1,4 @@
-# pilotstd/scan/lang_detect.py
+# 模块：pilotstd/scan/lang_detect.py
 # 统一语种信号识别 — parser 和归档命名规则共用同一套模式
 
 import re

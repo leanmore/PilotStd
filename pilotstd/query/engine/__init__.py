@@ -1,5 +1,5 @@
-# pilotstd/query/engine/__init__.py
-# mypy: disable-error-code="no-any-return"
+# 模块：pilotstd/query/engine/__init__.py
+# 说明：mypy: disable-error-code="no-any-return"
 """查询引擎 — 组合模式重构。
 
 QueryEngine 通过组合 Handler（RoutingHandler、SingleQueryHandler、BatchHandler、

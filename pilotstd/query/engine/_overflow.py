@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_overflow.py
+# 模块：pilotstd/query/engine/_overflow.py
 """溢出链式重试处理器 — 独立类，替代原 OverflowHandler（Mixin）。
 
 组合模式重构：OverflowHandler → 独立类，依赖通过 EngineCore + RoutingHandler 注入。

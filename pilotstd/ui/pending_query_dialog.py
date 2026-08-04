@@ -1,6 +1,6 @@
-# pilotstd/ui/pending_query_dialog.py
+# 模块：pilotstd/ui/pending_query_dialog.py
 # 待确认二次查询对话框 — 从 main_window.py 提取
-#
+# 分隔
 # 提供站点选择、冷却等待、批量查询功能。
 
 import logging

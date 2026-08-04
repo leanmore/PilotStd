@@ -1,4 +1,4 @@
-# pilotstd/core/config/paths.py
+# 模块：pilotstd/core/config/paths.py
 # 目录/路径相关函数 — 从 config.py 拆分
 
 import os

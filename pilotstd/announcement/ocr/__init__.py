@@ -1,4 +1,4 @@
-# pilotstd/announcement/ocr/__init__.py
+# 模块：pilotstd/announcement/ocr/__init__.py
 # OCR 提供商抽象层 — 工厂函数与公开 API
 """公告 PDF OCR 识别。默认百度云 basicGeneralPdf 接口，用户可配腾讯云/阿里云。
 

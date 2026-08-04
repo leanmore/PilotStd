@@ -1,4 +1,4 @@
-# pilotstd/announcement/_wps_utils.py
+# 模块：pilotstd/announcement/_wps_utils.py
 # Phase 2a: WPS 文本清洗 + 条目切分工具函数
 # 从 parser.py 拆分以控制文件大小
 

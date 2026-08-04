@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_file_index.py
+# 模块：pilotstd/manager/facade/_file_index.py
 """FileIndexHandler：文件索引读写操作，替代原 FileIndexMixin。"""
 # 薄包装层：透传 file_index 仓库调用，不包含业务逻辑；
 # upsert 支持 raw_number 参数保留前导零（Q28），get_full_info JOIN 缓存表提供离线完整视图

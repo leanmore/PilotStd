@@ -1,6 +1,6 @@
-# pilotstd/core/updater.py
+# 模块：pilotstd/core/updater.py
 # 半自动升级：GitHub Release 检查、下载、校验、生成更新脚本
-#
+# 分隔
 # UI 层只负责对话框交互，本模块处理所有网络/文件/校验逻辑。
 
 import hashlib

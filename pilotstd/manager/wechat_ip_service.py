@@ -1,4 +1,4 @@
-# pilotstd/manager/wechat_ip_service.py
+# 模块：pilotstd/manager/wechat_ip_service.py
 # 微信 IP 检测服务 — 供 API 层 + app.py 生命周期使用
 
 from __future__ import annotations

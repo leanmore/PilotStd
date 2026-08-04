@@ -1,7 +1,7 @@
-# pilotstd/query/adapters/ahbz.py
+# 模块：pilotstd/query/adapters/ahbz.py
 # 安徽标准化信息服务平台适配器 (https://bzxx.ahbz.org.cn)
-#
-# API: POST /standard/query
+# 分隔
+# 说明：API: POST /standard/query
 # 参数: type(1=国标/2=行标/3=地标/4=国际/5=团标), code(标准号), size, page
 # 免鉴权、免 Sign、免 Token——最简单的一类站点
 # code 字段模糊匹配(likes %code%)，搜索结果需客户端按标准号精确过滤

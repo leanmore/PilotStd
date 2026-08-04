@@ -1,4 +1,4 @@
-# pilotstd/manager/organize/organizer.py
+# 模块：pilotstd/manager/organize/organizer.py
 # 核心归类逻辑 — 从 organizer_service.py 拆分
 # 负责 PDF 按标准号分类移动、Word/模板镜像归档、内容去重、索引写入
 

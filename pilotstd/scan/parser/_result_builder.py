@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_result_builder.py
+# 模块：pilotstd/scan/parser/_result_builder.py
 # 结果构建 Handler
 """提供标准解析结果构建和名称清理功能。"""
 
@@ -169,7 +169,7 @@ class ResultBuilder:
             return None
 
         # [TRACE] 指令A-2: 输出ParsedStdInfo完整字段
-        # NOTE: debug format string has 10 placeholders — keep args in sync
+        # 说明：NOTE: debug format string has 10 placeholders — keep args in sync
         logger.debug(
             "[TRACE-A] 解析信息: 代号=%s 编号=%d 年份=%d 部分号=%s "
             "标准名称=%r 源名称=%r 编号前缀=%r 编号后缀=%r 扩展名=%r 原始编号=%r",

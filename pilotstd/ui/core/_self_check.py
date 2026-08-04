@@ -1,4 +1,4 @@
-# pilotstd/ui/core/_self_check.py
+# 模块：pilotstd/ui/core/_self_check.py
 """启动自检 — 在 MainWindow.__init__ 完成后调用，验证 Handler 组合模式的完整性。
 
 仅在环境变量 PILOTSTD_SELF_CHECK=1 时执行，输出检查结果到 stderr。

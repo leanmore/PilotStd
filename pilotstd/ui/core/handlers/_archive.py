@@ -1,4 +1,4 @@
-# pilotstd/ui/core/handlers/_archive.py
+# 模块：pilotstd/ui/core/handlers/_archive.py
 """ArchiveUIHandler — 归档 UI 状态管理，替代 ArchiveMixin。
 
 重构后纯逻辑委托给 self._engine（ArchiveFlowEngine），

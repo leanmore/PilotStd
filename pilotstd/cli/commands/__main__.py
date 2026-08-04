@@ -1,4 +1,4 @@
-# pilotstd/cli/commands/__main__.py
+# 模块：pilotstd/cli/commands/__main__.py
 # 允许 python -m pilotstd.cli.commands 方式启动
 import sys
 

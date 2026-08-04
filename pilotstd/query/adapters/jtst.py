@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/jtst.py
+# 模块：pilotstd/query/adapters/jtst.py
 """
 交通运输部标准查询适配器
 

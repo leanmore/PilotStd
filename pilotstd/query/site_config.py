@@ -1,4 +1,4 @@
-# pilotstd/query/site_config.py
+# 模块：pilotstd/query/site_config.py
 # 默认站点配置 — 单一事实来源。
 # manager / main_window / cli 均从此导入，不再各自手写。
 # Phase 3.1: 新增 ADAPTER_DEFAULT_PROFILES 字典（21 适配器完整画像）+ request_interval 字段

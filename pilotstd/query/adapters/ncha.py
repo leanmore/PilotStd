@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/ncha.py
+# 模块：pilotstd/query/adapters/ncha.py
 """
 文物保护标准查询适配器
 

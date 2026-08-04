@@ -1,6 +1,6 @@
-# pilotstd/ui/core/handlers/archive_worker_factory.py
+# 模块：pilotstd/ui/core/handlers/archive_worker_factory.py
 # ArchiveWorkerFactory — 封装 NormalizeWorker + ArchiveWorker 创建和信号连接。
-#
+# 分隔
 # 将 on_normalize / on_save_to_folder 中的信号连接逻辑从 Handler 迁移至工厂。
 """ArchiveWorkerFactory — 封装 NormalizeWorker + ArchiveWorker 创建和信号连接。
 

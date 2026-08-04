@@ -1,4 +1,4 @@
-# pilotstd/core/settings_utils.py
+# 模块：pilotstd/core/settings_utils.py
 """Settings pure utilities — zero GUI/I/O dependencies."""
 
 

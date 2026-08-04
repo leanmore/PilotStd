@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/sppt_local.py
+# 模块：pilotstd/query/adapters/sppt_local.py
 """
 食品安全地方标准数据检索平台适配器（8087）
 

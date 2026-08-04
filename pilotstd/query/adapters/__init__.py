@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/__init__.py
+# 模块：pilotstd/query/adapters/__init__.py
 from .base import BaseAdapter
 from .ccsn import CCSNAdapter
 from .csres import CsresAdapter

@@ -1,4 +1,4 @@
-# pilotstd/core/config/migrate.py
+# 模块：pilotstd/core/config/migrate.py
 # 配置迁移 + 规则导入导出 — 从 config.py 拆分
 
 import json

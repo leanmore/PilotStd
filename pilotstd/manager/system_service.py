@@ -1,4 +1,4 @@
-# pilotstd/manager/system_service.py
+# 模块：pilotstd/manager/system_service.py
 # 系统状态服务 — 供 API 层迁移使用
 
 from typing import Any

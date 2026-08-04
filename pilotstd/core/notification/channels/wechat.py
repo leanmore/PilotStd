@@ -1,4 +1,4 @@
-# pilotstd/core/notification/channels/wechat.py
+# 模块：pilotstd/core/notification/channels/wechat.py
 """企业微信机器人 Webhook 通知渠道。"""
 
 import json

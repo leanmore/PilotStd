@@ -1,6 +1,6 @@
-# pilotstd/ui/pages/task_page.py
+# 模块：pilotstd/ui/pages/task_page.py
 # 任务中心：历史记录、进度、日志
-#
+# 分隔
 # 展示后台任务列表和详情信息。
 
 from typing import Any

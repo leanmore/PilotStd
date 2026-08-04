@@ -1,4 +1,4 @@
-# pilotstd/core/db/migrations.py
+# 模块：pilotstd/core/db/migrations.py
 # Schema 迁移函数（v16+）— v2-v15 已拆至 _migrate_v2_v15.py
 
 import logging

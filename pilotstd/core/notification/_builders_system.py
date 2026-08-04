@@ -1,6 +1,6 @@
-# pilotstd/core/notification/_builders_system.py
+# 模块：pilotstd/core/notification/_builders_system.py
 # 通知消息构建器(系统/备份/错误) — 原 _SystemBuildersMixin，现为模块级纯函数
-#
+# 分隔
 # 覆盖事件：归档完成、自动备份、公告检查、镜像更新、可信IP、Worker异常、
 # 任务失败、公告抓取失败、配额耗尽。每个构建器独立返回 NotificationMessage。
 

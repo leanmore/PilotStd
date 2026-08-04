@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/jjg.py
+# 模块：pilotstd/query/adapters/jjg.py
 """
 国家计量技术规范全文公开系统适配器
 

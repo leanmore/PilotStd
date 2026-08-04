@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/_base.py
+# 模块：pilotstd/manager/facade/_base.py
 """BaseFacade：构建 ManagerCore，初始化各子系统，组合 Handler。"""
 
 from __future__ import annotations
@@ -250,7 +250,7 @@ class BaseFacade:
 
     def _bind_methods(self) -> None:
         """将 Handler 方法绑定到 self，保持对外 API 不变。"""
-        # ---- ScanHandler ----
+        # ---- 扫描处理器 ----
         self.scan_directory = self._scan_handler.scan_directory
         self.scan_directory_stream = self._scan_handler.scan_directory_stream
         self.scan_stream = self._scan_handler.scan_stream
@@ -258,7 +258,7 @@ class BaseFacade:
         self.start_watching = self._scan_handler.start_watching
         self.stop_watching = self._scan_handler.stop_watching
 
-        # ---- QueryHandler ----
+        # ---- 查询处理器 ----
         self.query = self._query_handler.query
         self.query_stream = self._query_handler.query_stream
         self.set_pause_event = self._query_handler.set_pause_event
@@ -282,7 +282,7 @@ class BaseFacade:
         self.get_query_status = self._query_handler.get_query_status
         self.get_adapter_report = self._query_handler.get_adapter_report
 
-        # ---- DownloadHandler ----
+        # ---- 下载处理器 ----
         self.download = self._download_handler.download
         self.download_stream = self._download_handler.download_stream
         self.download_by_numbers = self._download_handler.download_by_numbers
@@ -290,7 +290,7 @@ class BaseFacade:
         self.get_due_downloads = self._download_handler.get_due_downloads
         self.remove_download_queue = self._download_handler.remove_download_queue
 
-        # ---- OrganizeHandler ----
+        # ---- 归档处理器 ----
         self.archive_standards = self._organize_handler.archive_standards
         self.organize_skipped_dirs = self._organize_handler.organize_skipped_dirs
         self.organize_fallback = self._organize_handler.organize_fallback
@@ -300,14 +300,14 @@ class BaseFacade:
         self.normalize_files = self._organize_handler.normalize_files
         self.normalize_files_stream = self._organize_handler.normalize_files_stream
 
-        # ---- FileIndexHandler ----
+        # ---- 文件索引处理器 ----
         self.upsert_file_index = self._file_index_handler.upsert_file_index
         self.get_file_index = self._file_index_handler.get_file_index
         self.get_file_index_full_info = self._file_index_handler.get_file_index_full_info
         self.parse_standard_number = self._file_index_handler.parse_standard_number
         self.restore_parsed_from_index = self._file_index_handler.restore_parsed_from_index
 
-        # ---- AutoPipeline ----
+        # ---- 自动流水线 ----
         self.auto_run = self._auto_pipeline.auto_run
         self.auto_run_stream = self._auto_pipeline.auto_run_stream
 

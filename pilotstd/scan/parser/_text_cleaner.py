@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_text_cleaner.py
+# 模块：pilotstd/scan/parser/_text_cleaner.py
 # 文本清洗 Handler
 """提供标准文件名文本清洗功能。"""
 

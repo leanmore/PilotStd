@@ -1,4 +1,4 @@
-# pilotstd/ui/workers/update_download.py
+# 模块：pilotstd/ui/workers/update_download.py
 """UpdateDownloadWorker — 后台下载更新文件，通过信号通知进度。"""
 
 from __future__ import annotations

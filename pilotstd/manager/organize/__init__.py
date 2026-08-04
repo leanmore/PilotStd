@@ -1,4 +1,4 @@
-# pilotstd/manager/organize/__init__.py
+# 模块：pilotstd/manager/organize/__init__.py
 # 归类服务 — 从 organizer_service.py 拆分为 4 个子模块
 
 from typing import Any

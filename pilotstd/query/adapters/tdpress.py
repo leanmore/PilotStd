@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/tdpress.py
+# 模块：pilotstd/query/adapters/tdpress.py
 """
 铁路标准查询适配器
 

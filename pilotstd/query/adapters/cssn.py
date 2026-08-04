@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/cssn.py
+# 模块：pilotstd/query/adapters/cssn.py
 """
 中国标准服务网适配器
 

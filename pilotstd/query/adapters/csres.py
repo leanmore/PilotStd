@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/csres.py
+# 模块：pilotstd/query/adapters/csres.py
 # 工标网查询适配器（csres.com）
 # 逐页逐行搜索，标准编号精确比对后才返回
 

@@ -1,6 +1,6 @@
 # pilotstd/download/adapters/base.py — 下载适配器抽象基类
 # 所有下载网站适配器的基类，定义统一接口。
-#
+# 分隔
 # 如何新增一个下载适配器：
 #   1. 继承 BaseDownloadAdapter
 #   2. 实现 site_name 属性（返回唯一标识，如 "example_com"）
@@ -9,7 +9,7 @@
 #   5. 如需额外参数（如 hcno），通过 task.extra 字典传递，在适配器 docstring 中说明
 #   6. 在 DownloadEngine 构造时传入适配器实例（含 session）
 #   7. 适配器负责管理自身的请求头、Cookie、验证码等逻辑
-#
+# 分隔
 # task.extra 约定：
 #   - "hcno": str — 标准唯一 ID（openstd 下载需要，取自查询结果）
 #   - 其他键由各适配器自行定义

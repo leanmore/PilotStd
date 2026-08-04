@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# scripts/check_cache_baseline.py
+# 模块：scripts/check_cache_baseline.py
 # 生成 standard_info_cache 表的完整基线报告
 # 用途：CLI 冷启结束后调用，为 WinUI 甲轮一致性校验提供基线
 # 用法：python scripts/check_cache_baseline.py [--db data/pilotstd.db]

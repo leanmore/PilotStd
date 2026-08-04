@@ -1,4 +1,4 @@
-# pilotstd/manager/facade/__init__.py
+# 模块：pilotstd/manager/facade/__init__.py
 """StandardManager — 业务逻辑门面，统一 API 封装扫描→查询→下载→归类完整流程。
 
 组合模式重构：所有 Mixin 已拆分为独立 Handler，通过 BaseFacade 组合。

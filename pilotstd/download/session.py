@@ -1,4 +1,4 @@
-# pilotstd/download/session.py
+# 模块：pilotstd/download/session.py
 # HTTP 会话管理：UA 轮换、重试退避、代理、随机延迟
 
 import logging

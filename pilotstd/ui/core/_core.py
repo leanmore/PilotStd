@@ -1,4 +1,4 @@
-# pilotstd/ui/core/_core.py
+# 模块：pilotstd/ui/core/_core.py
 """MainWindowCore — UI 核心容器，组合所有 Handler，替代多重继承 Mixin。
 
 查询子系统初始化已提取至 _core_init_query.py，适配器类已提取至 _core_adapters.py。

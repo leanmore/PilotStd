@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_constants.py
+# 模块：pilotstd/scan/parser/_constants.py
 # 标准解析器常量 — 正则模式 + 查询表
 """正则原子构件、代号集合、分组路由表。"""
 

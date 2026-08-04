@@ -1,4 +1,4 @@
-# pilotstd/core/notification/desktop_formatter.py
+# 模块：pilotstd/core/notification/desktop_formatter.py
 """桌面端 Windows Toast 格式化——剥离 Emoji、截断长度、纯文本排版。
 
 新版聚合器 format_summary 面向 Telegram/飞书等 Web 渠道，使用了 ✅❌⏱️ 等 Emoji。

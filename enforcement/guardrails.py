@@ -1,6 +1,6 @@
-# enforcement/guardrails.py
+# 模块：enforcement/guardrails.py
 # 三位一体治理体系 D5 强制执行层
-#
+# 分隔
 # 规范基准: docs/governance/trinity-technical-spec-v2.md §4
 # 核心接口: validate_prompt / session_bootstrap / validate_decision_request / atomic_write_notes
 
@@ -23,9 +23,9 @@ from src.types.bootstrap import (
 logger = logging.getLogger(__name__)
 
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
 # 异常定义
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
 
 
 class EnforcementError(Exception):
@@ -40,9 +40,9 @@ class UnauthorizedWriteError(EnforcementError):
     """非白名单调用方尝试写入。"""
 
 
-# ═══════════════════════════════════════════
-# 4.1 Pre-flight: validate_prompt
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
+# 4.1 预检: validate_prompt
+# ═══════════════════════════════════════════ 分隔
 
 _VALID_TRIGGER_TYPES = frozenset(
     {
@@ -213,9 +213,9 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-# ═══════════════════════════════════════════
-# 4.1 Session Bootstrap: session_bootstrap
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
+# 4.1 会话启动: session_bootstrap
+# ═══════════════════════════════════════════ 分隔
 
 SESSION_NOTES = "local-session-notes.md"
 
@@ -363,9 +363,9 @@ def _run_cleanup() -> CleanupReport:
     )
 
 
-# ═══════════════════════════════════════════
-# 4.1 Post-output: validate_decision_request
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
+# 4.1 输出后校验: validate_decision_request
+# ═══════════════════════════════════════════ 分隔
 
 _MAX_RETRIES = 3
 
@@ -453,9 +453,9 @@ def _log_retry_exhaustion(output: str, retry_count: int) -> None:
     )
 
 
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
 # 4.1 原子写入 SDK: atomic_write_notes
-# ═══════════════════════════════════════════
+# ═══════════════════════════════════════════ 分隔
 
 
 def atomic_write_notes(new_content: str, caller: str) -> None:

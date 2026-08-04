@@ -1,4 +1,4 @@
-# pilotstd/core/notification/_policy.py
+# 模块：pilotstd/core/notification/_policy.py
 # 通知策略表读写 Helper — 从 manager.py 拆分以控制文件规模
 
 import json as _json

@@ -1,4 +1,4 @@
-# pilotstd/ui/drive_enumerator.py
+# 模块：pilotstd/ui/drive_enumerator.py
 # 后台线程枚举驱动器，避免网络驱动器阻塞 UI 主线程（从 file_tree_mixin.py 提取）
 
 from PyQt6.QtCore import QDir, QThread, pyqtSignal

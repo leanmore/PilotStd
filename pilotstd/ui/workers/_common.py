@@ -1,6 +1,6 @@
-# pilotstd/ui/workers/_common.py
+# 模块：pilotstd/ui/workers/_common.py
 # 共享工具函数、常量、数据类 — 从 workers.py 拆分
-#
+# 分隔
 # 所有 Worker 共用的批量处理常量、进度工具和日志处理器。
 
 import logging

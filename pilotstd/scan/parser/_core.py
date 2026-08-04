@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_core.py
+# 模块：pilotstd/scan/parser/_core.py
 # 解析器 Handler 组合容器
 """ParserCore — 持有 5 个 Handler 实例，对外暴露统一快捷方法。"""
 

@@ -1,9 +1,9 @@
-# pilotstd/scan/filename_normalizer.py
+# 模块：pilotstd/scan/filename_normalizer.py
 # 归档文件名规范化器 — 剥离原始语种/版次标记，重新组装为统一格式
-#
+# 分隔
 # 流水线: 源文件名 → ①识语种 → ②识版次 → ③剥离标记 → ④清理 → ⑤重组
 # 输出: [标准号] [标题] [版次](语种).pdf
-#
+# 分隔
 # 剥离策略：仅剥离语种/版次标记，保护标准代号段（如 BS EN 中的 EN 不是语种）
 
 import re

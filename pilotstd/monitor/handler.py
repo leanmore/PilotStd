@@ -1,4 +1,4 @@
-# pilotstd/monitor/handler.py
+# 模块：pilotstd/monitor/handler.py
 """watchdog EventHandler——延迟 + 去重处理新文件。"""
 
 import logging

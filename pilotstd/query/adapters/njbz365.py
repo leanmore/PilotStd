@@ -1,4 +1,4 @@
-# pilotstd/query/adapters/njbz365.py
+# 模块：pilotstd/query/adapters/njbz365.py
 # 南京标准公共服务平台查询适配器（njbz365.cn 新站，2026-05-25上线）
 # 会话管理/签名/请求重试已提取至 _njbz365_session.py
 

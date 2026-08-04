@@ -1,4 +1,4 @@
-# pilotstd/core/audit.py
+# 模块：pilotstd/core/audit.py
 """审计日志写入/读取 — detail 用 json.dumps/loads 保证 SQLite TEXT 兼容。
 
 用法:

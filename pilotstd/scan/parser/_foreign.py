@@ -1,4 +1,4 @@
-# pilotstd/scan/parser/_foreign.py
+# 模块：pilotstd/scan/parser/_foreign.py
 # 标准解析器国外标准后处理模块 — 原 ForeignHandlerMixin，现为模块级纯函数
 """国外标准定向后处理 — 按分组路由到对应 handler。"""
 

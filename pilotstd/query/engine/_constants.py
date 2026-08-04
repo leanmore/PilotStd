@@ -1,4 +1,4 @@
-# pilotstd/query/engine/_constants.py
+# 模块：pilotstd/query/engine/_constants.py
 # 查询引擎常量 — 站点优先级、路由表
 """PROGRESS_TAG、按标准代号分流路由表。"""
 
