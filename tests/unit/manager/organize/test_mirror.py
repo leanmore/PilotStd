@@ -2,6 +2,7 @@
 
 import os
 import stat
+import sys
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -161,6 +162,7 @@ class TestResolveSkippedRelative:
         rel, dst = mirror._resolve_skipped_relative(src_dir, root, None)
         assert rel == "mydir"
 
+    @pytest.mark.skipif(sys.platform != "win32", reason="长路径前缀 \\\\?\\ 仅 Windows 支持")
     def test_long_path_prefix_stripped(self, mirror, tmp_path):
         r"""\\?\ 前缀 → 被剥离后正常计算。"""
         root = str(tmp_path / "library")
