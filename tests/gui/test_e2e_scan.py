@@ -8,6 +8,7 @@ import shutil
 import tempfile
 
 import pytest
+from PyQt6.QtWidgets import QApplication
 
 
 def _copy_fixtures_to_tmp(test_data_dir: str) -> str:
@@ -33,10 +34,11 @@ def test_run_scan_populates_table(window, test_data_dir, qtbot):
         handler = window._core.scan
         handler.run_scan(tmp)
 
-        # 等待 ScanWorker 完成
+        # 等待 ScanWorker 完成 + 处理剩余队列信号
         worker = handler._scan_worker
         if worker is not None:
             qtbot.waitUntil(lambda: not worker.isRunning(), timeout=10000)
+        QApplication.processEvents()
 
         table = window.work_table
         assert table.rowCount() > 0, "扫描后表格应有数据行"
