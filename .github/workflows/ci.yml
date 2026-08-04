@@ -52,6 +52,12 @@ jobs:
           fi
           echo "✅ No forbidden imports found."
 
+      # ── Fail-Fast: Schema 一致性阻断 ──────────────────────────
+      # 在运行 3000+ 测试之前先校验表结构，MISSING 列 → exit 1 阻断，
+      # EXTRA 列仅警告不阻断。避免测试跑了 2 分钟后才发现 Schema 不一致。
+      - name: Schema consistency check (blocking)
+        run: python scripts/check_schema_consistency.py
+
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
@@ -113,9 +119,6 @@ jobs:
 
       - name: G-028 — 禁止硬编码 admin
         run: python scripts/check_g_028_no_hardcoded_admin.py
-
-      - name: Schema consistency check (warning mode)
-        run: python scripts/check_schema_consistency.py
 
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
