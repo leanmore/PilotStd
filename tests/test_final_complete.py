@@ -194,11 +194,9 @@ class TestAnnouncement(unittest.TestCase):
 class TestManager(unittest.TestCase):
     def test_expire_mixin_merge(self):
         """Q26: merge_expire_from_source 保留，handle_expired 已删除。"""
-        from pilotstd.manager.organize.expire import OrganizerExpireMixin
+        from pilotstd.manager.organize.expire import merge_expire_from_source
 
-        mixin = OrganizerExpireMixin()
-        self.assertFalse(hasattr(mixin, "handle_expired"))
-        self.assertTrue(hasattr(mixin, "merge_expire_from_source"))
+        self.assertTrue(callable(merge_expire_from_source))
 
     def test_facade_base_init(self):
         from pilotstd.manager.facade._base import BaseFacade

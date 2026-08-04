@@ -1,5 +1,6 @@
 # pilotstd/core/_file_index_query.py
-# 文件索引查询混入 — 从 file_index.py 提取
+# 文件索引查询 — 从 file_index.py 提取
+# 原 _FileIndexQueryMixin，现为独立类 FileIndexQuery（组合注入 db）
 # THREADING: single-threaded, no lock needed
 
 from __future__ import annotations
@@ -18,11 +19,14 @@ ANNOUNCEMENT_CACHE_TABLE = "announcement_match"
 logger = logging.getLogger(__name__)
 
 
-class _FileIndexQueryMixin:
-    """文件索引查询方法集合（混入 FileIndexRepository）。
+class FileIndexQuery:
+    """文件索引查询方法集合（组合注入到 FileIndexRepository）。
 
-    所有方法通过 self._db 访问数据库连接，_db 由 FileIndexRepository.__init__ 注入。
+    构造时注入 db，所有查询方法通过 self._db 访问数据库。
     """
+
+    def __init__(self, db):
+        self._db = db
 
     # ---- 基础读取 ----
 

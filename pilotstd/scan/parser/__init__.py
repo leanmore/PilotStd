@@ -33,9 +33,9 @@ from ._constants import (
     _compile,
 )
 from ._core import ParserCore
-from ._exact import ExactMatchMixin
+from ._exact_matcher import ExactMatcher
 from ._file_kind_detector import FileKindDetector
-from ._foreign import ForeignHandlerMixin
+from ._foreign import _post_process_foreign
 from ._language_detector import LanguageDetector
 from ._number_extractor import NumberExtractor
 from ._result_builder import ResultBuilder
@@ -44,12 +44,13 @@ from ._text_cleaner import TextCleaner
 logger = logging.getLogger(__name__)
 
 
-class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
-    """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份"""
+class StandardParser:
+    """增强型标准文件名解析器，支持精确匹配和模糊匹配，兼容历史两位年份。
 
-    # 静态方法代理（保持类级别访问兼容，如 StandardParser._clean(...)）
-    # mypy 忽略说明：基类 ExactMatchMixin 中这些是实例方法，
-    # 子类用 staticmethod 覆盖时 mypy 报签名不匹配，但运行时正确
+    匹配通道委托给 ExactMatcher（组合注入），辅助方法为 staticmethod 绑定。
+    """
+
+    # 静态方法代理（供 ExactMatcher 通过 self._parser._xxx() 回调）
     _clean = staticmethod(TextCleaner.clean)  # type: ignore[assignment]
     _detect_language = staticmethod(LanguageDetector.detect)  # type: ignore[assignment]
     _detect_file_kind = staticmethod(FileKindDetector.detect)  # type: ignore[assignment]
@@ -111,8 +112,10 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
             _SEP,
             _YEAR_DB,
         )
+        # ExactMatcher 组合实例（匹配通道委托）
+        self._matcher = ExactMatcher(self)
 
-    # ── 实例方法代理（委托 ParserCore，供 ExactMatchMixin 通过 MRO 调用）─────────
+    # ── 实例方法代理（委托 ParserCore，供 ExactMatcher 通过 self._parser 回调）──
 
     def _trim_prefix(self, prefix: str, text: str) -> str:
         return self._core.trim_prefix(prefix, text)
@@ -131,7 +134,7 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
         file_kind: str | None = None,
         require_year: bool = True,
     ) -> Optional[ParsedStdInfo]:
-        """委托给 ParserCore 构建 ParsedStdInfo，供 ExactMatchMixin 内部调用。"""
+        """委托给 ParserCore 构建 ParsedStdInfo，供 ExactMatcher 内部调用。"""
         return self._core.build_result(
             text,
             match_end,
@@ -180,13 +183,13 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
         cleaned, raw_ext, language, basename = self._preprocess_input(filename)
 
         channels = [
-            (self._exact_match_db, cleaned, "DB"),
-            (self._exact_match_bpvc, cleaned, "BPVC"),
-            (self._exact_match_itu, cleaned, "ITU"),
-            (self._exact_match, cleaned, "exact"),
-            (self._exact_match_typed, cleaned, "typed"),
-            (self._fuzzy_match_with_context, basename, "fuzzy"),
-            (self._exact_match_no_year, cleaned, "no_year"),
+            (self._matcher._exact_match_db, cleaned, "DB"),
+            (self._matcher._exact_match_bpvc, cleaned, "BPVC"),
+            (self._matcher._exact_match_itu, cleaned, "ITU"),
+            (self._matcher._exact_match, cleaned, "exact"),
+            (self._matcher._exact_match_typed, cleaned, "typed"),
+            (self._matcher._fuzzy_match_with_context, basename, "fuzzy"),
+            (self._matcher._exact_match_no_year, cleaned, "no_year"),
         ]
         for match_fn, arg, channel in channels:
             result = self._enrich_and_finalize(match_fn(arg), raw_ext, language, filename, channel)
@@ -226,7 +229,7 @@ class StandardParser(ExactMatchMixin, ForeignHandlerMixin):
         elif family == "foreign":
             if not info.language:  # parse() 入口未识别到时再尝试
                 info.language = self._detect_language(info.raw_filename)
-            self._post_process_foreign(info)
+            _post_process_foreign(info)
         return info
 
 

@@ -138,11 +138,9 @@ class TestTaskQueueProxy(unittest.TestCase):
         """验证 task_queue 可以作为属性访问（不抛 AttributeError）"""
         from pilotstd.manager.facade._base import BaseFacade
 
-        # 通过 inspect 确认 task_queue property 存在
-        self.assertTrue(
-            hasattr(BaseFacade, "task_queue") and isinstance(getattr(BaseFacade, "task_queue"), property),
-            "BaseFacade 应有 task_queue 的 @property 代理",
-        )
+        mgr = BaseFacade()
+        # 原 @property 代理已替换为 __getattr__ 动态代理，行为等价
+        self.assertIsNotNone(mgr.task_queue, "BaseFacade 实例应能访问 task_queue")
 
 
 class TestIconPath(unittest.TestCase):

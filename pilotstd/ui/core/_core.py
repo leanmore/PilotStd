@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ...core.config import ConfigManager
 
 from ...core.config import get_library_root
-from ._core_init_query import _CoreInitQueryMixin
+from ._core_init_query import init_query_subsystem
 from .handlers._announce import AnnounceUIHandler
 from .handlers._archive import ArchiveUIHandler
 from .handlers._auto import AutoUIHandler
@@ -24,11 +24,8 @@ from .handlers._project import ProjectHandler
 from .handlers._scan import ScanUIHandler
 
 
-class MainWindowCore(_CoreInitQueryMixin):
-    """UI 核心容器，持有所有 UI Handler 实例，通过组合模式替代 Mixin。
-
-    查询初始化由 _CoreInitQueryMixin 提供。
-    """
+class MainWindowCore:
+    """UI 核心容器，持有所有 UI Handler 实例，通过组合模式替代 Mixin。"""
 
     def __init__(
         self,
@@ -111,7 +108,7 @@ class MainWindowCore(_CoreInitQueryMixin):
     def _init_all_handlers(self) -> None:
         """批量初始化所有 UI Handler。"""
         self._init_scan()
-        self._init_query()
+        init_query_subsystem(self)
         self._init_download()
         self._init_archive()
         self._init_auto()

@@ -378,7 +378,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
             "network.timeout": 5,
         }.get(k, d)
         h = QueryHandler(self.core)
-        with patch("pilotstd.manager.facade._query_exec.requests.get", side_effect=requests.exceptions.Timeout()):
+        with patch("pilotstd.manager.facade._query_subsystem.requests.get", side_effect=requests.exceptions.Timeout()):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNone(result)
 
@@ -394,7 +394,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
         }.get(k, d)
         h = QueryHandler(self.core)
         with patch(
-            "pilotstd.manager.facade._query_exec.requests.get", side_effect=requests.exceptions.ConnectionError()
+            "pilotstd.manager.facade._query_subsystem.requests.get", side_effect=requests.exceptions.ConnectionError()
         ):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNone(result)
@@ -410,7 +410,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
         h = QueryHandler(self.core)
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"found": True, "data": {"standard_name": "Test"}, "cached_at": "2024-01-01"}
-        with patch("pilotstd.manager.facade._query_exec.requests.get", return_value=mock_resp):
+        with patch("pilotstd.manager.facade._query_subsystem.requests.get", return_value=mock_resp):
             result = h._query_announcement_match("GB/T 1.1")
             self.assertIsNotNone(result)
             self.assertEqual(result["data"]["standard_name"], "Test")
@@ -426,18 +426,17 @@ class TestOrganizerMirror(unittest.TestCase):
         import tempfile
 
         self.tmpdir = tempfile.mkdtemp()
-        self.mixin = MagicMock()
-        self.mixin._cfg = MagicMock()
-        self.mixin._cfg.get.return_value = "过期作废"
-        self.mixin._FALLBACK_SKIP_FILES = frozenset()
-        self.mixin._FALLBACK_SKIP_PREFIX = ()
-        self.mixin._skipped_source_files = frozenset()
-        from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+        from unittest.mock import MagicMock
+        from pilotstd.manager.organize.mirror import OrganizerMirror
 
-        # Bind methods
-        self.mixin.organize_skipped_dirs = OrganizerMirrorMixin.organize_skipped_dirs.__get__(self.mixin)
-        self.mixin._resolve_skipped_relative = OrganizerMirrorMixin._resolve_skipped_relative.__get__(self.mixin)
-        self.mixin._check_path_traversal = OrganizerMirrorMixin._check_path_traversal.__get__(self.mixin)
+        cfg = MagicMock()
+        cfg.get.return_value = "过期作废"
+        self.mirror = OrganizerMirror(
+            cfg,
+            fallback_skip_files=frozenset(),
+            fallback_skip_prefix="",
+        )
+        self.mirror._skipped_source_files = frozenset()
 
     def tearDown(self):
         import shutil
@@ -450,15 +449,15 @@ class TestOrganizerMirror(unittest.TestCase):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         with open(dst, "w") as f:
             f.write("test")
-        result = self.mixin._check_path_traversal(dst, root, self.tmpdir)
+        result = self.mirror._check_path_traversal(dst, root, self.tmpdir)
         self.assertTrue(result)
 
     def test_organize_skipped_dirs_empty(self):
-        result = self.mixin.organize_skipped_dirs([])
+        result = self.mirror.organize_skipped_dirs([])
         self.assertEqual(result["moved"], 0)
 
     def test_resolve_skipped_relative_nonexistent(self):
-        result = self.mixin._resolve_skipped_relative("/nonexistent/path", self.tmpdir, "/src")
+        result = self.mirror._resolve_skipped_relative("/nonexistent/path", self.tmpdir, "/src")
         self.assertIsNone(result)
 
 

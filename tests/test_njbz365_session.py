@@ -1,5 +1,4 @@
-# tests/test_njbz365_session.py
-"""_njbz365_session.py 单元测试 — 覆盖会话管理、签名计算、重试逻辑。"""
+"""Njz365SessionManager 单元测试 — 覆盖会话管理、签名计算、重试逻辑。"""
 
 import hashlib
 import unittest
@@ -8,21 +7,10 @@ from unittest.mock import MagicMock, patch
 import requests
 import responses
 
-from pilotstd.query.adapters._njbz365_session import (
-    _Njbz365SessionMixin,
+from pilotstd.query.adapters._njbz365_session_manager import (
+    Njz365SessionManager,
     _PRIVATE_KEY,
 )
-
-
-class _TestableSession(_Njbz365SessionMixin):
-    """最小可行子类，用于独立测试 Mixin 方法。"""
-
-    def __init__(self):
-        self._session = requests.Session()
-        self._initialized = False
-        self._jwt = ""
-        self._csrf_token = ""
-        self._session_val = ""
 
 
 class TestComputeSign(unittest.TestCase):
@@ -30,28 +18,27 @@ class TestComputeSign(unittest.TestCase):
 
     def test_basic_sign(self):
         params = {"api": "gbtitle_gl", "gjz": "test", "token": "jwt123"}
-        result = _Njbz365SessionMixin._compute_sign(params)
+        result = Njz365SessionManager._compute_sign(params)
         self.assertIsInstance(result, str)
         self.assertEqual(len(result), 32)  # MD5 hex = 32 chars
 
     def test_empty_values_filtered(self):
         """空字符串和 None 值被过滤。"""
         params = {"api": "gbtitle_gl", "gjz": "", "token": None, "page": "1"}
-        result = _Njbz365SessionMixin._compute_sign(params)
+        result = Njz365SessionManager._compute_sign(params)
         self.assertIsInstance(result, str)
 
     def test_json_data_key_excluded(self):
         """json_data key 被排除。"""
         params = {"api": "test", "json_data": "{}", "page": "1"}
-        result = _Njbz365SessionMixin._compute_sign(params)
+        result = Njz365SessionManager._compute_sign(params)
         self.assertIsInstance(result, str)
 
     def test_keys_sorted(self):
         """key 按字母排序后拼接。"""
         params = {"z": "last", "a": "first", "m": "middle"}
-        result = _Njbz365SessionMixin._compute_sign(params)
-        # 验证确定性输出
-        result2 = _Njbz365SessionMixin._compute_sign({"a": "first", "m": "middle", "z": "last"})
+        result = Njz365SessionManager._compute_sign(params)
+        result2 = Njz365SessionManager._compute_sign({"a": "first", "m": "middle", "z": "last"})
         self.assertEqual(result, result2)
 
     def test_contains_private_key(self):
@@ -60,14 +47,14 @@ class TestComputeSign(unittest.TestCase):
         # 手动计算预期签名
         raw = "api=gbtitle_gl&gjz=test&key=" + _PRIVATE_KEY
         expected = hashlib.md5(raw.encode()).hexdigest().upper()
-        self.assertEqual(_Njbz365SessionMixin._compute_sign(params), expected)
+        self.assertEqual(Njz365SessionManager._compute_sign(params), expected)
 
 
 class TestBuildBaseParams(unittest.TestCase):
     """_build_base_params 测试。"""
 
     def setUp(self):
-        self.session = _TestableSession()
+        self.session = Njz365SessionManager(requests.Session())
 
     def test_returns_dict_with_required_fields(self):
         self.session._jwt = "test_jwt"
@@ -84,7 +71,7 @@ class TestEnsureSession(unittest.TestCase):
     """_ensure_session 测试 — 使用 responses 模拟 HTTP。"""
 
     def setUp(self):
-        self.session = _TestableSession()
+        self.session = Njz365SessionManager(requests.Session())
 
     @responses.activate
     def test_first_call_initializes(self):
@@ -148,7 +135,7 @@ class TestRefreshCsrf(unittest.TestCase):
     """_refresh_csrf 测试。"""
 
     def setUp(self):
-        self.session = _TestableSession()
+        self.session = Njz365SessionManager(requests.Session())
 
     @responses.activate
     def test_successful_csrf_refresh(self):
@@ -210,7 +197,7 @@ class TestRetryRequest(unittest.TestCase):
     """_retry_request 测试。"""
 
     def setUp(self):
-        self.session = _TestableSession()
+        self.session = Njz365SessionManager(requests.Session())
 
     @responses.activate
     def test_successful_request(self):
@@ -267,12 +254,12 @@ class TestDoRequest(unittest.TestCase):
     """_do_request 测试。"""
 
     def setUp(self):
-        self.session = _TestableSession()
+        self.session = Njz365SessionManager(requests.Session())
         self.session._jwt = "test_jwt"
         self.session._csrf_token = "test_csrf"
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     def test_successful_search(self, _mock_ensure):
         responses.add(
             responses.POST,
@@ -286,7 +273,7 @@ class TestDoRequest(unittest.TestCase):
         self.assertEqual(result["code"], "0")
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     @patch("time.sleep")
     def test_token_expired_refresh(self, mock_sleep, _mock_ensure):
         """token 过期 → 刷新 session 重试。"""
@@ -311,8 +298,8 @@ class TestDoRequest(unittest.TestCase):
         self.assertFalse(self.session._initialized)
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
-    @patch.object(_TestableSession, "_refresh_csrf")
+    @patch.object(Njz365SessionManager, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_refresh_csrf")
     @patch("time.sleep")
     def test_csrf_expired_refresh(self, mock_sleep, mock_refresh_csrf, _mock_ensure):
         """CSRF 过期 → 刷新 csrf 重试。"""
@@ -334,7 +321,7 @@ class TestDoRequest(unittest.TestCase):
         mock_refresh_csrf.assert_called()
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     @patch("time.sleep")
     def test_timeout_retry_then_success(self, mock_sleep, _mock_ensure):
         """超时重试后成功。"""
@@ -354,7 +341,7 @@ class TestDoRequest(unittest.TestCase):
         self.assertIsNotNone(result)
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     @patch("time.sleep")
     def test_all_attempts_fail(self, mock_sleep, _mock_ensure):
         """全部 3 次尝试失败 → 返回 None。"""
@@ -369,7 +356,7 @@ class TestDoRequest(unittest.TestCase):
         self.assertIsNone(result)
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     def test_non_network_exception_returns_none(self, _mock_ensure):
         """非 Timeout/ConnectionError 的 RequestException → 返回 None。"""
         responses.add(
@@ -382,7 +369,7 @@ class TestDoRequest(unittest.TestCase):
         self.assertIsNone(result)
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     def test_unknown_error_code_returns_none(self, _mock_ensure):
         """未知错误 code（非 0/1001/1002/1003）→ 返回 None。"""
         responses.add(
@@ -396,7 +383,7 @@ class TestDoRequest(unittest.TestCase):
         self.assertIsNone(result)
 
     @responses.activate
-    @patch.object(_TestableSession, "_ensure_session")
+    @patch.object(Njz365SessionManager, "_ensure_session")
     def test_invalid_json_response_returns_none(self, _mock_ensure):
         """响应非 JSON → ValueError → 返回 None。"""
         responses.add(

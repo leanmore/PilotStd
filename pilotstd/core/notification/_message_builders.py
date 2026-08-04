@@ -1,24 +1,44 @@
 # pilotstd/core/notification/_message_builders.py
-# 通知消息构建器混入 — 门面类，聚合三个分类 mixin
+# 通知消息构建器聚合模块 — 原 MessageBuildersMixin，现为模块级函数重导出
 
-
-from ._builders_batch import _BatchBuildersMixin
-from ._builders_system import _SystemBuildersMixin
-from ._builders_validity import _ValidityBuildersMixin
-
-
-def _make_link(standard_number: str | None) -> str | None:
-    """根据标准号生成跳转链接。"""
-    return f"/standards/{standard_number}" if standard_number else None
-
-
-class MessageBuildersMixin(_ValidityBuildersMixin, _BatchBuildersMixin, _SystemBuildersMixin):
-    """事件消息构建器方法集合（混入 NotificationManager）。
-
-    有效性检查构建器: _ValidityBuildersMixin
-    批次/查询/下载构建器: _BatchBuildersMixin
-    系统/备份/错误构建器: _SystemBuildersMixin
-    """
-
-    # 所有 _build_*_message 方法均由三个父类 mixin 提供
-    pass
+from ._builders_batch import (
+    _build_announce_fetch_summary_message,
+    _build_announcement_fetch_complete_message,
+    _build_archive_abandoned_message,
+    _build_archive_failed_message,
+    _build_auto_scan_failed_message,
+    _build_batch_download_complete_message,
+    _build_batch_query_summary_message,
+    _build_date_reminder_message,
+    _build_download_failed_message,
+    _build_expire_standard_moved_message,
+    _build_normalize_complete_message,
+    _build_normalize_failed_message,
+    _build_query_empty_message,
+    _build_query_failed_message,
+    _build_replacement_not_found_message,
+    _build_scan_complete_message,
+    _build_scan_empty_message,
+)
+from ._builders_system import (
+    _build_announcement_check_complete_message,
+    _build_announcement_fetch_failed_message,
+    _build_archive_complete_message,
+    _build_auto_backup_message,
+    _build_fallback_message,
+    _build_image_update_available_message,
+    _build_quota_exhausted_message,
+    _build_task_execution_failed_message,
+    _build_trust_ip_update_message,
+    _build_worker_error_message,
+)
+from ._builders_validity import (
+    _build_standard_expired_message,
+    _build_standard_first_registered_message,
+    _build_standard_status_changed_message,
+    _build_validity_batch_report_message,
+    _build_validity_round_summary_message,
+    _build_validity_standard_failed_message,
+    _build_validity_system_failed_message,
+    _make_link,
+)

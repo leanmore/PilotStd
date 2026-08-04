@@ -1,6 +1,5 @@
 # pilotstd/ui/core/_core_init_query.py
-# 查询初始化混入 — 从 _core.py 提取
-# 包含查询 UI 适配器创建、信号连接和 QueryUIHandler 初始化
+# 查询子系统初始化 — 原 _CoreInitQueryMixin，现为工厂函数
 
 from __future__ import annotations
 
@@ -12,48 +11,42 @@ from ._core_adapters import (
 )
 
 
-class _CoreInitQueryMixin:
-    """查询子系统初始化方法集合（混入 MainWindowCore）。"""
+def init_query_subsystem(core) -> None:
+    """查询子系统初始化：创建适配器 + 信号连接 + QueryUIHandler。
 
-    def _init_query(self) -> None:
-        """查询初始化入口：依次初始化 UI 适配器、信号连接和状态变量。"""
-        self._init_query_ui()
-        self._init_query_connections()
-        self._init_query_state()
+    原 _CoreInitQueryMixin 的 4 个方法合并为一个工厂函数。
+    core 即 MainWindowCore 实例。
+    """
+    # 原 _init_query_ui
+    core._table_ops = _TableOpsAdapter(core)
+    core._dialog_ops = _DialogOpsAdapter(core)
 
-    def _init_query_ui(self) -> None:
-        """初始化查询相关 UI 组件适配器。"""
-        self._table_ops = _TableOpsAdapter(self)
-        self._dialog_ops = _DialogOpsAdapter(self)
+    # 原 _init_query_connections
+    deps = type(
+        "QueryDeps",
+        (),
+        {
+            "table": core._table_ops,
+            "dialog": core._dialog_ops,
+            "task": _TaskOpsAdapter(core),
+            "worker_factory": _QueryWorkerFactoryAdapter(core),
+        },
+    )()
+    core._deps = deps
 
-    def _init_query_connections(self) -> None:
-        """连接查询相关信号：创建 TaskOpsAdapter 和 WorkerFactoryAdapter 依赖。"""
-        core = self
-        self._deps = type(
-            "QueryDeps",
-            (),
-            {
-                "table": self._table_ops,
-                "dialog": self._dialog_ops,
-                "task": _TaskOpsAdapter(core),
-                "worker_factory": _QueryWorkerFactoryAdapter(core),
-            },
-        )()
+    # 原 _init_query_state
+    from .handlers._query import QueryUIHandler
 
-    def _init_query_state(self) -> None:
-        """初始化查询状态变量并创建 QueryUIHandler。"""
-        from .handlers._query import QueryUIHandler
-
-        self.query = QueryUIHandler(
-            deps=self._deps,
-            config=self._config,
-            mgr=self._mgr,
-            parsed_results=self._parsed_results,
-            run_scan_cb=self._run_scan_cb,
-            status_changed=self._status_callback,
-            progress_changed=self._progress_callback,
-            reset_progress=self._reset_progress,
-            force_finish_progress=self._force_finish_progress,
-            suppress_dialogs=self._suppress_dialogs,
-            project_mark_dirty=self._project_mark_dirty,
-        )
+    core.query = QueryUIHandler(
+        deps=deps,
+        config=core._config,
+        mgr=core._mgr,
+        parsed_results=core._parsed_results,
+        run_scan_cb=core._run_scan_cb,
+        status_changed=core._status_callback,
+        progress_changed=core._progress_callback,
+        reset_progress=core._reset_progress,
+        force_finish_progress=core._force_finish_progress,
+        suppress_dialogs=core._suppress_dialogs,
+        project_mark_dirty=core._project_mark_dirty,
+    )

@@ -18,6 +18,12 @@ class _WindowLifecycleMixin:
     """窗口生命周期方法集合（混入 MainWindow）。
 
     包含系统托盘交互、窗口事件处理、Worker 线程管理、状态收集与自动保存。
+
+    架构决策：此 Mixin 不做提取/消除（白名单保留）。
+    原因：Qt 框架要求 closeEvent / changeEvent 等生命周期方法
+    必须通过 MRO 链分发到 QMainWindow 子类。这是 Qt 事件系统的硬约束，
+    不是设计选择。强行拆分会引入无意义的转发样板。
+    参见：docs/architecture/mixin-cleanup.md
     """
 
     # ================================================================

@@ -5,30 +5,19 @@ import stat
 import pytest
 from unittest.mock import MagicMock, patch
 
-from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+from pilotstd.manager.organize.mirror import OrganizerMirror
 
 
-# ── 测试子类 ──
-
-
-class TestableMirror(OrganizerMirrorMixin):
-    """填充 Mixin 所需属性的测试子类。"""
-
-    def init(self, cfg):
-        self._cfg = cfg
-        self._FALLBACK_SKIP_FILES = frozenset({".DS_Store", "Thumbs.db", "sync.ffs_db"})
-        self._FALLBACK_SKIP_PREFIX = "~"
-        self._skipped_source_files: set[str] = set()
-
-
-# ── Fixtures ──
+@pytest.fixture
+def mock_cfg():
+    cfg = MagicMock()
+    cfg.get.return_value = True
+    return cfg
 
 
 @pytest.fixture
 def mirror(mock_cfg):
-    m = TestableMirror()
-    m.init(mock_cfg)
-    return m
+    return OrganizerMirror(mock_cfg)
 
 
 @pytest.fixture(autouse=True)

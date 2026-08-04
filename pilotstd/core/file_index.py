@@ -16,7 +16,7 @@ from ._file_index_query import (  # noqa: F401 — 由外部模块导入消费
     ANNOUNCEMENT_CACHE_TABLE,
     FILE_INDEX_TABLE,
     NETWORK_CACHE_TABLE,
-    _FileIndexQueryMixin,
+    FileIndexQuery,
 )
 from .db import Database
 from .file_utils import hash_file_content
@@ -24,14 +24,15 @@ from .file_utils import hash_file_content
 logger = logging.getLogger(__name__)
 
 
-class FileIndexRepository(_FileIndexQueryMixin):
+class FileIndexRepository:
     """本地文件索引仓库。
 
-    查询方法由 _FileIndexQueryMixin 提供；本类管理校验线程、写入和清理逻辑。
+    查询方法由 FileIndexQuery 提供（组合注入）；本类管理校验线程、写入和清理逻辑。
     """
 
     def __init__(self, db: Database):
         self._db = db
+        self._query = FileIndexQuery(db)
         self._validation_complete = threading.Event()
         self._stop_event = threading.Event()
         self._validation_thread: threading.Thread | None = None
@@ -199,3 +200,57 @@ class FileIndexRepository(_FileIndexQueryMixin):
 
     def clear_all(self) -> None:
         self._db.execute(f"DELETE FROM {FILE_INDEX_TABLE}")
+
+    # ---- 查询代理（委托 FileIndexQuery）----
+
+    def get(self, file_path: str):
+        return self._query.get(file_path)
+
+    def get_all(self):
+        return self._query.get_all()
+
+    def find_by_standard(self, logical_code: str, number: int, year: int, part=None):
+        return self._query.find_by_standard(logical_code, number, year, part)
+
+    def find_by_hash(self, file_hash: str):
+        return self._query.find_by_hash(file_hash)
+
+    def count(self) -> int:
+        return self._query.count()
+
+    def get_status_stats(self) -> dict:
+        return self._query.get_status_stats()
+
+    def restore_parsed(self, file_path: str):
+        """从索引恢复 ParsedStdInfo。委托 FileIndexQuery 查询，本地处理缓存恢复。"""
+        row = self._query.get(file_path)
+        if not row:
+            return None
+        from pilotstd.models import ParsedStdInfo
+        import os
+
+        info = ParsedStdInfo(
+            raw_filename=os.path.basename(file_path),
+            logical_code=row["logical_code"],
+            number=row["number"],
+            raw_number=row.get("raw_number", ""),
+            year=row["year"],
+            part=row["part"] if row["part"] != -1 else None,
+            std_name=row["std_name"],
+            source_path=file_path,
+        )
+        self._restore_cache_fields(info)
+        return info
+
+    def find_moved_files(self, candidates):
+        return self._query.find_moved_files(candidates)
+
+    def get_full_info(self, logical_code: str, number: int):
+        return self._query.get_full_info(logical_code, number)
+
+    def _restore_cache_fields(self, info):
+        return self._query._restore_cache_fields(info)
+
+    @staticmethod
+    def _apply_cache_result(result_json: str, info):
+        return FileIndexQuery._apply_cache_result(result_json, info)

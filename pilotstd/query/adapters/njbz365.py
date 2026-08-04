@@ -11,7 +11,7 @@ import requests
 from ..models import QueryResult
 from ..network import safe_get
 from ..search_strategy import match_result
-from ._njbz365_session import _Njbz365SessionMixin
+from ._njbz365_session_manager import Njz365SessionManager
 from .base import BaseAdapter
 
 DISPLAY_NAME = "南京标准网"
@@ -19,10 +19,10 @@ DISPLAY_NAME = "南京标准网"
 logger = logging.getLogger(__name__)
 
 
-class Njbz365Adapter(_Njbz365SessionMixin, BaseAdapter):
+class Njbz365Adapter(BaseAdapter):
     """南京标准公共服务平台查询适配器。
 
-    会话管理由 _Njbz365SessionMixin 提供；本类负责搜索/匹配/替代标准提取。
+    会话管理由 Njz365SessionManager 提供；本类负责搜索/匹配/替代标准提取。
     """
 
     supports_replaces_detail = True
@@ -39,10 +39,7 @@ class Njbz365Adapter(_Njbz365SessionMixin, BaseAdapter):
                 "Accept-Language": "zh-CN,zh;q=0.9",
             }
         )
-        self._csrf_token = ""
-        self._session_val = ""
-        self._jwt = ""
-        self._initialized = False
+        self._session_mgr = Njz365SessionManager(self._session)
 
     @property
     def site_name(self) -> str:
@@ -157,6 +154,14 @@ class Njbz365Adapter(_Njbz365SessionMixin, BaseAdapter):
         if hasattr(self, "_fetch_replaces") and result.hcno:
             return self._fetch_replaces(result.hcno, result.standard_number) or ""
         return ""
+
+    # ---- 会话管理代理（委托 Njz365SessionManager，供外部测试访问）----
+
+    def _do_request(self, search_term: str):
+        return self._session_mgr._do_request(search_term)
+
+    def _refresh_csrf(self) -> None:
+        self._session_mgr._refresh_csrf()
 
 
 def _parse_result_number(standard_number: str) -> dict[str, Any]:

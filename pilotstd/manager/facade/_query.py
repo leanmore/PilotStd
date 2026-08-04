@@ -1,5 +1,5 @@
 # pilotstd/manager/facade/_query.py
-"""QueryHandler：标准查询入口与 GUI 桥接。查询执行→_query_exec，报告→_query_report。"""
+"""QueryHandler：标准查询入口与 GUI 桥接。查询执行→QuerySubsystem，报告→QuerySubsystem。"""
 
 from __future__ import annotations
 
@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from ...core.std_utils import GB_CODES
 from ...query.models import BatchQueryStats, QueryResult
-from ._query_exec import _QueryExecMixin
-from ._query_report import _QueryReportMixin
+from ._query_subsystem import QuerySubsystem
 
 if TYPE_CHECKING:
     from ._core import ManagerCore
@@ -17,39 +16,76 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class QueryHandler(_QueryExecMixin, _QueryReportMixin):
+class QueryHandler:
     """查询处理器 — 入口调度与 GUI 桥接方法。
 
-    查询执行由 _QueryExecMixin 提供，报告统计由 _QueryReportMixin 提供。
+    查询执行与报告统计由 QuerySubsystem 提供（组合注入）。
     """
 
     def __init__(self, core: "ManagerCore"):
         self._core = core
+        self._qs = QuerySubsystem(core)
 
-    _CAT_LABEL = {
-        "gb": "国标",
-        "industry": "行业标准",
-        "db": "地方标准",
-        "iso_iec": "国际标准",
-        "foreign": "国外标准",
-        "group": "团体标准",
-        "enterprise": "企业标准",
-    }
-
-    _PENDING_REASONS = {
-        "older": "站点仅有更旧版本，未找到对应年份",
-        "newer": "站点版本比本地文件更新",
-        "code_only": "站点仅匹配到代号，标准号/年份不一致",
-        "mismatch": "站点返回的标准名称与文件名不匹配",
-    }
-
+    # 类常量代理
+    _CAT_LABEL = QuerySubsystem._CAT_LABEL
+    _PENDING_REASONS = QuerySubsystem._PENDING_REASONS
     _GB_CODES = GB_CODES
     _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
 
+    # ---- 查询执行代理（委托 QuerySubsystem）----
+
+    def query(
+        self,
+        parsed_list: list[Any] | None = None,
+        force_refresh: bool = False,
+        progress_callback=None,
+        result_callback=None,
+        site: str | None = None,
+        _adapter: Any = None,
+    ) -> tuple[list[QueryResult], BatchQueryStats]:
+        """批量查询标准的有效性状态。委托 QuerySubsystem。"""
+        return self._qs.query(parsed_list, force_refresh, progress_callback, result_callback, site, _adapter)
+
+    def query_stream(
+        self,
+        parsed_list: list[Any],
+        on_progress=None,
+        on_result=None,
+        site: str | None = None,
+        force_refresh: bool = False,
+    ) -> tuple[list[QueryResult], BatchQueryStats]:
+        """流式查询入口，包装 query() 提供流式回调接口。"""
+        return self._qs.query_stream(parsed_list, on_progress, on_result, site, force_refresh)
+
+    def record_pending(self, pending_items: list[Any]) -> None:
+        self._qs.record_pending(pending_items)
+
+    def _query_announcement_match(self, standard_number: str) -> dict[str, Any] | None:
+        return self._qs._query_announcement_match(standard_number)
+
+    def _classify_after_query(self, parsed_list, query_results) -> None:
+        self._qs._classify_after_query(parsed_list, query_results)
+
+    def _resolve_replaces(self, standard_number: str) -> str:
+        return self._qs._resolve_replaces(standard_number)
+
+    def _report_query_summary(self, stats, items, results) -> None:
+        self._qs._report_query_summary(stats, items, results)
+
+    # ---- QuerySubsystem 静态方法代理 ----
+
+    @staticmethod
+    def _build_result_from_cache(standard_number: str, cache_data: dict[str, Any]) -> QueryResult:
+        return QuerySubsystem._build_result_from_cache(standard_number, cache_data)
+
+    @staticmethod
+    def _parse_std_number(standard_number: str) -> tuple[str | None, int | None]:
+        return QuerySubsystem._parse_std_number(standard_number)
+
+    # ---- GUI 桥接方法 ----
+
     def set_pause_event(self, event: Any) -> None:
         self._core.query_engine.set_pause_event(event)
-
-    # ── GUI 桥接方法 ──
 
     def get_quota_info(self) -> dict[str, int]:
         return self._core.query_engine.get_quota_info()
@@ -75,11 +111,6 @@ class QueryHandler(_QueryExecMixin, _QueryReportMixin):
             "pending": len(self._core.pending_list),
             "total": len(self._core.queried_items or self._core.parsed_results),
         }
-
-    # ── 待确认清单 ──
-
-    def record_pending(self, pending_items: list[Any]) -> None:
-        self._core.pending_svc.record_pending(pending_items)
 
     def resolve_pending(self, pending_items: list[dict[str, Any]], resolution: str) -> None:
         self._core.pending_svc.resolve_pending(pending_items, resolution)
@@ -110,8 +141,6 @@ class QueryHandler(_QueryExecMixin, _QueryReportMixin):
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """按标准号列表查询（供 API 层迁移）。"""
         return self._core.scheduled_svc.query_by_numbers(numbers, force_refresh, preferred_site)
-
-    # ── 引擎状态查询 ──
 
     def get_query_sites(self) -> list[str]:
         return self._core.query_engine.get_all_sites()

@@ -149,7 +149,7 @@ class TestOrganizerUtils(unittest.TestCase):
 
 
 class TestOrganizerExpireMixin(unittest.TestCase):
-    """OrganizerExpireMixin.handle_expired / merge_expire_from_source 测试。"""
+    """merge_expire_from_source 测试。"""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
@@ -161,21 +161,17 @@ class TestOrganizerExpireMixin(unittest.TestCase):
         """合并时若无 expires 目录则 merged=0，不报错。"""
         from unittest.mock import MagicMock
 
-        from pilotstd.manager.organize.expire import OrganizerExpireMixin
+        from pilotstd.manager.organize.expire import merge_expire_from_source
 
-        obj = type(
-            "_Mock",
-            (OrganizerExpireMixin,),
-            {"_cfg": MagicMock()},
-        )()
-        obj._cfg.get.return_value = "过期作废"
+        cfg = MagicMock()
+        cfg.get.return_value = "过期作废"
 
         src_dir = os.path.join(self.tmp, "subdir")
         os.makedirs(src_dir)
         parsed = ParsedStdInfo(raw_filename="test.pdf", logical_code="GB", number=2, year=1999)
         parsed.source_path = os.path.join(src_dir, "test.pdf")
 
-        merged = obj.merge_expire_from_source(self.tmp, [parsed])
+        merged = merge_expire_from_source(cfg, self.tmp, [parsed])
         self.assertEqual(merged, 0)
 
 
@@ -183,7 +179,7 @@ class TestOrganizerExpireMixin(unittest.TestCase):
 
 
 class TestOrganizerMirrorMixin(unittest.TestCase):
-    """OrganizerMirrorMixin.organize_skipped_dirs / organize_fallback 测试。"""
+    """OrganizerMirror.organize_skipped_dirs / organize_fallback 测试。"""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")
@@ -195,18 +191,13 @@ class TestOrganizerMirrorMixin(unittest.TestCase):
         """越界路径被拒绝，failed 计数递增。"""
         from unittest.mock import MagicMock
 
-        from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+        from pilotstd.manager.organize.mirror import OrganizerMirror
 
-        obj = type(
-            "_Mock",
-            (OrganizerMirrorMixin,),
-            {"_cfg": MagicMock()},
-        )()
-        # mock get_library_root 返回临时目录下的 lib
+        cfg = MagicMock()
         lib = os.path.join(self.tmp, "lib")
         os.makedirs(lib)
-        obj._cfg.get.return_value = lib  # get_library_root 内部调用 _cfg.get("storage.root_dir")
-        # 构造一个 dst 会越界的 skipped dir
+        cfg.get.return_value = lib
+        obj = OrganizerMirror(cfg)
         result = obj.organize_skipped_dirs([], source_root=None)
         self.assertIn("moved", result)
         self.assertEqual(result["moved"], 0)
@@ -215,19 +206,11 @@ class TestOrganizerMirrorMixin(unittest.TestCase):
         """Thumbs.db / ~$ 前缀文件被跳过不处理。"""
         from unittest.mock import MagicMock
 
-        from pilotstd.manager.organize.mirror import OrganizerMirrorMixin
+        from pilotstd.manager.organize.mirror import OrganizerMirror
 
-        obj = type(
-            "_Mock",
-            (OrganizerMirrorMixin,),
-            {
-                "_cfg": MagicMock(),
-                "_skipped_source_files": set(),
-                "_FALLBACK_SKIP_FILES": frozenset({"Thumbs.db", "sync.ffs_db"}),
-                "_FALLBACK_SKIP_PREFIX": "~$",
-            },
-        )()
-        obj._cfg.get.return_value = os.path.join(self.tmp, "lib")
+        cfg = MagicMock()
+        cfg.get.return_value = os.path.join(self.tmp, "lib")
+        obj = OrganizerMirror(cfg)
 
         thumbs = os.path.join(self.tmp, "Thumbs.db")
         with open(thumbs, "w") as f:

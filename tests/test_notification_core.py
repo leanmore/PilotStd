@@ -30,9 +30,15 @@ class TestMakeLink(unittest.TestCase):
 
 class TestMessageBuilders(unittest.TestCase):
     def setUp(self):
-        from pilotstd.core.notification._message_builders import MessageBuildersMixin
+        import pilotstd.core.notification._message_builders as _mb
 
-        self.mixin = MessageBuildersMixin()
+        class _BuilderNS:
+            pass
+        self.mixin = _BuilderNS()
+        # 将所有 _build_* 函数绑定到命名空间对象上
+        for name in dir(_mb):
+            if name.startswith("_build_"):
+                setattr(self.mixin, name, getattr(_mb, name))
 
     def test_archive_complete_with_dirs(self):
         msg = self.mixin._build_archive_complete_message({"count": 5, "directories": ["d1", "d2", "d3", "d4", "d5"]})

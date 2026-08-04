@@ -88,9 +88,12 @@ class TestBuildAnnounceFetchSummaryMessage(unittest.TestCase):
     """_build_announce_fetch_summary_message() — 通知消息构建测试。"""
 
     def setUp(self):
-        from pilotstd.core.notification._builders_batch import _BatchBuildersMixin
+        from pilotstd.core.notification._builders_batch import _build_announce_fetch_summary_message
 
-        self.mixin = _BatchBuildersMixin()
+        class _BuilderNS:
+            pass
+        self.mixin = _BuilderNS()
+        self.mixin._build_announce_fetch_summary_message = _build_announce_fetch_summary_message
 
     def _make_data(self, adapters=None):
 

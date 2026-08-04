@@ -150,7 +150,7 @@ class TestInitAllHandlers(unittest.TestCase):
     def test_calls_all_init_methods(self):
         with (
             patch.object(MainWindowCore, "_init_scan") as m1,
-            patch.object(MainWindowCore, "_init_query") as m2,
+            patch("pilotstd.ui.core._core.init_query_subsystem") as m2,
             patch.object(MainWindowCore, "_init_download") as m3,
             patch.object(MainWindowCore, "_init_archive") as m4,
             patch.object(MainWindowCore, "_init_auto") as m5,
@@ -232,8 +232,10 @@ class TestInitIndividualHandlers(unittest.TestCase):
 
     @patch("pilotstd.ui.core.handlers._query.QueryUIHandler")
     def test_init_query(self, mock_handler_cls):
+        from pilotstd.ui.core._core_init_query import init_query_subsystem
+
         core = self._make_core()
-        core._init_query()
+        init_query_subsystem(core)
         mock_handler_cls.assert_called_once()
         call_kwargs = mock_handler_cls.call_args[1]
         self.assertIs(call_kwargs["mgr"], self.mgr)

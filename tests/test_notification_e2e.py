@@ -609,7 +609,7 @@ class TestNotificationRegistry:
 
         src = inspect.getsource(NotificationManager._init_event_builders)
         self.builder_keys: set[str] = set()
-        for m in re.finditer(r'"([a-z_]+)":\s*self\.', src):
+        for m in re.finditer(r'"([a-z_]+)":\s*_build', src):
             self.builder_keys.add(m.group(1))
 
     @pytest.mark.parametrize("event", EVENTS, ids=[e["name"] for e in EVENTS])
@@ -711,15 +711,15 @@ class TestMutualExclusion:
         ), "scan_empty 未在 _scan.py 中触发"
 
     def test_query_summary_vs_empty_mutual(self):
-        """batch_query_summary 和 query_empty 均在 _query_exec.py 中触发。"""
+        """batch_query_summary 和 query_empty 均在 _query_subsystem.py 中触发。"""
         assert self._has_in_file(
-            "pilotstd/manager/facade/_query_exec.py",
+            "pilotstd/manager/facade/_query_subsystem.py",
             r'send_event\s*\(\s*"batch_query_summary"',
-        ), "batch_query_summary 未在 _query_exec.py 中触发"
+        ), "batch_query_summary 未在 _query_subsystem.py 中触发"
         assert self._has_in_file(
-            "pilotstd/manager/facade/_query_exec.py",
+            "pilotstd/manager/facade/_query_subsystem.py",
             r'send_event\s*\(\s*"query_empty"',
-        ), "query_empty 未在 _query_exec.py 中触发"
+        ), "query_empty 未在 _query_subsystem.py 中触发"
 
 
 class TestNotificationSmoke:
@@ -733,7 +733,7 @@ class TestNotificationSmoke:
 
         src = inspect.getsource(NotificationManager._init_event_builders)
         keys: set[str] = set()
-        for m in re.finditer(r'"([a-z_]+)":\s*self\.', src):
+        for m in re.finditer(r'"([a-z_]+)":\s*_build', src):
             keys.add(m.group(1))
         return keys
 
@@ -750,21 +750,19 @@ class TestImageUpdateDebugLog:
 
     def test_empty_digest_logs_debug(self, caplog):
 
-        from pilotstd.core.notification._builders_system import _SystemBuildersMixin
+        from pilotstd.core.notification._builders_system import _build_image_update_available_message
 
-        mixin = _SystemBuildersMixin()
         caplog.set_level("DEBUG", logger="pilotstd.core.notification._builders_system")
-        msg = mixin._build_image_update_available_message({"old_digest": "", "new_digest": ""})
+        msg = _build_image_update_available_message({"old_digest": "", "new_digest": ""})
         assert msg is not None
         assert "old_digest or new_digest is empty" in caplog.text
 
     def test_valid_digest_no_debug_log(self, caplog):
 
-        from pilotstd.core.notification._builders_system import _SystemBuildersMixin
+        from pilotstd.core.notification._builders_system import _build_image_update_available_message
 
-        mixin = _SystemBuildersMixin()
         caplog.set_level("DEBUG", logger="pilotstd.core.notification._builders_system")
-        msg = mixin._build_image_update_available_message({"old_digest": "abc123", "new_digest": "def456"})
+        msg = _build_image_update_available_message({"old_digest": "abc123", "new_digest": "def456"})
         assert msg is not None
         assert "old_digest or new_digest is empty" not in caplog.text
 

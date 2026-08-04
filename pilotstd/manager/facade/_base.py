@@ -26,7 +26,6 @@ from ...scan.scanner import FileScanner
 from ...task.pipeline_store import PipelineRunStore
 from ...task.queue import TaskQueue
 from ._auto import AutoPipeline
-from ._base_properties import _BasePropertiesMixin
 from ._core import ManagerCore
 from ._download import DownloadHandler
 from ._file_index import FileIndexHandler
@@ -37,8 +36,53 @@ from ._scan import ScanHandler
 logger = logging.getLogger(__name__)
 
 
-class BaseFacade(_BasePropertiesMixin):
-    """依赖组装层 — 构造函数 + 生命周期管理。属性代理由 _BasePropertiesMixin 提供。"""
+class BaseFacade:
+    """依赖组装层 — 构造函数 + 生命周期管理。
+
+    属性代理：_CORE_PROXY_WHITELIST 中的属性自动委托到 self._core（替代原 _BasePropertiesMixin）。
+    """
+
+    # 原 _BasePropertiesMixin 的 42 个 @property 委托，压缩为白名单 + __getattr__/__setattr__
+    _CORE_PROXY_WHITELIST: frozenset[str] = frozenset({
+        # 核心组件
+        "cfg", "db", "parser", "scanner", "query_engine", "cache", "quota_tracker",
+        "adapter_manager", "file_index", "download_engine", "router", "task_queue",
+        "_query_adapters", "notification_mgr", "validity_checker",
+        # 服务层
+        "_announce_svc", "_organizer_svc", "_pending_svc", "_scheduled_svc", "_classifier",
+        # 运行时状态列表
+        "parsed_results", "queried_items", "query_results",
+        "download_list", "expire_list", "pending_list",
+        "download_tasks", "last_skipped_dirs", "_file_watcher",
+    })
+
+    # 自身属性（非 _core 代理，由 _init_services 直接设置）
+    @property
+    def validity_service(self):
+        return self._validity_service
+
+    @property
+    def standard_service(self):
+        return self._standard_service
+
+    @property
+    def user_service(self):
+        return self._user_service
+
+    def __getattr__(self, name: str):
+        """白名单内的属性 → 委托给 self._core。"""
+        if name in self._CORE_PROXY_WHITELIST:
+            return getattr(self._core, name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value) -> None:
+        """白名单内的属性写入 → 委托给 self._core；否则走标准流程。"""
+        cls = type(self)
+        if name in getattr(cls, "_CORE_PROXY_WHITELIST", frozenset()):
+            setattr(self._core, name, value)
+        else:
+            super().__setattr__(name, value)
+
 
     def __init__(
         self,
@@ -267,8 +311,7 @@ class BaseFacade(_BasePropertiesMixin):
         self.auto_run = self._auto_pipeline.auto_run
         self.auto_run_stream = self._auto_pipeline.auto_run_stream
 
-        # ---- 兼容旧代码：_classifier、_organizer_svc 等（通过 @property 代理到 _core） ----
-        self._classifier = self._core.classifier
+        # ---- 兼容旧代码：_classifier 已由 __getattr__ 代理到 _core ----
 
     def shutdown(self) -> None:
         """关闭数据库连接，应用退出时调用。"""

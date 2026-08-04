@@ -1,5 +1,6 @@
 # pilotstd/manager/organize/mirror.py
 # 镜像/兜底归档 — 从 organizer_service.py 拆分
+# 原 OrganizerMirrorMixin，现为独立类 OrganizerMirror（组合注入 cfg）
 
 import logging
 import os
@@ -15,19 +16,28 @@ from ...core.file_utils import (
 from ._utils import _resolve_industry_in_path
 
 logger = logging.getLogger(__name__)
-# OrganizerMirrorMixin — 跳过目录镜像 + 兜底归档（混入 OrganizerService）
 
 
-class OrganizerMirrorMixin:
-    """跳过目录镜像 + 兜底归档（混入 OrganizerService）。"""
+class OrganizerMirror:
+    """跳过目录镜像 + 兜底归档（组合注入到 OrganizerService）。"""
 
-    _cfg: Any
-    _FALLBACK_SKIP_FILES: Any
-    _FALLBACK_SKIP_PREFIX: Any
-    _skipped_source_files: Any
+    def __init__(
+        self,
+        cfg: Any,
+        fallback_skip_files: frozenset[str] | None = None,
+        fallback_skip_prefix: str = "~$",
+    ):
+        self._cfg = cfg
+        self._FALLBACK_SKIP_FILES = (
+            fallback_skip_files
+            if fallback_skip_files is not None
+            else frozenset({".DS_Store", "Thumbs.db", "sync.ffs_db"})
+        )
+        self._FALLBACK_SKIP_PREFIX = fallback_skip_prefix
+        self._skipped_source_files: set[str] = set()
 
     # organize_skipped_dirs — 将扫描时跳过的目录原封不动镜像到新库
-    def organize_skipped_dirs(self: Any, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
+    def organize_skipped_dirs(self, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
         """将扫描时跳过的目录原封不动镜像到新库。"""
         root = get_library_root(self._cfg)
         result: dict[str, Any] = {
@@ -134,7 +144,7 @@ class OrganizerMirrorMixin:
         result["details"].append(f"跳过目录: {os.path.basename(src_dir)} -> {dst}")
 
     # organize_fallback — 归档收尾：将源目录中残留文件按目录结构镜像到输出目录
-    def organize_fallback(self: Any, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
+    def organize_fallback(self, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
         """归档收尾：将源目录中所有残留文件按目录结构镜像到输出目录。"""
         source_root = ensure_long_path(source_root)
         root = get_library_root(self._cfg)

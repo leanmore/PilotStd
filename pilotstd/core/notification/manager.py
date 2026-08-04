@@ -13,7 +13,42 @@ from typing import Any, Optional
 from ..db import Database
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
-from ._message_builders import MessageBuildersMixin
+from ._message_builders import (
+    _build_announce_fetch_summary_message,
+    _build_announcement_check_complete_message,
+    _build_announcement_fetch_complete_message,
+    _build_announcement_fetch_failed_message,
+    _build_archive_abandoned_message,
+    _build_archive_complete_message,
+    _build_archive_failed_message,
+    _build_auto_backup_message,
+    _build_auto_scan_failed_message,
+    _build_batch_download_complete_message,
+    _build_batch_query_summary_message,
+    _build_date_reminder_message,
+    _build_download_failed_message,
+    _build_expire_standard_moved_message,
+    _build_fallback_message,
+    _build_image_update_available_message,
+    _build_normalize_complete_message,
+    _build_normalize_failed_message,
+    _build_query_empty_message,
+    _build_query_failed_message,
+    _build_quota_exhausted_message,
+    _build_replacement_not_found_message,
+    _build_scan_complete_message,
+    _build_scan_empty_message,
+    _build_standard_expired_message,
+    _build_standard_first_registered_message,
+    _build_standard_status_changed_message,
+    _build_task_execution_failed_message,
+    _build_trust_ip_update_message,
+    _build_validity_batch_report_message,
+    _build_validity_round_summary_message,
+    _build_validity_standard_failed_message,
+    _build_validity_system_failed_message,
+    _build_worker_error_message,
+)
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
 from .channels.dingtalk import DingTalkChannel
@@ -31,7 +66,7 @@ _CHANNEL_CLASSES = {
 }
 
 
-class NotificationManager(MessageBuildersMixin):
+class NotificationManager:
     """通知管理器。
 
     初始化时加载配置，按事件规则分发到各渠道，记录发送日志。
@@ -234,39 +269,39 @@ class NotificationManager(MessageBuildersMixin):
     def _init_event_builders(self) -> None:
         """初始化事件类型 → 消息构建函数的映射表。"""
         self._EVENT_BUILDERS = {
-            "archive_complete": self._build_archive_complete_message,
-            "standard_status_changed": self._build_standard_status_changed_message,
-            "standard_expired": self._build_standard_expired_message,
-            "standard_first_registered": self._build_standard_first_registered_message,
-            "announcement_fetch_complete": self._build_announcement_fetch_complete_message,
-            "announce_fetch_summary": self._build_announce_fetch_summary_message,
-            "auto_backup": self._build_auto_backup_message,
-            "announcement_check_complete": self._build_announcement_check_complete_message,
-            "batch_download_complete": self._build_batch_download_complete_message,
-            "auto_scan_failed": self._build_auto_scan_failed_message,
-            "validity_batch_report": self._build_validity_batch_report_message,
-            "validity_round_summary": self._build_validity_round_summary_message,
-            "validity_standard_failed": self._build_validity_standard_failed_message,
-            "validity_system_failed": self._build_validity_system_failed_message,
-            "image_update_available": self._build_image_update_available_message,
-            "batch_query_summary": self._build_batch_query_summary_message,
-            "trust_ip_update": self._build_trust_ip_update_message,
-            "worker_error": self._build_worker_error_message,
-            "download_failed": self._build_download_failed_message,
-            "archive_abandoned": self._build_archive_abandoned_message,
-            "normalize_complete": self._build_normalize_complete_message,
-            "scan_complete": self._build_scan_complete_message,
-            "task_execution_failed": self._build_task_execution_failed_message,
-            "date_reminder": self._build_date_reminder_message,
-            "scan_empty": self._build_scan_empty_message,
-            "query_failed": self._build_query_failed_message,
-            "query_empty": self._build_query_empty_message,
-            "archive_failed": self._build_archive_failed_message,
-            "announcement_fetch_failed": self._build_announcement_fetch_failed_message,
-            "normalize_failed": self._build_normalize_failed_message,
-            "expire_standard_moved": self._build_expire_standard_moved_message,
-            "replacement_not_found": self._build_replacement_not_found_message,
-            "quota_exhausted": self._build_quota_exhausted_message,
+            "archive_complete": _build_archive_complete_message,
+            "standard_status_changed": _build_standard_status_changed_message,
+            "standard_expired": _build_standard_expired_message,
+            "standard_first_registered": _build_standard_first_registered_message,
+            "announcement_fetch_complete": _build_announcement_fetch_complete_message,
+            "announce_fetch_summary": _build_announce_fetch_summary_message,
+            "auto_backup": _build_auto_backup_message,
+            "announcement_check_complete": _build_announcement_check_complete_message,
+            "batch_download_complete": _build_batch_download_complete_message,
+            "auto_scan_failed": _build_auto_scan_failed_message,
+            "validity_batch_report": _build_validity_batch_report_message,
+            "validity_round_summary": _build_validity_round_summary_message,
+            "validity_standard_failed": _build_validity_standard_failed_message,
+            "validity_system_failed": _build_validity_system_failed_message,
+            "image_update_available": _build_image_update_available_message,
+            "batch_query_summary": _build_batch_query_summary_message,
+            "trust_ip_update": _build_trust_ip_update_message,
+            "worker_error": _build_worker_error_message,
+            "download_failed": _build_download_failed_message,
+            "archive_abandoned": _build_archive_abandoned_message,
+            "normalize_complete": _build_normalize_complete_message,
+            "scan_complete": _build_scan_complete_message,
+            "task_execution_failed": _build_task_execution_failed_message,
+            "date_reminder": _build_date_reminder_message,
+            "scan_empty": _build_scan_empty_message,
+            "query_failed": _build_query_failed_message,
+            "query_empty": _build_query_empty_message,
+            "archive_failed": _build_archive_failed_message,
+            "announcement_fetch_failed": _build_announcement_fetch_failed_message,
+            "normalize_failed": _build_normalize_failed_message,
+            "expire_standard_moved": _build_expire_standard_moved_message,
+            "replacement_not_found": _build_replacement_not_found_message,
+            "quota_exhausted": _build_quota_exhausted_message,
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
@@ -274,7 +309,7 @@ class NotificationManager(MessageBuildersMixin):
         builder = self._EVENT_BUILDERS.get(event_type)
         if builder is not None:
             return builder(data)
-        return self._build_fallback_message(event_type, data)
+        return _build_fallback_message(event_type, data)
 
     def _log(
         self,
