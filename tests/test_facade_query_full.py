@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pilotstd.manager.facade._query import QueryHandler
+from pilotstd.manager.facade._query_subsystem import QuerySubsystem
 from pilotstd.query.models import BatchQueryStats, QueryResult
 
 
@@ -40,7 +41,9 @@ class TestQueryHandler(unittest.TestCase):
         # 构造 ManagerCore mock
         self.core = MagicMock()
         self.core.cfg = MagicMock()
-        self.core.cfg.get.return_value = ""
+        self.core.cfg.get = MagicMock(side_effect=lambda key, default=None: {
+            "query.announcement_api_key": "test-key",
+        }.get(key, default or ""))
         self.core.query_engine = MagicMock()
         self.core.classifier = MagicMock()
         self.core.pending_svc = MagicMock()
@@ -113,7 +116,7 @@ class TestQueryHandler(unittest.TestCase):
 
     # ── _query_announcement_match ──
 
-    @patch("pilotstd.manager.facade._query_exec.requests.get")
+    @patch("pilotstd.manager.facade._query_subsystem.requests.get")
     def test_announcement_match_disabled_no_api_key(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -124,7 +127,7 @@ class TestQueryHandler(unittest.TestCase):
         self.assertIsNone(result)
         mock_get.assert_not_called()
 
-    @patch("pilotstd.manager.facade._query_exec.requests.get")
+    @patch("pilotstd.manager.facade._query_subsystem.requests.get")
     def test_announcement_match_found(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -140,7 +143,7 @@ class TestQueryHandler(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(result["data"]["standard_name"] == "测试")
 
-    @patch("pilotstd.manager.facade._query_exec.requests.get")
+    @patch("pilotstd.manager.facade._query_subsystem.requests.get")
     def test_announcement_match_not_found(self, mock_get):
         self.core.cfg.get.side_effect = lambda key, default=None: {
             "query.announcement_url": "http://localhost:9028",
@@ -155,7 +158,7 @@ class TestQueryHandler(unittest.TestCase):
         result = self.handler._query_announcement_match("GB/T 1-2020")
         self.assertIsNone(result)
 
-    @patch("pilotstd.manager.facade._query_exec.requests.get")
+    @patch("pilotstd.manager.facade._query_subsystem.requests.get")
     def test_announcement_match_timeout(self, mock_get):
         import requests as rq
 
@@ -168,7 +171,7 @@ class TestQueryHandler(unittest.TestCase):
         result = self.handler._query_announcement_match("GB/T 1-2020")
         self.assertIsNone(result)
 
-    @patch("pilotstd.manager.facade._query_exec.requests.get")
+    @patch("pilotstd.manager.facade._query_subsystem.requests.get")
     def test_announcement_match_connection_error(self, mock_get):
         import requests as rq
 
@@ -188,7 +191,7 @@ class TestQueryHandler(unittest.TestCase):
         mock_result = [QueryResult(standard_number="a", standard_name="x")]
         self.core.query_engine.query_standards.return_value = mock_result
 
-        results = self.handler._query_via_engine(items, None)
+        results = self.handler._qs._query_via_engine(items, None)
         self.core.query_engine.query_standards.assert_called_once()
         call_args = self.core.query_engine.query_standards.call_args
         parsed_tuples = call_args[0][0]
@@ -199,26 +202,26 @@ class TestQueryHandler(unittest.TestCase):
     def test_query_via_engine_with_site_and_force_refresh(self):
         items = [_make_parsed_item()]
         self.core.query_engine.query_standards.return_value = []
-        self.handler._query_via_engine(items, None, site="std_gov", force_refresh=True)
+        self.handler._qs._query_via_engine(items, None, site="std_gov", force_refresh=True)
         call_kwargs = self.core.query_engine.query_standards.call_args[1]
         self.assertEqual(call_kwargs["preferred_site"], "std_gov")
         self.assertTrue(call_kwargs["force_refresh"])
 
     # ── _query_via_cache ──
 
-    @patch.object(QueryHandler, "_query_announcement_match")
+    @patch.object(QuerySubsystem, "_query_announcement_match")
     def test_query_via_cache_all_hit(self, mock_match):
         mock_match.return_value = {"data": {"standard_name": "cached", "status": "现行"}}
         items = [_make_parsed_item(), _make_parsed_item(number="1")]
         self.core.query_engine.query_standards.return_value = []
 
-        results = self.handler._query_via_cache(items, None)
+        results = self.handler._qs._query_via_cache(items, None)
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].standard_name, "cached")
         self.assertEqual(results[1].standard_name, "cached")
         self.core.query_engine.query_standards.assert_not_called()
 
-    @patch.object(QueryHandler, "_query_announcement_match")
+    @patch.object(QuerySubsystem, "_query_announcement_match")
     def test_query_via_cache_partial_hit(self, mock_match):
         """第一条命中缓存，第二条未命中→降级到实时引擎。"""
         mock_match.side_effect = [
@@ -229,21 +232,21 @@ class TestQueryHandler(unittest.TestCase):
         live_result = QueryResult(standard_number="GB 1-2020", standard_name="live")
         self.core.query_engine.query_standards.return_value = [live_result]
 
-        results = self.handler._query_via_cache(items, None)
+        results = self.handler._qs._query_via_cache(items, None)
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].standard_name, "cached")
         self.assertEqual(results[1].standard_name, "live")
         self.assertEqual(results[1].source, "live_fallback")
         self.core.query_engine.query_standards.assert_called_once()
 
-    @patch.object(QueryHandler, "_query_announcement_match")
+    @patch.object(QuerySubsystem, "_query_announcement_match")
     def test_query_via_cache_with_result_callback(self, mock_match):
         mock_match.return_value = {"data": {"standard_name": "cached"}}
         items = [_make_parsed_item(), _make_parsed_item(number="1")]
         mock_cb = MagicMock()
         self.core.query_engine.query_standards.return_value = []
 
-        self.handler._query_via_cache(items, mock_cb)
+        self.handler._qs._query_via_cache(items, mock_cb)
         # 回调应被调用 2 次（全部命中）
         self.assertEqual(mock_cb.call_count, 2)
 
@@ -257,7 +260,7 @@ class TestQueryHandler(unittest.TestCase):
         ]
         self.core.pending_list = []
 
-        res, stats = self.handler._finalize_query(items, results)
+        res, stats = self.handler._qs._finalize_query(items, results)
         self.assertEqual(len(res), 2)
         self.assertIsInstance(stats, BatchQueryStats)
         self.assertEqual(stats.total, 2)
@@ -272,7 +275,7 @@ class TestQueryHandler(unittest.TestCase):
         results = [QueryResult(standard_number="a", standard_name="found", match_status="mismatch")]
         self.core.pending_list = [items[0]]
 
-        self.handler._finalize_query(items, results)
+        self.handler._qs._finalize_query(items, results)
         self.core.pending_svc.record_pending.assert_called_once_with([items[0]])
         self.core.notification_mgr.send_event.assert_called()
 
@@ -282,21 +285,24 @@ class TestQueryHandler(unittest.TestCase):
         self.core.notification_mgr = None
         self.core.pending_list = []
 
-        res, stats = self.handler._finalize_query(items, results)
+        res, stats = self.handler._qs._finalize_query(items, results)
         self.assertIsNotNone(stats)
 
     # ── query ──
 
     def test_query_uses_cache_when_no_site(self):
-        self.core.cfg.get.return_value = True  # use_announcement_match = True
+        self.core.cfg.get = MagicMock(side_effect=lambda key, default=None: {
+            "query.announcement_api_key": "test-key",
+            "query.use_announcement_match": True,
+        }.get(key, default or ""))
         items = [_make_parsed_item()]
         self.core.parsed_results = items
 
         # mock _query_via_cache
-        with patch.object(self.handler, "_query_via_cache") as mock_via_cache:
+        with patch.object(self.handler._qs, "_query_via_cache") as mock_via_cache:
             mock_via_cache.return_value = [QueryResult(standard_number="x", standard_name="y")]
             # mock _finalize_query
-            with patch.object(self.handler, "_finalize_query") as mock_finalize:
+            with patch.object(self.handler._qs, "_finalize_query") as mock_finalize:
                 mock_finalize.return_value = ([], BatchQueryStats())
                 self.handler.query(parsed_list=items)
 
@@ -306,9 +312,9 @@ class TestQueryHandler(unittest.TestCase):
         items = [_make_parsed_item()]
         self.core.parsed_results = items
 
-        with patch.object(self.handler, "_query_via_engine") as mock_via_engine:
+        with patch.object(self.handler._qs, "_query_via_engine") as mock_via_engine:
             mock_via_engine.return_value = [QueryResult(standard_number="x", standard_name="y")]
-            with patch.object(self.handler, "_finalize_query") as mock_finalize:
+            with patch.object(self.handler._qs, "_finalize_query") as mock_finalize:
                 mock_finalize.return_value = ([], BatchQueryStats())
                 self.handler.query(parsed_list=items, site="std_gov")
 
@@ -320,9 +326,9 @@ class TestQueryHandler(unittest.TestCase):
         self.core.cfg.get.return_value = False  # 不使用公告缓存
 
         progress_cb = MagicMock()
-        with patch.object(self.handler, "_query_via_engine") as mock_eng:
+        with patch.object(self.handler._qs, "_query_via_engine") as mock_eng:
             mock_eng.return_value = [QueryResult(standard_number="x", standard_name="y")] * 2
-            with patch.object(self.handler, "_finalize_query") as mock_fin:
+            with patch.object(self.handler._qs, "_finalize_query") as mock_fin:
                 mock_fin.return_value = ([], BatchQueryStats())
                 self.handler.query(parsed_list=items, progress_callback=progress_cb)
 
@@ -334,7 +340,7 @@ class TestQueryHandler(unittest.TestCase):
 
     def test_query_stream_delegates_to_query(self):
         items = [_make_parsed_item()]
-        with patch.object(self.handler, "query") as mock_query:
+        with patch.object(self.handler._qs, "query") as mock_query:
             mock_query.return_value = ([], BatchQueryStats())
             self.handler.query_stream(items, on_progress=lambda c, t: None, on_result=lambda i, r: None)
             mock_query.assert_called_once_with(
@@ -356,14 +362,14 @@ class TestQueryHandler(unittest.TestCase):
             QueryResult(standard_number="GB", standard_name="国标"),
             QueryResult(standard_number="HB", standard_name=""),
         ]
-        self.handler._report_category_breakdown(items, results)
+        self.handler._qs._report_category_breakdown(items, results)
         # 不抛异常即通过；日志已由框架输出
 
     def test_report_category_breakdown_with_pending(self):
         items = [_make_parsed_item()]
         results = [QueryResult(standard_number="GB", standard_name="x", match_status="mismatch")]
         self.core.pending_list = [items[0]]
-        self.handler._report_category_breakdown(items, results)
+        self.handler._qs._report_category_breakdown(items, results)
         # 不抛异常即通过
 
     # ── _report_download_queue ──
@@ -371,7 +377,7 @@ class TestQueryHandler(unittest.TestCase):
     def test_report_download_queue(self):
         items = [_make_parsed_item()]
         results = [QueryResult(standard_number="GB", standard_name="x")]
-        self.handler._report_download_queue(items, results)
+        self.handler._qs._report_download_queue(items, results)
 
     # ── _report_query_summary ──
 

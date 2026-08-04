@@ -56,6 +56,7 @@ class TestMergeExpireFromSource:
 
     # -- 正常路径：有过期文件夹，合并成功 --
 
+    @pytest.mark.serial
     def test_normal_merge_moves_files(self, cfg, tmp_path):
         root = tmp_path / "library"
         root.mkdir()

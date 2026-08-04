@@ -45,10 +45,10 @@ class TestStandardManager(unittest.TestCase):
 
     def test_query_with_mock(self):
         mgr = StandardManager()
-        mgr._parsed_results = []  # 直接设置内部状态
+        mgr._core.parsed_results = []  # 直接设置核心容器的内部状态
         mgr.scan_directory(self.tmp)
         results, stats = mgr.query()
-        self.assertEqual(len(results), len(mgr._parsed_results))
+        self.assertEqual(len(results), len(mgr._core.parsed_results))
 
     def test_manager_init_defaults(self):
         mgr = StandardManager()
@@ -128,11 +128,11 @@ class TestStandardManager(unittest.TestCase):
                 source_path=f"C:\\test\\test{i}.pdf",
             )
             items.append(p)
-        mgr._parsed_results = items
+        mgr._core.parsed_results = items
 
         # 2. 模拟只查询了索引 0, 2, 4（PDF 子集，跳过 Word 条目）
         subset = [items[0], items[2], items[4]]
-        mgr._queried_items = subset
+        mgr._core.queried_items = subset
 
         # 3. 模拟查询结果（与 subset 一一平行：3条结果对应3条查询）
         results = []
@@ -144,14 +144,14 @@ class TestStandardManager(unittest.TestCase):
             else:
                 r.status = "现行"
             results.append(r)
-        mgr._query_results = results
+        mgr._core.query_results = results
 
         # 4. 模拟分类结果：仅 subset[1]（items[2]）需要下载
-        mgr._download_list = [subset[1]]
+        mgr._core.download_list = [subset[1]]
 
-        # _expire_list 须存在（download() 会检查其是否非空）
-        mgr._expire_list = []
-        mgr._pending_list = []
+        # 过期列表须存在（download() 会检查其是否非空）
+        mgr._core.expire_list = []
+        mgr._core.pending_list = []
 
         # 5. Mock 下载引擎，拦截 download_batch 以验证传入的任务
         mock_engine = MagicMock()
@@ -335,9 +335,9 @@ class TestDownloadMixin(unittest.TestCase):
         from unittest.mock import MagicMock
 
         mgr = StandardManager()
-        mgr._pending_svc = MagicMock()
+        mgr._core.pending_svc = MagicMock()
         mgr.enqueue_download_wait(MagicMock())
-        mgr._pending_svc.enqueue_download_wait.assert_called_once()
+        mgr._core.pending_svc.enqueue_download_wait.assert_called_once()
 
     def test_download_by_numbers_delegates(self):
         """download_by_numbers 委托 _scheduled_svc，不抛异常。"""
@@ -400,11 +400,11 @@ class TestScanMixin(unittest.TestCase):
         shutil.rmtree(self.tmp)
 
     def test_scan_directory_skipped_dirs_set(self):
-        """scan_directory 后 _last_skipped_dirs 被赋值。"""
+        """scan_directory 后 last_skipped_dirs 被赋值。"""
         mgr = StandardManager()
         mgr.scan_directory(self.tmp)
-        # _last_skipped_dirs 应为 list（即使空）
-        self.assertIsNotNone(mgr._last_skipped_dirs)
+        # last_skipped_dirs 应为 list（即使空），通过代理访问核心容器
+        self.assertIsNotNone(mgr.last_skipped_dirs)
 
     def test_stop_watching_noop_when_none(self):
         """_file_watcher 为 None 时 stop_watching 不抛异常。"""

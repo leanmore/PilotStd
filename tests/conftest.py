@@ -24,6 +24,7 @@ else:
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "integration: 集成测试标记（需要完整运行环境）")
+    config.addinivalue_line("markers", "serial: 串行执行标记（避免并发权限竞争）")
 
 
 collect_ignore = [

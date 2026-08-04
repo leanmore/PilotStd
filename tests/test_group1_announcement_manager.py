@@ -458,7 +458,8 @@ class TestOrganizerMirror(unittest.TestCase):
 
     def test_resolve_skipped_relative_nonexistent(self):
         result = self.mirror._resolve_skipped_relative("/nonexistent/path", self.tmpdir, "/src")
-        self.assertIsNone(result)
+        self.assertIsNotNone(result)
+        self.assertIsNone(result[0])
 
 
 if __name__ == "__main__":
