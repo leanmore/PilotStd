@@ -1,5 +1,7 @@
 # pilotstd/core/notification/_message_builders.py
 # 通知消息构建器聚合模块 — 原 MessageBuildersMixin，现为模块级函数重导出
+# ruff: noqa: F401  — 本文件仅做重导出，import 由外部模块消费
+# 消费者：manager.py 通过本文件导入 33 个 _build_* 函数
 
 from ._builders_batch import (
     _build_announce_fetch_summary_message,

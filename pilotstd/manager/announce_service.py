@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pilotstd.announce.crawler_service import AnnounceCrawler
 from pilotstd.announce.notifier import AnnounceNotifier
