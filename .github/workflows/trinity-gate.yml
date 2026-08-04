@@ -22,11 +22,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 修正1: 确保 origin/main 存在且可对比
+      # 修正1: 确保 origin/main 可用（fetch 即可，下游脚本均使用 origin/main 远程引用）
       - name: Fetch main branch for diff comparison
-        run: |
-          git fetch origin main
-          git branch -f main origin/main
+        run: git fetch origin main
 
       - name: Setup Python
         uses: actions/setup-python@v5
