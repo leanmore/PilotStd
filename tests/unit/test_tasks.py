@@ -697,7 +697,7 @@ class TestDownloadToInboxMainFlow:
 
         timeout_updates = [
             c for c in db.execute.call_args_list
-            if "归档超时" in str(c.args[0])
+            if "归档超时" in str(c.args)
         ]
         assert len(timeout_updates) == 1
 
