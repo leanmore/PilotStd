@@ -171,13 +171,16 @@ class TestResolveSkippedRelative:
         long_src_dir = "\\\\?\\" + src_dir
         long_src_root = "\\\\?\\" + src_root
 
-        rel, dst = mirror._resolve_skipped_relative(long_src_dir, root, long_src_root)
+        result = mirror._resolve_skipped_relative(long_src_dir, root, long_src_root)
+        assert result[0] is not None, f"_resolve_skipped_relative returned skip: {result}"
+        rel, dst = result
         assert "sub" in rel
 
-    def test_nonexistent_dir_returns_none(self, mirror, tmp_path):
-        """目录不存在 → 返回 None。"""
+    def test_nonexistent_dir_returns_skip(self, mirror, tmp_path):
+        """目录不存在 → 返回 (None, reason)。"""
         result = mirror._resolve_skipped_relative("/no/such/dir", "/root", "/src")
-        assert result is None
+        assert result[0] is None
+        assert "skipped" in result[1]
 
     def test_value_error_falls_back_to_basename(self, mirror, tmp_path):
         """relpath 抛 ValueError → 回退到 basename。"""

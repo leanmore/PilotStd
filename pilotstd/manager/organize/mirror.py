@@ -1,4 +1,4 @@
-# pilotstd/manager/organize/mirror.py
+# 模块：pilotstd/manager/organize/mirror.py
 # 镜像/兜底归档 — 从 organizer_service.py 拆分
 # 原 OrganizerMirrorMixin，现为独立类 OrganizerMirror（组合注入 cfg）
 
@@ -51,7 +51,7 @@ class OrganizerMirror:
         }
         for src_dir in skipped_dirs:
             rel_dst = self._resolve_skipped_relative(src_dir, root, source_root)
-            if rel_dst is None:
+            if rel_dst[0] is None:
                 continue
             _, dst = rel_dst
             if not self._check_path_traversal(dst, root, src_dir):
@@ -70,10 +70,10 @@ class OrganizerMirror:
         logger.info("跳过目录归档: %d 已移动, %d 失败", result["moved"], result["failed"])
         return result
 
-    def _resolve_skipped_relative(self, src_dir: str, root: str, source_root: str | None) -> tuple[str, str] | None:
+    def _resolve_skipped_relative(self, src_dir: str, root: str, source_root: str | None) -> tuple[str | None, str]:
         """路径清理 + relpath 计算 + 行业路径替换。返回 (rel_path, dst_path)。"""
         if not os.path.isdir(src_dir):
-            return None
+            return (None, "skipped: directory not found")
         clean_src = src_dir[4:] if src_dir.startswith("\\\\?\\") else src_dir
         clean_root = source_root[4:] if source_root and source_root.startswith("\\\\?\\") else source_root
         if clean_root:
