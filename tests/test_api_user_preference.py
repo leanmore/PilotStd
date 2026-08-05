@@ -17,8 +17,11 @@ def _build_client():
     return TestClient(app)
 
 
-def _mock_auth(app, username="testuser"):
-    """注入 get_current_user_id 依赖覆盖，模拟已登录用户。"""
+def _mock_auth(app, username=1):
+    """注入 get_current_user_id 依赖覆盖，模拟已登录用户。
+
+    get_current_user_id 返回 user_id（int），因此 mock 使用整数 1。
+    """
     app.dependency_overrides[get_current_user_id] = lambda: username
 
 
