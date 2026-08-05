@@ -84,20 +84,22 @@ async function fetchLayout() {
   const version = ++fetchVersion
 
   // 1. 优先读本地缓存
+  let hasLocal = false
   const cached = localStorage.getItem(LAYOUT_STORAGE_KEY)
   if (cached) {
     try {
       const parsed = JSON.parse(cached)
       if (Array.isArray(parsed) && parsed.length > 0) {
         layout.value = hydrateLayout(parsed)
+        hasLocal = true
       }
     } catch { /* ignore */ }
   }
 
-  // 2. 异步拉取服务器配置
+  // 2. 异步拉取服务器配置（仅当成功且有效时才覆盖本地）
   try {
     const res = await http.get('/user/layout')
-    if (fetchVersion !== version) return  // 竞态：已过期
+    if (fetchVersion !== version) return
     const raw = res.data?.layout
     if (raw) {
       const parsed = JSON.parse(raw)
@@ -107,21 +109,24 @@ async function fetchLayout() {
         return
       }
     }
-  } catch { /* ignore */ }
-  if (fetchVersion !== version) return  // 竞态：已过期
+  } catch { /* 服务器不可用，继续使用本地缓存 */ }
+  if (fetchVersion !== version) return
 
-  // 3. 无数据 → 默认布局
-  if (!layout.value.length) resetLayout()
+  // 3. 无任何数据 → 默认布局
+  if (!hasLocal) resetLayout()
 }
 
 async function saveLayoutToServer(newLayout?: any[]) {
   const source = newLayout || layout.value
   const payload = source.map(({ i, x, y, w, h }: any) => ({ i, x, y, w, h }))
+
+  // 先写本地缓存，确保 server 失败不影响本地持久化
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(payload))
+
   try {
     await http.put('/user/layout', { layout: JSON.stringify(payload) })
-    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(payload))
   } catch {
-    console.warn('布局保存失败')
+    console.warn('布局保存到服务器失败，已保留本地缓存')
   }
 }
 

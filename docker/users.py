@@ -309,6 +309,19 @@ def get_user_by_username(username: str):
     )
 
 
+def get_user_by_id(user_id: int):
+    """根据 user_id 获取用户信息。
+
+    与 get_user_by_username 不同，此函数按主键 id 查询，
+    适用于调用方已持有 user_id（如从 JWT 解码得到）的场景。
+    """
+    db = _get_db()
+    return db.fetchone(
+        "SELECT id, username, role FROM users WHERE id = ?",
+        (user_id,),
+    )
+
+
 def get_db_connection():
     """获取数据库连接（供其他模块使用）。"""
     return _get_db()

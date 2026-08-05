@@ -17,15 +17,19 @@ def _build_client():
     return TestClient(app)
 
 
-def _mock_auth(app, username="testuser"):
-    """注入 get_current_user_id 依赖覆盖，模拟已登录用户。"""
+def _mock_auth(app, username="1"):
+    """注入 get_current_user_id 依赖覆盖，模拟已登录用户。
+
+    get_current_user_id 返回的是 user_id（字符串），非 username。
+    因此 mock 默认值使用 "1" 而非 "testuser"。
+    """
     app.dependency_overrides[get_current_user_id] = lambda: username
 
 
 class TestUserPreferenceAPI:
     """user_preference 端点测试"""
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     @patch("pilotstd.manager.settings_manager.UserPreferenceManager.get_preferences")
     def test_get_preferences_returns_full_data(self, mock_get, mock_user):
         mock_user.return_value = {"id": 1, "username": "testuser", "role": "user"}
@@ -40,7 +44,7 @@ class TestUserPreferenceAPI:
         assert data["status"] == "success"
         assert data["data"]["ui"]["theme"] == "dark"
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     def test_get_preferences_user_not_found(self, mock_user):
         mock_user.return_value = None
 
@@ -50,7 +54,7 @@ class TestUserPreferenceAPI:
         r = client.get("/api/user-preference")
         assert r.status_code == 404
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     @patch("pilotstd.manager.settings_manager.UserPreferenceManager.update_preferences")
     def test_patch_preferences_updates_and_returns(self, mock_update, mock_user):
         mock_user.return_value = {"id": 1, "username": "testuser", "role": "user"}
@@ -63,7 +67,7 @@ class TestUserPreferenceAPI:
         assert r.status_code == 200
         assert r.json()["data"]["ui"]["theme"] == "dark"
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     def test_patch_preferences_user_not_found(self, mock_user):
         mock_user.return_value = None
 
@@ -73,7 +77,7 @@ class TestUserPreferenceAPI:
         r = client.patch("/api/user-preference", json={"updates": {"ui": {"theme": "dark"}}})
         assert r.status_code == 404
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     @patch("pilotstd.manager.settings_manager.UserPreferenceManager.update_preferences")
     def test_patch_empty_updates_ok(self, mock_update, mock_user):
         mock_user.return_value = {"id": 1, "username": "testuser", "role": "user"}
@@ -85,7 +89,7 @@ class TestUserPreferenceAPI:
         r = client.patch("/api/user-preference", json={"updates": {}})
         assert r.status_code == 200
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     @patch("pilotstd.manager.settings_manager.UserPreferenceManager.reset_preferences")
     def test_delete_preferences_resets_to_defaults(self, mock_reset, mock_user):
         mock_user.return_value = {"id": 1, "username": "testuser", "role": "user"}
@@ -98,7 +102,7 @@ class TestUserPreferenceAPI:
         assert r.status_code == 200
         assert r.json()["message"] == "已恢复默认设置"
 
-    @patch("docker.api.user_preference.get_user_by_username")
+    @patch("docker.api.user_preference.get_user_by_id")
     def test_delete_preferences_user_not_found(self, mock_user):
         mock_user.return_value = None
 

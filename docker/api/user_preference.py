@@ -14,7 +14,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from docker.auth import get_current_user_id
-from docker.users import get_user_by_username
+from docker.users import get_user_by_id
 from pilotstd.manager.settings_manager import UserPreferenceManager
 
 router = APIRouter()
@@ -27,7 +27,7 @@ class PreferencesUpdate(BaseModel):
 @router.get("/api/user-preference")
 async def get_preferences(username: str = Depends(get_current_user_id)):
     """获取当前用户全部偏好（JSON 聚合格式，含默认值合并）。"""
-    user = get_user_by_username(username)
+    user = get_user_by_id(int(username))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -41,7 +41,7 @@ async def update_preferences(
     username: str = Depends(get_current_user_id),
 ):
     """增量更新用户偏好（只传需要修改的字段）。"""
-    user = get_user_by_username(username)
+    user = get_user_by_id(int(username))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -52,7 +52,7 @@ async def update_preferences(
 @router.delete("/api/user-preference")
 async def reset_preferences(username: str = Depends(get_current_user_id)):
     """重置用户偏好到默认值。"""
-    user = get_user_by_username(username)
+    user = get_user_by_id(int(username))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 

@@ -154,9 +154,11 @@ def refresh_static_token() -> str:
 
 
 def get_current_user_id(request: Request) -> str:
-    """从请求 Cookie 中解码 JWT，返回当前用户 ID（JWT sub 字段）。
+    """从请求 Cookie 中解码 JWT，返回当前用户的 user_id（字符串形式）。
 
-    v3.0: JWT sub 存储的是 user_id（非 username），函数名准确反映语义。
+    ⚠️ 重要：返回值是 user_id（如 "1"），**不是** username（如 "admin"）。
+    调用方如需查询用户记录，应使用 get_user_by_id(int(user_id))，
+    禁止将返回值传给任何形参名为 username 或按用户名查询的函数。
     """
     token = request.cookies.get(COOKIE_NAME)
     if not token:

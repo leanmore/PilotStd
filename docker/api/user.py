@@ -18,9 +18,7 @@ router = APIRouter(tags=["user"])
 @router.get("/api/user/layout")
 def get_layout(request: Request, username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
     """获取当前用户的界面布局配置（向后兼容 v21 布局 API）。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     return mgr.user_service.get_layout(user_id)
 
 
@@ -29,9 +27,7 @@ def put_layout(
     data: dict, request: Request, username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
     """保存当前用户的界面布局配置，body.layout 为 JSON 字符串。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     result = mgr.user_service.save_layout(user_id, data.get("layout", ""))
     if "error" in result:
         return JSONResponse(result, 400)
@@ -41,9 +37,7 @@ def put_layout(
 @router.delete("/api/user/layout")
 def delete_layout(request: Request, username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
     """删除当前用户的界面布局配置。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     return mgr.user_service.delete_layout(user_id)
 
 

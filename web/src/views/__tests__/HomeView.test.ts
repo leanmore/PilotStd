@@ -74,9 +74,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('初始化：后端返回 null 时降级到默认布局', async () => {
@@ -85,9 +83,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('初始化：网络异常时降级到默认布局不报错', async () => {
@@ -96,9 +92,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('锁定：默认锁定，GridLayout 不可拖拽不可缩放', async () => {
