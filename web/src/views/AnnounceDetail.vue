@@ -423,6 +423,8 @@ onBeforeUnmount(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
+  background: var(--bg);
+  min-height: 100vh;
 }
 
 .p-button-text.p-button-rounded:focus-visible {

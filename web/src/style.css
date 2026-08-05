@@ -177,8 +177,9 @@ h4 {
   box-shadow: var(--shadow-xs);
 }
 
-/* PrimeVue Card 组件背景跟随项目主题 Token，与 .p-panel 等保持一致 */
-.p-card {
+/* PrimeVue Card 组件背景跟随项目主题 Token。
+   使用 body 前缀提高特异性，对抗 PrimeVue 运行时注入的 .p-card { background: var(--p-card-background) } */
+body .p-card {
   background: var(--surface);
 }
 
