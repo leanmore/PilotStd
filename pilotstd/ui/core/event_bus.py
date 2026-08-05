@@ -6,6 +6,7 @@
 - QMutex 跨线程安全
 - QMetaObject.invokeMethod + QueuedConnection 确保回调在主线程执行
 - 支持 weakref 订阅，自动清理已销毁的订阅者
+- reset() 通过 BlockingQueuedConnection 同步屏障确保测试隔离安全
 """
 
 from __future__ import annotations
@@ -14,7 +15,15 @@ import logging
 import weakref
 from typing import Any, Callable
 
-from PyQt6.QtCore import Q_ARG, QMetaObject, QMutex, QMutexLocker, QObject, Qt, pyqtSlot
+from PyQt6.QtCore import (
+    Q_ARG,
+    QMetaObject,
+    QMutex,
+    QMutexLocker,
+    QObject,
+    Qt,
+    pyqtSlot,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +44,6 @@ class EventBus(QObject):
     def __init__(self) -> None:
         super().__init__()
         self._subscribers: dict[str, list[Callable[..., Any]]] = {}
-        # 存储引用追踪，用于清理
         self._weak_subscribers: dict[str, list[weakref.ref[Any]]] = {}
 
     @classmethod
@@ -48,16 +56,42 @@ class EventBus(QObject):
 
     @classmethod
     def reset(cls) -> None:
-        """重置单例（仅用于测试隔离）。"""
+        """重置单例（仅用于测试隔离）。
+
+        线程安全且确定性等待：通过 BlockingQueuedConnection 向主线程
+        发送同步屏障，确保所有已排队的 deliver 调用执行完毕后再清理状态。
+        """
         with QMutexLocker(cls._lock):
-            if cls._instance is not None:
-                cls._instance._subscribers.clear()
-                cls._instance._weak_subscribers.clear()
+            instance = cls._instance
+            if instance is None:
+                return
+
+            # 先清空订阅者，阻止后续 publish 产生新的 deliver 排队
+            instance._subscribers.clear()
+            instance._weak_subscribers.clear()
+
+        # ── 关键：同步屏障 ──────────────────────────────────
+        # 释放锁后做阻塞调用，避免死锁（deliver 也需要获取 _lock）
+        # BlockingQueuedConnection 保证：此调用返回时，
+        # 主线程事件队列中在本调用之前排队的 deliver 已全部执行完毕。
+        try:
+            QMetaObject.invokeMethod(
+                instance,
+                "_drain_barrier",
+                Qt.ConnectionType.BlockingQueuedConnection,
+            )
+        except RuntimeError:
+            # 实例可能已被 GC 或 QApplication 未就绪，安全忽略
+            pass
+
+        with QMutexLocker(cls._lock):
             cls._instance = None
 
     # ── 订阅管理 ─────────────────────────────────────────────
 
-    def subscribe(self, event: str, callback: Callable[..., Any], weak: bool = True) -> None:
+    def subscribe(
+        self, event: str, callback: Callable[..., Any], weak: bool = True
+    ) -> None:
         """订阅事件。weak=True 时使用弱引用，订阅者销毁后自动清理。
 
         Args:
@@ -72,7 +106,6 @@ class EventBus(QObject):
             if weak:
                 if event not in self._weak_subscribers:
                     self._weak_subscribers[event] = []
-                # 尝试从回调中提取弱引用（绑定的方法）
                 ref = self._get_callback_ref(callback)
                 if ref is not None:
                     self._weak_subscribers[event].append(ref)
@@ -97,7 +130,6 @@ class EventBus(QObject):
         """
         with QMutexLocker(self._lock):
             callbacks = list(self._subscribers.get(event, []))
-            # 清理已死的弱引用
             self._clean_dead_refs(event)
         if callbacks:
             QMetaObject.invokeMethod(
@@ -118,6 +150,16 @@ class EventBus(QObject):
                 cb(data)
             except Exception:
                 logger.exception("EventBus 回调异常: event=%s", event)
+
+    # ── 同步屏障槽函数 ────────────────────────────────────────
+
+    @pyqtSlot()
+    def _drain_barrier(self) -> None:
+        """空槽函数，仅用作 BlockingQueuedConnection 的同步屏障。
+
+        Qt 事件队列 FIFO 保证：当此槽被执行时，之前所有
+        QueuedConnection 的 deliver 调用必定已经完成。
+        """
 
     # ── 内部辅助 ─────────────────────────────────────────────
 
@@ -141,9 +183,10 @@ class EventBus(QObject):
             if obj is not None:
                 alive.append(ref)
         self._weak_subscribers[event] = alive
-        # 清理对应的强引用列表
         if event in self._subscribers:
-            self._subscribers[event] = [c for c in self._subscribers[event] if self._is_callback_alive(c)]
+            self._subscribers[event] = [
+                c for c in self._subscribers[event] if self._is_callback_alive(c)
+            ]
         if not self._subscribers.get(event):
             self._subscribers.pop(event, None)
             self._weak_subscribers.pop(event, None)
@@ -152,7 +195,7 @@ class EventBus(QObject):
         """检查回调绑定的对象是否仍然存活。"""
         try:
             if hasattr(callback, "__self__"):
-                return True  # 绑定方法, __self__ 存在即存活
+                return callback.__self__ is not None
             return True  # 普通函数/静态方法始终存活
         except Exception:
             return False
