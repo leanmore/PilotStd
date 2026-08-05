@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 47  # v45: audit_logs, v46: default user preferences, v47: task_execution_history
+CURRENT_SCHEMA_VERSION = 48  # v48: ensure user_layouts + user_settings tables (production hotfix)
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

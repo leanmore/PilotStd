@@ -531,3 +531,29 @@ def _migrate_v47_task_execution_history(db: Any) -> None:
         "CREATE INDEX IF NOT EXISTS idx_task_hist_name_time ON task_execution_history (task_name, finished_at DESC)"
     )
     db.execute("CREATE INDEX IF NOT EXISTS idx_task_hist_cleanup ON task_execution_history (task_name, finished_at)")
+
+
+@migration(48)
+def _migrate_v48_ensure_preference_tables(db: Any) -> None:
+    """幂等补建 user_layouts 和 user_settings 表。
+
+    生产环境修复：部分实例的 _schema_version 因未知原因跳过了 v21/v38，
+    导致这两张表缺失而 /api/user/layout 和 /api/user/settings 返回 500。
+    IF NOT EXISTS 确保已存在时无副作用。
+    """
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS user_layouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+            layout_key TEXT NOT NULL DEFAULT 'dashboard', layout_data TEXT NOT NULL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, layout_key))
+    """)
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL UNIQUE,
+            settings JSON NOT NULL DEFAULT '{}',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id)")
