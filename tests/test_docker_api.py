@@ -60,7 +60,7 @@ class TestAPIEndpoints(unittest.TestCase):
 
         self.client.app.dependency_overrides.clear()
         self.client.app.dependency_overrides[require_admin] = lambda: "admin"
-        self.client.app.dependency_overrides[get_current_user_id] = lambda: "admin"
+        self.client.app.dependency_overrides[get_current_user_id] = lambda: 1
 
     def tearDown(self):
         """清除 dependency_overrides，防止测试间污染。"""
@@ -524,7 +524,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.users.change_password")
     def test_change_password_returns_ok(self, mock_change, mock_user):
         """PUT /api/users/password 修改密码成功返回 ok。"""
-        mock_user.return_value = "admin"
+        mock_user.return_value = 1
         mock_change.return_value = True
         r = self.client.put(
             "/api/users/password",
@@ -536,7 +536,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.users.get_current_user_id")
     def test_change_password_short_returns_400(self, mock_user):
         """新密码不足 4 个字符返回 400。"""
-        mock_user.return_value = "admin"
+        mock_user.return_value = 1
         r = self.client.put("/api/users/password", json={"old_password": "old", "new_password": "ab"})
         self.assertEqual(r.status_code, 400)
 

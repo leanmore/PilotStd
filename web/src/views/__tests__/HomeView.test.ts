@@ -13,6 +13,7 @@ vi.mock('@/api/http', () => ({ default: { get: vi.fn(), put: vi.fn() } }))
 const { mockStore } = vi.hoisted(() => ({
   mockStore: {
     loggedIn: true,
+    userId: 1,
     dashboardLocked: true,
     toggleDashboardLock() {
       mockStore.dashboardLocked = !mockStore.dashboardLocked
@@ -74,9 +75,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('初始化：后端返回 null 时降级到默认布局', async () => {
@@ -85,9 +84,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('初始化：网络异常时降级到默认布局不报错', async () => {
@@ -96,9 +93,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    // #2/#17 重构后降级布局缩减为 1 张卡片；
-    // 若默认布局恢复为 5 张，需同步更新此期望值
-    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout.length).toBe(5)
   })
 
   it('锁定：默认锁定，GridLayout 不可拖拽不可缩放', async () => {
@@ -165,5 +160,36 @@ describe('HomeView 布局与持久化', () => {
     const body = (vi.mocked(http.put).mock.calls[0] as any)[1]
     expect(body).toHaveProperty('layout')
     expect(() => JSON.parse(body.layout)).not.toThrow()
+  })
+
+  it('初始化：迁移旧 localStorage key 到用户隔离格式', async () => {
+    // 模拟 PR-B 部署前已登录用户 —— localStorage 中有旧裸 key
+    localStorage.setItem('dashboard_layout', JSON.stringify([{ i: 'stats', x: 0, y: 0, w: 4, h: 6 }]))
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: null } })
+
+    const wrapper = mountHome()
+    await vi.runAllTimersAsync()
+
+    // 旧 key 应被删除，新 key 应存在
+    expect(localStorage.getItem('dashboard_layout')).toBeNull()
+    expect(localStorage.getItem('user_1_dashboard_layout')).not.toBeNull()
+    // 新 key 中的布局数据应被正确加载
+    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout[0].i).toBe('stats')
+  })
+
+  it('初始化：幂等——新 key 已存在时跳过迁移', async () => {
+    // 新 key 已存在
+    localStorage.setItem('user_1_dashboard_layout', JSON.stringify([{ i: 'sysInfo', x: 0, y: 0, w: 4, h: 6 }]))
+    // 旧 key 也有（模拟残留）
+    localStorage.setItem('dashboard_layout', JSON.stringify([{ i: 'stats', x: 0, y: 0, w: 4, h: 6 }]))
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: null } })
+
+    const wrapper = mountHome()
+    await vi.runAllTimersAsync()
+
+    // 使用的是新 key 的数据（sysInfo），旧 key 数据未被使用
+    expect(wrapper.vm.layout.length).toBe(1)
+    expect(wrapper.vm.layout[0].i).toBe('sysInfo')
   })
 })

@@ -20,7 +20,7 @@ router = APIRouter(tags=["notification"])
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-def _get_user_id(username: str = Depends(get_current_user_id), mgr=Depends(get_manager_dep)) -> int:
+def _get_user_id(username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)) -> int:
     """从 token 提取 user_id，找不到时返回 1（兼容系统调用）。"""
     user_id = mgr.user_service.get_user_id(username)
     return user_id if user_id is not None else 1

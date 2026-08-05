@@ -153,10 +153,12 @@ def refresh_static_token() -> str:
     return new_token
 
 
-def get_current_user_id(request: Request) -> str:
-    """从请求 Cookie 中解码 JWT，返回当前用户 ID（JWT sub 字段）。
+def get_current_user_id(request: Request) -> int:
+    """从请求 Cookie 中解码 JWT，返回当前用户的 user_id（int）。
 
-    v3.0: JWT sub 存储的是 user_id（非 username），函数名准确反映语义。
+    ⚠️ 重要：返回值是 user_id（如 1），**不是** username（如 "admin"）。
+    调用方如需查询用户记录，应使用 get_user_by_id(user_id)，
+    禁止将返回值传给任何形参名为 username 或按 username 查询的函数。
     """
     token = request.cookies.get(COOKIE_NAME)
     if not token:
@@ -167,10 +169,10 @@ def get_current_user_id(request: Request) -> str:
         raise HTTPException(401, "认证失败")
     if get_session_store().get(token) is None:
         raise HTTPException(401, "会话已过期，请重新登录")
-    return payload.get("sub", "")
+    return int(payload["sub"])
 
 
-def get_current_username(request: Request) -> str:
+def get_current_username(request: Request) -> int:
     """⚠️ DEPRECATED: 实际返回 user_id 而非 username，函数名具有误导性。
 
     请使用 get_current_user_id() 获取用户 ID。
@@ -385,11 +387,11 @@ def auth_me(request: Request):
 
             db = Database(get_db_path())
             row = db.fetchone(
-                "SELECT username, role FROM users WHERE id = ?",
+                "SELECT id, username, role FROM users WHERE id = ?",
                 (user_id,),
             )
             if row:
-                return {"username": row["username"], "role": row["role"]}
+                return {"id": row["id"], "username": row["username"], "role": row["role"]}
         except Exception:
             pass
 
