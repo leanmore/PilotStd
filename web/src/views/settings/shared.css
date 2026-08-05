@@ -1,10 +1,17 @@
 /* ═══════════════════════════════════════════
-   Settings 共享样式 — 供各 Tab 子组件导入
-   这些样式原本在 SettingsView.vue scoped 中，
-   拆分后在子组件中通过 @import 复用。
+   Settings 共享样式 — 供各 Tab 子组件通过 @import 复用。
+
+   ⚠️ 架构说明：本文件通过 <style scoped> @import 导入，
+   所有规则被 Vue 注入 [data-v-xxx] 属性选择器，仅作用于导入组件内部。
+
+   与 style.css 的关系：
+   - .card / .card-header 在此处是全局定义的「局部增强版」
+     （更大的 padding、渐变背景、更粗的 border-bottom），
+     仅在 Settings 页面内生效，不影响全局其他 .card 使用者。
+   - .form-grid / .fi / .text-dim 等同理。
    ═══════════════════════════════════════════ */
 
-/* 卡片 */
+/* 卡片（Settings 局部增强版，覆盖全局 style.css 的 .card） */
 .card {
   background: linear-gradient(135deg, var(--surface), var(--surface-raised));
   border: 1px solid var(--border);
@@ -33,16 +40,32 @@
   display: grid;
   grid-template-columns: 160px 1fr;
   gap: 14px 20px;
-  align-items: center;
+  align-items: start;
   font-size: 14px;
 }
 @media (max-width: 768px) {
   .form-grid { grid-template-columns: 1fr; gap: 8px 0; }
-  .form-grid label { margin-top: 8px; }
+  .form-grid > label { margin-top: 8px; }
 }
-.form-grid label {
+/*
+ * .form-grid > label — 表单行标签（仅直系子级）
+ *
+ * 使用 > 而非后代选择器的原因：防止污染嵌套在 .form-grid 内部的
+ * 子组件（如 .theme-option、.upload-btn 等）中的 <label> 元素。
+ *
+ * ⚠️ 新增 Settings Tab 注意事项：
+ *   1. 需要标签的行 → 直接在 .form-grid 下放 <label> + 控件
+ *   2. 需分组标题 → 用 <div class="fieldset-label">（跨两列粗体）
+ *   3. 需嵌套 <label> 的子组件 → 必须用包裹元素隔离，
+ *      不要直接放在 .form-grid 层级下
+ *   4. DynamicSettingField 内部使用 display:contents，
+ *      其 <label class="field-label"> 会成为 .form-grid 的直系子级，
+ *      此规则正常匹配 → 由组件自身 scoped 样式覆盖具体属性
+ */
+.form-grid > label {
   color: var(--text-dim);
   font-weight: 500;
+  padding-top: 9px;
 }
 
 /* 表单输入框 */

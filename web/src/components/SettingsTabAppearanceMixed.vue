@@ -60,10 +60,11 @@ function handleLocaleChange(val: string) {
   <div class="card mt-2">
     <div class="card-header">界面设置</div>
     <div class="form-grid">
-      <!-- 1. login_bg 上传区块（手写 getp/setp，flex 布局需要上传按钮） -->
-      <label>登录页背景图</label>
+      <!-- 1. login_bg 上传区块 -->
+      <label for="login-bg-input">登录页背景图</label>
       <div style="display:flex;gap:8px">
         <input
+          id="login-bg-input"
           :value="getp('appearance.login_bg')"
           @input="handleBgInput"
           class="fi" style="flex:1" placeholder="https://... 或留空使用默认"
@@ -73,18 +74,24 @@ function handleLocaleChange(val: string) {
           <input type="file" accept="image/*" style="display:none" @change="props.onUploadBg" />
         </label>
       </div>
-      <span v-if="fileError" class="field-error">{{ fileError }}</span>
-      <span class="text-dim" style="font-size:11px">支持手动上传图片或填入 API 网络地址</span>
+      <span v-if="fileError" class="field-error" style="grid-column:2">{{ fileError }}</span>
+      <span class="text-dim" style="font-size:11px;grid-column:2">支持手动上传图片或填入 API 网络地址</span>
 
-      <!-- 2. 主题（Pinia store 管理，非 Schema） -->
-      <label>主题</label>
-      <div class="theme-options">
-        <label
+      <!-- 2. 主题（分组标题 + Pinia store 管理） -->
+      <div class="fieldset-gap" />
+      <div class="fieldset-label">主题</div>
+      <div class="theme-options" style="grid-column: 1 / -1">
+        <div
           v-for="t in themeList"
           :key="t.id"
           class="theme-option"
           :class="{ active: store.theme === t.id }"
+          role="radio"
+          :aria-checked="store.theme === t.id"
+          tabindex="0"
           @click="setTheme(t.id)"
+          @keydown.enter="setTheme(t.id)"
+          @keydown.space.prevent="setTheme(t.id)"
         >
           <div class="theme-swatch-wrapper">
             <div class="theme-swatch" :style="{ background: t.colors.bg, borderColor: t.colors.border }">
@@ -92,12 +99,14 @@ function handleLocaleChange(val: string) {
             </div>
           </div>
           <span>{{ t.label }}</span>
-        </label>
+        </div>
       </div>
 
-      <!-- 4. 界面语言（Pinia store 管理，非 Schema） -->
-      <label>界面语言</label>
+      <!-- 3. 界面语言 -->
+      <div class="fieldset-gap" />
+      <label for="lang-select">界面语言</label>
       <Select
+        id="lang-select"
         :modelValue="props.selectedLocale"
         :options="props.localeOptions"
         optionLabel="label"

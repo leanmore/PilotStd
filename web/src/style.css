@@ -593,7 +593,14 @@ h4 {
 }
 
 /* ═══════════════════════════════════════════
-   通用卡片样式
+   通用卡片样式（全局标准定义）
+
+   ⚠️ Settings 页面通过 scoped shared.css 对此做了局部增强
+   （padding: 24px, border-radius: var(--radius-lg), 渐变背景）。
+   修改此处时需确保与非 Settings 页面的 .card 使用者兼容。
+
+   已知依赖此全局定义的文件：
+     PendingView.vue, TaskView.vue, OrganizeView.vue, NotificationLogsView.vue
    ═══════════════════════════════════════════ */
 .card {
   background: var(--surface);
@@ -712,22 +719,25 @@ h4 {
 }
 
 /* ═══════════════════════════════════════════
-   响应式
+   响应式（全局兜底）
+
+   ⚠️ Settings 页面 scoped shared.css 中另有 @media (max-width: 768px)
+   的同名规则，两处断点已统一为 768px。修改时保持同步。
    ═══════════════════════════════════════════ */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .stats-row {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .home-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .form-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
-  .form-grid label {
+  .form-grid > label {
     margin-top: 8px;
   }
 
