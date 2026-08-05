@@ -11,6 +11,8 @@ import shutil
 import tempfile
 import unittest
 
+import pytest
+
 from pilotstd.manager import StandardManager
 
 
@@ -71,6 +73,7 @@ class TestStandardManager(unittest.TestCase):
         self.assertIn("moved", result)
         self.assertIn("failed", result)
 
+    @pytest.mark.skip(reason="CI环境无法稳定访问csres.com，需mock化后恢复 (Issue #TBD)")
     def test_full_pipeline_integration(self):
         """端到端集成测试：scan → query → download → organize 完整流程。"""
         # 在临时目录创建多个测试标准文件
