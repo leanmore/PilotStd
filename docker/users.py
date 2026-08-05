@@ -300,12 +300,25 @@ def count_recent_failures(ip: str, cutoff: float) -> int:
 # ── 供其他模块使用的导出函数 ──
 
 
-def get_user_by_username(username: str):
-    """根据用户名获取用户信息（供 user_preference 等模块使用）。"""
+def get_user_by_username(username: int):
+    """根据 user_id 获取用户信息。
+
+    ⚠️ get_current_user_id() 返回 user_id（int），此函数形参名为 username
+    是历史遗留——实际接收的是 user_id。
+    """
     db = _get_db()
     return db.fetchone(
-        "SELECT id, username, role FROM users WHERE username = ?",
+        "SELECT id, username, role FROM users WHERE id = ?",
         (username,),
+    )
+
+
+def get_user_by_id(user_id: int):
+    """根据 user_id 获取用户信息（语义准确的替代函数）。"""
+    db = _get_db()
+    return db.fetchone(
+        "SELECT id, username, role FROM users WHERE id = ?",
+        (user_id,),
     )
 
 

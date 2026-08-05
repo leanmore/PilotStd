@@ -1,4 +1,4 @@
-# 容器//脚本—用户配置接口（23：统一首选项+布局兼容，通过委派）
+# User config API — unified preferences + deprecated layout/settings aliases
 import logging
 
 from fastapi import Depends, Request
@@ -12,38 +12,56 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["user"])
 
 
-# ── 布局（保留向后兼容） ──────────────────────
+def _deprecated_warn(request: Request, endpoint: str, replacement: str) -> None:
+    """输出废弃端点调用警告日志。"""
+    client_ip = request.client.host if request.client else "unknown"
+    logger.warning(
+        "DEPRECATED endpoint %s called from %s — 请迁移到 %s",
+        endpoint, client_ip, replacement,
+    )
+
+
+# ── 布局（DEPRECATED: 请使用 /api/user/preferences/layout:dashboard）──
 
 
 @router.get("/api/user/layout")
 def get_layout(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
-    """获取当前用户的界面布局配置（向后兼容 v21 布局 API）。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
-    return mgr.user_service.get_layout(user_id)
+    """[DEPRECATED] 获取布局 — 请使用 GET /api/user/preferences/layout:dashboard"""
+    _deprecated_warn(request, "/api/user/layout", "GET /api/user/preferences/layout:dashboard")
+    user_id = int(username)
+    row = mgr.db.fetchone(
+        "SELECT preference_value FROM user_preferences WHERE user_id=? AND preference_key='layout:dashboard'",
+        (user_id,),
+    )
+    if not row:
+        return mgr.user_service.get_layout(user_id)
+    return {"layout": row["preference_value"]}
 
 
 @router.put("/api/user/layout")
 def put_layout(
     data: dict, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
-    """保存当前用户的界面布局配置，body.layout 为 JSON 字符串。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    """[DEPRECATED] 保存布局 — 请使用 PUT /api/user/preferences/layout:dashboard"""
+    _deprecated_warn(request, "/api/user/layout", "PUT /api/user/preferences/layout:dashboard")
+    user_id = int(username)
     result = mgr.user_service.save_layout(user_id, data.get("layout", ""))
     if "error" in result:
         return JSONResponse(result, 400)
+    # 同步写入统一表
+    mgr.db.execute(
+        "INSERT OR REPLACE INTO user_preferences (user_id, preference_key, preference_value, updated_at)"
+        " VALUES (?, 'layout:dashboard', ?, datetime('now', 'localtime'))",
+        (user_id, data.get("layout", "")),
+    )
     return result
 
 
 @router.delete("/api/user/layout")
 def delete_layout(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
-    """删除当前用户的界面布局配置。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    """[DEPRECATED] 删除布局 — 请使用 DELETE /api/user/preferences/layout:dashboard"""
+    _deprecated_warn(request, "/api/user/layout", "DELETE /api/user/preferences/layout:dashboard")
+    user_id = int(username)
     return mgr.user_service.delete_layout(user_id)
 
 
@@ -109,15 +127,14 @@ def delete_preference(
     return mgr.user_service.delete_preference(user_id, key)
 
 
-# ──统一设置（31：合并+，减少网络请求数）──
+# ──统一设置（DEPRECATED: 请使用 /api/user/preferences/{key}）──
 
 
 @router.get("/api/user/settings")
 def get_settings(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
-    """获取当前用户的统一设置（v31：合并 layout + preferences，减少 HTTP 请求数）。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    """[DEPRECATED] 获取统一设置 — 请使用 GET /api/user/preferences/{key}"""
+    _deprecated_warn(request, "/api/user/settings", "GET /api/user/preferences/{key}")
+    user_id = int(username)
     return mgr.user_service.get_user_settings(user_id)
 
 
@@ -125,8 +142,7 @@ def get_settings(request: Request, username: int = Depends(get_current_user_id),
 def put_settings(
     data: dict, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
-    """保存当前用户的统一设置（v31：layout + preferences 合并写入）。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    """[DEPRECATED] 保存统一设置 — 请使用 PUT /api/user/preferences/{key}"""
+    _deprecated_warn(request, "/api/user/settings", "PUT /api/user/preferences/{key}")
+    user_id = int(username)
     return mgr.user_service.save_user_settings(user_id, data)

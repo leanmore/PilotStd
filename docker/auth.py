@@ -387,11 +387,11 @@ def auth_me(request: Request):
 
             db = Database(get_db_path())
             row = db.fetchone(
-                "SELECT username, role FROM users WHERE id = ?",
+                "SELECT id, username, role FROM users WHERE id = ?",
                 (user_id,),
             )
             if row:
-                return {"username": row["username"], "role": row["role"]}
+                return {"id": row["id"], "username": row["username"], "role": row["role"]}
         except Exception:
             pass
 
