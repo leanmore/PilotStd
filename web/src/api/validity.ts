@@ -56,3 +56,21 @@ export const getValidityHistory = (params: {
 
 export const enqueueValidityCheck = (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>
   http.post('/validity/enqueue', { file_paths: filePaths }).then(r => r.data)
+
+/** 解析 "HH:MM" 字符串为 { hour, minute }，空值/非法值容错为 0 */
+export function parseExecuteTime(timeStr: string | undefined | null): { hour: number; minute: number } {
+  const str = timeStr || '00:00'
+  const parts = str.split(':')
+  const h = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  return {
+    hour: isNaN(h) ? 0 : Math.min(23, Math.max(0, h)),
+    minute: isNaN(m) ? 0 : Math.min(59, Math.max(0, m)),
+  }
+}
+
+/** 将 { hour, minute } 格式化为 "HH:MM" 字符串（含前导零） */
+export function formatExecuteTime(hour: number, minute: number): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(hour)}:${pad(minute)}`
+}

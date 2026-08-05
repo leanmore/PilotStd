@@ -11,7 +11,7 @@ import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
-import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
+import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, parseExecuteTime, formatExecuteTime, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
 
 const { t } = useI18n()
@@ -31,6 +31,22 @@ const config = ref<ValidityConfig>({
   first_weekday: 1, execute_time: '03:00',
   total_weeks: 4, frequency_weeks: 1,
   batch_size: 50, batch_interval: 5, check_ratio: 25,
+})
+
+// 将 execute_time "HH:MM" 拆分为两个 InputNumber 的 computed 桥接
+const executeHour = computed({
+  get: () => parseExecuteTime(config.value.execute_time).hour,
+  set: (val: number) => {
+    const { minute } = parseExecuteTime(config.value.execute_time)
+    config.value.execute_time = formatExecuteTime(val, minute)
+  },
+})
+const executeMinute = computed({
+  get: () => parseExecuteTime(config.value.execute_time).minute,
+  set: (val: number) => {
+    const { hour } = parseExecuteTime(config.value.execute_time)
+    config.value.execute_time = formatExecuteTime(hour, val)
+  },
 })
 const loading = ref(false)
 const saving = ref(false)
@@ -196,10 +212,26 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           optionValue="value"
         />
       </div>
-      <!-- ✅ #43: 首次执行时间 -->
+      <!-- 首次执行时间 -->
       <div class="field">
         <label>首次执行（时间）</label>
-        <InputText v-model="config.execute_time" type="time" />
+        <div class="time-group">
+          <InputNumber
+            v-model="executeHour"
+            :min="0"
+            :max="23"
+            show-buttons
+            class="time-input"
+          />
+          <span class="separator">:</span>
+          <InputNumber
+            v-model="executeMinute"
+            :min="0"
+            :max="59"
+            show-buttons
+            class="time-input"
+          />
+        </div>
       </div>
       <!-- ✅ #43: 总周期 -->
       <div class="field">
@@ -356,4 +388,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .detail { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
 .detail-row { display: flex; justify-content: space-between; align-items: center; }
 .detail-row span:first-child { color: var(--text-dim); }
+.time-group { display: flex; align-items: center; gap: 0.25rem; }
+.time-input { width: 4.5rem; }
+.separator { font-weight: bold; padding: 0 0.25rem; }
 </style>

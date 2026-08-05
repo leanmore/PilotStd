@@ -36,12 +36,16 @@ const { getValidityConfigMock, putValidityConfigMock, runValidityCheckMock, getV
   getValidityHistoryMock: vi.fn(),
 }))
 
-vi.mock('@/api/validity', () => ({
-  getValidityConfig: getValidityConfigMock,
-  putValidityConfig: putValidityConfigMock,
-  runValidityCheck: runValidityCheckMock,
-  getValidityHistory: getValidityHistoryMock,
-}))
+vi.mock('@/api/validity', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/validity')>()
+  return {
+    ...actual,
+    getValidityConfig: getValidityConfigMock,
+    putValidityConfig: putValidityConfigMock,
+    runValidityCheck: runValidityCheckMock,
+    getValidityHistory: getValidityHistoryMock,
+  }
+})
 
 function mountValidityConfig() {
   return mount(ValidityConfig, {
