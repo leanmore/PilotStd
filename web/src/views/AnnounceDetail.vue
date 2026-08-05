@@ -431,7 +431,8 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-.announce-title {
+/* 标题居中 — 使用 :deep() 穿透到 PrimeVue Card 内部，提高特异性对抗 Aura 的 .p-card-content p */
+:deep(.p-card-content) .announce-title {
   font-size: 22px;
   font-weight: bold;
   text-align: center;
