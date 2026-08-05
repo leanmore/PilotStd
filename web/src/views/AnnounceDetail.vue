@@ -15,7 +15,6 @@ import type { Announcement, AnnouncementRecord } from '@/types/api'
 import { useDetailCache } from '@/composables/useDetailCache'
 import { useFavorite } from '@/composables/useFavorite'
 import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
-import { fixAnnounceHeadings } from '@/utils/announceHeadings'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
@@ -76,7 +75,7 @@ const parseButtonDisabled = computed(() => {
 
 const sanitizedContent = computed(() => {
   const raw = DOMPurify.sanitize(announcement.value?.content || '')
-  return fixAnnounceHeadings(raw)
+  return raw
 })
 
 async function loadDetail() {

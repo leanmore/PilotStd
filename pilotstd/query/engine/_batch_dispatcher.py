@@ -55,6 +55,7 @@ class BatchDispatcher:
         self._ctx = ctx
         self._stop_event = threading.Event()
         self._heartbeat_thread: threading.Thread | None = None
+        BatchDispatcher._instance = self  # 供测试清理 fixture 访问
 
     # ── 心跳线程生命周期 ──
 
@@ -388,7 +389,10 @@ class BatchDispatcher:
         n: int,
         temp_cooldown_skips: int,
     ) -> List[QueryResult]:
-        """收尾：输出批量摘要报告 → 停止心跳 → 组装结果 → 重置状态。"""
+        """收尾：停止心跳 → 输出批量摘要报告 → 组装结果 → 重置状态。"""
+        # 先停止心跳线程，确保后续 cleanup 期间不会有后台线程访问状态
+        self.stop_heartbeat()
+
         # 组装报告摘要并委托处理器输出
         report = {
             "bucket_times": state["bucket_times"],
@@ -408,7 +412,6 @@ class BatchDispatcher:
         }
         self._ctx.report._report_batch_summary(report)
 
-        self.stop_heartbeat()
         with state["_prog_lock"]:
             c = state["_prog_completed"][0]
             o = state["_prog_ok"][0]

@@ -137,10 +137,12 @@ def pytest_sessionfinish(session, exitstatus):
 # 在全部测试结束后调用 stop_heartbeat() 确保线程安全退出。
 @pytest.fixture(scope="session", autouse=True)
 def _cleanup_batch_dispatcher_heartbeat():
+    """session 级兜底清理：测试异常中断时确保心跳线程退出。"""
     yield
     try:
         from pilotstd.query.engine._batch_dispatcher import BatchDispatcher
-        # BatchDispatcher 通过 _DispatchContext 注入使用，无全局单例。
-        # 此 fixture 作为兜底：若未来引入全局实例，在此调用 stop_heartbeat()。
+        instance = getattr(BatchDispatcher, '_instance', None)
+        if instance is not None:
+            instance.stop_heartbeat()
     except Exception:
         pass

@@ -56,8 +56,16 @@ _SIGNATURE_DATE_PATTERN = re.compile(
     r"(.{4,}(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会))\s+(\d{4}[-年]\d{1,2}[-月]\d{1,2}日?)$"
 )
 
-# 公告标题行精确匹配集合（阶段：语义分类）
-_HEADING_LINES = {"公告", "备案月报"}
+# 公告标题行精确匹配集合
+_HEADING_LINES = {
+    "公告", "备案月报",
+    "中华人民共和国国家标准",
+    "行业标准公告", "行业标准备案公告",
+    "地方标准公告",
+}
+
+# 动态文号模式：2026年第31号、2025年第8号等
+_ISSUE_NO_PATTERN = re.compile(r"^\d{4}年第\d+号$")
 
 # 落款机关后缀模式（阶段：扩展规则）
 _ORG_SUFFIX_PATTERN = re.compile(r"(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会)$")
@@ -143,14 +151,17 @@ def clean_announcement_content(content: str) -> str:
 
 def _classify_paragraph(text: str) -> str:
     """段落语义分类，按优先级匹配（命中即停）。
-    优先级：date > heading > signature > body
+    优先级：date > heading > issue_no > signature > body
     """
-    if _DATE_LINE_PATTERN.match(text):
+    stripped = text.strip()
+    if _DATE_LINE_PATTERN.match(stripped):
         return "announce-date"
-    if text.strip() in _HEADING_LINES:
+    if stripped in _HEADING_LINES:
+        return "announce-heading"
+    if _ISSUE_NO_PATTERN.match(stripped):
         return "announce-heading"
     # 取最后一个空格分隔片段，判断是否以机关后缀结尾
-    segments = text.strip().split()
+    segments = stripped.split()
     if segments and _ORG_SUFFIX_PATTERN.search(segments[-1]):
         return "announce-signature"
     return "announce-body"
