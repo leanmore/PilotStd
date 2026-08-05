@@ -53,6 +53,54 @@ class BatchDispatcher:
 
     def __init__(self, ctx: _DispatchContext):
         self._ctx = ctx
+        self._stop_event = threading.Event()
+        self._heartbeat_thread: threading.Thread | None = None
+
+    # ── 心跳线程生命周期 ──
+
+    def start_heartbeat(
+        self,
+        n: int,
+        bucket_t0: float,
+        prog_completed: list[int],
+        prog_ok: list[int],
+        prog_lock: threading.Lock,
+    ) -> None:
+        """启动进度心跳线程（幂等：已启动则跳过）。"""
+        if self._heartbeat_thread is not None and self._heartbeat_thread.is_alive():
+            return
+        self._stop_event.clear()
+
+        def _progress_heartbeat() -> None:
+            """每秒检查停止信号，每 60 秒输出一次批量查询进度心跳日志。"""
+            tick = 0
+            while not self._stop_event.wait(timeout=1.0):
+                tick += 1
+                if tick % 60 != 0:
+                    continue
+                with prog_lock:
+                    c = prog_completed[0]
+                    o = prog_ok[0]
+                elapsed = time.time() - bucket_t0
+                rate = c / max(elapsed, 0.001)
+                eta = (n - c) / max(rate, 0.001) if rate > 0 else 0.0
+                logger.info(
+                    "%s 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=%.0f秒",
+                    PROGRESS_TAG, c, n, o, rate, eta,
+                )
+
+        self._heartbeat_thread = threading.Thread(target=_progress_heartbeat, daemon=True)
+        self._heartbeat_thread.start()
+
+    def stop_heartbeat(self, timeout: float = 2.0) -> None:
+        """停止心跳线程并等待退出。
+
+        测试清理和桌面应用关闭时调用。线程安全，重复调用无副作用。
+        """
+        self._stop_event.set()
+        if self._heartbeat_thread is not None and self._heartbeat_thread.is_alive():
+            self._heartbeat_thread.join(timeout=timeout)
+        self._heartbeat_thread = None
 
     # ── 状态初始化 ──
 
@@ -85,22 +133,7 @@ class BatchDispatcher:
             with _prog_lock:
                 _prog_completed[0] += 1
 
-        def _progress_heartbeat() -> None:
-            """每 60 秒输出一次批量查询进度心跳日志（速率 + ETA）。"""
-            while not _prog_stop.wait(60.0):
-                with _prog_lock:
-                    c = _prog_completed[0]
-                    o = _prog_ok[0]
-                elapsed = time.time() - _bucket_t0
-                rate = c / max(elapsed, 0.001)
-                eta = (n - c) / max(rate, 0.001) if rate > 0 else 0.0
-                logger.info(
-                    "%s 已完成=%d 总数=%d 成功=%d 速率=%.1f条/秒 预计剩余=%.0f秒",
-                    PROGRESS_TAG, c, n, o, rate, eta,
-                )
-
-        _prog_thread = threading.Thread(target=_progress_heartbeat, daemon=True)
-        _prog_thread.start()
+        self.start_heartbeat(n, _bucket_t0, _prog_completed, _prog_ok, _prog_lock)
 
         return {
             "results": results,
@@ -110,7 +143,6 @@ class BatchDispatcher:
             "_prog_ok": _prog_ok,
             "_prog_lock": _prog_lock,
             "_prog_stop": _prog_stop,
-            "_prog_thread": _prog_thread,
             "_bucket_t0": _bucket_t0,
             "n": n,
         }
@@ -376,7 +408,7 @@ class BatchDispatcher:
         }
         self._ctx.report._report_batch_summary(report)
 
-        state["_prog_stop"].set()
+        self.stop_heartbeat()
         with state["_prog_lock"]:
             c = state["_prog_completed"][0]
             o = state["_prog_ok"][0]

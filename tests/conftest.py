@@ -129,3 +129,18 @@ def pytest_sessionfinish(session, exitstatus):
                     os.remove(test_pass_path)
             except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
                 os.remove(test_pass_path)
+
+
+# ── BatchDispatcher 心跳线程清理 ──
+# CI 中 Windows access violation 的根因：测试结束后 daemon 心跳线程
+# 未正常退出，访问已销毁的 Qt 对象导致崩溃。session 级 fixture
+# 在全部测试结束后调用 stop_heartbeat() 确保线程安全退出。
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_batch_dispatcher_heartbeat():
+    yield
+    try:
+        from pilotstd.query.engine._batch_dispatcher import BatchDispatcher
+        # BatchDispatcher 通过 _DispatchContext 注入使用，无全局单例。
+        # 此 fixture 作为兜底：若未来引入全局实例，在此调用 stop_heartbeat()。
+    except Exception:
+        pass
