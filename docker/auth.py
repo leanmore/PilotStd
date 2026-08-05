@@ -14,7 +14,7 @@ from fastapi.routing import APIRouter
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from pilotstd import ADMIN_ROLE, SUPERUSER_USERNAME
+from pilotstd import ADMIN_ROLE
 
 from .session_store import get_session_store
 from .users import (
@@ -187,26 +187,24 @@ def get_current_username(request: Request) -> int:
 
 
 def require_admin(request: Request) -> str:
-    """[DEPRECATED] 使用 @require_role('admin') 装饰器替代。
-
-    保留为向后兼容 wrapper：内部委托 @require_role，额外记录废弃警告。
-    """
-
-    username = get_current_user_id(request)
-    if username != SUPERUSER_USERNAME:
-        # 版本三0:拒绝时写审计日志
+    """从 JWT role 声明鉴权（修复：原实现将 int user_id 与 str USERNAME 比较，恒 403）。"""
+    token = request.cookies.get(COOKIE_NAME)
+    if not token:
+        raise HTTPException(401, "未登录")
+    try:
+        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(401, "认证失败")
+    role = payload.get("role", "user")
+    if role != ADMIN_ROLE:
         try:
             from pilotstd.core.audit import write_audit
-
-            write_audit(
-                action="ACCESS_DENIED",
-                resource=f"{request.method} {request.url.path}",
-                detail={"reason": "require_admin (deprecated)", "username": username},
-            )
+            write_audit(action="ACCESS_DENIED", resource=f"{request.method} {request.url.path}",
+                        detail={"reason": "require_admin", "role": role, "user_id": payload.get("sub", "unknown")})
         except Exception:
             pass
         raise HTTPException(403, "仅管理员可执行此操作")
-    return username
+    return payload.get("sub", "unknown")
 
 
 def require_role(role: str):
