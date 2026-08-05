@@ -54,17 +54,35 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     }
   }
 
-  // ── 批量加载收藏状态（单次请求替代 N+1）──
+  // ── 批量加载收藏状态（分片 + 并发控制，适配后端 max_length=500）──
 
   async function loadFavStatuses() {
     if (!records.value.length) return
 
+    const ids = records.value.map(r => r.id)
+    const BATCH_SIZE = 500
+    const CONCURRENCY = 3
+
     try {
-      const res = await getBatchFavoriteStatus(records.value.map(r => r.id))
-      const statuses = res.statuses || {}
+      let merged: Record<string, any> = {}
+
+      if (ids.length <= BATCH_SIZE) {
+        const res = await getBatchFavoriteStatus(ids)
+        merged = res.statuses || {}
+      } else {
+        const chunks: number[][] = []
+        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+          chunks.push(ids.slice(i, i + BATCH_SIZE))
+        }
+        for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+          const batch = chunks.slice(i, i + CONCURRENCY)
+          const results = await Promise.all(batch.map(c => getBatchFavoriteStatus(c)))
+          results.forEach(r => Object.assign(merged, r.statuses || {}))
+        }
+      }
 
       for (const r of records.value) {
-        const data = statuses[String(r.id)]
+        const data = merged[String(r.id)]
         if (data) {
           favMap.value[r.id] = (
             data.status === 'done' ||
@@ -78,7 +96,6 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       }
     } catch (e) {
       console.warn('[Favorite] 批量获取状态失败，降级为未收藏', e)
-      // 降级兜底：全部设为未收藏，不阻断页面渲染
       records.value.forEach(r => {
         favMap.value[r.id] = false
       })
