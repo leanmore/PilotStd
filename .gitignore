@@ -92,3 +92,4 @@ tests/test_config.json
 # ===== 本地笔记与历史归档 =====
 docs/.local/
 docs/archive/
+docs/superpowers/reports/ci-risk-investigation-2026-08-06.md
