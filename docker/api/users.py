@@ -1,4 +1,4 @@
-﻿# 容器//脚本—用户管理接口
+# 容器//脚本—用户管理接口
 # 权限：用户管理接口需 admin 角色（@require_role）
 from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter

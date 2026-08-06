@@ -1,4 +1,4 @@
-﻿# 容器//脚本—任务队列接口
+# 容器//脚本—任务队列接口
 # 权限：任务管理接口需 admin 角色（@require_role）
 import logging
 

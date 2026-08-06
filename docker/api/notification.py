@@ -1,4 +1,4 @@
-﻿# 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
+# 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
 import logging
 
 from fastapi import Depends, Query
