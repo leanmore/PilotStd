@@ -1,4 +1,4 @@
-# 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
+﻿# 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
 import logging
 
 from fastapi import Depends, Query
@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
-from ..auth import get_current_user_id, require_admin
+from ..auth import get_current_user_id, require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
     return mgr.notification_mgr
 
 
+@require_role("admin")
 @router.get("/api/notification/config")
 def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id)):
     """读取当前用户的渠道凭证配置。"""
@@ -88,12 +89,12 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
     }
 
 
+@require_role("admin")
 @router.put("/api/notification/config")
 def update_config(
     body: dict,
     mgr=Depends(get_manager_dep),
     user_id: int = Depends(_get_user_id),
-    _: bool = Depends(require_admin),
 ):
     """更新通知配置（按用户隔离）。"""
     nmgr = mgr.notification_mgr
@@ -119,6 +120,7 @@ def update_config(
     return {"ok": True}
 
 
+@require_role("admin")
 @router.post("/api/notification/test")
 def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
     """发送测试通知到指定渠道。
@@ -145,6 +147,7 @@ def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
     return result
 
 
+@require_role("admin")
 @router.get("/api/notification/logs")
 def get_logs(
     page: int = Query(1, ge=1),
@@ -188,6 +191,7 @@ def get_logs(
     }
 
 
+@require_role("admin")
 @router.post("/api/notification/read")
 def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
     """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
@@ -206,6 +210,7 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@require_role("admin")
 @router.get("/api/notification/unread-count")
 def get_unread_count(nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""
@@ -217,11 +222,11 @@ def get_unread_count(nmgr=Depends(_get_notification_mgr)):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@require_role("admin")
 @router.delete("/api/notification/logs")
 def delete_notification_logs(
     days: int = Query(30, ge=1, le=365),
     nmgr=Depends(_get_notification_mgr),
-    _: str = Depends(require_admin),
 ):
     """清理通知日志（仅管理员）。删除 days 天前的记录。"""
     try:
@@ -243,6 +248,7 @@ class PolicyUpdateRequest(BaseModel):
     events: list[str] | None = None
 
 
+@require_role("admin")
 @router.get("/api/notification/policy")
 def get_policy(nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_user_id)):
     """获取通知策略配置（渠道事件订阅，按用户隔离）。"""
@@ -254,12 +260,12 @@ def get_policy(nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@require_role("admin")
 @router.put("/api/notification/policy")
 def put_policy(
     data: PolicyUpdateRequest,
     nmgr=Depends(_get_notification_mgr),
     user_id: int = Depends(_get_user_id),
-    _: str = Depends(require_admin),
 ):
     """更新通知策略（仅管理员，按用户隔离）。"""
     try:

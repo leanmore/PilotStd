@@ -71,9 +71,7 @@ def delete_layout(request: Request, username: int = Depends(get_current_user_id)
 @router.get("/api/user/preferences")
 def get_all_preferences(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
     """获取当前用户的所有首选项（键值对字典）。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     return mgr.user_service.get_preferences(user_id)
 
 
@@ -82,9 +80,7 @@ def get_preference(
     key: str, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
     """获取当前用户指定 key 的首选项值。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     return mgr.user_service.get_preference(user_id, key)
 
 
@@ -93,9 +89,7 @@ def put_preference(
     key: str, data: dict, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
     """保存或更新当前用户指定 key 的首选项值，body.value 为具体值。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     if "value" not in data:
         return JSONResponse({"error": "缺少 value 字段"}, 400)
     return mgr.user_service.save_preference(user_id, key, data["value"])
@@ -106,9 +100,7 @@ def put_preferences_batch(
     data: dict, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
     """批量保存或更新当前用户的多项首选项，body.preferences 为键值对字典。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     preferences = data.get("preferences", {})
     result = mgr.user_service.save_preferences_batch(user_id, preferences)
     if "error" in result:
@@ -121,9 +113,7 @@ def delete_preference(
     key: str, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
 ):
     """删除当前用户指定 key 的首选项。"""
-    user_id = mgr.user_service.get_user_id(username)
-    if user_id is None:
-        return JSONResponse({"error": "用户不存在"}, 404)
+    user_id = int(username)
     return mgr.user_service.delete_preference(user_id, key)
 
 

@@ -8,13 +8,25 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+from jose import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from docker.auth import require_admin
+from docker.auth import COOKIE_NAME
 from docker.manager import get_manager_dep
+
+
+def _admin_token() -> str:
+    """生成 admin 角色 JWT token，用于测试绕过认证。"""
+    from docker.auth import SECRET
+    return jwt.encode(
+        {"sub": "1", "role": "admin", "iat": datetime.now(timezone.utc),
+         "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+        SECRET, algorithm="HS256",
+    )
 
 
 class TestAPIEndpoints(unittest.TestCase):
@@ -55,12 +67,12 @@ class TestAPIEndpoints(unittest.TestCase):
         cls.client = TestClient(app)
 
     def setUp(self):
-        """注入认证覆盖，避免 401。必须同时覆盖 require_admin 和 get_current_user_id。"""
-        from docker.auth import get_current_user_id
+        """注入 admin JWT cookie + 覆盖 get_current_user_id。"""
+        from docker.auth import get_current_user_id as _gci
 
         self.client.app.dependency_overrides.clear()
-        self.client.app.dependency_overrides[require_admin] = lambda: "admin"
-        self.client.app.dependency_overrides[get_current_user_id] = lambda: 1
+        self.client.app.dependency_overrides[_gci] = lambda: 1
+        self.client.cookies.set(COOKIE_NAME, _admin_token())
 
     def tearDown(self):
         """清除 dependency_overrides，防止测试间污染。"""
@@ -176,9 +188,6 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr = MagicMock()
         mock_mgr.cfg.get.return_value = False
         self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
-        # put_settings 需要 admin 权限，通过 dependency override 绕过
-
-        self.client.app.dependency_overrides[require_admin] = lambda: "admin"
         data = {
             "tasks": {
                 "auto_scan_enabled": True,

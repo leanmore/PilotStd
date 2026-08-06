@@ -1,4 +1,4 @@
-# 容器//脚本—系统配置读写接口+静态令牌管理
+﻿# 容器//脚本—系统配置读写接口+静态令牌管理
 import logging
 from datetime import datetime, timezone
 
@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from docker.scheduler import update_job
 
-from ..auth import get_static_token, refresh_static_token, require_admin
+from ..auth import get_static_token, refresh_static_token, require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ TAB_LABELS: dict[str, str] = {
 }
 
 
+@require_role("admin")
 @router.get("/api/settings/metadata")
 def get_settings_metadata():
     """返回设置页 Tab 元数据：scope 分级 + order 排序。
@@ -72,6 +73,7 @@ def get_settings_metadata():
     return {"tabs": tabs}
 
 
+@require_role("admin")
 @router.get("/api/settings")
 def get_settings(mgr=Depends(get_manager_dep)):
     """读取当前系统配置，包括存储、扫描、查询、定时任务、外观（Windows 基线 + Docker 特有项）。"""
@@ -133,8 +135,9 @@ def get_settings(mgr=Depends(get_manager_dep)):
     }
 
 
+@require_role("admin")
 @router.put("/api/settings")
-def put_settings(data: dict, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+def put_settings(data: dict, mgr=Depends(get_manager_dep)):
     """保存系统配置并更新定时任务调度。"""
     cfg = mgr.cfg
     # 只读字段：返回供前端展示，但不允许通过回写配置
@@ -243,6 +246,7 @@ def _build_site_config(name: str, mgr) -> dict | None:
         return None
 
 
+@require_role("admin")
 @router.get("/api/settings/sites")
 def get_sites(mgr=Depends(get_manager_dep)):
     """返回全部查询适配器的站点配置（9 字段 / 站点），单站点异常不影响整体。"""
@@ -255,6 +259,7 @@ def get_sites(mgr=Depends(get_manager_dep)):
     return {"sites": sites}
 
 
+@require_role("admin")
 @router.put("/api/settings/sites/{name}")
 def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
     """更新站点限额配置，持久化 + 内存热更新。"""
@@ -311,14 +316,16 @@ def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
 # ── 静态令牌管理 ──────────────────────────────────────────────────
 
 
+@require_role("admin")
 @router.get("/api/settings/token")
-def get_token(user: str = Depends(require_admin)):
+def get_token():
     """返回当前静态 API 令牌值（仅管理员）。"""
     return {"token": get_static_token()}
 
 
+@require_role("admin")
 @router.post("/api/settings/token/refresh")
-def refresh_token(user: str = Depends(require_admin)):
+def refresh_token():
     """重新生成静态令牌（立即生效，旧令牌立即失效）。
 
     刷新后刷新数据库 api_keys 表的 pst_static 记录 +
@@ -333,6 +340,7 @@ def refresh_token(user: str = Depends(require_admin)):
 # ──配置（单一数据源）─────────────────────────────────────
 
 
+@require_role("admin")
 @router.get("/api/settings/schema")
 def get_schema():
     """返回配置 Schema——按 Tab 分组的完整字段定义。

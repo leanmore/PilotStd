@@ -557,3 +557,25 @@ def _migrate_v48_ensure_preference_tables(db: Any) -> None:
         )
     """)
     db.execute("CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings(user_id)")
+
+
+@migration(49)
+def _migrate_v49_rebuild_user_preferences(db: Any) -> None:
+    """重建 user_preferences 表：旧列名 key/value → user_id/preference_key/preference_value。
+
+    迁移标记 _migration_v49_done 使用 user_id=0（系统保留 ID）。
+    SQLite AUTOINCREMENT 从 1 起始，0 永远不会分配给真实用户。
+    """
+    db.execute("DROP TABLE IF EXISTS user_preferences")
+    db.execute("""CREATE TABLE user_preferences (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+        preference_key TEXT NOT NULL, preference_value TEXT DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, preference_key))""")
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_user_prefs_uid_key "
+        "ON user_preferences(user_id, preference_key)")
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_user_prefs_pref_key "
+        "ON user_preferences(preference_key)")

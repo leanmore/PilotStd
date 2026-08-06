@@ -1,4 +1,4 @@
-# 容器//脚本—系统管理接口（版本信息、自更新、重启、资源监控）
+﻿# 容器//脚本—系统管理接口（版本信息、自更新、重启、资源监控）
 import json
 import logging
 import os
@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from pilotstd import __version__
 
-from ..auth import require_admin
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 router = APIRouter(prefix="/api/system", tags=["system"])
@@ -48,6 +48,7 @@ def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     )
 
 
+@require_role("admin")
 @router.get("/version")
 async def get_version():
     """返回当前版本和容器信息。"""
@@ -141,8 +142,9 @@ def _notify_update_failed(mgr: Any, error: str) -> None:
         pass
 
 
+@require_role("admin")
 @router.post("/update")
-async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_manager_dep)):
+async def update_container(mgr=Depends(get_manager_dep)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
 
     流程：
@@ -191,6 +193,7 @@ async def update_container(_: bool = Depends(require_admin), mgr=Depends(get_man
         raise HTTPException(500, f"更新失败: {e}")
 
 
+@require_role("admin")
 @router.get("/health")
 def system_health(mgr=Depends(get_manager_dep)):
     """系统健康检查。
@@ -240,6 +243,7 @@ def system_health(mgr=Depends(get_manager_dep)):
     return result
 
 
+@require_role("admin")
 @router.get("/resources")
 def system_resources():
     """获取系统资源使用情况。"""

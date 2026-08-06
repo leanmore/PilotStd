@@ -1,4 +1,4 @@
-# 容器//脚本—应用日志读取接口（供前端日志栏+压测远端取回使用）
+﻿# 容器//脚本—应用日志读取接口（供前端日志栏+压测远端取回使用）
 import os
 import re
 
@@ -8,7 +8,7 @@ from fastapi.routing import APIRouter
 
 from pilotstd.core.logger import _get_log_dir
 
-from ..auth import require_admin
+from ..auth import require_role
 
 router = APIRouter(tags=["logs"])
 
@@ -29,6 +29,7 @@ def _extract_timestamp(line: str) -> str | None:
     return m2.group(1) if m2 else None
 
 
+@require_role("admin")
 @router.get("/api/logs")
 def get_logs(tail: int = 50, since: str = ""):
     """返回日志行。支持增量模式。
@@ -88,8 +89,9 @@ def get_logs(tail: int = 50, since: str = ""):
     }
 
 
+@require_role("admin")
 @router.get("/api/admin/logs/app")
-def get_app_log_raw(username: str = Depends(require_admin)):
+def get_app_log_raw():
     """返回完整 app.log 文件内容（管理员权限，供压测驱动器远端取回）。
 
     返回纯文本，Content-Type: text/plain; charset=utf-8。
@@ -106,10 +108,10 @@ def get_app_log_raw(username: str = Depends(require_admin)):
     )
 
 
+@require_role("admin")
 @router.delete("/api/admin/logs")
 def clear_logs(
     before_hours: int = 24,
-    username: str = Depends(require_admin),
 ):
     """清除 before_hours 小时前的日志条目（仅管理员）。
 

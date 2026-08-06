@@ -1,5 +1,6 @@
 # 容器/脚本—接口入口（模块组装+安全头+健康检查+请求体限制）
 # ::402—_()必须在其他模块导入前执行
+import json
 import logging
 import os
 import sys
@@ -48,7 +49,6 @@ from .api.system import router as system_router
 from .api.tasks import router as tasks_router
 from .api.upload import router as upload_router
 from .api.user import router as user_layout_router
-from .api.user_preference import router as user_preference_router
 from .api.users import router as users_router
 from .api.validity import router as validity_router
 from .api.wechat_ip import router as wechat_ip_router
@@ -74,6 +74,79 @@ def _clean_zombie_tasks() -> None:
         db.close()
     except Exception:
         pass
+
+
+def _migrate_user_settings_to_preferences(db) -> int:
+    """将 user_settings 表 JSON 数据迁移到 user_preferences KV 表。
+
+    在应用启动时自动执行，幂等：通过 _migration_v49_done 标记跳过已迁移实例。
+    返回迁移的键值对数量，失败时返回 -1 并记录错误日志。
+    """
+    logger = logging.getLogger("pilotstd.startup")
+    try:
+        # 幂等检查
+        row = db.fetchone(
+            "SELECT 1 FROM user_preferences WHERE user_id=0 "
+            "AND preference_key='_migration_v49_done'"
+        )
+        if row:
+            logger.debug("user_settings → user_preferences 迁移已完成，跳过")
+            return 0
+
+        # 检查旧表是否存在且有数据
+        exists = db.fetchone(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'"
+        )
+        if not exists:
+            db.execute(
+                "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) "
+                "VALUES (0, '_migration_v49_done', '1')"
+            )
+            logger.info("user_settings 表不存在，跳过迁移")
+            return 0
+
+        rows = db.fetchall("SELECT user_id, settings FROM user_settings")
+        if not rows:
+            db.execute(
+                "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) "
+                "VALUES (0, '_migration_v49_done', '1')"
+            )
+            logger.info("user_settings 表为空，跳过迁移")
+            return 0
+
+        migrated = 0
+        for row_data in rows:
+            try:
+                settings = json.loads(row_data["settings"])
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("user_id=%s settings JSON 解析失败，跳过", row_data["user_id"])
+                continue
+            if not isinstance(settings, dict):
+                continue
+            for key, value in settings.items():
+                try:
+                    db.execute(
+                        "INSERT OR REPLACE INTO user_preferences "
+                        "(user_id, preference_key, preference_value, updated_at) "
+                        "VALUES (?, ?, ?, datetime('now', 'localtime'))",
+                        (row_data["user_id"], key, json.dumps(value, ensure_ascii=False)),
+                    )
+                    migrated += 1
+                except Exception:
+                    logger.exception(
+                        "迁移偏好失败: user_id=%s, key=%s", row_data["user_id"], key
+                    )
+
+        # 写入标记
+        db.execute(
+            "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) "
+            "VALUES (0, '_migration_v49_done', '1')"
+        )
+        logger.info("user_settings → user_preferences 迁移完成，共迁移 %d 条记录", migrated)
+        return migrated
+    except Exception:
+        logger.exception("user_settings 自动迁移异常")
+        return -1
 
 
 def _start_all_schedulers(_cron_mgr) -> None:
@@ -182,6 +255,9 @@ async def lifespan(app: FastAPI):
 
     _cron_mgr = _get_mgr()
 
+    # v49: 将旧 user_settings JSON 数据自动迁移到 user_preferences KV 表
+    _migrate_user_settings_to_preferences(_cron_mgr.db)
+
     _start_all_schedulers(_cron_mgr)
 
     yield
@@ -214,7 +290,6 @@ app.include_router(auth_router)
 app.include_router(auth_register_router)
 app.include_router(users_router)
 app.include_router(user_layout_router)
-app.include_router(user_preference_router)
 app.include_router(api_keys_router)
 
 # ── 核心业务 ──

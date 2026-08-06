@@ -1,4 +1,5 @@
-# 容器//扫描脚本—标准文件扫描接口（含路径遍历防护+管道运行追踪）
+﻿# 容器//扫描脚本—标准文件扫描接口（含路径遍历防护+管道运行追踪）
+# 权限：扫描触发接口需 admin 角色（@require_role）
 import os
 import uuid
 
@@ -8,7 +9,7 @@ from fastapi.routing import APIRouter
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 
-from ..auth import require_admin
+from ..auth import require_role
 from ..manager import get_manager_dep
 from .models import ScanIndexResponse
 
@@ -26,6 +27,8 @@ def _validate_path(user_path: str, mgr=None) -> str:
     raise ValueError("路径不在允许的目录范围内")
 
 
+# 扫描端点：解析路径 → 调用 StandardManager 扫描文件列表
+@require_role("admin")
 @router.post("/api/scan")
 def scan_directory(
     path: str = "/inbox",
@@ -96,11 +99,11 @@ def scan_directory(
     }
 
 
+@require_role("admin")
 @router.post("/api/scan-and-index", response_model=ScanIndexResponse)
 def scan_and_index(
     path: str | None = None,
     mgr=Depends(get_manager_dep),
-    _admin: str = Depends(require_admin),
 ):
     """Q6-1: 扫描标准库 → 四要素匹配 → UPDATE standards 表扫描状态。
     path 参数保留向后兼容但不再使用，始终扫描配置的 library_root。

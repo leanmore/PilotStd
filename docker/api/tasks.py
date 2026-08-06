@@ -1,17 +1,19 @@
-# 容器//脚本—任务队列接口
+﻿# 容器//脚本—任务队列接口
+# 权限：任务管理接口需 admin 角色（@require_role）
 import logging
 
 from fastapi import Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
-from ..auth import require_admin
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tasks"])
 
 
+@require_role("admin")
 @router.get("/api/tasks")
 def list_tasks(
     status: str | None = Query(None),
@@ -53,6 +55,7 @@ def list_tasks(
     }
 
 
+@require_role("admin")
 @router.get("/api/tasks/runs")
 def list_pipeline_runs(
     page: int = Query(1, ge=1),
@@ -72,6 +75,7 @@ def list_pipeline_runs(
     return {"total": total, "page": page, "page_size": page_size, "items": rows}
 
 
+@require_role("admin")
 @router.get("/api/tasks/{task_id}")
 def get_task(task_id: str, mgr=Depends(get_manager_dep)):
     """获取单个任务的详细信息，包括类型、状态、进度、错误日志和结果。"""
@@ -92,8 +96,9 @@ def get_task(task_id: str, mgr=Depends(get_manager_dep)):
     }
 
 
+@require_role("admin")
 @router.post("/api/tasks")
-def create_task(body: dict, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+def create_task(body: dict, mgr=Depends(get_manager_dep)):
     """创建任务并入队。Body: {task_type, total_items?, max_retries?, queue_name?}"""
     from pilotstd.task.models import TaskType
 
@@ -112,8 +117,9 @@ def create_task(body: dict, mgr=Depends(get_manager_dep), user: str = Depends(re
     }
 
 
+@require_role("admin")
 @router.post("/api/tasks/{task_id}/retry")
-def retry_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+def retry_task(task_id: str, mgr=Depends(get_manager_dep)):
     """重试失败任务。"""
     task = mgr.task_queue.get(task_id)
     if task is None:
@@ -130,13 +136,15 @@ def retry_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(r
     return {"ok": True}
 
 
+@require_role("admin")
 @router.post("/api/tasks/{task_id}/cancel")
-def cancel_task(task_id: str, mgr=Depends(get_manager_dep), user: str = Depends(require_admin)):
+def cancel_task(task_id: str, mgr=Depends(get_manager_dep)):
     """取消运行中任务。"""
     ok = mgr.task_queue.cancel(task_id)
     return {"ok": ok}
 
 
+@require_role("admin")
 @router.get("/api/tasks/runs/{run_id}")
 def get_pipeline_run(run_id: str, mgr=Depends(get_manager_dep)):
     """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""

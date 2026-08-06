@@ -169,7 +169,12 @@ def get_current_user_id(request: Request) -> int:
         raise HTTPException(401, "认证失败")
     if get_session_store().get(token) is None:
         raise HTTPException(401, "会话已过期，请重新登录")
-    return int(payload["sub"])
+    user_id = int(payload["sub"])
+    # 类型守卫：防止 JWT sub 字段被意外篡改为非数字值
+    if not isinstance(user_id, int):
+        logger.error("user_id 类型异常: 期望 int, 实际 %s = %r", type(user_id).__name__, user_id)
+        raise HTTPException(500, "Internal error: user_id type mismatch")
+    return user_id
 
 
 def get_current_username(request: Request) -> int:
@@ -184,27 +189,6 @@ def get_current_username(request: Request) -> int:
         stacklevel=2,
     )
     return get_current_user_id(request)
-
-
-def require_admin(request: Request) -> str:
-    """从 JWT role 声明鉴权（修复：原实现将 int user_id 与 str USERNAME 比较，恒 403）。"""
-    token = request.cookies.get(COOKIE_NAME)
-    if not token:
-        raise HTTPException(401, "未登录")
-    try:
-        payload = jwt.decode(token, SECRET, algorithms=["HS256"])
-    except JWTError:
-        raise HTTPException(401, "认证失败")
-    role = payload.get("role", "user")
-    if role != ADMIN_ROLE:
-        try:
-            from pilotstd.core.audit import write_audit
-            write_audit(action="ACCESS_DENIED", resource=f"{request.method} {request.url.path}",
-                        detail={"reason": "require_admin", "role": role, "user_id": payload.get("sub", "unknown")})
-        except Exception:
-            pass
-        raise HTTPException(403, "仅管理员可执行此操作")
-    return payload.get("sub", "unknown")
 
 
 def require_role(role: str):
