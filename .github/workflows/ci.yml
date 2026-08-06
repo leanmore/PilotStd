@@ -593,7 +593,7 @@ jobs:
   # ════════════════════════════════════════════════════════════════
   # Job 5: GUI 单元测试 + Handler 覆盖率（Windows）
   # ════════════════════════════════════════════════════════════════
-  test-unit-cov:
+  test-gui-unit:
     runs-on: windows-latest
     # G-CI-003: 985 tests ≈ 18min on windows-2025-vs2026, 25min with safety margin
     timeout-minutes: 25
@@ -612,38 +612,39 @@ jobs:
           pip install -r desktop/requirements-win.txt
           pip install pytest pytest-qt pytest-cov
 
-      - name: Run unit tests with coverage
+      - name: Run GUI unit tests
         shell: pwsh
         env:
           SUPERUSER: superadmin
           PILOTSTD_GUI_TEST: "1"
-        run: >
-          python -m pytest tests/gui/ tests/test_regression_architecture.py
-          -v --tb=short
-          --cov=pilotstd/ui/core/handlers/
-          --ignore-glob="*test_e2e*.py"
+        run: |
+          python -m pytest tests/gui/ tests/test_regression_architecture.py `
+            -v --tb=short `
+            --cov=pilotstd/ui/core/handlers/ `
+            --ignore-glob="*test_e2e*.py"
 
-      - name: Check coverage — engine layer (core business logic)
+      # ── 失败语义分离：仅当测试通过时才检查覆盖率 ──────────────
+      # 测试红 = 改代码；覆盖率红 = 补测试。不再混淆。
+      - name: Tests passed — checking coverage thresholds
+        if: success()
         shell: pwsh
-        run: >
-          python -m coverage report
-          --include="pilotstd/ui/core/handlers/*_flow_engine.py"
-          --fail-under=95
-          --skip-empty
+        run: |
+          echo "=== Engine layer (core business logic) >=95% ==="
+          python -m coverage report `
+            --include="pilotstd/ui/core/handlers/*_flow_engine.py" `
+            --fail-under=95 `
+            --skip-empty
 
-      - name: Check coverage — handler glue layer (Qt adapters)
-        shell: pwsh
-        run: >
-          python -m coverage report
-          --include="pilotstd/ui/core/handlers/*.py"
-          --omit="pilotstd/ui/core/handlers/*_flow_engine.py"
-          --fail-under=20
-          --skip-empty
+          echo "=== Handler glue layer (Qt adapters) >=20% ==="
+          python -m coverage report `
+            --include="pilotstd/ui/core/handlers/*.py" `
+            --omit="pilotstd/ui/core/handlers/*_flow_engine.py" `
+            --fail-under=20 `
+            --skip-empty
 
-      - name: Check coverage — overall (macro health)
-        shell: pwsh
-        # TODO(P2): restore to 68 after UI handler tests are added
-        run: python -m coverage report --fail-under=58
+          echo "=== Overall (macro health) >=58% ==="
+          # TODO(P2): restore to 68 after UI handler tests are added
+          python -m coverage report --fail-under=58
 
   # ════════════════════════════════════════════════════════════════
   # Job 5: 入仓合规检查
@@ -677,7 +678,7 @@ jobs:
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════
   version:
-    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-unit-cov, test-gui-coverage, frontend-e2e]
+    needs: [test-backend, test-frontend, security-scan, repo-compliance, test-e2e, test-gui-unit, test-gui-coverage, frontend-e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
