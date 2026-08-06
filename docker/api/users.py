@@ -8,7 +8,7 @@ from pilotstd import SUPERUSER_USERNAME
 
 from ..auth import get_current_user_id, require_role
 from ..manager import get_manager_dep
-from ..users import add_user, change_password, delete_user, list_users
+from ..users import add_user, change_password, delete_user, get_user_by_id, list_users
 
 router = APIRouter(tags=["users"])
 
@@ -68,9 +68,12 @@ def api_delete_user(user_id: int, mgr=Depends(get_manager_dep)):
 @router.put("/api/users/password")
 def api_change_password(body: ChangePasswordRequest, request: Request):
     """修改当前登录用户的密码。"""
-    username = get_current_user_id(request)
+    user_id = get_current_user_id(request)
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(400, "用户不存在")
     if not body.new_password or len(body.new_password) < 4:
         raise HTTPException(400, "新密码至少4个字符")
-    if not change_password(username, body.old_password, body.new_password):
+    if not change_password(user["username"], body.old_password, body.new_password):
         raise HTTPException(400, "旧密码不正确")
     return {"ok": True}

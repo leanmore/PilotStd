@@ -1,5 +1,6 @@
 # 鉴权模块（多用户 + 速率限制 + 跨站伪造防护 + 会话安全标记 + 接口密钥）
 import hashlib
+import logging
 import os
 import secrets
 import threading
@@ -21,6 +22,7 @@ from .users import (
     check_must_change_password,
     clear_login_failures,
     count_recent_failures,
+    get_user_by_id,
     get_user_by_username,
     get_user_role,
     init_login_attempts_table,
@@ -30,6 +32,7 @@ from .users import (
 )
 
 router = APIRouter(tags=["auth"])
+logger = logging.getLogger(__name__)
 
 SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)
 
@@ -379,8 +382,9 @@ def auth_me(request: Request):
 
     # 降级兜底：兼容旧版令牌(=)或数据库查询失败场景
     fallback_id = get_current_user_id(request)
-    role = get_user_role(fallback_id) if fallback_id else ""
-    return {"username": "", "role": role or ""}
+    fallback_user = get_user_by_id(fallback_id) if fallback_id else None
+    role = get_user_role(fallback_user["username"]) if fallback_user else ""
+    return {"username": fallback_user["username"] if fallback_user else "", "role": role or ""}
 
 
 @router.post("/api/logout")

@@ -98,37 +98,47 @@ class MonitorStats:
         return self._db
 
     def _ensure_date(self) -> None:
-        """检查日期是否变化，跨天自动落盘昨日数据并归零。"""
+        """检查日期是否变化，跨天自动落盘昨日数据并归零。调用方不应持有锁。"""
         today = date.today().isoformat()
-        if self._stats_date is None:
-            self._stats_date = today
-            return
-        if self._stats_date != today:
+        needs_flush = False
+        with self._lock:
+            if self._stats_date is None:
+                self._stats_date = today
+                return
+            if self._stats_date != today:
+                needs_flush = True
+        if needs_flush:
             self._flush()
-            self._stats = {"processed": 0, "success": 0, "failed": 0}
-            self._stats_date = today
-            self._dirty = False
+            with self._lock:
+                self._stats = {"processed": 0, "success": 0, "failed": 0}
+                self._stats_date = today
+                self._dirty = False
 
     def increment(self, key: str) -> None:
-        """内存计数 +1，不写 DB。"""
+        """内存计数 +1。锁内仅做内存操作，_ensure_date 在锁外调用。"""
         with self._lock:
-            self._ensure_date()
             if key in self._stats:
                 self._stats[key] += 1
                 self._dirty = True
+        self._ensure_date()
 
     def _flush(self) -> None:
-        """批量写入 DB（日切或关闭时调用）。"""
+        """批量写入 DB（日切或关闭时调用）。锁内仅做数据拷贝，DB I/O 在锁外执行。"""
+        snapshot: dict[str, int] = {}
+        snapshot_date: str = ""
         with self._lock:
             if not self._dirty or not self._stats_date:
                 return
-            db = self._get_db()
-            for key, value in self._stats.items():
-                db.execute(
-                    "INSERT OR REPLACE INTO monitor_stats (stat_key, stat_value, stat_date) VALUES (?, ?, ?)",
-                    (key, value, self._stats_date),
-                )
+            snapshot = self._stats.copy()
+            snapshot_date = self._stats_date
             self._dirty = False
+        # DB I/O 在锁外执行，避免长时间持锁
+        db = self._get_db()
+        for key, value in snapshot.items():
+            db.execute(
+                "INSERT OR REPLACE INTO monitor_stats (stat_key, stat_value, stat_date) VALUES (?, ?, ?)",
+                (key, value, snapshot_date),
+            )
 
     def flush_and_close(self) -> None:
         """应用关闭时调用，落盘当前数据。"""
@@ -140,7 +150,9 @@ class MonitorStats:
     def get_today_stats(self) -> dict[str, int]:
         """返回当天统计（内存值）。"""
         with self._lock:
-            self._ensure_date()
+            today = date.today().isoformat()
+            if self._stats_date is None:
+                self._stats_date = today
             return self._stats.copy()
 
 

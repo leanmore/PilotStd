@@ -55,9 +55,11 @@ class TestMonitorStats:
 
     def test_flush_writes_dirty_data(self, stats):
         """有变更时 _flush 应批量写入 DB。"""
+        from datetime import date
+
         mock_db = MagicMock()
         stats._db = mock_db
-        stats._stats_date = "2026-07-31"
+        stats._stats_date = date.today().isoformat()
         stats.increment("processed")
         stats.increment("success")
         stats._flush()
