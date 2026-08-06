@@ -28,17 +28,15 @@ def strip_html_tags(html: str) -> str:
     """Extract plain text from <p class=\"xxx\">text</p>, preserving paragraph separation."""
     if not html:
         return ""
-    # Reconstruct original plain text: each <p> was originally a paragraph
-    # separated by blank lines (extract_content uses "\n\n".join).
-    # Join with double newline so clean_announcement_content correctly
-    # splits paragraphs and applies classification per-paragraph.
+    # 重建原始纯文本：每个 <p> 原本是一个段落，由空行分隔（extract_content 使用 "\n\n".join）。
+    # 用双换行拼接，使 clean_announcement_content 正确按段落分割并分类。
     texts = re.findall(r"<p[^>]*>(.*?)</p>", html, re.DOTALL)
     return "\n\n".join(t.strip() for t in texts if t.strip())
 
 
 def main():
     """Parse args, read announcements, re-clean content, report changes."""
-    # Connect to the database and fetch all announcements with content
+    # 连接数据库，获取所有带内容的公告
     parser = argparse.ArgumentParser(description="Re-clean announcement content with updated heading classifier")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without writing")
     args = parser.parse_args()

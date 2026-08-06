@@ -27,14 +27,14 @@ import os
 import sys
 from typing import Any
 
-# Add project root to sys.path
+# 将项目根目录添加到 sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pilotstd.core.config.paths import get_db_path
 import sqlite3
 
 
-# Migration log prefix
+# 迁移日志前缀
 PREFIX = "[migrate_preferences]"
 
 
@@ -94,10 +94,10 @@ def migrate(dry_run: bool = False) -> dict[str, Any]:
         "existing_prefs": 0,
     }
 
-    # 1. Count existing user_preferences
+    # 1. 统计现有 user_preferences 记录数
     stats["existing_prefs"] = _count_table(conn, "user_preferences")
 
-    # 2. Migrate user_layouts -> user_preferences
+    # 2. 迁移 user_layouts → user_preferences
     layouts: list[sqlite3.Row] = []
     if _table_exists(conn, "user_layouts"):
         layouts = conn.execute(
@@ -126,7 +126,7 @@ def migrate(dry_run: bool = False) -> dict[str, Any]:
             )
             conn.commit()
 
-    # 3. Migrate user_settings -> user_preferences
+    # 3. 迁移 user_settings → user_preferences
     settings_rows: list[sqlite3.Row] = []
     if _table_exists(conn, "user_settings"):
         settings_rows = conn.execute(

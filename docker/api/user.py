@@ -1,4 +1,4 @@
-# User config API — unified preferences + deprecated layout/settings aliases
+# 用户配置 API — 统一偏好设置 + 已废弃的 layout/settings 别名
 import logging
 
 from fastapi import Depends, Request
@@ -21,7 +21,7 @@ def _deprecated_warn(request: Request, endpoint: str, replacement: str) -> None:
     )
 
 
-# ── 布局（DEPRECATED: 请使用 /api/user/preferences/layout:dashboard）──
+# ── 布局（已废弃：请使用 /api/user/preferences/layout:dashboard）──
 
 
 @router.get("/api/user/layout")
@@ -117,7 +117,7 @@ def delete_preference(
     return mgr.user_service.delete_preference(user_id, key)
 
 
-# ──统一设置（DEPRECATED: 请使用 /api/user/preferences/{key}）──
+# ──统一设置（已废弃：请使用 /api/user/preferences/{key}）──
 
 
 @router.get("/api/user/settings")
