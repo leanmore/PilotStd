@@ -9,25 +9,20 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import unittest
 from unittest.mock import MagicMock, patch
 
+# NOTE: require_role reads ADMIN_ROLE at call time, not decoration time.
+# Patching at module level ensures the constant is overridden before any
+# test function calls update_container. Do NOT patch docker.api.system.require_role
+# or docker.auth.require_role — import-time binding makes those ineffective.
+_admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
+_admin_role_patch.start()
+
 from fastapi import HTTPException
 
 # —— 直接测函数，绕过 HTTP 鉴权层 ——
-from docker.api.system import update_container
+from docker.api.system import update_container  # noqa: E402
 
 
 class TestUpdateFunction(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # NOTE: require_role reads ADMIN_ROLE at call time, not decoration time.
-        # Do NOT patch docker.api.system.require_role — import-time binding
-        # makes it ineffective. Patching the constant is the correct approach.
-        cls._admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
-        cls._admin_role_patch.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls._admin_role_patch.stop()
-
     def setUp(self):
         self.patch_cid = patch("docker.api.system._get_container_id")
         self.mock_cid = self.patch_cid.start()
