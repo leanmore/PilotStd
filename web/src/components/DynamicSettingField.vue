@@ -32,7 +32,7 @@ export interface SchemaField {
   field_type: string
   default: unknown
   placeholder?: string
-  options?: { label: string; value: unknown }[]
+  options?: { label: string; value: string | number }[]
   help_text?: string
   required?: boolean
 }

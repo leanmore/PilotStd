@@ -49,7 +49,8 @@ async function debug() {
     const r = await http.post('/query/debug', body)
     results.value = r.data as ScoreEntry[]
   } catch (e: unknown) {
-    error.value = e.response?.data?.detail || '请求失败'
+    const err = e as { response?: { data?: { detail?: string } } }
+    error.value = err.response?.data?.detail || '请求失败'
   } finally {
     loading.value = false
   }

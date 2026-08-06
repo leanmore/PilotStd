@@ -122,7 +122,8 @@ async function loadConfig() {
       }
     } catch { /* 策略 API 不可用时保持 config.json rules */ }
   } catch (e: unknown) {
-    errMsg.value = e.response?.data?.error || '加载配置失败'
+    const err = e as { response?: { data?: { error?: string } } }
+    errMsg.value = err.response?.data?.error || '加载配置失败'
   } finally { loading.value = false }
 }
 
@@ -155,7 +156,8 @@ async function saveConfig() {
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
   } catch (e: unknown) {
-    errMsg.value = e.response?.data?.error || '保存失败'
+    const err = e as { response?: { data?: { error?: string } } }
+    errMsg.value = err.response?.data?.error || '保存失败'
   } finally { saving.value = false }
 }
 
@@ -173,7 +175,8 @@ async function testChannel(ch: string) {
     const r = await testNotification(ch, params)
     testResults.value[ch] = r.ok ? '测试成功' : `失败: ${r.error || '未知'}`
   } catch (e: unknown) {
-    testResults.value[ch] = `失败: ${e.response?.data?.error || e.message}`
+    const err = e as { response?: { data?: { error?: string } }; message?: string }
+    testResults.value[ch] = `失败: ${err.response?.data?.error || (e instanceof Error ? e.message : '未知')}`
   }
   setTimeout(() => delete testResults.value[ch], 4000)
 }

@@ -104,7 +104,8 @@ async function saveConfig() {
     setTimeout(() => saved.value = false, 2000)
     await loadStatus()
   } catch (e: unknown) {
-    errMsg.value = e.response?.data?.error || '保存失败'
+    const err = e as { response?: { data?: { error?: string } } }
+    errMsg.value = err.response?.data?.error || '保存失败'
   } finally { saving.value = false }
 }
 
@@ -132,7 +133,7 @@ async function triggerCheck() {
     setTimeout(() => checkResult.value = '', 6000)
     await loadStatus()
   } catch (e: unknown) {
-    checkResult.value = `请求失败: ${e.message}`
+    checkResult.value = `请求失败: ${e instanceof Error ? e.message : String(e)}`
   } finally { checking.value = false }
 }
 

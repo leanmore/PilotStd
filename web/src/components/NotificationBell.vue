@@ -27,7 +27,7 @@ const togglePopover = (event: Event) => {
   popoverRef.value?.toggle(event)
 }
 
-const handleItemClick = async (msg: { id: number; is_read?: boolean; link_url?: string }) => {
+const handleItemClick = async (msg: { id?: number; is_read?: boolean; link_url?: string }) => {
   if (!msg.is_read) {
     await markAsRead(msg.id)
   }

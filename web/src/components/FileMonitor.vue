@@ -98,7 +98,7 @@ export default defineComponent({
         })
         saved.value = true
         setTimeout(() => saved.value = false, 2000)
-      } catch (e: unknown) { errMsg.value = e.message } finally { saving.value = false }
+      } catch (e: unknown) { errMsg.value = e instanceof Error ? e.message : String(e) } finally { saving.value = false }
     }
 
     async function startMonitor() {
