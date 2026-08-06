@@ -108,7 +108,7 @@ LANG_WHITELIST = {
     '@require_role', '@router', '@migration',
     # ── 权限/安全 ──
     'admin', 'require_role', 'require_admin',
-    'ShellExecuteW', 'runas', 'UAC', 'exe',
+    'ShellExecuteW', 'runas', 'UAC', 'exe', 'bat', 'Program', 'Files',
     # ── 版本/标记 ──
     'v49', 'v48', 'DEPRECATED', 'noqa', 'E402',
     # ── 标记语言 ──
