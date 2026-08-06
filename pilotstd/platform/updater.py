@@ -68,6 +68,17 @@ def check_latest_version() -> Optional[dict[str, Any]]:
             "download_url": download_url,
             "filename": filename,
         }
+    except urllib.error.HTTPError as e:
+        if e.code == 403 and "rate limit" in str(e).lower():
+            logger.warning(
+                "GitHub API 限流 (403): 未配置 GITHUB_TOKEN 或超出限额。"
+                "建议设置环境变量 GITHUB_TOKEN 以提升限额至 5000 次/小时。"
+            )
+        elif e.code == 403 or e.code == 429:
+            logger.warning("GitHub API 拒绝访问 (HTTP %d): 请检查 GITHUB_TOKEN 是否有效", e.code)
+        else:
+            logger.warning("GitHub API 请求失败 (HTTP %d): %s", e.code, e)
+        return None
     except (urllib.error.URLError, json.JSONDecodeError, ValueError) as e:
         logger.warning("检查更新失败: %s", e)
         return None

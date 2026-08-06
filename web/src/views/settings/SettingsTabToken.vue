@@ -6,8 +6,10 @@
  */
 import { ref, onMounted } from 'vue'
 import { getToken, refreshToken } from '@/api'
+import http from '@/api/http'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 
 defineOptions({ name: 'SettingsTabToken' })
 
@@ -19,6 +21,12 @@ const showToken = ref(false)
 const tokenCopied = ref(false)
 const showRefreshDlg = ref(false)
 
+// ── GitHub Token 状态 ──
+const ghToken = ref('')
+const ghTokenSaved = ref(false)
+const ghTokenSaving = ref(false)
+const ghTokenErr = ref('')
+
 function maskToken(t: string) {
   if (!t || t.length <= 12) return t ? t.slice(0, 8) + '****' : ''
   return t.slice(0, 8) + '****' + t.slice(-4)
@@ -29,12 +37,31 @@ async function loadToken() {
   catch { tokenErr.value = '加载令牌失败（需要管理员权限）' }
 }
 
+async function loadGhToken() {
+  try {
+    const r = await http.get('/settings')
+    ghToken.value = r.data?.updater?.github_token || ''
+  } catch { /* 非关键 */ }
+}
+
+async function saveGhToken() {
+  ghTokenSaving.value = true; ghTokenErr.value = ''
+  try {
+    await http.put('/settings', { updater: { github_token: ghToken.value } })
+    ghTokenSaved.value = true
+    setTimeout(() => ghTokenSaved.value = false, 2000)
+  } catch {
+    ghTokenErr.value = '保存失败'
+  } finally {
+    ghTokenSaving.value = false
+  }
+}
+
 async function copyToken() {
   try {
     await navigator.clipboard.writeText(token.value)
     tokenCopied.value = true
   } catch {
-    // 降级：HTTP 环境下 clipboard API 不可用，使用 textarea + execCommand
     try {
       const ta = document.createElement('textarea')
       ta.value = token.value
@@ -64,7 +91,7 @@ async function doRefreshToken() {
   }
 }
 
-onMounted(() => { loadToken() })
+onMounted(() => { loadToken(); loadGhToken() })
 </script>
 
 <template>
@@ -84,6 +111,30 @@ onMounted(() => { loadToken() })
       </div>
       <span v-if="tokenCopied" class="text-dim" style="font-size:12px;color:var(--success,#22c55e)">已复制到剪贴板</span>
     </div>
+  </div>
+
+  <!-- GitHub Token -->
+  <div class="card mt-2">
+    <div class="card-header">GitHub Token</div>
+    <p class="text-dim mb-2">
+      用于桌面端和 Docker 镜像更新检查，未配置时 GitHub API 限制 60 次/小时。
+      设置后提升至 5000 次/小时。获取方式：GitHub Settings → Developer settings → Personal access tokens。
+    </p>
+    <Message v-if="!ghToken" severity="warn" :closable="false" style="margin-bottom:8px">
+      未配置 GitHub Token，更新检查可能因 API 限流而失败。
+    </Message>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input
+        v-model="ghToken"
+        type="password"
+        class="fi"
+        style="flex:1"
+        placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+      />
+      <Button label="保存" icon="pi pi-save" size="small" @click="saveGhToken" :loading="ghTokenSaving" />
+    </div>
+    <span v-if="ghTokenSaved" style="font-size:12px;color:var(--success)">已保存</span>
+    <span v-if="ghTokenErr" style="font-size:12px;color:var(--danger)">{{ ghTokenErr }}</span>
   </div>
 
   <!-- 刷新令牌确认弹窗 -->

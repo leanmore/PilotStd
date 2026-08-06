@@ -106,8 +106,9 @@ LANG_WHITELIST = {
     '/api/user/', '/api/', 'layout', 'settings',
     # ── 装饰器/注解 ──
     '@require_role', '@router', '@migration',
-    # ── 权限/角色 ──
+    # ── 权限/安全 ──
     'admin', 'require_role', 'require_admin',
+    'ShellExecuteW', 'runas', 'UAC', 'exe',
     # ── 版本/标记 ──
     'v49', 'v48', 'DEPRECATED', 'noqa', 'E402',
     # ── 标记语言 ──
