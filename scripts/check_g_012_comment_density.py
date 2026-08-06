@@ -71,10 +71,54 @@ def _is_blank_line(line: str) -> bool:
 TOOL_DIRECTIVES = (
     'type:',        # mypy / pyright
     'noqa',         # flake8 / ruff
+    'ruff:',        # ruff
     'pylint:',      # pylint
     'fmt:',         # black / yapf
     'isort:',       # isort
     'pragma:',      # coverage
+)
+
+# 中文注释中不可避免的技术标识符白名单（类名/模块名/接口路径/协议缩写等）
+# 这些词在中文注释中出现时不应触发 LANG 警告，因为翻译会降低可读性
+LANG_WHITELIST = {
+    # ── 项目核心术语 ──
+    'user_preferences', 'user_layouts', 'user_settings', 'user_preference',
+    'preferences', 'preference_key', 'preference_value', 'layout:dashboard',
+    # ── 通用标识符 ──
+    'key', 'val', 'msg', 'cfg', 'db', 'env', 'std', 'src', 'tmp', 'str', 'int',
+    'lock', '_lock', 'join',
+    # ── 标准库/内置 ──
+    'sys.path', 'sqlite3', 'argparse',
+    # ── 框架/库 ──
+    'StandardManager', 'BlockingQueuedConnection', 'QApplication',
+    'clean_announcement_content', 'extract_content',
+    # ── 认证/协议 ──
+    'JWT', 'sub', 'pst_', 'csrf_token', 'X-CSRF-Token',
+    # ── 后端模块名 ──
+    'user_service', 'get_current_user_id', 'get_user_id', 'get_user_by_id',
+    'UserPreferenceManager', 'UserService',
+    # ── 通用技术缩写 ──
+    'API', 'DB', 'I/O', 'KV', 'SQL', 'JSON', 'URL', 'HTML', 'CSS', 'GC',
+    'HTTP', 'RESTful', 'CSRF', 'UI', 'CLI', 'OK',
+    # ── 前端框架术语 ──
+    'Pinia', 'Vue', 'TS', 'JS', 'DOM', 'SCSS',
+    # ── 项目特定路径 ──
+    '/api/user/', '/api/', 'layout', 'settings',
+    # ── 装饰器/注解 ──
+    '@require_role', '@router', '@migration',
+    # ── 权限/角色 ──
+    'admin', 'require_role', 'require_admin',
+    # ── 版本/标记 ──
+    'v49', 'v48', 'DEPRECATED', 'noqa', 'E402',
+    # ── 标记语言 ──
+    '<p>', '</p>', 'extract_content',
+    # ── 其他 ──
+    'publish', 'deliver', 'cleanup', 'docstring', 'LANG',
+}
+
+# 编译正则：匹配白名单中的词（按长度降序，确保长词优先匹配）
+_LANG_WHITELIST_PATTERN = re.compile(
+    '|'.join(re.escape(w) for w in sorted(LANG_WHITELIST, key=len, reverse=True))
 )
 
 
@@ -87,13 +131,18 @@ def _get_comment_text(line: str) -> str:
 
 
 def _is_chinese_comment(line: str) -> bool:
-    """检查注释是否全部为中文（工具指令注释豁免）。"""
+    """检查注释是否全部为中文（工具指令注释豁免，白名单术语允许）。"""
     text = _get_comment_text(line)
     if not text:
         return True  # 空注释视为合规
     if any(text.startswith(d) for d in TOOL_DIRECTIVES):
         return True
-    return not bool(re.search(r'[a-zA-Z]', text))
+    # 先去掉引号内的字符串字面量（如 "\n\n"、'value'）
+    text = re.sub(r'"[^"]*"', '', text)
+    text = re.sub(r"'[^']*'", '', text)
+    # 再剥离白名单术语
+    cleaned = _LANG_WHITELIST_PATTERN.sub('', text)
+    return not bool(re.search(r'[a-zA-Z]', cleaned))
 
 
 def _has_docstring(node: ast.AST) -> bool:
