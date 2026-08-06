@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+defineOptions({ name: 'TimeInput' })
 import { ref, watch } from 'vue'
 
 const props = defineProps<{ modelValue: string }>()
