@@ -50,8 +50,9 @@ def temp_db():
     # user_preferences (existing record)
     conn.execute("""CREATE TABLE user_preferences (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-        preference_key TEXT NOT NULL, preference_value TEXT NOT NULL,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        preference_key TEXT NOT NULL, preference_value TEXT DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, preference_key))""")
     conn.execute(
         "INSERT INTO user_preferences (user_id, preference_key, preference_value)"
