@@ -24,14 +24,14 @@ const store = useAppStore()
 
 // ── 导航项配置 ──
 // #49: navItems 改为 computed，从路由 meta 动态生成
-  // TODO: Remove fallback after #49 verification - deadline 2026-08-09
-  interface SidebarRoute {
-  meta: { showInSidebar?: boolean; permission?: string; sidebarOrder?: number; titleKey?: string; title?: string; icon?: string }
-  path: string
+// TODO: Remove fallback after #49 verification - deadline 2026-08-09
+interface SidebarRoute {
+meta: { showInSidebar?: boolean; permission?: string; sidebarOrder?: number; titleKey?: string; title?: string; icon?: string }
+path: string
 }
 
 const navItems = computed(() => {
-    const items = router.getRoutes() as SidebarRoute[]
+    const items = (router.getRoutes() as SidebarRoute[])
       .filter((r) => r.meta.showInSidebar && !r.path.startsWith('/__action/'))
       .filter((r) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
       .sort((a, b) => (a.meta.sidebarOrder || 99) - (b.meta.sidebarOrder || 99))
