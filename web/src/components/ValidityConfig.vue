@@ -2,30 +2,17 @@
 defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
-import SelectButton from 'primevue/selectbutton'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
-import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, parseExecuteTime, formatExecuteTime, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
+import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
-
-const { t } = useI18n()
-
-// ✅ #43: 工作日选项（1=周一, 7=周日）— i18n 多语言支持
-const weekdayOptions = computed(() => [
-  { label: t('date.weekday.short.mon'), value: 1 },
-  { label: t('date.weekday.short.tue'), value: 2 },
-  { label: t('date.weekday.short.wed'), value: 3 },
-  { label: t('date.weekday.short.thu'), value: 4 },
-  { label: t('date.weekday.short.fri'), value: 5 },
-  { label: t('date.weekday.short.sat'), value: 6 },
-  { label: t('date.weekday.short.sun'), value: 7 },
-])
+import TimeInput from '@/components/TimeInput.vue'
+import WeekdaySelector from '@/components/WeekdaySelector.vue'
 
 const config = ref<ValidityConfig>({
   first_weekday: 1, execute_time: '03:00',
@@ -33,21 +20,32 @@ const config = ref<ValidityConfig>({
   batch_size: 50, batch_interval: 5, check_ratio: 25,
 })
 
-// 将 execute_time "HH:MM" 拆分为两个 InputNumber 的 computed 桥接
-const executeHour = computed({
-  get: () => parseExecuteTime(config.value.execute_time).hour,
-  set: (val: number) => {
-    const { minute } = parseExecuteTime(config.value.execute_time)
-    config.value.execute_time = formatExecuteTime(val, minute)
+// ====== 周几桥接：number (1-7) ↔ 中文 ======
+const WEEKDAY_MAP: Record<string, number> = {
+  '一': 1, '二': 2, '三': 3, '四': 4,
+  '五': 5, '六': 6, '日': 7,
+}
+const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
+type WeekdayLabel = typeof WEEKDAY_LABELS[number]
+
+const firstWeekdayLabel = computed<WeekdayLabel>({
+  get: () => {
+    const val = config.value.first_weekday ?? 1
+    return WEEKDAY_LABELS[Math.max(0, Math.min(val - 1, 6))]
+  },
+  set: (v: WeekdayLabel) => {
+    config.value.first_weekday = WEEKDAY_MAP[v] || 1
   },
 })
-const executeMinute = computed({
-  get: () => parseExecuteTime(config.value.execute_time).minute,
-  set: (val: number) => {
-    const { hour } = parseExecuteTime(config.value.execute_time)
-    config.value.execute_time = formatExecuteTime(hour, val)
+
+// ====== 时间桥接：确保响应式绑定 ======
+const executeTime = computed({
+  get: () => config.value.execute_time || '03:00',
+  set: (v: string) => {
+    config.value.execute_time = v
   },
 })
+
 const loading = ref(false)
 const saving = ref(false)
 const running = ref(false)
@@ -69,12 +67,10 @@ const checkRatioDisplay = computed(() => {
   return (100 / total).toFixed(1)
 })
 
-// ✅ #43: 首次执行时间（展示用，i18n prefix + label）
+// 首次执行时间（展示用）
 const firstExecutionTime = computed(() => {
-  const w = weekdayOptions.value.find(o => o.value === config.value.first_weekday)
-  const prefix = t('date.weekday.prefix')
-  const label = w?.label || t('date.weekday.short.mon')
-  return `${prefix}${label} ${config.value.execute_time}`
+  const idx = Math.max(0, Math.min((config.value.first_weekday ?? 1) - 1, 6))
+  return `周${WEEKDAY_LABELS[idx]} ${config.value.execute_time}`
 })
 
 // ✅ #43: 校验是否可保存
@@ -202,36 +198,15 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
     <!-- 检查策略 -->
     <div class="section-title">检查策略</div>
     <div class="form-grid">
-      <!-- ✅ #43: 首次执行周几 -->
+      <!-- 首次执行周几 -->
       <div class="field">
         <label>首次执行（周几）</label>
-        <SelectButton
-          v-model="config.first_weekday"
-          :options="weekdayOptions"
-          optionLabel="label"
-          optionValue="value"
-        />
+        <WeekdaySelector v-model="firstWeekdayLabel" />
       </div>
       <!-- 首次执行时间 -->
       <div class="field">
         <label>首次执行（时间）</label>
-        <div class="time-group">
-          <InputNumber
-            v-model="executeHour"
-            :min="0"
-            :max="23"
-            show-buttons
-            class="time-input"
-          />
-          <span class="separator">:</span>
-          <InputNumber
-            v-model="executeMinute"
-            :min="0"
-            :max="59"
-            show-buttons
-            class="time-input"
-          />
-        </div>
+        <TimeInput v-model="executeTime" />
       </div>
       <!-- ✅ #43: 总周期 -->
       <div class="field">

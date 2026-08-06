@@ -78,9 +78,9 @@ function handleLocaleChange(val: string) {
       <span class="text-dim" style="font-size:11px;grid-column:2">支持手动上传图片或填入 API 网络地址</span>
 
       <!-- 2. 主题（分组标题 + Pinia store 管理） -->
-      <div class="fieldset-gap" />
-      <div class="fieldset-label">主题</div>
-      <div class="theme-options" style="grid-column: 1 / -1">
+      <div class="fieldset-gap" style="grid-column: 1 / -1" />
+      <label class="fieldset-label" id="theme-label" style="grid-column: unset">主题</label>
+      <div class="theme-options" role="radiogroup" aria-labelledby="theme-label">
         <div
           v-for="t in themeList"
           :key="t.id"
@@ -122,4 +122,9 @@ function handleLocaleChange(val: string) {
 <style scoped>
 @import '@/views/settings/shared.css';
 .field-error { color: var(--danger, #e53e3e); font-size: 11px; }
+/* 修复浅色主题下选项文字对比度不足的问题 */
+.theme-option span {
+  color: var(--text) !important;
+  transition: color 0.2s ease;
+}
 </style>
