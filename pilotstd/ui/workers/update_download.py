@@ -57,15 +57,25 @@ class UpdateDownloadWorker(QThread):
             return
 
         bat_path = generate_update_script(dl_path, exe_dir)
-
-        # 通过 ShellExecuteW runas 提权启动 bat，确保 Program Files 下解压有足够权限
         try:
+            self._execute_updater(bat_path)
+        except Exception as e:
+            self.download_failed.emit(f"启动更新脚本失败: {e}")
+            return
+        self.download_ready.emit(bat_path)
+
+    def _execute_updater(self, bat_path: str) -> None:
+        """执行更新脚本。平台相关逻辑，提取为独立方法以便测试 mock。
+
+        Raises:
+            NotImplementedError: 非 Windows 平台暂不支持自更新。
+        """
+        if sys.platform == "win32":
             import ctypes
             ctypes.windll.shell32.ShellExecuteW(
                 None, "runas", "cmd.exe", f'/c "{bat_path}"', None, 1,
             )
-        except Exception as e:
-            self.download_failed.emit(f"启动更新脚本失败: {e}")
-            return
-
-        self.download_ready.emit(bat_path)
+        else:
+            raise NotImplementedError(
+                f"自更新脚本执行在当前平台 ({sys.platform}) 尚未实现"
+            )

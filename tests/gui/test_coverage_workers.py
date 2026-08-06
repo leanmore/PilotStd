@@ -868,10 +868,29 @@ class TestUpdateDownloadWorker:
             patch("pilotstd.platform.updater.download_update", return_value=True),
             patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
             patch("pilotstd.platform.updater.generate_update_script", return_value=str(tmp_path / "update.bat")),
-            patch("os.access", return_value=True),
+            patch.object(worker, "_execute_updater"),
         ):
             worker.run()
             assert len(ready_paths) == 1
+
+    def test_run_execute_fails_emits_download_failed(self, mock_release, qtbot):
+        """_execute_updater 失败时发射 download_failed 信号。"""
+        from pilotstd.ui.workers.update_download import UpdateDownloadWorker
+
+        worker = UpdateDownloadWorker(release=mock_release)
+        failures = []
+
+        worker.download_failed.connect(lambda msg: failures.append(msg))
+
+        with (
+            patch("pilotstd.platform.updater.download_update", return_value=True),
+            patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
+            patch("pilotstd.platform.updater.generate_update_script", return_value="fake.bat"),
+            patch.object(worker, "_execute_updater", side_effect=NotImplementedError("Not supported on linux")),
+        ):
+            worker.run()
+            assert len(failures) == 1
+            assert "Not supported on linux" in failures[0]
 
     def test_run_write_permission_denied(self, mock_release, qtbot):
         """无法写入 exe 目录时发射 download_failed。"""
