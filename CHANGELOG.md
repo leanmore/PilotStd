@@ -320,10 +320,12 @@
 
 ### Changed — 破坏性变更 (Breaking Changes)
 - **密码哈希升级为 bcrypt**：`docker/users.py` 的 `verify_user`/`add_user`/`change_password`/`_ensure_superuser` 改用 bcrypt 存储密码；旧 PBKDF2 密码在用户登录时自动惰性升级
-- **用户偏好 API 重构**：`GET /api/user-preference?key=xxx` 和 `POST /api/user-preference?key=xxx&value=yyy` 已删除。替代端点：
-  - `GET /api/user-preference` — 读取全部偏好（JSON 聚合格式）
-  - `PATCH /api/user-preference` — 增量更新偏好（body: `{"updates": {...}}`）
-  - `DELETE /api/user-preference` — 重置为默认值
+- **用户偏好 API 重构**：`GET /api/user-preference?key=xxx` 和 `POST /api/user-preference?key=xxx&value=yyy` 已删除。替代端点（v49 已全部废弃，迁移至 `/api/user/preferences/{key}`）：
+  - `GET /api/user/preferences` — 读取全部偏好（KV 格式）
+  - `GET /api/user/preferences/{key}` — 读取单个偏好
+  - `PUT /api/user/preferences/{key}` — 保存单个偏好
+  - `PUT /api/user/preferences` — 批量保存偏好（body: `{"preferences": {...}}`）
+  - `DELETE /api/user/preferences/{key}` — 删除单个偏好
   - **所有新端点需要登录认证**（Cookie/Token），旧端点无认证
 
 ### Added
