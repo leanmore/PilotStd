@@ -913,3 +913,54 @@ jobs:
             ### 系统要求
             - Windows 10/11 64-bit
             - 无需安装 Python
+
+  # ============================================================
+  # 🔬 临时诊断 Job：xdist 三联检 — 验证完成后整段删除
+  # ============================================================
+  test-backend-xdist-debug:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: ['no-xdist', 'xdist-n1', 'xdist-auto']
+    name: "Debug: ${{ matrix.mode }}"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r docker/requirements-docker.txt
+          pip install pytest pytest-xdist pytest-cov pytest-timeout responses respx pytest-httpserver
+          pip install -e .
+
+      - name: Environment Sanity Check
+        run: |
+          echo "=== 环境校验 ==="
+          python --version
+          python -c "import docker.auth; print('docker.auth loaded from:', docker.auth.__file__)"
+          wc -l tests/test_system_api.py
+
+      - name: Run test_system_api (${{ matrix.mode }})
+        env:
+          SUPERUSER: superadmin
+        run: |
+          case "${{ matrix.mode }}" in
+            no-xdist)
+              echo "=== 单进程（无 xdist）==="
+              python -m pytest tests/test_system_api.py -v --tb=long -p no:xdist
+              ;;
+            xdist-n1)
+              echo "=== xdist 单 worker ==="
+              python -m pytest tests/test_system_api.py -v --tb=long -n 1
+              ;;
+            xdist-auto)
+              echo "=== xdist 自动并行 ==="
+              python -m pytest tests/test_system_api.py -v --tb=long -n auto
+              ;;
+          esac
