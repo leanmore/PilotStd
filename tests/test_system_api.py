@@ -9,36 +9,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import unittest
 from unittest.mock import MagicMock, patch
 
-# ── 模块级 Patch：绕过 require_role 鉴权 ──
-_admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
-_admin_role_patch.start()
+import pytest
 
 from fastapi import HTTPException
 
 # —— 直接测函数，绕过 HTTP 鉴权层 ——
-from docker.api.system import update_container  # noqa: E402
+from docker.api.system import update_container
+
+# xdist 隔离：强制同一 worker 执行，避免与其他测试共享被污染的模块状态
+pytestmark = pytest.mark.xdist_group("system_api")
 
 
-# ════════════════════════════════════════════════════════════
-# 🔬 临时诊断探针 — 诊断完成后整段删除
-# ════════════════════════════════════════════════════════════
-def _diag_log(tag: str):
-    """写入 stderr，确保 xdist worker 输出可见。"""
-    import docker.auth
-    import pilotstd
-    msg = (
-        f"\n[DIAG-{tag}] pid={os.getpid()} "
-        f"worker={os.environ.get('PYTEST_XDIST_WORKER', 'MASTER')} "
-        f"docker.auth.ADMIN_ROLE={docker.auth.ADMIN_ROLE!r} "
-        f"pilotstd.ADMIN_ROLE={pilotstd.ADMIN_ROLE!r} "
-        f"id(docker.auth)={id(docker.auth)} "
-        f"id(pilotstd)={id(pilotstd)} "
-        f"docker.auth.__file__={docker.auth.__file__} "
-    )
-    print(msg, file=sys.stderr, flush=True)
-
-_diag_log("MODULE-LOAD")
-# ════════════════════════════════════════════════════════════
+@pytest.fixture(autouse=True)
+def _patch_admin_role():
+    """每个测试函数执行前重新应用 patch，免疫 xdist worker 污染和 coverage 重导入。"""
+    with patch("docker.auth.ADMIN_ROLE", "user"):
+        yield
 
 
 class TestUpdateFunction(unittest.TestCase):
@@ -70,7 +56,6 @@ class TestUpdateFunction(unittest.TestCase):
     # ── 10 场景 ──────────────────────────────────
 
     def test_01_new_image_compose_available(self):
-        _diag_log("TEST-ENTRY")
         with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             self._set_docker_sequence(
                 ('[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]', 0),
