@@ -22,6 +22,16 @@ IMAGE_LATEST = f"{IMAGE_REGISTRY}:latest"
 IMAGE_VERSIONED = f"{IMAGE_REGISTRY}:v{__version__}"
 
 
+def _get_image_tag() -> str:
+    """返回拉取时使用的镜像标签，优先版本号标签，异常时降级 latest。"""
+    if __version__ and __version__ != "0.0.0":
+        tag = IMAGE_VERSIONED
+    else:
+        tag = IMAGE_LATEST
+        logger.warning("__version__ 无效 (%s)，降级使用 latest 标签", __version__)
+    return tag
+
+
 def _get_container_id() -> str:
     """读取当前容器的 ID（从 /proc/self/cgroup 或 HOSTNAME 环境变量）。"""
     try:
@@ -84,13 +94,14 @@ def _get_current_digest(cid: str) -> str:
 
 
 def _pull_and_compare(old_digest: str) -> tuple[str, bool]:
-    """拉取最新镜像并比对 digest，返回 (new_digest, needs_update)。"""
-    # 容器最新镜像，超时=300秒以适应慢速网络
-    pull = _run_docker(["pull", IMAGE_LATEST], timeout=300)
+    """拉取版本号标签镜像并比对 digest，返回 (new_digest, needs_update)。"""
+    tag = _get_image_tag()
+    logger.info("拉取镜像: %s", tag)
+    pull = _run_docker(["pull", tag], timeout=300)
     pulled_layers = [line for line in pull.stdout.split("\n") if "Downloaded" in line or "Pulled" in line]
     if pulled_layers:
         logger.info("拉取的新层: %s", pulled_layers)
-    new_inspect = _run_docker(["image", "inspect", IMAGE_LATEST, "--format", "{{.RepoDigests}}"])
+    new_inspect = _run_docker(["image", "inspect", tag, "--format", "{{.RepoDigests}}"])
     new_digest = new_inspect.stdout.strip()
     needs_update = not (new_digest and old_digest and new_digest == old_digest)
     return new_digest, needs_update
