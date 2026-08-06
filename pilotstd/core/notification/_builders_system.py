@@ -146,7 +146,7 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
             event_type="image_update_available",
             icon="pi pi-cloud-upload",
         )
-    # 正常路径：无错误 → 构建新版本通知（与上面 if-error-return 互斥，安全）
+    # 正常路径：上面错误分支已提前返回，此处安全重建 blocks
     blocks: list[NotificationBlock] = [  # type: ignore[no-redef]
         StatusChangeBlock(
             label=_("镜像版本"),

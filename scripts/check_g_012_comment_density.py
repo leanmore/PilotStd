@@ -109,6 +109,7 @@ LANG_WHITELIST = {
     # ── 权限/安全 ──
     'admin', 'require_role', 'require_admin',
     'ShellExecuteW', 'runas', 'UAC', 'exe', 'bat', 'Program', 'Files',
+    'BeautifulSoup', 'Tag', 'no', 'redef',
     # ── 版本/标记 ──
     'v49', 'v48', 'DEPRECATED', 'noqa', 'E402',
     # ── 标记语言 ──
