@@ -49,7 +49,7 @@ ENV APP_VERSION=$APP_VERSION
 RUN mkdir -p /app/web/dist
 COPY web/dist/ ./web/dist/
 # 验证前端文件存在
-RUN test -f /app/web/dist/index.html && echo "✅ 前端资源已包含" || echo "⚠️ 前端资源缺失"
+RUN test -f /app/web/dist/index.html
 
 # 复制 docker 模块（app.py、api/ 等）
 COPY docker/ ./docker/

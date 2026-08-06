@@ -54,7 +54,7 @@ run_fast() {
 
     # 前端类型检查
     if [ -d "web" ]; then
-        cd web && npx vue-tsc --noEmit 2>/dev/null && cd ..
+        (cd web && npx vue-tsc --noEmit 2>/dev/null)
         if [ $? -eq 0 ]; then
             log_pass "vue-tsc 类型检查"
         else

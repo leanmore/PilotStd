@@ -804,9 +804,7 @@ jobs:
   docker:
     name: docker
     needs: version
-    if: |
-      !cancelled() &&
-      (needs.version.result == 'success' || needs.version.result == 'skipped')
+    if: github.ref == 'refs/heads/main' && needs.version.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -867,9 +865,7 @@ jobs:
   exe:
     name: exe
     needs: version
-    if: |
-      !cancelled() &&
-      (needs.version.result == 'success' || needs.version.result == 'skipped')
+    if: github.ref == 'refs/heads/main' && needs.version.result == 'success'
     runs-on: windows-latest
     timeout-minutes: 45
     permissions:
