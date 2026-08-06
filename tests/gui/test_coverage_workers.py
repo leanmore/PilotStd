@@ -885,7 +885,7 @@ class TestUpdateDownloadWorker:
         with (
             patch("pilotstd.platform.updater.download_update", return_value=True),
             patch("pilotstd.platform.updater.extract_sha256_from_body", return_value="abc123"),
-            patch("os.access", return_value=False),
+            patch("builtins.open", side_effect=PermissionError("mocked")),
         ):
             worker.run()
             assert len(failures) == 1

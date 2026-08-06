@@ -45,6 +45,17 @@ class UpdateDownloadWorker(QThread):
             return
 
         exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(__file__)
+
+        # 写入试探：实际创建/删除测试文件来验证目录可写（os.access 在 Windows 上不可靠）
+        try:
+            test_file = os.path.join(exe_dir, ".write_test")
+            with open(test_file, "w") as f:
+                f.write("")
+            os.remove(test_file)
+        except (PermissionError, OSError):
+            self.download_failed.emit("无法写入更新目录，请以管理员身份运行")
+            return
+
         bat_path = generate_update_script(dl_path, exe_dir)
 
         # 通过 ShellExecuteW runas 提权启动 bat，确保 Program Files 下解压有足够权限
