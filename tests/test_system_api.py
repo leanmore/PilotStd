@@ -16,6 +16,15 @@ from docker.api.system import update_container
 
 
 class TestUpdateFunction(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
+        cls._admin_role_patch.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._admin_role_patch.stop()
+
     def setUp(self):
         self.patch_cid = patch("docker.api.system._get_container_id")
         self.mock_cid = self.patch_cid.start()
