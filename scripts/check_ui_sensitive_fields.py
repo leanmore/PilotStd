@@ -110,7 +110,7 @@ def check_backend_ocr() -> int:
     if not settings.exists():
         print("  [后端OCR] SKIP: settings.py 不存在")
         return 0
-    src = settings.read_text(encoding="utf-8")
+    src = settings.read_text(encoding="utf-8-sig")
     tree = ast.parse(src)
     failed = []
     for node in ast.walk(tree):

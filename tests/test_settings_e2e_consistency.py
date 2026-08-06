@@ -116,7 +116,7 @@ def _get_backend_keys() -> set[str]:
     不导入模块（避免依赖链问题），直接 AST 解析源码。
     """
     docker_dir = os.path.join(ROOT, "docker", "api", "settings.py")
-    with open(docker_dir, encoding="utf-8") as f:
+    with open(docker_dir, encoding="utf-8-sig") as f:
         source = f.read()
 
     tree = ast.parse(source)
