@@ -45,9 +45,16 @@ class UpdateDownloadWorker(QThread):
             return
 
         exe_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(__file__)
-        if not os.access(exe_dir, os.W_OK):
-            self.download_failed.emit(f"无法写入 {exe_dir}\n请以管理员身份运行")
+        bat_path = generate_update_script(dl_path, exe_dir)
+
+        # 通过 ShellExecuteW runas 提权启动 bat，确保 Program Files 下解压有足够权限
+        try:
+            import ctypes
+            ctypes.windll.shell32.ShellExecuteW(
+                None, "runas", "cmd.exe", f'/c "{bat_path}"', None, 1,
+            )
+        except Exception as e:
+            self.download_failed.emit(f"启动更新脚本失败: {e}")
             return
 
-        bat_path = generate_update_script(dl_path, exe_dir)
         self.download_ready.emit(bat_path)

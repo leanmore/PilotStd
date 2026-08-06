@@ -161,7 +161,15 @@ def verify_checksum(file_path: str, expected_sha256: str) -> bool:
 
 
 def generate_update_script(zip_path: str, exe_dir: str) -> str:
-    """生成 update.bat 更新批处理脚本。返回脚本路径。"""
+    """生成 update.bat 更新批处理脚本。写入临时目录，返回脚本路径。
+
+    update.bat 放在 %TEMP%/pilotstd_update/ 下而非 exe_dir，
+    避免 Program Files 下的写入权限问题。bat 内部通过 PowerShell
+    -Verb RunAs 提权执行解压替换。
+    """
+    temp_dir = os.path.join(os.environ.get("TEMP", os.path.expanduser("~")), "pilotstd_update")
+    os.makedirs(temp_dir, exist_ok=True)
+
     exe_path = os.path.join(exe_dir, "PilotStd.exe")
     bat = (
         "@echo off\r\n"
@@ -178,7 +186,7 @@ def generate_update_script(zip_path: str, exe_dir: str) -> str:
         f'start "" "{exe_path}"\r\n'
         'del "%~f0"\r\n'
     )
-    bat_path = os.path.join(exe_dir, "update.bat")
+    bat_path = os.path.join(temp_dir, "update.bat")
     with open(bat_path, "w", encoding="utf-8") as f:
         f.write(bat)
     return bat_path
