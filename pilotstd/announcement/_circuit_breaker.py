@@ -20,7 +20,7 @@ _HEALTH_TABLE = "adapter_state"
 class AdapterFrozenError(Exception):
     """适配器处于冻结状态，请求被熔断拦截。"""
 
-    def __init__(self, adapter_name: str, remaining_seconds: int):
+    def __init__(self, adapter_name: str, remaining_seconds: int) -> None:
         self.adapter_name = adapter_name
         self.remaining_seconds = remaining_seconds
         super().__init__(f"{adapter_name} 冻结中，剩余 {remaining_seconds} 秒")
@@ -32,7 +32,7 @@ class CircuitBreaker:
     组合到 BaseAnnounceCrawler 中，通过 _get_site_name 回调获取站点名。
     """
 
-    def __init__(self, get_site_name):
+    def __init__(self, get_site_name) -> None:
         self._get_site_name = get_site_name
         self.freeze_count: int = 0
         self.first_freeze_time: Optional[datetime] = None

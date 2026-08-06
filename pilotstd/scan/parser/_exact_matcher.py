@@ -18,7 +18,7 @@ from ._constants import _ASME_BPVC_RE, _ROMAN_MAP
 class ExactMatcher:
     """精确匹配通道集合 — 组合注入到 StandardParser。"""
 
-    def __init__(self, parser):
+    def __init__(self, parser) -> None:
         # 共享引用：直接复制解析器的属性引用，避免同步维护
         self._parser = parser
         # 共享引用（直接从解析器复制，同一个对象）

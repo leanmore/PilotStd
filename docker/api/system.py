@@ -195,7 +195,7 @@ async def update_container(mgr=Depends(get_manager_dep)):
 
 @require_role("admin")
 @router.get("/health")
-def system_health(mgr=Depends(get_manager_dep)):
+def system_health(mgr=Depends(get_manager_dep)) -> dict:
     """系统健康检查。
 
     检查项：数据库连接、缓存状态、适配器总数/可用数。
