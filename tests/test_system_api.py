@@ -18,6 +18,9 @@ from docker.api.system import update_container
 class TestUpdateFunction(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # NOTE: require_role reads ADMIN_ROLE at call time, not decoration time.
+        # Do NOT patch docker.api.system.require_role — import-time binding
+        # makes it ineffective. Patching the constant is the correct approach.
         cls._admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
         cls._admin_role_patch.start()
 
