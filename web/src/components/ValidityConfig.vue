@@ -14,6 +14,20 @@ import { getItem, setItem } from '@/lib/storage'
 import TimeInput from '@/components/TimeInput.vue'
 import WeekdaySelector from '@/components/WeekdaySelector.vue'
 
+// 兼容旧后端：可能返回 update_interval（天）代替 total_weeks
+interface LegacyValidityResponse extends Partial<ValidityConfig> {
+  update_interval?: number
+}
+
+/** 提取 axios 错误消息 */
+function getErrorMessage(e: unknown, fallback: string): string {
+  const err = e as { response?: { data?: { error?: string; details?: string[] } }; message?: string }
+  return err.response?.data?.error
+    || (err.response?.data?.details?.join('; '))
+    || err.message
+    || fallback
+}
+
 const config = ref<ValidityConfig>({
   first_weekday: 1, execute_time: '03:00',
   total_weeks: 4, frequency_weeks: 1,
@@ -95,11 +109,12 @@ async function loadConfig() {
     const raw = await getValidityConfig()
     config.value = { ...config.value, ...raw }
     // 兼容旧后端：可能只返回 update_interval（天），无 total_weeks
-    if (!config.value.total_weeks && (raw as any).update_interval) {
-      config.value.total_weeks = Math.max(4, Math.round((raw as any).update_interval / 7))
+    const legacy = raw as LegacyValidityResponse
+    if (!config.value.total_weeks && legacy.update_interval) {
+      config.value.total_weeks = Math.max(4, Math.round(legacy.update_interval / 7))
     }
   }
-  catch (e: any) { errMsg.value = e.response?.data?.error || '加载配置失败' }
+  catch (e: unknown) { errMsg.value = getErrorMessage(e, '加载配置失败') }
   finally { loading.value = false }
 }
 
@@ -109,8 +124,8 @@ async function doSave() {
     await putValidityConfig(config.value)
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
-  } catch (e: any) {
-    errMsg.value = e.response?.data?.error || (e.response?.data?.details?.join('; ') || '保存失败')
+  } catch (e: unknown) {
+    errMsg.value = getErrorMessage(e, '保存失败')
   }
   finally { saving.value = false }
 }
@@ -123,7 +138,7 @@ async function doRun() {
     const r = await runValidityCheck()
     runResult.value = `检查完成：${r.checked} 条，${r.changed} 条状态变更`
     loadHistory()
-  } catch (e: any) { runResult.value = `失败: ${e.response?.data?.error || e.message}` }
+  } catch (e: unknown) { runResult.value = `失败: ${getErrorMessage(e, '未知错误')}` }
   finally { running.value = false; setTimeout(() => runResult.value = '', 6000) }
 }
 

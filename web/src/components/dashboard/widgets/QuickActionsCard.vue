@@ -6,6 +6,30 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import http from '@/api/http'
 
+interface QuickAction {
+  label: string
+  iconClass: string
+  color: string
+  to?: string
+  type: string
+  handler?: string
+}
+
+interface RouteMetaAction {
+  meta: {
+    showInQuickActions?: boolean
+    permission?: string
+    quickActionOrder?: number
+    titleKey?: string
+    title?: string
+    icon?: string
+    color?: string
+    quickActionType?: string
+    handler?: string
+  }
+  path: string
+}
+
 const { t } = useI18n()
 const router = useRouter()
 const store = useAppStore()
@@ -13,7 +37,7 @@ const scanning = ref(false)
 const scanMsg = ref('')
 const scanErr = ref(false)
 
-// #49: 动作型 handler 注册表（显式 Map，禁止 eval / 动态 import）
+// 动作型 handler 注册表
 const actionHandlers: Record<string, () => Promise<void>> = {
   scanAndIndex,
 }
@@ -24,8 +48,9 @@ async function scanAndIndex() {
     const r = await http.post('/scan-and-index')
     scanMsg.value = `扫描完成，入库 ${r.data?.indexed ?? 0} 条标准`
     scanErr.value = false
-  } catch (e: any) {
-    scanMsg.value = e.response?.data?.error || '扫描失败'
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } } }
+    scanMsg.value = err.response?.data?.error || '扫描失败'
     scanErr.value = true
   } finally {
     scanning.value = false
@@ -33,7 +58,7 @@ async function scanAndIndex() {
   }
 }
 
-function handleActionClick(action: { type: string; to?: string; handler?: string }) {
+function handleActionClick(action: QuickAction) {
   if (action.type === 'action' && action.handler) {
     const fn = actionHandlers[action.handler]
     if (fn) { fn(); return }
@@ -43,16 +68,14 @@ function handleActionClick(action: { type: string; to?: string; handler?: string
   }
 }
 
-// #49: 从路由 meta 动态生成快捷操作，替代硬编码数组
-// TODO: Remove fallback after #49 verification - deadline 2026-08-09
-const actions = computed(() => {
-  const routes = router.getRoutes() as any[]
-  const items = routes
-    .filter((r: any) => r.meta.showInQuickActions)
-    .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
-    .sort((a: any, b: any) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
-    .map((r: any) => {
-      // 翻译 titleKey，翻译缺失时降级到 meta.title 或路径
+// 从路由 meta 动态生成快捷操作
+const actions = computed<QuickAction[]>(() => {
+  const routes = router.getRoutes() as RouteMetaAction[]
+  const items: QuickAction[] = routes
+    .filter((r) => r.meta.showInQuickActions)
+    .filter((r) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
+    .sort((a, b) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
+    .map((r) => {
       let label: string
       if (r.meta.titleKey) {
         const translated = t(r.meta.titleKey)
@@ -70,7 +93,6 @@ const actions = computed(() => {
       }
     })
 
-  // Fallback: 若路由 meta 未正确配置，回退到旧硬编码列表
   if (items.length === 0) {
     return [
       { label: '任务', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
@@ -83,7 +105,7 @@ const actions = computed(() => {
   return items
 })
 
-const isLoading = (a: any) =>
+const isLoading = (a: QuickAction): boolean =>
   a.type === 'action' && a.handler === 'scanAndIndex' && scanning.value
 </script>
 

@@ -18,19 +18,21 @@ const { t } = useI18n()
 const i18nKey = computed(() => `settings.${resolved.value.key}`)
 const label = computed(() => {
   const translated = t(i18nKey.value)
-  // 如果翻译缺失（返回 key 本身），回退到 key 名格式化
   return translated !== i18nKey.value
     ? translated
     : (resolved.value.key.split('.').pop() || '').replace(/_/g, ' ')
 })
 
+/** 设置字段的合法值类型 */
+type SettingValue = string | number | boolean | (string | number)[]
+
 export interface SchemaField {
   key: string
   tab: string
   field_type: string
-  default: any
+  default: unknown
   placeholder?: string
-  options?: { label: string; value: any }[]
+  options?: { label: string; value: unknown }[]
   help_text?: string
   required?: boolean
 }
@@ -40,51 +42,51 @@ const props = defineProps<{
 }>()
 
 // 从父组件注入
-const schemaMapRaw = inject<any>('settingsSchema', {})
-const schemaMap = computed<Record<string, any>>(() => unref(schemaMapRaw))
-const cfg = inject<Record<string, any>>('settingsConfig', {})
+const schemaMapRaw = inject<Record<string, SchemaField>>('settingsSchema', {})
+const schemaMap = computed<Record<string, SchemaField>>(() => unref(schemaMapRaw))
+const cfg = inject<Record<string, unknown>>('settingsConfig', {})
 
 /** 从注入的 schemaMap 中查找字段定义 */
 const resolved = computed<SchemaField>(() => {
   const found = schemaMap.value[props.fieldKey]
-  if (found) return found as SchemaField
+  if (found) return found
   return { key: props.fieldKey, tab: '', field_type: 'input', default: '' }
 })
 
-/** 按路径读取嵌套值（兼容 ref / reactive） */
-function getNested(path: string): any {
+/** 按路径读取嵌套值 */
+function getNested(path: string): unknown {
   const parts = path.split('.')
-  let v: any = unref(cfg)
+  let v: unknown = unref(cfg)
   for (const p of parts) {
-    if (v == null) return undefined
-    v = v[p]
+    if (v == null || typeof v !== 'object') return undefined
+    v = (v as Record<string, unknown>)[p]
   }
   return v
 }
 
 /** 按路径写入嵌套值（就地修改，保留响应式） */
-function setNested(path: string, val: any) {
-  const root = unref(cfg)
+function setNested(path: string, val: SettingValue) {
+  const root = unref(cfg) as Record<string, unknown>
   const parts = path.split('.')
-  let o: any = root
+  let o: Record<string, unknown> = root
   for (let i = 0; i < parts.length - 1; i++) {
     if (!o[parts[i]] || typeof o[parts[i]] !== 'object') o[parts[i]] = {}
-    o = o[parts[i]]
+    o = o[parts[i]] as Record<string, unknown>
   }
   o[parts[parts.length - 1]] = val
 }
 
 // ── 事件处理 ──
 
-function emitVal(val: any) {
+function emitVal(val: SettingValue) {
   setNested(props.fieldKey, val)
 }
 
-/** 数字写入：若原值是数组则保留第二元素（如 query_interval [min, max]） */
+/** 数字写入：若原值是数组则保留第二元素 */
 function emitNumber(val: number) {
   const cur = getNested(props.fieldKey)
   if (Array.isArray(cur) && cur.length >= 2) {
-    setNested(props.fieldKey, [val, cur[1]])
+    setNested(props.fieldKey, [val, cur[1] as number])
   } else {
     setNested(props.fieldKey, val)
   }
@@ -100,15 +102,15 @@ function emitTags(e: Event) {
   setNested(props.fieldKey, tags)
 }
 
-function tagsStr(arr: any): string {
+function tagsStr(arr: unknown): string {
   return Array.isArray(arr) ? arr.join(', ') : ''
 }
 
-/** 数字读取：若存储值是数组则取 [0]，否则直接返回 */
+/** 数字读取：若存储值是数组则取 [0] */
 function numberVal(): number {
   const v = getNested(props.fieldKey)
-  if (Array.isArray(v)) return v[0] ?? resolved.value.default?.[0] ?? 0
-  return v ?? resolved.value.default ?? 0
+  if (Array.isArray(v)) return (v[0] as number) ?? 0
+  return (v as number) ?? 0
 }
 </script>
 
