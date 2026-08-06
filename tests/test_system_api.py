@@ -9,10 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import unittest
 from unittest.mock import MagicMock, patch
 
-# NOTE: require_role reads ADMIN_ROLE at call time, not decoration time.
-# Patching at module level ensures the constant is overridden before any
-# test function calls update_container. Do NOT patch docker.api.system.require_role
-# or docker.auth.require_role — import-time binding makes those ineffective.
+# ── 模块级 Patch：绕过 require_role 鉴权 ──
 _admin_role_patch = patch("docker.auth.ADMIN_ROLE", "user")
 _admin_role_patch.start()
 
@@ -20,6 +17,28 @@ from fastapi import HTTPException
 
 # —— 直接测函数，绕过 HTTP 鉴权层 ——
 from docker.api.system import update_container  # noqa: E402
+
+
+# ════════════════════════════════════════════════════════════
+# 🔬 临时诊断探针 — 诊断完成后整段删除
+# ════════════════════════════════════════════════════════════
+def _diag_log(tag: str):
+    """写入 stderr，确保 xdist worker 输出可见。"""
+    import docker.auth
+    import pilotstd
+    msg = (
+        f"\n[DIAG-{tag}] pid={os.getpid()} "
+        f"worker={os.environ.get('PYTEST_XDIST_WORKER', 'MASTER')} "
+        f"docker.auth.ADMIN_ROLE={docker.auth.ADMIN_ROLE!r} "
+        f"pilotstd.ADMIN_ROLE={pilotstd.ADMIN_ROLE!r} "
+        f"id(docker.auth)={id(docker.auth)} "
+        f"id(pilotstd)={id(pilotstd)} "
+        f"docker.auth.__file__={docker.auth.__file__} "
+    )
+    print(msg, file=sys.stderr, flush=True)
+
+_diag_log("MODULE-LOAD")
+# ════════════════════════════════════════════════════════════
 
 
 class TestUpdateFunction(unittest.TestCase):
@@ -51,6 +70,7 @@ class TestUpdateFunction(unittest.TestCase):
     # ── 10 场景 ──────────────────────────────────
 
     def test_01_new_image_compose_available(self):
+        _diag_log("TEST-ENTRY")
         with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
             self._set_docker_sequence(
                 ('[{"Image": "ghcr.io/leanmore/pilotstd:latest"}]', 0),
