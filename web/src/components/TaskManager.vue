@@ -34,7 +34,7 @@ const total = ref(0)
 const page = ref(Number(getItem('taskmgr_page')) || 0)
 const filter = ref('')
 
-function onPage(e: any) {
+function onPage(e: { page: number }) {
   page.value = e.page
   setItem('taskmgr_page', String(e.page))
   loadTasks()
@@ -115,7 +115,7 @@ async function loadPipelineRuns() {
   finally { runsLoading.value = false }
 }
 
-function onRunsPage(e: any) { runsPage.value = e.page; loadPipelineRuns() }
+function onRunsPage(e: { page: number }) { runsPage.value = e.page; loadPipelineRuns() }
 
 function stepLabel(s: string) {
   const map: Record<string, string> = { scan: '扫描', query: '查询', download: '下载', normalize: '规范化', archive: '归档' }

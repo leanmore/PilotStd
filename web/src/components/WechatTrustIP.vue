@@ -89,7 +89,7 @@ async function loadConfig() {
   try {
     const r = await http.get('/wechat-ip/config')
     config.value = r.data
-  } catch (e: any) {
+  } catch (e: unknown) {
     errMsg.value = '加载配置失败'
   } finally { loading.value = false }
 }
@@ -103,7 +103,7 @@ async function saveConfig() {
     saved.value = true; cookieRaw.value = ''
     setTimeout(() => saved.value = false, 2000)
     await loadStatus()
-  } catch (e: any) {
+  } catch (e: unknown) {
     errMsg.value = e.response?.data?.error || '保存失败'
   } finally { saving.value = false }
 }
@@ -131,7 +131,7 @@ async function triggerCheck() {
     }
     setTimeout(() => checkResult.value = '', 6000)
     await loadStatus()
-  } catch (e: any) {
+  } catch (e: unknown) {
     checkResult.value = `请求失败: ${e.message}`
   } finally { checking.value = false }
 }

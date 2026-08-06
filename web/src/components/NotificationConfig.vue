@@ -121,7 +121,7 @@ async function loadConfig() {
         }
       }
     } catch { /* 策略 API 不可用时保持 config.json rules */ }
-  } catch (e: any) {
+  } catch (e: unknown) {
     errMsg.value = e.response?.data?.error || '加载配置失败'
   } finally { loading.value = false }
 }
@@ -154,7 +154,7 @@ async function saveConfig() {
     }
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
-  } catch (e: any) {
+  } catch (e: unknown) {
     errMsg.value = e.response?.data?.error || '保存失败'
   } finally { saving.value = false }
 }
@@ -172,7 +172,7 @@ async function testChannel(ch: string) {
     else if (ch === 'dingtalk') { params.webhook_url = c.webhook_url; params.secret = c.secret }
     const r = await testNotification(ch, params)
     testResults.value[ch] = r.ok ? '测试成功' : `失败: ${r.error || '未知'}`
-  } catch (e: any) {
+  } catch (e: unknown) {
     testResults.value[ch] = `失败: ${e.response?.data?.error || e.message}`
   }
   setTimeout(() => delete testResults.value[ch], 4000)

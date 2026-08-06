@@ -17,8 +17,8 @@ defineOptions({ name: 'SettingsTabAppearanceMixed' })
 
 const { t } = useI18n()
 const store = useAppStore()
-const getp = inject<(path: string, def?: any) => any>('settingsGetp')!
-const setp = inject<(path: string, val: any) => void>('settingsSetp')!
+const getp = inject<(path: string, def?: unknown) => unknown>('settingsGetp')!
+const setp = inject<(path: string, val: unknown) => void>('settingsSetp')!
 
 const fileError = ref('')
 

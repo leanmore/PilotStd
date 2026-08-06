@@ -36,7 +36,7 @@ async function debug() {
   if (!query.value.trim()) return
   loading.value = true; error.value = ''
   try {
-    const body: any = { query: query.value.trim() }
+    const body: Record<string, unknown> = { query: query.value.trim() }
     if (runtimeJson.value.trim()) {
       try {
         body.simulate_runtime = JSON.parse(runtimeJson.value)
@@ -48,7 +48,7 @@ async function debug() {
     }
     const r = await http.post('/query/debug', body)
     results.value = r.data as ScoreEntry[]
-  } catch (e: any) {
+  } catch (e: unknown) {
     error.value = e.response?.data?.detail || '请求失败'
   } finally {
     loading.value = false

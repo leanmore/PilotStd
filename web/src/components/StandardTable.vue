@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'StandardTable' })
-defineProps<{ data: any[] }>()
+defineProps<{ data: Record<string, unknown>[] }>()
 </script>
 <template>
   <DataTable :value="data" paginator :rows="20" stripedRows size="small">

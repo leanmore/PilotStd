@@ -25,12 +25,17 @@ const store = useAppStore()
 // ── 导航项配置 ──
 // #49: navItems 改为 computed，从路由 meta 动态生成
   // TODO: Remove fallback after #49 verification - deadline 2026-08-09
-  const navItems = computed(() => {
-    const items = router.getRoutes()
-      .filter((r: any) => r.meta.showInSidebar && !r.path.startsWith('/__action/'))
-      .filter((r: any) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
-      .sort((a: any, b: any) => (a.meta.sidebarOrder || 99) - (b.meta.sidebarOrder || 99))
-      .map((r: any) => ({
+  interface SidebarRoute {
+  meta: { showInSidebar?: boolean; permission?: string; sidebarOrder?: number; titleKey?: string; title?: string; icon?: string }
+  path: string
+}
+
+const navItems = computed(() => {
+    const items = router.getRoutes() as SidebarRoute[]
+      .filter((r) => r.meta.showInSidebar && !r.path.startsWith('/__action/'))
+      .filter((r) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
+      .sort((a, b) => (a.meta.sidebarOrder || 99) - (b.meta.sidebarOrder || 99))
+      .map((r) => ({
         label: r.meta.titleKey ? t(r.meta.titleKey) : (r.meta.title || r.path),
         icon: r.meta.icon || 'pi pi-circle',
         to: r.path,
@@ -81,7 +86,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 
 // ── 计算属性 ──
 const pageTitle = computed(() => {
-  const item = navItems.value.find((n: any) => n.to === route.path)
+  const item = navItems.value.find((n) => n.to === route.path)
   return item?.label ?? 'PilotStd'
 })
 
