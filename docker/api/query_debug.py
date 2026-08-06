@@ -35,7 +35,7 @@ def _collect_real_runtime_state() -> dict[str, dict]:
     若 manager 未初始化则返回空字典（debug 接口独立可用）。
     """
     try:
-        from pilotstd.manager.facade import get_manager
+        from pilotstd.manager.facade import get_manager  # type: ignore[attr-defined]
 
         mgr = get_manager()
         if mgr and hasattr(mgr, "adapter_manager"):

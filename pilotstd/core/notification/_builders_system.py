@@ -146,7 +146,8 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
             event_type="image_update_available",
             icon="pi pi-cloud-upload",
         )
-    blocks: list[NotificationBlock] = [
+    # 正常路径：无错误 → 构建新版本通知（与上面 if-error-return 互斥，安全）
+    blocks: list[NotificationBlock] = [  # type: ignore[no-redef]
         StatusChangeBlock(
             label=_("镜像版本"),
             old_value=data.get("old_digest", ""),

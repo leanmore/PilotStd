@@ -55,7 +55,7 @@ class BatchDispatcher:
         self._ctx = ctx
         self._stop_event = threading.Event()
         self._heartbeat_thread: threading.Thread | None = None
-        BatchDispatcher._instance = self  # 供测试清理 fixture 访问
+        BatchDispatcher._instance = self  # type: ignore[attr-defined]  # 供测试清理 fixture 访问
 
     # ── 心跳线程生命周期 ──
 

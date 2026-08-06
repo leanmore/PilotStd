@@ -50,13 +50,13 @@ def _get_all_query_adapters() -> list[str]:
     for route in ADAPTER_TYPE_MAP.values():
         if isinstance(route, dict):
             chain = route.get("chain", [])
-            if chain:
-                names.update(chain)
+            if chain and isinstance(chain, list):
+                names.update(chain)  # type: ignore[arg-type]
             primary = route.get("primary", "")
-            if primary:
+            if primary and isinstance(primary, str):
                 names.add(primary)
             fallback = route.get("fallback", "")
-            if fallback:
+            if fallback and isinstance(fallback, str):
                 names.add(fallback)
     return sorted(names)
 

@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from ...core.config import ConfigManager, get_db_path, get_library_root
 from ...core.db import Database
@@ -134,14 +134,14 @@ class BaseFacade:
         # 4.绑定方法到（对外接口不变）
         self._bind_methods()
 
-        # 5.初始化运行时状态列表（原中定义的）
-        self._parsed_results = []
-        self._queried_items = []
-        self._query_results = []
-        self._download_list = []
-        self._expire_list = []
-        self._pending_list = []
-        self._download_tasks = []
+        # 5.初始化运行时状态列表
+        self._parsed_results: list[Any] = []
+        self._queried_items: list[Any] = []
+        self._query_results: list[Any] = []
+        self._download_list: list[Any] = []
+        self._expire_list: list[Any] = []
+        self._pending_list: list[Any] = []
+        self._download_tasks: list[Any] = []
 
     def _init_config_and_scanner(self, config: Optional[ConfigManager]) -> None:
         """初始化配置、数据库、扫描子系统。"""
@@ -168,7 +168,7 @@ class BaseFacade:
         sites = create_default_sites()
         rotator = SiteRotator(sites, db=self._core.db)
         if csres is not None:
-            csres.set_rotator(rotator)
+            csres.set_rotator(rotator)  # type: ignore[attr-defined]  # csres 子类动态注入
 
         daily_limits = {s.name: s.daily_limit for s in sites if s.daily_limit > 0}
         self._core.quota_tracker = DailyQuotaTracker(self._core.db, limits=daily_limits)

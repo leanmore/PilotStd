@@ -248,8 +248,8 @@ class OrganizerCore:
             result["failed"],
         )
         try:
-            if result.get("failed", 0) > 0 and self._core.notification_mgr:
-                self._core.notification_mgr.send_event(
+            if result.get("failed", 0) > 0 and self._core.notification_mgr:  # type: ignore[attr-defined]  # organizer.py _core 属性由门面注入
+                self._core.notification_mgr.send_event(  # type: ignore[attr-defined]
                     "archive_failed",
                     {"count": result["failed"], "error": "部分文件归档失败，请检查日志"},
                 )

@@ -86,12 +86,12 @@ class FileIndexRepository:
                 return
 
             if os.environ.get("PILOTSTD_TEST_MODE") == "1":
-                delay = 0
+                delay: float = 0.0
             else:
                 try:
                     row = self._db.fetchone(f"SELECT COUNT(*) AS cnt FROM {FILE_INDEX_TABLE}")
                     row_count = row["cnt"] if row else 0
-                    delay = min(30, max(5, row_count / 500))
+                    delay = min(30, max(5.0, row_count / 500))
                 except Exception:
                     delay = 10
 

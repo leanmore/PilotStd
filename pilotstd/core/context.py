@@ -12,7 +12,7 @@
         _current_user_id.reset(token)  # 防止异步泄漏
 """
 
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 
 _current_user_id: ContextVar[int | None] = ContextVar("current_user_id", default=None)
 
@@ -22,7 +22,7 @@ def get_current_user_id() -> int | None:
     return _current_user_id.get()
 
 
-def set_current_user_id(user_id: int) -> ContextVar:
+def set_current_user_id(user_id: int) -> Token[int | None]:
     """设置当前请求上下文的 user_id。
 
     调用者必须 try/finally reset(token)：

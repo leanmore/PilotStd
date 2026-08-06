@@ -71,10 +71,10 @@ class CCSNAdapter(BaseAdapter):
         soup = BeautifulSoup(html, "lxml")
         vs = soup.find("input", id="__VIEWSTATE")
         vsg = soup.find("input", id="__VIEWSTATEGENERATOR")
-        return (
-            vs.get("value") if vs else None,
-            vsg.get("value") if vsg else None,
-        )
+        # Tag.get() 返回 str | list[str] | None，提取时显式转为 str | None
+        vs_val: Optional[str] = str(vs.get("value")) if vs and vs.get("value") else None
+        vsg_val: Optional[str] = str(vsg.get("value")) if vsg and vsg.get("value") else None
+        return (vs_val, vsg_val)
 
     # ── 数据表定位 ──
 
