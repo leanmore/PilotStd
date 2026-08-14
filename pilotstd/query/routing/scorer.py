@@ -109,6 +109,24 @@ def get_profile(adapter_name: str) -> dict:
     return profile
 
 
+# ── 运行时日限额（来自 create_default_sites，含 config.json 覆盖）──
+
+_SITE_LIMIT_MAP: dict[str, int] | None = None
+
+
+def _get_site_limit_map() -> dict[str, int]:
+    """返回 {site_name: daily_limit}，来自 create_default_sites()（含 config.json UI 覆盖）。
+
+    模块级缓存：硬编码默认值与 UI 覆盖都在启动时确定，首次构建后缓存即可。
+    """
+    global _SITE_LIMIT_MAP
+    if _SITE_LIMIT_MAP is None:
+        from pilotstd.query.site_config import create_default_sites
+
+        _SITE_LIMIT_MAP = {s.name: s.daily_limit for s in create_default_sites()}
+    return _SITE_LIMIT_MAP
+
+
 # ── 评分核心 ──────────────────────────────────────────────────
 
 
@@ -141,7 +159,7 @@ def score_adapter(
     reasons = [f"base:{score}"]
 
     rate_limit = profile.get("rate_limit", {})
-    daily_limit = rate_limit.get("daily_limit", 800)
+    daily_limit = _get_site_limit_map().get(adapter_name, 800)
 
     # 1. 标准号前缀精确匹配：+30
     for prefix in profile.get("std_prefixes", []):

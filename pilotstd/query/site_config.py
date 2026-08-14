@@ -3,6 +3,8 @@
 # 管理器/入口_/均从此导入，不再各自手写。
 # 阶段3.1:新增__合并请求字典（21适配器完整画像）+_字段
 
+from typing import Any
+
 from .rotator import SiteState
 
 # ──适配器默认画像字典（阶段3.1路由评分器数据源）────────────────
@@ -27,7 +29,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "high",
         "default_weight": 70,
-        "rate_limit": {"request_interval": 0.3, "batch_limit": 100, "batch_cooldown": 5, "daily_limit": 1000},
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 100, "batch_cooldown": 5},
         "cooling_threshold": 5,
         "cooling_duration": 30,
         "role": "primary",
@@ -39,7 +41,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "low",
         "default_weight": 30,
-        "rate_limit": {"request_interval": 2.0, "batch_limit": 10, "batch_cooldown": 120, "daily_limit": 150},
+        "rate_limit": {"request_interval": 2.0, "batch_limit": 10, "batch_cooldown": 120},
         "cooling_threshold": 1,
         "cooling_duration": 86400,
         "role": "background",
@@ -51,7 +53,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "high",
         "default_weight": 60,
-        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5, "daily_limit": 1000},
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5},
         "cooling_threshold": 5,
         "cooling_duration": 30,
         "role": "primary",
@@ -63,7 +65,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "high",
         "default_weight": 60,
-        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5, "daily_limit": 1000},
+        "rate_limit": {"request_interval": 0.3, "batch_limit": 80, "batch_cooldown": 5},
         "cooling_threshold": 5,
         "cooling_duration": 30,
         "role": "primary",
@@ -75,7 +77,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "high",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -87,7 +89,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "high",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 900,
         "role": "primary",
@@ -99,7 +101,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -111,7 +113,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -123,7 +125,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -135,7 +137,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -147,7 +149,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -159,7 +161,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 50,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -171,7 +173,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -183,7 +185,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -195,7 +197,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "low",
         "default_weight": 40,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -207,7 +209,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "low",
         "default_weight": 50,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -219,7 +221,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "high",
         "default_weight": 60,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 600,
         "role": "primary",
@@ -231,7 +233,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": True,
         "reliability": "medium",
         "default_weight": 45,
-        "rate_limit": {"request_interval": 3.0, "batch_limit": 20, "batch_cooldown": 30, "daily_limit": 500},
+        "rate_limit": {"request_interval": 3.0, "batch_limit": 20, "batch_cooldown": 30},
         "cooling_threshold": 3,
         "cooling_duration": 600,
         "role": "primary",
@@ -243,7 +245,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 50,
-        "rate_limit": {"request_interval": 1.0, "batch_limit": 15, "batch_cooldown": 10, "daily_limit": 500},
+        "rate_limit": {"request_interval": 1.0, "batch_limit": 15, "batch_cooldown": 10},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -255,7 +257,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "high",
         "default_weight": 55,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 600,
         "role": "primary",
@@ -267,7 +269,7 @@ ADAPTER_DEFAULT_PROFILES: dict[str, dict] = {
         "is_general": False,
         "reliability": "medium",
         "default_weight": 50,
-        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5, "daily_limit": 800},
+        "rate_limit": {"request_interval": 0.5, "batch_limit": 50, "batch_cooldown": 5},
         "cooling_threshold": 3,
         "cooling_duration": 300,
         "role": "primary",
@@ -444,5 +446,33 @@ def _create_sites_part3() -> list[SiteState]:
 
 
 def create_default_sites() -> list[SiteState]:
-    """创建默认站点配置，返回按优先级排序的 SiteState 列表。"""
-    return _create_sites_part1() + _create_sites_part2() + _create_sites_part3()
+    """创建默认站点配置并应用 config.json 的 UI 覆盖，返回 SiteState 列表。
+
+    这是站点配置的唯一运行时出口：评分器与配额追踪器都从这里读取，
+    保证 UI 修改（config.json 的 query.sites）与硬编码默认值单一来源对齐。
+    """
+    sites = _create_sites_part1() + _create_sites_part2() + _create_sites_part3()
+    overrides = _load_site_overrides()
+    for site in sites:
+        ov = overrides.get(site.name, {})
+        # config.json 的 key 与 SiteState 字段名不一致，需逐一映射
+        if ov.get("daily_limit") is not None:
+            site.daily_limit = ov["daily_limit"]
+        if ov.get("window_limit") is not None:  # UI 写入的 key 是 window_limit
+            site.max_requests = ov["window_limit"]
+        if ov.get("cooling_seconds") is not None:  # UI 写入的 key 是 cooling_seconds
+            site.cooldown_seconds = ov["cooling_seconds"]
+        if ov.get("request_interval") is not None:
+            site.request_interval = ov["request_interval"]
+    return sites
+
+
+def _load_site_overrides() -> dict[str, Any]:
+    """从 config.json 读取 query.sites 覆盖值，容错返回空 dict。"""
+    try:
+        from pilotstd.core.config.manager import ConfigManager
+
+        sites = ConfigManager().get("query.sites", {})
+        return sites if isinstance(sites, dict) else {}
+    except Exception:
+        return {}

@@ -171,6 +171,7 @@ class BaseFacade:
             csres.set_rotator(rotator)  # type: ignore[attr-defined]  # csres 子类动态注入
 
         daily_limits = {s.name: s.daily_limit for s in sites if s.daily_limit > 0}
+        logger.debug("配额追踪器日限额来自 create_default_sites() 统一出口（含 config.json UI 覆盖）")
         self._core.quota_tracker = DailyQuotaTracker(self._core.db, limits=daily_limits)
         self._core.cache = CacheRepository(self._core.db)
         self._core.file_index = FileIndexRepository(self._core.db)
