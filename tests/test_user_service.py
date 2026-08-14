@@ -38,9 +38,6 @@ class TestUserService:
     def test_save_layout_empty(self, svc):
         assert "error" in svc.save_layout(1, "")
 
-    def test_delete_layout(self, svc):
-        assert svc.delete_layout(1)["ok"] is True
-
     def test_get_user_by_id_found(self, svc):
         svc._mgr.db.fetchone.return_value = {"id": 1, "username": "admin", "role": "superadmin"}
         u = svc.get_user_by_id(1)

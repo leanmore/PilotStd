@@ -51,14 +51,6 @@ class UserService:
         )
         return {"ok": True}
 
-    def delete_layout(self, user_id: int) -> dict[str, Any]:
-        """删除用户仪表盘布局数据。"""
-        self._mgr.db.execute(
-            "DELETE FROM user_layouts WHERE user_id=? AND layout_key='dashboard'",
-            (user_id,),
-        )
-        return {"ok": True}
-
     # ── 首选项 ─────────────────────────────────
 
     def get_preferences(self, user_id: int) -> dict[str, Any]:
