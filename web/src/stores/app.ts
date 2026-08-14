@@ -23,8 +23,8 @@ export const useAppStore = defineStore('app', () => {
 
   /** 从后端拉取偏好并覆盖本地（登录后调用） */
   async function loadPreferences() {
+    if (!loggedIn.value) return
     if (_initialized.value) return
-    _initialized.value = true
 
     try {
       await loadFromBackend()
@@ -51,7 +51,11 @@ export const useAppStore = defineStore('app', () => {
         username.value = data.username
       }
     } catch { /* 未登录或 token 过期，保持默认值 */ }
+    _initialized.value = true
   }
+
+  // 登录成功后自动触发偏好拉取（覆盖显式登录与已登录直接访问两种场景）
+  watch(loggedIn, (v) => { if (v) loadPreferences() })
 
   /** 清除用户状态（登出时调用） */
   function clearUser() {

@@ -12,11 +12,9 @@ const store = useAppStore()
 
 useThemeSync()
 
-// 已登录时从后端加载持久化配置（主题/语言）
+// 偏好数据由 app store 的 watch(loggedIn) 在登录成功后自动拉取；此处兜底调用幂等安全
 onMounted(() => {
-  if (route.path !== '/login') {
-    store.loadPreferences()
-  }
+  store.loadPreferences()
 })
 </script>
 
