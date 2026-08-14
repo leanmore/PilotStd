@@ -19,7 +19,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': process.env.VITE_API_TARGET || 'http://192.168.1.18:9028',
+      '/api': {
+        target: process.env.VITE_API_TARGET || 'http://192.168.1.18:9028',
+        changeOrigin: false,
+      },
     },
   },
   build: {

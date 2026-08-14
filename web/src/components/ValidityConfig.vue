@@ -6,13 +6,12 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Dialog from 'primevue/dialog'
 import { getValidityConfig, putValidityConfig, runValidityCheck, getValidityHistory, type ValidityConfig, type ValidityHistoryItem } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
-import TimeInput from '@/components/TimeInput.vue'
-import WeekdaySelector from '@/components/WeekdaySelector.vue'
 
 // 兼容旧后端：可能返回 update_interval（天）代替 total_weeks
 interface LegacyValidityResponse extends Partial<ValidityConfig> {
@@ -34,29 +33,38 @@ const config = ref<ValidityConfig>({
   batch_size: 50, batch_interval: 5, check_ratio: 25,
 })
 
-// ====== 周几桥接：number (1-7) ↔ 中文 ======
-const WEEKDAY_MAP: Record<string, number> = {
-  '一': 1, '二': 2, '三': 3, '四': 4,
-  '五': 5, '六': 6, '日': 7,
-}
+// ====== 周几选项：number (1-7) → 中文标签 ======
 const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
-type WeekdayLabel = typeof WEEKDAY_LABELS[number]
 
-const firstWeekdayLabel = computed<WeekdayLabel>({
-  get: () => {
-    const val = config.value.first_weekday ?? 1
-    return WEEKDAY_LABELS[Math.max(0, Math.min(val - 1, 6))]
-  },
-  set: (v: WeekdayLabel) => {
-    config.value.first_weekday = WEEKDAY_MAP[v] || 1
-  },
-})
+const weekdayOptions = [
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 },
+  { label: '周六', value: 6 },
+  { label: '周日', value: 7 },
+]
 
-// ====== 时间桥接：确保响应式绑定 ======
-const executeTime = computed({
-  get: () => config.value.execute_time || '03:00',
-  set: (v: string) => {
-    config.value.execute_time = v
+// ====== 时间桥接：DatePicker(Date) ↔ 后端 string('HH:mm') ======
+function parseTimeToDate(v: string | undefined): Date {
+  const [h, m] = (v || '03:00').split(':').map(Number)
+  const d = new Date()
+  d.setHours(Number.isFinite(h) ? h : 3, Number.isFinite(m) ? m : 0, 0, 0)
+  return d
+}
+
+function formatDateToTime(d: Date | null): string {
+  if (!d) return '03:00'
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  return `${h}:${m}`
+}
+
+const executeTimeDate = computed<Date | null>({
+  get: () => parseTimeToDate(config.value.execute_time),
+  set: (d: Date | null) => {
+    config.value.execute_time = formatDateToTime(d)
   },
 })
 
@@ -216,12 +224,12 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
       <!-- 首次执行周几 -->
       <div class="field">
         <label>首次执行（周几）</label>
-        <WeekdaySelector v-model="firstWeekdayLabel" />
+        <Select v-model="config.first_weekday" :options="weekdayOptions" optionLabel="label" optionValue="value" class="field-control" />
       </div>
       <!-- 首次执行时间 -->
       <div class="field">
         <label>首次执行（时间）</label>
-        <TimeInput v-model="executeTime" />
+        <DatePicker v-model="executeTimeDate" timeOnly hourFormat="24" class="field-control" />
       </div>
       <!-- ✅ #43: 总周期 -->
       <div class="field">
@@ -347,9 +355,11 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 
 <style scoped>
 .section-title { font-weight: 600; color: var(--text-heading); font-size: 14px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px; }
-.field { display: flex; flex-direction: column; gap: 4px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px 20px; margin-bottom: 14px; align-items: start; }
+.field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.field-control { width: 100%; height: 36px; }
+.form-grid :deep(.p-inputnumber) { height: 36px; }
 .field-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
 /* ✅ #43: 自动计算结果区 */
