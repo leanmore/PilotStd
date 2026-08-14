@@ -8,6 +8,7 @@ URL: https://www.gongbiaoku.com/search?txt=关键词
 
 import logging
 import re
+import time
 from typing import Any, Optional
 
 import httpx
@@ -32,6 +33,8 @@ class GongBiaoKuAdapter(BaseAdapter):
     SEARCH_URL = "https://www.gongbiaoku.com/search"
 
     def __init__(self, client: httpx.Client | None = None):
+        self._log_window_start = 0.0
+        self._log_count = 0
         self._client = client or httpx.Client(
             timeout=15.0,
             headers={
@@ -71,6 +74,7 @@ class GongBiaoKuAdapter(BaseAdapter):
             return []
 
         if resp.status_code != 200:
+            self._log_non_200(resp)
             return []
 
         soup = BeautifulSoup(resp.text, "html.parser")
@@ -85,6 +89,27 @@ class GongBiaoKuAdapter(BaseAdapter):
                 results.append(result)
 
         return results
+
+    def _log_non_200(self, resp: httpx.Response) -> None:
+        """采样记录非 200 响应（每分钟最多 5 条），避免反爬时刷屏。"""
+        now = time.monotonic()
+        if now - self._log_window_start >= 60.0:
+            self._log_window_start = now
+            self._log_count = 0
+        if self._log_count >= 5:
+            return
+        self._log_count += 1
+        location = resp.headers.get("Location", "")
+        try:
+            snippet = resp.text[:200]
+        except Exception:
+            snippet = "(body 解码失败)"
+        logger.warning(
+            "gongbiaoku 非200响应: status=%d location=%s body=%s",
+            resp.status_code,
+            location,
+            snippet,
+        )
 
     # ── 引擎层 ──
 
