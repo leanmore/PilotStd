@@ -227,7 +227,7 @@ class Database:
                     conn.rollback()
                 except Exception:
                     pass
-                logging.getLogger("pilotstd.db").error("SQL执行失败: %s", sql)
+                logging.getLogger("pilotstd.db").exception("SQL执行失败: %s", sql)
                 raise DatabaseError("数据库操作失败") from e
 
     def executemany(self, sql: str, seq: Sequence[Any]) -> sqlite3.Cursor:
@@ -240,7 +240,7 @@ class Database:
                 return cur
             except Exception as e:
                 conn.rollback()
-                logging.getLogger("pilotstd.db").error("批量SQL执行失败: %s", sql)
+                logging.getLogger("pilotstd.db").exception("批量SQL执行失败: %s", sql)
                 raise DatabaseError("数据库批量操作失败") from e
 
     def fetchall(self, sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]:
@@ -250,7 +250,7 @@ class Database:
             rows = conn.execute(sql, params).fetchall()
             return [dict(r) for r in rows]
         except (sqlite3.IntegrityError, sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logging.getLogger("pilotstd.db").error("SQL查询失败: %s", sql)
+            logging.getLogger("pilotstd.db").exception("SQL查询失败: %s", sql)
             raise DatabaseError("数据库查询失败") from e
 
     def fetchone(self, sql: str, params: Sequence[Any] = ()) -> Optional[dict[str, Any]]:
