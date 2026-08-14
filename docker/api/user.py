@@ -21,50 +21,6 @@ def _deprecated_warn(request: Request, endpoint: str, replacement: str) -> None:
     )
 
 
-# ── 布局（已废弃：请使用 /api/user/preferences/layout:dashboard）──
-
-
-@router.get("/api/user/layout")
-def get_layout(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
-    """[DEPRECATED] 获取布局 — 请使用 GET /api/user/preferences/layout:dashboard"""
-    _deprecated_warn(request, "/api/user/layout", "GET /api/user/preferences/layout:dashboard")
-    user_id = int(username)
-    row = mgr.db.fetchone(
-        "SELECT preference_value FROM user_preferences WHERE user_id=? AND preference_key='layout:dashboard'",
-        (user_id,),
-    )
-    if not row:
-        return mgr.user_service.get_layout(user_id)
-    return {"layout": row["preference_value"]}
-
-
-@router.put("/api/user/layout")
-def put_layout(
-    data: dict, request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)
-):
-    """[DEPRECATED] 保存布局 — 请使用 PUT /api/user/preferences/layout:dashboard"""
-    _deprecated_warn(request, "/api/user/layout", "PUT /api/user/preferences/layout:dashboard")
-    user_id = int(username)
-    result = mgr.user_service.save_layout(user_id, data.get("layout", ""))
-    if "error" in result:
-        return JSONResponse(result, 400)
-    # 同步写入统一表
-    mgr.db.execute(
-        "INSERT OR REPLACE INTO user_preferences (user_id, preference_key, preference_value, updated_at)"
-        " VALUES (?, 'layout:dashboard', ?, datetime('now', 'localtime'))",
-        (user_id, data.get("layout", "")),
-    )
-    return result
-
-
-@router.delete("/api/user/layout")
-def delete_layout(request: Request, username: int = Depends(get_current_user_id), mgr=Depends(get_manager_dep)):
-    """[DEPRECATED] 删除布局 — 请使用 DELETE /api/user/preferences/layout:dashboard"""
-    _deprecated_warn(request, "/api/user/layout", "DELETE /api/user/preferences/layout:dashboard")
-    user_id = int(username)
-    return mgr.user_service.delete_layout(user_id)
-
-
 # ──统一首选项（22）──────────────────────
 
 

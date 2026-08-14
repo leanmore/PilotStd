@@ -107,16 +107,13 @@ async function fetchLayout() {
 
   // 2. 异步拉取服务器配置（仅成功且有效时才覆盖本地）
   try {
-    const res = await http.get('/user/layout')
+    const res = await http.get('/user/preferences/layout:dashboard')
     if (fetchVersion !== version) return
-    const raw = res.data?.layout
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        layout.value = hydrateLayout(parsed)
-        if (uid) setUserItem(uid, LAYOUT_STORAGE_KEY, raw)
-        return
-      }
+    const raw = res.data?.value   // 后端已 json.loads，value 直接是布局数组
+    if (Array.isArray(raw) && raw.length > 0) {
+      layout.value = hydrateLayout(raw)
+      if (uid) setUserItem(uid, LAYOUT_STORAGE_KEY, JSON.stringify(raw))
+      return
     }
   } catch { /* 服务器不可用，继续使用本地缓存 */ }
   if (fetchVersion !== version) return
@@ -136,7 +133,7 @@ async function saveLayoutToServer(newLayout?: any[]) {
   }
 
   try {
-    await http.put('/user/layout', { layout: JSON.stringify(payload) })
+    await http.put('/user/preferences/layout:dashboard', { value: payload })
   } catch {
     console.warn('布局保存到服务器失败，已保留本地缓存')
   }

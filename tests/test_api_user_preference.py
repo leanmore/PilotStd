@@ -122,3 +122,26 @@ class TestUserPreferencesAPI:
         r = client.get("/api/user/preferences/layout:dashboard")
         assert r.status_code == 200
         assert r.json()["key"] == "layout:dashboard"
+
+    # ── layout:dashboard 往返（value 直接传对象，无需手动 stringify）──
+
+    def test_layout_dashboard_roundtrip(self):
+        """PUT { value: 数组 } → GET 返回相同数组，验证 value 对象直传语义。"""
+        layout_array = [{"i": "stats", "x": 0, "y": 0, "w": 4, "h": 6}]
+        mgr = MagicMock()
+        mgr.user_service.save_preference.return_value = {"ok": True, "key": "layout:dashboard"}
+        mgr.user_service.get_preference.return_value = {
+            "key": "layout:dashboard", "value": layout_array, "updated_at": ""
+        }
+        client = _build_client(mgr)
+
+        put_resp = client.put("/api/user/preferences/layout:dashboard", json={"value": layout_array})
+        assert put_resp.status_code == 200
+        # save_preference 收到的 value 是列表对象，而非 JSON 字符串
+        saved_value = mgr.user_service.save_preference.call_args[0][2]
+        assert isinstance(saved_value, list)
+        assert saved_value == layout_array
+
+        get_resp = client.get("/api/user/preferences/layout:dashboard")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["value"] == layout_array

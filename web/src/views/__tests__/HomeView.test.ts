@@ -57,20 +57,20 @@ describe('HomeView 布局与持久化', () => {
     vi.useRealTimers()
   })
 
-  it('初始化：解析后端 JSON 字符串布局并渲染卡片', async () => {
+  it('初始化：解析后端布局数组并渲染卡片', async () => {
     const mockLayout = [{ i: 'stats', x: 0, y: 0, w: 4, h: 6 }]
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: JSON.stringify(mockLayout) } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: mockLayout } })
 
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    expect(http.get).toHaveBeenCalledWith('/user/layout')
+    expect(http.get).toHaveBeenCalledWith('/user/preferences/layout:dashboard')
     expect(wrapper.vm.layout.length).toBe(1)
     expect(wrapper.vm.layout[0].i).toBe('stats')
   })
 
   it('初始化：后端返回空数组时加载默认 5 张卡片', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: [] } })
 
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
@@ -79,7 +79,7 @@ describe('HomeView 布局与持久化', () => {
   })
 
   it('初始化：后端返回 null 时降级到默认布局', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: null } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: null } })
 
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
@@ -97,7 +97,7 @@ describe('HomeView 布局与持久化', () => {
   })
 
   it('锁定：默认锁定，GridLayout 不可拖拽不可缩放', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: [] } })
     mockStore.dashboardLocked = true
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
@@ -108,7 +108,7 @@ describe('HomeView 布局与持久化', () => {
   })
 
   it('解锁：dashboardLocked=false 后 GridLayout 可拖拽可缩放', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: [] } })
     mockStore.dashboardLocked = false
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
@@ -119,7 +119,7 @@ describe('HomeView 布局与持久化', () => {
   })
 
   it('持久化：layout-updated 后防抖 500ms 才发 PUT', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: [] } })
     vi.mocked(http.put).mockResolvedValueOnce({})
 
     const wrapper = mountHome()
@@ -137,16 +137,16 @@ describe('HomeView 布局与持久化', () => {
 
     expect(http.put).toHaveBeenCalledTimes(1)
     const [url, body] = vi.mocked(http.put).mock.calls[0] as [string, any]
-    expect(url).toBe('/user/layout')
+    expect(url).toBe('/user/preferences/layout:dashboard')
     // body 不含 component 实例
-    const parsed = JSON.parse(body.layout)
+    const parsed = body.value
     expect(parsed[0]).not.toHaveProperty('component')
     expect(parsed[0]).toHaveProperty('i')
     expect(parsed[0]).toHaveProperty('x')
   })
 
-  it('Payload：PUT 格式严格为 {layout: JSON.stringify([...])}', async () => {
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: '[]' } })
+  it('Payload：PUT 格式严格为 {value: [...]}', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: [] } })
     vi.mocked(http.put).mockResolvedValueOnce({})
 
     const wrapper = mountHome()
@@ -158,14 +158,14 @@ describe('HomeView 布局与持久化', () => {
     await vi.advanceTimersByTimeAsync(500)
 
     const body = (vi.mocked(http.put).mock.calls[0] as any)[1]
-    expect(body).toHaveProperty('layout')
-    expect(() => JSON.parse(body.layout)).not.toThrow()
+    expect(body).toHaveProperty('value')
+    expect(body.value).toBeInstanceOf(Array)
   })
 
   it('初始化：迁移旧 localStorage key 到用户隔离格式', async () => {
     // 模拟 PR-B 部署前已登录用户 —— localStorage 中有旧裸 key
     localStorage.setItem('dashboard_layout', JSON.stringify([{ i: 'stats', x: 0, y: 0, w: 4, h: 6 }]))
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: null } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: null } })
 
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
@@ -183,7 +183,7 @@ describe('HomeView 布局与持久化', () => {
     localStorage.setItem('user_1_dashboard_layout', JSON.stringify([{ i: 'sysInfo', x: 0, y: 0, w: 4, h: 6 }]))
     // 旧 key 也有（模拟残留）
     localStorage.setItem('dashboard_layout', JSON.stringify([{ i: 'stats', x: 0, y: 0, w: 4, h: 6 }]))
-    vi.mocked(http.get).mockResolvedValueOnce({ data: { layout: null } })
+    vi.mocked(http.get).mockResolvedValueOnce({ data: { value: null } })
 
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
