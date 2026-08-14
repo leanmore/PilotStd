@@ -22,7 +22,7 @@
 | G-035 | 测试联动门禁 | 生产代码变更（列数/字段/API接口）时测试断言同步 | 测试中硬编码值与生产代码不一致 | 人工审查 | ⏳ 待创建 |
 | G-036 | 文档联动门禁 | 变更触发文档更新规则时，对应文档必须同步变更 | 文档未更新且无合法 N/A 理由 | 人工审查 + pre-commit 提醒 | ⏳ 待创建 |
 | G-037 | 触发条件对齐检查 | CLAUDE.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ⏳ 待创建 |
-| G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ⏳ 待创建 |
+| G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -159,6 +159,9 @@
 
 - **检查内容**：运行 Ruff 和 Mypy 静态检查，扫描项目全量代码。
 - **阻断条件**：发现任何历史遗留的 lint 或类型错误 → 阻断。禁止使用 `# noqa` 或 `--add-noqa` 静默历史错误。执行者必须当场修复代码，确保零错误后方可继续提交流程。
+- **CI 门禁**：`ci.yml` test-backend job 中运行 `ruff check pilotstd/ docker/ tests/ scripts/ --output-format=github`，位于后端测试之前（fail-fast），失败即阻断 PR。
+- **基线**：0 errors（2026-08-14，commit `594ab8f2`）。
+- **策略**：零容忍，任何新增的 lint 错误（F841/E501/E702/F401/I001 等）直接在 PR 阶段被 CI 拦截。
 - **执行方式**：`python scripts/check_g_038_legacy_errors.py`
 
 ---
