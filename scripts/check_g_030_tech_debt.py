@@ -189,10 +189,10 @@ def main():
 
     # 检查是否同步更新了登记簿
     if has_debt_register_change(staged_files):
-        print(f"✅ G-030: 技术债登记簿已同步更新，通过")
+        print("✅ G-030: 技术债登记簿已同步更新，通过")
         sys.exit(0)
     else:
-        print(f"❌ G-030: 新增技术债标记但未更新登记簿！")
+        print("❌ G-030: 新增技术债标记但未更新登记簿！")
         register_paths_str = " 或 ".join(
             [str(p.relative_to(PROJECT_ROOT)) for p in DEBT_REGISTER_PATHS]
         )

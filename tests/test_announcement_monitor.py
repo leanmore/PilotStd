@@ -1,7 +1,7 @@
 """pilotstd/announcement/monitor.py 补测 — AnnounceMonitor 阶段计时/API统计/摘要全覆盖。"""
-import time
 
 import pytest
+
 from pilotstd.announcement.monitor import AnnounceMonitor
 
 

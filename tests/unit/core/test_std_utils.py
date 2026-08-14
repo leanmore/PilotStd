@@ -4,8 +4,7 @@
 KNOWN LIMITATION: classify_std_code 的 DB 正则要求 2-4 位数字，DB1 无法匹配。
 """
 
-import re
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

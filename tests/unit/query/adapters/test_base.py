@@ -1,7 +1,8 @@
 """base.py 覆盖率补齐 — 目标: 84% → 95%+"""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.models import QueryResult

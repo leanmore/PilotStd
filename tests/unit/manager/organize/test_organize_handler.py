@@ -3,13 +3,13 @@
 import json
 import logging
 import warnings
-import pytest
 from unittest.mock import MagicMock, patch
 
-from pilotstd.manager.facade._organize import OrganizeHandler
-from pilotstd.core.notification import EVENT_ARCHIVE_COMPLETE
-from pilotstd.models import ParsedStdInfo
+import pytest
 
+from pilotstd.core.notification import EVENT_ARCHIVE_COMPLETE
+from pilotstd.manager.facade._organize import OrganizeHandler
+from pilotstd.models import ParsedStdInfo
 
 # ── Fixtures ──
 

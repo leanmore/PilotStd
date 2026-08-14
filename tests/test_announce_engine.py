@@ -1,6 +1,8 @@
 """announcement/engine.py 补测。"""
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 from pilotstd.announcement.engine import AnnounceEngine
 
 

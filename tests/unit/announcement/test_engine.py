@@ -3,8 +3,7 @@
 跳过: adapters/samr_*.py（纯配置模板）、base.py 日志/统计缺口（ROI 低）
 """
 
-import concurrent.futures
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

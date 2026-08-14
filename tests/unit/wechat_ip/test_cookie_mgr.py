@@ -20,7 +20,6 @@ from pilotstd.wechat_ip.cookie_mgr import (
     parse_cookie_header,
 )
 
-
 # ════════════════════════════════════════════════════════════
 # 1. _derive_fernet_key — SHA256 + B64 派生
 # ════════════════════════════════════════════════════════════
@@ -134,7 +133,9 @@ class TestDecryptCookiecloudAes:
 
     def test_successful_decrypt(self):
         """正常 AES-GCM 解密 → 返回明文。"""
-        import base64, os
+        import base64
+        import os
+
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         plaintext = b'{"cookie_data": {}}'
@@ -156,9 +157,16 @@ class TestDecryptCookiecloudAes:
 # ════════════════════════════════════════════════════════════
 
 class TestFetchCookiecloud:
-    def _make_cookiecloud_response(self, domain="work.weixin.qq.com", cookie_name="session", cookie_value="abc", user_key="test_user", password="pwd"):
+    def _make_cookiecloud_response(
+        self, domain="work.weixin.qq.com", cookie_name="session", cookie_value="abc",
+        user_key="test_user", password="pwd",
+    ):
         """构造标准 CookieCloud 加密响应，user_key+password 可定制。"""
-        import base64, hashlib, os, json
+        import base64
+        import hashlib
+        import json
+        import os
+
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         cookie_data = {
@@ -238,7 +246,10 @@ class TestFetchCookiecloud:
 
     def test_json_decode_error_returns_none(self):
         """解密后非有效 JSON → 返回 None。"""
-        import base64, hashlib, os
+        import base64
+        import hashlib
+        import os
+
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         plaintext = b"not json"
@@ -261,7 +272,10 @@ class TestFetchCookiecloud:
 
     def test_empty_cookie_data_returns_none(self):
         """cookie_data 为空 → 返回 None。"""
-        import base64, hashlib, os
+        import base64
+        import hashlib
+        import os
+
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
         plaintext = b'{"cookie_data": {}}'

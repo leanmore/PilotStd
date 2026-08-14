@@ -16,7 +16,6 @@ from pilotstd.ui.core.handlers.archive_worker_factory import (
 )
 from pilotstd.ui.core.handlers.query_worker_factory import QueryWorkerFactory
 
-
 # ═══════════════════════════════════════════════════════════
 # QueryWorkerFactory
 # ═══════════════════════════════════════════════════════════
@@ -33,7 +32,7 @@ class TestQueryWorkerFactory:
         callbacks = MagicMock()
         factory = QueryWorkerFactory(mgr=MagicMock(), pause_event=MagicMock())
 
-        result = factory.create_query_worker([], callbacks)
+        factory.create_query_worker([], callbacks)
 
         mock_worker.result_ready.connect.assert_called_once_with(callbacks.on_result_ready)
         mock_worker.batch_ready.connect.assert_called_once_with(callbacks.on_batch_ready)
@@ -110,7 +109,7 @@ class TestArchiveWorkerFactory:
         )
         callbacks = ArchiveCallbacks(*[MagicMock() for _ in range(4)])
 
-        result = factory.create_normalize_worker([], callbacks)
+        factory.create_normalize_worker([], callbacks)
 
         mock_worker.batch_ready.connect.assert_called_once_with(callbacks.on_batch_ready)
         mock_worker.progress.connect.assert_called_once_with(callbacks.on_progress)
@@ -142,7 +141,7 @@ class TestArchiveWorkerFactory:
         )
         callbacks = ArchiveCallbacks(*[MagicMock() for _ in range(4)])
 
-        result = factory.create_archive_worker(
+        factory.create_archive_worker(
             [], "/tmp/root", overwrite=True, callbacks=callbacks
         )
 

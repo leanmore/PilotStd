@@ -10,10 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from tests.perf.conftest import perf_benchmark
-
 
 BASELINE_FILE = Path(".perf-baseline.json")
 

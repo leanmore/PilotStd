@@ -1,8 +1,9 @@
 """path_guard.py — 路径遍历防护全覆盖。"""
 
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from pilotstd.core.path_guard import get_allowed_roots, validate_path_in_root
 

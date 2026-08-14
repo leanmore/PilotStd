@@ -105,7 +105,10 @@ def main():
         rows = []
         for m in data["modules"]:
             status = "✅" if m["line_cov"] >= 80 else ("⚠️" if m["line_cov"] >= 50 else "❌")
-            rows.append(f"| {m['label']} (`{m['name']}`) | {m['line_cov']}% | {m['branch_cov']}% | {m['stmts']} | {m['missing']} | {status} |")
+            rows.append(
+                f"| {m['label']} (`{m['name']}`) | {m['line_cov']}% | {m['branch_cov']}% "
+                f"| {m['stmts']} | {m['missing']} | {status} |"
+            )
 
         cov_table = "\n".join([
             "| 模块 | 行覆盖率 | 分支覆盖率 | 语句数 | 缺失行 | 状态 |",

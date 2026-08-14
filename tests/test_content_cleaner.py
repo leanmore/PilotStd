@@ -3,6 +3,7 @@
 # Regression guard: ensures newly added heading patterns are never lost.
 
 import pytest
+
 from pilotstd.announcement._content_cleaner import clean_announcement_content
 
 

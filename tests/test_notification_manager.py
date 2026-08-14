@@ -1,7 +1,9 @@
 """notification/manager.py 补测 v3。"""
-import pytest
-from unittest.mock import MagicMock, patch
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from tests.fixtures.engine_mock_tree import ConfigStub
 
 

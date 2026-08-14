@@ -3,7 +3,6 @@
 import pytest
 
 from pilotstd.organizer.industry_lookup import build_code_mapping
-from pilotstd.models import ParsedStdInfo
 from pilotstd.scan.parser import StandardParser
 
 

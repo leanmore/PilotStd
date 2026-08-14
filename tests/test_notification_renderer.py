@@ -1,12 +1,18 @@
 """core/notification/renderer.py 补测 — BlockRenderer + 4 个子类全覆盖。"""
-import pytest
+
 from pilotstd.core.notification.blocks import (
-    TextBlock, KeyValueBlock, StatusChangeBlock, ListBlock,
+    KeyValueBlock,
+    ListBlock,
+    StatusChangeBlock,
+    TextBlock,
 )
 from pilotstd.core.notification.channel import NotificationMessage
 from pilotstd.core.notification.renderer import (
-    BlockRenderer, TelegramRenderer, MarkdownRenderer,
-    FeishuCardRenderer, DesktopRenderer,
+    BlockRenderer,
+    DesktopRenderer,
+    FeishuCardRenderer,
+    MarkdownRenderer,
+    TelegramRenderer,
 )
 
 

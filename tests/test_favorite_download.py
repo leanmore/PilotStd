@@ -2,15 +2,14 @@
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest
 from pilotstd.tasks.favorite_download import (
     FavoriteArchiveError,
-    _safe_filename,
+    _download_with_retry,
+    _find_in_file_index,
     _get_download_url,
     _get_inbox_dir,
-    _find_in_file_index,
     _notify_download_failed,
-    _download_with_retry,
+    _safe_filename,
     download_to_inbox,
 )
 

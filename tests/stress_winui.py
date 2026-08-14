@@ -25,6 +25,7 @@ if root_dir not in sys.path:
 
 import pytest
 from PyQt6.QtWidgets import QApplication
+
 from tests.gui.helpers import wait_for_worker_and_ui
 from tests.gui.helpers.predicates import worker_done
 

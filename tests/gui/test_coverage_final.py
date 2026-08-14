@@ -231,7 +231,10 @@ class TestTableRemaining:
         window._parsed_results = [parsed]
         window.work_table.selectRow(0)
         fi_mock = MagicMock()
-        with patch.object(type(window._mgr), "file_index", new_callable=lambda: property(lambda s: fi_mock), create=True):
+        with patch.object(
+            type(window._mgr), "file_index",
+            new_callable=lambda: property(lambda s: fi_mock), create=True,
+        ):
             window._mgr.get_file_index_full_info = MagicMock(
                 return_value=[
                     {

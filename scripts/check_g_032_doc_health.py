@@ -16,7 +16,7 @@ G-032 文档健康度守护器。
 """
 import re
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # 控制台-8编码兼容
@@ -188,9 +188,6 @@ def check_data_source_uniqueness():
     print("   🔍 维度4: 数据源唯一性...")
 
     content = status.read_text(encoding="utf-8")
-    now = datetime.now(timezone.utc)
-    grace_cutoff = now - timedelta(days=FIRST_RUN_GRACE_DAYS)
-
     in_auto = False
     violations = 0
     for i, line in enumerate(content.split("\n"), 1):
@@ -241,7 +238,7 @@ def main():
         print(f"\n🟡 G-032 守护通过（有警告）: {len(warnings)} warning(s)")
         sys.exit(0)
     else:
-        print(f"\n🟢 G-032 守护全部通过")
+        print("\n🟢 G-032 守护全部通过")
         sys.exit(0)
 
 

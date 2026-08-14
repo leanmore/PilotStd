@@ -7,29 +7,6 @@ Phase 0 测试 Mixin 类 → Phase 1 测试模块级纯函数（零回归）。
 
 from __future__ import annotations
 
-import pytest
-
-from pilotstd.core.notification._builders_validity import (
-    _build_standard_expired_message,
-    _build_standard_first_registered_message,
-    _build_standard_status_changed_message,
-    _build_validity_batch_report_message,
-    _build_validity_round_summary_message,
-    _build_validity_standard_failed_message,
-    _build_validity_system_failed_message,
-)
-from pilotstd.core.notification._builders_system import (
-    _build_announcement_check_complete_message,
-    _build_announcement_fetch_failed_message,
-    _build_archive_complete_message,
-    _build_auto_backup_message,
-    _build_fallback_message,
-    _build_image_update_available_message,
-    _build_quota_exhausted_message,
-    _build_task_execution_failed_message,
-    _build_trust_ip_update_message,
-    _build_worker_error_message,
-)
 from pilotstd.core.notification._builders_batch import (
     _build_announce_fetch_summary_message,
     _build_announcement_fetch_complete_message,
@@ -49,14 +26,34 @@ from pilotstd.core.notification._builders_batch import (
     _build_scan_complete_message,
     _build_scan_empty_message,
 )
-from pilotstd.core.notification.channel import NotificationMessage
+from pilotstd.core.notification._builders_system import (
+    _build_announcement_check_complete_message,
+    _build_announcement_fetch_failed_message,
+    _build_archive_complete_message,
+    _build_auto_backup_message,
+    _build_fallback_message,
+    _build_image_update_available_message,
+    _build_quota_exhausted_message,
+    _build_task_execution_failed_message,
+    _build_trust_ip_update_message,
+    _build_worker_error_message,
+)
+from pilotstd.core.notification._builders_validity import (
+    _build_standard_expired_message,
+    _build_standard_first_registered_message,
+    _build_standard_status_changed_message,
+    _build_validity_batch_report_message,
+    _build_validity_round_summary_message,
+    _build_validity_standard_failed_message,
+    _build_validity_system_failed_message,
+)
 from pilotstd.core.notification.blocks import (
     KeyValueBlock,
     ListBlock,
     StatusChangeBlock,
     TextBlock,
 )
-
+from pilotstd.core.notification.channel import NotificationMessage
 
 # ══════════════════════════════════════════════════════════════
 # _builders_validity.py（7 函数）

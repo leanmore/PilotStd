@@ -13,15 +13,16 @@ scripts/reclean_announcement_content.py — 历史公告正文重新分类
 """
 
 import argparse
-import re
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pilotstd.core.config.paths import get_db_path
-from pilotstd.announcement._content_cleaner import clean_announcement_content
 import sqlite3
+
+from pilotstd.announcement._content_cleaner import clean_announcement_content
+from pilotstd.core.config.paths import get_db_path
 
 
 def strip_html_tags(html: str) -> str:

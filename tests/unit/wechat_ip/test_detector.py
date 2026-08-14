@@ -8,10 +8,7 @@ ROI 预检: 71 行中 ~50 行业务逻辑。
 import logging
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pilotstd.wechat_ip.detector import _validate_ip, detect_ip
-
 
 # ════════════════════════════════════════════════════════════
 # 8. _validate_ip — IPv4 校验

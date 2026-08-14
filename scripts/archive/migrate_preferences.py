@@ -30,9 +30,9 @@ from typing import Any
 # 将项目根目录添加到 sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pilotstd.core.config.paths import get_db_path
 import sqlite3
 
+from pilotstd.core.config.paths import get_db_path
 
 # 迁移日志前缀
 PREFIX = "[migrate_preferences]"
@@ -194,10 +194,10 @@ def print_summary(stats: dict[str, Any], dry_run: bool) -> None:
     print(f"{'=' * 60}")
 
     if not dry_run and (stats["layout_rows"] > 0 or stats["settings_rows"] > 0):
-        print(f"\n  Data from old tables migrated to user_preferences.")
-        print(f"  Old tables preserved for rollback. After verification, drop manually:")
-        print(f"    DROP TABLE IF EXISTS user_layouts;")
-        print(f"    DROP TABLE IF EXISTS user_settings;")
+        print("\n  Data from old tables migrated to user_preferences.")
+        print("  Old tables preserved for rollback. After verification, drop manually:")
+        print("    DROP TABLE IF EXISTS user_layouts;")
+        print("    DROP TABLE IF EXISTS user_settings;")
         print()
 
 

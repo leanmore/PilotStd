@@ -81,7 +81,8 @@ def q(db):
 
 def _seed(db, file_path, logical_code, number, year, **kw):
     db.execute(
-        f"INSERT INTO {FILE_INDEX_TABLE} (file_path, logical_code, number, year, part, std_name, file_hash, status, raw_number) "
+        f"INSERT INTO {FILE_INDEX_TABLE} (file_path, logical_code, number, year, part, "
+        "std_name, file_hash, status, raw_number) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (file_path, logical_code, number, year, kw.get("part", -1),
          kw.get("std_name", ""), kw.get("file_hash", ""),
@@ -168,7 +169,10 @@ class TestRestoreParsed:
         _seed(db, "/cached.pdf", "GB", 555, 2021)
         db.execute(
             f"INSERT INTO {NETWORK_CACHE_TABLE} (standard_number, result_json) VALUES (?, ?)",
-            ("GB 555-2021", json.dumps({"status": "现行", "standard_name": "网络名", "is_adopted": True, "match_status": "exact"})),
+            (
+                "GB 555-2021",
+                json.dumps({"status": "现行", "standard_name": "网络名", "is_adopted": True, "match_status": "exact"}),
+            ),
         )
         info = q.restore_parsed("/cached.pdf")
         assert info.effect_status == "现行"
@@ -215,7 +219,11 @@ class TestGetFullInfo:
         _seed(db, "/f2.pdf", "SH", 200, 2021)
         db.execute(
             f"INSERT INTO {NETWORK_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",
-            ("SH 200", json.dumps({"status": "现行", "standard_name": "行标名", "match_status": "exact"}), "2024-01-01"),
+            (
+                "SH 200",
+                json.dumps({"status": "现行", "standard_name": "行标名", "match_status": "exact"}),
+                "2024-01-01",
+            ),
         )
         results = q.get_full_info("SH", 200)
         assert results[0]["effect_status"] == "现行"

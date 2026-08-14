@@ -4,6 +4,7 @@ import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from pilotstd.monitor.scheduler import (
     FileMonitorScheduler,
     get_scheduler,
@@ -110,7 +111,7 @@ class TestOnFile:
         s._mgr = None
         with patch("pilotstd.monitor.scheduler.get_config") as mock_cfg:
             mock_cfg.return_value = {"auto_archive": True}
-            with patch("pilotstd.monitor.scheduler.get_monitor_stats") as mock_stats:
+            with patch("pilotstd.monitor.scheduler.get_monitor_stats"):
                 with patch("pilotstd.manager.facade.StandardManager") as MockMgr:
                     MockMgr.return_value.scan_directory.return_value = ["a", "b"]
                     s._on_file("/p/f.pdf")

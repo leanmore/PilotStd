@@ -2,6 +2,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+
 from pilotstd.manager.standard_service import StandardService
 
 

@@ -15,7 +15,6 @@ G-032 文档生成器：capabilities_registry.md 能力矩阵自动更新。
 """
 import ast
 import re
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,7 +38,8 @@ DO_NOT_EDIT = "<!-- DO NOT EDIT MANUALLY. Lines above this marker are auto-maint
 
 TRACK_RULES: list[dict] = [
     # 容器/调度器脚本（来源文件）
-    {"file": "docker/scheduler.py", "pattern": r"scheduler\s*=\s*BackgroundScheduler", "kind": "regex", "label": "调度器实例"},
+    {"file": "docker/scheduler.py", "pattern": r"scheduler\s*=\s*BackgroundScheduler",
+     "kind": "regex", "label": "调度器实例"},
     {"file": "docker/scheduler.py", "pattern": r"_heartbeat_loop", "kind": "func", "label": "调度器心跳循环"},
     {"file": "docker/scheduler.py", "pattern": r"_acquire_scheduler_lock", "kind": "func", "label": "调度器互斥锁"},
     {"file": "docker/scheduler.py", "pattern": r"stop_scheduler", "kind": "func", "label": "调度器优雅关闭"},
@@ -49,22 +49,30 @@ TRACK_RULES: list[dict] = [
     {"file": "pilotstd/query/engine.py", "pattern": r"_progress_heartbeat", "kind": "func", "label": "引擎进度心跳"},
     {"file": "pilotstd/query/engine.py", "pattern": r"ThreadPoolExecutor", "kind": "regex", "label": "引擎线程池"},
     # 查询/轮转器脚本（来源文件）
-    {"file": "pilotstd/query/rotator.py", "pattern": r"cooldown|_enter_cooldown", "kind": "regex", "label": "轮转器冷却"},
+    {"file": "pilotstd/query/rotator.py", "pattern": r"cooldown|_enter_cooldown",
+     "kind": "regex", "label": "轮转器冷却"},
     # 扫描/监控器脚本（来源文件）
     {"file": "pilotstd/scan/watcher.py", "pattern": r"Observer|watchdog", "kind": "regex", "label": "文件监控"},
     # 下载/引擎脚本（来源文件）
-    {"file": "pilotstd/download/engine.py", "pattern": r"ThreadPoolExecutor|_download", "kind": "regex", "label": "下载线程池"},
+    {"file": "pilotstd/download/engine.py", "pattern": r"ThreadPoolExecutor|_download",
+     "kind": "regex", "label": "下载线程池"},
     # （来源目录）
-    {"file": "pilotstd/announcement/base.py", "pattern": r"_MAX_DETAIL_WORKERS|ThreadPoolExecutor", "kind": "regex", "label": "公告基础并行"},
-    {"file": "pilotstd/announcement/monitor.py", "pattern": r"elapsed|_track", "kind": "regex", "label": "公告阶段耗时"},
+    {"file": "pilotstd/announcement/base.py", "pattern": r"_MAX_DETAIL_WORKERS|ThreadPoolExecutor",
+     "kind": "regex", "label": "公告基础并行"},
+    {"file": "pilotstd/announcement/monitor.py", "pattern": r"elapsed|_track",
+     "kind": "regex", "label": "公告阶段耗时"},
     # 核心（来源目录）
-    {"file": "pilotstd/core/file_index.py", "pattern": r"_cleanup|daemon", "kind": "regex", "label": "文件索引清理线程"},
+    {"file": "pilotstd/core/file_index.py", "pattern": r"_cleanup|daemon",
+     "kind": "regex", "label": "文件索引清理线程"},
     {"file": "pilotstd/core/logger.py", "pattern": r"LoggerManager", "kind": "class", "label": "LoggerManager"},
-    {"file": "pilotstd/core/updater.py", "pattern": r"download.*update|_verify", "kind": "regex", "label": "软件自更新"},
+    {"file": "pilotstd/core/updater.py", "pattern": r"download.*update|_verify",
+     "kind": "regex", "label": "软件自更新"},
     # 管理器（来源目录）
-    {"file": "pilotstd/manager/scheduled_service.py", "pattern": r"ScheduledService", "kind": "class", "label": "定时任务编排"},
+    {"file": "pilotstd/manager/scheduled_service.py", "pattern": r"ScheduledService",
+     "kind": "class", "label": "定时任务编排"},
     # 容器/脚本（来源文件）
-    {"file": "docker/auth.py", "pattern": r"create_access_token|verify.*token", "kind": "func", "label": "JWT + API Key"},
+    {"file": "docker/auth.py", "pattern": r"create_access_token|verify.*token",
+     "kind": "func", "label": "JWT + API Key"},
 ]
 
 
@@ -198,7 +206,7 @@ def main():
     content = generate_registry(capabilities)
     REGISTRY_FILE.parent.mkdir(parents=True, exist_ok=True)
     REGISTRY_FILE.write_text(content, encoding="utf-8")
-    print(f"   ✅ capabilities_registry.md 已更新")
+    print("   ✅ capabilities_registry.md 已更新")
 
 
 if __name__ == "__main__":

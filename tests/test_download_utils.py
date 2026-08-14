@@ -1,9 +1,7 @@
 """pilotstd/core/download_utils.py 补测 — 下载列表导入解析全覆盖。"""
-import csv
 from unittest.mock import patch
 
-import pytest
-from pilotstd.core.download_utils import parse_download_sources, _looks_like_csv, _parse_csv_content
+from pilotstd.core.download_utils import _looks_like_csv, _parse_csv_content, parse_download_sources
 
 
 class TestParseDownloadSources:

@@ -1,7 +1,6 @@
 # tests/test_wps_utils.py
 """_wps_utils.py 单元测试 — 覆盖 _clean_wps_fulltext 与 _split_wps_entries 全部分支。"""
 
-import re
 import unittest
 
 from pilotstd.announcement._wps_utils import _clean_wps_fulltext, _split_wps_entries

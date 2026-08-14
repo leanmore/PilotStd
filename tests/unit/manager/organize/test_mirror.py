@@ -3,8 +3,9 @@
 import os
 import stat
 import sys
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from pilotstd.manager.organize.mirror import OrganizerMirror
 
@@ -395,7 +396,7 @@ class TestOrganizeFallback:
 
         with patch(
             "pilotstd.manager.organize.mirror.safe_move", return_value=True
-        ) as mock_sm:
+        ):
             result = mirror.organize_fallback(
                 source_root=src_root, pending_paths=frozenset([pending_file])
             )
@@ -413,7 +414,7 @@ class TestOrganizeFallback:
 
         with patch(
             "pilotstd.manager.organize.mirror.safe_move", return_value=True
-        ) as mock_sm:
+        ):
             result = mirror.organize_fallback(source_root=src_root)
 
         assert result["skipped_by_organize"] == 1

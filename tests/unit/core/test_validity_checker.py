@@ -4,7 +4,6 @@
 跳过: _ensure_last_changed_at_column（DB 迁移 DDL）
 """
 
-from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest

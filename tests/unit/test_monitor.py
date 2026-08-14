@@ -18,13 +18,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.monitor.config import MonitorStats
+from pilotstd.monitor.handler import StandardFileHandler
 from pilotstd.monitor.scheduler import (
     FileMonitorScheduler,
     resolve_monitor_config,
 )
-from pilotstd.monitor.config import MonitorStats
-from pilotstd.monitor.handler import StandardFileHandler
-
 
 # ── 共享 fixtures ──
 

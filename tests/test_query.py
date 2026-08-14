@@ -132,6 +132,7 @@ class TestCacheRepository(unittest.TestCase):
     def test_get_falls_back_to_announcement(self):
         """standard_info_cache 不命中时回退查 announcement_match。"""
         import json
+
         from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
         self.db.execute(
             f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",

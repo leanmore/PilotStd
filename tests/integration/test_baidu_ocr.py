@@ -6,8 +6,6 @@ Protocol: POST /oauth/2.0/token → POST /rest/2.0/ocr/v1/general_basic
 
 from __future__ import annotations
 
-import pytest
-
 from pilotstd.announcement.ocr._baidu import BaiduOcrProvider
 from pilotstd.announcement.ocr._base import OcrResult
 from tests.integration.conftest import MINIMAL_PDF

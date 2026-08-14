@@ -7,8 +7,6 @@ sanitize_setting_value 由 _on_announce_url_changed / _on_announce_api_key_chang
 
 from __future__ import annotations
 
-import pytest
-
 from pilotstd.core.settings_utils import sanitize_setting_value
 
 

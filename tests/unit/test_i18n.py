@@ -1,8 +1,6 @@
 """i18n 模块单元测试 — 目标: 100% 覆盖所有 fallback 路径"""
 
-import json
-import os
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 import pytest
 

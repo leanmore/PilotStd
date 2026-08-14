@@ -6,7 +6,6 @@ Phase 1 改为直接调用模块级函数，cfg 显式传入。
 
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest

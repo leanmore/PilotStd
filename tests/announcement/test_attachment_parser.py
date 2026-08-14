@@ -1,10 +1,7 @@
 """_attachment_parser.py 补测 — fallback / PDF / DOCX / WPS 异常 / 内容提取。"""
 from __future__ import annotations
 
-from io import BytesIO
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from pilotstd.announcement._attachment_parser import (
     _parse_docx_text,
@@ -15,7 +12,6 @@ from pilotstd.announcement._attachment_parser import (
     parse_attachment_text,
     parse_wps_text,
 )
-
 
 # ════════════════════════════════════════════════════════════════
 # T1: parse_attachment_text fallback (L26-34)
@@ -184,7 +180,7 @@ class TestParseAttachmentTextRouting:
         with (
             patch(f"{self.MOD}.parse_wps_text") as m_wps,
             patch(f"{self.MOD}._parse_pdf_text", return_value="pdf ok") as m_pdf,
-            patch(f"{self.MOD}._parse_docx_text") as m_docx,
+            patch(f"{self.MOD}._parse_docx_text"),
         ):
             result = parse_attachment_text(b"fake", "standard.pdf")
             assert result == "pdf ok"
@@ -194,7 +190,7 @@ class TestParseAttachmentTextRouting:
     def test_docx_extension_routes_directly(self):
         with (
             patch(f"{self.MOD}.parse_wps_text") as m_wps,
-            patch(f"{self.MOD}._parse_pdf_text") as m_pdf,
+            patch(f"{self.MOD}._parse_pdf_text"),
             patch(f"{self.MOD}._parse_docx_text", return_value="docx ok") as m_docx,
         ):
             result = parse_attachment_text(b"fake", "notice.docx")

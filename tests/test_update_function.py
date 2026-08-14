@@ -8,7 +8,6 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from fastapi import HTTPException
 
 # __wrapped__ 直接访问 require_role 装饰前的原始函数，彻底绕过鉴权

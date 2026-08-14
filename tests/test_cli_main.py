@@ -1,9 +1,6 @@
 """pilotstd/cli/commands/__main__.py 补测 — CLI 入口点验证。"""
 import subprocess
 import sys
-from unittest.mock import patch
-
-import pytest
 
 
 class TestMainModule:

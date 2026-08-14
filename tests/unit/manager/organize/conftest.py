@@ -1,7 +1,8 @@
 """mirror.py + _organize.py 共享 fixture。"""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

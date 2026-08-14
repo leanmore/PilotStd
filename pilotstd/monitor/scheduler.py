@@ -91,8 +91,9 @@ class FileMonitorScheduler:
         delay = resolved["delay_seconds"]
         recursive = resolved["recursive"]
 
-        logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path,
-                    "env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR") else ("db" if get_config().get("watch_path") else "default"))
+        source = ("env" if os.environ.get("PILOTSTD_STORAGE_INBOX_DIR")
+                  else ("db" if get_config().get("watch_path") else "default"))
+        logger.info("[MONITOR] watch_path=%s (source=%s)", watch_path, source)
         try:
             os.makedirs(watch_path, exist_ok=True)
         except OSError as e:

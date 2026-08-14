@@ -3,7 +3,6 @@
 跳过: DOCX/PDF 真实解析（依赖外部库），仅测路由逻辑。
 """
 
-from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -15,7 +14,6 @@ from pilotstd.announcement._attachment_parser import (
     parse_attachment_text,
     parse_wps_text,
 )
-
 
 # ════════════════════════════════════════════════════════════
 # parse_attachment_text — 格式路由
@@ -35,7 +33,7 @@ class TestParseAttachmentText:
         with patch(
             "pilotstd.announcement._attachment_parser._parse_pdf_text",
             return_value="PDF content",
-        ) as mock_pdf:
+        ):
             result = parse_attachment_text(b"fake pdf", "doc.PDF")
             assert result == "PDF content"
 
@@ -43,7 +41,7 @@ class TestParseAttachmentText:
         with patch(
             "pilotstd.announcement._attachment_parser._parse_docx_text",
             return_value="DOCX content",
-        ) as mock_docx:
+        ):
             result = parse_attachment_text(b"fake docx", "file.docx")
             assert result == "DOCX content"
 
@@ -51,7 +49,7 @@ class TestParseAttachmentText:
         with patch(
             "pilotstd.announcement._attachment_parser._parse_docx_text",
             return_value="DOC content",
-        ) as mock_docx:
+        ):
             result = parse_attachment_text(b"fake doc", "file.doc")
             assert result == "DOC content"
 
@@ -218,6 +216,9 @@ class TestExtractContent:
         assert extract_content("") == ""
 
     def test_no_paragraphs_fallback_to_keywords(self):
-        html = '<div>批准 GB/T 1234-2020 测试标准发布，现予以公告，公告如下：具体内容请参见附件。' + "x" * 100 + "</div>"
+        html = (
+            '<div>批准 GB/T 1234-2020 测试标准发布，现予以公告，公告如下：具体内容请参见附件。'
+            + "x" * 100 + "</div>"
+        )
         result = extract_content(html)
         assert len(result) > 0

@@ -47,6 +47,8 @@ extend-exclude = ["whitelist.py", "pilotstd/templates/**"]
 select = ["E", "F", "W", "I"]
 
 [tool.ruff.lint.per-file-ignores]
+# Re-export module: imports consumed by external modules (notification.manager), not used locally
+"pilotstd/core/notification/_message_builders.py" = ["F401"]
 "tests/*.py" = ["E402"]
 "tests/**/*.py" = ["E402"]
 "pilotstd/ui/themes.py" = ["E501"]

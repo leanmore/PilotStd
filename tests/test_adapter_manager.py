@@ -1,6 +1,8 @@
 """manager/adapter_manager.py 补测。"""
 from unittest.mock import MagicMock
+
 import pytest
+
 from pilotstd.manager.adapter_manager import AdapterManager
 
 

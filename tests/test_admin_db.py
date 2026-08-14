@@ -172,7 +172,8 @@ def test_api_select_returns_data(tmp_path):
         created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
     )""")
     conn.execute(
-        "INSERT INTO users (id, username, password_hash, salt, role) VALUES (1, 'testuser', 'dummy_hash', 'dummy_salt', 'user')"
+        "INSERT INTO users (id, username, password_hash, salt, role) "
+        "VALUES (1, 'testuser', 'dummy_hash', 'dummy_salt', 'user')"
     )
     conn.commit()
     conn.close()

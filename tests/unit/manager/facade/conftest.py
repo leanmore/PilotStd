@@ -1,7 +1,8 @@
 """manager/facade/ handler 共享 fixtures。"""
 
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 
 @pytest.fixture

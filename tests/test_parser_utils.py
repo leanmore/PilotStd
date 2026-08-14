@@ -1,5 +1,4 @@
 """pilotstd/scan/parser/_utils.py 补测 — 兼容别名导入验证。"""
-import pytest
 
 
 class TestUtilsCompatAlias:
@@ -12,8 +11,8 @@ class TestUtilsCompatAlias:
 
     def test_utils_mixin_is_parser_core(self):
         """UtilsMixin 即 ParserCore 别名。"""
-        from pilotstd.scan.parser._utils import UtilsMixin
         from pilotstd.scan.parser._core import ParserCore
+        from pilotstd.scan.parser._utils import UtilsMixin
         assert UtilsMixin is ParserCore
 
     def test_utils_mixin_has_expected_interface(self):

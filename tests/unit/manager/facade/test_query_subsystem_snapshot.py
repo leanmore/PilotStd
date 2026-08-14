@@ -121,8 +121,12 @@ class TestQueryViaEngine:
 
     def test_engine_called_with_tuples(self, qs, core):
         p = MagicMock()
-        p.logical_code = "GB"; p.number = 123; p.year = 2020
-        p.std_name = "测试"; p.part = None; p.num_prefix = ""
+        p.logical_code = "GB"
+        p.number = 123
+        p.year = 2020
+        p.std_name = "测试"
+        p.part = None
+        p.num_prefix = ""
         core.query_engine.query_standards.return_value = [
             QueryResult(standard_number="GB 123-2020", standard_name="结果")
         ]
@@ -158,8 +162,12 @@ class TestQueryBasic:
 
     def test_query_with_explicit_site_uses_engine(self, qs, core):
         p = MagicMock()
-        p.logical_code = "GB"; p.number = 123; p.year = 2020
-        p.std_name = ""; p.part = None; p.num_prefix = ""
+        p.logical_code = "GB"
+        p.number = 123
+        p.year = 2020
+        p.std_name = ""
+        p.part = None
+        p.num_prefix = ""
         core.parsed_results = [p]
         core.query_engine.query_standards.return_value = [
             QueryResult(standard_number="GB 123-2020", standard_name="结果")
@@ -177,8 +185,12 @@ class TestQueryBasic:
 
     def test_query_stream_delegates(self, qs, core):
         p = MagicMock()
-        p.logical_code = "GB"; p.number = 1; p.year = 2020
-        p.std_name = ""; p.part = None; p.num_prefix = ""
+        p.logical_code = "GB"
+        p.number = 1
+        p.year = 2020
+        p.std_name = ""
+        p.part = None
+        p.num_prefix = ""
         core.query_engine.query_standards.return_value = [
             QueryResult(standard_number="GB 1-2020", standard_name="OK")
         ]
@@ -188,8 +200,12 @@ class TestQueryBasic:
 
     def test_query_force_refresh_passes_through(self, qs, core):
         p = MagicMock()
-        p.logical_code = "SH"; p.number = 56; p.year = 2021
-        p.std_name = ""; p.part = None; p.num_prefix = ""
+        p.logical_code = "SH"
+        p.number = 56
+        p.year = 2021
+        p.std_name = ""
+        p.part = None
+        p.num_prefix = ""
         core.parsed_results = [p]
         core.query_engine.query_standards.return_value = [
             QueryResult(standard_number="SH 56-2021", standard_name="行标")

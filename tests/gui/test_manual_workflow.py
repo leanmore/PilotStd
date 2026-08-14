@@ -8,6 +8,7 @@ import sys
 import tempfile
 
 import pytest
+
 from tests.gui.helpers import wait_for_worker_and_ui
 from tests.gui.helpers.predicates import table_has_rows, worker_done
 

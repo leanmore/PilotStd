@@ -7,10 +7,8 @@ import json
 from typing import Any
 
 import pytest
-import requests
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Response as WerkzeugResponse
-
 
 # ═══════════════════════════════════════════════════════════════
 # Baidu OCR fixtures — mock aip.baidubce.com

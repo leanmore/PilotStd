@@ -1,5 +1,4 @@
 """query/__init__.py 补测 — 懒加载适配器函数。"""
-import pytest
 
 
 class TestLazyLoader:

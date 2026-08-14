@@ -1,12 +1,10 @@
 """organizer.py 覆盖率补齐 — 目标: 49% → 95%+"""
 
-import os
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pilotstd.manager.organize.organizer import OrganizerCore
-
 
 # ── 辅助：构造 ParsedStdInfo 风格的 mock 对象 ──
 
@@ -453,7 +451,7 @@ class TestOrganizeWordItem:
         with (
             patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -479,7 +477,7 @@ class TestOrganizeWordItem:
             patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
             patch("pilotstd.manager.organize.organizer._resolve_industry_in_path") as mock_resolve,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -509,7 +507,7 @@ class TestOrganizeWordItem:
         with (
             patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -561,7 +559,7 @@ class TestOrganizeWordItem:
         with (
             patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -588,7 +586,7 @@ class TestOrganizeWordItem:
         with (
             patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -607,10 +605,10 @@ class TestOrganizeWordItem:
         result = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0, "details": []}
 
         with (
-            patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
+            patch("pilotstd.manager.organize.organizer.safe_move"),
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
             patch("pilotstd.manager.organize.organizer._resolve_industry_in_path") as mock_resolve,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -630,10 +628,10 @@ class TestOrganizeWordItem:
         result = {"moved": 0, "failed": 0, "skipped_exists": 0, "word_mirrored": 0, "details": []}
 
         with (
-            patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
+            patch("pilotstd.manager.organize.organizer.safe_move"),
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
             patch("pilotstd.manager.organize.organizer._resolve_industry_in_path") as mock_resolve,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x
@@ -659,10 +657,10 @@ class TestOrganizeWordItem:
         organizer._std_parser.parse.return_value = None
 
         with (
-            patch("pilotstd.manager.organize.organizer.safe_move") as mock_move,
+            patch("pilotstd.manager.organize.organizer.safe_move"),
             patch("pilotstd.manager.organize.organizer.strip_long_path") as mock_strip,
             patch("pilotstd.manager.organize.organizer._resolve_industry_in_path") as mock_resolve,
-            patch("pilotstd.manager.organize.organizer.os.makedirs") as mock_makedirs,
+            patch("pilotstd.manager.organize.organizer.os.makedirs"),
             patch("pilotstd.manager.organize.organizer.os.path.exists") as mock_exists,
         ):
             mock_strip.side_effect = lambda x: x

@@ -200,13 +200,13 @@ class TestRunDateReminder:
             assert result["scanned"] == 0
             assert result["sent"] == 0
 
-    def test_exception_returns_stats(self):
+    def test_exception_raises(self):
         with patch(
             "pilotstd.tasks.date_reminder.Database",
             side_effect=RuntimeError("DB down"),
         ):
-            result = run_date_reminder(notification_mgr=MagicMock())
-            assert result["sent"] == 0
+            with pytest.raises(RuntimeError):
+                run_date_reminder(notification_mgr=MagicMock())
 
     def test_notification_mgr_none_lazy_loads(self):
         """notification_mgr=None → 懒加载 StandardManager。"""
@@ -262,9 +262,9 @@ class TestRunDateReminder:
 
 from pilotstd.tasks.favorite_download import (
     FavoriteArchiveError,
-    _safe_filename,
     _find_in_file_index,
     _get_download_url,
+    _safe_filename,
     download_to_inbox,
 )
 
@@ -400,7 +400,6 @@ from pilotstd.tasks.favorite_download import (
     _get_inbox_dir,
     _notify_download_failed,
 )
-
 
 # ── L29-30: _get_inbox_dir ──
 

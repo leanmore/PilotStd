@@ -11,7 +11,6 @@ import pytest
 
 from tests.perf.utils import generate_minimal_pdf
 
-
 # ── Fixtures ──────────────────────────────────────────
 
 

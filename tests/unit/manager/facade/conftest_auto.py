@@ -1,13 +1,14 @@
 """conftest.py — AutoPipeline 测试专用 fixtures。"""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from pilotstd.manager.facade._auto import AutoPipeline
-from pilotstd.manager.facade._scan import ScanHandler
-from pilotstd.manager.facade._query import QueryHandler
 from pilotstd.manager.facade._download import DownloadHandler
 from pilotstd.manager.facade._organize import OrganizeHandler
+from pilotstd.manager.facade._query import QueryHandler
+from pilotstd.manager.facade._scan import ScanHandler
 
 
 @pytest.fixture

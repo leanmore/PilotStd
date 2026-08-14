@@ -2,7 +2,6 @@
 import datetime
 from unittest.mock import patch
 
-import pytest
 from pilotstd.core.export_utils import generate_export_batch_timestamp, get_export_filename
 
 

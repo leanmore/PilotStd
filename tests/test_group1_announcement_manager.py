@@ -427,6 +427,7 @@ class TestOrganizerMirror(unittest.TestCase):
 
         self.tmpdir = tempfile.mkdtemp()
         from unittest.mock import MagicMock
+
         from pilotstd.manager.organize.mirror import OrganizerMirror
 
         cfg = MagicMock()

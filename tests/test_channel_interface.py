@@ -1,6 +1,6 @@
 """channel.py 接口可用性验证。"""
-import pytest
-from pilotstd.core.notification.channel import NotificationMessage, NotificationChannel
+
+from pilotstd.core.notification.channel import NotificationMessage
 from tests.fixtures.engine_mock_tree import ChannelStub
 
 

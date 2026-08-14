@@ -1,9 +1,9 @@
 """core/notification/_format_utils.py 补测。"""
 from unittest.mock import MagicMock, patch
-import pytest
+
 from pilotstd.core.notification._format_utils import (
-    format_standard_status_changed_aggregated,
     do_test_send,
+    format_standard_status_changed_aggregated,
 )
 from tests.fixtures.engine_mock_tree import ChannelStub, ConfigStub
 

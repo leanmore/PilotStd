@@ -64,6 +64,8 @@ class AnnouncePersistence:
 
     def record_failure(self, source_site: str, error_msg: str) -> None:
         """记录获取失败到 fetch_failures 表。"""
+        # TODO(tech-debt): 'now' is assigned but unused. Investigate if failure timestamp
+        # recording was intended; requires schema review before removal.
         now = datetime.now().isoformat()
         self._exec(
             "INSERT INTO fetch_failures (task_type, source_site, since_date, error_message) "

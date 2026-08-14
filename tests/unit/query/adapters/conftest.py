@@ -5,6 +5,7 @@
 """
 
 import pytest
+
 from pilotstd.query.models import QueryResult
 
 

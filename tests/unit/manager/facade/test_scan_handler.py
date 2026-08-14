@@ -6,7 +6,6 @@ import pytest
 
 from pilotstd.manager.facade._scan import ScanHandler
 
-
 # ── Fixtures ──
 
 

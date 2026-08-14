@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pilotstd.models import ParsedStdInfo
 from pilotstd.scan.parser._foreign import _post_process_foreign
 

@@ -1,7 +1,6 @@
 """openstd_download.py 覆盖率补测 — 异常/重试/边界路径 (85% → 95%+)"""
 
 import builtins
-import re
 from unittest.mock import MagicMock, patch
 
 import pytest

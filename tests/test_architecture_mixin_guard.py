@@ -31,7 +31,7 @@ def test_no_new_mixins():
                     )
 
     assert not mixin_classes, (
-        f"发现非法 Mixin！请使用 Composition + _DispatchContext 模式替代：\n"
+        "发现非法 Mixin！请使用 Composition + _DispatchContext 模式替代：\n"
         + "\n".join(mixin_classes)
         + "\n\n参考架构决策：docs/adr/ADR-001-mixin-refactor-16-to-1.md"
     )

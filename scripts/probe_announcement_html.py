@@ -395,7 +395,6 @@ def main() -> int:
     print("## 3. 清洗管线效果量化")
     print()
     already_clean = sum(1 for f in valid if f["is_already_cleaned"])
-    would_change = sum(1 for f in valid if f["would_change"])
     has_junk = sum(1 for f in valid if any(f.get(name, 0) > 0 for name, _ in NON_SEMANTIC_INDICATORS))
 
     repair_rate = already_clean / len(valid) * 100

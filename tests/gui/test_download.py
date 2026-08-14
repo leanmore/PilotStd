@@ -4,6 +4,7 @@ import sys
 import tempfile
 
 import pytest
+
 from tests.gui.helpers import wait_for_worker_and_ui
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

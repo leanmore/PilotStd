@@ -277,8 +277,8 @@ def main():
     if args.pre_fill:
         errors = sum(1 for m in manifest if m["has_error"])
         print(f"pre-fill:  {len(manifest) - errors} ok / {errors} errors")
-    print(f"\nnext steps:")
-    print(f"  1. review expected/*.json, set _verified=true")
+    print("\nnext steps:")
+    print("  1. review expected/*.json, set _verified=true")
     print(f"  2. pytest {args.target}/ -v")
 
 

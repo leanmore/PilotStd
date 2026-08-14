@@ -159,8 +159,8 @@ class TestEdgeCases:
 
 class TestRenderForDesktop:
     def test_renders_message_via_desktop_renderer(self):
-        from pilotstd.core.notification.channel import NotificationMessage
         from pilotstd.core.notification.blocks import TextBlock
+        from pilotstd.core.notification.channel import NotificationMessage
         msg = NotificationMessage(title="Test", body="fallback")
         msg.blocks = [TextBlock(text="hello world")]
         title, body = render_for_desktop(msg)

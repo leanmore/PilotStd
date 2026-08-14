@@ -1,9 +1,7 @@
 """classifier.py coverage completion -- target: 82% -> 98%+."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock, call, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from pilotstd.manager.classifier import QueryClassifier
 

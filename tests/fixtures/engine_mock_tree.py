@@ -21,9 +21,8 @@ from __future__ import annotations
 import sqlite3
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any
 from unittest.mock import MagicMock
-
 
 # ═══════════════════════════════════════════════════════════════
 # EngineCore 桩 — 提供 _mini_bucket 等查询引擎模块所需的注入点

@@ -192,7 +192,8 @@ def main():
     for rec in recommendations:
         print(f"【{rec['adapter']}】 {rec['confidence']}（n={rec['total_samples']}）")
         print(
-            f"  命中率: {rec['hit_rate']:.1%} | 冷却率: {rec['cooling_rate']:.1%} | 日限额使用率: {rec['daily_usage_rate']:.1%}"
+            f"  命中率: {rec['hit_rate']:.1%} | 冷却率: {rec['cooling_rate']:.1%} | "
+            f"日限额使用率: {rec['daily_usage_rate']:.1%}"
         )
         print(f"  当前权重: {rec['current_weight']} → 建议: {rec['suggested_weight']}")
         print(f"  当日限额: {rec['current_limit']} → 建议: {rec['suggested_limit']}")

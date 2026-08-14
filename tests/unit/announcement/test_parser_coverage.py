@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pilotstd.announcement.parser import (
     _build_header_map,
     _clean_wps_name,
@@ -13,7 +11,6 @@ from pilotstd.announcement.parser import (
     parse_html_table,
     parse_text_table,
 )
-
 
 # -- P0: parse_text_table (L293-326) + helpers --------------------------
 

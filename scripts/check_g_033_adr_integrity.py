@@ -11,8 +11,8 @@ G-033: Architecture Decision Record Integrity Check
 ADR 有效性判定: Status 非 proposed/draft 即为有效
 MVP 阶段: 输出关联性手动确认提示
 """
-import subprocess
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -144,7 +144,7 @@ def validate_adr() -> bool:
             print(f"   ⚠️  读取 {adr_file.name} 失败: {e}")
 
     if not valid_adrs:
-        print(f"❌ G-033: 架构变更需伴随有效 ADR（非 proposed/draft 状态）")
+        print("❌ G-033: 架构变更需伴随有效 ADR（非 proposed/draft 状态）")
         print(f"   当前 ADR 状态: {[(n, s) for n, s in pending_adrs]}")
         print(f"   变更文件: {', '.join(arch_changes[:5])}")
         return False
@@ -156,7 +156,7 @@ def validate_adr() -> bool:
               f"{', '.join([n for n, _ in pending_adrs])}")
 
     # 最小可行阶段：关联性手动确认提示
-    print(f"⚠️  G-033: 请手动确认上述 ADR 与本次架构变更的关联性")
+    print("⚠️  G-033: 请手动确认上述 ADR 与本次架构变更的关联性")
     print(f"   变更范围: {', '.join(arch_changes[:3])}"
           f"{'...' if len(arch_changes) > 3 else ''}")
     return True

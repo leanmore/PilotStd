@@ -52,4 +52,4 @@ for name, url in CASES:
     )
     print(f"  -> {len(items)} items, meta title={meta.get('title', '')[:40]}")
 
-print(f"\ndone. next: pytest tests/golden/ -v")
+print("\ndone. next: pytest tests/golden/ -v")

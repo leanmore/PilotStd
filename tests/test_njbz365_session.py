@@ -2,14 +2,14 @@
 
 import hashlib
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import requests
 import responses
 
 from pilotstd.query.adapters._njbz365_session_manager import (
-    Njz365SessionManager,
     _PRIVATE_KEY,
+    Njz365SessionManager,
 )
 
 

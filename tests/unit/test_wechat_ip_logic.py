@@ -6,8 +6,6 @@ All functions tested here have zero I/O and zero Qt/Playwright/crypto dependenci
 
 from __future__ import annotations
 
-import pytest
-
 from pilotstd.wechat_ip.logic import (
     build_update_result,
     is_ip_changed,

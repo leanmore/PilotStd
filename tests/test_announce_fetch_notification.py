@@ -4,7 +4,6 @@
 import os
 import sys
 import unittest
-from unittest.mock import MagicMock
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:

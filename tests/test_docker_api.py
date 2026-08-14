@@ -11,9 +11,9 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
-from jose import jwt
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from jose import jwt
 
 from docker.auth import COOKIE_NAME
 from docker.manager import get_manager_dep

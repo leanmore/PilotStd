@@ -1,13 +1,13 @@
 """pilotstd/scan/filename_normalizer.py 补测 — 6 个正则模式的匹配/拒止/边界行为。"""
-import re
-import pytest
+
+
 from pilotstd.scan.filename_normalizer import (
-    _ZH_MARK,
-    _EN_MARK,
-    _EN_CN_CODE,
     _EDITION_ALL,
     _EDITION_HYBRID,
+    _EN_CN_CODE,
+    _EN_MARK,
     _EXTRA_DESC,
+    _ZH_MARK,
 )
 
 

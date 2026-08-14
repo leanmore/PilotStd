@@ -276,7 +276,10 @@ class TestNotificationAggregator(unittest.TestCase):
         now = time.monotonic()
         entries = [
             (NotificationMessage(title="T", body="a", status="success", event_type="test", elapsed_ms=100), [], now),
-            (NotificationMessage(title="T", body="b", status="success", event_type="test", elapsed_ms=200), [], now + 0.1),
+            (
+                NotificationMessage(title="T", body="b", status="success", event_type="test", elapsed_ms=200),
+                [], now + 0.1,
+            ),
         ]
         result = self.agg.format_summary("test", entries)
         self.assertIn("总耗时", result)

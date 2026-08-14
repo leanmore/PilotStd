@@ -1,11 +1,11 @@
 """_download.py (DownloadHandler) 覆盖率补齐 — 目标: 20% → 85%+"""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from pilotstd.manager.facade._download import DownloadHandler
 from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
+from pilotstd.manager.facade._download import DownloadHandler
 
 
 @pytest.fixture
