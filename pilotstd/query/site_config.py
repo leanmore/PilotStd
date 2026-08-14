@@ -292,7 +292,7 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="std_gov",
             base_url="https://openstd.samr.gov.cn",
-            max_requests=200,
+            max_requests=400,
             daily_limit=800,
             cooldown_seconds=300,
             request_interval=0.3,
@@ -300,7 +300,7 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="hbba",
             base_url="https://hbba.sacinfo.org.cn",
-            max_requests=200,
+            max_requests=400,
             daily_limit=800,
             cooldown_seconds=900,
             request_interval=0.5,
