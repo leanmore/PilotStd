@@ -1,7 +1,10 @@
 # 模块：项目//__清理器脚本
 # 公告正文清洗—从匹配器脚本拆分
 
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 # ── 常量 ──────────────────────────────────────────────
 
@@ -60,12 +63,21 @@ _SIGNATURE_DATE_PATTERN = re.compile(
 _HEADING_LINES = {
     "公告", "备案月报",
     "中华人民共和国国家标准",
+    "中华人民共和国行业标准",
+    "中华人民共和国地方标准",
     "行业标准公告", "行业标准备案公告",
     "地方标准公告",
 }
 
-# 动态文号模式：2026年第31号、2025年第8号等
-_ISSUE_NO_PATTERN = re.compile(r"^\d{4}年第\d+号$")
+# 动态文号模式：2026年第31号、2025年第8号、2026年第5号（总第313号）等
+# 括号兼容全角（（总第…号））与半角（(总第…号)），源站两种混用
+_ISSUE_NO_PATTERN = re.compile(r"^\d{4}年第\d+号(?:[（(]总第\d+号[）)])?$")
+
+# 防退化保险：标题集合缺失关键首行时仅告警，不运行时改常量
+_REQUIRED_HEADINGS = {"中华人民共和国行业标准", "中华人民共和国地方标准"}
+_missing = _REQUIRED_HEADINGS - _HEADING_LINES
+if _missing:
+    logger.warning("_HEADING_LINES 缺失关键标题: %s，请补全常量", _missing)
 
 # 落款机关后缀模式（阶段：扩展规则）
 _ORG_SUFFIX_PATTERN = re.compile(r"(?:委员会|管理局|总局|部|厅|局|院|中心|公司|协会)$")
@@ -159,6 +171,9 @@ def _classify_paragraph(text: str) -> str:
     if stripped in _HEADING_LINES:
         return "announce-heading"
     if _ISSUE_NO_PATTERN.match(stripped):
+        return "announce-heading"
+    # 国标主标题：以"关于"开头、以"公告/通知/决定"结尾、长度≤80字
+    if len(stripped) <= 80 and re.match(r"^关于.{2,76}(公告|通知|决定)$", stripped):
         return "announce-heading"
     # 取最后一个空格分隔片段，判断是否以机关后缀结尾
     segments = stripped.split()
