@@ -75,31 +75,18 @@ class TestEnsureSession(unittest.TestCase):
 
     @responses.activate
     def test_first_call_initializes(self):
-        """首次调用：访问首页获取 token，OPTIONS 获取 csrf。"""
-        # 首页返回 Set-Cookie with token
-        token_value = '{"token":"jwt_test_123"}'
-        import urllib.parse
-
-        encoded = urllib.parse.quote(token_value)
+        """首次调用：POST login_status_refresh 获取 token。"""
         responses.add(
-            responses.GET,
-            "https://www.njbz365.cn/",
+            responses.POST,
+            "https://www.njbz365.cn/apis/user_center/user/login_status_refresh",
+            json={"code": "0", "msg": "刷新成功", "token": "jwt_test_123"},
             status=200,
-            headers={"Set-Cookie": f"token={encoded}; Path=/"},
-        )
-        # OPTIONS 返回 csrf_token
-        responses.add(
-            responses.OPTIONS,
-            "https://www.njbz365.cn/apis/std_base/web/jg_sel_standardcode",
-            status=200,
-            headers={"Set-Cookie": "csrf_token=csrf_test_456; session=sess_789"},
         )
 
         self.session._ensure_session()
 
         self.assertTrue(self.session._initialized)
         self.assertEqual(self.session._jwt, "jwt_test_123")
-        self.assertEqual(self.session._csrf_token, "csrf_test_456")
 
     def test_already_initialized_skips(self):
         """已初始化时直接返回。"""
@@ -110,25 +97,18 @@ class TestEnsureSession(unittest.TestCase):
             mock_retry.assert_not_called()
 
     @responses.activate
-    def test_invalid_token_json_handled(self):
-        """token cookie 含非法 JSON → 静默跳过，不崩溃。"""
+    def test_token_refresh_failure_handled(self):
+        """login_status_refresh 返回非 0 code → 不崩溃，_jwt 为空。"""
         responses.add(
-            responses.GET,
-            "https://www.njbz365.cn/",
+            responses.POST,
+            "https://www.njbz365.cn/apis/user_center/user/login_status_refresh",
+            json={"code": "1001", "msg": "登录状态异常"},
             status=200,
-            headers={"Set-Cookie": "token=not_valid_json!!!; Path=/"},
-        )
-        responses.add(
-            responses.OPTIONS,
-            "https://www.njbz365.cn/apis/std_base/web/jg_sel_standardcode",
-            status=200,
-            headers={"Set-Cookie": "csrf_token=csrf_ok; session=sess_ok"},
         )
 
-        # 不应抛出异常
         self.session._ensure_session()
         self.assertTrue(self.session._initialized)
-        self.assertEqual(self.session._csrf_token, "csrf_ok")
+        self.assertEqual(self.session._jwt, "")
 
 
 class TestRefreshCsrf(unittest.TestCase):
@@ -299,10 +279,9 @@ class TestDoRequest(unittest.TestCase):
 
     @responses.activate
     @patch.object(Njz365SessionManager, "_ensure_session")
-    @patch.object(Njz365SessionManager, "_refresh_csrf")
     @patch("time.sleep")
-    def test_csrf_expired_refresh(self, mock_sleep, mock_refresh_csrf, _mock_ensure):
-        """CSRF 过期 → 刷新 csrf 重试。"""
+    def test_csrf_expired_refresh(self, mock_sleep, _mock_ensure):
+        """1002 返回 → 按 token 刷新重试。"""
         responses.add(
             responses.POST,
             "https://www.njbz365.cn/apis/std_base/web/jg_sel_standardcode",
@@ -318,7 +297,6 @@ class TestDoRequest(unittest.TestCase):
 
         result = self.session._do_request("test")
         self.assertIsNotNone(result)
-        mock_refresh_csrf.assert_called()
 
     @responses.activate
     @patch.object(Njz365SessionManager, "_ensure_session")

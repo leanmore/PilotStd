@@ -15,7 +15,6 @@ import logging
 import re
 import time
 from typing import Any, Dict, Optional
-from urllib.parse import unquote
 
 import requests
 
@@ -43,28 +42,38 @@ class Njz365SessionManager:
         self._csrf_token = ""
         self._session_val = ""
 
-    def _ensure_session(self) -> None:
-        """确保有有效的访客 session 和 JWT。"""
+    def _ensure_session(self, force_refresh: bool = False) -> None:
+        """确保有有效的访客 JWT。force_refresh 时强制重新获取。"""
         if self._initialized:
             return
 
-        if "token" not in self._session.cookies:
-            self._retry_request("get", HOME_URL, timeout=30, err_msg="访问njbz365首页获取token")
-
-        token_raw = unquote(self._session.cookies.get("token", "") or "")
-        if token_raw:
-            import json
-
-            try:
-                token_data = json.loads(token_raw)
-                self._jwt = token_data.get("token", "")
-            except (json.JSONDecodeError, KeyError):
-                pass
-
-        if not self._csrf_token:
-            self._refresh_csrf()
+        if force_refresh or not self._jwt:
+            self._refresh_token()
 
         self._initialized = True
+
+    def _refresh_token(self) -> None:
+        """通过 login_status_refresh 接口获取访客 JWT token。
+
+        旧机制（已失效）：GET 首页 → Set-Cookie 的 token 字段包含 JWT。
+        新机制：POST login_status_refresh → 响应 JSON 的 "token" 字段包含 JWT。
+        """
+        url = f"{BASE_API}/user_center/user/login_status_refresh"
+        params = {
+            "org_id": "", "api": "gbtitle_gl", "time_str": str(int(time.time() * 1000)),
+            "fws_source": "nj_std", "check_login_device": "", "c_s": "pc",
+            "is_web": "1", "source": "gbtitle_gl", "token2": "", "_router_": "website/index", "token": "",
+        }
+        params["sign"] = self._compute_sign(params)
+        try:
+            resp = self._session.post(url, json=params, timeout=30)
+            data = resp.json()
+            if data.get("code") == "0":
+                self._jwt = data.get("token", "")
+            else:
+                logger.warning("njbz365 token 获取失败: code=%s msg=%s", data.get("code"), data.get("msg"))
+        except (requests.RequestException, ValueError) as e:
+            logger.error("njbz365 token 获取异常: %s", e)
 
     def _refresh_csrf(self) -> None:
         """通过 OPTIONS 请求获取 csrf_token，失败时重试 3 次。"""
@@ -203,7 +212,6 @@ class Njz365SessionManager:
 
         url = f"{BASE_API}/std_base/web/jg_sel_standardcode"
         headers = {
-            "x-csrftoken": self._csrf_token,
             "Content-Type": "application/json",
             "Accept": "application/json, text/plain, */*",
             "Referer": f"https://www.njbz365.cn/standard?gjz={search_term}",
@@ -237,16 +245,13 @@ class Njz365SessionManager:
             if data.get("code") == "1001" and attempt < 2:
                 logger.info("njbz365 token 过期，刷新重试")
                 self._initialized = False
-                self._csrf_token = ""
-                self._ensure_session()
-                headers["x-csrftoken"] = self._csrf_token
+                self._ensure_session(force_refresh=True)
                 continue
 
             if data.get("code") in ("1002", "1003") and attempt < 2:
-                logger.info("njbz365 CSRF 过期，刷新重试")
-                self._csrf_token = ""
-                self._refresh_csrf()
-                headers["x-csrftoken"] = self._csrf_token
+                logger.info("njbz365 返回 %s，按 token 刷新重试", data.get("code"))
+                self._initialized = False
+                self._ensure_session(force_refresh=True)
                 continue
 
             logger.warning("njbz365 返回错误 code=%s: %s", data.get("code", "?"), data.get("msg", ""))
