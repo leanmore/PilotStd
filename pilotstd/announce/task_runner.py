@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from typing import Any
 
 
@@ -27,9 +26,6 @@ class AnnounceTaskRunner:
 
     def _run(self, task_id: str, adapter_name: str) -> None:
         """后台执行体：更新进度 → 执行抓取 → 写结果。"""
-        # TODO(tech-debt): 'now' is assigned but unused. Investigate if failure timestamp
-        # recording was intended; requires schema review before removal.
-        now = datetime.now().isoformat()
         self._persistence.update_task(task_id, "running", 10)
 
         try:

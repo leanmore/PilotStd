@@ -226,8 +226,9 @@ class FileIndexRepository:
         row = self._query.get(file_path)
         if not row:
             return None
-        from pilotstd.models import ParsedStdInfo
         import os
+
+        from pilotstd.models import ParsedStdInfo
 
         info = ParsedStdInfo(
             raw_filename=os.path.basename(file_path),

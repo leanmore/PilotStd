@@ -2,7 +2,6 @@
 import os
 import re
 
-from fastapi import Depends
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 

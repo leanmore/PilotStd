@@ -2,7 +2,7 @@
 # 保留此文件返回410，避免旧链接404混淆
 import logging
 
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from fastapi.routing import APIRouter
 
 from ..auth import require_role
