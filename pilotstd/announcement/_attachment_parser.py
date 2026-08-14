@@ -101,6 +101,8 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
                     lines.append(text)
         return "\n".join(lines)
     except Exception as e:
+        # TODO(P2): .doc (OLE2) not supported by python-docx, need alternative parser
+        # (antiword/textract) or explicit skip marker
         logger.debug("DOCX 解析失败: %s", e, exc_info=True)
         return ""
 
