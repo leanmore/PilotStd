@@ -1,0 +1,4 @@
+# 测试 fixture：真实网页 HTML 快照（公告 golden 基准 + 各站点样本）
+# 非项目代码，标记 vendored 从 GitHub 语言统计剔除，避免 HTML 占比虚高
+tests/fixtures/*.html linguist-vendored
+tests/golden/fixtures/*.html linguist-vendored
