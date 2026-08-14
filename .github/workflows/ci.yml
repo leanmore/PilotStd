@@ -58,6 +58,11 @@ jobs:
       - name: Schema consistency check (blocking)
         run: python scripts/check_schema_consistency.py
 
+      - name: Ruff check (blocking) — G-038
+        run: |
+          pip install ruff
+          ruff check pilotstd/ docker/ tests/ scripts/ --output-format=github
+
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
