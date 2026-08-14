@@ -13,7 +13,7 @@ def lookup_announcement(
     mgr=Depends(get_manager_dep),
 ):
     """按标准号精确查询公告抓取记录，返回匹配结果。"""
-    row = mgr.announce_service.lookup_announcement(number)
+    row = mgr._announce_svc.lookup_announcement(number)
 
     if row is None:
         return {

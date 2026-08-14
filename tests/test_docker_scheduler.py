@@ -114,3 +114,11 @@ class TestSchedulerModule(unittest.TestCase):
         """stop_scheduler 应调用 scheduler.shutdown()，此处用 mock 避免真销毁"""
         stop_scheduler()
         mock_shutdown.assert_called_once()
+
+    def test_date_reminder_wrapper_raises_on_failure(self):
+        """_date_reminder_wrapper 应在 date_reminder 失败时冒泡异常，避免假 success。"""
+        from docker.scheduler import _date_reminder_wrapper
+
+        with patch("docker.scheduler.run_date_reminder", side_effect=Exception("SQL error")):
+            with self.assertRaises(Exception):
+                _date_reminder_wrapper(notification_mgr=MagicMock())

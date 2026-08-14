@@ -82,7 +82,7 @@ def check_announce_scheduled(mgr=None) -> dict:
     而非用户输入。避免每次定时任务都拉取全量历史数据。"""
     if mgr is None:
         mgr = _get_mgr()
-    result: dict = mgr.announce_service.check_with_notification()
+    result: dict = mgr._announce_svc.check_announce_scheduled()
     return result
 
 
@@ -91,15 +91,15 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
     import time as _time
 
     # 委托创建抓取任务
-    result = mgr.announce_service.trigger_fetch()
+    result = mgr._announce_svc.trigger_fetch()
     task_id = result["task_id"]
 
     deadline = _time.monotonic() + timeout
     while _time.monotonic() < deadline:
-        status = mgr.announce_service.get_task_status(task_id)
+        status = mgr._announce_svc.get_task_status(task_id)
         st = status.get("status", "")
         if st == "success":
-            data = mgr.announce_service.get_task_results(task_id)
+            data = mgr._announce_svc.get_task_results(task_id)
             return data.get("data", {})
         if st == "failed":
             return {"ok": False, "count": 0, "failures": 1, "error": status.get("error_msg", "")}
@@ -212,7 +212,7 @@ def get_announce_results(
 @router.get("/api/announce/fetch-log")
 def get_announcement_records(limit: int = 100, mgr=Depends(get_manager_dep)):
     """查询公告抓取记录（全量，含未匹配），供压测样本生成。"""
-    items = mgr.announce_service.get_announcement_sources(limit=limit)
+    items = mgr._announce_svc.get_announcement_sources(limit=limit)
     return {"total": len(items), "items": items}
 
 

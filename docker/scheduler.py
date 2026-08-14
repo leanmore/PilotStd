@@ -160,6 +160,7 @@ def _date_reminder_wrapper(notification_mgr=None):
         run_date_reminder(notification_mgr=notification_mgr)
     except Exception:
         logger.exception("日期提醒任务异常")
+        raise
 
 
 register_job_func("date_reminder", _date_reminder_wrapper)

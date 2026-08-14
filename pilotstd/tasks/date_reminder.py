@@ -60,8 +60,8 @@ def _fetch_due_records(db: Database) -> list[dict[str, Any]]:
                   ))
           )
     """
-    # 6处({})，每处需要相同的_参数
-    cursor = db.execute(sql, target_dates * 6)
+    # 7处占位符，每处都需要相同的日期参数列表
+    cursor = db.execute(sql, target_dates * 7)
     return cursor.fetchall()
 
 
@@ -161,6 +161,7 @@ def run_date_reminder(notification_mgr: Any = None) -> dict[str, Any]:
         )
     except Exception:
         logger.exception("日期提醒失败")
+        raise
     finally:
         if db:
             db.close()

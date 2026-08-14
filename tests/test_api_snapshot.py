@@ -117,8 +117,8 @@ def client_and_db(tmp_path_factory):
         "pending": 0,
         "upcoming": 0,
     }
-    mock_mgr.announce_service = MagicMock()
-    mock_mgr.announce_service.get_announcement_sources.return_value = []
+    mock_mgr._announce_svc = MagicMock()
+    mock_mgr._announce_svc.get_announcement_sources.return_value = []
     mock_mgr.pipeline_store = MagicMock()
     mock_mgr.query_by_numbers.return_value = ([], MagicMock())
 

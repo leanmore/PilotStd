@@ -16,13 +16,13 @@ def trigger_fetch(body: dict | None = None, mgr=Depends(get_manager_dep)):
     """触发异步公告抓取。可选 adapter_name（不传则抓取全部）。"""
     body = body or {}
     adapter_name = body.get("adapter_name", "")
-    return mgr.announce_service.trigger_fetch(adapter_name)
+    return mgr._announce_svc.trigger_fetch(adapter_name)
 
 
 @router.get("/api/announcements/status/{task_id}")
 def get_task_status(task_id: str, mgr=Depends(get_manager_dep)):
     """查询异步抓取任务进度。"""
-    result = mgr.announce_service.get_task_status(task_id)
+    result = mgr._announce_svc.get_task_status(task_id)
     if "error" in result:
         return JSONResponse(result, 404)
     return result
@@ -31,7 +31,7 @@ def get_task_status(task_id: str, mgr=Depends(get_manager_dep)):
 @router.get("/api/announcements/results/{task_id}")
 def get_task_results(task_id: str, mgr=Depends(get_manager_dep)):
     """获取异步抓取任务的结果数据。"""
-    result = mgr.announce_service.get_task_results(task_id)
+    result = mgr._announce_svc.get_task_results(task_id)
     if "error" in result:
         return JSONResponse(result, 404)
     return result

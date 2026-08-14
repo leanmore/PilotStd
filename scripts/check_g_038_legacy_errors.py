@@ -27,6 +27,7 @@ def run_ruff() -> tuple[bool, str]:
             ["ruff", "check", *SCAN_TARGETS],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             cwd=PROJECT_ROOT,
             timeout=120,
         )
@@ -45,6 +46,7 @@ def run_mypy() -> tuple[bool, str]:
             ["mypy", *SCAN_TARGETS],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             cwd=PROJECT_ROOT,
             timeout=180,
         )

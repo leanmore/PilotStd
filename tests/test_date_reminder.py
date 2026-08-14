@@ -52,7 +52,7 @@ class TestFetchDueRecords(unittest.TestCase):
         self.assertIn("expiry_date", sql)
         self.assertIn("superseded_by", sql)
 
-    def test_params_count_is_6x_target_dates(self):
+    def test_params_count_matches_sql_placeholders(self):
         mock_db = MagicMock()
         mock_cursor = MagicMock()
         mock_cursor.fetchall.return_value = []
@@ -60,9 +60,10 @@ class TestFetchDueRecords(unittest.TestCase):
 
         _fetch_due_records(mock_db)
 
+        sql = str(mock_db.execute.call_args[0][0])
         params = mock_db.execute.call_args[0][1]
-        expected_count = len(_REMIND_DAYS) * 6
-        self.assertEqual(len(params), expected_count)
+        # 参数个数必须等于 SQL 中 ? 占位符个数（自动计数，防止未来占位符增减时测试假通过）
+        self.assertEqual(len(params), sql.count("?"))
 
     def test_returns_records(self):
         mock_db = MagicMock()
@@ -327,13 +328,12 @@ class TestRunDateReminder(unittest.TestCase):
 
     @patch("pilotstd.tasks.date_reminder.Database")
     @patch("pilotstd.tasks.date_reminder.get_db_path")
-    def test_db_exception_handled(self, mock_get_db_path, mock_db_cls):
+    def test_db_exception_raised(self, mock_get_db_path, mock_db_cls):
         mock_db_cls.side_effect = Exception("DB connection failed")
 
         mock_nm = MagicMock()
-        result = run_date_reminder(mock_nm)
-        self.assertEqual(result["scanned"], 0)
-        self.assertEqual(result["sent"], 0)
+        with self.assertRaises(Exception):
+            run_date_reminder(mock_nm)
 
     @patch("pilotstd.manager.facade.StandardManager")
     @patch("pilotstd.tasks.date_reminder.Database")
@@ -364,7 +364,8 @@ class TestRunDateReminder(unittest.TestCase):
         mock_db.execute.side_effect = Exception("SQL error")
 
         mock_nm = MagicMock()
-        run_date_reminder(mock_nm)
+        with self.assertRaises(Exception):
+            run_date_reminder(mock_nm)
 
         mock_db.close.assert_called_once()
 

@@ -49,7 +49,7 @@ class BaseFacade:
         "adapter_manager", "file_index", "download_engine", "router", "task_queue",
         "_query_adapters", "notification_mgr", "validity_checker",
         # 服务层
-        "_announce_svc", "_organizer_svc", "_pending_svc", "_scheduled_svc", "_classifier",
+        "_announce_svc", "_organizer_svc", "_pending_svc", "_scheduled_svc", "_classifier", "_archive_retry_svc",
         # 运行时状态列表
         "parsed_results", "queried_items", "query_results",
         "download_list", "expire_list", "pending_list",
@@ -222,6 +222,10 @@ class BaseFacade:
         # 兼容旧代码：外部可能直接访问.__
         self._announce_svc = announce_svc
         self._announce_svc._mgr = self  # type: ignore[attr-defined]
+
+        from ..archive_retry_service import ArchiveRetryService
+
+        self._archive_retry_svc = ArchiveRetryService(self)
 
         from ..standard_service import StandardService
         from ..user_service import UserService

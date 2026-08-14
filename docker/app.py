@@ -155,12 +155,12 @@ def _start_all_schedulers(_cron_mgr) -> None:
     register_job_func("auto_scan", lambda: _cron_mgr.scan_and_index())
     register_job_func(
         "auto_announce",
-        lambda: _cron_mgr.announce_service.check_announce_scheduled(),
+        lambda: _cron_mgr._announce_svc.check_announce_scheduled(),
     )
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     register_job_func(
         "auto_archive_retry",
-        lambda: _cron_mgr.archive_retry_service.retry_pending(),
+        lambda: _cron_mgr._archive_retry_svc.retry_pending(),
     )
     from .scheduler import _cleanup_notification_logs
 
