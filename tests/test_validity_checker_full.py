@@ -434,8 +434,7 @@ class TestCheckStandard(unittest.TestCase):
     def test_l1_hit_announcement_record(self):
         """L1: announcement_match 未命中，announcement_record 命中 → 返回废止。"""
         self.mock_db.fetchone.side_effect = [
-            None,
-            _row(std_name="GB/T 12345 被代替标准", publish_date="2019-01-01"),
+            _row(std_name="GB/T 12345 被代替标准"),
         ]
         result = self.checker.check_standard("GB/T 12345")
         self.assertIsNotNone(result)
@@ -444,7 +443,6 @@ class TestCheckStandard(unittest.TestCase):
     def test_l1_exception_falls_to_l2(self):
         """L1 查询抛异常 → 抑制后继续 L2。"""
         self.mock_db.fetchone.side_effect = [
-            Exception("table missing"),  # announcement_match 异常
             Exception("table missing"),  # announcement_record 异常
             _row(status="现行", last_status=None),  # L3 fallback
         ]
@@ -475,7 +473,6 @@ class TestCheckStandard(unittest.TestCase):
         """L2 parse_std_number 返回 None → 落到 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            None,
             _row(status="现行", last_status=None),
         ]
         mock_parse.return_value = None
@@ -489,7 +486,6 @@ class TestCheckStandard(unittest.TestCase):
     def test_l2_result_not_found_falls_to_l3(self, mock_parse):
         """L2 is_found()=False → 落到 L3。"""
         self.mock_db.fetchone.side_effect = [
-            None,
             None,
             _row(status="未知", last_status=None),
         ]
@@ -510,7 +506,6 @@ class TestCheckStandard(unittest.TestCase):
         """L2 query_engine 抛异常 → 抑制，落到 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            None,
             _row(status="现行", last_status=None),
         ]
         mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
@@ -526,7 +521,6 @@ class TestCheckStandard(unittest.TestCase):
     def test_l3_hit_standard_validity(self):
         """L1/L2 未命中 → L3 standard_validity 有记录 → 返回 last_status。"""
         self.mock_db.fetchone.side_effect = [
-            None,
             None,
             _row(status="现行", last_status="已废止"),
         ]
@@ -546,7 +540,6 @@ class TestCheckStandard(unittest.TestCase):
     def test_no_query_engine_skips_l2(self):
         """无 query_engine → 跳过 L2，直接走 L3。"""
         self.mock_db.fetchone.side_effect = [
-            None,
             None,
             _row(status="现行", last_status=None),
         ]

@@ -189,7 +189,6 @@ class TestCheckStandard:
 
     def test_l1_exception_falls_to_l3(self, checker, db):
         db.fetchone.side_effect = [
-            RuntimeError("L1 fail"),  # announcement_match
             RuntimeError("L1 fail"),  # announcement_record
             {"status": "现行", "last_status": "已废止"},  # L3
         ]
@@ -198,7 +197,6 @@ class TestCheckStandard:
 
     def test_l3_returns_history(self, checker, db):
         db.fetchone.side_effect = [
-            None,  # announcement_match
             None,  # announcement_record
             {"status": "已废止", "last_status": "现行"},  # L3
         ]

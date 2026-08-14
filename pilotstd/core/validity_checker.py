@@ -184,19 +184,18 @@ class ValidityChecker:
 
         返回: {"status": str, "previous": str|None} 或 None（查询失败）
         """
-        # ──1:公告缓存表──
-        for table in ("announcement_match", "announcement_record"):
-            try:
-                row = self._db.fetchone(
-                    f"SELECT std_name, publish_date FROM {table} WHERE standard_number=? LIMIT 1",
-                    (standard_number,),
-                )
-                if row:
-                    result = self._determine_status(standard_number, row)
-                    if result:
-                        return result
-            except Exception:
-                pass
+        # ──1:公告缓存表（仅 announcement_record 含 std_name 列）──
+        try:
+            row = self._db.fetchone(
+                "SELECT std_name FROM announcement_record WHERE standard_number=? LIMIT 1",
+                (standard_number,),
+            )
+            if row:
+                result = self._determine_status(standard_number, row)
+                if result:
+                    return result
+        except Exception:
+            logger.exception("查询公告缓存失败: %s", standard_number)
 
         # ──2:适配器实时查询──
         if query_engine:
