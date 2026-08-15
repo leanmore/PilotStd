@@ -130,9 +130,9 @@ class TestAuthModule(unittest.TestCase):
         self.assertNotEqual(r.status_code, 401)  # 不拦截，返回 404 或其他
 
     def test_get_settings_whitelisted_no_auth(self):
-        """GET /api/settings 在白名单中，无需鉴权"""
+        """SEC-001: GET /api/settings 已从 AUTH_WHITELIST 移除，无 token 走 AuthMiddleware 返回 401。"""
         r = self.client.get("/api/settings")
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 401)
 
     def test_put_settings_unauthenticated_returns_401(self):
         """PUT /api/settings 不在白名单，未登录返回 401"""

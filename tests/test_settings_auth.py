@@ -1,7 +1,7 @@
 """docker/api/settings.py 鉴权测试 — 验证 @require_role 装饰器顺序修复（SEC-001 P0 批次1）。
 
-区分白名单 GET（AuthMiddleware 放行 → require_role 403）与非白名单写操作
-（AuthMiddleware session 认证 → require_role 403）两种链路。
+移除 AUTH_WHITELIST 的 /api/settings GET 后，全部 8 个接口统一走
+AuthMiddleware session 认证 + require_role：无 token → 401，非 admin → 403。
 """
 import os
 import sys
@@ -34,30 +34,26 @@ def _make_token(role: str) -> str:
     )
 
 
-# GET 接口在 AUTH_WHITELIST（/api/settings 前缀 + GET），AuthMiddleware 放行
-_GET_ENDPOINTS = [
-    "/api/settings/metadata",
-    "/api/settings",
-    "/api/settings/sites",
-    "/api/settings/token",
-    "/api/settings/schema",
-]
-
-# 写操作不在白名单，走 AuthMiddleware session 认证 + require_role
-_WRITE_ENDPOINTS = [
+# 全部 8 个接口（GET 5 + 写 3），移除白名单后统一走 AuthMiddleware
+_ALL_ENDPOINTS = [
+    ("GET", "/api/settings/metadata", None),
+    ("GET", "/api/settings", None),
     ("PUT", "/api/settings", {}),
+    ("GET", "/api/settings/sites", None),
     ("PUT", "/api/settings/sites/test_site", {
         "max_requests": 200, "daily_limit": 800,
         "cooling_seconds": 600, "request_interval": 0.5,
     }),
+    ("GET", "/api/settings/token", None),
     ("POST", "/api/settings/token/refresh", None),
+    ("GET", "/api/settings/schema", None),
 ]
 
-# 无副作用 GET 接口：admin 访问应 200
+# 无副作用接口（不依赖 mgr、无写副作用）：admin 访问应 200
 _ADMIN_200_ENDPOINTS = [
-    "/api/settings/metadata",
-    "/api/settings/token",
-    "/api/settings/schema",
+    ("GET", "/api/settings/metadata", None),
+    ("GET", "/api/settings/token", None),
+    ("GET", "/api/settings/schema", None),
 ]
 
 
@@ -85,38 +81,26 @@ class TestSettingsAuth(unittest.TestCase):
         self.client.cookies.set("csrf_token", "test_csrf")
         self.client.headers["X-CSRF-Token"] = "test_csrf"
 
-    def test_get_endpoints_no_token_403(self):
-        """GET 白名单接口无 token → require_role 403。"""
-        for path in _GET_ENDPOINTS:
-            r = self.client.get(path)
-            self.assertEqual(r.status_code, 403, f"GET {path} 无 token 应 403，实际 {r.status_code}")
-
-    def test_get_endpoints_non_admin_403(self):
-        """GET 白名单接口非 admin cookie → require_role 403。"""
-        self._set_cookie("user")
-        for path in _GET_ENDPOINTS:
-            r = self.client.get(path)
-            self.assertEqual(r.status_code, 403, f"GET {path} 非 admin 应 403，实际 {r.status_code}")
-
-    def test_write_endpoints_no_token_401(self):
-        """写接口无 token → AuthMiddleware 401。"""
-        for method, path, body in _WRITE_ENDPOINTS:
+    def test_no_token_401(self):
+        """8 个接口无 token → AuthMiddleware 401（移除白名单后）。"""
+        for method, path, body in _ALL_ENDPOINTS:
             kwargs = {"json": body} if body is not None else {}
             r = self.client.request(method, path, **kwargs)
             self.assertEqual(r.status_code, 401, f"{method} {path} 无 token 应 401，实际 {r.status_code}")
 
-    def test_write_endpoints_non_admin_403(self):
-        """写接口非 admin（有效 session + CSRF）→ require_role 403。"""
+    def test_non_admin_403(self):
+        """8 个接口非 admin（有效 session + CSRF）→ require_role 403。"""
         self._set_cookie("user", with_session=True)
         self._set_csrf()
-        for method, path, body in _WRITE_ENDPOINTS:
+        for method, path, body in _ALL_ENDPOINTS:
             kwargs = {"json": body} if body is not None else {}
             r = self.client.request(method, path, **kwargs)
             self.assertEqual(r.status_code, 403, f"{method} {path} 非 admin 应 403，实际 {r.status_code}")
 
-    def test_admin_cookie_200(self):
-        """无副作用 GET 接口 admin cookie → 200（require_role 放行 admin）。"""
-        self._set_cookie("admin")
-        for path in _ADMIN_200_ENDPOINTS:
-            r = self.client.get(path)
-            self.assertEqual(r.status_code, 200, f"GET {path} admin 应 200，实际 {r.status_code}")
+    def test_admin_200(self):
+        """无副作用接口 admin cookie（有效 session）→ 200。"""
+        self._set_cookie("admin", with_session=True)
+        self._set_csrf()
+        for method, path, body in _ADMIN_200_ENDPOINTS:
+            r = self.client.request(method, path)
+            self.assertEqual(r.status_code, 200, f"{method} {path} admin 应 200，实际 {r.status_code}")

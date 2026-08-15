@@ -257,7 +257,6 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/login", set()),
     ("/api/logout", set()),
     ("/api/health", set()),
-    ("/api/settings", {"GET"}),
     ("/api/system/version", {"GET"}),
     ("/api/logs", {"GET"}),
     ("/api/backgrounds", set()),
