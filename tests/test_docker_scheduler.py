@@ -92,6 +92,23 @@ class TestSchedulerModule(unittest.TestCase):
         start_scheduler()
         self.assertEqual(len(scheduler.get_jobs()), 0)
 
+    @patch("docker.scheduler._add_cron_job")
+    @patch("docker.scheduler._acquire_scheduler_lock", return_value=True)
+    @patch.object(scheduler, "start")
+    @patch("docker.scheduler.ConfigManager")
+    def test_auto_announce_fallback_cron_is_0100(self, mock_cfg, mock_start, mock_lock, mock_add):
+        """auto_announce 未显式配置 cron 时，fallback 应为 0 1 * * *（避免与整点健康检查撞车）。"""
+        mock_cfg.return_value.get.side_effect = lambda key, default: {
+            "tasks.auto_announce_enabled": True,
+        }.get(key, default)
+
+        register_job_func("auto_announce", MagicMock())
+        start_scheduler()
+
+        announce_calls = [c for c in mock_add.call_args_list if c[0][0] == "auto_announce"]
+        self.assertEqual(len(announce_calls), 1)
+        self.assertEqual(announce_calls[0][0][1], "0 1 * * *")
+
     def test_update_job_adds_when_not_exists(self):
         func = MagicMock()
         register_job_func("auto_scan", func)

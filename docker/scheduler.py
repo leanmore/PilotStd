@@ -288,6 +288,8 @@ def start_scheduler():
                 default_cron = "0 4 * * *"
             elif job_id == "auto_health_check":
                 default_cron = "0 * * * *"
+            elif job_id == "auto_announce":
+                default_cron = "0 1 * * *"
             else:
                 default_cron = "0 0 * * *"
             _add_cron_job(job_id, cfg.get(cron_key, default_cron))
