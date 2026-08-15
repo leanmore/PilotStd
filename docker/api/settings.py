@@ -7,11 +7,27 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
 from docker.scheduler import update_job
+from pilotstd.query.adapters.registry import ALL_ADAPTERS
 
 from ..auth import get_static_token, refresh_static_token, require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
+
+
+def _build_site_labels() -> dict[str, str]:
+    """从 registry 构建 name → 中文标签映射（实例化一次，进程级缓存）。"""
+    labels: dict[str, str] = {}
+    for _name, _cls in ALL_ADAPTERS.items():
+        try:
+            _label = _cls().site_label
+            labels[_name] = _label if isinstance(_label, str) and _label.strip() else _name.title()
+        except Exception:
+            labels[_name] = _name.title()
+    return labels
+
+
+_SITE_LABELS = _build_site_labels()
 router = APIRouter(tags=["settings"])
 
 # ═══════════════════════════════════════════════════════════════ 分隔
@@ -207,22 +223,13 @@ class SiteConfigUpdate(BaseModel):
 def _build_site_config(name: str, mgr) -> dict | None:
     """聚合单个适配器的 9 字段配置。label 动态导入容错，单个适配器异常不影响整体。"""
     try:
-        mgr.adapter_manager.get_adapter_status(name)  # 融断状态预检（不阻塞）
         remaining_quota = mgr.adapter_manager._quota.get_remaining(name) if mgr.adapter_manager._quota else 0
         cooling_remaining = (
             mgr.adapter_manager._rotator.get_cooldown_remaining(name) if mgr.adapter_manager._rotator else 0
         )
 
-        # 动态导入
-        try:
-            import importlib
-
-            mod = importlib.import_module(f"pilotstd.query.adapters.{name}")
-            label = getattr(mod, "DISPLAY_NAME", name.title())
-            if not isinstance(label, str) or not label.strip():
-                label = name.title()
-        except Exception:
-            label = name.title()
+        # 静态标签映射（避免 importlib 动态导入）
+        label = _SITE_LABELS.get(name, name.title())
 
         # 从轮转器获取
         site_state = mgr.adapter_manager._rotator._sites.get(name) if mgr.adapter_manager._rotator else None
