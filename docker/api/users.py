@@ -27,16 +27,16 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
-@require_role("admin")
 @router.get("/api/users")
-def api_list_users():
+@require_role("admin")
+def api_list_users(request: Request):
     """列出所有用户（仅管理员）。"""
     return {"users": list_users()}
 
 
-@require_role("admin")
 @router.post("/api/users")
-def api_add_user(body: AddUserRequest):
+@require_role("admin")
+def api_add_user(request: Request, body: AddUserRequest):
     """添加用户（仅管理员）。"""
     if not body.username or not body.password:
         raise HTTPException(400, "用户名和密码不能为空")
@@ -52,9 +52,9 @@ def api_add_user(body: AddUserRequest):
     return {"ok": True}
 
 
-@require_role("admin")
 @router.delete("/api/users/{user_id}")
-def api_delete_user(user_id: int, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def api_delete_user(request: Request, user_id: int, mgr=Depends(get_manager_dep)):
     """删除用户（仅管理员，admin 用户不可删除）。"""
     user = mgr.user_service.get_user_by_id(user_id)
     if user and user["username"] == SUPERUSER_USERNAME:
@@ -64,9 +64,9 @@ def api_delete_user(user_id: int, mgr=Depends(get_manager_dep)):
     return {"ok": True}
 
 
-@require_role("admin")
 @router.put("/api/users/password")
-def api_change_password(body: ChangePasswordRequest, request: Request):
+@require_role("admin")
+def api_change_password(request: Request, body: ChangePasswordRequest):
     """修改当前登录用户的密码。"""
     user_id = get_current_user_id(request)
     user = get_user_by_id(user_id)
