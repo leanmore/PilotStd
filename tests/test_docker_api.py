@@ -22,10 +22,16 @@ from docker.manager import get_manager_dep
 def _admin_token() -> str:
     """生成 admin 角色 JWT token，用于测试绕过认证。"""
     from docker.auth import SECRET
+
     return jwt.encode(
-        {"sub": "1", "role": "admin", "iat": datetime.now(timezone.utc),
-         "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
-        SECRET, algorithm="HS256",
+        {
+            "sub": "1",
+            "role": "admin",
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        },
+        SECRET,
+        algorithm="HS256",
     )
 
 
@@ -35,6 +41,7 @@ class TestAPIEndpoints(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         app = FastAPI()
+        from docker.api.adapter import router as adapter_router
         from docker.api.announce import router as announce_router
         from docker.api.archive import router as archive_router
         from docker.api.download import router as download_router
@@ -54,6 +61,7 @@ class TestAPIEndpoints(unittest.TestCase):
         app.include_router(scan_router)
         app.include_router(organize_router)
         app.include_router(pending_router)
+        app.include_router(adapter_router)
         app.include_router(announce_router)
         app.include_router(settings_router)
         app.include_router(system_router)
@@ -198,6 +206,34 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         # put_settings 对所有 3 个 job 都调用 update_job；此处验证关键调用存在
         mock_update.assert_any_call("auto_scan", "0 4 * * *", True)
+
+    # ── Adapter ──
+
+    def test_adapter_status_query_cooldown(self):
+        """type=query 的适配器处于冷却时返回 status=cooldown。"""
+        mock_mgr = MagicMock()
+        mock_mgr.adapter_manager.get_all_health.return_value = []
+        mock_mgr.adapter_manager.get_adapter_status.return_value = {"remaining_seconds": 120}
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
+        r = self.client.get("/api/adapter/status", params={"type": "query"})
+        self.assertEqual(r.status_code, 200)
+        adapters = r.json()["adapters"]
+        self.assertTrue(len(adapters) > 0)
+        for a in adapters:
+            self.assertEqual(a["status"], "cooldown")
+            self.assertEqual(a["remaining_seconds"], 120)
+
+    def test_adapter_status_query_normal(self):
+        """type=query 的适配器无冷却无熔断时返回 status=normal。"""
+        mock_mgr = MagicMock()
+        mock_mgr.adapter_manager.get_all_health.return_value = []
+        mock_mgr.adapter_manager.get_adapter_status.return_value = {"remaining_seconds": 0}
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
+        r = self.client.get("/api/adapter/status", params={"type": "query"})
+        self.assertEqual(r.status_code, 200)
+        for a in r.json()["adapters"]:
+            self.assertEqual(a["status"], "normal")
+            self.assertEqual(a["remaining_seconds"], 0)
 
     # ── Pending ──
 

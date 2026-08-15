@@ -100,6 +100,15 @@ def get_adapter_status(mgr=Depends(get_manager_dep), type: str | None = None):
             ft = row["first_freeze_time"]
             first_freeze_time = ft if ft else None
 
+        # 查询适配器补充冷却状态：复用适配器管理器的两套字段合并逻辑。
+        # 冷却截止时间戳由站点轮转器内存实时维护；表内同名字段在冷却退出时不回写，
+        # 读表会残留旧值，故必须走内存（实时）而非整表健康查询返回的表数据。
+        if status == "normal" and name not in _ANNOUNCE_ADAPTERS:
+            cooldown_remaining = mgr.adapter_manager.get_adapter_status(name).get("remaining_seconds", 0)
+            if cooldown_remaining > 0:
+                status = "cooldown"
+                remaining = cooldown_remaining
+
         adapters.append(
             {
                 "name": name,
