@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from pilotstd import __version__
 
@@ -58,20 +58,16 @@ def _run_docker(args: list, timeout: int = 120) -> subprocess.CompletedProcess:
     )
 
 
-@require_role("admin")
 @router.get("/version")
-async def get_version():
-    """返回当前版本和容器信息。"""
-    cid = ""
-    try:
-        # 获取容器，失败不影响版本号返回
-        cid = _get_container_id()
-    except Exception as e:
-        logger.warning("获取容器 ID 失败: %s", e)
+async def get_version(request: Request):
+    """返回当前版本和镜像信息（公开接口）。
+
+    SEC-001: 移除 @require_role（版本号是登录页/系统状态卡片的基础信息），
+    并从返回值移除 container_id（容器 ID 是容器逃逸攻击的辅助信息，前端不使用）。
+    """
     return {
         "version": __version__,
         "tag": f"v{__version__}",
-        "container_id": cid,
         "image": IMAGE_VERSIONED,
         "image_latest": IMAGE_LATEST,
     }
@@ -153,9 +149,9 @@ def _notify_update_failed(mgr: Any, error: str) -> None:
         pass
 
 
-@require_role("admin")
 @router.post("/update")
-async def update_container(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+async def update_container(request: Request, mgr=Depends(get_manager_dep)):
     """拉取最新镜像并检查是否有更新（仅管理员）。需挂载 /var/run/docker.sock。
 
     流程：
@@ -204,9 +200,9 @@ async def update_container(mgr=Depends(get_manager_dep)):
         raise HTTPException(500, f"更新失败: {e}")
 
 
-@require_role("admin")
 @router.get("/health")
-def system_health(mgr=Depends(get_manager_dep)) -> dict:
+@require_role("admin")
+def system_health(request: Request, mgr=Depends(get_manager_dep)) -> dict:
     """系统健康检查。
 
     检查项：数据库连接、缓存状态、适配器总数/可用数。
@@ -254,9 +250,9 @@ def system_health(mgr=Depends(get_manager_dep)) -> dict:
     return result
 
 
-@require_role("admin")
 @router.get("/resources")
-def system_resources():
+@require_role("admin")
+def system_resources(request: Request):
     """获取系统资源使用情况。"""
     try:
         import psutil  # type: ignore[import-untyped]
