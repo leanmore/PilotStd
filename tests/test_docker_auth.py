@@ -94,6 +94,7 @@ class TestAuthModule(unittest.TestCase):
         r = self.client.post("/api/login", data={"username": "superadmin", "password": "wrong"})
         self.assertEqual(r.status_code, 401)
 
+    @pytest.mark.xdist_group("auth")
     def test_login_correct_password_returns_ok_and_cookie(self):
         r = self.client.post("/api/login", data={"username": "superadmin", "password": os.environ["ADMIN_PASSWORD"]})
         self.assertEqual(r.status_code, 200)
