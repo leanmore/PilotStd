@@ -44,7 +44,7 @@ class TestRunHealthCheck:
     @patch("docker.health_check_service._write_health")
     @patch("docker.health_check_service._probe")
     @patch("docker.health_check_service.create_default_sites")
-    def test_run_health_check_all_up(self, mock_sites, mock_probe, mock_write):
+    def test_run_health_check_all_up(self, mock_sites, mock_probe, _mock_write):
         site1 = MagicMock()
         site1.name = "ahbz"
         site1.base_url = "https://ahbz.example.com"
@@ -64,7 +64,7 @@ class TestRunHealthCheck:
     @patch("docker.health_check_service._write_health")
     @patch("docker.health_check_service._probe")
     @patch("docker.health_check_service.create_default_sites")
-    def test_run_health_check_counts_down(self, mock_sites, mock_probe, mock_write):
+    def test_run_health_check_counts_down(self, mock_sites, mock_probe, _mock_write):
         site = MagicMock()
         site.name = "ahbz"
         site.base_url = "https://ahbz.example.com"
@@ -90,7 +90,7 @@ class TestAnnounceAdapters:
     @patch("docker.health_check_service._write_health")
     @patch("docker.health_check_service._probe")
     @patch("docker.health_check_service.create_default_sites")
-    def test_announce_probe_uses_distinct_urls(self, mock_sites, mock_probe, mock_write):
+    def test_announce_probe_uses_distinct_urls(self, mock_sites, mock_probe, _mock_write):
         """公告三站探活应分别发往各自端点 URL。"""
         mock_sites.return_value = []
         mock_probe.return_value = "up"

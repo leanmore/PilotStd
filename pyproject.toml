@@ -60,8 +60,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-# 排除 cookiecutter 模板目录，避免 {{ }} 占位符导致 pytest 收集语法错误
-collect_ignore = ["pilotstd/templates"]
+# testpaths 限定测试目录，排除 pilotstd/templates 下的 cookiecutter 模板
 testpaths = ["tests"]
 
 # ── 常用命令 ──────────────────────────────────────────

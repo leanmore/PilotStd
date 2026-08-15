@@ -96,7 +96,7 @@ class TestSchedulerModule(unittest.TestCase):
     @patch("docker.scheduler._acquire_scheduler_lock", return_value=True)
     @patch.object(scheduler, "start")
     @patch("docker.scheduler.ConfigManager")
-    def test_auto_announce_fallback_cron_is_0100(self, mock_cfg, mock_start, mock_lock, mock_add):
+    def test_auto_announce_fallback_cron_is_0100(self, mock_cfg, mock_start, _mock_lock, mock_add):
         """auto_announce 未显式配置 cron 时，fallback 应为 0 1 * * *（避免与整点健康检查撞车）。"""
         mock_cfg.return_value.get.side_effect = lambda key, default: {
             "tasks.auto_announce_enabled": True,
