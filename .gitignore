@@ -75,6 +75,9 @@ tests/.cache/
 tests/.fernet_key
 tests/verify_downloads/
 
+# ===== 本地 E2E 测试报告（run_local_e2e.sh 生成，留本地备查）=====
+reports/
+
 # ===== 前端构建产物与脚手架模板 =====
 web/stats.html
 web/README.md

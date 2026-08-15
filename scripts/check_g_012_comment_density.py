@@ -101,11 +101,11 @@ LANG_WHITELIST = {
     'UserPreferenceManager', 'UserService',
     # ── 通用技术缩写 ──
     'API', 'DB', 'I/O', 'KV', 'SQL', 'JSON', 'URL', 'HTML', 'CSS', 'GC',
-    'HTTP', 'RESTful', 'CSRF', 'UI', 'CLI', 'OK',
+    'HTTP', 'RESTful', 'CSRF', 'UI', 'CLI', 'OK', 'CI',
     # ── 前端框架术语 ──
     'Pinia', 'Vue', 'TS', 'JS', 'DOM', 'SCSS',
     # ── 项目特定路径 ──
-    '/api/user/', '/api/', 'layout', 'settings',
+    '/api/user/', '/api/', 'layout', 'settings', 'tests/test_e2e_adapters.py',
     # ── 装饰器/注解 ──
     '@require_role', '@router', '@migration',
     # ── 权限/安全 ──

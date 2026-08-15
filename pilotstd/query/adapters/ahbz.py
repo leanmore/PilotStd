@@ -6,6 +6,7 @@
 # 免鉴权、免、免令牌——最简单的一类站点
 # 字段模糊匹配(%%)，搜索结果需客户端按标准号精确过滤
 # 覆盖范围:/行业/地方/国际/团体~230万条
+# ⚠️ 修改本文件后请在本地运行国内站点端到端测试验证（见 tests/test_e2e_adapters.py，CI 不运行）
 
 import logging
 from typing import Any, Optional

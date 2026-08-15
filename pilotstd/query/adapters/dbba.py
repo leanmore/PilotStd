@@ -1,6 +1,7 @@
 # 模块：项目/查询/适配器/脚本
 # 地方标准信息服务平台（...）查询适配器
 # 覆盖全国各省/市地方标准（数据库标准）的查询
+# ⚠️ 修改本文件后请在本地运行国内站点端到端测试验证（见 tests/test_e2e_adapters.py，CI 不运行）
 
 import logging
 from datetime import datetime

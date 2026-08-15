@@ -1,6 +1,16 @@
-# tests/test_e2e_adapters.py
-# 端到端测试：真实 HTTP 请求验证各适配器对 GB/行业/国外/地方标准的查询结果
-# 注意：依赖网络，每个适配器只测 1-2 条，避免触发限流
+"""端到端测试：真实 HTTP 请求验证各适配器对 GB/行业/国外/地方标准的查询结果。
+
+⚠️ 本文件中的测试依赖国内站点真实网络，仅在本地开发环境运行。
+GitHub CI 通过 @unittest.skipIf(_CI) 自动跳过这些测试。
+
+修改以下模块后，必须在本地手动运行本文件验证：
+  - pilotstd/query/adapters/ 下的适配器（ahbz/dbba/hbba/iso_gov/njbz365/std_gov）
+  - pilotstd/query/network.py
+  - pilotstd/query/engine/
+
+本地运行命令：python -m pytest tests/test_e2e_adapters.py -v
+注意：每个适配器只测 1-2 条，避免触发限流。
+"""
 
 import os
 import sys
