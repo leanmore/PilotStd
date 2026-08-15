@@ -174,6 +174,7 @@ async function loadSites() {
   loading.value = true; errMsg.value = ''
   try {
     const r = await http.get('/settings/sites')
+    if (!r || !r.data) return  // 请求被取消（响应拦截器静默返回 null），不显示错误
     sites.value = (r.data.sites || []).map((s: any) => ({
       ...s,
       coolingSeconds: s.cooling_seconds ?? 600,

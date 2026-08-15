@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAppStore } from './stores/app'
-import { cancelAllRequests } from './api/http'
+import { cancelRequestsByTag } from './api/http'
 import axios from 'axios'
 
 const routes = [
@@ -117,8 +117,8 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach(async (to, _from, next) => {
-  cancelAllRequests()
+router.beforeEach(async (to, from, next) => {
+  cancelRequestsByTag(from.path)
   if (to.meta.guest) return next()
   const store = useAppStore()
   if (store.loggedIn) return next()

@@ -27,6 +27,16 @@ export function cancelAllRequests() {
   pendingMap.clear()
 }
 
+/** 按 URL 前缀取消请求（路由切换时精确取消离开页面的请求，避免误伤目标页面）。 */
+export function cancelRequestsByTag(tagPrefix: string): void {
+  for (const [key, controller] of pendingMap) {
+    if (key.includes(tagPrefix)) {
+      controller.abort()
+      pendingMap.delete(key)
+    }
+  }
+}
+
 /** 从 config 中衍生唯一请求 key，用于清理 pending 映射。 */
 function _reqKey(c: { method?: string; url?: string }): string {
   return `${c.method || 'get'}:${c.url || ''}`
