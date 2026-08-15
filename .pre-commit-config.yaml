@@ -46,6 +46,13 @@ repos:
         files: \.py$
         exclude: ^scripts/
 
+      - id: check-decorator-order
+        name: SEC-001 装饰器顺序检查（@require_role 必须在 @router 内层）
+        entry: python scripts/check_decorator_order.py
+        language: python
+        files: ^docker/api/.*\.py$
+        pass_filenames: false
+
       - id: update-capabilities
         name: 自动更新 capabilities_registry.md 行号
         entry: python scripts/update_capabilities.py
