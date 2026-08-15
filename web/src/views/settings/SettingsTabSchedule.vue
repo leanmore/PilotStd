@@ -20,6 +20,8 @@ interface TaskConfig {
   auto_announce_cron: string
   date_reminder_enabled: boolean
   date_reminder_cron: string
+  auto_health_check_enabled: boolean
+  auto_health_check_cron: string
 }
 
 const tasks = ref<TaskConfig>({
@@ -29,6 +31,8 @@ const tasks = ref<TaskConfig>({
   auto_announce_cron: '0 1 * * *',
   date_reminder_enabled: false,
   date_reminder_cron: '0 2 * * *',
+  auto_health_check_enabled: true,
+  auto_health_check_cron: '0 * * * *',
 })
 
 const loading = ref(false)
@@ -114,6 +118,18 @@ onMounted(loadTasks)
             <div class="task-cron" v-if="tasks.date_reminder_enabled">
               <label>Cron 表达式</label>
               <InputText v-model="tasks.date_reminder_cron" placeholder="0 2 * * *" size="small" />
+            </div>
+          </div>
+
+          <!-- 适配器健康检查 -->
+          <div class="task-row">
+            <div class="task-toggle">
+              <ToggleSwitch v-model="tasks.auto_health_check_enabled" />
+              <label>适配器健康检查</label>
+            </div>
+            <div class="task-cron" v-if="tasks.auto_health_check_enabled">
+              <label>Cron 表达式</label>
+              <InputText v-model="tasks.auto_health_check_cron" placeholder="0 * * * *" size="small" />
             </div>
           </div>
 

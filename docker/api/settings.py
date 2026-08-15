@@ -114,6 +114,8 @@ def get_settings(mgr=Depends(get_manager_dep)):
             "auto_announce_cron": cfg.get("tasks.auto_announce_cron", "0 1 * * *"),
             "date_reminder_enabled": cfg.get("tasks.date_reminder_enabled", False),
             "date_reminder_cron": cfg.get("tasks.date_reminder_cron", "0 2 * * *"),
+            "auto_health_check_enabled": cfg.get("tasks.auto_health_check_enabled", True),
+            "auto_health_check_cron": cfg.get("tasks.auto_health_check_cron", "0 * * * *"),
         },
         "appearance": {
             "theme": cfg.get("appearance.theme", "经典白"),
@@ -169,9 +171,11 @@ def put_settings(data: dict, mgr=Depends(get_manager_dep)):
         ("auto_scan", "auto_scan_cron"),
         ("auto_announce", "auto_announce_cron"),
         ("date_reminder", "date_reminder_cron"),
+        ("auto_health_check", "auto_health_check_cron"),
     ]:
-        enabled = tasks.get(cron_key.replace("_cron", "_enabled"), False)
-        cron = tasks.get(cron_key, "0 0 * * *")
+        default_enabled = job_id == "auto_health_check"
+        enabled = tasks.get(cron_key.replace("_cron", "_enabled"), default_enabled)
+        cron = tasks.get(cron_key, "0 * * * *" if job_id == "auto_health_check" else "0 0 * * *")
         update_job(job_id, cron, enabled)
     cfg.save()
     # 版本三0:审计日志
@@ -249,12 +253,16 @@ def _build_site_config(name: str, mgr) -> dict | None:
 @require_role("admin")
 @router.get("/api/settings/sites")
 def get_sites(mgr=Depends(get_manager_dep)):
-    """返回全部查询适配器的站点配置（9 字段 / 站点），单站点异常不影响整体。"""
+    """返回全部查询适配器的站点配置（含健康检查状态），单站点异常不影响整体。"""
     names = mgr.adapter_manager.list_adapters()
+    health_map = {r["adapter_name"]: r for r in mgr.adapter_manager.get_all_health()}
     sites = []
     for name in names:
         cfg = _build_site_config(name, mgr)
         if cfg:
+            h = health_map.get(name, {})
+            cfg["last_health_check"] = h.get("last_health_check")
+            cfg["health_status"] = h.get("health_status")
             sites.append(cfg)
     return {"sites": sites}
 

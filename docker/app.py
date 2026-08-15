@@ -86,18 +86,13 @@ def _migrate_user_settings_to_preferences(db) -> int:
     logger = logging.getLogger("pilotstd.startup")
     try:
         # 幂等检查
-        row = db.fetchone(
-            "SELECT 1 FROM user_preferences WHERE user_id=0 "
-            "AND preference_key='_migration_v49_done'"
-        )
+        row = db.fetchone("SELECT 1 FROM user_preferences WHERE user_id=0 AND preference_key='_migration_v49_done'")
         if row:
             logger.debug("user_settings → user_preferences 迁移已完成，跳过")
             return 0
 
         # 检查旧表是否存在且有数据
-        exists = db.fetchone(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'"
-        )
+        exists = db.fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'")
         if not exists:
             db.execute(
                 "INSERT OR IGNORE INTO user_preferences (user_id, preference_key, preference_value) "
@@ -134,9 +129,7 @@ def _migrate_user_settings_to_preferences(db) -> int:
                     )
                     migrated += 1
                 except Exception:
-                    logger.exception(
-                        "迁移偏好失败: user_id=%s, key=%s", row_data["user_id"], key
-                    )
+                    logger.exception("迁移偏好失败: user_id=%s, key=%s", row_data["user_id"], key)
 
         # 写入标记
         db.execute(
@@ -162,6 +155,9 @@ def _start_all_schedulers(_cron_mgr) -> None:
         "auto_archive_retry",
         lambda: _cron_mgr._archive_retry_svc.retry_pending(),
     )
+    from .health_check_service import run_health_check
+
+    register_job_func("auto_health_check", run_health_check)
     from .scheduler import _cleanup_notification_logs
 
     register_job_func(

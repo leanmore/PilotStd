@@ -9,12 +9,14 @@ const props = defineProps<{ zhName?: string }>()
 interface AdapterStatus {
   name: string; display_name?: string; status: string; frozen_until: string | null
   remaining_seconds: number; freeze_count: number; fail_streak: number
+  last_health_check: string | null; health_status: string | null
 }
 
 const adapters = ref<AdapterStatus[]>([])
 const loading = ref(false)
 const error = ref('')
-let timer: ReturnType<typeof setInterval> | null = null
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 async function loadStatus() {
   loading.value = true
@@ -26,11 +28,13 @@ async function loadStatus() {
 }
 
 function tick() {
-  let anyFrozen = false
+  let anyActive = false
   for (const a of adapters.value) {
-    if (a.status === 'frozen' && a.remaining_seconds > 0) { a.remaining_seconds--; anyFrozen = true }
+    if ((a.status === 'frozen' || a.status === 'cooldown') && a.remaining_seconds > 0) {
+      a.remaining_seconds--; anyActive = true
+    }
   }
-  if (!anyFrozen && adapters.value.some(a => a.status === 'frozen')) loadStatus()
+  if (!anyActive && adapters.value.some(a => a.status === 'frozen' || a.status === 'cooldown')) loadStatus()
 }
 
 function fullName(a: AdapterStatus): string {
@@ -39,8 +43,29 @@ function fullName(a: AdapterStatus): string {
   return '未知站点'
 }
 
-onMounted(() => { loadStatus(); timer = setInterval(tick, 1000) })
-onBeforeUnmount(() => { if (timer) clearInterval(timer) })
+function healthText(a: AdapterStatus): string {
+  if (!a.last_health_check) return '尚未检查'
+  const ms = Date.now() - new Date(a.last_health_check).getTime()
+  const min = Math.max(0, Math.floor(ms / 60000))
+  if (min < 60) return `最后检查：${min} 分钟前`
+  return `最后检查：${Math.floor(min / 60)} 小时前`
+}
+
+function healthDotClass(a: AdapterStatus): string {
+  if (a.health_status === 'up') return 'health-up'
+  if (a.health_status === 'down') return 'health-down'
+  return 'health-none'
+}
+
+onMounted(() => {
+  loadStatus()
+  countdownTimer = setInterval(tick, 1000)
+  pollTimer = setInterval(loadStatus, 3600000)  // 1 小时周期轮询，对齐后端健康检查间隔
+})
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
+  if (pollTimer) clearInterval(pollTimer)
+})
 </script>
 
 <template>
@@ -61,10 +86,12 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
     <!-- 紧凑网格 -->
     <div v-if="adapters.length" class="grid">
-      <div v-for="a in adapters" :key="a.name" class="cell" :class="{ frozen: a.status === 'frozen' }">
+      <div v-for="a in adapters" :key="a.name" class="cell"
+           :class="{ frozen: a.status === 'frozen', cooldown: a.status === 'cooldown' }">
         <!-- 状态点 -->
         <div class="cell-dot">
           <span v-if="a.status === 'normal'" class="mp-dot-success" />
+          <span v-else-if="a.status === 'cooldown'" class="mp-dot-warning" />
           <span v-else class="mp-dot-danger" />
         </div>
         <!-- 名称 -->
@@ -72,11 +99,17 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
         <div class="cell-cn">{{ fullName(a) }}</div>
         <!-- 底部状态条 -->
         <div class="cell-bar">
-          <div class="cell-bar-fill" :class="a.status === 'normal' ? 'bar-ok' : 'bar-err'"
+          <div class="cell-bar-fill"
+               :class="a.status === 'normal' ? 'bar-ok' : a.status === 'cooldown' ? 'bar-warn' : 'bar-err'"
                :style="{ width: a.status === 'normal' ? '100%' : '40%' }" />
         </div>
+        <!-- 健康检查指示 -->
+        <div class="cell-health" :title="healthText(a)">
+          <span class="health-dot" :class="healthDotClass(a)" />
+          <span class="health-time">{{ healthText(a) }}</span>
+        </div>
         <!-- 异常数据 hover 显示 -->
-        <div v-if="a.status === 'frozen'" class="cell-overlay">
+        <div v-if="a.status === 'frozen' || a.status === 'cooldown'" class="cell-overlay">
           <span>{{ a.remaining_seconds }}s</span>
         </div>
       </div>
@@ -115,6 +148,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 }
 .cell:hover { border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.04); }
 .cell.frozen { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.03); }
+.cell.cooldown { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.03); }
 
 .cell-dot { position: absolute; top: 6px; right: 6px; }
 .cell-name {
@@ -129,6 +163,18 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 .cell-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
 .bar-ok { background: var(--success); }
 .bar-err { background: var(--danger); }
+.bar-warn { background: var(--warning); }
+
+/* 健康检查指示 */
+.cell-health {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 9px; color: var(--text-dim); width: 100%; overflow: hidden;
+}
+.health-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.health-up { background: var(--success); }
+.health-down { background: var(--danger); }
+.health-none { background: var(--border-light, #ccc); }
+.health-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cell-overlay {
   position: absolute; inset: 0; background: rgba(239,68,68,0.85);

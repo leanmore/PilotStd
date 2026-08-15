@@ -98,6 +98,9 @@
     "request_interval": "请求间隔（秒）",
     "today_remaining": "今日剩余",
     "cooling_remaining": "冷却剩余",
+    "health_never": "尚未检查",
+    "health_checked_min": "最后检查：{min} 分钟前",
+    "health_checked_hour": "最后检查：{hour} 小时前",
     "validation": {
       "max_requests_negative": "窗口查询限额不能为负数",
       "daily_limit_negative": "日限额不能为负数",

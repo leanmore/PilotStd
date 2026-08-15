@@ -31,6 +31,8 @@ interface SiteConfig {
   requestInterval: number
   remainingQuota: number | null
   coolingRemaining: number | null
+  lastHealthCheck: string | null
+  healthStatus: string | null
 }
 
 const sites = ref<SiteConfig[]>([])
@@ -154,6 +156,20 @@ async function saveSite(site: SiteConfig) {
   }
 }
 
+function healthDotClass(s: SiteConfig): string {
+  if (s.healthStatus === 'up') return 'health-up'
+  if (s.healthStatus === 'down') return 'health-down'
+  return 'health-none'
+}
+
+function healthText(s: SiteConfig): string {
+  if (!s.lastHealthCheck) return t('sites.health_never')
+  const ms = Date.now() - new Date(s.lastHealthCheck).getTime()
+  const min = Math.max(0, Math.floor(ms / 60000))
+  if (min < 60) return t('sites.health_checked_min', { min })
+  return t('sites.health_checked_hour', { hour: Math.floor(min / 60) })
+}
+
 async function loadSites() {
   loading.value = true; errMsg.value = ''
   try {
@@ -164,6 +180,8 @@ async function loadSites() {
       requestInterval: s.request_interval ?? 0.5,
       remainingQuota: s.remaining_quota ?? null,
       coolingRemaining: s.cooling_remaining ?? null,
+      lastHealthCheck: s.last_health_check ?? null,
+      healthStatus: s.health_status ?? null,
     }))
   } catch {
     toast.add({ severity: 'error', summary: t('sites.load_failed'), detail: t('common.check_network'), life: 5000 })
@@ -200,6 +218,7 @@ onMounted(() => { loadSites() })
               <span class="site-priority">#{{ s.priority }}</span>
               <span class="site-name">{{ s.label }}</span>
               <Tag :value="s.name" severity="info" />
+              <span class="health-dot" :class="healthDotClass(s)" :title="healthText(s)" />
               <Button
                 v-if="isAdmin()"
                 :icon="editStates[s.name]?.editing ? 'pi pi-lock-open' : 'pi pi-lock'"
@@ -298,6 +317,16 @@ onMounted(() => { loadSites() })
 .site-head .lock-btn {
   margin-left: auto;
 }
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  cursor: help;
+}
+.health-up { background: var(--success); }
+.health-down { background: var(--danger); }
+.health-none { background: var(--border-light, #ccc); }
 .discard-btn {
   margin-left: 2px;
 }

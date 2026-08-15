@@ -22,6 +22,7 @@ from ._migrate_v2_v15 import (  # noqa: F401 — 触发装饰器
     _migrate_v15_announcement_record,
 )
 from ._migrate_v50 import _migrate_v50_ensure_user_preferences  # noqa: F401 — 触发注册
+from ._migrate_v51 import _migrate_v51_adapter_health_check  # noqa: F401 — 触发注册
 
 # ──2-15装饰器注册──
 migration(2)(_migrate_v2_add_file_index)
@@ -574,13 +575,10 @@ def _migrate_v49_rebuild_user_preferences(db: Any) -> None:
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, preference_key))""")
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_user_prefs_uid_key "
-        "ON user_preferences(user_id, preference_key)")
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_user_prefs_pref_key "
-        "ON user_preferences(preference_key)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_user_prefs_uid_key ON user_preferences(user_id, preference_key)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_user_prefs_pref_key ON user_preferences(preference_key)")
 
 
 # v50 兜底迁移拆分至 _migrate_v50.py，避免 G-010 单文件超限
 migration(50)(_migrate_v50_ensure_user_preferences)
+migration(51)(_migrate_v51_adapter_health_check)

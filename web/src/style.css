@@ -125,6 +125,7 @@
 }
 .mp-dot-success { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: mp-pulse-glow 2s ease-in-out infinite; }
 .mp-dot-danger  { width: 8px; height: 8px; border-radius: 50%; background: var(--danger);  animation: mp-pulse-glow 2s ease-in-out infinite; }
+.mp-dot-warning { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); animation: mp-pulse-glow 2s ease-in-out infinite; }
 
 body {
   margin: 0;

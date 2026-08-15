@@ -97,6 +97,9 @@
     "request_interval": "請求間隔（秒）",
     "today_remaining": "今日剩餘",
     "cooling_remaining": "冷卻剩餘",
+    "health_never": "尚未檢查",
+    "health_checked_min": "最後檢查：{min} 分鐘前",
+    "health_checked_hour": "最後檢查：{hour} 小時前",
     "validation": {
       "max_requests_negative": "視窗查詢限額不能為負數",
       "daily_limit_negative": "日限額不能為負數",

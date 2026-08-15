@@ -222,6 +222,8 @@ class TestAPIEndpoints(unittest.TestCase):
         for a in adapters:
             self.assertEqual(a["status"], "cooldown")
             self.assertEqual(a["remaining_seconds"], 120)
+            self.assertIsNone(a["last_health_check"])
+            self.assertIsNone(a["health_status"])
 
     def test_adapter_status_query_normal(self):
         """type=query 的适配器无冷却无熔断时返回 status=normal。"""
@@ -234,6 +236,32 @@ class TestAPIEndpoints(unittest.TestCase):
         for a in r.json()["adapters"]:
             self.assertEqual(a["status"], "normal")
             self.assertEqual(a["remaining_seconds"], 0)
+            self.assertIsNone(a["last_health_check"])
+            self.assertIsNone(a["health_status"])
+
+    def test_adapter_status_returns_health_fields(self):
+        """端点透传 last_health_check 和 health_status 字段。"""
+        mock_mgr = MagicMock()
+        mock_mgr.adapter_manager.get_all_health.return_value = [
+            {
+                "adapter_name": "ahbz",
+                "frozen_until": None,
+                "freeze_count": 0,
+                "fail_streak": 0,
+                "first_freeze_time": None,
+                "last_health_check": "2026-08-15T00:00:00+00:00",
+                "health_status": "up",
+            }
+        ]
+        mock_mgr.adapter_manager.get_adapter_status.return_value = {"remaining_seconds": 0}
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
+        r = self.client.get("/api/adapter/status", params={"type": "query"})
+        self.assertEqual(r.status_code, 200)
+        adapters = r.json()["adapters"]
+        ahbz = next((a for a in adapters if a["name"] == "ahbz"), None)
+        self.assertIsNotNone(ahbz)
+        self.assertEqual(ahbz["last_health_check"], "2026-08-15T00:00:00+00:00")
+        self.assertEqual(ahbz["health_status"], "up")
 
     # ── Pending ──
 

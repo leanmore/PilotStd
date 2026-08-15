@@ -186,6 +186,21 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 2 * * *",
         help_text="日期提醒的 cron 表达式",
     ),
+    SettingDef(
+        key="tasks.auto_health_check_enabled",
+        tab="tasks",
+        field_type=FIELD_TOGGLE,
+        default=True,
+        help_text="定时对查询/公告适配器做轻量级健康检查",
+    ),
+    SettingDef(
+        key="tasks.auto_health_check_cron",
+        tab="tasks",
+        field_type=FIELD_CRON,
+        default="0 * * * *",
+        placeholder="0 * * * *",
+        help_text="健康检查的 cron 表达式",
+    ),
     # 说明：──文字识别──
     SettingDef(
         key="ocr.baidu_api_key",

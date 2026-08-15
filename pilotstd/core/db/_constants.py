@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 50  # v50: 兜底补建 user_preferences，修复跳号导致表缺失
+CURRENT_SCHEMA_VERSION = 51  # v51: adapter_state 新增健康检查字段
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

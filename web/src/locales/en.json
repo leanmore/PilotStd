@@ -97,6 +97,9 @@
     "request_interval": "Request Interval (s)",
     "today_remaining": "Today Remaining",
     "cooling_remaining": "Cooldown Remaining",
+    "health_never": "Not checked yet",
+    "health_checked_min": "Last check: {min} min ago",
+    "health_checked_hour": "Last check: {hour} h ago",
     "validation": {
       "max_requests_negative": "Window limit cannot be negative",
       "daily_limit_negative": "Daily limit cannot be negative",
