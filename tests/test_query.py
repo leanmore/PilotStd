@@ -739,9 +739,8 @@ class TestNjbz365Retry(unittest.TestCase):
         from pilotstd.query.adapters import njbz365
 
         adapter = njbz365.Njbz365Adapter()
-        # 绕过 _ensure_session，直接 mock _session.post 连续超时
-        adapter._initialized = True
-        adapter._csrf_token = "fake_token"
+        # 标记 session_mgr 已初始化，让 _ensure_session 跳过 token 获取（token 获取也走 _session.post）
+        adapter._session_mgr._initialized = True
 
         call_count = [0]
 
