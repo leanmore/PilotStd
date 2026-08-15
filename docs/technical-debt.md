@@ -27,6 +27,11 @@
 | 1 | system.py F821 | `docker/api/system.py:131` | Ruff F821 | `Undefined name 'Any'`，缺少 `from typing import Any` | 2026-07-24 |
 | 2 | Mixin 类型标注 | `pilotstd/scan/parser/_exact.py` 等 13 文件 | Mypy `[attr-defined]` | Mixin 模式导致 92 处属性解析失败，需逐文件标注或重构为显式组合 | 2026-07-24 |
 | 3 | i18n key 一致性自动化检查 | `web/src/locales/*.json`（当前 3 文件 / zh-CN 约 45 key） | 人工遗漏 | 各 locale 文件键名未对齐时 vue-i18n 静默降级为显示原始 key，需自动化检查防回归 | 2026-07-29 |
+| 4 | test_login_correct_password_returns_ok_and_cookie | `tests/test_docker_auth.py:97` | 测试 flaky（xdist cookie 竞态） | `-n auto` 下 setUpClass 共享 TestClient，cookie 被并发清除；🔴 高，修复：`@pytest.mark.xdist_group("auth")` 串行化 | 2026-08-15 |
+| 5 | test_download_by_numbers_delegates | `tests/test_manager.py:350` | 测试 mock 目标错误 | mock 的是 `mgr._scheduled_svc`，实际调用走 `mgr._core.scheduled_svc`，mock 未生效触发真实查询超时；🔴 高，修复：修正 patch 路径 | 2026-08-15 |
+| 6 | test_do_request_timeout_retries | `tests/test_query.py:735` | 测试断言过时 | 已用 mock 但 mock 整个 `_session.post`，同时命中 token 获取流程，`call_count=4`≠断言 `3`（串行也失败，非 flaky）；🔴 高，修复：修正 mock 粒度或调整断言 | 2026-08-15 |
+| 7 | test_01_overflow_concurrent | `tests/test_query.py:969` | 测试并发竞态 | `-n auto` 下 session 级 `shared_db` 临时 SQLite + `ConfigManager` 的 config.json 文件锁竞态；🟡 中，修复：`xdist_group` 串行化 | 2026-08-15 |
+| 8 | test_04_large_batch_sub_buckets | `tests/test_query.py:998` | 测试并发竞态 | 同上（bucket 并发 + config.json 锁）；🟡 中，修复：`xdist_group` 串行化 | 2026-08-15 |
 
 ---
 
