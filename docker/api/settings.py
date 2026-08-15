@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
@@ -50,9 +50,9 @@ TAB_LABELS: dict[str, str] = {
 }
 
 
-@require_role("admin")
 @router.get("/api/settings/metadata")
-def get_settings_metadata():
+@require_role("admin")
+def get_settings_metadata(request: Request):
     """返回设置页 Tab 元数据：scope 分级 + order 排序。
 
     前端根据 scope 决定 Tab 可见性 + 写操作启用/禁用：
@@ -73,9 +73,9 @@ def get_settings_metadata():
     return {"tabs": tabs}
 
 
-@require_role("admin")
 @router.get("/api/settings")
-def get_settings(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def get_settings(request: Request, mgr=Depends(get_manager_dep)):
     """读取当前系统配置，包括存储、扫描、查询、定时任务、外观（Windows 基线 + Docker 特有项）。"""
     from pilotstd import __version__
 
@@ -137,9 +137,9 @@ def get_settings(mgr=Depends(get_manager_dep)):
     }
 
 
-@require_role("admin")
 @router.put("/api/settings")
-def put_settings(data: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def put_settings(request: Request, data: dict, mgr=Depends(get_manager_dep)):
     """保存系统配置并更新定时任务调度。"""
     cfg = mgr.cfg
     # 只读字段：返回供前端展示，但不允许通过回写配置
@@ -250,9 +250,9 @@ def _build_site_config(name: str, mgr) -> dict | None:
         return None
 
 
-@require_role("admin")
 @router.get("/api/settings/sites")
-def get_sites(mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def get_sites(request: Request, mgr=Depends(get_manager_dep)):
     """返回全部查询适配器的站点配置（含健康检查状态），单站点异常不影响整体。"""
     names = mgr.adapter_manager.list_adapters()
     health_map = {r["adapter_name"]: r for r in mgr.adapter_manager.get_all_health()}
@@ -267,9 +267,9 @@ def get_sites(mgr=Depends(get_manager_dep)):
     return {"sites": sites}
 
 
-@require_role("admin")
 @router.put("/api/settings/sites/{name}")
-def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def put_site(request: Request, name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
     """更新站点限额配置，持久化 + 内存热更新。"""
     if name not in mgr.adapter_manager.list_adapters():
         raise HTTPException(status_code=404, detail=f"适配器 {name} 不存在")
@@ -324,16 +324,16 @@ def put_site(name: str, data: SiteConfigUpdate, mgr=Depends(get_manager_dep)):
 # ── 静态令牌管理 ──────────────────────────────────────────────────
 
 
-@require_role("admin")
 @router.get("/api/settings/token")
-def get_token():
+@require_role("admin")
+def get_token(request: Request):
     """返回当前静态 API 令牌值（仅管理员）。"""
     return {"token": get_static_token()}
 
 
-@require_role("admin")
 @router.post("/api/settings/token/refresh")
-def refresh_token():
+@require_role("admin")
+def refresh_token(request: Request):
     """重新生成静态令牌（立即生效，旧令牌立即失效）。
 
     刷新后刷新数据库 api_keys 表的 pst_static 记录 +
@@ -348,9 +348,9 @@ def refresh_token():
 # ──配置（单一数据源）─────────────────────────────────────
 
 
-@require_role("admin")
 @router.get("/api/settings/schema")
-def get_schema():
+@require_role("admin")
+def get_schema(request: Request):
     """返回配置 Schema——按 Tab 分组的完整字段定义。
 
     前端可据此动态渲染表单，无需手写每个 Tab 组件。
