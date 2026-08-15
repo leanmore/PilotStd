@@ -3,7 +3,7 @@
 import os
 import uuid
 
-from fastapi import Body, Depends
+from fastapi import Body, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
@@ -28,9 +28,10 @@ def _validate_path(user_path: str, mgr=None) -> str:
 
 
 # 扫描端点：解析路径 → 调用 StandardManager 扫描文件列表
-@require_role("admin")
 @router.post("/api/scan")
+@require_role("admin")
 def scan_directory(
+    request: Request,
     path: str = "/inbox",
     run_id: str | None = Body(None, embed=True),
     mgr=Depends(get_manager_dep),
@@ -99,9 +100,10 @@ def scan_directory(
     }
 
 
-@require_role("admin")
 @router.post("/api/scan-and-index", response_model=ScanIndexResponse)
+@require_role("admin")
 def scan_and_index(
+    request: Request,
     path: str | None = None,
     mgr=Depends(get_manager_dep),
 ):

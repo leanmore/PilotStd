@@ -2,7 +2,7 @@
 # 权限：任务管理接口需 admin 角色（@require_role）
 import logging
 
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
@@ -13,9 +13,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["tasks"])
 
 
-@require_role("admin")
 @router.get("/api/tasks")
+@require_role("admin")
 def list_tasks(
+    request: Request,
     status: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -55,9 +56,10 @@ def list_tasks(
     }
 
 
-@require_role("admin")
 @router.get("/api/tasks/runs")
+@require_role("admin")
 def list_pipeline_runs(
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     mgr=Depends(get_manager_dep),
@@ -75,9 +77,9 @@ def list_pipeline_runs(
     return {"total": total, "page": page, "page_size": page_size, "items": rows}
 
 
-@require_role("admin")
 @router.get("/api/tasks/{task_id}")
-def get_task(task_id: str, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def get_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """获取单个任务的详细信息，包括类型、状态、进度、错误日志和结果。"""
     task = mgr.task_queue.get(task_id)
     if task is None:
@@ -96,9 +98,9 @@ def get_task(task_id: str, mgr=Depends(get_manager_dep)):
     }
 
 
-@require_role("admin")
 @router.post("/api/tasks")
-def create_task(body: dict, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def create_task(request: Request, body: dict, mgr=Depends(get_manager_dep)):
     """创建任务并入队。Body: {task_type, total_items?, max_retries?, queue_name?}"""
     from pilotstd.task.models import TaskType
 
@@ -117,9 +119,9 @@ def create_task(body: dict, mgr=Depends(get_manager_dep)):
     }
 
 
-@require_role("admin")
 @router.post("/api/tasks/{task_id}/retry")
-def retry_task(task_id: str, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def retry_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """重试失败任务。"""
     task = mgr.task_queue.get(task_id)
     if task is None:
@@ -136,17 +138,17 @@ def retry_task(task_id: str, mgr=Depends(get_manager_dep)):
     return {"ok": True}
 
 
-@require_role("admin")
 @router.post("/api/tasks/{task_id}/cancel")
-def cancel_task(task_id: str, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def cancel_task(request: Request, task_id: str, mgr=Depends(get_manager_dep)):
     """取消运行中任务。"""
     ok = mgr.task_queue.cancel(task_id)
     return {"ok": ok}
 
 
-@require_role("admin")
 @router.get("/api/tasks/runs/{run_id}")
-def get_pipeline_run(run_id: str, mgr=Depends(get_manager_dep)):
+@require_role("admin")
+def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)):
     """查询管道执行状态（扫描→查询→下载→规范化→归档）。"""
     run = mgr.pipeline_store.get(run_id)
     if run is None:
