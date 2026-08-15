@@ -59,6 +59,11 @@ select = ["E", "F", "W", "I"]
 quote-style = "double"
 indent-style = "space"
 
+[tool.pytest.ini_options]
+# 排除 cookiecutter 模板目录，避免 {{ }} 占位符导致 pytest 收集语法错误
+collect_ignore = ["pilotstd/templates"]
+testpaths = ["tests"]
+
 # ── 常用命令 ──────────────────────────────────────────
 # type-check:      mypy pilotstd/ docker/ tests/ pilotstd/ui/
 # lint:            ruff check pilotstd/ docker/ tests/ pilotstd/ui/

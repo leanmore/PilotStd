@@ -196,7 +196,7 @@ class StandardParser:
             if result is not None:
                 return result
 
-        # TODO(P2): unify file-parse failure log format, add file_path/file_type/error_type/error_detail
+        # TODO(P2): 统一文件解析失败日志格式，补充文件路径/文件类型/错误类型/错误详情
         self.log.info("解析失败: %s", filename)
         return None
 
