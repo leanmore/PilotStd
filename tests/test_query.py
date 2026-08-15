@@ -8,7 +8,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -965,7 +965,10 @@ class TestBucketConcurrency(unittest.TestCase):
         ]
         return QueryEngine(adapters=adapters, cache=self.cache, use_cache=False, parser=self.parser)
 
-    def test_01_overflow_concurrent(self):
+    @patch("pilotstd.query.engine._csres.CsresHandler._rate_limit_sleep", return_value=None)
+    @patch("time.sleep", return_value=None)
+    @pytest.mark.xdist_group("bucket_stress")
+    def test_01_overflow_concurrent(self, _mock_time_sleep, _mock_rate_limit):
         """GB 200+行业 150 并发，不崩溃，ahbz 溢出池不击穿"""
         items = [("GB", i, 2020, "g", None, "", "", "") for i in range(200)]
         items += [("SH", i, 2020, "s", None, "", "", "") for i in range(150)]
@@ -994,7 +997,10 @@ class TestBucketConcurrency(unittest.TestCase):
         results = engine.query_batch_parsed([("GB", 99999, 2050, "x", None, "", "", "")])
         self.assertEqual(results[0].status, "待确认")
 
-    def test_04_large_batch_sub_buckets(self):
+    @patch("pilotstd.query.engine._csres.CsresHandler._rate_limit_sleep", return_value=None)
+    @patch("time.sleep", return_value=None)
+    @pytest.mark.xdist_group("bucket_stress")
+    def test_04_large_batch_sub_buckets(self, _mock_time_sleep, _mock_rate_limit):
         """500 条大桶自动拆子桶，不崩溃"""
         items = [("GB", i, 2020, "t", None, "", "", "") for i in range(500)]
         results = self._engine().query_batch_parsed(items)
