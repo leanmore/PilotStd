@@ -263,6 +263,48 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(ahbz["last_health_check"], "2026-08-15T00:00:00+00:00")
         self.assertEqual(ahbz["health_status"], "up")
 
+    def test_adapter_status_announcement_reads_frozen(self):
+        """公告适配器熔断状态按 standard_type key 正确读取。"""
+        future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+        mock_mgr = MagicMock()
+        mock_mgr.adapter_manager.get_all_health.return_value = [
+            {
+                "adapter_name": "gb",
+                "frozen_until": future,
+                "freeze_count": 1,
+                "fail_streak": 0,
+                "first_freeze_time": None,
+                "last_health_check": None,
+                "health_status": None,
+            },
+            {
+                "adapter_name": "hb",
+                "frozen_until": None,
+                "freeze_count": 0,
+                "fail_streak": 0,
+                "first_freeze_time": None,
+                "last_health_check": None,
+                "health_status": None,
+            },
+            {
+                "adapter_name": "db",
+                "frozen_until": None,
+                "freeze_count": 0,
+                "fail_streak": 0,
+                "first_freeze_time": None,
+                "last_health_check": None,
+                "health_status": None,
+            },
+        ]
+        self.client.app.dependency_overrides[get_manager_dep] = lambda: mock_mgr
+        r = self.client.get("/api/adapter/status", params={"type": "announcement"})
+        self.assertEqual(r.status_code, 200)
+        adapters = {a["name"]: a for a in r.json()["adapters"]}
+        self.assertEqual(adapters["gb"]["status"], "frozen")
+        self.assertEqual(adapters["gb"]["freeze_count"], 1)
+        self.assertEqual(adapters["hb"]["status"], "normal")
+        self.assertEqual(adapters["db"]["status"], "normal")
+
     # ── Pending ──
 
     def test_requery_pending_returns_results(self):

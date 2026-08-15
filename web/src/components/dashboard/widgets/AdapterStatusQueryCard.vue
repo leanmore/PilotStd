@@ -1,9 +1,11 @@
 <script setup lang="ts">
 defineOptions({ name: 'AdapterStatusQueryCard' })
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Button from 'primevue/button'
 
+const { t } = useI18n()
 const props = defineProps<{ zhName?: string }>()
 
 interface AdapterStatus {
@@ -44,11 +46,11 @@ function fullName(a: AdapterStatus): string {
 }
 
 function healthText(a: AdapterStatus): string {
-  if (!a.last_health_check) return '尚未检查'
+  if (!a.last_health_check) return t('sites.health_never')
   const ms = Date.now() - new Date(a.last_health_check).getTime()
   const min = Math.max(0, Math.floor(ms / 60000))
-  if (min < 60) return `最后检查：${min} 分钟前`
-  return `最后检查：${Math.floor(min / 60)} 小时前`
+  if (min < 60) return t('sites.health_checked_min', { min })
+  return t('sites.health_checked_hour', { hour: Math.floor(min / 60) })
 }
 
 function healthDotClass(a: AdapterStatus): string {

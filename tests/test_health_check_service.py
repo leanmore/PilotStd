@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from docker.health_check_service import _probe, _write_health, run_health_check
+from docker.health_check_service import _ANNOUNCE_ADAPTERS, _probe, _write_health, run_health_check
 
 
 class TestProbe:
@@ -77,3 +77,29 @@ class TestRunHealthCheck:
         assert stats["total"] == 4
         assert stats["down"] == 4
         assert stats["up"] == 0
+
+
+class TestAnnounceAdapters:
+    def test_announce_urls_are_distinct(self):
+        """公告三站探活地址应为各自搜索端点，而非共用首页。"""
+        assert "/noc/search/nocGBPage" in _ANNOUNCE_ADAPTERS["gb"]
+        assert "/noc/search/nocHBPage" in _ANNOUNCE_ADAPTERS["hb"]
+        assert "/noc/search/nocDBPage" in _ANNOUNCE_ADAPTERS["db"]
+        assert len(set(_ANNOUNCE_ADAPTERS.values())) == 3
+
+    @patch("docker.health_check_service._write_health")
+    @patch("docker.health_check_service._probe")
+    @patch("docker.health_check_service.create_default_sites")
+    def test_announce_probe_uses_distinct_urls(self, mock_sites, mock_probe, mock_write):
+        """公告三站探活应分别发往各自端点 URL。"""
+        mock_sites.return_value = []
+        mock_probe.return_value = "up"
+
+        run_health_check()
+
+        announce_calls = [c for c in mock_probe.call_args_list if c[0][1] in ("gb", "hb", "db")]
+        urls = [c[0][0] for c in announce_calls]
+        assert len(urls) == 3
+        assert len(set(urls)) == 3
+        for url in urls:
+            assert "/noc/search/noc" in url

@@ -12,11 +12,11 @@ from pilotstd.query.site_config import create_default_sites
 
 logger = logging.getLogger(__name__)
 
-# 公告适配器探活地址：键为标准类型，与状态接口的公告适配器集合对齐
+# 公告适配器探活地址：三站分别探活各自搜索端点，健康状态相互独立
 _ANNOUNCE_ADAPTERS = {
-    "gb": "https://std.samr.gov.cn",
-    "hb": "https://std.samr.gov.cn",
-    "db": "https://std.samr.gov.cn",
+    "gb": "https://std.samr.gov.cn/noc/search/nocGBPage",
+    "hb": "https://std.samr.gov.cn/noc/search/nocHBPage",
+    "db": "https://std.samr.gov.cn/noc/search/nocDBPage",
 }
 
 _HEALTH_TIMEOUT = 10  # 探活超时秒数

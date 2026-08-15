@@ -211,6 +211,8 @@ class TestCircuitBreakerSaveHealth(unittest.TestCase):
         self.assertIn("INSERT INTO adapter_state", sql)
         self.assertIn("ON CONFLICT(adapter_name) DO UPDATE SET", sql)
         self.assertIn("freeze_count = excluded.freeze_count", sql)
+        # adapter_name 使用 standard_type（'gb'），与 /api/adapter/status 读取口径一致
+        self.assertEqual(mock_db.execute.call_args[0][1][0], "gb")
 
     @patch("pilotstd.announcement._circuit_breaker.get_db_path")
     @patch("pilotstd.announcement._circuit_breaker.Database")
@@ -244,7 +246,7 @@ class TestCircuitBreakerCheckFrozen(unittest.TestCase):
 
         with self.assertRaises(AdapterFrozenError) as ctx:
             self.crawler._cb_check_frozen()
-        self.assertEqual(ctx.exception.adapter_name, self.crawler.site_name)
+        self.assertEqual(ctx.exception.adapter_name, self.crawler.standard_type)
         self.assertGreater(ctx.exception.remaining_seconds, 0)
 
     @patch("pilotstd.announcement._circuit_breaker.CircuitBreaker.save_health")

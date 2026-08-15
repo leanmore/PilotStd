@@ -24,7 +24,8 @@ class BaseAnnounceCrawler(ABC):
     """公告抓取适配器基类。每个站点/公告类型一个子类。"""
 
     def __init__(self, config: Any = None, _http: Any = None):
-        self._cb = CircuitBreaker(lambda: self.site_name)  # 组合，非继承
+        # 熔断状态以标准类型为键写入适配器状态表，与状态接口读取口径一致
+        self._cb = CircuitBreaker(lambda: self.standard_type)  # 组合，非继承
         self._http = _http
 
     # ──熔断委托（→）──
