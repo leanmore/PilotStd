@@ -2,6 +2,7 @@
 import os
 import re
 
+from fastapi import Request
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 
@@ -28,9 +29,9 @@ def _extract_timestamp(line: str) -> str | None:
     return m2.group(1) if m2 else None
 
 
-@require_role("admin")
 @router.get("/api/logs")
-def get_logs(tail: int = 50, since: str = ""):
+@require_role("admin")
+def get_logs(request: Request, tail: int = 50, since: str = ""):
     """返回日志行。支持增量模式。
 
     - since 为空：返回最近 tail 条日志（首次加载）
@@ -88,9 +89,9 @@ def get_logs(tail: int = 50, since: str = ""):
     }
 
 
-@require_role("admin")
 @router.get("/api/admin/logs/app")
-def get_app_log_raw():
+@require_role("admin")
+def get_app_log_raw(request: Request):
     """返回完整 app.log 文件内容（管理员权限，供压测驱动器远端取回）。
 
     返回纯文本，Content-Type: text/plain; charset=utf-8。
@@ -107,9 +108,10 @@ def get_app_log_raw():
     )
 
 
-@require_role("admin")
 @router.delete("/api/admin/logs")
+@require_role("admin")
 def clear_logs(
+    request: Request,
     before_hours: int = 24,
 ):
     """清除 before_hours 小时前的日志条目（仅管理员）。
