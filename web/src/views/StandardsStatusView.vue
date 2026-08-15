@@ -14,7 +14,7 @@ import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 
-const MAX_SIZE = 150
+const MAX_SIZE = 100
 
 const stats = ref({ active: 0, inactive: 0, unknown: 0 })
 const allItems = ref<StandardStatusItem[]>([])
@@ -93,7 +93,10 @@ async function loadList() {
     allItems.value = r.items
     total.value = r.total
   } catch (e: any) {
-    errMsg.value = e.response?.data?.error || '加载失败'
+    // FastAPI 422 校验错误在 detail 数组而非 error 字段，需优先解析 detail[0].msg
+    errMsg.value = e.response?.data?.detail?.[0]?.msg
+      || e.response?.data?.error
+      || '加载失败'
   } finally {
     loading.value = false
   }
