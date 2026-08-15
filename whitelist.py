@@ -3,14 +3,6 @@
 # 用法: vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=80
 
 # ── FastAPI 依赖注入参数（Depends 有副作用，不可删除） ──
-user  # unused variable (docker/api/api_keys.py:15)
-user  # unused variable (docker/api/api_keys.py:24)
-key_id  # unused variable (docker/api/api_keys.py:33)
-user  # unused variable (docker/api/api_keys.py:33)
-key_id  # unused variable (docker/api/api_keys.py:42)
-user  # unused variable (docker/api/api_keys.py:42)
-key_id  # unused variable (docker/api/api_keys.py:52)
-user  # unused variable (docker/api/api_keys.py:52)
 user  # unused variable (docker/api/settings.py:79)
 user  # unused variable (docker/api/settings.py:119)
 user  # unused variable (docker/api/settings.py:125)
