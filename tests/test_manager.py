@@ -343,12 +343,12 @@ class TestDownloadMixin(unittest.TestCase):
         mgr._core.pending_svc.enqueue_download_wait.assert_called_once()
 
     def test_download_by_numbers_delegates(self):
-        """download_by_numbers 委托 _scheduled_svc，不抛异常。"""
+        """download_by_numbers 委托 _core.scheduled_svc，不抛异常。"""
         from unittest.mock import MagicMock
 
         mgr = StandardManager()
-        mgr._scheduled_svc = MagicMock()
-        mgr._scheduled_svc.download_by_numbers.return_value = ([], MagicMock())
+        mgr._core.scheduled_svc = MagicMock()
+        mgr._core.scheduled_svc.download_by_numbers.return_value = ([], MagicMock())
         result = mgr.download_by_numbers(["GB/T 1-2020"])
         self.assertIsNotNone(result)
 
