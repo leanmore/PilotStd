@@ -80,9 +80,7 @@ class CircuitBreaker:
             return
         try:
             db = Database(get_db_path())
-            row = db.fetchone(
-                f"SELECT * FROM {_HEALTH_TABLE} WHERE adapter_name=?", (self._site,)
-            )
+            row = db.fetchone(f"SELECT * FROM {_HEALTH_TABLE} WHERE adapter_name=?", (self._site,))
             if row:
                 self.freeze_count = row["freeze_count"] or 0
                 self.fail_streak = row["fail_streak"] or 0
@@ -103,16 +101,22 @@ class CircuitBreaker:
             logger.warning("[CB] %s: 加载健康状态失败: %s", self._site, e)
 
     def save_health(self) -> None:
-        """全量保存健康状态到 adapter_health 表。"""
+        """全量保存健康状态到 adapter_state 表（UPSERT，仅更新公告侧字段组）。"""
         try:
             now = datetime.now(timezone.utc).isoformat()
             ft = self.first_freeze_time.isoformat() if self.first_freeze_time else None
             fu = self.frozen_until.isoformat() if self.frozen_until else None
             db = Database(get_db_path())
             db.execute(
-                f"INSERT OR REPLACE INTO {_HEALTH_TABLE} "
+                f"INSERT INTO {_HEALTH_TABLE} "
                 "(adapter_name, freeze_count, first_freeze_time, frozen_until, fail_streak, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(adapter_name) DO UPDATE SET "
+                "freeze_count = excluded.freeze_count, "
+                "first_freeze_time = excluded.first_freeze_time, "
+                "frozen_until = excluded.frozen_until, "
+                "fail_streak = excluded.fail_streak, "
+                "updated_at = excluded.updated_at",
                 (self._site, self.freeze_count, ft, fu, self.fail_streak, now),
             )
             db.close()
@@ -169,6 +173,8 @@ class CircuitBreaker:
         self.save_health()
         logger.info(
             "[FREEZE] %s 触发冻结，第 %d 次，持续 %d 分钟",
-            self._site, self.freeze_count, duration // 60,
+            self._site,
+            self.freeze_count,
+            duration // 60,
         )
         return True

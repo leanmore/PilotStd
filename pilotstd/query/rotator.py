@@ -333,16 +333,25 @@ class SiteRotator:
         site.consecutive_errors = 0
 
     def _save(self, db: Optional[Any] = None) -> None:
-        """持久化所有站点冷却状态到数据库。"""
+        """持久化所有站点冷却状态到数据库（UPSERT，仅更新查询侧字段组）。"""
         target = db or self._db
         if not target:
             return
         try:
             for name, site in self._sites.items():
                 target.execute(
-                    "INSERT OR REPLACE INTO adapter_state "
-                    "(adapter_name, request_count, daily_count, daily_date, cooldown_until, consecutive_errors, active_url, updated_at) "  # noqa: E501
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))",
+                    "INSERT INTO adapter_state "
+                    "(adapter_name, request_count, daily_count, daily_date, cooldown_until, "
+                    "consecutive_errors, active_url, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime')) "
+                    "ON CONFLICT(adapter_name) DO UPDATE SET "
+                    "request_count = excluded.request_count, "
+                    "daily_count = excluded.daily_count, "
+                    "daily_date = excluded.daily_date, "
+                    "cooldown_until = excluded.cooldown_until, "
+                    "consecutive_errors = excluded.consecutive_errors, "
+                    "active_url = excluded.active_url, "
+                    "updated_at = excluded.updated_at",
                     (
                         name,
                         site.request_count,

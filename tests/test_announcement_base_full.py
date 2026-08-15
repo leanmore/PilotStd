@@ -208,7 +208,9 @@ class TestCircuitBreakerSaveHealth(unittest.TestCase):
         mock_db.execute.assert_called_once()
         mock_db.close.assert_called_once()
         sql = mock_db.execute.call_args[0][0]
-        self.assertIn("INSERT OR REPLACE", sql)
+        self.assertIn("INSERT INTO adapter_state", sql)
+        self.assertIn("ON CONFLICT(adapter_name) DO UPDATE SET", sql)
+        self.assertIn("freeze_count = excluded.freeze_count", sql)
 
     @patch("pilotstd.announcement._circuit_breaker.get_db_path")
     @patch("pilotstd.announcement._circuit_breaker.Database")
