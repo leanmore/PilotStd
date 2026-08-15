@@ -1,7 +1,7 @@
 # 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
 import logging
 
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
@@ -9,11 +9,14 @@ from pydantic import BaseModel
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
-from ..auth import get_current_user_id, require_role
+from ..auth import get_current_user_id
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["notification"])
+
+# SEC-001: 本模块 9 个接口移除 @require_role —— 通知是用户级功能，
+# 认证由 AuthMiddleware 保证，用户间隔离通过 user_id=Depends(_get_user_id)。
 
 # ════════════════════════════════════════════════════════════════ 分隔
 # 辅助函数：用户提取+通知管理器获取
@@ -34,9 +37,8 @@ def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
     return mgr.notification_mgr
 
 
-@require_role("admin")
 @router.get("/api/notification/config")
-def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id)):
+def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id)):
     """读取当前用户的渠道凭证配置。"""
     nmgr = mgr.notification_mgr
     creds: dict[str, dict[str, str]] = {}
@@ -89,9 +91,9 @@ def get_config(mgr=Depends(get_manager_dep), user_id: int = Depends(_get_user_id
     }
 
 
-@require_role("admin")
 @router.put("/api/notification/config")
 def update_config(
+    request: Request,
     body: dict,
     mgr=Depends(get_manager_dep),
     user_id: int = Depends(_get_user_id),
@@ -120,9 +122,8 @@ def update_config(
     return {"ok": True}
 
 
-@require_role("admin")
 @router.post("/api/notification/test")
-def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
+def test_notification(request: Request, body: dict, nmgr=Depends(_get_notification_mgr)):
     """发送测试通知到指定渠道。
 
     body:
@@ -147,9 +148,9 @@ def test_notification(body: dict, nmgr=Depends(_get_notification_mgr)):
     return result
 
 
-@require_role("admin")
 @router.get("/api/notification/logs")
 def get_logs(
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     channel: str | None = Query(None),
@@ -191,7 +192,6 @@ def get_logs(
     }
 
 
-@require_role("admin")
 @router.post("/api/notification/read")
 def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notification_mgr)):
     """标记单条或全部通知为已读。id=None 表示全部标记已读。"""
@@ -210,9 +210,8 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@require_role("admin")
 @router.get("/api/notification/unread-count")
-def get_unread_count(nmgr=Depends(_get_notification_mgr)):
+def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""
     try:
         count = nmgr.get_unread_count()
@@ -222,9 +221,9 @@ def get_unread_count(nmgr=Depends(_get_notification_mgr)):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@require_role("admin")
 @router.delete("/api/notification/logs")
 def delete_notification_logs(
+    request: Request,
     days: int = Query(30, ge=1, le=365),
     nmgr=Depends(_get_notification_mgr),
 ):
@@ -248,9 +247,8 @@ class PolicyUpdateRequest(BaseModel):
     events: list[str] | None = None
 
 
-@require_role("admin")
 @router.get("/api/notification/policy")
-def get_policy(nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_user_id)):
+def get_policy(request: Request, nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_user_id)):
     """获取通知策略配置（渠道事件订阅，按用户隔离）。"""
     try:
         policies = nmgr.get_policies(user_id)
@@ -260,9 +258,9 @@ def get_policy(nmgr=Depends(_get_notification_mgr), user_id: int = Depends(_get_
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@require_role("admin")
 @router.put("/api/notification/policy")
 def put_policy(
+    request: Request,
     data: PolicyUpdateRequest,
     nmgr=Depends(_get_notification_mgr),
     user_id: int = Depends(_get_user_id),
