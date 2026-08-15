@@ -90,7 +90,7 @@ class StandardService:
 
         where_sql, params = self._build_where(filters, alias="f")
 
-        total = db.fetchone(f"SELECT COUNT(*) AS cnt FROM file_index {where_sql}", tuple(params))
+        total = db.fetchone(f"SELECT COUNT(*) AS cnt FROM file_index f {where_sql}", tuple(params))
 
         # 左连接标准有效性表获取检查时间与次数（一对一关系，无需分组）
         rows = db.fetchall(

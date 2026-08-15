@@ -171,3 +171,11 @@ class TestGetList:
         svc.get_list(filters={"status": "已废止"})
         sql_called = mock_mgr.db.fetchall.call_args[0][0]
         assert "IN (?, ?)" in sql_called or "status" in sql_called
+
+    def test_count_query_includes_table_alias(self, mock_mgr, svc):
+        """COUNT 查询必须带表别名 f，否则 where 子句的 f.status 列引用无法解析。"""
+        mock_mgr.db.fetchone.return_value = {"cnt": 0}
+        mock_mgr.db.fetchall.return_value = []
+        svc.get_list()
+        count_sql = mock_mgr.db.fetchone.call_args[0][0]
+        assert "FROM file_index f" in count_sql
