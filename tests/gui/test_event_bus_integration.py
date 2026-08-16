@@ -300,7 +300,8 @@ def test_scan_handler_emits_events(window, test_data_dir, qtbot, tmp_path):
     if worker is not None:
         qtbot.waitUntil(lambda: not worker.isRunning(), timeout=30000)
 
-    qtbot.waitUntil(lambda: len(events) > 0, timeout=3000)
+    # 等待 finished 事件（finished 后于 batch 到达，等 finished 即隐含 batch 已到）
+    qtbot.waitUntil(lambda: any(e[0] == "finished" for e in events), timeout=3000)
     assert any(e[0] == "batch" for e in events), f"应收到 batch 事件: {events}"
     assert any(e[0] == "finished" for e in events), f"应收到 finished 事件: {events}"
 
