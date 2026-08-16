@@ -109,8 +109,9 @@ class TestStdGovAdapterProperties:
         adapter = StdGovAdapter()
         assert adapter.site_label == "国家标准公开"
 
-    def test_search_url_constant(self):
-        assert StdGovAdapter.SEARCH_URL == "https://std.samr.gov.cn/search/stdPage"
+    def test_search_url(self):
+        adapter = StdGovAdapter()
+        assert adapter.get_search_url() == "https://std.samr.gov.cn/search/stdPage"
 
 
 # ═══════════════════════════════════════════
@@ -183,10 +184,10 @@ class TestAhbzAdapter:
         assert a.site_name == "ahbz"
         assert a.site_label == "安徽标准平台"
 
-    def test_search_url_constant(self):
-        from pilotstd.query.adapters.ahbz import SEARCH_URL
+    def test_search_url(self):
+        from pilotstd.query.adapters.ahbz import AhbzAdapter
 
-        assert SEARCH_URL == "https://bzxx.ahbz.org.cn/standard/query"
+        assert AhbzAdapter().get_search_url() == "https://bzxx.ahbz.org.cn/standard/query"
 
 
 # ═══════════════════════════════════════════
