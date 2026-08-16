@@ -7,7 +7,7 @@ from typing import Any
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
-from pilotstd.query.network import safe_raw_get
+from pilotstd.query.network import CHROME_UA, safe_raw_get
 from pilotstd.query.site_config import create_default_sites
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,9 @@ def _probe(url: str, site_name: str) -> str:
     """对单个站点做轻量级 GET 探活，返回 'up' 或 'down'。"""
     # energy 为纯 IP + 自签名证书站点，跳过 SSL 验证（与适配器 verify=False 保持一致）
     verify = site_name != "energy"
-    resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify)
+    # 用浏览器 UA 探活，避免站点反爬拦截（与公告/查询适配器保持一致）
+    headers = {"User-Agent": CHROME_UA}
+    resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
     if resp is not None and resp.status_code < 400:
         return "up"
     return "down"
