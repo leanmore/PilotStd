@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAppStore } from './stores/app'
 import { cancelByRouteTag } from './api/http'
+// [架构说明] 此处刻意使用原生 axios，不引入 @/api/http。
+// 原因：http.ts 的 401 拦截器动态 import router，若此处反向引入 http，
+// 将形成循环依赖，且登录检查的 401 与守卫跳转逻辑冲突。
 import axios from 'axios'
 
 const routes = [

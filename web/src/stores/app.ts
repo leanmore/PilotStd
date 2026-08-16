@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+// [架构说明] 此处刻意使用原生 axios，不引入 @/api/http。
+// 原因：http.ts 的 401 拦截器静态依赖 useAppStore，若此处反向引入 http，
+// 将导致静态循环依赖（stores/app ↔ http）。
 import axios from 'axios'
 import { THEMES, applyThemeToDom } from '@/config/themes'
 import { useUserPreferences } from '@/composables/useUserPreferences'

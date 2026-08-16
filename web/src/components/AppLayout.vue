@@ -11,6 +11,9 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useDashboard } from '@/composables/useDashboard'
+// [架构说明] 此处刻意使用原生 axios，不引入 @/api/http。
+// 原因：登出需独立于 http 拦截器（登出后清状态 + 跳 /login），
+// 避免 401 拦截器的全局跳转逻辑二次干扰。
 import axios from 'axios'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
