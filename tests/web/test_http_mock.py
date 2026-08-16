@@ -168,7 +168,7 @@ class TestHbbaAdapter:
     def test_search_url_is_correct(self):
         from pilotstd.query.adapters.hbba import HbbaAdapter
 
-        assert HbbaAdapter.API_URL == "https://hbba.sacinfo.org.cn/stdQueryList"
+        assert HbbaAdapter().get_search_url() == "https://hbba.sacinfo.org.cn/stdQueryList"
 
 
 # ═══════════════════════════════════════════

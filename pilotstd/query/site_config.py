@@ -309,9 +309,16 @@ def _create_sites_part1() -> list[SiteState]:
             cooldown_seconds=900,
             request_interval=0.5,
         ),
-        S(name="iso_gov", base_url="https://std.samr.gov.cn", search_url="https://std.samr.gov.cn/gj/search/gjPage", probe_url="https://std.samr.gov.cn/gj/search/gjPage", max_requests=200, daily_limit=800, request_interval=0.5),
-        S(name="njbz365", base_url="https://www.njbz365.cn", search_url="https://www.njbz365.cn/apis", max_requests=200, daily_limit=800, request_interval=3.0),
-        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", search_url="https://dbba.sacinfo.org.cn/stdQueryList", max_requests=200, daily_limit=800, request_interval=0.5),
+        S(name="iso_gov", base_url="https://std.samr.gov.cn",
+          search_url="https://std.samr.gov.cn/gj/search/gjPage",
+          probe_url="https://std.samr.gov.cn/gj/search/gjPage",
+          max_requests=200, daily_limit=800, request_interval=0.5),
+        S(name="njbz365", base_url="https://www.njbz365.cn",
+          search_url="https://www.njbz365.cn/apis",
+          max_requests=200, daily_limit=800, request_interval=3.0),
+        S(name="dbba", base_url="https://dbba.sacinfo.org.cn",
+          search_url="https://dbba.sacinfo.org.cn/stdQueryList",
+          max_requests=200, daily_limit=800, request_interval=0.5),
     ]
 
 

@@ -44,6 +44,7 @@ spec-lite.md 模板（4个必填区块）：
 | 涉及数据库/Schema | `docs/architecture.md` |
 | 涉及公告解析/入库 | `docs/reference/announcement-pipeline.md` |
 | 涉及公告来源判断 | `docs/reference/announcement-sources.md` |
+| 开发或修改适配器 | `docs/reference/adapter-development.md` |
 | 涉及前端 UI 组件 | `docs/reference/ui-components.md` |
 | 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` |
 | 涉及门禁配置变更 | `docs/governance/gates.md` |

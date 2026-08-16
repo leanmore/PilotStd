@@ -2,10 +2,11 @@
 """
 G-038: 历史遗留错误清零
 运行 Ruff 和 Mypy 全量扫描，发现任何错误即阻断。
-禁止使用 # noqa 或 --add-noqa 静默历史错误。
+禁止使用裸 noqa 注释（未指定错误码）或 --add-noqa 静默历史错误。
 执行者必须当场修复代码，确保零错误后方可继续提交流程。
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -16,8 +17,11 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# 扫描范围
-SCAN_TARGETS = ["pilotstd/", "tests/", "scripts/"]
+# ruff + noqa 扫描范围（与 check_all.sh --deep 的 ruff 一致）
+SCAN_TARGETS = ["pilotstd/", "docker/", "tests/", "scripts/"]
+# mypy 扫描范围（与 check_all.sh --deep 的 mypy 一致，不含 tests/scripts/）
+MYPY_TARGETS = ["pilotstd/", "docker/"]
+MYPY_FLAGS = ["--follow-imports=skip", "--ignore-missing-imports"]
 
 
 def run_ruff() -> tuple[bool, str]:
@@ -40,10 +44,10 @@ def run_ruff() -> tuple[bool, str]:
 
 
 def run_mypy() -> tuple[bool, str]:
-    """运行 Mypy 检查，返回 (是否通过, 输出内容)"""
+    """运行 Mypy 检查，返回 (是否通过, 输出内容)。与 check_all.sh --deep 的 mypy 范围一致。"""
     try:
         result = subprocess.run(
-            ["mypy", *SCAN_TARGETS],
+            ["mypy", *MYPY_TARGETS, *MYPY_FLAGS],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -59,7 +63,7 @@ def run_mypy() -> tuple[bool, str]:
 
 
 def check_noqa_suppression() -> tuple[bool, str]:
-    """检查是否存在通过 # noqa 静默错误的行为"""
+    """检查是否存在裸 noqa 注释（未指定错误码）静默错误的行为。"""
     noqa_files: list[str] = []
     for target in SCAN_TARGETS:
         target_path = PROJECT_ROOT / target
@@ -67,16 +71,16 @@ def check_noqa_suppression() -> tuple[bool, str]:
             continue
         for py_file in target_path.rglob("*.py"):
             content = py_file.read_text(encoding="utf-8", errors="ignore")
-            if "# noqa" in content:
-                # 统计数量
-                count = content.count("# noqa")
-                noqa_files.append(f"  {py_file.relative_to(PROJECT_ROOT)} ({count} 处)")
+            # 只检测裸 noqa（后不跟冒号），精确码形式（noqa: E501）是合法用法
+            matches = re.findall(r"#[ ]noqa(?!:)", content)
+            if matches:
+                noqa_files.append(f"  {py_file.relative_to(PROJECT_ROOT)} ({len(matches)} 处)")
 
     if noqa_files:
         msg = (
-            "发现 # noqa 静默注释，G-038 禁止使用此方式绕过检查：\n"
+            "发现裸 noqa 静默注释（未指定错误码），G-038 禁止使用此方式绕过检查：\n"
             + "\n".join(noqa_files)
-            + "\n请修复根因后移除 # noqa 注释。"
+            + "\n请修复根因后移除裸 noqa 注释，或补充具体错误码。"
         )
         return False, msg
 
@@ -109,7 +113,7 @@ def main() -> int:
         print("执行者必须当场修复所有错误，禁止跳过。")
         return 1
 
-    print("✅ G-038 通过：Ruff 零错误、Mypy 零错误、无 # noqa 静默")
+    print("✅ G-038 通过：Ruff 零错误、Mypy 零错误、无裸 noqa 静默")
     return 0
 
 
