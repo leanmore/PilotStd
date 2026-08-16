@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useDashboard } from '@/composables/useDashboard'
+import { useFloatingDrag } from '@/composables/useFloatingDrag'
 import http from '@/api/http'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
@@ -106,6 +107,7 @@ async function logout() {
 
 // ── 悬浮工作台按钮（统一入口，路由动态切换）──
 const { availableCards, addCard, resetLayout } = useDashboard()
+const { x, y, onPointerDown, onPointerMove, onPointerUp, consumeClick } = useFloatingDrag()
 const menuOpen = ref(false)
 const triggerBtnId = 'workspace-menu-trigger'
 const dropdownId = 'workspace-dropdown'
@@ -127,6 +129,14 @@ function closeMenu() {
   menuOpen.value = false
   // 焦点归还触发按钮
   document.getElementById(triggerBtnId)?.focus()
+}
+
+/** 悬浮按钮统一点击入口：先吞掉拖拽触发的 click，再按路由态分发原行为 */
+function onFloatingButtonClick() {
+  if (consumeClick()) return
+  if (isAnnounceDetail.value) router.back()
+  else if (isHomeRoute.value) toggleMenu()
+  else router.push('/')
 }
 
 function onClickOutside(e: MouseEvent) {
@@ -198,14 +208,17 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
       </router-link>
     </nav>
 
-    <!-- ═══ 全局悬浮按钮（桌面端右下角，路由动态切换） ═══ -->
-    <div v-if="!isMobile" class="floating-workspace-menu" :class="{ open: menuOpen }">
+    <!-- ═══ 全局悬浮按钮（桌面端右下角，路由动态切换，可拖拽） ═══ -->
+    <div v-if="!isMobile" class="floating-workspace-menu" :class="{ open: menuOpen }" :style="{ left: x + 'px', top: y + 'px' }">
 
       <!-- 模式1：公告详情页 — 返回列表 -->
       <button
         v-if="isAnnounceDetail"
         class="floating-workspace-btn"
-        @click="router.back()"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @click="onFloatingButtonClick"
         aria-label="返回列表"
       >
         <i class="pi pi-undo" />
@@ -216,7 +229,10 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         <button
           :id="triggerBtnId"
           class="floating-workspace-btn"
-          @click.stop="toggleMenu"
+          @pointerdown="onPointerDown"
+          @pointermove="onPointerMove"
+          @pointerup="onPointerUp"
+          @click.stop="onFloatingButtonClick"
           aria-label="工作台菜单"
           aria-haspopup="true"
           :aria-expanded="menuOpen"
@@ -266,7 +282,10 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
       <button
         v-else
         class="floating-workspace-btn"
-        @click="router.push('/')"
+        @pointerdown="onPointerDown"
+        @pointermove="onPointerMove"
+        @pointerup="onPointerUp"
+        @click="onFloatingButtonClick"
         aria-label="返回工作台"
       >
         <i class="pi pi-home" />
@@ -426,8 +445,6 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
    ═══════════════════════════════════════════ */
 .floating-workspace-menu {
   position: fixed;
-  bottom: 32px;
-  right: 24px;
   z-index: 1000;
 }
 
@@ -445,6 +462,8 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
   cursor: pointer;
+  /* 阻止触摸拖拽时触发页面滚动 */
+  touch-action: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .floating-workspace-btn:hover {
