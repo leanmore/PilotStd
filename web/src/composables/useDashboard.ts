@@ -6,8 +6,8 @@
  * AppLayout 的悬浮菜单消费 isLocked / availableCards。
  */
 import { ref, computed, type Component, markRaw } from 'vue'
-import http from '@/api/http'
 import { useAppStore } from '@/stores/app'
+import { usePreferencesStore } from '@/stores/preferences'
 import { getUserItem, setUserItem, migrateLegacyPreferences } from '@/lib/userStorage'
 import StatsCard from '@/components/dashboard/widgets/StatsCard.vue'
 import AdapterStatusAnnounceCard from '@/components/dashboard/widgets/AdapterStatusAnnounceCard.vue'
@@ -106,17 +106,13 @@ async function fetchLayout() {
   }
 
   // 2. 异步拉取服务器配置（仅成功且有效时才覆盖本地）
-  try {
-    const res = await http.get('/user/preferences/layout:dashboard', { routeTag: '/' })
-    if (fetchVersion !== version) return
-    const raw = res.data?.value   // 后端已 json.loads，value 直接是布局数组
-    if (Array.isArray(raw) && raw.length > 0) {
-      layout.value = hydrateLayout(raw)
-      if (uid) setUserItem(uid, LAYOUT_STORAGE_KEY, JSON.stringify(raw))
-      return
-    }
-  } catch { /* 服务器不可用，继续使用本地缓存 */ }
+  const raw = await usePreferencesStore().getDashboardLayout('/')
   if (fetchVersion !== version) return
+  if (Array.isArray(raw) && raw.length > 0) {
+    layout.value = hydrateLayout(raw)
+    if (uid) setUserItem(uid, LAYOUT_STORAGE_KEY, JSON.stringify(raw))
+    return
+  }
 
   // 3. 无任何数据 → 默认布局
   if (!hasLocal) resetLayout()
@@ -132,11 +128,8 @@ async function saveLayoutToServer(newLayout?: any[]) {
     setUserItem(store.userId, LAYOUT_STORAGE_KEY, JSON.stringify(payload))
   }
 
-  try {
-    await http.put('/user/preferences/layout:dashboard', { value: payload })
-  } catch {
-    console.warn('布局保存到服务器失败，已保留本地缓存')
-  }
+  const ok = await usePreferencesStore().setDashboardLayout(payload)
+  if (!ok) console.warn('布局保存到服务器失败，已保留本地缓存')
 }
 
 function handleLayoutUpdated(newLayout: any[]) {

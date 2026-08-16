@@ -2,9 +2,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import http from '@/api/http'
+import type { RouteTag } from '@/types/route-tag'
 
 // 系统默认值，对应后端 UserPreferenceManager.DEFAULT_PREFERENCES
-// 新 API 返回 {key, value} 扁平结构，此处补全缺失字段的兜底值
+// 批量接口返回 {preferences: {key: value}} 扁平结构，此处补全缺失字段的兜底值
 const DEFAULTS: Record<string, unknown> = {
   ui: {
     theme: 'light',
@@ -33,13 +34,6 @@ const DEFAULTS: Record<string, unknown> = {
   },
 }
 
-// 需要从后端拉取的全部顶层 key（与 DEFAULTS + 组件动态写入的 key 并集）
-const TOP_KEYS = [
-  'ui', 'search', 'notifications', 'download', 'layouts',
-  'sidebar_collapsed', 'announce_since_date', 'system_sections',
-  'task_path', 'notification_quiet_hours',
-]
-
 function _deepMerge(target: Record<string, unknown>, source: Record<string, unknown>) {
   for (const key of Object.keys(source)) {
     const sv = source[key]
@@ -63,18 +57,12 @@ export const usePreferencesStore = defineStore('preferences', () => {
   async function getAll(): Promise<Record<string, unknown>> {
     loading.value = true
     try {
-      const results = await Promise.allSettled(
-        TOP_KEYS.map(k =>
-          http.get(`/user/preferences/${encodeURIComponent(k)}`, { skipGlobalAuthRedirect: true }),
-        ),
-      )
+      // 后端批量接口一次返回全部 KV，替代逐 key 并行 GET
+      const { data } = await http.get('/user/preferences', { skipGlobalAuthRedirect: true })
       const assembled: Record<string, unknown> = {}
       _deepMerge(assembled, DEFAULTS)
-      for (let i = 0; i < TOP_KEYS.length; i++) {
-        const r = results[i]
-        if (r.status === 'fulfilled' && r.value?.data?.value != null) {
-          assembled[TOP_KEYS[i]] = r.value.data.value
-        }
+      if (data?.preferences && typeof data.preferences === 'object') {
+        _deepMerge(assembled, data.preferences)
       }
       cache.value = assembled
     } catch { /* 后端不可用，保持现有缓存 */ }
@@ -110,23 +98,21 @@ export const usePreferencesStore = defineStore('preferences', () => {
     }
   }
 
-  async function remove(key: string): Promise<void> {
-    delete cache.value[key]
+  /** 读取仪表盘布局（key 为 layout:dashboard，调用方传入 routeTag 以支持路由级取消） */
+  async function getDashboardLayout(routeTag?: RouteTag): Promise<unknown> {
     try {
-      await http.delete(`/user/preferences/${encodeURIComponent(key)}`)
-    } catch { /* ignore */ }
+      const { data } = await http.get('/user/preferences/layout:dashboard', { routeTag })
+      return data?.value
+    } catch { return null }
   }
 
-  async function resetAll(): Promise<void> {
+  /** 保存仪表盘布局，返回是否成功（供调用方决定降级提示） */
+  async function setDashboardLayout(payload: unknown): Promise<boolean> {
     try {
-      await Promise.allSettled(
-        TOP_KEYS.map(k => http.delete(`/user/preferences/${encodeURIComponent(k)}`)),
-      )
-    } catch { /* ignore */ }
-    cache.value = {}
-    _deepMerge(cache.value, DEFAULTS)
-    pendingSync.value = {}
+      await http.put('/user/preferences/layout:dashboard', { value: payload })
+      return true
+    } catch { return false }
   }
 
-  return { cache, loading, get, set, getAll, setAll, remove, resetAll }
+  return { cache, loading, get, set, getAll, setAll, getDashboardLayout, setDashboardLayout }
 })
