@@ -108,6 +108,9 @@ def safe_request(
                 _monitor.record_retry(site_name)
                 time.sleep(1)
                 continue
+            # 4xx/5xx（非可重试）记录警告，避免健康检查静默 down
+            if resp.status_code >= 400:
+                logger.warning("%s HTTP %s: %s", site_name, resp.status_code, url)
             return resp
         except (requests.Timeout, requests.ConnectionError) as e:
             if attempt < MAX_RETRIES:
