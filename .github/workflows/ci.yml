@@ -832,7 +832,7 @@ jobs:
 
       - name: Build frontend
         env:
-          VITE_SUPERUSER_ROLE: superadmin
+          VITE_SUPERUSER_USERNAME: superadmin
         run: |
           cd web
           rm -rf node_modules/.vite
