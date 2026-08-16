@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAppStore } from './stores/app'
-import { cancelRequestsByTag } from './api/http'
+import { cancelByRouteTag } from './api/http'
 import axios from 'axios'
 
 const routes = [
@@ -118,7 +118,12 @@ const routes = [
 const router = createRouter({ history: createWebHistory(), routes })
 
 router.beforeEach(async (to, from, next) => {
-  cancelRequestsByTag(from.path)
+  // 仅跨路由（path 变化）时取消离开路由的请求；同路由 Tab 切换（query 变化、path 不变）
+  // 不触发取消，否则会误杀新 Tab onMounted 刚发出的初始化请求
+  if (from.path !== to.path) {
+    const fromTag = from.matched[from.matched.length - 1]?.path || from.path
+    cancelByRouteTag(fromTag)
+  }
   if (to.meta.guest) return next()
   const store = useAppStore()
   if (store.loggedIn) return next()
