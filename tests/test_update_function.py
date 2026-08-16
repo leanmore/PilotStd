@@ -55,7 +55,7 @@ class TestUpdateFunction:
                 ("sha256:new", 0),
                 ("done", 0),
             )
-            result = asyncio.run(_update_container_raw())
+            result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is True
         assert result["restarted"] is True
 
@@ -66,13 +66,13 @@ class TestUpdateFunction:
             ("Image is up to date\n", 0),
             ("sha256:same", 0),
         )
-        result = asyncio.run(_update_container_raw())
+        result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is False
 
     def test_03_no_container_id(self):
         self.mock_cid.return_value = ""
         with pytest.raises(HTTPException) as ctx:
-            asyncio.run(_update_container_raw())
+            asyncio.run(_update_container_raw(None))
         assert ctx.value.status_code == 500
 
     def test_04_docker_inspect_fails(self):
@@ -89,7 +89,7 @@ class TestUpdateFunction:
 
         self.mock_docker.side_effect = _fail
         with pytest.raises(HTTPException) as ctx:
-            asyncio.run(_update_container_raw())
+            asyncio.run(_update_container_raw(None))
         assert ctx.value.status_code == 503
 
     def test_05_docker_pull_network_error(self):
@@ -106,7 +106,7 @@ class TestUpdateFunction:
 
         self.mock_docker.side_effect = _fail
         with pytest.raises(HTTPException) as ctx:
-            asyncio.run(_update_container_raw())
+            asyncio.run(_update_container_raw(None))
         assert ctx.value.status_code == 503
 
     def test_06_no_compose_file(self):
@@ -117,7 +117,7 @@ class TestUpdateFunction:
                 ("Downloaded newer image\n", 0),
                 ("sha256:new", 0),
             )
-            result = asyncio.run(_update_container_raw())
+            result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is True
         assert result["restarted"] is False
 
@@ -142,14 +142,14 @@ class TestUpdateFunction:
 
         self.mock_docker.side_effect = _fail
         with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
-            result = asyncio.run(_update_container_raw())
+            result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is True
         assert result["restarted"] is False
 
     def test_08_docker_pull_timeout(self):
         self.mock_docker.side_effect = subprocess.TimeoutExpired("pull", 300)
         with pytest.raises(HTTPException) as ctx:
-            asyncio.run(_update_container_raw())
+            asyncio.run(_update_container_raw(None))
         assert ctx.value.status_code == 504
 
     def test_09_old_digest_empty(self):
@@ -169,7 +169,7 @@ class TestUpdateFunction:
 
         self.mock_docker.side_effect = _no_old
         with patch.dict("os.environ", {"COMPOSE_FILE": "/app/c.yml", "COMPOSE_PROJECT_NAME": "p"}):
-            result = asyncio.run(_update_container_raw())
+            result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is True
 
     def test_10_no_layers_but_digest_differs(self):
@@ -181,7 +181,7 @@ class TestUpdateFunction:
                 ("sha256:new", 0),
                 ("done", 0),
             )
-            result = asyncio.run(_update_container_raw())
+            result = asyncio.run(_update_container_raw(None))
         assert result["updated"] is True
         assert result["old_digest"] == "sha256:old"
         assert result["new_digest"] == "sha256:new"

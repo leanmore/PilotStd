@@ -4,14 +4,29 @@
 import os
 import sys
 import unittest
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
+
+from jose import jwt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from docker.auth import COOKIE_NAME, SECRET, AuthMiddleware
 from docker.manager import get_manager_dep
+from docker.session_store import get_session_store
+
+
+def _make_token(role: str) -> str:
+    """生成测试用 JWT（sub 为用户 ID，role 由调用方指定）。"""
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {"sub": "1", "role": role, "iat": now, "exp": now + timedelta(hours=2)},
+        SECRET,
+        algorithm="HS256",
+    )
 
 
 class TestQuietHours(unittest.TestCase):
@@ -144,6 +159,7 @@ class TestPipelineRuns(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         app = FastAPI()
+        app.add_middleware(AuthMiddleware)
         from docker.api.tasks import router as tasks_router
 
         app.include_router(tasks_router)
@@ -151,6 +167,10 @@ class TestPipelineRuns(unittest.TestCase):
 
     def setUp(self):
         self.client.app.dependency_overrides.clear()
+        self.client.cookies.clear()
+        token = _make_token("admin")
+        get_session_store().add(token, {"username": "test"}, ttl_seconds=3600)
+        self.client.cookies.set(COOKIE_NAME, token)
 
     def test_runs_list_returns_pagination_structure(self):
         """分页接口返回标准 {total, page, page_size, items} 结构。"""
