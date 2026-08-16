@@ -1,5 +1,6 @@
 // web/src/api/validity.ts — 时效性检查 API
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 
 export interface ValidityConfig {
   /** ✅ #43: 首次执行周几（1=周一, 7=周日） */
@@ -39,7 +40,7 @@ export interface ValidityHistoryResponse {
   items: ValidityHistoryItem[]
 }
 
-export const getValidityConfig = (routeTag?: string): Promise<ValidityConfig> =>
+export const getValidityConfig = (routeTag?: RouteTag): Promise<ValidityConfig> =>
   http.get('/validity/config', { routeTag }).then(r => r.data)
 
 export const putValidityConfig = (data: Partial<ValidityConfig>): Promise<{ ok: boolean; message: string }> =>
@@ -51,7 +52,7 @@ export const runValidityCheck = (): Promise<ValidityRunResult> =>
 export const getValidityHistory = (params: {
   page?: number
   page_size?: number
-}, routeTag?: string): Promise<ValidityHistoryResponse> =>
+}, routeTag?: RouteTag): Promise<ValidityHistoryResponse> =>
   http.get('/validity/history', { params, routeTag }).then(r => r.data)
 
 export const enqueueValidityCheck = (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>

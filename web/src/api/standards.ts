@@ -1,5 +1,6 @@
 // web/src/api/standards.ts — 标准状态 API
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 
 export interface StandardStats {
   active: number
@@ -23,7 +24,7 @@ export interface StandardStatusResponse {
   items: StandardStatusItem[]
 }
 
-export const getStandardsStats = (routeTag?: string): Promise<StandardStats> =>
+export const getStandardsStats = (routeTag?: RouteTag): Promise<StandardStats> =>
   http.get('/standards/status/stats', { routeTag }).then(r => r.data)
 
 // ── 首屏内存 TTL 缓存（仅 page=1，禁止 localStorage） ──
@@ -44,7 +45,7 @@ export const getStandardsStatus = async (params: {
   name?: string
   page?: number
   page_size?: number
-}, routeTag?: string): Promise<StandardStatusResponse> => {
+}, routeTag?: RouteTag): Promise<StandardStatusResponse> => {
   // page>1 跳过缓存（增量加载页码动态变化）
   if (params.page !== undefined && params.page > 1) {
     return http.get('/standards/status', { params, routeTag }).then(r => r.data)

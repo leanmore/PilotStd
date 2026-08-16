@@ -1,11 +1,12 @@
 // web/src/api/auth.ts — 认证与用户管理
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 import type { UserListResponse, SuccessResponse } from '../types/api'
 
 export const login = (username: string, password: string): Promise<SuccessResponse> =>
   http.post('/login', new URLSearchParams({ username, password })).then(r => r.data)
 
-export const getUsers = (routeTag?: string): Promise<UserListResponse> =>
+export const getUsers = (routeTag?: RouteTag): Promise<UserListResponse> =>
   http.get('/users', { routeTag }).then(r => r.data)
 
 export const addUser = (username: string, password: string, role: string): Promise<SuccessResponse> =>

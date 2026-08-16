@@ -1,5 +1,6 @@
 // web/src/api/notification.ts — 通知配置与日志 API（v2：四渠道全参数）
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 
 export interface WechatChannelConfig {
   enabled: boolean
@@ -64,7 +65,7 @@ export interface NotificationLogResponse {
   items: NotificationLog[]
 }
 
-export const getNotificationConfig = (routeTag?: string): Promise<NotificationConfig> =>
+export const getNotificationConfig = (routeTag?: RouteTag): Promise<NotificationConfig> =>
   http.get('/notification/config', { routeTag }).then(r => r.data)
 
 export const putNotificationConfig = (data: Partial<NotificationConfig>): Promise<{ ok: boolean }> =>
@@ -84,7 +85,7 @@ export const getNotificationLogs = (params: {
   start_date?: string
   end_date?: string
   is_read?: boolean
-}, routeTag?: string): Promise<NotificationLogResponse> =>
+}, routeTag?: RouteTag): Promise<NotificationLogResponse> =>
   http.get('/notification/logs', { params, routeTag }).then(r => r.data)
 
 export const markNotificationRead = (id?: number | null): Promise<{ ok: boolean; message: string }> =>

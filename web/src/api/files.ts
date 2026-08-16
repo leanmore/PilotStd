@@ -1,8 +1,9 @@
 // web/src/api/files.ts — 文件浏览、扫描、整理、上传
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 import type { ListFilesResponse, ScanResponse, NormalizeResult, SuccessResponse, CleanResponse, UploadResponse } from '../types/api'
 
-export const getFiles = (path: string, routeTag?: string): Promise<ListFilesResponse> =>
+export const getFiles = (path: string, routeTag?: RouteTag): Promise<ListFilesResponse> =>
   http.get('/files', { params: { path }, routeTag }).then(r => r.data)
 
 export const postScan = (path: string, recursive: boolean = true, runId?: string): Promise<ScanResponse> =>

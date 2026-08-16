@@ -1,5 +1,6 @@
 // web/src/api/announce.ts — 公告抓取与结果读取
 import http from './http'
+import type { RouteTag } from '../types/route-tag'
 import type {
   AnnounceResponse,
   SuccessResponse,
@@ -7,7 +8,7 @@ import type {
   AnnouncementRecord,
 } from '../types/api'
 
-export const getAnnounceResults = (sourceSite?: string, fromDate?: string, routeTag?: string): Promise<AnnounceResponse> =>
+export const getAnnounceResults = (sourceSite?: string, fromDate?: string, routeTag?: RouteTag): Promise<AnnounceResponse> =>
   http.get('/announce/results', { params: { source_site: sourceSite || '', from_date: fromDate || '' }, routeTag }).then(r => r.data)
 
 export const postAnnounceCheck = (sinceDate?: string, types?: string): Promise<SuccessResponse> =>
@@ -16,7 +17,7 @@ export const postAnnounceCheck = (sinceDate?: string, types?: string): Promise<S
 // ── Phase 3: 公告详情 ──────────────────────────────────
 
 /** 旧格式兼容：通过 announce_no 查询所有来源的公告 */
-export const getAnnouncementByNo = (announceNo: string, routeTag?: string): Promise<Array<{ source_site: string; announce_no: string; title: string }>> =>
+export const getAnnouncementByNo = (announceNo: string, routeTag?: RouteTag): Promise<Array<{ source_site: string; announce_no: string; title: string }>> =>
   http.get(`/announcements/by-no/${encodeURIComponent(announceNo)}`, { routeTag }).then(r => r.data)
 export const getAnnouncementDetail = (announceNo: string, source?: string): Promise<AnnouncementDetail> => {
   const params = source ? { source } : {}
@@ -24,7 +25,7 @@ export const getAnnouncementDetail = (announceNo: string, source?: string): Prom
 }
 
 /** 轻量版详情：records 不含 confidence/source_type/created_at/updated_at，响应体缩减约 40% */
-export const getAnnounceDetailLite = (announceNo: string, source?: string, routeTag?: string): Promise<AnnouncementDetail> => {
+export const getAnnounceDetailLite = (announceNo: string, source?: string, routeTag?: RouteTag): Promise<AnnouncementDetail> => {
   const params = source ? { source } : {}
   return http.get(`/announcements/${encodeURIComponent(announceNo)}/lite`, { params, routeTag }).then(r => r.data)
 }

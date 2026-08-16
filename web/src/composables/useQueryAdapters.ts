@@ -3,6 +3,7 @@
 
 import { ref, type Ref } from 'vue'
 import http from '@/api/http'
+import type { RouteTag } from '@/types/route-tag'
 import type { QueryAdapterItem } from '@/types/adapter'
 
 // 模块级缓存（全局单例）
@@ -18,7 +19,7 @@ function isExpired(): boolean {
   return !cached || Date.now() - lastFetch > DEFAULT_TTL
 }
 
-async function _fetch(routeTag?: string): Promise<QueryAdapterItem[]> {
+async function _fetch(routeTag?: RouteTag): Promise<QueryAdapterItem[]> {
   const r = await http.get('/adapter/status', { params: { type: 'query' }, routeTag })
   const raw = r.data?.adapters || []
   const items: QueryAdapterItem[] = []
@@ -32,7 +33,7 @@ async function _fetch(routeTag?: string): Promise<QueryAdapterItem[]> {
   return items
 }
 
-export function useQueryAdapters(routeTag?: string) {
+export function useQueryAdapters(routeTag?: RouteTag) {
   const adapters = ref<QueryAdapterItem[]>(cached || []) as Ref<QueryAdapterItem[]>
 
   async function refresh(): Promise<void> {

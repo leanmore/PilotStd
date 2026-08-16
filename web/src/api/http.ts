@@ -1,6 +1,7 @@
 // web/src/api/http.ts — 共享 axios 实例 + 拦截器（CSRF / 401 降级 / 路由级 AbortController）
 import axios, { type AxiosError } from 'axios'
 import { useAppStore } from '../stores/app'
+import type { RouteTag } from '../types/route-tag'
 
 const http = axios.create({ baseURL: '/api', withCredentials: true })
 
@@ -10,11 +11,11 @@ declare module 'axios' {
     /** 设为 true 时，401 不触发全局登出跳转，由调用方自行降级 */
     skipGlobalAuthRedirect?: boolean
     /** 请求归属的路由标签（路由切换时精确取消；未迁移代码省略则走全局降级池） */
-    routeTag?: string
+    routeTag?: RouteTag
   }
   interface InternalAxiosRequestConfig {
     skipGlobalAuthRedirect?: boolean
-    routeTag?: string
+    routeTag?: RouteTag
   }
 }
 
