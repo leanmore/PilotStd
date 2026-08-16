@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 class StdGovAdapter(BaseAdapter):
     """全国标准信息公共服务平台查询适配器（新版 Bootstrap 页面）。"""
 
-    SEARCH_URL = "https://std.samr.gov.cn/search/stdPage"
-
     def __init__(self, session: requests.Session | None = None):
         """初始化国家标准公开适配器，注入 requests session 并设置请求头。"""
         self._session = session or requests.Session()
@@ -70,7 +68,7 @@ class StdGovAdapter(BaseAdapter):
         """搜索并解析搜索结果页（新版 Bootstrap panel 布局）。"""
         logger.debug("搜索: %s @std_gov", search_term)
         params = {"q": search_term}
-        resp = safe_get(self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15)
+        resp = safe_get(self._session, self.get_search_url(), self.site_name, params=params, timeout=15)
         if resp is None:
             return []
         resp.encoding = "utf-8"

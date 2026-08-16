@@ -34,7 +34,6 @@ class CsresAdapter(BaseAdapter):
 
     supports_replaces_detail = True
 
-    SEARCH_URL = "http://www.csres.com/s.jsp?keyword={}"
     _http_warned = False  # HTTP 明文风险只提示一次
     # 本地冷却标记（秒级时间戳）——多线程竞态下___冷却和
     # ___之间存在时间窗口，用锁保护。
@@ -101,7 +100,7 @@ class CsresAdapter(BaseAdapter):
         # 本地冷却检查：多线程竞态下第一时间拦截
         if self._is_locally_cooled():
             return []
-        base_url = self.SEARCH_URL.format(quote(search_term))
+        base_url = self.get_search_url().format(quote(search_term))
         total_pages = 1
         candidates = []
 
@@ -247,7 +246,7 @@ class CsresAdapter(BaseAdapter):
                 error_message="站点冷却中",
                 source_site=self.site_name,
             )
-        base_url = self.SEARCH_URL.format(quote(search_term))
+        base_url = self.get_search_url().format(quote(search_term))
         resp = safe_get(self._session, base_url, self.site_name, timeout=15)
         if resp is None:
             return QueryResult(

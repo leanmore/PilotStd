@@ -35,8 +35,6 @@ _TOTAL_COUNT_RE = re.compile(r"共\s*(\d+)\s*条")
 class NRSISAdapter(BaseAdapter):
     """自然资源标准查询适配器。"""
 
-    SEARCH_URL = "http://www.nrsis.org.cn/portal/xxcx/std"
-
     # 0产出：结果行选择器（实际表格="--"）
     ROW_SELECTOR = "table.table tbody tr"
 
@@ -121,7 +119,7 @@ class NRSISAdapter(BaseAdapter):
         last_error = None
         for attempt in range(self.MAX_RETRIES):
             try:
-                resp = self._client.get(self.SEARCH_URL, params=params)
+                resp = self._client.get(self.get_search_url(), params=params)
                 break
             except Exception as e:
                 last_error = e
