@@ -1,8 +1,11 @@
 # 容器//脚本—应用日志读取接口（供前端日志栏+压测远端取回使用）
 import os
 import re
+import time
+from collections import deque
+from datetime import datetime, timezone
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 
@@ -14,6 +17,16 @@ router = APIRouter(tags=["logs"])
 
 # 日志文件路径（写入的.）
 _LOG_PATH = os.path.join(_get_log_dir(), "app.log")
+
+# 轮转日志文件名白名单：app.log 或 app.log.N（N 为数字）
+_ROTATED_NAME_RE = re.compile(r"^app\.log(\.\d+)?$")
+# 行长度估算均值（字节/行），用于 lines_estimate 不实际计数
+_AVG_LINE_BYTES = 200
+# 列表缓存秒数
+_LIST_CACHE_SECONDS = 60
+
+# 轮转文件列表缓存（ts 用 monotonic 时间戳）
+_list_cache: dict = {"ts": 0.0, "files": []}
 
 # 日志时间戳正则：-::
 _TIMESTAMP_PATTERN = re.compile(r"^(\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})")
@@ -161,3 +174,124 @@ def clear_logs(
         from fastapi import HTTPException
 
         raise HTTPException(status_code=500, detail=f"清理日志失败: {e}")
+
+
+# ── 轮转日志访问 ──────────────────────────────────────────────
+
+
+def _log_dir() -> str:
+    """返回日志目录的 realpath 形式，供路径校验统一使用。"""
+    return os.path.realpath(_get_log_dir())
+
+
+def _list_rotated_impl() -> list[dict]:
+    """扫描日志目录，返回轮转日志文件列表（缓存 60 秒避免频繁 IO）。"""
+    now = time.monotonic()
+    if now - _list_cache["ts"] < _LIST_CACHE_SECONDS:
+        return _list_cache["files"]
+    files: list[dict] = []
+    log_dir = _log_dir()
+    try:
+        for name in os.listdir(log_dir):
+            if not _ROTATED_NAME_RE.match(name):
+                continue
+            path = os.path.join(log_dir, name)
+            if not os.path.isfile(path):
+                continue
+            st = os.stat(path)
+            files.append(
+                {
+                    "name": name,
+                    "size_bytes": st.st_size,
+                    "mtime_iso": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat(),
+                    "lines_estimate": max(st.st_size // _AVG_LINE_BYTES, 0),
+                }
+            )
+    except OSError:
+        pass
+    files.sort(key=lambda f: f["mtime_iso"], reverse=True)
+    _list_cache["ts"] = now
+    _list_cache["files"] = files
+    return files
+
+
+def _read_rotated_impl(filename: str, offset: int, limit: int, grep: str, context: int) -> dict:
+    """流式读取轮转日志内容（分页 + grep 过滤 + 前后 context），不整文件载入内存。"""
+    log_dir = _log_dir()
+    full_path = os.path.realpath(os.path.join(log_dir, filename))
+    # realpath 越界校验：拼接后必须仍在日志目录内
+    if not full_path.startswith(log_dir + os.sep):
+        raise HTTPException(status_code=403, detail="路径越界")
+    if not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="文件不存在")
+
+    offset = max(offset, 0)
+    limit = min(max(limit, 1), 1000)
+    context = min(max(context, 0), 10)
+
+    total_lines = 0
+    content: list[str] = []
+
+    if not grep:
+        # 纯分页：逐行跳过 offset，取 limit 行
+        with open(full_path, encoding="utf-8", errors="replace") as f:
+            for i, line in enumerate(f):
+                total_lines += 1
+                if i < offset:
+                    continue
+                if len(content) >= limit:
+                    continue
+                content.append(line.rstrip("\n"))
+    else:
+        # grep + context：滑动窗口取匹配行前后 N 行
+        before: deque[str] = deque(maxlen=context)
+        after_remaining = 0
+        with open(full_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                total_lines += 1
+                line = line.rstrip("\n")
+                if after_remaining > 0:
+                    content.append(line)
+                    after_remaining -= 1
+                    continue
+                if grep in line:
+                    content.extend(before)
+                    content.append(line)
+                    after_remaining = context
+                    before.clear()
+                else:
+                    before.append(line)
+        # 结果集再做 offset/limit 切分
+        content = content[offset : offset + limit]
+
+    return {
+        "filename": filename,
+        "total_lines": total_lines,
+        "returned_lines": len(content),
+        "offset": offset,
+        "content": content,
+    }
+
+
+@router.get("/api/logs/rotated")
+@require_role("admin")
+def list_rotated_logs(request: Request) -> list[dict]:
+    """返回轮转日志文件列表。"""
+    return _list_rotated_impl()
+
+
+@router.get("/api/logs/rotated/{filename}")
+@require_role("admin")
+def read_rotated_log(
+    request: Request,
+    filename: str,
+    offset: int = 0,
+    limit: int = 500,
+    grep: str = "",
+    context: int = 0,
+) -> dict:
+    """读取指定轮转日志内容（分页 + 搜索 + 上下文）。"""
+    # 文件名白名单校验，同时显式拒绝路径遍历字符
+    if not _ROTATED_NAME_RE.match(filename) or any(c in filename for c in "/\\%"):
+        raise HTTPException(status_code=400, detail="非法文件名")
+    return _read_rotated_impl(filename, offset, limit, grep, context)
