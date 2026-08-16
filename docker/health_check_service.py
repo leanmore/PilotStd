@@ -24,6 +24,23 @@ _HEALTH_TIMEOUT = 10  # 探活超时秒数
 
 def _probe(url: str, site_name: str) -> str:
     """对单个站点做轻量级 GET 探活，返回 'up' 或 'down'。"""
+    # miit 的 requests TLS 指纹被拦截（403），curl 实测可通，用 subprocess 单独探活
+    if site_name == "miit" or "std.miit.gov.cn" in url:
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "10", url],
+                capture_output=True,
+                text=True,
+                timeout=12,
+            )
+            code = result.stdout.strip()
+            return "up" if code.isdigit() and int(code) < 400 else "down"
+        except Exception as e:
+            logger.warning("[health] miit curl 探活失败: %s", e)
+            return "down"
+
     # energy 为纯 IP + 自签名证书站点，跳过 SSL 验证（与适配器 verify=False 保持一致）
     verify = site_name != "energy"
     # 用浏览器 UA 探活，避免站点反爬拦截（与公告/查询适配器保持一致）
