@@ -1,6 +1,5 @@
 // web/src/api/http.ts — 共享 axios 实例 + 拦截器（CSRF / 401 降级 / 路由级 AbortController）
 import axios, { type AxiosError } from 'axios'
-import { useAppStore } from '../stores/app'
 import type { RouteTag } from '../types/route-tag'
 
 const http = axios.create({ baseURL: '/api', withCredentials: true })
@@ -108,6 +107,14 @@ http.interceptors.request.use(config => {
   return config
 })
 
+// 401 处理器（由 bootstrap 注册，避免 http.ts 静态依赖 stores/app 与 router 形成循环依赖）
+type UnauthorizedHandler = () => void | Promise<void>
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
+  unauthorizedHandler = handler
+}
+
 // 响应拦截器：清理 AbortController + 401 降级跳转（skipGlobalAuthRedirect 可跳过）
 http.interceptors.response.use(
   r => {
@@ -115,7 +122,7 @@ http.interceptors.response.use(
     if (cfg?.__abortKey) removeRequest(cfg.__routeTag, cfg.__abortKey)
     return r
   },
-  (err: AxiosError) => {
+  async (err: AxiosError) => {
     const cfg = err.config as any
     if (cfg?.__abortKey) removeRequest(cfg.__routeTag, cfg.__abortKey)
     // AbortError → 静默忽略（响应拦截器返回 null，调用方用 !r 检查识别取消）
@@ -123,10 +130,8 @@ http.interceptors.response.use(
       return Promise.resolve(null)
     }
     // 仅核心接口的 401 触发全局登出，非核心接口由调用方自行降级
-    if (err.response?.status === 401 && !err.config?.skipGlobalAuthRedirect) {
-      const store = useAppStore()
-      store.loggedIn = false
-      import('../router').then(m => m.default.push('/login'))
+    if (err.response?.status === 401 && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler) {
+      await unauthorizedHandler()
     }
     return Promise.reject(err)
   },

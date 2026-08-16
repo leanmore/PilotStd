@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-// [架构说明] 此处刻意使用原生 axios，不引入 @/api/http。
-// 原因：http.ts 的 401 拦截器静态依赖 useAppStore，若此处反向引入 http，
-// 将导致静态循环依赖（stores/app ↔ http）。
-import axios from 'axios'
+import http from '@/api/http'
 import { THEMES, applyThemeToDom } from '@/config/themes'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import { migrateLegacyPreferences } from '@/lib/userStorage'
@@ -42,7 +39,7 @@ export const useAppStore = defineStore('app', () => {
 
     // 安全恢复身份：从服务端 JWT 获取，禁止信任客户端存储
     try {
-      const { data } = await axios.get('/api/auth/me')
+      const { data } = await http.get('/auth/me')
       if (data.id) {
         userId.value = data.id
         migrateLegacyPreferences(data.id)

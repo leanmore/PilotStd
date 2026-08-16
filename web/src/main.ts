@@ -40,6 +40,7 @@ import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import App from './App.vue'
 import router from './router'
+import { registerHttpHandlers } from '@/bootstrap/registerHttpHandlers'
 import zhCN from './locales/zh-CN.json'
 import en from './locales/en.json'
 import zhTW from './locales/zh-TW.json'
@@ -71,6 +72,7 @@ const initialDark = isDarkTheme(savedTheme)
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
+registerHttpHandlers()
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
