@@ -2,7 +2,7 @@
 defineOptions({ name: 'LogBar' })
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
 
 const props = defineProps<{ refreshKey?: number }>()
@@ -64,7 +64,7 @@ async function fetchLogs() {
     if (lastTimestamp.value) {
       params.since = lastTimestamp.value
     }
-    const r = await axios.get('/api/logs', { params })
+    const r = await http.get('/logs', { params })
     const newLines: string[] = r.data.lines || []
     err.value = false
 

@@ -6,9 +6,9 @@ import LogBar from './LogBar.vue'
 
 const router = createRouter({ history: createMemoryHistory(), routes: [] })
 
-// Mock axios 请求
+// Mock http 实例的 get 请求
 const mockGet = vi.fn()
-vi.mock('axios', () => ({
+vi.mock('@/api/http', () => ({
   default: { get: (...args: any[]) => mockGet(...args) },
 }))
 

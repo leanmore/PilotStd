@@ -5,10 +5,12 @@ import QualityView from './QualityView.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
-import axios from 'axios'
+import { runQualityCheck } from '@/api/quality'
 
-vi.mock('axios')
-const mockedAxios = vi.mocked(axios)
+vi.mock('@/api/quality', () => ({
+  runQualityCheck: vi.fn(),
+}))
+const mockedRunQualityCheck = vi.mocked(runQualityCheck)
 
 const StubCard = {
   name: 'Card',
@@ -53,7 +55,7 @@ describe('QualityView', () => {
   })
 
   it('displays check results after running successfully', async () => {
-    mockedAxios.post.mockResolvedValueOnce({
+    mockedRunQualityCheck.mockResolvedValueOnce({
       data: {
         ok: true,
         results: [{ rule: 'R001', file: 'a.py', line: 10, severity: 'error', message: 'missing import' }],
@@ -74,7 +76,7 @@ describe('QualityView', () => {
     vi.useFakeTimers()
     const fakeNow = new Date('2026-06-30T12:00:00Z')
     vi.setSystemTime(fakeNow)
-    mockedAxios.post.mockResolvedValueOnce({
+    mockedRunQualityCheck.mockResolvedValueOnce({
       data: { ok: true, results: [], summary: { total: 0, files_checked: 0, passed: true, failed: 0 } },
     })
     const wrapper = mountComponent()

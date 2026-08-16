@@ -7,7 +7,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
-import axios from 'axios'
+import { runQualityCheck } from '@/api/quality'
 
 const results = ref<any[]>([])
 const summary = ref({ total: 0, files_checked: 0, passed: true, failed: 0 })
@@ -19,7 +19,7 @@ const formatTime = (iso: string) => new Date(iso).toLocaleString('zh-CN')
 const runCheck = async () => {
   running.value = true
   try {
-    const resp = await axios.post('/api/quality/run', {})
+    const resp = await runQualityCheck({})
     const data = resp.data
     if (data.ok) {
       results.value = data.results || []

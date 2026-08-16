@@ -5,7 +5,7 @@
  */
 defineOptions({ name: 'DownloadImport' })
 import { ref } from 'vue'
-import axios from 'axios'
+import { postDownloadImport } from '@/api/download'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -46,9 +46,7 @@ async function handleSubmit() {
   if (!textInput.value.trim()) return
   submitting.value = true
   try {
-    const form = new FormData()
-    form.append('text', textInput.value)
-    const { data } = await axios.post('/api/download/import', form)
+    const { data } = await postDownloadImport(textInput.value)
     result.value = data as ImportResult
   } catch {
     result.value = null
