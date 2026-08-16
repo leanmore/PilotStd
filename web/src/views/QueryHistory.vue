@@ -4,21 +4,22 @@ import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
-import axios from 'axios'
+import { getQueryResults } from '@/api'
+import type { RouteTag } from '@/types/route-tag'
 
 interface QueryResult { standard_number: string; status: string; found_name?: string; source_site?: string }
 const results = ref<QueryResult[]>([])
 const loading = ref(false)
 
-const fetchHistory = async () => {
+const fetchHistory = async (routeTag?: RouteTag) => {
   loading.value = true
   try {
-    const resp = await axios.get('/api/query/results')
+    const resp = await getQueryResults(routeTag ? { routeTag } : undefined)
     results.value = resp.data.results || []
   } catch { /* ignore */ } finally { loading.value = false }
 }
 
-onMounted(fetchHistory)
+onMounted(() => fetchHistory('/query-history'))
 </script>
 
 <template>
@@ -28,7 +29,7 @@ onMounted(fetchHistory)
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="results.length">共 {{ results.length }} 条记录</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchHistory" />
+          <Button icon="pi pi-refresh" text size="small" @click="fetchHistory()" />
         </div>
         <table v-if="results.length" class="data-table">
           <thead><tr><th>标准号</th><th>状态</th><th>名称</th><th>来源</th></tr></thead>

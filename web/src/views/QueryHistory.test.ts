@@ -5,10 +5,12 @@ import QueryHistory from './QueryHistory.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
-import axios from 'axios'
+import { getQueryResults } from '@/api'
 
-vi.mock('axios')
-const mockedAxios = vi.mocked(axios)
+vi.mock('@/api', () => ({
+  getQueryResults: vi.fn(),
+}))
+const mockedGetQueryResults = vi.mocked(getQueryResults)
 
 const StubCard = {
   name: 'Card',
@@ -29,13 +31,13 @@ describe('QueryHistory', () => {
   })
 
   it('renders page title 查询历史', () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { results: [] } })
+    mockedGetQueryResults.mockResolvedValueOnce({ data: { results: [] } })
     const wrapper = mountComponent()
     expect(wrapper.find('.page-title').text()).toBe('查询历史')
   })
 
   it('shows empty state when no query history', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { results: [] } })
+    mockedGetQueryResults.mockResolvedValueOnce({ data: { results: [] } })
     const wrapper = mountComponent()
     await nextTick()
     await nextTick()
@@ -44,7 +46,7 @@ describe('QueryHistory', () => {
   })
 
   it('renders query history table with results', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetQueryResults.mockResolvedValueOnce({
       data: {
         results: [
           { standard_number: 'GB/T 1.1-2020', status: '现行', found_name: '标准化工作导则', source_site: 'std_gov' },
@@ -63,7 +65,7 @@ describe('QueryHistory', () => {
   })
 
   it('displays record count when results present', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetQueryResults.mockResolvedValueOnce({
       data: { results: [{ standard_number: 'XX', status: '现行', found_name: 'A', source_site: 'B' }] },
     })
     const wrapper = mountComponent()

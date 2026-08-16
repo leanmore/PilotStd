@@ -5,7 +5,8 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import axios from 'axios'
+import { getSchedulerStatus } from '@/api/scheduler'
+import type { RouteTag } from '@/types/route-tag'
 
 interface Job {
   id: string
@@ -28,10 +29,10 @@ const formatTime = (iso: string) => {
   return new Date(iso).toLocaleString('zh-CN')
 }
 
-const fetchStatus = async () => {
+const fetchStatus = async (routeTag?: RouteTag) => {
   loading.value = true
   try {
-    const resp = await axios.get('/api/scheduler/status')
+    const resp = await getSchedulerStatus(routeTag ? { routeTag } : undefined)
     status.value = resp.data
   } catch (e) {
     console.error('获取调度器状态失败:', e)
@@ -40,7 +41,7 @@ const fetchStatus = async () => {
   }
 }
 
-onMounted(fetchStatus)
+onMounted(() => fetchStatus('/scheduler'))
 </script>
 
 <template>
@@ -52,7 +53,7 @@ onMounted(fetchStatus)
           <Badge :value="status.running ? '运行中' : '已停止'" :severity="status.running ? 'success' : 'danger'" />
           <span class="text-sm">任务数: {{ status.job_count }}</span>
           <span class="text-sm">更新: {{ formatTime(status.timestamp) }}</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchStatus" />
+          <Button icon="pi pi-refresh" text size="small" @click="fetchStatus()" />
         </div>
         <DataTable :value="status.jobs" striped-rows size="small" :loading="loading">
           <Column field="id" header="任务 ID" />

@@ -5,10 +5,11 @@ import PrimeVue from 'primevue/config'
 import BackupView from './BackupView.vue'
 
 // Mock axios
-const mockGet = vi.fn()
-const mockPost = vi.fn()
-vi.mock('axios', () => ({
-  default: { get: (...args: any[]) => mockGet(...args), post: (...args: any[]) => mockPost(...args) },
+const mockGetBackupList = vi.fn()
+const mockCreateBackup = vi.fn()
+vi.mock('@/api/backup', () => ({
+  getBackupList: (...args: any[]) => mockGetBackupList(...args),
+  createBackup: (...args: any[]) => mockCreateBackup(...args),
 }))
 
 const mockBackups = [
@@ -28,7 +29,7 @@ describe('BackupView', () => {
   })
 
   it('渲染页面标题和"创建备份"按钮', async () => {
-    mockGet.mockResolvedValue({ data: { items: [] } })
+    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
     const wrapper = mountView()
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
@@ -38,7 +39,7 @@ describe('BackupView', () => {
   })
 
   it('渲染备份列表数据', async () => {
-    mockGet.mockResolvedValue({ data: { items: mockBackups } })
+    mockGetBackupList.mockResolvedValue({ data: { items: mockBackups } })
     const wrapper = mountView()
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
@@ -52,7 +53,7 @@ describe('BackupView', () => {
   })
 
   it('显示上次备份时间', async () => {
-    mockGet.mockResolvedValue({ data: { items: mockBackups } })
+    mockGetBackupList.mockResolvedValue({ data: { items: mockBackups } })
     const wrapper = mountView()
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
@@ -62,7 +63,7 @@ describe('BackupView', () => {
   })
 
   it('空列表时正常渲染不崩溃', async () => {
-    mockGet.mockResolvedValue({ data: { items: [] } })
+    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
     const wrapper = mountView()
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
@@ -74,7 +75,7 @@ describe('BackupView', () => {
   })
 
   it('请求失败时正常渲染不崩溃', async () => {
-    mockGet.mockRejectedValue(new Error('网络错误'))
+    mockGetBackupList.mockRejectedValue(new Error('网络错误'))
     const wrapper = mountView()
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))

@@ -1,6 +1,7 @@
 // web/src/api/query.ts — 查询与待确认
 import http from './http'
 import type { QueryResponse, PendingItem } from '../types/api'
+import type { RouteTag } from '../types/route-tag'
 
 export const postQuery = (numbers: string[], forceRefresh: boolean = false, runId?: string): Promise<QueryResponse> =>
   http.post('/query', { numbers, run_id: runId }, { params: forceRefresh ? { force_refresh: true } : {} }).then(r => r.data)
@@ -8,8 +9,8 @@ export const postQuery = (numbers: string[], forceRefresh: boolean = false, runI
 export const saveQueryResults = (results: QueryResponse['results']): Promise<{ ok?: boolean }> =>
   http.post('/query/save', results).then(r => r.data)
 
-export const getQueryResults = (): Promise<QueryResponse['results']> =>
-  http.get('/query/results').then(r => r.data)
+export const getQueryResults = (options?: { routeTag?: RouteTag }) =>
+  http.get('/query/results', options)
 
 export const getPendingItems = (): Promise<{ items: PendingItem[] }> =>
   http.get('/pending').then(r => r.data)

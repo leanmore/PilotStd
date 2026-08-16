@@ -6,7 +6,8 @@ import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Divider from 'primevue/divider'
-import axios from 'axios'
+import { getBackupList, createBackup as createBackupApi } from '@/api/backup'
+import type { RouteTag } from '@/types/route-tag'
 
 interface Backup {
   id: string; name: string; size: number; size_mb: number; created_at: string
@@ -19,10 +20,10 @@ const lastBackup = ref<string | null>(null)
 
 const formatTime = (iso: string) => new Date(iso).toLocaleString('zh-CN')
 
-const fetchBackups = async () => {
+const fetchBackups = async (routeTag?: RouteTag) => {
   loading.value = true
   try {
-    const resp = await axios.get('/api/backup/list')
+    const resp = await getBackupList(routeTag ? { routeTag } : undefined)
     backups.value = resp.data.items || []
     if (backups.value.length > 0) lastBackup.value = backups.value[0].created_at
   } catch { /* ignore */ }
@@ -32,13 +33,13 @@ const fetchBackups = async () => {
 const createBackup = async () => {
   creating.value = true
   try {
-    const resp = await axios.post('/api/backup/create')
-    if (resp.data.ok) await fetchBackups()
+    const resp = await createBackupApi()
+    if (resp.data.ok) await fetchBackups('/backup')
   } catch { /* ignore */ }
   finally { creating.value = false }
 }
 
-onMounted(fetchBackups)
+onMounted(() => fetchBackups('/backup'))
 </script>
 
 <template>

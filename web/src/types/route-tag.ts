@@ -12,5 +12,8 @@ export type RouteTag =
   | '/standards-status'
   | '/login'
   | '/settings'
+  | '/scheduler'
+  | '/backup'
+  | '/query-history'
   // 显式降级标记：请求不归属任何路由，等价于不传 routeTag（走 globalPool）
   | 'global'

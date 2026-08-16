@@ -6,10 +6,12 @@ import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Badge from 'primevue/badge'
 import DataTable from 'primevue/datatable'
-import axios from 'axios'
+import { getSchedulerStatus } from '@/api/scheduler'
 
-vi.mock('axios')
-const mockedAxios = vi.mocked(axios)
+vi.mock('@/api/scheduler', () => ({
+  getSchedulerStatus: vi.fn(),
+}))
+const mockedGetSchedulerStatus = vi.mocked(getSchedulerStatus)
 
 const StubCard = {
   name: 'Card',
@@ -36,7 +38,7 @@ describe('SchedulerStatus', () => {
   })
 
   it('renders page title 调度器状态', () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: false, job_count: 0, jobs: [], timestamp: '2026-06-30T00:00:00Z' },
     })
     const wrapper = mountComponent()
@@ -44,7 +46,7 @@ describe('SchedulerStatus', () => {
   })
 
   it('shows Badge as 已停止 when scheduler is not running', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: false, job_count: 0, jobs: [], timestamp: '2026-06-30T00:00:00Z' },
     })
     const wrapper = mountComponent()
@@ -57,7 +59,7 @@ describe('SchedulerStatus', () => {
   })
 
   it('shows Badge as 运行中 when scheduler is running', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: true, job_count: 3, jobs: [], timestamp: '2026-06-30T00:00:00Z' },
     })
     const wrapper = mountComponent()
@@ -69,7 +71,7 @@ describe('SchedulerStatus', () => {
   })
 
   it('renders job count from API response', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: true, job_count: 5, jobs: [], timestamp: '2026-06-30T00:00:00Z' },
     })
     const wrapper = mountComponent()
@@ -79,7 +81,7 @@ describe('SchedulerStatus', () => {
   })
 
   it('passes empty jobs array to DataTable', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSchedulerStatus.mockResolvedValueOnce({
       data: { running: false, job_count: 0, jobs: [], timestamp: '' },
     })
     const wrapper = mountComponent()
