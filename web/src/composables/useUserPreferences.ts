@@ -24,8 +24,15 @@ function writeLocal(key: string, value: unknown) {
   setItem(key, JSON.stringify(value))
 }
 
+// 字符串字段透明读写（不 JSON 序列化），兼容旧版 JSON.stringify 写入的带引号值
+function readPlainString(key: string, fallback: string): string {
+  const raw = getItem(key)
+  if (!raw) return fallback
+  return raw.startsWith('"') ? raw.replace(/^"|"$/g, '') : raw
+}
+
 const theme = ref<string>(readLocal(KEYS.theme, ''))
-const locale = ref<string>(readLocal(KEYS.locale, 'zh-CN'))
+const locale = ref<string>(readPlainString(KEYS.locale, 'zh-CN'))
 const taskPath = ref<string>(readLocal(KEYS.taskPath, '/inbox'))
 const quietHours = ref<{ enabled: boolean; start: string; end: string }>(
   readLocal(KEYS.quietHours, { enabled: false, start: '22:00', end: '07:00' }),
@@ -52,7 +59,7 @@ watch(
   [theme, locale, taskPath, quietHours],
   () => {
     writeLocal(KEYS.theme, theme.value)
-    writeLocal(KEYS.locale, locale.value)
+    setItem(KEYS.locale, locale.value)
     writeLocal(KEYS.taskPath, taskPath.value)
     writeLocal(KEYS.quietHours, quietHours.value)
     if (_initialized.value) syncToBackend()
@@ -75,7 +82,7 @@ async function loadFromBackend() {
     if (prefs.notification_quiet_hours) quietHours.value = prefs.notification_quiet_hours as typeof quietHours.value
 
     writeLocal(KEYS.theme, theme.value)
-    writeLocal(KEYS.locale, locale.value)
+    setItem(KEYS.locale, locale.value)
     writeLocal(KEYS.taskPath, taskPath.value)
     writeLocal(KEYS.quietHours, quietHours.value)
 

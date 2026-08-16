@@ -50,7 +50,9 @@ import { getItem } from '@/lib/storage'
 
 import { primevueLocales } from '@/lib/primevueLocale'
 
-const savedLocale = (getItem('locale') || 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
+const rawLocale = getItem('locale')
+// 兼容旧版 JSON.stringify 写入的带引号值（如 "\"zh-CN\""）
+const savedLocale = (rawLocale ? rawLocale.replace(/^"|"$/g, '') : 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
 
 const messages = {
   'zh-CN': zhCN,
