@@ -5,8 +5,8 @@ import type { UserListResponse, SuccessResponse } from '../types/api'
 export const login = (username: string, password: string): Promise<SuccessResponse> =>
   http.post('/login', new URLSearchParams({ username, password })).then(r => r.data)
 
-export const getUsers = (): Promise<UserListResponse> =>
-  http.get('/users').then(r => r.data)
+export const getUsers = (routeTag?: string): Promise<UserListResponse> =>
+  http.get('/users', { routeTag }).then(r => r.data)
 
 export const addUser = (username: string, password: string, role: string): Promise<SuccessResponse> =>
   http.post('/users', { username, password, role }).then(r => r.data)

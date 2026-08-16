@@ -173,7 +173,7 @@ function healthText(s: SiteConfig): string {
 async function loadSites() {
   loading.value = true; errMsg.value = ''
   try {
-    const r = await http.get('/settings/sites')
+    const r = await http.get('/settings/sites', { routeTag: '/settings' })
     if (!r || !r.data) return  // 请求被取消（响应拦截器静默返回 null），不显示错误
     sites.value = (r.data.sites || []).map((s: any) => ({
       ...s,

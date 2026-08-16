@@ -44,7 +44,7 @@ const sections = ref({ tasks: true, fileMonitor: true })
 async function loadTasks() {
   loading.value = true; errMsg.value = ''
   try {
-    const r = await getSettings()
+    const r = await getSettings('/settings')
     if (r.tasks) {
       tasks.value = { ...tasks.value, ...r.tasks }
     }

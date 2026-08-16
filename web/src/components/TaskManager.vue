@@ -55,7 +55,7 @@ async function loadTasks() {
   try {
     const params: Record<string, unknown> = { page: page.value + 1, page_size: 30 }
     if (filter.value) params.status = filter.value
-    const r = await http.get('/tasks', { params })
+    const r = await http.get('/tasks', { params, routeTag: '/settings' })
     tasks.value = r.data.items
     total.value = r.data.total
   } catch { /* ignore */ }

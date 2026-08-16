@@ -33,13 +33,13 @@ function maskToken(t: string) {
 }
 
 async function loadToken() {
-  try { const r = await getToken(); token.value = r.token; tokenErr.value = '' }
+  try { const r = await getToken('/settings'); token.value = r.token; tokenErr.value = '' }
   catch { tokenErr.value = '加载令牌失败（需要管理员权限）' }
 }
 
 async function loadGhToken() {
   try {
-    const r = await http.get('/settings')
+    const r = await http.get('/settings', { routeTag: '/settings' })
     ghToken.value = r.data?.updater?.github_token || ''
   } catch { /* 非关键 */ }
 }

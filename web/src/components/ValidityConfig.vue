@@ -114,7 +114,7 @@ function onFrequencyChange() {
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
   try {
-    const raw = await getValidityConfig()
+    const raw = await getValidityConfig('/settings')
     config.value = { ...config.value, ...raw }
     // 兼容旧后端：可能只返回 update_interval（天），无 total_weeks
     const legacy = raw as LegacyValidityResponse
@@ -189,7 +189,7 @@ const statusOptions = [
 
 async function loadHistory() {
   try {
-    const r = await getValidityHistory({ page: histPage.value, page_size: histPageSize })
+    const r = await getValidityHistory({ page: histPage.value, page_size: histPageSize }, '/settings')
     history.value = r.items
     histTotal.value = r.total
   } catch { /* 非关键 */ }

@@ -28,7 +28,7 @@ const loadUsersErr = ref('')
 const currentUser = computed(() => users.value.find((u: any) => u.username === store.username) || null)
 
 async function loadUsers() {
-  try { const r = await getUsers(); users.value = r.users; loadUsersErr.value = '' }
+  try { const r = await getUsers('/settings'); users.value = r.users; loadUsersErr.value = '' }
   catch { loadUsersErr.value = '加载用户列表失败' }
 }
 

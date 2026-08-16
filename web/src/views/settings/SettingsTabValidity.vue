@@ -27,7 +27,8 @@ const circuitLoading = ref(false)
 
 async function loadCircuitConfig() {
   try {
-    const r = await http.get('/adapter/config')
+    const r = await http.get('/adapter/config', { routeTag: '/settings' })
+    if (!r || !r.data) return  // 请求被取消（响应拦截器静默返回 null），不显示错误
     circuitCfg.value = r.data
     circuitErr.value = ''
   } catch {

@@ -64,8 +64,8 @@ export interface NotificationLogResponse {
   items: NotificationLog[]
 }
 
-export const getNotificationConfig = (): Promise<NotificationConfig> =>
-  http.get('/notification/config').then(r => r.data)
+export const getNotificationConfig = (routeTag?: string): Promise<NotificationConfig> =>
+  http.get('/notification/config', { routeTag }).then(r => r.data)
 
 export const putNotificationConfig = (data: Partial<NotificationConfig>): Promise<{ ok: boolean }> =>
   http.put('/notification/config', data).then(r => r.data)

@@ -39,8 +39,8 @@ export interface ValidityHistoryResponse {
   items: ValidityHistoryItem[]
 }
 
-export const getValidityConfig = (): Promise<ValidityConfig> =>
-  http.get('/validity/config').then(r => r.data)
+export const getValidityConfig = (routeTag?: string): Promise<ValidityConfig> =>
+  http.get('/validity/config', { routeTag }).then(r => r.data)
 
 export const putValidityConfig = (data: Partial<ValidityConfig>): Promise<{ ok: boolean; message: string }> =>
   http.put('/validity/config', data).then(r => r.data)
@@ -51,8 +51,8 @@ export const runValidityCheck = (): Promise<ValidityRunResult> =>
 export const getValidityHistory = (params: {
   page?: number
   page_size?: number
-}): Promise<ValidityHistoryResponse> =>
-  http.get('/validity/history', { params }).then(r => r.data)
+}, routeTag?: string): Promise<ValidityHistoryResponse> =>
+  http.get('/validity/history', { params, routeTag }).then(r => r.data)
 
 export const enqueueValidityCheck = (filePaths: string[]): Promise<{ ok: boolean; enqueued: number; total: number }> =>
   http.post('/validity/enqueue', { file_paths: filePaths }).then(r => r.data)

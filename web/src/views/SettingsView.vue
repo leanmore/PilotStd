@@ -67,7 +67,7 @@ function setp(path: string, val: any) {
 
 async function loadCfg() {
   try {
-    const [settings, schema] = await Promise.all([getSettings(), getSettingsSchema()])
+    const [settings, schema] = await Promise.all([getSettings('/settings'), getSettingsSchema('/settings')])
     cfg.value = settings; cfgErr.value = ''
     // 构建 key → field 映射表 + tabs 分组
     const map: Record<string, any> = {}
@@ -158,7 +158,7 @@ const tabMetaErr = ref(false)
 
 async function loadTabMeta() {
   try {
-    const r = await getSettingsMetadata()
+    const r = await getSettingsMetadata('/settings')
     tabMeta.value = r.tabs
     tabMetaErr.value = false
   } catch { tabMetaErr.value = true }

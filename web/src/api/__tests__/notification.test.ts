@@ -33,7 +33,7 @@ describe('notification API', () => {
 
     const result = await getNotificationConfig()
 
-    expect(mockGet).toHaveBeenCalledWith('/notification/config')
+    expect(mockGet).toHaveBeenCalledWith('/notification/config', { routeTag: undefined })
     expect(result).toEqual(mockConfig)
   })
 

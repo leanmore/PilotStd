@@ -78,7 +78,7 @@ const channelOpen = ref<Record<string, boolean>>({
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
   try {
-    const cfg = await getNotificationConfig()
+    const cfg = await getNotificationConfig('/settings')
     enabled.value = cfg.enabled
     for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk'] as const) {
       const sc = cfg.channels?.[ch]

@@ -87,7 +87,7 @@ const engineOptions = [
 async function loadConfig() {
   loading.value = true
   try {
-    const r = await http.get('/wechat-ip/config')
+    const r = await http.get('/wechat-ip/config', { routeTag: '/settings' })
     config.value = r.data
   } catch (e: unknown) {
     errMsg.value = '加载配置失败'
@@ -111,7 +111,7 @@ async function saveConfig() {
 
 async function loadStatus() {
   try {
-    const r = await http.get('/wechat-ip/status')
+    const r = await http.get('/wechat-ip/status', { routeTag: '/settings' })
     status.value = r.data
   } catch { /* ignore */ }
 }

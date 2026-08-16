@@ -60,7 +60,7 @@ export default defineComponent({
 
     async function loadConfig() {
       try {
-        const r = await http.get('/monitor/config')
+        const r = await http.get('/monitor/config', { routeTag: '/settings' })
         config.value = {
           enabled: r.data.enabled, watch_path: r.data.watch_path,
           delay_seconds: r.data.delay_seconds, recursive: r.data.recursive,
@@ -73,14 +73,14 @@ export default defineComponent({
 
     async function loadStatus() {
       try {
-        const r = await http.get('/monitor/status')
+        const r = await http.get('/monitor/status', { routeTag: '/settings' })
         status.value = r.data
       } catch { /* ignore */ }
     }
 
     async function loadStats() {
       try {
-        const r = await http.get('/monitor/stats')
+        const r = await http.get('/monitor/stats', { routeTag: '/settings' })
         const s: MonitorStats = r.data
         status.value.processed_today = s.processed
         status.value.success_today = s.success

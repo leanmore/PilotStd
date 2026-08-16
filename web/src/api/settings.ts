@@ -6,8 +6,8 @@ import { sessionCache } from '@/utils/cache'
 const SETTINGS_CACHE_KEY = 'settings'
 let loadingPromise: Promise<Settings> | null = null
 
-export const getSettings = (): Promise<Settings> =>
-  http.get('/settings').then(r => r.data)
+export const getSettings = (routeTag?: string): Promise<Settings> =>
+  http.get('/settings', { routeTag }).then(r => r.data)
 
 export async function getSettingsCached(): Promise<Settings> {
   const cached = sessionCache.get<Settings>(SETTINGS_CACHE_KEY)
@@ -33,16 +33,16 @@ export const putSettings = (data: Partial<Settings>): Promise<Settings> =>
 export const getStats = (): Promise<StatusStats> =>
   http.get('/stats').then(r => r.data)
 
-export const getSettingsSchema = (): Promise<{ tabs: Record<string, any[]> }> =>
-  http.get('/settings/schema').then(r => r.data)
+export const getSettingsSchema = (routeTag?: string): Promise<{ tabs: Record<string, any[]> }> =>
+  http.get('/settings/schema', { routeTag }).then(r => r.data)
 
-export const getToken = (): Promise<{ token: string }> =>
-  http.get('/settings/token').then(r => r.data)
+export const getToken = (routeTag?: string): Promise<{ token: string }> =>
+  http.get('/settings/token', { routeTag }).then(r => r.data)
 
 export const refreshToken = (): Promise<{ token: string; refreshed_at: string }> =>
   http.post('/settings/token/refresh').then(r => r.data)
 
 export interface TabMeta { key: string; scope: string; order: number; label: string }
 
-export const getSettingsMetadata = (): Promise<{ tabs: TabMeta[] }> =>
-  http.get('/settings/metadata').then(r => r.data)
+export const getSettingsMetadata = (routeTag?: string): Promise<{ tabs: TabMeta[] }> =>
+  http.get('/settings/metadata', { routeTag }).then(r => r.data)

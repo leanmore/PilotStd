@@ -25,7 +25,7 @@ const cleaned = ref(false)
 
 async function loadStats() {
   try {
-    const r = await http.get('/cache/stats')
+    const r = await http.get('/cache/stats', { routeTag: '/settings' })
     stats.value = r.data
     maxSize.value = r.data.max_size_mb
   } catch { /* ignore */ }
