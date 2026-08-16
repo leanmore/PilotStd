@@ -1,6 +1,7 @@
 # 容器//查询脚本—标准有效性查询接口
 import json
 import os
+from dataclasses import asdict
 
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
@@ -43,7 +44,13 @@ def query_standards(
             "query",
             "completed",
             40,
-            step_results={"found": stats.found, "downloadable": stats.downloadable},
+            step_results={
+                "found": stats.found,
+                "downloadable": stats.downloadable,
+                "total": stats.total,
+                "not_found": stats.not_found,
+                "results": [asdict(r) for r in results],
+            },
         )
     except Exception as exc:
         mgr.pipeline_store.update_step(

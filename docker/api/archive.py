@@ -53,7 +53,7 @@ def archive_files(
             "archive",
             "completed",
             100,
-            step_results={"count": len(parsed_list)},
+            step_results={"count": len(parsed_list), "results": result},
         )
     except Exception as exc:
         mgr.pipeline_store.update_step(

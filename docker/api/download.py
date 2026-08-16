@@ -30,12 +30,27 @@ def download_standards(
 
     try:
         tasks, stats = mgr.download_by_numbers(numbers)
+        results = [
+            {
+                "standard_number": t.standard_number,
+                "standard_name": getattr(t.query_result, "standard_name", "") if t.query_result else "",
+                "status": t.status.value,
+                "saved_path": t.saved_path,
+                "error": t.error_message,
+            }
+            for t in tasks
+        ]
         mgr.pipeline_store.update_step(
             run_id,
             "download",
             "completed",
             60,
-            step_results={"success": stats.success, "failed": stats.failed},
+            step_results={
+                "success": stats.success,
+                "failed": stats.failed,
+                "skipped": stats.skipped_adopted,
+                "results": results,
+            },
         )
     except Exception as exc:
         mgr.pipeline_store.update_step(
@@ -55,16 +70,7 @@ def download_standards(
             "skipped": stats.skipped_adopted,
             "skipped_exists": getattr(stats, "skipped_exists", 0),
         },
-        "results": [
-            {
-                "standard_number": t.standard_number,
-                "standard_name": getattr(t.query_result, "standard_name", "") if t.query_result else "",
-                "status": t.status.value,
-                "saved_path": t.saved_path,
-                "error": t.error_message,
-            }
-            for t in tasks
-        ],
+        "results": results,
     }
 
 

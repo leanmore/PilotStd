@@ -1,5 +1,6 @@
 # 容器//脚本—任务队列接口
 # 权限：任务管理接口需 admin 角色（@require_role）
+import json
 import logging
 
 from fastapi import Depends, Query, Request
@@ -153,12 +154,17 @@ def get_pipeline_run(request: Request, run_id: str, mgr=Depends(get_manager_dep)
     run = mgr.pipeline_store.get(run_id)
     if run is None:
         return JSONResponse({"error": "管道运行记录不存在"}, 404)
+    # step_results 存的是 JSON 字符串，解析为对象返回，对齐前端类型
+    try:
+        step_results = json.loads(run.get("step_results") or "{}")
+    except (json.JSONDecodeError, TypeError):
+        step_results = {}
     return {
         "run_id": run["run_id"],
         "current_step": run["current_step"],
         "status": run["status"],
         "progress": run["progress"],
-        "step_results": run["step_results"],
+        "step_results": step_results,
         "error_message": run["error_message"],
         "created_at": run["created_at"],
         "updated_at": run["updated_at"],

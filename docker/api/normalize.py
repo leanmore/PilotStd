@@ -90,7 +90,7 @@ def normalize_files(
             "normalize",
             "completed",
             80,
-            step_results={"count": len(results)},
+            step_results={"count": len(results), "results": results},
         )
     except Exception as exc:
         mgr.pipeline_store.update_step(

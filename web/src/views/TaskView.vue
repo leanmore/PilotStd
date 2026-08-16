@@ -4,7 +4,8 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import { getPipelineRun } from '@/api/tasks'
 import type { PipelineRun } from '@/types/task'
-import { getItem, setItem } from '@/lib/storage'
+import { getItem, setItem, removeItem } from '@/lib/storage'
+import { restoreResultsFromStepResults, resolveActiveRun } from '@/utils/taskRestore'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -76,6 +77,8 @@ function startPolling() {
       updateStepsFromRun(run)
       if (run.status === 'completed' || run.status === 'failed') {
         stopPolling()
+        // 终态清除持久化的 runId，避免重进时误恢复旧任务
+        removeItem('task_active_run')
       }
     } catch {
       pollFailCount++
@@ -93,6 +96,22 @@ function stopPolling() {
 
 onBeforeUnmount(() => { stopPolling() })
 
+// ── 进度恢复：页面重进时从后端重建进行中的任务状态 ──
+async function restoreActiveRun() {
+  const resolved = await resolveActiveRun()
+  if (!resolved) return
+  runId.value = resolved.runId
+  running.value = true
+  updateStepsFromRun(resolved.run)
+  const restored = restoreResultsFromStepResults(resolved.run.step_results)
+  scanResult.value = restored.scan
+  queryResult.value = restored.query
+  downloadResult.value = restored.download
+  normalizeResult.value = restored.normalize
+  archiveResult.value = restored.archive
+  startPolling()
+}
+
 // 任务历史 —— localStorage 持久化
 interface TaskRecord {
   id: string; time: string; path: string
@@ -108,6 +127,7 @@ onMounted(() => {
     history.value = JSON.parse(localStorage.getItem('pilotstd_tasks') || '[]')
   } catch { history.value = [] }
   loadPaths()
+  restoreActiveRun()
 })
 
 const historyPage = ref(Number(getItem('task_history_page')) || 0)
@@ -175,6 +195,8 @@ async function runPipeline() {
     const scan = await postScan(selectedPath.value)
     scanResult.value = scan
     runId.value = scan.run_id
+    // 持久化 runId，供退出重进后恢复进度
+    setItem('task_active_run', runId.value)
     // 启动后端状态轮询
     startPolling()
     setStep(0, 'done', `${scan.total || 0} 个文件 (PDF ${scan.pdf_count || 0} / Word ${scan.word_count || 0})`)

@@ -80,13 +80,19 @@ def scan_directory(
             }
         )
 
-    # 更新管道：扫描完成
+    # 更新管道：扫描完成（补全 files 列表，供前端恢复详情卡片）
     mgr.pipeline_store.update_step(
         run_id,
         "scan",
         "completed",
         20,
-        step_results={"total": len(files)},
+        step_results={
+            "total": len(files),
+            "pdf_count": sum(1 for f in files if f["name"].lower().endswith(".pdf")),
+            "word_count": sum(1 for f in files if f["name"].lower().endswith((".doc", ".docx"))),
+            "dup_skipped": 0,
+            "files": files,
+        },
     )
 
     return {
