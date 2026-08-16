@@ -55,7 +55,6 @@ class NCHAAdapter(BaseAdapter):
     """文物保护标准查询适配器。"""
 
     BASE_URL = "http://bz.ncha.gov.cn"
-    API_URL = "http://bz.ncha.gov.cn:9005/knowledge/bzgf/find"
 
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
@@ -119,7 +118,7 @@ class NCHAAdapter(BaseAdapter):
         """POST JSON 端点获取搜索结果。"""
         body = self._build_body(keyword)
         try:
-            resp = self._client.post(self.API_URL, json=body, timeout=15)
+            resp = self._client.post(self.get_search_url(), json=body, timeout=15)
         except Exception as e:
             logger.error("NCHA 请求失败: %s", e)
             return []

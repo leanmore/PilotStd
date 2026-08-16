@@ -34,7 +34,6 @@ class DbbaAdapter(BaseAdapter):
     覆盖全国各省/市地方标准（DB11, DB35/T, DB3501/T 等）。
     """
 
-    API_URL = "https://dbba.sacinfo.org.cn/stdQueryList"
     DETAIL_URL = "https://dbba.sacinfo.org.cn/stdDetail/{}"
 
     def __init__(self, session: requests.Session | None = None):

@@ -33,8 +33,6 @@ class TTBZAdapter(BaseAdapter):
     - standardTitleEn 和 standardField 以动态属性挂载（QueryResult 无对应字段）
     """
 
-    API_URL = "https://www.ttbz.org.cn/cms-proxy/ms/portal/standardInfo/getPortalStandardList"
-
     def __init__(self, session: requests.Session | None = None):
         self._session = session or requests.Session()
         self._session.headers.update(
@@ -99,7 +97,7 @@ class TTBZAdapter(BaseAdapter):
         try:
             resp = safe_post(
                 self._session,
-                self.API_URL,
+                self.get_search_url(),
                 self.site_name,
                 data=data,
                 timeout=15,

@@ -284,6 +284,7 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="ahbz",
             base_url="https://bzxx.ahbz.org.cn",
+            search_url="https://bzxx.ahbz.org.cn/standard/query",
             max_requests=200,
             daily_limit=800,
             cooldown_seconds=300,
@@ -302,14 +303,22 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="hbba",
             base_url="https://hbba.sacinfo.org.cn",
+            search_url="https://hbba.sacinfo.org.cn/stdQueryList",
             max_requests=400,
             daily_limit=800,
             cooldown_seconds=900,
             request_interval=0.5,
         ),
         S(name="iso_gov", base_url="https://std.samr.gov.cn", max_requests=200, daily_limit=800, request_interval=0.5),
-        S(name="njbz365", base_url="https://www.njbz365.cn", max_requests=200, daily_limit=800, request_interval=3.0),
-        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", max_requests=200, daily_limit=800, request_interval=0.5),
+        S(name="njbz365", base_url="https://www.njbz365.cn", search_url="https://www.njbz365.cn/apis", max_requests=200, daily_limit=800, request_interval=3.0),
+        S(name="dbba", base_url="https://dbba.sacinfo.org.cn", search_url="https://dbba.sacinfo.org.cn/stdQueryList", max_requests=200, daily_limit=800, request_interval=0.5),
+    ]
+
+
+def _create_sites_part1b() -> list[SiteState]:
+    """第一批默认站点后半（后5个适配器）。"""
+    S = SiteState  # noqa: N806
+    return [
         S(
             name="csres",
             base_url="http://www.csres.com",
@@ -323,6 +332,7 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="ttbz",
             base_url="https://www.ttbz.org.cn",
+            search_url="https://www.ttbz.org.cn/cms-proxy/ms/portal/standardInfo/getPortalStandardList",
             max_requests=100,
             daily_limit=400,
             cooldown_seconds=1,
@@ -388,6 +398,7 @@ def _create_sites_part2() -> list[SiteState]:
         S(
             name="sppt_local",
             base_url="https://sppt.cfsa.net.cn:8087",
+            search_url="https://sppt.cfsa.net.cn:8087/db",
             max_requests=30,
             daily_limit=300,
             cooldown_seconds=3,
@@ -427,6 +438,7 @@ def _create_sites_part3() -> list[SiteState]:
         S(
             name="ncha",
             base_url="http://bz.ncha.gov.cn",
+            search_url="http://bz.ncha.gov.cn:9005/knowledge/bzgf/find",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=1,
@@ -435,6 +447,7 @@ def _create_sites_part3() -> list[SiteState]:
         S(
             name="miit",
             base_url="https://std.miit.gov.cn",
+            search_url="https://std.miit.gov.cn/kjsStandproject/front/zxd/stand/queryFullDisclosureStandards",
             max_requests=50,
             daily_limit=300,
             cooldown_seconds=2,
@@ -457,7 +470,7 @@ def create_default_sites() -> list[SiteState]:
     这是站点配置的唯一运行时出口：评分器与配额追踪器都从这里读取，
     保证 UI 修改（config.json 的 query.sites）与硬编码默认值单一来源对齐。
     """
-    sites = _create_sites_part1() + _create_sites_part2() + _create_sites_part3()
+    sites = _create_sites_part1() + _create_sites_part1b() + _create_sites_part2() + _create_sites_part3()
     overrides = _load_site_overrides()
     for site in sites:
         ov = overrides.get(site.name, {})

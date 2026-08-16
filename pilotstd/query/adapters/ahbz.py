@@ -21,9 +21,6 @@ DISPLAY_NAME = "安徽标准"
 
 logger = logging.getLogger(__name__)
 
-# 搜索端点
-SEARCH_URL = "https://bzxx.ahbz.org.cn/standard/query"
-
 # 字段映射
 _STATUS_MAP = {
     "A": "现行",
@@ -68,7 +65,7 @@ class AhbzAdapter(BaseAdapter):
         # 请求接口—使用全文检索（同网页搜索框），非字段模糊匹配
         # 参数对空格敏感（"接口6852000"→0行），不限格式
         payload = {"type": std_type, "keyWord": code, "size": 20, "page": 1}
-        resp = safe_request(session, "POST", SEARCH_URL, self.site_name, timeout=15, json=payload)
+        resp = safe_request(session, "POST", self.get_search_url(), self.site_name, timeout=15, json=payload)
         if resp is None:
             return QueryResult(
                 standard_number=standard_number,

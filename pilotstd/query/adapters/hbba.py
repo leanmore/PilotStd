@@ -46,7 +46,6 @@ class HbbaAdapter(BaseAdapter):
 
     supports_replaces_detail = True
 
-    API_URL = "https://hbba.sacinfo.org.cn/stdQueryList"
     DETAIL_URL = "https://hbba.sacinfo.org.cn/stdDetail/{}"
 
     def __init__(self, session: requests.Session | None = None):

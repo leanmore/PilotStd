@@ -26,7 +26,6 @@ class MIITAdapter(BaseAdapter):
     """工信部行业标准查询适配器。"""
 
     BASE_URL = "https://std.miit.gov.cn"
-    API_URL = "https://std.miit.gov.cn/kjsStandproject/front/zxd/stand/queryFullDisclosureStandards"
 
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
@@ -79,7 +78,7 @@ class MIITAdapter(BaseAdapter):
             "userId": "",
         }
         try:
-            resp = self._client.post(self.API_URL, data=body, timeout=15)
+            resp = self._client.post(self.get_search_url(), data=body, timeout=15)
         except Exception as e:
             logger.error("MIIT 请求失败: %s", e)
             return []
