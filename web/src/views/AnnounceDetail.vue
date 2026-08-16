@@ -93,7 +93,7 @@ async function loadDetail() {
   // 2. 缓存未命中，正常请求
   loading.value = true
   try {
-    const res = await getAnnounceDetailLite(announceNo, source)
+    const res = await getAnnounceDetailLite(announceNo, source, '/announce')
     announcement.value = res.announcement
     records.value = res.records || []
     parseStatus.value = res.parse_status || 'pending'

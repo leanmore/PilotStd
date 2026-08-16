@@ -2,8 +2,8 @@
 import http from './http'
 import type { ListFilesResponse, ScanResponse, NormalizeResult, SuccessResponse, CleanResponse, UploadResponse } from '../types/api'
 
-export const getFiles = (path: string): Promise<ListFilesResponse> =>
-  http.get('/files', { params: { path } }).then(r => r.data)
+export const getFiles = (path: string, routeTag?: string): Promise<ListFilesResponse> =>
+  http.get('/files', { params: { path }, routeTag }).then(r => r.data)
 
 export const postScan = (path: string, recursive: boolean = true, runId?: string): Promise<ScanResponse> =>
   http.post('/scan', { run_id: runId || null }, { params: { path, recursive: String(recursive) } }).then(r => r.data)

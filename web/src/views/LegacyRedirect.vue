@@ -21,7 +21,7 @@ const announceNo = route.params.announceNo as string
 
 onMounted(async () => {
   try {
-    const result = await getAnnouncementByNo(announceNo)
+    const result = await getAnnouncementByNo(announceNo, '/announce')
 
     if (!Array.isArray(result) || result.length === 0) {
       router.replace({ name: 'NotFound', query: {} })

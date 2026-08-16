@@ -67,7 +67,7 @@ function statusSeverity(s: string): 'success' | 'danger' | 'info' | 'secondary' 
 
 async function loadStats() {
   try {
-    stats.value = await getStandardsStats()
+    stats.value = await getStandardsStats('/standards-status')
   } catch { /* 统计失败不影响列表 */ }
 }
 
@@ -89,7 +89,7 @@ async function loadList() {
       status: filterStatus.value || undefined,
       standard_no: filterStandardNo.value || undefined,
       name: filterName.value || undefined,
-    })
+    }, '/standards-status')
     allItems.value = r.items
     total.value = r.total
   } catch (e: any) {

@@ -26,7 +26,7 @@ const levelIcon: Record<string, string> = { info: 'pi pi-info-circle', warn: 'pi
 
 async function fetchLogs() {
   try {
-    const r = await http.get('/logs', { params: { tail: 30 } })
+    const r = await http.get('/logs', { params: { tail: 30 }, routeTag: '/' })
     const lines: string[] = r.data?.logs || r.data?.lines || r.data || []
     logs.value = (Array.isArray(lines) ? lines : []).map(parseLine)
     scrollToBottom()

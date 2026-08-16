@@ -47,7 +47,7 @@ interface AnnounceStats {
 const statsData = ref<AnnounceStats | null>(null)
 
 async function loadStats() {
-  try { statsData.value = await http.get('/announce/stats').then(r => r.data) } catch { /* ignore */ }
+  try { statsData.value = await http.get('/announce/stats', { routeTag: '/announce' }).then(r => r.data) } catch { /* ignore */ }
 }
 const loading = ref(false)
 const sinceDate = ref<Date>(defaultSince())
@@ -64,7 +64,7 @@ async function load() {
     const fromDate = sinceDate.value
       ? `${sinceDate.value.getFullYear()}-${String(sinceDate.value.getMonth() + 1).padStart(2, '0')}-${String(sinceDate.value.getDate()).padStart(2, '0')}`
       : ''
-    const data = await getAnnounceResults(sourceSite, fromDate)
+    const data = await getAnnounceResults(sourceSite, fromDate, '/announce')
     results.value = data.results || []
     loadStats()
   } catch {}

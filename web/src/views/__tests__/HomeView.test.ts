@@ -64,7 +64,7 @@ describe('HomeView 布局与持久化', () => {
     const wrapper = mountHome()
     await vi.runAllTimersAsync()
 
-    expect(http.get).toHaveBeenCalledWith('/user/preferences/layout:dashboard')
+    expect(http.get).toHaveBeenCalledWith('/user/preferences/layout:dashboard', { routeTag: '/' })
     expect(wrapper.vm.layout.length).toBe(1)
     expect(wrapper.vm.layout[0].i).toBe('stats')
   })

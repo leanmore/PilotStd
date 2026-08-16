@@ -55,7 +55,7 @@ const activeTab = ref<string>('')
 
 onMounted(async () => {
   try {
-    const data = await getAnnounceResults()
+    const data = await getAnnounceResults(undefined, undefined, '/')
     announcements.value = data.results || []
   } catch { announcements.value = [] }
   finally {

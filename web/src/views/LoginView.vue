@@ -24,7 +24,7 @@ async function submit() {
 }
 
 onMounted(async () => {
-  try { const c = await getSettingsCached(); const raw = (c.appearance?.login_bg || c.login_bg_url || '') as string; bgUrl.value = raw.startsWith('file://') ? '' : raw } catch {}
+  try { const c = await getSettingsCached('/login'); const raw = (c.appearance?.login_bg || c.login_bg_url || '') as string; bgUrl.value = raw.startsWith('file://') ? '' : raw } catch {}
 })
 </script>
 

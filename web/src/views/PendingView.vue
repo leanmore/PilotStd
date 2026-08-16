@@ -12,7 +12,7 @@ import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
 
-const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters()
+const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters('/pending')
 
 const input = ref('')
 const results = ref<any[]>([])

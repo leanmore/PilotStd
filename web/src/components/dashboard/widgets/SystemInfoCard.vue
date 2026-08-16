@@ -16,9 +16,9 @@ const adapterOk = computed(() => adapterCount.value > 0)
 onMounted(async () => {
   try {
     const [verResp, stats, adapterResp] = await Promise.all([
-      http.get('/system/version'),
-      getStats(),
-      http.get('/adapter/status', { params: { type: 'query' } }),
+      http.get('/system/version', { routeTag: '/' }),
+      getStats('/'),
+      http.get('/adapter/status', { params: { type: 'query' }, routeTag: '/' }),
     ])
     version.value = verResp.data.version || '—'
     standardCount.value = (stats.current || 0) + (stats.expired || 0) + (stats.pending || 0) + (stats.upcoming || 0)

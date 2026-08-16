@@ -23,7 +23,7 @@ let timer: ReturnType<typeof setInterval> | null = null
 async function loadStatus() {
   loading.value = true
   try {
-    const r = await http.get('/adapter/status')
+    const r = await http.get('/adapter/status', { routeTag: '/' })
     adapters.value = r.data.adapters
     error.value = ''
   } catch {

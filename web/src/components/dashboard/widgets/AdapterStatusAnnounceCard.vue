@@ -22,7 +22,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 async function loadStatus() {
   loading.value = true
   try {
-    const r = await http.get('/adapter/status', { params: { type: 'announcement' } })
+    const r = await http.get('/adapter/status', { params: { type: 'announcement' }, routeTag: '/' })
     adapters.value = r.data.adapters; error.value = ''
   } catch { error.value = '加载失败' }
   finally { loading.value = false }

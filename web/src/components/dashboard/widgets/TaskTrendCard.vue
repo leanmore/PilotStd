@@ -15,7 +15,7 @@ const statusList = computed(() => [
 ])
 
 onMounted(async () => {
-  try { stats.value = await getStats() } catch { /* ignore */ }
+  try { stats.value = await getStats('/') } catch { /* ignore */ }
 })
 </script>
 

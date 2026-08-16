@@ -11,7 +11,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const r = await http.get('/pending')
+    const r = await http.get('/pending', { routeTag: '/' })
     items.value = (r.data.items || []).slice(0, 6)
     total.value = r.data.total ?? r.data.items?.length ?? 0
   } finally { loading.value = false }

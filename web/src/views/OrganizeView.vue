@@ -21,7 +21,7 @@ async function browse(dir?: string) {
   const p = dir || rootPath.value
   loading.value = true; error.value = ''
   try {
-    const data = await getFiles(p)
+    const data = await getFiles(p, '/organize')
     files.value = (data.files || []).map((f: any) => ({
       ...f, _size: f.size ? (f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : (f.size/1024).toFixed(0)+' KB') : ''
     }))

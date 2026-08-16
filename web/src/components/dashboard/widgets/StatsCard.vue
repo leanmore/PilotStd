@@ -12,7 +12,7 @@ const error = ref(false)
 
 onMounted(async () => {
   try {
-    stats.value = await getStats()
+    stats.value = await getStats('/')
     error.value = false
   } catch {
     error.value = true

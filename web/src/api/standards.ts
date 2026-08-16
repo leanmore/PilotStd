@@ -23,8 +23,8 @@ export interface StandardStatusResponse {
   items: StandardStatusItem[]
 }
 
-export const getStandardsStats = (): Promise<StandardStats> =>
-  http.get('/standards/status/stats').then(r => r.data)
+export const getStandardsStats = (routeTag?: string): Promise<StandardStats> =>
+  http.get('/standards/status/stats', { routeTag }).then(r => r.data)
 
 // ── 首屏内存 TTL 缓存（仅 page=1，禁止 localStorage） ──
 const CACHE_TTL = 300_000 // 5 分钟
@@ -44,10 +44,10 @@ export const getStandardsStatus = async (params: {
   name?: string
   page?: number
   page_size?: number
-}): Promise<StandardStatusResponse> => {
+}, routeTag?: string): Promise<StandardStatusResponse> => {
   // page>1 跳过缓存（增量加载页码动态变化）
   if (params.page !== undefined && params.page > 1) {
-    return http.get('/standards/status', { params }).then(r => r.data)
+    return http.get('/standards/status', { params, routeTag }).then(r => r.data)
   }
 
   const key = _cacheKey(params)
@@ -56,7 +56,7 @@ export const getStandardsStatus = async (params: {
     return Promise.resolve(cached.data)
   }
 
-  const r = await http.get('/standards/status', { params })
+  const r = await http.get('/standards/status', { params, routeTag })
   _cache.set(key, { data: r.data, timestamp: Date.now() })
   return r.data
 }

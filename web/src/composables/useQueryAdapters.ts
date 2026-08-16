@@ -18,8 +18,8 @@ function isExpired(): boolean {
   return !cached || Date.now() - lastFetch > DEFAULT_TTL
 }
 
-async function _fetch(): Promise<QueryAdapterItem[]> {
-  const r = await http.get('/adapter/status', { params: { type: 'query' } })
+async function _fetch(routeTag?: string): Promise<QueryAdapterItem[]> {
+  const r = await http.get('/adapter/status', { params: { type: 'query' }, routeTag })
   const raw = r.data?.adapters || []
   const items: QueryAdapterItem[] = []
   for (const item of raw) {
@@ -32,14 +32,14 @@ async function _fetch(): Promise<QueryAdapterItem[]> {
   return items
 }
 
-export function useQueryAdapters() {
+export function useQueryAdapters(routeTag?: string) {
   const adapters = ref<QueryAdapterItem[]>(cached || []) as Ref<QueryAdapterItem[]>
 
   async function refresh(): Promise<void> {
     loading.value = true
     error.value = null
     try {
-      cached = await _fetch()
+      cached = await _fetch(routeTag)
       lastFetch = Date.now()
       adapters.value = cached
     } catch {

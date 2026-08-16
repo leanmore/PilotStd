@@ -107,7 +107,7 @@ async function fetchLayout() {
 
   // 2. 异步拉取服务器配置（仅成功且有效时才覆盖本地）
   try {
-    const res = await http.get('/user/preferences/layout:dashboard')
+    const res = await http.get('/user/preferences/layout:dashboard', { routeTag: '/' })
     if (fetchVersion !== version) return
     const raw = res.data?.value   // 后端已 json.loads，value 直接是布局数组
     if (Array.isArray(raw) && raw.length > 0) {

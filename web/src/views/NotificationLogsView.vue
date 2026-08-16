@@ -156,7 +156,7 @@ async function loadLogs() {
       start_date: formatDate(filterStartDate.value),
       end_date: formatDate(filterEndDate.value),
       is_read: filterIsRead.value !== null ? filterIsRead.value : undefined,
-    })
+    }, '/notification-logs')
     logs.value = r.items
     total.value = r.total
   } catch (e: any) {

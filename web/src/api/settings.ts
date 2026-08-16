@@ -9,13 +9,13 @@ let loadingPromise: Promise<Settings> | null = null
 export const getSettings = (routeTag?: string): Promise<Settings> =>
   http.get('/settings', { routeTag }).then(r => r.data)
 
-export async function getSettingsCached(): Promise<Settings> {
+export async function getSettingsCached(routeTag?: string): Promise<Settings> {
   const cached = sessionCache.get<Settings>(SETTINGS_CACHE_KEY)
   if (cached) return cached
 
   if (loadingPromise) return loadingPromise
 
-  loadingPromise = getSettings().then(data => {
+  loadingPromise = getSettings(routeTag).then(data => {
     sessionCache.set(SETTINGS_CACHE_KEY, data)
     loadingPromise = null
     return data
@@ -30,8 +30,8 @@ export async function getSettingsCached(): Promise<Settings> {
 export const putSettings = (data: Partial<Settings>): Promise<Settings> =>
   http.put('/settings', data).then(r => r.data)
 
-export const getStats = (): Promise<StatusStats> =>
-  http.get('/stats').then(r => r.data)
+export const getStats = (routeTag?: string): Promise<StatusStats> =>
+  http.get('/stats', { routeTag }).then(r => r.data)
 
 export const getSettingsSchema = (routeTag?: string): Promise<{ tabs: Record<string, any[]> }> =>
   http.get('/settings/schema', { routeTag }).then(r => r.data)
