@@ -3,7 +3,8 @@ defineOptions({ name: 'SystemResources' })
 import { ref, onMounted, onUnmounted } from 'vue'
 import Card from 'primevue/card'
 import ProgressBar from 'primevue/progressbar'
-import axios from 'axios'
+import { getSystemResources } from '@/api/system'
+import type { RouteTag } from '@/types/route-tag'
 
 const cpu = ref({ percent: 0, count: 0 })
 const memory = ref({ percent: 0, total: 0, available: 0 })
@@ -12,9 +13,9 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 const formatBytes = (b: number) => (b / (1024 * 1024 * 1024)).toFixed(1) + ' GB'
 
-const fetchResources = async () => {
+const fetchResources = async (routeTag?: RouteTag) => {
   try {
-    const resp = await axios.get('/api/system/resources')
+    const resp = await getSystemResources(routeTag ? { routeTag } : undefined)
     if (resp.data.cpu) cpu.value = resp.data.cpu
     if (resp.data.memory) memory.value = resp.data.memory
     if (resp.data.disk) disk.value = resp.data.disk
@@ -22,8 +23,8 @@ const fetchResources = async () => {
 }
 
 onMounted(() => {
-  fetchResources()
-  timer = setInterval(fetchResources, 10000)
+  fetchResources('/resources')
+  timer = setInterval(() => fetchResources('/resources'), 10000)
 })
 
 onUnmounted(() => {

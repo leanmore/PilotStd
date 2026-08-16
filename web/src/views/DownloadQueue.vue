@@ -4,28 +4,29 @@ import { ref, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
-import axios from 'axios'
+import { getTasks, cancelTask as cancelTaskApi } from '@/api/tasks'
+import type { RouteTag } from '@/types/route-tag'
 
 interface Task { task_id: string; task_type: string; status: string; total_items: number; created_at: string }
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 
-const fetchTasks = async () => {
+const fetchTasks = async (routeTag?: RouteTag) => {
   loading.value = true
   try {
-    const resp = await axios.get('/api/tasks')
+    const resp = await getTasks(routeTag ? { routeTag } : undefined)
     tasks.value = resp.data.items || []
   } catch { /* ignore */ } finally { loading.value = false }
 }
 
 const cancelTask = async (id: string) => {
   try {
-    await axios.post(`/api/tasks/${id}/cancel`)
-    fetchTasks()
+    await cancelTaskApi(id)
+    fetchTasks('/download-queue')
   } catch { /* ignore */ }
 }
 
-onMounted(fetchTasks)
+onMounted(() => fetchTasks('/download-queue'))
 </script>
 
 <template>
@@ -35,7 +36,7 @@ onMounted(fetchTasks)
       <template #content>
         <div class="header-row">
           <span class="text-sm" v-if="tasks.length">共 {{ tasks.length }} 个任务</span>
-          <Button icon="pi pi-refresh" text size="small" @click="fetchTasks" />
+          <Button icon="pi pi-refresh" text size="small" @click="fetchTasks()" />
         </div>
         <table v-if="tasks.length" class="data-table">
           <thead><tr><th>任务ID</th><th>类型</th><th>状态</th><th>条目</th><th>创建时间</th><th>操作</th></tr></thead>

@@ -4,10 +4,12 @@ import { nextTick } from 'vue'
 import SystemResources from './SystemResources.vue'
 import Card from 'primevue/card'
 import ProgressBar from 'primevue/progressbar'
-import axios from 'axios'
+import { getSystemResources } from '@/api/system'
 
-vi.mock('axios')
-const mockedAxios = vi.mocked(axios)
+vi.mock('@/api/system', () => ({
+  getSystemResources: vi.fn(),
+}))
+const mockedGetSystemResources = vi.mocked(getSystemResources)
 
 const StubCard = {
   name: 'Card',
@@ -33,7 +35,7 @@ describe('SystemResources', () => {
   })
 
   it('renders page title 系统资源', () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSystemResources.mockResolvedValueOnce({
       data: { cpu: { percent: 10, count: 8 }, memory: { percent: 50, total: 16 * 1024**3, available: 8 * 1024**3 }, disk: { percent: 30, total: 256 * 1024**3, free: 180 * 1024**3 } },
     })
     const wrapper = mountComponent()
@@ -41,7 +43,7 @@ describe('SystemResources', () => {
   })
 
   it('renders 3 resource cards for CPU, memory, and disk', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSystemResources.mockResolvedValueOnce({
       data: { cpu: { percent: 25, count: 4 }, memory: { percent: 60, total: 8 * 1024**3, available: 3 * 1024**3 }, disk: { percent: 45, total: 512 * 1024**3, free: 280 * 1024**3 } },
     })
     const wrapper = mountComponent()
@@ -52,7 +54,7 @@ describe('SystemResources', () => {
   })
 
   it('renders CPU card with correct title and detail', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSystemResources.mockResolvedValueOnce({
       data: { cpu: { percent: 40, count: 8 }, memory: { percent: 0, total: 0, available: 0 }, disk: { percent: 0, total: 0, free: 0 } },
     })
     const wrapper = mountComponent()
@@ -62,7 +64,7 @@ describe('SystemResources', () => {
   })
 
   it('renders memory card with GB formatting', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSystemResources.mockResolvedValueOnce({
       data: { cpu: { percent: 0, count: 0 }, memory: { percent: 75, total: 16 * 1024**3, available: 4 * 1024**3 }, disk: { percent: 0, total: 0, free: 0 } },
     })
     const wrapper = mountComponent()
@@ -73,7 +75,7 @@ describe('SystemResources', () => {
   })
 
   it('renders disk card with free space detail', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetSystemResources.mockResolvedValueOnce({
       data: { cpu: { percent: 0, count: 0 }, memory: { percent: 0, total: 0, available: 0 }, disk: { percent: 10, total: 1000 * 1024**3, free: 900 * 1024**3 } },
     })
     const wrapper = mountComponent()

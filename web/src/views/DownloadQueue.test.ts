@@ -5,10 +5,12 @@ import DownloadQueue from './DownloadQueue.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
-import axios from 'axios'
+import { getTasks } from '@/api/tasks'
 
-vi.mock('axios')
-const mockedAxios = vi.mocked(axios)
+vi.mock('@/api/tasks', () => ({
+  getTasks: vi.fn(),
+}))
+const mockedGetTasks = vi.mocked(getTasks)
 
 // stub 外层 Card，透传 content 插槽，让内部 table 可断言
 const StubCard = {
@@ -39,7 +41,7 @@ describe('DownloadQueue', () => {
   })
 
   it('shows empty state when no tasks and not loading', async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { items: [] } })
+    mockedGetTasks.mockResolvedValueOnce({ data: { items: [] } })
     const wrapper = mountComponent()
     await nextTick()
     await nextTick()
@@ -48,7 +50,7 @@ describe('DownloadQueue', () => {
   })
 
   it('renders task table rows when API returns tasks', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetTasks.mockResolvedValueOnce({
       data: {
         items: [
           { task_id: 'task-1', task_type: 'download', status: 'running', total_items: 5, created_at: '2026-06-01T10:00:00Z' },
@@ -66,7 +68,7 @@ describe('DownloadQueue', () => {
   })
 
   it('shows total task count when tasks present', async () => {
-    mockedAxios.get.mockResolvedValueOnce({
+    mockedGetTasks.mockResolvedValueOnce({
       data: { items: [{ task_id: 'a', task_type: 'x', status: 'running', total_items: 1, created_at: '2026-06-01T00:00:00Z' }] },
     })
     const wrapper = mountComponent()
