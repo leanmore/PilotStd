@@ -309,7 +309,7 @@ def _create_sites_part1() -> list[SiteState]:
             cooldown_seconds=900,
             request_interval=0.5,
         ),
-        S(name="iso_gov", base_url="https://std.samr.gov.cn", max_requests=200, daily_limit=800, request_interval=0.5),
+        S(name="iso_gov", base_url="https://std.samr.gov.cn", search_url="https://std.samr.gov.cn/gj/search/gjPage", probe_url="https://std.samr.gov.cn/gj/search/gjPage", max_requests=200, daily_limit=800, request_interval=0.5),
         S(name="njbz365", base_url="https://www.njbz365.cn", search_url="https://www.njbz365.cn/apis", max_requests=200, daily_limit=800, request_interval=3.0),
         S(name="dbba", base_url="https://dbba.sacinfo.org.cn", search_url="https://dbba.sacinfo.org.cn/stdQueryList", max_requests=200, daily_limit=800, request_interval=0.5),
     ]
@@ -341,6 +341,8 @@ def _create_sites_part1b() -> list[SiteState]:
         S(
             name="mee",
             base_url="https://www.mee.gov.cn",
+            search_url="https://www.mee.gov.cn/was5/web/search",
+            probe_url="https://www.mee.gov.cn/was5/web/search",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=2,
@@ -359,6 +361,8 @@ def _create_sites_part1b() -> list[SiteState]:
         S(
             name="jtst",
             base_url="https://jtst.mot.gov.cn",
+            search_url="https://jtst.mot.gov.cn/search/stdPage",
+            probe_url="https://jtst.mot.gov.cn/search/stdPage",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=2,
@@ -374,6 +378,8 @@ def _create_sites_part2() -> list[SiteState]:
         S(
             name="ccsn",
             base_url="https://www.ccsn.org.cn",
+            search_url="https://www.ccsn.org.cn/Zbbz/ZbbzList.aspx",
+            probe_url="https://www.ccsn.org.cn/Zbbz/ZbbzList.aspx",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=3,
@@ -382,6 +388,8 @@ def _create_sites_part2() -> list[SiteState]:
         S(
             name="jjg",
             base_url="https://jjg.spc.org.cn",
+            search_url="https://jjg.spc.org.cn/resmea/api/standard/search/page",
+            probe_url="https://jjg.spc.org.cn/resmea/api/standard/search/page",
             max_requests=100,
             daily_limit=1000,
             cooldown_seconds=1,
@@ -390,6 +398,8 @@ def _create_sites_part2() -> list[SiteState]:
         S(
             name="sppt",
             base_url="https://sppt.cfsa.net.cn:8086",
+            search_url="https://sppt.cfsa.net.cn:8086/db",
+            probe_url="https://sppt.cfsa.net.cn:8086/db",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=2,
@@ -407,6 +417,8 @@ def _create_sites_part2() -> list[SiteState]:
         S(
             name="gongbiaoku",
             base_url="https://www.gongbiaoku.com",
+            search_url="https://www.gongbiaoku.com/search",
+            probe_url="https://www.gongbiaoku.com/search",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=2,
@@ -422,6 +434,8 @@ def _create_sites_part3() -> list[SiteState]:
         S(
             name="energy",
             base_url="https://114.251.111.103:18080",
+            search_url="https://114.251.111.103:18080/zxd/portal/stdPage",
+            probe_url="https://114.251.111.103:18080/zxd/portal/stdPage",
             max_requests=30,
             daily_limit=100,
             cooldown_seconds=2,
@@ -430,6 +444,8 @@ def _create_sites_part3() -> list[SiteState]:
         S(
             name="tdpress",
             base_url="https://biaozhun.tdpress.com",
+            search_url="https://biaozhun.tdpress.com/front/queryFomePage",
+            probe_url="https://biaozhun.tdpress.com/front/queryFomePage",
             max_requests=50,
             daily_limit=500,
             cooldown_seconds=1,
@@ -456,6 +472,8 @@ def _create_sites_part3() -> list[SiteState]:
         S(
             name="cssn",
             base_url="https://www.cssn.net.cn",
+            search_url="https://www.cssn.net.cn/api/standards/",
+            probe_url="https://www.cssn.net.cn/api/standards/",
             max_requests=100,
             daily_limit=1000,
             cooldown_seconds=1,

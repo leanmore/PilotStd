@@ -28,7 +28,6 @@ class CSSNAdapter(BaseAdapter):
     """中国标准服务网查询适配器。"""
 
     BASE_URL = "https://www.cssn.net.cn"
-    API_URL = "https://www.cssn.net.cn/api/standards/"
 
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
@@ -71,7 +70,7 @@ class CSSNAdapter(BaseAdapter):
                 params["page"] = current_page
 
             try:
-                resp = self._client.get(self.API_URL, params=params, timeout=REQUEST_TIMEOUT)
+                resp = self._client.get(self.get_search_url(), params=params, timeout=REQUEST_TIMEOUT)
             except Exception as e:
                 logger.error("CSSN 请求失败 (page=%d): %s", current_page, e)
                 break

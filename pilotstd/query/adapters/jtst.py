@@ -35,8 +35,6 @@ _TOTAL_COUNT_RE = re.compile(r"(\d+)\s*条")
 class JTSTAdapter(BaseAdapter):
     """交通运输部标准查询适配器。"""
 
-    SEARCH_URL = "https://jtst.mot.gov.cn/search/stdPage"
-
     # 结果卡片选择器
     CARD_SELECTOR = ".panel.panel-default.post"
 
@@ -78,7 +76,7 @@ class JTSTAdapter(BaseAdapter):
         }
 
         try:
-            resp = self._client.get(self.SEARCH_URL, params=params, timeout=15)
+            resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
             logger.debug(f"jtst.mot.gov.cn 请求失败: {e}")
             return []

@@ -25,7 +25,6 @@ class JJGAdapter(BaseAdapter):
     """国家计量技术规范查询适配器。"""
 
     BASE_URL = "https://jjg.spc.org.cn"
-    API_URL = "https://jjg.spc.org.cn/resmea/api/standard/search/page"
     PAGE_SIZE = 20
     MAX_PAGES = 20
 
@@ -72,7 +71,7 @@ class JJGAdapter(BaseAdapter):
                 "pageSize": page_size,
             }
             try:
-                resp = self._client.get(self.API_URL, params=params, timeout=15)
+                resp = self._client.get(self.get_search_url(), params=params, timeout=15)
             except Exception as e:
                 logger.debug(f"jjg.spc.org.cn API 请求失败: {e}")
                 break

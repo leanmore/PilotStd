@@ -26,7 +26,6 @@ class IsoGovAdapter(BaseAdapter):
     搜索入口: std.samr.gov.cn/gj/std?key=xxx
     """
 
-    SEARCH_URL = "https://std.samr.gov.cn/gj/search/gjPage"
     SEARCH_PAGE = "https://std.samr.gov.cn/gj/std"
 
     def __init__(self, session: requests.Session | None = None):
@@ -76,7 +75,7 @@ class IsoGovAdapter(BaseAdapter):
             "pageNumber": 1,
             "pageSize": 10,
         }
-        resp = safe_get(self._session, self.SEARCH_URL, self.site_name, params=params, timeout=15)
+        resp = safe_get(self._session, self.get_search_url(), self.site_name, params=params, timeout=15)
         if resp is None or resp.status_code != 200:
             return []
 

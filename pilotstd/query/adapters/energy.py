@@ -27,7 +27,6 @@ class EnergyAdapter(BaseAdapter):
     """能源标准查询适配器。"""
 
     BASE_URL = "https://114.251.111.103:18080"
-    API_URL = "https://114.251.111.103:18080/zxd/portal/stdPage"
 
     # 纯站点：显式声明+自签名证书跳过
     def __init__(self, client: httpx.Client | None = None):
@@ -101,9 +100,9 @@ class EnergyAdapter(BaseAdapter):
 
             # ✅任务6：首页使用回退链接，翻页仅用主链接
             if page == 0:
-                urls_to_try = [self.API_URL] + FALLBACK_URLS
+                urls_to_try = [self.get_search_url()] + FALLBACK_URLS
             else:
-                urls_to_try = [self.API_URL]
+                urls_to_try = [self.get_search_url()]
 
             resp = None
             for url in urls_to_try:

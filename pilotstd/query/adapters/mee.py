@@ -48,7 +48,6 @@ _VALID_CATEGORY = "法规标准"
 class MEEAdapter(BaseAdapter):
     """生态环境部标准查询适配器。"""
 
-    SEARCH_API = "https://www.mee.gov.cn/was5/web/search"
     # =270514对应"标准发布"栏目，若未来改版需从首页脚本中提取新值
     CHANNEL_ID = "270514"
 
@@ -95,7 +94,7 @@ class MEEAdapter(BaseAdapter):
                 params[key] = kwargs[key]
 
         try:
-            resp = self._session.get(self.SEARCH_API, params=params, timeout=15)
+            resp = self._session.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
             logger.debug(f"mee.gov.cn API 请求失败: {e}")
             return []

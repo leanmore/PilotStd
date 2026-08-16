@@ -20,8 +20,16 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# 接口基地址
-BASE_API = "https://www.njbz365.cn/apis"
+def _get_base_api() -> str:
+    """从配置中心读取 njbz365 查询端点，未配置时回退硬编码默认值。"""
+    from ..site_config import get_site_config
+
+    config = get_site_config("njbz365")
+    if config and config.search_url:
+        return config.search_url
+    return "https://www.njbz365.cn/apis"
+
+
 HOME_URL = "https://www.njbz365.cn/"
 
 # 算法签名私钥
@@ -58,7 +66,7 @@ class Njz365SessionManager:
         旧机制（已失效）：GET 首页 → Set-Cookie 的 token 字段包含 JWT。
         新机制：POST login_status_refresh → 响应 JSON 的 "token" 字段包含 JWT。
         """
-        url = f"{BASE_API}/user_center/user/login_status_refresh"
+        url = f"{_get_base_api()}/user_center/user/login_status_refresh"
         params = {
             "org_id": "", "api": "gbtitle_gl", "time_str": str(int(time.time() * 1000)),
             "fws_source": "nj_std", "check_login_device": "", "c_s": "pc",
@@ -80,7 +88,7 @@ class Njz365SessionManager:
         for attempt in range(3):
             try:
                 resp = self._session.options(
-                    f"{BASE_API}/std_base/web/jg_sel_standardcode",
+                    f"{_get_base_api()}/std_base/web/jg_sel_standardcode",
                     timeout=15,
                 )
                 cookies = resp.headers.get("Set-Cookie", "")
@@ -210,7 +218,7 @@ class Njz365SessionManager:
         """发起搜索请求，token/CSRF 过期时自动刷新并重试。"""
         self._ensure_session()
 
-        url = f"{BASE_API}/std_base/web/jg_sel_standardcode"
+        url = f"{_get_base_api()}/std_base/web/jg_sel_standardcode"
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json, text/plain, */*",

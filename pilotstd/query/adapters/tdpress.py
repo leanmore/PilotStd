@@ -48,7 +48,6 @@ class TDPressAdapter(BaseAdapter):
     """铁路标准查询适配器。"""
 
     BASE_URL = "https://biaozhun.tdpress.com"
-    API_URL = "https://biaozhun.tdpress.com/front/queryFomePage"
 
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
@@ -98,7 +97,7 @@ class TDPressAdapter(BaseAdapter):
             "soleLogo": "tlbz",
         }
         try:
-            resp = self._client.get(self.API_URL, params=params, timeout=15)
+            resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
             logger.error("tdpress 请求失败: %s", e)
             return []

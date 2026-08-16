@@ -28,7 +28,6 @@ class CCSNAdapter(BaseAdapter):
     """中国工程建设标准化协会标准查询适配器。"""
 
     BASE_URL = "https://www.ccsn.org.cn"
-    SEARCH_URL = "https://www.ccsn.org.cn/Zbbz/ZbbzList.aspx"
 
     # 0确认的字段列索引:[0]序号[1]标准名称[2]标准编号[3]发布日期[4]实施日期
     COL_STANDARD_NUMBER = 2
@@ -111,7 +110,7 @@ class CCSNAdapter(BaseAdapter):
 
         # 第1页：搜索
         try:
-            resp = self._client.get(self.SEARCH_URL, params={"KeyWord": keyword}, timeout=15)
+            resp = self._client.get(self.get_search_url(), params={"KeyWord": keyword}, timeout=15)
         except Exception as e:
             logger.debug(f"ccsn.org.cn GET 搜索失败: {e}")
             return []
@@ -151,7 +150,7 @@ class CCSNAdapter(BaseAdapter):
                 "ID_ucZbbzList$txtKeyWord": keyword,
             }
             try:
-                resp = self._client.post(self.SEARCH_URL, data=data, timeout=15)
+                resp = self._client.post(self.get_search_url(), data=data, timeout=15)
             except Exception as e:
                 logger.debug(f"ccsn.org.cn 分页 POST 失败: {e}")
                 break

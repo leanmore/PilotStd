@@ -30,7 +30,6 @@ class GongBiaoKuAdapter(BaseAdapter):
     """工标库查询适配器。"""
 
     BASE_URL = "https://www.gongbiaoku.com"
-    SEARCH_URL = "https://www.gongbiaoku.com/search"
 
     def __init__(self, client: httpx.Client | None = None):
         self._log_window_start = 0.0
@@ -68,7 +67,7 @@ class GongBiaoKuAdapter(BaseAdapter):
         params: dict[str, Any] = {"txt": keyword}
 
         try:
-            resp = self._client.get(self.SEARCH_URL, params=params, timeout=15)
+            resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
             logger.debug(f"gongbiaoku.com 请求失败: {e}")
             return []

@@ -31,8 +31,6 @@ class SPPTAdapter(BaseAdapter):
     仅适用于食品安全国家标准（8086），地方标准请使用 SPPTLocalAdapter。
     """
 
-    SEARCH_URL = "https://sppt.cfsa.net.cn:8086/db"
-
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
             timeout=15.0,
@@ -75,7 +73,7 @@ class SPPTAdapter(BaseAdapter):
         }
 
         try:
-            resp = self._client.get(self.SEARCH_URL, params=params, timeout=15)
+            resp = self._client.get(self.get_search_url(), params=params, timeout=15)
         except Exception as e:
             logger.debug(f"sppt.cfsa.net.cn API 请求失败: {e}")
             return []
