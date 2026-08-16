@@ -292,6 +292,8 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="std_gov",
             base_url="https://openstd.samr.gov.cn",
+            search_url="https://std.samr.gov.cn/search/stdPage",
+            probe_url="https://std.samr.gov.cn/search/stdPage",
             max_requests=400,
             daily_limit=800,
             cooldown_seconds=300,
@@ -311,6 +313,8 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="csres",
             base_url="http://www.csres.com",
+            search_url="http://www.csres.com/s.jsp?keyword={}",
+            probe_url="http://www.csres.com/s.jsp",
             fallback_urls=["http://222.73.18.35"],
             max_requests=50,
             daily_limit=200,
@@ -335,6 +339,8 @@ def _create_sites_part1() -> list[SiteState]:
         S(
             name="nrsis",
             base_url="http://www.nrsis.org.cn",
+            search_url="http://www.nrsis.org.cn/portal/xxcx/std",
+            probe_url="http://www.nrsis.org.cn/portal/xxcx/std",
             max_requests=30,
             daily_limit=300,
             cooldown_seconds=3,
@@ -476,3 +482,18 @@ def _load_site_overrides() -> dict[str, Any]:
         return sites if isinstance(sites, dict) else {}
     except Exception:
         return {}
+
+
+# 站点配置缓存：create_default_sites 每次调用会重读 config.json，此处缓存避免重复开销
+_site_config_cache: dict[str, SiteState] | None = None
+
+
+def get_site_config(name: str) -> SiteState | None:
+    """按名称返回站点配置（含 search_url/probe_url），供适配器与健康检查读取。
+
+    未找到返回 None，调用方需自行回退到硬编码值或 base_url。
+    """
+    global _site_config_cache
+    if _site_config_cache is None:
+        _site_config_cache = {s.name: s for s in create_default_sites()}
+    return _site_config_cache.get(name)

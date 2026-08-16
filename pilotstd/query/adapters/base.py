@@ -32,6 +32,26 @@ class BaseAdapter(ABC):
     @abstractmethod
     def site_label(self) -> str: ...
 
+    def get_search_url(self) -> str:
+        """获取查询 URL，优先级：site_config.search_url > 硬编码 SEARCH_URL/API_URL > base_url。
+
+        渐进式迁移：适配器逐步用 site_config 的 search_url 替代硬编码，
+        未配置时回退到硬编码常量（类属性 SEARCH_URL/API_URL），最终回退 base_url。
+        """
+        from ..site_config import get_site_config
+
+        config = get_site_config(self.site_name)
+        # 1. 配置中心 search_url（迁移后由配置驱动）
+        if config and config.search_url:
+            return config.search_url
+        # 2. 硬编码回退（SEARCH_URL / API_URL，命名不统一）
+        for attr in ("SEARCH_URL", "API_URL"):
+            url = getattr(self, attr, "")
+            if url:
+                return str(url)
+        # 3. base_url 回退（BaseAdapter 无 base_url 属性，从配置读）
+        return config.base_url if config else ""
+
     # ──搜索（子类通常不需要重写，只需实现__和钩子）──
 
     def _search(self, search_term: str) -> Optional[QueryResult]:

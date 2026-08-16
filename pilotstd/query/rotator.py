@@ -23,6 +23,9 @@ class SiteState:
     name: str  # 网站标识（如 csres）
     base_url: str  # 主URL
     fallback_urls: List[str] = field(default_factory=list)  # 备用URL
+    search_url: str = ""  # 实际查询 URL（配置化，替代适配器硬编码 SEARCH_URL）
+    probe_url: str = ""  # 健康检查探活 URL（空则回退 base_url，绝不回退 search_url）
+    probe_method: str = "GET"  # 探活请求方法（GET/POST）
     max_requests: int = 200  # 每轮冷却前最大请求数
     daily_limit: int = 800  # 每日最大请求数（次日凌晨自动重置）
     cooldown_seconds: int = 600  # 冷却时长（10分钟）

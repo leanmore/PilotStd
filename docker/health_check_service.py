@@ -7,7 +7,7 @@ from typing import Any
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
-from pilotstd.query.network import CHROME_UA, safe_raw_get
+from pilotstd.query.network import CHROME_UA, safe_raw_get, safe_raw_post
 from pilotstd.query.site_config import create_default_sites
 
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ _ANNOUNCE_ADAPTERS = {
 _HEALTH_TIMEOUT = 10  # 探活超时秒数
 
 
-def _probe(url: str, site_name: str) -> str:
-    """对单个站点做轻量级 GET 探活，返回 'up' 或 'down'。"""
+def _probe(url: str, site_name: str, probe_method: str = "GET") -> str:
+    """对单个站点做轻量级探活，返回 'up' 或 'down'。"""
     # miit 的 requests TLS 指纹被拦截（403），curl 实测可通，用 subprocess 单独探活
     if site_name == "miit" or "std.miit.gov.cn" in url:
         import subprocess
@@ -45,7 +45,10 @@ def _probe(url: str, site_name: str) -> str:
     verify = site_name != "energy"
     # 用浏览器 UA 探活，避免站点反爬拦截（与公告/查询适配器保持一致）
     headers = {"User-Agent": CHROME_UA}
-    resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
+    if probe_method.upper() == "POST":
+        resp = safe_raw_post(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
+    else:
+        resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
     if resp is not None and resp.status_code < 400:
         return "up"
     return "down"
@@ -81,7 +84,8 @@ def run_health_check() -> dict[str, Any]:
         logger.exception("[health] 加载查询站点配置失败")
         sites = []
     for site in sites:
-        status = _probe(site.base_url, site.name)
+        probe_url = site.probe_url or site.base_url
+        status = _probe(probe_url, site.name, site.probe_method)
         _write_health(site.name, status)
         stats["total"] += 1
         stats[status] += 1
