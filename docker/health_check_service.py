@@ -24,7 +24,9 @@ _HEALTH_TIMEOUT = 10  # 探活超时秒数
 
 def _probe(url: str, site_name: str) -> str:
     """对单个站点做轻量级 GET 探活，返回 'up' 或 'down'。"""
-    resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT)
+    # energy 为纯 IP + 自签名证书站点，跳过 SSL 验证（与适配器 verify=False 保持一致）
+    verify = site_name != "energy"
+    resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify)
     if resp is not None and resp.status_code < 400:
         return "up"
     return "down"
