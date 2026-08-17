@@ -89,3 +89,31 @@
 - **关联代码**：CI-FIX-20260725-001/002/003 全部改动
 - **关联文档**：无
 - **有效期**：永久（后续提交可上调 Passed 阈值，其余三项不可放宽）
+
+### 2026-08-17 范式 三级漏斗路由引擎v2.0
+- **类型**：范式
+- **内容**：查询类型三分支（国内标准号/国际标准号/纯关键词）+ L1精准匹配→L2综合兜底→L3探索层，替代 scorer 扁平评分。L1只做国内精准（assert not is_international），L2按 is_international 一致性区分国内/国际，L3纯关键词探索
+- **关联代码**：pilotstd/query/routing/router_v2.py
+- **关联文档**：docs/design/site_classification_v1.md
+- **有效期**：永久
+
+### 2026-08-17 决策 gongbiaoku数据源限制与mee修正
+- **类型**：决策
+- **内容**：gongbiaoku 根因类型B（后端无ISO/IEC数据，模糊匹配兜底返回无关国标），search_reliability=medium；mee.supported_types 从 v1.0 的 [HJ,GB] 修正为 [HJ]，GB 是国标查询误路由到 mee 的根因
+- **关联代码**：config/site_capabilities.yaml
+- **关联文档**：docs/analysis/gongbiaoku_search_audit.md
+- **有效期**：永久
+
+### 2026-08-17 决策 灰度开关与正则兼容代号
+- **类型**：决策
+- **内容**：ROUTING_ENGINE_VERSION 环境变量控制 v1/v2 切换（默认v1）；IntentParser 正则从 (?=\s*\d) 放宽为 {2,6}，因批量路径传入纯代号（GB/T/ISO）无法被原正则识别，会误判为关键词走L3
+- **关联代码**：pilotstd/query/engine/_single.py, _routing.py, _mini_bucket.py
+- **关联文档**：docs/analysis/v1_vs_v2_routing_comparison.md
+- **有效期**：永久（v1 清理后灰度开关可移除）
+
+### 2026-08-17 风险 能力模型数据缺口导致排序退化
+- **类型**：风险
+- **内容**：20个站点 search_reliability=unknown、全部 historical_hit_rate=0.0，导致 L2/L3 按 reliability、L1 按 hit_rate 排序退化为 YAML 原始顺序。需后续回填 search_reliability 及 per-site 命中数据
+- **关联代码**：docs/issues/router_v2_feedback.md
+- **关联文档**：docs/issues/router_v2_feedback.md
+- **有效期**：至数据回填完成时

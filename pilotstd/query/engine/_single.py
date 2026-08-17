@@ -7,10 +7,12 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any, Optional
 
 from ..models import QueryResult
 from ..routing.router_v2 import AllRoutesExhaustedException, get_routing_service, is_v2_enabled
+from ..routing.router_v2_metrics import build_decision, record_decision, record_v1_brief
 
 if TYPE_CHECKING:
     from ..adapters.base import BaseAdapter
@@ -200,6 +202,9 @@ class SingleQueryHandler:
                 logger.info("查询 [%s] ✗%s", target, exc)
                 return QueryResult(standard_number=target, error_message=str(exc), source_site="")
 
+        # v1 精简对比日志计时（用于 4.4 回归对比）
+        _v1_t0 = time.time()
+
         # 步骤2:获取适配器优先级链
         priority = self._step_get_priority_chain(
             logical_code=logical_code,
@@ -227,15 +232,18 @@ class SingleQueryHandler:
             metrics=getattr(self._core, "metrics", None),
         )
         if result is not None:
+            record_v1_brief(target, getattr(result, "source_site", None), (time.time() - _v1_t0) * 1000)
             return result
 
         # 步骤4:配额耗尽兜底
         if quota_exhausted:
             logger.info("查询 [%s] ✗配额耗尽", target)
+            record_v1_brief(target, None, (time.time() - _v1_t0) * 1000)
             return self._step_quota_exhausted(target)
 
         # 步骤5:未找到兜底
         logger.info("查询 [%s] ✗ tried=%s", target, "→".join(tried))
+        record_v1_brief(target, None, (time.time() - _v1_t0) * 1000)
         return self._step_not_found(target, tried)
 
     def _query_one_v2(
@@ -255,14 +263,18 @@ class SingleQueryHandler:
         """
         routing_service = get_routing_service()
         chain = routing_service.get_route_chain(target)
+        intent = routing_service.parser.parse(target)
+        _t0 = time.time()
 
         logger.debug("[v2 Router] 查询 [%s] 路由=%s", target, "→".join(chain.sites) if chain.sites else "(空)")
 
         tried: list[str] = []
+        quota_skipped: list[str] = []
         for site_id in chain.sites:
             # 请求前扣减批次配额，配额耗尽则跳过该站
             if not routing_service.consume_quota(site_id):
                 logger.info("[v2 Router] %s quota exhausted, skipping.", site_id)
+                quota_skipped.append(site_id)
                 continue
             adp = self._core.adapter_map.get(site_id)
             if adp is None:
@@ -282,12 +294,29 @@ class SingleQueryHandler:
                         result.match_status,
                         "→".join(tried),
                     )
+                    record_decision(
+                        build_decision(
+                            target,
+                            intent,
+                            chain.sites,
+                            tried,
+                            site_id,
+                            len(tried) - 1,
+                            quota_skipped,
+                            (time.time() - _t0) * 1000,
+                        )
+                    )
                     return result
             except Exception as exc:
                 # 单站异常不阻断整体，记录后继续尝试下一站
                 logger.warning("[v2 Router] %s failed: %s, trying next.", site_id, exc)
                 continue
 
+        record_decision(
+            build_decision(
+                target, intent, chain.sites, tried, None, len(tried), quota_skipped, (time.time() - _t0) * 1000
+            )
+        )
         raise AllRoutesExhaustedException(
             f"查询 '{target}' 链上所有站点均失败，已尝试：{'→'.join(tried) if tried else '(无)'}"
         )

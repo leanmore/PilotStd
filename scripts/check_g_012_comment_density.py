@@ -137,6 +137,8 @@ LANG_WHITELIST = {
     'scorer.py', 'scorer', 'YAML', 'config', 'v2', 'v2.0',
     # 并发与文档（阶段三引入）
     'Worker', 'Markdown',
+    # 埋点与日志（阶段四引入）
+    'v1', 'JSONL', 'logs', 'put', 'flush',
     # ── 其他 ──
     'publish', 'deliver', 'cleanup', 'docstring', 'LANG',
 }

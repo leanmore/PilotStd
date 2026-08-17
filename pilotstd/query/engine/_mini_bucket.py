@@ -11,6 +11,7 @@ import time
 from typing import TYPE_CHECKING, Any, cast
 
 from ..routing.router_v2 import get_routing_service, is_v2_enabled
+from ..routing.router_v2_metrics import hash_query, record_decision
 from ..search_strategy import MATCH_SCORE
 
 if TYPE_CHECKING:
@@ -31,6 +32,20 @@ def _apply_request_interval(rotator: Any, site_name: str, ctx: dict) -> None:
             m = ctx.get("metrics")
             if m:
                 m.increment("request_interval_wait", count=int(interval * 1000))
+
+
+def _record_v2_hit(target: str, site: str, elapsed: float) -> None:
+    """v2 批量命中埋点（精简字段），非 v2 模式零开销。"""
+    if not is_v2_enabled():
+        return
+    record_decision(
+        {
+            "query_hash": hash_query(target),
+            "hit_site": site,
+            "total_latency_ms": round(elapsed * 1000, 2),
+            "routing_version": "v2",
+        }
+    )
 
 
 class MiniBucketHandler:
@@ -211,6 +226,7 @@ class MiniBucketHandler:
                     logger.info("[CACHE] put exact match: %s → %s", target_display, assigned_site)
                 if ctx["result_callback"] and result.is_found():
                     ctx["result_callback"](idx, result)
+                _record_v2_hit(target_display, assigned_site, _elapsed)
                 ctx["bump"]()
             else:
                 logger.info(
