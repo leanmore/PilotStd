@@ -1,0 +1,333 @@
+# 站点能力模型 v2.0（阶段一产出）
+# 用途：路由系统可消费的结构化能力模型
+# 数据来源：docs/analysis/site_classification_partial.md（v1.1 分类表）
+#          docs/analysis/site_classification_status.json（v1.1 状态元数据）
+#          pilotstd/query/site_config.py（ADAPTER_DEFAULT_PROFILES.rate_limit.batch_limit）
+# 生成日期：2026-08-17
+#
+# 字段说明：
+#   site_id                        站点标识符（对应适配器名）
+#   classification.level1/level2   站点分类（综合/特色 + 二级分类）
+#   capabilities.supported_types   支持的标准前缀列表（路由决策时按体系聚合）
+#   capabilities.industries        覆盖行业领域，空为 []
+#   capabilities.is_international  是否覆盖国际标准（仅"全综合"站点可为 true）
+#   capabilities.search_reliability 搜索可靠性评级（unknown/low/medium/high），任务1.2更新 gongbiaoku
+#   constraints.batch_limit        单批次请求上限（来自 site_config.py）
+#   status.historical_hit_rate     历史命中率（query_metrics 无可查数据，默认 0.0）
+#   notes                          特殊说明/风险标记
+schema_version: "2.0"
+sites:
+  - site_id: hbba
+    classification:
+      level1: 综合
+      level2: 国内综合
+    capabilities:
+      supported_types: [SH, NB, HG, JB, YB, SY, CB, QB, FZ]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: ahbz
+    classification:
+      level1: 综合
+      level2: 国内综合
+    capabilities:
+      supported_types: [GB, GB/T, DB]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: gongbiaoku
+    classification:
+      level1: 综合
+      level2: 国内综合
+    capabilities:
+      supported_types: []
+      industries: []
+      is_international: false
+      search_reliability: medium
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: "⚠️ 搜索可靠性存疑：ISO关键词被模糊匹配为无关国标，建议排查搜索逻辑。排查结论（2026-08-17）：根因类型B——数据源不支持国际标准（后端无ISO/IEC数据），模糊匹配兜底返回无关国标，非适配器代码Bug"
+
+  - site_id: njbz365
+    classification:
+      level1: 综合
+      level2: 全综合
+    capabilities:
+      supported_types: []
+      industries: []
+      is_international: true
+      search_reliability: unknown
+    constraints:
+      batch_limit: 20
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: std_gov
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [GB, GB/T, GB/Z]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 100
+    status:
+      historical_hit_rate: 0.0
+    notes: "国标专用平台（覆盖全领域国标）"
+
+  - site_id: csres
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [GB, GB/T, GB/Z]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 10
+    status:
+      historical_hit_rate: 0.0
+    notes: "国标专用平台（覆盖全领域国标）"
+
+  - site_id: cssn
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [GB, GB/T]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 80
+    status:
+      historical_hit_rate: 0.0
+    notes: "国标专用平台（覆盖全领域国标）"
+
+  - site_id: jjg
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [JJG, JJF]
+      industries: ["计量"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 80
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: dbba
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [DB]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: ttbz
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: ["T/"]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: iso_gov
+    classification:
+      level1: 特色
+      level2: 按标准类型区分
+    capabilities:
+      supported_types: [ISO, IEC, IEEE]
+      industries: []
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: miit
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [YD, SJ]
+      industries: ["工业"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: jtst
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [JT, JTG, JTS]
+      industries: ["交通"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: mee
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [HJ]
+      industries: ["环保"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: nrsis
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [DZ, TD]
+      industries: ["自然资源"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: sppt
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [GB]
+      industries: ["食品"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: sppt_local
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [DB]
+      industries: ["食品"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: tdpress
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [TB]
+      industries: ["铁路"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: ncha
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [WW]
+      industries: ["文物"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: energy
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [NB, DL]
+      industries: ["能源"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 50
+    status:
+      historical_hit_rate: 0.0
+    notes: ""
+
+  - site_id: ccsn
+    classification:
+      level1: 特色
+      level2: 按领域区分
+    capabilities:
+      supported_types: [CECS]
+      industries: ["工程建设"]
+      is_international: false
+      search_reliability: unknown
+    constraints:
+      batch_limit: 15
+    status:
+      historical_hit_rate: 0.0
+    notes: ""

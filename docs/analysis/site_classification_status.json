@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.1",
+  "last_updated": "2026-08-17T13:48:00+08:00",
+  "analysis_date": "2026-08-17",
+  "status": "completed",
+  "classification_doc": "docs/design/site_classification_v1.md",
+  "total_sites": 21,
+  "completed_sites": 21,
+  "pending_sites": [],
+  "classification_summary": {
+    "综合": {"国内综合": 3, "全综合": 1},
+    "特色": {"按标准类型区分": 7, "按领域区分": 10},
+    "未分类": 0
+  },
+  "sites": [
+    {"site_name": "hbba", "level1": "综合", "level2": "国内综合", "industries": [], "std_prefixes": ["SH", "NB", "HG", "JB", "YB", "SY", "CB", "QB", "FZ"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "ahbz", "level1": "综合", "level2": "国内综合", "industries": [], "std_prefixes": ["GB", "GB/T", "DB"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "gongbiaoku", "level1": "综合", "level2": "国内综合", "industries": [], "std_prefixes": [], "source": "config_declared", "completeness": "未知", "intl_verified": false, "note": "搜索可靠性存疑：ISO 关键词被模糊匹配为无关国标，建议排查搜索逻辑"},
+    {"site_name": "njbz365", "level1": "综合", "level2": "全综合", "industries": [], "std_prefixes": [], "source": "config_declared", "completeness": "未知", "intl_verified": true},
+    {"site_name": "std_gov", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["GB", "GB/T", "GB/Z"], "source": "config_declared", "completeness": "未知", "intl_verified": null, "note": "国标专用平台（覆盖全领域国标）"},
+    {"site_name": "csres", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["GB", "GB/T", "GB/Z"], "source": "config_declared", "completeness": "未知", "intl_verified": null, "note": "国标专用平台（覆盖全领域国标）"},
+    {"site_name": "cssn", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["GB", "GB/T"], "source": "config_declared", "completeness": "未知", "intl_verified": null, "note": "国标专用平台（覆盖全领域国标）"},
+    {"site_name": "jjg", "level1": "特色", "level2": "按标准类型区分", "industries": ["计量"], "std_prefixes": ["JJG", "JJF"], "source": "config_declared", "completeness": "全量", "intl_verified": null},
+    {"site_name": "dbba", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["DB"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "ttbz", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["T/"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "iso_gov", "level1": "特色", "level2": "按标准类型区分", "industries": [], "std_prefixes": ["ISO", "IEC", "IEEE"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "miit", "level1": "特色", "level2": "按领域区分", "industries": ["工业"], "std_prefixes": ["YD", "SJ"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "jtst", "level1": "特色", "level2": "按领域区分", "industries": ["交通"], "std_prefixes": ["JT", "JTG", "JTS"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "mee", "level1": "特色", "level2": "按领域区分", "industries": ["环保"], "std_prefixes": ["HJ", "GB"], "source": "config_declared", "completeness": "未知", "intl_verified": null, "note": "GB 仅限环保类国标（领域约束优先）"},
+    {"site_name": "nrsis", "level1": "特色", "level2": "按领域区分", "industries": ["自然资源"], "std_prefixes": ["DZ", "TD"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "sppt", "level1": "特色", "level2": "按领域区分", "industries": ["食品"], "std_prefixes": ["GB"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "sppt_local", "level1": "特色", "level2": "按领域区分", "industries": ["食品"], "std_prefixes": ["DB"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "tdpress", "level1": "特色", "level2": "按领域区分", "industries": ["铁路"], "std_prefixes": ["TB"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "ncha", "level1": "特色", "level2": "按领域区分", "industries": ["文物"], "std_prefixes": ["WW"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "energy", "level1": "特色", "level2": "按领域区分", "industries": ["能源"], "std_prefixes": ["NB", "DL"], "source": "config_declared", "completeness": "未知", "intl_verified": null},
+    {"site_name": "ccsn", "level1": "特色", "level2": "按领域区分", "industries": ["工程建设"], "std_prefixes": ["CECS"], "source": "config_declared", "completeness": "未知", "intl_verified": null}
+  ]
+}
