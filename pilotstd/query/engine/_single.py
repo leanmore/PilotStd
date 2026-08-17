@@ -10,6 +10,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 from ..models import QueryResult
+from ..routing.router_v2 import AllRoutesExhaustedException, get_routing_service, is_v2_enabled
 
 if TYPE_CHECKING:
     from ..adapters.base import BaseAdapter
@@ -191,6 +192,14 @@ class SingleQueryHandler:
         if cached is not None:
             return cached
 
+        # v2 灰度分支：RouteChain 链式降级（未指定站点时启用）
+        if is_v2_enabled() and not preferred_site:
+            try:
+                return self._query_one_v2(target, logical_code, number, year, std_name, part, num_prefix)
+            except AllRoutesExhaustedException as exc:
+                logger.info("查询 [%s] ✗%s", target, exc)
+                return QueryResult(standard_number=target, error_message=str(exc), source_site="")
+
         # 步骤2:获取适配器优先级链
         priority = self._step_get_priority_chain(
             logical_code=logical_code,
@@ -228,6 +237,60 @@ class SingleQueryHandler:
         # 步骤5:未找到兜底
         logger.info("查询 [%s] ✗ tried=%s", target, "→".join(tried))
         return self._step_not_found(target, tried)
+
+    def _query_one_v2(
+        self,
+        target: str,
+        logical_code: str,
+        number: int,
+        year: int,
+        std_name: str,
+        part: int | None,
+        num_prefix: str,
+    ) -> QueryResult:
+        """v2 执行路径：遍历 RouteChain 实现链式降级 + 批次配额扣减。
+
+        单个站点失败或返回空结果时自动尝试链上下一个站点；
+        链上所有站点均失败则抛 AllRoutesExhaustedException（由 _query_one 捕获转错误结果）。
+        """
+        routing_service = get_routing_service()
+        chain = routing_service.get_route_chain(target)
+
+        logger.debug("[v2 Router] 查询 [%s] 路由=%s", target, "→".join(chain.sites) if chain.sites else "(空)")
+
+        tried: list[str] = []
+        for site_id in chain.sites:
+            # 请求前扣减批次配额，配额耗尽则跳过该站
+            if not routing_service.consume_quota(site_id):
+                logger.info("[v2 Router] %s quota exhausted, skipping.", site_id)
+                continue
+            adp = self._core.adapter_map.get(site_id)
+            if adp is None:
+                continue
+            tried.append(site_id)
+            try:
+                result = adp.query_with_strategy(logical_code, number, year, std_name, part, num_prefix=num_prefix)
+                if result and result.is_found():
+                    result.source_site = adp.site_name
+                    if not result.standard_number:
+                        result.standard_number = target
+                    result = self._verify_adoption(result)
+                    self._core.record(site_id, 1)
+                    logger.info(
+                        "[v2 Router] Hit on %s (%s) tried=%s",
+                        site_id,
+                        result.match_status,
+                        "→".join(tried),
+                    )
+                    return result
+            except Exception as exc:
+                # 单站异常不阻断整体，记录后继续尝试下一站
+                logger.warning("[v2 Router] %s failed: %s, trying next.", site_id, exc)
+                continue
+
+        raise AllRoutesExhaustedException(
+            f"查询 '{target}' 链上所有站点均失败，已尝试：{'→'.join(tried) if tried else '(无)'}"
+        )
 
     def _verify_adoption(self, result: QueryResult) -> QueryResult:
         """采标检测：判断是否为采标标准，采标标准不可直接下载。"""

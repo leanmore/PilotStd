@@ -10,6 +10,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, cast
 
+from ..routing.router_v2 import get_routing_service, is_v2_enabled
 from ..search_strategy import MATCH_SCORE
 
 if TYPE_CHECKING:
@@ -123,6 +124,28 @@ class MiniBucketHandler:
 
     # ── 单条查询处理 ──
 
+    def _check_request_blocked(
+        self,
+        assigned_site: str,
+        overflow_items: list,
+        idx: int,
+        item: tuple,
+        skip_overflow: bool,
+    ) -> bool:
+        """请求前检查：冷却中或 v2 批次配额耗尽时溢出，返回 True 表示应跳过该站点。"""
+        rotator = self._core.rotator
+        if rotator and rotator.get_cooldown_remaining(assigned_site) > 0:
+            if not skip_overflow:
+                overflow_items.append((idx, item))
+            return True
+        # v2 灰度分支：批次配额扣减（请求前），耗尽则溢出降级到链上下一站
+        if is_v2_enabled() and not get_routing_service().consume_quota(assigned_site):
+            logger.info("[v2 Router] %s quota exhausted, overflow.", assigned_site)
+            if not skip_overflow:
+                overflow_items.append((idx, item))
+            return True
+        return False
+
     def _process_single_query(
         self,
         idx: int,
@@ -137,9 +160,7 @@ class MiniBucketHandler:
         """处理单个条目的查询：执行 → 结果记录 → 缓存 → 回调。
         原地修改 overflow_items 和 ctx（results/item_chains/overflow_events等）。"""
         rotator = self._core.rotator
-        if rotator and rotator.get_cooldown_remaining(assigned_site) > 0:
-            if not skip_overflow:
-                overflow_items.append((idx, item))
+        if self._check_request_blocked(assigned_site, overflow_items, idx, item, skip_overflow):
             return
 
         try:

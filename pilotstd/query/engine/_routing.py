@@ -15,6 +15,7 @@ import re
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from ..adapters.base import BaseAdapter
+from ..routing.router_v2 import get_routing_service, is_v2_enabled
 from ..routing.scorer import _collect_runtime_state, get_priority_chain
 from ..search_strategy import ADAPTER_TYPE_MAP
 from ._constants import _DEFAULT_FALLBACK_CHAIN, _FOREIGN_FALLBACK, _INDUSTRY_FALLBACK, CODE_ROUTES
@@ -158,6 +159,13 @@ class RoutingHandler:
         if preferred_site:
             logger.info("[ROUTE] 用户指定站点=%s，跳过自动路由", preferred_site)
             return [preferred_site]
+        # v2 灰度分支：RouteChain 替代 scorer 扁平评分链
+        if is_v2_enabled():
+            chain = get_routing_service().get_route_chain(logical_code)
+            logger.info(
+                "[v2 Router] 代号=%s 路由=%s", logical_code, "→".join(chain.sites) if chain.sites else "(空)"
+            )
+            return chain.sites
         base = self._resolve_base_route(logical_code)
         base = self._apply_site_order(base)
         return self._filter_available_adapters(base)
