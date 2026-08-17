@@ -122,6 +122,21 @@ LANG_WHITELIST = {
     'create_default_sites', 'config.json',  # scorer.py:112 / site_config.py:458
     'SiteState',  # site_config.py:458
     'os.access', 'Windows',  # update_download.py:49
+    # ── 路由引擎 v2.0 标识符（router_v2.py 中文注释引用）──
+    # 标准代号（领域知识不可翻译）
+    'GB', 'DB', 'ISO', 'IEC', 'EN',
+    # 层级与路由概念
+    'L1', 'L2', 'L3', 'reliability', 'low_confidence_exploration',
+    'consume', 'decision', 'decisions', 'intent',
+    # 能力模型字段与文件名
+    'site_capabilities.yaml', 'capabilities', 'industries', 'level1', 'level2',
+    'is_international', 'is_keyword_query', 'industry', 'key', 'SiteCapability', 'RouteChain',
+    # 布尔/空值/评级
+    'None', 'True', 'False', 'ID', 'high', 'medium', 'low', 'unknown',
+    # 文件与版本
+    'scorer.py', 'scorer', 'YAML', 'config', 'v2', 'v2.0',
+    # 并发与文档（阶段三引入）
+    'Worker', 'Markdown',
     # ── 其他 ──
     'publish', 'deliver', 'cleanup', 'docstring', 'LANG',
 }
