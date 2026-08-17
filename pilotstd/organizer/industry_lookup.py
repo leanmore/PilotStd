@@ -261,6 +261,8 @@ def get_base_code(logical_code: str) -> str:
 
 def get_industry_name(base_code: str) -> str:
     """根据基础代号获取行业/组织名称。"""
+    if not base_code:
+        return "未分类"
     if base_code in NATIONAL_CODES:
         return "国家标准"
     if base_code in FOREIGN_CODES:
@@ -271,6 +273,8 @@ def get_industry_name(base_code: str) -> str:
 def get_folder_name(logical_code: str) -> str:
     """根据逻辑文件代号生成第二层目录名。国际标准直接使用代号，国内标准追加行业名。
     地方标准（DB + 数字）统一放入 DB 地方标准/省份 子目录。"""
+    if not logical_code:
+        return "未分类"
     # 地方标准:数据库11→数据库地方标准/北京11,数据库3501/→数据库地方标准/福建3501
     if is_db_code(logical_code):
         region = get_db_region(logical_code)

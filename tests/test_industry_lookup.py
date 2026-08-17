@@ -91,6 +91,10 @@ class TestGetIndustryName(unittest.TestCase):
         result = get_industry_name("XYZ123")
         self.assertIn("未知行业", result)
 
+    def test_empty_code_returns_uncategorized(self):
+        self.assertEqual(get_industry_name(""), "未分类")
+        self.assertEqual(get_industry_name(None), "未分类")  # type: ignore[arg-type]
+
 
 class TestBuildCodeMapping(unittest.TestCase):
     def test_includes_gb_variants(self):
@@ -137,6 +141,10 @@ class TestGetFolderName(unittest.TestCase):
         name = get_folder_name("ISO")
         self.assertIn("ISO", name)
         self.assertIn("国际标准化组织", name)
+
+    def test_empty_code_returns_uncategorized(self):
+        self.assertEqual(get_folder_name(""), "未分类")
+        self.assertEqual(get_folder_name(None), "未分类")  # type: ignore[arg-type]
 
 
 if __name__ == "__main__":

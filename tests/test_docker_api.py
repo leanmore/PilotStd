@@ -437,6 +437,23 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(len(parsed_list), 1)
         self.assertEqual(parsed_list[0].logical_code, "GB/T 1-2020")
 
+    def test_archive_rejects_empty_logical_code(self):
+        """POST /api/archive 拒绝 logical_code 为空的 item，抛出 ValueError 并记录文件名。"""
+        from docker.api.archive import archive_files
+
+        mock_mgr = MagicMock()
+        with self.assertLogs("docker.api.archive", level="WARNING") as cm:
+            with self.assertRaises(ValueError):
+                archive_files(
+                    items=[{"source_path": "/inbox/GB 150-2011.pdf", "logical_code": ""}],
+                    run_id="test-run",
+                    word_source_root="",
+                    mgr=mock_mgr,
+                )
+        self.assertTrue(any("GB 150-2011.pdf" in line for line in cm.output))
+        # 校验失败时不应调用 archive_standards
+        mock_mgr.archive_standards.assert_not_called()
+
     # ── Query ──
 
     def test_query_standards_returns_results(self):

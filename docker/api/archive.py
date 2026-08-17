@@ -1,10 +1,14 @@
 # 容器//归档脚本—文件归档接口（移动到标准库目录结构）
+import logging
+
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
 from pilotstd.models import ParsedStdInfo
 
 from ..manager import get_manager_dep
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["archive"])
 
@@ -32,6 +36,10 @@ def archive_files(
     try:
         parsed_list = []
         for item in items:
+            if not item.get("logical_code"):
+                raw_name = item.get("source_path", "").split("/")[-1].split("\\")[-1]
+                logger.warning("归档校验失败: logical_code 为空, 文件=%s", raw_name)
+                raise ValueError(f"logical_code 缺失: {raw_name}")
             parsed = ParsedStdInfo(
                 raw_filename=item.get("source_path", "").split("/")[-1].split("\\")[-1],
                 source_path=item.get("source_path", ""),
