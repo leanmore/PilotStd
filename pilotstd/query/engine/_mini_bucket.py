@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import TYPE_CHECKING, Any, cast
 
@@ -27,7 +28,7 @@ def _apply_request_interval(rotator: Any, site_name: str, ctx: dict) -> None:
     """从 SiteState 读取 request_interval 并 time.sleep，记录到 metrics。"""
     if rotator and site_name in rotator._sites:
         interval = rotator._sites[site_name].request_interval
-        if interval > 0:
+        if interval > 0 and os.environ.get("PYTEST_RUNNING") != "1":
             time.sleep(interval)
             m = ctx.get("metrics")
             if m:
@@ -263,7 +264,7 @@ class MiniBucketHandler:
 
         overflow_items: list = []
         for mb_idx, (assigned_site, mini) in enumerate(mini_buckets):
-            if mb_idx > 0:
+            if mb_idx > 0 and os.environ.get("PYTEST_RUNNING") != "1":
                 time.sleep(self._MINI_BUCKET_STAGGER)  # 小桶间错峰，防惊群效应
 
             # 冷却检测：分配站点冷却中时尝试回退，无回退则整桶溢出

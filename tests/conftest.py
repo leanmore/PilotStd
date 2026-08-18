@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import socket
 import subprocess
 import tempfile
 from datetime import datetime, timezone
@@ -23,6 +24,8 @@ else:
 
 
 def pytest_configure(config):
+    # 标记 pytest 运行环境：查询引擎在测试中跳过真实请求间隔 sleep，避免超时
+    os.environ["PYTEST_RUNNING"] = "1"
     config.addinivalue_line("markers", "integration: 集成测试标记（需要完整运行环境）")
     config.addinivalue_line("markers", "serial: 串行执行标记（避免并发权限竞争）")
 
@@ -141,8 +144,36 @@ def _cleanup_batch_dispatcher_heartbeat():
     yield
     try:
         from pilotstd.query.engine._batch_dispatcher import BatchDispatcher
-        instance = getattr(BatchDispatcher, '_instance', None)
+
+        instance = getattr(BatchDispatcher, "_instance", None)
         if instance is not None:
             instance.stop_heartbeat()
     except Exception:
         pass
+
+
+# ── CI 离线网络兜底 ─────────────────────────────────────────────
+# 主防线是 ci.yml 中的 iptables 硬阻断；本 fixture 是进程内兜底，
+# 在 socket 层拦截非 localhost 的 connect，即使 iptables 失效也保证
+# 测试绝不真实访问外部站点。不与 responses/respx 冲突：mock 框架
+# 的请求不会真正走到 connect()。pytest-xdist 下每个 worker 独立生效。
+@pytest.fixture(scope="session", autouse=True)
+def _ci_network_guard():
+    """CI 环境下 patch socket，阻断非 localhost 的真实连接。"""
+    if os.environ.get("CI") != "true":
+        yield
+        return
+
+    _orig_connect = socket.socket.connect
+
+    def _guarded_connect(self, address):
+        host = address[0] if address else ""
+        if host not in ("127.0.0.1", "::1", "localhost", "0.0.0.0", ""):
+            # 允许 pytest-httpserver 等本地服务
+            if not host.startswith("127.") and not host.startswith("192.168."):
+                raise ConnectionRefusedError(f"🔒 CI offline guard: blocked connection to {host}:{address[1]}")
+        return _orig_connect(self, address)
+
+    socket.socket.connect = _guarded_connect
+    yield
+    socket.socket.connect = _orig_connect

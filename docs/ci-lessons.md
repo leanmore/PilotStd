@@ -1,6 +1,6 @@
 # CI 修复经验总结
 
-> 最后更新：2026-07-16
+> 最后更新：2026-08-20
 > 基于 2026-07-16 CI 综合修复（12 轮迭代）提炼
 
 ---
@@ -143,6 +143,22 @@
 
 ---
 
+## 六、CI 离线网络硬阻断（2026-08-20）
+
+### 6.1 背景
+
+- **现象**：测试可能真实访问外部标准站点（std.samr.gov.cn / www.csres.com / www.cssn.net.cn / openstd.samr.gov.cn / jjg.spc.org.cn），导致 CI 不稳定、测试不可复现，并对目标站点产生真实请求。
+- **修复**：`ci.yml` test-backend job 中三层防护：
+  1. **iptables 硬阻断（主防线）**：自定义链 `PILOTSTD_BLOCK`，放行回环 / ESTABLISHED,RELATED / DNS(udp:53)，其余 OUTPUT 一律 `-j REJECT --reject-with tcp-reset`
+  2. **门禁脚本 fail-fast**：阻断后立即运行 `python scripts/check_ci_offline.py`，探测 5 个站点确认已不可连通，避免 3000+ 测试白跑
+  3. **conftest socket guard（兜底）**：`tests/conftest.py` 的 `_ci_network_guard` fixture，CI 下 patch `socket.socket.connect`，非 localhost 连接直接抛 `ConnectionRefusedError`；即使 iptables 失效也绝不真实出网
+- **预防**：
+  - 阻断必须严格包住 pytest 一步，测试后立即恢复（`if: always()` 的 Restore step），否则后续 `pip install vulture` / artifact 上传等外网操作会被误伤
+  - 阻断链最后一条规则必须是 `-j REJECT`/`-j DROP`；跳转到**空链**等于没阻断（空链 return 后继续走默认 ACCEPT）
+  - 本地验证注意：`CI=true` 下门禁脚本会真实探测站点，可连通时返回 1 属预期行为（说明阻断未生效），不是脚本 bug
+
+---
+
 ## 防复发检查清单
 
 - [ ] 新增测试依赖 → 检查 `docker/requirements-docker.txt` 和 `desktop/requirements-win.txt`
@@ -152,3 +168,4 @@
 - [ ] 新增信号 → 检查 G-011 的 `QT_SIGNAL_SUFFIXES` 是否覆盖
 - [ ] 新增函数 → 检查 G-010 行数限制
 - [ ] 提交前 → 本地运行 `vulture` + `ruff` + `mypy`
+- [ ] 新增会真实出网的测试 → 确认 CI 离线阻断覆盖（iptables + check_ci_offline.py + socket guard）

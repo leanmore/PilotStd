@@ -117,3 +117,10 @@
 - **关联代码**：docs/issues/router_v2_feedback.md
 - **关联文档**：docs/issues/router_v2_feedback.md
 - **有效期**：至数据回填完成时
+
+### 2026-08-20 范式 CI离线网络硬阻断三层防护
+- **类型**：范式
+- **内容**：禁止测试真实出网的标准做法：① iptables 自定义链只放行回环/ESTABLISHED/DNS，其余 `-j REJECT --reject-with tcp-reset`（链末必须 REJECT/DROP 终结，跳空链=没阻断）；② 阻断后立即跑 `scripts/check_ci_offline.py` fail-fast；③ conftest 兜底 patch socket 拦截非 localhost connect。阻断必须只包住 pytest 一步，`if: always()` 恢复网络，否则误伤后续 vulture/artifact 等外网步骤
+- **关联代码**：.github/workflows/ci.yml, scripts/check_ci_offline.py, tests/conftest.py
+- **关联文档**：docs/ci-lessons.md §六
+- **有效期**：永久

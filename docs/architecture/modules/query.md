@@ -65,6 +65,12 @@ BaseAdapter (ABC)
 - `pilotstd.query.network` — HTTP 请求层（`safe_get`、`safe_post`）
 - `pilotstd.core.std_utils.parse_std_number` — 标准号解析
 
+## 查询引擎请求节流与测试模式
+
+`pilotstd/query/engine/` 下的执行器（`_single.py`、`_mini_bucket.py`、`_csres.py`）在真实查询时按站点 `request_interval` 与桶间错峰间隔执行 `time.sleep`，避免对目标站点产生高频请求。
+
+测试模式下（`PYTEST_RUNNING=1`，由 `tests/conftest.py` 的 `pytest_configure` 注入）跳过所有节流 sleep，保证测试不因等待而超时；CI 同时通过 iptables 硬阻断 + conftest socket guard 保证测试绝不真实出网（见 `docs/ci-lessons.md` §六）。
+
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）

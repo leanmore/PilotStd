@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import random
 import time
 from typing import TYPE_CHECKING
@@ -43,7 +44,8 @@ class CsresHandler:
         jitter = random.uniform(0, 1.0)  # 随机抖动，防止固定节律被识别
         query_elapsed = time.time() - _t0
         sleep_time = max(0, base_interval + jitter - query_elapsed)
-        time.sleep(sleep_time)
+        if os.environ.get("PYTEST_RUNNING") != "1":
+            time.sleep(sleep_time)
         now = time.time()
         self._core.csres_processed += 1
         logger.info(

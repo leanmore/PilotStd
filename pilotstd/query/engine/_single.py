@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -117,7 +118,7 @@ class SingleQueryHandler:
             # 阶段3.1:_执行层落地（单条查询路径）
             if rotator and name in rotator._sites:
                 _interval = rotator._sites[name].request_interval
-                if _interval > 0:
+                if _interval > 0 and os.environ.get("PYTEST_RUNNING") != "1":
                     import time as _time
 
                     _time.sleep(_interval)

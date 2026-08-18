@@ -63,6 +63,34 @@ jobs:
           pip install ruff
           ruff check pilotstd/ docker/ tests/ scripts/ --output-format=github
 
+      # ── CI Offline 硬阻断：禁止测试真实访问外部站点 ──────────────
+      # 三层防护：iptables 硬阻断（主）→ 门禁脚本 fail-fast（验）→
+      # tests/conftest.py 的 _ci_network_guard（进程内兜底）。
+      # 注意：阻断链最后必须 -j REJECT/-j DROP 终结，跳转到空链等于没阻断；
+      # 且只包住 pytest 一步，测试后立即恢复网络（见下方 Restore step），
+      # 否则后续 vulture 安装 / 覆盖率上传等外网操作会被误伤。
+      - name: Block external network (CI offline)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          # 自定义链便于统一恢复
+          sudo iptables -N PILOTSTD_BLOCK 2>/dev/null || true
+          sudo iptables -F PILOTSTD_BLOCK
+          # 回环放行（pytest-httpserver / xdist 本地通信）
+          sudo iptables -A PILOTSTD_BLOCK -o lo -j ACCEPT
+          # 已建立连接放行（runner 心跳等）
+          sudo iptables -A PILOTSTD_BLOCK -m state --state ESTABLISHED,RELATED -j ACCEPT
+          # DNS 放行（getaddrinfo 解析）
+          sudo iptables -A PILOTSTD_BLOCK -p udp --dport 53 -j ACCEPT
+          # 其余一律 REJECT（tcp-reset → 立即 ConnectionRefusedError）
+          sudo iptables -A PILOTSTD_BLOCK -j REJECT --reject-with tcp-reset
+          sudo iptables -A OUTPUT -j PILOTSTD_BLOCK
+          echo "🔒 External network blocked except localhost"
+
+      - name: Verify offline gate (fail-fast before 3000+ tests)
+        if: runner.os == 'Linux'
+        run: python scripts/check_ci_offline.py
+
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
@@ -86,6 +114,16 @@ jobs:
             --deselect "tests/test_core.py::TestFileUtils::test_safe_move_and_copy" \
             --deselect "tests/test_cli.py::TestCLIMove::test_cmd_move" \
             --ignore=tests/test_ci_scan_fix.py
+
+      # 恢复网络：即使 pytest 失败也必须执行（if: always()），
+      # 否则后续 vulture 安装 / 覆盖率上传等步骤会被阻断。
+      - name: Restore network (always)
+        if: always()
+        run: |
+          sudo iptables -D OUTPUT -j PILOTSTD_BLOCK 2>/dev/null || true
+          sudo iptables -F PILOTSTD_BLOCK 2>/dev/null || true
+          sudo iptables -X PILOTSTD_BLOCK 2>/dev/null || true
+          echo "🌐 Network restored"
 
       - name: Observability self-check
         run: python tests/test_observability.py --check-all
