@@ -1,7 +1,7 @@
 # 门禁清单（Gates）
 
 > 本文档是 PilotStd 项目全部门禁的索引。每项门禁在 CI 的 `repo-compliance` job 中执行，失败即阻断合并。
-> 
+>
 > **维护规则**：新增或修改门禁时，必须同步更新本文档。G-031 门禁会检查 `.github/workflows/` 或 `scripts/` 变更时是否更新了本文档。
 
 ---
@@ -14,14 +14,14 @@
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
 | G-016 | 动态属性完整性 | 动态属性有类型声明 | 违规 | `scripts/check_g_016_dynamic_attrs.py` | ✅ 已部署 |
 | G-029 | 测试联动检查 | 改核心模块 → 测试同步更新 | 未同步 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署 |
-| G-030 | 技术债联动检查 | 变更模块在 known-issues.md 有记录 → 必须更新状态 | 未更新或写"待定"无计划时间 | `scripts/check_g_030_tech_debt_linkage.py` | ⏳ 待创建 |
+| G-030 | 技术债联动检查 | 新增 `# TECH-DEBT:` / `# TODO(debt):` 标记必须同步技术债登记簿 | 新增标记但登记簿未同步 | `scripts/check_g_030_tech_debt.py` | ✅ 已部署 |
 | G-031 | 文档同步检查 | 改核心模块 → 文档同步更新 | 文档存在但未同步更新 | `scripts/check_g_031_docs_sync.py` | ⏳ 待创建 |
-| G-032 | STATUS 新鲜度检查 | STATUS.md 最后修改时间 ≤ 3 天 | 超过 3 天或文件不存在 | `scripts/check_g_032_status_freshness.py` | ⏳ 待创建 |
-| G-033 | ADR 完整性检查 | 新增 ADR 编号连续、历史 ADR 未被修改 | 编号不连续或历史被修改 | `scripts/check_g_033_adr_integrity.py` | ⏳ 待创建 |
+| G-032 | 文档健康度守护 | 生成器存活 / 人工层新鲜度 / 交叉引用完整 / 数据源唯一性 四维度 | 任一维度违规 | `scripts/check_g_032_doc_health.py` | ✅ 已部署 |
+| G-033 | ADR 完整性检查 | 架构变更须有有效 ADR（非 proposed/draft） | 架构变更但无有效 ADR | `scripts/check_g_033_adr_integrity.py` | ✅ 已部署 |
 | G-034 | 覆盖率阈值检查 | 整体行覆盖率 ≥ 80% | 低于 80% 或数据缺失 | `scripts/check_g_034_coverage_threshold.py` | ⏳ 待创建 |
 | G-035 | 测试联动门禁 | 生产代码变更（列数/字段/API接口）时测试断言同步 | 测试中硬编码值与生产代码不一致 | 人工审查 | ⏳ 待创建 |
 | G-036 | 文档联动门禁 | 变更触发文档更新规则时，对应文档必须同步变更 | 文档未更新且无合法 N/A 理由 | 人工审查 + pre-commit 提醒 | ⏳ 待创建 |
-| G-037 | 触发条件对齐检查 | CLAUDE.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ⏳ 待创建 |
+| G-037 | 触发条件对齐检查 | CLAUDE.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ✅ 已部署 |
 | G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
@@ -63,12 +63,10 @@
 
 ### G-030：技术债联动检查
 
-- **检查内容**：变更模块在 `known-issues.md` 有记录时，必须更新该条目状态
-- **数据来源**：`docs/testing/known-issues.md` 中的"关联模块"字段
-- **阻断条件**：
-  - 变更涉及已登记技术债但 `known-issues.md` 未更新 → 阻断
-  - 更新后状态写"待定"且无计划修复时间 → 阻断
-- **执行方式**：`python scripts/check_g_030_tech_debt_linkage.py`
+- **检查内容**：检测本次变更中**新增**的 `# TECH-DEBT:` / `# TODO(debt):` 标记（仅增量，忽略存量与文档文件）
+- **联动要求**：新增标记的同次提交必须包含技术债登记簿（`docs/governance/tech-debt-register.md` 或 `docs/technical-debt.md`）的变更
+- **阻断条件**：检测到新增标记但登记簿未同步变更 → 阻断
+- **执行方式**：`python scripts/check_g_030_tech_debt.py`（ci.yml repo-compliance job 部署）
 
 ### G-031：文档同步检查
 
@@ -86,14 +84,15 @@
 - **阻断条件**：文档存在但未同步更新 → 阻断；文档不存在 → 告警但不阻断
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 
-### G-032：STATUS 新鲜度检查
+### G-032：文档健康度守护
 
-- **检查内容**：`STATUS.md` 最后修改时间不超过 3 天
-- **文件位置**：项目根目录 `STATUS.md`
-- **阻断条件**：
-  - 文件不存在 → 阻断
-  - 最后修改时间超过 3 天 → 阻断
-- **执行方式**：`python scripts/check_g_032_status_freshness.py`
+- **检查内容**：四维度守护
+  1. 生成器存活：STATUS.md / coverage-report.md 的 AUTO-GENERATED 标记与时间戳（无标记首跑赦免）
+  2. 人工层新鲜度：人工维护文档按类别分级检查最后修改时间（30/60 天宽限期）
+  3. 交叉引用完整性：文档引用的文件路径存在性
+  4. 数据源唯一性：STATUS.md 人工区禁止裸覆盖率/测试数（可标记 `[legacy-manual]` 豁免）
+- **阻断条件**：任一维度错误（警告不阻断）
+- **执行方式**：`python scripts/check_g_032_doc_health.py`（ci.yml repo-compliance job 部署）
 
 ### G-033：ADR 完整性检查
 

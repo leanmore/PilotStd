@@ -732,6 +732,26 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: python scripts/check_docs_sync.py
 
+      # ── 深门禁补齐：直推 main 时 G-030/G-032/G-033/G-037/G-038 ──
+      # 原先仅 trinity-gate（PR 触发 + 手动）执行；本仓库以直推 main 为主，
+      # 故在此统一部署，保证 push 流水线也有完整门禁覆盖（2026-08-20）。
+      - name: G-030 — 技术债联动检查
+        run: python scripts/check_g_030_tech_debt.py
+
+      - name: G-032 — 文档健康度守护
+        run: python scripts/check_g_032_doc_health.py
+
+      - name: G-033 — ADR 完整性检查
+        run: python scripts/check_g_033_adr_integrity.py
+
+      - name: G-037 — 触发条件对齐检查
+        run: python scripts/check_g_037_trigger_alignment.py
+
+      - name: G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）
+        run: |
+          pip install ruff mypy
+          python scripts/check_g_038_legacy_errors.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

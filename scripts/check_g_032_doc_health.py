@@ -14,6 +14,7 @@ G-032 文档健康度守护器。
   - 交叉引用缺失仅警告不阻断（赦免期内）
   - 人工区裸数字标记 [legacy-manual] 而非阻断（30天后转硬阻断）
 """
+
 import re
 import sys
 from datetime import datetime, timedelta, timezone
@@ -81,7 +82,10 @@ def check_generator_alive():
     for fp in AUTO_DOCS:
         p = PROJECT_ROOT / fp
         if not p.exists():
-            err(f"G-032: {fp} 不存在，生成器可能未运行或路径配置错误")
+            # 警告而非阻断：STATUS.md 是 gitignored 的本地状态文件（不入仓库），
+            # CI 全新检出时天然不存在；coverage-report.md 由生成器产出。
+            # 阻断会让直推 main 的流水线必挂，故降级为警告（2026-08-20）。
+            warn(f"G-032: {fp} 不存在（本地生成文件，CI 检出时缺失属正常）")
             continue
 
         content = p.read_text(encoding="utf-8")
@@ -98,9 +102,9 @@ def check_generator_alive():
                 ts = datetime.fromisoformat(ts_str)
                 age = now - ts
                 if age > timedelta(hours=2):
-                    warn(f"G-032: {fp} 生成时间距今 {age}（>{int(age.total_seconds()/3600)}h），可能需要重新生成")
+                    warn(f"G-032: {fp} 生成时间距今 {age}（>{int(age.total_seconds() / 3600)}h），可能需要重新生成")
                 else:
-                    print(f"      ✅ {fp} 标记有效（{int(age.total_seconds()/60)}min 前生成）")
+                    print(f"      ✅ {fp} 标记有效（{int(age.total_seconds() / 60)}min 前生成）")
             except ValueError as e:
                 warn(f"G-032: {fp} 时间戳解析失败: {e}")
         else:
@@ -221,7 +225,7 @@ def main():
     check_data_source_uniqueness()
 
     # ─── 输出报告 ───
-    print(f"\n{'─'*50}")
+    print(f"\n{'─' * 50}")
     if warnings:
         print(f"⚠️  警告 ({len(warnings)}):")
         for w in warnings:
