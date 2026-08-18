@@ -3,8 +3,6 @@ name: Trinity Gate CI
 on:
   pull_request:
     branches: [main, develop]
-  schedule:
-    - cron: '0 0 * * *'  # 每日 UTC 00:00 自动健康检查
   workflow_dispatch:
 
 concurrency:
