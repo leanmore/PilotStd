@@ -85,12 +85,13 @@ jobs:
             echo "::error::[-N PILOTSTD_BLOCK] $(cat /tmp/ipt_n.txt)"
             exit 1
           fi
+          # REJECT 不带 --reject-with：nf_tables 后端不支持 tcp-reset（CI-FIX-20260820-001）
           for cmd in \
             "-F PILOTSTD_BLOCK" \
             "-A PILOTSTD_BLOCK -o lo -j ACCEPT" \
             "-A PILOTSTD_BLOCK -m state --state ESTABLISHED,RELATED -j ACCEPT" \
             "-A PILOTSTD_BLOCK -p udp --dport 53 -j ACCEPT" \
-            "-A PILOTSTD_BLOCK -j REJECT --reject-with tcp-reset" \
+            "-A PILOTSTD_BLOCK -j REJECT" \
             "-A OUTPUT -j PILOTSTD_BLOCK"
           do
             if ! ipt $cmd 2>/tmp/ipt_e.txt; then

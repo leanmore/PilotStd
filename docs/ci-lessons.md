@@ -149,13 +149,13 @@
 
 - **现象**：测试可能真实访问外部标准站点（std.samr.gov.cn / www.csres.com / www.cssn.net.cn / openstd.samr.gov.cn / jjg.spc.org.cn），导致 CI 不稳定、测试不可复现，并对目标站点产生真实请求。
 - **修复**：`ci.yml` test-backend job 中三层防护：
-  1. **iptables 硬阻断（主防线）**：自定义链 `PILOTSTD_BLOCK`，放行回环 / ESTABLISHED,RELATED / DNS(udp:53)，其余 OUTPUT 一律 `-j REJECT --reject-with tcp-reset`
+  1. **iptables 硬阻断（主防线）**：自定义链 `PILOTSTD_BLOCK`，放行回环 / ESTABLISHED,RELATED / DNS(udp:53)，其余 OUTPUT 一律 `-j REJECT`（默认 icmp-port-unreachable，nf_tables 兼容）
   2. **门禁脚本 fail-fast**：阻断后立即运行 `python scripts/check_ci_offline.py`，探测 5 个站点确认已不可连通，避免 3000+ 测试白跑
   3. **conftest socket guard（兜底）**：`tests/conftest.py` 的 `_ci_network_guard` fixture，CI 下 patch `socket.socket.connect`，非 localhost 连接直接抛 `ConnectionRefusedError`；即使 iptables 失效也绝不真实出网
 - **预防**：
   - 阻断必须严格包住 pytest 一步，测试后立即恢复（`if: always()` 的 Restore step），否则后续 `pip install vulture` / artifact 上传等外网操作会被误伤
   - 阻断链最后一条规则必须是 `-j REJECT`/`-j DROP`；跳转到**空链**等于没阻断（空链 return 后继续走默认 ACCEPT）
-  - **iptables 调用必须加 `-w`**：runner 上其他进程可能持有 xtables 锁，不带 `-w` 会以 exit code 4（"Another app is currently holding the xtables lock"）直接失败（CI-FIX-20260820-001，run #733 test-backend step 8）
+  - **GitHub Actions 的 iptables 是 nf_tables 后端，REJECT target 不接受 `--reject-with tcp-reset`**（仅 legacy iptables 支持）：会报 `RULE_APPEND failed (Invalid argument)` 并以 exit 4 失败。必须使用不带参数的 `-j REJECT`（默认 icmp-port-unreachable）或 `-j DROP`（CI-FIX-20260820-001：run #733/#734 test-backend step 8，首次误判为 xtables 锁竞争，加 `-w` 后仍失败，最终经 stderr 定位为 tcp-reset 不兼容）
   - 本地验证注意：`CI=true` 下门禁脚本会真实探测站点，可连通时返回 1 属预期行为（说明阻断未生效），不是脚本 bug
 
 ---
