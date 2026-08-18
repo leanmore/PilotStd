@@ -155,6 +155,7 @@
 - **预防**：
   - 阻断必须严格包住 pytest 一步，测试后立即恢复（`if: always()` 的 Restore step），否则后续 `pip install vulture` / artifact 上传等外网操作会被误伤
   - 阻断链最后一条规则必须是 `-j REJECT`/`-j DROP`；跳转到**空链**等于没阻断（空链 return 后继续走默认 ACCEPT）
+  - **iptables 调用必须加 `-w`**：runner 上其他进程可能持有 xtables 锁，不带 `-w` 会以 exit code 4（"Another app is currently holding the xtables lock"）直接失败（CI-FIX-20260820-001，run #733 test-backend step 8）
   - 本地验证注意：`CI=true` 下门禁脚本会真实探测站点，可连通时返回 1 属预期行为（说明阻断未生效），不是脚本 bug
 
 ---
