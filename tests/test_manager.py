@@ -45,6 +45,10 @@ class TestStandardManager(unittest.TestCase):
         finally:
             shutil.rmtree(empty)
 
+    @pytest.mark.skipif(
+        os.environ.get("CI") == "true",
+        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
+    )
     def test_query_with_mock(self):
         mgr = StandardManager()
         mgr._core.parsed_results = []  # 直接设置核心容器的内部状态
@@ -182,6 +186,10 @@ class TestStandardManager(unittest.TestCase):
         # 10. 验证 query_result 是正确的结果对象（而非错位匹配的其他结果）
         assert tasks[0].query_result is results[1], "DownloadTask.query_result 未正确关联到对应的 QueryResult"
 
+    @pytest.mark.skipif(
+        os.environ.get("CI") == "true",
+        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
+    )
     def test_auto_run(self):
         mgr = StandardManager()
         report = mgr.auto_run(self.tmp)

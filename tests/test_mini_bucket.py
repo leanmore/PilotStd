@@ -6,7 +6,10 @@ from tests.fixtures.engine_mock_tree import mini_bucket_mock_tree
 
 
 class TestApplyRequestInterval:
-    def test_with_interval(self):
+    def test_with_interval(self, monkeypatch):
+        # 临时移除 PYTEST_RUNNING：conftest 设置该变量后引擎会跳过所有 sleep，
+        # 而本测试验证的正是 sleep 行为本身（monkeypatch 自动还原）
+        monkeypatch.delenv("PYTEST_RUNNING", raising=False)
         rot = MagicMock()
         rot._sites = {"test": MagicMock()}
         rot._sites["test"].request_interval = 0.5
