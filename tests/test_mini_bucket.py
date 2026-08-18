@@ -1,4 +1,5 @@
 """_mini_bucket.py 补测 — 使用 mini_bucket_mock_tree。"""
+
 from unittest.mock import MagicMock, patch
 
 from pilotstd.query.engine._mini_bucket import MiniBucketHandler, _apply_request_interval
