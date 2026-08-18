@@ -2,6 +2,7 @@
 # 便携文档工具函数—从_脚本拆分，供内部和测试使用
 
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,8 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
 
 def _set_thread_priority_idle() -> None:
     """Windows: 当前线程设为 THREAD_PRIORITY_IDLE(-15)。非 Windows 静默跳过。"""
+    if sys.platform != "win32":
+        return
     try:
         import ctypes
 

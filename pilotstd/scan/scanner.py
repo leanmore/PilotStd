@@ -157,7 +157,7 @@ class FileScanner:
                 result.add_warning(f"无权限遍历目录: {current_dir}")
                 self.log.warning(f"无法遍历目录 {current_dir}: {e}")
             except OSError as e:
-                if e.winerror in (206, 123):  # 超长路径等Windows错误
+                if getattr(e, "winerror", 0) in (206, 123):  # 超长路径等Windows错误
                     result.add_warning(f"遍历目录失败(路径过长): {current_dir}")
                     self.log.warning(f"路径过长: {current_dir} - {e}")
                     continue
