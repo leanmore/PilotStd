@@ -752,6 +752,11 @@ jobs:
           pip install ruff mypy
           python scripts/check_g_038_legacy_errors.py
 
+      # G-015 相对导入有效性：纯静态 AST 扫描，无网络请求，
+      # 不受 CI 离线阻断影响；直推 main 时拦截无效相对导入。
+      - name: G-015 — 相对导入检查
+        run: python scripts/check_g_015_relative_imports.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 5: 版本管理（测试全部通过后执行）
   # ════════════════════════════════════════════════════════════════

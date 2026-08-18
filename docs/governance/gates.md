@@ -40,7 +40,7 @@
 - **检查内容**：所有相对导入指向存在的模块
 - **扫描范围**：`pilotstd/`、`docker/`、`web/src/` 下所有 `.py` 文件（`pilotstd/templates/` 模板目录除外；`docker/` 按 PEP 420 命名空间包处理）
 - **阻断条件**：存在未受 try/except 保护的无效相对导入 → 阻断（try/except 保护的失效导入仅警告，视为有意的可选依赖回退）
-- **执行方式**：`python scripts/check_g_015_relative_imports.py`（已接入 `check_all.sh --fast`）
+- **执行方式**：`python scripts/check_g_015_relative_imports.py`（已接入 `check_all.sh --fast` 与 ci.yml repo-compliance job）
 
 ### G-029：测试联动检查
 
