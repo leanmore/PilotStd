@@ -38,6 +38,13 @@ run_fast() {
         log_fail "G-011 动态属性完整性"
     fi
 
+    # G-015: 相对导入有效性
+    if python scripts/check_g_015_relative_imports.py; then
+        log_pass "G-015 相对导入有效性"
+    else
+        log_fail "G-015 相对导入有效性"
+    fi
+
     # G-012: SQL Schema 完整性
     if python scripts/check_g_012_sql_schema.py; then
         log_pass "G-012 SQL Schema"

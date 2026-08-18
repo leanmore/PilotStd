@@ -29,7 +29,7 @@ class _TableOpsAdapter:
 
     def add_table_row(self, data: dict) -> int:
         """将 dict 转换为 RowUpdate 后委托给核心回调，返回行号（当前固定为0）。"""
-        from ...workers import RowUpdate
+        from ..workers import RowUpdate
 
         update = RowUpdate(
             seq=data.get("seq", 0),

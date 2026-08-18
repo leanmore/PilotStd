@@ -68,6 +68,7 @@ Handler Handler  Handler    (worker)   Handler
 
 - `pilotstd/manager/` — `StandardManager` 门面（`self._mgr`），所有业务操作的入口
 - `pilotstd/ui/core/_core.py` — `MainWindowCore` 依赖容器
+- `pilotstd/ui/core/_core_adapters.py` — 协议适配器（`ITableOps` 等），懒加载 `pilotstd.ui.workers` 的类型（如 `RowUpdate`）
 - `pilotstd/core/config/` — 配置管理
 - `pilotstd/core/project.py` — 项目管理
 

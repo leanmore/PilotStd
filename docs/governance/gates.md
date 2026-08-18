@@ -12,7 +12,6 @@
 |------|------|---------|---------|---------|------|
 | G-010 | 代码规模控制 | 文件≤500行、函数≤80行 | 违规 | `scripts/check_g_010_code_size.py` | ✅ 已部署 |
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
-| G-016 | 动态属性完整性 | 动态属性有类型声明 | 违规 | `scripts/check_g_016_dynamic_attrs.py` | ✅ 已部署 |
 | G-029 | 测试联动检查 | 改核心模块 → 测试同步更新 | 未同步 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署 |
 | G-030 | 技术债联动检查 | 新增 `# TECH-DEBT:` / `# TODO(debt):` 标记必须同步技术债登记簿 | 新增标记但登记簿未同步 | `scripts/check_g_030_tech_debt.py` | ✅ 已部署 |
 | G-031 | 文档同步检查 | 改核心模块 → 文档同步更新 | 文档存在但未同步更新 | `scripts/check_g_031_docs_sync.py` | ⏳ 待创建 |
@@ -39,16 +38,9 @@
 ### G-015：相对导入检查
 
 - **检查内容**：所有相对导入指向存在的模块
-- **扫描范围**：`pilotstd/`、`docker/`、`web/src/` 下所有 `.py` 文件
-- **阻断条件**：存在无效相对导入 → 阻断
-- **执行方式**：`python scripts/check_g_015_relative_imports.py`
-
-### G-016：动态属性完整性
-
-- **检查内容**：动态属性赋值在 `__slots__` 中声明或使用 `@property` 装饰器
-- **扫描范围**：`pilotstd/`、`docker/` 下所有 `.py` 文件
-- **阻断条件**：存在未声明的动态属性 → 阻断
-- **执行方式**：`python scripts/check_g_016_dynamic_attrs.py`
+- **扫描范围**：`pilotstd/`、`docker/`、`web/src/` 下所有 `.py` 文件（`pilotstd/templates/` 模板目录除外；`docker/` 按 PEP 420 命名空间包处理）
+- **阻断条件**：存在未受 try/except 保护的无效相对导入 → 阻断（try/except 保护的失效导入仅警告，视为有意的可选依赖回退）
+- **执行方式**：`python scripts/check_g_015_relative_imports.py`（已接入 `check_all.sh --fast`）
 
 ### G-029：测试联动检查
 
@@ -93,6 +85,15 @@
   4. 数据源唯一性：STATUS.md 人工区禁止裸覆盖率/测试数（可标记 `[legacy-manual]` 豁免）
 - **阻断条件**：任一维度错误（警告不阻断）
 - **执行方式**：`python scripts/check_g_032_doc_health.py`（ci.yml repo-compliance job 部署）
+
+> **CI 环境行为说明**：
+>
+> 本门禁在 CI 环境（GitHub Actions）中的校验强度低于本地环境，原因如下：
+> - `STATUS.md` 设计为**本地状态文件，不入仓库**（文件头自述"本地状态文件，不入仓库"，见仓库根目录 `STATUS.md`）
+> - CI 全新检出时没有 `STATUS.md` 文件，因此该门禁的维度1（STATUS.md 标记新鲜度）和维度4（STATUS.md 人工区完整）自动放行（缺失即警告）
+> - CI 中实际生效的是：`coverage-report.md` 的标记新鲜度 + 人工层新鲜度 + 交叉引用等
+>
+> 这是**设计决策**，非功能缺陷。如需在 CI 中获得完整校验，需改变 `STATUS.md` 的设计（纳入版本控制），此决策不在当前范围。
 
 ### G-033：ADR 完整性检查
 
@@ -169,6 +170,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.3 | 2026-08-20 | 移除 G-016（与 G-011 重复）；补齐 G-015 脚本并接入 `check_all.sh --fast`；G-032 补充 CI 行为说明 |
 | v1.2 | 2026-07-19 | 新增 G-037（触发条件对齐）、G-038（历史遗留错误清零） |
 | v1.1 | 2026-07-18 | 新增 G-035（测试联动）、G-036（文档联动） |
 | v1.0 | 2026-07-14 | 初始版本，收录 10 项门禁 |
