@@ -66,6 +66,11 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
             stats["failures"] = failure_count
             stats["source"] = "手动"
             mgr.notification_mgr.send_event("announcement_check_complete", stats)
+            # 手动路径：拉取完成极简反馈（仅手动路径触发，定时路径不发此事件）
+            mgr.notification_mgr.send_event(
+                "announcement_fetch_complete",
+                {"count": stats["total_announcements"], "source": stats["source"]},
+            )
         except Exception as e:
             logger.warning("通知发送失败: %s", e)
 

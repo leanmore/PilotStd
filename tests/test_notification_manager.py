@@ -135,3 +135,27 @@ class TestSendEvent:
     def test_disabled(self, mgr):
         mgr._enabled = False
         mgr.send_event("test", {"k": "v"})
+
+    def _enable_with_policy(self, mgr):
+        mgr._enabled = True
+        mgr._policy = MagicMock()
+        mgr._policy.get_channels_for_event.return_value = ["wechat"]
+        mgr.aggregator = MagicMock()
+        return mgr
+
+    def test_bypass_aggregation_sends_now(self, mgr):
+        """阶段三：bypass_aggregation=True 跳过聚合缓冲，实时发送。"""
+        mgr = self._enable_with_policy(mgr)
+        msg = MagicMock()
+        with patch.object(mgr, "_build_message", return_value=msg), patch.object(mgr, "_send_now") as m_send:
+            mgr.send_event("test_event", {"k": 1}, bypass_aggregation=True)
+            m_send.assert_called_once_with(msg, ["wechat"])
+            mgr.aggregator.enqueue.assert_not_called()
+
+    def test_default_goes_through_aggregator(self, mgr):
+        """默认路径仍走聚合缓冲。"""
+        mgr = self._enable_with_policy(mgr)
+        msg = MagicMock()
+        with patch.object(mgr, "_build_message", return_value=msg):
+            mgr.send_event("test_event", {"k": 1})
+            mgr.aggregator.enqueue.assert_called_once()

@@ -188,11 +188,12 @@ class NotificationManager:
 
     # ── 发送事件 ──────────────────────────────────────────────
 
-    def send_event(self, event_type: str, event_data: dict[str, Any]) -> None:
+    def send_event(self, event_type: str, event_data: dict[str, Any], bypass_aggregation: bool = False) -> None:
         """根据策略表分发通知到各渠道（经过聚合器缓冲）。
 
         优先从 notification_policy 表读取渠道事件订阅，
         若表为空则回退到 config.json 的 notification.rules 配置。
+        bypass_aggregation=True 时跳过聚合缓冲，实时发送（供紧急告警事件使用）。
         """
         if not self._enabled:
             return
@@ -201,14 +202,14 @@ class NotificationManager:
             return
 
         msg = self._build_message(event_type, event_data)
-        self._do_send(msg, target_channels)
+        self._do_send(msg, target_channels, bypass_aggregation=bypass_aggregation)
 
-    def _do_send(self, msg: NotificationMessage, target_channels: list[str]) -> None:
+    def _do_send(self, msg: NotificationMessage, target_channels: list[str], bypass_aggregation: bool = False) -> None:
         """逐渠道发送：静音期暂存 → 聚合器入队 → 合并后发送。"""
         if self._is_quiet_hours():
             self._enqueue_notification(msg, target_channels)
             return
-        if self.aggregator is not None:
+        if self.aggregator is not None and not bypass_aggregation:
             self.aggregator.enqueue(msg, target_channels, target_id=msg.target_id)
         else:
             self._send_now(msg, target_channels)
