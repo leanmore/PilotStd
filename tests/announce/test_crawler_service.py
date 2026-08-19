@@ -94,20 +94,51 @@ class TestQueryAnnouncementStats:
     def _make_db(self):
         conn = sqlite3.connect(":memory:")
         conn.execute(
-            "CREATE TABLE announcement_record ("
-            "announce_no TEXT, standard_number TEXT, source_site TEXT, fetched_at TEXT)"
+            """CREATE TABLE IF NOT EXISTS announcement_record (
+    id INTEGER,
+    source_site TEXT NOT NULL,
+    pid TEXT NOT NULL,
+    announce_no TEXT,
+    standard_number TEXT NOT NULL,
+    std_name TEXT,
+    publish_date TEXT,
+    fetched_at TEXT NOT NULL,
+    matched INTEGER DEFAULT 0,
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT,
+    announcement_title TEXT,
+    standard_count INTEGER,
+    announcement_id INTEGER,
+    row_index INTEGER,
+    implement_date TEXT,
+    expiry_date TEXT,
+    superseded_by TEXT,
+    status TEXT DEFAULT 'draft',
+    confidence REAL DEFAULT 0.0,
+    raw_text TEXT,
+    parser_engine TEXT,
+    approved_by INTEGER,
+    approved_at TEXT,
+    updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
+    source_type TEXT DEFAULT '网页解析'
+);"""
         )
         conn.execute(
-            "INSERT INTO announcement_record VALUES ('gb公告1','GB/T 1','announcement_gb','2026-08-19T10:00:00')"
+            "INSERT INTO announcement_record (pid, announce_no, standard_number, source_site, fetched_at) "
+            "VALUES ('p1','gb公告1','GB/T 1','announcement_gb','2026-08-19T10:00:00')"
         )
         conn.execute(
-            "INSERT INTO announcement_record VALUES ('gb公告1','GB/T 2','announcement_gb','2026-08-19T10:00:01')"
+            "INSERT INTO announcement_record (pid, announce_no, standard_number, source_site, fetched_at) "
+            "VALUES ('p1','gb公告1','GB/T 2','announcement_gb','2026-08-19T10:00:01')"
         )
         conn.execute(
-            "INSERT INTO announcement_record VALUES ('hb公告2','JB/T 1','announcement_hb','2026-08-19T10:00:02')"
+            "INSERT INTO announcement_record (pid, announce_no, standard_number, source_site, fetched_at) "
+            "VALUES ('p2','hb公告2','JB/T 1','announcement_hb','2026-08-19T10:00:02')"
         )
         conn.execute(
-            "INSERT INTO announcement_record VALUES ('db公告3','DB/T 1','announcement_db','2026-08-19T09:00:00')"
+            "INSERT INTO announcement_record (pid, announce_no, standard_number, source_site, fetched_at) "
+            "VALUES ('p3','db公告3','DB/T 1','announcement_db','2026-08-19T09:00:00')"
         )
         return conn
 
