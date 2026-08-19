@@ -113,6 +113,15 @@ class ConfigManager:
                 node = node[part]
             node.pop(parts[-1], None)
 
+    def reload(self) -> None:
+        """从磁盘重新加载配置，丢弃内存中未保存的修改。
+
+        供运行时配置同步使用：外部修改配置文件后调用本方法刷新内存态。
+        """
+        with self._lock:
+            self._data = {}
+        self._load()
+
     def populate_defaults(self, defaults: dict[str, Any]) -> None:
         """将工厂默认值中尚未设置的键填充到当前配置（不覆盖已有值）。"""
         # 仅在键值为时才填充，保留用户已有的自定义值

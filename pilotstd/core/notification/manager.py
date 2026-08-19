@@ -85,6 +85,10 @@ class NotificationManager:
         except Exception:
             pass
         self._enabled = config.get("notification.enabled", False)
+        # 用户级配置优先：user_preferences 表（数据库）覆盖 config.json，保证 Web 端设置实际生效
+        db_enabled = self._read_user_enabled()
+        if db_enabled is not None:
+            self._enabled = db_enabled
         self._channels: dict[str, Any] = {}
         self._ws_broadcast = ws_broadcast
         self._init_event_builders()
@@ -112,6 +116,42 @@ class NotificationManager:
                 "standard_status_changed",
                 format_standard_status_changed_aggregated,
             )
+
+    @property
+    def enabled(self) -> bool:
+        """通知功能是否启用（数据库 user_preferences 优先，config.json 兜底）。"""
+        return self._enabled
+
+    def _read_user_enabled(self) -> bool | None:
+        """从 user_preferences 表读取当前用户的 notification.enabled。
+
+        返回 None 表示数据库无有效记录，调用方回退到 config.json 值。
+        对非 str/bool/int/float 类型的值（如测试中的 MagicMock）一律视为无记录。
+        """
+        try:
+            row = self._db.fetchone(
+                "SELECT preference_value FROM user_preferences "
+                "WHERE user_id=? AND preference_key='notification.enabled'",
+                (self._user_id,),
+            )
+        except Exception:
+            return None
+        if row is None:
+            return None
+        try:
+            value = row["preference_value"]
+        except (KeyError, IndexError, TypeError):
+            return None
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return value.strip().lower() not in ("false", "0", "")
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        return None
 
     def _init_channels(self) -> None:
         """从 user_credentials 表加载各渠道配置并初始化渠道实例。"""

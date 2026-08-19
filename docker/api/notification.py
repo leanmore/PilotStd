@@ -69,7 +69,7 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
         return result
 
     return {
-        "enabled": mgr.cfg.get("notification.enabled", False),
+        "enabled": nmgr.enabled,
         # 四渠道配置：///
         "channels": {
             "wechat": build_channel(
@@ -103,6 +103,11 @@ def update_config(
     for key, value in body.items():
         if key == "enabled":
             mgr.cfg.set("notification.enabled", bool(value))
+            # 同步写入用户偏好表：数据库为权威来源，config.json 兜底
+            try:
+                mgr.user_service.save_preference(user_id, "notification.enabled", bool(value))
+            except Exception as e:
+                logger.warning("通知启用状态写入用户偏好表失败: %s", e)
         elif key == "channels":
             for ch_name, ch_cfg in value.items():
                 if isinstance(ch_cfg, dict) and nmgr._cred_helper:

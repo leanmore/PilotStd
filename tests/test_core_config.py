@@ -257,5 +257,35 @@ class TestConfigPaths(unittest.TestCase):
         self.assertGreater(len(path), 0)
 
 
+class TestConfigManagerReload(unittest.TestCase):
+    """阶段一：ConfigManager.reload() 从磁盘重新加载配置。"""
+
+    def _make_cfg(self, tmp_dir):
+        from pilotstd.core.config.manager import ConfigManager
+
+        return ConfigManager(filepath=os.path.join(tmp_dir, "config.json"))
+
+    def test_reload_refreshes_from_disk(self):
+        import json as _json
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self._make_cfg(tmp)
+            cfg.set("notification.enabled", True)
+            cfg.save()
+            # 模拟外部修改配置文件（绕过 ConfigManager）
+            with open(cfg._filepath, "w", encoding="utf-8") as f:
+                _json.dump({"notification": {"enabled": False}}, f)
+            cfg.reload()
+            self.assertFalse(cfg.get("notification.enabled"))
+
+    def test_reload_keeps_factory_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self._make_cfg(tmp)
+            cfg.reload()
+            # 重新加载后默认值仍然存在
+            self.assertIsNotNone(cfg.get("storage.root_dir"))
+            self.assertIsNotNone(cfg.get("notification.enabled"))
+
+
 if __name__ == "__main__":
     unittest.main()

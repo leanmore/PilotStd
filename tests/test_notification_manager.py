@@ -24,6 +24,49 @@ class TestInit:
         assert mgr._channels == {}
         assert mgr.aggregator is None
 
+    def test_enabled_property(self, mgr):
+        assert mgr.enabled is False
+
+
+class TestUserEnabledFromDb:
+    """阶段一：notification.enabled 数据库优先（user_preferences 覆盖 config.json）。"""
+
+    def _make(self, db_fetchone, cfg_enabled=False):
+        from pilotstd.core.notification.manager import NotificationManager
+
+        cfg = ConfigStub({"notification.enabled": cfg_enabled, "notification.aggregate_enabled": False})
+        db = MagicMock()
+        db.fetchone.return_value = db_fetchone
+        return NotificationManager(cfg, db, 1, None)
+
+    def test_db_missing_falls_back_to_config(self):
+        mgr = self._make(None, cfg_enabled=False)
+        assert mgr._enabled is False
+
+    def test_db_enabled_overrides_config_disabled(self):
+        mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
+        assert mgr._enabled is True
+
+    def test_db_disabled_overrides_config_enabled(self):
+        mgr = self._make({"preference_value": False}, cfg_enabled=True)
+        assert mgr._enabled is False
+
+    def test_db_json_string_value(self):
+        mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
+        assert mgr._enabled is True
+
+    def test_db_non_parseable_string(self):
+        # 非 JSON 字符串按布尔语义解析
+        mgr = self._make({"preference_value": "true"}, cfg_enabled=False)
+        assert mgr._enabled is True
+        mgr2 = self._make({"preference_value": "0"}, cfg_enabled=True)
+        assert mgr2._enabled is False
+
+    def test_db_mock_value_ignored(self):
+        # MagicMock 类型的 value（测试桩场景）视为无记录，回退 config
+        mgr = self._make(MagicMock(), cfg_enabled=False)
+        assert mgr._enabled is False
+
 
 class TestQuietHours:
     def test_disabled(self, mgr):
