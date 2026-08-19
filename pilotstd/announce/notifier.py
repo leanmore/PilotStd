@@ -39,6 +39,9 @@ class AnnounceNotifier:
                 {
                     "source": source or "手动",
                     "total_announcements": total,
+                    "gb_count": result.get("gb_count", 0),
+                    "hb_count": result.get("hb_count", 0),
+                    "db_count": result.get("db_count", 0),
                     "total_standards": result.get("total_standards", 0),
                     "matched": matched,
                     "updated": updated,

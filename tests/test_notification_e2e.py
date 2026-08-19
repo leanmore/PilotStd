@@ -19,12 +19,15 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def _find_send_event_calls(event_name: str) -> list[tuple[str, int]]:
     """静态扫描源码，返回所有 send_event("event_name", ...) 的文件路径和行号。
-    同时搜索字符串字面量和 EVENT_* 常量引用。"""
+
+    使用 AST 解析（而非正则）：
+    - 第一参数为字符串字面量 → 直接匹配事件名
+    - 第一参数为事件常量（EVENT_*）→ 通过 events 模块解析常量的实际值
+    避免旧正则中 EVENT_[A-Z_]+ 备选分支对任意常量模糊匹配导致的"伪通过"。
+    """
+    from pilotstd.core.notification import events as _events_mod
+
     results: list[tuple[str, int]] = []
-    pattern = re.compile(
-        r'send_event\s*\(\s*(?:EVENT_[A-Z_]+|["\']' + re.escape(event_name) + r'["\'])',
-        re.DOTALL,
-    )
     search_roots = [
         os.path.join(_PROJECT_ROOT, "pilotstd"),
         os.path.join(_PROJECT_ROOT, "docker"),
@@ -39,36 +42,27 @@ def _find_send_event_calls(event_name: str) -> list[tuple[str, int]]:
                 fpath = os.path.join(root, f)
                 try:
                     with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
-                        content = fh.read()
-                except OSError:
+                        tree = ast.parse(fh.read())
+                except (OSError, SyntaxError):
                     continue
-                m = pattern.search(content)
-                if m:
-                    lineno = content[: m.start()].count("\n") + 1
-                    results.append((fpath, lineno))
-    # 若未找到字面量，回退搜索常量定义
-    if not results:
-        const_pattern = re.compile(
-            r"send_event\s*\(\s*EVENT_[A-Z_]+",
-            re.DOTALL,
-        )
-        for search_root in search_roots:
-            if not os.path.isdir(search_root):
-                continue
-            for root, _dirs, files in os.walk(search_root):
-                for f in files:
-                    if not f.endswith(".py"):
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.Call) or not node.args:
                         continue
-                    fpath = os.path.join(root, f)
-                    try:
-                        with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
-                            content = fh.read()
-                    except OSError:
+                    func = node.func
+                    is_send_event = (
+                        isinstance(func, ast.Attribute) and func.attr == "send_event"
+                    ) or (isinstance(func, ast.Name) and func.id == "send_event")
+                    if not is_send_event:
                         continue
-                    m = const_pattern.search(content)
-                    if m:
-                        lineno = content[: m.start()].count("\n") + 1
-                        results.append((fpath, lineno))
+                    arg0 = node.args[0]
+                    if isinstance(arg0, ast.Constant) and isinstance(arg0.value, str):
+                        ev = arg0.value
+                    elif isinstance(arg0, ast.Name):
+                        ev = getattr(_events_mod, arg0.id, None)
+                    else:
+                        continue
+                    if ev == event_name:
+                        results.append((fpath, node.lineno))
     return results
 
 
@@ -444,7 +438,7 @@ EVENTS: list[dict[str, Any]] = [
         "module": "公告抓取",
         "level": "info",
         "aggregation": "聚合",
-        "trigger_file": "pilotstd/manager/_announce_fetch.py",
+        "trigger_file": "docker/api/announce.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_announcement_fetch_complete_message",
         "builder_keys": {"count", "source"},
@@ -455,7 +449,7 @@ EVENTS: list[dict[str, Any]] = [
         "module": "公告抓取",
         "level": "info/warning/error",
         "aggregation": "聚合",
-        "trigger_file": "pilotstd/manager/_announce_fetch.py",
+        "trigger_file": "pilotstd/announce/notifier.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_announcement_check_complete_message",
         "builder_keys": {
@@ -474,7 +468,7 @@ EVENTS: list[dict[str, Any]] = [
         "module": "公告抓取",
         "level": "error",
         "aggregation": "bypass",
-        "trigger_file": "pilotstd/manager/_announce_fetch.py",
+        "trigger_file": "pilotstd/announce/notifier.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_announcement_fetch_failed_message",
         "builder_keys": {"source", "error"},
