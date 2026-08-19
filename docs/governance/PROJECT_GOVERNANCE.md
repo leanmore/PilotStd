@@ -89,10 +89,10 @@ PilotStd 项目治理由三份核心文档构成，形成联动闭环：
 | 文档 | 用途 | 何时阅读 |
 |------|------|---------|
 | `capabilities_registry.md` | 查看/登记能力 | 新增能力、重构前、代码审查 |
-| `GATE_INDEX.md`（已归档至 `docs/archive/2026-06-30/`） | 查看/登记门禁（历史快照） | 新增门禁、门禁失败排查、PR 审查 |
-| `architecture_layers.md` | 确定代码放置位置 | 新增文件、迁移代码、架构讨论 |
+| `GATE_INDEX.md`（历史快照，已由 [gates.md](gates.md) 取代；归档位置 `docs/archive/2026-07-16-historical-plans/old-archive/2026-06-30/GATE_INDEX.md`） | 门禁历史快照 | 门禁演进追溯 |
+| 四层架构定义（已融入 `docs/architecture.md` / `docs/architecture/overview.md`） | 确定代码放置位置 | 新增文件、迁移代码、架构讨论 |
 | `archive_migration_protocol.md` | 归档迁移协议 | 执行归档操作前 |
-| `refactoring_checklist.md` | 重构检查清单 | 执行重构前 |
+| 重构检查清单（已由 `docs/governance/trinity-technical-spec-v2.md` 相关章节承接） | 重构检查 | 执行重构前 |
 
 ---
 

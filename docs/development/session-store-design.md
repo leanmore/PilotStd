@@ -21,8 +21,12 @@ SECRET = os.environ.get("JWT_SECRET") or secrets.token_hex(32)
 
 ### 修改后
 
+> ⚠️ **已修订 (2026-08-19)**: 实际实现**未采纳**固定密钥方案。依据：`docker/auth.py` 当前为
+> `SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)`（每次启动生成随机 Token）。
+> 固定密钥仅作为历史备选方案记录，不再作为落地实现参考。
+
 ```python
-# docker/auth.py:30 (修改后)
+# docker/auth.py:30 (修改后 — 历史方案，未落地)
 SECRET = os.environ.get("JWT_SECRET") or "pilotstd_jwt_secret_2026_fixed_key"
 ```
 

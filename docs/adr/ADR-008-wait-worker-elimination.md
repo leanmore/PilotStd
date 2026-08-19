@@ -1,7 +1,7 @@
-# ADR-008: GUI 测试 _wait_worker 消除与 wait_for_worker_and_ui 沉淀
+﻿# ADR-008: GUI 测试 _wait_worker 消除与 wait_for_worker_and_ui 沉淀
 
 > 日期：2026-08-02
-> 状态：✅ 已落地
+> 状态：✅ Accepted
 > 关联：C1-C4 重构系列
 
 ---

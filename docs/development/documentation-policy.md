@@ -17,10 +17,11 @@
 - **触发点**：每轮治理任务结束时，提交之前
 - **覆盖文件**：
   - 本地状态文件（`STATUS.md`）
-  - 移出仓库但需持续维护的文档（如 `capabilities_registry.md`）
+  - 需持续维护但被 gitignore 的文档
   - 过程文件归档、临时文件清理、`.gitignore` 维护
 - **机制**：作为执行指令的固定收尾步骤，在任务结束、代码提交前完成
 - **逻辑**：移出仓库不等于不管——需持续维护的不入仓文件与入仓文档同步规则同频触发
+- **⚠️ 现状修正（2026-08-19，git ls-files 实证）**：`docs/governance/capabilities_registry.md` **当前在仓内**（由 `generate_capabilities.py` 自动生成并随 commit 提交，CLAUDE.md §8 强制），本表"移出仓库"为早期设计，尚未执行；后续若计划移出需先改造 CI 门禁 G-032 的读取方式。
 
 ### 流程
 ```
@@ -101,7 +102,7 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 | 新增/修改 API 端点 | `STATUS.md` + `CHANGELOG.md` | PR提交者 | 代码提交前 |
 | 修改核心模块路径 | `docs/architecture/governance-summary.md` | PR提交者 | 代码提交时 |
 | 新增/修改环境变量 | `.env.example` + 相关部署文档 | PR提交者 | 代码提交时 |
-| 修改门禁规则 | `docs/development/gate-15-enforcement.md` | PR提交者 | 修改门禁时 |
+| 修改门禁规则 | `docs/governance/gates.md`（G-015 详情见 gates.md；检查脚本 `scripts/check_g_015_relative_imports.py`） | PR提交者 | 修改门禁时 |
 | 修改数据库 Schema | 迁移脚本注释 + `STATUS.md` | PR提交者 | 迁移文件提交时 |
 | 新增/修改测试策略 | `docs/development.md` | PR提交者 | 测试代码提交时 |
 | 完成/移除技术债务 | `docs/architecture/technical-debt-registry.md` | PR提交者 | 债务消除时 |
@@ -194,5 +195,5 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 | `docs/architecture/`、`docs/specs/` | 成品文档 | ✅ 是 |
 | `docs/development/` | 治理规则 | ✅ 是 |
 | `docs/.local/` | 本地工作文件、调查报告 | ❌ 否（加入 `.gitignore`） |
-| `docs/archive/` | 历史归档 | ❌ 否（仅本地保留） |
+| `docs/archive/` | 历史归档 | ⚠️ 部分历史文件仍被 Git 跟踪（遗留状态，git ls-files 实证）；**新归档文件原则上不入仓**，仅本地保留 |
 | `docs/pending/` | 待处理文件 | ❌ 否（本地临时区） |

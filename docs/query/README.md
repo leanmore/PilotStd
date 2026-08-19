@@ -40,6 +40,24 @@ _resolve_base_route(logical_code)      [_routing.py:35-77]
 
 优先级链最终通过 `_get_priority()` [src: `_routing.py:105`] 叠加用户 `site_order` + `_filter_available_adapters()`（冷却过滤）生成。
 
+### v2 路由（灰度中，ROUTING_ENGINE_VERSION=v2 启用）[src: `pilotstd/query/routing/router_v2.py`]
+
+> 2026-08-17 起以灰度开关 `ROUTING_ENGINE_VERSION` 控制（默认 v1；设 `v2` 启用）。以下仅记录**代码中已实现**的内容：
+
+**三级漏斗机制**（router_v2.py L7 设计注释）：
+
+| 层级 | 职责 | 匹配条件（已实现） |
+| :--- | :--- | :--- |
+| L1 精准匹配 | 国内标准专用/特色站 | `is_international=false` 且类型/领域匹配 |
+| L2 综合兜底 | 有标准号的国内综合/全综合站 | `is_keyword_query=false`（有标准号）且 L1 无匹配 |
+| L3 探索层 | 模糊关键词与最终兜底 | 纯关键词查询（`is_keyword_query=true`）直接进入，或 L2 无匹配 |
+
+**意图解析**（IntentParser）：`QueryIntent{std_type, is_international, is_keyword_query}`，国际前缀（ISO/IEC/EN 等）标记 `is_international`，无标准号标记 `is_keyword_query`。
+
+**路由链**（RouteChain）：按站点能力（`SiteCapability`）与优先级生成，`get_route_chain()` 供单查与批量共用，`consume_quota()` 正交扣减配额。
+
+<!-- TODO: 补充 v2 路由细节（逐层过滤的具体实现行号、industry keyword 表等），待 v2 灰度稳定后随文档更新 -->
+
 ### 渐进式搜索 [src: `pilotstd/query/adapters/base.py:115-172`]
 
 每个适配器的 `query_with_strategy()` 内部执行 5 步渐进搜索：

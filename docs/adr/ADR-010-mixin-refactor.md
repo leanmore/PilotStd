@@ -1,7 +1,22 @@
-# ADR-001：Mixin 重构 16→1
+# ADR-010：Mixin 重构 16→1
 
 - **日期**：2026-08-04
-- **状态**：已关闭
+- **状态**：🗄 Deprecated（内容已由 Handler 组合系列 ADR 承接，见 Related ADRs）
+- **Superseded by**：[ADR-001-modal-dialog-auto-clicker](ADR-001-modal-dialog-auto-clicker.md)（测试基础设施；原 ADR-001 编号释放后本文件重编号为 ADR-010）
+
+## Related ADRs
+
+本文件属于 **Handler 组合重构运动**（2026-07-11 至 2026-08-04）的一部分，该运动分两阶段：
+
+| 阶段 | 时间 | 载体 |
+| :--- | :--- | :--- |
+| Handler 组合模式（消除 Mixin 多重继承） | 2026-07-11 | docs/architecture.md「Handler 组合模式」章节 |
+| Handler 治理策略（混合策略 D + 纯逻辑提取） | 2026-07-16 | [ADR-002](ADR-002-handler-governance.md) / [ADR-003](ADR-003-persistence-pattern.md) / [ADR-004](ADR-004-io-isolation.md) / [ADR-005](ADR-005-event-bus.md) / [ADR-006](ADR-006-ui-hold-strategy.md) |
+| 收藏与归档解耦 | 2026-07-20 | [ADR-007](ADR-007-favorite-archive-decouple.md) |
+| GUI 测试 _wait_worker 消除 | 2026-08-02 | [ADR-008](ADR-008-wait-worker-elimination.md) |
+| Mixin 16→1 收尾（本文件） | 2026-08-04 | 本文档 |
+
+**说明**：本文件原编号为 ADR-001，与 ADR-001-modal-dialog-auto-clicker 冲突（README 索引以 modal-dialog 版为准）。2026-08-19 文档整理中重编号为 ADR-010 以消除冲突，历史决策内容与守护机制（test_architecture_mixin_guard.py）保持不变。
 
 ## 上下文
 

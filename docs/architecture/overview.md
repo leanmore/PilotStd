@@ -107,10 +107,11 @@ graph TD
 
 ### 查询引擎 [src: `pilotstd/query/engine/`]
 - 入口：[pilotstd/query/engine/__init__.py](pilotstd/query/engine/__init__.py) — `QueryEngine` 类
-- 路由：[pilotstd/query/engine/_routing.py](pilotstd/query/engine/_routing.py) — `_resolve_base_route()` 7 层决策树
+- 路由（v1）：[pilotstd/query/engine/_routing.py](pilotstd/query/engine/_routing.py) — `_resolve_base_route()` 7 层决策树
+- **路由（v2，灰度中）**：[pilotstd/query/routing/router_v2.py](pilotstd/query/routing/router_v2.py) — 三级漏斗（L1 国内精准 → L2 有标准号综合兜底 → L3 模糊探索），`ROUTING_ENGINE_VERSION=v2` 启用（2026-08-17 起灰度，默认 v1）
 - 分桶：[pilotstd/query/engine/_batch_dispatch.py](pilotstd/query/engine/_batch_dispatch.py) — 6 阶段流水线
 - 小桶：[pilotstd/query/engine/_mini_bucket.py](pilotstd/query/engine/_mini_bucket.py) — 50 条/桶 + 权重重分配
-- 单条：[pilotstd/query/engine/_single.py](pilotstd/query/engine/_single.py) — 5 步搜索链路
+- 单条：[pilotstd/query/engine/_single.py](pilotstd/query/engine/_single.py) — 5 步搜索链路（v2 分支 `_query_one_v2` 链式降级）
 
 ### 适配器层 [src: `pilotstd/query/adapters/`]
 - 22 个查询适配器，基类 [pilotstd/query/adapters/base.py](pilotstd/query/adapters/base.py)

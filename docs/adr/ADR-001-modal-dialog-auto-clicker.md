@@ -2,10 +2,11 @@
 
 | 属性 | 值 |
 |------|-----|
-| 状态 | 已接受 |
+| 状态 | ✅ Accepted |
 | 日期 | 2026-07-14 |
 | 决策者 | 项目治理顾问 |
 | 实现提交 | `e07d80af` |
+| Supersedes | [ADR-010-mixin-refactor](ADR-010-mixin-refactor.md)（原 ADR-001 编号由本文件承接，mixin 版重编号为 ADR-010） |
 
 ## 背景
 

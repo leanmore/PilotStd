@@ -1,3 +1,7 @@
+﻿> ⚠️ **ARCHIVED (2026-08-19): 不再维护。** 已被 site_classification_partial.md (v1.1) 取代
+>
+---
+
 # 标准查询站点分类分析结果（2026-08-17）
 
 > 状态：已完成（21/21）。分类依据：`pilotstd/query/site_config.py` 的 `ADAPTER_DEFAULT_PROFILES` 配置 + 适配器代码证据。

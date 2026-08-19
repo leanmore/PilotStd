@@ -133,6 +133,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | P5-B2 | 2026-07-16 | 批量提取 _table_helper/_table/_project | — | 3 个 Handler → 3 个 FlowEngine |
 | P6 | 2026-07-16 | _auto.py 全链路集成测试 | — | 2 个 E2E 测试，旧 skip 占位移除 |
 | P9 | 2026-07-16 | EventBus 事件总线重构 | [ADR-005](adr/ADR-005-event-bus.md) | 5 Handler 迁移 + _core.py 构造函数注入模式 |
+| — | 2026-08-04 | Mixin 重构 16→1（Handler 组合运动收尾） | [ADR-010](adr/ADR-010-mixin-refactor.md)（🗄 Deprecated） | 15 个 Mixin 消除，仅保留 _WindowLifecycleMixin |
 
 ### 纯 UI 编排文件策略（2026-07-16 确认）
 
@@ -158,7 +159,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ### 治理体系总览
 
-完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系总览](../governance-overview.md)。
+完整的三位一体治理体系（测试 + 门禁 + 文档）状态，参见 [治理体系技术规范](../governance/trinity-technical-spec-v2.md)（历史快照：[治理体系总览（ARCHIVED）](../governance-overview.md)）。
 
 ---
 

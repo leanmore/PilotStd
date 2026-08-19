@@ -74,4 +74,4 @@ BaseAdapter (ABC)
 ## 相关文档
 
 - [管理模块](manager.md) — 适配器调用方（`StandardManager` 门面）
-- [查询引擎](../query-engine.md) — 批量查询、路由、配额管理
+- [查询引擎](../query/README.md) — 批量查询、路由、配额管理

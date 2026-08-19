@@ -1,3 +1,7 @@
+﻿> ⚠️ **ARCHIVED (2026-08-19): 不再维护。** TTBZ 适配器已实现（pilotstd/query/adapters/ttbz.py），计划执行完毕
+>
+---
+
 # TTBZ 团体标准适配器 — 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

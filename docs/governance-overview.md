@@ -1,3 +1,9 @@
+> ⚠️ **ARCHIVED (2026-08-19): 历史快照，不再维护。**
+> 本文件为 2026-07-16 的三位一体治理状态快照（Engine 表 / 测试数 / 门禁配置），
+> 其中 Engine 单元测试表已因 2026-08-02 死代码清理（TableHelper/Table/Dialog FlowEngine 删除）失效。
+> **当前系统架构总览请参阅 [docs/architecture/overview.md](architecture/overview.md)**；
+> 治理体系当前状态请参阅 [docs/governance/trinity-technical-spec-v2.md](governance/trinity-technical-spec-v2.md)。
+
 # PilotStd 治理体系总览
 
 > 版本：v1.0.0

@@ -49,6 +49,6 @@
 
 ## 关联文档
 
-- [ADR 目录](../adr/README.md) — 6 个正式架构决策记录
-- [治理体系总览](../governance-overview.md) — 三位一体总览
+- [ADR 目录](../adr/README.md) — 8 个正式架构决策记录
+- [治理体系技术规范](../governance/trinity-technical-spec-v2.md) — 三位一体总览（历史快照：[治理体系总览 ARCHIVED](../governance-overview.md)）
 - [技术债登记](../technical-debt.md) — 当前技术债状态
