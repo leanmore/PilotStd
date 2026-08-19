@@ -196,9 +196,11 @@ class NotificationManager:
         bypass_aggregation=True 时跳过聚合缓冲，实时发送（供紧急告警事件使用）。
         """
         if not self._enabled:
+            logger.debug("通知功能未启用，跳过事件 %s 的发送", event_type)
             return
         target_channels = self._policy.get_channels_for_event(self._user_id, event_type)
         if not target_channels:
+            logger.info("事件 %s 无订阅渠道，跳过发送", event_type)
             return
 
         msg = self._build_message(event_type, event_data)
