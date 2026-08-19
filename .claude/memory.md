@@ -124,3 +124,17 @@
 - **关联代码**：.github/workflows/ci.yml, scripts/check_ci_offline.py, tests/conftest.py
 - **关联文档**：docs/ci-lessons.md §六
 - **有效期**：永久
+
+### 2026-08-20 决策 通知配置数据库权威化（DB 优先，config.json 兜底）
+- **类型**：决策
+- **内容**：notification.enabled 用户级配置改为 user_preferences 表优先（NotificationManager.__init__ 启动时读 DB 覆盖 config.json；PUT /api/notification/config 双写 DB+config.json；ConfigManager 新增 reload()）。长期目标是将 config.json 用户级配置逐步迁移到数据库。公告分类统计统一口径 COUNT(DISTINCT announce_no)+COUNT(*)，废弃 SUM(standard_count)（N² 膨胀）
+- **关联代码**：pilotstd/core/notification/manager.py, pilotstd/core/config/manager.py, docker/api/notification.py, pilotstd/announce/crawler_service.py
+- **关联文档**：docs/superpowers/specs/2026-08-19-announce-notification-chain-fix-spec-lite.md
+- **有效期**：永久
+
+### 2026-08-20 决策 恢复三个公告死事件（对齐重构前行为）
+- **类型**：决策
+- **内容**：重构 994ba7fb 后 announcement_fetch_complete/failed/announce_fetch_summary 失去调用点。已恢复：全站失败→announcement_fetch_failed（bypass 实时），有适配器明细→announce_fetch_summary（bypass 实时），手动路径→announcement_fetch_complete；send_event 新增可选 bypass_aggregation 参数（跳过聚合缓冲实时发送）。e2e test_trigger_exists 由正则（EVENT_[A-Z_]+ 模糊匹配伪通过）改为 AST 精确匹配（字面量+events 常量解析）
+- **关联代码**：pilotstd/announce/notifier.py, pilotstd/core/notification/manager.py, docker/api/announce.py, tests/test_notification_e2e.py
+- **关联文档**：docs/superpowers/specs/2026-08-19-announce-notification-chain-fix-spec-lite.md
+- **有效期**：永久
