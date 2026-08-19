@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # check_docs_sync.sh — 文档同步检查（渐进式部署，仅提醒不阻断）
 #
 # 检查本次提交变更的源文件，确认对应文档是否同步更新。
@@ -9,7 +9,7 @@ set -euo pipefail
 # ── 映射规则：源文件路径模式 → 对应文档（与 documentation-policy.md 触发规则表一致） ──
 declare -A DOC_MAP=(
   # API 端点变更
-  ["docker/api/"]="docs/specs/功能规格说明书.md"
+  ["docker/api/"]="docs/archive/specs/功能规格说明书.md"
   # 核心模块变更
   ["pilotstd/core/"]="docs/architecture/governance-summary.md"
   ["pilotstd/manager/"]="docs/architecture/governance-summary.md"
@@ -18,7 +18,7 @@ declare -A DOC_MAP=(
   ["docker/app.py"]="docs/architecture/governance-summary.md"
   ["docker/users.py"]="docs/architecture/governance-summary.md"
   # Web 前端
-  ["web/src/"]="docs/specs/功能规格说明书.md"
+  ["web/src/"]="docs/archive/specs/功能规格说明书.md"
   # 环境变量 / 配置文件
   [".env"]="docs/development/documentation-policy.md"
   [".github/workflows/ci.yml"]="docs/development/documentation-policy.md"

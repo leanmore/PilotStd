@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 自动更新文档中的可量化数据（测试数、文件引用、聚合器描述等）
 在 pre-commit 中自动运行。
@@ -114,7 +114,7 @@ def update_tech_debt_entries() -> bool:
 
 def update_module_list() -> bool:
     """更新模块与功能清单.md 中的文件列表"""
-    filepath = DOCS_DIR / "specs/模块与功能清单.md"
+    filepath = DOCS_DIR / "archive/specs/模块与功能清单.md"
     if not filepath.exists():
         return False
 
@@ -159,7 +159,7 @@ def main():
     docs_to_sync = [
         DOCS_DIR / "development.md",
         DOCS_DIR / "index.md",
-        DOCS_DIR / "specs/模块与功能清单.md",
+        DOCS_DIR / "archive/specs/模块与功能清单.md",
     ]
     for doc in docs_to_sync:
         if update_test_count_in_file(doc, test_count):
@@ -178,8 +178,8 @@ def main():
 
     # 5. 更新模块清单
     if update_module_list():
-        changed_files.append(DOCS_DIR / "specs/模块与功能清单.md")
-        print("  -> 更新 docs/specs/模块与功能清单.md")
+        changed_files.append(DOCS_DIR / "archive/specs/模块与功能清单.md")
+        print("  -> 更新 docs/archive/specs/模块与功能清单.md")
 
     # 6.如果有文件被修改，
     if changed_files:

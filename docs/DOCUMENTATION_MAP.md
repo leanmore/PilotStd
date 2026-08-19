@@ -58,7 +58,7 @@
 | ADR-007 | 收藏与归档解耦 | ✅ Accepted |
 | ADR-008 | 首页公告三栏分类（2026-08-19 补建独立文件） | ✅ Accepted |
 | ADR-009 | CronTrigger 替代间隔式时效性调度（2026-08-19 补建独立文件） | ✅ Accepted |
-| ADR-010 | Mixin 重构 16→1（原 ADR-001-mixin 重编号；Handler 组合系列） | 🗄 Deprecated |
+| ADR-010 | Mixin 重构 16→1（原 ADR-001-mixin 重编号；Handler 组合系列） | 🗄 Deprecated（Related to ADR-001，无取代关系） |
 
 > 索引：`docs/adr/README.md`；演进链：ADR-007 收藏归档、ADR-009 CronTrigger 详情见 README 内联。
 
@@ -72,8 +72,8 @@
 | `docs/reference/*.md`（13 个） | 适配器开发/公告 pipeline/编码规范/i18n SOP/pre-commit 清单等（CLAUDE.md 触发表引用） | ✅ 有效 |
 | `docs/design/site_classification_v1.md` | 站点分类方案 v1.1（v2 路由基础） | ✅ 有效 |
 | `docs/superpowers/specs/`（近期 08-14~08-19 系列） | 功能设计 spec-lite/design 记录 | ✅ 有效 |
-| `docs/specs/功能规格说明书.md` | ⚠️ ARCHIVED（版本止于 1.15/06-16） | 🔴 归档 |
-| `docs/specs/模块与功能清单.md` | ⚠️ ARCHIVED（06-30；生成脚本 update_docs.py 仍引用，映射待迁移） | 🔴 归档 |
+| `docs/archive/specs/功能规格说明书.md` | ⚠️ ARCHIVED（版本止于 1.15/06-16；物理归档至 archive/specs/） | 🔴 归档 |
+| `docs/archive/specs/模块与功能清单.md` | ⚠️ ARCHIVED（06-30；生成脚本 update_docs.py 仍引用，映射已更新至 archive 路径） | 🔴 归档 |
 
 ## 五、运维与部署（Ops & Deployment）
 

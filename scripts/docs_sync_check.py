@@ -72,7 +72,7 @@ TRIGGER_RULES = [
     {
         "name": "模块结构变化",
         "match_fn": _has_new_or_deleted_pyfiles,
-        "targets": [("docs/specs/模块与功能清单.md", "claude", True)],
+        "targets": [("docs/archive/specs/模块与功能清单.md", "claude", False)],
     },
     {
         "name": "架构模式变化（Handler/Mixin）",
