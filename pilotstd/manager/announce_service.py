@@ -140,7 +140,50 @@ class AnnounceService:
         return self._init_task_runner().trigger(adapter_name)
 
     def _after_fetch(self, result: dict[str, Any], source: str = "") -> None:
-        self._init_notifier().after_fetch(result, source)
+        """抓取后处理：归一化载荷 + 补全统计 + 通知 + 缓存失效。"""
+        normalized = self._normalize_fetch_result(result)
+        self._init_notifier().after_fetch(normalized, source)
+
+    def _normalize_fetch_result(self, result: dict[str, Any]) -> dict[str, Any]:
+        """将 check_filtered 的 {std_type: {...}} 结构归一化为扁平结构，并补全统计字段。
+
+        check_all 已返回扁平结构（含 gb_count/hb_count/db_count/total_standards）；
+        回填路径的 check_filtered 返回 {gb: {...}, hb: {...}, db: {...}}，
+        此处合并为扁平结构并注入本次抓取窗口的数据库统计。
+        """
+        if not isinstance(result, dict) or not result:
+            return dict(result)
+
+        # 判定是否为 {std_type: {...}} 分组结构（check_filtered 返回）
+        is_grouped = (
+            all(isinstance(v, dict) for v in result.values())
+            and not any(k in result for k in ("matched", "updated", "total_announcements", "adapters"))
+        )
+        if is_grouped:
+            flat: dict[str, Any] = {
+                "matched": 0,
+                "updated": 0,
+                "total_announcements": 0,
+                "adapters": [],
+                "errors": [],
+            }
+            for std_type, r in result.items():
+                if not isinstance(r, dict):
+                    continue
+                flat["matched"] += r.get("matched", 0)
+                flat["updated"] += r.get("updated", 0)
+                flat["total_announcements"] += r.get("total_announcements", 0)
+                if r.get("error"):
+                    flat["errors"].append({"source": std_type, "error": r["error"]})
+        else:
+            flat = dict(result)
+
+        # 补全分类统计字段（本次抓取窗口内新增公告），已有值不覆盖
+        if self._last_check_start:
+            stats = self._get_announcement_stats(self._last_check_start)
+            for k, v in stats.items():
+                flat.setdefault(k, v)
+        return flat
 
     # -- 任务状态查询 ---------------------------------------- 分隔
 
@@ -226,25 +269,7 @@ class AnnounceService:
         return self._file_index._db
 
     def _get_announcement_stats(self, since: str) -> dict[str, Any]:
-        """查询按来源的公告统计（计数 + 标准总数），自指定时间戳起。"""
-        rows = self._file_index._db.fetchall(
-            "SELECT source_site, COUNT(*) AS cnt, SUM(standard_count) AS std_cnt "
-            "FROM announcement_record WHERE fetched_at >= ? GROUP BY source_site",
-            (since,),
-        )
-        stats: dict[str, Any] = {
-            "total_announcements": 0, "total_standards": 0,
-            "gb_count": 0, "hb_count": 0, "db_count": 0,
-            "gb_standards": 0, "hb_standards": 0, "db_standards": 0,
-        }
-        for r in rows:
-            cnt, std, source = r["cnt"] or 0, r["std_cnt"] or 0, r["source_site"]
-            if source == "announcement_gb":
-                stats["gb_count"], stats["gb_standards"] = cnt, std
-            elif source == "announcement_hb":
-                stats["hb_count"], stats["hb_standards"] = cnt, std
-            elif source == "announcement_db":
-                stats["db_count"], stats["db_standards"] = cnt, std
-            stats["total_announcements"] += cnt
-            stats["total_standards"] += std
-        return stats
+        """查询自 since 起新增公告的分类统计（委托公共函数，统一正确口径）。"""
+        from pilotstd.announce.crawler_service import query_announcement_stats
+
+        return query_announcement_stats(self._file_index._db, since)

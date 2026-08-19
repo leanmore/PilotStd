@@ -1,18 +1,19 @@
 """AnnounceCrawler tests -- check_all / check_filtered pipeline."""
 from __future__ import annotations
 
+import sqlite3
 from unittest.mock import MagicMock
 
 import pytest
 
-from pilotstd.announce.crawler_service import AnnounceCrawler
-from pilotstd.announce.persistence import AnnouncePersistence
+from pilotstd.announce.crawler_service import AnnounceCrawler, query_announcement_stats
 
 
 @pytest.fixture
 def mock_persistence():
-    p = MagicMock(spec=AnnouncePersistence)
+    p = MagicMock()
     p.get_checkpoint.return_value = None
+    p._db = MagicMock()
     return p
 
 
@@ -71,6 +72,67 @@ class TestCheckAll:
 
         assert result["matched"] == 0
         assert result["errors"] == []
+
+    def test_result_includes_stats_fields(self, crawler, mock_persistence):
+        """阶段二：check_all 返回分类统计字段（gb/hb/db/total_standards）。"""
+        adapter = _mock_adapter("gb", "samr_gb", "GB site")
+        _patch_engine(crawler, [adapter], {
+            "matched": 2, "updated": 1, "last_notice_date": "2024-06-15",
+        })
+        result = crawler.check_all()
+
+        assert "gb_count" in result
+        assert "hb_count" in result
+        assert "db_count" in result
+        assert "total_standards" in result
+        assert result["total_announcements"] == 3
+
+
+class TestQueryAnnouncementStats:
+    """阶段二：query_announcement_stats 分组计数（sqlite3 双后端）。"""
+
+    def _make_db(self):
+        conn = sqlite3.connect(":memory:")
+        conn.execute(
+            "CREATE TABLE announcement_record ("
+            "announce_no TEXT, standard_number TEXT, source_site TEXT, fetched_at TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO announcement_record VALUES ('gb公告1','GB/T 1','announcement_gb','2026-08-19T10:00:00')"
+        )
+        conn.execute(
+            "INSERT INTO announcement_record VALUES ('gb公告1','GB/T 2','announcement_gb','2026-08-19T10:00:01')"
+        )
+        conn.execute(
+            "INSERT INTO announcement_record VALUES ('hb公告2','JB/T 1','announcement_hb','2026-08-19T10:00:02')"
+        )
+        conn.execute(
+            "INSERT INTO announcement_record VALUES ('db公告3','DB/T 1','announcement_db','2026-08-19T09:00:00')"
+        )
+        return conn
+
+    def test_grouped_counts_since(self):
+        conn = self._make_db()
+        try:
+            stats = query_announcement_stats(conn, "2026-08-19T10:00:00")
+            # 公告数按 announce_no 去重；db 公告早于 since 不计入
+            assert stats["total_announcements"] == 2
+            assert stats["total_standards"] == 3
+            assert stats["gb_count"] == 1
+            assert stats["gb_standards"] == 2
+            assert stats["hb_count"] == 1
+            assert stats["hb_standards"] == 1
+            assert stats["db_count"] == 0
+            assert stats["db_standards"] == 0
+        finally:
+            conn.close()
+
+    def test_db_failure_returns_zeros(self):
+        db = MagicMock()
+        db.fetchall.side_effect = RuntimeError("no such table")
+        stats = query_announcement_stats(db, "2026-08-19T10:00:00")
+        assert stats["total_announcements"] == 0
+        assert stats["gb_count"] == 0
 
 
 class TestCheckFiltered:

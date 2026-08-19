@@ -341,6 +341,67 @@ class TestAnnounceService(unittest.TestCase):
         svc = AnnounceService(self.mock_file_index, ocr_config={"test": True})
         self.assertIsNone(svc.crawler._ocr_provider)
 
+    # ── 阶段二：回填路径载荷归一化 ──
+
+    def test_normalize_grouped_result_to_flat(self):
+        """check_filtered 的 {std_type: {...}} 结构归一化为扁平结构。"""
+        from pilotstd.manager.announce_service import AnnounceService
+
+        svc = AnnounceService(self.mock_file_index)
+        svc._last_check_start = ""
+        grouped = {
+            "gb": {"matched": 2, "updated": 1, "total_announcements": 3, "last_notice_date": "2026-01-01"},
+            "hb": {"matched": 0, "updated": 0, "total_announcements": 0, "error": "超时"},
+        }
+        flat = svc._normalize_fetch_result(grouped)
+        self.assertEqual(flat["matched"], 2)
+        self.assertEqual(flat["updated"], 1)
+        self.assertEqual(flat["total_announcements"], 3)
+        self.assertEqual(len(flat["errors"]), 1)
+        self.assertEqual(flat["errors"][0]["source"], "hb")
+        self.assertEqual(flat["errors"][0]["error"], "超时")
+
+    def test_normalize_flat_result_passthrough(self):
+        """check_all 的扁平结构原样保留。"""
+        from pilotstd.manager.announce_service import AnnounceService
+
+        svc = AnnounceService(self.mock_file_index)
+        svc._last_check_start = ""
+        flat_in = {"matched": 1, "updated": 0, "total_announcements": 1, "adapters": []}
+        out = svc._normalize_fetch_result(flat_in)
+        self.assertEqual(out["matched"], 1)
+        self.assertNotIn("errors", out)
+
+    def test_normalize_injects_stats_fields(self):
+        """归一化时注入分类统计字段（表缺失时兜底为 0）。"""
+        from pilotstd.manager.announce_service import AnnounceService
+
+        svc = AnnounceService(self.mock_file_index)
+        svc._last_check_start = "2026-08-19T10:00:00"
+        flat_in = {"matched": 0, "updated": 0, "total_announcements": 0, "adapters": []}
+        out = svc._normalize_fetch_result(flat_in)
+        for k in ("gb_count", "hb_count", "db_count", "total_standards"):
+            self.assertIn(k, out)
+
+    def test_after_fetch_normalizes_and_dispatches(self):
+        """_after_fetch 将归一化后的载荷传给 notifier。"""
+        from unittest.mock import MagicMock
+
+        from pilotstd.manager.announce_service import AnnounceService
+
+        svc = AnnounceService(self.mock_file_index)
+        svc._last_check_start = ""
+        notifier = MagicMock()
+        svc._notifier = notifier
+        svc._after_fetch(
+            {"gb": {"matched": 1, "updated": 0, "total_announcements": 1}},
+            source="定时",
+        )
+        notifier.after_fetch.assert_called_once()
+        payload = notifier.after_fetch.call_args[0][0]
+        self.assertEqual(payload["matched"], 1)
+        self.assertEqual(payload["total_announcements"], 1)
+
 
 # ═══════════════════════════════════════════════════════
 # manager/facade/_query.py — 更深度覆盖
