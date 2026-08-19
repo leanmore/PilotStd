@@ -234,7 +234,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 ## 相关文档
 
-- [ADR 目录](adr/README.md) — 6 个架构决策记录
+- [ADR 目录](adr/README.md) — 10 个架构决策记录（2026-08-19 更新：ADR-001~010）
 - [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
 - [技术债登记簿](technical-debt-registry.md) — 已跳过测试 + 已接受设计决策
 - [范式文档](../guides/) — 5 个 Engine 重构范式

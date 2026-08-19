@@ -34,7 +34,7 @@
 | 2 | docs/governance/rule-quickref.md | ✅ 定稿 | 文档 | 非技术决策者规则速查表（G-033/G-041/G-058/ADR-007/ADR-012） |
 | 3 | docs/governance/development-flow.md | ✅ 定稿 | 测试 | 决策请求协议 + 双轨状态机 + 规则固化信号机制 |
 | 4 | local-session-notes.md | ✅ 定稿 | 文档 | 运行时上下文模板 + 自动清理规格 + 统计侧边栏 |
-| 5 | enforcement/guardrails.py | 🔜 待实现 | 门禁+测试 | 代码级强制层 + 原子写入SDK + 状态报告 |
+| 5 | enforcement/guardrails.py | ✅ 已实现（2026-08-19 核验：400 行，含 validate_prompt L70 / session_bootstrap L223 / EnforcementError L31 等，见 enforcement/guardrails.py） | 门禁+测试 | 代码级强制层 + 原子写入SDK + 状态报告 |
 
 ## 四、强制执行层规格（D5）
 
