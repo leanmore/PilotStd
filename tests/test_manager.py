@@ -63,6 +63,10 @@ class TestStandardManager(unittest.TestCase):
         self.assertIsNotNone(mgr.query_engine)
         self.assertIsNotNone(mgr.download_engine)
 
+    @pytest.mark.skipif(
+        os.environ.get("CI") == "true",
+        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
+    )
     def test_download_after_query(self):
         mgr = StandardManager()
         mgr.scan_directory(self.tmp)
