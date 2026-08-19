@@ -6,7 +6,9 @@
 | 日期 | 2026-07-14 |
 | 决策者 | 项目治理顾问 |
 | 实现提交 | `e07d80af` |
-| Supersedes | [ADR-010-mixin-refactor](ADR-010-mixin-refactor.md)（原 ADR-001 编号由本文件承接，mixin 版重编号为 ADR-010） |
+| Related to | [ADR-010-mixin-refactor](ADR-010-mixin-refactor.md)（原 ADR-001 编号由本文件承接，mixin 版重编号为 ADR-010；两者为独立决策，无取代关系） |
+
+> **Note**: 本 ADR 与 ADR-010（原 ADR-001）共享编号历史，但两者为独立决策，无取代关系。
 
 ## 背景
 

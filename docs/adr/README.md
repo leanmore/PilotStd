@@ -18,7 +18,7 @@
 | 007 | [ADR-007](ADR-007-favorite-archive-decouple.md) | 收藏与归档解耦 | 2026-Q1→Q3 | ✅ Accepted |
 | 008 | [ADR-008](ADR-008-announcement-three-column.md) | 首页公告三栏分类 | 2026-Q2 | ✅ Accepted |
 | 009 | [ADR-009](ADR-009-crontrigger-validity.md) | CronTrigger 替代间隔式时效性调度 | 2026-Q3 | ✅ Accepted |
-| 010 | [ADR-010](ADR-010-mixin-refactor.md) | Mixin 重构 16→1 | 2026-08-04 | 🗄 Deprecated |
+| 010 | [ADR-010](ADR-010-mixin-refactor.md) | Mixin 重构 16→1 | 2026-08-04 | 🗄 Deprecated（Related to ADR-001，不同主题无取代关系） |
 
 ## ADR-007 演进链
 

@@ -2,7 +2,10 @@
 
 - **日期**：2026-08-04
 - **状态**：🗄 Deprecated（内容已由 Handler 组合系列 ADR 承接，见 Related ADRs）
-- **Superseded by**：[ADR-001-modal-dialog-auto-clicker](ADR-001-modal-dialog-auto-clicker.md)（测试基础设施；原 ADR-001 编号释放后本文件重编号为 ADR-010）
+- **Related to**：[ADR-001-modal-dialog-auto-clicker](ADR-001-modal-dialog-auto-clicker.md)（测试基础设施）、[ADR-002-handler-governance](ADR-002-handler-governance.md)、[ADR-003-persistence-pattern](ADR-003-persistence-pattern.md)、[ADR-004-io-isolation](ADR-004-io-isolation.md)、[ADR-005-event-bus](ADR-005-event-bus.md)、[ADR-006-ui-hold-strategy](ADR-006-ui-hold-strategy.md)
+
+> **Note**: ADR-010 原编号 ADR-001，因编号冲突重新编号为 ADR-010。
+> 本 ADR 为 Mixin 16→1 架构重构决策。虽与 ADR-001-modal-dialog（测试基础设施）共享编号历史，但两者为独立决策，**无取代关系**。
 
 ## Related ADRs
 
