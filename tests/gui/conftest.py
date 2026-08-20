@@ -27,6 +27,17 @@ from unittest.mock import patch
 import pytest
 import responses
 
+
+@pytest.fixture(autouse=True)
+def _gui_fernet_isolate(tmp_path, monkeypatch):
+    """gui 测试全局隔离 Fernet：get_db_path 指向每测试独立的临时空库。
+
+    本地开发库 data/pilotstd.db 含加密旧凭证，_get_fernet 在 Key 缺失时会触发
+    防呆 RuntimeError；重定向到空库使其走"全新安装"分支自动生成 Key
+    （CI 干净环境无此问题，本隔离仅保证本地串行全量可跑）。
+    """
+    monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: str(tmp_path / "fernet_gui.db"))
+
 # ── atexit safety for PyQt6 + pytest-qt ──
 # logging.shutdown() accesses C++ LogHandler objects that may already be
 # deleted during interpreter teardown.  Unregister the original handler

@@ -13,19 +13,6 @@ import shutil
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def _clean_fernet_state(tmp_path, monkeypatch):
-    """隔离 Fernet 状态：get_db_path 指向临时空库并预生成 Key。
-
-    不删除真实开发库（Windows 文件锁下不可靠且有数据风险）：
-    将 get_db_path 重定向到临时空库，让 _get_fernet 走"全新安装"分支自动生成 Key。
-    """
-    from pilotstd.core.config.crypto import _get_fernet
-
-    monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: str(tmp_path / "fernet_test.db"))
-    _get_fernet(str(tmp_path / "config"))
-
-
 def _copy_fixture_files(src_dir: str, dst_dir: str) -> list[str]:
     """将 fixture 文件复制到临时目录，返回复制的文件路径列表。"""
     copied = []
