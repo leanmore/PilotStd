@@ -143,10 +143,17 @@ class TestConfigCrypto(unittest.TestCase):
         db_path = os.path.join(tmpdir, "old.db")
         conn = _sqlite3.connect(db_path)
         conn.execute(
-            "CREATE TABLE user_credentials (user_id INTEGER, channel TEXT, credentials TEXT)"
+            'CREATE TABLE IF NOT EXISTS "user_credentials" ('
+            '"id" INTEGER PRIMARY KEY AUTOINCREMENT,'
+            '"user_id" INTEGER NOT NULL,'
+            '"channel" TEXT NOT NULL,'
+            '"credentials" TEXT NOT NULL,'
+            '"created_at" TEXT DEFAULT CURRENT_TIMESTAMP,'
+            '"updated_at" TEXT DEFAULT CURRENT_TIMESTAMP,'
+            'UNIQUE("user_id", "channel"))'
         )
         conn.execute(
-            "INSERT INTO user_credentials VALUES (1, 'telegram', 'gAAAAAabc123')"
+            "INSERT INTO user_credentials (user_id, channel, credentials) VALUES (1, 'telegram', 'gAAAAAabc123')"
         )
         conn.commit()
         conn.close()

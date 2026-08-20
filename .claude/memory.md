@@ -173,3 +173,10 @@
 - **关联代码**：docker/api/favorites.py, docker/api/notification.py, tests/test_api_snapshot.py
 - **关联文档**：docs/technical-debt.md（#9/#10）
 - **有效期**：永久
+
+### 2026-08-20 决策 Mypy Optional 收敛 + 测试 Fernet 隔离姿势
+- **类型**：决策
+- **内容**：① **Mypy Optional 收敛模式**：辅助校验函数避免返回 Optional 后在调用点赋值给 int 变量（触发 `Incompatible types in assignment`）——改为函数内部直接 `raise HTTPException(401)`、返回非空 int，调用点免判空（favorites.py `_get_user_id` 5 处调用点据此收敛）。② **放弃"删除真实开发库"方案**：Fernet 防呆测试原方案为删除 `get_db_path()` 残留库，实测 Windows 文件锁下 `os.remove` 失败被吞、真实库含旧密文 → 防呆 RuntimeError 依旧触发，且直接删用户数据有风险；改用 `monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", ...)` 重定向到临时空库走"全新安装"分支（与 test_core_config.py 同模式），零副作用。③ 测试 SQL 与迁移链同步：G-012 Schema 检查按迁移链构建真实结构，测试文件 CREATE TABLE 必须完整复制迁移语句（含默认值/约束），勿手写精简列（会漏 NOT NULL/默认值）
+- **关联代码**：docker/api/favorites.py, tests/gui/test_auto_pipeline.py, tests/test_api_favorites_auth.py, tests/test_core_config.py
+- **关联文档**：pilotstd/core/db/_migrate_v2_v15.py（announcement_record）、_migrate_v37_plus.py（user_credentials）
+- **有效期**：永久

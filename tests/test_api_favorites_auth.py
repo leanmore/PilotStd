@@ -77,17 +77,35 @@ def client_and_db(tmp_path_factory):
         "updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"
     )
     db.execute(
-        "CREATE TABLE IF NOT EXISTS announcement_record ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "source_site TEXT,"
-        "pid TEXT,"
-        "announce_no TEXT,"
-        "standard_number TEXT,"
-        "std_name TEXT,"
-        "publish_date TEXT,"
-        "fetched_at TEXT,"
-        "announcement_title TEXT,"
-        "standard_count INTEGER)"
+        """CREATE TABLE IF NOT EXISTS announcement_record (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_site TEXT NOT NULL,
+        pid TEXT NOT NULL,
+        announce_no TEXT,
+        standard_number TEXT NOT NULL,
+        std_name TEXT,
+        publish_date TEXT,
+        fetched_at TEXT NOT NULL,
+        matched INTEGER DEFAULT 0,
+        source_version TEXT DEFAULT 'initial',
+        data_state TEXT DEFAULT 'fresh',
+        last_accessed_at TEXT,
+        announcement_title TEXT,
+        standard_count INTEGER,
+        announcement_id INTEGER,
+        row_index INTEGER,
+        implement_date TEXT,
+        expiry_date TEXT,
+        superseded_by TEXT,
+        status TEXT DEFAULT 'draft',
+        confidence REAL DEFAULT 0.0,
+        raw_text TEXT,
+        parser_engine TEXT,
+        approved_by INTEGER,
+        approved_at TEXT,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        source_type TEXT DEFAULT '网页解析',
+        UNIQUE(source_site, pid, standard_number))"""
     )
 
     from pilotstd.core.security import generate_salt, get_password_hash

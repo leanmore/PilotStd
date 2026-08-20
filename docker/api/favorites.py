@@ -49,10 +49,12 @@ class BatchStatusRequest(BaseModel):
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-def _get_user_id(user_id: int, db: Database) -> Optional[int]:
+def _get_user_id(user_id: int, db: Database) -> int:
     """校验用户存在性：参数为 get_current_user_id 返回的用户 ID，按主键查询。"""
     row = db.fetchone("SELECT id FROM users WHERE id = ?", (user_id,))
-    return row["id"] if row else None
+    if row is None:
+        raise HTTPException(401, "用户不存在")
+    return row["id"]
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -73,8 +75,6 @@ def add_favorite(
     publish_date 当天收藏 → 首次尝试最早 D+28 04:00，最晚 D+29 04:00。
     """
     user_id = _get_user_id(user_id, db)
-    if not user_id:
-        raise HTTPException(401, "用户不存在")
 
     existing = db.fetchone(
         "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
@@ -133,8 +133,6 @@ def get_favorite_status(
     from datetime import date
 
     user_id = _get_user_id(user_id, db)
-    if not user_id:
-        raise HTTPException(401, "用户不存在")
 
     row = db.fetchone(
         "SELECT id, status, local_path, error_message, publish_date, archive_retry_count"
@@ -176,8 +174,6 @@ def remove_favorite(
 ):
     """取消收藏：按状态分级处理。"""
     user_id = _get_user_id(user_id, db)
-    if not user_id:
-        raise HTTPException(401, "用户不存在")
 
     row = db.fetchone(
         "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
@@ -217,8 +213,6 @@ def list_favorites(
 ):
     """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。"""
     user_id = _get_user_id(user_id, db)
-    if not user_id:
-        raise HTTPException(401, "用户不存在")
 
     sql = (
         "SELECT f.id, f.user_id, f.record_id, f.status, f.local_path,"
@@ -256,8 +250,6 @@ def batch_get_favorite_status(
         return {"statuses": {}}
 
     user_id = _get_user_id(user_id, db)
-    if not user_id:
-        raise HTTPException(401, "用户不存在")
 
     placeholders = ",".join(["?"] * len(req.record_ids))
     sql = f"SELECT record_id, id, status FROM user_favorites WHERE user_id = ? AND record_id IN ({placeholders})"
