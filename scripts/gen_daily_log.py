@@ -9,7 +9,8 @@ TZ = ZoneInfo("Asia/Shanghai")
 today = datetime.now(TZ).strftime("%Y-%m-%d")
 
 result = subprocess.run(
-    ["git", "log", f"--since={today}T00:00:00+08:00", "--format=%h %s", "--no-merges"], capture_output=True, text=True
+    ["git", "log", f"--since={today}T00:00:00+08:00", "--format=%h %s", "--no-merges"],
+    capture_output=True, text=True, encoding="utf-8",
 )
 
 commits = result.stdout.strip()

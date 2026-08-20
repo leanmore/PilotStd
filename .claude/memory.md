@@ -159,3 +159,17 @@
 - **关联代码**：pilotstd/scan/parser/_exact_matcher.py, pilotstd/scan/parser/__init__.py, pilotstd/core/file_utils.py, pilotstd/constants/group_std_orgs.py, scripts/migrate_unknown_industry.py
 - **关联文档**：tests/test_parser_roundtrip.py（Round-trip：make_standard_filename→parse 往返一致）
 - **有效期**：永久
+
+### 2026-08-20 决策 鉴权 401 与业务 401 响应体判别机制（_isAuthExpired401）
+- **类型**：决策
+- **内容**：收藏接口 401 根因是 favorites.py 把 get_current_user_id 返回的 user_id 当 username 查表（`WHERE username = ?`），SQLite 永远查不到 → 路由内抛 401"用户不存在"（非中间件鉴权失败）。前端 http.ts 新增 `_isAuthExpired401`：响应体含 `error` 字段或 `detail` 含"未登录/认证失败/会话已过期"→ 判定鉴权 401（清状态+跳登录页）；其余 401（如"用户不存在"）为业务级，不跳转、不弹窗，由业务层展示 detail。配套：断网（ERR_NETWORK）/超时（ECONNABORTED/ETIMEDOUT）由全局拦截器统一提示"网络连接异常/请求超时"（setNetworkErrorNotifier + bootstrap 经 $toast 注入），组件 catch 不重复弹窗；announce.ts 收藏 3 接口移除冗余 skipGlobalAuthRedirect
+- **关联代码**：web/src/api/http.ts, web/src/bootstrap/registerHttpHandlers.ts, web/src/composables/useFavorite.ts
+- **关联文档**：tests/test_api_favorites_auth.py（反向复现原 401）、web/src/api/__tests__/http.test.ts
+- **有效期**：永久
+
+### 2026-08-20 决策 user_id/username 误用根因及同类隐患关联
+- **类型**：决策
+- **内容**：收藏 401 后端根因：get_current_user_id 返回 user_id（int，JWT sub），favorites.py `_get_user_id` 却按 username 列查询 → 修复为 `WHERE id = ?` 并按主键校验，5 个接口依赖参数同步改名 user_id。**同类隐患**：docker/api/notification.py:28 把 user_id 传给按 username 查询的 get_user_id，查不到时兜底返回 1（多用户场景全部解析为用户 1），已登记 technical-debt.md #9，下次迭代修复。教训：禁止把 get_current_user_id 返回值传给形参名为 username 或按 username 查询的函数（auth.py docstring 已有警示，favorites 是未跟进案例）；另登记 #10：test_api_snapshot.py 模块级 env setdefault 污染 test_docker_auth.py（CI 靠 xdist 规避，本地串行失败）
+- **关联代码**：docker/api/favorites.py, docker/api/notification.py, tests/test_api_snapshot.py
+- **关联文档**：docs/technical-debt.md（#9/#10）
+- **有效期**：永久
