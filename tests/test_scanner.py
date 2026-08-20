@@ -404,7 +404,7 @@ class TestStandardParser(unittest.TestCase):
         """U+2215 除号斜杠归一化为 / — DB65∕T → DB65/T"""
         info = self.parser.parse("DB65∕T 8037-2025 城镇排水.pdf")
         self.assertIsNotNone(info)
-        self.assertEqual(info.logical_code, "DB 65/T8037")
+        self.assertEqual(info.logical_code, "DB65/T")
         self.assertEqual(info.number, 8037)
         self.assertEqual(info.year, 2025)
 

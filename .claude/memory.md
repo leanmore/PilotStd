@@ -138,3 +138,24 @@
 - **关联代码**：pilotstd/announce/notifier.py, pilotstd/core/notification/manager.py, docker/api/announce.py, tests/test_notification_e2e.py
 - **关联文档**：docs/superpowers/specs/2026-08-19-announce-notification-chain-fix-spec-lite.md
 - **有效期**：永久
+
+### 2026-08-20 决策 DB 地方标准逻辑代号剥离顺序号（修复归档命名重复）
+- **类型**：决策
+- **内容**：`_exact_match_db` 原将顺序号编入 logical_code（DB 22/T2883），归档命名时又拼 number 导致 `DB 22T2883 2883-2018` 顺序号重复、且安全文件名（无 /）无法被 parser 再解析。修复：logical_code 仅代号（DB 22/T、DB 50），顺序号独立存 number；`scripts/migrate_unknown_industry.py` 的 recover_logical_code 同步对 DB 结果剥离顺序号。file_index 存量 DB 行已批量 UPDATE 为纯代号。注意：归档安全文件名（DB 22T 2883-2018）仍无法被 parser 直接再解析（DB 正则要求 /T 形态），属已知遗留
+- **关联代码**：pilotstd/scan/parser/_exact_matcher.py, pilotstd/scan/parser/_text_cleaner.py, scripts/migrate_unknown_industry.py
+- **关联文档**：tests/test_parser.py, tests/test_migrate_unknown_industry.py, tests/stress_selfcheck.py
+- **有效期**：永久
+
+### 2026-08-20 范式 合订本残片文件名识别（无～符号）
+- **类型**：范式
+- **内容**：合订本范围（47008～47010-2010）被误转录为 `47008-1947 010-2010` 形态（编号-假年份 空格 残片-真实年份）时，原有 ～ 截断规则不触发导致年份解析错误（如 1947）。TextCleaner 新增 `_COMBINED_STD_RE` 模式：`(\d{2,5})-(\d{4})\s+(\d{2,5})-(\d{4})` → 取起始编号 + 最后年份，并追加"合订本"标识到 std_name，避免被当作普通单标准
+- **关联代码**：pilotstd/scan/parser/_text_cleaner.py
+- **关联文档**：tests/test_parser.py::test_combined_standard_without_tilde
+- **有效期**：永久
+
+### 2026-08-20 决策 DB 逻辑代号统一无空格（DB22/T）+ 团体标准 T/ 通道
+- **类型**：决策
+- **内容**：① DB 逻辑代号统一为无空格 `DB22/T`/`DB50`（`_exact_match_db` 输出 f"DB{code}/..."），归档安全名 `DB22T 2883-2018` 才能被 normalize_std_filename 缺斜杠还原（已扩展允许 `DB 22T` 旧形态带空格）→ 扫描→归档→再扫描自洽。file_index 存量 DB 行需 `UPDATE ... SET logical_code=REPLACE(logical_code,'DB ','DB')`。② 新增 `_exact_match_group` 团体标准通道（T/XXX 与无斜杠 TXXX），白名单 `pilotstd/constants/group_std_orgs.py` 空集合透传；无斜杠分支用 code_mapping 防误伤（TSG 等已知代号不被当 T/SG）。③ 已知遗留：公告匹配 `_parse_std_code` 用 parse_std_number 的 code 字段（无斜杠 SHT/DB22T）与 file_index 带斜杠存储不一致，精确等值 SQL 下不兼容，预存问题未修
+- **关联代码**：pilotstd/scan/parser/_exact_matcher.py, pilotstd/scan/parser/__init__.py, pilotstd/core/file_utils.py, pilotstd/constants/group_std_orgs.py, scripts/migrate_unknown_industry.py
+- **关联文档**：tests/test_parser_roundtrip.py（Round-trip：make_standard_filename→parse 往返一致）
+- **有效期**：永久

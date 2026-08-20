@@ -184,6 +184,7 @@ class StandardParser:
 
         channels = [
             (self._matcher._exact_match_db, cleaned, "DB"),
+            (self._matcher._exact_match_group, cleaned, "group"),
             (self._matcher._exact_match_bpvc, cleaned, "BPVC"),
             (self._matcher._exact_match_itu, cleaned, "ITU"),
             (self._matcher._exact_match, cleaned, "exact"),

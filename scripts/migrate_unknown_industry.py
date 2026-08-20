@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import shutil
 import sys
 
@@ -29,11 +30,25 @@ from pilotstd.core.db.database import Database
 from pilotstd.organizer.industry_lookup import get_folder_name
 
 
+def _strip_db_number(code: str) -> str:
+    """DB 逻辑代号规范化：剥离顺序号并去除空格，与修复后的 Parser 输出一致。
+
+    'DB 22/T2883' -> 'DB22/T'；'DB 50 1982' -> 'DB50'。
+    """
+    m = re.match(r"^(DB\s?\d{2,4})(?:/(T)\d*|\s+\d+)$", code)
+    if not m:
+        return code
+    prefix, std_type = m.group(1), m.group(2)
+    clean_prefix = prefix.replace(" ", "")
+    return f"{clean_prefix}/{std_type}" if std_type else clean_prefix
+
+
 def recover_logical_code(filename: str, number: int, year: int) -> str:
     """从污染文件名恢复逻辑代号。
 
     误归档文件名格式: " {num_prefix}{number}-{year} {name}.pdf"，
     num_prefix 为前端误传的 logical_code。用 number 从前缀末尾剥离。
+    DB 地方标准额外剥离代号内重复的顺序号（如 DB 22/T2883 -> DB 22/T）。
     """
     # 文件名以 "-年份" 分隔，前缀 = num_prefix + number
     name = filename.strip()
@@ -43,8 +58,8 @@ def recover_logical_code(filename: str, number: int, year: int) -> str:
     prefix = name[:idx]
     num_str = str(number)
     if prefix.endswith(num_str):
-        return prefix[: -len(num_str)].strip()
-    return prefix.strip()
+        return _strip_db_number(prefix[: -len(num_str)].strip())
+    return _strip_db_number(prefix.strip())
 
 
 def main() -> None:

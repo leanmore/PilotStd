@@ -59,11 +59,62 @@ class TestExactMatcher(unittest.TestCase):
         cls.parser = StandardParser(build_code_mapping())
 
     def test_exact_match_db_prefix(self):
-        """DB11/T 模式 → logical_code='DB11/T', number 为数字。"""
+        """DB11/T 模式 → logical_code 仅代号（无空格），顺序号独立存 number。"""
         result = self.parser.parse("DB11/T 1234-2020 北京市地方标准.pdf")
         self.assertIsNotNone(result)
-        self.assertEqual(result.logical_code, "DB 11/T1234")
+        self.assertEqual(result.logical_code, "DB11/T")
+        self.assertEqual(result.number, 1234)
         self.assertEqual(result.year, 2020)
+
+    def test_exact_match_db_with_number_only(self):
+        """DB22/T 2883-2018 → logical_code 不含顺序号、无空格（修复重复编号根因）。"""
+        result = self.parser.parse(
+            "DB22/T 2883-2018 化工行业安全生产风险分级管控和隐患排查治理双重预防机制建设通用规范.pdf"
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "DB22/T")
+        self.assertEqual(result.number, 2883)
+        self.assertEqual(result.year, 2018)
+
+    def test_exact_match_db_mandatory(self):
+        """强制性地方标准 DB50 1982-2026 → logical_code 仅代号（无空格）。"""
+        result = self.parser.parse("DB50 1982-2026 畜禽粪肥质量控制和利用技术规范.pdf")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "DB50")
+        self.assertEqual(result.number, 1982)
+        self.assertEqual(result.year, 2026)
+
+    def test_combined_standard_without_tilde(self):
+        """无～符号的合订本残片文件名：47008-1947 010-2010 → NB/T 47008-2010。"""
+        result = self.parser.parse("NB/T47008-1947 010-2010 锻件标准.pdf")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "NB/T")
+        self.assertEqual(result.number, 47008)
+        self.assertEqual(result.year, 2010)
+        self.assertIn("合订本", result.std_name)
+
+    def test_exact_match_group_with_slash(self):
+        """团体标准带斜杠形态：T/CIESC 001-2019 → logical_code='T/CIESC'。"""
+        result = self.parser.parse("T/CIESC 001-2019 团体标准.pdf")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "T/CIESC")
+        self.assertEqual(result.number, 1)
+        self.assertEqual(result.year, 2019)
+
+    def test_exact_match_group_no_slash(self):
+        """团体标准无斜杠归档形态：TCIESC 001-2019 → logical_code='T/CIESC'。"""
+        result = self.parser.parse("TCIESC 001-2019 团体标准.pdf")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "T/CIESC")
+        self.assertEqual(result.number, 1)
+        self.assertEqual(result.year, 2019)
+
+    def test_exact_match_group_not_steal_tsg(self):
+        """TSG（特种设备安全技术规范）不应被团体标准通道误伤。"""
+        result = self.parser.parse("TSG 1-2014 特种设备安全技术规范制定导则.pdf")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.logical_code, "TSG")
+        self.assertEqual(result.number, 1)
 
     def test_exact_match_bpvc_roman_volume(self):
         """ASME BPVC 罗马数字卷号 → number 映射正确。"""

@@ -8,11 +8,15 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Optional, Pattern
 
+from ...constants.group_std_orgs import group_std_orgs
 from ...models import ParsedStdInfo
-from ._constants import _ASME_BPVC_RE, _ROMAN_MAP
+from ._constants import _ASME_BPVC_RE, _ROMAN_MAP, _SEP, _YEAR4
+
+logger = logging.getLogger(__name__)
 
 
 class ExactMatcher:
@@ -32,7 +36,12 @@ class ExactMatcher:
     # ── 7 个匹配通道 ────────────────────────────────────────
 
     def _exact_match_db(self, text: str) -> Optional[ParsedStdInfo]:
-        """地方标准专用匹配：DB + 行政区划代码 + 顺序号 + 年份。"""
+        """地方标准专用匹配：DB + 行政区划代码 + 顺序号 + 年份。
+
+        logical_code 仅含代号部分且**无空格**（DB22/T、DB50），顺序号独立存 number。
+        无空格形态保证归档安全文件名（DB22T 2883-2018）可被 normalize_std_filename
+        的缺斜杠还原正则（^(DB\\d{2,4})([TZ])）还原，实现扫描→归档→再扫描自洽。
+        """
         m = self.regex_db.match(text)
         if not m:
             return None
@@ -44,7 +53,62 @@ class ExactMatcher:
             number = int(number_str)
         except ValueError:
             return None
-        logical_code = f"DB {code}/{std_type}{number}" if std_type else f"DB {code} {number}"
+        logical_code = f"DB{code}/{std_type}" if std_type else f"DB{code}"
+        year = self._parser._normalize_year(m.group("year")) if m.group("year") else 0
+        remaining = text[m.end() :].strip()
+        name = re.sub(r"^[-–—\s]+", "", remaining)
+        name = self._parser._clean_std_name(name)
+        if not self._parser._validate_result(year, number, logical_code):
+            return None
+        return ParsedStdInfo(
+            raw_filename=text,
+            logical_code=logical_code,
+            number=number,
+            raw_number=number_str,
+            year=year,
+            std_name=name,
+            source_name=name,
+        )
+
+    def _exact_match_group(self, text: str) -> Optional[ParsedStdInfo]:
+        """团体标准解析通道：T/XXX 001-2019 与无斜杠归档形态 TXXX 001-2019。
+
+        白名单策略：group_std_orgs 为空集合时透传（所有 T/XXX 均解析，不 warning）；
+        非空时验证组织代码，不在白名单则 warning 但仍继续解析（不静默丢失）。
+        无斜杠分支先排除已知代号（如 TSG 特种设备安全技术规范），避免误归团体标准。
+        """
+        # 带斜杠形态：T/CIESC 001-2019
+        m = re.match(
+            r"T/(?P<org>[A-Z]{2,})" + _SEP + r"(?P<number>\d{1,5})" + _SEP + _YEAR4,
+            text,
+        )
+        if m:
+            return self._build_group_result(text, m, f"T/{m.group('org')}")
+
+        # 无斜杠形态（归档名）：TCIESC 001-2019；T{org} 为已知代号（如 TSG）时跳过
+        m = re.match(
+            r"T(?P<org>[A-Z]{2,})" + _SEP + r"(?P<number>\d{1,5})" + _SEP + _YEAR4,
+            text,
+        )
+        if m:
+            org = m.group("org")
+            if f"T{org}" in self.code_mapping or org in self.code_mapping:
+                return None
+            return self._build_group_result(text, m, f"T/{org}")
+        return None
+
+    def _build_group_result(
+        self, text: str, m: re.Match[str], logical_code: str
+    ) -> Optional[ParsedStdInfo]:
+        """构建团体标准解析结果：白名单验证 + 字段提取。"""
+        org = m.group("org")
+        if group_std_orgs and org not in group_std_orgs:
+            logger.warning("团体标准组织代码未在白名单中: T/%s（仍继续解析）", org)
+        number_str = m.group("number")
+        try:
+            number = int(number_str)
+        except ValueError:
+            return None
         year = self._parser._normalize_year(m.group("year")) if m.group("year") else 0
         remaining = text[m.end() :].strip()
         name = re.sub(r"^[-–—\s]+", "", remaining)

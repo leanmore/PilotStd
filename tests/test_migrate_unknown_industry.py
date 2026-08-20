@@ -22,14 +22,15 @@ class TestRecoverLogicalCode(unittest.TestCase):
         self.assertEqual(recover_logical_code(" GB/T13793-2008 直缝电焊钢管.pdf", 13793, 2008), "GB/T")
 
     def test_db_code_with_duplicated_number(self):
-        # DB 文件因 logical_code 含 number，误归档时 number 被重复拼接
+        # DB 文件因 logical_code 含 number，误归档时 number 被重复拼接；
+        # 修复后 logical_code 仅代号（剥离顺序号），与 Parser 输出一致
         self.assertEqual(
             recover_logical_code(" DB 22/T28832883-2018 化工行业.pdf", 2883, 2018),
-            "DB 22/T2883",
+            "DB22/T",
         )
         self.assertEqual(
             recover_logical_code(" DB 50/T19821982-2026 畜禽粪肥.pdf", 1982, 2026),
-            "DB 50/T1982",
+            "DB50/T",
         )
 
     def test_short_number_code(self):
