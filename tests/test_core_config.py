@@ -64,6 +64,26 @@ class TestSettingsSchema(unittest.TestCase):
 
 
 class TestConfigCrypto(unittest.TestCase):
+    """crypto 模块测试。
+
+    说明：_get_fernet 的"文件缺失 + DB 有旧密文"防呆检查查询全局 DB，
+    测试需通过 patch paths.get_db_path 隔离到临时空库（无 user_credentials 表），
+    避免真实开发库中的旧凭证导致误判 RuntimeError。
+    """
+
+    def _fresh_db_path(self):
+        """返回一个不含 user_credentials 表的临时空 DB 路径。"""
+        import sqlite3 as _sqlite3
+
+        db = os.path.join(tempfile.mkdtemp(), "empty.db")
+        _sqlite3.connect(db).close()
+        return db
+
+    def _patch_empty_db(self):
+        from unittest.mock import patch
+
+        return patch("pilotstd.core.config.paths.get_db_path", return_value=self._fresh_db_path())
+
     def test_is_sensitive_true(self):
         from pilotstd.core.config.crypto import _is_sensitive
 
@@ -85,7 +105,8 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            fernet = _get_fernet(tmpdir)
+            with self._patch_empty_db():
+                fernet = _get_fernet(tmpdir)
             self.assertIsNotNone(fernet)
             # 密钥文件应已创建
             key_path = os.path.join(tmpdir, ".fernet_key")
@@ -100,10 +121,43 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            _get_fernet(tmpdir)
-            f2 = _get_fernet(tmpdir)
+            with self._patch_empty_db():
+                _get_fernet(tmpdir)
+                f2 = _get_fernet(tmpdir)
             # 同一个 Fernet 实例（或至少密钥相同）
             self.assertIsNotNone(f2)
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_get_fernet_raises_when_key_missing_and_old_data(self):
+        """防呆：Key 文件缺失 + DB 已有加密凭证 → 必须报错，禁止静默换 Key。"""
+        import sqlite3 as _sqlite3
+        from unittest.mock import patch
+
+        from pilotstd.core.config.crypto import _get_fernet
+
+        # 构造含 gAAAAA 前缀凭证的临时 DB
+        tmpdir = tempfile.mkdtemp()
+        db_path = os.path.join(tmpdir, "old.db")
+        conn = _sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE user_credentials (user_id INTEGER, channel TEXT, credentials TEXT)"
+        )
+        conn.execute(
+            "INSERT INTO user_credentials VALUES (1, 'telegram', 'gAAAAAabc123')"
+        )
+        conn.commit()
+        conn.close()
+        try:
+            key_dir = os.path.join(tmpdir, "config")
+            with patch("pilotstd.core.config.paths.get_db_path", return_value=db_path):
+                with self.assertRaises(RuntimeError) as ctx:
+                    _get_fernet(key_dir)
+            self.assertIn("Fernet Key 文件", str(ctx.exception))
+            # 不应生成新 Key 文件
+            self.assertFalse(os.path.exists(os.path.join(key_dir, ".fernet_key")))
         finally:
             import shutil
 
@@ -114,7 +168,8 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            fernet = _get_fernet(tmpdir)
+            with self._patch_empty_db():
+                fernet = _get_fernet(tmpdir)
             data = {"storage_root_dir": "/data", "ocr": {"api_key": "secret123"}}
             result = _walk_sensitive(data, encrypt=True, fernet=fernet)
             self.assertNotEqual(result["ocr"]["api_key"], "secret123")
@@ -129,7 +184,8 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            fernet = _get_fernet(tmpdir)
+            with self._patch_empty_db():
+                fernet = _get_fernet(tmpdir)
             original = "secret123"
             data = {"ocr.baidu_api_key": original}
             encrypted = _walk_sensitive(data, encrypt=True, fernet=fernet)
@@ -145,7 +201,8 @@ class TestConfigCrypto(unittest.TestCase):
 
         tmpdir = tempfile.mkdtemp()
         try:
-            fernet = _get_fernet(tmpdir)
+            with self._patch_empty_db():
+                fernet = _get_fernet(tmpdir)
             data = {"provider": {"api_key": "nested_secret"}}
             result = _walk_sensitive(data, encrypt=True, fernet=fernet)
             self.assertNotEqual(result["provider"]["api_key"], "nested_secret")
@@ -261,9 +318,18 @@ class TestConfigManagerReload(unittest.TestCase):
     """阶段一：ConfigManager.reload() 从磁盘重新加载配置。"""
 
     def _make_cfg(self, tmp_dir):
+        from unittest.mock import patch
+
         from pilotstd.core.config.manager import ConfigManager
 
-        return ConfigManager(filepath=os.path.join(tmp_dir, "config.json"))
+        # ConfigManager 初始化会 save() → _get_fernet 防呆检查查询全局 DB；
+        # 隔离到临时空库，避免真实开发库旧凭证误判
+        db = os.path.join(tempfile.mkdtemp(), "empty.db")
+        import sqlite3 as _sqlite3
+
+        _sqlite3.connect(db).close()
+        with patch("pilotstd.core.config.paths.get_db_path", return_value=db):
+            return ConfigManager(filepath=os.path.join(tmp_dir, "config.json"))
 
     def test_reload_refreshes_from_disk(self):
         import json as _json

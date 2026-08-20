@@ -14,21 +14,88 @@ _SENSITIVE_SUFFIXES = (
 
 
 def _get_fernet(config_dir: str) -> Any:
-    """懒初始化 Fernet——密钥存于 config 目录，首次自动生成。"""
+    """获取 Fernet 加密实例（挂载 config 目录场景专用）。
+
+    设计原则：
+    - 仅信任 {config_dir}/.fernet_key 文件，不依赖环境变量或 DB 存储
+    - 文件存在 → 直接使用
+    - 文件缺失 + DB 有旧密文 → 显式报错（禁止静默生成新 Key）
+    - 文件缺失 + DB 无旧密文 → 生成新 Key 并写入文件（首次初始化）
+    """
+    import logging
+    import sqlite3
+
     from cryptography.fernet import Fernet
 
+    from pilotstd.core.config.paths import get_db_path
+
+    logger = logging.getLogger(__name__)
+
     key_path = os.path.join(config_dir, ".fernet_key")
+
+    # ===== 1. 优先读取 Key 文件 =====
+    if os.path.exists(key_path):
+        try:
+            with open(key_path, "rb") as f:
+                key = f.read().strip()
+            if key:
+                logger.info("已加载 Fernet Key: %s", key_path)
+                return Fernet(key)
+        except Exception as e:
+            logger.error("读取 Key 文件失败: %s", e)
+            raise RuntimeError(
+                f"Key 文件 {key_path} 读取失败，请检查权限或内容完整性"
+            ) from e
+
+    # ===== 2. 文件不存在，执行安全保护检查 =====
+    logger.warning("Key 文件 %s 不存在，正在检查 DB 中是否已有加密数据...", key_path)
+
+    has_old_data = False
+    conn = None
     try:
-        with open(key_path, "rb") as f:
-            key = f.read()
-    except FileNotFoundError:
-        key = Fernet.generate_key()
-        os.makedirs(os.path.dirname(key_path), exist_ok=True)
-        with open(key_path, "wb") as f:
-            f.write(key)
-        if os.name != "nt":
-            os.chmod(key_path, 0o600)
-    return Fernet(key)
+        db_path = get_db_path()
+        conn = sqlite3.connect(db_path)
+        # 检查是否存在 Fernet 加密特征前缀 gAAAAA
+        cur = conn.execute(
+            "SELECT 1 FROM user_credentials WHERE credentials LIKE 'gAAAAA%' LIMIT 1"
+        )
+        has_old_data = cur.fetchone() is not None
+    except sqlite3.Error as e:
+        # DB 尚未初始化或表不存在，视为全新安装
+        logger.warning("无法查询 DB（可能为全新安装）: %s", e)
+        has_old_data = False
+    finally:
+        if conn is not None:
+            conn.close()
+
+    # ===== 3. 有旧密文但无 Key → 严禁自动生成，必须报错 =====
+    if has_old_data:
+        raise RuntimeError(
+            f"❌ Fernet Key 文件 ({key_path}) 缺失，但数据库中已存在加密凭证！\n"
+            "自动生成新 Key 将导致所有旧凭证永久损坏。\n"
+            "解决方案：\n"
+            "  1. 从备份恢复原始 .fernet_key 文件到挂载目录；\n"
+            "  2. 或清空 user_credentials 表后重启容器重新配置。"
+        )
+
+    # ===== 4. 无旧密文 → 全新安装，生成新 Key 并持久化 =====
+    logger.info("未检测到旧加密数据，判定为全新安装，生成新 Fernet Key...")
+    new_key = Fernet.generate_key()
+
+    # 确保 config 目录存在（兼容挂载目录首次为空的情况）
+    os.makedirs(config_dir, exist_ok=True)
+
+    with open(key_path, "wb") as f:
+        f.write(new_key)
+
+    # 设置文件权限为仅所有者可读写
+    if os.name != "nt":
+        os.chmod(key_path, 0o600)
+
+    logger.info("新 Key 已保存至 %s (权限 0600)", key_path)
+    logger.info("【重要】请立即备份此 Key: %s", new_key.decode())
+
+    return Fernet(new_key)
 
 
 def _walk_sensitive(data: dict[str, Any], *, encrypt: bool, fernet: Any, prefix: str = "") -> dict[str, Any]:

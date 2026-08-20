@@ -16,9 +16,16 @@ class TestCredentialHelper(unittest.TestCase):
     def setUp(self):
         self.mock_db = MagicMock()
         self.tmpdir = tempfile.mkdtemp()
+        import sqlite3 as _sqlite3
+        from unittest.mock import patch
+
         from pilotstd.core.config.crypto import _get_fernet
 
-        _get_fernet(self.tmpdir)
+        # _get_fernet 防呆检查（Key 缺失时）查询全局 DB，隔离到临时空库
+        self.empty_db = os.path.join(self.tmpdir, "empty.db")
+        _sqlite3.connect(self.empty_db).close()
+        with patch("pilotstd.core.config.paths.get_db_path", return_value=self.empty_db):
+            _get_fernet(self.tmpdir)
         self.helper = CredentialHelper(self.mock_db, self.tmpdir)
 
     def tearDown(self):

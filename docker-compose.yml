@@ -27,6 +27,15 @@ services:
       - ./.env:/app/.env
       - ./output:/app/output   # 容器内生成的文件可通过此目录在宿主机访问
       - ./browser_cache:/app/browser_cache  # CloakBrowser 缓存持久化（企业微信可信IP自动更新）
+      # ═══════════════════════════════════════════════════════════════
+      # 🔑 Fernet Key / 配置持久化（2026-08-20 修复）
+      #    /app/config 原为容器内匿名卷，重建后 .fernet_key 丢失 →
+      #    静默生成新 Key → DB 旧加密凭证（user_credentials）永久损坏。
+      #    现挂载宿主机 ./config，使 .fernet_key 持久化（文件为唯一信任源）。
+      # ⚠️ 首次部署：先执行 docker cp <容器>:/app/config/.fernet_key ./config/
+      #    再重启容器，否则挂载空目录会覆盖原有 Key。
+      # ═══════════════════════════════════════════════════════════════
+      - ./config:/app/config
       # 挂载 docker.sock 允许容器调用 Docker API（镜像级更新 / 容器自重启）。
       # 安全注意：挂载后容器可控制宿主机 Docker，仅在信任容器内代码时启用。
       # 方案 C 的代码级重启（/api/system/restart）不依赖此挂载，可注释掉。
