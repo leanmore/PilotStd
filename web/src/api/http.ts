@@ -87,7 +87,21 @@ function getCsrfToken(): string {
   return lastMatch ? decodeURIComponent(lastMatch[1]) : '';
 }
 
-// 请求拦截器：每次写请求实时读取最新 CSRF Token + 注册 AbortController 到对应池
+// [FIX-401] 开始：实时从 Cookie 读取 pilotstd_token（会话令牌），供 Authorization 头注入
+// 采用与 getCsrfToken 一致的原生 document.cookie 解析（js-cookie 非项目声明依赖，禁止引入）
+function getSessionToken(): string {
+  try {
+    const matches = document.cookie.matchAll(/(?:^|;\s*)pilotstd_token=([^;]*)/g)
+    const lastMatch = [...matches].pop()
+    return lastMatch ? decodeURIComponent(lastMatch[1]) : ''
+  } catch {
+    // Cookie 解析异常时降级为空串，保证不中断请求
+    return ''
+  }
+}
+// [FIX-401] 结束
+
+// 请求拦截器：每次写请求实时读取最新 CSRF Token + Cookie Token 注入 Authorization 头 + 注册 AbortController 到对应池
 http.interceptors.request.use(config => {
   const method = (config.method || '').toLowerCase()
   if (['post', 'put', 'patch', 'delete'].includes(method)) {
@@ -96,6 +110,15 @@ http.interceptors.request.use(config => {
       config.headers['X-CSRF-Token'] = csrfToken
     }
   }
+  // [FIX-401] 开始：从 Cookie 读取 Token 并注入 Authorization 头（保留原有 X-CSRF-Token 传递逻辑）
+  const token = getSessionToken()
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`
+  } else {
+    // Token 缺失时移除 Authorization 头，避免发送无效值
+    delete config.headers['Authorization']
+  }
+  // [FIX-401] 结束
   // AbortController — 每次请求独立实例，用递增 id 防止 URL 碰撞
   const controller = new AbortController()
   const key = `${++_reqId}:${_reqKey(config)}`
@@ -115,7 +138,30 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler): void {
   unauthorizedHandler = handler
 }
 
-// 响应拦截器：清理 AbortController + 401 降级跳转（skipGlobalAuthRedirect 可跳过）
+// [FIX-401] 开始：断网/超时提示器（由 bootstrap 注册，避免 http.ts 静态依赖 UI 组件）
+type NetworkErrorNotifier = (message: string) => void
+let networkErrorNotifier: NetworkErrorNotifier | null = null
+
+export function setNetworkErrorNotifier(notifier: NetworkErrorNotifier): void {
+  networkErrorNotifier = notifier
+}
+
+/** 判定是否为鉴权类 401（Token 缺失/失效/会话过期）；业务级 401（如"用户不存在"）返回 false，不触发全局登出 */
+function _isAuthExpired401(err: AxiosError): boolean {
+  const data = (err.response as { data?: unknown } | undefined)?.data
+  if (data && typeof data === 'object') {
+    const body = data as { error?: unknown; detail?: unknown }
+    if (typeof body.error === 'string') return true
+    const detail = body.detail
+    if (typeof detail === 'string') {
+      return ['未登录', '认证失败', '会话已过期'].some(m => detail.includes(m))
+    }
+  }
+  return false
+}
+// [FIX-401] 结束
+
+// 响应拦截器：清理 AbortController + 断网/超时提示 + 鉴权 401 降级跳转（业务级 401 不跳转、不弹窗）
 http.interceptors.response.use(
   r => {
     const cfg = r.config as any
@@ -129,10 +175,20 @@ http.interceptors.response.use(
     if (_isAbortError(err)) {
       return Promise.resolve(null)
     }
-    // 仅核心接口的 401 触发全局登出，非核心接口由调用方自行降级
-    if (err.response?.status === 401 && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler) {
+    // [FIX-401] 开始：真断网/超时 → 全局提示；业务错误不弹窗，仅 reject 交由业务层处理
+    if (!err.response) {
+      const code = err.code
+      if (code === 'ERR_NETWORK') {
+        networkErrorNotifier?.('网络连接异常')
+      } else if (code === 'ECONNABORTED' || code === 'ETIMEDOUT' || (err.message || '').toLowerCase().includes('timeout')) {
+        networkErrorNotifier?.('请求超时')
+      }
+    }
+    // 仅鉴权类 401 触发全局登出；业务级 401（skipGlobalAuthRedirect 或非鉴权消息）由调用方自行降级
+    if (_isAuthExpired401(err) && !err.config?.skipGlobalAuthRedirect && unauthorizedHandler) {
       await unauthorizedHandler()
     }
+    // [FIX-401] 结束
     return Promise.reject(err)
   },
 )

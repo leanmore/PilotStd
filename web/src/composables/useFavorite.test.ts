@@ -12,13 +12,14 @@ vi.mock('@/api/announce', () => ({
   removeFavorite: vi.fn(),
 }))
 
-// mock primevue toast
+// mock primevue toast — 共享实例便于断言
+const toastMock = vi.hoisted(() => ({ add: vi.fn() }))
 vi.mock('primevue/usetoast', () => ({
-  useToast: () => ({ add: vi.fn() }),
+  useToast: () => toastMock,
 }))
 
 import { useFavorite } from './useFavorite'
-import { getBatchFavoriteStatus } from '@/api/announce'
+import { addFavorite, getBatchFavoriteStatus, removeFavorite } from '@/api/announce'
 
 function makeRecords(count: number): AnnouncementRecord[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -169,5 +170,60 @@ describe('useFavorite.loadFavStatuses', () => {
     // 未返回的应标记为 false
     expect(favMap.value[2]).toBe(false)
     expect(favMap.value[4]).toBe(false)
+  })
+})
+
+describe('useFavorite.toggleFavorite 分层错误提示（FIX-401）', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('业务级 401：展示后端 detail"用户不存在"并回滚', async () => {
+    const records = ref(makeRecords(1))
+    const { favMap, toggleFavorite } = useFavorite(records)
+    vi.mocked(addFavorite).mockRejectedValueOnce({
+      response: { status: 401, data: { detail: '用户不存在' } },
+    })
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(false)  // 回滚
+    expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error', summary: '用户不存在' }))
+  })
+
+  it('无 detail 的业务错误：提示"操作失败 (500)"', async () => {
+    const records = ref(makeRecords(1))
+    const { favMap, toggleFavorite } = useFavorite(records)
+    vi.mocked(addFavorite).mockRejectedValueOnce({ response: { status: 500, data: {} } })
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(false)
+    expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ summary: '操作失败 (500)' }))
+  })
+
+  it('断网（无 response）：组件不弹窗，交由全局拦截器统一提示', async () => {
+    const records = ref(makeRecords(1))
+    const { favMap, toggleFavorite } = useFavorite(records)
+    vi.mocked(addFavorite).mockRejectedValueOnce({ code: 'ERR_NETWORK', message: 'Network Error' })
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(false)  // 回滚
+    expect(toastMock.add).not.toHaveBeenCalled()
+  })
+
+  it('取消收藏失败同样回滚并提示 detail', async () => {
+    const records = ref(makeRecords(1))
+    const { favMap, toggleFavorite } = useFavorite(records)
+    favMap.value[1] = true  // 预置为已收藏，走取消路径
+    vi.mocked(removeFavorite).mockRejectedValueOnce({
+      response: { status: 401, data: { detail: '用户不存在' } },
+    })
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(true)  // 回滚
+    expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'error', summary: '用户不存在' }))
+  })
+
+  it('收藏成功提示"已收藏"', async () => {
+    const records = ref(makeRecords(1))
+    const { toggleFavorite } = useFavorite(records)
+    vi.mocked(addFavorite).mockResolvedValueOnce({ status: 'pending', favorite_id: 1 })
+    await toggleFavorite(records.value[0])
+    expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success', summary: '已收藏' }))
   })
 })

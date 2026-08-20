@@ -20,6 +20,15 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
 
   // ── 乐观更新 + 回滚 ──
 
+  // [FIX-401] 分层错误提示：优先展示后端 detail；断网/超时由全局拦截器统一提示，此处不重复弹窗
+  function handleFavoriteError(e: unknown): string | null {
+    const err = e as { response?: { status?: number; data?: { detail?: unknown } } }
+    if (!err?.response) return null
+    const detail = err.response.data?.detail
+    if (typeof detail === 'string' && detail) return detail
+    return `操作失败 (${err.response.status ?? '未知'})`
+  }
+
   async function toggleFavorite(record: AnnouncementRecord) {
     const id = record.id
     if (favLoadingMap.value[id]) return  // 防重复提交
@@ -33,9 +42,10 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       try {
         await removeFavorite(id)
         toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
-      } catch {
+      } catch (e) {
         favMap.value[id] = true  // 回滚
-        toast.add({ severity: 'error', summary: '操作失败，请检查网络后重试', life: 3000 })
+        const msg = handleFavoriteError(e)
+        if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
       } finally {
         favLoadingMap.value[id] = false
       }
@@ -45,9 +55,10 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       try {
         await addFavorite(id)
         toast.add({ severity: 'success', summary: '已收藏', life: 2000 })
-      } catch {
+      } catch (e) {
         favMap.value[id] = false  // 回滚
-        toast.add({ severity: 'error', summary: '操作失败，请检查网络后重试', life: 3000 })
+        const msg = handleFavoriteError(e)
+        if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
       } finally {
         favLoadingMap.value[id] = false
       }

@@ -49,8 +49,9 @@ class BatchStatusRequest(BaseModel):
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
-def _get_user_id(username: int, db: Database) -> Optional[int]:
-    row = db.fetchone("SELECT id FROM users WHERE username = ?", (username,))
+def _get_user_id(user_id: int, db: Database) -> Optional[int]:
+    """校验用户存在性：参数为 get_current_user_id 返回的用户 ID，按主键查询。"""
+    row = db.fetchone("SELECT id FROM users WHERE id = ?", (user_id,))
     return row["id"] if row else None
 
 
@@ -62,7 +63,7 @@ def _get_user_id(username: int, db: Database) -> Optional[int]:
 @router.post("/api/favorites")
 def add_favorite(
     data: FavoriteCreate,
-    username: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """收藏标准记录：仅创建收藏关系，不触发下载。
@@ -71,7 +72,7 @@ def add_favorite(
     等待时间：最长 28（冷却期）+ 1（cron 每日执行窗口）= 29 天。
     publish_date 当天收藏 → 首次尝试最早 D+28 04:00，最晚 D+29 04:00。
     """
-    user_id = _get_user_id(username, db)
+    user_id = _get_user_id(user_id, db)
     if not user_id:
         raise HTTPException(401, "用户不存在")
 
@@ -125,13 +126,13 @@ def add_favorite(
 @router.get("/api/favorites/{record_id}/status")
 def get_favorite_status(
     record_id: int,
-    username: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """查询指定记录的收藏状态。"""
     from datetime import date
 
-    user_id = _get_user_id(username, db)
+    user_id = _get_user_id(user_id, db)
     if not user_id:
         raise HTTPException(401, "用户不存在")
 
@@ -170,11 +171,11 @@ def get_favorite_status(
 @router.delete("/api/favorites/{record_id}")
 def remove_favorite(
     record_id: int,
-    username: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """取消收藏：按状态分级处理。"""
-    user_id = _get_user_id(username, db)
+    user_id = _get_user_id(user_id, db)
     if not user_id:
         raise HTTPException(401, "用户不存在")
 
@@ -210,12 +211,12 @@ def remove_favorite(
 
 @router.get("/api/favorites")
 def list_favorites(
-    username: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_current_user_id),
     status: Optional[str] = None,
     db: Database = Depends(get_db),
 ):
     """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。"""
-    user_id = _get_user_id(username, db)
+    user_id = _get_user_id(user_id, db)
     if not user_id:
         raise HTTPException(401, "用户不存在")
 
@@ -247,14 +248,14 @@ def list_favorites(
 @router.post("/api/favorites/batch-status")
 def batch_get_favorite_status(
     req: BatchStatusRequest,
-    username: int = Depends(get_current_user_id),
+    user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
     """批量查询多条记录的收藏状态，单次 SQL 替代 N+1 问题。"""
     if not req.record_ids:
         return {"statuses": {}}
 
-    user_id = _get_user_id(username, db)
+    user_id = _get_user_id(user_id, db)
     if not user_id:
         raise HTTPException(401, "用户不存在")
 

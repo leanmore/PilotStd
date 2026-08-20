@@ -49,16 +49,16 @@ export const batchApprove = (ids: number[]): Promise<{ approved_count: number }>
 // ── Phase 4a: 收藏 ──────────────────────────────────────
 
 export const addFavorite = (recordId: number): Promise<{ status: string; favorite_id: number }> =>
-  http.post('/favorites', { record_id: recordId }, { skipGlobalAuthRedirect: true }).then(r => r.data)
+  http.post('/favorites', { record_id: recordId }).then(r => r.data)
 
 export const getFavoriteStatus = (recordId: number): Promise<{ status: string | null; favorite_id: number | null; local_path?: string; error_message?: string }> =>
   http.get(`/favorites/${recordId}/status`).then(r => r.data)
 
 export const getBatchFavoriteStatus = (recordIds: number[]): Promise<{ statuses: Record<string, { favorite_id: number; status: string } | null> }> =>
-  http.post('/favorites/batch-status', { record_ids: recordIds }, { skipGlobalAuthRedirect: true }).then(r => r.data)
+  http.post('/favorites/batch-status', { record_ids: recordIds }).then(r => r.data)
 
 export const removeFavorite = (recordId: number): Promise<{ status: string }> =>
-  http.delete(`/favorites/${recordId}`, { skipGlobalAuthRedirect: true }).then(r => r.data)
+  http.delete(`/favorites/${recordId}`).then(r => r.data)
 
 export const listFavorites = (params?: { status?: string }): Promise<{ favorites: any[] }> =>
   http.get('/favorites', { params }).then(r => r.data)

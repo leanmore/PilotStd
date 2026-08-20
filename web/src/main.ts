@@ -74,7 +74,7 @@ const initialDark = isDarkTheme(savedTheme)
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
-registerHttpHandlers()
+registerHttpHandlers(app)
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
