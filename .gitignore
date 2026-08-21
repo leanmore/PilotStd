@@ -13,6 +13,8 @@ venv/
 env/
 .mypy_cache/
 .ruff_cache/
+# 根目录遗留的临时提交信息文件（曾误入库，现 untrack + 忽略）
+.commit_msg.txt
 .pytest_cache/
 .vulture_cache/
 .coverage*

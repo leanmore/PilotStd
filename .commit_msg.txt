@@ -1,5 +1,0 @@
-﻿fix: G-012迁移链修复 — 补注册v16标准有效性表+导入migrations模块
-
-- pilotstd/core/db/__init__.py: 添加 from . import migrations 触发装饰器注册
-- pilotstd/core/db/migrations.py: _migrate_v16_standard_validity 补 @migration(16) 装饰器
-- 拆分1: _table_ops.py(404→306行) → 提取 _table_io.py(103行) 数据I/O函数

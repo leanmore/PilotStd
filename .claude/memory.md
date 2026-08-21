@@ -194,3 +194,10 @@
 - **关联代码**：tests/test_docker_api.py, tests/conftest.py（_isolate_fernet_db）, docker/api/users.py
 - **关联文档**：CHANGELOG.md
 - **有效期**：永久
+
+### 2026-08-20 风险 check_all.sh 参数只消费 $1（--fast --docs 组合不生效）
+- **类型**：风险
+- **内容**：`scripts/check_all.sh` 的 case 分支只读取 `$1`：`.husky/pre-commit` 调用的 `--fast --docs` 实际只执行 `--fast`（`--docs` 被忽略），组合门禁需用 `--all`。本次任务中曾因此误以为 docs 门禁会跑（coverage 生成/文档守护），实际未执行。既有行为，未改动；建议后续在脚本中增加多余参数提示或支持组合解析，避免误解。另：根目录遗留 `.commit_msg.txt`（旧提交信息残留，曾入库）已 `git rm --cached` + 加入 .gitignore，保持仓库整洁
+- **关联代码**：scripts/check_all.sh, .husky/pre-commit, .gitignore
+- **关联文档**：docs/governance/gates.md
+- **有效期**：永久
