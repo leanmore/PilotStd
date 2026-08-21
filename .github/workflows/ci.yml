@@ -113,7 +113,7 @@ jobs:
           ADMIN_USERNAME: superadmin
         run: |
           mkdir -p /tmp/standards
-          python -m pytest tests/ -q --tb=short -n auto \
+          python -m pytest tests/ -q --tb=short -n auto -p no:pytest-qt \
             --cov=pilotstd --cov-fail-under=45 \
             --timeout=60 --timeout_method=signal \
             --ignore=tests/gui/ \

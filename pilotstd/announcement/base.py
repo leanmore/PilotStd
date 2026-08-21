@@ -4,7 +4,7 @@
 import concurrent.futures
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 import requests
 
@@ -140,7 +140,7 @@ class BaseAnnounceCrawler(ABC):
 
         resp = safe_raw_get(url, self.site_name, timeout=60)
         if resp and resp.status_code == 200:
-            return resp.content
+            return cast("bytes | None", resp.content)
         return None
 
     # ── 详情获取（通用实现）──
@@ -161,7 +161,7 @@ class BaseAnnounceCrawler(ABC):
             )
             return None
         resp.encoding = "utf-8"
-        return resp.text
+        return cast("str | None", resp.text)
 
     # ── 公共解析入口（页面结构路由）──
 

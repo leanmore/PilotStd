@@ -13,7 +13,7 @@
 
 import logging
 import time
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 import requests
 
@@ -147,9 +147,9 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
 
         # 校验便携文档文件头
         if content[:5] == b"%PDF-":
-            return content
+            return cast("bytes | None", content)
         if len(content) > 1000 and b"html" not in content[:50].lower():
-            return content
+            return cast("bytes | None", content)
 
         task.error_message = "viewGb 返回非 PDF 内容"
         logger.warning(
