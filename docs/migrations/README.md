@@ -186,6 +186,17 @@ SELECT version FROM _schema_version WHERE version = 52;  -- 迁移后应存在
 
 ## 迁移执行规范
 
+### 🚫 迁移不可变铁律（Immutable Migrations）——最高优先级
+
+> **迁移版本一经发布/执行，即为不可变（Immutable）。**
+
+1. **任何 Schema 变更必须创建新版本号**（`CURRENT_SCHEMA_VERSION + 1`），**严禁向已执行的旧版本迁移脚本追加/修改 DDL**。
+2. **原因**：迁移执行后其源码 checksum 已写入 `_schema_version`。若修改旧迁移逻辑，校验机制会走"仅注释/空行变化"自愈路径更新 checksum 并**跳过重放**——真实 DDL 变更永远不会在已迁移的库上执行，形成"checksum 匹配但实际缺列"的幽灵问题（2026-08-21 v36 缺 `publish_date` 导致收藏接口 500 即为此类事故）。
+3. **历史迁移需要"补"什么（列/表/数据）**：一律新增版本号做幂等兜底迁移（范式参考 v48/v50/v52）。
+4. **Code Review 检查点**：PR diff 若涉及 `MIGRATIONS` 中已注册版本的函数体改动，必须改为新增版本号，禁止直接修改。
+
+### 执行步骤
+
 1. **前置检查**：确认数据库可写、磁盘空间充足（> 数据库文件大小 * 2）
 2. **备份先行**：`cp pilotstd.db pilotstd.db.bak.$(date +%Y%m%d_%H%M%S)`
 3. **执行迁移**：通过应用启动时自动执行（`Database.__init__` 中调用 `run_migrations()`）

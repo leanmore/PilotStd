@@ -215,3 +215,10 @@
 - **关联代码**：pilotstd/core/db/_migrate_v52.py
 - **关联文档**：docs/migrations/README.md
 - **有效期**：永久
+
+### 2026-08-21 规范 迁移版本不可变铁律（Immutable Migrations）
+- **类型**：规范
+- **内容**：**迁移版本一经发布/执行即为不可变（Immutable）**。任何 Schema 变更必须创建新版本号（CURRENT_SCHEMA_VERSION+1），严禁向已执行的旧版本迁移脚本追加/修改 DDL。原因：迁移执行后源码 checksum 已写入 _schema_version，修改旧迁移会走"仅注释/空行变化"自愈路径更新 checksum 并跳过重放，真实 DDL 变更永不执行 → "checksum 匹配但实际缺列"幽灵问题（v36 缺 publish_date 致收藏 500 即此事故）。历史迁移需补列/表/数据一律新增版本号做幂等兜底迁移（范式：v48/v50/v52）；Code Review 若见已注册版本函数体改动必须改新增版本
+- **关联代码**：pilotstd/core/db/_constants.py（MIGRATIONS）、pilotstd/core/db/_migrate_v52.py
+- **关联文档**：docs/migrations/README.md（迁移执行规范首条）
+- **有效期**：永久
