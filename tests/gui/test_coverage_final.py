@@ -105,14 +105,15 @@ class TestExportRemaining:
 
 # ═══ _file_tree_ops.py: 54-55, 95-99, 108, 118, 125-127, 131-134, 165-166, 193, 199-210 ═══
 class TestFileTreeRemaining:
-    def test_populate_children_oserror(self, window, tmp_path, monkeypatch):
+    def test_populate_children_oserror(self, window, tmp_path):
         sub = tmp_path / "oserr"
         sub.mkdir()
         parent = QTreeWidgetItem(["p"])
         parent.setData(0, Qt.ItemDataRole.UserRole, str(sub))
         window.file_tree.addTopLevelItem(parent)
-        monkeypatch.setattr(os, "scandir", MagicMock(side_effect=OSError("io error")))
-        window._populate_children(parent)
+        # 用 with patch 而非 monkeypatch：避免 scandir 污染跨到 window teardown 的 rmtree
+        with patch("os.scandir", MagicMock(side_effect=OSError("io error"))):
+            window._populate_children(parent)
 
     def test_populate_children_hidden_skip(self, window, tmp_path):
         sub = tmp_path / "hidden"

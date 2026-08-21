@@ -39,7 +39,7 @@ class TestExportFinal:
         with patch("pilotstd.ui.main_window.parts._export_ops.QFileDialog.getSaveFileName", return_value=("", "")):
             window._on_export_folder_tree()
 
-    def test_collect_folder_tree_isdir_error(self, window, monkeypatch):
+    def test_collect_folder_tree_isdir_error(self, window):
         """覆盖 76-77, 85-86: entry.is_dir() 抛 OSError"""
         ok = MagicMock()
         ok.is_dir.return_value = True
@@ -49,9 +49,11 @@ class TestExportFinal:
         bad.is_dir.side_effect = OSError("fake")
         bad.name = "bad_dir"
         bad.path = "/d/bad"
-        monkeypatch.setattr(os, "scandir", lambda p: [bad, ok])
-        lines: list = []
-        window._collect_folder_tree("/d", lines, prefix="")
+        # 用 with patch 而非 monkeypatch：scandir 污染须在测试体内还原，
+        # 否则 window teardown 的 shutil.rmtree 会命中被替换的 scandir（TypeError）
+        with patch("os.scandir", lambda p: [bad, ok]):
+            lines: list = []
+            window._collect_folder_tree("/d", lines, prefix="")
 
 
 # ═══ _dialog_ops.py: 52-54 ═══

@@ -50,10 +50,11 @@ class TestExportFolderTree:
             window._collect_folder_tree("/", lines, prefix="", depth=3)
         assert any("超过最大深度" in ln for ln in lines)
 
-    def test_collect_folder_tree_permission_error(self, window, monkeypatch):
-        monkeypatch.setattr(os, "scandir", MagicMock(side_effect=PermissionError))
-        lines: list = []
-        window._collect_folder_tree("/dummy", lines, prefix="")
+    def test_collect_folder_tree_permission_error(self, window):
+        # 用 with patch 而非 monkeypatch：避免 scandir 污染跨到 window teardown 的 rmtree
+        with patch("os.scandir", MagicMock(side_effect=PermissionError)):
+            lines: list = []
+            window._collect_folder_tree("/dummy", lines, prefix="")
         assert len(lines) == 1
 
 

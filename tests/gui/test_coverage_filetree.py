@@ -61,14 +61,15 @@ class TestPopulateChildren:
         window._populate_children(parent)
         assert parent.childCount() == 0
 
-    def test_permission_error(self, window, tmp_path, monkeypatch):
+    def test_permission_error(self, window, tmp_path):
         sub = tmp_path / "no"
         sub.mkdir()
         parent = QTreeWidgetItem(["n"])
         parent.setData(0, Qt.ItemDataRole.UserRole, str(sub))
         window.file_tree.addTopLevelItem(parent)
-        monkeypatch.setattr(os, "scandir", MagicMock(side_effect=PermissionError))
-        window._populate_children(parent)
+        # 用 with patch 而非 monkeypatch：避免 scandir 污染跨到 window teardown 的 rmtree
+        with patch("os.scandir", MagicMock(side_effect=PermissionError)):
+            window._populate_children(parent)
 
 
 class TestTreeItemExpanded:
