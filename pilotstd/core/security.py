@@ -1,8 +1,8 @@
 # 模块：项目/核心/脚本
 # 密码安全模块—支持（新）与2/256（旧，兼容过渡）
-
 import hashlib
 import secrets
+from typing import cast
 
 from passlib.context import CryptContext  # type: ignore[import-untyped]
 
@@ -21,7 +21,7 @@ def is_bcrypt_hash(hashed: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """使用 bcrypt 生成密码哈希（新用户注册、修改密码）"""
-    return _pwd_context.hash(password)
+    return cast(str, _pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -34,7 +34,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
     if is_bcrypt_hash(hashed_password):
-        return _pwd_context.verify(plain_password, hashed_password)
+        return cast(bool, _pwd_context.verify(plain_password, hashed_password))
 
     # 桌面端旧格式：:
     if ":" in hashed_password:
@@ -60,7 +60,7 @@ def verify_password_with_salt(
         return False
 
     if is_bcrypt_hash(password_hash):
-        return _pwd_context.verify(plain_password, password_hash)
+        return cast(bool, _pwd_context.verify(plain_password, password_hash))
 
     # 端旧格式：2--256
     if salt:

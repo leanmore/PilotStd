@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json as _json
 import logging
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class CredentialHelper:
             return None
         try:
             plain = self._fernet.decrypt(row["credentials"].encode()).decode()
-            return _json.loads(plain)
+            return cast("dict[str, str] | None", _json.loads(plain))
         except Exception:
             logger.warning("解密渠道 %s 凭证失败", channel)
             return None

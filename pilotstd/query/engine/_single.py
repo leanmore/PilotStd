@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from ..models import QueryResult
 from ..routing.router_v2 import AllRoutesExhaustedException, get_routing_service, is_v2_enabled
@@ -53,7 +53,7 @@ class SingleQueryHandler:
                 cached = cache.get(target, adapter.site_name)
             if cached:
                 logger.debug("查询 [%s] 缓存命中 @%s", target, cached.source_site)
-                return cached
+                return cast("QueryResult | None", cached)
         return None
 
     def _step_get_priority_chain(

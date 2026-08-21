@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from ._core import ManagerCore
@@ -44,13 +44,13 @@ class FileIndexHandler:
     def get_file_index(self, file_path: str) -> dict[str, Any] | None:
         """封装 file_index.get，供 UI 层查询文件索引。"""
         if self._core.file_index:
-            return self._core.file_index.get(file_path)
+            return cast("dict[str, Any] | None", self._core.file_index.get(file_path))
         return None
 
     def get_file_index_full_info(self, logical_code: str, number: int) -> list[dict[str, Any]]:
         """封装 file_index.get_full_info。"""
         if self._core.file_index:
-            return self._core.file_index.get_full_info(logical_code, number)
+            return cast("list[dict[str, Any]]", self._core.file_index.get_full_info(logical_code, number))
         return []
 
     def parse_standard_number(self, filename: str) -> Any | None:

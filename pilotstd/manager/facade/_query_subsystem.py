@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import requests
 
@@ -190,7 +190,7 @@ class QuerySubsystem:
         parsed_tuples = [
             (p.logical_code, p.number, p.year, p.std_name or "", p.part, getattr(p, "num_prefix", "")) for p in items
         ]
-        return self._core.query_engine.query_standards(
+        return self._core.query_engine.query_standards(  # type: ignore[no-any-return]
             parsed_tuples,
             result_callback=result_callback,
             progress_callback=progress_callback,
@@ -416,7 +416,7 @@ class QuerySubsystem:
 
     def _resolve_replaces(self, standard_number: str) -> str:
         """跨站点补查替代关系。"""
-        return self._core.classifier.resolve_replaces(standard_number)
+        return cast(str, self._core.classifier.resolve_replaces(standard_number))
 
     # ══════════════════════════════════════════════════════════ 分隔
     # 原上的方法（被__查询调用）

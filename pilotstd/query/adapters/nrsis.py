@@ -15,7 +15,7 @@ URL: http://www.nrsis.org.cn/portal/xxcx/std
 import logging
 import re
 import time
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import httpx
 from bs4 import BeautifulSoup
@@ -185,7 +185,7 @@ class NRSISAdapter(BaseAdapter):
             idx = header_map.get(key, -1)
             if idx < 0 or idx >= len(cols):
                 return ""
-            return cols[idx].text.strip()
+            return cast(str, cols[idx].text.strip())
 
         std_no = get_col("标准编号")
         name = get_col("标准名称")

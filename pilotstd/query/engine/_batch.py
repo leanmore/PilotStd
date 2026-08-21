@@ -152,7 +152,7 @@ class BatchHandler:
             self._collect_csres_results(state)
 
             temp_cooldown_skips = self._overflow._handle_overflow(state, result_callback, preferred_site)
-            return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)
+            return self._finalize_batch(state, parsed_list, n, temp_cooldown_skips)  # type: ignore[no-any-return]
         finally:
             try:
                 from pilotstd.scan.parser._result_builder import get_validate_fail_count

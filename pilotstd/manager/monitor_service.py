@@ -2,7 +2,7 @@
 # 文件监控服务—供接口层+脚本生命周期使用
 
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 
 class MonitorService:
@@ -28,7 +28,7 @@ class MonitorService:
         """获取监控运行状态。"""
         from pilotstd.monitor.scheduler import get_scheduler
 
-        return get_scheduler().get_status()
+        return cast("dict[str, Any]", get_scheduler().get_status())
 
     def get_stats(self) -> dict[str, Any]:
         """获取当天监控统计。"""

@@ -5,7 +5,7 @@
 """
 
 import json
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from ._base import BaseFacade
 
@@ -31,7 +31,7 @@ class StandardManager(BaseFacade):
 
     def check_announcements(self) -> dict[str, Any]:
         """检查各公告源的新公告，匹配本地标准。"""
-        return self._announce_svc.check_announcements()
+        return cast("dict[str, Any]", self._announce_svc.check_announcements())
 
     def check_announcements_filtered(
         self,
@@ -41,7 +41,7 @@ class StandardManager(BaseFacade):
         types: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """带类型过滤和日期筛选的公告检查。供 CLI / API 调用。"""
-        return self._announce_svc.check_announcements_filtered(
+        return self._announce_svc.check_announcements_filtered(  # type: ignore[no-any-return]
             std_type=std_type,
             since_date=since_date,
             progress_callback=progress_callback,

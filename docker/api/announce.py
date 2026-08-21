@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
@@ -105,14 +105,14 @@ def _sync_wait_check(since_date: str = "", mgr=None, types: list[str] | None = N
         st = status.get("status", "")
         if st == "success":
             data = mgr._announce_svc.get_task_results(task_id)
-            return data.get("data", {})
+            return cast("dict[Any, Any]", data.get("data", {}))
         if st == "failed":
             return {"ok": False, "count": 0, "failures": 1, "error": status.get("error_msg", "")}
         if "error" in status:
             return {"ok": False, "count": 0, "failures": 1, "error": "任务丢失"}
         _time.sleep(1)
 
-    return JSONResponse(  # type: ignore[return-value]
+    return JSONResponse(  # type: ignore[return-value, no-any-return]
         {"code": 408, "msg": "同步等待超时，请改用异步模式 POST /api/announcements/fetch", "task_id": task_id},
         408,
     )

@@ -9,7 +9,7 @@ import json
 import logging
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...models import ParsedStdInfo
@@ -172,7 +172,7 @@ class OrganizeHandler:
                 self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": moved})
         except Exception:
             pass
-        return result
+        return cast("dict[str, Any]", result)
 
     @staticmethod
     def _is_word_or_template(src_path: str) -> bool:

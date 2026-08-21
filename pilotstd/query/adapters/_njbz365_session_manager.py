@@ -14,7 +14,7 @@ import hashlib
 import logging
 import re
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import requests
 
@@ -248,7 +248,7 @@ class Njz365SessionManager:
                 return None
 
             if data.get("code") == "0":
-                return data
+                return cast("dict[str, Any] | None", data)
 
             if data.get("code") == "1001" and attempt < 2:
                 logger.info("njbz365 token 过期，刷新重试")

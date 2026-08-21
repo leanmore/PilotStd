@@ -11,7 +11,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +258,7 @@ class CacheManager:
                 f"SELECT SUM(pgsize) as total_bytes FROM dbstat WHERE name IN ('{names}')",
             )
             if row and row["total_bytes"]:
-                return row["total_bytes"] / (1024 * 1024)
+                return cast(float, row["total_bytes"] / (1024 * 1024))
         except Exception:
             pass
 
@@ -286,8 +286,8 @@ class CacheManager:
                         ),
                         1,
                     )
-                    return (db_bytes * min(ratio, 1.0)) / (1024 * 1024)
-                return (db_bytes * 0.3) / (1024 * 1024)  # 假设占 30%
+                    return cast(float, (db_bytes * min(ratio, 1.0)) / (1024 * 1024))
+                return cast(float, (db_bytes * 0.3) / (1024 * 1024))
         except Exception:
             pass
 

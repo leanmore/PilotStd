@@ -8,6 +8,7 @@ import time
 import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from typing import Any, cast
 
 from fastapi import Form, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -283,7 +284,7 @@ def _generate_token(user_id: int = 1, role: str = "user") -> str:
     旧格式 {sub: username} 仍兼容（dispatch 中 digit 判断走 users 表查询回退）。
     """
     now = datetime.now(timezone.utc)
-    return jwt.encode(
+    return jwt.encode(  # type: ignore[no-any-return]
         {
             "sub": str(user_id),
             "role": role,
@@ -300,7 +301,7 @@ def _is_https(request: Request) -> bool:
     if request.url.scheme == "https":
         return True
     forwarded = request.headers.get("X-Forwarded-Proto", "")
-    return forwarded == "https"
+    return cast(bool, forwarded == "https")
 
 
 @router.post("/api/login")
@@ -521,7 +522,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if not csrf_header or csrf_header != csrf_cookie:
                 raise HTTPException(403, "认证失败")
 
-        return payload
+        return cast("dict[Any, Any]", payload)
 
     async def dispatch(self, request, call_next):
         path = request.url.path

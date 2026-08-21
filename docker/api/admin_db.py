@@ -4,7 +4,7 @@
 import logging
 import sqlite3 as _sqlite3
 import time as _time
-from typing import Any
+from typing import Any, cast
 
 import sqlparse
 from fastapi import Request
@@ -58,7 +58,7 @@ def _get_stmt_type(parsed: Any) -> str | None:
                     return kw
             return val.split()[0] if val else None
         if token.ttype is Keyword and token.value.upper() in ("DROP", "CREATE", "ALTER", "INSERT"):
-            return token.value.upper()
+            return cast("str | None", token.value.upper())
     return None
 
 
@@ -76,7 +76,7 @@ def _has_where_clause(parsed: Any) -> bool:
                     return True
         return False
 
-    return _walk(parsed.tokens)
+    return cast(bool, _walk(parsed.tokens))
 
 
 def _has_limit_clause(parsed: Any) -> bool:
@@ -185,7 +185,7 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     try:
         parsed = sqlparse.parse(req.sql)[0]
     except Exception as e:
-        return _audit_and_respond(
+        return _audit_and_respond(  # type: ignore[no-any-return]
             "DB_QUERY_PARSE_ERROR",
             req.sql,
             req.params,
@@ -200,7 +200,7 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     # 步骤2:安全校验
     ok, err = _validate_sql(parsed, req.confirm_dangerous)
     if not ok:
-        return _audit_and_respond(
+        return _audit_and_respond(  # type: ignore[no-any-return]
             "DB_QUERY_DENIED",
             req.sql,
             req.params,
@@ -221,7 +221,7 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
     try:
         rows, elapsed_ms = _execute_with_timeout(db_path, sql_to_execute, req.params, req.timeout)
     except TimeoutError:
-        return _audit_and_respond(
+        return _audit_and_respond(  # type: ignore[no-any-return]
             "DB_QUERY_TIMEOUT",
             req.sql,
             req.params,
@@ -231,7 +231,7 @@ def admin_db_query(req: DbQueryRequest, request: Request) -> dict[str, Any]:
             408,
         )
     except Exception as e:
-        return _audit_and_respond(
+        return _audit_and_respond(  # type: ignore[no-any-return]
             "DB_QUERY_ERROR",
             req.sql,
             req.params,

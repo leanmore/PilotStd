@@ -135,10 +135,10 @@ def wait_for_completion(output_file, timeout=600):
     return -1
 
 
-def run_batch(batch):
-    name = batch["name"]
-    is_independent = batch.get("independent", False)
+def _build_cmd(batch, console_file):
+    """构建 pytest 命令（含超时标记 / CI 前缀 / 覆盖率参数）。"""
     is_gui = batch.get("gui", False)
+    is_independent = batch.get("independent", False)
     env_ci = batch.get("env_ci", False)
     if is_gui:
         timeout_flag = " --timeout=15"
@@ -147,16 +147,17 @@ def run_batch(batch):
     else:
         timeout_flag = ""
     ci_prefix = "set CI=1&& " if env_ci else ""
-    ts = datetime.now(timezone.utc).strftime("%H%M%S")
-    console_file = os.path.join(PROJECT_ROOT, f"console_batch_{name}_{ts}.txt")
-    log_file = os.path.join(PROJECT_ROOT, f"pytest_batch_{name}_{ts}.log")
-
     files_str = " ".join(batch["files"])
-    cmd = (f'{ci_prefix}python -u -W ignore::ResourceWarning -m pytest {files_str} '
-           f'--cov=pilotstd --cov-append {IGNORE_TEMPLATES} '
-           f'-p no:warnings -v --tb=long {timeout_flag}'
-           f'> {console_file} 2>&1')
+    return (f'{ci_prefix}python -u -W ignore::ResourceWarning -m pytest {files_str} '
+            f'--cov=pilotstd --cov-append {IGNORE_TEMPLATES} '
+            f'-p no:warnings -v --tb=long {timeout_flag}'
+            f'> {console_file} 2>&1')
 
+
+def _spawn_and_wait(batch, name, cmd, console_file):
+    """启动 pytest 子进程，等待完成或超时终止，返回退出标记。"""
+    is_gui = batch.get("gui", False)
+    is_independent = batch.get("independent", False)
     label = ""
     if is_gui:
         label = " [GUI timeout=15s]"
@@ -185,8 +186,11 @@ def run_batch(batch):
                 proc.kill()
             except Exception:
                 pass
+    return ret
 
-    # 读取输出分析
+
+def _classify_result(batch, name, console_file, log_file, ret):
+    """读取输出，检测阻断错误与通过状态，返回 (success, is_blocking, error_info)。"""
     try:
         with open(console_file, 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
@@ -211,7 +215,7 @@ def run_batch(batch):
     failed = bool(re.search(r'\d+\s+failed', content))
 
     if ret == -1:
-        if is_independent:
+        if batch.get("independent", False):
             print(f"[INFO] Independent batch {name}: timeout -> non-blocking failure")
             return False, False, None
         return False, True, {"batch_dir": batch["dir"], "error_type": "TimeoutExpired",
@@ -224,6 +228,18 @@ def run_batch(batch):
     else:
         print(f"[FAIL] non-blocking, continuing")
         return False, False, None
+
+
+def run_batch(batch):
+    """执行单个批次：构建命令、启动等待、归类结果。"""
+    name = batch["name"]
+    ts = datetime.now(timezone.utc).strftime("%H%M%S")
+    console_file = os.path.join(PROJECT_ROOT, f"console_batch_{name}_{ts}.txt")
+    log_file = os.path.join(PROJECT_ROOT, f"pytest_batch_{name}_{ts}.log")
+
+    cmd = _build_cmd(batch, console_file)
+    ret = _spawn_and_wait(batch, name, cmd, console_file)
+    return _classify_result(batch, name, console_file, log_file, ret)
 
 
 def main():

@@ -1,5 +1,6 @@
 # 容器//脚本—通知配置与发送日志接口（2：四渠道全参数）
 import logging
+from typing import cast
 
 from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
@@ -34,7 +35,7 @@ class MarkReadRequest(BaseModel):
 
 
 def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
-    return mgr.notification_mgr
+    return cast("NotificationManager", mgr.notification_mgr)
 
 
 @router.get("/api/notification/config")

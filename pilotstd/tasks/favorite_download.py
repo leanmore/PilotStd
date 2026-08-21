@@ -5,7 +5,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import requests
 
@@ -40,7 +40,7 @@ def _get_download_url(standard_number: str, db: Database) -> Optional[str]:
     if row and row["result_json"]:
         try:
             data = json.loads(row["result_json"])
-            return data.get("download_url")
+            return cast("str | None", data.get("download_url"))
         except Exception:
             pass
     return None
@@ -60,7 +60,7 @@ def _find_in_file_index(standard_number: str, db: Database) -> Optional[str]:
             )
             row = cursor.fetchone()
             if row:
-                return row["file_path"]
+                return cast("str | None", row["file_path"])
     except Exception:
         pass
     return None
