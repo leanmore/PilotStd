@@ -59,7 +59,17 @@
 - **当前保障**：`docker/app.py` 中注册为生产 API 路由，可通过集成测试验证；故障影响局限于"企业微信 IP 白名单更新失败"，属于可容忍的边缘功能降级
 - **后续计划**：评估 Playwright E2E 容器化测试替代方案
 
-## 三、门禁联动
+## 三、G-032 设计保留项（2026-08-21 登记）
+
+> 以下 8 条 G-032 警告为**设计保留**（非遗漏），由迁移与治理流程明确裁决，无需修复。运行 `python scripts/check_g_032_doc_health.py` 时仍会显示，属预期行为。
+
+| # | 警告内容 | 保留理由 |
+|---|----------|----------|
+| 1 | `docs/testing/known-issues.md 已 21 天未更新` | 宽限期内（上限 14 天），本文档更新即自然消除 |
+| 2 | `AGENTS.md 引用了不存在的文件: ~/.claude/CLAUDE.md` | 历史来源标注，用户裁决保留（Claude Code 迁移记录） |
+| 3-8 | `STATUS.md:23/49/57-60 含 [legacy-manual] 标记的数值`（6 条） | 设计如此——手动维护数值，标记 `[legacy-manual]` 走宽限期，待自动化指标接管后清除 |
+
+## 四、门禁联动
 
 当以下文件发生变更时，需确认关联的已知问题是否有进展或需更新：
 
@@ -68,11 +78,14 @@
 | `pilotstd/query/adapters/njbz365.py` | 问题 1（match_status 逻辑） |
 | `pilotstd/core/std_utils.py`（`parse_std_number`） | 问题 1（多词前缀解析） |
 | `pilotstd/query/adapters/std_gov.py` | 问题 2（端到端测试） |
+| `scripts/check_g_032_doc_health.py` | 第三节（G-032 设计保留项） |
+| `STATUS.md` / `docs/testing/coverage-report.md` | 第三节（自动生成文档，G-032 降级 INFO） |
 
-## 四、版本历史
+## 五、版本历史
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
 | v1.0 | 2026-07-14 | 初始版本，记录 njbz365 match_status 和 StdGovAdapter e2e 两个已知问题 |
 | v1.1 | 2026-07-14 | njbz365 适配器 match_status 已修复（`_search_candidates` 自动解析 search_term），移除 xfail |
 | v1.2 | 2026-07-31 | 新增 wechat_ip 单元测试豁免（P2-2 处置审批），浏览器自动化模块暂不纳入覆盖率考核 |
+| v1.3 | 2026-08-21 | 新增第三节"G-032 设计保留项"（8 条裁决登记）；门禁联动补充 check_g_032/STATUS 关联 |
