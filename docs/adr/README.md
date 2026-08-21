@@ -19,6 +19,13 @@
 | 008 | [ADR-008](ADR-008-announcement-three-column.md) | 首页公告三栏分类 | 2026-Q2 | ✅ Accepted |
 | 009 | [ADR-009](ADR-009-crontrigger-validity.md) | CronTrigger 替代间隔式时效性调度 | 2026-Q3 | ✅ Accepted |
 | 010 | [ADR-010](ADR-010-mixin-refactor.md) | Mixin 重构 16→1 | 2026-08-04 | 🗄 Deprecated（Related to ADR-001，不同主题无取代关系） |
+| 011 | [ADR-011](ADR-011-dashboard-singleton-floating-menu.md) | 首页仪表盘状态集中化与悬浮工作台菜单 | 2026-08-21（迁移归档） | ✅ Accepted |
+| 012 | [ADR-012](ADR-012-multi-user-architecture.md) | 多用户基础架构改造 v3.0 | 2026-08-21（迁移归档） | ✅ Accepted |
+| 013 | [ADR-013](ADR-013-health-check-decoupling.md) | 健康检查与业务任务解耦轮询机制 | 2026-08-21（A4 提炼） | ✅ Accepted |
+| 014 | [ADR-014](ADR-014-routetag-request-cancellation.md) | 前端 HTTP 请求取消 routeTag 三层机制 | 2026-08-21（A4 提炼） | ✅ Accepted |
+| 015 | [ADR-015](ADR-015-route-engine-v2-funnel.md) | 标准查询路由引擎 v2.0 三级漏斗 | 2026-08-21（A4 提炼） | ✅ Accepted（部分实施） |
+
+> 注：ADR-011/012 由 Claude Code 迁移计划（A2/A3）归档转化；ADR-013/014/015 由历史会话转录（A4）提炼。新增 ADR 均遵循既有模板与编号连续。
 
 ## ADR-007 演进链
 
