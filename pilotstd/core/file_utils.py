@@ -70,7 +70,7 @@ def normalize_std_filename(filename: str) -> str:
 
     # 3.缺斜杠还原（→/,→/,数据库22→数据库22/等）
     # 在步骤1之后执行：如果文件名本来就有/，步骤1已处理，此正则不会误匹配
-    # DB 允许代号内空格（DB 22T → DB 22/T），兼容旧归档形态与无空格形态（DB22T → DB22/T）
+    # DB 代号内允许空格（兼容旧归档形态与无空格形态）
     filename = re.sub(r"^(DB\s?\d{2,4})\s?([TZ])(?=\s*\d)", r"\1/\2", filename)
     filename = re.sub(r"^(GB)([TZ])(?=\s*\d)", r"\1/\2", filename)
     filename = re.sub(

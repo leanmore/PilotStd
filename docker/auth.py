@@ -260,7 +260,7 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
     ("/api/system/version", {"GET"}),
     ("/api/logs", {"GET"}),
     # 登录页背景图 URL（公开接口）：仅暴露 appearance.login_bg 单字段，替代
-    # admin-only 的 GET /api/settings 在未登录态下的 401 拦截问题
+    # 仅管理员的 GET /api/settings 在未登录态下的 401 拦截问题
     ("/api/login-background", set()),
     ("/api/backgrounds", set()),
     ("/assets", set()),

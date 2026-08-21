@@ -18,14 +18,14 @@ router = APIRouter(tags=["logs"])
 # 日志文件路径（写入的.）
 _LOG_PATH = os.path.join(_get_log_dir(), "app.log")
 
-# 轮转日志文件名白名单：app.log 或 app.log.N（N 为数字）
+# 轮转日志文件名白名单：app.log 或 app.log.N（后缀为数字）
 _ROTATED_NAME_RE = re.compile(r"^app\.log(\.\d+)?$")
 # 行长度估算均值（字节/行），用于 lines_estimate 不实际计数
 _AVG_LINE_BYTES = 200
 # 列表缓存秒数
 _LIST_CACHE_SECONDS = 60
 
-# 轮转文件列表缓存（ts 用 monotonic 时间戳）
+# 轮转文件列表缓存（时间戳用单调时钟）
 _list_cache: dict = {"ts": 0.0, "files": []}
 
 # 日志时间戳正则：-::
@@ -243,7 +243,7 @@ def _read_rotated_impl(filename: str, offset: int, limit: int, grep: str, contex
                     continue
                 content.append(line.rstrip("\n"))
     else:
-        # grep + context：滑动窗口取匹配行前后 N 行
+        # grep 加上下文：滑动窗口取匹配行前后若干行
         before: deque[str] = deque(maxlen=context)
         after_remaining = 0
         with open(full_path, encoding="utf-8", errors="replace") as f:

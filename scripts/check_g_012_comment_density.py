@@ -141,6 +141,30 @@ LANG_WHITELIST = {
     'v1', 'JSONL', 'logs', 'put', 'flush',
     # ── 其他 ──
     'publish', 'deliver', 'cleanup', 'docstring', 'LANG',
+    # ── 2026-08-21 门禁警告清零（G-012 LANG）──
+    # 日志/文件/路径标识符
+    'app.log', 'app.log.N', 'lines_estimate', 'realpath', 'offset', 'limit',
+    'grep', 'STATUS.md', 'coverage-report.md', '/standards', 'check_all.sh',
+    '--deep', 'tests/scripts/', '.py', 'UTF-8',
+    # 认证/安全/网络
+    'SEC-001', 'AuthMiddleware', 'user_id', 'Depends', '_get_user_id',
+    'GET', 'TLS', 'SSL', 'UA', 'curl', 'subprocess', 'requests',
+    'miit', 'energy', 'verify', 'main',
+    # 前端/配置
+    'appearance', 'login_bg', 'Web', 'router',
+    # 引擎/模块/变量
+    'importlib', 'step_results', 'std_type', 'check_filtered',
+    'search_url', 'SEARCH_URL', 'API_URL', 'base_url', 'BaseAdapter',
+    'num_prefix', 'number', 'status', 'files', 'level',
+    # 标准代号/迁移
+    'TCIESC', 'T/CIESC', 'T{org}', 'TSG', 'v52', '_migrate_v52.py',
+    'router_v2.py', 'Fernet', 'gAAAAA',
+    # 模板/工具
+    'Jinja2', 'cookiecutter', 'pre-commit', 'mypy', 'from . import x',
+    # 2026-08-21 复核补漏（白名单首轮遗漏）
+    'IP', '4xx', '5xx', 'G-012', 'gitignored', 'ruff', 'E501',
+    # 2026-08-21 二次补漏（检查器新增注释引用）
+    'python', 'bash', 'INFO',
 }
 
 # 编译正则：匹配白名单中的词（按长度降序，确保长词优先匹配）

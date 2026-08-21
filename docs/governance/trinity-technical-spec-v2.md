@@ -183,7 +183,7 @@ assert apply_jitter(base_delay) >= 0.99
 - 单元测试应模拟观测性依赖（如数据库连接超时）并断言主业务仍正常返回。
 - 集成测试应包含观测性组件故障时的端到端验证。
 
-**Phase 2 实证**：[pilotstd/query/engine/_metrics.py](pilotstd/query/engine/_metrics.py) `persist_to_db()` 的异常隔离设计防止了监控写入失败拖垮批量查询流程，[pilotstd/query/engine/_batch_dispatch.py](pilotstd/query/engine/_batch_dispatch.py) `bucket_crash` 的双重 `try-except` 保护验证了本原则的有效性。
+**Phase 2 实证**：[pilotstd/query/engine/_metrics.py](pilotstd/query/engine/_metrics.py) `persist_to_db()` 的异常隔离设计防止了监控写入失败拖垮批量查询流程，[pilotstd/query/engine/_batch_dispatcher.py](pilotstd/query/engine/_batch_dispatcher.py) `bucket_crash` 的双重 `try-except` 保护验证了本原则的有效性。
 
 ## 五、治理文档只读防护体系
 

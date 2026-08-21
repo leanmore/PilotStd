@@ -46,17 +46,17 @@
 
 - **检查内容**：核心模块变更时，对应测试文件同步更新
 - **映射规则**：
-  - `pilotstd/core/parser.py` → `tests/test_parser.py` 或 `tests/test_scanner.py`
+  - `pilotstd/announcement/parser.py` → `tests/test_parser.py` 或 `tests/test_scanner.py`
   - `pilotstd/query/adapters/` → `tests/test_adapters.py` 或 `tests/test_query.py`
-  - `pilotstd/core/_scan.py` → `tests/test_scan.py` 或 `tests/test_scanner.py`
-  - `pilotstd/ui/main_window.py` → `tests/gui/` 下任意测试文件
+  - `pilotstd/manager/facade/_scan.py` → `tests/gui/test_scan.py` 或 `tests/test_scanner.py`
+  - `pilotstd/ui/main_window/` → `tests/gui/` 下任意测试文件
 - **阻断条件**：核心模块变更但对应测试未同步更新 → 阻断
 - **执行方式**：`python scripts/check_g_029_test_coverage.py`
 
 ### G-030：技术债联动检查
 
 - **检查内容**：检测本次变更中**新增**的 `# TECH-DEBT:` / `# TODO(debt):` 标记（仅增量，忽略存量与文档文件）
-- **联动要求**：新增标记的同次提交必须包含技术债登记簿（`docs/governance/tech-debt-register.md` 或 `docs/technical-debt.md`）的变更
+- **联动要求**：新增标记的同次提交必须包含技术债登记簿（`docs/architecture/technical-debt-registry.md` 或 `docs/technical-debt.md`）的变更
 - **阻断条件**：检测到新增标记但登记簿未同步变更 → 阻断
 - **执行方式**：`python scripts/check_g_030_tech_debt.py`（ci.yml repo-compliance job 部署）
 
@@ -64,10 +64,10 @@
 
 - **检查内容**：核心模块变更时，对应文档同步更新
 - **映射规则**：
-  - `pilotstd/core/parser.py` → `docs/architecture/modules/parser.md`（不存在时告警不阻断）
+  - `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`（不存在时告警不阻断）
   - `pilotstd/query/adapters/` → `docs/architecture/modules/query.md`（不存在时告警不阻断）
-  - `pilotstd/core/_scan.py` → `docs/architecture/modules/scan.md`（不存在时告警不阻断）
-  - `pilotstd/ui/main_window.py` → `docs/architecture/modules/ui.md`（不存在时告警不阻断）
+  - `pilotstd/manager/facade/_scan.py` → `docs/architecture/modules/scan.md`（不存在时告警不阻断）
+  - `pilotstd/ui/main_window/` → `docs/architecture/modules/ui.md`（不存在时告警不阻断）
   - `pilotstd/manager/` → `docs/architecture/modules/manager.md`（不存在时告警不阻断）
   - `scripts/` → `docs/governance/gates.md`（存在，阻断）
   - `.github/workflows/` → `docs/governance/gates.md`（存在，阻断）

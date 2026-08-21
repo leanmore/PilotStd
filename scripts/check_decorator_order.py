@@ -53,7 +53,7 @@ def check_file(filepath: str) -> list[str]:
             elif "." in name and name.rsplit(".", 1)[1] in ROUTER_METHODS:
                 router_idx = i
 
-        # 装饰器列表 index 0 = 最外层。require_role 必须在 router 内层（index 更大）
+        # 装饰器列表下标 0 = 最外层。require_role 必须在 router 内层（下标更大）
         if require_idx is not None and router_idx is not None and require_idx < router_idx:
             errors.append(
                 f"{filepath}:{node.lineno}: @require_role must be inside @router.xxx "

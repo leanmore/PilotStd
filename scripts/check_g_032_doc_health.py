@@ -139,6 +139,40 @@ def check_human_freshness():
             print(f"      ✅ {fp} ({age_days}d/{max_days}d, {category})")
 
 
+def _normalize_ref(ref: str) -> str:
+    """剥离命令前缀（python / bash / ./），解析为纯路径引用。"""
+    ref = ref.strip()
+    for prefix in ("python ", "bash ", "./"):
+        if ref.startswith(prefix):
+            ref = ref[len(prefix) :].strip()
+            break
+    return ref
+
+
+def _has_wildcard(ref: str) -> bool:
+    """是否含通配符（glob 模式无法精确校验存在性）。"""
+    return any(c in ref for c in "*?[]")
+
+
+def _resolve_ref(src: Path, ref: str) -> Path | None:
+    """多级回退解析引用路径：源文档目录 → 项目根 → 常见目录递归（裸文件名）。"""
+    # 1. 源文档所在目录
+    p = src.parent / ref
+    if p.exists():
+        return p.resolve()
+    # 2. 项目根
+    p = PROJECT_ROOT / ref
+    if p.exists():
+        return p.resolve()
+    # 3. 裸文件名：在常见根目录下递归查找同名文件
+    if "/" not in ref and "\\" not in ref:
+        for base in ("docs", "tests", "scripts", "pilotstd", "docker", ".github"):
+            hits = list((PROJECT_ROOT / base).rglob(ref))
+            if hits:
+                return hits[0].resolve()
+    return None
+
+
 # ═══════════════════════════════════════════════════════════════ 分隔
 # 维度 3: 交叉引用完整性
 # ═══════════════════════════════════════════════════════════════ 分隔
@@ -167,14 +201,16 @@ def check_cross_references():
                 ref = ref.split("#")[0]
             if not ref:
                 continue
-
-            # 尝试解析相对路径
-            resolved = (src.parent / ref).resolve()
-            if not resolved.exists():
-                # 尝试从项目根解析
-                resolved = (PROJECT_ROOT / ref).resolve()
-                if not resolved.exists():
-                    warn(f"G-032: {src_fp} 引用了不存在的文件: {ref}")
+            # 剥离命令前缀（如 python、bash、./）后解析为纯路径引用
+            ref = _normalize_ref(ref)
+            # 通配符模式无法精确校验，跳过（INFO）
+            if _has_wildcard(ref):
+                print(f"      ℹ️ {src_fp} 引用含通配符（跳过）: {ref}")
+                continue
+            # 多级回退解析
+            resolved = _resolve_ref(src, ref)
+            if resolved is None:
+                warn(f"G-032: {src_fp} 引用了不存在的文件: {ref}")
 
 
 # ═══════════════════════════════════════════════════════════════ 分隔

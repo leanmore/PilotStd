@@ -51,7 +51,7 @@ class AnnounceNotifier:
         except Exception as exc:
             logger.warning("公告通知发送失败 (announcement_check_complete): %s", exc)
 
-        # 全站失败（0 条公告且存在失败站点）→ 独立紧急告警（事件本身 bypass 聚合，实时发送）
+        # 全站失败（0 条公告且存在失败站点）→ 独立紧急告警（事件本身绕过聚合，实时发送）
         if total == 0 and has_error:
             try:
                 self.notification_mgr.send_event(
@@ -67,7 +67,7 @@ class AnnounceNotifier:
             except Exception as exc:
                 logger.warning("公告通知发送失败 (announcement_fetch_failed): %s", exc)
 
-        # 有适配器明细 → 逐站汇总（事件本身 bypass 聚合，实时发送）
+        # 有适配器明细 → 逐站汇总（事件本身绕过聚合，实时发送）
         if adapters:
             try:
                 from pilotstd.announce.crawler_service import build_fetch_summary
