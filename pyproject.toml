@@ -15,6 +15,11 @@ exclude = [
     "whitelist.py",           # Vulture 白名单（非 Python 代码）
 ]
 explicit_package_bases = true
+# === 迁移自 VS Code 用户配置 (B1, 2026-08-21) ===
+warn_return_any = true      # --warn-return-any：函数返回值含 Any 时告警
+implicit_optional = false   # --no-implicit-optional：禁止隐式 Optional 参数
+# 注：--follow-imports=skip 未迁移（与项目 overrides 白名单策略冲突，详见迁移报告 B1 冲突清单）
+# 注：--show-column-numbers 为 mypy 默认行为；--ignore-missing-imports 已由下方 [[tool.mypy.overrides]] 白名单覆盖
 
 [[tool.mypy.overrides]]
 module = [

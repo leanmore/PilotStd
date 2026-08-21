@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install pytest pytest-xdist pytest-cov pytest-timeout responses respx pytest-httpserver
+          pip install -r requirements-dev.txt
           pip install -e .
 
       - name: Forbid production imports from test modules
@@ -668,7 +668,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r desktop/requirements-win.txt
-          pip install pytest pytest-qt pytest-cov
+          pip install -r requirements-dev.txt
 
       - name: Run GUI unit tests
         shell: pwsh

@@ -20,7 +20,7 @@
 | G-034 | 覆盖率阈值检查 | 整体行覆盖率 ≥ 80% | 低于 80% 或数据缺失 | `scripts/check_g_034_coverage_threshold.py` | ⏳ 待创建 |
 | G-035 | 测试联动门禁 | 生产代码变更（列数/字段/API接口）时测试断言同步 | 测试中硬编码值与生产代码不一致 | 人工审查 | ⏳ 待创建 |
 | G-036 | 文档联动门禁 | 变更触发文档更新规则时，对应文档必须同步变更 | 文档未更新且无合法 N/A 理由 | 人工审查 + pre-commit 提醒 | ⏳ 待创建 |
-| G-037 | 触发条件对齐检查 | CLAUDE.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ✅ 已部署 |
+| G-037 | 触发条件对齐检查 | AGENTS.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ✅ 已部署 |
 | G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
@@ -135,7 +135,7 @@
 
 ### G-036：文档联动门禁
 
-- **触发条件**：参考 CLAUDE.md 第 8 节"文档联动义务"及"同步更新文档"触发规则表：
+- **触发条件**：参考 AGENTS.md R-004（联动改）及"同步更新文档"触发规则表：
   1. API 行为变更 → `docs/architecture.md`
   2. 数据库表结构/查询逻辑变更 → `docs/architecture.md`
   3. 工具链配置变更 → `docs/development.md` 或 `docs/ci-lessons.md`
@@ -151,8 +151,8 @@
 
 ### G-037：触发条件对齐检查
 
-- **检查内容**：比对 `CLAUDE.md` 中的"读文档触发条件表"与 `docs/index.md` 中的文档索引条目。
-- **阻断条件**：任一文档在 `CLAUDE.md` 中有触发条件但 `index.md` 中缺失，或反之 → 阻断。
+- **检查内容**：比对 `AGENTS.md` 中的"读文档触发条件表"与 `docs/index.md` 中的文档索引条目。
+- **阻断条件**：任一文档在 `AGENTS.md` 中有触发条件但 `index.md` 中缺失，或反之 → 阻断。
 - **执行方式**：`python scripts/check_g_037_trigger_alignment.py`
 
 ### G-038：历史遗留错误清零
