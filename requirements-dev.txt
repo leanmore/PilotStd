@@ -12,8 +12,13 @@ pytest>=8.3.0
 pytest-qt>=4.2.0
 pytest-cov>=6.0
 responses>=0.25
-respx>=0.24
+respx>=0.23.1
 pytest-httpserver>=1.1
+
+# --- 测试工具（CI 并行与超时控制） ---
+# 版本上限 <4 / <3：防止大版本升级引入破坏性变更（迁移记忆：pytest 9.x 已踩过 conftest 行为变更的坑）
+pytest-xdist>=3.6,<4
+pytest-timeout>=2.3,<3
 
 # --- 打包构建 ---
 pyinstaller>=6.0

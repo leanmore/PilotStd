@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 G-037: 触发条件对齐检查
-比对 CLAUDE.md 触发条件表与 docs/index.md 文档索引条目，确保完全一致。
+比对 AGENTS.md 触发条件表与 docs/index.md 文档索引条目，确保完全一致。
 任一方向存在遗漏即阻断。
 """
 
@@ -14,7 +14,7 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-CLAUDE_MD = PROJECT_ROOT / "CLAUDE.md"
+AGENTS_MD = PROJECT_ROOT / "AGENTS.md"
 INDEX_MD = PROJECT_ROOT / "docs" / "index.md"
 
 
@@ -61,15 +61,15 @@ def parse_index_docs(text: str) -> set[str]:
 def main() -> int:
     errors: list[str] = []
 
-    if not CLAUDE_MD.exists():
-        print(f"❌ G-037 失败: {CLAUDE_MD} 不存在")
+    if not AGENTS_MD.exists():
+        print(f"❌ G-037 失败: {AGENTS_MD} 不存在")
         return 1
 
     if not INDEX_MD.exists():
         print(f"❌ G-037 失败: {INDEX_MD} 不存在")
         return 1
 
-    claude_docs = parse_claude_triggers(CLAUDE_MD.read_text(encoding="utf-8"))
+    claude_docs = parse_claude_triggers(AGENTS_MD.read_text(encoding="utf-8"))
     index_docs = parse_index_docs(INDEX_MD.read_text(encoding="utf-8"))
 
     # 归一化：取文件名部分比较（文档用完整路径，索引文档用相对路径）
@@ -93,7 +93,7 @@ def main() -> int:
     # 文档触发条件表中有但索引文档中没有
     missing_in_index = claude_names - index_names
     if missing_in_index:
-        errors.append("以下文档在 CLAUDE.md 触发条件表中存在，但 index.md 中缺失：")
+        errors.append("以下文档在 AGENTS.md 触发条件表中存在，但 index.md 中缺失：")
         for doc in sorted(missing_in_index):
             errors.append(f"  - {doc}")
 
@@ -103,7 +103,7 @@ def main() -> int:
             print(err)
         return 1
 
-    print(f"✅ G-037 通过：CLAUDE.md 触发条件表与 index.md 完全对齐（{len(claude_names)} 项）")
+    print(f"✅ G-037 通过：AGENTS.md 触发条件表与 index.md 完全对齐（{len(claude_names)} 项）")
     return 0
 
 

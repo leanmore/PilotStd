@@ -57,7 +57,7 @@ HUMAN_DOC_RULES = [
 CROSS_REF_RULES = [
     ("docs/governance/gates.md", "scripts/check_g_*.py"),
     ("docs/governance/trinity-technical-spec-v2.md", "docs/governance/development-flow.md"),
-    ("CLAUDE.md", "docs/governance/gates.md"),
+    ("AGENTS.md", "docs/governance/gates.md"),
 ]
 
 errors = []

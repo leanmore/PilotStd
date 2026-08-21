@@ -21,7 +21,7 @@
   - 过程文件归档、临时文件清理、`.gitignore` 维护
 - **机制**：作为执行指令的固定收尾步骤，在任务结束、代码提交前完成
 - **逻辑**：移出仓库不等于不管——需持续维护的不入仓文件与入仓文档同步规则同频触发
-- **⚠️ 现状修正（2026-08-19，git ls-files 实证）**：`docs/governance/capabilities_registry.md` **当前在仓内**（由 `generate_capabilities.py` 自动生成并随 commit 提交，CLAUDE.md §8 强制），本表"移出仓库"为早期设计，尚未执行；后续若计划移出需先改造 CI 门禁 G-032 的读取方式。
+- **⚠️ 现状修正（2026-08-19，git ls-files 实证）**：`docs/governance/capabilities_registry.md` **当前在仓内**（由 `generate_capabilities.py` 自动生成并随 commit 提交，AGENTS.md R-022 强制），本表"移出仓库"为早期设计，尚未执行；后续若计划移出需先改造 CI 门禁 G-032 的读取方式。
 
 ### 流程
 ```

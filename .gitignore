@@ -52,7 +52,9 @@ pilotstd_env/
 .env.local
 
 # ===== AI 与 CI 运行时产物 =====
-.claude/
+# Claude Code residuals (migrated to AGENTS.md, 2026-08-21)
+.claude*
+.test_pass
 
 # ===== 会话运行时上下文（禁止入仓）=====
 local-session-notes.md
