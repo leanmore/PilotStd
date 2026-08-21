@@ -225,6 +225,13 @@ export interface UploadResponse {
   filename?: string
 }
 
+// ── 登录页背景图 ──────────────────────────────────────
+// 对应公开接口 GET /api/login-background（无需登录态，仅暴露 url 单字段）
+
+export interface LoginBackgroundResponse {
+  url: string
+}
+
 // ── 站点配置 ──────────────────────────────────────────
 
 /** Phase 3.1: 站点配置（对应 GET/PUT /api/settings/sites） */

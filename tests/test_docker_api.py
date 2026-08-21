@@ -652,12 +652,16 @@ class TestAPIEndpoints(unittest.TestCase):
         r = self.client.delete("/api/users/99")
         self.assertEqual(r.status_code, 400)
 
+    @patch("docker.api.users.get_user_by_id")
     @patch("docker.api.users.get_current_user_id")
     @patch("docker.api.users.change_password")
-    def test_change_password_returns_ok(self, mock_change, mock_user):
+    def test_change_password_returns_ok(self, mock_change, mock_user, mock_lookup):
         """PUT /api/users/password 修改密码成功返回 ok。"""
         mock_user.return_value = 1
         mock_change.return_value = True
+        # 路由内 get_user_by_id 走真实 DB；隔离 fixture 将 get_db_path 重定向到空临时库
+        # （无种子用户 → 会命中"用户不存在"400），故 mock 为用户存在场景
+        mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
         r = self.client.put(
             "/api/users/password",
             json={"old_password": "old", "new_password": "newpass"},
@@ -665,10 +669,12 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
 
+    @patch("docker.api.users.get_user_by_id")
     @patch("docker.api.users.get_current_user_id")
-    def test_change_password_short_returns_400(self, mock_user):
+    def test_change_password_short_returns_400(self, mock_user, mock_lookup):
         """新密码不足 4 个字符返回 400。"""
         mock_user.return_value = 1
+        mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
         r = self.client.put("/api/users/password", json={"old_password": "old", "new_password": "ab"})
         self.assertEqual(r.status_code, 400)
 

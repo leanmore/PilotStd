@@ -82,7 +82,7 @@
 
 ## 路由: `/login`
 
-- [ ] `src/views/LoginView.vue:26` → `getSettingsCached()` → `http.get('/settings')` → routeTag: `/login`
+- [x] `src/views/LoginView.vue` → `getLoginBackground()` → `http.get('/login-background')`（公开接口，白名单放行；setup 顶层触发，页面生命周期极短，无需 routeTag——已从 admin-only `/api/settings` 迁移，未登录 401 问题已解）
 
 ---
 

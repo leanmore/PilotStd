@@ -1,9 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAppStore } from './stores/app'
 import http, { cancelByRouteTag } from './api/http'
+// 登录页静态导入（不懒加载）：消除路由懒加载对首屏组件挂载的延迟，
+// 确保背景图两阶段请求（/api/login-background → new Image() 预加载）在页面打开时即刻发起
+import LoginView from './views/LoginView.vue'
 
 const routes = [
-  { path: '/login', component: () => import('./views/LoginView.vue'), meta: { guest: true } },
+  { path: '/login', component: LoginView, meta: { guest: true } },
   { path: '/register', component: () => import('./views/RegisterView.vue'), meta: { guest: true } },
   {
     path: '/',

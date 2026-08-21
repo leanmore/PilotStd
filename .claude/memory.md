@@ -180,3 +180,17 @@
 - **关联代码**：docker/api/favorites.py, tests/gui/test_auto_pipeline.py, tests/test_api_favorites_auth.py, tests/test_core_config.py
 - **关联文档**：pilotstd/core/db/_migrate_v2_v15.py（announcement_record）、_migrate_v37_plus.py（user_credentials）
 - **有效期**：永久
+
+### 2026-08-20 决策 登录页背景图请求解耦：最小字段公开接口 + setup 提前加载
+- **类型**：决策
+- **内容**：登录页背景图原通过 admin-only 的 GET /api/settings 获取 URL（未登录 401 / 非 admin 403），导致背景图请求延迟到登录后甚至缺失。修复：新增公开接口 GET /api/login-background（AUTH_WHITELIST 放行，仅暴露 appearance.login_bg 单字段，测试断言响应不含其他配置字段）；前端 LoginView 在 `<script setup>` 顶层（早于 onMounted）发起两阶段加载：fetch URL → `new Image()` 预加载 → onload 后才写 bgUrl 应用 CSS background-image；`/login` 路由静态化取消懒加载；API/图片失败或 `file://` 桌面端遗留值 → 默认渐变降级 + console.warn。范式：**公开页面所需的展示配置必须走最小字段公开接口，禁止复用管理员级配置接口，也禁止把管理接口重新加白名单（SEC-001 教训）**
+- **关联代码**：docker/api/upload.py, docker/auth.py, web/src/views/LoginView.vue, web/src/router.ts, tests/test_login_background_api.py, web/src/views/LoginView.test.ts
+- **关联文档**：docs/superpowers/specs/2026-08-20-login-background-eager-load-spec-lite.md
+- **有效期**：永久
+
+### 2026-08-20 教训 测试隔离 fixture 与依赖真实 DB 数据的端点测试冲突
+- **类型**：风险
+- **内容**：conftest autouse fixture `_isolate_fernet_db` 将 get_db_path 重定向到空临时库后，test_docker_api.py::test_change_password_returns_ok 暴露既有缺陷：路由内 `get_user_by_id(1)` 未 mock、走真实 DB，临时库无种子用户 → 命中"用户不存在"400。修复：API 端点测试必须 mock 全部 DB 协作函数（`docker.api.users.get_user_by_id` 等），不得隐式依赖真实库数据（含 `test_change_password_short_returns_400`——原在旧库下"碰巧通过"，隔离后以错误原因通过，已一并修正为断言真实意图）。教训：**端点单元测试的协作函数一律 mock，禁止依赖 DB 种子数据**
+- **关联代码**：tests/test_docker_api.py, tests/conftest.py（_isolate_fernet_db）, docker/api/users.py
+- **关联文档**：CHANGELOG.md
+- **有效期**：永久

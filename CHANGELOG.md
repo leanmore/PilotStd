@@ -8,6 +8,8 @@
 
 ### Fixed
 - 版本号自动同步（CI 更新）
+- 登录页背景图请求时机：新增公开接口 `GET /api/login-background`（白名单放行，仅暴露 `appearance.login_bg` 单字段），登录页改用该接口并在组件 setup 阶段立即发起两阶段加载（URL → `new Image()` 预加载），替代 admin-only 的 `GET /api/settings`（未登录 401 导致背景图延迟/缺失）；`/login` 路由取消懒加载；失败降级为默认渐变背景
+- test: 修复 `test_change_password_returns_ok` 既有失败——测试隔离 fixture（get_db_path 重定向空临时库）下路由内真实 `get_user_by_id(1)` 查无用户返回 400；补 mock `docker.api.users.get_user_by_id`（含 `test_change_password_short_returns_400`，原为碰巧通过）
 
 ## v0.99.1 (2026-08-19)
 

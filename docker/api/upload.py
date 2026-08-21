@@ -2,9 +2,11 @@
 import os
 import uuid
 
-from fastapi import File, HTTPException, UploadFile
+from fastapi import Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
+
+from ..manager import get_manager_dep
 
 router = APIRouter(tags=["upload"])
 
@@ -83,3 +85,15 @@ def get_upload(filename: str):
     if not os.path.isfile(path):
         raise HTTPException(404, "文件不存在")
     return FileResponse(path)
+
+
+@router.get("/api/login-background")
+def get_login_background(mgr=Depends(get_manager_dep)):
+    """返回登录页背景图 URL（公开接口，无需认证）。
+
+    登录页在无会话时也必须能拿到背景图，因此不能复用 admin-only 的
+    GET /api/settings（未登录 401 / 非 admin 403）。此接口只暴露
+    appearance.login_bg 单字段，不泄露其余系统配置。
+    """
+    raw = mgr.cfg.get("appearance.login_bg", "")
+    return {"url": raw if isinstance(raw, str) else ""}
