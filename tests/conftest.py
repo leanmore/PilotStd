@@ -53,6 +53,18 @@ def ensure_data_dir():
         config_path.write_text("{}", encoding="utf-8")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_fernet_db(tmp_path, monkeypatch):
+    """全局隔离 Fernet/数据库：get_db_path 指向每测试独立的临时空库。
+
+    本地开发库 data/pilotstd.db 含加密旧凭证，_get_fernet 在 Key 缺失时会触发
+    防呆 RuntimeError（CI 干净环境无此问题）；重定向到空库使其走"全新安装"
+    分支自动生成 Key。测试内的局部 patch/注入会覆盖本值并自动还原，互不冲突。
+    注意：不重写 ConfigManager.__init__ 等构造器，避免影响显式传参的测试。
+    """
+    monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: str(tmp_path / "pilotstd.db"))
+
+
 @pytest.fixture(scope="session")
 def shared_db():
     """会话级共享数据库（临时文件），所有测试复用同一个 Database 实例。"""
