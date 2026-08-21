@@ -11,7 +11,7 @@ import base64
 import hashlib
 import json
 import logging
-from typing import Optional
+from typing import Optional, cast
 
 import requests
 from cryptography.fernet import Fernet
@@ -31,13 +31,13 @@ def _derive_fernet_key(secret: str) -> bytes:
 def encrypt_cookie(cookie_str: str, secret: str) -> str:
     """加密 Cookie 字符串。"""
     f = Fernet(_derive_fernet_key(secret))
-    return f.encrypt(cookie_str.encode()).decode()
+    return cast(str, f.encrypt(cookie_str.encode()).decode())
 
 
 def decrypt_cookie(encrypted: str, secret: str) -> str:
     """解密 Cookie 字符串。"""
     f = Fernet(_derive_fernet_key(secret))
-    return f.decrypt(encrypted.encode()).decode()
+    return cast(str, f.decrypt(encrypted.encode()).decode())
 
 
 def parse_cookie_header(header_string: str) -> dict[str, str]:
@@ -69,7 +69,7 @@ def _decrypt_cookiecloud_aes(data_b64: str, key_b64: str) -> str:
         tag = raw[-16:]
         ciphertext = raw[16:-16]
         aesgcm = AESGCM(key)
-        return aesgcm.decrypt(iv, ciphertext + tag, None).decode("utf-8")
+        return cast(str, aesgcm.decrypt(iv, ciphertext + tag, None).decode("utf-8"))
     except Exception as e:
         logger.warning("CookieCloud AES 解密失败: %s", e)
         return ""

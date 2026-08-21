@@ -4,6 +4,7 @@ import re
 import time
 from collections import deque
 from datetime import datetime, timezone
+from typing import Any, cast
 
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
@@ -188,7 +189,7 @@ def _list_rotated_impl() -> list[dict]:
     """扫描日志目录，返回轮转日志文件列表（缓存 60 秒避免频繁 IO）。"""
     now = time.monotonic()
     if now - _list_cache["ts"] < _LIST_CACHE_SECONDS:
-        return _list_cache["files"]
+        return cast("list[dict[Any, Any]]", _list_cache["files"])
     files: list[dict] = []
     log_dir = _log_dir()
     try:

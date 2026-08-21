@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ...core.std_utils import GB_CODES
 from ...query.models import BatchQueryStats, QueryResult
@@ -119,28 +119,31 @@ class QueryHandler:
         self._core.pending_svc.resolve_pending_by_numbers(numbers, resolution)
 
     def get_pending_items(self) -> list[dict[str, Any]]:
-        return self._core.pending_svc.get_pending_items()
+        return cast("list[dict[str, Any]]", self._core.pending_svc.get_pending_items())
 
     def increment_requery_count(self, standard_number: str) -> int:
-        return self._core.pending_svc.increment_requery_count(standard_number)
+        return cast(int, self._core.pending_svc.increment_requery_count(standard_number))
 
     def is_requery_exhausted(self, standard_number: str) -> bool:
-        return self._core.pending_svc.is_requery_exhausted(standard_number)
+        return cast(bool, self._core.pending_svc.is_requery_exhausted(standard_number))
 
     def mark_manual_required(self, standard_number: str) -> None:
         self._core.pending_svc.mark_manual_required(standard_number)
 
     def get_requery_count(self, standard_number: str) -> int:
-        return self._core.pending_svc.get_requery_count(standard_number)
+        return cast(int, self._core.pending_svc.get_requery_count(standard_number))
 
     def query_local_cache(self, parsed_list: list[Any]) -> list[Any]:
-        return self._core.pending_svc.query_local_cache(parsed_list)
+        return cast("list[Any]", self._core.pending_svc.query_local_cache(parsed_list))
 
     def query_by_numbers(
         self, numbers: list[str], force_refresh: bool = False, preferred_site: str | None = None
     ) -> tuple[list[QueryResult], BatchQueryStats]:
         """按标准号列表查询（供 API 层迁移）。"""
-        return self._core.scheduled_svc.query_by_numbers(numbers, force_refresh, preferred_site)
+        return cast(
+            "tuple[list[QueryResult], BatchQueryStats]",
+            self._core.scheduled_svc.query_by_numbers(numbers, force_refresh, preferred_site),
+        )
 
     def get_query_sites(self) -> list[str]:
         return self._core.query_engine.get_all_sites()

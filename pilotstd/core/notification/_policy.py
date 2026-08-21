@@ -2,7 +2,7 @@
 # 通知策略表读写—从管理器脚本拆分以控制文件规模
 
 import json as _json
-from typing import Any
+from typing import Any, cast
 
 _CHANNEL_CLASSES = ("wechat", "telegram", "feishu", "dingtalk")
 
@@ -41,7 +41,7 @@ class NotificationPolicyHelper:
             return []
         if isinstance(rules, str):
             return [c.strip() for c in rules.split(",") if c.strip()]
-        return rules
+        return cast(list[str], rules)
 
     def get_policies(self, user_id: int) -> list[dict[str, Any]]:
         """返回某用户的全部策略。"""

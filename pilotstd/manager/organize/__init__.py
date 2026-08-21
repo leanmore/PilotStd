@@ -1,7 +1,7 @@
 # 模块：项目/管理器/归类/____脚本
 # 归类服务—从归类_服务脚本拆分为4个子模块
 
-from typing import Any
+from typing import Any, cast
 
 from ._utils import _is_word_or_template, _resolve_industry_in_path
 from .expire import merge_expire_from_source as _merge_expire_from_source
@@ -29,10 +29,10 @@ class OrganizerService(OrganizerCore):
     # 镜像/兜底归档代理（委托）
 
     def organize_skipped_dirs(self, skipped_dirs: list[str], source_root: str | None = None) -> dict[str, Any]:
-        return self._mirror.organize_skipped_dirs(skipped_dirs, source_root)
+        return cast("dict[str, Any]", self._mirror.organize_skipped_dirs(skipped_dirs, source_root))
 
     def organize_fallback(self, source_root: str, pending_paths: frozenset[Any] = frozenset()) -> dict[str, Any]:
-        return self._mirror.organize_fallback(source_root, pending_paths)
+        return cast("dict[str, Any]", self._mirror.organize_fallback(source_root, pending_paths))
 
 
 __all__ = ["OrganizerService"]

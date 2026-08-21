@@ -8,7 +8,7 @@ should_show() 转为 push() 调用，_flush 逻辑由新版统一处理。
 """
 
 import time
-from typing import Any
+from typing import Any, cast
 
 # 缓冲窗口：0.3 秒内同类通知合并为一条
 _BUFFER_WINDOW = 0.3  # 秒
@@ -238,6 +238,6 @@ class NotificationAggregator:
         try:
             from pilotstd.core.config.manager import ConfigManager
 
-            return ConfigManager().get("notification.auto_pause", True)
+            return cast(bool, ConfigManager().get("notification.auto_pause", True))
         except Exception:
             return True

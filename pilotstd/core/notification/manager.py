@@ -8,7 +8,7 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from ..db import Database
 from ._credentials import CredentialHelper
@@ -120,7 +120,7 @@ class NotificationManager:
     @property
     def enabled(self) -> bool:
         """通知功能是否启用（数据库 user_preferences 优先，config.json 兜底）。"""
-        return self._enabled
+        return cast(bool, self._enabled)
 
     def _read_user_enabled(self) -> bool | None:
         """从 user_preferences 表读取当前用户的 notification.enabled。

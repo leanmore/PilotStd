@@ -3,7 +3,7 @@
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, cast
 
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db import Database
@@ -42,7 +42,7 @@ class CircuitBreaker:
 
     @property
     def _site(self) -> str:
-        return self._get_site_name()
+        return cast(str, self._get_site_name())
 
     # ──配置（实时读取，支持热加载）──
 

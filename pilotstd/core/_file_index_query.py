@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from pilotstd.models import ParsedStdInfo
 
@@ -31,24 +31,35 @@ class FileIndexQuery:
     # ---- 基础读取 ----
 
     def get(self, file_path: str) -> Optional[dict[str, Any]]:
-        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,))
+        """按文件路径查询索引记录，未找到返回 None。"""
+        return cast(
+            "dict[str, Any] | None",
+            self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_path=?", (file_path,)),
+        )
 
     def get_all(self) -> list[dict[str, Any]]:
-        return self._db.fetchall(f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part")
+        """返回全部索引记录（按标准号与序号排序）。"""
+        return cast(
+            "list[dict[str, Any]]",
+            self._db.fetchall(f"SELECT * FROM {FILE_INDEX_TABLE} ORDER BY logical_code, number, part"),
+        )
 
     def find_by_standard(
         self, logical_code: str, number: int, year: int, part: Optional[int] = None
     ) -> list[dict[str, Any]]:
         """查找同标准号的所有索引记录（用于去重：分类变化致旧路径残留）。"""
         part_val = part if part is not None else -1
-        return self._db.fetchall(
+        return self._db.fetchall(  # type: ignore[no-any-return]
             f"SELECT * FROM {FILE_INDEX_TABLE} WHERE logical_code=? AND number=? AND year=? AND part=?",
             (logical_code, number, year, part_val),
         )
 
     def find_by_hash(self, file_hash: str) -> Optional[dict[str, Any]]:
         """通过文件哈希查找（用于检测移动/重命名）。"""
-        return self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,))
+        return cast(
+            "dict[str, Any] | None",
+            self._db.fetchone(f"SELECT * FROM {FILE_INDEX_TABLE} WHERE file_hash=?", (file_hash,)),
+        )
 
     # ---- 统计 ----
 

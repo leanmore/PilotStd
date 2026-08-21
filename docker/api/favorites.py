@@ -2,7 +2,7 @@
 # 阶段4:收藏接口—收藏/状态查询/取消/列表/批量状态
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -54,7 +54,7 @@ def _get_user_id(user_id: int, db: Database) -> int:
     row = db.fetchone("SELECT id FROM users WHERE id = ?", (user_id,))
     if row is None:
         raise HTTPException(401, "用户不存在")
-    return row["id"]
+    return cast(int, row["id"])
 
 
 # ════════════════════════════════════════════════════════════════ 分隔

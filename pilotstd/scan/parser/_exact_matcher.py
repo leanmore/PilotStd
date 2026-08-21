@@ -202,7 +202,7 @@ class ExactMatcher:
         part = self._parser._extract_part(match.group("part"))
         year = self._parser._normalize_year(match.group("year"))
         logical_code = self.code_mapping.get(prefix, prefix)
-        return self._parser._build_result(
+        return self._parser._build_result(  # type: ignore[no-any-return]
             text, match.end(), logical_code, number, part, year, num_prefix, num_suffix, raw_number=raw_number_str
         )
 
@@ -221,7 +221,7 @@ class ExactMatcher:
         num_prefix = self._parser._extract_num_prefix(num_str)
         part = self._parser._extract_part(match.group("part"))
         logical_code = self.code_mapping.get(prefix, prefix)
-        return self._parser._build_result(
+        return self._parser._build_result(  # type: ignore[no-any-return]
             text,
             match.end(),
             logical_code,
@@ -262,7 +262,7 @@ class ExactMatcher:
         else:
             logical_code = self.code_mapping.get(prefix, prefix)
 
-        return self._parser._build_result(
+        return self._parser._build_result(  # type: ignore[no-any-return]
             text, match.end(), logical_code, number, part, year, num_prefix, num_suffix, raw_number=raw_number_str
         )
 

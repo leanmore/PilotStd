@@ -102,7 +102,9 @@ def check_generator_alive():
                 ts = datetime.fromisoformat(ts_str)
                 age = now - ts
                 if age > timedelta(hours=2):
-                    warn(f"G-032: {fp} 生成时间距今 {age}（>{int(age.total_seconds() / 3600)}h），可能需要重新生成")
+                    # 自动生成文档（STATUS.md / coverage-report.md）过期属正常现象：
+                    # 由本地生成器或 CI 步骤重新生成，不视为文档健康问题，降级为 INFO。
+                    print(f"      ℹ️ {fp} 生成时间距今 {age}（自动生成文件，过期属正常，CI/生成器将重新生成）")
                 else:
                     print(f"      ✅ {fp} 标记有效（{int(age.total_seconds() / 60)}min 前生成）")
             except ValueError as e:

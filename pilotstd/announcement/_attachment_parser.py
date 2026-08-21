@@ -4,7 +4,7 @@
 import logging
 import re
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from bs4 import BeautifulSoup
 
@@ -154,6 +154,6 @@ def extract_content(html: str) -> str:
     ]
     if candidates:
         best_match = max(candidates, key=lambda x: len(x.get_text()))
-        return best_match.get_text(strip=True)
+        return cast(str, best_match.get_text(strip=True))
 
     return ""
