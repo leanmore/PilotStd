@@ -222,3 +222,10 @@
 - **关联代码**：pilotstd/core/db/_constants.py（MIGRATIONS）、pilotstd/core/db/_migrate_v52.py
 - **关联文档**：docs/migrations/README.md（迁移执行规范首条）
 - **有效期**：永久
+
+### 2026-08-21 范式 悬浮按钮位置持久化必须用百分比坐标（禁绝对像素）
+- **类型**：范式
+- **内容**：可拖拽悬浮控件（FAB）的跨会话位置持久化，严禁存储 getBoundingClientRect 绝对像素 left/top——窗口缩放/分辨率变化后相对位置漂移甚至飞出屏幕。正确做法：存相对视口宽高的百分比 `{xPercent, yPercent}`（保存时 value/viewport*100，恢复时 percent/100*viewport），恢复时校验 Number.isFinite + clamp 到可视区（窗口缩小自动吸附边缘）；旧像素数据读取时按当前视口一次性迁移为百分比；localStorage JSON.parse 必须 try-catch 静默回退默认位置。拖拽结束（pointerup）用移动距离阈值（5px）区分点击/拖拽：位移<阈值判定点击不写存储
+- **关联代码**：web/src/composables/useFloatingDrag.ts
+- **关联文档**：docs/superpowers/specs/2026-08-16-floating-button-drag-design.md
+- **有效期**：永久
