@@ -9,8 +9,8 @@
 1. 手写 Pointer Events（非 mousedown/touchstart 双绑），统一覆盖鼠标+触摸+触控笔，用 `setPointerCapture` 免全局监听。
 2. 5px 移动阈值区分点击/拖拽，拖拽释放后吞掉紧随的 click，避免误触菜单。
 3. 拖拽逻辑抽独立 composable `useFloatingDrag.ts`，避免 AppLayout.vue（已 519 行）继续膨胀，且可独立单测。
-4. 位置复用 `@/lib/storage` 的 getItem/setItem（自动 `pilotstd_` 前缀），key=`floating_workspace_pos`，默认右下角。
-5. 释放时 clamp 吸附可视区 + window resize 150ms 防抖重新校验并写回。
+4. 位置复用 `@/lib/storage` 的 getItem/setItem（自动 `pilotstd_` 前缀），key=`floating_workspace_pos`，默认右下角。**存储格式为百分比坐标 `{xPercent, yPercent}`（相对视口宽高），严禁存绝对像素**——窗口缩放/分辨率变化后相对位置不漂移；旧版像素数据 `{x,y}` 读取时按当前视口一次性迁移为百分比（2026-08-21 升级）。
+5. 释放时 clamp 吸附可视区；window resize 150ms 防抖仅重新 clamp 显示值（百分比随窗口自适应，不再写回存储，2026-08-21 调整）。
 
 ## 识别到的风险点及与现有架构的冲突
 
@@ -18,8 +18,9 @@
 2. 与全局 click-outside 冲突：AppLayout.vue:132 有 document 级点击关闭菜单监听，拖拽释放的 click 需被抑制。
 3. 现有 i18n 硬编码：按钮 aria-label 及菜单文案未走 i18n（不在本次范围，新增文案需走 i18n）。
 4. 位置由 bottom/right 改 left/top 后，下拉菜单绝对定位（right:0）需验证跟随正确。
+5. 持久化数据读取必须 try-catch 容错：脏数据/格式错误静默回退默认位置，防止页面白屏；恢复时校验计算后坐标并 clamp 到可视区内（窗口缩小导致旧位置超界时自动吸附边缘）。
 
 ## 验证方式
 
-- `npm run test`：新增 useFloatingDrag.test.ts 覆盖默认坐标、阈值内不拖拽、超阈值拖拽、释放 clamp、storage 读写、resize 校验。
-- 手动：拖拽到任意位置刷新后位置保持；拖出屏幕释放后吸附回可视区；非拖拽点击菜单正常弹出。
+- `npm run test`：useFloatingDrag.test.ts 覆盖默认坐标、百分比加载/持久化、旧像素格式迁移、脏数据容错、超界百分比 clamp、阈值内不拖拽（不写存储）、超阈值拖拽、释放 clamp、resize 自适应不写回。
+- 手动：拖拽到任意位置刷新后位置保持；缩小/放大窗口后刷新图标不飞出可视区；非拖拽点击菜单正常弹出；清除 localStorage 后刷新回默认位置。
