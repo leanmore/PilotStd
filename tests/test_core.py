@@ -410,6 +410,97 @@ class TestDatabase(unittest.TestCase):
             self.assertEqual(row["adapter_name"], f"test_{name}")
 
 
+class TestV52UserFavoritesFix(unittest.TestCase):
+    """v52 兜底迁移：修复 user_favorites 缺 publish_date 列的生产故障库。
+
+    复现场景：生产库在 v36 列补全逻辑落地前已记录 v36 迁移，publish_date
+    列从未创建 → 收藏 INSERT 报 OperationalError → /api/favorites 500。
+    """
+
+    @staticmethod
+    def _build_broken_db(db_path: str) -> None:
+        """构造故障库：schema 停在 v51，user_favorites 缺 publish_date 列。
+
+        先用完整结构建表再 DROP COLUMN 制造"缺失列"状态：
+        - 与生产故障完全一致（仅 publish_date 缺失）；
+        - tests/ 内 CREATE TABLE 与生产 schema 保持一致（G-012 门禁）。
+        """
+        import sqlite3
+
+        raw = sqlite3.connect(db_path)
+        try:
+            raw.execute(
+                "CREATE TABLE _schema_version (version INTEGER PRIMARY KEY, checksum TEXT NOT NULL DEFAULT '')"
+            )
+            for v in range(1, 52):
+                raw.execute(
+                    "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, '')",
+                    (v,),
+                )
+            raw.execute(
+                """CREATE TABLE user_favorites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    record_id INTEGER NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    local_path TEXT,
+                    error_message TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    publish_date TEXT,
+                    last_archive_attempt TEXT,
+                    archive_retry_count INTEGER DEFAULT 0)"""
+            )
+            raw.execute("ALTER TABLE user_favorites DROP COLUMN publish_date")
+            raw.commit()
+        finally:
+            raw.close()
+
+    def test_v52_adds_publish_date_and_insert_works(self) -> None:
+        """故障库打开后自动执行 v52：publish_date 存在且收藏 INSERT 成功。"""
+        from pilotstd.core.db import CURRENT_SCHEMA_VERSION
+
+        tmp = tempfile.mkdtemp(prefix="pilotstd_v52_")
+        db_path = os.path.join(tmp, "broken.db")
+        self._build_broken_db(db_path)
+        db = Database(db_path)
+        try:
+            cols = {r["name"] for r in db.fetchall("PRAGMA table_info(user_favorites)")}
+            self.assertIn("publish_date", cols, "v52 迁移后 user_favorites 应包含 publish_date 列")
+            self.assertEqual(db.schema_version, CURRENT_SCHEMA_VERSION)
+            # 回归核心场景：收藏 INSERT（含 publish_date）不再报错
+            db.execute(
+                "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
+                " created_at, updated_at) VALUES (1, 1, 'pending', '2026-08-20',"
+                " datetime('now'), datetime('now'))"
+            )
+            row = db.fetchone("SELECT publish_date FROM user_favorites WHERE id=?", (1,))
+            self.assertEqual(row["publish_date"], "2026-08-20")
+        finally:
+            db.close()
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_v52_is_idempotent_on_second_open(self) -> None:
+        """重复打开已迁移库不报错，schema 版本稳定。"""
+        from pilotstd.core.db import CURRENT_SCHEMA_VERSION
+
+        tmp = tempfile.mkdtemp(prefix="pilotstd_v52_")
+        db_path = os.path.join(tmp, "broken.db")
+        self._build_broken_db(db_path)
+        db = Database(db_path)  # 第一次打开：v52 迁移执行
+        db.close()
+        try:
+            db2 = Database(db_path)  # 第二次打开：幂等，不应报错
+            try:
+                cols = {r["name"] for r in db2.fetchall("PRAGMA table_info(user_favorites)")}
+                self.assertIn("publish_date", cols)
+                self.assertEqual(db2.schema_version, CURRENT_SCHEMA_VERSION)
+            finally:
+                db2.close()
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 class TestProjectManager(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="pilotstd_test_")

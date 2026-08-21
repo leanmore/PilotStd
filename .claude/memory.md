@@ -201,3 +201,17 @@
 - **关联代码**：scripts/check_all.sh, .husky/pre-commit, .gitignore
 - **关联文档**：docs/governance/gates.md
 - **有效期**：永久
+
+### 2026-08-21 决策 publish_date 语义：标准发布日期，禁止 DEFAULT datetime('now')
+- **类型**：决策
+- **内容**：`user_favorites.publish_date` 语义为标准的发布日期（收藏时从 announcement_record 复制），允许 NULL = 未知发布日期 = 无冷却期限制（archive_retry_service.py 显式处理 NULL）。兜底迁移/补列一律不得加 DEFAULT datetime('now')，否则会把收藏时间误当作发布日期、污染冷却期计算
+- **关联代码**：docker/api/favorites.py, pilotstd/manager/archive_retry_service.py
+- **关联文档**：docs/architecture.md
+- **有效期**：永久
+
+### 2026-08-21 范式 v52 兜底迁移：PRAGMA 检查列存在 → 条件 ALTER（幂等）
+- **类型**：范式
+- **内容**：修复生产库"已记录 v36 但 publish_date 列从未落地"（v36 列补全逻辑后加入导致 checksum 自愈不重放）采用 v52 兜底迁移：先 CREATE TABLE IF NOT EXISTS（目标最终形态，v50 同款范式），再 `PRAGMA table_info` 检查列存在性，缺失才 ALTER ADD COLUMN —— 幂等、可重复执行、不依赖 try/except 吞异常。教训：迁移函数落地后禁止再改逻辑（checksum 校验会自愈跳过真实变更），需补列应新增迁移版本而非修改历史迁移
+- **关联代码**：pilotstd/core/db/_migrate_v52.py
+- **关联文档**：docs/migrations/README.md
+- **有效期**：永久

@@ -207,6 +207,8 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | `last_archive_attempt` | TEXT | 最近一次归档尝试时间 |
 | `archive_retry_count` | INTEGER | 重试计数（默认 0） |
 
+> **v52 兜底迁移**（2026-08-21）：部分生产库在 v36 的列补全逻辑（`publish_date` 等）落地前已记录 v36 迁移，导致 `publish_date` 列从未创建，`POST /api/favorites` 收藏时 INSERT 报 `table user_favorites has no column named publish_date` → 接口 500。v52 迁移（`pilotstd/core/db/_migrate_v52.py`）幂等补列：列缺失时 `ALTER TABLE ... ADD COLUMN publish_date TEXT`，不设默认值（`publish_date` 语义为标准的发布日期，允许 NULL 表示无冷却期限制）。
+
 **API 端点**：
 
 | 端点 | 方法 | 说明 |

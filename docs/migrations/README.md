@@ -1,10 +1,10 @@
 # 数据库迁移说明
 
-> 最后更新：2026-07-27 | 最新迁移：v44
+> 最后更新：2026-08-21 | 最新迁移：v52
 
 ## 迁移版本清单
 
-迁移脚本路径：[pilotstd/core/db/migrations.py](pilotstd/core/db/migrations.py)（v16+），[pilotstd/core/db/_migrate_v2_v15.py](pilotstd/core/db/_migrate_v2_v15.py)（v2-v15），[pilotstd/core/db/_migrate_v31_plus.py](pilotstd/core/db/_migrate_v31_plus.py)（v31-v36），[pilotstd/core/db/_migrate_v37_plus.py](pilotstd/core/db/_migrate_v37_plus.py)（v37-v40）
+迁移脚本路径：[pilotstd/core/db/migrations.py](pilotstd/core/db/migrations.py)（v16+），[pilotstd/core/db/_migrate_v2_v15.py](pilotstd/core/db/_migrate_v2_v15.py)（v2-v15），[pilotstd/core/db/_migrate_v31_plus.py](pilotstd/core/db/_migrate_v31_plus.py)（v31-v36），[pilotstd/core/db/_migrate_v37_plus.py](pilotstd/core/db/_migrate_v37_plus.py)（v37-v40），[pilotstd/core/db/_migrate_v50.py](pilotstd/core/db/_migrate_v50.py)（v50），[pilotstd/core/db/_migrate_v51.py](pilotstd/core/db/_migrate_v51.py)（v51），[pilotstd/core/db/_migrate_v52.py](pilotstd/core/db/_migrate_v52.py)（v52）
 
 | 版本 | 说明 | 脚本路径 |
 |------|------|----------|
@@ -30,6 +30,14 @@
 | v42 | standards 表 (四要素) | `migrations.py:402` |
 | **v43** | **batch_state + query_metrics** | `migrations.py:427` |
 | **v44** | **favorite_downloads 解耦** | `_migrate_v44.py` |
+| v45 | audit_logs 表 | `migrations.py:381` |
+| v46 | 默认用户偏好 | `migrations.py:399` |
+| v47 | task_execution_history 表 | `migrations.py:517` |
+| v48 | 幂等补建 user_layouts/user_settings | `migrations.py:538` |
+| v49 | 重建 user_preferences（KV 结构） | `migrations.py:564` |
+| v50 | 兜底补建 user_preferences | `_migrate_v50.py` |
+| v51 | adapter_state 健康检查字段 | `_migrate_v51.py` |
+| **v52** | **user_favorites 兜底补 publish_date 列** | `_migrate_v52.py` |
 
 ## 重点迁移详细说明
 
@@ -153,6 +161,28 @@ DROP TABLE IF EXISTS favorite_downloads;
 ```
 
 **回滚前置条件**：未执行步骤1的服务代码部署（即服务代码仍在读写 `user_favorites`）。
+
+### v52 — user_favorites 兜底补 publish_date 列 [src: `_migrate_v52.py`]
+
+**背景**：部分生产库在 v36 的 ALTER 列补全逻辑（publish_date/last_archive_attempt/archive_retry_count）落地前已记录 v36 迁移，导致 `publish_date` 列从未创建。`docker/api/favorites.py` 收藏时 INSERT 含 `publish_date` 字段 → `sqlite3.OperationalError: table user_favorites has no column named publish_date` → `/api/favorites` 500。
+
+**DDL 变更**（幂等，可重复执行）：
+
+```sql
+-- 表缺失时兜底补建（列结构与 v36 最终形态一致）
+CREATE TABLE IF NOT EXISTS user_favorites (...);  -- 见源码
+
+-- 列缺失时补列：不设 DEFAULT（publish_date 语义为标准的发布日期，
+-- 允许 NULL 表示无冷却期限制，见 archive_retry_service.py）
+ALTER TABLE user_favorites ADD COLUMN publish_date TEXT;
+```
+
+**验证 SQL**：
+
+```sql
+PRAGMA table_info(user_favorites);  -- 应包含 publish_date
+SELECT version FROM _schema_version WHERE version = 52;  -- 迁移后应存在
+```
 
 ## 迁移执行规范
 

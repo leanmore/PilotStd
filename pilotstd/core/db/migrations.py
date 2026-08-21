@@ -23,6 +23,7 @@ from ._migrate_v2_v15 import (  # noqa: F401 — 触发装饰器
 )
 from ._migrate_v50 import _migrate_v50_ensure_user_preferences  # noqa: F401 — 触发注册
 from ._migrate_v51 import _migrate_v51_adapter_health_check  # noqa: F401 — 触发注册
+from ._migrate_v52 import _migrate_v52_ensure_user_favorites_publish_date  # noqa: F401 — 触发注册
 
 # ──2-15装饰器注册──
 migration(2)(_migrate_v2_add_file_index)
@@ -582,3 +583,5 @@ def _migrate_v49_rebuild_user_preferences(db: Any) -> None:
 # v50 兜底迁移拆分至 _migrate_v50.py，避免 G-010 单文件超限
 migration(50)(_migrate_v50_ensure_user_preferences)
 migration(51)(_migrate_v51_adapter_health_check)
+# v52 兜底迁移拆分至 _migrate_v52.py，避免 G-010 单文件超限
+migration(52)(_migrate_v52_ensure_user_favorites_publish_date)

@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pilotstd.core.db._constants import MIGRATIONS
+from pilotstd.core.db._migrate_v52 import _migrate_v52_ensure_user_favorites_publish_date
 
 # ---------------------------------------------------------------------------
 # 导入被测试的迁移函数
@@ -1086,6 +1087,15 @@ class TestMigrationRegistration(unittest.TestCase):
         self.assertTrue(callable(MIGRATIONS[38]))
         self.assertEqual(MIGRATIONS[38].__name__, "_migrate_v38_user_settings")
 
+    def test_v52_is_registered_and_callable(self) -> None:
+        """验证 v52 迁移函数已注册且可调用。"""
+        self.assertIn(52, MIGRATIONS)
+        self.assertTrue(callable(MIGRATIONS[52]))
+        self.assertEqual(
+            MIGRATIONS[52].__name__,
+            "_migrate_v52_ensure_user_favorites_publish_date",
+        )
+
 
 # ---------------------------------------------------------------------------
 # v31-v37 函数完整性测试（直接调用真实函数 + mock db）
@@ -1166,6 +1176,53 @@ class TestV31V37DirectCall(unittest.TestCase, _AssertMixin):
 
         self.assert_exec_contains(self.db, 'CREATE TABLE IF NOT EXISTS "user_credentials"')
         self.assert_exec_contains(self.db, 'UPDATE "notification_policy" SET "user_id" = 1')
+
+
+# ---------------------------------------------------------------------------
+# v52 兜底迁移测试（直接调用真实函数 + mock db）
+# ---------------------------------------------------------------------------
+
+
+class TestV52UserFavorites(unittest.TestCase, _AssertMixin):
+    """v52: user_favorites 缺 publish_date 列时补列（幂等）。"""
+
+    def setUp(self) -> None:
+        self.db = MagicMock()
+        self.db.execute = MagicMock()
+        self.db.fetchall = MagicMock(return_value=[])
+
+    def test_v52_adds_publish_date_when_missing(self) -> None:
+        """列缺失时执行 ALTER TABLE ADD COLUMN publish_date。"""
+        self.db.fetchall.return_value = _make_cols("id", "user_id", "record_id", "status")
+
+        _migrate_v52_ensure_user_favorites_publish_date(self.db)
+
+        self.assert_exec_contains(
+            self.db,
+            "ALTER TABLE user_favorites ADD COLUMN publish_date TEXT",
+            "v52 应在 publish_date 缺失时补列: ",
+        )
+
+    def test_v52_skips_alter_when_column_exists(self) -> None:
+        """列已存在时不执行 ALTER（幂等）。"""
+        self.db.fetchall.return_value = _make_cols("id", "user_id", "publish_date", "archive_retry_count")
+
+        _migrate_v52_ensure_user_favorites_publish_date(self.db)
+
+        alter_calls = [
+            c
+            for c in self.db.execute.call_args_list
+            if c[0] and "ALTER TABLE user_favorites" in c[0][0]
+        ]
+        self.assertEqual(len(alter_calls), 0, "publish_date 已存在时不应执行 ALTER")
+
+    def test_v52_creates_table_when_missing(self) -> None:
+        """表不存在时兜底补建（CREATE TABLE IF NOT EXISTS 始终执行）。"""
+        self.db.fetchall.return_value = []
+
+        _migrate_v52_ensure_user_favorites_publish_date(self.db)
+
+        self.assert_exec_contains(self.db, "CREATE TABLE IF NOT EXISTS user_favorites")
 
 
 # ---------------------------------------------------------------------------
