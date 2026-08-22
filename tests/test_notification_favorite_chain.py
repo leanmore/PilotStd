@@ -17,8 +17,6 @@
 import os
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -248,7 +246,7 @@ class TestArchiveCompleteEvent:
 
     def test_archive_complete_sent_on_success(self):
         """归档成功 → send_event('archive_complete', {'count': N})。"""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
         from pilotstd.manager.facade._organize import OrganizeHandler
 
