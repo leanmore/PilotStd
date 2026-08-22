@@ -156,3 +156,120 @@ describe('useIncrementalScroll（IntersectionObserver 方案）', () => {
     expect(ioMock.disconnect).toHaveBeenCalledTimes(1)
   })
 })
+
+// ══════════════════════════════════════════════════════════════════
+// 分页模式（Phase 2）：VITE_USE_PAGINATED_RECORDS_API=true + fetchPage
+// ══════════════════════════════════════════════════════════════════
+
+/** 构造分页 fetcher：total 条数据，每页 pageSize 条 */
+function makeFetcher(total: number) {
+  return vi.fn(async (page: number, pageSize: number) => {
+    const start = (page - 1) * pageSize
+    const items = Array.from({ length: Math.min(pageSize, total - start) }, (_, i) => ({
+      id: start + i + 1,
+      name: `n${start + i + 1}`,
+    }))
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      hasMore: start + items.length < total,
+    }
+  })
+}
+
+const PaginatedHost = defineComponent({
+  props: { fetcher: { type: Function, required: true } },
+  setup(props) {
+    const sentinel = ref<HTMLElement | null>(null)
+    const sc = useIncrementalScroll(props.fetcher as any, sentinel)
+    return { sc, sentinel }
+  },
+  template: '<div><div ref="sentinel" class="scroll-sentinel" style="height:1px" /></div>',
+})
+
+async function mountPaginated(fetcher: (page: number, size: number) => Promise<any>) {
+  const wrapper = mount(PaginatedHost, { props: { fetcher } })
+  await flushPromises()
+  await nextTick()
+  return wrapper as any
+}
+
+describe('useIncrementalScroll（分页模式，VITE_USE_PAGINATED_RECORDS_API=true）', () => {
+  beforeEach(() => {
+    import.meta.env.VITE_USE_PAGINATED_RECORDS_API = 'true'
+  })
+  afterEach(() => {
+    import.meta.env.VITE_USE_PAGINATED_RECORDS_API = 'false'
+  })
+
+  it('首次加载调用 fetchPage(1, 50)，displayRecords 为第一页', async () => {
+    const fetcher = makeFetcher(330)
+    const wrapper = await mountPaginated(fetcher)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(fetcher).toHaveBeenCalledWith(1, 50)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(50)
+  })
+
+  it('滚动触发 fetchPage(2, 50)，追加到 displayRecords', async () => {
+    const fetcher = makeFetcher(330)
+    const wrapper = await mountPaginated(fetcher)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(50)
+
+    triggerIntersect(true)
+    await flushPromises()
+    expect(fetcher).toHaveBeenLastCalledWith(2, 50)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(100)
+  })
+
+  it('hasMore=false 后不再触发加载', async () => {
+    // 每页 50，第 2 页返回 hasMore=false（100 条总量）
+    const fetcher = vi.fn(async (page: number, pageSize: number) => {
+      const start = (page - 1) * pageSize
+      const items = Array.from({ length: Math.min(pageSize, 100 - start) }, (_, i) => ({ id: start + i + 1 }))
+      return { items, total: 100, page, pageSize, hasMore: start + items.length < 100 }
+    })
+    const wrapper = await mountPaginated(fetcher)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    triggerIntersect(true)
+    await flushPromises()
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(100)
+
+    // 再次触发：hasMore=false，不再请求
+    triggerIntersect(true)
+    await flushPromises()
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(100)
+    expect(wrapper.vm.sc.isAllLoaded.value).toBe(true)
+  })
+
+  it('330 条滚到 300 出现"加载剩余"按钮，loadAllRemaining 拉全量', async () => {
+    const fetcher = makeFetcher(330)
+    const wrapper = await mountPaginated(fetcher)
+    expect(wrapper.vm.sc.showLoadAllButton.value).toBe(false)
+
+    // 50 → 100 → 150 → 200 → 250 → 300
+    for (let i = 0; i < 5; i++) {
+      triggerIntersect(true)
+      await flushPromises()
+    }
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(300)
+    expect(wrapper.vm.sc.showLoadAllButton.value).toBe(true)
+
+    await wrapper.vm.sc.loadAllRemaining()
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(330)
+    expect(wrapper.vm.sc.isAllLoaded.value).toBe(true)
+  })
+
+  it('降级对照：环境变量为 false 且传 Ref 时走本地切片', async () => {
+    import.meta.env.VITE_USE_PAGINATED_RECORDS_API = 'false'
+    const wrapper = await mountHost(120)
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(50)
+    triggerIntersect(true)
+    await flushPromises()
+    expect(wrapper.vm.sc.displayRecords.value.length).toBe(100)
+  })
+})

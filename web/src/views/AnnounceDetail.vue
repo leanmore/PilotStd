@@ -1,17 +1,19 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceDetail' })
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import DOMPurify from 'dompurify'
 import {
   getAnnounceDetailLite,
+  getAnnounceRecords,
   triggerParse,
   getParseStatus,
   updateRecord,
   batchApprove,
 } from '@/api/announce'
 import type { Announcement, AnnouncementRecord } from '@/types/api'
+import type { RecordFetcher } from '@/composables/useIncrementalScroll'
 import { useDetailCache } from '@/composables/useDetailCache'
 import { useFavorite } from '@/composables/useFavorite'
 import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
@@ -39,15 +41,18 @@ const records = ref<AnnouncementRecord[]>([])
 const selectedRecords = ref<AnnouncementRecord[]>([])
 const parseStatus = ref<'pending' | 'parsing' | 'completed' | 'failed'>('pending')
 
-// ═══ #40 增量加载：每批 50 条，最多渲染 300 条 ═══
-// 方案 C：IntersectionObserver 监听哨兵元素，不再依赖滚动容器选择器
+// ═══ #40 增量加载（方案 C 哨兵 + Phase 2 分页化开关）═══
+const usePaginated = import.meta.env.VITE_USE_PAGINATED_RECORDS_API === 'true'
 const sentinel = ref<HTMLElement | null>(null)
+const recordsSource: Ref<AnnouncementRecord[]> | RecordFetcher = usePaginated ? (page: number, pageSize: number) => getAnnounceRecords(announceNo, page, pageSize) : records
 const {
   displayRecords,
   isLoadingMore,
   showLoadAllButton,
   loadAllRemaining,
-} = useIncrementalScroll(records, sentinel)
+  totalCount,
+  reload: reloadRecords,
+} = useIncrementalScroll(recordsSource, sentinel)
 
 const parseStatusLabel = computed(() => {
   const map: Record<string, string> = {
@@ -85,8 +90,9 @@ async function loadDetail() {
   const cached = getCache()
   if (cached) {
     announcement.value = cached.announcement
-    records.value = cached.records
     parseStatus.value = cached.parse_status || 'pending'
+    // 分页模式：records 走分页接口，缓存不提供记录数据
+    if (!usePaginated) records.value = cached.records
     loading.value = false
     loadFavStatuses()
     return
@@ -97,11 +103,12 @@ async function loadDetail() {
   try {
     const res = await getAnnounceDetailLite(announceNo, source, '/announce')
     announcement.value = res.announcement
-    records.value = res.records || []
     parseStatus.value = res.parse_status || 'pending'
+    // 分页模式：仅取公告头与解析状态，记录数据由分页接口按页提供
+    if (!usePaginated) records.value = res.records || []
     setCache({
       announcement: res.announcement,
-      records: res.records,
+      records: usePaginated ? [] : res.records,
       parse_status: res.parse_status,
     })
     loadFavStatuses()
@@ -140,7 +147,9 @@ async function startParse() {
           parsing.value = false
           clearDetailCache()
           await loadDetail()
-          toast.add({ severity: 'success', summary: '解析完成', detail: `共 ${records.value.length} 条标准`, life: 3000 })
+          // 分页模式：条数取 parse-status 的 record_count；降级模式取本地 records
+          const count = usePaginated ? (statusRes.record_count ?? 0) : records.value.length
+          toast.add({ severity: 'success', summary: '解析完成', detail: `共 ${count} 条标准`, life: 3000 })
         } else if (statusRes.status === 'failed') {
           clearInterval(pollTimer!)
           pollTimer = null
@@ -205,7 +214,12 @@ async function handleBatchApprove() {
     toast.add({ severity: 'success', summary: '确认成功', detail: `已确认 ${res.approved_count} 条标准`, life: 3000 })
     selectedRecords.value = []
     clearDetailCache()
-    await loadDetail()
+    // 分页模式：重新拉第一页刷新列表；降级模式：重载全量
+    if (usePaginated) {
+      await reloadRecords()
+    } else {
+      await loadDetail()
+    }
   } catch (e: any) {
     const detail = e?.response?.data?.detail
     if (Array.isArray(detail?.errors)) {
@@ -217,8 +231,9 @@ async function handleBatchApprove() {
 }
 
 // ── Phase 4a: 收藏（二元状态：已收藏/未收藏）──
+// 分页模式下收藏状态基于已加载的 displayRecords（首屏 50 条）
 
-const { favMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(records)
+const { favMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(usePaginated ? displayRecords : records)
 
 // ✅ #45: 组件级 pollTimer，确保 onBeforeUnmount 可访问
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -409,7 +424,7 @@ onBeforeUnmount(() => {
 
           <TableLoadFooter
             :displayed="displayRecords.length"
-            :total="records.length"
+            :total="usePaginated ? totalCount : records.length"
             :is-loading="isLoadingMore"
             :show-load-all-button="showLoadAllButton"
             @load-all="loadAllRemaining"
