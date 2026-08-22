@@ -79,7 +79,8 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         ).fetchone()[0]
         self.raw.execute(
             "INSERT INTO favorite_downloads"
-            " (favorite_id, user_id, record_id, status, standard_no, standard_name, retry_count, created_at, updated_at)"
+            " (favorite_id, user_id, record_id, status, standard_no,"
+            "  standard_name, retry_count, created_at, updated_at)"
             " VALUES (?, ?, ?, ?, ?, '标准', ?, datetime('now'), datetime('now'))",
             (fav_id, user_id, record_id, status, std_no, retry_count),
         )

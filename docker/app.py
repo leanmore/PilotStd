@@ -16,6 +16,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from pilotstd.services.favorite_chain_processor import process_chain
+
 from .api.adapter import router as adapter_router
 from .api.admin_db import router as admin_db_router
 from .api.announce import router as announce_router
@@ -56,7 +58,6 @@ from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .middleware import RequestSizeLimitMiddleware, SecurityHeadersMiddleware
 from .scheduler import _backup_database, register_job_func, start_scheduler, stop_scheduler
-from pilotstd.services.favorite_chain_processor import process_chain
 
 logger = logging.getLogger(__name__)
 
