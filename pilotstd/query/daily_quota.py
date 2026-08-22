@@ -96,8 +96,8 @@ class DailyQuotaTracker:
                                 "reset_time": _("明日 0:00"),
                             },
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("配额耗尽通知发送失败: %s, error=%s", site_name, e)
             return remaining
 
     def record_usage(self, site_name: str, count: int) -> int:

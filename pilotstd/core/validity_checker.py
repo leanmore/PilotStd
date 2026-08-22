@@ -63,8 +63,8 @@ class ValidityChecker:
                         "standard_number": standard_number,
                     },
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("首次登记通知发送失败: %s, error=%s", standard_number, e)
 
     # ── 状态更新 ──────────────────────────────────────────────
 
@@ -112,8 +112,8 @@ class ValidityChecker:
                                     "new_status": new_status,
                                 },
                             )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
             else:
                 self._db.execute(
                     f"UPDATE {_TABLE} SET last_checked_at=?, next_check_at=?, "

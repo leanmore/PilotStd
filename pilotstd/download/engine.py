@@ -190,8 +190,8 @@ class DownloadEngine:
                     "skipped": stats.skipped_adopted,
                 },
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("批量下载完成通知发送失败: %s", e)
 
     def download_batch(
         self, tasks: List[DownloadTask], skip_adopted: bool = True, notification_mgr: Any = None

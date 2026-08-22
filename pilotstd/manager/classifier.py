@@ -180,7 +180,7 @@ class QueryClassifier:
                     "replacement_not_found",
                     {"standard_number": standard_number, "searched_sources": searched_sources},
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("替代标准未找到通知发送失败: %s, error=%s", standard_number, e)
 
         return ""

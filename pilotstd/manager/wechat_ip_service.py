@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_ENCRYPT_SECRET = "pilotstd_wework_ip_2026"
 
@@ -21,8 +24,8 @@ class WechatIPService:
     def _notify(self, title: str, body: str) -> None:
         try:
             self._mgr.notification_mgr.send_event("trust_ip_update", {"title": title, "body": body})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("可信IP更新通知发送失败: %s", e)
 
     # ──接口端点方法─────────────────────────────────────────
 

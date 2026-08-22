@@ -281,12 +281,12 @@ class PendingQueryDialog(QDialog):
     # ── 错误通知 ──
 
     def _notify_error(self, worker_name: str, error_msg: str) -> None:
-        """Worker 异常时发送通知（失败静默）。"""
+        """Worker 异常时发送通知（失败记录日志，不阻塞）。"""
         try:
             if hasattr(self._mgr, "notification_mgr"):
                 self._mgr.notification_mgr.send_event("worker_error", {"worker": worker_name, "error": error_msg})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("工作线程异常通知发送失败: %s", e)
 
     # ── 本地数据库查询 ──
 

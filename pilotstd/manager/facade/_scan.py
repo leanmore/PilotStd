@@ -72,8 +72,8 @@ class ScanHandler:
                     )
                 elif failed_count == 0:
                     self._core.notification_mgr.send_event("scan_empty", {})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("扫描完成通知发送失败: %s", e)
 
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
@@ -145,8 +145,8 @@ class ScanHandler:
                     )
                 elif failed_count == 0:
                     self._core.notification_mgr.send_event("scan_empty", {})
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("扫描完成通知发送失败: %s", e)
 
         try:
             from pilotstd.core.cache_manager import CacheManager, DataSource
@@ -173,8 +173,8 @@ class ScanHandler:
                         )
                     elif result.get("indexed", 0) == 0 and result.get("failed", 0) == 0:
                         self._core.notification_mgr.send_event("scan_empty", {})
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("定时扫描通知发送失败: %s", e)
             return result
         except Exception as e:
             logger.exception("scan_and_index 定时任务失败")
@@ -184,8 +184,8 @@ class ScanHandler:
                         "auto_scan_failed",
                         {"path": root_path or "默认", "error": str(e)[:200]},
                     )
-                except Exception:
-                    pass
+                except Exception as e2:
+                    logger.warning("扫描失败通知发送失败: %s", e2)
             return {"indexed": 0, "skipped": 0, "failed": 1}
 
     def start_watching(self, root_paths: Optional[list[str]] = None) -> None:

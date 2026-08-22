@@ -105,8 +105,8 @@ def _backup_database(notification_mgr=None):
                         "size_mb": size_mb,
                     },
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("自动备份成功通知发送失败: %s", e)
     else:
         if notification_mgr:
             try:
@@ -117,8 +117,8 @@ def _backup_database(notification_mgr=None):
                         "error": "数据库备份返回 False",
                     },
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("自动备份失败通知发送失败: %s", e)
 
 
 # 注册自动备份任务（每周日凌晨 3 点执行）
@@ -259,8 +259,8 @@ def _scheduler_error_listener(event):
                 "task_execution_failed",
                 {"task_name": job_id, "error": error_msg[:500]},
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("定时任务失败通知发送失败: %s", e)
 
 
 scheduler.add_listener(_scheduler_error_listener, mask=2**0)  # EVENT_JOB_ERROR

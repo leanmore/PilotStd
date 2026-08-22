@@ -227,8 +227,8 @@ class QuerySubsystem:
                         "query_failed",
                         {"standard_number": std_no, "error": err},
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("查询失败通知发送失败: %s", e)
 
         self._classify_after_query(items, results)
         if self._core.pending_list:
@@ -248,8 +248,8 @@ class QuerySubsystem:
                         "batch_query_summary",
                         {"total": stats.total, "found": stats.found, "pending": pending_count},
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("查询汇总通知发送失败: %s", e)
         return results, stats
 
     def query(

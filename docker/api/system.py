@@ -138,15 +138,15 @@ def _build_update_response(restart_ok: bool, old_digest: str, new_digest: str) -
 
 
 def _notify_update_failed(mgr: Any, error: str) -> None:
-    """镜像更新检查失败时发送通知（静默失败）。"""
+    """镜像更新检查失败时发送通知（失败记录日志，不静默）。"""
     try:
         if hasattr(mgr, "notification_mgr") and mgr.notification_mgr:
             mgr.notification_mgr.send_event(
                 "image_update_available",
                 {"error": error},
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("镜像更新失败通知发送失败: %s", e)
 
 
 @router.post("/update")
@@ -185,8 +185,8 @@ async def update_container(request: Request, mgr=Depends(get_manager_dep)):
                 mgr.notification_mgr.send_event(
                     "image_update_available", {"old_digest": old_digest, "new_digest": new_digest}
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("镜像更新通知发送失败: %s", e)
         return _build_update_response(restart_ok, old_digest, new_digest)
     except subprocess.TimeoutExpired:
         _notify_update_failed(mgr, "docker pull 超时")

@@ -253,8 +253,8 @@ class OrganizerCore:
                     "archive_failed",
                     {"count": result["failed"], "error": "部分文件归档失败，请检查日志"},
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("归档失败通知发送失败: %s", e)
 
     # __—相同标准号旧路径清理，避免分类变化导致双份文件
     def _dedup_standard(self: Any, parsed: Any, new_path: str) -> None:

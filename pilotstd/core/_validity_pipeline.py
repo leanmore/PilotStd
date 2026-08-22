@@ -80,8 +80,8 @@ def _process_validity_batch(
                                     "change_detail": changed_list[-10:],
                                 },
                             )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.warning("时效性批次报告通知发送失败: %s", e)
         except Exception as e:
             failed_list.append({"standard": std_no, "error": str(e)})
             if notification_mgr:
@@ -90,8 +90,8 @@ def _process_validity_batch(
                         "validity_standard_failed",
                         {"standard_number": std_no, "error": str(e)},
                     )
-                except Exception:
-                    pass
+                except Exception as e2:
+                    logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
         if i > 0 and i % batch_size == 0 and batch_interval > 0:
             _time.sleep(batch_interval)
     return changed, changed_list, failed_list
@@ -148,8 +148,8 @@ def _finalize_validity_round(
                                 "round": new_round,
                             },
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("时效性周期总结通知发送失败: %s", e)
         except Exception:
             pass
         config.save()
@@ -201,8 +201,8 @@ def run_validity_check(
                         "adapters": adapters_status,
                     },
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("时效性批次报告通知发送失败: %s", e)
 
         logger.info(
             "时效性检查完成: checked=%d changed=%d failed=%d", len(candidates), len(changed_list), len(failed_list)
@@ -218,8 +218,8 @@ def run_validity_check(
                     "validity_system_failed",
                     {"error": str(e), "traceback": traceback.format_exc()[:500]},
                 )
-            except Exception:
-                pass
+            except Exception as e2:
+                logger.warning("时效性系统失败通知发送失败: %s", e2)
         return {"ok": False, "checked": 0, "changed": 0, "error": str(e)}
     finally:
         _VALIDITY_LOCK.release()

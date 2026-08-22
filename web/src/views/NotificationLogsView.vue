@@ -133,11 +133,22 @@ function eventLabel(v: string): string {
   const m: Record<string, string> = {
     archive_complete: '归档完成', standard_status_changed: '状态变更',
     standard_expired: '标准废止', standard_first_registered: '首次登记',
-    check_batch_complete: '批次完成', announcement_fetch_complete: '公告抓取', auto_backup: '自动备份',
+    announcement_fetch_complete: '公告抓取', auto_backup: '自动备份',
     announcement_check_complete: '定时公告检查', batch_download_complete: '批量下载完成',
     auto_scan_failed: '扫描异常',
     validity_batch_report: '时效性检查', validity_round_summary: '周期总结',
     validity_standard_failed: '检查失败', validity_system_failed: '系统异常',
+    favorite_created: '收藏成功', download_started: '收藏下载开始',
+    download_complete: '收藏下载完成', download_failed: '收藏下载失败',
+    archive_abandoned: '归档任务放弃', archive_failed: '归档失败',
+    normalize_complete: '规范化完成', normalize_failed: '规范化失败',
+    scan_complete: '扫描完成', scan_empty: '扫描无新增',
+    batch_query_summary: '批量查询完成', query_failed: '查询失败', query_empty: '查询无结果',
+    expire_standard_moved: '废止标准移动', replacement_not_found: '替代标准未找到',
+    announcement_fetch_failed: '公告抓取失败', announce_fetch_summary: '公告逐站汇总',
+    date_reminder: '日期到期提醒', task_execution_failed: '定时任务异常',
+    quota_exhausted: '配额耗尽', trust_ip_update: '可信IP更新',
+    image_update_available: '镜像更新可用', worker_error: '工作线程异常',
     test: '测试',
   }
   return m[v] || v
