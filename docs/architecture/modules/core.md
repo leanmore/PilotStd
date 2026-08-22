@@ -1,0 +1,60 @@
+# 模块文档：核心引擎（Core）
+
+| 属性 | 值 |
+|------|-----|
+| 模块路径 | `pilotstd/core/` |
+| G-031 映射 | `pilotstd/core/` |
+| 核心类 | `Database` / `ConfigManager` / `CacheManager` / `NotificationManager` |
+| 子模块数 | 50+ 文件（config / db / notification / 安全 / 工具） |
+| 状态 | 活跃 |
+
+## 模块职责
+
+PilotStd 三端（CLI / WinUI / Docker）共享的基础设施层：数据库封装与迁移、配置持久化、缓存、通知分发、安全（密钥/密码哈希/路径防护）与通用工具。被 `pilotstd/manager/`、`pilotstd/query/`、`docker/` 等上层模块统一引用，是引擎的"地基"。
+
+## 架构
+
+```
+pilotstd/core/
+│
+├── db/                        # 数据库封装 + 版本迁移
+│   ├── database.py            # Database：sqlite3 封装（WAL + 外键 + 线程本地连接 + 迁移执行）
+│   ├── migrations.py          # 迁移注册表（装饰器 migration(N) 注册，按版本顺序执行）
+│   ├── _constants.py          # CURRENT_SCHEMA_VERSION + MIGRATIONS 字典
+│   ├── _migration_checksum.py # 迁移校验和（防篡改/防回潮）
+│   └── _migrate_v*.py         # v2~v53 各版本迁移实现（大版本拆分独立文件，控 G-010）
+│
+├── config/                    # 配置管理
+│   ├── manager.py             # ConfigManager：点分隔 JSON 持久化 + 原子替换
+│   ├── paths.py               # get_data_dir / get_db_path / get_library_root
+│   ├── crypto.py              # Fernet Key 管理与加密解密
+│   ├── defaults.py            # 默认配置
+│   ├── migrate.py             # 配置迁移
+│   └── settings_schema.py     # 配置 Schema 校验
+│
+├── notification/              # 通知系统
+│   ├── manager.py             # NotificationManager：事件 → 渠道分发
+│   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
+│   ├── blocks.py / renderer.py / desktop_formatter.py
+│   └── _builders_*.py         # 各事件类型的消息构建器
+│
+├── 安全与工具
+│   ├── security.py            # 密码哈希（bcrypt）/ 会话令牌
+│   ├── frozen.py              # 冻结（PyInstaller exe）环境检测
+│   ├── path_guard.py          # 路径穿越防护
+│   ├── audit.py               # 审计日志
+│   ├── cache_manager.py       # 版本驱动失效策略缓存
+│   ├── task_history.py / task_status.py
+│   ├── validity_checker.py / _validity_pipeline.py
+│   ├── file_index.py / _file_index_query.py
+│   ├── file_utils.py / download_utils.py / export_utils.py
+│   ├── std_utils.py           # 标准号分类（classify_std_code → "gb" 等）
+│   ├── context.py / logger.py / project.py / settings_utils.py
+│   └── notification_aggregator.py
+```
+
+## 关键机制
+
+- **数据库迁移**：`Database.__init__` → `_run_migrations()` 按 `CURRENT_SCHEMA_VERSION` 顺序执行未完成迁移；迁移函数注册于 `MIGRATIONS` 字典，执行结果（版本 + 校验和）写入 `_schema_version`；每次新增迁移需 `_constants.py` 版本号 +1 并同步 `docs/architecture/modules/core.md`（G-032 docs-compliance 门禁）。
+- **配置**：点分隔键（如 `network.timeout`）持久化到 JSON，写时原子替换；frozen 环境下目录回退到 `%APPDATA%/PilotStd`。
+- **通知**：事件驱动 → 渠道独立适配（企业微信/飞书/钉钉/Telegram），支持聚合缓冲与桌面格式化。

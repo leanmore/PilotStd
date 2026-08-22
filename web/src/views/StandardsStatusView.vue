@@ -11,7 +11,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem } from '@/api/standards'
 import { getItem, setItem } from '@/lib/storage'
-import { useIncrementalScroll } from '@/composables/useIncrementalScroll'
+import { useIncrementalScroll, type PaginatedResult } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
 
 const MAX_SIZE = 100
@@ -44,11 +44,15 @@ function saveFilters() {
   }))
 }
 
-// 筛选条件变化时持久化 + 清除缓存 + 重新加载（useIncrementalScroll 内部 watch 自动重置首屏）
+// 筛选条件变化时持久化 + 清除缓存 + 重新加载（分页模式重拉第一页；降级模式走全量）
 watch([filterStatus, filterStandardNo, filterName], () => {
   saveFilters()
   clearStandardsStatusCache()
-  loadList()
+  if (usePaginated) {
+    reloadRecords()
+  } else {
+    loadList()
+  }
 })
 
 const statusOptions = [
@@ -71,15 +75,40 @@ async function loadStats() {
   } catch { /* 统计失败不影响列表 */ }
 }
 
-// 增量滚动控制
+// 增量滚动控制（方案 C：IntersectionObserver 监听哨兵元素）
+// Phase 2 分页化：VITE_USE_PAGINATED_RECORDS_API=true 时走分页端点，否则全量前端分片
+const usePaginated = import.meta.env.VITE_USE_PAGINATED_RECORDS_API === 'true'
+const sentinel = ref<HTMLElement | null>(null)
+
+/** 分页模式 fetcher：包装 /standards-status 为 PaginatedResult 结构 */
+async function fetchStandardsPage(page: number, pageSize: number): Promise<PaginatedResult> {
+  const r = await getStandardsStatus({
+    page,
+    page_size: pageSize,
+    status: filterStatus.value || undefined,
+    standard_no: filterStandardNo.value || undefined,
+    name: filterName.value || undefined,
+  }, '/standards-status')
+  total.value = r.total // 分页模式同步总条数（降级模式由 loadList 设置）
+  return {
+    items: r.items,
+    total: r.total,
+    page,
+    pageSize,
+    hasMore: page * pageSize < r.total,
+  }
+}
+
 const {
   displayRecords,
   isLoadingMore,
   showLoadAllButton,
   loadAllRemaining,
-} = useIncrementalScroll(allItems)
+  reload: reloadRecords,
+} = useIncrementalScroll(usePaginated ? fetchStandardsPage : allItems, sentinel)
 
 async function loadList() {
+  if (usePaginated) return // 分页模式：数据由 useIncrementalScroll 的 fetcher 按页拉取
   loading.value = true
   errMsg.value = ''
   try {
@@ -207,11 +236,13 @@ onMounted(() => {
         <TableLoadFooter
           v-if="total > 0"
           :displayed="displayRecords.length"
-          :total="Math.min(total, MAX_SIZE)"
+          :total="usePaginated ? total : Math.min(total, MAX_SIZE)"
           :is-loading="isLoadingMore"
           :show-load-all-button="showLoadAllButton"
           @load-all="loadAllRemaining"
         />
+        <!-- 滚动加载哨兵：进入视口前 100px 触发下一批加载（方案 C，不占视觉空间） -->
+        <div ref="sentinel" class="scroll-sentinel" style="height: 1px; opacity: 0;" aria-hidden="true" />
       </template>
     </Card>
   </div>

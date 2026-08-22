@@ -1,6 +1,7 @@
 // web/src/api/announce.ts — 公告抓取与结果读取
 import http from './http'
 import type { RouteTag } from '../types/route-tag'
+import type { PaginatedResult } from '../composables/useIncrementalScroll'
 import type {
   AnnounceResponse,
   SuccessResponse,
@@ -30,12 +31,18 @@ export const getAnnounceDetailLite = (announceNo: string, source?: string, route
   return http.get(`/announcements/${encodeURIComponent(announceNo)}/lite`, { params, routeTag }).then(r => r.data)
 }
 
+/** 分页获取公告记录（Phase 1 分页端点，排序 standard_number ASC） */
+export const getAnnounceRecords = (announceNo: string, page: number, pageSize: number): Promise<PaginatedResult> =>
+  http.get(`/announcements/${encodeURIComponent(announceNo)}/records`, {
+    params: { page, page_size: pageSize },
+  }).then(r => r.data)
+
 /** 触发附件解析 */
 export const triggerParse = (announceNo: string): Promise<{ status: string }> =>
   http.post(`/announcements/${announceNo}/parse`).then(r => r.data)
 
 /** 获取解析状态 */
-export const getParseStatus = (announceNo: string): Promise<{ status: string }> =>
+export const getParseStatus = (announceNo: string): Promise<{ status: string; record_count?: number }> =>
   http.get(`/announcements/${announceNo}/parse-status`).then(r => r.data)
 
 /** 单行更新（单元格编辑） */
