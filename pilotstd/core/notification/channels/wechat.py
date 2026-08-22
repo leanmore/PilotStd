@@ -40,7 +40,16 @@ class WechatChannel(NotificationChannel):
                 logger.warning("企业微信通知失败: HTTP %d", resp.status)
                 return False
         except Exception as e:
-            logger.warning("企业微信通知异常: %s", e)
+            # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
+            body = ""
+            from urllib.error import HTTPError
+
+            if isinstance(e, HTTPError):
+                try:
+                    body = e.read().decode("utf-8", errors="replace")[:500]
+                except Exception:
+                    pass
+            logger.warning("企业微信通知异常: %s, body=%s", e, body)
             return False
 
     @staticmethod

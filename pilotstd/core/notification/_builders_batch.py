@@ -16,6 +16,14 @@ from .blocks import (
 from .channel import NotificationMessage
 
 
+def _make_link(standard_number: str | None) -> str | None:
+    """根据标准号生成跳转链接（与 _builders_system 同款，避免跨模块依赖）。
+
+    链接用于站内跳转到标准详情页；标准号为空时返回 None（消息不含跳转）。
+    """
+    return f"/standards/{standard_number}" if standard_number else None
+
+
 def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     blocks: list[NotificationBlock] = [KeyValueBlock(key=_("新增公告"), value=str(data.get("count", 0)))]
@@ -116,6 +124,76 @@ def _build_download_failed_message(data: dict) -> NotificationMessage:
         level="error",
         event_type="download_failed",
         icon="pi pi-download",
+    )
+
+
+def _build_favorite_created_message(data: dict) -> NotificationMessage:
+    """收藏成功事件构建器：告知用户收藏已建立并进入下载队列。
+
+    收藏动作本身立即成功，但文件下载要等冷却期后由 cron 触发，
+    故消息中明确提示"已加入下载队列"，避免用户误以为文件即刻可用。
+    """
+    std_no = data.get("standard_no", "")
+    std_name = data.get("standard_name", "")
+    blocks: list[NotificationBlock] = []
+    # 标准号与名称非空时才展示，避免消息中出现空字段占位
+    if std_no:
+        blocks.append(TextBlock(text=_("标准号：{s}").format(s=std_no)))
+    if std_name:
+        blocks.append(TextBlock(text=_("名称：{s}").format(s=std_name)))
+    # 明确告知排队语义：冷却期后才真正下载，避免用户误判时效
+    blocks.append(TextBlock(text=_("已加入下载队列，冷却期过后自动下载归档")))
+    return NotificationMessage(
+        title=_("收藏成功"),
+        blocks=blocks,
+        level="info",
+        standard_number=std_no or None,
+        event_type="favorite_created",
+        link=_make_link(std_no) if std_no else None,
+        icon="pi pi-star",
+    )
+
+
+def _build_download_started_message(data: dict) -> NotificationMessage:
+    """下载开始事件构建器：告知用户标准文件开始自动下载。
+
+    cron 处理器扫描到待下载收藏并调用 download_to_inbox 时触发，
+    表明下载流程已进入执行阶段（区别于收藏时的排队阶段）。
+    """
+    std_no = data.get("standard_number", "")
+    blocks: list[NotificationBlock] = [TextBlock(text=_("标准号：{s}").format(s=std_no))]
+    # 下载开始仅告知执行阶段，不承诺成功结果（成败由完成/失败事件分别表达）
+    return NotificationMessage(
+        title=_("开始下载"),
+        blocks=blocks,
+        level="info",
+        standard_number=std_no or None,
+        event_type="download_started",
+        link=_make_link(std_no) if std_no else None,
+        icon="pi pi-download",
+    )
+
+
+def _build_download_complete_message(data: dict) -> NotificationMessage:
+    """下载完成事件构建器：告知用户标准文件已下载并归档。
+
+    文件落盘并进入标准库 file_index 后触发；local_path 为归档后
+    的实际存储路径，便于用户直接定位文件。
+    """
+    std_no = data.get("standard_number", "")
+    local_path = data.get("local_path", "")
+    blocks: list[NotificationBlock] = [TextBlock(text=_("标准号：{s}").format(s=std_no))]
+    # 文件已归档到标准库，附上实际路径便于用户直接定位
+    if local_path:
+        blocks.append(TextBlock(text=_("文件位置：{p}").format(p=local_path)))
+    return NotificationMessage(
+        title=_("下载归档完成"),
+        blocks=blocks,
+        level="info",
+        standard_number=std_no or None,
+        event_type="download_complete",
+        link=_make_link(std_no) if std_no else None,
+        icon="pi pi-check-circle",
     )
 
 

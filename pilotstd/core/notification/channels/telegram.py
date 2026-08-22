@@ -57,6 +57,13 @@ class TelegramChannel(NotificationChannel):
                     return False
                 return False
         except HTTPError as e:
+            # 读取响应体（含说明字段）用于诊断 4xx 具体原因
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="replace")[:500]
+            except Exception:
+                pass
+            logger.warning("Telegram send failed: HTTP %s, body=%s", e.code, body)
             # 404/401→配置错误（无效/已撤销），不应重试
             # 5→服务端临时故障，可重试但不在本层做
             if e.code == 404:

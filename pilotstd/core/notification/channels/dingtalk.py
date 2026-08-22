@@ -79,7 +79,16 @@ class DingTalkChannel(NotificationChannel):
                 logger.warning("钉钉通知失败: %s", data.get("errmsg", "未知错误"))
                 return False
         except Exception as e:
-            logger.warning("钉钉通知异常: %s", e)
+            # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
+            body = ""
+            from urllib.error import HTTPError
+
+            if isinstance(e, HTTPError):
+                try:
+                    body = e.read().decode("utf-8", errors="replace")[:500]
+                except Exception:
+                    pass
+            logger.warning("钉钉通知异常: %s, body=%s", e, body)
             return False
 
     @staticmethod

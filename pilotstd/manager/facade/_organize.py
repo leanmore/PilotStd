@@ -156,8 +156,8 @@ class OrganizeHandler:
                 try:
                     if self._core.validity_checker:
                         self._core.validity_checker.register_new_standard(std_no, self._core.notification_mgr)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("注册新标准失败: %s, error=%s", std_no, e)
                 # 废止标准同步触发__（与归档_同时触发）
                 try:
                     if self._core.notification_mgr and getattr(p, "effect_status", "") in _EXPIRE_STATUSES:
@@ -165,15 +165,16 @@ class OrganizeHandler:
                             "expire_standard_moved",
                             {"standard_number": std_no, "target_path": getattr(p, "source_path", "")},
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
         try:
             if self._core.notification_mgr:
                 self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": moved})
-        except Exception:
-            pass
-        # TODO(P2): 第二步通知专项 — 收藏链路逐条归档完成事件
-        # send_event('archive_complete', user_id, record_id, standard_no)
+        except Exception as e:
+            logger.warning("发送归档完成通知失败: %s", e)
+        # 收藏链路逐条归档完成事件由收藏下载任务中的下载完成事件覆盖
+        # （收藏链为"下载即归档"一体链路，完成状态处已发送下载完成事件，
+        #  本函数为手动/批量归档入口，无用户与记录标识上下文，无法逐条定位用户）
         return cast("dict[str, Any]", result)
 
     @staticmethod
@@ -327,8 +328,8 @@ class OrganizeHandler:
                         "normalize_failed",
                         {"total": total, "error": str(e)},
                     )
-            except Exception:
-                pass
+            except Exception as e2:
+                logger.warning("规范化失败通知发送失败: %s", e2)
             raise
         if on_batch and batch:
             on_batch(batch)
@@ -339,7 +340,7 @@ class OrganizeHandler:
                     "normalize_complete",
                     {"total": total, "success": len(results), "failed": 0},
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("规范化完成通知发送失败: %s", e)
 
         return results

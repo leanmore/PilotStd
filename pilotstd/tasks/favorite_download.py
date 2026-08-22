@@ -112,8 +112,54 @@ def _notify_download_failed(user_id: int, standard_number: str, error: str, favo
                 "favorite_id": favorite_id,
             },
         )
-    except Exception:
-        logger.warning("发送下载失败通知失败", exc_info=True)
+    except Exception as e:
+        logger.warning("发送下载失败通知失败: %s", e)
+
+
+def _notify_download_started(user_id: int, standard_number: str, favorite_id: int) -> None:
+    """通知用户下载开始。
+
+    在下载任务进入执行阶段（状态置为 downloading 前）发送，
+    让用户感知收藏的自动下载流程已启动；通知失败仅记录日志，
+    绝不中断下载主流程。
+    """
+    try:
+        from pilotstd.manager.facade import StandardManager  # noqa: E402
+
+        StandardManager().notification_mgr.send_event(
+            "download_started",
+            {
+                "user_id": user_id,
+                "standard_number": standard_number,
+                "favorite_id": favorite_id,
+            },
+        )
+    except Exception as e:
+        logger.warning("发送下载开始通知失败: %s", e)
+
+
+def _notify_download_complete(user_id: int, standard_number: str, favorite_id: int, local_path: str) -> None:
+    """通知用户下载归档完成。
+
+    文件已在标准库 file_index 登记（done 状态）后发送；
+    local_path 为归档后的实际存储路径，供用户直接定位。
+    通知失败仅记录日志，不影响已完成的下载归档结果。
+    """
+    try:
+        from pilotstd.manager.facade import StandardManager  # noqa: E402
+
+        StandardManager().notification_mgr.send_event(
+            "download_complete",
+            {
+                "user_id": user_id,
+                "standard_number": standard_number,
+                "favorite_id": favorite_id,
+                "local_path": local_path,
+                "status": "success",
+            },
+        )
+    except Exception as e:
+        logger.warning("发送下载完成通知失败: %s", e)
 
 
 # 下载__—收藏下载任务（44解耦后操作_下载表）
@@ -142,8 +188,12 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
                 (existing, favorite_id),
             )
             logger.info("复用已有文件: %s", existing)
+            # 复用路径同样视为下载归档完成，通知用户文件已就绪
+            _notify_download_complete(user_id, standard_number, favorite_id, existing)
             return
 
+        # 进入实际下载前通知用户，状态置为下载中
+        _notify_download_started(user_id, standard_number, favorite_id)
         db.execute(
             "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
             (favorite_id,),
@@ -180,6 +230,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
                     (found, favorite_id),
                 )
                 logger.info("归档完成: %s", found)
+                # 扫描器已把文件登记到索引，通知用户下载归档全流程完成
+                _notify_download_complete(user_id, standard_number, favorite_id, found)
                 return
 
         db.execute(

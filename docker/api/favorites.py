@@ -12,6 +12,7 @@ from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
 
 from ..auth import get_current_user_id
+from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ def add_favorite(
     data: FavoriteCreate,
     user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
+    mgr=Depends(get_manager_dep),
 ):
     """收藏标准记录：仅创建收藏关系，不触发下载。
     下载由定时任务 archive_retry_service 在冷却期过后统一调度。
@@ -122,8 +124,8 @@ def add_favorite(
 
     favorite_id = cursor.lastrowid
 
-    # ── 断链修复（v54）：同步创建 favorite_downloads，进入下载队列（状态 pending）──
-    # 修复前新收藏只写 user_favorites，favorite_downloads 无新行 → 下载链永不触发
+    # ── 断链修复（第五十四版迁移）：同步创建下载队列记录，进入待下载状态 ──
+    # 修复前新收藏只写收藏关系表，下载队列无新行 → 下载链永不触发
     try:
         db.execute(
             "INSERT INTO favorite_downloads (favorite_id, user_id, record_id, status,"
@@ -138,11 +140,24 @@ def add_favorite(
             ),
         )
     except Exception as e:
-        # 队列写入失败不阻塞收藏主流程，记录日志由 cron 侧兜底
-        logger.warning("创建 favorite_downloads 失败 favorite_id=%s: %s", favorite_id, e)
+        # 队列写入失败不阻塞收藏主流程，记录日志由定时任务侧兜底
+        logger.warning("创建下载队列记录失败 favorite_id=%s: %s", favorite_id, e)
 
-    # TODO(P2): 第二步通知专项 — 收藏成功事件
-    # send_event('favorite_created', user_id, record_id, standard_no, standard_name)
+    # ── 通知专项（第二阶段）：收藏成功事件 ──
+    # 通知失败不得阻塞收藏主流程（异常捕获包裹，仅记录日志）
+    try:
+        if mgr and mgr.notification_mgr:
+            mgr.notification_mgr.send_event(
+                "favorite_created",
+                {
+                    "user_id": user_id,
+                    "record_id": data.record_id,
+                    "standard_no": (record["standard_number"] or "") or f"UNKNOWN_{data.record_id}",
+                    "standard_name": (record["std_name"] or "") or "未知标准",
+                },
+            )
+    except Exception as e:
+        logger.warning("收藏成功事件通知发送失败 favorite_id=%s: %s", favorite_id, e)
 
     return {"status": "pending", "favorite_id": favorite_id}
 

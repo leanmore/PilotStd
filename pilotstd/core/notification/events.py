@@ -47,6 +47,9 @@ EVENT_EXPIRE_STANDARD_MOVED = "expire_standard_moved"
 EVENT_REPLACEMENT_NOT_FOUND = "replacement_not_found"
 EVENT_QUOTA_EXHAUSTED = "quota_exhausted"
 EVENT_ANNOUNCE_FETCH_SUMMARY = "announce_fetch_summary"
+EVENT_FAVORITE_CREATED = "favorite_created"
+EVENT_DOWNLOAD_STARTED = "download_started"
+EVENT_DOWNLOAD_COMPLETE = "download_complete"
 
 # ── 唯一数据源：所有事件定义 ──
 
@@ -84,6 +87,9 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_REPLACEMENT_NOT_FOUND, bypass_aggregation=True),
     EventDef(EVENT_QUOTA_EXHAUSTED, bypass_aggregation=True),
     EventDef(EVENT_ANNOUNCE_FETCH_SUMMARY, bypass_aggregation=True),
+    EventDef(EVENT_FAVORITE_CREATED, bypass_aggregation=True),
+    EventDef(EVENT_DOWNLOAD_STARTED),
+    EventDef(EVENT_DOWNLOAD_COMPLETE),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──
