@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from fastapi import BackgroundTasks, Depends, HTTPException
+from fastapi import BackgroundTasks, Depends, HTTPException, Query
 from fastapi.routing import APIRouter
 
 from pilotstd.announcement._content_cleaner import clean_announcement_content  # 防绕过：确保写入前清洗
@@ -46,7 +46,58 @@ def _now_iso() -> str:
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 1. 获取公告详情
+# 1.获取公告记录（分页版 — Phase 1 分页化，与 /lite 并存向后兼容）
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
+@router.get("/api/announcements/{announce_no}/records")
+def get_announcement_records_paginated(
+    announce_no: str,
+    page: int = Query(1, ge=1, description="页码，从 1 开始"),
+    page_size: int = Query(50, ge=1, le=200, description="每页条数，1-200"),
+    mgr=Depends(get_manager_dep),
+):
+    """分页获取公告标准记录。
+
+    排序 standard_number ASC（依赖迁移 v53 复合索引
+    idx_announcement_record_announce_no_std，同时命中 WHERE 与 ORDER BY）。
+    /lite 端点保留不动，向后兼容。
+    """
+    # 手动校验：直接调用 handler（绕过 FastAPI 依赖注入）时 Query 校验不生效
+    if page < 1 or page_size < 1 or page_size > 200:
+        raise HTTPException(422, "page 需 >=1，pageSize 需在 1-200 之间")
+
+    db = mgr.db
+
+    total_row = db.fetchone(
+        "SELECT COUNT(*) AS cnt FROM announcement_record WHERE announce_no = ?",
+        (announce_no,),
+    )
+    total = total_row["cnt"] if total_row else 0
+
+    offset = (page - 1) * page_size
+    rows = db.fetchall(
+        "SELECT id, row_index, standard_number, std_name,"
+        " publish_date, implement_date, expiry_date, superseded_by, status"
+        " FROM announcement_record"
+        " WHERE announce_no = ?"
+        " ORDER BY standard_number ASC"
+        " LIMIT ? OFFSET ?",
+        (announce_no, page_size, offset),
+    )
+
+    items = [dict(r) for r in rows]
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+        "hasMore": offset + len(items) < total,
+    }
+
+
+# ════════════════════════════════════════════════════════════════ 分隔
+# 1.获取公告详情
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
