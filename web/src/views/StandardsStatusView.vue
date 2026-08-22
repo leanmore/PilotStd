@@ -71,13 +71,14 @@ async function loadStats() {
   } catch { /* 统计失败不影响列表 */ }
 }
 
-// 增量滚动控制
+// 增量滚动控制（方案 C：IntersectionObserver 监听哨兵元素）
+const sentinel = ref<HTMLElement | null>(null)
 const {
   displayRecords,
   isLoadingMore,
   showLoadAllButton,
   loadAllRemaining,
-} = useIncrementalScroll(allItems)
+} = useIncrementalScroll(allItems, sentinel)
 
 async function loadList() {
   loading.value = true
@@ -212,6 +213,8 @@ onMounted(() => {
           :show-load-all-button="showLoadAllButton"
           @load-all="loadAllRemaining"
         />
+        <!-- 滚动加载哨兵：进入视口前 100px 触发下一批加载（方案 C，不占视觉空间） -->
+        <div ref="sentinel" class="scroll-sentinel" style="height: 1px; opacity: 0;" aria-hidden="true" />
       </template>
     </Card>
   </div>

@@ -40,12 +40,14 @@ const selectedRecords = ref<AnnouncementRecord[]>([])
 const parseStatus = ref<'pending' | 'parsing' | 'completed' | 'failed'>('pending')
 
 // ═══ #40 增量加载：每批 50 条，最多渲染 300 条 ═══
+// 方案 C：IntersectionObserver 监听哨兵元素，不再依赖滚动容器选择器
+const sentinel = ref<HTMLElement | null>(null)
 const {
   displayRecords,
   isLoadingMore,
   showLoadAllButton,
   loadAllRemaining,
-} = useIncrementalScroll(records)
+} = useIncrementalScroll(records, sentinel)
 
 const parseStatusLabel = computed(() => {
   const map: Record<string, string> = {
@@ -412,6 +414,8 @@ onBeforeUnmount(() => {
             :show-load-all-button="showLoadAllButton"
             @load-all="loadAllRemaining"
           />
+          <!-- 滚动加载哨兵：进入视口前 100px 触发下一批加载（方案 C，不占视觉空间） -->
+          <div ref="sentinel" class="scroll-sentinel" style="height: 1px; opacity: 0;" aria-hidden="true" />
         </template>
       </Card>
     </div>
