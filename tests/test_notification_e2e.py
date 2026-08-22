@@ -192,6 +192,9 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "quota_exhausted": {"site_name", "quota_limit", "reset_time"},
     "date_reminder": {"standard_number", "std_name", "days_before", "remind_type"},
     "trust_ip_update": {"title", "body", "ip", "update_time", "status"},
+    "favorite_created": {"user_id", "record_id", "standard_no", "standard_name"},
+    "download_started": {"user_id", "standard_number", "favorite_id"},
+    "download_complete": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
 }
 
 EVENTS: list[dict[str, Any]] = [
@@ -566,10 +569,44 @@ EVENTS: list[dict[str, Any]] = [
         "builder_keys": {"title", "body", "ip", "update_time", "status"},
         "mutual": "",
     },
+    # ── 收藏链 (3, Phase 2 新增) ──
+    {
+        "name": "favorite_created",
+        "module": "收藏链",
+        "level": "info",
+        "aggregation": "bypass",
+        "trigger_file": "docker/api/favorites.py",
+        "builder_file": "pilotstd/core/notification/_builders_batch.py",
+        "builder_method": "_build_favorite_created_message",
+        "builder_keys": {"user_id", "record_id", "standard_no", "standard_name"},
+        "mutual": "",
+    },
+    {
+        "name": "download_started",
+        "module": "收藏链",
+        "level": "info",
+        "aggregation": "聚合",
+        "trigger_file": "pilotstd/tasks/favorite_download.py",
+        "builder_file": "pilotstd/core/notification/_builders_batch.py",
+        "builder_method": "_build_download_started_message",
+        "builder_keys": {"user_id", "standard_number", "favorite_id"},
+        "mutual": "",
+    },
+    {
+        "name": "download_complete",
+        "module": "收藏链",
+        "level": "info",
+        "aggregation": "聚合",
+        "trigger_file": "pilotstd/tasks/favorite_download.py",
+        "builder_file": "pilotstd/core/notification/_builders_batch.py",
+        "builder_method": "_build_download_complete_message",
+        "builder_keys": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
+        "mutual": "",
+    },
 ]
 
 # 验证 EVENTS 列表完整性
-assert len(EVENTS) == 32, f"Expected 32 events, got {len(EVENTS)}"
+assert len(EVENTS) == 35, f"Expected 35 events, got {len(EVENTS)}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
