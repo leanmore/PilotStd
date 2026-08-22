@@ -25,6 +25,7 @@ from ._migrate_v50 import _migrate_v50_ensure_user_preferences  # noqa: F401 —
 from ._migrate_v51 import _migrate_v51_adapter_health_check  # noqa: F401 — 触发注册
 from ._migrate_v52 import _migrate_v52_ensure_user_favorites_publish_date  # noqa: F401 — 触发注册
 from ._migrate_v53 import _migrate_v53_announce_record_pagination_index  # noqa: F401 — 触发注册
+from ._migrate_v54 import _migrate_v54_favorite_downloads_columns  # noqa: F401 — 触发注册
 
 # ──2-15装饰器注册──
 migration(2)(_migrate_v2_add_file_index)
@@ -588,3 +589,4 @@ migration(51)(_migrate_v51_adapter_health_check)
 migration(52)(_migrate_v52_ensure_user_favorites_publish_date)
 # v53 分页索引迁移拆分至 _migrate_v53.py，避免 G-010 单文件超限
 migration(53)(_migrate_v53_announce_record_pagination_index)
+# v54 收藏链路补列迁移：函数自带 @migration(54) 装饰器，import 即注册（同 v44 模式）

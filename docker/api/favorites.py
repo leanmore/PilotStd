@@ -1,6 +1,7 @@
 # 模块：容器//脚本
 # 阶段4:收藏接口—收藏/状态查询/取消/列表/批量状态
 
+import logging
 import os
 from typing import Dict, List, Optional, cast
 
@@ -11,6 +12,8 @@ from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
 
 from ..auth import get_current_user_id
+
+logger = logging.getLogger(__name__)
 
 _COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 
@@ -87,7 +90,10 @@ def add_favorite(
             "current_status": existing["status"],
         }
 
-    record = db.fetchone("SELECT id FROM announcement_record WHERE id = ?", (data.record_id,))
+    record = db.fetchone(
+        "SELECT id, standard_number, std_name FROM announcement_record WHERE id = ?",
+        (data.record_id,),
+    )
     if not record:
         raise HTTPException(404, "标准记录不存在")
 
@@ -115,6 +121,29 @@ def add_favorite(
         raise HTTPException(500, "收藏失败")
 
     favorite_id = cursor.lastrowid
+
+    # ── 断链修复（v54）：同步创建 favorite_downloads，进入下载队列（状态 pending）──
+    # 修复前新收藏只写 user_favorites，favorite_downloads 无新行 → 下载链永不触发
+    try:
+        db.execute(
+            "INSERT INTO favorite_downloads (favorite_id, user_id, record_id, status,"
+            " standard_no, standard_name, created_at, updated_at)"
+            " VALUES (?, ?, ?, 'pending', ?, ?, datetime('now'), datetime('now'))",
+            (
+                favorite_id,
+                user_id,
+                data.record_id,
+                (record["standard_number"] or "") or f"UNKNOWN_{data.record_id}",
+                (record["std_name"] or "") or "未知标准",
+            ),
+        )
+    except Exception as e:
+        # 队列写入失败不阻塞收藏主流程，记录日志由 cron 侧兜底
+        logger.warning("创建 favorite_downloads 失败 favorite_id=%s: %s", favorite_id, e)
+
+    # TODO(P2): 第二步通知专项 — 收藏成功事件
+    # send_event('favorite_created', user_id, record_id, standard_no, standard_name)
+
     return {"status": "pending", "favorite_id": favorite_id}
 
 
