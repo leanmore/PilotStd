@@ -56,6 +56,7 @@ from .auth import AuthMiddleware
 from .auth import router as auth_router
 from .middleware import RequestSizeLimitMiddleware, SecurityHeadersMiddleware
 from .scheduler import _backup_database, register_job_func, start_scheduler, stop_scheduler
+from pilotstd.services.favorite_chain_processor import process_chain
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +153,7 @@ def _start_all_schedulers(_cron_mgr) -> None:
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     register_job_func(
         "auto_archive_retry",
-        lambda: _cron_mgr._archive_retry_svc.retry_pending(),
+        lambda: process_chain(),  # v54: 收藏下载链处理器（倒序批处理，替代旧 retry_pending）
     )
     from .health_check_service import run_health_check
 

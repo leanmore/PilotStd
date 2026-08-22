@@ -172,6 +172,8 @@ class OrganizeHandler:
                 self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": moved})
         except Exception:
             pass
+        # TODO(P2): 第二步通知专项 — 收藏链路逐条归档完成事件
+        # send_event('archive_complete', user_id, record_id, standard_no)
         return cast("dict[str, Any]", result)
 
     @staticmethod
