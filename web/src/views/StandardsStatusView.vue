@@ -213,9 +213,9 @@ onMounted(() => {
               <strong>{{ data.standard_number }}</strong>
             </template>
           </Column>
-          <Column field="standard_name" header="标准名称" style="min-width: 18rem">
+          <Column field="std_name" header="标准名称" style="min-width: 18rem">
             <template #body="{ data }">
-              {{ data.standard_name || '—' }}
+              {{ data.std_name || '—' }}
             </template>
           </Column>
           <Column field="status" header="状态" style="width: 8rem">

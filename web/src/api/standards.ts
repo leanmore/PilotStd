@@ -11,7 +11,8 @@ export interface StandardStats {
 export interface StandardStatusItem {
   id: number
   standard_number: string
-  standard_name: string
+  /** 标准名称：后端响应字段为 std_name（file_index 表列名），非 standard_name */
+  std_name: string
   status: string
   last_checked_at: string | null
   check_count: number
