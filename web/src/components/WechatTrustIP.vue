@@ -266,5 +266,5 @@ onMounted(() => { loadConfig(); loadStatus() })
 .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
 .config-card { border: 1px solid var(--border); }
 .field { margin-bottom: 12px; }
-.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; font-weight: 500; }
+.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
 </style>

@@ -347,7 +347,7 @@ onMounted(() => { loadSites() })
 .site-field label {
   font-size: 11px;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 .field-value {
   font-size: 14px;

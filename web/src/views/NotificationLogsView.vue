@@ -385,7 +385,7 @@ onBeforeUnmount(() => {
 /* 筛选区 */
 .filter-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
 .filter-item { display: flex; flex-direction: column; gap: 6px; min-width: 140px; flex: 1; }
-.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
 
 /* 可调整高度的表格容器 */
@@ -406,7 +406,7 @@ onBeforeUnmount(() => {
 .log-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
 .log-table th { position: sticky; top: 0; background: var(--surface-raised); z-index: 1; }
 .log-table th, .log-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-.log-table th { font-weight: 600; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.log-table th { font-weight: 600; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
 .title-cell { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty { color: var(--text-dim); font-size: 14px; padding: 32px 0; text-align: center; }
 

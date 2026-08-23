@@ -213,7 +213,7 @@ function numberVal(): number {
 .field-label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .required {

@@ -216,7 +216,7 @@ export default defineComponent({
 .status-item code { font-size: 12px; background: var(--surface); padding: 1px 6px; border-radius: 3px; }
 .monitor-config { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
 .field { margin-bottom: 12px; }
-.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
 .field-row { display: flex; gap: 16px; margin-bottom: 12px; align-items: flex-end; }
 .field-path { flex: 1; max-width: 400px; }
 .field-delay { width: 140px; flex-shrink: 0; }

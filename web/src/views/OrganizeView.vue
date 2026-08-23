@@ -206,6 +206,6 @@ const breadcrumbs = computed(() => {
 .selected-count { font-size: 12px; color: var(--primary); font-weight: 500; }
 .enqueue-msg { font-size: 12px; color: var(--success); }
 .select-all-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border); }
-.select-all-label { font-size: 12px; color: var(--text-dim); cursor: pointer; }
+.select-all-label { font-size: 12px; color: var(--text-secondary); cursor: pointer; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
 </style>

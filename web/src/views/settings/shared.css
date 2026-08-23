@@ -63,7 +63,7 @@
  *      此规则正常匹配 → 由组件自身 scoped 样式覆盖具体属性
  */
 .form-grid > label {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-weight: 500;
   padding-top: 9px;
 }

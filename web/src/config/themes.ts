@@ -13,6 +13,8 @@ export interface ThemeConfig {
     border: string
     borderLight: string
     textDim: string
+    // fix(a11y): 辅助文字色（用于表单 label/表头/次要按钮等），浅色主题下保证 ≥4.5:1；--text-dim 保留"极次要/禁用态"语义
+    textSecondary: string
     text: string
     textBright: string
     textHeading: string
@@ -59,6 +61,8 @@ export const THEMES: Record<string, ThemeConfig> = {
       border: '#e2e8f0',
       borderLight: '#f1f5f9',
       textDim: '#94a3b8',
+      // fix(a11y): 实测辅助文字多落在 surface-raised(#f1f5f9) 上，#64748b 仅 4.34:1；#5b6b80 实测 4.96:1(on #f1f5f9)/5.44:1(on #ffffff)
+      textSecondary: '#5b6b80',
       text: '#475569',
       textBright: '#334155',
       textHeading: '#0f172a',
@@ -101,6 +105,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       border: '#475569',
       borderLight: '#334155',
       textDim: '#94a3b8',
+      textSecondary: '#94a3b8',   // 浅色辅助文字 on 深色底
       text: '#cbd5e1',
       textBright: '#e2e8f0',
       textHeading: '#f1f5f9',
@@ -143,6 +148,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       border: '#bbf7d0',
       borderLight: '#dcfce7',
       textDim: '#65a77d',
+      textSecondary: '#3d7a52',   // on #f6fbf7 ≈ 4.88:1 ✅
       text: '#166534',
       textBright: '#15803d',
       textHeading: '#14532d',
@@ -185,6 +191,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       border: '#1e293b',
       borderLight: '#1e293b',
       textDim: '#94a3b8',
+      textSecondary: '#94a3b8',   // 浅色辅助文字 on 深蓝底
       text: '#cbd5e1',
       textBright: '#e2e8f0',
       textHeading: '#f1f5f9',
@@ -242,6 +249,7 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--border': c.border,
     '--border-light': c.borderLight,
     '--text-dim': c.textDim,
+    '--text-secondary': c.textSecondary,
     '--text': c.text,
     '--text-bright': c.textBright,
     '--text-heading': c.textHeading,

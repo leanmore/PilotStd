@@ -433,7 +433,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .section-title { font-weight: 600; color: var(--text-heading); font-size: 14px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px 20px; margin-bottom: 14px; align-items: start; }
 .field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.field label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .field-control { width: 100%; height: 36px; }
 .form-grid :deep(.p-inputnumber) { height: 36px; }
 .field-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
@@ -445,7 +445,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
   margin-bottom: 14px; flex-wrap: wrap;
 }
 .info-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
-.info-label { color: var(--text-dim); }
+.info-label { color: var(--text-secondary); }
 .info-value { font-weight: 600; color: var(--text-bright); }
 .info-error { color: var(--danger); }
 .error-msg { font-size: 12px; font-weight: 400; }
@@ -453,9 +453,9 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 .actions-row { display: flex; gap: 10px; margin-bottom: 8px; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 12px; }
 .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
-.filter-item label { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+.filter-item label { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
 .filter-actions { display: flex; gap: 8px; align-items: flex-end; }
-.table-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.table-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .data-table th, .data-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid var(--border); }
 .data-table th { font-weight: 600; color: var(--text-dim); font-size: 11px; text-transform: uppercase; }

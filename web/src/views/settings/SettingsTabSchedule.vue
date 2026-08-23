@@ -187,7 +187,7 @@ onMounted(loadTasks)
 }
 .task-cron label {
   font-size: 11px;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .actions-row {

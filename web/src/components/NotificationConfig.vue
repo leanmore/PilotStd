@@ -447,7 +447,7 @@ onMounted(() => {
 .collapsible-leave-to { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
 
 .field { margin-bottom: 8px; }
-.field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+.field label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
 .required { color: var(--danger); font-size: 10px; }
 .optional { color: var(--text-dim); font-size: 10px; }
 .field-sep { font-size: 11px; color: var(--text-dim); border-top: 1px dashed var(--border); padding-top: 8px; margin: 8px 0 6px; }
@@ -455,7 +455,7 @@ onMounted(() => {
 .flex-1 { flex: 1; }
 .test-result { font-size: 12px; margin-top: 6px; color: var(--text-dim); }
 .events-row { margin-top: 10px; border-top: 1px solid var(--border-light); padding-top: 8px; }
-.events-label { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; display: block; }
+.events-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; }
 .checkbox-field { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; margin-top: 4px; }
 .checkbox-field label { font-size: 12px; color: var(--text); }
 .events-check-grid {

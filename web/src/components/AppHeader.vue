@@ -142,7 +142,7 @@ onUnmounted(() => {
 .topbar-title {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   padding-left: 16px;
   border-left: 2px solid var(--border);
 }
@@ -155,7 +155,7 @@ onUnmounted(() => {
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius);
-  color: var(--text-dim);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;

@@ -261,8 +261,8 @@ onMounted(() => {
 .section { margin-bottom: 16px; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
-.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-dim); }
+.filter-item label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
-.table-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+.table-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
 .empty { color: var(--text-dim); font-size: 14px; padding: 20px 0; }
 </style>
