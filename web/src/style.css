@@ -222,7 +222,11 @@ body .p-card {
   padding: 12px 16px;
 }
 
-/* fix(a11y): 表头由 --text-dim 加深为 --text——浅色主题(light/green)实测 2.4-2.6:1 不达标，加深后 ≈7:1；保留加粗+大写维持表头层级 */
+/* RETAINED: DataTable header text override
+   Reason: Aura 组件作用域 token（--p-datatable-header-cell-color 等）为解析后直接值 #334155，
+   root 级 --p-content-color 注入无法覆盖（P1 实证）；--text-dim 作表头色浅色主题 2.4-2.6:1 不达标，
+   改用 --text 后 ≈7:1（浅色深字/深色浅字自适应），保留加粗+大写维持表头层级。
+   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values */
 .p-datatable .p-datatable-thead>tr>th {
   background: var(--surface-raised);
   color: var(--text);
@@ -352,8 +356,11 @@ html .p-button.p-button-warn {
   filter: brightness(1.1);
 }
 
-/* fix(a11y): html 前缀提高特异性对抗 Aura 按钮 token（实测原规则被 --p-button-secondary-color 覆盖），
-   文字色锁定 --text-secondary，浅色主题 ≥4.5:1；hover 态规则特异性更高仍生效 */
+/* RETAINED: secondary 按钮覆盖（html 前缀对抗 Aura token）
+   Reason: Aura --p-button-secondary-color 为 text.muted(#64748b) on surface.100(#f1f5f9)，
+   浅色主题实测 4.34:1 不达标；html 前缀提高特异性强制 --text-secondary（light 5.44/green 4.89:1 ✅），
+   且原规则被 Aura token 覆盖从未生效（阶段 A 实证）。映射表未含 secondary 变体（做减法）。
+   See: docs/investigations/aura-token-sync-feasibility.md §P1 - button scope */
 html .p-button.p-button-secondary {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -774,13 +781,17 @@ html .p-button.p-button-secondary {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   fix(a11y): PrimeVue 4 DatePicker 日历面板高对比度覆盖
-   实测 DOM（PrimeVue 4.5）：table.p-datepicker-day-view / span.p-datepicker-day(.p-datepicker-day-selected)
-   / td.p-datepicker-day-cell(.p-datepicker-today)；方案中的 .p-datepicker-calendar / p-highlight / p-today
-   为旧版假设，已按实测改写。
+   RETAINED: DatePicker 面板覆盖（选中日 + 边框/分隔线）
+   Reason:
+   1. 选中日——Aura 默认 emerald-500(#10b981)+白字 2.54:1 不达标；选中日背景 token 为
+      组件作用域（--p-datepicker-date-selected-background 不在 :root），根注入成本高，
+      保留 #047857+白字（5.48:1 ✅）。
+   2. 边框/分隔线——用户验收明确要求"面板边框清晰可见"（B+ 方案验收项），#cbd5e1 增强边界感
+      （默认 --p-content-border-color #e2e8f0 过浅）。
+   See: docs/investigations/aura-token-sync-feasibility.md §P1 - component-scope direct values
    ═══════════════════════════════════════════════════════════════ */
 
-/* 1. 选中日：emerald-700 底 + 白字（≈5.49:1 ✅；Aura 默认 emerald-500 白字实测仅 2.54:1） */
+/* 1. 选中日：emerald-700 底 + 白字（≈5.48:1 ✅；Aura 默认 emerald-500 白字实测仅 2.54:1） */
 html .p-datepicker-panel .p-datepicker-day-selected {
   background-color: #047857 !important;
   color: #ffffff !important;
