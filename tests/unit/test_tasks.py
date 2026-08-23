@@ -617,6 +617,13 @@ class TestDownloadToInboxMainFlow:
         ), patch(
             "pilotstd.tasks.favorite_download._download_with_retry",
             return_value=(True, None),
+        ), patch(
+            # 隔离通知副作用（同 test_polling_loop_finds_file_on_third_check）
+            "pilotstd.tasks.favorite_download._notify_download_started",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_complete",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_failed",
         ), patch("time.sleep"):
             download_to_inbox(1, 100, 999)
 
@@ -653,6 +660,14 @@ class TestDownloadToInboxMainFlow:
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
             return_value=Path("/tmp/inbox"),
+        ), patch(
+            # 隔离通知副作用：CI 环境下 send_event 走真实管道，
+            # 与全局 time.sleep patch 交互导致轮询 sleep 计数 flaky（assert 3 == 2）
+            "pilotstd.tasks.favorite_download._notify_download_started",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_complete",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_failed",
         ), patch(
             "time.sleep", mock_sleep
         ):
@@ -691,6 +706,13 @@ class TestDownloadToInboxMainFlow:
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
             return_value=Path("/tmp/inbox"),
+        ), patch(
+            # 隔离通知副作用（同 test_polling_loop_finds_file_on_third_check）
+            "pilotstd.tasks.favorite_download._notify_download_started",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_complete",
+        ), patch(
+            "pilotstd.tasks.favorite_download._notify_download_failed",
         ), patch("time.sleep"):
             download_to_inbox(1, 100, 999)
 
