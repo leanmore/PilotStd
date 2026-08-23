@@ -171,9 +171,10 @@ watch(() => route?.path, () => {
 
 <style scoped>
 /* fix(theme): 日志栏跟随主题——替代硬编码 terminal 色（原 #1a1a2e/#16213e/#c8d6e5）；
-   背景 --p-surface-0、正文 --p-content-color（Aura token 随主题注入），级别标签 [I] 用 --text-dim、[W]/[E] 用语义色 */
+   背景 --bg（与页面背景同色，深色下"沉入"不浮起；--p-surface-0 实测深色下为 surface 色
+   #1e293b，比背景浅会造成层级倒挂）、正文 --p-content-color、级别 [I] 用 --text-dim、[W]/[E] 语义色 */
 .log-bar {
-  background: var(--p-surface-0);
+  background: var(--bg);
   border: var(--mp-card-border, 1px solid var(--p-surface-200));
   border-radius: var(--radius-sm, 6px);
   margin-top: 12px;
