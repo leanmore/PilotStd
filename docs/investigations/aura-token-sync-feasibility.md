@@ -94,3 +94,36 @@ P1 实测（移除 B 阶段覆盖 + 注入 :root token 后）补充结论：
 - **根注入（:root，P2 实施）**：content/text/muted/hover/form-field/list-option/button-primary（blue/dark 浅色系；light/green 仅按钮）
 - **保留 CSS 覆盖（P3 决策）**：DataTable 表头/正文（组件作用域直接值）、日历选中日（组件作用域 + Aura 默认不达标）——见 `web/src/theme/aura-token-map.ts` 的 `RETAINED_CSS_OVERRIDES`
 - **Tag 覆盖可删除**（Aura 默认达标，做减法验证）
+
+## 七、P2 实证（2026-08，运行时注入机制）
+
+`useThemeSync` 新增 `syncAuraTextTokens()`（commit 37328b43）：
+
+```ts
+for (const token of ALL_MAPPED_TOKENS) root.style.removeProperty(token)  // 回退 Aura 默认
+for (const [token, value] of Object.entries(AURA_TOKEN_MAP[themeId] ?? {})) root.style.setProperty(token, value)
+```
+
+| 验收项 | 实证结果 |
+|---|---|
+| 四主题注入 | light/green `--p-content-color`=#334155（无内联，回退默认）；blue/dark =#e2e8f0（注入）✅ |
+| 连续切换 10 次（light↔dark） | 每次 dark #e2e8f0 / light 回退 #334155 且 inline=(none)，**无残留** ✅ |
+| 组件反白 | 移除日历覆盖后 header/weekday/day 由注入 token 接管（blue #e2e8f0 13.48:1）✅ |
+| 严禁空字符串 | 回退一律 `removeProperty`（空串会使 var() 解析失败）✅ |
+
+## 八、P3 去补丁化实证（2026-08）
+
+原子循环（移除 → audit → commit），每类独立 commit：
+
+| commit | 移除类 | audit 结果 |
+|---|---|---|
+| b98d72a3 | 日历文字（header/weekday/标题/箭头/输入框/非选中日，-40 行） | 四主题 9.89-13.48 ✅ |
+| abf65a2f | Tag 语义色（success/warn/info/danger，-23 行） | 四变体×四主题 4.52-5.3 ✅（green success 4.57 无同色系问题） |
+| e2c94da4 | primary 按钮（默认+light，-29 行） | 四主题 6.29-9.22 ✅ |
+| c3231475 | secondary 保留决策 + RETAINED 注释补全 | 全站复扫无回归 ✅ |
+
+**量化收益**：style.css 880 → 808 行（-72）；`!important` 覆盖 24 → 8 处（全部为保留项）。
+
+**最终保留覆盖（6 项，RETAINED 三要素注释）**：DataTable 表头/正文、Tag secondary、success/warning 按钮、secondary 按钮、日历选中日、日历边框/分隔线。
+
+**剩余非范围项**：11 条既有 `--text-dim` 说明文字（dashboard widget 标签/页面描述），属 `--text-dim` 变量设计问题（后续"变量重设计"低优先项）。
