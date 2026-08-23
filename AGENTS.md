@@ -143,21 +143,21 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 
 本节为 G-037 门禁硬依赖：`check_g_037_trigger_alignment.py` 从本节**读文档触发条件表**提取文档路径与 `docs/index.md` 比对，任一方向缺失即 CI 阻断。修改本节须同步更新 `docs/index.md`。
 
-| 触发条件 | 必须读取的文档 |
-|----------|---------------|
-| 任何代码修改任务 | `docs/governance/development-flow.md` |
-| 涉及数据库/Schema | `docs/architecture.md` |
-| 涉及公告解析/入库 | `docs/reference/announcement-pipeline.md` |
-| 涉及公告来源判断 | `docs/reference/announcement-sources.md` |
-| 开发或修改适配器 | `docs/reference/adapter-development.md` |
-| 涉及前端 UI 组件 | `docs/reference/ui-components.md` |
-| 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` |
-| 涉及门禁配置变更 | `docs/governance/gates.md` |
-| 涉及架构决策 | `docs/adr/` |
-| 涉及技术债 | `docs/technical-debt.md` |
-| 编写新代码时 | `docs/reference/coding-standards.md` |
-| 提交代码前 | `docs/reference/pre-commit-checklist.md` |
-| 不确定该读什么 | `docs/index.md` |
+| 触发条件 | 必须读取的文档 | 文档性质 |
+|----------|---------------|---------|
+| 任何代码修改任务 | `docs/governance/development-flow.md` | 人的指引 |
+| 涉及数据库/Schema | `docs/architecture.md` | 代码说明书 |
+| 涉及公告解析/入库 | `docs/reference/announcement-pipeline.md` | 代码说明书 |
+| 涉及公告来源判断 | `docs/reference/announcement-sources.md` | 代码说明书 |
+| 开发或修改适配器 | `docs/reference/adapter-development.md` | 人的指引 |
+| 涉及前端 UI 组件 | `docs/reference/ui-components.md` | 人的指引 |
+| 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` | 人的指引 |
+| 涉及门禁配置变更 | `docs/governance/gates.md` | 索引（G-031 强制同步） |
+| 涉及架构决策 | `docs/adr/` | 索引 |
+| 涉及技术债 | `docs/technical-debt.md` | 索引 |
+| 编写新代码时 | `docs/reference/coding-standards.md` | 人的指引 |
+| 提交代码前 | `docs/reference/pre-commit-checklist.md` | 人的指引 |
+| 不确定该读什么 | `docs/index.md` | 索引 |
 
 ### 8.2 回写侧（R-006 补充）
 
