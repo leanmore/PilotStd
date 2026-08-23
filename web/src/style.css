@@ -326,13 +326,27 @@ body .p-card {
    注：实测 warn 按钮为 orange-500(#f97316)，方案假设的 yellow-500 与实测不符，深色变体取 orange-600 */
 
 /* 默认 primary 按钮（PrimeVue 4 渲染为 .p-button 无 severity class、无 data-p-severity 属性；
-   实测被 Aura primary 色板(emerald-500)覆盖为 2.54:1）。用 --primary 品牌色 + #000 文字，
-   四主题黑字 on --primary 均 ≥4.5:1（light #6366f1 ≈ 4.58、green #22c55e ≈ 9.5、blue #0ea5e9、dark #818cf8） */
+   实测被 Aura primary 色板(emerald-500)覆盖为 2.54:1）。用 --primary 品牌色 + #000 文字 */
 html .p-button:not([data-p-severity]):not(.p-button-text),
 html .p-button.p-button-primary {
   background-color: var(--primary);
   border-color: var(--primary);
   color: #000;
+}
+
+/* fix(a11y): light 主题 indigo 底配白字观感更自然；#6366f1 白字实测仅 4.47:1 未达 AA，
+   底色调深为 indigo-600 #4f46e5（白字 ≈ 6.29:1 ✅）；green/blue/dark 保持黑字
+   （green #22c55e 白字 2.5:1、blue #0ea5e9 白字 2.78:1 均不达标） */
+html[data-theme="light"] .p-button:not([data-p-severity]):not(.p-button-text),
+html[data-theme="light"] .p-button.p-button-primary {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+html[data-theme="light"] .p-button:not([data-p-severity]):not(.p-button-text):hover,
+html[data-theme="light"] .p-button.p-button-primary:hover {
+  background-color: #4338ca;
+  border-color: #4338ca;
 }
 
 html .p-button.p-button-success {
@@ -800,4 +814,36 @@ html .p-button.p-button-secondary {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   fix(a11y): PrimeVue 4 DatePicker 日历面板高对比度覆盖
+   实测 DOM（PrimeVue 4.5）：table.p-datepicker-day-view / span.p-datepicker-day(.p-datepicker-day-selected)
+   / td.p-datepicker-day-cell(.p-datepicker-today)；方案中的 .p-datepicker-calendar / p-highlight / p-today
+   为旧版假设，已按实测改写。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 1. 选中日：emerald-700 底 + 白字（≈5.49:1 ✅；Aura 默认 emerald-500 白字实测仅 2.54:1） */
+html .p-datepicker-panel .p-datepicker-day-selected {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+}
+
+/* 2. 面板边框与表头分隔线：slate-300 增强边界感（默认 --p-content-border-color 过浅） */
+html .p-datepicker-panel {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+html .p-datepicker-panel .p-datepicker-day-view thead {
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+/* 3. 非选中日期文字：--text-secondary（浅色主题 ≥4.5:1，深色主题自动浅色） */
+html .p-datepicker-panel td > span.p-datepicker-day:not(.p-datepicker-day-selected) {
+  color: var(--text-secondary) !important;
+}
+
+/* 4. 今日标记边框：主题主色，增强可视性 */
+html .p-datepicker-panel td.p-datepicker-today > span {
+  border: 1px solid var(--primary) !important;
 }
