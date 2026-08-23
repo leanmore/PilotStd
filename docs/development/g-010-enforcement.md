@@ -15,9 +15,9 @@
 | G-010b | 函数行数 | ≤ 80 行 | AST 解析 `FunctionDef.end_lineno - lineno` |
 
 **例外**：
-- 测试文件 (`tests/`) 不受限制
+- 测试文件 (`tests/`) 不受限制（门禁扫描排除 `tests/` 目录）
 - 虚拟环境 (`.venv/`) 不受限制
-- 前端代码 (`web/`) 不受限制
+- 前端代码 (`web/`) 受门禁约束（.vue/.ts 文件纳入检查）
 - 数据文件 (JSON/CSV/配置) 不受限制
 
 ---
@@ -54,9 +54,9 @@
 
 ## 四、检查命令
 
-**文件行数**：
+**有效代码行数**（与门禁脚本口径一致）：
 ```bash
-find pilotstd docker -name '*.py' ! -path '*/tests/*' -exec wc -l {} + | sort -rn | head -20
+python scripts/check_g_010_code_size.py
 ```
 
 **函数行数**：
