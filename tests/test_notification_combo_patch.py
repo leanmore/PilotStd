@@ -17,10 +17,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class TestMaskedValueBlocking:
-    """验证 update_config 不把掩码值写回 DB。"""
+    """验证 update_config 将渠道配置透传给 set_channel（合并与掩码过滤下沉到凭据层）。"""
 
     def test_masked_bot_token_not_written(self):
-        """前端提交 bot_token='***' → DB 凭据不被覆盖。"""
+        """前端提交 bot_token='***' → update_config 透传原始值，掩码拦截由 set_channel 保证。"""
         from unittest.mock import MagicMock, patch
 
         from docker.api.notification import update_config
@@ -29,12 +29,6 @@ class TestMaskedValueBlocking:
         mock_mgr.notification_mgr = MagicMock()
         mock_cred = MagicMock()
         mock_mgr.notification_mgr._cred_helper = mock_cred
-        # 现有凭据含真实 token
-        mock_cred.get_channel.return_value = {
-            "enabled": "true",
-            "bot_token": "123456:REAL_TOKEN",
-            "chat_id": "-100123",
-        }
         mock_mgr.cfg = MagicMock()
         mock_mgr.user_service = MagicMock()
 
@@ -51,16 +45,14 @@ class TestMaskedValueBlocking:
         with patch("docker.api.notification.get_manager_dep", return_value=mock_mgr):
             update_config(request=MagicMock(), body=body, mgr=mock_mgr, user_id=1)
 
-        # set_channel 收到的 credentials 中 bot_token 仍是真实值（掩码被拦截 + Merge 保留）
+        # update_config 直接透传，掩码过滤由 CredentialHelper.set_channel 内部完成
         mock_cred.set_channel.assert_called_once()
         args = mock_cred.set_channel.call_args.args
         assert args[1] == "telegram"
-        merged = args[2]
-        assert merged["bot_token"] == "123456:REAL_TOKEN"
-        assert merged["chat_id"] == "-100123"
+        assert args[2]["bot_token"] == "***"  # 原始值透传
 
     def test_merge_preserves_unsubmitted_fields(self):
-        """前端仅提交 enabled → 现有 webhook_url 等字段保留（Merge 语义）。"""
+        """前端仅提交 enabled → 透传给 set_channel，保留逻辑由凭据层 Merge 保证。"""
         from unittest.mock import MagicMock, patch
 
         from docker.api.notification import update_config
@@ -69,11 +61,6 @@ class TestMaskedValueBlocking:
         mock_mgr.notification_mgr = MagicMock()
         mock_cred = MagicMock()
         mock_mgr.notification_mgr._cred_helper = mock_cred
-        mock_cred.get_channel.return_value = {
-            "enabled": "true",
-            "webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=REAL",
-            "corpid": "ww123",
-        }
         mock_mgr.cfg = MagicMock()
         mock_mgr.user_service = MagicMock()
 
@@ -89,13 +76,12 @@ class TestMaskedValueBlocking:
             update_config(request=MagicMock(), body=body, mgr=mock_mgr, user_id=1)
 
         mock_cred.set_channel.assert_called_once()
-        merged = mock_cred.set_channel.call_args.args[2]
-        assert merged["enabled"] == "false"  # 开关已更新
-        assert merged["webhook_url"] == "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=REAL"  # 保留
-        assert merged["corpid"] == "ww123"  # 保留
+        cfg = mock_cred.set_channel.call_args.args[2]
+        assert cfg["enabled"] is False  # 原样透传
+        assert "webhook_url" not in cfg  # 未提交字段不出现
 
     def test_empty_value_not_written(self):
-        """前端提交空 bot_token → 不覆盖（保留现有值）。"""
+        """前端提交空 bot_token → 透传给 set_channel，空值跳过由凭据层保证。"""
         from unittest.mock import MagicMock, patch
 
         from docker.api.notification import update_config
@@ -104,11 +90,6 @@ class TestMaskedValueBlocking:
         mock_mgr.notification_mgr = MagicMock()
         mock_cred = MagicMock()
         mock_mgr.notification_mgr._cred_helper = mock_cred
-        mock_cred.get_channel.return_value = {
-            "enabled": "true",
-            "bot_token": "123456:REAL_TOKEN",
-            "chat_id": "-100123",
-        }
         mock_mgr.cfg = MagicMock()
         mock_mgr.user_service = MagicMock()
 
@@ -125,8 +106,9 @@ class TestMaskedValueBlocking:
         with patch("docker.api.notification.get_manager_dep", return_value=mock_mgr):
             update_config(request=MagicMock(), body=body, mgr=mock_mgr, user_id=1)
 
-        merged = mock_cred.set_channel.call_args.args[2]
-        assert merged["bot_token"] == "123456:REAL_TOKEN"  # 空值不覆盖
+        mock_cred.set_channel.assert_called_once()
+        cfg = mock_cred.set_channel.call_args.args[2]
+        assert cfg["bot_token"] == ""  # 原样透传
 
 
 # ══════════════════════════════════════════════════════════════════════
