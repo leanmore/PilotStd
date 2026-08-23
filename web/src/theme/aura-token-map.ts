@@ -111,6 +111,19 @@ export const AURA_TOKEN_MAP: Record<ThemeId, AuraTokenMap> = {
 }
 
 /**
+ * --text-dim 重设计映射（fix(theme)）：原值 light/green 过浅（#94a3b8/#65a77d，2.3-2.6:1 不达标）。
+ * 新值四主题均 ≥4.5:1（light/green slate-500 #64748b；dark/blue slate-400 #94a3b8 保持），
+ * 保持"弱化/极次要/禁用态"语义同时达标。
+ * 由 syncAuraTextTokens 注入 --text-dim（与 themes.ts 的 applyThemeToDom 值一致，双保险）。
+ */
+export const AURA_TEXT_DIM_MAP: Record<ThemeId, string> = {
+  light: '#64748b',
+  dark: '#94a3b8',
+  green: '#64748b',
+  blue: '#94a3b8',
+}
+
+/**
  * 保留的 CSS 覆盖清单（P3 决策依据：功能需求/组件作用域 token 限制，非缺陷补丁）
  *
  * 1. DataTable 表头/正文文字（style.css .p-datatable .p-datatable-thead>tr>th 与 tbody td）：

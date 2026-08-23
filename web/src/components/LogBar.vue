@@ -170,24 +170,26 @@ watch(() => route?.path, () => {
 </template>
 
 <style scoped>
-/* intentionally hardcoded terminal style — not theme-aware */
+/* fix(theme): 日志栏跟随主题——替代硬编码 terminal 色（原 #1a1a2e/#16213e/#c8d6e5）；
+   背景 --p-surface-0、正文 --p-content-color（Aura token 随主题注入），级别标签 [I] 用 --text-dim、[W]/[E] 用语义色 */
 .log-bar {
-  background: #1a1a2e;
-  border: 1px solid #333;
+  background: var(--p-surface-0);
+  border: var(--mp-card-border, 1px solid var(--p-surface-200));
   border-radius: var(--radius-sm, 6px);
   margin-top: 12px;
   overflow: hidden;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   position: relative;
+  color: var(--p-content-color);
 }
 .log-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  background: #16213e;
-  color: #a0aec0;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
   font-weight: 500;
@@ -199,11 +201,14 @@ watch(() => route?.path, () => {
   padding: 6px 12px;
   transition: max-height 0.2s ease;
 }
-.log-line { color: #c8d6e5; line-height: 1.5; white-space: pre; }
-.log-line.log-warn { color: #f0c040; }
-.log-line.log-err { color: #e74c3c; }
-.log-empty { color: #555; text-align: center; padding: 12px; }
-.log-err-msg { color: #e74c3c; }
+/* [I]/普通日志行：弱化辅助文字（重设计后 --text-dim 四主题 ≥4.5:1） */
+.log-line { color: var(--text-dim); line-height: 1.5; white-space: pre; }
+/* [W] 警告行：语义色（非 dim，保持醒目） */
+.log-line.log-warn { color: var(--warning); }
+/* [E] 错误行：语义色（非 dim） */
+.log-line.log-err { color: var(--danger); }
+.log-empty { color: var(--text-dim); text-align: center; padding: 12px; }
+.log-err-msg { color: var(--danger); }
 .collapsed .log-body { display: none; }
 
 /* 拖拽调整高度手柄 */

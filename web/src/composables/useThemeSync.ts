@@ -6,7 +6,7 @@ import { watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { isDarkTheme, THEMES } from '@/config/themes'
 import { updateSurfacePalette } from '@primeuix/themes'
-import { AURA_TOKEN_MAP } from '@/theme/aura-token-map'
+import { AURA_TEXT_DIM_MAP, AURA_TOKEN_MAP } from '@/theme/aura-token-map'
 
 /**
  * 将当前主题的 surface 颜色动态注入 Aura 色板（亮色 + 暗色同时更新）。
@@ -69,6 +69,8 @@ function syncAuraTextTokens(themeId: keyof typeof AURA_TOKEN_MAP) {
   }
   // 2) 显式注入当前主题全套 token
   for (const [token, value] of Object.entries(map)) root.style.setProperty(token, value)
+  // 3) --text-dim 重设计注入（四主题 ≥4.5:1；与 themes.ts applyThemeToDom 值一致，双保险防覆盖顺序）
+  root.style.setProperty('--text-dim', AURA_TEXT_DIM_MAP[themeId] ?? root.style.getPropertyValue('--text-dim'))
 }
 
 /**
