@@ -449,29 +449,10 @@ html .p-button.p-button-secondary {
   padding: 3px 9px;
 }
 
-.p-tag.p-tag-success {
-  background: var(--success-bg);
-  color: var(--success-text);
-}
-
-.p-tag.p-tag-danger {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.p-tag.p-tag-warning,
-.p-tag.p-tag-warn {
-  background: var(--warning-bg);
-  color: var(--warn-text);
-}
-
-.p-tag.p-tag-info {
-  background: var(--info-bg);
-  color: var(--info-text);
-}
-
-/* fix(a11y): 状态标签(草稿等 secondary)由 --border/--text-dim 改为 --surface-raised/--text——
-   绿色主题实测 2.35:1 "隐身"，新组合四主题均 ≥4.5:1（浅色深字/深色浅字随主题自动适配） */
+/* RETAINED: Tag secondary (草稿等) override
+   Reason: Aura 默认 secondary 标签为 surface.100 + text.muted(#64748b)，浅色主题实测 2.08-2.35:1
+   （修复前）不达标；改用 --surface-raised/--text 后四主题 ≥4.5:1（浅色深字/深色浅字自适应）。
+   See: docs/reference/announcement-contrast 修复记录（公告页 #7） */
 .p-tag.p-tag-secondary {
   background: var(--surface-raised);
   color: var(--text);
