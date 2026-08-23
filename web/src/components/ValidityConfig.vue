@@ -82,11 +82,12 @@ const executionCount = computed(() => {
   return total_weeks / frequency_weeks
 })
 
-// ✅ #43: 计算每次覆盖比例
+// ✅ #43: 计算每次覆盖比例（F / T × 100，联动后 F 可能 ≠ 1，不能再用 100/T 假设）
 const checkRatioDisplay = computed(() => {
   const total = config.value.total_weeks
-  if (!total || total < 4) return 0
-  return (100 / total).toFixed(1)
+  const freq = config.value.frequency_weeks
+  if (!total || total < 4 || !freq || freq < 1) return 0
+  return ((freq / total) * 100).toFixed(1)
 })
 
 // 首次执行时间（展示用）
@@ -105,9 +106,66 @@ const isValid = computed(() => {
   return true
 })
 
-function onFrequencyChange() {
-  if (config.value.frequency_weeks > config.value.total_weeks) {
-    config.value.frequency_weeks = config.value.total_weeks
+// 防循环标志：代码赋值触发组件 @update:modelValue 链路时防止双向联动死循环
+let isUpdating = false
+
+/**
+ * 正向联动：T 或 F 变化 → 重算 P
+ * 边界保护：F 截断到 [1, T]；T 由组件 blur 时 clamp 到 [4, 52]
+ * Null 防御（方案 A）：PrimeVue allowEmpty=true，清空输入后 modelValue 为 null，
+ * 入口直接跳过，避免 NaN 污染。不用 allow-empty=false 是因为其清空回退值为 0，
+ * 0 进入 F/T 会产生 Infinity，比 null 更危险；且组件 blur clamp 已保证合法范围。
+ */
+function onTotalOrFreqChange() {
+  if (isUpdating) return
+  isUpdating = true
+  try {
+    const T = config.value.total_weeks
+    let F = config.value.frequency_weeks
+    if (T == null || F == null || !Number.isFinite(T) || !Number.isFinite(F)) return
+
+    // 边界保护：F 不能大于 T，不能小于 1
+    if (F > T) F = T
+    if (F < 1) F = 1
+    config.value.frequency_weeks = F
+
+    // 重算 P（Math.round(x*10000)/100 规避 IEEE 754 浮点精度边缘风险）
+    const newRatio = Math.round((F / T) * 10000) / 100
+    if (config.value.check_ratio !== newRatio) {
+      config.value.check_ratio = newRatio
+    }
+  } finally {
+    isUpdating = false
+  }
+}
+
+/**
+ * 反向联动：P 变化 → 反推 F（标准四舍五入，.5 向上取整）→ 用最终 F 回写 P
+ */
+function onCheckRatioChange() {
+  if (isUpdating) return
+  isUpdating = true
+  try {
+    const T = config.value.total_weeks
+    const P = config.value.check_ratio
+    if (T == null || P == null || !Number.isFinite(T) || !Number.isFinite(P)) return
+
+    // 反推 F（标准四舍五入，.5 向上取整）
+    let newF = Math.round((P / 100) * T)
+
+    // 边界保护：F 必须在 [1, T] 区间内
+    if (newF < 1) newF = 1
+    if (newF > T) newF = T
+
+    config.value.frequency_weeks = newF
+
+    // 用最终的 F 回写 P（保证 F 为整数时 P 严格对应）
+    const finalRatio = Math.round((newF / T) * 10000) / 100
+    if (config.value.check_ratio !== finalRatio) {
+      config.value.check_ratio = finalRatio
+    }
+  } finally {
+    isUpdating = false
   }
 }
 
@@ -231,13 +289,20 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
         <label>首次执行（时间）</label>
         <DatePicker v-model="executeTimeDate" timeOnly hourFormat="24" class="field-control" />
       </div>
-      <!-- ✅ #43: 总周期 -->
+      <!-- ✅ #43: 总周期（联动源：T 变化 → 重算 P） -->
       <div class="field">
         <label>总周期（周）</label>
-        <InputNumber v-model="config.total_weeks" :min="4" :max="52" :step="1" show-buttons />
-        <small class="field-hint">完成全部检查所需总周数，最低 4 周</small>
+        <InputNumber
+          v-model="config.total_weeks"
+          :min="4"
+          :max="52"
+          :step="1"
+          show-buttons
+          @update:modelValue="onTotalOrFreqChange"
+        />
+        <small class="field-hint">完成全部检查所需总周数（4~52 周）</small>
       </div>
-      <!-- ✅ #43: 执行频率 -->
+      <!-- ✅ #43: 执行频率（联动源：F 变化 → 重算 P） -->
       <div class="field">
         <label>执行频率（周）</label>
         <InputNumber
@@ -246,7 +311,7 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           :max="config.total_weeks"
           :step="1"
           show-buttons
-          @update:modelValue="onFrequencyChange"
+          @update:modelValue="onTotalOrFreqChange"
         />
         <small class="field-hint">每隔几周执行一次</small>
       </div>
@@ -258,9 +323,20 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
         <label>批间隔（秒）</label>
         <InputNumber v-model="config.batch_interval" :min="1" show-buttons />
       </div>
+      <!-- ✅ #43: 检查比例（联动源：P 变化 → 反推 F 并回写 P） -->
       <div class="field">
         <label>检查比例（%）</label>
-        <InputNumber v-model="config.check_ratio" :min="1" :max="100" show-buttons />
+        <InputNumber
+          v-model="config.check_ratio"
+          :min="0.01"
+          :max="100"
+          :step="0.1"
+          :min-fraction-digits="2"
+          :max-fraction-digits="2"
+          show-buttons
+          @update:modelValue="onCheckRatioChange"
+        />
+        <small class="field-hint">修改后自动回填对应执行频率</small>
       </div>
     </div>
 
