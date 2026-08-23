@@ -260,3 +260,5 @@
 - ④ 文件名：提示词称修复 repo-compliance.yml，该文件**不存在**（GUI 测试在 ci.yml，pytest-qt 已正确配置）
 - ⑤ 预期值：提示词称 G-032 应降到 ≤3 条，实测 8 条（其中 legacy-manual 6 条是设计保留）
 **验证标准**：执行涉及具体数字/路径/文件的指令前，先运行实测命令（mypy/门禁脚本/glob 定位），交付报告中列出"提示词 vs 实测"差异表。
+
+**P-116 补充（迁移 checksum 纪律，2026-08-23 沉淀）**：当项目存在迁移 checksum 校验机制（`_migration_checksum.py` 对已执行版本做函数源码哈希比对）时，**禁止对已执行版本的迁移函数进行任何形式的源码变更**——合并、拆分、重排、添加装饰器均会使 `inspect.getsource` 返回值变化，导致生产库 `_schema_version` 校验失败、启动即抛 `DatabaseError`。压缩 `migrations.py` 的**唯一安全方式**是将内联函数**逐字符原样移动**到独立模块（保留装饰器与函数体不变），保持 `inspect.getsource` 返回值不变；移动后用 `norm_checksum` 与生产库存储值逐版本实测比对确认一致。
