@@ -260,7 +260,7 @@ onBeforeUnmount(() => {
       <Card class="mb-4">
         <template #title>
           <div class="flex justify-content-between align-items-center">
-            <span class="flex-1 text-center truncate px-2 text-xl font-semibold">{{ announcement?.announce_no }}</span>
+            <span class="flex-1 text-center truncate px-2 text-xl font-semibold" style="color:var(--text-heading)">{{ announcement?.announce_no }}</span>
             <Tag :value="parseStatusLabel" :severity="parseStatusSeverity" />
             <Button
               icon="pi pi-undo"
@@ -451,13 +451,13 @@ onBeforeUnmount(() => {
   outline-offset: 2px;
 }
 
-/* 标题居中 — 使用 :deep() 穿透到 PrimeVue Card 内部，提高特异性对抗 Aura 的 .p-card-content p */
+/* fix(a11y): 标题/公告号强制 --text-heading，阻断 Aura 亮色 token 继承（深色主题 1.8:1→≥8:1）。标题居中 — :deep() 穿透 Card，提高特异性对抗 Aura 的 .p-card-content p */
 :deep(.p-card-content) .announce-title {
   font-size: 22px;
   font-weight: bold;
   text-align: center;
   line-height: 1.8;
-  margin: 0.5rem 0;
+  margin: 0.5rem 0; color: var(--text-heading);
 }
 
 .official-doc {

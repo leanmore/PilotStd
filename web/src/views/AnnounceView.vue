@@ -127,10 +127,11 @@ function onPage(e: any) {
       <template #list="slotProps">
         <div v-for="(item, idx) in slotProps.items" :key="item.announce_no || idx" class="p-2 border-bottom announce-row" @click="router.push('/announce/' + (SOURCE_TO_URL[item.source_site] || 'unknown') + '/' + encodeURIComponent(item.announce_no))">
           <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border-light)">
-            <strong style="min-width:140px;flex-shrink:0">{{ item.announce_no }}</strong>
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ item.announcement_title }}</span>
-            <span v-if="item.standard_count" style="min-width:60px;font-size:12px;color:var(--text-dim);flex-shrink:0">({{ item.standard_count }}项)</span>
-            <span style="min-width:90px;font-size:12px;color:var(--text-dim);flex-shrink:0">{{ item.publish_date }}</span>
+            <!-- fix(a11y): 公告号/标题强制 --text-heading——--text-bright 在绿色主题实测仅 4.46:1 未达 AA，--text-heading 四主题 ≥8:1；同时阻断 Aura 亮色 token(#334155) 继承，深色主题对比度 1.8:1→≥8:1；日期/数量由 --text-dim 加深为 --text，绿色主题 2.3:1→≈6.3:1 -->
+            <strong style="min-width:140px;flex-shrink:0;color:var(--text-heading)">{{ item.announce_no }}</strong>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-heading)">{{ item.announcement_title }}</span>
+            <span v-if="item.standard_count" style="min-width:60px;font-size:12px;color:var(--text);flex-shrink:0">({{ item.standard_count }}项)</span>
+            <span style="min-width:90px;font-size:12px;color:var(--text);flex-shrink:0">{{ item.publish_date }}</span>
           </div>
         </div>
       </template>
@@ -151,7 +152,8 @@ function onPage(e: any) {
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; text-align: center; }
-.stat-num { font-size: 28px; font-weight: 700; color: var(--primary); font-family: var(--mono); }
+/* fix(a11y): 统计数字改用 --text-heading——项目无 --primary-dark 深色变体，--primary-hover 绿色主题实测 3.14:1、--text-bright 4.46:1 均不达标或余量不足；--text-heading 四主题 ≥8:1 */
+.stat-num { font-size: 28px; font-weight: 700; color: var(--text-heading); font-family: var(--mono); }
 .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
 .border-bottom { border-bottom: 1px solid var(--border-light, #e5e7eb); }
