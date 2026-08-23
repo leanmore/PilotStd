@@ -65,7 +65,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#f8fafc',
       border: '#e2e8f0',
       borderLight: '#f1f5f9',
-      textDim: '#64748b',       // fix(theme): --text-dim 重设计（原 #94a3b8 浅色主题 2.6:1 不达标；slate-500 on #fff ≈ 4.6:1）
+      textDim: '#5f6f82',       // fix(theme): --text-dim 重设计（on --bg #f1f5f9 ≈ 4.69:1，保留弱化感；原 #64748b 实测仅 4.34）
       // fix(a11y): 实测辅助文字多落在 surface-raised(#f1f5f9) 上，#64748b 仅 4.34:1；#5b6b80 实测 4.96:1(on #f1f5f9)/5.44:1(on #ffffff)
       textSecondary: '#5b6b80',
       text: '#475569',
@@ -113,7 +113,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#334155',
       border: '#475569',
       borderLight: '#334155',
-      textDim: '#94a3b8',
+      textDim: '#a3afc2',       // fix(theme): --text-dim 重设计（on surface-raised #334155 ≈ 4.65:1；原 #94a3b8 实测仅 4.04）
       textSecondary: '#94a3b8',   // 浅色辅助文字 on 深色底
       text: '#cbd5e1',
       textBright: '#e2e8f0',
@@ -160,7 +160,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#dcfce7',
       border: '#bbf7d0',
       borderLight: '#dcfce7',
-      textDim: '#64748b',       // fix(theme): --text-dim 重设计（原 #65a77d 淡绿 on 浅绿 2.3:1 不达标；slate-500 ≈ 4.5:1）
+      textDim: '#5f6f82',       // fix(theme): --text-dim 重设计（on --bg #e8f5e9 ≈ 4.55:1；原 #65a77d 仅 2.3:1、#64748b 实测 4.23）
       textSecondary: '#3d7a52',   // on #f6fbf7 ≈ 4.88:1 ✅
       text: '#166534',
       textBright: '#15803d',
@@ -207,7 +207,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#1e293b',
       border: '#1e293b',
       borderLight: '#1e293b',
-      textDim: '#94a3b8',
+      textDim: '#a3afc2',       // fix(theme): --text-dim 重设计（on surface-raised ≈ 4.65:1）
       textSecondary: '#94a3b8',   // 浅色辅助文字 on 深蓝底
       text: '#cbd5e1',
       textBright: '#e2e8f0',

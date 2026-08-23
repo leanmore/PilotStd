@@ -439,7 +439,7 @@ function statusLabel(s: string) {
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--border);
-  color: var(--text-dim);
+  color: var(--text);
   font-size: 13px; font-weight: 600;
   flex-shrink: 0;
 }

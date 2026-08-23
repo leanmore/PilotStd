@@ -15,8 +15,8 @@
   --border-light: #f1f5f9;
 
   /* 文字层级 */
-  /* fix(theme): --text-dim 重设计——原 #94a3b8 浅色主题仅 2.6:1 不达标；#64748b (slate-500) on #fff ≈ 4.6:1 */
-  --text-dim: #64748b;
+  /* fix(theme): --text-dim 重设计——on --bg #f1f5f9 ≈ 4.69:1（原 #94a3b8 2.6:1、#64748b 实测 4.34 均不达标） */
+  --text-dim: #5f6f82;
   /* fix(a11y): 辅助文字色（label/表头/次要按钮）。实测辅助文字多位于 surface-raised(#f1f5f9) 上，
      #64748b 仅 4.34:1 不达标，改用 #5b6b80（on #f1f5f9 ≈ 4.96:1 ✅）；--text-dim 保留极次要/禁用态语义 */
   --text-secondary: #5b6b80;

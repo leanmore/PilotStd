@@ -111,16 +111,16 @@ export const AURA_TOKEN_MAP: Record<ThemeId, AuraTokenMap> = {
 }
 
 /**
- * --text-dim 重设计映射（fix(theme)）：原值 light/green 过浅（#94a3b8/#65a77d，2.3-2.6:1 不达标）。
- * 新值四主题均 ≥4.5:1（light/green slate-500 #64748b；dark/blue slate-400 #94a3b8 保持），
- * 保持"弱化/极次要/禁用态"语义同时达标。
- * 由 syncAuraTextTokens 注入 --text-dim（与 themes.ts 的 applyThemeToDom 值一致，双保险）。
+ * --text-dim 重设计映射（fix(theme) 第二轨）：审计发现原方案值 on 实际背景不达标
+ * （light/green #64748b on --bg #f1f5f9 仅 4.34、dark/blue #94a3b8 on surface-raised #334155 仅 4.04），
+ * 已调优：light/green #5f6f82（on --bg ≈ 4.69）、dark/blue #a3afc2（on surface-raised ≈ 4.65）。
+ * 由 syncAuraTextTokens 注入 --text-dim（与 themes.ts applyThemeToDom 值一致，双保险）。
  */
 export const AURA_TEXT_DIM_MAP: Record<ThemeId, string> = {
-  light: '#64748b',
-  dark: '#94a3b8',
-  green: '#64748b',
-  blue: '#94a3b8',
+  light: '#5f6f82',
+  dark: '#a3afc2',
+  green: '#5f6f82',
+  blue: '#a3afc2',
 }
 
 /**
