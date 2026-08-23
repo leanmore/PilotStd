@@ -305,13 +305,14 @@ class TestConfigPaths(unittest.TestCase):
 
         config = MagicMock()
         config.get.return_value = "/tmp/lib"
-        os.environ["STANDARD_ROOT"] = "/env/stdroot"
-        try:
-            # env 优先于 config
-            root = get_library_root(config)
-            self.assertIn("env", root)
-        finally:
-            del os.environ["STANDARD_ROOT"]
+        with tempfile.TemporaryDirectory(prefix="env_stdroot_") as env_root:
+            os.environ["STANDARD_ROOT"] = env_root
+            try:
+                # env 优先于 config
+                root = get_library_root(config)
+                self.assertIn("env_stdroot", root)
+            finally:
+                del os.environ["STANDARD_ROOT"]
 
     def test_get_data_dir_returns_string(self):
         from pilotstd.core.config.paths import get_data_dir

@@ -153,12 +153,13 @@ class TestSharedMakeManager(unittest.TestCase):
         self.assertIsInstance(mgr, StandardManager)
 
     def test_make_manager_custom_storage_root(self):
-        """storage_root 参数应传递给配置。"""
+        """storage_root 参数应传递给配置（用临时目录，避免盘符根目录残留）。"""
         from pilotstd.cli.commands._shared import _make_manager
 
-        mgr = _make_manager(storage_root="/custom/path")
-        root = mgr.cfg.get("storage.root_dir")
-        self.assertEqual(root, "/custom/path")
+        with tempfile.TemporaryDirectory(prefix="pilotstd_test_") as td:
+            storage_root = os.path.join(td, "custom", "path")
+            mgr = _make_manager(storage_root=storage_root)
+            self.assertEqual(mgr.cfg.get("storage.root_dir"), storage_root)
 
 
 if __name__ == "__main__":

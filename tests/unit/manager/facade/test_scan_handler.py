@@ -279,15 +279,16 @@ class TestScanAndIndex:
         handler.scan_and_index()
         mock_core.notification_mgr.send_event.assert_called_with("scan_empty", {})
 
-    def test_scheduled_svc_exception_sends_auto_scan_failed(self, handler, mock_core):
+    def test_scheduled_svc_exception_sends_auto_scan_failed(self, handler, mock_core, tmp_path):
         """scheduled_svc 异常 → auto_scan_failed 通知 + 返回兜底结果。"""
         mock_core.scheduled_svc.scan_and_index.side_effect = RuntimeError("DB error")
+        scan_path = str(tmp_path / "custom" / "path")
 
-        result = handler.scan_and_index("/custom/path")
+        result = handler.scan_and_index(scan_path)
         assert result == {"indexed": 0, "skipped": 0, "failed": 1}
         mock_core.notification_mgr.send_event.assert_any_call(
             "auto_scan_failed",
-            {"path": "/custom/path", "error": "DB error"},
+            {"path": scan_path, "error": "DB error"},
         )
 
     def test_scheduled_svc_exception_no_notification_mgr(self, handler, mock_core):

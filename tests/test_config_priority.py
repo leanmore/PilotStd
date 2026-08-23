@@ -68,10 +68,11 @@ class TestPriorityConfigManager(unittest.TestCase):
         self.assertEqual(mgr.get("NONEXISTENT_KEY", "fallback"), "fallback")
 
     def test_file_overrides_factory(self):
+        custom_root = os.path.join(self.tmpdir, "custom", "path")
         with open(self.config_path, "w", encoding="utf-8") as f:
-            json.dump({"STANDARD_ROOT": "/custom/path"}, f)
+            json.dump({"STANDARD_ROOT": custom_root}, f)
         mgr = PriorityConfigManager(self.config_path)
-        self.assertEqual(mgr.get("STANDARD_ROOT"), "/custom/path")
+        self.assertEqual(mgr.get("STANDARD_ROOT"), custom_root)
 
     def test_env_new_overrides_file(self):
         with open(self.config_path, "w", encoding="utf-8") as f:

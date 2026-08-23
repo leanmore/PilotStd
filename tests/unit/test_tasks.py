@@ -587,7 +587,7 @@ class TestNotifyDownloadFailed:
 
 
 class TestDownloadToInboxMainFlow:
-    def test_download_phase_updates_status_to_downloading(self):
+    def test_download_phase_updates_status_to_downloading(self, tmp_path):
         """下载阶段：状态更新为 'downloading'。"""
         db = MagicMock()
         # record found
@@ -610,7 +610,7 @@ class TestDownloadToInboxMainFlow:
             side_effect=[None, None],
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=Path("/tmp/inbox"),
+            return_value=tmp_path / "tmp" / "inbox",
         ), patch(
             "pilotstd.tasks.favorite_download._get_download_url",
             return_value="https://dl.example.com/file.pdf",
@@ -635,7 +635,7 @@ class TestDownloadToInboxMainFlow:
         # downloading → archiving → done
         assert len(status_updates) >= 2
 
-    def test_polling_loop_finds_file_on_third_check(self):
+    def test_polling_loop_finds_file_on_third_check(self, tmp_path):
         """轮询循环：第3次检查找到文件 → 正常退出。"""
         db = MagicMock()
         db.execute.return_value.fetchone.side_effect = [
@@ -659,7 +659,7 @@ class TestDownloadToInboxMainFlow:
             return_value=(True, None),
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=Path("/tmp/inbox"),
+            return_value=tmp_path / "tmp" / "inbox",
         ), patch(
             # 隔离通知副作用：CI 环境下 send_event 走真实管道，
             # 与全局 time.sleep patch 交互导致轮询 sleep 计数 flaky（assert 3 == 2）
@@ -682,7 +682,7 @@ class TestDownloadToInboxMainFlow:
         ]
         assert len(done_updates) >= 1
 
-    def test_polling_loop_timeout_updates_failed(self):
+    def test_polling_loop_timeout_updates_failed(self, tmp_path):
         """轮询超时（30次都未找到）→ 更新状态为 failed。"""
         db = MagicMock()
         # 需要足够的 fetchone 返回值：record + 各种中间查询
@@ -705,7 +705,7 @@ class TestDownloadToInboxMainFlow:
             return_value=(True, None),
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=Path("/tmp/inbox"),
+            return_value=tmp_path / "tmp" / "inbox",
         ), patch(
             # 隔离通知副作用（同 test_polling_loop_finds_file_on_third_check）
             "pilotstd.tasks.favorite_download._notify_download_started",
@@ -749,7 +749,7 @@ class TestDownloadToInboxMainFlow:
         ]
         assert len(failed_updates) >= 1
 
-    def test_download_fails_notifies_and_updates_failed(self):
+    def test_download_fails_notifies_and_updates_failed(self, tmp_path):
         """下载失败 → 通知失败 + 更新状态为 failed。"""
         db = MagicMock()
         db.execute.return_value.fetchone.side_effect = [
@@ -765,7 +765,7 @@ class TestDownloadToInboxMainFlow:
             return_value=None,
         ), patch(
             "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=Path("/tmp/inbox"),
+            return_value=tmp_path / "tmp" / "inbox",
         ), patch(
             "pilotstd.tasks.favorite_download._get_download_url",
             return_value="https://dl.example.com/file.pdf",
