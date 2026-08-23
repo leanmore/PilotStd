@@ -42,6 +42,21 @@ export interface NotificationConfig {
   rules: Record<string, string[]>
 }
 
+/**
+ * 保存/更新配置的请求体：渠道内字段允许部分提交（敏感字段掩码/空值不提交，
+ * 由后端保留 DB 原值——增量语义，见 NotificationConfig.vue cleanChannel）。
+ */
+export interface NotificationConfigUpdate {
+  enabled?: boolean
+  channels?: {
+    wechat?: Partial<WechatChannelConfig>
+    telegram?: Partial<TelegramChannelConfig>
+    feishu?: Partial<FeishuChannelConfig>
+    dingtalk?: Partial<DingTalkChannelConfig>
+  }
+  rules?: Record<string, string[]>
+}
+
 export interface NotificationLog {
   id: number
   event_type: string
@@ -68,7 +83,7 @@ export interface NotificationLogResponse {
 export const getNotificationConfig = (routeTag?: RouteTag): Promise<NotificationConfig> =>
   http.get('/notification/config', { routeTag }).then(r => r.data)
 
-export const putNotificationConfig = (data: Partial<NotificationConfig>): Promise<{ ok: boolean }> =>
+export const putNotificationConfig = (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
   http.put('/notification/config', data).then(r => r.data)
 
 export const testNotification = (
