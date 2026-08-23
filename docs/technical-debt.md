@@ -1,7 +1,7 @@
 # 技术债登记
 
 > 版本：v1.0.0
-> 更新日期：2026-07-16
+> 更新日期：2026-08-23
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
 
 ---
@@ -34,6 +34,7 @@
 | 8 | test_04_large_batch_sub_buckets | `tests/test_query.py:998` | 测试并发竞态 | 同上（bucket 并发 + config.json 锁）；🟡 中，修复：`xdist_group` 串行化 | 2026-08-15 |
 | 9 | notification.py user_id 误用 | `docker/api/notification.py:28` | 逻辑隐患 | `_get_user_id` 把 get_current_user_id 返回的 user_id 传给按 username 查询的 get_user_id，查不到时兜底返回 1，多用户场景会把所有用户解析为用户 1；🟡 中，与 favorites.py 已修复问题同类 | 2026-08-20 |
 | 10 | test_api_snapshot.py 污染 test_docker_auth.py | `tests/test_api_snapshot.py:18-20` | 测试隔离缺陷 | 模块级 `os.environ.setdefault(ADMIN_PASSWORD/SUPERUSER)` 影响后导入的 test_docker_auth.py（其 setdefault 空转、fixture 按污染值建超管用户导致登录 401）；CI 靠 xdist 分进程规避，本地串行执行会失败 | 2026-08-20 |
+| 11 | G-010 警告基线 | 9 文件（400–500 有效代码行，详见 [登记簿](architecture/technical-debt-registry.md) 第六节） | G-010 警告（不阻断） | 警告档仅 stderr 提示、exit 0，不阻断 CI/合并；Boy Scout Rule：随改随拆（新增功能/修 Bug 时抽离大函数自然降行），不强制排期 | 2026-08-23 |
 
 ---
 

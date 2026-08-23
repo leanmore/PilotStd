@@ -1,6 +1,6 @@
 # 技术债登记簿
 
-> 更新日期：2026-07-20
+> 更新日期：2026-08-23
 > 维护规则：每次接受的技术决策或跳过的测试在此登记
 
 ---
@@ -99,4 +99,24 @@
 | # | 项目 | 影响范围 | 原因 | 处理方式 |
 |---|------|---------|------|---------|
 | 14 | `pytest-asyncio` | `tests/test_health.py` 5 个异步测试 | 新增 /api/health 端点单元测试使用 `@pytest.mark.asyncio`，需额外安装 `pytest-asyncio` 包 | 2026-07-20 手动 `pip install pytest-asyncio` 后本地通过；CI runner 尚未验证是否已自带此包，若 CI 失败需在 `requirements*.txt` 中补充依赖 |
+
+---
+
+## 六、G-010 警告基线（Backlog，9 文件）
+
+> 状态：backlog（不阻断 CI——警告档仅 stderr 提示，exit 0）
+> 处置：Boy Scout Rule——后续新增功能/修复缺陷时顺手抽离大函数，自然降低有效代码行数；不强制排期拆分
+> 规则：警告档 = 有效代码行 >400 且 ≤500（`scripts/check_g_010_code_size.py` 两档制）；阻断档（>500）当前 0 文件
+
+| # | 文件 | 类型 | 有效代码行 | 总行 |
+|---|------|------|-----------|------|
+| 1 | `scripts/check_g_012_sql_schema.py` | .py | 499 | 634 |
+| 2 | `docker/auth.py` | .py | 490 | 610 |
+| 3 | `web/src/views/AnnounceDetail.vue` | .vue | 476 | 537 |
+| 4 | `docker/api/announce_detail.py` | .py | 454 | 577 |
+| 5 | `pilotstd/core/notification/manager.py` | .py | 447 | 509 |
+| 6 | `scripts/check_g_012_comment_density.py` | .py | 440 | 586 |
+| 7 | `pilotstd/core/db/_migrate_v16_v49.py` | .py | 438 | 530 |
+| 8 | `web/src/components/AppLayout.vue` | .vue | 433 | 537 |
+| 9 | `web/src/components/NotificationConfig.vue` | .vue | 426 | 469 |
 ```
