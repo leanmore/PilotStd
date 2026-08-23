@@ -294,8 +294,8 @@
 **环境 3：验证环境（Verification）🌟 修复验证首选**
 - 本地修改后的新代码（前端 Vite dev server）+ 局域网 Docker 真实后端 API（Proxy/baseURL 连接）
 - 触发场景：**修复完成后、合入之前**，必须在此环境验证真实数据渲染正常
-- 实现：前端 `npm run dev`；后端连接 `http://局域网DockerIP:端口/api/`
-- 无需打包部署，刷新本地浏览器即可验证真实 API 响应
+- 实现：前端 `npm run dev`（`web/` 目录，端口 5173，`vite.config.ts` 代理 `/api` → `VITE_API_TARGET` 或默认 `http://192.168.1.18:9028`）；无需打包部署，刷新本地浏览器即可验证真实 API 响应
+- **访问凭证（位置固定，勿再搜索）**：`config/docker_creds.json`（`.gitignore` 永久排除、不入库；含 `base_url`/`username`/`password` 及已失效的 `api_token`）。认证方式：`POST /api/login` 表单（username/password）→ 拿 `pilotstd_token` + `csrf_token` session cookie 后调用 API；**静态 API token（`pst_` 前缀）已失效**（2026-08-22 远程重启后重新生成），勿再尝试。该 JSON 含 GBK 中文注释，`ConvertFrom-Json` 解析会失败，需正则提取 ASCII 字段或按行读取
 
 **环境 4：复现环境（Reproduction）🌟 疑难杂症排查首选**
 - 通过 Git 切换到**旧代码**（修改前/发版前 commit）+ 同一 Docker 后端 API
