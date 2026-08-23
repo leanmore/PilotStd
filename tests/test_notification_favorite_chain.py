@@ -111,7 +111,7 @@ class TestFavoriteCreatedEvent:
 class TestDownloadChainEvents:
     """验证 download_to_inbox 触发 download_started / download_complete / download_failed。"""
 
-    def test_download_started_sent_before_download(self):
+    def test_download_started_sent_before_download(self, tmp_path):
         """下载开始 → send_event('download_started') 被调用。"""
         from unittest.mock import MagicMock, patch
 
@@ -131,6 +131,7 @@ class TestDownloadChainEvents:
             patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db),
             patch("pilotstd.tasks.favorite_download._find_in_file_index", mock_find),
             patch("pilotstd.tasks.favorite_download._get_download_url", mock_url),
+            patch("pilotstd.tasks.favorite_download._get_inbox_dir", return_value=tmp_path / "tmp" / "inbox"),
             patch("pilotstd.tasks.favorite_download._notify_download_started") as mock_start,
             patch("pilotstd.tasks.favorite_download._download_with_retry", return_value=(True, None)),
             patch("pilotstd.tasks.favorite_download.time.sleep", return_value=None),
