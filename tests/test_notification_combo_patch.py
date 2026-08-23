@@ -140,7 +140,6 @@ class TestErrorPropagation:
         msg.icon = None
 
         # 直接调用 _send_now，验证 _log 的 error 参数
-        from datetime import datetime
 
         mgr._channels = {"telegram": channel}
         mgr._log = MagicMock()

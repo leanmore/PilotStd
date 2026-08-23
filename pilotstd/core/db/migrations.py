@@ -1,8 +1,6 @@
 # 模块：项目/核心//迁移脚本
 # 迁移注册中心：各版本迁移拆分至独立模块，此处统一导入触发注册
 
-import logging
-from typing import Any
 
 from ._constants import migration
 from ._migrate_v2_v15 import (  # noqa: F401 — 触发装饰器
@@ -21,12 +19,6 @@ from ._migrate_v2_v15 import (  # noqa: F401 — 触发装饰器
     _migrate_v14_api_keys,
     _migrate_v15_announcement_record,
 )
-from ._migrate_v50 import _migrate_v50_ensure_user_preferences  # noqa: F401 — 触发注册
-from ._migrate_v51 import _migrate_v51_adapter_health_check  # noqa: F401 — 触发注册
-from ._migrate_v52 import _migrate_v52_ensure_user_favorites_publish_date  # noqa: F401 — 触发注册
-from ._migrate_v53 import _migrate_v53_announce_record_pagination_index  # noqa: F401 — 触发注册
-from ._migrate_v54 import _migrate_v54_favorite_downloads_columns  # noqa: F401 — 触发注册
-from ._migrate_v55 import _migrate_v55_credential_fingerprint_ready  # noqa: F401 — 触发注册
 from ._migrate_v16_v49 import (  # noqa: F401 — 触发注册
     _migrate_v16_standard_validity,
     _migrate_v17_notification_log,
@@ -53,6 +45,12 @@ from ._migrate_v16_v49 import (  # noqa: F401 — 触发注册
     _migrate_v48_ensure_preference_tables,
     _migrate_v49_rebuild_user_preferences,
 )
+from ._migrate_v50 import _migrate_v50_ensure_user_preferences  # noqa: F401 — 触发注册
+from ._migrate_v51 import _migrate_v51_adapter_health_check  # noqa: F401 — 触发注册
+from ._migrate_v52 import _migrate_v52_ensure_user_favorites_publish_date  # noqa: F401 — 触发注册
+from ._migrate_v53 import _migrate_v53_announce_record_pagination_index  # noqa: F401 — 触发注册
+from ._migrate_v54 import _migrate_v54_favorite_downloads_columns  # noqa: F401 — 触发注册
+from ._migrate_v55 import _migrate_v55_credential_fingerprint_ready  # noqa: F401 — 触发注册
 
 # ──2-15装饰器注册──
 migration(2)(_migrate_v2_add_file_index)

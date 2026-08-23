@@ -7,6 +7,7 @@ from typing import Any
 
 from ._constants import migration
 
+
 @migration(16)
 def _migrate_v16_standard_validity(db: Any) -> None:
     """创建 standard_validity 表，记录标准号的有效性状态及检查周期。"""
