@@ -159,13 +159,27 @@ async function saveConfig() {
         if (channels.value[ch].events.includes(ev.key)) newRules[ev.key].push(ch)
       }
     }
+    // P1 修复：敏感字段增量提交——掩码值（含 *）或空值不提交，保留 DB 原值
+    const SENSITIVE_FIELDS = ['bot_token', 'webhook_url', 'secret', 'corpsecret']
+    const cleanChannel = (chCfg: Record<string, any>): Record<string, any> => {
+      const cleaned: Record<string, any> = {}
+      for (const [k, v] of Object.entries(chCfg)) {
+        if (SENSITIVE_FIELDS.includes(k)) {
+          // 掩码回显值或空值跳过，避免覆盖真实凭据
+          if (v && typeof v === 'string' && !v.includes('*') && v.trim() !== '') cleaned[k] = v
+        } else {
+          cleaned[k] = v
+        }
+      }
+      return cleaned
+    }
     await putNotificationConfig({
       enabled: enabled.value,
       channels: {
-        wechat:   { enabled: channels.value.wechat.enabled,   webhook_url: channels.value.wechat.webhook_url,   corpid: channels.value.wechat.corpid, agentid: channels.value.wechat.agentid, corpsecret: channels.value.wechat.corpsecret, proxy_url: channels.value.wechat.proxy_url } as WechatChannelConfig,
-        telegram: { enabled: channels.value.telegram.enabled, bot_token: channels.value.telegram.bot_token, chat_id: channels.value.telegram.chat_id } as TelegramChannelConfig,
-        feishu:   { enabled: channels.value.feishu.enabled,   webhook_url: channels.value.feishu.webhook_url,   secret: channels.value.feishu.secret } as FeishuChannelConfig,
-        dingtalk: { enabled: channels.value.dingtalk.enabled, webhook_url: channels.value.dingtalk.webhook_url, secret: channels.value.dingtalk.secret } as DingTalkChannelConfig,
+        wechat:   cleanChannel(channels.value.wechat),
+        telegram: cleanChannel(channels.value.telegram),
+        feishu:   cleanChannel(channels.value.feishu),
+        dingtalk: cleanChannel(channels.value.dingtalk),
       },
       rules: newRules,
     })

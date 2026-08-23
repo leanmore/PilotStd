@@ -31,9 +31,14 @@ class NotificationMessage:
 class NotificationChannel(ABC):
     """通知渠道抽象基类。"""
 
+    def __init__(self):
+        # 错误详情透传：发送失败时由子类填充具体原因供管理层读取
+        self.last_error: str = ""
+
     @abstractmethod
     def send(self, message: NotificationMessage) -> bool:
-        """发送通知，成功返回 True。"""
+        """发送通知，成功返回真；失败返回假并应填充错误详情属性。
+        实现类需在失败路径记录具体原因，供上层写入发送日志。"""
         ...
 
     @staticmethod

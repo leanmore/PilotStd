@@ -17,9 +17,14 @@ class WechatChannel(NotificationChannel):
     def __init__(self, webhook_url: str):
         self._url = webhook_url
         self._renderer = MarkdownRenderer()
+        # 错误详情透传给管理层（发送日志记录使用）
+        self.last_error: str = ""
 
     def send(self, message: NotificationMessage) -> bool:
+        # 每次发送前重置错误详情，避免上次失败残留
+        self.last_error = ""
         if not self._url:
+            self.last_error = "渠道未配置 webhook_url"
             return False
         try:
             # 使用渲染消息体
@@ -37,6 +42,7 @@ class WechatChannel(NotificationChannel):
             with urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     return True
+                self.last_error = f"企业微信 HTTP {resp.status}"
                 logger.warning("企业微信通知失败: HTTP %d", resp.status)
                 return False
         except Exception as e:
@@ -49,6 +55,8 @@ class WechatChannel(NotificationChannel):
                     body = e.read().decode("utf-8", errors="replace")[:500]
                 except Exception:
                     pass
+            # 透传具体错误描述
+            self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("企业微信通知异常: %s, body=%s", e, body)
             return False
 

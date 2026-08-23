@@ -110,13 +110,19 @@ def update_config(
             except Exception as e:
                 logger.warning("通知启用状态写入用户偏好表失败: %s", e)
         elif key == "channels":
+            # 掩码特征集合（兼容不同前端风格），命中即视为"未修改"跳过写回
+            MASKED_VALUES = {"***", "•••", "******", "MASKED_", "**********"}
             for ch_name, ch_cfg in value.items():
                 if isinstance(ch_cfg, dict) and nmgr._cred_helper:
-                    cleaned: dict[str, str] = {}
+                    # 合并语义：读取现有凭据作为基线，仅覆盖提交的字段，
+                    # 避免增量提交（掩码字段被过滤）整体覆盖导致凭据丢失
+                    existing = nmgr._cred_helper.get_channel(user_id, ch_name) or {}
+                    cleaned: dict[str, str] = {k: str(v) for k, v in existing.items()}
                     for k, v in ch_cfg.items():
                         if k == "enabled":
                             cleaned[k] = "true" if v else "false"
-                        elif v:
+                        # 拦截掩码值和空值，防止覆盖真实凭据
+                        elif v and str(v).strip() not in MASKED_VALUES:
                             cleaned[k] = str(v)
                     if cleaned:
                         nmgr._cred_helper.set_channel(user_id, ch_name, cleaned)

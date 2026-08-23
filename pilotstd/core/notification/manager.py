@@ -230,7 +230,12 @@ class NotificationManager:
                 continue
             try:
                 ok = channel.send(msg)
-                self._log(event_type, ch_name, msg, "success" if ok else "failed", "" if ok else "发送失败", sent_at)
+                # 读取渠道错误详情透传具体原因，无详情时回退默认文案
+                if ok:
+                    err_msg = ""
+                else:
+                    err_msg = getattr(channel, "last_error", "") or "发送失败 (无详细错误)"
+                self._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
         if msg:

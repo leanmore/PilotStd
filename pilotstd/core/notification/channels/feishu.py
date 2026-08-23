@@ -17,10 +17,15 @@ class FeishuChannel(NotificationChannel):
     def __init__(self, webhook_url: str):
         self._url = webhook_url
         self._renderer = FeishuCardRenderer()
+        # 错误详情透传给管理层（发送日志记录使用）
+        self.last_error: str = ""
 
     def send(self, message: NotificationMessage) -> bool:
         """发送交互式卡片通知到飞书群。"""
+        # 每次发送前重置错误详情，避免上次失败残留
+        self.last_error = ""
         if not self._url:
+            self.last_error = "渠道未配置 webhook_url"
             return False
         try:
             # 使用飞书渲染卡片
@@ -43,8 +48,11 @@ class FeishuChannel(NotificationChannel):
                     # 飞书返回=0表示成功
                     if data.get("code") == 0:
                         return True
-                    logger.warning("飞书通知失败: %s", data.get("msg", ""))
+                    msg = data.get("msg", "")
+                    self.last_error = f"飞书返回失败: {msg}"
+                    logger.warning("飞书通知失败: %s", msg)
                     return False
+                self.last_error = f"飞书 HTTP {resp.status}"
                 return False
         except Exception as e:
             # 读取错误响应体用于诊断（回调返回非 200 时的具体错误）
@@ -56,6 +64,8 @@ class FeishuChannel(NotificationChannel):
                     body = e.read().decode("utf-8", errors="replace")[:500]
                 except Exception:
                     pass
+            # 透传具体错误描述
+            self.last_error = f"{e}: {body}" if body else str(e)
             logger.warning("飞书通知异常: %s, body=%s", e, body)
             return False
 

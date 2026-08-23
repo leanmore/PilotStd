@@ -23,12 +23,17 @@ class TelegramChannel(NotificationChannel):
         self._token = bot_token.strip()
         self._chat_id = chat_id.strip()
         self._renderer = TelegramRenderer()
+        # 错误详情透传给管理层（发送日志记录使用）
+        self.last_error: str = ""
         # 去重：记录上次错误信息及时间戳
         self._last_error_key: str = ""
         self._last_error_time: float = 0.0
 
     def send(self, message: NotificationMessage) -> bool:
+        # 每次发送前重置错误详情，避免上次失败残留
+        self.last_error = ""
         if not self._token or not self._chat_id:
+            self.last_error = "渠道未配置 bot_token 或 chat_id"
             return False
         try:
             # 使用电报渲染2文本
@@ -53,8 +58,11 @@ class TelegramChannel(NotificationChannel):
                         self._last_error_key = ""
                         self._last_error_time = 0.0
                         return True
-                    logger.warning("Telegram 通知失败: %s", data.get("description", ""))
+                    desc = data.get("description", "")
+                    self.last_error = f"Telegram 返回失败: {desc}"
+                    logger.warning("Telegram 通知失败: %s", desc)
                     return False
+                self.last_error = f"Telegram HTTP {resp.status}"
                 return False
         except HTTPError as e:
             # 读取响应体（含说明字段）用于诊断 4xx 具体原因
@@ -63,6 +71,12 @@ class TelegramChannel(NotificationChannel):
                 body = e.read().decode("utf-8", errors="replace")[:500]
             except Exception:
                 pass
+            # 提取具体错误描述透传（优先取 JSON 中的说明字段）
+            try:
+                desc = json.loads(body).get("description", body) if body else str(e)
+            except Exception:
+                desc = body or str(e)
+            self.last_error = f"HTTP {e.code}: {desc}"
             logger.warning("Telegram send failed: HTTP %s, body=%s", e.code, body)
             # 404/401→配置错误（无效/已撤销），不应重试
             # 5→服务端临时故障，可重试但不在本层做
@@ -77,6 +91,7 @@ class TelegramChannel(NotificationChannel):
                 logger.warning("Telegram HTTP %s: %s", e.code, e)
             return False
         except Exception as e:
+            self.last_error = f"Telegram 发送异常: {e}"
             logger.warning("Telegram 通知异常: %s", e)
             return False
 
