@@ -100,3 +100,6 @@ tests/test_config.json
 docs/.local/
 docs/archive/
 docs/superpowers/reports/ci-risk-investigation-2026-08-06.md
+
+# ===== Docker 连接凭证（敏感，永久不入库） =====
+config/docker_creds.json
