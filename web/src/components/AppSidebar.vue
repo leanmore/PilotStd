@@ -117,7 +117,7 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   text-decoration: none;
   border-radius: var(--radius);
   font-size: 14px;

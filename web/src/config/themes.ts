@@ -30,6 +30,11 @@ export interface ThemeConfig {
     warningBg: string
     info: string
     infoBg: string
+    // fix(a11y): 语义状态标签文字色（浅色主题用深色变体、深色主题用浅色变体），保证标签文字 ≥3:1
+    successText: string
+    warnText: string
+    infoText: string
+    dangerText: string
     selected: string
     focusRing: string
     shadowXs: string
@@ -72,12 +77,16 @@ export const THEMES: Record<string, ThemeConfig> = {
       primaryBorder: 'rgba(99, 102, 241, 0.3)',
       success: '#22c55e',
       successBg: 'rgba(34, 197, 94, 0.12)',
+      successText: '#065f46',   // 深绿 on 12%绿底 ≈ 6.9:1
       danger: '#ef4444',
       dangerBg: 'rgba(239, 68, 68, 0.12)',
+      dangerText: '#991b1b',    // 深红 ≈ 7.2:1
       warning: '#f59e0b',
       warningBg: 'rgba(245, 158, 11, 0.12)',
+      warnText: '#92400e',      // 深橙 ≈ 6.7:1
       info: '#3b82f6',
       infoBg: 'rgba(59, 130, 246, 0.12)',
+      infoText: '#1e40af',      // 深蓝 ≈ 7.6:1
       selected: 'rgba(99, 102, 241, 0.08)',
       focusRing: '0 0 0 3px rgba(99, 102, 241, 0.25)',
       shadowXs: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -115,12 +124,16 @@ export const THEMES: Record<string, ThemeConfig> = {
       primaryBorder: 'rgba(129, 140, 248, 0.35)',
       success: '#4ade80',
       successBg: 'rgba(74, 222, 128, 0.15)',
+      successText: '#4ade80',
       danger: '#f87171',
       dangerBg: 'rgba(248, 113, 113, 0.15)',
+      dangerText: '#f87171',
       warning: '#fbbf24',
       warningBg: 'rgba(251, 191, 36, 0.15)',
+      warnText: '#fbbf24',
       info: '#60a5fa',
       infoBg: 'rgba(96, 165, 250, 0.15)',
+      infoText: '#60a5fa',      // 浅蓝
       selected: 'rgba(129, 140, 248, 0.12)',
       focusRing: '0 0 0 3px rgba(129, 140, 248, 0.3)',
       shadowXs: '0 1px 2px rgba(0, 0, 0, 0.3)',
@@ -158,12 +171,16 @@ export const THEMES: Record<string, ThemeConfig> = {
       primaryBorder: 'rgba(34, 197, 94, 0.3)',
       success: '#16a34a',
       successBg: 'rgba(22, 163, 74, 0.12)',
+      successText: '#065f46',   // 深绿（green 底色更暗，对比度更高）
       danger: '#ef4444',
       dangerBg: 'rgba(239, 68, 68, 0.12)',
+      dangerText: '#991b1b',
       warning: '#f59e0b',
       warningBg: 'rgba(245, 158, 11, 0.12)',
+      warnText: '#92400e',
       info: '#3b82f6',
       infoBg: 'rgba(59, 130, 246, 0.12)',
+      infoText: '#1e40af',
       selected: 'rgba(34, 197, 94, 0.08)',
       focusRing: '0 0 0 3px rgba(34, 197, 94, 0.25)',
       shadowXs: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -201,12 +218,16 @@ export const THEMES: Record<string, ThemeConfig> = {
       primaryBorder: 'rgba(14, 165, 233, 0.35)',
       success: '#4ade80',
       successBg: 'rgba(74, 222, 128, 0.15)',
+      successText: '#4ade80',
       danger: '#f87171',
       dangerBg: 'rgba(248, 113, 113, 0.15)',
+      dangerText: '#f87171',
       warning: '#fbbf24',
       warningBg: 'rgba(251, 191, 36, 0.15)',
+      warnText: '#fbbf24',
       info: '#60a5fa',
       infoBg: 'rgba(96, 165, 250, 0.15)',
+      infoText: '#60a5fa',      // 浅蓝 on 深蓝底
       selected: 'rgba(14, 165, 233, 0.12)',
       focusRing: '0 0 0 3px rgba(14, 165, 233, 0.3)',
       shadowXs: '0 1px 2px rgba(0, 0, 0, 0.3)',
@@ -259,12 +280,16 @@ export function applyThemeToDom(theme: ThemeConfig): void {
     '--primary-border': c.primaryBorder,
     '--success': c.success,
     '--success-bg': c.successBg,
+    '--success-text': c.successText,
     '--danger': c.danger,
     '--danger-bg': c.dangerBg,
+    '--danger-text': c.dangerText,
     '--warning': c.warning,
     '--warning-bg': c.warningBg,
+    '--warn-text': c.warnText,
     '--info': c.info,
     '--info-bg': c.infoBg,
+    '--info-text': c.infoText,
     '--selected': c.selected,
     '--focus-ring': c.focusRing,
     '--shadow-xs': c.shadowXs,

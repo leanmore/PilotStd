@@ -42,12 +42,17 @@
   /* 语义色 */
   --success: #22c55e;
   --success-bg: rgba(34, 197, 94, 0.12);
+  /* fix(a11y): 语义标签文字色——浅色主题用深色变体(on 12%透明底 ≥6:1)，深色主题由 themes.ts 注入浅色变体 */
+  --success-text: #065f46;
   --danger: #ef4444;
   --danger-bg: rgba(239, 68, 68, 0.12);
+  --danger-text: #991b1b;
   --warning: #f59e0b;
   --warning-bg: rgba(245, 158, 11, 0.12);
+  --warn-text: #92400e;
   --info: #3b82f6;
   --info-bg: rgba(59, 130, 246, 0.12);
+  --info-text: #1e40af;
 
   /* 选中/聚焦 */
   --selected: rgba(99, 102, 241, 0.08);
@@ -315,10 +320,32 @@ body .p-card {
   box-shadow: var(--button-primary-shadow);
 }
 
-.p-button.p-button-success {
-  background: var(--success);
-  border-color: var(--success);
-  color: #fff;
+/* fix(a11y): 实色按钮——html 前缀提高特异性对抗 Aura token（实测原 .p-button-success 规则未生效，
+   底色仍为 Aura emerald-500/orange-500）。底色调深一档 + 文字统一 #000：
+   #16a34a 上 #000 ≈ 6.4:1（#fff 仅 4.55）；#ea580c 上 #000 ≈ 5.8:1。
+   注：实测 warn 按钮为 orange-500(#f97316)，方案假设的 yellow-500 与实测不符，深色变体取 orange-600 */
+
+/* 默认 primary 按钮（PrimeVue 4 渲染为 .p-button 无 severity class、无 data-p-severity 属性；
+   实测被 Aura primary 色板(emerald-500)覆盖为 2.54:1）。用 --primary 品牌色 + #000 文字，
+   四主题黑字 on --primary 均 ≥4.5:1（light #6366f1 ≈ 4.58、green #22c55e ≈ 9.5、blue #0ea5e9、dark #818cf8） */
+html .p-button:not([data-p-severity]):not(.p-button-text),
+html .p-button.p-button-primary {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #000;
+}
+
+html .p-button.p-button-success {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  color: #000;
+}
+
+html .p-button.p-button-warning,
+html .p-button.p-button-warn {
+  background-color: #ea580c;
+  border-color: #ea580c;
+  color: #000;
 }
 
 .p-button.p-button-success:hover {
@@ -333,12 +360,6 @@ body .p-card {
 
 .p-button.p-button-danger:hover {
   filter: brightness(1.1);
-}
-
-.p-button.p-button-warning {
-  background: var(--warning);
-  border-color: var(--warning);
-  color: #fff;
 }
 
 /* fix(a11y): html 前缀提高特异性对抗 Aura 按钮 token（实测原规则被 --p-button-secondary-color 覆盖），
@@ -416,23 +437,23 @@ html .p-button.p-button-secondary {
 
 .p-tag.p-tag-success {
   background: var(--success-bg);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .p-tag.p-tag-danger {
   background: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .p-tag.p-tag-warning,
 .p-tag.p-tag-warn {
   background: var(--warning-bg);
-  color: var(--warning);
+  color: var(--warn-text);
 }
 
 .p-tag.p-tag-info {
   background: var(--info-bg);
-  color: var(--info);
+  color: var(--info-text);
 }
 
 /* fix(a11y): 状态标签(草稿等 secondary)由 --border/--text-dim 改为 --surface-raised/--text——
