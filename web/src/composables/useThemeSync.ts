@@ -47,9 +47,14 @@ const ALL_MAPPED_TOKENS = new Set<string>(Object.values(AURA_TOKEN_MAP).flatMap(
  * content token 固定 light 值 #334155，不随 data-p-theme / useTheme / updatePreset 切换）。
  *
  * 切换策略：
- * 1. 先 removeProperty 清理全部可能注入过的 token —— 回退到 Aura 默认样式表值。
- *    严禁 setProperty(k, '') 空字符串赋值：空串会使 var(--p-xxx) 解析失败。
- * 2. 再注入当前主题的映射（AURA_TOKEN_MAP[theme]）。
+ * 背景（hotfix）：不依赖 Aura 默认值——实测部分环境 data-p-theme="dark" 属性残留时，
+ * Aura dark token 生效使 --p-content-color 解析为 #ffffff（dark colorScheme surface.0），
+ * light 主题文字隐身。所有主题（含 light/green）均显式注入，内联值优先级恒高于样式表。
+ *
+ * 切换策略：
+ * 1. 清理：仅移除"映射表管理范围内、当前主题未包含"的 token（防主题间 key 差异残留）。
+ *    严禁触碰映射表外的 --p-*（如 updateSurfacePalette 注入的 --p-surface-*）。
+ * 2. 注入：显式 setProperty 当前主题映射（不做空字符串赋值）。
  *
  * // See RETAINED_CSS_OVERRIDES in aura-token-map.ts
  * 组件作用域直接值 token（DataTable 表头/正文、日历选中日）不在 :root，无法由此覆盖，
@@ -57,8 +62,12 @@ const ALL_MAPPED_TOKENS = new Set<string>(Object.values(AURA_TOKEN_MAP).flatMap(
  */
 function syncAuraTextTokens(themeId: keyof typeof AURA_TOKEN_MAP) {
   const root = document.documentElement
-  for (const token of ALL_MAPPED_TOKENS) root.style.removeProperty(token)
   const map = AURA_TOKEN_MAP[themeId] ?? {}
+  // 1) 清理映射表管理范围内、当前主题未包含的 token（防残留；不碰 surface 等非映射 token）
+  for (const token of ALL_MAPPED_TOKENS) {
+    if (!(token in map)) root.style.removeProperty(token)
+  }
+  // 2) 显式注入当前主题全套 token
   for (const [token, value] of Object.entries(map)) root.style.setProperty(token, value)
 }
 

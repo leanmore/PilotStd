@@ -26,8 +26,22 @@ export interface AuraTokenMap {
  */
 export const AURA_TOKEN_MAP: Record<ThemeId, AuraTokenMap> = {
   light: {
-    // 消费者：Primary 按钮（全站主操作）——Aura 默认 emerald-500(#10b981)+白字 2.54:1 不达标；
-    // 注入品牌 indigo-600 + 白字（6.29:1）。可移除 style.css 中 html[data-theme="light"] 的按钮覆盖
+    // hotfix(tech-debt#8): 显式注入，不依赖 Aura 默认值——实测部分环境 data-p-theme="dark" 残留时
+    // Aura dark token 生效使 --p-content-color 解析为 #ffffff（dark surface.0），内联注入可免疫。
+    // 消费者：全站未显式设色文本、DatePicker(header/weekday/day)、Card、Dialog、Toast 正文
+    '--p-content-color': '#334155',
+    '--p-content-hover-color': '#1e293b',
+    '--p-text-color': '#334155',
+    '--p-text-hover-color': '#1e293b',
+    // 消费者：辅助文字、placeholder
+    '--p-text-muted-color': '#64748b',
+    // 消费者：InputText/Textarea/Dropdown 表单文字
+    '--p-form-field-color': '#334155',
+    '--p-form-field-placeholder-color': '#64748b',
+    // 消费者：Select/Dropdown 选项
+    '--p-list-option-color': '#334155',
+    '--p-list-option-focus-color': '#1e293b',
+    // 消费者：Primary 按钮（全站主操作）——品牌 indigo-600 + 白字（6.29:1）
     '--p-button-primary-background': '#4f46e5',
     '--p-button-primary-color': '#ffffff',
     '--p-button-primary-hover-background': '#4338ca',
@@ -36,7 +50,17 @@ export const AURA_TOKEN_MAP: Record<ThemeId, AuraTokenMap> = {
     '--p-button-primary-active-color': '#ffffff',
   },
   green: {
-    // 消费者：Primary 按钮——green 主色 #22c55e 白字 2.5:1 不达标，黑字 9.2:1 达标
+    // hotfix(tech-debt#8)：同上，显式注入（green 为浅色主题，深色文字）
+    '--p-content-color': '#334155',
+    '--p-content-hover-color': '#1e293b',
+    '--p-text-color': '#334155',
+    '--p-text-hover-color': '#1e293b',
+    '--p-text-muted-color': '#64748b',
+    '--p-form-field-color': '#334155',
+    '--p-form-field-placeholder-color': '#64748b',
+    '--p-list-option-color': '#334155',
+    '--p-list-option-focus-color': '#1e293b',
+    // 消费者：Primary 按钮——green 主色 #22c55e + 黑字（9.2:1，白字 2.5:1 不达标）
     '--p-button-primary-background': '#22c55e',
     '--p-button-primary-color': '#000000',
     '--p-button-primary-hover-background': '#16a34a',

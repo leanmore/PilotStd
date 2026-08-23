@@ -127,3 +127,17 @@ for (const [token, value] of Object.entries(AURA_TOKEN_MAP[themeId] ?? {})) root
 **最终保留覆盖（6 项，RETAINED 三要素注释）**：DataTable 表头/正文、Tag secondary、success/warning 按钮、secondary 按钮、日历选中日、日历边框/分隔线。
 
 **剩余非范围项**：11 条既有 `--text-dim` 说明文字（dashboard widget 标签/页面描述），属 `--text-dim` 变量设计问题（后续"变量重设计"低优先项）。
+
+## 九、hotfix 记录（2026-08，显式注入修正）
+
+**故障**：用户环境诊断显示 light 主题下 `--p-content-color`/`--p-text-color` 解析为 `#ffffff`（内联无注入）。
+**根因分析**：`#ffffff` 恰为 Aura dark colorScheme 的 `surface.0` 硬编码值——用户环境 `data-p-theme="dark"` 属性在 light 主题下残留（或构建差异）导致 Aura dark token 生效；P2 原实现依赖 `removeProperty` 回退 Aura 默认值，该假设在 dark token 生效时不成立（默认值被污染为 #ffffff）。
+**修复**：
+- `aura-token-map.ts`：light/green 补全 content/text/muted/hover/form-field/list-option **显式注入**（深色值 #334155/#64748b/#1e293b），所有主题 key 集合一致
+- `useThemeSync.ts`：清理逻辑改为"仅移除映射表管理范围内、当前主题未包含的 token"（不触碰 `updateSurfacePalette` 注入的 `--p-surface-*`）
+**验证**：
+- 四主题显式注入：light/green #334155、blue/dark #e2e8f0（均内联）✅
+- **data-p-theme 残留模拟**（light 下手动加 `data-p-theme="dark"`）：`--p-content-color` 计算值仍 **#334155**（内联优先级恒高于样式表，免疫）✅
+- 连续切换 10 次无残留；`--p-surface-0` 内联未被误删（`(none)`）✅
+- P4 全量 audit **ALL PASS**；build/vitest/门禁 ✅
+**教训**：P2 隐含假设"removeProperty 回退到正确默认值"不成立——框架默认值在特定环境（dark token 激活）下不可靠；**所有主题的 token 值必须显式控制**，不能依赖框架默认（做减法的边界：默认值不可靠时减法即隐患）。
