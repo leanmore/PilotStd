@@ -182,7 +182,7 @@ nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   padding: 10px;
   background: none;
   border: 1px solid var(--border);
-  color: var(--text-dim);
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: var(--radius);
   font-size: 13px;
