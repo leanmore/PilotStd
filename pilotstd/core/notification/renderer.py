@@ -19,6 +19,9 @@ from .blocks import (
 )
 from .channel import NotificationMessage
 
+# 渲染最终兜底文案：消息无结构块、无正文、无标题时的占位（杜绝空文本发送）
+_FALLBACK_TEXT = "(通知内容为空)"
+
 
 class BlockRenderer:
     """Block 渲染器基类——将结构化 Block 列表渲染为纯文本。
@@ -32,25 +35,34 @@ class BlockRenderer:
     def render(self, message: NotificationMessage) -> str:
         """将通知消息渲染为渠道文本。
 
-        message 若带 blocks 属性则逐块渲染；
-        若仅有 body 则回退为纯文本输出。
+        消息若带结构块则逐块渲染；
+        若仅有正文则回退为纯文本输出。
+
+        最终兜底：任何路径下渲染结果都不为空字符串——
+        空结果回退标题，标题也空则使用固定占位文案。
         """
         blocks: list[NotificationBlock] = getattr(message, "blocks", [])
         if not blocks:
-            # 回退：降级为锁
-            return message.body if message.body else ""
+            # 回退：降级为纯文本
+            text = message.body if message.body else ""
+        else:
+            parts: list[str] = []
+            title_part = self._render_title(message.title)
+            if title_part:
+                parts.append(title_part)
 
-        parts: list[str] = []
-        title_part = self._render_title(message.title)
-        if title_part:
-            parts.append(title_part)
+            for block in blocks:
+                rendered = self._render_block(block)
+                if rendered:
+                    parts.append(rendered)
 
-        for block in blocks:
-            rendered = self._render_block(block)
-            if rendered:
-                parts.append(rendered)
+            text = self._block_separator().join(parts)
 
-        return self._block_separator().join(parts)
+        # 最终防线：永不返回空字符串（聚合消息 blocks 丢失等历史缺陷的兜底）
+        text = text.strip()
+        if not text:
+            text = message.title or _FALLBACK_TEXT
+        return text
 
     # ── 渲染调度 ──
 

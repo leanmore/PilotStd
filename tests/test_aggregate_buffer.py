@@ -2,16 +2,41 @@
 # 测试 NotificationAggregator（服务端通知渠道聚合）：
 # - 分组聚合 (event_type + target_id)
 # - 双重触发（定时器 + 数量阈值）
-# - format_summary 格式化
+# - _build_summary 标准化摘要（基于 blocks 渲染，单条全文/多条统计）
 # - push() 便捷入口
 # - shutdown 刷新残留
+# - L5 契约防线：blocks 保留、body 回退、空消息兜底、Builder 契约校验
 
 import time
 import unittest
 from unittest.mock import MagicMock
 
 from pilotstd.core.notification.aggregate_buffer import NotificationAggregator
+from pilotstd.core.notification.blocks import KeyValueBlock, TextBlock
 from pilotstd.core.notification.channel import NotificationMessage
+from pilotstd.core.notification.manager import NotificationManager
+from pilotstd.core.notification.renderer import TelegramRenderer
+
+
+def _make_msg(
+    title: str = "测试",
+    body: str = "",
+    blocks=None,
+    level: str = "info",
+    status: str = "",
+    event_type: str = "test",
+    elapsed_ms: int = 0,
+) -> NotificationMessage:
+    """构造测试消息的便捷函数。"""
+    return NotificationMessage(
+        title=title,
+        body=body,
+        blocks=blocks or [],
+        level=level,
+        status=status,
+        event_type=event_type,
+        elapsed_ms=elapsed_ms,
+    )
 
 
 class TestNotificationAggregator(unittest.TestCase):
@@ -50,7 +75,7 @@ class TestNotificationAggregator(unittest.TestCase):
         merged_msg, channels = self.calls[0]
         self.assertEqual(merged_msg.aggregated_count, 5)
         self.assertIn("📦", merged_msg.body)
-        self.assertIn("共 5 条", merged_msg.body)
+        self.assertIn("（5 条）", merged_msg.body)
 
     # ── bypass 事件直接发送不聚合 ──
 
@@ -105,45 +130,34 @@ class TestNotificationAggregator(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         self.assertEqual(self.calls[0][0].aggregated_count, 5)
 
-    # ── format_summary ──
+    # ── _build_summary 摘要 ──
 
-    def test_format_summary_single_item(self) -> None:
-        """单条消息保持原样。"""
-        msg = NotificationMessage(title="测试", body="hello", event_type="test")
-        entries: list[tuple[NotificationMessage, list, float]] = [(msg, [], time.monotonic())]
-        result = self.agg.format_summary("test", entries)
+    def test_build_summary_single_item_with_body(self) -> None:
+        """单条消息（无 blocks、有 body）保持原样。"""
+        msg = _make_msg(title="测试", body="hello")
+        entries: list = [(msg, [], time.monotonic())]
+        result = self.agg._build_summary(entries)
         self.assertEqual(result, "hello")
 
-    def test_format_summary_with_success_failure(self) -> None:
-        """多条带 status 的消息生成成功/失败统计。"""
-        now = time.monotonic()
-        entries: list[tuple[NotificationMessage, list, float]] = [
-            (NotificationMessage(title="任务", body="file_a.txt", status="success", event_type="test"), [], now),
-            (NotificationMessage(title="任务", body="file_b.txt", status="success", event_type="test"), [], now + 0.1),
-            (NotificationMessage(title="任务", body="file_c.txt", status="failure", event_type="test"), [], now + 0.2),
-            (NotificationMessage(title="任务", body="file_d.txt", status="", event_type="test"), [], now + 0.3),
-        ]
-        result = self.agg.format_summary("test", entries)
-        self.assertIn("✅ 成功：2 条", result)
-        self.assertIn("❌ 失败：1 条", result)
-        self.assertIn("file_c.txt", result)
-        self.assertIn("📋 其他：1 条", result)
+    def test_build_summary_single_item_renders_blocks(self) -> None:
+        """单条消息（有 blocks）基于 blocks 渲染生成全文摘要。"""
+        msg = _make_msg(title="归档完成", blocks=[TextBlock(text="已归档 3 个目录")])
+        entries: list = [(msg, [], time.monotonic())]
+        result = self.agg._build_summary(entries)
+        self.assertIn("归档完成", result)
+        self.assertIn("已归档 3 个目录", result)
 
-    def test_format_summary_worst_level(self) -> None:
-        """聚合后级别取所有条目中最严重的。"""
+    def test_build_summary_multiple_items_statistics(self) -> None:
+        """多条消息生成统计头 + 每条首行。"""
         now = time.monotonic()
-        entries: list[tuple[NotificationMessage, list, float]] = [
-            (NotificationMessage(title="任务", body="ok", level="info", event_type="test"), [], now),
-            (NotificationMessage(title="任务", body="warn", level="warning", event_type="test"), [], now + 0.1),
-            (NotificationMessage(title="任务", body="err", level="error", event_type="test"), [], now + 0.2),
+        entries: list = [
+            (_make_msg(title="任务A", body="file_a.txt", status="success"), [], now),
+            (_make_msg(title="任务B", body="file_b.txt", status="failure"), [], now + 0.1),
         ]
-        # Trigger batch send immediately
-        agg = NotificationAggregator(sender_func=self.sender, window_seconds=999.0, batch_size=3)
-        for msg, ch, _ in entries:
-            agg.enqueue(msg, ch)
-        self.assertEqual(len(self.calls), 1)
-        self.assertEqual(self.calls[0][0].level, "error")
-        agg.shutdown()
+        result = self.agg._build_summary(entries)
+        self.assertIn("📦 聚合通知（2 条）", result)
+        self.assertIn("file_a.txt", result)
+        self.assertIn("file_b.txt", result)
 
     # ── shutdown 刷新残留 ──
 
@@ -163,7 +177,7 @@ class TestNotificationAggregator(unittest.TestCase):
 
     def test_enqueue_returns_false_for_buffered(self) -> None:
         """普通事件入队返回 False。"""
-        msg = NotificationMessage(title="测试", body="hello", event_type="test")
+        msg = _make_msg(title="测试", body="hello")
         result = self.agg.enqueue(msg, [])
         self.assertFalse(result)
 
@@ -173,7 +187,7 @@ class TestNotificationAggregator(unittest.TestCase):
             sender_func=self.sender,
             bypass_events={"test"},
         )
-        msg = NotificationMessage(title="测试", body="hello", event_type="test")
+        msg = _make_msg(title="测试", body="hello")
         result = agg.enqueue(msg, [])
         self.assertTrue(result)
         agg.shutdown()
@@ -258,39 +272,169 @@ class TestNotificationAggregator(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         agg.shutdown()
 
-    # ── format_summary 边界 ──
 
-    def test_format_summary_failures_truncated_gt3(self):
-        """>3 条失败时截断预览。"""
+# ═══════════════════════════════════════════════════════════════════════
+# L5 契约防线测试：聚合器正统重构验收场景
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestAggregateContract(unittest.TestCase):
+    """L5 验收：blocks 保留 / body 回退 / 空消息兜底 / Builder 契约校验。"""
+
+    def setUp(self) -> None:
+        self.calls: list[tuple] = []
+        self.sender = MagicMock(side_effect=lambda msg, ch: self.calls.append((msg, ch)))
+        # 短窗口：快速触发发送
+        self.agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=999.0,  # 不用定时器，直接 flush 控制
+            batch_size=100,
+        )
+
+    def tearDown(self) -> None:
+        self.agg.shutdown()
+
+    def _send_now(self, entries: list) -> None:
+        """直接调用 _send_merged 触发发送（绕过定时器）。"""
+        self.agg._send_merged(entries[0][0].event_type, entries)
+
+    # ── 场景 1：单条聚合（blocks 非空）→ 与直发渲染一致，blocks 未丢失 ──
+
+    def test_single_item_blocks_preserved_and_renders_identical(self) -> None:
+        """单条聚合：merged.blocks 保留第一条的 blocks，Telegram 渲染与直发一致。"""
+        blocks = [TextBlock(text="标准号：GB/T 123-2024"), KeyValueBlock(key="状态", value="现行")]
+        msg = _make_msg(title="标准状态变更", blocks=blocks, event_type="standard_status_changed")
+        entries = [(msg, ["telegram"], time.monotonic())]
+
+        self._send_now(entries)
+        self.assertEqual(len(self.calls), 1)
+        merged, channels = self.calls[0]
+
+        # blocks 未丢失：与原始 blocks 相等（结构化相等）
+        self.assertEqual(merged.blocks, msg.blocks)
+        self.assertGreater(len(merged.blocks), 0)
+        # 渲染结果与直发一致（同一 Telegram 渲染器）
+        renderer = TelegramRenderer()
+        self.assertEqual(renderer.render(merged), renderer.render(msg))
+
+    # ── 场景 2：单条聚合（blocks 空，body 非空）→ 回退 body ──
+
+    def test_single_item_body_fallback_when_no_blocks(self) -> None:
+        """单条聚合：blocks 为空时摘要回退 body 文本。"""
+        msg = _make_msg(title="公告拉取完成", body="新增公告: 12\n来源: 手动", event_type="announcement_fetch_complete")
+        entries = [(msg, ["telegram"], time.monotonic())]
+
+        self._send_now(entries)
+        self.assertEqual(len(self.calls), 1)
+        merged, _ = self.calls[0]
+
+        self.assertEqual(merged.blocks, [])
+        self.assertIn("新增公告: 12", merged.body)
+        self.assertIn("来源: 手动", merged.body)
+
+    # ── 场景 3：多条聚合（blocks 非空）→ blocks 保留 + 摘要含每条首行 ──
+
+    def test_multiple_items_blocks_preserved_and_summary_has_each_first_line(self) -> None:
+        """多条聚合：merged.blocks 保留首条骨架，摘要 body 包含每条渲染首行。"""
         now = time.monotonic()
         entries = [
-            (NotificationMessage(title="T", body=f"fail_{i}", status="failure", event_type="test"), [], now + i * 0.1)
-            for i in range(5)
-        ]
-        result = self.agg.format_summary("test", entries)
-        self.assertIn("❌ 失败：5 条", result)
-        self.assertIn("…等", result)  # 截断标记
-
-    def test_format_summary_elapsed_ms_displayed(self):
-        """单条耗时 > 0 时显示总耗时行。"""
-        now = time.monotonic()
-        entries = [
-            (NotificationMessage(title="T", body="a", status="success", event_type="test", elapsed_ms=100), [], now),
             (
-                NotificationMessage(title="T", body="b", status="success", event_type="test", elapsed_ms=200),
-                [], now + 0.1,
+                _make_msg(
+                    title="公告检查完成",
+                    blocks=[KeyValueBlock(key="公告总数", value="12"), KeyValueBlock(key="国标", value="10")],
+                    event_type="announcement_check_complete",
+                ),
+                ["telegram"],
+                now,
+            ),
+            (
+                _make_msg(
+                    title="公告检查完成",
+                    blocks=[KeyValueBlock(key="公告总数", value="8"), KeyValueBlock(key="国标", value="7")],
+                    event_type="announcement_check_complete",
+                ),
+                ["telegram"],
+                now + 0.1,
             ),
         ]
-        result = self.agg.format_summary("test", entries)
-        self.assertIn("总耗时", result)
 
-    def test_format_summary_neutral_truncated_gt3(self):
-        """>3 条中性条目时截断预览。"""
+        self._send_now(entries)
+        self.assertEqual(len(self.calls), 1)
+        merged, _ = self.calls[0]
+
+        # blocks 保留首条骨架
+        self.assertEqual(merged.blocks, entries[0][0].blocks)
+        self.assertGreater(len(merged.blocks), 0)
+        self.assertEqual(merged.aggregated_count, 2)
+        # 摘要包含统计头与每条渲染首行（渲染顺序：title 在前 → 首行即标题）
+        self.assertIn("📦 聚合通知（2 条）", merged.body)
+        self.assertEqual(merged.body.count("公告检查完成"), 2)  # 两条各自的首行
+
+    # ── 场景 4：多条聚合（全空消息）→ 渲染兜底为占位文案，永不返回 "" ──
+
+    def test_empty_messages_fallback_to_placeholder(self) -> None:
+        """全空消息（无 blocks/body/title）聚合后渲染兜底为占位文案。"""
         now = time.monotonic()
         entries = [
-            (NotificationMessage(title="T", body=f"neutral_{i}", status="", event_type="test"), [], now + i * 0.1)
-            for i in range(5)
+            (_make_msg(title="", body="", blocks=[], event_type="broken_builder"), ["telegram"], now),
+            (_make_msg(title="", body="", blocks=[], event_type="broken_builder"), ["telegram"], now + 0.1),
         ]
-        result = self.agg.format_summary("test", entries)
-        self.assertIn("📋 其他：5 条", result)
-        self.assertIn("…等", result)
+
+        self._send_now(entries)
+        self.assertEqual(len(self.calls), 1)
+        merged, _ = self.calls[0]
+
+        # 摘要 body 非空：占位文案兜底
+        self.assertTrue(merged.body.strip())
+        self.assertIn("(通知内容为空)", merged.body)
+        # 渲染结果也非空
+        renderer = TelegramRenderer()
+        self.assertNotEqual(renderer.render(merged), "")
+
+    # ── 场景 5：Builder 契约校验 ──
+
+    def test_validate_message_raises_for_empty_message(self) -> None:
+        """全空 Message（无 blocks/body/title）触发 _validate_message 抛 ValueError。"""
+        mgr = MagicMock(spec=NotificationManager)
+        mgr._validate_message = NotificationManager._validate_message.__get__(mgr)  # 绑定实例方法
+        empty_msg = _make_msg(title="", body="", blocks=[], event_type="broken_builder")
+
+        with self.assertRaises(ValueError) as ctx:
+            mgr._validate_message(empty_msg, "broken_builder")
+        self.assertIn("empty Message", str(ctx.exception))
+        self.assertIn("broken_builder", str(ctx.exception))
+
+    def test_validate_message_passes_for_non_empty_message(self) -> None:
+        """任一字段（blocks/body/title）非空即通过校验。"""
+        mgr = MagicMock(spec=NotificationManager)
+        mgr._validate_message = NotificationManager._validate_message.__get__(mgr)
+
+        # 仅 title
+        self.assertIsNone(mgr._validate_message(_make_msg(title="标题", body="", blocks=[]), "t"))
+        # 仅 body
+        self.assertIsNone(mgr._validate_message(_make_msg(title="", body="正文", blocks=[]), "b"))
+        # 仅 blocks
+        self.assertIsNone(mgr._validate_message(_make_msg(title="", body="", blocks=[TextBlock(text="x")]), "k"))
+        # 纯空白 body 视为空
+        with self.assertRaises(ValueError):
+            mgr._validate_message(_make_msg(title="", body="   ", blocks=[]), "w")
+
+    def test_send_event_skips_empty_message_with_error_log(self) -> None:
+        """send_event 遇到空消息：不中断、跳过发送、记录 Error 日志。"""
+        mgr = MagicMock(spec=NotificationManager)
+        mgr._validate_message = NotificationManager._validate_message.__get__(mgr)
+        mgr._user_id = 1
+        mgr._enabled = True
+        mgr._policy = MagicMock()
+        mgr._policy.get_channels_for_event.return_value = ["telegram"]
+        mgr._build_message = MagicMock(
+            return_value=_make_msg(title="", body="", blocks=[], event_type="broken_builder")
+        )
+        mgr._do_send = MagicMock()
+        mgr._broadcast_to_ws = MagicMock()
+
+        with unittest.mock.patch("pilotstd.core.notification.manager.logger") as mock_logger:
+            NotificationManager.send_event(mgr, "broken_builder", {})
+            mock_logger.error.assert_called_once()
+            # 校验失败 → 不进入发送
+            mgr._do_send.assert_not_called()

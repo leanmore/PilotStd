@@ -207,7 +207,36 @@ class NotificationManager:
             return
 
         msg = self._build_message(event_type, event_data)
+        # 构建器契约校验：空消息拦截（失败仅记错误日志，不中断主业务流程）
+        try:
+            self._validate_message(msg, event_type)
+        except ValueError as e:
+            logger.error("构建器契约校验失败，事件 %s 已跳过发送: %s", event_type, e)
+            return
         self._do_send(msg, target_channels, bypass_aggregation=bypass_aggregation)
+
+    def _validate_message(self, msg: NotificationMessage, event_type: str) -> None:
+        """构建器产出契约校验：确保任何路径下消息都不会为空。
+
+        校验规则：
+        - 结构块 / 正文 / 标题至少一项非空，否则抛出数值错误（表示构建器契约被破坏）；
+        - 仅有结构块无正文时记录调试日志（聚合摘要依赖正文，提示开发者补全）。
+
+        调用方（事件发送入口）捕获数值错误并记录错误日志，不向上抛——
+        校验失败不得导致收藏/下载/抓取等主业务流程崩溃。
+        """
+        has_blocks = bool(msg.blocks)
+        has_body = bool(msg.body and msg.body.strip())
+        has_title = bool(msg.title and msg.title.strip())
+
+        if not (has_blocks or has_body or has_title):
+            raise ValueError(
+                f"Builder for '{event_type}' produced an empty Message. "
+                "At least one of blocks/body/title must be non-empty."
+            )
+
+        if has_blocks and not has_body:
+            logger.debug("Builder for '%s' has blocks but no body", event_type)
 
     def _do_send(self, msg: NotificationMessage, target_channels: list[str], bypass_aggregation: bool = False) -> None:
         """逐渠道发送：静音期暂存 → 聚合器入队 → 合并后发送。"""

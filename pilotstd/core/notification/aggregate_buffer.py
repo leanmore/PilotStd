@@ -3,6 +3,12 @@
 
 同类事件在固定窗口内累积，1 分钟首次触发，5 分钟强制发送。
 按 event_type 分组，支持智能摘要和事件特定格式化。
+
+聚合正统设计（无界编码治理样板 · 第二期）：
+- 单条与多条统一走合并发送同一流程，禁止"单条直通"特殊分支；
+- 合并后的消息始终保留第一条消息的结构块作为骨架（绝不丢弃）；
+- 摘要正文基于结构块渲染生成，禁止对原始正文做截断；
+- 事件特定格式化器（注册的格式化回调）优先于通用摘要。
 """
 
 from __future__ import annotations
@@ -20,6 +26,9 @@ DEFAULT_WINDOW_SECONDS = 60.0  # 首次延时：1分钟后触发
 MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5分钟后强制发送
 DEFAULT_BATCH_SIZE = 20
 
+# 聚合摘要最终兜底文案（渲染/标题均空时使用，确保永不返回空串）
+_FALLBACK_TEXT = "(通知内容为空)"
+
 # 每个条目在缓冲中的存储结构
 _Entry = tuple[NotificationMessage, list[str], float]  # (msg, channels, enqueued_at)
 
@@ -32,7 +41,7 @@ class NotificationAggregator:
     - 固定窗口 + 首次延时：第一批消息 1 分钟后触发，总窗口 5 分钟
     - 双重触发：定时器到期 OR 数量达标 → 立即发送
     - bypass_events 中的事件类型跳过聚合，实时发送
-    - format_summary() 智能生成包含成功/失败/耗时统计的摘要
+    - 摘要生成器基于结构块渲染生成标准化摘要（单条全文/多条统计）
     - shutdown() 刷新所有残留消息，防止丢失
     """
 
@@ -54,6 +63,10 @@ class NotificationAggregator:
         self._window_start: dict[str, float] = {}
         # 事件特定格式化回调：_→(,)→
         self._formatters: dict[str, Callable[..., str]] = {}
+        # 摘要渲染器：聚合消息正文基于结构块渲染生成（基类渲染器，无渠道转义）
+        from .renderer import BlockRenderer
+
+        self._renderer = BlockRenderer()
 
     def register_formatter(self, event_type: str, formatter: Callable[..., str]) -> None:
         """注册事件特定的聚合摘要格式化回调。"""
@@ -194,22 +207,36 @@ class NotificationAggregator:
             self._send_merged(event_type, entries)
 
     def _send_merged(self, event_type: str, entries: list[_Entry]) -> None:
-        """合并多条消息为一条并回调发送。"""
-        count = len(entries)
-        first_msg, target_channels, first_ts = entries[0]
+        """合并多条消息为一条并回调发送（单条与多条统一流程，无特殊分支）。
 
-        # 优先使用事件特定格式化器
+        正统设计：
+        1. 保留第一条消息的结构块作为骨架（单条/多条一律保留，绝不丢弃）；
+        2. 摘要正文由摘要生成器基于结构块渲染（或事件特定格式化器）；
+        3. 构造合并消息：结构块始终在场，正文作为摘要文本。
+        """
+        if not entries:
+            return
+
+        count = len(entries)
+        first_msg, target_channels, _first_ts = entries[0]
+
+        # 1. 保留第一条消息的结构块作为骨架（单条/多条统一）
+        merged_blocks = first_msg.blocks or []
+
+        # 2. 生成标准化摘要（事件特定格式化器优先，否则基于结构块渲染）
         formatter = self._formatters.get(event_type)
         if formatter:
-            body = formatter(event_type, entries, count)
+            summary_text = formatter(event_type, entries, count)
         else:
-            body = self.format_summary(event_type, entries)
+            summary_text = self._build_summary(entries)
 
+        # 3. 构造合并消息：结构块始终保留，正文作为摘要
         merged = NotificationMessage(
             title=first_msg.title,
-            body=body,
+            body=summary_text,
+            blocks=merged_blocks,  # 核心：绝不丢弃
             level=self._worst_level(entries),
-            standard_number=None,
+            standard_number=first_msg.standard_number,
             event_type=event_type,
             link=first_msg.link,
             icon=first_msg.icon,
@@ -219,50 +246,23 @@ class NotificationAggregator:
 
     # ── 摘要格式化 ──
 
-    def format_summary(self, event_type: str, entries: list[_Entry]) -> str:
-        """将多条消息合并为一条摘要文本。
+    def _build_summary(self, entries: list[_Entry]) -> str:
+        """摘要生成：单条渲染全文，多条渲染首行加统计。
 
-        单条 → 原样返回正文。
-        多条 → 统计成功/失败/总数 + 总耗时。
+        统一基于结构块渲染（非原始正文截断），保证任何路径下摘要非空：
+        - 单条：渲染全文；渲染结果为空则回退标题，再兜底固定文案。
+        - 多条：统计头加每条渲染首行（前 60 字符），空渲染回退标题。
         """
         if len(entries) == 1:
-            return entries[0][0].body
+            msg = entries[0][0]
+            rendered = self._renderer.render(msg)
+            return rendered or msg.title or _FALLBACK_TEXT
 
-        total = len(entries)
-        success_count = sum(1 for m, _, _ in entries if m.status == "success")
-        failure_count = sum(1 for m, _, _ in entries if m.status == "failure")
-        neutral_count = total - success_count - failure_count
-
-        # 总耗时（最早入队 → 最晚入队）
-        timestamps = [ts for _, _, ts in entries]
-        elapsed_s = max(timestamps) - min(timestamps) if timestamps else 0
-        # 累计单条耗时
-        total_elapsed_ms = sum(m.elapsed_ms for m, _, _ in entries)
-
-        lines: list[str] = [f"📦 {entries[0][0].title} (共 {total} 条)"]
-
-        if success_count:
-            lines.append(f"✅ 成功：{success_count} 条")
-        if failure_count:
-            # 列出失败项的正文摘要（截取前40字符）
-            failures = [m.body[:40] for m, _, _ in entries if m.status == "failure"]
-            preview = "、".join(failures[:3])
-            if len(failures) > 3:
-                preview += f"…等 {len(failures)} 项"
-            lines.append(f"❌ 失败：{failure_count} 条 ({preview})")
-        if neutral_count:
-            # 中性条目也列出摘要
-            neutrals = [m.body[:40] for m, _, _ in entries if not m.status]
-            preview = "、".join(neutrals[:3])
-            if len(neutrals) > 3:
-                preview += f"…等 {len(neutrals)} 项"
-            lines.append(f"📋 其他：{neutral_count} 条 ({preview})")
-
-        if elapsed_s > 0:
-            lines.append(f"⏱️ 窗口耗时：{elapsed_s:.0f}s")
-        if total_elapsed_ms > 0:
-            lines.append(f"⏱️ 总耗时：{total_elapsed_ms / 1000:.1f}s")
-
+        lines: list[str] = [f"📦 聚合通知（{len(entries)} 条）"]
+        for msg, _ch, _ts in entries:
+            rendered = self._renderer.render(msg)
+            first_line = rendered.split("\n")[0].strip() if rendered else (msg.title or _FALLBACK_TEXT)
+            lines.append(f"• {first_line[:60]}")
         return "\n".join(lines)
 
     @staticmethod
