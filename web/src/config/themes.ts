@@ -65,7 +65,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#f8fafc',
       border: '#e2e8f0',
       borderLight: '#f1f5f9',
-      textDim: '#5f6f82',       // fix(theme): --text-dim 重设计（on --bg #f1f5f9 ≈ 4.69:1，保留弱化感；原 #64748b 实测仅 4.34）
+      textDim: '#445264',       // fix(theme): --text-dim 重设计 v2（批次5-E组）——ΔL*(sec→dim)=10.3≥10、on bg #f1f5f9 ≈ 7.27:1 ✅（原 #5f6f82 梯度不足）
       // fix(a11y): 实测辅助文字多落在 surface-raised(#f1f5f9) 上，#64748b 仅 4.34:1；#5b6b80 实测 4.96:1(on #f1f5f9)/5.44:1(on #ffffff)
       textSecondary: '#5b6b80',
       text: '#475569',
@@ -160,7 +160,7 @@ export const THEMES: Record<string, ThemeConfig> = {
       surfaceRaised: '#dcfce7',
       border: '#bbf7d0',
       borderLight: '#dcfce7',
-      textDim: '#5f6f82',       // fix(theme): --text-dim 重设计（on --bg #e8f5e9 ≈ 4.55:1；原 #65a77d 仅 2.3:1、#64748b 实测 4.23）
+      textDim: '#445264',       // fix(theme): --text-dim 重设计 v2（批次5-E组）——ΔL*(sec→dim)=11.9≥10、on bg #e8f5e9 ≈ 7.08:1 ✅（原 #5f6f82 与 textSecondary 亮度倒挂）
       textSecondary: '#3d7a52',   // on #f6fbf7 ≈ 4.88:1 ✅
       text: '#166534',
       textBright: '#15803d',
