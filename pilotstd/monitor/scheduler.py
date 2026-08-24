@@ -14,6 +14,13 @@ from .handler import StandardFileHandler
 
 logger = logging.getLogger(__name__)
 
+
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
 _instance = None
 
 
@@ -61,7 +68,11 @@ class FileMonitorScheduler:
             return
         cfg = get_config()
         if not cfg.get("enabled", True):
-            logger.info("[MONITOR] 已禁用，跳过")
+            # 批次4：禁用时跳过启动并记录结构化日志（running 保持 False）
+            logger.info(
+                "监控已禁用，跳过启动: trace_id=%s source_type=monitor_scheduler target_chat_id=-",
+                _log_trace_id(),
+            )
             return
         self._stop.clear()
         self._thread = threading.Thread(target=self._run, daemon=True, name="file-monitor")
@@ -76,7 +87,10 @@ class FileMonitorScheduler:
         if self._thread:
             self._thread.join(timeout=5)
         self.running = False
-        logger.info("[MONITOR] 已停止")
+        logger.info(
+            "监控调度器已停止: trace_id=%s source_type=monitor_scheduler target_chat_id=-",
+            _log_trace_id(),
+        )
 
     def _run(self):
         """后台监控循环。

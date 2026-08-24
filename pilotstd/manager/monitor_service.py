@@ -1,8 +1,18 @@
 # 模块：项目/管理器/_服务脚本
 # 文件监控服务—供接口层+脚本生命周期使用
 
+import logging
 from datetime import date
 from typing import Any, cast
+
+logger = logging.getLogger(__name__)
+
+
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
 
 
 class MonitorService:
@@ -18,10 +28,31 @@ class MonitorService:
         return get_config()
 
     def set_config(self, body: dict[str, Any]) -> dict[str, Any]:
-        """更新文件监控配置。"""
-        from pilotstd.monitor.config import set_config
+        """更新文件监控配置，并根据服务状态决定启动或重启（批次4-D组热更新）。"""
+        from pilotstd.monitor.config import get_config, set_config
+        from pilotstd.monitor.scheduler import get_scheduler
 
         set_config(body)
+        new_config = get_config()
+        scheduler = get_scheduler()
+        # 配置写入后，根据服务状态决定启动或重启
+        if scheduler.running:
+            try:
+                scheduler.stop()
+                scheduler.start()
+                logger.info(
+                    "监控服务已重启: trace_id=%s source_type=monitor_service target_chat_id=-",
+                    _log_trace_id(),
+                )
+            except Exception:
+                logger.error(
+                    "监控服务重启失败: trace_id=%s source_type=monitor_service target_chat_id=-",
+                    _log_trace_id(),
+                    exc_info=True,
+                )
+        elif new_config.get("enabled", True):
+            # 服务未运行但 enabled=true → 启动
+            scheduler.start()
         return {"ok": True}
 
     def get_status(self) -> dict[str, Any]:
