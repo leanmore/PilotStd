@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 # 系统默认用户 ID：迁移引导目标用户（语义化，消除魔法数字）
 SYSTEM_DEFAULT_USER_ID = 1
 
+# 统一掩码占位符常量（P2-2 O-3 加固）：禁止硬编码，供前端回显与底层校验共用
+MASKED_VALUE = "***"
+
 
 class CredentialHelper:
     """用户渠道凭证读写。
@@ -109,18 +112,36 @@ class CredentialHelper:
 
     # ── 写入 ─────────────────────────────────────────────────
 
-    def set_channel(self, user_id: int, channel: str, credentials: dict[str, str]) -> None:
+    def set_channel(self, user_id: int, channel: str, credentials: dict[str, Any]) -> None:
         """合并语义写入渠道凭证，仅覆盖传入的非掩码字段。
 
-        以 DB 现有值为基线，避免增量提交（掩码字段被过滤）整体覆盖导致凭据丢失。
+        P2-2 O-3 加固：拒绝掩码占位符作为真实凭证写入——检测到掩码值时
+        抛出 ValueError（不静默跳过、不写入任何字段），强制调用方感知。
+        日志仅记录键名与值长度，严禁打印原始值（脱敏）。
+
+        :raises ValueError: 当检测到掩码占位符或非法类型时
         """
+        # 防御性校验：任何字段值为掩码占位符 → 整体拒绝（原子性，防部分写入）
+        for k, v in credentials.items():
+            if isinstance(v, str) and v.strip() in self.MASKED_VALUES:
+                logger.warning(
+                    "拒绝写入掩码占位符: channel=%s key=%s value_len=%d",
+                    channel, k, len(v),
+                    extra={"source_type": "credential_helper", "user_id": user_id},
+                )
+                raise ValueError(
+                    f"凭证校验失败: 字段 '{k}' 的值疑似掩码占位符，请重新输入真实凭证。"
+                )
+
         existing = self.get_channel(user_id, channel) or {}
         merged: dict[str, str] = {k: str(v) for k, v in existing.items()}
         for k, v in credentials.items():
             if k == "enabled":
                 merged[k] = "true" if v else "false"
-            # 拦截掩码值和空值，防止覆盖真实凭据
-            elif v and str(v).strip() not in self.MASKED_VALUES:
+            # 拦截空值（清空语义），防止覆盖真实凭据；类型安全：非 str 值转 str 写入
+            elif isinstance(v, str) and v.strip() == "":
+                continue
+            else:
                 merged[k] = str(v)
         plain = _json.dumps(merged, ensure_ascii=False)
         encrypted = self._fernet.encrypt(plain.encode()).decode()

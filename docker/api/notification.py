@@ -8,6 +8,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
 from pilotstd.core.notification import NotificationManager, NotificationMessage
+from pilotstd.core.notification._credentials import MASKED_VALUE
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 
 from ..auth import get_current_user_id
@@ -47,7 +48,8 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
         creds = nmgr._cred_helper.get_all(user_id)
 
     def mask(v: str) -> str:
-        return "***" if v else ""
+        """掩码函数：非空值统一返回掩码占位符（引用常量，不硬编码）。"""
+        return MASKED_VALUE if v else ""
 
     # 构建每个渠道的配置视图，敏感字段（_等）做掩码处理
     def build_channel(ch_name: str, defaults: dict) -> dict:
@@ -110,10 +112,18 @@ def update_config(
             except Exception as e:
                 logger.warning("通知启用状态写入用户偏好表失败: %s", e)
         elif key == "channels":
-            # 凭据写入由凭据助手内部完成合并与掩码过滤
+            # 凭据写入由凭据助手内部完成合并与掩码校验（P2-2：拒绝掩码占位符）
             for ch_name, ch_cfg in value.items():
                 if isinstance(ch_cfg, dict) and nmgr._cred_helper:
-                    nmgr._cred_helper.set_channel(user_id, ch_name, ch_cfg)
+                    try:
+                        nmgr._cred_helper.set_channel(user_id, ch_name, ch_cfg)
+                    except ValueError as e:
+                        # 掩码占位符被拒绝 → 明确 400，避免前端误判"保存成功"
+                        logger.warning(
+                            "渠道 %s 配置保存被拒绝: %s", ch_name, e,
+                            extra={"source_type": "notification_api", "user_id": user_id},
+                        )
+                        return JSONResponse({"error": str(e)}, status_code=400)
         elif key == "rules":
             for rule_name, channels in value.items():
                 mgr.cfg.set(f"notification.rules.{rule_name}", channels)

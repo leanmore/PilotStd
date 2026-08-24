@@ -174,3 +174,82 @@ class TestCredentialHelper(unittest.TestCase):
         mock_cm.side_effect = RuntimeError("config error")
         result = self.helper._try_fallback_from_config()
         self.assertIsNone(result)
+
+
+class TestSetChannelMaskDefense(unittest.TestCase):
+    """P2-2 O-3 加固：掩码占位符防御性校验（TC-1 ~ TC-6）。"""
+
+    def setUp(self):
+        import sqlite3 as _sqlite3
+        import tempfile as _tempfile
+        from unittest.mock import MagicMock, patch
+
+        from pilotstd.core.config.crypto import _get_fernet
+
+        self.mock_db = MagicMock()
+        self.tmpdir = _tempfile.mkdtemp()
+        self.empty_db = os.path.join(self.tmpdir, "empty.db")
+        _sqlite3.connect(self.empty_db).close()
+        with patch("pilotstd.core.config.paths.get_db_path", return_value=self.empty_db):
+            _get_fernet(self.tmpdir)
+        self.helper = CredentialHelper(self.mock_db, self.tmpdir)
+        # 无已有凭证（get_channel 返回 None）
+        self.mock_db.fetchone.return_value = None
+        self.inserts = []
+        self.mock_db.execute.side_effect = lambda sql, params=None: (
+            self.inserts.append((sql, params)) if "INSERT OR REPLACE" in sql else None
+        )
+
+    def tearDown(self):
+        import shutil
+
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_tc1_real_credentials_write(self):
+        """TC-1：正常真实凭证 → 正常写入 DB。"""
+        self.helper.set_channel(1, "telegram", {"bot_token": "real_token_123"})
+        self.assertEqual(len(self.inserts), 1)
+        stored = self.inserts[0][1][2]
+        decrypted = json.loads(self.helper._fernet.decrypt(stored.encode()).decode())
+        self.assertEqual(decrypted["bot_token"], "real_token_123")
+
+    def test_tc2_pure_mask_rejected(self):
+        """TC-2：纯掩码值 '***' → 抛 ValueError，DB 无写入。"""
+        with self.assertRaises(ValueError):
+            self.helper.set_channel(1, "telegram", {"bot_token": "***"})
+        self.assertEqual(len(self.inserts), 0)
+
+    def test_tc3_asterisk_in_real_value(self):
+        """TC-3：含星号的合法值 'real_***_token' → 正常写入（不误杀）。"""
+        self.helper.set_channel(1, "telegram", {"bot_token": "real_***_token"})
+        self.assertEqual(len(self.inserts), 1)
+        stored = self.inserts[0][1][2]
+        decrypted = json.loads(self.helper._fernet.decrypt(stored.encode()).decode())
+        self.assertEqual(decrypted["bot_token"], "real_***_token")
+
+    def test_tc4_non_string_types(self):
+        """TC-4：非字符串类型（int/bool）→ 正常写入，类型安全。"""
+        self.helper.set_channel(1, "wechat", {"retry_count": 3, "enabled": True})
+        self.assertEqual(len(self.inserts), 1)
+        stored = self.inserts[0][1][2]
+        decrypted = json.loads(self.helper._fernet.decrypt(stored.encode()).decode())
+        self.assertEqual(decrypted["enabled"], "true")
+        self.assertEqual(decrypted["retry_count"], "3")
+
+    def test_tc5_multi_field_atomic(self):
+        """TC-5：多字段含掩码 → 抛 ValueError，任何字段都不写入（原子性）。"""
+        with self.assertRaises(ValueError):
+            self.helper.set_channel(1, "telegram", {"token": "***", "secret": "real"})
+        self.assertEqual(len(self.inserts), 0)
+
+    def test_tc6_log_masked(self):
+        """TC-6：日志脱敏——含 key 名，不含 '***' 原文。"""
+        import logging
+
+        with self.assertLogs("pilotstd.core.notification._credentials", level=logging.WARNING) as cm:
+            with self.assertRaises(ValueError):
+                self.helper.set_channel(1, "telegram", {"bot_token": "***"})
+        log_text = "\n".join(cm.output)
+        self.assertIn("key=bot_token", log_text)
+        # 脱敏：日志含 key 与长度，不含掩码原文（'***' 仅作为 key 名上下文出现于消息模板外）
+        self.assertIn("value_len=3", log_text)

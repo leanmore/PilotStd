@@ -70,8 +70,9 @@ class TestCredentialsMerge:
         assert decrypted["bot_token"] == "123456:REAL"  # 原有 token 保留
         assert decrypted["chat_id"] == "-100"
 
-    def test_mask_filter(self):
-        """提交 {bot_token: '***'}，断言原有 bot_token 未被覆盖。"""
+    def test_mask_rejected(self):
+        """P2-2 加固：提交 {bot_token: '***'} 抛 ValueError，DB 无写入（原子拒绝）。"""
+        import pytest
         from cryptography.fernet import Fernet
 
         key = Fernet.generate_key()
@@ -81,14 +82,10 @@ class TestCredentialsMerge:
         helper._db.fetchone.return_value = {"credentials": existing}
         inserts = _capture_inserts(helper._db)
 
-        helper.set_channel(1, "telegram", {"enabled": True, "bot_token": "***"})
+        with pytest.raises(ValueError):
+            helper.set_channel(1, "telegram", {"enabled": True, "bot_token": "***"})
 
-        assert len(inserts) == 1
-        stored = inserts[0][1][2]
-        import json
-
-        decrypted = json.loads(fernet.decrypt(stored.encode()).decode())
-        assert decrypted["bot_token"] == "123456:REAL"  # 掩码值被拦截
+        assert len(inserts) == 0  # 无任何写入（原子性）
 
     def test_empty_skip(self):
         """提交 {bot_token: ''}，断言原有 bot_token 未被覆盖。"""
