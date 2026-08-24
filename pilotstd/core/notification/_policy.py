@@ -2,9 +2,18 @@
 # 通知策略表读写—从管理器脚本拆分以控制文件规模
 
 import json as _json
+import logging
+import secrets
 from typing import Any, cast
 
 _CHANNEL_CLASSES = ("wechat", "telegram", "feishu", "dingtalk")
+
+logger = logging.getLogger(__name__)
+
+
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    return secrets.token_hex(4)
 
 
 class NotificationPolicyHelper:
@@ -33,7 +42,16 @@ class NotificationPolicyHelper:
                 if channels:
                     return channels
         except Exception:
-            pass
+            # D-4 修复：策略表查询失败需带结构化上下文记录（回退 config 是显式设计，
+            # 但 DB 异常必须可见，避免策略变更静默失效）；禁止静默吞错
+            logger.error(
+                "通知策略表查询失败，回退 config 规则: trace_id=%s source_type=notification_policy "
+                "target_chat_id=- user_id=%s event_type=%s",
+                _log_trace_id(),
+                user_id,
+                event_type,
+                exc_info=True,
+            )
 
         # 回退：从配置脚本读取旧版规则
         rules = self._cfg.get(f"notification.rules.{event_type}")

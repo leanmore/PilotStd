@@ -7,6 +7,8 @@ should_show() 转为 push() 调用，_flush 逻辑由新版统一处理。
 对外 API 保持向后兼容。
 """
 
+import logging
+import secrets
 import time
 from typing import Any, cast
 
@@ -18,6 +20,13 @@ _COUNT_WINDOW = 30  # 秒
 _PAUSE_DURATION = 300  # 秒 (5分钟)
 # 配置键名：暂停状态持久化到配置脚本
 _PAUSE_CONFIG_KEY = "notification.aggregation"
+
+logger = logging.getLogger(__name__)
+
+
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    return secrets.token_hex(4)
 
 
 class NotificationAggregator:
@@ -103,7 +112,12 @@ class NotificationAggregator:
                         self._paused = True
                         self._paused_until = saved["paused_until"]
         except Exception:
-            pass
+            # D-3 修复：暂停状态恢复失败需带结构化上下文记录，禁止静默吞错
+            logger.warning(
+                "聚合器暂停状态恢复失败: trace_id=%s source_type=notification_aggregator target_chat_id=-",
+                _log_trace_id(),
+                exc_info=True,
+            )
 
     def _save_pause_state(self) -> None:
         """将当前暂停状态持久化到配置文件。"""
@@ -120,7 +134,12 @@ class NotificationAggregator:
             )
             cfg.save()
         except Exception:
-            pass
+            # D-3 修复：暂停状态保存失败需带结构化上下文记录，禁止静默吞错
+            logger.warning(
+                "聚合器暂停状态保存失败: trace_id=%s source_type=notification_aggregator target_chat_id=-",
+                _log_trace_id(),
+                exc_info=True,
+            )
 
     # ── 暂停计数 ──
 

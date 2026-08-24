@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 _ERROR_DEBOUNCE_SECONDS = 120
 
 
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
+
 class TelegramChannel(NotificationChannel):
     """Telegram Bot API。支持 parse_mode=MarkdownV2。"""
 
@@ -70,11 +77,28 @@ class TelegramChannel(NotificationChannel):
             try:
                 body = e.read().decode("utf-8", errors="replace")[:500]
             except Exception:
-                pass
+                # P1-4 修复：响应体读取失败需带结构化上下文记录，禁止静默吞错
+                logger.warning(
+                    "Telegram 响应体读取失败: trace_id=%s source_type=telegram_channel target_chat_id=%s code=%s",
+                    _log_trace_id(),
+                    self._chat_id,
+                    e.code,
+                    exc_info=True,
+                )
             # 提取具体错误描述透传（优先取 JSON 中的说明字段）
             try:
                 desc = json.loads(body).get("description", body) if body else str(e)
             except Exception:
+                # P1-4 修复：描述解析失败需记录，禁止静默吞错
+                logger.warning(
+                    "Telegram 错误描述解析失败: trace_id=%s source_type=telegram_channel "
+                    "target_chat_id=%s code=%s body=%s",
+                    _log_trace_id(),
+                    self._chat_id,
+                    e.code,
+                    body[:100],
+                    exc_info=True,
+                )
                 desc = body or str(e)
             self.last_error = f"HTTP {e.code}: {desc}"
             logger.warning("Telegram send failed: HTTP %s, body=%s", e.code, body)

@@ -61,6 +61,13 @@ from .channels.wechat import WechatChannel
 
 logger = logging.getLogger(__name__)
 
+
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
 _CHANNEL_CLASSES = {
     "wechat": WechatChannel,
     "telegram": TelegramChannel,
@@ -86,7 +93,13 @@ class NotificationManager:
             config_dir = __import__("os").path.dirname(config._filepath)
             self._cred_helper = CredentialHelper(db, config_dir)
         except Exception:
-            pass
+            # P1-2 修复：初始化失败必须带结构化上下文记录，禁止静默吞错
+            # （失败后 _cred_helper 保持 None，事件路径将按"渠道未初始化"降级）
+            logger.error(
+                "凭据助手初始化失败: trace_id=%s source_type=credential_helper target_chat_id=-",
+                _log_trace_id(),
+                exc_info=True,
+            )
         self._enabled = config.get("notification.enabled", False)
         # 用户级配置优先：user_preferences 表（数据库）覆盖 config.json，保证 Web 端设置实际生效
         db_enabled = self._read_user_enabled()
