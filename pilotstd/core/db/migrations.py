@@ -106,4 +106,5 @@ migration(51)(_migrate_v51_adapter_health_check)
 migration(52)(_migrate_v52_ensure_user_favorites_publish_date)
 # 第五十三版分页索引迁移拆分至独立模块，避免单文件超限
 migration(53)(_migrate_v53_announce_record_pagination_index)
-# 第五十四版收藏链路补列迁移：函数自带注册装饰器，导入即完成注册（与分模块迁移同款）
+# 第五十六版：缓存/索引表版本化三列幂等补列（D-1 修复，函数自带注册装饰器）
+from ._migrate_v56 import _migrate_v56_ensure_cache_version_columns  # noqa: E402, F401

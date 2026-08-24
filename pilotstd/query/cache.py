@@ -139,7 +139,12 @@ class CacheRepository:
     # ---- 内部 ----
 
     def _ensure_table(self) -> None:
-        """创建缓存表及联合索引（幂等），供 __init__ 在启动时调用。"""
+        """创建缓存表及联合索引（幂等），供 __init__ 在启动时调用。
+
+        三列（source_version/data_state/last_accessed_at）为缓存版本化所需，
+        与迁移 v23 的 ALTER TABLE 对齐；此处于建表时一并定义，
+        避免"迁移先于建表运行导致 ALTER 对不存在表失败"的缺列问题（D-1）。
+        """
         self._db.execute(f"""
             CREATE TABLE IF NOT EXISTS {CACHE_TABLE} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,7 +153,10 @@ class CacheRepository:
                 result_json TEXT NOT NULL,
                 cached_at TEXT NOT NULL,
                 source TEXT NOT NULL DEFAULT 'network',
-                status_history TEXT NOT NULL DEFAULT ''
+                status_history TEXT NOT NULL DEFAULT '',
+                source_version TEXT DEFAULT 'initial',
+                data_state TEXT DEFAULT 'fresh',
+                last_accessed_at TEXT
             )
         """)
         self._db.execute(
