@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     approved_by INTEGER,
     approved_at TEXT,
     updated_at TEXT DEFAULT 'CURRENT_TIMESTAMP',
-    source_type TEXT DEFAULT '网页解析'
+    source_type TEXT DEFAULT '网页解析',
+    standard_type TEXT NOT NULL DEFAULT 'Unknown'
 );CREATE TABLE IF NOT EXISTS announcement_match (
     id INTEGER,
     standard_number TEXT NOT NULL,
@@ -288,7 +289,7 @@ class TestProcessItem(unittest.TestCase):
         result = {"matched": 0, "updated": 0, "details": []}
         item = {"std_code": "", "announce_no": "X"}
 
-        self.matcher._process_item(item, "test_site", "now", log_rows, cache_rows, result)
+        self.matcher._process_item(item, "test_site", "Unknown", "now", log_rows, cache_rows, result)
 
         self.assertEqual(log_rows, [])
 
@@ -306,7 +307,7 @@ class TestProcessItem(unittest.TestCase):
             "std_name": "未知标准",
         }
 
-        self.matcher._process_item(item, "test_site", "now", log_rows, cache_rows, result)
+        self.matcher._process_item(item, "test_site", "Unknown", "now", log_rows, cache_rows, result)
 
         self.assertEqual(len(log_rows), 1)
         self.assertEqual(len(cache_rows), 0)
@@ -330,7 +331,7 @@ class TestProcessItem(unittest.TestCase):
             "standard_count": 1,
         }
 
-        self.matcher._process_item(item, "test_site", "now", log_rows, cache_rows, result)
+        self.matcher._process_item(item, "test_site", "Unknown", "now", log_rows, cache_rows, result)
 
         self.assertEqual(len(log_rows), 1)
         self.assertEqual(result["matched"], 1)
@@ -354,7 +355,7 @@ class TestProcessItem(unittest.TestCase):
             "publish_date": "",
         }
 
-        self.matcher._process_item(item, "test_site", "now", log_rows, cache_rows, result)
+        self.matcher._process_item(item, "test_site", "Unknown", "now", log_rows, cache_rows, result)
 
         self.assertEqual(result["matched"], 1)
 
@@ -373,14 +374,15 @@ class TestProcessItem(unittest.TestCase):
             "standard_count": 3,
         }
 
-        self.matcher._process_item(item, "announcement_gb", "2024-01-01T00:00:00", log_rows, cache_rows, result)
+        self.matcher._process_item(item, "announcement_gb", "NationalStd", "2024-01-01T00:00:00", log_rows, cache_rows, result)
 
         row = log_rows[0]
-        self.assertEqual(len(row), 16)
+        self.assertEqual(len(row), 17)  # 批次7：含 standard_type（第 17 列）
         self.assertEqual(row[0], "announcement_gb")  # source_site
         self.assertEqual(row[1], "p001")  # pid
         self.assertEqual(row[2], "2024-001")  # announce_no
         self.assertEqual(row[3], "GB/T 99999-2020")  # standard_number
+        self.assertEqual(row[16], "NationalStd")  # standard_type（批次7）
 
 
 class TestGetCompletePids(unittest.TestCase):

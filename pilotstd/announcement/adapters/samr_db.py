@@ -16,6 +16,11 @@ class SamrDbCrawler(BaseAnnounceCrawler):
         return "db"
 
     @property
+    def standard_category(self) -> str:
+        """收藏分类：地方标准。"""
+        return "LocalStd"
+
+    @property
     def _list_url(self) -> str:
         return "https://std.samr.gov.cn/noc/search/nocDBPage"
 

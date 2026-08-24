@@ -3,6 +3,7 @@
   "nav": { "home": "首页", "task": "任务", "organize": "整理",
            "pending": "待处理", "announce": "公告",
            "download_import": "导入下载",
+           "favorites": "收藏",
            "notification_logs": "通知日志",
            "standards_status": "标准状态",
            "scheduler": "调度器",

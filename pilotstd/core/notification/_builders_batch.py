@@ -135,12 +135,21 @@ def _build_favorite_created_message(data: dict) -> NotificationMessage:
     """
     std_no = data.get("standard_no", "")
     std_name = data.get("standard_name", "")
+    standard_type = data.get("standard_type", "")
     blocks: list[NotificationBlock] = []
     # 标准号与名称非空时才展示，避免消息中出现空字段占位
     if std_no:
         blocks.append(TextBlock(text=_("标准号：{s}").format(s=std_no)))
     if std_name:
         blocks.append(TextBlock(text=_("名称：{s}").format(s=std_name)))
+    # 批次7：收藏分类展示（非未知类型才显示，避免噪声）
+    _STD_TYPE_LABEL = {
+        "NationalStd": _("国家标准"),
+        "IndustryStd": _("行业标准"),
+        "LocalStd": _("地方标准"),
+    }
+    if standard_type and standard_type in _STD_TYPE_LABEL:
+        blocks.append(TextBlock(text=_("类型：{t}").format(t=_STD_TYPE_LABEL[standard_type])))
     # 明确告知排队语义：冷却期后才真正下载，避免用户误判时效
     blocks.append(TextBlock(text=_("已加入下载队列，冷却期过后自动下载归档")))
     return NotificationMessage(

@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 56  # v56: 缓存/索引表版本化三列幂等补列（D-1 修复）
+CURRENT_SCHEMA_VERSION = 57  # v57: 收藏分类 standard_type 列（批次7）
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

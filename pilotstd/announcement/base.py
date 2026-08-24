@@ -60,6 +60,15 @@ class BaseAnnounceCrawler(ABC):
         ...
 
     @property
+    def standard_category(self) -> str:
+        """收藏分类语义化枚举（批次7）：NationalStd/IndustryStd/LocalStd，默认 Unknown。
+
+        子类按公告类型覆盖；写入 announcement_record.standard_type 用。
+        与 standard_type（内部标识 gb/hb/db，供熔断键/engine 映射）分离，避免破坏既有契约。
+        """
+        return "Unknown"
+
+    @property
     @abstractmethod
     def _list_url(self) -> str:
         """公告列表 API 地址。"""

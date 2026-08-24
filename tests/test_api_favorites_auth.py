@@ -73,9 +73,17 @@ def client_and_db(tmp_path_factory):
         "publish_date TEXT,"
         "last_archive_attempt TEXT,"
         "archive_retry_count INTEGER DEFAULT 0,"
+        "standard_number TEXT,"
+        "standard_type TEXT NOT NULL DEFAULT 'Unknown',"
         "created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
         "updated_at TEXT DEFAULT CURRENT_TIMESTAMP)"
     )
+    # 迁移框架可能已用 v31 旧结构建表（无 standard_number/standard_type），此处幂等补列
+    _uf_cols = {r["name"] for r in db.fetchall("PRAGMA table_info(user_favorites)")}
+    if "standard_type" not in _uf_cols:
+        db.execute("ALTER TABLE user_favorites ADD COLUMN standard_type TEXT NOT NULL DEFAULT 'Unknown'")
+    if "standard_number" not in _uf_cols:
+        db.execute("ALTER TABLE user_favorites ADD COLUMN standard_number TEXT")
     db.execute(
         """CREATE TABLE IF NOT EXISTS announcement_record (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,6 +113,7 @@ def client_and_db(tmp_path_factory):
         approved_at TEXT,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         source_type TEXT DEFAULT '网页解析',
+        standard_type TEXT NOT NULL DEFAULT 'Unknown',
         UNIQUE(source_site, pid, standard_number))"""
     )
 

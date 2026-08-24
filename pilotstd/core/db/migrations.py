@@ -108,3 +108,5 @@ migration(52)(_migrate_v52_ensure_user_favorites_publish_date)
 migration(53)(_migrate_v53_announce_record_pagination_index)
 # 第五十六版：缓存/索引表版本化三列幂等补列（D-1 修复，函数自带注册装饰器）
 from ._migrate_v56 import _migrate_v56_ensure_cache_version_columns  # noqa: E402, F401
+# 第五十七版：收藏分类 standard_type 列 + 存量回填（批次7，函数自带注册装饰器）
+from ._migrate_v57 import _migrate_v57_favorite_standard_type  # noqa: E402, F401

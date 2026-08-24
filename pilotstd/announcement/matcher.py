@@ -26,12 +26,20 @@ class AnnouncementMatcher:
         self,
         items: list[dict[str, Any]],
         source_site: str = "announcement",
+        standard_category: str | None = None,
     ) -> dict[str, Any]:
         """逐条公告明细比对 file_index，命中则写入两张表（批量模式）。
 
         入库前先按 announce_no 归一化：同一公告的所有条目强制统一 publish_date、
         announcement_title、standard_count，消除 HTML/PDF 混合解析导致的字段不一致。
+        standard_category：收藏分类语义化枚举（批次7），由适配器传入；
+        缺省时按 source_site 精确映射（SOURCE_SITE_TO_STANDARD_TYPE），映射不到落 Unknown。
         """
+        if standard_category is None:
+            from pilotstd.constants.announce_types import SOURCE_SITE_TO_STANDARD_TYPE
+
+            standard_category = SOURCE_SITE_TO_STANDARD_TYPE.get(source_site, "Unknown")
+
         result: dict[str, Any] = {"matched": 0, "updated": 0, "details": []}
         if not items:
             return result
@@ -44,7 +52,7 @@ class AnnouncementMatcher:
         now = datetime.now().isoformat()
 
         for item in items:
-            self._process_item(item, source_site, now, log_rows, cache_rows, result)
+            self._process_item(item, source_site, standard_category, now, log_rows, cache_rows, result)
 
         # 批量写入：先写记录表再写缓存表，减少数据库往返次数
         if log_rows:
@@ -110,7 +118,7 @@ class AnnouncementMatcher:
 
         return items
 
-    def _process_item(self, item, source_site, now, log_rows, cache_rows, result):
+    def _process_item(self, item, source_site, standard_category, now, log_rows, cache_rows, result):
         """逐条处理公告明细：解析标准编号 → 查 file_index → 命中则写缓存和日志。"""
         std_code = item.get("std_code", "")
         replaces_code = item.get("replaces_code", "")
@@ -156,6 +164,7 @@ class AnnouncementMatcher:
                 matched,
                 item.get("announcement_title", "") or None,
                 item.get("standard_count"),
+                standard_category,  # 批次7：收藏分类（17 列）
             )
         )
 
@@ -256,13 +265,13 @@ class AnnouncementMatcher:
         # 分批插入：避免单条数据库查询过长导致性能下降
         for i in range(0, len(rows), self._BATCH_SIZE):
             batch = rows[i : i + self._BATCH_SIZE]
-            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
+            placeholders = ",".join("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" for _ in batch)
             flat_values = [item for row in batch for item in row]
             self._db.execute(
                 "INSERT OR IGNORE INTO announcement_record "
                 "(source_site, pid, announce_no, standard_number, std_name, "
                 "publish_date, implement_date, expiry_date, superseded_by, confidence, row_index,"
-                " status, fetched_at, matched, announcement_title, standard_count) "
+                " status, fetched_at, matched, announcement_title, standard_count, standard_type) "
                 f"VALUES {placeholders}",
                 flat_values,
             )

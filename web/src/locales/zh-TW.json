@@ -4,6 +4,7 @@
            "normalize": "規範化", "archive": "歸檔",
            "organize": "整理", "pending": "待處理", "announce": "公告",
            "download_import": "匯入下載",
+           "favorites": "收藏",
            "notification_logs": "通知記錄",
            "standards_status": "標準狀態",
            "scheduler": "排程器",

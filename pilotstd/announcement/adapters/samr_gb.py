@@ -16,6 +16,11 @@ class SamrGbCrawler(BaseAnnounceCrawler):
         return "gb"
 
     @property
+    def standard_category(self) -> str:
+        """收藏分类：国家标准。"""
+        return "NationalStd"
+
+    @property
     def _list_url(self) -> str:
         return "https://std.samr.gov.cn/noc/search/nocGBPage"
 

@@ -94,7 +94,11 @@ class AnnounceEngine:
         if not items:
             return {"matched": 0, "updated": 0, "total_announcements": 0, "last_notice_date": ""}
         # 交叉比对：将公告清单与本地_索引匹配，更新缓存
-        result = self._matcher.match_and_update(items, source_site=adapter.source_site)
+        result = self._matcher.match_and_update(
+            items,
+            source_site=adapter.source_site,
+            standard_category=getattr(adapter, "standard_category", None),
+        )
         result["total_announcements"] = len(items)
         # 提取本次抓取中最晚的公告日期，用于下次抓取的_基准
         max_date = ""

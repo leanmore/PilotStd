@@ -4,6 +4,7 @@
            "normalize": "Normalize", "archive": "Archive",
            "organize": "Organize", "pending": "Pending", "announce": "Announce",
            "download_import": "Import & Download",
+           "favorites": "Favorites",
            "notification_logs": "Notification Logs",
            "standards_status": "Standards Status",
            "scheduler": "Scheduler",

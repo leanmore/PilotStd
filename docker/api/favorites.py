@@ -1,11 +1,13 @@
 # 模块：容器//脚本
 # 阶段4:收藏接口—收藏/状态查询/取消/列表/批量状态
 
+import json as _json
 import logging
 import os
 from typing import Dict, List, Optional, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from pilotstd.core.config import get_db_path
@@ -61,6 +63,30 @@ def _get_user_id(user_id: int, db: Database) -> int:
     return cast(int, row["id"])
 
 
+def _find_duplicate_favorite(
+    db: Database, user_id: int, record_id: int, std_no: str, standard_type: str
+) -> Optional[dict]:
+    """批次7：两级去重查重——公告记录级（原逻辑）+ 标准级（用户、标准号、分类联合）。
+
+    返回已存在收藏的 {id, status} 或 None。标准级查重允许同号不同类型并存（跨类型收藏合法）。
+    """
+    existing = db.fetchone(
+        "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
+        (user_id, record_id),
+    )
+    if existing:
+        return {"id": existing["id"], "status": existing["status"], "level": "record"}
+
+    dup = db.fetchone(
+        "SELECT id, status FROM user_favorites "
+        "WHERE user_id = ? AND standard_number = ? AND standard_type = ?",
+        (user_id, std_no, standard_type),
+    )
+    if dup:
+        return {"id": dup["id"], "status": dup["status"], "level": "standard"}
+    return None
+
+
 # ════════════════════════════════════════════════════════════════ 分隔
 # 1. 收藏标准
 # ════════════════════════════════════════════════════════════════ 分隔
@@ -81,23 +107,24 @@ def add_favorite(
     """
     user_id = _get_user_id(user_id, db)
 
-    existing = db.fetchone(
-        "SELECT id, status FROM user_favorites WHERE user_id = ? AND record_id = ?",
-        (user_id, data.record_id),
-    )
-    if existing:
-        return {
-            "status": "already_exists",
-            "favorite_id": existing["id"],
-            "current_status": existing["status"],
-        }
-
     record = db.fetchone(
-        "SELECT id, standard_number, std_name FROM announcement_record WHERE id = ?",
+        "SELECT id, standard_number, std_name, standard_type FROM announcement_record WHERE id = ?",
         (data.record_id,),
     )
     if not record:
         raise HTTPException(404, "标准记录不存在")
+
+    # 批次7：收藏分类——从公告记录读取分类值（迁移后已回填），
+    # 并升级去重为（用户、标准号、分类）联合判断
+    standard_type = record["standard_type"] or "Unknown"
+    std_no = (record["standard_number"] or "") or f"UNKNOWN_{data.record_id}"
+    dup = _find_duplicate_favorite(db, user_id, data.record_id, std_no, standard_type)
+    if dup:
+        return {
+            "status": "already_exists",
+            "favorite_id": dup["id"],
+            "current_status": dup["status"],
+        }
 
     pub_row = db.fetchone("SELECT publish_date FROM announcement_record WHERE id = ?", (data.record_id,))
     publish_date = pub_row["publish_date"] if pub_row else None
@@ -105,9 +132,9 @@ def add_favorite(
     try:
         cursor = db.execute(
             "INSERT INTO user_favorites (user_id, record_id, status, publish_date,"
-            " created_at, updated_at)"
-            " VALUES (?, ?, 'pending', ?, datetime('now'), datetime('now'))",
-            (user_id, data.record_id, publish_date),
+            " standard_number, standard_type, created_at, updated_at)"
+            " VALUES (?, ?, 'pending', ?, ?, ?, datetime('now'), datetime('now'))",
+            (user_id, data.record_id, publish_date, std_no, standard_type),
         )
     except Exception:
         existing2 = db.fetchone(
@@ -129,14 +156,15 @@ def add_favorite(
     try:
         db.execute(
             "INSERT INTO favorite_downloads (favorite_id, user_id, record_id, status,"
-            " standard_no, standard_name, created_at, updated_at)"
-            " VALUES (?, ?, ?, 'pending', ?, ?, datetime('now'), datetime('now'))",
+            " standard_no, standard_name, standard_type, created_at, updated_at)"
+            " VALUES (?, ?, ?, 'pending', ?, ?, ?, datetime('now'), datetime('now'))",
             (
                 favorite_id,
                 user_id,
                 data.record_id,
-                (record["standard_number"] or "") or f"UNKNOWN_{data.record_id}",
+                std_no,
                 (record["std_name"] or "") or "未知标准",
+                standard_type,
             ),
         )
     except Exception as e:
@@ -152,8 +180,9 @@ def add_favorite(
                 {
                     "user_id": user_id,
                     "record_id": data.record_id,
-                    "standard_no": (record["standard_number"] or "") or f"UNKNOWN_{data.record_id}",
+                    "standard_no": std_no,
                     "standard_name": (record["std_name"] or "") or "未知标准",
+                    "standard_type": standard_type,
                 },
             )
     except Exception as e:
@@ -260,7 +289,7 @@ def list_favorites(
 
     sql = (
         "SELECT f.id, f.user_id, f.record_id, f.status, f.local_path,"
-        " f.error_message, f.created_at, f.updated_at,"
+        " f.error_message, f.created_at, f.updated_at, f.standard_type,"
         " r.standard_number, r.std_name, r.announce_no"
         " FROM user_favorites f"
         " JOIN announcement_record r ON f.record_id = r.id"
@@ -307,3 +336,75 @@ def batch_get_favorite_status(
         }
 
     return {"statuses": result}
+
+
+# ════════════════════════════════════════════════════════════════ 分隔
+# 6.收藏列表导出（批次7：流式响应 + 按分类筛选）
+# ════════════════════════════════════════════════════════════════ 分隔
+
+
+@router.get("/api/favorites/export")
+def export_favorites(
+    user_id: int = Depends(get_current_user_id),
+    format: str = Query("csv", description="csv 或 json"),
+    standard_type: Optional[str] = Query(None, description="按收藏分类筛选：NationalStd/IndustryStd/LocalStd/Unknown"),
+    db: Database = Depends(get_db),
+):
+    """导出当前用户的收藏列表（流式响应防大数据量 OOM）。
+
+    standard_type 可选：缺省导出全部；支持"导出当前分类"与"导出全部"两种交互。
+    async=true 参数预留（量级达标后走 task_queue 生成文件），首期同步流式返回。
+    """
+    import csv as _csv
+    import io as _io
+
+    user_id = _get_user_id(user_id, db)
+
+    sql = (
+        "SELECT f.id, f.standard_number, f.standard_type, f.status,"
+        " f.local_path, f.publish_date, f.created_at, f.updated_at,"
+        " r.source_site, r.std_name"
+        " FROM user_favorites f"
+        " LEFT JOIN announcement_record r ON f.record_id = r.id"
+        " WHERE f.user_id = ?"
+    )
+    params: list = [user_id]
+    if standard_type:
+        sql += " AND f.standard_type = ?"
+        params.append(standard_type)
+    sql += " ORDER BY f.created_at DESC"
+
+    rows = db.fetchall(sql, params)
+
+    if format == "json":
+        items = [dict(r) for r in rows]
+        return StreamingResponse(
+            iter([_json.dumps({"favorites": items}, ensure_ascii=False, indent=2)]),
+            media_type="application/json",
+            headers={"Content-Disposition": "attachment; filename=favorites.json"},
+        )
+
+    # 表格流式输出：逐行生成，避免全量拼接占用过多内存
+    def _csv_stream():
+        """逐行生成表格内容（表头 + 每行记录），供流式响应消费。"""
+        buffer = _io.StringIO()
+        writer = _csv.writer(buffer)
+        writer.writerow(
+            ["favorite_id", "standard_number", "standard_name", "standard_type",
+             "status", "local_path", "publish_date", "created_at", "updated_at", "source_site"]
+        )
+        yield buffer.getvalue()
+        for r in rows:
+            row = _io.StringIO()
+            _csv.writer(row).writerow([
+                r["id"], r["standard_number"], r["std_name"] or "", r["standard_type"],
+                r["status"], r["local_path"] or "", r["publish_date"] or "",
+                r["created_at"], r["updated_at"], r["source_site"] or "",
+            ])
+            yield row.getvalue()
+
+    return StreamingResponse(
+        _csv_stream(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=favorites.csv"},
+    )

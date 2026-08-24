@@ -16,6 +16,11 @@ class SamrHbCrawler(BaseAnnounceCrawler):
         return "hb"
 
     @property
+    def standard_category(self) -> str:
+        """收藏分类：行业标准统称桶。"""
+        return "IndustryStd"
+
+    @property
     def _list_url(self) -> str:
         return "https://std.samr.gov.cn/noc/search/nocHBPage"
 

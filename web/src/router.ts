@@ -44,6 +44,14 @@ const routes = [
     },
   },
   {
+    path: '/favorites',
+    component: () => import('./views/FavoritesView.vue'),
+    meta: {
+      titleKey: 'nav.favorites', icon: 'pi pi-star', color: 'var(--warning)',
+      showInSidebar: true, sidebarOrder: 4.5,
+    },
+  },
+  {
     path: '/announce',
     component: () => import('./views/AnnounceView.vue'),
     meta: {

@@ -17,3 +17,11 @@ SOURCE_SITE_TO_ANNC = {
     "announcement_hb": "annc_hb",
     "announcement_db": "annc_db",
 }
+
+# 公告来源 → 收藏分类语义化枚举（批次7；公告记录分类列 / 收藏三表冗余列）
+# 精确映射，严禁模糊匹配；未知来源统一落 'Unknown'
+SOURCE_SITE_TO_STANDARD_TYPE = {
+    "announcement_gb": "NationalStd",
+    "announcement_hb": "IndustryStd",
+    "announcement_db": "LocalStd",
+}
