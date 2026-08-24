@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""G-010: 代码规模控制（有效代码行计数，两档制）。
+"""G-010: 代码规模控制（有效代码行计数，两档制 + 拆分验证）。
 
 检查项：
 1. 单个 Python/TypeScript/Vue 文件有效代码行数：
-   - > 500 行：阻断（error，exit 1，必须分拆）
+   - > 500 行：阻断（error，exit 1），并要求提供拆分证据
    - > 400 且 <= 500 行：警告（warning，仅提示，不阻断）
 2. 单个 Python 函数有效代码行数 <= 80 行
 
@@ -11,6 +11,11 @@
 注释剔除规则：Python 剔除 # 开头行；TypeScript 额外剔除 // 单行注释与
 /* */ 块注释；Vue 额外剔除 <!-- --> HTML 注释（template 内）。
 行内注释的代码行保留（只计代码部分）。
+
+拆分验证（v2 新增）：文件 > 500 行时，阻断解除需同时满足：
+  ① 存在拆分证据：同目录下存在 {文件名}/ 子目录或 {文件名}_*.py 模块文件
+  ② 原文件有效代码行 <= 500
+两个条件缺一不可；只要文件仍 > 500 行，errors 必被追加 → exit 1。
 
 违例处理：仅阻断档影响 exit code；警告档输出到 stderr 不阻断。
 """
@@ -39,6 +44,28 @@ EXCLUDE_DIRS = {
     "tests",
 }
 EXCLUDE_PREFIXES = ("whitelist", "probe_")
+
+
+def has_split_evidence(file_path: Path) -> bool:
+    """检查文件是否存在拆分产物。
+
+    两种证据（满足任一即视为已拆分）：
+      1. 同目录下存在 {原文件名}/ 子目录（如 a.py → a/）
+      2. 同目录下存在 {原文件名}_*.py 模块文件（如 a.py → a_impl.py）
+    空模块/占位文件也视为证据——拆分质量由人工审查把关，本门禁不校验。
+    """
+    stem = file_path.stem
+    parent = file_path.parent
+
+    # 证据1：同目录下存在 原文件名/ 子目录
+    if (parent / stem).is_dir():
+        return True
+
+    # 证据2：同目录下存在 原文件名_*.py 文件
+    if any(parent.glob(f"{stem}_*.py")):
+        return True
+
+    return False
 
 
 def _count_logical_lines(lines: list[str], file_suffix: str = ".py") -> int:
@@ -122,6 +149,17 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
                 errors.append(
                     f"[FILE] {rel}: {logical} 有效代码行 (>{MAX_FILE_LINES})，必须分拆"
                 )
+                # v2 拆分验证：阻断解除需同时满足 ①拆分证据 ②原文件 ≤500 行
+                if not has_split_evidence(fpath):
+                    errors.append(
+                        f"  ✗ 未检测到拆分产物。请创建 {fpath.stem}/ 目录 "
+                        f"或 {fpath.stem}_*.py 模块文件，并将相关逻辑迁移过去"
+                    )
+                else:
+                    # 有证据，但原文件仍 >500 → 拆分不够彻底
+                    errors.append(
+                        f"  ✗ 原文件仍 {logical} 行 > {MAX_FILE_LINES}，需继续拆分至 ≤{MAX_FILE_LINES}"
+                    )
             elif logical > WARN_FILE_LINES:
                 warnings.append(
                     f"[FILE] {rel}: {logical} 有效代码行 (>{WARN_FILE_LINES})，文件过长需压缩"
