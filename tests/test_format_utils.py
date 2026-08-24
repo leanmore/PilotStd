@@ -282,6 +282,27 @@ class TestDoTestSendFeishu:
             )
         assert result == {"ok": True, "error": ""}
 
+    def test_success_with_db_fallback(self):
+        """P1-3：飞书凭证从 DB 读取，config 旧值不再使用。"""
+        mgr = _make_mgr(
+            cfg_data={
+                "notification.channels.feishu.webhook_url": "http://cfg_old_fs",
+            },
+            creds={"feishu": {"webhook_url": "http://db_new_fs", "secret": "db_fs_secret"}},
+        )
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"feishu": mock_cls},
+        ):
+            result = do_test_send(mgr, "feishu", "hello")
+        assert result == {"ok": True, "error": ""}
+        # 关键断言：使用 DB 凭证，而非 config 旧值
+        mock_cls.assert_called_once_with("http://db_new_fs", "db_fs_secret")
+
 
 class TestDoTestSendWechat:
     """企业微信渠道初始化路径 — 应用消息 vs 群机器人。"""
@@ -330,6 +351,35 @@ class TestDoTestSendWechat:
             result = do_test_send(mgr, "wechat", "hello")
         assert result["ok"] is False
         assert "缺少" in result["error"]
+
+    def test_app_message_mode_with_db_fallback(self):
+        """P1-3：企微应用消息凭证从 DB 读取，config 旧值不再使用。"""
+        mgr = _make_mgr(
+            cfg_data={
+                "notification.channels.wechat.corpid": "cfg_old_corpid",
+                "notification.channels.wechat.agentid": "cfg_old_agentid",
+                "notification.channels.wechat.corpsecret": "cfg_old_secret",
+            },
+            creds={
+                "wechat": {
+                    "corpid": "db_corpid",
+                    "agentid": "db_agentid",
+                    "corpsecret": "db_secret",
+                }
+            },
+        )
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"wechat": mock_cls},
+        ):
+            result = do_test_send(mgr, "wechat", "hello")
+        assert result == {"ok": True, "error": ""}
+        # 关键断言：使用 DB 凭证，而非 config 旧值
+        mock_cls.assert_called_once_with("db_corpid", "db_agentid", "db_secret")
 
 
 class TestDoTestSendGeneric:
