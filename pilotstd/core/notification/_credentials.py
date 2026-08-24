@@ -10,6 +10,9 @@ from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
+# 系统默认用户 ID：迁移引导目标用户（语义化，消除魔法数字）
+SYSTEM_DEFAULT_USER_ID = 1
+
 
 class CredentialHelper:
     """用户渠道凭证读写。
@@ -34,18 +37,13 @@ class CredentialHelper:
     def get_all(self, user_id: int) -> dict[str, dict[str, str]]:
         """获取某用户所有渠道凭证，返回 {channel: {key: value}}。
 
-        user_id=1 且 DB 无数据时，尝试从 config.json 紧急回退并自动补迁。
+        纯只读（CQS）：仅查询 DB 并解密，无任何写入副作用。
+        DB 为空时返回空 dict，不回退 config.json（回退由显式迁移方法承担）。
         """
         rows = self._db.fetchall(
             'SELECT "channel", "credentials" FROM "user_credentials" WHERE "user_id"=?',
             (user_id,),
         )
-        if not rows and user_id == 1:
-            fallback = self._try_fallback_from_config()
-            if fallback:
-                for channel, creds in fallback.items():
-                    self.set_channel(user_id, channel, creds)
-                return fallback
         result: dict[str, dict[str, str]] = {}
         for row in rows:
             ch_name = row["channel"] if isinstance(row, dict) else row[0]
@@ -140,10 +138,42 @@ class CredentialHelper:
             (user_id, channel),
         )
 
-    # ── 紧急回退（迁移中断自救） ─────────────────────────────
+    # ── 显式迁移（CQS：唯一含写入副作用的入口，首次启动引导） ──
+
+    def migrate_from_config_if_empty(self, user_id: int = SYSTEM_DEFAULT_USER_ID) -> bool:
+        """从 config.json 迁移凭证到 DB（显式、幂等、并发安全）。
+
+        仅在首次启动引导时由 NotificationManager 调用一次：
+        - DB 已有凭证 → 跳过（幂等快速路径）
+        - config.json 无有效凭证 → 跳过
+        - 写入冲突（多进程并发）→ 捕获并返回 False，不崩溃
+        """
+        # 1. 检查是否已存在（快速路径）
+        if self.get_all(user_id):
+            logger.debug("用户 %s 凭证已存在于数据库，跳过迁移", user_id)
+            return False
+
+        # 2. 读取 config.json（纯读取，无副作用）
+        fallback = self._try_fallback_from_config()
+        if not fallback:
+            logger.warning("配置文件中缺少有效渠道凭证，跳过迁移")
+            return False
+
+        # 3. 执行写入（并发冲突由 INSERT OR REPLACE 幂等 + 异常捕获保证）
+        try:
+            for channel, creds in fallback.items():
+                self.set_channel(user_id, channel, creds)
+            logger.info("已从配置文件迁移渠道凭证到数据库，用户 %s", user_id)
+            return True
+        except Exception as e:
+            # 捕获并发写入或其他异常，保证启动不崩溃
+            logger.warning("迁移跳过（并发写入或已存在数据）: %s", e)
+            return False
+
+    # ── 配置回退读取（纯读取，无写副作用） ─────────────────
 
     def _try_fallback_from_config(self) -> dict[str, dict[str, str]] | None:
-        """从 config.json 读取旧渠道配置，仅作为紧急救援。"""
+        """从 config.json 读取旧渠道配置（纯读取，仅供显式迁移使用）。"""
         try:
             from pilotstd.core.config import ConfigManager as _CM
 

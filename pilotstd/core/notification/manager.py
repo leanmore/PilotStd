@@ -92,6 +92,9 @@ class NotificationManager:
         try:
             config_dir = __import__("os").path.dirname(config._filepath)
             self._cred_helper = CredentialHelper(db, config_dir)
+            # P2-3 (O-4)：显式迁移——首次启动从 config.json 引导凭证到 DB（幂等 + 并发安全）
+            # 必须放在 _init_channels 之前，确保渠道初始化读到 DB 凭证
+            self._cred_helper.migrate_from_config_if_empty(self._user_id)
         except Exception:
             # P1-2 修复：初始化失败必须带结构化上下文记录，禁止静默吞错
             # （失败后 _cred_helper 保持 None，事件路径将按"渠道未初始化"降级）

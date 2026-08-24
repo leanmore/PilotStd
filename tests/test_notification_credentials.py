@@ -91,14 +91,40 @@ class TestCredentialHelper(unittest.TestCase):
 
     # ── 补充覆盖：fallback 有数据 / 解密异常 / _try_fallback_from_config ──
 
-    def test_get_all_with_fallback_data_migrates(self):
-        """fallback 返回数据时自动回迁到 DB。"""
+    def test_get_all_empty_db_returns_empty(self):
+        """CQS：DB 为空时 get_all 返回空 dict，不触发任何写入。"""
+        self.mock_db.fetchall.return_value = []
+        with unittest.mock.patch.object(self.helper, "_try_fallback_from_config") as mock_fb:
+            result = self.helper.get_all(1)
+            self.assertEqual(result, {})
+            mock_fb.assert_not_called()  # 不再回退 config
+            self.mock_db.execute.assert_not_called()  # 无写入副作用
+    def test_migrate_from_config_when_empty(self):
+        """P2-3：DB 空 + config 有凭证 → 显式迁移写入 DB。"""
         self.mock_db.fetchall.return_value = []
         fb_data = {"telegram": {"bot_token": "tok", "chat_id": "123"}}
         with unittest.mock.patch.object(self.helper, "_try_fallback_from_config", return_value=fb_data):
-            result = self.helper.get_all(1)
-            self.assertEqual(result, fb_data)
-            self.mock_db.execute.assert_called()  # 自动迁移写入 DB
+            result = self.helper.migrate_from_config_if_empty(1)
+            self.assertTrue(result)
+            self.mock_db.execute.assert_called()  # set_channel 写入 DB
+
+    def test_migrate_skips_when_db_has_data(self):
+        """P2-3：DB 已有凭证 → 跳过迁移（幂等），不触发 set_channel。"""
+        self.mock_db.fetchall.return_value = [
+            {"channel": "telegram", "credentials": self.helper._fernet.encrypt(
+                json.dumps({"bot_token": "tok", "chat_id": "123"}).encode()
+            ).decode()},
+        ]
+        with unittest.mock.patch.object(self.helper, "_try_fallback_from_config") as mock_fb:
+            result = self.helper.migrate_from_config_if_empty(1)
+            self.assertFalse(result)
+            mock_fb.assert_not_called()
+            # 不触发 set_channel 写入（允许旧格式指纹升级的 UPDATE，但不允许 INSERT OR REPLACE 凭证写入）
+            insert_calls = [
+                c for c in self.mock_db.execute.call_args_list
+                if "INSERT OR REPLACE" in c.args[0]
+            ]
+            self.assertEqual(len(insert_calls), 0)
 
     def test_get_all_decrypt_failure_skips(self):
         """解密失败时跳过该条，不阻断整体。"""
