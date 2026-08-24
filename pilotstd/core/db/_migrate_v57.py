@@ -78,8 +78,11 @@ def _ensure_columns(db: Any) -> None:
 
 def _preview_counts(db: Any) -> dict[str, int]:
     """Dry-run：统计各表按标准类型推断的预计行数（不实际写入）。"""
-    # Step1：announcement_record 按 source_site 精确映射
     preview: dict[str, int] = {}
+    if not _table_exists(db, "announcement_record"):
+        _log.info("v57: 表 announcement_record 不存在，dry-run 预览为空")
+        return preview
+    # Step1：announcement_record 按 source_site 精确映射
     rows = db.fetchall(
         "SELECT source_site, COUNT(*) AS cnt FROM announcement_record GROUP BY source_site"
     )
@@ -89,8 +92,19 @@ def _preview_counts(db: Any) -> dict[str, int]:
     return preview
 
 
+def _table_exists(db: Any, table: str) -> bool:
+    """检查表是否存在（回填防御：极端库可能缺表，跳过而非报错）。"""
+    row = db.fetchone(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,)
+    )
+    return row is not None
+
+
 def _backfill_announcement_record(db: Any) -> int:
     """Step2：分批回填 announcement_record（source_site 精确映射 → chunk 更新）。"""
+    if not _table_exists(db, "announcement_record"):
+        _log.info("v57: 表 announcement_record 不存在，跳过回填")
+        return 0
     updated = 0
     while True:
         rows = db.fetchall(
@@ -120,50 +134,59 @@ def _backfill_favorite_tables(db: Any) -> tuple[int, int, int]:
     uf = fd = dq = 0
 
     # 3a: user_favorites —— record_id → announcement_record.standard_type
-    while True:
-        rows = db.fetchall(
-            "SELECT uf.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-            "FROM user_favorites uf LEFT JOIN announcement_record ar ON uf.record_id = ar.id "
-            "WHERE uf.standard_type='Unknown' LIMIT ?",
-            (_CHUNK_SIZE,),
-        )
-        if not rows:
-            break
-        for r in rows:
-            db.execute("UPDATE user_favorites SET standard_type=? WHERE id=?", (r["st"], r["id"]))
-            uf += 1
-        time.sleep(_SLEEP_SECONDS)
+    if _table_exists(db, "user_favorites") and _table_exists(db, "announcement_record"):
+        while True:
+            rows = db.fetchall(
+                "SELECT uf.id, COALESCE(ar.standard_type, 'Unknown') AS st "
+                "FROM user_favorites uf LEFT JOIN announcement_record ar ON uf.record_id = ar.id "
+                "WHERE uf.standard_type='Unknown' LIMIT ?",
+                (_CHUNK_SIZE,),
+            )
+            if not rows:
+                break
+            for r in rows:
+                db.execute("UPDATE user_favorites SET standard_type=? WHERE id=?", (r["st"], r["id"]))
+                uf += 1
+            time.sleep(_SLEEP_SECONDS)
+    else:
+        _log.info("v57: user_favorites/announcement_record 表缺失，跳过收藏回填")
 
     # 3b: favorite_downloads —— record_id 关联（favorite_downloads 有 record_id）
-    while True:
-        rows = db.fetchall(
-            "SELECT fd.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-            "FROM favorite_downloads fd LEFT JOIN announcement_record ar ON fd.record_id = ar.id "
-            "WHERE fd.standard_type='Unknown' LIMIT ?",
-            (_CHUNK_SIZE,),
-        )
-        if not rows:
-            break
-        for r in rows:
-            db.execute("UPDATE favorite_downloads SET standard_type=? WHERE id=?", (r["st"], r["id"]))
-            fd += 1
-        time.sleep(_SLEEP_SECONDS)
+    if _table_exists(db, "favorite_downloads") and _table_exists(db, "announcement_record"):
+        while True:
+            rows = db.fetchall(
+                "SELECT fd.id, COALESCE(ar.standard_type, 'Unknown') AS st "
+                "FROM favorite_downloads fd LEFT JOIN announcement_record ar ON fd.record_id = ar.id "
+                "WHERE fd.standard_type='Unknown' LIMIT ?",
+                (_CHUNK_SIZE,),
+            )
+            if not rows:
+                break
+            for r in rows:
+                db.execute("UPDATE favorite_downloads SET standard_type=? WHERE id=?", (r["st"], r["id"]))
+                fd += 1
+            time.sleep(_SLEEP_SECONDS)
+    else:
+        _log.info("v57: favorite_downloads/announcement_record 表缺失，跳过下载记录回填")
 
     # 3c: download_queue —— standard_number 关联
-    while True:
-        rows = db.fetchall(
-            "SELECT dq.id, COALESCE(ar.standard_type, 'Unknown') AS st "
-            "FROM download_queue dq LEFT JOIN announcement_record ar "
-            "ON dq.standard_number = ar.standard_number "
-            "WHERE dq.standard_type='Unknown' LIMIT ?",
-            (_CHUNK_SIZE,),
-        )
-        if not rows:
-            break
-        for r in rows:
-            db.execute("UPDATE download_queue SET standard_type=? WHERE id=?", (r["st"], r["id"]))
-            dq += 1
-        time.sleep(_SLEEP_SECONDS)
+    if _table_exists(db, "download_queue") and _table_exists(db, "announcement_record"):
+        while True:
+            rows = db.fetchall(
+                "SELECT dq.id, COALESCE(ar.standard_type, 'Unknown') AS st "
+                "FROM download_queue dq LEFT JOIN announcement_record ar "
+                "ON dq.standard_number = ar.standard_number "
+                "WHERE dq.standard_type='Unknown' LIMIT ?",
+                (_CHUNK_SIZE,),
+            )
+            if not rows:
+                break
+            for r in rows:
+                db.execute("UPDATE download_queue SET standard_type=? WHERE id=?", (r["st"], r["id"]))
+                dq += 1
+            time.sleep(_SLEEP_SECONDS)
+    else:
+        _log.info("v57: download_queue/announcement_record 表缺失，跳过队列回填")
 
     return uf, fd, dq
 

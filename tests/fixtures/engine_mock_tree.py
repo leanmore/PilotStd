@@ -120,6 +120,8 @@ CREATE TABLE IF NOT EXISTS user_favorites (
     publish_date TEXT,
     last_archive_attempt TEXT,
     archive_retry_count INTEGER DEFAULT 0,
+    standard_number TEXT,
+    standard_type TEXT NOT NULL DEFAULT 'Unknown',
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (record_id) REFERENCES announcement_record(id),
     UNIQUE(user_id, record_id)
@@ -137,6 +139,7 @@ CREATE TABLE IF NOT EXISTS favorite_downloads (
     last_attempt TEXT,
     standard_no TEXT,
     standard_name TEXT,
+    standard_type TEXT NOT NULL DEFAULT 'Unknown',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (favorite_id) REFERENCES user_favorites(id) ON DELETE CASCADE,

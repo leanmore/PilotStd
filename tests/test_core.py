@@ -449,7 +449,9 @@ class TestV52UserFavoritesFix(unittest.TestCase):
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     publish_date TEXT,
                     last_archive_attempt TEXT,
-                    archive_retry_count INTEGER DEFAULT 0)"""
+                    archive_retry_count INTEGER DEFAULT 0,
+                    standard_number TEXT,
+                    standard_type TEXT NOT NULL DEFAULT 'Unknown')"""
             )
             raw.execute("ALTER TABLE user_favorites DROP COLUMN publish_date")
             raw.commit()

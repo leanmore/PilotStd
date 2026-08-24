@@ -83,7 +83,10 @@ CREATE TABLE IF NOT EXISTS announcement_record (
     status TEXT NOT NULL DEFAULT '现行',
     scanned_at TEXT NOT NULL DEFAULT '',
     last_checked TEXT,
-    raw_number TEXT NOT NULL DEFAULT ''
+    raw_number TEXT NOT NULL DEFAULT '',
+    source_version TEXT DEFAULT 'initial',
+    data_state TEXT DEFAULT 'fresh',
+    last_accessed_at TEXT
 );"""
 
 
@@ -374,7 +377,9 @@ class TestProcessItem(unittest.TestCase):
             "standard_count": 3,
         }
 
-        self.matcher._process_item(item, "announcement_gb", "NationalStd", "2024-01-01T00:00:00", log_rows, cache_rows, result)
+        self.matcher._process_item(
+            item, "announcement_gb", "NationalStd", "2024-01-01T00:00:00", log_rows, cache_rows, result
+        )
 
         row = log_rows[0]
         self.assertEqual(len(row), 17)  # 批次7：含 standard_type（第 17 列）

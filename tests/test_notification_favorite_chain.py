@@ -42,7 +42,10 @@ class TestFavoriteCreatedEvent:
         # 调用顺序：users 校验 → announcement_record → _find_duplicate_favorite(record级 → 标准级) → publish_date
         mock_db.fetchone.side_effect = [
             {"id": 7},  # users 校验（_get_user_id）
-            {"id": 100, "standard_number": "GB/T 1234-2026", "std_name": "测试标准", "standard_type": "NationalStd"},  # announcement_record
+            {
+                "id": 100, "standard_number": "GB/T 1234-2026", "std_name": "测试标准",
+                "standard_type": "NationalStd",
+            },  # announcement_record
             None,  # _find_duplicate_favorite record 级
             None,  # _find_duplicate_favorite 标准级
             {"publish_date": "2026-07-30"},  # publish_date 查询
@@ -85,7 +88,10 @@ class TestFavoriteCreatedEvent:
         mock_db = MagicMock()
         mock_db.fetchone.side_effect = [
             {"id": 7},  # users 校验
-            {"id": 100, "standard_number": "GB/T 1234-2026", "std_name": "测试标准", "standard_type": "NationalStd"},  # record
+            {
+                "id": 100, "standard_number": "GB/T 1234-2026", "std_name": "测试标准",
+                "standard_type": "NationalStd",
+            },  # record
             None,  # _find_duplicate_favorite record 级
             None,  # _find_duplicate_favorite 标准级
             {"publish_date": "2026-07-30"},  # publish_date
