@@ -210,6 +210,7 @@ class AnnouncementMatcher:
                 impl_date = datetime.fromisoformat(implementation_date).date()
                 status = "即将实施" if today < impl_date else "现行"
             except (ValueError, TypeError):
+                # 已知可忽略：实施日期解析失败默认"现行"
                 status = "现行"
         else:
             status = "现行"

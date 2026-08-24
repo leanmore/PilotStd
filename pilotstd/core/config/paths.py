@@ -21,6 +21,7 @@ def _get_config_dir() -> str:
             os.remove(test)
             return cfg_dir
         except OSError:
+            # 已知可忽略：冻结模式目录探测失败回退 appdata
             pass
         appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
         os.makedirs(appdata, exist_ok=True)
@@ -38,6 +39,7 @@ def get_data_dir() -> str:
             os.makedirs(data_dir, exist_ok=True)
             return data_dir
         except OSError:
+            # 已知可忽略：冻结模式数据目录探测失败回退 appdata
             appdata = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "PilotStd")
             os.makedirs(appdata, exist_ok=True)
             return appdata

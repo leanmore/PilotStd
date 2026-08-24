@@ -40,6 +40,7 @@ def _pdf_page_count(pdf_bytes: bytes) -> int:
 
         return len(PdfReader(BytesIO(pdf_bytes)).pages)
     except Exception:
+        # 已知可忽略：页数统计失败默认 1 页
         return 1
 
 

@@ -15,6 +15,13 @@ from watchdog.observers import Observer
 logger = logging.getLogger(__name__)
 
 
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
+
 class FileWatchHandler(PatternMatchingEventHandler):
     """文件变更事件处理器：过滤 → 哈希 → 解析 → 更新 file_index。"""
 
@@ -79,7 +86,13 @@ class FileWatchHandler(PatternMatchingEventHandler):
         try:
             self._file_index.remove(event.src_path)
         except Exception:
-            pass
+            # 批次3-A：索引移除失败必须记录（文件已删但索引残留 → 脏索引），禁止静默吞错
+            logger.warning(
+                "watcher 索引移除失败: trace_id=%s source_type=file_watcher target_chat_id=- path=%s",
+                _log_trace_id(),
+                event.src_path,
+                exc_info=True,
+            )
 
     def on_moved(self, event: FileSystemEvent) -> None:
         """文件移动/重命名：删除旧路径 → 按新路径重新索引。"""
@@ -89,7 +102,15 @@ class FileWatchHandler(PatternMatchingEventHandler):
             self._file_index.remove(event.src_path)  # 先移除旧路径索引
             self._handle_new_or_modified(str(event.dest_path))  # 再按新路径重新索引
         except Exception:
-            pass
+            # 批次3-A：移动后索引更新失败必须记录（新旧路径索引漂移），禁止静默吞错
+            logger.warning(
+                "watcher 索引移动更新失败: trace_id=%s source_type=file_watcher target_chat_id=- "
+                "src=%s dest=%s",
+                _log_trace_id(),
+                event.src_path,
+                event.dest_path,
+                exc_info=True,
+            )
 
 
 class FileWatcher:

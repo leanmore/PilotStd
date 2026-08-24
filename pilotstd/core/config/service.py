@@ -75,6 +75,7 @@ class ConfigService:
                 try:
                     return json.loads(self._pref_cache[cache_key])
                 except (json.JSONDecodeError, TypeError):
+                    # 已知可忽略：缓存 JSON 解析失败返回原始字符串
                     return self._pref_cache[cache_key]
 
         db = self._get_db()
@@ -91,6 +92,7 @@ class ConfigService:
             try:
                 return json.loads(value)
             except (json.JSONDecodeError, TypeError):
+                # 已知可忽略：DB 值 JSON 解析失败返回原始字符串
                 return value
 
         # 回退到系统默认值

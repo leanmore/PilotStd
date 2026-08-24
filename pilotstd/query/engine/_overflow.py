@@ -22,6 +22,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
+
 class OverflowHandler:
     """溢出链式重试处理器 — 替代原 OverflowHandler（Mixin）。
 
@@ -61,6 +68,16 @@ class OverflowHandler:
                     _elapsed,
                 )
         except Exception:
+            # 批次3-C3：单站点溢出查询失败必须记录（无上层日志覆盖），禁止静默吞错
+            logger.warning(
+                "溢出查询失败: trace_id=%s source_type=query_overflow target_chat_id=- "
+                "site=%s code=%s num=%s",
+                _log_trace_id(),
+                site,
+                item[0],
+                item[1],
+                exc_info=True,
+            )
             return False
 
         if result:

@@ -32,6 +32,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _log_trace_id() -> str:
+    """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
+    import secrets
+
+    return secrets.token_hex(4)
+
+
 @dataclass(frozen=True)
 class _DispatchContext:
     """BatchDispatcher 运行所需的不可变依赖上下文。"""
@@ -333,12 +340,18 @@ class BatchDispatcher:
                         if m:
                             m.increment("bucket_crash")
                     except Exception:
+                        # 已知可忽略：metrics 计数失败不影响主流程
                         pass
 
             try:
                 csres_future.result(timeout=600)
             except Exception:
-                pass
+                # 批次3-C5：等待 csres 后台结果失败必须记录（结果可能未合并），禁止静默吞错
+                logger.warning(
+                    "csres 后台结果等待失败: trace_id=%s source_type=query_dispatcher target_chat_id=-",
+                    _log_trace_id(),
+                    exc_info=True,
+                )
 
         state["all_overflow"] = all_overflow
 

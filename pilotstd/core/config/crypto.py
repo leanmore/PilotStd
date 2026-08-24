@@ -109,6 +109,7 @@ def _walk_sensitive(data: dict[str, Any], *, encrypt: bool, fernet: Any, prefix:
                     try:
                         result[k] = fernet.decrypt(v.encode()).decode()
                     except Exception:
+                        # 已知可忽略：Fernet 解密失败回退空值，下游有兜底分支
                         result[k] = ""
                 else:
                     result[k] = v

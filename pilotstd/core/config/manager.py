@@ -155,6 +155,7 @@ class ConfigManager:
                     try:
                         os.remove(os.path.join(cfg_dir, name))
                     except OSError:
+                        # 已知可忽略：临时文件清理失败不影响主流程
                         pass
         try:
             if os.path.exists(self._filepath):
@@ -176,6 +177,7 @@ class ConfigManager:
             try:
                 os.rename(self._filepath, backup)
             except OSError:
+                # 已知可忽略：损坏文件备份失败，仍以默认值初始化
                 pass
         # 文件不存在或解析失败时，用工厂默认值初始化
         self._data = {}
