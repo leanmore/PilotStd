@@ -38,13 +38,6 @@ class TestI18nFinal(unittest.TestCase):
 
 
 class TestCoreConfigFinal(unittest.TestCase):
-    def test_priority_get_with_source_not_found(self):
-        from pilotstd.core.config.priority import PriorityConfigManager
-
-        mgr = PriorityConfigManager(os.path.join(tempfile.mkdtemp(), "cfg.json"))
-        r = mgr.get_with_source("NONEXISTENT_KEY_XYZ")
-        self.assertEqual(r["source"], "NOT_FOUND")
-
     def test_crypto_sensitive_suffixes(self):
         from pilotstd.core.config.crypto import _is_sensitive
 
