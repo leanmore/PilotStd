@@ -64,11 +64,22 @@ class TestFormatAggregated:
 
 # ── do_test_send 全覆盖 ──
 
-def _make_mgr(channels=None, cfg_data=None):
-    """构建模拟 NotificationManager，含 _channels 和 _cfg。"""
+def _make_mgr(channels=None, cfg_data=None, creds=None, cred_helper_none=False):
+    """构建模拟 NotificationManager，含 _channels、_cfg 与 _cred_helper。
+
+    creds: dict[channel -> dict[str,str]]，模拟 user_credentials 表返回的凭证；
+    cred_helper_none: True 时 _cred_helper 为 None（模拟 CredentialHelper 初始化失败）。
+    """
     mgr = MagicMock()
     mgr._channels = channels or {}
     mgr._cfg = ConfigStub(cfg_data or {})
+    mgr._user_id = 1
+    if cred_helper_none:
+        mgr._cred_helper = None
+    else:
+        helper = MagicMock()
+        helper.get_channel.side_effect = lambda uid, ch: (creds or {}).get(ch)
+        mgr._cred_helper = helper
     return mgr
 
 
@@ -110,7 +121,7 @@ class TestDoTestSendUnknownChannel:
 
 
 class TestDoTestSendTelegram:
-    """Telegram 渠道初始化路径。"""
+    """Telegram 渠道初始化路径（F-03：凭证源统一为 DB）。"""
 
     def test_missing_token(self):
         mgr = _make_mgr()
@@ -123,9 +134,7 @@ class TestDoTestSendTelegram:
         assert result == {"ok": False, "error": "缺少 bot_token"}
 
     def test_missing_chat_id(self):
-        mgr = _make_mgr(cfg_data={
-            "notification.channels.telegram.bot_token": "tok",
-        })
+        mgr = _make_mgr(creds={"telegram": {"bot_token": "tok"}})
         mock_cls = MagicMock()
         with patch(
             "pilotstd.core.notification.manager._CHANNEL_CLASSES",
@@ -151,11 +160,16 @@ class TestDoTestSendTelegram:
         assert result == {"ok": True, "error": ""}
         mock_cls.assert_called_once_with("t", "c")
 
-    def test_success_with_config_fallback(self):
-        mgr = _make_mgr(cfg_data={
-            "notification.channels.telegram.bot_token": "cfg_tok",
-            "notification.channels.telegram.chat_id": "cfg_cid",
-        })
+    def test_success_with_db_fallback(self):
+        """F-03：凭证从 DB（user_credentials）读取，config.json 旧值不再使用。"""
+        mgr = _make_mgr(
+            # config 中存在旧凭证，但 F-03 后不应被读取
+            cfg_data={
+                "notification.channels.telegram.bot_token": "cfg_old_tok",
+                "notification.channels.telegram.chat_id": "cfg_old_cid",
+            },
+            creds={"telegram": {"bot_token": "db_tok", "chat_id": "db_cid"}},
+        )
         mock_cls = MagicMock()
         mock_ch = MagicMock()
         mock_ch.send.return_value = True
@@ -166,11 +180,30 @@ class TestDoTestSendTelegram:
         ):
             result = do_test_send(mgr, "telegram", "hello")
         assert result == {"ok": True, "error": ""}
-        mock_cls.assert_called_once_with("cfg_tok", "cfg_cid")
+        # 关键断言：使用 DB 凭证，而非 config 旧值
+        mock_cls.assert_called_once_with("db_tok", "db_cid")
+
+    def test_cred_helper_unavailable(self):
+        """F-03：CredentialHelper 不可用（初始化失败）时报明确错误，不回退 config。"""
+        mgr = _make_mgr(
+            cred_helper_none=True,
+            cfg_data={
+                "notification.channels.telegram.bot_token": "cfg_tok",
+                "notification.channels.telegram.chat_id": "cfg_cid",
+            },
+        )
+        mock_cls = MagicMock()
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"telegram": mock_cls},
+        ):
+            result = do_test_send(mgr, "telegram", "hello")
+        assert result == {"ok": False, "error": "credential_helper_unavailable"}
+        mock_cls.assert_not_called()
 
 
 class TestDoTestSendDingtalk:
-    """钉钉渠道初始化路径。"""
+    """钉钉渠道初始化路径（F-03 O-1：凭证源统一为 DB）。"""
 
     def test_missing_url(self):
         mgr = _make_mgr()
@@ -198,6 +231,26 @@ class TestDoTestSendDingtalk:
             )
         assert result == {"ok": True, "error": ""}
         mock_cls.assert_called_once_with("http://x", "s")
+
+    def test_success_with_db_fallback(self):
+        """F-03 O-1：钉钉凭证从 DB 读取，config 旧值不再使用。"""
+        mgr = _make_mgr(
+            cfg_data={
+                "notification.channels.dingtalk.webhook_url": "http://cfg_old",
+            },
+            creds={"dingtalk": {"webhook_url": "http://db_new", "secret": "db_secret"}},
+        )
+        mock_cls = MagicMock()
+        mock_ch = MagicMock()
+        mock_ch.send.return_value = True
+        mock_cls.return_value = mock_ch
+        with patch(
+            "pilotstd.core.notification.manager._CHANNEL_CLASSES",
+            {"dingtalk": mock_cls},
+        ):
+            result = do_test_send(mgr, "dingtalk", "hello")
+        assert result == {"ok": True, "error": ""}
+        mock_cls.assert_called_once_with("http://db_new", "db_secret")
 
 
 class TestDoTestSendFeishu:
