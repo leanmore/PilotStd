@@ -117,7 +117,7 @@
 | 3 | `web/src/views/AnnounceDetail.vue` | .vue | 476 | 537 |
 | 4 | `docker/api/announce_detail.py` | .py | 454 | 577 |
 | 5 | `pilotstd/core/notification/manager.py` | .py | 479 | 509 |
-| 6 | `scripts/check_g_012_comment_density.py` | .py | 440 | 586 |
+| 6 | `scripts/check_g_012_comment_density.py` | .py | 452 | 604 |
 | 7 | `pilotstd/core/db/_migrate_v16_v49.py` | .py | 438 | 530 |
 | 8 | `web/src/components/AppLayout.vue` | .vue | 434 | 537 |
 | 9 | `web/src/components/NotificationConfig.vue` | .vue | 426 | 469 |

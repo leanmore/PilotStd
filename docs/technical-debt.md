@@ -36,7 +36,7 @@
 
 | # | 项目 | 位置 | 错误类型 | 说明 | 登记日期 |
 |---|------|------|---------|------|---------|
-| 11 | G-010 警告基线 | 9 文件（400–500 有效代码行，详见 [登记簿](architecture/technical-debt-registry.md) 第六节） | G-010 警告（不阻断） | 警告档仅 stderr 提示、exit 0，不阻断 CI/合并；Boy Scout Rule：随改随拆（新增功能/修 Bug 时抽离大函数自然降行），不强制排期。2026-08-25 审计：仍 9 文件、阻断档（>500）0 文件；`manager.py` 447→479 行、`AppLayout.vue` 433→434 行，其余 7 文件不变 | 2026-08-23 |
+| 11 | G-010 警告基线 | 9 文件（400–500 有效代码行，详见 [登记簿](architecture/technical-debt-registry.md) 第六节） | G-010 警告（不阻断） | 警告档仅 stderr 提示、exit 0，不阻断 CI/合并；Boy Scout Rule：随改随拆（新增功能/修 Bug 时抽离大函数自然降行），不强制排期。2026-08-25 清账复核：9 文件**全部仍超标**（无一降至阈值下），趋势 3 升 6 平 0 降——`manager.py` 447→479、`check_g_012_comment_density.py` 440→452（G-012 白名单清理附带 +12）、`AppLayout.vue` 433→434，其余 6 文件持平；评估结论：均属"需处理/观察期"，无满足"已解决"判定的条目，TD-11 维持待处理，防回弹承诺不适用（未清零） | 2026-08-23 |
 | 12 | G-012 LANG 历史警告 | `pilotstd/core/notification/`、`docker/api/announce_detail.py`、`pilotstd/core/config/`、`scripts/audit_notification_chain*.py`、`scripts/check_g_010_code_size.py`、`pilotstd/services/favorite_chain_processor.py` 等 | G-012 LANG 警告（不阻断） | 不阻断提交（仅 hard error 阻断，LANG 为警告）；建议后续专项清理：将注释中的英文术语改写为中文或补充白名单（`check_g_012_comment_density.py` LANG_WHITELIST）；低优先级，Boy Scout Rule 随改随清。2026-08-25 审计：数量 44→**50** 条，涉及文件约 20 个（含 scripts/ 下新增脚本） | 2026-08-24 |
 
 ---
