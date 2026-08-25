@@ -1,29 +1,30 @@
 # 技术债登记簿
 
-> 更新日期：2026-08-23
+> 更新日期：2026-08-25
 > 维护规则：每次接受的技术决策或跳过的测试在此登记
+> 2026-08-25 审计：修正 Mypy attr-defined 数量（244→0）、G-010 行数漂移、已跳过测试表行号/删除项，与 docs/technical-debt.md 保持同步
 
 ---
 
-## 一、已跳过的测试 (13)
+## 一、已跳过的测试 (13 条登记，现存 6 条)
 
 | # | 测试 | 文件 | 行号 | 原因 | 分类 | 处理方式 |
 |---|------|------|------|------|------|---------|
-| 1 | `test_gb_exact_match` | `test_e2e_adapters.py` | :28 | 外部 API (std_gov) 返回空 match_status | E2E 网络依赖 | 2026-06-30 添加 `@unittest.skip` |
-| 2 | `test_hg_exact_match` | `test_e2e_adapters.py` | :103 | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest` |
-| 3 | `test_cold_start_pending` | `test_e2e_adapters.py` | :239 | ahbz 未登录状态 | E2E 认证依赖 | 原有 `self.skipTest` |
-| 4 | `test_sh_exact_match` | `test_e2e_adapters.py` | :300 | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest` |
-| 5 | `test_split_pdf_pages` | `test_ocr_fallback.py` | :39 | 无可用 OCR provider | 环境依赖 | `pytest.skip` 在 setup/fixture 中（非函数内） |
-| 6 | (sparse file) | `test_scanner.py` | :472 | 系统不支持此场景文件 | 平台依赖 | 原有 `self.skipTest` |
-| 7 | `test_e2e_dialog` | `test_e2e_dialog.py` | :19 | DialogHandler 不在 MainWindowCore 中 | 架构重构 | 2026-07-16 P5 Handler 拆分，间接覆盖 |
-| 8 | `test_e2e_file_tree` | `test_e2e_file_tree.py` | :17 | FileTreeHandler 不在 MainWindowCore 中 | 架构重构 | 文件树操作由 test_file_tree.py 覆盖 |
-| 9 | `test_e2e_settings` | `test_e2e_settings.py` | :19 | SettingsHandler 由 SettingsDialog 独立创建 | 架构重构 | 需完整 QStackedWidget 控件树 |
-| 10 | `test_e2e_table` | `test_e2e_table.py` | :17 | TableHandler 不在 MainWindowCore 中 | 架构重构 | 表格操作由 test_table.py 覆盖 |
-| 11 | `test_e2e_settings_io` | `test_e2e_settings_io.py` | :17 | SettingsConfigIO 是 SettingsHandler 内部组件 | 架构重构 | 需完整 SettingsDialog 控件树 |
-| 12 | `test_e2e_theme` | `test_e2e_theme.py` | :23 | ThemeHandler 纯 Qt 控件操作 | 架构重构 | 应用主题由 MainWindow 初始化路径覆盖 |
-| 13 | `test_e2e_table_helper` | `test_e2e_table_helper.py` | :17 | TableHelperHandler 不在 MainWindowCore 中 | 架构重构 | 表格操作由 test_table.py 覆盖 |
+| 1 | `test_gb_exact_match` | `test_e2e_adapters.py` | :42（TestE2EStdGov，原 :28） | 外部 API (std_gov) 返回空 match_status | E2E 网络依赖 | 2026-06-30 添加 `@unittest.skip`（现 :40-41 为 skipIf(_CI) + skip） |
+| 2 | `test_hg_exact_match` | `test_e2e_adapters.py` | :118（TestE2EHbba，原 :103） | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest`（:97 skipIf(_CI)） |
+| 3 | `test_cold_start_pending` | `test_e2e_adapters.py` | 已不存在（原 :239） | ahbz 未登录状态 | E2E 认证依赖 | 2026-08-25 审计：测试已删除；TestE2EAhbz（:234）重构为 test_gb_exact_match/test_sh_exact_match/test_iso_exact_match，skipIf(_CI) 网络防护保留 |
+| 4 | `test_sh_exact_match` | `test_e2e_adapters.py` | :104（TestE2EHbba，原 :300） | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest`（:97 skipIf(_CI)） |
+| 5 | `test_split_pdf_pages` | `test_ocr_fallback.py` | :38（fixture skip）/ :56（def，原 :39） | 无可用 OCR provider | 环境依赖 | `pytest.skip` 在 setup/fixture 中（非函数内） |
+| 6 | (sparse file) | `test_scanner.py` | :502（原 :472） | 系统不支持此场景文件 | 平台依赖 | 原有 `self.skipTest` |
+| 7 | `test_e2e_dialog` | `tests/gui/test_e2e_dialog.py` | 已删除 | DialogHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除（Handler/Mixin dual-track 清理），由单元测试间接覆盖 |
+| 8 | `test_e2e_file_tree` | `tests/gui/test_e2e_file_tree.py` | 已删除 | FileTreeHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除，文件树操作由 test_file_tree.py 覆盖 |
+| 9 | `test_e2e_settings` | `tests/gui/test_e2e_settings.py` | 已删除 | SettingsHandler 由 SettingsDialog 独立创建 | 架构重构 | 登记簿历史条目，无对应现存文件（cfb166fe 删除集合外，原需完整 QStackedWidget 控件树） |
+| 10 | `test_e2e_table` | `tests/gui/test_e2e_table.py` | 已删除 | TableHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除，表格操作由 test_table.py 覆盖 |
+| 11 | `test_e2e_settings_io` | `tests/gui/test_e2e_settings_io.py` | 已删除 | SettingsConfigIO 是 SettingsHandler 内部组件 | 架构重构 | 登记簿历史条目，无对应现存文件（cfb166fe 删除集合外，原需完整 SettingsDialog 控件树） |
+| 12 | `test_e2e_theme` | `tests/gui/test_e2e_theme.py` | 已删除 | ThemeHandler 纯 Qt 控件操作 | 架构重构 | `cfb166fe` 删除，应用主题由 MainWindow 初始化路径覆盖 |
+| 13 | `test_e2e_table_helper` | `tests/gui/test_e2e_table_helper.py` | 已删除 | TableHelperHandler 不在 MainWindowCore 中 | 架构重构 | 登记簿历史条目，无对应现存文件（cfb166fe 删除集合外），表格操作由 test_table.py 覆盖 |
 
-**处理策略**：#1~#6（外部 API/环境依赖）E2E 测试保留在本地开发时手动运行，CI 环境自动跳过。#7~#13（架构重构）因 Handler 从 Mixin 拆分为独立组件后无法通过 MainWindowCore 直接访问，由对应单元测试间接覆盖。
+**处理策略**：#1~#6（外部 API/环境依赖）E2E 测试保留在本地开发时手动运行，CI 环境自动跳过。#7~#13（架构重构）对应测试文件均已不存在：其中 #7/#8/#10/#12（test_e2e_dialog/file_tree/table/theme）由 `cfb166fe`（Handler/Mixin dual-track 清理，删 8 个死 Handler/Mixin 文件 + `tests/gui/test_e2e_*.py` 6 个测试）删除；#9/#11/#13（settings/settings_io/table_helper）不在删除集合中，为登记簿历史条目，无对应现存文件。功能均由对应单元测试间接覆盖。
 
 ---
 
@@ -47,7 +48,7 @@
 | # | 问题 | 严重程度 | 发现日期 | 状态 | 说明 |
 |---|------|---------|---------|------|------|
 | 1 | E2E 测试依赖外部 API | 低 | 历史遗留 | 已接受 | 6 个测试跳过，CI 不影响 |
-| 2 | Mypy mixin attr-defined 244 错误 | 低 | 历史遗留 | 已接受 | mixin 模式固有局限，需 Protocol 类型标注 |
+| 2 | Mypy mixin attr-defined 错误 | 低 | 历史遗留 | ✅ 已解决 (2026-08-25) | 原 244 条（mixin 类引用其他 mixin 属性）。parser 重构 + 类型标注后，2026-08-25 审计实测 `mypy pilotstd docker`：attr-defined = 0 |
 | 3 | `_batch.py` 溢出回收逻辑仍部分内联 | 低 | 2026-06-30 | 部分缓解 | 溢出处理已委托 `_overflow`。`query_batch_parsed` 已废弃。**关联：纯逻辑提取已完成** — AutoFlowEngine (7 测试) + ScanFlowEngine (31 测试) + AnnounceFlowEngine (20 测试)，共 3 Engine / 58 纯单元测试，已标记完成 (2026-07-16) |
 | 4 | 数据库迁移链顺序依赖 (v7 需 file_index 表存在) | 低 | 2026-06-30 | 已缓解 | 已添加 try/except 守卫 |
 | 5 | `test_migration_runs_pending` 依赖 `CURRENT_SCHEMA_VERSION` patch 路径 | 低 | 2026-06-30 | 已修复 | 修正为 `database.CURRENT_SCHEMA_VERSION` |
@@ -71,7 +72,7 @@
 
 | 豁免类型 | 数量 | 原因 |
 |---------|------|------|
-| `attr-defined` (mixin) | 244 | mixin 类引用在其他 mixin 中定义的属性，mypy 无法跨文件推断 |
+| `attr-defined` (mixin) | 0（原 244，2026-08-25 审计已清零） | mixin 类引用在其他 mixin 中定义的属性，mypy 无法跨文件推断；parser 重构 + 类型标注后不再产生 |
 | `import-untyped` | — | psutil 等第三方库无类型标注 |
 | UI 目录 `ignore_errors=true` | — | PyQt6 mixin 架构与 mypy strict 模式冲突 |
 
@@ -107,6 +108,7 @@
 > 状态：backlog（不阻断 CI——警告档仅 stderr 提示，exit 0）
 > 处置：Boy Scout Rule——后续新增功能/修复缺陷时顺手抽离大函数，自然降低有效代码行数；不强制排期拆分
 > 规则：警告档 = 有效代码行 >400 且 ≤500（`scripts/check_g_010_code_size.py` 两档制）；阻断档（>500）当前 0 文件
+> 2026-08-25 审计：行数微漂移——`pilotstd/core/notification/manager.py` 447→479、`web/src/components/AppLayout.vue` 433→434，其余不变
 
 | # | 文件 | 类型 | 有效代码行 | 总行 |
 |---|------|------|-----------|------|
@@ -114,9 +116,8 @@
 | 2 | `docker/auth.py` | .py | 490 | 610 |
 | 3 | `web/src/views/AnnounceDetail.vue` | .vue | 476 | 537 |
 | 4 | `docker/api/announce_detail.py` | .py | 454 | 577 |
-| 5 | `pilotstd/core/notification/manager.py` | .py | 447 | 509 |
+| 5 | `pilotstd/core/notification/manager.py` | .py | 479 | 509 |
 | 6 | `scripts/check_g_012_comment_density.py` | .py | 440 | 586 |
 | 7 | `pilotstd/core/db/_migrate_v16_v49.py` | .py | 438 | 530 |
-| 8 | `web/src/components/AppLayout.vue` | .vue | 433 | 537 |
+| 8 | `web/src/components/AppLayout.vue` | .vue | 434 | 537 |
 | 9 | `web/src/components/NotificationConfig.vue` | .vue | 426 | 469 |
-```
