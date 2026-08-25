@@ -55,7 +55,7 @@ def do_test_send(
     from .manager import _CHANNEL_CLASSES  # noqa: F811
     override = params or {}
     # 先查缓存：命中时渠道已由事件路径 _init_channels 从 DB 初始化（凭证即 DB 源），
-    # 与下方 fallback 分支同源，非"双源"；fallback 仅在缓存未命中时执行
+    # 与下方回退分支同源，非"双源"；回退仅在缓存未命中时执行
     ch = mgr._channels.get(channel)
     if ch is None:
         # 尝试实时初始化（优先使用中的参数）

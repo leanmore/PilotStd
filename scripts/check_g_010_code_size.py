@@ -73,7 +73,7 @@ def _count_logical_lines(lines: list[str], file_suffix: str = ".py") -> int:
 
     - .py：剔除 # 开头行
     - .ts：额外剔除 // 单行注释与 /* */ 块注释
-    - .vue：额外剔除 <!-- --> HTML 注释（template 内）
+    - .vue：额外剔除 <!-- --> HTML 注释（模板内）
     """
     in_block_comment = False  # /* */ 跨行注释状态
     in_html_comment = False  # <!-- --> 跨行注释状态
@@ -199,7 +199,7 @@ def main() -> int:
             print(f"  {e}")
 
     if warnings:
-        # 警告档输出到 stderr，不影响 exit code
+        # 警告档输出到 stderr，不影响退出码
         print(f"\n{len(warnings)} warning(s):", file=sys.stderr)
         for w in warnings:
             print(f"  {w}", file=sys.stderr)

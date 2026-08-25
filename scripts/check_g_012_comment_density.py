@@ -165,6 +165,24 @@ LANG_WHITELIST = {
     'IP', '4xx', '5xx', 'G-012', 'gitignored', 'ruff', 'E501',
     # 2026-08-21 二次补漏（检查器新增注释引用）
     'python', 'bash', 'INFO',
+    # 2026-08-25 专项清理（50 条语言警告清零，全库审计）
+    # ── 项目缺陷/任务编码（代码绑定，来源见各文件违规行）──
+    'P1-2', 'P1-4', 'P2-2', 'P2-3', 'O-3', 'O-4', 'D-1', 'D-3', 'D-4',
+    'F-03', '3-A', '3-C3', '3-C5',
+    # ── 代码标识符/配置键 ──
+    'standard_type', 'user_credentials', 'CredentialHelper', '_init_channels',
+    '_cred_helper', 'corpid', 'agentid', 'corpsecret', 'webhook_url',
+    'running', 'useFavorite', 'done', 'pending', 'downloading', 'archiving',
+    'abandoned', 'retry_count', 'download_to_inbox', 'csres', 'FastAPI',
+    'Query', 'appdata',
+    # ── 审计脚本模式片段（审计脚本文档）──
+    'EVENT_XXX', 'ALL_EVENTS', 'Assign', 'AnnAssign', 'EventDef', 'EVENT_X',
+    'bypass_aggregation', 'data.get', 'field_var', 'Name', 'if not',
+    '1a', '1b', '2b',
+    # ── CLI/路径/文件 ──
+    '--module', '--json', 'scripts/', '/lite', 'AGENTS.md', '.ts', '.vue',
+    # ── 协议/技术缩写（与 API/SQL 同类）──
+    'CQS', 'INSERT OR REPLACE', 'UPDATE', 'AST', 'stderr',
 }
 
 # 编译正则：匹配白名单中的词（按长度降序，确保长词优先匹配）

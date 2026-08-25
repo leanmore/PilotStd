@@ -340,7 +340,7 @@ class BatchDispatcher:
                         if m:
                             m.increment("bucket_crash")
                     except Exception:
-                        # 已知可忽略：metrics 计数失败不影响主流程
+                        # 已知可忽略：指标计数失败不影响主流程
                         pass
 
             try:

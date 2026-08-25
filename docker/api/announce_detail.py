@@ -46,7 +46,7 @@ def _now_iso() -> str:
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 1.获取公告记录（分页版 — Phase 1 分页化，与 /lite 并存向后兼容）
+# 1.获取公告记录（分页版 — 第一阶段分页化，与 /lite 并存向后兼容）
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
@@ -63,7 +63,7 @@ def get_announcement_records_paginated(
     idx_announcement_record_announce_no_std，同时命中 WHERE 与 ORDER BY）。
     /lite 端点保留不动，向后兼容。
     """
-    # 手动校验：直接调用 handler（绕过 FastAPI 依赖注入）时 Query 校验不生效
+    # 手动校验：直接调用处理器（绕过 FastAPI 依赖注入）时 Query 校验不生效
     if page < 1 or page_size < 1 or page_size > 200:
         raise HTTPException(422, "page 需 >=1，pageSize 需在 1-200 之间")
 

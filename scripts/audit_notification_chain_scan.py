@@ -78,7 +78,7 @@ def extract_events(events_file: Path) -> list[dict]:
         ):
             const_map[node.targets[0].id] = node.value.value
 
-    # 策略 1：ALL_EVENTS 列表（可能是 Assign 或 AnnAssign `ALL_EVENTS: list[EventDef] = [...]`）
+    # 策略 1：ALL_EVENTS 列表（可能是 Assign 或 AnnAssign 赋值形态）
     for node in ast.walk(tree):
         target_names: list[str] = []
         value_node = None
@@ -154,7 +154,7 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
       2. 先赋值局部变量 field_var = data.get("field")，再 if not field_var: / if field_var:
     对每个读取的字段，命中任一形态 → 视为有守卫；否则标记"缺守卫"（P2 提示）。
     """
-    # 形态 2 的映射：data.get("field") → 局部变量名
+    # 形态 2 的映射：data.get 取字段值 → 局部变量名
     field_to_var: dict[str, str] = {}
     for node in ast.walk(func):
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
@@ -193,7 +193,7 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
                     and isinstance(call.args[0], ast.Constant)
                 ):
                     guarded.add(str(call.args[0].value))
-            # 形态 1b：if data.get("x") is None:
+            # 形态 1b：data.get 结果为 None（判空）
             elif (
                 isinstance(test, ast.Compare)
                 and len(test.comparators) == 1
@@ -214,7 +214,7 @@ def _missing_null_guards(func: ast.FunctionDef, used_fields: set[str]) -> list[s
                 for f, v in field_to_var.items():
                     if v == var:
                         guarded.add(f)
-            # 形态 2b：if field_var:（存在性判断）
+            # 形态 2b：field_var 存在性判断
             elif isinstance(test, ast.Name) and test.id in field_to_var.values():
                 for f, v in field_to_var.items():
                     if v == test.id:

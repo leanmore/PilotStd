@@ -51,7 +51,7 @@ class MonitorService:
                     exc_info=True,
                 )
         elif new_config.get("enabled", True):
-            # 服务未运行但 enabled=true → 启动
+            # 服务未运行但启用配置为真 → 启动
             scheduler.start()
         return {"ok": True}
 
