@@ -103,7 +103,7 @@ onMounted(loadFavorites)
     </div>
 
     <TabView>
-      <TabPanel v-for="tab in typeTabs" :key="tab.key" :header="`${tab.label} (${tab.key === 'all' ? favorites.length : tab.key === 'other' ? favorites.filter(f => isOther(f.standard_type)).length : favorites.filter(f => f.standard_type === tab.key).length})`"
+      <TabPanel v-for="tab in typeTabs" :key="tab.key" :value="tab.key" :header="`${tab.label} (${tab.key === 'all' ? favorites.length : tab.key === 'other' ? favorites.filter(f => isOther(f.standard_type)).length : favorites.filter(f => f.standard_type === tab.key).length})`"
         @click="activeType = tab.key">
         <DataTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
           <Column field="standard_number" header="标准号" style="min-width: 180px" />

@@ -29,8 +29,9 @@ class TestBlockRenderer:
         assert r == "hello"
 
     def test_render_empty_blocks_empty_body(self):
+        # 渲染器最终防线：空结果回退标题，标题空则用固定占位文案（杜绝空文本发送）
         r = BlockRenderer().render(make_msg(title="", body="", blocks=[]))
-        assert r == ""
+        assert r == "(通知内容为空)"
 
     def test_render_text_block(self):
         b = TextBlock(text="plain text")
