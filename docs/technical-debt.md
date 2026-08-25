@@ -3,7 +3,7 @@
 > 版本：v1.1.0
 > 更新日期：2026-08-25
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
-> 2026-08-25 全库审计：原待处理台账 12 条中 8 条（#1~#8）确认已解决并移入第一节（附 fix commit 证据），4 条（#9~#12）仍存在、描述已同步现状；第三/四节过时内容一并修正。
+> 2026-08-25 全库审计：原待处理台账 12 条中 8 条（#1~#8）确认已解决并移入第一节（附 fix commit 证据），4 条（#9~#12）仍存在、描述已同步现状；第三/四节过时内容一并修正。同日 TD-9（#9）修复完成（`bd34a226`），剩余 3 条（#10~#12）待处理。
 
 ---
 
@@ -25,16 +25,16 @@
 | TD-6 test_do_request_timeout_retries | 原 #6（登记 2026-08-15）：mock 命中 token 获取流程致 call_count 漂移。`a720030a` 标记 `_session_mgr._initialized` 跳过 token 获取，断言 3 成立（`tests/test_query.py:743-754`） | 2026-08-15 |
 | TD-7 test_01_overflow_concurrent | 原 #7（登记 2026-08-15）：bucket 并发 + config.json 文件锁竞态。`eddc02bf` 添加 `@pytest.mark.xdist_group("bucket_stress")`（`tests/test_query.py:970`） | 2026-08-15 |
 | TD-8 test_04_large_batch_sub_buckets | 原 #8（登记 2026-08-15）：同上（bucket 并发 + config.json 锁）。`eddc02bf` 添加 `@pytest.mark.xdist_group("bucket_stress")`（`tests/test_query.py:1002`） | 2026-08-15 |
+| TD-9 notification.py user_id 误用 | 原 #9（登记 2026-08-20，2026-08-25 审计升 🔴 高）：`_get_user_id` 把 token 的 user_id 传给按 username 查询的 `get_user_id()`（`WHERE username = ?`），多用户场景静默折叠为 user 1。`bd34a226`（2026-08-25）重写：形参 `username`→`user_id`，改用按主键 `get_user_by_id()` 校验，未知用户显式 401（删除兜底 1）；新增单元 401 分支 + 真实登录 + SQLite 集成测试（`tests/test_notification_api.py`，12 passed；联动 4 文件 28 passed） | 2026-08-25 |
 
 **技术细节**：见 [architecture.md](architecture.md) 事件总线重构决策记录。
 
 ---
 
-## 二、待处理（原台账 #9~#12；#1~#8 已解决，见第一节）
+## 二、待处理（原台账 #10~#12；#1~#9 已解决，见第一节）
 
 | # | 项目 | 位置 | 错误类型 | 说明 | 登记日期 |
 |---|------|------|---------|------|---------|
-| 9 | notification.py user_id 误用 | `docker/api/notification.py:28` | 逻辑隐患 | 🔴 高（2026-08-25 审计升级）：`_get_user_id` 把 `get_current_user_id` 返回的 user_id（int）传给按 username 查询的 `mgr.user_service.get_user_id(username)`（`pilotstd/manager/user_service.py:23` 为 `WHERE username = ?`），查不到时兜底返回 1，多用户场景会把所有用户解析为用户 1；`docker/auth.py` `get_current_user_id` docstring 已明令禁止此用法（"禁止将返回值传给任何形参名为 username 或按 username 查询的函数"），favorites.py 已修复（按主键查询 + 401，`docker/api/favorites.py:58-63`），notification.py 未对齐 | 2026-08-20 |
 | 10 | test_api_snapshot.py 污染 test_docker_auth.py | `tests/test_api_snapshot.py:18-20` | 测试隔离缺陷 | 模块级 `os.environ.setdefault(ADMIN_PASSWORD/SUPERUSER)` 影响后导入的 test_docker_auth.py（其 setdefault 空转、fixture 按污染值建超管用户导致登录 401）；CI 靠 xdist 分进程规避，本地串行执行会失败。2026-08-25 审计确认仍存在（两文件模块级 setdefault 均未变更，无修复 commit） | 2026-08-20 |
 | 11 | G-010 警告基线 | 9 文件（400–500 有效代码行，详见 [登记簿](architecture/technical-debt-registry.md) 第六节） | G-010 警告（不阻断） | 警告档仅 stderr 提示、exit 0，不阻断 CI/合并；Boy Scout Rule：随改随拆（新增功能/修 Bug 时抽离大函数自然降行），不强制排期。2026-08-25 审计：仍 9 文件、阻断档（>500）0 文件；`manager.py` 447→479 行、`AppLayout.vue` 433→434 行，其余 7 文件不变 | 2026-08-23 |
 | 12 | G-012 LANG 历史警告 | `pilotstd/core/notification/`、`docker/api/announce_detail.py`、`pilotstd/core/config/`、`scripts/audit_notification_chain*.py`、`scripts/check_g_010_code_size.py`、`pilotstd/services/favorite_chain_processor.py` 等 | G-012 LANG 警告（不阻断） | 不阻断提交（仅 hard error 阻断，LANG 为警告）；建议后续专项清理：将注释中的英文术语改写为中文或补充白名单（`check_g_012_comment_density.py` LANG_WHITELIST）；低优先级，Boy Scout Rule 随改随清。2026-08-25 审计：数量 44→**50** 条，涉及文件约 20 个（含 scripts/ 下新增脚本） | 2026-08-24 |
