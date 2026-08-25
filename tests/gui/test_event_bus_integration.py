@@ -20,12 +20,27 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from pilotstd.ui.core.event_bus import EventBus
 
+# pytest-xdist 下将本模块所有 EventBus 测试固定到同一 worker 串行执行，
+# 避免 EventBus 单例跨 worker 并发访问（Windows CI 曾现 Access Violation）
+pytestmark = pytest.mark.xdist_group("event_bus_thread_safety")
+
 
 @pytest.fixture(autouse=True)
 def _reset_event_bus():
-    """每个测试前重置 EventBus 单例，防止测试间污染。"""
+    """每个测试前重置 EventBus 单例，防止测试间污染。
+
+    teardown 先等待非主线程退出（上限 2s），再 reset()——
+    避免 reset 访问未完全退出的后台线程持有的 Qt 对象（Windows Access Violation 根因）。
+    """
     EventBus.reset()
     yield
+    deadline = time.monotonic() + 2.0
+    while any(
+        t.is_alive() for t in threading.enumerate() if t is not threading.main_thread()
+    ):
+        if time.monotonic() > deadline:
+            break
+        time.sleep(0.05)
     EventBus.reset()
 
 
