@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'FavoritesView' })
 // FavoritesView.vue — 收藏列表页（批次7：Tab 分类切换 + 类型标签 + 导出）
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
