@@ -8,13 +8,31 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
+import pytest
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-# 确保 SUPERUSER 环境变量已设置（Database 初始化会间接引用）
-if "SUPERUSER" not in os.environ:
-    os.environ["SUPERUSER"] = "testadmin"
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_announce_detail():
+    """模块级 env 隔离：强制注入 SUPERUSER=testadmin，teardown 恢复原值。
+
+    TD-10 P1：替代守卫式 os.environ["SUPERUSER"] 注入（原模式永不恢复，
+    会污染后导入的 test_docker_auth 等模块导致登录 401）。
+    """
+    old_values = {}
+    env_vars = {"SUPERUSER": "testadmin"}
+    for k, v in env_vars.items():
+        old_values[k] = os.environ.get(k)
+        os.environ[k] = v
+    yield
+    for k, old in old_values.items():
+        if old is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = old
 
 
 class TestAnnounceDetailAPI(unittest.TestCase):

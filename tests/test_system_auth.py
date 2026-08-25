@@ -9,20 +9,23 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from jose import jwt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
-os.environ.setdefault("ADMIN_PASSWORD", "test_admin_password")
-os.environ.setdefault("SUPERUSER", "superadmin")
-
 from docker.api.system import router as system_router
 from docker.auth import COOKIE_NAME, SECRET, AuthMiddleware
 from docker.manager import get_manager_dep
 from docker.session_store import get_session_store
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_system_auth(_isolate_env_standard_test_creds):
+    """本模块启用标准测试凭证 env 隔离。"""
+    pass
 
 
 def _make_token(role: str) -> str:

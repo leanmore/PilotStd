@@ -103,6 +103,31 @@ def _clean_shared_db(shared_db):
                 pass
 
 
+@pytest.fixture(scope="module", autouse=False)
+def _isolate_env_standard_test_creds():
+    """共享 env 隔离：标准测试凭证三元组，供同值家族测试模块显式依赖。
+
+    TD-10 P2：收敛 10 个模块的重复模块级 setdefault 为单一 fixture；
+    autouse=False，仅由薄 wrapper fixture 显式引用，避免对无关模块产生副作用。
+    标准模式见 test_api_favorites_auth.py:25-38（手动 save/restore/pop）。
+    """
+    old_values = {}
+    env_vars = {
+        "JWT_SECRET": "test_secret_key_for_testing",
+        "ADMIN_PASSWORD": "test_admin_password",
+        "SUPERUSER": "superadmin",
+    }
+    for k, v in env_vars.items():
+        old_values[k] = os.environ.get(k)
+        os.environ[k] = v
+    yield
+    for k, old in old_values.items():
+        if old is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = old
+
+
 def pytest_addoption(parser):
     """stress_winui.py 所需的自定义参数，由 stress_driver.py 传入。"""
     parser.addoption("--source", help="源目录路径")

@@ -2,12 +2,16 @@
 import os
 import sys
 
+import pytest
+
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-# auth.py 在非开发模式要求环境变量，测试前必须设置
-os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
-os.environ.setdefault("ADMIN_PASSWORD", "test_admin_password")
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_security(_isolate_env_standard_test_creds):
+    """本模块启用标准测试凭证 env 隔离。"""
+    pass
 
 
 class TestAuthRateLimit:

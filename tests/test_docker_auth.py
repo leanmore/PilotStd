@@ -10,13 +10,14 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# auth.py 在非开发模式要求环境变量，测试前必须设置
-os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
-os.environ.setdefault("ADMIN_PASSWORD", "test_admin_password")
-os.environ.setdefault("SUPERUSER", "superadmin")
-
 from docker.auth import COOKIE_NAME, AuthMiddleware
 from docker.auth import router as auth_router
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_docker_auth(_isolate_env_standard_test_creds):
+    """本模块启用标准测试凭证 env 隔离。"""
+    pass
 
 
 @pytest.fixture(autouse=True)

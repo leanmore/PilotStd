@@ -10,17 +10,21 @@ import sys
 import unittest
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-os.environ.setdefault("JWT_SECRET", "test_secret_key_for_testing")
-os.environ.setdefault("SUPERUSER", "superadmin")
-
 from docker.api.upload import router as upload_router
 from docker.auth import AuthMiddleware
 from docker.manager import get_manager_dep
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_login_background_api(_isolate_env_standard_test_creds):
+    """本模块启用标准测试凭证 env 隔离。"""
+    pass
 
 
 class TestLoginBackgroundApi(unittest.TestCase):
