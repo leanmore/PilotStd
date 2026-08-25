@@ -6,15 +6,37 @@ import os
 import sys
 import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
-os.environ.setdefault("JWT_SECRET", "admin_db_test_secret")
-os.environ.setdefault("SUPERUSER", "admin_db_test_user")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest.mock import patch
 
 # ── SQL 校验单元测试 ──────────────────────────────────────
 import sqlparse as _sp
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_admin_db():
+    """模块级 env 隔离：强制注入 admin_db 测试值，teardown 恢复原值。
+
+    标准模式见 test_api_favorites_auth.py:25-38 —— 杜绝模块级 setdefault
+    污染后续导入的测试模块（TD-10）。
+    """
+    old_values = {}
+    env_vars = {
+        "JWT_SECRET": "admin_db_test_secret",
+        "SUPERUSER": "admin_db_test_user",
+    }
+    for k, v in env_vars.items():
+        old_values[k] = os.environ.get(k)
+        os.environ[k] = v
+    yield
+    for k, old in old_values.items():
+        if old is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = old
 
 
 def test_validate_select_ok():

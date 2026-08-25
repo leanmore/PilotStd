@@ -15,10 +15,6 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-os.environ.setdefault("JWT_SECRET", "snapshot_test_secret_key")
-os.environ.setdefault("ADMIN_PASSWORD", "snapshot_test_pass_42")
-os.environ.setdefault("SUPERUSER", "snapshot_admin")
-
 from unittest.mock import MagicMock
 
 from fastapi import FastAPI
@@ -27,6 +23,30 @@ from fastapi.testclient import TestClient
 from docker.auth import COOKIE_NAME, AuthMiddleware
 from docker.auth import router as auth_router
 from docker.manager import get_manager_dep
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _isolate_env_snapshot():
+    """模块级 env 隔离：强制注入 snapshot 测试值，teardown 恢复原值。
+
+    标准模式见 test_api_favorites_auth.py:25-38 —— 杜绝模块级 setdefault
+    污染后续导入的测试模块（TD-10：test_docker_auth 曾因此读到错误 SUPERUSER 而 401）。
+    """
+    old_values = {}
+    env_vars = {
+        "JWT_SECRET": "snapshot_test_secret_key",
+        "ADMIN_PASSWORD": "snapshot_test_pass_42",
+        "SUPERUSER": "snapshot_admin",
+    }
+    for k, v in env_vars.items():
+        old_values[k] = os.environ.get(k)
+        os.environ[k] = v
+    yield
+    for k, old in old_values.items():
+        if old is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = old
 
 
 @pytest.fixture(scope="module")
