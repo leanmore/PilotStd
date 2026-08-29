@@ -98,16 +98,37 @@ def _safe_filename(standard_number: str, suffix: str) -> str:
     return f"{safe}_{suffix}.pdf"
 
 
+def _fetch_std_meta(standard_number: str) -> tuple[str, str]:
+    """查询标准名称与分类（通知模板补充信息；查不到时降级为空串，不抛错）。"""
+    try:
+        db = Database(get_db_path())
+        try:
+            row = db.fetchone(
+                "SELECT std_name, standard_type FROM announcement_record WHERE standard_number = ?",
+                (standard_number,),
+            )
+            if row:
+                return (row["std_name"] or ""), (row["standard_type"] or "")
+        finally:
+            db.close()
+    except Exception:
+        pass
+    return "", ""
+
+
 def _notify_download_failed(user_id: int, standard_number: str, error: str, favorite_id: int) -> None:
     """通知用户下载失败。"""
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
+        std_name, standard_type = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_failed",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
+                "standard_name": std_name,
+                "standard_type": standard_type,
                 "error": error,
                 "favorite_id": favorite_id,
             },
@@ -126,11 +147,14 @@ def _notify_download_started(user_id: int, standard_number: str, favorite_id: in
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
+        std_name, standard_type = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_started",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
+                "standard_name": std_name,
+                "standard_type": standard_type,
                 "favorite_id": favorite_id,
             },
         )
@@ -148,11 +172,14 @@ def _notify_download_complete(user_id: int, standard_number: str, favorite_id: i
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
+        std_name, standard_type = _fetch_std_meta(standard_number)
         StandardManager().notification_mgr.send_event(
             "download_complete",
             {
                 "user_id": user_id,
                 "standard_number": standard_number,
+                "standard_name": std_name,
+                "standard_type": standard_type,
                 "favorite_id": favorite_id,
                 "local_path": local_path,
                 "status": "success",
@@ -168,6 +195,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
     所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。"""
     # 44：所有状态更新目标表为_下载（非_）
     db = None
+    standard_number = ""  # 预初始化：异常路径补发失败通知时安全引用（A-3）
     try:
         db = Database(get_db_path())
 
@@ -192,16 +220,17 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
             _notify_download_complete(user_id, standard_number, favorite_id, existing)
             return
 
-        # 进入实际下载前通知用户，状态置为下载中
+        # 先校验下载链接可用性，再通知用户下载开始（A-2：避免"有始无终"——
+        # URL 缺失时不应误发"开始下载"通知）
+        download_url = _get_download_url(standard_number, db)
+        if not download_url:
+            raise FavoriteArchiveError(f"无法获取下载链接: {standard_number}")
+
         _notify_download_started(user_id, standard_number, favorite_id)
         db.execute(
             "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
             (favorite_id,),
         )
-
-        download_url = _get_download_url(standard_number, db)
-        if not download_url:
-            raise FavoriteArchiveError(f"无法获取下载链接: {standard_number}")
 
         inbox_dir = _get_inbox_dir()
         inbox_dir.mkdir(parents=True, exist_ok=True)
@@ -240,6 +269,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
             ("归档超时：文件未被扫描器处理", favorite_id),
         )
         logger.warning("收藏归档超时: favorite_id=%s", favorite_id)
+        # A-4：归档超时补发下载失败通知（避免用户只收到"开始下载"再无后续）
+        _notify_download_failed(user_id, standard_number, "归档超时：文件未被扫描器处理", favorite_id)
 
     except Exception as e:
         logger.error("收藏失败: favorite_id=%s, %s", favorite_id, e, exc_info=True)
@@ -249,6 +280,9 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
                 " updated_at = datetime('now') WHERE favorite_id = ?",
                 (str(e), favorite_id),
             )
+        # A-3：异常路径补发下载失败通知（URL 缺失等场景不再"有始无终"）
+        if standard_number:
+            _notify_download_failed(user_id, standard_number, str(e), favorite_id)
     finally:
         if db:
             db.close()

@@ -95,7 +95,7 @@ def get_records_by_status(limit: int = BATCH_SIZE) -> list[dict[str, Any]]:
             " JOIN announcement_record ar ON fd.record_id = ar.id"
             " WHERE fd.status IN ('pending', 'failed')"
             " AND (fd.retry_count IS NULL OR fd.retry_count < ?)"
-            " AND (ar.publish_date IS NULL OR ar.publish_date <= ?)"
+            " AND COALESCE(NULLIF(TRIM(ar.publish_date), ''), CURRENT_DATE) <= ?"
             " ORDER BY fd.last_attempt ASC NULLS FIRST, fd.updated_at ASC"
             " LIMIT ?",
             (MAX_RETRIES, cooldown_cutoff, limit),
