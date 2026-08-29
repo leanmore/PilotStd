@@ -2,7 +2,7 @@
 # 聚合格式化器—从管理器脚本拆分
 from typing import Any
 
-from pilotstd.i18n import _, t
+from pilotstd.i18n import t
 
 
 def translate_error_message(error: str) -> str:
@@ -18,23 +18,23 @@ def translate_error_message(error: str) -> str:
     - 其余 → 系统异常已记录日志
     """
     if not error:
-        return _("系统异常已记录日志")
+        return t("notification.common.error.system")
     e = error.lower()
     # 基础系统异常类型映射（异常类名精确匹配，优先于业务关键词）
     if "timeouterror" in e or "readtimeout" in e:
-        return _("网络连接超时，请稍后重试")
+        return t("notification.common.error.network_timeout")
     if "connectionerror" in e or "connectionrefusederror" in e:
-        return _("无法连接到目标服务器")
+        return t("notification.common.error.connect_failed")
     if "permissionerror" in e or "permission denied" in e:
-        return _("权限不足，请检查系统配置")
+        return t("notification.common.error.permission")
     if "filenotfounderror" in e or "no such file" in e:
-        return _("找不到指定的文件或目录")
+        return t("notification.common.error.file_not_found")
     # C-3 业务消息映射（下载/服务连接场景）
     if "timed out" in e or "timeout" in e:
-        return _("下载超时，系统将自动重试")
+        return t("notification.common.error.download_timeout")
     if "connection refused" in e:
-        return _("服务连接失败，系统将自动重试")
-    return _("系统异常已记录日志")
+        return t("notification.common.error.connection_refused")
+    return t("notification.common.error.system")
 
 
 def format_standard_status_changed_aggregated( _event_type: str, entries: list, count: int) -> str:
