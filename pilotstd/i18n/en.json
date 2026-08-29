@@ -196,7 +196,7 @@
     "welcome_title": "Welcome",
     "welcome_skip": "Don't show this again",
     "settings_title": "Settings",
-    "settings_notification": "Notifications",
+    "gui.settings.notification": "Notification",
     "storage_group": "File Storage",
     "storage_root": "Standards Library Root:",
     "storage_note": "A 'Standards' folder will be created under the selected directory, organized by standard code",
@@ -658,5 +658,12 @@
     "notification.system.quota_exhausted.title": "Adapter Daily Quota Exhausted",
     "notification.system.quota_exhausted.body": "{site_name} has used up today's quota (limit {quota_limit}); it will reset at {reset_time}",
 
-    "notification.fallback.body.event_type": "Event type: {t}"
+    "notification.fallback.body.event_type": "Event type: {t}",
+
+    "notification.aggregated.status.name_suffix": " ({name})",
+    "notification.aggregated.status.change_line": ": {old} → {new}",
+    "notification.aggregated.status.time_suffix": ", {time}",
+    "notification.aggregated.status.header_with_expired": "{count} standard status changes ({n} expired)",
+    "notification.aggregated.status.header": "{count} standard status changes",
+    "notification.aggregated.status.and_more": "and {n} more"
 }

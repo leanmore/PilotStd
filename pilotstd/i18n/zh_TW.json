@@ -135,7 +135,7 @@
     "welcome_title": "歡迎",
     "welcome_skip": "不再顯示此歡迎頁",
     "settings_title": "設定",
-    "settings_notification": "通知",
+    "gui.settings.notification": "通知",
     "storage_group": "檔案儲存",
     "storage_root": "標準庫儲存位置:",
     "storage_note": "軟體將在所選目錄下自動建立「標準」資料夾，並按代號分類儲存",
@@ -579,5 +579,12 @@
     "notification.system.quota_exhausted.title": "配接器日配額已耗盡",
     "notification.system.quota_exhausted.body": "{site_name} 今日配額已用完（限額 {quota_limit}），將於 {reset_time} 重置",
 
-    "notification.fallback.body.event_type": "事件類型：{t}"
+    "notification.fallback.body.event_type": "事件類型：{t}",
+
+    "notification.aggregated.status.name_suffix": "（{name}）",
+    "notification.aggregated.status.change_line": "：{old} → {new}",
+    "notification.aggregated.status.time_suffix": "，{time}",
+    "notification.aggregated.status.header_with_expired": "{count} 項標準狀態變更（其中 {n} 項已廢止）",
+    "notification.aggregated.status.header": "{count} 項標準狀態變更",
+    "notification.aggregated.status.and_more": "等 {n} 項"
 }

@@ -196,7 +196,7 @@
     "welcome_title": "欢迎",
     "welcome_skip": "不再显示此欢迎页",
     "settings_title": "设置",
-    "settings_notification": "通知",
+    "gui.settings.notification": "通知",
     "storage_group": "文件存储",
     "storage_root": "标准库存储位置:",
     "storage_note": "软件将在所选目录下自动创建「标准」文件夹，并按代号分类存储",
@@ -662,5 +662,12 @@
     "notification.system.quota_exhausted.title": "适配器日配额已耗尽",
     "notification.system.quota_exhausted.body": "{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置",
 
-    "notification.fallback.body.event_type": "事件类型：{t}"
+    "notification.fallback.body.event_type": "事件类型：{t}",
+
+    "notification.aggregated.status.name_suffix": "（{name}）",
+    "notification.aggregated.status.change_line": "：{old} → {new}",
+    "notification.aggregated.status.time_suffix": "，{time}",
+    "notification.aggregated.status.header_with_expired": "{count} 项标准状态变更（其中 {n} 项已废止）",
+    "notification.aggregated.status.header": "{count} 项标准状态变更",
+    "notification.aggregated.status.and_more": "等 {n} 项"
 }

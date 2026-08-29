@@ -2,7 +2,7 @@
 # 聚合格式化器—从管理器脚本拆分
 from typing import Any
 
-from pilotstd.i18n import _
+from pilotstd.i18n import _, t
 
 
 def translate_error_message(error: str) -> str:
@@ -52,11 +52,13 @@ def format_standard_status_changed_aggregated( _event_type: str, entries: list, 
         old_status = getattr(msg, "old_status", "") or ""
         line = f"- {std_no}"
         if std_name:
-            line += _("（{name}）").format(name=std_name)
-        line += _("：{old} → {new}").format(old=old_status, new=new_status)
+            line += t("notification.aggregated.status.name_suffix").format(name=std_name)
+        line += t("notification.aggregated.status.change_line").format(old=old_status, new=new_status)
         changed_at = (getattr(msg, "changed_at", "") or "")[:16]
         if changed_at:
-            line += _("，{time}").format(time=changed_at.replace("T", " "))
+            line += t("notification.aggregated.status.time_suffix").format(
+                time=changed_at.replace("T", " ")
+            )
         lines.append(line)
     if count > 10:
         for i in range(10, count):
@@ -64,12 +66,14 @@ def format_standard_status_changed_aggregated( _event_type: str, entries: list, 
             if (getattr(_msg, "new_status", "") or "") == "废止":
                 expired_count += 1
     if expired_count > 0:
-        header = _("{count} 项标准状态变更（其中 {n} 项已废止）").format(count=count, n=expired_count)
+        header = t("notification.aggregated.status.header_with_expired").format(
+            count=count, n=expired_count
+        )
     else:
-        header = _("{count} 项标准状态变更").format(count=count)
+        header = t("notification.aggregated.status.header").format(count=count)
     body = header + "\n" + "\n".join(lines)
     if count > 10:
-        body += "\n" + _("等 {n} 项").format(n=count - 10)
+        body += "\n" + t("notification.aggregated.status.and_more").format(n=count - 10)
     return body
 
 

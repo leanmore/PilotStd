@@ -20,7 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ....core.settings_utils import sanitize_setting_value  # noqa: F401  # re-exported for backward compat
-from ....i18n import _
+from ....i18n import _, t
 from ._settings_io import SettingsConfigIO
 from .settings_io_flow_engine import ICON_OPTIONS
 
@@ -302,7 +302,7 @@ class SettingsHandler:
         self._resume_btn.hide()
         layout.addWidget(self._resume_btn)
         layout.addStretch()
-        self._add_page(_("settings_notification"), w)
+        self._add_page(t("gui.settings.notification"), w)
 
     def _build_ocr_page(self) -> None:
         """构建 OCR 设置页：百度云/腾讯云/阿里云 OCR 凭证配置。"""
