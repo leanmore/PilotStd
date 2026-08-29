@@ -110,7 +110,12 @@ def _build_standard_first_registered_message(data: dict) -> NotificationMessage:
 
 
 def _build_validity_batch_report_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：检查总数 → 变更/失败统计 → 变更详情 → 失败详情（逐行 "• 标准号 名称 — 原因"）。
+    适配器状态行按 I-01 结论暂不展示（正确数据源为 adapter_mgr.get_all_status()，
+    键名 adapter_status，模板不含该行）。
+    """
     count = data.get("count", 0)
     changed = data.get("changed", 0)
     failed = data.get("failed", 0)
@@ -124,12 +129,37 @@ def _build_validity_batch_report_message(data: dict) -> NotificationMessage:
             icon="pi pi-chart-bar",
         )
     blocks: list[NotificationBlock] = [
-        KeyValueBlock(key=_("检查总数"), value=str(count)),
-        KeyValueBlock(key=_("变更数"), value=str(changed)),
-        KeyValueBlock(key=_("失败数"), value=str(failed)),
+        TextBlock(text=_("检查总数：{n}").format(n=count)),
+        TextBlock(text=_("变更：{c} 条，失败：{f} 条").format(c=changed, f=failed)),
     ]
-    if data.get("adapter_status"):
-        blocks.append(TextBlock(text=_("适配器状态：{s}").format(s=data["adapter_status"])))
+    change_detail = data.get("change_detail") or []
+    if change_detail:
+        blocks.append(TextBlock(text=_("变更详情：")))
+        lines = []
+        for cd in change_detail:
+            line = cd.get("standard", "")
+            name = cd.get("name", "")
+            if name:
+                line += f" {name}"
+            reason = cd.get("reason", "")
+            if reason:
+                line += _(" — {r}").format(r=reason)
+            lines.append(_("• {s}").format(s=line))
+        blocks.append(TextBlock(text="\n".join(lines)))
+    failed_detail = data.get("failed_detail") or []
+    if failed_detail:
+        blocks.append(TextBlock(text=_("失败详情：")))
+        lines = []
+        for fd in failed_detail:
+            line = fd.get("standard", "")
+            name = fd.get("name", "")
+            if name:
+                line += f" {name}"
+            error = (fd.get("error") or "")[:100]
+            if error:
+                line += _(" — {e}").format(e=error)
+            lines.append(_("• {s}").format(s=line))
+        blocks.append(TextBlock(text="\n".join(lines)))
     # 有变更或失败时升级为
     level = "warning" if (changed > 0 or failed > 0) else "info"
     return NotificationMessage(

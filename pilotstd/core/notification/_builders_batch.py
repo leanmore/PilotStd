@@ -4,9 +4,15 @@
 # 每个__*_()函数签名一致：接收→返回。
 # 决策内聚在构建器内部（如>0→）。
 # 设计原则：方法签名即文档，每个事件独立构建避免参数爆炸。
+# 模板重写（批次2）：统一"标准号/名称/类型"行结构；错误经翻译映射；
+# 标准号不再依赖发送层追加（telegram.py 去重），由构建器正文完整承载。
+
+import os
+from datetime import date, timedelta
 
 from pilotstd.i18n import _
 
+from ._format_utils import translate_error_message
 from .blocks import (
     KeyValueBlock,
     ListBlock,
@@ -14,6 +20,34 @@ from .blocks import (
     TextBlock,
 )
 from .channel import NotificationMessage
+
+# 标准类型 → 中文标签（favorite/download 模板共用）
+_STD_TYPE_LABEL = {
+    "NationalStd": _("国家标准"),
+    "IndustryStd": _("行业标准"),
+    "LocalStd": _("地方标准"),
+}
+
+
+def _std_type_text(standard_type: str) -> str:
+    """标准类型标签（未知类型返回空串，模板中省略该行）。"""
+    return _STD_TYPE_LABEL.get(standard_type or "", "")
+
+
+def _expected_download_date(publish_date: str) -> str:
+    """预计自动下载日期 = 发布日期 + 冷却期天数。
+
+    冷却期与收藏下载链同源（ARCHIVE_COOLDOWN_DAYS 环境变量，默认 28），
+    避免双源漂移；日期无法解析时返回空串（模板回退为通用提示）。
+    """
+    if not publish_date:
+        return ""
+    try:
+        d = date.fromisoformat(str(publish_date)[:10])
+        cooldown = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
+        return (d + timedelta(days=cooldown)).isoformat()
+    except (ValueError, TypeError):
+        return ""
 
 
 def _make_link(standard_number: str | None) -> str | None:
@@ -25,10 +59,26 @@ def _make_link(standard_number: str | None) -> str | None:
 
 
 def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
-    blocks: list[NotificationBlock] = [KeyValueBlock(key=_("新增公告"), value=str(data.get("count", 0)))]
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：来源单独成行 → "新增公告：N；其中国标：G，行标：H，地标：D"
+    → 新增公告标题明细（有则逐行 "• {title}"）。
+    """
+    blocks: list[NotificationBlock] = []
     if data.get("source"):
         blocks.append(TextBlock(text=_("来源：{s}").format(s=data["source"])))
+    summary = _("新增公告：{n}；其中国标：{g}，行标：{h}，地标：{d}").format(
+        n=data.get("count", 0),
+        g=data.get("gb_count", 0),
+        h=data.get("hb_count", 0),
+        d=data.get("db_count", 0),
+    )
+    blocks.append(TextBlock(text=summary))
+    announcements = data.get("announcements") or []
+    titles = [a.get("title", "") for a in announcements if a.get("title")]
+    if titles:
+        # 公告标题逐行展示（模板："• {title}"）
+        blocks.append(TextBlock(text="\n".join(_("• {t}").format(t=t) for t in titles)))
     return NotificationMessage(
         title=_("公告拉取完成"),
         blocks=blocks,
@@ -114,10 +164,18 @@ def _build_auto_scan_failed_message(data: dict) -> NotificationMessage:
 
 def _build_download_failed_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
-    blocks: list[NotificationBlock] = [
-        TextBlock(text=_("标准号：{s}").format(s=data.get("standard_number", ""))),
-        TextBlock(text=_("错误：{e}").format(e=data.get("error", _("未知错误")))),
-    ]
+    std_no = data.get("standard_number", "")
+    blocks: list[NotificationBlock] = []
+    if std_no:
+        blocks.append(TextBlock(text=_("标准号：{s}").format(s=std_no)))
+    std_name = data.get("standard_name", "")
+    if std_name:
+        blocks.append(TextBlock(text=_("名称：{s}").format(s=std_name)))
+    std_type_text = _std_type_text(data.get("standard_type", ""))
+    if std_type_text:
+        blocks.append(TextBlock(text=_("类型：{t}").format(t=std_type_text)))
+    # 错误信息经翻译映射统一口径（C-3），避免技术细节直出
+    blocks.append(TextBlock(text=_("错误：{e}").format(e=translate_error_message(data.get("error", "")))))
     return NotificationMessage(
         title=_("收藏下载失败"),
         blocks=blocks,
@@ -131,27 +189,28 @@ def _build_favorite_created_message(data: dict) -> NotificationMessage:
     """收藏成功事件构建器：告知用户收藏已建立并进入下载队列。
 
     收藏动作本身立即成功，但文件下载要等冷却期后由 cron 触发，
-    故消息中明确提示"已加入下载队列"，避免用户误以为文件即刻可用。
+    故消息明确给出预计下载日期（publish_date + 冷却期），避免用户误判时效。
     """
     std_no = data.get("standard_no", "")
     std_name = data.get("standard_name", "")
     standard_type = data.get("standard_type", "")
+    publish_date = data.get("publish_date", "")
     blocks: list[NotificationBlock] = []
     # 标准号与名称非空时才展示，避免消息中出现空字段占位
     if std_no:
         blocks.append(TextBlock(text=_("标准号：{s}").format(s=std_no)))
     if std_name:
         blocks.append(TextBlock(text=_("名称：{s}").format(s=std_name)))
-    # 批次7：收藏分类展示（非未知类型才显示，避免噪声）
-    _STD_TYPE_LABEL = {
-        "NationalStd": _("国家标准"),
-        "IndustryStd": _("行业标准"),
-        "LocalStd": _("地方标准"),
-    }
-    if standard_type and standard_type in _STD_TYPE_LABEL:
-        blocks.append(TextBlock(text=_("类型：{t}").format(t=_STD_TYPE_LABEL[standard_type])))
-    # 明确告知排队语义：冷却期后才真正下载，避免用户误判时效
-    blocks.append(TextBlock(text=_("已加入下载队列，冷却期过后自动下载归档")))
+    std_type_text = _std_type_text(standard_type)
+    if std_type_text:
+        blocks.append(TextBlock(text=_("类型：{t}").format(t=std_type_text)))
+    # 明确告知排队语义：给出预计下载日期（publish_date + 冷却期），
+    # 日期不可得时回退通用提示，避免用户误判时效
+    expected = _expected_download_date(publish_date)
+    if expected:
+        blocks.append(TextBlock(text=_("已加入下载队列，预计 {date} 自动下载归档").format(date=expected)))
+    else:
+        blocks.append(TextBlock(text=_("已加入下载队列，冷却期过后自动下载归档")))
     return NotificationMessage(
         title=_("收藏成功"),
         blocks=blocks,
@@ -191,7 +250,15 @@ def _build_download_complete_message(data: dict) -> NotificationMessage:
     """
     std_no = data.get("standard_number", "")
     local_path = data.get("local_path", "")
-    blocks: list[NotificationBlock] = [TextBlock(text=_("标准号：{s}").format(s=std_no))]
+    blocks: list[NotificationBlock] = []
+    if std_no:
+        blocks.append(TextBlock(text=_("标准号：{s}").format(s=std_no)))
+    std_name = data.get("standard_name", "")
+    if std_name:
+        blocks.append(TextBlock(text=_("名称：{s}").format(s=std_name)))
+    std_type_text = _std_type_text(data.get("standard_type", ""))
+    if std_type_text:
+        blocks.append(TextBlock(text=_("类型：{t}").format(t=std_type_text)))
     # 文件已归档到标准库，附上实际路径便于用户直接定位
     if local_path:
         blocks.append(TextBlock(text=_("文件位置：{p}").format(p=local_path)))
@@ -243,16 +310,34 @@ def _build_normalize_complete_message(data: dict) -> NotificationMessage:
 
 
 def _build_scan_complete_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
-    count = data.get("count", 0)
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：已扫描：N 个文件，成功：S 个，失败：F 个；有失败明细时
+    追加"失败文件："节（• 路径 — 原因）。
+    """
+    total = data.get("total", 0)
+    success = data.get("success", data.get("count", 0))
     failed = data.get("failed", 0)
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("新增 {count} 个文件，{failed} 个文件解析失败").format(count=count, failed=failed)),
+        TextBlock(text=_("已扫描：{t} 个文件，成功：{s} 个，失败：{f} 个").format(t=total, s=success, f=failed)),
     ]
+    failed_files = data.get("failed_files") or []
+    if failed_files:
+        # 失败文件逐行展示（模板："• {path} — {reason}"）
+        blocks.append(TextBlock(text=_("失败文件：")))
+        lines = [
+            _("• {path} — {reason}").format(
+                path=ff.get("path", ""), reason=ff.get("reason") or _("未知原因")
+            )
+            for ff in failed_files
+            if ff.get("path")
+        ]
+        if lines:
+            blocks.append(TextBlock(text="\n".join(lines)))
     return NotificationMessage(
         title=_("扫描完成"),
         blocks=blocks,
-        level="info" if count > 0 else "warning",
+        level="warning" if failed > 0 else "info",
         event_type="scan_complete",
         icon="pi pi-search",
     )

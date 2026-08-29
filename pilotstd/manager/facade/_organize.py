@@ -12,13 +12,48 @@ import warnings
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
+from ...core.std_utils import classify_std_code
 from ...models import ParsedStdInfo
+from ...organizer.industry_lookup import INDUSTRY_MAP
 
 if TYPE_CHECKING:
     from ._core import ManagerCore
 
 logger = logging.getLogger(__name__)
 # 归档处理器，封装所有归档方法，替代原
+
+
+def _archive_category_stats(items: list[Any]) -> dict[str, int]:
+    """按标准代号分类统计归档条目（C-2：复用 std_utils.classify_std_code）。
+
+    行业标准进一步按行业映射细分（如 SH→石油化工、HG→化工），
+    与模板"国标：N 条，石化：N 条，化工：N 条"对齐；未知代号归入"其他"。
+    """
+    from collections import Counter
+
+    cat: Counter[str] = Counter()
+    for p in items:
+        code = getattr(p, "logical_code", "") or ""
+        cls = classify_std_code(code)
+        if cls == "gb":
+            label = "国标"
+        elif cls == "db":
+            label = "地标"
+        elif cls == "iso_iec":
+            label = "国际"
+        elif cls == "foreign":
+            label = "国外"
+        elif cls == "group":
+            label = "团体"
+        elif cls == "enterprise":
+            label = "企业"
+        elif cls == "industry":
+            base = code.replace("/", "").upper()
+            label = INDUSTRY_MAP.get(base, "行业")
+        else:
+            label = "其他"
+        cat[label] += 1
+    return dict(cat)
 
 
 class OrganizeHandler:
@@ -169,7 +204,22 @@ class OrganizeHandler:
                     logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
         try:
             if self._core.notification_mgr:
-                self._core.notification_mgr.send_event(EVENT_ARCHIVE_COMPLETE, {"count": moved})
+                # 归档目标目录从 organizer 明细行 "basename -> dst" 中提取（去重父目录）
+                directories = sorted(
+                    {
+                        os.path.dirname(d.split(" -> ", 1)[1])
+                        for d in result.get("details", [])
+                        if " -> " in d
+                    }
+                )
+                self._core.notification_mgr.send_event(
+                    EVENT_ARCHIVE_COMPLETE,
+                    {
+                        "count": moved,
+                        "directories": directories,
+                        "category_stats": _archive_category_stats(items),
+                    },
+                )
         except Exception as e:
             logger.warning("发送归档完成通知失败: %s", e)
         # 收藏链路逐条归档完成事件由收藏下载任务中的下载完成事件覆盖

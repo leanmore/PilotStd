@@ -157,13 +157,16 @@ class TestValidityBuildersSnapshot:
             "count": 100,
             "changed": 5,
             "failed": 2,
-            "adapter_status": "正常",
+            "change_detail": [{"standard": "GB/T 1-2024", "name": "标准一", "reason": "已废止"}],
         })
         assert msg.event_type == "validity_batch_report"
         assert msg.level == "warning"
         assert msg.icon == "pi pi-chart-bar"
         assert any(
-            isinstance(b, KeyValueBlock) and b.key == "检查总数" for b in msg.blocks
+            isinstance(b, TextBlock) and "检查总数：100" in b.text for b in msg.blocks
+        )
+        assert any(
+            isinstance(b, TextBlock) and "• GB/T 1-2024 标准一 — 已废止" in b.text for b in msg.blocks
         )
 
     def test_validity_batch_report_zero(self):
@@ -256,12 +259,21 @@ class TestSystemBuildersSnapshot:
         msg = _build_archive_complete_message({
             "count": 3,
             "directories": ["dir_a", "dir_b", "dir_c"],
+            "category_stats": {"国标": 2, "化工": 1},
             "standard_number": "GB/T 1-2024",
         })
         assert msg.event_type == "archive_complete"
         assert msg.level == "info"
         assert msg.icon == "pi pi-folder-open"
-        assert any(isinstance(b, ListBlock) for b in msg.blocks)
+        assert any(
+            isinstance(b, TextBlock) and "已归档：3 个文件" in b.text for b in msg.blocks
+        )
+        assert any(
+            isinstance(b, TextBlock) and "国标：2 条，化工：1 条" in b.text for b in msg.blocks
+        )
+        assert any(
+            isinstance(b, TextBlock) and "• dir_a" in b.text for b in msg.blocks
+        )
 
     def test_archive_complete_empty(self):
         msg = _build_archive_complete_message({
@@ -354,7 +366,26 @@ class TestSystemBuildersSnapshot:
         })
         assert msg.level == "info"
         assert msg.event_type == "image_update_available"
-        assert "sha256:abc123" in msg.blocks[0].old_value
+        # 无版本号时回退 digest 前 12 位
+        assert any(
+            isinstance(b, TextBlock) and "sha256:abc1" in b.text and "sha256:def4" in b.text
+            for b in msg.blocks
+        )
+
+    def test_image_update_with_versions(self):
+        msg = _build_image_update_available_message({
+            "old_version": "v0.108.0",
+            "new_version": "v0.109.0",
+            "release_notes": "修复通知链路",
+            "old_digest": "sha256:aa",
+            "new_digest": "sha256:bb",
+        })
+        assert any(
+            isinstance(b, TextBlock) and "v0.108.0 → v0.109.0" in b.text for b in msg.blocks
+        )
+        assert any(
+            isinstance(b, TextBlock) and "更新内容：修复通知链路" in b.text for b in msg.blocks
+        )
 
     def test_image_update_error(self):
         msg = _build_image_update_available_message({
@@ -450,7 +481,9 @@ class TestBatchBuildersSnapshot:
         })
         assert msg.event_type == "announcement_fetch_complete"
         assert msg.level == "info"
-        assert any(isinstance(b, KeyValueBlock) for b in msg.blocks)
+        assert any(
+            isinstance(b, TextBlock) and "新增公告：25" in b.text for b in msg.blocks
+        )
 
     def test_announcement_fetch_complete_no_source(self):
         msg = _build_announcement_fetch_complete_message({
@@ -563,18 +596,20 @@ class TestBatchBuildersSnapshot:
 
     def test_scan_complete_with_files(self):
         msg = _build_scan_complete_message({
-            "count": 30,
+            "total": 30,
+            "success": 28,
             "failed": 2,
         })
-        assert msg.level == "info"
+        assert msg.level == "warning"
         assert msg.event_type == "scan_complete"
 
     def test_scan_complete_empty(self):
         msg = _build_scan_complete_message({
-            "count": 0,
+            "total": 0,
+            "success": 0,
             "failed": 0,
         })
-        assert msg.level == "warning"
+        assert msg.level == "info"
 
     # ── _build_date_reminder_message ──
 

@@ -62,13 +62,24 @@ class ScanHandler:
         self._core.parsed_results = parsed
         logger.info("扫描完成: %d/%d 识别成功", len(parsed), len(result.files))
         failed_count = len(result.files) - len(parsed) - dup_count
+        parsed_paths = {getattr(p, "source_path", "") for p in parsed}
+        failed_files = [
+            {"path": getattr(f, "full_path", ""), "reason": "文件格式无法识别"}
+            for f in result.files
+            if getattr(f, "full_path", "") and getattr(f, "full_path", "") not in parsed_paths
+        ]
 
         try:
             if self._core.notification_mgr:
                 if len(parsed) > 0:
                     self._core.notification_mgr.send_event(
                         "scan_complete",
-                        {"count": len(parsed), "failed": max(failed_count, 0)},
+                        {
+                            "total": len(result.files),
+                            "success": len(parsed),
+                            "failed": max(failed_count, 0),
+                            "failed_files": failed_files[:10],
+                        },
                     )
                 elif failed_count == 0:
                     self._core.notification_mgr.send_event("scan_empty", {})
@@ -135,13 +146,24 @@ class ScanHandler:
         self._core.parsed_results = parsed
         logger.info("扫描完成: %d/%d 识别成功", len(parsed), total)
         failed_count = total - len(parsed) - dup_count
+        parsed_paths = {getattr(p, "source_path", "") for p in parsed}
+        failed_files = [
+            {"path": getattr(f, "full_path", ""), "reason": "文件格式无法识别"}
+            for f in result.files
+            if getattr(f, "full_path", "") and getattr(f, "full_path", "") not in parsed_paths
+        ]
 
         try:
             if self._core.notification_mgr:
                 if len(parsed) > 0:
                     self._core.notification_mgr.send_event(
                         "scan_complete",
-                        {"count": len(parsed), "failed": max(failed_count, 0)},
+                        {
+                            "total": total,
+                            "success": len(parsed),
+                            "failed": max(failed_count, 0),
+                            "failed_files": failed_files[:10],
+                        },
                     )
                 elif failed_count == 0:
                     self._core.notification_mgr.send_event("scan_empty", {})
@@ -169,7 +191,12 @@ class ScanHandler:
                     if result.get("indexed", 0) > 0:
                         self._core.notification_mgr.send_event(
                             "scan_complete",
-                            {"count": result["indexed"], "failed": result.get("failed", 0)},
+                            {
+                                "total": result.get("indexed", 0) + result.get("failed", 0),
+                                "success": result.get("indexed", 0),
+                                "failed": result.get("failed", 0),
+                                "failed_files": [],
+                            },
                         )
                     elif result.get("indexed", 0) == 0 and result.get("failed", 0) == 0:
                         self._core.notification_mgr.send_event("scan_empty", {})

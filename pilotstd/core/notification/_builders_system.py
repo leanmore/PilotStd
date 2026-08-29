@@ -8,16 +8,28 @@ import logging
 
 from pilotstd.i18n import _
 
+from ._format_utils import translate_error_message
 from .blocks import (
     KeyValueBlock,
-    ListBlock,
     NotificationBlock,
-    StatusChangeBlock,
     TextBlock,
 )
 from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
+
+# 定时任务 job_id → 中文名映射（task_execution_failed 模板，批次2）
+_TASK_NAME_MAP = {
+    "auto_announce": _("公告自动更新"),
+    "auto_scan": _("自动扫描"),
+    "auto_backup": _("自动备份"),
+    "auto_archive_retry": _("收藏下载重试"),
+    "auto_health_check": _("健康检查"),
+    "date_reminder": _("日期提醒"),
+    "validity_check": _("时效性检查"),
+    "notification_cleanup": _("通知日志清理"),
+    "release_suppressed": _("静音补发"),
+}
 
 
 def _make_link(standard_number: str | None) -> str | None:
@@ -26,23 +38,23 @@ def _make_link(standard_number: str | None) -> str | None:
 
 
 def _build_archive_complete_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：已归档：N 个文件 → 分类统计（国标：N 条，行业细分：N 条…）
+    → 归档目录逐行（• {dir}）。
+    """
     count = data.get("count", 0)
-    directories = data.get("directories", [])
-    blocks: list[NotificationBlock]
-    if count == 0:
-        blocks = [TextBlock(text=_("未归档任何目录（所有目标均为空或已归档）"))]
-    else:
-        blocks = [TextBlock(text=_("已归档 {count} 个目录").format(count=count))]
-        if directories:
-            blocks.append(
-                ListBlock(
-                    title=_("归档目录清单"),
-                    items=[{"name": d} for d in directories],
-                    total=count,
-                    detail_url=_make_link(data.get("standard_number")),
-                )
-            )
+    blocks: list[NotificationBlock] = [TextBlock(text=_("已归档：{n} 个文件").format(n=count))]
+    # 分类统计（C-2：发送点已用 classify_std_code 聚合，label 即中文分类名）
+    category_stats = data.get("category_stats") or {}
+    if category_stats:
+        summary = "，".join(_("{label}：{n} 条").format(label=k, n=v) for k, v in category_stats.items())
+        blocks.append(TextBlock(text=summary))
+    # 归档目录逐行（发送点从 organizer 明细提取的目标目录）
+    directories = data.get("directories") or []
+    if directories:
+        blocks.append(TextBlock(text=_("归档目录：")))
+        blocks.append(TextBlock(text="\n".join(_("• {d}").format(d=d) for d in directories)))
     return NotificationMessage(
         title=_("归档完成"),
         blocks=blocks,
@@ -85,23 +97,24 @@ def _build_auto_backup_message(data: dict) -> NotificationMessage:
 
 
 def _build_announcement_check_complete_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：来源单独成行 → 统计折叠为一行（消除零结果逐行罗列）：
+    "公告总数：N，国标：G，行标：H，地标：D，涉及标准：S"
+    """
     source = data.get("source", "")
     blocks: list[NotificationBlock] = []
-    # 来源信息追加到消息块头部
+    # 来源信息追加到消息块头部（定时/手动路径均携带）
     if source:
         blocks.append(TextBlock(text=_("来源：{s}").format(s=source)))
-    blocks.extend(
-        [
-            KeyValueBlock(key=_("公告总数"), value=str(data.get("total_announcements", 0))),
-            KeyValueBlock(key=_("国标"), value=str(data.get("gb_count", 0))),
-            KeyValueBlock(key=_("行标"), value=str(data.get("hb_count", 0))),
-            KeyValueBlock(key=_("地标"), value=str(data.get("db_count", 0))),
-            KeyValueBlock(key=_("涉及标准"), value=str(data.get("total_standards", 0))),
-        ]
+    summary = _("公告总数：{t}，国标：{g}，行标：{h}，地标：{d}，涉及标准：{s}").format(
+        t=data.get("total_announcements", 0),
+        g=data.get("gb_count", 0),
+        h=data.get("hb_count", 0),
+        d=data.get("db_count", 0),
+        s=data.get("total_standards", 0),
     )
-    if data.get("failures", 0) > 0:
-        blocks.append(TextBlock(text=_("注意：{n} 个站点检查失败").format(n=data["failures"])))
+    blocks.append(TextBlock(text=summary))
     failures = data.get("failures", 0)
     total = data.get("total_announcements", 0)
     if failures > 0 and total == 0:
@@ -147,19 +160,18 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
             icon="pi pi-cloud-upload",
         )
     # 正常路径：上面错误分支已提前返回，此处安全重建 blocks
-    blocks: list[NotificationBlock] = [  # type: ignore[no-redef]
-        StatusChangeBlock(
-            label=_("镜像版本"),
-            old_value=data.get("old_digest", ""),
-            new_value=data.get("new_digest", ""),
-        )
-    ]
+    # 模板：镜像版本：v旧 → v新；版本号缺失时回退 digest 前 12 位
     old_digest = data.get("old_digest", "")
     new_digest = data.get("new_digest", "")
+    old_ver = data.get("old_version") or (old_digest[:12] if old_digest else "")
+    new_ver = data.get("new_version") or (new_digest[:12] if new_digest else "")
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=_("镜像版本：{old} → {new}").format(old=old_ver, new=new_ver)),
+    ]
     if not old_digest or not new_digest:
         logger.debug("image_update_available: old_digest or new_digest is empty")
     if data.get("release_notes"):
-        blocks.append(TextBlock(text=data["release_notes"]))
+        blocks.append(TextBlock(text=_("更新内容：{n}").format(n=data["release_notes"])))
     return NotificationMessage(
         title=_("镜像更新可用"),
         blocks=blocks,
@@ -209,11 +221,17 @@ def _build_worker_error_message(data: dict) -> NotificationMessage:
 
 
 def _build_task_execution_failed_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
-    task_name = data.get("task_name", _("未知任务"))
-    error = data.get("error", _("未知错误"))
+    """原 Mixin 方法，现为模块级纯函数。
+
+    模板：任务：{中文名} / 错误：{翻译后错误} / 系统将在下次调度时自动重试。
+    任务名经 job_id → 中文映射，错误经翻译映射（C-3）。
+    """
+    raw_task = data.get("task_name", _("未知任务"))
+    task_name = _TASK_NAME_MAP.get(raw_task, raw_task)
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("{task_name} 执行失败：{error}").format(task_name=task_name, error=error)),
+        TextBlock(text=_("任务：{t}").format(t=task_name)),
+        TextBlock(text=_("错误：{e}").format(e=translate_error_message(data.get("error", "")))),
+        TextBlock(text=_("系统将在下次调度时自动重试")),
     ]
     return NotificationMessage(
         title=_("定时任务执行失败"),

@@ -182,7 +182,7 @@ def add_favorite(
                     "record_id": data.record_id,
                     "standard_no": std_no,
                     "standard_name": (record["std_name"] or "") or "未知标准",
-                    "standard_type": standard_type,
+                    "standard_type": standard_type, "publish_date": publish_date or "",
                 },
             )
     except Exception as e:

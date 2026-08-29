@@ -24,6 +24,23 @@ class AnnounceNotifier:
         if self.mgr_db and updated > 0:
             self._invalidate_cache()
 
+    def _fetch_announcement_titles(self, limit: int = 10) -> list[dict]:
+        """查询最近抓取的公告标题（announcement_fetch_complete 明细列表）。"""
+        if not self.mgr_db:
+            return []
+        try:
+            rows = self.mgr_db.fetchall(
+                "SELECT announce_no, announcement_title FROM announcement_record "
+                "WHERE announcement_title IS NOT NULL AND announcement_title != '' "
+                "GROUP BY announce_no ORDER BY MAX(fetched_at) DESC LIMIT ?",
+                (limit,),
+            )
+            return [
+                {"announce_no": r["announce_no"], "title": r["announcement_title"]} for r in rows
+            ]
+        except Exception:
+            return []
+
     def _send_notifications(self, result: dict[str, Any], source: str) -> None:
         """派发公告检查通知事件：检查汇总 + 全站失败告警 + 逐站明细汇总。"""
         matched = result.get("matched", 0)
@@ -75,6 +92,23 @@ class AnnounceNotifier:
                 self.notification_mgr.send_event("announce_fetch_summary", build_fetch_summary(adapters))
             except Exception as exc:
                 logger.warning("公告通知发送失败 (announce_fetch_summary): %s", exc)
+
+        # C-1：定时路径补发"拉取完成"事件（与手动路径对齐），
+        # 且与"检查完成"均携带来源字段与新增公告标题明细
+        try:
+            self.notification_mgr.send_event(
+                "announcement_fetch_complete",
+                {
+                    "count": total,
+                    "source": source or "手动",
+                    "gb_count": result.get("gb_count", 0),
+                    "hb_count": result.get("hb_count", 0),
+                    "db_count": result.get("db_count", 0),
+                    "announcements": self._fetch_announcement_titles(),
+                },
+            )
+        except Exception as exc:
+            logger.warning("公告通知发送失败 (announcement_fetch_complete): %s", exc)
 
     def _invalidate_cache(self) -> None:
         """通过 CacheManager 失效公告缓存。"""

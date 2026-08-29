@@ -44,10 +44,8 @@ class TelegramChannel(NotificationChannel):
             return False
         try:
             # 使用电报渲染2文本
+            # 标准号已由构建器渲染进正文（批次2 尾部重复行消除），发送层不再追加
             text = self._renderer.render(message)
-            # 标准号以等宽格式追加
-            if message.standard_number:
-                text += f"\n`{self._renderer._escape(message.standard_number)}`"
             payload = json.dumps(
                 {
                     "chat_id": self._chat_id,

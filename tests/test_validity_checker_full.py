@@ -679,28 +679,31 @@ class TestProcessValidityBatch(unittest.TestCase):
 
     def test_empty_candidates(self):
         mock_checker = MagicMock()
-        changed, changed_list, failed = _process_validity_batch([], mock_checker, self.mock_db, self.mock_notif, 50, 5)
+        changed, changed_list, failed, change_detail = _process_validity_batch([], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(changed, 0)
         self.assertEqual(changed_list, [])
         self.assertEqual(failed, [])
+        self.assertEqual(change_detail, [])
 
     def test_status_changed(self):
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
         self.mock_db.fetchone.return_value = _row(status="现行")
 
-        changed, changed_list, failed = _process_validity_batch(
+        changed, changed_list, failed, change_detail = _process_validity_batch(
             ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
         )
         self.assertEqual(changed, 1)
         self.assertEqual(changed_list, ["GB/T 1"])
+        self.assertEqual(change_detail[0]["standard"], "GB/T 1")
+        self.assertEqual(change_detail[0]["reason"], "已废止")
 
     def test_status_unchanged(self):
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
         self.mock_db.fetchone.return_value = _row(status="现行")
 
-        changed, changed_list, failed = _process_validity_batch(
+        changed, changed_list, failed, _ = _process_validity_batch(
             ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
         )
         self.assertEqual(changed, 0)
@@ -710,14 +713,14 @@ class TestProcessValidityBatch(unittest.TestCase):
         mock_checker = MagicMock()
         mock_checker.check_standard.return_value = None
 
-        changed, _, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
+        changed, _, _, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(changed, 0)
 
     def test_exception_adds_failed(self):
         mock_checker = MagicMock()
         mock_checker.check_standard.side_effect = RuntimeError("boom")
 
-        _, _, failed = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
+        _, _, failed, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5)
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed[0]["standard"], "GB/T 1")
         self.assertIn("boom", failed[0]["error"])
@@ -742,7 +745,7 @@ class TestProcessValidityBatch(unittest.TestCase):
         mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
         self.mock_db.fetchone.return_value = _row(status="现行")
 
-        changed, changed_list, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, None, 50, 0)
+        changed, changed_list, _, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, None, 50, 0)
         self.assertEqual(changed, 1)
 
     def test_notification_raises_in_loop(self):
@@ -760,7 +763,7 @@ class TestProcessValidityBatch(unittest.TestCase):
         mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
         self.mock_db.fetchone.return_value = None
 
-        changed, changed_list, _ = _process_validity_batch(
+        changed, changed_list, _, _ = _process_validity_batch(
             ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 0
         )
         self.assertEqual(changed, 0)
@@ -1041,7 +1044,7 @@ class TestRunValidityCheck(unittest.TestCase):
         }.get(key, default)
         mock_cm_cls.return_value = mock_cm
         mock_sample.return_value = (["GB/T 1", "GB/T 2"], 2)
-        mock_process.return_value = (1, ["GB/T 1"], [])
+        mock_process.return_value = (1, ["GB/T 1"], [], [])
         mock_finalize.return_value = {"std_gov": "ok"}
 
         notif_mgr = MagicMock()
@@ -1145,7 +1148,7 @@ class TestRunValidityCheck(unittest.TestCase):
         }.get(key, default)
         mock_cm_cls.return_value = mock_cm
         mock_sample.return_value = (["GB/T 1"], 1)
-        mock_process.return_value = (0, [], [])
+        mock_process.return_value = (0, [], [], [])
         mock_finalize.return_value = {}
 
         notif_mgr = MagicMock()
@@ -1175,7 +1178,7 @@ class TestRunValidityCheck(unittest.TestCase):
         }.get(key, default)
         mock_cm_cls.return_value = mock_cm
         mock_sample.return_value = (["GB/T 1"], 1)
-        mock_process.return_value = (0, [], [])
+        mock_process.return_value = (0, [], [], [])
         mock_finalize.return_value = {"std_gov": "ok"}
 
         adapter_mgr = MagicMock()

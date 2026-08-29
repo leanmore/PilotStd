@@ -5,6 +5,23 @@ from typing import Any
 from pilotstd.i18n import _
 
 
+def translate_error_message(error: str) -> str:
+    """错误信息翻译映射（C-3）：用户可见的失败原因统一口径。
+
+    - timed out → 下载超时，系统将自动重试
+    - Connection refused → 服务连接失败，系统将自动重试
+    - 其余 → 系统异常已记录日志
+    """
+    if not error:
+        return _("系统异常已记录日志")
+    e = error.lower()
+    if "timed out" in e or "timeout" in e:
+        return _("下载超时，系统将自动重试")
+    if "connection refused" in e:
+        return _("服务连接失败，系统将自动重试")
+    return _("系统异常已记录日志")
+
+
 def format_standard_status_changed_aggregated( _event_type: str, entries: list, count: int) -> str:
     """standard_status_changed 聚合模板：汇总统计 + 明细列表。"""
     expired_count = 0

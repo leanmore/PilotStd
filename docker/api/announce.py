@@ -67,9 +67,26 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
             stats["source"] = "手动"
             mgr.notification_mgr.send_event("announcement_check_complete", stats)
             # 手动路径：拉取完成极简反馈（仅手动路径触发，定时路径不发此事件）
+            # 附本次新增公告标题明细（fetched_at 窗口精确匹配 check_start 之后）
+            ann_rows = mgr.db.fetchall(
+                "SELECT announce_no, announcement_title FROM announcement_record "
+                "WHERE fetched_at >= ? AND announcement_title IS NOT NULL AND announcement_title != '' "
+                "GROUP BY announce_no ORDER BY announce_no LIMIT 20",
+                (check_start,),
+            )
+            announcements = [
+                {"announce_no": r["announce_no"], "title": r["announcement_title"]} for r in ann_rows
+            ]
             mgr.notification_mgr.send_event(
                 "announcement_fetch_complete",
-                {"count": stats["total_announcements"], "source": stats["source"]},
+                {
+                    "count": stats["total_announcements"],
+                    "source": stats["source"],
+                    "gb_count": stats["gb_count"],
+                    "hb_count": stats["hb_count"],
+                    "db_count": stats["db_count"],
+                    "announcements": announcements,
+                },
             )
         except Exception as e:
             logger.warning("通知发送失败: %s", e)

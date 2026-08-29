@@ -112,7 +112,8 @@ class TestArchiveStandards:
             items, None, overwrite=False
         )
         handler._core.notification_mgr.send_event.assert_any_call(
-            EVENT_ARCHIVE_COMPLETE, {"count": 2}
+            EVENT_ARCHIVE_COMPLETE,
+            {"count": 2, "directories": [], "category_stats": {"国标": 1}},
         )
         assert result["moved"] == 2
 
@@ -185,7 +186,8 @@ class TestArchiveStandards:
         ]
         assert len(expire_calls) == 0
         handler._core.notification_mgr.send_event.assert_any_call(
-            EVENT_ARCHIVE_COMPLETE, {"count": 0}
+            EVENT_ARCHIVE_COMPLETE,
+            {"count": 0, "directories": [], "category_stats": {"国标": 1}},
         )
 
 

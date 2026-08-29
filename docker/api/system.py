@@ -183,7 +183,13 @@ async def update_container(request: Request, mgr=Depends(get_manager_dep)):
         try:
             if hasattr(mgr, "notification_mgr"):
                 mgr.notification_mgr.send_event(
-                    "image_update_available", {"old_digest": old_digest, "new_digest": new_digest}
+                    "image_update_available",
+                    {
+                        "old_digest": old_digest,
+                        "new_digest": new_digest,
+                        "old_version": os.environ.get("APP_VERSION", ""),
+                        "new_version": "",
+                    },
                 )
         except Exception as e:
             logger.warning("镜像更新通知发送失败: %s", e)

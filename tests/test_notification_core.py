@@ -48,7 +48,7 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_archive_complete_zero(self):
         msg = self.mixin._build_archive_complete_message({"count": 0, "directories": []})
-        self.assertIn("未归档", msg.blocks[0].text)
+        self.assertIn("已归档：0", msg.blocks[0].text)
 
     def test_status_changed_expired(self):
         msg = self.mixin._build_standard_status_changed_message(
@@ -235,7 +235,8 @@ class TestMessageBuilders(unittest.TestCase):
             "task_name": "DailyScan", "error": "timeout",
         })
         self.assertEqual(msg.level, "error")
-        self.assertEqual(len(msg.blocks), 1)
+        # 新模板三行：任务 / 错误（翻译后）/ 重试提示
+        self.assertEqual(len(msg.blocks), 3)
 
     def test_announcement_fetch_failed(self):
         msg = self.mixin._build_announcement_fetch_failed_message({
@@ -280,13 +281,14 @@ class TestMessageBuilders(unittest.TestCase):
         msg = self.mixin._build_scan_complete_message({
             "count": 5, "failed": 1,
         })
-        self.assertEqual(msg.level, "info")
+        # 新模板：存在失败时升级为 warning
+        self.assertEqual(msg.level, "warning")
 
     def test_scan_complete_zero(self):
         msg = self.mixin._build_scan_complete_message({
             "count": 0, "failed": 0,
         })
-        self.assertEqual(msg.level, "warning")
+        self.assertEqual(msg.level, "info")
 
     def test_date_reminder(self):
         msg = self.mixin._build_date_reminder_message({

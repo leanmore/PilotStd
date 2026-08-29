@@ -77,7 +77,8 @@ class TestScanDirectory:
 
         assert len(result) == 2
         mock_core.notification_mgr.send_event.assert_any_call(
-            "scan_complete", {"count": 2, "failed": 0}
+            "scan_complete",
+            {"total": 3, "success": 2, "failed": 0, "failed_files": []},
         )
 
     def test_empty_directory_sends_scan_empty(self, handler, mock_core):
@@ -265,7 +266,8 @@ class TestScanAndIndex:
         result = handler.scan_and_index()
         assert result["indexed"] == 3
         mock_core.notification_mgr.send_event.assert_any_call(
-            "scan_complete", {"count": 3, "failed": 0}
+            "scan_complete",
+            {"total": 3, "success": 3, "failed": 0, "failed_files": []},
         )
 
     def test_empty_result_sends_scan_empty(self, handler, mock_core):

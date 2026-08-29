@@ -41,6 +41,19 @@ def _sample_due_standards(checker: ValidityChecker, check_ratio: int) -> tuple[l
 
 
 # ── 阶段2：逐条检查并更新状态 ──
+def _std_name(db: Any, std_no: str) -> str:
+    """查询标准名称（validity 详情列表补充信息；查不到返回空串）。"""
+    try:
+        row = db.fetchone(
+            "SELECT std_name FROM announcement_record WHERE standard_number = ?", (std_no,)
+        )
+        if row and row["std_name"]:
+            return str(row["std_name"])
+    except Exception:
+        pass
+    return ""
+
+
 def _process_validity_batch(
     candidates: list[str],
     checker: ValidityChecker,
@@ -48,12 +61,17 @@ def _process_validity_batch(
     notification_mgr: Any,
     batch_size: int,
     batch_interval: int,
-) -> tuple[int, list[str], list[dict]]:
-    """逐条检查标准时效性，更新状态，发送批量通知。返回 (changed, changed_list, failed_list)。"""
+) -> tuple[int, list[str], list[dict], list[dict]]:
+    """逐条检查标准时效性，更新状态，发送批量通知。
+
+    返回 (changed, changed_list, failed_list, change_detail)——
+    change_detail 供最终批次报告的"变更详情"节使用（B-11）。
+    """
 
     changed = 0
     changed_list: list[str] = []
     failed_list: list[dict] = []
+    change_detail: list[dict] = []
     for i, std_no in enumerate(candidates):
         try:
             result = checker.check_standard(std_no)
@@ -68,7 +86,14 @@ def _process_validity_batch(
                 if old_status and old_status != new_status:
                     changed_list.append(std_no)
                     changed += 1
-                    if len(changed_list) % 10 == 0 and notification_mgr:
+                    change_detail.append(
+                        {
+                            "standard": std_no,
+                            "name": _std_name(db, std_no),
+                            "reason": new_status,
+                        }
+                    )
+                    if len(change_detail) % 10 == 0 and notification_mgr:
                         try:
                             notification_mgr.send_event(
                                 "validity_batch_report",
@@ -76,14 +101,14 @@ def _process_validity_batch(
                                     "count": 0,
                                     "changed": 10,
                                     "failed": 0,
-                                    "adapters": {},
-                                    "change_detail": changed_list[-10:],
+                                    "adapter_status": {},
+                                    "change_detail": change_detail[-10:],
                                 },
                             )
                         except Exception as e:
                             logger.warning("时效性批次报告通知发送失败: %s", e)
         except Exception as e:
-            failed_list.append({"standard": std_no, "error": str(e)})
+            failed_list.append({"standard": std_no, "name": _std_name(db, std_no), "error": str(e)})
             if notification_mgr:
                 try:
                     notification_mgr.send_event(
@@ -94,7 +119,7 @@ def _process_validity_batch(
                     logger.warning("标准检查失败通知发送失败: %s, error=%s", std_no, e2)
         if i > 0 and i % batch_size == 0 and batch_interval > 0:
             _time.sleep(batch_interval)
-    return changed, changed_list, failed_list
+    return changed, changed_list, failed_list, change_detail
 
 
 # ── 阶段3：通知 + 汇总统计 ──
@@ -182,7 +207,7 @@ def run_validity_check(
         if not candidates:
             return {"ok": True, "checked": 0, "changed": 0}
 
-        changed, changed_list, failed_list = _process_validity_batch(
+        changed, changed_list, failed_list, change_detail = _process_validity_batch(
             candidates, checker, db, notification_mgr, batch_size, batch_interval
         )
 
@@ -198,7 +223,9 @@ def run_validity_check(
                         "count": len(candidates),
                         "changed": len(changed_list),
                         "failed": len(failed_list),
-                        "adapters": adapters_status,
+                        "adapter_status": adapters_status,
+                        "change_detail": change_detail,
+                        "failed_detail": failed_list,
                     },
                 )
             except Exception as e:
