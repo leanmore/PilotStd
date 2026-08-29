@@ -41,7 +41,6 @@ from ._message_builders import (
     _build_replacement_not_found_message,
     _build_scan_complete_message,
     _build_scan_empty_message,
-    _build_standard_expired_message,
     _build_standard_first_registered_message,
     _build_standard_status_changed_message,
     _build_task_execution_failed_message,
@@ -367,7 +366,6 @@ class NotificationManager:
         self._EVENT_BUILDERS = {
             "archive_complete": _build_archive_complete_message,
             "standard_status_changed": _build_standard_status_changed_message,
-            "standard_expired": _build_standard_expired_message,
             "standard_first_registered": _build_standard_first_registered_message,
             "announcement_fetch_complete": _build_announcement_fetch_complete_message,
             "announce_fetch_summary": _build_announce_fetch_summary_message,

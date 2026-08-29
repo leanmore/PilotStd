@@ -38,7 +38,6 @@ from ._builders_system import (
     _build_worker_error_message,
 )
 from ._builders_validity import (
-    _build_standard_expired_message,
     _build_standard_first_registered_message,
     _build_standard_status_changed_message,
     _build_validity_batch_report_message,

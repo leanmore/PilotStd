@@ -67,7 +67,6 @@ class TestNotificationManagerExtended(unittest.TestCase):
                 "standard_status_changed",
                 {"standard_number": "T", "old_status": "A", "new_status": "B", "is_expired": False},
             ),
-            ("standard_expired", {"standard_number": "T"}),
             ("standard_first_registered", {"standard_number": "T"}),
             ("scan_complete", {"count": 10, "failed": 2}),
             ("announcement_fetch_complete", {"source_site": "s", "count": 5, "new_count": 2}),

@@ -197,9 +197,6 @@
     "welcome_skip": "Don't show this again",
     "settings_title": "Settings",
     "settings_notification": "Notifications",
-    "notification_mark_all_read": "Mark All Read",
-    "notification_empty": "No notifications",
-    "notification_view_all": "View All Notifications →",
     "storage_group": "File Storage",
     "storage_root": "Standards Library Root:",
     "storage_note": "A 'Standards' folder will be created under the selected directory, organized by standard code",
@@ -494,5 +491,172 @@
     "log.STDGOV": "STDGOV",
     "log.HBBA": "HBBA",
     "log.ISOGOV": "ISOGOV",
-    "log.MOCK": "MOCK"
+    "log.MOCK": "MOCK",
+
+    "notification.common.std_no": "Standard No.: {s}",
+    "notification.common.std_name": "Name: {s}",
+    "notification.common.std_type": "Type: {t}",
+    "notification.common.error": "Error: {e}",
+    "notification.common.unknown_error": "Unknown error",
+    "notification.common.unknown_task": "Unknown task",
+    "notification.common.unknown_worker": "Unknown",
+    "notification.common.unknown_source": "Unknown source",
+    "notification.common.unknown_site": "Unknown site",
+    "notification.common.unknown_reason": "Unknown reason",
+    "notification.common.abolished": "Expired",
+    "notification.common.tomorrow_midnight": "Tomorrow 0:00",
+    "notification.common.changed_at": "Changed at: {t}",
+    "notification.common.std_type.national": "National Standard",
+    "notification.common.std_type.industry": "Industry Standard",
+    "notification.common.std_type.local": "Local Standard",
+
+    "notification.download.favorite_created.title": "Favorite Added",
+    "notification.download.favorite_created.body.queue_with_date": "Added to download queue; will auto-download and archive on {date}",
+    "notification.download.favorite_created.body.queue_generic": "Added to download queue; will auto-download and archive after the cooldown period",
+
+    "notification.download.download_started.title": "Download Started",
+
+    "notification.download.download_complete.title": "Download & Archive Complete",
+    "notification.download.download_complete.body.file_path": "File location: {p}",
+
+    "notification.download.download_failed.title": "Favorite Download Failed",
+
+    "notification.download.batch_download_complete.title.success": "Batch Download Complete",
+    "notification.download.batch_download_complete.title.with_failure": "Batch Download Complete (with Failures)",
+    "notification.download.batch_download_complete.body.stats": "Succeeded: {success}, failed: {failed}, skipped: {skipped}",
+
+    "notification.validity.standard_status_changed.title.normal": "Standard Status Changed",
+    "notification.validity.standard_status_changed.title.expired": "[Expired] Standard has expired",
+
+    "notification.validity.standard_first_registered.title": "New Standards First Registered",
+    "notification.validity.standard_first_registered.body.count": "First registration completed for {n} standard(s)",
+    "notification.validity.standard_first_registered.body.list_header": "Registered Standards List",
+    "notification.validity.standard_first_registered.body.elapsed": "Window elapsed: {ms}ms",
+
+    "notification.validity.validity_batch_report.title": "Validity Batch Report",
+    "notification.validity.validity_batch_report.title.start": "Start Validity Check",
+    "notification.validity.validity_batch_report.body.start": "Starting validity check",
+    "notification.validity.validity_batch_report.body.total": "Total checks: {n}",
+    "notification.validity.validity_batch_report.body.changed_failed": "Changed: {c}, failed: {f}",
+    "notification.validity.validity_batch_report.body.change_header": "Change details:",
+    "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.failed_header": "Failure details:",
+    "notification.validity.validity_batch_report.body.failed_error": " — {e}",
+    "notification.validity.validity_batch_report.body.item": "• {s}",
+
+    "notification.validity.validity_round_summary.title": "Validity Round {round} Summary Report",
+    "notification.validity.validity_round_summary.body.round": "Round",
+    "notification.validity.validity_round_summary.body.total_checks": "Total Checks",
+    "notification.validity.validity_round_summary.body.total_changes": "Changes",
+    "notification.validity.validity_round_summary.body.total_failures": "Failures",
+    "notification.validity.validity_round_summary.body.list_header": "Change Details",
+
+    "notification.validity.validity_standard_failed.title": "Standard Validity Check Failed",
+
+    "notification.validity.validity_system_failed.title": "Validity Check System Failure",
+    "notification.validity.validity_system_failed.body.hint": "💡 Detailed error stack logged to the system log. Please contact the administrator.",
+
+    "notification.validity.date_reminder.title": "Standard Implementation Date Reminder",
+    "notification.validity.date_reminder.body": "{standard_number} {std_name}: {days_before} day(s) until the implementation date ({remind_type})",
+
+    "notification.validity.expire_standard_moved.title": "Expired Standard Moved to Obsolete",
+    "notification.validity.expire_standard_moved.body": "{standard_number} moved to the obsolete directory: {target_path}",
+
+    "notification.validity.replacement_not_found.title": "Replacement Standard Not Found",
+    "notification.validity.replacement_not_found.body.with_sources": "Replacement standard for {standard_number} not found. Searched: {sources_str}",
+    "notification.validity.replacement_not_found.body.no_sources": "Replacement standard for {standard_number} not found. No search sources configured",
+
+    "notification.announce.announcement_check_complete.title": "Announcement Check Complete",
+    "notification.announce.announcement_check_complete.body.source": "Source: {s}",
+    "notification.announce.announcement_check_complete.body.summary": "Total announcements: {t}, national: {g}, industry: {h}, local: {d}, related standards: {s}",
+
+    "notification.announce.announcement_fetch_complete.title": "Announcement Fetch Complete",
+    "notification.announce.announcement_fetch_complete.body.source": "Source: {s}",
+    "notification.announce.announcement_fetch_complete.body.summary": "New announcements: {n}; national: {g}, industry: {h}, local: {d}",
+    "notification.announce.announcement_fetch_complete.body.item": "• {t}",
+
+    "notification.announce.announce_fetch_summary.title.normal": "Announcement Fetch Complete",
+    "notification.announce.announce_fetch_summary.title.with_error": "Announcement Fetch Complete (with Errors)",
+    "notification.announce.announce_fetch_summary.body.total": "Total",
+    "notification.announce.announce_fetch_summary.body.adapter_count": "{count} item(s)",
+    "notification.announce.announce_fetch_summary.body.adapter_error": "Failed: {error}",
+    "notification.announce.announce_fetch_summary.body.others": "Others",
+    "notification.announce.announce_fetch_summary.body.others_count": "and {total} adapters in total",
+
+    "notification.announce.announcement_fetch_failed.title": "Announcement Fetch Failed",
+    "notification.announce.announcement_fetch_failed.body": "Failed to fetch {source}: {error}",
+
+    "notification.scan.scan_complete.title": "Scan Complete",
+    "notification.scan.scan_complete.body.stats": "Scanned: {t} file(s), succeeded: {s}, failed: {f}",
+    "notification.scan.scan_complete.body.failed_header": "Failed files:",
+    "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
+
+    "notification.scan.scan_empty.title": "Scan Complete",
+    "notification.scan.scan_empty.body": "No new files found",
+
+    "notification.scan.auto_scan_failed.title": "Auto Scan Failed",
+    "notification.scan.auto_scan_failed.body.path": "Path: {p}",
+
+    "notification.archive.archive_complete.title": "Archive Complete",
+    "notification.archive.archive_complete.body.count": "Archived: {n} file(s)",
+    "notification.archive.archive_complete.body.category_item": "{label}: {n} item(s)",
+    "notification.archive.archive_complete.body.dir_header": "Archive directory:",
+    "notification.archive.archive_complete.body.dir_item": "• {d}",
+
+    "notification.archive.archive_failed.title": "Archive Failed",
+    "notification.archive.archive_failed.body": "{count} standard(s) failed to archive: {error}",
+
+    "notification.archive.archive_abandoned.title": "Archive Task Abandoned",
+    "notification.archive.archive_abandoned.body.std_info": "Standard info: {s}",
+
+    "notification.archive.normalize_complete.title": "Normalization Complete",
+    "notification.archive.normalize_complete.body.stats": "{total} standard(s) in total, {success} succeeded, {failed} failed",
+
+    "notification.archive.normalize_failed.title": "Normalization Failed",
+    "notification.archive.normalize_failed.body": "{total} standard(s) failed to normalize: {error}",
+
+    "notification.query.batch_query_summary.title": "Standard Query Complete",
+    "notification.query.batch_query_summary.body.total": "Query complete, {n} result(s) in total",
+    "notification.query.batch_query_summary.body.list_header": "Query Results",
+
+    "notification.query.query_failed.title": "Standard Query Failed",
+    "notification.query.query_failed.body": "Failed to query {standard_number}: {error}",
+
+    "notification.query.query_empty.title": "Query Complete",
+    "notification.query.query_empty.body": "None of the {total} standard(s) matched",
+
+    "notification.system.auto_backup.title.success": "Auto Backup Succeeded",
+    "notification.system.auto_backup.title.failed": "Auto Backup Failed",
+    "notification.system.auto_backup.body.path": "Backup path",
+    "notification.system.auto_backup.body.size": "File size",
+    "notification.system.auto_backup.body.error": "Backup failed: {err}",
+
+    "notification.system.image_update_available.title": "Mirror Update Available",
+    "notification.system.image_update_available.title.error": "Mirror Update Check Failed",
+    "notification.system.image_update_available.body.version": "Mirror version: {old} → {new}",
+    "notification.system.image_update_available.body.notes": "Update notes: {n}",
+    "notification.system.image_update_available.body.error": "Mirror check failed: {e}",
+
+    "notification.system.task_execution_failed.title": "Scheduled Task Execution Failed",
+    "notification.system.task_execution_failed.body.task": "Task: {t}",
+    "notification.system.task_execution_failed.body.retry": "The system will retry automatically at the next schedule",
+    "notification.system.task_execution_failed.task.auto_announce": "Auto announcement update",
+    "notification.system.task_execution_failed.task.auto_scan": "Auto scan",
+    "notification.system.task_execution_failed.task.auto_backup": "Auto backup",
+    "notification.system.task_execution_failed.task.auto_archive_retry": "Favorite download retry",
+    "notification.system.task_execution_failed.task.auto_health_check": "Health check",
+    "notification.system.task_execution_failed.task.date_reminder": "Date reminder",
+    "notification.system.task_execution_failed.task.validity_check": "Validity check",
+    "notification.system.task_execution_failed.task.notification_cleanup": "Notification log cleanup",
+    "notification.system.task_execution_failed.task.release_suppressed": "Suppressed notification re-send",
+
+    "notification.system.worker_error.title": "Background Task Error",
+    "notification.system.worker_error.body.worker": "Worker thread error in {worker}",
+
+    "notification.system.trust_ip_update.title.default": "Trusted IP Status",
+
+    "notification.system.quota_exhausted.title": "Adapter Daily Quota Exhausted",
+    "notification.system.quota_exhausted.body": "{site_name} has used up today's quota (limit {quota_limit}); it will reset at {reset_time}",
+
+    "notification.fallback.body.event_type": "Event type: {t}"
 }

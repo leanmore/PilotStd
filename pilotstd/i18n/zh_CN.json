@@ -197,9 +197,6 @@
     "welcome_skip": "不再显示此欢迎页",
     "settings_title": "设置",
     "settings_notification": "通知",
-    "notification_mark_all_read": "全部标记已读",
-    "notification_empty": "暂无通知",
-    "notification_view_all": "查看全部通知 →",
     "storage_group": "文件存储",
     "storage_root": "标准库存储位置:",
     "storage_note": "软件将在所选目录下自动创建「标准」文件夹，并按代号分类存储",
@@ -498,5 +495,172 @@
     "log.STDGOV": "国标",
     "log.HBBA": "行标",
     "log.ISOGOV": "国际",
-    "log.MOCK": "模拟"
+    "log.MOCK": "模拟",
+
+    "notification.common.std_no": "标准号：{s}",
+    "notification.common.std_name": "名称：{s}",
+    "notification.common.std_type": "类型：{t}",
+    "notification.common.error": "错误：{e}",
+    "notification.common.unknown_error": "未知错误",
+    "notification.common.unknown_task": "未知任务",
+    "notification.common.unknown_worker": "未知",
+    "notification.common.unknown_source": "未知来源",
+    "notification.common.unknown_site": "未知站点",
+    "notification.common.unknown_reason": "未知原因",
+    "notification.common.abolished": "已废止",
+    "notification.common.tomorrow_midnight": "明日 0:00",
+    "notification.common.changed_at": "变更时间：{t}",
+    "notification.common.std_type.national": "国家标准",
+    "notification.common.std_type.industry": "行业标准",
+    "notification.common.std_type.local": "地方标准",
+
+    "notification.download.favorite_created.title": "收藏成功",
+    "notification.download.favorite_created.body.queue_with_date": "已加入下载队列，预计 {date} 自动下载归档",
+    "notification.download.favorite_created.body.queue_generic": "已加入下载队列，冷却期过后自动下载归档",
+
+    "notification.download.download_started.title": "开始下载",
+
+    "notification.download.download_complete.title": "下载归档完成",
+    "notification.download.download_complete.body.file_path": "文件位置：{p}",
+
+    "notification.download.download_failed.title": "收藏下载失败",
+
+    "notification.download.batch_download_complete.title.success": "批量下载完成",
+    "notification.download.batch_download_complete.title.with_failure": "批量下载完成（有失败）",
+    "notification.download.batch_download_complete.body.stats": "成功：{success}，失败：{failed}，跳过：{skipped}",
+
+    "notification.validity.standard_status_changed.title.normal": "标准状态变更",
+    "notification.validity.standard_status_changed.title.expired": "[废止] 标准已废止",
+
+    "notification.validity.standard_first_registered.title": "新标准首次登记",
+    "notification.validity.standard_first_registered.body.count": "共 {n} 条标准完成首次登记",
+    "notification.validity.standard_first_registered.body.list_header": "登记标准清单",
+    "notification.validity.standard_first_registered.body.elapsed": "窗口耗时：{ms}ms",
+
+    "notification.validity.validity_batch_report.title": "有效性批量报告",
+    "notification.validity.validity_batch_report.title.start": "开始有效性检查",
+    "notification.validity.validity_batch_report.body.start": "开始有效性检查",
+    "notification.validity.validity_batch_report.body.total": "检查总数：{n}",
+    "notification.validity.validity_batch_report.body.changed_failed": "变更：{c} 条，失败：{f} 条",
+    "notification.validity.validity_batch_report.body.change_header": "变更详情：",
+    "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.failed_header": "失败详情：",
+    "notification.validity.validity_batch_report.body.failed_error": " — {e}",
+    "notification.validity.validity_batch_report.body.item": "• {s}",
+
+    "notification.validity.validity_round_summary.title": "第 {round} 轮有效性汇总报告",
+    "notification.validity.validity_round_summary.body.round": "轮次",
+    "notification.validity.validity_round_summary.body.total_checks": "检查总数",
+    "notification.validity.validity_round_summary.body.total_changes": "变更数",
+    "notification.validity.validity_round_summary.body.total_failures": "失败数",
+    "notification.validity.validity_round_summary.body.list_header": "变更详情",
+
+    "notification.validity.validity_standard_failed.title": "标准有效性检查失败",
+
+    "notification.validity.validity_system_failed.title": "有效性检查系统级失败",
+    "notification.validity.validity_system_failed.body.hint": "💡 详细错误堆栈已记录至系统日志，请联系管理员查看。",
+
+    "notification.validity.date_reminder.title": "标准实施日期提醒",
+    "notification.validity.date_reminder.body": "{standard_number} {std_name} 距离实施日期还有 {days_before} 天（{remind_type}）",
+
+    "notification.validity.expire_standard_moved.title": "废止标准已移入过期作废",
+    "notification.validity.expire_standard_moved.body": "{standard_number} 已移入过期作废目录：{target_path}",
+
+    "notification.validity.replacement_not_found.title": "替代标准查找失败",
+    "notification.validity.replacement_not_found.body.with_sources": "{standard_number} 的替代标准未找到，已搜索：{sources_str}",
+    "notification.validity.replacement_not_found.body.no_sources": "{standard_number} 的替代标准未找到，未配置搜索源",
+
+    "notification.announce.announcement_check_complete.title": "公告检查完成",
+    "notification.announce.announcement_check_complete.body.source": "来源：{s}",
+    "notification.announce.announcement_check_complete.body.summary": "公告总数：{t}，国标：{g}，行标：{h}，地标：{d}，涉及标准：{s}",
+
+    "notification.announce.announcement_fetch_complete.title": "公告拉取完成",
+    "notification.announce.announcement_fetch_complete.body.source": "来源：{s}",
+    "notification.announce.announcement_fetch_complete.body.summary": "新增公告：{n}；其中国标：{g}，行标：{h}，地标：{d}",
+    "notification.announce.announcement_fetch_complete.body.item": "• {t}",
+
+    "notification.announce.announce_fetch_summary.title.normal": "公告抓取完成",
+    "notification.announce.announce_fetch_summary.title.with_error": "公告抓取完成（有异常）",
+    "notification.announce.announce_fetch_summary.body.total": "总计",
+    "notification.announce.announce_fetch_summary.body.adapter_count": "{count} 条",
+    "notification.announce.announce_fetch_summary.body.adapter_error": "失败: {error}",
+    "notification.announce.announce_fetch_summary.body.others": "其他",
+    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 个适配器",
+
+    "notification.announce.announcement_fetch_failed.title": "公告抓取失败",
+    "notification.announce.announcement_fetch_failed.body": "{source} 抓取失败：{error}",
+
+    "notification.scan.scan_complete.title": "扫描完成",
+    "notification.scan.scan_complete.body.stats": "已扫描：{t} 个文件，成功：{s} 个，失败：{f} 个",
+    "notification.scan.scan_complete.body.failed_header": "失败文件：",
+    "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
+
+    "notification.scan.scan_empty.title": "扫描完成",
+    "notification.scan.scan_empty.body": "未发现新文件",
+
+    "notification.scan.auto_scan_failed.title": "自动扫描失败",
+    "notification.scan.auto_scan_failed.body.path": "路径：{p}",
+
+    "notification.archive.archive_complete.title": "归档完成",
+    "notification.archive.archive_complete.body.count": "已归档：{n} 个文件",
+    "notification.archive.archive_complete.body.category_item": "{label}：{n} 条",
+    "notification.archive.archive_complete.body.dir_header": "归档目录：",
+    "notification.archive.archive_complete.body.dir_item": "• {d}",
+
+    "notification.archive.archive_failed.title": "归档失败",
+    "notification.archive.archive_failed.body": "{count} 条标准归档失败：{error}",
+
+    "notification.archive.archive_abandoned.title": "归档任务放弃",
+    "notification.archive.archive_abandoned.body.std_info": "标准信息：{s}",
+
+    "notification.archive.normalize_complete.title": "规范化完成",
+    "notification.archive.normalize_complete.body.stats": "共 {total} 条标准，成功 {success} 条，失败 {failed} 条",
+
+    "notification.archive.normalize_failed.title": "规范化失败",
+    "notification.archive.normalize_failed.body": "{total} 条标准规范化失败：{error}",
+
+    "notification.query.batch_query_summary.title": "标准查询完成",
+    "notification.query.batch_query_summary.body.total": "查询完成，共 {n} 条结果",
+    "notification.query.batch_query_summary.body.list_header": "查询结果",
+
+    "notification.query.query_failed.title": "标准查询失败",
+    "notification.query.query_failed.body": "{standard_number} 查询失败：{error}",
+
+    "notification.query.query_empty.title": "查询完成",
+    "notification.query.query_empty.body": "共 {total} 条标准，全部未命中",
+
+    "notification.system.auto_backup.title.success": "自动备份成功",
+    "notification.system.auto_backup.title.failed": "自动备份失败",
+    "notification.system.auto_backup.body.path": "备份路径",
+    "notification.system.auto_backup.body.size": "文件大小",
+    "notification.system.auto_backup.body.error": "备份失败：{err}",
+
+    "notification.system.image_update_available.title": "镜像更新可用",
+    "notification.system.image_update_available.title.error": "镜像更新检查失败",
+    "notification.system.image_update_available.body.version": "镜像版本：{old} → {new}",
+    "notification.system.image_update_available.body.notes": "更新内容：{n}",
+    "notification.system.image_update_available.body.error": "镜像检查失败：{e}",
+
+    "notification.system.task_execution_failed.title": "定时任务执行失败",
+    "notification.system.task_execution_failed.body.task": "任务：{t}",
+    "notification.system.task_execution_failed.body.retry": "系统将在下次调度时自动重试",
+    "notification.system.task_execution_failed.task.auto_announce": "公告自动更新",
+    "notification.system.task_execution_failed.task.auto_scan": "自动扫描",
+    "notification.system.task_execution_failed.task.auto_backup": "自动备份",
+    "notification.system.task_execution_failed.task.auto_archive_retry": "收藏下载重试",
+    "notification.system.task_execution_failed.task.auto_health_check": "健康检查",
+    "notification.system.task_execution_failed.task.date_reminder": "日期提醒",
+    "notification.system.task_execution_failed.task.validity_check": "时效性检查",
+    "notification.system.task_execution_failed.task.notification_cleanup": "通知日志清理",
+    "notification.system.task_execution_failed.task.release_suppressed": "静音补发",
+
+    "notification.system.worker_error.title": "后台任务异常",
+    "notification.system.worker_error.body.worker": "{worker} 工作线程异常",
+
+    "notification.system.trust_ip_update.title.default": "可信 IP 状态",
+
+    "notification.system.quota_exhausted.title": "适配器日配额已耗尽",
+    "notification.system.quota_exhausted.body": "{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置",
+
+    "notification.fallback.body.event_type": "事件类型：{t}"
 }

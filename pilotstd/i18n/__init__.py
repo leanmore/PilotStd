@@ -55,3 +55,12 @@ def get_language() -> str:
 def _(key: str) -> str:
     _ensure_loaded()
     return _current.get(key, key)
+
+
+def t(key: str) -> str:
+    """通知模板翻译入口（v1.1 层级键规范：notification.{category}.{event}.{field}）。
+
+    与 _() 同实现：键缺失时回退返回键本身（fail-loud，测试可捕获缺键）。
+    """
+    _ensure_loaded()
+    return _current.get(key, key)

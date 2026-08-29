@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from datetime import date, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -185,15 +186,26 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(s2[0], "done")
 
     def test_cooldown_respected(self):
-        """冷却期（28 天）：新发布标准不处理。"""
-        with patch.dict(os.environ, {"ARCHIVE_COOLDOWN_DAYS": "28"}):
-            self._seed_announcement(1, "GB/T 1001", None)  # publish_date 无 → 不受限
-            self._seed_announcement(2, "GB/T 1002", "2099-01-01")  # 未来 → 冷却期内
-            self._seed_favorite(1, 1, publish_date=None)
+        """冷却期（28 天）：已过冷却期处理；冷却期内 / 无发布日期的跳过。
+
+        A-1 语义：publish_date 为 NULL/'' 时按 CURRENT_DATE（今日）计，冷却期内
+        不处理（不再绕过冷却期）。模块常量 COOLDOWN_DAYS 在导入时冻结
+        （favorite_chain_processor.py:28），此处显式 patch.object 覆盖，
+        使测试与导入顺序无关（修复全量运行时导入时机不同导致的 flaky）。
+        """
+        past = (date.today() - timedelta(days=40)).isoformat()
+        future = (date.today() + timedelta(days=30)).isoformat()
+        with patch.object(self.fcp, "COOLDOWN_DAYS", 28), patch.dict(
+            os.environ, {"ARCHIVE_COOLDOWN_DAYS": "28"}
+        ):
+            self._seed_announcement(1, "GB/T 1001", past)  # 已过冷却期 → 处理
+            self._seed_announcement(2, "GB/T 1002", future)  # 未来 → 冷却期内跳过
+            self._seed_announcement(3, "GB/T 1003", None)  # 无发布日 → 按今日计 → 跳过
+            self._seed_favorite(1, 1)
             self._seed_favorite(1, 2)
+            self._seed_favorite(1, 3)
             self._dl_mode = "success"
             stats = self.fcp.process_chain()
-            # 只处理无 publish_date 的 1 条；2099 的在冷却期内跳过
             self.assertEqual(stats["download"], 1)
 
     def test_chain_reverse_order_stats(self):

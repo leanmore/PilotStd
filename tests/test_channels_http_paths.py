@@ -117,7 +117,10 @@ class TestTelegramSend:
             assert ch.send(_make_msg(standard_number="GB/T 1")) is True
             call_args = mock_urlopen.call_args[0][0]
             body = json.loads(call_args.data.decode())
-            assert "GB/T 1" in body["text"]
+            # 批次2（57f58a6c）去重契约：标准号已由构建器渲染进正文，
+            # 发送层不再追加 standard_number（与 dingtalk 通道行为不同）
+            assert "body" in body["text"]
+            assert "GB/T 1" not in body["text"]
 
     def test_api_not_ok(self):
         from pilotstd.core.notification.channels.telegram import TelegramChannel

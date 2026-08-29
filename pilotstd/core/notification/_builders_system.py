@@ -6,7 +6,7 @@
 
 import logging
 
-from pilotstd.i18n import _
+from pilotstd.i18n import t
 
 from ._format_utils import translate_error_message
 from .blocks import (
@@ -18,17 +18,17 @@ from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
-# 定时任务 job_id → 中文名映射（task_execution_failed 模板，批次2）
+# 定时任务 job_id → 中文名映射（task_execution_failed 模板；v1.1 改为 t() 层级键）
 _TASK_NAME_MAP = {
-    "auto_announce": _("公告自动更新"),
-    "auto_scan": _("自动扫描"),
-    "auto_backup": _("自动备份"),
-    "auto_archive_retry": _("收藏下载重试"),
-    "auto_health_check": _("健康检查"),
-    "date_reminder": _("日期提醒"),
-    "validity_check": _("时效性检查"),
-    "notification_cleanup": _("通知日志清理"),
-    "release_suppressed": _("静音补发"),
+    "auto_announce": t("notification.system.task_execution_failed.task.auto_announce"),
+    "auto_scan": t("notification.system.task_execution_failed.task.auto_scan"),
+    "auto_backup": t("notification.system.task_execution_failed.task.auto_backup"),
+    "auto_archive_retry": t("notification.system.task_execution_failed.task.auto_archive_retry"),
+    "auto_health_check": t("notification.system.task_execution_failed.task.auto_health_check"),
+    "date_reminder": t("notification.system.task_execution_failed.task.date_reminder"),
+    "validity_check": t("notification.system.task_execution_failed.task.validity_check"),
+    "notification_cleanup": t("notification.system.task_execution_failed.task.notification_cleanup"),
+    "release_suppressed": t("notification.system.task_execution_failed.task.release_suppressed"),
 }
 
 
@@ -44,19 +44,30 @@ def _build_archive_complete_message(data: dict) -> NotificationMessage:
     → 归档目录逐行（• {dir}）。
     """
     count = data.get("count", 0)
-    blocks: list[NotificationBlock] = [TextBlock(text=_("已归档：{n} 个文件").format(n=count))]
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=t("notification.archive.archive_complete.body.count").format(n=count))
+    ]
     # 分类统计（C-2：发送点已用 classify_std_code 聚合，label 即中文分类名）
     category_stats = data.get("category_stats") or {}
     if category_stats:
-        summary = "，".join(_("{label}：{n} 条").format(label=k, n=v) for k, v in category_stats.items())
+        summary = "，".join(
+            t("notification.archive.archive_complete.body.category_item").format(label=k, n=v)
+            for k, v in category_stats.items()
+        )
         blocks.append(TextBlock(text=summary))
     # 归档目录逐行（发送点从 organizer 明细提取的目标目录）
     directories = data.get("directories") or []
     if directories:
-        blocks.append(TextBlock(text=_("归档目录：")))
-        blocks.append(TextBlock(text="\n".join(_("• {d}").format(d=d) for d in directories)))
+        blocks.append(TextBlock(text=t("notification.archive.archive_complete.body.dir_header")))
+        blocks.append(
+            TextBlock(
+                text="\n".join(
+                    t("notification.archive.archive_complete.body.dir_item").format(d=d) for d in directories
+                )
+            )
+        )
     return NotificationMessage(
-        title=_("归档完成"),
+        title=t("notification.archive.archive_complete.title"),
         blocks=blocks,
         level="info",
         standard_number=data.get("standard_number"),
@@ -70,25 +81,31 @@ def _build_archive_complete_message(data: dict) -> NotificationMessage:
 
 
 def _build_auto_backup_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """自动备份结果（4 段式：标题 + 元数据行（路径/大小）或错误行）。"""
     success = data.get("success", False)
     path = data.get("backup_path", "")
     size = data.get("size_mb", "")
     if success:
         blocks: list[NotificationBlock] = [
-            KeyValueBlock(key=_("备份路径"), value=path),
-            KeyValueBlock(key=_("文件大小"), value=size),
+            KeyValueBlock(key=t("notification.system.auto_backup.body.path"), value=path),
+            KeyValueBlock(key=t("notification.system.auto_backup.body.size"), value=size),
         ]
         return NotificationMessage(
-            title=_("自动备份成功"),
+            title=t("notification.system.auto_backup.title.success"),
             blocks=blocks,
             level="info",
             event_type="auto_backup",
             icon="pi pi-database",
         )
-    blocks = [TextBlock(text=_("备份失败：{err}").format(err=data.get("error", _("未知错误"))))]
+    blocks = [
+        TextBlock(
+            text=t("notification.system.auto_backup.body.error").format(
+                err=data.get("error", t("notification.common.unknown_error"))
+            )
+        )
+    ]
     return NotificationMessage(
-        title=_("自动备份失败"),
+        title=t("notification.system.auto_backup.title.failed"),
         blocks=blocks,
         level="error",
         event_type="auto_backup",
@@ -106,8 +123,8 @@ def _build_announcement_check_complete_message(data: dict) -> NotificationMessag
     blocks: list[NotificationBlock] = []
     # 来源信息追加到消息块头部（定时/手动路径均携带）
     if source:
-        blocks.append(TextBlock(text=_("来源：{s}").format(s=source)))
-    summary = _("公告总数：{t}，国标：{g}，行标：{h}，地标：{d}，涉及标准：{s}").format(
+        blocks.append(TextBlock(text=t("notification.announce.announcement_check_complete.body.source").format(s=source)))
+    summary = t("notification.announce.announcement_check_complete.body.summary").format(
         t=data.get("total_announcements", 0),
         g=data.get("gb_count", 0),
         h=data.get("hb_count", 0),
@@ -124,7 +141,7 @@ def _build_announcement_check_complete_message(data: dict) -> NotificationMessag
     else:
         level = "info"
     return NotificationMessage(
-        title=_("公告检查完成"),
+        title=t("notification.announce.announcement_check_complete.title"),
         blocks=blocks,
         level=level,
         event_type="announcement_check_complete",
@@ -133,9 +150,9 @@ def _build_announcement_check_complete_message(data: dict) -> NotificationMessag
 
 
 def _build_fallback_message(event_type: str, data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
+    """兜底构建器：未知事件类型（正常不触发，防御性）。"""
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("事件类型：{t}").format(t=data.get("event_type", "unknown")))
+        TextBlock(text=t("notification.fallback.body.event_type").format(t=data.get("event_type", "unknown")))
     ]
     if data:
         blocks.append(TextBlock(text=str(data)))
@@ -151,9 +168,13 @@ def _build_fallback_message(event_type: str, data: dict) -> NotificationMessage:
 def _build_image_update_available_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     if data.get("error"):
-        blocks: list[NotificationBlock] = [TextBlock(text=_("镜像检查失败：{e}").format(e=data["error"]))]
+        blocks: list[NotificationBlock] = [
+            TextBlock(
+                text=t("notification.system.image_update_available.body.error").format(e=data["error"])
+            )
+        ]
         return NotificationMessage(
-            title=_("镜像更新检查失败"),
+            title=t("notification.system.image_update_available.title.error"),
             blocks=blocks,
             level="error",
             event_type="image_update_available",
@@ -166,14 +187,18 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
     old_ver = data.get("old_version") or (old_digest[:12] if old_digest else "")
     new_ver = data.get("new_version") or (new_digest[:12] if new_digest else "")
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("镜像版本：{old} → {new}").format(old=old_ver, new=new_ver)),
+        TextBlock(text=t("notification.system.image_update_available.body.version").format(old=old_ver, new=new_ver)),
     ]
     if not old_digest or not new_digest:
         logger.debug("image_update_available: old_digest or new_digest is empty")
     if data.get("release_notes"):
-        blocks.append(TextBlock(text=_("更新内容：{n}").format(n=data["release_notes"])))
+        blocks.append(
+            TextBlock(
+                text=t("notification.system.image_update_available.body.notes").format(n=data["release_notes"])
+            )
+        )
     return NotificationMessage(
-        title=_("镜像更新可用"),
+        title=t("notification.system.image_update_available.title"),
         blocks=blocks,
         level="info",
         event_type="image_update_available",
@@ -182,12 +207,12 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
 
 
 def _build_trust_ip_update_message(data: dict) -> NotificationMessage:
-    """原 Mixin 方法，现为模块级纯函数。"""
-    title = data.get("title", "可信 IP 状态")
+    """可信 IP 更新状态（外部 title/body 直出，格式由发送方控制；P2 残留）。"""
+    title = data.get("title", t("notification.system.trust_ip_update.title.default"))
     text = data.get("body", "")
     blocks: list[NotificationBlock] = [TextBlock(text=text)]
     extra_keys = [k for k in ("ip", "update_time", "status") if data.get(k)]
-    # 有额外键值对信息时追加锁
+    # 有额外键值对信息时追加
     for k in extra_keys:
         blocks.append(KeyValueBlock(key=k, value=str(data[k])))
     level = "warning" if "失败" in title else "info"
@@ -202,17 +227,17 @@ def _build_trust_ip_update_message(data: dict) -> NotificationMessage:
 
 def _build_worker_error_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
-    worker = data.get("worker", "未知")
+    worker = data.get("worker", t("notification.common.unknown_worker"))
     error = data.get("error", "")
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("{worker} 工作线程异常").format(worker=worker)),
+        TextBlock(text=t("notification.system.worker_error.body.worker").format(worker=worker)),
     ]
     if error:
-        blocks.append(TextBlock(text=_("错误：{error}").format(error=error)))
+        blocks.append(TextBlock(text=t("notification.common.error").format(e=error)))
     if data.get("traceback"):
         blocks.append(TextBlock(text=data["traceback"]))
     return NotificationMessage(
-        title=_("后台任务异常"),
+        title=t("notification.system.worker_error.title"),
         blocks=blocks,
         level="error",
         event_type="worker_error",
@@ -226,15 +251,15 @@ def _build_task_execution_failed_message(data: dict) -> NotificationMessage:
     模板：任务：{中文名} / 错误：{翻译后错误} / 系统将在下次调度时自动重试。
     任务名经 job_id → 中文映射，错误经翻译映射（C-3）。
     """
-    raw_task = data.get("task_name", _("未知任务"))
+    raw_task = data.get("task_name", t("notification.common.unknown_task"))
     task_name = _TASK_NAME_MAP.get(raw_task, raw_task)
     blocks: list[NotificationBlock] = [
-        TextBlock(text=_("任务：{t}").format(t=task_name)),
-        TextBlock(text=_("错误：{e}").format(e=translate_error_message(data.get("error", "")))),
-        TextBlock(text=_("系统将在下次调度时自动重试")),
+        TextBlock(text=t("notification.system.task_execution_failed.body.task").format(t=task_name)),
+        TextBlock(text=t("notification.common.error").format(e=translate_error_message(data.get("error", "")))),
+        TextBlock(text=t("notification.system.task_execution_failed.body.retry")),
     ]
     return NotificationMessage(
-        title=_("定时任务执行失败"),
+        title=t("notification.system.task_execution_failed.title"),
         blocks=blocks,
         level="error",
         event_type="task_execution_failed",
@@ -244,11 +269,15 @@ def _build_task_execution_failed_message(data: dict) -> NotificationMessage:
 
 def _build_announcement_fetch_failed_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
-    source = data.get("source", _("未知来源"))
-    error = data.get("error", _("未知错误"))
+    source = data.get("source", t("notification.common.unknown_source"))
+    error = data.get("error", t("notification.common.unknown_error"))
     return NotificationMessage(
-        title=_("公告抓取失败"),
-        blocks=[TextBlock(text=_("{source} 抓取失败：{error}").format(source=source, error=error))],
+        title=t("notification.announce.announcement_fetch_failed.title"),
+        blocks=[
+            TextBlock(
+                text=t("notification.announce.announcement_fetch_failed.body").format(source=source, error=error)
+            )
+        ],
         level="error",
         event_type="announcement_fetch_failed",
         icon="pi pi-megaphone",
@@ -257,14 +286,14 @@ def _build_announcement_fetch_failed_message(data: dict) -> NotificationMessage:
 
 def _build_quota_exhausted_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
-    site_name = data.get("site_name", _("未知站点"))
+    site_name = data.get("site_name", t("notification.common.unknown_site"))
     quota_limit = data.get("quota_limit", "0")
-    reset_time = data.get("reset_time", _("明日 0:00"))
+    reset_time = data.get("reset_time", t("notification.common.tomorrow_midnight"))
     return NotificationMessage(
-        title=_("适配器日配额已耗尽"),
+        title=t("notification.system.quota_exhausted.title"),
         blocks=[
             TextBlock(
-                text=_("{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置").format(
+                text=t("notification.system.quota_exhausted.body").format(
                     site_name=site_name, quota_limit=quota_limit, reset_time=reset_time
                 )
             )

@@ -247,11 +247,12 @@ class NotificationAggregator:
     # ── 摘要格式化 ──
 
     def _build_summary(self, entries: list[_Entry]) -> str:
-        """摘要生成：单条渲染全文，多条渲染首行加统计。
+        """摘要生成：单条渲染全文，多条渲染统计加明细。
 
         统一基于结构块渲染（非原始正文截断），保证任何路径下摘要非空：
         - 单条：渲染全文；渲染结果为空则回退标题，再兜底固定文案。
-        - 多条：统计头加每条渲染首行（前 60 字符），空渲染回退标题。
+        - 多条：统计头加每条渲染首行（前 60 字符）；明细超过 5 条时
+          截断显示 "… 等 N 条"（v1.1 增强：控制单条通知体积）。
         """
         if len(entries) == 1:
             msg = entries[0][0]
@@ -259,10 +260,12 @@ class NotificationAggregator:
             return rendered or msg.title or _FALLBACK_TEXT
 
         lines: list[str] = [f"📦 聚合通知（{len(entries)} 条）"]
-        for msg, _ch, _ts in entries:
+        for msg, _ch, _ts in entries[:5]:
             rendered = self._renderer.render(msg)
             first_line = rendered.split("\n")[0].strip() if rendered else (msg.title or _FALLBACK_TEXT)
             lines.append(f"• {first_line[:60]}")
+        if len(entries) > 5:
+            lines.append(f"… 等 {len(entries)} 条")
         return "\n".join(lines)
 
     @staticmethod

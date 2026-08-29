@@ -62,9 +62,17 @@ class TestMessageBuilders(unittest.TestCase):
         )
         self.assertEqual(msg.level, "info")
 
-    def test_standard_expired(self):
-        msg = self.mixin._build_standard_expired_message({"standard_number": "GB/T 1.1"})
-        self.assertIsNotNone(msg)
+    def test_status_changed_expired_has_changed_at(self):
+        """standard_expired 已合并：is_expired=True 时含变更时间行（StatusChangeBlock + TextBlock）。"""
+        msg = self.mixin._build_standard_status_changed_message({
+            "standard_number": "GB/T 1.1",
+            "old_status": "现行",
+            "new_status": "已废止",
+            "is_expired": True,
+            "changed_at": "2026-01-15T10:00:00",
+        })
+        self.assertEqual(len(msg.blocks), 2)  # StatusChangeBlock + TextBlock(变更时间)
+        self.assertEqual(msg.level, "error")
 
     def test_standard_first_registered(self):
         msg = self.mixin._build_standard_first_registered_message({"standard_number": "GB/T 1.1"})
@@ -76,8 +84,9 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_batch_download_with_failures(self):
         msg = self.mixin._build_batch_download_complete_message({"count": 5, "failed": 2})
-        # blocks[1] 为 KeyValueBlock(key="失败", value="2")
-        self.assertEqual(msg.blocks[1].value, "2")
+        # 4 段式（v1.1）：统计压缩为单行 TextBlock，标题区分有/无失败
+        self.assertIn("2", msg.blocks[0].text)
+        self.assertEqual(msg.level, "warning")
 
     def test_worker_error(self):
         msg = self.mixin._build_worker_error_message(
@@ -124,12 +133,6 @@ class TestMessageBuilders(unittest.TestCase):
         self.assertEqual(msg.level, "warning")
 
     # ── 补充覆盖 _ValidityBuildersMixin 未覆盖路径 ──
-
-    def test_standard_expired_with_changed_at(self):
-        msg = self.mixin._build_standard_expired_message({
-            "standard_number": "GB/T 1", "changed_at": "2026-01-15T10:00:00",
-        })
-        self.assertEqual(len(msg.blocks), 2)  # StatusChangeBlock + TextBlock(变更时间)
 
     def test_first_registered_with_elapsed_ms(self):
         msg = self.mixin._build_standard_first_registered_message({
@@ -376,8 +379,8 @@ class TestMessageBuilders(unittest.TestCase):
             "has_error": False,
         })
         self.assertEqual(msg.level, "info")
-        # >10 个适配器时追加"其他" Block
-        self.assertEqual(len(msg.blocks), 12)  # 1 total + 10 displayed + 1 "other"
+        # 4 段式（v1.1）：明细截断阈值 5 → 1 total + 5 displayed + 1 "other"
+        self.assertEqual(len(msg.blocks), 7)
 
     def test_batch_query_summary_with_results(self):
         msg = self.mixin._build_batch_query_summary_message({

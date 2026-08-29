@@ -273,6 +273,69 @@ class TestNotificationAggregator(unittest.TestCase):
         agg.shutdown()
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Step 2c（v1.1）：聚合合并行为验收（全量事件接入聚合器后的核心路径）
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestStep2AggregateMerge(unittest.TestCase):
+    """Step 2c 阻塞项：同类型合并 / 异类型隔离 / 窗口超时直出。"""
+
+    def setUp(self) -> None:
+        self.calls: list[tuple] = []
+        self.sender = MagicMock(side_effect=lambda msg, ch: self.calls.append((msg, ch)))
+        # 短窗口（语义同生产 5 秒窗口，测试加速）
+        self.agg = NotificationAggregator(
+            sender_func=self.sender,
+            window_seconds=0.1,
+            batch_size=50,
+        )
+
+    def tearDown(self) -> None:
+        self.agg.shutdown()
+
+    def test_same_type_within_window_merges(self) -> None:
+        """窗口内 6 条同类型事件 → 1 条聚合消息：前 5 条明细 + "… 等 6 条"。"""
+        for i in range(6):
+            self.agg.push(
+                event_type="scan_complete",
+                title="扫描完成",
+                content=f"已扫描 {i} 个文件",
+                level="info",
+            )
+            time.sleep(0.01)  # 10ms 间隔，远小于窗口
+
+        time.sleep(0.3)  # 等待窗口到期
+        self.assertEqual(len(self.calls), 1)
+        merged_msg, _ = self.calls[0]
+        self.assertEqual(merged_msg.aggregated_count, 6)
+        # 明细截断：5 条明细 + "等 6 条" 尾注，不逐条罗列全部 6 条
+        self.assertEqual(merged_msg.body.count("• "), 5)
+        self.assertIn("等 6 条", merged_msg.body)
+
+    def test_different_types_not_merged(self) -> None:
+        """同窗口内不同类型事件 → 分别输出，不跨类型合并。"""
+        self.agg.push(event_type="scan_complete", title="扫描完成", content="文件 1")
+        self.agg.push(event_type="archive_complete", title="归档完成", content="目录 1")
+        self.agg.flush_all()
+
+        self.assertEqual(len(self.calls), 2)
+        event_types = sorted(c[0].event_type for c in self.calls)
+        self.assertEqual(event_types, ["archive_complete", "scan_complete"])
+        self.assertEqual(self.calls[0][0].aggregated_count, 1)
+        self.assertEqual(self.calls[1][0].aggregated_count, 1)
+
+    def test_window_timeout_flush(self) -> None:
+        """单条事件超过窗口无后续 → 定时器到期自动 flush 直出。"""
+        self.agg.push(event_type="task_execution_failed", title="任务失败", content="worker 崩溃")
+
+        time.sleep(0.3)  # 超过 0.1s 窗口
+        self.assertEqual(len(self.calls), 1)
+        msg, _ = self.calls[0]
+        self.assertEqual(msg.event_type, "task_execution_failed")
+        self.assertEqual(msg.aggregated_count, 1)  # 单条直出
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # L5 契约防线测试：聚合器正统重构验收场景
 # ═══════════════════════════════════════════════════════════════════════

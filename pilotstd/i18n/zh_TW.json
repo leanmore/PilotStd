@@ -136,9 +136,6 @@
     "welcome_skip": "不再顯示此歡迎頁",
     "settings_title": "設定",
     "settings_notification": "通知",
-    "notification_mark_all_read": "全部標記已讀",
-    "notification_empty": "暫無通知",
-    "notification_view_all": "檢視全部通知 →",
     "storage_group": "檔案儲存",
     "storage_root": "標準庫儲存位置:",
     "storage_note": "軟體將在所選目錄下自動建立「標準」資料夾，並按代號分類儲存",
@@ -415,5 +412,172 @@
     "log.STDGOV": "國標",
     "log.HBBA": "行標",
     "log.ISOGOV": "國際",
-    "log.MOCK": "模擬"
+    "log.MOCK": "模擬",
+
+    "notification.common.std_no": "標準號：{s}",
+    "notification.common.std_name": "名稱：{s}",
+    "notification.common.std_type": "類型：{t}",
+    "notification.common.error": "錯誤：{e}",
+    "notification.common.unknown_error": "未知錯誤",
+    "notification.common.unknown_task": "未知任務",
+    "notification.common.unknown_worker": "未知",
+    "notification.common.unknown_source": "未知來源",
+    "notification.common.unknown_site": "未知站點",
+    "notification.common.unknown_reason": "未知原因",
+    "notification.common.abolished": "已廢止",
+    "notification.common.tomorrow_midnight": "明日 0:00",
+    "notification.common.changed_at": "變更時間：{t}",
+    "notification.common.std_type.national": "國家標準",
+    "notification.common.std_type.industry": "行業標準",
+    "notification.common.std_type.local": "地方標準",
+
+    "notification.download.favorite_created.title": "收藏成功",
+    "notification.download.favorite_created.body.queue_with_date": "已加入下載佇列，預計 {date} 自動下載歸檔",
+    "notification.download.favorite_created.body.queue_generic": "已加入下載佇列，冷卻期過後自動下載歸檔",
+
+    "notification.download.download_started.title": "開始下載",
+
+    "notification.download.download_complete.title": "下載歸檔完成",
+    "notification.download.download_complete.body.file_path": "檔案位置：{p}",
+
+    "notification.download.download_failed.title": "收藏下載失敗",
+
+    "notification.download.batch_download_complete.title.success": "批次下載完成",
+    "notification.download.batch_download_complete.title.with_failure": "批次下載完成（有失敗）",
+    "notification.download.batch_download_complete.body.stats": "成功：{success}，失敗：{failed}，跳過：{skipped}",
+
+    "notification.validity.standard_status_changed.title.normal": "標準狀態變更",
+    "notification.validity.standard_status_changed.title.expired": "[廢止] 標準已廢止",
+
+    "notification.validity.standard_first_registered.title": "新標準首次登記",
+    "notification.validity.standard_first_registered.body.count": "共 {n} 條標準完成首次登記",
+    "notification.validity.standard_first_registered.body.list_header": "登記標準清單",
+    "notification.validity.standard_first_registered.body.elapsed": "窗口耗時：{ms}ms",
+
+    "notification.validity.validity_batch_report.title": "有效性批次報告",
+    "notification.validity.validity_batch_report.title.start": "開始有效性檢查",
+    "notification.validity.validity_batch_report.body.start": "開始有效性檢查",
+    "notification.validity.validity_batch_report.body.total": "檢查總數：{n}",
+    "notification.validity.validity_batch_report.body.changed_failed": "變更：{c} 條，失敗：{f} 條",
+    "notification.validity.validity_batch_report.body.change_header": "變更詳情：",
+    "notification.validity.validity_batch_report.body.change_reason": " — {r}",
+    "notification.validity.validity_batch_report.body.failed_header": "失敗詳情：",
+    "notification.validity.validity_batch_report.body.failed_error": " — {e}",
+    "notification.validity.validity_batch_report.body.item": "• {s}",
+
+    "notification.validity.validity_round_summary.title": "第 {round} 輪有效性彙總報告",
+    "notification.validity.validity_round_summary.body.round": "輪次",
+    "notification.validity.validity_round_summary.body.total_checks": "檢查總數",
+    "notification.validity.validity_round_summary.body.total_changes": "變更數",
+    "notification.validity.validity_round_summary.body.total_failures": "失敗數",
+    "notification.validity.validity_round_summary.body.list_header": "變更詳情",
+
+    "notification.validity.validity_standard_failed.title": "標準有效性檢查失敗",
+
+    "notification.validity.validity_system_failed.title": "有效性檢查系統級失敗",
+    "notification.validity.validity_system_failed.body.hint": "💡 詳細錯誤堆疊已記錄至系統日誌，請聯繫管理員查看。",
+
+    "notification.validity.date_reminder.title": "標準實施日期提醒",
+    "notification.validity.date_reminder.body": "{standard_number} {std_name} 距離實施日期還有 {days_before} 天（{remind_type}）",
+
+    "notification.validity.expire_standard_moved.title": "廢止標準已移入過期作廢",
+    "notification.validity.expire_standard_moved.body": "{standard_number} 已移入過期作廢目錄：{target_path}",
+
+    "notification.validity.replacement_not_found.title": "替代標準查找失敗",
+    "notification.validity.replacement_not_found.body.with_sources": "{standard_number} 的替代標準未找到，已搜尋：{sources_str}",
+    "notification.validity.replacement_not_found.body.no_sources": "{standard_number} 的替代標準未找到，未配置搜尋源",
+
+    "notification.announce.announcement_check_complete.title": "公告檢查完成",
+    "notification.announce.announcement_check_complete.body.source": "來源：{s}",
+    "notification.announce.announcement_check_complete.body.summary": "公告總數：{t}，國標：{g}，行標：{h}，地標：{d}，涉及標準：{s}",
+
+    "notification.announce.announcement_fetch_complete.title": "公告拉取完成",
+    "notification.announce.announcement_fetch_complete.body.source": "來源：{s}",
+    "notification.announce.announcement_fetch_complete.body.summary": "新增公告：{n}；其中國標：{g}，行標：{h}，地標：{d}",
+    "notification.announce.announcement_fetch_complete.body.item": "• {t}",
+
+    "notification.announce.announce_fetch_summary.title.normal": "公告抓取完成",
+    "notification.announce.announce_fetch_summary.title.with_error": "公告抓取完成（有異常）",
+    "notification.announce.announce_fetch_summary.body.total": "總計",
+    "notification.announce.announce_fetch_summary.body.adapter_count": "{count} 條",
+    "notification.announce.announce_fetch_summary.body.adapter_error": "失敗: {error}",
+    "notification.announce.announce_fetch_summary.body.others": "其他",
+    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 個配接器",
+
+    "notification.announce.announcement_fetch_failed.title": "公告抓取失敗",
+    "notification.announce.announcement_fetch_failed.body": "{source} 抓取失敗：{error}",
+
+    "notification.scan.scan_complete.title": "掃描完成",
+    "notification.scan.scan_complete.body.stats": "已掃描：{t} 個檔案，成功：{s} 個，失敗：{f} 個",
+    "notification.scan.scan_complete.body.failed_header": "失敗檔案：",
+    "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
+
+    "notification.scan.scan_empty.title": "掃描完成",
+    "notification.scan.scan_empty.body": "未發現新檔案",
+
+    "notification.scan.auto_scan_failed.title": "自動掃描失敗",
+    "notification.scan.auto_scan_failed.body.path": "路徑：{p}",
+
+    "notification.archive.archive_complete.title": "歸檔完成",
+    "notification.archive.archive_complete.body.count": "已歸檔：{n} 個檔案",
+    "notification.archive.archive_complete.body.category_item": "{label}：{n} 條",
+    "notification.archive.archive_complete.body.dir_header": "歸檔目錄：",
+    "notification.archive.archive_complete.body.dir_item": "• {d}",
+
+    "notification.archive.archive_failed.title": "歸檔失敗",
+    "notification.archive.archive_failed.body": "{count} 條標準歸檔失敗：{error}",
+
+    "notification.archive.archive_abandoned.title": "歸檔任務放棄",
+    "notification.archive.archive_abandoned.body.std_info": "標準資訊：{s}",
+
+    "notification.archive.normalize_complete.title": "規範化完成",
+    "notification.archive.normalize_complete.body.stats": "共 {total} 條標準，成功 {success} 條，失敗 {failed} 條",
+
+    "notification.archive.normalize_failed.title": "規範化失敗",
+    "notification.archive.normalize_failed.body": "{total} 條標準規範化失敗：{error}",
+
+    "notification.query.batch_query_summary.title": "標準查詢完成",
+    "notification.query.batch_query_summary.body.total": "查詢完成，共 {n} 條結果",
+    "notification.query.batch_query_summary.body.list_header": "查詢結果",
+
+    "notification.query.query_failed.title": "標準查詢失敗",
+    "notification.query.query_failed.body": "{standard_number} 查詢失敗：{error}",
+
+    "notification.query.query_empty.title": "查詢完成",
+    "notification.query.query_empty.body": "共 {total} 條標準，全部未命中",
+
+    "notification.system.auto_backup.title.success": "自動備份成功",
+    "notification.system.auto_backup.title.failed": "自動備份失敗",
+    "notification.system.auto_backup.body.path": "備份路徑",
+    "notification.system.auto_backup.body.size": "檔案大小",
+    "notification.system.auto_backup.body.error": "備份失敗：{err}",
+
+    "notification.system.image_update_available.title": "鏡像更新可用",
+    "notification.system.image_update_available.title.error": "鏡像更新檢查失敗",
+    "notification.system.image_update_available.body.version": "鏡像版本：{old} → {new}",
+    "notification.system.image_update_available.body.notes": "更新內容：{n}",
+    "notification.system.image_update_available.body.error": "鏡像檢查失敗：{e}",
+
+    "notification.system.task_execution_failed.title": "定時任務執行失敗",
+    "notification.system.task_execution_failed.body.task": "任務：{t}",
+    "notification.system.task_execution_failed.body.retry": "系統將在下次排程時自動重試",
+    "notification.system.task_execution_failed.task.auto_announce": "公告自動更新",
+    "notification.system.task_execution_failed.task.auto_scan": "自動掃描",
+    "notification.system.task_execution_failed.task.auto_backup": "自動備份",
+    "notification.system.task_execution_failed.task.auto_archive_retry": "收藏下載重試",
+    "notification.system.task_execution_failed.task.auto_health_check": "健康檢查",
+    "notification.system.task_execution_failed.task.date_reminder": "日期提醒",
+    "notification.system.task_execution_failed.task.validity_check": "時效性檢查",
+    "notification.system.task_execution_failed.task.notification_cleanup": "通知日誌清理",
+    "notification.system.task_execution_failed.task.release_suppressed": "靜音補發",
+
+    "notification.system.worker_error.title": "背景任務異常",
+    "notification.system.worker_error.body.worker": "{worker} 工作執行緒異常",
+
+    "notification.system.trust_ip_update.title.default": "可信 IP 狀態",
+
+    "notification.system.quota_exhausted.title": "配接器日配額已耗盡",
+    "notification.system.quota_exhausted.body": "{site_name} 今日配額已用完（限額 {quota_limit}），將於 {reset_time} 重置",
+
+    "notification.fallback.body.event_type": "事件類型：{t}"
 }

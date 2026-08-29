@@ -6,15 +6,30 @@ from pilotstd.i18n import _
 
 
 def translate_error_message(error: str) -> str:
-    """错误信息翻译映射（C-3）：用户可见的失败原因统一口径。
+    """错误信息翻译映射（C-3 + 基础系统异常扩展）：用户可见的失败原因统一口径。
 
-    - timed out → 下载超时，系统将自动重试
-    - Connection refused → 服务连接失败，系统将自动重试
+    优先级：异常类型名（基础系统异常）→ 业务消息关键词（C-3 原映射）→ 默认兜底。
+    - TimeoutError / ReadTimeout → 网络连接超时，请稍后重试
+    - ConnectionError / ConnectionRefusedError → 无法连接到目标服务器
+    - PermissionError → 权限不足，请检查系统配置
+    - FileNotFoundError → 找不到指定的文件或目录
+    - timed out（下载场景） → 下载超时，系统将自动重试（C-3）
+    - connection refused → 服务连接失败，系统将自动重试（C-3）
     - 其余 → 系统异常已记录日志
     """
     if not error:
         return _("系统异常已记录日志")
     e = error.lower()
+    # 基础系统异常类型映射（异常类名精确匹配，优先于业务关键词）
+    if "timeouterror" in e or "readtimeout" in e:
+        return _("网络连接超时，请稍后重试")
+    if "connectionerror" in e or "connectionrefusederror" in e:
+        return _("无法连接到目标服务器")
+    if "permissionerror" in e or "permission denied" in e:
+        return _("权限不足，请检查系统配置")
+    if "filenotfounderror" in e or "no such file" in e:
+        return _("找不到指定的文件或目录")
+    # C-3 业务消息映射（下载/服务连接场景）
     if "timed out" in e or "timeout" in e:
         return _("下载超时，系统将自动重试")
     if "connection refused" in e:

@@ -21,11 +21,13 @@ class TestAfterFetch:
                   "total_standards": 20, "adapters": []}
         notifier.after_fetch(result, source="手动")
 
-        notifier.notification_mgr.send_event.assert_called_once()
-        args = notifier.notification_mgr.send_event.call_args[0]
-        assert args[0] == "announcement_check_complete"
-        assert args[1]["matched"] == 5
-        assert args[1]["source"] == "手动"
+        # C-1（批次2）：检查汇总 + 拉取完成各发一条（announcement_fetch_complete 无条件发送）
+        calls = notifier.notification_mgr.send_event.call_args_list
+        assert len(calls) == 2
+        assert calls[0][0][0] == "announcement_check_complete"
+        assert calls[0][0][1]["matched"] == 5
+        assert calls[0][0][1]["source"] == "手动"
+        assert calls[1][0][0] == "announcement_fetch_complete"
 
     def test_invalidates_cache_when_updated_positive(self, notifier):
         result = {"matched": 0, "updated": 3, "total_announcements": 5,

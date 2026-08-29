@@ -172,8 +172,8 @@ class TestUpdateStatus(unittest.TestCase):
         self.assertIn("UPDATE", sql_text)
         self.assertIn("last_changed_at", sql_text)
 
-        # 验证通知发送，is_expired=True → standard_status_changed + standard_expired 共 2 次
-        self.assertEqual(notif_mgr.send_event.call_count, 2)
+        # 验证通知发送：standard_expired 已合并 → 仅 1 次 standard_status_changed（is_expired=True）
+        self.assertEqual(notif_mgr.send_event.call_count, 1)
         first_call_args = notif_mgr.send_event.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "standard_status_changed")
         self.assertEqual(first_call_args[1]["standard_number"], "GB/T 12345")
@@ -679,7 +679,9 @@ class TestProcessValidityBatch(unittest.TestCase):
 
     def test_empty_candidates(self):
         mock_checker = MagicMock()
-        changed, changed_list, failed, change_detail = _process_validity_batch([], mock_checker, self.mock_db, self.mock_notif, 50, 5)
+        changed, changed_list, failed, change_detail = _process_validity_batch(
+            [], mock_checker, self.mock_db, self.mock_notif, 50, 5
+        )
         self.assertEqual(changed, 0)
         self.assertEqual(changed_list, [])
         self.assertEqual(failed, [])

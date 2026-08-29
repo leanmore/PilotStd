@@ -160,7 +160,8 @@ class TestUpdateStatus:
         calls = [c.args[0] for c in notif.send_event.call_args_list]
         assert "standard_status_changed" in calls
 
-    def test_sends_expired_event(self, checker, db):
+    def test_expired_merged_into_status_changed(self, checker, db):
+        """standard_expired 已合并：废止仅发 standard_status_changed（is_expired=True），不再发独立事件。"""
         db.fetchone.return_value = {"status": "现行", "check_count": 0}
         notif = MagicMock()
         with patch(
@@ -169,7 +170,10 @@ class TestUpdateStatus:
             mock_cfg.return_value.get.return_value = 4
             checker.update_status("GB/T 1-2020", "已废止", notification_mgr=notif)
         calls = [c.args[0] for c in notif.send_event.call_args_list]
-        assert "standard_expired" in calls
+        assert calls == ["standard_status_changed"]
+        sent_data = notif.send_event.call_args_list[0][0][1]
+        assert sent_data["is_expired"] is True
+        assert sent_data["new_status"] == "已废止"
 
 
 # ════════════════════════════════════════════════════════════

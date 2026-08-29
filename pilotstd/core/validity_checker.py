@@ -92,6 +92,8 @@ class ValidityChecker:
                 )
                 if notification_mgr:
                     try:
+                        # Step 1（v1.1）：standard_expired 已合并进本事件，
+                        # 通过 is_expired 字段区分废止（替代原独立事件，避免双通知）
                         is_expired = new_status == "已废止"
                         notification_mgr.send_event(
                             "standard_status_changed",
@@ -103,15 +105,6 @@ class ValidityChecker:
                                 "changed_at": datetime.now().isoformat(),
                             },
                         )
-                        if is_expired:
-                            notification_mgr.send_event(
-                                "standard_expired",
-                                {
-                                    "standard_number": standard_number,
-                                    "old_status": row["status"],
-                                    "new_status": new_status,
-                                },
-                            )
                     except Exception as e:
                         logger.warning("状态变更通知发送失败: %s, error=%s", standard_number, e)
             else:

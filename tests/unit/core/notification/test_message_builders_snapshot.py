@@ -39,7 +39,6 @@ from pilotstd.core.notification._builders_system import (
     _build_worker_error_message,
 )
 from pilotstd.core.notification._builders_validity import (
-    _build_standard_expired_message,
     _build_standard_first_registered_message,
     _build_standard_status_changed_message,
     _build_validity_batch_report_message,
@@ -79,14 +78,17 @@ class TestValidityBuildersSnapshot:
         assert any(isinstance(b, StatusChangeBlock) for b in msg.blocks)
 
     def test_status_changed_expired(self):
+        """standard_expired 已合并：is_expired=True → error + 变更时间行。"""
         msg = _build_standard_status_changed_message({
             "standard_number": "GB/T 456-2019",
             "old_status": "现行",
             "new_status": "已废止",
             "is_expired": True,
+            "changed_at": "2023-12-01",
         })
         assert msg.level == "error"
         assert msg.icon == "pi pi-times-circle"
+        assert any(isinstance(b, TextBlock) and "2023-12-01" in b.text for b in msg.blocks)
 
     def test_status_changed_empty_fields(self):
         msg = _build_standard_status_changed_message({
@@ -97,27 +99,6 @@ class TestValidityBuildersSnapshot:
         })
         assert isinstance(msg, NotificationMessage)
         assert msg.standard_number == ""
-
-    # ── _build_standard_expired_message ──
-
-    def test_expired_normal(self):
-        msg = _build_standard_expired_message({
-            "standard_number": "GB/T 789-2010",
-            "old_status": "现行",
-            "changed_at": "2023-12-01",
-        })
-        assert msg.level == "error"
-        assert msg.event_type == "standard_expired"
-        assert msg.icon == "pi pi-times-circle"
-        assert any(isinstance(b, StatusChangeBlock) for b in msg.blocks)
-
-    def test_expired_no_changed_at(self):
-        msg = _build_standard_expired_message({
-            "standard_number": "GB/T 789-2010",
-            "old_status": "现行",
-        })
-        assert isinstance(msg, NotificationMessage)
-        assert msg.level == "error"
 
     # ── _build_standard_first_registered_message ──
 
@@ -234,12 +215,14 @@ class TestValidityBuildersSnapshot:
     def test_validity_system_failed_normal(self):
         msg = _build_validity_system_failed_message({
             "error": "数据库连接失败",
-            "context": "有效性检查第2轮",
+            "context": "有效性检查第2轮",  # 旧字段，构建器已不再读取（P1 修复）
         })
         assert msg.level == "error"
         assert msg.event_type == "validity_system_failed"
         assert msg.icon == "pi pi-times"
-        assert any("数据库连接失败" in b.text for b in msg.blocks if isinstance(b, TextBlock))
+        # 仅展示翻译后错误 + 日志提示语（P1 修复：不再直出 raw 异常）
+        assert any("系统异常已记录日志" in b.text for b in msg.blocks if isinstance(b, TextBlock))
+        assert any("💡 详细错误堆栈已记录至系统日志" in b.text for b in msg.blocks if isinstance(b, TextBlock))
 
     def test_validity_system_failed_no_error(self):
         msg = _build_validity_system_failed_message({})

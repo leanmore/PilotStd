@@ -241,9 +241,11 @@ def run_validity_check(
             try:
                 import traceback
 
+                # P1 修复：堆栈细节只进系统日志，通知仅携带用户可读错误（避免 raw 异常直出）
+                logger.error("Validity system failed: %s\n%s", e, traceback.format_exc()[:500])
                 notification_mgr.send_event(
                     "validity_system_failed",
-                    {"error": str(e), "traceback": traceback.format_exc()[:500]},
+                    {"error": str(e)},
                 )
             except Exception as e2:
                 logger.warning("时效性系统失败通知发送失败: %s", e2)

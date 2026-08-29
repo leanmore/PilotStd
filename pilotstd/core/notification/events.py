@@ -3,6 +3,10 @@
 
 所有后端事件定义集中于此。新增事件只需在 ALL_EVENTS 中加一行，
 ALL_EVENT_KEYS / BYPASS_EVENTS 自动派生，defaults / manager / API 全部同步。
+
+v1.1（Step 2a）：所有事件均经 L2 聚合器（bypass_aggregation 全部为 False），
+用户可通过 Web 设置页关闭聚合（notification.aggregate_enabled=False）恢复实时通知。
+bypass_aggregation 参数保留仅为兼容旧签名，语义已废弃，一律取默认 False。
 """
 
 from dataclasses import dataclass
@@ -10,10 +14,13 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class EventDef:
-    """通知事件元数据。"""
+    """通知事件元数据。
+
+    bypass_aggregation 参数已废弃（v1.1 起所有事件均聚合），仅保留字段兼容。
+    """
 
     key: str
-    bypass_aggregation: bool = False  # True → 跳过聚合器，实时发送
+    bypass_aggregation: bool = False  # 已废弃：恒为 False，保留字段兼容
 
 
 # ── 事件常量（向后兼容旧代码中的字符串引用） ──
@@ -51,43 +58,42 @@ EVENT_FAVORITE_CREATED = "favorite_created"
 EVENT_DOWNLOAD_STARTED = "download_started"
 EVENT_DOWNLOAD_COMPLETE = "download_complete"
 
-# ── 唯一数据源：所有事件定义 ──
+# ── 唯一数据源：所有事件定义（v1.1：全部经 L2 聚合器，无 bypass） ──
 
 ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_ARCHIVE_COMPLETE),
     EventDef(EVENT_STATUS_CHANGED),
-    EventDef(EVENT_EXPIRED),
     EventDef(EVENT_FIRST_REGISTERED),
     EventDef(EVENT_ANNOUNCEMENT_FETCH),
-    EventDef(EVENT_AUTO_BACKUP, bypass_aggregation=True),
+    EventDef(EVENT_AUTO_BACKUP),
     EventDef(EVENT_ANNOUNCEMENT_CHECK),
     EventDef(EVENT_BATCH_DOWNLOAD),
-    EventDef(EVENT_AUTO_SCAN_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_AUTO_SCAN_FAILED),
     EventDef(EVENT_VALIDITY_BATCH_REPORT),
     EventDef(EVENT_VALIDITY_ROUND_SUMMARY),
     EventDef(EVENT_VALIDITY_STANDARD_FAILED),
-    EventDef(EVENT_VALIDITY_SYSTEM_FAILED, bypass_aggregation=True),
-    EventDef("image_update_available", bypass_aggregation=True),
+    EventDef(EVENT_VALIDITY_SYSTEM_FAILED),
+    EventDef("image_update_available"),
     EventDef("batch_query_summary"),
-    EventDef("trust_ip_update", bypass_aggregation=True),
-    EventDef("worker_error", bypass_aggregation=True),
+    EventDef("trust_ip_update"),
+    EventDef("worker_error"),
     EventDef(EVENT_DATE_REMINDER),
-    EventDef(EVENT_DOWNLOAD_FAILED, bypass_aggregation=True),
-    EventDef(EVENT_ARCHIVE_ABANDONED, bypass_aggregation=True),
+    EventDef(EVENT_DOWNLOAD_FAILED),
+    EventDef(EVENT_ARCHIVE_ABANDONED),
     EventDef(EVENT_NORMALIZE_COMPLETE),
     EventDef(EVENT_SCAN_COMPLETE),
-    EventDef(EVENT_TASK_EXECUTION_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_TASK_EXECUTION_FAILED),
     EventDef(EVENT_SCAN_EMPTY),
-    EventDef(EVENT_QUERY_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_QUERY_FAILED),
     EventDef(EVENT_QUERY_EMPTY),
-    EventDef(EVENT_ARCHIVE_FAILED, bypass_aggregation=True),
-    EventDef(EVENT_ANNOUNCEMENT_FETCH_FAILED, bypass_aggregation=True),
-    EventDef(EVENT_NORMALIZE_FAILED, bypass_aggregation=True),
+    EventDef(EVENT_ARCHIVE_FAILED),
+    EventDef(EVENT_ANNOUNCEMENT_FETCH_FAILED),
+    EventDef(EVENT_NORMALIZE_FAILED),
     EventDef(EVENT_EXPIRE_STANDARD_MOVED),
-    EventDef(EVENT_REPLACEMENT_NOT_FOUND, bypass_aggregation=True),
-    EventDef(EVENT_QUOTA_EXHAUSTED, bypass_aggregation=True),
-    EventDef(EVENT_ANNOUNCE_FETCH_SUMMARY, bypass_aggregation=True),
-    EventDef(EVENT_FAVORITE_CREATED, bypass_aggregation=True),
+    EventDef(EVENT_REPLACEMENT_NOT_FOUND),
+    EventDef(EVENT_QUOTA_EXHAUSTED),
+    EventDef(EVENT_ANNOUNCE_FETCH_SUMMARY),
+    EventDef(EVENT_FAVORITE_CREATED),
     EventDef(EVENT_DOWNLOAD_STARTED),
     EventDef(EVENT_DOWNLOAD_COMPLETE),
 ]
@@ -95,4 +101,5 @@ ALL_EVENTS: list[EventDef] = [
 # ── 派生变量（供各模块引用，避免硬编码重复） ──
 
 ALL_EVENT_KEYS = [e.key for e in ALL_EVENTS]
+# v1.1：所有事件均聚合，bypass 集合恒为空（兼容旧签名，语义废弃）
 BYPASS_EVENTS = frozenset(e.key for e in ALL_EVENTS if e.bypass_aggregation)
