@@ -111,3 +111,6 @@ from ._migrate_v56 import _migrate_v56_ensure_cache_version_columns  # noqa: E40
 
 # 第五十七版：收藏分类 standard_type 列 + 存量回填（批次7，函数自带注册装饰器）
 from ._migrate_v57 import _migrate_v57_favorite_standard_type  # noqa: E402, F401
+
+# 第五十八版：幂等补建 app_preferences 表（N-01 修复，函数自带注册装饰器）
+from ._migrate_v58_ensure_app_preferences import _migrate_v58_ensure_app_preferences  # noqa: E402, F401

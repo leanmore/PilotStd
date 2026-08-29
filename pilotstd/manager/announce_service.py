@@ -110,7 +110,13 @@ class AnnounceService:
 
         self._last_check_start = datetime.now().isoformat()
 
-        user_since = self._get_user_since_date()
+        # N-01 运行期防御：app_preferences 表缺失时降级为全量增量检查，
+        # 避免 auto_announce 定时任务每日崩溃（根因由 v58 迁移补建解决）
+        try:
+            user_since = self._get_user_since_date()
+        except Exception as e:
+            logger.warning("获取 announce_since_date 失败，降级为全量增量检查: %s", e)
+            user_since = ""
         if user_since:
             logger.info("backfill fetch from user date: %s", user_since)
             result = self.check_announcements_filtered(since_date=user_since)
