@@ -312,7 +312,8 @@ class TestWechatSend:
 
 class TestChannelABC:
     def test_validate_config_default(self):
-        from pilotstd.core.notification.channel import NotificationChannel
+        # v1.1：规范基类位于 channels.base（channel.py 旧名已废弃转发）
+        from pilotstd.core.notification.channels.base import NotificationChannel
         assert NotificationChannel.validate_config({}) is True
 
     def test_message_repr(self):

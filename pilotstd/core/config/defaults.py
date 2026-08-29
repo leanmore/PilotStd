@@ -61,7 +61,6 @@ FACTORY_DEFAULTS = {
     "notification.channels.feishu.webhook_url": "",
     "notification.rules.archive_complete": ["wechat"],
     "notification.rules.standard_status_changed": ["wechat"],
-    "notification.rules.standard_expired": ["wechat"],
     "notification.rules.standard_first_registered": ["wechat"],
     "notification.rules.announcement_fetch_complete": ["wechat"],
     "notification.rules.auto_backup": ["wechat"],

@@ -1,9 +1,14 @@
 # 模块：项目/核心//脚本
-"""通知消息数据类 + 渠道抽象基类。"""
+"""通知消息数据类 + 渠道抽象基类（v1.1 起基类迁移至 channels.base）。
+
+NotificationChannel 自 v1.1（Final-R2）起规范基类位于 channels.base：
+本模块仅保留 NotificationMessage（全库引用），并对旧基类名做废弃转发
+（访问时触发 DeprecationWarning，下个大版本再移除）。
+"""
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+import warnings
 from dataclasses import dataclass, field
 
 from .blocks import NotificationBlock
@@ -28,20 +33,17 @@ class NotificationMessage:
     changed_at: str = ""  # 状态变更时间（ISO 格式），聚合消息中显示
 
 
-class NotificationChannel(ABC):
-    """通知渠道抽象基类。"""
+def __getattr__(name: str):
+    """NotificationChannel 自 v1.1 起规范基类位于 channels.base，此处仅废弃转发。"""
+    if name == "NotificationChannel":
+        warnings.warn(
+            "NotificationChannel is deprecated since v1.1; "
+            "use pilotstd.core.notification.channels.base.NotificationChannel instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # 惰性导入：避免与 channels.base（其导入本模块的 NotificationMessage）循环依赖
+        from .channels.base import NotificationChannel
 
-    def __init__(self):
-        # 错误详情透传：发送失败时由子类填充具体原因供管理层读取
-        self.last_error: str = ""
-
-    @abstractmethod
-    def send(self, message: NotificationMessage) -> bool:
-        """发送通知，成功返回真；失败返回假并应填充错误详情属性。
-        实现类需在失败路径记录具体原因，供上层写入发送日志。"""
-        ...
-
-    @staticmethod
-    def validate_config(config: dict) -> bool:
-        """验证渠道配置是否完整。子类可覆盖。"""
-        return True
+        return NotificationChannel
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
