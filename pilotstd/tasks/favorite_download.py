@@ -240,7 +240,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         if not inbox_path.exists():
             ok, err = _download_with_retry(download_url, inbox_path, max_retries=3)
             if not ok:
-                _notify_download_failed(user_id, standard_number, err or "", favorite_id)
+                # 不在此处发送失败通知：raise 后由下方 except 块统一补发一次
+                # （避免同一失败路径双通知——内层原始错误 + 外层包装错误）
                 raise FavoriteArchiveError(f"下载失败(重试3次): {standard_number}, {err}")
 
         db.execute(

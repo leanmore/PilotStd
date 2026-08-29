@@ -176,3 +176,33 @@ class TestDownloadToInbox:
         # 应触发 failed 状态更新
         update_calls = [c for c in mock_db.execute.call_args_list if "failed" in str(c)]
         assert len(update_calls) >= 1
+
+    def test_failure_path_sends_single_notification(self, tmp_path):
+        """P-107：下载失败（重试耗尽）仅发送 1 条 download_failed，无双通知。
+
+        回归验证：内层原始错误通知已移除，由 except 块统一补发一次
+        （载荷为包装后的 str(e)），成功路径/归档超时路径不受影响。
+        """
+        mock_db = MagicMock()
+        mock_db.execute.return_value.fetchone.side_effect = [
+            {"standard_number": "GB/T 1-2020"},  # record
+        ]
+        with patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db), \
+            patch("pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"), \
+            patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value=None), \
+            patch("pilotstd.tasks.favorite_download._get_inbox_dir", return_value=tmp_path / "inbox"), \
+            patch("pilotstd.tasks.favorite_download._get_download_url",
+                  return_value="https://dl.example.com/file.pdf"), \
+            patch("pilotstd.tasks.favorite_download._download_with_retry",
+                  return_value=(False, "connection refused")), \
+            patch("pilotstd.tasks.favorite_download._notify_download_started"), \
+            patch("pilotstd.tasks.favorite_download._notify_download_failed") as mock_notify:
+            download_to_inbox(favorite_id=1, user_id=100, record_id=999)
+
+        # 仅 1 条 download_failed（外层 except 统一补发）
+        mock_notify.assert_called_once()
+        args = mock_notify.call_args[0]
+        assert args[0] == 100  # user_id
+        assert args[1] == "GB/T 1-2020"  # standard_number
+        assert "下载失败(重试3次)" in args[2]  # 包装后的错误信息
+        assert args[3] == 1  # favorite_id

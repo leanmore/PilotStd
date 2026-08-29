@@ -783,10 +783,14 @@ class TestDownloadToInboxMainFlow:
         ) as mock_notify:
             download_to_inbox(1, 100, 999)
 
-        mock_notify.assert_called()
-        # 注：当前失败路径会触发 2 次 _notify_download_failed（内层原始错误 + 外层
-        # 包装错误"下载失败(重试3次)"）——重复通知缺陷已记录为 P2 工单
-        # （favorite_download.py 不在 v1.1 文件范围），此处仅断言"至少通知一次"。
+        mock_notify.assert_called_once()
+        # P-107 修复（v1.1 清理）：失败路径仅发送 1 条 download_failed（外层 except 统一补发，
+        # 载荷为包装后的 str(e)），不再发送内层原始错误通知
+        call_args = mock_notify.call_args[0]
+        assert call_args[0] == 100  # user_id
+        assert call_args[1] == "GB/T 1-2020"  # standard_number
+        assert "下载失败(重试3次)" in call_args[2]  # 包装后的错误信息
+        assert call_args[3] == 1  # favorite_id
         # 验证更新为 failed
         failed_updates = [
             c for c in db.execute.call_args_list
