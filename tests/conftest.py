@@ -65,6 +65,24 @@ def _isolate_fernet_db(tmp_path, monkeypatch):
     monkeypatch.setattr("pilotstd.core.config.paths.get_db_path", lambda: str(tmp_path / "pilotstd.db"))
 
 
+@pytest.fixture(autouse=True)
+def _restore_i18n_language():
+    """每测试后恢复 i18n 全局语言，杜绝跨测试语言污染。
+
+    背景（v1.1 i18n 迁移后）：部分测试（如 test_final_coverage_push 的
+    TestI18nRemaining、unit/test_i18n）会 set_language 切换全局语言且不恢复。
+    迁移前身份键（_("中文")==中文）对语言污染免疫；迁移后 t() 真实翻译，
+    污染使后续测试渲染出繁体/英文/键名，导致简体断言失败（顺序相关）。
+    本 fixture 在每个测试后恢复进入前的语言，保证任意运行顺序下
+    测试渲染均为默认语言（zh_CN），消除顺序相关性。
+    """
+    from pilotstd.i18n import get_language, set_language
+
+    before = get_language()
+    yield
+    set_language(before)
+
+
 @pytest.fixture(scope="session")
 def shared_db():
     """会话级共享数据库（临时文件），所有测试复用同一个 Database 实例。"""

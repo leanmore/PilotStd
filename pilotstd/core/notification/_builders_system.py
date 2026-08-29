@@ -182,24 +182,25 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
         )
     # 正常路径：上面错误分支已提前返回，此处安全重建 blocks
     # 模板：镜像版本：v旧 → v新；版本号缺失时回退 digest 前 12 位
+    # （变量名 message_blocks 避开错误分支的 blocks，消除 mypy no-redef）
     old_digest = data.get("old_digest", "")
     new_digest = data.get("new_digest", "")
     old_ver = data.get("old_version") or (old_digest[:12] if old_digest else "")
     new_ver = data.get("new_version") or (new_digest[:12] if new_digest else "")
-    blocks: list[NotificationBlock] = [
+    message_blocks: list[NotificationBlock] = [
         TextBlock(text=t("notification.system.image_update_available.body.version").format(old=old_ver, new=new_ver)),
     ]
     if not old_digest or not new_digest:
         logger.debug("image_update_available: old_digest or new_digest is empty")
     if data.get("release_notes"):
-        blocks.append(
+        message_blocks.append(
             TextBlock(
                 text=t("notification.system.image_update_available.body.notes").format(n=data["release_notes"])
             )
         )
     return NotificationMessage(
         title=t("notification.system.image_update_available.title"),
-        blocks=blocks,
+        blocks=message_blocks,
         level="info",
         event_type="image_update_available",
         icon="pi pi-cloud-upload",
