@@ -4,11 +4,13 @@
 import json
 import logging
 import time
+from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from ..channel import NotificationChannel, NotificationMessage
+from ..channel import NotificationMessage
 from ..renderer import TelegramRenderer
+from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
 
@@ -129,3 +131,21 @@ class TelegramChannel(NotificationChannel):
     @staticmethod
     def validate_config(config: dict) -> bool:
         return bool(config.get("bot_token") and config.get("chat_id"))
+
+    # ── v1.1 R2 渠道契约（继承自 channels.base.NotificationChannel） ──
+
+    @property
+    def name(self) -> str:
+        """渠道唯一标识。"""
+        return "telegram"
+
+    def test(self) -> bool:
+        """发送一条测试消息验证渠道连通性。"""
+        return self.send(NotificationMessage(title="PilotStd Test", body="Channel connectivity test"))
+
+    def get_config_schema(self) -> dict[str, Any]:
+        """渠道配置字段 schema（供前端动态渲染配置表单）。"""
+        return {
+            "bot_token": {"type": "string", "label": "Bot Token", "required": True, "secret": True},
+            "chat_id": {"type": "string", "label": "聊天 ID", "required": True, "secret": False},
+        }

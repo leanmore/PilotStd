@@ -7,11 +7,13 @@ import hmac
 import json
 import logging
 import time
+from typing import Any
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from ..channel import NotificationChannel, NotificationMessage
+from ..channel import NotificationMessage
 from ..renderer import MarkdownRenderer
+from .base import NotificationChannel
 
 logger = logging.getLogger(__name__)
 
@@ -105,3 +107,21 @@ class DingTalkChannel(NotificationChannel):
     def validate_config(config: dict) -> bool:
         """钉钉配置只需 webhook_url。secret 可选。"""
         return bool(config.get("webhook_url"))
+
+    # ── v1.1 R2 渠道契约（继承自 channels.base.NotificationChannel） ──
+
+    @property
+    def name(self) -> str:
+        """渠道唯一标识。"""
+        return "dingtalk"
+
+    def test(self) -> bool:
+        """发送一条测试消息验证渠道连通性。"""
+        return self.send(NotificationMessage(title="PilotStd Test", body="Channel connectivity test"))
+
+    def get_config_schema(self) -> dict[str, Any]:
+        """渠道配置字段 schema（供前端动态渲染配置表单）。"""
+        return {
+            "webhook_url": {"type": "string", "label": "Webhook 地址", "required": True, "secret": False},
+            "secret": {"type": "string", "label": "加签密钥", "required": False, "secret": True},
+        }
