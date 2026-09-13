@@ -176,6 +176,9 @@ def process_pending_downloads() -> int:
                     logger.warning(
                         "[链] 下载放弃（重试 %d 次）: record_id=%s, user_id=%s", new_count, record_id, user_id
                     )
+                    # 放弃是终态，必须留痕：重试耗尽后用户应收到明确提示，
+                    # 而不是永远看到一条"pending"却再也下不下来
+                    _notify_abandoned(user_id, record_id, error)
                 else:
                     logger.warning("[链] 下载失败(第%d次): record_id=%s, user_id=%s", new_count, record_id, user_id)
 
@@ -186,6 +189,39 @@ def process_pending_downloads() -> int:
         processed += 1
 
     return processed
+
+
+def _notify_abandoned(user_id: int, record_id: int, error: str) -> None:
+    """重试耗尽后的放弃通知（自 archive_retry_service 迁移而来）。
+
+    放弃是终态：原先只有死代码服务会发 archive_abandoned，活跃链仅写日志，
+    导致用户对"收藏再也下不下来"无感（生产 28 条 abandoned / 0 条通知）。
+    通知失败只记日志，不影响状态机。
+    """
+    try:
+        db = _new_db()
+        try:
+            row = db.fetchone(
+                "SELECT standard_number, std_name FROM announcement_record WHERE id = ?",
+                (record_id,),
+            )
+        finally:
+            db.close()
+        std_info = f"{row['standard_number']} {row['std_name']}" if row else f"record#{record_id}"
+
+        from pilotstd.manager.facade import StandardManager
+
+        StandardManager().notification_mgr.send_event(
+            "archive_abandoned",
+            {
+                "user_id": user_id,
+                "record_id": record_id,
+                "standard_info": std_info,
+                "error": error,
+            },
+        )
+    except Exception:
+        logger.warning("发送归档放弃通知失败", exc_info=True)
 
 
 def process_chain() -> dict[str, int]:

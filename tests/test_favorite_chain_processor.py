@@ -232,6 +232,55 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(self._fd_status(1, 1)[0], "pending", "行标保持 pending 且不消耗重试")
         self.assertEqual(self._fd_status(1, 2)[0], "done")
 
+    def test_abandon_emits_archive_abandoned_once(self):
+        """① 修复：重试耗尽转 abandoned 时必须通知，且只通知一次（原先完全静默）。
+
+        历史缺陷：archive_abandoned 的唯一发送方是已无调度方的 archive_retry_service，
+        活跃链放弃时只写日志 → 生产 28 条 abandoned 对应 0 条通知。
+        """
+        self._seed_announcement(1, "GB/T 1001-2020", "2026-01-01")
+        self._seed_favorite(1, 1, retry_count=self.fcp.MAX_RETRIES - 1)
+        self._dl_mode = "failed"
+
+        with patch("pilotstd.manager.facade.StandardManager") as mock_mgr:
+            self.fcp.process_pending_downloads()
+
+        row = self._fd_status(1, 1)
+        self.assertEqual(row[0], "abandoned")
+        notifier = mock_mgr.return_value.notification_mgr
+        notifier.send_event.assert_called_once()
+        event, payload = notifier.send_event.call_args[0]
+        self.assertEqual(event, "archive_abandoned")
+        self.assertEqual(payload["user_id"], 1)
+        self.assertEqual(payload["record_id"], 1)
+        self.assertIn("GB/T 1001-2020", payload["standard_info"])
+        self.assertEqual(payload["error"], "模拟下载失败")
+
+    def test_failure_below_limit_does_not_notify_abandon(self):
+        """未达上限的普通失败不得发放弃通知（避免刷屏）。"""
+        self._seed_announcement(1, "GB/T 1002-2020", "2026-01-01")
+        self._seed_favorite(1, 1, retry_count=0)
+        self._dl_mode = "failed"
+
+        with patch("pilotstd.manager.facade.StandardManager") as mock_mgr:
+            self.fcp.process_pending_downloads()
+
+        self.assertEqual(self._fd_status(1, 1)[0], "failed")
+        mock_mgr.return_value.notification_mgr.send_event.assert_not_called()
+
+    def test_abandon_notify_failure_does_not_break_chain(self):
+        """通知抛异常不得影响状态机（放弃仍是终态）。"""
+        self._seed_announcement(1, "GB/T 1003-2020", "2026-01-01")
+        self._seed_favorite(1, 1, retry_count=self.fcp.MAX_RETRIES - 1)
+        self._dl_mode = "failed"
+
+        with patch(
+            "pilotstd.manager.facade.StandardManager", side_effect=RuntimeError("notify boom")
+        ):
+            self.fcp.process_pending_downloads()
+
+        self.assertEqual(self._fd_status(1, 1)[0], "abandoned")
+
     def _seed_user(self, user_id: int = 1) -> None:
         self.raw.execute(
             "INSERT OR IGNORE INTO users (id, username, password_hash, salt, role)"
