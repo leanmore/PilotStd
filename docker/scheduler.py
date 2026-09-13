@@ -5,7 +5,7 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, cast
 
 from apscheduler.events import EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -408,7 +408,9 @@ def get_validity_next_run() -> Optional[str]:
     job = scheduler.get_job(_VALIDITY_JOB_ID)
     if job is None or job.next_run_time is None:
         return None
-    return job.next_run_time.isoformat()
+    # APScheduler 无类型存根，job.next_run_time 推断为 Any；显式 cast 以满足
+    # G-038 的 mypy no-any-return（返回值语义上就是 str）
+    return cast(str, job.next_run_time.isoformat())
 
 
 def stop_scheduler():
