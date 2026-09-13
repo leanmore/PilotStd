@@ -139,3 +139,55 @@ class TestSchedulerModule(unittest.TestCase):
         with patch("docker.scheduler.run_date_reminder", side_effect=Exception("SQL error")):
             with self.assertRaises(Exception):
                 _date_reminder_wrapper(notification_mgr=MagicMock())
+
+
+class TestSchedulerErrorListener(unittest.TestCase):
+    """B 修复回归：错误监听器必须挂在 EVENT_JOB_ERROR 上。
+
+    历史缺陷：mask 写成字面量 2**0（=1=EVENT_SCHEDULER_STARTED），
+    导致每次调度器启动误发一条"定时任务执行失败/任务：unknown"，
+    而真实的 job 级异常从不通知。
+    """
+
+    def test_listener_mask_is_job_error_not_scheduler_started(self):
+        """掩码须含 EVENT_JOB_ERROR 且不含 EVENT_SCHEDULER_STARTED。"""
+        from apscheduler.events import EVENT_JOB_ERROR, EVENT_SCHEDULER_STARTED
+
+        from docker.scheduler import _scheduler_error_listener
+
+        masks = [m for cb, m in scheduler._listeners if cb is _scheduler_error_listener]
+        self.assertEqual(len(masks), 1, "错误监听器应且仅应注册一次")
+        self.assertTrue(masks[0] & EVENT_JOB_ERROR, "必须监听 EVENT_JOB_ERROR")
+        self.assertFalse(masks[0] & EVENT_SCHEDULER_STARTED, "不得监听 EVENT_SCHEDULER_STARTED")
+
+    def test_job_error_event_notifies_with_job_id(self):
+        """真实任务异常事件 → 携带 job_id 发送 task_execution_failed。"""
+        from datetime import datetime as _dt
+
+        from apscheduler.events import EVENT_JOB_ERROR, JobExecutionEvent
+
+        from docker.scheduler import _scheduler_error_listener
+
+        mgr = MagicMock()
+        event = JobExecutionEvent(
+            EVENT_JOB_ERROR, "auto_announce", "default", _dt.now(), exception=RuntimeError("boom")
+        )
+        with patch("docker.manager.get_manager", return_value=mgr):
+            _scheduler_error_listener(event)
+
+        event_type, payload = mgr.notification_mgr.send_event.call_args[0]
+        self.assertEqual(event_type, "task_execution_failed")
+        self.assertEqual(payload["task_name"], "auto_announce")
+        self.assertIn("boom", payload["error"])
+
+    def test_missing_job_id_falls_back_to_unknown(self):
+        """事件缺 job_id 时兜底 unknown，且不得抛异常。"""
+        from docker.scheduler import _scheduler_error_listener
+
+        mgr = MagicMock()
+        with patch("docker.manager.get_manager", return_value=mgr):
+            _scheduler_error_listener(None)
+
+        event_type, payload = mgr.notification_mgr.send_event.call_args[0]
+        self.assertEqual(event_type, "task_execution_failed")
+        self.assertEqual(payload["task_name"], "unknown")

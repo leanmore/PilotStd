@@ -47,8 +47,17 @@ class ValidityConfigUpdate(BaseModel):
 
 @router.get("/api/validity/config")
 def get_validity_config(mgr=Depends(get_manager_dep)):
-    """读取时效性检查配置，未设置时返回默认值。"""
-    cfg = mgr.cfg
+    """读取时效性检查配置，未设置时返回默认值。
+
+    运行期键（next_run/checked_count/round_completed）由调度器与检查器写入磁盘，
+    而 mgr.cfg 是进程启动时的内存快照且运行期从不 reload，读它会返回启动时的旧值
+    （实测 API 返回 2026-09-02，而 09-09 的运行日志已写入 2026-09-16），
+    故此端点新建实例读盘；next_run 再以调度器实时值优先，
+    避免"改配置后 reschedule 生效但磁盘值要等下次运行才刷新"的滞后。
+    """
+    from pilotstd.core.config import ConfigManager
+
+    cfg = ConfigManager()
     return {
         "batch_size": cfg.get("validity.batch_size") or _DEFAULT_CONFIG["batch_size"],
         "batch_interval": cfg.get("validity.batch_interval") or _DEFAULT_CONFIG["batch_interval"],
@@ -59,13 +68,24 @@ def get_validity_config(mgr=Depends(get_manager_dep)):
         "first_weekday": cfg.get("validity.first_weekday") or _DEFAULT_CONFIG["first_weekday"],
         "execute_time": cfg.get("validity.execute_time") or _DEFAULT_CONFIG["execute_time"],
         "first_execution": cfg.get("validity.first_execution"),
-        "next_run": cfg.get("validity.next_run"),
+        "next_run": _live_validity_next_run() or cfg.get("validity.next_run"),
         "checked_count": cfg.get("validity.checked_count", 0),
         "round_completed": cfg.get("validity.round_completed", False),
         # 已废弃字段（兼容旧前端）
         "frequency": cfg.get("validity.frequency") or "weekly",
         "update_interval": (cfg.get("validity.total_weeks") or _DEFAULT_CONFIG["total_weeks"]) * 7,
     }
+
+
+def _live_validity_next_run() -> str | None:
+    """从调度器实时取时效性检查下次执行时间；未注册/不可用时返回 None。"""
+    try:
+        from docker.scheduler import get_validity_next_run
+
+        return get_validity_next_run()
+    except Exception as e:
+        logger.warning("读取时效性检查下次执行时间失败: %s", e)
+        return None
 
 
 @router.put("/api/validity/config")

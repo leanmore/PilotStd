@@ -7,6 +7,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Optional
 
+from apscheduler.events import EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -246,13 +247,17 @@ def _heartbeat_loop() -> None:
 
 
 def _scheduler_error_listener(event):
-    """APScheduler 全局错误监听器：任务执行异常时发送通知。"""
+    """APScheduler 任务异常监听器：任务执行异常时发送通知。
+
+    仅由 EVENT_JOB_ERROR 触发（见下方 add_listener）；事件必带 job_id，
+    取不到时兜底为 unknown（防御，非正常路径）。
+    """
     try:
         from .manager import get_manager
 
         mgr = get_manager()
         if hasattr(mgr, "notification_mgr") and mgr.notification_mgr:
-            job_id = getattr(event, "job_id", "unknown") if event else "unknown"
+            job_id = getattr(event, "job_id", None) or "unknown"
             exception = getattr(event, "exception", None) if event else None
             error_msg = str(exception) if exception else "未知异常"
             mgr.notification_mgr.send_event(
@@ -263,7 +268,9 @@ def _scheduler_error_listener(event):
         logger.warning("定时任务失败通知发送失败: %s", e)
 
 
-scheduler.add_listener(_scheduler_error_listener, mask=2**0)  # EVENT_JOB_ERROR
+# 监听任务执行异常（EVENT_JOB_ERROR=8192）。曾误用字面量 2**0（=1=EVENT_SCHEDULER_STARTED），
+# 导致每次调度器启动误发一条"定时任务执行失败/任务：unknown"，而真实任务异常从不通知。
+scheduler.add_listener(_scheduler_error_listener, EVENT_JOB_ERROR)
 
 
 def start_scheduler():
@@ -388,6 +395,20 @@ def reschedule_validity_job():
         kwargs["hour"],
         kwargs["minute"],
     )
+
+
+def get_validity_next_run() -> Optional[str]:
+    """返回时效性检查的下次执行时间（ISO 字符串）。
+
+    以调度器实时状态为准：/api/validity/config 原先读配置里的 validity.next_run，
+    该键仅在任务执行时才刷新，改配置 reschedule 后会滞后；
+    且配置读取走的是进程启动快照（见该端点说明），故此处直接问调度器。
+    未注册或未调度时返回 None，调用方回退配置文件值。
+    """
+    job = scheduler.get_job(_VALIDITY_JOB_ID)
+    if job is None or job.next_run_time is None:
+        return None
+    return job.next_run_time.isoformat()
 
 
 def stop_scheduler():
