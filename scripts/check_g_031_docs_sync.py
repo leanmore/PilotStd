@@ -28,6 +28,11 @@ DOC_SYNC_MAP: list[tuple[str, str, str]] = [
     ("docs/architecture/decisions/", "docs/governance/README.md", "block"),
 ]
 
+# 机器生成产物豁免：内容由脚本生成、且已登记在目标文档索引中，重生成只改时间戳/行号，
+# 不改变索引语义。AGENTS.md §七 又强制其随代码变更一并提交，若不豁免，每次重生成能力矩阵
+# 都会撞上"docs/governance/ 需同步 README"，只能靠装饰性改动或绕过门禁过关。
+GENERATED_DOCS: set[str] = {"docs/governance/capabilities_registry.md"}
+
 
 def get_changed_files() -> list[str]:
     """返回本次待提交/已提交的变更文件列表（相对于 base branch）。
@@ -64,8 +69,14 @@ def main() -> int:
 
     for src_prefix, doc_path, mode in DOC_SYNC_MAP:
         # 检查是否有变更文件匹配源路径
-        matched = [f for f in changed_set if f.startswith(src_prefix)]
+        all_matched = [f for f in changed_set if f.startswith(src_prefix)]
+        if not all_matched:
+            continue
+
+        # 仅机器生成产物变更 → 豁免目标文档同步（豁免显式打印，不静默跳过）
+        matched = [f for f in all_matched if f not in GENERATED_DOCS]
         if not matched:
+            print(f"[G-031] SKIP: {'、'.join(sorted(all_matched))} 为机器生成产物，豁免 {doc_path} 同步要求")
             continue
 
         # 检查目标文档是否在变更列表中
