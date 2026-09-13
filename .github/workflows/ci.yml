@@ -898,6 +898,13 @@ jobs:
         with:
           ref: main
 
+      # APP_VERSION 必须取"实际被检出的提交"，而非触发工作流的推送提交（github.sha）：
+      # version job 已把版本号 bump 提交推上 main，此处 ref: main 检出的是 bump 之后的提交，
+      # 两者不一致会让 /api/health 报出的 sha 与镜像内 __version__ 对不上（实测 v0.108.0 镜像报 97fabf48）。
+      - name: Resolve built revision
+        id: rev
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -937,10 +944,10 @@ jobs:
           sbom: false
           push: true
           build-args: |
-            APP_VERSION=${{ github.sha }}
+            APP_VERSION=${{ steps.rev.outputs.sha }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.rev.outputs.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.version }}
 
   # ════════════════════════════════════════════════════════════════
