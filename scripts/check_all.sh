@@ -193,6 +193,14 @@ run_guards() {
     else
         log_fail "G-033 ADR 完整性"
     fi
+
+    # G-031: 代码变更 ↔ 文档联动（本地提交时即生效：已并入暂存区变更）
+    #  CI 侧另有 check_docs_sync.py 校验入库文档，两者互补
+    if python scripts/check_g_031_docs_sync.py; then
+        log_pass "G-031 文档联动同步"
+    else
+        log_fail "G-031 文档联动同步"
+    fi
 }
 
 # ============================================================

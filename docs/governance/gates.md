@@ -177,7 +177,7 @@
 | 模式 | 内容 | 是否写文件 |
 |------|------|-----------|
 | `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、`_wait_worker` 防回潮 | 否 |
-| `--guards` | **治理守护（只读）**：Schema 一致性、**G-032 文档健康度**、G-037、G-030、G-033 | 否 |
+| `--guards` | **治理守护（只读）**：Schema 一致性、**G-032 文档健康度**、G-037、G-030、G-033、**G-031 文档联动同步** | 否 |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） |
 | `--deep` | Ruff 全量、Mypy、G-020 Vulture、G-038、`--guards` | 否 |
 | `--all` | `--fast` → `--docs` → `--deep` | 是 |
@@ -186,9 +186,9 @@
 
 | 环节 | 在哪执行 | 守护什么 |
 |------|---------|---------|
-| **文档生成** | **仅本地**：`bash scripts/check_all.sh --docs` | — （产物 `STATUS.md` 为 gitignored 本地文件；`docs/testing/coverage-report.md` 入库，由人工确认后提交） |
-| **守护本地产物** | **本地 pre-commit**（`--fast --guards`，含 G-032） | 只有本机同时具备 `STATUS.md` 与刚生成的覆盖率报告，G-032 四个维度才能完整校验 |
-| **守护入库文档** | **CI**（`trinity-gate.yml` 的 `--deep`；`ci.yml` repo-compliance 的 G-032 步骤） | 入库文档的新鲜度分档（7/30/60 天）、交叉引用完整性；`STATUS.md` 因不入库，相关维度在 CI 自动放行（`gates.md` G-032 章节已说明） |
+| **文档生成** | **仅本地**：`bash scripts/check_all.sh --docs` | — （产物 `STATUS.md` 为 gitignored 本地文件；`docs/testing/coverage-report.md`、`docs/governance/capabilities_registry.md` 入库，人工确认后提交） |
+| **守护本地产物 / 本地编辑纪律** | **本地 pre-commit**（`--fast --guards`，含 G-032、G-031） | 只有本机同时具备 `STATUS.md` 与刚生成的覆盖率报告，G-032 四维度才能完整校验；G-031 在提交前提醒"改了代码要同步改文档"（含暂存区变更） |
+| **守护入库文档** | **CI**（`ci.yml` repo-compliance：`check_g_032_doc_health.py`、`check_docs_sync.py`、`check_capabilities_sync.py`；`trinity-gate.yml` 的 `--deep`） | 入库文档的新鲜度分档（7/30/60 天）、交叉引用完整性、模块文档与代码的联动、能力矩阵与代码是否一致；`STATUS.md` 因不入库，相关维度在 CI 自动放行 |
 
 - **多模式可叠加**：`check_all.sh --fast --guards` 会依次执行两个模式（2026-09-13 修复：
   原实现 `MODE="${1:---fast}"` 只取第一个参数，导致 pre-commit 钩子里写的
@@ -199,12 +199,17 @@
   pytest 采集与 artifact 上传步骤。
 - **G-038 仍在 `--deep`**：它需要 PATH 上存在 `ruff`/`mypy` 可执行文件，各开发机是否安装不一致，
   故不纳入提交时门禁；CI 的 test-backend job 用 venv 内的 ruff 强制执行。
-- **G-031 的现状**：`check_g_031_docs_sync.py`（9 条映射，额外覆盖 `scripts/`、`.github/workflows/`、
-  `docs/governance/`、`docs/architecture/decisions/`）**目前不在任何执行入口**——CI 的
-  `ci.yml` repo-compliance 跑的是较早的 `check_docs_sync.py`（仅 5 条模块映射）。
-  该缺口待决策：接入 CI、或与 `check_docs_sync.py` 合并。
-- **`capabilities_registry.md` 与代码的同步目前无门禁**：`generate_capabilities.py` 不在
-  `check_all.sh` 任何模式中，AGENTS.md 第七节只要求人工执行；G-032 仅按"治理文档新鲜度（60 天）"看待它。
+- **G-031 的放置（2026-09-13 定案）**：`check_g_031_docs_sync.py`（9 条映射，比 CI 现有的
+  `check_docs_sync.py` 多覆盖 `scripts/`、`.github/workflows/`、`docs/governance/`、
+  `docs/architecture/decisions/`）**放在本地**——它约束的是"改了代码要同步改文档"这一**本地编辑动作**，
+  提交前就该提醒作者；为此该脚本已并入暂存区变更（`git diff --cached`），
+  否则 pre-commit 时"正要提交的这次改动"尚未进入 HEAD，门禁会空转。
+  CI 侧继续由 `check_docs_sync.py` 校验**入库**文档，两者互补、规则集不同。
+- **能力矩阵同步的放置（2026-09-13 定案）**：`docs/governance/capabilities_registry.md`
+  是**入库**文档，故其"与代码是否一致"的校验放在 **CI**：
+  `scripts/check_capabilities_sync.py`（重生成 → 忽略时间戳行比对 → 还原文件 → 结论），
+  已接入 `ci.yml` repo-compliance job。生成动作仍在本地，
+  由 AGENTS.md 第七节要求人工重跑并一并提交。
 
 ---
 
@@ -212,6 +217,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.7 | 2026-09-13 | 按"检查跟随产物位置"定案两处放置：G-031 放**本地**（并入暂存区变更，提交前即生效；CI 侧保留 `check_docs_sync.py` 校验入库文档）；能力矩阵同步放 **CI**（新增 `scripts/check_capabilities_sync.py` 并接入 repo-compliance，重生成后忽略时间戳行比对入库内容）；「生成与守护的分工」表随之更新 |
 | v1.6 | 2026-09-13 | 明确"生成在本地、守护分两处"的分工；G-032 纳入 `--guards`（本地守护本地产物，CI 复用同一实现守护入库文档）；`trinity-gate.yml` 改回 `--deep`（CI 不生成、不上传 artifact），清理空转步骤；登记 G-031 与 capabilities_registry 同步两处缺口 |
 | v1.5 | 2026-09-13 | 修复 `check_all.sh` 参数解析（支持多模式叠加，未知参数报错退出）；新增 `--guards` 只读治理守护模式并接入 pre-commit 钩子（原 `--fast --docs` 的 docs 部分从未执行）；补充"执行入口"章节 |
 | v1.4 | 2026-08-24 | G-010 升级 v2：>500 行阻断新增拆分验证（拆分证据 + 原文件 ≤500 行，缺一不可）；警告档（400-500 行）行为不变 |

@@ -30,19 +30,25 @@ DOC_SYNC_MAP: list[tuple[str, str, str]] = [
 
 
 def get_changed_files() -> list[str]:
-    """返回本次 PR 相对于 base branch 变更的文件列表。"""
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--name-only", f"origin/{BASE_BRANCH}..HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-            cwd=str(ROOT),
-        )
-    except subprocess.CalledProcessError:
-        print(f"[G-031] WARN: 无法获取 diff (base={BASE_BRANCH})，跳过检查")
-        return []
-    return [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
+    """返回本次待提交/已提交的变更文件列表（相对于 base branch）。
+
+    本地提交前（pre-commit）时，待提交内容还在暂存区、尚未进入 HEAD，
+    仅看 `origin/base..HEAD` 会漏掉"正要提交的这一次改动"，门禁等于空转。
+    因此同时并入暂存区变更（`git diff --cached`），使本地提交时即可拦住
+    "改了代码却忘了同步文档"。
+    """
+    changed: set[str] = set()
+    for args in (
+        ["git", "diff", "--name-only", f"origin/{BASE_BRANCH}..HEAD"],
+        ["git", "diff", "--name-only", "--cached"],
+    ):
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, check=True, cwd=str(ROOT))
+        except subprocess.CalledProcessError:
+            print(f"[G-031] WARN: 无法获取 diff ({' '.join(args)})，跳过该来源")
+            continue
+        changed.update(f.strip() for f in result.stdout.split("\n") if f.strip())
+    return sorted(changed)
 
 
 def main() -> int:

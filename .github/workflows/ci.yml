@@ -732,6 +732,12 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: python scripts/check_docs_sync.py
 
+      # 能力矩阵是入库文档（docs/governance/capabilities_registry.md）：
+      # 重生成后与入库内容比对，有实质差异即阻断（忽略生成时间戳行）。
+      # 生成动作本身属本地行为，此处只做"入库内容是否与代码一致"的校验。
+      - name: Capabilities sync check — 能力矩阵与代码一致
+        run: python scripts/check_capabilities_sync.py
+
       # ── 深门禁补齐：直推 main 时 G-030/G-032/G-033/G-037/G-038 ──
       # 原先仅 trinity-gate（PR 触发 + 手动）执行；本仓库以直推 main 为主，
       # 故在此统一部署，保证 push 流水线也有完整门禁覆盖（2026-08-20）。
