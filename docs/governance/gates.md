@@ -69,18 +69,18 @@
 ### G-031：文档同步检查
 
 - **检查内容**：核心模块变更时，对应文档同步更新
-- **映射规则**：
-  - `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`（不存在时告警不阻断）
-  - `pilotstd/query/adapters/` → `docs/architecture/modules/query.md`（不存在时告警不阻断）
-  - `pilotstd/manager/facade/_scan.py` → `docs/architecture/modules/scan.md`（不存在时告警不阻断）
-  - `pilotstd/ui/main_window/` → `docs/architecture/modules/ui.md`（不存在时告警不阻断）
-  - `pilotstd/manager/` → `docs/architecture/modules/manager.md`（不存在时告警不阻断）
-  - `scripts/` → `docs/governance/gates.md`（存在，阻断）
-  - `.github/workflows/` → `docs/governance/gates.md`（存在，阻断）
-  - `docs/governance/` → `docs/governance/README.md`（存在，阻断）
-  - `docs/adr/` → `docs/governance/README.md`（存在，阻断）
+- **映射规则**（与 `scripts/check_g_031_docs_sync.py` 的 `DOC_SYNC_MAP` 逐条对应，源前缀必须是仓库内真实存在的路径，否则该条永不触发 = 死映射/门禁假绿）：
+  - `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`
+  - `pilotstd/query/adapters/` → `docs/architecture/modules/query.md`
+  - `pilotstd/manager/facade/_scan.py` → `docs/architecture/modules/scan.md`
+  - `pilotstd/ui/main_window/` → `docs/architecture/modules/ui.md`
+  - `pilotstd/manager/` → `docs/architecture/modules/manager.md`
+  - `scripts/` → `docs/governance/gates.md`
+  - `.github/workflows/` → `docs/governance/gates.md`
+  - `docs/governance/` → `docs/governance/README.md`
+  - `docs/adr/` → `docs/governance/README.md`
 - **机器生成产物豁免**：`docs/governance/capabilities_registry.md`（由 `scripts/generate_capabilities.py` 生成，且已登记在 `docs/governance/README.md` 索引中）**单独**变更时不要求同步 README —— 重生成只改时间戳/行号，不改变索引语义；AGENTS.md §七 又强制其随 `pilotstd/core/`、`docker/api/` 变更一并提交，若不豁免，则每次重生成都会撞上本条规则，只能做装饰性改动或绕过门禁。同批若还含 `docs/governance/` 下的人工文档变更，仍按上表阻断；豁免命中时输出 `[G-031] SKIP: ...`，不静默跳过
-- **阻断条件**：文档存在但未同步更新 → 阻断；文档不存在 → 告警但不阻断
+- **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 9 条均为 `block`，且 9 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 
 ### G-032：文档健康度守护
@@ -223,6 +223,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.10 | 2026-09-13 | 修复 G-031 四条**死映射**：源前缀 `pilotstd/core/parser.py`、`pilotstd/core/_scan.py`、`pilotstd/ui/main_window.py`、`docs/architecture/decisions/` 在仓库中均已不存在（模块已迁移，ADR 迁至 `docs/adr/`），导致这 4 条永不触发、门禁实际只守 5 条。脚本前缀对齐真实路径（`pilotstd/announcement/parser.py`、`pilotstd/manager/facade/_scan.py`、`pilotstd/ui/main_window/`、`docs/adr/`），9 条全部生效；同时修正"不存在时告警不阻断"的错误描述（`block` 模式下目标文档缺失同样是阻断） |
 | v1.9 | 2026-09-13 | G-031 新增机器生成产物豁免：`docs/governance/capabilities_registry.md` 单独变更不再要求同步 README（重生成只改时间戳，AGENTS.md §七 又强制其随代码提交，否则每次重生成都被迫做装饰性改动或绕过门禁）；豁免命中打印 `[G-031] SKIP`，同批含人工文档变更时仍阻断 |
 | v1.8 | 2026-09-13 | 确立检查放置原则"看输入在哪里可靠"：新增 `--local` 模式（本地专属），G-031 从 `--guards` 移出、**严格只挂本地**（本仓库以直推 main 为主，CI 中 `origin/base..HEAD` 恒空 → 假绿，属"放 CI 就是错的"）；`--guards` 明确为"入库产物"类（CI 权威 + 本地 fail-fast）；文档补"放置原则"判据表与三类划分 |
 | v1.7 | 2026-09-13 | 按"检查跟随产物位置"定案两处放置：G-031 放**本地**（并入暂存区变更，提交前即生效；CI 侧保留 `check_docs_sync.py` 校验入库文档）；能力矩阵同步放 **CI**（新增 `scripts/check_capabilities_sync.py` 并接入 repo-compliance，重生成后忽略时间戳行比对入库内容）；「生成与守护的分工」表随之更新 |

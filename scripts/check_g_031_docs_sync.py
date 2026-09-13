@@ -3,7 +3,7 @@
 
 检查本次 PR 变更的核心模块是否同步更新了对应文档。
 - 目标文档存在但未同步更新 → 阻断（exit 1）
-- 目标文档不存在 → 告警但不阻断
+- 目标文档不存在 → 按模式处理：`block` 同样阻断，`warn` 仅告警（当前 9 条均为 `block`）
 """
 
 import os
@@ -15,17 +15,17 @@ ROOT = Path(__file__).resolve().parent.parent
 BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")
 
 # 映射规则: (源路径前缀, 目标文档路径, 阻断模式)
-# 阻断模式:"锁"=文档存在时阻断,""=仅告警
+# 源前缀必须是仓库中真实存在的路径，否则该条永不触发（= 死映射，门禁假绿）。
 DOC_SYNC_MAP: list[tuple[str, str, str]] = [
-    ("pilotstd/core/parser.py", "docs/architecture/modules/parser.md", "block"),
+    ("pilotstd/announcement/parser.py", "docs/architecture/modules/parser.md", "block"),
     ("pilotstd/query/adapters/", "docs/architecture/modules/query.md", "block"),
-    ("pilotstd/core/_scan.py", "docs/architecture/modules/scan.md", "block"),
-    ("pilotstd/ui/main_window.py", "docs/architecture/modules/ui.md", "block"),
+    ("pilotstd/manager/facade/_scan.py", "docs/architecture/modules/scan.md", "block"),
+    ("pilotstd/ui/main_window/", "docs/architecture/modules/ui.md", "block"),
     ("pilotstd/manager/", "docs/architecture/modules/manager.md", "block"),
     ("scripts/", "docs/governance/gates.md", "block"),
     (".github/workflows/", "docs/governance/gates.md", "block"),
     ("docs/governance/", "docs/governance/README.md", "block"),
-    ("docs/architecture/decisions/", "docs/governance/README.md", "block"),
+    ("docs/adr/", "docs/governance/README.md", "block"),
 ]
 
 # 机器生成产物豁免：内容由脚本生成、且已登记在目标文档索引中，重生成只改时间戳/行号，

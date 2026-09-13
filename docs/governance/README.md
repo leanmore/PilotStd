@@ -5,7 +5,7 @@
 | 文档 | 用途 | 状态 |
 |------|------|------|
 | [governance-principles.md](governance-principles.md) | 治理体系元原则（三件套、决策链、门禁设计） | v1.0 |
-| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线） | v1.9 |
+| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线） | v1.10 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
 | [refactoring_checklist.md](refactoring_checklist.md) | 重构前后操作清单 | 活跃 |
