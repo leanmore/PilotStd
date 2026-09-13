@@ -329,10 +329,10 @@ def test_scan_handler_migration_no_regression(window, test_data_dir, qtbot, tmp_
     handler = window._core.scan
     handler.run_scan(str(tmp_path))
 
-    worker = handler._scan_worker
-    if worker is not None:
-        qtbot.waitUntil(lambda: not worker.isRunning(), timeout=30000)
-
+    # 扫描结果经 QueuedConnection 投递到主线程才填表；只等 worker.isRunning() 为假
+    # 会在槽尚未执行时提前返回（waitUntil 首判为真则不跑事件循环）→ 断言到 0 行。
     table = window.work_table
+    qtbot.waitUntil(lambda: table.rowCount() > 0, timeout=30000)
+
     assert table.rowCount() > 0, "扫描后表格应有数据"
 
