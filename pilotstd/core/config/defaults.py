@@ -107,4 +107,11 @@ FACTORY_DEFAULTS = {
     "tasks.date_reminder_cron": "0 2 * * *",
     "tasks.auto_archive_retry_enabled": True,
     "tasks.auto_archive_retry_cron": "0 4 * * *",
+    # ── 下载节奏（手动批量下载与收藏下载链共用；暂不暴露到 Web/Win 界面）──
+    "download.batch_size": 10,  # 每批条数，批间长休息
+    "download.long_rest": 15.0,  # 批间冷却秒数
+    "download.max_workers": 2,  # 批内并发上限
+    "download.max_retries": 2,  # 网络失败重试轮数（引擎层）
+    "download.min_delay": 1.0,  # 请求间随机延迟下限（秒）
+    "download.max_delay": 3.0,  # 请求间随机延迟上限（秒）
 }

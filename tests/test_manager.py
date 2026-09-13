@@ -57,6 +57,42 @@ class TestStandardManager(unittest.TestCase):
         self.assertTrue(status["db_connected"])
         self.assertIsInstance(status["total_standards"], int)
 
+    def test_download_pacing_reads_config(self):
+        """A 方案：下载节奏参数（download.*）来自配置，而非构造函数硬编码。
+
+        手动批量下载与收藏下载链共用同一口径；暂不暴露到 Web/Win 界面。
+        """
+        from unittest.mock import patch as _patch
+
+        values = {
+            "network.timeout": 30,
+            "download.batch_size": 4,
+            "download.long_rest": 9.0,
+            "download.max_workers": 3,
+            "download.max_retries": 5,
+            "download.min_delay": 0.5,
+            "download.max_delay": 1.5,
+        }
+
+        with _patch(
+            "pilotstd.manager.facade._base.SessionManager"
+        ) as mock_sess, _patch(
+            "pilotstd.manager.facade._base.DownloadEngine"
+        ) as mock_engine, _patch(
+            "pilotstd.core.config.ConfigManager.get", autospec=True
+        ) as mock_get:
+            mock_get.side_effect = lambda self, key, default=None: values.get(key, default)
+            StandardManager()
+
+        sess_kwargs = mock_sess.call_args.kwargs
+        self.assertEqual(sess_kwargs["min_delay"], 0.5)
+        self.assertEqual(sess_kwargs["max_delay"], 1.5)
+        engine_kwargs = mock_engine.call_args.kwargs
+        self.assertEqual(engine_kwargs["batch_size"], 4)
+        self.assertEqual(engine_kwargs["long_rest"], 9.0)
+        self.assertEqual(engine_kwargs["max_workers"], 3)
+        self.assertEqual(engine_kwargs["max_retries"], 5)
+
     @pytest.mark.skipif(
         os.environ.get("CI") == "true",
         reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",

@@ -269,6 +269,35 @@ class DownloadEngine:
 
         return completed, stats
 
+    def run_paced_batches(self, items: List[Any], worker: Any) -> List[Any]:
+        """按引擎节奏对条目逐个执行 worker：分批 + 批内并发 + 批间冷却。
+
+        节奏参数（batch_size / max_workers / long_rest）与手动批量下载同源，
+        收藏下载链据此复用同一套限流口径，不再自设"每天 N 条"上限；
+        会话层的随机延迟由调用方在 worker 内经 SessionManager 生效。
+
+        单个 worker 抛异常只把该项落为 None（不中断整批），由调用方判定成败。
+        """
+        import concurrent.futures
+
+        results: List[Any] = []
+        total = len(items)
+        for start in range(0, total, self._batch_size):
+            batch = items[start : start + self._batch_size]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers) as pool:
+                futures = [pool.submit(worker, item) for item in batch]
+                for future in futures:
+                    try:
+                        results.append(future.result())
+                    except Exception as e:
+                        logger.error("批量任务线程异常: %s", e)
+                        results.append(None)
+            done = start + len(batch)
+            if done < total:
+                logger.info("批量任务进度: %d/%d，休息 %ds", done, total, self._long_rest)
+                time.sleep(self._long_rest)
+        return results
+
     # ---- 内部 ----
 
     def _resolve_target_path(self, task: DownloadTask) -> str:

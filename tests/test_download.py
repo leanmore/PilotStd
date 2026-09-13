@@ -9,6 +9,7 @@ if root_dir not in sys.path:
 
 import shutil
 import tempfile
+import threading
 import time
 import unittest
 
@@ -289,6 +290,71 @@ class TestDownloadEngine(unittest.TestCase):
         self.assertEqual(stats.success, 1)
         self.assertEqual(stats.skipped_adopted, 1)
         self.assertEqual(stats.failed, 1)
+
+    # ── run_paced_batches（A 方案：收藏链复用引擎节奏，不再自设每天 N 条）──
+
+    def test_run_paced_batches_processes_all_items_in_order(self):
+        items = list(range(7))
+
+        out = self.engine.run_paced_batches(items, lambda x: x * 10)
+
+        self.assertEqual(out, [x * 10 for x in items])
+
+    def test_run_paced_batches_sleeps_long_rest_between_batches(self):
+        """batch_size=2、5 条 → 3 批 → 批间休息 2 次（值为 long_rest）。"""
+        engine = DownloadEngine(
+            adapters=[self.mock],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+            batch_size=2,
+            long_rest=7.0,
+        )
+
+        with unittest.mock.patch("pilotstd.download.engine.time.sleep") as sleep_mock:
+            out = engine.run_paced_batches(list(range(5)), lambda x: x)
+
+        self.assertEqual(out, [0, 1, 2, 3, 4])
+        self.assertEqual(sleep_mock.call_count, 2)
+        self.assertEqual(sleep_mock.call_args_list[0].args[0], 7.0)
+
+    def test_run_paced_batches_respects_max_workers(self):
+        """max_workers=2 → 同时执行的 worker 不超过 2 个。"""
+        engine = DownloadEngine(
+            adapters=[self.mock],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+            batch_size=10,
+            max_workers=2,
+            long_rest=0.0,
+        )
+        state = {"cur": 0, "peak": 0}
+        lock = threading.Lock()
+
+        def worker(_item):
+            with lock:
+                state["cur"] += 1
+                state["peak"] = max(state["peak"], state["cur"])
+            time.sleep(0.05)
+            with lock:
+                state["cur"] -= 1
+            return True
+
+        out = engine.run_paced_batches(list(range(6)), worker)
+
+        self.assertEqual(len(out), 6)
+        self.assertEqual(state["peak"], 2, "并发度应受 max_workers 限制")
+
+    def test_run_paced_batches_worker_exception_does_not_abort_batch(self):
+        """单个 worker 抛异常 → 该项落为 None，其余项照常完成。"""
+
+        def worker(x):
+            if x == 1:
+                raise RuntimeError("boom")
+            return x
+
+        out = self.engine.run_paced_batches([0, 1, 2], worker)
+
+        self.assertEqual(out, [0, None, 2])
 
     def test_saved_file_naming(self):
         qr = FakeQueryResult("GB/T 1610-2010", standard_name="石油化工规范", number=1610, year=2010)

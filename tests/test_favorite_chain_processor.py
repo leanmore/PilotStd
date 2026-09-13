@@ -165,14 +165,48 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(retry, 3)
         self.assertEqual(status, "abandoned")
 
-    def test_batch_limit_10(self):
-        """25 条 pending → 单次仅处理 10 条。"""
+    def test_no_artificial_daily_cap(self):
+        """A 方案：取消"每天 10 条"人为上限，一轮处理全部到期记录。"""
         for i in range(1, 26):
             self._seed_announcement(i, f"GB/T {2000+i}", "2026-01-01")
             self._seed_favorite(1, i)
         self._dl_mode = "success"
+
         stats = self.fcp.process_chain()
-        self.assertEqual(stats["download"], 10)
+
+        self.assertEqual(stats["download"], 25, "不应再受 10 条/天限制")
+        self.assertTrue(all(self._fd_status(1, i)[0] == "done" for i in range(1, 26)))
+
+    def test_all_due_records_handed_to_engine_pacing(self):
+        """传入下载引擎时，全部到期记录交给引擎节奏（分批/并发/批间冷却）。"""
+        for i in range(1, 6):
+            self._seed_announcement(i, f"GB/T {3000+i}", "2026-01-01")
+            self._seed_favorite(1, i)
+        self._dl_mode = "success"
+
+        handled: list[int] = []
+
+        class _FakeEngine:
+            def run_paced_batches(self, items, worker):
+                handled.extend(items)
+                return [worker(it) for it in items]
+
+        processed = self.fcp.process_pending_downloads(_FakeEngine())
+
+        self.assertEqual(len(handled), 5, "5 条到期记录应全部交给引擎")
+        self.assertEqual(processed, 5)
+        self.assertTrue(all(self._fd_status(1, i)[0] == "done" for i in range(1, 6)))
+
+    def test_no_engine_falls_back_to_sequential(self):
+        """未传引擎（旧调用方）时退化为顺序处理，功能不受影响。"""
+        self._seed_announcement(1, "GB/T 4001-2020", "2026-01-01")
+        self._seed_favorite(1, 1)
+        self._dl_mode = "success"
+
+        processed = self.fcp.process_pending_downloads()
+
+        self.assertEqual(processed, 1)
+        self.assertEqual(self._fd_status(1, 1)[0], "done")
 
     def test_user_id_isolation(self):
         """两用户收藏同一 record_id → 状态互不影响。"""

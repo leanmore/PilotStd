@@ -196,11 +196,28 @@ class BaseFacade:
         )
 
     def _init_download(self, download_adapters: Optional[List[BaseDownloadAdapter]]) -> None:
-        """初始化下载子系统 + 任务队列 + 文件监控。"""
-        self._core.session_mgr = SessionManager(default_timeout=self._core.cfg.get("network.timeout", 30))
+        """初始化下载子系统 + 任务队列 + 文件监控。
+
+        下载节奏（download.*）统一从配置读取：手动批量下载与收藏下载链共用同一口径，
+        原先这些参数是构造函数硬编码默认值，配置里没有入口。
+        """
+        cfg = self._core.cfg
+        self._core.session_mgr = SessionManager(
+            default_timeout=cfg.get("network.timeout", 30),
+            min_delay=float(cfg.get("download.min_delay", 1.0)),
+            max_delay=float(cfg.get("download.max_delay", 3.0)),
+        )
         dl_adapter = download_adapters or [OpenstdDownloadAdapter(self._core.session_mgr.create_session())]
-        save_root = get_library_root(self._core.cfg)
-        self._core.download_engine = DownloadEngine(dl_adapter, self._core.session_mgr, save_root=save_root)
+        save_root = get_library_root(cfg)
+        self._core.download_engine = DownloadEngine(
+            dl_adapter,
+            self._core.session_mgr,
+            save_root=save_root,
+            batch_size=int(cfg.get("download.batch_size", 10)),
+            long_rest=float(cfg.get("download.long_rest", 15.0)),
+            max_workers=int(cfg.get("download.max_workers", 2)),
+            max_retries=int(cfg.get("download.max_retries", 2)),
+        )
         self._core.task_queue = TaskQueue(self._core.db)
 
         from ...pipeline.router import PipelineRouter
