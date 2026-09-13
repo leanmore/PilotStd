@@ -1,8 +1,9 @@
 # 技术债登记
 
-> 版本：v1.1.0
-> 更新日期：2026-08-25
+> 版本：v1.2.0
+> 更新日期：2026-09-13
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
+> 2026-09-13 追加：#13、#14 两条 G-031 文档联动缺口（`pilotstd/core/`、`pilotstd/announcement/` 无映射 → 代码变更不触发文档同步），来源为 G-031 按"事实归属"判据的体检结果（commit `6539dbe8`）。
 > 2026-08-25 全库审计：原待处理台账 12 条中 8 条（#1~#8）确认已解决并移入第一节（附 fix commit 证据），4 条（#9~#12）仍存在、描述已同步现状；第三/四节过时内容一并修正。同日 TD-9（#9，`bd34a226`）、TD-10（#10，P0 `07786678` + P1+P2 `acf2a7fd`）修复完成；TD-12（G-012 LANG）全量清零（`1d06e0d2`）后关闭（Won't Fix），剩余 1 条（#11）继续观察。
 
 ---
@@ -32,12 +33,14 @@
 
 ---
 
-## 二、剩余台账（#11 继续观察 / #12 已关闭；#1~#10 已解决，见第一节）
+## 二、剩余台账（#11 继续观察 / #12 已关闭；#13、#14 待补；#1~#10 已解决，见第一节）
 
 | # | 项目 | 位置 | 状态 | 说明 | 登记日期 |
 |---|------|------|------|------|---------|
 | 11 | G-010 警告基线 9 文件 | 9 文件（400–500 有效代码行，详见 [登记簿](architecture/technical-debt-registry.md) 第六节） | ⏳ 继续观察 (Monitoring) | 复核结论（2026-08-25）：9/9 文件仍处于 400-500 行警告区间（3 升/6 平/0 降），无一降至阈值以下，但均未触及 500 行阻断线。处置策略：①拒绝集中拆分——当前行数处于安全警告区，强制拆分 ROI 极低，易引入不必要的组件碎片化与认知负载；②维持 Boy Scout 原则——不设立专项拆分计划，仅在后续业务需求涉及这些文件时顺手局部重构；③观察触发条件——若任一文件触及 500 行阻断线，或出现连续 3 个批次行数单调上升，则立即升级为"需处理（Pending）"并启动拆分评估 | 2026-08-23 |
 | 12 | G-012 LANG 历史警告 + 白名单子串匹配机制 | `pilotstd/core/notification/`、`docker/api/announce_detail.py`、`scripts/` 等 | ✅ 已关闭 (Won't Fix) | 关闭理由（2026-08-25）：①风险可控——当前子串匹配仅用于白名单放行，只会多放、不会误杀；即使匹配过宽，最多导致某条注释未被统计，不会产生阻断级误报，不影响 CI 流水线的正确性；②无实际损害——经全量审计，当前白名单中无超短泛词（如 id、v 等），不存在因前缀/后缀重叠导致的隐蔽漏检案例；③ROI 极低——升级为正则边界匹配（\b...\b）需重写解析逻辑并补充大量边界测试用例，投入产出比远低于收益；④G-012 已清零——核心目标（消除 LANG 警告）已达成（`1d06e0d2`：白名单 58 词 + 11 处中文改写，50→0），实现细节的"完美"不应成为持续挂账的理由 | 2026-08-24 |
+| 13 | G-031 缺口：`pilotstd/core/` 无文档联动映射 | 映射表 `scripts/check_g_031_docs_sync.py`；事实载体 [architecture/modules/core.md](architecture/modules/core.md) | ⏳ 待处理 (Pending) | 判据（2026-09-13 确认）：文档要与代码一致，承载事实的文档存在就该联动。实测 `core.md` 自述模块路径 `pilotstd/core/` 且文件存在，但 G-031 的 `DOC_SYNC_MAP` 里没有 `pilotstd/core/` → `core.md` 这条，因此改任何 core 文件都不会触发文档同步，`core.md` 可静默过期。未立即补的原因：`pilotstd/core/` 覆盖面很大（config/db/notification/i18n 等子域），需先核定 `core.md` 的粒度是否足以承载"任意 core 文件变更"，否则会退化成形式联动（这正是本次刚消除的问题）。待办：核定 `core.md` 实际覆盖面 → 决定整包映射还是按子域映射 → 落地并加验证场景 | 2026-09-13 |
+| 14 | G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 映射表 `scripts/check_g_031_docs_sync.py`；事实载体 [reference/announcement-pipeline.md](reference/announcement-pipeline.md) | ⏳ 待处理 (Pending) | AGENTS.md §八 8.2 已把 `docs/reference/announcement-pipeline.md` 定为 `pilotstd/announcement/` 状态机/流程变更的回写目标，但 G-031 未落地该映射，改公告解析（如 `pilotstd/announcement/parser.py`）不触发任何文档同步。另注：该点曾被误配为 `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`（`c27c6c85` 引入），而 parser.md 实际描述的是 `pilotstd/scan/parser/`，已于 `6539dbe8` 修正。待办：把 `pilotstd/announcement/` → `announcement-pipeline.md` 纳入映射，并先核定该文档是否覆盖 parser 层变更 | 2026-09-13 |
 
 ---
 

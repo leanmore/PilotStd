@@ -1,7 +1,8 @@
 # 技术债登记簿
 
-> 更新日期：2026-08-25
+> 更新日期：2026-09-13
 > 维护规则：每次接受的技术决策或跳过的测试在此登记
+> 2026-09-13 追加：已知问题 #19、#20 —— G-031 文档联动缺口（`pilotstd/core/`、`pilotstd/announcement/` 无映射），来源为 G-031 按"事实归属"判据的体检（commit `6539dbe8`）
 > 2026-08-25 审计：修正 Mypy attr-defined 数量（244→0）、G-010 行数漂移、已跳过测试表行号/删除项，与 docs/technical-debt.md 保持同步
 
 ---
@@ -65,6 +66,8 @@
 | 16 | PyInstaller --noconsole sys.stderr=None 兜底 | 高 | 2026-07-09 | 已回退 | _SafeStream 于 2026-07-09 禁用，改用原生 stderr |
 | 17 | PyPDF2 已废弃，CI 产生 DeprecationWarning | 低 | 2026-07-05 | ✅ 已修复 (2026-07-05) | 全量迁移至 pypdf |
 | 18 | python-multipart 缺失导致 PyInstaller 打包后文件上传崩溃 | 高 | 2026-07-06 | ✅ 已修复 (2026-07-06) | 加入共享 requirements.txt |
+| 19 | G-031 缺口：`pilotstd/core/` 无文档联动映射 | 低 | 2026-09-13 | ⏳ 待处理 (Pending) | 改动 `pilotstd/core/` 不触发任何文档同步，`docs/architecture/modules/core.md` 可静默过期（该文档自述模块路径即 `pilotstd/core/`）。未立即补：需先核定 core.md 粒度能否承载"任意 core 文件变更"，否则退化为形式联动。详见 [technical-debt.md 第二节 #13](../technical-debt.md) |
+| 20 | G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 低 | 2026-09-13 | ⏳ 待处理 (Pending) | AGENTS.md §八 8.2 已定 `docs/reference/announcement-pipeline.md` 为该域回写目标，但 G-031 未落地映射；曾误配到描述 `pilotstd/scan/parser/` 的 parser.md（`c27c6c85`），已由 `6539dbe8` 修正。详见 [technical-debt.md 第二节 #14](../technical-debt.md) |
 
 ---
 
