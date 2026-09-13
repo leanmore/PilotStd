@@ -240,18 +240,6 @@ class TestV44FavoriteDownloads:
         # 确认使用 favorite_downloads
         assert "UPDATE favorite_downloads" in source, "download_to_inbox 未使用 favorite_downloads 表"
 
-    def test_archive_retry_uses_favorite_downloads(self):
-        """archive_retry_service 的 SELECT/JOIN 使用 favorite_downloads。"""
-        import inspect
-
-        from pilotstd.manager import archive_retry_service as ars
-
-        source = inspect.getsource(ars.ArchiveRetryService.retry_pending)
-        assert "FROM favorite_downloads" in source
-        assert "JOIN user_favorites" in source
-        # 确认无残留单表查询
-        assert "FROM user_favorites" not in source
-
     def test_date_reminder_joins_favorite_downloads(self):
         """date_reminder 使用 JOIN favorite_downloads。"""
         import inspect

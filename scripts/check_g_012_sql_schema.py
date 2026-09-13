@@ -18,10 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # 门禁零一二豁免：含连接且用表别名的查询字符串，
 # 列名到表归属在静态分析层面不可判定，人工审核确认无误后豁免
-_SQL_CHECK_SKIP = {
-    # 备份重试服务第六十一行 — 重试计数和收藏编号经表别名正确归属
-    ("pilotstd\\manager\\archive_retry_service.py", 61): True,
-}
+# （原 archive_retry_service.py 的豁免项随该死代码服务删除而移除）
+_SQL_CHECK_SKIP: dict = {}
 SCAN_DIRS = [
     ROOT / "docker" / "api",
     ROOT / "pilotstd" / "manager",

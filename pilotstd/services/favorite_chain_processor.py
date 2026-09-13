@@ -83,7 +83,7 @@ def update_status(
 def get_records_by_status(limit: int = 0) -> list[dict[str, Any]]:
     """扫描待处理记录（pending/failed，未达重试上限，已过冷却期，且为国标）。
 
-    冷却期语义与现有 archive_retry_service 一致：announcement_record.publish_date
+    冷却期语义：announcement_record.publish_date
     距今不足 COOLDOWN_DAYS 天的不处理（发布保护窗口）。
     类别闸：仅 NationalStd（国标）有下载适配器（std_gov→openstd_download 是唯一映射），
     行标/地标在此直接排除，不进入下载阶段也不消耗重试次数。
@@ -209,7 +209,7 @@ def _process_one_record(rec: dict[str, Any], today: str) -> int:
 
 
 def _notify_abandoned(user_id: int, record_id: int, error: str) -> None:
-    """重试耗尽后的放弃通知（自 archive_retry_service 迁移而来）。
+    """重试耗尽后的放弃通知（原 archive_retry_service 的实现随该死代码服务迁入）。
 
     放弃是终态：原先只有死代码服务会发 archive_abandoned，活跃链仅写日志，
     导致用户对"收藏再也下不下来"无感（生产 28 条 abandoned / 0 条通知）。

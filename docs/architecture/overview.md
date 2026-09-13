@@ -60,7 +60,7 @@ graph TD
     subgraph "任务子系统"
         Tasks[pilotstd/tasks/]
         FavoriteDL[favorite_download.py]
-        ArchiveRetry[archive_retry_service.py]
+        ChainProc[favorite_chain_processor.py]
         DateReminder[date_reminder.py]
     end
 
@@ -121,7 +121,7 @@ graph TD
 
 ### 任务子系统 [src: `pilotstd/tasks/`]
 - 收藏下载：[pilotstd/tasks/favorite_download.py](pilotstd/tasks/favorite_download.py) — `download_to_inbox()` 操作 `favorite_downloads` 表（v44 解耦后）
-- 重试服务：[pilotstd/manager/archive_retry_service.py](pilotstd/manager/archive_retry_service.py) — 冷却期 + 7 次重试 + abandoned
+- 收藏下载链：[pilotstd/services/favorite_chain_processor.py](pilotstd/services/favorite_chain_processor.py) — 冷却期 + 类别/采标闸 + 重试上限 3 次 + abandoned 通知；吞吐复用下载引擎节奏
 - 日期提醒：[pilotstd/tasks/date_reminder.py](pilotstd/tasks/date_reminder.py) — 30/15/7/0 天四级提醒
 
 ## 数据流向：标准查询完整链路

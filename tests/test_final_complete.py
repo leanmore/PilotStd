@@ -132,17 +132,18 @@ class TestTasks(unittest.TestCase):
         self.assertIn("failed", str(FavoriteArchiveError("download failed")))
 
     def test_get_standard_type_empty_table(self):
-        """A 修复后的等价契约：favorite_downloads 无记录时类别闸返回空串。"""
+        """A 修复后的等价契约：favorite_downloads 无记录时类别闸返回空串。
+
+        用 MagicMock 覆盖"查不到行"分支即可，无需在测试里重写建表语句
+        （自建 schema 会与迁移定义漂移，被 check_schema_consistency 门禁拦截）。
+        """
+        from unittest.mock import MagicMock
+
         from pilotstd.tasks.favorite_download import _get_standard_type
 
-        db = MockDatabase(
-            "CREATE TABLE IF NOT EXISTS favorite_downloads ("
-            "id INTEGER PRIMARY KEY, favorite_id INTEGER, standard_type TEXT)"
-        ).__enter__()
-        try:
-            self.assertEqual(_get_standard_type(1, db), "")
-        finally:
-            db.__exit__()
+        db = MagicMock()
+        db.fetchone.return_value = None
+        self.assertEqual(_get_standard_type(1, db), "")
 
     def test_date_reminder_module(self):
         from pilotstd.tasks import date_reminder

@@ -218,7 +218,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | `/api/favorites/{record_id}/status` | GET | 状态查询（含 in_cooldown/abandoned） |
 | `/api/favorites/{record_id}` | DELETE | 取消收藏 |
 
-**归档流程**：定时任务 `auto_archive_retry`（每天 04:00）扫描 pending/failed 记录，冷却期满后逐条调用 `download_to_inbox`，最多重试 7 次，超过则标记 abandoned 并通知用户。
+**归档流程**：定时任务 `auto_archive_retry`（每天 04:00）扫描全部到期 pending/failed 记录（仅国标、非采标、发布满冷却期），交由下载引擎按节奏（`download.batch_size` 分批 + `max_workers` 并发 + 批间 `long_rest` 冷却）执行 `download_to_inbox`；每条最多重试 3 次（跨天），超过则标记 abandoned **并发送 `archive_abandoned` 通知**。
 
 ### 参考
 

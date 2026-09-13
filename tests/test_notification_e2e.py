@@ -1,4 +1,4 @@
-﻿# tests/test_notification_e2e.py
+# tests/test_notification_e2e.py
 # Q20 集成验证：32 事件全量覆盖 — 注册状态 + 触发点静态检查 + 字段双向校验 + 互斥逻辑
 # 生成日期: 2026-07-22
 import ast
@@ -406,7 +406,7 @@ EVENTS: list[dict[str, Any]] = [
         "module": "归档",
         "level": "error",
         "aggregation": "聚合",
-        "trigger_file": "pilotstd/manager/archive_retry_service.py",
+        "trigger_file": "pilotstd/services/favorite_chain_processor.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_archive_abandoned_message",
         "builder_keys": {"standard_info", "error"},

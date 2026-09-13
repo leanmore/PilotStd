@@ -28,7 +28,7 @@ Batch 5 的 `test_notification_e2e.py` 中有 59 个字段一致性测试因静�
 | `normalize_failed` | `_organize.py:290` | total, error | total, error | ✅ | 完全一致 |
 | `archive_complete` | `_organize.py:153` | count | count, directories, standard_number, status, target_id, elapsed_ms | ✅ | 构建器扩展字段可选（调用方仅传 count） |
 | `archive_failed` | `organizer.py:218` | count, error | count, error | ✅ | 完全一致 |
-| `archive_abandoned` | `archive_retry_service.py:118` | user_id, record_id, standard_info, error | standard_info, error | ✅ | user_id/record_id 为系统字段 |
+| `archive_abandoned` | `favorite_chain_processor.py:213` | user_id, record_id, standard_info, error | standard_info, error | ✅ | user_id/record_id 为系统字段；随死代码服务删除而迁入收藏下载链 |
 | `expire_standard_moved` | `_organize.py:149` | standard_number, target_path | standard_number, target_path | ✅ | 完全一致（count 是同一个 try 块内其他触发方的字段，非本事件 payload） |
 | `announcement_fetch_complete` | `docker/api/announce.py:69` | count | count, source | ✅ | source 构建器可选 |
 | `announcement_check_complete` | `pilotstd/announce/notifier.py:32` | (扁平 result dict 透传) | source, total_announcements, gb_count, hb_count, db_count, total_standards, failures | ✅ | 分类统计由 check_all / _normalize_fetch_result 注入（2026-08-19 重构后） |

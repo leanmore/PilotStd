@@ -100,7 +100,7 @@ def add_favorite(
     mgr=Depends(get_manager_dep),
 ):
     """收藏标准记录：仅创建收藏关系，不触发下载。
-    下载由定时任务 archive_retry_service 在冷却期过后统一调度。
+    下载由定时任务 auto_archive_retry（favorite_chain_processor.process_chain）在冷却期后统一调度。
 
     等待时间：最长 28（冷却期）+ 1（cron 每日执行窗口）= 29 天。
     publish_date 当天收藏 → 首次尝试最早 D+28 04:00，最晚 D+29 04:00。
