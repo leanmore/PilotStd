@@ -3,7 +3,7 @@
 | 属性 | 值 |
 |------|-----|
 | 模块路径 | `pilotstd/ui/main_window/` |
-| G-031 映射 | `pilotstd/ui/main_window.py` |
+| G-031 映射 | `pilotstd/ui/main_window/` |
 | 核心类 | `MainWindow(QMainWindow)` |
 | 子模块数 | 14 个 parts + 14 个 Handler |
 | 总行数 | ~1,700（main_window + parts） |
@@ -75,4 +75,4 @@ Handler Handler  Handler    (worker)   Handler
 ## 相关文档
 
 - [管理模块](manager.md) — `StandardManager` 门面架构
-- [ADR-001](../decisions/ADR-001-modal-dialog-auto-clicker.md) — 模态对话框自动处理
+- [ADR-001](../../adr/ADR-001-modal-dialog-auto-clicker.md) — 模态对话框自动处理

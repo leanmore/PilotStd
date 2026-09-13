@@ -3,7 +3,7 @@
 | 属性 | 值 |
 |------|-----|
 | 模块路径 | `pilotstd/scan/` |
-| G-031 映射 | `pilotstd/core/_scan.py`（注：实际模块在 `pilotstd/scan/` 而非 `core/`） |
+| G-031 映射 | `pilotstd/scan/`（`parser/` 子包由 [parser.md](parser.md) 承载，本文件不重复要求） |
 | 核心文件 | `scanner.py`、`parser/`、`watcher.py` |
 | 总行数 | ~788（含 parser 子包） |
 | 状态 | 活跃 |

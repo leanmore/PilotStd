@@ -3,7 +3,7 @@
 | 属性 | 值 |
 |------|-----|
 | 模块路径 | `pilotstd/scan/parser/` |
-| G-031 映射 | `pilotstd/core/parser.py` |
+| G-031 映射 | `pilotstd/scan/parser/` |
 | 核心类 | `StandardParser` |
 | 文件数 | 11 |
 | 总行数 | ~1,119 |
@@ -56,5 +56,5 @@ StandardParser (入口)
 
 ## 相关文档
 
-- [ADR-001](../decisions/ADR-001-modal-dialog-auto-clicker.md) — 事件驱动架构决策
+- [ADR-001](../../adr/ADR-001-modal-dialog-auto-clicker.md) — 事件驱动架构决策
 - [扫描模块](scan.md) — 文件扫描与解析器调用
