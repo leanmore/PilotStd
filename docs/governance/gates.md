@@ -172,10 +172,32 @@
 
 ---
 
+## 执行入口：`scripts/check_all.sh` 模式
+
+| 模式 | 内容 | 是否写文件 |
+|------|------|-----------|
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、`_wait_worker` 防回潮 | 否 |
+| `--guards` | **治理守护（只读）**：Schema 一致性、G-037、G-030、G-033 | 否 |
+| `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） |
+| `--deep` | Ruff 全量、Mypy、G-020 Vulture、G-038、`--guards` | 否 |
+| `--all` | `--fast` → `--docs` → `--deep` | 是 |
+
+- **多模式可叠加**：`check_all.sh --fast --guards` 会依次执行两个模式（2026-09 修复：
+  原实现 `MODE="${1:---fast}"` 只取第一个参数，导致 pre-commit 钩子里写的
+  `--fast --docs` 实际只跑 `--fast`，docs 类门禁形同虚设；未知参数现在直接报用法并退出 1）。
+- **pre-commit 钩子**（`.husky/pre-commit`）执行 `--fast --guards`：选用 `--guards` 而非 `--docs`，
+  是因为后者会重写 `STATUS.md`/覆盖率文档（弄脏工作树）并因重跑带覆盖率采集的 pytest 显著拉长提交时间。
+- **G-038 仍在 `--deep`**：它需要 PATH 上存在 `ruff`/`mypy` 可执行文件，各开发机是否安装不一致，
+  故不纳入提交时门禁；CI 的 test-backend job 用 venv 内的 ruff 强制执行。
+- **G-031 仅在 CI 阻断**（本地不阻断，符合其"文档联动提醒"定位）；判定基准为 `origin/main..HEAD`。
+
+---
+
 ## 版本历史
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.5 | 2026-09-13 | 修复 `check_all.sh` 参数解析（支持多模式叠加，未知参数报错退出）；新增 `--guards` 只读治理守护模式并接入 pre-commit 钩子（原 `--fast --docs` 的 docs 部分从未执行）；补充"执行入口"章节 |
 | v1.4 | 2026-08-24 | G-010 升级 v2：>500 行阻断新增拆分验证（拆分证据 + 原文件 ≤500 行，缺一不可）；警告档（400-500 行）行为不变 |
 | v1.3 | 2026-08-20 | 移除 G-016（与 G-011 重复）；补齐 G-015 脚本并接入 `check_all.sh --fast`；G-032 补充 CI 行为说明 |
 | v1.2 | 2026-07-19 | 新增 G-037（触发条件对齐）、G-038（历史遗留错误清零） |

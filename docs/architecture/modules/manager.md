@@ -54,9 +54,14 @@ StandardManager (BaseFacade)
     ├── ExportService       — 导出
     ├── QualityService      — 质量检查
     ├── MonitorService      — 监控
-    ├── SystemService       — 系统信息
+    ├── SystemService       — 系统信息（`_init_services` 接线，供 `/api/system/health` 使用）
     └── WechatIPService     — 企业微信 IP
 ```
+
+> 变更记录（2026-09）：原 `ArchiveRetryService`（`archive_retry_service.py`）为死代码——自 v54 起
+> `auto_archive_retry` 由 `favorite_chain_processor.process_chain()` 承担，该服务无任何调度方，
+> 已删除；其 `archive_abandoned` 通知职责迁入收藏下载链。`SystemService` 由
+> `BaseFacade._init_services()` 实例化后暴露为 `mgr.system_service`。
 
 ## 门面模式
 

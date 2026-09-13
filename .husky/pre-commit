@@ -1,5 +1,11 @@
 #!/bin/sh
 # Trinity Pre-commit Hook
-# 唯一入口：调用 check_all.sh --fast --docs
+# 唯一入口：调用 check_all.sh --fast --guards
 # 不包含任何内联门禁逻辑
-bash scripts/check_all.sh --fast --docs || exit 1
+#
+# 说明：原为 `--fast --docs`，但 check_all.sh 旧实现只取第一个参数，
+# 实际只跑 --fast（docs/治理门禁形同虚设）。脚本已修正为支持叠加模式；
+# 此处改用 --guards（只读治理守护：Schema 一致性/G-037/G-038/G-030/G-033），
+# 而不用 --docs——后者会重写 STATUS.md 与覆盖率文档，把工作树弄脏、
+# 并因重跑带覆盖率采集的 pytest 而显著拉长提交时间。
+bash scripts/check_all.sh --fast --guards || exit 1

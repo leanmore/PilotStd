@@ -5,7 +5,25 @@
 # ============================================================
 set -euo pipefail
 
-MODE="${1:---fast}"
+# ============================================================
+# 参数解析：支持叠加多个模式（如 pre-commit 的 `--fast --guards`）
+#  历史缺陷：原实现只取 $1（MODE="${1:---fast}"），
+#  钩子里写的 `--fast --docs` 实际只跑了 --fast，
+#  导致 docs/治理类门禁从未参与提交校验（实测日志中无 docs 步骤）。
+# ============================================================
+MODES=()
+for arg in "$@"; do
+    case "$arg" in
+        --fast|--docs|--deep|--guards|--all) MODES+=("$arg") ;;
+        *)
+            echo "Usage: $0 [--fast|--docs|--deep|--guards|--all] ..." >&2
+            exit 1
+            ;;
+    esac
+done
+if [ ${#MODES[@]} -eq 0 ]; then
+    MODES=(--fast)
+fi
 EXIT_CODE=0
 
 # --- 颜色定义 ---
@@ -128,6 +146,45 @@ run_docs() {
 }
 
 # ============================================================
+# --guards: 治理守护（只读、无外部工具链依赖）
+#   pre-commit 钩子使用本模式：既真正拦住治理类违规，
+#   又不会像 --docs 那样重写 STATUS.md / 覆盖率文档而弄脏工作树。
+#   G-038（ruff+mypy+裸 noqa）需要 PATH 上存在 ruff/mypy 可执行文件，
+#   不同开发机是否安装不一致，故仍留在 --deep，不纳入提交时门禁。
+# ============================================================
+run_guards() {
+    echo "🛡️  Running GOVERNANCE guards (read-only)..."
+
+    # Schema 一致性
+    if python scripts/check_schema_consistency.py; then
+        log_pass "Schema 一致性"
+    else
+        log_fail "Schema 一致性"
+    fi
+
+    # G-037: 触发条件对齐
+    if python scripts/check_g_037_trigger_alignment.py; then
+        log_pass "G-037 触发条件对齐"
+    else
+        log_fail "G-037 触发条件对齐"
+    fi
+
+    # G-030: 技术债联动
+    if python scripts/check_g_030_tech_debt.py; then
+        log_pass "G-030 技术债联动"
+    else
+        log_fail "G-030 技术债联动"
+    fi
+
+    # G-033: ADR 完整性
+    if python scripts/check_g_033_adr_integrity.py; then
+        log_pass "G-033 ADR 完整性"
+    else
+        log_fail "G-033 ADR 完整性"
+    fi
+}
+
+# ============================================================
 # --deep: 全量静态分析 (<60s)
 # ============================================================
 run_deep() {
@@ -154,67 +211,43 @@ run_deep() {
         log_fail "G-020 Vulture 死代码"
     fi
 
-    # Schema 一致性
-    if python scripts/check_schema_consistency.py; then
-        log_pass "Schema 一致性"
-    else
-        log_fail "Schema 一致性"
-    fi
-
-    # G-037: 触发条件对齐
-    if python scripts/check_g_037_trigger_alignment.py; then
-        log_pass "G-037 触发条件对齐"
-    else
-        log_fail "G-037 触发条件对齐"
-    fi
-
-    # G-038: 历史遗留错误清零
+    # G-038: 历史遗留错误清零（ruff + mypy + 裸 noqa）
     if python scripts/check_g_038_legacy_errors.py; then
         log_pass "G-038 历史遗留错误清零"
     else
         log_fail "G-038 历史遗留错误清零"
     fi
 
-    # G-030: 技术债联动
-    if python scripts/check_g_030_tech_debt.py; then
-        log_pass "G-030 技术债联动"
-    else
-        log_fail "G-030 技术债联动"
-    fi
-
-    # G-033: ADR 完整性
-    if python scripts/check_g_033_adr_integrity.py; then
-        log_pass "G-033 ADR 完整性"
-    else
-        log_fail "G-033 ADR 完整性"
-    fi
+    # 治理守护（与 --guards 同一实现，避免两处漂移）
+    run_guards
 }
 
 # ============================================================
 # 主调度
 # ============================================================
-case "$MODE" in
-    --fast)
-        run_fast
-        ;;
-    --docs)
-        run_docs
-        ;;
-    --deep)
-        run_deep
-        ;;
-    --all)
-        run_fast
-        echo ""
-        run_docs
-        echo ""
-        run_deep
-        ;;
-    *)
-        echo "Usage: $0 [--fast|--deep|--docs|--all]"
-        exit 1
-        ;;
-esac
+for _mode in "${MODES[@]}"; do
+    case "$_mode" in
+        --fast)
+            run_fast
+            ;;
+        --docs)
+            run_docs
+            ;;
+        --deep)
+            run_deep
+            ;;
+        --guards)
+            run_guards
+            ;;
+        --all)
+            run_fast
+            echo ""
+            run_docs
+            echo ""
+            run_deep
+            ;;
+    esac
+done
 
 if [ $EXIT_CODE -eq 0 ]; then
     echo -e "\n${GREEN}✅ 所有检查通过！${NC}"
