@@ -263,7 +263,7 @@ class TestRunDateReminder:
 from pilotstd.tasks.favorite_download import (
     FavoriteArchiveError,
     _find_in_file_index,
-    _get_download_url,
+    _get_standard_type,
     _safe_filename,
     download_to_inbox,
 )
@@ -286,35 +286,18 @@ class TestFavoriteArchiveError:
         assert str(err) == "test error"
 
 
-class TestGetDownloadUrl:
-    def test_returns_url_from_cache(self, monkeypatch):
+class TestGetStandardType:
+    """A 修复：类别闸的数据来源（favorite_downloads.standard_type）。"""
+
+    def test_returns_type(self):
         db = MagicMock()
-        cursor = MagicMock()
-        cursor.fetchone.return_value = {
-            "result_json": '{"download_url": "https://example.com/dl"}'
-        }
-        db.execute.return_value = cursor
+        db.fetchone.return_value = {"standard_type": "NationalStd"}
+        assert _get_standard_type(1, db) == "NationalStd"
 
-        url = _get_download_url("GB/T 1234-2020", db)
-        assert url == "https://example.com/dl"
-
-    def test_no_cache_returns_none(self, monkeypatch):
+    def test_missing_returns_empty(self):
         db = MagicMock()
-        cursor = MagicMock()
-        cursor.fetchone.return_value = None
-        db.execute.return_value = cursor
-
-        url = _get_download_url("GB/T 1234-2020", db)
-        assert url is None
-
-    def test_json_error_returns_none(self, monkeypatch):
-        db = MagicMock()
-        cursor = MagicMock()
-        cursor.fetchone.return_value = {"result_json": "{invalid"}
-        db.execute.return_value = cursor
-
-        url = _get_download_url("GB/T 1234-2020", db)
-        assert url is None
+        db.fetchone.return_value = None
+        assert _get_standard_type(1, db) == ""
 
 
 class TestDownloadToInbox:
@@ -392,11 +375,10 @@ class TestDownloadToInbox:
         assert any("failed" in str(c) for c in update_calls)
 
 
-# === Added for favorite_download coverage boost (L29-30, L51-66, L73-90, L103-116, L147-190) ===
+# === Added for favorite_download coverage boost (L29-30, L51-66, L103-116) ===
 
 
 from pilotstd.tasks.favorite_download import (
-    _download_with_retry,
     _get_inbox_dir,
     _notify_download_failed,
 )
@@ -474,82 +456,6 @@ class TestFindInFileIndex:
             assert result is None
 
 
-# ── L73-90: _download_with_retry ──
-
-
-class TestDownloadWithRetry:
-    @pytest.fixture(autouse=True)
-    def _patch_sleep(self):
-        with patch("time.sleep"):
-            yield
-
-    def test_first_attempt_succeeds(self, tmp_path):
-        target = tmp_path / "out.pdf"
-        mock_resp = MagicMock()
-        mock_resp.iter_content.return_value = [b"data"]
-        mock_resp.raise_for_status.return_value = None
-
-        with patch("requests.get", return_value=mock_resp):
-            ok, err = _download_with_retry("https://example.com/dl", target, max_retries=3)
-
-        assert ok is True
-        assert err is None
-        assert target.exists()
-
-    def test_retries_then_succeeds(self, tmp_path):
-        target = tmp_path / "out.pdf"
-        fail_resp = MagicMock()
-        fail_resp.raise_for_status.side_effect = __import__("requests").exceptions.ConnectionError("fail")
-        ok_resp = MagicMock()
-        ok_resp.iter_content.return_value = [b"data"]
-        ok_resp.raise_for_status.return_value = None
-
-        with patch("requests.get", side_effect=[fail_resp, ok_resp]):
-            ok, err = _download_with_retry("url", target, max_retries=3)
-
-        assert ok is True
-
-    def test_all_attempts_fail(self, tmp_path):
-        target = tmp_path / "out.pdf"
-        fail = __import__("requests").exceptions.ConnectionError("fail")
-
-        with patch("requests.get", side_effect=fail):
-            ok, err = _download_with_retry("url", target, max_retries=2)
-
-        assert ok is False
-        assert err is not None
-
-    def test_exponential_backoff_sleep_calls(self, tmp_path):
-        target = tmp_path / "out.pdf"
-
-        class FailTwiceThenOk:
-            def __init__(self):
-                self.calls = 0
-
-            def get(self, url, timeout, stream):
-                self.calls += 1
-                if self.calls < 3:
-                    raise __import__("requests").exceptions.ConnectionError("fail")
-                resp = MagicMock()
-                resp.iter_content.return_value = [b"ok"]
-                resp.raise_for_status.return_value = None
-                return resp
-
-        handler = FailTwiceThenOk()
-        mock_sleep = MagicMock()
-
-        with patch("requests.get", side_effect=handler.get), patch(
-            "time.sleep", mock_sleep
-        ):
-            ok, _ = _download_with_retry("url", target, max_retries=3)
-
-        assert ok is True
-        # 2次失败后各 sleep 一次：第1次 2^1=2s, 第2次 2^2=4s
-        assert mock_sleep.call_count == 2
-        assert mock_sleep.call_args_list[0].args[0] == 2
-        assert mock_sleep.call_args_list[1].args[0] == 4
-
-
 # ── L103-116: _notify_download_failed ──
 
 
@@ -589,211 +495,167 @@ class TestNotifyDownloadFailed:
             _notify_download_failed(1, "X", "e", 1)
 
 
-# ── L147-190: download_to_inbox 主流程扩展 ──
+# ── download_to_inbox 主流程（A 修复后契约）──
 
 
 class TestDownloadToInboxMainFlow:
-    def test_download_phase_updates_status_to_downloading(self, tmp_path):
-        """下载阶段：状态更新为 'downloading'。"""
-        db = MagicMock()
-        # record found
-        db.execute.return_value.fetchone.side_effect = [
-            {"standard_number": "GB/T 1-2020"},  # announcement_record
-            None,  # _find_in_file_index: no existing
-            {"result_json": '{"download_url": "https://dl.example.com/file.pdf"}'},  # download URL
-        ]
+    """A 修复后的主流程：类别闸 → hcno 取用 → 适配器取字节 → inbox 归档轮询。
 
-        mock_resp = MagicMock()
-        mock_resp.iter_content.return_value = [b"pdf data"]
-        mock_resp.raise_for_status.return_value = None
+    与修复前的差别：下载不再来自"缓存里的 download_url + 裸 requests.get"，
+    而是 DownloadEngine.fetch_bytes（经 std_gov→openstd_download 适配器）。
+    """
 
-        with patch(
-            "pilotstd.tasks.favorite_download.Database", return_value=db
-        ), patch(
-            "pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"
-        ), patch(
-            "pilotstd.tasks.favorite_download._find_in_file_index",
-            side_effect=[None, None],
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=tmp_path / "tmp" / "inbox",
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_download_url",
-            return_value="https://dl.example.com/file.pdf",
-        ), patch(
-            "pilotstd.tasks.favorite_download._download_with_retry",
-            return_value=(True, None),
-        ), patch(
-            # 隔离通知副作用（同 test_polling_loop_finds_file_on_third_check）
-            "pilotstd.tasks.favorite_download._notify_download_started",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_complete",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_failed",
-        ), patch("time.sleep"):
+    @staticmethod
+    def _query_result(hcno: str = "ABC123", adopted: bool = False):
+        return MagicMock(hcno=hcno, is_adopted=adopted)
+
+    _UNSET = object()
+
+    def _run(self, db, mgr, tmp_path, find, query_result=_UNSET):
+        """统一打桩后跑一次 download_to_inbox，返回 (sleep_mock, notify_failed_mock)。
+
+        query_result 默认给一个含 hcno 的查询结果；显式传 None 表示"缓存与现场查询都取不到"。
+        """
+        from contextlib import ExitStack
+
+        if query_result is self._UNSET:
+            query_result = self._query_result()
+        with ExitStack() as stack:
+            stack.enter_context(
+                patch("pilotstd.tasks.favorite_download.Database", return_value=db)
+            )
+            stack.enter_context(
+                patch("pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:")
+            )
+            if isinstance(find, list):
+                stack.enter_context(
+                    patch(
+                        "pilotstd.tasks.favorite_download._find_in_file_index",
+                        side_effect=find,
+                    )
+                )
+            else:
+                stack.enter_context(
+                    patch(
+                        "pilotstd.tasks.favorite_download._find_in_file_index",
+                        return_value=find,
+                    )
+                )
+            stack.enter_context(
+                patch(
+                    "pilotstd.tasks.favorite_download._get_inbox_dir",
+                    return_value=tmp_path / "tmp" / "inbox",
+                )
+            )
+            stack.enter_context(
+                patch(
+                    "pilotstd.tasks.favorite_download._load_cached_query_result",
+                    return_value=query_result,
+                )
+            )
+            stack.enter_context(
+                patch("pilotstd.manager.facade.StandardManager", return_value=mgr)
+            )
+            stack.enter_context(
+                patch("pilotstd.tasks.favorite_download._notify_download_started")
+            )
+            stack.enter_context(
+                patch("pilotstd.tasks.favorite_download._notify_download_complete")
+            )
+            notify_failed = stack.enter_context(
+                patch("pilotstd.tasks.favorite_download._notify_download_failed")
+            )
+            sleep_mock = stack.enter_context(patch("time.sleep"))
             download_to_inbox(1, 100, 999)
+        return sleep_mock, notify_failed
 
-        # 验证状态更新链
+    @staticmethod
+    def _db(standard_number: str = "GB/T 1-2020", std_type: str = "NationalStd"):
+        db = MagicMock()
+        db.execute.return_value.fetchone.side_effect = [
+            {"standard_number": standard_number},
+        ]
+        db.fetchone.return_value = {"standard_type": std_type}
+        return db
+
+    def test_download_phase_updates_status_chain(self, tmp_path):
+        """正常路径：downloading → archiving → done。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
+
+        self._run(db, mgr, tmp_path, find=[None, "/found/path.pdf"])
+
         status_updates = [
             c.args[0] for c in db.execute.call_args_list
             if "UPDATE favorite_downloads SET status" in str(c.args[0])
         ]
-        # downloading → archiving → done
-        assert len(status_updates) >= 2
+        assert len(status_updates) >= 3
+        assert any("done" in s for s in status_updates)
 
-    def test_polling_loop_finds_file_on_third_check(self, tmp_path):
-        """轮询循环：第3次检查找到文件 → 正常退出。"""
-        db = MagicMock()
-        db.execute.return_value.fetchone.side_effect = [
-            {"standard_number": "GB/T 1-2020"},  # record
-        ]
+    def test_polling_loop_finds_file_on_second_check(self, tmp_path):
+        """轮询循环：第2次检查找到文件 → sleep 2 次后置 done。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
 
-        mock_sleep = MagicMock()
+        sleep_mock, _ = self._run(db, mgr, tmp_path, find=[None, None, "/found/path.pdf"])
 
-        with patch(
-            "pilotstd.tasks.favorite_download.Database", return_value=db
-        ), patch(
-            "pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"
-        ), patch(
-            "pilotstd.tasks.favorite_download._find_in_file_index",
-            side_effect=[None, None, "/found/path.pdf"],  # 第3次找到
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_download_url",
-            return_value="https://dl.example.com/file.pdf",
-        ), patch(
-            "pilotstd.tasks.favorite_download._download_with_retry",
-            return_value=(True, None),
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=tmp_path / "tmp" / "inbox",
-        ), patch(
-            # 隔离通知副作用：CI 环境下 send_event 走真实管道，
-            # 与全局 time.sleep patch 交互导致轮询 sleep 计数 flaky（assert 3 == 2）
-            "pilotstd.tasks.favorite_download._notify_download_started",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_complete",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_failed",
-        ), patch(
-            "time.sleep", mock_sleep
-        ):
-            download_to_inbox(1, 100, 999)
-
-        # 第3次找到 → sleep 被调用 2 次
-        assert mock_sleep.call_count == 2
-        # 验证最终状态为 done
-        done_updates = [
-            c for c in db.execute.call_args_list
-            if "done" in str(c.args[0])
-        ]
+        assert sleep_mock.call_count == 2
+        done_updates = [c for c in db.execute.call_args_list if "done" in str(c.args[0])]
         assert len(done_updates) >= 1
 
     def test_polling_loop_timeout_updates_failed(self, tmp_path):
-        """轮询超时（30次都未找到）→ 更新状态为 failed。"""
-        db = MagicMock()
-        # 需要足够的 fetchone 返回值：record + 各种中间查询
-        db.execute.return_value.fetchone.side_effect = [
-            {"standard_number": "GB/T 1-2020"},  # announcement_record
-        ] + [None] * 50  # 其余调用都返回 None
+        """轮询超时（30 次都未找到）→ 更新状态为 failed（归档超时）。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
 
-        with patch(
-            "pilotstd.tasks.favorite_download.Database", return_value=db
-        ), patch(
-            "pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"
-        ), patch(
-            "pilotstd.tasks.favorite_download._find_in_file_index",
-            return_value=None,  # 永远找不到
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_download_url",
-            return_value="https://dl.example.com/file.pdf",
-        ), patch(
-            "pilotstd.tasks.favorite_download._download_with_retry",
-            return_value=(True, None),
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=tmp_path / "tmp" / "inbox",
-        ), patch(
-            # 隔离通知副作用（同 test_polling_loop_finds_file_on_third_check）
-            "pilotstd.tasks.favorite_download._notify_download_started",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_complete",
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_failed",
-        ), patch("time.sleep"):
-            download_to_inbox(1, 100, 999)
+        self._run(db, mgr, tmp_path, find=None)
 
         timeout_updates = [
-            c for c in db.execute.call_args_list
-            if "归档超时" in str(c.args)
+            c for c in db.execute.call_args_list if "归档超时" in str(c.args)
         ]
         assert len(timeout_updates) == 1
 
-    def test_no_download_url_raises_favorite_error(self):
-        """_get_download_url 返回 None → FavoriteArchiveError（L154）。"""
-        db = MagicMock()
-        db.execute.return_value.fetchone.return_value = {
-            "standard_number": "GB/T 1-2020"
-        }
+    def test_no_hcno_raises_favorite_error(self, tmp_path):
+        """缓存未命中且现场查询无 hcno → 失败，且不得进入下载阶段。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.query_by_numbers.return_value = ([], None)
 
-        with patch(
-            "pilotstd.tasks.favorite_download.Database", return_value=db
-        ), patch(
-            "pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"
-        ), patch(
-            "pilotstd.tasks.favorite_download._find_in_file_index",
-            return_value=None,
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_download_url",
-            return_value=None,  # 无下载链接
-        ):
-            download_to_inbox(1, 100, 999)
+        self._run(db, mgr, tmp_path, find=None, query_result=None)
 
-        # 异常被外层捕获，更新状态为 failed
-        failed_updates = [
-            c for c in db.execute.call_args_list
-            if "failed" in str(c.args[0])
-        ]
+        failed_updates = [c for c in db.execute.call_args_list if "failed" in str(c.args[0])]
         assert len(failed_updates) >= 1
+        mgr.download_engine.fetch_bytes.assert_not_called()
 
     def test_download_fails_notifies_and_updates_failed(self, tmp_path):
-        """下载失败 → 通知失败 + 更新状态为 failed。"""
-        db = MagicMock()
-        db.execute.return_value.fetchone.side_effect = [
-            {"standard_number": "GB/T 1-2020"},  # record
-        ]
+        """下载失败 → 仅 1 条 download_failed 通知 + 状态 failed。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (None, "connection refused")
 
-        with patch(
-            "pilotstd.tasks.favorite_download.Database", return_value=db
-        ), patch(
-            "pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"
-        ), patch(
-            "pilotstd.tasks.favorite_download._find_in_file_index",
-            return_value=None,
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_inbox_dir",
-            return_value=tmp_path / "tmp" / "inbox",
-        ), patch(
-            "pilotstd.tasks.favorite_download._get_download_url",
-            return_value="https://dl.example.com/file.pdf",
-        ), patch(
-            "pilotstd.tasks.favorite_download._download_with_retry",
-            return_value=(False, "connection refused"),
-        ), patch(
-            "pilotstd.tasks.favorite_download._notify_download_failed"
-        ) as mock_notify:
-            download_to_inbox(1, 100, 999)
+        _, notify = self._run(db, mgr, tmp_path, find=None)
 
-        mock_notify.assert_called_once()
-        # P-107 修复（v1.1 清理）：失败路径仅发送 1 条 download_failed（外层 except 统一补发，
-        # 载荷为包装后的 str(e)），不再发送内层原始错误通知
-        call_args = mock_notify.call_args[0]
-        assert call_args[0] == 100  # user_id
-        assert call_args[1] == "GB/T 1-2020"  # standard_number
-        assert "下载失败(重试3次)" in call_args[2]  # 包装后的错误信息
-        assert call_args[3] == 1  # favorite_id
-        # 验证更新为 failed
-        failed_updates = [
-            c for c in db.execute.call_args_list
-            if "failed" in str(c.args[0])
-        ]
+        notify.assert_called_once()
+        call_args = notify.call_args[0]
+        assert call_args[0] == 100
+        assert call_args[1] == "GB/T 1-2020"
+        assert "下载失败" in call_args[2]
+        assert call_args[3] == 1
+        failed_updates = [c for c in db.execute.call_args_list if "failed" in str(c.args[0])]
         assert len(failed_updates) >= 1
+
+    def test_category_gate_blocks_non_national(self, tmp_path):
+        """类别闸：行标在取 hcno 之前就被拒绝。"""
+        db = self._db(standard_number="HB 1-2020", std_type="IndustryStd")
+        mgr = MagicMock()
+
+        _, notify = self._run(db, mgr, tmp_path, find=None)
+
+        assert "非国标标准" in notify.call_args[0][2]
+        mgr.query_by_numbers.assert_not_called()
+        mgr.download_engine.fetch_bytes.assert_not_called()
+
+

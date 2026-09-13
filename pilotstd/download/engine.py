@@ -23,6 +23,10 @@ from .session import SessionManager
 
 logger = logging.getLogger(__name__)
 
+# fetch_bytes 的瞬时故障重试（与原收藏链 _download_with_retry 的 3 次尝试口径一致）
+_FETCH_MAX_ATTEMPTS = 3
+_FETCH_BACKOFF_SECONDS = (2, 4)
+
 
 class DownloadEngine:
     """文件下载引擎，负责适配器选择、文件后处理和统计。"""
@@ -57,6 +61,40 @@ class DownloadEngine:
         ensure_dir(self._save_root)
 
     # 公共接口
+
+    def fetch_bytes(self, task: DownloadTask) -> tuple[Optional[bytes], str]:
+        """按任务路由到适配器取回内容，不落盘。返回 (内容, 错误信息)。
+
+        供收藏下载链复用适配器编排（std_gov→openstd_download 映射、会话节流），
+        由调用方决定落盘位置。采标标准直接拒绝（与 download_single 同口径）。
+        网络类异常按 _FETCH_BACKOFF_SECONDS 退避重试；适配器自身给出的业务失败
+        （缺 hcno / 暂无全文 / 验证码失败）不重试。
+        """
+        if task.query_result and getattr(task.query_result, "is_adopted", False):
+            return None, "采标标准，版权受限，自动跳过"
+        adapter = self._find_adapter(task)
+        if adapter is None:
+            return None, "没有匹配的下载适配器"
+
+        last_error = ""
+        for attempt in range(1, _FETCH_MAX_ATTEMPTS + 1):
+            task.error_message = ""
+            self._session_mgr.delay()
+            try:
+                content = adapter.download(task)
+            except requests.RequestException as e:
+                last_error = str(e)
+                logger.warning(
+                    "下载请求异常 (%d/%d): %s - %s", attempt, _FETCH_MAX_ATTEMPTS, task.standard_number, e
+                )
+            else:
+                if content:
+                    return content, ""
+                # 适配器业务失败：重试无意义，直接回传其错误说明
+                return None, task.error_message or "下载内容为空"
+            if attempt < _FETCH_MAX_ATTEMPTS:
+                time.sleep(_FETCH_BACKOFF_SECONDS[attempt - 1])
+        return None, last_error
 
     def download_single(self, task: DownloadTask, skip_adopted: bool = True) -> DownloadTask:
         """下载单个任务，返回更新后的任务对象（含状态和本地路径）。"""

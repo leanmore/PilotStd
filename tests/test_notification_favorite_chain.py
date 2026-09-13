@@ -130,24 +130,25 @@ class TestDownloadChainEvents:
         mock_db.execute.return_value.fetchone.return_value = {
             "standard_number": "GB/T 1234-2026",
         }
-        # file_index 无已有文件（复用检查）
-        mock_find = MagicMock(return_value=None)
-        # 下载 URL 有值
-        mock_url = MagicMock(return_value="http://example.com/file.pdf")
+        # 类别闸（favorite_downloads.standard_type）与 file_index 复用检查
+        mock_db.fetchone.return_value = {"standard_type": "NationalStd"}
+        mock_mgr = MagicMock()
+        mock_mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
 
         with (
             patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db),
-            patch("pilotstd.tasks.favorite_download._find_in_file_index", mock_find),
-            patch("pilotstd.tasks.favorite_download._get_download_url", mock_url),
+            patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value=None),
+            patch(
+                "pilotstd.tasks.favorite_download._load_cached_query_result",
+                return_value=MagicMock(hcno="H1", is_adopted=False),
+            ),
+            patch("pilotstd.manager.facade.StandardManager", return_value=mock_mgr),
             patch("pilotstd.tasks.favorite_download._get_inbox_dir", return_value=tmp_path / "tmp" / "inbox"),
             patch("pilotstd.tasks.favorite_download._notify_download_started") as mock_start,
-            patch("pilotstd.tasks.favorite_download._download_with_retry", return_value=(True, None)),
+            patch("pilotstd.tasks.favorite_download._notify_download_complete"),
+            patch("pilotstd.tasks.favorite_download._notify_download_failed"),
             patch("pilotstd.tasks.favorite_download.time.sleep", return_value=None),
         ):
-            # 轮询 30 次 file_index 无结果 → 超时失败路径（避免无限循环）
-            mock_db.execute.return_value.fetchone.side_effect = None  # 已被上面覆盖
-            # _find_in_file_index 持续返回 None → 归档超时
-            mock_find.return_value = None
             download_to_inbox(favorite_id=42, user_id=7, record_id=100)
 
         mock_start.assert_called_once()
@@ -169,7 +170,6 @@ class TestDownloadChainEvents:
         with (
             patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db),
             patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value="/standards/GBT 1234-2026.pdf"),
-            patch("pilotstd.tasks.favorite_download._get_download_url", return_value=None),
             patch("pilotstd.tasks.favorite_download._notify_download_complete") as mock_done,
             patch("pilotstd.tasks.favorite_download._notify_download_started") as mock_start,
         ):
@@ -237,7 +237,6 @@ class TestDownloadChainEvents:
         with (
             patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db),
             patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value="/s/GBT 1234.pdf"),
-            patch("pilotstd.tasks.favorite_download._get_download_url", return_value=None),
             patch("pilotstd.tasks.favorite_download._notify_download_complete", side_effect=_boom),
             patch("pilotstd.tasks.favorite_download._notify_download_started", side_effect=_boom),
         ):

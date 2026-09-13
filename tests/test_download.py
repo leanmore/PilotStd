@@ -154,6 +154,124 @@ class TestDownloadEngine(unittest.TestCase):
         task = engine.download_single(task)
         self.assertEqual(task.status, DownloadStatus.FAILED)
 
+    # ── fetch_bytes（A 修复：收藏链复用适配器但不落盘）──
+
+    def test_fetch_bytes_returns_content_without_saving(self):
+        before = set(os.listdir(self.tmp))
+        qr = FakeQueryResult("GB/T 19001-2020")
+        task = DownloadTask(standard_number="GB/T 19001-2020", query_result=qr)
+
+        content, err = self.engine.fetch_bytes(task)
+
+        self.assertIsNotNone(content)
+        self.assertEqual(err, "")
+        self.assertEqual(set(os.listdir(self.tmp)), before, "fetch_bytes 不得落盘")
+
+    def test_fetch_bytes_rejects_adopted(self):
+        qr = FakeQueryResult("GB/T 19001-2020", is_adopted=True)
+        task = DownloadTask(standard_number="GB/T 19001-2020", query_result=qr)
+
+        content, err = self.engine.fetch_bytes(task)
+
+        self.assertIsNone(content)
+        self.assertIn("采标", err)
+
+    def test_fetch_bytes_no_matching_adapter(self):
+        task = DownloadTask(standard_number="XX 1234-2020")
+
+        content, err = self.engine.fetch_bytes(task)
+
+        self.assertIsNone(content)
+        self.assertIn("适配器", err)
+
+    def test_fetch_bytes_surfaces_adapter_error_without_retry(self):
+        """适配器业务失败（返回 None 并设置 error_message）不重试，原样回传原因。"""
+        calls = [0]
+
+        class BusinessFailAdapter(BaseDownloadAdapter):
+            @property
+            def site_name(self):
+                return "business_fail"
+
+            def can_handle(self, task):
+                return True
+
+            def download(self, task):
+                calls[0] += 1
+                task.error_message = "viewGb 返回空内容（标准可能暂无全文）"
+                return None
+
+        engine = DownloadEngine(
+            adapters=[BusinessFailAdapter(self.session_mgr.create_session())],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+        )
+
+        content, err = engine.fetch_bytes(DownloadTask(standard_number="GB/T 1-2020"))
+
+        self.assertIsNone(content)
+        self.assertIn("viewGb 返回空内容", err)
+        self.assertEqual(calls[0], 1, "业务失败不得重试")
+
+    def test_fetch_bytes_retries_on_network_error(self):
+        """网络类异常按 3 次尝试退避重试（等价于原收藏链 _download_with_retry）。"""
+        calls = [0]
+
+        class FlakyFetchAdapter(BaseDownloadAdapter):
+            @property
+            def site_name(self):
+                return "flaky_fetch"
+
+            def can_handle(self, task):
+                return True
+
+            def download(self, task):
+                calls[0] += 1
+                if calls[0] < 3:
+                    raise requests.ConnectionError("connection reset by peer")
+                return b"%PDF-1.4 ok"
+
+        engine = DownloadEngine(
+            adapters=[FlakyFetchAdapter(self.session_mgr.create_session())],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+        )
+
+        with unittest.mock.patch("pilotstd.download.engine.time.sleep") as sleep_mock:
+            content, err = engine.fetch_bytes(DownloadTask(standard_number="GB/T 1-2020"))
+
+        self.assertEqual(content, b"%PDF-1.4 ok")
+        self.assertEqual(err, "")
+        self.assertEqual(calls[0], 3)
+        # 退避序列 2s/4s（SessionManager.delay 也会 sleep，故按取值断言而非计数）
+        delays = [c.args[0] for c in sleep_mock.call_args_list if c.args]
+        self.assertIn(2, delays)
+        self.assertIn(4, delays)
+
+    def test_fetch_bytes_exhausts_network_retries(self):
+        class AlwaysFailAdapter(BaseDownloadAdapter):
+            @property
+            def site_name(self):
+                return "always_fail"
+
+            def can_handle(self, task):
+                return True
+
+            def download(self, task):
+                raise requests.ConnectionError("connection reset by peer")
+
+        engine = DownloadEngine(
+            adapters=[AlwaysFailAdapter(self.session_mgr.create_session())],
+            session_manager=self.session_mgr,
+            save_root=self.tmp,
+        )
+
+        with unittest.mock.patch("pilotstd.download.engine.time.sleep"):
+            content, err = engine.fetch_bytes(DownloadTask(standard_number="GB/T 1-2020"))
+
+        self.assertIsNone(content)
+        self.assertIn("connection reset", err)
+
     def test_batch_download_stats(self):
         tasks = [
             DownloadTask(

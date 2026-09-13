@@ -1,13 +1,10 @@
 # 模块：项目//_下载脚本
 # 阶段4:收藏下载归档任务
 
-import json
 import logging
 import time
 from pathlib import Path
-from typing import Optional, cast
-
-import requests
+from typing import Any, Optional, cast
 
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db.database import Database
@@ -30,19 +27,39 @@ def _get_inbox_dir() -> Path:
     return Path(cfg.get("storage.inbox_dir", "/inbox"))
 
 
-def _get_download_url(standard_number: str, db: Database) -> Optional[str]:
-    """从缓存中查询标准的下载链接。"""
-    cursor = db.execute(
-        "SELECT result_json FROM standard_info_cache WHERE standard_number = ? ORDER BY cached_at DESC LIMIT 1",
-        (standard_number,),
+def _get_standard_type(favorite_id: int, db: Database) -> str:
+    """读取收藏下载记录的标准分类（v57 落库；无记录或未分类返回空串）。"""
+    row = db.fetchone(
+        "SELECT standard_type FROM favorite_downloads WHERE favorite_id = ?", (favorite_id,)
     )
-    row = cursor.fetchone()
-    if row and row["result_json"]:
-        try:
-            data = json.loads(row["result_json"])
-            return cast("str | None", data.get("download_url"))
-        except Exception:
-            pass
+    return str(row["standard_type"]) if row and row["standard_type"] else ""
+
+
+def _load_cached_query_result(db: Database, standard_number: str) -> Optional[Any]:
+    """从查询缓存取该标准的查询结果，仅限 std_gov 源。
+
+    下载所需的 hcno（= std_gov 搜索结果的 pid）只有该源产生；
+    不限定 source_site 会命中外站行（ahbz/njbz365 等无 hcno）。
+    """
+    try:
+        from pilotstd.query.cache import CacheRepository
+
+        return CacheRepository(db).get(standard_number, "std_gov")
+    except Exception as e:
+        logger.warning("读取查询缓存失败 (%s): %s", standard_number, e)
+        return None
+
+
+def _query_std_gov(mgr: Any, standard_number: str) -> Optional[Any]:
+    """缓存未命中时现场查询国标站点，取回含 hcno / 采标状态的查询结果。"""
+    try:
+        results, _stats = mgr.query_by_numbers([standard_number], preferred_site="std_gov")
+    except Exception as e:
+        logger.warning("标准查询失败 (%s): %s", standard_number, e)
+        return None
+    for result in results or []:
+        if getattr(result, "hcno", ""):
+            return result
     return None
 
 
@@ -64,30 +81,6 @@ def _find_in_file_index(standard_number: str, db: Database) -> Optional[str]:
     except Exception:
         pass
     return None
-
-
-def _download_with_retry(
-    url: str, target_path: Path, max_retries: int = 3, timeout: int = 60
-) -> tuple[bool, Optional[str]]:
-    """带重试的下载，指数退避。返回 (成功, 错误信息)。"""
-    last_error = None
-    for attempt in range(1, max_retries + 1):
-        try:
-            resp = requests.get(url, timeout=timeout, stream=True)
-            resp.raise_for_status()
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(target_path, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            logger.info("下载成功 (attempt %d/%d)", attempt, max_retries)
-            return True, None
-        except requests.exceptions.RequestException as e:
-            last_error = str(e)
-            logger.warning("下载失败 (attempt %d/%d): %s", attempt, max_retries, e)
-            if attempt < max_retries:
-                time.sleep(2**attempt)
-    return False, last_error
 
 
 def _safe_filename(standard_number: str, suffix: str) -> str:
@@ -190,6 +183,44 @@ def _notify_download_complete(user_id: int, standard_number: str, favorite_id: i
 
 
 # 下载__—收藏下载任务（44解耦后操作_下载表）
+def _resolve_download_target(mgr: Any, db: Database, favorite_id: int, standard_number: str) -> Any:
+    """下载前三闸：类别（仅国标）→ hcno 取用 → 采标。返回可下载的查询结果。
+
+    hcno 是可下载能力的载体（openstd 需先建会话再取全文），查询缓存优先、
+    未命中现场查一次；冷却期与新标准判定由下载链 SQL 负责，此处不重复。
+    """
+    std_type = _get_standard_type(favorite_id, db)
+    if std_type and std_type != "NationalStd":
+        raise FavoriteArchiveError(f"非国标标准（{std_type}），自动下载仅支持国标")
+
+    query_result = _load_cached_query_result(db, standard_number)
+    if query_result is None or not getattr(query_result, "hcno", ""):
+        query_result = _query_std_gov(mgr, standard_number)
+    if query_result is None:
+        raise FavoriteArchiveError(f"无法获取下载标识(hcno): {standard_number}")
+    if getattr(query_result, "is_adopted", False):
+        raise FavoriteArchiveError(f"采标标准，版权受限，自动跳过: {standard_number}")
+    return query_result
+
+
+def _fetch_into_inbox(mgr: Any, query_result: Any, standard_number: str, inbox_path: Path) -> None:
+    """经下载引擎取字节写入 inbox（失败抛 FavoriteArchiveError，由外层统一补通知）。"""
+    from pilotstd.download.models import DownloadTask
+
+    content, err = mgr.download_engine.fetch_bytes(
+        DownloadTask(
+            standard_number=standard_number,
+            query_result=query_result,
+            source_site="std_gov",
+        )
+    )
+    if not content:
+        # 不在此处发送失败通知：raise 后由外层 except 统一补发一次
+        # （避免同一失败路径双通知——内层原始错误 + 外层包装错误）
+        raise FavoriteArchiveError(f"下载失败: {standard_number}, {err}")
+    inbox_path.write_bytes(content)
+
+
 def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
     """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。
     所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。"""
@@ -220,12 +251,12 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
             _notify_download_complete(user_id, standard_number, favorite_id, existing)
             return
 
-        # 先校验下载链接可用性，再通知用户下载开始（A-2：避免"有始无终"——
-        # URL 缺失时不应误发"开始下载"通知）
-        download_url = _get_download_url(standard_number, db)
-        if not download_url:
-            raise FavoriteArchiveError(f"无法获取下载链接: {standard_number}")
+        from pilotstd.manager.facade import StandardManager
 
+        mgr = StandardManager()
+        query_result = _resolve_download_target(mgr, db, favorite_id, standard_number)
+
+        # 校验通过后再通知用户下载开始（A-2：避免"有始无终"）
         _notify_download_started(user_id, standard_number, favorite_id)
         db.execute(
             "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
@@ -238,11 +269,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         inbox_path = inbox_dir / _safe_filename(standard_number, suffix)
 
         if not inbox_path.exists():
-            ok, err = _download_with_retry(download_url, inbox_path, max_retries=3)
-            if not ok:
-                # 不在此处发送失败通知：raise 后由下方 except 块统一补发一次
-                # （避免同一失败路径双通知——内层原始错误 + 外层包装错误）
-                raise FavoriteArchiveError(f"下载失败(重试3次): {standard_number}, {err}")
+            _fetch_into_inbox(mgr, query_result, standard_number, inbox_path)
 
         db.execute(
             "UPDATE favorite_downloads SET status = 'archiving', local_path = ?,"

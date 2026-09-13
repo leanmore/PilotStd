@@ -131,15 +131,16 @@ class TestTasks(unittest.TestCase):
 
         self.assertIn("failed", str(FavoriteArchiveError("download failed")))
 
-    def test_get_download_url_none(self):
-        from pilotstd.tasks.favorite_download import _get_download_url
+    def test_get_standard_type_empty_table(self):
+        """A 修复后的等价契约：favorite_downloads 无记录时类别闸返回空串。"""
+        from pilotstd.tasks.favorite_download import _get_standard_type
 
         db = MockDatabase(
-            "CREATE TABLE IF NOT EXISTS standard_info_cache ("
-            "id INTEGER PRIMARY KEY, standard_number TEXT, result_json TEXT, cached_at TEXT)"
+            "CREATE TABLE IF NOT EXISTS favorite_downloads ("
+            "id INTEGER PRIMARY KEY, favorite_id INTEGER, standard_type TEXT)"
         ).__enter__()
         try:
-            self.assertIsNone(_get_download_url("GB/T 1.1", db))
+            self.assertEqual(_get_standard_type(1, db), "")
         finally:
             db.__exit__()
 

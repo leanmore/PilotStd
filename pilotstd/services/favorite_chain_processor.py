@@ -81,10 +81,12 @@ def update_status(
 
 
 def get_records_by_status(limit: int = BATCH_SIZE) -> list[dict[str, Any]]:
-    """扫描待处理记录（pending/failed，未达重试上限，已过冷却期）。
+    """扫描待处理记录（pending/failed，未达重试上限，已过冷却期，且为国标）。
 
     冷却期语义与现有 archive_retry_service 一致：announcement_record.publish_date
     距今不足 COOLDOWN_DAYS 天的不处理（发布保护窗口）。
+    类别闸：仅 NationalStd（国标）有下载适配器（std_gov→openstd_download 是唯一映射），
+    行标/地标在此直接排除，不进入下载阶段也不消耗重试次数。
     """
     db = _new_db()
     try:
@@ -94,6 +96,7 @@ def get_records_by_status(limit: int = BATCH_SIZE) -> list[dict[str, Any]]:
             " FROM favorite_downloads fd"
             " JOIN announcement_record ar ON fd.record_id = ar.id"
             " WHERE fd.status IN ('pending', 'failed')"
+            " AND fd.standard_type = 'NationalStd'"
             " AND (fd.retry_count IS NULL OR fd.retry_count < ?)"
             " AND COALESCE(NULLIF(TRIM(ar.publish_date), ''), CURRENT_DATE) <= ?"
             " ORDER BY fd.last_attempt ASC NULLS FIRST, fd.updated_at ASC"

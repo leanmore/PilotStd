@@ -86,7 +86,8 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.raw.commit()
 
     def _seed_favorite(self, user_id: int, record_id: int, status: str = "pending",
-                       retry_count: int = 0, publish_date: str | None = "2026-01-01") -> int:
+                       retry_count: int = 0, publish_date: str | None = "2026-01-01",
+                       standard_type: str = "NationalStd") -> int:
         self.raw.execute(
             "INSERT INTO user_favorites (user_id, record_id, status, created_at, updated_at)"
             " VALUES (?, ?, 'pending', datetime('now'), datetime('now'))", (user_id, record_id)
@@ -100,9 +101,9 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.raw.execute(
             "INSERT INTO favorite_downloads"
             " (favorite_id, user_id, record_id, status, standard_no,"
-            "  standard_name, retry_count, created_at, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, '标准', ?, datetime('now'), datetime('now'))",
-            (fav_id, user_id, record_id, status, std_no, retry_count),
+            "  standard_name, standard_type, retry_count, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, '标准', ?, ?, datetime('now'), datetime('now'))",
+            (fav_id, user_id, record_id, status, std_no, standard_type, retry_count),
         )
         self.raw.commit()
         return fav_id
@@ -216,6 +217,20 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         stats = self.fcp.process_chain()
         self.assertIn("download", stats)
         self.assertEqual(stats["download"], 1)
+
+    def test_category_gate_excludes_non_national(self):
+        """A 修复：行标不进下载阶段，也不消耗重试次数。"""
+        self._seed_announcement(1, "HB 1-2020", "2026-01-01")
+        self._seed_favorite(1, 1, standard_type="IndustryStd")
+        self._seed_announcement(2, "GB/T 1-2020", "2026-01-01")
+        self._seed_favorite(1, 2, standard_type="NationalStd")
+
+        self._dl_mode = "success"
+        processed = self.fcp.process_pending_downloads()
+
+        self.assertEqual(processed, 1, "只有国标应被处理")
+        self.assertEqual(self._fd_status(1, 1)[0], "pending", "行标保持 pending 且不消耗重试")
+        self.assertEqual(self._fd_status(1, 2)[0], "done")
 
     def _seed_user(self, user_id: int = 1) -> None:
         self.raw.execute(
