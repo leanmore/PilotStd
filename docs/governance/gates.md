@@ -174,42 +174,47 @@
 
 ## 执行入口：`scripts/check_all.sh` 模式
 
-| 模式 | 内容 | 是否写文件 |
-|------|------|-----------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、`_wait_worker` 防回潮 | 否 |
-| `--guards` | **治理守护（只读）**：Schema 一致性、**G-032 文档健康度**、G-037、G-030、G-033、**G-031 文档联动同步** | 否 |
-| `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） |
-| `--deep` | Ruff 全量、Mypy、G-020 Vulture、G-038、`--guards` | 否 |
-| `--all` | `--fast` → `--docs` → `--deep` | 是 |
+| 模式 | 内容 | 是否写文件 | 归属 |
+|------|------|-----------|------|
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
+| `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
+| `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
+| `--deep` | Ruff 全量、Mypy、G-020 Vulture、G-038、`--guards` | 否 | 入库产物（CI） |
+| `--all` | `--fast` → `--docs` → `--deep` | 是 | 通用 |
 
-### 生成与守护的分工（2026-09-13 明确）
+### 检查的放置原则：**看它的输入在哪里可靠**
 
-| 环节 | 在哪执行 | 守护什么 |
-|------|---------|---------|
-| **文档生成** | **仅本地**：`bash scripts/check_all.sh --docs` | — （产物 `STATUS.md` 为 gitignored 本地文件；`docs/testing/coverage-report.md`、`docs/governance/capabilities_registry.md` 入库，人工确认后提交） |
-| **守护本地产物 / 本地编辑纪律** | **本地 pre-commit**（`--fast --guards`，含 G-032、G-031） | 只有本机同时具备 `STATUS.md` 与刚生成的覆盖率报告，G-032 四维度才能完整校验；G-031 在提交前提醒"改了代码要同步改文档"（含暂存区变更） |
-| **守护入库文档** | **CI**（`ci.yml` repo-compliance：`check_g_032_doc_health.py`、`check_docs_sync.py`、`check_capabilities_sync.py`；`trinity-gate.yml` 的 `--deep`） | 入库文档的新鲜度分档（7/30/60 天）、交叉引用完整性、模块文档与代码的联动、能力矩阵与代码是否一致；`STATUS.md` 因不入库，相关维度在 CI 自动放行 |
+> 一个检查只能放在"它的输入确实存在且有意义"的那一侧。放错会得到**假绿**——
+> 门禁跑着、也打印 PASS，但什么都没校验（本项目已发生过两次：docs 段被吞参、
+> G-031 在直推 main 的 CI 里 diff 恒空）。
 
-- **多模式可叠加**：`check_all.sh --fast --guards` 会依次执行两个模式（2026-09-13 修复：
+| 类别 | 判据 | 检查项 | 执行入口 |
+|------|------|--------|---------|
+| **本地专属** | 输入依赖本机状态或**待提交的变更集**，CI 里不存在/恒空 | **G-031**（`origin/base..HEAD` 在直推 main 的 CI 中恒为空 → 假绿） | 仅 `--local`（pre-commit 钩子） |
+| **含本地产物的混合型** | 同一脚本同时覆盖本地文件与入库文档，缺失侧降级 | **G-032**（`STATUS.md` 为 gitignored 本地文件；`coverage-report.md` 入库） | 本地经 `--guards` 完整校验；CI 直接调用脚本，入库文档维度生效、`STATUS.md` 维度自动放行 |
+| **入库产物** | 校验对象是提交进仓库的代码/文档 | Schema 一致性、G-037、G-030、G-033、G-038（`--deep`）、`check_docs_sync.py`、`check_capabilities_sync.py` | **CI 为权威**（`trinity-gate.yml` 的 `--deep`；`ci.yml` repo-compliance 的显式步骤）；本地可跑一份做 fail-fast |
+
+| 环节 | 在哪执行 | 说明 |
+|------|---------|------|
+| **文档生成** | **仅本地**：`bash scripts/check_all.sh --docs` | 产物 `STATUS.md` 为 gitignored 本地文件；`docs/testing/coverage-report.md`、`docs/governance/capabilities_registry.md` 入库，人工确认后提交 |
+| **本地专属检查** | pre-commit 钩子：`--fast --guards --local` | G-031 在提交前提示"改了代码要同步改文档"（已并入暂存区变更，否则提交前看不到本次改动） |
+
+- **多模式可叠加**：`check_all.sh --fast --guards --local` 依次执行三个模式（2026-09-13 修复：
   原实现 `MODE="${1:---fast}"` 只取第一个参数，导致 pre-commit 钩子里写的
   `--fast --docs` 实际只跑 `--fast`，docs 类门禁形同虚设；未知参数现在直接报用法并退出 1）。
-- **pre-commit 钩子**（`.husky/pre-commit`）执行 `--fast --guards`：选用 `--guards` 而非 `--docs`，
-  因为生成属本地行为、且 `--docs` 会重写工作树文件并重跑带覆盖率采集的 pytest。
-- **CI 不生成文档**：`trinity-gate.yml` 执行 `--deep`（不再带 `--docs`），已移除原先空转的
-  pytest 采集与 artifact 上传步骤。
+- **pre-commit 钩子**（`.husky/pre-commit`）执行 `--fast --guards --local`：不用 `--docs`
+  （生成属本地行为，且会重写工作树并重跑带覆盖率采集的 pytest）。
+- **CI 不生成文档**：`trinity-gate.yml` 执行 `--deep`（不含 `--docs`、不含 `--local`），
+  已移除原先空转的 pytest 采集与 artifact 上传步骤。
 - **G-038 仍在 `--deep`**：它需要 PATH 上存在 `ruff`/`mypy` 可执行文件，各开发机是否安装不一致，
   故不纳入提交时门禁；CI 的 test-backend job 用 venv 内的 ruff 强制执行。
-- **G-031 的放置（2026-09-13 定案）**：`check_g_031_docs_sync.py`（9 条映射，比 CI 现有的
-  `check_docs_sync.py` 多覆盖 `scripts/`、`.github/workflows/`、`docs/governance/`、
-  `docs/architecture/decisions/`）**放在本地**——它约束的是"改了代码要同步改文档"这一**本地编辑动作**，
-  提交前就该提醒作者；为此该脚本已并入暂存区变更（`git diff --cached`），
-  否则 pre-commit 时"正要提交的这次改动"尚未进入 HEAD，门禁会空转。
-  CI 侧继续由 `check_docs_sync.py` 校验**入库**文档，两者互补、规则集不同。
-- **能力矩阵同步的放置（2026-09-13 定案）**：`docs/governance/capabilities_registry.md`
-  是**入库**文档，故其"与代码是否一致"的校验放在 **CI**：
-  `scripts/check_capabilities_sync.py`（重生成 → 忽略时间戳行比对 → 还原文件 → 结论），
-  已接入 `ci.yml` repo-compliance job。生成动作仍在本地，
-  由 AGENTS.md 第七节要求人工重跑并一并提交。
+- **G-031 ≠ CI 的 `check_docs_sync.py`**：前者 9 条映射（多覆盖 `scripts/`、`.github/workflows/`、
+  `docs/governance/`、`docs/architecture/decisions/`），**只放本地**；后者 5 条模块映射，
+  校验**入库**文档，留在 CI。两者规则集不同、互补，不做替换。
+- **能力矩阵同步在 CI**：`docs/governance/capabilities_registry.md` 是入库文档，
+  由 `scripts/check_capabilities_sync.py`（重生成 → 剔除生成时间戳行比对 → 还原文件）
+  在 `ci.yml` repo-compliance 校验；生成动作仍在本地，由 AGENTS.md 第七节要求人工重跑并一并提交。
 
 ---
 
@@ -217,6 +222,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.8 | 2026-09-13 | 确立检查放置原则"看输入在哪里可靠"：新增 `--local` 模式（本地专属），G-031 从 `--guards` 移出、**严格只挂本地**（本仓库以直推 main 为主，CI 中 `origin/base..HEAD` 恒空 → 假绿，属"放 CI 就是错的"）；`--guards` 明确为"入库产物"类（CI 权威 + 本地 fail-fast）；文档补"放置原则"判据表与三类划分 |
 | v1.7 | 2026-09-13 | 按"检查跟随产物位置"定案两处放置：G-031 放**本地**（并入暂存区变更，提交前即生效；CI 侧保留 `check_docs_sync.py` 校验入库文档）；能力矩阵同步放 **CI**（新增 `scripts/check_capabilities_sync.py` 并接入 repo-compliance，重生成后忽略时间戳行比对入库内容）；「生成与守护的分工」表随之更新 |
 | v1.6 | 2026-09-13 | 明确"生成在本地、守护分两处"的分工；G-032 纳入 `--guards`（本地守护本地产物，CI 复用同一实现守护入库文档）；`trinity-gate.yml` 改回 `--deep`（CI 不生成、不上传 artifact），清理空转步骤；登记 G-031 与 capabilities_registry 同步两处缺口 |
 | v1.5 | 2026-09-13 | 修复 `check_all.sh` 参数解析（支持多模式叠加，未知参数报错退出）；新增 `--guards` 只读治理守护模式并接入 pre-commit 钩子（原 `--fast --docs` 的 docs 部分从未执行）；补充"执行入口"章节 |

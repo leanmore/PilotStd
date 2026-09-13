@@ -14,9 +14,9 @@ set -euo pipefail
 MODES=()
 for arg in "$@"; do
     case "$arg" in
-        --fast|--docs|--deep|--guards|--all) MODES+=("$arg") ;;
+        --fast|--docs|--deep|--guards|--local|--all) MODES+=("$arg") ;;
         *)
-            echo "Usage: $0 [--fast|--docs|--deep|--guards|--all] ..." >&2
+            echo "Usage: $0 [--fast|--docs|--deep|--guards|--local|--all] ..." >&2
             exit 1
             ;;
     esac
@@ -146,13 +146,11 @@ run_docs() {
 }
 
 # ============================================================
-# --guards: 治理守护（只读、无外部工具链依赖）
-#   pre-commit 钩子使用本模式：既真正拦住治理类违规，
-#   又不会像 --docs 那样重写 STATUS.md / 覆盖率文档而弄脏工作树。
-#   含 G-032：本地生成文档（STATUS.md / coverage-report.md）由本地门禁守护——
-#   只有本机才有 STATUS.md（gitignored 本地文件）与刚生成的覆盖率报告；
-#   CI 复用同一实现时天然只校验入库文档（coverage-report.md 等），
-#   STATUS.md 缺失相关维度自动放行（生成文档过期是 warn，不阻断）。
+# --guards: 治理守护（只读、校验**入库产物**，CI 与本地共用）
+#   pre-commit 钩子也跑一份作为 fail-fast，但权威执行点仍是 CI。
+#   含 G-032：它同时覆盖本地产物（STATUS.md，gitignored）与入库文档
+#   （coverage-report.md 等）；本地能完整校验四维度，CI 因无 STATUS.md
+#   自动放行相关维度（gates.md G-032 章节已说明，属设计决策）。
 #   G-038（ruff+mypy+裸 noqa）需要 PATH 上存在 ruff/mypy 可执行文件，
 #   不同开发机是否安装不一致，故仍留在 --deep，不纳入提交时门禁。
 # ============================================================
@@ -193,13 +191,22 @@ run_guards() {
     else
         log_fail "G-033 ADR 完整性"
     fi
+}
 
-    # G-031: 代码变更 ↔ 文档联动（本地提交时即生效：已并入暂存区变更）
-    #  CI 侧另有 check_docs_sync.py 校验入库文档，两者互补
+# ============================================================
+# --local: 本地专属检查（输入的可靠性只存在于本地，**不得进 CI**）
+#   G-031 文档联动：它比对 base..HEAD 的变更集，而本仓库以直推 main 为主，
+#   CI 里该 diff 恒为空 → 只会打印"无变更文件"放行（假绿）。
+#   本地则由 check_g_031_docs_sync.py 并入暂存区变更，提交前即可拦住
+#   "改了代码忘了同步文档"。
+# ============================================================
+run_local() {
+    echo "🏠 Running LOCAL-ONLY checks..."
+
     if python scripts/check_g_031_docs_sync.py; then
-        log_pass "G-031 文档联动同步"
+        log_pass "G-031 文档联动同步（本地）"
     else
-        log_fail "G-031 文档联动同步"
+        log_fail "G-031 文档联动同步（本地）"
     fi
 }
 
@@ -257,6 +264,9 @@ for _mode in "${MODES[@]}"; do
             ;;
         --guards)
             run_guards
+            ;;
+        --local)
+            run_local
             ;;
         --all)
             run_fast
