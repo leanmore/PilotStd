@@ -1,4 +1,4 @@
-﻿# ADR-007: 收藏与归档下载解耦
+# ADR-007: 收藏与归档下载解耦
 
 > 日期：2026-07-20
 > 状态：✅ Accepted
@@ -99,3 +99,17 @@ pending ──(冷却期满)──→ downloading ──(成功)──→ done
 **负面**：
 - 用户收藏后最长需等 28 天 + 下次定时任务才完成归档
 - 定时任务失败需人工排查日志（已有 abandoned 通知兜底）
+
+---
+
+## 现状注记（2026-09-13）
+
+本 ADR 的决策仍然有效；实现位置与参数有变动，以现状为准：
+
+- 实现已从 `pilotstd/manager/archive_retry_service.py`（死代码，2026-09-13 删除，见 commit `fa597af6`）迁至
+  `pilotstd/services/favorite_chain_processor.py`（APScheduler `auto_archive_retry` cron → `process_chain()`）。
+- 重试上限：活跃链自 2026-08-22（`2af79a3d`）建立时取 3 次，2026-09-13 改回本 ADR 的 7 次
+  —— `MAX_RETRIES = 7`（模块常量，7 天兜底窗口）。
+- `ARCHIVE_MAX_RETRIES` 环境变量已随死代码移除，**不再是配置项**；`ARCHIVE_COOLDOWN_DAYS`（默认 28）仍生效。
+- 上面"每批最多 20 条"已取消：一轮处理全部到期记录，节流改由下载引擎节奏（batch_size / max_workers / long_rest）负责。
+

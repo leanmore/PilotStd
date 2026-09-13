@@ -91,7 +91,8 @@ interval_days = (total_weeks * 7) / execution_count
 |--------|------|------|--------|-----------|
 | `DATA_DIR` | 数据目录 | 否 | `/app/data` | > config.json 路径前缀 |
 | `ARCHIVE_COOLDOWN_DAYS` | 归档冷却期 | 否 | 28 | 直接使用，不经过 config.json |
-| `ARCHIVE_MAX_RETRIES` | 最大重试次数 | 否 | 7 | 直接使用 |
+
+> **注意**：归档重试上限已改为模块常量 `MAX_RETRIES = 7`（[src: `pilotstd/services/favorite_chain_processor.py:28`]），**不支持环境变量**。旧变量 `ARCHIVE_MAX_RETRIES` 随死代码 `pilotstd/manager/archive_retry_service.py`（2026-09-13 删除）一并失效，设置后不生效。
 
 > **注意**：适配器配额不支持环境变量覆盖。配额通过 Web API `PUT /api/settings/sites/{name}` [src: `docker/api/settings.py:188-234`] 热更新。
 

@@ -147,23 +147,27 @@ class TestFavoriteChainProcessor(unittest.TestCase):
             self.assertEqual(status, "done")
 
     def test_download_failure_retry_and_abandon(self):
-        """失败 → retry_count 递增；达 3 次后 abandoned，不再处理。"""
+        """失败 → retry_count 递增；达 MAX_RETRIES 次后 abandoned，不再处理。"""
         self._seed_announcement(1, "GB/T 1001", "2026-01-01")
         self._seed_favorite(1, 1)
         self._dl_mode = "fail"
 
-        # 3 次 cron：1→2→3 → abandoned
-        for i in range(3):
+        # MAX_RETRIES 次 cron：逐次递增 → abandoned（每天 04:00 一次 → 7 天兜底窗口）
+        for _ in range(self.fcp.MAX_RETRIES):
             self.fcp.process_chain()
         status, retry, _ = self._fd_status(1, 1)
-        self.assertEqual(retry, 3)
+        self.assertEqual(retry, self.fcp.MAX_RETRIES)
         self.assertEqual(status, "abandoned")
 
-        # 第 4 次 cron：abandoned 不再处理（retry 不再增长）
+        # 再来一次 cron：abandoned 不再处理（retry 不再增长）
         self.fcp.process_chain()
         status, retry, _ = self._fd_status(1, 1)
-        self.assertEqual(retry, 3)
+        self.assertEqual(retry, self.fcp.MAX_RETRIES)
         self.assertEqual(status, "abandoned")
+
+    def test_retry_limit_is_seven_day_window(self):
+        """重试上限锁定 7：cron 每天 04:00 触发一次 → 7 天兜底窗口（ADR-007 决策值）。"""
+        self.assertEqual(self.fcp.MAX_RETRIES, 7)
 
     def test_no_artificial_daily_cap(self):
         """A 方案：取消"每天 10 条"人为上限，一轮处理全部到期记录。"""
