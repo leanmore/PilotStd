@@ -1,7 +1,10 @@
 # Trinity Gate 修复指引
 
 > 当 CI `trinity-gate.yml` 门禁失败时，按本指引排查修复。
-> 所有门禁也可在本地运行：`bash scripts/check_all.sh --deep --docs`
+> CI 执行的是 `bash scripts/check_all.sh --deep`（**只守护，不生成文档**）。
+> 文档生成属本地行为：`bash scripts/check_all.sh --docs` 生成 `STATUS.md` 与
+> `docs/testing/coverage-report.md`，人工确认后再提交入库文档（`STATUS.md` 不入仓库）。
+> 本地全套门禁：`bash scripts/check_all.sh --all`
 
 ---
 

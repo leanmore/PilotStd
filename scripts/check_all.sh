@@ -149,6 +149,10 @@ run_docs() {
 # --guards: 治理守护（只读、无外部工具链依赖）
 #   pre-commit 钩子使用本模式：既真正拦住治理类违规，
 #   又不会像 --docs 那样重写 STATUS.md / 覆盖率文档而弄脏工作树。
+#   含 G-032：本地生成文档（STATUS.md / coverage-report.md）由本地门禁守护——
+#   只有本机才有 STATUS.md（gitignored 本地文件）与刚生成的覆盖率报告；
+#   CI 复用同一实现时天然只校验入库文档（coverage-report.md 等），
+#   STATUS.md 缺失相关维度自动放行（生成文档过期是 warn，不阻断）。
 #   G-038（ruff+mypy+裸 noqa）需要 PATH 上存在 ruff/mypy 可执行文件，
 #   不同开发机是否安装不一致，故仍留在 --deep，不纳入提交时门禁。
 # ============================================================
@@ -160,6 +164,13 @@ run_guards() {
         log_pass "Schema 一致性"
     else
         log_fail "Schema 一致性"
+    fi
+
+    # G-032: 文档健康度守护（不生成，只校验）
+    if python scripts/check_g_032_doc_health.py; then
+        log_pass "G-032 文档健康度守护"
+    else
+        log_fail "G-032 文档健康度守护"
     fi
 
     # G-037: 触发条件对齐

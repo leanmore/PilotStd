@@ -29,60 +29,38 @@ jobs:
         with:
           python-version: "3.12"
 
-      # 修正2: 补充 pytest-json-report + 项目依赖
       - name: Install dependencies
         run: |
           pip install -r docker/requirements-docker.txt
-          pip install ruff vulture mypy pytest-json-report pytest-cov
+          pip install ruff vulture mypy
 
       # 职责边界说明:
-      # 本 job 仅负责三位一体门禁检查 (G-030/G-032/G-033)
-      # 测试执行与覆盖率生成由 test-backend job 负责
-      # 此处运行轻量测试以生成 coverage.xml 供文档生成器消费（降级兜底）
-      - name: Generate docs data (consume or fallback)
-        run: |
-          python -m pytest tests/ -q --tb=short \
-            --cov=pilotstd --cov-report=xml:coverage.xml \
-            --json-report --json-report-file=test-results/pytest.json \
-            --ignore=tests/gui/ \
-            --ignore=tests/test_regression_architecture.py \
-            --ignore-glob="*test_ui*.py" \
-            --ignore=tests/test_scan_misc.py \
-            --ignore=tests/test_groups23_remaining.py \
-            --ignore=tests/test_last_push.py \
-            --ignore=tests/test_unified_progress.py \
-            --ignore=tests/test_ci_scan_fix.py \
-            -n auto \
-            || true
-
-      - name: Run Trinity Gate (--deep + --docs)
+      # 本 job 只做门禁检查：--deep（Ruff/Mypy/Vulture/G-038）+ 治理守护
+      #   （Schema 一致性 / G-032 文档健康度 / G-037 / G-030 / G-033）
+      # 文档生成只在本地执行：bash scripts/check_all.sh --docs → 人工确认后自行提交。
+      #   STATUS.md 为 gitignored 本地状态文件，CI 不生成、不上传、不 push。
+      #   （原 `--deep --docs` 因 check_all.sh 参数解析缺陷从未真正跑到 docs 段，
+      #    相应的 pytest 与 artifact 上传步骤长期空转，2026-09-13 一并清理）
+      - name: Run Trinity Gate (--deep)
         id: trinity_gate
-        run: bash scripts/check_all.sh --deep --docs
+        run: bash scripts/check_all.sh --deep
         env:
           CI: "true"
 
-      - name: G-032 Failure Guidance
+      - name: Failure Guidance
         if: failure() && steps.trinity_gate.outcome == 'failure'
         run: |
-          echo "::error::❌ G-032 FAILED: capabilities_registry.md is out of sync with codebase."
+          echo "::error::❌ Trinity Gate 失败：请在上方日志定位具体门禁项。"
           echo ""
-          echo "🔧 FIX: Run the following command locally and amend your commit:"
+          echo "🔧 常见修复（本地执行、确认后再提交）："
+          echo "  # 文档生成 + 守护（STATUS.md / coverage-report.md）"
+          echo "  bash scripts/check_all.sh --docs"
+          echo "  # 能力矩阵与代码同步（AGENTS.md 第七节要求，无独立门禁，需人工执行）"
           echo "  python scripts/generate_capabilities.py"
-          echo "  git add docs/governance/capabilities_registry.md"
-          echo "  git commit --amend --no-edit"
+          echo "  git add docs/governance/capabilities_registry.md && git commit --amend --no-edit"
           echo ""
-          echo "💡 This check ensures the capability matrix always reflects current architecture."
+          echo "💡 修复指引: docs/governance/trinity-how-to-fix.md"
           exit 1
-
-      - name: Upload generated docs as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trinity-generated-docs-${{ github.run_number }}
-          path: |
-            STATUS.md
-            docs/testing/coverage-report.md
-          retention-days: 7
 
       - name: Post PR comment with results
         if: always() && github.event_name == 'pull_request'
@@ -96,13 +74,12 @@ jobs:
 
             | Check | Result |
             |-------|--------|
-            | Fast (--fast) | ${jobStatus === 'success' ? '✅' : '❌'} |
-            | Docs (--docs) | ${jobStatus === 'success' ? '✅' : '❌'} |
-            | Deep (--deep) | ${jobStatus === 'success' ? '✅' : '❌'} |
+            | Deep (--deep) + 治理守护（Schema/G-032/G-037/G-030/G-033） | ${jobStatus === 'success' ? '✅' : '❌'} |
 
-            📄 生成的文档已作为 [Artifact](${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) 上传，请下载确认后手动提交。
+            📄 文档生成由**本地**执行（CI 不生成、不上传、不 push）：
+            运行 \`bash scripts/check_all.sh --docs\` 生成 STATUS.md 与 docs/testing/coverage-report.md，
+            人工确认后再提交入库文档。
 
-            > ⚠️ CI 不会自动 push 任何文件，避免触发分支保护规则冲突。
             > 🔧 修复指引: 参见 [Trinity Gate How-to-Fix](docs/governance/trinity-how-to-fix.md)
             `;
 
