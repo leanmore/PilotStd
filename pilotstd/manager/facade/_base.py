@@ -229,6 +229,7 @@ class BaseFacade:
         self._archive_retry_svc = ArchiveRetryService(self)
 
         from ..standard_service import StandardService
+        from ..system_service import SystemService
         from ..user_service import UserService
         from ..validity_service import ValidityService
 
@@ -240,6 +241,9 @@ class BaseFacade:
         self._validity_service = ValidityService(self)
         self._standard_service = StandardService(self)
         self._user_service = UserService(self)
+        # 系统状态服务：docker/api/system.py::system_health 依赖 mgr.system_service，
+        # 此前未接线导致该端点恒 500（AttributeError）
+        self.system_service = SystemService(self)
 
         from ..wechat_ip_service import WechatIPService
 

@@ -45,6 +45,18 @@ class TestStandardManager(unittest.TestCase):
         finally:
             shutil.rmtree(empty)
 
+    def test_facade_exposes_system_service(self):
+        """C 修复回归：facade 必须接线 SystemService。
+
+        docker/api/system.py::system_health 调用 mgr.system_service.get_status()，
+        未接线时该端点恒 500（AttributeError: 'StandardManager' object has no attribute 'system_service'）。
+        """
+        mgr = StandardManager()
+        self.assertIsNotNone(mgr.system_service, "facade 应暴露 system_service")
+        status = mgr.system_service.get_status()
+        self.assertTrue(status["db_connected"])
+        self.assertIsInstance(status["total_standards"], int)
+
     @pytest.mark.skipif(
         os.environ.get("CI") == "true",
         reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
