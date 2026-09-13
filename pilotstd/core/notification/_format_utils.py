@@ -4,6 +4,16 @@ from typing import Any
 
 from pilotstd.i18n import t
 
+# 废止类状态的数据口径（适配器/检查器写入的原始状态值）。
+# 严禁用 t(...) 的展示文案参与逻辑比较：en 下 t("...abolished")="Expired"，
+# 与数据里的 "废止" 永不相等，会导致废止计数与告警级别随语言漂移。
+ABOLISHED_STATUS_TOKENS: frozenset[str] = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+
+
+def is_abolished_status(status: str) -> bool:
+    """判断状态值是否属于废止类（与当前界面语言无关）。"""
+    return (status or "").strip() in ABOLISHED_STATUS_TOKENS
+
 
 def translate_error_message(error: str) -> str:
     """错误信息翻译映射（C-3 + 基础系统异常扩展）：用户可见的失败原因统一口径。
@@ -45,7 +55,7 @@ def format_standard_status_changed_aggregated( _event_type: str, entries: list, 
     for i in range(display):
         msg, _ch, _ts = entries[i]
         new_status = getattr(msg, "new_status", "") or ""
-        if new_status == "废止":
+        if is_abolished_status(new_status):
             expired_count += 1
         std_no = msg.standard_number or ""
         std_name = getattr(msg, "standard_name", "") or ""
@@ -63,7 +73,7 @@ def format_standard_status_changed_aggregated( _event_type: str, entries: list, 
     if count > 10:
         for i in range(10, count):
             _msg, _ch, _ts = entries[i]
-            if (getattr(_msg, "new_status", "") or "") == "废止":
+            if is_abolished_status(getattr(_msg, "new_status", "") or ""):
                 expired_count += 1
     if expired_count > 0:
         header = t("notification.aggregated.status.header_with_expired").format(
@@ -97,7 +107,7 @@ def do_test_send(
         # 尝试实时初始化（优先使用中的参数）
         cls = _CHANNEL_CLASSES.get(channel)
         if cls is None:
-            return {"ok": False, "error": f"未知渠道: {channel}"}
+            return {"ok": False, "error": t("notification.channel_test.unknown_channel").format(ch=channel)}
         try:
             # F-03 统一凭证源：从 DB（user_credentials）读取，CredentialHelper 不可用时报错
             # （不回退 config.json，避免重新引入双源不一致）
@@ -112,21 +122,21 @@ def do_test_send(
                     override.get("chat_id") or creds.get("chat_id") or ""
                 ).strip()
                 if not token:
-                    return {"ok": False, "error": "缺少 bot_token"}
+                    return {"ok": False, "error": t("notification.channel_test.missing_bot_token")}
                 if not chat_id:
-                    return {"ok": False, "error": "缺少 chat_id"}
+                    return {"ok": False, "error": t("notification.channel_test.missing_chat_id")}
                 ch = cls(token, chat_id)
             elif channel == "dingtalk":
                 url = override.get("webhook_url") or creds.get("webhook_url") or ""
                 secret = override.get("secret") or creds.get("secret") or ""
                 if not url:
-                    return {"ok": False, "error": "缺少 webhook_url（钉钉群机器人必填）"}
+                    return {"ok": False, "error": t("notification.channel_test.missing_dingtalk_webhook")}
                 ch = cls(url, secret)
             elif channel == "feishu":
                 url = override.get("webhook_url") or creds.get("webhook_url") or ""
                 secret = override.get("secret") or creds.get("secret") or ""
                 if not url:
-                    return {"ok": False, "error": "缺少 webhook_url（飞书机器人必填）"}
+                    return {"ok": False, "error": t("notification.channel_test.missing_feishu_webhook")}
                 ch = cls(url, secret)
             elif channel == "wechat":
                 # 企业微信：优先应用消息（corpid+agentid+corpsecret），其次群机器人（webhook_url）
@@ -141,18 +151,24 @@ def do_test_send(
                     if not url:
                         return {
                             "ok": False,
-                            "error": "缺少 webhook_url（群机器人）或 corpid+agentid+corpsecret（应用消息）",
+                            "error": t("notification.channel_test.missing_wechat_url"),
                         }
                     ch = cls(url)
             else:
                 url = override.get("webhook_url") or creds.get("webhook_url") or ""
                 if not url:
-                    return {"ok": False, "error": f"缺少 {channel} 渠道的 webhook_url"}
+                    return {
+                        "ok": False,
+                        "error": t("notification.channel_test.missing_webhook").format(ch=channel),
+                    }
                 ch = cls(url)
         except Exception as e:
-            return {"ok": False, "error": f"渠道初始化失败: {e}"}
+            return {
+                "ok": False,
+                "error": t("notification.channel_test.init_failed").format(e=e),
+            }
     try:
         ok = ch.send(message)
-        return {"ok": ok, "error": "" if ok else "发送失败"}
+        return {"ok": ok, "error": "" if ok else t("notification.channel_test.send_failed")}
     except Exception as e:
         return {"ok": False, "error": str(e)}

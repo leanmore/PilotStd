@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification._credentials import MASKED_VALUE
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
+from pilotstd.i18n import t
 
 from ..auth import get_current_user_id
 from ..manager import get_manager_dep
@@ -145,11 +146,11 @@ def test_notification(request: Request, body: dict, nmgr=Depends(_get_notificati
     """
     channel = body.get("channel", "")
     if channel not in ("wechat", "telegram", "feishu", "dingtalk"):
-        return {"ok": False, "error": f"不支持的渠道: {channel}"}
+        return {"ok": False, "error": t("notification.api.unsupported_channel").format(ch=channel)}
 
     msg = NotificationMessage(
-        title=body.get("title", "测试通知"),
-        body=body.get("body", "这是一条测试消息"),
+        title=body.get("title") or t("notification.api.test_title"),
+        body=body.get("body") or t("notification.api.test_body"),
         level="info",
         event_type="test",
     )

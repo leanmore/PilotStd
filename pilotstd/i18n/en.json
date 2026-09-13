@@ -580,6 +580,7 @@
     "notification.announce.announcement_fetch_complete.title": "Announcement Fetch Complete",
     "notification.announce.announcement_fetch_complete.body.source": "Source: {s}",
     "notification.announce.announcement_fetch_complete.body.summary": "New announcements: {n}; national: {g}, industry: {h}, local: {d}",
+    "notification.announce.announcement_fetch_complete.body.list_header": "Newly fetched announcements:",
     "notification.announce.announcement_fetch_complete.body.item": "• {t}",
 
     "notification.announce.announce_fetch_summary.title.normal": "Announcement Fetch Complete",
@@ -672,5 +673,55 @@
     "notification.aggregated.status.time_suffix": ", {time}",
     "notification.aggregated.status.header_with_expired": "{count} standard status changes ({n} expired)",
     "notification.aggregated.status.header": "{count} standard status changes",
-    "notification.aggregated.status.and_more": "and {n} more"
+    "notification.aggregated.status.and_more": "and {n} more",
+
+    "notification.renderer.empty": "(notification content is empty)",
+    "notification.renderer.list_count": " ({total} items)",
+    "notification.renderer.list_empty": ": no data",
+    "notification.renderer.view_full_list": "View full list",
+    "notification.renderer.desktop_preview": "{title}: {first} and {total} more",
+
+    "notification.aggregated.body.header": "📦 Aggregated notifications ({n})",
+    "notification.aggregated.body.item": "• {line}",
+    "notification.aggregated.body.more": "… and {n} more",
+
+    "notification.desktop.level.success": "[OK]",
+    "notification.desktop.level.failure": "[FAIL]",
+    "notification.desktop.level.elapsed": "[ELAPSED]",
+    "notification.desktop.level.warning": "[WARN]",
+    "notification.desktop.level.info": "[INFO]",
+
+    "notification.channel_test.unknown_channel": "Unknown channel: {ch}",
+    "notification.channel_test.missing_bot_token": "Missing bot_token",
+    "notification.channel_test.missing_chat_id": "Missing chat_id",
+    "notification.channel_test.missing_dingtalk_webhook": "Missing webhook_url (required for DingTalk group bot)",
+    "notification.channel_test.missing_feishu_webhook": "Missing webhook_url (required for Feishu bot)",
+    "notification.channel_test.missing_wechat_url": "Missing webhook_url (group bot) or corpid+agentid+corpsecret (app message)",
+    "notification.channel_test.missing_webhook": "Missing webhook_url for channel {ch}",
+    "notification.channel_test.init_failed": "Channel initialization failed: {e}",
+    "notification.channel_test.send_failed": "Send failed",
+
+    "notification.manager.channel_unavailable": "Channel {ch} is not enabled or failed to initialize",
+    "notification.manager.send_failed_no_detail": "Send failed (no details)",
+
+    "notification.channel.not_configured_telegram": "Channel not configured: bot_token or chat_id missing",
+    "notification.channel.not_configured_webhook": "Channel not configured: webhook_url missing",
+    "notification.channel.test.title": "PilotStd test notification",
+    "notification.channel.test.body": "This is a test message",
+    "notification.channel.config.chat_id": "Chat ID",
+    "notification.channel.config.webhook_url": "Webhook URL",
+    "notification.channel.config.secret": "Signing secret",
+
+    "notification.api.unsupported_channel": "Unsupported channel: {ch}",
+    "notification.api.test_title": "Test notification",
+    "notification.api.test_body": "This is a test message",
+
+    "notification.archive.category.national": "National",
+    "notification.archive.category.local": "Local",
+    "notification.archive.category.international": "International",
+    "notification.archive.category.foreign": "Foreign",
+    "notification.archive.category.group": "Group",
+    "notification.archive.category.enterprise": "Enterprise",
+    "notification.archive.category.industry": "Industry",
+    "notification.archive.category.other": "Other"
 }

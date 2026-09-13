@@ -21,17 +21,20 @@ from .blocks import (
 )
 from .channel import NotificationMessage
 
-# 标准类型 → 中文标签（favorite/download 模板共用；v1.1 改为 t() 层级键）
-_STD_TYPE_LABEL = {
-    "NationalStd": t("notification.common.std_type.national"),
-    "IndustryStd": t("notification.common.std_type.industry"),
-    "LocalStd": t("notification.common.std_type.local"),
+# 标准类型 → i18n 键（favorite/download 模板共用）。
+# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻，
+# 运行时 set_language 后标准类型名不会跟着变。
+_STD_TYPE_LABEL_KEYS = {
+    "NationalStd": "notification.common.std_type.national",
+    "IndustryStd": "notification.common.std_type.industry",
+    "LocalStd": "notification.common.std_type.local",
 }
 
 
 def _std_type_text(standard_type: str) -> str:
     """标准类型标签（未知类型返回空串，模板中省略该行）。"""
-    return _STD_TYPE_LABEL.get(standard_type or "", "")
+    key = _STD_TYPE_LABEL_KEYS.get(standard_type or "")
+    return t(key) if key else ""
 
 
 def _expected_download_date(publish_date: str) -> str:
@@ -81,7 +84,10 @@ def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessag
     announcements = data.get("announcements") or []
     titles = [a.get("title", "") for a in announcements if a.get("title")]
     if titles:
-        # 公告标题逐行展示（模板："• {title}"）
+        # 明细仅在本次确有新增公告时出现（列表头 + 逐行 "• {title}"）
+        blocks.append(
+            TextBlock(text=t("notification.announce.announcement_fetch_complete.body.list_header"))
+        )
         item_key = "notification.announce.announcement_fetch_complete.body.item"
         blocks.append(TextBlock(text="\n".join(t(item_key).format(t=tt) for tt in titles)))
     return NotificationMessage(
@@ -185,7 +191,9 @@ def _build_download_failed_message(data: dict) -> NotificationMessage:
         title=t("notification.download.download_failed.title"),
         blocks=blocks,
         level="error",
+        standard_number=std_no or None,
         event_type="download_failed",
+        link=_make_link(std_no) if std_no else None,
         icon="pi pi-download",
     )
 

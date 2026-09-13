@@ -3,7 +3,7 @@
 
 from pilotstd.i18n import t
 
-from ._format_utils import translate_error_message
+from ._format_utils import is_abolished_status, translate_error_message
 from .blocks import (
     ListBlock,
     NotificationBlock,
@@ -40,8 +40,8 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
             blocks.append(TextBlock(text=t("notification.common.changed_at").format(t=data["changed_at"])))
     else:
         title = t("notification.validity.standard_status_changed.title.normal")
-        # 新状态为"已废止"时降级为，否则
-        level = "warning" if new_status == t("notification.common.abolished") else "info"
+        # 新状态为废止类时降级为 warning（按数据口径判定，不得比较展示文案）
+        level = "warning" if is_abolished_status(new_status) else "info"
         icon = "pi pi-refresh"
     return NotificationMessage(
         title=title,

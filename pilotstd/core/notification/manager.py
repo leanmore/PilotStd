@@ -10,6 +10,8 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 
+from pilotstd.i18n import t
+
 from ..db import Database
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
@@ -270,7 +272,14 @@ class NotificationManager:
             channel = self._channels.get(ch_name)
             sent_at = datetime.now().isoformat()
             if channel is None:
-                self._log(event_type, ch_name, msg, "failed", f"渠道 {ch_name} 未启用或初始化失败", sent_at)
+                self._log(
+                    event_type,
+                    ch_name,
+                    msg,
+                    "failed",
+                    t("notification.manager.channel_unavailable").format(ch=ch_name),
+                    sent_at,
+                )
                 continue
             try:
                 ok = channel.send(msg)
@@ -278,7 +287,9 @@ class NotificationManager:
                 if ok:
                     err_msg = ""
                 else:
-                    err_msg = getattr(channel, "last_error", "") or "发送失败 (无详细错误)"
+                    err_msg = getattr(channel, "last_error", "") or t(
+                        "notification.manager.send_failed_no_detail"
+                    )
                 self._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)

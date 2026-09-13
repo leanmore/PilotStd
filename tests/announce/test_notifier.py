@@ -131,3 +131,50 @@ class TestDeadEventsRestored:
             if c.args[0] == "announcement_check_complete"
         )
         assert payload["failures"] == 2
+
+
+class TestAnnouncementTitleWindow:
+    """修复回归：明细只列本次抓取窗口内新增的公告。
+
+    历史缺陷：查询是全表最近 fetched 的 10 条，与本次是否新增无关，
+    导致"新增公告：0"却仍列出历史公告，且每次运行原样复现。
+    """
+
+    def _payload(self, notifier):
+        return next(
+            c.args[1] for c in notifier.notification_mgr.send_event.call_args_list
+            if c.args[0] == "announcement_fetch_complete"
+        )
+
+    def test_no_titles_when_no_new_announcements(self, notifier):
+        result = {"matched": 0, "updated": 0, "total_announcements": 0,
+                  "total_standards": 0, "adapters": []}
+        notifier.after_fetch(result, source="定时", since="2026-09-13T01:00:00")
+
+        assert self._payload(notifier)["announcements"] == []
+        notifier.mgr_db.fetchall.assert_not_called()
+
+    def test_titles_scoped_by_run_window(self, notifier):
+        notifier.mgr_db.fetchall.return_value = [
+            {"announce_no": "2026年第31号", "announcement_title": "关于批准发布…的公告"}
+        ]
+        result = {"matched": 0, "updated": 0, "total_announcements": 1,
+                  "total_standards": 1, "adapters": []}
+        notifier.after_fetch(result, source="定时", since="2026-09-13T01:00:00")
+
+        assert self._payload(notifier)["announcements"][0]["title"] == "关于批准发布…的公告"
+        # 只挑明细查询那一次调用（updated>0 时缓存失效也会走 fetchall）
+        title_calls = [
+            c for c in notifier.mgr_db.fetchall.call_args_list if "fetched_at >= ?" in c.args[0]
+        ]
+        assert len(title_calls) == 1, "必须按本次抓取窗口过滤"
+        assert title_calls[0].args[1][0] == "2026-09-13T01:00:00"
+
+    def test_no_since_means_no_titles(self, notifier):
+        """窗口未知时宁缺勿错：不展示任何明细。"""
+        result = {"matched": 0, "updated": 0, "total_announcements": 1,
+                  "total_standards": 1, "adapters": []}
+        notifier.after_fetch(result)
+
+        assert self._payload(notifier)["announcements"] == []
+        notifier.mgr_db.fetchall.assert_not_called()

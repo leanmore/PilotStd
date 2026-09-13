@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import re
 
+from pilotstd.i18n import t
+
 from .channel import NotificationMessage
 from .renderer import DesktopRenderer
 
@@ -17,13 +19,15 @@ from .renderer import DesktopRenderer
 MAX_TITLE_LENGTH = 40
 MAX_BODY_LENGTH = 120
 
-EMOJI_MAP = {
-    "✅": "[成功]",
-    "❌": "[失败]",
-    "⏱️": "[耗时]",
-    "⏱": "[耗时]",
-    "⚠️": "[警告]",
-    "ℹ️": "[提示]",
+# 桌面气泡不支持的 Emoji → 纯文本标签的 i18n 键（空串表示直接删除）
+# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻。
+_EMOJI_LABEL_KEYS = {
+    "✅": "notification.desktop.level.success",
+    "❌": "notification.desktop.level.failure",
+    "⏱️": "notification.desktop.level.elapsed",
+    "⏱": "notification.desktop.level.elapsed",
+    "⚠️": "notification.desktop.level.warning",
+    "ℹ️": "notification.desktop.level.info",
     "📦": "",
     "📋": "",
 }
@@ -50,9 +54,10 @@ def format_for_desktop(title: str, body: str) -> tuple[str, str]:
     """
     safe_title = title
     safe_body = body
-    for emoji, text in EMOJI_MAP.items():
-        safe_title = safe_title.replace(emoji, text)
-        safe_body = safe_body.replace(emoji, text)
+    for emoji, key in _EMOJI_LABEL_KEYS.items():
+        label = t(key) if key else ""
+        safe_title = safe_title.replace(emoji, label)
+        safe_body = safe_body.replace(emoji, label)
 
     # 多余空白压缩，换行转空格
     safe_title = re.sub(r"\s+", " ", safe_title).strip()

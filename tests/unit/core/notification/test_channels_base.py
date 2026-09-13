@@ -18,6 +18,7 @@ from pilotstd.core.notification.channels.dingtalk import DingTalkChannel
 from pilotstd.core.notification.channels.feishu import FeishuChannel
 from pilotstd.core.notification.channels.telegram import TelegramChannel
 from pilotstd.core.notification.channels.wechat import WechatChannel
+from pilotstd.i18n import t
 
 
 def test_abstract_base_cannot_instantiate() -> None:
@@ -72,7 +73,7 @@ def test_test_method_sends_via_send(channel_cls, init_args: tuple, monkeypatch) 
     monkeypatch.setattr(ch, "send", lambda m: (sent.append(m), True)[1])
     assert ch.test() is True
     assert len(sent) == 1
-    assert sent[0].title == "PilotStd Test"
+    assert sent[0].title == t("notification.channel.test.title")
     assert sent[0].event_type == ""  # 测试消息不带事件类型（非业务通知）
 
 

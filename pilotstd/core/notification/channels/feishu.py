@@ -6,6 +6,8 @@ import logging
 from typing import Any
 from urllib.request import Request, urlopen
 
+from pilotstd.i18n import t
+
 from ..channel import NotificationMessage
 from ..renderer import FeishuCardRenderer
 from .base import NotificationChannel
@@ -27,15 +29,12 @@ class FeishuChannel(NotificationChannel):
         # 每次发送前重置错误详情，避免上次失败残留
         self.last_error = ""
         if not self._url:
-            self.last_error = "渠道未配置 webhook_url"
+            self.last_error = t("notification.channel.not_configured_webhook")
             return False
         try:
-            # 使用飞书渲染卡片
+            # 使用飞书渲染卡片（标准号由构建器渲染进正文，发送层不再追加，
+            # 与 telegram 同口径——见 57f58a6c 尾部重复行消除）
             card = self._renderer.render(message)
-
-            # 标准号在卡片底部追加为备注元素
-            if message.standard_number:
-                card["elements"].append({"tag": "markdown", "content": f"标准号: {message.standard_number}"})
 
             payload = json.dumps(
                 {
@@ -85,10 +84,20 @@ class FeishuChannel(NotificationChannel):
 
     def test(self) -> bool:
         """发送一条测试消息验证渠道连通性。"""
-        return self.send(NotificationMessage(title="PilotStd Test", body="Channel connectivity test"))
+        return self.send(
+            NotificationMessage(
+                title=t("notification.channel.test.title"),
+                body=t("notification.channel.test.body"),
+            )
+        )
 
     def get_config_schema(self) -> dict[str, Any]:
         """渠道配置字段 schema（供前端动态渲染配置表单）。"""
         return {
-            "webhook_url": {"type": "string", "label": "Webhook 地址", "required": True, "secret": False},
+            "webhook_url": {
+                "type": "string",
+                "label": t("notification.channel.config.webhook_url"),
+                "required": True,
+                "secret": False,
+            },
         }

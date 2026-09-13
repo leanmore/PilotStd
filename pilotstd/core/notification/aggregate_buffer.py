@@ -18,7 +18,10 @@ import threading
 import time
 from collections.abc import Callable
 
+from pilotstd.i18n import t
+
 from .channel import NotificationMessage
+from .renderer import _fallback_text
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +29,9 @@ DEFAULT_WINDOW_SECONDS = 60.0  # 首次延时：1分钟后触发
 MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5分钟后强制发送
 DEFAULT_BATCH_SIZE = 20
 
-# 聚合摘要最终兜底文案（渲染/标题均空时使用，确保永不返回空串）
-_FALLBACK_TEXT = "(通知内容为空)"
+# 多条聚合摘要的排版口径
+_PREVIEW_ITEMS = 5  # 摘要中逐条列出的最大条数
+_PREVIEW_CHARS = 60  # 每条摘要保留的首行字符数
 
 # 每个条目在缓冲中的存储结构
 _Entry = tuple[NotificationMessage, list[str], float]  # (msg, channels, enqueued_at)
@@ -257,15 +261,19 @@ class NotificationAggregator:
         if len(entries) == 1:
             msg = entries[0][0]
             rendered = self._renderer.render(msg)
-            return rendered or msg.title or _FALLBACK_TEXT
+            return rendered or msg.title or _fallback_text()
 
-        lines: list[str] = [f"📦 聚合通知（{len(entries)} 条）"]
-        for msg, _ch, _ts in entries[:5]:
+        lines: list[str] = [t("notification.aggregated.body.header").format(n=len(entries))]
+        for msg, _ch, _ts in entries[:_PREVIEW_ITEMS]:
             rendered = self._renderer.render(msg)
-            first_line = rendered.split("\n")[0].strip() if rendered else (msg.title or _FALLBACK_TEXT)
-            lines.append(f"• {first_line[:60]}")
-        if len(entries) > 5:
-            lines.append(f"… 等 {len(entries)} 条")
+            first_line = (
+                rendered.split("\n")[0].strip() if rendered else (msg.title or _fallback_text())
+            )
+            lines.append(
+                t("notification.aggregated.body.item").format(line=first_line[:_PREVIEW_CHARS])
+            )
+        if len(entries) > _PREVIEW_ITEMS:
+            lines.append(t("notification.aggregated.body.more").format(n=len(entries)))
         return "\n".join(lines)
 
     @staticmethod

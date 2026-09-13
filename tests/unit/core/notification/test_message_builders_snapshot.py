@@ -554,6 +554,27 @@ class TestBatchBuildersSnapshot:
         assert msg.level == "error"
         assert msg.event_type == "download_failed"
 
+    def test_download_failed_carries_standard_number_and_link(self):
+        """D 修复回归：download_failed 必须落 standard_number 与 link。
+
+        生产实测 34/34 行两列为空，而同族 download_started 两列齐全，
+        导致通知日志无法按标准号过滤/跳转。
+        """
+        msg = _build_download_failed_message({
+            "standard_number": "GB/T 555-2024",
+            "standard_name": "测试标准",
+            "standard_type": "NationalStd",
+            "error": "下载失败",
+        })
+        assert msg.standard_number == "GB/T 555-2024"
+        assert msg.link == "/standards/GB/T 555-2024"
+
+    def test_download_failed_without_standard_number_keeps_columns_empty(self):
+        """标准号缺失时应为 None（而非空串），保持与 download_started 同口径。"""
+        msg = _build_download_failed_message({"error": "未知错误"})
+        assert msg.standard_number is None
+        assert msg.link is None
+
     # ── _build_archive_abandoned_message ──
 
     def test_archive_abandoned(self):

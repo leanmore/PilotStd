@@ -16,24 +16,33 @@ class AnnounceNotifier:
         self.notification_mgr = notification_mgr
         self.mgr_db = mgr_db
 
-    def after_fetch(self, result: dict[str, Any], source: str = "") -> None:
-        """抓取后处理：通知 + 缓存失效。仅在有实际新数据（updated > 0）时失效缓存。"""
+    def after_fetch(self, result: dict[str, Any], source: str = "", since: str = "") -> None:
+        """抓取后处理：通知 + 缓存失效。仅在有实际新数据（updated > 0）时失效缓存。
+
+        since：本次抓取起始时间（ISO）。通知明细只展示该窗口内新增的公告，
+        为空则不展示明细（宁缺勿错，避免把历史公告当成本次新增）。
+        """
         updated = result.get("updated", 0)
         if self.notification_mgr:
-            self._send_notifications(result, source)
+            self._send_notifications(result, source, since)
         if self.mgr_db and updated > 0:
             self._invalidate_cache()
 
-    def _fetch_announcement_titles(self, limit: int = 10) -> list[dict]:
-        """查询最近抓取的公告标题（announcement_fetch_complete 明细列表）。"""
-        if not self.mgr_db:
+    def _fetch_announcement_titles(self, since: str, limit: int = 10) -> list[dict]:
+        """查询本次抓取窗口内新增的公告标题（announcement_fetch_complete 明细列表）。
+
+        必须按 since 限定窗口：此前查的是全表最近 fetched 的 10 条公告，
+        导致"新增公告：0"却仍列出历史公告，且这些行 fetched_at 不变，
+        每次运行原样复现（与手动路径的 fetched_at >= check_start 口径也不一致）。
+        """
+        if not self.mgr_db or not since:
             return []
         try:
             rows = self.mgr_db.fetchall(
                 "SELECT announce_no, announcement_title FROM announcement_record "
-                "WHERE announcement_title IS NOT NULL AND announcement_title != '' "
-                "GROUP BY announce_no ORDER BY MAX(fetched_at) DESC LIMIT ?",
-                (limit,),
+                "WHERE fetched_at >= ? AND announcement_title IS NOT NULL AND announcement_title != '' "
+                "GROUP BY announce_no ORDER BY announce_no LIMIT ?",
+                (since, limit),
             )
             return [
                 {"announce_no": r["announce_no"], "title": r["announcement_title"]} for r in rows
@@ -41,7 +50,7 @@ class AnnounceNotifier:
         except Exception:
             return []
 
-    def _send_notifications(self, result: dict[str, Any], source: str) -> None:
+    def _send_notifications(self, result: dict[str, Any], source: str, since: str = "") -> None:
         """派发公告检查通知事件：检查汇总 + 全站失败告警 + 逐站明细汇总。"""
         matched = result.get("matched", 0)
         updated = result.get("updated", 0)
@@ -94,7 +103,8 @@ class AnnounceNotifier:
                 logger.warning("公告通知发送失败 (announce_fetch_summary): %s", exc)
 
         # C-1：定时路径补发"拉取完成"事件（与手动路径对齐），
-        # 且与"检查完成"均携带来源字段与新增公告标题明细
+        # 且与"检查完成"均携带来源字段与新增公告标题明细。
+        # 明细仅在本次窗口确有新增公告（total > 0）时附上，杜绝"新增 0 条却列出历史公告"。
         try:
             self.notification_mgr.send_event(
                 "announcement_fetch_complete",
@@ -104,7 +114,7 @@ class AnnounceNotifier:
                     "gb_count": result.get("gb_count", 0),
                     "hb_count": result.get("hb_count", 0),
                     "db_count": result.get("db_count", 0),
-                    "announcements": self._fetch_announcement_titles(),
+                    "announcements": self._fetch_announcement_titles(since) if total > 0 else [],
                 },
             )
         except Exception as exc:

@@ -18,17 +18,19 @@ from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
-# 定时任务 job_id → 中文名映射（task_execution_failed 模板；v1.1 改为 t() 层级键）
-_TASK_NAME_MAP = {
-    "auto_announce": t("notification.system.task_execution_failed.task.auto_announce"),
-    "auto_scan": t("notification.system.task_execution_failed.task.auto_scan"),
-    "auto_backup": t("notification.system.task_execution_failed.task.auto_backup"),
-    "auto_archive_retry": t("notification.system.task_execution_failed.task.auto_archive_retry"),
-    "auto_health_check": t("notification.system.task_execution_failed.task.auto_health_check"),
-    "date_reminder": t("notification.system.task_execution_failed.task.date_reminder"),
-    "validity_check": t("notification.system.task_execution_failed.task.validity_check"),
-    "notification_cleanup": t("notification.system.task_execution_failed.task.notification_cleanup"),
-    "release_suppressed": t("notification.system.task_execution_failed.task.release_suppressed"),
+# 定时任务 job_id → i18n 键（task_execution_failed 模板）。
+# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻，
+# 运行时 set_language 后任务名不会跟着变。
+_TASK_NAME_KEY_MAP = {
+    "auto_announce": "notification.system.task_execution_failed.task.auto_announce",
+    "auto_scan": "notification.system.task_execution_failed.task.auto_scan",
+    "auto_backup": "notification.system.task_execution_failed.task.auto_backup",
+    "auto_archive_retry": "notification.system.task_execution_failed.task.auto_archive_retry",
+    "auto_health_check": "notification.system.task_execution_failed.task.auto_health_check",
+    "date_reminder": "notification.system.task_execution_failed.task.date_reminder",
+    "validity_check": "notification.system.task_execution_failed.task.validity_check",
+    "notification_cleanup": "notification.system.task_execution_failed.task.notification_cleanup",
+    "release_suppressed": "notification.system.task_execution_failed.task.release_suppressed",
 }
 
 
@@ -253,7 +255,8 @@ def _build_task_execution_failed_message(data: dict) -> NotificationMessage:
     任务名经 job_id → 中文映射，错误经翻译映射（C-3）。
     """
     raw_task = data.get("task_name", t("notification.common.unknown_task"))
-    task_name = _TASK_NAME_MAP.get(raw_task, raw_task)
+    key = _TASK_NAME_KEY_MAP.get(raw_task)
+    task_name = t(key) if key else raw_task
     blocks: list[NotificationBlock] = [
         TextBlock(text=t("notification.system.task_execution_failed.body.task").format(t=task_name)),
         TextBlock(text=t("notification.common.error").format(e=translate_error_message(data.get("error", "")))),

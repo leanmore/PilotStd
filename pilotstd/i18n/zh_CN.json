@@ -584,6 +584,7 @@
     "notification.announce.announcement_fetch_complete.title": "公告拉取完成",
     "notification.announce.announcement_fetch_complete.body.source": "来源：{s}",
     "notification.announce.announcement_fetch_complete.body.summary": "新增公告：{n}；其中国标：{g}，行标：{h}，地标：{d}",
+    "notification.announce.announcement_fetch_complete.body.list_header": "本次新增公告：",
     "notification.announce.announcement_fetch_complete.body.item": "• {t}",
 
     "notification.announce.announce_fetch_summary.title.normal": "公告抓取完成",
@@ -676,5 +677,55 @@
     "notification.aggregated.status.time_suffix": "，{time}",
     "notification.aggregated.status.header_with_expired": "{count} 项标准状态变更（其中 {n} 项已废止）",
     "notification.aggregated.status.header": "{count} 项标准状态变更",
-    "notification.aggregated.status.and_more": "等 {n} 项"
+    "notification.aggregated.status.and_more": "等 {n} 项",
+
+    "notification.renderer.empty": "(通知内容为空)",
+    "notification.renderer.list_count": "（共 {total} 条）",
+    "notification.renderer.list_empty": "：无数据",
+    "notification.renderer.view_full_list": "查看完整列表",
+    "notification.renderer.desktop_preview": "{title}：{first} 等 {total} 条",
+
+    "notification.aggregated.body.header": "📦 聚合通知（{n} 条）",
+    "notification.aggregated.body.item": "• {line}",
+    "notification.aggregated.body.more": "… 等 {n} 条",
+
+    "notification.desktop.level.success": "[成功]",
+    "notification.desktop.level.failure": "[失败]",
+    "notification.desktop.level.elapsed": "[耗时]",
+    "notification.desktop.level.warning": "[警告]",
+    "notification.desktop.level.info": "[提示]",
+
+    "notification.channel_test.unknown_channel": "未知渠道: {ch}",
+    "notification.channel_test.missing_bot_token": "缺少 bot_token",
+    "notification.channel_test.missing_chat_id": "缺少 chat_id",
+    "notification.channel_test.missing_dingtalk_webhook": "缺少 webhook_url（钉钉群机器人必填）",
+    "notification.channel_test.missing_feishu_webhook": "缺少 webhook_url（飞书机器人必填）",
+    "notification.channel_test.missing_wechat_url": "缺少 webhook_url（群机器人）或 corpid+agentid+corpsecret（应用消息）",
+    "notification.channel_test.missing_webhook": "缺少 {ch} 渠道的 webhook_url",
+    "notification.channel_test.init_failed": "渠道初始化失败: {e}",
+    "notification.channel_test.send_failed": "发送失败",
+
+    "notification.manager.channel_unavailable": "渠道 {ch} 未启用或初始化失败",
+    "notification.manager.send_failed_no_detail": "发送失败 (无详细错误)",
+
+    "notification.channel.not_configured_telegram": "渠道未配置 bot_token 或 chat_id",
+    "notification.channel.not_configured_webhook": "渠道未配置 webhook_url",
+    "notification.channel.test.title": "PilotStd 测试通知",
+    "notification.channel.test.body": "这是一条测试消息",
+    "notification.channel.config.chat_id": "聊天 ID",
+    "notification.channel.config.webhook_url": "Webhook 地址",
+    "notification.channel.config.secret": "加签密钥",
+
+    "notification.api.unsupported_channel": "不支持的渠道: {ch}",
+    "notification.api.test_title": "测试通知",
+    "notification.api.test_body": "这是一条测试消息",
+
+    "notification.archive.category.national": "国标",
+    "notification.archive.category.local": "地标",
+    "notification.archive.category.international": "国际",
+    "notification.archive.category.foreign": "国外",
+    "notification.archive.category.group": "团体",
+    "notification.archive.category.enterprise": "企业",
+    "notification.archive.category.industry": "行业",
+    "notification.archive.category.other": "其他"
 }

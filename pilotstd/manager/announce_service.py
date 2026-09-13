@@ -146,9 +146,12 @@ class AnnounceService:
         return self._init_task_runner().trigger(adapter_name)
 
     def _after_fetch(self, result: dict[str, Any], source: str = "") -> None:
-        """抓取后处理：归一化载荷 + 补全统计 + 通知 + 缓存失效。"""
+        """抓取后处理：归一化载荷 + 补全统计 + 通知 + 缓存失效。
+
+        since 传本次抓取窗口起点（与统计口径同源），通知明细据此只列本次新增公告。
+        """
         normalized = self._normalize_fetch_result(result)
-        self._init_notifier().after_fetch(normalized, source)
+        self._init_notifier().after_fetch(normalized, source, since=self._last_check_start or "")
 
     def _normalize_fetch_result(self, result: dict[str, Any]) -> dict[str, Any]:
         """将 check_filtered 的 {std_type: {...}} 结构归一化为扁平结构，并补全统计字段。

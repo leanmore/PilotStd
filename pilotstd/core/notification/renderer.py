@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import re
 
+from pilotstd.i18n import t
+
 from .blocks import (
     KeyValueBlock,
     ListBlock,
@@ -19,8 +21,13 @@ from .blocks import (
 )
 from .channel import NotificationMessage
 
-# 渲染最终兜底文案：消息无结构块、无正文、无标题时的占位（杜绝空文本发送）
-_FALLBACK_TEXT = "(通知内容为空)"
+
+def _fallback_text() -> str:
+    """渲染兜底占位文案（消息无结构块、无正文、无标题时用）。
+
+    调用期取 t()：模块级常量会把语言固化在 import 时刻。
+    """
+    return t("notification.renderer.empty")
 
 
 class BlockRenderer:
@@ -61,7 +68,7 @@ class BlockRenderer:
         # 最终防线：永不返回空字符串（聚合消息 blocks 丢失等历史缺陷的兜底）
         text = text.strip()
         if not text:
-            text = message.title or _FALLBACK_TEXT
+            text = message.title or _fallback_text()
         return text
 
     # ── 渲染调度 ──
@@ -95,7 +102,9 @@ class BlockRenderer:
     def _render_list(self, block: ListBlock) -> str:
         """渲染列表块——标题 + 逐行条目的默认格式。"""
         total = block.total if block.total is not None else len(block.items)
-        lines: list[str] = [f"{self._escape(block.title)}（共 {total} 条）"]
+        lines: list[str] = [
+            f"{self._escape(block.title)}{t('notification.renderer.list_count').format(total=total)}"
+        ]
 
         for item in block.items:
             parts: list[str] = []
@@ -155,7 +164,9 @@ class TelegramRenderer(BlockRenderer):
     def _render_list(self, block: ListBlock) -> str:
         """Telegram 列表：📋 标题 + • 条目，number 加粗。"""
         total = block.total if block.total is not None else len(block.items)
-        lines: list[str] = [f"📋 *{self._escape(block.title)}*（共 {total} 条）"]
+        lines: list[str] = [
+            f"📋 *{self._escape(block.title)}*{t('notification.renderer.list_count').format(total=total)}"
+        ]
 
         for item in block.items:
             parts: list[str] = []
@@ -225,7 +236,9 @@ class MarkdownRenderer(BlockRenderer):
     def _render_list(self, block: ListBlock) -> str:
         """Markdown 列表：加粗标题 + - 条目 + 可选链接。"""
         total = block.total if block.total is not None else len(block.items)
-        lines: list[str] = [f"**{block.title}**（共 {total} 条）"]
+        lines: list[str] = [
+            f"**{block.title}**{t('notification.renderer.list_count').format(total=total)}"
+        ]
 
         for item in block.items:
             parts: list[str] = []
@@ -237,7 +250,7 @@ class MarkdownRenderer(BlockRenderer):
             lines.append(f"- {' | '.join(parts)}")
 
         if block.detail_url:
-            lines.append(f"\n[查看完整列表]({block.detail_url})")
+            lines.append(f"\n[{t('notification.renderer.view_full_list')}]({block.detail_url})")
 
         return "\n".join(lines)
 
@@ -307,10 +320,20 @@ class FeishuCardRenderer(BlockRenderer):
         elements: list[dict] = []
 
         if not block.items:
-            elements.append({"tag": "markdown", "content": f"**{block.title}**：无数据"})
+            elements.append(
+                {
+                    "tag": "markdown",
+                    "content": f"**{block.title}**{t('notification.renderer.list_empty')}",
+                }
+            )
         else:
             total = block.total if block.total is not None else len(block.items)
-            elements.append({"tag": "markdown", "content": f"**{block.title}**（共 {total} 条）"})
+            elements.append(
+                {
+                    "tag": "markdown",
+                    "content": f"**{block.title}**{t('notification.renderer.list_count').format(total=total)}",
+                }
+            )
 
             # 从第一条的生成表头
             header_keys = list(block.items[0].keys())
@@ -334,7 +357,10 @@ class FeishuCardRenderer(BlockRenderer):
                     "actions": [
                         {
                             "tag": "button",
-                            "text": {"tag": "plain_text", "content": "查看完整列表"},
+                            "text": {
+                                "tag": "plain_text",
+                                "content": t("notification.renderer.view_full_list"),
+                            },
                             "type": "primary",
                             "url": block.detail_url,
                         }
@@ -376,7 +402,9 @@ class DesktopRenderer(BlockRenderer):
         # 只取第一条的第一个字段值做预览
         first_item = block.items[0]
         first_value = list(first_item.values())[0] if first_item else ""
-        return f"{block.title}：{first_value} 等 {total} 条"
+        return t("notification.renderer.desktop_preview").format(
+            title=block.title, first=first_value, total=total
+        )
 
     def _block_separator(self) -> str:
         """桌面气泡空间有限，单空格分隔。"""

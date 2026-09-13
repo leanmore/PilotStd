@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Optional, cast
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.std_utils import classify_std_code
+from ...i18n import t
 from ...models import ParsedStdInfo
 from ...organizer.industry_lookup import INDUSTRY_MAP
 
@@ -36,22 +37,22 @@ def _archive_category_stats(items: list[Any]) -> dict[str, int]:
         code = getattr(p, "logical_code", "") or ""
         cls = classify_std_code(code)
         if cls == "gb":
-            label = "国标"
+            label = t("notification.archive.category.national")
         elif cls == "db":
-            label = "地标"
+            label = t("notification.archive.category.local")
         elif cls == "iso_iec":
-            label = "国际"
+            label = t("notification.archive.category.international")
         elif cls == "foreign":
-            label = "国外"
+            label = t("notification.archive.category.foreign")
         elif cls == "group":
-            label = "团体"
+            label = t("notification.archive.category.group")
         elif cls == "enterprise":
-            label = "企业"
+            label = t("notification.archive.category.enterprise")
         elif cls == "industry":
             base = code.replace("/", "").upper()
-            label = INDUSTRY_MAP.get(base, "行业")
+            label = INDUSTRY_MAP.get(base, t("notification.archive.category.industry"))
         else:
-            label = "其他"
+            label = t("notification.archive.category.other")
         cat[label] += 1
     return dict(cat)
 

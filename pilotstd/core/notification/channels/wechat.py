@@ -6,6 +6,8 @@ import logging
 from typing import Any
 from urllib.request import Request, urlopen
 
+from pilotstd.i18n import t
+
 from ..channel import NotificationMessage
 from ..renderer import MarkdownRenderer
 from .base import NotificationChannel
@@ -26,14 +28,12 @@ class WechatChannel(NotificationChannel):
         # 每次发送前重置错误详情，避免上次失败残留
         self.last_error = ""
         if not self._url:
-            self.last_error = "渠道未配置 webhook_url"
+            self.last_error = t("notification.channel.not_configured_webhook")
             return False
         try:
-            # 使用渲染消息体
+            # 使用渲染消息体（标准号由构建器渲染进正文，发送层不再追加，
+            # 与 telegram 同口径——见 57f58a6c 尾部重复行消除）
             rendered = self._renderer.render(message)
-            # 标准号以引用块形式追加
-            if message.standard_number:
-                rendered += f"\n> 标准号: {message.standard_number}"
             payload = json.dumps(
                 {
                     "msgtype": "markdown",
@@ -75,10 +75,20 @@ class WechatChannel(NotificationChannel):
 
     def test(self) -> bool:
         """发送一条测试消息验证渠道连通性。"""
-        return self.send(NotificationMessage(title="PilotStd Test", body="Channel connectivity test"))
+        return self.send(
+            NotificationMessage(
+                title=t("notification.channel.test.title"),
+                body=t("notification.channel.test.body"),
+            )
+        )
 
     def get_config_schema(self) -> dict[str, Any]:
         """渠道配置字段 schema（供前端动态渲染配置表单）。"""
         return {
-            "webhook_url": {"type": "string", "label": "Webhook 地址", "required": True, "secret": False},
+            "webhook_url": {
+                "type": "string",
+                "label": t("notification.channel.config.webhook_url"),
+                "required": True,
+                "secret": False,
+            },
         }
