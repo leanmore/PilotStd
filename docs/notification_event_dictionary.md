@@ -57,8 +57,8 @@
 
 | 事件名 | 触发时机 | 级别 | 聚合/bypass | 字段规格 | 互斥/备注 |
 |--------|---------|------|:---:|---------|---------|
-| `batch_download_complete` | 批量下载全部完成 | info(w/o失败)/warning(w/失败) | 聚合 | `{"total": "int [必填]", "success": "int [必填]", "failed": "int [必填]", "skipped": "int [必填]"}` | skipped 含采标+已存在两种跳过 |
-| `download_failed` | 收藏下载单文件失败（3次重试失败） | error | bypass | `{"standard_number": "str [必填]", "error": "str [必填]"}` | 仅收藏定时下载触发 |
+| `batch_download_complete` | 批量下载全部完成；**收藏下载链每次运行结束时也发此事件作为运行汇总** | info(w/o失败)/warning(w/失败) | 聚合 | `{"total": "int [必填]", "success": "int [必填]", "failed": "int [必填]", "skipped": "int [必填]"}` | skipped 含采标+已存在两种跳过；收藏链按批汇总即用此事件（一次运行 1 条，替代逐条 started/failed/complete） |
+| `download_failed` | 收藏下载单文件失败 | error | 聚合（代码 v1.1 起无 bypass） | `{"standard_number": "str [必填]", "error": "str [必填]"}` | 仅收藏定时下载触发；批量路径默认按批汇总，逐条发由 `notify_per_record=True` 或 `download_to_inbox(notify=True)` 触发 |
 
 ### 5. 规范化 (2)
 

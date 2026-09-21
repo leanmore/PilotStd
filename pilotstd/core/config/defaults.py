@@ -77,6 +77,9 @@ FACTORY_DEFAULTS = {
     "notification.log_cleanup_interval_hours": 24,
     # 服务端聚合（同类消息合并，防通知刷屏）
     "notification.aggregate_enabled": True,
+    # 注：窗口按"交互型通知要快"取小值；批量链路（收藏下载链）的刷屏改在源头
+    # 解决——链路按批汇总为 1 条，不再逐条发 started/failed/complete
+    # （2026-09-21 实测：逐条发导致 1119 条通知中 622 条被 Telegram 429 拒绝）
     "notification.aggregate_window_seconds": 5,
     "notification.aggregate_max_events": 50,
     # __默认值由.通过_类型脚本派生，

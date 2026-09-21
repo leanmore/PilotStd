@@ -121,8 +121,12 @@ def _fetch_std_meta(standard_number: str) -> tuple[str, str]:
     return "", ""
 
 
-def _notify_download_failed(user_id: int, standard_number: str, error: str, favorite_id: int) -> None:
+def _notify_download_failed(
+    user_id: int, standard_number: str, error: str, favorite_id: int, notify: bool = True
+) -> None:
     """通知用户下载失败。"""
+    if not notify:
+        return
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
@@ -142,13 +146,15 @@ def _notify_download_failed(user_id: int, standard_number: str, error: str, favo
         logger.warning("发送下载失败通知失败: %s", e)
 
 
-def _notify_download_started(user_id: int, standard_number: str, favorite_id: int) -> None:
+def _notify_download_started(user_id: int, standard_number: str, favorite_id: int, notify: bool = True) -> None:
     """通知用户下载开始。
 
     在下载任务进入执行阶段（状态置为 downloading 前）发送，
     让用户感知收藏的自动下载流程已启动；通知失败仅记录日志，
     绝不中断下载主流程。
     """
+    if not notify:
+        return
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
@@ -167,13 +173,17 @@ def _notify_download_started(user_id: int, standard_number: str, favorite_id: in
         logger.warning("发送下载开始通知失败: %s", e)
 
 
-def _notify_download_complete(user_id: int, standard_number: str, favorite_id: int, local_path: str) -> None:
+def _notify_download_complete(
+    user_id: int, standard_number: str, favorite_id: int, local_path: str, notify: bool = True
+) -> None:
     """通知用户下载归档完成。
 
     文件已在标准库 file_index 登记（done 状态）后发送；
     local_path 为归档后的实际存储路径，供用户直接定位。
     通知失败仅记录日志，不影响已完成的下载归档结果。
     """
+    if not notify:
+        return
     try:
         from pilotstd.manager.facade import StandardManager  # noqa: E402
 
@@ -238,9 +248,34 @@ def _fetch_into_inbox(mgr: Any, query_result: Any, standard_number: str, inbox_p
     inbox_path.write_bytes(content)
 
 
-def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
+def _reuse_existing_file(
+    db: Database, favorite_id: int, standard_number: str, user_id: int, notify: bool
+) -> bool:
+    """file_index 已有该标准文件时直接标记完成并返回 True（避免重复下载）。
+
+    复用路径同样视为"下载归档完成"，向用户发一次完成通知（notify=False 时抑制）。
+    """
+    existing = _find_in_file_index(standard_number, db)
+    if not existing:
+        return False
+    db.execute(
+        "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
+        " updated_at = datetime('now') WHERE favorite_id = ?",
+        (existing, favorite_id),
+    )
+    logger.info("复用已有文件: %s", existing)
+    _notify_download_complete(user_id, standard_number, favorite_id, existing, notify)
+    return True
+
+
+def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bool = True) -> None:
     """收藏下载任务：复用已有文件 → 下载到 inbox → 轮询 file_index → 更新状态。
-    所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。"""
+    所有状态更新写入 favorite_downloads 表（v44 解耦），不再操作 user_favorites。
+
+    notify=False：抑制逐条通知（started/failed/complete），供批量链路按批汇总使用
+    —— 逐条发会在一次运行里产生上百条通知并触发 Telegram 429（2026-09-21 实测
+    1119 条中 622 条被拒），故链路改为运行结束发 1 条汇总。
+    """
     # 44：所有状态更新目标表为_下载（非_）
     db = None
     standard_number = ""  # 预初始化：异常路径补发失败通知时安全引用（A-3）
@@ -255,17 +290,8 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         if not standard_number:
             raise FavoriteArchiveError(f"标准号为空: {record_id}")
 
-        # 检查是否已有文件（复用）
-        existing = _find_in_file_index(standard_number, db)
-        if existing:
-            db.execute(
-                "UPDATE favorite_downloads SET status = 'done', local_path = ?,"
-                " updated_at = datetime('now') WHERE favorite_id = ?",
-                (existing, favorite_id),
-            )
-            logger.info("复用已有文件: %s", existing)
-            # 复用路径同样视为下载归档完成，通知用户文件已就绪
-            _notify_download_complete(user_id, standard_number, favorite_id, existing)
+        # 检查是否已有文件（复用）：命中即视为完成，直接返回
+        if _reuse_existing_file(db, favorite_id, standard_number, user_id, notify):
             return
 
         from pilotstd.manager.facade import StandardManager
@@ -274,7 +300,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         query_result = _resolve_download_target(mgr, db, favorite_id, standard_number)
 
         # 校验通过后再通知用户下载开始（A-2：避免"有始无终"）
-        _notify_download_started(user_id, standard_number, favorite_id)
+        _notify_download_started(user_id, standard_number, favorite_id, notify)
         db.execute(
             "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
             (favorite_id,),
@@ -305,7 +331,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
                 )
                 logger.info("归档完成: %s", found)
                 # 扫描器已把文件登记到索引，通知用户下载归档全流程完成
-                _notify_download_complete(user_id, standard_number, favorite_id, found)
+                _notify_download_complete(user_id, standard_number, favorite_id, found, notify)
                 return
 
         db.execute(
@@ -315,11 +341,9 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         )
         logger.warning("收藏归档超时: favorite_id=%s", favorite_id)
         # A-4：归档超时补发下载失败通知（避免用户只收到"开始下载"再无后续）
-        _notify_download_failed(user_id, standard_number, "归档超时：文件未被扫描器处理", favorite_id)
+        _notify_download_failed(user_id, standard_number, "归档超时：文件未被扫描器处理", favorite_id, notify)
 
-    except FavoriteSkip:
-        # 业务终态跳过：不写 failed（否则链路会按失败重试 7 次），
-        # 原样上抛给链条，由链条置终态并只通知一次
+    except FavoriteSkip:  # 终态跳过不写 failed（否则链路按失败重试 7 次），原样上抛由链条置终态
         raise
     except Exception as e:
         logger.error("收藏失败: favorite_id=%s, %s", favorite_id, e, exc_info=True)
@@ -331,7 +355,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
             )
         # A-3：异常路径补发下载失败通知（URL 缺失等场景不再"有始无终"）
         if standard_number:
-            _notify_download_failed(user_id, standard_number, str(e), favorite_id)
+            _notify_download_failed(user_id, standard_number, str(e), favorite_id, notify)
     finally:
         if db:
             db.close()

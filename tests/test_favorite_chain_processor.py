@@ -108,8 +108,11 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.raw.commit()
         return fav_id
 
-    def _fake_download(self, favorite_id: int, user_id: int, record_id: int) -> None:
-        """模拟 download_to_inbox：按 self._dl_mode 置状态（成功 done / 失败 failed / 跳过 skip）。"""
+    def _fake_download(self, favorite_id: int, user_id: int, record_id: int, notify: bool = True) -> None:
+        """模拟 download_to_inbox：按 self._dl_mode 置状态（成功 done / 失败 failed / 跳过 skip）。
+
+        notify 参数与真实签名对齐（批量路径传 False 抑制逐条通知）。
+        """
         mode = getattr(self, "_dl_mode", "success")
         if mode == "skip":
             from pilotstd.tasks.favorite_download import FavoriteSkip
@@ -299,10 +302,11 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(payload["error"], "模拟下载失败")
 
     def test_skip_mode_marks_terminal_without_retries(self):
-        """业务终态跳过（P1，2026-09-21）：一次即 abandoned，不耗尽 7 次重试、只通知一次。
+        """业务终态跳过（P1，2026-09-21）：一次即 abandoned，不耗尽 7 次重试。
 
         历史缺陷：采标标准（版权受限）按普通失败处理 → 每条空转 7 天重试窗口、
         逐日发失败通知，最后才放弃（实测 6 条 × 7 天）。
+        通知：批量路径（process_chain）按批汇总，本次运行只有 1 条 batch_download_complete。
         """
         self._seed_announcement(1, "GB/T 1066-2020", "2026-01-01")
         self._seed_favorite(1, 1, retry_count=0)
@@ -317,14 +321,52 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertIn("采标标准", err or "")
 
         notifier = mock_mgr.return_value.notification_mgr
-        self.assertEqual(notifier.send_event.call_count, 1, "终态只通知一次，不刷屏")
-        self.assertEqual(notifier.send_event.call_args[0][0], "archive_abandoned")
+        self.assertEqual(notifier.send_event.call_count, 1, "批量路径只发 1 条汇总，不逐条刷屏")
+        event, payload = notifier.send_event.call_args[0]
+        self.assertEqual(event, "batch_download_complete")
+        self.assertEqual(payload["skipped"], 1)
+        self.assertEqual(payload["failed"], 0)
 
         # 再跑一轮：abandoned 不在扫描范围 → 不再通知、状态不变
         with patch("pilotstd.manager.facade.StandardManager") as mock_mgr2:
             self.fcp.process_chain()
         mock_mgr2.return_value.notification_mgr.send_event.assert_not_called()
         self.assertEqual(self._fd_status(1, 1)[0], "abandoned")
+
+    def test_run_summary_counts_mixed_outcomes(self):
+        """按批汇总：一次运行 1 条通知，计数覆盖 success/failed/skipped。
+
+        替代逐条 started/failed/complete/abandoned（2026-09-21 实测逐条发导致
+        1119 条通知中 622 条被 Telegram 429 拒绝）。
+        """
+        self._seed_announcement(1, "GB/T 5001-2020", "2026-01-01")
+        self._seed_favorite(1, 1, retry_count=0, status="pending")
+        self._seed_announcement(2, "GB/T 5002-2020", "2026-01-01")
+        self._seed_favorite(1, 2, retry_count=0, status="pending")
+
+        mode_by_record = {1: "success", 2: "fail"}
+        processor = self.fcp
+
+        def fake(favorite_id, user_id, record_id, notify=True):  # noqa: ARG001
+            mode = mode_by_record.get(record_id, "success")
+            self.raw.execute(
+                "UPDATE favorite_downloads SET status=? WHERE favorite_id=?"
+                " AND record_id=?",
+                ("done" if mode == "success" else "failed", favorite_id, record_id),
+            )
+            self.raw.commit()
+
+        with patch("pilotstd.tasks.favorite_download.download_to_inbox", side_effect=fake):
+            with patch("pilotstd.manager.facade.StandardManager") as mock_mgr:
+                processor.process_chain()
+
+        notifier = mock_mgr.return_value.notification_mgr
+        self.assertEqual(notifier.send_event.call_count, 1)
+        event, payload = notifier.send_event.call_args[0]
+        self.assertEqual(event, "batch_download_complete")
+        self.assertEqual(payload["success"], 1)
+        self.assertEqual(payload["failed"], 1)
+        self.assertEqual(payload["skipped"], 0)
 
     def test_failure_below_limit_does_not_notify_abandon(self):
         """未达上限的普通失败不得发放弃通知（避免刷屏）。"""
