@@ -200,25 +200,30 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | `id` | INTEGER PK | 主键 |
 | `user_id` | INTEGER FK | 用户外键 |
 | `record_id` | INTEGER FK | 标准记录外键 |
-| `status` | TEXT | pending/downloading/archiving/done/failed/abandoned |
-| `local_path` | TEXT | 归档文件路径 |
-| `error_message` | TEXT | 失败原因 |
+| `status` | TEXT | **收藏状态**：`pending`（已收藏）/`cancelled`（已取消）—— 下载进度不在此列（见 `favorite_downloads`） |
+| `local_path` | TEXT | 归档文件路径（v44 解耦后由 `favorite_downloads` 承载） |
+| `error_message` | TEXT | 失败原因（v44 解耦后由 `favorite_downloads` 承载） |
 | `publish_date` | TEXT | 标准发布日期（用于冷却期计算） |
-| `last_archive_attempt` | TEXT | 最近一次归档尝试时间 |
-| `archive_retry_count` | INTEGER | 重试计数（默认 0） |
+| `last_archive_attempt` | TEXT | 最近一次归档尝试时间（v59 兜底补列） |
+| `archive_retry_count` | INTEGER | 重试计数（默认 0，v59 兜底补列） |
 
 > **v52 兜底迁移**（2026-08-21）：部分生产库在 v36 的列补全逻辑（`publish_date` 等）落地前已记录 v36 迁移，导致 `publish_date` 列从未创建，`POST /api/favorites` 收藏时 INSERT 报 `table user_favorites has no column named publish_date` → 接口 500。v52 迁移（`pilotstd/core/db/_migrate_v52.py`）幂等补列：列缺失时 `ALTER TABLE ... ADD COLUMN publish_date TEXT`，不设默认值（`publish_date` 语义为标准的发布日期，允许 NULL 表示无冷却期限制）。
+
+> **v59 兜底迁移**（2026-09-21）：同类问题再次命中 `archive_retry_count`/`last_archive_attempt`（v52 只补了 `publish_date`），而库内 `_schema_version` 已到版本顶 → `_run_migrations()` 直接 early-return，重发镜像也不会补列，`GET /api/favorites/{record_id}/status` 对全部收藏返回 500。v59（`pilotstd/core/db/_migrate_v59_ensure_favorite_retry_columns.py`）幂等补两列，`CURRENT_SCHEMA_VERSION` 58 → 59。
+
+**下载进度**：`favorite_downloads` 为事实来源，`status` 取值 `pending/downloading/archiving/done/failed/abandoned`（6 值全集；"采标跳过"等业务终态也落 `abandoned`，不入 `skipped`）。
 
 **API 端点**：
 
 | 端点 | 方法 | 说明 |
 |------|------|------|
-| `/api/favorites` | POST | 创建收藏（仅记录关系，不触发下载） |
-| `/api/favorites` | GET | 收藏列表 |
-| `/api/favorites/{record_id}/status` | GET | 状态查询（含 in_cooldown/abandoned） |
+| `/api/favorites` | POST | 创建收藏（仅记录关系，不触发下载；同步建 `favorite_downloads` 行） |
+| `/api/favorites` | GET | 收藏列表；额外返回下载四字段 `download_status`/`download_error`/`last_attempt`/`download_updated_at`（按 `favorite_id` 取 `last_attempt` 最新一行；无队列行时为 null） |
+| `/api/favorites/{record_id}/status` | GET | 状态查询（`status` 已**语义归位为下载状态**，来源 `favorite_downloads`；查询键 `record_id` + `user_id`，`record_id` = `announcement_record.id`；另含 `in_cooldown`/`abandoned`） |
+| `/api/favorites/batch-status` | POST | 批量状态（公告详情页用）；与列表接口同名同义地返回下载四字段 |
 | `/api/favorites/{record_id}` | DELETE | 取消收藏 |
 
-**归档流程**：定时任务 `auto_archive_retry`（每天 04:00）扫描全部到期 pending/failed 记录（仅国标、非采标、发布满冷却期），交由下载引擎按节奏（`download.batch_size` 分批 + `max_workers` 并发 + 批间 `long_rest` 冷却）执行 `download_to_inbox`；每条最多重试 3 次（跨天），超过则标记 abandoned **并发送 `archive_abandoned` 通知**。
+**归档流程**：定时任务 `auto_archive_retry`（每天 04:00）扫描全部到期 pending/failed 记录（仅国标、已过冷却期），交由下载引擎按节奏（`download.batch_size` 分批 + `max_workers` 并发 + 批间 `long_rest` 冷却）执行 `download_to_inbox`；失败每条最多重试 **7 次**（跨天，7 天兜底窗口），超过则标记 `abandoned`。**采标/非国标等业务终态**（`FavoriteSkip`）不消耗重试窗口，一次即终态。通知按批汇总：每次运行只发 1 条 `batch_download_complete`（成功/失败/跳过计数 + 前 5 条失败明细），不逐条发 started/failed/complete。
 
 ### 参考
 

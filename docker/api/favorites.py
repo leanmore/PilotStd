@@ -202,18 +202,33 @@ def get_favorite_status(
     user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
-    """查询指定记录的收藏状态。"""
+    """查询指定**公告记录**的收藏 + 下载状态（语义归位版）。
+
+    查询键：`record_id` 是 `announcement_record.id`（前端传的是公告记录的 id，
+    见 useFavorite 的 `record.id`），因此按 `favorite_downloads.record_id` 查、
+    并带 `user_id` 做多用户隔离——两者缺一都会查错行。
+
+    数据来源从 user_favorites 切到 favorite_downloads：`user_favorites.status` 只表达
+    "是否收藏"（链路从不更新它，恒为 pending），下载进度只在 favorite_downloads。
+    响应同时保留旧键（`status`/`error_message`/`archive_retry_count`）与新增的标准键
+    （`download_status`/`download_error`/`retry_count`/`last_attempt`/`download_updated_at`），
+    使新旧调用方都能用。
+    """
     from datetime import date
 
     user_id = _get_user_id(user_id, db)
 
     row = db.fetchone(
-        "SELECT id, status, local_path, error_message, publish_date, archive_retry_count"
-        " FROM user_favorites WHERE user_id = ? AND record_id = ?",
-        (user_id, record_id),
+        "SELECT fd.favorite_id, fd.status, fd.local_path, fd.error_message,"
+        " fd.last_attempt, fd.updated_at, fd.retry_count, ar.publish_date"
+        " FROM favorite_downloads fd"
+        " LEFT JOIN announcement_record ar ON fd.record_id = ar.id"
+        " WHERE fd.record_id = ? AND fd.user_id = ?"
+        " ORDER BY COALESCE(fd.last_attempt, '') DESC, fd.id DESC LIMIT 1",
+        (record_id, user_id),
     )
     if not row:
-        return {"status": None, "favorite_id": None}
+        return {"status": None, "favorite_id": None, "download_status": None}
 
     in_cooldown = False
     if row["publish_date"]:
@@ -223,14 +238,22 @@ def get_favorite_status(
         except (ValueError, TypeError):
             pass
 
+    status = row["status"]
     return {
-        "status": row["status"],
-        "favorite_id": row["id"],
+        # 旧键（向后兼容）：status 现在是**下载**状态，不再是 user_favorites.status
+        "status": status,
+        "favorite_id": row["favorite_id"],
         "local_path": row["local_path"],
         "error_message": row["error_message"],
         "in_cooldown": in_cooldown,
-        "abandoned": row["status"] == "abandoned",
-        "archive_retry_count": row["archive_retry_count"] or 0,
+        "abandoned": status == "abandoned",
+        "archive_retry_count": row["retry_count"] or 0,
+        # 标准键（与列表/批量接口同名同义）
+        "download_status": status,
+        "download_error": row["error_message"],
+        "last_attempt": row["last_attempt"],
+        "download_updated_at": row["updated_at"],
+        "retry_count": row["retry_count"] or 0,
     }
 
 
@@ -278,22 +301,48 @@ def remove_favorite(
 # ════════════════════════════════════════════════════════════════ 分隔
 
 
+# 下载队列表的"取最新一条"子查询：同一 favorite_id 存在多行时只取最后尝试的那条
+# （ORDER BY last_attempt 倒序、id 倒序兜底，保证取值确定）；用的是
+# favorite_downloads 上 UNIQUE(favorite_id, record_id) 的索引，不做全表窗口排序。
+_LATEST_DOWNLOAD_JOIN = (
+    " LEFT JOIN favorite_downloads fd ON fd.id = ("
+    "SELECT id FROM favorite_downloads WHERE favorite_id = f.id"
+    " ORDER BY COALESCE(last_attempt, '') DESC, id DESC LIMIT 1)"
+)
+
+# 下载状态四字段（列表/批量/单条三个接口共用同一口径，避免前端维护两套映射）
+_DOWNLOAD_FIELDS = (
+    " fd.status AS download_status,"
+    " fd.error_message AS download_error,"
+    " fd.last_attempt,"
+    " fd.updated_at AS download_updated_at"
+)
+
+
 @router.get("/api/favorites")
 def list_favorites(
     user_id: int = Depends(get_current_user_id),
     status: Optional[str] = None,
     db: Database = Depends(get_db),
 ):
-    """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。"""
+    """获取当前用户的收藏列表，支持按 status 筛选，按创建时间倒序排列。
+
+    额外返回下载队列四字段（`download_status`/`download_error`/`last_attempt`/
+    `download_updated_at`）：收藏状态（user_favorites.status）与下载进度
+    （favorite_downloads.status）是两件事，前者只表达"是否收藏"，后者才是
+    "下到哪一步了"。队列行不存在时四字段为 None（LEFT JOIN 保留收藏行）。
+    """
     user_id = _get_user_id(user_id, db)
 
     sql = (
         "SELECT f.id, f.user_id, f.record_id, f.status, f.local_path,"
         " f.error_message, f.created_at, f.updated_at, f.standard_type,"
-        " r.standard_number, r.std_name, r.announce_no"
-        " FROM user_favorites f"
+        " r.standard_number, r.std_name, r.announce_no,"
+        + _DOWNLOAD_FIELDS
+        + " FROM user_favorites f"
         " JOIN announcement_record r ON f.record_id = r.id"
-        " WHERE f.user_id = ?"
+        + _LATEST_DOWNLOAD_JOIN
+        + " WHERE f.user_id = ?"
     )
     params: list = [user_id]
 
@@ -318,21 +367,35 @@ def batch_get_favorite_status(
     user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
-    """批量查询多条记录的收藏状态，单次 SQL 替代 N+1 问题。"""
+    """批量查询多条公告记录的收藏状态，单次 SQL 替代 N+1 问题。
+
+    除 `favorite_id`/`status`（是否收藏）外，同时返回下载队列四字段，供公告详情页
+    直接显示真实下载进度（与列表、单条接口同名同义）。
+    """
     if not req.record_ids:
         return {"statuses": {}}
 
     user_id = _get_user_id(user_id, db)
 
     placeholders = ",".join(["?"] * len(req.record_ids))
-    sql = f"SELECT record_id, id, status FROM user_favorites WHERE user_id = ? AND record_id IN ({placeholders})"
+    sql = (
+        "SELECT f.record_id, f.id AS favorite_id, f.status,"
+        + _DOWNLOAD_FIELDS
+        + " FROM user_favorites f"
+        + _LATEST_DOWNLOAD_JOIN
+        + f" WHERE f.user_id = ? AND f.record_id IN ({placeholders})"
+    )
     rows = db.fetchall(sql, (user_id, *req.record_ids))
 
     result: Dict[str, Optional[dict]] = {str(rid): None for rid in req.record_ids}
     for row in rows:
         result[str(row["record_id"])] = {
-            "favorite_id": row["id"],
+            "favorite_id": row["favorite_id"],
             "status": row["status"],
+            "download_status": row["download_status"],
+            "download_error": row["download_error"],
+            "last_attempt": row["last_attempt"],
+            "download_updated_at": row["download_updated_at"],
         }
 
     return {"statuses": result}
