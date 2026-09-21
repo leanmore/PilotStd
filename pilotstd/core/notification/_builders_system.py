@@ -18,9 +18,9 @@ from .channel import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
-# 定时任务 job_id → i18n 键（task_execution_failed 模板）。
-# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻，
-# 运行时 set_language 后任务名不会跟着变。
+# 定时任务标识 → 多语言键（任务执行失败模板）。
+# 只存键、渲染时再取翻译：模块级直接求值会把语言固化在导入时刻，
+# 运行时切换语言后任务名不会跟着变。
 _TASK_NAME_KEY_MAP = {
     "auto_announce": "notification.system.task_execution_failed.task.auto_announce",
     "auto_scan": "notification.system.task_execution_failed.task.auto_scan",
@@ -49,7 +49,7 @@ def _build_archive_complete_message(data: dict) -> NotificationMessage:
     blocks: list[NotificationBlock] = [
         TextBlock(text=t("notification.archive.archive_complete.body.count").format(n=count))
     ]
-    # 分类统计（C-2：发送点已用 classify_std_code 聚合，label 即中文分类名）
+    # 分类统计（发送点已用标准代号分类聚合，标签即中文分类名）
     category_stats = data.get("category_stats") or {}
     if category_stats:
         summary = "，".join(
@@ -57,7 +57,7 @@ def _build_archive_complete_message(data: dict) -> NotificationMessage:
             for k, v in category_stats.items()
         )
         blocks.append(TextBlock(text=summary))
-    # 归档目录逐行（发送点从 organizer 明细提取的目标目录）
+    # 归档目录逐行（发送点从归档整理明细提取的目标目录）
     directories = data.get("directories") or []
     if directories:
         blocks.append(TextBlock(text=t("notification.archive.archive_complete.body.dir_header")))
@@ -183,8 +183,8 @@ def _build_image_update_available_message(data: dict) -> NotificationMessage:
             icon="pi pi-cloud-upload",
         )
     # 正常路径：上面错误分支已提前返回，此处安全重建 blocks
-    # 模板：镜像版本：v旧 → v新；版本号缺失时回退 digest 前 12 位
-    # （变量名 message_blocks 避开错误分支的 blocks，消除 mypy no-redef）
+    # 模板：镜像版本：旧版 → 新版；版本号缺失时回退取镜像摘要前 12 位
+    # （变量名用"消息块"避开错误分支的"块"变量，消除类型检查的重复定义告警）
     old_digest = data.get("old_digest", "")
     new_digest = data.get("new_digest", "")
     old_ver = data.get("old_version") or (old_digest[:12] if old_digest else "")

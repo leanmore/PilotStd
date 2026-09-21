@@ -23,7 +23,7 @@ from .session import SessionManager
 
 logger = logging.getLogger(__name__)
 
-# fetch_bytes 的瞬时故障重试（与原收藏链 _download_with_retry 的 3 次尝试口径一致）
+# 字节抓取的瞬时故障重试（与原收藏链下载重试的 3 次尝试口径一致）
 _FETCH_MAX_ATTEMPTS = 3
 _FETCH_BACKOFF_SECONDS = (2, 4)
 # 采标标准（版权受限）跳过口径：调用方据此识别"业务终态"而非可重试失败，

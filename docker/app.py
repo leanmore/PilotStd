@@ -154,8 +154,8 @@ def _start_all_schedulers(_cron_mgr) -> None:
     register_job_func("auto_backup", lambda: _backup_database(notification_mgr=_cron_mgr.notification_mgr))
     register_job_func(
         "auto_archive_retry",
-        # v54: 收藏下载链处理器（倒序批处理，替代旧 retry_pending）
-        # 注入下载引擎：吞吐复用引擎节奏（batch_size/max_workers/long_rest），
+        # 第五十四版：收藏下载链处理器（倒序批处理，替代旧的"待重试"任务）
+        # 注入下载引擎：吞吐复用引擎节奏（批大小/最大工作线程数/长休间隔），
         # 不再自设"每天 N 条"上限
         lambda: process_chain(_cron_mgr.download_engine),
     )

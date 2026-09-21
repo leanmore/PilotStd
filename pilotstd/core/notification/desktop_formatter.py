@@ -19,8 +19,8 @@ from .renderer import DesktopRenderer
 MAX_TITLE_LENGTH = 40
 MAX_BODY_LENGTH = 120
 
-# 桌面气泡不支持的 Emoji → 纯文本标签的 i18n 键（空串表示直接删除）
-# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻。
+# 桌面气泡不支持的表情符号 → 纯文本标签的多语言键（空串表示直接删除）
+# 只存键、渲染时再取翻译：模块级直接求值会把语言固化在导入时刻。
 _EMOJI_LABEL_KEYS = {
     "✅": "notification.desktop.level.success",
     "❌": "notification.desktop.level.failure",

@@ -58,7 +58,7 @@ EVENT_FAVORITE_CREATED = "favorite_created"
 EVENT_DOWNLOAD_STARTED = "download_started"
 EVENT_DOWNLOAD_COMPLETE = "download_complete"
 
-# ── 唯一数据源：所有事件定义（v1.1：全部经 L2 聚合器，无 bypass） ──
+# ── 唯一数据源：所有事件定义（全部经第二层聚合器，无绕过） ──
 
 ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_ARCHIVE_COMPLETE),
@@ -101,5 +101,5 @@ ALL_EVENTS: list[EventDef] = [
 # ── 派生变量（供各模块引用，避免硬编码重复） ──
 
 ALL_EVENT_KEYS = [e.key for e in ALL_EVENTS]
-# v1.1：所有事件均聚合，bypass 集合恒为空（兼容旧签名，语义废弃）
+# 所有事件均聚合，绕过聚合的集合恒为空（兼容旧签名，语义废弃）
 BYPASS_EVENTS = frozenset(e.key for e in ALL_EVENTS if e.bypass_aggregation)

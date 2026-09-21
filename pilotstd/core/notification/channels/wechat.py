@@ -32,7 +32,7 @@ class WechatChannel(NotificationChannel):
             return False
         try:
             # 使用渲染消息体（标准号由构建器渲染进正文，发送层不再追加，
-            # 与 telegram 同口径——见 57f58a6c 尾部重复行消除）
+            # 与电报渠道同口径——见提交 57f58a6c 的尾部重复行消除）
             rendered = self._renderer.render(message)
             payload = json.dumps(
                 {
@@ -66,7 +66,7 @@ class WechatChannel(NotificationChannel):
     def validate_config(config: dict) -> bool:
         return bool(config.get("webhook_url"))
 
-    # ── v1.1 R2 渠道契约（继承自 channels.base.NotificationChannel） ──
+    # ── 渠道契约（第一版修订二：继承自渠道基类的通知渠道接口） ──
 
     @property
     def name(self) -> str:

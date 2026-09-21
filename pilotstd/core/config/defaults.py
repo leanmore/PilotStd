@@ -78,8 +78,8 @@ FACTORY_DEFAULTS = {
     # 服务端聚合（同类消息合并，防通知刷屏）
     "notification.aggregate_enabled": True,
     # 注：窗口按"交互型通知要快"取小值；批量链路（收藏下载链）的刷屏改在源头
-    # 解决——链路按批汇总为 1 条，不再逐条发 started/failed/complete
-    # （2026-09-21 实测：逐条发导致 1119 条通知中 622 条被 Telegram 429 拒绝）
+    # 解决——链路按批汇总为 1 条，不再逐条发"开始/失败/完成"通知
+    # （2026-09-21 实测：逐条发导致 1119 条通知中 622 条被电报接口以 429 拒绝）
     "notification.aggregate_window_seconds": 5,
     "notification.aggregate_max_events": 50,
     # __默认值由.通过_类型脚本派生，
@@ -110,7 +110,7 @@ FACTORY_DEFAULTS = {
     "tasks.date_reminder_cron": "0 2 * * *",
     "tasks.auto_archive_retry_enabled": True,
     "tasks.auto_archive_retry_cron": "0 4 * * *",
-    # ── 下载节奏（手动批量下载与收藏下载链共用；暂不暴露到 Web/Win 界面）──
+    # ── 下载节奏（手动批量下载与收藏下载链共用；暂不暴露到网页/桌面界面）──
     "download.batch_size": 10,  # 每批条数，批间长休息
     "download.long_rest": 15.0,  # 批间冷却秒数
     "download.max_workers": 2,  # 批内并发上限

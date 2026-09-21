@@ -102,9 +102,9 @@ class AnnounceNotifier:
             except Exception as exc:
                 logger.warning("公告通知发送失败 (announce_fetch_summary): %s", exc)
 
-        # C-1：定时路径补发"拉取完成"事件（与手动路径对齐），
+        # 定时路径补发"拉取完成"事件（与手动路径对齐），
         # 且与"检查完成"均携带来源字段与新增公告标题明细。
-        # 明细仅在本次窗口确有新增公告（total > 0）时附上，杜绝"新增 0 条却列出历史公告"。
+        # 明细仅在本次窗口确有新增公告（总数大于 0）时附上，杜绝"新增 0 条却列出历史公告"。
         try:
             self.notification_mgr.send_event(
                 "announcement_fetch_complete",

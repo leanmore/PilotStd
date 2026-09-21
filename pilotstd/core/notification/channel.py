@@ -42,7 +42,7 @@ def __getattr__(name: str):
             DeprecationWarning,
             stacklevel=2,
         )
-        # 惰性导入：避免与 channels.base（其导入本模块的 NotificationMessage）循环依赖
+        # 惰性导入：避免与渠道基类模块（其导入本模块的通知消息类）循环依赖
         from .channels.base import NotificationChannel
 
         return NotificationChannel

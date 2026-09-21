@@ -24,8 +24,8 @@ from pilotstd.core.db.database import Database
 logger = logging.getLogger(__name__)
 
 # ── 批处理约束 ─────────────────────────────────────────────
-# 吞吐交给下载引擎的节奏（batch_size/max_workers/long_rest），此处不再设每次运行条数上限
-# 重试上限 7：cron 每天 04:00 触发，失败后次日再试，共 7 天兜底窗口（ADR-007 决策值）
+# 吞吐交给下载引擎的节奏（批大小/最大工作线程数/长休间隔），此处不再设每次运行条数上限
+# 重试上限 7：定时任务每天 04:00 触发，失败后次日再试，共 7 天兜底窗口（ADR-007 决策值）
 MAX_RETRIES = 7
 COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 

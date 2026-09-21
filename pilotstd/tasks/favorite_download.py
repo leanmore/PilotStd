@@ -239,10 +239,10 @@ def _fetch_into_inbox(mgr: Any, query_result: Any, standard_number: str, inbox_p
         )
     )
     if not content:
-        # 引擎侧同样以该文案表达"采标跳过"（引擎 fetch_bytes 的版权闸）→ 归为终态跳过
+        # 引擎侧同样以该文案表达"采标跳过"（引擎字节抓取的版权闸）→ 归为终态跳过
         if err == ADOPTED_SKIP_MESSAGE:
             raise FavoriteSkip(f"{err}: {standard_number}")
-        # 不在此处发送失败通知：raise 后由外层 except 统一补发一次
+        # 不在此处发送失败通知：抛出异常后由外层异常捕获统一补发一次
         # （避免同一失败路径双通知——内层原始错误 + 外层包装错误）
         raise FavoriteArchiveError(f"下载失败: {standard_number}, {err}")
     inbox_path.write_bytes(content)
@@ -299,7 +299,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bo
         mgr = StandardManager()
         query_result = _resolve_download_target(mgr, db, favorite_id, standard_number)
 
-        # 校验通过后再通知用户下载开始（A-2：避免"有始无终"）
+        # 校验通过后再通知用户下载开始（避免"有始无终"）
         _notify_download_started(user_id, standard_number, favorite_id, notify)
         db.execute(
             "UPDATE favorite_downloads SET status = 'downloading', updated_at = datetime('now') WHERE favorite_id = ?",
@@ -340,7 +340,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bo
             ("归档超时：文件未被扫描器处理", favorite_id),
         )
         logger.warning("收藏归档超时: favorite_id=%s", favorite_id)
-        # A-4：归档超时补发下载失败通知（避免用户只收到"开始下载"再无后续）
+        # 归档超时补发下载失败通知（避免用户只收到"开始下载"再无后续）
         _notify_download_failed(user_id, standard_number, "归档超时：文件未被扫描器处理", favorite_id, notify)
 
     except FavoriteSkip:  # 终态跳过不写 failed（否则链路按失败重试 7 次），原样上抛由链条置终态
@@ -353,7 +353,7 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int, notify: bo
                 " updated_at = datetime('now') WHERE favorite_id = ?",
                 (str(e), favorite_id),
             )
-        # A-3：异常路径补发下载失败通知（URL 缺失等场景不再"有始无终"）
+        # 异常路径补发下载失败通知（链接缺失等场景不再"有始无终"）
         if standard_number:
             _notify_download_failed(user_id, standard_number, str(e), favorite_id, notify)
     finally:

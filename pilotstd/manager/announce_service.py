@@ -110,8 +110,8 @@ class AnnounceService:
 
         self._last_check_start = datetime.now().isoformat()
 
-        # N-01 运行期防御：app_preferences 表缺失时降级为全量增量检查，
-        # 避免 auto_announce 定时任务每日崩溃（根因由 v58 迁移补建解决）
+        # 运行期防御：应用偏好设置表缺失时降级为全量增量检查，
+        # 避免自动公告定时任务每日崩溃（根因由第五十八版迁移补建解决）
         try:
             user_since = self._get_user_since_date()
         except Exception as e:

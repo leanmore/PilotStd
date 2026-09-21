@@ -99,7 +99,7 @@ class TelegramChannel(NotificationChannel):
                     self.last_error = f"Telegram 返回失败: {desc}"
                     logger.warning("Telegram 通知失败: %s", desc)
                     return False, False
-                # 真实 urllib 对非 2xx 会抛 HTTPError，此分支仅防御非标准实现
+                # 真实网络库对非成功状态码会抛网络错误，此分支仅防御非标准实现
                 self.last_error = f"Telegram HTTP {resp.status}"
                 return False, False
         except HTTPError as e:
@@ -146,7 +146,7 @@ class TelegramChannel(NotificationChannel):
                 logger.warning("Telegram HTTP %s: %s", e.code, e)
             return False, e.code == 429 or e.code >= 500
         except OSError as e:
-            # 网络类异常（连接重置/握手超时/DNS 失败，含 URLError）属瞬时故障 → 退避重试
+            # 网络类异常（连接重置/握手超时/域名解析失败，含网络库错误）属瞬时故障 → 退避重试
             self.last_error = f"Telegram 发送异常: {e}"
             logger.warning("Telegram 通知异常: %s", e)
             return False, True
@@ -169,7 +169,7 @@ class TelegramChannel(NotificationChannel):
     def validate_config(config: dict) -> bool:
         return bool(config.get("bot_token") and config.get("chat_id"))
 
-    # ── v1.1 R2 渠道契约（继承自 channels.base.NotificationChannel） ──
+    # ── 渠道契约（第一版修订二：继承自渠道基类的通知渠道接口） ──
 
     @property
     def name(self) -> str:

@@ -29,7 +29,7 @@ class AnnounceTaskRunner:
         """后台执行体：更新进度 → 执行抓取 → 写结果。"""
         self._persistence.update_task(task_id, "running", 10)
 
-        # 抓取窗口起点：通知明细据此只列本次新增公告（见 AnnounceNotifier.after_fetch）
+        # 抓取窗口起点：通知明细据此只列本次新增公告（见公告通知器的抓取后处理）
         started_at = datetime.now().isoformat()
         try:
             result = self._crawler.check_all(adapter_name)

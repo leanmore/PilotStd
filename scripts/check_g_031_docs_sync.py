@@ -16,7 +16,7 @@ BASE_BRANCH = os.environ.get("BASE_BRANCH", "main")
 
 # 映射规则: (源路径前缀, 目标文档路径, 阻断模式)
 # 源前缀必须是仓库中真实存在的路径，否则该条永不触发（= 死映射，门禁假绿）；
-# 目标文档必须是"承载该源路径事实"的那一份——判据见 docs/governance/gates.md G-031 条目：
+# 目标文档必须是"承载该源路径事实"的那一份——判据见 docs/governance/gates.md 的 G-031 条目：
 # 这次变更改变了哪个事实、承载它的是哪份文档。源前缀按"最长匹配"归属唯一目标文档。
 DOC_SYNC_MAP: list[tuple[str, str, str]] = [
     ("pilotstd/scan/parser/", "docs/architecture/modules/parser.md", "block"),
@@ -36,7 +36,7 @@ DOC_SYNC_MAP: list[tuple[str, str, str]] = [
 GENERATED_DOCS: set[str] = {"docs/governance/capabilities_registry.md"}
 
 # 仅"新增/删除"才联动的源前缀：只改内容时，目标文档承载的事实没变，不应牵连它。
-# 判据是"这次变更改变了哪个事实、承载它的是哪份文档"：改某个 ADR 正文只影响那份 ADR 自身，
+# 判据是"这次变更改变了哪个事实、承载它的是哪份文档"：改某个架构决策正文只影响那份决策自身，
 # "系统有哪些决策"这份清单（docs/adr/README.md）并未变化。
 ADD_DELETE_ONLY_PREFIXES: set[str] = {"docs/adr/"}
 

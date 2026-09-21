@@ -31,7 +31,7 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
     blocks: list[NotificationBlock] = [
         StatusChangeBlock(label=std_no, old_value=old_status, new_value=new_status)
     ]
-    # 废止类通知用级别+红色图标，强调紧急性；并保留原 standard_expired 的变更时间行
+    # 废止类通知用级别+红色图标，强调紧急性；并保留原标准废止事件的变更时间行
     if is_expired:
         title = t("notification.validity.standard_status_changed.title.expired")
         level = "error"
@@ -40,7 +40,7 @@ def _build_standard_status_changed_message(data: dict) -> NotificationMessage:
             blocks.append(TextBlock(text=t("notification.common.changed_at").format(t=data["changed_at"])))
     else:
         title = t("notification.validity.standard_status_changed.title.normal")
-        # 新状态为废止类时降级为 warning（按数据口径判定，不得比较展示文案）
+        # 新状态为废止类时降级为警告级别（按数据口径判定，不得比较展示文案）
         level = "warning" if is_abolished_status(new_status) else "info"
         icon = "pi pi-refresh"
     return NotificationMessage(
@@ -181,7 +181,7 @@ def _build_validity_round_summary_message(data: dict) -> NotificationMessage:
     )
     blocks: list[NotificationBlock] = [TextBlock(text=stats)]
     if change_list:
-        # 4 段式明细截断：最多展示 5 条，total 保留全量计数
+        # 4 段式明细截断：最多展示 5 条，总数保留全量计数
         items = [{"detail": c} for c in change_list[:5]]
         blocks.append(
             ListBlock(

@@ -63,7 +63,7 @@ def _is_excluded(filepath: Path) -> bool:
     for pattern in EXCLUDE_PATTERNS:
         if pattern in filepath.name:
             return True
-    # 入库产物之外的本地草稿（.gitignore）不参与本门禁
+    # 入库产物之外的本地草稿（被版本控制忽略的文件）不参与本门禁
     return _is_git_ignored(filepath)
 
 

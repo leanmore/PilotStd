@@ -67,7 +67,7 @@ def check_announce(since_date: str = "", mgr=None, types: list[str] | None = Non
             stats["source"] = "手动"
             mgr.notification_mgr.send_event("announcement_check_complete", stats)
             # 手动路径：拉取完成极简反馈（仅手动路径触发，定时路径不发此事件）
-            # 附本次新增公告标题明细（fetched_at 窗口精确匹配 check_start 之后）
+            # 附本次新增公告标题明细（抓取时间窗口精确匹配本次检查起点之后）
             ann_rows = mgr.db.fetchall(
                 "SELECT announce_no, announcement_title FROM announcement_record "
                 "WHERE fetched_at >= ? AND announcement_title IS NOT NULL AND announcement_title != '' "

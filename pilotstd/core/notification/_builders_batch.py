@@ -5,7 +5,7 @@
 # 决策内聚在构建器内部（如>0→）。
 # 设计原则：方法签名即文档，每个事件独立构建避免参数爆炸。
 # 模板重写（批次2）：统一"标准号/名称/类型"行结构；错误经翻译映射；
-# 标准号不再依赖发送层追加（telegram.py 去重），由构建器正文完整承载。
+# 标准号不再依赖发送层追加（电报渠道去重），由构建器正文完整承载。
 
 import os
 from datetime import date, timedelta
@@ -21,9 +21,9 @@ from .blocks import (
 )
 from .channel import NotificationMessage
 
-# 标准类型 → i18n 键（favorite/download 模板共用）。
-# 只存键、渲染时取 t()：模块级直接求值会把语言固化在 import 时刻，
-# 运行时 set_language 后标准类型名不会跟着变。
+# 标准类型 → 多语言键（收藏/下载模板共用）。
+# 只存键、渲染时再取翻译：模块级直接求值会把语言固化在导入时刻，
+# 运行时切换语言后标准类型名不会跟着变。
 _STD_TYPE_LABEL_KEYS = {
     "NationalStd": "notification.common.std_type.national",
     "IndustryStd": "notification.common.std_type.industry",
@@ -191,7 +191,7 @@ def _build_download_failed_message(data: dict) -> NotificationMessage:
     std_type_text = _std_type_text(data.get("standard_type", ""))
     if std_type_text:
         blocks.append(TextBlock(text=t("notification.common.std_type").format(t=std_type_text)))
-    # 错误信息经翻译映射统一口径（C-3），避免技术细节直出
+    # 错误信息经翻译映射统一口径（业务消息映射），避免技术细节直出
     blocks.append(
         TextBlock(text=t("notification.common.error").format(e=translate_error_message(data.get("error", ""))))
     )
@@ -225,7 +225,7 @@ def _build_favorite_created_message(data: dict) -> NotificationMessage:
     std_type_text = _std_type_text(standard_type)
     if std_type_text:
         blocks.append(TextBlock(text=t("notification.common.std_type").format(t=std_type_text)))
-    # 明确告知排队语义：给出预计下载日期（publish_date + 冷却期），
+    # 明确告知排队语义：给出预计下载日期（发布日期 + 冷却期），
     # 日期不可得时回退通用提示，避免用户误判时效
     expected = _expected_download_date(publish_date)
     if expected:

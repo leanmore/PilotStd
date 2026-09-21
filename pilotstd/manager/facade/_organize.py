@@ -205,7 +205,7 @@ class OrganizeHandler:
                     logger.warning("发送废止标准通知失败: %s, error=%s", std_no, e)
         try:
             if self._core.notification_mgr:
-                # 归档目标目录从 organizer 明细行 "basename -> dst" 中提取（去重父目录）
+                # 归档目标目录从整理器明细行的「源文件名 -> 目标路径」中提取（去重父目录）
                 directories = sorted(
                     {
                         os.path.dirname(d.split(" -> ", 1)[1])

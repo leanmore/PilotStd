@@ -5,7 +5,7 @@ from typing import Any
 from pilotstd.i18n import t
 
 # 废止类状态的数据口径（适配器/检查器写入的原始状态值）。
-# 严禁用 t(...) 的展示文案参与逻辑比较：en 下 t("...abolished")="Expired"，
+# 严禁用翻译函数的展示文案参与逻辑比较：英文环境下废止状态的译文是"已过期"，
 # 与数据里的 "废止" 永不相等，会导致废止计数与告警级别随语言漂移。
 ABOLISHED_STATUS_TOKENS: frozenset[str] = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
 
@@ -39,7 +39,7 @@ def translate_error_message(error: str) -> str:
         return t("notification.common.error.permission")
     if "filenotfounderror" in e or "no such file" in e:
         return t("notification.common.error.file_not_found")
-    # C-3 业务消息映射（下载/服务连接场景）
+    # 业务消息映射（下载/服务连接场景）
     if "timed out" in e or "timeout" in e:
         return t("notification.common.error.download_timeout")
     if "connection refused" in e:

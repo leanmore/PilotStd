@@ -268,7 +268,7 @@ def _scheduler_error_listener(event):
         logger.warning("定时任务失败通知发送失败: %s", e)
 
 
-# 监听任务执行异常（EVENT_JOB_ERROR=8192）。曾误用字面量 2**0（=1=EVENT_SCHEDULER_STARTED），
+# 监听任务执行异常（任务错误事件码 8192）。曾误用字面量 2**0（等于 1，即调度器启动事件），
 # 导致每次调度器启动误发一条"定时任务执行失败/任务：unknown"，而真实任务异常从不通知。
 scheduler.add_listener(_scheduler_error_listener, EVENT_JOB_ERROR)
 
@@ -408,8 +408,8 @@ def get_validity_next_run() -> Optional[str]:
     job = scheduler.get_job(_VALIDITY_JOB_ID)
     if job is None or job.next_run_time is None:
         return None
-    # APScheduler 无类型存根，job.next_run_time 推断为 Any；显式 cast 以满足
-    # G-038 的 mypy no-any-return（返回值语义上就是 str）
+    # 定时任务库无类型存根，任务的"下次执行时间"被推断为任意类型；显式强制转换以满足
+    # G-038（静态类型门禁）的"返回任意类型"告警（返回值语义上就是字符串）
     return cast(str, job.next_run_time.isoformat())
 
 

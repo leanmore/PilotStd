@@ -92,8 +92,8 @@ class ValidityChecker:
                 )
                 if notification_mgr:
                     try:
-                        # Step 1（v1.1）：standard_expired 已合并进本事件，
-                        # 通过 is_expired 字段区分废止（替代原独立事件，避免双通知）
+                        # 第一步：标准废止事件已合并进本事件，
+                        # 通过"是否已过期"字段区分废止（替代原独立事件，避免双通知）
                         is_expired = new_status == "已废止"
                         notification_mgr.send_event(
                             "standard_status_changed",

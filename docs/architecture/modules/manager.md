@@ -5,8 +5,8 @@
 | 模块路径 | `pilotstd/manager/` |
 | G-031 映射 | `pilotstd/manager/` |
 | 核心类 | `StandardManager(BaseFacade)` |
-| 子模块数 | 30+ 文件，8 个 facade Handler |
-| 总行数 | ~2,342 |
+| 子模块数 | 32 个文件；facade 7 个处理类/子系统（另为包入口、基类、容器）|
+| 总行数 | ~4,781（2026-09-21 实测）|
 | 状态 | 活跃 |
 
 ## 模块职责
@@ -18,8 +18,8 @@ PilotStd 的业务逻辑中枢，作为 CLI / WinUI / Docker 三端的统一后�
 ```
 StandardManager (BaseFacade)
 │
-├── ManagerCore (@dataclass 依赖容器，22+ 字段)
-│   ├── config: ConfigManager
+├── ManagerCore (@dataclass 依赖容器，30 字段)
+│   ├── cfg: ConfigManager
 │   ├── db: Database
 │   ├── parser: StandardParser
 │   ├── scanner: FileScanner
@@ -30,7 +30,7 @@ StandardManager (BaseFacade)
 │   ├── session_mgr: SessionManager
 │   ├── task_queue: TaskQueue
 │   ├── router: PipelineRouter
-│   └── ... (共 22+ 依赖)
+│   └── ... (共 30 个字段/依赖)
 │
 ├── facade/ (Handler 层)
 │   ├── _scan.py      — ScanHandler
