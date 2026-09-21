@@ -367,6 +367,9 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(payload["success"], 1)
         self.assertEqual(payload["failed"], 1)
         self.assertEqual(payload["skipped"], 0)
+        # 明细：汇总必须保住"哪条失败了"，否则只剩计数、用户无从下手
+        self.assertEqual(len(payload["details"]), 1, "失败项应带 1 条明细")
+        self.assertIn("GB/T 5002-2020", payload["details"][0])
 
     def test_failure_below_limit_does_not_notify_abandon(self):
         """未达上限的普通失败不得发放弃通知（避免刷屏）。"""

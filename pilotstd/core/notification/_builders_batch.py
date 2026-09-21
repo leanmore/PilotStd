@@ -100,7 +100,11 @@ def _build_announcement_fetch_complete_message(data: dict) -> NotificationMessag
 
 
 def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
-    """批量下载完成（4 段式：标题 + 统计行，无明细）。"""
+    """批量下载完成（标题 + 统计行 + 可选明细预览）。
+
+    details：非成功项明细（收藏链运行汇总传入），最多展示 5 条 —— 汇总只有计数时
+    用户无法知道"哪条失败了"，明细是这批通知里唯一可执行的信息。
+    """
     success = data.get("success", 0)
     failed = data.get("failed", 0)
     skipped = data.get("skipped", 0)
@@ -112,9 +116,13 @@ def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
         if failed == 0
         else "notification.download.batch_download_complete.title.with_failure"
     )
+    blocks: list[NotificationBlock] = [TextBlock(text=stats)]
+    details = [str(d) for d in (data.get("details") or []) if d][:5]
+    if details:
+        blocks.append(TextBlock(text="\n".join(details)))
     return NotificationMessage(
         title=t(title_key),
-        blocks=[TextBlock(text=stats)],
+        blocks=blocks,
         level="info" if failed == 0 else "warning",
         event_type="batch_download_complete",
         icon="pi pi-download",

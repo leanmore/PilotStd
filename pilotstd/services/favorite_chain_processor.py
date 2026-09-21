@@ -95,7 +95,7 @@ def get_records_by_status(limit: int = 0) -> list[dict[str, Any]]:
     try:
         cooldown_cutoff = (date.today() - timedelta(days=COOLDOWN_DAYS)).isoformat()
         rows = db.fetchall(
-            "SELECT fd.id, fd.favorite_id, fd.user_id, fd.record_id, ar.publish_date"
+            "SELECT fd.id, fd.favorite_id, fd.user_id, fd.record_id, fd.standard_no, ar.publish_date"
             " FROM favorite_downloads fd"
             " JOIN announcement_record ar ON fd.record_id = ar.id"
             " WHERE fd.status IN ('pending', 'failed')"
@@ -143,15 +143,21 @@ def process_pending_downloads(download_engine: Any = None, notify_per_record: bo
     return len(outcomes)
 
 
-def _notify_run_summary(outcomes: list[str]) -> None:
+def _notify_run_summary(outcomes: list[Any]) -> None:
     """按批汇总：一次运行只发 1 条，替代逐条 started/failed/complete/abandoned。
 
     复用既有 `batch_download_complete` 事件（成功/失败/跳过三计数），
     使通知量从"每条记录 2~3 条"降到"每次运行 1 条"。
+
+    outcomes 元素为 (结局, 明细行)；明细只取前 5 条非成功项，避免汇总本身又变成长消息，
+    同时保住"哪条失败了"这一可执行信息（否则汇总会丢细节）。
     """
     if not outcomes:
         return
-    counts = Counter(outcomes)
+    counts = Counter(o[0] if isinstance(o, tuple) else o for o in outcomes)
+    details = [
+        o[1] for o in outcomes if isinstance(o, tuple) and o[1] and o[0] in ("failed", "abandoned", "skipped")
+    ][:5]
     try:
         from pilotstd.manager.facade import StandardManager
 
@@ -161,22 +167,25 @@ def _notify_run_summary(outcomes: list[str]) -> None:
                 "success": counts.get("done", 0),
                 "failed": counts.get("failed", 0) + counts.get("abandoned", 0),
                 "skipped": counts.get("skipped", 0),
+                "details": details,
             },
         )
     except Exception as e:  # noqa: BLE001 — 汇总通知失败不得影响链路结果
         logger.warning("批量汇总通知发送失败: %s", e)
 
 
-def _process_one_record(rec: dict[str, Any], today: str, notify: bool = True) -> str:
+def _process_one_record(rec: dict[str, Any], today: str, notify: bool = True) -> tuple[str, str]:
     """处理单条到期记录：调用下载 → 判定成败 → 维护重试计数与放弃通知。
 
-    返回结局字符串（done/failed/abandoned/skipped，供批量汇总计数）；
-    自身异常一律吸收为失败状态，不向批量执行器冒泡。
+    返回 (结局, 明细)：结局取 done/failed/abandoned/skipped（供批量汇总计数），
+    明细为"标准号：原因"（供汇总展示非成功项）；自身异常一律吸收为失败状态，
+    不向批量执行器冒泡。
     """
     fd_id = rec["id"]
     record_id = rec["record_id"]
     user_id = rec["user_id"]
     favorite_id = rec["favorite_id"]
+    std_no = rec.get("standard_no") or f"record#{record_id}"
 
     try:
         from pilotstd.tasks.favorite_download import (  # 延迟导入避免循环依赖
@@ -208,7 +217,7 @@ def _process_one_record(rec: dict[str, Any], today: str, notify: bool = True) ->
             finally:
                 db.close()
             logger.info("[链] 下载成功: record_id=%s, user_id=%s", record_id, user_id)
-            return "done"
+            return ("done", "")
 
         # 失败：retry_count 原子递增（合并进主 UPDATE），达上限转 abandoned
         error = (st["error_message"] if st else None) or "下载失败"
@@ -238,20 +247,20 @@ def _process_one_record(rec: dict[str, Any], today: str, notify: bool = True) ->
             # 而不是永远看到一条"pending"却再也下不下来（批量路径由运行汇总承载）
             if notify:
                 _notify_abandoned(user_id, record_id, error)
-            return "abandoned"
+            return ("abandoned", f"{std_no}：{error}")
 
         logger.warning("[链] 下载失败(第%d次): record_id=%s, user_id=%s", new_count, record_id, user_id)
-        return "failed"
+        return ("failed", f"{std_no}：{error}")
 
     except FavoriteSkip as e:
         # 业务终态跳过（采标版权受限 / 非国标）：重试 7 天结果一样，直接终态
         _abandon_terminal(fd_id, record_id, user_id, today, str(e), notify=notify)
         logger.warning("[链] 下载跳过（终态）: record_id=%s, user_id=%s, reason=%s", record_id, user_id, e)
-        return "skipped"
+        return ("skipped", f"{std_no}：{e}")
     except Exception as e:  # download_to_inbox 自身异常（未内部捕获时兜底）
         update_status(record_id, user_id, STATUS_FAILED, error=str(e), retry_increment=True)
         logger.error("[链] 下载异常: record_id=%s, user_id=%s, error=%s", record_id, user_id, e)
-        return "failed"
+        return ("failed", f"{std_no}：{e}")
 
 
 def _abandon_terminal(
