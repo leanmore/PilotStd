@@ -21,8 +21,11 @@ import re
 import sys
 from pathlib import Path
 
+from _gate_paths import is_git_ignored
+
 MIN_COMMENT_DENSITY = 0.03  # 最低注释密度：注释行 / 非空行 ≥ 3%
 MIN_DENSITY_LOGICAL_LINES = 50  # 仅对 ≥50 逻辑行的文件检查密度
+_REPO_ROOT = Path(__file__).resolve().parent.parent
 EXCLUDE_DIRS = {
     ".git",
     "__pycache__",
@@ -44,6 +47,11 @@ DENSITY_EXEMPT_FILES = {"__init__.py", "__main__.py", "setup.py"}  # 密度豁�
 EXCLUDE_PATTERNS = ("_migrate_",)
 
 
+def _is_git_ignored(filepath: Path) -> bool:
+    """判断文件是否落在 .gitignore 忽略范围内（本地草稿不参与本门禁）。"""
+    return is_git_ignored(filepath, _REPO_ROOT)
+
+
 def _is_excluded(filepath: Path) -> bool:
     """检查文件路径是否在排除目录列表、命名前缀或模式列表中。"""
     for part in filepath.parts:
@@ -55,7 +63,8 @@ def _is_excluded(filepath: Path) -> bool:
     for pattern in EXCLUDE_PATTERNS:
         if pattern in filepath.name:
             return True
-    return False
+    # 入库产物之外的本地草稿（.gitignore）不参与本门禁
+    return _is_git_ignored(filepath)
 
 
 def _is_comment_line(line: str) -> bool:

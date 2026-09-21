@@ -1,7 +1,7 @@
 # CI 修复经验总结
 
-> 最后更新：2026-08-20
-> 基于 2026-07-16 CI 综合修复（12 轮迭代）提炼
+> 最后更新：2026-09-21
+> 基于 2026-07-16 CI 综合修复（12 轮迭代）提炼；2026-09-21 追加第七节（mock 掩盖真实调用链）
 
 ---
 
@@ -12,6 +12,7 @@
 | 依赖管理 | 2 | `ModuleNotFoundError` | 测试依赖必须在 CI 使用的 requirements 文件中显式声明 |
 | 跨平台测试 | 4 | Linux CI 运行 Windows 测试 / 外部站点超时 | CI 环境与本地环境差异必须通过 skip/xfail 明确处理 |
 | 测试设计 | 3 | 断言字段名过时 / 代码重构后测试未同步 | 测试写源码字符串的断言极易腐烂 |
+| 测试盲区 | 1 | mock 覆盖了出错层（`AttributeError` 存活 3 个月、业务 0 成功） | 只有真实执行到下一层的测试才算验证（见第七节） |
 | 静态检查 | 3 | vulture/G-010/G-011 阻断 CI | 静态检查工具需持续维护白名单和规则 |
 | 退出清理 | 1 | `RuntimeError: wrapped C/C++ object has been deleted` | Qt 对象生命周期 vs Python atexit 顺序需显式管理 |
 | 文件管理 | 1 | `tests/fixtures/` 被 gitignore 忽略 | `.gitignore` 误伤需定期审计 |
@@ -160,6 +161,33 @@
 
 ---
 
+## 七、测试盲区：mock 掩盖真实调用链（2026-09-21）
+
+### 7.1 背景
+
+- **现象**：收藏下载链连续 7 天 0 成功，62 条收藏各重试 7 次后 abandoned；容器日志 427 条
+  `AttributeError: 'super' object has no attribute 'request'`。
+- **根因**：`pilotstd/download/session.py` 用 `s.request = lambda ...: super(requests.Session, s).request(...)`
+  注入默认超时。`super(requests.Session, s)` 是在 `type(s).__mro__` 中 `requests.Session` **之后**查找属性，
+  而 `s` 就是 `requests.Session` 实例，其后只有 `object` → 任何请求都抛 `AttributeError`。
+  该写法自 2026-06-18 起存在约 3 个月，所有下载（`manager/facade/_base.py` 唯一构造点）无一例外失败。
+- **为什么 CI 全绿**：`tests/test_download.py` 覆盖了 `create_session()` 的 header/UA 断言，其余用例全部
+  mock 掉适配器，**没有任何一条测试真实执行过 `session.get()`** —— 被 mock 替换掉的正是出错的那一层。
+
+### 7.2 教训
+
+- 断言 mock 的行为 ≠ 验证真实调用链；只要出错层被 mock 覆盖，测试永远是绿的。
+- 委派（`super()` / 替换方法属性）必须至少有一条测试**真实执行到下一层**（例：mock 到
+  `HTTPAdapter.send`，而不是把 adapter 整个替换掉）。
+- 替换库对象的方法属性属于高危操作：优先用子类覆盖方法，让 `super()` 沿 MRO 正确定位。
+
+### 7.3 预防
+
+- 新增/修改网络会话、适配器、委派链 → 补一条"真实走到 transport 层"的测试。
+- 发现"业务成功率恒为 0"时先看**真实运行日志**，不要用 mock 测试通过来推断生产可用。
+
+---
+
 ## 防复发检查清单
 
 - [ ] 新增测试依赖 → 检查 `docker/requirements-docker.txt` 和 `desktop/requirements-win.txt`
@@ -170,3 +198,4 @@
 - [ ] 新增函数 → 检查 G-010 行数限制
 - [ ] 提交前 → 本地运行 `vulture` + `ruff` + `mypy`
 - [ ] 新增会真实出网的测试 → 确认 CI 离线阻断覆盖（iptables + check_ci_offline.py + socket guard）
+- [ ] 改网络会话/适配器/委派链 → 补一条不 mock 该层的测试（真实走到 `HTTPAdapter.send`）

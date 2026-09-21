@@ -3,8 +3,9 @@
 | 属性 | 值 |
 |------|-----|
 | 状态 | 活跃 |
-| 版本 | v1.0 |
+| 版本 | v1.4 |
 | 创建日期 | 2026-07-14 |
+| 最后更新 | 2026-09-21（新增容器巡检发现的 4 项未修复问题） |
 | 关联 | `tests/test_adapters.py`、`tests/test_e2e_adapters.py` |
 
 本文档记录当前已知但尚未修复的问题。已修复的问题不在此列。
@@ -30,6 +31,45 @@
 | 当前状态 | 已标记 `@unittest.skip("外部 API 依赖 — CI 中跳过")` |
 | 测试位置 | `tests/test_e2e_adapters.py::TestStdGovAdapter::test_gb_exact_match` |
 | 计划修复 | 使用 mock HTTP 响应替代真实请求，或将此测试移入需要网络环境的独立测试套件 |
+
+### 4. Telegram 通知因 429 限流大量丢失（2026-09-21 巡检）
+
+| 属性 | 值 |
+|------|-----|
+| 问题描述 | 收藏下载链对**每条记录**发送 `download_started` / `download_failed` / `archive_abandoned` 通知，单日 150~200 条，触发 Telegram `HTTP 429 Too Many Requests` 限流；实测近半月 1119 条通知中 **622 条投递失败（55.6%）** |
+| 影响范围 | 通知可达性（用户看不到过半告警）；渠道重试退避只能缓解单条，无法抵消量级 |
+| 当前状态 | 未修复（仅 telegram 渠道有 3 次退避重试） |
+| 证据 | `GET /api/notification/logs` 状态分布 success 497 / failed 622；容器日志 429 提及 3000+ 次 |
+| 计划修复 | 链路通知聚合/限速（started 合并、failed 按批汇总），复用现有通知聚合器 |
+
+### 5. 采标标准被当作"失败"重试 7 次（2026-09-21 巡检）
+
+| 属性 | 值 |
+|------|-----|
+| 问题描述 | 采标标准（版权受限、自动跳过）与"非国标"在 `favorite_download.py` 中以 `FavoriteArchiveError` 抛出，链路按可重试失败处理 → 每条耗尽 7 天重试窗口后才 abandoned，并发出"归档任务放弃"通知 |
+| 影响范围 | 无效重试与通知噪音（实测 6 条 × 7 天）；对用户而言是"永久失败却被反复重试" |
+| 当前状态 | 未修复 |
+| 证据 | 容器日志 `采标标准，版权受限，自动跳过` 6 条/天 × 09-14~09-20 |
+| 计划修复 | 引入业务终态异常类型，链路识别后直接终态并只通知一次 |
+
+### 6. `user_favorites.archive_retry_count` 列缺失导致状态接口 500（2026-09-21 巡检）
+
+| 属性 | 值 |
+|------|-----|
+| 问题描述 | `GET /api/favorites/{record_id}/status` 对全部收藏返回 500：`sqlite3.OperationalError: no such column: archive_retry_count`（`docker/api/favorites.py:210`） |
+| 影响范围 | 单条收藏状态接口不可用（前端走 `POST /api/favorites/batch-status`，不受影响）；`last_archive_attempt` 无读取方 |
+| 当前状态 | 未修复 —— 根因是**迁移已到版本顶**（库内 `_schema_version` 已到 58），`_run_migrations()` 直接 early-return，重发镜像也不会补列；v52 兜底只补了 `publish_date` |
+| 证据 | 容器日志 SQL + `sqlite3.OperationalError`；`GET /api/backup/list` 显示 `pre_migration_v57_to_v58.bak`（2026-08-29） |
+| 计划修复 | 新增 v59 兜底迁移（幂等 ALTER 补 `archive_retry_count`/`last_archive_attempt`）+ `CURRENT_SCHEMA_VERSION` 58→59 |
+
+### 7. `daily_quota` 写入偶发失败（2026-09-21 巡检）
+
+| 属性 | 值 |
+|------|-----|
+| 问题描述 | 日志出现 `SQL执行失败: INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)`，09-14 起 1~2 次/天 |
+| 影响范围 | 配额计数可能漏记（不影响下载主流程） |
+| 当前状态 | 未修复 |
+| 计划修复 | 改为 `INSERT OR IGNORE` 或显式处理唯一冲突 |
 
 ## 二、测试收集排除项
 
@@ -85,6 +125,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.4 | 2026-09-21 | 新增第 4~7 项（局域网容器巡检结论）：Telegram 429 通知丢失 55.6%、采标被当失败重试 7 次、`archive_retry_count` 缺列致状态接口 500、`daily_quota` 偶发写入失败 |
 | v1.0 | 2026-07-14 | 初始版本，记录 njbz365 match_status 和 StdGovAdapter e2e 两个已知问题 |
 | v1.1 | 2026-07-14 | njbz365 适配器 match_status 已修复（`_search_candidates` 自动解析 search_term），移除 xfail |
 | v1.2 | 2026-07-31 | 新增 wechat_ip 单元测试豁免（P2-2 处置审批），浏览器自动化模块暂不纳入覆盖率考核 |

@@ -24,6 +24,8 @@ import ast
 import sys
 from pathlib import Path
 
+from _gate_paths import is_git_ignored
+
 MAX_FILE_LINES = 500  # 单文件有效代码行数上限（阻断档）
 WARN_FILE_LINES = 400  # 单文件有效代码行数警告阈值（警告档）
 MAX_FUNCTION_LINES = 80  # 单个函数最大逻辑行数
@@ -114,14 +116,15 @@ def _count_func_logical_lines(lines: list[str], start: int, end: int) -> int:
     return _count_logical_lines(func_lines, ".py")
 
 
-def _is_excluded(filepath: Path) -> bool:
-    """检查文件路径是否在排除目录或前缀列表中。"""
+def _is_excluded(filepath: Path, root: Path) -> bool:
+    """检查文件路径是否在排除目录、前缀列表或 .gitignore 忽略范围内。"""
     for part in filepath.parts:
         if part in EXCLUDE_DIRS:
             return True
     if filepath.name.startswith(EXCLUDE_PREFIXES):
         return True
-    return False
+    # 本地草稿（如 logs/）不属于入库产物，不参与代码规模判定
+    return is_git_ignored(filepath, root)
 
 
 def scan(root: Path) -> tuple[list[str], list[str]]:
@@ -134,7 +137,7 @@ def scan(root: Path) -> tuple[list[str], list[str]]:
 
     for pattern in ("**/*.py", "**/*.ts", "**/*.vue"):
         for fpath in root.rglob(pattern):
-            if _is_excluded(fpath):
+            if _is_excluded(fpath, root):
                 continue
             try:
                 with open(fpath, "r", encoding="utf-8") as f:

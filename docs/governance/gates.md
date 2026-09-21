@@ -225,6 +225,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.12 | 2026-09-21 | G-010 / G-012 改为**只评判入库产物**：新增 `scripts/_gate_paths.py`（`git ls-files --others --ignored --exclude-standard --directory` 计算忽略集合），两个门禁经 `is_git_ignored()` 跳过 `.gitignore` 声明的本地草稿。起因：全量扫描把 `logs/*.py` 一并判定，产生 G-012 22 项假阳性阻断 + G-010 2 项超长函数阻断，使与之无关的提交无法通过。判据与落地同时写入 `governance-principles.md` §3.4「只评判入库产物」 |
 | v1.11 | 2026-09-13 | 按"事实归属"判据重定 G-031 映射并列出缺口：目标文档必须**承载该源路径的事实**，每个变更文件按最长匹配前缀归属唯一文档 —— 修正两处配对错（`pilotstd/announcement/parser.py` 曾指向只描述 `pilotstd/scan/parser/` 的 parser.md；`pilotstd/manager/facade/_scan.py` 曾指向只描述 `pilotstd/scan/` 的 scan.md 且与 manager 规则重复），改为 `pilotstd/scan/parser/` → parser.md、`pilotstd/scan/` → scan.md，`manager/facade/_scan.py` 归 manager.md；`docs/adr/` 目标改为真正的 ADR 索引 `docs/adr/README.md` 且仅新增/删除/重命名时联动；登记缺口 `pilotstd/core/`→core.md、`pilotstd/announcement/`→announcement-pipeline.md 未覆盖 |
 | v1.10 | 2026-09-13 | 修复 G-031 四条**死映射**：源前缀 `pilotstd/core/parser.py`、`pilotstd/core/_scan.py`、`pilotstd/ui/main_window.py`、`docs/architecture/decisions/` 在仓库中均已不存在（模块已迁移，ADR 迁至 `docs/adr/`），导致这 4 条永不触发、门禁实际只守 5 条。脚本前缀对齐真实路径（`pilotstd/announcement/parser.py`、`pilotstd/manager/facade/_scan.py`、`pilotstd/ui/main_window/`、`docs/adr/`），9 条全部生效；同时修正"不存在时告警不阻断"的错误描述（`block` 模式下目标文档缺失同样是阻断） |
 | v1.9 | 2026-09-13 | G-031 新增机器生成产物豁免：`docs/governance/capabilities_registry.md` 单独变更不再要求同步 README（重生成只改时间戳，AGENTS.md §七 又强制其随代码提交，否则每次重生成都被迫做装饰性改动或绕过门禁）；豁免命中打印 `[G-031] SKIP`，同批含人工文档变更时仍阻断 |
