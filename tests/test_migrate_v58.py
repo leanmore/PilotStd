@@ -81,6 +81,10 @@ class TestMigrateV58:
         assert cnt["cnt"] == 1, "INSERT OR IGNORE 不应重复插行"
 
     def test_registered_and_version_bumped(self):
-        """迁移已注册到 MIGRATIONS，且当前期望版本号为 58。"""
+        """迁移已注册到 MIGRATIONS，且当前期望版本号不低于 58。
+
+        用 >= 而非 ==：版本号随每次新增迁移递增，钉死具体值会让后续每个迁移
+        都要回来改这条断言（v59 已实证）。本条只关心"v58 已被注册且版本已推进"。
+        """
         assert 58 in MIGRATIONS, "MIGRATIONS 注册表缺少 v58"
-        assert CURRENT_SCHEMA_VERSION == 58, "CURRENT_SCHEMA_VERSION 应为 58"
+        assert CURRENT_SCHEMA_VERSION >= 58, "CURRENT_SCHEMA_VERSION 应不低于 58"

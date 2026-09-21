@@ -38,6 +38,7 @@
 | v50 | 兜底补建 user_preferences | `_migrate_v50.py` |
 | v51 | adapter_state 健康检查字段 | `_migrate_v51.py` |
 | **v52** | **user_favorites 兜底补 publish_date 列** | `_migrate_v52.py` |
+| **v59** | **user_favorites 兜底补 archive_retry_count / last_archive_attempt 列**（修复收藏状态接口 500：v36 补列未在该库生效、v52 只补了 publish_date，库已达版本顶故必须新增版本号兜底） | `_migrate_v59_ensure_favorite_retry_columns.py` |
 
 ## 重点迁移详细说明
 
