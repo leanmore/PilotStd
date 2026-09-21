@@ -73,7 +73,7 @@
 |--------|---------|------|:---:|---------|---------|
 | `archive_complete` | 归档完成（含 count=0） | info | 聚合 | `{"count": "int [必填]", "directories": "list[str] [可选]", "standard_number": "str [可选]", "elapsed_ms": "int [可选]"}` | count=0 时正文显示"未归档任何目录" |
 | `archive_failed` | 部分文件归档失败 | error | bypass | `{"count": "int [必填]", "error": "str [必填]"}` | result["failed"]>0 时触发 |
-| `archive_abandoned` | 归档重试上限（3 次）均失败 | error | bypass | `{"standard_info": "str [必填]", "error": "str [必填]"}` | 收藏下载链放弃分支触发（favorite_chain_processor） |
+| `archive_abandoned` | 重试上限（7 次）均失败，或业务终态跳过（采标版权受限 / 非国标） | error | bypass | `{"standard_info": "str [必填]", "error": "str [必填]"}` | 收藏下载链放弃分支 / 终态跳过分支触发（favorite_chain_processor；跳过分支一次即终态，不消耗重试窗口） |
 | `expire_standard_moved` | 废止标准移入过期作废目录 | info | 聚合 | `{"standard_number": "str [必填]", "target_path": "str [必填]"}` | 与 archive_complete 同时触发，互不替代 |
 
 ### 7. 公告抓取 (3)

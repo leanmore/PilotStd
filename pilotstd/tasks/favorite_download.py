@@ -8,6 +8,7 @@ from typing import Any, Optional, cast
 
 from pilotstd.core.config import ConfigManager, get_db_path
 from pilotstd.core.db.database import Database
+from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.scan.parser import StandardParser
 
@@ -17,6 +18,17 @@ logger = logging.getLogger(__name__)
 
 class FavoriteArchiveError(Exception):
     """收藏下载归档过程中的异常。"""
+
+    pass
+
+
+class FavoriteSkip(FavoriteArchiveError):
+    """业务终态跳过：类别闸/版权闸决定该标准**永远不会**被自动下载。
+
+    与普通失败的区别是"重试无意义"：采标标准版权受限、非国标无下载适配器，
+    再等 7 天结果也一样。链路据此直接置终态并只通知一次，不消耗重试窗口、
+    不产生每日失败通知（此前实测每条要空转 7 天）。
+    """
 
     pass
 
@@ -188,10 +200,12 @@ def _resolve_download_target(mgr: Any, db: Database, favorite_id: int, standard_
 
     hcno 是可下载能力的载体（openstd 需先建会话再取全文），查询缓存优先、
     未命中现场查一次；冷却期与新标准判定由下载链 SQL 负责，此处不重复。
+
+    类别闸/版权闸命中时抛 `FavoriteSkip`（业务终态，重试无意义）。
     """
     std_type = _get_standard_type(favorite_id, db)
     if std_type and std_type != "NationalStd":
-        raise FavoriteArchiveError(f"非国标标准（{std_type}），自动下载仅支持国标")
+        raise FavoriteSkip(f"非国标标准（{std_type}），自动下载仅支持国标")
 
     query_result = _load_cached_query_result(db, standard_number)
     if query_result is None or not getattr(query_result, "hcno", ""):
@@ -199,7 +213,7 @@ def _resolve_download_target(mgr: Any, db: Database, favorite_id: int, standard_
     if query_result is None:
         raise FavoriteArchiveError(f"无法获取下载标识(hcno): {standard_number}")
     if getattr(query_result, "is_adopted", False):
-        raise FavoriteArchiveError(f"采标标准，版权受限，自动跳过: {standard_number}")
+        raise FavoriteSkip(f"{ADOPTED_SKIP_MESSAGE}: {standard_number}")
     return query_result
 
 
@@ -215,6 +229,9 @@ def _fetch_into_inbox(mgr: Any, query_result: Any, standard_number: str, inbox_p
         )
     )
     if not content:
+        # 引擎侧同样以该文案表达"采标跳过"（引擎 fetch_bytes 的版权闸）→ 归为终态跳过
+        if err == ADOPTED_SKIP_MESSAGE:
+            raise FavoriteSkip(f"{err}: {standard_number}")
         # 不在此处发送失败通知：raise 后由外层 except 统一补发一次
         # （避免同一失败路径双通知——内层原始错误 + 外层包装错误）
         raise FavoriteArchiveError(f"下载失败: {standard_number}, {err}")
@@ -300,6 +317,10 @@ def download_to_inbox(favorite_id: int, user_id: int, record_id: int) -> None:
         # A-4：归档超时补发下载失败通知（避免用户只收到"开始下载"再无后续）
         _notify_download_failed(user_id, standard_number, "归档超时：文件未被扫描器处理", favorite_id)
 
+    except FavoriteSkip:
+        # 业务终态跳过：不写 failed（否则链路会按失败重试 7 次），
+        # 原样上抛给链条，由链条置终态并只通知一次
+        raise
     except Exception as e:
         logger.error("收藏失败: favorite_id=%s, %s", favorite_id, e, exc_info=True)
         if db:

@@ -172,22 +172,26 @@ class TestFavoriteDownloadChainE2E:
         assert "download_complete" not in events
 
     def test_adopted_standard_never_reaches_adapter(self, tmp_path):
-        """采标闸：版权受限 → 不下载、不写 inbox，失败原因明确。"""
+        """采标闸：版权受限 → 业务终态跳过，不下载、不写 inbox、不写 failed。
+
+        P1（2026-09-21）：跳过属终态，`download_to_inbox` 以 FavoriteSkip 上抛且不写 failed
+        （写 failed 会被链路按失败重试 7 天）；终态标记与单次通知由链路负责
+        （tests/test_favorite_chain_processor.py::test_skip_mode_marks_terminal_without_retries）。
+        """
+        from pilotstd.tasks.favorite_download import FavoriteSkip
+
         adapter = _FakeOpenstdAdapter()
-        fav_id, mgr, db_path, inbox, _found = _run(tmp_path, adapter, adopted=True)
+        with pytest.raises(FavoriteSkip, match="采标标准"):
+            _run(tmp_path, adapter, adopted=True)
 
         assert adapter.calls == 0, "采标标准不得调用适配器"
+        inbox = tmp_path / "inbox"
         assert not inbox.exists() or not list(inbox.glob("*.pdf"))
 
-        db = Database(db_path)
+        db = Database(str(tmp_path / "t.db"))
         try:
-            row = db.fetchone(
-                "SELECT status, error_message FROM favorite_downloads WHERE favorite_id=?",
-                (fav_id,),
-            )
+            rows = db.fetchall("SELECT status, error_message FROM favorite_downloads")
         finally:
             db.close()
-        assert row["status"] == "failed"
-        assert "采标标准" in row["error_message"]
-        events = [c.args[0] for c in mgr.notification_mgr.send_event.call_args_list]
-        assert events == ["download_failed"], events
+        assert rows, "队列行应仍然存在（终态由链路接管）"
+        assert rows[0]["status"] != "failed", "终态跳过不得写 failed，否则会被重试 7 天"

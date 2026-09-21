@@ -145,7 +145,10 @@ def _process_one_record(rec: dict[str, Any], today: str) -> int:
     favorite_id = rec["favorite_id"]
 
     try:
-        from pilotstd.tasks.favorite_download import download_to_inbox  # 延迟导入避免循环依赖
+        from pilotstd.tasks.favorite_download import (  # 延迟导入避免循环依赖
+            FavoriteSkip,
+            download_to_inbox,
+        )
 
         download_to_inbox(favorite_id, user_id, record_id)
 
@@ -202,11 +205,32 @@ def _process_one_record(rec: dict[str, Any], today: str) -> int:
             else:
                 logger.warning("[链] 下载失败(第%d次): record_id=%s, user_id=%s", new_count, record_id, user_id)
 
+    except FavoriteSkip as e:
+        # 业务终态跳过（采标版权受限 / 非国标）：重试 7 天结果一样，直接终态 + 只通知一次
+        _abandon_terminal(fd_id, record_id, user_id, today, str(e))
+        logger.warning("[链] 下载跳过（终态）: record_id=%s, user_id=%s, reason=%s", record_id, user_id, e)
     except Exception as e:  # download_to_inbox 自身异常（未内部捕获时兜底）
         update_status(record_id, user_id, STATUS_FAILED, error=str(e), retry_increment=True)
         logger.error("[链] 下载异常: record_id=%s, user_id=%s, error=%s", record_id, user_id, e)
 
     return 1
+
+
+def _abandon_terminal(fd_id: int, record_id: int, user_id: int, today: str, error: str) -> None:
+    """业务终态直接放弃：retry_count 拉到上限（保证不再入选）+ 通知一次。
+
+    与"重试耗尽后放弃"的区别：不写 failed、不逐日重试，用户当天就收到明确结论。
+    """
+    db = _new_db()
+    try:
+        db.execute(
+            "UPDATE favorite_downloads SET status = 'abandoned', retry_count = ?,"
+            " last_attempt = ?, error_message = ?, updated_at = datetime('now') WHERE id = ?",
+            (MAX_RETRIES, today, error[:200], fd_id),
+        )
+    finally:
+        db.close()
+    _notify_abandoned(user_id, record_id, error)
 
 
 def _notify_abandoned(user_id: int, record_id: int, error: str) -> None:

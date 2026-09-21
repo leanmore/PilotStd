@@ -109,8 +109,12 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         return fav_id
 
     def _fake_download(self, favorite_id: int, user_id: int, record_id: int) -> None:
-        """模拟 download_to_inbox：按 self._dl_mode 置状态（成功 done / 失败 failed）。"""
+        """模拟 download_to_inbox：按 self._dl_mode 置状态（成功 done / 失败 failed / 跳过 skip）。"""
         mode = getattr(self, "_dl_mode", "success")
+        if mode == "skip":
+            from pilotstd.tasks.favorite_download import FavoriteSkip
+
+            raise FavoriteSkip("采标标准，版权受限，自动跳过: 测试标准")
         status = "done" if mode == "success" else "failed"
         err = None if mode == "success" else "模拟下载失败"
         if status == "done":
@@ -293,6 +297,34 @@ class TestFavoriteChainProcessor(unittest.TestCase):
         self.assertEqual(payload["record_id"], 1)
         self.assertIn("GB/T 1001-2020", payload["standard_info"])
         self.assertEqual(payload["error"], "模拟下载失败")
+
+    def test_skip_mode_marks_terminal_without_retries(self):
+        """业务终态跳过（P1，2026-09-21）：一次即 abandoned，不耗尽 7 次重试、只通知一次。
+
+        历史缺陷：采标标准（版权受限）按普通失败处理 → 每条空转 7 天重试窗口、
+        逐日发失败通知，最后才放弃（实测 6 条 × 7 天）。
+        """
+        self._seed_announcement(1, "GB/T 1066-2020", "2026-01-01")
+        self._seed_favorite(1, 1, retry_count=0)
+        self._dl_mode = "skip"
+
+        with patch("pilotstd.manager.facade.StandardManager") as mock_mgr:
+            self.fcp.process_chain()
+
+        status, retry, err = self._fd_status(1, 1)
+        self.assertEqual(status, "abandoned", "业务终态应直接 abandoned")
+        self.assertEqual(retry, self.fcp.MAX_RETRIES, "retry_count 拉到上限，确保不再入选")
+        self.assertIn("采标标准", err or "")
+
+        notifier = mock_mgr.return_value.notification_mgr
+        self.assertEqual(notifier.send_event.call_count, 1, "终态只通知一次，不刷屏")
+        self.assertEqual(notifier.send_event.call_args[0][0], "archive_abandoned")
+
+        # 再跑一轮：abandoned 不在扫描范围 → 不再通知、状态不变
+        with patch("pilotstd.manager.facade.StandardManager") as mock_mgr2:
+            self.fcp.process_chain()
+        mock_mgr2.return_value.notification_mgr.send_event.assert_not_called()
+        self.assertEqual(self._fd_status(1, 1)[0], "abandoned")
 
     def test_failure_below_limit_does_not_notify_abandon(self):
         """未达上限的普通失败不得发放弃通知（避免刷屏）。"""

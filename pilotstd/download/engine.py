@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 # fetch_bytes 的瞬时故障重试（与原收藏链 _download_with_retry 的 3 次尝试口径一致）
 _FETCH_MAX_ATTEMPTS = 3
 _FETCH_BACKOFF_SECONDS = (2, 4)
+# 采标标准（版权受限）跳过口径：调用方据此识别"业务终态"而非可重试失败，
+# 统一引用本常量，避免各层各自拼字符串导致判定失配。
+ADOPTED_SKIP_MESSAGE = "采标标准，版权受限，自动跳过"
 
 
 class DownloadEngine:
@@ -71,7 +74,7 @@ class DownloadEngine:
         （缺 hcno / 暂无全文 / 验证码失败）不重试。
         """
         if task.query_result and getattr(task.query_result, "is_adopted", False):
-            return None, "采标标准，版权受限，自动跳过"
+            return None, ADOPTED_SKIP_MESSAGE
         adapter = self._find_adapter(task)
         if adapter is None:
             return None, "没有匹配的下载适配器"
@@ -100,7 +103,7 @@ class DownloadEngine:
         """下载单个任务，返回更新后的任务对象（含状态和本地路径）。"""
         if skip_adopted and task.query_result and getattr(task.query_result, "is_adopted", False):
             task.status = DownloadStatus.SKIPPED
-            task.error_message = "采标标准，版权受限，自动跳过"
+            task.error_message = ADOPTED_SKIP_MESSAGE
             logger.info(f"跳过采标: {task.standard_number}")
             return task
 

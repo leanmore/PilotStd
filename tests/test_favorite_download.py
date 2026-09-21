@@ -1,8 +1,11 @@
 """pilotstd/tasks/favorite_download.py 补测 — 纯函数+helper 全覆盖。"""
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from pilotstd.tasks.favorite_download import (
     FavoriteArchiveError,
+    FavoriteSkip,
     _find_in_file_index,
     _get_inbox_dir,
     _get_standard_type,
@@ -21,6 +24,10 @@ class TestFavoriteArchiveError:
     def test_instantiate_with_message(self):
         e = FavoriteArchiveError("test error")
         assert str(e) == "test error"
+
+    def test_skip_is_archive_error_subclass(self):
+        """FavoriteSkip 继承 FavoriteArchiveError：既有宽泛捕获仍能兜住。"""
+        assert issubclass(FavoriteSkip, FavoriteArchiveError)
 
 
 class TestSafeFilename:
@@ -213,7 +220,11 @@ class TestDownloadToInbox:
         assert args[3] == 1  # favorite_id
 
     def test_non_national_type_is_rejected_before_download(self, tmp_path):
-        """类别闸：行标/地标没有下载适配器，必须在取 hcno 前就拒绝。"""
+        """类别闸：行标/地标没有下载适配器，必须在取 hcno 前就拒绝。
+
+        P1（2026-09-21）：该闸属**业务终态**，抛 FavoriteSkip 而非普通失败
+        —— 由链路直接置终态并只通知一次，不再空转 7 天重试窗口。
+        """
         mock_db = MagicMock()
         mock_db.execute.return_value.fetchone.side_effect = [
             {"standard_number": "HB 1-2020"},
@@ -224,13 +235,15 @@ class TestDownloadToInbox:
             patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value=None), \
             patch("pilotstd.tasks.favorite_download._load_cached_query_result") as cached, \
             patch("pilotstd.tasks.favorite_download._notify_download_failed") as mock_notify:
-            download_to_inbox(favorite_id=2, user_id=100, record_id=999)
+            with pytest.raises(FavoriteSkip, match="非国标标准"):
+                download_to_inbox(favorite_id=2, user_id=100, record_id=999)
 
         cached.assert_not_called()
-        assert "非国标标准" in mock_notify.call_args[0][2]
+        # 终态跳过不发 download_failed（由链路发一条"放弃"通知）
+        mock_notify.assert_not_called()
 
     def test_adopted_standard_is_skipped(self, tmp_path):
-        """采标闸：版权受限，取到 hcno 后仍须拒绝下载。"""
+        """采标闸：版权受限，取到 hcno 后仍须拒绝，且按业务终态上抛。"""
         mock_db = MagicMock()
         mock_db.execute.return_value.fetchone.side_effect = [
             {"standard_number": "GB/T 2-2020"},
@@ -243,6 +256,35 @@ class TestDownloadToInbox:
                   return_value=MagicMock(hcno="ABC", is_adopted=True)), \
             patch("pilotstd.tasks.favorite_download._get_inbox_dir", return_value=tmp_path / "inbox"), \
             patch("pilotstd.tasks.favorite_download._notify_download_failed") as mock_notify:
-            download_to_inbox(favorite_id=3, user_id=100, record_id=999)
+            with pytest.raises(FavoriteSkip, match="采标标准"):
+                download_to_inbox(favorite_id=3, user_id=100, record_id=999)
 
-        assert "采标标准" in mock_notify.call_args[0][2]
+        mock_notify.assert_not_called()
+        # 关键：不得把状态写成 failed（写 failed 会被链路按失败重试 7 次）
+        failed_updates = [c for c in mock_db.execute.call_args_list if "'failed'" in str(c)]
+        assert failed_updates == []
+
+    def test_engine_adopted_error_maps_to_skip(self, tmp_path):
+        """引擎侧版权闸（fetch_bytes 返回采标文案）同样归为业务终态跳过。"""
+        from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
+
+        mock_db = MagicMock()
+        mock_db.execute.return_value.fetchone.side_effect = [
+            {"standard_number": "GB/T 3-2020"},
+        ]
+        mock_db.fetchone.return_value = {"standard_type": "NationalStd"}
+        mock_mgr = MagicMock()
+        mock_mgr.download_engine.fetch_bytes.return_value = (None, ADOPTED_SKIP_MESSAGE)
+        with patch("pilotstd.tasks.favorite_download.Database", return_value=mock_db), \
+            patch("pilotstd.tasks.favorite_download.get_db_path", return_value=":memory:"), \
+            patch("pilotstd.tasks.favorite_download._find_in_file_index", return_value=None), \
+            patch("pilotstd.tasks.favorite_download._load_cached_query_result",
+                  return_value=MagicMock(hcno="ABC", is_adopted=False)), \
+            patch("pilotstd.tasks.favorite_download._get_inbox_dir", return_value=tmp_path / "inbox"), \
+            patch("pilotstd.tasks.favorite_download._notify_download_started"), \
+            patch("pilotstd.tasks.favorite_download._notify_download_failed") as mock_notify, \
+            patch("pilotstd.manager.facade.StandardManager", return_value=mock_mgr):
+            with pytest.raises(FavoriteSkip, match="采标标准"):
+                download_to_inbox(favorite_id=4, user_id=100, record_id=999)
+
+        mock_notify.assert_not_called()

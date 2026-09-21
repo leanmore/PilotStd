@@ -648,13 +648,19 @@ class TestDownloadToInboxMainFlow:
         assert len(failed_updates) >= 1
 
     def test_category_gate_blocks_non_national(self, tmp_path):
-        """类别闸：行标在取 hcno 之前就被拒绝。"""
+        """类别闸：行标在取 hcno 之前就被拒绝，且属**业务终态**（FavoriteSkip）。
+
+        P1（2026-09-21）：终态不写 failed、不发 download_failed，由链路置 abandoned
+        并只通知一次（见 tests/test_favorite_chain_processor.py::test_skip_mode_marks_terminal_without_retries）。
+        """
+        from pilotstd.tasks.favorite_download import FavoriteSkip
+
         db = self._db(standard_number="HB 1-2020", std_type="IndustryStd")
         mgr = MagicMock()
 
-        _, notify = self._run(db, mgr, tmp_path, find=None)
+        with pytest.raises(FavoriteSkip, match="非国标标准"):
+            self._run(db, mgr, tmp_path, find=None)
 
-        assert "非国标标准" in notify.call_args[0][2]
         mgr.query_by_numbers.assert_not_called()
         mgr.download_engine.fetch_bytes.assert_not_called()
 
