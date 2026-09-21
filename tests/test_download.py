@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import Mock, patch
 
 import requests
 
@@ -92,6 +93,45 @@ class TestSessionManager(unittest.TestCase):
         sm = SessionManager(user_agents=["TestUA/1.0"])
         s = sm.create_session()
         self.assertIn("User-Agent", s.headers)
+
+    def test_session_injects_default_timeout(self):
+        """默认超时必须注入 request。
+
+        回归：曾用 `s.request = lambda ...: super(requests.Session, s).request(...)`
+        委派，super() 从 requests.Session 之后查找 → 必然 AttributeError
+        （2026-09-20 生产日志 427 条，收藏下载 0 成功）。
+        """
+        sm = SessionManager(user_agents=["TestUA/1.0"], default_timeout=17)
+        s = sm.create_session()
+        with patch.object(requests.Session, "request") as spy:
+            spy.return_value = Mock(status_code=200)
+            s.get("http://example.invalid/")
+        self.assertEqual(spy.call_args.kwargs.get("timeout"), 17)
+
+    def test_explicit_timeout_wins(self):
+        """显式传入的 timeout 优先于默认值。"""
+        sm = SessionManager(user_agents=["TestUA/1.0"], default_timeout=17)
+        s = sm.create_session()
+        with patch.object(requests.Session, "request") as spy:
+            spy.return_value = Mock(status_code=200)
+            s.get("http://example.invalid/", timeout=3)
+        self.assertEqual(spy.call_args.kwargs.get("timeout"), 3)
+
+    def test_real_request_path_reaches_adapter(self):
+        """真实走 get() → request() → 适配器：证明 request 委派正确（旧写法在此抛 AttributeError）。"""
+        sm = SessionManager(user_agents=["TestUA/1.0"], default_timeout=23)
+        s = sm.create_session()
+
+        class _ReachedAdapter(Exception):
+            """哨兵：请求已走到适配器层。"""
+
+        with patch.object(
+            requests.adapters.HTTPAdapter, "send", side_effect=_ReachedAdapter("已到达适配器")
+        ) as send:
+            with self.assertRaises(_ReachedAdapter):
+                s.get("http://example.invalid/")
+
+        self.assertEqual(send.call_args.kwargs.get("timeout"), 23)
 
     def test_delay_respects_bounds(self):
         sm = SessionManager(min_delay=0.01, max_delay=0.03)

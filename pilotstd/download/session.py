@@ -5,7 +5,7 @@ import logging
 import os
 import random
 import time
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -19,6 +19,26 @@ DEFAULT_USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
 ]
+
+
+class _DefaultTimeoutSession(requests.Session):
+    """带默认超时的 Session。
+
+    为什么用子类而不是给实例打猴子补丁：`requests.Session.request` 的默认超时是"不超时"，
+    若把 `s.request` 替换成 lambda 再用 `super(requests.Session, s)` 委派，super() 会从
+    `requests.Session` **之后**开始查找，落在 `object` 上 → 任何请求都抛
+    `AttributeError: 'super' object has no attribute 'request'`（2026-09-20 生产日志 427 条，
+    收藏下载 0 成功）。子类覆盖 request 后由 `super()` 沿 MRO 正确定位到基类实现。
+    """
+
+    def __init__(self, default_timeout: float) -> None:
+        super().__init__()
+        self._default_timeout = default_timeout
+
+    def request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+        """未显式指定 timeout 时注入默认值（显式值优先）。"""
+        kwargs.setdefault("timeout", self._default_timeout)
+        return super().request(method, url, **kwargs)
 
 
 class SessionManager:
@@ -49,16 +69,8 @@ class SessionManager:
 
     def create_session(self) -> requests.Session:
         """创建带重试策略和默认超时的新会话。"""
-        s = requests.Session()
+        s = _DefaultTimeoutSession(self._default_timeout)
         s.headers.update({"User-Agent": self._next_ua()})
-        # 设置默认超时（适配器可用-超时覆盖）
-        s.request = lambda method, url, **kwargs: (  # type: ignore[method-assign]
-            super(requests.Session, s).request(  # type: ignore[misc]
-                method, url, timeout=self._default_timeout, **kwargs
-            )
-            if "timeout" not in kwargs
-            else super(requests.Session, s).request(method, url, **kwargs)  # type: ignore[misc]
-        )
 
         if self._proxy:
             s.proxies = {"http": self._proxy, "https": self._proxy}
