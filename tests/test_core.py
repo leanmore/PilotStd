@@ -878,6 +878,27 @@ class TestDailyQuotaTracker(unittest.TestCase):
         remaining = self.tracker.record_usage("custom_site", 100)
         self.assertEqual(remaining, 400)
 
+    def test_ensure_today_rows_survives_insert_race(self):
+        """补行竞态：多实例同时补今日行时，后到者撞主键不得再抛错。
+
+        复现方式（2026-09-21 修复前的实测现象）：让"查询是否已有行"恒返回空
+        （模拟竞态窗口内多个计数器同时判定"没有行"），而实际行已由先到者插入；
+        旧实现第二次 INSERT 触发 UNIQUE 约束错误，被记为
+        `SQL执行失败: INSERT INTO daily_quota ...`（每天 1~2 条日志噪音）。
+        改为 INSERT OR IGNORE 后必须静默通过。
+        """
+        from unittest.mock import patch
+
+        with patch.object(self.tracker._db, "fetchone", return_value=None):
+            self.tracker._ensure_today_rows()  # 第一次：真正插入今日行
+            self.tracker._ensure_today_rows()  # 第二次：撞主键，必须被忽略
+
+        row = self.tracker._db.fetchone(
+            "SELECT count FROM daily_quota WHERE site_name=? AND query_date=?",
+            ("csres", self.tracker._today),
+        )
+        self.assertIsNotNone(row, "今日配额行应存在")
+
     def test_get_search_remaining(self):
         """搜索可用次数 = 总额 - 已用 - 详情页保底。"""
         self.tracker.record_usage("csres", 20)

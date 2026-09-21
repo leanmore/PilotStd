@@ -69,7 +69,7 @@ class DailyQuotaTracker:
             )
             if row is None:
                 self._db.execute(
-                    "INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
+                    "INSERT OR IGNORE INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
                     (site, self._today),
                 )
 
@@ -111,7 +111,7 @@ class DailyQuotaTracker:
             )
             if existing is None:
                 self._db.execute(
-                    "INSERT INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
+                    "INSERT OR IGNORE INTO daily_quota (site_name, query_date, count) VALUES (?, ?, 0)",
                     (site_name, self._today),
                 )
             self._db.execute(

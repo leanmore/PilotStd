@@ -1,7 +1,8 @@
 # 技术债登记簿
 
-> 更新日期：2026-09-13
+> 更新日期：2026-09-21
 > 维护规则：每次接受的技术决策或跳过的测试在此登记
+> 2026-09-21 追加：已知问题 #21 —— 通知聚合器实例不共享（聚合对"每条通知新建门面"的路径失效）；经确认本轮不做单例化，改用链路源头按批汇总，本条登记为暂缓项与复评条件
 > 2026-09-13 追加：已知问题 #19、#20 —— G-031 文档联动缺口（`pilotstd/core/`、`pilotstd/announcement/` 无映射），来源为 G-031 按"事实归属"判据的体检（commit `6539dbe8`）
 > 2026-08-25 审计：修正 Mypy attr-defined 数量（244→0）、G-010 行数漂移、已跳过测试表行号/删除项，与 docs/technical-debt.md 保持同步
 
@@ -68,6 +69,7 @@
 | 18 | python-multipart 缺失导致 PyInstaller 打包后文件上传崩溃 | 高 | 2026-07-06 | ✅ 已修复 (2026-07-06) | 加入共享 requirements.txt |
 | 19 | G-031 缺口：`pilotstd/core/` 无文档联动映射 | 低 | 2026-09-13 | ⏳ 待处理 (Pending) | 改动 `pilotstd/core/` 不触发任何文档同步，`docs/architecture/modules/core.md` 可静默过期（该文档自述模块路径即 `pilotstd/core/`）。未立即补：需先核定 core.md 粒度能否承载"任意 core 文件变更"，否则退化为形式联动。详见 [technical-debt.md 第二节 #13](../technical-debt.md) |
 | 20 | G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 低 | 2026-09-13 | ⏳ 待处理 (Pending) | AGENTS.md §八 8.2 已定 `docs/reference/announcement-pipeline.md` 为该域回写目标，但 G-031 未落地映射；曾误配到描述 `pilotstd/scan/parser/` 的 parser.md（`c27c6c85`），已由 `6539dbe8` 修正。详见 [technical-debt.md 第二节 #14](../technical-debt.md) |
+| 21 | 通知聚合器实例不共享 → 聚合对"每条通知新建门面"的路径失效 | 中 | 2026-09-21 | ❌ 暂缓 (Won't Fix Now) | 实测 1119 条通知日志中仅 `favorite_created` 聚合过（2/3），下载类三类事件聚合占比 **0%**：链路每条通知都 `StandardManager()` → 新管理器 → 新聚合器，缓冲区恒为 1 条。决策：本轮不做单例化（高风险、牵动大量测试、可能引入并发竞争），改用链路源头按批汇总（`1dd48f66`/`71ecaea0`）。复评条件：专门重构窗口 + 覆盖率提升。详见 [technical-debt.md 第二节 #15](../technical-debt.md) |
 
 ---
 
