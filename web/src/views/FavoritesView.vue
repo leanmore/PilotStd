@@ -4,6 +4,7 @@ defineOptions({ name: 'FavoritesView' })
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
+import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -19,6 +20,11 @@ interface FavoriteItem {
   created_at: string
   updated_at: string
   source_site: string | null
+  // 下载队列四字段（favorite_downloads）：null 表示收藏存在但队列行缺失 → 展示为"待下载"
+  download_status: string | null
+  download_error: string | null
+  last_attempt: string | null
+  download_updated_at: string | null
 }
 
 const favorites = ref<FavoriteItem[]>([])
@@ -115,7 +121,12 @@ onMounted(loadFavorites)
                 :severity="STD_TYPE_SEVERITY[data.standard_type] || 'secondary'" />
             </template>
           </Column>
-          <Column field="status" header="状态" style="width: 90px" />
+          <Column header="状态" style="width: 13rem">
+            <template #body="{ data }">
+              <!-- 下载状态标签 + 失败原因（展示截断 120 字符，悬停看全量与最后尝试时间） -->
+              <FavoriteStatusTag :status="data" show-error />
+            </template>
+          </Column>
           <Column field="publish_date" header="发布日期" style="width: 120px">
             <template #body="{ data }">{{ data.publish_date || '-' }}</template>
           </Column>

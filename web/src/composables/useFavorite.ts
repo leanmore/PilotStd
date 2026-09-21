@@ -1,16 +1,19 @@
 // web/src/composables/useFavorite.ts
-// 收藏状态管理 — 二元状态机（已收藏/未收藏），与归档任务彻底解耦
+// 收藏状态管理 —— 收藏状态（是否收藏）与下载状态（下到哪一步）解耦维护
 
 import { ref, type Ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import { addFavorite, getBatchFavoriteStatus, removeFavorite } from '@/api/announce'
+import { addFavorite, getBatchFavoriteStatus, removeFavorite, type BatchFavoriteStatus } from '@/api/announce'
+import { isFavorited } from '@/utils/downloadStatus'
 import type { AnnouncementRecord } from '@/types/api'
 
 export function useFavorite(records: Ref<AnnouncementRecord[]>) {
   const toast = useToast()
 
-  // 二元状态：recordId → isFavorited
+  // 收藏状态：recordId → isFavorited（判定只看后端是否返回收藏对象，见 isFavorited）
   const favMap = ref<Record<number, boolean>>({})
+  // 下载状态：recordId → 收藏对象（含 download_status/download_error/last_attempt），供页面渲染进度标签
+  const favStatusMap = ref<Record<number, BatchFavoriteStatus>>({})
   // 请求中防抖标记
   const favLoadingMap = ref<Record<number, boolean>>({})
 
@@ -39,11 +42,14 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     if (wasFavorited) {
       // ── 取消收藏（乐观）──
       favMap.value[id] = false
+      const prevStatus = favStatusMap.value[id]
+      delete favStatusMap.value[id]
       try {
         await removeFavorite(id)
         toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
       } catch (e) {
         favMap.value[id] = true  // 回滚
+        if (prevStatus) favStatusMap.value[id] = prevStatus
         const msg = handleFavoriteError(e)
         if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
       } finally {
@@ -52,11 +58,21 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     } else {
       // ── 收藏（乐观）──
       favMap.value[id] = true
+      // 新收藏尚未取到队列行：先放占位对象，使状态标签显示"待下载"而不是空白
+      favStatusMap.value[id] = {
+        favorite_id: 0,
+        status: 'pending',
+        download_status: null,
+        download_error: null,
+        last_attempt: null,
+        download_updated_at: null,
+      }
       try {
         await addFavorite(id)
         toast.add({ severity: 'success', summary: '已收藏', life: 2000 })
       } catch (e) {
         favMap.value[id] = false  // 回滚
+        delete favStatusMap.value[id]
         const msg = handleFavoriteError(e)
         if (msg) toast.add({ severity: 'error', summary: msg, life: 3000 })
       } finally {
@@ -93,28 +109,27 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       }
 
       for (const r of records.value) {
-        const data = merged[String(r.id)]
-        if (data) {
-          favMap.value[r.id] = (
-            data.status === 'done' ||
-            data.status === 'pending' ||
-            data.status === 'downloading' ||
-            data.status === 'archiving'
-          )
+        const data = merged[String(r.id)] as BatchFavoriteStatus | null | undefined
+        // 判定只看"后端是否返回收藏对象"：下载 failed/abandoned 依然是有效收藏
+        favMap.value[r.id] = isFavorited(data)
+        if (isFavorited(data)) {
+          favStatusMap.value[r.id] = data as BatchFavoriteStatus
         } else {
-          favMap.value[r.id] = false
+          delete favStatusMap.value[r.id]
         }
       }
     } catch (e) {
       console.warn('[Favorite] 批量获取状态失败，降级为未收藏', e)
       records.value.forEach(r => {
         favMap.value[r.id] = false
+        delete favStatusMap.value[r.id]
       })
     }
   }
 
   return {
     favMap,
+    favStatusMap,
     favLoadingMap,
     isFavLoading,
     toggleFavorite,

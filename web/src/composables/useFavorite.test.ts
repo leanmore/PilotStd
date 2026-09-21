@@ -227,3 +227,63 @@ describe('useFavorite.toggleFavorite 分层错误提示（FIX-401）', () => {
     expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success', summary: '已收藏' }))
   })
 })
+
+// ═══════════════════════════════════════════════════════════════
+// 收藏判定与下载状态解耦（2026-09-21 修复：旧实现按状态枚举白名单判定，
+// 会把下载 failed/abandoned 的收藏显示成"未收藏"）
+// ═══════════════════════════════════════════════════════════════
+
+describe('useFavorite 收藏状态与下载状态解耦', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function statusObj(id: number, downloadStatus: string | null) {
+    return {
+      favorite_id: id + 10000,
+      status: 'pending',
+      download_status: downloadStatus,
+      download_error: downloadStatus === 'failed' ? '采标标准，版权受限' : null,
+      last_attempt: '2026-03-01',
+      download_updated_at: '2026-03-01 00:00:00',
+    }
+  }
+
+  it('下载 failed/abandoned 仍是有效收藏（不再误判为未收藏）', async () => {
+    const records = ref(makeRecords(3))
+    vi.mocked(getBatchFavoriteStatus).mockResolvedValueOnce({
+      statuses: {
+        '1': statusObj(1, 'failed'),
+        '2': statusObj(2, 'abandoned'),
+        '3': null,
+      },
+    })
+
+    const { favMap, favStatusMap, loadFavStatuses } = useFavorite(records)
+    await loadFavStatuses()
+
+    expect(favMap.value[1]).toBe(true)
+    expect(favMap.value[2]).toBe(true)
+    expect(favMap.value[3]).toBe(false)
+    // 下载状态单独维护，供页面渲染进度标签
+    expect(favStatusMap.value[1].download_status).toBe('failed')
+    expect(favStatusMap.value[2].download_status).toBe('abandoned')
+    expect(favStatusMap.value[3]).toBeUndefined()
+  })
+
+  it('新收藏先占位为"待下载"（download_status=null），取消收藏后清空下载状态', async () => {
+    const records = ref(makeRecords(1))
+    vi.mocked(addFavorite).mockResolvedValueOnce({ status: 'pending', favorite_id: 1 })
+    vi.mocked(removeFavorite).mockResolvedValueOnce({ status: 'cancelled' })
+
+    const { favMap, favStatusMap, toggleFavorite } = useFavorite(records)
+
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(true)
+    expect(favStatusMap.value[1]?.download_status).toBeNull()
+
+    await toggleFavorite(records.value[0])
+    expect(favMap.value[1]).toBe(false)
+    expect(favStatusMap.value[1]).toBeUndefined()
+  })
+})

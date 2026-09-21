@@ -26,6 +26,7 @@ import InputText from 'primevue/inputtext'
 import ProgressSpinner from 'primevue/progressspinner'
 import AppCalendar from '@/components/AppCalendar.vue'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
+import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 
 const route = useRoute()
 const toast = useToast()
@@ -230,10 +231,12 @@ async function handleBatchApprove() {
   }
 }
 
-// ── Phase 4a: 收藏（二元状态：已收藏/未收藏）──
+// ── Phase 4a: 收藏（收藏状态与下载状态分开维护，判定见 @/utils/downloadStatus）──
 // 分页模式下收藏状态基于已加载的 displayRecords（首屏 50 条）
 
-const { favMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(usePaginated ? displayRecords : records)
+const { favMap, favStatusMap, isFavLoading, toggleFavorite, loadFavStatuses } = useFavorite(
+  usePaginated ? displayRecords : records,
+)
 
 // ✅ #45: 组件级 pollTimer，确保 onBeforeUnmount 可访问
 let pollTimer: ReturnType<typeof setInterval> | null = null
@@ -409,15 +412,19 @@ onBeforeUnmount(() => {
                 <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" />
               </template>
             </Column>
-            <Column header="收藏" style="width: 6rem">
+            <Column header="收藏" style="width: 9rem">
               <template #body="{ data }">
-                <Button
-                  :icon="favMap[data.id] ? 'pi pi-star-fill' : 'pi pi-star'"
-                  :loading="isFavLoading(data.id)"
-                  rounded text size="small"
-                  :severity="favMap[data.id] ? 'warn' : 'secondary'"
-                  @click.stop="toggleFavorite(data)"
-                />
+                <div class="fav-cell">
+                  <Button
+                    :icon="favMap[data.id] ? 'pi pi-star-fill' : 'pi pi-star'"
+                    :loading="isFavLoading(data.id)"
+                    rounded text size="small"
+                    :severity="favMap[data.id] ? 'warn' : 'secondary'"
+                    @click.stop="toggleFavorite(data)"
+                  />
+                  <!-- 收藏对象存在才渲染下载状态标签（不存在则不渲染，星标保持空心） -->
+                  <FavoriteStatusTag :status="favStatusMap[data.id]" />
+                </div>
               </template>
             </Column>
           </DataTable>
@@ -533,5 +540,12 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* 收藏单元格：星标 + 下载状态标签（标签仅在收藏对象存在时渲染） */
+.fav-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 </style>

@@ -32,6 +32,13 @@
 - 附件区域：无附件时必须使用 `v-if` 彻底隐藏操作按钮，禁止使用 `disabled`
 - 空状态：仅展示提示文本，禁止渲染无效的操作元素
 
+### 下载状态（`favorite_downloads.status`）
+
+- 映射（文案键 + 颜色分级 + 未知值兜底）只有一处事实源：`web/src/utils/downloadStatus.ts`；页面禁止内联 `status === 'done' ? ...` 之类的判断
+- 渲染只有一处入口：`FavoriteStatusTag.vue`（收藏页状态列与公告详情页收藏列共用）
+- 数据库枚举 6 值：`pending` / `downloading` / `archiving` / `done` / `failed` / `abandoned`；表定义无 CHECK，未知值必须回退显示原文而非空白
+- 第 7 个展示项 `download_status === null`（收藏已存在但队列行缺失）显示"待下载"，属前端兜底而非数据库枚举
+
 ## 导航与布局
 
 - 返回按钮使用次级文本色（`#a0aec0`），hover 时高亮

@@ -33,7 +33,7 @@
               "confirm": "确认操作", "confirm_discard": "放弃修改",
               "no_data": "暂无数据" },
   "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
-  "download": { "importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果" },
+  "download": {"importResult": "已导入 {n} 条可下载标准", "importEmpty": "无数据可导入，请先在查询页面保存查询结果", "importFailed": "导入失败，请确认已保存查询结果", "status": {"pending": "已入队", "downloading": "下载中", "archiving": "归档中", "done": "已归档", "failed": "下载失败", "abandoned": "已放弃", "pendingQueue": "待下载", "lastAttempt": "最后尝试"}},
   "pending": { "importResult": "已导入 {n} 条待确认标准", "importEmpty": "暂无待确认标准", "importFailed": "导入失败" },
   "export": { "pending_list": "待确认清单", "manual_download_list": "手动下载清单" },
   "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" },

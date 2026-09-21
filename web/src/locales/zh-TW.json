@@ -32,7 +32,7 @@
               "confirm": "確認操作", "confirm_discard": "放棄修改",
               "no_data": "暫無資料" },
   "query": { "saveResults": "儲存查詢結果", "saved": "已儲存 {n} 條查詢結果", "saveFailed": "儲存失敗" },
-  "download": { "importResult": "已匯入 {n} 條可下載標準", "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果", "importFailed": "匯入失敗，請確認已儲存查詢結果" },
+  "download": {"importResult": "已匯入 {n} 條可下載標準", "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果", "importFailed": "匯入失敗，請確認已儲存查詢結果", "status": {"pending": "已入隊", "downloading": "下載中", "archiving": "歸檔中", "done": "已歸檔", "failed": "下載失敗", "abandoned": "已放棄", "pendingQueue": "待下載", "lastAttempt": "最後嘗試"}},
   "pending": { "importResult": "已匯入 {n} 條待確認標準", "importEmpty": "暫無待確認標準", "importFailed": "匯入失敗" },
   "export": { "pending_list": "待確認清單", "manual_download_list": "手動下載清單" },
   "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" },
