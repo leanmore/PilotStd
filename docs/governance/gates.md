@@ -12,6 +12,7 @@
 |------|------|---------|---------|---------|------|
 | G-010 | 代码规模控制 | 文件有效代码行≤500行（>400警告）、函数≤80行；>500行阻断时须提供拆分证据 | 文件>500行/函数>80行（拆分证据不足亦阻断） | `scripts/check_g_010_code_size.py` | ✅ 已部署 |
 | G-015 | 相对导入检查 | 所有 import 正确 | 违规 | `scripts/check_g_015_relative_imports.py` | ✅ 已部署 |
+| G-027 | Vue 组件 `defineOptions` 检查 | `web/src/{components,views}` 下所有 `<script setup>` 组件必须声明 `defineOptions` | 缺失 | `scripts/check_g_027_define_options.py` | ✅ 已部署（CI + 本地 `--fast`） |
 | G-029 | 测试联动检查 | 改核心模块 → 测试同步更新 | 未同步 | `scripts/check_g_029_test_coverage.py` | ✅ 已部署 |
 | G-030 | 技术债联动检查 | 新增 `# TECH-DEBT:` / `# TODO(debt):` 标记必须同步技术债登记簿 | 新增标记但登记簿未同步 | `scripts/check_g_030_tech_debt.py` | ✅ 已部署 |
 | G-031 | 文档同步检查 | 改核心模块 → 文档同步更新 | 文档存在但未同步更新 | `scripts/check_g_031_docs_sync.py` | ⏳ 待创建 |
@@ -179,7 +180,7 @@
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
 | `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
 | `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
@@ -225,6 +226,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.14 | 2026-09-21 | G-027 纳入本地 `check_all.sh --fast`：该门禁原先只在 CI `test-frontend` 跑，本地 pre-commit 覆盖不到 —— 新增 Vue 组件漏写 `defineOptions` 时"本地全绿、CI 红"，且它会连带阻断 `version`/镜像构建 job，代价是多跑一整轮 CI 与一次镜像缺席（2026-09-21 实测事故：`FavoriteStatusTag.vue`）。同时补登 G-027 到门禁总览表 |
 | v1.13 | 2026-09-21 | G-012 注释语言（[LANG] 警告，不阻断）清理并明确保留口径：67 项告警逐条手工改写为中文（**禁用 `--fix`** —— 其实现是"先替换术语、再删除所有英文字母"，会把注释改成病句）；**跨文件查找键保留英文并登记清单**，共 9 处：门禁编号 `G-038`、ADR 编号 `ADR-007`、提交哈希 `57f58a6c`（3 处）、文档路径 `docs/governance/gates.md` 与 `docs/adr/README.md`、表名 `app_preferences` 与 `user_favorites`（迁移索引需点名真实表）。判据：注释要"可读且信息完整"，能中文化的一律中文，用作查证入口的标识符不意译。仅注释改动已用 token 级比对证明（29 文件 token 流与 HEAD 完全一致） |
 | v1.12 | 2026-09-21 | G-010 / G-012 改为**只评判入库产物**：新增 `scripts/_gate_paths.py`（`git ls-files --others --ignored --exclude-standard --directory` 计算忽略集合），两个门禁经 `is_git_ignored()` 跳过 `.gitignore` 声明的本地草稿。起因：全量扫描把 `logs/*.py` 一并判定，产生 G-012 22 项假阳性阻断 + G-010 2 项超长函数阻断，使与之无关的提交无法通过。判据与落地同时写入 `governance-principles.md` §3.4「只评判入库产物」 |
 | v1.11 | 2026-09-13 | 按"事实归属"判据重定 G-031 映射并列出缺口：目标文档必须**承载该源路径的事实**，每个变更文件按最长匹配前缀归属唯一文档 —— 修正两处配对错（`pilotstd/announcement/parser.py` 曾指向只描述 `pilotstd/scan/parser/` 的 parser.md；`pilotstd/manager/facade/_scan.py` 曾指向只描述 `pilotstd/scan/` 的 scan.md 且与 manager 规则重复），改为 `pilotstd/scan/parser/` → parser.md、`pilotstd/scan/` → scan.md，`manager/facade/_scan.py` 归 manager.md；`docs/adr/` 目标改为真正的 ADR 索引 `docs/adr/README.md` 且仅新增/删除/重命名时联动；登记缺口 `pilotstd/core/`→core.md、`pilotstd/announcement/`→announcement-pipeline.md 未覆盖 |

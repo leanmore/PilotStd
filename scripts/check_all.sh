@@ -87,6 +87,15 @@ run_fast() {
         fi
     fi
 
+    # G-027: Vue 组件 defineOptions（对齐 CI 的 test-frontend 步骤）
+    # 2026-09-21 纳入本地：此前只在 CI 跑，新增组件漏写 defineOptions 会"本地全绿、CI 红"
+    # 并连带阻断版本发布与镜像构建，代价是多跑一整轮 CI。
+    if python scripts/check_g_027_define_options.py; then
+        log_pass "G-027 组件 defineOptions"
+    else
+        log_fail "G-027 组件 defineOptions"
+    fi
+
     # G-XXX: _wait_worker 防回潮（ADR-008）
     _wait_violations=$(grep -rn '_wait_worker' tests/ --include='*.py' \
         --exclude='helpers/__init__.py' 2>/dev/null || true)
