@@ -4,6 +4,7 @@
 > **生效范围**：Phase 1 — Phase 3 全生命周期
 > **版本日期**：2026-07-27（v2.1 修订：§4.6 Jitter 契约 + §4.7 观测性隔离 + §9.5 提交粒度）
 > **维护责任**：Qwen / DeepSeek 共同维护，修订需双方共识
+> **复核记录**：2026-09-21 全库对齐复核 —— 五份交付物与附录路径逐条实测：`enforcement/guardrails.py` 现为 **504 行**（原文记 400 行，已就地更正；`validate_prompt` L70 / `session_bootstrap` L223 / `EnforcementError` L31 位置仍准确）；`docs/metrics/data_dictionary_template.md` 至今未交付（附录已标注）；受控编号 G-033 / ADR-007 / ADR-012 有效，G-041 / G-058 仅在 `rule-quickref.md` 内定义、未进入 `gates.md` 自动化门禁清单（原文系对速查表内容的如实转述，此处不改写）。
 
 ---
 
@@ -34,7 +35,7 @@
 | 2 | docs/governance/rule-quickref.md | ✅ 定稿 | 文档 | 非技术决策者规则速查表（G-033/G-041/G-058/ADR-007/ADR-012） |
 | 3 | docs/governance/development-flow.md | ✅ 定稿 | 测试 | 决策请求协议 + 双轨状态机 + 规则固化信号机制 |
 | 4 | local-session-notes.md | ✅ 定稿 | 文档 | 运行时上下文模板 + 自动清理规格 + 统计侧边栏 |
-| 5 | enforcement/guardrails.py | ✅ 已实现（2026-08-19 核验：400 行，含 validate_prompt L70 / session_bootstrap L223 / EnforcementError L31 等，见 enforcement/guardrails.py） | 门禁+测试 | 代码级强制层 + 原子写入SDK + 状态报告 |
+| 5 | enforcement/guardrails.py | ✅ 已实现（2026-09-21 复核：504 行，含 validate_prompt L70 / session_bootstrap L223 / EnforcementError L31 等，见 enforcement/guardrails.py） | 门禁+测试 | 代码级强制层 + 原子写入SDK + 状态报告 |
 
 ## 四、强制执行层规格（D5）
 
@@ -306,7 +307,7 @@ Commit `a291cccc` 将 26 个文件的运行时修复与批量增强合为单次�
 |------|------|------|
 | BootstrapResult 接口定义 | src/types/bootstrap.py | 🔜 Phase 1 产出 |
 | Pre-commit Hook 配置模板 | .pre-commit-config.yaml | 🔜 Phase 1 产出 |
-| 健康度指标数据字典模板 | docs/metrics/data_dictionary_template.md | 🔜 Phase 3 前置交付 |
+| 健康度指标数据字典模板 | docs/metrics/data_dictionary_template.md | ⚠️ 截至 2026-09-21 仍未交付（路径不存在） |
 | **Phase 1 启动检查清单** | **[docs/governance/phase1-startup-checklist.md](phase1-startup-checklist.md)** | ✅ v2.1 — Phase 1 唯一准入标准 |
 
 ## 十一、最终确认声明
