@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
 from ...pending_query_dialog import PendingQueryDialog
+from ...qt_lifecycle import is_qt_alive, stop_worker_gracefully
 from ..event_bus import EventBus
 from ._query_summary import QuerySummaryHandler
 from .protocols import IQueryDependencies, QueryCallbacks
@@ -93,14 +94,27 @@ class QueryUIHandler:
         )
 
     def stop_workers(self) -> None:
-        """停止正在运行的查询 Worker。"""
+        """停止正在运行的查询 Worker（协作式）。
+
+        先断开 worker 的全部业务信号再停线程：取消/关闭后即使还有排队中的
+        槽调用，也不会再访问已析构的表格与进度条（CI 曾在此抛 RuntimeError）。
+        严禁 terminate：查询线程可能正持有网络响应或写库。
+        """
         w = self._query_worker
-        if w is not None and w.isRunning():
-            w.stop()
-            w.quit()
-            if not w.wait(5000):
-                w.terminate()
-                w.wait()
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(w.result_ready, w.batch_ready, w.progress, w.finished_signal, w.error),
+        )
+
+    def _work_table_alive(self) -> bool:
+        """工作表格控件是否仍可用（窗口销毁后迟到信号仍可能进入槽函数）。"""
+        try:
+            wt = self._deps.table.get_work_table()
+        except RuntimeError:
+            return False
+        return is_qt_alive(wt)
 
     # ═══════════════════════════════════════════════════════════ 分隔
     # 核心查询执行
@@ -140,11 +154,15 @@ class QueryUIHandler:
 
         def on_progress(current: int) -> None:
             """查询进度回调：更新进度条百分比。"""
+            if not self._work_table_alive():
+                return
             if self._progress_changed:
                 self._progress_changed(current)
 
         def on_query_finished(_results: Any) -> None:
             """查询完成回调：强制完成进度条 + 发布事件 + 弹出汇总。"""
+            if not self._work_table_alive():
+                return  # 窗口已销毁：跳过进度条与汇总弹窗，避免访问已删除控件
             if self._force_finish_progress:
                 self._force_finish_progress()
             self._publish_event("query.finished", {"count": len(_results) if _results else 0})
@@ -171,6 +189,8 @@ class QueryUIHandler:
 
     def on_query_result_ready(self, idx: int, result: Any) -> None:
         """实时刷新表格行（由 worker 信号触发）。"""
+        if not self._work_table_alive():
+            return
         parsed = self._parsed_results[idx]
         source_label = getattr(result, "source_site", "") or "未知"
 
@@ -204,6 +224,8 @@ class QueryUIHandler:
 
     def on_query_batch_ready(self, batch: list[Any]) -> None:
         """批量处理查询结果。"""
+        if not self._work_table_alive():
+            return
         for idx, result in batch:
             self.on_query_result_ready(idx, result)
 

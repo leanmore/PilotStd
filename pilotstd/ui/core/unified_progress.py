@@ -12,6 +12,8 @@
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
+from ..qt_lifecycle import is_qt_alive
+
 
 class UnifiedProgressPipeline(QObject):
     """接收原始进度数据，经缓动后通过 progress_updated 信号输出 0-100 百分比。"""
@@ -36,6 +38,8 @@ class UnifiedProgressPipeline(QObject):
         total <= 0 时 target 为 0（防御除零）。
         cur > total 时钳制到 100（防御上游数据异常）。
         """
+        if not self._alive():
+            return
         if total <= 0:
             self._target = 0
         else:
@@ -44,11 +48,15 @@ class UnifiedProgressPipeline(QObject):
 
     def push_pct(self, pct: int) -> None:
         """接收已算好的百分比，钳制到 [0, 100]（防御上游数据异常）。"""
+        if not self._alive():
+            return
         self._target = max(0, min(100, pct))
         self._start_if_needed()
 
     def reset(self) -> None:
         """立即重置进度为 0，停止缓动定时器。"""
+        if not self._alive():
+            return
         self._timer.stop()
         self._target = 0
         self._current = 0.0
@@ -57,6 +65,8 @@ class UnifiedProgressPipeline(QObject):
 
     def finish(self) -> None:
         """立即完成进度到 100，停止缓动定时器。"""
+        if not self._alive():
+            return
         self._timer.stop()
         self._target = 100
         self._current = 100.0
@@ -65,13 +75,25 @@ class UnifiedProgressPipeline(QObject):
 
     # ── 内部缓动 ─────────────────────────────────────────────
 
+    def _alive(self) -> bool:
+        """管道与定时器的 C++ 实体是否都还在。
+
+        窗口销毁后 `finish()` 仍可能被迟到的 worker 信号调用，
+        此时 QTimer 已随父对象析构，直接访问会抛 RuntimeError。
+        """
+        return is_qt_alive(self) and is_qt_alive(self._timer)
+
     def _start_if_needed(self) -> None:
+        if not is_qt_alive(self._timer):
+            return
         if not self._timer.isActive():
             self._timer.start()
 
     def _step(self) -> None:
         """缓动单步：指数逼近目标值。收敛后停止定时器以节省 CPU。
         仅在新百分比与上次发射值不同时才 emit，防止高频信号阻塞 UI 线程。"""
+        if not self._alive():
+            return
         diff = self._target - self._current
         if abs(diff) < 0.5:
             self._current = float(self._target)

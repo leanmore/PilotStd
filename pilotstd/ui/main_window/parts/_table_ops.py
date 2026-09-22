@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ....i18n import _
+from ...qt_lifecycle import is_qt_alive
 from ...table_constants import TOGGLEABLE_COLS, WORK_COLUMN_KEYS, WORK_COLUMNS
 from ...workers import RowUpdate
 
@@ -256,8 +257,12 @@ def _clear_table(self) -> None:
 
 def _find_row_by_seq(self, seq: int) -> int:
     """根据序号在表格第一列中查找对应行索引，未找到返回 -1。"""
-    for r in range(self.work_table.rowCount()):
-        item = self.work_table.item(r, 0)
+    table = self.work_table
+    if not is_qt_alive(table):
+        # 窗口已销毁：迟到信号仍可能触发查找，直接视为未找到
+        return -1
+    for r in range(table.rowCount()):
+        item = table.item(r, 0)
         if item and item.text() and int(item.text()) == seq:
             return r
     return -1

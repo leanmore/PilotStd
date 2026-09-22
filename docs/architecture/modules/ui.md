@@ -54,6 +54,16 @@ MainWindow (QMainWindow)
 - Handler 之间不直接通信，通过 `MainWindowCore` 共享状态
 - `parts/` 目录下的方法片段通过 `from .parts._xxx import method` 注入为 MainWindow 实例方法
 
+## Qt 对象生命周期约定
+
+> 来源：CI 事故 `test_buttons_enabled_after_cancel` —— 点击取消后控件已被 Qt 析构，后台 worker 的排队信号仍被投递，槽函数抛 `RuntimeError: wrapped C/C++ object of type QTableWidget/QTimer has been deleted`。
+
+- 跨线程信号是**队列投递**：`disconnect()` 只能拦住之后的发射，已经排进主线程事件队列的调用照样会执行。因此取消 / 关闭窗口时必须**先断开 worker 信号，再停线程**。
+- 统一入口 [`pilotstd/ui/qt_lifecycle.py`](../../../pilotstd/ui/qt_lifecycle.py)：
+  - `is_qt_alive(obj)` —— 封装 `sip.isdeleted`（PyQt6 的 `sip` 是子模块，顶层 `import sip` 在本仓库不可用）；
+  - `stop_worker_gracefully(worker, signals, timeout_ms)` —— 先断信号 → 置停止标志 → `requestInterruption()` → `wait()`；**禁用 `QThread.terminate()`**，超时改为脱离父对象并保活，等线程自然结束。
+- 现有落点：`parts/_table_ops.py::_find_row_by_seq`（表格已析构返回 `-1`）、`core/handlers/_query.py` 的查询槽函数（进度 / 结果 / 完成）、`core/unified_progress.py` 的进度管道。
+
 ## 工作流
 
 ```

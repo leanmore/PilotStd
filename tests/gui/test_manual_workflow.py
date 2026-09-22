@@ -270,7 +270,7 @@ def test_buttons_exist_and_have_correct_text(window, qtbot):
 
 
 def test_buttons_enabled_after_cancel(window, test_data_dir, qtbot):
-    """取消后查询和下载按钮恢复可用。"""
+    """取消后查询按钮按数据恢复可用，且后台 worker 真正结束、不再触达已删控件。"""
     window._suppress_dialogs = True
     tmp = tempfile.mkdtemp(prefix="pilotstd_btn_")
     try:
@@ -286,10 +286,23 @@ def test_buttons_enabled_after_cancel(window, test_data_dir, qtbot):
         )
 
         window._on_query()
-        window._on_cancel()
+        worker = window._core.query._query_worker
+        assert worker is not None, "on_query 应创建 QueryWorker"
 
-        # 取消后按钮状态由 _update_button_states 正确控制（不崩溃即通过）
-        assert not window.btn_cancel.isEnabled()
+        # 等待器在取消前挂上：stop_workers 会断开业务信号，但 QThread 内建 finished
+        # （run() 返回即发射）仍可用于确认线程真的结束——否则迟到的排队信号会在
+        # 窗口销毁后触达已删除的 QTableWidget/QTimer（CI 曾抛 RuntimeError）。
+        waiter = qtbot.waitSignal(worker.finished, timeout=3000) if worker.isRunning() else None
+        window._on_cancel()
+        if waiter is not None:
+            waiter.wait()
+        qtbot.wait(50)  # 排空事件循环，让排队中的槽调用先跑完
+
+        # 取消后按钮状态：取消键置灰、查询键按数据恢复、下载键跟随阶段队列
+        assert not worker.isRunning(), "取消后查询线程应已结束"
+        assert not window.btn_cancel.isEnabled(), "取消后取消按钮应置灰"
+        assert window.btn_query.isEnabled(), "取消后查询按钮应恢复可用"
+        assert window.btn_download.isEnabled() == bool(window._mgr.get_stage_queue("download"))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
