@@ -5,6 +5,9 @@
 // 边界契约（2026-09-21 定）：
 //   status 为 null/undefined（未收藏 / 他人不可见）→ **不渲染任何内容**（星标保持空心由调用方决定）；
 //   status 为对象 → 渲染下载状态标签，即使 download_status 为 null（收藏存在但未入队 → "待下载"）。
+// G-027：显式声明组件名，防止生产构建压缩掉组件名
+defineOptions({ name: 'FavoriteStatusTag' })
+
 import { useI18n } from 'vue-i18n'
 import {
   downloadStatusLabel,
