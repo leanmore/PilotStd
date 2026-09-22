@@ -59,6 +59,13 @@ const filtered = computed(() => {
   return favorites.value.filter((f) => f.standard_type === activeType.value)
 })
 
+// Tab 标题里的分类计数：与 filtered 同口径（判定逻辑只此一份，避免两处漂移）
+function countOf(key: string): number {
+  if (key === 'all') return favorites.value.length
+  if (key === 'other') return favorites.value.filter((f) => isOther(f.standard_type)).length
+  return favorites.value.filter((f) => f.standard_type === key).length
+}
+
 async function loadFavorites() {
   loading.value = true
   try {
@@ -109,36 +116,43 @@ onMounted(loadFavorites)
       </div>
     </div>
 
-    <TabView>
-      <TabPanel v-for="tab in typeTabs" :key="tab.key" :value="tab.key" :header="`${tab.label} (${tab.key === 'all' ? favorites.length : tab.key === 'other' ? favorites.filter(f => isOther(f.standard_type)).length : favorites.filter(f => f.standard_type === tab.key).length})`"
-        @click="activeType = tab.key">
-        <DataTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
-          <Column field="standard_number" header="标准号" style="min-width: 180px" />
-          <Column field="std_name" header="名称" style="min-width: 220px" />
-          <Column header="类型" style="width: 110px">
-            <template #body="{ data }">
-              <Tag :value="STD_TYPE_LABEL[data.standard_type] || '类型待确认'"
-                :severity="STD_TYPE_SEVERITY[data.standard_type] || 'secondary'" />
-            </template>
-          </Column>
-          <Column header="状态" style="width: 13rem">
-            <template #body="{ data }">
-              <!-- 下载状态标签 + 失败原因（展示截断 120 字符，悬停看全量与最后尝试时间） -->
-              <FavoriteStatusTag :status="data" show-error />
-            </template>
-          </Column>
-          <Column field="publish_date" header="发布日期" style="width: 120px">
-            <template #body="{ data }">{{ data.publish_date || '-' }}</template>
-          </Column>
-          <Column field="created_at" header="收藏时间" style="width: 160px">
-            <template #body="{ data }">{{ (data.created_at || '').replace('T', ' ').slice(0, 16) }}</template>
-          </Column>
-        </DataTable>
-        <div v-if="!loading && filtered.length === 0" class="empty">
-          {{ activeType === 'all' ? '暂无收藏' : '当前分类暂无收藏' }}
-        </div>
-      </TabPanel>
-    </TabView>
+    <!-- lazy：非活动分类不渲染表格。否则 5 个面板都会把 DataTable 建出来（104 条收藏 → 520 行 DOM） -->
+    <Tabs v-model:value="activeType" lazy>
+      <TabList>
+        <Tab v-for="tab in typeTabs" :key="tab.key" :value="tab.key">
+          {{ `${tab.label} (${countOf(tab.key)})` }}
+        </Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel v-for="tab in typeTabs" :key="tab.key" :value="tab.key">
+          <DataTable :value="filtered" :loading="loading" striped-rows size="small" dataKey="id">
+            <Column field="standard_number" header="标准号" style="min-width: 180px" />
+            <Column field="std_name" header="名称" style="min-width: 220px" />
+            <Column header="类型" style="width: 110px">
+              <template #body="{ data }">
+                <Tag :value="STD_TYPE_LABEL[data.standard_type] || '类型待确认'"
+                  :severity="STD_TYPE_SEVERITY[data.standard_type] || 'secondary'" />
+              </template>
+            </Column>
+            <Column header="状态" style="width: 13rem">
+              <template #body="{ data }">
+                <!-- 下载状态标签 + 失败原因（展示截断 120 字符，悬停看全量与最后尝试时间） -->
+                <FavoriteStatusTag :status="data" show-error />
+              </template>
+            </Column>
+            <Column field="publish_date" header="发布日期" style="width: 120px">
+              <template #body="{ data }">{{ data.publish_date || '-' }}</template>
+            </Column>
+            <Column field="created_at" header="收藏时间" style="width: 160px">
+              <template #body="{ data }">{{ (data.created_at || '').replace('T', ' ').slice(0, 16) }}</template>
+            </Column>
+          </DataTable>
+          <div v-if="!loading && filtered.length === 0" class="empty">
+            {{ activeType === 'all' ? '暂无收藏' : '当前分类暂无收藏' }}
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 </template>
 

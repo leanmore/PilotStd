@@ -31,3 +31,17 @@ window.requestAnimationFrame = vi.fn().mockImplementation((cb: FrameRequestCallb
   setTimeout(cb, 0)
   return 0
 }) as unknown as typeof window.requestAnimationFrame
+
+// 模拟 ResizeObserver —— PrimeVue 4 的 TabList 用它绘制激活条（jsdom 无此 API，
+// 缺失时会在下一个宏任务里抛 ReferenceError，导致整个测试文件失败）。
+// 必须用 class 而非 vi.fn()：组件里是 `new ResizeObserver(...)`，箭头函数不可构造。
+class ResizeObserverStub {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverStub,
+})
