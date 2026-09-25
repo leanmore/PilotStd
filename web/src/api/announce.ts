@@ -56,10 +56,13 @@ export const batchApprove = (ids: number[]): Promise<{ approved_count: number }>
 // ── Phase 4a: 收藏 ──────────────────────────────────────
 //
 // 下载状态字段（download_status/download_error/last_attempt/download_updated_at）：
-// 来源 favorite_downloads，三个接口同名同义；download_status 为 null 表示"收藏存在但
-// 队列行缺失"（展示层兜底为"待下载"）。枚举取值见 @/utils/downloadStatus。
+// 来源 favorite_downloads，列表与批量接口同名同义；download_status 为 null 表示
+// "收藏存在但队列行缺失"（展示层显示"未加入队列"）。枚举取值见 @/utils/downloadStatus。
+//
+// 第三轮 #16 删除 `getFavoriteStatus`（GET /favorites/{id}/status）：全库零消费方，
+// 且该接口对"收藏但无队列行"与"未收藏"返回同一份 null 体，语义不可区分。
 
-/** 下载状态四字段（列表 / 批量 / 单条接口共用口径） */
+/** 下载状态四字段（列表 / 批量接口共用口径） */
 export interface FavoriteDownloadFields {
   download_status: string | null
   download_error: string | null
@@ -75,11 +78,6 @@ export interface BatchFavoriteStatus extends FavoriteDownloadFields {
 
 export const addFavorite = (recordId: number): Promise<{ status: string; favorite_id: number }> =>
   http.post('/favorites', { record_id: recordId }).then(r => r.data)
-
-export const getFavoriteStatus = (
-  recordId: number,
-): Promise<{ status: string | null; favorite_id: number | null; local_path?: string } & Partial<FavoriteDownloadFields>> =>
-  http.get(`/favorites/${recordId}/status`).then(r => r.data)
 
 export const getBatchFavoriteStatus = (
   recordIds: number[],

@@ -177,6 +177,32 @@ class TestStatusEndpointSemantics:
         assert result["download_status"] is None
         assert result["favorite_id"] is None
 
+    def test_status_endpoint_key_contract(self, db):
+        """响应键集合契约：只保留标准键 + favorite_id/status，旧键一律不得回流。
+
+        第三轮 #16：旧键（local_path/error_message/in_cooldown/abandoned/
+        archive_retry_count）已删除，前端唯一调用方 getFavoriteStatus 同步移除。
+        """
+        result = get_favorite_status(record_id=REC_DUP, user_id=USER_A, db=db)
+
+        assert set(result) == {
+            "status",
+            "favorite_id",
+            "download_status",
+            "download_error",
+            "last_attempt",
+            "download_updated_at",
+            "retry_count",
+        }
+        for removed in ("local_path", "in_cooldown", "abandoned", "archive_retry_count"):
+            assert removed not in result, f"旧键 {removed} 不应再返回"
+
+    def test_status_endpoint_key_contract_without_row(self, db):
+        """无队列行时同样不得出现旧键（前端按对象存在判定"已收藏"）。"""
+        result = get_favorite_status(record_id=REC_EMPTY, user_id=USER_A, db=db)
+
+        assert set(result) == {"status", "favorite_id", "download_status"}
+
 
 class TestBatchStatusContract:
     """批量接口（公告详情页用）与列表/单条同名同义。"""

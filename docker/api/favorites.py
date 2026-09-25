@@ -3,7 +3,6 @@
 
 import json as _json
 import logging
-import os
 from typing import Dict, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -17,8 +16,6 @@ from ..auth import get_current_user_id
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
-
-_COOLDOWN_DAYS = int(os.environ.get("ARCHIVE_COOLDOWN_DAYS", "28"))
 
 router = APIRouter()
 
@@ -202,7 +199,7 @@ def get_favorite_status(
     user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
-    """查询指定**公告记录**的收藏 + 下载状态（语义归位版）。
+    """查询指定**公告记录**的下载状态（语义归位版）。
 
     查询键：`record_id` 是 `announcement_record.id`（前端传的是公告记录的 id，
     见 useFavorite 的 `record.id`），因此按 `favorite_downloads.record_id` 查、
@@ -210,19 +207,19 @@ def get_favorite_status(
 
     数据来源从 user_favorites 切到 favorite_downloads：`user_favorites.status` 只表达
     "是否收藏"（链路从不更新它，恒为 pending），下载进度只在 favorite_downloads。
-    响应同时保留旧键（`status`/`error_message`/`archive_retry_count`）与新增的标准键
-    （`download_status`/`download_error`/`retry_count`/`last_attempt`/`download_updated_at`），
-    使新旧调用方都能用。
-    """
-    from datetime import date
 
+    响应只保留标准键（与列表/批量接口同名同义）：
+    `download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count`，
+    外加 `favorite_id`（队列行主键）。第三轮已清理无消费方的旧键
+    （`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`）——
+    `/status` 的语义是**下载**状态，这些键要么重复、要么属于收藏接口。
+    """
     user_id = _get_user_id(user_id, db)
 
     row = db.fetchone(
-        "SELECT fd.favorite_id, fd.status, fd.local_path, fd.error_message,"
-        " fd.last_attempt, fd.updated_at, fd.retry_count, ar.publish_date"
+        "SELECT fd.favorite_id, fd.status, fd.error_message,"
+        " fd.last_attempt, fd.updated_at, fd.retry_count"
         " FROM favorite_downloads fd"
-        " LEFT JOIN announcement_record ar ON fd.record_id = ar.id"
         " WHERE fd.record_id = ? AND fd.user_id = ?"
         " ORDER BY COALESCE(fd.last_attempt, '') DESC, fd.id DESC LIMIT 1",
         (record_id, user_id),
@@ -230,24 +227,10 @@ def get_favorite_status(
     if not row:
         return {"status": None, "favorite_id": None, "download_status": None}
 
-    in_cooldown = False
-    if row["publish_date"]:
-        try:
-            pub = date.fromisoformat(row["publish_date"])
-            in_cooldown = (date.today() - pub).days < _COOLDOWN_DAYS
-        except (ValueError, TypeError):
-            pass
-
     status = row["status"]
     return {
-        # 旧键（向后兼容）：status 现在是**下载**状态，不再是 user_favorites.status
         "status": status,
         "favorite_id": row["favorite_id"],
-        "local_path": row["local_path"],
-        "error_message": row["error_message"],
-        "in_cooldown": in_cooldown,
-        "abandoned": status == "abandoned",
-        "archive_retry_count": row["retry_count"] or 0,
         # 标准键（与列表/批量接口同名同义）
         "download_status": status,
         "download_error": row["error_message"],
