@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
+from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import AutoWorker
 from ..event_bus import EventBus
 from .auto_flow_engine import AutoFlowEngine
@@ -120,14 +121,25 @@ class AutoUIHandler:
         self._auto_worker.start()
 
     def stop_workers(self) -> None:
-        """停止正在运行的自动管线 Worker。"""
+        """停止正在运行的自动管线 Worker（先断全部阶段信号再协作式停止，严禁 terminate）。"""
         w = self._auto_worker
-        if w is not None and w.isRunning():
-            w.stop()
-            w.quit()
-            if not w.wait(5000):
-                w.terminate()
-                w.wait()
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(
+                w.scan_batch,
+                w.scan_progress,
+                w.query_result,
+                w.query_progress,
+                w.download_result,
+                w.download_progress,
+                w.archive_result,
+                w.stage_changed,
+                w.error,
+                w.finished_signal,
+            ),
+        )
 
     # ── 信号路由（内部） ──────────────────────────────────────
 

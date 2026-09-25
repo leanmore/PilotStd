@@ -14,6 +14,7 @@ Qt 析构，QueryWorker 的排队信号仍被投递，槽函数抛
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import sys
@@ -21,6 +22,7 @@ import tempfile
 from types import SimpleNamespace
 
 from PyQt6 import sip as _sip
+from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -147,3 +149,66 @@ def test_progress_pipeline_survives_deleted_objects(qapp):
     pipeline.finish()
     pipeline.reset()
     pipeline.push_pct(10)
+
+
+class _StuckWorker(QObject):
+    """永不退出的假 worker：验证超时保活与计数（不真的起线程）。"""
+
+    finished = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stopped = False
+        self.interrupted = False
+
+    def stop(self) -> None:
+        self.stopped = True
+
+    def requestInterruption(self) -> None:
+        self.interrupted = True
+
+    def isRunning(self) -> bool:
+        return True
+
+    def wait(self, _ms: int) -> bool:
+        return False  # 模拟"等不到退出"
+
+
+def test_orphan_timeout_counts_and_releases(qapp, caplog):
+    """超时未退出的线程必须计数 + 进保活列表，且自然结束后自动出列。"""
+    from pilotstd.ui import qt_lifecycle as ql
+
+    before = ql.orphan_timeout_total()
+    worker = _StuckWorker()
+    with caplog.at_level(logging.WARNING, logger="pilotstd.ui.qt_lifecycle"):
+        assert ql.stop_worker_gracefully(worker, timeout_ms=1) is False
+
+    assert worker.stopped and worker.interrupted, "必须先请求停止并请求中断，而不是强杀"
+    assert ql.orphan_timeout_total() == before + 1, "超时次数必须累加（可观测）"
+    assert ql.orphaned_worker_count() >= 1, "未退出的线程必须进保活列表"
+    assert any("保活等待其自然结束" in r.getMessage() for r in caplog.records), "必须有告警留痕"
+
+    worker.finished.emit()  # 线程自然结束
+    assert ql.orphaned_worker_count() == 0, "线程结束后必须释放保活引用（不能只增不减）"
+
+
+def test_orphan_timeout_escalates_to_error(qapp, caplog):
+    """累计超时达到阈值后，告警升级为 error 并列出滞留线程（发现"永不退出"）。"""
+    from pilotstd.ui import qt_lifecycle as ql
+
+    workers = [_StuckWorker() for _ in range(ql._ORPHAN_WARN_THRESHOLD)]
+    try:
+        with caplog.at_level(logging.ERROR, logger="pilotstd.ui.qt_lifecycle"):
+            for w in workers:
+                ql.stop_worker_gracefully(w, timeout_ms=1)
+
+        errors = [r for r in caplog.records if r.levelno >= logging.ERROR]
+        assert errors, "达到阈值后必须把 warning 升级为 error"
+        message = errors[-1].getMessage()
+        assert "疑似卡死线程" in message, f"error 文案应指明疑似卡死，实际: {message}"
+        assert "_StuckWorker" in message, f"error 里要能看出是哪个线程，实际: {message}"
+    finally:
+        for w in workers:
+            w.finished.emit()
+    assert ql.orphaned_worker_count() == 0
+

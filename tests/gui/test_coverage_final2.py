@@ -144,13 +144,27 @@ class TestFileTreeFinal:
 
 # ═══ __init__.py: 315-321, 381 ═══
 class TestInitFinal:
-    def test_stop_workers_runtime_error(self, window, monkeypatch):
-        """覆盖 315-321: _drive_thread quit/wait 抛 RuntimeError 被捕获"""
+    def test_stop_workers_never_terminates(self, window, monkeypatch):
+        """关窗/取消路径只做协作式停止：先断业务信号，绝不 terminate()。
+
+        旧断言 mock `_drive_thread.quit` 抛 RuntimeError 来覆盖 try/except 分支，
+        该分支已随 `stop_worker_gracefully()` 统一（commit `7d04f829` 起）删除。
+        本用例改为守"不退化"：一旦有人重新引入 terminate 或漏掉断连接，立即失败。
+        """
         mock_thread = MagicMock()
         mock_thread.isRunning.return_value = True
+        mock_thread.wait.return_value = True  # 视为正常退出，不走保活分支
+        # 反向 case：即便 quit 抛异常，也不允许回退到强杀
         mock_thread.quit.side_effect = RuntimeError("already stopped")
         monkeypatch.setattr(window, "_drive_thread", mock_thread)
+
         window._stop_workers()
+
+        assert mock_thread.terminate.call_count == 0, "严禁用 terminate() 强杀线程"
+        assert mock_thread.stop.call_count == 1, "存在 stop() 时必须先请求协作式停止"
+        assert mock_thread.drives_ready.disconnect.call_count == 1, "必须先断开业务信号再停线程"
+        assert mock_thread.requestInterruption.call_count == 1, "必须请求中断"
+        assert mock_thread.quit.call_count == 0, "run() 覆写的 QThread 没有事件循环，不应依赖 quit()"
 
     def test_add_row_from_dict_translated_col(self, window):
         """覆盖 381: 翻译后的列名回退匹配"""

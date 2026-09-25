@@ -1,8 +1,9 @@
 # 技术债登记
 
-> 版本：v1.3.1
-> 更新日期：2026-09-21
+> 版本：v1.3.2
+> 更新日期：2026-09-23
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
+> 2026-09-23 追加：#17 Qt 线程"只能保活、不可安全终止"的边界——`terminate()` 已在 7 处取消/关闭路径全部移除（改用 `stop_worker_gracefully()`），代价是线程超时未退出时只能保活等待；已加计数与 `error` 级升级作为发现手段，本条登记边界与复评条件。
 > 2026-09-21 追加：#16 `/status` 旧键兼容层未清理——下载状态改造后前端已统一取标准键，旧键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`）经用户确认**本轮保留**，待 grep 复核无消费方后单独清理。
 > 2026-09-21 追加：#15 通知聚合器实例不共享（聚合对"每次新建门面"的路径失效）——经用户确认本轮**不做单例化**，改用链路源头按批汇总（`1dd48f66`/`71ecaea0`），本条登记为暂缓项与复评条件。
 > 2026-09-13 追加：#13、#14 两条 G-031 文档联动缺口（`pilotstd/core/`、`pilotstd/announcement/` 无映射 → 代码变更不触发文档同步），来源为 G-031 按"事实归属"判据的体检结果（commit `6539dbe8`）。
@@ -35,7 +36,7 @@
 
 ---
 
-## 二、剩余台账（#11 继续观察 / #12 已关闭 / #15 暂缓 / #16 待处理；#13、#14 待补；#1~#10 已解决，见第一节）
+## 二、剩余台账（#11 继续观察 / #12 已关闭 / #15 暂缓 / #16 待处理 / #17 边界观察；#13、#14 待补；#1~#10 已解决，见第一节）
 
 | # | 项目 | 位置 | 状态 | 说明 | 登记日期 |
 |---|------|------|------|------|---------|
@@ -45,6 +46,7 @@
 | 14 | G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 映射表 `scripts/check_g_031_docs_sync.py`；事实载体 [reference/announcement-pipeline.md](reference/announcement-pipeline.md) | ⏳ 待处理 (Pending) | AGENTS.md §八 8.2 已把 `docs/reference/announcement-pipeline.md` 定为 `pilotstd/announcement/` 状态机/流程变更的回写目标，但 G-031 未落地该映射，改公告解析（如 `pilotstd/announcement/parser.py`）不触发任何文档同步。另注：该点曾被误配为 `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`（`c27c6c85` 引入），而 parser.md 实际描述的是 `pilotstd/scan/parser/`，已于 `6539dbe8` 修正。待办：把 `pilotstd/announcement/` → `announcement-pipeline.md` 纳入映射，并先核定该文档是否覆盖 parser 层变更 | 2026-09-13 |
 | 15 | 通知聚合器实例不共享 → 聚合对"每次新建门面"的路径失效 | 聚合器：`pilotstd/core/notification/manager.py:119-132`（随管理器新建）；管理器：`pilotstd/manager/facade/_base.py:250`（随门面新建）；触发点：`pilotstd/tasks/favorite_download.py:130/156/181` 每条通知都 `StandardManager()` | ❌ 暂缓 (Won't Fix Now) | 实测（2026-09-21，1119 条通知日志）：仅 `favorite_created` 出现过聚合消息（2/3），`download_failed`(509)/`download_started`(437)/`archive_abandoned`(68) **聚合占比 0%**。根因：链路每条通知都新建门面 → 新管理器 → **新聚合器**，缓冲区恒为 1 条，等于未聚合；对照收藏接口走 FastAPI 依赖注入的长期存活管理器，同一聚合器故能合并（50+17 两条）。决策（用户确认）：本轮**不做单例化**——属高风险架构变更，会牵动大量测试，且可能在多 Worker / 异步混合运行时引入状态竞争；改用侵入性更低的"链路源头按批汇总"（一次运行 1 条，已落地 `1dd48f66`/`71ecaea0`），聚合器继续服务交互型通知（5s 窗口）。复评条件：有专门重构窗口 + 测试覆盖率进一步提升后再议 | 2026-09-21 |
 | 16 | `/status` 旧键兼容层未清理 | `docker/api/favorites.py:246-250`（`get_favorite_status` 响应体）；消费方排查范围 `web/src/` | ⏳ 待处理 (Pending) | 背景：下载状态改造把前端取值统一到标准键（`download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count`），但 `get_favorite_status` 仍同时返回上一版键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`（另含 `status`/`favorite_id`）。保留理由（本轮）：①`status`/`favorite_id` 是收藏自身的键，语义与下载状态不同，不能删；②其余 5 键属过渡兼容，需先确认无消费方才可删——前端 `AnnounceDetail.vue`/`FavoritesView.vue` 已改用 `downloadStatus.ts` 的标准键，且用户可能停留在旧构建页面（本轮按用户指示保留兼容）。grep 复核（2026-09-21，范围 `web/src/`）：`in_cooldown`/`archive_retry_count` **零引用**；`error_message` 仅命中任务/查询类型（`types/api.ts:22` QueryResult、`types/task.ts:16`、`TaskManager.vue`、`TaskView.vue`），与收藏无关；`local_path` 命中 `announce.ts:81`（`/status` 返回类型声明，无消费方）与 `FavoritesView.vue:18`（取自 **list** 接口的 `user_favorites.local_path`，与 `/status` 的 `favorite_downloads.local_path` 不同源）。待办：删除 4 个过渡键（`in_cooldown`/`abandoned`/`archive_retry_count`/`error_message`）+ 清理 `announce.ts:81` 的 `local_path` 声明 → 补 `/status` 响应契约测试断言键集合 | 2026-09-21 |
+| 17 | Qt 线程"只能保活、不可安全终止"的边界 | `pilotstd/ui/qt_lifecycle.py:stop_worker_gracefully`（保活列表 + 计数）；调用方 7 处：`core/handlers/{_scan,_download,_archive,_announce,_auto,_query}.py`、`main_window/_window_lifecycle.py`、`pending_query_dialog.py` | ⏸️ 边界观察 (Monitoring) | 背景：`test-gui-coverage` 因"取消后 worker 信号触达已析构控件"失败（commit `54bd565d`），修复时把 7 处 `QThread.terminate()` 全部移除——强杀可能让线程在持锁/写文件时中断，风险高于收益。代价（本条登记项）：线程若因 bug 永不退出，只能脱离父对象后保活等待自然结束，进程退出前其资源不释放，且没有安全手段中断它。已有发现手段：`orphan_timeout_total()` 累计次数、`orphaned_worker_count()` 当前滞留数、累计 ≥3 时 `logger.error` 列出滞留线程的类名与时长（测试见 `tests/gui/test_worker_lifecycle.py`）。复评条件：一旦出现 error 级"疑似卡死线程"告警，立即定位该 worker 的阻塞点（网络 / 锁 / DB），把超时从"被动保活"升级为"可中断的阻塞点治理" | 2026-09-23 |
 
 ---
 

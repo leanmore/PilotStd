@@ -10,6 +10,7 @@ from typing import Any
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon
 
 from ...i18n import _
+from ..qt_lifecycle import stop_worker_gracefully
 
 logger = logging.getLogger("pilotstd.ui")
 
@@ -104,16 +105,12 @@ class _WindowLifecycleMixin:
             self._core.archive.stop_workers()
             self._core.auto.stop_workers()
         for attr in ("_drive_thread",):
-            try:
-                w = getattr(self, attr, None)
-                if w is not None and w.isRunning():
-                    w.stop()
-                    w.quit()
-                    if not w.wait(5000):
-                        w.terminate()
-                        w.wait()
-            except RuntimeError:
-                pass
+            w = getattr(self, attr, None)
+            if w is None:
+                continue
+            # DriveEnumerator 没有 stop()：helper 会跳过缺失的停止方法，
+            # 但一定先断开 drives_ready，避免迟到信号访问已析构的文件树
+            stop_worker_gracefully(w, signals=(getattr(w, "drives_ready", None),))
 
     # ================================================================ 分隔
     # 自动保存

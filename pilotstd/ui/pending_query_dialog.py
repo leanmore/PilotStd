@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ..i18n import _
+from .qt_lifecycle import stop_worker_gracefully
 from .workers import QueryWorker
 
 logger = logging.getLogger(__name__)
@@ -157,14 +158,16 @@ class PendingQueryDialog(QDialog):
         super().closeEvent(event)
 
     def _cleanup(self) -> None:
-        """停止定时器和后台 Worker 线程。"""
+        """停止定时器和后台 Worker 线程（先断信号再协作式停止，严禁 terminate）。"""
         self._refresh_timer.stop()
-        if self._worker and self._worker.isRunning():
-            self._worker.stop()
-            self._worker.quit()
-            if not self._worker.wait(3000):
-                self._worker.terminate()
-                self._worker.wait()
+        w = self._worker
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(w.result_ready, w.finished_signal, w.error),
+            timeout_ms=3000,
+        )
 
     # ── 冷却刷新 ──
 

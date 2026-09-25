@@ -61,7 +61,10 @@ MainWindow (QMainWindow)
 - 跨线程信号是**队列投递**：`disconnect()` 只能拦住之后的发射，已经排进主线程事件队列的调用照样会执行。因此取消 / 关闭窗口时必须**先断开 worker 信号，再停线程**。
 - 统一入口 [`pilotstd/ui/qt_lifecycle.py`](../../../pilotstd/ui/qt_lifecycle.py)：
   - `is_qt_alive(obj)` —— 封装 `sip.isdeleted`（PyQt6 的 `sip` 是子模块，顶层 `import sip` 在本仓库不可用）；
-  - `stop_worker_gracefully(worker, signals, timeout_ms)` —— 先断信号 → 置停止标志 → `requestInterruption()` → `wait()`；**禁用 `QThread.terminate()`**，超时改为脱离父对象并保活，等线程自然结束。
+  - `stop_worker_gracefully(worker, signals, timeout_ms)` —— 先断信号 → 置停止标志 → `requestInterruption()` → `wait()`；**禁用 `QThread.terminate()`**，超时改为脱离父对象并保活，等线程自然结束；
+  - `orphan_timeout_total()` / `orphaned_worker_count()` —— 超时未退出的累计次数与当前滞留数；累计达阈值（3）时告警从 `warning` 升级为 `error` 并列出滞留线程。保活不是无限容忍："永不退出"的线程必须能被发现。
+- 取消/关闭路径**全部 7 处**已统一走该原语：`core/handlers/` 的 scan / download / archive（normalize + archive 两个 worker）/ announce / auto / query、`main_window/_window_lifecycle.py`（drive 线程）、`pending_query_dialog.py`。
+- 唯一没有 `stop()` 的 worker 是 `DriveEnumerator`（仅枚举盘符、任务极短）：helper 通过 `getattr(worker, "stop", None)` 跳过停止标志，只走 `requestInterruption()` + `wait()`，通常自然退出；若真超时则进保活列表并计入 `orphan_timeout_total()`。
 - 现有落点：`parts/_table_ops.py::_find_row_by_seq`（表格已析构返回 `-1`）、`core/handlers/_query.py` 的查询槽函数（进度 / 结果 / 完成）、`core/unified_progress.py` 的进度管道。
 
 ## 工作流

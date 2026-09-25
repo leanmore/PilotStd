@@ -338,7 +338,7 @@ class TestPendingQueryDialog:
         dlg._notify_error("query_pending", "测试错误")
 
     def test_worker_cleanup_on_reject(self, qtbot, mock_manager, mock_parsed_list) -> None:
-        """reject 时若有运行中的 worker 则停止并等待。"""
+        """reject 时若有运行中的 worker：先断业务信号，再协作式停止，绝不 terminate。"""
         from pilotstd.ui.pending_query_dialog import PendingQueryDialog
 
         mock_worker = MagicMock()
@@ -349,7 +349,10 @@ class TestPendingQueryDialog:
         dlg._worker = mock_worker
         dlg.reject()
         mock_worker.stop.assert_called_once()
-        mock_worker.quit.assert_called_once()
+        mock_worker.requestInterruption.assert_called_once()
+        mock_worker.result_ready.disconnect.assert_called_once()
+        mock_worker.wait.assert_called_once_with(3000)
+        assert mock_worker.terminate.call_count == 0, "严禁用 terminate() 强杀线程"
 
     def test_do_query_adapter_not_found(self, qtbot, mock_manager, mock_parsed_list) -> None:
         """查询站点适配器不存在时弹出错误对话框并 reject。"""

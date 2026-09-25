@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
+from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import RowUpdate, ScanWorker
 from ..event_bus import EventBus
 from .scan_flow_engine import ScanFlowEngine
@@ -99,14 +100,14 @@ class ScanUIHandler:
         self._project_mark_dirty()
 
     def stop_workers(self) -> None:
-        """停止正在运行的扫描 Worker。"""
+        """停止正在运行的扫描 Worker（先断信号再协作式停止，严禁 terminate）。"""
         w = self._scan_worker
-        if w is not None and w.isRunning():
-            w.stop()
-            w.quit()
-            if not w.wait(5000):
-                w.terminate()
-                w.wait()
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(w.batch_ready, w.progress, w.finished_signal, w.error),
+        )
 
     # ──进度管理（委托给外部注入的回调，统一走）──
 

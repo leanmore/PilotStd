@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Iterable
 from typing import Any
 
@@ -24,6 +25,29 @@ logger = logging.getLogger(__name__)
 # （"QThread: Destroyed while thread is still running"），
 # 因此宁可留引用等它自然结束，也不用 terminate() 强杀。
 _ORPHANED_WORKERS: list[Any] = []
+
+# 保活不等于无限容忍：累计超时次数 + 每个滞留线程的起始时刻，
+# 达到阈值把告警升级为 error，避免"永不退出"的线程被静默放过。
+_ORPHAN_TIMEOUT_TOTAL = 0
+_ORPHAN_WARN_THRESHOLD = 3
+_ORPHAN_SINCE: dict[int, float] = {}
+
+
+def orphan_timeout_total() -> int:
+    """累计"超时未退出"次数（含事后自然结束的），供监控与测试断言。"""
+    return _ORPHAN_TIMEOUT_TOTAL
+
+
+def orphaned_worker_count() -> int:
+    """当前仍在保活等待的线程数量。"""
+    return len(_ORPHANED_WORKERS)
+
+
+def _describe_orphans() -> str:
+    """列出滞留线程的类名与已滞留秒数，便于定位卡死点。"""
+    now = time.monotonic()
+    parts = [f"{type(w).__name__}({now - _ORPHAN_SINCE.get(id(w), now):.0f}s)" for w in _ORPHANED_WORKERS]
+    return ", ".join(parts) or "无"
 
 
 def _sip_isdeleted() -> Any:
@@ -58,6 +82,7 @@ def _forget_orphan(worker: Any) -> None:
         _ORPHANED_WORKERS.remove(worker)
     except ValueError:
         pass
+    _ORPHAN_SINCE.pop(id(worker), None)
 
 
 def _keep_alive_until_finished(worker: Any) -> None:
@@ -65,6 +90,7 @@ def _keep_alive_until_finished(worker: Any) -> None:
     if worker in _ORPHANED_WORKERS:
         return
     _ORPHANED_WORKERS.append(worker)
+    _ORPHAN_SINCE[id(worker)] = time.monotonic()
     try:
         worker.setParent(None)  # 否则父窗口析构时会连带杀掉运行中的线程
         worker.finished.connect(lambda: _forget_orphan(worker))
@@ -83,6 +109,10 @@ def stop_worker_gracefully(worker: Any, signals: Iterable[Any] = (), timeout_ms:
 
     严禁 `QThread.terminate()`：强杀可能让线程在持锁或写文件时中断，
     造成数据损坏与析构期崩溃。超时未退出时转为保活等待自然结束。
+
+    没有 `stop()` 方法的 worker（如 `DriveEnumerator`：仅枚举盘符、任务很短）
+    会跳过停止标志，只走 `requestInterruption()` + `wait()`；它通常在超时前
+    自然退出，若真超时则进入保活列表并计入 `orphan_timeout_total()`。
 
     Args:
         worker: QThread 实例（None 视为已停止）。
@@ -114,10 +144,21 @@ def stop_worker_gracefully(worker: Any, signals: Iterable[Any] = (), timeout_ms:
     except RuntimeError:
         return True  # C++ 对象已析构，视作已停止
 
-    logger.warning(
-        "Worker %s 未在 %dms 内退出，已保活等待其自然结束（不使用 terminate）",
-        type(worker).__name__,
-        timeout_ms,
-    )
+    global _ORPHAN_TIMEOUT_TOTAL
+    _ORPHAN_TIMEOUT_TOTAL += 1
     _keep_alive_until_finished(worker)
+    if _ORPHAN_TIMEOUT_TOTAL >= _ORPHAN_WARN_THRESHOLD:
+        # 反复出现说明有线程真的不退出（保活只是避免析构崩溃，不是解决方案）
+        logger.error(
+            "累计 %d 次线程超时未退出，当前保活 %d 个：%s —— 疑似卡死线程，请排查",
+            _ORPHAN_TIMEOUT_TOTAL,
+            orphaned_worker_count(),
+            _describe_orphans(),
+        )
+    else:
+        logger.warning(
+            "Worker %s 未在 %dms 内退出，已保活等待其自然结束（不使用 terminate）",
+            type(worker).__name__,
+            timeout_ms,
+        )
     return False

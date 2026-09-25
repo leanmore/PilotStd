@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
+from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import DownloadWorker, RowUpdate
 from ..event_bus import EventBus
 from .download_flow_engine import DownloadFlowEngine
@@ -151,14 +152,14 @@ class DownloadUIHandler:
         self._project_mark_dirty()
 
     def stop_workers(self) -> None:
-        """停止正在运行的下载 Worker。"""
+        """停止正在运行的下载 Worker（先断信号再协作式停止，严禁 terminate）。"""
         w = self._download_worker
-        if w is not None and w.isRunning():
-            w.stop()
-            w.quit()
-            if not w.wait(5000):
-                w.terminate()
-                w.wait()
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(w.progress, w.batch_ready, w.finished_signal, w.error),
+        )
 
     def enqueue_download_wait(self, parsed: Any) -> None:
         """将未到下载期的标准写入下载等待队列。"""

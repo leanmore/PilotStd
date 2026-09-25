@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
+from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import AnnounceWorker
 from .announce_flow_engine import AnnounceFlowEngine
 
@@ -76,14 +77,18 @@ class AnnounceUIHandler:
         self.show_result(worker)
 
     def stop_workers(self) -> None:
-        """停止正在运行的公告 Worker（由 MainWindow._stop_workers 委托调用）。"""
+        """停止正在运行的公告 Worker（先断信号再协作式停止，严禁 terminate）。
+
+        注意 `finished_signal` 连着模态进度对话框的 `dlg.accept`：断开后对话框
+        不再自动关闭，但本方法只在取消/关窗路径调用，对话框随后由调用方关闭。
+        """
         w = self._ann_worker
-        if w is not None and w.isRunning():
-            w.stop()
-            w.quit()
-            if not w.wait(5000):
-                w.terminate()
-                w.wait()
+        if w is None:
+            return
+        stop_worker_gracefully(
+            w,
+            signals=(w.progress, w.finished_signal, w.error),
+        )
 
     # ── 内部方法 ─────────────────────────────────────────────
 

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
 from ....i18n import _
+from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import RowUpdate
 from ..event_bus import EventBus
 from .archive_flow_engine import ArchiveFlowEngine
@@ -92,14 +93,14 @@ class ArchiveUIHandler:
     # ── 公开方法 ─────────────────────────────────────────────
 
     def stop_workers(self) -> None:
-        """停止正在运行的归档/规范化 Worker。"""
+        """停止正在运行的归档/规范化 Worker（先断信号再协作式停止，严禁 terminate）。"""
         for w in (self._archive_worker, self._normalize_worker):
-            if w is not None and w.isRunning():
-                w.stop()
-                w.quit()
-                if not w.wait(5000):
-                    w.terminate()
-                    w.wait()
+            if w is None:
+                continue
+            stop_worker_gracefully(
+                w,
+                signals=(w.batch_ready, w.progress, w.error, w.finished_signal),
+            )
 
     def notify_worker_error(self, worker_name: str, error_msg: str) -> None:
         """Worker 异常时弹出本地通知。"""
