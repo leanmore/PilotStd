@@ -201,6 +201,21 @@ SCHEMA: list[SettingDef] = [
         placeholder="0 * * * *",
         help_text="健康检查的 cron 表达式",
     ),
+    SettingDef(
+        key="tasks.auto_archive_retry_enabled",
+        tab="tasks",
+        field_type=FIELD_TOGGLE,
+        default=True,
+        help_text="收藏到期后自动下载到 inbox（收藏→下载链路唯一入口，禁用即链路停摆）",
+    ),
+    SettingDef(
+        key="tasks.auto_archive_retry_cron",
+        tab="tasks",
+        field_type=FIELD_CRON,
+        default="0 4 * * *",
+        placeholder="0 4 * * *",
+        help_text="收藏下载的 cron 表达式",
+    ),
     # 说明：──文字识别──
     SettingDef(
         key="ocr.baidu_api_key",

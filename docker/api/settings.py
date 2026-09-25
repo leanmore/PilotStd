@@ -133,6 +133,10 @@ def get_settings(request: Request, mgr=Depends(get_manager_dep)):
             "date_reminder_cron": cfg.get("tasks.date_reminder_cron", "0 2 * * *"),
             "auto_health_check_enabled": cfg.get("tasks.auto_health_check_enabled", True),
             "auto_health_check_cron": cfg.get("tasks.auto_health_check_cron", "0 * * * *"),
+            # 必须与 _SCHEDULED_JOBS 对齐：读侧漏键时前端只能拿组件默认值显示，
+            # 保存时又把默认值回写，用户改过的值会被静默覆盖（读写成对才可控）。
+            "auto_archive_retry_enabled": cfg.get("tasks.auto_archive_retry_enabled", True),
+            "auto_archive_retry_cron": cfg.get("tasks.auto_archive_retry_cron", "0 4 * * *"),
         },
         "appearance": {
             "theme": cfg.get("appearance.theme", "经典白"),

@@ -5,7 +5,10 @@
 只落盘、不重排，必须重启容器才生效；设置页也没有该字段。修复后要求：
   1. 5 个定时任务全部进重排列表（与 docker/scheduler.py 的任务表一一对应）；
   2. 前端漏发某个键时，用**当前配置值**兜底，绝不把任务静默禁用或改点
-     （收藏下载链被静默禁用 = 链路停摆）。
+     （收藏下载链被静默禁用 = 链路停摆）；
+  3. GET /api/settings 的 `tasks` 必须把重排列表里每个任务的 enabled/cron **都读出来**：
+     读侧漏键时前端只能显示组件默认值，保存时该默认值又被回写 → 用户改过的值
+     被静默覆盖（与 2 同源的"读写不对称"缺陷）。
 """
 
 from __future__ import annotations
@@ -18,7 +21,11 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from docker.api.settings import _SCHEDULED_JOBS, _sync_task_schedules  # noqa: E402
+from docker.api.settings import (  # noqa: E402
+    _SCHEDULED_JOBS,
+    _sync_task_schedules,
+    get_settings,
+)
 
 EXPECTED_JOBS = {
     "auto_scan",
@@ -114,3 +121,41 @@ def test_health_check_keeps_default_true(monkeypatch):
 
     health = next(c for c in calls if c[0] == "auto_health_check")
     assert health[2] is True, "auto_health_check 缺省应为启用"
+
+
+def _settings_body(initial: dict[str, Any] | None = None) -> dict:
+    """取 GET /api/settings 的返回体。
+
+    `get_settings` 被 `@require_role("admin")` 包裹，且装饰器只在实参里找到真正的
+    `Request` 时才校验角色 —— 本用例只测载荷形状，故直接取 `__wrapped__`，
+    不伪造 request（避免测试绕过角色校验的错觉：真正的鉴权由 docker/auth.py 单测覆盖）。
+    """
+    inner = get_settings.__wrapped__  # type: ignore[attr-defined]
+    return inner(None, _FakeMgr(initial))  # type: ignore[arg-type]
+
+
+def test_get_settings_exposes_every_reschedulable_key():
+    """读侧必须给出重排列表里每个任务的 enabled+cron（读写成对，否则保存即覆盖）。"""
+    body = _settings_body()
+    exposed = set(body["tasks"])
+
+    expected: set[str] = set()
+    for _job_id, cron_key in _SCHEDULED_JOBS:
+        expected.add(cron_key)
+        expected.add(cron_key.replace("_cron", "_enabled"))
+
+    missing = expected - exposed
+    assert not missing, f"GET /api/settings 缺少任务键（前端会显示默认值并回写覆盖）：{sorted(missing)}"
+
+
+def test_get_settings_reports_stored_values_not_defaults():
+    """存过的值必须原样读出——这是"设置页显示真实状态"的前提。"""
+    body = _settings_body(
+        {
+            "tasks.auto_archive_retry_enabled": False,
+            "tasks.auto_archive_retry_cron": "0 6 * * *",
+        }
+    )
+
+    assert body["tasks"]["auto_archive_retry_enabled"] is False
+    assert body["tasks"]["auto_archive_retry_cron"] == "0 6 * * *"
