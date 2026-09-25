@@ -3,7 +3,8 @@
 
 背景：`auto_archive_retry`（收藏→下载链路唯一入口）此前不在重排列表里 —— 改配置
 只落盘、不重排，必须重启容器才生效；设置页也没有该字段。修复后要求：
-  1. 5 个定时任务全部进重排列表（与 docker/scheduler.py 的任务表一一对应）；
+  1. 5 个定时任务全部进重排列表（与 docker/scheduler.py 的注册表对应，且"漏登记"
+     与"有意排除"必须能被区分——靠解析 scheduler.py，而不是靠写死的名单）；
   2. 前端漏发某个键时，用**当前配置值**兜底，绝不把任务静默禁用或改点
      （收藏下载链被静默禁用 = 链路停摆）；
   3. GET /api/settings 的 `tasks` 必须把重排列表里每个任务的 enabled/cron **都读出来**：
@@ -13,6 +14,7 @@
 
 from __future__ import annotations
 
+import ast
 import os
 import sys
 from typing import Any
@@ -34,6 +36,32 @@ EXPECTED_JOBS = {
     "auto_health_check",
     "auto_archive_retry",
 }
+
+# 有意不进设置页的调度任务（固定周期、无 UI 开关）；差异由下面的解析测试锁定
+INTENTIONALLY_NOT_USER_MANAGEABLE = {"auto_backup"}
+
+
+def _scheduler_cron_jobs() -> set[str]:
+    """解析 docker/scheduler.py::start_scheduler() 注册的 cron 任务 id 集合。
+
+    直接 AST 解析（不导入模块、不硬编码名单），否则"漏登记"与"有意排除"无法区分：
+    此前该测试只比对写死的 EXPECTED_JOBS，scheduler 新增任务也不会失败。
+    """
+    path = os.path.join(root_dir, "docker", "scheduler.py")
+    with open(path, encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+
+    job_ids: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef) or node.name != "start_scheduler":
+            continue
+        for stmt in ast.walk(node):
+            if not isinstance(stmt, ast.For) or not isinstance(stmt.iter, ast.List):
+                continue
+            for item in stmt.iter.elts:
+                if isinstance(item, ast.Tuple) and item.elts and isinstance(item.elts[0], ast.Constant):
+                    job_ids.add(str(item.elts[0].value))
+    return job_ids
 
 
 class _FakeConfig:
@@ -69,10 +97,24 @@ def _call(monkeypatch, data: dict, initial: dict[str, Any] | None = None) -> lis
 
 
 def test_scheduled_jobs_table_matches_scheduler():
-    """设置侧任务表必须覆盖 scheduler 注册的全部任务（防止再次漏项）。"""
-    from docker.scheduler import start_scheduler  # noqa: F401  （仅确认可导入）
-
+    """设置侧任务表必须覆盖 scheduler 注册的全部用户可管任务（防止再次漏项）。"""
     assert {job for job, _ in _SCHEDULED_JOBS} == EXPECTED_JOBS
+
+
+def test_scheduler_jobs_not_in_settings_are_intentional():
+    """scheduler 里的 cron 任务，要么进设置页，要么在"有意排除"名单里。
+
+    解析源码而非比对写死名单：scheduler 新增任务却不决定是否暴露给用户时，此例失败。
+    """
+    scheduler_jobs = _scheduler_cron_jobs()
+
+    assert scheduler_jobs, "解析 docker/scheduler.py 未取到任何 cron 任务 id（解析逻辑失效）"
+    not_exposed = scheduler_jobs - {job for job, _ in _SCHEDULED_JOBS}
+    assert not_exposed == INTENTIONALLY_NOT_USER_MANAGEABLE, (
+        "scheduler 与设置页任务集合出现未声明的差异：" f"{sorted(not_exposed)}；"
+        "新增任务需决定是否进设置页（进则登记 _SCHEDULED_JOBS + Schema + defaults，"
+        "不进则加入 INTENTIONALLY_NOT_USER_MANAGEABLE 并说明原因）"
+    )
 
 
 def test_all_five_jobs_are_rescheduled(monkeypatch):

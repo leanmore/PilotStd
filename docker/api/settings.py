@@ -158,9 +158,13 @@ def get_settings(request: Request, mgr=Depends(get_manager_dep)):
     }
 
 
-# 定时任务表：必须与 docker/scheduler.py 的 start_scheduler() 注册表一一对应。
-# 漏一个就会出现"设置页改了却不生效"（技术债 #20：auto_archive_retry 曾长期缺席，
-# 改配置只落盘不重排、必须重启容器，且设置页里根本没有该任务）。
+# 定时任务表：`tasks.*` 里**用户可管**的任务（enabled + cron），与
+# docker/scheduler.py 的 start_scheduler() 注册表对应。漏一个就会出现"设置页改了
+# 却不生效"（技术债 #20：auto_archive_retry 曾长期缺席，改配置只落盘不重排、
+# 必须重启容器，且设置页里根本没有该任务）。
+# 有意不在表内：auto_backup（固定周日备份、无 UI 开关）——该差异由
+# tests/test_settings_scheduler_sync.py::test_scheduler_jobs_not_in_settings_are_intentional
+# 直接解析 scheduler.py 锁定，防止"漏登记"与"有意排除"被混为一谈。
 _SCHEDULED_JOBS: list[tuple[str, str]] = [
     ("auto_scan", "auto_scan_cron"),
     ("auto_announce", "auto_announce_cron"),
