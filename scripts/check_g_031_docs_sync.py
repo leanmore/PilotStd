@@ -24,6 +24,11 @@ DOC_SYNC_MAP: list[tuple[str, str, str]] = [
     ("pilotstd/scan/", "docs/architecture/modules/scan.md", "block"),
     ("pilotstd/ui/main_window/", "docs/architecture/modules/ui.md", "block"),
     ("pilotstd/manager/", "docs/architecture/modules/manager.md", "block"),
+    # 2026-09-25 补齐长期缺口（技术债 #13/#14）：core.md 自述"G-031 映射 pilotstd/core/"
+    # 却一直不在表里（改 core 文件不触发同步，文档可静默过期）；announcement-pipeline.md
+    # 是 AGENTS.md §8.2 指定的 announcement 回写目标，同样一直未落地。
+    ("pilotstd/core/", "docs/architecture/modules/core.md", "block"),
+    ("pilotstd/announcement/", "docs/reference/announcement-pipeline.md", "block"),
     ("scripts/", "docs/governance/gates.md", "block"),
     (".github/workflows/", "docs/governance/gates.md", "block"),
     ("docs/governance/", "docs/governance/README.md", "block"),

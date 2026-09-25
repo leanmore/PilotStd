@@ -22,6 +22,10 @@ interface TaskConfig {
   date_reminder_cron: string
   auto_health_check_enabled: boolean
   auto_health_check_cron: string
+  // 收藏下载链（favorite_chain_processor.process_chain）——2026-09-25 补入，
+  // 此前该任务不在设置页，用户无法查看/修改其 cron，也无法手动触发（技术债 #20）
+  auto_archive_retry_enabled: boolean
+  auto_archive_retry_cron: string
 }
 
 const tasks = ref<TaskConfig>({
@@ -33,6 +37,8 @@ const tasks = ref<TaskConfig>({
   date_reminder_cron: '0 2 * * *',
   auto_health_check_enabled: true,
   auto_health_check_cron: '0 * * * *',
+  auto_archive_retry_enabled: true,
+  auto_archive_retry_cron: '0 4 * * *',
 })
 
 const loading = ref(false)
@@ -133,6 +139,19 @@ onMounted(loadTasks)
             </div>
           </div>
 
+          <!-- 收藏下载链（自动归档重试） -->
+          <div class="task-row">
+            <div class="task-toggle">
+              <ToggleSwitch v-model="tasks.auto_archive_retry_enabled" />
+              <label>收藏下载链（自动归档重试）</label>
+            </div>
+            <div class="task-cron" v-if="tasks.auto_archive_retry_enabled">
+              <label>Cron 表达式</label>
+              <InputText v-model="tasks.auto_archive_retry_cron" placeholder="0 4 * * *" size="small" />
+            </div>
+            <div class="task-hint">收藏的国标将在冷却期后由该任务统一下载；改小 cron（如 * * * * *）可立刻触发一轮。</div>
+          </div>
+
           <div class="actions-row">
             <Button label="保存配置" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
           </div>
@@ -189,6 +208,11 @@ onMounted(loadTasks)
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+.task-hint {
+  flex-basis: 100%;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 .actions-row {
   margin-top: 12px;

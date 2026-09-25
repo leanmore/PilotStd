@@ -1,6 +1,7 @@
 # 容器//脚本—系统配置读写接口+静态令牌管理
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
@@ -153,6 +154,34 @@ def get_settings(request: Request, mgr=Depends(get_manager_dep)):
     }
 
 
+# 定时任务表：必须与 docker/scheduler.py 的 start_scheduler() 注册表一一对应。
+# 漏一个就会出现"设置页改了却不生效"（技术债 #20：auto_archive_retry 曾长期缺席，
+# 改配置只落盘不重排、必须重启容器，且设置页里根本没有该任务）。
+_SCHEDULED_JOBS: list[tuple[str, str]] = [
+    ("auto_scan", "auto_scan_cron"),
+    ("auto_announce", "auto_announce_cron"),
+    ("date_reminder", "date_reminder_cron"),
+    ("auto_health_check", "auto_health_check_cron"),
+    ("auto_archive_retry", "auto_archive_retry_cron"),
+]
+
+
+def _sync_task_schedules(cfg: Any, tasks: dict) -> None:
+    """把 `tasks.*` 配置同步到调度器：启用/改点立即生效（无需重启容器）。
+
+    缺键时用**当前配置值**兜底（而非硬编码默认），否则前端漏发某个键会把该任务
+    静默禁用或改点——收藏下载链（auto_archive_retry）默认启用且 04:00，
+    被静默禁用等于链路停摆。
+    """
+    for job_id, cron_key in _SCHEDULED_JOBS:
+        enabled_key = cron_key.replace("_cron", "_enabled")
+        current_enabled = bool(cfg.get(f"tasks.{enabled_key}", job_id == "auto_health_check"))
+        current_cron = cfg.get(f"tasks.{cron_key}", "0 * * * *" if job_id == "auto_health_check" else "0 0 * * *")
+        enabled = tasks.get(enabled_key, current_enabled)
+        cron = tasks.get(cron_key, current_cron)
+        update_job(job_id, cron, enabled)
+
+
 @router.put("/api/settings")
 @require_role("admin")
 def put_settings(request: Request, data: dict, mgr=Depends(get_manager_dep)):
@@ -181,18 +210,8 @@ def put_settings(request: Request, data: dict, mgr=Depends(get_manager_dep)):
                 if f"{cfg_prefix}.{k}" in _READONLY_KEYS:
                     continue
                 cfg.set(f"{cfg_prefix}.{k}", v)
-    # 同步定时任务配置到调度器
-    tasks = data.get("tasks", {})
-    for job_id, cron_key in [
-        ("auto_scan", "auto_scan_cron"),
-        ("auto_announce", "auto_announce_cron"),
-        ("date_reminder", "date_reminder_cron"),
-        ("auto_health_check", "auto_health_check_cron"),
-    ]:
-        default_enabled = job_id == "auto_health_check"
-        enabled = tasks.get(cron_key.replace("_cron", "_enabled"), default_enabled)
-        cron = tasks.get(cron_key, "0 * * * *" if job_id == "auto_health_check" else "0 0 * * *")
-        update_job(job_id, cron, enabled)
+    # 同步定时任务配置到调度器（任务表见 _SCHEDULED_JOBS）
+    _sync_task_schedules(cfg, data.get("tasks", {}))
     cfg.save()
     # 版本三0:审计日志
     try:

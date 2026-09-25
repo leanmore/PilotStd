@@ -77,13 +77,15 @@
   - `pilotstd/scan/` → `docs/architecture/modules/scan.md`（scan.md 自述模块路径即此）
   - `pilotstd/ui/main_window/` → `docs/architecture/modules/ui.md`
   - `pilotstd/manager/` → `docs/architecture/modules/manager.md`（`manager/facade/_scan.py` 属此，不再牵连 scan.md）
+  - `pilotstd/core/` → `docs/architecture/modules/core.md`（**2026-09-25 补入**，原为已知缺口：core.md 自述"G-031 映射 `pilotstd/core/`"却不在表里，改任何 core 文件都不触发同步）
+  - `pilotstd/announcement/` → `docs/reference/announcement-pipeline.md`（**2026-09-25 补入**，该文档即 AGENTS.md §八 8.2 指定的回写目标）
   - `scripts/` → `docs/governance/gates.md`
   - `.github/workflows/` → `docs/governance/gates.md`
   - `docs/governance/` → `docs/governance/README.md`
   - `docs/adr/` → `docs/adr/README.md`（**仅新增/删除/重命名**时要求同步：改 ADR 正文只影响该 ADR 自身，"有哪些决策"这份清单并未变化）
-- **已知缺口（未纳入，待定）**：`pilotstd/core/` → `docs/architecture/modules/core.md`、`pilotstd/announcement/` → `docs/reference/announcement-pipeline.md`（后者见 AGENTS.md §八 8.2）当前均无映射，即这两处代码变更不会触发文档联动。
+- **已知缺口**：无（2026-09-25 起原两条缺口已补；映射共 **11 条**，自检脚本可验证"源前缀与目标文档均存在"，确保无死映射）
 - **机器生成产物豁免**：`docs/governance/capabilities_registry.md`（由 `scripts/generate_capabilities.py` 生成，且已登记在 `docs/governance/README.md` 索引中）**单独**变更时不要求同步 README —— 重生成只改时间戳/行号，不改变索引语义；AGENTS.md §七 又强制其随 `pilotstd/core/`、`docker/api/` 变更一并提交，若不豁免，则每次重生成都会撞上本条规则，只能做装饰性改动或绕过门禁。同批若还含 `docs/governance/` 下的人工文档变更，仍按上表阻断；豁免命中时输出 `[G-031] SKIP: ...`，不静默跳过
-- **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 9 条均为 `block`，且 9 个目标文档均已存在）
+- **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 11 条均为 `block`，且 11 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 
 ### G-032：文档健康度守护
@@ -226,6 +228,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.15 | 2026-09-25 | G-031 补齐两条长期缺口映射（技术债 #13/#14）：`pilotstd/core/` → `docs/architecture/modules/core.md`、`pilotstd/announcement/` → `docs/reference/announcement-pipeline.md`，映射总数 9 → **11**，无死映射（自检：源前缀与目标文档均存在）。验证方式为受控功能测试——仅暂存 `pilotstd/core/audit.py` 一处改动时 G-031 会 FAIL 并要求同步 core.md。修复过程中连带发现并修正 `core.md` 自身过时内容（schema 版本 v53→v59、文件数 50+→70、补 `config/service.py` 与 notification 子文件、门禁编号 G-032→G-031） |
 | v1.14 | 2026-09-21 | G-027 纳入本地 `check_all.sh --fast`：该门禁原先只在 CI `test-frontend` 跑，本地 pre-commit 覆盖不到 —— 新增 Vue 组件漏写 `defineOptions` 时"本地全绿、CI 红"，且它会连带阻断 `version`/镜像构建 job，代价是多跑一整轮 CI 与一次镜像缺席（2026-09-21 实测事故：`FavoriteStatusTag.vue`）。同时补登 G-027 到门禁总览表 |
 | v1.13 | 2026-09-21 | G-012 注释语言（[LANG] 警告，不阻断）清理并明确保留口径：67 项告警逐条手工改写为中文（**禁用 `--fix`** —— 其实现是"先替换术语、再删除所有英文字母"，会把注释改成病句）；**跨文件查找键保留英文并登记清单**，共 9 处：门禁编号 `G-038`、ADR 编号 `ADR-007`、提交哈希 `57f58a6c`（3 处）、文档路径 `docs/governance/gates.md` 与 `docs/adr/README.md`、表名 `app_preferences` 与 `user_favorites`（迁移索引需点名真实表）。判据：注释要"可读且信息完整"，能中文化的一律中文，用作查证入口的标识符不意译。仅注释改动已用 token 级比对证明（29 文件 token 流与 HEAD 完全一致） |
 | v1.12 | 2026-09-21 | G-010 / G-012 改为**只评判入库产物**：新增 `scripts/_gate_paths.py`（`git ls-files --others --ignored --exclude-standard --directory` 计算忽略集合），两个门禁经 `is_git_ignored()` 跳过 `.gitignore` 声明的本地草稿。起因：全量扫描把 `logs/*.py` 一并判定，产生 G-012 22 项假阳性阻断 + G-010 2 项超长函数阻断，使与之无关的提交无法通过。判据与落地同时写入 `governance-principles.md` §3.4「只评判入库产物」 |
