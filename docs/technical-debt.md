@@ -1,8 +1,9 @@
 # 技术债登记
 
-> 版本：v1.4.0
+> 版本：v1.4.1
 > 更新日期：2026-09-25
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
+> 2026-09-25 勘误与收尾：**#18 只读巡检已通过 `POST /query` API 实际执行完毕**（A/B 两组共 8 项全 0、C 组 0 行）——上一轮把它标为"环境不可达"是**错的**：`admin_db.py` 的表白名单只作用于 `DROP TABLE`，SELECT 不受限制（第三轮"该表不在白名单→只能容器内 SQL"同样不成立）。据此补记「八、操作记录」的执行通道对比，并新增一条待决策：该端点对管理员等同全库读写。
 > 2026-09-25 第五轮（逐条验证 + 分类还债）：**逐条查代码验证 #11~#20**（证据见各条），其中 **#13/#14/#20 直接修复并移入「已清理」**，**#17 拆成 17a（可偿还）/17b（技术无解）**，**#11/#15 归入 ROI 判断**并写明最终判断轮次；**#16 死列 → 清理项**、**#19 残留 → 待决策**、**#18 SQL → 操作记录**（不再混在台账里）。第五节 5 条已接受设计补「不还的代价」。
 > 2026-09-25 登记规则修正：每笔债必须写全 **根因 / 现状 / 偿还窗口 / 不还的代价**；窗口必须是具体轮次，不接受"等复评条件"或无期限挂账。
 
@@ -55,7 +56,7 @@
 | TD-16 `/status` 旧键兼容层 | 原 #16（登记 2026-09-21）：删除 5 个旧键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`）+ 连带删除 `_COOLDOWN_DAYS`/`LEFT JOIN`；前端删除唯一调用方 `getFavoriteStatus`。验证：键集合契约测试 2 例、ruff/mypy 全绿、现场 v0.110.0 实测 7→8 键且旧键 0 个。**残留已移出**：两列死列 → 见「七、清理项」 | 2026-09-25 |
 | **TD-13** G-031 缺口：`pilotstd/core/` 无文档联动映射 | 原 #13（登记 2026-09-13）。**修复（2026-09-25）**：`DOC_SYNC_MAP` 补 `("pilotstd/core/", "docs/architecture/modules/core.md", "block")`。**验证**：①映射自检 11 条、死映射 0；②受控功能测试——仅暂存 `pilotstd/core/audit.py` 一处改动 → G-031 **FAIL** 并提示"`docs/architecture/modules/core.md` 未同步更新"，证明映射真实生效（改完还原探针）；③**连带修复 core.md 本身过时**（修复过程中发现）：`CURRENT_SCHEMA_VERSION` 已 59（原文写 v53）、`.py` 文件 70 个（原文写 50+）、补 `config/service.py` 与 notification 新增子文件、门禁编号 G-032→**G-031** | 2026-09-25 |
 | **TD-14** G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 原 #14（登记 2026-09-13）。**修复（2026-09-25）**：补 `("pilotstd/announcement/", "docs/reference/announcement-pipeline.md", "block")`（该文档正是 AGENTS §8.2 指定的回写目标，且其"采集/解析/清洗/入库"流程与 `pilotstd/announcement/`（base/engine/matcher/monitor/adapters/ocr）覆盖面一致）。验证：同 TD-13 的映射自检（11 条 0 死映射） | 2026-09-25 |
-| **TD-18** 8 条收藏无队列行 + 36 行 `standard_number` NULL | 原 #18。**修复（2026-09-25 现场）**：补建 8 行队列（`INSERT rowcount=8`、`missing=0`、全 `pending`）+ 纠正 36 行 NULL（`uf updated=36`、`uf_null_after=0`、`fd_unknown_after=0`）+ 显示层改"未加入队列" + 导出加 `COALESCE(f.standard_number, r.standard_number, '')`。现场复核：导出 105 条 0 空值、页面 8 条"已入队"。**SQL 与巡检语句已移入「八、操作记录」** | 2026-09-25 |
+| **TD-18** 8 条收藏无队列行 + 36 行 `standard_number` NULL | 原 #18。**修复（2026-09-25 现场）**：补建 8 行队列（`INSERT rowcount=8`、`missing=0`、全 `pending`）+ 纠正 36 行 NULL（`uf updated=36`、`uf_null_after=0`、`fd_unknown_after=0`）+ 显示层改"未加入队列" + 导出加 `COALESCE(f.standard_number, r.standard_number, '')`。现场复核：导出 105 条 0 空值、页面 8 条"已入队"。**只读巡检已完成（2026-09-25，经 `POST /query` API 执行）**：A 组 4 项（uf/fd 标准号与名称空值、`UNKNOWN_*`）全 0；B 组 4 项（四表 `standard_type` 空值）全 0；C 组去重基线 0 行 → **无其他同源回填缺口，本条彻底关闭**。**勘误**：第三轮曾判断"`favorite_downloads` 不在 admin SQL 白名单 → 只能容器内 SQL 修复"，经查 `admin_db.py:100-123` 的 `_ALLOWED_TABLES` **只作用于 `DROP TABLE`**，SELECT 不受表限制 → 该判断不成立（数据修复本可经 API 完成）；SQL 与巡检语句留档见「八、操作记录」 | 2026-09-25 |
 | **TD-19** `/status` 两态不可区分 | 原 #19。**修复（方案②，2026-09-25）**：保留端点 + 新增 `favorited: bool`（三态可辨）+ `[STATUS_API] ua/referer/path` 防御性日志（脱敏、无查询参数）。现场 v0.110.0 实测：有队列行 8 键 `favorited=true`、补建行 8 键 `favorited=true`、未收藏 4 键 `favorited=false`；日志实测 `ua=[redacted]`（敏感词整段脱敏）且无 `?`。**端点存废复评已移入「六、待决策」** | 2026-09-25 |
 | **TD-20** `auto_archive_retry` 在 UI 不可改、不可触发 | 原 #20（登记 2026-09-25）。**修复（2026-09-25）**：①`docker/api/settings.py` 抽出 `_SCHEDULED_JOBS`（5 项，与 `scheduler.start_scheduler()` 一一对应）并补 `auto_archive_retry`；②缺键时用**当前配置值**兜底（防前端漏发把链路静默禁用）；③`SettingsTabSchedule.vue` 增加"收藏下载链（自动归档重试）"开关 + cron 输入 + 提示。验证：新增 `tests/test_settings_scheduler_sync.py`（4 passed：任务表覆盖、改 cron 真重排、缺键沿用配置、health 默认值不坏）+ `SettingsTabSchedule.test.ts`（3 passed：字段存在、保存随载荷提交、加载回填）；`test_docker_api.py -k settings` 2 passed；`SettingsView.test.ts` 6 passed。**残留**：无"立即执行一次"按钮 → 记为可选增强（临时把 cron 改成 `* * * * *` 即可触发，等价覆盖），不进台账 | 2026-09-25 |
 
@@ -142,6 +143,7 @@
 | 项 | 来源 | 现状 | 决策依据 | 最迟 |
 |---|---|---|---|---|
 | `/api/favorites/{record_id}/status` 端点存废 | 原 #19 残留 | 仓内**零消费方**（前端调用方已于 #16 删除），但可能被仓外脚本调用；已加 `[STATUS_API]` 防御性日志记录真实调用方 | 依据日志：若到第七轮仍**无任何仓外调用记录**，直接删除该端点（连带 `announce.ts` 类型与契约测试）；若有调用记录，保留并维持现状 | 第七轮 |
+| `POST /query`（admin SQL 端点）权限边界过宽 | 2026-09-25 巡检时实测 | `admin_db.py:100-123` 的 `_ALLOWED_TABLES` **只约束 `DROP TABLE`**；SELECT 可读任意表（含 `users` 的密码哈希、`user_credentials` 等），INSERT/UPDATE/DELETE 亦只受"WHERE 必需"等约束 → 对管理员等同于全库读写台 | 选项：①维持（管理员本就等于全权，且该端点是运维排查主力，本轮巡检即靠它完成）；②收紧为"SELECT 仅限白名单表 + 写操作全禁"，另开专用只读端点。**倾向 ①并在 API 文档标注"管理员等同全库权限"**，但需你确认；若选 ② 需评估对运维排查的影响 | 第七轮 |
 
 ---
 
@@ -153,44 +155,27 @@
 
 ---
 
-## 八、操作记录（一次性容器内操作 + 留档 SQL）
+## 八、操作记录（一次性数据操作 + 留档 SQL + 只读巡检）
 
-**环境约束**：容器内**没有 `sqlite3` CLI**（`docker/Dockerfile:30` 只装 gosu/git/curl），必须用容器内 Python 的 `sqlite3` 模块；且以 `appuser` 执行（`Dockerfile:27` 建该用户、`entrypoint.sh:151-152` 用 `gosu appuser` 降权），避免 root 写库把 WAL/SHM 属主改掉。
+### 8.1 执行通道（2026-09-25 实测修正）
 
-```bash
-# 备份（宿主机 compose 目录内，./data 即容器 /app/data）
-cp ./data/pilotstd.db ./data/pilotstd.db.bak-$(date +%Y%m%d-%H%M%S)
+| 通道 | 是否可用 | 依据 |
+|---|---|---|
+| `POST /query`（admin SQL 端点） | ✅ **可用，且首选** | 路由无 prefix，真实路径就是 **`POST /query`**（审计里写的 `/api/admin/db/query` 只是标签字符串）。`admin_db.py:100-123` 的 `_ALLOWED_TABLES` **只作用于 `DROP TABLE`**；SELECT 自动包 `LIMIT 1001`，INSERT/UPDATE/DELETE 分别受"WHERE 必需"等约束 → **普通读写不受表白名单限制**，无需 SSH/容器执行 |
+| 容器内 `python -m sqlite3` | ✅ 可用（备选） | 容器**无 `sqlite3` CLI**（`Dockerfile:30` 只装 gosu/git/curl）；需以 `appuser` 执行（`Dockerfile:27` + `entrypoint.sh:151-152` `gosu appuser`），避免 root 写库改 WAL/SHM 属主 |
 
-# 执行（容器内，appuser）
-docker compose exec -T --user appuser pilotstd python - <<'PY'
-import sqlite3
-con = sqlite3.connect("/app/data/pilotstd.db")
-cur = con.cursor()
-# 幂等补建队列行（NOT EXISTS 去重；模板已修正为多一层 r.standard_number 回退）
-cur.execute("""
-INSERT INTO favorite_downloads
-  (favorite_id, user_id, record_id, status, standard_no, standard_name, standard_type,
-   retry_count, created_at, updated_at)
-SELECT f.id, f.user_id, f.record_id, 'pending',
-       COALESCE(NULLIF(TRIM(f.standard_number), ''), r.standard_number, 'UNKNOWN_' || f.record_id),
-       COALESCE(r.std_name, '未知标准'),
-       COALESCE(f.standard_type, 'Unknown'),
-       0, datetime('now'), datetime('now')
-FROM user_favorites f
-LEFT JOIN announcement_record r ON r.id = f.record_id
-WHERE NOT EXISTS (SELECT 1 FROM favorite_downloads fd WHERE fd.favorite_id = f.id);
-""")
-con.commit()
-print("INSERT rowcount =", cur.rowcount)
-con.close()
-PY
-```
+### 8.2 只读巡检（已执行，2026-09-25）
 
-**实际执行记录（2026-09-25，现场 v0.109.4）**：`INSERT rowcount=8` → `missing=0` → 8 行全 `pending`（GB/T 2970-2026 / GB/T 5613-2026 / GB/T 7607-2026 / GB/T 13237-2026 / GB/T 7597-2026 / GB/Z 184.1-2026 / GB/T 8335-2026 / GB/T 8336-2026）→ 队列分布 `abandoned 96 / failed 1 / pending 8`；同批纠正 `user_favorites.standard_number` 36 行 NULL（`uf updated=36`、`fd updated=8`、`uf_null_after=0`、`fd_unknown_after=0`）；导出复核 105 条 0 空值。
+经 `POST /query` 执行三组 SQL，结果**全部符合期望**：
 
-**模板修正教训**：原模板只写 `COALESCE(f.standard_number, 'UNKNOWN_' || f.record_id)`，而 v57 给 `user_favorites` 只加列不回填 → 历史行为 NULL → 现场产出 8 行 `UNKNOWN_<record_id>`。**正确写法必须多一层回退到 `announcement_record.standard_number`**（上方已修正）。
+| 组 | 检查项 | 期望 | 实测 |
+|---|---|---|---|
+| A | `uf_std_no_null` / `fd_std_no_null` / `fd_std_no_unknown` / `fd_std_name_null` | 0 | **0 / 0 / 0 / 0** |
+| B | `uf/fd/ar/dq` 四表 `standard_type` 空值 | 0 | **0 / 0 / 0 / 0** |
+| C | 同用户同标准号同分类重复收藏分组 | 0 行 | **0 行** |
 
-**残留巡检 SQL（只读，最迟第五轮执行）**：确认其他表是否也存在 v57 式"只加列不回填"缺口。
+附带验证：`SELECT COUNT(*) FROM favorite_downloads` → 105（证明 SELECT 不受表白名单限制）。
+SQL 原文：
 
 ```sql
 -- A) 标准号/名称完整性
@@ -210,4 +195,33 @@ SELECT user_id, standard_number, standard_type, COUNT(*) AS c
 FROM user_favorites GROUP BY user_id, standard_number, standard_type HAVING c > 1;
 ```
 
-判定：A/B 全部期望 0（`ar_std_type_empty` > 0 属公告记录未回填，需单独评估）；C 期望 0 行。
+调用方式（管理员会话 + CSRF 头）：
+
+```bash
+curl -s -X POST http://<nas>:9028/query \
+  -H 'Content-Type: application/json' \
+  -H "X-CSRF-Token: $CSRF" \
+  -b "pilotstd_token=$TOKEN; csrf_token=$CSRF" \
+  -d '{"sql":"SELECT COUNT(*) AS n FROM favorite_downloads"}'
+```
+
+### 8.3 一次性补建（已执行，2026-09-25，v0.109.4）
+
+```sql
+-- 幂等补建队列行（NOT EXISTS 去重；模板已修正为多一层 r.standard_number 回退）
+INSERT INTO favorite_downloads
+  (favorite_id, user_id, record_id, status, standard_no, standard_name, standard_type,
+   retry_count, created_at, updated_at)
+SELECT f.id, f.user_id, f.record_id, 'pending',
+       COALESCE(NULLIF(TRIM(f.standard_number), ''), r.standard_number, 'UNKNOWN_' || f.record_id),
+       COALESCE(r.std_name, '未知标准'),
+       COALESCE(f.standard_type, 'Unknown'),
+       0, datetime('now'), datetime('now')
+FROM user_favorites f
+LEFT JOIN announcement_record r ON r.id = f.record_id
+WHERE NOT EXISTS (SELECT 1 FROM favorite_downloads fd WHERE fd.favorite_id = f.id);
+```
+
+**实际执行结果**：`INSERT rowcount=8` → `missing=0` → 8 行全 `pending`（GB/T 2970-2026 / GB/T 5613-2026 / GB/T 7607-2026 / GB/T 13237-2026 / GB/T 7597-2026 / GB/Z 184.1-2026 / GB/T 8335-2026 / GB/T 8336-2026）→ 分布 `abandoned 96 / failed 1 / pending 8`；同批纠正 `user_favorites.standard_number` 36 行 NULL（`uf updated=36`、`fd updated=8`、`uf_null_after=0`、`fd_unknown_after=0`）。
+
+**模板修正教训**：原模板只写 `COALESCE(f.standard_number, 'UNKNOWN_' || f.record_id)`，而 v57 给 `user_favorites` 只加列不回填 → 历史行为 NULL → 现场产出 8 行 `UNKNOWN_<record_id>`。**正确写法必须多一层回退到 `announcement_record.standard_number`**（上方已修正）。
