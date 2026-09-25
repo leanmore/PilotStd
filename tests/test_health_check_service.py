@@ -1,8 +1,22 @@
 """docker/health_check_service.py 单元测试。"""
 
+import logging
 from unittest.mock import MagicMock, patch
 
-from docker.health_check_service import _ANNOUNCE_ADAPTERS, _probe, _write_health, run_health_check
+import requests
+
+from docker.health_check_service import (
+    _ANNOUNCE_ADAPTERS,
+    _log_health_transition,
+    _probe,
+    _write_health,
+    run_health_check,
+)
+from pilotstd.query.network import safe_request
+from pilotstd.query.site_config import create_default_sites
+
+HEALTH_LOGGER = "docker.health_check_service"
+NETWORK_LOGGER = "pilotstd.query.network"
 
 
 class TestProbe:
@@ -103,3 +117,129 @@ class TestAnnounceAdapters:
         assert len(set(urls)) == 3
         for url in urls:
             assert "/noc/search/noc" in url
+
+
+# ════════════════════════════════════════════════════════════════
+# 第三轮 P2：energy 误判修复 + 健康状态变化才告警
+# 现场实测（2026-09-25）：energy 的 stdPage 裸 GET 返回 400、带参数返回 200；
+# adapter_state.health_status 因此长期为 down，并每小时刷一条 WARNING。
+# jtst 则是外部不可达（本机与 NAS 均 ConnectionError），判决正确、只是重复告警。
+# ════════════════════════════════════════════════════════════════
+
+
+class TestProbeLoggingAndParams:
+    """探活必须按站点真实请求形态发参数，并把失败日志交给调用方按状态变化处理。"""
+
+    @patch("docker.health_check_service.safe_raw_get")
+    def test_energy_probe_passes_params_and_skips_ssl_verify(self, mock_get):
+        resp = MagicMock()
+        resp.status_code = 200
+        mock_get.return_value = resp
+
+        result = _probe(
+            "https://114.251.111.103:18080/zxd/portal/stdPage",
+            "energy",
+            "GET",
+            {"keyword": "GB", "limit": 15},
+        )
+
+        assert result == "up"
+        kwargs = mock_get.call_args[1]
+        assert kwargs["params"] == {"keyword": "GB", "limit": 15}, "缺参数时站点返回 400 → 误判 down"
+        assert kwargs["verify"] is False, "energy 为纯 IP + 自签名证书站点"
+        assert kwargs["log_failures"] is False, "探活失败改由调用方按状态变化告警"
+
+    @patch("docker.health_check_service.safe_raw_get")
+    def test_probe_without_params_still_works(self, mock_get):
+        """未配置 probe_params 的站点保持原行为（params=None）。"""
+        resp = MagicMock()
+        resp.status_code = 200
+        mock_get.return_value = resp
+
+        assert _probe("https://std.example.com", "std_gov") == "up"
+        assert mock_get.call_args[1]["params"] is None
+
+    @patch("docker.health_check_service.safe_raw_post")
+    def test_post_probe_passes_params(self, mock_post):
+        resp = MagicMock()
+        resp.status_code = 200
+        mock_post.return_value = resp
+
+        assert _probe("https://x.example.com", "some_site", "POST", {"q": "1"}) == "up"
+        assert mock_post.call_args[1]["params"] == {"q": "1"}
+
+
+class TestTransitionLogging:
+    """健康状态只在变化时告警：重复 down 不刷屏，但状态变化必须留痕。"""
+
+    def test_unchanged_down_is_debug_not_warning(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=HEALTH_LOGGER):
+            _log_health_transition("jtst", "down", "down")
+
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING], "重复 down 不应再打 WARNING"
+        assert any(r.levelno == logging.DEBUG for r in caplog.records)
+
+    def test_transition_to_down_warns(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=HEALTH_LOGGER):
+            _log_health_transition("jtst", "up", "down")
+
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert warnings, "状态变化为 down 必须告警（不掩盖真实错误）"
+        assert "转为不可用" in warnings[0].getMessage()
+
+    def test_first_down_warns(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=HEALTH_LOGGER):
+            _log_health_transition("energy", None, "down")
+
+        assert [r for r in caplog.records if r.levelno == logging.WARNING], "首次判定 down 要告警"
+
+    def test_recovery_is_info(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=HEALTH_LOGGER):
+            _log_health_transition("jtst", "down", "up")
+
+        infos = [r for r in caplog.records if r.levelno == logging.INFO]
+        assert infos and "已恢复" in infos[0].getMessage()
+
+    def test_unchanged_up_is_debug(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=HEALTH_LOGGER):
+            _log_health_transition("csres", "up", "up")
+
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+class TestSiteConfigProbeParams:
+    """站点配置回归守卫：energy 探活必须声明参数。"""
+
+    def test_energy_site_declares_probe_params(self):
+        sites = {s.name: s for s in create_default_sites()}
+
+        assert "energy" in sites
+        params = sites["energy"].probe_params
+        assert params.get("keyword"), "energy 探活需要 keyword，否则 stdPage 返回 400"
+        assert {"tid", "limit", "offset"} <= set(params), "缺少 Bootstrap-table 必需的分页参数"
+
+
+class TestSafeRequestLogLevel:
+    """safe_request(log_failures=False)：失败降到 DEBUG，返回值语义不变。"""
+
+    @staticmethod
+    def _failing_session() -> MagicMock:
+        session = MagicMock()
+        session.request.side_effect = requests.ConnectionError("boom")
+        return session
+
+    @patch("pilotstd.query.network.time.sleep", lambda _s: None)
+    def test_log_failures_false_downgrades_warning(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=NETWORK_LOGGER):
+            result = safe_request(self._failing_session(), "GET", "https://x.invalid", "jtst", log_failures=False)
+
+        assert result is None, "返回值语义不变（仍返回 None）"
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING], "探活失败不应刷 WARNING"
+        assert any("请求异常(已重试)" in r.getMessage() for r in caplog.records), "失败事实仍留在 DEBUG"
+
+    @patch("pilotstd.query.network.time.sleep", lambda _s: None)
+    def test_log_failures_true_keeps_warning(self, caplog):
+        with caplog.at_level(logging.DEBUG, logger=NETWORK_LOGGER):
+            safe_request(self._failing_session(), "GET", "https://x.invalid", "jtst")
+
+        assert [r for r in caplog.records if r.levelno == logging.WARNING], "业务请求失败必须保持 WARNING"

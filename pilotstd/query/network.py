@@ -80,6 +80,7 @@ def safe_request(
     url: str,
     site_name: str,
     timeout: int = DEFAULT_TIMEOUT,
+    log_failures: bool = True,
     **kwargs: Any,
 ) -> Optional[requests.Response]:
     """统一的安全请求方法，带重试逻辑。
@@ -93,6 +94,9 @@ def safe_request(
         url: 请求 URL
         site_name: 站点标识（用于日志和监控）
         timeout: 超时秒数
+        log_failures: 失败时是否打 WARNING。健康检查每小时探活一次，
+            由调用方负责"仅状态变化时告警"，故探活传 False（失败降到 DEBUG），
+            避免重复告警淹没有效信号；业务请求保持 True。
         **kwargs: 传递给 session.request 的额外参数
 
     Returns:
@@ -100,6 +104,10 @@ def safe_request(
     """
     # 限制最大重定向次数，防止恶意重定向链
     session.max_redirects = MAX_REDIRECTS
+
+    def _warn(msg: str, *args: Any) -> None:
+        """按调用方要求选择失败日志级别。"""
+        (logger.warning if log_failures else logger.debug)(msg, *args)
 
     for attempt in range(MAX_RETRIES + 1):
         try:
@@ -110,7 +118,7 @@ def safe_request(
                 continue
             # 4xx/5xx（非可重试）记录警告，避免健康检查静默宕机
             if resp.status_code >= 400:
-                logger.warning("%s HTTP %s: %s", site_name, resp.status_code, url)
+                _warn("%s HTTP %s: %s", site_name, resp.status_code, url)
             return resp
         except (requests.Timeout, requests.ConnectionError) as e:
             if attempt < MAX_RETRIES:
@@ -118,9 +126,9 @@ def safe_request(
                 logger.debug("%s %s: %s — 重试中...", site_name, type(e).__name__, url)
                 time.sleep(1)
             else:
-                logger.warning("%s 请求异常(已重试): %s — %s", site_name, url, e)
+                _warn("%s 请求异常(已重试): %s — %s", site_name, url, e)
         except requests.RequestException as e:
-            logger.warning("%s 请求失败: %s — %s", site_name, url, e)
+            _warn("%s 请求失败: %s — %s", site_name, url, e)
             _monitor.record_error(site_name)
             return None
 

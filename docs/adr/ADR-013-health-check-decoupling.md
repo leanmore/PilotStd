@@ -29,3 +29,18 @@
 - `docker/health_check_service.py`（存在）
 - commit `1b2c2a1f`（19 文件 +429 行：v51 迁移两列 + 服务 + 调度 + API 新字段 + 前端 1h 轮询 + cooldown 橙点）
 - 相关修复：`518e5b06`（API 字段错位）、`df182a3d`（UPSERT 改造）、`317f6975`（CircuitBreaker key 改 standard_type + 三站探活 URL 各归其端点）
+
+## 补充（2026-09-25，第三轮 P2）
+
+现场实测发现探活机制有两处偏差，已修正：
+
+1. **探活须按站点真实请求形态发参数**：`energy` 的 `stdPage` 是 Bootstrap-table AJAX 端点，
+   裸 GET 返回 **400**（实测：裸 GET 400 / 带 `keyword,tid,op,limit,offset` 200 且有数据），
+   导致 `adapter_state.health_status` 长期把在线站点记为 `down`，并每小时刷一条 WARNING。
+   处置（根治）：`SiteState` 新增 `probe_params` 字段，energy 站点在 `site_config/_sites.py` 声明真实参数。
+
+2. **健康状态只在变化时告警**：探活每小时一次，持续 `down` 的站点（如 `jtst`：本机与 NAS 均
+   `ConnectionError`，判决正确但站点确实不可达）会把日志刷成噪音。处置：`safe_request` 新增
+   `log_failures`（探活传 False → 失败降 DEBUG），由 `_log_health_transition()` 按
+   up→down 告警 / down→up 恢复 / 无变化 DEBUG 输出；`health_status` 仍照常写表、汇总行仍统计，
+   **不掩盖真实错误**（状态变化与恢复都有留痕）。

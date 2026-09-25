@@ -22,8 +22,14 @@ _ANNOUNCE_ADAPTERS = {
 _HEALTH_TIMEOUT = 10  # 探活超时秒数
 
 
-def _probe(url: str, site_name: str, probe_method: str = "GET") -> str:
-    """对单个站点做轻量级探活，返回 'up' 或 'down'。"""
+def _probe(url: str, site_name: str, probe_method: str = "GET", probe_params: dict | None = None) -> str:
+    """对单个站点做轻量级探活，返回 'up' 或 'down'。
+
+    `probe_params` 为站点真实请求形态所需的参数：AJAX 端点（energy 的 stdPage）
+    不带参数会返回 400，曾让在线站点被误判为 down。
+    失败日志传 `log_failures=False`：探活每小时一次，重复告警由调用方按
+    "状态变化才告警"处理，避免淹没有效信号。
+    """
     # miit 的 requests TLS 指纹被拦截（403），curl 实测可通，用 subprocess 单独探活
     if site_name == "miit" or "std.miit.gov.cn" in url:
         import subprocess
@@ -45,19 +51,47 @@ def _probe(url: str, site_name: str, probe_method: str = "GET") -> str:
     verify = site_name != "energy"
     # 用浏览器 UA 探活，避免站点反爬拦截（与公告/查询适配器保持一致）
     headers = {"User-Agent": CHROME_UA}
+    kwargs: dict[str, Any] = {
+        "timeout": _HEALTH_TIMEOUT,
+        "verify": verify,
+        "headers": headers,
+        "params": probe_params or None,
+        "log_failures": False,
+    }
     if probe_method.upper() == "POST":
-        resp = safe_raw_post(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
+        resp = safe_raw_post(url, site_name, **kwargs)
     else:
-        resp = safe_raw_get(url, site_name, timeout=_HEALTH_TIMEOUT, verify=verify, headers=headers)
+        resp = safe_raw_get(url, site_name, **kwargs)
     if resp is not None and resp.status_code < 400:
         return "up"
     return "down"
 
 
-def _write_health(name: str, status: str) -> None:
-    """将探活结果 UPSERT 写入 adapter_state，仅更新健康检查字段组。"""
+def _log_health_transition(name: str, previous: str | None, status: str) -> None:
+    """只在健康状态**变化**时告警。
+
+    探活每小时跑一次：持续 down 的站点（如 jtst 外部不可达）若每次都打 WARNING，
+    会把日志淹成噪音；状态本身仍照常写入 adapter_state，不掩盖真实错误。
+    """
+    if previous == status:
+        logger.debug("[health] %s 仍为 %s", name, status)
+    elif status == "down":
+        logger.warning("[health] %s 转为不可用（%s → down）", name, previous or "未知")
+    else:
+        logger.info("[health] %s 已恢复（%s → up）", name, previous or "未知")
+
+
+def _write_health(name: str, status: str) -> str | None:
+    """将探活结果 UPSERT 写入 adapter_state，仅更新健康检查字段组。
+
+    Returns:
+        写入前的 health_status（无记录时为 None），供调用方判断是否发生状态变化。
+    """
     db = Database(get_db_path())
+    previous: str | None = None
     try:
+        row = db.fetchone("SELECT health_status FROM adapter_state WHERE adapter_name = ?", (name,))
+        previous = row["health_status"] if row else None
         db.execute(
             "INSERT INTO adapter_state (adapter_name, last_health_check, health_status, updated_at) "
             "VALUES (?, ?, ?, datetime('now', 'localtime')) "
@@ -71,6 +105,7 @@ def _write_health(name: str, status: str) -> None:
         logger.warning("[health] %s 健康状态写入失败: %s", name, e)
     finally:
         db.close()
+    return previous
 
 
 def run_health_check() -> dict[str, Any]:
@@ -85,15 +120,17 @@ def run_health_check() -> dict[str, Any]:
         sites = []
     for site in sites:
         probe_url = site.probe_url or site.base_url
-        status = _probe(probe_url, site.name, site.probe_method)
-        _write_health(site.name, status)
+        status = _probe(probe_url, site.name, site.probe_method, site.probe_params)
+        previous = _write_health(site.name, status)
+        _log_health_transition(site.name, previous, status)
         stats["total"] += 1
         stats[status] += 1
 
     # 公告适配器：国标/行标/地标共用官方平台主页地址
     for std_type, url in _ANNOUNCE_ADAPTERS.items():
         status = _probe(url, std_type)
-        _write_health(std_type, status)
+        previous = _write_health(std_type, status)
+        _log_health_transition(std_type, previous, status)
         stats["total"] += 1
         stats[status] += 1
 
