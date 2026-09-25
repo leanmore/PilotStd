@@ -5,12 +5,13 @@
 // （pending/downloading/archiving/done/failed/abandoned），表定义无 CHECK 约束，
 // 因此未知值必须兜底（显示原文，绝不空白）。
 // 另有第 7 个**纯前端兜底**展示项：收藏已存在但队列行缺失（download_status === null）
-// → 显示"待下载"。它不在数据库枚举内，是实现层的中间态（收藏接口同步建队列行，
-// 正常情况下不会出现），必须在界面上可解释而非留空。
+// → 显示"未加入队列"（历史遗留行：2026-08-23 前的收藏创建路径不建队列行，见技术债 #18）。
+// 它不在数据库枚举内，必须在界面上可解释而非留空；措辞刻意区别于"排队中"，
+// 因为这类行不会自动流转，说"待下载"会误导。
 
 export type DownloadStatus = 'pending' | 'downloading' | 'archiving' | 'done' | 'failed' | 'abandoned'
 
-/** 数据库枚举（6 值全集）→ i18n 叶子键；纯前端兜底项见 PENDING_QUEUE_LABEL_KEY */
+/** 数据库枚举（6 值全集）→ i18n 叶子键；纯前端兜底项见 NOT_QUEUED_LABEL_KEY */
 export const DOWNLOAD_STATUS_LABEL_KEYS: Record<DownloadStatus, string> = {
   pending: 'download.status.pending',
   downloading: 'download.status.downloading',
@@ -30,8 +31,8 @@ export const DOWNLOAD_STATUS_SEVERITY: Record<DownloadStatus, string> = {
   abandoned: 'danger',
 }
 
-/** 纯前端兜底项：已收藏但尚未进入下载队列（download_status === null） */
-export const PENDING_QUEUE_LABEL_KEY = 'download.status.pendingQueue'
+/** 纯前端兜底项：已收藏但没有队列行（download_status === null，历史遗留） */
+export const NOT_QUEUED_LABEL_KEY = 'download.status.notQueued'
 
 /** 未知枚举值的兜底颜色 */
 export const UNKNOWN_SEVERITY = 'secondary'
@@ -39,9 +40,9 @@ export const UNKNOWN_SEVERITY = 'secondary'
 /** Tooltip / 展示用错误文本截断长度（API 返回全量，展示层截断） */
 export const ERROR_DISPLAY_MAX_CHARS = 120
 
-/** 状态 → i18n 标签键；null/undefined（未入队）→ "待下载"；未知值 → 空串（由调用方回退原文） */
+/** 状态 → i18n 标签键；null/undefined（无队列行）→ "未加入队列"；未知值 → 空串（由调用方回退原文） */
 export function downloadStatusLabelKey(status: string | null | undefined): string {
-  if (!status) return PENDING_QUEUE_LABEL_KEY
+  if (!status) return NOT_QUEUED_LABEL_KEY
   return DOWNLOAD_STATUS_LABEL_KEYS[status as DownloadStatus] || ''
 }
 

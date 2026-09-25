@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DOWNLOAD_STATUS_LABEL_KEYS,
   DOWNLOAD_STATUS_SEVERITY,
-  PENDING_QUEUE_LABEL_KEY,
+  NOT_QUEUED_LABEL_KEY,
   downloadStatusLabel,
   downloadStatusLabelKey,
   downloadStatusSeverity,
@@ -35,11 +35,16 @@ describe('downloadStatus 枚举映射', () => {
     expect(downloadStatusSeverity('abandoned')).toBe('danger')
   })
 
-  it('download_status 为 null（收藏但未入队）→ 第 7 项"待下载"兜底，不空白', () => {
-    expect(downloadStatusLabelKey(null)).toBe(PENDING_QUEUE_LABEL_KEY)
-    expect(downloadStatusLabelKey(undefined)).toBe(PENDING_QUEUE_LABEL_KEY)
-    expect(downloadStatusLabel(null, t)).toBe(`[${PENDING_QUEUE_LABEL_KEY}]`)
+  it('download_status 为 null（收藏但无队列行）→ 第 7 项"未加入队列"兜底，不空白', () => {
+    expect(downloadStatusLabelKey(null)).toBe(NOT_QUEUED_LABEL_KEY)
+    expect(downloadStatusLabelKey(undefined)).toBe(NOT_QUEUED_LABEL_KEY)
+    expect(downloadStatusLabel(null, t)).toBe(`[${NOT_QUEUED_LABEL_KEY}]`)
     expect(downloadStatusSeverity(null)).toBe('secondary')
+  })
+
+  it('null 的文案不得复用"排队中"（历史遗留行不会自动流转，措辞必须区分）', () => {
+    expect(NOT_QUEUED_LABEL_KEY).not.toBe(DOWNLOAD_STATUS_LABEL_KEYS.pending)
+    expect(NOT_QUEUED_LABEL_KEY).toBe('download.status.notQueued')
   })
 
   it('未知枚举值不空白：回退显示原文 + 灰色', () => {

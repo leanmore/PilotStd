@@ -20,7 +20,7 @@ interface FavoriteItem {
   created_at: string
   updated_at: string
   source_site: string | null
-  // 下载队列四字段（favorite_downloads）：null 表示收藏存在但队列行缺失 → 展示为"待下载"
+  // 下载队列四字段（favorite_downloads）：null 表示收藏存在但队列行缺失 → 展示为"未加入队列"
   download_status: string | null
   download_error: string | null
   last_attempt: string | null

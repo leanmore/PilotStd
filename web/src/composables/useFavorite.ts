@@ -58,7 +58,7 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     } else {
       // ── 收藏（乐观）──
       favMap.value[id] = true
-      // 新收藏尚未取到队列行：先放占位对象，使状态标签显示"待下载"而不是空白
+      // 新收藏尚未取到队列行：先放占位对象，使状态标签显示"未加入队列"而不是空白
       favStatusMap.value[id] = {
         favorite_id: 0,
         status: 'pending',

@@ -271,7 +271,7 @@ describe('useFavorite 收藏状态与下载状态解耦', () => {
     expect(favStatusMap.value[3]).toBeUndefined()
   })
 
-  it('新收藏先占位为"待下载"（download_status=null），取消收藏后清空下载状态', async () => {
+  it('新收藏先占位为"未加入队列"（download_status=null），取消收藏后清空下载状态', async () => {
     const records = ref(makeRecords(1))
     vi.mocked(addFavorite).mockResolvedValueOnce({ status: 'pending', favorite_id: 1 })
     vi.mocked(removeFavorite).mockResolvedValueOnce({ status: 'cancelled' })

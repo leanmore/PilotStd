@@ -1,5 +1,5 @@
 // web/src/components/FavoriteStatusTag.test.ts
-// 收藏下载状态标签的边界契约：未收藏不渲染；已收藏即便未入队也要渲染"待下载"
+// 收藏下载状态标签的边界契约：未收藏不渲染；已收藏即便无队列行也要渲染"未加入队列"
 
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
@@ -41,9 +41,10 @@ describe('FavoriteStatusTag 边界契约', () => {
     expect(mountTag({ status: fields({ download_status: 'abandoned' }) }).text()).toContain('已放弃')
   })
 
-  it('status 存在但 download_status 为 null（已收藏未入队）→ 渲染"待下载"，不空白', () => {
+  it('status 存在但 download_status 为 null（已收藏但无队列行）→ 渲染"未加入队列"，不空白', () => {
     const wrapper = mountTag({ status: fields({ download_status: null }) })
-    expect(wrapper.text()).toContain('待下载')
+    expect(wrapper.text()).toContain('未加入队列')
+    expect(wrapper.text()).not.toContain('已入队')  // 不得与"排队中"混淆
     expect(wrapper.findComponent(Tag).exists()).toBe(true)
   })
 

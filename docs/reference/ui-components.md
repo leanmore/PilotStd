@@ -37,7 +37,7 @@
 - 映射（文案键 + 颜色分级 + 未知值兜底）只有一处事实源：`web/src/utils/downloadStatus.ts`；页面禁止内联 `status === 'done' ? ...` 之类的判断
 - 渲染只有一处入口：`FavoriteStatusTag.vue`（收藏页状态列与公告详情页收藏列共用）
 - 数据库枚举 6 值：`pending` / `downloading` / `archiving` / `done` / `failed` / `abandoned`；表定义无 CHECK，未知值必须回退显示原文而非空白
-- 第 7 个展示项 `download_status === null`（收藏已存在但队列行缺失）显示"待下载"，属前端兜底而非数据库枚举
+- 第 7 个展示项 `download_status === null`（收藏已存在但队列行缺失，历史遗留）显示"**未加入队列**"（`download.status.notQueued`），属前端兜底而非数据库枚举。措辞刻意区别于"已入队"：这类行不会自动流转，说"待下载"会误导（第三轮 #18 B）
 
 ## 导航与布局
 

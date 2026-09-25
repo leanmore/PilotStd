@@ -91,9 +91,9 @@ describe('FavoritesView 状态列', () => {
     expect(html).not.toContain('>pending<')  // 旧行为：直接渲染 user_favorites.status 原值
   }, MOUNT_TIMEOUT_MS)
 
-  it('download_status 为 null（收藏但未入队）显示"待下载"，不空白', async () => {
+  it('download_status 为 null（收藏但无队列行）显示"未加入队列"，不空白', async () => {
     const wrapper = await mountView()
-    expect(wrapper.html()).toContain('待下载')
+    expect(wrapper.html()).toContain('未加入队列')
   }, MOUNT_TIMEOUT_MS)
 
   it('未知枚举值回退显示原文，不空白', async () => {
