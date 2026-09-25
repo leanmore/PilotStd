@@ -219,7 +219,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 |------|------|------|
 | `/api/favorites` | POST | 创建收藏（仅记录关系，不触发下载；同步建 `favorite_downloads` 行） |
 | `/api/favorites` | GET | 收藏列表；额外返回下载四字段 `download_status`/`download_error`/`last_attempt`/`download_updated_at`（按 `favorite_id` 取 `last_attempt` 最新一行；无队列行时为 null） |
-| `/api/favorites/{record_id}/status` | GET | 下载状态查询（`status` 已**语义归位为下载状态**，来源 `favorite_downloads`；查询键 `record_id` + `user_id`，`record_id` = `announcement_record.id`）。响应只含标准键 `download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count` + `favorite_id`；第三轮 #16 已删除无消费方的旧键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`。⚠️ 已知语义缺口：无队列行的收藏与"未收藏"返回同一份 null 体（见技术债 #19） |
+| `/api/favorites/{record_id}/status` | GET | 收藏 + 下载状态查询（`status` 已**语义归位为下载状态**，来源 `favorite_downloads`；查询键 `record_id` + `user_id`，`record_id` = `announcement_record.id`）。响应 8 键：标准键 `download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count` + `favorite_id` + `status` + **`favorited`**（#19 方案②，取自 `user_favorites`，用于区分"收藏但无队列行"与"未收藏"）。旧键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count` 已于 #16 删除；入口打 `[STATUS_API]` 防御性日志（ua/referer/路径，不含查询参数与凭证） |
 | `/api/favorites/batch-status` | POST | 批量状态（公告详情页用）；与列表接口同名同义地返回下载四字段 |
 | `/api/favorites/{record_id}` | DELETE | 取消收藏 |
 

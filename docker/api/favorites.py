@@ -5,7 +5,7 @@ import json as _json
 import logging
 from typing import Dict, List, Optional, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -192,29 +192,72 @@ def add_favorite(
 # 2. 查询收藏状态（单条）
 # ════════════════════════════════════════════════════════════════ 分隔
 
+# ── /status 的防御性日志（第三轮 #19 附带）──
+# 目的：该端点仓内已无消费方，但可能被仓外脚本调用；记录调用来源为将来清理留线索。
+# 只记 ua / referer / 路径：不含查询参数（`request.url.path` 天然不含）、请求体与凭证。
+_SENSITIVE_MARKERS = ("password", "token", "authorization", "secret", "api_key", "apikey", "bearer")
+
+
+def _sanitize_header(value: str | None, limit: int = 200) -> str:
+    """截断请求头；命中敏感关键字则整段替换，避免把凭证写进日志。"""
+    if not value:
+        return "-"
+    text = value.strip()
+    if any(marker in text.lower() for marker in _SENSITIVE_MARKERS):
+        return "[redacted]"
+    return text[:limit]
+
+
+def _log_status_api_call(request: Request) -> None:
+    """记录 /status 的调用来源（INFO 级）。不记查询参数、不记请求体。"""
+    logger.info(
+        "[STATUS_API] ua=%s referer=%s path=%s",
+        _sanitize_header(request.headers.get("user-agent")),
+        _sanitize_header(request.headers.get("referer")),
+        request.url.path,
+    )
+
+
 
 @router.get("/api/favorites/{record_id}/status")
 def get_favorite_status(
     record_id: int,
+    request: Request,
     user_id: int = Depends(get_current_user_id),
     db: Database = Depends(get_db),
 ):
-    """查询指定**公告记录**的下载状态（语义归位版）。
+    """查询指定**公告记录**的收藏 + 下载状态（语义归位版）。
 
     查询键：`record_id` 是 `announcement_record.id`（前端传的是公告记录的 id，
     见 useFavorite 的 `record.id`），因此按 `favorite_downloads.record_id` 查、
     并带 `user_id` 做多用户隔离——两者缺一都会查错行。
 
-    数据来源从 user_favorites 切到 favorite_downloads：`user_favorites.status` 只表达
-    "是否收藏"（链路从不更新它，恒为 pending），下载进度只在 favorite_downloads。
+    数据来源分工：`favorite_downloads` 提供下载进度，`user_favorites` 提供"是否收藏"
+    （`user_favorites.status` 只表达收藏与否，链路从不更新它，恒为 pending）。
 
-    响应只保留标准键（与列表/批量接口同名同义）：
-    `download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count`，
-    外加 `favorite_id`（队列行主键）。第三轮已清理无消费方的旧键
-    （`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`）——
-    `/status` 的语义是**下载**状态，这些键要么重复、要么属于收藏接口。
+    响应键：标准键 `download_status`/`download_error`/`last_attempt`/
+    `download_updated_at`/`retry_count` + `favorite_id`（队列行主键）+ `status`
+    （下载状态别名）+ `favorited`（第三轮 #19 新增，取自 user_favorites）。
+
+    `favorited` 解决语义歧义（第三轮登记 #19）：端点按 favorite_downloads 取数时，
+    "收藏存在但无队列行"与"从未收藏"会返回同一份 null 体，调用方无法区分。加入
+    `favorited` 后三种状态可辨：
+      - `favorited=true, status=null` → 收藏存在但无队列行（历史遗留，如 #18）
+      - `favorited=false, status=null` → 未收藏
+      - `favorited=true, status='abandoned'` → 收藏且已放弃
     """
+    _log_status_api_call(request)
+
     user_id = _get_user_id(user_id, db)
+
+    # 是否收藏：以 user_favorites 为准（与列表/批量接口同源），供调用方区分两种 null
+    favorited = (
+        db.fetchone(
+            "SELECT 1 AS hit FROM user_favorites WHERE user_id = ? AND record_id = ? LIMIT 1",
+            (user_id, record_id),
+        )
+        is not None
+    )
 
     row = db.fetchone(
         "SELECT fd.favorite_id, fd.status, fd.error_message,"
@@ -225,12 +268,13 @@ def get_favorite_status(
         (record_id, user_id),
     )
     if not row:
-        return {"status": None, "favorite_id": None, "download_status": None}
+        return {"status": None, "favorite_id": None, "download_status": None, "favorited": favorited}
 
     status = row["status"]
     return {
         "status": status,
         "favorite_id": row["favorite_id"],
+        "favorited": favorited,
         # 标准键（与列表/批量接口同名同义）
         "download_status": status,
         "download_error": row["error_message"],
@@ -407,7 +451,10 @@ def export_favorites(
     user_id = _get_user_id(user_id, db)
 
     sql = (
-        "SELECT f.id, f.standard_number, f.standard_type, f.status,"
+        # standard_number 以 user_favorites 为准，NULL 时回退公告记录（v57 只加列不回填，
+        # 历史行该列为 NULL，曾导致导出标准号空白；见技术债 #18 补充项）
+        "SELECT f.id, COALESCE(f.standard_number, r.standard_number, '') AS standard_number,"
+        " f.standard_type, f.status,"
         " f.local_path, f.publish_date, f.created_at, f.updated_at,"
         " r.source_site, r.std_name"
         " FROM user_favorites f"
