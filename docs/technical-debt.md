@@ -1,8 +1,9 @@
 # 技术债登记
 
-> 版本：v1.3.2
-> 更新日期：2026-09-23
+> 版本：v1.3.3
+> 更新日期：2026-09-25
 > 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
+> 2026-09-25 第三轮（清理与还债）：**#16 已清理**（`/status` 旧键 + 前端 `getFavoriteStatus`，见第一节 TD-16）；新增 **#18**（8 条无队列行的历史收藏：B 显示层已改"未加入队列"，A 数据修复 SQL 已备好待容器执行）与 **#19**（`/status` 对"无队列行"与"未收藏"返回同一份 null 体，语义不可区分）。
 > 2026-09-23 追加：#17 Qt 线程"只能保活、不可安全终止"的边界——`terminate()` 已在 7 处取消/关闭路径全部移除（改用 `stop_worker_gracefully()`），代价是线程超时未退出时只能保活等待；已加计数与 `error` 级升级作为发现手段，本条登记边界与复评条件。
 > 2026-09-21 追加：#16 `/status` 旧键兼容层未清理——下载状态改造后前端已统一取标准键，旧键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`）经用户确认**本轮保留**，待 grep 复核无消费方后单独清理。
 > 2026-09-21 追加：#15 通知聚合器实例不共享（聚合对"每次新建门面"的路径失效）——经用户确认本轮**不做单例化**，改用链路源头按批汇总（`1dd48f66`/`71ecaea0`），本条登记为暂缓项与复评条件。
@@ -32,11 +33,13 @@
 | TD-9 notification.py user_id 误用 | 原 #9（登记 2026-08-20，2026-08-25 审计升 🔴 高）：`_get_user_id` 把 token 的 user_id 传给按 username 查询的 `get_user_id()`（`WHERE username = ?`），多用户场景静默折叠为 user 1。`bd34a226`（2026-08-25）重写：形参 `username`→`user_id`，改用按主键 `get_user_by_id()` 校验，未知用户显式 401（删除兜底 1）；新增单元 401 分支 + 真实登录 + SQLite 集成测试（`tests/test_notification_api.py`，12 passed；联动 4 文件 28 passed） | 2026-08-25 |
 | TD-10 test_api_snapshot.py 环境污染 | 原 #10（登记 2026-08-20）：模块级 `os.environ.setdefault` 注入独有 env 值（snapshot_*/admin_db_*）且永不恢复，污染后导入的 test_docker_auth 等模块（SUPERUSER 错值 → 登录 401，串行确定性失败 / xdist 下 flaky）。P0 `07786678`（2026-08-25）：test_api_snapshot/test_admin_db 改模块级 autouse env fixture（save/restore/pop 标准模式，同 test_api_favorites_auth.py:25-38）；P1+P2 `acf2a7fd`：4 个守卫式 `SUPERUSER` 注入清理（test_announce_detail 等）+ 10 个同值家族模块级 setdefault 收敛为 conftest 共享 fixture + 薄 wrapper。关门验证：全量串行 `tests/ --ignore=tests/gui/` 4084 passed / **0 failed**（基线 2 failed），14 skipped 不变 | 2026-08-25 |
 
+| TD-16 `/status` 旧键兼容层 | 原 #16（登记 2026-09-21）：`get_favorite_status` 曾同时返回旧键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`。第三轮清理：删除 5 个旧键 + 连带删除仅供 `in_cooldown` 使用的 `_COOLDOWN_DAYS`/`LEFT JOIN announcement_record`；前端删除唯一调用方 `getFavoriteStatus`（全库零消费方）。验证：新增键集合契约测试 2 例（含"旧键不得回流"断言）、ruff/mypy 全绿、现场 `verify_api.py` 8/8 | 2026-09-25 |
+
 **技术细节**：见 [architecture.md](architecture.md) 事件总线重构决策记录。
 
 ---
 
-## 二、剩余台账（#11 继续观察 / #12 已关闭 / #15 暂缓 / #16 待处理 / #17 边界观察；#13、#14 待补；#1~#10 已解决，见第一节）
+## 二、剩余台账（#11 继续观察 / #12 已关闭 / #13、#14 待补 / #15 暂缓 / #17 边界观察 / #18 A 待执行 / #19 待处置；#16 已清理，见第一节）
 
 | # | 项目 | 位置 | 状态 | 说明 | 登记日期 |
 |---|------|------|------|------|---------|
@@ -45,8 +48,51 @@
 | 13 | G-031 缺口：`pilotstd/core/` 无文档联动映射 | 映射表 `scripts/check_g_031_docs_sync.py`；事实载体 [architecture/modules/core.md](architecture/modules/core.md) | ⏳ 待处理 (Pending) | 判据（2026-09-13 确认）：文档要与代码一致，承载事实的文档存在就该联动。实测 `core.md` 自述模块路径 `pilotstd/core/` 且文件存在，但 G-031 的 `DOC_SYNC_MAP` 里没有 `pilotstd/core/` → `core.md` 这条，因此改任何 core 文件都不会触发文档同步，`core.md` 可静默过期。未立即补的原因：`pilotstd/core/` 覆盖面很大（config/db/notification/i18n 等子域），需先核定 `core.md` 的粒度是否足以承载"任意 core 文件变更"，否则会退化成形式联动（这正是本次刚消除的问题）。待办：核定 `core.md` 实际覆盖面 → 决定整包映射还是按子域映射 → 落地并加验证场景 | 2026-09-13 |
 | 14 | G-031 缺口：`pilotstd/announcement/` 无文档联动映射 | 映射表 `scripts/check_g_031_docs_sync.py`；事实载体 [reference/announcement-pipeline.md](reference/announcement-pipeline.md) | ⏳ 待处理 (Pending) | AGENTS.md §八 8.2 已把 `docs/reference/announcement-pipeline.md` 定为 `pilotstd/announcement/` 状态机/流程变更的回写目标，但 G-031 未落地该映射，改公告解析（如 `pilotstd/announcement/parser.py`）不触发任何文档同步。另注：该点曾被误配为 `pilotstd/announcement/parser.py` → `docs/architecture/modules/parser.md`（`c27c6c85` 引入），而 parser.md 实际描述的是 `pilotstd/scan/parser/`，已于 `6539dbe8` 修正。待办：把 `pilotstd/announcement/` → `announcement-pipeline.md` 纳入映射，并先核定该文档是否覆盖 parser 层变更 | 2026-09-13 |
 | 15 | 通知聚合器实例不共享 → 聚合对"每次新建门面"的路径失效 | 聚合器：`pilotstd/core/notification/manager.py:119-132`（随管理器新建）；管理器：`pilotstd/manager/facade/_base.py:250`（随门面新建）；触发点：`pilotstd/tasks/favorite_download.py:130/156/181` 每条通知都 `StandardManager()` | ❌ 暂缓 (Won't Fix Now) | 实测（2026-09-21，1119 条通知日志）：仅 `favorite_created` 出现过聚合消息（2/3），`download_failed`(509)/`download_started`(437)/`archive_abandoned`(68) **聚合占比 0%**。根因：链路每条通知都新建门面 → 新管理器 → **新聚合器**，缓冲区恒为 1 条，等于未聚合；对照收藏接口走 FastAPI 依赖注入的长期存活管理器，同一聚合器故能合并（50+17 两条）。决策（用户确认）：本轮**不做单例化**——属高风险架构变更，会牵动大量测试，且可能在多 Worker / 异步混合运行时引入状态竞争；改用侵入性更低的"链路源头按批汇总"（一次运行 1 条，已落地 `1dd48f66`/`71ecaea0`），聚合器继续服务交互型通知（5s 窗口）。复评条件：有专门重构窗口 + 测试覆盖率进一步提升后再议 | 2026-09-21 |
-| 16 | `/status` 旧键兼容层未清理 | `docker/api/favorites.py:246-250`（`get_favorite_status` 响应体）；消费方排查范围 `web/src/` | ⏳ 待处理 (Pending) | 背景：下载状态改造把前端取值统一到标准键（`download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count`），但 `get_favorite_status` 仍同时返回上一版键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`（另含 `status`/`favorite_id`）。保留理由（本轮）：①`status`/`favorite_id` 是收藏自身的键，语义与下载状态不同，不能删；②其余 5 键属过渡兼容，需先确认无消费方才可删——前端 `AnnounceDetail.vue`/`FavoritesView.vue` 已改用 `downloadStatus.ts` 的标准键，且用户可能停留在旧构建页面（本轮按用户指示保留兼容）。grep 复核（2026-09-21，范围 `web/src/`）：`in_cooldown`/`archive_retry_count` **零引用**；`error_message` 仅命中任务/查询类型（`types/api.ts:22` QueryResult、`types/task.ts:16`、`TaskManager.vue`、`TaskView.vue`），与收藏无关；`local_path` 命中 `announce.ts:81`（`/status` 返回类型声明，无消费方）与 `FavoritesView.vue:18`（取自 **list** 接口的 `user_favorites.local_path`，与 `/status` 的 `favorite_downloads.local_path` 不同源）。待办：删除 4 个过渡键（`in_cooldown`/`abandoned`/`archive_retry_count`/`error_message`）+ 清理 `announce.ts:81` 的 `local_path` 声明 → 补 `/status` 响应契约测试断言键集合 | 2026-09-21 |
 | 17 | Qt 线程"只能保活、不可安全终止"的边界 | `pilotstd/ui/qt_lifecycle.py:stop_worker_gracefully`（保活列表 + 计数）；调用方 7 处：`core/handlers/{_scan,_download,_archive,_announce,_auto,_query}.py`、`main_window/_window_lifecycle.py`、`pending_query_dialog.py` | ⏸️ 边界观察 (Monitoring) | 背景：`test-gui-coverage` 因"取消后 worker 信号触达已析构控件"失败（commit `54bd565d`），修复时把 7 处 `QThread.terminate()` 全部移除——强杀可能让线程在持锁/写文件时中断，风险高于收益。代价（本条登记项）：线程若因 bug 永不退出，只能脱离父对象后保活等待自然结束，进程退出前其资源不释放，且没有安全手段中断它。已有发现手段：`orphan_timeout_total()` 累计次数、`orphaned_worker_count()` 当前滞留数、累计 ≥3 时 `logger.error` 列出滞留线程的类名与时长（测试见 `tests/gui/test_worker_lifecycle.py`）。复评条件：一旦出现 error 级"疑似卡死线程"告警，立即定位该 worker 的阻塞点（网络 / 锁 / DB），把超时从"被动保活"升级为"可中断的阻塞点治理" | 2026-09-23 |
+| 18 | 8 条收藏没有 `favorite_downloads` 队列行（显示"未加入队列"） | 数据：`user_favorites` favorite_id 1..8；代码：`docker/api/favorites.py:151-165`（只有**新建**收藏才建队列行）；`pilotstd/core/db/_migrate_v54.py`（v54 只补列 + 回填**已有行**，不建缺失行） | ⏳ A 待执行 (Pending，B 已完成) | 根因确认（2026-09-25 实测）：收藏创建路径在 2026-08-23 前不建 `favorite_downloads` 行（v54「断链修复」是分界线）；现场 8 条 `favorite_id 1..8` 创建于 2026-07-20（5 条）/ 2026-08-22（3 条），而 2026-08-23 起的 97 条全部有队列行 → **新增为 0，属历史遗留**。**自动补建确认：不会**——`add_favorite` 命中 `already_exists` 时直接返回、不补行；全库唯一的 `INSERT INTO favorite_downloads` 在 `favorites.py:155`（仅新建路径）；`favorite_downloads` 不在 admin SQL 白名单（`docker/api/admin_db.py:25-34`）→ 只能容器内 SQL 修复。**B 已完成**：前端 null 显示由"待下载"改为"未加入队列"（`download.status.notQueued`）。**A 待执行**：容器内一次性幂等 SQL（原文见本节末尾「#18 A SQL 留档」），需在 NAS 上由用户执行（本机无 docker/SSH）。 | 2026-09-25 |
+| 19 | `/status` 对"无队列行的收藏"与"未收藏"返回同一份 null 体 | `docker/api/favorites.py:196-247`（`get_favorite_status` 无行分支 `{"status": None, "favorite_id": None, "download_status": None}`） | ⏳ 待处置 (Pending) | 问题：该端点按 `favorite_downloads` 取数，因此"收藏存在但无队列行"（如 #18 那 8 条）与"从未收藏"返回**完全相同**的 JSON，调用方无法区分两种业务状态。现状影响：第三轮 #16 已删除前端唯一调用方 `getFavoriteStatus`，仓内**零消费方**（`Select-String` 全库仅剩定义处与文档），当前无实际损失，属 API 语义缺口。**处置方案（二选一，需用户确认外部是否有仓外调用方）**：①**删除该端点**（零消费方，最干净）；②保留但加 `favorited: bool`（取自 `user_favorites`）使两态可区分。默认倾向 ①。 | 2026-09-25 |
+
+### #18 A SQL 留档（容器内执行，不入代码库）
+
+执行前先备份（宿主机 compose 目录内，`./data/pilotstd.db` 即容器 `/app/data/pilotstd.db`）：
+
+```bash
+cp ./data/pilotstd.db ./data/pilotstd.db.bak-$(date +%Y%m%d-%H%M%S)
+docker compose exec pilotstd sqlite3 /app/data/pilotstd.db
+```
+
+补建 SQL（幂等：`NOT EXISTS` 去重，`UNIQUE(favorite_id, record_id)` 兜底，可重复执行）：
+
+```sql
+INSERT INTO favorite_downloads
+  (favorite_id, user_id, record_id, status, standard_no, standard_name, standard_type,
+   retry_count, created_at, updated_at)
+SELECT f.id, f.user_id, f.record_id, 'pending',
+       COALESCE(f.standard_number, 'UNKNOWN_' || f.record_id),
+       COALESCE(r.std_name, '未知标准'),
+       COALESCE(f.standard_type, 'Unknown'),
+       0, datetime('now'), datetime('now')
+FROM user_favorites f
+LEFT JOIN announcement_record r ON r.id = f.record_id
+WHERE NOT EXISTS (SELECT 1 FROM favorite_downloads fd WHERE fd.favorite_id = f.id);
+```
+
+执行后验证（三条都跑）：
+
+```sql
+-- 1) 期望 0：不再存在缺队列行的收藏
+SELECT COUNT(*) AS missing FROM user_favorites f
+WHERE NOT EXISTS (SELECT 1 FROM favorite_downloads fd WHERE fd.favorite_id = f.id);
+
+-- 2) 期望 8 行 pending，编号 1..8
+SELECT favorite_id, status, standard_no, standard_type, created_at
+FROM favorite_downloads WHERE favorite_id BETWEEN 1 AND 8 ORDER BY favorite_id;
+
+-- 3) 队列状态分布（pending 应 +8）
+SELECT status, COUNT(*) FROM favorite_downloads GROUP BY status;
+```
+
+**执行后的预期副作用（需知情）**：这 8 条属 GB/T 且发布时间在 2026-07/08，早已过 28 天冷却期 → 下一次 `auto_archive_retry`（每日 04:00）会把它们纳入下载链，可能出现 `failed`/`abandoned`（取链失败或采标跳过）。这正是"回到正常队列语义"的表现；若你希望它们**不**被下载，把 SQL 里的 `'pending'` 改为 `'abandoned'`（终态，可解释为"历史遗留不再重试"）。
 
 ---
 
