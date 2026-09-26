@@ -135,7 +135,7 @@ def _cleanup_notification_logs(notification_mgr=None):
     cfg = ConfigManager()
     retention_days = int(cfg.get("notification.log_retention_days", 30))
     try:
-        deleted = notification_mgr.cleanup_logs(days=retention_days)
+        deleted = notification_mgr.ops.cleanup_logs(days=retention_days)
         logger.info("[cleanup] 通知日志清理完成，删除 %d 条（保留 %d 天）", deleted, retention_days)
     except Exception:
         logger.exception("[cleanup] 通知日志清理失败")

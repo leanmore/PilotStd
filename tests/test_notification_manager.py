@@ -92,35 +92,35 @@ class TestQuietHours:
 class TestLogMethods:
     def test_unread(self, mgr):
         mgr._db.fetchone.return_value = {"cnt": 5}
-        assert mgr.get_unread_count() == 5
+        assert mgr.ops.get_unread_count() == 5
 
     def test_mark_all(self, mgr):
-        assert mgr.mark_logs_read(None) == 0
+        assert mgr.ops.mark_logs_read(None) == 0
 
     def test_mark_ids(self, mgr):
         mgr._db.execute.return_value.rowcount = 3
-        assert mgr.mark_logs_read([1, 2, 3]) == 3
+        assert mgr.ops.mark_logs_read([1, 2, 3]) == 3
 
     def test_cleanup(self, mgr):
         mgr._db.execute.return_value.rowcount = 10
-        assert mgr.cleanup_logs(30) == 10
+        assert mgr.ops.cleanup_logs(30) == 10
 
     def test_get_logs(self, mgr):
         mgr._db.fetchone.return_value = {"cnt": 2}
         mgr._db.fetchall.return_value = [{"id": 1, "event_type": "t"}]
-        r = mgr.get_logs()
+        r = mgr.ops.get_logs()
         assert r["total"] == 2
 
 
 class TestWSBroadcast:
     def test_no_ws(self, mgr):
-        mgr._broadcast_to_ws("x", MagicMock())
+        mgr.ops.broadcast_to_ws("x", MagicMock())
 
     def test_with_ws(self, mgr):
         mgr._ws_broadcast = MagicMock()
         msg = MagicMock()
         msg.event_type = "x"
-        mgr._broadcast_to_ws("x", msg)
+        mgr.ops.broadcast_to_ws("x", msg)
         mgr._ws_broadcast.assert_called_once()
 
 

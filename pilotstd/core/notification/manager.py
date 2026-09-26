@@ -15,7 +15,7 @@ from pilotstd.i18n import t
 from ..db import Database
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
-from ._manager_ops import _NotificationOpsMixin
+from ._manager_ops import NotificationOps
 from ._message_builders import (
     _build_announce_fetch_summary_message,
     _build_announcement_check_complete_message,
@@ -78,7 +78,7 @@ _CHANNEL_CLASSES = {
 }
 
 
-class NotificationManager(_NotificationOpsMixin):
+class NotificationManager:
     """通知管理器。
 
     初始化时加载配置，按事件规则分发到各渠道，记录发送日志。
@@ -112,6 +112,8 @@ class NotificationManager(_NotificationOpsMixin):
             self._enabled = db_enabled
         self._channels: dict[str, Any] = {}
         self._ws_broadcast = ws_broadcast
+        # 日志/查询/清理/WS 广播（组合式，见 _manager_ops.NotificationOps）
+        self.ops = NotificationOps(self)
         self._init_event_builders()
         if self._enabled:
             self._init_channels()
@@ -419,6 +421,21 @@ class NotificationManager(_NotificationOpsMixin):
         if builder is not None:
             return builder(data)
         return _build_fallback_message(event_type, data)
+
+    # ── 日志与 WS 广播：实现见 _manager_ops.NotificationOps，此处保留同名方法作为内部 API ──
+    # 保留委托而不是让调用方直接用 self.ops：① _send_now 是内部路径，签名即契约；
+    # ② tests/test_notification_combo_patch.py 用 MagicMock(spec=NotificationManager) 打桩 _log，
+    #    spec 只认类属性，故 _log/_broadcast_to_ws 必须是管理器的方法。
+
+    def _log(
+        self, event_type: str, channel: str, msg: NotificationMessage, status: str, error_msg: str, sent_at: str
+    ) -> None:
+        """写通知发送日志（委托 NotificationOps.log）。"""
+        self.ops.log(event_type, channel, msg, status, error_msg, sent_at)
+
+    def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
+        """通过独立线程向 WebSocket 广播（委托 NotificationOps.broadcast_to_ws）。"""
+        self.ops.broadcast_to_ws(event_type, msg)
 
 
     # ── 测试发送 ──────────────────────────────────────────────

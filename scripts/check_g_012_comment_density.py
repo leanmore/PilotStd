@@ -21,7 +21,7 @@ import re
 import sys
 from pathlib import Path
 
-# 静态数据表（工具指令前缀 / 中文白名单 / 术语对照）已拆出，见 _comment_lang_data.py
+# 静态数据表（工具指令前缀 / 中文字符白名单 / 术语对照）已拆出到同目录的数据模块
 from _comment_lang_data import (
     _LANG_WHITELIST_PATTERN,
     TERM_TRANSLATIONS,

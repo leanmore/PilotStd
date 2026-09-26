@@ -173,7 +173,7 @@ def get_logs(
     nmgr=Depends(_get_notification_mgr),
 ):
     """查询通知发送日志（分页+筛选）。"""
-    result = nmgr.get_logs(
+    result = nmgr.ops.get_logs(
         page=page,
         size=page_size,
         channel=channel,
@@ -211,11 +211,11 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
         ids = [request.id] if request.id is not None else None
         if request.id is not None:
             # 验证存在
-            result = nmgr.get_logs(page=1, size=1, start_date=None, end_date=None)
+            result = nmgr.ops.get_logs(page=1, size=1, start_date=None, end_date=None)
             existing_ids = {r["id"] for r in result["items"]}
             if request.id not in existing_ids:
                 return JSONResponse({"error": f"通知 ID {request.id} 不存在"}, status_code=404)
-        count = nmgr.mark_logs_read(ids)
+        count = nmgr.ops.mark_logs_read(ids)
         return {"ok": True, "count": count, "message": "已标记为已读"}
     except Exception as e:
         logger.exception("标记已读失败")
@@ -226,7 +226,7 @@ def mark_notification_read(request: MarkReadRequest, nmgr=Depends(_get_notificat
 def get_unread_count(request: Request, nmgr=Depends(_get_notification_mgr)):
     """获取未读通知数量。"""
     try:
-        count = nmgr.get_unread_count()
+        count = nmgr.ops.get_unread_count()
         return {"count": count}
     except Exception as e:
         logger.exception("获取未读数量失败")
@@ -241,7 +241,7 @@ def delete_notification_logs(
 ):
     """清理通知日志（仅管理员）。删除 days 天前的记录。"""
     try:
-        deleted = nmgr.cleanup_logs(days)
+        deleted = nmgr.ops.cleanup_logs(days)
         return {"ok": True, "deleted": deleted}
     except Exception as e:
         logger.exception("清理通知日志失败")
