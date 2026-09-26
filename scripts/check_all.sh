@@ -77,6 +77,14 @@ run_fast() {
         log_fail "G-012 注释密度"
     fi
 
+    # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
+    # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
+    if python scripts/check_no_conflict_markers.py; then
+        log_pass "G-039 冲突标记检查"
+    else
+        log_fail "G-039 冲突标记检查"
+    fi
+
     # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
     # 两个缺陷都在这一处（2026-09-26 实测）：
     # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻

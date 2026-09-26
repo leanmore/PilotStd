@@ -23,6 +23,7 @@
 | G-036 | 文档联动门禁 | 变更触发文档更新规则时，对应文档必须同步变更 | 文档未更新且无合法 N/A 理由 | 人工审查 + pre-commit 提醒 | ⏳ 待创建 |
 | G-037 | 触发条件对齐检查 | AGENTS.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ✅ 已部署 |
 | G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
+| G-039 | 冲突标记检查 | 提交/入库内容不得含 `<<<<<<<` / `=======` / `>>>>>>>` 合并冲突标记 | 命中冲突块或孤立标记 | `scripts/check_no_conflict_markers.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -179,11 +180,28 @@
 
 ---
 
+### G-039：冲突标记检查
+
+**检查内容**：禁止把合并冲突标记提交入库——命中「一行以 7 个 `<` 开头且其后存在一行以 7 个 `>` 开头」的**冲突块**，
+或**孤立**的 `<`/`>` 标记行，即阻断。块内以 7 个 `=` 开头的行一并报告（`=======` 在 Markdown 里是合法的 Setext 标题下划线，
+**只在成块时**才算违规，避免误伤）。
+
+**扫描范围**（优先级）：显式路径参数 > 暂存区（`git diff --cached`，pre-commit 场景）> 全库已跟踪文件（`git ls-files`，CI 场景）。
+**排除**：`.gitignore` 忽略的文件；`WHITELIST_NAME_SUFFIXES`（仅限“用于测试本门禁自身”的 fixture 文件名）。
+
+**起因**（2026-09-26）：一次多分支合并中，解析脚本断言失败后同一条命令里的 `git add` + `git commit` 仍然执行，
+产生了**带冲突标记的合并提交**，而它通过了当时 pre-commit 的**全部**门禁——在此之前没有任何机制能拦住这类提交。
+
+**执行方式**：`python scripts/check_no_conflict_markers.py`（已在 `check_all.sh --fast` 与 CI `repo-compliance` 接入）；
+受控测试：`tests/test_check_no_conflict_markers.py`（8 例：正常文件 / 冲突块 / 孤立标记 / Setext 下划线不误伤 / 白名单 / CLI 退出码 / 自扫描 / 二进制跳过）。
+
+---
+
 ## 执行入口：`scripts/check_all.sh` 模式
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-039 冲突标记**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
 | `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
 | `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
@@ -229,6 +247,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.21 | 2026-09-26 | 新增 **G-039 冲突标记检查**（`scripts/check_no_conflict_markers.py`）：禁止带 `<<<<<<<` / `=======` / `>>>>>>>` 的内容入库。起因是一次合并产生了带冲突标记的提交却通过了全部门禁（解析脚本断言失败后 `git add`/`git commit` 仍执行）。扫描范围=显式路径 > 暂存区 > 全库已跟踪文件；`=======` 只在成块时判违规（Markdown Setext 下划线不误伤）；白名单仅限测试本门禁自身的 fixture。已接入 `check_all.sh --fast`（G-012 之后）与 CI `repo-compliance`；配套 8 例受控测试 `tests/test_check_no_conflict_markers.py`。 |
 | v1.20 | 2026-09-26 | 修正版本历史表的既有格式缺陷（技术债 #27）：v1.16 与 v1.15 两行原被写在同一个物理行上（**拼接处两个管道符相邻、缺的是换行符**，非缺行首 `|`；单行 879 字符）→ 在 `||` 之间补一个换行，拆为两个独立表行（471 + 408 = 879 字符）；内容一字未改，仅恢复渲染。 |
 | v1.19 | 2026-09-26 | G-031 补第三条缺口映射（技术债 #24）：`pilotstd/download/` → `docs/reference/download-pipeline.md`（新建文档），映射总数 11 → **12**，无死映射。`pilotstd/download/` 此前不在表里，改下载适配器不触发任何文档同步——#21 的三处流程变化（hcno 权威来源＝openstd 搜索页、端点族 `/bzgk/std/*`、新增全文下载页 `showGb?type=download`）只写进了代码 docstring。**受控验证**（与 TD-13 同款手法）：仅暂存 `pilotstd/download/adapters/openstd_download.py` 末尾一行注释 → 脚本 **FAIL** 并输出 `[G-031] FAIL: pilotstd/download/ 已变更，但 docs/reference/download-pipeline.md 未同步更新`、`EXIT=1`；`git restore --staged` + 还原文件后 `git status` 干净、脚本回到 `PASS: 无变更文件` / `EXIT=0`。 |
 | v1.18 | 2026-09-26 | 修复 `check_all.sh` 前端类型检查步骤的**两个**缺陷（#11 收尾时发现）：① 裸命令 `(cd web && npx vue-tsc --noEmit)` 在 `set -euo pipefail`（L6）下失败即中止整个门禁，紧随其后的 `log_fail` 分支**永远不可达** → 表现为"没有任何 FAIL 行、退出码 1"，把"工具缺失/类型错误"误报成"门禁挂了"（三条并行分支的提交者各自撞到同一现象）；改为把命令写进 `if` 条件。② 更严重：`web/tsconfig.json` 是**方案式配置**（`"files": []` + 仅 `references`），**不带 `-p` 时 vue-tsc 不检查任何文件、恒返回 0** → 这一步长期是**假绿**（注入真实 `TS2322` 后仍输出 PASS），而 CI 的 `test-frontend` 跑的是 `pnpm run type-check`＝`vue-tsc -p tsconfig.app.json --noEmit`；已改为与 CI 同口径。**验证**：正常 `EXIT=0`；注入类型错误 → `❌ [FAIL] vue-tsc 类型检查` 出现、脚本**继续跑完**后续门禁、`EXIT=1`；还原后 `EXIT=0`。全仓 `scripts/*.sh` 扫描 `$?` 仅此一处，无同类模式。 |

@@ -178,6 +178,10 @@ jobs:
       - name: G-028 — 禁止硬编码 admin
         run: python scripts/check_g_028_no_hardcoded_admin.py
 
+      # 2026-09-26 起因：一次合并提交带着冲突标记通过了全部门禁
+      - name: G-039 — 禁止合并冲突标记
+        run: python scripts/check_no_conflict_markers.py
+
       - name: Upload coverage data
         uses: actions/upload-artifact@v4
         with:
