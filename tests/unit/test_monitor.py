@@ -330,6 +330,77 @@ class TestOnFile:
         ]
         assert len(success_calls) == 0
 
+    # ── 技术债 #30：计数口径必须反映**真实归档结果** ──
+
+    def _run_on_file(self, scheduler, archive_result, path="/inbox/GB_T 1-2020.pdf"):
+        """跑一次 _on_file，返回 stats mock 与 archive_standards mock。"""
+        scheduler._mgr.scan_directory.return_value = [MagicMock()]
+        scheduler._mgr.archive_standards.return_value = archive_result
+        mock_stats = MagicMock()
+        with patch(
+            "pilotstd.monitor.scheduler.get_config",
+            return_value={"auto_archive": True},
+        ), patch(
+            "pilotstd.monitor.scheduler.get_monitor_stats",
+            return_value=mock_stats,
+        ):
+            scheduler._on_file(path)
+        return mock_stats, scheduler._mgr.archive_standards
+
+    @staticmethod
+    def _counts(mock_stats) -> dict:
+        out: dict[str, int] = {}
+        for c in mock_stats.increment.call_args_list:
+            out[c.args[0]] = out.get(c.args[0], 0) + 1
+        return out
+
+    def test_real_archive_increments_success(self, scheduler):
+        """场景 2：文件真被归档（moved>0）→ success 增加。"""
+        mock_stats, _ = self._run_on_file(scheduler, {"moved": 1, "failed": 0})
+
+        assert self._counts(mock_stats) == {"processed": 1, "success": 1}
+
+    def test_nothing_moved_does_not_increment_success(self, scheduler):
+        """场景 1：解析到了但一条都没搬（源文件已不在/目标已存在）→ 不计 success。"""
+        mock_stats, _ = self._run_on_file(
+            scheduler, {"moved": 0, "failed": 0, "skipped_source": 1}
+        )
+
+        assert self._counts(mock_stats) == {"processed": 1}
+
+    def test_unparsable_file_increments_failed(self, scheduler):
+        """场景 3：文件不合规（解析不出标准号）→ failed 增加，且不调归档。"""
+        scheduler._mgr.scan_directory.return_value = []
+        mock_stats = MagicMock()
+        with patch(
+            "pilotstd.monitor.scheduler.get_config",
+            return_value={"auto_archive": True},
+        ), patch(
+            "pilotstd.monitor.scheduler.get_monitor_stats",
+            return_value=mock_stats,
+        ):
+            scheduler._on_file("/inbox/scan_0001.pdf")
+
+        assert self._counts(mock_stats) == {"processed": 1, "failed": 1}
+        scheduler._mgr.archive_standards.assert_not_called()
+
+    def test_organizer_reported_failure_increments_failed(self, scheduler):
+        """归档器返回 failed>0（真搬不动）→ failed 增加，不记 success。"""
+        mock_stats, _ = self._run_on_file(
+            scheduler, {"moved": 0, "failed": 2, "details": ["磁盘只读"]}
+        )
+
+        assert self._counts(mock_stats) == {"processed": 1, "failed": 1}
+
+    def test_archive_receives_inbox_dir_as_word_source_root(self, scheduler):
+        """契约：word_source_root 必须是 inbox 目录（organizer 据此镜像 Word 相对路径）。"""
+        _, archive = self._run_on_file(
+            scheduler, {"moved": 1}, path="/inbox/sub/GB_T 1-2020.pdf"
+        )
+
+        assert archive.call_args.kwargs["word_source_root"] == "/inbox/sub"
+        assert archive.call_args.args[0] is scheduler._mgr.scan_directory.return_value
+
 
 # ════════════════════════════════════════════════════════════
 # 6. FileMonitorScheduler.get_status
