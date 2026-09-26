@@ -7,7 +7,10 @@ import pytest
 import requests
 from pytest_httpserver import HTTPServer
 
-from pilotstd.download.adapters.openstd_download import OpenstdDownloadAdapter
+from pilotstd.download.adapters.openstd_download import (
+    OpenstdDownloadAdapter,
+    parse_hcno_from_search_page,
+)
 from pilotstd.download.models import DownloadTask
 
 BASE = OpenstdDownloadAdapter.BASE_URL
@@ -644,3 +647,75 @@ class TestEndpointPathGuard:
         paths = [req.path for req, _ in server.log]
         assert paths, "必须发生请求"
         assert not [p for p in paths if p.startswith("/bzgk")], "不应出现硬编码站点路径"
+
+# ════════════════════════════════════════════════════════════
+# T10: hcno 解析器（多点匹配 / 无匹配 / 归一化）
+# ════════════════════════════════════════════════════════════
+
+
+def _row(hcno: str, label: str) -> str:
+    """按 openstd 搜索页真实结构生成一行结果。"""
+    return f'<a href="javascript:void(0)" onclick="showInfo(\'{hcno}\');">{label}</a>'
+
+
+class TestHcnoParser:
+    """搜索页解析必须"按标准号精确匹配"，任何情况下都不得退化为"取首条"。"""
+
+    def test_picks_matching_row_not_first(self):
+        """目标在第二行时必须返回第二行的 hcno（真实事故：首条是别的标准）。"""
+        html = _row("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "GB 2024-2016") + _row(
+            "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "GB/T 5310-2008"
+        )
+        assert (
+            parse_hcno_from_search_page(html, "GB/T 5310-2008")
+            == "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+        )
+        # 反向也成立：搜第一条时给第一条
+        assert (
+            parse_hcno_from_search_page(html, "GB 2024-2016")
+            == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        )
+
+    def test_no_match_returns_empty_not_first(self):
+        """无匹配必须返回空串（不能退化成首条）。"""
+        html = _row("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "GB 2024-2016")
+        assert parse_hcno_from_search_page(html, "GB/T 5310-2008") == ""
+
+    def test_empty_target_returns_empty(self):
+        html = _row("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "GB 2024-2016")
+        assert parse_hcno_from_search_page(html, "") == ""
+        assert parse_hcno_from_search_page(html, "   ") == ""
+
+    def test_normalization_case_and_spacing(self):
+        """输入/页面写法差异（大小写、空格、全角空格、破折号、全角斜杠）都要能对上。"""
+        html = _row("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", "GB/T  150.1—2024")
+        for query in (
+            "GB/T 150.1-2024",
+            "gb/t150.1-2024",
+            "GB／T 150.1—2024",
+            "GB/T\u3000150.1-2024",
+        ):
+            assert (
+                parse_hcno_from_search_page(html, query) == "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            ), f"归一化失败: {query!r}"
+
+    def test_ignores_rows_without_matchable_number(self):
+        """页面里夹杂"查看详细"等非标准号锚点时不误伤。"""
+        html = (
+            _row("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD", "查看详细")
+            + _row("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", "GB/T 7597-2026")
+        )
+        assert (
+            parse_hcno_from_search_page(html, "GB/T 7597-2026")
+            == "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+        )
+
+    def test_short_or_non_hex_ids_ignored(self):
+        """hcno 必须是 16-40 位十六进制；占位/脏数据不得被当成 hcno。"""
+        html = _row("NOT_A_HCNO", "GB/T 1234-2020") + _row(
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", "GB/T 1234-2020"
+        )
+        assert (
+            parse_hcno_from_search_page(html, "GB/T 1234-2020")
+            == "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+        )

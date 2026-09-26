@@ -237,6 +237,14 @@ class OpenstdDownloadAdapter(BaseDownloadAdapter):
 
             content = self._fetch_view(hcno, referer, task)
             if content is not None:
+                # 记录实际用到的轮次：用于现场统计"两轮是否够用"（第 2 轮多为会话授权未落地）
+                logger.info(
+                    "viewGb 第%d轮取到全文: %s hcno=%s bytes=%d",
+                    round_idx + 1,
+                    task.standard_number,
+                    hcno,
+                    len(content),
+                )
                 return content
             if round_idx < _VIEW_ROUNDS - 1:
                 logger.warning(
