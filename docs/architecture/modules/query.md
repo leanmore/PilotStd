@@ -45,6 +45,19 @@ BaseAdapter (ABC)
     └── fetch_replaces_detail()
 ```
 
+## HTTP 客户端与 SSL 复用（技术债 #22，2026-09-26）
+
+12 个适配器各自在 `__init__` 构造 `httpx.Client`（签名统一为 `client: httpx.Client | None = None`，便于测试注入）。httpx 在 `verify=True`（默认）时会**为每个 Client** 调 `ssl.create_default_context()` → `load_verify_locations()` 重新加载整份证书包，本机实测单次 ≈1.3s；9 个默认校验的适配器各付一次 → `StandardManager()` 构造中位 **6.74s**，而生产侧有 12 处构造点，交互型操作会直接卡住界面。
+
+修法：新增 `pilotstd/query/adapters/_shared_ssl.py`，暴露进程级单例 `default_ssl_context()`（`ssl.SSLContext`，加锁保证首次只加载一次）；9 个默认校验的适配器改为 `httpx.Client(verify=default_ssl_context(), ...)`。httpx 的 `_config.create_ssl_context()` 对 `isinstance(verify, ssl.SSLContext)` 直接 return，故传 context 后既不新建 context 也不加载证书包。**构造中位 6.74s → 0.036s**（min 0.035s；首次含一次 0.23s 的证书包加载）。
+
+| 分档 | 适配器 | 处置 |
+|------|--------|------|
+| 默认校验（9） | `ccsn` / `cssn` / `gongbiaoku` / `jjg` / `jtst` / `miit` / `ncha` / `nrsis` / `tdpress` | 传共享 context |
+| 自签名站点（3） | `energy` / `sppt` / `sppt_local` | **保持 `verify=False`**（刻意豁免；httpx 该分支本就不加载证书包） |
+
+**不要**改成共享 `httpx.Client` 实例：Client 带会话状态（cookie、连接池、代理），多适配器共用会串会话；也**不要**给 `verify=False` 的三处传共享 context（会把自签名豁免变成强制校验，直接连不上）。
+
 ## 路由机制
 
 搜索策略位于 `pilotstd/query/search_strategy.py`：

@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
+from ._shared_ssl import default_ssl_context
 from .base import BaseAdapter
 
 DISPLAY_NAME = "工标库"
@@ -31,11 +32,13 @@ class GongBiaoKuAdapter(BaseAdapter):
 
     BASE_URL = "https://www.gongbiaoku.com"
 
+    # 默认校验的站点复用进程级共享 SSL context（见 _shared_ssl），避免各自重新加载证书包
     def __init__(self, client: httpx.Client | None = None):
         self._log_window_start = 0.0
         self._log_count = 0
         self._client = client or httpx.Client(
             timeout=15.0,
+            verify=default_ssl_context(),
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
