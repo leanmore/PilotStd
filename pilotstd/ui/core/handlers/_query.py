@@ -184,6 +184,13 @@ class QueryUIHandler:
             on_finished=on_query_finished,
             on_error=on_query_error,
         )
+        # 覆盖 self._query_worker 前必须先停掉旧线程：规范化流程（`_archive.on_normalize`
+        # → `_run_query_cb()`）等路径会在上一次查询尚未结束时再次发起查询，旧的 QueryWorker
+        # 一旦丢掉引用就会在运行中被析构 → Qt qFatal → 进程 SIGABRT（CI test-gui-coverage
+        # 连续两次 134 崩溃的根因）。stop_workers() 是协作式停止（断信号 + stop + wait，
+        # 超时进保活列表），已在别处复用同一实现。
+        if self._query_worker is not None:
+            self.stop_workers()
         self._query_worker = self._deps.worker_factory.create_query_worker(self._parsed_results, callbacks)
         self._query_worker.start()
 

@@ -218,6 +218,133 @@ def test_orphan_timeout_escalates_to_error(qapp, caplog):
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# CI test-gui-coverage 134 崩溃（SIGABRT / 0xC0000409）回归守卫
+# ══════════════════════════════════════════════════════════════════════════
+# 根因：`QThread.start()` 之后存在「已启动但尚未进入 run()」的窗口，此时 `isRunning()`
+# 仍为 False。旧实现见 False 就直接返回（不保活），调用方随即覆盖引用 → QThread 在运行中
+# 被析构 → Qt qFatal → 进程 abort。CI 连续两个 commit 都崩在
+# `test_manual_workflow.py::test_status_bar_shows_cancel_message`（Windows 侧实测
+# 4/10 崩溃，WER 记录 faulting module = Qt6Core.dll / 0xc0000409）。
+
+
+class _StartingWorker(QObject):
+    """已 start() 但尚未真正进入 run() 的假 worker：isRunning=False 而 isFinished=False。"""
+
+    finished = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.stopped = False
+        self.interrupted = False
+
+    def stop(self) -> None:
+        self.stopped = True
+
+    def requestInterruption(self) -> None:
+        self.interrupted = True
+
+    def isRunning(self) -> bool:
+        return False  # 启动窗口内 Qt 的实际返回值
+
+    def isFinished(self) -> bool:
+        return False  # 但线程并没有结束——这才是判据
+
+
+def test_started_but_not_running_worker_is_kept_alive(qapp):
+    """启动窗口内（isRunning=False / isFinished=False）必须进保活列表，不能当场释放。"""
+    from pilotstd.ui import qt_lifecycle as ql
+
+    before = ql.orphaned_worker_count()
+    worker = _StartingWorker()
+    assert ql.stop_worker_gracefully(worker, timeout_ms=1) is True
+    assert worker.stopped and worker.interrupted, "仍要先请求停止与中断"
+    assert ql.orphaned_worker_count() == before + 1, (
+        "已 start() 但 isRunning() 仍为 False 的线程也必须保活——否则引用一丢就 qFatal"
+    )
+
+    worker.finished.emit()
+    assert ql.orphaned_worker_count() == before, "线程真正结束后仍须释放保活引用"
+
+
+def test_finished_worker_is_released_immediately(qapp):
+    """真已结束（isFinished=True）的 worker 不该被保活（否则保活列表只增不减）。"""
+    from pilotstd.ui import qt_lifecycle as ql
+
+    class _DoneWorker(_StartingWorker):
+        def isFinished(self) -> bool:
+            return True
+
+    before = ql.orphaned_worker_count()
+    assert ql.stop_worker_gracefully(_DoneWorker(), timeout_ms=1) is True
+    assert ql.orphaned_worker_count() == before, "已结束的线程不得进保活列表"
+
+
+def _scan_and_wait(window, test_data_dir, qtbot):
+    """扫描 fixture 目录并**真正**等到扫描线程结束（崩溃复现序列的前半段）。
+
+    注意：`wait_for_worker_and_ui(qtbot, window, "_scan_worker", ...)` 取的是窗口属性，
+    而窗口上并没有 `_scan_worker`（实际在 `window._core.scan._scan_worker`）——getattr
+    取不到时该 helper 会跳过线程等待，所以这里显式拿 handler 上的真实对象。
+    """
+    tmp = tempfile.mkdtemp(prefix="pilotstd_orphan_guard_")
+    for name in os.listdir(test_data_dir):
+        src = os.path.join(test_data_dir, name)
+        if os.path.isfile(src):
+            shutil.copy2(src, tmp)
+    window._suppress_dialogs = True
+    window._run_scan(tmp)
+
+    scan_worker = window._core.scan._scan_worker
+    qtbot.waitUntil(lambda: len(window._parsed_results) > 0, timeout=5000)
+    qtbot.waitUntil(lambda: scan_worker is None or scan_worker.isFinished(), timeout=5000)
+    return tmp
+
+
+def test_second_query_stops_previous_worker(window, test_data_dir, qtbot):
+    """连续两次发起查询：旧 QueryWorker 必须先被停掉，不能留下运行中的孤儿线程。"""
+    from pilotstd.ui import qt_lifecycle as ql
+
+    tmp = _scan_and_wait(window, test_data_dir, qtbot)
+    try:
+        orphans_before = ql.orphaned_worker_count()
+        window._on_query()
+        first = window._core.query._query_worker
+        assert first is not None
+
+        window._on_query()  # 覆盖 self._query_worker 之前必须先停掉 first
+        assert window._core.query._query_worker is not first, "应创建了新的 worker"
+
+        qtbot.waitUntil(lambda: first.isFinished(), timeout=5000)
+        assert not first.isRunning(), "旧 worker 不得仍在运行（运行中被析构即 qFatal → SIGABRT）"
+        assert ql.orphaned_worker_count() == orphans_before, "正常停止不应产生保活孤儿"
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_normalize_right_after_query_does_not_orphan_worker(window, test_data_dir, qtbot):
+    """崩溃复现序列：`_on_query()` 后立刻 `_on_normalize()`（它内部会再次发起查询）。
+
+    修复前：第二次 `on_query()` 直接覆盖 `self._query_worker`，第一个 QueryWorker 失去
+    引用且从未被停止 → 运行中被析构 → 进程 abort（CI 两次 134 崩溃的形态）。
+    """
+    from pilotstd.ui import qt_lifecycle as ql
+
+    tmp = _scan_and_wait(window, test_data_dir, qtbot)
+    try:
+        orphans_before = ql.orphaned_worker_count()
+        window._on_query()
+        first = window._core.query._query_worker
+
+        window._on_normalize()  # 内部经 find_missing_names → _run_query_cb() → on_query()
+        qtbot.waitUntil(lambda: first.isFinished(), timeout=5000)
+
+        assert not first.isRunning(), "规范化触发的新查询不得让旧查询线程失去管理"
+        assert ql.orphaned_worker_count() == orphans_before, "不应留下仍需保活的孤儿线程"
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # 技术债 #17a：worker 阻塞点设可中断上限
 # ══════════════════════════════════════════════════════════════════════════
 # 修复前：停止信号只让回调 `return`，底层 `*_stream` 继续跑完全部条目 →
