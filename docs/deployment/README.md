@@ -76,7 +76,7 @@ curl -s -X POST http://localhost:9028/query \
   -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" \
   -b "pilotstd_token=$TOKEN; csrf_token=$CSRF" \
   -d '{"sql":"SELECT MAX(version) AS v FROM _schema_version"}'
-# 预期：等于 pilotstd/core/db/_constants.py 的 CURRENT_SCHEMA_VERSION（当前 59）
+# 预期：等于 pilotstd/core/db/_constants.py 的 CURRENT_SCHEMA_VERSION（当前 60）
 ```
 
 > 历史说明：本文档 2026-07-27 版写的 `curl /api/system/db-version → {"version": 44}` **不存在该端点**，
@@ -85,14 +85,14 @@ curl -s -X POST http://localhost:9028/query \
 ## v44 同步部署专项检查清单（历史清单，2026-07-27 时点）
 
 > 该清单是 v44 迁移当次的专项检查，**已完成**，保留作审计轨迹。
-> 表中"预期 44"需按当时环境读取；当前 `CURRENT_SCHEMA_VERSION = 59`。
+> 表中"预期 44"需按当时环境读取；当前 `CURRENT_SCHEMA_VERSION = 60`。
 > 第 9 项引用的 `scripts/rollback_v44.sql` **当前已不存在**（2026-09-26 实测），回滚需另备方案。
 
 | # | 检查项 | 验证命令 | 通过标准 |
 |---|--------|----------|----------|
 | 1 | 服务代码已部署 | 检查 commit hash | 与发布版本一致 |
 | 2 | 三个改造文件已更新 | `grep "favorite_downloads" pilotstd/tasks/favorite_download.py` | 有匹配 |
-| 3 | 迁移版本正确 | `SELECT MAX(version) FROM _schema_version`（经 `POST /query`） | v44 时点为 44；当前 59 |
+| 3 | 迁移版本正确 | `SELECT MAX(version) FROM _schema_version`（经 `POST /query`） | v44 时点为 44；当前 60 |
 | 4 | user_favorites 无残留 | SQL 见下方 | 结果为 0 |
 | 5 | favorite_downloads 有数据 | `SELECT COUNT(*) FROM favorite_downloads` | > 0（如有历史数据） |
 | 6 | 收藏操作正常 | 前端收藏/取消收藏 | 200 OK |
