@@ -22,7 +22,7 @@ interface TaskConfig {
   date_reminder_cron: string
   auto_health_check_enabled: boolean
   auto_health_check_cron: string
-  // 收藏下载链（favorite_chain_processor.process_chain）——2026-09-25 补入，
+  // 收藏标准下载归档（favorite_chain_processor.process_chain）——2026-09-25 补入，
   // 此前该任务不在设置页，用户无法查看/修改其 cron，也无法手动触发（技术债 #20）
   auto_archive_retry_enabled: boolean
   auto_archive_retry_cron: string
@@ -139,11 +139,11 @@ onMounted(loadTasks)
             </div>
           </div>
 
-          <!-- 收藏下载链（自动归档重试） -->
+          <!-- 收藏标准下载归档 -->
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.auto_archive_retry_enabled" />
-              <label>收藏下载链（自动归档重试）</label>
+              <label>收藏标准下载归档</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_archive_retry_enabled">
               <label>Cron 表达式</label>
@@ -180,6 +180,9 @@ onMounted(loadTasks)
 
 .task-row {
   display: flex;
+  flex-wrap: wrap; /* 必须换行：第 5 行的 .task-hint 靠 flex-basis:100% 独占一行；
+                      若为 nowrap，该 100% 基准会把同行所有项压到负剩余空间，
+                      开关（.p-toggleswitch 无 flex:none 保护）被等比压缩 → 第 5 个开关比前四个窄 */
   align-items: center;
   gap: 20px;
   padding: 10px 0;
@@ -193,6 +196,7 @@ onMounted(loadTasks)
   align-items: center;
   gap: 10px;
   min-width: 180px;
+  flex: 0 0 auto; /* 开关组不参与收缩，保证五个开关尺寸完全一致（宽度/高度/左对齐） */
 }
 .task-toggle label {
   font-size: 13px;

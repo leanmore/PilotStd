@@ -46,10 +46,10 @@ describe('SettingsTabSchedule 定时任务', () => {
     vi.clearAllMocks()
   })
 
-  it('渲染收藏下载链的 cron 输入框（#20 回归守卫）', async () => {
+  it('渲染收藏标准下载归档的 cron 输入框（#20 回归守卫）', async () => {
     const wrapper = await mountTab()
 
-    expect(wrapper.text()).toContain('收藏下载链')
+    expect(wrapper.text()).toContain('收藏标准下载归档')
     expect(cronInput(wrapper, '0 4 * * *'), '缺少 auto_archive_retry 的 cron 输入框').toBeTruthy()
   })
 
