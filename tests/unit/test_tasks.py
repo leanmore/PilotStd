@@ -618,6 +618,65 @@ class TestDownloadToInboxMainFlow:
         ]
         assert len(timeout_updates) == 1
 
+    # ── 技术债 #29：归档阶段由链路自己触发（不再只等周期机制）──
+
+    def test_archive_step_is_triggered_with_inbox_file(self, tmp_path):
+        """场景 1：下载落 inbox 后，链路应调用归档器（解析文件名 + source_path 指向 inbox 文件）。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
+
+        self._run(db, mgr, tmp_path, find=[None, "/lib/found.pdf"])
+
+        mgr.archive_standards.assert_called_once()
+        # 必须用规范标准号解析（不能用被 _safe_filename 转义过的 inbox 文件名）
+        mgr.parse_standard_number.assert_called_once_with("GB/T 1-2020")
+        parsed_list = mgr.archive_standards.call_args.args[0]
+        assert len(parsed_list) == 1
+        inbox_file = Path(parsed_list[0].source_path)
+        assert inbox_file.parent.name == "inbox", inbox_file
+        assert inbox_file.suffix == ".pdf"
+        # 归档器被调用后，索引命中 → done
+        assert any("done" in str(c.args[0]) for c in db.execute.call_args_list)
+
+    def test_archive_error_is_reported_in_timeout_message(self, tmp_path):
+        """场景 3：归档器始终未登记索引 → 超时失败，且把归档错误带进 error_message。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
+        mgr.archive_standards.side_effect = RuntimeError("organizer down")
+
+        self._run(db, mgr, tmp_path, find=None)
+
+        timeout_updates = [c for c in db.execute.call_args_list if "归档超时" in str(c.args)]
+        assert len(timeout_updates) == 1
+        assert "文件未被归档器登记进索引" in str(timeout_updates[0].args)
+        assert "organizer down" in str(timeout_updates[0].args)
+
+    def test_unparsable_filename_is_reported(self, tmp_path):
+        """文件名无法解析 → 不调用归档器，超时文案说明原因（而不是含糊的\"未处理\"）。"""
+        db = self._db()
+        mgr = MagicMock()
+        mgr.download_engine.fetch_bytes.return_value = (b"pdf data", "")
+        mgr.parse_standard_number.return_value = None
+
+        self._run(db, mgr, tmp_path, find=None)
+
+        mgr.archive_standards.assert_not_called()
+        timeout_updates = [c for c in db.execute.call_args_list if "归档超时" in str(c.args)]
+        assert "标准号无法解析" in str(timeout_updates[0].args)
+
+    def test_index_already_has_file_skips_download_and_archive(self, tmp_path):
+        """场景 2：索引里已有该文件 → 复用现有文件，直接 done，不重新下载、也不调归档器。"""
+        db = self._db()
+        mgr = MagicMock()
+
+        self._run(db, mgr, tmp_path, find="/lib/existing.pdf")
+
+        mgr.download_engine.fetch_bytes.assert_not_called()
+        mgr.archive_standards.assert_not_called()
+        assert any("done" in str(c.args[0]) for c in db.execute.call_args_list)
+
     def test_no_hcno_raises_favorite_error(self, tmp_path):
         """缓存未命中且现场查询无 hcno → 失败，且不得进入下载阶段。"""
         db = self._db()

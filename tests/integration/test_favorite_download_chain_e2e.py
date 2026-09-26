@@ -10,7 +10,9 @@
 from __future__ import annotations
 
 import os
+import shutil
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,6 +20,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from pilotstd.core.db import Database  # noqa: E402
+from pilotstd.core.file_index import FileIndexRepository  # noqa: E402
 from pilotstd.download.adapters.base import BaseDownloadAdapter  # noqa: E402
 from pilotstd.download.engine import DownloadEngine  # noqa: E402
 from pilotstd.download.session import SessionManager  # noqa: E402
@@ -120,7 +123,139 @@ def _run(tmp_path, adapter, hcno="HC123", adopted=False):
     return fav_id, mgr, db_path, inbox, found_path
 
 
+class _RealArchiveMgr:
+    """真解析 + 真归档 + 真写索引的管理器替身（只实现链路用到的那一面）。
+
+    与 MagicMock 版 e2e 的区别：归档不是空转，而是真的把 inbox 文件搬到库目录
+    并 upsert `file_index`；链路的索引查询也不再打桩 —— 全程真跑，用来验证
+    「归档写入口径 == 链路查询口径」（技术债 #29 的关键接缝）。
+    """
+
+    def __init__(self, download_engine, db, parser, dst: str):
+        self.download_engine = download_engine
+        self._parser = parser
+        self._repo = FileIndexRepository(db)
+        self._dst = dst
+        self.moved: list[str] = []
+
+    def parse_standard_number(self, name: str):
+        """与 facade 同口径：委托 StandardParser。"""
+        return self._parser.parse(name)
+
+    def archive_standards(self, parsed_list, word_source_root=None):
+        """模拟 organizer：搬文件进库目录 + 写 file_index。"""
+        for item in parsed_list:
+            Path(self._dst).parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(item.source_path, self._dst)
+            self.moved.append(item.source_path)
+            self._repo.upsert(
+                file_path=self._dst,
+                logical_code=item.logical_code,
+                number=item.number,
+                year=item.year,
+                std_name="测试标准",
+                status="现行",
+            )
+        return {"moved": len(parsed_list)}
+
+
 @pytest.mark.integration
+class TestArchiveStepEndToEnd:
+    """技术债 #29：归档这一环真跑（真搬文件 + 真写索引 + 真查询）。"""
+
+    def test_real_archive_step_leads_to_done(self, tmp_path):
+        """下载字节 → inbox → 链路调归档（搬库+写索引）→ 真查询命中 → done + local_path 指向库内。"""
+        from pilotstd.organizer.industry_lookup import build_code_mapping
+        from pilotstd.scan.parser import StandardParser
+        from pilotstd.tasks.favorite_download import download_to_inbox
+
+        db_path = str(tmp_path / "real.db")
+        fav_id = _seed(db_path)
+        engine = DownloadEngine(
+            adapters=[_FakeOpenstdAdapter()],
+            session_manager=SessionManager(min_delay=0.001, max_delay=0.005),
+            save_root=str(tmp_path / "library"),
+        )
+        inbox = tmp_path / "inbox"
+        dst = str(tmp_path / "standards" / "GBT 1234-2020.pdf")
+        db = Database(db_path)
+        try:
+            mgr = _RealArchiveMgr(
+                engine, db, StandardParser(build_code_mapping()), dst
+            )
+            with patch(
+                "pilotstd.tasks.favorite_download.get_db_path", return_value=db_path
+            ), patch(
+                "pilotstd.tasks.favorite_download._get_inbox_dir", return_value=inbox
+            ), patch(
+                "pilotstd.tasks.favorite_download._load_cached_query_result",
+                return_value=MagicMock(hcno="HC1", is_adopted=False),
+            ), patch(
+                "pilotstd.manager.facade.StandardManager", return_value=mgr
+            ), patch(
+                "pilotstd.tasks.favorite_download._notify_download_started"
+            ), patch(
+                "pilotstd.tasks.favorite_download._notify_download_complete"
+            ), patch(
+                "pilotstd.tasks.favorite_download._notify_download_failed"
+            ):
+                download_to_inbox(fav_id, 1, 1)
+
+            row = db.fetchone(
+                "SELECT status, local_path, error_message FROM favorite_downloads WHERE favorite_id=?",
+                (fav_id,),
+            )
+        finally:
+            db.close()
+
+        assert row["status"] == "done", row
+        assert row["local_path"] == dst, row
+        assert Path(dst).exists(), "归档后文件应已在库目录"
+        assert mgr.moved and mgr.moved[0].startswith(str(inbox)), mgr.moved
+        assert not list(inbox.glob("*.pdf")), "inbox 里的文件应已被搬走"
+
+
+@pytest.mark.integration
+class TestArchiveIndexContract:
+    """技术债 #29 契约：归档器写 file_index 的口径必须能被链路的查询命中。
+
+    链路用**规范标准号**（`GB/T 5613-2026`）查 `(logical_code, number, year)`；归档器写的是
+    `archive_standards` 收到的 parsed 项。若解析源误用被 `_safe_filename` 转义过的 inbox 文件名
+    （`GB_T 5613-2026_000002.pdf`），`logical_code` 会退化成 `GB` → 两边口径不一致、永远查不到。
+    """
+
+    def test_organizer_written_index_is_found_by_chain_lookup(self, tmp_path):
+        """真实 parser + 真实 FileIndexRepository + 真实查询：口径一致 → 命中。"""
+        from pilotstd.core.file_index import FileIndexRepository
+        from pilotstd.organizer.industry_lookup import build_code_mapping
+        from pilotstd.scan.parser import StandardParser
+        from pilotstd.tasks.favorite_download import _find_in_file_index
+
+        db = Database(str(tmp_path / "contract.db"))
+        try:
+            parser = StandardParser(build_code_mapping())
+            item = parser.parse("GB/T 5613-2026")
+            assert item is not None and item.logical_code == "GB/T"
+            dst = str(tmp_path / "standards" / "GBT 5613-2026.pdf")
+            FileIndexRepository(db).upsert(
+                file_path=dst,
+                logical_code=item.logical_code,
+                number=item.number,
+                year=item.year,
+                std_name="测试标准",
+                status="现行",
+            )
+            # 链路侧：用规范标准号查得到（这正是归档后置 done 的依据）
+            assert _find_in_file_index("GB/T 5613-2026", db) == dst
+
+            # 反证：若按被转义的 inbox 文件名解析，logical_code 退化为 GB → 查不到
+            escaped = parser.parse("GB_T 5613-2026_000002.pdf")
+            assert escaped is not None and escaped.logical_code == "GB", escaped.logical_code
+        finally:
+            db.close()
+
+
+
 class TestFavoriteDownloadChainE2E:
     def test_success_chain_writes_inbox_and_marks_done(self, tmp_path):
         """成功链路：字节落 inbox → 轮询命中 → done → 事件成对。"""
