@@ -34,7 +34,7 @@
 | `announcement/ocr/_tencent` | HMAC-SHA256 签名，不适合 HTTP mock |
 | `announcement/ocr/_aliyun` | 阿里云签名，不适合 HTTP mock |
 | `announcement/ocr/OcrScheduler` | 双槽并行+冷却逻辑，需 E2E 集成测试 |
-| `download/adapters/openstd_download` | 5 步状态机，待 P4 步骤1 |
+| `download/adapters/openstd_download` | **已实现**（5 步链路 + hcno 搜索页解析，见 `pilotstd/download/adapters/openstd_download.py:175-256`）；单元层已由 `tests/download/adapters/test_openstd_download.py`（43 passed）覆盖，另有 `tests/integration/test_favorite_download_chain_e2e.py` |
 | `download/engine` | 多适配器编排，需 E2E 集成测试 |
 | `ui/` 全部 | GUI 层，E2E scope |
 
@@ -56,7 +56,7 @@
 
 | 步骤 | 内容 | 状态 |
 |:--:|------|:--:|
-| 1 | openstd_download 5 步状态机方案 | 方案锁定（待实现） |
+| 1 | openstd_download 5 步状态机 | **已实现**（P4 之后落地，详见 [download-pipeline.md](../reference/download-pipeline.md)） |
 | 2 | BaiduOcrProvider 集成测试 (3 用例) | ✅ |
 | 3 | E2E 覆盖率度量 (workflow + 基线) | ✅ |
 | 4 | 性能回归基线 | ⏸️ 延后 P2 |

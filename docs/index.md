@@ -12,6 +12,7 @@
 | 文件 | 内容 | 触发条件 |
 |------|------|----------|
 | `announcement-pipeline.md` | 公告解析入库流程、状态机、字段规范 | 涉及公告解析/入库 |
+| `download-pipeline.md` | openstd 下载流程：hcno 权威来源、端点族 `/bzgk/std/*`、完整步骤链、历史事故、防回归测试 | 涉及下载链/下载适配器 |
 | `announcement-sources.md` | 公告来源标识映射表 | 涉及公告来源判断 |
 | `ui-components.md` | 前端组件规范、状态展示、布局原则 | 涉及前端 UI |
 | `coding-standards.md` | Python/TS 编码规范详细版 | 编写新代码时 |

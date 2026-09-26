@@ -149,6 +149,7 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 | 涉及数据库/Schema | `docs/architecture.md` | 代码说明书 |
 | 涉及公告解析/入库 | `docs/reference/announcement-pipeline.md` | 代码说明书 |
 | 涉及公告来源判断 | `docs/reference/announcement-sources.md` | 代码说明书 |
+| 涉及下载链/下载适配器 | `docs/reference/download-pipeline.md` | 代码说明书 |
 | 开发或修改适配器 | `docs/reference/adapter-development.md` | 人的指引 |
 | 涉及前端 UI 组件 | `docs/reference/ui-components.md` | 人的指引 |
 | 涉及 CI/CD 或门禁 | `docs/ci-lessons.md` | 人的指引 |
@@ -168,6 +169,7 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 | `docs/architecture.md` | 数据库/Schema/API/整体架构变更 |
 | `docs/reference/announcement-pipeline.md` | `pilotstd/announcement/` 状态机/流程变更 |
 | `docs/reference/announcement-sources.md` | `docker/api/announce_detail.py` 来源/字段变更 |
+| `docs/reference/download-pipeline.md` | `pilotstd/download/` 下载链路变更（hcno 来源 / 端点族 / 步骤链；同 `scripts/check_g_031_docs_sync.py` 的 G-031 映射） |
 
 **执行规则**：
 1. 改代码前 → 按 8.1 表读取对应文档
@@ -177,6 +179,6 @@ W-001 分析 → W-002 设计/获批 → W-003 测试（适用时）→ W-004 �
 
 ---
 
-**版本**：v3.2  
-**行数**：约 190 行  
-**变更**：第八节重组为"文档生命周期"两子节——8.1 读取侧（G-037 依赖，表格原样保留，说明文字保留"读文档触发条件表"入口字样以兼容门禁解析）；8.2 回写侧（R-006 补充：3 份代码说明书清单 + 执行规则）
+**版本**：v3.3  
+**行数**：约 184 行  
+**变更**：登记 `docs/reference/download-pipeline.md` 为代码说明书——8.1 读取侧新增"涉及下载链/下载适配器"触发条件、8.2 回写侧新增 `pilotstd/download/` 对应行（技术债 #24；G-037 要求 8.1/8.2/index.md 三处一致，G-031 要求改 `pilotstd/download/` 同批改本文档）。上一版（v3.2）：第八节重组为"文档生命周期"两子节——8.1 读取侧（G-037 依赖，表格原样保留，说明文字保留"读文档触发条件表"入口字样以兼容门禁解析）；8.2 回写侧（R-006 补充：3 份代码说明书清单 + 执行规则）
