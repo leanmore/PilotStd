@@ -272,11 +272,11 @@ from pilotstd.tasks.favorite_download import (
 class TestSafeFilename:
     def test_replaces_illegal_chars(self):
         result = _safe_filename("GB/T:1234*2020", "abc123")
-        assert result == "GB_T_1234_2020_abc123.pdf"
+        assert result == "GBT_1234_2020_abc123.pdf"
 
     def test_normal_standard_number(self):
         result = _safe_filename("GB/T 1234-2020", "xyz789")
-        assert result == "GB_T 1234-2020_xyz789.pdf"
+        assert result == "GBT 1234-2020_xyz789.pdf"
 
 
 class TestFavoriteArchiveError:
