@@ -259,11 +259,19 @@ class _SlowStreamMgr:
 
 
 def _stop_and_measure(worker: Any, timeout_ms: int = 5000) -> float:
-    """调用统一停止入口并返回耗时（毫秒）。"""
+    """调用统一停止入口并返回耗时（毫秒）。
+
+    验收线用**相对预算**（timeout 的 80%），不用绝对毫秒：CI 上带 coverage 插桩 +
+    真实显示插件，绝对耗时抖动大（本机实测 6–60ms，CI 可能数十倍）。
+    """
     from pilotstd.ui.qt_lifecycle import stop_worker_gracefully
 
     t0 = time.monotonic()
-    ok = stop_worker_gracefully(worker, timeout_ms=timeout_ms)
+    try:
+        ok = stop_worker_gracefully(worker, timeout_ms=timeout_ms)
+    finally:
+        # 无论断言是否失败，都必须把线程收干净：QThread 在运行中被析构会让 Qt 直接终止进程
+        worker.wait(timeout_ms)
     elapsed_ms = (time.monotonic() - t0) * 1000
     assert ok is True, f"worker 必须在超时前退出（实测 {elapsed_ms:.0f}ms / 预算 {timeout_ms}ms）"
     return elapsed_ms
@@ -280,7 +288,7 @@ def test_worker_aborts_stream_within_budget(qapp, worker_kind):
     orphan_before = ql.orphan_timeout_total()
 
     worker.start()
-    assert mgr.started.wait(5.0), "假 stream 未启动"
+    assert mgr.started.wait(20.0), "假 stream 未启动"
     time.sleep(0.15)  # 让它真跑几条，确保是在"流进行中"被中断
 
     elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
@@ -290,7 +298,7 @@ def test_worker_aborts_stream_within_budget(qapp, worker_kind):
     assert elapsed_ms < timeout_budget_ms, (
         f"退出耗时 {elapsed_ms:.0f}ms 超过预算 {timeout_budget_ms:.0f}ms（80% timeout）"
     )
-    assert elapsed_ms < 500, f"实测量级应远小于 500ms，实测 {elapsed_ms:.0f}ms"
+    assert elapsed_ms < 2000, f"退出应远快于 5s 预算，实测 {elapsed_ms:.0f}ms"
     assert ql.orphan_timeout_total() == orphan_before, "可中断的 worker 不得再走超时保活路径"
     assert mgr.ran < mgr.total, f"底层流必须被中止，而不是跑完（已处理 {mgr.ran}/{mgr.total}）"
 
@@ -323,12 +331,12 @@ def test_abort_survives_service_layer_except_exception(qapp):
     worker = ScanWorker(mgr, "X:/")
 
     worker.start()
-    assert mgr.started.wait(5.0), "假 stream 未启动"
+    assert mgr.started.wait(20.0), "假 stream 未启动"
     time.sleep(0.15)
 
     elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
     assert worker.isFinished(), "停止后线程必须已结束"
-    assert elapsed_ms < 500, f"被兜底捕获即会退化为 5s 超时，实测 {elapsed_ms:.0f}ms"
+    assert elapsed_ms < 2000, f"被兜底捕获即会退化为 5s 超时，实测 {elapsed_ms:.0f}ms"
     assert mgr.ran < mgr.total, f"底层流必须被中止（已处理 {mgr.ran}/{mgr.total}）"
 
 
@@ -343,12 +351,12 @@ def test_paused_query_worker_is_interruptible(qapp):
     worker = QueryWorker(mgr, [], pause_event=pause_event)
 
     worker.start()
-    assert mgr.started.wait(5.0), "假 stream 未启动"
-    time.sleep(0.3)  # 进入暂停等待（每 200ms 一次停止检查切片）
+    assert mgr.started.wait(20.0), "假 stream 未启动"
+    time.sleep(0.5)  # 进入暂停等待（每 200ms 一次停止检查切片）
 
     elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
     assert worker.isFinished(), "暂停中的 worker 停止后必须已结束"
-    assert elapsed_ms < 1500, f"暂停切片 200ms，退出应远快于 1.5s，实测 {elapsed_ms:.0f}ms"
+    assert elapsed_ms < 3000, f"暂停切片 200ms，退出应远快于 3s，实测 {elapsed_ms:.0f}ms"
 
 
 def test_drive_enumerator_checks_interruption(qapp, monkeypatch):
@@ -369,8 +377,8 @@ def test_drive_enumerator_checks_interruption(qapp, monkeypatch):
 
     worker = DriveEnumerator()
     worker.start()
-    time.sleep(0.2)
+    time.sleep(0.5)
     elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
     assert worker.isFinished(), "停止后枚举线程必须已结束"
-    assert elapsed_ms < 500, f"逐盘检查点应快速退出，实测 {elapsed_ms:.0f}ms"
+    assert elapsed_ms < 2000, f"逐盘检查点应快速退出，实测 {elapsed_ms:.0f}ms"
 

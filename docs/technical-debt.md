@@ -289,3 +289,13 @@ WHERE NOT EXISTS (SELECT 1 FROM favorite_downloads fd WHERE fd.favorite_id = f.i
 | DriveEnumerator | **54ms** | 1.1% | 5055ms、退出=False、保活 +1 |
 
 假 stream 为 20000 条 × 10ms（不中断需 ~200s）；修复后底层流在 12–14 条处被终止，`orphan_timeout_total()` 增量 0、保活残留 0。测量脚本（不入库）：`C:\Temp\pilotstd-probe\measure_worker_abort.py`。
+
+### 8.8 #17a 首次上 CI 失败与加固（2026-09-26）
+
+| 项 | 内容 |
+|---|---|
+| 现象 | 推送 `cdc308f3` 后 `test-gui-unit` 失败，**耗时 8.2 分钟**（同树前两次成功运行均为 18 分钟）→ 进程在套件中途终止，未打印 pytest 汇总；`version`/`docker`/`exe` 连带 skipped |
+| 本机复现 | 用 CI 同款命令（`pytest tests/gui/ tests/test_regression_architecture.py --cov=pilotstd/ui/core/handlers/ --ignore-glob="*test_e2e*.py"` + `PILOTSTD_GUI_TEST=1`）本机 **990 passed / 覆盖率 68.71%**，不复现；本地全量两轮均 1000 passed |
+| 根因（判定） | 新用例的**绝对毫秒阈值**（`elapsed_ms < 500`）在 CI 的 coverage 插桩 + 慢 runner 下会偶发失败；而断言在 `isFinished()`/收尾之前抛出 → 局部变量 `worker`（仍在运行的 QThread）随帧释放被 GC → Qt 触发 `QThread: Destroyed while thread is still running` 并 **qFatal 终止进程** → 套件中途死亡（正是 8.2 分钟无汇总的形态） |
+| 加固 | ① `_stop_and_measure()` 在 `finally` 中无条件 `worker.wait(timeout_ms)`：断言失败也先把线程收干净，杜绝"运行中被析构"；② 绝对毫秒阈值全部放宽为 `2000–3000ms` 量级（真正的验收线仍是"≤80% timeout"，即 4000ms）；③ `mgr.started.wait(5.0)` → `20.0`（CI 冷启动慢） |
+| 教训 | 线程类测试的收尾必须与断言解耦（先 join 再断言或 finally join）；跨环境验收线用相对预算而非绝对毫秒 |
