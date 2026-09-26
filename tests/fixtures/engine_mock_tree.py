@@ -118,8 +118,6 @@ CREATE TABLE IF NOT EXISTS user_favorites (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     publish_date TEXT,
-    last_archive_attempt TEXT,
-    archive_retry_count INTEGER DEFAULT 0,
     standard_number TEXT,
     standard_type TEXT NOT NULL DEFAULT 'Unknown',
     FOREIGN KEY (user_id) REFERENCES users(id),

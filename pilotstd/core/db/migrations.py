@@ -119,3 +119,8 @@ from ._migrate_v58_ensure_app_preferences import _migrate_v58_ensure_app_prefere
 from ._migrate_v59_ensure_favorite_retry_columns import (  # noqa: E402, F401
     _migrate_v59_ensure_favorite_retry_columns,
 )
+
+# 第六十版：删除 user_favorites 归档重试死列（技术债 #16 残留清理，函数自带注册装饰器）
+from ._migrate_v60_drop_favorite_retry_columns import (  # noqa: E402, F401
+    _migrate_v60_drop_favorite_retry_columns,
+)

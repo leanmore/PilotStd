@@ -424,6 +424,8 @@ class TestV52UserFavoritesFix(unittest.TestCase):
         先用完整结构建表再 DROP COLUMN 制造"缺失列"状态：
         - 与生产故障完全一致（仅 publish_date 缺失）；
         - tests/ 内 CREATE TABLE 与生产 schema 保持一致（G-012 门禁）。
+        注：两列归档重试死列已于 v60 从生产 schema 移除，故本表结构不含它们
+        （本用例只关心 publish_date，v59 会补、v60 会删，与断言无关）。
         """
         import sqlite3
 
@@ -448,8 +450,6 @@ class TestV52UserFavoritesFix(unittest.TestCase):
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     publish_date TEXT,
-                    last_archive_attempt TEXT,
-                    archive_retry_count INTEGER DEFAULT 0,
                     standard_number TEXT,
                     standard_type TEXT NOT NULL DEFAULT 'Unknown')"""
             )

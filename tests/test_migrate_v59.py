@@ -15,18 +15,25 @@ from pilotstd.core.db._migrate_v59_ensure_favorite_retry_columns import (
     _migrate_v59_ensure_favorite_retry_columns,
 )
 
-# 生产库 user_favorites 的完整结构（与迁移链最终形态一致，供 check_schema_consistency 校验；
-# 由「跑完整迁移链后 dump sqlite_master」得到）
+# v59 时点的生产库 user_favorites 结构（除被删列外与迁移链最终形态一致，供
+# check_schema_consistency 校验；由「跑完整迁移链后 dump sqlite_master」得到）
 _FULL_DDL = (
     "CREATE TABLE user_favorites (id INTEGER PRIMARY KEY AUTOINCREMENT,"
     "user_id INTEGER NOT NULL,record_id INTEGER NOT NULL,status TEXT DEFAULT 'pending',"
     "local_path TEXT,error_message TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
     "updated_at TEXT DEFAULT CURRENT_TIMESTAMP, publish_date TEXT,"
-    " last_archive_attempt TEXT, archive_retry_count INTEGER DEFAULT 0,"
     " standard_type TEXT NOT NULL DEFAULT 'Unknown', standard_number TEXT,"
     "FOREIGN KEY (user_id) REFERENCES users(id),"
     "FOREIGN KEY (record_id) REFERENCES announcement_record(id),"
     "UNIQUE(user_id, record_id))"
+)
+
+# 两列在 v60 已从生产 schema 删除，故不能写进上面的 CREATE TABLE——否则
+# check_schema_consistency 会把"v59 历史形态"误判成"测试表有生产表无"（EXTRA）。
+# 改用等价的 ALTER 追加，构造出的表与 v59 时点完全一致（语义不变）。
+_RETRY_DDL = (
+    "ALTER TABLE user_favorites ADD COLUMN last_archive_attempt TEXT",
+    "ALTER TABLE user_favorites ADD COLUMN archive_retry_count INTEGER DEFAULT 0",
 )
 
 # 收藏状态接口实际使用的 SQL（docker/api/favorites.py:210-214），用于验证补列后不再报错
@@ -60,6 +67,8 @@ def _legacy_db(missing: tuple[str, ...] = ("archive_retry_count", "last_archive_
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.execute(_FULL_DDL)
+    for ddl in _RETRY_DDL:
+        conn.execute(ddl)
     for col in missing:
         conn.execute(f"ALTER TABLE user_favorites DROP COLUMN {col}")  # noqa: S608 — 列名来自本文件常量
     conn.execute(

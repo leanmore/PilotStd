@@ -71,8 +71,6 @@ def client_and_db(tmp_path_factory):
         "local_path TEXT,"
         "error_message TEXT,"
         "publish_date TEXT,"
-        "last_archive_attempt TEXT,"
-        "archive_retry_count INTEGER DEFAULT 0,"
         "standard_number TEXT,"
         "standard_type TEXT NOT NULL DEFAULT 'Unknown',"
         "created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
