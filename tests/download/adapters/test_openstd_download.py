@@ -47,8 +47,21 @@ def adapter(server):
     return adp
 
 
-def _register_showgb(server: HTTPServer) -> None:
-    server.expect_request("/showGb", method="GET").respond_with_data(status=302)
+def _register_detail(server: HTTPServer, standard_number: str = "GB/T 1234-2020") -> None:
+    """详情页（新路径 /newGbInfo）：含标准号，避免触发 hcno 有效性告警。"""
+    server.expect_request("/newGbInfo", method="GET").respond_with_data(
+        f"<html><title>{standard_number}</title></html>", content_type="text/html; charset=utf-8"
+    )
+
+
+def _register_search(
+    server: HTTPServer, hcno: str, standard_number: str = "GB/T 1234-2020", extra_rows: str = ""
+) -> None:
+    """openstd 搜索页：行内 showInfo(hcno) 与标准号配对（适配器的 hcno 权威来源）。"""
+    rows = f"""<a href="javascript:void(0)" onclick="showInfo('{hcno}');">{standard_number}</a>""" + extra_rows
+    server.expect_request("/std_list_type", method="GET").respond_with_data(
+        f"<html><table>{rows}</table></html>", content_type="text/html; charset=utf-8"
+    )
 
 
 def _register_captcha_and_verify(server: HTTPServer) -> None:
@@ -81,7 +94,7 @@ class TestHcnoResolution:
         )
         result = adapter.download(task)
         assert result is None
-        assert "缺少 hcno" in task.error_message
+        assert "无法获取下载标识(hcno)" in task.error_message
 
     def test_extra_none_returns_none(self, adapter):
         """extra 为 None → None + error_message"""
@@ -92,19 +105,49 @@ class TestHcnoResolution:
         )
         result = adapter.download(task)
         assert result is None
-        assert "缺少 hcno" in task.error_message
+        assert "无法获取下载标识(hcno)" in task.error_message
 
-    def test_hcno_fallback_to_query_result(self, adapter, server):
-        """extra 无 hcno，从 query_result.hcno 回退获取 → 正常下载"""
-        _register_showgb(server)
+    def test_hcno_resolved_from_openstd_search_page(self, adapter, server):
+        """extra 无 hcno → 从 openstd 搜索页按标准号解析 hcno，并用它下载。"""
+        _register_search(server, "4D1FD002A12678A75A4B7C42C1DE87EE", "GB/T 1234-2020")
+        _register_detail(server)
         _register_captcha_and_verify(server)
         _register_viewgb_pdf(server)
 
         with patch.object(adapter, "_handle_captcha", return_value=None):
-            task = make_task(hcno="", query_result_hcno="QR_HCNO_001")
+            task = make_task(hcno="")
             result = adapter.download(task)
-            assert result is not None
-            assert result[:4] == b"%PDF"
+
+        assert result is not None and result[:4] == b"%PDF"
+        view_calls = [req for req, _ in server.log if "/viewGb" in req.path]
+        assert view_calls, "必须请求 /viewGb"
+        assert view_calls[-1].args.get("hcno") == "4D1FD002A12678A75A4B7C42C1DE87EE", "必须用搜索页解析出的 hcno"
+
+    def test_query_result_pid_is_not_used_as_hcno(self, adapter, server):
+        """防回归：std_gov 的 pid（query_result.hcno）绝不能被当 hcno 用。
+
+        2026-09 事故：pid 在 openstd 侧不被识别（newGbInfo 对 pid/篡改/空返回同一页面），
+        旧实现回退 pid 后失败被推迟到验证码阶段、伪装成"验证码问题"（生产 15/15 error）。
+        """
+        _register_search(server, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "OTHER-STD-2020")  # 搜索页无目标标准号
+        task = make_task(hcno="", query_result_hcno="PID_FROM_STD_GOV")
+
+        with patch.object(adapter, "_handle_captcha") as captcha:
+            result = adapter.download(task)
+
+        assert result is None
+        assert "无法获取下载标识(hcno)" in task.error_message
+        assert not captcha.called, "解析不到 hcno 时不得进入验证码阶段"
+        assert not [req for req, _ in server.log if "/viewGb" in req.path], "不得用 pid 去下载"
+
+    def test_search_row_number_must_match(self, adapter, server):
+        """防回归：搜索页返回其它标准时不得取首条（否则会把别的标准全文当成本条下载）。"""
+        _register_search(server, "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "GB 2024-2016")
+        task = make_task(hcno="")
+
+        with patch.object(adapter, "_handle_captcha") as captcha:
+            assert adapter.download(task) is None
+        assert not captcha.called
 
 
 # ════════════════════════════════════════════════════════════
@@ -113,15 +156,23 @@ class TestHcnoResolution:
 
 
 class TestShowGbError:
-    def test_show_gb_connection_error_returns_none(self, adapter):
-        """showGb 网络连接异常 → None + '建立会话失败'"""
-        with patch.object(
-            adapter._session, "get", side_effect=requests.ConnectionError("mocked")
-        ):
+    def test_detail_page_connection_error_is_not_fatal(self, adapter, server):
+        """详情页预访问失败不致命：仍应继续验证码 + viewGb（实测最小序列不需要详情页）。"""
+        _register_captcha_and_verify(server)
+        _register_viewgb_pdf(server)
+        real_get = adapter._session.get
+
+        def flaky_get(url, *args, **kwargs):
+            """只让详情页请求失败，其余请求走真实 mock server。"""
+            if "/newGbInfo" in url:
+                raise requests.ConnectionError("mocked")
+            return real_get(url, *args, **kwargs)
+
+        adapter._session.get = flaky_get  # type: ignore[method-assign]
+        with patch.object(adapter, "_handle_captcha", return_value=None):
             task = make_task()
             result = adapter._do_download("TEST123", task)
-            assert result is None
-            assert "建立会话失败" in task.error_message
+        assert result is not None and result[:4] == b"%PDF"
 
 
 # ════════════════════════════════════════════════════════════
@@ -294,25 +345,55 @@ class TestCaptchaFailure:
 
 class TestViewGbErrors:
     def test_view_gb_network_error(self, adapter, server):
-        """viewGb 请求异常 → None + 'PDF 下载请求失败'"""
-        _register_showgb(server)
+        """viewGb 网络异常（两轮都失败）→ None + 'PDF 下载请求失败'"""
+        _register_detail(server)
+        real_get = adapter._session.get
 
+        def flaky_get(url, *args, **kwargs):
+            if "/viewGb" in url:
+                raise requests.Timeout("mocked")
+            return real_get(url, *args, **kwargs)
+
+        adapter._session.get = flaky_get  # type: ignore[method-assign]
         with patch.object(adapter, "_handle_captcha", return_value=None):
-            with patch.object(
-                adapter._session, "get",
-                side_effect=[
-                    MagicMock(status_code=302),
-                    requests.Timeout("mocked"),
-                ]
-            ):
-                task = make_task()
-                result = adapter._do_download("TEST123", task)
-                assert result is None
-                assert "PDF 下载请求失败" in task.error_message
+            task = make_task()
+            result = adapter._do_download("TEST123", task)
+
+        assert result is None
+        assert "PDF 下载请求失败" in task.error_message
+
+    def test_view_gb_empty_first_round_then_pdf(self, adapter, server):
+        """viewGb 首轮空内容 → 自动重开下载页重试并成功（站点授权偶发未落地）。"""
+        _register_detail(server)
+        server.expect_request("/viewGb", method="GET").respond_with_data("", status=200)
+        real_get = adapter._session.get
+        state = {"n": 0}
+
+        def flaky_get(url, *args, **kwargs):
+            if "/viewGb" in url:
+                state["n"] += 1
+                if state["n"] == 1:
+                    return real_get(url, *args, **kwargs)  # 第一次：mock 返回空
+                resp = requests.Response()
+                resp.status_code = 200
+                resp._content = b"%PDF-1.4\nfake content\n%%EOF"
+                resp.headers["Content-Type"] = "application/pdf"
+                resp.headers["Content-Disposition"] = 'attachment; filename="retry.pdf"'
+                return resp
+            return real_get(url, *args, **kwargs)
+
+        adapter._session.get = flaky_get  # type: ignore[method-assign]
+        with patch.object(adapter, "_handle_captcha", return_value=None):
+            task = make_task()
+            result = adapter._do_download("TEST123", task)
+
+        assert result is not None and result[:4] == b"%PDF"
+        assert state["n"] == 2, "首轮空内容后必须重试一次"
+        assert (task.extra or {}).get("filename_from_header") == "retry.pdf"
 
     def test_view_gb_non_200(self, adapter, server):
         """viewGb HTTP 500 → None"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/viewGb", method="GET").respond_with_data(status=500)
 
         with patch.object(adapter, "_handle_captcha", return_value=None):
@@ -323,7 +404,7 @@ class TestViewGbErrors:
 
     def test_view_gb_empty_content(self, adapter, server):
         """viewGb 返回空内容 → None"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/viewGb", method="GET").respond_with_data("", status=200)
 
         with patch.object(adapter, "_handle_captcha", return_value=None):
@@ -334,7 +415,7 @@ class TestViewGbErrors:
 
     def test_view_gb_non_pdf_small_html(self, adapter, server):
         """viewGb 返回小体积 HTML（<1000B）→ 非 PDF"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/viewGb", method="GET").respond_with_data(
             "<html>error</html>", content_type="text/html", status=200
         )
@@ -347,7 +428,7 @@ class TestViewGbErrors:
 
     def test_view_gb_large_content_with_html(self, adapter, server):
         """viewGb 返回 >1000B 且含 html 前缀 → 非 PDF（覆盖 L151-152）"""
-        _register_showgb(server)
+        _register_detail(server)
         large_html = b"<html>" + b"x" * 1100 + b"</html>"
         server.expect_request("/viewGb", method="GET").respond_with_data(
             large_html, content_type="text/html", status=200
@@ -361,7 +442,7 @@ class TestViewGbErrors:
 
     def test_view_gb_large_binary_no_html_returns_content(self, adapter, server):
         """viewGb 返回 >1000B 且不含 html → 视为有效 PDF（覆盖 L152）"""
-        _register_showgb(server)
+        _register_detail(server)
         binary_data = b"\x00\x01\x02" + b"x" * 1100
         server.expect_request("/viewGb", method="GET").respond_with_data(
             binary_data, content_type="application/octet-stream", status=200
@@ -375,7 +456,7 @@ class TestViewGbErrors:
 
     def test_view_gb_content_disposition_filename(self, adapter, server):
         """viewGb 带 Content-Disposition → extra.filename_from_header 被设置"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/viewGb", method="GET").respond_with_data(
             b"%PDF-1.4\ncontent\n%%EOF",
             content_type="application/pdf",
@@ -393,7 +474,7 @@ class TestViewGbErrors:
 
     def test_extra_none_gets_initialized_for_filename(self, adapter, server):
         """task.extra 为 None 时，设置 filename 前先初始化为 dict（覆盖 L144）"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/viewGb", method="GET").respond_with_data(
             b"%PDF-1.4\ncontent\n%%EOF",
             content_type="application/pdf",
@@ -420,7 +501,7 @@ class TestViewGbErrors:
 class TestDoDownloadCaptchaFail:
     def test_captcha_fails_returns_none_from_do_download(self, adapter, server):
         """showGb 成功但 captcha 失败 → _do_download 在 L107 返回 None"""
-        _register_showgb(server)
+        _register_detail(server)
         server.expect_request("/gc", method="GET").respond_with_data(
             b"x89PNG", content_type="image/png"
         )
@@ -444,7 +525,7 @@ class TestDoDownloadCaptchaFail:
 
 class TestContentDispositionVariants:
     def _run_with_cd(self, adapter, server, cd_header: str) -> DownloadTask:
-        _register_showgb(server)
+        _register_detail(server)
         headers = {"Content-Disposition": cd_header} if cd_header else {}
         server.expect_request("/viewGb", method="GET").respond_with_data(
             b"%PDF-1.4\ncontent\n%%EOF",
@@ -488,7 +569,7 @@ class TestContentDispositionVariants:
 class TestFullDownload:
     def test_full_download_happy_path(self, adapter, server):
         """完整 5 步链路正常通过"""
-        _register_showgb(server)
+        _register_detail(server)
         _register_captcha_and_verify(server)
         _register_viewgb_pdf(server)
 
@@ -526,3 +607,40 @@ class TestCanHandle:
 
     def test_site_name_property(self, adapter_no_server):
         assert adapter_no_server.site_name == "openstd_download"
+
+# ════════════════════════════════════════════════════════════
+# T9: 端点路径守卫（防回归）
+# ════════════════════════════════════════════════════════════
+
+
+class TestEndpointPathGuard:
+    """openstd 2026-09 把下载端点从 /bzgk/gb/* 迁到 /bzgk/std/*。
+
+    旧路径下 GET 是 301（requests 自动跟随，看不出问题），但 POST 遇 301 会被降级为
+    GET、表单体丢失 → verifyCode 恒 error（生产 15/15 失败的根因之一）。
+    这里把"必须用 /bzgk/std"钉成断言，避免下次又改回旧路径。
+    """
+
+    def test_base_url_is_std_namespace(self):
+        assert OpenstdDownloadAdapter.BASE_URL.endswith("/bzgk/std"), (
+            "下载端点必须走 /bzgk/std（旧 /bzgk/gb 会 301，POST 体丢失导致 verifyCode 恒 error）"
+        )
+
+    def test_search_url_shares_base_namespace(self, adapter):
+        assert adapter.search_url == f"{adapter.BASE_URL}/std_list_type", (
+            "hcno 搜索页必须与 BASE_URL 同源（站点路径迁移时只改一处）"
+        )
+
+    def test_all_requests_use_std_paths(self, adapter, server):
+        """全流程请求路径都必须落在 mock server 的 /gc、/verifyCode、/viewGb、/newGbInfo 上。"""
+        _register_search(server, "4D1FD002A12678A75A4B7C42C1DE87EE", "GB/T 1234-2020")
+        _register_detail(server)
+        _register_captcha_and_verify(server)
+        _register_viewgb_pdf(server)
+
+        with patch.object(adapter, "_handle_captcha", return_value=None):
+            adapter.download(make_task(hcno=""))
+
+        paths = [req.path for req, _ in server.log]
+        assert paths, "必须发生请求"
+        assert not [p for p in paths if p.startswith("/bzgk")], "不应出现硬编码站点路径"

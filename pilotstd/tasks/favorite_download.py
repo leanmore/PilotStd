@@ -50,8 +50,11 @@ def _get_standard_type(favorite_id: int, db: Database) -> str:
 def _load_cached_query_result(db: Database, standard_number: str) -> Optional[Any]:
     """从查询缓存取该标准的查询结果，仅限 std_gov 源。
 
-    下载所需的 hcno（= std_gov 搜索结果的 pid）只有该源产生；
-    不限定 source_site 会命中外站行（ahbz/njbz365 等无 hcno）。
+    ⚠️ 这里的查询流程只为**可下载性判定**服务（`is_adopted` 采标闸）与"标准是否收录"，
+    查询产出的 `pid`（历史上的 `hcno` 字段）**不是** openstd 下载所需的 `hcno`：
+    两者是不同体系的标识，下载侧由适配器自己到 openstd 搜索页解析
+    （见 `pilotstd/download/adapters/openstd_download.py` 的 `_lookup_hcno`，2026-09-26 实测）。
+    不限定 source_site 会命中外站行（ahbz/njbz365 等无该标识）。
     """
     try:
         from pilotstd.query.cache import CacheRepository
@@ -63,7 +66,7 @@ def _load_cached_query_result(db: Database, standard_number: str) -> Optional[An
 
 
 def _query_std_gov(mgr: Any, standard_number: str) -> Optional[Any]:
-    """缓存未命中时现场查询国标站点，取回含 hcno / 采标状态的查询结果。"""
+    """缓存未命中时现场查询国标站点，取回含采标状态/收录标识的查询结果。"""
     try:
         results, _stats = mgr.query_by_numbers([standard_number], preferred_site="std_gov")
     except Exception as e:
@@ -206,10 +209,13 @@ def _notify_download_complete(
 
 # 下载__—收藏下载任务（44解耦后操作_下载表）
 def _resolve_download_target(mgr: Any, db: Database, favorite_id: int, standard_number: str) -> Any:
-    """下载前三闸：类别（仅国标）→ hcno 取用 → 采标。返回可下载的查询结果。
+    """下载前三闸：类别（仅国标）→ 查询结果（收录/采标判定）→ 采标。返回可下载的查询结果。
 
-    hcno 是可下载能力的载体（openstd 需先建会话再取全文），查询缓存优先、
-    未命中现场查一次；冷却期与新标准判定由下载链 SQL 负责，此处不重复。
+    ⚠️ 查询流程与下载流程是两条不同的链路：这里拿到的是 std_gov 的查询结果（含 `hcno` 字段，
+    实为 `std.samr.gov.cn` 的 `pid`），它**不能**当作 openstd 下载标识使用
+    （历史三次事故根因，见 `openstd_download.py` 模块 docstring）。下载所需的 hcno 由下载
+    适配器到 openstd 搜索页按标准号解析；此处只判"能否下载"，不解析下载标识。
+    冷却期与新标准判定由下载链 SQL 负责，此处不重复。
 
     类别闸/版权闸命中时抛 `FavoriteSkip`（业务终态，重试无意义）。
     """
@@ -221,7 +227,8 @@ def _resolve_download_target(mgr: Any, db: Database, favorite_id: int, standard_
     if query_result is None or not getattr(query_result, "hcno", ""):
         query_result = _query_std_gov(mgr, standard_number)
     if query_result is None:
-        raise FavoriteArchiveError(f"无法获取下载标识(hcno): {standard_number}")
+        # 查询链路拿不到"该标准已收录"的证据（与下载标识无关）
+        raise FavoriteArchiveError(f"无法获取标准查询结果: {standard_number}")
     if getattr(query_result, "is_adopted", False):
         raise FavoriteSkip(f"{ADOPTED_SKIP_MESSAGE}: {standard_number}")
     return query_result
