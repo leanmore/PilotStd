@@ -1,6 +1,8 @@
 {
   "app": { "title": "PilotStd" },
-  "nav": { "home": "首页", "task": "任务", "organize": "整理",
+  "nav": { "home": "首页", "task": "任务", "scan": "扫描", "query": "查询", "download": "下载",
+           "normalize": "规范化", "archive": "归档",
+           "organize": "整理",
            "pending": "待处理", "announce": "公告",
            "download_import": "导入下载",
            "favorites": "收藏",
@@ -62,13 +64,18 @@
       "system": "系统"
     },
     "tasks": {
-      "auto_scan_enabled": "启用自动扫描",
-      "auto_scan_cron": "扫描间隔 (cron)",
-      "auto_announce_enabled": "定时公告自动检查",
-      "auto_announce_cron": "公告检查 cron",
-      "date_reminder_enabled": "实施日期到期提醒",
-      "date_reminder_cron": "日期提醒 cron"
+      "scan": "自动扫描标准库",
+      "announce": "公告自动检查",
+      "reminder": "实施日期到期提醒",
+      "health_check": "适配器健康检查",
+      "archive_retry": "收藏标准下载归档",
+      "cron_label": "Cron 表达式",
+      "archive_retry_hint": "收藏的国标将在冷却期后由该任务统一下载；改小 cron（如 * * * * *）可立刻触发一轮。",
+      "save": "保存配置",
+      "saved": "配置已保存",
+      "load_failed": "加载定时任务配置失败"
     },
+    "file_monitor": { "title": "文件监控" },
     "network": { "proxy": "代理地址", "ua_rotation": "UA 轮转" },
     "query": { "query_interval": "查询间隔(秒)", "use_cache": "启用缓存" },
     "scan": { "skip_folders": "跳过文件夹", "extensions": "文件扩展名", "exclude_patterns": "跳过文件关键词" },

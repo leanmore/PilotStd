@@ -2,8 +2,10 @@
 /**
  * SettingsTabSchedule — 定时任务 Tab
  * 包含定时任务配置（扫描/公告/提醒）+ 文件监控卡片
+ * 文案全部走 i18n（settings.tabs.tasks / settings.tasks.* / settings.file_monitor.*），不硬编码中文
  */
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ToggleSwitch from 'primevue/toggleswitch'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
@@ -12,6 +14,8 @@ import { getSettings, putSettings } from '@/api'
 import FileMonitor from '@/components/FileMonitor.vue'
 
 defineOptions({ name: 'SettingsTabSchedule' })
+
+const { t } = useI18n()
 
 interface TaskConfig {
   auto_scan_enabled: boolean
@@ -55,7 +59,7 @@ async function loadTasks() {
       tasks.value = { ...tasks.value, ...r.tasks }
     }
   } catch {
-    errMsg.value = '加载定时任务配置失败'
+    errMsg.value = t('settings.tasks.load_failed')
   } finally {
     loading.value = false
   }
@@ -68,7 +72,7 @@ async function saveTasks() {
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
   } catch {
-    errMsg.value = '保存失败'
+    errMsg.value = t('common.save_failed')
   } finally {
     saving.value = false
   }
@@ -83,22 +87,22 @@ onMounted(loadTasks)
     <!-- 定时任务配置 -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="sections.tasks = !sections.tasks">
-        <span class="collapsible-title">定时任务</span>
+        <span class="collapsible-title">{{ t('settings.tabs.tasks') }}</span>
         <i :class="sections.tasks ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
       </div>
       <transition name="collapsible">
         <div v-show="sections.tasks" class="collapsible-content">
           <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-          <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
+          <Message v-if="saved" severity="success" :closable="false">{{ t('settings.tasks.saved') }}</Message>
 
           <!-- 自动扫描 -->
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.auto_scan_enabled" />
-              <label>自动扫描标准库</label>
+              <label>{{ t('settings.tasks.scan') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_scan_enabled">
-              <label>Cron 表达式</label>
+              <label>{{ t('settings.tasks.cron_label') }}</label>
               <InputText v-model="tasks.auto_scan_cron" placeholder="0 3 * * *" size="small" />
             </div>
           </div>
@@ -107,10 +111,10 @@ onMounted(loadTasks)
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.auto_announce_enabled" />
-              <label>公告自动检查</label>
+              <label>{{ t('settings.tasks.announce') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_announce_enabled">
-              <label>Cron 表达式</label>
+              <label>{{ t('settings.tasks.cron_label') }}</label>
               <InputText v-model="tasks.auto_announce_cron" placeholder="0 1 * * *" size="small" />
             </div>
           </div>
@@ -119,10 +123,10 @@ onMounted(loadTasks)
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.date_reminder_enabled" />
-              <label>实施日期到期提醒</label>
+              <label>{{ t('settings.tasks.reminder') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.date_reminder_enabled">
-              <label>Cron 表达式</label>
+              <label>{{ t('settings.tasks.cron_label') }}</label>
               <InputText v-model="tasks.date_reminder_cron" placeholder="0 2 * * *" size="small" />
             </div>
           </div>
@@ -131,10 +135,10 @@ onMounted(loadTasks)
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.auto_health_check_enabled" />
-              <label>适配器健康检查</label>
+              <label>{{ t('settings.tasks.health_check') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_health_check_enabled">
-              <label>Cron 表达式</label>
+              <label>{{ t('settings.tasks.cron_label') }}</label>
               <InputText v-model="tasks.auto_health_check_cron" placeholder="0 * * * *" size="small" />
             </div>
           </div>
@@ -143,17 +147,17 @@ onMounted(loadTasks)
           <div class="task-row">
             <div class="task-toggle">
               <ToggleSwitch v-model="tasks.auto_archive_retry_enabled" />
-              <label>收藏标准下载归档</label>
+              <label>{{ t('settings.tasks.archive_retry') }}</label>
             </div>
             <div class="task-cron" v-if="tasks.auto_archive_retry_enabled">
-              <label>Cron 表达式</label>
+              <label>{{ t('settings.tasks.cron_label') }}</label>
               <InputText v-model="tasks.auto_archive_retry_cron" placeholder="0 4 * * *" size="small" />
             </div>
-            <div class="task-hint">收藏的国标将在冷却期后由该任务统一下载；改小 cron（如 * * * * *）可立刻触发一轮。</div>
+            <div class="task-hint">{{ t('settings.tasks.archive_retry_hint') }}</div>
           </div>
 
           <div class="actions-row">
-            <Button label="保存配置" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
+            <Button :label="t('settings.tasks.save')" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
           </div>
         </div>
       </transition>
@@ -162,7 +166,7 @@ onMounted(loadTasks)
     <!-- 文件监控（Q18: 从系统Tab迁移） -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="sections.fileMonitor = !sections.fileMonitor">
-        <span class="collapsible-title">文件监控</span>
+        <span class="collapsible-title">{{ t('settings.file_monitor.title') }}</span>
         <i :class="sections.fileMonitor ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
       </div>
       <transition name="collapsible">

@@ -22,8 +22,10 @@
     }
   },
   "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
-            "pending": "Pending", "upcoming": "Upcoming", "scanBtn": "Manual Scan",
-            "queryBtn": "Manual Query", "autoBtn": "Auto Run" },
+            "pending": "Pending", "upcoming": "Upcoming", "tasks": "Scheduled Tasks",
+            "recent": "Recent Updates", "scanBtn": "Manual Scan",
+            "queryBtn": "Manual Query", "downloadBtn": "Download Standards",
+            "organizeBtn": "Manage Files", "autoBtn": "Auto Run" },
   "login": { "title": "PilotStd Login", "password": "Password", "submit": "Login",
              "error": "Wrong password" },
   "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading",
@@ -61,13 +63,18 @@
       "system": "System"
     },
     "tasks": {
-      "auto_scan_enabled": "Enable Auto Scan",
-      "auto_scan_cron": "Scan Interval (cron)",
-      "auto_announce_enabled": "Auto Announce Check",
-      "auto_announce_cron": "Announce Check Cron",
-      "date_reminder_enabled": "Date Reminder",
-      "date_reminder_cron": "Reminder Cron"
+      "scan": "Auto Scan Standards",
+      "announce": "Auto Announce Check",
+      "reminder": "Implementation Date Reminder",
+      "health_check": "Adapter Health Check",
+      "archive_retry": "Favorite Standard Download & Archive",
+      "cron_label": "Cron Expression",
+      "archive_retry_hint": "Favorites are downloaded by this task after the cooldown; use a smaller cron (e.g. * * * * *) to trigger a round immediately.",
+      "save": "Save Config",
+      "saved": "Config saved",
+      "load_failed": "Failed to load scheduled task config"
     },
+    "file_monitor": { "title": "File Monitor" },
     "network": { "proxy": "Proxy Address", "ua_rotation": "UA Rotation" },
     "query": { "query_interval": "Query Interval (s)", "use_cache": "Enable Cache" },
     "scan": { "skip_folders": "Skip Folders", "extensions": "File Extensions", "exclude_patterns": "Skip File Keywords" },

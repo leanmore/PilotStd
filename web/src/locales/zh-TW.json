@@ -22,8 +22,10 @@
     }
   },
   "home": { "stats": "標準庫概覽", "current": "現行", "expired": "廢止",
-            "pending": "待確認", "upcoming": "即將實施", "scanBtn": "手動掃描",
-            "queryBtn": "手動查詢", "autoBtn": "一鍵更新" },
+            "pending": "待確認", "upcoming": "即將實施", "tasks": "定時任務",
+            "recent": "最近更新", "scanBtn": "手動掃描",
+            "queryBtn": "手動查詢", "downloadBtn": "下載標準", "organizeBtn": "檔案管理",
+            "autoBtn": "一鍵更新" },
   "login": { "title": "PilotStd 登入", "password": "密碼", "submit": "登入",
              "error": "密碼錯誤" },
   "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中",
@@ -61,13 +63,18 @@
       "system": "系統"
     },
     "tasks": {
-      "auto_scan_enabled": "啟用自動掃描",
-      "auto_scan_cron": "掃描間隔 (cron)",
-      "auto_announce_enabled": "定時公告自動檢查",
-      "auto_announce_cron": "公告檢查 cron",
-      "date_reminder_enabled": "實施日期到期提醒",
-      "date_reminder_cron": "日期提醒 cron"
+      "scan": "自動掃描標準庫",
+      "announce": "公告自動檢查",
+      "reminder": "實施日期到期提醒",
+      "health_check": "適配器健康檢查",
+      "archive_retry": "收藏標準下載歸檔",
+      "cron_label": "Cron 表達式",
+      "archive_retry_hint": "收藏的國標將在冷卻期後由該任務統一下載；改小 cron（如 * * * * *）可立刻觸發一輪。",
+      "save": "儲存設定",
+      "saved": "設定已儲存",
+      "load_failed": "載入定時任務設定失敗"
     },
+    "file_monitor": { "title": "檔案監控" },
     "network": { "proxy": "代理地址", "ua_rotation": "UA 輪轉" },
     "query": { "query_interval": "查詢間隔(秒)", "use_cache": "啟用快取" },
     "scan": { "skip_folders": "跳過資料夾", "extensions": "檔案副檔名", "exclude_patterns": "跳過檔案關鍵詞" },
