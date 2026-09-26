@@ -6,7 +6,7 @@
 |------|------|------|
 | [governance-principles.md](governance-principles.md) | 治理体系元原则（三件套、决策链、门禁设计） | v1.0 |
 | [trinity-technical-spec-v2.md](trinity-technical-spec-v2.md) | 三位一体技术规范（测试 → 门禁 → 文档闭环、强制执行层规格） | v2.1（2026-09-21 复核） |
-| [development-flow.md](development-flow.md) | 决策请求协议 + `[假设失效]` 衔接 + 规则固化信号机制 | 已定稿（2026-09-21 复核） |
+| [development-flow.md](development-flow.md) | 决策请求协议 + `[假设失效]` 衔接 + 规则固化信号机制 + **§8 多分支合并全组合冲突侦察** | 已定稿（2026-09-26 补 §8） |
 | [prompt-crafting-guide.md](prompt-crafting-guide.md) | 提示词生产规范 + context-ref v2 + rollback 三级分级 | 已定稿 |
 | [rule-quickref.md](rule-quickref.md) | 非技术决策者规则速查表（业务语言翻译） | 已定稿 |
 | [phase1-startup-checklist.md](phase1-startup-checklist.md) | Phase 1 唯一准入标准（启动检查清单） | v2.1 |
