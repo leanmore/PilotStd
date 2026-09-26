@@ -117,19 +117,28 @@ class TestOnFile:
                     s._on_file("/p/f.pdf")
                     assert s._mgr is not None
 
-    def test_empty_scan_result_logs_zero(self, caplog):
-        """L117: scanned 为空列表 → '扫描完成: 0 条'。"""
+    def test_empty_scan_result_logs_unrecognized(self, caplog):
+        """解析不出标准号 → 明确告警（不再声称"扫描完成"，也不计 success）。
+
+        技术债 #30：改前这里是 "扫描完成: 0 条" + 静默丢弃，面板看起来一切正常。
+        """
         s = FileMonitorScheduler()
         s._mgr = MagicMock()
         s._mgr.scan_directory.return_value = []
+        mock_stats = MagicMock()
 
         with patch("pilotstd.monitor.scheduler.get_config") as mock_cfg:
             mock_cfg.return_value = {"auto_archive": True}
-            with patch("pilotstd.monitor.scheduler.get_monitor_stats"):
-                with caplog.at_level(logging.INFO):
+            with patch(
+                "pilotstd.monitor.scheduler.get_monitor_stats",
+                return_value=mock_stats,
+            ):
+                with caplog.at_level(logging.WARNING):
                     s._on_file("/fake/path.pdf")
 
-        assert "扫描完成: 0 条" in caplog.text
+        assert "未识别到标准号，未归档" in caplog.text
+        keys = [c.args[0] for c in mock_stats.increment.call_args_list]
+        assert "failed" in keys and "success" not in keys
 
 
 class TestResolveMonitorConfig:

@@ -130,6 +130,13 @@ class FileMonitorScheduler:
             self.running = False
 
     def _on_file(self, path: str):
+        """文件稳定后触发：解析 → 归档 → 按**真实归档结果**计数。
+
+        计数口径（技术债 #30）：`success` 必须是"真归档成功"，不能是"文件名解析出来了"。
+        改前只调 `scan_directory`（仅解析、不搬文件、不写 `file_index`）却照记 success，
+        现场出现 `processed_today=6 / success_today=6` 而 inbox 里 6 个文件一个都没入库
+        → 面板显示健康、实际什么都没发生（`auto_archive` 开关形同虚设）。
+        """
         cfg = get_config()
         if not cfg.get("auto_archive", True):
             logger.info("[MONITOR] 自动归档已禁用，跳过: %s", path)
@@ -145,12 +152,26 @@ class FileMonitorScheduler:
 
                 self._mgr = StandardManager()
             mgr = self._mgr
-            scanned = mgr.scan_directory(os.path.dirname(path))
-            if scanned:
-                logger.info("[MONITOR] 扫描完成: %d 条", len(scanned))
+            source_root = os.path.dirname(path)
+            scanned = mgr.scan_directory(source_root)
+            if not scanned:
+                logger.warning("[MONITOR] 未识别到标准号，未归档: %s", path)
+                stats.increment("failed")
+                return
+            # 归档走**统一入口**（CLI/Web/UI 同一实现），不是第二套归档逻辑；
+            # 与收藏链（#29）不重复：链路归档发生在下载返回后，本回调要等 5 秒稳定期且
+            # handler 会先判 `os.path.exists`——文件已被链路搬走时回调根本不会触发。
+            result = mgr.archive_standards(scanned, word_source_root=source_root)
+            moved = int(result.get("moved", 0)) if isinstance(result, dict) else 0
+            if moved:
+                logger.info("[MONITOR] 归档完成: %d 条", moved)
                 stats.increment("success")
+            elif isinstance(result, dict) and result.get("failed", 0):
+                logger.error("[MONITOR] 归档失败: %s — %s", path, result.get("details", []))
+                stats.increment("failed")
             else:
-                logger.info("[MONITOR] 扫描完成: 0 条")
+                # 源文件已被移走/目标已存在/条目待确认 → 无搬移，不计成败
+                logger.info("[MONITOR] 未搬移文件（跳过）: %s", path)
         except Exception as e:
             logger.error("[MONITOR] 处理失败: %s — %s", path, e)
             stats.increment("failed")
