@@ -15,6 +15,7 @@ import httpx
 
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
+from ._shared_ssl import default_ssl_context
 from .base import BaseAdapter
 
 DISPLAY_NAME = "中国标准服务网"
@@ -32,6 +33,7 @@ class CSSNAdapter(BaseAdapter):
     def __init__(self, client: httpx.Client | None = None):
         self._client = client or httpx.Client(
             timeout=REQUEST_TIMEOUT,
+            verify=default_ssl_context(),
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
