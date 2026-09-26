@@ -10,7 +10,7 @@
 | [prompt-crafting-guide.md](prompt-crafting-guide.md) | 提示词生产规范 + context-ref v2 + rollback 三级分级 | 已定稿 |
 | [rule-quickref.md](rule-quickref.md) | 非技术决策者规则速查表（业务语言翻译） | 已定稿 |
 | [phase1-startup-checklist.md](phase1-startup-checklist.md) | Phase 1 唯一准入标准（启动检查清单） | v2.1 |
-| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线） | v1.18 |
+| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线） | v1.19 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
 | [refactoring_checklist.md](refactoring_checklist.md) | 重构前后操作清单 | 活跃 |

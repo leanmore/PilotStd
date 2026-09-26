@@ -79,13 +79,14 @@
   - `pilotstd/manager/` → `docs/architecture/modules/manager.md`（`manager/facade/_scan.py` 属此，不再牵连 scan.md）
   - `pilotstd/core/` → `docs/architecture/modules/core.md`（**2026-09-25 补入**，原为已知缺口：core.md 自述"G-031 映射 `pilotstd/core/`"却不在表里，改任何 core 文件都不触发同步）
   - `pilotstd/announcement/` → `docs/reference/announcement-pipeline.md`（**2026-09-25 补入**，该文档即 AGENTS.md §八 8.2 指定的回写目标）
+  - `pilotstd/download/` → `docs/reference/download-pipeline.md`（**2026-09-26 补入**，技术债 #24：该目录此前不在表里，改下载适配器不触发任何文档同步——#21 的三处流程变化只写进了代码 docstring；新建的 download-pipeline.md 承载 hcno 权威来源 / 端点族 `/bzgk/std/*` / 步骤链 / 历史事故 / 防回归测试清单）
   - `scripts/` → `docs/governance/gates.md`
   - `.github/workflows/` → `docs/governance/gates.md`
   - `docs/governance/` → `docs/governance/README.md`
   - `docs/adr/` → `docs/adr/README.md`（**仅新增/删除/重命名**时要求同步：改 ADR 正文只影响该 ADR 自身，"有哪些决策"这份清单并未变化）
-- **已知缺口**：无（2026-09-25 起原两条缺口已补；映射共 **11 条**，自检脚本可验证"源前缀与目标文档均存在"，确保无死映射）
+- **已知缺口**：无（2026-09-25 起原两条缺口已补；2026-09-26 再补第三条；映射共 **12 条**，自检脚本可验证"源前缀与目标文档均存在"，确保无死映射）
 - **机器生成产物豁免**：`docs/governance/capabilities_registry.md`（由 `scripts/generate_capabilities.py` 生成，且已登记在 `docs/governance/README.md` 索引中）**单独**变更时不要求同步 README —— 重生成只改时间戳/行号，不改变索引语义；AGENTS.md §七 又强制其随 `pilotstd/core/`、`docker/api/` 变更一并提交，若不豁免，则每次重生成都会撞上本条规则，只能做装饰性改动或绕过门禁。同批若还含 `docs/governance/` 下的人工文档变更，仍按上表阻断；豁免命中时输出 `[G-031] SKIP: ...`，不静默跳过
-- **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 11 条均为 `block`，且 11 个目标文档均已存在）
+- **阻断条件**：目标文档存在但未同步更新 → 阻断；目标文档不存在 → 按模式处理，`block` 同样阻断、`warn` 仅告警（当前 12 条均为 `block`，且 12 个目标文档均已存在）
 - **执行方式**：`python scripts/check_g_031_docs_sync.py`
 
 ### G-032：文档健康度守护
@@ -215,7 +216,7 @@
   已移除原先空转的 pytest 采集与 artifact 上传步骤。
 - **G-038 仍在 `--deep`**：它需要 PATH 上存在 `ruff`/`mypy` 可执行文件，各开发机是否安装不一致，
   故不纳入提交时门禁；CI 的 test-backend job 用 venv 内的 ruff 强制执行。
-- **G-031 ≠ CI 的 `check_docs_sync.py`**：前者 9 条映射（多覆盖 `scripts/`、`.github/workflows/`、
+- **G-031 ≠ CI 的 `check_docs_sync.py`**：前者 12 条映射（多覆盖 `scripts/`、`.github/workflows/`、
   `docs/governance/`、`docs/architecture/decisions/`），**只放本地**；后者 5 条模块映射，
   校验**入库**文档，留在 CI。两者规则集不同、互补，不做替换。
 - **能力矩阵同步在 CI**：`docs/governance/capabilities_registry.md` 是入库文档，
@@ -228,6 +229,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.19 | 2026-09-26 | G-031 补第三条缺口映射（技术债 #24）：`pilotstd/download/` → `docs/reference/download-pipeline.md`（新建文档），映射总数 11 → **12**，无死映射。`pilotstd/download/` 此前不在表里，改下载适配器不触发任何文档同步——#21 的三处流程变化（hcno 权威来源＝openstd 搜索页、端点族 `/bzgk/std/*`、新增全文下载页 `showGb?type=download`）只写进了代码 docstring。**受控验证**（与 TD-13 同款手法）：仅暂存 `pilotstd/download/adapters/openstd_download.py` 末尾一行注释 → 脚本 **FAIL** 并输出 `[G-031] FAIL: pilotstd/download/ 已变更，但 docs/reference/download-pipeline.md 未同步更新`、`EXIT=1`；`git restore --staged` + 还原文件后 `git status` 干净、脚本回到 `PASS: 无变更文件` / `EXIT=0`。 |
 | v1.18 | 2026-09-26 | 修复 `check_all.sh` 前端类型检查步骤的**两个**缺陷（#11 收尾时发现）：① 裸命令 `(cd web && npx vue-tsc --noEmit)` 在 `set -euo pipefail`（L6）下失败即中止整个门禁，紧随其后的 `log_fail` 分支**永远不可达** → 表现为"没有任何 FAIL 行、退出码 1"，把"工具缺失/类型错误"误报成"门禁挂了"（三条并行分支的提交者各自撞到同一现象）；改为把命令写进 `if` 条件。② 更严重：`web/tsconfig.json` 是**方案式配置**（`"files": []` + 仅 `references`），**不带 `-p` 时 vue-tsc 不检查任何文件、恒返回 0** → 这一步长期是**假绿**（注入真实 `TS2322` 后仍输出 PASS），而 CI 的 `test-frontend` 跑的是 `pnpm run type-check`＝`vue-tsc -p tsconfig.app.json --noEmit`；已改为与 CI 同口径。**验证**：正常 `EXIT=0`；注入类型错误 → `❌ [FAIL] vue-tsc 类型检查` 出现、脚本**继续跑完**后续门禁、`EXIT=1`；还原后 `EXIT=0`。全仓 `scripts/*.sh` 扫描 `$?` 仅此一处，无同类模式。 |
 | v1.17 | 2026-09-26 | G-012 **注释检查**脚本按 G-010 拆解（技术债 #11）：`scripts/check_g_012_comment_density.py` 有效行 457 → **311**，其中近 200 行是纯数据（`TOOL_DIRECTIVES` 工具指令前缀、`LANG_WHITELIST` 中文注释白名单、`_LANG_WHITELIST_PATTERN`、`TERM_TRANSLATIONS` 术语对照表）→ 整体搬到 `scripts/_comment_lang_data.py`（159 有效行），脚本以 `from _comment_lang_data import ...` 复用，判定逻辑一行未动。**门禁行为零变化**：拆解前后用同一份显式文件清单（464 个 `.py`，`pilotstd/`+`docker/`+`scripts/`）分跑，输出各 80 行、逐行一致（含 `[LANG]` 警告项）。 |
 | v1.16 | 2026-09-26 | G-012 检查脚本按 G-010 拆解（技术债 #11 紧急项）：`scripts/check_g_012_sql_schema.py` 有效行 497 → **139**，SQL 文本解析层（`SQL_KEYWORDS`/`PYTHON_BUILTINS`/`_SQL_FUNCTIONS` + 13 个纯函数）整体搬到 `scripts/_sql_schema_parser.py`（370 有效行），脚本以 `from _sql_schema_parser import ...` 复用；**门禁行为零变化**——拆解前后脚本自身输出逐行一致（各 36 行，diff 为空），仍 PASS（0 处不一致 / 73 条 SQL）。同批：`docker/auth.py` 490 → 394（拆出 `docker/_static_token.py`），G-010 警告区 10 → **8**，无文件 ≥490。本次一并确认 G-012 的 `--fast` 位置未变（见「执行入口」表） || v1.15 | 2026-09-25 | G-031 补齐两条长期缺口映射（技术债 #13/#14）：`pilotstd/core/` → `docs/architecture/modules/core.md`、`pilotstd/announcement/` → `docs/reference/announcement-pipeline.md`，映射总数 9 → **11**，无死映射（自检：源前缀与目标文档均存在）。验证方式为受控功能测试——仅暂存 `pilotstd/core/audit.py` 一处改动时 G-031 会 FAIL 并要求同步 core.md。修复过程中连带发现并修正 `core.md` 自身过时内容（schema 版本 v53→v59、文件数 50+→70、补 `config/service.py` 与 notification 子文件、门禁编号 G-032→G-031） |
