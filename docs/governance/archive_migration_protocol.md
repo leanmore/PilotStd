@@ -1,7 +1,7 @@
 # 归档迁移协议
 
 > 定义 `git mv` 归档活跃代码文件的标准流程。目标：**零能力静默丢失**。
-> 关联文档：[能力登记簿](capabilities_registry.md) | [重构检查清单](refactoring_checklist.md)
+> 关联文档：[能力登记簿](capabilities_registry.md) | [拆分经验与拆分前检查项](../guides/refactoring-lessons.md)
 
 ---
 

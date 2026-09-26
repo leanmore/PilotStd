@@ -13,7 +13,7 @@
 | [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线） | v1.20 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
-| [refactoring_checklist.md](refactoring_checklist.md) | 重构前后操作清单 | 活跃 |
+| [../guides/refactoring-lessons.md](../guides/refactoring-lessons.md) | 拆分经验 + **拆分前检查项**（注释密度预估 / G-010 拆分证据；原 `refactoring_checklist.md` 已于 `efa7514a` 删除） | 活跃 |
 | [archive_migration_protocol.md](archive_migration_protocol.md) | 归档文件强制迁移流程 | 活跃 |
 | [../testing/known-issues.md](../testing/known-issues.md) | 已知问题追踪 | v1.0 |
 | [../adr/ADR-001-modal-dialog-auto-clicker.md](../adr/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 | 已接受 |
@@ -41,7 +41,7 @@
 | 文档 | 用途 | 何时阅读 |
 |------|------|---------|
 | [capabilities_registry.md](capabilities_registry.md) | 所有模块非功能性能力的唯一登记簿 | 重构前必查 |
-| [refactoring_checklist.md](refactoring_checklist.md) | 重构前后必须执行的操作清单 | 重构全程对照 |
+| [../guides/refactoring-lessons.md](../guides/refactoring-lessons.md) | 拆分前必查：新模块注释密度预估（G-012 ≥3%）、拆分证据与 500 行阻断档（G-010）；原 `refactoring_checklist.md` 已删除 | 重构全程对照 |
 | [archive_migration_protocol.md](archive_migration_protocol.md) | 归档文件时的强制迁移流程 | 执行 `git mv` 归档前 |
 
 ## 工具脚本
