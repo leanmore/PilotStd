@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 from docker.scheduler import update_job
 from pilotstd.query.adapters.registry import ALL_ADAPTERS
 
-from ..auth import get_static_token, refresh_static_token, require_role
+from .._static_token import get_static_token, refresh_static_token
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
