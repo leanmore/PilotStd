@@ -322,18 +322,21 @@ class TestDatabase(unittest.TestCase):
         # 不抛异常即为通过
         self.db._verify_migration_checksums()
 
-    def test_checksum_mismatch_auto_heals(self):
-        """存储值错误但逻辑未变时，自愈机制自动修复（不再抛异常）。
+    def test_checksum_legacy_raw_hash_auto_heals(self):
+        """库内是历史 raw 风格哈希、源码未变 → 自愈为标准化值（技术债 #28 修正后语义）。
 
-        原 test_checksum_mismatch_raises 已重构：自愈逻辑不再因注释变更报错，
-        而是检测到 raw != norm 时强制更新存储值为标准化值。
+        旧实现用「当前源码 raw != norm」判自愈，对任何带缩进的函数恒真（59/59），
+        等于任何不匹配都放行；修正后只在「存储值 == 当前 raw」时自愈。
         """
+        from pilotstd.core.db.migrations import _migrate_v2_add_file_index
+
+        raw_hash = self.db._compute_checksum(_migrate_v2_add_file_index)
         self.db.execute(
             "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
-            (2, "wrong_checksum_value"),
+            (2, raw_hash),
         )
 
-        # 自愈不应抛异常
+        # 历史 raw 口径 → 自愈不抛异常
         self.db._verify_migration_checksums()
 
         # 验证 checksum 已被更新为标准化值
@@ -349,28 +352,27 @@ class TestDatabase(unittest.TestCase):
         )
 
     def test_checksum_real_change_raises(self):
-        """真实 DDL 逻辑变更时抛出 DatabaseError 阻断启动。
+        """真实逻辑变更 → DatabaseError 阻断启动（技术债 #28：抛错分支从此可达）。
 
-        通过 mock 让 _norm_checksum == _compute_checksum（模拟无注释的纯逻辑代码），
-        此时若存储值不匹配 → 确认为真实变更 → 抛错。
+        技术债 #28 修正后本用例**不再需要 mock**：修正前判定条件是「当前源码 raw != norm」，
+        对任何带缩进的函数恒真 → 抛错分支不可达（这正是 #28）；现在改为「存储值 == 当前 raw」
+        才自愈，因此「库内是旧源码的标准化哈希」必然走到抛错分支。
         """
-        from unittest.mock import patch
+        import hashlib
 
         from pilotstd.core.db._constants import DatabaseError as DE
+        from pilotstd.core.db._migration_checksum import norm_source
 
-        # 存储一个错误值
+        # 模拟「已执行过的旧逻辑」：库内 checksum 是旧源码的标准化哈希
+        old_source = "def _migrate_v2_add_file_index(db):\n    db.execute('CREATE TABLE old')\n"
+        old_norm = hashlib.sha256(norm_source(old_source).encode()).hexdigest()
         self.db.execute(
             "INSERT OR REPLACE INTO _schema_version (version, checksum) VALUES (?, ?)",
-            (2, "wrong_checksum_value_for_real_change"),
+            (2, old_norm),
         )
 
-        fake_value = "fake_identical_checksum_no_comments"
-        with (
-            patch("pilotstd.core.db._migration_checksum.norm_checksum", return_value=fake_value),
-            patch("pilotstd.core.db._migration_checksum.compute_checksum", return_value=fake_value),
-        ):
-            with self.assertRaises(DE):
-                self.db._verify_migration_checksums()
+        with self.assertRaises(DE):
+            self.db._verify_migration_checksums()
 
     def test_schema_version_table_has_checksum_column(self):
         """_schema_version 表包含 checksum 列。"""

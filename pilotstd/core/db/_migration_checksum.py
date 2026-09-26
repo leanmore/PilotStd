@@ -70,12 +70,17 @@ def norm_checksum(fn: Any) -> str:
 
 
 def verify_migration_checksums(db: Any) -> None:
-    """验证已执行迁移的脚本 checksum，支持注释/空行变更的自愈。
+    """验证已执行迁移的脚本 checksum，支持「存储口径旧」场景的自愈。
 
-    三级比较策略：
-    1. 存储值 == 标准化值 → 直接通过
-    2. 原始值 != 标准化值 → 仅注释/空行变化，强制更新
-    3. 原始值 == 标准化值 但存储值 != 标准化值 → 真实 DDL 变更，抛错
+    三级比较策略（2026-09-26 修正，技术债 #28）：
+    1. 存储值 == **标准化值** → 通过。标准化会剥离注释与空行（`norm_source`），
+       因此「只改注释/空行」同样落在这里 → 视为源码未变，不报错。
+    2. 存储值 == **原始值**（含注释的 raw 哈希）→ 库内是历史 raw 风格哈希、当前源码未变
+       → 自愈：WARNING + 把存储值更新为标准化值。
+    3. 其余 → **真实源码变更** → 抛 `DatabaseError` 阻断启动（P-106 由此真正生效）。
+
+    **不要**改回「当前源码 raw != norm 就自愈」：`norm_source` 会做 `line.strip()` 去缩进，
+    而任何带缩进的函数恒有 `raw != norm`（实测 59/59），那会让第 3 条永不可达——这正是 #28。
     """
     current = db.schema_version
     for v in sorted(MIGRATIONS.keys()):
@@ -91,11 +96,12 @@ def verify_migration_checksums(db: Any) -> None:
         if norm_expected == stored_checksum:
             continue
 
-        # 标准化不等→检查原始校验和，判断是否为仅注释变化
+        # 标准化不等 → 再与「当前原始值」比对：只有库内存的**正是**当前 raw 哈希
+        # （历史 raw 口径、源码未变）才自愈；否则即为真实源码变更 → 走下面的抛错分支（P-106）
         raw_expected = compute_checksum(MIGRATIONS[v])
-        if raw_expected != norm_expected:
+        if stored_checksum == raw_expected:
             logr.warning(
-                "迁移 v%d 的 checksum 已自动修复（仅注释/空行变化）。存储值: %s → 标准化值: %s…",
+                "迁移 v%d 的 checksum 已自动修复（库内为历史原始哈希，源码未变）。存储值: %s → 标准化值: %s…",
                 v,
                 (stored_checksum or "None")[:16],
                 norm_expected[:16],
