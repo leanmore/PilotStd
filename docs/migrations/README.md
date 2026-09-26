@@ -39,6 +39,7 @@
 | v51 | adapter_state 健康检查字段 | `_migrate_v51.py` |
 | **v52** | **user_favorites 兜底补 publish_date 列** | `_migrate_v52.py` |
 | **v59** | **user_favorites 兜底补 archive_retry_count / last_archive_attempt 列**（修复收藏状态接口 500：v36 补列未在该库生效、v52 只补了 publish_date，库已达版本顶故必须新增版本号兜底） | `_migrate_v59_ensure_favorite_retry_columns.py` |
+| **v60** | **删除 user_favorites.archive_retry_count / last_archive_attempt 两列死列**（技术债 #16 残留：唯一读取方是 `/status` 的 5 个旧响应键，随 #16 一并删除后两列零读取；幂等 DROP COLUMN + 删列失败降级告警） | `_migrate_v60_drop_favorite_retry_columns.py` |
 
 ## 重点迁移详细说明
 

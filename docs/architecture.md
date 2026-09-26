@@ -204,12 +204,12 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 | `local_path` | TEXT | 归档文件路径（v44 解耦后由 `favorite_downloads` 承载） |
 | `error_message` | TEXT | 失败原因（v44 解耦后由 `favorite_downloads` 承载） |
 | `publish_date` | TEXT | 标准发布日期（用于冷却期计算） |
-| `last_archive_attempt` | TEXT | 最近一次归档尝试时间（v59 兜底补列） |
-| `archive_retry_count` | INTEGER | 重试计数（默认 0，v59 兜底补列） |
 
 > **v52 兜底迁移**（2026-08-21）：部分生产库在 v36 的列补全逻辑（`publish_date` 等）落地前已记录 v36 迁移，导致 `publish_date` 列从未创建，`POST /api/favorites` 收藏时 INSERT 报 `table user_favorites has no column named publish_date` → 接口 500。v52 迁移（`pilotstd/core/db/_migrate_v52.py`）幂等补列：列缺失时 `ALTER TABLE ... ADD COLUMN publish_date TEXT`，不设默认值（`publish_date` 语义为标准的发布日期，允许 NULL 表示无冷却期限制）。
 
 > **v59 兜底迁移**（2026-09-21）：同类问题再次命中 `archive_retry_count`/`last_archive_attempt`（v52 只补了 `publish_date`），而库内 `_schema_version` 已到版本顶 → `_run_migrations()` 直接 early-return，重发镜像也不会补列，`GET /api/favorites/{record_id}/status` 对全部收藏返回 500。v59（`pilotstd/core/db/_migrate_v59_ensure_favorite_retry_columns.py`）幂等补两列，`CURRENT_SCHEMA_VERSION` 58 → 59。
+
+> **v60 死列删除**（2026-09-26，技术债 #16 残留）：`archive_retry_count`/`last_archive_attempt` 的**唯一读取方**是 `/api/favorites/{record_id}/status` 的 5 个旧响应键（`local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count`），这些键已于 #16（TD-16，2026-09-25）删除；此后两列在生产代码中零读取（`pilotstd/` + `docker/` 全量 grep 仅命中 `_migrate_*` 历史迁移）。v60（`pilotstd/core/db/_migrate_v60_drop_favorite_retry_columns.py`）幂等 `ALTER TABLE ... DROP COLUMN` 删除两列，`CURRENT_SCHEMA_VERSION` 59 → 60；新库走完整迁移链（v36/v52/v59 补列 → v60 删列）同样收敛到"无此列"。两列不存在于任何索引/约束，且零读取，故回滚只需重新 `ADD COLUMN`（无数据依赖）。
 
 **下载进度**：`favorite_downloads` 为事实来源，`status` 取值 `pending/downloading/archiving/done/failed/abandoned`（6 值全集；"采标跳过"等业务终态也落 `abandoned`，不入 `skipped`）。
 
