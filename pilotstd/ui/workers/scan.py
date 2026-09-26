@@ -8,7 +8,7 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from ._common import _log_progress
+from ._common import WorkerAborted, _log_progress, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +45,13 @@ class ScanWorker(QThread):
 
             def on_batch(batch_rows: Any) -> None:
                 """每批解析结果就绪时的回调，发射 batch_ready 信号。"""
-                if not self._stopped:
-                    self.batch_ready.emit(batch_rows)
+                check_stop(self)  # #17a：中止底层流，而不是只跳过本次发射
+                self.batch_ready.emit(batch_rows)
 
             def on_progress(cur: int, total: int) -> None:
                 nonlocal _last_log, _last_signal
-                if self._stopped:
-                    return
-                if self._pause_event is not None:
-                    self._pause_event.wait()
+                check_stop(self)  # #17a：单条粒度中断检查点
+                wait_pause_or_abort(self._pause_event, self)
                 now = _time.monotonic()
                 # 节流：每50个文件/每500/最后一批才发射一次信号，防止事件队列撑爆
                 if cur % 50 == 0 or cur == total or now - _last_signal >= 0.5:
@@ -66,6 +64,8 @@ class ScanWorker(QThread):
             parsed = self._mgr.scan_stream(self._root_path, on_progress=on_progress, on_batch=on_batch)
             self.unrecognized = []
             parsed_count = len(parsed)
+        except WorkerAborted:
+            logger.info("[ScanWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self.error.emit(str(e))
             failed_count = 1

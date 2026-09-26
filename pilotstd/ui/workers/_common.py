@@ -22,6 +22,48 @@ _WORKER_BATCH_SIZE = 50
 _WORKER_FLUSH_INTERVAL = 0.5
 _ANNOUNCEMENT_BATCH_SIZE = 20
 
+# 暂停等待切片：既保证"暂停中收到停止能退出"，又不空转 CPU（技术债 #17a）
+_PAUSE_SLICE_S = 0.2
+
+
+# ── 可中断原语（技术债 #17a）────────────────────────────────────────────
+# 背景：停止信号原先只让回调"闭嘴"（`if self._stopped: return`），底层
+# `manager.*_stream()` 循环并不知道要停，仍会跑完全部条目 → `stop_worker_gracefully`
+# 5s 超时 → 只能保活（#17b 已接受的代价）。这里把"闭嘴"升级为"在检查点抛异常终止流"。
+
+
+class WorkerAborted(BaseException):
+    """协作式中断：worker 收到停止请求后，用它在下一个检查点终止底层流。
+
+    刻意继承 `BaseException`（与 `KeyboardInterrupt`、`SystemExit` 同类）：
+    服务层存在"单条失败就继续跑"的兜底写法——例 `manager/facade/_organize.py:106-123`
+    把 `on_result` 包在 `try/except Exception` 内，若本异常继承 `Exception`，它会被吞掉、
+    底层流继续跑完，中断即失效。控制流异常不应被通用兜底捕获。
+    """
+
+
+def check_stop(worker: Any) -> None:
+    """中断检查点：`stop()` 或 `requestInterruption()` 已置位时抛出 WorkerAborted。
+
+    必须在"每个处理单元"处调用（回调或循环体），使底层 `*_stream` 以单条粒度退出；
+    只 `return` 不会终止底层循环，线程会一直跑到流自然结束。
+    """
+    if getattr(worker, "_stopped", False) or worker.isInterruptionRequested():
+        raise WorkerAborted()
+
+
+def wait_pause_or_abort(pause_event: Any, worker: Any) -> None:
+    """可中断的暂停等待：每 `_PAUSE_SLICE_S` 秒检查一次停止请求。
+
+    原实现是无超时 `pause_event.wait()`：用户在暂停状态下取消/关窗时该 wait
+    永不返回，线程必然走超时保活路径。
+    """
+    if pause_event is None:
+        return
+    while not pause_event.wait(_PAUSE_SLICE_S):
+        check_stop(worker)
+
+
 
 # ── 进度计算 ──
 

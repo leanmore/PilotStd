@@ -454,7 +454,8 @@ class TestAutoWorker:
         assert received[0] == batch_data
 
     def test_emit_scan_batch_when_stopped(self, mock_mgr, qtbot):
-        """_emit_scan_batch 在停止后不发射信号。"""
+        """停止后必须抛 WorkerAborted（#17a 新契约：中止管线，而非静默不发射）。"""
+        from pilotstd.ui.workers._common import WorkerAborted
         from pilotstd.ui.workers.auto import AutoWorker
 
         worker = AutoWorker(mgr=mock_mgr, root_path="/tmp/scan")
@@ -463,8 +464,9 @@ class TestAutoWorker:
 
         worker.scan_batch.connect(lambda rows: received.append(rows))
 
-        worker._emit_scan_batch([{"file": "a.pdf"}])
-        assert len(received) == 0
+        with pytest.raises(WorkerAborted):
+            worker._emit_scan_batch([{"file": "a.pdf"}])
+        assert len(received) == 0, "中止路径不得再发射信号"
 
 
 # ============================================================================

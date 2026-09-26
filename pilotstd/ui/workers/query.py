@@ -8,7 +8,15 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, _pct
+from ._common import (
+    _WORKER_BATCH_SIZE,
+    _WORKER_FLUSH_INTERVAL,
+    WorkerAborted,
+    _log_progress,
+    _pct,
+    check_stop,
+    wait_pause_or_abort,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,25 +68,21 @@ class QueryWorker(QThread):
             def on_result(idx: int, result: Any) -> None:
                 """单条结果就绪时发射信号 + 累计批次。"""
                 nonlocal _result_batch, _last_flush, _sent_indices
-                if self._stopped:
-                    return
+                check_stop(self)  # #17a：单条粒度中断检查点（中止底层查询流）
                 _result_batch.append((idx, result))
                 _sent_indices.add(idx)
                 self.result_ready.emit(idx, result)
                 now = _time.monotonic()
                 if len(_result_batch) >= _WORKER_BATCH_SIZE or now - _last_flush >= _WORKER_FLUSH_INTERVAL:
-                    if not self._stopped:
-                        self.batch_ready.emit(_result_batch)
+                    self.batch_ready.emit(_result_batch)
                     _result_batch = []
                     _last_flush = now
 
             def on_progress(current: int, total: int) -> None:
                 """更新查询进度，每 15 秒输出阶段日志。"""
                 nonlocal _last_log
-                if self._stopped:
-                    return
-                if self._pause_event is not None:
-                    self._pause_event.wait()
+                check_stop(self)  # #17a
+                wait_pause_or_abort(self._pause_event, self)
                 percent = _pct(current, total)
                 self.progress.emit(percent)
                 now = _time.monotonic()
@@ -95,12 +99,14 @@ class QueryWorker(QThread):
                 site=self._site,
                 force_refresh=self._force_refresh,
             )
+        except WorkerAborted:
+            logger.info("[QueryWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self.error.emit(str(e))
         finally:
             _elapsed = _time.monotonic() - _t_start
             logger.info("[QueryWorker] elapsed=%.1fs results=%d", _elapsed, len(results))
-            if not self._stopped:
+            if not self._stopped and not self.isInterruptionRequested():
                 remaining = [(i, r) for i, r in enumerate(results) if r is not None and i not in _sent_indices]
                 if _result_batch:
                     self.batch_ready.emit(_result_batch)

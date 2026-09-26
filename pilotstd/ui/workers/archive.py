@@ -12,7 +12,15 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from ...core.file_utils import make_standard_filename
 from ...organizer.industry_lookup import get_folder_name
-from ._common import _WORKER_BATCH_SIZE, _WORKER_FLUSH_INTERVAL, _log_progress, _pct
+from ._common import (
+    _WORKER_BATCH_SIZE,
+    _WORKER_FLUSH_INTERVAL,
+    WorkerAborted,
+    _log_progress,
+    _pct,
+    check_stop,
+    wait_pause_or_abort,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +66,7 @@ class ArchiveWorker(QThread):
         try:
             total_size = 0
             for p in self.parsed_list:
+                check_stop(self)  # #17a：大列表求和的循环内也设检查点
                 if p.source_path and os.path.exists(p.source_path):
                     total_size += os.path.getsize(p.source_path)
             _disk_root = self.library_root if os.path.exists(self.library_root) else os.path.dirname(self.library_root)
@@ -73,23 +82,19 @@ class ArchiveWorker(QThread):
             def on_result(idx: Any, status: Any) -> None:
                 """收集归档结果到批次，达到阈值或超时后批量发射。"""
                 nonlocal batch, last_flush
-                if self._stopped:
-                    return
+                check_stop(self)  # #17a：单条粒度中断检查点（中止底层归档流）
                 batch.append((idx, status))
                 now = _time.monotonic()
                 if len(batch) >= _WORKER_BATCH_SIZE or (batch and now - last_flush >= _WORKER_FLUSH_INTERVAL):
-                    if not self._stopped:
-                        self.batch_ready.emit(batch)
+                    self.batch_ready.emit(batch)
                     batch = []
                     last_flush = now
 
             def on_progress(cur: int, total: int) -> None:
                 """更新进度百分比，每 15 秒输出阶段日志。"""
                 nonlocal _last_log
-                if self._stopped:
-                    return
-                if self._pause_event is not None:
-                    self._pause_event.wait()
+                check_stop(self)  # #17a
+                wait_pause_or_abort(self._pause_event, self)
                 self.progress.emit(_pct(cur, total))
                 now = _time.monotonic()
                 if now - _last_log >= 15:
@@ -101,8 +106,10 @@ class ArchiveWorker(QThread):
                 self.parsed_list, progress_callback=on_progress, on_result=on_result, overwrite=self._overwrite
             )
             logger.info("[ArchiveWorker] archive_standards returned")
-            if batch and not self._stopped:
+            if batch and not self._stopped and not self.isInterruptionRequested():
                 self.batch_ready.emit(batch)
+        except WorkerAborted:
+            logger.info("[ArchiveWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self.error.emit(str(e))
         finally:

@@ -5,7 +5,7 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from ._common import _pct
+from ._common import WorkerAborted, _pct, check_stop, wait_pause_or_abort
 
 logger = logging.getLogger(__name__)
 
@@ -39,18 +39,18 @@ class NormalizeWorker(QThread):
 
             def on_batch(batch_rows: Any) -> None:
                 """发射批次结果到 UI（非停止状态）。"""
-                if not self._stopped:
-                    self.batch_ready.emit(batch_rows)
+                check_stop(self)  # #17a：中止底层流，而不是只跳过本次发射
+                self.batch_ready.emit(batch_rows)
 
             def on_progress(cur: Any, total: Any) -> None:
                 """更新规范化进度百分比。"""
-                if self._stopped:
-                    return
-                if self._pause_event is not None:
-                    self._pause_event.wait()
+                check_stop(self)  # #17a
+                wait_pause_or_abort(self._pause_event, self)
                 self.progress.emit(_pct(cur, total))
 
             self._mgr.normalize_files_stream(self.parsed_list, on_progress=on_progress, on_batch=on_batch)
+        except WorkerAborted:
+            logger.info("[NormalizeWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self.error.emit(str(e))
         finally:

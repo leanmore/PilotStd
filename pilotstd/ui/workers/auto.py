@@ -7,7 +7,11 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from ._common import WorkerAborted, check_stop
+
 logger = logging.getLogger(__name__)
+
+
 class AutoWorker(QThread):
     """统一自动管线 Worker — 包装 StandardManager.auto_run_stream()。
     在线程中串行执行 scan→query→download→archive，通过 Qt 信号通知 UI。
@@ -42,17 +46,25 @@ class AutoWorker(QThread):
         _t_start = _time.monotonic()
         report: dict = {}
         try:
+            # #17a：四个阶段共用同一组检查点——任一阶段收到停止请求即在下一个回调处中止整条管线
+            def _stage(emit: Any, *args: Any) -> None:
+                """阶段回调包装：先检查停止请求，再转发信号。"""
+                check_stop(self)
+                emit(*args)
+
             report = self._mgr.auto_run_stream(
                 self._root_path,
                 on_scan_batch=self._emit_scan_batch,
-                on_scan_progress=lambda c, t: self.scan_progress.emit(c, t),
-                on_query_progress=lambda c, t: self.query_progress.emit(c, t),
-                on_query_result=lambda i, r: self.query_result.emit(i, r),
-                on_download_progress=lambda c, t: self.download_progress.emit(c, t),
-                on_download_result=lambda i, s: self.download_result.emit(i, s),
-                on_archive_result=lambda i, s: self.archive_result.emit(i, s),
-                on_stage_change=lambda s, c, t: self.stage_changed.emit(s, c, t),
+                on_scan_progress=lambda c, t: _stage(self.scan_progress.emit, c, t),
+                on_query_progress=lambda c, t: _stage(self.query_progress.emit, c, t),
+                on_query_result=lambda i, r: _stage(self.query_result.emit, i, r),
+                on_download_progress=lambda c, t: _stage(self.download_progress.emit, c, t),
+                on_download_result=lambda i, s: _stage(self.download_result.emit, i, s),
+                on_archive_result=lambda i, s: _stage(self.archive_result.emit, i, s),
+                on_stage_change=lambda s, c, t: _stage(self.stage_changed.emit, s, c, t),
             )
+        except WorkerAborted:
+            logger.info("[AutoWorker] 收到停止请求，已在中止点退出")
         except Exception as e:
             self.error.emit(str(e))
         finally:
@@ -61,6 +73,10 @@ class AutoWorker(QThread):
             self.finished_signal.emit(report)
 
     def _emit_scan_batch(self, batch_rows: list[Any]) -> None:
-        """发射扫描批次信号（非停止状态下）。"""
-        if not self._stopped:
-            self.scan_batch.emit(batch_rows)
+        """扫描批次回调（#17a 契约）：停止请求时抛 WorkerAborted 终止管线。
+
+        旧实现是"停止后静默不发射"——那不会终止底层 `auto_run_stream`，
+        四个阶段会照跑（撤回该行为的原因见 `_common.check_stop` 注释）。
+        """
+        check_stop(self)
+        self.scan_batch.emit(batch_rows)

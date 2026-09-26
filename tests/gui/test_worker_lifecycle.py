@@ -19,8 +19,12 @@ import os
 import shutil
 import sys
 import tempfile
+import threading
+import time
 from types import SimpleNamespace
+from typing import Any
 
+import pytest
 from PyQt6 import sip as _sip
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem
@@ -211,4 +215,162 @@ def test_orphan_timeout_escalates_to_error(qapp, caplog):
         for w in workers:
             w.finished.emit()
     assert ql.orphaned_worker_count() == 0
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 技术债 #17a：worker 阻塞点设可中断上限
+# ══════════════════════════════════════════════════════════════════════════
+# 修复前：停止信号只让回调 `return`，底层 `*_stream` 继续跑完全部条目 →
+# `stop_worker_gracefully(timeout_ms=5000)` 等满 5s → 计数 + 保活（只能人工重启容器）。
+# 修复后：回调里的 `check_stop()` 抛 WorkerAborted 终止底层流，worker 快速退出。
+
+_STREAM_ITEM_S = 0.01  # 单个"处理单元"耗时，模拟逐条解析/查询
+
+
+class _SlowStreamMgr:
+    """假管理器：`*_stream` 逐条回调，条目数足够多（不中途中断会跑很久）。"""
+
+    def __init__(self, total: int = 20000, pause_event: Any = None) -> None:
+        self.total = total
+        self.ran = 0
+        self.started = threading.Event()
+        self._pause_event = pause_event
+
+    def set_pause_event(self, ev: Any) -> None:
+        self._pause_event = ev
+
+    def _loop(self, on_progress: Any, on_result: Any = None) -> Any:
+        """逐条"处理"并在每次处理后回调；`on_result` 存在时按 query 契约返回二元组。"""
+        self.started.set()
+        for i in range(self.total):
+            time.sleep(_STREAM_ITEM_S)
+            self.ran = i + 1
+            if on_progress is not None:
+                on_progress(i + 1, self.total)
+            if on_result is not None:
+                on_result(i, None)
+        return ([], None) if on_result is not None else []
+
+    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None) -> list[Any]:
+        return self._loop(on_progress)
+
+    def query_stream(self, parsed_list: Any, on_progress: Any = None, on_result: Any = None, **kw: Any) -> Any:
+        return self._loop(on_progress, on_result)
+
+
+def _stop_and_measure(worker: Any, timeout_ms: int = 5000) -> float:
+    """调用统一停止入口并返回耗时（毫秒）。"""
+    from pilotstd.ui.qt_lifecycle import stop_worker_gracefully
+
+    t0 = time.monotonic()
+    ok = stop_worker_gracefully(worker, timeout_ms=timeout_ms)
+    elapsed_ms = (time.monotonic() - t0) * 1000
+    assert ok is True, f"worker 必须在超时前退出（实测 {elapsed_ms:.0f}ms / 预算 {timeout_ms}ms）"
+    return elapsed_ms
+
+
+@pytest.mark.parametrize("worker_kind", ["scan", "query"])
+def test_worker_aborts_stream_within_budget(qapp, worker_kind):
+    """#17a 量化验收：中断后 worker 必须在 timeout 的 80% 内退出，且不计入保活。"""
+    from pilotstd.ui import qt_lifecycle as ql
+    from pilotstd.ui.workers import QueryWorker, ScanWorker
+
+    mgr = _SlowStreamMgr()
+    worker = ScanWorker(mgr, "X:/") if worker_kind == "scan" else QueryWorker(mgr, [])
+    orphan_before = ql.orphan_timeout_total()
+
+    worker.start()
+    assert mgr.started.wait(5.0), "假 stream 未启动"
+    time.sleep(0.15)  # 让它真跑几条，确保是在"流进行中"被中断
+
+    elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
+    timeout_budget_ms = 5000 * 0.8
+
+    assert worker.isFinished(), "停止后线程必须已结束"
+    assert elapsed_ms < timeout_budget_ms, (
+        f"退出耗时 {elapsed_ms:.0f}ms 超过预算 {timeout_budget_ms:.0f}ms（80% timeout）"
+    )
+    assert elapsed_ms < 500, f"实测量级应远小于 500ms，实测 {elapsed_ms:.0f}ms"
+    assert ql.orphan_timeout_total() == orphan_before, "可中断的 worker 不得再走超时保活路径"
+    assert mgr.ran < mgr.total, f"底层流必须被中止，而不是跑完（已处理 {mgr.ran}/{mgr.total}）"
+
+
+class _ExceptionSwallowingMgr(_SlowStreamMgr):
+    """模拟服务层"单条失败继续跑"的兜底写法（`manager/facade/_organize.py:106-123`）。
+
+    该处把 `on_result` 包在 `try/except Exception` 内；若 `WorkerAborted` 继承 `Exception`，
+    中断会被吞掉并继续跑完整条流 → 中断失效。故本类专门守卫"控制流异常不被兜底捕获"。
+    """
+
+    def scan_stream(self, root_path: str, on_progress: Any = None, on_batch: Any = None) -> list[Any]:
+        self.started.set()
+        for i in range(self.total):
+            time.sleep(_STREAM_ITEM_S)
+            self.ran = i + 1
+            try:
+                if on_progress is not None:
+                    on_progress(i + 1, self.total)
+            except Exception:  # noqa: S110 - 服务层通用兜底（被测行为）
+                pass
+        return []
+
+
+def test_abort_survives_service_layer_except_exception(qapp):
+    """#17a：WorkerAborted 必须继承 BaseException，否则被服务层 `except Exception` 吞掉。"""
+    from pilotstd.ui.workers import ScanWorker
+
+    mgr = _ExceptionSwallowingMgr()
+    worker = ScanWorker(mgr, "X:/")
+
+    worker.start()
+    assert mgr.started.wait(5.0), "假 stream 未启动"
+    time.sleep(0.15)
+
+    elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
+    assert worker.isFinished(), "停止后线程必须已结束"
+    assert elapsed_ms < 500, f"被兜底捕获即会退化为 5s 超时，实测 {elapsed_ms:.0f}ms"
+    assert mgr.ran < mgr.total, f"底层流必须被中止（已处理 {mgr.ran}/{mgr.total}）"
+
+
+def test_paused_query_worker_is_interruptible(qapp):
+    """#17a：暂停状态下收到停止请求也必须能退出（原实现是无超时 wait()，必然保活）。"""
+    import threading as _threading
+
+    from pilotstd.ui.workers import QueryWorker
+
+    pause_event = _threading.Event()  # 永不 set → 模拟用户暂停
+    mgr = _SlowStreamMgr(total=20000, pause_event=pause_event)
+    worker = QueryWorker(mgr, [], pause_event=pause_event)
+
+    worker.start()
+    assert mgr.started.wait(5.0), "假 stream 未启动"
+    time.sleep(0.3)  # 进入暂停等待（每 200ms 一次停止检查切片）
+
+    elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
+    assert worker.isFinished(), "暂停中的 worker 停止后必须已结束"
+    assert elapsed_ms < 1500, f"暂停切片 200ms，退出应远快于 1.5s，实测 {elapsed_ms:.0f}ms"
+
+
+def test_drive_enumerator_checks_interruption(qapp, monkeypatch):
+    """#17a：DriveEnumerator 逐个盘符之间设检查点（网络盘 absolutePath 可能长时间阻塞）。"""
+    from PyQt6.QtCore import QDir
+
+    from pilotstd.ui.drive_enumerator import DriveEnumerator
+
+    class _SlowDir:
+        def __init__(self, i: int) -> None:
+            self._i = i
+
+        def absolutePath(self) -> str:
+            time.sleep(0.02)
+            return f"Z:/drive{self._i}"
+
+    monkeypatch.setattr(QDir, "drives", staticmethod(lambda: [_SlowDir(i) for i in range(5000)]))
+
+    worker = DriveEnumerator()
+    worker.start()
+    time.sleep(0.2)
+    elapsed_ms = _stop_and_measure(worker, timeout_ms=5000)
+    assert worker.isFinished(), "停止后枚举线程必须已结束"
+    assert elapsed_ms < 500, f"逐盘检查点应快速退出，实测 {elapsed_ms:.0f}ms"
 
