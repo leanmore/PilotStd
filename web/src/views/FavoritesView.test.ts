@@ -17,6 +17,7 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import FavoritesView from './FavoritesView.vue'
 import zhCN from '@/locales/zh-CN.json'
+import { clearPendingTimers, pendingTimerCount } from '@/test-setup'
 
 // 组件在 main.ts 里是全局注册的（SFC 不 import），测试必须注册**同一套**：
 // main.ts 注册的是 PrimeVue 4 的 Tabs/TabList/Tab/TabPanels/TabPanel，
@@ -110,6 +111,25 @@ describe('FavoritesView 状态列', () => {
     // 全量只出现在 title 属性中（悬停可见），不在正文里重复铺开
     expect(html).toContain(`title="${LONG_ERROR}"`)
   }, MOUNT_TIMEOUT_MS)
+})
+
+// 回归守卫（2026-09-26，CI 事故）：PrimeVue 4 的 `TabList` 在 `mounted()` 里排了一个
+// 150ms 的 ink-bar 定时器（`primevue/tablist/index.mjs:48-53`），**不保存句柄、unmounted 也不清理**。
+// 若测试文件在 150ms 内结束，vitest 会先摘掉 jsdom 全局再执行该回调，
+// `@primeuix/utils` 的 `t instanceof HTMLElement` 随即抛
+// `ReferenceError: HTMLElement is not defined` —— 它是 unhandled error，表现为
+// `Tests 230 passed` + `Errors 1 error` + exit 1（CI `test-frontend` 红、连带跳过 version/docker job）。
+// 守卫点：`src/test-setup.ts` 必须接管 `setTimeout` 并能清掉未触发的定时器（PrimeVue 的 ink-bar 走同一条路）。
+// 注意：不能断言"挂载后计数 > 0"——jsdom 下挂载本身可能超过 150ms，定时器已在环境内先触发（实测不稳定）。
+describe('PrimeVue ink-bar 定时器不跨越 teardown', () => {
+  it('setup 层登记并清理未触发的真实定时器', () => {
+    const straggler = setTimeout(() => undefined, 60_000)
+    expect(pendingTimerCount(), 'setup 层未接管 setTimeout，残留定时器会在 teardown 后执行').toBeGreaterThan(0)
+
+    clearPendingTimers()
+    clearTimeout(straggler)
+    expect(pendingTimerCount()).toBe(0)
+  })
 })
 
 // 回归守卫：2026-09-21 线上实测发现 <TabView> 未在 main.ts 注册（v4 已改名 Tabs），
