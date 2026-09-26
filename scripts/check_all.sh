@@ -77,10 +77,16 @@ run_fast() {
         log_fail "G-012 注释密度"
     fi
 
-    # 前端类型检查
+    # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
+    # 两个缺陷都在这一处（2026-09-26 实测）：
+    # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻
+    #    终止整个脚本，下面的 log_fail 分支永远不可达——表现为"没有任何 FAIL 行、退出码 1"，
+    #    会把"vue-tsc 工具缺失或类型错误"误报成"门禁莫名其妙挂了"。
+    # ② 必须显式 -p tsconfig.app.json：web/tsconfig.json 是方案式配置（"files": [] + 仅
+    #    references），不带 -p 时 vue-tsc 不检查任何文件、恒返回 0 → 这一步曾是**假绿**
+    #    （注入真实 TS2322 后仍 PASS，而带 -p 立即报错），与 CI 的真检查口径不一致。
     if [ -d "web" ]; then
-        (cd web && npx vue-tsc --noEmit 2>/dev/null)
-        if [ $? -eq 0 ]; then
+        if (cd web && npx vue-tsc -p tsconfig.app.json --noEmit 2>/dev/null); then
             log_pass "vue-tsc 类型检查"
         else
             log_fail "vue-tsc 类型检查"

@@ -15,6 +15,7 @@ from pilotstd.i18n import t
 from ..db import Database
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
+from ._manager_ops import _NotificationOpsMixin
 from ._message_builders import (
     _build_announce_fetch_summary_message,
     _build_announcement_check_complete_message,
@@ -77,7 +78,7 @@ _CHANNEL_CLASSES = {
 }
 
 
-class NotificationManager:
+class NotificationManager(_NotificationOpsMixin):
     """通知管理器。
 
     初始化时加载配置，按事件规则分发到各渠道，记录发送日志。
@@ -419,127 +420,6 @@ class NotificationManager:
             return builder(data)
         return _build_fallback_message(event_type, data)
 
-    def _log(
-        self,
-        event_type: str,
-        channel: str,
-        msg: NotificationMessage,
-        status: str,
-        error_msg: str,
-        sent_at: str,
-    ) -> None:
-        """写入通知发送日志到 notification_log 表（静默失败）。"""
-        try:
-            self._db.execute(
-                "INSERT INTO notification_log (event_type, channel, title, body, "
-                "standard_number, status, error_msg, sent_at, aggregated_count, link, icon) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    event_type,
-                    channel,
-                    msg.title,
-                    msg.body,
-                    msg.standard_number,
-                    status,
-                    error_msg,
-                    sent_at,
-                    msg.aggregated_count,
-                    msg.link,
-                    msg.icon,
-                ),
-            )
-        except Exception as e:
-            logger.warning("通知日志写入失败: %s", e)
-
-    def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
-        """通过独立线程向 WebSocket 连接广播通知消息（非阻塞）。"""
-        if self._ws_broadcast is None:
-            return
-
-        import threading
-
-        # 通过回调注入执行广播（回调内部处理/细节）
-        threading.Thread(
-            target=self._ws_broadcast,
-            args=(event_type, msg.title, msg.body, msg.level, msg.link, msg.icon, msg.aggregated_count),
-            daemon=True,
-            name="notif-ws-broadcast",
-        ).start()
-
-    # ──公开查询方法（替代直接访问_）──────────────────────
-
-    def get_logs(
-        self,
-        page: int = 1,
-        size: int = 20,
-        channel: str | None = None,
-        status: str | None = None,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        is_read: bool | None = None,
-    ) -> dict[str, Any]:
-        """获取通知日志列表（分页 + 筛选），供 API 层调用。"""
-        db = self._db
-        conditions: list[str] = []
-        params: list[Any] = []
-
-        if channel:
-            conditions.append("channel = ?")
-            params.append(channel)
-        if status:
-            conditions.append("status = ?")
-            params.append(status)
-        if start_date:
-            conditions.append("sent_at >= ?")
-            params.append(start_date)
-        if end_date:
-            conditions.append("sent_at <= ?")
-            params.append(end_date)
-        if is_read is not None:
-            conditions.append("is_read = ?")
-            params.append(1 if is_read else 0)
-
-        where_sql = ("WHERE " + " AND ".join(conditions)) if conditions else ""
-        offset = (page - 1) * size
-
-        total_row = db.fetchone(f"SELECT COUNT(*) AS cnt FROM notification_log {where_sql}", tuple(params))
-        rows = db.fetchall(
-            f"SELECT * FROM notification_log {where_sql} ORDER BY sent_at DESC LIMIT ? OFFSET ?",
-            tuple(params + [size, offset]),
-        )
-        return {
-            "items": rows,
-            "total": total_row["cnt"] if total_row else 0,
-            "page": page,
-            "size": size,
-        }
-
-    def mark_logs_read(self, ids: list[int] | None = None) -> int:
-        """标记通知日志为已读（单条或全部），供 API 层调用。"""
-        db = self._db
-        if ids:
-            for i in ids:
-                db.execute("UPDATE notification_log SET is_read = 1 WHERE id = ?", (i,))
-            return len(ids)
-        else:
-            db.execute("UPDATE notification_log SET is_read = 1")
-            return 0
-
-    def get_unread_count(self) -> int:
-        """获取未读通知数量。"""
-        row = self._db.fetchone("SELECT COUNT(*) AS cnt FROM notification_log WHERE is_read = 0")
-        return row["cnt"] if row else 0
-
-    # ── 日志清理 ──────────────────────────────────────────────
-
-    def cleanup_logs(self, days: int = 30) -> int:
-        """删除 days 天前的通知日志，返回删除条数。"""
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
-        cur = self._db.execute("DELETE FROM notification_log WHERE sent_at < ?", (cutoff,))
-        deleted = cur.rowcount
-        if deleted > 0:
-            logger.info("清理了 %d 条过期通知日志（保留 %d 天）", deleted, days)
-        return deleted
 
     # ── 测试发送 ──────────────────────────────────────────────
 

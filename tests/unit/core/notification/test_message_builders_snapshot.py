@@ -8,23 +8,13 @@ Phase 0 测试 Mixin 类 → Phase 1 测试模块级纯函数（零回归）。
 from __future__ import annotations
 
 from pilotstd.core.notification._builders_batch import (
-    _build_announce_fetch_summary_message,
     _build_announcement_fetch_complete_message,
     _build_archive_abandoned_message,
-    _build_archive_failed_message,
     _build_auto_scan_failed_message,
     _build_batch_download_complete_message,
     _build_batch_query_summary_message,
-    _build_date_reminder_message,
     _build_download_failed_message,
-    _build_expire_standard_moved_message,
     _build_normalize_complete_message,
-    _build_normalize_failed_message,
-    _build_query_empty_message,
-    _build_query_failed_message,
-    _build_replacement_not_found_message,
-    _build_scan_complete_message,
-    _build_scan_empty_message,
 )
 from pilotstd.core.notification._builders_system import (
     _build_announcement_check_complete_message,
@@ -37,6 +27,18 @@ from pilotstd.core.notification._builders_system import (
     _build_task_execution_failed_message,
     _build_trust_ip_update_message,
     _build_worker_error_message,
+)
+from pilotstd.core.notification._builders_task_results import (
+    _build_announce_fetch_summary_message,
+    _build_archive_failed_message,
+    _build_date_reminder_message,
+    _build_expire_standard_moved_message,
+    _build_normalize_failed_message,
+    _build_query_empty_message,
+    _build_query_failed_message,
+    _build_replacement_not_found_message,
+    _build_scan_complete_message,
+    _build_scan_empty_message,
 )
 from pilotstd.core.notification._builders_validity import (
     _build_standard_first_registered_message,
@@ -450,7 +452,7 @@ class TestSystemBuildersSnapshot:
 
 
 # ══════════════════════════════════════════════════════════════
-# _builders_batch.py（18 函数）
+# _builders_batch.py（10 函数）+ _builders_task_results.py（10 函数）
 # ══════════════════════════════════════════════════════════════
 
 class TestBatchBuildersSnapshot:
