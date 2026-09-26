@@ -59,8 +59,9 @@ export const batchApprove = (ids: number[]): Promise<{ approved_count: number }>
 // 来源 favorite_downloads，列表与批量接口同名同义；download_status 为 null 表示
 // "收藏存在但队列行缺失"（展示层显示"未加入队列"）。枚举取值见 @/utils/downloadStatus。
 //
-// 第三轮 #16 删除 `getFavoriteStatus`（GET /favorites/{id}/status）：全库零消费方，
-// 且该接口对"收藏但无队列行"与"未收藏"返回同一份 null 体，语义不可区分。
+// 单条 `getFavoriteStatus`（GET /favorites/{id}/status）已于第三轮 #16 移除（全库零
+// 消费方，且对"收藏但无队列行"与"未收藏"返回同一份 null 体）；后端端点在第七轮 #19
+// 依据现场日志（零仓外调用方）一并删除，故此处不再保留该函数的说明注释。
 
 /** 下载状态四字段（列表 / 批量接口共用口径） */
 export interface FavoriteDownloadFields {

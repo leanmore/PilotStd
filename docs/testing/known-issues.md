@@ -56,11 +56,11 @@
 
 | 属性 | 值 |
 |------|-----|
-| 问题描述 | `GET /api/favorites/{record_id}/status` 对全部收藏返回 500：`sqlite3.OperationalError: no such column: archive_retry_count`（`docker/api/favorites.py:210`） |
+| 问题描述 | 当时的 `GET /api/favorites/{record_id}/status` 对全部收藏返回 500：`sqlite3.OperationalError: no such column: archive_retry_count`（原定位 `docker/api/favorites.py:210`） |
 | 影响范围 | 单条收藏状态接口不可用（前端走 `POST /api/favorites/batch-status`，不受影响）；`last_archive_attempt` 无读取方 |
-| 当前状态 | 未修复 —— 根因是**迁移已到版本顶**（库内 `_schema_version` 已到 58），`_run_migrations()` 直接 early-return，重发镜像也不会补列；v52 兜底只补了 `publish_date` |
-| 证据 | 容器日志 SQL + `sqlite3.OperationalError`；`GET /api/backup/list` 显示 `pre_migration_v57_to_v58.bak`（2026-08-29） |
-| 计划修复 | 新增 v59 兜底迁移（幂等 ALTER 补 `archive_retry_count`/`last_archive_attempt`）+ `CURRENT_SCHEMA_VERSION` 58→59 |
+| 当前状态 | **已关闭**：v59 兜底迁移补列后 500 消失；该端点本身已于第七轮 #19 删除（现场日志实测零仓外调用方），故障载体不复存在 |
+| 证据 | 容器日志 SQL + `sqlite3.OperationalError`；`GET /api/backup/list` 显示 `pre_migration_v57_to_v58.bak`（2026-08-29）。**根因曾是迁移已到版本顶**（库内 `_schema_version` 已到 58），`_run_migrations()` 直接 early-return，重发镜像也不会补列；v52 兜底只补了 `publish_date` |
+| 计划修复 | 已完成：新增 v59 兜底迁移（幂等 ALTER 补 `archive_retry_count`/`last_archive_attempt`）+ `CURRENT_SCHEMA_VERSION` 58→59；端点删除见 `docs/technical-debt.md` 「一、已清理」 |
 
 ### 7. `daily_quota` 写入偶发失败（2026-09-21 巡检）
 

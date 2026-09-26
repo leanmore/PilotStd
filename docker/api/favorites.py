@@ -5,7 +5,7 @@ import json as _json
 import logging
 from typing import Dict, List, Optional, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -189,99 +189,10 @@ def add_favorite(
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
-# 2. 查询收藏状态（单条）
+# 2.（已删除）单条收藏状态查询——第七轮 #19：全库零消费方，仅剩 [STATUS_API] 日志
+#   实测到的 7 次调用全部来自本项目自己的排查探针，故删除端点与其防御性日志。
+#   编号不重排，保留删除痕迹；批量查询见第 5 节。
 # ════════════════════════════════════════════════════════════════ 分隔
-
-# ── /status 的防御性日志（第三轮 #19 附带）──
-# 目的：该端点仓内已无消费方，但可能被仓外脚本调用；记录调用来源为将来清理留线索。
-# 只记 ua / referer / 路径：不含查询参数（`request.url.path` 天然不含）、请求体与凭证。
-_SENSITIVE_MARKERS = ("password", "token", "authorization", "secret", "api_key", "apikey", "bearer")
-
-
-def _sanitize_header(value: str | None, limit: int = 200) -> str:
-    """截断请求头；命中敏感关键字则整段替换，避免把凭证写进日志。"""
-    if not value:
-        return "-"
-    text = value.strip()
-    if any(marker in text.lower() for marker in _SENSITIVE_MARKERS):
-        return "[redacted]"
-    return text[:limit]
-
-
-def _log_status_api_call(request: Request) -> None:
-    """记录 /status 的调用来源（INFO 级）。不记查询参数、不记请求体。"""
-    logger.info(
-        "[STATUS_API] ua=%s referer=%s path=%s",
-        _sanitize_header(request.headers.get("user-agent")),
-        _sanitize_header(request.headers.get("referer")),
-        request.url.path,
-    )
-
-
-
-@router.get("/api/favorites/{record_id}/status")
-def get_favorite_status(
-    record_id: int,
-    request: Request,
-    user_id: int = Depends(get_current_user_id),
-    db: Database = Depends(get_db),
-):
-    """查询指定**公告记录**的收藏 + 下载状态（语义归位版）。
-
-    查询键：`record_id` 是 `announcement_record.id`（前端传的是公告记录的 id，
-    见 useFavorite 的 `record.id`），因此按 `favorite_downloads.record_id` 查、
-    并带 `user_id` 做多用户隔离——两者缺一都会查错行。
-
-    数据来源分工：`favorite_downloads` 提供下载进度，`user_favorites` 提供"是否收藏"
-    （`user_favorites.status` 只表达收藏与否，链路从不更新它，恒为 pending）。
-
-    响应键：标准键 `download_status`/`download_error`/`last_attempt`/
-    `download_updated_at`/`retry_count` + `favorite_id`（队列行主键）+ `status`
-    （下载状态别名）+ `favorited`（第三轮 #19 新增，取自 user_favorites）。
-
-    `favorited` 解决语义歧义（第三轮登记 #19）：端点按 favorite_downloads 取数时，
-    "收藏存在但无队列行"与"从未收藏"会返回同一份 null 体，调用方无法区分。加入
-    `favorited` 后三种状态可辨：
-      - `favorited=true, status=null` → 收藏存在但无队列行（历史遗留，如 #18）
-      - `favorited=false, status=null` → 未收藏
-      - `favorited=true, status='abandoned'` → 收藏且已放弃
-    """
-    _log_status_api_call(request)
-
-    user_id = _get_user_id(user_id, db)
-
-    # 是否收藏：以 user_favorites 为准（与列表/批量接口同源），供调用方区分两种 null
-    favorited = (
-        db.fetchone(
-            "SELECT 1 AS hit FROM user_favorites WHERE user_id = ? AND record_id = ? LIMIT 1",
-            (user_id, record_id),
-        )
-        is not None
-    )
-
-    row = db.fetchone(
-        "SELECT fd.favorite_id, fd.status, fd.error_message,"
-        " fd.last_attempt, fd.updated_at, fd.retry_count"
-        " FROM favorite_downloads fd"
-        " WHERE fd.record_id = ? AND fd.user_id = ?"
-        " ORDER BY COALESCE(fd.last_attempt, '') DESC, fd.id DESC LIMIT 1",
-        (record_id, user_id),
-    )
-    if not row:
-        return {"status": None, "favorite_id": None, "download_status": None, "favorited": favorited}
-
-    status = row["status"]
-    return {
-        "status": status,
-        "favorite_id": row["favorite_id"],
-        "favorited": favorited,
-        # 标准键（与列表/批量接口同名同义）
-        "download_status": status,
-        "download_error": row["error_message"],
-        "last_attempt": row["last_attempt"],
-        "download_updated_at": row["updated_at"],
-        "retry_count": row["retry_count"] or 0,
-    }
 
 
 # ════════════════════════════════════════════════════════════════ 分隔
