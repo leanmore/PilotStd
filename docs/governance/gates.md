@@ -24,6 +24,7 @@
 | G-037 | 触发条件对齐检查 | AGENTS.md 触发条件表与 index.md 条目完全一致 | 存在遗漏或不一致 | `scripts/check_g_037_trigger_alignment.py` | ✅ 已部署 |
 | G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
 | G-039 | 冲突标记检查 | 提交/入库内容不得含 `<<<<<<<` / `=======` / `>>>>>>>` 合并冲突标记 | 命中冲突块或孤立标记 | `scripts/check_no_conflict_markers.py` | ✅ 已部署 |
+| G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -197,11 +198,38 @@
 
 ---
 
+### G-040：i18n 硬编码检查
+
+**检查内容**：扫描 `web/src/**/*.vue`、`web/src/**/*.ts`，去掉注释后若某行出现**中日韩统一表意文字**
+（U+3400–U+9FFF、U+F900–U+FAFF），即记一处；只有**超出基线**的部分才阻断。输出格式为 `文件:行号: 片段`。
+
+**排除**：`*.test.ts` / `*.spec.ts` / `*.d.ts`、`web/src/locales/`（语言包本体）、`node_modules`、`dist`。
+**豁免**：① 注释（整行 `//`、`/* */`、`<!-- -->` 都不计）；② 行内标记 `i18n-allow`——本行或上一行含该注释即跳过
+（用于开发日志、正则字符类等确不需翻译的文案）；③ 存量基线。
+
+**存量基线**：`scripts/i18n_hardcoded_baseline.txt`，格式 `<相对路径>::<行数>`。设计原则是**只拦新增**：
+- 文件不在基线里且有中文 → 全部算违规（新文件必须一开始就走 i18n）；
+- 文件在基线里但**行数变多** → 只报多出来的行（同一文件里新写死的中文照样拦得住）；
+- 文件在基线里但行数变少 → 只打印 `[STALE]` 提示（不阻断），可跑 `--update-baseline` 收紧基线。
+
+**起因**（2026-09-26）：`web/src/views/settings/SettingsTabSchedule.vue` 整页 0 处 `useI18n` / `t()`，
+文案全是硬编码中文（用户切到 en 界面仍是中文），而当时**没有任何门禁**能拦住——`check_i18n_key_count.py`
+只比对 locales 的顶层 key，与“组件是否真的用了 i18n”无关。同一轮还发现三语存在 9 个叶子键漂移
+（zh-CN 缺 5 个 `nav.*`、zh-TW/en 各缺 4 个 `home.*`），遂把该脚本升级到 v1.1.0 增加**叶子键路径**对齐检查。
+
+**执行方式**：`python scripts/check_i18n_hardcoded.py`（`check_all.sh --fast` 与 CI `test-frontend` 步骤均已接入）；
+辅助模式：`--report`（存量排行，供专项清理排期）、`--update-baseline`（偿还后收紧基线）、`<file|dir>`（只扫指定目标）。
+受控测试：`tests/test_check_i18n_hardcoded.py`（14 例：干净文件 / 模板硬编码 / 脚本硬编码 / 三类注释 /
+`https://` 不误判 / `i18n-allow` 行内与上一行 / 排除规则 / 基线内通过 / 只报超出部分 / 基线过期不阻断 /
+更新基线 / report 不判失败 / 仓库自检）。
+
+---
+
 ## 执行入口：`scripts/check_all.sh` 模式
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-039 冲突标记**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-039 冲突标记**、**G-040 i18n 硬编码**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
 | `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
 | `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
@@ -247,6 +275,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.22 | 2026-09-26 | 新增 **G-040 i18n 硬编码检查**（`scripts/check_i18n_hardcoded.py`）：`web/src/**/*.{vue,ts}` 去掉注释后出现中日韩统一表意文字即记一处，只拦**超出基线**的新增（基线 `scripts/i18n_hardcoded_baseline.txt`，格式 `<路径>::<行数>`：新文件有中文全报、存量文件只报多出来的行、变少仅 `[STALE]` 提示）。豁免=注释 + 行内 `i18n-allow`（本行或上一行）。起因：`SettingsTabSchedule.vue` 整页 0 处 `t()`、文案全硬编码中文，而此前**无门禁**可拦——`check_i18n_key_count.py` 只比 locales 顶层 key，与组件是否用 i18n 无关。同批把该脚本升级到 **v1.1.0**：新增**叶子键路径**对齐（顶层一致 ≠ 三语一致；实测曾存在 9 个叶子漂移而该脚本仍 PASS），叶子不一致即阻断，空对象 `{}` 记为一个叶子；连带把 `tests/test_i18n_key_count.py` 中固化旧语义的 1 例改写为“深层键漂移必须报错”并补 3 例。已接入 `check_all.sh --fast`（G-039 之后）与 CI `test-frontend` 步骤；配套 14 例受控测试 `tests/test_check_i18n_hardcoded.py`。存量：**76 个文件 / 897 行**（最高 `NotificationConfig.vue` 77 行），仅建基线不要求一次清完。 |
 | v1.21 | 2026-09-26 | 新增 **G-039 冲突标记检查**（`scripts/check_no_conflict_markers.py`）：禁止带 `<<<<<<<` / `=======` / `>>>>>>>` 的内容入库。起因是一次合并产生了带冲突标记的提交却通过了全部门禁（解析脚本断言失败后 `git add`/`git commit` 仍执行）。扫描范围=显式路径 > 暂存区 > 全库已跟踪文件；`=======` 只在成块时判违规（Markdown Setext 下划线不误伤）；白名单仅限测试本门禁自身的 fixture。已接入 `check_all.sh --fast`（G-012 之后）与 CI `repo-compliance`；配套 8 例受控测试 `tests/test_check_no_conflict_markers.py`。 |
 | v1.20 | 2026-09-26 | 修正版本历史表的既有格式缺陷（技术债 #27）：v1.16 与 v1.15 两行原被写在同一个物理行上（**拼接处两个管道符相邻、缺的是换行符**，非缺行首 `|`；单行 879 字符）→ 在 `||` 之间补一个换行，拆为两个独立表行（471 + 408 = 879 字符）；内容一字未改，仅恢复渲染。 |
 | v1.19 | 2026-09-26 | G-031 补第三条缺口映射（技术债 #24）：`pilotstd/download/` → `docs/reference/download-pipeline.md`（新建文档），映射总数 11 → **12**，无死映射。`pilotstd/download/` 此前不在表里，改下载适配器不触发任何文档同步——#21 的三处流程变化（hcno 权威来源＝openstd 搜索页、端点族 `/bzgk/std/*`、新增全文下载页 `showGb?type=download`）只写进了代码 docstring。**受控验证**（与 TD-13 同款手法）：仅暂存 `pilotstd/download/adapters/openstd_download.py` 末尾一行注释 → 脚本 **FAIL** 并输出 `[G-031] FAIL: pilotstd/download/ 已变更，但 docs/reference/download-pipeline.md 未同步更新`、`EXIT=1`；`git restore --staged` + 还原文件后 `git status` 干净、脚本回到 `PASS: 无变更文件` / `EXIT=0`。 |

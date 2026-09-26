@@ -394,6 +394,9 @@ jobs:
       - name: i18n key count & alignment check
         run: python scripts/check_i18n_key_count.py
 
+      - name: G-040 — i18n 硬编码检查（组件里不得新写死中文，只拦新增）
+        run: python scripts/check_i18n_hardcoded.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════

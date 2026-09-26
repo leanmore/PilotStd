@@ -85,6 +85,17 @@ run_fast() {
         log_fail "G-039 冲突标记检查"
     fi
 
+    # G-040: i18n 硬编码检查（组件里不得新写死中文，只拦新增）
+    # 起因（2026-09-26）：SettingsTabSchedule.vue 整页 0 处 t()、文案全硬编码中文，
+    # 而当时没有任何门禁能拦住——check_i18n_key_count.py 只比 locales 顶层 key，
+    # 与"组件是否真的用了 i18n"无关。存量记入 scripts/i18n_hardcoded_baseline.txt，
+    # 只有**超出基线**（新写死的中文）才 FAIL。
+    if python scripts/check_i18n_hardcoded.py; then
+        log_pass "G-040 i18n 硬编码检查"
+    else
+        log_fail "G-040 i18n 硬编码检查"
+    fi
+
     # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
     # 两个缺陷都在这一处（2026-09-26 实测）：
     # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻

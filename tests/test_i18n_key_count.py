@@ -71,12 +71,57 @@ def test_nested_keys_not_misreported(monkeypatch, capsys):
     assert "PASS" in capsys.readouterr().out
 
 
-def test_deeply_nested_values_ignored(monkeypatch, capsys):
-    """顶层 key 对齐即可，深层 value 差异不触发报警。"""
+def test_deeply_nested_key_drift_is_detected(monkeypatch, capsys):
+    """v1.1.0 语义升级：深层**键**漂移现在要报错（旧版只比顶层，会放过这种漂移）。
+
+    fixture `deep_nesting`：en = settings.x/settings.y，zh-CN = settings.a.b.c ——
+    顶层 key 都是 settings，旧版判 PASS；叶子路径不一致，新版必须判 FAIL。
+    """
     monkeypatch.setattr(mod, "LOCALE_DIR", FIXTURES / "deep_nesting")
     rc = mod.main()
-    assert rc == 0
+    assert rc == 1
+    assert "叶子 key" in capsys.readouterr().out
+
+
+def test_deeply_nested_value_diff_passes(tmp_path, monkeypatch, capsys):
+    """深层**取值**不同（叶子路径一致）不算漂移，仍应 PASS。"""
+    d = make_locales(
+        tmp_path,
+        {
+            "en.json": {"settings": {"a": {"b": "B"}}},
+            "zh-CN.json": {"settings": {"a": {"b": "甲"}}},
+        },
+    )
+    monkeypatch.setattr(mod, "LOCALE_DIR", d)
+    assert mod.main() == 0
     assert "PASS" in capsys.readouterr().out
+
+
+def test_leaf_drift_with_aligned_top_level_fails(tmp_path, monkeypatch, capsys):
+    """顶层完全一致、只有叶子缺失 → 必须 FAIL（真实案例：zh-CN 曾缺 nav.archive）。"""
+    d = make_locales(
+        tmp_path,
+        {
+            "en.json": {"nav": {"home": "Home", "archive": "Archive"}},
+            "zh-CN.json": {"nav": {"home": "首页"}},
+        },
+    )
+    monkeypatch.setattr(mod, "LOCALE_DIR", d)
+    rc = mod.main()
+    assert rc == 1
+    assert "nav.archive" in capsys.readouterr().out
+
+
+def test_empty_object_counts_as_leaf(tmp_path, monkeypatch, capsys):
+    """空对象 `{}` 记为一个叶子：一侧有、一侧没有 → FAIL（避免空壳 key 被漏掉）。"""
+    d = make_locales(
+        tmp_path,
+        {"en.json": {"nav": {"home": "Home"}, "stub": {}}, "zh-CN.json": {"nav": {"home": "首页"}}},
+    )
+    monkeypatch.setattr(mod, "LOCALE_DIR", d)
+    # 顶层缺 key 已经会 FAIL；这里断言叶子检查同样把它算出来
+    assert mod.main() == 1
+    assert "stub" in capsys.readouterr().out
 
 
 # ═══════════════════════════════════════════════════════════════
