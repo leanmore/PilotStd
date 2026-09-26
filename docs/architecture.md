@@ -209,7 +209,7 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 
 > **v52 兜底迁移**（2026-08-21）：部分生产库在 v36 的列补全逻辑（`publish_date` 等）落地前已记录 v36 迁移，导致 `publish_date` 列从未创建，`POST /api/favorites` 收藏时 INSERT 报 `table user_favorites has no column named publish_date` → 接口 500。v52 迁移（`pilotstd/core/db/_migrate_v52.py`）幂等补列：列缺失时 `ALTER TABLE ... ADD COLUMN publish_date TEXT`，不设默认值（`publish_date` 语义为标准的发布日期，允许 NULL 表示无冷却期限制）。
 
-> **v59 兜底迁移**（2026-09-21）：同类问题再次命中 `archive_retry_count`/`last_archive_attempt`（v52 只补了 `publish_date`），而库内 `_schema_version` 已到版本顶 → `_run_migrations()` 直接 early-return，重发镜像也不会补列，`GET /api/favorites/{record_id}/status` 对全部收藏返回 500。v59（`pilotstd/core/db/_migrate_v59_ensure_favorite_retry_columns.py`）幂等补两列，`CURRENT_SCHEMA_VERSION` 58 → 59。
+> **v59 兜底迁移**（2026-09-21）：同类问题再次命中 `archive_retry_count`/`last_archive_attempt`（v52 只补了 `publish_date`），而库内 `_schema_version` 已到版本顶 → `_run_migrations()` 直接 early-return，重发镜像也不会补列，当时的 `GET /api/favorites/{record_id}/status` 对全部收藏返回 500。v59（`pilotstd/core/db/_migrate_v59_ensure_favorite_retry_columns.py`）幂等补两列，`CURRENT_SCHEMA_VERSION` 58 → 59。**注**：该 `GET .../status` 端点已于第七轮 #19 删除，此处保留当时的故障现象与迁移因果。
 
 **下载进度**：`favorite_downloads` 为事实来源，`status` 取值 `pending/downloading/archiving/done/failed/abandoned`（6 值全集；"采标跳过"等业务终态也落 `abandoned`，不入 `skipped`）。
 
@@ -219,7 +219,6 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 |------|------|------|
 | `/api/favorites` | POST | 创建收藏（仅记录关系，不触发下载；同步建 `favorite_downloads` 行） |
 | `/api/favorites` | GET | 收藏列表；额外返回下载四字段 `download_status`/`download_error`/`last_attempt`/`download_updated_at`（按 `favorite_id` 取 `last_attempt` 最新一行；无队列行时为 null） |
-| `/api/favorites/{record_id}/status` | GET | 收藏 + 下载状态查询（`status` 已**语义归位为下载状态**，来源 `favorite_downloads`；查询键 `record_id` + `user_id`，`record_id` = `announcement_record.id`）。响应 8 键：标准键 `download_status`/`download_error`/`last_attempt`/`download_updated_at`/`retry_count` + `favorite_id` + `status` + **`favorited`**（#19 方案②，取自 `user_favorites`，用于区分"收藏但无队列行"与"未收藏"）。旧键 `local_path`/`error_message`/`in_cooldown`/`abandoned`/`archive_retry_count` 已于 #16 删除；入口打 `[STATUS_API]` 防御性日志（ua/referer/路径，不含查询参数与凭证） |
 | `/api/favorites/batch-status` | POST | 批量状态（公告详情页用）；与列表接口同名同义地返回下载四字段 |
 | `/api/favorites/{record_id}` | DELETE | 取消收藏 |
 
