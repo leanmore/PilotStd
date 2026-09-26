@@ -99,9 +99,17 @@ def _find_in_file_index(standard_number: str, db: Database) -> Optional[str]:
 
 
 def _safe_filename(standard_number: str, suffix: str) -> str:
-    """将标准号中的非法文件名字符替换为下划线，追加后缀。"""
-    safe = standard_number
-    for ch in r'\/:*?"<>|':
+    """将标准号中的非法文件名字符替换后追加后缀，**并保证文件名仍可解析回原标准号**。
+
+    技术债 TD-30 残留：把 `/` 也替换成 `_` 会让解析器把 `GB/T` 读成 `GB`
+    （实测 `GB_T 5613-2026_….pdf` → `logical_code='GB'`）——监控（monitor）只能靠文件名
+    识别 inbox 里的文件，归档时就会按错的 code 写 `file_index`，链路的 `GB/T` 查询永远查不到。
+    改为**删除** `/`：解析器的 code 映射表认识 `GBT→GB/T`、`GBZ→GB/Z`
+    （`organizer/industry_lookup` 的 `build_code_mapping`，实测含 `/` 的 code **124/124**
+    都能被还原，且去掉 `/` 后与其它 code **零撞名**）。
+    """
+    safe = standard_number.replace("/", "")  # 删除而非替换：保住 code 的可解析性
+    for ch in r'\:*?"<>|':  # 其余非法字符不影响标准号语义，仍转义为下划线
         safe = safe.replace(ch, "_")
     return f"{safe}_{suffix}.pdf"
 

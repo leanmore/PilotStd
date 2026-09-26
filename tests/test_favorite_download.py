@@ -34,7 +34,7 @@ class TestSafeFilename:
     def test_normal_standard_number(self):
         name = _safe_filename("GB/T 12345-2020", "abc123")
         assert name.endswith(".pdf")
-        assert "GB_T 12345-2020" in name
+        assert "GBT 12345-2020" in name
 
     def test_forbidden_chars_replaced(self):
         name = _safe_filename("GB/T:1*2?3", "suffix")
@@ -56,6 +56,57 @@ class TestSafeFilename:
         name = _safe_filename(r'GB\/:*?"<>|123', "suf")
         for ch in r'\/:*?"<>|':
             assert ch not in name
+
+
+class TestSafeFilenameRoundTrip:
+    """契约（TD-30 残留）：`_safe_filename` 的产出必须能被解析器还原成**原标准号 code**。
+
+    背景：monitor 只能靠文件名识别 inbox 文件。若 `/` 被转义成 `_`，`GB_T 5613-2026_x.pdf`
+    会被解析成 `GB`（而非 `GB/T`）→ 归档写进错的 `file_index` 键 → 链路按 `GB/T` 永远查不到。
+    数据驱动覆盖 `build_code_mapping()` 中**全部**含 `/` 的 code，防止将来映射表扩了而修复漏掉。
+    """
+
+    @staticmethod
+    def _parser():
+        from pilotstd.organizer.industry_lookup import build_code_mapping
+        from pilotstd.scan.parser import StandardParser
+
+        return StandardParser(build_code_mapping()), build_code_mapping()
+
+    def test_every_slash_code_survives_round_trip(self):
+        """124/124：产出文件名 → parser 还原 == 原 code。"""
+        parser, mapping = self._parser()
+        slash_codes = sorted({str(v) for v in mapping.values() if "/" in str(v)})
+        assert len(slash_codes) >= 100, f"映射表含 / 的 code 太少({len(slash_codes)})，契约失效"
+
+        failures = []
+        for code in slash_codes:
+            name = _safe_filename(f"{code} 1234-2020", "000001")
+            info = parser.parse(name)
+            got = getattr(info, "logical_code", None)
+            if got != code:
+                failures.append(f"{code} -> 文件名 {name!r} -> 解析得到 {got!r}")
+
+        assert failures == [], f"往返还原失败 {len(failures)}/{len(slash_codes)}:\n" + "\n".join(failures[:10])
+
+    def test_no_code_collision_after_dropping_slash(self):
+        """0 撞名：去掉 `/` 后的串不得等于另一个 code 的写法。"""
+        _, mapping = self._parser()
+        collisions = []
+        for value in sorted({str(v) for v in mapping.values() if "/" in str(v)}):
+            joined = value.replace("/", "")
+            other = mapping.get(joined)
+            if other is not None and str(other) != value:
+                collisions.append(f"{value} 去 / 得 {joined}，但该写法已映射到 {other!r}")
+        assert collisions == [], "去掉 / 产生歧义:\n" + "\n".join(collisions)
+
+    def test_part_number_and_plain_code_still_parse(self):
+        """边界：带分部号（GB/Z 184.1）与本来就无 `/` 的 code（GB）都要正确。"""
+        parser, _ = self._parser()
+        cases = [("GB/Z 184.1-2026", "GB/Z"), ("GB 18047-2026", "GB"), ("JB/T 1234-2020", "JB/T")]
+        for std, expect in cases:
+            info = parser.parse(_safe_filename(std, "000002"))
+            assert info is not None and info.logical_code == expect, (std, expect, info)
 
 
 class TestGetStandardType:
