@@ -85,8 +85,21 @@ def _forget_orphan(worker: Any) -> None:
     _ORPHAN_SINCE.pop(id(worker), None)
 
 
+def _thread_finished(worker: Any) -> bool:
+    """worker 是否已**真正**结束。
+
+    判据必须是 `isFinished()`：`QThread.start()` 之后存在「已启动但尚未进入 run()」的窗口，
+    此时 `isRunning()` 仍为 False，用它会把仍在运行的线程当成已结束（引用一丢就 qFatal）。
+    无 `isFinished` 的鸭子类型替身（测试假 worker）退回「未在运行」判据。
+    """
+    try:
+        return bool(worker.isFinished())
+    except (AttributeError, RuntimeError):
+        return not worker.isRunning()
+
+
 def _keep_alive_until_finished(worker: Any) -> None:
-    """把仍在运行的线程挂到模块级保活列表，并脱离即将销毁的父对象。"""
+    """把尚未结束的线程挂到模块级保活列表，并脱离即将销毁的父对象。"""
     if worker in _ORPHANED_WORKERS:
         return
     _ORPHANED_WORKERS.append(worker)
@@ -97,7 +110,8 @@ def _keep_alive_until_finished(worker: Any) -> None:
     except (AttributeError, RuntimeError):
         _forget_orphan(worker)
         return
-    if not worker.isRunning():  # 建立连接期间线程已结束 → 立即释放
+    # 建立连接期间线程已真正结束 → 立即释放（不能只看 isRunning，见 _thread_finished）
+    if _thread_finished(worker):
         _forget_orphan(worker)
 
 
@@ -138,6 +152,13 @@ def stop_worker_gracefully(worker: Any, signals: Iterable[Any] = (), timeout_ms:
     try:
         worker.requestInterruption()
         if not worker.isRunning():
+            # isRunning() 为假有两种可能：① 从未启动；② 已 start() 但尚未真正进入 run()
+            # （启动窗口实测可达数十毫秒）。② 若直接返回，调用方紧接着丢弃引用，QThread
+            # 就会在运行中被析构 → Qt qFatal → 进程 SIGABRT（CI test-gui-coverage 连续
+            # 两次 134 崩溃即此形态）。故用 isFinished() 区分：**未结束的一律保活**（线程
+            # 真正 finished 后由 _forget_orphan 自动释放，不会泄漏）。
+            if not _thread_finished(worker):
+                _keep_alive_until_finished(worker)
             return True
         if worker.wait(timeout_ms):
             return True
