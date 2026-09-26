@@ -1,6 +1,6 @@
 # 公告来源标识映射表
 
-本文档是公告来源标识的唯一真相源。代码实现位于 `docker/api/announce_detail.py`。
+本文档是公告来源标识的唯一真相源。来源标识映射的代码实现位于 `docker/api/announce_detail.py`（**公告附件后台解析**已于 2026-09-26 外移到 `docker/api/_announce_detail_parse.py`，不影响本文档的映射口径）。
 
 ## Source 映射表
 

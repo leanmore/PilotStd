@@ -81,6 +81,12 @@ curl -s -X POST http://localhost:9028/query \
 
 > 历史说明：本文档 2026-07-27 版写的 `curl /api/system/db-version → {"version": 44}` **不存在该端点**，
 > 已按实际接口更正（实测 `/api/system` 下只有 `version` / `health` / `resources`）。
+>
+> **v60 迁移注意事项**（2026-09-26，技术债 #16 残留）：生产库**下次启动会跑 v60**（schema 59 → 60），
+> 删除 `user_favorites.archive_retry_count` / `last_archive_attempt` 两列死列。
+> ① `ALTER TABLE ... DROP COLUMN` 需 **SQLite ≥ 3.35**（本地实测 3.50.4；容器基础镜像 `python:3.12-slim` 的 Debian 自带 libsqlite3 ≥ 3.40）；
+> ② 删列失败（旧 SQLite 或被索引/约束引用）**降级为 WARNING、不阻断启动**——两列已零读取方，留下只是 schema 未收敛；
+> ③ 升级前建议用 `GET /api/backup/list` 确认有可用备份；回滚只需重新 `ADD COLUMN`（无数据依赖）。
 
 ## v44 同步部署专项检查清单（历史清单，2026-07-27 时点）
 
