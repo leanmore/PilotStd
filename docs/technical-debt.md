@@ -1,10 +1,11 @@
 # 技术债登记
 
-> 版本：v1.9.0
+> 版本：v1.10.0
 > 更新日期：2026-09-27
 > **本文件为技术债唯一数据源（SSOT）**：旧簿 `architecture/technical-debt-registry.md` 已于 2026-09-27 废止并归档为
 > [`technical-debt-registry.archived.md`](architecture/technical-debt-registry.archived.md)（仅存归档说明，内容不再维护）；
 > 其有价值内容已并入本文件（已跳过测试明细 → 「四」；已接受决策 → 「五」#6/#7/#8；历史条目 → 「一」「六-B」）。
+> 2026-09-27 第十轮 **第四批：P1 清理（T-19 空章节删除 + T-14 废弃死脚本）**——① **删除两个空章节**：「六、待决策」「七、清理项」的唯一内容已于同轮移入「五、已接受的设计决策 · 归档并入」与「一、已清理」；**「六-B、观察项」标签刻意保留不改名**（被 `gates.md` v1.31 行、归档存根与本文件共 11 处历史引用，改名收益为零）。② **删除 `scripts/check_docs_sync.sh`**：其自述"渐进式部署，仅提醒不阻断"、全库无任何调用点（`git grep check_docs_sync` 排除自身后 0 命中），功能已被 CI 侧的 `docs_sync_check.py` 覆盖；连带清理 `gates.md` v1.31 行里对它的反引号引用（避免 G-032 交叉引用告警）。③ 连带 `docs/governance/gates.md` **v1.33**、`docs/governance/README.md` 索引版本、能力矩阵重生成。
 > 2026-09-27 第十轮（架构优化与债务清算轮）**第三批：代码层 TODO 登记 + 门禁幽灵路径（T-12/T-13）**——① **`AppLayout.vue` 空列表兜底分支与过期 TODO 已删除**（探针实测真实 router：21 条记录 / `showInSidebar` 11 条；`navItems` role 空·guest·未知 → 10 项、user·admin → 11 项 **恒非空**；全库无 `addRoute`），同步修 `AppLayout.test.ts` fixture（原 fixture 无 `showInSidebar` 标记，项数实来自被删兜底），G-010 `AppLayout.vue` **434 → 420**；② **`Tech-Debt #8` 编号悬空补登**（真实指向 `docs/investigations/aura-token-sync-feasibility.md`，落地 `d38e88b1`；与主簿 `TD-8`（测试跳过项）撞号已在此说明）；③ 代码层另 2 类 TODO 入「六-B」观察项（`_attachment_parser.py:104` 的 `.doc`/OLE2 `TODO(P2)`、`HomeView.vue:17` 的 grid-layout-plus workaround）；④ **门禁幽灵路径清理**：`scripts/check_g_030_tech_debt.py` 的 `DEBT_REGISTER_PATHS` 删除从未存在过的 `docs/governance/tech-debt-register.md`（保留 `docs/technical-debt.md`），同批更新 `docs/governance/gates.md`（v1.32）+ `docs/governance/README.md` 索引版本 + 重生成能力矩阵（G-031 联动）。
 > 2026-09-27 第十轮（架构优化与债务清算轮）**第二批：过期数据与口径刷新（T-07~T-11 + T-18）**——① #11 的 `NotificationConfig.vue` 425 → **438**（批 1 i18n 化所致）；② #32 前端比较点 **9 → 13 处**并刷新全部行号（补登 `WechatTrustIP.vue:229-230`）；③ 「五」#3 警告区"8 个/最高 487" → **3 个 / 最高 438 / 阻断档 0**，并与 #11 去重（指向 #11）；④ 「四」更正"7 个 Handler E2E 已删除"的失实表述（实测 `tests/gui/` 现存 11 个 `test_e2e_*.py`、其中 2 个带 `@pytest.mark.skip`，CI 用 `--ignore-glob` 排除），并补登本节口径下漏登的环境依赖跳过点（`test_manager`×5、`test_file_utils`×3、`gui/test_file_tree`、`unit/.../test_mirror`、`test_i18n_key_count`、`stress_winui`）+ 按机制给出全库跳过点总量（**102 处**）；⑤ 「三、维持现状」行数列标注**物理行/有效行**双口径（426/371、142/109、263/209、143/116、51/39）；⑥ #27 行内未转义 `\|\|` 加转义，消除表格列错位。所有数字均为 2026-09-27 探针实测。
 > 2026-09-27 第十轮（架构优化与债务清算轮）开轮：**① 轮次口径立项**（见「〇、0.1」，取代此前无锚点的"第 N 轮"表述）；**② 唯一数据源确立**——旧簿废止归档、有价值内容并入本文件、`scripts/docs_sync_check.py` 的 Handler/Mixin 联动目标重指本文件（原指向旧簿）。归档判定：旧簿「六、G-010 警告基线（9 文件）」等数字已过期（实测警告档仅 3 个），直接废弃；其余按"有价值即并入、过期即废弃"逐节处理。
@@ -257,13 +258,6 @@
 
 ---
 
-## 六、待决策（不属"债"，等一个决定）
-
-> **当前为空**——原唯一项「`POST /query`（admin SQL 端点）权限边界过宽」已于 2026-09-26 第九轮关闭为「✅ 已接受并关闭」，
-> 按归属移入「五、已接受的设计决策 · 归档并入」（表头沿用原表，行文本原文未改）。
-
----
-
 ## 六-B、观察项（不属"债"，登记待观察）
 
 | 项 | 来源 | 根因 / 现状 | 处置与代价 |
@@ -276,13 +270,6 @@
 | `web/src/views/HomeView.vue:17` 的 grid-layout-plus workaround（T-12 登记） | 2026-09-27 代码层 TODO 盘点 | **现状**：`:13-17` 注释记录——库内微任务调度器（he/Ze）与 Vue 响应式队列不同步，动态切换 `isDraggable` 时 GridItem 的 interact.js 拖拽监听器不重绑；现以 `layout.value = [...layout.value]` 克隆数组强制 GridItem 重新挂载绕过（`watch(() => appStore.dashboardLocked, …)`）。依赖版本 `web/package.json:22` `"grid-layout-plus": "^1.1.1"`；本轮**未做升级动作**，故 workaround 是否仍必需**未复评** | **处置**：保留 workaround，登记为观察项；**触发条件**：升级 `grid-layout-plus` 时复评（删克隆 → 浏览器实测锁定/解锁后拖拽是否仍生效）。**不挂窗口**。**代价**：每次锁定切换多一次数组克隆 + GridItem 重挂载（可忽略）；风险是库升级后行为变化时，workaround 可能掩盖新问题 |
 
 > **2026-09-27 结构重整**：已闭环的 5 行按归属移出——「单条网络请求/大文件 IO 不可中断」（✅ 已接受）与「`_migrate_v59_…` docstring 过时」（✅ 已决定不改）→「五、已接受的设计决策 · 归档并入」；「拆出新模块时注释密度被稀释」（✅ 已落实）、「#23 合并前侦察未覆盖全组合」（✅ 已落实）、「#27 gates.md 版本历史两行挤在同一物理行」（✅ 已修复）→「一、已清理 · 归档并入」。本节现只保留**仍未闭环**的观察项。
-
----
-
-## 七、清理项（不属"债"，是待清理的残留）
-
-> **当前为空**——原唯一项「`user_favorites.archive_retry_count` / `last_archive_attempt` 两列」已于 2026-09-26（v60）清理结案，
-> 明细同文见「一、已清理」的 `TD-16 残留` 行（不再两处重复登记）。
 
 ---
 
