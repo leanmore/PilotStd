@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
 import AnnounceView from './AnnounceView.vue'
 import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 
 const { getAnnounceResultsMock, postAnnounceCheckMock } = vi.hoisted(() => ({
   getAnnounceResultsMock: vi.fn(),
@@ -30,8 +31,8 @@ vi.mock('@/components/LogBar.vue', () => ({
   default: { name: 'LogBar', template: '<div class="log-bar-stub" />' },
 }))
 
-function mountView() {
-  const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
+function mountView(locale: 'zh-CN' | 'en' = 'zh-CN') {
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   return mount(AnnounceView, {
     global: {
       plugins: [PrimeVue, i18n],
@@ -92,5 +93,15 @@ describe('AnnounceView', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('.err-msg').exists()).toBe(false)
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountView('zh-CN')
+    await new Promise(r => setTimeout(r, 10))
+    expect(zh.text()).toContain('立即抓取')
+
+    const english = mountView('en')
+    await new Promise(r => setTimeout(r, 10))
+    expect(english.text()).toContain('Fetch Now')
   })
 })

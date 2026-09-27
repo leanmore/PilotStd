@@ -7,6 +7,7 @@
 
 import { ref, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { i18n } from '@/i18n'
 import DOMPurify from 'dompurify'
 import {
   getAnnounceDetailLite,
@@ -28,6 +29,14 @@ export function useAnnounceDetail(
   sentinel: Ref<HTMLElement | null>,
 ) {
   const toast = useToast()
+
+  /** 本模块非组件、没有组件上下文：toast 文案在**调用瞬间**读取全局实例即可（一次性，无需响应式）。
+   *  模板渲染用的状态标签则返回 key，由组件用 useI18n() 的 t 翻译（保证切语言即时生效）。 */
+  function t(key: string, named?: Record<string, unknown>): string {
+    return named
+      ? (i18n.global.t as (k: string, n: Record<string, unknown>) => string)(key, named)
+      : (i18n.global.t as (k: string) => string)(key)
+  }
 
   const { get: getCache, set: setCache, clear: clearDetailCache } = useDetailCache(source, announceNo)
 
@@ -52,11 +61,14 @@ export function useAnnounceDetail(
     reload: reloadRecords,
   } = useIncrementalScroll(recordsSource, sentinel)
 
-  const parseStatusLabel = computed(() => {
+  const parseStatusLabelKey = computed(() => {
     const map: Record<string, string> = {
-      pending: '待解析', parsing: '解析中...', completed: '已解析', failed: '解析失败',
+      pending: 'announce.detail.parse_status.pending',
+      parsing: 'announce.detail.parse_status.parsing',
+      completed: 'announce.detail.parse_status.completed',
+      failed: 'announce.detail.parse_status.failed',
     }
-    return map[parseStatus.value] || '未知'
+    return map[parseStatus.value] || 'announce.detail.parse_status.unknown'
   })
 
   const parseStatusSeverity = computed(() => {
@@ -66,10 +78,10 @@ export function useAnnounceDetail(
     return map[parseStatus.value] || 'secondary'
   })
 
-  const parseButtonLabel = computed(() => {
-    if (parsing.value) return '解析中'
-    if (parseStatus.value === 'completed') return '重新解析'
-    return '开始解析'
+  const parseButtonLabelKey = computed(() => {
+    if (parsing.value) return 'announce.detail.btn_parsing'
+    if (parseStatus.value === 'completed') return 'announce.detail.btn_reparse'
+    return 'announce.detail.btn_parse'
   })
 
   const parseButtonDisabled = computed(() => {
@@ -111,7 +123,7 @@ export function useAnnounceDetail(
       })
       loadFavStatuses()
     } catch {
-      toast.add({ severity: 'error', summary: '加载失败', detail: '无法加载公告详情', life: 3000 })
+      toast.add({ severity: 'error', summary: t('announce.detail.toast.load_failed'), detail: t('announce.detail.toast.load_failed_detail'), life: 3000 })
     } finally {
       loading.value = false
     }
@@ -119,7 +131,7 @@ export function useAnnounceDetail(
 
   async function startParse() {
     if (!announcement.value?.attachment_url) {
-      toast.add({ severity: 'warn', summary: '提示', detail: '该公告没有附件', life: 3000 })
+      toast.add({ severity: 'warn', summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.no_attachment'), life: 3000 })
       return
     }
     // ✅ #45: 防御性清理已有定时器
@@ -147,31 +159,33 @@ export function useAnnounceDetail(
             await loadDetail()
             // 分页模式：条数取 parse-status 的 record_count；降级模式取本地 records
             const count = usePaginated ? (statusRes.record_count ?? 0) : records.value.length
-            toast.add({ severity: 'success', summary: '解析完成', detail: `共 ${count} 条标准`, life: 3000 })
+            toast.add({ severity: 'success', summary: t('announce.detail.toast.parse_done'), detail: t('announce.detail.toast.parse_done_detail', { n: count }), life: 3000 })
           } else if (statusRes.status === 'failed') {
             clearInterval(pollTimer!)
             pollTimer = null
             parseStatus.value = 'failed'
             parsing.value = false
-            toast.add({ severity: 'error', summary: '解析失败', detail: '请检查附件格式', life: 3000 })
+            toast.add({ severity: 'error', summary: t('announce.detail.toast.parse_failed'), detail: t('announce.detail.toast.parse_failed_detail'), life: 3000 })
           } else if (retries >= maxRetries) {
             clearInterval(pollTimer!)
             pollTimer = null
             parsing.value = false
-            toast.add({ severity: 'warn', summary: '超时', detail: '解析超时，请稍后刷新查看', life: 3000 })
+            toast.add({ severity: 'warn', summary: t('announce.detail.toast.timeout'), detail: t('announce.detail.toast.timeout_detail'), life: 3000 })
           }
         } catch { /* 轮询出错继续 */ }
       }, interval)
     } catch {
       parseStatus.value = 'failed'
       parsing.value = false
-      toast.add({ severity: 'error', summary: '启动失败', detail: '无法触发解析任务', life: 3000 })
+      toast.add({ severity: 'error', summary: t('announce.detail.toast.start_failed'), detail: t('announce.detail.toast.start_failed_detail'), life: 3000 })
     }
   }
 
-  function statusLabel(status: string) {
+  /** 返回 i18n key（渲染期翻译）：本模块无组件上下文，不能直接产出已翻译文案 */
+  function statusLabelKey(status: string) {
     const map: Record<string, string> = {
-      draft: '草稿', pending_review: '待校对', approved: '已确认', rejected: '已驳回',
+      draft: 'announce.detail.record_status.draft', pending_review: 'announce.detail.record_status.pending_review',
+      approved: 'announce.detail.record_status.approved', rejected: 'announce.detail.record_status.rejected',
     }
     return map[status] || status
   }
@@ -188,7 +202,7 @@ export function useAnnounceDetail(
     const oldValue = data[field]
     if (data.status === 'approved') {
       data[field] = oldValue
-      toast.add({ severity: 'warn', summary: '提示', detail: '已确认的记录不可编辑', life: 3000 })
+      toast.add({ severity: 'warn', summary: t('announce.detail.toast.notice'), detail: t('announce.detail.toast.approved_locked'), life: 3000 })
       return
     }
     data[field] = newValue
@@ -197,10 +211,10 @@ export function useAnnounceDetail(
       if (data.status === 'draft') {
         data.status = 'pending_review'
       }
-      toast.add({ severity: 'success', summary: '保存成功', life: 2000 })
+      toast.add({ severity: 'success', summary: t('announce.detail.toast.save_ok'), life: 2000 })
     } catch {
       data[field] = oldValue
-      toast.add({ severity: 'error', summary: '保存失败', detail: '请重试', life: 3000 })
+      toast.add({ severity: 'error', summary: t('announce.detail.toast.save_failed'), detail: t('announce.detail.toast.retry'), life: 3000 })
     }
   }
 
@@ -209,7 +223,7 @@ export function useAnnounceDetail(
     if (ids.length === 0) return
     try {
       const res = await batchApprove(ids)
-      toast.add({ severity: 'success', summary: '确认成功', detail: `已确认 ${res.approved_count} 条标准`, life: 3000 })
+      toast.add({ severity: 'success', summary: t('announce.detail.toast.approve_ok'), detail: t('announce.detail.toast.approve_ok_detail', { n: res.approved_count }), life: 3000 })
       selectedRecords.value = []
       clearDetailCache()
       // 分页模式：重新拉第一页刷新列表；降级模式：重载全量
@@ -221,9 +235,9 @@ export function useAnnounceDetail(
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       if (Array.isArray(detail?.errors)) {
-        toast.add({ severity: 'error', summary: '确认失败', detail: detail.errors.join('；'), life: 5000 })
+        toast.add({ severity: 'error', summary: t('announce.detail.toast.approve_failed'), detail: detail.errors.join('；'), life: 5000 })
       } else {
-        toast.add({ severity: 'error', summary: '确认失败', detail: '请重试', life: 3000 })
+        toast.add({ severity: 'error', summary: t('announce.detail.toast.approve_failed'), detail: t('announce.detail.toast.retry'), life: 3000 })
       }
     }
   }
@@ -255,13 +269,13 @@ export function useAnnounceDetail(
     records,
     selectedRecords,
     usePaginated,
-    parseStatusLabel,
+    parseStatusLabelKey,
     parseStatusSeverity,
-    parseButtonLabel,
+    parseButtonLabelKey,
     parseButtonDisabled,
     sanitizedContent,
     startParse,
-    statusLabel,
+    statusLabelKey,
     statusSeverity,
     onCellEditComplete,
     handleBatchApprove,

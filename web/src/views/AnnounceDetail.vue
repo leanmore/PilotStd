@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'AnnounceDetail' })
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
@@ -15,6 +16,7 @@ import FavoriteStatusTag from '@/components/FavoriteStatusTag.vue'
 import { useAnnounceDetail } from '@/composables/useAnnounceDetail'
 
 const route = useRoute()
+const { t } = useI18n()
 // 模板 ref 必须声明在组件内（ref="sentinel" 是字符串属性，TS 不识别为使用）
 const sentinel = ref<HTMLElement | null>(null)
 // 页面标识从路由取；取数与流程编排全部在 composable 内（见 useAnnounceDetail.ts）
@@ -25,13 +27,13 @@ const {
   records,
   selectedRecords,
   usePaginated,
-  parseStatusLabel,
+  parseStatusLabelKey,
   parseStatusSeverity,
-  parseButtonLabel,
+  parseButtonLabelKey,
   parseButtonDisabled,
   sanitizedContent,
   startParse,
-  statusLabel,
+  statusLabelKey,
   statusSeverity,
   onCellEditComplete,
   handleBatchApprove,
@@ -63,10 +65,10 @@ const {
         <template #title>
           <div class="flex justify-content-between align-items-center">
             <span class="flex-1 text-center truncate px-2 text-xl font-semibold" style="color:var(--text-heading)">{{ announcement?.announce_no }}</span>
-            <Tag :value="parseStatusLabel" :severity="parseStatusSeverity" />
+            <Tag :value="t(parseStatusLabelKey)" :severity="parseStatusSeverity" />
             <Button
               icon="pi pi-undo"
-              aria-label="返回列表"
+              :aria-label="t('announce.detail.back')"
               class="p-button-text p-button-rounded ml-3"
               @click="$router.back()"
             />
@@ -75,15 +77,15 @@ const {
         <template #content>
           <div class="grid">
             <div class="col-12">
-              <label class="text-sm text-color-secondary">标题</label>
+              <label class="text-sm text-color-secondary">{{ t('announce.detail.field_title') }}</label>
               <p class="announce-title">{{ announcement?.title }}</p>
             </div>
             <div class="col-6">
-              <label class="text-sm text-color-secondary">发布日期</label>
+              <label class="text-sm text-color-secondary">{{ t('announce.detail.field_publish_date') }}</label>
               <p>{{ announcement?.publish_date || '-' }}</p>
             </div>
             <div class="col-6">
-              <label class="text-sm text-color-secondary">来源</label>
+              <label class="text-sm text-color-secondary">{{ t('announce.detail.field_source') }}</label>
               <p>
                 <a
                   v-if="announcement?.source_url"
@@ -91,19 +93,19 @@ const {
                   target="_blank"
                   class="text-primary hover:underline"
                 >{{ announcement.site_name || announcement.source_url }}</a>
-                <span v-else>{{ announcement?.source_type || announcement?.site_name || '未知来源' }}</span>
+                <span v-else>{{ announcement?.source_type || announcement?.site_name || t('announce.detail.unknown_source') }}</span>
               </p>
             </div>
             <div class="col-12">
-              <label class="text-sm text-color-secondary">附件</label>
+              <label class="text-sm text-color-secondary">{{ t('announce.detail.field_attachment') }}</label>
               <div class="attachment-area mt-1">
                 <span v-if="announcement?.attachment_url" class="text-sm">
                   {{ announcement.attachment_url.split('/').pop() }}
                 </span>
-                <span v-else class="text-sm text-color-secondary">无附件</span>
+                <span v-else class="text-sm text-color-secondary">{{ t('announce.detail.no_attachment') }}</span>
                 <Button
                   v-if="announcement?.attachment_url"
-                  :label="parseButtonLabel"
+                  :label="t(parseButtonLabelKey)"
                   icon="pi pi-refresh"
                   size="small"
                   :loading="parsing"
@@ -114,7 +116,7 @@ const {
             </div>
             <!-- 公告正文 -->
             <div v-if="announcement?.content" class="col-12">
-              <label class="text-sm text-color-secondary">公告正文</label>
+              <label class="text-sm text-color-secondary">{{ t('announce.detail.field_content') }}</label>
               <div class="official-doc mt-1 p-3 border-round">
                 <div class="doc-content" v-html="sanitizedContent" />
               </div>
@@ -127,9 +129,9 @@ const {
       <Card>
         <template #title>
           <div class="flex justify-content-between align-items-center">
-            <span>标准清单（{{ records.length }} 条）</span>
+            <span>{{ t('announce.detail.records_title', { n: records.length }) }}</span>
             <Button
-              label="批量确认入库"
+              :label="t('announce.detail.batch_approve')"
               icon="pi pi-check"
               severity="success"
               size="small"
@@ -154,27 +156,27 @@ const {
                 {{ String(slotProps.data.row_index).padStart(2, '0') }}
               </template>
             </Column>
-            <Column field="standard_number" header="标准号" style="min-width: 12rem">
+            <Column field="standard_number" :header="t('announce.detail.col_standard_number')" style="min-width: 12rem">
               <template #editor="{ data, field }">
                 <InputText v-model="data[field]" class="w-full" />
               </template>
               <template #body="{ data }">
                 <span :class="{ 'text-red-500': !data.standard_number }">
-                  {{ data.standard_number || '(待补全)' }}
+                  {{ data.standard_number || t('announce.detail.pending_fill') }}
                 </span>
               </template>
             </Column>
-            <Column field="std_name" header="标准名称" style="min-width: 18rem">
+            <Column field="std_name" :header="t('announce.detail.col_std_name')" style="min-width: 18rem">
               <template #editor="{ data, field }">
                 <InputText v-model="data[field]" class="w-full" />
               </template>
               <template #body="{ data }">
                 <span :class="{ 'text-red-500': !data.std_name }">
-                  {{ data.std_name || '(待补全)' }}
+                  {{ data.std_name || t('announce.detail.pending_fill') }}
                 </span>
               </template>
             </Column>
-            <Column field="publish_date" header="发布日期" style="min-width: 10rem">
+            <Column field="publish_date" :header="t('announce.detail.col_publish_date')" style="min-width: 10rem">
               <template #editor="{ data, field }">
                 <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />
               </template>
@@ -182,7 +184,7 @@ const {
                 {{ data.publish_date || '-' }}
               </template>
             </Column>
-            <Column field="implement_date" header="实施日期" style="width: 10rem">
+            <Column field="implement_date" :header="t('announce.detail.col_implement_date')" style="width: 10rem">
               <template #editor="{ data, field }">
                 <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />
               </template>
@@ -190,7 +192,7 @@ const {
                 {{ data.implement_date || '-' }}
               </template>
             </Column>
-            <Column field="expiry_date" header="作废日期" style="width: 10rem">
+            <Column field="expiry_date" :header="t('announce.detail.col_expiry_date')" style="width: 10rem">
               <template #editor="{ data, field }">
                 <AppCalendar v-model="data[field]" dateFormat="yy-mm-dd" showIcon />
               </template>
@@ -198,7 +200,7 @@ const {
                 {{ data.expiry_date || '-' }}
               </template>
             </Column>
-            <Column field="superseded_by" header="代替标准" style="min-width: 10rem">
+            <Column field="superseded_by" :header="t('announce.detail.col_superseded_by')" style="min-width: 10rem">
               <template #editor="{ data, field }">
                 <InputText v-model="data[field]" class="w-full" />
               </template>
@@ -206,12 +208,12 @@ const {
                 {{ data.superseded_by || '-' }}
               </template>
             </Column>
-            <Column field="status" header="状态" style="width: 8rem">
+            <Column field="status" :header="t('announce.detail.col_status')" style="width: 8rem">
               <template #body="{ data }">
-                <Tag :value="statusLabel(data.status)" :severity="statusSeverity(data.status)" />
+                <Tag :value="t(statusLabelKey(data.status))" :severity="statusSeverity(data.status)" />
               </template>
             </Column>
-            <Column header="收藏" style="width: 9rem">
+            <Column :header="t('announce.detail.col_favorite')" style="width: 9rem">
               <template #body="{ data }">
                 <div class="fav-cell">
                   <Button

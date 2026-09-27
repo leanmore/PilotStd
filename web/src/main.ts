@@ -5,7 +5,6 @@ import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
-import { createI18n } from 'vue-i18n'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 import Toast from 'primevue/toast'
@@ -41,31 +40,13 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import App from './App.vue'
 import router from './router'
 import { registerHttpHandlers } from '@/bootstrap/registerHttpHandlers'
-import zhCN from './locales/zh-CN.json'
-import en from './locales/en.json'
-import zhTW from './locales/zh-TW.json'
 import { isDarkTheme } from '@/config/themes'
 import { SUPERUSER_USERNAME } from './config'
 import { getItem } from '@/lib/storage'
+// 全局 i18n 实例（含 locale 检测）已抽到 @/i18n，供 composable 等非组件模块共用
+import { i18n, savedLocale } from '@/i18n'
 
 import { primevueLocales } from '@/lib/primevueLocale'
-
-const rawLocale = getItem('locale')
-// 兼容旧版 JSON.stringify 写入的带引号值（如 "\"zh-CN\""）
-const savedLocale = (rawLocale ? rawLocale.replace(/^"|"$/g, '') : 'zh-CN') as 'zh-CN' | 'en' | 'zh-TW'
-
-const messages = {
-  'zh-CN': zhCN,
-  en,
-  'zh-TW': zhTW,
-}
-
-const i18n = createI18n({
-  legacy: false,
-  locale: savedLocale,
-  fallbackLocale: 'zh-CN',
-  messages,
-})
 
 // 检测初始主题的明暗类型
 const savedTheme = getItem('theme') || 'light'

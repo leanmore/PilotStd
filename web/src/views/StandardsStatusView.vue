@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'StandardsStatusView' })
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Select from 'primevue/select'
@@ -55,12 +56,15 @@ watch([filterStatus, filterStandardNo, filterName], () => {
   }
 })
 
-const statusOptions = [
-  { label: '全部', value: null },
-  { label: '现行', value: '现行' },
-  { label: '已废止', value: '已废止' },
-  { label: '未知', value: '未知' },
-]
+const { t } = useI18n()
+
+const statusOptions = computed(() => [
+  { label: t('standards.status.all'), value: null },
+  // value 是**提交给后端**的中文状态值（C-2，同 statusSeverity），只有 label 走 i18n
+  { label: t('standards.status.current'), value: '现行' }, // i18n-allow: 后端中文状态值（查询参数），翻译即失效
+  { label: t('standards.status.abolished'), value: '已废止' }, // i18n-allow
+  { label: t('standards.status.unknown'), value: '未知' }, // i18n-allow
+])
 
 function statusSeverity(s: string): 'success' | 'danger' | 'info' | 'secondary' {
   if (s === '现行') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
@@ -125,7 +129,7 @@ async function loadList() {
     // FastAPI 422 校验错误在 detail 数组而非 error 字段，需优先解析 detail[0].msg
     errMsg.value = e.response?.data?.detail?.[0]?.msg
       || e.response?.data?.error
-      || '加载失败'
+      || t('standards.load_failed')
   } finally {
     loading.value = false
   }
@@ -144,25 +148,25 @@ onMounted(() => {
 
 <template>
   <div class="page">
-    <h2 class="page-title">标准状态</h2>
+    <h2 class="page-title">{{ t('standards.title') }}</h2>
 
     <div class="stats-row">
       <Card class="stat-card active">
         <template #content>
           <div class="stat-num">{{ stats.active }}</div>
-          <div class="stat-label">📗 现行</div>
+          <div class="stat-label">📗 {{ t('standards.status.current') }}</div>
         </template>
       </Card>
       <Card class="stat-card inactive">
         <template #content>
           <div class="stat-num">{{ stats.inactive }}</div>
-          <div class="stat-label">📕 已废止</div>
+          <div class="stat-label">📕 {{ t('standards.status.abolished') }}</div>
         </template>
       </Card>
       <Card class="stat-card unknown">
         <template #content>
           <div class="stat-num">{{ stats.unknown }}</div>
-          <div class="stat-label">⚪ 未知</div>
+          <div class="stat-label">⚪ {{ t('standards.status.unknown') }}</div>
         </template>
       </Card>
     </div>
@@ -171,20 +175,20 @@ onMounted(() => {
       <template #content>
         <div class="filter-row">
           <div class="filter-item">
-            <label>状态</label>
+            <label>{{ t('standards.filter_status') }}</label>
             <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
           </div>
           <div class="filter-item">
-            <label>标准号</label>
-            <InputText v-model="filterStandardNo" placeholder="如 GB/T" />
+            <label>{{ t('standards.filter_standard_no') }}</label>
+            <InputText v-model="filterStandardNo" :placeholder="t('standards.filter_standard_no_ph')" />
           </div>
           <div class="filter-item">
-            <label>名称</label>
-            <InputText v-model="filterName" placeholder="关键词" />
+            <label>{{ t('standards.filter_name') }}</label>
+            <InputText v-model="filterName" :placeholder="t('standards.filter_name_ph')" />
           </div>
           <div class="filter-actions">
-            <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
-            <Button icon="pi pi-refresh" label="刷新" size="small" severity="secondary" @click="clearStandardsStatusCache(); loadList()" />
+            <Button icon="pi pi-search" :label="t('standards.search')" size="small" @click="onSearch" />
+            <Button icon="pi pi-refresh" :label="t('standards.refresh')" size="small" severity="secondary" @click="clearStandardsStatusCache(); loadList()" />
           </div>
         </div>
       </template>
@@ -195,9 +199,9 @@ onMounted(() => {
         <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
 
         <div class="table-meta">
-          <span>共 {{ total }} 条记录</span>
+          <span>{{ t('standards.total', { n: total }) }}</span>
           <span v-if="displayRecords.length > 0 && displayRecords.length < total">
-            已显示 {{ displayRecords.length }} / {{ total }} 条
+            {{ t('standards.shown', { shown: displayRecords.length, total }) }}
           </span>
         </div>
 
@@ -208,30 +212,30 @@ onMounted(() => {
           size="small"
           dataKey="id"
         >
-          <Column field="standard_number" header="标准号" style="min-width: 12rem">
+          <Column field="standard_number" :header="t('standards.col_standard_number')" style="min-width: 12rem">
             <template #body="{ data }">
               <strong>{{ data.standard_number }}</strong>
             </template>
           </Column>
-          <Column field="std_name" header="标准名称" style="min-width: 18rem">
+          <Column field="std_name" :header="t('standards.col_std_name')" style="min-width: 18rem">
             <template #body="{ data }">
               {{ data.std_name || '—' }}
             </template>
           </Column>
-          <Column field="status" header="状态" style="width: 8rem">
+          <Column field="status" :header="t('standards.col_status')" style="width: 8rem">
             <template #body="{ data }">
               <Tag :severity="statusSeverity(data.status)" :value="data.status" />
             </template>
           </Column>
-          <Column field="last_checked_at" header="最后检查时间" style="width: 10rem">
+          <Column field="last_checked_at" :header="t('standards.col_last_checked')" style="width: 10rem">
             <template #body="{ data }">
               {{ data.last_checked_at ? data.last_checked_at.substring(0, 10) : '—' }}
             </template>
           </Column>
-          <Column field="check_count" header="检查次数" style="width: 6rem; text-align: right" />
+          <Column field="check_count" :header="t('standards.col_check_count')" style="width: 6rem; text-align: right" />
         </DataTable>
 
-        <p v-if="!loading && displayRecords.length === 0" class="empty">暂无标准状态数据</p>
+        <p v-if="!loading && displayRecords.length === 0" class="empty">{{ t('standards.empty') }}</p>
 
         <TableLoadFooter
           v-if="total > 0"
