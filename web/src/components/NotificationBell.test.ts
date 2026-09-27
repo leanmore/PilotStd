@@ -3,7 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { computed, ref } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import NotificationBell from './NotificationBell.vue'
 
 // 使用 Vue 的 ref/computed 让模板自动解包
@@ -37,7 +40,7 @@ vi.mock('vue-router', async () => {
   return { ...actual, useRouter: () => ({ push: mockPush }) }
 })
 
-function mountBell() {
+function mountBell(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -45,8 +48,9 @@ function mountBell() {
       { path: '/', component: { template: '<div>home</div>' } },
     ],
   })
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   return mount(NotificationBell, {
-    global: { plugins: [PrimeVue, router] },
+    global: { plugins: [PrimeVue, router, i18n] },
   })
 }
 
@@ -89,5 +93,16 @@ describe('NotificationBell', () => {
     const wrapper = mountBell()
     expect(wrapper.html()).toContain('归档完成')
     expect(wrapper.html()).toContain('查看全部通知')
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', () => {
+    const zh = mountBell('zh-CN')
+    expect(zh.find('button').attributes('aria-label')).toBe('通知')
+    expect(zh.html()).toContain('全部标记已读')
+
+    const english = mountBell('en')
+    expect(english.find('button').attributes('aria-label')).toBe('Notifications')
+    expect(english.html()).toContain('Mark all as read')
+    expect(english.html()).toContain('View all notifications')
   })
 })

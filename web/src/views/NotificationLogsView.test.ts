@@ -6,6 +6,7 @@ import { createI18n } from 'vue-i18n'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import NotificationLogsView from './NotificationLogsView.vue'
 import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 
 // mock notification API
 const mockGetLogs = vi.fn().mockResolvedValue({
@@ -21,10 +22,10 @@ vi.mock('@/api/notification', () => ({
 
 const routes = [{ path: '/notification-logs', component: NotificationLogsView }]
 
-function mountComponent() {
+function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const pinia = createPinia()
   setActivePinia(pinia)
-  const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   const router = createRouter({ history: createMemoryHistory(), routes })
 
   return shallowMount(NotificationLogsView, {
@@ -109,5 +110,22 @@ describe('NotificationLogsView', () => {
     await nextTick()
     await nextTick()
     expect(wrapper.find('.table-meta').text()).toContain('共 42 条记录')
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountComponent('zh-CN')
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    expect(zh.find('.page-title').text()).toBe('通知日志')
+    expect(zh.find('.empty').text()).toBe('暂无通知记录')
+
+    const english = mountComponent('en')
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    expect(english.find('.page-title').text()).toBe('Notification Logs')
+    expect(english.find('.empty').text()).toBe('No notification logs')
+    expect(english.html()).toContain('Channel')
   })
 })

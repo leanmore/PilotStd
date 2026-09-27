@@ -1,13 +1,16 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationBell' })
+// 文案全部走 i18n（notification.bell.*），不硬编码中文
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Divider from 'primevue/divider'
 import { useNotification } from '@/composables/useNotification'
 
 const router = useRouter()
+const { t } = useI18n()
 const { messages, unreadCount, markAsRead } = useNotification()
 const popoverRef = ref<InstanceType<typeof Popover> | null>(null)
 
@@ -17,9 +20,9 @@ const formatTime = (isoString: string) => {
   const date = new Date(isoString)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  if (diff < 60000) return t('notification.bell.just_now')
+  if (diff < 3600000) return t('notification.bell.minutes_ago', { n: Math.floor(diff / 60000) })
+  if (diff < 86400000) return t('notification.bell.hours_ago', { n: Math.floor(diff / 3600000) })
   return date.toLocaleDateString()
 }
 
@@ -58,18 +61,18 @@ const goToLogs = () => {
       :badge="unreadCount > 0 ? String(unreadCount) : undefined"
       badge-severity="danger"
       @click="togglePopover"
-      aria-label="通知"
+      :aria-label="t('notification.bell.title')"
     />
 
     <Popover ref="popoverRef" class="notification-popover">
       <div class="notification-dropdown">
         <div class="dropdown-header">
-          <span class="header-title">通知</span>
+          <span class="header-title">{{ t('notification.bell.title') }}</span>
           <Button
             v-if="unreadCount > 0"
             text
             size="small"
-            label="全部标记已读"
+            :label="t('notification.bell.mark_all_read')"
             @click="markAllAsRead"
           />
         </div>
@@ -90,12 +93,12 @@ const goToLogs = () => {
             </div>
           </div>
           <div v-if="recentMessages.length === 0" class="empty-state">
-            暂无通知
+            {{ t('notification.bell.empty') }}
           </div>
         </div>
         <Divider class="footer-divider" />
         <div class="dropdown-footer">
-          <Button text size="small" label="查看全部通知 →" @click="goToLogs" />
+          <Button text size="small" :label="t('notification.bell.view_all')" @click="goToLogs" />
         </div>
       </div>
     </Popover>

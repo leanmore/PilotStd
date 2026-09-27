@@ -1,7 +1,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationLogsView' })
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+// 文案全部走 i18n（notification.logs.* / notification.channel.*），不硬编码中文
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import AppCalendar from '@/components/AppCalendar.vue'
@@ -12,6 +14,7 @@ import { getNotificationLogs, deleteNotificationLogs, type NotificationLog } fro
 import { getItem, setItem } from '@/lib/storage'
 
 const route = useRoute()
+const { t, te } = useI18n()
 
 const logs = ref<NotificationLog[]>([])
 const total = ref(0)
@@ -91,36 +94,43 @@ async function doCleanup() {
   cleanupResult.value = ''
   try {
     const r = await deleteNotificationLogs(cleanupDays.value)
-    cleanupResult.value = `已清理 ${r.deleted} 条记录`
+    cleanupResult.value = t('notification.logs.cleanup_result', { n: r.deleted })
     cleanupVisible.value = false
     loadLogs()
   } catch (e: any) {
-    cleanupResult.value = e.response?.data?.error || '清理失败'
+    cleanupResult.value = e.response?.data?.error || t('notification.logs.cleanup_failed')
   } finally {
     cleanupLoading.value = false
   }
 }
 
-const channelOptions = [
-  { label: '全部', value: null },
-  { label: '企业微信', value: 'wechat' },
-  { label: 'Telegram', value: 'telegram' },
-  { label: '飞书', value: 'feishu' },
-]
-const statusOptions = [
-  { label: '全部', value: null },
-  { label: '成功', value: 'success' },
-  { label: '失败', value: 'failed' },
-]
-const readOptions = [
-  { label: '全部', value: null },
-  { label: '未读', value: false },
-  { label: '已读', value: true },
-]
+const channelOptions = computed(() => [
+  { label: t('notification.logs.status.all'), value: null },
+  { label: t('notification.channel.wechat'), value: 'wechat' },
+  { label: t('notification.channel.telegram'), value: 'telegram' },
+  { label: t('notification.channel.feishu'), value: 'feishu' },
+])
+const statusOptions = computed(() => [
+  { label: t('notification.logs.status.all'), value: null },
+  { label: t('notification.logs.status.success'), value: 'success' },
+  { label: t('notification.logs.status.failed'), value: 'failed' },
+])
+const readOptions = computed(() => [
+  { label: t('notification.logs.status.all'), value: null },
+  { label: t('notification.logs.status.unread'), value: false },
+  { label: t('notification.logs.status.read'), value: true },
+])
+
+// 渠道显示名：仅已配置 i18n 的渠道做映射，未知渠道原样回显（保持既有行为）
+const CHANNEL_KEYS: Record<string, string> = {
+  wechat: 'notification.channel.wechat',
+  telegram: 'notification.channel.telegram',
+  feishu: 'notification.channel.feishu',
+}
 
 function channelLabel(v: string): string {
-  const m: Record<string, string> = { wechat: '企业微信', telegram: 'Telegram', feishu: '飞书' }
-  return m[v] || v
+  const k = CHANNEL_KEYS[v]
+  return k ? t(k) : v
 }
 
 function statusSeverity(s: string): 'success' | 'danger' | 'info' {
@@ -129,29 +139,16 @@ function statusSeverity(s: string): 'success' | 'danger' | 'info' {
   return 'info'
 }
 
+function statusLabel(s: string): string {
+  return s === 'success' ? t('notification.logs.status.success') : t('notification.logs.status.failed')
+}
+
+// 事件类型 → i18n key（notification.logs.event.<type>）。本页文案与配置页
+// notification.config.event.* 措辞略有不同（如「公告抓取」vs「公告抓取完成」），
+// 故两套 key 并存，不在本批做跨页面统一；未知类型原样回显。
 function eventLabel(v: string): string {
-  const m: Record<string, string> = {
-    archive_complete: '归档完成', standard_status_changed: '状态变更',
-    standard_first_registered: '首次登记',
-    announcement_fetch_complete: '公告抓取', auto_backup: '自动备份',
-    announcement_check_complete: '定时公告检查', batch_download_complete: '批量下载完成',
-    auto_scan_failed: '扫描异常',
-    validity_batch_report: '时效性检查', validity_round_summary: '周期总结',
-    validity_standard_failed: '检查失败', validity_system_failed: '系统异常',
-    favorite_created: '收藏成功', download_started: '收藏下载开始',
-    download_complete: '收藏下载完成', download_failed: '收藏下载失败',
-    archive_abandoned: '归档任务放弃', archive_failed: '归档失败',
-    normalize_complete: '规范化完成', normalize_failed: '规范化失败',
-    scan_complete: '扫描完成', scan_empty: '扫描无新增',
-    batch_query_summary: '批量查询完成', query_failed: '查询失败', query_empty: '查询无结果',
-    expire_standard_moved: '废止标准移动', replacement_not_found: '替代标准未找到',
-    announcement_fetch_failed: '公告抓取失败', announce_fetch_summary: '公告逐站汇总',
-    date_reminder: '日期到期提醒', task_execution_failed: '定时任务异常',
-    quota_exhausted: '配额耗尽', trust_ip_update: '可信IP更新',
-    image_update_available: '镜像更新可用', worker_error: '工作线程异常',
-    test: '测试',
-  }
-  return m[v] || v
+  const key = `notification.logs.event.${v}`
+  return te(key) ? t(key) : v
 }
 
 async function loadLogs() {
@@ -171,7 +168,7 @@ async function loadLogs() {
     logs.value = r.items
     total.value = r.total
   } catch (e: any) {
-    errMsg.value = e.response?.data?.error || '加载日志失败'
+    errMsg.value = e.response?.data?.error || t('notification.logs.load_failed')
   } finally {
     loading.value = false
   }
@@ -246,35 +243,35 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page">
-    <h2 class="page-title">通知日志</h2>
+    <h2 class="page-title">{{ t('notification.logs.title') }}</h2>
 
     <!-- 筛选区 -->
     <div class="card section">
-      <div class="card-header">筛选条件</div>
+      <div class="card-header">{{ t('notification.logs.filter_title') }}</div>
       <div class="filter-row">
         <div class="filter-item">
-          <label>渠道</label>
+          <label>{{ t('notification.logs.field.channel') }}</label>
           <Select v-model="filterChannel" :options="channelOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
-          <label>状态</label>
+          <label>{{ t('notification.logs.field.status') }}</label>
           <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
-          <label>已读</label>
+          <label>{{ t('notification.logs.field.is_read') }}</label>
           <Select v-model="filterIsRead" :options="readOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
-          <label>开始日期</label>
+          <label>{{ t('notification.logs.start_date') }}</label>
           <AppCalendar v-model="filterStartDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-item">
-          <label>结束日期</label>
+          <label>{{ t('notification.logs.end_date') }}</label>
           <AppCalendar v-model="filterEndDate" dateFormat="yy-mm-dd" showIcon />
         </div>
         <div class="filter-actions">
-          <Button icon="pi pi-search" label="查询" size="small" @click="onSearch" />
-          <Button icon="pi pi-refresh" label="重置" size="small" severity="secondary" @click="onReset" />
+          <Button icon="pi pi-search" :label="t('notification.logs.search')" size="small" @click="onSearch" />
+          <Button icon="pi pi-refresh" :label="t('notification.logs.reset')" size="small" severity="secondary" @click="onReset" />
         </div>
       </div>
     </div>
@@ -282,17 +279,17 @@ onBeforeUnmount(() => {
     <!-- 日志列表 -->
     <div class="card section">
       <div class="card-header">
-        <span>日志列表</span>
+        <span>{{ t('notification.logs.list_title') }}</span>
         <div style="display:flex;gap:8px">
-          <Button icon="pi pi-trash" label="清理日志" size="small" severity="danger" outlined @click="cleanupVisible = true" />
+          <Button icon="pi pi-trash" :label="t('notification.logs.cleanup')" size="small" severity="danger" outlined @click="cleanupVisible = true" />
           <Button icon="pi pi-refresh" size="small" severity="secondary" :loading="loading" @click="loadLogs" />
         </div>
       </div>
       <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
 
       <div class="table-meta">
-        <span>共 {{ total }} 条记录</span>
-        <span v-if="total > 0">第 {{ page }}/{{ totalPages() }} 页</span>
+        <span>{{ t('notification.logs.total', { n: total }) }}</span>
+        <span v-if="total > 0">{{ t('notification.logs.page', { page, pages: totalPages() }) }}</span>
       </div>
 
       <div class="resizable-table" :style="{ height: tableHeight + 'px' }">
@@ -300,13 +297,13 @@ onBeforeUnmount(() => {
           <table class="log-table" v-if="logs.length">
             <thead>
               <tr>
-                <th>时间</th>
-                <th>渠道</th>
-                <th>事件</th>
-                <th>状态</th>
-                <th>已读</th>
-                <th>标题</th>
-                <th>操作</th>
+                <th>{{ t('notification.logs.field.time') }}</th>
+                <th>{{ t('notification.logs.field.channel') }}</th>
+                <th>{{ t('notification.logs.field.event') }}</th>
+                <th>{{ t('notification.logs.field.status') }}</th>
+                <th>{{ t('notification.logs.field.is_read') }}</th>
+                <th>{{ t('notification.logs.field.title') }}</th>
+                <th>{{ t('notification.logs.field.action') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -314,23 +311,23 @@ onBeforeUnmount(() => {
                 <td>{{ l.sent_at?.replace('T', ' ').substring(0, 16) }}</td>
                 <td>{{ channelLabel(l.channel) }}</td>
                 <td>{{ eventLabel(l.event_type) }}</td>
-                <td><Tag :severity="statusSeverity(l.status)" :value="l.status === 'success' ? '成功' : '失败'" /></td>
+                <td><Tag :severity="statusSeverity(l.status)" :value="statusLabel(l.status)" /></td>
                 <td>
-                  <Tag v-if="l.is_read" severity="info" value="已读" />
-                  <Tag v-else severity="warn" value="未读" />
+                  <Tag v-if="l.is_read" severity="info" :value="t('notification.logs.status.read')" />
+                  <Tag v-else severity="warn" :value="t('notification.logs.status.unread')" />
                   <Tag v-if="l.aggregated_count && l.aggregated_count > 1" severity="info" :value="'×' + l.aggregated_count" style="margin-left:4px" />
                 </td>
                 <td class="title-cell">
                   <a v-if="l.link" :href="l.link" class="notif-link">{{ l.title }}</a>
                   <span v-else>{{ l.title }}</span>
                 </td>
-                <td><Button label="查看" size="small" severity="secondary" text @click="showDetail(l)" /></td>
+                <td><Button :label="t('notification.logs.view')" size="small" severity="secondary" text @click="showDetail(l)" /></td>
               </tr>
             </tbody>
           </table>
-          <p v-else-if="!loading" class="empty">暂无通知记录</p>
+          <p v-else-if="!loading" class="empty">{{ t('notification.logs.empty') }}</p>
         </div>
-        <div class="resize-handle" @mousedown="onResizeStart" title="拖拽调整高度" />
+        <div class="resize-handle" @mousedown="onResizeStart" :title="t('notification.logs.resize_title')" />
       </div>
 
       <div class="pagination" v-if="totalPages() > 1">
@@ -340,24 +337,24 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <Dialog v-model:visible="detailVisible" header="通知详情" :style="{ width: '500px' }" modal>
+    <Dialog v-model:visible="detailVisible" :header="t('notification.logs.detail_title')" :style="{ width: '500px' }" modal>
       <div v-if="detailItem" class="detail">
-        <div class="detail-row"><span>时间</span><span>{{ detailItem.sent_at }}</span></div>
-        <div class="detail-row"><span>渠道</span><span>{{ channelLabel(detailItem.channel) }}</span></div>
-        <div class="detail-row"><span>事件</span><span>{{ eventLabel(detailItem.event_type) }}</span></div>
-        <div class="detail-row"><span>状态</span><Tag :severity="statusSeverity(detailItem.status)" :value="detailItem.status === 'success' ? '成功' : '失败'" /></div>
-        <div class="detail-row"><span>标题</span><span>{{ detailItem.title }}</span></div>
-        <div class="detail-body"><span>内容</span><pre>{{ detailItem.body }}</pre></div>
-        <div v-if="detailItem.error_msg" class="detail-row"><span>错误</span><span class="err">{{ detailItem.error_msg }}</span></div>
+        <div class="detail-row"><span>{{ t('notification.logs.field.time') }}</span><span>{{ detailItem.sent_at }}</span></div>
+        <div class="detail-row"><span>{{ t('notification.logs.field.channel') }}</span><span>{{ channelLabel(detailItem.channel) }}</span></div>
+        <div class="detail-row"><span>{{ t('notification.logs.field.event') }}</span><span>{{ eventLabel(detailItem.event_type) }}</span></div>
+        <div class="detail-row"><span>{{ t('notification.logs.field.status') }}</span><Tag :severity="statusSeverity(detailItem.status)" :value="statusLabel(detailItem.status)" /></div>
+        <div class="detail-row"><span>{{ t('notification.logs.field.title') }}</span><span>{{ detailItem.title }}</span></div>
+        <div class="detail-body"><span>{{ t('notification.logs.field.body') }}</span><pre>{{ detailItem.body }}</pre></div>
+        <div v-if="detailItem.error_msg" class="detail-row"><span>{{ t('notification.logs.field.error') }}</span><span class="err">{{ detailItem.error_msg }}</span></div>
       </div>
     </Dialog>
 
     <!-- 清理日志确认弹窗 -->
-    <Dialog v-model:visible="cleanupVisible" header="清理通知日志" :style="{ width: '420px' }" modal>
+    <Dialog v-model:visible="cleanupVisible" :header="t('notification.logs.cleanup_title')" :style="{ width: '420px' }" modal>
       <div>
-        <p style="margin:0 0 12px;color:var(--text-dim)">删除指定天数之前的通知日志记录：</p>
+        <p style="margin:0 0 12px;color:var(--text-dim)">{{ t('notification.logs.cleanup_hint') }}</p>
         <div style="display:flex;align-items:center;gap:8px">
-          <label>保留</label>
+          <label>{{ t('notification.logs.cleanup_keep') }}</label>
           <input
             v-model.number="cleanupDays"
             type="number"
@@ -365,13 +362,13 @@ onBeforeUnmount(() => {
             max="365"
             style="width:80px;padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);text-align:center"
           />
-          <label>天</label>
+          <label>{{ t('notification.logs.cleanup_days') }}</label>
         </div>
         <p v-if="cleanupResult" style="margin-top:12px;font-size:12px;color:var(--primary)">{{ cleanupResult }}</p>
       </div>
       <template #footer>
-        <Button label="取消" size="small" severity="secondary" text @click="cleanupVisible = false" />
-        <Button label="确认清理" size="small" severity="danger" :loading="cleanupLoading" @click="doCleanup" />
+        <Button :label="t('common.cancel')" size="small" severity="secondary" text @click="cleanupVisible = false" />
+        <Button :label="t('notification.logs.cleanup_confirm')" size="small" severity="danger" :loading="cleanupLoading" @click="doCleanup" />
       </template>
     </Dialog>
   </div>

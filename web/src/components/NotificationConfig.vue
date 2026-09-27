@@ -1,7 +1,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'NotificationConfig' })
 // NotificationConfig.vue v3 — 四渠道全参数通知配置（已移除页面内通知卡片）
+// 文案全部走 i18n（notification.config.* / notification.channel.*），不硬编码中文
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUserPreferences } from '@/composables/useUserPreferences'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -17,6 +19,14 @@ import {
   type WechatChannelConfig, type TelegramChannelConfig,
   type FeishuChannelConfig, type DingTalkChannelConfig,
 } from '@/api/notification'
+
+const { t, te } = useI18n()
+
+/** 事件类型 → i18n key（notification.config.event.<type>，与日志页的 notification.logs.event.* 措辞不同） */
+function eventLabel(type: string): string {
+  const key = `notification.config.event.${type}`
+  return te(key) ? t(key) : type
+}
 
 interface ChannelFormState {
   enabled: boolean
@@ -44,49 +54,50 @@ const saved = ref(false)
 const errMsg = ref('')
 const testResults = ref<Record<string, string>>({})
 
+// 可订阅的事件类型（后端 event_type 原值）；文案 key = notification.config.event.<type>
 const EVENTS = [
-  { key: 'archive_complete',          label: '归档完成' },
-  { key: 'standard_status_changed',   label: '状态变更' },
-  { key: 'standard_first_registered', label: '首次登记' },
-  { key: 'announcement_fetch_complete',  label: '公告抓取完成' },
-  { key: 'auto_backup',                      label: '自动备份' },
-  { key: 'announcement_check_complete',      label: '定时公告检查' },
-  { key: 'auto_scan_failed',              label: '定时扫描异常' },
-  { key: 'batch_download_complete',       label: '批量下载完成' },
-  { key: 'validity_batch_report',         label: '时效性检查完成' },
-  { key: 'validity_round_summary',        label: '周期总结汇报' },
-  { key: 'validity_standard_failed',      label: '标准检查失败' },
-  { key: 'validity_system_failed',        label: '系统执行异常' },
-  { key: 'favorite_created',              label: '收藏成功' },
-  { key: 'download_started',              label: '收藏下载开始' },
-  { key: 'download_complete',             label: '收藏下载完成' },
-  { key: 'download_failed',               label: '收藏下载失败' },
-  { key: 'archive_abandoned',             label: '归档任务放弃' },
-  { key: 'archive_failed',                label: '归档失败' },
-  { key: 'normalize_complete',            label: '规范化完成' },
-  { key: 'normalize_failed',              label: '规范化失败' },
-  { key: 'scan_complete',                 label: '扫描完成' },
-  { key: 'scan_empty',                    label: '扫描无新增' },
-  { key: 'batch_query_summary',           label: '批量查询完成' },
-  { key: 'query_failed',                  label: '查询失败' },
-  { key: 'query_empty',                   label: '查询无结果' },
-  { key: 'expire_standard_moved',         label: '废止标准移动' },
-  { key: 'replacement_not_found',         label: '替代标准未找到' },
-  { key: 'announcement_fetch_failed',     label: '公告抓取失败' },
-  { key: 'announce_fetch_summary',        label: '公告逐站汇总' },
-  { key: 'date_reminder',                 label: '日期到期提醒' },
-  { key: 'task_execution_failed',         label: '定时任务异常' },
-  { key: 'quota_exhausted',               label: '配额耗尽' },
-  { key: 'trust_ip_update',               label: '可信IP更新' },
-  { key: 'image_update_available',        label: '镜像更新可用' },
-  { key: 'worker_error',                  label: '工作线程异常' },
+  'archive_complete',
+  'standard_status_changed',
+  'standard_first_registered',
+  'announcement_fetch_complete',
+  'auto_backup',
+  'announcement_check_complete',
+  'auto_scan_failed',
+  'batch_download_complete',
+  'validity_batch_report',
+  'validity_round_summary',
+  'validity_standard_failed',
+  'validity_system_failed',
+  'favorite_created',
+  'download_started',
+  'download_complete',
+  'download_failed',
+  'archive_abandoned',
+  'archive_failed',
+  'normalize_complete',
+  'normalize_failed',
+  'scan_complete',
+  'scan_empty',
+  'batch_query_summary',
+  'query_failed',
+  'query_empty',
+  'expire_standard_moved',
+  'replacement_not_found',
+  'announcement_fetch_failed',
+  'announce_fetch_summary',
+  'date_reminder',
+  'task_execution_failed',
+  'quota_exhausted',
+  'trust_ip_update',
+  'image_update_available',
+  'worker_error',
 ]
 
 const CHANNELS = [
-  { key: 'wechat',   label: '企业微信', icon: 'pi pi-comments' },
-  { key: 'telegram', label: 'Telegram',  icon: 'pi pi-send' },
-  { key: 'feishu',   label: '飞书',      icon: 'pi pi-book' },
-  { key: 'dingtalk', label: '钉钉',      icon: 'pi pi-bolt' },
+  { key: 'wechat',   labelKey: 'notification.channel.wechat',   icon: 'pi pi-comments' },
+  { key: 'telegram', labelKey: 'notification.channel.telegram', icon: 'pi pi-send' },
+  { key: 'feishu',   labelKey: 'notification.channel.feishu',   icon: 'pi pi-book' },
+  { key: 'dingtalk', labelKey: 'notification.channel.dingtalk', icon: 'pi pi-bolt' },
 ]
 
 const channelOpen = ref<Record<string, boolean>>({
@@ -127,7 +138,7 @@ async function loadConfig() {
       }
       channels.value[ch].events = []
       for (const ev of EVENTS) {
-        if (cfg.rules?.[ev.key]?.includes(ch)) channels.value[ch].events.push(ev.key)
+        if (cfg.rules?.[ev]?.includes(ch)) channels.value[ch].events.push(ev)
       }
     }
 
@@ -144,7 +155,7 @@ async function loadConfig() {
     } catch { /* 策略 API 不可用时保持 config.json rules */ }
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    errMsg.value = err.response?.data?.error || '加载配置失败'
+    errMsg.value = err.response?.data?.error || t('notification.config.load_failed')
   } finally { loading.value = false }
 }
 
@@ -153,9 +164,9 @@ async function saveConfig() {
   try {
     const newRules: Record<string, string[]> = {}
     for (const ev of EVENTS) {
-      newRules[ev.key] = []
+      newRules[ev] = []
       for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk']) {
-        if (channels.value[ch].events.includes(ev.key)) newRules[ev.key].push(ch)
+        if (channels.value[ch].events.includes(ev)) newRules[ev].push(ch)
       }
     }
     // P1 修复：敏感字段增量提交——掩码值（含 *）或空值不提交，保留 DB 原值
@@ -192,14 +203,14 @@ async function saveConfig() {
     setTimeout(() => saved.value = false, 2000)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    errMsg.value = err.response?.data?.error || '保存失败'
+    errMsg.value = err.response?.data?.error || t('common.save_failed')
   } finally { saving.value = false }
 }
 
 defineExpose({ saveConfig })
 
 async function testChannel(ch: string) {
-  testResults.value[ch] = '测试中...'
+  testResults.value[ch] = t('notification.config.testing')
   try {
     const c = channels.value[ch]
     const params: Record<string, string> = {}
@@ -208,24 +219,31 @@ async function testChannel(ch: string) {
     else if (ch === 'feishu') { params.webhook_url = c.webhook_url; params.secret = c.secret }
     else if (ch === 'dingtalk') { params.webhook_url = c.webhook_url; params.secret = c.secret }
     const r = await testNotification(ch, params)
-    testResults.value[ch] = r.ok ? '测试成功' : `失败: ${r.error || '未知'}`
+    testResults.value[ch] = r.ok
+      ? t('notification.config.test_ok')
+      : t('notification.config.test_failed', { msg: r.error || t('notification.config.unknown') })
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } }; message?: string }
-    testResults.value[ch] = `失败: ${err.response?.data?.error || (e instanceof Error ? e.message : '未知')}`
+    const msg = err.response?.data?.error || (e instanceof Error ? e.message : t('notification.config.unknown'))
+    testResults.value[ch] = t('notification.config.test_failed', { msg })
   }
   setTimeout(() => delete testResults.value[ch], 4000)
 }
 
 function chStatus(ch: string): string {
   const c = channels.value[ch]
-  if (!c.enabled) return '未启用'
-  if (ch === 'telegram') return c.bot_token && c.chat_id ? '已配置' : '待配置'
-  if (ch === 'wechat') {
-    if (c.corpid && c.agentid && c.corpsecret) return '应用消息'
-    if (c.webhook_url) return '群机器人'
-    return '待配置'
+  if (!c.enabled) return t('notification.config.status.disabled')
+  if (ch === 'telegram') {
+    return c.bot_token && c.chat_id
+      ? t('notification.config.status.configured')
+      : t('notification.config.status.pending')
   }
-  return c.webhook_url ? '已配置' : '待配置'
+  if (ch === 'wechat') {
+    if (c.corpid && c.agentid && c.corpsecret) return t('notification.config.status.app_message')
+    if (c.webhook_url) return t('notification.config.status.group_robot')
+    return t('notification.config.status.pending')
+  }
+  return c.webhook_url ? t('notification.config.status.configured') : t('notification.config.status.pending')
 }
 
 function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
@@ -269,12 +287,12 @@ onMounted(() => {
 <template>
   <div>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-    <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
+    <Message v-if="saved" severity="success" :closable="false">{{ t('notification.config.saved') }}</Message>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <ToggleSwitch v-model="enabled" />
-        <span style="font-size:13px;color:var(--text)">启用通知</span>
+        <span style="font-size:13px;color:var(--text)">{{ t('notification.config.enable_all') }}</span>
       </div>
     </div>
 
@@ -283,7 +301,7 @@ onMounted(() => {
         <div class="collapsible-header" @click="channelOpen[ch.key] = !channelOpen[ch.key]">
           <div style="display:flex;align-items:center;gap:8px">
             <i :class="ch.icon" style="font-size:16px;color:var(--primary)" />
-            <span class="collapsible-title">{{ ch.label }}</span>
+            <span class="collapsible-title">{{ t(ch.labelKey) }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <Tag :severity="chSeverity(ch.key)" :value="chStatus(ch.key)" />
@@ -295,74 +313,74 @@ onMounted(() => {
           <!-- Telegram -->
           <template v-if="ch.key === 'telegram'">
             <div class="field">
-              <label>Bot Token <span class="required">*必填</span></label>
+              <label>Bot Token <span class="required">{{ t('notification.config.required') }}</span></label>
               <Password v-model="channels[ch.key].bot_token" class="w-full" placeholder="123456:ABC-DEF" size="small" toggleMask :feedback="false" />
             </div>
             <div class="field">
-              <label>Chat ID <span class="required">*必填</span></label>
+              <label>Chat ID <span class="required">{{ t('notification.config.required') }}</span></label>
               <InputText v-model="channels[ch.key].chat_id" class="w-full" placeholder="-1001234567890" size="small" />
             </div>
             <div style="margin-top:8px">
-              <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
+              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
             </div>
           </template>
 
           <!-- 企业微信 -->
           <template v-else-if="ch.key === 'wechat'">
-            <p style="font-size:11px;color:var(--text-dim);margin:0 0 10px">群机器人或企业应用消息，二选一</p>
+            <p style="font-size:11px;color:var(--text-dim);margin:0 0 10px">{{ t('notification.config.wechat.hint') }}</p>
             <div class="field">
-              <label>Webhook URL <span class="optional">群机器人</span></label>
+              <label>Webhook URL <span class="optional">{{ t('notification.config.wechat.group_robot_badge') }}</span></label>
               <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://qyapi.weixin.qq.com/..." size="small" />
             </div>
-            <div class="field-sep">或 企业应用消息</div>
+            <div class="field-sep">{{ t('notification.config.wechat.app_sep') }}</div>
             <div class="field">
-              <label>企业 ID (corpid) <span class="optional">可选</span></label>
+              <label>{{ t('notification.config.wechat.corpid') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
               <InputText v-model="channels[ch.key].corpid" class="w-full" placeholder="ww..." size="small" />
             </div>
             <div class="field">
-              <label>应用 Agent ID <span class="optional">可选</span></label>
+              <label>{{ t('notification.config.wechat.agentid') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
               <InputText v-model="channels[ch.key].agentid" class="w-full" placeholder="1000001" size="small" />
             </div>
             <div class="field">
-              <label>应用 Secret <span class="optional">可选</span></label>
+              <label>{{ t('notification.config.wechat.corpsecret') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
               <InputText v-model="channels[ch.key].corpsecret" class="w-full" placeholder="..." size="small" type="password" />
             </div>
             <div class="field">
-              <label>代理地址 <span class="optional">可选</span></label>
+              <label>{{ t('notification.config.wechat.proxy_url') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
               <InputText v-model="channels[ch.key].proxy_url" class="w-full" placeholder="http://proxy:8080" size="small" />
             </div>
             <div style="margin-top:8px">
-              <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
+              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
             </div>
           </template>
 
           <!-- 飞书 -->
           <template v-else-if="ch.key === 'feishu'">
             <div class="field">
-              <label>Webhook URL <span class="required">*必填</span></label>
+              <label>Webhook URL <span class="required">{{ t('notification.config.required') }}</span></label>
               <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://open.feishu.cn/..." size="small" />
             </div>
             <div class="field">
-              <label>签名校验密钥 <span class="optional">选填</span></label>
-              <Password v-model="channels[ch.key].secret" class="w-full" placeholder="加签密钥" size="small" toggleMask :feedback="false" />
+              <label>{{ t('notification.config.feishu.secret_label') }} <span class="optional">{{ t('notification.config.optional_short') }}</span></label>
+              <Password v-model="channels[ch.key].secret" class="w-full" :placeholder="t('notification.config.feishu.secret_placeholder')" size="small" toggleMask :feedback="false" />
             </div>
             <div style="margin-top:8px">
-              <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
+              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
             </div>
           </template>
 
           <!-- 钉钉 -->
           <template v-else-if="ch.key === 'dingtalk'">
             <div class="field">
-              <label>Webhook URL <span class="required">*必填</span></label>
+              <label>Webhook URL <span class="required">{{ t('notification.config.required') }}</span></label>
               <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://oapi.dingtalk.com/robot/..." size="small" />
             </div>
             <div class="field">
-              <label>加签 Secret <span class="optional">选填</span></label>
+              <label>{{ t('notification.config.dingtalk.secret_label') }} <span class="optional">{{ t('notification.config.optional_short') }}</span></label>
               <Password v-model="channels[ch.key].secret" class="w-full" placeholder="SEC..." size="small" toggleMask :feedback="false" />
             </div>
             <div style="margin-top:8px">
-              <Button label="测试" size="small" severity="secondary" @click="testChannel(ch.key)" />
+              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
             </div>
           </template>
 
@@ -370,14 +388,14 @@ onMounted(() => {
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
             <ToggleSwitch v-model="channels[ch.key].enabled" />
-            <label style="font-size:12px;color:var(--text-dim)">启用此渠道</label>
+            <label style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.enable_channel') }}</label>
           </div>
 
           <div class="events-row">
-            <label class="events-label">事件订阅：</label>
-            <div v-for="ev in EVENTS" :key="ev.key" class="checkbox-field">
-              <Checkbox v-model="channels[ch.key].events" :value="ev.key" :input-id="`${ch.key}-${ev.key}`" />
-              <label :for="`${ch.key}-${ev.key}`">{{ ev.label }}</label>
+            <label class="events-label">{{ t('notification.config.events_label') }}</label>
+            <div v-for="ev in EVENTS" :key="ev" class="checkbox-field">
+              <Checkbox v-model="channels[ch.key].events" :value="ev" :input-id="`${ch.key}-${ev}`" />
+              <label :for="`${ch.key}-${ev}`">{{ eventLabel(ev) }}</label>
             </div>
           </div>
           </div>
@@ -390,24 +408,24 @@ onMounted(() => {
       <div class="collapsible-header" style="cursor:default">
         <div style="display:flex;align-items:center;gap:8px">
           <i class="pi pi-moon" style="font-size:16px;color:var(--primary)" />
-          <span class="collapsible-title">静音时段</span>
+          <span class="collapsible-title">{{ t('notification.config.quiet_hours.title') }}</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
-          <Tag :severity="quietHoursEnabled ? 'success' : 'secondary'" :value="quietHoursEnabled ? '已启用' : '未启用'" />
+          <Tag :severity="quietHoursEnabled ? 'success' : 'secondary'" :value="quietHoursEnabled ? t('notification.config.quiet_hours.enabled') : t('notification.config.quiet_hours.disabled')" />
         </div>
       </div>
       <div class="collapsible-content">
         <div class="config-row">
-          <label>启用静音时段</label>
+          <label>{{ t('notification.config.quiet_hours.enable') }}</label>
           <ToggleSwitch v-model="quietHoursEnabled" @change="saveQuietHours" />
           <span style="font-size:12px;color:var(--text-dim);margin-left:8px">
-            静音时段内通知将暂存，结束后自动补发
+            {{ t('notification.config.quiet_hours.hint') }}
           </span>
         </div>
         <div v-if="quietHoursEnabled" class="config-row" style="margin-top:8px">
-          <label>开始时间</label>
+          <label>{{ t('notification.config.quiet_hours.start') }}</label>
           <AppCalendar v-model="quietHoursStart" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
-          <label style="margin-left:16px">结束时间</label>
+          <label style="margin-left:16px">{{ t('notification.config.quiet_hours.end') }}</label>
           <AppCalendar v-model="quietHoursEnd" timeOnly hourFormat="24" @update:model-value="saveQuietHours" />
         </div>
       </div>

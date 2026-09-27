@@ -8,8 +8,6 @@ web/src/components/CacheManager.vue::11
 web/src/components/DynamicSettingField.vue::2
 web/src/components/FileMonitor.vue::17
 web/src/components/LogBar.vue::5
-web/src/components/NotificationBell.vue::8
-web/src/components/NotificationConfig.vue::77
 web/src/components/RouteDebugPanel.vue::9
 web/src/components/SettingsTabAppearanceMixed.vue::7
 web/src/components/SettingsTabSchema.vue::5
@@ -44,7 +42,6 @@ web/src/views/DownloadQueue.vue::4
 web/src/views/FavoritesView.vue::19
 web/src/views/LegacyRedirect.vue::1
 web/src/views/LoginView.vue::5
-web/src/views/NotificationLogsView.vue::72
 web/src/views/OrganizeView.vue::14
 web/src/views/PendingView.vue::11
 web/src/views/QualityView.vue::10
@@ -56,7 +53,6 @@ web/src/views/StandardsStatusView.vue::24
 web/src/views/SystemResources.vue::4
 web/src/views/TaskView.vue::42
 web/src/views/settings/SettingsTabCircuit.vue::15
-web/src/views/settings/SettingsTabNotification.vue::2
 web/src/views/settings/SettingsTabSystem.vue::2
 web/src/views/settings/SettingsTabToken.vue::19
 web/src/views/settings/SettingsTabUsers.vue::30
