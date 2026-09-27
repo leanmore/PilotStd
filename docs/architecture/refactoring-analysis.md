@@ -112,4 +112,4 @@
 
 - [G-010 治理汇总](governance-summary.md)
 - [G-010 规则说明](../development/g-010-enforcement.md)
-- [技术债登记簿](technical-debt-registry.md)
+- [技术债登记](../technical-debt.md)（唯一数据源）

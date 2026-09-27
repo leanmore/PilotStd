@@ -198,7 +198,7 @@ pilotstd/
 |------|------|------|
 | 包化分析 | `docs/architecture/refactoring-analysis.md` | 11 个大文件包化详情 |
 | G-010 规则 | `docs/development/g-010-enforcement.md` | 代码规模控制规范 |
-| 技术债登记 | `docs/architecture/technical-debt-registry.md` | 已知问题 + 设计决策 |
+| 技术债登记 | `docs/technical-debt.md` | 已知问题 + 设计决策（**唯一数据源**，旧簿已归档） |
 | 重构经验 | `docs/guides/refactoring-lessons.md` | 拆分模式 + 反模式 |
 | 会话存储设计 | `docs/development/session-store-design.md` | 服务端会话存储 |
 | 文档策略 | `docs/development/documentation-policy.md` | 文档同步规则 |

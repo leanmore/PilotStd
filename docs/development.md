@@ -127,4 +127,4 @@ python scripts/check_g_011_attr_integrity.py
 | 重构经验 | `docs/guides/refactoring-lessons.md` |
 | 文档策略 | `docs/development/documentation-policy.md` |
 | 会话存储 | `docs/development/session-store-design.md` |
-| 技术债 | `docs/architecture/technical-debt-registry.md` |
+| 技术债 | `docs/technical-debt.md` |

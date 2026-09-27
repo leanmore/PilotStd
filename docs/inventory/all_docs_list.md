@@ -38,7 +38,7 @@ docs/architecture/modules/scan.md
 docs/architecture/modules/ui.md
 docs/architecture/overview.md
 docs/architecture/refactoring-analysis.md
-docs/architecture/technical-debt-registry.md
+docs/architecture/technical-debt-registry.archived.md
 docs/archive/2026-07-16-audit-reports/2026-07-03-win-startup-issues-investigation.md
 docs/archive/2026-07-16-audit-reports/app_websocket_audit.md
 docs/archive/2026-07-16-audit-reports/ci_test_failure_investigation.md

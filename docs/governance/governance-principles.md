@@ -83,7 +83,7 @@ PilotStd 治理体系基于三条不可分割的支柱：
 当决策者说"先记住，下次处理"时，方案进入追踪清单。追踪清单的形式：
 
 - 短期（当次会话）：TODO 列表或会话上下文
-- 中期（跨会话）：`docs/testing/known-issues.md` 或 `docs/architecture/technical-debt-registry.md`
+- 中期（跨会话）：`docs/testing/known-issues.md` 或 `docs/technical-debt.md`
 - 长期（跨版本）：GitHub Issue
 
 **执行者要求**：每次输出新指令前，强制检查追踪清单中是否有待处理项。
@@ -106,7 +106,7 @@ PilotStd 治理体系基于三条不可分割的支柱：
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 |
 | [../testing/known-issues.md](../testing/known-issues.md) | 已知问题及技术债追踪 |
 | [../adr/ADR-001-modal-dialog-auto-clicker.md](../adr/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 |
-| [../architecture/technical-debt-registry.md](../architecture/technical-debt-registry.md) | 技术债登记 |
+| [../technical-debt.md](../technical-debt.md) | 技术债登记（**唯一数据源**） |
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献指南（含门禁脚本速查） |
 | [../../scripts/check_g_029_test_coverage.py](../../scripts/check_g_029_test_coverage.py) | G-029 测试覆盖门禁 |
 | [../../.github/scripts/check-repo-compliance.sh](../../.github/scripts/check-repo-compliance.sh) | 入仓合规门禁 |

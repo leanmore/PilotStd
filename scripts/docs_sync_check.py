@@ -79,7 +79,9 @@ TRIGGER_RULES = [
         "match_fn": lambda t, d: _has_handler_or_mixin_change(t, d),
         "targets": [
             ("docs/architecture/architecture.md", "claude", True),
-            ("docs/architecture/technical-debt-registry.md", "claude", True),
+            # 2026-09-27：旧簿 architecture/technical-debt-registry.md 已废止归档，
+            # 技术债唯一数据源改为 docs/technical-debt.md（Handler/Mixin 变化须同步登记其"已接受决策/已清理"）
+            ("docs/technical-debt.md", "claude", True),
         ],
     },
     {
@@ -234,7 +236,7 @@ def _build_claude_prompt(doc_path, current_content, diff_text, commit_msg, trigg
             "你是架构文档维护助手。根据 diff 在 architecture.md 中"
             "追加或修改架构决策记录，保持日期+标题格式，更新 Handler/Mixin 数量。\n\n"
         ),
-        "technical-debt-registry.md": (
+        "technical-debt.md": (
             "你是技术债维护助手。修复的问题改状态为✅已修复+日期，新决策在「已接受的设计决策」表格追加。\n\n"
         ),
         "development.md": (

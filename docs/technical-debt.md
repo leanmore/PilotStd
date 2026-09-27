@@ -1,8 +1,11 @@
 # 技术债登记
 
-> 版本：v1.6.0
+> 版本：v1.7.0
 > 更新日期：2026-09-27
-> 详细登记见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md)
+> **本文件为技术债唯一数据源（SSOT）**：旧簿 `architecture/technical-debt-registry.md` 已于 2026-09-27 废止并归档为
+> [`technical-debt-registry.archived.md`](architecture/technical-debt-registry.archived.md)（仅存归档说明，内容不再维护）；
+> 其有价值内容已并入本文件（已跳过测试明细 → 「四」；已接受决策 → 「五」#6/#7/#8；历史条目 → 「一」「六-B」）。
+> 2026-09-27 第十轮（架构优化与债务清算轮）开轮：**① 轮次口径立项**（见「〇、0.1」，取代此前无锚点的"第 N 轮"表述）；**② 唯一数据源确立**——旧簿废止归档、有价值内容并入本文件、`scripts/docs_sync_check.py` 的 Handler/Mixin 联动目标重指本文件（原指向旧簿）。归档判定：旧簿「六、G-010 警告基线（9 文件）」等数字已过期（实测警告档仅 3 个），直接废弃；其余按"有价值即并入、过期即废弃"逐节处理。
 > 2026-09-27 新登记 **#32（可偿还）后端状态值用中文，前端硬编码中文做比较**——阻碍 i18n 真正完成 + 同一语义两种口径。实测：后端生产代码 **248 处**中文状态字面量（50 文件，9 个值）、测试 **456 处**（65 文件 / 277 个测试函数）、**7 处**重复状态集合定义（无统一枚举）；`废止`（查询/待确认链路）与 `已废止`（统计链路）并存，前端 `PendingView.vue:60-61` 还在比较后端**从不返回**的 `'Active'`/`'Withdrawn'`。窗口 **最迟第十轮（架构优化轮）· 待用户确认**（与 #31 同窗）；只登记，未修。
 > 2026-09-27 新登记 **#31（可偿还）ConfigManager 多实例交错写 + 查询热路径高频 IO**——每实例一把锁（无文件锁/无单例）、`_load()` 每次无条件 `save()`、`scorer.get_profile()` 每次评分都新建实例；实测一次 mock 查询（4 条目）触发 **126 次构造 + ≈126 次写盘**，且该段无停止检查点（与 2026-09-26 的 CI GUI abort 直接相关）。窗口 **最迟第十轮（架构优化轮）· 待用户确认**；只登记，未修。
 > 2026-09-26 收尾轮（monitor 计数误导）：**TD-30（原 #30）已清理**——`pilotstd/monitor/scheduler.py::_on_file` 此前只调 `scan_directory`（仅解析文件名、不搬文件、不写 `file_index`）却照记 `success`：`monitor.auto_archive` 开关与「文件就绪后触发自动归档」的注释**从未有过实现**（`git log -S 'archive_standards' -- pilotstd/monitor/scheduler.py` 为空）。现补上归档（复用统一入口 `archive_standards`，非第二套实现）并改按**真实归档结果**计数（`moved>0` 才记成功；解析不出或归档报错记失败；一条没搬不计成败）；与 TD-28 零重叠（延迟回调先判 `os.path.exists`，链路已搬走的文件根本不会触发回调）。验证：单元 6 例 + 集成真跑 4 例，`git stash` 反证 **8 failed**；至此「一、已清理」共 15 行。**#17a 残留（单条请求/大文件 IO 不可中断）转 ✅ 已接受（ROI 判断）**——本轮补齐逐层实测上界、"取消延迟不累加"的机制依据、7 处穿透成本（估 150–300 行）与两处真无上界的实情（`resp.content` 的空闲超时、`safe_move` 的复制/哈希无超时），该行在「六-B」内闭环；TD-30 的转义名残留同步闭环（B-1：`_safe_filename` 把 `/` 改为删除而非转义，含 `/` 的 code 往返还原 124/124、0 撞名）——**技术债文档至此零残留**。
@@ -38,6 +41,17 @@
 | **环境依赖** | 依赖外部环境，代码侧无解 | 保留在「四、已跳过测试」 |
 
 配套约束：①不接受"等复评条件"作唯一期限；②不接受"无用户投诉"作拖延理由；③已关闭项也要写清代价；④每轮做残留审查；⑤「一、已清理」「三、维持现状」「四、已跳过测试」「五、已接受的设计决策」不适用偿还窗口。
+
+### 0.1 轮次口径（2026-09-27 定义，取代此前的"第 N 轮"模糊表述）
+
+| 项 | 定义 |
+|---|---|
+| **当前轮次** | **第十轮 —— 架构优化与债务清算轮**：专项用于清理历史技术债、优化底层架构、完善治理门禁 |
+| **起算点** | 自 **v0.110.0**（i18n 批 0 启动）起算，至所有 **P0/P1 债务清零或降级**为止 |
+| **本轮已打开的窗口** | **#31**（ConfigManager 多实例交错写 + 查询热路径高频 IO）、**#32**（后端状态值用中文 + 前端硬编码比较）原窗口"最迟第十轮"= **本轮到期**，须给出最终评估（偿还 / 降级 / 转已接受）；**#34**（EventBus `reset()` 竞态）的"第十轮做最终判断"同步适用 |
+| **后续规则** | 轮次一律按**季度**或**大版本号**（如 `v0.120.0`）划分，并写明具体版本号或时间窗口；**禁止再使用"第 N 轮"这类无锚点表述**。存量条文中已写的"最迟第 N 轮"按上表映射到第十轮 |
+
+> 说明：本口径生效前登记的"最迟第 N 轮"窗口按上表统一解释；此后新登记的债务**必须**写具体版本号或季度窗口，否则视为登记无效（§〇 四项要求之一）。
 
 ---
 
@@ -78,6 +92,10 @@
 | **TD-30** monitor `_on_file` 从不归档却照记「成功」（原 #30） | **修复（2026-09-26）**：`pilotstd/monitor/scheduler.py::_on_file` 补上归档并改按**真实归档结果**计数——解析（`scan_directory`）→ 交**统一归档入口** `archive_standards(scanned, word_source_root=<inbox 目录>)` → `moved>0` 才记 `success`；解析不出标准号或归档器报 `failed>0` 记 `failed`；一条都没搬（源已不在/目标已存在/条目待确认）**不计成败**；`success` 不再是"文件名解析出来了"。<br>**根因（两条并存，代码实测）**：① **归档从未实现**——配置项 `monitor.auto_archive`（默认 `true`，`monitor/config.py:15` 且 `set_config` 可写）、类注释「文件就绪后触发自动归档」（`scheduler.py:54`）、日志「自动归档已禁用，跳过」三处都在描述归档，但函数体只调 `scan_directory`（**仅解析文件名**：`manager/facade/_scan.py:31-96` 不搬文件、不写 `file_index`）；`git log -S 'archive_standards' -- pilotstd/monitor/scheduler.py` **输出为空** → 自模块引入（`a11a23c7`）起从未调用过归档。② **计数语义错**——`success` 在"解析到 ≥1 条"时 +1，而前端把它显示为「成功」（`web/src/components/FileMonitor.vue:153` `{{ processed_today }} (成功 {{ success_today }} / 失败 {{ failed_today }})`）→ 面板谎报健康。<br>**现场证据**：`processed_today=6 / success_today=6`，而 6 个文件全在 inbox、`file_index` 一条都没有（这正是 TD-28 现场 6/6「归档超时」的同一时段）——"看板健康、实际什么都没入库"。<br>**与 TD-28 不重叠（实测依据）**：`handler.py:54-61` 的延迟回调在 5 秒稳定期后**先判 `os.path.exists(path)`**，而收藏链在下载返回后**立即**归档 → 文件已被链路搬走时回调根本不会触发；故 monitor 只在"文件 5 秒后仍留在 inbox"时动作，即链路归档失败或**手工投放**的场景，链路正常路径下零重叠（链路失败时反而成为兜底）。<br>**验证**：① 单元 6 例（真归档→`success`；一条没搬→**不记** `success`；解析不出→`failed` 且不调归档；归档器报 `failed>0`→`failed`；`word_source_root` == inbox 目录；归档抛异常→`failed`）；② **集成真跑 4 例**（真遍历目录 + 真 `StandardParser` + 真搬文件 + 真 `FileIndexRepository`：合规文件**真的**离开 inbox 且索引可查、源根参数正确、不合规文件留在 inbox 且记 `failed`、`auto_archive=false` 时连计数都不动）；③ **反证**（`git stash` 掉 scheduler 改动跑同一批用例）**8 failed** —— 用例确实钉住新行为而非空转；④ monitor 相关 3 个测试文件 **56 passed**；ruff / G-010 / G-012 / mypy（390 files）全绿。<br>**登记说明**：本条此前只在报告里口头提过（"`_on_file` 忽略 `auto_archive`"），**从未写入台账**（「六-B 观察项」5 行中无此行）；本次按用户指示正式编号补登。<br>**残留（✅ 已闭环 2026-09-26，B-1）**：原残留是「monitor 只有**文件名**可用，而被 `_safe_filename` 转义过的文件名会解析成另一个 `logical_code`（实测 `GB_T 5613-2026_000002.pdf` → `'GB'`，规范口径 `'GB/T'`）→ monitor 归档**收藏链遗留件**时索引写在 `GB` 键下、链路的 `GB/T` 查询仍查不到」。**修法（改生产者而非消费者）**：`pilotstd/tasks/favorite_download.py::_safe_filename` 把 `/` 由**转义为 `_`** 改为**直接删除**（其余非法字符 `\:*?"<>|` 仍转义），于是 `GB/T 5613-2026` → `GBT 5613-2026_000002.pdf`，而解析器的 code 映射表本就认识 `GBT→GB/T`、`GBZ→GB/Z`。**为何不在 monitor 侧补解析**：monitor 手里只有文件名，任何修补都是"猜哪个 `_` 原本是 `/`"的启发式且只修一家；改生产者后所有解析方（monitor、organizer 的 Word 重解析、人眼看 inbox）同时受益。**全量验证（真实 `_safe_filename` + 真实 parser）**：`code_mapping` 中含 `/` 的 code **124 个**——改后**往返还原 124/124**、去 `/` 后与其他 code **0 撞名**；改前为 **0/124**（`git stash` 反证同时使 3 个用例 FAILED）。边界：`GB/Z 184.1-2026`（分部号）、`GB 18047-2026`（本就无 `/`）、`JB/T` 均正确。新增契约测试 `tests/test_favorite_download.py::TestSafeFilenameRoundTrip`（3 例，数据驱动覆盖全部含 `/` 的 code，含"映射表含 `/` 的 code 少于 100 即失效"的护栏）；连带更新 3 处断言（`tests/unit/test_tasks.py:275/279`、`tests/test_favorite_download.py:37`）。验证：聚焦 75 passed；全量后端回归 + 门禁 + ruff + mypy 见提交说明。 | 2026-09-26 |
 | **TD-20** `auto_archive_retry` 在 UI 不可改、不可触发 | 原 #20（登记 2026-09-25）。**修复（2026-09-25）**：①`docker/api/settings.py` 抽出 `_SCHEDULED_JOBS`（5 项，与 `scheduler.start_scheduler()` 一一对应）并补 `auto_archive_retry`；②缺键时用**当前配置值**兜底（防前端漏发把链路静默禁用）；③`SettingsTabSchedule.vue` 增加"收藏下载链（自动归档重试）"开关 + cron 输入 + 提示。**同轮自查补漏④**：`GET /api/settings` 原先不返回 `auto_archive_retry_*`——写侧可选、读侧缺失，前端只能拿组件默认值显示，保存时又把该默认值回写，用户改过的值（如 `0 6 * * *`）会被静默改回 `0 4 * * *`；已在读侧补齐两键，并加"读侧键必须与 `_SCHEDULED_JOBS` 对称 + 必须返回存值而非默认值"两例反证测试。**⑤**再补 `pilotstd/core/config/settings_schema.py` 两条 `SettingDef`（`tasks.auto_archive_retry_enabled/cron`）：e2e 字段一致性测试要求 GET 的键必须被前端 Schema 覆盖或进白名单，不注册则 `test_settings_e2e_consistency.py::test_no_unexpected_backend_only_keys` FAILED（实测）。验证：`tests/test_settings_scheduler_sync.py`（**7 passed**：任务表覆盖、scheduler 差异声明、改 cron 真重排、缺键沿用配置、health 默认值不坏、读侧键对称、读侧返回存值）——后两例在补④前用 `git stash` 实测 **2 failed**、补后 PASSED，"scheduler 差异声明"一例用注入假任务实测 FAILED；`SettingsTabSchedule.test.ts`（3 passed：字段存在、保存随载荷提交、加载回填）；`test_docker_api.py -k settings` 2 passed；`test_settings_auth/e2e_consistency/manager` 合计 21 passed；`SettingsView.test.ts` 6 passed。**现场实证（v0.110.0 / `22d4d90b`，修复前镜像）**：`GET /api/settings` 的 `tasks` 实测 8 键、缺 `auto_archive_retry_*`；同镜像 `GET /api/scheduler/status` 显示该任务已注册（next_run 04:00）；对照组 `date_reminder_cron` 现场值 `0 8 * * *` ≠ Schema 默认 `0 2 * * *` → 用户确实会改这些值，读侧缺键＝改过的值会被静默覆盖（不是理论风险）。**⑥契约细化**：现场 `GET /api/scheduler/status` 共 **6** 个 cron 任务（多一个 `auto_backup`），故 ① 里"与 scheduler 注册表一一对应"的说法不准确——`_SCHEDULED_JOBS` 只覆盖**用户可管**的 5 项，`auto_backup`（固定周日备份、无 UI 开关）为**有意排除**；新增 `test_scheduler_jobs_not_in_settings_are_intentional`：**AST 解析** `docker/scheduler.py::start_scheduler()` 的注册表，断言"未暴露的差异集合 == {auto_backup}"（注入 `fake_probe_job` 实测 **FAILED**、撤销后 PASSED）——旧测试只比对写死名单，scheduler 新增任务也不会失败，改后"漏登记"与"有意排除"才真正分得开。**部署状态（2026-09-26 00:00 实测）**：修复已随镜像 **v0.110.2** 发布（CI 全绿：`version`/`docker` job 均 success，bump 提交 `2719691b`），但**现场 `192.168.1.18:9028` 仍为 v0.110.0 / `22d4d90b`（读侧 8 键）**——该主机不会自动拉取（`docker/api/system.py:152` 的 `POST /api/system/update` 是管理员手动触发的 pull + compose 重建，无定时任务），故"读侧 8→10 键"需**部署后**复核。**✅ 部署后复核通过（2026-09-26 09:32 实测，v0.110.2 / `c421c572`）**：`/api/system/version`=0.110.2、`/api/health` build=`c421c572`；`GET /api/settings` 的 `tasks` **10 键、缺键 0**，`auto_archive_retry_enabled=True` / `cron='0 4 * * *'` 与 `/api/scheduler/status`（next_run 2026-09-27 04:00）一致——读写两侧闭环。**UI 现场复核（Playwright，v0.110.2）**：设置页「定时任务」出现"收藏下载链（自动归档重试）"行、开关为开、cron 输入框 `0 4 * * *`，且页面回填值 == 后端 `GET /api/settings` 值（截图留档 `C:\Temp\pilotstd-probe\shots\settings-schedule.png`，探针不入库）。**残留**：无"立即执行一次"按钮 → 记为可选增强（临时把 cron 改成 `* * * * *` 即可触发，等价覆盖），不进台账 | 2026-09-25 |
 
+
+| `test_migration_runs_pending` patch 路径错误（旧簿「三、已知问题」#5 并入） | 旧簿记载：断言原先 patch 了错误的符号路径，已修正为 `database.CURRENT_SCHEMA_VERSION`。**2026-09-27 并入时复核**：现由模块级导入取真值（`tests/test_core.py:179` `from pilotstd.core.db import CURRENT_SCHEMA_VERSION`），与记载一致 | 2026-06-30（2026-09-27 自旧簿并入） |
+| PyInstaller `--noconsole sys.stderr=None` 兜底（旧簿「三、已知问题」#16 并入） | 旧簿记载：`_SafeStream` 于 2026-07-09 禁用、改用原生 stderr。**2026-09-27 并入时复核**：全库 `git grep _SafeStream` 命中 **0 处代码**（仅旧簿文本残留），确认已回退 | 2026-07-09（2026-09-27 自旧簿并入并复核） |
+| mypy `--no-verify` 豁免策略（旧簿「四、Mypy 豁免项」并入，**并入即作废**） | 旧簿策略原文："mypy 错误不阻断 pre-commit（使用 `--no-verify`），CI 中仍运行 mypy 但标记为 non-blocking"。该策略与现行 **G-038 历史遗留错误清零**（`scripts/check_g_038_legacy_errors.py`，判据＝"存在任何未修复的历史遗留错误"）及 **P-104**（门禁不绕过：禁止 `noqa`/`skipif`/`continue-on-error`）**直接冲突** → 策略作废；`attr-defined` 已于 2026-08-25 实测清零（旧簿同记 244→0） | 2026-09-27（自旧簿并入并判定作废） |
 
 **技术细节**：见 [architecture.md](architecture.md) 事件总线重构决策记录。
 
@@ -128,17 +146,26 @@
 
 ## 四、已跳过测试（分类：环境依赖）
 
-详见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md) 第一节。
+> 2026-09-27：旧簿「一、已跳过的测试（13 条登记）」已**逐条并入**下表（旧簿归档为 `architecture/technical-debt-registry.archived.md`，不再维护）。
+> 下表为旧簿 **2026-09-21 快照**逐字保留；其中"已删除"类条目的**实测更正**与"未登记跳过点补登"在本轮 Commit 3（T-10）执行，届时本表将刷新为实测口径。
 
-| # | 测试 | 原因 | 分类 |
-|---|------|------|------|
-| 1 | `test_gb_exact_match` | 外部 API 返回空 | E2E 网络依赖 |
-| 2 | `test_hg_exact_match` | hbba 无响应 | E2E 网络依赖 |
-| 3 | `test_cold_start_pending` | ahbz 未登录（测试已删除，见登记簿） | E2E 认证依赖 |
-| 4 | `test_sh_exact_match` | hbba 无响应 | E2E 网络依赖 |
-| 5 | `test_split_pdf_pages` | 无可用 OCR provider | 环境依赖 |
-| 6 | (sparse file) | 系统不支持 | 平台依赖 |
-| 7~13 | 7 个 Handler E2E | 测试文件已删除（`cfb166fe`，tests/gui/） | 已删除（由单元测试覆盖） |
+| # | 测试 | 文件:行号 | 原因 | 分类 | 处理方式 |
+|---|------|-----------|------|------|---------|
+| 1 | `test_gb_exact_match` | `test_e2e_adapters.py:42`（TestE2EStdGov，原 :28） | 外部 API (std_gov) 返回空 `match_status` | E2E 网络依赖 | 2026-06-30 添加 `@unittest.skip`（现 :40-41 为 `skipIf(_CI)` + `skip`） |
+| 2 | `test_hg_exact_match` | `test_e2e_adapters.py:118`（TestE2EHbba，原 :103） | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest`（:97 `skipIf(_CI)`） |
+| 3 | `test_cold_start_pending` | `test_e2e_adapters.py`（原 :239，已不存在） | ahbz 未登录状态 | E2E 认证依赖 | 2026-08-25 审计：测试已删除；TestE2EAhbz（:234）重构为 `test_gb_exact_match`/`test_sh_exact_match`/`test_iso_exact_match`，`skipIf(_CI)` 网络防护保留 |
+| 4 | `test_sh_exact_match` | `test_e2e_adapters.py:104`（TestE2EHbba，原 :300） | hbba 外部 API 无响应 | E2E 网络依赖 | 原有 `self.skipTest`（:97 `skipIf(_CI)`） |
+| 5 | `test_split_pdf_pages` | `test_ocr_fallback.py:38`（fixture skip）/ `:56`（def，原 :39） | 无可用 OCR provider | 环境依赖 | `pytest.skip` 在 setup/fixture 中（非函数内） |
+| 6 | (sparse file) | `test_scanner.py:502`（原 :472） | 系统不支持此场景文件 | 平台依赖 | 原有 `self.skipTest` |
+| 7 | `test_e2e_dialog` | `tests/gui/test_e2e_dialog.py`（旧簿记"已删除"） | DialogHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除（Handler/Mixin dual-track 清理），由单元测试间接覆盖 |
+| 8 | `test_e2e_file_tree` | `tests/gui/test_e2e_file_tree.py`（旧簿记"已删除"） | FileTreeHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除，文件树操作由 `test_file_tree.py` 覆盖 |
+| 9 | `test_e2e_settings` | `tests/gui/test_e2e_settings.py`（旧簿记"已删除"，**实测文件仍在且有 `@pytest.mark.skip`**） | SettingsHandler 由 SettingsDialog 独立创建 | 架构重构 | 旧簿记为历史条目；实测更正见 T-10 |
+| 10 | `test_e2e_table` | `tests/gui/test_e2e_table.py`（旧簿记"已删除"） | TableHandler 不在 MainWindowCore 中 | 架构重构 | `cfb166fe` 删除，表格操作由 `test_table.py` 覆盖 |
+| 11 | `test_e2e_settings_io` | `tests/gui/test_e2e_settings_io.py`（旧簿记"已删除"，**实测文件仍在且有 `@pytest.mark.skip`**） | SettingsConfigIO 是 SettingsHandler 内部组件 | 架构重构 | 旧簿记为历史条目；实测更正见 T-10 |
+| 12 | `test_e2e_theme` | `tests/gui/test_e2e_theme.py`（旧簿记"已删除"） | ThemeHandler 纯 Qt 控件操作 | 架构重构 | `cfb166fe` 删除，应用主题由 MainWindow 初始化路径覆盖 |
+| 13 | `test_e2e_table_helper` | `tests/gui/test_e2e_table_helper.py`（旧簿记"已删除"） | TableHelperHandler 不在 MainWindowCore 中 | 架构重构 | 旧簿记为历史条目，表格操作由 `test_table.py` 覆盖 |
+
+**旧簿处理策略（逐字保留）**：#1~#6（外部 API/环境依赖）E2E 测试保留在本地开发时手动运行，CI 环境自动跳过。#7~#13（架构重构）旧簿称对应测试文件均已不存在：其中 #7/#8/#10/#12（dialog/file_tree/table/theme）由 `cfb166fe`（Handler/Mixin dual-track 清理，删 8 个死 Handler/Mixin 文件 + `tests/gui/test_e2e_*.py` 6 个测试）删除；#9/#11/#13（settings/settings_io/table_helper）旧簿称不在删除集合中、为历史条目。功能均由对应单元测试间接覆盖。
 
 **2026-08-25 审计**：#1~#6 skip 标记仍在（#1 现于 `test_e2e_adapters.py:42`、#6 现于 `test_scanner.py:502`）；#3 测试已不存在；#7~#13 由单元测试覆盖。
 
@@ -146,9 +173,10 @@
 
 ---
 
-## 五、已接受的设计决策（5 条，每条含不还的代价）
+## 五、已接受的设计决策（8 条，每条含不还的代价）
 
-详见 [architecture/technical-debt-registry.md](architecture/technical-debt-registry.md) 第二节。
+> 2026-09-27：旧簿「二、已接受的设计决策」8 条已并入——其中 #1~#5 与本表原有 5 条同源（不重复），**#6 JWT_SECRET 固定默认值**、**#7 内存会话存储（无持久化）** 为本表原先缺失者，已补为下表 **#6/#7**；
+> 旧簿「三、已知问题」#6 **WebSocket 广播无用户级路由** 属"已接受"性质，补为下表 **#8**；旧簿 #8（`__init_tr` 命名）为"已修复"，属「一、已清理」性质，不计入本表。
 
 | # | 决策 | 日期 | 依据 / 根因 | 现状（实测） | 不还的代价（已接受） |
 |---|------|------|-------------|--------------|----------------------|
@@ -157,6 +185,9 @@
 | 3 | 分批渐进式 G-010 治理 | 2026-06-24 | 一次性拆分 400+ 行文件会引入大面积行为风险；按"触及即拆 + 到期必拆"分批 | 警告区由 10 个降至 **8 个**（本轮拆 `check_g_012_sql_schema.py` 497→139、`docker/auth.py` 490→394；剩余最高 `manager.py`/`AnnounceDetail.vue` 487） | 警告区文件长期存在，有一次性阻断 CI 的风险（500 行硬线）；代价与偿还窗口见台账 #11 |
 | 4 | Mixin 模式拆分大文件 | 2026-06-30 | 单文件 >500 行阻断 G-010，且大文件难以定位；Mixin 组合可在不改变对外 API 的前提下切分 | 已产出 12 个 `*_ops.py`（main_window/parts 等）+ 3 个 `_builders_*.py`（notification）；本轮另新增 `_sql_schema_parser.py` / `_static_token.py` 两个"逻辑层"模块 | 拆分后的 Mixin 组合增加一层间接（读代码需跳转 `_xxx_ops.py`），且 `super()`/MRO 顺序成为隐式契约；换来的是单文件可控，代价可接受 |
 | 5 | 纯 UI 编排文件不再拆解 Engine | 2026-07-16 | 这 5 个文件只做控件构建与信号接线，无业务算法，拆解收益低于碎片化成本 | 实测有效行：`_settings.py` 371、`_file_tree_ops.py` 209、`_export_ops.py` 116、`_theme_ops.py` 109、`_file_dialog_ops.py` 39（均 <400，不进警告区） | 只靠 E2E 兜底、无单元测试；若内部沉淀出业务逻辑而未被发现，回归只能靠 E2E 抓，代价是缺陷定位更慢 |
+| 6 | JWT_SECRET 固定默认值（不设环境变量则进程内随机） | 2026-06-30（2026-09-27 自旧簿并入） | 令牌签发密钥由环境变量注入，服务重启后 token 不一定失效；环境变量覆盖有最高优先级 | **实测**：`docker/auth.py:39` `SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)` —— **未设环境变量时每次进程启动随机生成密钥**（重启即全体会话失效）；设了则长期固定 | 显式设置 `JWT_SECRET` 时密钥泄露无法靠重启收敛（须手动轮换环境变量）；不设置时反而更安全，但每次重启强制重新登录——两种取舍都已接受 |
+| 7 | 内存会话存储（无持久化） | 2026-06-30（2026-09-27 自旧簿并入） | 简单够用；重启后需重新登录是预期行为 | **实测**：`docker/session_store.py` 存在，会话仅存于进程内存 | 进程/容器重启即全体掉线需重新登录；多副本部署无法共享会话（横向扩容前必须先引入 Redis 等外部会话存储） |
+| 8 | WebSocket 广播无用户级路由（广播到所有连接） | 2026-06-25（2026-09-27 自旧簿并入） | 当前为单用户部署，全局广播够用 | **实测**：`pilotstd/core/notification/manager.py:88` `__init__(config, db, user_id, ws_broadcast=None)`、`:114` `self._ws_broadcast = ws_broadcast` —— 管理器只**保存**调用方注入的广播回调，仓内未见按 `user_id` 过滤广播的代码 | 多用户场景下通知会投递到所有在线连接（当前单用户无实际暴露）；一旦多租户/多账号上线，必须先补按 `user_id` 路由，否则存在通知越权可见风险 |
 
 ---
 
@@ -180,6 +211,9 @@
 | #33 TaskView.vue 距 G-010 警告线仅 1 行（观察项） | 2026-09-27 批 3 i18n 化后 `check_g_010_code_size.py` 实测 | **现状**：`web/src/views/TaskView.vue` 有效行 **397 → 399**（批 3 i18n 化：`import { useI18n }` + `const { t } = useI18n()` 各 +1），距 G-010 警告线（**>400**）**仅 1 行**。G-010 为两档制——**>400 仅警告、>500 才阻断**，故越线**不阻断 CI**；但越线后此后每次改动都会带一条警告，稀释警告信噪比。**位置**：`web/src/views/TaskView.vue`（有效行 399）。 | **处置**：**下次动该文件时顺手拆分**（局部重构即可，不需专项、**不挂窗口**；候选切口：模板里的"任务历史 + 历史详情"块可拆为子组件）。**代价**：暂不处理时，若某次改动越线，仅多一条 G-010 警告（不阻断），但会让"警告区"多一个长期住户。 |
 
 | `tests/` 受控测试不在本地门禁路径 → 改门禁脚本/基线时无法被拦住（观察项） | 2026-09-27 批 6 推送后 CI `test-backend` 失败时定位 | **根因**：`scripts/check_all.sh` 只有 `run_docs()` 才调 `pytest`（`check_all.sh:144`，且 `--ignore=tests/gui/`）——**`--fast` 与 `--deep` 都不跑 pytest**；pre-commit 钩子（`.husky/pre-commit`）只跑 `--fast --guards --local`；只有 CI 的 `test-backend` job 才跑 `tests/`（`python -m pytest tests/ -q --tb=short -n auto -p no:pytest-qt … --ignore=tests/gui/`）。于是"改门禁脚本/基线"这类改动的**受控测试**（`tests/test_check_i18n_hardcoded.py`）在本地**结构上不可能被触发**。**现状**：批 6 把 G-040 存量基线从 16 条清零为 0 条（只剩表头），`tests/test_check_i18n_hardcoded.py:245` 的 `assert baseline, "基线文件缺失或为空"` 断言"基线非空"这一**隐含前提**被打破 → CI `test-backend` 失败（run `36293074107`：`1 failed, 3972 passed`），**而本地 `check_all.sh --fast --guards --local` 连跑两次全绿**（G-040 只跑门禁脚本本体，不跑其受控测试）。本地确定性复现方式：`python -m pytest tests/test_check_i18n_hardcoded.py -x -q` → `1 failed, 18 passed`。 | **处置**：① 该用例已改为"断言**基线文件存在**（允许为空）+ 空基线时 `beyond` 捕获全部"，并补 1 条回归用例证明"空基线 ≠ 门禁失效"（任务 A，`49748c19`，现 **20 passed**）；② **流程补强（未实施，本任务明确不改脚本）**——下次改门禁脚本或基线时，本地自查清单追加 `python -m pytest tests/test_check_i18n_hardcoded.py -q`；或评估让 `check_all.sh` 检测到 `scripts/i18n_hardcoded_baseline.txt` 变更时自动跑该受控测试（属门禁变更，需单独决策，届时会连带 G-031 文档同步）。**不挂窗口**。**代价**：自动化落地前，每次改门禁/基线都靠人工记住这条自查，漏掉就红一次 CI 并浪费一轮排查（本次即为实例：从推送→拉日志→定位→修复多花一轮）。 |
+
+| `pilotstd/query/engine/_batch.py` 溢出回收逻辑部分内联（旧簿「三、已知问题」#3 并入） | 旧簿 2026-06-30 登记（严重度低，部分缓解） | **旧簿原文**：溢出处理已委托 `_overflow`；`query_batch_parsed` 已废弃；关联的纯逻辑提取已完成——AutoFlowEngine（7 测试）+ ScanFlowEngine（31）+ AnnounceFlowEngine（20），共 3 Engine / 58 单元测试，2026-07-16 标记完成。**2026-09-27 并入时复核**：`_batch.py:22 from ._overflow import OverflowHandler`、`:55 self._overflow = overflow` —— 委托关系仍成立；`query_batch_parsed` 在 `_batch.py` 内已无引用 | **✅ 无新增行动（并入留痕）**：属"部分缓解"的历史记录，现存代码即委托实现；保留在此以便将来再动 `_batch.py` 时对照。代价：无（**不挂窗口**） |
+| 数据库迁移链顺序依赖（v7 需 `file_index` 表先存在）（旧簿「三、已知问题」#4 并入） | 旧簿 2026-06-30 登记（严重度低，已缓解） | **旧簿原文**：已添加 `try/except` 守卫。**2026-09-27 并入时复核**：`file_index` 由迁移链自身创建（`pilotstd/core/db/_migrate_v2_v15.py:15 _migrate_v2_add_file_index`），后续迁移按 `CURRENT_SCHEMA_VERSION` 顺序执行 → 该依赖是**链内固有顺序**，不再是外部风险；未逐一定位旧簿所称的 `try/except` 守卫点（无行动项，不为此投入） | **✅ 无新增行动（并入留痕）**：迁移顺序由链保证；保留记录以免将来重排迁移顺序时踩坑。代价：无（**不挂窗口**） |
 
 ---
 

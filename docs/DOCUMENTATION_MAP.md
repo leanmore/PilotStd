@@ -85,7 +85,7 @@
 | `docs/migrations/README.md` | 数据库迁移说明（最新 v51） | ✅ 有效 |
 | `docs/guides/Docker使用指南.md` | Docker 使用指南（与 deployment/README 有重叠，待统一） | ✅ 有效 |
 | `docs/ci-lessons.md` | CI 修复经验（含 §六 离线网络硬阻断） | ✅ 有效 |
-| `docs/technical-debt.md` + `docs/architecture/technical-debt-registry.md` | 技术债摘要 / 详细登记（摘要-详情分工） | ✅ 有效 |
+| `docs/technical-debt.md` | 技术债**唯一数据源**（SSOT）；旧簿已废止归档为 `docs/architecture/technical-debt-registry.archived.md` | ✅ 有效 |
 
 ## 六、分析报告与快照（Analysis & Snapshots）
 

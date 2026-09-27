@@ -17,7 +17,7 @@
 | [archive_migration_protocol.md](archive_migration_protocol.md) | 归档文件强制迁移流程 | 活跃 |
 | [../testing/known-issues.md](../testing/known-issues.md) | 已知问题追踪 | v1.0 |
 | [../adr/ADR-001-modal-dialog-auto-clicker.md](../adr/ADR-001-modal-dialog-auto-clicker.md) | 模态对话框自动处理方案 | 已接受 |
-| [../architecture/technical-debt-registry.md](../architecture/technical-debt-registry.md) | 技术债登记 | 活跃 |
+| [../technical-debt.md](../technical-debt.md) | 技术债登记（**唯一数据源**；旧簿已归档） | 活跃 |
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md) | 贡献指南 | 活跃 |
 
 ---

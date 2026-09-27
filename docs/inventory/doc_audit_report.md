@@ -70,7 +70,7 @@
 | 35 | docs/architecture/modules/ui.md | 架构设计 | 保留 | UI 主窗口模块文档（Handler 组合模式） |
 | 36 | docs/architecture/overview.md | 架构设计 | 待确认 | 架构总览（2026-07-27）；⚠️ 技术栈表 Python 3.11+，实际环境 Python 3.14（待确认） |
 | 37 | docs/architecture/refactoring-analysis.md | 分析报告 | 归档 | 大文件包化分析（2026-06-30 已完成，自注合并已归档文档） |
-| 38 | docs/architecture/technical-debt-registry.md | 治理文档 | 保留 | 技术债登记簿（维护规则明确，已跳过的测试 13 项） |
+| 38 | docs/architecture/technical-debt-registry.archived.md | 治理文档 | 已归档 | 原技术债登记簿（维护规则明确，已跳过的测试 13 项）——**2026-09-27 废止归档**，内容并入 `docs/technical-debt.md`（唯一数据源） |
 | 39 | docs/archive/2026-07-16-audit-reports/2026-07-03-win-startup-issues-investigation.md | 归档/历史 | 保留 | Win 启动问题调查（2026-07-03，已在 archive） |
 | 40 | docs/archive/2026-07-16-audit-reports/app_websocket_audit.md | 归档/历史 | 保留 | WebSocket 审计（2026-06-29，已在 archive） |
 | 41 | docs/archive/2026-07-16-audit-reports/ci_test_failure_investigation.md | 归档/历史 | 保留 | CI 测试失败调查（2026-06-29，已在 archive） |
@@ -210,7 +210,7 @@
 | 175 | docs/superpowers/specs/2026-08-16-task-progress-restore-design.md | 设计记录 | 保留 | 任务进度丢失修复 spec-lite |
 | 176 | docs/superpowers/specs/2026-08-19-announce-notification-chain-fix-spec-lite.md | 设计记录 | 保留 | ⚠️ 本次任务生成 spec-lite（2026-08-19） |
 | 177 | docs/superpowers/specs/spec-lite-template.md | 设计记录 | 保留 | spec-lite 模板 |
-| 178 | docs/technical-debt.md | 治理文档 | 保留 | 技术债登记摘要（活跃维护，最后登记 2026-08-15）；与 technical-debt-registry.md 为摘要-详情分工（非重复） |
+| 178 | docs/technical-debt.md | 治理文档 | 保留 | 技术债**唯一数据源**（活跃维护）；**2026-09-27 起旧簿 technical-debt-registry.md 已废止归档**，原"摘要-详情分工"关系终止 |
 | 179 | docs/testing/coverage-report.md | 归档/历史 | 保留 | 覆盖率报告（自动生成产物，2026-08-19） |
 | 180 | docs/testing/e2e-guide.md | 操作指南 | 保留 | E2E 测试指南（HTTP 边界集成） |
 | 181 | docs/testing/e2e-test-manifest.md | 知识库 | 保留 | E2E 测试用例索引（2026-07-16） |
@@ -356,7 +356,7 @@
 | 部署指南 | docs/guides/Docker使用指南.md vs docs/deployment/README.md | Docker 使用 vs 部署运维 |
 | 门禁规则 | docs/development/g-010-enforcement.md vs docs/governance/gates.md | 单门禁详情 vs 全量门禁索引 |
 | 决策记录 | docs/history/decisions-summary.md vs docs/adr/ | 历史决策摘要 vs ADR 目录 |
-| 技术债 | docs/technical-debt.md vs docs/architecture/technical-debt-registry.md | **摘要-详情分工**（technical-debt.md 自述"详细登记见 registry"），非重复；需确认分工是否明确维护 |
+| 技术债 | docs/technical-debt.md（唯一） | **✅ 2026-09-27 已解决**：旧簿 `architecture/technical-debt-registry.md` 废止归档为 `.archived.md`，内容并入主簿；原"摘要-详情分工"判断作废，数据源唯一性确立 |
 | Q22-Q23 总结 | 2026-07-24-adapter-batch-q22-q23-summary vs 2026-07-24-q22-q23-adapters-summary | 同主题两份总结，内容重复，建议合并 |
 
 ## 8. 审计范围过滤建议（新增）

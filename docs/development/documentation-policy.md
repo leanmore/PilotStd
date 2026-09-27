@@ -81,7 +81,7 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 
 ## 六、相关文档
 
-- [技术债登记簿](../architecture/technical-debt-registry.md)
+- [技术债登记](../technical-debt.md)（唯一数据源）
 - [治理汇总](../architecture/governance-summary.md)
 - [重构经验](../guides/refactoring-lessons.md)
 
@@ -105,7 +105,7 @@ grep -rn "PASS\|FAIL\|SKIP" docs/ | grep -v archive/ | grep -v superpowers/
 | 修改门禁规则 | `docs/governance/gates.md`（G-015 详情见 gates.md；检查脚本 `scripts/check_g_015_relative_imports.py`） | PR提交者 | 修改门禁时 |
 | 修改数据库 Schema | 迁移脚本注释 + `STATUS.md` | PR提交者 | 迁移文件提交时 |
 | 新增/修改测试策略 | `docs/development.md` | PR提交者 | 测试代码提交时 |
-| 完成/移除技术债务 | `docs/architecture/technical-debt-registry.md` | PR提交者 | 债务消除时 |
+| 完成/移除技术债务 | `docs/technical-debt.md` | PR提交者 | 债务消除时 |
 | 文件/函数拆分完成 | `docs/architecture/refactoring-analysis.md` | PR提交者 | 拆分任务完成时 |
 | 新增跨端功能模块 | 本文件（触发记录）+ `STATUS.md`（治理动作） | PR提交者 | 代码提交前 |
 

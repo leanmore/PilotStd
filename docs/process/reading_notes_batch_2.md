@@ -24,7 +24,7 @@ Handler 组合模式（2026-07-11）→ Handler 层治理策略（ADR-002/003/00
 ### 1.3 交叉引用核验
 - L67/L93/L139/L145 引用 ADR-002/003/004/005/006 ✅ 均存在（含补录的 ADR-006）
 - L79-83 引用 guides/*-pattern（5 个）✅ 均存在
-- L237-238 引用 technical-debt.md + technical-debt-registry.md ✅ 均存在（摘要-详情分工）
+- L237-238 引用 technical-debt.md + technical-debt-registry.archived.md（已于 2026-09-27 归档） ✅ 均存在（原"摘要-详情分工"已终止：唯一数据源为 `docs/technical-debt.md`）
 
 ## 2. docs/architecture/overview.md（199 行，逐字）
 

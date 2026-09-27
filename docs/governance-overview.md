@@ -117,7 +117,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [technical-debt-registry.md](architecture/technical-debt-registry.md) | 已跳过测试（13）+ 已接受设计决策（8） |
+| [technical-debt.md](technical-debt.md) | **唯一数据源**：已跳过测试（13）+ 已接受设计决策（8） |
 | [refactoring-lessons.md](guides/refactoring-lessons.md) | 大函数拆分经验（32 函数 + 11 包化） |
 | [documentation-policy.md](development/documentation-policy.md) | 文档维护规则 |
 

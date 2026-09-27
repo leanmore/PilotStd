@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 自动更新文档中的可量化数据（测试数、文件引用、聚合器描述等）
 在 pre-commit 中自动运行。
@@ -92,8 +92,12 @@ def update_aggregator_description() -> bool:
 
 
 def update_tech_debt_entries() -> bool:
-    """更新 technical-debt-registry.md 中的条目状态"""
-    filepath = DOCS_DIR / "architecture/technical-debt-registry.md"
+    """旧簿（已归档）条目状态更新——2026-09-27 起为**惰性空操作**。
+
+    技术债唯一数据源已改为 `docs/technical-debt.md`（人工维护），旧簿仅归档留痕；
+    本函数目标改为归档文件，其正则不再匹配任何条目 → 恒返回 False（不会复活第二数据源）。
+    """
+    filepath = DOCS_DIR / "architecture/technical-debt-registry.archived.md"
     if not filepath.exists():
         return False
 
@@ -171,10 +175,10 @@ def main():
         changed_files.append(STATUS_FILE)
         print(f"  -> 更新 {STATUS_FILE.relative_to(PROJECT_ROOT)} (聚合器描述)")
 
-    # 4. 更新技术债务条目
+    # 4. 更新技术债务条目（旧簿已归档，恒为惰性空操作）
     if update_tech_debt_entries():
-        changed_files.append(DOCS_DIR / "architecture/technical-debt-registry.md")
-        print("  -> 更新 docs/architecture/technical-debt-registry.md")
+        changed_files.append(DOCS_DIR / "architecture/technical-debt-registry.archived.md")
+        print("  -> 更新 docs/architecture/technical-debt-registry.archived.md")
 
     # 5. 更新模块清单
     if update_module_list():

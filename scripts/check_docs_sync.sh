@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # check_docs_sync.sh — 文档同步检查（渐进式部署，仅提醒不阻断）
 #
 # 检查本次提交变更的源文件，确认对应文档是否同步更新。
@@ -25,7 +25,8 @@ declare -A DOC_MAP=(
   # 门禁规则
   ["scripts/check_gate_"]="docs/development/documentation-policy.md"
   # DB Schema / 迁移
-  ["pilotstd/core/db/"]="docs/architecture/technical-debt-registry.md"
+  # 2026-09-27：旧簿 architecture/technical-debt-registry.md 已废止归档 → 技术债唯一数据源为 docs/technical-debt.md
+  ["pilotstd/core/db/"]="docs/technical-debt.md"
   # 测试策略
   ["tests/"]="docs/development/documentation-policy.md"
 )
