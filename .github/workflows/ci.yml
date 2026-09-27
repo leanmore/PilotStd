@@ -32,9 +32,37 @@ env:
 
 jobs:
   # ════════════════════════════════════════════════════════════════
+  # Job 0: Lint 快闸（T-30 方案 C，R12-3，2026-09-27）
+  #   把 G-038（ruff+mypy+裸noqa）抽成独立轻量作业，并作为所有重作业的 `needs` 门控：
+  #   lint 失败 → 下游作业**根本不启动**（失败 run 时长 828s → ~30~60s）。
+  #   命令与范围与 repo-compliance 内的同名步骤完全一致（check_g_038_legacy_errors.py，零改动）；
+  #   repo-compliance 内**保留**同名步骤作纵深防御（绿灯时多花 ~10s）。
+  # ════════════════════════════════════════════════════════════════
+  lint-fast:
+    name: lint-fast (G-038)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）
+        run: |
+          pip install ruff mypy
+          python scripts/check_g_038_legacy_errors.py
+
+  # ════════════════════════════════════════════════════════════════
   # Job 1: 后端测试
   # ════════════════════════════════════════════════════════════════
   test-backend:
+    needs: [lint-fast]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -206,7 +234,7 @@ jobs:
   test-gui-coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: test-backend
+    needs: [lint-fast, test-backend]
     steps:
       - uses: actions/checkout@v4
 
@@ -281,7 +309,7 @@ jobs:
   e2e-coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: []
+    needs: [lint-fast]
     steps:
       - uses: actions/checkout@v4
 
@@ -324,6 +352,7 @@ jobs:
   # Job 2: 安全扫描
   # ════════════════════════════════════════════════════════════════
   security-scan:
+    needs: [lint-fast]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -354,6 +383,7 @@ jobs:
   # Job 3: 前端测试
   # ════════════════════════════════════════════════════════════════
   test-frontend:
+    needs: [lint-fast]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -411,6 +441,7 @@ jobs:
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════
   test-e2e:
+    needs: [lint-fast]
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
@@ -440,7 +471,7 @@ jobs:
   frontend-e2e:
     name: frontend-e2e
     runs-on: ubuntu-24.04
-    needs: test-frontend
+    needs: [lint-fast, test-frontend]
     timeout-minutes: 30
     env:
       REGISTRY: ghcr.io
@@ -669,6 +700,7 @@ jobs:
   # Job 5: GUI 单元测试 + Handler 覆盖率（Windows）
   # ════════════════════════════════════════════════════════════════
   test-gui-unit:
+    needs: [lint-fast]
     runs-on: windows-latest
     # G-CI-003: 985 tests ≈ 18min on windows-2025-vs2026, 25min with safety margin
     timeout-minutes: 25
@@ -725,6 +757,7 @@ jobs:
   # Job 5: 入仓合规检查
   # ════════════════════════════════════════════════════════════════
   repo-compliance:
+    needs: [lint-fast]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
