@@ -1,7 +1,8 @@
 # 技术债登记
 
-> 版本：v1.19.0
+> 版本：v1.20.0
 > 更新日期：2026-09-27
+> 2026-09-27 **第十二轮 R12-1：候选池立项 + T-30 排队归因（纯只读取数，未改 CI）**。**候选池**：用户批准 P0~P6 优先级，登记于新增「〇 · **0.2 第十二轮候选池**」。**T-30 归因（78 个 run 全量 + 10 个 run 关键路径，见 7.15）**：① **自串行**——`concurrency: group: ci-cd` + `cancel-in-progress: false` 使 **26/78 = 33%** 的 run 在创建时被前一个 run 挡住，等待 1~1340s（被挡样本中位 ≈300s）；② **runner 分配不是瓶颈**——未被挡时作业启动仅 **+3s**；③ **真正把等待放大的是一次 run 太长**——run 总时长中位 **828s（13.8 min）**，关键路径＝`test-gui-unit` **467s** → `version` 8s → `docker`/`exe` ≈176s；④ **「bump 提交额外 run」假设被证伪**——自动 bump 提交由 `GITHUB_TOKEN` 推送，**不触发任何 workflow**（78 个 run 中 bump 类型 **0** 个）→ 新观察项 **T-31**。**方案对比（A~F）已入 7.15**，推荐「**单并发组改按 ref + `cancel-in-progress: true`**」（1 行，消除 33% 自串行等待且分支推送不再阻塞 main）＋（第二批）缩短关键路径；**待用户选型后进 R12-2 落地**。
 > 2026-09-27 **第十一轮 R11-5：T-24 L3 落地（CI 红灯暴露时间实测）**。**改动**：`.github/workflows/ci.yml` 的 `repo-compliance` 作业里，把 `G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）`**由末位前移到最前端**（紧跟 checkout）——检查逻辑、命令、范围一字未改，纯步骤顺序调整。**数据（11 次 run 实测，见 7.14）**：该步骤原在作业内 **+13s** 完成（其前面 10 个步骤合计仅 ~3s），前移后 ≈ **+12s** → **顺序收益约 1s**；对照组 `test-backend` 的 Ruff 步骤作业内 **+30~34s**（其前置 `Install dependencies` 独占 23~29s）。**关键结论（原假设需更正）**：真正主导“红灯暴露时间”的是 **runner 排队**——11 次 run 的作业启动时刻相对 run 开始为 **中位 154s、最长 471s**（源于全局并发组 `ci-cd` + `cancel-in-progress: false` 使连续推送串行），而三次 E501 事故 run 的 lint 红灯其实在作业内 **+12~14s** 就已由 `repo-compliance` 的 G-038 报出（`test-backend` 的 Ruff 晚 22~24s）——“等 3 分钟”是排队，不是步骤顺序。故 L3 的实质收益＝让 lint 成为作业内**首个**信号；真正的杠杆（并发组按 ref 拆分／给下游重作业加 `needs` 门控）登记为新观察项 **T-30**，挂第十二轮由用户裁定。**同批入账**：**T-20 关闭（✅ CLOSED，用户裁定方案 A）**、新增 **T-29**（8 处永久 `@pytest.mark.skip`，可偿还候选，挂第十二轮）、T-28 维持挂窗。连带 `docs/governance/gates.md` v1.44 + `README.md` 索引 + 能力矩阵重生成。
 > 2026-09-27 **第十一轮 R11-4：T-20 实测与 fixture 基线（口径更正）**。**实测三口径**：① **静态**——`tests/` 的 `self.skipTest` **60 处 / 10 文件**（T-20 原登记值，其中 43 处是`Fixture not found` 守卫）；② **本地运行期**——全量非 GUI 套件 **14 skipped**（网络 6／依赖 5／其他 2／平台 1）；③ **CI 运行期**——run `36306309371` 的 `test-backend` = **44 skipped**（断网 + `_CI` 双因素）。**结论（T-20 原判据被否定）**：43 个 fixture 守卫依赖的 **15 个 fixture 文件全部已入库**，运行期**一次也不触发** → 「因缺 fixture 而跳过」= **0 处**；「60 处会让跳过数长期偏高」是把**静态调用点**当成了运行期跳过数（口径错误，已在 T-20 行更正）。**交付物（仅新增，未改既有测试逻辑）**：`tests/fixture_baseline.py`（fixture 基线登记表 15 项 + 守卫覆盖率判定）、`tests/skip_census.py`（运行期/静态双口径普查工具，把 `pytest -rs` 输出按 fixture／random／platform／network／dependency／other 分类）、配套受控测试 **10 例**。**剩余可治理候选**：8 处 `@pytest.mark.skip`（`test_query_subsystem_snapshot.py` ×4 与 `test_batch_query… dispatch` ×4，理由为“依赖 HTTP／ThreadPoolExecutor／daemon 线程”），属可偿还候选而非环境依赖 → 连同新发现的 T-28 一并挂第十二轮，T-20 终局方案待用户裁定。
 > 2026-09-27 **第十一轮 R11-3b：T-25 补丁之二——遗漏补修 + 浅克隆根因**。**① 自曝遗漏**：R11-3 首次提交（`30de04e4`）时 `ci.yml` 的 YAML 修改**因编辑工具在 CRLF 文件上锚点失配而未落盘**（改用补丁脚本重做时只覆盖了两个 .py，漏了 YAML）；CI 日志立刻自证——run `36306033918` 的步骤环境仍为 `DOCS_SYNC_RANGE: 409a5be1…92..`（右端为空）。**② 第二层根因**：回退候选 `origin/main...HEAD` 在推送 main 时因 `origin/main == HEAD` **恒空**。**③ 第三层根因（本轮新查明）**：同一作业更早的 `check-repo-compliance.sh` 执行 `git fetch origin main --depth=1`，**在 tip 建立浅边界**（`.git/shallow`）→ `HEAD~1` 不可用（实测 `fatal: Needed a single revision`）、`git log -n2` 只剩 1 条 → 兜底范围 `HEAD~1..HEAD` 也失效。**修复**：`.github/workflows/ci.yml` 右端改 `${{ github.sha }}`（通用上下文，push 时即本次推送 tip）；`check-repo-compliance.sh` 去掉 `--depth=1`（不再截断历史，行为等价——checkout 本已 `fetch-depth: 0`）；两个脚本新增 `_is_shallow_clone()`——浅克隆下必须声明“历史被截断”，而不是谎称“该范围无变更”。**验证（本地按 actions/checkout 流程端到端复刻浅克隆）**：右端为空 → 输出带浅克隆提示；**显式完整范围 → 真实评估 8 个文件**（证明修复在浅克隆下同样有效）；受控测试 **23 passed**（新增 4 例浅克隆断言）。**连带发现（第六个 CI 盲区同族）**：`check-repo-compliance.sh` 的“新增文件”检查在推送 main 时 `origin/<base>..HEAD` **恒空** → 白名单/黑名单判定从未生效 → 已登记「六、观察项」**T-27**，挂第十二轮。
@@ -64,6 +65,21 @@
 | **后续规则** | 轮次一律按**季度**或**大版本号**（如 `v0.120.0`）划分，并写明具体版本号或时间窗口；**禁止再使用"第 N 轮"这类无锚点表述**。存量条文中已写的"最迟第 N 轮"按上表映射到第十轮 |
 
 > 说明：本口径生效前登记的"最迟第 N 轮"窗口按上表统一解释；此后新登记的债务**必须**写具体版本号或季度窗口，否则视为登记无效（§〇 四项要求之一）。
+
+### 0.2 第十二轮候选池（2026-09-27 用户批准，按优先级）
+
+| 优先级 | 项 | 预估成本 | 备注 | 登记位置 |
+|---|---|---|---|---|
+| **P0** | **T-30** CI 排队瓶颈 | 3~5 commit | 真正杠杆；需设计并发组拆分策略 + `needs` 门控方案（R12-1 已交付归因数据与 A~F 方案对比，见 7.15） | 本节 · 六、观察项 T-30 |
+| **P1** | **T-29** 8 处永久 skip | ≤2 commit | 可偿还候选；`test_query_subsystem_snapshot.py` ×4 + `tests/unit/query/engine/test_batch_dispatch.py` ×4 | 六、观察项 T-29 |
+| **P2** | **T-28** CI pytest 缺 `-rs` | 1 commit | 一行修复；与 T-30 同批做效率最高 | 六、观察项 T-28 |
+| **P3** | **T-27** 新增文件检查盲区 | 1~2 commit | T-25／T-26 同族（范围恒空 → 假绿）；修法类似 | 六、观察项 T-27 |
+| **P4** | **#32** 中文状态值分阶段偿还 | 7~12 commit | 四阶段路线图已就绪；视第十二轮容量决定是否启动 A 阶段 | 二、剩余台账 #32 |
+| **P5** | **#31** ConfigManager 交错写 | 3~5 commit | 锚定 `v0.120.0`；需跨进程锁设计 | 二、剩余台账 #31 |
+| **P6** | **#34** EventBus 竞态 R2+R4 | 2~3 commit | **哨兵触发条件**：`test-gui-unit` 再复发 ≥1 次 | 二、剩余台账 #34（裁定：转已接受+哨兵） |
+
+> 排期口径：P0 起每批一次独立提交（`--fast --guards --local` + `--deep` 双跑后推送）；**候选池本身不设窗口**——它与各条目的自有窗口（P4/P5 锚定 `v0.120.0`、P6 为触发式）并行生效。
+
 
 ---
 
@@ -294,7 +310,8 @@
 | **`check-repo-compliance.sh` 的「新增文件」检查在推送 main 时恒空（假绿，第六个 CI 盲区同族；T-27 登记）** | 2026-09-27 R11-3b 排查浅克隆副作用时实测 | **根因**：`.github/scripts/check-repo-compliance.sh:9-11` 先 `git fetch origin "$BASE_BRANCH" --depth=1`（在 tip 建立浅边界），再用 `git diff --name-only --diff-filter=A "origin/${BASE_BRANCH}..HEAD"` 取“本次新增文件”——**推送到 main 时 `origin/main` 与 `HEAD` 指向同一提交** → diff 恒空 → 恒打印 `PASS: 无新增文件`（CI 日志实证：run `36304263963`、`36306033918` 该步骤均只有这一行）→ 白名单／黑名单／根目录可疑文件等判定**从未在推送路径上生效**；该 fetch 的浅边界还连带让 docs-sync 的 `HEAD~1..HEAD` 兜底失效（已由 R11-3b 去掉 `--depth=1`）。**现状**：浅边界已消除（`--depth=1` 已删），但“范围恒空”**未解**——正确范围应为 `github.event.before..github.sha`（与 T-25 同一手法）。 | **处置**：登记为观察项，**挂第十二轮**（候选修法：把 `before..sha` 作为环境变量传入该脚本并改 `git diff --diff-filter=A "$RANGE"`；验收＝受控反证“注入一个黑名单新文件必 FAIL”）。**代价**：推送路径上“新增违规文件”无门禁拦截（本地 pre-commit 亦无此检查），只能靠人工或事后发现。 |
 | **CI 的 pytest 未开 `-rs` → 跳过明细无法从 CI 日志获得（T-28 登记）** | 2026-09-27 R11-4 做运行期跳过普查时发现 | **现状**：`.github/workflows/ci.yml` 的 `test-backend` 用 `python -m pytest tests/ -q …`（无 `-rs`），因此日志里只有汇总行 `3997 passed, 44 skipped`（run `36306309371`），**44 处跳过分别是什么、在哪、为什么**在 CI 侧不可得；本地同样是 `-q` 时不打印，必须显式加 `-rs`（R11-4 已用 `python -m pytest tests/ -q -rs --ignore=tests/gui/` 取得 14 处明细）。**影响**：CI 与本地跳过数差异（44 vs 14）无法从日志直接归因，只能靠人推算（断网 + `_CI`）。 | **处置**：登记为观察项，**挂第十二轮**（候选修法：`ci.yml` 的 pytest 命令加 `-rs`，一行；或用新增的 `tests/skip_census.py --json` 在 CI 落一份跳过清单 artifact）。**代价**：跳过项缺少 CI 权威明细，T-20 类普查只能以本地口径为主、CI 口径为辅。 |
 | **8 处永久 `@pytest.mark.skip`：facade 快照与批调度入口零测试覆盖（T-29 登记）** | 2026-09-27 R11-4 运行期跳过普查（T-20 关闭时拆出） | **现状**：`tests/unit/manager/facade/test_query_subsystem_snapshot.py` ×4（理由：依赖 HTTP 请求（requests.get）／依赖 HTTP + query_engine 降级／修改 5+ core 状态 + 通知发送／query() 入口聚合）与 `tests/unit/query/engine/test_batch_dispatch.py` ×4（理由：需要 ThreadPoolExecutor + 真实组件／需要 mini_bucket 真实交互／_init_batch_state 创建 daemon 线程／依赖 _init_batch_state）是**无条件跳过**（非环境判断），即这 4 个入口（facade 查询子系统快照聚合、批调度 `_init_batch_state`）当前**零单元测试覆盖**；本地运行期 14 跳过中占 8 处（普查分类：network 6／dependency 5／other 2／platform 1，其中这 8 处横跨 network 2 + dependency 4 + other 2）。 | **处置**：**挂第十二轮**（可偿还候选，**预估 ≤2 commit**）——二选一：① 用 `responses`/`respx`（CI 已安装）或 monkeypatch 替掉真实 HTTP、用假 bucket 替掉 ThreadPoolExecutor，把这 8 处改为可运行用例；② 若判定价值不足，则删除用例并在此写明“已接受：入口由 E2E／集成兜底”。**代价**：不还则回归只能靠集成/E2E，改 `_init_batch_state`／facade 快照聚合时无单元级失败信号。 |
-| **CI 红灯暴露时间被 runner 排队主导（全局并发组串行）＋ 下游重作业未做 lint 门控（T-30 登记）** | 2026-09-27 R11-5 实测 11 次 run（`.github/workflows/ci.yml` 的 `concurrency: group: ci-cd` + `cancel-in-progress: false`） | **现状（实测，见 7.14）**：11 次 run 的**作业启动时刻**相对 run 开始为 **中位 154s、最长 471s**（连续推送时后一个 run 必须等前一个跑完）；而作业内 lint 红灯仅需 **+12~14s**（`repo-compliance` 的 G-038）。即“红灯 3 分钟才暴露”的观感来自**排队**，与步骤顺序无关。另：`test-backend`／`test-gui-*`／`e2e-*` 等重作业**没有** `needs: repo-compliance`，lint 失败时它们仍会跑完（实测 `test-backend` 作业内 94~133s 的 pytest 照跑），浪费 2~5 分钟机时。 | **处置**：登记为观察项，**挂第十二轮**（候选修法：① 并发组按 ref 拆分 `ci-cd-${{ github.ref }}` 或对非 main 推送启用 `cancel-in-progress`；② 给下游重作业加 `needs: [repo-compliance]`，或单独拆一个 `lint-fast` 作业作前置门控——收益＝lint 失败时下游根本不启动）。**不挂空窗的代价**：每次推送若撞上排队，红灯反馈延迟 2~8 分钟；lint 失败时下游 4~5 个作业仍白跑（机时 + CI 分钟消耗）。 |
+| **CI 红灯暴露时间被 runner 排队主导（全局并发组串行）＋ 下游重作业未做 lint 门控（T-30 登记）** | 2026-09-27 R11-5 实测 11 次 run（`.github/workflows/ci.yml` 的 `concurrency: group: ci-cd` + `cancel-in-progress: false`） | **现状（实测，见 7.14）**：11 次 run 的**作业启动时刻**相对 run 开始为 **中位 154s、最长 471s**（连续推送时后一个 run 必须等前一个跑完）；而作业内 lint 红灯仅需 **+12~14s**（`repo-compliance` 的 G-038）。即“红灯 3 分钟才暴露”的观感来自**排队**，与步骤顺序无关。另：`test-backend`／`test-gui-*`／`e2e-*` 等重作业**没有** `needs: repo-compliance`，lint 失败时它们仍会跑完（实测 `test-backend` 作业内 94~133s 的 pytest 照跑），浪费 2~5 分钟机时。 | **处置**：登记为观察项，**挂第十二轮**（候选修法：① 并发组按 ref 拆分 `ci-cd-${{ github.ref }}` 或对非 main 推送启用 `cancel-in-progress`；② 给下游重作业加 `needs: [repo-compliance]`，或单独拆一个 `lint-fast` 作业作前置门控——收益＝lint 失败时下游根本不启动）。**不挂空窗的代价**：每次推送若撞上排队，红灯反馈延迟 2~8 分钟；lint 失败时下游 4~5 个作业仍白跑（机时 + CI 分钟消耗）。<br>**R12-1 归因结论（2026-09-27，78 run 全量 + 10 run 关键路径，见 7.15）**：① **自串行**——本仓库的 `concurrency: group: ci-cd` + `cancel-in-progress: false` 让连续推送排队：**26/78 = 33%** 的 run 创建时被前一个 run 挡住，等待 1~1340s（被挡样本中位 ≈300s）；② **runner 分配不是瓶颈**（未被挡时作业启动 +3s）；③ **放大因子是单次 run 太长**——run 中位 **828s**，关键路径 `test-gui-unit` **467s** → `version` 8s → `docker`/`exe` ≈176s；④ 「bump 提交产生额外 run」**已证伪**（`GITHUB_TOKEN` 推送不触发 workflow，78 run 中 bump 类型 0 个，另见 T-31）。**方案对比 A~F** 见 7.15，推荐「单并发组改按 ref + `cancel-in-progress: true`」（1 行）＋（第二批）缩短关键路径。**处置：挂第十二轮 P0，待用户选型后进 R12-2。** |
+| **自动 `chore: bump version` 提交不触发任何 CI（T-31 登记）** | 2026-09-27 R12-1 排队归因取数时发现（原假设“bump 提交会产生额外 run”被证伪） | **现状**：`version` 作业用 `GITHUB_TOKEN` 推送 bump 提交，而 GitHub 规定**用 `GITHUB_TOKEN` 的推送不触发 workflow** → 78 个 run 中 head 为 bump 提交的**0 个**；即 bump 内容（版本号写入 `pilotstd/__init__.py`、`CHANGELOG.md` 等）**没有独立 CI 验证**，靠**下一次推送**的 `test-backend` 里 `G-009 — Check CHANGELOG version consistency` 兜底。**影响（正面与负面）**：正面＝不额外占用 CI 与排队（T-30 归因因此少一源）；负面＝若某次 bump 写坏而此后长期无推送，问题会静默滞留。 | **处置**：登记为观察项，**暂不动作、不挂窗口**（兜底已存在且 bump 由版本脚本生成、内容确定性高）。**触发条件**：出现“版本号/CHANGELOG 不一致”类事故时，评估给 bump 提交加显式验证或改用 PAT 触发。**代价**：极端情况下 bump 错误可静默到下一位开发者推送。 |
 
 > **2026-09-27 结构重整**：已闭环的 5 行按归属移出——「单条网络请求/大文件 IO 不可中断」（✅ 已接受）与「`_migrate_v59_…` docstring 过时」（✅ 已决定不改）→「五、已接受的设计决策 · 归档并入」；「拆出新模块时注释密度被稀释」（✅ 已落实）、「#23 合并前侦察未覆盖全组合」（✅ 已落实）、「#27 gates.md 版本历史两行挤在同一物理行」（✅ 已修复）→「一、已清理 · 归档并入」。本节现只保留**仍未闭环**的观察项。 **2026-09-27（R11-5）补记**：**T-20 已 ✅ CLOSED**（R11-4 实测证伪原假设 + 交付基线/普查工具），按本节规则移入「一、已清理」；其剩余可治理项拆为 **T-29**（8 处永久 `mark.skip`，挂第十二轮）。
 
@@ -596,5 +613,55 @@ python tests/fixture_baseline.py                   # fixture 基线汇总
 python <probe>/r11_5_timing.py     # 11 次 run 的排队与步骤完成时刻表
 python <probe>/r11_5_steps.py      # 单个 run 的逐步耗时（repo-compliance / test-backend 对照）
 python -c "import yaml;d=yaml.safe_load(open('.github/workflows/ci.yml',encoding='utf-8'));print([s.get('name') for s in d['jobs']['repo-compliance']['steps']])"
+```
+
+
+### 7.15 R12-1：T-30 排队归因取数与方案对比（已执行，2026-09-27，第十二轮；只读，未改 CI）
+
+**① 三源归因（GitHub Actions API 全量 78 个 run）**
+
+| 源 | 判据 | 实测 | 结论 |
+|---|---|---|---|
+| **自串行（并发组）** | 某 run 创建时，是否有更早的 run `updated_at > created_at` | **26/78 = 33%** 被挡住；等待 1／1／1／1／13／73／90／129／153／186／231／247／286／300／321／332／470／653／678／699／705／1132／1179／1211／1216／1340 s（被挡样本中位 ≈300s） | **主因**（由本仓库 `concurrency: group: ci-cd` + `cancel-in-progress: false` 造成） |
+| **runner 分配** | 未被挡 run 的作业启动时刻 | **+3s**（多次一致） | 不是瓶颈 |
+| **bump 额外 run** | head 为 `chore: bump version` 的 run 数 | **0 个**（`GITHUB_TOKEN` 推送不触发 workflow） | 假设证伪 → 登记 T-31 |
+
+**② 关键路径（最近 10 个已完成 run 的逐作业时长，中位）**
+
+| 作业 | 中位时长 | 说明 |
+|---|---|---|
+| **`test-gui-unit`** | **467s** | **关键路径第一名**；`version`／`docker`／`exe` 都要等它 |
+| `test-gui-coverage` | 215s | 依赖 test-backend 的覆盖率产物 |
+| `test-backend` | 184s | 含 94~133s 的 pytest |
+| `exe` | 176s | 需 `version` 的产物 |
+| `test-e2e` | 103s | — |
+| `docker` | 93s | 需 `version` 的产物 |
+| `frontend-e2e` | 79s | Playwright |
+| `test-frontend` | 55s | — |
+| `e2e-coverage` | 45s | — |
+| `security-scan` | 35s | — |
+| `repo-compliance` | 16s | 已含前移后的 G-038 |
+| `version` | 8s | 等全部测试作业 |
+
+run 总时长中位 **828s**；关键路径 ≈ `test-gui-unit` 467s → `version` 8s → `docker`/`exe` ≈176s。
+
+**③ 方案对比（A~F，均待用户选型；R12-1 不落地任何一条）**
+
+| 方案 | 机制 | 依据实测的预期效果 | 风险 | 成本 |
+|---|---|---|---|---|
+| **A 并发组按 ref 拆分** | `group: ci-cd-${{ github.ref }}` | 同 ref 的 run 并行 → 33% 的等待消失；**CI 分钟近翻倍** | 中高：`version` bump／`docker`/`exe` tag 竞态需额外设计 | 2~3 commit |
+| **B 取消旧 run** | 保留单组 + `cancel-in-progress: true` | 新推送立即开始（等待≈0），但被取消 run **无完整验证** | 中：连续推送时前一次验证被腰斩 | 1 行 + 1 run 观察 |
+| **G（推荐）按 ref 单组 + 取消**（A∩B 的最小版） | `group: ci-cd-${{ github.ref }}` + `cancel-in-progress: true` | 消除 33% 自串行等待；**分支推送不再阻塞 main**（现状是全局组共享）；同 ref 只保留最新 run | 低-中：被打断的 main run 无完整结论（其提交会被下一次 run 覆盖验证） | 1~2 commit |
+| **C lint-fast 门控** | 新增轻量 lint 作业 + 重作业 `needs` | 失败 run 时长 828s → ~60s；成功路径 +~15s 串行 | 低 | 1~2 commit |
+| **D 缩短 `test-gui-unit`（467s）** | 拆分／并行／减覆盖率开销 | run 总时长 ≈828 → ~610s（−26%），排队上限同步下降 | 中：GUI 测试拆分曾与 #34 抖动同源，须谨慎 | 2~4 commit |
+| **E `docker`/`exe` 与测试并行** | 只让**发布**依赖测试，构建与测试重叠 | run 总时长 ≈828 → ~500s（−40%） | 中：构建与版本号时序需重设计 | 2~4 commit |
+| **F 接受 + 流程约定** | 推送前确认上一个 run 已结束 | 等待消失，但每批节奏被 run 时长（≈14 min）限制 | 低 | 0 |
+
+**④ 推荐路线**：R12-2 先落 **G**（1~2 commit，收益最大/风险最低）并观察 3 次 run 的排队指标；R12-3 视情况落 **C**（与 P2 的 T-28 同批）；**D/E** 作为“缩短关键路径”专项，在 G 的效果数据出来后再评估（避免同时动队列与关键路径导致归因不清）。
+
+**⑤ 复现命令**（探针不入库，存仓库外）
+```
+python <probe>/r12_1_queue.py      # 全量 run 的三源归因（自串行/时长/提交类型）
+python <probe>/r12_1_critical.py   # 最近 10 个 run 的逐作业时长与关键路径
 ```
 
