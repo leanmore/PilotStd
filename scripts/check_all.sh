@@ -12,11 +12,13 @@ set -euo pipefail
 #  导致 docs/治理类门禁从未参与提交校验（实测日志中无 docs 步骤）。
 # ============================================================
 MODES=()
+WITH_LINT=0
 for arg in "$@"; do
     case "$arg" in
         --fast|--docs|--deep|--guards|--local|--all) MODES+=("$arg") ;;
+        --with-lint) WITH_LINT=1 ;;
         *)
-            echo "Usage: $0 [--fast|--docs|--deep|--guards|--local|--all] ..." >&2
+            echo "Usage: $0 [--fast|--docs|--deep|--guards|--local|--all] [--with-lint]" >&2
             exit 1
             ;;
     esac
@@ -283,12 +285,55 @@ run_deep() {
 }
 
 # ============================================================
+# L1/L2（T-24，2026-09-27）：ruff + mypy 快速通道
+# ------------------------------------------------------------
+# 起因：`scripts/update_docs.archived.py` 头部 4 行超 ruff line-length=120（E501），
+# 而 ruff/mypy 只在 `--deep` 与 CI 中执行 → 本地 `--fast` 全绿、CI 连续 3 次红灯
+# （run 36300484047 / 36301031251 / 36301267833），并连带 skipped 4 个 job。
+# L1：`--fast` 下若**暂存变更含 .py**（含 scripts/ 与任何 *.py），自动增跑 ruff+mypy（<5s）；
+# L2：`--with-lint` 显式强制增跑（不依赖暂存区），供不提交时自查。
+# 目标与参数与 G-038 完全一致（ruff 4 目录；mypy 仅 pilotstd/ docker/）；
+# 工具缺失时**降级为 WARN 不阻断**（各机 PATH 不一致，与 G-038 不进 --fast 的既有理由一致）。
+# ============================================================
+run_lint_fast() {
+    echo ""
+    echo "🔎 L1/L2 快速 lint（ruff + mypy，T-24）..."
+
+    local staged_relevant
+    staged_relevant=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -E '^scripts/|\.py$' || true)
+    if [ "$WITH_LINT" -ne 1 ] && [ -z "$staged_relevant" ]; then
+        echo "   ⏭  暂存区无 scripts/ 或 *.py 变更，跳过（可用 --with-lint 强制）"
+        return 0
+    fi
+    if [ -n "$staged_relevant" ]; then
+        echo "   📋 暂存 .py/scripts 变更：$(echo "$staged_relevant" | tr '\n' ' ')"
+    fi
+
+    if ! command -v ruff >/dev/null 2>&1; then
+        log_warn "L1 ruff 未安装（pip install ruff）→ 跳过；**改 .py 的提交请改用 --deep 或先装 ruff/mypy**"
+    elif ruff check pilotstd/ docker/ tests/ scripts/; then
+        log_pass "L1 ruff check（4 目录，G-038 同口径）"
+    else
+        log_fail "L1 ruff check — 与 CI G-038 同口径，请当场修复"
+    fi
+
+    if ! command -v mypy >/dev/null 2>&1; then
+        log_warn "L1 mypy 未安装（pip install mypy）→ 跳过；**改 .py 的提交请改用 --deep 或先装 ruff/mypy**"
+    elif mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
+        log_pass "L1 mypy（pilotstd/ docker/，G-038 同口径）"
+    else
+        log_fail "L1 mypy — 与 CI G-038 同口径，请当场修复"
+    fi
+}
+
+# ============================================================
 # 主调度
 # ============================================================
 for _mode in "${MODES[@]}"; do
     case "$_mode" in
         --fast)
             run_fast
+            run_lint_fast
             ;;
         --docs)
             run_docs
