@@ -138,10 +138,10 @@ export const AURA_TEXT_DIM_MAP: Record<ThemeId, string> = {
 export const RETAINED_CSS_OVERRIDES: ReadonlyArray<{ selector: string; reason: string }> = [
   {
     selector: '.p-datatable .p-datatable-thead>tr>th, .p-datatable .p-datatable-tbody>tr>td',
-    reason: '组件作用域直接值 token（--p-datatable-* 不在 :root），根注入无效；四主题覆盖维持达标',
+    reason: '组件作用域直接值 token（--p-datatable-* 不在 :root），根注入无效；四主题覆盖维持达标', // i18n-allow: token 决策审计元数据（无代码消费，非 UI 文案）
   },
   {
     selector: '.p-datepicker-panel .p-datepicker-day-selected',
-    reason: 'Aura 默认选中日 2.54:1 不达标；选中日 token 为组件作用域，保留 #047857+白字覆盖',
+    reason: 'Aura 默认选中日 2.54:1 不达标；选中日 token 为组件作用域，保留 #047857+白字覆盖', // i18n-allow: token 决策审计元数据（无代码消费，非 UI 文案）
   },
 ]

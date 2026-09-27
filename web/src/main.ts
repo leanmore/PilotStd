@@ -127,9 +127,9 @@ app.component('Badge', Badge)
 
 // G-028 启动校验：生产环境缺少 SUPERUSER 配置时阻止挂载
 if (!SUPERUSER_USERNAME) {
-  console.error('❌ VITE_SUPERUSER_USERNAME 未设置，前端超管功能不可用')
+  console.error('❌ VITE_SUPERUSER_USERNAME 未设置，前端超管功能不可用') // i18n-allow: 构建期提示：缺少 VITE_SUPERUSER_USERNAME（开发者可见，终端用户不可见）
   if (import.meta.env.PROD) {
-    throw new Error('VITE_SUPERUSER_USERNAME 环境变量未设置，无法启动生产环境')
+    throw new Error('VITE_SUPERUSER_USERNAME 环境变量未设置，无法启动生产环境') // i18n-allow: 构建期致命错误：缺少 VITE_SUPERUSER_USERNAME（抛出后进程退出，非 UI 文案）
   }
 }
 

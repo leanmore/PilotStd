@@ -57,9 +57,9 @@ async function loadPending() {
   } catch { importMsg.value = '导入失败' }
 }
 function severity(s: string) {
-  if (s === '现行' || s === 'Active') return 'success'
-  if (s === '废止' || s === 'Withdrawn') return 'danger'
-  if (s === '待确认') return 'warn'
+  if (s === '现行' || s === 'Active') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
+  if (s === '废止' || s === 'Withdrawn') return 'danger' // i18n-allow
+  if (s === '待确认') return 'warn' // i18n-allow
   return 'info'
 }
 

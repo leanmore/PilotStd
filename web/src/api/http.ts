@@ -154,6 +154,7 @@ function _isAuthExpired401(err: AxiosError): boolean {
     if (typeof body.error === 'string') return true
     const detail = body.detail
     if (typeof detail === 'string') {
+      // i18n-allow: 匹配后端返回的中文错误文案（判定会话失效），翻译即失效
       return ['未登录', '认证失败', '会话已过期'].some(m => detail.includes(m))
     }
   }

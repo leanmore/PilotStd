@@ -27,7 +27,7 @@ const runCheck = async () => {
       lastRun.value = new Date().toISOString()
     }
   } catch (e) {
-    console.error('质量检查失败:', e)
+    console.error('质量检查失败:', e) // i18n-allow: 开发者日志：质量检查失败
   } finally {
     running.value = false
   }

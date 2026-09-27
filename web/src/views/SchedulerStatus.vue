@@ -35,7 +35,7 @@ const fetchStatus = async (routeTag?: RouteTag) => {
     const resp = await getSchedulerStatus(routeTag ? { routeTag } : undefined)
     status.value = resp.data
   } catch (e) {
-    console.error('获取调度器状态失败:', e)
+    console.error('获取调度器状态失败:', e) // i18n-allow: 开发者日志：调度器状态获取失败
   } finally {
     loading.value = false
   }

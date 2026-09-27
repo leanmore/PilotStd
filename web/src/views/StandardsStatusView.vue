@@ -63,9 +63,9 @@ const statusOptions = [
 ]
 
 function statusSeverity(s: string): 'success' | 'danger' | 'info' | 'secondary' {
-  if (s === '现行') return 'success'
-  if (s === '已废止') return 'danger'
-  if (s === '未知') return 'secondary'
+  if (s === '现行') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
+  if (s === '已废止') return 'danger' // i18n-allow
+  if (s === '未知') return 'secondary' // i18n-allow
   return 'info'
 }
 

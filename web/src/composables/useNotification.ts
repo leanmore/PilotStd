@@ -29,7 +29,7 @@ export function useNotification() {
       }
       return result
     } catch (e) {
-      console.error('标记已读失败:', e)
+      console.error('标记已读失败:', e) // i18n-allow: 开发者日志：标记已读失败
       return { ok: false, error: String(e) }
     }
   }

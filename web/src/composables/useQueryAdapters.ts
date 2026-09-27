@@ -27,7 +27,7 @@ async function _fetch(routeTag?: RouteTag): Promise<QueryAdapterItem[]> {
     if (item.name && item.display_name) {
       items.push({ name: item.name, display_name: item.display_name })
     } else {
-      console.warn('[useQueryAdapters] 过滤脏数据:', item)
+      console.warn('[useQueryAdapters] 过滤脏数据:', item) // i18n-allow: 开发者日志：过滤脏数据
     }
   }
   return items

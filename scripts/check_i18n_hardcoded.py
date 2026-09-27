@@ -8,7 +8,7 @@
 
 判定规则：
 - 扫描 `web/src/**/*.vue`、`web/src/**/*.ts`，**跳过**测试文件、`.d.ts`、`web/src/locales/`（语言包本体）；
-- 去掉注释（`//` 整行、`/* */`、`<!-- -->`）后，**行内出现中日韩统一表意文字**（U+3400–U+9FFF、U+F900–U+FAFF）
+- 去掉注释（`//` 整行与**行尾**、`/* */`、`<!-- -->`）后，**行内出现中日韩统一表意文字**（U+3400–U+9FFF、U+F900–U+FAFF）
   即记一处违规，输出「文件:行号: 片段」；
 - 例外：
   1. **行内豁免标记**：本行或上一行含 `i18n-allow` 注释（用于开发日志、正则字符类等确不需翻译的文案）；
@@ -44,6 +44,19 @@ SCAN_SUFFIXES = (".vue", ".ts")
 EXCLUDE_DIR_PARTS = ("locales", "node_modules", "dist")
 EXCLUDE_NAME_SUFFIXES = (".test.ts", ".spec.ts", ".d.ts")
 
+# 路径级豁免：**语言包本体**（自身就是本地化数据，不是"写死的中文"）
+EXCLUDE_FILES = frozenset({"web/src/lib/primevueLocale.ts"})
+
+# 路径级豁免：**已确认无外部引用的死代码**（R-003：不擅自删，先豁免 + 留待清理决策）
+# 证据见 docs/technical-debt.md 阶段 1 分类报告：`WIDGET_LIBRARY`/`createDefaultWidgets`/
+# `DashboardWidget`/`WidgetDefinition` 全库零外部引用；`SOURCE_LABEL` 全库只有定义行。
+EXEMPT_DEAD_CODE = frozenset(
+    {
+        "web/src/types/dashboard.ts",
+        "web/src/constants/sourceMapping.ts",
+    }
+)
+
 # 中日韩统一表意文字（含扩展 A 与兼容区）；不含日文假名/韩文，避免误判
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 
@@ -53,18 +66,62 @@ ALLOW_MARKER = "i18n-allow"
 # 片段展示上限（避免把超长行整行打出来）
 SNIPPET_MAX = 70
 
-_BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 
 
 def strip_comments(text: str) -> str:
-    """去掉块注释/HTML 注释（保留换行以维持行号），并把整行 `//` 注释置空。
+    """抹掉注释内容、保留换行（行号不变）：`//` 行尾注释、`/* */` 块注释、`<!-- -->` 模板注释。
 
-    只把**行首为 `//`** 的行当注释，避免把 `https://…` 这类字符串误当注释截断。
+    实现=**字符串状态机**（逐字符），而不是正则：只有"知道自己在不在字符串里"才能区分
+    `'#065f46', // 深绿` （真注释，应抹掉）与 `'https://x/y 中文'`（字符串里的 `//`，不该截断）。
+    - `tokenize` 只适用于 Python 源码，本门禁扫的是 `.vue` / `.ts`，用不上；
+    - 纯正则无法可靠判定引号配对（早期版本因此只认"行首 `//`"，漏掉全部行尾注释
+      → 实测 **48 行误报**，如 `config/themes.ts` 的 `'#065f46', // 深绿`）。
+    单/双引号字符串按 JS 语义**不跨行**：遇换行即复位，避免模板文本里一个撇号（如 `don't`）
+    把后续整段代码误判成"字符串内部"；反引号模板串允许跨行。
     """
-    text = _BLOCK_COMMENT_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
     text = _HTML_COMMENT_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
-    return "\n".join("" if line.lstrip().startswith("//") else line for line in text.splitlines())
+    out: list[str] = []
+    quote: str | None = None
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if quote is not None:
+            if ch == "\\" and i + 1 < n:  # 转义：连同下一个字符一起原样输出
+                out.append(ch)
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            elif ch == "\n" and quote != "`":  # 单/双引号不跨行 → 复位（模板串除外）
+                quote = None
+            out.append(ch)
+            i += 1
+            continue
+        if ch in "'\"`":
+            quote = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "/":  # 行尾/整行 `//` 注释 → 抹到行末
+            while i < n and text[i] != "\n":
+                out.append(" ")
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "*":  # 块注释 → 抹平（保留换行）
+            out.append("  ")
+            i += 2
+            while i < n and not (text[i] == "*" and i + 1 < n and text[i + 1] == "/"):
+                out.append("\n" if text[i] == "\n" else " ")
+                i += 1
+            if i < n:
+                out.append("  ")
+                i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def is_scannable(path: Path) -> bool:
@@ -74,6 +131,19 @@ def is_scannable(path: Path) -> bool:
     if any(part in EXCLUDE_DIR_PARTS for part in path.parts):
         return False
     return not any(path.name.endswith(suffix) for suffix in EXCLUDE_NAME_SUFFIXES)
+
+
+def exemption_reason(path: Path) -> str | None:
+    """返回该文件的**路径级豁免**理由；无豁免返回 None。
+
+    只对**精确路径**生效（不按前缀/通配），因此不会波及其它文件。
+    """
+    key = rel(path)
+    if key in EXCLUDE_FILES:
+        return "语言包本体（本地化数据，非硬编码文案）"
+    if key in EXEMPT_DEAD_CODE:
+        return "已确认零外部引用的死代码（待清理决策，R-003 不擅自删）"
+    return None
 
 
 def find_hardcoded(path: Path) -> list[tuple[int, str]]:
@@ -95,20 +165,26 @@ def find_hardcoded(path: Path) -> list[tuple[int, str]]:
     return hits
 
 
-def collect_files(targets: list[str]) -> list[Path]:
-    """展开扫描目标：显式路径（文件或目录）优先，否则扫 web/src 全量。"""
+def collect_files(targets: list[str], *, keep_exempt: bool = False) -> list[Path]:
+    """展开扫描目标：显式路径（文件或目录）优先，否则扫 web/src 全量。
+
+    keep_exempt=True 时保留被路径豁免的文件（供 --report/--update-baseline 统计口径一致）。
+    """
     if not targets:
-        return sorted(p for p in WEB_SRC.rglob("*") if p.is_file() and is_scannable(p))
-    files: list[Path] = []
-    for t in targets:
-        p = Path(t)
-        if not p.is_absolute():
-            p = PROJECT_ROOT / p
-        if p.is_dir():
-            files.extend(sorted(q for q in p.rglob("*") if q.is_file() and is_scannable(q)))
-        elif p.is_file():
-            files.append(p)
-    return files
+        files = [p for p in WEB_SRC.rglob("*") if p.is_file() and is_scannable(p)]
+    else:
+        files = []
+        for t in targets:
+            p = Path(t)
+            if not p.is_absolute():
+                p = PROJECT_ROOT / p
+            if p.is_dir():
+                files.extend(q for q in p.rglob("*") if q.is_file() and is_scannable(q))
+            elif p.is_file():
+                files.append(p)
+    if not keep_exempt:
+        files = [p for p in files if exemption_reason(p) is None]
+    return sorted(files)
 
 
 def rel(path: Path) -> str:

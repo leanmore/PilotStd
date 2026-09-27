@@ -104,6 +104,49 @@ def test_url_with_double_slash_is_not_treated_as_comment(gate, tmp_path: Path) -
     assert [n for n, _ in hits] == [1]
 
 
+def test_trailing_line_comment_is_not_reported(gate, tmp_path: Path) -> None:
+    """**行尾** `//` 注释里的中文不算硬编码（旧规则只认行首 `//` → 48 行误报）。"""
+    body = "  textDim: '#445264', // fix(theme): --text-dim 重设计 v2（批次5-E组）\n"
+    assert gate.find_hardcoded(_write(tmp_path, "trailing.ts", body)) == []
+
+
+def test_double_slash_inside_string_is_still_reported(gate, tmp_path: Path) -> None:
+    """字符串内的 `//` 不截断：同一行既有字符串中文、又有行尾注释时，仍须报出该行。"""
+    body = "export const u = 'a//b 中文文案' // 纯注释\n"
+    assert [n for n, _ in gate.find_hardcoded(_write(tmp_path, "mixed.ts", body))] == [1]
+
+
+def test_block_comment_regex_no_longer_swallows_code(gate, tmp_path: Path) -> None:
+    """`image/*` 里的 `/*` 不得把后续代码整段吞掉（旧正则导致真实文案漏报）。
+
+    旧实现用非字符串感知的 `/*…*/` 正则：`image/*` 的 `/*` 会与**后面**任意 `*/` 配对，
+    把中间整段（含真实文案）抹平 —— 实测正是这样漏掉了 3 行。
+    """
+    body = (
+        '<input type="file" accept="image/*" />\n'
+        '<span class="dim">支持手动上传图片</span>\n'
+        '<i class="pi pi-x" /> /* 结束 */\n'
+        '<label>界面语言</label>\n'
+    )
+    assert [n for n, _ in gate.find_hardcoded(_write(tmp_path, "star.vue", body))] == [2, 4]
+
+
+def test_path_exempt_files_are_skipped(gate) -> None:
+    """路径级豁免（语言包本体 / 死代码）不进扫描列表，且带得出理由。"""
+    for rel_path in sorted(gate.EXCLUDE_FILES | gate.EXEMPT_DEAD_CODE):
+        p = gate.PROJECT_ROOT / rel_path
+        assert gate.exemption_reason(p), f"{rel_path} 应带豁免理由"
+        assert p not in gate.collect_files([]), f"{rel_path} 不应出现在扫描列表"
+
+
+def test_path_exemption_does_not_affect_siblings(gate) -> None:
+    """豁免只对精确路径生效：同目录/其它文件仍在扫描列表内。"""
+    scanned = gate.collect_files([])
+    assert gate.PROJECT_ROOT / "web/src/lib/storage.ts" in scanned
+    assert gate.PROJECT_ROOT / "web/src/types/api.ts" in scanned
+    assert len(scanned) > 100, "扫描列表不应因豁免而大幅缩水"
+
+
 def test_i18n_allow_marker_skips_same_and_next_line(gate, tmp_path: Path) -> None:
     """`i18n-allow` 在本行或上一行 → 该行豁免。"""
     body = (

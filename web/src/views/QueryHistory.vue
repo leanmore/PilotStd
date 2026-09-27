@@ -36,6 +36,7 @@ onMounted(() => fetchHistory('/query-history'))
           <tbody>
             <tr v-for="(r, i) in results" :key="i">
               <td>{{ r.standard_number }}</td>
+              <!-- i18n-allow: 与后端返回的中文状态值比较（决定标签颜色），翻译即失效 -->
               <td><Tag :value="r.status" :severity="r.status === '现行' ? 'success' : 'warn'" /></td>
               <td>{{ r.found_name || '-' }}</td>
               <td>{{ r.source_site || '-' }}</td>

@@ -232,7 +232,7 @@ async function runPipeline() {
           : parseStandardNumber(f.standard_number)
 
         if (!parsed) {
-          console.warn('[Normalize] 跳过无法解析的标准号:', f.standard_number, '| 文件:', f.full_path)
+          console.warn('[Normalize] 跳过无法解析的标准号:', f.standard_number, '| 文件:', f.full_path) // i18n-allow: 开发者日志：跳过无法解析的标准号
           return null
         }
 

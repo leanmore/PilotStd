@@ -129,7 +129,7 @@ async function saveLayoutToServer(newLayout?: any[]) {
   }
 
   const ok = await usePreferencesStore().setDashboardLayout(payload)
-  if (!ok) console.warn('布局保存到服务器失败，已保留本地缓存')
+  if (!ok) console.warn('布局保存到服务器失败，已保留本地缓存') // i18n-allow: 开发者日志：布局保存失败后已降级为本地缓存
 }
 
 function handleLayoutUpdated(newLayout: any[]) {

@@ -164,6 +164,7 @@ onMounted(() => { loadConfig(); loadStatus() })
     <div class="status-bar">
       <div class="status-item">
         <span class="status-label">当前公网 IP</span>
+        <!-- i18n-allow: 与后端返回的中文状态值（'未知'）比较，翻译即失效 -->
         <Tag :severity="status.current_ip !== '未知' ? 'success' : 'secondary'" :value="status.current_ip" />
       </div>
       <div class="status-item">

@@ -119,7 +119,7 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
         }
       }
     } catch (e) {
-      console.warn('[Favorite] 批量获取状态失败，降级为未收藏', e)
+      console.warn('[Favorite] 批量获取状态失败，降级为未收藏', e) // i18n-allow: 开发者日志：批量状态获取失败并降级
       records.value.forEach(r => {
         favMap.value[r.id] = false
         delete favStatusMap.value[r.id]

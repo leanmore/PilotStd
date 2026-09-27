@@ -25,10 +25,10 @@ async function loadBackground() {
     if (!url || url.startsWith('file://')) return
     const img = new Image()
     img.onload = () => { bgUrl.value = url }
-    img.onerror = () => console.warn('登录页背景图加载失败，使用默认背景', url)
+    img.onerror = () => console.warn('登录页背景图加载失败，使用默认背景', url) // i18n-allow: 开发者日志：背景图加载失败后回退默认背景
     img.src = url
   } catch (err) {
-    console.warn('登录页背景图 URL 获取失败，使用默认背景', err)
+    console.warn('登录页背景图 URL 获取失败，使用默认背景', err) // i18n-allow: 开发者日志：背景图 URL 获取失败后回退默认背景
   }
 }
 void loadBackground()
