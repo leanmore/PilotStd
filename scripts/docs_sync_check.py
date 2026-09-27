@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """
-Pre-commit 文档自动同步门禁。
-检测暂存区变更 → 对照映射表识别需更新的文档 → 调用 claude 生成新内容 → git add。
-环境变量: AUTO_FIX_DOCS=true|false（默认 true）; CLAUDE_TIMEOUT=120
+文档自动同步检查 / 严格模式判定（T-16，2026-09-27）。
+
+- 非严格模式（默认，本地辅助）：读取变更 → 对照映射表识别需更新的文档 → 调用 claude 生成新内容 → git add。
+  环境变量: AUTO_FIX_DOCS=true|false（默认 true）; CLAUDE_TIMEOUT=120
+- 严格模式（--strict / --strict-block，CI 用）：只做判定、**不改文档**，对 in_repo 目标未同批更新时报告；
+  `--strict` 为**告警期**（仍 exit 0），`--strict-block` 才真正 exit 1。
+
+变更来源回退链（修复原实现"只读暂存区 → CI 全新检出必然为空 → 门禁空转"）：
+  --range → DOCS_SYNC_RANGE → --base/BASE_BRANCH（origin/<ref>...HEAD）→ origin/main...HEAD → HEAD~1..HEAD → 暂存区。
 """
 
 import os
@@ -314,7 +320,7 @@ def update_document(doc_relpath, strategy, in_repo, diff_text, commit_msg, trigg
 
 
 def _get_staged_files():
-    """获取暂存区文件列表 [(status, path), ...]"""
+    """获取暂存区文件列表 [(status, path), ...]（本地默认来源）"""
     out = _run_git(["diff", "--cached", "--name-status"])
     result = []
     for line in out.split("\n"):
@@ -326,6 +332,131 @@ def _get_staged_files():
     return result
 
 
+# ─── 变更来源解析（2026-09-27 T-16：原实现只读暂存区，CI 全新检出时恒为空 → 门禁空转且恒 exit 0） ───
+
+_USAGE = """\
+用法: python scripts/docs_sync_check.py [--range A..B] [--base <ref>] [--strict] [--strict-block]
+
+  --range A..B    以该范围作为变更来源（如 <push-before>..<push-sha>）
+  --base <ref>    以 origin/<ref>...HEAD 作为变更来源（CI 的 PR 场景）
+  --strict        严格模式：只做判定、不改文档；对 in_repo 目标未同批更新时报告（**告警期，仍 exit 0**）
+  --strict-block  严格模式 + 阻断（未同批更新 in_repo 目标时 exit 1）——由告警期切换到阻断期时使用
+
+不带参数时行为与旧版一致：读取 git 暂存区。
+变更来源回退链：--range → 环境变量 DOCS_SYNC_RANGE → --base/BASE_BRANCH → origin/main...HEAD → HEAD~1..HEAD → 暂存区。
+"""
+
+
+def _parse_args(argv):
+    """解析命令行参数。"""
+    opts = {"range": None, "base": None, "strict": False, "strict_block": False}
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--range" and i + 1 < len(argv):
+            opts["range"] = argv[i + 1].strip()
+            i += 2
+            continue
+        if a == "--base" and i + 1 < len(argv):
+            opts["base"] = argv[i + 1].strip()
+            i += 2
+            continue
+        if a == "--strict":
+            opts["strict"] = True
+            i += 1
+            continue
+        if a == "--strict-block":
+            opts["strict"] = True
+            opts["strict_block"] = True
+            i += 1
+            continue
+        if a in ("-h", "--help"):
+            print(_USAGE)
+            raise SystemExit(0)
+        print(f"  ⚠ 未知参数已忽略: {a}")
+        i += 1
+    return opts
+
+
+def _split_range(rng: str):
+    """切分 A..B / A...B；返回 (left, right)。"""
+    rng = (rng or "").strip()
+    for sep in ("...", ".."):
+        if sep in rng:
+            left, _, right = rng.partition(sep)
+            return left.strip(), right.strip()
+    return "", ""
+
+
+def _range_is_valid(rng: str) -> bool:
+    """两端点都能 rev-parse 才有效（GitHub 上 before 可能是空串或全 0，新分支场景）。"""
+    left, right = _split_range(rng)
+    if not right:
+        return False
+    left = left.strip(".") or "HEAD"
+    right = right.strip(".") or "HEAD"
+    if set(left) == {"0"} or set(right) == {"0"}:  # 全 0 SHA（新分支/首次推送）
+        return False
+    return all(_run_git(["rev-parse", "--verify", f"{rev}^{{commit}}"]) for rev in (left, right))
+
+
+def _resolve_change_source(opts):
+    """选出变更来源，返回 (range 或 None, 说明)。
+
+    优先级：显式范围（--range / DOCS_SYNC_RANGE / --base·BASE_BRANCH）→ **暂存区（本地默认，与旧版一致）**
+    → origin/main...HEAD → HEAD~1..HEAD（浅克隆下可能无效，最终退回"无变更"）。
+    """
+    explicit = []
+    if opts["range"]:
+        explicit.append((opts["range"], "--range 指定"))
+    env_range = os.environ.get("DOCS_SYNC_RANGE", "").strip()
+    if env_range:
+        explicit.append((env_range, "环境变量 DOCS_SYNC_RANGE"))
+    base = (opts["base"] or os.environ.get("BASE_BRANCH", "")).strip()
+    if base:
+        explicit.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}"))
+    for rng, why in explicit:
+        if _range_is_valid(rng):
+            return rng, why
+    if _get_staged_files():
+        return None, "暂存区"
+    for rng, why in (("origin/main...HEAD", "origin/main...HEAD"), ("HEAD~1..HEAD", "HEAD~1..HEAD")):
+        if _range_is_valid(rng):
+            return rng, why
+    return None, "暂存区（无可用范围）"
+
+
+def _get_changed_files(rng):
+    """按范围取变更文件列表；rng 为 None 时退回暂存区。"""
+    if rng:
+        out = _run_git(["diff", "--name-status", rng])
+    else:
+        out = _run_git(["diff", "--cached", "--name-status"])
+    result = []
+    for line in out.split("\n"):
+        line = line.strip()
+        if line:
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                result.append((parts[0], parts[-1]))
+    return result
+
+
+def _get_diff_text(rng):
+    """按范围取 diff 文本（Handler/Mixin 规则需要扫描文本）。"""
+    return _run_git(["diff", rng]) if rng else _run_git(["diff", "--cached"])
+
+
+def _get_commit_message_for(rng):
+    """范围内末位提交的 message（CI 无 COMMIT_EDITMSG，故从 git log 取）。"""
+    if rng:
+        _left, tip = _split_range(rng)
+        msg = _run_git(["log", "-1", "--format=%B", tip or "HEAD"])
+        if msg:
+            return msg
+    return _get_commit_message()
+
+
 def _match_trigger_rules(staged_files, diff_text, commit_msg):
     """逐一检查触发规则，返回去重后的 (trigger_name, doc_path, strategy, in_repo) 列表"""
     triggered = []
@@ -333,11 +464,16 @@ def _match_trigger_rules(staged_files, diff_text, commit_msg):
         fn = rule["match_fn"]
         n = fn.__code__.co_argcount
         try:
-            matched = {
-                3: fn(staged_files, diff_text, commit_msg),
-                2: fn(staged_files, diff_text),
-                1: fn(staged_files),
-            }.get(n, False)
+            # T-16 修复（2026-09-27）：原实现用字典字面量做 arity 分派
+            # （`{3: fn(a,b,c), 2: fn(a,b), 1: fn(a)}.get(n)`）——Python 会**先求值全部三个调用**，
+            # 于是每个规则都因参数个数不符抛 TypeError 被 except 吞掉 → **8 条规则全部从未触发过**。
+            # 改为按 arity 只调用一次。
+            if n >= 3:
+                matched = fn(staged_files, diff_text, commit_msg)
+            elif n == 2:
+                matched = fn(staged_files, diff_text)
+            else:
+                matched = fn(staged_files)
         except Exception as e:
             print(f"  ⚠ 规则「{rule['name']}」异常: {e}")
             continue
@@ -381,21 +517,30 @@ def main():
     print("=" * 60)
     print("  文档自动同步门禁")
 
+    opts = _parse_args(sys.argv[1:])
+
     # 1. 读取环境变量
     auto_fix = os.environ.get("AUTO_FIX_DOCS", "true").strip().lower() in ("true", "1", "yes")
     claude_timeout = int(os.environ.get("CLAUDE_TIMEOUT", "120"))
+    if opts["strict"]:
+        # 严格模式 = 只判定、不改文档（CI 离线前提：禁止调用 claude 改写入库文档）
+        auto_fix = False
     print(f"  自动修复: {'开启' if auto_fix else '关闭'}")
     print(f"  claude 超时: {claude_timeout}s")
+    if opts["strict"]:
+        print(f"  严格模式: 开启（{'阻断' if opts['strict_block'] else '告警期·不阻断'}）")
 
-    # 2. 获取变更信息
-    staged_files = _get_staged_files()
-    if not staged_files:
-        print("  无暂存区变更，跳过")
+    # 2. 解析变更来源（T-16：原实现只读暂存区，CI 恒为空 → 空转）
+    rng, why = _resolve_change_source(opts)
+    print(f"  变更来源: {rng or '暂存区'}（{why}）")
+    changed_files = _get_changed_files(rng)
+    if not changed_files:
+        print(f"  无变更（{rng or '暂存区'}），跳过")
         print("=" * 60)
         return 0
 
-    diff_text = _run_git(["diff", "--cached"])
-    commit_msg = _get_commit_message()
+    diff_text = _get_diff_text(rng)
+    commit_msg = _get_commit_message_for(rng)
 
     # 3.检查可用
     if auto_fix and not _check_claude_available():
@@ -403,13 +548,30 @@ def main():
         auto_fix = False
 
     # 4. 匹配规则
-    deduped = _match_trigger_rules(staged_files, diff_text, commit_msg)
+    deduped = _match_trigger_rules(changed_files, diff_text, commit_msg)
     if not deduped:
         print("  所有文档已是最新")
         print("=" * 60)
         return 0
 
-    # 5. 执行更新
+    # 5a. 严格模式：只判定不改文档（T-16 告警期）
+    if opts["strict"]:
+        pending = [(tn, doc) for tn, doc, _s, in_repo in deduped if in_repo]
+        if pending:
+            print("\n  ⚠ 严格模式判定：以下入库文档未与本次变更同批更新：")
+            for tn, doc in pending:
+                print(f"      - {doc}（触发规则：{tn}）")
+            if opts["strict_block"]:
+                print("  ❌ 严格模式（阻断）：判定失败")
+                print("=" * 60)
+                return 1
+            print("  ℹ 告警期：严格模式已启用但**暂不阻断**（改 --strict-block 即可切换到阻断）")
+        else:
+            print("\n  ✅ 严格模式判定：入库文档均已同批更新")
+        print("=" * 60)
+        return 0
+
+    # 5b. 非严格模式：按原行为执行更新（本地辅助）
     updated, failed = _execute_updates(deduped, diff_text, commit_msg, auto_fix, claude_timeout)
 
     # 6. 汇总

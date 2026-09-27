@@ -734,10 +734,15 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: python scripts/check_g_029_test_coverage.py
 
+      # T-16（2026-09-27）：原实现只读 git 暂存区 → CI 全新检出必然为空 → 该步骤**空转**（且脚本恒 exit 0）。
+      # 现改为：严格模式判定 + 显式变更范围（push 用 before..sha，PR 回退 BASE_BRANCH）。
+      # 当前处于**告警期**（--strict 只报告、不阻断）；观察若干次提交无异常后改为 --strict-block 即开启阻断。
       - name: Docs sync check
         env:
+          AUTO_FIX_DOCS: "false"
+          DOCS_SYNC_RANGE: ${{ github.event.before }}..${{ github.event.sha }}
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
-        run: python scripts/check_docs_sync.py
+        run: python scripts/check_docs_sync.py --strict
 
       # 能力矩阵是入库文档（docs/governance/capabilities_registry.md）：
       # 重生成后与入库内容比对，有实质差异即阻断（忽略生成时间戳行）。
