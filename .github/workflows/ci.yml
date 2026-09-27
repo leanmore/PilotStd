@@ -734,15 +734,23 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: python scripts/check_g_029_test_coverage.py
 
-      # T-16（2026-09-27）：原实现只读 git 暂存区 → CI 全新检出必然为空 → 该步骤**空转**（且脚本恒 exit 0）。
-      # 现改为：严格模式判定 + 显式变更范围（push 用 before..sha，PR 回退 BASE_BRANCH）。
-      # 当前处于**告警期**（--strict 只报告、不阻断）；观察若干次提交无异常后改为 --strict-block 即开启阻断。
+      # T-16 / T-25（2026-09-27 第十轮 + 第十一轮）：本步骤必须跑**两个形近脚本**，缺一即形成盲区——
+      #   docs_sync_check.py：8 条触发规则 + 严格模式（告警期 exit 0；--strict-block 才阻断）
+      #   check_docs_sync.py：5 条「核心模块 → 架构文档」映射（**比 G-031 更宽**：含 pilotstd/query/、pilotstd/ui/）
+      # 事故回指（T-25）：第十轮本步骤被误写成只跑 check_docs_sync.py，而它当时只做 origin/<base>..HEAD
+      #   （推送到 main 时恒为空、浅克隆下甚至取不到）→ 步骤长期空转、`[docs-compliance] PASS: 无变更文件`，
+      #   导致 T-16 的 6 次「告警期观察」全部无效。两者现均支持 --range / DOCS_SYNC_RANGE 回退链。
+      # 当前两者均为**告警期**：发现未同步只打 `WARN(告警期)` 并 exit 0（绝不静默 PASS）；
+      # 观察若干次后把对应脚本的 --strict 改为 --strict-block 即开启阻断。
       - name: Docs sync check
         env:
           AUTO_FIX_DOCS: "false"
           DOCS_SYNC_RANGE: ${{ github.event.before }}..${{ github.event.sha }}
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
-        run: python scripts/check_docs_sync.py --strict
+        run: |
+          set -e
+          python scripts/docs_sync_check.py --strict
+          python scripts/check_docs_sync.py --strict
 
       # 能力矩阵是入库文档（docs/governance/capabilities_registry.md）：
       # 重生成后与入库内容比对，有实质差异即阻断（忽略生成时间戳行）。
