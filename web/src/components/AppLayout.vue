@@ -220,7 +220,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
         @click="onFloatingButtonClick"
-        aria-label="返回列表"
+        :aria-label="t('dashboard.layout.back_to_list')"
       >
         <i class="pi pi-undo" />
       </button>
@@ -234,7 +234,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
           @pointermove="onPointerMove"
           @pointerup="onPointerUp"
           @click.stop="onFloatingButtonClick"
-          aria-label="工作台菜单"
+          :aria-label="t('dashboard.layout.workspace_menu')"
           aria-haspopup="true"
           :aria-expanded="menuOpen"
           :aria-controls="menuOpen ? dropdownId : undefined"
@@ -255,25 +255,25 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
             <button v-for="card in availableCards" :key="card.key"
                     role="menuitem" class="menu-item" tabindex="0"
                     @click="addCard(card.key); closeMenu()">
-              <i class="pi pi-plus" /><span>添加 {{ card.label }}</span>
+              <i class="pi pi-plus" /><span>{{ t('dashboard.layout.add_card', { name: t(card.labelKey) }) }}</span>
             </button>
             <div v-if="availableCards.length === 0"
                  class="menu-item disabled" role="menuitem" aria-disabled="true">
-              <span>所有卡片已添加</span>
+              <span>{{ t('dashboard.layout.all_added') }}</span>
             </div>
             <div class="menu-divider" role="separator" />
             <!-- ② 锁定/解锁布局 -->
             <button role="menuitem" class="menu-item" tabindex="0"
                     @click="store.toggleDashboardLock(); closeMenu()">
               <i :class="store.dashboardLocked ? 'pi pi-lock-open' : 'pi pi-lock'" />
-              <span>{{ store.dashboardLocked ? '解锁布局' : '锁定布局' }}</span>
+              <span>{{ store.dashboardLocked ? t('dashboard.layout.unlock') : t('dashboard.layout.lock') }}</span>
             </button>
             <div class="menu-divider" role="separator" />
             <!-- ③ 重置布局 -->
             <button role="menuitem" class="menu-item" tabindex="0"
                     @click="resetLayout(); closeMenu()">
               <i class="pi pi-refresh" />
-              <span>重置布局</span>
+              <span>{{ t('dashboard.layout.reset') }}</span>
             </button>
           </div>
         </Transition>
@@ -287,7 +287,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
         @pointermove="onPointerMove"
         @pointerup="onPointerUp"
         @click="onFloatingButtonClick"
-        aria-label="返回工作台"
+        :aria-label="t('dashboard.layout.back_to_workspace')"
       >
         <i class="pi pi-home" />
       </button>

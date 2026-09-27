@@ -286,6 +286,120 @@
   },
   "export": { "pending_list": "待确认清单", "manual_download_list": "手动下载清单" },
   "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" },
+  "dashboard": {
+    "common": {
+      "load_failed": "加载失败",
+      "loading": "加载中...",
+      "normal": "正常"
+    },
+    "card": {
+      "stats": "核心统计",
+      "sysInfo": "系统状态",
+      "quickActions": "快捷操作",
+      "announceAdapter": "公告适配器",
+      "queryAdapter": "查询适配器",
+      "queryAdapterTitle": "查询适配器集群",
+      "recentAnnounce": "最新公告",
+      "pending": "待确认标准",
+      "trend": "标准库构成",
+      "sysLog": "系统日志"
+    },
+    "layout": {
+      "back_to_list": "返回列表",
+      "workspace_menu": "工作台菜单",
+      "add_card": "添加 {name}",
+      "all_added": "所有卡片已添加",
+      "unlock": "解锁布局",
+      "lock": "锁定布局",
+      "reset": "重置布局",
+      "back_to_workspace": "返回工作台"
+    },
+    "header": {
+      "expand_sidebar": "展开侧边栏",
+      "collapse_sidebar": "收起侧边栏",
+      "to_light": "切换亮色主题",
+      "to_dark": "切换暗色主题",
+      "logout": "退出",
+      "logout_title": "退出登录"
+    },
+    "sidebar": {
+      "expand": "展开",
+      "collapse": "收起"
+    },
+    "adapter": {
+      "title": "适配器状态",
+      "load_failed": "加载适配器状态失败",
+      "frozen": "冻结中",
+      "error": "异常",
+      "col_adapter": "适配器",
+      "col_status": "状态",
+      "col_remaining": "剩余冻结",
+      "col_freeze_count": "冻结次数",
+      "col_fail_streak": "连续失败",
+      "empty": "暂无适配器数据"
+    },
+    "announce_adapter": {
+      "subtitle": "核心链路 · {n} 节点",
+      "cooling": "冷却 {n}s",
+      "frozen": "冻结 {n}s",
+      "freeze_tip": "冻结{n}次 / 连续失败{m}次",
+      "type": {
+        "gb": "国家标准公告",
+        "hb": "行业标准公告",
+        "db": "地方标准公告"
+      }
+    },
+    "query_adapter": {
+      "unknown_site": "未知站点",
+      "nodes": "{n} 节点"
+    },
+    "quick_actions": {
+      "scanning": "扫描中…",
+      "scan_done": "扫描完成，入库 {n} 条标准",
+      "scan_failed": "扫描失败",
+      "action_scan": "扫描入库"
+    },
+    "sys_info": {
+      "db": "数据库",
+      "db_empty": "空库",
+      "standards": "标准库",
+      "count_items": "{n} 条",
+      "adapters": "适配器",
+      "count_online": "{n} 在线"
+    },
+    "trend": {
+      "total": "{n} 条标准",
+      "empty": "暂无标准数据",
+      "empty_hint": "导入文件后自动统计"
+    },
+    "sys_log": {
+      "subtitle": "{n} 行 · 8s 刷新",
+      "clear_old": "清理旧日志",
+      "clear_all": "清空",
+      "cleared": "已清理 {n} 条日志（{h}h 前）",
+      "cleared_all": "已清空全部日志（{n} 条）",
+      "clear_failed": "清理日志失败",
+      "waiting": "等待日志..."
+    },
+    "recent_announce": {
+      "subtitle": "实时推送",
+      "empty": "暂无新公告",
+      "untitled": "无标题",
+      "tab_empty": "暂无公告"
+    },
+    "pending": {
+      "total": "{n} 项待处理",
+      "all_done": "全部处理完毕",
+      "more": "还有 {n} 项..."
+    },
+    "placeholder": {
+      "title": "卡片",
+      "in_dev": "此卡片功能正在开发中"
+    },
+    "stats": {
+      "valid": "有效"
+    }
+  },
   "settings": {
     "storage": {
       "root_dir": "标准库根目录",

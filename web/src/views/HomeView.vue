@@ -57,7 +57,7 @@ watch(
           >
             <div class="card-wrapper">
               <button v-if="!appStore.dashboardLocked" class="remove-btn" @click.stop="removeCard(item.i)">&times;</button>
-              <component :is="item.component" class="card-inner" :zh-name="item.zhName" />
+              <component :is="item.component" class="card-inner" :title-key="item.titleKey" />
             </div>
           </GridItem>
         </GridLayout>

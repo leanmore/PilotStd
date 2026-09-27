@@ -39,7 +39,7 @@ onMounted(async () => {
           <span class="mp-hero-label">{{ t('home.current') }}</span>
           <span class="mp-hero-value">{{ error ? '—' : (stats.current ?? 0) }}</span>
           <span class="mp-hero-badge mp-badge mp-badge-success">
-            <span class="mp-dot-success" /> 有效
+            <span class="mp-dot-success" /> {{ t('dashboard.stats.valid') }}
           </span>
         </div>
       </div>

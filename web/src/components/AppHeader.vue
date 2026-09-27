@@ -4,9 +4,12 @@
  * 默认折叠(40px)，悬停展开(60px)，向下滚动超过80px隐藏，向上滚动恢复。
  */
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import NotificationBell from '@/components/NotificationBell.vue'
 
 defineOptions({ name: 'AppHeader' })
+
+const { t } = useI18n()
 
 defineProps<{
   isMobile: boolean
@@ -58,7 +61,7 @@ onUnmounted(() => {
         v-if="!isMobile"
         class="topbar-btn sidebar-toggle"
         @click="emit('toggle-sidebar')"
-        :title="sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'"
+        :title="sidebarCollapsed ? t('dashboard.header.expand_sidebar') : t('dashboard.header.collapse_sidebar')"
       >
         <i class="pi pi-bars" />
       </button>
@@ -72,7 +75,7 @@ onUnmounted(() => {
       <button
         class="topbar-btn theme-btn"
         @click="emit('toggle-theme')"
-        :title="isDark ? '切换亮色主题' : '切换暗色主题'"
+        :title="isDark ? t('dashboard.header.to_light') : t('dashboard.header.to_dark')"
       >
         <i :class="isDark ? 'pi pi-sun' : 'pi pi-moon'" />
       </button>
@@ -82,9 +85,9 @@ onUnmounted(() => {
         <span class="hide-mobile">{{ username }}</span>
       </span>
       <!-- 退出 -->
-      <button class="topbar-btn logout-btn" data-testid="user-menu-logout" @click="emit('logout')" title="退出登录">
+      <button class="topbar-btn logout-btn" data-testid="user-menu-logout" @click="emit('logout')" :title="t('dashboard.header.logout_title')">
         <i class="pi pi-sign-out" />
-        <span class="hide-mobile">退出</span>
+        <span class="hide-mobile">{{ t('dashboard.header.logout') }}</span>
       </button>
     </div>
   </header>

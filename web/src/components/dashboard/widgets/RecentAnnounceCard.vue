@@ -72,14 +72,14 @@ onMounted(async () => {
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-bell" /></div>
         <div>
-          <div class="header-title">最新公告</div>
-          <span class="header-sub">实时推送</span>
+          <div class="header-title">{{ t('dashboard.card.recentAnnounce') }}</div>
+          <span class="header-sub">{{ t('dashboard.recent_announce.subtitle') }}</span>
         </div>
       </div>
     </div>
 
-    <div v-if="loading" class="empty">加载中...</div>
-    <div v-else-if="!announcements.length" class="empty">暂无新公告</div>
+    <div v-if="loading" class="empty">{{ t('dashboard.common.loading') }}</div>
+    <div v-else-if="!announcements.length" class="empty">{{ t('dashboard.recent_announce.empty') }}</div>
 
     <Tabs v-else v-model:value="activeTab" class="tabs-root">
       <TabList>
@@ -104,11 +104,11 @@ onMounted(async () => {
                 class="announce-item"
               >
                 <span class="title-text">
-                  {{ item.announcement_title || item.announce_no || '无标题' }}
+                  {{ item.announcement_title || item.announce_no || t('dashboard.recent_announce.untitled') }}
                 </span>
                 <span class="date">{{ item.publish_date || '' }}</span>
               </div>
-              <div v-if="tab.items.length === 0" class="empty-state">暂无公告</div>
+              <div v-if="tab.items.length === 0" class="empty-state">{{ t('dashboard.recent_announce.tab_empty') }}</div>
             </div>
           </Transition>
         </TabPanel>

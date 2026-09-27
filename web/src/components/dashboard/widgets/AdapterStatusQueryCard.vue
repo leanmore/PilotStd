@@ -6,7 +6,7 @@ import http from '@/api/http'
 import Button from 'primevue/button'
 
 const { t } = useI18n()
-const props = defineProps<{ zhName?: string }>()
+const props = defineProps<{ titleKey?: string }>()
 
 interface AdapterStatus {
   name: string; display_name?: string; status: string; frozen_until: string | null
@@ -25,7 +25,7 @@ async function loadStatus() {
   try {
     const r = await http.get('/adapter/status', { params: { type: 'query' }, routeTag: '/' })
     adapters.value = r.data.adapters; error.value = ''
-  } catch { error.value = '加载失败' }
+  } catch { error.value = t('dashboard.common.load_failed') }
   finally { loading.value = false }
 }
 
@@ -42,7 +42,7 @@ function tick() {
 function fullName(a: AdapterStatus): string {
   if (a.display_name) return a.display_name
   if (a.name) return a.name
-  return '未知站点'
+  return t('dashboard.query_adapter.unknown_site')
 }
 
 function healthText(a: AdapterStatus): string {
@@ -77,8 +77,8 @@ onBeforeUnmount(() => {
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-globe" /></div>
         <div>
-          <div class="header-title">{{ props.zhName || '查询适配器集群' }}</div>
-          <div class="header-sub">{{ adapters.length }} 节点</div>
+          <div class="header-title">{{ t(props.titleKey || 'dashboard.card.queryAdapterTitle') }}</div>
+          <div class="header-sub">{{ t('dashboard.query_adapter.nodes', { n: adapters.length }) }}</div>
         </div>
       </div>
       <Button icon="pi pi-refresh" size="small" severity="secondary" text rounded :loading="loading" @click="loadStatus" />
@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
-    <p v-else-if="!loading" class="empty">暂无数据</p>
+    <p v-else-if="!loading" class="empty">{{ t('common.no_data') }}</p>
   </div>
 </template>
 

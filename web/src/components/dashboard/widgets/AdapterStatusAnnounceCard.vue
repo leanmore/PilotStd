@@ -24,7 +24,7 @@ async function loadStatus() {
   try {
     const r = await http.get('/adapter/status', { params: { type: 'announcement' }, routeTag: '/' })
     adapters.value = r.data.adapters; error.value = ''
-  } catch { error.value = '加载失败' }
+  } catch { error.value = t('dashboard.common.load_failed') }
   finally { loading.value = false }
 }
 
@@ -39,7 +39,7 @@ function tick() {
 }
 
 function fullName(n: string): string {
-  const map: Record<string, string> = { gb: '国家标准公告', hb: '行业标准公告', db: '地方标准公告' }
+  const map: Record<string, string> = { gb: t('dashboard.announce_adapter.type.gb'), hb: t('dashboard.announce_adapter.type.hb'), db: t('dashboard.announce_adapter.type.db') }
   return map[n] || n.toUpperCase()
 }
 
@@ -81,8 +81,8 @@ onBeforeUnmount(() => {
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-shield" /></div>
         <div>
-          <div class="header-title">公告适配器</div>
-          <div class="header-sub">核心链路 · {{ adapters.length }} 节点</div>
+          <div class="header-title">{{ t('dashboard.card.announceAdapter') }}</div>
+          <div class="header-sub">{{ t('dashboard.announce_adapter.subtitle', { n: adapters.length }) }}</div>
         </div>
       </div>
       <Button icon="pi pi-refresh" size="small" severity="secondary" text rounded :loading="loading" @click="loadStatus" />
@@ -110,24 +110,24 @@ onBeforeUnmount(() => {
         <div class="row-status">
           <template v-if="a.status === 'normal'">
             <span class="mp-dot-success" />
-            <span class="status-text-ok">正常</span>
+            <span class="status-text-ok">{{ t('dashboard.common.normal') }}</span>
           </template>
           <template v-else-if="a.status === 'cooldown'">
             <span class="mp-dot-warning" />
-            <span class="status-text-warn">冷却 {{ a.remaining_seconds }}s</span>
+            <span class="status-text-warn">{{ t('dashboard.announce_adapter.cooling', { n: a.remaining_seconds }) }}</span>
           </template>
           <template v-else>
             <span class="mp-dot-danger" />
-            <span class="status-text-err">冻结 {{ a.remaining_seconds }}s</span>
+            <span class="status-text-err">{{ t('dashboard.announce_adapter.frozen', { n: a.remaining_seconds }) }}</span>
           </template>
         </div>
         <!-- 异常数据 -->
-        <div v-if="a.fail_streak > 0" class="row-warn" :title="`冻结${a.freeze_count}次 / 连续失败${a.fail_streak}次`">
+        <div v-if="a.fail_streak > 0" class="row-warn" :title="t('dashboard.announce_adapter.freeze_tip', { n: a.freeze_count, m: a.fail_streak })">
           <i class="pi pi-exclamation-triangle" />
         </div>
       </div>
     </div>
-    <p v-else-if="!loading" class="empty">暂无数据</p>
+    <p v-else-if="!loading" class="empty">{{ t('common.no_data') }}</p>
   </div>
 </template>
 

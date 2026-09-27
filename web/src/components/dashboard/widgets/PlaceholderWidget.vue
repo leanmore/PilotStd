@@ -1,13 +1,17 @@
 <script setup lang="ts">
 defineOptions({ name: 'PlaceholderWidget' })
 // PlaceholderWidget.vue — 未实现 Widget 的占位卡片
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps<{ widget: { config?: { title?: string } } }>()
 </script>
 
 <template>
   <div class="placeholder-widget">
-    <div class="widget-header">{{ widget.config?.title || '卡片' }}</div>
-    <p class="empty-text">此卡片功能正在开发中</p>
+    <div class="widget-header">{{ widget.config?.title || t('dashboard.placeholder.title') }}</div>
+    <p class="empty-text">{{ t('dashboard.placeholder.in_dev') }}</p>
   </div>
 </template>
 

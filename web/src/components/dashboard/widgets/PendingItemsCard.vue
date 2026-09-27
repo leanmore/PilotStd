@@ -1,7 +1,10 @@
 <script setup lang="ts">
 defineOptions({ name: 'PendingItemsCard' })
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+
+const { t } = useI18n()
 
 interface PendingItem { id: number; standard_number: string; std_name?: string; status?: string; source_site?: string }
 
@@ -24,15 +27,15 @@ onMounted(async () => {
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-clock" /></div>
         <div>
-          <div class="header-title">待确认标准</div>
-          <div class="header-sub">{{ total }} 项待处理</div>
+          <div class="header-title">{{ t('dashboard.card.pending') }}</div>
+          <div class="header-sub">{{ t('dashboard.pending.total', { n: total }) }}</div>
         </div>
       </div>
     </div>
 
     <div v-if="!items.length && !loading" class="empty">
       <i class="pi pi-check-circle" style="font-size: 24px; color: var(--success); margin-bottom: 8px;" />
-      <span>全部处理完毕</span>
+      <span>{{ t('dashboard.pending.all_done') }}</span>
     </div>
 
     <div v-else class="list">
@@ -44,7 +47,7 @@ onMounted(async () => {
         </div>
         <i class="pi pi-chevron-right row-arrow" />
       </div>
-      <div v-if="total > 6" class="more">还有 {{ total - 6 }} 项...</div>
+      <div v-if="total > 6" class="more">{{ t('dashboard.pending.more', { n: total - 6 }) }}</div>
     </div>
   </div>
 </template>

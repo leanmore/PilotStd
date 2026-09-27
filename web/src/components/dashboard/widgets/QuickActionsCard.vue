@@ -7,7 +7,9 @@ import { useAppStore } from '@/stores/app'
 import http from '@/api/http'
 
 interface QuickAction {
-  label: string
+  // 文案统一「存 key、渲染期翻译」：优先 labelKey，其次已解析的 label（路由 title 兜底）
+  labelKey?: string
+  label?: string
   iconClass: string
   color: string
   to?: string
@@ -46,11 +48,11 @@ async function scanAndIndex() {
   scanning.value = true
   try {
     const r = await http.post('/scan-and-index')
-    scanMsg.value = `扫描完成，入库 ${r.data?.indexed ?? 0} 条标准`
+    scanMsg.value = t('dashboard.quick_actions.scan_done', { n: r.data?.indexed ?? 0 })
     scanErr.value = false
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    scanMsg.value = err.response?.data?.error || '扫描失败'
+    scanMsg.value = err.response?.data?.error || t('dashboard.quick_actions.scan_failed')
     scanErr.value = true
   } finally {
     scanning.value = false
@@ -76,15 +78,9 @@ const actions = computed<QuickAction[]>(() => {
     .filter((r) => !r.meta.permission || r.meta.permission === store.role || store.role === 'admin')
     .sort((a, b) => (a.meta.quickActionOrder || 99) - (b.meta.quickActionOrder || 99))
     .map((r) => {
-      let label: string
-      if (r.meta.titleKey) {
-        const translated = t(r.meta.titleKey)
-        label = translated !== r.meta.titleKey ? translated : (r.meta.title || r.path)
-      } else {
-        label = r.meta.title || r.path
-      }
       return {
-        label,
+        labelKey: r.meta.titleKey,
+        label: r.meta.title || r.path,
         iconClass: r.meta.icon || 'pi pi-circle',
         color: r.meta.color || 'var(--text-dim)',
         to: r.path.startsWith('/__action/') ? undefined : r.path,
@@ -95,11 +91,11 @@ const actions = computed<QuickAction[]>(() => {
 
   if (items.length === 0) {
     return [
-      { label: '任务', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
-      { label: '整理', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize', type: 'navigation' },
-      { label: '待处理', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending', type: 'navigation' },
-      { label: '公告', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce', type: 'navigation' },
-      { label: '扫描入库', iconClass: 'pi pi-cloud-upload', color: '#ec4899', type: 'action', handler: 'scanAndIndex' },
+      { labelKey: 'nav.task', iconClass: 'pi pi-play', color: 'var(--primary)', to: '/task', type: 'navigation' },
+      { labelKey: 'nav.organize', iconClass: 'pi pi-folder', color: 'var(--warning)', to: '/organize', type: 'navigation' },
+      { labelKey: 'nav.pending', iconClass: 'pi pi-hourglass', color: 'var(--info)', to: '/pending', type: 'navigation' },
+      { labelKey: 'nav.announce', iconClass: 'pi pi-megaphone', color: 'var(--success)', to: '/announce', type: 'navigation' },
+      { labelKey: 'dashboard.quick_actions.action_scan', iconClass: 'pi pi-cloud-upload', color: '#ec4899', type: 'action', handler: 'scanAndIndex' },
     ]
   }
   return items
@@ -114,7 +110,7 @@ const isLoading = (a: QuickAction): boolean =>
     <div class="header">
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-bolt" /></div>
-        <span class="header-title">快捷操作</span>
+        <span class="header-title">{{ t('dashboard.card.quickActions') }}</span>
       </div>
     </div>
 
@@ -126,7 +122,7 @@ const isLoading = (a: QuickAction): boolean =>
         @click="handleActionClick(a)"
       >
         <i :class="['icon', a.iconClass]" :style="{ color: a.color }" />
-        <span class="label">{{ isLoading(a) ? '扫描中…' : a.label }}</span>
+        <span class="label">{{ isLoading(a) ? t('dashboard.quick_actions.scanning') : (a.labelKey ? t(a.labelKey) : a.label) }}</span>
       </div>
     </div>
     <div v-if="scanMsg" class="scan-msg" :class="{ error: scanErr }">{{ scanMsg }}</div>

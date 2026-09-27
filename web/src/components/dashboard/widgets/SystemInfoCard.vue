@@ -1,8 +1,11 @@
 <script setup lang="ts">
 defineOptions({ name: 'SystemInfoCard' })
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import { getStats } from '@/api'
+
+const { t } = useI18n()
 
 const version = ref('')
 const standardCount = ref(0)
@@ -22,7 +25,7 @@ onMounted(async () => {
     ])
     version.value = verResp.data.version || '—'
     standardCount.value = (stats.current || 0) + (stats.expired || 0) + (stats.pending || 0) + (stats.upcoming || 0)
-    dbStatus.value = standardCount.value > 0 ? '正常' : '空库'
+    dbStatus.value = standardCount.value > 0 ? t('dashboard.common.normal') : t('dashboard.sys_info.db_empty')
     adapterCount.value = (adapterResp.data?.adapters || []).length
   } finally { loading.value = false }
 })
@@ -33,11 +36,11 @@ onMounted(async () => {
     <div class="header">
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-server" /></div>
-        <span class="header-title">系统状态</span>
+        <span class="header-title">{{ t('dashboard.card.sysInfo') }}</span>
       </div>
     </div>
 
-    <div v-if="loading" class="empty">加载中...</div>
+    <div v-if="loading" class="empty">{{ t('dashboard.common.loading') }}</div>
     <div v-else class="body">
       <div class="version-block">
         <span class="version-label">Current Version</span>
@@ -46,19 +49,19 @@ onMounted(async () => {
 
       <div class="metrics">
         <div class="metric-row">
-          <span class="metric-label">数据库</span>
+          <span class="metric-label">{{ t('dashboard.sys_info.db') }}</span>
           <div class="metric-bar"><div class="metric-fill" :class="dbOk ? 'bar-ok' : 'bar-warn'" :style="{ width: dbOk ? '100%' : '30%' }" /></div>
-          <span class="metric-status" :class="dbOk ? 'text-ok' : 'text-warn'">{{ dbOk ? '正常' : '空库' }}</span>
+          <span class="metric-status" :class="dbOk ? 'text-ok' : 'text-warn'">{{ dbOk ? t('dashboard.common.normal') : t('dashboard.sys_info.db_empty') }}</span>
         </div>
         <div class="metric-row">
-          <span class="metric-label">标准库</span>
+          <span class="metric-label">{{ t('dashboard.sys_info.standards') }}</span>
           <div class="metric-bar"><div class="metric-fill bar-ok" style="width: 100%" /></div>
-          <span class="metric-status text-ok">{{ standardCount }} 条</span>
+          <span class="metric-status text-ok">{{ t('dashboard.sys_info.count_items', { n: standardCount }) }}</span>
         </div>
         <div class="metric-row">
-          <span class="metric-label">适配器</span>
+          <span class="metric-label">{{ t('dashboard.sys_info.adapters') }}</span>
           <div class="metric-bar"><div class="metric-fill" :class="adapterOk ? 'bar-ok' : 'bar-warn'" :style="{ width: adapterOk ? '100%' : '60%' }" /></div>
-          <span class="metric-status" :class="adapterOk ? 'text-ok' : 'text-warn'">{{ adapterCount }} 在线</span>
+          <span class="metric-status" :class="adapterOk ? 'text-ok' : 'text-warn'">{{ t('dashboard.sys_info.count_online', { n: adapterCount }) }}</span>
         </div>
       </div>
     </div>

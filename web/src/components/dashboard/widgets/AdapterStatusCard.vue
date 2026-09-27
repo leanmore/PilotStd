@@ -2,9 +2,12 @@
 defineOptions({ name: 'AdapterStatusCard' })
 // AdapterStatusCard.vue — 适配器熔断状态 Widget（从 DashboardView 迁移）
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
+
+const { t } = useI18n()
 
 interface AdapterStatus {
   name: string
@@ -27,7 +30,7 @@ async function loadStatus() {
     adapters.value = r.data.adapters
     error.value = ''
   } catch {
-    error.value = '加载适配器状态失败'
+    error.value = t('dashboard.adapter.load_failed')
   } finally {
     loading.value = false
   }
@@ -53,9 +56,9 @@ function statusSeverity(s: string): 'success' | 'danger' | 'info' {
 }
 
 function statusLabel(s: string): string {
-  if (s === 'frozen') return '冻结中'
-  if (s === 'normal') return '正常'
-  if (s === 'error') return '异常'
+  if (s === 'frozen') return t('dashboard.adapter.frozen')
+  if (s === 'normal') return t('dashboard.common.normal')
+  if (s === 'error') return t('dashboard.adapter.error')
   console.warn('[AdapterStatusCard] 未映射的适配器状态:', s) // i18n-allow: 开发者日志：未映射的适配器状态
   return s
 }
@@ -73,7 +76,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="adapter-widget">
     <div class="widget-header">
-      <span>适配器状态</span>
+      <span>{{ t('dashboard.adapter.title') }}</span>
       <Button
         icon="pi pi-refresh"
         size="small"
@@ -87,11 +90,11 @@ onBeforeUnmount(() => {
     <table v-if="adapters.length" class="adapter-table">
       <thead>
         <tr>
-          <th>适配器</th>
-          <th>状态</th>
-          <th>剩余冻结</th>
-          <th>冻结次数</th>
-          <th>连续失败</th>
+          <th>{{ t('dashboard.adapter.col_adapter') }}</th>
+          <th>{{ t('dashboard.adapter.col_status') }}</th>
+          <th>{{ t('dashboard.adapter.col_remaining') }}</th>
+          <th>{{ t('dashboard.adapter.col_freeze_count') }}</th>
+          <th>{{ t('dashboard.adapter.col_fail_streak') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -104,7 +107,7 @@ onBeforeUnmount(() => {
         </tr>
       </tbody>
     </table>
-    <p v-else-if="!loading" class="empty">暂无适配器数据</p>
+    <p v-else-if="!loading" class="empty">{{ t('dashboard.adapter.empty') }}</p>
   </div>
 </template>
 

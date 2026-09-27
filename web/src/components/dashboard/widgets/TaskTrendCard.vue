@@ -1,17 +1,20 @@
 <script setup lang="ts">
 defineOptions({ name: 'TaskTrendCard' })
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getStats } from '@/api'
+
+const { t } = useI18n()
 
 const stats = ref({ current: 0, expired: 0, pending: 0, upcoming: 0 })
 const total = computed(() => stats.value.current + stats.value.expired + stats.value.pending + stats.value.upcoming)
 
 /* semantic color — consistent across all themes */
 const statusList = computed(() => [
-  { label: '现行', value: stats.value.current, color: '#22c55e' },
-  { label: '废止', value: stats.value.expired, color: '#ef4444' },
-  { label: '待确认', value: stats.value.pending, color: '#f59e0b' },
-  { label: '即将实施', value: stats.value.upcoming, color: '#3b82f6' },
+  { label: t('home.current'), value: stats.value.current, color: '#22c55e' },
+  { label: t('home.expired'), value: stats.value.expired, color: '#ef4444' },
+  { label: t('home.pending'), value: stats.value.pending, color: '#f59e0b' },
+  { label: t('home.upcoming'), value: stats.value.upcoming, color: '#3b82f6' },
 ])
 
 onMounted(async () => {
@@ -25,8 +28,8 @@ onMounted(async () => {
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-chart-bar" /></div>
         <div>
-          <div class="header-title">标准库构成</div>
-          <div class="header-sub">{{ total }} 条标准</div>
+          <div class="header-title">{{ t('dashboard.card.trend') }}</div>
+          <div class="header-sub">{{ t('dashboard.trend.total', { n: total }) }}</div>
         </div>
       </div>
     </div>
@@ -38,8 +41,8 @@ onMounted(async () => {
       </div>
     </div>
     <div v-else class="empty-state">
-      <p class="empty-text">暂无标准数据</p>
-      <p class="empty-hint">导入文件后自动统计</p>
+      <p class="empty-text">{{ t('dashboard.trend.empty') }}</p>
+      <p class="empty-hint">{{ t('dashboard.trend.empty_hint') }}</p>
     </div>
   </div>
 </template>

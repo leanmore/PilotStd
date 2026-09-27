@@ -1,7 +1,10 @@
 <script setup lang="ts">
 defineOptions({ name: 'SystemLogCard' })
 import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
+
+const { t } = useI18n()
 
 interface LogEntry { time: string; level: string; message: string }
 
@@ -38,11 +41,11 @@ async function clearOldLogs(hours: number) {
   try {
     const r = await http.delete('/admin/logs', { params: { before_hours: hours } })
     const deleted = r.data?.deleted ?? 0
-    clearMsg.value = hours > 0 ? `已清理 ${deleted} 条日志（${hours}h 前）` : `已清空全部日志（${deleted} 条）`
+    clearMsg.value = hours > 0 ? t('dashboard.sys_log.cleared', { n: deleted, h: hours }) : t('dashboard.sys_log.cleared_all', { n: deleted })
     clearErr.value = false
     await fetchLogs()
   } catch {
-    clearMsg.value = '清理日志失败'
+    clearMsg.value = t('dashboard.sys_log.clear_failed')
     clearErr.value = true
   } finally {
     clearing.value = false
@@ -60,19 +63,19 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer) })
       <div class="header-left">
         <div class="header-icon"><i class="pi pi-terminal" /></div>
         <div>
-          <div class="header-title">系统日志</div>
-          <div class="header-sub">{{ logs.length }} 行 · 8s 刷新</div>
+          <div class="header-title">{{ t('dashboard.card.sysLog') }}</div>
+          <div class="header-sub">{{ t('dashboard.sys_log.subtitle', { n: logs.length }) }}</div>
         </div>
       </div>
       <div class="header-actions">
-        <button class="clear-btn" :disabled="clearing" @click="clearOldLogs(24)">清理旧日志</button>
-        <button class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)">清空</button>
+        <button class="clear-btn" :disabled="clearing" @click="clearOldLogs(24)">{{ t('dashboard.sys_log.clear_old') }}</button>
+        <button class="clear-btn clear-all" :disabled="clearing" @click="clearOldLogs(0)">{{ t('dashboard.sys_log.clear_all') }}</button>
       </div>
     </div>
     <div v-if="clearMsg" class="clear-msg" :class="{ error: clearErr }">{{ clearMsg }}</div>
 
     <div ref="logContainer" class="log-box">
-      <div v-if="!logs.length" class="empty">等待日志...</div>
+      <div v-if="!logs.length" class="empty">{{ t('dashboard.sys_log.waiting') }}</div>
       <div v-for="(l, idx) in logs" :key="idx" class="line">
         <i v-if="levelIcon[l.level]" :class="['li', levelIcon[l.level], 'lv-' + l.level]" />
         <span class="lt">{{ l.time }}</span>

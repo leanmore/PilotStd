@@ -285,6 +285,120 @@
   },
   "export": { "pending_list": "待確認清單", "manual_download_list": "手動下載清單" },
   "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" },
+  "dashboard": {
+    "common": {
+      "load_failed": "載入失敗",
+      "loading": "載入中...",
+      "normal": "正常"
+    },
+    "card": {
+      "stats": "核心統計",
+      "sysInfo": "系統狀態",
+      "quickActions": "快捷操作",
+      "announceAdapter": "公告適配器",
+      "queryAdapter": "查詢適配器",
+      "queryAdapterTitle": "查詢適配器叢集",
+      "recentAnnounce": "最新公告",
+      "pending": "待確認標準",
+      "trend": "標準庫構成",
+      "sysLog": "系統日誌"
+    },
+    "layout": {
+      "back_to_list": "返回列表",
+      "workspace_menu": "工作台選單",
+      "add_card": "新增 {name}",
+      "all_added": "所有卡片已新增",
+      "unlock": "解鎖佈局",
+      "lock": "鎖定佈局",
+      "reset": "重設佈局",
+      "back_to_workspace": "返回工作台"
+    },
+    "header": {
+      "expand_sidebar": "展開側邊欄",
+      "collapse_sidebar": "收合側邊欄",
+      "to_light": "切換亮色主題",
+      "to_dark": "切換暗色主題",
+      "logout": "登出",
+      "logout_title": "登出"
+    },
+    "sidebar": {
+      "expand": "展開",
+      "collapse": "收合"
+    },
+    "adapter": {
+      "title": "適配器狀態",
+      "load_failed": "載入適配器狀態失敗",
+      "frozen": "凍結中",
+      "error": "異常",
+      "col_adapter": "適配器",
+      "col_status": "狀態",
+      "col_remaining": "剩餘凍結",
+      "col_freeze_count": "凍結次數",
+      "col_fail_streak": "連續失敗",
+      "empty": "暫無適配器資料"
+    },
+    "announce_adapter": {
+      "subtitle": "核心鏈路 · {n} 節點",
+      "cooling": "冷卻 {n}s",
+      "frozen": "凍結 {n}s",
+      "freeze_tip": "凍結{n}次 / 連續失敗{m}次",
+      "type": {
+        "gb": "國家標準公告",
+        "hb": "行業標準公告",
+        "db": "地方標準公告"
+      }
+    },
+    "query_adapter": {
+      "unknown_site": "未知站點",
+      "nodes": "{n} 節點"
+    },
+    "quick_actions": {
+      "scanning": "掃描中…",
+      "scan_done": "掃描完成，入庫 {n} 條標準",
+      "scan_failed": "掃描失敗",
+      "action_scan": "掃描入庫"
+    },
+    "sys_info": {
+      "db": "資料庫",
+      "db_empty": "空庫",
+      "standards": "標準庫",
+      "count_items": "{n} 條",
+      "adapters": "適配器",
+      "count_online": "{n} 線上"
+    },
+    "trend": {
+      "total": "{n} 條標準",
+      "empty": "暫無標準資料",
+      "empty_hint": "匯入檔案後自動統計"
+    },
+    "sys_log": {
+      "subtitle": "{n} 行 · 8s 重新整理",
+      "clear_old": "清理舊日誌",
+      "clear_all": "清空",
+      "cleared": "已清理 {n} 條日誌（{h}h 前）",
+      "cleared_all": "已清空全部日誌（{n} 條）",
+      "clear_failed": "清理日誌失敗",
+      "waiting": "等待日誌..."
+    },
+    "recent_announce": {
+      "subtitle": "即時推送",
+      "empty": "暫無新公告",
+      "untitled": "無標題",
+      "tab_empty": "暫無公告"
+    },
+    "pending": {
+      "total": "{n} 項待處理",
+      "all_done": "全部處理完畢",
+      "more": "還有 {n} 項..."
+    },
+    "placeholder": {
+      "title": "卡片",
+      "in_dev": "此卡片功能正在開發中"
+    },
+    "stats": {
+      "valid": "有效"
+    }
+  },
   "settings": {
     "storage": {
       "root_dir": "標準庫根目錄",

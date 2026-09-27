@@ -7,6 +7,7 @@ import AppLayout from './AppLayout.vue'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 
 const Dummy = { template: '<div />' }
 const routes = [
@@ -20,10 +21,10 @@ const routes = [
   { path: '/settings', component: Dummy },
 ]
 
-function mountLayout() {
+function mountLayout(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const pinia = createPinia()
   setActivePinia(pinia)
-  const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   const router = createRouter({ history: createMemoryHistory(), routes })
   return mount(AppLayout, {
     global: {
@@ -43,5 +44,13 @@ describe('AppLayout', () => {
   it('renders slot content', () => {
     const wrapper = mountLayout()
     expect(wrapper.html()).toContain('测试内容')
+  })
+
+  it('切换语言到 en 后布局文案随之变化（i18n 生效）', () => {
+    const zh = mountLayout('zh-CN')
+    expect(zh.html()).toContain('设置')
+
+    const english = mountLayout('en')
+    expect(english.html()).toContain('Settings')
   })
 })

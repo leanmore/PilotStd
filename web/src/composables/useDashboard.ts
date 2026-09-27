@@ -20,18 +20,19 @@ import TaskTrendCard from '@/components/dashboard/widgets/TaskTrendCard.vue'
 import SystemLogCard from '@/components/dashboard/widgets/SystemLogCard.vue'
 
 // ── 常量 ──
+// 卡片标题一律**存 key、渲染期翻译**（模块级表不能在模块作用域求值一次 t()）
 const LAYOUT_STORAGE_KEY = 'dashboard_layout'
 
-const CARD_REGISTRY: Record<string, { label: string; zhName?: string; w: number; h: number }> = {
-  stats: { label: '核心统计', w: 4, h: 6 },
-  sysInfo: { label: '系统状态', w: 4, h: 6 },
-  quickActions: { label: '快捷操作', w: 4, h: 6 },
-  announceAdapter: { label: '公告适配器', w: 6, h: 8 },
-  queryAdapter: { label: '查询适配器', zhName: '查询适配器集群', w: 8, h: 10 },
-  recentAnnounce: { label: '最新公告', w: 6, h: 8 },
-  pending: { label: '待确认标准', w: 6, h: 8 },
-  trend: { label: '标准库构成', w: 4, h: 8 },
-  sysLog: { label: '系统日志', w: 8, h: 8 },
+const CARD_REGISTRY: Record<string, { labelKey: string; titleKey?: string; w: number; h: number }> = {
+  stats: { labelKey: 'dashboard.card.stats', w: 4, h: 6 },
+  sysInfo: { labelKey: 'dashboard.card.sysInfo', w: 4, h: 6 },
+  quickActions: { labelKey: 'dashboard.card.quickActions', w: 4, h: 6 },
+  announceAdapter: { labelKey: 'dashboard.card.announceAdapter', w: 6, h: 8 },
+  queryAdapter: { labelKey: 'dashboard.card.queryAdapter', titleKey: 'dashboard.card.queryAdapterTitle', w: 8, h: 10 },
+  recentAnnounce: { labelKey: 'dashboard.card.recentAnnounce', w: 6, h: 8 },
+  pending: { labelKey: 'dashboard.card.pending', w: 6, h: 8 },
+  trend: { labelKey: 'dashboard.card.trend', w: 4, h: 8 },
+  sysLog: { labelKey: 'dashboard.card.sysLog', w: 8, h: 8 },
 }
 
 const COMPONENT_MAP: Record<string, Component> = {
@@ -67,7 +68,7 @@ const availableCards = computed(() => {
   const currentKeys = new Set(layout.value.map((l: any) => l.i))
   return Object.entries(CARD_REGISTRY)
     .filter(([key]) => !currentKeys.has(key))
-    .map(([key, val]) => ({ key, label: val.label }))
+    .map(([key, val]) => ({ key, labelKey: val.labelKey }))
 })
 
 // ── 方法 ──
@@ -77,7 +78,7 @@ function hydrateLayout(rawLayout: any[]) {
     .map((item: any) => ({
       ...item,
       component: COMPONENT_MAP[item.i],
-      zhName: CARD_REGISTRY[item.i]?.zhName,
+      titleKey: CARD_REGISTRY[item.i]?.titleKey,
     }))
     .filter((item: any) => item.component)
 }
@@ -148,7 +149,7 @@ function addCard(key: string) {
   layout.value.push({
     i: key, x: 0, y: 0, w: meta.w, h: meta.h,
     component: COMPONENT_MAP[key],
-    zhName: meta.zhName,
+    titleKey: meta.titleKey,
   })
 }
 

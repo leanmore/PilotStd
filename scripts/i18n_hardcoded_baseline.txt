@@ -1,26 +1,11 @@
 # G-040 i18n 硬编码基线（由 scripts/check_i18n_hardcoded.py --update-baseline 生成，勿手改）
 # 格式: <相对仓库根路径>::<当前存量行数>；门禁只拦「超出基线」的新增，低于基线仅提示可刷新。
 web/src/api/http.ts::2
-web/src/components/AppHeader.vue::4
-web/src/components/AppLayout.vue::7
-web/src/components/AppSidebar.vue::2
 web/src/components/LogBar.vue::5
 web/src/components/RouteDebugPanel.vue::9
 web/src/components/StandardTable.vue::4
 web/src/components/TableLoadFooter.vue::5
 web/src/components/UnifiedFilterBar.vue::3
-web/src/components/dashboard/widgets/AdapterStatusAnnounceCard.vue::9
-web/src/components/dashboard/widgets/AdapterStatusCard.vue::11
-web/src/components/dashboard/widgets/AdapterStatusQueryCard.vue::5
-web/src/components/dashboard/widgets/PendingItemsCard.vue::4
-web/src/components/dashboard/widgets/PlaceholderWidget.vue::2
-web/src/components/dashboard/widgets/QuickActionsCard.vue::9
-web/src/components/dashboard/widgets/RecentAnnounceCard.vue::6
-web/src/components/dashboard/widgets/StatsCard.vue::1
-web/src/components/dashboard/widgets/SystemInfoCard.vue::9
-web/src/components/dashboard/widgets/SystemLogCard.vue::7
-web/src/components/dashboard/widgets/TaskTrendCard.vue::8
-web/src/composables/useDashboard.ts::9
 web/src/composables/useFavorite.ts::3
 web/src/composables/useQueryAdapters.ts::1
 web/src/router.ts::2

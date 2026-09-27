@@ -285,6 +285,120 @@
   },
   "export": { "pending_list": "Pending Standards", "manual_download_list": "Manual Download List" },
   "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" },
+  "dashboard": {
+    "common": {
+      "load_failed": "Load failed",
+      "loading": "Loading...",
+      "normal": "OK"
+    },
+    "card": {
+      "stats": "Core Stats",
+      "sysInfo": "System Status",
+      "quickActions": "Quick Actions",
+      "announceAdapter": "Announcement Adapter",
+      "queryAdapter": "Query Adapter",
+      "queryAdapterTitle": "Query Adapter Cluster",
+      "recentAnnounce": "Latest Announcements",
+      "pending": "Pending Standards",
+      "trend": "Library Overview",
+      "sysLog": "System Log"
+    },
+    "layout": {
+      "back_to_list": "Back to List",
+      "workspace_menu": "Workspace Menu",
+      "add_card": "Add {name}",
+      "all_added": "All cards added",
+      "unlock": "Unlock Layout",
+      "lock": "Lock Layout",
+      "reset": "Reset Layout",
+      "back_to_workspace": "Back to Workspace"
+    },
+    "header": {
+      "expand_sidebar": "Expand Sidebar",
+      "collapse_sidebar": "Collapse Sidebar",
+      "to_light": "Switch to Light Theme",
+      "to_dark": "Switch to Dark Theme",
+      "logout": "Log Out",
+      "logout_title": "Log Out"
+    },
+    "sidebar": {
+      "expand": "Expand",
+      "collapse": "Collapse"
+    },
+    "adapter": {
+      "title": "Adapter Status",
+      "load_failed": "Failed to load adapter status",
+      "frozen": "Frozen",
+      "error": "Error",
+      "col_adapter": "Adapter",
+      "col_status": "Status",
+      "col_remaining": "Freeze Left",
+      "col_freeze_count": "Freeze Count",
+      "col_fail_streak": "Fail Streak",
+      "empty": "No adapter data"
+    },
+    "announce_adapter": {
+      "subtitle": "Core chain · {n} nodes",
+      "cooling": "Cooling {n}s",
+      "frozen": "Frozen {n}s",
+      "freeze_tip": "{n} freezes / {m} consecutive failures",
+      "type": {
+        "gb": "National announcement",
+        "hb": "Industry announcement",
+        "db": "Local announcement"
+      }
+    },
+    "query_adapter": {
+      "unknown_site": "Unknown site",
+      "nodes": "{n} nodes"
+    },
+    "quick_actions": {
+      "scanning": "Scanning…",
+      "scan_done": "Scan complete, {n} standards indexed",
+      "scan_failed": "Scan failed",
+      "action_scan": "Scan & Index"
+    },
+    "sys_info": {
+      "db": "Database",
+      "db_empty": "Empty",
+      "standards": "Standards",
+      "count_items": "{n}",
+      "adapters": "Adapters",
+      "count_online": "{n} online"
+    },
+    "trend": {
+      "total": "{n} standards",
+      "empty": "No standard data",
+      "empty_hint": "Statistics are generated after importing files"
+    },
+    "sys_log": {
+      "subtitle": "{n} lines · refresh 8s",
+      "clear_old": "Clear Old Logs",
+      "clear_all": "Clear All",
+      "cleared": "Cleared {n} logs (older than {h}h)",
+      "cleared_all": "Cleared all logs ({n})",
+      "clear_failed": "Failed to clear logs",
+      "waiting": "Waiting for logs..."
+    },
+    "recent_announce": {
+      "subtitle": "Live push",
+      "empty": "No new announcements",
+      "untitled": "Untitled",
+      "tab_empty": "No announcements"
+    },
+    "pending": {
+      "total": "{n} items pending",
+      "all_done": "All handled",
+      "more": "{n} more..."
+    },
+    "placeholder": {
+      "title": "Card",
+      "in_dev": "This card is under development"
+    },
+    "stats": {
+      "valid": "Valid"
+    }
+  },
   "settings": {
     "storage": {
       "root_dir": "Library Root Dir",

@@ -5,6 +5,10 @@
  */
 defineOptions({ name: 'AppSidebar' })
 
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 interface NavItem {
   label: string
   icon: string
@@ -48,10 +52,10 @@ const emit = defineEmits<{
       <button
         class="collapse-toggle"
         @click="emit('toggle-collapse')"
-        :title="sidebarCollapsed ? '展开' : '收起'"
+        :title="sidebarCollapsed ? t('dashboard.sidebar.expand') : t('dashboard.sidebar.collapse')"
       >
         <i :class="sidebarCollapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'" />
-        <span v-show="!sidebarCollapsed">收起</span>
+        <span v-show="!sidebarCollapsed">{{ t('dashboard.sidebar.collapse') }}</span>
       </button>
     </div>
   </aside>
