@@ -2,7 +2,8 @@
 
 覆盖：干净文件通过 / 模板硬编码被检出 / 脚本字符串硬编码被检出 / 三类注释不计 /
 `i18n-allow` 行内与上一行豁免 / 基线内文件通过 / 超出基线只报新增 / 新文件全报 /
-`--update-baseline` 生成基线 / 排除规则（测试文件、.d.ts、locales）/ 仓库现有基线自检通过。
+`--update-baseline` 生成基线 / 排除规则（测试文件、.d.ts、locales）/ **空基线仍拦截（存量清零后）** /
+仓库现有基线自检通过（基线文件须存在，允许为空）。
 """
 
 import importlib.util
@@ -236,12 +237,32 @@ def test_report_mode_never_fails(gate, tmp_path: Path, capsys) -> None:
 # ── 仓库自检 ──────────────────────────────────────────────
 
 
+def test_empty_baseline_still_blocks_hardcoded(gate, tmp_path: Path, capsys) -> None:
+    """空基线 ≠ 门禁失效：基线清零后任何硬编码都算"超出基线"。
+
+    批 6 把 G-040 存量清零（基线只剩注释表头），`baseline.get(name)` 恒为 None
+    → 走"新文件：一处都不允许"分支。此处锁死该行为，防止"空基线 → 静默放行"。
+    """
+    bad = _write(tmp_path, "src/Cleared.vue", HARDCODED_VUE)
+    base = tmp_path / "baseline.txt"
+    base.write_text("# 只有表头注释，没有任何 <路径>::<行数> 条目\n", encoding="utf-8")
+    assert gate.load_baseline(base) == {}, "前置条件：该基线必须是空的"
+
+    assert gate.main(["--baseline", str(base), str(bad)]) == 1
+    out = capsys.readouterr().out
+    assert "HARDCODED" in out and "Cleared.vue:9" in out and "这里写死了中文" in out
+
+
 def test_repository_matches_its_baseline(gate) -> None:
-    """真实仓库扫描必须与已入库基线一致（即当前无"超出基线"的新增硬编码）。"""
+    """真实仓库扫描必须与已入库基线一致（即当前无"超出基线"的新增硬编码）。
+
+    基线**允许为空**（批 6 已把存量清零）：空基线时任何中文都会落入 beyond，
+    门禁只会更严；此处只要求基线文件存在。
+    """
     files = gate.collect_files([])
     assert files, "未扫描到任何前端源码，检查 web/src 是否存在"
     hits = gate.scan(files)
-    baseline = gate.load_baseline(gate.DEFAULT_BASELINE)
-    assert baseline, "基线文件缺失或为空"
+    assert gate.DEFAULT_BASELINE.exists(), "基线文件缺失"
+    baseline = gate.load_baseline(gate.DEFAULT_BASELINE)  # 允许 {}（={} 时 beyond 捕获全部）
     beyond = {name: len(rows) for name, rows in hits.items() if len(rows) > baseline.get(name, 0)}
     assert beyond == {}, f"以下文件超出基线（新增硬编码中文）: {beyond}"
