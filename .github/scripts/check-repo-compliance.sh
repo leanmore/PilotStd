@@ -6,7 +6,10 @@ BASE_BRANCH="${BASE_BRANCH:-main}"
 
 echo "=== 入仓合规检查 | BASE: $BASE_BRANCH ==="
 
-git fetch origin "$BASE_BRANCH" --depth=1 2>/dev/null || true
+# R11-3b：此处原为 `--depth=1`，会在 tip 处建立浅边界（.git/shallow）——后续任何基于
+#   历史范围的检查（docs-sync 的 HEAD~1..HEAD 回退、本脚本自身的 origin/<base>..HEAD）都会被截断，
+#   表现为「范围恒空 → 假绿」。checkout 已是 fetch-depth: 0 全量，故改为普通 fetch（行为等价、不再截断历史）。
+git fetch origin "$BASE_BRANCH" --no-tags 2>/dev/null || true
 
 NEW_FILES=$(git diff --name-only --diff-filter=A "origin/${BASE_BRANCH}..HEAD" 2>/dev/null || true)
 

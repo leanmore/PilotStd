@@ -164,3 +164,24 @@ def test_range_has_changes_reflects_diff(mod, monkeypatch) -> None:
     monkeypatch.setattr(mod, "_run_git", _fake_git({"HEAD~1..HEAD": "M\tdocs/technical-debt.md\n"}))
     assert mod._range_has_changes("HEAD~1..HEAD") is True
     assert mod._range_has_changes("origin/main...HEAD") is False
+
+
+def test_shallow_clone_reason_is_explicit(mod, monkeypatch) -> None:
+    """浅克隆（check-repo-compliance.sh 曾用 --depth=1 建立浅边界）下必须点明历史被截断。"""
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_is_shallow_clone", lambda: True)
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    rng, why = mod._resolve_change_source(mod._parse_args(["--strict"]))
+    assert rng is not None and "浅克隆" in why, (rng, why)
+
+
+def test_non_shallow_clone_reason_has_no_hint(mod, monkeypatch) -> None:
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_is_shallow_clone", lambda: False)
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    _rng, why = mod._resolve_change_source(mod._parse_args(["--strict"]))
+    assert "浅克隆" not in why

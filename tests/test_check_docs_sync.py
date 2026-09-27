@@ -97,3 +97,25 @@ def test_range_has_changes_reflects_diff(mod, monkeypatch) -> None:
     monkeypatch.setattr(mod, "_run_git", _fake_git({"HEAD~1..HEAD": "docs/x.md\n"}))
     assert mod._range_has_changes("HEAD~1..HEAD") is True
     assert mod._range_has_changes("origin/main...HEAD") is False
+
+
+# ── 浅克隆（check-repo-compliance.sh 曾以 --depth=1 建立浅边界 → HEAD~1 不可用） ──
+
+
+def test_shallow_clone_reason_is_explicit(mod, monkeypatch) -> None:
+    """浅克隆下候选全空时必须点明「历史被截断」，不得只说「该范围无变更」。"""
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_is_shallow_clone", lambda: True)
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    rng, why = mod.resolve_range(mod.parse_args(["--strict"]))
+    assert rng is not None and "浅克隆" in why, (rng, why)
+
+
+def test_non_shallow_clone_reason_has_no_hint(mod, monkeypatch) -> None:
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_is_shallow_clone", lambda: False)
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    _rng, why = mod.resolve_range(mod.parse_args(["--strict"]))
+    assert "浅克隆" not in why

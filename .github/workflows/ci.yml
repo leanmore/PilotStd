@@ -740,12 +740,19 @@ jobs:
       # 事故回指（T-25）：第十轮本步骤被误写成只跑 check_docs_sync.py，而它当时只做 origin/<base>..HEAD
       #   （推送到 main 时恒为空、浅克隆下甚至取不到）→ 步骤长期空转、`[docs-compliance] PASS: 无变更文件`，
       #   导致 T-16 的 6 次「告警期观察」全部无效。两者现均支持 --range / DOCS_SYNC_RANGE 回退链。
+      # R11-3b 补丁（第五个 CI 盲区：范围取值陷阱）——右端必须用 `github.sha`（通用上下文，push 时即本次推送 tip；
+      #   push 载荷**没有** `event.sha` 字段，push 专有字段是 `github.event.after`）。原写法展开为空串
+      #   → `DOCS_SYNC_RANGE=<before>..` → 两脚本判为非法 → 回退 `origin/main...HEAD`；而同一作业更早的
+      #   `check-repo-compliance.sh` 执行过 `git fetch origin main --depth=1`，把仓库变成**浅克隆**（.git/shallow
+      #   边界落在 tip），于是 `origin/main...HEAD` 恒空、`HEAD~1..HEAD` 也不可用（实测 `fatal: Needed a single revision`）
+      #   → 步骤以「无变更文件」空转（run 36304263963 / 36306033918 实证）。显式范围 `<before>..<sha>` 不受浅边界影响
+      #   （两端对象都在本地，实测 8 个文件）。
       # 当前两者均为**告警期**：发现未同步只打 `WARN(告警期)` 并 exit 0（绝不静默 PASS）；
       # 观察若干次后把对应脚本的 --strict 改为 --strict-block 即开启阻断。
       - name: Docs sync check
         env:
           AUTO_FIX_DOCS: "false"
-          DOCS_SYNC_RANGE: ${{ github.event.before }}..${{ github.event.sha }}
+          DOCS_SYNC_RANGE: ${{ github.event.before }}..${{ github.sha }}
           BASE_BRANCH: ${{ github.event.pull_request.base.ref || 'main' }}
         run: |
           set -e

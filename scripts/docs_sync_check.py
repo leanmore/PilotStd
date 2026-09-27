@@ -443,7 +443,18 @@ def _resolve_change_source(opts):
             return rng, why
         if empty_fallback is None:
             empty_fallback = (rng, f"{why}，该范围无变更")
-    return empty_fallback or (None, "暂存区（无可用范围）")
+    if empty_fallback is not None:
+        rng, why = empty_fallback
+        # 浅克隆下「范围为空」往往不是真的没有变更，而是历史被截断——必须说清楚，避免误导
+        if _is_shallow_clone():
+            why += "（提示：仓库为浅克隆，HEAD~1 等历史范围不可用）"
+        return rng, why
+    return None, "暂存区（无可用范围）"
+
+
+def _is_shallow_clone() -> bool:
+    """是否浅克隆（.git/shallow 存在）——浅边界会让 HEAD~1 等历史范围不可用。"""
+    return (PROJECT_ROOT / ".git" / "shallow").exists()
 
 
 def _range_has_changes(rng):
