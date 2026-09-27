@@ -12,9 +12,3 @@ export const URL_TO_SOURCE: Record<string, string> = {
   annc_hb: 'announcement_hb',
   annc_db: 'announcement_db',
 }
-
-export const SOURCE_LABEL: Record<string, string> = {
-  announcement_gb: '国家标准',
-  announcement_hb: '行业标准',
-  announcement_db: '地方标准',
-}

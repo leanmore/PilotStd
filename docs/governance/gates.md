@@ -207,7 +207,7 @@
 **豁免**：① 注释（**行首与行尾** `//`、`/* */`、`<!-- -->` 都不计）；② 行内标记 `i18n-allow`——本行或上一行含该注释即跳过
 （用于与后端中文状态值比较、开发日志、审计元数据等确不需翻译的文案）；③ 存量基线；
 ④ **路径级豁免**（仅精确路径，不按前缀/通配）：`EXCLUDE_FILES`=语言包本体（如 `web/src/lib/primevueLocale.ts`，
-文件内已含三语，属本地化数据）、`EXEMPT_DEAD_CODE`=已确认零外部引用的死代码（R-003 不擅自删，留待清理决策）。
+文件内已含三语，属本地化数据）。（v1.23 曾并存 `EXEMPT_DEAD_CODE`=死代码豁免；该批死代码已于 v1.24 删除，豁免随之取消。）
 
 **注释识别口径**（v1.23 起）：改为**字符串状态机**逐字符判定——只有"知道自己在不在字符串里"才能区分
 `'#065f46', // 深绿…`（真行尾注释 → 抹掉）与 `'https://x/y 中文'`（字符串内的 `//` → 不截断）。
@@ -235,6 +235,10 @@
 **存量（B0 前置清理后，2026-09-27）**：基线 **897 行/76 文件 → 786 行/61 文件**（−111）。分解：
 ① 注释口径修复 −48 行（行尾 `//` 误报，19 个文件）+3 行（旧 `/*…*/` 正则漏报，`SettingsTabAppearanceMixed.vue`）；
 ② 路径豁免 −43 行/3 文件（语言包 16 + 死代码 27）；③ `i18n-allow` −23 行（后端中文状态值 9 + 开发日志 12 + 审计元数据 2）。
+
+**存量（v1.24 删除死代码后）**：门禁口径**仍为 786 行/61 文件**——被豁免的 3 个文件从不进基线，删掉其中 2 个自然不改变基线；
+但**源码里的中文实际减少 27 行**（`types/dashboard.ts` 24 + `constants/sourceMapping.ts` 的 `SOURCE_LABEL` 3），
+即按「含豁免文件」计的真实存量 829 → **802** 行（语言包本体 16 行仍在）。
 
 ---
 
@@ -288,6 +292,7 @@
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.24 | 2026-09-27 | **删除 C-3 死代码 → 取消 `EXEMPT_DEAD_CODE`**（决策 1）：删 `web/src/types/dashboard.ts` 整文件（24 行中文）与 `web/src/constants/sourceMapping.ts` 的 `SOURCE_LABEL`（3 行中文，文件保留——`SOURCE_TO_URL` 被 `AnnounceView`/`LegacyRedirect` 使用）。删除前 `git grep` 全库确认零消费方（`WIDGET_LIBRARY`/`createDefaultWidgets`/`DashboardWidget`/`WidgetDefinition`/`DashboardLayoutV1`/`WidgetType`/`SOURCE_LABEL` 均只有定义行；无 `import()`/`require()`/barrel 再导出）。`EXEMPT_DEAD_CODE` 与 `exemption_reason()` 的对应分支一并删除，路径级豁免只剩语言包本体 `EXCLUDE_FILES`；同时删掉 B0 引入但**全仓库无调用方**的 `collect_files(keep_exempt=…)` 形参（其 docstring 声称供 `--report`/`--update-baseline` 使用，实际两处都未传）。受控测试仍 19 例（`test_path_exempt_files_are_skipped` 改为只遍历 `EXCLUDE_FILES`）。**基线不变**：786 行/61 文件——被删的两文件因豁免从不进基线；按含豁免文件计的真实存量 829 → **802**。 |
 | v1.23 | 2026-09-27 | **G-040 注释口径修复 + 路径级豁免**：`strip_comments()` 由「只认行首 `//` + 非字符串感知的 `/*…*/` 正则」改为**字符串状态机**——修复两类错误：① **误报 48 行**（行尾 `//` 注释里的中文被当成文案，19 个文件，如 `config/themes.ts` 16 行、`useThemeSync.ts` 7 行）；② **漏报 3 行**（`accept="image/*"` 的 `/*` 与后面任意 `*/` 配对，把中间真实文案整段抹平，实测 `SettingsTabAppearanceMixed.vue:78/82/107`）。新增**路径级豁免** `EXCLUDE_FILES`（语言包本体 `lib/primevueLocale.ts`，16 行）与 `EXEMPT_DEAD_CODE`（零外部引用死代码 `types/dashboard.ts` 24 行 + `constants/sourceMapping.ts` 3 行，R-003 不擅自删）。受控测试 14 → **19 例**（新增：尾随注释不报 / 字符串内 `//` 仍报 / `/*` 不吞代码 / 路径豁免生效且不波及其它文件）。存量基线 **897 → 786**（−111）。 |
 | v1.22 | 2026-09-26 | 新增 **G-040 i18n 硬编码检查**（`scripts/check_i18n_hardcoded.py`）：`web/src/**/*.{vue,ts}` 去掉注释后出现中日韩统一表意文字即记一处，只拦**超出基线**的新增（基线 `scripts/i18n_hardcoded_baseline.txt`，格式 `<路径>::<行数>`：新文件有中文全报、存量文件只报多出来的行、变少仅 `[STALE]` 提示）。豁免=注释 + 行内 `i18n-allow`（本行或上一行）。起因：`SettingsTabSchedule.vue` 整页 0 处 `t()`、文案全硬编码中文，而此前**无门禁**可拦——`check_i18n_key_count.py` 只比 locales 顶层 key，与组件是否用 i18n 无关。同批把该脚本升级到 **v1.1.0**：新增**叶子键路径**对齐（顶层一致 ≠ 三语一致；实测曾存在 9 个叶子漂移而该脚本仍 PASS），叶子不一致即阻断，空对象 `{}` 记为一个叶子；连带把 `tests/test_i18n_key_count.py` 中固化旧语义的 1 例改写为“深层键漂移必须报错”并补 3 例。已接入 `check_all.sh --fast`（G-039 之后）与 CI `test-frontend` 步骤；配套 14 例受控测试 `tests/test_check_i18n_hardcoded.py`。存量：**76 个文件 / 897 行**（最高 `NotificationConfig.vue` 77 行），仅建基线不要求一次清完。 |
 | v1.21 | 2026-09-26 | 新增 **G-039 冲突标记检查**（`scripts/check_no_conflict_markers.py`）：禁止带 `<<<<<<<` / `=======` / `>>>>>>>` 的内容入库。起因是一次合并产生了带冲突标记的提交却通过了全部门禁（解析脚本断言失败后 `git add`/`git commit` 仍执行）。扫描范围=显式路径 > 暂存区 > 全库已跟踪文件；`=======` 只在成块时判违规（Markdown Setext 下划线不误伤）；白名单仅限测试本门禁自身的 fixture。已接入 `check_all.sh --fast`（G-012 之后）与 CI `repo-compliance`；配套 8 例受控测试 `tests/test_check_no_conflict_markers.py`。 |

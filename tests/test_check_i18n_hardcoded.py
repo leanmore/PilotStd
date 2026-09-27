@@ -132,8 +132,8 @@ def test_block_comment_regex_no_longer_swallows_code(gate, tmp_path: Path) -> No
 
 
 def test_path_exempt_files_are_skipped(gate) -> None:
-    """路径级豁免（语言包本体 / 死代码）不进扫描列表，且带得出理由。"""
-    for rel_path in sorted(gate.EXCLUDE_FILES | gate.EXEMPT_DEAD_CODE):
+    """路径级豁免（语言包本体）不进扫描列表，且带得出理由。"""
+    for rel_path in sorted(gate.EXCLUDE_FILES):
         p = gate.PROJECT_ROOT / rel_path
         assert gate.exemption_reason(p), f"{rel_path} 应带豁免理由"
         assert p not in gate.collect_files([]), f"{rel_path} 不应出现在扫描列表"

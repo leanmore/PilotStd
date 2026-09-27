@@ -13,7 +13,8 @@
 - 例外：
   1. **行内豁免标记**：本行或上一行含 `i18n-allow` 注释（用于开发日志、正则字符类等确不需翻译的文案）；
   2. **存量基线** `scripts/i18n_hardcoded_baseline.txt`（`<相对路径>::<行数>`）：基线内**不报告**，
-     只有 **超出基线**（新写死的中文）才 FAIL；低于基线只提示基线过期（不阻断），便于逐步偿还。
+     只有 **超出基线**（新写死的中文）才 FAIL；低于基线只提示基线过期（不阻断），便于逐步偿还；
+  3. **路径级豁免** `EXCLUDE_FILES`：语言包本体（自身即本地化数据，不是"写死的中文"）。
 
 用法：
   python scripts/check_i18n_hardcoded.py                     # 全量扫描 + 比基线（CI/门禁）
@@ -46,16 +47,6 @@ EXCLUDE_NAME_SUFFIXES = (".test.ts", ".spec.ts", ".d.ts")
 
 # 路径级豁免：**语言包本体**（自身就是本地化数据，不是"写死的中文"）
 EXCLUDE_FILES = frozenset({"web/src/lib/primevueLocale.ts"})
-
-# 路径级豁免：**已确认无外部引用的死代码**（R-003：不擅自删，先豁免 + 留待清理决策）
-# 证据见 docs/technical-debt.md 阶段 1 分类报告：`WIDGET_LIBRARY`/`createDefaultWidgets`/
-# `DashboardWidget`/`WidgetDefinition` 全库零外部引用；`SOURCE_LABEL` 全库只有定义行。
-EXEMPT_DEAD_CODE = frozenset(
-    {
-        "web/src/types/dashboard.ts",
-        "web/src/constants/sourceMapping.ts",
-    }
-)
 
 # 中日韩统一表意文字（含扩展 A 与兼容区）；不含日文假名/韩文，避免误判
 CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
@@ -141,8 +132,6 @@ def exemption_reason(path: Path) -> str | None:
     key = rel(path)
     if key in EXCLUDE_FILES:
         return "语言包本体（本地化数据，非硬编码文案）"
-    if key in EXEMPT_DEAD_CODE:
-        return "已确认零外部引用的死代码（待清理决策，R-003 不擅自删）"
     return None
 
 
@@ -165,11 +154,8 @@ def find_hardcoded(path: Path) -> list[tuple[int, str]]:
     return hits
 
 
-def collect_files(targets: list[str], *, keep_exempt: bool = False) -> list[Path]:
-    """展开扫描目标：显式路径（文件或目录）优先，否则扫 web/src 全量。
-
-    keep_exempt=True 时保留被路径豁免的文件（供 --report/--update-baseline 统计口径一致）。
-    """
+def collect_files(targets: list[str]) -> list[Path]:
+    """展开扫描目标：显式路径（文件或目录）优先，否则扫 web/src 全量；路径级豁免的文件一律剔除。"""
     if not targets:
         files = [p for p in WEB_SRC.rglob("*") if p.is_file() and is_scannable(p)]
     else:
@@ -182,8 +168,7 @@ def collect_files(targets: list[str], *, keep_exempt: bool = False) -> list[Path
                 files.extend(q for q in p.rglob("*") if q.is_file() and is_scannable(q))
             elif p.is_file():
                 files.append(p)
-    if not keep_exempt:
-        files = [p for p in files if exemption_reason(p) is None]
+    files = [p for p in files if exemption_reason(p) is None]
     return sorted(files)
 
 
