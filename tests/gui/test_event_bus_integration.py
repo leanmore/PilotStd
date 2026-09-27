@@ -16,7 +16,7 @@ import threading
 import time
 
 import pytest
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import QCoreApplication, QThread, QThreadPool, pyqtSignal
 
 from pilotstd.ui.core.event_bus import EventBus
 
@@ -25,22 +25,44 @@ from pilotstd.ui.core.event_bus import EventBus
 pytestmark = pytest.mark.xdist_group("event_bus_thread_safety")
 
 
-@pytest.fixture(autouse=True)
-def _reset_event_bus():
-    """每个测试前重置 EventBus 单例，防止测试间污染。
+def _wait_for_threads(timeout: float) -> bool:
+    """等待非主线程退出并等 Qt 全局线程池收敛；返回是否已"静止"。
 
-    teardown 先等待非主线程退出（上限 2s），再 reset()——
-    避免 reset 访问未完全退出的后台线程持有的 Qt 对象（Windows Access Violation 根因）。
+    `threading.enumerate()` 只看得到 Python 线程，看不到 Qt 内部线程/QThreadPool，
+    故补一次 `QThreadPool.waitForDone()`——否则可能在 Qt 侧仍有 in-flight 任务时 reset。
     """
-    EventBus.reset()
-    yield
-    deadline = time.monotonic() + 2.0
+    deadline = time.monotonic() + timeout
     while any(
         t.is_alive() for t in threading.enumerate() if t is not threading.main_thread()
     ):
         if time.monotonic() > deadline:
             break
         time.sleep(0.05)
+    QThreadPool.globalInstance().waitForDone(2000)
+    return not any(
+        t.is_alive() for t in threading.enumerate() if t is not threading.main_thread()
+    )
+
+
+@pytest.fixture(autouse=True)
+def _reset_event_bus():
+    """每个测试前重置 EventBus 单例，防止测试间污染。
+
+    teardown 先等待非主线程退出（上限 5s）并等 Qt 线程池收敛，再 reset()——
+    避免 reset 访问未完全退出的后台线程持有的 Qt 对象（Windows Access Violation 根因）。
+
+    到期仍未静止时**不再 reset**：此刻 `cls._instance = None` 会销毁那个 QObject，
+    而其它线程可能仍在 publish() / 排队 deliver 中引用它（use-after-free）。
+    CI 的两次 access violation（run 36218068788 / 36293074107）都落在这一行。
+    此时把清理留给下一次 setup 的 reset()——那时残留线程通常已结束，不再处于竞态窗口。
+    """
+    EventBus.reset()
+    yield
+    if not _wait_for_threads(5.0):
+        return
+    app = QCoreApplication.instance()
+    if app is not None:  # 排空主线程事件队列里剩余的 deliver，避免 reset 后仍被投递
+        app.processEvents()
     EventBus.reset()
 
 
