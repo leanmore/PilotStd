@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import { shallowMount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createI18n } from 'vue-i18n'
 import QualityView from './QualityView.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -23,9 +26,14 @@ const StubDataTable = {
   props: ['value', 'stripedRows', 'size'],
 }
 
-function mountComponent() {
+function makeI18n(locale: 'zh-CN' | 'en') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
+}
+
+function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(QualityView, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: { Card: StubCard, Button, DataTable: StubDataTable },
     },
   })
@@ -85,5 +93,13 @@ describe('QualityView', () => {
     await nextTick()
     expect(wrapper.find('.text-sm').exists()).toBe(true)
     vi.useRealTimers()
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', () => {
+    const zh = mountComponent('zh-CN')
+    expect(zh.find('.page-title').text()).toBe('数据质量检查')
+
+    const english = mountComponent('en')
+    expect(english.find('.page-title').text()).toBe('Data Quality Check')
   })
 })

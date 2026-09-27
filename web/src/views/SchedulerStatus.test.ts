@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import { shallowMount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createI18n } from 'vue-i18n'
 import SchedulerStatus from './SchedulerStatus.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -24,9 +27,14 @@ const StubDataTable = {
   props: ['value', 'stripedRows', 'size', 'loading'],
 }
 
-function mountComponent() {
+function makeI18n(locale: 'zh-CN' | 'en') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
+}
+
+function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(SchedulerStatus, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: { Card: StubCard, Button, Badge, DataTable: StubDataTable },
     },
   })
@@ -89,5 +97,15 @@ describe('SchedulerStatus', () => {
     await nextTick()
     const dt = wrapper.findComponent(StubDataTable)
     expect(dt.props('value')).toEqual([])
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountComponent('zh-CN')
+    await nextTick()
+    expect(zh.find('.page-title').text()).toBe('调度器状态')
+
+    const english = mountComponent('en')
+    await nextTick()
+    expect(english.find('.page-title').text()).toBe('Scheduler Status')
   })
 })

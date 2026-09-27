@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import { shallowMount } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { createI18n } from 'vue-i18n'
 import DownloadQueue from './DownloadQueue.vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -18,9 +21,14 @@ const StubCard = {
   template: '<div class="card-stub"><slot name="content" /></div>',
 }
 
-function mountComponent() {
+function makeI18n(locale: 'zh-CN' | 'en') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
+}
+
+function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(DownloadQueue, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: {
         Card: StubCard,
         Button,
@@ -75,5 +83,15 @@ describe('DownloadQueue', () => {
     await nextTick()
     await nextTick()
     expect(wrapper.find('.text-sm').text()).toBe('共 1 个任务')
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountComponent('zh-CN')
+    await nextTick()
+    expect(zh.find('.page-title').text()).toBe('下载队列')
+
+    const english = mountComponent('en')
+    await nextTick()
+    expect(english.find('.page-title').text()).toBe('Download Queue')
   })
 })

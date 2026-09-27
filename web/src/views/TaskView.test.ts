@@ -2,6 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { shallowMount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import TaskView from './TaskView.vue'
 
 const mockPostScan = vi.fn()
@@ -37,9 +40,14 @@ vi.mock('@/utils/taskRestore', () => ({
   resolveActiveRun: vi.fn(() => null),
 }))
 
-function mountTaskView() {
+function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
+}
+
+function mountTaskView(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return shallowMount(TaskView, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: {
         Button: { name: 'Button', template: '<button class="p-button" @click="$emit(\'click\')"><slot /></button>', props: ['icon', 'label', 'size', 'severity', 'loading', 'text', 'disabled'] },
         Tag: { name: 'Tag', template: '<span><slot /></span>', props: ['value', 'severity'] },
@@ -100,5 +108,17 @@ describe('TaskView 归档 items 构造', () => {
     expect(items.length).toBe(1)
     expect(items[0].logical_code).toBe('GB')
     expect(items[0].num_prefix).toBe('')
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountTaskView('zh-CN')
+    await flushPromises()
+    expect(zh.text()).toContain('标准处理流水线')
+    expect(zh.text()).toContain('规范化')
+
+    const english = mountTaskView('en')
+    await flushPromises()
+    expect(english.text()).toContain('Standard processing pipeline')
+    expect(english.text()).toContain('Normalize')
   })
 })

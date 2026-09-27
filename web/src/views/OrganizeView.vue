@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'OrganizeView' })
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getFiles, postCleanEmpty } from '@/api'
 import { enqueueValidityCheck } from '@/api/validity'
 import { getItem, setItem } from '@/lib/storage'
@@ -10,6 +11,8 @@ import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Tag from 'primevue/tag'
 import LogBar from '@/components/LogBar.vue'
+
+const { t } = useI18n()
 
 const rootPath = ref('/standards')
 const files = ref<any[]>([])
@@ -26,13 +29,13 @@ async function browse(dir?: string) {
       ...f, _size: f.size ? (f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : (f.size/1024).toFixed(0)+' KB') : ''
     }))
     rootPath.value = p
-  } catch (e: any) { error.value = e.response?.data?.error || '浏览失败，请检查路径和权限' }
+  } catch (e: any) { error.value = e.response?.data?.error || t('organize.browse_failed') }
   finally { loading.value = false }
 }
 
 async function cleanEmpty() {
   const data = await postCleanEmpty(rootPath.value)
-  cleanResult.value = data.removed ? `已清理 ${data.removed} 个空目录` : '无空目录'
+  cleanResult.value = data.removed ? t('organize.cleaned', { n: data.removed }) : t('organize.no_empty_dirs')
   setTimeout(() => cleanResult.value = '', 3000)
   browse()
 }
@@ -76,11 +79,11 @@ async function doEnqueue() {
   enqueueLoading.value = true; enqueueResult.value = ''
   try {
     const r = await enqueueValidityCheck(Array.from(selectedFiles.value))
-    enqueueResult.value = `已加入队列：${r.enqueued}/${r.total}`
+    enqueueResult.value = t('organize.enqueued', { n: r.enqueued, m: r.total })
     selectedFiles.value = new Set()
     setTimeout(() => enqueueResult.value = '', 3000)
   } catch (e: any) {
-    enqueueResult.value = `入队失败: ${e.response?.data?.error || e.message}`
+    enqueueResult.value = t('organize.enqueue_failed', { msg: e.response?.data?.error || e.message })
   } finally {
     enqueueLoading.value = false
   }
@@ -116,15 +119,15 @@ const breadcrumbs = computed(() => {
 </script>
 
 <template>
-  <h1>文件管理</h1>
-  <p class="hint">浏览和管理标准库中的文件，支持清理空目录。</p>
+  <h1>{{ t('organize.title') }}</h1>
+  <p class="hint">{{ t('organize.hint') }}</p>
 
   <!-- 控制区卡片 -->
   <div class="card mt-2">
     <div class="controls">
       <input :value="rootPath" @keyup.enter="browse(($event.target as any).value)" @change="e => rootPath = (e.target as any).value" class="fi" style="flex:1" placeholder="/standards" />
-      <Button label="浏览" icon="pi pi-folder-open" :loading="loading" @click="browse()" size="small" />
-      <Button label="清理空目录" icon="pi pi-trash" severity="warn" size="small" @click="cleanEmpty" />
+      <Button :label="t('organize.browse')" icon="pi pi-folder-open" :loading="loading" @click="browse()" size="small" />
+      <Button :label="t('organize.clean_empty')" icon="pi pi-trash" severity="warn" size="small" @click="cleanEmpty" />
     </div>
     <p v-if="cleanResult" class="clean-msg">{{ cleanResult }}</p>
     <p v-if="error" class="err-msg">{{ error }}</p>
@@ -132,7 +135,7 @@ const breadcrumbs = computed(() => {
 
   <!-- 面包屑导航 -->
   <div class="breadcrumb mt-2">
-    <span class="crumb" @click="browse('/')">根目录</span>
+    <span class="crumb" @click="browse('/')">{{ t('organize.root') }}</span>
     <template v-for="(c, i) in breadcrumbs" :key="c.path">
       <span class="crumb-sep">›</span>
       <span class="crumb" :class="{ active: i === breadcrumbs.length - 1 }" @click="browse(c.path)">{{ c.label }}</span>
@@ -141,13 +144,13 @@ const breadcrumbs = computed(() => {
 
   <!-- 统计 + 操作栏 -->
   <div class="stats-row mt-2">
-    <Tag severity="info" :value="files.length + ' 个文件'" />
+    <Tag severity="info" :value="t('organize.files', { n: files.length })" />
     <Tag severity="success" :value="files.filter(f=>f.type==='pdf').length + ' PDF'" />
-    <Tag severity="warn" :value="files.filter(f=>f.type!=='pdf').length + ' 其他'" />
+    <Tag severity="warn" :value="t('organize.other', { n: files.filter(f=>f.type!=='pdf').length })" />
     <div style="flex:1" />
     <div v-if="selectedFiles.size > 0" class="op-bar">
-      <span class="selected-count">已选 {{ selectedFiles.size }} 个文件</span>
-      <Button label="加入时效性检查" icon="pi pi-clock" size="small" :loading="enqueueLoading" @click="doEnqueue" />
+      <span class="selected-count">{{ t('organize.selected', { n: selectedFiles.size }) }}</span>
+      <Button :label="t('organize.enqueue_validity')" icon="pi pi-clock" size="small" :loading="enqueueLoading" @click="doEnqueue" />
     </div>
     <span v-if="enqueueResult" class="enqueue-msg">{{ enqueueResult }}</span>
   </div>
@@ -158,7 +161,7 @@ const breadcrumbs = computed(() => {
       <!-- 全选行 -->
       <div class="select-all-row">
         <Checkbox :model-value="isAllSelected()" @change="toggleAll" :input-id="'select-all'" />
-        <label for="select-all" class="select-all-label">全选本页文件</label>
+        <label for="select-all" class="select-all-label">{{ t('organize.select_all') }}</label>
       </div>
       <div v-for="item in slotProps.items" :key="item.path" class="p-2 border-bottom">
         <div

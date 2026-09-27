@@ -8,7 +8,6 @@ web/src/components/LogBar.vue::5
 web/src/components/RouteDebugPanel.vue::9
 web/src/components/StandardTable.vue::4
 web/src/components/TableLoadFooter.vue::5
-web/src/components/TaskManager.vue::35
 web/src/components/UnifiedFilterBar.vue::3
 web/src/components/dashboard/widgets/AdapterStatusAnnounceCard.vue::9
 web/src/components/dashboard/widgets/AdapterStatusCard.vue::11
@@ -29,17 +28,10 @@ web/src/router.ts::2
 web/src/views/AnnounceDetail.vue::20
 web/src/views/AnnounceView.vue::10
 web/src/views/BackupView.vue::6
-web/src/views/DownloadImport.vue::15
-web/src/views/DownloadQueue.vue::4
 web/src/views/FavoritesView.vue::19
 web/src/views/LegacyRedirect.vue::1
 web/src/views/LoginView.vue::5
-web/src/views/OrganizeView.vue::14
-web/src/views/PendingView.vue::11
-web/src/views/QualityView.vue::10
 web/src/views/QueryHistory.vue::4
 web/src/views/RegisterView.vue::10
-web/src/views/SchedulerStatus.vue::9
 web/src/views/StandardsStatusView.vue::24
 web/src/views/SystemResources.vue::4
-web/src/views/TaskView.vue::42

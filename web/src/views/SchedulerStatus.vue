@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'SchedulerStatus' })
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -21,6 +22,8 @@ interface SchedulerStatus {
   jobs: Job[]
   timestamp: string
 }
+
+const { t } = useI18n()
 
 const status = ref<SchedulerStatus>({ running: false, job_count: 0, jobs: [], timestamp: '' })
 const loading = ref(false)
@@ -46,26 +49,26 @@ onMounted(() => fetchStatus('/scheduler'))
 
 <template>
   <div class="page">
-    <h2 class="page-title">调度器状态</h2>
+    <h2 class="page-title">{{ t('scheduler.title') }}</h2>
     <Card>
       <template #content>
         <div class="status-header">
-          <Badge :value="status.running ? '运行中' : '已停止'" :severity="status.running ? 'success' : 'danger'" />
-          <span class="text-sm">任务数: {{ status.job_count }}</span>
-          <span class="text-sm">更新: {{ formatTime(status.timestamp) }}</span>
+          <Badge :value="status.running ? t('scheduler.running') : t('scheduler.stopped')" :severity="status.running ? 'success' : 'danger'" />
+          <span class="text-sm">{{ t('scheduler.job_count', { n: status.job_count }) }}</span>
+          <span class="text-sm">{{ t('scheduler.updated', { time: formatTime(status.timestamp) }) }}</span>
           <Button icon="pi pi-refresh" text size="small" @click="fetchStatus()" />
         </div>
         <DataTable :value="status.jobs" striped-rows size="small" :loading="loading">
-          <Column field="id" header="任务 ID" />
-          <Column header="下次执行">
+          <Column field="id" :header="t('scheduler.col_job_id')" />
+          <Column :header="t('scheduler.col_next_run')">
             <template #body="{ data }">
               {{ data.next_run_time ? formatTime(data.next_run_time) : '-' }}
             </template>
           </Column>
-          <Column field="trigger" header="触发器" />
-          <Column header="状态">
+          <Column field="trigger" :header="t('scheduler.col_trigger')" />
+          <Column :header="t('scheduler.col_status')">
             <template #body="{ data }">
-              <Badge :value="data.pending ? '等待中' : '已调度'" :severity="data.pending ? 'warn' : 'info'" />
+              <Badge :value="data.pending ? t('scheduler.pending') : t('scheduler.scheduled')" :severity="data.pending ? 'warn' : 'info'" />
             </template>
           </Column>
         </DataTable>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'QualityView' })
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -9,6 +10,7 @@ import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import { runQualityCheck } from '@/api/quality'
 
+const { t } = useI18n()
 const results = ref<any[]>([])
 const summary = ref({ total: 0, files_checked: 0, passed: true, failed: 0 })
 const running = ref(false)
@@ -36,32 +38,32 @@ const runCheck = async () => {
 
 <template>
   <div class="page">
-    <h2 class="page-title">数据质量检查</h2>
+    <h2 class="page-title">{{ t('quality.title') }}</h2>
     <Card>
       <template #content>
         <div class="flex gap-3 align-items-center">
-          <Button label="运行检查" icon="pi pi-play" @click="runCheck" :loading="running" />
-          <span v-if="lastRun" class="text-sm">上次检查: {{ formatTime(lastRun) }}</span>
+          <Button :label="t('quality.run')" icon="pi pi-play" @click="runCheck" :loading="running" />
+          <span v-if="lastRun" class="text-sm">{{ t('quality.last_run', { time: formatTime(lastRun) }) }}</span>
         </div>
 
         <div v-if="results.length > 0">
           <Divider />
-          <h4>检查结果 ({{ summary.failed }} 项违规 / {{ summary.files_checked }} 文件)</h4>
+          <h4>{{ t('quality.summary', { failed: summary.failed, files: summary.files_checked }) }}</h4>
           <DataTable :value="results" striped-rows size="small">
-            <Column field="rule" header="规则" />
-            <Column field="file" header="文件" />
-            <Column field="line" header="行" />
-            <Column header="级别">
+            <Column field="rule" :header="t('quality.col_rule')" />
+            <Column field="file" :header="t('quality.col_file')" />
+            <Column field="line" :header="t('quality.col_line')" />
+            <Column :header="t('quality.col_level')">
               <template #body="{ data }">
                 <Tag :value="data.severity" :severity="data.severity === 'error' ? 'danger' : 'warn'" />
               </template>
             </Column>
-            <Column field="message" header="信息" />
+            <Column field="message" :header="t('quality.col_message')" />
           </DataTable>
         </div>
 
         <div v-else-if="!running" class="text-center p-4" style="color: var(--text-color-secondary)">
-          点击「运行检查」开始数据质量检查
+          {{ t('quality.empty_hint') }}
         </div>
       </template>
     </Card>

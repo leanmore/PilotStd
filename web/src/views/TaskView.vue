@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'TaskView' })
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { postScan, postQuery, postDownload, postNormalize, postArchive, getSettings } from '@/api'
 import { getPipelineRun } from '@/api/tasks'
 import type { PipelineRun } from '@/types/task'
@@ -15,18 +16,20 @@ import Paginator from 'primevue/paginator'
 import { parseStandardNumber } from '@/utils/standardParser'
 import LogBar from '@/components/LogBar.vue'
 
+const { t } = useI18n()
 const paths = ref<string[]>(['/inbox', '/standards'])
 const { taskPath: selectedPath } = useUserPreferences()
 const running = ref(false)
 const currentStep = ref(-1)
 
-interface StepState { label: string; icon: string; status: 'wait'|'running'|'done'|'fail'; summary: string }
+// 步骤名存 key、渲染期翻译；旧版 localStorage 记录只有 label（中文），模板做回退
+interface StepState { labelKey: string; label?: string; icon: string; status: 'wait'|'running'|'done'|'fail'; summary: string }
 const steps = ref<StepState[]>([
-  { label: '扫描', icon: 'pi pi-search', status: 'wait', summary: '' },
-  { label: '查询', icon: 'pi pi-globe', status: 'wait', summary: '' },
-  { label: '下载', icon: 'pi pi-download', status: 'wait', summary: '' },
-  { label: '规范化', icon: 'pi pi-pencil', status: 'wait', summary: '' },
-  { label: '归档', icon: 'pi pi-folder-open', status: 'wait', summary: '' },
+  { labelKey: 'task.step.scan', icon: 'pi pi-search', status: 'wait', summary: '' },
+  { labelKey: 'task.step.query', icon: 'pi pi-globe', status: 'wait', summary: '' },
+  { labelKey: 'task.step.download', icon: 'pi pi-download', status: 'wait', summary: '' },
+  { labelKey: 'task.step.normalize', icon: 'pi pi-pencil', status: 'wait', summary: '' },
+  { labelKey: 'task.step.archive', icon: 'pi pi-folder-open', status: 'wait', summary: '' },
 ])
 
 const scanResult = ref<any>(null)
@@ -53,7 +56,7 @@ function updateStepsFromRun(run: PipelineRun) {
     } else if (i === currentIdx) {
       if (run.status === 'failed') {
         s.status = 'fail'
-        s.summary = run.error_message || '执行失败'
+        s.summary = run.error_message || t('task.run_failed')
       } else if (run.status === 'completed') {
         s.status = 'done'
       } else {
@@ -63,7 +66,7 @@ function updateStepsFromRun(run: PipelineRun) {
   }
   progress.value = run.progress
   if (run.status === 'failed' && !error.value) {
-    error.value = run.error_message || '管道执行失败'
+    error.value = run.error_message || t('task.pipeline_failed')
   }
 }
 
@@ -84,7 +87,7 @@ function startPolling() {
       pollFailCount++
       if (pollFailCount >= 3) {
         stopPolling()
-        if (!error.value) error.value = '状态同步失败，请检查网络连接'
+        if (!error.value) error.value = t('task.sync_failed')
       }
     }
   }, 2000)
@@ -164,7 +167,7 @@ function viewRecord(r: TaskRecord) { selectedRecord.value = r }
 function rerun(r: TaskRecord) { selectedPath.value = r.path; selectedRecord.value = null; runPipeline() }
 
 function deleteRecord(r: TaskRecord) {
-  if (!confirm('确定删除该运行记录吗？')) return
+  if (!confirm(t('task.delete_confirm'))) return
   history.value = history.value.filter(item => item.id !== r.id)
   localStorage.setItem('pilotstd_tasks', JSON.stringify(history.value))
   if (selectedRecord.value?.id === r.id) selectedRecord.value = null
@@ -199,18 +202,18 @@ async function runPipeline() {
     setItem('task_active_run', runId.value)
     // 启动后端状态轮询
     startPolling()
-    setStep(0, 'done', `${scan.total || 0} 个文件 (PDF ${scan.pdf_count || 0} / Word ${scan.word_count || 0})`)
-    if (!scan.files?.length) { error.value = '未扫描到标准文件'; finalStatus = 'fail'; return }
+    setStep(0, 'done', t('task.scan_summary', { n: scan.total || 0, pdf: scan.pdf_count || 0, word: scan.word_count || 0 }))
+    if (!scan.files?.length) { error.value = t('task.scan_no_files'); finalStatus = 'fail'; return }
 
     // 步骤 1：查询
     currentStep.value = 1; setStep(1, 'running')
     const numbers = (scan.files || []).map((f: any) => f.standard_number).filter(Boolean)
     if (numbers.length === 0) {
-      setStep(1, 'done', '扫描结果中无标准号'); error.value = '未能从文件名中解析出标准号'; finalStatus = 'partial'; return
+      setStep(1, 'done', t('task.scan_no_numbers')); error.value = t('task.scan_parse_failed'); finalStatus = 'partial'; return
     }
     const query = await postQuery(numbers, false, runId.value!)
     queryResult.value = query
-    setStep(1, 'done', `查得 ${query.stats?.found || 0} 条 (可下载 ${query.stats?.downloadable || 0})`)
+    setStep(1, 'done', t('task.query_summary', { n: query.stats?.found || 0, m: query.stats?.downloadable || 0 }))
 
     // 步骤 2：下载
     currentStep.value = 2; setStep(2, 'running')
@@ -218,8 +221,8 @@ async function runPipeline() {
     if (dlNums.length > 0) {
       const dl = await postDownload(dlNums, runId.value!)
       downloadResult.value = dl
-      setStep(2, 'done', `成功 ${dl.stats?.success || 0} / 跳过 ${dl.stats?.skipped || 0}`)
-    } else { setStep(2, 'done', '无可下载项') }
+      setStep(2, 'done', t('task.download_summary', { s: dl.stats?.success || 0, k: dl.stats?.skipped || 0 }))
+    } else { setStep(2, 'done', t('task.download_empty')) }
 
     // 步骤 3：规范化
     currentStep.value = 3; setStep(3, 'running')
@@ -247,7 +250,7 @@ async function runPipeline() {
       .filter((item): item is NonNullable<typeof item> => item != null)
     const norm = await postNormalize(normItems, runId.value!)
     normalizeResult.value = norm
-    setStep(3, 'done', `${norm.results?.length || 0} 个文件`)
+    setStep(3, 'done', t('task.count_files', { n: norm.results?.length || 0 }))
 
     // 步骤 4：归档
     currentStep.value = 4; setStep(4, 'running')
@@ -259,13 +262,13 @@ async function runPipeline() {
     }))
     if (archiveItems.length > 0) {
       await postArchive(archiveItems, undefined, runId.value!)
-      setStep(4, 'done', '已处理')
-    } else { setStep(4, 'done', '无文件待归档') }
+      setStep(4, 'done', t('task.archive_done'))
+    } else { setStep(4, 'done', t('task.archive_empty')) }
 
     progress.value = 100
   } catch (e: any) {
-    setStep(currentStep.value, 'fail', e.response?.data?.error || e.message || '未知错误')
-    error.value = e.response?.data?.error || e.message || '未知错误'
+    setStep(currentStep.value, 'fail', e.response?.data?.error || e.message || t('task.unknown_error'))
+    error.value = e.response?.data?.error || e.message || t('task.unknown_error')
     finalStatus = 'fail'
   } finally {
     running.value = false
@@ -283,15 +286,15 @@ function statusSeverity(s: string) {
   if (s === 'success') return 'success'; if (s === 'partial') return 'warn'; return 'danger'
 }
 function statusLabel(s: string) {
-  if (s === 'success') return '完成'; if (s === 'partial') return '部分完成'; return '失败'
+  if (s === 'success') return t('task.status.done'); if (s === 'partial') return t('task.status.partial'); return t('task.status.failed')
 }
 </script>
 
 <template>
   <div class="page-header">
     <div>
-      <h1>任务</h1>
-      <p class="hint">标准处理流水线：扫描 → 查询 → 下载 → 规范化 → 归档</p>
+      <h1>{{ t('task.title') }}</h1>
+      <p class="hint">{{ t('task.hint') }}</p>
     </div>
   </div>
 
@@ -301,7 +304,7 @@ function statusLabel(s: string) {
       <select v-model="selectedPath" class="fi">
         <option v-for="p in paths" :key="p" :value="p">{{ p }}</option>
       </select>
-      <Button label="开始任务" icon="pi pi-play" :loading="running" @click="runPipeline" />
+      <Button :label="t('task.start')" icon="pi pi-play" :loading="running" @click="runPipeline" />
     </div>
   </div>
 
@@ -320,38 +323,38 @@ function statusLabel(s: string) {
         <span v-else class="step-num">{{ i + 1 }}</span>
       </div>
       <div class="step-info">
-        <div class="step-label">{{ step.label }}</div>
+        <div class="step-label">{{ step.labelKey ? t(step.labelKey) : step.label }}</div>
         <div v-if="step.summary" class="step-summary">{{ step.summary }}</div>
       </div>
-      <Tag :value="step.status === 'done' ? '完成' : step.status === 'running' ? '进行中' : step.status === 'fail' ? '失败' : '待定'" :severity="stepSeverity(step.status)" />
+      <Tag :value="step.status === 'done' ? t('task.status.done') : step.status === 'running' ? t('task.status.running') : step.status === 'fail' ? t('task.status.failed') : t('task.status.pending')" :severity="stepSeverity(step.status)" />
     </div>
   </div>
 
   <!-- 扫描结果 -->
   <div v-if="scanResult" class="card mt-3">
-    <div class="card-header">扫描结果</div>
+    <div class="card-header">{{ t('task.scan_result') }}</div>
     <div class="stats-row">
       <Tag severity="success" :value="'PDF: ' + (scanResult.pdf_count || 0)" />
       <Tag severity="info" :value="'Word: ' + (scanResult.word_count || 0)" />
-      <Tag severity="warn" :value="'去重: ' + (scanResult.dup_skipped || 0)" />
-      <Tag :value="'共 ' + (scanResult.total || 0) + ' 个文件'" />
+      <Tag severity="warn" :value="t('task.dup_skipped', { n: scanResult.dup_skipped || 0 })" />
+      <Tag :value="t('task.total_files', { n: scanResult.total || 0 })" />
     </div>
   </div>
 
   <!-- 查询/下载/归档汇总 -->
   <div v-if="queryResult" class="card mt-3">
-    <div class="card-header">查询·下载·归档汇总</div>
+    <div class="card-header">{{ t('task.summary_title') }}</div>
     <div class="summary-grid">
-      <div class="sum-item"><span class="sum-label">查询</span><span class="sum-val">{{ queryResult.stats?.found || 0 }} 条</span></div>
-      <div class="sum-item"><span class="sum-label">可下载</span><span class="sum-val">{{ queryResult.stats?.downloadable || 0 }} 条</span></div>
-      <div class="sum-item"><span class="sum-label">下载成功</span><span class="sum-val">{{ downloadResult?.stats?.success || 0 }} 条</span></div>
-      <div class="sum-item"><span class="sum-label">规范化</span><span class="sum-val">{{ normalizeResult?.results?.length || 0 }} 个</span></div>
+      <div class="sum-item"><span class="sum-label">{{ t('task.step.query') }}</span><span class="sum-val">{{ t('task.count_items', { n: queryResult.stats?.found || 0 }) }}</span></div>
+      <div class="sum-item"><span class="sum-label">{{ t('task.downloadable') }}</span><span class="sum-val">{{ t('task.count_items', { n: queryResult.stats?.downloadable || 0 }) }}</span></div>
+      <div class="sum-item"><span class="sum-label">{{ t('task.download_success') }}</span><span class="sum-val">{{ t('task.count_items', { n: downloadResult?.stats?.success || 0 }) }}</span></div>
+      <div class="sum-item"><span class="sum-label">{{ t('task.step.normalize') }}</span><span class="sum-val">{{ t('task.count_files', { n: normalizeResult?.results?.length || 0 }) }}</span></div>
     </div>
   </div>
 
   <!-- 任务历史 -->
   <div v-if="history.length" class="card mt-3">
-    <div class="card-header">运行记录</div>
+    <div class="card-header">{{ t('task.history_title') }}</div>
     <DataView :value="paginatedHistory" size="small">
       <template #list="slotProps">
         <div v-for="item in slotProps.items" :key="item.id" class="p-2 border-bottom">
@@ -362,16 +365,16 @@ function statusLabel(s: string) {
                 <span class="text-dim" style="font-size:12px;color:var(--text-dim)">{{ item.path }}</span>
               </div>
               <div class="flex" style="display:flex;gap:12px;font-size:12px;color:var(--text-dim);margin-top:4px">
-                <span>扫描: {{ item.scanCount }}</span>
-                <span>查询: {{ item.queryFound }}</span>
-                <span>下载: {{ item.dlSuccess }}</span>
+                <span>{{ t('task.history_scan', { n: item.scanCount }) }}</span>
+                <span>{{ t('task.history_query', { n: item.queryFound }) }}</span>
+                <span>{{ t('task.history_download', { n: item.dlSuccess }) }}</span>
               </div>
             </div>
             <div class="flex" style="display:flex;gap:6px;align-items:center">
               <Tag :value="statusLabel(item.status)" :severity="statusSeverity(item.status)" />
-              <Button label="详情" size="small" text @click="viewRecord(item)" />
-              <Button label="重跑" size="small" text severity="info" @click="rerun(item)" />
-              <Button label="删除" size="small" text severity="danger" @click="deleteRecord(item)" />
+              <Button :label="t('task.detail')" size="small" text @click="viewRecord(item)" />
+              <Button :label="t('task.rerun')" size="small" text severity="info" @click="rerun(item)" />
+              <Button :label="t('task.delete')" size="small" text severity="danger" @click="deleteRecord(item)" />
             </div>
           </div>
         </div>
@@ -383,7 +386,7 @@ function statusLabel(s: string) {
   <!-- 历史详情弹窗 -->
   <div v-if="selectedRecord" class="card mt-3">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-      <span>任务详情 — {{ selectedRecord.time }}</span>
+      <span>{{ t('task.detail_title', { time: selectedRecord.time }) }}</span>
       <Button icon="pi pi-times" size="small" text @click="selectedRecord = null" />
     </div>
     <div class="pipeline">
@@ -394,10 +397,10 @@ function statusLabel(s: string) {
           <span v-else class="step-num">{{ i + 1 }}</span>
         </div>
         <div class="step-info">
-          <div class="step-label">{{ step.label }}</div>
+          <div class="step-label">{{ step.labelKey ? t(step.labelKey) : step.label }}</div>
           <div v-if="step.summary" class="step-summary">{{ step.summary }}</div>
         </div>
-        <Tag :value="step.status === 'done' ? '完成' : step.status === 'fail' ? '失败' : '待定'" :severity="stepSeverity(step.status)" />
+        <Tag :value="step.status === 'done' ? t('task.status.done') : step.status === 'fail' ? t('task.status.failed') : t('task.status.pending')" :severity="stepSeverity(step.status)" />
       </div>
     </div>
   </div>

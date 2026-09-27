@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'PendingView' })
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import DataView from 'primevue/dataview'
 import Paginator from 'primevue/paginator'
 import Button from 'primevue/button'
@@ -13,6 +14,7 @@ import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
 
 const { adapters, loading: adaptersLoading, error: adaptersError, ensure, refresh: refreshAdapters } = useQueryAdapters('/pending')
+const { t } = useI18n()
 
 const input = ref('')
 const results = ref<any[]>([])
@@ -43,7 +45,7 @@ async function requery() {
     const r = await postRequery(numbers, selectedSite.value)
     results.value = (r.results || []).map((x: any) => ({ ...x, _site: selectedSite.value }))
     results.value = (r.results || []).map((x: any) => ({ ...x }))
-  } catch (e: any) { error.value = '重新查询失败，请查看日志' }
+  } catch (e: any) { error.value = t('pending.requery_failed') }
   finally { loading.value = false }
 }
 
@@ -53,8 +55,8 @@ async function loadPending() {
   try {
     const r = await getPendingItems()
     input.value = (r.items || []).map((x: any) => x.standard_number || '').filter(Boolean).join('\n')
-    importMsg.value = r.items.length ? `已导入 ${r.items.length} 条待确认标准` : '暂无待确认标准'
-  } catch { importMsg.value = '导入失败' }
+    importMsg.value = r.items.length ? t('pending.importResult', { n: r.items.length }) : t('pending.importEmpty')
+  } catch { importMsg.value = t('pending.importFailed') }
 }
 function severity(s: string) {
   if (s === '现行' || s === 'Active') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
@@ -67,32 +69,32 @@ onMounted(() => { ensure() })
 </script>
 
 <template>
-  <h1>待确认</h1>
-  <p class="hint">对首次查询中匹配度低或不确定的标准，手工导入后指定站点重新查询验证。</p>
+  <h1>{{ t('pending.title') }}</h1>
+  <p class="hint">{{ t('pending.hint') }}</p>
 
   <div class="btn-row mb-2">
-    <Button label="导入待确认清单" icon="pi pi-list" size="small" @click="loadPending" />
+    <Button :label="t('pending.import_btn')" icon="pi pi-list" size="small" @click="loadPending" />
     <span v-if="importMsg" class="import-msg">{{ importMsg }}</span>
   </div>
 
   <div class="mt-2" style="display:flex;gap:12px;align-items:flex-start">
     <div style="flex:1">
-      <Textarea v-model="input" rows="6" placeholder="输入标准号，一行一个&#10;或从查询结果中粘贴" />
+      <Textarea v-model="input" rows="6" :placeholder="t('pending.input_placeholder')" />
     </div>
   </div>
 
   <!-- 站点选择 —— 动态加载，带 loading/error/refresh -->
   <div class="card mt-2">
-    <div class="card-header">选择查询站点</div>
+    <div class="card-header">{{ t('pending.select_sites') }}</div>
 
     <div v-if="adaptersLoading" class="flex align-items-center gap-2 py-3">
       <ProgressSpinner style="width:20px;height:20px" strokeWidth="4" />
-      <span class="text-dim">加载站点列表…</span>
+      <span class="text-dim">{{ t('pending.sites_loading') }}</span>
     </div>
 
     <div v-else-if="adaptersError" class="py-2">
       <p class="err-msg">{{ adaptersError }}</p>
-      <Button label="刷新" icon="pi pi-refresh" size="small" severity="secondary" @click="refreshAdapters" />
+      <Button :label="t('pending.refresh')" icon="pi pi-refresh" size="small" severity="secondary" @click="refreshAdapters" />
     </div>
 
     <div v-else class="site-grid">
@@ -105,7 +107,7 @@ onMounted(() => { ensure() })
         </div>
       </div>
     </div>
-    <Button label="重新查询" icon="pi pi-search" :loading="loading"
+    <Button :label="t('pending.requery')" icon="pi pi-search" :loading="loading"
             :disabled="adaptersLoading || !!adaptersError"
             @click="requery" size="small" class="mt-2" />
   </div>

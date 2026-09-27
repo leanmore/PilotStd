@@ -5,6 +5,7 @@
  */
 defineOptions({ name: 'DownloadImport' })
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { postDownloadImport } from '@/api/download'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -30,6 +31,7 @@ interface ImportResult {
   }>
 }
 
+const { t } = useI18n()
 const textInput = ref('')
 const submitting = ref(false)
 const result = ref<ImportResult | null>(null)
@@ -73,14 +75,14 @@ function handleFileUpload(event: Event) {
 
 <template>
   <div class="download-import">
-    <h2>手动导入下载列表</h2>
+    <h2>{{ t('download.manual_import.title') }}</h2>
 
     <Card class="mb-3">
       <template #content>
         <div class="input-area">
           <Textarea
             v-model="textInput"
-            placeholder="每行输入一个标准号，如：&#10;GB/T 12345-2020&#10;ISO 9001:2015&#10;DB50/T 1982-2026"
+            :placeholder="t('download.manual_import.placeholder')"
             rows="8"
             class="w-full"
             :disabled="submitting"
@@ -93,7 +95,7 @@ function handleFileUpload(event: Event) {
               :disabled="submitting"
             />
             <span class="hint text-sm text-color-secondary">
-              上传 CSV 或 TXT 文件，自动解析并追加到文本框
+              {{ t('download.manual_import.upload_hint') }}
             </span>
           </div>
         </div>
@@ -102,14 +104,14 @@ function handleFileUpload(event: Event) {
 
     <div class="actions mb-3">
       <Button
-        label="提交下载"
+        :label="t('download.manual_import.submit')"
         icon="pi pi-download"
         @click="handleSubmit"
         :loading="submitting"
         :disabled="!textInput.trim()"
       />
       <Button
-        label="清空"
+        :label="t('download.manual_import.clear')"
         icon="pi pi-times"
         severity="secondary"
         text
@@ -125,7 +127,7 @@ function handleFileUpload(event: Event) {
           <template #content>
             <div class="text-center">
               <div class="text-2xl font-bold text-primary">{{ result.valid.length }}</div>
-              <div class="text-sm text-color-secondary">有效</div>
+              <div class="text-sm text-color-secondary">{{ t('download.manual_import.valid') }}</div>
             </div>
           </template>
         </Card>
@@ -135,7 +137,7 @@ function handleFileUpload(event: Event) {
               <div class="text-2xl font-bold" :class="result.invalid.length ? 'text-red-500' : 'text-color'">
                 {{ result.invalid.length }}
               </div>
-              <div class="text-sm text-color-secondary">无效</div>
+              <div class="text-sm text-color-secondary">{{ t('download.manual_import.invalid') }}</div>
             </div>
           </template>
         </Card>
@@ -143,7 +145,7 @@ function handleFileUpload(event: Event) {
           <template #content>
             <div class="text-center">
               <div class="text-2xl font-bold text-orange-500">{{ result.duplicates.length }}</div>
-              <div class="text-sm text-color-secondary">重复</div>
+              <div class="text-sm text-color-secondary">{{ t('download.manual_import.duplicate') }}</div>
             </div>
           </template>
         </Card>
@@ -152,7 +154,7 @@ function handleFileUpload(event: Event) {
       <!-- 无效条目 -->
       <div v-if="result.invalid.length" class="mb-3">
         <Button
-          :label="showInvalid ? '收起无效条目' : `查看无效条目 (${result.invalid.length})`"
+          :label="showInvalid ? t('download.manual_import.hide_invalid') : t('download.manual_import.show_invalid', { n: result.invalid.length })"
           icon="pi pi-exclamation-triangle"
           severity="warn"
           text
@@ -170,26 +172,26 @@ function handleFileUpload(event: Event) {
 
       <!-- 下载结果 -->
       <Card v-if="result.results.length">
-        <template #title>下载结果</template>
+        <template #title>{{ t('download.manual_import.result_title') }}</template>
         <template #content>
           <DataTable :value="result.results" stripedRows size="small">
-            <Column field="standard_number" header="标准号" style="min-width:12rem" />
-            <Column field="standard_name" header="标准名称" style="min-width:14rem">
+            <Column field="standard_number" :header="t('download.manual_import.col_standard_number')" style="min-width:12rem" />
+            <Column field="standard_name" :header="t('download.manual_import.col_standard_name')" style="min-width:14rem">
               <template #body="{ data }">
                 {{ data.standard_name || '-' }}
               </template>
             </Column>
-            <Column field="status" header="状态" style="width:8rem">
+            <Column field="status" :header="t('download.manual_import.col_status')" style="width:8rem">
               <template #body="{ data }">
                 <Tag :value="data.status" :severity="statusSeverity(data.status)" />
               </template>
             </Column>
-            <Column field="saved_path" header="保存路径" style="min-width:14rem">
+            <Column field="saved_path" :header="t('download.manual_import.col_saved_path')" style="min-width:14rem">
               <template #body="{ data }">
                 <span class="text-sm">{{ data.saved_path || '-' }}</span>
               </template>
             </Column>
-            <Column field="error" header="错误信息" style="min-width:10rem">
+            <Column field="error" :header="t('download.manual_import.col_error')" style="min-width:10rem">
               <template #body="{ data }">
                 <span class="text-sm text-red-500">{{ data.error || '-' }}</span>
               </template>
