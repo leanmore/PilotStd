@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 from tests.gui.helpers import wait_for_worker_and_ui
+from tests.gui.helpers.predicates import worker_done
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -63,7 +64,9 @@ def test_download_progress_bar_shows(window, test_data_dir, qtbot):
         window._run_scan(tmp)
         qtbot.wait(300)
         window._on_query()
-        qtbot.wait(1000)
+        # 下载的**前置条件**是查询已结束（旧写法 qtbot.wait(1000) 固定 sleep，worker 实测
+        # 0.6–1.7s、CI 1.0s，余量为负）
+        wait_for_worker_and_ui(qtbot, window, "_query_worker", ui_predicate=worker_done)
         window._on_download()
         qtbot.wait(200)
         assert window.progress_bar.isVisible()
