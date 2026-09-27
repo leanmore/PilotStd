@@ -214,7 +214,7 @@
   2. `pilotstd/ui/qt_lifecycle.py` 的判据用了 `isRunning()`：`QThread.start()` 之后存在
      "已启动但尚未进入 `run()`"的窗口（实测数十毫秒），此时 `isRunning()` 仍为 `False`
      → `stop_worker_gracefully()` 直接返回、`_keep_alive_until_finished()` 当场释放，等于**没保活**。
-- **与 §8.8 同源**（`docs/technical-debt.md` 八、操作记录 8.8：`test-gui-unit` 因
+- **与 §8.8 同源**（`docs/technical-debt.md` 七、操作记录 7.8（2026-09-27 编号收敛前为「八、操作记录 8.8」）：`test-gui-unit` 因
   `QThread: Destroyed while thread is still running` 触发 qFatal 中止套件）——同一类问题第二次发生。
 
 ### 8.3 为什么长期逃过测试（教训链）
