@@ -2,9 +2,12 @@
 defineOptions({ name: 'LoginView' })
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { login, getLoginBackground } from '@/api'
 import Button from 'primevue/button'
+
+const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
@@ -40,7 +43,7 @@ async function submit() {
     store.username = username.value
     store.role = r.role || 'user'
     router.push('/')
-  } catch { error.value = '用户名或密码错误' }
+  } catch { error.value = t('login.err_invalid') }
 }
 </script>
 
@@ -48,10 +51,10 @@ async function submit() {
   <div class="login-page" :style="bgUrl ? { backgroundImage: `url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
     <div class="login-card">
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
-      <p class="hint">标准管理控制台</p>
-      <input v-model="username" name="username" placeholder="用户名" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" name="password" type="password" placeholder="密码" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
-      <Button label="登 录" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:8px" />
+      <p class="hint">{{ t('login.hint') }}</p>
+      <input v-model="username" name="username" :placeholder="t('login.username')" class="login-input" @keyup.enter="submit" />
+      <input v-model="password" name="password" type="password" :placeholder="t('login.password')" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
+      <Button :label="t('login.submit_spaced')" type="submit" @click="submit" severity="primary" style="width:100%;margin-top:8px" />
       <p v-if="error" class="error">{{ error }}</p>
     </div>
   </div>

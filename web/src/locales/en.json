@@ -20,6 +20,7 @@
       "hb": "Industry Announcement",
       "db": "Local Announcement"
     },
+    "type_long": {"gb": "National announcement", "hb": "Industry announcement", "db": "Local announcement"},
     "view": {
       "title": "Announcements",
       "fetch_now": "Fetch Now",
@@ -36,6 +37,7 @@
       }
     },
     "detail": {
+      "route_title": "Announcement Detail",
       "back": "Back to List",
       "field_title": "Title",
       "field_publish_date": "Publish Date",
@@ -119,8 +121,7 @@
             "recent": "Recent Updates", "scanBtn": "Manual Scan",
             "queryBtn": "Manual Query", "downloadBtn": "Download Standards",
             "organizeBtn": "Manage Files", "autoBtn": "Auto Run" },
-  "login": { "title": "PilotStd Login", "password": "Password", "submit": "Login",
-             "error": "Wrong password" },
+  "login": {"title": "PilotStd Login", "password": "Password", "submit": "Login", "error": "Wrong password", "err_invalid": "Incorrect username or password", "hint": "Standards management console", "username": "Username", "submit_spaced": "Log In"},
   "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading",
               "success": "Success", "saved": "Saved", "save_failed": "Save Failed",
               "error": "Error", "retry": "Please retry", "check_network": "Check network and refresh",
@@ -285,6 +286,112 @@
   },
   "export": { "pending_list": "Pending Standards", "manual_download_list": "Manual Download List" },
   "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" },
+  "favorites": {
+    "type": {
+      "all": "All",
+      "national": "National",
+      "industry": "Industry",
+      "local": "Local",
+      "other": "Other",
+      "enterprise": "Enterprise",
+      "group": "Association",
+      "foreign": "Foreign",
+      "unknown": "Unknown type"
+    },
+    "load_failed": "Load failed",
+    "export_failed": "Export failed",
+    "export_current": "Export Current Category",
+    "export_all": "Export All",
+    "col_standard_number": "Standard No.",
+    "col_name": "Name",
+    "col_type": "Type",
+    "col_status": "Status",
+    "col_publish_date": "Publish Date",
+    "col_created_at": "Favorited At",
+    "empty": "No favorites",
+    "empty_type": "No favorites in this category",
+    "op_failed": "Operation failed ({code})",
+    "unknown": "unknown",
+    "unfaved": "Removed from favorites",
+    "faved": "Added to favorites"
+  },
+  "register": {
+    "err_required": "Please fill in username and password",
+    "err_exists": "Username already exists",
+    "err_rate_limit": "Too many registration attempts, please retry later",
+    "err_disabled": "Registration is not open",
+    "err_failed": "Registration failed, please retry",
+    "hint": "Create a new account",
+    "username_ph": "Username (at least 2 characters)",
+    "password_ph": "Password (at least 8 chars, letters and digits)",
+    "submit": "Sign Up",
+    "have_account": "Already have an account? ",
+    "back_to_login": "Back to Login"
+  },
+  "route_debug": {
+    "title": "Route Debug",
+    "input_ph": "Enter a query, e.g. NB/T 1234",
+    "analyzing": "Analyzing…",
+    "analyze": "Analyze",
+    "simulate_label": "Simulated runtime state (optional JSON)",
+    "col_adapter": "Adapter",
+    "col_score": "Score",
+    "col_reasons": "Reasons",
+    "err_json": "Invalid JSON, please check simulate_runtime",
+    "err_request": "Request failed"
+  },
+  "backup": {
+    "title": "Backup Management",
+    "create": "Create Backup",
+    "last_backup": "Last backup: {time}",
+    "col_name": "Backup File",
+    "col_size": "Size (MB)",
+    "col_created": "Created"
+  },
+  "logbar": {
+    "title": "Log ({n} lines)",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "load_failed": "Failed to load logs (polling stopped)",
+    "empty": "No logs",
+    "resize_title": "Drag to resize"
+  },
+  "table_load": {
+    "more": "Load more standards...",
+    "all_shown": "All {total} standards shown",
+    "shown_partial": "Showing first {displayed} / {total} standards",
+    "load_rest": "Load remaining {n}",
+    "scroll_hint": "Showing {displayed} / {total}, scroll to load more"
+  },
+  "query_history": {
+    "title": "Query History",
+    "total": "{n} records in total",
+    "empty": "No query records"
+  },
+  "standard_table": {
+    "col_standard_number": "Standard No.",
+    "col_name": "Name",
+    "col_status": "Status",
+    "col_source": "Source"
+  },
+  "system_resources": {
+    "title": "System Resources",
+    "cores": "{n} cores",
+    "memory": "Memory",
+    "memory_detail": "{total} / {available} available",
+    "disk": "Disk",
+    "disk_detail": "{free} free"
+  },
+  "http": {
+    "network_error": "Network connection error",
+    "timeout": "Request timed out"
+  },
+  "legacy": {
+    "redirecting": "Redirecting..."
+  },
+  "query_adapters": {
+    "load_failed": "Failed to load site list, please refresh and retry"
+  },
   "dashboard": {
     "common": {
       "load_failed": "Load failed",

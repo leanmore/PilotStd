@@ -64,13 +64,14 @@ const routes = [
     path: '/announce/:source/:announceNo',
     name: 'AnnouncementDetail',
     component: () => import('./views/AnnounceDetail.vue'),
-    meta: { title: '公告详情' },
+    // 文案存 key，由 AppLayout/QuickActionsCard 的既有 titleKey 机制翻译
+    meta: { titleKey: 'announce.detail.route_title' },
   },
   {
     path: '/announce/:announceNo',
     name: 'AnnouncementDetailLegacy',
     component: () => import('./views/LegacyRedirect.vue'),
-    meta: { title: '正在跳转...' },
+    meta: { titleKey: 'legacy.redirecting' },
   },
   {
     path: '/notification-logs',

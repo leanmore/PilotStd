@@ -2,19 +2,22 @@
   <div class="flex justify-content-center align-items-center" style="min-height: 400px">
     <div class="text-center">
       <ProgressSpinner />
-      <p class="mt-3 text-color-secondary">正在跳转...</p>
+      <p class="mt-3 text-color-secondary">{{ t('legacy.redirecting') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 defineOptions({ name: 'LegacyRedirect' })
+
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ProgressSpinner from 'primevue/progressspinner'
 import { getAnnouncementByNo } from '@/api/announce'
 import { SOURCE_TO_URL } from '@/constants/sourceMapping'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const announceNo = route.params.announceNo as string

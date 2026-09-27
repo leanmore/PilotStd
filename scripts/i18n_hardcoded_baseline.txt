@@ -1,18 +1,2 @@
 # G-040 i18n 硬编码基线（由 scripts/check_i18n_hardcoded.py --update-baseline 生成，勿手改）
 # 格式: <相对仓库根路径>::<当前存量行数>；门禁只拦「超出基线」的新增，低于基线仅提示可刷新。
-web/src/api/http.ts::2
-web/src/components/LogBar.vue::5
-web/src/components/RouteDebugPanel.vue::9
-web/src/components/StandardTable.vue::4
-web/src/components/TableLoadFooter.vue::5
-web/src/components/UnifiedFilterBar.vue::3
-web/src/composables/useFavorite.ts::3
-web/src/composables/useQueryAdapters.ts::1
-web/src/router.ts::2
-web/src/views/BackupView.vue::6
-web/src/views/FavoritesView.vue::19
-web/src/views/LegacyRedirect.vue::1
-web/src/views/LoginView.vue::5
-web/src/views/QueryHistory.vue::4
-web/src/views/RegisterView.vue::10
-web/src/views/SystemResources.vue::4

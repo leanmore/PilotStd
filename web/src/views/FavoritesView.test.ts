@@ -17,6 +17,8 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import FavoritesView from './FavoritesView.vue'
 import zhCN from '@/locales/zh-CN.json'
+import zhTW from '@/locales/zh-TW.json'
+import en from '@/locales/en.json'
 import { clearPendingTimers, pendingTimerCount } from '@/test-setup'
 
 // 组件在 main.ts 里是全局注册的（SFC 不 import），测试必须注册**同一套**：
@@ -72,8 +74,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function mountView() {
-  const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
+async function mountView(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
   const wrapper = mount(FavoritesView, {
     global: { plugins: [PrimeVue, ToastService, i18n], components: GLOBAL_COMPONENTS },
   })
@@ -152,5 +154,16 @@ describe('FavoritesView 分类 Tab 容器', () => {
     expect(wrapper.find('[role="tabpanel"]').exists()).toBe(true)
     // 标题带上分类计数：全部 5 条
     expect(wrapper.find('[role="tablist"]').text()).toContain(`全部 (${FAVORITES.length})`)
+  }, MOUNT_TIMEOUT_MS)
+
+  // 批 6 i18n 守卫：typeTabs/STD_TYPE_LABEL_KEY 存的是 key，渲染期 t() 翻译，随语言切换而变化
+  it('分类 Tab 与类型标签随语言切换（zh-CN / en）', async () => {
+    const zh = await mountView('zh-CN')
+    expect(zh.find('[role="tablist"]').text()).toContain('国标')
+    expect(zh.html()).toContain(`全部 (${FAVORITES.length})`)
+
+    const english = await mountView('en')
+    expect(english.find('[role="tablist"]').text()).toContain('National')
+    expect(english.html()).not.toContain('favorites.type.')
   }, MOUNT_TIMEOUT_MS)
 })

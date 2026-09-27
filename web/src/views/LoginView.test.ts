@@ -5,6 +5,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import LoginView from './LoginView.vue'
 import PrimeVue from 'primevue/config'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import zhTW from '@/locales/zh-TW.json'
+import en from '@/locales/en.json'
 
 vi.mock('@/api', () => ({
   login: vi.fn(),
@@ -27,14 +31,19 @@ class FakeImage {
 
 const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-function mountLogin() {
+/** 用真实 locale 文件挂载（空 messages 会让 t() 回显 key，断言即失去意义） */
+function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
+}
+
+function mountLogin(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   setActivePinia(createPinia())
   const router = createRouter({
     history: createWebHistory(),
     routes: [{ path: '/login', component: LoginView }, { path: '/', component: { template: '<div>Home</div>' } }],
   })
   return mount(LoginView, {
-    global: { plugins: [createPinia(), router, PrimeVue] },
+    global: { plugins: [createPinia(), router, PrimeVue, makeI18n(locale)] },
   })
 }
 
@@ -69,6 +78,18 @@ describe('LoginView', () => {
   it('renders PilotStd title', () => {
     const wrapper = mountLogin()
     expect(wrapper.find('h1').text()).toBe('PilotStd')
+  })
+
+  // 批 6 i18n 守卫：文案确实来自 locales（源文案带空格，故用 login.submit_spaced），且随语言切换而变化
+  it('文案随语言切换（zh-CN / en）', () => {
+    const zh = mountLogin('zh-CN')
+    expect(zh.find('button').text().replace(/\s/g, '')).toContain('登录')
+    expect(zh.html()).toContain('密码')
+
+    const english = mountLogin('en')
+    // en 源文案 "Log In"（去空格后 LogIn），故大小写不敏感比对
+    expect(english.find('button').text().replace(/\s/g, '').toLowerCase()).toContain('login')
+    expect(english.html()).not.toContain('login.submit_spaced')
   })
 })
 

@@ -6,9 +6,12 @@
  * 展示完整评分链：适配器名 / 分数 / 原因标签。
  */
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 
 defineOptions({ name: 'RouteDebugPanel' })
+
+const { t } = useI18n()
 
 interface ScoreEntry {
   adapter: string
@@ -41,7 +44,7 @@ async function debug() {
       try {
         body.simulate_runtime = JSON.parse(runtimeJson.value)
       } catch {
-        error.value = 'JSON 格式错误，请检查 simulate_runtime'
+        error.value = t('route_debug.err_json')
         loading.value = false
         return
       }
@@ -50,7 +53,7 @@ async function debug() {
     results.value = r.data as ScoreEntry[]
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
-    error.value = err.response?.data?.detail || '请求失败'
+    error.value = err.response?.data?.detail || t('route_debug.err_request')
   } finally {
     loading.value = false
   }
@@ -62,7 +65,7 @@ async function debug() {
     <div class="header">
       <div class="header-left">
         <i class="pi pi-search" style="color:var(--primary)" />
-        <span class="title">路由调试</span>
+        <span class="title">{{ t('route_debug.title') }}</span>
       </div>
     </div>
 
@@ -71,15 +74,15 @@ async function debug() {
         <input
           v-model="query"
           class="query-input"
-          placeholder="输入查询词，如 NB/T 1234"
+          :placeholder="t('route_debug.input_ph')"
           @keyup.enter="debug"
         />
         <button class="debug-btn" :disabled="loading" @click="debug">
-          {{ loading ? '分析中…' : '分析' }}
+          {{ loading ? t('route_debug.analyzing') : t('route_debug.analyze') }}
         </button>
       </div>
       <details class="simulate-toggle">
-        <summary class="toggle-label">模拟运行时状态（可选 JSON）</summary>
+        <summary class="toggle-label">{{ t('route_debug.simulate_label') }}</summary>
         <textarea
           v-model="runtimeJson"
           class="json-input"
@@ -93,9 +96,9 @@ async function debug() {
 
     <div v-if="results.length > 0" class="results">
       <div class="result-header">
-        <span class="col-adapter">适配器</span>
-        <span class="col-score">分数</span>
-        <span class="col-reasons">评分原因</span>
+        <span class="col-adapter">{{ t('route_debug.col_adapter') }}</span>
+        <span class="col-score">{{ t('route_debug.col_score') }}</span>
+        <span class="col-reasons">{{ t('route_debug.col_reasons') }}</span>
       </div>
       <div
         v-for="r in results"

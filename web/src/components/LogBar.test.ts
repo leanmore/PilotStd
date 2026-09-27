@@ -2,6 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import zhTW from '@/locales/zh-TW.json'
+import en from '@/locales/en.json'
 import LogBar from './LogBar.vue'
 
 const router = createRouter({ history: createMemoryHistory(), routes: [] })
@@ -12,8 +16,13 @@ vi.mock('@/api/http', () => ({
   default: { get: (...args: any[]) => mockGet(...args) },
 }))
 
-function mountLogBar(props?: { refreshKey?: number }) {
-  return mount(LogBar, { props, global: { plugins: [router] } })
+/** 用真实 locale 文件挂载（空 messages 会让 t() 回显 key，断言即失去意义） */
+function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
+}
+
+function mountLogBar(props?: { refreshKey?: number }, locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  return mount(LogBar, { props, global: { plugins: [router, makeI18n(locale)] } })
 }
 
 // 等待异步更新：使用真实 setTimeout 而非 fake timers
@@ -93,5 +102,26 @@ describe('LogBar', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('暂无日志')
+  })
+
+  // 批 6 i18n 守卫：文案确实来自 locales，且随语言切换而变化
+  it('文案随语言切换（zh-CN / zh-TW / en）', async () => {
+    mockGet.mockResolvedValue({ data: { lines: [] } })
+
+    const zh = mountLogBar(undefined, 'zh-CN')
+    await waitForAsync()
+    await zh.vm.$nextTick()
+    expect(zh.text()).toContain('暂无日志')
+
+    const tw = mountLogBar(undefined, 'zh-TW')
+    await waitForAsync()
+    await tw.vm.$nextTick()
+    expect(tw.text()).toContain('暫無日誌')
+
+    const english = mountLogBar(undefined, 'en')
+    await waitForAsync()
+    await english.vm.$nextTick()
+    expect(english.text()).toContain('No logs')
+    expect(english.html()).not.toContain('logbar.')
   })
 })

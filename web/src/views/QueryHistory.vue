@@ -1,11 +1,14 @@
 <script setup lang="ts">
 defineOptions({ name: 'QueryHistory' })
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getQueryResults } from '@/api'
 import type { RouteTag } from '@/types/route-tag'
+
+const { t } = useI18n()
 
 interface QueryResult { standard_number: string; status: string; found_name?: string; source_site?: string }
 const results = ref<QueryResult[]>([])
@@ -24,15 +27,15 @@ onMounted(() => fetchHistory('/query-history'))
 
 <template>
   <div class="page">
-    <h2 class="page-title">查询历史</h2>
+    <h2 class="page-title">{{ t('query_history.title') }}</h2>
     <Card>
       <template #content>
         <div class="header-row">
-          <span class="text-sm" v-if="results.length">共 {{ results.length }} 条记录</span>
+          <span class="text-sm" v-if="results.length">{{ t('query_history.total', { n: results.length }) }}</span>
           <Button icon="pi pi-refresh" text size="small" @click="fetchHistory()" />
         </div>
         <table v-if="results.length" class="data-table">
-          <thead><tr><th>标准号</th><th>状态</th><th>名称</th><th>来源</th></tr></thead>
+          <thead><tr><th>{{ t('standard_table.col_standard_number') }}</th><th>{{ t('standard_table.col_status') }}</th><th>{{ t('standard_table.col_name') }}</th><th>{{ t('standard_table.col_source') }}</th></tr></thead>
           <tbody>
             <tr v-for="(r, i) in results" :key="i">
               <td>{{ r.standard_number }}</td>
@@ -43,7 +46,7 @@ onMounted(() => fetchHistory('/query-history'))
             </tr>
           </tbody>
         </table>
-        <p v-else-if="!loading" class="empty">暂无查询记录</p>
+        <p v-else-if="!loading" class="empty">{{ t('query_history.empty') }}</p>
       </template>
     </Card>
   </div>

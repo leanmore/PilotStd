@@ -2,6 +2,10 @@
 <script setup lang="ts">
 defineOptions({ name: 'TableLoadFooter' })
 
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 defineProps<{
   displayed: number
   total: number
@@ -18,19 +22,19 @@ defineEmits<{
   <div v-if="total > 0" class="table-load-footer">
     <div v-if="isLoading" class="footer-row">
       <span class="spinner" />
-      <span>加载更多标准...</span>
+      <span>{{ t('table_load.more') }}</span>
     </div>
     <div v-else-if="displayed >= total" class="footer-row footer-complete">
-      已显示全部 {{ total }} 条标准
+      {{ t('table_load.all_shown', { total }) }}
     </div>
     <div v-else-if="showLoadAllButton" class="footer-row">
-      <span class="partial-text">已显示前 {{ displayed }} / {{ total }} 条标准</span>
+      <span class="partial-text">{{ t('table_load.shown_partial', { displayed, total }) }}</span>
       <button class="load-all-btn" @click="$emit('loadAll')">
-        加载剩余 {{ total - displayed }} 条
+        {{ t('table_load.load_rest', { n: total - displayed }) }}
       </button>
     </div>
     <div v-else class="footer-row footer-hint">
-      显示 {{ displayed }} / {{ total }} 条，滚动加载更多
+      {{ t('table_load.scroll_hint', { displayed, total }) }}
     </div>
   </div>
 </template>

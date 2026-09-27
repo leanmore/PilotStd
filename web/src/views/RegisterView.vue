@@ -2,8 +2,11 @@
 defineOptions({ name: 'RegisterView' })
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { register } from '@/api/auth'
 import Button from 'primevue/button'
+
+const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
@@ -13,7 +16,7 @@ const router = useRouter()
 
 async function submit() {
   if (!username.value || !password.value) {
-    error.value = '请填写用户名和密码'
+    error.value = t('register.err_required')
     return
   }
   loading.value = true
@@ -25,13 +28,13 @@ async function submit() {
     if (typeof detail === 'string') {
       error.value = detail
     } else if (e.response?.status === 409) {
-      error.value = '用户名已存在'
+      error.value = t('register.err_exists')
     } else if (e.response?.status === 429) {
-      error.value = '注册请求过于频繁，请稍后重试'
+      error.value = t('register.err_rate_limit')
     } else if (e.response?.status === 403) {
-      error.value = '注册功能未开放'
+      error.value = t('register.err_disabled')
     } else {
-      error.value = '注册失败，请重试'
+      error.value = t('register.err_failed')
     }
   } finally {
     loading.value = false
@@ -43,13 +46,13 @@ async function submit() {
   <div class="login-page">
     <div class="login-card">
       <div class="login-brand"><span class="brand-icon">&#9678;</span><h1>PilotStd</h1></div>
-      <p class="hint">创建新账号</p>
-      <input v-model="username" placeholder="用户名（至少2个字符）" class="login-input" @keyup.enter="submit" />
-      <input v-model="password" type="password" placeholder="密码（至少8位，含字母和数字）" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
-      <Button label="注 册" @click="submit" severity="primary" :loading="loading" style="width:100%;margin-top:8px" />
+      <p class="hint">{{ t('register.hint') }}</p>
+      <input v-model="username" :placeholder="t('register.username_ph')" class="login-input" @keyup.enter="submit" />
+      <input v-model="password" type="password" :placeholder="t('register.password_ph')" class="login-input" style="margin-top:8px" @keyup.enter="submit" />
+      <Button :label="t('register.submit')" @click="submit" severity="primary" :loading="loading" style="width:100%;margin-top:8px" />
       <p v-if="error" class="error">{{ error }}</p>
       <p class="hint" style="margin-top:16px">
-        已有账号？<router-link to="/login" class="text-primary">返回登录</router-link>
+        {{ t('register.have_account') }}<router-link to="/login" class="text-primary">{{ t('register.back_to_login') }}</router-link>
       </p>
     </div>
   </div>

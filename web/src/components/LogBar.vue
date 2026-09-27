@@ -2,8 +2,11 @@
 defineOptions({ name: 'LogBar' })
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import { getItem, setItem } from '@/lib/storage'
+
+const { t } = useI18n()
 
 const props = defineProps<{ refreshKey?: number }>()
 const lines = ref<string[]>([])
@@ -148,8 +151,8 @@ watch(() => route?.path, () => {
 <template>
   <div class="log-bar" :class="{ collapsed: !expanded }">
     <div class="log-header" @click="toggle">
-      <span>日志 ({{ lines.length }} 行)</span>
-      <span class="log-toggle">{{ expanded ? '收起' : '展开' }}</span>
+      <span>{{ t('logbar.title', { n: lines.length }) }}</span>
+      <span class="log-toggle">{{ expanded ? t('logbar.collapse') : t('logbar.expand') }}</span>
     </div>
     <div
       v-show="expanded"
@@ -162,10 +165,10 @@ watch(() => route?.path, () => {
         'log-warn': l.includes('[W]') || l.includes('WARNING'),
         'log-err': l.includes('[E]') || l.includes('ERROR'),
       }" :title="l">{{ l }}</div>
-      <div v-if="err" class="log-empty log-err-msg">日志加载失败（已停止轮询）</div>
-      <div v-else-if="!lines.length" class="log-empty">暂无日志</div>
+      <div v-if="err" class="log-empty log-err-msg">{{ t('logbar.load_failed') }}</div>
+      <div v-else-if="!lines.length" class="log-empty">{{ t('logbar.empty') }}</div>
     </div>
-    <div class="log-resize-handle" @mousedown="onResizeStart" title="拖拽调整高度" />
+    <div class="log-resize-handle" @mousedown="onResizeStart" :title="t('logbar.resize_title')" />
   </div>
 </template>
 

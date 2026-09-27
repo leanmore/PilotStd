@@ -7,7 +7,7 @@
       :class="{ active: currentTab === type.key }"
       @click="$emit('update:currentTab', type.key)"
     >
-      <span class="item-label">{{ type.label }}</span>
+      <span class="item-label">{{ t(type.labelKey) }}</span>
       <div @click.stop>
         <ToggleSwitch
           :model-value="fetchEnabled[type.key]"
@@ -21,6 +21,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'UnifiedFilterBar' })
 import ToggleSwitch from 'primevue/toggleswitch'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   currentTab: string
@@ -33,9 +36,9 @@ const emit = defineEmits<{
 }>()
 
 const types = [
-  { key: 'gb', label: '国家标准公告' },
-  { key: 'hb', label: '行业标准公告' },
-  { key: 'db', label: '地方标准公告' },
+  { key: 'gb', labelKey: 'announce.type_long.gb' },
+  { key: 'hb', labelKey: 'announce.type_long.hb' },
+  { key: 'db', labelKey: 'announce.type_long.db' },
 ]
 
 const handleToggle = (key: string, value: boolean) => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'BackupView' })
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import DataTable from 'primevue/datatable'
@@ -16,6 +17,8 @@ interface Backup {
 const backups = ref<Backup[]>([])
 const loading = ref(false)
 const creating = ref(false)
+const { t } = useI18n()
+
 const lastBackup = ref<string | null>(null)
 
 const formatTime = (iso: string) => new Date(iso).toLocaleString('zh-CN')
@@ -44,18 +47,18 @@ onMounted(() => fetchBackups('/backup'))
 
 <template>
   <div class="page">
-    <h2 class="page-title">备份管理</h2>
+    <h2 class="page-title">{{ t('backup.title') }}</h2>
     <Card>
       <template #content>
         <div class="flex gap-3 align-items-center">
-          <Button label="创建备份" icon="pi pi-plus" @click="createBackup" :loading="creating" />
-          <span v-if="lastBackup" class="text-sm">上次备份: {{ formatTime(lastBackup) }}</span>
+          <Button :label="t('backup.create')" icon="pi pi-plus" @click="createBackup" :loading="creating" />
+          <span v-if="lastBackup" class="text-sm">{{ t('backup.last_backup', { time: formatTime(lastBackup) }) }}</span>
         </div>
         <Divider />
         <DataTable :value="backups" :loading="loading" striped-rows size="small">
-          <Column field="name" header="备份文件" />
-          <Column field="size_mb" header="大小 (MB)" />
-          <Column header="创建时间">
+          <Column field="name" :header="t('backup.col_name')" />
+          <Column field="size_mb" :header="t('backup.col_size')" />
+          <Column :header="t('backup.col_created')">
             <template #body="{ data }">{{ formatTime(data.created_at) }}</template>
           </Column>
         </DataTable>

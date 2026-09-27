@@ -2,6 +2,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import zhTW from '@/locales/zh-TW.json'
+import en from '@/locales/en.json'
 import BackupView from './BackupView.vue'
 
 // Mock axios
@@ -17,9 +21,14 @@ const mockBackups = [
   { id: '2', name: 'backup_20260630.zip', size: 2097152, size_mb: 2.0, created_at: '2026-06-30T08:30:00Z' },
 ]
 
-function mountView() {
+/** 用真实 locale 文件挂载（空 messages 会让 t() 回显 key，断言即失去意义） */
+function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
+}
+
+function mountView(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return mount(BackupView, {
-    global: { plugins: [PrimeVue] },
+    global: { plugins: [PrimeVue, makeI18n(locale)] },
   })
 }
 
@@ -83,5 +92,21 @@ describe('BackupView', () => {
     // 仍然渲染基本 UI
     expect(wrapper.html()).toContain('备份管理')
     expect(wrapper.html()).toContain('创建备份')
+  })
+
+  // 批 6 i18n 守卫：文案确实来自 locales，且随语言切换而变化
+  it('文案随语言切换（zh-CN / en）', async () => {
+    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
+
+    const zh = mountView('zh-CN')
+    await zh.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+    expect(zh.html()).toContain('备份管理')
+
+    const english = mountView('en')
+    await english.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+    expect(english.html()).toContain('Backup Management')
+    expect(english.html()).not.toContain('backup.')
   })
 })

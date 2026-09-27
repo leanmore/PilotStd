@@ -1,6 +1,7 @@
 // web/src/api/http.ts — 共享 axios 实例 + 拦截器（CSRF / 401 降级 / 路由级 AbortController）
 import axios, { type AxiosError } from 'axios'
 import type { RouteTag } from '../types/route-tag'
+import { i18n } from '@/i18n'
 
 const http = axios.create({ baseURL: '/api', withCredentials: true })
 
@@ -180,9 +181,9 @@ http.interceptors.response.use(
     if (!err.response) {
       const code = err.code
       if (code === 'ERR_NETWORK') {
-        networkErrorNotifier?.('网络连接异常')
+        networkErrorNotifier?.(i18n.global.t('http.network_error'))
       } else if (code === 'ECONNABORTED' || code === 'ETIMEDOUT' || (err.message || '').toLowerCase().includes('timeout')) {
-        networkErrorNotifier?.('请求超时')
+        networkErrorNotifier?.(i18n.global.t('http.timeout'))
       }
     }
     // 仅鉴权类 401 触发全局登出；业务级 401（skipGlobalAuthRedirect 或非鉴权消息）由调用方自行降级

@@ -4,6 +4,10 @@ import { nextTick } from 'vue'
 import SystemResources from './SystemResources.vue'
 import Card from 'primevue/card'
 import ProgressBar from 'primevue/progressbar'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import zhTW from '@/locales/zh-TW.json'
+import en from '@/locales/en.json'
 import { getSystemResources } from '@/api/system'
 
 vi.mock('@/api/system', () => ({
@@ -16,9 +20,15 @@ const StubCard = {
   template: '<div class="card-stub"><slot name="content" /></div>',
 }
 
-function mountComponent() {
+/** 用真实 locale 文件挂载（空 messages 会让 t() 回显 key，断言即失去意义） */
+function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
+}
+
+function mountComponent(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return shallowMount(SystemResources, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: { Card: StubCard, ProgressBar },
     },
   })
@@ -82,5 +92,26 @@ describe('SystemResources', () => {
     await nextTick()
     await nextTick()
     expect(wrapper.html()).toContain('900.0 GB 剩余')
+  })
+
+  // 批 6 i18n 守卫：文案确实来自 locales，且随语言切换而变化
+  it('文案随语言切换（zh-CN / en）', async () => {
+    const payload = {
+      data: { cpu: { percent: 10, count: 8 }, memory: { percent: 50, total: 16 * 1024**3, available: 8 * 1024**3 }, disk: { percent: 30, total: 256 * 1024**3, free: 180 * 1024**3 } },
+    }
+    mockedGetSystemResources.mockResolvedValue(payload)
+
+    const zh = mountComponent('zh-CN')
+    await nextTick()
+    await nextTick()
+    expect(zh.find('.page-title').text()).toBe('系统资源')
+    expect(zh.html()).toContain('8 核')
+
+    const english = mountComponent('en')
+    await nextTick()
+    await nextTick()
+    expect(english.find('.page-title').text()).toBe('System Resources')
+    expect(english.html()).toContain('8 cores')
+    expect(english.html()).not.toContain('system_resources.')
   })
 })

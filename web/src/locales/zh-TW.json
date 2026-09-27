@@ -20,6 +20,7 @@
       "hb": "行業公告",
       "db": "地方公告"
     },
+    "type_long": {"gb": "國家標準公告", "hb": "行業標準公告", "db": "地方標準公告"},
     "view": {
       "title": "公告",
       "fetch_now": "立即抓取",
@@ -36,6 +37,7 @@
       }
     },
     "detail": {
+      "route_title": "公告詳情",
       "back": "返回列表",
       "field_title": "標題",
       "field_publish_date": "發布日期",
@@ -119,8 +121,7 @@
             "recent": "最近更新", "scanBtn": "手動掃描",
             "queryBtn": "手動查詢", "downloadBtn": "下載標準", "organizeBtn": "檔案管理",
             "autoBtn": "一鍵更新" },
-  "login": { "title": "PilotStd 登入", "password": "密碼", "submit": "登入",
-             "error": "密碼錯誤" },
+  "login": {"title": "PilotStd 登入", "password": "密碼", "submit": "登入", "error": "密碼錯誤", "err_invalid": "使用者名稱或密碼錯誤", "hint": "標準管理控制台", "username": "使用者名稱", "submit_spaced": "登 入"},
   "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中",
               "success": "操作成功", "saved": "已儲存", "save_failed": "儲存失敗",
               "error": "錯誤", "retry": "請重試", "check_network": "請檢查網路後重新整理",
@@ -285,6 +286,112 @@
   },
   "export": { "pending_list": "待確認清單", "manual_download_list": "手動下載清單" },
   "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" },
+  "favorites": {
+    "type": {
+      "all": "全部",
+      "national": "國標",
+      "industry": "行標",
+      "local": "地標",
+      "other": "其他",
+      "enterprise": "企業標準",
+      "group": "團體標準",
+      "foreign": "國外標準",
+      "unknown": "類型待確認"
+    },
+    "load_failed": "載入失敗",
+    "export_failed": "匯出失敗",
+    "export_current": "匯出目前分類",
+    "export_all": "匯出全部",
+    "col_standard_number": "標準號",
+    "col_name": "名稱",
+    "col_type": "類型",
+    "col_status": "狀態",
+    "col_publish_date": "發布日期",
+    "col_created_at": "收藏時間",
+    "empty": "暫無收藏",
+    "empty_type": "目前分類暫無收藏",
+    "op_failed": "操作失敗 ({code})",
+    "unknown": "未知",
+    "unfaved": "已取消收藏",
+    "faved": "已收藏"
+  },
+  "register": {
+    "err_required": "請填寫使用者名稱和密碼",
+    "err_exists": "使用者名稱已存在",
+    "err_rate_limit": "註冊請求過於頻繁，請稍後重試",
+    "err_disabled": "註冊功能未開放",
+    "err_failed": "註冊失敗，請重試",
+    "hint": "建立新帳號",
+    "username_ph": "使用者名稱（至少2個字元）",
+    "password_ph": "密碼（至少8位，含字母和數字）",
+    "submit": "註 冊",
+    "have_account": "已有帳號？",
+    "back_to_login": "返回登入"
+  },
+  "route_debug": {
+    "title": "路由除錯",
+    "input_ph": "輸入查詢詞，如 NB/T 1234",
+    "analyzing": "分析中…",
+    "analyze": "分析",
+    "simulate_label": "模擬執行時狀態（可選 JSON）",
+    "col_adapter": "適配器",
+    "col_score": "分數",
+    "col_reasons": "評分原因",
+    "err_json": "JSON 格式錯誤，請檢查 simulate_runtime",
+    "err_request": "請求失敗"
+  },
+  "backup": {
+    "title": "備份管理",
+    "create": "建立備份",
+    "last_backup": "上次備份: {time}",
+    "col_name": "備份檔案",
+    "col_size": "大小 (MB)",
+    "col_created": "建立時間"
+  },
+  "logbar": {
+    "title": "日誌 ({n} 行)",
+    "collapse": "收合",
+    "expand": "展開",
+    "load_failed": "日誌載入失敗（已停止輪詢）",
+    "empty": "暫無日誌",
+    "resize_title": "拖曳調整高度"
+  },
+  "table_load": {
+    "more": "載入更多標準...",
+    "all_shown": "已顯示全部 {total} 條標準",
+    "shown_partial": "已顯示前 {displayed} / {total} 條標準",
+    "load_rest": "載入剩餘 {n} 條",
+    "scroll_hint": "顯示 {displayed} / {total} 條，捲動載入更多"
+  },
+  "query_history": {
+    "title": "查詢歷史",
+    "total": "共 {n} 條記錄",
+    "empty": "暫無查詢記錄"
+  },
+  "standard_table": {
+    "col_standard_number": "標準號",
+    "col_name": "名稱",
+    "col_status": "狀態",
+    "col_source": "來源"
+  },
+  "system_resources": {
+    "title": "系統資源",
+    "cores": "{n} 核",
+    "memory": "記憶體",
+    "memory_detail": "{total} / {available} 可用",
+    "disk": "磁碟",
+    "disk_detail": "{free} 剩餘"
+  },
+  "http": {
+    "network_error": "網路連線異常",
+    "timeout": "請求逾時"
+  },
+  "legacy": {
+    "redirecting": "正在跳轉..."
+  },
+  "query_adapters": {
+    "load_failed": "站點列表載入失敗，請重新整理後重試"
+  },
   "dashboard": {
     "common": {
       "load_failed": "載入失敗",

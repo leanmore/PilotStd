@@ -1,10 +1,13 @@
 <script setup lang="ts">
 defineOptions({ name: 'SystemResources' })
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Card from 'primevue/card'
 import ProgressBar from 'primevue/progressbar'
 import { getSystemResources } from '@/api/system'
 import type { RouteTag } from '@/types/route-tag'
+
+const { t } = useI18n()
 
 const cpu = ref({ percent: 0, count: 0 })
 const memory = ref({ percent: 0, total: 0, available: 0 })
@@ -34,12 +37,12 @@ onUnmounted(() => {
 
 <template>
   <div class="page">
-    <h2 class="page-title">系统资源</h2>
+    <h2 class="page-title">{{ t('system_resources.title') }}</h2>
     <div class="grid">
       <Card v-for="item in [
-        { t: 'CPU', p: cpu.percent, d: `${cpu.count} 核` },
-        { t: '内存', p: memory.percent, d: `${formatBytes(memory.total)} / ${formatBytes(memory.available)} 可用` },
-        { t: '磁盘', p: disk.percent, d: `${formatBytes(disk.free)} 剩余` },
+        { t: 'CPU', p: cpu.percent, d: t('system_resources.cores', { n: cpu.count }) },
+        { t: t('system_resources.memory'), p: memory.percent, d: t('system_resources.memory_detail', { total: formatBytes(memory.total), available: formatBytes(memory.available) }) },
+        { t: t('system_resources.disk'), p: disk.percent, d: t('system_resources.disk_detail', { free: formatBytes(disk.free) }) },
       ]" :key="item.t">
         <template #content>
           <h3>{{ item.t }}</h3>

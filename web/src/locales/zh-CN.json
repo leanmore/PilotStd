@@ -21,6 +21,7 @@
       "hb": "行业公告",
       "db": "地方公告"
     },
+    "type_long": {"gb": "国家标准公告", "hb": "行业标准公告", "db": "地方标准公告"},
     "view": {
       "title": "公告",
       "fetch_now": "立即抓取",
@@ -37,6 +38,7 @@
       }
     },
     "detail": {
+      "route_title": "公告详情",
       "back": "返回列表",
       "field_title": "标题",
       "field_publish_date": "发布日期",
@@ -120,8 +122,7 @@
             "recent": "最近更新", "scanBtn": "扫描文件", "queryBtn": "查询标准",
             "downloadBtn": "下载标准", "organizeBtn": "文件管理",
             "autoBtn": "一键更新" },
-  "login": { "title": "PilotStd 登录", "password": "密码", "submit": "登录",
-             "error": "密码错误" },
+  "login": {"title": "PilotStd 登录", "password": "密码", "submit": "登录", "error": "密码错误", "err_invalid": "用户名或密码错误", "hint": "标准管理控制台", "username": "用户名", "submit_spaced": "登 录"},
   "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中",
               "success": "操作成功", "saved": "已保存", "save_failed": "保存失败",
               "error": "错误", "retry": "请重试", "check_network": "请检查网络后刷新重试",
@@ -286,6 +287,112 @@
   },
   "export": { "pending_list": "待确认清单", "manual_download_list": "手动下载清单" },
   "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" },
+  "favorites": {
+    "type": {
+      "all": "全部",
+      "national": "国标",
+      "industry": "行标",
+      "local": "地标",
+      "other": "其他",
+      "enterprise": "企业标准",
+      "group": "团体标准",
+      "foreign": "国外标准",
+      "unknown": "类型待确认"
+    },
+    "load_failed": "加载失败",
+    "export_failed": "导出失败",
+    "export_current": "导出当前分类",
+    "export_all": "导出全部",
+    "col_standard_number": "标准号",
+    "col_name": "名称",
+    "col_type": "类型",
+    "col_status": "状态",
+    "col_publish_date": "发布日期",
+    "col_created_at": "收藏时间",
+    "empty": "暂无收藏",
+    "empty_type": "当前分类暂无收藏",
+    "op_failed": "操作失败 ({code})",
+    "unknown": "未知",
+    "unfaved": "已取消收藏",
+    "faved": "已收藏"
+  },
+  "register": {
+    "err_required": "请填写用户名和密码",
+    "err_exists": "用户名已存在",
+    "err_rate_limit": "注册请求过于频繁，请稍后重试",
+    "err_disabled": "注册功能未开放",
+    "err_failed": "注册失败，请重试",
+    "hint": "创建新账号",
+    "username_ph": "用户名（至少2个字符）",
+    "password_ph": "密码（至少8位，含字母和数字）",
+    "submit": "注 册",
+    "have_account": "已有账号？",
+    "back_to_login": "返回登录"
+  },
+  "route_debug": {
+    "title": "路由调试",
+    "input_ph": "输入查询词，如 NB/T 1234",
+    "analyzing": "分析中…",
+    "analyze": "分析",
+    "simulate_label": "模拟运行时状态（可选 JSON）",
+    "col_adapter": "适配器",
+    "col_score": "分数",
+    "col_reasons": "评分原因",
+    "err_json": "JSON 格式错误，请检查 simulate_runtime",
+    "err_request": "请求失败"
+  },
+  "backup": {
+    "title": "备份管理",
+    "create": "创建备份",
+    "last_backup": "上次备份: {time}",
+    "col_name": "备份文件",
+    "col_size": "大小 (MB)",
+    "col_created": "创建时间"
+  },
+  "logbar": {
+    "title": "日志 ({n} 行)",
+    "collapse": "收起",
+    "expand": "展开",
+    "load_failed": "日志加载失败（已停止轮询）",
+    "empty": "暂无日志",
+    "resize_title": "拖拽调整高度"
+  },
+  "table_load": {
+    "more": "加载更多标准...",
+    "all_shown": "已显示全部 {total} 条标准",
+    "shown_partial": "已显示前 {displayed} / {total} 条标准",
+    "load_rest": "加载剩余 {n} 条",
+    "scroll_hint": "显示 {displayed} / {total} 条，滚动加载更多"
+  },
+  "query_history": {
+    "title": "查询历史",
+    "total": "共 {n} 条记录",
+    "empty": "暂无查询记录"
+  },
+  "standard_table": {
+    "col_standard_number": "标准号",
+    "col_name": "名称",
+    "col_status": "状态",
+    "col_source": "来源"
+  },
+  "system_resources": {
+    "title": "系统资源",
+    "cores": "{n} 核",
+    "memory": "内存",
+    "memory_detail": "{total} / {available} 可用",
+    "disk": "磁盘",
+    "disk_detail": "{free} 剩余"
+  },
+  "http": {
+    "network_error": "网络连接异常",
+    "timeout": "请求超时"
+  },
+  "legacy": {
+    "redirecting": "正在跳转..."
+  },
+  "query_adapters": {
+    "load_failed": "站点列表加载失败，请刷新重试"
+  },
   "dashboard": {
     "common": {
       "load_failed": "加载失败",

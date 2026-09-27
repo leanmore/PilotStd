@@ -6,6 +6,12 @@ import { useToast } from 'primevue/usetoast'
 import { addFavorite, getBatchFavoriteStatus, removeFavorite, type BatchFavoriteStatus } from '@/api/announce'
 import { isFavorited } from '@/utils/downloadStatus'
 import type { AnnouncementRecord } from '@/types/api'
+import { i18n } from '@/i18n'
+
+/** 非组件模块：toast 文案在调用瞬间用全局实例解析（一次性，无需响应式） */
+function t(key: string, named?: Record<string, unknown>): string {
+  return named ? (i18n.global.t as (k: string, n: Record<string, unknown>) => string)(key, named) : (i18n.global.t as (k: string) => string)(key)
+}
 
 export function useFavorite(records: Ref<AnnouncementRecord[]>) {
   const toast = useToast()
@@ -29,7 +35,7 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
     if (!err?.response) return null
     const detail = err.response.data?.detail
     if (typeof detail === 'string' && detail) return detail
-    return `操作失败 (${err.response.status ?? '未知'})`
+    return t('favorites.op_failed', { code: err.response.status ?? t('favorites.unknown') })
   }
 
   async function toggleFavorite(record: AnnouncementRecord) {
@@ -46,7 +52,7 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       delete favStatusMap.value[id]
       try {
         await removeFavorite(id)
-        toast.add({ severity: 'success', summary: '已取消收藏', life: 2000 })
+        toast.add({ severity: 'success', summary: t('favorites.unfaved'), life: 2000 })
       } catch (e) {
         favMap.value[id] = true  // 回滚
         if (prevStatus) favStatusMap.value[id] = prevStatus
@@ -69,7 +75,7 @@ export function useFavorite(records: Ref<AnnouncementRecord[]>) {
       }
       try {
         await addFavorite(id)
-        toast.add({ severity: 'success', summary: '已收藏', life: 2000 })
+        toast.add({ severity: 'success', summary: t('favorites.faved'), life: 2000 })
       } catch (e) {
         favMap.value[id] = false  // 回滚
         delete favStatusMap.value[id]

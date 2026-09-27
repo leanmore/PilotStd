@@ -5,6 +5,10 @@ import { ref, type Ref } from 'vue'
 import http from '@/api/http'
 import type { RouteTag } from '@/types/route-tag'
 import type { QueryAdapterItem } from '@/types/adapter'
+import { i18n } from '@/i18n'
+
+/** 非组件模块：用全局实例翻译（错误文案在赋值瞬间解析） */
+const t = (key: string) => i18n.global.t(key) as string
 
 // 模块级缓存（全局单例）
 let cached: QueryAdapterItem[] | null = null
@@ -44,7 +48,7 @@ export function useQueryAdapters(routeTag?: RouteTag) {
       lastFetch = Date.now()
       adapters.value = cached
     } catch {
-      error.value = '站点列表加载失败，请刷新重试'
+      error.value = t('query_adapters.load_failed')
     } finally {
       loading.value = false
     }

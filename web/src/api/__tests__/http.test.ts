@@ -138,6 +138,29 @@ describe('http 响应拦截器：断网/超时提示与业务错误不弹窗（F
     await expect(rejected({ code: 'ERR_BAD_OPTION', message: 'bad option', config: {} })).rejects.toBeTruthy()
     expect(notifier).not.toHaveBeenCalled()
   })
+
+  // 批 6 i18n 守卫：http.ts 无组件上下文，走 i18n.global.t —— 切换语言后提示语必须跟着变
+  it('提示语随全局语言切换（zh-CN → en）', async () => {
+    const { i18n } = await import('@/i18n')
+    const original = i18n.global.locale.value
+    try {
+      const notifier = vi.fn()
+      setNetworkErrorNotifier(notifier)
+      const rejected = responseRejectedHandlers[0]
+
+      i18n.global.locale.value = 'en'
+      await expect(rejected({ code: 'ERR_NETWORK', message: 'Network Error', config: {} })).rejects.toBeTruthy()
+      expect(notifier).toHaveBeenCalledWith('Network connection error')
+
+      notifier.mockClear()
+      await expect(
+        rejected({ code: 'ECONNABORTED', message: 'timeout of 5000ms exceeded', config: {} }),
+      ).rejects.toBeTruthy()
+      expect(notifier).toHaveBeenCalledWith('Request timed out')
+    } finally {
+      i18n.global.locale.value = original
+    }
+  })
 })
 
 describe('http 请求拦截器：Cookie Token → Authorization 注入（FIX-401）', () => {

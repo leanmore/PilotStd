@@ -226,6 +226,31 @@ describe('useFavorite.toggleFavorite 分层错误提示（FIX-401）', () => {
     await toggleFavorite(records.value[0])
     expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ severity: 'success', summary: '已收藏' }))
   })
+
+  // 批 6 i18n 守卫：composable 无组件上下文，走 i18n.global.t —— 语言切换后提示语必须跟着变
+  it('提示语随全局语言切换（zh-CN → en）', async () => {
+    const { i18n } = await import('@/i18n')
+    const original = i18n.global.locale.value
+    try {
+      const records = ref(makeRecords(1))
+      const { toggleFavorite } = useFavorite(records)
+      vi.mocked(addFavorite).mockResolvedValue({ status: 'pending', favorite_id: 1 })
+
+      i18n.global.locale.value = 'en'
+      await toggleFavorite(records.value[0])
+      expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Added to favorites' }))
+
+      toastMock.add.mockClear()
+      // 新实例走"新增收藏"路径，避免复用已置位 favMap 的实例而落到取消分支
+      const records2 = ref(makeRecords(1))
+      const { toggleFavorite: toggleSecond } = useFavorite(records2)
+      vi.mocked(addFavorite).mockRejectedValueOnce({ response: { status: 500, data: {} } })
+      await toggleSecond(records2.value[0])
+      expect(toastMock.add).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Operation failed (500)' }))
+    } finally {
+      i18n.global.locale.value = original
+    }
+  })
 })
 
 // ═══════════════════════════════════════════════════════════════
