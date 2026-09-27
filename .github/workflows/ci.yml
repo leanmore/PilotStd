@@ -13,9 +13,16 @@ on:
         required: false
         default: ''
 
+# T-30 方案 G（R12-2，2026-09-27）：并发组**按 ref 拆分** + 开启 cancel-in-progress。
+#   依据（R12-1 归因，78 run 全量）：全局单组 `ci-cd` + cancel-in-progress: false 使 **26/78 = 33%**
+#   的 run 在创建时被前一个 run 挡住（等待中位 ≈300s、最长 1340s），而一次 run 中位时长 828s
+#   （关键路径 test-gui-unit 467s）→ 连续推送必然互撞。按 ref 分组后：
+#     ① 分支/PR 推送不再与 main 抢同一个槽位（原先共享全局组，会互相阻塞）；
+#     ② 同一 ref 内取消被取代的旧 run → 新推送立即开跑（排队≈0），代价是该旧 run 无完整结论
+#        （其提交会被下一次 run 的检出覆盖验证；本仓库 bump 提交不触发 workflow，无额外冲突）。
 concurrency:
-  group: ci-cd
-  cancel-in-progress: false
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -106,6 +113,9 @@ jobs:
         if: runner.os == 'Linux'
         run: python scripts/check_ci_offline.py
 
+      # T-28（R12-2）：加 `-rs` —— 让 CI 日志给出跳过明细（原先只有汇总行 `N skipped`，
+      #   44 处跳过的位置与原因在 CI 侧不可得）。xdist（-n auto）下各 worker 会各自打印短摘要，
+      #   汇总可能分段；如需机器可读清单，用 `python tests/skip_census.py <日志> --json` 解析。
       - name: Run backend tests
         env:
           STANDARD_ROOT: /tmp/standards
@@ -113,7 +123,7 @@ jobs:
           ADMIN_USERNAME: superadmin
         run: |
           mkdir -p /tmp/standards
-          python -m pytest tests/ -q --tb=short -n auto -p no:pytest-qt \
+          python -m pytest tests/ -q -rs --tb=short -n auto -p no:pytest-qt \
             --cov=pilotstd --cov-fail-under=45 \
             --timeout=60 --timeout_method=signal \
             --ignore=tests/gui/ \
