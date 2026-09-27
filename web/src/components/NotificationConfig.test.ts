@@ -109,4 +109,14 @@ describe('NotificationConfig', () => {
     // 只断言「渲染出来的渠道标题」，模板注释里的中文（<!-- 企业微信 -->）不算文案
     expect(html).not.toContain('collapsible-title">企业微信')
   })
+
+  it('事件名与日志页统一（notification.event.*）：announcement_fetch_complete 显示「公告抓取完成」', async () => {
+    const wrapper = mountConfig()
+    await new Promise(r => setTimeout(r, 10))
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    const html = wrapper.html()
+    expect(html).toContain('公告抓取完成')
+    expect(html).not.toContain('>公告抓取<')
+  })
 })

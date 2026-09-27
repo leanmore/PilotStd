@@ -143,11 +143,9 @@ function statusLabel(s: string): string {
   return s === 'success' ? t('notification.logs.status.success') : t('notification.logs.status.failed')
 }
 
-// 事件类型 → i18n key（notification.logs.event.<type>）。本页文案与配置页
-// notification.config.event.* 措辞略有不同（如「公告抓取」vs「公告抓取完成」），
-// 故两套 key 并存，不在本批做跨页面统一；未知类型原样回显。
+// 事件类型 → i18n key（notification.event.<type>，与配置页共用同一套文案）；未知类型原样回显
 function eventLabel(v: string): string {
-  const key = `notification.logs.event.${v}`
+  const key = `notification.event.${v}`
   return te(key) ? t(key) : v
 }
 

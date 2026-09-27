@@ -22,9 +22,9 @@ import {
 
 const { t, te } = useI18n()
 
-/** 事件类型 → i18n key（notification.config.event.<type>，与日志页的 notification.logs.event.* 措辞不同） */
+/** 事件类型 → i18n key（notification.event.<type>，与日志页共用同一套文案） */
 function eventLabel(type: string): string {
-  const key = `notification.config.event.${type}`
+  const key = `notification.event.${type}`
   return te(key) ? t(key) : type
 }
 
@@ -54,7 +54,7 @@ const saved = ref(false)
 const errMsg = ref('')
 const testResults = ref<Record<string, string>>({})
 
-// 可订阅的事件类型（后端 event_type 原值）；文案 key = notification.config.event.<type>
+// 可订阅的事件类型（后端 event_type 原值）；文案 key = notification.event.<type>（与日志页共用）
 const EVENTS = [
   'archive_complete',
   'standard_status_changed',

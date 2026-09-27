@@ -128,4 +128,20 @@ describe('NotificationLogsView', () => {
     expect(english.find('.empty').text()).toBe('No notification logs')
     expect(english.html()).toContain('Channel')
   })
+
+  it('事件名与配置页统一（notification.event.*）：announcement_fetch_complete 显示「公告抓取完成」', async () => {
+    mockGetLogs.mockResolvedValueOnce({
+      items: [{ id: 1, event_type: 'announcement_fetch_complete', channel: 'wechat', title: 'T', body: 'B', standard_number: null, status: 'success', error_msg: null, sent_at: '2026-06-30T10:00:00', is_read: false }],
+      total: 1,
+      page: 1,
+      page_size: 20,
+    })
+    const wrapper = mountComponent()
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    // 统一前日志页显示短版本「公告抓取」，现与配置页一致用「公告抓取完成」
+    expect(wrapper.find('tbody tr').text()).toContain('公告抓取完成')
+    expect(wrapper.find('tbody tr').text()).not.toContain('公告抓取 ')
+  })
 })
