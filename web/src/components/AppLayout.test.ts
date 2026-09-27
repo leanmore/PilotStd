@@ -9,16 +9,18 @@ import ToastService from 'primevue/toastservice'
 import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 
+// 2026-09-27：路由 fixture 补齐 meta.showInSidebar/titleKey/sidebarOrder——原 fixture 无任何
+// showInSidebar 标记，侧边栏项实际来自组件内已删除的"空列表兜底"；现按真实 router.ts 的 meta 形态构造。
 const Dummy = { template: '<div />' }
 const routes = [
-  { path: '/', component: { template: '<div>Home</div>' } },
-  { path: '/task', component: Dummy },
-  { path: '/organize', component: Dummy },
-  { path: '/pending', component: Dummy },
-  { path: '/announce', component: Dummy },
-  { path: '/notification-logs', component: Dummy },
-  { path: '/standards-status', component: Dummy },
-  { path: '/settings', component: Dummy },
+  { path: '/', component: { template: '<div>Home</div>' }, meta: { showInSidebar: true, titleKey: 'nav.home', sidebarOrder: 1 } },
+  { path: '/task', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.task', sidebarOrder: 2 } },
+  { path: '/organize', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.organize', sidebarOrder: 3 } },
+  { path: '/pending', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.pending', sidebarOrder: 4 } },
+  { path: '/announce', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.announce', sidebarOrder: 6 } },
+  { path: '/notification-logs', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.notification_logs', sidebarOrder: 7 } },
+  { path: '/standards-status', component: Dummy, meta: { showInSidebar: true, titleKey: 'nav.standards_status', sidebarOrder: 8 } },
+  { path: '/settings', component: Dummy, meta: { showInSidebar: true, permission: 'user', titleKey: 'nav.settings', sidebarOrder: 9 } },
 ]
 
 function mountLayout(locale: 'zh-CN' | 'en' = 'zh-CN') {

@@ -7,9 +7,12 @@ G-030: 技术债联动检查。
   - 忽略已有存量标记、文档文件中的标记
   - 联动要求: 同次提交必须包含对技术债登记簿的变更
 
-技术债登记簿路径（按优先级）:
-  1. docs/governance/tech-debt-register.md（专用登记簿）
-  2. docs/technical-debt.md（通用技术债文档）
+技术债登记簿路径:
+  1. docs/technical-debt.md（唯一数据源 SSOT）
+
+  说明（2026-09-27）：原候选 `docs/governance/tech-debt-register.md` 经 `git log --all` 核实
+  **从未在仓库中存在过**（幽灵路径，注释称"存在任一即可"故未致门禁失败），已删除该候选；
+  同日旧簿 `docs/architecture/technical-debt-registry.md` 已废止归档，故候选只剩 SSOT 一份。
 """
 import re
 import subprocess
@@ -24,7 +27,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # 技术债寄存器候选路径（存在任一即可）
 DEBT_REGISTER_PATHS = [
-    PROJECT_ROOT / "docs" / "governance" / "tech-debt-register.md",
     PROJECT_ROOT / "docs" / "technical-debt.md",
 ]
 

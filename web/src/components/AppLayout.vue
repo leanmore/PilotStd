@@ -25,7 +25,9 @@ const store = useAppStore()
 
 // ── 导航项配置 ──
 // #49: navItems 改为 computed，从路由 meta 动态生成
-// TODO: Remove fallback after #49 verification - deadline 2026-08-09
+// 2026-09-27 #49 收尾复核（探针实测真实 router）：21 条路由记录中 showInSidebar = 11，
+// navItems 实测 role 空/guest/未知 → 10 项、user/admin → 11 项，**恒非空**；
+// 且全库无 router.addRoute（纯静态路由），故删除原"空列表兜底"分支及其过期 TODO（deadline 2026-08-09）。
 interface SidebarRoute {
 meta: { showInSidebar?: boolean; permission?: string; sidebarOrder?: number; titleKey?: string; title?: string; icon?: string }
 path: string
@@ -41,20 +43,6 @@ const navItems = computed(() => {
         icon: r.meta.icon || 'pi pi-circle',
         to: r.path,
       }))
-    if (items.length === 0) {
-      return [
-        { label: t('nav.home'), icon: 'pi pi-home', to: '/' },
-        { label: t('nav.task'), icon: 'pi pi-play', to: '/task' },
-        { label: t('nav.organize'), icon: 'pi pi-folder', to: '/organize' },
-        { label: t('nav.pending'), icon: 'pi pi-hourglass', to: '/pending' },
-        { label: t('nav.download_import'), icon: 'pi pi-download', to: '/download/import' },
-        { label: t('nav.favorites'), icon: 'pi pi-star', to: '/favorites' },
-        { label: t('nav.announce'), icon: 'pi pi-megaphone', to: '/announce' },
-        { label: t('nav.notification_logs'), icon: 'pi pi-list', to: '/notification-logs' },
-        { label: t('nav.standards_status'), icon: 'pi pi-verified', to: '/standards-status' },
-        { label: t('nav.settings'), icon: 'pi pi-cog', to: '/settings' },
-      ]
-    }
     return items
   })
 
