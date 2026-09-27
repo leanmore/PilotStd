@@ -66,6 +66,20 @@ MainWindow (QMainWindow)
 - 取消/关闭路径**全部 7 处**已统一走该原语：`core/handlers/` 的 scan / download / archive（normalize + archive 两个 worker）/ announce / auto / query、`main_window/_window_lifecycle.py`（drive 线程）、`pending_query_dialog.py`。
 - 唯一没有 `stop()` 的 worker 是 `DriveEnumerator`（仅枚举盘符、任务极短）：helper 通过 `getattr(worker, "stop", None)` 跳过停止标志，只走 `requestInterruption()` + `wait()`，通常自然退出；若真超时则进保活列表并计入 `orphan_timeout_total()`。
 - 现有落点：`parts/_table_ops.py::_find_row_by_seq`（表格已析构返回 `-1`）、`core/handlers/_query.py` 的查询槽函数（进度 / 结果 / 完成）、`core/unified_progress.py` 的进度管道。
+- **覆盖 worker 引用之前必须先停旧线程**（2026-09-26 CI 事故：`test-gui-coverage` 连续 3 个 run `exit 134`/SIGABRT、无 pytest 汇总）。`core/handlers/_query.py::on_query()` 直接 `self._query_worker = create(...)`，而 `_archive.on_normalize()` 的补名分支会经 `_run_query_cb()` 再次发起查询 → 上一个 QueryWorker 失去引用且从未被 stop/wait → GC 析构运行中的 QThread → Qt `qFatal` → `abort()`。现在覆盖前先 `self.stop_workers()`。
+- **"是否已结束"的判据必须是 `isFinished()`，不能用 `isRunning()`**：`QThread.start()` 之后存在"已启动但尚未进入 `run()`"的窗口（实测数十毫秒），此时 `isRunning()` 仍为 `False`；旧实现据它提前返回、并让保活对象当场出列，等于**没保活**。`qt_lifecycle._thread_finished()` 封装该判据（无 `isFinished` 的鸭子类型替身才退回 `isRunning()`）。
+- 排查入口：CI 报 `exit code 134`（Linux SIGABRT）/ `0xC0000409`（Windows fail-fast，WER 定位到 `Qt6Core.dll`）且**无汇总**时，faulthandler 会打印**全部**线程——先看 `Current thread`（abort 发起方）与仍在运行的 worker 栈。完整教训链见 [`docs/ci-lessons.md`](../../ci-lessons.md) 第八节。
+
+## 日志与诊断
+
+> 来源：2026-09-26 清理调试输出（`chore: 清调试输出 + ci-lessons 补 Qt qFatal 教训链`）——生产路径上前一版残留 4 处 `print(f"[TRACE] …")`。
+
+- UI 层统一使用模块级 `logger`（`logger.debug/info/warning/exception`），**生产路径不 `print`**；已清理：`core/handlers/_archive.py::on_normalize`、`main_window/parts/_query_ops.py::_do_pending_query`（改前/改后各一条）、`main_window/parts/_ui_setup_ops.py::_setup_scanner`。
+- **有意保留的 stderr 输出**（非调试残留，改动会破坏其契约）：
+  - `main_window/parts/_run_main.py` 的 `_qt_message_handler` —— 把 Qt C++ 层 WARNING/CRITICAL/FATAL 写 stderr（`flush=True`），是 Qt 消息的唯一出口，改成 `logging` 有重入风险；
+  - `core/_self_check.py` —— 可选架构自检工具（`PILOTSTD_SELF_CHECK=1` 才启用），按设计输出到 stderr；
+  - `pilotstd/cli/commands/*.py` —— CLI 的用户输出通道（`tests/cli/test_execution.py` 用 `capsys` 断言其 stdout）；
+  - `pilotstd/templates/adapter/**` —— cookiecutter 生成钩子与探针脚本（生成期/开发者工具）。
 
 ## 工作流
 

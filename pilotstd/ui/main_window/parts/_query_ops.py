@@ -106,10 +106,12 @@ def _do_pending_query(self) -> None:
     )
     self._mgr._queried_items = parsed_list
     self._clear_table()
-    print(f"[TRACE] _do_pending_query: 修改前 id={id(self._parsed_results)}")
+    logger.debug("_do_pending_query: 修改前 id=%s", id(self._parsed_results))
     self._parsed_results.clear()
     self._parsed_results.extend(parsed_list)
-    print(f"[TRACE] _do_pending_query: 修改后 id={id(self._parsed_results)} len={len(self._parsed_results)}")
+    logger.debug(
+        "_do_pending_query: 修改后 id=%s len=%d", id(self._parsed_results), len(self._parsed_results)
+    )
     for i, p in enumerate(self._parsed_results):
         self._add_table_row(
             RowUpdate(

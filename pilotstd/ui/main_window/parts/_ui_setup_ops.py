@@ -320,7 +320,7 @@ def _setup_scanner(self) -> None:
     from ....models import ParsedStdInfo
 
     self._parsed_results: list[ParsedStdInfo] = []
-    print(f"[TRACE] MainWindow._parsed_results 初始化: id={id(self._parsed_results)}")
+    logger.debug("MainWindow._parsed_results 初始化: id=%s", id(self._parsed_results))
     self._unrecognized_files: list[str] = []
     self._scan_source_root: str = ""
 

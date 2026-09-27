@@ -1,7 +1,7 @@
 # CI 修复经验总结
 
-> 最后更新：2026-09-21
-> 基于 2026-07-16 CI 综合修复（12 轮迭代）提炼；2026-09-21 追加第七节（mock 掩盖真实调用链）
+> 最后更新：2026-09-26
+> 基于 2026-07-16 CI 综合修复（12 轮迭代）提炼；2026-09-21 追加第七节（mock 掩盖真实调用链）；2026-09-26 追加第八节（QThread 运行中被析构 → Qt qFatal）
 
 ---
 
@@ -15,6 +15,7 @@
 | 测试盲区 | 1 | mock 覆盖了出错层（`AttributeError` 存活 3 个月、业务 0 成功） | 只有真实执行到下一层的测试才算验证（见第七节） |
 | 静态检查 | 3 | vulture/G-010/G-011 阻断 CI | 静态检查工具需持续维护白名单和规则 |
 | 退出清理 | 1 | `RuntimeError: wrapped C/C++ object has been deleted` | Qt 对象生命周期 vs Python atexit 顺序需显式管理 |
+| Qt 生命周期 | 1 | CI `exit code 134`(SIGABRT)、**无汇总**、崩点漂移 | QThread 运行中被 GC 析构即 qFatal；测试基建空转会掩盖崩溃（见第八节） |
 | 文件管理 | 1 | `tests/fixtures/` 被 gitignore 忽略 | `.gitignore` 误伤需定期审计 |
 
 ---
@@ -188,6 +189,75 @@
 
 ---
 
+## 八、QThread 运行中被析构 → Qt qFatal → 进程 abort（2026-09-26）
+
+### 8.1 现象
+
+- `test-gui-coverage` **连续三个 run** 报 `exit code 134`（Linux `SIGABRT`；Windows 同形态为
+  `0xC0000409` fail-fast，WER 记录 faulting module = `Qt6Core.dll`）：
+  `36248502182`（`5a78b193`）、`36250148643`（`59376e59`）、修复后 `36253266299`（`8cee0678`，已不再 abort）。
+- **无 pytest 汇总**（进程在套件中途死亡），**崩前所有测试 PASSED**。
+- **崩点漂移**：本地第 4 个（`test_cancel_button_enabled_during_query`）/ 第 15 个
+  （`test_status_bar_shows_cancel_message`）测试；CI 固定在第 15 个 —— 典型"孤儿对象何时被 GC"决定崩点。
+- CI 转储（`59376e59`）：12 个线程块，其中一个是**仍在跑的 QueryWorker**
+  （`ui/workers/query.py:95 run → … → scorer.get_profile → core/config/manager.py:98 save`），
+  `Current thread` = 主线程，栈为 `pytestqt qt_compat.exec → qtbot.wait → helpers/__init__.py:123 wait_for_worker_and_ui`。
+
+### 8.2 根因
+
+- **直接原因**：一个仍在运行的 `QThread` 丢掉了唯一 Python 引用后被 GC 析构 → Qt
+  `qFatal("QThread: Destroyed while thread is still running")` → `abort()`。
+- **两处缺陷叠加**：
+  1. `pilotstd/ui/core/handlers/_query.py` 的 `on_query()` 直接覆盖 `self._query_worker`，
+     **不停/不等旧线程**；而 `_archive.on_normalize()` 的补名分支会经 `_run_query_cb()` **再次发起查询**
+     → 上一个 QueryWorker 失去引用且从未被 stop/wait。
+  2. `pilotstd/ui/qt_lifecycle.py` 的判据用了 `isRunning()`：`QThread.start()` 之后存在
+     "已启动但尚未进入 `run()`"的窗口（实测数十毫秒），此时 `isRunning()` 仍为 `False`
+     → `stop_worker_gracefully()` 直接返回、`_keep_alive_until_finished()` 当场释放，等于**没保活**。
+- **与 §8.8 同源**（`docs/technical-debt.md` 八、操作记录 8.8：`test-gui-unit` 因
+  `QThread: Destroyed while thread is still running` 触发 qFatal 中止套件）——同一类问题第二次发生。
+
+### 8.3 为什么长期逃过测试（教训链）
+
+1. `tests/gui/helpers/__init__.py` 的 `wait_for_worker_and_ui(qtbot, window, "_scan_worker"|"_query_worker", …)`
+   取的是**窗口属性**，而真实 MainWindow 上**没有**这些属性（worker 在各 UI handler 上：
+   `window._core.scan._scan_worker` 等）→ `getattr` 恒取到 `None` → **静默跳过线程等待**（只记一条 debug）。
+2. `tests/gui/helpers/predicates.py` 的 `worker_done()` **恒返回 True**（注释自称 "Universal fallback"）。
+3. 结果：`test_manual_workflow.py` 的 15 处"等待"（全套件 53 处调用）**全部是空操作**——
+   测试在 worker 还在跑的时候就往下走，孤儿线程从未被任何断言观察到。
+
+### 8.4 后续发现（同主题的另一类假等待）
+
+- 修好崩溃后 CI `36253266299` 跑完全部用例，**唯一失败**是
+  `test_query.py::test_query_mock_changes_effect_status`：`assert has_status`（`test_query.py:64`）失败。
+- 机制：该测试用 **固定 sleep** 等 worker（`qtbot.wait(300)` + `qtbot.wait(1000)`），而 QueryWorker
+  实测耗时 **CI 1.0s / 本地 0.6–1.7s**（CI 日志 `[QueryWorker] elapsed=1.0s results=0`）→ **余量为负**。
+- 同批扫描出 21 处"固定 sleep 等 worker"（HIGH 1 / MEDIUM 2 / LOW 18）；HIGH/MEDIUM 与 3 处前置
+  扫描等待已改用 `wait_for_worker_and_ui` + 真实 predicate（如"第 4 列生效状态已有值"）。
+
+### 8.5 教训
+
+1. **Qt 对象生命周期必须显式管理**，不能靠 GC：停线程要"断信号 → 置停止标志 → `wait()` → 超时才保活"，
+   且在**覆盖引用之前**先停旧对象。
+2. **判据用 `isFinished()`，不用 `isRunning()`**——`QThread.start()` 后有"已启动未 run"窗口，
+   用 `isRunning()` 会把仍在运行的线程判成已结束。
+3. **测试基建空转会掩盖崩溃**：等待函数取错属性 + 恒真谓词 = 53 处等待形同虚设，
+   让一个必然 abort 的缺陷长期"通过"。
+4. **固定 sleep 等 worker 是另一类假等待**：余量为负时必然 flaky，且只在更慢的环境（CI）暴露。
+5. **CI 环境（coverage 插桩 + 更慢机器）会放大竞态**：本地默认不跑 `tests/gui/`，
+   同类问题只在 CI 复现；排查时应先在本地用 `--cov` 复刻 CI 的慢速环境。
+6. **崩溃转储要读全**：`Fatal Python error: Aborted` 之后 faulthandler 会把**所有**线程打出来，
+   "哪个线程是 Current、孤儿线程停在哪个调用栈"就是根因线索。
+
+### 8.6 引用
+
+- 修复提交：`a7225689`（`_query.py` 覆盖前先停旧线程 + `qt_lifecycle` 判据改 `isFinished()`）、
+  `3e69b039`（测试基建：`wait_for_worker_and_ui` 真正解析并等待、`worker_done` 改哨兵）、
+  `dcfe8f5c`（4 处固定 sleep 竞态改用真实等待）
+- CI：abort 转储 run `59376e59`（job `108427000555`）、失败 traceback run `36253266299`（job `108435684660`）
+
+---
+
 ## 防复发检查清单
 
 - [ ] 新增测试依赖 → 检查 `docker/requirements-docker.txt` 和 `desktop/requirements-win.txt`
@@ -199,3 +269,6 @@
 - [ ] 提交前 → 本地运行 `vulture` + `ruff` + `mypy`
 - [ ] 新增会真实出网的测试 → 确认 CI 离线阻断覆盖（iptables + check_ci_offline.py + socket guard）
 - [ ] 改网络会话/适配器/委派链 → 补一条不 mock 该层的测试（真实走到 `HTTPAdapter.send`）
+- [ ] 新增/改动 QThread worker → 覆盖引用前先 `stop_worker_gracefully()`；判据用 `isFinished()` 不用 `isRunning()`
+- [ ] 新增 GUI 等待 → 用 `wait_for_worker_and_ui` + 真实 predicate；**禁用固定 `qtbot.wait(N)` 等 worker**
+- [ ] CI GUI 套件变红且**无汇总**（exit 134 / 0xC0000409）→ 先读 faulthandler 全线程转储，找"Current thread"与孤儿线程
