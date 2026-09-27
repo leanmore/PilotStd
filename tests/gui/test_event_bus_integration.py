@@ -358,3 +358,91 @@ def test_scan_handler_migration_no_regression(window, test_data_dir, qtbot, tmp_
 
     assert table.rowCount() > 0, "扫描后表格应有数据"
 
+
+# ═══════════════════════════════════════════════════════════════════
+# R2 静止协议（2026-09-27 第十二轮 R12-4）
+# ═══════════════════════════════════════════════════════════════════
+
+
+class TestResetQuiescenceProtocol:
+    """锁定 reset() 的四步静止协议：关门 → 排空 → deleteLater → 复位。"""
+
+    def test_resetting_flag_is_cleared_after_reset(self):
+        EventBus.instance()
+        EventBus.reset()
+        assert EventBus._resetting is False, "reset() 结束后必须复位门闸，否则后续 publish 永久失效"
+
+    def test_retired_instance_publish_is_noop(self):
+        """经旧引用（其它线程可能持有的 bus 变量）发布必须无副作用——不抛异常、不回调。"""
+        old = EventBus.instance()
+        received: list[object] = []
+        old.subscribe("scan.finished", received.append)
+        EventBus.reset()  # 退役 old
+
+        old.publish("scan.finished", {"n": 1})  # 必须 no-op
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.processEvents()
+        assert received == [], "退役实例的 publish 不得再投递回调"
+        assert old._accepting is False
+
+    def test_publish_during_reset_window_is_noop(self):
+        """reset() 窗口内（_resetting=True）的 publish 必须不入队、不抛异常。"""
+        bus = EventBus.instance()
+        received: list[object] = []
+        bus.subscribe("scan.finished", received.append)
+        EventBus._resetting = True
+        try:
+            bus.publish("scan.finished", {"n": 2})  # 必须 no-op
+        finally:
+            EventBus._resetting = False
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.processEvents()
+        assert received == [], "静止窗口内不得入队任何 deliver"
+
+    def test_subscribe_during_reset_window_is_noop(self):
+        bus = EventBus.instance()
+        EventBus._resetting = True
+        try:
+            bus.subscribe("scan.finished", lambda _d: None)
+        finally:
+            EventBus._resetting = False
+        assert "scan.finished" not in bus._subscribers, "静止窗口内不得写入订阅状态"
+
+    def test_reset_retires_instance_and_creates_fresh_one(self):
+        old = EventBus.instance()
+        old.subscribe("scan.finished", lambda _d: None)
+        EventBus.reset()
+        new = EventBus.instance()
+        assert new is not old, "reset() 后必须得到全新实例"
+        assert new._accepting is True
+        assert new._subscribers == {}, "新实例不得继承退役实例的订阅"
+
+    def test_publisher_thread_during_reset_does_not_raise(self):
+        """跨线程 teardown 场景冒烟：一边多线程 publish，一边 reset——不得抛异常。"""
+        errors: list[BaseException] = []
+        stop = threading.Event()
+
+        def publisher() -> None:
+            bus = EventBus.instance()
+            while not stop.is_set():
+                try:
+                    bus.publish("scan.progress", {"i": 1})
+                except BaseException as exc:  # noqa: BLE001 - 测试需捕获一切异常用于断言
+                    errors.append(exc)
+                    return
+
+        threads = [threading.Thread(target=publisher, daemon=True) for _ in range(3)]
+        for t in threads:
+            t.start()
+        try:
+            for _ in range(5):
+                EventBus.reset()
+        finally:
+            stop.set()
+            for t in threads:
+                t.join(timeout=5.0)
+        assert errors == [], f"reset 期间跨线程 publish 不得抛异常: {errors}"
+
+
