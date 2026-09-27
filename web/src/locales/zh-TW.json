@@ -71,8 +71,6 @@
       "archive_retry": "收藏標準下載歸檔",
       "cron_label": "Cron 表達式",
       "archive_retry_hint": "收藏的國標將在冷卻期後由該任務統一下載；改小 cron（如 * * * * *）可立刻觸發一輪。",
-      "save": "儲存設定",
-      "saved": "設定已儲存",
       "load_failed": "載入定時任務設定失敗"
     },
     "file_monitor": {

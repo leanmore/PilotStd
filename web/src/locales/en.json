@@ -71,8 +71,6 @@
       "archive_retry": "Favorite Standard Download & Archive",
       "cron_label": "Cron Expression",
       "archive_retry_hint": "Favorites are downloaded by this task after the cooldown; use a smaller cron (e.g. * * * * *) to trigger a round immediately.",
-      "save": "Save Config",
-      "saved": "Config saved",
       "load_failed": "Failed to load scheduled task config"
     },
     "file_monitor": {

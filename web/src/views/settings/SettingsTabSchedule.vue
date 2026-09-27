@@ -93,7 +93,7 @@ onMounted(loadTasks)
       <transition name="collapsible">
         <div v-show="sections.tasks" class="collapsible-content">
           <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-          <Message v-if="saved" severity="success" :closable="false">{{ t('settings.tasks.saved') }}</Message>
+          <Message v-if="saved" severity="success" :closable="false">{{ t('settings.saved') }}</Message>
 
           <!-- 自动扫描 -->
           <div class="task-row">
@@ -157,7 +157,7 @@ onMounted(loadTasks)
           </div>
 
           <div class="actions-row">
-            <Button :label="t('settings.tasks.save')" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
+            <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" :loading="saving" @click="saveTasks" />
           </div>
         </div>
       </transition>
