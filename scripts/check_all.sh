@@ -290,7 +290,9 @@ run_deep() {
 # 起因：`scripts/update_docs.archived.py` 头部 4 行超 ruff line-length=120（E501），
 # 而 ruff/mypy 只在 `--deep` 与 CI 中执行 → 本地 `--fast` 全绿、CI 连续 3 次红灯
 # （run 36300484047 / 36301031251 / 36301267833），并连带 skipped 4 个 job。
-# L1：`--fast` 下若**暂存变更含 .py**（含 scripts/ 与任何 *.py），自动增跑 ruff+mypy（<5s）；
+# L1：`--fast` 下若**暂存变更含 .py/.pyi/.pyw**（含 scripts/ 路径），自动增跑 ruff+mypy（<5s）；
+#     T-32（2026-09-27 第十二轮）：原触发式只认 `.py$`，而 G-038 的 ruff 范围**包含 .pyi**
+#     → 改 `.pyi` 时本地漏检、CI 才报错，故补齐 `\.py[wi]?$`。
 # L2：`--with-lint` 显式强制增跑（不依赖暂存区），供不提交时自查。
 # 目标与参数与 G-038 完全一致（ruff 4 目录；mypy 仅 pilotstd/ docker/）；
 # 工具缺失时**降级为 WARN 不阻断**（各机 PATH 不一致，与 G-038 不进 --fast 的既有理由一致）。
@@ -300,13 +302,13 @@ run_lint_fast() {
     echo "🔎 L1/L2 快速 lint（ruff + mypy，T-24）..."
 
     local staged_relevant
-    staged_relevant=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -E '^scripts/|\.py$' || true)
+    staged_relevant=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -E '^scripts/|\.py[wi]?$' || true)
     if [ "$WITH_LINT" -ne 1 ] && [ -z "$staged_relevant" ]; then
-        echo "   ⏭  暂存区无 scripts/ 或 *.py 变更，跳过（可用 --with-lint 强制）"
+        echo "   ⏭  暂存区无 scripts/ 或 *.py/.pyi/.pyw 变更，跳过（可用 --with-lint 强制）"
         return 0
     fi
     if [ -n "$staged_relevant" ]; then
-        echo "   📋 暂存 .py/scripts 变更：$(echo "$staged_relevant" | tr '\n' ' ')"
+        echo "   📋 暂存 .py/.pyi/.pyw/scripts 变更：$(echo "$staged_relevant" | tr '\n' ' ')"
     fi
 
     if ! command -v ruff >/dev/null 2>&1; then
