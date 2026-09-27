@@ -106,22 +106,41 @@ def parse_args(argv: list[str]) -> dict:
 
 
 def resolve_range(opts: dict) -> tuple[str | None, str]:
-    """按回退链选出变更范围，返回 (range 或 None, 说明)。"""
-    candidates: list[tuple[str, str]] = []
+    """按回退链选出变更范围，返回 (range 或 None, 说明)。
+
+    R11-3 加固：候选必须**确实含变更文件**才命中。仅"两端可 rev-parse"但 diff 为空的候选
+    （推送到 main 时 origin/main...HEAD 即如此）继续向下回退到 HEAD~1..HEAD，
+    绝不落成"无变更文件"的静默空转；`--range` 为调用方硬指定，不做非空过滤。
+    """
+    # R11-3：严格模式（CI 告警期/阻断期）下要求候选范围确实含变更文件；非严格模式（本地辅助，
+    # 可能调用 claude 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
+    require_changes = bool(opts["strict"])
+    candidates: list[tuple[str, str, bool]] = []
     if opts["range"]:
-        candidates.append((opts["range"], "--range 指定"))
+        candidates.append((opts["range"], "--range 指定", True))
     env_range = os.environ.get("DOCS_SYNC_RANGE", "").strip()
     if env_range:
-        candidates.append((env_range, "环境变量 DOCS_SYNC_RANGE"))
+        candidates.append((env_range, "环境变量 DOCS_SYNC_RANGE", False))
     base = (opts["base"] or BASE_BRANCH).strip()
     if base:
-        candidates.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}"))
-    candidates.append(("origin/main...HEAD", "origin/main...HEAD"))
-    candidates.append(("HEAD~1..HEAD", "HEAD~1..HEAD"))
-    for rng, why in candidates:
-        if _range_is_valid(rng):
+        candidates.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}", False))
+    candidates.append(("origin/main...HEAD", "origin/main...HEAD", False))
+    candidates.append(("HEAD~1..HEAD", "HEAD~1..HEAD", False))
+    empty_fallback: tuple[str, str] | None = None
+    for rng, why, hard in candidates:
+        if not _range_is_valid(rng):
+            continue
+        if hard or not require_changes or _range_has_changes(rng):
             return rng, why
-    return None, "无可用范围（无法取到变更）"
+        if empty_fallback is None:
+            empty_fallback = (rng, f"{why}，该范围无变更")
+    return empty_fallback or (None, "无可用范围（无法取到变更）")
+
+
+def _range_has_changes(rng: str) -> bool:
+    """该范围是否确实含变更文件（R11-3：空范围不得作为来源，否则门禁空转仍显通过）。"""
+    return bool(get_changed_files(rng))
+
 
 
 def get_changed_files(rng: str | None) -> list[str]:
@@ -163,7 +182,7 @@ def main() -> int:
 
     changed = get_changed_files(rng)
     if not changed:
-        print("[docs-compliance] PASS: 无变更文件")
+        print(f"[docs-compliance] PASS: 无变更文件（{why}）")
         return 0
 
     failures = check(changed)

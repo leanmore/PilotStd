@@ -9,6 +9,7 @@
 
 变更来源回退链（修复原实现"只读暂存区 → CI 全新检出必然为空 → 门禁空转"）：
   --range → DOCS_SYNC_RANGE → --base/BASE_BRANCH（origin/<ref>...HEAD）→ origin/main...HEAD → HEAD~1..HEAD → 暂存区。
+  候选范围必须确实含变更文件才算命中；diff 为空的候选（推送到 main 时的 origin/main...HEAD）会继续向下回退。
 """
 
 import os
@@ -344,6 +345,7 @@ _USAGE = """\
 
 不带参数时行为与旧版一致：读取 git 暂存区。
 变更来源回退链：--range → 环境变量 DOCS_SYNC_RANGE → --base/BASE_BRANCH → origin/main...HEAD → HEAD~1..HEAD → 暂存区。
+候选范围必须确实含变更文件才算命中；diff 为空的候选（推送到 main 时的 origin/main...HEAD）会继续向下回退。
 """
 
 
@@ -405,25 +407,49 @@ def _resolve_change_source(opts):
 
     优先级：显式范围（--range / DOCS_SYNC_RANGE / --base·BASE_BRANCH）→ **暂存区（本地默认，与旧版一致）**
     → origin/main...HEAD → HEAD~1..HEAD（浅克隆下可能无效，最终退回"无变更"）。
+
+    R11-3 加固：候选范围必须**确实含变更文件**才算命中。仅"两端可 rev-parse"但 diff 为空的候选
+    （推送到 main 时 origin/main...HEAD 即如此，因 origin/main 与 HEAD 指向同一提交）一律继续向下回退，
+    绝不以"无变更"静默通过；`--range` 为调用方硬指定（受控验证用），不做非空过滤。
     """
+    # R11-3：严格模式（CI 告警期/阻断期）下要求候选范围确实含变更文件；非严格模式（本地辅助，
+    # 可能调用 claude 改写文档）保持“暂存区优先”的旧行为，避免把历史提交误当成本次变更。
+    require_changes = bool(opts["strict"])
     explicit = []
     if opts["range"]:
-        explicit.append((opts["range"], "--range 指定"))
+        # 硬指定：尊重调用方意图，即使该范围 diff 为空（受控验证依赖此语义）
+        explicit.append((opts["range"], "--range 指定", True))
     env_range = os.environ.get("DOCS_SYNC_RANGE", "").strip()
     if env_range:
-        explicit.append((env_range, "环境变量 DOCS_SYNC_RANGE"))
+        explicit.append((env_range, "环境变量 DOCS_SYNC_RANGE", False))
     base = (opts["base"] or os.environ.get("BASE_BRANCH", "")).strip()
     if base:
-        explicit.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}"))
-    for rng, why in explicit:
-        if _range_is_valid(rng):
+        explicit.append((f"origin/{base}...HEAD", f"BASE_BRANCH={base}", False))
+    # 有效但 diff 为空的候选只留作兜底（用于说明"确实无变更"），不立即返回
+    empty_fallback = None
+    for rng, why, hard in explicit:
+        if not _range_is_valid(rng):
+            continue
+        if hard or not require_changes or _range_has_changes(rng):
             return rng, why
+        if empty_fallback is None:
+            empty_fallback = (rng, f"{why}，该范围无变更")
     if _get_staged_files():
         return None, "暂存区"
     for rng, why in (("origin/main...HEAD", "origin/main...HEAD"), ("HEAD~1..HEAD", "HEAD~1..HEAD")):
-        if _range_is_valid(rng):
+        if not _range_is_valid(rng):
+            continue
+        if not require_changes or _range_has_changes(rng):
             return rng, why
-    return None, "暂存区（无可用范围）"
+        if empty_fallback is None:
+            empty_fallback = (rng, f"{why}，该范围无变更")
+    return empty_fallback or (None, "暂存区（无可用范围）")
+
+
+def _range_has_changes(rng):
+    """该范围是否确实含变更文件（R11-3：空范围不得作为来源，否则门禁空转仍显 PASS）。"""
+    return bool(_get_changed_files(rng))
+
 
 
 def _get_changed_files(rng):
@@ -535,7 +561,7 @@ def main():
     print(f"  变更来源: {rng or '暂存区'}（{why}）")
     changed_files = _get_changed_files(rng)
     if not changed_files:
-        print(f"  无变更（{rng or '暂存区'}），跳过")
+        print(f"  无变更（{rng or '暂存区'}；{why}），跳过")
         print("=" * 60)
         return 0
 

@@ -97,3 +97,70 @@ def test_help_exits_zero(mod) -> None:
     with pytest.raises(SystemExit) as exc:
         mod._parse_args(["--help"])
     assert exc.value.code == 0
+
+
+# ── R11-3：空 diff 的候选不得作为来源（第五个 CI 盲区：范围取值陷阱） ──
+
+
+def _fake_git(changes: dict, resolvable: bool = True):
+    """构造 _run_git 替身：rev-parse 一律可解析；diff 按范围返回预设内容。"""
+
+    def fake(args):
+        if args[:2] == ["rev-parse", "--verify"]:
+            return "abc1234\n" if resolvable else ""
+        if args and args[0] == "diff" and "--name-status" in args:
+            return changes.get(args[-1], "")
+        return ""
+
+    return fake
+
+
+def test_strict_mode_skips_empty_range_and_falls_back(mod, monkeypatch) -> None:
+    """推送到 main 时 origin/main...HEAD 的 diff 恒空 → 必须继续回退到 HEAD~1..HEAD。
+
+    事故形态：GitHub push 载荷没有 event.sha → DOCS_SYNC_RANGE=<before>.. （右端为空）
+    → 该候选判非法 → 若不做"非空"校验就会落在空的 origin/main...HEAD 上，以"无变更"静默通过。
+    """
+    monkeypatch.setattr(mod, "_run_git", _fake_git({"HEAD~1..HEAD": "M\tdocs/technical-debt.md\n"}))
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.setenv("DOCS_SYNC_RANGE", "deadbeef..")
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    rng, why = mod._resolve_change_source(mod._parse_args(["--strict"]))
+    assert rng == "HEAD~1..HEAD", (rng, why)
+    assert why == "HEAD~1..HEAD"
+
+
+def test_non_strict_mode_keeps_legacy_selection(mod, monkeypatch) -> None:
+    """非严格模式（本地辅助，可能调用 claude 改文档）保持旧行为：不因空 diff 去抓历史提交。"""
+    monkeypatch.setattr(mod, "_run_git", _fake_git({"HEAD~1..HEAD": "M\tdocs/technical-debt.md\n"}))
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    rng, why = mod._resolve_change_source(mod._parse_args([]))
+    assert rng == "origin/main...HEAD", (rng, why)
+
+
+def test_explicit_range_is_respected_even_when_empty(mod, monkeypatch) -> None:
+    """`--range` 是受控验证用的硬指定 → 即使 diff 为空也不参与非空过滤。"""
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.delenv("BASE_BRANCH", raising=False)
+    rng, why = mod._resolve_change_source(mod._parse_args(["--strict", "--range", "A..B"]))
+    assert rng == "A..B" and why == "--range 指定"
+
+
+def test_all_empty_candidates_report_reason(mod, monkeypatch) -> None:
+    """所有候选都为空时，必须给出"该范围无变更"的显式说明，不得静默。"""
+    monkeypatch.setattr(mod, "_run_git", _fake_git({}))
+    monkeypatch.setattr(mod, "_get_staged_files", lambda: [])
+    monkeypatch.delenv("DOCS_SYNC_RANGE", raising=False)
+    monkeypatch.setenv("BASE_BRANCH", "main")
+    rng, why = mod._resolve_change_source(mod._parse_args(["--strict"]))
+    assert rng is not None and "无变更" in why, (rng, why)
+
+
+def test_range_has_changes_reflects_diff(mod, monkeypatch) -> None:
+    monkeypatch.setattr(mod, "_run_git", _fake_git({"HEAD~1..HEAD": "M\tdocs/technical-debt.md\n"}))
+    assert mod._range_has_changes("HEAD~1..HEAD") is True
+    assert mod._range_has_changes("origin/main...HEAD") is False
