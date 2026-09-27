@@ -4,10 +4,13 @@
  * Q18: 文件监控已迁移至 SettingsTabSchedule
  * 包含缓存管理、任务管理两个可折叠区域。
  */
+import { useI18n } from 'vue-i18n'
 import CacheManager from '@/components/CacheManager.vue'
 import TaskManager from '@/components/TaskManager.vue'
 
 defineOptions({ name: 'SettingsTabSystem' })
+
+const { t } = useI18n()
 
 interface SystemSections {
   cacheManager: boolean
@@ -32,7 +35,7 @@ function toggle(key: keyof SystemSections) {
     <!-- 缓存管理 -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="toggle('cacheManager')">
-        <span class="collapsible-title">缓存管理</span>
+        <span class="collapsible-title">{{ t('settings.system.cache_title') }}</span>
         <i :class="sections.cacheManager ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
       </div>
       <transition name="collapsible">
@@ -45,7 +48,7 @@ function toggle(key: keyof SystemSections) {
     <!-- 后台任务调度 -->
     <div class="collapsible-card">
       <div class="collapsible-header" @click="toggle('taskManager')">
-        <span class="collapsible-title">后台任务调度</span>
+        <span class="collapsible-title">{{ t('settings.system.tasks_title') }}</span>
         <i :class="sections.taskManager ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
       </div>
       <transition name="collapsible">

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -39,6 +40,7 @@ interface MonitorStats {
 export default defineComponent({
   name: 'FileMonitor',
   setup() {
+    const { t } = useI18n()
     const config = ref<MonitorConfig>({
       enabled: true, watch_path: '/inbox', delay_seconds: 5,
       recursive: true, file_patterns: ['.pdf', '.docx', '.doc'],
@@ -117,6 +119,7 @@ export default defineComponent({
     onBeforeUnmount(() => { if (pollTimer) clearInterval(pollTimer) })
 
     return {
+      t,
       config,
       status,
       saving,
@@ -135,30 +138,30 @@ export default defineComponent({
 <template>
   <div>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-    <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
+    <Message v-if="saved" severity="success" :closable="false">{{ t('settings.saved') }}</Message>
 
     <!-- 状态栏 -->
     <div class="monitor-status-bar">
       <div class="status-item">
-        <span class="status-label">监控状态</span>
+        <span class="status-label">{{ t('settings.file_monitor.status') }}</span>
         <Tag :severity="status.running ? 'success' : 'secondary'"
-             :value="status.running ? '运行中' : '已停止'" />
+             :value="status.running ? t('settings.file_monitor.running') : t('settings.file_monitor.stopped')" />
       </div>
       <div class="status-item">
-        <span class="status-label">监控路径</span>
+        <span class="status-label">{{ t('settings.file_monitor.path') }}</span>
         <code>{{ status.watch_path }}</code>
       </div>
       <div class="status-item">
-        <span class="status-label">今日处理</span>
-        <span>{{ status.processed_today }} (成功 {{ status.success_today }} / 失败 {{ status.failed_today }})</span>
+        <span class="status-label">{{ t('settings.file_monitor.today') }}</span>
+        <span>{{ t('settings.file_monitor.today_detail', { n: status.processed_today, ok: status.success_today, fail: status.failed_today }) }}</span>
       </div>
       <div class="status-item" v-if="status.last_processed">
-        <span class="status-label">最近处理</span>
+        <span class="status-label">{{ t('settings.file_monitor.last') }}</span>
         <span style="font-size:11px">{{ status.last_processed.split('|')[1] || '' }}</span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">
-        <Button label="启动" size="small" severity="success" :loading="startLoading" @click="startMonitor" :disabled="status.running" />
-        <Button label="停止" size="small" severity="danger" :loading="stopLoading" @click="stopMonitor" :disabled="!status.running" />
+        <Button :label="t('settings.file_monitor.start')" size="small" severity="success" :loading="startLoading" @click="startMonitor" :disabled="status.running" />
+        <Button :label="t('settings.file_monitor.stop')" size="small" severity="danger" :loading="stopLoading" @click="stopMonitor" :disabled="!status.running" />
       </div>
     </div>
 
@@ -167,43 +170,43 @@ export default defineComponent({
       <div class="field">
         <div style="display:flex;align-items:center;gap:8px">
           <ToggleSwitch v-model="config.enabled" />
-          <label>启用文件监控</label>
+          <label>{{ t('settings.file_monitor.enabled') }}</label>
         </div>
       </div>
       <div class="field-row">
         <div class="field field-path">
-          <label>监控路径</label>
+          <label>{{ t('settings.file_monitor.path') }}</label>
           <InputText v-model="config.watch_path" placeholder="/inbox" class="full-width" />
         </div>
         <div class="field field-delay">
-          <label>延迟（秒）</label>
+          <label>{{ t('settings.file_monitor.delay') }}</label>
           <InputNumber v-model="config.delay_seconds" :min="1" :max="60" class="full-width" />
         </div>
       </div>
       <div class="field-row" style="align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
           <ToggleSwitch v-model="config.recursive" />
-          <label>监控子目录</label>
+          <label>{{ t('settings.file_monitor.subdirs') }}</label>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <ToggleSwitch v-model="config.auto_archive" />
-          <label>自动归档</label>
+          <label>{{ t('settings.file_monitor.auto_archive') }}</label>
         </div>
       </div>
       <div class="field">
-        <label>文件类型（逗号分隔）</label>
+        <label>{{ t('settings.file_monitor.types') }}</label>
         <InputText :model-value="config.file_patterns.join(',')"
                    @update:model-value="v => config.file_patterns = (v as string).split(',').map(s => s.trim()).filter(Boolean)"
                    placeholder=".pdf,.docx,.doc" />
       </div>
       <div class="field">
-        <label>忽略模式（逗号分隔）</label>
+        <label>{{ t('settings.file_monitor.ignore') }}</label>
         <InputText :model-value="config.ignore_patterns.join(',')"
                    @update:model-value="v => config.ignore_patterns = (v as string).split(',').map(s => s.trim()).filter(Boolean)"
                    placeholder="~$,.tmp,.swp" />
       </div>
       <div style="margin-top:12px">
-        <Button label="保存配置" icon="pi pi-check" size="small" :loading="saving" @click="saveConfig" />
+        <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" :loading="saving" @click="saveConfig" />
       </div>
     </div>
   </div>

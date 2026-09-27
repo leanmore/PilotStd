@@ -2,6 +2,7 @@
 defineOptions({ name: 'ValidityConfig' })
 // ValidityConfig.vue — 时效性检查配置组件（从 ValidityConfigView 提取）
 import { ref, onMounted, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
@@ -18,6 +19,8 @@ interface LegacyValidityResponse extends Partial<ValidityConfig> {
   update_interval?: number
 }
 
+const { t } = useI18n()
+
 /** 提取 axios 错误消息 */
 function getErrorMessage(e: unknown, fallback: string): string {
   const err = e as { response?: { data?: { error?: string; details?: string[] } }; message?: string }
@@ -33,18 +36,20 @@ const config = ref<ValidityConfig>({
   batch_size: 50, batch_interval: 5, check_ratio: 25,
 })
 
-// ====== 周几选项：number (1-7) → 中文标签 ======
-const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
+// ====== 周几选项：number (1-7) → i18n 标签 ======
+// 复用既有 date.weekday.* 词表（zh: 周一 / zh-TW: 週一 / en: Mon），避免再造一套词
+const WEEKDAY_KEYS = [
+  'date.weekday.short.mon', 'date.weekday.short.tue', 'date.weekday.short.wed',
+  'date.weekday.short.thu', 'date.weekday.short.fri', 'date.weekday.short.sat',
+  'date.weekday.short.sun',
+] as const
 
-const weekdayOptions = [
-  { label: '周一', value: 1 },
-  { label: '周二', value: 2 },
-  { label: '周三', value: 3 },
-  { label: '周四', value: 4 },
-  { label: '周五', value: 5 },
-  { label: '周六', value: 6 },
-  { label: '周日', value: 7 },
-]
+/** 「周一」/「Mon」：前缀（zh 为「周」、en 为空）+ 简称 */
+function weekdayLabel(idx: number): string {
+  return `${t('date.weekday.prefix')}${t(WEEKDAY_KEYS[idx])}`
+}
+
+const weekdayOptions = computed(() => WEEKDAY_KEYS.map((_, i) => ({ label: weekdayLabel(i), value: i + 1 })))
 
 // ====== 时间桥接：DatePicker(Date) ↔ 后端 string('HH:mm') ======
 function parseTimeToDate(v: string | undefined): Date {
@@ -93,7 +98,7 @@ const checkRatioDisplay = computed(() => {
 // 首次执行时间（展示用）
 const firstExecutionTime = computed(() => {
   const idx = Math.max(0, Math.min((config.value.first_weekday ?? 1) - 1, 6))
-  return `周${WEEKDAY_LABELS[idx]} ${config.value.execute_time}`
+  return `${weekdayLabel(idx)} ${config.value.execute_time}`
 })
 
 // ✅ #43: 校验是否可保存
@@ -180,7 +185,7 @@ async function loadConfig() {
       config.value.total_weeks = Math.max(4, Math.round(legacy.update_interval / 7))
     }
   }
-  catch (e: unknown) { errMsg.value = getErrorMessage(e, '加载配置失败') }
+  catch (e: unknown) { errMsg.value = getErrorMessage(e, t('settings.validity.load_failed')) }
   finally { loading.value = false }
 }
 
@@ -191,7 +196,7 @@ async function doSave() {
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
   } catch (e: unknown) {
-    errMsg.value = getErrorMessage(e, '保存失败')
+    errMsg.value = getErrorMessage(e, t('common.save_failed'))
   }
   finally { saving.value = false }
 }
@@ -202,9 +207,11 @@ async function doRun() {
   running.value = true; runResult.value = ''
   try {
     const r = await runValidityCheck()
-    runResult.value = `检查完成：${r.checked} 条，${r.changed} 条状态变更`
+    runResult.value = t('settings.validity.run_done', { checked: r.checked, changed: r.changed })
     loadHistory()
-  } catch (e: unknown) { runResult.value = `失败: ${getErrorMessage(e, '未知错误')}` }
+  } catch (e: unknown) {
+    runResult.value = t('settings.validity.run_failed', { msg: getErrorMessage(e, t('settings.validity.unknown_error')) })
+  }
   finally { running.value = false; setTimeout(() => runResult.value = '', 6000) }
 }
 
@@ -239,11 +246,11 @@ watch(histPage, (v) => setItem('validity_hist_page', String(v)))
 const detailItem = ref<ValidityHistoryItem | null>(null)
 const detailVisible = ref(false)
 
-const statusOptions = [
-  { label: '全部', value: null },
-  { label: '成功', value: 'success' },
-  { label: '失败', value: 'failed' },
-]
+const statusOptions = computed(() => [
+  { label: t('settings.validity.filter_all'), value: null },
+  { label: t('settings.validity.filter_success'), value: 'success' },
+  { label: t('settings.validity.filter_failed'), value: 'failed' },
+])
 
 async function loadHistory() {
   try {
@@ -273,25 +280,25 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
 <template>
   <div>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-    <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
+    <Message v-if="saved" severity="success" :closable="false">{{ t('settings.saved') }}</Message>
     <Message v-if="runResult" severity="info" :closable="false">{{ runResult }}</Message>
 
     <!-- 检查策略 -->
-    <div class="section-title">检查策略</div>
+    <div class="section-title">{{ t('settings.validity.policy_title') }}</div>
     <div class="form-grid">
       <!-- 首次执行周几 -->
       <div class="field">
-        <label>首次执行（周几）</label>
+        <label>{{ t('settings.validity.first_weekday') }}</label>
         <Select v-model="config.first_weekday" :options="weekdayOptions" optionLabel="label" optionValue="value" class="field-control" />
       </div>
       <!-- 首次执行时间 -->
       <div class="field">
-        <label>首次执行（时间）</label>
+        <label>{{ t('settings.validity.first_time') }}</label>
         <DatePicker v-model="executeTimeDate" timeOnly hourFormat="24" class="field-control" />
       </div>
       <!-- ✅ #43: 总周期（联动源：T 变化 → 重算 P） -->
       <div class="field">
-        <label>总周期（周）</label>
+        <label>{{ t('settings.validity.total_weeks') }}</label>
         <InputNumber
           v-model="config.total_weeks"
           :min="4"
@@ -300,11 +307,11 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           show-buttons
           @update:modelValue="onTotalOrFreqChange"
         />
-        <small class="field-hint">完成全部检查所需总周数（4~52 周）</small>
+        <small class="field-hint">{{ t('settings.validity.total_weeks_hint') }}</small>
       </div>
       <!-- ✅ #43: 执行频率（联动源：F 变化 → 重算 P） -->
       <div class="field">
-        <label>执行频率（周）</label>
+        <label>{{ t('settings.validity.interval_weeks') }}</label>
         <InputNumber
           v-model="config.frequency_weeks"
           :min="1"
@@ -313,19 +320,19 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           show-buttons
           @update:modelValue="onTotalOrFreqChange"
         />
-        <small class="field-hint">每隔几周执行一次</small>
+        <small class="field-hint">{{ t('settings.validity.interval_weeks_hint') }}</small>
       </div>
       <div class="field">
-        <label>单批大小（条/批）</label>
+        <label>{{ t('settings.validity.batch_size') }}</label>
         <InputNumber v-model="config.batch_size" :min="1" show-buttons />
       </div>
       <div class="field">
-        <label>批间隔（秒）</label>
+        <label>{{ t('settings.validity.batch_interval') }}</label>
         <InputNumber v-model="config.batch_interval" :min="1" show-buttons />
       </div>
       <!-- ✅ #43: 检查比例（联动源：P 变化 → 反推 F 并回写 P） -->
       <div class="field">
-        <label>检查比例（%）</label>
+        <label>{{ t('settings.validity.ratio') }}</label>
         <InputNumber
           v-model="config.check_ratio"
           :min="0.01"
@@ -336,81 +343,81 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
           show-buttons
           @update:modelValue="onCheckRatioChange"
         />
-        <small class="field-hint">修改后自动回填对应执行频率</small>
+        <small class="field-hint">{{ t('settings.validity.ratio_hint') }}</small>
       </div>
     </div>
 
     <!-- ✅ #43: 自动计算结果 -->
     <div class="computed-info">
       <div class="info-item">
-        <span class="info-label">执行次数：</span>
+        <span class="info-label">{{ t('settings.validity.exec_count') }}</span>
         <span class="info-value" :class="{ 'info-error': executionCount < 4 }">
-          {{ executionCount.toFixed(1) }} 次
-          <span v-if="executionCount < 4" class="error-msg">（需 >= 4 次）</span>
+          {{ t('settings.validity.times', { n: executionCount.toFixed(1) }) }}
+          <span v-if="executionCount < 4" class="error-msg">{{ t('settings.validity.exec_count_warn') }}</span>
         </span>
       </div>
       <div class="info-item">
-        <span class="info-label">每次覆盖：</span>
-        <span class="info-value">约 {{ checkRatioDisplay }}%</span>
+        <span class="info-label">{{ t('settings.validity.coverage') }}</span>
+        <span class="info-value">{{ t('settings.validity.coverage_value', { v: checkRatioDisplay }) }}</span>
       </div>
       <div class="info-item">
-        <span class="info-label">首次执行时间：</span>
+        <span class="info-label">{{ t('settings.validity.first_run_at') }}</span>
         <span class="info-value">{{ firstExecutionTime }}</span>
       </div>
     </div>
 
     <div class="actions-row">
       <Button
-        label="保存配置"
+        :label="t('settings.save_config')"
         icon="pi pi-save"
         :loading="saving"
         :disabled="!isValid"
         @click="doSave"
       />
-      <Button icon="pi pi-play" label="立即执行一次" severity="secondary" :loading="running" @click="doRun" />
+      <Button icon="pi pi-play" :label="t('settings.validity.run_now')" severity="secondary" :loading="running" @click="doRun" />
     </div>
 
     <!-- 执行记录 -->
-    <div class="section-title" style="margin-top:24px">执行记录</div>
+    <div class="section-title" style="margin-top:24px">{{ t('settings.validity.history_title') }}</div>
     <div class="filter-row">
       <div class="filter-item">
-        <label>状态</label>
+        <label>{{ t('settings.validity.hist_status') }}</label>
         <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
       </div>
       <div class="filter-item">
-        <label>开始日期</label>
+        <label>{{ t('settings.validity.hist_start') }}</label>
         <InputText v-model="filterStart" type="date" size="small" />
       </div>
       <div class="filter-item">
-        <label>结束日期</label>
+        <label>{{ t('settings.validity.hist_end') }}</label>
         <InputText v-model="filterEnd" type="date" size="small" />
       </div>
       <div class="filter-actions">
-        <Button label="筛选" icon="pi pi-search" size="small" severity="success" @click="onSearch" />
-        <Button label="重置" icon="pi pi-refresh" size="small" severity="secondary" @click="onReset" />
+        <Button :label="t('settings.validity.filter')" icon="pi pi-search" size="small" severity="success" @click="onSearch" />
+        <Button :label="t('settings.validity.reset')" icon="pi pi-refresh" size="small" severity="secondary" @click="onReset" />
       </div>
     </div>
 
     <div class="table-meta">
-      <span>共 {{ histTotal }} 条记录</span>
-      <span v-if="histTotal > 0">第 {{ histPage }}/{{ totalPages }} 页</span>
+      <span>{{ t('settings.validity.total_records', { n: histTotal }) }}</span>
+      <span v-if="histTotal > 0">{{ t('settings.validity.page', { page: histPage, pages: totalPages }) }}</span>
     </div>
 
     <table v-if="history.length" class="data-table">
       <thead>
-        <tr><th>执行时间</th><th>检查条数</th><th>状态变更</th><th>结果</th><th>操作</th></tr>
+        <tr><th>{{ t('settings.validity.col_run_at') }}</th><th>{{ t('settings.validity.col_checked') }}</th><th>{{ t('settings.validity.col_changed') }}</th><th>{{ t('settings.validity.col_result') }}</th><th>{{ t('settings.validity.col_action') }}</th></tr>
       </thead>
       <tbody>
         <tr v-for="h in history" :key="h.check_date">
           <td>{{ h.check_date }}</td>
           <td>{{ h.checked_count }}</td>
-          <td>{{ h.changed_count }}条</td>
-          <td><Tag :severity="h.status === 'success' ? 'success' : 'danger'" :value="h.status === 'success' ? '完成' : '失败'" /></td>
-          <td><Button label="详情" size="small" severity="secondary" text @click="showDetail(h)" /></td>
+          <td>{{ t('settings.validity.count_unit', { n: h.changed_count }) }}</td>
+          <td><Tag :severity="h.status === 'success' ? 'success' : 'danger'" :value="h.status === 'success' ? t('settings.validity.done') : t('settings.validity.failed')" /></td>
+          <td><Button :label="t('settings.validity.detail')" size="small" severity="secondary" text @click="showDetail(h)" /></td>
         </tr>
       </tbody>
     </table>
-    <p v-else class="empty">暂无执行记录</p>
+    <p v-else class="empty">{{ t('settings.validity.history_empty') }}</p>
 
     <div v-if="totalPages > 1" class="pagination">
       <Button icon="pi pi-angle-left" size="small" severity="secondary" text :disabled="histPage <= 1" @click="histPage--; loadHistory()" />
@@ -418,12 +425,12 @@ onMounted(() => { loadValidityFilters(); loadConfig(); loadHistory() })
       <Button icon="pi pi-angle-right" size="small" severity="secondary" text :disabled="histPage >= totalPages" @click="histPage++; loadHistory()" />
     </div>
 
-    <Dialog v-model:visible="detailVisible" header="执行详情" :style="{width:'400px'}" modal>
+    <Dialog v-model:visible="detailVisible" :header="t('settings.validity.detail_title')" :style="{width:'400px'}" modal>
       <div v-if="detailItem" class="detail">
-        <div class="detail-row"><span>执行日期</span><span>{{ detailItem.check_date }}</span></div>
-        <div class="detail-row"><span>检查条数</span><span>{{ detailItem.checked_count }}</span></div>
-        <div class="detail-row"><span>状态变更</span><span>{{ detailItem.changed_count }}条</span></div>
-        <div class="detail-row"><span>结果</span><Tag severity="success" value="完成" /></div>
+        <div class="detail-row"><span>{{ t('settings.validity.col_date') }}</span><span>{{ detailItem.check_date }}</span></div>
+        <div class="detail-row"><span>{{ t('settings.validity.col_checked') }}</span><span>{{ detailItem.checked_count }}</span></div>
+        <div class="detail-row"><span>{{ t('settings.validity.col_changed') }}</span><span>{{ t('settings.validity.count_unit', { n: detailItem.changed_count }) }}</span></div>
+        <div class="detail-row"><span>{{ t('settings.validity.col_result') }}</span><Tag severity="success" :value="t('settings.validity.done')" /></div>
       </div>
     </Dialog>
   </div>

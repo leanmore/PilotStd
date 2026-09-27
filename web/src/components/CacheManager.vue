@@ -2,10 +2,13 @@
 defineOptions({ name: 'CacheManager' })
 // CacheManager.vue — 缓存管理配置组件
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Button from 'primevue/button'
 import ProgressBar from 'primevue/progressbar'
 import Tag from 'primevue/tag'
+
+const { t } = useI18n()
 
 interface CacheStats {
   total_size_mb: number
@@ -76,16 +79,16 @@ onMounted(loadStats)
     <!-- 状态概览 -->
     <div class="cache-stats-bar">
       <div class="stat-block">
-        <span class="stat-label">使用量</span>
+        <span class="stat-label">{{ t('settings.cache.usage') }}</span>
         <span class="stat-value">{{ stats.total_size_mb.toFixed(1) }} / {{ stats.max_size_mb }} MB</span>
         <ProgressBar :value="sizePercentage()" :style="{ height: '6px' }" />
       </div>
       <div class="stat-block">
-        <span class="stat-label">状态</span>
+        <span class="stat-label">{{ t('settings.cache.status') }}</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-          <Tag severity="success" :value="`有效 ${stateCount('valid')}`" />
-          <Tag severity="warn" :value="`失效 ${stateCount('stale')}`" />
-          <Tag severity="info" :value="`刷新中 ${stateCount('refresh_pending')}`" />
+          <Tag severity="success" :value="t('settings.cache.valid', { n: stateCount('valid') })" />
+          <Tag severity="warn" :value="t('settings.cache.stale', { n: stateCount('stale') })" />
+          <Tag severity="info" :value="t('settings.cache.refreshing', { n: stateCount('refresh_pending') })" />
         </div>
       </div>
     </div>
@@ -94,16 +97,16 @@ onMounted(loadStats)
     <div class="table-detail">
       <div v-for="tbl in ['standard_info_cache', 'standard_validity', 'announcement_record']" :key="tbl" class="table-row">
         <span class="tbl-name">{{ tbl }}</span>
-        <Tag severity="info" :value="`${tableRows(tbl)} 条`" />
+        <Tag severity="info" :value="t('settings.cache.rows', { n: tableRows(tbl) })" />
         <span v-if="(stats.tables[tbl] || {}).stale" style="font-size:11px;color:var(--warn);margin-left:4px">
-          {{ (stats.tables[tbl] || {}).stale }} 条待刷新
+          {{ t('settings.cache.stale_rows', { n: (stats.tables[tbl] || {}).stale }) }}
         </span>
       </div>
     </div>
 
     <!-- 配置 -->
     <div class="cache-config">
-      <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">缓存大小上限</label>
+      <label style="font-weight:600;font-size:13px;margin-bottom:8px;display:block">{{ t('settings.cache.max_size') }}</label>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <label v-for="sz in [50, 100, 200]" :key="sz" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px">
           <input type="radio" :value="sz" v-model="maxSize" @change="saveConfig" />
@@ -112,9 +115,9 @@ onMounted(loadStats)
       </div>
 
       <div class="actions">
-        <Button label="立即清理" icon="pi pi-trash" size="small" severity="warn" :loading="loading" @click="triggerCleanup" />
-        <Button label="刷新统计" icon="pi pi-refresh" size="small" severity="secondary" outlined @click="loadStats" />
-        <span v-if="cleaned" style="color:var(--success);font-size:12px">清理完成</span>
+        <Button :label="t('settings.cache.cleanup_now')" icon="pi pi-trash" size="small" severity="warn" :loading="loading" @click="triggerCleanup" />
+        <Button :label="t('settings.cache.refresh_stats')" icon="pi pi-refresh" size="small" severity="secondary" outlined @click="loadStats" />
+        <span v-if="cleaned" style="color:var(--success);font-size:12px">{{ t('settings.cache.cleaned') }}</span>
       </div>
     </div>
   </div>

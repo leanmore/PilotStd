@@ -79,7 +79,7 @@ async function loadCfg() {
     schemaMap.value = map
     schemaTabs.value = tabs
   }
-  catch { cfgErr.value = '加载设置失败' }
+  catch { cfgErr.value = t('settings.load_failed') }
 }
 
 async function saveCfg() {
@@ -88,7 +88,7 @@ async function saveCfg() {
     saved.value = true; cfgErr.value = ''
     setTimeout(() => saved.value = false, 2000)
   } catch {
-    saved.value = false; cfgErr.value = '保存设置失败，请重试'
+    saved.value = false; cfgErr.value = t('settings.save_failed_retry')
   }
 }
 
@@ -116,11 +116,12 @@ async function uploadBg(e: Event) {
 // ═══════════════════════════════════════════
 
 const selectedLocale = ref(store.locale || 'zh-CN')
-const localeOptions = [
-  { label: '简体中文', value: 'zh-CN' },
-  { label: '繁體中文', value: 'zh-TW' },
+// 语言名走 i18n（三语值目前都是该语言的自称；将来要改成 "Chinese (Simplified)" 只改 en 一处）
+const localeOptions = computed(() => [
+  { label: t('settings.locale.zh_cn'), value: 'zh-CN' },
+  { label: t('settings.locale.zh_tw'), value: 'zh-TW' },
   { label: 'English', value: 'en' },
-]
+])
 
 // ═══════════════════════════════════════════
 // 标签页导航
@@ -291,7 +292,7 @@ async function applyCurrentTab() {
       }
     }
   } catch (e: any) {
-    cfgErr.value = e.response?.data?.detail || '保存失败'
+    cfgErr.value = e.response?.data?.detail || t('common.save_failed')
   } finally {
     applyLoading.value = false
   }
@@ -328,7 +329,7 @@ onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
 <template>
   <ConfirmDialog />
   <Toast />
-  <h1>设置</h1>
+  <h1>{{ t('settings.title') }}</h1>
 
   <!-- 标签页导航栏 -->
   <div class="tab-bar mt-2">
@@ -350,22 +351,22 @@ onMounted(() => { loadCfg(); loadSystemSections(); loadTabMeta() })
   <div class="settings-footer">
     <div class="footer-actions">
       <Button
-        label="应用"
+        :label="t('settings.apply')"
         icon="pi pi-refresh"
         severity="secondary"
         @click="applyCurrentTab"
         :loading="applyLoading"
-        title="仅保存当前 Tab 的设置"
+        :title="t('settings.apply_hint')"
       />
       <Button
-        label="确定"
+        :label="t('settings.ok')"
         icon="pi pi-check"
         @click="saveCfg"
-        title="保存所有 Tab 的设置"
+        :title="t('settings.ok_hint')"
       />
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <Tag v-if="saved" value="已保存" severity="success" />
+      <Tag v-if="saved" :value="t('common.saved')" severity="success" />
       <span v-if="cfgErr" class="err-msg">{{ cfgErr }}</span>
       <span class="text-dim" style="font-size:11px">PilotStd v{{ cfg.version || '—' }}</span>
     </div>

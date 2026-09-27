@@ -7,6 +7,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsView from './SettingsView.vue'
 import { SETTINGS_TAB_KEYS } from './settings/constants'
 import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 
@@ -44,10 +45,10 @@ import { useAppStore } from '@/stores/app'
 
 const routes = [{ path: '/settings', component: SettingsView }]
 
-function mountComponent() {
+function mountComponent(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const pinia = createPinia()
   setActivePinia(pinia)
-  const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } })
+  const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
   const router = createRouter({ history: createMemoryHistory(), routes })
 
   return shallowMount(SettingsView, {
@@ -122,5 +123,17 @@ describe('SettingsView', () => {
     const wrapper = mountComponent()
     const footer = wrapper.find('.settings-footer')
     expect(footer.text()).toContain('PilotStd v')
+  })
+
+  it('切换语言到 en 后页面文案随之变化（i18n 生效）', async () => {
+    const zh = mountComponent('zh-CN')
+    await nextTick()
+    expect(zh.find('h1').text()).toBe('设置')
+
+    const english = mountComponent('en')
+    await nextTick()
+    expect(english.find('h1').text()).toBe('Settings')
+    expect(english.html()).toContain('Apply')
+    expect(english.html()).toContain('OK')
   })
 })

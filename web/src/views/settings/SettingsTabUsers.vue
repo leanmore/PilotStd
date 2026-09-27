@@ -6,6 +6,7 @@ defineOptions({ name: 'SettingsTabUsers' })
  * 依赖父组件提供 ConfirmDialog + Toast 作为全局服务。
  */
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { getUsers, addUser, deleteUser, changePassword } from '@/api'
 import { useAppStore } from '@/stores/app'
@@ -15,6 +16,7 @@ import Dialog from 'primevue/dialog'
 
 const ADMIN_ROLE = 'admin'
 
+const { t } = useI18n()
 const store = useAppStore()
 const confirm = useConfirm()
 
@@ -29,12 +31,12 @@ const currentUser = computed(() => users.value.find((u: any) => u.username === s
 
 async function loadUsers() {
   try { const r = await getUsers('/settings'); users.value = r.users; loadUsersErr.value = '' }
-  catch { loadUsersErr.value = '加载用户列表失败' }
+  catch { loadUsersErr.value = t('settings.users.load_failed') }
 }
 
 async function doAdd() {
   if (newUser.value.username.toLowerCase() === 'admin') {
-    userErr.value = '"admin" 为保留用户名，请使用其他名称'
+    userErr.value = t('settings.users.username_reserved')
     return
   }
   try {
@@ -44,7 +46,7 @@ async function doAdd() {
     userErr.value = ''
     loadUsers()
   } catch (e: any) {
-    userErr.value = e.response?.data?.detail || '失败'
+    userErr.value = e.response?.data?.detail || t('settings.users.add_failed')
   }
 }
 
@@ -58,12 +60,12 @@ function canDelete(item: any): boolean {
 
 function confirmDelete(item: any) {
   confirm.require({
-    message: `确定要删除用户 "${item.username}" 吗？此操作不可恢复。`,
-    header: '删除确认',
+    message: t('settings.users.delete_confirm', { name: item.username }),
+    header: t('settings.users.delete_title'),
     icon: 'pi pi-exclamation-triangle',
-    acceptLabel: '确认删除',
+    acceptLabel: t('settings.users.delete_ok'),
     acceptClass: 'p-button-danger',
-    rejectLabel: '取消',
+    rejectLabel: t('common.cancel'),
     accept: () => doDelete(item.id),
   })
 }
@@ -75,15 +77,15 @@ const pwdErr = ref('')
 
 async function doChangePwd() {
   pwdErr.value = ''
-  if (!pwdForm.value.old || !pwdForm.value.new) { pwdErr.value = '请填写旧密码和新密码'; return }
-  if (pwdForm.value.new.length < 4) { pwdErr.value = '新密码至少4个字符'; return }
-  if (pwdForm.value.new !== pwdForm.value.confirm) { pwdErr.value = '两次输入的新密码不一致'; return }
+  if (!pwdForm.value.old || !pwdForm.value.new) { pwdErr.value = t('settings.users.pwd_required'); return }
+  if (pwdForm.value.new.length < 4) { pwdErr.value = t('settings.users.pwd_too_short'); return }
+  if (pwdForm.value.new !== pwdForm.value.confirm) { pwdErr.value = t('settings.users.pwd_mismatch'); return }
   try {
     await changePassword(pwdForm.value.old, pwdForm.value.new)
     showPwd.value = false
     pwdForm.value = { old: '', new: '', confirm: '' }
-    alert('密码已修改')
-  } catch (e: any) { pwdErr.value = e.response?.data?.detail || '修改失败' }
+    alert(t('settings.users.pwd_changed'))
+  } catch (e: any) { pwdErr.value = e.response?.data?.detail || t('settings.users.pwd_failed') }
 }
 
 onMounted(() => { loadUsers() })
@@ -93,10 +95,10 @@ onMounted(() => { loadUsers() })
   <div class="tab-content">
   <div class="card mt-2">
     <div class="card-header">
-      <span>用户管理</span>
+      <span>{{ t('settings.users.title') }}</span>
       <div style="display:flex;gap:8px">
-        <Button label="修改密码" icon="pi pi-lock" size="small" severity="secondary" @click="showPwd = true" />
-        <Button label="添加" icon="pi pi-plus" size="small" @click="showAdd = true" />
+        <Button :label="t('settings.users.change_pwd')" icon="pi pi-lock" size="small" severity="secondary" @click="showPwd = true" />
+        <Button :label="t('settings.users.add')" icon="pi pi-plus" size="small" @click="showAdd = true" />
       </div>
     </div>
     <p v-if="loadUsersErr" class="err-msg">{{ loadUsersErr }}</p>
@@ -107,7 +109,7 @@ onMounted(() => { loadUsers() })
             <span style="min-width:100px;font-weight:500">{{ item.username }}</span>
             <span style="min-width:80px;font-size:13px;color:var(--text-dim)">{{ item.role }}</span>
             <span style="flex:1;font-size:12px;color:var(--text-dim)">{{ item.created_at }}</span>
-            <Button v-if="canDelete(item)" icon="pi pi-trash" label="删除"
+            <Button v-if="canDelete(item)" icon="pi pi-trash" :label="t('settings.users.delete')"
                     severity="danger" size="small" @click="confirmDelete(item)" />
           </div>
         </div>
@@ -116,33 +118,33 @@ onMounted(() => { loadUsers() })
   </div>
 
   <!-- 添加用户对话框 -->
-  <Dialog v-model:visible="showAdd" header="添加用户" :modal="true" :style="{width:'360px'}">
+  <Dialog v-model:visible="showAdd" :header="t('settings.users.add_title')" :modal="true" :style="{width:'360px'}">
     <div style="display:flex;flex-direction:column;gap:8px">
-      <input v-model="newUser.username" placeholder="用户名" class="fi" />
-      <input v-model="newUser.password" type="password" placeholder="密码" class="fi" />
+      <input v-model="newUser.username" :placeholder="t('settings.users.field_username')" class="fi" />
+      <input v-model="newUser.password" type="password" :placeholder="t('settings.users.field_password')" class="fi" />
       <select v-model="newUser.role" class="fi">
-        <option value="user">普通用户</option>
-        <option value="admin">管理员</option>
+        <option value="user">{{ t('settings.users.role_user') }}</option>
+        <option value="admin">{{ t('settings.users.role_admin') }}</option>
       </select>
       <p v-if="userErr" class="error">{{ userErr }}</p>
       <div style="display:flex;gap:8px">
-        <Button label="取消" severity="secondary" @click="showAdd=false" style="flex:1" />
-        <Button label="添加" @click="doAdd" style="flex:1" />
+        <Button :label="t('common.cancel')" severity="secondary" @click="showAdd=false" style="flex:1" />
+        <Button :label="t('settings.users.add')" @click="doAdd" style="flex:1" />
       </div>
     </div>
   </Dialog>
 
   <!-- 修改密码对话框 -->
-  <Dialog v-model:visible="showPwd" :header="`修改密码 — ${store.username}`" :modal="true" :style="{width:'360px'}">
-    <p class="text-dim" style="font-size:12px;margin-bottom:8px">正在修改用户 <strong>{{ store.username }}</strong> 的登录密码</p>
+  <Dialog v-model:visible="showPwd" :header="t('settings.users.change_pwd_title', { name: store.username })" :modal="true" :style="{width:'360px'}">
+    <p class="text-dim" style="font-size:12px;margin-bottom:8px">{{ t('settings.users.change_pwd_hint_before') }}<strong>{{ store.username }}</strong>{{ t('settings.users.change_pwd_hint_after') }}</p>
     <div style="display:flex;flex-direction:column;gap:8px">
-      <input v-model="pwdForm.old" type="password" placeholder="旧密码" class="fi" />
-      <input v-model="pwdForm.new" type="password" placeholder="新密码（至少4位）" class="fi" />
-      <input v-model="pwdForm.confirm" type="password" placeholder="确认新密码" class="fi" />
+      <input v-model="pwdForm.old" type="password" :placeholder="t('settings.users.field_old_pwd')" class="fi" />
+      <input v-model="pwdForm.new" type="password" :placeholder="t('settings.users.field_new_pwd')" class="fi" />
+      <input v-model="pwdForm.confirm" type="password" :placeholder="t('settings.users.field_confirm_pwd')" class="fi" />
       <p v-if="pwdErr" class="error">{{ pwdErr }}</p>
       <div style="display:flex;gap:8px">
-        <Button label="取消" severity="secondary" @click="showPwd=false" style="flex:1" />
-        <Button label="确认修改" @click="doChangePwd" style="flex:1" />
+        <Button :label="t('common.cancel')" severity="secondary" @click="showPwd=false" style="flex:1" />
+        <Button :label="t('settings.users.change_pwd_ok')" @click="doChangePwd" style="flex:1" />
       </div>
     </div>
   </Dialog>

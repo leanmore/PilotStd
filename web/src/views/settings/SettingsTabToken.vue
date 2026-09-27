@@ -5,6 +5,7 @@
  * 依赖父组件提供 Toast 作为全局服务。
  */
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getToken, refreshToken } from '@/api'
 import http from '@/api/http'
 import Button from 'primevue/button'
@@ -12,6 +13,8 @@ import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
 
 defineOptions({ name: 'SettingsTabToken' })
+
+const { t } = useI18n()
 
 // ── API 令牌状态 ──
 const token = ref('')
@@ -34,7 +37,7 @@ function maskToken(t: string) {
 
 async function loadToken() {
   try { const r = await getToken('/settings'); token.value = r.token; tokenErr.value = '' }
-  catch { tokenErr.value = '加载令牌失败（需要管理员权限）' }
+  catch { tokenErr.value = t('settings.token.load_failed') }
 }
 
 async function loadGhToken() {
@@ -51,7 +54,7 @@ async function saveGhToken() {
     ghTokenSaved.value = true
     setTimeout(() => ghTokenSaved.value = false, 2000)
   } catch {
-    ghTokenErr.value = '保存失败'
+    ghTokenErr.value = t('common.save_failed')
   } finally {
     ghTokenSaving.value = false
   }
@@ -86,7 +89,7 @@ async function doRefreshToken() {
     showRefreshDlg.value = false
     tokenLoading.value = false
   } catch {
-    tokenErr.value = '刷新失败，请确认管理员权限'
+    tokenErr.value = t('settings.token.refresh_failed')
     tokenLoading.value = false
   }
 }
@@ -98,30 +101,27 @@ onMounted(() => { loadToken(); loadGhToken() })
   <div class="tab-content">
   <div class="card mt-2">
     <div class="card-header">
-      <span>API 令牌</span>
+      <span>{{ t('settings.token.title') }}</span>
       <span v-if="tokenErr" class="err-msg">{{ tokenErr }}</span>
     </div>
-    <p class="text-dim mb-2">此令牌用于外部脚本或服务调用 PilotStd API。支持三种传递方式：<code>Authorization: Bearer</code> / <code>X-API-KEY</code> Header / <code>?token=</code> 查询参数。</p>
+    <p class="text-dim mb-2">{{ t('settings.token.desc_before') }}<code>Authorization: Bearer</code> / <code>X-API-KEY</code> Header / <code>?token=</code>{{ t('settings.token.desc_after') }}</p>
     <div class="token-display">
       <code class="token-value">{{ showToken ? token : maskToken(token) }}</code>
       <div class="token-actions">
-        <Button :label="showToken ? '隐藏' : '显示完整令牌'" icon="pi pi-eye" size="small" severity="secondary" @click="showToken = !showToken" />
-        <Button label="复制" icon="pi pi-copy" size="small" severity="secondary" @click="copyToken" />
-        <Button label="刷新令牌" icon="pi pi-refresh" size="small" severity="warning" @click="showRefreshDlg = true" :loading="tokenLoading" />
+        <Button :label="showToken ? t('settings.token.hide') : t('settings.token.show')" icon="pi pi-eye" size="small" severity="secondary" @click="showToken = !showToken" />
+        <Button :label="t('settings.token.copy')" icon="pi pi-copy" size="small" severity="secondary" @click="copyToken" />
+        <Button :label="t('settings.token.refresh')" icon="pi pi-refresh" size="small" severity="warning" @click="showRefreshDlg = true" :loading="tokenLoading" />
       </div>
-      <span v-if="tokenCopied" class="text-dim" style="font-size:12px;color:var(--success,#22c55e)">已复制到剪贴板</span>
+      <span v-if="tokenCopied" class="text-dim" style="font-size:12px;color:var(--success,#22c55e)">{{ t('settings.token.copied') }}</span>
     </div>
   </div>
 
   <!-- GitHub Token -->
   <div class="card mt-2">
     <div class="card-header">GitHub Token</div>
-    <p class="text-dim mb-2">
-      用于桌面端和 Docker 镜像更新检查，未配置时 GitHub API 限制 60 次/小时。
-      设置后提升至 5000 次/小时。获取方式：GitHub Settings → Developer settings → Personal access tokens。
-    </p>
+    <p class="text-dim mb-2">{{ t('settings.token.gh_hint') }}</p>
     <Message v-if="!ghToken" severity="warn" :closable="false" style="margin-bottom:8px">
-      未配置 GitHub Token，更新检查可能因 API 限流而失败。
+      {{ t('settings.token.gh_warning') }}
     </Message>
     <div style="display:flex;gap:8px;align-items:center">
       <input
@@ -131,19 +131,19 @@ onMounted(() => { loadToken(); loadGhToken() })
         style="flex:1"
         placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
       />
-      <Button label="保存" icon="pi pi-save" size="small" @click="saveGhToken" :loading="ghTokenSaving" />
+      <Button :label="t('common.save')" icon="pi pi-save" size="small" @click="saveGhToken" :loading="ghTokenSaving" />
     </div>
-    <span v-if="ghTokenSaved" style="font-size:12px;color:var(--success)">已保存</span>
+    <span v-if="ghTokenSaved" style="font-size:12px;color:var(--success)">{{ t('common.saved') }}</span>
     <span v-if="ghTokenErr" style="font-size:12px;color:var(--danger)">{{ ghTokenErr }}</span>
   </div>
 
   <!-- 刷新令牌确认弹窗 -->
-  <Dialog v-model:visible="showRefreshDlg" header="刷新 API 令牌" :modal="true" :style="{width:'440px'}">
-    <p style="margin-bottom:12px;line-height:1.6">刷新后<strong>旧令牌将立即失效</strong>，所有依赖旧令牌的脚本或服务需要更新为新令牌。</p>
-    <p style="color:var(--text-dim);font-size:13px">确定继续吗？</p>
+  <Dialog v-model:visible="showRefreshDlg" :header="t('settings.token.refresh_title')" :modal="true" :style="{width:'440px'}">
+    <p style="margin-bottom:12px;line-height:1.6">{{ t('settings.token.refresh_warn_before') }}<strong>{{ t('settings.token.refresh_warn_strong') }}</strong>{{ t('settings.token.refresh_warn_after') }}</p>
+    <p style="color:var(--text-dim);font-size:13px">{{ t('settings.token.refresh_confirm') }}</p>
     <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-      <Button label="取消" severity="secondary" @click="showRefreshDlg = false" />
-      <Button label="确定刷新" severity="warning" @click="doRefreshToken" />
+      <Button :label="t('common.cancel')" severity="secondary" @click="showRefreshDlg = false" />
+      <Button :label="t('settings.token.refresh_ok')" severity="warning" @click="doRefreshToken" />
     </div>
   </Dialog>
   </div>

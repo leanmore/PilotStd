@@ -1,33 +1,19 @@
 // components/ValidityConfig.test.ts — 时效性检查配置组件测试
+// 文案已 i18n（settings.validity.* / settings.circuit.* / settings.saved / common.*），
+// 故直接注入三语 locale 文件，而不是内联一小段 date.weekday
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import PrimeVue from 'primevue/config'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import ValidityConfig from './ValidityConfig.vue'
 
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  fallbackLocale: 'zh-CN',
-  messages: {
-    'zh-CN': {
-      date: {
-        weekday: {
-          prefix: '周',
-          short: { mon: '一', tue: '二', wed: '三', thu: '四', fri: '五', sat: '六', sun: '日' },
-        },
-      },
-    },
-    en: {
-      date: {
-        weekday: {
-          prefix: '',
-          short: { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' },
-        },
-      },
-    },
-  },
-})
+function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, fallbackLocale: 'zh-CN', messages: { 'zh-CN': zhCN, en } })
+}
+
+const i18n = makeI18n()
 
 const { getValidityConfigMock, putValidityConfigMock, runValidityCheckMock, getValidityHistoryMock } = vi.hoisted(() => ({
   getValidityConfigMock: vi.fn(),
@@ -357,5 +343,18 @@ describe('ValidityConfig 三字段联动', () => {
     vm.onTotalOrFreqChange()
     expect(vm.config.check_ratio).toBe(10)
     expect(vm.config.frequency_weeks).toBe(1)
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效，含周几词表复用 date.weekday）', async () => {
+    const zh = mount(ValidityConfig, { global: { plugins: [PrimeVue, makeI18n('zh-CN')] } })
+    await flushPromises()
+    expect(zh.text()).toContain('检查策略')
+    expect(zh.text()).toContain('周一')
+
+    const english = mount(ValidityConfig, { global: { plugins: [PrimeVue, makeI18n('en')] } })
+    await flushPromises()
+    expect(english.text()).toContain('Check Policy')
+    expect(english.text()).toContain('Mon')
+    expect(english.text()).toContain('Total Period (weeks)')
   })
 })

@@ -1,7 +1,16 @@
 // components/FileMonitor.test.ts — 文件监控组件测试
+// 文案已 i18n（settings.file_monitor.* / settings.saved / settings.save_config），故需注入 i18n 插件
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createI18n } from 'vue-i18n'
+import zhCN from '@/locales/zh-CN.json'
+import en from '@/locales/en.json'
 import FileMonitor from './FileMonitor.vue'
+
+/** 语言可切换的 i18n 实例（切换语言测试用） */
+function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
+  return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
+}
 
 // Mock http 请求
 const mockGet = vi.fn()
@@ -14,9 +23,10 @@ vi.mock('@/api/http', () => ({
 // PrimeVue 组件在本项目通过 main.ts 的 app.component() 逐个注册，
 // 测试中需要 stub 以避免 "Failed to resolve component" 警告。
 // Button stub 需要 label 插值以支持文本断言
-function mountFileMonitor() {
+function mountFileMonitor(locale: 'zh-CN' | 'en' = 'zh-CN') {
   return mount(FileMonitor, {
     global: {
+      plugins: [makeI18n(locale)],
       stubs: {
         Button: { template: '<button :disabled="$attrs.disabled" @click="$emit(\'click\')">{{ $attrs.label }}<slot /></button>', inheritAttrs: false },
         InputText: { template: '<input type="text" :value="$attrs.modelValue" />', inheritAttrs: false },
@@ -99,5 +109,19 @@ describe('FileMonitor', () => {
 
     expect(wrapper.html()).toContain('监控状态')
     expect(wrapper.html()).toContain('启用文件监控')
+  })
+
+  it('切换语言到 en 后文案随之变化（i18n 生效）', async () => {
+    const zh = mountFileMonitor('zh-CN')
+    await new Promise(r => setTimeout(r, 10))
+    await zh.vm.$nextTick()
+    expect(zh.html()).toContain('监控状态')
+    expect(zh.html()).toContain('保存配置')
+
+    const english = mountFileMonitor('en')
+    await new Promise(r => setTimeout(r, 10))
+    await english.vm.$nextTick()
+    expect(english.html()).toContain('Monitor Status')
+    expect(english.html()).toContain('Save Config')
   })
 })

@@ -158,8 +158,8 @@ function numberVal(): number {
       @change="emitBool"
       class="fi"
     >
-      <option value="false">否</option>
-      <option value="true">是</option>
+      <option value="false">{{ t('common.no') }}</option>
+      <option value="true">{{ t('common.yes') }}</option>
     </select>
 
     <!-- 下拉选择 -->

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 defineOptions({ name: 'WechatTrustIP' })
 // WechatTrustIP.vue — 企业微信可信 IP 自动更新配置
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -56,6 +57,8 @@ const status = ref<WeworkIPStatus>({
   cookie_valid: false, enabled: false, last_check_at: '',
 })
 
+const { t } = useI18n()
+
 const loading = ref(false)
 const saving = ref(false)
 const checking = ref(false)
@@ -64,25 +67,27 @@ const errMsg = ref('')
 const checkResult = ref('')
 const cookieRaw = ref('')
 
-const intervalOptions = [
-  { label: '1 小时', value: 1 }, { label: '6 小时', value: 6 },
-  { label: '12 小时', value: 12 }, { label: '24 小时', value: 24 },
-]
+const intervalOptions = computed(() => [
+  { label: t('settings.wechat_ip.interval_hours', { n: 1 }), value: 1 },
+  { label: t('settings.wechat_ip.interval_hours', { n: 6 }), value: 6 },
+  { label: t('settings.wechat_ip.interval_hours', { n: 12 }), value: 12 },
+  { label: t('settings.wechat_ip.interval_hours', { n: 24 }), value: 24 },
+])
 
-const cookieSourceOptions = [
-  { label: '手动导入', value: 'manual' },
+const cookieSourceOptions = computed(() => [
+  { label: t('settings.wechat_ip.source_manual'), value: 'manual' },
   { label: 'CookieCloud', value: 'cookiecloud' },
-]
+])
 
-const updateModeOptions = [
-  { label: '追加（保留旧IP）', value: 'append' },
-  { label: '覆盖（仅新IP）', value: 'replace' },
-]
+const updateModeOptions = computed(() => [
+  { label: t('settings.wechat_ip.mode_append'), value: 'append' },
+  { label: t('settings.wechat_ip.mode_replace'), value: 'replace' },
+])
 
-const engineOptions = [
-  { label: 'CloakBrowser（推荐）', value: 'auto' },
-  { label: 'Playwright 备选', value: 'playwright' },
-]
+const engineOptions = computed(() => [
+  { label: t('settings.wechat_ip.engine_auto'), value: 'auto' },
+  { label: t('settings.wechat_ip.engine_playwright'), value: 'playwright' },
+])
 
 async function loadConfig() {
   loading.value = true
@@ -90,7 +95,7 @@ async function loadConfig() {
     const r = await http.get('/wechat-ip/config', { routeTag: '/settings' })
     config.value = r.data
   } catch (e: unknown) {
-    errMsg.value = '加载配置失败'
+    errMsg.value = t('settings.wechat_ip.load_failed')
   } finally { loading.value = false }
 }
 
@@ -105,7 +110,7 @@ async function saveConfig() {
     await loadStatus()
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }
-    errMsg.value = err.response?.data?.error || '保存失败'
+    errMsg.value = err.response?.data?.error || t('common.save_failed')
   } finally { saving.value = false }
 }
 
@@ -122,18 +127,18 @@ async function triggerCheck() {
     const r = await http.post('/wechat-ip/check')
     const d = r.data
     if (d.error) {
-      checkResult.value = `失败: ${d.error}`
+      checkResult.value = t('settings.wechat_ip.check_failed', { msg: d.error })
     } else if (d.updated) {
-      checkResult.value = `成功: IP 已更新为 ${d.detected_ip}`
+      checkResult.value = t('settings.wechat_ip.check_ok', { ip: d.detected_ip })
     } else if (d.changed) {
-      checkResult.value = `检测到 IP 变化: ${d.detected_ip}（未成功更新）`
+      checkResult.value = t('settings.wechat_ip.check_changed', { ip: d.detected_ip })
     } else {
-      checkResult.value = `IP 未变化: ${d.detected_ip}`
+      checkResult.value = t('settings.wechat_ip.check_same', { ip: d.detected_ip })
     }
     setTimeout(() => checkResult.value = '', 6000)
     await loadStatus()
   } catch (e: unknown) {
-    checkResult.value = `请求失败: ${e instanceof Error ? e.message : String(e)}`
+    checkResult.value = t('settings.wechat_ip.check_error', { msg: e instanceof Error ? e.message : String(e) })
   } finally { checking.value = false }
 }
 
@@ -143,76 +148,76 @@ onMounted(() => { loadConfig(); loadStatus() })
 <template>
   <div>
     <Message v-if="errMsg" severity="error" :closable="false">{{ errMsg }}</Message>
-    <Message v-if="saved" severity="success" :closable="false">配置已保存</Message>
+    <Message v-if="saved" severity="success" :closable="false">{{ t('settings.saved') }}</Message>
     <Message v-if="checkResult" severity="info" :closable="false">{{ checkResult }}</Message>
 
     <!-- 总开关 + 当前状态 -->
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px">
         <ToggleSwitch v-model="config.enabled" />
-        <span style="font-weight:600;font-size:14px">可信 IP 自动更新</span>
-        <Tag v-if="config.enabled" severity="success" value="已启用" />
-        <Tag v-else severity="secondary" value="已停用" />
+        <span style="font-weight:600;font-size:14px">{{ t('settings.wechat_ip.title') }}</span>
+        <Tag v-if="config.enabled" severity="success" :value="t('settings.wechat_ip.enabled')" />
+        <Tag v-else severity="secondary" :value="t('settings.wechat_ip.disabled')" />
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <Button label="检测并更新" icon="pi pi-sync" size="small" :loading="checking" @click="triggerCheck" />
-        <Button label="保存配置" icon="pi pi-check" size="small" severity="primary" :loading="saving" @click="saveConfig" />
+        <Button :label="t('settings.wechat_ip.check_now')" icon="pi pi-sync" size="small" :loading="checking" @click="triggerCheck" />
+        <Button :label="t('settings.save_config')" icon="pi pi-check" size="small" severity="primary" :loading="saving" @click="saveConfig" />
       </div>
     </div>
 
     <!-- 状态栏 -->
     <div class="status-bar">
       <div class="status-item">
-        <span class="status-label">当前公网 IP</span>
+        <span class="status-label">{{ t('settings.wechat_ip.current_ip') }}</span>
         <!-- i18n-allow: 与后端返回的中文状态值（'未知'）比较，翻译即失效 -->
         <Tag :severity="status.current_ip !== '未知' ? 'success' : 'secondary'" :value="status.current_ip" />
       </div>
       <div class="status-item">
-        <span class="status-label">上次记录 IP</span>
-        <span style="font-size:13px">{{ status.last_ip || '无' }}</span>
+        <span class="status-label">{{ t('settings.wechat_ip.last_ip') }}</span>
+        <span style="font-size:13px">{{ status.last_ip || t('settings.wechat_ip.none') }}</span>
       </div>
       <div class="status-item">
-        <span class="status-label">IP 已变化</span>
-        <Tag :severity="status.ip_changed ? 'warn' : 'info'" :value="status.ip_changed ? '是' : '否'" />
+        <span class="status-label">{{ t('settings.wechat_ip.ip_changed') }}</span>
+        <Tag :severity="status.ip_changed ? 'warn' : 'info'" :value="status.ip_changed ? t('common.yes') : t('common.no')" />
       </div>
       <div class="status-item">
-        <span class="status-label">Cookie 有效</span>
-        <Tag :severity="status.cookie_valid ? 'success' : 'danger'" :value="status.cookie_valid ? '有效' : '无效'" />
+        <span class="status-label">{{ t('settings.wechat_ip.cookie_valid') }}</span>
+        <Tag :severity="status.cookie_valid ? 'success' : 'danger'" :value="status.cookie_valid ? t('settings.wechat_ip.valid') : t('settings.wechat_ip.invalid')" />
       </div>
       <div class="status-item" v-if="status.last_check_at">
-        <span class="status-label">上次检测</span>
+        <span class="status-label">{{ t('settings.wechat_ip.last_check') }}</span>
         <span style="font-size:12px;color:var(--text-dim)">{{ status.last_check_at }}</span>
       </div>
     </div>
 
     <!-- 配置区域 -->
     <Accordion>
-      <AccordionTab header="检测设置">
+      <AccordionTab :header="t('settings.wechat_ip.settings_title')">
         <div class="config-card-content">
           <div class="field">
-            <label>检测间隔</label>
+            <label>{{ t('settings.wechat_ip.interval') }}</label>
             <Dropdown v-model="config.interval_hours" :options="intervalOptions" option-label="label" option-value="value" style="width:100%" />
           </div>
           <div class="field">
-            <label>应用管理地址（多个用逗号分隔）</label>
+            <label>{{ t('settings.wechat_ip.app_urls') }}</label>
             <Textarea v-model="config.app_urls" rows="2" placeholder="https://work.weixin.qq.com/wework_admin/frame#/apps/modApiApp/00000000000" style="width:100%" />
-            <small style="color:var(--text-dim)">从浏览器地址栏复制应用管理页面的完整 URL</small>
+            <small style="color:var(--text-dim)">{{ t('settings.wechat_ip.app_urls_hint') }}</small>
           </div>
           <div class="field">
-            <label>IP 更新模式</label>
+            <label>{{ t('settings.wechat_ip.mode') }}</label>
             <SelectButton v-model="config.update_mode" :options="updateModeOptions" option-value="value" option-label="label" size="small" />
           </div>
           <div class="field" style="display:flex;align-items:center;gap:8px">
             <ToggleSwitch v-model="config.headless" />
-            <label>Headless 模式（无界面运行）</label>
+            <label>{{ t('settings.wechat_ip.headless') }}</label>
           </div>
           <div class="field">
-            <label>浏览器引擎</label>
+            <label>{{ t('settings.wechat_ip.engine') }}</label>
             <SelectButton v-model="config.engine" :options="engineOptions" option-value="value" option-label="label" size="small" />
           </div>
           <div class="field" style="display:flex;align-items:center;gap:8px">
             <ToggleSwitch v-model="config.notify_result" />
-            <label>更新结果通知</label>
+            <label>{{ t('settings.wechat_ip.notify') }}</label>
           </div>
         </div>
       </AccordionTab>
@@ -220,38 +225,39 @@ onMounted(() => { loadConfig(); loadStatus() })
       <AccordionTab>
         <template #header>
           <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-            <span>Cookie 管理</span>
+            <span>{{ t('settings.wechat_ip.cookie_title') }}</span>
+            <!-- i18n-allow: 比较后端返回的中文 Cookie 状态值（'已配置'），翻译即失效（C-2，同第 173 行） -->
             <Tag :value="config.cookie_status" :severity="config.cookie_status.includes('已配置') ? 'success' : 'secondary'" />
           </div>
         </template>
         <div class="config-card-content">
           <div class="field">
-            <label>Cookie 来源</label>
+            <label>{{ t('settings.wechat_ip.cookie_source') }}</label>
             <SelectButton v-model="config.cookie_source" :options="cookieSourceOptions" option-value="value" option-label="label" size="small" />
           </div>
 
           <!-- 手动导入 -->
           <template v-if="config.cookie_source === 'manual'">
             <div class="field">
-              <label>Cookie (HeaderString 格式)</label>
+              <label>{{ t('settings.wechat_ip.cookie_header') }}</label>
               <Textarea v-model="cookieRaw" rows="3" placeholder="key1=value1; key2=value2" style="width:100%" />
-              <small style="color:var(--text-dim)">从浏览器 DevTools → Network → 请求头 → Cookie 复制</small>
+              <small style="color:var(--text-dim)">{{ t('settings.wechat_ip.cookie_hint') }}</small>
             </div>
           </template>
 
           <!-- CookieCloud -->
           <template v-if="config.cookie_source === 'cookiecloud'">
             <div class="field">
-              <label>CookieCloud 服务地址</label>
+              <label>{{ t('settings.wechat_ip.cookiecloud_url') }}</label>
               <InputText v-model="config.cookiecloud_url" placeholder="http://127.0.0.1:8088" style="width:100%" />
             </div>
             <div class="field">
-              <label>用户密钥</label>
-              <InputText v-model="config.cookiecloud_key" placeholder="从 CookieCloud 插件获取" style="width:100%" />
+              <label>{{ t('settings.wechat_ip.cookiecloud_key') }}</label>
+              <InputText v-model="config.cookiecloud_key" :placeholder="t('settings.wechat_ip.cookiecloud_key_placeholder')" style="width:100%" />
             </div>
             <div class="field">
-              <label>端到端加密密码（可选）</label>
-              <InputText v-model="config.cookiecloud_password" placeholder="如未设置则留空" style="width:100%" type="password" />
+              <label>{{ t('settings.wechat_ip.cookiecloud_password') }}</label>
+              <InputText v-model="config.cookiecloud_password" :placeholder="t('settings.wechat_ip.cookiecloud_password_placeholder')" style="width:100%" type="password" />
             </div>
           </template>
         </div>

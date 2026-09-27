@@ -58,53 +58,53 @@ function handleLocaleChange(val: string) {
 
 <template>
   <div class="card mt-2">
-    <div class="card-header">界面设置</div>
+    <div class="card-header">{{ t('settings.appearance.title') }}</div>
     <div class="form-grid">
       <!-- 1. login_bg 上传区块 -->
-      <label for="login-bg-input">登录页背景图</label>
+      <label for="login-bg-input">{{ t('settings.appearance.login_bg') }}</label>
       <div style="display:flex;gap:8px">
         <input
           id="login-bg-input"
           :value="getp('appearance.login_bg')"
           @input="handleBgInput"
-          class="fi" style="flex:1" placeholder="https://... 或留空使用默认"
+          class="fi" style="flex:1" :placeholder="t('settings.appearance.bg_placeholder')"
         />
         <label class="upload-btn">
-          <i class="pi pi-upload" /> 上传
+          <i class="pi pi-upload" /> {{ t('settings.appearance.upload') }}
           <input type="file" accept="image/*" style="display:none" @change="props.onUploadBg" />
         </label>
       </div>
       <span v-if="fileError" class="field-error" style="grid-column:2">{{ fileError }}</span>
-      <span class="text-dim" style="font-size:11px;grid-column:2">支持手动上传图片或填入 API 网络地址</span>
+      <span class="text-dim" style="font-size:11px;grid-column:2">{{ t('settings.appearance.upload_hint') }}</span>
 
       <!-- 2. 主题（分组标题 + Pinia store 管理） -->
       <div class="fieldset-gap" style="grid-column: 1 / -1" />
-      <label class="fieldset-label" id="theme-label" style="grid-column: unset">主题</label>
+      <label class="fieldset-label" id="theme-label" style="grid-column: unset">{{ t('settings.appearance.theme') }}</label>
       <div class="theme-options" role="radiogroup" aria-labelledby="theme-label">
         <div
-          v-for="t in themeList"
-          :key="t.id"
+          v-for="th in themeList"
+          :key="th.id"
           class="theme-option"
-          :class="{ active: store.theme === t.id }"
+          :class="{ active: store.theme === th.id }"
           role="radio"
-          :aria-checked="store.theme === t.id"
+          :aria-checked="store.theme === th.id"
           tabindex="0"
-          @click="setTheme(t.id)"
-          @keydown.enter="setTheme(t.id)"
-          @keydown.space.prevent="setTheme(t.id)"
+          @click="setTheme(th.id)"
+          @keydown.enter="setTheme(th.id)"
+          @keydown.space.prevent="setTheme(th.id)"
         >
           <div class="theme-swatch-wrapper">
-            <div class="theme-swatch" :style="{ background: t.colors.bg, borderColor: t.colors.border }">
-              <div class="theme-primary-dot" :style="{ background: t.colors.primary }" />
+            <div class="theme-swatch" :style="{ background: th.colors.bg, borderColor: th.colors.border }">
+              <div class="theme-primary-dot" :style="{ background: th.colors.primary }" />
             </div>
           </div>
-          <span>{{ t.label }}</span>
+          <span>{{ t(th.labelKey) }}</span>
         </div>
       </div>
 
       <!-- 3. 界面语言 -->
       <div class="fieldset-gap" />
-      <label for="lang-select">界面语言</label>
+      <label for="lang-select">{{ t('settings.appearance.language') }}</label>
       <Select
         id="lang-select"
         :modelValue="props.selectedLocale"

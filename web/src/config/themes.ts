@@ -3,7 +3,8 @@
 
 export interface ThemeConfig {
   id: string
-  label: string
+  // 主题名走 i18n（沿用 router.ts 的 titleKey 机制）：此处只存 key，渲染期翻译
+  labelKey: string
   type: 'light' | 'dark'
   // 完整色板（与 style.css / theme.css 的 CSS 变量一一对应）
   colors: {
@@ -57,7 +58,7 @@ export interface ThemeConfig {
 export const THEMES: Record<string, ThemeConfig> = {
   light: {
     id: 'light',
-    label: '经典白',
+    labelKey: 'settings.theme.light',
     type: 'light',
     colors: {
       bg: '#f1f5f9',         // 降低亮度，从 #f8fafc 改为更柔和的灰蓝色
@@ -105,7 +106,7 @@ export const THEMES: Record<string, ThemeConfig> = {
   },
   dark: {
     id: 'dark',
-    label: '暗夜黑',
+    labelKey: 'settings.theme.dark',
     type: 'dark',
     colors: {
       bg: '#0f172a',
@@ -152,7 +153,7 @@ export const THEMES: Record<string, ThemeConfig> = {
   },
   green: {
     id: 'green',
-    label: '护眼绿',
+    labelKey: 'settings.theme.green',
     type: 'light',
     colors: {
       bg: '#e8f5e9',         // 降低亮度，从 #f0fdf4 改为更柔和的浅绿色
@@ -199,7 +200,7 @@ export const THEMES: Record<string, ThemeConfig> = {
   },
   blue: {
     id: 'blue',
-    label: '科技蓝',
+    labelKey: 'settings.theme.blue',
     type: 'dark',
     colors: {
       bg: '#0c1222',
