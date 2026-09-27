@@ -64,6 +64,17 @@ errors = []
 warnings = []
 
 
+# ─── 归档件统一排除（T-17，2026-09-27） ──────────────────────────────────────
+# 归档件（`*.archived.md` / `*.archived.py`）**停止维护**：其 mtime 必然落后于新鲜度上限，
+# 其内部链接也可能指向历史路径。对它们做新鲜度 / 交叉引用检查只会产生无行动价值的噪音，故统一排除。
+ARCHIVED_MARKER = ".archived."
+
+
+def is_archived(path) -> bool:
+    """归档件判定：文件名含 `.archived.`（如 x.archived.md、y.archived.py）。"""
+    return ARCHIVED_MARKER in Path(path).name
+
+
 def err(msg: str):
     errors.append(msg)
 
@@ -123,6 +134,9 @@ def check_human_freshness():
     print("   🔍 维度2: 人工层新鲜度...")
 
     for fp, max_days, category in HUMAN_DOC_RULES:
+        if is_archived(fp):
+            print(f"      ⏭  {fp}（归档件，不参与新鲜度检查）")
+            continue
         p = PROJECT_ROOT / fp
         if not p.exists():
             warn(f"G-032: {fp} 不存在（{category}）")
@@ -183,6 +197,9 @@ def check_cross_references():
     print("   🔍 维度3: 交叉引用完整性...")
 
     for src_fp, ref_pattern in CROSS_REF_RULES:
+        if is_archived(src_fp):
+            print(f"      ⏭  {src_fp}（归档件，不参与交叉引用检查）")
+            continue
         src = PROJECT_ROOT / src_fp
         if not src.exists():
             warn(f"G-032: 交叉引用源 {src_fp} 不存在，跳过检查")

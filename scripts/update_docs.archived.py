@@ -1,7 +1,31 @@
 #!/usr/bin/env python3
 """
-自动更新文档中的可量化数据（测试数、文件引用、聚合器描述等）
-在 pre-commit 中自动运行。
+⚠️ 已归档（2026-09-27，第十轮 T-15）——本脚本**停止维护**，且**不在任何入口中被调用**
+（既不在 `.husky/pre-commit`、也不在 `scripts/check_all.sh` 任何模式、也不在 CI 任何步骤）。
+
+**归档判定依据（2026-09-27 实测）**：
+- **全库 0 调用点**：`git grep update_docs` 排除自身打印后，仅剩文档中的历史叙述；
+- 其五个功能均已被现行机制取代（见下表）；
+- 其唯一仍在写入的目标 `docs/archive/specs/模块与功能清单.md` 自身早在 2026-08-19 即标注 ARCHIVED。
+
+**各函数的现行替代方案**：
+
+| 原函数 | 现行承担者 |
+|---|---|
+| `extract_test_count_from_status()` / `update_test_count_in_file()` | `scripts/generate_status_metrics.py`（写 STATUS.md 的 AUTO-METRICS 区块：覆盖率取自 `coverage.xml`、测试数取自 `pytest --collect-only`）；STATUS.md 人工区禁裸数字由 **G-032 维度 4** 守护；`docs/index.md` / `docs/development.md` 的测试数不再自动改写（如需变更走 G-032/G-031 的显式校验路径） |
+| `update_aggregator_description()` | 聚合器配置常量本身在 `pilotstd/core/notification/aggregate_buffer.py`；文档侧由 **`docs/architecture/modules/core.md`**（G-031 block 映射：改 `pilotstd/core/` 必须同批同步该文档）承载，不再由本脚本反写 STATUS.md 正文 |
+| `update_tech_debt_entries()` | **已惰性化**（T-02，2026-09-27）：旧簿 `docs/architecture/technical-debt-registry.md` 已废止归档，技术债唯一数据源为 `docs/technical-debt.md`（人工维护 + G-030 联动） |
+| `update_module_list()` | 目标文档 `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 标 ARCHIVED；模块结构现由 `docs/architecture/modules/*` + **G-030/G-031/G-037** 显式校验承担 |
+| `main()` 末尾的自动 `git add` | 无（自动 `git add` 会绕过人工审阅，故整体废弃） |
+
+**历史取回方式**：
+
+```
+git log --follow -- scripts/update_docs.archived.py     # 归档前后的完整变更史
+git show <归档提交的父提交>:scripts/update_docs.py       # 归档前的原始文件
+```
+
+**保留原因**：作为"当年如何自动同步文档"的参考实现留档；**不得在新流程中调用本脚本**。
 """
 
 import re

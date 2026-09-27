@@ -73,7 +73,7 @@
 | `docs/design/site_classification_v1.md` | 站点分类方案 v1.1（v2 路由基础） | ✅ 有效 |
 | `docs/superpowers/specs/`（近期 08-14~08-19 系列） | 功能设计 spec-lite/design 记录 | ✅ 有效 |
 | `docs/archive/specs/功能规格说明书.md` | ⚠️ ARCHIVED（版本止于 1.15/06-16；物理归档至 archive/specs/） | 🔴 归档 |
-| `docs/archive/specs/模块与功能清单.md` | ⚠️ ARCHIVED（06-30；生成脚本 update_docs.py 仍引用，映射已更新至 archive 路径） | 🔴 归档 |
+| `docs/archive/specs/模块与功能清单.md` | ⚠️ ARCHIVED（06-30；原生成脚本 update_docs.py **已于 2026-09-27 归档为 update_docs.archived.py 并停止维护**，不再有脚本引用本文件） | 🔴 归档 |
 
 ## 五、运维与部署（Ops & Deployment）
 

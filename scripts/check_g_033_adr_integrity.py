@@ -39,6 +39,17 @@ ARCH_PATTERNS = [
 ]
 
 
+# ─── 归档件统一排除（T-17，2026-09-27） ──────────────────────────────────────
+# 归档件（`*.archived.md` / `*.archived.py`）停止维护，不应被计入"架构变更文件"
+# （否则其落盘/改名会反复要求 ADR 关联确认，产生无行动价值的噪音）。
+ARCHIVED_MARKER = ".archived."
+
+
+def is_archived(filepath: str) -> bool:
+    """归档件判定：文件名含 `.archived.`（如 x.archived.md、y.archived.py）。"""
+    return ARCHIVED_MARKER in Path(filepath).name
+
+
 def get_changed_files() -> list[str]:
     """获取本次变更的文件列表（三级回退）。"""
     try:
@@ -104,7 +115,7 @@ def parse_adr_status(content: str) -> str | None:
 def validate_adr() -> bool:
     """执行 G-033 检查。返回 True 表示通过。"""
     changed = get_changed_files()
-    arch_changes = [f for f in changed if is_architecture_change(f)]
+    arch_changes = [f for f in changed if is_architecture_change(f) and not is_archived(f)]
 
     if not arch_changes:
         print("🟢 G-033: 无架构变更，跳过检查")
