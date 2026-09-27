@@ -258,7 +258,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" \
-            python -m pytest tests/gui/ \
+            python -m pytest tests/gui/ -rs \
               --cov=pilotstd --cov-append \
               --timeout=60 --timeout_method=signal \
               -v --tb=long -p no:warnings
@@ -303,7 +303,7 @@ jobs:
           PYTEST_RUNNING_MODE: e2e
         run: |
           mkdir -p /tmp/standards
-          python -m pytest tests/e2e/ \
+          python -m pytest tests/e2e/ -rs \
             --import-mode=importlib \
             --cov=pilotstd \
             --cov-report=xml:e2e-coverage.xml \
@@ -432,7 +432,7 @@ jobs:
         shell: pwsh
         env:
           SUPERUSER: superadmin
-        run: python -m pytest tests/gui/ -m e2e -v --maxfail=1 --tb=short --reruns 3 --reruns-delay 2
+        run: python -m pytest tests/gui/ -m e2e -rs -v --maxfail=1 --tb=short --reruns 3 --reruns-delay 2
 
   # ════════════════════════════════════════════════════════════════
   # Job 4b: 前端 E2E 回归测试（Playwright，依赖前端 Lint 通过）
@@ -693,7 +693,7 @@ jobs:
           SUPERUSER: superadmin
           PILOTSTD_GUI_TEST: "1"
         run: |
-          python -m pytest tests/gui/ tests/test_regression_architecture.py `
+          python -m pytest tests/gui/ tests/test_regression_architecture.py -rs `
             -v --tb=short `
             --cov=pilotstd/ui/core/handlers/ `
             --ignore-glob="*test_e2e*.py"
