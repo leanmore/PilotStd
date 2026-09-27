@@ -721,6 +721,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      # T-24 L3（R11-5，2026-09-27）：G-038（ruff+mypy）由本作业**末位前移到最前端**（紧跟 checkout）。
+      #   实测 11 次 run：本步骤原在作业内 +13s 完成（其前面 10 个步骤合计仅 ~3s），前移后 ≈ +12s
+      #   ——**顺序收益约 1s**；真正主导暴露时间的是 runner 排队（11 次中位 154s、最长 471s，源于全局
+      #   并发组 ci-cd 串行，见主簿「六、观察项」T-30）。对照组：test-backend 的 Ruff 步骤作业内
+      #   +30~34s（其前置 Install dependencies 独占 23~29s）。前移的实质收益＝让 lint 成为作业内**首个**
+      #   信号、不再排在其他 10 个检查之后；检查逻辑、命令、范围一字未改。
+      - name: G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）
+        run: |
+          pip install ruff mypy
+          python scripts/check_g_038_legacy_errors.py
+
       - name: Run repo compliance check
         env:
           BASE_BRANCH: main
@@ -779,11 +790,6 @@ jobs:
 
       - name: G-037 — 触发条件对齐检查
         run: python scripts/check_g_037_trigger_alignment.py
-
-      - name: G-038 — 历史遗留错误清零（Ruff+Mypy+裸noqa）
-        run: |
-          pip install ruff mypy
-          python scripts/check_g_038_legacy_errors.py
 
       # G-015 相对导入有效性：纯静态 AST 扫描，无网络请求，
       # 不受 CI 离线阻断影响；直推 main 时拦截无效相对导入。
