@@ -8,15 +8,25 @@
 - 其五个功能均已被现行机制取代（见下表）；
 - 其唯一仍在写入的目标 `docs/archive/specs/模块与功能清单.md` 自身早在 2026-08-19 即标注 ARCHIVED。
 
-**各函数的现行替代方案**：
+**各函数的现行替代方案**（每条已按 ruff E501 `<=120` 列宽折行；归档前为 Markdown 表格）：
 
-| 原函数 | 现行承担者 |
-|---|---|
-| `extract_test_count_from_status()` / `update_test_count_in_file()` | `scripts/generate_status_metrics.py`（写 STATUS.md 的 AUTO-METRICS 区块：覆盖率取自 `coverage.xml`、测试数取自 `pytest --collect-only`）；STATUS.md 人工区禁裸数字由 **G-032 维度 4** 守护；`docs/index.md` / `docs/development.md` 的测试数不再自动改写（如需变更走 G-032/G-031 的显式校验路径） |
-| `update_aggregator_description()` | 聚合器配置常量本身在 `pilotstd/core/notification/aggregate_buffer.py`；文档侧由 **`docs/architecture/modules/core.md`**（G-031 block 映射：改 `pilotstd/core/` 必须同批同步该文档）承载，不再由本脚本反写 STATUS.md 正文 |
-| `update_tech_debt_entries()` | **已惰性化**（T-02，2026-09-27）：旧簿 `docs/architecture/technical-debt-registry.md` 已废止归档，技术债唯一数据源为 `docs/technical-debt.md`（人工维护 + G-030 联动） |
-| `update_module_list()` | 目标文档 `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 标 ARCHIVED；模块结构现由 `docs/architecture/modules/*` + **G-030/G-031/G-037** 显式校验承担 |
-| `main()` 末尾的自动 `git add` | 无（自动 `git add` 会绕过人工审阅，故整体废弃） |
+- `extract_test_count_from_status()` / `update_test_count_in_file()`
+  → `scripts/generate_status_metrics.py`：写 STATUS.md 的 AUTO-METRICS 区块
+  （覆盖率取自 `coverage.xml`、测试数取自 `pytest --collect-only`）；
+  STATUS.md 人工区禁裸数字由 **G-032 维度 4** 守护；
+  `docs/index.md` / `docs/development.md` 的测试数不再自动改写（如需变更走 G-032/G-031 的显式校验路径）。
+- `update_aggregator_description()`
+  → 聚合器配置常量本身在 `pilotstd/core/notification/aggregate_buffer.py`；
+  文档侧由 **`docs/architecture/modules/core.md`**（G-031 block 映射：改 `pilotstd/core/` 必须同批同步该文档）承载，
+  不再由本脚本反写 STATUS.md 正文。
+- `update_tech_debt_entries()`
+  → **已惰性化**（T-02，2026-09-27）：旧簿 `docs/architecture/technical-debt-registry.md` 已废止归档，
+  技术债唯一数据源为 `docs/technical-debt.md`（人工维护 + G-030 联动）。
+- `update_module_list()`
+  → 目标文档 `docs/archive/specs/模块与功能清单.md` 已于 2026-08-19 标 ARCHIVED；
+  模块结构现由 `docs/architecture/modules/*` + **G-030/G-031/G-037** 显式校验承担。
+- `main()` 末尾的自动 `git add`
+  → 无（自动 `git add` 会绕过人工审阅，故整体废弃）。
 
 **历史取回方式**：
 
