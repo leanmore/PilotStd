@@ -6,8 +6,8 @@
 - QMutex 跨线程安全
 - QMetaObject.invokeMethod + QueuedConnection 确保回调在主线程执行
 - 支持 weakref 订阅，自动清理已销毁的订阅者
-- reset() 静止协议（R2）：退役实例 + 排空已排队 deliver + deleteLater 延迟销毁，
-  切断 teardown 期间“销毁 QObject／其它线程仍在 publish”的跨线程内存访问窗口
+- reset() **保活单例**（R12-5）：只清空订阅者状态与递增世代号，**永不销毁 QObject**——
+  从根上消除「析构 × 其它线程仍持有引用」的 use-after-free 窗口（R4 探针实测 0xC0000005 的根因）
 """
 
 from __future__ import annotations
@@ -50,10 +50,9 @@ class EventBus(QObject):
         super().__init__()
         self._subscribers: dict[str, list[Callable[..., Any]]] = {}
         self._weak_subscribers: dict[str, list[weakref.ref[Any]]] = {}
-        # 静止协议门闸（实例级）：reset() 退役本实例后置 False——
-        # 此后任何**经旧引用**（其它线程早先持有的 bus 变量）的 publish/subscribe 都变成 no-op，
-        # 不会再去触碰这个正在销毁的 QObject。
-        self._accepting = True
+        # 世代号：reset() 每次 +1。publish 时把当前世代号随事件入队，deliver 时丢弃陈旧世代
+        # ——这样「reset 前排队的 deliver」不会误触 reset 之后新注册的回调（状态隔离不依赖销毁对象）。
+        self._generation = 0
 
     @classmethod
     def instance(cls) -> EventBus:
@@ -65,21 +64,24 @@ class EventBus(QObject):
 
     @classmethod
     def reset(cls) -> None:
-        """重置单例（仅用于测试隔离）。
+        """重置单例**状态**（仅用于测试隔离）——**实例保活，永不析构**。
 
-        **静止协议（R2，2026-09-27 第十二轮 R12-4）**——原实现在此处同步销毁 QObject
-        （`cls._instance = None`），而其它线程可能仍在 `publish()` 或已排队的 `deliver` 中引用它
-        → Windows 原生层 use-after-free（CI `test-gui-unit` 三次 access violation 的根因）。
-        现改为四步：
+        **保活单例（R12-5，2026-09-27）**：R12-4d 的 R4 探针实测证明，只要 `reset()` 会销毁
+        QObject（`cls._instance = None` + `deleteLater()`），就存在「析构 × 其它线程仍持有引用」
+        的窗口——`gui-race-probe` 50 轮里 2 次 `0xC0000005`（STATUS_ACCESS_VIOLATION）。
+        Qt/C++ 跨线程对象管理的黄金法则：**永远不要在工作线程持有引用时销毁 QObject**。
+        对象活着 ⇒ 指针恒有效；清空状态 ⇒ 逻辑上等价于「重置到初始态」。
 
-        ① **关门**：置类级 `_resetting`、实例级 `_accepting=False` 并摘除订阅者——
-           此后任何线程的 `publish()` 都是 no-op（不入队、不抛异常）；
-        ② **有界排空**：仅当实例属于本线程时直接处理一次事件队列，把此前排队的 deliver 跑完；
-           **不再使用无界的 `BlockingQueuedConnection`**——实测（R12-4 冒烟测试）当实例的线程
-           亲和性落在没有事件循环的线程时，无界阻塞会把 teardown 永久挂住；跨线程残留的
-           deliver 由 ① 的 `_accepting` 门闸在 `deliver()` 里丢弃，安全性不依赖排空；
-        ③ **延迟销毁**：`deleteLater()` 交给事件循环，**绝不在此刻同步析构** QObject；
-        ④ **复位**：清 `_resetting`，下一次 `instance()` 创建全新实例。
+        步骤：
+        ① **关门**：置类级 `_resetting`（门闸只在本次调用期间闭合）；
+        ② **清状态**：清空订阅者表与弱引用表，并 `_generation += 1`（使 reset 前排队的事件失效）；
+        ③ **排空**：仅当实例属本线程时 `processEvents()` 一次，把此前排队的 deliver 跑完
+           （**不使用无界的 `BlockingQueuedConnection`**——实测它在“实例线程亲和性无事件循环”时
+           会把 teardown 永久挂住；跨线程残留事件由 ② 的世代号在 `deliver()` 里丢弃）；
+        ④ **复位门闸**：清 `_resetting`。
+
+        **契约（R12-5 修正）**：`reset()` **不再**保证 `instance() is not old`（旧契约正是缺陷本身），
+        改为保证 **`instance() is old` 且 `old._subscribers == {}`**——即「同一实例、状态清零」。
         """
         with QMutexLocker(cls._lock):
             instance = cls._instance
@@ -87,14 +89,13 @@ class EventBus(QObject):
             if instance is None:
                 cls._resetting = False
                 return
-            instance._accepting = False
+            # ② 清状态（实例继续存活、继续可用）
             instance._subscribers.clear()
             instance._weak_subscribers.clear()
-            # 先摘掉单例引用：新调用 instance() 会拿到全新实例，而不是这个退役对象
-            cls._instance = None
+            instance._generation += 1
 
         try:
-            # ② 有界排空（绝不无界阻塞）
+            # ③ 有界排空（绝不无界阻塞）
             if instance.thread() is QThread.currentThread():
                 app = QCoreApplication.instance()
                 if app is not None:
@@ -103,11 +104,6 @@ class EventBus(QObject):
             # 实例可能已被 GC 或 QApplication 未就绪，安全忽略
             pass
         finally:
-            # ③ 延迟销毁：把 QObject 的析构挪到事件循环，避免与在途线程的跨线程访问交错
-            try:
-                instance.deleteLater()
-            except RuntimeError:
-                pass
             with QMutexLocker(cls._lock):
                 cls._resetting = False  # ④ 复位，允许后续 publish 正常入队
 
@@ -126,10 +122,10 @@ class EventBus(QObject):
             callback: 回调函数
             weak: 是否使用弱引用（默认 True）
         """
-        if EventBus._resetting or not self._accepting:
+        if EventBus._resetting:
             return
         with QMutexLocker(self._lock):
-            if EventBus._resetting or not self._accepting:
+            if EventBus._resetting:
                 return
             if event not in self._subscribers:
                 self._subscribers[event] = []
@@ -142,8 +138,8 @@ class EventBus(QObject):
                     self._weak_subscribers[event].append(ref)
 
     def unsubscribe(self, event: str, callback: Callable[..., Any]) -> None:
-        """取消订阅（静止协议同 subscribe：退役实例上的调用为 no-op）。"""
-        if EventBus._resetting or not self._accepting:
+        """取消订阅（静止协议同 subscribe：reset 窗口内的调用为 no-op）。"""
+        if EventBus._resetting:
             return
         with QMutexLocker(self._lock):
             if event in self._subscribers:
@@ -157,20 +153,21 @@ class EventBus(QObject):
     def publish(self, event: str, data: Any = None) -> None:
         """发布事件（线程安全，回调在主线程执行）。
 
-        **静止协议（R2）**：reset() 窗口内（类级 `_resetting`）或经已退役实例
-        （实例级 `_accepting=False`）调用时**无副作用直接返回**——不入队、不抛异常，
-        从源头切断“销毁 QObject 的同时其它线程还在往它身上投递”的跨线程访问。
+        **静止协议（R2 + R12-5 保活单例）**：reset() 窗口内（类级 `_resetting`）调用时
+        **无副作用直接返回**——不入队、不抛异常，从源头切断“reset 与其它线程投递交错”。
+        实例**不再被销毁**，故不存在“退役实例”状态；事件的世代号随入队携带，
+        reset 之后到达的陈旧事件由 `deliver()` 丢弃（状态隔离不依赖销毁对象）。
 
         Args:
             event: 事件名
             data: 事件数据
         """
-        if EventBus._resetting or not self._accepting:
+        if EventBus._resetting:
             return
         with QMutexLocker(self._lock):
-            # 锁内二次确认：与 reset() 的临界区互斥，保证“入队”与“退役”不交错；
+            # 锁内二次确认：与 reset() 的临界区互斥，保证“入队”与“清状态”不交错；
             # 且入队动作本身也在临界区内 → reset() 拿到锁即意味着没有 in-flight publish 正在入队。
-            if EventBus._resetting or not self._accepting:
+            if EventBus._resetting:
                 return
             callbacks = list(self._subscribers.get(event, []))
             self._clean_dead_refs(event)
@@ -181,31 +178,25 @@ class EventBus(QObject):
                     Qt.ConnectionType.QueuedConnection,
                     Q_ARG(str, event),
                     Q_ARG(object, data),
+                    Q_ARG(int, self._generation),
                 )
 
-    @pyqtSlot(str, object)
-    def deliver(self, event: str, data: Any) -> None:
-        """在主线程中执行回调（由 QMetaObject.invokeMethod 调用）。"""
-        if not self._accepting:
-            # 已退役实例：即便有排队的 deliver 漏网，这里也直接丢弃（不再触碰订阅者状态）
-            return
+    @pyqtSlot(str, object, int)
+    def deliver(self, event: str, data: Any, generation: int) -> None:
+        """在主线程中执行回调（由 QMetaObject.invokeMethod 调用）。
+
+        `generation` 为 publish 时的世代号：与当前世代不符即「reset 之前排队的陈旧事件」，
+        直接丢弃——避免它在 reset 之后误触新注册的回调（等价于旧实现“换新实例”的隔离效果）。
+        """
         with QMutexLocker(self._lock):
+            if generation != self._generation:
+                return
             callbacks = list(self._subscribers.get(event, []))
         for cb in callbacks:
             try:
                 cb(data)
             except Exception:
                 logger.exception("EventBus 回调异常: event=%s", event)
-
-    # ── 同步屏障槽函数 ────────────────────────────────────────
-
-    @pyqtSlot()
-    def _drain_barrier(self) -> None:
-        """空槽函数，仅用作 BlockingQueuedConnection 的同步屏障。
-
-        Qt 事件队列 FIFO 保证：当此槽被执行时，之前所有
-        QueuedConnection 的 deliver 调用必定已经完成。
-        """
 
     # ── 内部辅助 ─────────────────────────────────────────────
 

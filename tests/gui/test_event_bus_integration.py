@@ -82,11 +82,19 @@ class TestSingleton:
         b = EventBus.instance()
         assert a is b
 
-    def test_reset_creates_new_instance(self):
+    def test_reset_keeps_instance_and_clears_state(self):
+        """reset() 契约（R12-5 修正）：**同一实例 + 状态清零**，不再返回新对象。
+
+        旧契约（`a is not b`）正是 use-after-free 缺陷本身——销毁 QObject 时其它线程可能
+        仍持有引用（R4 探针实测 0xC0000005）。新契约下对象恒有效，重置等价于「清空到初始态」。
+        """
         a = EventBus.instance()
+        a.subscribe("scan.finished", lambda _d: None)
         EventBus.reset()
         b = EventBus.instance()
-        assert a is not b
+        assert b is a, "reset() 后必须复用同一实例（保活，不再销毁 QObject）"
+        assert a._subscribers == {}, "reset() 必须把订阅者表清空至初始态"
+        assert a._weak_subscribers == {}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -360,31 +368,44 @@ def test_scan_handler_migration_no_regression(window, test_data_dir, qtbot, tmp_
 
 
 # ═══════════════════════════════════════════════════════════════════
-# R2 静止协议（2026-09-27 第十二轮 R12-4）
+# reset() 保活单例协议（R12-4 静止协议 → R12-5 保活单例）
 # ═══════════════════════════════════════════════════════════════════
 
 
 class TestResetQuiescenceProtocol:
-    """锁定 reset() 的四步静止协议：关门 → 排空 → deleteLater → 复位。"""
+    """锁定 reset() 的协议：关门 → 清状态（世代 +1）→ 有界排空 → 复位；**实例永不析构**。"""
 
     def test_resetting_flag_is_cleared_after_reset(self):
         EventBus.instance()
         EventBus.reset()
         assert EventBus._resetting is False, "reset() 结束后必须复位门闸，否则后续 publish 永久失效"
 
-    def test_retired_instance_publish_is_noop(self):
-        """经旧引用（其它线程可能持有的 bus 变量）发布必须无副作用——不抛异常、不回调。"""
+    def test_publish_after_reset_with_stale_reference_is_discarded(self):
+        """reset() 前排队的调用（含经旧引用发布的）不得在 reset 后触达回调。
+
+        保活单例下不再有“退役实例”，隔离改由**世代号**保证：reset 递增世代，
+        陈旧事件在 deliver 时被丢弃。
+        """
         old = EventBus.instance()
         received: list[object] = []
         old.subscribe("scan.finished", received.append)
-        EventBus.reset()  # 退役 old
+        # 先让一次真实投递排进队列，再立刻 reset —— 该事件属于旧世代
+        old.publish("scan.finished", {"n": 1})
+        EventBus.reset()
 
-        old.publish("scan.finished", {"n": 1})  # 必须 no-op
+        received.clear()
+        # reset 之后重新订阅；旧世代事件若漏网就会误触这个新回调
+        old.subscribe("scan.finished", received.append)
         app = QCoreApplication.instance()
         if app is not None:
             app.processEvents()
-        assert received == [], "退役实例的 publish 不得再投递回调"
-        assert old._accepting is False
+        assert received == [], "reset 之前入队的陈旧事件必须被丢弃（世代号门闸）"
+
+        # 新世代的事件照常投递（实例仍然可用）
+        old.publish("scan.finished", {"n": 2})
+        if app is not None:
+            app.processEvents()
+        assert received == [{"n": 2}], "reset 之后的新事件必须正常投递（实例保活且可用）"
 
     def test_publish_during_reset_window_is_noop(self):
         """reset() 窗口内（_resetting=True）的 publish 必须不入队、不抛异常。"""
@@ -410,14 +431,14 @@ class TestResetQuiescenceProtocol:
             EventBus._resetting = False
         assert "scan.finished" not in bus._subscribers, "静止窗口内不得写入订阅状态"
 
-    def test_reset_retires_instance_and_creates_fresh_one(self):
-        old = EventBus.instance()
-        old.subscribe("scan.finished", lambda _d: None)
-        EventBus.reset()
-        new = EventBus.instance()
-        assert new is not old, "reset() 后必须得到全新实例"
-        assert new._accepting is True
-        assert new._subscribers == {}, "新实例不得继承退役实例的订阅"
+    def test_reset_is_idempotent_and_keeps_object_alive(self):
+        """连续 reset 不抛异常、不换对象；实例始终可继续使用。"""
+        a = EventBus.instance()
+        a.subscribe("scan.finished", lambda _d: None)
+        for _ in range(3):
+            EventBus.reset()
+            assert EventBus.instance() is a, "reset() 不得替换实例（保活）"
+        assert a._subscribers == {}
 
     def test_publisher_thread_during_reset_does_not_raise(self):
         """跨线程 teardown 场景冒烟：一边多线程 publish，一边 reset——不得抛异常。"""
