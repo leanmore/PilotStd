@@ -45,16 +45,29 @@ jobs:
           cache: pip
           cache-dependency-path: desktop/requirements-win.txt
 
-      - name: Install dependencies (pinned PyQt6 6.11.2)
+      - name: Install dependencies (pinned Qt runtime 6.11.2)
+        shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          # 与 CI test-gui-unit 同口径：reqs 钉住 PyQt6==6.11.0（PyPI 上 PyQt6 最新即 6.11.0，没有 6.11.2）
           pip install -r desktop/requirements-win.txt
+          if ($LASTEXITCODE -ne 0) { throw "requirements-win.txt 安装失败" }
           pip install -r requirements-dev.txt
-          pip install PyQt6==6.11.2 PyQt6-Qt6==6.11.2
+          if ($LASTEXITCODE -ne 0) { throw "requirements-dev.txt 安装失败" }
+          # Qt 运行库（PyQt6-Qt6）才是「Qt 版本」的真身：显式钉到 6.11.2
+          pip install "PyQt6-Qt6==6.11.2"
+          if ($LASTEXITCODE -ne 0) { throw "PyQt6-Qt6==6.11.2 安装失败" }
           pip install -e .
+          if ($LASTEXITCODE -ne 0) { throw "pilotstd 可编辑安装失败" }
 
-      - name: Print environment fingerprint
+      - name: Verify environment fingerprint (runtime Qt must be 6.11.2)
+        shell: pwsh
         run: |
-          python -c "import sys, PyQt6.QtCore as q; print('python', sys.version.split()[0]); print('Qt', q.QT_VERSION_STR, 'PyQt', q.PYQT_VERSION_STR)"
+          # 口径说明：QT_VERSION_STR 是 PyQt6 的**编译期**常量（PyQt6==6.11.0 → 恒为 6.11.0），
+          # 真正加载的 Qt 运行库版本要用 qVersion()（此前指纹只打 QT_VERSION_STR，导致误判「pin 未生效」）。
+          python -c "import sys; from PyQt6.QtCore import qVersion, QT_VERSION_STR, PYQT_VERSION_STR; print('python', sys.version.split()[0]); print('QT_VERSION_STR(build)', QT_VERSION_STR); print('qVersion(runtime)', qVersion()); print('PYQT_VERSION_STR', PYQT_VERSION_STR); assert qVersion() == '6.11.2', 'Qt 运行库版本未钉住: ' + qVersion(); assert PYQT_VERSION_STR == '6.11.0', 'PyQt6 版本异常: ' + PYQT_VERSION_STR"
+          if ($LASTEXITCODE -ne 0) { throw "环境指纹校验失败（Qt 运行库必须为 6.11.2）" }
+
 
       - name: Loop EventBus integration tests
         shell: pwsh
