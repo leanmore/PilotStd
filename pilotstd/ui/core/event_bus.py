@@ -3,7 +3,8 @@
 
 特性：
 - 单例模式，全局唯一实例
-- QMutex 跨线程安全
+- threading.Lock 跨线程安全（R12-8：原 QMutex/QMutexLocker 在「线程反复创建/销毁」下会触发
+  PyQt6/sip 弱引用记账竞态 → 原生访问违例，见 docs/technical-debt.md 7.21/7.22）
 - QMetaObject.invokeMethod + QueuedConnection 确保回调在主线程执行
 - 支持 weakref 订阅，自动清理已销毁的订阅者
 - reset() **保活单例**（R12-5）：只清空订阅者状态与递增世代号，**永不销毁 QObject**——
@@ -13,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import weakref
 from typing import Any, Callable
 
@@ -20,8 +22,6 @@ from PyQt6.QtCore import (
     Q_ARG,
     QCoreApplication,
     QMetaObject,
-    QMutex,
-    QMutexLocker,
     QObject,
     Qt,
     QThread,
@@ -42,7 +42,9 @@ class EventBus(QObject):
     """
 
     _instance: EventBus | None = None
-    _lock = QMutex()
+    # R12-8：改用 CPython 原生锁——临界区全是纯 Python 操作，无需 Qt 锁；
+    # 原 QMutex/QMutexLocker 在多线程反复创建/销毁的场景下会崩溃（PyWeakref_NewRef(NULL)）。
+    _lock = threading.Lock()
     # 静止协议门闸（类级）：reset() 期间为 True——此刻任何 publish 都无副作用直接返回
     _resetting = False
 
@@ -57,7 +59,7 @@ class EventBus(QObject):
     @classmethod
     def instance(cls) -> EventBus:
         """获取全局单例（线程安全）。"""
-        with QMutexLocker(cls._lock):
+        with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
             return cls._instance
@@ -83,7 +85,7 @@ class EventBus(QObject):
         **契约（R12-5 修正）**：`reset()` **不再**保证 `instance() is not old`（旧契约正是缺陷本身），
         改为保证 **`instance() is old` 且 `old._subscribers == {}`**——即「同一实例、状态清零」。
         """
-        with QMutexLocker(cls._lock):
+        with cls._lock:
             instance = cls._instance
             cls._resetting = True  # ① 关门（先于任何清理，杜绝新入队）
             if instance is None:
@@ -104,7 +106,7 @@ class EventBus(QObject):
             # 实例可能已被 GC 或 QApplication 未就绪，安全忽略
             pass
         finally:
-            with QMutexLocker(cls._lock):
+            with cls._lock:
                 cls._resetting = False  # ④ 复位，允许后续 publish 正常入队
 
     # ── 订阅管理 ─────────────────────────────────────────────
@@ -124,7 +126,7 @@ class EventBus(QObject):
         """
         if EventBus._resetting:
             return
-        with QMutexLocker(self._lock):
+        with self._lock:
             if EventBus._resetting:
                 return
             if event not in self._subscribers:
@@ -141,7 +143,7 @@ class EventBus(QObject):
         """取消订阅（静止协议同 subscribe：reset 窗口内的调用为 no-op）。"""
         if EventBus._resetting:
             return
-        with QMutexLocker(self._lock):
+        with self._lock:
             if event in self._subscribers:
                 try:
                     self._subscribers[event].remove(callback)
@@ -164,7 +166,7 @@ class EventBus(QObject):
         """
         if EventBus._resetting:
             return
-        with QMutexLocker(self._lock):
+        with self._lock:
             # 锁内二次确认：与 reset() 的临界区互斥，保证“入队”与“清状态”不交错；
             # 且入队动作本身也在临界区内 → reset() 拿到锁即意味着没有 in-flight publish 正在入队。
             if EventBus._resetting:
@@ -188,7 +190,7 @@ class EventBus(QObject):
         `generation` 为 publish 时的世代号：与当前世代不符即「reset 之前排队的陈旧事件」，
         直接丢弃——避免它在 reset 之后误触新注册的回调（等价于旧实现“换新实例”的隔离效果）。
         """
-        with QMutexLocker(self._lock):
+        with self._lock:
             if generation != self._generation:
                 return
             callbacks = list(self._subscribers.get(event, []))
