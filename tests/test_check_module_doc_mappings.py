@@ -1,4 +1,4 @@
-"""tests/test_check_docs_sync.py — check_docs_sync.py 的受控测试（R11-3，2026-09-27）。
+"""tests/test_check_module_doc_mappings.py — check_module_doc_mappings.py 的受控测试（R11-3；R16 随脚本改名）。
 
 背景（第五个 CI 盲区：范围取值陷阱）：CI 步骤的 `DOCS_SYNC_RANGE` 曾写成
 `${{ github.event.before }}..${{ github.event.sha }}`，而 push 载荷里**没有** `event.sha`
@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SCRIPT = ROOT / "scripts" / "check_docs_sync.py"
+SCRIPT = ROOT / "scripts" / "check_module_doc_mappings.py"
 
 
 def _load_module():

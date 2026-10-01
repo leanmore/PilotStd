@@ -10,7 +10,7 @@
 | [prompt-crafting-guide.md](prompt-crafting-guide.md) | 提示词生产规范 + context-ref v2 + rollback 三级分级 | 已定稿 |
 | [rule-quickref.md](rule-quickref.md) | 非技术决策者规则速查表（业务语言翻译） | 已定稿 |
 | [phase1-startup-checklist.md](phase1-startup-checklist.md) | Phase 1 唯一准入标准（启动检查清单） | v2.1 |
-| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线）；版本行 **v1.68~v1.73** 依次对应 R14-4a（#31 闭环 + #32-A 状态字典）、R14-4b（#32-B 后端字面量收敛）、R14-4c（#32-C 前后端闭环 + v61 迁移）、R14-4d（#32-D 测试收敛 + 哨兵，#32 闭环）、R14-5（适配器模板同步 + 台账归档与存续项校准）、R16（候选池 P0~P3：门禁受控测试自动化 / schema 门禁提示 / T-30 收口）；v1.68 行另含 R14-4a 的 CI 修正（`test_status` 的 PyQt6 环境守卫） | v1.73 |
+| [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线）；版本行 **v1.68~v1.73** 依次对应 R14-4a（#31 闭环 + #32-A 状态字典）、R14-4b（#32-B 后端字面量收敛）、R14-4c（#32-C 前后端闭环 + v61 迁移）、R14-4d（#32-D 测试收敛 + 哨兵，#32 闭环）、R14-5（适配器模板同步 + 台账归档与存续项校准）、R16（候选池 P0~P3：门禁受控测试自动化 / schema 门禁提示 / T-30 收口 / 两形近脚本改名 + T-16 计数归零）；v1.68 行另含 R14-4a 的 CI 修正（`test_status` 的 PyQt6 环境守卫） | v1.73 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |
 | [../guides/refactoring-lessons.md](../guides/refactoring-lessons.md) | 拆分经验 + **拆分前检查项**（注释密度预估 / G-010 拆分证据；原 `refactoring_checklist.md` 已于 `efa7514a` 删除） | 活跃 |

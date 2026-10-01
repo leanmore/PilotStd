@@ -794,8 +794,9 @@ jobs:
 
       # T-16 / T-25（2026-09-27 第十轮 + 第十一轮）：本步骤必须跑**两个形近脚本**，缺一即形成盲区——
       #   docs_sync_check.py：8 条触发规则 + 严格模式（告警期 exit 0；--strict-block 才阻断）
-      #   check_docs_sync.py：5 条「核心模块 → 架构文档」映射（**比 G-031 更宽**：含 pilotstd/query/、pilotstd/ui/）
-      # 事故回指（T-25）：第十轮本步骤被误写成只跑 check_docs_sync.py，而它当时只做 origin/<base>..HEAD
+      #   check_module_doc_mappings.py：5 条「核心模块 → 架构文档」映射（**比 G-031 更宽**：含 pilotstd/query/、pilotstd/ui/）
+#     改名（R16，P1）：原名 check_docs_sync.py 与 docs_sync_check.py 仅差 check_ 前缀 → 曾导致接线事故（T-25）
+      # 事故回指（T-25）：第十轮本步骤被误写成只跑当时的 check_docs_sync.py（现名 check_module_doc_mappings.py），而它当时只做 origin/<base>..HEAD
       #   （推送到 main 时恒为空、浅克隆下甚至取不到）→ 步骤长期空转、`[docs-compliance] PASS: 无变更文件`，
       #   导致 T-16 的 6 次「告警期观察」全部无效。两者现均支持 --range / DOCS_SYNC_RANGE 回退链。
       # R11-3b 补丁（第五个 CI 盲区：范围取值陷阱）——右端必须用 `github.sha`（通用上下文，push 时即本次推送 tip；
@@ -815,7 +816,7 @@ jobs:
         run: |
           set -e
           python scripts/docs_sync_check.py --strict
-          python scripts/check_docs_sync.py --strict
+          python scripts/check_module_doc_mappings.py --strict
 
       # 能力矩阵是入库文档（docs/governance/capabilities_registry.md）：
       # 重生成后与入库内容比对，有实质差异即阻断（忽略生成时间戳行）。

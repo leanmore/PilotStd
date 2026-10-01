@@ -2,6 +2,10 @@
 """
 文档自动同步检查 / 严格模式判定（T-16，2026-09-27）。
 
+**与 scripts/check_module_doc_mappings.py 的分工**（R16 P1 改名以消除形近，避免 T-25 类接线事故）：
+  本脚本 = 8 条触发规则（关注「变更类型」）；
+  对方   = 静态映射表（核心模块目录 → 架构文档，关注「改了哪个模块目录」）。
+
 - 非严格模式（默认，本地辅助）：读取变更 → 对照映射表识别需更新的文档 → 调用 claude 生成新内容 → git add。
   环境变量: AUTO_FIX_DOCS=true|false（默认 true）; CLAUDE_TIMEOUT=120
 - 严格模式（--strict / --strict-block，CI 用）：只做判定、**不改文档**，对 in_repo 目标未同批更新时报告；

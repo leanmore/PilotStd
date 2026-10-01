@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """文档同步门禁：核心模块变更时检查对应架构文档是否同步更新。
 
+**与 scripts/docs_sync_check.py 的分工**（R16 P1 改名以消除形近，避免 T-25 类接线事故）：
+  本脚本 = 静态映射表（核心模块目录 → 架构文档，5 条，比 G-031 更宽）；
+  对方    = 8 条触发规则（feat:/fix: → CHANGELOG、源码变更 → STATUS.md 等）。
+
 变更来源回退链（T-25，2026-09-27 修复）：
   `--range A..B` → 环境变量 `DOCS_SYNC_RANGE` → `--base`/`BASE_BRANCH`（`origin/<base>...HEAD`）
   → `origin/main...HEAD` → `HEAD~1..HEAD` → 无变更。
