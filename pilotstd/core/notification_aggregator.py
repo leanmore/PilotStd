@@ -158,22 +158,62 @@ class NotificationAggregator:
     # ──主题提取（保留，用于设置_）──
 
     @staticmethod
-    def _template_to_pattern(template: str) -> str:
-        """把含 `{name}` 占位符的 i18n 模板转为匹配**渲染后标题**的正则源码。
+    def _escape_with_placeholders(text: str, *, optional_placeholder: bool = False) -> str:
+        """把片段中的 `{name}` 换成通配，其余字面量 `re.escape` 转义。
 
-        占位符替换为非贪婪通配 `(.+?)`（跨语言通用），其余字面量用 `re.escape`
-        转义。例：`第 {round} 轮有效性汇总报告` 可匹配 `第 3 轮有效性汇总报告`。
+        `optional_placeholder=True` 时占位符用 `(.*?)`（允许空值），否则用 `(.+?)`。
+        括号内需要宽松匹配：渲染器在取值为空时会产出 `Scan Complete ()` 这类空括号。
         """
-        parts = re.split(r"(\{[^}]*\})", template)
+        wildcard = "(.*?)" if optional_placeholder else "(.+?)"
         out: list[str] = []
-        for part in parts:
+        for part in re.split(r"(\{[^}]*\})", text):
             if not part:
                 continue
             if part.startswith("{") and part.endswith("}"):
-                out.append("(.+?)")
+                out.append(wildcard)
             else:
                 out.append(re.escape(part))
         return "".join(out)
+
+    @staticmethod
+    def _template_to_patterns(template: str) -> list[str]:
+        """把含 `{name}` 占位符的 i18n 模板转为**一个或两个**正则源码。
+
+        规则：
+        1. 占位符 → 通配（括号内允许空值，括号外要求非空）；其余字面量转义；
+        2. 含占位符的括号组额外生成一个**括号整段去掉**的变体。
+
+        规则 2 的必要性（实测边界）：占位符取空串时渲染器会把括号内字面量一并省略，
+        产出 `Scan Complete ()`，其内容不含 `unrecognized`；"括号去掉"的变体
+        （`Scan Complete`）可命中该形态。
+
+        单独出现的占位符（如 `第 {round} 轮…`）只生成一个正则——它为空即标题本身
+        为空，不应归入任何主题。
+        """
+        split = re.split(r"([（(][^（()）]*\{[^}]*\}[^（()）]*[)）])", template)
+        if len(split) == 1:
+            return [NotificationAggregator._escape_with_placeholders(template)]
+
+        complete: list[str] = []
+        without: list[str] = []
+        for part in split:
+            if not part:
+                continue
+            if part[0] in "(（" and part[-1] in ")）":
+                inner = NotificationAggregator._escape_with_placeholders(
+                    part[1:-1], optional_placeholder=True
+                )
+                complete.append(re.escape(part[0]) + inner + re.escape(part[-1]))
+            else:
+                escaped = NotificationAggregator._escape_with_placeholders(part)
+                complete.append(escaped)
+                without.append(escaped)
+
+        patterns = ["".join(complete)]
+        stripped = "".join(without)
+        if stripped and stripped != patterns[0]:
+            patterns.append(stripped)
+        return patterns
 
     @staticmethod
     def _strip_bracketed(title: str) -> str:
@@ -241,12 +281,11 @@ class NotificationAggregator:
                 # 保留先登记者即可，主题一致故无影响。
                 index.setdefault(value, topic)
                 if "{" in value:
-                    try:
-                        pattern = re.compile(NotificationAggregator._template_to_pattern(value))
-                    except re.error:
-                        logger.warning("主题索引：模板正则编译失败，跳过 %r", value, exc_info=True)
-                        continue
-                    patterns.append((pattern, topic))
+                    for source in NotificationAggregator._template_to_patterns(value):
+                        try:
+                            patterns.append((re.compile(source), topic))
+                        except re.error:
+                            logger.warning("主题索引：模板正则编译失败，跳过 %r", value, exc_info=True)
         return index, patterns
 
     @classmethod

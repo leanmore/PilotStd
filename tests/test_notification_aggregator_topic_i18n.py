@@ -261,3 +261,230 @@ class TestBufferWindowIntent:
 
         assert _BUFFER_WINDOW != DEFAULT_WINDOW_SECONDS
         assert _BUFFER_WINDOW < DEFAULT_WINDOW_SECONDS
+
+
+class TestDesktopChainReachesExtractTopic:
+    """审核补证：桌面链路确实从 `platform/notify.py` 走到 `_extract_topic`。
+
+    修复点都在 `core/notification_aggregator.py`，若平台层实际不走这里，
+    则修复对桌面通知无效。本类用**调用栈取证**锁定该链路。
+    """
+
+    def _spy(self, monkeypatch):
+        """把 `_extract_topic` 换为记录调用栈的探针。"""
+        import traceback
+
+        original = NotificationAggregator.__dict__["_extract_topic"].__func__
+        frames: list[str] = []
+
+        def spy(cls, title, body):
+            for frame in traceback.extract_stack()[-8:]:
+                frames.append(f"{Path(frame.filename).name}:{frame.lineno} {frame.name}")
+            return original(cls, title, body)
+
+        monkeypatch.setattr(NotificationAggregator, "_extract_topic", classmethod(spy))
+        return frames
+
+    def test_show_warning_reaches_extract_topic(self, monkeypatch):
+        """`NotifyService.show_warning` → `should_show` → `_extract_topic`。"""
+        from pilotstd.platform import notify as notify_mod
+
+        frames = self._spy(monkeypatch)
+
+        class _Tray:
+            def showMessage(self, *_a):  # noqa: N802
+                pass
+
+        svc = notify_mod.NotifyService.__new__(notify_mod.NotifyService)
+        svc._enabled = True
+        svc._tray = _Tray()
+        svc._last = {}
+        monkeypatch.setattr(NotificationAggregator, "auto_pause_enabled", property(lambda self: True))
+        agg = NotificationAggregator()
+        agg._paused = False
+        try:
+            svc.show_warning("Scan Complete (3 unrecognized)", "body")
+        finally:
+            agg.shutdown()
+
+        assert frames, "桌面链路未调用 _extract_topic"
+        joined = " ".join(frames)
+        assert "notify.py" in joined and "show_warning" in joined, f"调用栈不含平台层: {frames}"
+        assert "should_show" in joined, f"调用栈不含 should_show: {frames}"
+
+    def test_default_config_takes_aggregator_path(self):
+        """默认配置下桌面通知走聚合器路径（`auto_pause_enabled` 默认 True）。
+
+        `notification.auto_pause` 无 defaults 声明，`should_show` 侧以 `True` 为兜底，
+        故"关掉自动暂停"才会绕过聚合器。此断言防止默认值被改成 False 而使修复失效。
+        """
+        agg = NotificationAggregator.__new__(NotificationAggregator)
+        assert agg.auto_pause_enabled is True
+
+    def test_end_to_end_grouping_for_recon_titles(self, monkeypatch):
+        """端到端：经 `should_show` 后各语言同一事件得到同一主题。"""
+        original = NotificationAggregator.__dict__["_extract_topic"].__func__
+        topics: list[tuple[str, str]] = []
+
+        def spy(cls, title, body):
+            topic = original(cls, title, body)
+            topics.append((title, topic))
+            return topic
+
+        monkeypatch.setattr(NotificationAggregator, "_extract_topic", classmethod(spy))
+        agg = NotificationAggregator()
+        agg._paused = False
+        titles = [
+            "Scan Complete (3 unrecognized)",
+            "扫描完成（7 个无法识别）",
+            "掃描完成（9 個無法識別）",
+            "第 4 轮有效性汇总报告",
+            "Validity Round 12 Summary Report",
+        ]
+        try:
+            for title in titles:
+                agg.should_show("info", title, "body", lambda *a: None)
+        finally:
+            agg.shutdown()
+        got = dict(topics)
+        assert got[titles[0]] == got[titles[1]] == got[titles[2]] == "done"
+        assert got[titles[3]] == got[titles[4]] == "validity"
+
+
+class TestIndexUniquenessAndConflicts:
+    """审核补证：索引唯一性与冲突检测（防止静默覆盖）。"""
+
+    def test_no_title_maps_to_two_topics(self):
+        """同一标题字面不得映射到两个不同主题（跨三语全量检查）。"""
+        from pilotstd.core.notification_aggregator import _TOPIC_BY_EVENT
+
+        value_to_topics: dict[str, set[str]] = {}
+        for lang in LANGS:
+            lp = _pack(lang)
+            for key, value in lp.items():
+                if not (key.startswith("notification.") and ".title" in key):
+                    continue
+                if not isinstance(value, str):
+                    continue
+                owner = next((e for e in EVENTS if e in key.split(".")), None)
+                topic = _TOPIC_BY_EVENT.get(owner or "")
+                if topic:
+                    value_to_topics.setdefault(value, set()).add(topic)
+        conflicts = {v: t for v, t in value_to_topics.items() if len(t) > 1}
+        assert conflicts == {}, f"标题字面映射到多个主题：{conflicts}"
+
+    def test_index_entry_count_matches_distinct_titles(self):
+        """索引条目数应等于"有主题的不同标题字面数"（无静默丢条目）。"""
+        from pilotstd.core.notification_aggregator import _TOPIC_BY_EVENT
+
+        index, _patterns = NotificationAggregator._title_index_data()
+        distinct: set[str] = set()
+        for lang in LANGS:
+            lp = _pack(lang)
+            for key, value in lp.items():
+                if not (key.startswith("notification.") and ".title" in key):
+                    continue
+                if not isinstance(value, str):
+                    continue
+                owner = next((e for e in EVENTS if e in key.split(".")), None)
+                if _TOPIC_BY_EVENT.get(owner or ""):
+                    distinct.add(value)
+        assert len(index) == len(distinct), f"索引 {len(index)} 条 vs 不同标题 {len(distinct)} 条"
+
+    def test_known_duplicate_title_is_benign(self):
+        """唯一已知重复标题（en 的两条 announce）必须同属一个主题，故无害。"""
+        dup = "Announcement Fetch Complete"
+        pack = _pack("en")
+        owners = [
+            k
+            for k, v in pack.items()
+            if v == dup and k.startswith("notification.") and ".title" in k
+        ]
+        assert len(owners) >= 2, f"预期该标题被多条键共用，实际 {owners}"
+        topics = {
+            NotificationAggregator._extract_topic(dup, "") for _ in owners
+        }
+        assert topics == {"done"}, f"重复标题主题不一致：{topics}"
+
+
+class TestDynamicValueBoundaries:
+    """审核补证：占位符取值边界（不同值、0/负数/大数/空/特殊字符）。"""
+
+    @pytest.mark.parametrize("value", ["0", "1", "2", "7", "999", "-5", "1e9", "", "a b", "%s", 'x"y'])
+    def test_scan_complete_dynamic_count_always_done(self, value: str):
+        """`Scan Complete (<任何值>)` 恒归 `done`（三语）。"""
+        for lang in LANGS:
+            tpl = _pack(lang)["notification.scan.scan_complete.title"]
+            rendered = tpl.replace("{failed}", value)
+            got = NotificationAggregator._extract_topic(rendered, "")
+            assert got == "done", f"{lang} value={value!r} -> {got!r}"
+
+    @pytest.mark.parametrize("value", ["0", "1", "12", "999", "-3", "abc"])
+    def test_round_summary_dynamic_round_always_validity(self, value: str):
+        """`第 <非空值> 轮有效性汇总报告` 恒归 `validity`（三语，模板正则路径）。
+
+        **已知边界**：占位符取**空串**时渲染结果为 `第  轮…`（双空格），而模板为单空格，
+        故不匹配、落兜底。该输入现实中不产生（轮次恒 ≥ 1）；为退化输入放宽正则
+        （如空白归一化）会削弱匹配精确性，故登记为边界而不修。
+        """
+        for lang in LANGS:
+            tpl = _pack(lang)["notification.validity.validity_round_summary.title"]
+            rendered = tpl.replace("{round}", value)
+            got = NotificationAggregator._extract_topic(rendered, "")
+            assert got == "validity", f"{lang} value={value!r} -> {got!r}"
+
+    def test_round_summary_empty_value_is_known_boundary(self):
+        """锁定上述边界现状：空值落兜底（若未来实现空白归一化，应更新本用例）。"""
+        tpl = _pack(DEFAULT_LANG)["notification.validity.validity_round_summary.title"]
+        got = NotificationAggregator._extract_topic(tpl.replace("{round}", ""), "")
+        assert got.startswith("_"), f"预期落兜底，实际 {got!r}"
+
+    def test_multiple_placeholders_in_one_title(self):
+        """含多个占位符的标题（如三语各自多个）仍应命中。"""
+        pack = _pack(DEFAULT_LANG)
+        multi = [
+            (k, v)
+            for k, v in pack.items()
+            if k.startswith("notification.") and ".title" in k and v.count("{") >= 1
+        ]
+        assert multi, "样本缺失"
+        for key, template in multi:
+            owner = next((e for e in EVENTS if e in key.split(".")), None)
+            from pilotstd.core.notification_aggregator import _TOPIC_BY_EVENT
+
+            expected = _TOPIC_BY_EVENT.get(owner or "")
+            for lang in LANGS:
+                lt = _pack(lang)[key]
+                rendered = re.sub(r"\{[^}]*\}", "5", lt)
+                if lang == "en" and owner == "validity_round_summary":
+                    pass
+                got = NotificationAggregator._extract_topic(rendered, "")
+                if expected == "validity" and owner == "standard_status_changed":
+                    # standard_status_changed 的两个标题变体分别含不同文案，主题一致
+                    assert got == "validity", f"{lang} {key} -> {got}"
+                else:
+                    assert got == expected, f"{lang} {key} -> {got}（期望 {expected}）"
+
+
+class TestCustomTitleBoundary:
+    """审核补证：非 i18n 来源的自定义标题跨语言合并**不在修复范围内**。
+
+    兜底与关键词回退只含简体，故英文/繁中自定义标题可能落到不同分组。
+    这是**已知边界**而非回归：自定义标题不是 i18n 事件文案，无法由契约判定。
+    本类把该边界固化为可执行断言，防止后人误以为"已全语言覆盖"。
+    """
+
+    def test_chinese_custom_title_hits_keyword_fallback(self):
+        assert NotificationAggregator._extract_topic("自定义批次完成", "") == "done"
+        assert NotificationAggregator._extract_topic("自訂批次完成", "") == "done"
+
+    def test_english_custom_title_falls_back_to_prefix_bucket(self):
+        """英文自定义标题落兜底——已知边界，登记而非隐藏。"""
+        got = NotificationAggregator._extract_topic("Custom batch finished", "")
+        assert got.startswith("_"), f"预期落兜底，实际 {got!r}"
+
+    def test_custom_title_not_in_scope_for_cross_language_merging(self):
+        """同一自定义语义在中文/英文下分组不同——明确记录该边界。"""
+        zh = NotificationAggregator._extract_topic("自定义批次完成", "")
+        en = NotificationAggregator._extract_topic("Custom batch finished", "")
+        assert zh != en, "该断言锁定边界现状；若未来实现多语言关键词表，应更新本用例"

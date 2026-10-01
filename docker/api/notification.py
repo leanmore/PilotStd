@@ -9,10 +9,11 @@ from pydantic import BaseModel
 
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationManager, NotificationMessage
-from pilotstd.core.notification._credentials import MASKED_VALUE
+from pilotstd.core.notification._credentials import MASKED_VALUE, CredentialHelper
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 from pilotstd.core.notification.security_notifier import client_ip, notify_credential_change
 from pilotstd.i18n import t
+from pilotstd.manager.facade import StandardManager
 
 from ..auth import get_current_user_id
 from ..manager import get_manager_dep
@@ -43,7 +44,7 @@ def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
     return cast("NotificationManager", mgr.notification_mgr)
 
 
-def _find_masked_field(body: dict, cred_helper: object) -> str:
+def _find_masked_field(body: dict, cred_helper: CredentialHelper | None) -> str:
     """预校验：返回首个掩码占位符字段的报错文案，无违规返回空串。
 
     掩码值会被 CredentialHelper.set_channel 整体拒绝；提前拦下可保证落库循环不抛异常、
@@ -51,7 +52,7 @@ def _find_masked_field(body: dict, cred_helper: object) -> str:
     """
     if cred_helper is None:
         return ""
-    masked_values = getattr(cred_helper, "MASKED_VALUES", set())
+    masked_values: set[str] = set(getattr(cred_helper, "MASKED_VALUES", set()))
     channels = body.get("channels")
     if not isinstance(channels, dict):
         return ""
@@ -65,7 +66,7 @@ def _find_masked_field(body: dict, cred_helper: object) -> str:
 
 
 def _diff_credential_changes(
-    body: dict, cred_helper: object, user_id: int
+    body: dict, cred_helper: CredentialHelper | None, user_id: int
 ) -> tuple[dict[str, dict], dict[str, dict[str, str]], list[str], list[str]]:
     """读取待改渠道的旧凭证快照并计算差异。
 
@@ -79,7 +80,7 @@ def _diff_credential_changes(
     channels = body.get("channels")
     if not (isinstance(channels, dict) and cred_helper is not None):
         return channel_updates, {}, [], []
-    masked_values = getattr(cred_helper, "MASKED_VALUES", set())
+    masked_values: set[str] = set(getattr(cred_helper, "MASKED_VALUES", set()))
     for ch_name, ch_cfg in channels.items():
         if isinstance(ch_cfg, dict):
             channel_updates[ch_name] = ch_cfg
@@ -240,7 +241,7 @@ def update_config(
 
 def _persist_config_and_audit(
     *,
-    mgr: object,
+    mgr: StandardManager,
     nmgr: NotificationManager,
     body: dict,
     user_id: int,
