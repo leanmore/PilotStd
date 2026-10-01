@@ -306,6 +306,8 @@ P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级�
 
 **执行方式**：`python scripts/check_sensitive_endpoint_audit.py`；
 辅助模式 `--list`（列出敏感路由与接线状态）。退出码 0=通过，1=存在未接线敏感端点。
+**已接入**：`scripts/check_all.sh`（紧跟 G-040，`--fast` 路径）与 `.github/workflows/ci.yml`
+（紧跟 G-040 硬编码检查步骤）——安全门禁不进 CI 即无约束力。
 
 ---
 

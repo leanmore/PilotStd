@@ -25,9 +25,19 @@ from .renderer import _fallback_text
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WINDOW_SECONDS = 60.0  # 首次延时：1分钟后触发
-MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5分钟后强制发送
-DEFAULT_BATCH_SIZE = 20
+# 聚合窗口默认值——与 config 的 `notification.aggregate_*` 默认值同口径：
+# defaults.py 声明 aggregate_window_seconds=5 / aggregate_max_events=50，
+# manager 启用聚合时会显式传入这两个值，故本处默认仅在直接构造聚合器
+# （测试、独立调用）时生效。两侧若不一致，会让"直接构造"的行为与生产行为分叉。
+DEFAULT_WINDOW_SECONDS = 5.0  # 首次延时：默认 5 秒（对应 aggregate_window_seconds）
+MAX_WINDOW_SECONDS = 300.0  # 最大窗口：5 分钟后强制发送（硬上限，无对应配置键）
+DEFAULT_BATCH_SIZE = 50  # 对应 aggregate_max_events
+
+# 分组键中「事件类型」与「关联实体」的分隔符。
+# 用 US（Unit Separator，U+001F）而非普通字符：事件类型与 target_id 均来自业务
+# 标识（标准号、任务名），任何可见字符都可能在 target_id 中出现，用不可见控制字符
+# 才能保证 split 结果确定。
+_GROUP_SEP = "\x1f"
 
 # 多条聚合摘要的排版口径
 _PREVIEW_ITEMS = 5  # 摘要中逐条列出的最大条数
@@ -113,59 +123,84 @@ class NotificationAggregator:
         """入队一条 NotificationMessage。
 
         绕过列表中的事件直接发送并返回 True。
-        普通事件入队等待聚合，返回 False。
+        普通事件按「事件类型 × 关联实体」入队等待聚合，返回 False。
 
         固定窗口：第一条消息启动计时器，窗口内新消息追加到缓冲区，
-        不重置计时器。1 分钟后首次触发，5 分钟总窗口后强制发送。
+        不重置计时器。默认 5 秒首次触发（同 aggregate_window_seconds），
+        最长 300 秒强制发送。
         """
         event_type = msg.event_type
         if event_type in self._bypass:
             self._callback(msg, target_channels)
             return True
 
+        # 兼容 push() 旧签名：显式传入的 target_id 仅在消息自身为空时补齐，
+        # 保证分组键只有一个来源（避免两处不一致导致分组行为不可预测）。
+        if target_id and not msg.target_id:
+            msg.target_id = target_id
+
+        group = self._group_key(msg)
         now = time.monotonic()
 
         with self._lock:
-            if event_type not in self._buffers:
-                self._buffers[event_type] = []
-            self._buffers[event_type].append((msg, target_channels, now))
+            if group not in self._buffers:
+                self._buffers[group] = []
+            self._buffers[group].append((msg, target_channels, now))
 
-            # 如果是第一批消息，启动计时器
-            if event_type not in self._timers or self._timers[event_type] is None:
-                self._window_start[event_type] = now
-                timer = threading.Timer(self._window, self._on_timer, args=(event_type,))
+            # 如果是该分组的第一批消息，启动计时器
+            if group not in self._timers or self._timers[group] is None:
+                self._window_start[group] = now
+                timer = threading.Timer(self._window, self._on_timer, args=(group,))
                 timer.daemon = True
                 timer.start()
-                self._timers[event_type] = timer
+                self._timers[group] = timer
 
-            # 数量达标 → 立即发送
-            if len(self._buffers[event_type]) >= self._max:
-                entries = self._buffers.pop(event_type, [])
-                t = self._timers.pop(event_type, None)
+            # 数量达标 → 立即发送（按分组各自计数）
+            if len(self._buffers[group]) >= self._max:
+                entries = self._buffers.pop(group, [])
+                t = self._timers.pop(group, None)
                 if t:
                     t.cancel()
-                self._window_start.pop(event_type, None)
+                self._window_start.pop(group, None)
                 self._send_merged(event_type, entries)
             return False
 
     def flush(self, event_type: str, target_id: str = "") -> None:
-        """立即刷新指定事件类型的缓冲。"""
+        """立即刷新缓冲。
+
+        指定 `target_id` 时只刷新该实体的分组；省略时刷新该事件类型的**全部**实体分组。
+        """
         with self._lock:
-            entries = self._buffers.pop(event_type, [])
-            t = self._timers.pop(event_type, None)
-            if t:
-                t.cancel()
-            self._window_start.pop(event_type, None)
-        if entries:
-            self._send_merged(event_type, entries)
+            groups = [
+                g
+                for g in self._buffers
+                if event_type in self._events_in_group(g)
+                and (not target_id or self._group_entity(g) == target_id)
+            ]
+            drained: list[tuple[str, list[_Entry]]] = []
+            for group in groups:
+                drained.append((group, self._buffers.pop(group, [])))
+                t = self._timers.pop(group, None)
+                if t:
+                    t.cancel()
+                self._window_start.pop(group, None)
+        for group, entries in drained:
+            if entries:
+                self._send_merged(self._events_in_group(group).pop(), entries)
 
     def flush_all(self) -> None:
-        """立即刷新所有缓冲组。"""
-        keys: list[str] = []
+        """立即刷新所有缓冲组（单次持锁排空，避免逐组重复加锁）。"""
         with self._lock:
-            keys = list(self._buffers.keys())
-        for key in keys:
-            self.flush(key)
+            drained = [(g, self._buffers.pop(g, [])) for g in list(self._buffers.keys())]
+            for t in list(self._timers.values()):
+                if t:
+                    t.cancel()
+            self._timers.clear()
+            self._window_start.clear()
+        for group, entries in drained:
+            if entries:
+                events = self._events_in_group(group)
+                self._send_merged(next(iter(events)) if events else group, entries)
 
     def shutdown(self) -> None:
         """优雅关闭：取消所有定时器，立即发送缓冲中所有残留消息。"""
@@ -180,35 +215,68 @@ class NotificationAggregator:
             self._window_start.clear()
         for key, entries in pending.items():
             if entries:
-                self._send_merged(key, entries)
+                events = self._events_in_group(key)
+                self._send_merged(next(iter(events)) if events else key, entries)
         if pending:
             logger.info("聚合器已关闭，刷新了 %d 组缓冲消息", len(pending))
 
+    # ── 分组键 ──
+
+    def _group_key(self, msg: NotificationMessage) -> str:
+        """分组键 = 事件类型 + 关联实体（`target_id`）。
+
+        实体维度让"同一事件类型、不同业务对象"的通知各自成组：
+        例如同一批扫描里 task_a 与 task_b 的完成通知不应被合并成一条
+        （否则用户只看到"聚合通知（2 条）"，无法分辨各自结果）。
+
+        回退：`target_id` 缺失（空串或纯空白）时退化为纯事件类型分组——
+        此时同类通知仍聚合，绝不把**不同**实体混为一组。
+        """
+        entity = (msg.target_id or "").strip()
+        return f"{msg.event_type}{_GROUP_SEP}{entity}" if entity else msg.event_type
+
+    @staticmethod
+    def _events_in_group(group: str) -> set[str]:
+        """从分组键还原事件类型集合（无实体时为单元素集合）。"""
+        return {group.split(_GROUP_SEP, 1)[0]}
+
+    @staticmethod
+    def _group_entity(group: str) -> str:
+        """从分组键还原关联实体；无实体分组返回空串。"""
+        _, sep, entity = group.partition(_GROUP_SEP)
+        return entity if sep else ""
+
     # ── 内部方法 ──
 
-    def _on_timer(self, event_type: str) -> None:
-        """定时器回调：检查窗口 → 发送或续期。"""
+    def _on_timer(self, group: str) -> None:
+        """定时器回调：检查窗口 → 发送或续期。
+
+        参数是**分组键**（事件类型 × 关联实体），非单纯事件类型：
+        续期与发送都必须按同一分组进行，否则会跨实体串组。
+        """
         with self._lock:
-            start = self._window_start.get(event_type)
+            start = self._window_start.get(group)
             if start is not None:
                 elapsed = time.monotonic() - start
                 if elapsed < MAX_WINDOW_SECONDS:
                     # 未到最大窗口 → 发送当前缓冲，续期计时器
-                    entries = self._buffers.pop(event_type, [])
+                    entries = self._buffers.pop(group, [])
                     if entries:
-                        self._send_merged(event_type, entries)
-                    # 续期：新计时器继续轮询
-                    timer = threading.Timer(self._window, self._on_timer, args=(event_type,))
+                        events = self._events_in_group(group)
+                        self._send_merged(next(iter(events)), entries)
+                    # 续期：新计时器继续轮询同一分组
+                    timer = threading.Timer(self._window, self._on_timer, args=(group,))
                     timer.daemon = True
                     timer.start()
-                    self._timers[event_type] = timer
+                    self._timers[group] = timer
                     return
             # 窗口已满或开始标记缺失 → 强制发送并清空
-            entries = self._buffers.pop(event_type, [])
-            self._timers.pop(event_type, None)
-            self._window_start.pop(event_type, None)
+            entries = self._buffers.pop(group, [])
+            self._timers.pop(group, None)
+            self._window_start.pop(group, None)
         if entries:
-            self._send_merged(event_type, entries)
+            events = self._events_in_group(group)
+            self._send_merged(next(iter(events)) if events else group, entries)
 
     def _send_merged(self, event_type: str, entries: list[_Entry]) -> None:
         """合并多条消息为一条并回调发送（单条与多条统一流程，无特殊分支）。

@@ -27,6 +27,7 @@ def _make_msg(
     status: str = "",
     event_type: str = "test",
     elapsed_ms: int = 0,
+    target_id: str = "",
 ) -> NotificationMessage:
     """构造测试消息的便捷函数。"""
     return NotificationMessage(
@@ -37,7 +38,92 @@ def _make_msg(
         status=status,
         event_type=event_type,
         elapsed_ms=elapsed_ms,
+        target_id=target_id,
     )
+
+
+class TestGroupKeyUsesTargetId:
+    """分组键必须包含关联实体（第 3 批：聚合器 target_id 分组修复）。
+
+    回归背景：`enqueue` 原先只按 `msg.event_type` 建缓冲键，导致 `channel.py`
+    "同 event_type 下按 target_id 分组"的注释与实现不符——不同业务对象
+    （不同任务 / 不同标准）的通知被合并进同一条，用户只能看到"聚合通知（N 条）"，
+    无法分辨各自结果。
+    """
+
+    def _agg(self) -> NotificationAggregator:
+        return NotificationAggregator(sender_func=MagicMock(), window_seconds=999.0)
+
+    def test_group_key_includes_target_id(self):
+        """不同 target_id 必须生成不同的分组键。"""
+        agg = self._agg()
+        key_a = agg._group_key(_make_msg(event_type="scan_complete", target_id="task_a"))
+        key_b = agg._group_key(_make_msg(event_type="scan_complete", target_id="task_b"))
+        assert key_a != key_b
+        # 实体维度可还原：分组键必须让调用方能取回原事件类型
+        assert agg._events_in_group(key_a) == {"scan_complete"}
+        assert agg._events_in_group(key_b) == {"scan_complete"}
+
+    def test_group_key_fallback_without_target_id(self):
+        """缺失 target_id 时回退为纯事件类型分组（同类型仍可聚合）。"""
+        agg = self._agg()
+        empty = agg._group_key(_make_msg(event_type="scan_complete", target_id=""))
+        blank = agg._group_key(_make_msg(event_type="scan_complete", target_id="   "))
+        assert empty == "scan_complete"
+        assert blank == "scan_complete"
+        assert agg._events_in_group(empty) == {"scan_complete"}
+
+    def test_same_target_id_same_group(self):
+        """同一 target_id 的同类型消息必须落进同一分组（否则聚合永远失效）。"""
+        agg = self._agg()
+        assert agg._group_key(_make_msg(event_type="scan_complete", target_id="task_a")) == agg._group_key(
+            _make_msg(event_type="scan_complete", target_id="task_a")
+        )
+
+    def test_aggregation_does_not_merge_different_targets(self):
+        """端到端：仅 target_id 不同的两条通知不得合并进同一批次。"""
+        callbacks: list[NotificationMessage] = []
+        agg = NotificationAggregator(sender_func=lambda m, _ch: callbacks.append(m), window_seconds=999.0)
+        agg.push(event_type="scan_complete", title="扫描完成", content="任务A", target_id="task_a")
+        agg.push(event_type="scan_complete", title="扫描完成", content="任务B", target_id="task_b")
+        agg.flush_all()
+
+        assert len(callbacks) == 2, f"不同 target_id 被错误合并: {len(callbacks)} 条"
+        assert {m.aggregated_count for m in callbacks} == {1}
+
+    def test_same_target_id_still_merges(self):
+        """同 target_id 仍必须聚合（修复不得把聚合能力一起关掉）。"""
+        callbacks: list[NotificationMessage] = []
+        agg = NotificationAggregator(sender_func=lambda m, _ch: callbacks.append(m), window_seconds=999.0)
+        agg.push(event_type="scan_complete", title="扫描完成", content="第一批", target_id="task_a")
+        agg.push(event_type="scan_complete", title="扫描完成", content="第二批", target_id="task_a")
+        agg.flush_all()
+
+        assert len(callbacks) == 1
+        assert callbacks[0].aggregated_count == 2
+
+    def test_flush_specific_target_only(self):
+        """flush(event_type, target_id) 只刷新该实体，不得误伤其它实体。"""
+        callbacks: list[NotificationMessage] = []
+        agg = NotificationAggregator(sender_func=lambda m, _ch: callbacks.append(m), window_seconds=999.0)
+        agg.push(event_type="scan_complete", title="扫描完成", content="A", target_id="task_a")
+        agg.push(event_type="scan_complete", title="扫描完成", content="B", target_id="task_b")
+        agg.flush("scan_complete", "task_a")
+
+        assert len(callbacks) == 1
+        # 剩余 task_b 仍在缓冲中，shutdown 时才发出
+        agg.shutdown()
+        assert len(callbacks) == 2
+
+    def test_flush_without_target_drains_all_groups_of_event(self):
+        """flush(event_type) 不带实体时刷新该事件的全部实体分组。"""
+        callbacks: list[NotificationMessage] = []
+        agg = NotificationAggregator(sender_func=lambda m, _ch: callbacks.append(m), window_seconds=999.0)
+        agg.push(event_type="scan_complete", title="扫描完成", content="A", target_id="task_a")
+        agg.push(event_type="scan_complete", title="扫描完成", content="B", target_id="task_b")
+        agg.flush("scan_complete")
+
+        assert len(callbacks) == 2
 
 
 class TestNotificationAggregator(unittest.TestCase):
@@ -110,8 +196,8 @@ class TestNotificationAggregator(unittest.TestCase):
 
     # ── target_id 分组 ──
 
-    def test_same_event_type_merged_after_shutdown(self) -> None:
-        """同事件类型消息（即使不同 target_id）在 shutdown 时合并。"""
+    def test_different_target_ids_not_merged_after_shutdown(self) -> None:
+        """同事件类型、不同 target_id 在 shutdown 时**不得**合并为一条（第 3 批修正）。"""
         for i in range(2):
             self.agg.push(
                 event_type="archive_complete",
@@ -127,9 +213,12 @@ class TestNotificationAggregator(unittest.TestCase):
                 target_id="task_b",
             )
         self.agg.shutdown()
-        # 按 event_type 分组，全部合并为一条
-        self.assertEqual(len(self.calls), 1)
-        self.assertEqual(self.calls[0][0].aggregated_count, 5)
+        # 第 3 批修正：按「事件类型 × 关联实体」分组，两个 task_id 各自成组 →
+        # 两条通知（各含 3 / 2 条），而非原先合并成一条"聚合通知（5 条）"。
+        # 旧断言（len==1 且 aggregated_count==5）记录的正是分组失效的缺陷行为。
+        self.assertEqual(len(self.calls), 2)
+        counts = sorted(c[0].aggregated_count for c in self.calls)
+        self.assertEqual(counts, [2, 3])
 
     # ── _build_summary 摘要 ──
 

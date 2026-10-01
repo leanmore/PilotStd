@@ -120,9 +120,13 @@ class NotificationManager:
         self._init_event_builders()
         if self._enabled:
             self._init_channels()
-        # 消息聚合器（线程安全，同类事件合并为一条发送）
+        # 消息聚合器（线程安全，同类事件按「事件类型 × 关联实体」合并为一条发送）
         self.aggregator: Optional[Any] = None
-        self._aggregate_enabled = config.get("notification.aggregate_enabled", False)
+        # 回退值与 defaults.py 的 `notification.aggregate_enabled=True` 对齐（第 3 批修正）：
+        # 原先回退 False，会让"配置里缺该键"的旧配置文件静默关闭聚合，与 events.py
+        # 文档「所有事件均经聚合器」以及 defaults 声明互相矛盾。窗口/批量两处
+        # 回退值同样取自 defaults（5 秒 / 50 条）。
+        self._aggregate_enabled = config.get("notification.aggregate_enabled", True)
         if self._aggregate_enabled:
             from .aggregate_buffer import NotificationAggregator
             from .events import BYPASS_EVENTS
