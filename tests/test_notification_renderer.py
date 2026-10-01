@@ -15,6 +15,7 @@ from pilotstd.core.notification.renderer import (
     TelegramRenderer,
 )
 from pilotstd.core.status import Status
+from pilotstd.i18n import set_language
 
 
 def make_msg(title="Test", body="fallback", blocks=None):
@@ -74,6 +75,67 @@ class TestBlockRenderer:
     def test_render_title_empty(self):
         r = BlockRenderer().render(make_msg(title="", body="body", blocks=[]))
         assert r == "body"
+
+
+class TestListFieldLabelI18n:
+    """第 6 批：ListBlock 字段名必须经 i18n 翻译，不得直接暴露数据键名。
+
+    回归背景：飞书卡片表头原实现取 `block.items[0].keys()` 原样当列头，
+    中文用户看到 `number` / `name`；基类纯文本渲染同理会渲染出 `number: GB/T 1-2024`。
+    """
+
+    def test_base_renderer_uses_translated_field_name(self):
+        b = ListBlock(title="L", items=[{"number": "GB/T 1-2024"}])
+        set_language("zh_CN")
+        rendered = BlockRenderer().render(make_msg(blocks=[b]))
+        assert "标准号" in rendered
+        assert "number" not in rendered
+
+    def test_feishu_header_uses_translated_field_name(self):
+        b = ListBlock(title="L", items=[{"number": "GB/T 1-2024", "name": "标准一"}])
+        set_language("zh_CN")
+        card = FeishuCardRenderer().render(make_msg(blocks=[b]))
+        table = next(e for e in card["elements"] if e.get("tag") == "table")
+        headers = [c["text"].strip("*") for c in table["header"]]
+        assert headers == ["标准号", "名称"]
+
+    def test_header_follows_language_switch(self):
+        """调用期取 t()：切换语言后表头必须跟着变（模块级求值会固化语言）。"""
+        b = ListBlock(title="L", items=[{"number": "GB/T 1-2024"}])
+        set_language("en")
+        en_headers = [
+            c["text"].strip("*")
+            for e in FeishuCardRenderer().render(make_msg(blocks=[b]))["elements"]
+            if e.get("tag") == "table"
+            for c in e["header"]
+        ]
+        set_language("zh_TW")
+        tw_headers = [
+            c["text"].strip("*")
+            for e in FeishuCardRenderer().render(make_msg(blocks=[b]))["elements"]
+            if e.get("tag") == "table"
+            for c in e["header"]
+        ]
+        assert en_headers == ["Standard No."]
+        assert tw_headers == ["標準號"]
+
+    def test_unknown_field_falls_back_to_placeholder_not_raw_key(self):
+        """未登记字段名回退为通用占位，绝不回退成原始键名。"""
+        b = ListBlock(title="L", items=[{"internal_code_xyz": "v"}])
+        set_language("zh_CN")
+        card = FeishuCardRenderer().render(make_msg(blocks=[b]))
+        table = next(e for e in card["elements"] if e.get("tag") == "table")
+        headers = [c["text"].strip("*") for c in table["header"]]
+        assert headers == ["字段"]
+        assert "internal_code_xyz" not in str(card)
+
+    def test_field_values_are_never_translated(self):
+        """只翻译字段名，行数据必须原样保留。"""
+        b = ListBlock(title="L", items=[{"number": "GB/T 1-2024", "name": "标准一"}])
+        set_language("zh_CN")
+        card = FeishuCardRenderer().render(make_msg(blocks=[b]))
+        table = next(e for e in card["elements"] if e.get("tag") == "table")
+        assert table["rows"] == [[{"tag": "text", "text": "GB/T 1-2024"}, {"tag": "text", "text": "标准一"}]]
 
 
 class TestTelegramRenderer:

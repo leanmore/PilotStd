@@ -667,5 +667,12 @@
     "notification.api.security_notify_no_channel": "未設定可用的通知渠道，本次變更未發出告警。",
     "notification.api.security_notify_error": "安全告警發送失敗，請查看系統日誌。",
     "notification.api.token_db_unsynced": "權杖已輪換，但資料庫同步失敗；重啟後新權杖可能失效。",
-    "notification.scan.scan_complete.title.clean": "掃描完成，全部識別成功"
+    "notification.scan.scan_complete.title.clean": "掃描完成，全部識別成功",
+    "notification.renderer.field.number": "標準號",
+    "notification.renderer.field.name": "名稱",
+    "notification.renderer.field.status": "狀態",
+    "notification.renderer.field.detail": "詳情",
+    "notification.renderer.field.path": "檔案",
+    "notification.renderer.field.reason": "原因",
+    "notification.renderer.field.unknown": "欄位"
 }

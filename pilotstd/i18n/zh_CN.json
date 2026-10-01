@@ -750,5 +750,12 @@
     "notification.api.security_notify_no_channel": "未配置可用的通知渠道，本次变更未发出告警。",
     "notification.api.security_notify_error": "安全告警发送失败，请查看系统日志。",
     "notification.api.token_db_unsynced": "令牌已刷新，但数据库同步失败；重启后新令牌可能失效。",
-    "notification.scan.scan_complete.title.clean": "扫描完成，全部识别成功"
+    "notification.scan.scan_complete.title.clean": "扫描完成，全部识别成功",
+    "notification.renderer.field.number": "标准号",
+    "notification.renderer.field.name": "名称",
+    "notification.renderer.field.status": "状态",
+    "notification.renderer.field.detail": "详情",
+    "notification.renderer.field.path": "文件",
+    "notification.renderer.field.reason": "原因",
+    "notification.renderer.field.unknown": "字段"
 }

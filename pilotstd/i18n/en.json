@@ -746,5 +746,12 @@
     "notification.api.security_notify_no_channel": "No usable notification channel is configured; this change produced no alert.",
     "notification.api.security_notify_error": "Failed to send the security alert; check the system log.",
     "notification.api.token_db_unsynced": "Token rotated, but the database sync failed; the new token may become invalid after a restart.",
-    "notification.scan.scan_complete.title.clean": "Scan Complete, All Recognized"
+    "notification.scan.scan_complete.title.clean": "Scan Complete, All Recognized",
+    "notification.renderer.field.number": "Standard No.",
+    "notification.renderer.field.name": "Name",
+    "notification.renderer.field.status": "Status",
+    "notification.renderer.field.detail": "Detail",
+    "notification.renderer.field.path": "File",
+    "notification.renderer.field.reason": "Reason",
+    "notification.renderer.field.unknown": "Field"
 }

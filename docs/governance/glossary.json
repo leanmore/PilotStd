@@ -387,6 +387,90 @@
       "zh_CN": "等共 {total} 个站点",
       "zh_TW": "等共 {total} 個站點",
       "en": "and {total} sites in total"
+    },
+    {
+      "id": "field_number",
+      "keys": [
+        "notification.renderer.field.number"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：标准号字段。渲染层字段名不得直接暴露 number 这类数据键。",
+      "zh_CN": "标准号",
+      "zh_TW": "標準號",
+      "en": "Standard No."
+    },
+    {
+      "id": "field_name",
+      "keys": [
+        "notification.renderer.field.name"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：名称字段。",
+      "zh_CN": "名称",
+      "zh_TW": "名稱",
+      "en": "Name"
+    },
+    {
+      "id": "field_status",
+      "keys": [
+        "notification.renderer.field.status"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：状态字段（防御性登记，当前构建器未产出该键）。",
+      "zh_CN": "状态",
+      "zh_TW": "狀態",
+      "en": "Status"
+    },
+    {
+      "id": "field_detail",
+      "keys": [
+        "notification.renderer.field.detail"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：详情字段。",
+      "zh_CN": "详情",
+      "zh_TW": "詳情",
+      "en": "Detail"
+    },
+    {
+      "id": "field_path",
+      "keys": [
+        "notification.renderer.field.path"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：文件路径字段。",
+      "zh_CN": "文件",
+      "zh_TW": "檔案",
+      "en": "File"
+    },
+    {
+      "id": "field_reason",
+      "keys": [
+        "notification.renderer.field.reason"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "ListBlock 表头/前缀：原因字段。",
+      "zh_CN": "原因",
+      "zh_TW": "原因",
+      "en": "Reason"
+    },
+    {
+      "id": "field_unknown",
+      "keys": [
+        "notification.renderer.field.unknown"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "未登记字段名的兜底占位——绝不回退为原始数据键名（那正是本批要消除的问题）。",
+      "zh_CN": "字段",
+      "zh_TW": "欄位",
+      "en": "Field"
     }
   ]
 }

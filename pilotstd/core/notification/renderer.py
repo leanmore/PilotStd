@@ -30,6 +30,35 @@ def _fallback_text() -> str:
     return t("notification.renderer.empty")
 
 
+# ListBlock.items 的字段名 → i18n 键（渲染期取 t()：字段名是**数据键**，
+# 直接当展示文本会让中文用户看到 number / name 这类英文键名）。
+# 未登记的字段走 _field_label 的兜底，绝不回退成原始键名。
+_LIST_FIELD_KEYS = {
+    "number": "notification.renderer.field.number",
+    "name": "notification.renderer.field.name",
+    "status": "notification.renderer.field.status",
+    "detail": "notification.renderer.field.detail",
+    "path": "notification.renderer.field.path",
+    "reason": "notification.renderer.field.reason",
+}
+
+
+def _field_label(key: str) -> str:
+    """把 ListBlock 条目的数据字段名翻译为可展示的表头/前缀文本。
+
+    兜底：未登记或翻译缺失时返回通用占位「字段」（`_field_label_unknown`），
+    **不回退为原始键名**——暴露 number/name 这类内部字段名正是本函数要消除的问题。
+    """
+    i18n_key = _LIST_FIELD_KEYS.get(key)
+    if not i18n_key:
+        return t("notification.renderer.field.unknown")
+    resolved = t(i18n_key)
+    # t() 缺键时 fail-loud 返回键本身；此处不能把键名当表头，故再兜一层
+    if not resolved or resolved == i18n_key:
+        return t("notification.renderer.field.unknown")
+    return resolved
+
+
 class BlockRenderer:
     """Block 渲染器基类——将结构化 Block 列表渲染为纯文本。
 
@@ -109,7 +138,8 @@ class BlockRenderer:
         for item in block.items:
             parts: list[str] = []
             for key, value in item.items():
-                parts.append(f"{key}: {value}")
+                # 字段名经 i18n 翻译（原实现直接暴露 number: 这类数据键）
+                parts.append(f"{_field_label(key)}: {value}")
             lines.append("  - " + " | ".join(self._escape(p) for p in parts))
 
         if block.detail_url:
@@ -335,9 +365,9 @@ class FeishuCardRenderer(BlockRenderer):
                 }
             )
 
-            # 从第一条的生成表头
+            # 表头：字段名经 i18n 翻译后再展示（原实现直接暴露 number/name 等数据键）
             header_keys = list(block.items[0].keys())
-            header_cells = [{"tag": "text", "text": f"**{k}**"} for k in header_keys]
+            header_cells = [{"tag": "text", "text": f"**{_field_label(k)}**"} for k in header_keys]
             rows = []
             for item in block.items:
                 row = [{"tag": "text", "text": item.get(k, "")} for k in header_keys]
