@@ -124,3 +124,8 @@ from ._migrate_v59_ensure_favorite_retry_columns import (  # noqa: E402, F401
 from ._migrate_v60_drop_favorite_retry_columns import (  # noqa: E402, F401
     _migrate_v60_drop_favorite_retry_columns,
 )
+
+# 第六十一版：状态列默认值收敛到权威字典（#32-C / R14-4c，函数自带注册装饰器）
+from ._migrate_v61_enum_status_defaults import (  # noqa: E402, F401
+    _migrate_v61_enum_status_defaults,
+)

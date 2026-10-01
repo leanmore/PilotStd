@@ -90,6 +90,46 @@ def normalize_status(value: str | None) -> str:
     return _STATUS_ALIASES.get(text, text)
 
 
+#: 英文键 → 数据值（API 契约：调用方可用英文键过滤，与历史中文值入参**并存**）
+STATUS_KEY_TO_VALUE: Final[dict[str, str]] = {
+    STATUS_EN_KEYS[Status.ACTIVE.value]: Status.ACTIVE.value,
+    STATUS_EN_KEYS[Status.UPCOMING.value]: Status.UPCOMING.value,
+    STATUS_EN_KEYS[Status.WITHDRAWN_NORMALIZED.value]: Status.WITHDRAWN_NORMALIZED.value,
+    STATUS_EN_KEYS[Status.SUPERSEDED.value]: Status.SUPERSEDED.value,
+    STATUS_EN_KEYS[Status.VOIDED.value]: Status.VOIDED.value,
+    STATUS_EN_KEYS[Status.EXPIRED.value]: Status.EXPIRED.value,
+    STATUS_EN_KEYS[Status.PENDING.value]: Status.PENDING.value,
+    STATUS_EN_KEYS[Status.UNKNOWN.value]: Status.UNKNOWN.value,
+}
+
+
+def status_key(value: str | None) -> str:
+    """数据状态值 → **稳定英文键**（API 契约字段 `status_key`，供前端做与文案无关的比较）。
+
+    未知/空值回退 `"unknown"` —— 前端只比较 ASCII 键，不再比较中文文案。
+    入参若已是英文键则原样返回（幂等，便于数据穿透处理）。
+    """
+    text = normalize_status(value)
+    if text in STATUS_KEY_TO_VALUE:
+        return text
+    return STATUS_EN_KEYS.get(text, STATUS_EN_KEYS[Status.UNKNOWN.value])
+
+
+def resolve_status_filter(raw: str | None) -> str | None:
+    """把 API 过滤入参解析为数据值：**同时接受英文键与历史中文值**（向后兼容）。
+
+    无法识别（或为空）时返回 None，调用方据此忽略该过滤条件——与旧实现
+    `if status and status in _VALID_STATUSES` 的行为一致（未知值同样不生效）。
+    """
+    text = (raw or "").strip()
+    if not text:
+        return None
+    if text in STATUS_KEY_TO_VALUE:
+        return STATUS_KEY_TO_VALUE[text]
+    normalized = normalize_status(text)
+    return normalized if normalized in ALL_STATUS_VALUES else None
+
+
 # ── 容器收敛：与原 9 处定义逐一等价 ────────────────────────────────────────
 # 说明：下列 4 组集合的存在差异（是否含「过期」、是否含「待确认」）源自历史演进，
 # A 阶段**保持取值不变**（零行为变化）；统一口径留待 B 阶段按模块逐个收敛。

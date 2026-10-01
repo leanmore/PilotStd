@@ -14,6 +14,8 @@ export interface StandardStatusItem {
   /** 标准名称：后端响应字段为 std_name（file_index 表列名），非 standard_name */
   std_name: string
   status: string
+  /** 稳定英文状态键（后端 status_key）；前端比较/取样式只用它，不比较中文 */
+  status_key?: string
   last_checked_at: string | null
   check_count: number
 }

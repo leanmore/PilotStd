@@ -2,6 +2,8 @@
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
+from pilotstd.core.status import status_key
+
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["pending"])
@@ -33,6 +35,7 @@ def requery_pending(numbers: list[str] = Body(), site: str = "", mgr=Depends(get
                 "standard_number": r.standard_number,
                 "standard_name": r.standard_name,
                 "status": r.status,
+                "status_key": status_key(r.status),
                 "source_site": r.source_site,
                 "match_status": getattr(r, "match_status", ""),
             }

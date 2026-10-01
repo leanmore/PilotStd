@@ -7,7 +7,9 @@
 export interface QueryResult {
   standard_number: string
   standard_name: string
-  status: string // 现行 / 废止 / 即将实施 / 未知
+  status: string // 数据值（中文，向后兼容）
+  /** 稳定英文状态键（后端 status_key）：active/upcoming/withdrawn/…；前端只比较它 */
+  status_key?: string
   replaces: string
   implementation_date: string
   responsible_dept: string

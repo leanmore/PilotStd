@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 60  # v60: 删除 user_favorites 归档重试死列（技术债 #16 残留清理）
+CURRENT_SCHEMA_VERSION = 61  # v61: 状态列默认值收敛到权威状态字典（#32-C / R14-4c）
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

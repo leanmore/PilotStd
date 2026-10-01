@@ -36,6 +36,8 @@ interface WeworkIPConfig {
 
 interface WeworkIPStatus {
   current_ip: string
+  /** 后端 status_key 同批契约：明确是否已探测到公网 IP（取代中文 '未知' 比较） */
+  current_ip_known?: boolean
   last_ip: string
   ip_changed: boolean
   cookie_valid: boolean
@@ -53,7 +55,7 @@ const config = ref<WeworkIPConfig>({
 })
 
 const status = ref<WeworkIPStatus>({
-  current_ip: '', last_ip: '', ip_changed: false,
+  current_ip: '', current_ip_known: false, last_ip: '', ip_changed: false,
   cookie_valid: false, enabled: false, last_check_at: '',
 })
 
@@ -169,8 +171,8 @@ onMounted(() => { loadConfig(); loadStatus() })
     <div class="status-bar">
       <div class="status-item">
         <span class="status-label">{{ t('settings.wechat_ip.current_ip') }}</span>
-        <!-- i18n-allow: 与后端返回的中文状态值（'未知'）比较，翻译即失效 -->
-        <Tag :severity="status.current_ip !== '未知' ? 'success' : 'secondary'" :value="status.current_ip" />
+        <!-- 后端同时返回 current_ip_known 布尔键，前端不再比较中文文案（#32-C / R14-4c） -->
+        <Tag :severity="status.current_ip_known ? 'success' : 'secondary'" :value="status.current_ip" />
       </div>
       <div class="status-item">
         <span class="status-label">{{ t('settings.wechat_ip.last_ip') }}</span>

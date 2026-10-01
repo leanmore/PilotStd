@@ -6,11 +6,19 @@ import Button from 'primevue/button'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import { getQueryResults } from '@/api'
+import { isActiveStatusKey } from '@/utils/stdStatus'
 import type { RouteTag } from '@/types/route-tag'
 
 const { t } = useI18n()
 
-interface QueryResult { standard_number: string; status: string; found_name?: string; source_site?: string }
+interface QueryResult {
+  standard_number: string
+  status: string
+  /** 后端 status_key 契约：稳定英文键（active/withdrawn/…），前端只比较它 */
+  status_key?: string
+  found_name?: string
+  source_site?: string
+}
 const results = ref<QueryResult[]>([])
 const loading = ref(false)
 
@@ -39,8 +47,8 @@ onMounted(() => fetchHistory('/query-history'))
           <tbody>
             <tr v-for="(r, i) in results" :key="i">
               <td>{{ r.standard_number }}</td>
-              <!-- i18n-allow: 与后端返回的中文状态值比较（决定标签颜色），翻译即失效 -->
-              <td><Tag :value="r.status" :severity="r.status === '现行' ? 'success' : 'warn'" /></td>
+              <!-- 只比较后端给的英文键 status_key（#32-C / R14-4c），与界面语言无关 -->
+              <td><Tag :value="r.status" :severity="isActiveStatusKey(r.status_key) ? 'success' : 'warn'" /></td>
               <td>{{ r.found_name || '-' }}</td>
               <td>{{ r.source_site || '-' }}</td>
             </tr>

@@ -9,6 +9,7 @@ import Textarea from 'primevue/textarea'
 import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
 import { getPendingItems, postRequery } from '@/api'
+import { severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
 import LogBar from '@/components/LogBar.vue'
 import { useQueryAdapters } from '@/composables/useQueryAdapters'
@@ -58,11 +59,9 @@ async function loadPending() {
     importMsg.value = r.items.length ? t('pending.importResult', { n: r.items.length }) : t('pending.importEmpty')
   } catch { importMsg.value = t('pending.importFailed') }
 }
-function severity(s: string) {
-  if (s === '现行' || s === 'Active') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
-  if (s === '废止' || s === 'Withdrawn') return 'danger' // i18n-allow
-  if (s === '待确认') return 'warn' // i18n-allow
-  return 'info'
+// 只比较后端给的英文键（status_key）；兜底色沿用改造前的 info（#32-C / R14-4c）
+function severity(key: string | undefined) {
+  return severityOfStatusKey(key, 'info')
 }
 
 onMounted(() => { ensure() })
@@ -123,7 +122,7 @@ onMounted(() => { ensure() })
               <div class="text-dim" style="font-size:13px;color:var(--text-dim)">{{ item.standard_name }}</div>
             </div>
             <div class="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              <Tag :value="item.status" :severity="severity(item.status)" />
+              <Tag :value="item.status" :severity="severity(item.status_key)" />
               <Tag :value="item._site" severity="info" />
             </div>
           </div>

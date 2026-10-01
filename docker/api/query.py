@@ -6,6 +6,8 @@ from dataclasses import asdict
 from fastapi import Body, Depends
 from fastapi.routing import APIRouter
 
+from pilotstd.core.status import status_key
+
 from ..manager import get_manager_dep
 
 router = APIRouter(tags=["query"])
@@ -84,9 +86,15 @@ def save_query_results(results: list[dict] = Body()):
 
 @router.get("/api/query/results")
 def get_query_results():
-    """读取已保存的查询结果。"""
+    """读取已保存的查询结果。
+
+    **响应契约**：每条结果在原有 `status`（数据值，中文）之外补 `status_key`
+    （稳定英文键）；`status` 字段与磁盘上的结果文件**均不改动**（向后兼容）。
+    """
     if not os.path.exists(QUERY_RESULTS_FILE):
         return {"results": []}
     with open(QUERY_RESULTS_FILE, "r", encoding="utf-8") as f:
         results = json.load(f)
+    if isinstance(results, list):
+        results = [dict(r, status_key=status_key(r.get("status"))) if isinstance(r, dict) else r for r in results]
     return {"results": results}

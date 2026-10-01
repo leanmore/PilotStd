@@ -85,7 +85,7 @@ StandardManager (BaseFacade)
 > A 阶段只做"建字典 + 容器收敛"：**不替换**业务逻辑中的状态字面量（B 阶段）、不改 API 返回字符串、
 > 不改 DB 迁移脚本。等价性由 `tests/unit/core/test_status.py` 断言（含"容器与命名集合为同一对象"）。
 >
-> **B 阶段（R14-4b，2026-10-01）**：本模块业务代码中的状态字面量已改引 `Status.*.value`——`standard_service.py`（状态统计聚合）、`facade/_download.py`（下载后状态回写判定）、`facade/_file_index.py`、`facade/_organize.py`、`facade/_query_subsystem.py`、`organize/organizer.py`、`wechat_ip_service.py`，共 32 处，**逐处等价**（`Status.*.value` 与原中文字面量逐字相同，API 返回与 DB 落库行为不变）。
+> **B 阶段（R14-4b，2026-10-01）**：本模块业务代码中的状态字面量已改引 `Status.*.value`——`standard_service.py`（状态统计聚合）、`facade/_download.py`（下载后状态回写判定）、`facade/_file_index.py`、`facade/_organize.py`、`facade/_query_subsystem.py`、`organize/organizer.py`、`wechat_ip_service.py`，共 32 处，**逐处等价**（`Status.*.value` 与原中文字面量逐字相同，API 返回与 DB 落库行为不变）。**C 阶段补充（R14-4c）**：`wechat_ip_service.get_status()` 新增 `current_ip_known` 布尔键（`bool(now_ip)`），取代前端 `current_ip !== '未知'` 的中文文案比较——该字段属 IP 检测域，与标准状态字典同批收口。
 
 ## 关键接口
 

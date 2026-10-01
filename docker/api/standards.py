@@ -16,6 +16,7 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["standards"])
 
+# 对外 API 的合法状态取值（由状态字典派生；A 阶段 #32-A 建立、C 阶段继续作为契约常量）
 _VALID_STATUSES = status_dict.API_VALID_STATUSES
 
 
@@ -40,28 +41,35 @@ def get_status_stats(mgr=Depends(get_manager_dep)):
 
 @router.get("/api/standards/status")
 def get_standards_status(
-    status: str | None = Query(None, description="现行/已废止/未知"),
+    status: str | None = Query(None, description="英文键（active/withdrawn/unknown）或历史中文值（现行/已废止/未知）"),
     standard_no: str | None = Query(None),
     name: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     mgr=Depends(get_manager_dep),
 ):
-    """分页查询标准状态列表。"""
+    """分页查询标准状态列表。
+
+    **响应契约**：每个 item 同时给出 `status`（数据值，中文，向后兼容）与
+    `status_key`（稳定英文键，前端据此比较/取样式，不再比较中文文案）。
+    `status` 查询参数两种写法都接受（`active` 或 `现行`）。
+    """
     try:
         filters: dict[str, str] = {}
-        if status and status in _VALID_STATUSES:
-            filters["status"] = status
+        resolved = status_dict.resolve_status_filter(status)
+        if resolved:
+            filters["status"] = resolved
         keyword = standard_no or name or None
         if keyword:
             filters["keyword"] = keyword
 
         result = mgr.standard_service.get_list(page=page, size=page_size, filters=filters or None)
+        items = [dict(item, status_key=status_dict.status_key(item.get("status"))) for item in result["items"]]
         return {
             "total": result["total"],
             "page": result["page"],
             "page_size": result["size"],
-            "items": result["items"],
+            "items": items,
         }
     except DatabaseError as e:
         logger.error("标准状态列表查询失败: %s", e)

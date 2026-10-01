@@ -11,6 +11,7 @@ import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { getStandardsStats, getStandardsStatus, clearStandardsStatusCache, type StandardStatusItem } from '@/api/standards'
+import { STD_STATUS_FILTER, severityOfStatusKey } from '@/utils/stdStatus'
 import { getItem, setItem } from '@/lib/storage'
 import { useIncrementalScroll, type PaginatedResult } from '@/composables/useIncrementalScroll'
 import TableLoadFooter from '@/components/TableLoadFooter.vue'
@@ -60,17 +61,16 @@ const { t } = useI18n()
 
 const statusOptions = computed(() => [
   { label: t('standards.status.all'), value: null },
-  // value 是**提交给后端**的中文状态值（C-2，同 statusSeverity），只有 label 走 i18n
-  { label: t('standards.status.current'), value: '现行' }, // i18n-allow: 后端中文状态值（查询参数），翻译即失效
-  { label: t('standards.status.abolished'), value: '已废止' }, // i18n-allow
-  { label: t('standards.status.unknown'), value: '未知' }, // i18n-allow
+  // value 是提交给后端的**英文状态键**（后端 resolve_status_filter 兼容历史中文值，
+  // 老书签里的中文过滤参数仍有效）；只有 label 走 i18n
+  { label: t('standards.status.current'), value: STD_STATUS_FILTER.current },
+  { label: t('standards.status.abolished'), value: STD_STATUS_FILTER.abolished },
+  { label: t('standards.status.unknown'), value: STD_STATUS_FILTER.unknown },
 ])
 
-function statusSeverity(s: string): 'success' | 'danger' | 'info' | 'secondary' {
-  if (s === '现行') return 'success' // i18n-allow: 比较后端返回的中文状态值，翻译即失效
-  if (s === '已废止') return 'danger' // i18n-allow
-  if (s === '未知') return 'secondary' // i18n-allow
-  return 'info'
+// 状态样式只比较后端给的英文键（status_key），与界面语言无关
+function statusSeverity(key: string | undefined): 'success' | 'danger' | 'info' | 'secondary' {
+  return severityOfStatusKey(key, 'info') as 'success' | 'danger' | 'info' | 'secondary'
 }
 
 async function loadStats() {
@@ -224,7 +224,7 @@ onMounted(() => {
           </Column>
           <Column field="status" :header="t('standards.col_status')" style="width: 8rem">
             <template #body="{ data }">
-              <Tag :severity="statusSeverity(data.status)" :value="data.status" />
+              <Tag :severity="statusSeverity(data.status_key)" :value="data.status" />
             </template>
           </Column>
           <Column field="last_checked_at" :header="t('standards.col_last_checked')" style="width: 10rem">

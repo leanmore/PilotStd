@@ -144,6 +144,8 @@ class WechatIPService:
 
         return {
             "current_ip": now_ip or Status.UNKNOWN.value,
+            # 前端据此判定标签样式（不再比较中文文案 '未知'——#32-C / R14-4c）
+            "current_ip_known": bool(now_ip),
             "last_ip": cfg.get("wechat_ip.last_ip", ""),
             "ip_changed": now_ip != cfg.get("wechat_ip.last_ip", "") if now_ip else False,
             "cookie_valid": cookie_valid,
