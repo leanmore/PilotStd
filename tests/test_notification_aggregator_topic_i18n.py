@@ -465,18 +465,75 @@ class TestDynamicValueBoundaries:
             got = NotificationAggregator._extract_topic(rendered, "")
             assert got == "validity", f"{lang} value={value!r} -> {got!r}"
 
-    def test_round_summary_empty_value_is_unreachable_but_falls_back(self):
-        """空轮次经 `str.format` 渲染后落兜底——但该输入**实际不可达**。
+    def test_round_summary_empty_value_also_matches(self):
+        """空轮次经 `str.format` 渲染为双空格，**仍应命中**——由弹性空白保证。
 
-        调用方 `_validity_pipeline.py` 恒传 `round: new_round`，而
-        `new_round = config.get("validity.round_count", 0) + 1 >= 1`，故 `round` 永不为空。
-        此处锁定现状：若将来 `round` 可能为空，此用例会提醒需要实现空白归一化匹配。
+        该输入实际不可达（调用方恒传 `round >= 1`），但弹性空白 `\\s*` 使
+        `第  轮…`（双空格）与模板单空格同样匹配，故不再落兜底。
         """
-        tpl = _pack(DEFAULT_LANG)["notification.validity.validity_round_summary.title"]
-        rendered = tpl.format(round="")
-        assert rendered == "第  轮有效性汇总报告", f"渲染形态变化：{rendered!r}"
-        got = NotificationAggregator._extract_topic(rendered, "")
-        assert got.startswith("_"), f"预期落兜底，实际 {got!r}"
+        for lang in LANGS:
+            tpl = _pack(lang)["notification.validity.validity_round_summary.title"]
+            rendered = tpl.format(round="")
+            got = NotificationAggregator._extract_topic(rendered, "")
+            assert got == "validity", f"{lang} 空值渲染 {rendered!r} -> {got!r}"
+
+    def test_scan_complete_empty_count_matches_via_full_pattern(self):
+        """**正向断言**：`Scan Complete ( unrecognized)`（占位符为空）必须命中。
+
+        关键点：命中路径必须是**完整形**正则（含 `unrecognized` 字面量），
+        而非退化为"括号去掉"变体——后者虽也能给出 `done`，但机制错误
+        （掩盖了空白争抢缺陷）。本用例直接断言完整形正则独立命中。
+        """
+        target = "Scan Complete ( unrecognized)"
+        _index, patterns = NotificationAggregator._title_index_data()
+        full_hits = [p.pattern for p, topic in patterns if topic == "done" and p.fullmatch(target)]
+        assert full_hits, "空值标题未被完整形正则命中（修复失效）"
+        assert any("unrecognized" in h for h in full_hits), (
+            "仅命中[括号去掉]变体，未命中完整形: " + str(full_hits)
+        )
+        assert NotificationAggregator._extract_topic(target, "") == "done"
+
+    def test_topic_extraction_does_not_mutate_display_title(self):
+        """主题判定**不得改动标题本身**——展示侧必须原样保留空白形态。
+
+        弹性空白只在生成正则时作用于**模板**，匹配时用 `re.fullmatch` 直接在原串上
+        比对（不改写标题），故含多空格的合法标题只影响分组、不影响展示。
+        本用例断言：判定前后标题字符串不变（含全角空格与多空格形态）。
+        """
+        _index, patterns = NotificationAggregator._title_index_data()
+        orig_patterns = [p.pattern for p, _t in patterns]
+        samples = [
+            "Scan Complete  (3 unrecognized)",  # 双空格
+            "扫描完成（3  个无法识别）",  # 双空格（全角括号内）
+            "第 3 轮有效性汇总报告",
+        ]
+        snapshots = list(samples)
+        for title in samples:
+            NotificationAggregator._extract_topic(title, "")
+        assert samples == snapshots, "判定过程改动了标题字符串"
+        # 且正则索引未因调用而被改写（无副作用）
+        _index2, patterns2 = NotificationAggregator._title_index_data()
+        assert [p.pattern for p, _t in patterns2] == orig_patterns
+        """锁定"括号去掉"变体**必须**用 `re.fullmatch`：`re.match` 会静默过度匹配。
+
+        该变体（如 `Scan Complete`）无尾锚，`re.match` 只锚定开头，故
+        `Scan Complete Archive Failed` 会被误纳为 `done`。实测证明差异真实存在，
+        因此本用例直接对比两种调用方式，而非只断言最终归类——后者可能被关键词
+        回退等其它层掩盖。
+        """
+        probe = "Scan Complete Archive Failed"
+        _index, patterns = NotificationAggregator._title_index_data()
+        dangerous = [
+            p.pattern
+            for p, topic in patterns
+            if topic == "done" and p.match(probe) is not None and p.fullmatch(probe) is None
+        ]
+        assert dangerous, "未能构造出 match/fullmatch 差异——变体形态可能已变化"
+        # 生产路径必须用 fullmatch，故实测归类不得为 done
+        assert NotificationAggregator._extract_topic(probe, "") != "done"
+        for title in ("Scan Complete Archive Failed", "Scan Complete 任意后缀"):
+            got = NotificationAggregator._extract_topic(title, "")
+            assert got != "done", f"{title!r} 被过度匹配为 done（匹配未锚定）"
 
     def test_multiple_placeholders_in_one_title(self):
         """含多个占位符的标题（如三语各自多个）仍应命中。"""
