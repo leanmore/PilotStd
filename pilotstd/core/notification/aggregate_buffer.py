@@ -51,6 +51,15 @@ DEFAULT_BATCH_SIZE = 50  # 对应 aggregate_max_events
 # 才能保证 split 结果确定。
 _GROUP_SEP = "\x1f"
 
+# 续期阈值（时序专项），随窗口缩放而非固定值：
+# - `_TIMER_SLEEP_RATIO`：剩余时间超过 `窗口 × 该比例` 才值得再开一轮定时器。
+#   固定阈值不可用——相对 `MAX_WINDOW_SECONDS` 很小的窗口（如测试用 0.05s）下，
+#   固定 0.1s 会大于窗口本身，导致提前强制发送、失去精度意义。
+# - `_MAX_TIMER_SLEEP_CAP`：比例阈值的上限，避免大窗口（生产 5s）下最后一轮过长。
+_MIN_TIMER_SLEEP = 0.001
+_TIMER_SLEEP_RATIO = 0.1
+_MAX_TIMER_SLEEP_CAP = 0.05
+
 # 多条聚合摘要的排版口径
 _PREVIEW_ITEMS = 5  # 摘要中逐条列出的最大条数
 _PREVIEW_CHARS = 60  # 每条摘要保留的首行字符数
@@ -64,11 +73,13 @@ class NotificationAggregator:
 
     设计要点：
     - 线程安全（threading.Lock + threading.Timer）
-    - 固定窗口 + 首次延时：第一批消息 1 分钟后触发，总窗口 5 分钟
+    - 固定窗口 + 首次延时：第一批消息按窗口触发，强制发送硬上界 MAX_WINDOW_SECONDS
     - 双重触发：定时器到期 OR 数量达标 → 立即发送
     - bypass_events 中的事件类型跳过聚合，实时发送
     - 摘要生成器基于结构块渲染生成标准化摘要（单条全文/多条统计）
     - shutdown() 刷新所有残留消息，防止丢失
+    - **时序契约**：从窗口起算到达强制发送不超过 MAX_WINDOW_SECONDS + ε
+      （续期基于剩余时间；发送在锁外执行，其耗时不再叠加到后续间隔）
     """
 
     def __init__(
@@ -77,11 +88,15 @@ class NotificationAggregator:
         window_seconds: float = DEFAULT_WINDOW_SECONDS,
         batch_size: int = DEFAULT_BATCH_SIZE,
         bypass_events: set[str] | None = None,
+        send_delay: float = 0.0,
     ) -> None:
         self._callback = sender_func
         self._window = window_seconds
         self._max = batch_size
         self._bypass = bypass_events or set()
+        # 测试钩子：人为给每次发送注入延迟，用于验证"回调超时后不累积漂移"。
+        # 生产恒为 0.0（默认值），不改变任何运行时行为。
+        self._send_delay = send_delay
         self._lock = threading.Lock()
         # 说明：_→(,渠道,队列_)
         self._buffers: dict[str, list[_Entry]] = {}
@@ -261,45 +276,109 @@ class NotificationAggregator:
     # ── 内部方法 ──
 
     def _on_timer(self, group: str) -> None:
-        """定时器回调：检查窗口 → 发送或续期。
+        """定时器回调：检查窗口 → 发送或**按剩余时间**续期。
 
         参数是**分组键**（事件类型 × 关联实体），非单纯事件类型：
         续期与发送都必须按同一分组进行，否则会跨实体串组。
+
+        时序契约（专项修复）：从 `_window_start[group]` 起算，强制发送应落在
+        `MAX_WINDOW_SECONDS` 之内。原实现每次续期都排**完整窗口**，而
+        `elapsed < MAX` 只保证"下一次续期会超时"，那次续期可能**跨过上界最多一个
+        窗口 w** → 越界上界为 `MAX + w`（生产 w=5s / MAX=300s 即 305s；实测
+        window=0.07/max=0.3 时越界到 0.35s）。故末轮必须只睡**到上界的剩余时间**。
+
+        发送一律在**锁外**执行：网络 IO 耗时不得阻塞其它分组的入队与回调。
         """
+        force_entries: list[_Entry] | None = None
+        case_entries: list[_Entry] | None = None
+        now = time.monotonic()
         with self._lock:
             start = self._window_start.get(group)
-            if start is not None:
-                elapsed = time.monotonic() - start
-                if elapsed < MAX_WINDOW_SECONDS:
-                    # 未到最大窗口 → 发送当前缓冲，续期计时器
-                    entries = self._buffers.pop(group, [])
-                    if entries:
-                        events = self._events_in_group(group)
-                        self._send_merged(next(iter(events)), entries)
-                    # 续期：新计时器继续轮询同一分组
-                    timer = threading.Timer(self._window, self._on_timer, args=(group,))
-                    timer.daemon = True
-                    timer.start()
-                    self._timers[group] = timer
-                    return
-            # 窗口已满或开始标记缺失 → 强制发送并清空
-            entries = self._buffers.pop(group, [])
+            if start is None:
+                # 窗口起点缺失（异常路径）：用当前时刻兜底起算，避免"无起点即立即发送"
+                # 把刚入队的消息提前吐出去。
+                start = now
+                self._window_start[group] = start
+
+            elapsed = now - start
+            remaining = MAX_WINDOW_SECONDS - elapsed
+            if remaining > min(self._window * _TIMER_SLEEP_RATIO, _MAX_TIMER_SLEEP_CAP):
+                # 还早：取出当前缓冲并续期——只睡"剩余时间"与"满窗口"中的较小者，
+                # 使末轮不跨越上界。发送留到锁外。
+                case_entries = self._buffers.pop(group, [])
+                self._schedule_next(group, min(self._window, remaining))
+            else:
+                # 剩余不足以再开一轮 → 本组立即强制发送并清空（原实现在此处仍会续期）
+                force_entries = self._buffers.pop(group, [])
+                self._timers.pop(group, None)
+                self._window_start.pop(group, None)
+
+        # 发送全部在**锁外**执行
+        if case_entries:
+            events = self._events_in_group(group)
+            self._send_merged(next(iter(events)), case_entries, start)
+        if force_entries:
+            events = self._events_in_group(group)
+            elapsed = time.monotonic() - start
+            logger.warning(
+                "通知聚合已达最大窗口，强制发送: group=%s 实际耗时 %.0f ms（上界 %.0f ms，偏差 %+.0f ms）",
+                group,
+                elapsed * 1000,
+                MAX_WINDOW_SECONDS * 1000,
+                (elapsed - MAX_WINDOW_SECONDS) * 1000,
+            )
+            self._send_merged(next(iter(events)) if events else group, force_entries, start)
+
+    def _schedule_next(self, group: str, delay: float) -> None:
+        """为分组安排下一次回调（调用方须持有 `_lock`）。
+
+        续期失败不得让该分组**永久滞留**：兜底为记录告警并清除窗口起点，
+        使下一次 `enqueue` 重新起算窗口（消息仍在 `_buffers` 中，不会丢失）。
+        """
+        try:
+            timer = threading.Timer(max(delay, _MIN_TIMER_SLEEP), self._on_timer, args=(group,))
+            timer.daemon = True
+            timer.start()
+            self._timers[group] = timer
+            logger.debug(
+                "通知聚合续期: group=%s 下次触发 %.0f ms 后（窗口 %.0f ms，硬上界 %.0f ms）",
+                group,
+                max(delay, _MIN_TIMER_SLEEP) * 1000,
+                self._window * 1000,
+                MAX_WINDOW_SECONDS * 1000,
+            )
+        except Exception:
+            logger.warning("通知聚合续期失败，清除窗口起点以便重新起算: group=%s", group, exc_info=True)
             self._timers.pop(group, None)
             self._window_start.pop(group, None)
-        if entries:
-            events = self._events_in_group(group)
-            self._send_merged(next(iter(events)) if events else group, entries)
 
-    def _send_merged(self, event_type: str, entries: list[_Entry]) -> None:
+    def _send_merged(self, event_type: str, entries: list[_Entry], start: float | None = None) -> None:
         """合并多条消息为一条并回调发送（单条与多条统一流程，无特殊分支）。
 
         正统设计：
         1. 保留第一条消息的结构块作为骨架（单条/多条一律保留，绝不丢弃）；
         2. 摘要正文由摘要生成器基于结构块渲染（或事件特定格式化器）；
         3. 构造合并消息：结构块始终在场，正文作为摘要文本。
+
+        `start` 为该分组的窗口起点（可为 None）：给出时记录结构化时序
+        （期望上界 / 实际耗时 / 偏差 ms），供生产观测聚合是否逼近硬上界。
         """
         if not entries:
             return
+
+        if start is not None:
+            elapsed = time.monotonic() - start
+            logger.debug(
+                "通知聚合发送时序: event=%s 条数=%d 窗口耗时=%.0f ms 上界=%.0f ms 偏差=%+.0f ms",
+                event_type,
+                len(entries),
+                elapsed * 1000,
+                MAX_WINDOW_SECONDS * 1000,
+                (elapsed - MAX_WINDOW_SECONDS) * 1000,
+            )
+        # 测试钩子注入的发送延迟（生产恒为 0，见 __init__）
+        if self._send_delay:
+            time.sleep(self._send_delay)
 
         count = len(entries)
         first_msg, target_channels, _first_ts = entries[0]

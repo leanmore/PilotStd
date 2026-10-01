@@ -142,13 +142,13 @@
 | # | 遗留项 | 状态 | 修复方式 |
 |---|--------|------|---------|
 | 1 | **`i18n._lang` 模块级全局导致线程/异步串扰** | ✅ **已修复**（2026-09-26 专项） | `pilotstd/i18n/__init__.py` 的语言状态由模块级 `_lang`/`_current` 改为 `contextvars.ContextVar`；新增 `language()` 上下文管理器（嵌套安全 + 异常路径恢复）；新增 `SUPPORTED_LANGUAGES` / `DEFAULT_LANGUAGE`，非法语言码回退默认并告警。原实现下"另一线程 set_language 会改写本线程看到的语言"，而通知构建器/渲染器/聚合器都在 `ThreadPoolExecutor`（6 文件）与 `asyncio`（8 文件）中调用 `t()`。契约由 `tests/test_i18n_thread_safety.py`（17 例）锁定，其中"子线程免疫其它线程的语言写入"用例经对照实验确证有判别力（旧实现 6/6 被污染）。 |
+| 2 | **`_on_timer` 续期末轮跨越硬上界** | ✅ **已修复**（2026-09-26 专项） | `notification/aggregate_buffer.py::_on_timer` 的续期由「固定完整窗口」改为「`min(窗口, 到上界的剩余时间)`」，并在剩余不足 `min(窗口×0.1, 0.05)` 时直接强制发送。**缺陷上界**：`elapsed < MAX` 只保证"下一次续期会超时"，那次续期可能跨过上界**最多一个窗口 w** → 越界上界 `MAX + w`（生产 `w=5s/MAX=300s` 即 305s）。**实测判别**：`window=0.2s/max=0.3s` 时旧实现 409ms（越界 109ms）→ 新实现界内；`tests/test_scheduler_timer_drift.py` 对该比例 1 FAIL / 其余 13 pass。同批把两条发送路径统一移到**锁外**（原早退路径在 `with self._lock` 内发送），并新增"强制发送偏差 ms"告警日志与"续期下次触发时刻"调试日志。**过程更正**：专项前两次分析各错一次——先误判"必然越界一个完整窗口"（`w=5s/MAX=300s` 整除时不越界），后误判"旧实现永不越界"（由整除特例错误推广）；结论以上述实测比例为准。 |
 
 ### 未修复（仍在册）
 
 | # | 项 | 归属 |
 |---|----|------|
-| 2 | `_on_timer` 续期致最长延迟可能超 `MAX_WINDOW_SECONDS` | 独立专项 |
 | 3 | `_extract_topic` 的 en 隐患 + L2 `_BUFFER_WINDOW=0.3s` 设计意图确认 | L2 重构专项 |
-| 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | 本文档 §三 |
-| 5 | `audit_notification_chain.py` 未接入 CI | 本文档 §五 |
+| 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | §三 |
+| 5 | `audit_notification_chain.py` 未接入 CI | §五 |
 | 6 | `DesktopRenderer` 字段名前缀（第 7 批论证不应加） | 待裁决 |
