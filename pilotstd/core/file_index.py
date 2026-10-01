@@ -20,6 +20,7 @@ from ._file_index_query import (  # noqa: F401 — 由外部模块导入消费
 )
 from .db import Database
 from .file_utils import hash_file_content
+from .status import Status
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +154,7 @@ class FileIndexRepository:
         part: int | None = None,
         std_name: str = "",
         file_hash: str = "",
-        status: str = "现行",
+        status: str = Status.ACTIVE.value,
         raw_number: str = "",
     ) -> None:
         """插入或更新文件索引记录。若文件存在则自动计算哈希。"""

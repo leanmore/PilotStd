@@ -9,6 +9,8 @@ import threading
 import time as _time
 from typing import TYPE_CHECKING, Any
 
+from .status import Status
+
 if TYPE_CHECKING:
     from .validity_checker import ValidityChecker  # 仅类型标注用，运行时延迟导入以避免循环引用
 
@@ -81,7 +83,7 @@ def _process_validity_batch(
                     (std_no,),
                 )
                 old_status = old_row["status"] if old_row else None
-                new_status = result["status"] or "现行"
+                new_status = result["status"] or Status.ACTIVE.value
                 checker.update_status(std_no, new_status, notification_mgr)
                 if old_status and old_status != new_status:
                     changed_list.append(std_no)

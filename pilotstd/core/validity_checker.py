@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .db import Database
+from .status import Status
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class ValidityChecker:
                     try:
                         # 第一步：标准废止事件已合并进本事件，
                         # 通过"是否已过期"字段区分废止（替代原独立事件，避免双通知）
-                        is_expired = new_status == "已废止"
+                        is_expired = new_status == Status.WITHDRAWN_NORMALIZED.value
                         notification_mgr.send_event(
                             "standard_status_changed",
                             {
@@ -202,7 +203,7 @@ class ValidityChecker:
                     )
                     if results and results[0].is_found():
                         return {
-                            "status": results[0].status or "现行",
+                            "status": results[0].status or Status.ACTIVE.value,
                             "previous": None,
                         }
             except Exception:
@@ -226,12 +227,19 @@ class ValidityChecker:
         std_name = row.get("std_name", "")
         name_lower = std_name.lower() if std_name else ""
         # 废止标记词
-        for keyword in ("废止", "作废", "被代替", "abolished", "withdrawn", "obsolete"):
+        for keyword in (
+            Status.WITHDRAWN.value,
+            Status.VOIDED.value,
+            Status.SUPERSEDED.value,
+            "abolished",
+            "withdrawn",
+            "obsolete",
+        ):
             if keyword in name_lower:
-                return {"status": "已废止", "previous": None}
+                return {"status": Status.WITHDRAWN_NORMALIZED.value, "previous": None}
         # 有名称但无废止标记 → 现行
         if std_name:
-            return {"status": "现行", "previous": None}
+            return {"status": Status.ACTIVE.value, "previous": None}
         return None
 
     # ── 统计 ──────────────────────────────────────────────────

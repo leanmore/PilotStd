@@ -11,6 +11,8 @@ from typing import Any, Optional, cast
 
 from pilotstd.models import ParsedStdInfo
 
+from .status import Status
+
 # 核心表名常量，统一管理避免硬编码字符串散布
 FILE_INDEX_TABLE = "file_index"
 NETWORK_CACHE_TABLE = "standard_info_cache"
@@ -78,10 +80,10 @@ class FileIndexQuery:
         except Exception:
             return {"current": 0, "expired": 0, "pending": 0, "upcoming": 0}
         return {
-            "current": s.get("现行", 0),
-            "expired": s.get("废止", 0) + s.get("被代替", 0),
-            "pending": s.get("待确认", 0),
-            "upcoming": s.get("即将实施", 0),
+            "current": s.get(Status.ACTIVE.value, 0),
+            "expired": s.get(Status.WITHDRAWN.value, 0) + s.get(Status.SUPERSEDED.value, 0),
+            "pending": s.get(Status.PENDING.value, 0),
+            "upcoming": s.get(Status.UPCOMING.value, 0),
         }
 
     # ---- 缓存恢复 ----

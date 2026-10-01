@@ -6,6 +6,8 @@ import logging
 from datetime import datetime
 from typing import Any, Optional, Set
 
+from pilotstd.core.status import Status
+
 from ..core.db import Database
 from ..core.file_index import FILE_INDEX_TABLE
 from ._content_cleaner import clean_announcement_content  # noqa: F401 — 重导出
@@ -213,16 +215,16 @@ class AnnouncementMatcher:
 
         # 状态判定优先级：被代替 > 即将实施 > 现行
         if match_type == "replaced":
-            status = "被代替"
+            status = Status.SUPERSEDED.value
         elif implementation_date:
             try:
                 impl_date = datetime.fromisoformat(implementation_date).date()
-                status = "即将实施" if today < impl_date else "现行"
+                status = Status.UPCOMING.value if today < impl_date else Status.ACTIVE.value
             except (ValueError, TypeError):
                 # 已知可忽略：实施日期解析失败默认"现行"
-                status = "现行"
+                status = Status.ACTIVE.value
         else:
-            status = "现行"
+            status = Status.ACTIVE.value
 
         cache_data = {
             "status": status,

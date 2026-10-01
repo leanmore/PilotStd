@@ -34,3 +34,4 @@
 - Parser 层只做正文提取，禁止包含业务逻辑
 - 清洗逻辑统一在 Service 层的状态机中完成
 - 日期字段必须使用 ISO 8601 格式，禁止使用其他格式
+- 缓存行的状态判定（`现行` / `即将实施` / `被代替`，见 `pilotstd/announcement/matcher.py`）自 **R14-4b（#32-B，2026-10-01）** 起统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`（取代原中文字面量），取值与判定优先级不变

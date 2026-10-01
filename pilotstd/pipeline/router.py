@@ -5,6 +5,8 @@ import logging
 import os
 from typing import Any, List
 
+from pilotstd.core.status import Status
+
 from ..core.file_utils import make_standard_filename
 from ..core.std_utils import GB_CODES, is_gb_code
 from ..models import ParsedStdInfo
@@ -162,15 +164,21 @@ class PipelineRouter:
                 buckets["download"].append(p)
             return
         # 规则2: 未查到/未知/状态缺失 → 待确认
-        if not status or status == "未知":
+        if not status or status == Status.UNKNOWN.value:
             buckets["pending"].append(p)
             return
         # 规则3: 待确认 → 待确认
-        if status == "待确认":
+        if status == Status.PENDING.value:
             buckets["pending"].append(p)
             return
         # 规则4-7: 废止/已废止/作废/被代替/过期
-        if status in ("废止", "已废止", "作废", "被代替", "过期"):
+        if status in (
+            Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value,
+            Status.VOIDED.value,
+            Status.SUPERSEDED.value,
+            Status.EXPIRED.value,
+        ):
             self._route_replaced_or_obsolete(p, buckets, has_valid_replaces, replaces)
             return
         # 规则4.5:本地无文件→进下载，非进_下载
@@ -184,7 +192,7 @@ class PipelineRouter:
                 p.stage_status = "need_manual_download"
             return
         # 规则8:现行→归类/
-        if status == "现行":
+        if status == Status.ACTIVE.value:
             self._route_current_status(p, buckets)
             return
         # 规则9:非匹配兜底→（排在所有具体判定之后，仅捕获无法归类的条目）
