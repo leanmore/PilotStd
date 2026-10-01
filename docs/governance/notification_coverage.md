@@ -134,3 +134,21 @@
 | `check_sensitive_endpoint_audit.py` | G-043 | 敏感端点缺 `write_audit` | ✅ `check_all.sh --fast` + `ci.yml` |
 | `check_terminology.py` | G-044 | 禁用词命中 / 术语三语不一致 | ✅ `check_all.sh --fast` + `ci.yml` |
 | `audit_notification_chain.py` | — | 吞错/空文本风险 | ⏳ 未接入（存量 74 问题中 72 为误报，需先修判定逻辑） |
+
+---
+
+## 六、已修复的遗留项
+
+| # | 遗留项 | 状态 | 修复方式 |
+|---|--------|------|---------|
+| 1 | **`i18n._lang` 模块级全局导致线程/异步串扰** | ✅ **已修复**（2026-09-26 专项） | `pilotstd/i18n/__init__.py` 的语言状态由模块级 `_lang`/`_current` 改为 `contextvars.ContextVar`；新增 `language()` 上下文管理器（嵌套安全 + 异常路径恢复）；新增 `SUPPORTED_LANGUAGES` / `DEFAULT_LANGUAGE`，非法语言码回退默认并告警。原实现下"另一线程 set_language 会改写本线程看到的语言"，而通知构建器/渲染器/聚合器都在 `ThreadPoolExecutor`（6 文件）与 `asyncio`（8 文件）中调用 `t()`。契约由 `tests/test_i18n_thread_safety.py`（17 例）锁定，其中"子线程免疫其它线程的语言写入"用例经对照实验确证有判别力（旧实现 6/6 被污染）。 |
+
+### 未修复（仍在册）
+
+| # | 项 | 归属 |
+|---|----|------|
+| 2 | `_on_timer` 续期致最长延迟可能超 `MAX_WINDOW_SECONDS` | 独立专项 |
+| 3 | `_extract_topic` 的 en 隐患 + L2 `_BUFFER_WINDOW=0.3s` 设计意图确认 | L2 重构专项 |
+| 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | 本文档 §三 |
+| 5 | `audit_notification_chain.py` 未接入 CI | 本文档 §五 |
+| 6 | `DesktopRenderer` 字段名前缀（第 7 批论证不应加） | 待裁决 |
