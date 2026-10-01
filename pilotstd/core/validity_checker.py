@@ -53,8 +53,8 @@ class ValidityChecker:
             return
         self._db.execute(
             f"INSERT INTO {_TABLE} (standard_number, status, next_check_at, created_at, updated_at) "
-            "VALUES (?, '未知', ?, ?, ?)",
-            (standard_number, now, now, now),
+            "VALUES (?, ?, ?, ?, ?)",
+            (standard_number, Status.UNKNOWN.value, now, now, now),
         )
         if notification_mgr:
             try:

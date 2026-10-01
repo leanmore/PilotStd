@@ -101,8 +101,9 @@ def _parse_docx_text(raw_bytes: bytes) -> str:
                     lines.append(text)
         return "\n".join(lines)
     except Exception as e:
-        # TODO(P2): .doc（OLE2）格式 python-docx 不支持，需另寻解析器（如 antiword/textract）或显式跳过标记
-        logger.debug("DOCX 解析失败: %s", e, exc_info=True)
+        # .doc（OLE2）python-docx 不支持 → 显式告警（原为 debug：正文静默变空，人无从察觉）
+        # 「引入 antiword/textract 解析器」仍登记在台账观察项，本处只消除静默失败
+        logger.warning("附件正文解析失败（若为 .doc/OLE2 则正文为空）: %s", e, exc_info=True)
         return ""
 
 

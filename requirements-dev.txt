@@ -20,6 +20,9 @@ pytest-httpserver>=1.1
 pytest-xdist>=3.6,<4
 pytest-timeout>=2.3,<3
 
+# --- 模板脚手架（仅用于验证 post_gen_project.py 钩子本体；模板渲染本身由 jinja2 用例覆盖） ---
+cookiecutter>=2.6,<3
+
 # --- 打包构建 ---
 pyinstaller>=6.0
 

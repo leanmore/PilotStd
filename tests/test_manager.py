@@ -16,6 +16,18 @@ import pytest
 from pilotstd.core.status import Status
 from pilotstd.manager import StandardManager
 
+# 网络用例默认跳过：真实外网调用在无网/弱网环境会长时间阻塞（曾多次挂死本地全量跑）。
+# 需要实跑时显式开：PILOTSTD_RUN_NETWORK_TESTS=1 pytest tests/test_manager.py
+# 另设整模块超时兜底：pytest-timeout 在 Windows 只能 dump 栈、无法打断阻塞的 socket 读，
+# 故它只兜住"慢"用例，真正的"挂死"由上面的 opt-in 跳过挡住。
+pytestmark = pytest.mark.timeout(30)
+
+_NETWORK_DISABLED = os.environ.get("CI") == "true" or os.environ.get("PILOTSTD_RUN_NETWORK_TESTS") != "1"
+skip_network = pytest.mark.skipif(
+    _NETWORK_DISABLED,
+    reason="需真实外网：设 PILOTSTD_RUN_NETWORK_TESTS=1 显式开启（CI 环境恒跳过）",
+)
+
 
 class TestStandardManager(unittest.TestCase):
     def setUp(self):
@@ -94,10 +106,7 @@ class TestStandardManager(unittest.TestCase):
         self.assertEqual(engine_kwargs["max_workers"], 3)
         self.assertEqual(engine_kwargs["max_retries"], 5)
 
-    @pytest.mark.skipif(
-        os.environ.get("CI") == "true",
-        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
-    )
+    @skip_network
     def test_query_with_mock(self):
         mgr = StandardManager()
         mgr._core.parsed_results = []  # 直接设置核心容器的内部状态
@@ -112,10 +121,7 @@ class TestStandardManager(unittest.TestCase):
         self.assertIsNotNone(mgr.query_engine)
         self.assertIsNotNone(mgr.download_engine)
 
-    @pytest.mark.skipif(
-        os.environ.get("CI") == "true",
-        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
-    )
+    @skip_network
     def test_download_after_query(self):
         mgr = StandardManager()
         mgr.scan_directory(self.tmp)
@@ -130,10 +136,7 @@ class TestStandardManager(unittest.TestCase):
         self.assertIn("moved", result)
         self.assertIn("failed", result)
 
-    @pytest.mark.skipif(
-        os.environ.get("CI") == "true",
-        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
-    )
+    @skip_network
     def test_full_pipeline_integration(self):
         """端到端集成测试：scan → query → download → organize 完整流程。"""
         # 在临时目录创建多个测试标准文件
@@ -242,10 +245,7 @@ class TestStandardManager(unittest.TestCase):
         # 10. 验证 query_result 是正确的结果对象（而非错位匹配的其他结果）
         assert tasks[0].query_result is results[1], "DownloadTask.query_result 未正确关联到对应的 QueryResult"
 
-    @pytest.mark.skipif(
-        os.environ.get("CI") == "true",
-        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
-    )
+    @skip_network
     def test_auto_run(self):
         mgr = StandardManager()
         report = mgr.auto_run(self.tmp)
@@ -373,10 +373,7 @@ class TestAutoMixin(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp)
 
-    @pytest.mark.skipif(
-        os.environ.get("CI") == "true",
-        reason="离线 CI 环境无外部网络，该测试需在本地或集成环境运行",
-    )
+    @skip_network
     def test_auto_run_all_stages_complete(self):
         """auto_run 四阶段全走完，report 含全部键且无崩溃。"""
         mgr = StandardManager()

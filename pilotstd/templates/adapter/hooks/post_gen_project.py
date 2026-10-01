@@ -31,6 +31,7 @@ SITE_STATE = {
     "cooldown_seconds": {{cookiecutter.site_state_cooldown_seconds}},
 }
 STANDARD_TYPE = "{{ cookiecutter.standard_type }}"
+SITE_LABEL = "{{ cookiecutter.site_label }}"
 
 # 文件路径
 ADAPTERS_INIT = PROJECT_ROOT / "pilotstd" / "query" / "adapters" / "__init__.py"
@@ -91,7 +92,7 @@ def main():
     content = QUERY_INIT.read_text(encoding="utf-8")
     insertion = (
         f"def _get_{ADAPTER_NAME}_adapter() -> Type[Any]:\n"
-        f'    """懒加载{{ cookiecutter.site_label }}适配器（{ADAPTER_CLASS}）。"""\n'
+        f'    """懒加载 {SITE_LABEL} 适配器（{ADAPTER_CLASS}）。"""\n'
         f"    from .adapters.{ADAPTER_NAME} import {ADAPTER_CLASS}\n"
         f"    return {ADAPTER_CLASS}\n"
     )
