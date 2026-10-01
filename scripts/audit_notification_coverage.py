@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""通知系统覆盖度审计（G-045 基线工具）。
+
+为"新增事件"提供准入基线：39 个已注册事件在 **i18n / 端到端测试 / 审计留痕** 三个维度
+的覆盖状态，全部数据来自实际扫描（AST + JSON），不做推断。
+
+判定标准：
+  - **i18n**：该事件构建器调用的全部 `t()` 键在 zh_CN/zh_TW/en 三语中齐备（阻断项）；
+  - **e2e**：事件出现在 `tests/test_notification_e2e.py` 的 EVENTS 列表（阻断项），
+    且其 `trigger_file` **物理存在**（防止元数据指向已改名/删除的文件——实测曾出现
+    三处指向不存在的 `_query_exec.py`）；
+  - **审计**：安全类事件（`security_*` / `notification_credential_changed`）的触发文件
+    必须调用 `write_audit`（阻断项）；业务类事件标注 `N/A 业务事件无安全语义`。
+  - **术语**：构建器键在 `docs/governance/glossary.json` 中登记（跟踪项，不阻断）。
+
+用法：
+  python scripts/audit_notification_coverage.py            # 打印矩阵 + 汇总
+  python scripts/audit_notification_coverage.py --matrix    # 只输出 Markdown 矩阵
+  python scripts/audit_notification_coverage.py --strict    # 跟踪项缺失也算失败
+退出码：0 = 无阻断缺口；1 = 存在阻断缺口。
+"""
+
+from __future__ import annotations
+
+import ast
+import io
+import json
+import sys
+from pathlib import Path
+
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+ROOT = Path(__file__).resolve().parent.parent
+NOTIF = ROOT / "pilotstd" / "core" / "notification"
+I18N = ROOT / "pilotstd" / "i18n"
+GLOSSARY = ROOT / "docs" / "governance" / "glossary.json"
+E2E_TEST = ROOT / "tests" / "test_notification_e2e.py"
+LANGS = ("zh_CN", "zh_TW", "en")
+
+# 安全类事件：必须有审计留痕（S1 凭证生命周期 / 认证失败）。
+# 判定用前缀而非白名单——新增 security_* 事件自动纳入强制审计，避免"新事件漏登记"。
+SECURITY_EVENT_PREFIXES = ("security_",)
+# 例外：凭证变更事件的语义属安全类，但命名在 notification_* 族（第 2 批遗留命名）。
+SECURITY_EVENTS_EXTRA = frozenset({"notification_credential_changed"})
+
+
+def load_packs() -> dict[str, dict[str, str]]:
+    """加载三语语言包，返回 {语言: {键: 值}}。"""
+    return {
+        lang: json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8")) for lang in LANGS
+    }
+
+
+def events_from_registry() -> list[str]:
+    """从 events.py 的 ALL_EVENTS 提取事件键（AnnAssign + 常量名解析）。"""
+    tree = ast.parse((NOTIF / "events.py").read_text(encoding="utf-8"))
+    consts: dict[str, object] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id.startswith("EVENT_"):
+                    consts[target.id] = node.value.value
+    values: list[ast.expr] = []
+    for node in tree.body:
+        if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "ALL_EVENTS":
+            if isinstance(node.value, ast.List):
+                values = list(node.value.elts)
+        elif isinstance(node, ast.Assign) and any(
+            getattr(t, "id", "") == "ALL_EVENTS" for t in node.targets
+        ):
+            if isinstance(node.value, ast.List):
+                values = list(node.value.elts)
+    keys: list[str] = []
+    for elt in values:
+        if not (isinstance(elt, ast.Call) and elt.args):
+            continue
+        arg = elt.args[0]
+        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            keys.append(arg.value)
+        elif isinstance(arg, ast.Name):
+            resolved = consts.get(arg.id)
+            keys.append(resolved if isinstance(resolved, str) else f"<未解析:{arg.id}>")
+    return keys
+
+
+def builder_t_keys() -> dict[str, set[str]]:
+    """构建器函数名 → 其内部 t() 字面量键集合。
+
+    只看字面量键（`t("notification.x")`）：变量键（`t(title_key)`）无法静态求值，
+    其取值由分支决定——这类键需人工核对，属本工具的已知盲区（不虚报为已覆盖）。
+    """
+    result: dict[str, set[str]] = {}
+    for path in sorted(NOTIF.glob("_builders_*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef) or not node.name.startswith("_build_"):
+                continue
+            found: set[str] = set()
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == "t":
+                    if sub.args and isinstance(sub.args[0], ast.Constant) and isinstance(sub.args[0].value, str):
+                        found.add(sub.args[0].value)
+            result[node.name] = found
+    return result
+
+
+def manager_event_builders() -> dict[str, str]:
+    """从 manager._init_event_builders 提取 事件 → 构建器函数名。
+
+    该映射是"事件是否可用"的权威判据：事件注册进 ALL_EVENTS 但没有映射时，
+    `send_event` 会走兜底构建器，用户收到的是原始事件名而非可读文案。
+    """
+    src = (NOTIF / "manager.py").read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    pairs: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict):
+            for k, v in zip(node.value.keys, node.value.values):
+                if isinstance(k, ast.Constant) and isinstance(v, ast.Name) and v.id.startswith("_build_"):
+                    pairs[str(k.value)] = v.id
+    return pairs
+
+
+def e2e_events() -> dict[str, dict]:
+    """解析 e2e EVENTS 列表（括号配平 + literal_eval）。
+
+    不用正则取 `"name": "..."`：EVENTS 的每个条目含嵌套的 `builder_keys` 集合，
+    正则难以界定条目边界；括号配平能精确定位列表字面量，再交给 literal_eval
+    做一次可信解析（该列表语法上是纯字面量，故 literal_eval 安全）。
+    """
+    src = E2E_TEST.read_text(encoding="utf-8")
+    marker = "EVENTS: list[dict[str, Any]] = "
+    start = src.index(marker) + len(marker)
+    depth = 0
+    # 逐字符配平方括号：遇到 '[' 深度 +1，']' 深度 -1；归零处即列表结尾
+    for i in range(start, len(src)):
+        if src[i] == "[":
+            depth += 1
+        elif src[i] == "]":
+            depth -= 1
+            if depth == 0:
+                entries = ast.literal_eval(src[start : i + 1])
+                return {e["name"]: e for e in entries}
+    return {}
+
+
+def glossary_keys() -> set[str]:
+    """术语表中所有被登记的 i18n 键（各条目的 keys 并集）。"""
+    data = json.loads(GLOSSARY.read_text(encoding="utf-8"))
+    keys: set[str] = set()
+    for term in data.get("terms", []):
+        keys.update(term.get("keys", []))
+    return keys
+
+
+def is_security_event(event: str) -> bool:
+    """判定事件是否属安全类（决定审计维度是"强制"还是 N/A）。
+
+    用前缀 + 例外集而非硬编码全量清单：新增 `security_*` 事件自动纳入强制审计，
+    避免"加了事件却忘了登记审计要求"这一最典型的漏检形态。
+    """
+    return event.startswith(SECURITY_EVENT_PREFIXES) or event in SECURITY_EVENTS_EXTRA
+
+
+def _audit_one_event(
+    event: str,
+    packs: dict[str, dict[str, str]],
+    mapping: dict[str, str],
+    t_keys: dict[str, set[str]],
+    e2e: dict[str, dict],
+    glossary: set[str],
+) -> tuple[dict[str, object], list[str], list[str]]:
+    """审计单个事件，返回 (矩阵行, 该事件的阻断缺口, 该事件的跟踪项)。"""
+    blocking: list[str] = []
+    tracked: list[str] = []
+
+    builder = mapping.get(event)
+    keys = t_keys.get(builder, set()) if builder else set()
+
+    # 维度 1（i18n）：构建器用到的每个键都必须在三语中存在。
+    # 任缺一语即阻断——繁体/英文缺键会让对应语言用户直接看到 i18n 键名。
+    miss = sorted(k for k in keys if any(k not in packs[lang] for lang in LANGS))
+    i18n_ok = builder is not None and not miss
+    if not i18n_ok:
+        blocking.append(f"{event}: i18n 键缺失 {miss[:3] if miss else '构建器未注册'}")
+
+    # 维度 2（e2e）：事件须进 EVENTS 列表，且 trigger_file 必须真实存在。
+    # 只检查"是否在列表里"不够——实测曾有三处 trigger_file 指向已删除的文件，
+    # 那种情况下"有触发点"的断言是假绿。
+    meta = e2e.get(event)
+    trigger = str(meta.get("trigger_file", "")) if meta else ""
+    trigger_exists = bool(trigger) and (ROOT / trigger).exists()
+    e2e_ok = meta is not None and trigger_exists
+    if meta is None:
+        blocking.append(f"{event}: 未出现在 e2e EVENTS 列表")
+    elif not trigger_exists:
+        blocking.append(f"{event}: trigger_file 不存在 -> {trigger}")
+
+    # 维度 3（审计）：安全事件必须在其触发文件里写审计；业务事件标注 N/A
+    if is_security_event(event):
+        audit_ok = trigger_exists and "write_audit(" in (ROOT / trigger).read_text(encoding="utf-8")
+        audit_cell = "✅" if audit_ok else "❌"
+        if not audit_ok:
+            blocking.append(f"{event}: 安全事件但触发路径无 write_audit（{trigger or '未知'}）")
+    else:
+        audit_cell = "N/A"
+
+    # 维度 4（术语登记）：跟踪项，不阻断——术语表是受控词汇表而非全量字典
+    unregistered = sorted(k for k in keys if k not in glossary)
+    term_ok = bool(keys) and not unregistered
+    if not term_ok:
+        tracked.append(f"{event}: {len(unregistered)} 个文案键未登记术语表")
+
+    row: dict[str, object] = {
+        "event": event,
+        "i18n": "✅" if i18n_ok else "❌",
+        "term": "✅" if term_ok else "⚠️",
+        "e2e": "✅" if e2e_ok else "❌",
+        "audit": audit_cell,
+        "builder": builder or "—",
+        "note": "" if i18n_ok else f"缺键 {miss[:2]}",
+    }
+    return row, blocking, tracked
+
+
+def _print_matrix(rows: list[dict[str, object]]) -> None:
+    """打印 Markdown 矩阵（供写入 notification_coverage.md）。"""
+    print("| 事件 | i18n | 术语 | e2e | 审计 | 构建器 |")
+    print("|------|------|------|-----|------|--------|")
+    for r in rows:
+        print(f"| `{r['event']}` | {r['i18n']} | {r['term']} | {r['e2e']} | {r['audit']} | `{r['builder']}` |")
+
+
+def main(argv: list[str]) -> int:
+    """审计入口：构建矩阵、输出汇总，按阻断缺口决定退出码。"""
+    matrix_only = "--matrix" in argv
+    strict = "--strict" in argv
+
+    packs = load_packs()
+    events = events_from_registry()
+    mapping = manager_event_builders()
+    t_keys = builder_t_keys()
+    e2e = e2e_events()
+    glossary = glossary_keys()
+
+    rows: list[dict[str, object]] = []
+    blocking: list[str] = []
+    tracked: list[str] = []
+    for event in events:
+        row, ev_blocking, ev_tracked = _audit_one_event(event, packs, mapping, t_keys, e2e, glossary)
+        rows.append(row)
+        blocking.extend(ev_blocking)
+        tracked.extend(ev_tracked)
+
+    if matrix_only:
+        _print_matrix(rows)
+        return 0
+
+    print("=" * 96)
+    print(f"通知系统覆盖度审计：{len(events)} 个事件")
+    print("=" * 96)
+    print(f"{'事件':<34}{'i18n':<7}{'术语':<7}{'e2e':<6}{'审计':<7}构建器")
+    print("-" * 96)
+    for r in rows:
+        print(
+            f"{r['event']:<34}{r['i18n']:<7}{r['term']:<7}{r['e2e']:<6}{r['audit']:<7}{r['builder']}"
+        )
+    print("-" * 96)
+    n_i18n_ok = sum(1 for r in rows if r["i18n"] == "✅")
+    n_e2e_ok = sum(1 for r in rows if r["e2e"] == "✅")
+    n_term_ok = sum(1 for r in rows if r["term"] == "✅")
+    sec_rows = [r for r in rows if is_security_event(str(r["event"]))]
+    n_sec_ok = sum(1 for r in sec_rows if r["audit"] == "✅")
+    print(f"i18n {n_i18n_ok}/{len(rows)} | e2e {n_e2e_ok}/{len(rows)} | 术语 {n_term_ok}/{len(rows)} "
+          f"| 安全事件审计 {n_sec_ok}/{len(sec_rows)}")
+    print()
+    if blocking:
+        print(f"❌ 阻断缺口 {len(blocking)} 项：")
+        for item in blocking:
+            print(f"   - {item}")
+    else:
+        print("✅ 无阻断缺口（i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计）")
+    if tracked:
+        print(f"\n⚠️  跟踪项 {len(tracked)} 项（术语表未登记，不阻断）：")
+        for item in tracked[:5]:
+            print(f"   - {item}")
+        if len(tracked) > 5:
+            print(f"   ... 另 {len(tracked) - 5} 项")
+    if blocking or (strict and tracked):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
