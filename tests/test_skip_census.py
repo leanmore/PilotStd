@@ -61,4 +61,34 @@ def test_static_inventory_matches_r11_4_measurement() -> None:
     """静态口径：`self.skipTest` 60 处（T-20 原登记值）——运行期实测远小于此，故两者必须分开统计。"""
     counts = sc.static_inventory()["counts"]
     assert counts["skipTest"] == 60, f"self.skipTest 静态调用点由 60 变为 {counts['skipTest']}；请同步主簿 T-20"
-    assert counts["mark_skip"] >= 8, "永久 skip 标记数不应少于 R11-4 实测的 8 处"
+    # T-29 / R13-1：原 8 处永久 skip（facade 快照 ×4 + 批调度 ×4）已全部转为真实用例；
+    # 现存 2 处为 tests/gui/test_e2e_settings*.py 的空壳占位（另见主簿 T-33）。
+    assert counts["mark_skip"] == 2, (
+        f"永久 skip 标记由 2 变为 {counts['mark_skip']}；R13-1 已清零 T-29 的 8 处，"
+        "请同步主簿 T-29 / T-33"
+    )
+
+
+def test_t29_files_have_no_permanent_skip_and_no_stub_body() -> None:
+    """T-29（R13-1）：两个曾含 4 处永久 skip 的文件必须①零永久 skip、②无用例是空壳 `pass`。"""
+    import ast
+
+    inventory = sc.static_inventory()
+    targets = (
+        "tests/unit/manager/facade/test_query_subsystem_snapshot.py",
+        "tests/unit/query/engine/test_batch_dispatch.py",
+    )
+    for rel in targets:
+        hits = [site for site in inventory["sites"]["mark_skip"] if site.startswith(rel)]
+        assert hits == [], f"{rel} 不应再有永久 skip：{hits}"
+
+        tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+        stubs = [
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name.startswith("test_")
+            and all(isinstance(stmt, ast.Pass) for stmt in node.body)
+        ]
+        assert stubs == [], f"{rel} 存在空壳用例（def test_x(): pass）：{stubs}"
+
