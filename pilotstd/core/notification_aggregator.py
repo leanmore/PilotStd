@@ -19,11 +19,16 @@ should_show() 转为 push() 调用，_flush 逻辑由新版统一处理。
 """
 
 import logging
+import re
 import secrets
 import time
 from typing import Any, cast
 
 # 缓冲窗口：0.3 秒内同类通知合并为一条
+# 设计意图（专项确认，不变更）：这是**桌面托盘气泡**的分组窗口，与服务端聚合器的
+# `DEFAULT_WINDOW_SECONDS = 5.0s` 分属两条独立链路（见模块 docstring）。语义不同——
+# 桌面要"两条 toast 几乎同时出现就并一条"，0.3s 足够；服务端要"5 秒内的事件合成
+# 摘要后投递到 webhook"，需要更长。故本值不进 config，也不与 5.0s 对齐。
 _BUFFER_WINDOW = 0.3  # 秒
 # 计数窗口：30 秒内累计警告/错误数达阈值则触发暂停
 _COUNT_WINDOW = 30  # 秒
@@ -31,6 +36,76 @@ _COUNT_WINDOW = 30  # 秒
 _PAUSE_DURATION = 300  # 秒 (5分钟)
 # 配置键名：暂停状态持久化到配置脚本
 _PAUSE_CONFIG_KEY = "notification.aggregation"
+
+# ── 主题分组映射（i18n 契约驱动，专项修复）──
+# 原实现用**简体中文关键词**猜测主题，导致繁中/英文标题全部落到"标题前 8 字符"
+# 兜底分支——同一事件在不同语言下归入不同分组，跨语言完全不合并，且分组数随
+# 标题数无界增长（实测三语下 65 条落兜底）。
+#
+# 修法：以 i18n 中的**真实标题**为契约。`notification.*` 的 47 个 `.title*` 键
+# 经实测**全部可映射到事件**（39/39，唯一例外 `notification.channel.test.title`
+# 不属任何事件），故把标题渲染值与事件的对应关系固化为映射表，用**准确匹配**
+# 取代关键词猜测。事件 → 主题再由 `_EVENT_TOPIC` 显式给出。
+_TOPIC_BY_EVENT: dict[str, str] = {
+    # 完成/成功类
+    "scan_complete": "done",
+    "batch_download_complete": "done",
+    "archive_complete": "done",
+    "normalize_complete": "done",
+    "announcement_fetch_complete": "done",
+    "announce_fetch_summary": "done",
+    "download_complete": "done",
+    "auto_backup": "backup",
+    "notification_credential_changed": "done",
+    "security_password_changed": "done",
+    "security_token_refreshed": "done",
+    # 失败/异常类
+    "auto_scan_failed": "error",
+    "validity_standard_failed": "error",
+    "validity_system_failed": "error",
+    "worker_error": "error",
+    "download_failed": "error",
+    "archive_abandoned": "error",
+    "task_execution_failed": "error",
+    "query_failed": "error",
+    "archive_failed": "error",
+    "announcement_fetch_failed": "error",
+    "normalize_failed": "error",
+    "security_login_failed": "error",
+    # 领域类：跨语言稳定归组（避免同一事件因语言不同而分裂）
+    "scan_empty": "scan",
+    "batch_query_summary": "query",
+    "query_empty": "query",
+    "date_reminder": "validity",
+    "validity_batch_report": "validity",
+    "validity_round_summary": "validity",
+    "image_update_available": "update",
+    "trust_ip_update": "ip",
+    "standard_status_changed": "validity",
+    "standard_first_registered": "validity",
+    "expire_standard_moved": "validity",
+    "replacement_not_found": "validity",
+    "quota_exhausted": "validity",
+    "favorite_created": "download",
+    "download_started": "download",
+    "announcement_check_complete": "announce",
+}
+
+# 回退关键词（仅当标题不在 i18n 标题索引中时使用，如自定义/截断标题）。
+# 保留原简体词表**及其原始顺序**以维持向后兼容——顺序即优先级，`done`/`error`
+# 在前，与原实现一致，避免既有分组行为漂移。
+_LEGACY_TOPIC_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("done", ("完成", "成功")),
+    ("error", ("失败", "异常", "错误")),
+    ("scan", ("扫描",)),
+    ("download", ("下载",)),
+    ("archive", ("归档",)),
+    ("query", ("查询",)),
+    ("backup", ("备份",)),
+    ("announce", ("公告",)),
+    ("update", ("更新", "镜像")),
+    ("ip", ("ip",)),
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +127,8 @@ class NotificationAggregator:
     """
 
     _instance: "NotificationAggregator | None" = None
+    # 主题索引缓存（进程级）：(精确匹配表, 模板正则表)；三语标题固定，无需失效逻辑
+    _title_index_cache: "tuple[dict[str, str], list[tuple[re.Pattern[str], str]]] | None" = None
 
     def __new__(cls) -> "NotificationAggregator":
         if cls._instance is None:
@@ -81,32 +158,138 @@ class NotificationAggregator:
     # ──主题提取（保留，用于设置_）──
 
     @staticmethod
-    def _extract_topic(title: str, _body: str) -> str:
-        """从标题提取主题分类，用于新版聚合器的 target_id 分组。"""
+    def _template_to_pattern(template: str) -> str:
+        """把含 `{name}` 占位符的 i18n 模板转为匹配**渲染后标题**的正则源码。
+
+        占位符替换为非贪婪通配 `(.+?)`（跨语言通用），其余字面量用 `re.escape`
+        转义。例：`第 {round} 轮有效性汇总报告` 可匹配 `第 3 轮有效性汇总报告`。
+        """
+        parts = re.split(r"(\{[^}]*\})", template)
+        out: list[str] = []
+        for part in parts:
+            if not part:
+                continue
+            if part.startswith("{") and part.endswith("}"):
+                out.append("(.+?)")
+            else:
+                out.append(re.escape(part))
+        return "".join(out)
+
+    @staticmethod
+    def _strip_bracketed(title: str) -> str:
+        """剔除标题中成对括号（含全角）包裹的整段内容，并折叠空白。
+
+        用于动态计数标题：`Scan Complete (3 unrecognized)` -> `Scan Complete`。
+        用逐字符扫描求配对（而非正则）——实测标题存在**嵌套括号**，
+        非贪婪正则无法可靠匹配。
+        """
+        chars: list[str] = []
+        depth = 0
+        for ch in title:
+            if ch in "(（":
+                depth += 1
+                continue
+            if ch in ")）":
+                depth = max(0, depth - 1)
+                continue
+            if depth == 0:
+                chars.append(ch)
+        return re.sub(r"\s+", " ", "".join(chars)).strip()
+
+    @staticmethod
+    def _compile_index() -> tuple[dict[str, str], list[tuple[re.Pattern[str], str]]]:
+        """构建主题索引，返回 (精确匹配表, 模板正则表)。
+
+        做法：扫 `pilotstd/i18n/*.json`，取 `notification.*` 下所有含 `.title` 的键，
+        用**事件名**判定归属事件（键名中必然含事件名，实测 39/39 可映射），再经
+        `_TOPIC_BY_EVENT` 得到主题。三语标题全部登记，故索引与"当前语言"无关。
+
+        **为何跨语言建索引**：若只登记当前语言，用户切语言后索引即失效、退回关键词
+        猜测。跨语言索引把"语言"从判定中彻底移除——同一事件在三语下得到同一主题。
+
+        **为何需要模板正则**：含占位符的标题（如 `第 {round} 轮…`）实际投递时已被
+        替换为具体值，与模板字面不相等，且不存在固定"规范化共同形"（轮次本身即变量），
+        故用模板生成正则做模式匹配。
+        """
+        import json
+        import os
+
+        from pilotstd.core.notification.events import ALL_EVENTS
+
+        event_names = {e.key for e in ALL_EVENTS}
+        index: dict[str, str] = {}
+        patterns: list[tuple[re.Pattern[str], str]] = []
+        base = os.path.join(os.path.dirname(__file__), "..", "i18n")
+        for lang in ("zh_CN", "zh_TW", "en"):
+            path = os.path.join(base, f"{lang}.json")
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    pack = json.load(f)
+            except (OSError, ValueError):
+                logger.warning("主题索引：语言包读取失败，跳过 %s", path, exc_info=True)
+                continue
+            for key, value in pack.items():
+                if not (key.startswith("notification.") and ".title" in key):
+                    continue
+                if not isinstance(value, str) or not value:
+                    continue
+                owner = next((e for e in event_names if e in key.split(".")), None)
+                topic = _TOPIC_BY_EVENT.get(owner or "")
+                if not topic:
+                    continue
+                # 同一标题可能被多个事件共用（实测 1 例，同属 announce）——
+                # 保留先登记者即可，主题一致故无影响。
+                index.setdefault(value, topic)
+                if "{" in value:
+                    try:
+                        pattern = re.compile(NotificationAggregator._template_to_pattern(value))
+                    except re.error:
+                        logger.warning("主题索引：模板正则编译失败，跳过 %r", value, exc_info=True)
+                        continue
+                    patterns.append((pattern, topic))
+        return index, patterns
+
+    @classmethod
+    def _extract_topic(cls, title: str, _body: str) -> str:
+        """从标题提取主题分类，用于新版聚合器的 target_id 分组。
+
+        判定顺序（逐层收窄）：
+        1. **精确匹配**：标题等于某 i18n 标题字面（绝大多数事件）；
+        2. **括号剔除后匹配**：标题含动态计数（`Scan Complete (3 unrecognized)`）；
+        3. **模板正则匹配**：标题含裸值型占位符（`第 3 轮有效性汇总报告`）；
+        4. **关键词回退**：非 i18n 来源的自定义标题（保留原简体词表，向后兼容）；
+        5. 兜底为"标题前 8 字符 + `_` 前缀"，保证返回值非空。
+        """
+        index, patterns = cls._title_index_data()
+        hit = index.get(title)
+        if hit:
+            return hit
+        stripped = cls._strip_bracketed(title)
+        if stripped != title:
+            hit = index.get(stripped)
+            if hit:
+                return hit
+        for pattern, topic in patterns:
+            if pattern.fullmatch(title) or pattern.fullmatch(stripped):
+                return topic
+
         lowered = title.lower()
-        if any(k in lowered for k in ("完成", "成功")):
-            return "done"
-        if any(k in lowered for k in ("失败", "异常", "错误")):
-            return "error"
-        if "扫描" in lowered:
-            return "scan"
-        if "下载" in lowered:
-            return "download"
-        if "归档" in lowered:
-            return "archive"
-        if "查询" in lowered:
-            return "query"
-        if "备份" in lowered:
-            return "backup"
-        if "公告" in lowered:
-            return "announce"
-        if any(k in lowered for k in ("更新", "镜像")):
-            return "update"
-        if "ip" in lowered:
-            return "ip"
+        for topic, words in _LEGACY_TOPIC_KEYWORDS:
+            if any(w in lowered for w in words):
+                return topic
         # 无法分类时取标题前 8 字符 + _ 前缀，确保不为空
         return "_" + (title[:8] or "default")
 
+    @classmethod
+    def _title_index_data(cls) -> tuple[dict[str, str], list[tuple[re.Pattern[str], str]]]:
+        """惰性构建并缓存索引（进程级；三语与 i18n 文件固定，运行期无需失效）。"""
+        if cls._title_index_cache is None:
+            try:
+                cls._title_index_cache = cls._compile_index()
+            except Exception:
+                logger.warning("主题索引构建失败，退回关键词匹配", exc_info=True)
+                cls._title_index_cache = ({}, [])
+        return cls._title_index_cache
     # ── 暂停状态持久化 ──
 
     def _load_pause_state(self) -> None:
