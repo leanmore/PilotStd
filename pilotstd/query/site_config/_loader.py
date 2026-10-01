@@ -3,6 +3,8 @@
 
 from typing import Any
 
+from pilotstd.core.config.manager import register_invalidation_listener
+
 from ..rotator import SiteState
 from ._sites import (
     _create_sites_part1,
@@ -35,11 +37,14 @@ def create_default_sites() -> list[SiteState]:
 
 
 def _load_site_overrides() -> dict[str, Any]:
-    """从 config.json 读取 query.sites 覆盖值，容错返回空 dict。"""
-    try:
-        from pilotstd.core.config.manager import ConfigManager
+    """从 config.json 读取 query.sites 覆盖值，容错返回空 dict。
 
-        sites = ConfigManager().get("query.sites", {})
+    #31-P1：改用按路径共享的 ConfigManager 实例（原为每次新建），与评分器同一来源。
+    """
+    try:
+        from pilotstd.core.config.manager import get_shared_config
+
+        sites = get_shared_config().get("query.sites", {})
         return sites if isinstance(sites, dict) else {}
     except Exception:
         return {}
@@ -47,6 +52,20 @@ def _load_site_overrides() -> dict[str, Any]:
 
 # 站点配置缓存：create_default_sites 每次调用会重读 config.json，此处缓存避免重复开销
 _site_config_cache: dict[str, SiteState] | None = None
+
+
+def _on_config_invalidated(path: str) -> None:
+    """配置写盘后的显式失效回调：清空站点缓存，使下次读取合并最新覆盖值。
+
+    #31-P1（R14-3b）：GUI 设置页/Web API 写盘 → `ConfigManager.save()` 发布失效通知 →
+    本回调清缓存 → 热路径下次取站点配置即刷新。**不做 TTL 静默缓存**（避免掩盖 bug）。
+    """
+    global _site_config_cache
+    _site_config_cache = None
+
+
+# 模块导入时注册一次（register_invalidation_listener 内部去重，重复导入不会重复注册）
+register_invalidation_listener(_on_config_invalidated)
 
 
 def get_site_config(name: str) -> SiteState | None:

@@ -91,9 +91,11 @@ def get_profile(adapter_name: str) -> dict:
 
     # 阶段3.1:从配置脚本读取用户覆盖值
     try:
-        from pilotstd.core.config.manager import ConfigManager
+        from pilotstd.core.config.manager import get_shared_config
 
-        cfg = ConfigManager()
+        # #31-P1：改用按路径共享的实例——原为每次调用新建 ConfigManager（单批查询实测 133 次构造）；
+        # 共享实例由“写盘触发的显式失效通知”刷新，无基于时间的 TTL 静默缓存。
+        cfg = get_shared_config()
         user_overrides = cfg.get(f"query.sites.{adapter_name}", {})
         if isinstance(user_overrides, dict):
             # 仅覆盖分析中已有的顶层键

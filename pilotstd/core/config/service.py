@@ -18,7 +18,7 @@ from typing import Any
 
 from ..context import get_current_user_id
 from ..db import Database
-from .manager import ConfigManager
+from .manager import ConfigManager, get_shared_config
 from .paths import get_db_path
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,8 @@ class ConfigService:
     _lock = threading.Lock()
 
     def __init__(self, config_manager: ConfigManager | None = None) -> None:
-        self._cfg = config_manager or ConfigManager()
+        # #31-P1：缺省复用共享实例（原为再新建一个 ConfigManager，与热路径各自持有副本）
+        self._cfg = config_manager or get_shared_config()
         self._pref_cache: dict[str, str] = {}
         self._cache_lock = threading.Lock()
 

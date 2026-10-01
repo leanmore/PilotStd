@@ -3,15 +3,18 @@
 
 import copy
 import json
+import logging
 import os
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .defaults import FACTORY_DEFAULTS  # 工厂默认值字典，所有未设置键的兜底
 from .migrate import _migrate_ui_keys  # 旧版 ui.* → appearance.* 迁移
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigManager:
@@ -19,12 +22,8 @@ class ConfigManager:
 
     def __init__(self, filepath: str | None = None):
         """初始化配置管理器：加载 JSON 文件 → 合并环境变量覆盖 → 填充工厂默认值。"""
-        if filepath is None:
-            from .paths import _get_config_dir
-
-            filepath = os.path.join(_get_config_dir(), "config.json")
-        # 转为绝对路径，避免后续工作目录变化导致路径失效
-        self._filepath = os.path.abspath(filepath)
+        # 缺省路径统一由 default_config_path() 推导（与共享实例缓存用同一键，#31-P1）
+        self._filepath = default_config_path() if filepath is None else os.path.abspath(filepath)
         self._lock = threading.Lock()
         self._data: dict[str, Any] = {}
         self._load()
@@ -74,6 +73,10 @@ class ConfigManager:
         """将当前配置原子写入 JSON 文件（先写 .tmp 再 replace，敏感字段加密）。
 
         mkdir / open / os.replace 全部纳入重试循环，消除 xdist 并发竞态。
+
+        写盘成功后发布**显式失效通知**（#31-P1 / R14-3b）：他方实例持有同一路径的共享缓存时，
+        该缓存被移除（陈旧），并回调已注册的监听者——保证 GUI 设置页写盘后热路径能读到新值。
+        通知在释放实例锁之后发出，避免监听者回调时反向取锁。
         """
         target = Path(self._filepath)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +84,7 @@ class ConfigManager:
 
         from .crypto import _get_fernet, _walk_sensitive
 
+        wrote = False
         with self._lock:
             for attempt in range(retries):
                 try:
@@ -92,11 +96,14 @@ class ConfigManager:
                         json.dump(data_on_disk, fh, ensure_ascii=False, indent=2)
                     os.replace(tmp_path, str(target))
                     os.chmod(str(target), 0o600)
-                    return
+                    wrote = True
+                    break
                 except (PermissionError, FileNotFoundError, OSError):
                     if attempt == retries - 1:
                         raise
                     time.sleep(delay * (2**attempt))
+        if wrote:
+            _publish_config_written(self)
 
     def reset(self, key: str | None = None) -> None:
         """重置配置项。key 为 None 时清空全部配置，否则删除指定键。"""
@@ -200,3 +207,88 @@ class ConfigManager:
         for k, v in FACTORY_DEFAULTS.items():
             self.set(k, v)
         self.save()
+
+
+# ── 共享实例 + 显式配置失效通知（#31-P1 / R14-3b，2026-10-01）────────────────
+# 背景：热路径 `query/routing/scorer.py::get_profile()` 原为“每次调用新建 ConfigManager”——
+#   单批查询实测 133 次构造（R14-2 盘点）。P2 已让单次构造不再写盘，但重复构造仍需消除。
+# 机制：**按绝对路径共享实例** + **显式失效通知**（写盘或显式调用触发）。
+#   ① 自己写盘：内存态即权威 → 保留缓存实例，仅通知监听者；
+#   ② 他方写盘（GUI 设置页 `_settings.py` / Web `docker/api/settings.py` 各自持有的实例）：
+#      共享缓存已陈旧 → 移除该缓存并通知监听者，下次读取自动重建（读取新值）。
+# 明确**不做**基于时间的静默 TTL 缓存——失效只能由写盘或 `invalidate_shared_config()` 触发，
+#   否则会掩盖“配置已改但读不到”的 bug（用户约束）。
+# 可重入锁（RLock）：构造 `ConfigManager` 时首次运行会在 `_load()` 内写盘并发布失效通知，
+# 而通知路径同样要进入本锁——非重入锁会自锁死（R14-3b 实测）。重入锁同时保证：
+# 同一路径的并发首次获取被串行化，所有调用方拿到**同一实例**。
+# 注意：监听者在持锁上下文内被回调，必须保持轻量且不得阻塞等待其它需要本锁的线程。
+_SHARED_LOCK = threading.RLock()
+_SHARED_INSTANCES: dict[str, ConfigManager] = {}
+_INVALIDATION_LISTENERS: list[Callable[[str], None]] = []
+
+
+def default_config_path() -> str:
+    """返回默认配置文件绝对路径（与 `ConfigManager()` 缺省路径同一口径）。"""
+    from .paths import _get_config_dir
+
+    return os.path.abspath(os.path.join(_get_config_dir(), "config.json"))
+
+
+def get_shared_config(filepath: str | None = None) -> ConfigManager:
+    """获取（并按需创建）该路径的共享 ConfigManager 实例——热路径应统一从这里取。
+
+    线程安全：`_SHARED_LOCK` 为**可重入锁**，构造在锁内完成——首次运行会在 `_load()` 内
+    写盘并发布失效通知（同线程重入本锁，非重入锁会死锁）；锁内构造也保证同一路径并发
+    首次获取只产生一个实例、且所有调用方拿到同一对象。
+    """
+    path = default_config_path() if filepath is None else os.path.abspath(filepath)
+    with _SHARED_LOCK:
+        instance = _SHARED_INSTANCES.get(path)
+        if instance is None:
+            instance = ConfigManager(path)
+            _SHARED_INSTANCES[path] = instance
+        return instance
+
+
+def invalidate_shared_config(filepath: str | None = None) -> int:
+    """显式使共享实例失效（外部改动配置文件后调用）；返回被移除的实例数（0/1）。"""
+    path = default_config_path() if filepath is None else os.path.abspath(filepath)
+    with _SHARED_LOCK:
+        removed = 1 if _SHARED_INSTANCES.pop(path, None) is not None else 0
+    _notify_config_invalidated(path)
+    return removed
+
+
+def register_invalidation_listener(listener: Callable[[str], None]) -> None:
+    """注册配置失效监听者（回调参数＝配置文件绝对路径）。重复注册同一回调不重复添加。"""
+    with _SHARED_LOCK:
+        if listener not in _INVALIDATION_LISTENERS:
+            _INVALIDATION_LISTENERS.append(listener)
+
+
+def unregister_invalidation_listener(listener: Callable[[str], None]) -> None:
+    """注销配置失效监听者（不存在时静默）。"""
+    with _SHARED_LOCK:
+        if listener in _INVALIDATION_LISTENERS:
+            _INVALIDATION_LISTENERS.remove(listener)
+
+
+def _notify_config_invalidated(path: str) -> None:
+    """同步回调所有监听者；单个监听者异常不得影响其它监听者与调用方。"""
+    with _SHARED_LOCK:
+        listeners = list(_INVALIDATION_LISTENERS)
+    for listener in listeners:
+        try:
+            listener(path)
+        except Exception:  # noqa: BLE001 - 监听者异常必须隔离，不能破坏写盘主流程
+            logger.exception("配置失效监听者异常: %s", path)
+
+
+def _publish_config_written(instance: ConfigManager) -> None:
+    """写盘成功后发布失效通知（供 `ConfigManager.save()` 调用）。"""
+    path = instance._filepath
+    with _SHARED_LOCK:
+        cached = _SHARED_INSTANCES.get(path)
+        if cached is not None and cached is not instance:
+            _SHARED_INSTANCES.pop(path, None)
+    _notify_config_invalidated(path)
