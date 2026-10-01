@@ -1,6 +1,17 @@
 # 模块：项目/核心/_聚合器脚本
 # 通知智能聚合器—适配层（内部委托新版）
-"""单例聚合器：缓冲合并 + 熔断暂停（与 Web 端行为等价）。
+"""桌面端通知聚合适配层（单例）：主题分组 + 熔断暂停（与 Web 端行为等价）。
+
+职责边界（三套通知聚合/去重机制之一，禁止越界）：
+- **本模块负责**：PyQt 桌面**托盘通知**的暂停/恢复决策、自动暂停触发（30 秒内累计
+  3 条警告/错误 → 暂停 5 分钟）、暂停状态持久化，以及把通知**桥接**给服务端聚合器。
+- **主题分组**：`_extract_topic(title, body)` 把标题映射为主题串（如 `scan`/`download`/
+  `archive`），作为 `target_id` 传入服务端聚合器——这是桌面链路的实体标识来源。
+- **本模块不负责**：实际的消息合并（委托 `notification/aggregate_buffer`）、
+  渠道适配与发送、静音时段判断。
+- **与 `notification/aggregate_buffer.NotificationAggregator` 的关系**：**独立链路、不共享状态**。
+  本模块服务 `platform/notify.py` 触发的桌面托盘通知；后者服务 `manager.send_event`
+  触发的服务端通知（Web / Webhook / 定时任务）。两者仅通过"持有实例并委托 `push()`"相连。
 
 内部持有新版 pilotstd.core.notification.aggregate_buffer.NotificationAggregator，
 should_show() 转为 push() 调用，_flush 逻辑由新版统一处理。

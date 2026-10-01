@@ -91,7 +91,18 @@ class NotifyService:
         return NotificationAggregator()
 
     def _check_dedup(self, title: str) -> bool:
-        """检查是否应发送。同标题在去重窗口内返回 False。"""
+        """检查是否应发送。同标题在去重窗口内返回 False。
+
+        职责边界（三套通知聚合/去重机制之一）：这是**3 秒同标题瞬时防抖**，
+        目的是避免同一标题的托盘气泡瞬间重复弹出，与 `NotificationAggregator`
+        的主题分组是**不同层次**的去重——前者按"标题字面相同 + 时间邻近"丢弃，
+        后者按"主题相同"合并成一条摘要。
+
+        注意两条路径**互斥**（见 `show`/`show_warning`）：本方法只在
+        `auto_pause_enabled` 为 False（未启用自动暂停）时生效；启用自动暂停时
+        走 `should_show()` → 服务端聚合器，由后者的 0.3 秒窗口完成合并去重，
+        不再经过本方法。
+        """
         now = time.monotonic()
         last = self._last.get(title, 0)
         if now - last < self._DEDUP_WINDOW:

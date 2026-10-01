@@ -271,6 +271,8 @@ class NotificationManager:
             self._enqueue_notification(msg, target_channels)
             return
         if self.aggregator is not None and not bypass_aggregation:
+            # 仅做「是否聚合」的分支决策，实际聚合全部委托给 AggregateBuffer
+            # （窗口累积、分组、摘要生成都在那边），管理器不重复实现合并逻辑。
             self.aggregator.enqueue(msg, target_channels, target_id=msg.target_id)
         else:
             self._send_now(msg, target_channels)

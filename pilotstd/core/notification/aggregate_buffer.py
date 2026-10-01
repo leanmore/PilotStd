@@ -1,8 +1,20 @@
 # 模块：项目/核心//_缓冲区脚本
-"""线程安全的通知聚合缓冲（固定窗口 + 首次延时策略）。
+"""服务端通知聚合缓冲（固定窗口 + 首次延时策略）。
 
-同类事件在固定窗口内累积，1 分钟首次触发，5 分钟强制发送。
-按 event_type 分组，支持智能摘要和事件特定格式化。
+职责边界（三套通知聚合/去重机制之一，禁止越界）：
+- **本模块负责**：服务端**按时间窗口聚合**——把 `manager.send_event` 触发的、
+  异步到达的多条通知，按「事件类型 × 关联实体」累积后合并为一条摘要投递。
+- **输入**：已构建好的 `NotificationMessage`（构建器产出，本模块不构造消息）。
+- **输出**：聚合后的摘要消息（经 `sender_func` 回调），或单条原样投递。
+- **本模块不负责**：单条消息格式化（→ `renderer.py`）、渠道路由与发送（→ `manager._do_send`
+  与 `channels/`）、静音时段判断（→ `manager._is_quiet_hours`）、桌面托盘去重
+  （→ `core/notification_aggregator.py` 与 `platform/notify.py:_check_dedup`）。
+- **不派生 `target_id`**：本模块只消费调用方传入的实体标识；桌面链路的实体标识由
+  `core/notification_aggregator._extract_topic` 从标题映射而来。
+
+与 `core/notification_aggregator.NotificationAggregator` 的关系：**两条独立链路，不共享状态**。
+本模块服务服务端通知（Web / Webhook / 定时任务）；后者服务 PyQt 桌面托盘通知，
+是持有本模块实例并委托 `push()` 的适配层。
 
 聚合正统设计（无界编码治理样板 · 第二期）：
 - 单条与多条统一走合并发送同一流程，禁止"单条直通"特殊分支；
