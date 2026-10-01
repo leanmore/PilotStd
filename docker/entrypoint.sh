@@ -2,11 +2,15 @@
 set -e
 
 # ── JWT_SECRET 初始化 ────────────────────────────────────────
-# 若未设置 JWT_SECRET，自动生成随机值
-if [ -z "$JWT_SECRET" ]; then
-    JWT_SECRET=$(python -c "import secrets; print(secrets.token_hex(32))")
-    export JWT_SECRET
-    echo "[INIT] JWT_SECRET 已自动生成"
+# 优先级：环境变量 > /app/data/.jwt_secret（由应用首次启动生成并落盘，权限 600）
+# 原实现在此每次启动随机生成 → 容器重启后全体会话失效（决策 #6，R15 修复）
+if [ -n "$JWT_SECRET" ]; then
+    echo "[INIT] JWT_SECRET 由环境变量提供"
+elif [ -f /app/data/.jwt_secret ]; then
+    export JWT_SECRET="$(cat /app/data/.jwt_secret)"
+    echo "[INIT] JWT_SECRET 已从 /app/data/.jwt_secret 复用"
+else
+    echo "[INIT] JWT_SECRET 未设置，将由应用首次启动时生成并落盘（此后重启不再掉线）"
 fi
 
 # PUID/PGID: 修正 appuser 的 UID/GID 匹配 NAS 文件权限

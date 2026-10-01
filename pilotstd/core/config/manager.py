@@ -5,6 +5,7 @@ import copy
 import json
 import logging
 import os
+import shutil
 import threading
 import time
 from datetime import datetime
@@ -94,6 +95,13 @@ class ConfigManager:
                     data_on_disk = _walk_sensitive(self._data, encrypt=True, fernet=f)
                     with open(tmp_path, "w", encoding="utf-8") as fh:
                         json.dump(data_on_disk, fh, ensure_ascii=False, indent=2)
+                    # T-35 再保险（R15）：不做跨进程文件锁，但让"丢一次写"可恢复——
+                    # 覆盖前留一份可回滚副本；备份失败不阻断写盘主流程。
+                    if target.exists():
+                        try:
+                            shutil.copyfile(str(target), str(target) + ".bak")
+                        except OSError:
+                            pass
                     os.replace(tmp_path, str(target))
                     os.chmod(str(target), 0o600)
                     wrote = True
@@ -190,6 +198,24 @@ class ConfigManager:
                     self.save()
                 return
         except (json.JSONDecodeError, OSError):
+            # T-35 再保险（R15）：主文件损坏时**优先**尝试写前备份回滚
+            bak = self._filepath + ".bak"
+            if os.path.exists(bak):
+                try:
+                    with open(bak, "r", encoding="utf-8") as f:
+                        raw = json.load(f)
+                    from .crypto import _get_fernet, _walk_sensitive
+
+                    f_obj = _get_fernet(os.path.dirname(self._filepath))
+                    self._data = _walk_sensitive(raw, encrypt=False, fernet=f_obj)
+                    self.populate_defaults(FACTORY_DEFAULTS)
+                    _migrate_ui_keys(self)
+                    logger.warning("配置解析失败，已从写前备份回滚: %s", bak)
+                    self.save()
+                    return
+                except (json.JSONDecodeError, OSError):
+                    # 备份同样不可用 → 走原有"备份损坏文件 + 默认值初始化"路径（契约④不变）
+                    pass
             # 数据损坏时备份原文件，避免数据彻底丢失
             backup = self._filepath + ".corrupted." + datetime.now().strftime("%Y%m%d%H%M%S")
             try:

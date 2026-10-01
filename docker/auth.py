@@ -8,6 +8,7 @@ import time
 import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, cast
 
 from fastapi import Form, HTTPException, Request
@@ -36,7 +37,39 @@ from .users import (
 router = APIRouter(tags=["auth"])
 logger = logging.getLogger(__name__)
 
-SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)
+def _load_or_create_secret() -> str:
+    """取 JWT 密钥：环境变量 > 落盘文件 > 新生成并落盘。
+
+    原实现未设环境变量时每次进程启动随机（容器重启即全员掉线）；决策 #6 由"固定/随机二选一"
+    改为落盘复用（`DATA_DIR/.jwt_secret`，权限 600），两头问题一并消除。
+    落盘失败降级为进程内随机（只告警，不阻断启动）。
+    """
+    env_secret = os.environ.get("JWT_SECRET")
+    if env_secret:
+        return env_secret
+
+    data_dir = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+    secret_file = Path(data_dir) / ".jwt_secret"
+    try:
+        if secret_file.exists():
+            saved = secret_file.read_text(encoding="utf-8").strip()
+            if saved:
+                return saved
+    except OSError:
+        logger.warning("JWT_SECRET 文件读取失败，将重新生成", exc_info=True)
+
+    generated = secrets.token_urlsafe(32)
+    try:
+        secret_file.parent.mkdir(parents=True, exist_ok=True)
+        secret_file.write_text(generated, encoding="utf-8")
+        os.chmod(secret_file, 0o600)
+        logger.info("JWT_SECRET 已生成并落盘: %s", secret_file)
+    except OSError:
+        logger.warning("JWT_SECRET 落盘失败，本次使用进程内随机密钥（重启后会话失效）", exc_info=True)
+    return generated
+
+
+SECRET = _load_or_create_secret()
 
 # 应用启动时确保用户表存在
 _init_done = False
