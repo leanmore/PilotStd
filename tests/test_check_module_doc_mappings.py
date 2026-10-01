@@ -23,7 +23,7 @@ SCRIPT = ROOT / "scripts" / "check_module_doc_mappings.py"
 def _load_module():
     """以文件路径加载脚本模块（scripts/ 不是包）。"""
     sys.path.insert(0, str(ROOT / "scripts"))
-    spec = importlib.util.spec_from_file_location("check_docs_sync", SCRIPT)
+    spec = importlib.util.spec_from_file_location("check_module_doc_mappings", SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
