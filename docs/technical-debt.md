@@ -1,6 +1,6 @@
 # 技术债登记
 
-> 版本：v1.44.0（2026-10-01：R14-5 归档整理 + 存续项校准 + 隐性债务显性化）
+> 版本：v1.45.0（2026-10-01：R15 消除静默失效 + JWT/配置自愈 + 观察体系升级）
 > 更新日期：2026-09-27
 > 2026-10-01 **第十四轮 R14-4d：#32-D 测试侧收敛 + 哨兵机制——#32 正式闭环**。**收敛**：`tests/` 目录中文状态字面量 **504 → 25 处**（−95%），扫描/替换与生产同一套 AST 口径（排除 docstring，UTF-8 字节偏移精确定位），共替换 **456 处**、覆盖 **67 个测试文件**；**哨兵机制**：刻意保留 **5 处**直写中文字面量作为哨兵（均带 `# Sentinel: 确保枚举 value 与现网中文契约一致` 注释且有断言），分布在「字典契约／生产扫描基准／API 历史中文入参／解析格式层外部输入／DB 历史 DDL 默认值」五个不同层，杜绝「有人顺手改枚举 value 导致与外部系统静默脱节」。**验证**：全量测试 **4356 passed / 6 skipped**（本批为纯测试侧改动，生产代码零改动）；ruff/mypy 全绿；`--fast --guards --local` 与 `--deep` EXIT=0；CI 13/13。**#32 由此正式闭环**（A 建字典 → B 后端收敛 → C 前后端闭环 → D 测试收敛+哨兵），由「二、剩余台账」移入「一、已清理」。详见 7.31。 |
 > 2026-10-01 **第十四轮 R14-4c：#32-C 贯通 API 契约 + 落库迁移 + 前端 i18n 映射（前后端闭环）**。**① API 契约**：`pilotstd/core/status.py` 新增 `status_key()`（数据值 → 稳定英文键）与 `resolve_status_filter()`（同时接受英文键与历史中文值）；`/api/standards/status`、`/api/query/results`、`/api/pending/requery` 的记录在原有中文 `status` 之外新增 `status_key`（**向后兼容，无破坏性变更**）。**② DB**：新增 **v61 迁移**（`_migrate_v61_enum_status_defaults.py`）把 `file_index.status`／`standard_validity.status` 的列默认值收敛到字典——默认值已等于枚举值时**不重建表**（现网命中，零数据搬动），漂移时才走 SQLite 12 步重建修复；**未改任何历史迁移源码（P-106）**；`CURRENT_SCHEMA_VERSION` 60 → 61。**③ 前端**：新增唯一事实源 `web/src/utils/stdStatus.ts`，13 处中文状态比较全部改为 `status_key` 比较（`i18n-allow` 状态项 **13 → 0**），筛选下拉提交英文键（后端两种口径都接受）。**验证**：新增契约测试 25 例 + 迁移测试 6 例 + 前端 4 例；核心/迁移回归 506 passed；前端 vitest 301 passed、`vue-tsc -p tsconfig.app.json` 零错误；`check_i18n_key_count.py` 三语对齐 PASS（860×3）；schema 一致性 PASS；`--fast --guards --local` 与 `--deep` EXIT=0；CI 13/13。详见 7.30。 |
@@ -103,6 +103,25 @@
 | **P5** | **#31** ConfigManager 交错写 | 3~5 commit | 锚定 `v0.120.0`；需跨进程锁设计 | 二、剩余台账 #31 |
 | **P6** | **#34** EventBus 竞态 R2+R4 | 2~3 commit | **⚠️ 哨兵已触发（R12-3 的 run `36310444541`，access violation 复发）→ R2+R4 升为第十二轮强制项** | **✅ CLOSED（R12-8）：根因＝PyQt6 Qt 锁 × 线程 churn；修复＝内部锁改 `threading.Lock`；三重回归门全绿** |
 
+### 0.3 R16 候选池（2026-10-01 R15 收尾，用户裁定优先级）
+
+| 优先级 | 项 | 台账位置 | 预估成本 | 验收判据 |
+|---|---|---|---|---|
+| **P0** | 门禁受控测试自动化（防 G-040 基线清零事件重演） | 六、观察项 · `tests/` 受控测试不在本地门禁路径 | ≤1 h | 暂存 `scripts/*baseline*` 或门禁脚本改动时，`check_all.sh` 自动跑对应受控测试 |
+| **P1** | 两形近 docs 脚本合并（`check_docs_sync.py` / `docs_sync_check.py`） | 六、观察项 · T-25 残留 | 1~2 h | 只保留一个脚本（或改名消除形近），`ci.yml` 同步；`repo-compliance` 绿 |
+| **P2** | schema 门禁提示（零成本 DX） | 六、观察项 · `check_schema_consistency` 约束无提示 | 15 min | 脚本输出含「中性表名 + RENAME」指引 |
+| **P3** | T-30 收口裁定（纯文档动作） | 六、观察项 · T-30（`待裁定`） | 10 min | 按「队列效应消除」宣告第一阶段收口并归档 |
+
+### 0.4 R15 观察期（2026-10-01 起，约一周）
+
+正常使用软件一周，只盯三件事（不做额外改动）：
+
+| # | 观察点 | 判定标准 | 记录位置 |
+|---|---|---|---|
+| 1 | 容器重启后是否掉线 | 重启后**无需重新登录**（JWT 持久化生效）；若仍掉线 → 检查 `/app/data/.jwt_secret` 是否生成、`JWT_SECRET` 环境变量是否覆盖 | 决策 #6 归档行 |
+| 2 | 配置自愈是否触发 | 日志出现 `配置解析失败，已从写前备份回滚` → 说明发生过损坏并自愈成功；同时看 `config.json.bak` 是否存在且可读 | 真·观察项复核表 · T-35 行 |
+| 3 | docs_sync 误报计数 | 每批推送后读 CI `[docs-compliance]` 段：无误报 → 计数 +1（当前 **1/3~5**） | 真·观察项复核表 · T-16 行 |
+
 > 排期口径：P0 起每批一次独立提交（`--fast --guards --local` + `--deep` 双跑后推送）；**候选池本身不设窗口**——它与各条目的自有窗口（P4/P5 锚定 `v0.120.0`、P6 为触发式）并行生效。
 
 
@@ -163,6 +182,9 @@
 | **`_batch.py` 溢出回收逻辑部分内联（原「六、观察项」）** | **归档（R15，无行动项）**：溢出处理自始即委托 `_overflow`（`_batch.py:22` 导入、`:55 self._overflow = overflow`），`query_batch_parsed` 在该文件内已无引用；关联的纯逻辑提取早已完成（AutoFlowEngine 7 + ScanFlowEngine 31 + AnnounceFlowEngine 20 测试）。**保留此行的唯一目的**：将来再动 `_batch.py` 时有对照物。 | 2026-10-01（R15 归档） |
 | **数据库迁移链顺序依赖（v7 需 `file_index` 先存在）（原「六、观察项」）** | **归档（R15，无行动项）**：`file_index` 由迁移链自身创建（`_migrate_v2_v15.py::_migrate_v2_add_file_index`），后续迁移按 `CURRENT_SCHEMA_VERSION` 顺序执行——该依赖是**链内固有顺序**，不构成外部风险。**保留此行的唯一目的**：将来重排迁移顺序时避免踩坑。 | 2026-10-01（R15 归档） |
 | **已接受决策 #4「Mixin 模式拆分大文件」→ 归档（已被 ADR-010/Handler 组合取代）** | **原决策**（2026-06-30）：单文件 >500 行阻断 G-010，用 Mixin 组合在不改对外 API 的前提下切分；当时记录的代价是"Mixin 组合增加一层间接、`super()`/MRO 成为隐式契约"。<br>**现状实测（2026-10-01）**：① `docs/adr/ADR-010-mixin-refactor.md` 状态已是 **🗄 Deprecated**（由 Handler 组合系列 ADR 承接）；② 全库 `class …(*Mixin…)` 只剩 **1 个** `_WindowLifecycleMixin`（`pilotstd/ui/main_window/_window_lifecycle.py:18`，Qt 生命周期硬约束，`tests/test_architecture_mixin_guard.py` 明令豁免），其余拆分载体为 `*_ops.py` **组合**（`self.ops = …`）。<br>**结论**：该决策作为"当前政策"已不成立（项目自己已改判并完成 16→1 重构），台账保留它只会误导读代码的人；**无需任何代码改动**，仅归档并注明取代关系。 | 2026-10-01（R15 归档） |
+| **SQL 文本内嵌 1 处状态字面量（原「六、观察项」）** | **R15 修复（2026-10-01）**：`pilotstd/core/validity_checker.py::register_new_standard` 的 `INSERT` 原写作 `VALUES (?, '未知', ?, ?, ?)`——该中文值嵌在 SQL 文本内，R14-4b 的 AST 口径收敛**覆盖不到**，是全库最后一处漏网。**改为占位符参数** `VALUES (?, ?, ?, ?, ?)` + `Status.UNKNOWN.value`。**验证**：`pytest tests/unit/core/test_validity_checker.py -q` 通过；`git grep` 中 `'未知'` 仅剩 `_migrate_v16_v49.py`（P-106 保护的历史 DDL）。 | 2026-10-01（R15 归档） |
+| **本地 `tests/` 全量运行遇网络用例挂起（原「六、观察项」）** | **R15 修复（2026-10-01）**：`tests/test_manager.py` 的 5 处网络用例原先只有 `skipif(CI)` 守卫，本地无网时会**真实执行并长时间阻塞**（R14-3a/3b/4d 各踩一次，工具调用被迫超时中断）。**改动**：新增模块级 `_NETWORK_DISABLED`（CI 或未设 `PILOTSTD_RUN_NETWORK_TESTS=1`）与 `skip_network` 标记，5 处装饰器统一替换；另加 `pytestmark = pytest.mark.timeout(30)`。**实测**：`pytest tests/test_manager.py -q` → **48 passed / 5 skipped in 3.28s**（此前无限挂起）。**注**：pytest-timeout 在 Windows 只能 dump 栈、无法打断阻塞的 socket 读，真正解决问题的是 opt-in 跳过而非超时。 | 2026-10-01（R15 归档） |
+| **已接受决策 #6「JWT_SECRET 固定默认值（不设环境变量则进程内随机）」→ 归档（R15 已实现持久化）** | **原决策**（2026-06-30）：两种取舍都已接受——显式设 `JWT_SECRET` 时密钥泄露无法靠重启收敛；不设时每次进程启动随机，重启即全体会话失效。<br>**R15 落地（2026-10-01）**：`docker/auth.py` 新增 `_load_or_create_secret()`，优先级为 **环境变量 > `DATA_DIR/.jwt_secret`（权限 600）> 新生成并落盘**；`docker/entrypoint.sh` 同步改为 「环境变量 > 读落盘文件 > 交给应用生成」，不再每次启动随机。**两头问题同时消除**：既不重启掉线，也不依赖固定值。<br>**验证（实测三态）**：首启生成 → 复启复用（两次 `SECRET` 一致、文件存在）；`JWT_SECRET=explicit` 时环境变量优先。**注**：Windows 本机 `os.chmod` 只切只读位（显示 0o666），容器内 Linux 为 600。 | 2026-10-01（R15 归档） |
 | **#32 状态值中文化自由字符串（原「二、剩余台账」）** | **✅ 已清理（A→D 四阶段闭环，2026-10-01）**：**A**（R14-4a）建权威字典 `pilotstd/core/status.py`（`Status` 9 值，value 与现网中文逐字一致；i18n/英文键脚手架；`normalize_status` 别名归一）并收敛 9 处容器定义；**B**（R14-4b）后端业务字面量 **211 → 0**（199 处改引 `Status.*.value`，分 5 个原子 commit）；**C**（R14-4c）API 契约显式化（`status_key` 字段 + 键/中文双口径过滤）＋ **v61 迁移**把状态列默认值收敛到字典（P-106 合规）＋ 前端 13 处中文比较 → **0**（`web/src/utils/stdStatus.ts` 唯一事实源）；**D**（R14-4d）测试字面量 **504 → 25**（替换 456 处／67 文件）＋ **5 处哨兵**（字典契约／扫描基准／API 历史入参／解析层外部输入／DB 历史 DDL，均带注释与断言）。**终局收益**：状态值单一事实源（生产+测试同源）、i18n 与逻辑彻底解耦（改文案不再静默破坏判定）、枚举 value 受跨层哨兵保护；**代价（接受）**：新增测试文件/代码需引用字典而非直写中文（哨兵除外，见 7.31 的五处清单）。 | 2026-10-01 |
 
 
@@ -300,9 +322,9 @@
 
 ---
 
-## 五、已接受的设计决策（7 条，每条含不还的代价）
+## 五、已接受的设计决策（6 条，每条含不还的代价）
 
-> **状态：已接受（7 条，不挂窗口）**——每条均写明"不还的代价"与重评估触发条件。原 #4（Mixin 拆分大文件）已于 **R15 归档**（ADR-010 已 Deprecated、全库 Mixin 仅剩 `_WindowLifecycleMixin` 1 个，见「一、已清理」）。未来若多用户/对外开放，优先复核 #2（静态令牌无 TTL）、#7（内存会话）、#8（WebSocket 无用户级路由）。
+> **状态：已接受（6 条，不挂窗口）**——**R15 归档 2 条**：#4（Mixin 拆分大文件，ADR-010 已 Deprecated）与 **#6（JWT_SECRET，已改为落盘复用）**。——每条均写明"不还的代价"与重评估触发条件。原 #4（Mixin 拆分大文件）已于 **R15 归档**（ADR-010 已 Deprecated、全库 Mixin 仅剩 `_WindowLifecycleMixin` 1 个，见「一、已清理」）。未来若多用户/对外开放，优先复核 #2（静态令牌无 TTL）、#7（内存会话）、#8（WebSocket 无用户级路由）。
 
 > 2026-09-27：旧簿「二、已接受的设计决策」8 条已并入——其中 #1~#5 与本表原有 5 条同源（不重复），**#6 JWT_SECRET 固定默认值**、**#7 内存会话存储（无持久化）** 为本表原先缺失者，已补为下表 **#6/#7**；
 > 旧簿「三、已知问题」#6 **WebSocket 广播无用户级路由** 属"已接受"性质，补为下表 **#8**；旧簿 #8（`__init_tr` 命名）为"已修复"，属「一、已清理」性质，不计入本表。
@@ -313,7 +335,6 @@
 | 2 | 静态 API 令牌不支持过期 / 无 TTL | 2026-06-25 / 2026-07-16 确认 | 令牌由环境变量注入、供仓外脚本调用，加 TTL 会引入"脚本半夜失效"的运维面 | 无外部 API 调用场景；令牌落库存哈希（本轮拆出 `docker/_static_token.py`，`api_keys.key_id='pst_static'`） | 令牌一旦泄露即**永久有效**，无法通过过期收敛风险；当前无外部 API 调用场景，代价暂不可见，但一旦对外开放需先补 TTL/轮换 |
 | 3 | 分批渐进式 G-010 治理 | 2026-06-24 | 一次性拆分 400+ 行文件会引入大面积行为风险；按"触及即拆 + 到期必拆"分批 | **2026-09-27 复核实测**（`check_g_010_code_size.py`）：警告档（>400 且 ≤500）**3 个**、阻断档（>500）**0 个**，最高有效行 **438**（`pilotstd/core/db/_migrate_v16_v49.py` 438 / `web/src/components/AppLayout.vue` **420**（同日删兜底分支后 434→420）/ `web/src/components/NotificationConfig.vue` 438）；第八轮已拆 5 个文件（`check_g_012_sql_schema.py` 497→139、`docker/auth.py` 490→394 等）。原文记"降至 8 个、剩余最高 487"已过期 | 警告区文件长期存在，有一次性阻断 CI 的风险（500 行硬线）；**明细与偿还窗口见台账 #11**（本行不重复登记） |
 | 5 | 纯 UI 编排文件不再拆解 Engine | 2026-07-16 | 这 5 个文件只做控件构建与信号接线，无业务算法，拆解收益低于碎片化成本 | 实测有效行：`_settings.py` 371、`_file_tree_ops.py` 209、`_export_ops.py` 116、`_theme_ops.py` 109、`_file_dialog_ops.py` 39（均 <400，不进警告区） | 只靠 E2E 兜底、无单元测试；若内部沉淀出业务逻辑而未被发现，回归只能靠 E2E 抓，代价是缺陷定位更慢 |
-| 6 | JWT_SECRET 固定默认值（不设环境变量则进程内随机） | 2026-06-30（2026-09-27 自旧簿并入） | 令牌签发密钥由环境变量注入，服务重启后 token 不一定失效；环境变量覆盖有最高优先级 | **实测**：`docker/auth.py:39` `SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(32)` —— **未设环境变量时每次进程启动随机生成密钥**（重启即全体会话失效）；设了则长期固定 | 显式设置 `JWT_SECRET` 时密钥泄露无法靠重启收敛（须手动轮换环境变量）；不设置时反而更安全，但每次重启强制重新登录——两种取舍都已接受 |
 | 7 | 内存会话存储（无持久化） | 2026-06-30（2026-09-27 自旧簿并入） | 简单够用；重启后需重新登录是预期行为 | **实测**：`docker/session_store.py` 存在，会话仅存于进程内存 | 进程/容器重启即全体掉线需重新登录；多副本部署无法共享会话（横向扩容前必须先引入 Redis 等外部会话存储） |
 | 8 | WebSocket 广播无用户级路由（广播到所有连接） | 2026-06-25（2026-09-27 自旧簿并入） | 当前为单用户部署，全局广播够用 | **实测**：`pilotstd/core/notification/manager.py:88` `__init__(config, db, user_id, ws_broadcast=None)`、`:114` `self._ws_broadcast = ws_broadcast` —— 管理器只**保存**调用方注入的广播回调，仓内未见按 `user_id` 过滤广播的代码 | 多用户场景下通知会投递到所有在线连接（当前单用户无实际暴露）；一旦多租户/多账号上线，必须先补按 `user_id` 路由，否则存在通知越权可见风险 |
 
@@ -343,9 +364,9 @@
 
 ## 六、观察项（不属"债"，登记待观察）
 
-**活跃项分两档（2026-10-01 R15 校准）**：**真·观察项 6 条**（下表：受外部依赖/当前架构限制，暂不能动，已绑定事件触发 + 周期兜底）；
-**其余 8 条为"可动作"项**（`待排期` 3 / `观察中` 3 / `待裁定` 1 / `已修复·残留待排期` 1——R15 正逐条修复或裁定，状态见下方明细表）。
-原 2 条 `已收口·并入留痕` 已归档至「一、已清理」。
+**活跃项分两档（2026-10-01 R15 终态）**：**真·观察项 6 条**（下表：受外部依赖/当前架构限制，暂不能动，已绑定事件触发 + 周期兜底）；
+**其余 6 条为「可动作」项**（`待排期` 3 / `观察中` 3 / `待裁定` 1 / `已修复·残留待排期` 1——R15 正逐条修复或裁定，状态见下方明细表）。
+已归档至「一、已清理」的共 **4 条**：2 条 `已收口·并入留痕`（R15 初）+ 2 条 R15 已修复（SQL 内嵌字面量、本地网络用例挂起）。
 
 ### 真·观察项复核表（R15 起生效；每批收尾必读，见 §0.1）
 
@@ -363,7 +384,7 @@
 |---|---|---|---|
 | **[观察中]** #33 TaskView.vue 距 G-010 警告线仅 1 行 | 2026-09-27 批 3 i18n 化后 `check_g_010_code_size.py` 实测 | **现状**：`web/src/views/TaskView.vue` 有效行 **397 → 399**（批 3 i18n 化：`import { useI18n }` + `const { t } = useI18n()` 各 +1），距 G-010 警告线（**>400**）**仅 1 行**。G-010 为两档制——**>400 仅警告、>500 才阻断**，故越线**不阻断 CI**；但越线后此后每次改动都会带一条警告，稀释警告信噪比。**位置**：`web/src/views/TaskView.vue`（有效行 399）。 | **处置**：**下次动该文件时顺手拆分**（局部重构即可，不需专项、**不挂窗口**；候选切口：模板里的"任务历史 + 历史详情"块可拆为子组件）。**代价**：暂不处理时，若某次改动越线，仅多一条 G-010 警告（不阻断），但会让"警告区"多一个长期住户。 |
 | **[待排期]** `tests/` 受控测试不在本地门禁路径 → 改门禁脚本/基线时无法被拦住 | 2026-09-27 批 6 推送后 CI `test-backend` 失败时定位 | **根因**：`scripts/check_all.sh` 只有 `run_docs()` 才调 `pytest`（`check_all.sh:144`，且 `--ignore=tests/gui/`）——**`--fast` 与 `--deep` 都不跑 pytest**；pre-commit 钩子（`.husky/pre-commit`）只跑 `--fast --guards --local`；只有 CI 的 `test-backend` job 才跑 `tests/`（`python -m pytest tests/ -q --tb=short -n auto -p no:pytest-qt … --ignore=tests/gui/`）。于是"改门禁脚本/基线"这类改动的**受控测试**（`tests/test_check_i18n_hardcoded.py`）在本地**结构上不可能被触发**。**现状**：批 6 把 G-040 存量基线从 16 条清零为 0 条（只剩表头），`tests/test_check_i18n_hardcoded.py:245` 的 `assert baseline, "基线文件缺失或为空"` 断言"基线非空"这一**隐含前提**被打破 → CI `test-backend` 失败（run `36293074107`：`1 failed, 3972 passed`），**而本地 `check_all.sh --fast --guards --local` 连跑两次全绿**（G-040 只跑门禁脚本本体，不跑其受控测试）。本地确定性复现方式：`python -m pytest tests/test_check_i18n_hardcoded.py -x -q` → `1 failed, 18 passed`。 | **处置**：① 该用例已改为"断言**基线文件存在**（允许为空）+ 空基线时 `beyond` 捕获全部"，并补 1 条回归用例证明"空基线 ≠ 门禁失效"（任务 A，`49748c19`，现 **20 passed**）；② **流程补强（未实施，本任务明确不改脚本）**——下次改门禁脚本或基线时，本地自查清单追加 `python -m pytest tests/test_check_i18n_hardcoded.py -q`；或评估让 `check_all.sh` 检测到 `scripts/i18n_hardcoded_baseline.txt` 变更时自动跑该受控测试（属门禁变更，需单独决策，届时会连带 G-031 文档同步）。**不挂窗口**。**代价**：自动化落地前，每次改门禁/基线都靠人工记住这条自查，漏掉就红一次 CI 并浪费一轮排查（本次即为实例：从推送→拉日志→定位→修复多花一轮）。 |
-| **[观察中]** `pilotstd/announcement/_attachment_parser.py:104` 的 `TODO(P2)`：`.doc`（OLE2）不被支持（T-12 登记） | 2026-09-27 代码层 TODO 盘点（全库仅 3 类真实 TODO，另 2 类见下与「一、已清理」） | **现状**：注释原文——`# TODO(P2): .doc（OLE2）格式 python-docx 不支持，需另寻解析器（如 antiword/textract）或显式跳过标记`；其所在 `except` 分支只做 `logger.debug("DOCX 解析失败: %s", e)` 后 **返回空串**（`:105-107`）→ 公告附件若是 `.doc`（OLE2），正文会被**静默解析为空**（无用户可见提示） | **处置**：登记为观察项，**不挂窗口**（无用户反馈、无数据支撑 `.doc` 附件占比）。**触发条件**：出现 `.doc` 附件解析需求时，按"引入 `antiword`/`textract` 解析器"或"界面显式标注不支持"二选一评估。**代价**：该类附件正文静默缺失，需人工察觉 |
+| **[观察中]** `.doc`（OLE2）附件不被支持（原 `TODO(P2)`，R15 已消除其静默失效） | 2026-09-27 代码层 TODO 盘点（全库仅 3 类真实 TODO，另 2 类见下与「一、已清理」） | **现状**：注释原文——`# TODO(P2): .doc（OLE2）格式 python-docx 不支持，需另寻解析器（如 antiword/textract）或显式跳过标记`；其所在 `except` 分支只做 `logger.debug("DOCX 解析失败: %s", e)` 后 **返回空串**（`:105-107`）→ 公告附件若是 `.doc`（OLE2），正文会被**静默解析为空**（无用户可见提示） | **处置**：登记为观察项，**不挂窗口**（无用户反馈、无数据支撑 `.doc` 附件占比）。**触发条件**：出现 `.doc` 附件解析需求时，按"引入 `antiword`/`textract` 解析器"或"界面显式标注不支持"二选一评估。**代价**：该类附件正文静默缺失，需人工察觉 |
 | **[观察中]** `web/src/views/HomeView.vue:17` 的 grid-layout-plus workaround（T-12 登记） | 2026-09-27 代码层 TODO 盘点 | **现状**：`:13-17` 注释记录——库内微任务调度器（he/Ze）与 Vue 响应式队列不同步，动态切换 `isDraggable` 时 GridItem 的 interact.js 拖拽监听器不重绑；现以 `layout.value = [...layout.value]` 克隆数组强制 GridItem 重新挂载绕过（`watch(() => appStore.dashboardLocked, …)`）。依赖版本 `web/package.json:22` `"grid-layout-plus": "^1.1.1"`；本轮**未做升级动作**，故 workaround 是否仍必需**未复评** | **处置**：保留 workaround，登记为观察项；**触发条件**：升级 `grid-layout-plus` 时复评（删克隆 → 浏览器实测锁定/解锁后拖拽是否仍生效）。**不挂窗口**。**代价**：每次锁定切换多一次数组克隆 + GridItem 重挂载（可忽略）；风险是库升级后行为变化时，workaround 可能掩盖新问题 |
 | **[观察中]** **配置文件跨进程写锁（原 #31-P3，降级观察；T-35 登记）** | 2026-10-01 R14-4a 用户裁定（#31 核心闭环时降级） | **现状**：`ConfigManager.save()` 为「写 `.tmp` → `os.replace`」的原子替换 + 最多 3 次重试，**无跨实例/跨进程文件锁**；两个进程同时对同一 `config.json` 显式写入属 last-writer-wins。**量化判断**：R14-3a/b 后单批查询写盘 **126 → 2 次**、构造 **133 → 1**，且写盘只发生在「首次创建 / 迁移有变更 / 显式 GUI 或 API 修改」——两进程在同毫秒内显式写的概率在工程上可忽略。**不引入的理由**：文件锁跨平台语义差异大（POSIX `flock` vs Windows `LockFileEx`）、边缘情况多（NFS 挂载、异常退出遗留锁），维护成本高于其防范风险。**处置**：**挂观察**（不排期）。**触发条件**＝实际观测到并发写导致的配置丢失（日志/用户反馈/回归用例）→ 届时优先用「原子写 + 重试 + 写后校验」或「SQLite 配置后端」，**而非**引入文件锁。**代价（接受）**：极端并发下仍可能丢一次显式写入（写盘次数已降两个数量级，风险同比例下降）。 |
 
@@ -373,50 +394,12 @@
 | **[已修复·残留待排期]** **CI 的 `Docs sync check` 步骤跑错脚本（形近名）→ 步骤长期空转（T-25 登记）** | 2026-09-27 第十一轮开轮侦察（拉 6 次 run 的 `repo-compliance` 日志与 `ci.yml` 逐字比对） | **根因（双重空转）**：① 第十轮把 `ci.yml` 该步骤写成 `python scripts/check_docs_sync.py --strict`，而 `--range/--strict` 的实现全在 **`scripts/docs_sync_check.py`**（两脚本仅差 `check_` 前缀）→ **CI 从未执行过严格模式**；② 被实际执行的 `check_docs_sync.py`（5 条「核心模块 → 架构文档」映射）当时只做 `git diff --name-only origin/<base>..HEAD`——**推送到 main 时 `origin/main` 与 `HEAD` 相同、浅克隆下甚至取不到** → 恒 `[docs-compliance] PASS: 无变更文件`、**恒 `exit 0`**。**证据**：6/6 run 该步骤 `success`，日志只有一行 `[docs-compliance] PASS: 无变更文件`（如 run `36301687032` 第 223 行）；`git grep docs-compliance` 仅命中 `check_docs_sync.py`。**后果**：T-16 的「告警期观察」6 次**全部无效**（观察对象是空转脚本）；这是**第四个 CI 盲区实证**（前三个：G-040 受控测试不在本地路径、ruff/mypy 不在 `--fast`、`tests/` 受控测试路径缺口）。**现状（R11-1 已修）**：`ci.yml` 该步骤**依次跑两个脚本**（`set -e`）——`docs_sync_check.py --strict` + `check_docs_sync.py --strict`；后者补齐**范围回退链**（`--range` → `DOCS_SYNC_RANGE` → `--base`/`BASE_BRANCH`（`origin/<base>...HEAD`）→ `origin/main...HEAD` → `HEAD~1..HEAD`；三点范围与全 0 SHA 正确处理）与**告警期语义**（未同步时打印 `[docs-compliance] WARN(告警期) … **未阻断**（exit 0）`，**绝不静默 PASS**；`--strict-block` 才 `exit 1`）。**受控验证**：`--range a7225689^..a7225689`（历史提交：改了 `pilotstd/ui/` 未同步 `ui.md`）→ 告警期 WARN + **EXIT=0**；`--strict-block` **EXIT=1**；无标志（历史行为）**EXIT=1**；干净范围 PASS + EXIT=0。**另修脚本自身缺陷**：Windows GBK 控制台打印 `❌` 抛 `UnicodeEncodeError` → **假性 exit 1**（本该 exit 0 的告警期），已补 `sys.stdout.reconfigure(encoding="utf-8")`（与同目录其他门禁一致）。 | **窗口：第十一轮已修（R11-1）**；**T-16 观察计时器归零重置**——前 6 次无效，自 R11-1 起重新计时（连续 3~5 次误报为 0 且 WARN 语义确认后，把两个脚本的 `--strict` 改为 `--strict-block`）。**代价**：CI 该步骤 +1~2s（多跑一脚本）；两形近脚本并存仍是长期隐患（建议第十二轮评估合并/改名）。<br>**R11-3 补丁（2026-09-27，第五个 CI 盲区：范围取值陷阱）**：上述修复落地后步骤**仍在空转**——`DOCS_SYNC_RANGE` 原写成 `${{ github.event.before }}..${{ github.event.sha }}`，而 **push 载荷没有 `event.sha` 字段**（应为通用上下文 `github.sha`；push 专有字段为 `github.event.after`）→ 右端空 → 候选非法 → 回退 `origin/main...HEAD` → 推送到 main 时 `origin/main == HEAD`、diff 恒空 → `PASS: 无变更文件`。**实证**：GitHub 在步骤日志里直接打印该变量，run `36304263963`（`b2a8717c`）为 `DOCS_SYNC_RANGE: 27a39d6102c4d076a05f960100668acc08ef9c93..`（左端正确、**右端为空**）；本地以同形态复现出与 CI **逐字相同**的 `变更来源: origin/main...HEAD（BASE_BRANCH=main）｜模式: 告警期` + `PASS: 无变更文件`。**修复**：① `.github/workflows/ci.yml` 右端改 `${{ github.sha }}`；② 两脚本回退链加“**diff 非空**”校验（严格模式）——空 diff 的候选继续回退到 `HEAD~1..HEAD`，全部为空时以“该范围无变更”显式说明收场（绝不静默 PASS）；`--range` 硬指定不受过滤；非严格模式保持旧行为（避免本地误抓历史提交触发自动改文档）。**受控测试**：新增 11 例（`tests/test_check_docs_sync.py` 6 + `tests/test_docs_sync_check.py` 5），修复前 **6 failed**、修复后 **19 passed**。**T-16 计时器再次归零**（自 R11-3 起重新计时）。**编号说明**：本条作为 T-25 的补丁延续、不新开编号（`T-26` 已用于 #34 复发哨兵）。<br>**R11-3b 补丁之二（2026-09-27）**：R11-3 首次提交**遗漏了 YAML 修改**（编辑工具在 CRLF 文件上锚点失配，重做时的补丁脚本只覆盖两个 .py）——CI 日志自证 run `36306033918` 仍为 `DOCS_SYNC_RANGE: 409a5be1…92..`；本批补齐。并查明**第二、三层根因**：② `origin/main...HEAD` 在推送 main 时恒空（`origin/main == HEAD`，与是否浅克隆无关）；③ 同作业更早的 `check-repo-compliance.sh` 用 `git fetch origin main --depth=1` **在 tip 建立浅边界** → `HEAD~1` 不可用（实测 `fatal: Needed a single revision`）、`git log -n2` 只剩 1 条 → 兜底 `HEAD~1..HEAD` 亦失效。**修复**：`ci.yml` 右端 → `${{ github.sha }}`；`check-repo-compliance.sh` 去掉 `--depth=1`；两脚本新增 `_is_shallow_clone()`（浅克隆下声明“历史被截断”，不得谎称“该范围无变更”）。**浅克隆端到端复刻**（探针不入库）：右端为空 → 带浅克隆提示；**显式完整范围 → 真实评估 8 个文件**；受控测试 **23 passed**（含 4 例浅克隆断言）。 |
 | **[待裁定]** **CI 红灯暴露时间被 runner 排队主导（全局并发组串行）＋ 下游重作业未做 lint 门控（T-30 登记）** | 2026-09-27 R11-5 实测 11 次 run（`.github/workflows/ci.yml` 的 `concurrency: group: ci-cd` + `cancel-in-progress: false`） | **现状（实测，见 7.14）**：11 次 run 的**作业启动时刻**相对 run 开始为 **中位 154s、最长 471s**（连续推送时后一个 run 必须等前一个跑完）；而作业内 lint 红灯仅需 **+12~14s**（`repo-compliance` 的 G-038）。即“红灯 3 分钟才暴露”的观感来自**排队**，与步骤顺序无关。另：`test-backend`／`test-gui-*`／`e2e-*` 等重作业**没有** `needs: repo-compliance`，lint 失败时它们仍会跑完（实测 `test-backend` 作业内 94~133s 的 pytest 照跑），浪费 2~5 分钟机时。 | **处置**：登记为观察项，**挂第十二轮**（候选修法：① 并发组按 ref 拆分 `ci-cd-${{ github.ref }}` 或对非 main 推送启用 `cancel-in-progress`；② 给下游重作业加 `needs: [repo-compliance]`，或单独拆一个 `lint-fast` 作业作前置门控——收益＝lint 失败时下游根本不启动）。**不挂空窗的代价**：每次推送若撞上排队，红灯反馈延迟 2~8 分钟；lint 失败时下游 4~5 个作业仍白跑（机时 + CI 分钟消耗）。<br>**R12-1 归因结论（2026-09-27，78 run 全量 + 10 run 关键路径，见 7.15）**：① **自串行**——本仓库的 `concurrency: group: ci-cd` + `cancel-in-progress: false` 让连续推送排队：**26/78 = 33%** 的 run 创建时被前一个 run 挡住，等待 1~1340s（被挡样本中位 ≈300s）；② **runner 分配不是瓶颈**（未被挡时作业启动 +3s）；③ **放大因子是单次 run 太长**——run 中位 **828s**，关键路径 `test-gui-unit` **467s** → `version` 8s → `docker`/`exe` ≈176s；④ 「bump 提交产生额外 run」**已证伪**（`GITHUB_TOKEN` 推送不触发 workflow，78 run 中 bump 类型 0 个，另见 T-31）。**方案对比 A~F** 见 7.15，推荐「单并发组改按 ref + `cancel-in-progress: true`」（1 行）＋（第二批）缩短关键路径。**处置：挂第十二轮 P0，待用户选型后进 R12-2。**<br>**R12-2 落地（2026-09-27）**：按用户选型落 **方案 G**——`concurrency.group` 改 `ci-cd-${{ github.ref }}`、`cancel-in-progress: true`（1 处配置，检查逻辑零变更）。**生效机制**：① 新推送进入**同 ref 组**并取消该组内被取代的旧 run → 不再等待前一个 run 跑完；② 分支/PR 推送改用自己的组，**不再占用 main 的槽位**（旧配置是全局单组，三者共享）。**观察口径**：以“作业启动延迟”（`job.started_at − run.run_started_at`）为指标，基线＝未排队样本 **+3s**、被挡样本中位 **≈300s**；连续 3 次 run 中位 ≤10s 即判定生效，随后进 R12-3（方案 C：lint-fast + `needs` 门控）或 D/E（缩短关键路径）。<br>**首个数据点（R12-2 推送后实测，2026-09-27）**：R12-2 的 run `36309693229`（组 `ci-cd-refs/heads/main`）作业启动延迟 **中位 +2.0s**（2.0／2.0／2.0／2.0／3.0／3.0／4.0，n=7）；**同时间窗对照**：旧组 run `36309485009`（R12-1，组 `ci-cd`，当时与 R11-5 的 run 串行）作业启动延迟 **中位 +198s**（197~257）——对照组即旧模型行为；而 R12-2 的 run 在旧组仍有 run 在飞的情况下**即时启动**，证明按 ref 分组已把两者解耦。**判定：G 生效（+2.0s ≤ 目标 10s）**，待再观察 2 次 run 的排队指标。**路线确认（用户 2026-09-27 裁定）**：R12-2＝G + T-28（已落地）；**R12-3＝方案 C**（lint-fast + `needs` 门控，失败 run 828s → ~60s）；**D/E（缩短关键路径）挂后**，待 G+C 稳定后再立专项。<br>**R12-3 阶段二落地（2026-09-27）**：按裁定落 **方案 C**——新增 `lint-fast` 作业（G-038 ruff+mypy+裸noqa，**命令/范围零改动**）并作为 **9 个下游作业**的 `needs` 门控（`version`／`docker`／`exe` 传递性门控）。**判定口径**：受控失败时①`lint-fast` 快速失败（≈20~40s）；②下游作业状态为 **skipped**（未被触发）；③失败 run 时长 ≈ 快闸时长（目标 ≤60s，基线 828s）。**绿灯路径**：+≈20s（快闸串行在前）。**G 第一阶段收口条件**：第 3 个 run 的作业启动延迟中位 ≤10s（前两次 +2.0s／+7.0s），达标即宣告 G 成功、T-30 第一阶段关闭，仅余方案 D／E（缩短关键路径）作为独立专项。<br>**R12-3b 实测（2026-09-27）**：① **第 3 个数据点**——R12-3 的 run `36310444541` 首个作业（`lint-fast`）启动 **+16.0s**，**原始值超 ≤10s 阈值**；同窗旧组对照（R12-1 `36309485009`）+198s。② **取消语义再现**：R12-2（`46a4a67f`）被 R12-2b 取消、R12-2b（`7c478c6f`）被 R12-3 取消（同 ref 组），而**旧组** R12-1 success 未被影响；取消后其内容由下一次 run 覆盖验证。③ **方案 C 绿灯代价**：`lint-fast` 启动 +16.0s、时长 14.0s，下游首个作业 +32.0s。**收口判定**：队列效应已消除（新组 2~16s vs 旧组 197~257s），但第 3 个数据点原始值 16.0s 未达 ≤10s——**是否宣告 G 第一阶段收口由用户裁定**（建议按“队列效应消除”收口，并把指标改为“首个作业启动延迟 ≤20s 且旧组同窗对照 ≥100s”，理由：门控落地后该指标已含 runner 分配与快闸时长两层，不再是纯队列量）。 |
 | **[观察中]** **自动 `chore: bump version` 提交不触发任何 CI（T-31 登记）** | 2026-09-27 R12-1 排队归因取数时发现（原假设“bump 提交会产生额外 run”被证伪） | **现状**：`version` 作业用 `GITHUB_TOKEN` 推送 bump 提交，而 GitHub 规定**用 `GITHUB_TOKEN` 的推送不触发 workflow** → 78 个 run 中 head 为 bump 提交的**0 个**；即 bump 内容（版本号写入 `pilotstd/__init__.py`、`CHANGELOG.md` 等）**没有独立 CI 验证**，靠**下一次推送**的 `test-backend` 里 `G-009 — Check CHANGELOG version consistency` 兜底。**影响（正面与负面）**：正面＝不额外占用 CI 与排队（T-30 归因因此少一源）；负面＝若某次 bump 写坏而此后长期无推送，问题会静默滞留。 | **处置**：登记为观察项，**暂不动作、不挂窗口**（兜底已存在且 bump 由版本脚本生成、内容确定性高）。**触发条件**：出现“版本号/CHANGELOG 不一致”类事故时，评估给 bump 提交加显式验证或改用 PAT 触发。**代价**：极端情况下 bump 错误可静默到下一位开发者推送。 |
-| **[待排期]** **SQL 文本内嵌 1 处状态字面量（R14-5 复盘新增）** | 2026-10-01 R14-5 任务二"隐性债务显性化"扫描（AST 口径之外的形态） | **现状**：`pilotstd/core/validity_checker.py:56` 的 SQL 文本里直接写了 `"VALUES (?, '未知', ?, ?, ?)"` —— 该字面量**不是** Python 字符串常量（嵌在 SQL 语句内），因此 R14-4b 的 AST 收敛**覆盖不到**它，`pilotstd/` 全库仅此 1 处。**影响**：字典 value 若变更，这处会与新值脱节（与 Sentinel 5 关注的 DDL 默认值同类，但不受哨兵覆盖）。 | **处置**：登记为**待排期**（本批按 R14-5 范围只做文档，不动生产代码）。**修法（1 行）**：把 `'未知'` 改成 `?` 占位符，参数传 `Status.UNKNOWN.value`；改后需跑 `tests/unit/core/test_validity_checker.py` + `tests/test_validity_checker_full.py`。**代价**：暂不修时该处与字典存在脱节风险（概率低：`未知` 是 DB 默认值语义，几乎不会改）。 |
-| **[观察中]** **cookiecutter CLI 未纳入依赖（R14-5 新增）** | 2026-10-01 R14-5 任务一"生成物验证"落地时发现 | **现状**：`requirements-dev.txt` 无 `cookiecutter`；本仓库对模板的正确性验证改用 **jinja2 等价渲染**（`tests/unit/test_adapter_template_generation.py`，FastAPI 依赖链自带 jinja2）。即"真实 cookiecutter 生成路径"（含 `hooks/post_gen_project.py` 的自动注册）**未被 CI 覆盖**。 | **处置**：登记为**观察中**。**触发条件**＝需要验证 post-gen 注册行为（模板改动涉及 hooks）或适配器脚手架被频繁使用 → 把 `cookiecutter` 加进 dev 依赖并补一条真实 CLI 生成用例。**代价**：hooks 脚本的回归只能靠人工跑一次 cookiecutter；模板本体（渲染/编译/零字面量）已由 jinja2 用例覆盖。 |
-| **[待排期]** **本地 `tests/` 全量运行遇网络用例挂起（R14-5 新增）** | 2026-10-01 R14-3a/3b/4d 多次本地全量跑时实测 | **现状**：`tests/test_manager.py` 的网络用例在 `CI=true` 下由 `skipif` 跳过，但**本地无网/弱网环境下会真实执行并挂起**（R14-3a/3b 各遇到一次，工具调用被迫超时中断；`tests/` 全量本地跑需 `--ignore=tests/test_manager.py`）。**根因**：这些用例只有"CI 环境跳过"的守卫，**没有"无网即快速失败"的超时兜底**（pytest-timeout 已装但未给该文件设默认上限）。 | **处置**：登记为**待排期**（不挂窗口）。**修法候选**：① 给该文件加 `@pytest.mark.timeout(30)` 或模块级 `pytestmark`；② 把 `skipif(CI)` 扩为 `skipif` 探测网络可达性；③ 文档化"本地全量跑用 `--ignore=tests/test_manager.py`"。**代价**：本地全量跑需人工记得排除；否则浪费一轮工具超时。 |
+| **[观察中]** **cookiecutter CLI 端到端生成仍未纳入 CI（R14-5 新增，R15 部分缓解）** | 2026-10-01 R14-5 任务一"生成物验证"落地时发现 | **现状**：`requirements-dev.txt` 无 `cookiecutter`；本仓库对模板的正确性验证改用 **jinja2 等价渲染**（`tests/unit/test_adapter_template_generation.py`，FastAPI 依赖链自带 jinja2）。即"真实 cookiecutter 生成路径"（含 `hooks/post_gen_project.py` 的自动注册）**未被 CI 覆盖**。 | **处置（R15 更新）**：`cookiecutter` 已加入 `requirements-dev.txt`；钩子本体已由 `tests/test_adapter_post_gen_hook.py`（jinja2 渲染 + 假项目根跑通五处注册）覆盖，并在落地时当场抓到并修掉钩子内 f-string 与 Jinja 占位符冲突的静默缺陷。**仍缺**：真实 `cookiecutter` CLI 的端到端生成（含目录命名/交互）未被 CI 覆盖。**触发条件**＝模板改动涉及 hooks 或脚手架被频繁使用 → 补一条真实 CLI 用例。**代价**：hooks 脚本的回归只能靠人工跑一次 cookiecutter；模板本体（渲染/编译/零字面量）已由 jinja2 用例覆盖。 |
 | **[观察中]** **`check_schema_consistency` 的"测试建生产同名表"约束无提示（R14-5 新增）** | 2026-10-01 R14-4c 提交被该门禁阻断时实测 | **现状**：`scripts/check_schema_consistency.py` 扫描 `tests/` 内 `CREATE TABLE <生产表名>`，要求列集与迁移链产出的生产 schema **完全一致**（否则 `MISSING > 0` 阻断提交）。R14-4c 的 v61 迁移测试需要一个"默认值漂移"的 `file_index` 表 → 直接建表会 MISSING=50 → 最终用**中性表名 + `ALTER TABLE … RENAME TO`** 规避（RENAME 保留 DEFAULT 子句）。**影响**：约束本身合理（防测试 fixture 与生产脱节），但**无自动化提示**——新人写同类测试时只能靠门禁报错反推。 | **处置**：登记为**观察中**。**触发条件**＝再出现一次同类阻断（或有人反馈难以理解）→ 在该脚本输出里补一行指引（"若只想构造局部形态，请用中性表名 + RENAME"）。**代价**：偶尔一次提交被拦 + 需阅读脚本才能理解缘由。 |
 
 > **2026-09-27 结构重整**：已闭环的 5 行按归属移出——「单条网络请求/大文件 IO 不可中断」（✅ 已接受）与「`_migrate_v59_…` docstring 过时」（✅ 已决定不改）→「五、已接受的设计决策 · 归档并入」；「拆出新模块时注释密度被稀释」（✅ 已落实）、「#23 合并前侦察未覆盖全组合」（✅ 已落实）、「#27 gates.md 版本历史两行挤在同一物理行」（✅ 已修复）→「一、已清理 · 归档并入」。本节现只保留**仍未闭环**的观察项。 **2026-09-27（R11-5）补记**：**T-20 已 ✅ CLOSED**（R11-4 实测证伪原假设 + 交付基线/普查工具），按本节规则移入「一、已清理」；其剩余可治理项拆为 **T-29**（8 处永久 `mark.skip`，挂第十二轮）。 **2026-09-27（R12-2b）补记**：**T-28 亦 ✅ CLOSED**（`-rs` 已覆盖全部 5 处 pytest 调用，CI 日志实证 44 条跳过明细），同样移入「一、已清理」。 **2026-09-27（R12-4a）补记**：**T-32 亦 ✅ CLOSED**（L1 触发式已覆盖 `.pyi/.pyw`，双向受控验证通过），同样移入「一、已清理」。 **2026-09-27（R12-8）补记**：**T-26（#34 复发哨兵观察项）随 #34 修复而关闭**——新哨兵转为：任何 GUI 作业再现 access violation → 立即重跑 `gui-race-probe`（loops=50）并回溯是否引入新的 Qt 锁／线程 churn 模式。 **2026-10-01（R14-5）校准**：**T-26 与 T-24 两行自本节移入「一、已清理」**（前者 R12-8 已关闭、后者 L1/L2/L3 全部落地收口），本节仅保留仍未闭环的观察项；同时新增 4 条 R14 复盘发现的隐性债务（SQL 内嵌状态字面量／cookiecutter CLI 未入依赖／本地网络用例挂起／schema 一致性门禁约束无提示），并给每条加状态标签 + 汇总表。
 
 ---
-
-### 7.32 R14-5：适配器模板状态字典同步 + 技术债台账归档整理与存续项校准
-
-**执行方式**：两个任务同批完成（用户指定并行、各 0.5 周期）。
-
-#### 一、任务一：Adapter 模板状态字典同步
-
-| 项 | 内容 |
-|---|---|
-| 核心目标 | `pilotstd/templates/adapter/**` 内硬编码中文状态字面量 → 引用 `pilotstd.core.status.Status` |
-| 改动 | ① 适配器主体模板：`status_map` 与兜底默认值改 `Status.*.value`（归一方向与原模板**逐字等价**）+ 新增 `from pilotstd.core.status import Status`；② 测试模板：夹具取值与断言改 `Status.ACTIVE.value` + 同样补 import |
-| 未定/保留 | `fixtures/*_sample.json` 的 `"standardStatusName": "现行"` **刻意保留**——它模拟**外部站点报文**（被解析的输入，非代码常量），与 R14-4d 哨兵同理；模板内 `"现行有效"` 为站点自定义写法（**不在 9 值字典内**）亦保留原文 |
-| 生成物验证 | 新增 `tests/unit/test_adapter_template_generation.py`（**10 例**）：`cookiecutter.json` 上下文 + jinja2 `StrictUndefined` 渲染 → **四种 `response_type` 分支**全部 `ast.parse` + `py_compile` + AST 扫描零裸状态字面量 + 生成物 import 行 `exec` 验证可解析 + 夹具 JSON 保留外部中文载荷 |
-| 依赖说明 | 本仓库未把 `cookiecutter` 包列入依赖 → 用 jinja2 等价渲染（变量替换 + 目录改名语义一致），**不为 CI 增加新依赖**；真实 CLI 路径的缺口已登记为观察项 |
-
-**模板缺陷（生成测试当场抓到并修复，3 类）**：
-
-| # | 缺陷 | 后果 | 修复 |
-|---|---|---|---|
-| 1 | 3 处伪占位符 `{{模板引擎.*}}` | cookiecutter 默认 `Undefined` 下**静默渲染为空串**（模块注释被吃掉） | 改为正确的 `{{ cookiecutter.* }}` 占位符 |
-| 2 | **48 处 `-%}`** 尾随空白控制 | 吞掉换行与缩进 → **默认配置下生成的适配器就 `IndentationError`** | 统一改为 `%}`（控制标签独占行，渲染为空白行） |
-| 3 | 1 处死条件 `[rec] if True  # … else mock_resp` | 生成物 `SyntaxError` | 按等价语义改写（`if True` 分支恒被选中，删死分支） |
-
-**验证**：4 个 `response_type` 分支渲染后全部编译通过；生成测试 **10 passed**；`ruff check tests/` 全绿。
-
-#### 二、任务二：台账归档整理 + 存续项校准 + 隐性债务显性化
-
-| 动作 | 落实 |
-|---|---|
-| ① 已清理项归档 | 「一、已清理」更名为**历史归档**区并加状态导语；**#31 / #32** 的量化摘要复核无误（`save() 135→2`／构造 `133→1`／`get_profile 577→5ms`；`211→0`／前端 `13→0`／测试 `504→25`）；本批另归档 **T-26**（R12-8 随 #34 修复关闭）、**T-24**（L1/L2/L3 收口）、**R14-5 模板三缺陷**、**`vue-tsc` 假绿教训** |
-| ② 存续项全量盘点 | **「二、剩余台账」实测 0 条**（#31/#32 均已闭环）并在本区明写；「三/三-B/四/五」分别加状态标注（**维持现状（已接受）／✅ 已实施／环境依赖保留（不排期）／已接受（8 条）**）；「六、观察项」**逐条加状态标签**（`观察中` 8、`观察中·计时中` 1、`待排期` 3、`待裁定` 1、`已收口·并入留痕` 2、`已修复·残留待排期` 1）并新增**状态汇总表**（项／状态／挂窗口／触发条件） |
-| ③ 隐性债务显性化 | 复盘 R14 各批交付报告的"侥幸点／坑／可选未做项"，补登 **4 条**：SQL 文本内嵌 1 处状态字面量（AST 口径外）／cookiecutter CLI 未入依赖／本地网络用例挂起无超时兜底／`check_schema_consistency` 的测试建表约束无提示 |
-| ④ 版本与链接 | 版本 **v1.43.0 → v1.44.0**（本簿自有序列；用户提示的"v1.71"对应 `gates.md` 版本线，已在报告差异表说明）；**内部链接检查：文件级死链 0 / 锚点级死链 0** |
-| 交叉验证 | 代码层 `TODO/FIXME/HACK` 全库 **4 处**——`_attachment_parser.py:104`（已登记）、`scripts/check_g_030_tech_debt.py:6`（门禁脚本文档，非债）、`docker/requirements-docker.txt:28`（passlib/bcrypt 待上游修复，随本次纳入观察口径）、`pilotstd/scan/parser/__init__.py:200`（解析失败日志格式统一，低优先） |
-
-**用户验收项对照**：① 活跃条目**全部**有明确状态标注（16/16，无模糊描述）✓；② 存续项数量与代码现状一致（剩余台账 0 条 + 观察项 16 条，与 TODO 扫描交叉验证）✓；③ 历史摘要数据与交付报告一致（#31/#32 数字均为各批报告实测值）✓；④ 内部链接可点击（死链 0）✓。
 
 ## 七、操作记录（一次性数据操作 + 留档 SQL + 只读巡检）
 
@@ -1802,3 +1785,40 @@ GUI 设置页 (ui/core/handlers/_settings*.py)          Web API (docker/api/sett
 | D | R14-4d | 测试收敛 + 哨兵机制 | 测试字面量 **504 → 25**；哨兵 **5 处** |
 
 **探针/脚本（不入库）**：`r14_4d_inventory.py`（tests/ 双口径盘点）、`r14_4d_wrap.py`（超长行自动折行）、`r14_4d_sentinels.py`／`r14_4d_sentinel4.py`（哨兵落地）。
+
+
+### 7.32 R14-5：适配器模板状态字典同步 + 技术债台账归档整理与存续项校准
+
+**执行方式**：两个任务同批完成（用户指定并行、各 0.5 周期）。
+
+#### 一、任务一：Adapter 模板状态字典同步
+
+| 项 | 内容 |
+|---|---|
+| 核心目标 | `pilotstd/templates/adapter/**` 内硬编码中文状态字面量 → 引用 `pilotstd.core.status.Status` |
+| 改动 | ① 适配器主体模板：`status_map` 与兜底默认值改 `Status.*.value`（归一方向与原模板**逐字等价**）+ 新增 `from pilotstd.core.status import Status`；② 测试模板：夹具取值与断言改 `Status.ACTIVE.value` + 同样补 import |
+| 未定/保留 | `fixtures/*_sample.json` 的 `"standardStatusName": "现行"` **刻意保留**——它模拟**外部站点报文**（被解析的输入，非代码常量），与 R14-4d 哨兵同理；模板内 `"现行有效"` 为站点自定义写法（**不在 9 值字典内**）亦保留原文 |
+| 生成物验证 | 新增 `tests/unit/test_adapter_template_generation.py`（**10 例**）：`cookiecutter.json` 上下文 + jinja2 `StrictUndefined` 渲染 → **四种 `response_type` 分支**全部 `ast.parse` + `py_compile` + AST 扫描零裸状态字面量 + 生成物 import 行 `exec` 验证可解析 + 夹具 JSON 保留外部中文载荷 |
+| 依赖说明 | 本仓库未把 `cookiecutter` 包列入依赖 → 用 jinja2 等价渲染（变量替换 + 目录改名语义一致），**不为 CI 增加新依赖**；真实 CLI 路径的缺口已登记为观察项 |
+
+**模板缺陷（生成测试当场抓到并修复，3 类）**：
+
+| # | 缺陷 | 后果 | 修复 |
+|---|---|---|---|
+| 1 | 3 处伪占位符 `{{模板引擎.*}}` | cookiecutter 默认 `Undefined` 下**静默渲染为空串**（模块注释被吃掉） | 改为正确的 `{{ cookiecutter.* }}` 占位符 |
+| 2 | **48 处 `-%}`** 尾随空白控制 | 吞掉换行与缩进 → **默认配置下生成的适配器就 `IndentationError`** | 统一改为 `%}`（控制标签独占行，渲染为空白行） |
+| 3 | 1 处死条件 `[rec] if True  # … else mock_resp` | 生成物 `SyntaxError` | 按等价语义改写（`if True` 分支恒被选中，删死分支） |
+
+**验证**：4 个 `response_type` 分支渲染后全部编译通过；生成测试 **10 passed**；`ruff check tests/` 全绿。
+
+#### 二、任务二：台账归档整理 + 存续项校准 + 隐性债务显性化
+
+| 动作 | 落实 |
+|---|---|
+| ① 已清理项归档 | 「一、已清理」更名为**历史归档**区并加状态导语；**#31 / #32** 的量化摘要复核无误（`save() 135→2`／构造 `133→1`／`get_profile 577→5ms`；`211→0`／前端 `13→0`／测试 `504→25`）；本批另归档 **T-26**（R12-8 随 #34 修复关闭）、**T-24**（L1/L2/L3 收口）、**R14-5 模板三缺陷**、**`vue-tsc` 假绿教训** |
+| ② 存续项全量盘点 | **「二、剩余台账」实测 0 条**（#31/#32 均已闭环）并在本区明写；「三/三-B/四/五」分别加状态标注（**维持现状（已接受）／✅ 已实施／环境依赖保留（不排期）／已接受（8 条）**）；「六、观察项」**逐条加状态标签**（`观察中` 8、`观察中·计时中` 1、`待排期` 3、`待裁定` 1、`已收口·并入留痕` 2、`已修复·残留待排期` 1）并新增**状态汇总表**（项／状态／挂窗口／触发条件） |
+| ③ 隐性债务显性化 | 复盘 R14 各批交付报告的"侥幸点／坑／可选未做项"，补登 **4 条**：SQL 文本内嵌 1 处状态字面量（AST 口径外）／cookiecutter CLI 未入依赖／本地网络用例挂起无超时兜底／`check_schema_consistency` 的测试建表约束无提示 |
+| ④ 版本与链接 | 版本 **v1.43.0 → v1.44.0**（本簿自有序列；用户提示的"v1.71"对应 `gates.md` 版本线，已在报告差异表说明）；**内部链接检查：文件级死链 0 / 锚点级死链 0** |
+| 交叉验证 | 代码层 `TODO/FIXME/HACK` 全库 **4 处**——`_attachment_parser.py:104`（已登记）、`scripts/check_g_030_tech_debt.py:6`（门禁脚本文档，非债）、`docker/requirements-docker.txt:28`（passlib/bcrypt 待上游修复，随本次纳入观察口径）、`pilotstd/scan/parser/__init__.py:200`（解析失败日志格式统一，低优先） |
+
+**用户验收项对照**：① 活跃条目**全部**有明确状态标注（16/16，无模糊描述）✓；② 存续项数量与代码现状一致（剩余台账 0 条 + 观察项 16 条，与 TODO 扫描交叉验证）✓；③ 历史摘要数据与交付报告一致（#31/#32 数字均为各批报告实测值）✓；④ 内部链接可点击（死链 0）✓。

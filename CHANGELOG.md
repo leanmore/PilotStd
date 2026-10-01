@@ -6,8 +6,26 @@
 
 ## v0.124.0 (2026-10-01)
 
+### Added
+- **R15 配置自愈与密钥持久化**（个人软件技术债治理）
+  - `docker/auth.py`：新增 `_load_or_create_secret()` —— 未设 `JWT_SECRET` 时生成并落盘 `DATA_DIR/.jwt_secret`（权限 600），后续启动复用；容器重启不再全员掉线（决策 #6，台账已归档）
+  - `docker/entrypoint.sh`：改为「环境变量 > 读落盘文件 > 交给应用生成」，不再每次启动随机
+  - `pilotstd/core/config/manager.py`：`save()` 在 `os.replace` 前留 `config.json.bak`；`_load()` 解析失败**优先从备份回滚** —— 不引入跨进程文件锁，但把「并发写丢一次配置」的恢复成本压到接近 0（T-35 再保险）
+  - `tests/test_adapter_post_gen_hook.py`：post_gen 钩子回归（假项目根跑通五处注册）
+  - `requirements-dev.txt`：新增 `cookiecutter`（仅开发环境，不进发行版）
+
+### Changed
+- `tests/test_manager.py`：5 处网络用例改为显式 opt-in（`PILOTSTD_RUN_NETWORK_TESTS=1`）+ 30s 超时兜底 —— 解决本地全量跑无限挂起（实测 48 passed / 5 skipped / 3.3s）
+
 ### Fixed
 - 版本号自动同步（CI 更新）
+- `pilotstd/core/validity_checker.py`：SQL 文本内的状态字面量 `'未知'` → 占位符参数 `Status.UNKNOWN.value`
+- `pilotstd/announcement/_attachment_parser.py`：附件正文解析失败由 DEBUG 升为 WARNING（消除「正文静默为空」）
+- `pilotstd/templates/adapter/hooks/post_gen_project.py`：修复 f-string 与 Jinja 占位符冲突（生成物会残留 `{ cookiecutter.site_label }`）
+
+### Docs
+- `docs/technical-debt.md` v1.45.0 —— **活跃观察项 16 → 12**（僵尸 2 条 + R15 已修 2 条归档）、**已接受决策 8 → 6**（#4 Mixin 归档、#6 JWT 已实现归档）；新增「真·观察项复核表」（6 条，绑定 Review_Trigger / Review_Cycle / 取证入口）、§0.1 每批收尾 2 分钟复核条款、§0.3 R16 候选池（P0~P3）、§0.4 R15 一周观察期清单；修正 R14-5 误置于 §六 之前的 §7.32
+- `docs/architecture/modules/core.md`：配置节补 `.bak` 再保险语义；`docs/reference/announcement-pipeline.md`：补附件解析告警语义
 
 ## v0.123.0 (2026-10-01)
 
