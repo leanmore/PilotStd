@@ -245,3 +245,19 @@ Handler 通过构造函数显式注入依赖，所有方法通过 `self._handler
 - [技术债登记](../technical-debt.md) — 已清理 / 待处理 / 维持现状
 - [技术债登记](../technical-debt.md)（唯一数据源；旧簿已归档为 [technical-debt-registry.archived.md](technical-debt-registry.archived.md)） — 已跳过测试 + 已接受设计决策
 - [范式文档](../guides/) — 5 个 Engine 重构范式
+
+## 状态字段 API 契约（#32-C / R14-4c，2026-10-01）
+
+标准状态值由权威字典 `pilotstd/core/status.py` 定义（9 值，value 与现网中文逐字一致）。
+**C 阶段把契约显式化到 API 层**，规则如下：
+
+| 维度 | 契约 |
+|------|------|
+| 数据字段 | 仍返回 `status`（中文数据值，如 `现行`）——**未做任何破坏性变更**，老前端/老书签不受影响 |
+| 键字段 | 新增 `status_key`（稳定英文键：`active`/`upcoming`/`withdrawn`/`superseded`/`voided`/`expired`/`pending`/`unknown`）；未知值回退 `unknown` |
+| 过滤入参 | `status` 查询参数**同时接受**英文键与历史中文值（`active` 与 `现行` 等价；`废止` 归一到 `已废止`）；非法值按“忽略该条件”处理（与旧实现一致） |
+| 涉及端点 | `GET /api/standards/status`（items）、`GET /api/query/results`（results）、`POST /api/pending/requery`（results） |
+| 前端约定 | 前端**只比较 `status_key`**（`web/src/utils/stdStatus.ts` 为唯一事实源），不得比较中文文案；原 13 处中文比较的 `i18n-allow` 豁免已全部消除 |
+| 其它同批字段 | `GET /api/wechat-ip/status` 新增 `current_ip_known`（布尔），取代 `current_ip !== '未知'` 的中文比较 |
+
+契约测试：`tests/unit/core/test_status_contract.py`（后端 25 例）＋ `web/src/utils/stdStatus.test.ts`（前端 4 例）。
