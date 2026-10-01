@@ -1,6 +1,7 @@
 # 模块：项目/核心/配置/管理器脚本
 # 核心类—从配置脚本拆分
 
+import copy
 import json
 import os
 import threading
@@ -146,7 +147,15 @@ class ConfigManager:
     # ── 内部 ────────────────────────
 
     def _load(self) -> None:
-        """从 JSON 文件加载配置：先清理残留 .tmp → 读取解密 → 填充默认值 → 迁移旧键。"""
+        """从 JSON 文件加载配置：先清理残留 .tmp → 读取解密 → 填充默认值 → 迁移旧键。
+
+        写盘语义（#31-P2 / R14-3a，2026-10-01）：**仅当补默认值或迁移旧键实际改动了内存态时**
+        才写回文件。原实现无条件 `save()`，等价于“每构造一次 = 读一次 + 写一次”——
+        热路径（`scorer.get_profile` 每次新建实例）单批查询触发 ≈126 次整份 config.json 覆盖写
+        （实测 ≈0.58 s ／ ≈519 KiB），既放大“多实例 last-writer-wins 丢配置”的窗口，也拖慢查询。
+        保持的契约：① 文件不存在（首次运行）仍写盘；② 补默认值/迁移有变更写盘一次；
+        ③ 显式 `set()` + `save()` 仍持久化；④ 损坏文件仍先备份 `.corrupted.<ts>` 再以默认值初始化并写盘。
+        """
         # 清理上次崩溃可能残留的.文件，避免占用磁盘
         cfg_dir = os.path.dirname(self._filepath)
         if os.path.isdir(cfg_dir):
@@ -166,10 +175,12 @@ class ConfigManager:
                 f_obj = _get_fernet(os.path.dirname(self._filepath))
                 # 解密敏感字段后才是内存中的可用数据
                 self._data = _walk_sensitive(raw, encrypt=False, fernet=f_obj)
-                # 填充默认值 + 迁移旧键后立即保存，确保后续读取一致性
+                # #31-P2：先留存改动前快照，仅当补默认值/迁移旧键真的改了内容才写回
+                before = copy.deepcopy(self._data)
                 self.populate_defaults(FACTORY_DEFAULTS)
                 _migrate_ui_keys(self)
-                self.save()
+                if self._data != before:
+                    self.save()
                 return
         except (json.JSONDecodeError, OSError):
             # 数据损坏时备份原文件，避免数据彻底丢失
