@@ -183,7 +183,7 @@ class TestQueryIntegrationPaths:
             lambda std_num: {"data": {"standard_name": "缓存命中"}} if std_num.startswith("GB 1") else None,
         )
 
-        def _engine(tuples, result_callback=None, progress_callback=None):
+        def _engine(_tuples, result_callback=None, progress_callback=None):
             live = QueryResult(standard_number="GB 2-2020", standard_name="实时结果")
             if result_callback:
                 result_callback(0, live)
