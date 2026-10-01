@@ -89,22 +89,35 @@ def test_named_sets_equal_pre_refactor_literals():
 
 
 def test_containers_are_the_shared_sets():
-    """可导入的容器与命名集合是**同一对象**（证明引用而非复制）。"""
+    """可导入的容器与命名集合是**同一对象**（证明引用而非复制）。
+
+    仅覆盖**不依赖 Qt** 的模块：`test-backend` 作业不安装 PyQt6（GUI 依赖），
+    UI 侧容器（`ui/core/handlers/*`）由下面单独一例在 GUI 可用环境下断言。
+    """
     assert QueryClassifier._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES
     assert QueryHandler._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES
     assert QuerySubsystem._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES
     assert FileMover._EXPIRE_STATUSES is status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
     assert ABOLISHED_STATUS_TOKENS is status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
 
+    from docker.api.standards import _VALID_STATUSES as api_valid_statuses
+
+    assert api_valid_statuses is status_dict.API_VALID_STATUSES
+
+
+def test_ui_containers_are_the_shared_sets():
+    """UI 侧容器（`auto_flow_engine` / `query_flow_engine`）同样引用命名集合。
+
+    这两个模块 import PyQt6，而 `test-backend` 作业不安装 GUI 依赖 → 用 `importorskip`
+    做**环境守卫**（可选依赖缺失时跳过；本地与 CI 的 GUI 作业中会真实执行）。
+    """
+    pytest.importorskip("PyQt6", reason="后端测试作业不含 GUI 依赖（PyQt6）")
+
     from pilotstd.ui.core.handlers.auto_flow_engine import AutoFlowEngine
     from pilotstd.ui.core.handlers.query_flow_engine import _EXCLUDED_FROM_OVERRIDE
 
     assert AutoFlowEngine.EXPIRED_STATUSES is status_dict.EXPIRED_STATUSES
     assert _EXCLUDED_FROM_OVERRIDE is status_dict.NON_OVERRIDABLE_STATUSES
-
-    from docker.api.standards import _VALID_STATUSES as api_valid_statuses
-
-    assert api_valid_statuses is status_dict.API_VALID_STATUSES
 
 
 def test_api_valid_statuses_is_still_a_tuple():
