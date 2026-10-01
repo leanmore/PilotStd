@@ -13,6 +13,7 @@ import re
 from typing import Any, Callable
 
 from pilotstd.core import status as status_dict
+from pilotstd.core.status import Status
 
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
@@ -21,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 # ──状态→颜色映射常量──────────────────────────────────
 _STATUS_COLOR_MAP: dict[str, str] = {
-    "现行": "#008000",
-    "即将实施": "#0000ff",
-    "废止": "#ff0000",
-    "已废止": "#ff0000",
-    "作废": "#ff0000",
-    "待确认": "#808000",
+    Status.ACTIVE.value: "#008000",
+    Status.UPCOMING.value: "#0000ff",
+    Status.WITHDRAWN.value: "#ff0000",
+    Status.WITHDRAWN_NORMALIZED.value: "#ff0000",
+    Status.VOIDED.value: "#ff0000",
+    Status.PENDING.value: "#808000",
 }
 _FALLBACK_COLOR = "#808000"  # darkYellow（不可下载覆盖）
 _EXCLUDED_FROM_OVERRIDE = status_dict.NON_OVERRIDABLE_STATUSES

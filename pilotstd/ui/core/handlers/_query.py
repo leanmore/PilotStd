@@ -23,6 +23,8 @@ from PyQt6.QtWidgets import (
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
+from pilotstd.core.status import Status
+
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
 from ...pending_query_dialog import PendingQueryDialog
@@ -199,7 +201,7 @@ class QueryUIHandler:
         if not self._work_table_alive():
             return
         parsed = self._parsed_results[idx]
-        source_label = getattr(result, "source_site", "") or "未知"
+        source_label = getattr(result, "source_site", "") or Status.UNKNOWN.value
 
         row = self._deps.table.find_row_by_seq(idx + 1)
         if row < 0:

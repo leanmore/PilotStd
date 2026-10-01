@@ -9,6 +9,8 @@ from typing import Any
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QDialog, QFileDialog, QMessageBox
 
+from pilotstd.core.status import Status
+
 from ....i18n import _
 from ...pending_query_dialog import PendingQueryDialog
 from ...workers import RowUpdate
@@ -22,7 +24,7 @@ logger = logging.getLogger("pilotstd.ui")
 def _on_query_result_ready(self, idx: int, result: Any) -> None:
     """查询结果就绪时更新对应行：状态、名称、日期、采标等列，并进行颜色标记。"""
     parsed = self._parsed_results[idx]
-    source_label = getattr(result, "source_site", "") or "未知"
+    source_label = getattr(result, "source_site", "") or Status.UNKNOWN.value
     row = self._find_row_by_seq(idx + 1)
     if row < 0:
         return
@@ -43,15 +45,20 @@ def _on_query_result_ready(self, idx: int, result: Any) -> None:
     status_item = self.work_table.item(row, 4)
     if status_item:
         s = result.status
-        if s in ("现行",):
+        if s in (Status.ACTIVE.value,):
             status_item.setForeground(Qt.GlobalColor.darkGreen)
-        elif s == "即将实施":
+        elif s == Status.UPCOMING.value:
             status_item.setForeground(Qt.GlobalColor.blue)
-        elif s in ("废止", "已废止", "作废"):
+        elif s in (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value, Status.VOIDED.value):
             status_item.setForeground(Qt.GlobalColor.red)
-        elif s == "待确认":
+        elif s == Status.PENDING.value:
             status_item.setForeground(Qt.GlobalColor.darkYellow)
-        if not result.is_downloadable and s not in ("废止", "已废止", "作废", "待确认"):
+        if not result.is_downloadable and s not in (
+            Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value,
+            Status.VOIDED.value,
+            Status.PENDING.value,
+        ):
             status_item.setForeground(Qt.GlobalColor.darkYellow)
 
 

@@ -54,6 +54,14 @@ MainWindow (QMainWindow)
 - Handler 之间不直接通信，通过 `MainWindowCore` 共享状态
 - `parts/` 目录下的方法片段通过 `from .parts._xxx import method` 注入为 MainWindow 实例方法
 
+## 状态值引用（R14-4b / #32-B，2026-10-01）
+
+UI 层的状态判定与展示不再硬编码中文：`main_window/parts/_query_ops.py`（结果状态着色）、
+`core/handlers/archive_flow_engine.py`、`core/handlers/query_flow_engine.py`（不可覆盖状态集合）、
+`core/handlers/_query.py`、`core/handlers/_scan.py`、`workers/archive.py`（归档目录判定）
+共 39 处已统一引用权威字典 `pilotstd/core/status.py` 的 `Status.*.value`。
+**取值与判定顺序不变**，API/DB 侧字符串不变；前端（`web/src/`）本批未触碰。
+
 ## Qt 对象生命周期约定
 
 > 来源：CI 事故 `test_buttons_enabled_after_cancel` —— 点击取消后控件已被 Qt 析构，后台 worker 的排队信号仍被投递，槽函数抛 `RuntimeError: wrapped C/C++ object of type QTableWidget/QTimer has been deleted`。

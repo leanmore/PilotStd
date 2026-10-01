@@ -10,6 +10,8 @@ from typing import Any
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from pilotstd.core.status import Status
+
 from ...core.file_utils import make_standard_filename
 from ...organizer.industry_lookup import get_folder_name
 from ._common import (
@@ -136,6 +138,12 @@ class ArchiveWorker(QThread):
         )
         folder = get_folder_name(parsed.logical_code)
         target_dir = os.path.join(library_root, folder)
-        if parsed.effect_status in ("废止", "已废止", "作废", "被代替", "过期"):
+        if parsed.effect_status in (
+            Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value,
+            Status.VOIDED.value,
+            Status.SUPERSEDED.value,
+            Status.EXPIRED.value,
+        ):
             target_dir = os.path.join(target_dir, "过期作废")
         return os.path.join(target_dir, name)

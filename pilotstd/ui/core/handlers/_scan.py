@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import QApplication, QMessageBox, QTableWidget
 if TYPE_CHECKING:
     from ....core.config import ConfigManager
 
+from pilotstd.core.status import Status
+
 from ....i18n import _
 from ...qt_lifecycle import stop_worker_gracefully
 from ...workers import RowUpdate, ScanWorker
@@ -181,7 +183,7 @@ class ScanUIHandler:
                 parsed.year,
                 part=parsed.part,
                 std_name=parsed.std_name,
-                status="现行",
+                status=Status.ACTIVE.value,
                 raw_number=parsed.raw_number,
             )
         else:

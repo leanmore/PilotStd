@@ -9,15 +9,17 @@ from __future__ import annotations
 import os
 from typing import Any, Callable
 
+from pilotstd.core.status import Status
+
 from ....core.config import get_library_root
 from ....i18n import _
 
 # ── 状态 → 标签映射常量 ────────────────────────────────────
 _STATUS_LABELS: dict[str, str] = {
-    "被代替": "被代替",
-    "废止": "废止",
-    "已废止": "废止",
-    "作废": "废止",
+    Status.SUPERSEDED.value: Status.SUPERSEDED.value,
+    Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+    Status.WITHDRAWN_NORMALIZED.value: Status.WITHDRAWN.value,
+    Status.VOIDED.value: Status.WITHDRAWN.value,
 }
 
 
@@ -39,11 +41,11 @@ class ArchiveFlowEngine:
         废止/已废止/作废 → '废止'
         其他 → '现行'
         """
-        if effect_status == "被代替":
-            return "被代替"
-        if effect_status in ("废止", "已废止", "作废"):
-            return "废止"
-        return "现行"
+        if effect_status == Status.SUPERSEDED.value:
+            return Status.SUPERSEDED.value
+        if effect_status in (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value, Status.VOIDED.value):
+            return Status.WITHDRAWN.value
+        return Status.ACTIVE.value
 
     # ═══════════════════════════════════════════════════════════ 分隔
     # 冲突检测
