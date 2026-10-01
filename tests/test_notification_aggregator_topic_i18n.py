@@ -107,19 +107,17 @@ class TestTrilingualTopicConsistency:
         assert inconsistent == [], f"跨语言主题不一致：{inconsistent}"
 
     def test_no_event_falls_back_to_prefix_bucket(self):
-        """无事件应落到「标题前 8 字符 + `_`」兜底（那是修复前的 65 条缺陷形态）。
+        """**无任何**已注册事件的标题应落到「标题前 8 字符 + `_`」兜底。
 
-        `validity_round_summary` 是**已知例外**：其标题含裸值型占位符
-        `第 {round} 轮…`（无括号可剔除），模板与渲染值无法精确匹配，故仍走兜底。
-        该兜底在**各语言内**的分组仍然稳定（同语言的同轮次标题归一组），
-        因而不影响实际合并效果——此处按例外白名单登记，防止掩盖新退化。
+        兜底是修复前的缺陷形态（实测 65 条）。修复后无例外——此前曾将
+        `validity_round_summary` 登记为白名单，理由是"其兜底在同语言内稳定"，
+        但那基于用**同一常量**替换占位符的错误验证；改用不同轮次（1/2/3）后
+        暴露 `_第 1 轮有效性` / `_第 2 轮有效性` 各不相同，故已改用模板正则修掉。
+        本用例**不设白名单**——任何事件落兜底都应视为回归。
         """
-        known_fallback = {"validity_round_summary"}
         pack = _pack(DEFAULT_LANG)
         offenders: list[str] = []
         for event in EVENTS:
-            if event in known_fallback:
-                continue
             keys = _title_keys_for(event, pack)
             for lang in LANGS:
                 lp = _pack(lang)
@@ -132,19 +130,40 @@ class TestTrilingualTopicConsistency:
                         offenders.append(f"{event}/{lang}: {_render(template)!r} -> {topic}")
         assert offenders == [], f"存在落兜底的已注册事件标题：{offenders}"
 
-    def test_known_fallback_exception_is_stable_per_language(self):
-        """已知例外 `validity_round_summary`：兜底分组在**同语言内**必须稳定合并。"""
+    def test_no_fallback_across_extended_values(self):
+        """扩展取值集下也不得落兜底（覆盖边界值，非仅单一常量）。
+
+        取值维度是判定的变量所在；只用单一常量验证会掩盖"仅对某类取值有效"的实现。
+        """
+        values = ("0", "1", "2", "7", "12", "999", "-5", "1e9", "a b", "%s", 'x"y')
+        pack = _pack(DEFAULT_LANG)
+        offenders: list[str] = []
+        for event in EVENTS:
+            keys = _title_keys_for(event, pack)
+            for lang in LANGS:
+                lp = _pack(lang)
+                for key in keys:
+                    template = lp.get(key)
+                    if not isinstance(template, str):
+                        continue
+                    for value in values:
+                        rendered = re.sub(r"\{[^}]*\}", value, template)
+                        topic = NotificationAggregator._extract_topic(rendered, "")
+                        if topic.startswith("_"):
+                            offenders.append(f"{event}/{lang} v={value!r}: {rendered!r} -> {topic}")
+        assert offenders == [], f"扩展取值下存在落兜底：{offenders[:6]}"
+
+    def test_validity_round_summary_merges_across_rounds(self):
+        """`validity_round_summary` 跨轮次必须归入同一主题（原兜底实现不满足）。"""
         pack = _pack(DEFAULT_LANG)
         key = next(k for k in _title_keys_for("validity_round_summary", pack))
         for lang in LANGS:
             template = _pack(lang)[key]
             topics = {
-                NotificationAggregator._extract_topic(
-                    re.sub(r"\{[^}]*\}", str(n), template), ""
-                )
-                for n in (1, 2, 3)
+                NotificationAggregator._extract_topic(re.sub(r"\{[^}]*\}", str(n), template), "")
+                for n in (1, 2, 3, 17, 999)
             }
-            assert len(topics) == 1, f"{lang}: 同语言不同轮次未合并 -> {topics}"
+            assert topics == {"validity"}, f"{lang}: 跨轮次主题不一致 -> {topics}"
 
     def test_specific_regressions_from_recon(self):
         """锁定侦察阶段实测出的具体错误归类（修复前 zh_TW/en 全错）。"""

@@ -1,0 +1,28 @@
+test(notification): 清除主题白名单死代码 + 索引构建期冲突检测 + 分支范围说明
+
+回应第二轮审核，逐条核实后处理：
+
+- 【审核3/低优】删除 known_fallback 白名单（已成误导性死代码）：该白名单基于
+  "validity_round_summary 兜底在同语言内稳定"的错误结论，而该结论来自用同一
+  常量替换占位符的无效验证。事件已被模板正则修掉，故白名单清空。
+  test_no_event_falls_back_to_prefix_bucket 现**不设白名单**，任何事件落兜底
+  即视为回归；另加 test_validity_round_summary_merges_across_rounds 断言
+  1/2/3/17/999 轮次归同一主题
+- 【审核5】新增 test_no_fallback_across_extended_values：11 种取值 x 46 变体 x
+  3 语言 = 1518 条扩展样本，兜底 0 条（原 138 条基线兜底 0 条；扩展样本为
+  加强验证而非同一基线）
+- 【审核6】_compile_index 增加**构建期冲突检测**：同一标题若被推导出不同主题则
+  记入 conflicts 并 logger.warning（不再静默 setdefault 吞掉）。实测当前 0 冲突、
+  无告警。消费者侧自动生效，不依赖测试
+- 【审核5】should_show docstring 明确调用方分支：auto_pause_enabled 为假时平台层
+  改走 _check_dedup 直发托盘、**不经过主题分组**，属有意设计的两条互斥路径
+  （见 platform/notify.py 职责边界注释），故本修复无需覆盖该分支
+- 【审核低优】明确 _extract_topic 的**实际生效范围**（实测）：全库唯一调用点，
+  平台层调用方传的是 _("download_results_title") 这类静态键，故现实收益是
+  "UI 切繁中/英文后分组重新正确"；含占位符的动态标题当前桌面链路并不产生，
+  模板正则属防御性覆盖
+
+验证：ruff（4 目录）All checks passed；mypy（门禁口径）394 文件零错误；
+topic+aggregator 测试 77 例通过；统一基准回归（19 套件）716 通过；
+G-045/G-010/G-012/G-031/G-044 全通过。
+G-038 与 check_all.sh 快速通道在本机无独立可执行文件、仍无法运行，待 CI 验证。

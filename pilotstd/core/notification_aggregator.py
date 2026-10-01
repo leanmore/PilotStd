@@ -45,7 +45,15 @@ _PAUSE_CONFIG_KEY = "notification.aggregation"
 # 修法：以 i18n 中的**真实标题**为契约。`notification.*` 的 47 个 `.title*` 键
 # 经实测**全部可映射到事件**（39/39，唯一例外 `notification.channel.test.title`
 # 不属任何事件），故把标题渲染值与事件的对应关系固化为映射表，用**准确匹配**
-# 取代关键词猜测。事件 → 主题再由 `_EVENT_TOPIC` 显式给出。
+# 取代关键词猜测。事件 → 主题再由 `_TOPIC_BY_EVENT` 显式给出。
+#
+# **实际生效范围（实测）**：`_extract_topic` 在全库只有一个调用点（本模块
+# `should_show`），而平台层调用方 `ui/core/handlers/_download.py` 传的是
+# `_("download_results_title")` 这类**静态键**，其返回值随 UI 语言变化。因此本修复
+# 的现实收益是：**UI 切到繁体/英文后，桌面 toast 的主题分组重新正确**——此前那些
+# 标题一律落兜底、每个标题各成一组。含占位符的动态标题（如
+# `Scan Complete ({failed} unrecognized)`）当前桌面链路并不产生，模板正则属
+# **防御性覆盖**，为将来把含动态计数的标题接入桌面通知预留。
 _TOPIC_BY_EVENT: dict[str, str] = {
     # 完成/成功类
     "scan_complete": "done",
@@ -259,6 +267,10 @@ class NotificationAggregator:
         event_names = {e.key for e in ALL_EVENTS}
         index: dict[str, str] = {}
         patterns: list[tuple[re.Pattern[str], str]] = []
+        # 冲突检测：同一标题字面若被推导出**不同主题**，说明事件→主题映射有问题
+        # （重复标题本身无害，仅当主题不一致时才是缺陷）。构建时即告警，
+        # 不依赖测试——否则未来新增标题可能被 setdefault 静默忽略。
+        conflicts: dict[str, set[str]] = {}
         base = os.path.join(os.path.dirname(__file__), "..", "i18n")
         for lang in ("zh_CN", "zh_TW", "en"):
             path = os.path.join(base, f"{lang}.json")
@@ -278,14 +290,23 @@ class NotificationAggregator:
                 if not topic:
                     continue
                 # 同一标题可能被多个事件共用（实测 1 例，同属 announce）——
-                # 保留先登记者即可，主题一致故无影响。
-                index.setdefault(value, topic)
+                # 保留先登记者，但若推导出的主题**不一致**则记入冲突并告警。
+                previous = index.get(value)
+                if previous is None:
+                    index[value] = topic
+                elif previous != topic:
+                    conflicts.setdefault(value, {previous}).add(topic)
                 if "{" in value:
                     for source in NotificationAggregator._template_to_patterns(value):
                         try:
                             patterns.append((re.compile(source), topic))
                         except re.error:
                             logger.warning("主题索引：模板正则编译失败，跳过 %r", value, exc_info=True)
+        if conflicts:
+            logger.warning(
+                "主题索引存在冲突（同一标题归属多个主题），已保留先登记者: %s",
+                {k: sorted(v) for k, v in conflicts.items()},
+            )
         return index, patterns
 
     @classmethod
@@ -438,6 +459,13 @@ class NotificationAggregator:
 
         on_show: 实际显示回调 (title, body, level)。
         返回 False：通知已入队，聚合后通过 on_show 输出。
+
+        **调用方分支（`platform/notify.py`）**：仅当 `auto_pause_enabled` 为真时才进入
+        本方法（默认真——`notification.auto_pause` 无 defaults 声明，属性侧以 True 兜底）；
+        为假时平台层改走 `_check_dedup`（3 秒同标题防抖）后直发托盘，**不经过主题分组**。
+        这是有意设计的两条互斥路径（见 `platform/notify.py` 的职责边界注释）：
+        关闭自动暂停即放弃聚合与暂停能力，改由瞬时防抖去重。故主题分组在关闭
+        自动暂停时不适用，本修复无需覆盖该分支。
         """
         if on_show is not None:
             self._on_show = on_show
