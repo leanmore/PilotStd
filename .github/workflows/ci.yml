@@ -778,6 +778,10 @@ jobs:
       - name: Run repo compliance check
         env:
           BASE_BRANCH: main
+          # T-27（R14-1，2026-10-01）：与 docs-sync（T-25/R11-3b）同一手法——推送路径上
+          #   `origin/main` 已被推进到本次 tip，脚本内 `origin/main..HEAD` 恒空 → 恒 PASS（假绿）。
+          #   故显式传本次推送范围；push 载荷专用字段是 `github.event.before`，右端用通用的 `github.sha`。
+          COMPLIANCE_RANGE: ${{ github.event.before }}..${{ github.sha }}
         run: bash .github/scripts/check-repo-compliance.sh
 
       - name: G-026 — Docker 挂载黑名单

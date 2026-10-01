@@ -7,13 +7,47 @@ BASE_BRANCH="${BASE_BRANCH:-main}"
 echo "=== 入仓合规检查 | BASE: $BASE_BRANCH ==="
 
 # R11-3b：此处原为 `--depth=1`，会在 tip 处建立浅边界（.git/shallow）——后续任何基于
-#   历史范围的检查（docs-sync 的 HEAD~1..HEAD 回退、本脚本自身的 origin/<base>..HEAD）都会被截断，
+#   历史范围的检查（docs-sync 的 HEAD~1..HEAD 回退、本脚本自身的范围取值）都会被截断，
 #   表现为「范围恒空 → 假绿」。checkout 已是 fetch-depth: 0 全量，故改为普通 fetch（行为等价、不再截断历史）。
-git fetch origin "$BASE_BRANCH" --no-tags 2>/dev/null || true
+#
+# ── 范围取值（T-27 / R14-1，2026-10-01）────────────────────────────────
+# 事故：原实现用 `origin/<base>..HEAD` 取“本次新增文件”，但**推送事件**触发时 origin/<base>
+#   已被 CI 推进到本次 tip → 范围恒空 → 恒打印 `PASS: 无新增文件`（假绿；白名单/黑名单/
+#   根目录可疑文件判定**从未在推送路径生效**，CI 日志实证 run 36304263963 / 36306033918）。
+# 修法（与 docs-sync 的 T-25/R11-3b 同一手法）：由 workflow 显式传 `COMPLIANCE_RANGE=before..sha`
+#   （push 载荷里 `event.before` + 通用 `github.sha`）；未提供时回退 PR/本地口径
+#   `origin/<base>...HEAD`（三点＝与基线 merge-base 比较，等价于 PR 的 changed files）。
+# 另加**假绿防护**：显式范围若“变更文件数 == 0”，直接 FAIL —— 门卫宁可报错，不可静默放行。
+ZERO_SHA="0000000000000000000000000000000000000000"
+RANGE_EXPECT_NONEMPTY=0
+RANGE="${COMPLIANCE_RANGE:-}"
+if [ -n "$RANGE" ]; then
+  LEFT="${RANGE%%..*}"
+  if [ -z "$LEFT" ] || [ "$LEFT" = "$ZERO_SHA" ]; then
+    # 新建分支/首次推送：before 为全零，没有“本次推送”可比 → 回退到基线口径
+    RANGE=""
+  else
+    RANGE_EXPECT_NONEMPTY=1
+  fi
+fi
+if [ -z "$RANGE" ]; then
+  git fetch origin "$BASE_BRANCH" --no-tags 2>/dev/null || true
+  RANGE="origin/${BASE_BRANCH}...HEAD"
+fi
 
-NEW_FILES=$(git diff --name-only --diff-filter=A "origin/${BASE_BRANCH}..HEAD" 2>/dev/null || true)
+CHANGED_COUNT=$(git diff --name-only "$RANGE" 2>/dev/null | grep -c . || true)
+# --diff-filter=AR：A=新增、R=改名（改名后的目标路径同样是“新入仓路径”，不得借改名绕过判定）
+NEW_FILES=$(git diff --name-only --diff-filter=AR "$RANGE" 2>/dev/null || true)
+NEW_COUNT=$(printf '%s\n' "$NEW_FILES" | grep -c . || true)
 
-if [ -z "$NEW_FILES" ]; then
+echo "范围: $RANGE（变更 ${CHANGED_COUNT} 个文件，其中新增/改名 ${NEW_COUNT} 个）"
+
+if [ "$RANGE_EXPECT_NONEMPTY" = "1" ] && [ "$CHANGED_COUNT" -eq 0 ]; then
+  echo "❌ FAIL: 显式范围 $RANGE 内变更文件数为 0 —— 范围取值异常（假绿防护：拒绝 PASS）"
+  exit 1
+fi
+
+if [ "$NEW_COUNT" -eq 0 ]; then
   echo "PASS: 无新增文件"
   exit 0
 fi
