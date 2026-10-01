@@ -275,3 +275,25 @@ class TestDesktopRenderer:
         b = ListBlock(title="NoItems", items=[])
         r = DesktopRenderer().render(make_msg(blocks=[b]))
         assert "NoItems" in r
+
+    def test_desktop_preview_never_exposes_raw_field_name(self):
+        """桌面预览不得暴露原始数据键名（第 6/7 批字段名 i18n 的回归防护）。
+
+        实测当前实现只取首条首**值**做预览（`{title}：{first} 等 {total} 条`），
+        字段名根本不出现——比 FeishuCardRenderer 更保守。本测试锁定该性质：
+        若未来有人把预览改成拼接字段名，必须走 `_field_label()` 而非原始键。
+        """
+        b = ListBlock(title="扫描结果", items=[{"number": "GB/T 1-2024"}], total=3)
+        set_language("zh_CN")
+        r = DesktopRenderer().render(make_msg(blocks=[b]))
+        assert "number" not in r
+        assert "GB/T 1-2024" in r
+        assert "扫描结果" in r
+
+    def test_render_list_uses_first_value_only(self):
+        """预览只取首条首值，不展开多字段（桌面气泡空间受限）。"""
+        b = ListBlock(title="L", items=[{"number": "GB/T 1", "name": "标准一"}], total=1)
+        set_language("zh_CN")
+        r = DesktopRenderer().render(make_msg(blocks=[b]))
+        assert "GB/T 1" in r
+        assert "标准一" not in r

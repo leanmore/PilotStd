@@ -671,7 +671,7 @@
     "notification.aggregated.status.name_suffix": " ({name})",
     "notification.aggregated.status.change_line": ": {old} → {new}",
     "notification.aggregated.status.time_suffix": ", {time}",
-    "notification.aggregated.status.header_with_expired": "{count} standard status changes ({n} expired)",
+    "notification.aggregated.status.header_with_expired": "{count} standard status changes ({n} abolished)",
     "notification.aggregated.status.header": "{count} standard status changes",
     "notification.aggregated.status.and_more": "and {n} more",
 

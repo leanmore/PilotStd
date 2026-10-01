@@ -471,6 +471,114 @@
       "zh_CN": "字段",
       "zh_TW": "欄位",
       "en": "Field"
+    },
+    {
+      "id": "agg_status_header",
+      "keys": [
+        "notification.aggregated.status.header"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "状态变更聚合头（无废止项）。",
+      "zh_CN": "{count} 项标准状态变更",
+      "zh_TW": "{count} 項標準狀態變更",
+      "en": "{count} standard status changes"
+    },
+    {
+      "id": "agg_status_header_with_abolished",
+      "keys": [
+        "notification.aggregated.status.header_with_expired"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "状态变更聚合头（含废止项）。en 原为 expanded 域词 'expired'，与 zh「已废止」及术语 abolished 不符，第 7 批对齐。",
+      "zh_CN": "{count} 项标准状态变更（其中 {n} 项已废止）",
+      "zh_TW": "{count} 項標準狀態變更（其中 {n} 項已廢止）",
+      "en": "{count} standard status changes ({n} abolished)"
+    },
+    {
+      "id": "agg_status_name_suffix",
+      "keys": [
+        "notification.aggregated.status.name_suffix"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "标准名后缀（括号包裹）。",
+      "zh_CN": "（{name}）",
+      "zh_TW": "（{name}）",
+      "en": " ({name})"
+    },
+    {
+      "id": "agg_status_change_line",
+      "keys": [
+        "notification.aggregated.status.change_line"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "状态变更行：旧值 → 新值，冒号引导。",
+      "zh_CN": "：{old} → {new}",
+      "zh_TW": "：{old} → {new}",
+      "en": ": {old} → {new}"
+    },
+    {
+      "id": "agg_status_time_suffix",
+      "keys": [
+        "notification.aggregated.status.time_suffix"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "变更时间后缀。",
+      "zh_CN": "，{time}",
+      "zh_TW": "，{time}",
+      "en": ", {time}"
+    },
+    {
+      "id": "agg_status_and_more",
+      "keys": [
+        "notification.aggregated.status.and_more"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "状态明细超 10 条时的折叠句。",
+      "zh_CN": "等 {n} 项",
+      "zh_TW": "等 {n} 項",
+      "en": "and {n} more"
+    },
+    {
+      "id": "agg_body_header",
+      "keys": [
+        "notification.aggregated.body.header"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "通用聚合通知头（信息类，emoji 保留）。",
+      "zh_CN": "📦 聚合通知（{n} 条）",
+      "zh_TW": "📦 聚合通知（{n} 條）",
+      "en": "📦 Aggregated notifications ({n})"
+    },
+    {
+      "id": "agg_body_item",
+      "keys": [
+        "notification.aggregated.body.item"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "聚合明细条目前缀。",
+      "zh_CN": "• {line}",
+      "zh_TW": "• {line}",
+      "en": "• {line}"
+    },
+    {
+      "id": "agg_body_more",
+      "keys": [
+        "notification.aggregated.body.more"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "通用聚合明细的折叠句（与 agg_status_and_more 语境不同：本条用于多事件混合场景）。",
+      "zh_CN": "… 等 {n} 条",
+      "zh_TW": "… 等 {n} 條",
+      "en": "… and {n} more"
     }
   ]
 }
