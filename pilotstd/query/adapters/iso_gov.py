@@ -9,6 +9,8 @@ from typing import Any
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import safe_get
 from ..search_strategy import _parse_result_number, map_status, match_result
@@ -100,8 +102,8 @@ class IsoGovAdapter(BaseAdapter):
 
         # 状态判定
         status = map_status(state_raw)
-        if std_status == "WITHDRAWN" and status not in ("废止",):
-            status = "废止"
+        if std_status == "WITHDRAWN" and status not in (Status.WITHDRAWN.value,):
+            status = Status.WITHDRAWN.value
 
         # 采标判定：名称含""→是国内采标版本，不可下载
         is_adopted = "adoption" in en_name.lower()

@@ -12,6 +12,8 @@ from typing import Any, Optional
 
 import httpx
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -123,8 +125,14 @@ class JJGAdapter(BaseAdapter):
             return None
 
         status_text = (row.get("status") or "").strip()
-        status_map = {"现行": "现行", "现行有效": "现行", "即将实施": "即将实施", "废止": "废止", "已废止": "废止"}
-        status = status_map.get(status_text, status_text) if status_text else "未知"
+        status_map = {
+            Status.ACTIVE.value: Status.ACTIVE.value,
+            "现行有效": Status.ACTIVE.value,
+            Status.UPCOMING.value: Status.UPCOMING.value,
+            Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value: Status.WITHDRAWN.value,
+        }
+        status = status_map.get(status_text, status_text) if status_text else Status.UNKNOWN.value
 
         pub_date = (row.get("publishDate") or "").strip()
         imp_date = (row.get("implementDate") or "").strip()

@@ -15,6 +15,8 @@ from typing import Any, List, Optional
 import requests
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import safe_get
 from ..search_strategy import map_status
@@ -146,11 +148,11 @@ class StdGovAdapter(BaseAdapter):
         # 标准状态：现行(-)/即将实施(-)/废止(-)
         status_text = ""
         for label_cls, default_text in [
-            ("span.s-status.label-success", "现行"),
-            ("span.s-status.label-info", "即将实施"),
-            ("span.s-status.label-danger", "废止"),
+            ("span.s-status.label-success", Status.ACTIVE.value),
+            ("span.s-status.label-info", Status.UPCOMING.value),
+            ("span.s-status.label-danger", Status.WITHDRAWN.value),
             ("span.s-status.label-warning", ""),
-            ("span.label-info", "即将实施"),
+            ("span.label-info", Status.UPCOMING.value),
         ]:
             span = panel.select_one(label_cls)
             if span:

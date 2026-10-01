@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import safe_post
 from ..search_strategy import (
@@ -159,8 +161,12 @@ class TTBZAdapter(BaseAdapter):
         implement_date = rec.get("implementDate", "") or ""
 
         # 状态映射：仅对明确的几个值做归一化，其余原样保留
-        status_map = {"现行": "现行", "即将实施": "即将实施", "废止": "废止"}
-        mapped = status_map.get(raw_status, raw_status) if raw_status else "未知"
+        status_map = {
+            Status.ACTIVE.value: Status.ACTIVE.value,
+            Status.UPCOMING.value: Status.UPCOMING.value,
+            Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+        }
+        mapped = status_map.get(raw_status, raw_status) if raw_status else Status.UNKNOWN.value
 
         # 匹配状态
         target = _parse_result_number(search_term) if search_term else {}

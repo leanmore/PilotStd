@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -140,7 +142,7 @@ class MIITAdapter(BaseAdapter):
         return QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status=raw_status if raw_status else "现行",  # 兜底仍用"现行"
+            status=raw_status if raw_status else Status.ACTIVE.value,  # 兜底仍用"现行"
             match_status=match_status,
             implementation_date=rec.get("bpiJysstime", "") or "",
             publish_date=rec.get("createTime", "") or "",

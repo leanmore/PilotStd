@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -38,7 +40,7 @@ def _safe_ts_to_date(ms_timestamp: Any) -> str:
 
 def _map_status(raw: str) -> str:
     """TRUE/FALSE 字符串映射为中文状态，未知值保留原值并告警。"""
-    mapping = {"TRUE": "现行", "FALSE": "废止"}
+    mapping = {"TRUE": Status.ACTIVE.value, "FALSE": Status.WITHDRAWN.value}
     result = mapping.get(raw.upper() if raw else "", raw)
     if result == raw and raw not in ("TRUE", "FALSE", ""):
         logger.warning("TDPress unknown status value: %r", raw)

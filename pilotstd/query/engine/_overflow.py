@@ -12,6 +12,8 @@ import random
 import time
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import MATCH_SCORE
 
@@ -174,7 +176,7 @@ class OverflowHandler:
             state["results"][idx] = QueryResult(
                 standard_number=f"{item[0]} {item[1]}-{item[2]}",
                 standard_name=item[3],
-                status="待确认",
+                status=Status.PENDING.value,
                 source_site="",
                 match_status="chain_exhausted",
             )

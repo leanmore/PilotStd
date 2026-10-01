@@ -14,6 +14,8 @@ from typing import Any, Optional
 import httpx
 import urllib3
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
@@ -122,7 +124,7 @@ class SPPTAdapter(BaseAdapter):
         imp_date = (row.get("SSRQ") or "").strip()
 
         # 状态：此接口不返回状态字段，默认"现行"
-        status = "现行" if pub_date else "未知"
+        status = Status.ACTIVE.value if pub_date else Status.UNKNOWN.value
 
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(

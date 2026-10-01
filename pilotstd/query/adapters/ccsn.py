@@ -15,6 +15,8 @@ from typing import Any, Optional
 import httpx
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -222,7 +224,7 @@ class CCSNAdapter(BaseAdapter):
         result = QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status="未知",
+            status=Status.UNKNOWN.value,
             match_status=match_status,
             implementation_date=imp_date,
             publish_date=pub_date,

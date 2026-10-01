@@ -14,6 +14,8 @@ from typing import Any
 
 import httpx
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -170,7 +172,7 @@ class NCHAAdapter(BaseAdapter):
         return QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status=rec.get("standardStatusName", "") or "未知",
+            status=rec.get("standardStatusName", "") or Status.UNKNOWN.value,
             match_status=match_status,
             implementation_date=_format_date(rec.get("executeDate", "") or ""),
             publish_date=_format_date(rec.get("publishingDate", "") or ""),

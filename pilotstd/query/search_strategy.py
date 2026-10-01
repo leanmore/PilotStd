@@ -5,6 +5,8 @@ import logging
 import re
 from typing import Any, List, Tuple
 
+from pilotstd.core.status import Status
+
 logger = logging.getLogger(__name__)
 
 
@@ -192,26 +194,26 @@ MATCH_SCORE_CONFIRMED = 50
 MATCH_SCORE_HIGH_CONFIDENCE = 80
 
 STATUS_MAP = [
-    ("现行", "现行"),
-    ("即将实施", "即将实施"),
-    ("废止", "废止"),
-    ("作废", "废止"),
-    ("已废止", "废止"),
+    (Status.ACTIVE.value, Status.ACTIVE.value),
+    (Status.UPCOMING.value, Status.UPCOMING.value),
+    (Status.WITHDRAWN.value, Status.WITHDRAWN.value),
+    (Status.VOIDED.value, Status.WITHDRAWN.value),
+    (Status.WITHDRAWN_NORMALIZED.value, Status.WITHDRAWN.value),
     ("未实施", "未实施"),
-    ("被代替", "被代替"),
+    (Status.SUPERSEDED.value, Status.SUPERSEDED.value),
     # 国外标准英文状态映射（365返回英文，返回中文；两者都覆盖）
-    ("Active", "现行"),
-    ("active", "现行"),
-    ("Withdrawn", "废止"),
-    ("withdrawn", "废止"),
-    ("Superseded", "被代替"),
-    ("superseded", "被代替"),
-    ("Obsolete", "废止"),
-    ("obsolete", "废止"),
-    ("Replaced", "被代替"),
-    ("replaced", "被代替"),
-    ("Cancelled", "废止"),
-    ("cancelled", "废止"),
+    ("Active", Status.ACTIVE.value),
+    ("active", Status.ACTIVE.value),
+    ("Withdrawn", Status.WITHDRAWN.value),
+    ("withdrawn", Status.WITHDRAWN.value),
+    ("Superseded", Status.SUPERSEDED.value),
+    ("superseded", Status.SUPERSEDED.value),
+    ("Obsolete", Status.WITHDRAWN.value),
+    ("obsolete", Status.WITHDRAWN.value),
+    ("Replaced", Status.SUPERSEDED.value),
+    ("replaced", Status.SUPERSEDED.value),
+    ("Cancelled", Status.WITHDRAWN.value),
+    ("cancelled", Status.WITHDRAWN.value),
 ]
 
 
@@ -220,7 +222,7 @@ def map_status(text: str) -> str:
     for kw, st in STATUS_MAP:
         if kw in str(text):
             return st
-    return str(text) if text else "未知"
+    return str(text) if text else Status.UNKNOWN.value
 
 
 def ts_to_date(ts: Any) -> str:

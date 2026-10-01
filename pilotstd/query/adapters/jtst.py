@@ -20,6 +20,8 @@ from typing import Any, Optional
 import httpx
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -151,8 +153,14 @@ class JTSTAdapter(BaseAdapter):
         # 3. 状态
         status_el = card.select_one(".s-status.label")
         status_text = status_el.text.strip() if status_el else ""
-        status_map = {"现行": "现行", "即将实施": "即将实施", "废止": "废止", "已废止": "废止", "现行有效": "现行"}
-        status = status_map.get(status_text, status_text) if status_text else "未知"
+        status_map = {
+            Status.ACTIVE.value: Status.ACTIVE.value,
+            Status.UPCOMING.value: Status.UPCOMING.value,
+            Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value: Status.WITHDRAWN.value,
+            "现行有效": Status.ACTIVE.value,
+        }
+        status = status_map.get(status_text, status_text) if status_text else Status.UNKNOWN.value
 
         # 4.日期（第一个是发布日期，第二个是实施日期）
         time_tags = card.select(".panel-footer time.post-date")

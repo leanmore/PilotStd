@@ -21,6 +21,8 @@ from typing import Any, Optional
 import requests
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
@@ -177,7 +179,7 @@ class MEEAdapter(BaseAdapter):
         result = QueryResult(
             standard_number=std_no,
             standard_name=std_name,
-            status="未知",
+            status=Status.UNKNOWN.value,
             match_status=match_status,
             implementation_date=implement_date,
             publish_date="",
@@ -194,4 +196,4 @@ class MEEAdapter(BaseAdapter):
         当前列表页不提供状态字段，返回 "未知"。
         后续迭代需：请求 detail_url → 解析详情页 DOM → 提取状态文本。
         """
-        return "未知"
+        return Status.UNKNOWN.value

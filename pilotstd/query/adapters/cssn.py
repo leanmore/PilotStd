@@ -13,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -131,7 +133,7 @@ class CSSNAdapter(BaseAdapter):
         result = QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status=row.get("a000", "") or "未知",
+            status=row.get("a000", "") or Status.UNKNOWN.value,
             match_status=match_status,
             implementation_date=row.get("a205", "") or "",
             publish_date=row.get("a101", "") or "",

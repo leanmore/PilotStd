@@ -13,6 +13,8 @@ from typing import Any, Optional
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import CHROME_UA, safe_request
 from .base import BaseAdapter
@@ -23,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 # 字段映射
 _STATUS_MAP = {
-    "A": "现行",
-    "W": "作废",
+    "A": Status.ACTIVE.value,
+    "W": Status.VOIDED.value,
 }
 
 
@@ -85,7 +87,7 @@ class AhbzAdapter(BaseAdapter):
         if data.get("code") != "0":
             return QueryResult(
                 standard_number=standard_number,
-                error_message=f"API返回错误: {data.get('message', '未知')}",
+                error_message=f"API返回错误: {data.get('message', Status.UNKNOWN.value)}",
                 source_site=self.site_name,
             )
 

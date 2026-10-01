@@ -14,6 +14,8 @@ from typing import Any, Optional
 import httpx
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from ._shared_ssl import default_ssl_context
@@ -154,7 +156,7 @@ class GongBiaoKuAdapter(BaseAdapter):
         result = QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status="现行",  # 页面不提供状态字段
+            status=Status.ACTIVE.value,  # 页面不提供状态字段
             match_status=match_status,
             implementation_date=implement_date,
             publish_date=publish_date,

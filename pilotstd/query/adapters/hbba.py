@@ -10,6 +10,8 @@ from typing import Any, Optional
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import safe_get
 from ..search_strategy import (
@@ -134,11 +136,11 @@ class HbbaAdapter(BaseAdapter):
 
         # 状态修正：前端脚本会将在未来者显示为"即将实施"
         mapped = map_status(raw_status)
-        if mapped == "现行" and act_date:
+        if mapped == Status.ACTIVE.value and act_date:
             try:
                 act_dt = datetime.strptime(act_date, "%Y-%m-%d")
                 if act_dt > datetime.now():
-                    mapped = "即将实施"
+                    mapped = Status.UPCOMING.value
             except ValueError:
                 pass
 

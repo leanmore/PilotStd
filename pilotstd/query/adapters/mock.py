@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from .base import BaseAdapter
 
@@ -17,7 +19,7 @@ class MockQueryAdapter(BaseAdapter):
             # 模拟_风格：有，无
             "standard_number": "GB/T 12345-2024",
             "standard_name": "信息技术 测试标准规范",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "replaces": "",
             "implementation_date": "2024-07-01",
             "publish_date": "2024-01-15",
@@ -31,7 +33,7 @@ class MockQueryAdapter(BaseAdapter):
             # 模拟风格：接口直返，有，数据库标准不可下载
             "standard_number": "DB11/T 678-2023",
             "standard_name": "北京市 数据安全管理规范",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "replaces": "DB11/T 678-2019",
             "implementation_date": "2023-10-01",
             "publish_date": "2023-07-20",
@@ -45,7 +47,7 @@ class MockQueryAdapter(BaseAdapter):
             # 模拟365风格：有，有
             "standard_number": "DB32/T 4567-2024",
             "standard_name": "江苏省 政务服务数据共享规范",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "replaces": "DB32/T 4567-2021",
             "implementation_date": "2024-03-01",
             "publish_date": "2024-01-10",
@@ -59,7 +61,7 @@ class MockQueryAdapter(BaseAdapter):
             # 模拟风格：有_，无，恒可下载
             "standard_number": "DB34/T 8901-2022",
             "standard_name": "安徽省 智慧园区建设指南",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "replaces": "",
             "implementation_date": "2022-06-01",
             "publish_date": "",

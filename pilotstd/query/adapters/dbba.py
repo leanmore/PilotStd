@@ -9,6 +9,8 @@ from typing import Any
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import (
     _parse_result_number,
@@ -82,11 +84,11 @@ class DbbaAdapter(BaseAdapter):
 
         # 状态修正：在未来→即将实施
         mapped = map_status(raw_status)
-        if mapped == "现行" and act_date:
+        if mapped == Status.ACTIVE.value and act_date:
             try:
                 act_dt = datetime.strptime(act_date, "%Y-%m-%d")
                 if act_dt > datetime.now():
-                    mapped = "即将实施"
+                    mapped = Status.UPCOMING.value
             except ValueError:
                 pass
 

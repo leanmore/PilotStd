@@ -9,6 +9,8 @@ from typing import Any, Optional
 
 import requests
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..network import safe_get
 from ..search_strategy import match_result
@@ -91,7 +93,11 @@ class Njbz365Adapter(BaseAdapter):
         match_number = parsed_target.get("number", 0) or target_number
         match_year = parsed_target.get("year", 0) or target_year
 
-        status_map = {"现行": "现行", "未生效": "即将实施", "废止": "废止"}
+        status_map = {
+            Status.ACTIVE.value: Status.ACTIVE.value,
+            "未生效": Status.UPCOMING.value,
+            Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+        }
         results = []
         for item in items:
             bzbh = item.get("bzbh", "")

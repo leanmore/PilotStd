@@ -17,6 +17,8 @@ from typing import Any, Optional
 import httpx
 import urllib3
 
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
@@ -173,7 +175,7 @@ class SPPTLocalAdapter(BaseAdapter):
         result = QueryResult(
             standard_number=std_no,
             standard_name=name,
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status=match_status,
             implementation_date="",
             publish_date="",
