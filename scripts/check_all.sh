@@ -98,6 +98,17 @@ run_fast() {
         log_fail "G-040 i18n 硬编码检查"
     fi
 
+    # G-043: 敏感端点审计接线（凭证生命周期 / 权限与身份边界 / 不可逆批量销毁）
+    # 起因（2026-09-26，第 2 批安全审计闭环）：全库仅 4 处 write_audit，而 @require_role
+    # 端点有 61 处；改密、轮换静态令牌、改写通知渠道凭证这三类 P0 操作「放行不写审计」
+    # 此前无门禁拦截。判定按**模块**粒度，待接入的 P1/P2 端点在脚本 EXEMPT_ROUTES
+    # 显式登记（每条带理由，禁止无理由豁免）。
+    if python scripts/check_sensitive_endpoint_audit.py; then
+        log_pass "G-043 敏感端点审计接线"
+    else
+        log_fail "G-043 敏感端点审计接线"
+    fi
+
     # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
     # 两个缺陷都在这一处（2026-09-26 实测）：
     # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻
