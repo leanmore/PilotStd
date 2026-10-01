@@ -120,6 +120,18 @@ run_fast() {
         log_fail "G-044 术语与禁用词检查"
     fi
 
+    # G-045: 通知系统覆盖度基线（39 事件 × i18n/e2e/审计/术语）
+    # 起因（2026-09-26，第 11 批收尾审计）：无门禁则基线必腐化——实测 5 处
+    # trigger_file 元数据失真长期潜伏（3 处指向已删除文件、3 处记为投递管道
+    # 而非触发端点，其中后者会让审计维度误判为"安全事件无审计"）。
+    # 判定：i18n 键齐备 + e2e 覆盖且 trigger_file 存在 + 安全事件有 write_audit
+    # 为阻断项；术语登记为跟踪项（--strict 才升阻断），故不会因登记率低而常红。
+    if python scripts/audit_notification_coverage.py; then
+        log_pass "G-045 通知系统覆盖度基线"
+    else
+        log_fail "G-045 通知系统覆盖度基线"
+    fi
+
     # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
     # 两个缺陷都在这一处（2026-09-26 实测）：
     # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻

@@ -27,6 +27,7 @@
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
+| G-045 | 通知系统覆盖度基线 | 每个已注册事件必须：i18n 三语键齐备、出现在 e2e `EVENTS` 且其 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit` | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -333,6 +334,28 @@ P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级�
 
 **执行方式**：`python scripts/check_terminology.py`；辅助模式 `--report`（空跑，仅报告不阻断，用于上线前验证）/ `--list`（列出术语表与白名单）。退出码 0=通过（可能带 aliases 提示），1=存在阻断项。
 **已接入**：`scripts/check_all.sh`（紧跟 G-043，`--fast` 路径）与 `.github/workflows/ci.yml`（紧跟 G-043）。
+
+---
+
+### G-045：通知系统覆盖度基线
+
+**检查内容**：以 `pilotstd/core/notification/events.py` 的 `ALL_EVENTS` 为事件全集，对每个事件校验三个**阻断**维度 + 一个**跟踪**维度：
+
+| 维度 | 合格标准 | 性质 |
+|------|---------|------|
+| i18n | 该事件构建器调用的全部 `t()` 键在 zh_CN/zh_TW/en 三语中齐备 | 阻断 |
+| e2e | 事件出现在 `tests/test_notification_e2e.py` 的 `EVENTS`，**且 `trigger_file` 物理存在** | 阻断 |
+| 审计 | **安全类**事件（`security_*` / `notification_credential_changed`）的触发文件含 `write_audit(` | 阻断 |
+| 术语登记 | 构建器键在 `glossary.json` 登记 | 跟踪（`--strict` 升阻断） |
+
+**触发条件为什么包含 `trigger_file` 存在性**：只检查"事件在 EVENTS 列表里"不够——实测曾有 **3 处 `trigger_file` 指向已删除的 `_query_exec.py`**、**3 处安全事件记为投递管道 `security_notifier.py` 而非触发端点**（后者会让审计维度误判为"安全事件无审计"）。这类失真会让"有触发点"的断言变成**假绿**，正是无门禁时基线腐化的实证。
+
+**基线文档**：`docs/governance/notification_coverage.md`（39 事件矩阵 + 新增事件 9 步准入清单；含 `<!-- BEGIN GENERATED MATRIX -->` 标记，**禁止手工编辑矩阵行**，改代码后重跑 `--matrix` 同步）。
+
+**起因**（2026-09-26，第 11 批收尾审计）：通知治理完成 8 个功能批次后，缺少"全局覆盖度矩阵"证明所有事件在 i18n/测试/审计三维度无遗漏；且 5 处元数据失真长期潜伏——因为没有自动化校验。
+
+**执行方式**：`python scripts/audit_notification_coverage.py`；辅助模式 `--matrix`（输出 Markdown 矩阵）/ `--strict`（术语跟踪项也阻断）。退出码 0=无阻断缺口，1=存在缺口。
+**已接入**：`scripts/check_all.sh`（紧跟 G-044，`--fast` 路径）与 `.github/workflows/ci.yml`（紧跟 G-044）。
 
 ---
 

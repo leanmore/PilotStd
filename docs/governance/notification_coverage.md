@@ -122,7 +122,7 @@
 - [ ] **6. 默认渠道规则**：若事件应默认投递，在 `defaults.py` 加 `notification.rules.<event>`——否则策略表为空时回退 config 也拿不到渠道，事件"注册了但发不出去"
 - [ ] **7. e2e 契约**：`tests/test_notification_e2e.py` 的 `EVENTS` 加条目（`name`/`module`/`level`/`aggregation`/`trigger_file`/`builder_file`/`builder_method`/`builder_keys`）；**`trigger_file` 必须真实存在且含触发方**
 - [ ] **8. 安全类额外要求**：触发文件必须调用 `write_audit`；若因时序要求绕过 `send_event`，需加入 `SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED` 并写明理由
-- [ ] **9. 跑门禁**：`audit_notification_coverage.py`（本基线）+ `check_terminology.py`（G-044）+ `check_sensitive_endpoint_audit.py`（G-043，若涉及敏感端点）
+- [ ] **9. 跑门禁**：`audit_notification_coverage.py`（G-045 本基线）+ `check_terminology.py`（G-044）+ `check_sensitive_endpoint_audit.py`（G-043，若涉及敏感端点）
 
 ---
 
@@ -130,7 +130,7 @@
 
 | 工具 | 编号 | 阻断 | 接入位置 |
 |------|------|------|---------|
-| `audit_notification_coverage.py` | 本基线工具（建议 G-045） | 阻断缺口 → 退出码 1 | ⏳ **尚未接入 CI/check_all**（待裁决） |
+| `audit_notification_coverage.py` | **G-045** | 阻断缺口 → 退出码 1 | ✅ `check_all.sh --fast` + `ci.yml`（紧跟 G-044） |
 | `check_sensitive_endpoint_audit.py` | G-043 | 敏感端点缺 `write_audit` | ✅ `check_all.sh --fast` + `ci.yml` |
 | `check_terminology.py` | G-044 | 禁用词命中 / 术语三语不一致 | ✅ `check_all.sh --fast` + `ci.yml` |
 | `audit_notification_chain.py` | — | 吞错/空文本风险 | ⏳ 未接入（存量 74 问题中 72 为误报，需先修判定逻辑） |

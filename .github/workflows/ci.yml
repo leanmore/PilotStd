@@ -443,6 +443,9 @@ jobs:
       - name: G-044 — 术语与禁用词检查（notification.* 术语一致 + 禁用词）
         run: python scripts/check_terminology.py
 
+      - name: G-045 — 通知系统覆盖度基线（i18n / e2e / 审计三维度 + trigger_file 存在性）
+        run: python scripts/audit_notification_coverage.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════
