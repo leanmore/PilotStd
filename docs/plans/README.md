@@ -7,7 +7,10 @@
 
 ## 当前计划
 
-（暂无活跃计划）
+| 计划 | 主题 | 状态 |
+|------|------|------|
+| [notification-refactor-design.md](notification-refactor-design.md) | 事件通知模块重构设计（i18n / 模板 / 文案 / 覆盖度 / 聚合） | 实施中（第 1 批已落地；聚合器 `target_id` 修复待做） |
+| [batch2-security-audit-design.md](batch2-security-audit-design.md) | 第 2 批方案设计：安全与审计闭环（3 个 P0 端点 + 统一接线规则 + 审计读取 API） | 实施中 |
 
 ---
 
