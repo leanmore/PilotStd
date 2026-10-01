@@ -106,7 +106,7 @@
     "cant_read_project": "Cannot read project file:\n{}",
     "project_loaded": "Project loaded: {}",
     "query_cat_archive": "Ready (direct archive)",
-    "query_cat_expire": "Expired",
+    "query_cat_expire": "Abolished",
     "query_cat_normalize": "Needs normalization",
     "query_cat_not_found": "Not found",
     "query_cat_pending": "Pending (manual review)",
@@ -561,7 +561,7 @@
     "notification.validity.validity_standard_failed.title": "Standard Validity Check Failed",
 
     "notification.validity.validity_system_failed.title": "Validity Check System Failure",
-    "notification.validity.validity_system_failed.body.hint": "💡 Detailed error stack logged to the system log. Please contact the administrator.",
+    "notification.validity.validity_system_failed.body.hint": "Detailed error has been logged to the system log.",
 
     "notification.validity.date_reminder.title": "Standard Implementation Date Reminder",
     "notification.validity.date_reminder.body": "{standard_number} {std_name}: {days_before} day(s) until the implementation date ({remind_type})",
@@ -589,24 +589,24 @@
     "notification.announce.announce_fetch_summary.body.adapter_count": "{count} item(s)",
     "notification.announce.announce_fetch_summary.body.adapter_error": "Failed: {error}",
     "notification.announce.announce_fetch_summary.body.others": "Others",
-    "notification.announce.announce_fetch_summary.body.others_count": "and {total} adapters in total",
+    "notification.announce.announce_fetch_summary.body.others_count": "and {total} sites in total",
 
     "notification.announce.announcement_fetch_failed.title": "Announcement Fetch Failed",
     "notification.announce.announcement_fetch_failed.body": "Failed to fetch {source}: {error}",
 
-    "notification.scan.scan_complete.title": "Scan Complete",
-    "notification.scan.scan_complete.body.stats": "Scanned: {t} file(s), succeeded: {s}, failed: {f}",
-    "notification.scan.scan_complete.body.failed_header": "Failed files:",
+    "notification.scan.scan_complete.title": "Scan Complete ({failed} unrecognized)",
+    "notification.scan.scan_complete.body.stats": "Scanned {t} file(s): {s} recognized, {f} unrecognized",
+    "notification.scan.scan_complete.body.failed_header": "Unrecognized files:",
     "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
 
-    "notification.scan.scan_empty.title": "Scan Complete",
+    "notification.scan.scan_empty.title": "Scan Complete, No New Files",
     "notification.scan.scan_empty.body": "No new files found",
 
     "notification.scan.auto_scan_failed.title": "Auto Scan Failed",
     "notification.scan.auto_scan_failed.body.path": "Path: {p}",
 
     "notification.archive.archive_complete.title": "Archive Complete",
-    "notification.archive.archive_complete.body.count": "Archived: {n} file(s)",
+    "notification.archive.archive_complete.body.count": "Archived {n} file(s)",
     "notification.archive.archive_complete.body.category_item": "{label}: {n} item(s)",
     "notification.archive.archive_complete.body.dir_header": "Archive directory:",
     "notification.archive.archive_complete.body.dir_item": "• {d}",
@@ -631,7 +631,7 @@
     "notification.query.query_failed.body": "Failed to query {standard_number}: {error}",
 
     "notification.query.query_empty.title": "Query Complete",
-    "notification.query.query_empty.body": "None of the {total} standard(s) matched",
+    "notification.query.query_empty.body": "No results found among the {total} standard(s)",
 
     "notification.system.auto_backup.title.success": "Auto Backup Succeeded",
     "notification.system.auto_backup.title.failed": "Auto Backup Failed",
@@ -663,7 +663,7 @@
 
     "notification.system.trust_ip_update.title.default": "Trusted IP Status",
 
-    "notification.system.quota_exhausted.title": "Adapter Daily Quota Exhausted",
+    "notification.system.quota_exhausted.title": "Site Daily Quota Exhausted",
     "notification.system.quota_exhausted.body": "{site_name} has used up today's quota (limit {quota_limit}); it will reset at {reset_time}",
 
     "notification.fallback.body.event_type": "Event type: {t}",
@@ -745,5 +745,6 @@
     "notification.api.security_notify_failed": "Security alert could not be delivered: {channels}",
     "notification.api.security_notify_no_channel": "No usable notification channel is configured; this change produced no alert.",
     "notification.api.security_notify_error": "Failed to send the security alert; check the system log.",
-    "notification.api.token_db_unsynced": "Token rotated, but the database sync failed; the new token may become invalid after a restart."
+    "notification.api.token_db_unsynced": "Token rotated, but the database sync failed; the new token may become invalid after a restart.",
+    "notification.scan.scan_complete.title.clean": "Scan Complete, All Recognized"
 }

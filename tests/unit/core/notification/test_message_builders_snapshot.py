@@ -229,7 +229,8 @@ class TestValidityBuildersSnapshot:
         assert msg.icon == "pi pi-times"
         # 仅展示翻译后错误 + 日志提示语（P1 修复：不再直出 raw 异常）
         assert any("系统异常已记录日志" in b.text for b in msg.blocks if isinstance(b, TextBlock))
-        assert any("💡 详细错误堆栈已记录至系统日志" in b.text for b in msg.blocks if isinstance(b, TextBlock))
+        # 第 5 批术语治理：提示语去掉 emoji 与技术黑话「堆栈」，也去掉该场景无意义的「管理员」
+        assert any("详细错误已记录至系统日志" in b.text for b in msg.blocks if isinstance(b, TextBlock))
 
     def test_validity_system_failed_no_error(self):
         msg = _build_validity_system_failed_message({})
@@ -256,7 +257,7 @@ class TestSystemBuildersSnapshot:
         assert msg.level == "info"
         assert msg.icon == "pi pi-folder-open"
         assert any(
-            isinstance(b, TextBlock) and "已归档：3 个文件" in b.text for b in msg.blocks
+            isinstance(b, TextBlock) and "已归档 3 个文件" in b.text for b in msg.blocks
         )
         assert any(
             isinstance(b, TextBlock) and "国标：2 条，化工：1 条" in b.text for b in msg.blocks
@@ -613,6 +614,25 @@ class TestBatchBuildersSnapshot:
         })
         assert msg.level == "warning"
         assert msg.event_type == "scan_complete"
+
+    def test_scan_complete_title_carries_failure_count(self):
+        """failed>0：数量写进标题，用户不展开即知（第 5 批 F-3）。"""
+        msg = _build_scan_complete_message({"total": 30, "success": 28, "failed": 2})
+        assert "扫描完成（2 个无法识别）" == msg.title
+
+    def test_scan_complete_title_clean_when_no_failure(self):
+        """failed==0：用 title.clean 变体，消除与 scan_empty 的标题歧义（第 5 批 F-3）。"""
+        msg = _build_scan_complete_message({"total": 30, "success": 30, "failed": 0})
+        assert msg.title == "扫描完成，全部识别成功"
+        assert msg.title != _build_scan_empty_message({}).title
+
+    def test_scan_complete_stats_uses_unrecognized_wording(self):
+        """统计行改用「无法识别」，与桌面状态栏 msg_scan_complete 口径一致。"""
+        msg = _build_scan_complete_message({"total": 30, "success": 28, "failed": 2})
+        stats = msg.blocks[0].text
+        assert "识别成功 28 个" in stats
+        assert "无法识别 2 个" in stats
+        assert "失败" not in stats
 
     def test_scan_complete_empty(self):
         msg = _build_scan_complete_message({

@@ -28,8 +28,12 @@ from .channel import NotificationMessage
 def _build_scan_complete_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。
 
-    模板：已扫描：N 个文件，成功：S 个，失败：F 个；有失败明细时
-    追加"失败文件："节（• 路径 — 原因）。
+    模板：共扫描 N 个文件：识别成功 S 个，无法识别 F 个；有明细时
+    追加"无法识别的文件："节（• 路径 — 原因）。
+
+    标题按失败数分支（第 5 批 F-3）：failed>0 时把数量写进标题，用户不展开即知；
+    failed==0 时用 title.clean 变体——原实现两种情形共用同一标题"扫描完成"，
+    与 scan_empty 完全同值，用户无法区分"扫到 N 个"与"无新增文件"。
     """
     total = data.get("total", 0)
     success = data.get("success", data.get("count", 0))
@@ -50,8 +54,14 @@ def _build_scan_complete_message(data: dict) -> NotificationMessage:
         ]
         if lines:
             blocks.append(TextBlock(text="\n".join(lines)))
+    title_key = (
+        "notification.scan.scan_complete.title"
+        if failed > 0
+        else "notification.scan.scan_complete.title.clean"
+    )
     return NotificationMessage(
-        title=t("notification.scan.scan_complete.title"),
+        # clean 变体无占位符，format 会静默忽略多余关键字参数，故统一调用
+        title=t(title_key).format(failed=failed),
         blocks=blocks,
         level="warning" if failed > 0 else "info",
         event_type="scan_complete",

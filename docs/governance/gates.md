@@ -26,6 +26,7 @@
 | G-039 | 冲突标记检查 | 提交/入库内容不得含 `<<<<<<<` / `=======` / `>>>>>>>` 合并冲突标记 | 命中冲突块或孤立标记 | `scripts/check_no_conflict_markers.py` | ✅ 已部署 |
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
+| G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -308,6 +309,27 @@ P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级�
 辅助模式 `--list`（列出敏感路由与接线状态）。退出码 0=通过，1=存在未接线敏感端点。
 **已接入**：`scripts/check_all.sh`（紧跟 G-040，`--fast` 路径）与 `.github/workflows/ci.yml`
 （紧跟 G-040 硬编码检查步骤）——安全门禁不进 CI 即无约束力。
+
+---
+
+### G-044：术语与禁用词检查
+
+**检查内容**：以 `docs/governance/glossary.json` 为唯一数据源（26 条术语），对 `pilotstd/i18n/{zh_CN,zh_TW,en}.json` 执行三条检测：
+
+| # | 检测 | 阻断 | 说明 |
+|---|------|------|------|
+| 1 | **禁用词命中** | ✅ | `notification.*` 作用域内的值出现术语表 `forbidden` 词组（如 `保存完成`、`适配器`、`堆栈`、`未命中`） |
+| 2 | **三语术语一致性** | ✅ | 术语表 `keys` 登记的键，三语值必须与登记值**严格相等**——防"改了简体忘改繁体" |
+| 3 | `aliases` 命中 | ❌ 仅提示 | 值内出现可接受的同义写法（如 `消息`），打印 `::warning::` 但不阻断 |
+
+**白名单三层**（均为显式登记，禁止无理由豁免）：① `exempt_keys`——该键整体跳过（配置字段名场景，如 `webhook_url`）；② `exempt_terms`——这些词在任何键内出现都不算禁用词（英文技术标识如 `bot_token`/`api_key`）；③ 行内 `_allow_legacy` 后缀——值以该标记结尾时跳过（与 G-040 基线策略同源）。
+
+**作用域限 `notification.*`（209 键）**：界面标签（478 键）的用词自由度天然更高，且全量扫描会命中"保存项目/保存CSV"等**正确**用法。`forbidden` 只登记**词组**不登记单字，同理。
+
+**起因**（2026-09-26，第 5 批术语治理）：实测语言包内同一概念多译法——`归档`(24 键)/`保存`(29 键)、`废止`(11)/`作废`(4)、`无法识别`(6)/`未识别`(5)、`未查询到`(6)/`未命中`(1)；且技术黑话残留：`适配器`(2 处，内部代号)、`堆栈`(1 处)；另有 `scan_complete` 与 `scan_empty` 标题**完全同值**（都是"扫描完成"）导致用户无法区分。同批修复 10 键文案并新增 `notification.scan.scan_complete.title.clean`（`failed==0` 时的标题变体，构建器按失败数分支选择）。
+
+**执行方式**：`python scripts/check_terminology.py`；辅助模式 `--report`（空跑，仅报告不阻断，用于上线前验证）/ `--list`（列出术语表与白名单）。退出码 0=通过（可能带 aliases 提示），1=存在阻断项。
+**已接入**：`scripts/check_all.sh`（紧跟 G-043，`--fast` 路径）与 `.github/workflows/ci.yml`（紧跟 G-043）。
 
 ---
 

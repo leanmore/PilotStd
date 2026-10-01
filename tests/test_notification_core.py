@@ -50,7 +50,8 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_archive_complete_zero(self):
         msg = self.mixin._build_archive_complete_message({"count": 0, "directories": []})
-        self.assertIn("已归档：0", msg.blocks[0].text)
+        # 第 5 批术语治理：归档计数句式由「已归档：N 个」改为「已归档 N 个」（不用冒号引导）
+        self.assertIn("已归档 0", msg.blocks[0].text)
 
     def test_status_changed_expired(self):
         msg = self.mixin._build_standard_status_changed_message(

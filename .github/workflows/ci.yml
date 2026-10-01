@@ -440,6 +440,9 @@ jobs:
       - name: G-043 — 敏感端点审计接线（凭证/权限/批量销毁端点必须有 write_audit）
         run: python scripts/check_sensitive_endpoint_audit.py
 
+      - name: G-044 — 术语与禁用词检查（notification.* 术语一致 + 禁用词）
+        run: python scripts/check_terminology.py
+
   # ════════════════════════════════════════════════════════════════
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════

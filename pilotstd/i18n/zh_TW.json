@@ -482,7 +482,7 @@
     "notification.validity.validity_standard_failed.title": "標準有效性檢查失敗",
 
     "notification.validity.validity_system_failed.title": "有效性檢查系統級失敗",
-    "notification.validity.validity_system_failed.body.hint": "💡 詳細錯誤堆疊已記錄至系統日誌，請聯繫管理員查看。",
+    "notification.validity.validity_system_failed.body.hint": "詳細錯誤已記錄至系統日誌。",
 
     "notification.validity.date_reminder.title": "標準實施日期提醒",
     "notification.validity.date_reminder.body": "{standard_number} {std_name} 距離實施日期還有 {days_before} 天（{remind_type}）",
@@ -510,24 +510,24 @@
     "notification.announce.announce_fetch_summary.body.adapter_count": "{count} 條",
     "notification.announce.announce_fetch_summary.body.adapter_error": "失敗: {error}",
     "notification.announce.announce_fetch_summary.body.others": "其他",
-    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 個配接器",
+    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 個站點",
 
     "notification.announce.announcement_fetch_failed.title": "公告抓取失敗",
     "notification.announce.announcement_fetch_failed.body": "{source} 抓取失敗：{error}",
 
-    "notification.scan.scan_complete.title": "掃描完成",
-    "notification.scan.scan_complete.body.stats": "已掃描：{t} 個檔案，成功：{s} 個，失敗：{f} 個",
-    "notification.scan.scan_complete.body.failed_header": "失敗檔案：",
+    "notification.scan.scan_complete.title": "掃描完成（{failed} 個無法識別）",
+    "notification.scan.scan_complete.body.stats": "共掃描 {t} 個檔案：識別成功 {s} 個，無法識別 {f} 個",
+    "notification.scan.scan_complete.body.failed_header": "無法識別的檔案：",
     "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
 
-    "notification.scan.scan_empty.title": "掃描完成",
+    "notification.scan.scan_empty.title": "掃描完成，無新增檔案",
     "notification.scan.scan_empty.body": "未發現新檔案",
 
     "notification.scan.auto_scan_failed.title": "自動掃描失敗",
     "notification.scan.auto_scan_failed.body.path": "路徑：{p}",
 
     "notification.archive.archive_complete.title": "歸檔完成",
-    "notification.archive.archive_complete.body.count": "已歸檔：{n} 個檔案",
+    "notification.archive.archive_complete.body.count": "已歸檔 {n} 個檔案",
     "notification.archive.archive_complete.body.category_item": "{label}：{n} 條",
     "notification.archive.archive_complete.body.dir_header": "歸檔目錄：",
     "notification.archive.archive_complete.body.dir_item": "• {d}",
@@ -552,7 +552,7 @@
     "notification.query.query_failed.body": "{standard_number} 查詢失敗：{error}",
 
     "notification.query.query_empty.title": "查詢完成",
-    "notification.query.query_empty.body": "共 {total} 條標準，全部未命中",
+    "notification.query.query_empty.body": "共 {total} 條標準，均未查詢到結果",
 
     "notification.system.auto_backup.title.success": "自動備份成功",
     "notification.system.auto_backup.title.failed": "自動備份失敗",
@@ -584,7 +584,7 @@
 
     "notification.system.trust_ip_update.title.default": "可信 IP 狀態",
 
-    "notification.system.quota_exhausted.title": "配接器日配額已耗盡",
+    "notification.system.quota_exhausted.title": "站點日配額已耗盡",
     "notification.system.quota_exhausted.body": "{site_name} 今日配額已用完（限額 {quota_limit}），將於 {reset_time} 重置",
 
     "notification.fallback.body.event_type": "事件類型：{t}",
@@ -666,5 +666,6 @@
     "notification.api.security_notify_failed": "安全告警未能送達：{channels}",
     "notification.api.security_notify_no_channel": "未設定可用的通知渠道，本次變更未發出告警。",
     "notification.api.security_notify_error": "安全告警發送失敗，請查看系統日誌。",
-    "notification.api.token_db_unsynced": "權杖已輪換，但資料庫同步失敗；重啟後新權杖可能失效。"
+    "notification.api.token_db_unsynced": "權杖已輪換，但資料庫同步失敗；重啟後新權杖可能失效。",
+    "notification.scan.scan_complete.title.clean": "掃描完成，全部識別成功"
 }

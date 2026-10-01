@@ -1,0 +1,392 @@
+{
+  "meta": {
+    "version": 1,
+    "updated": "2026-09-26",
+    "gate": "G-044",
+    "scope_keys": [
+      "notification.*"
+    ],
+    "docs": "docs/plans/batch5-terminology-design.md",
+    "notes": "术语唯一数据源。forbidden 只登记『词组』不登记单字——单字（如『保存』）在『保存项目/保存CSV』中是正确用法，登记为禁用会造成大面积误报。aliases 只提示不阻断，用于容纳可接受的同义写法。"
+  },
+  "exempt_terms": [
+    "Webhook",
+    "webhook_url",
+    "bot_token",
+    "chat_id",
+    "corpid",
+    "agentid",
+    "corpsecret",
+    "API",
+    "API Key",
+    "pst_"
+  ],
+  "exempt_keys": [
+    "notification.channel.config.webhook_url",
+    "notification.channel_test.missing_webhook",
+    "notification.channel_test.missing_dingtalk_webhook",
+    "notification.channel_test.missing_feishu_webhook",
+    "notification.channel_test.missing_wechat_url",
+    "notification.channel_test.missing_bot_token",
+    "notification.channel_test.missing_chat_id",
+    "notification.channel.not_configured_webhook",
+    "notification.channel.not_configured_telegram",
+    "notification.api.unsupported_channel",
+    "ocr_baidu_api_key",
+    "ocr_baidu_secret_key",
+    "ocr_tencent_secret_id",
+    "ocr_tencent_secret_key",
+    "ocr_aliyun_access_key_id",
+    "ocr_aliyun_access_key_secret"
+  ],
+  "terms": [
+    {
+      "id": "archive",
+      "zh_CN": "归档完成",
+      "zh_TW": "歸檔完成",
+      "en": "Archive Complete",
+      "aliases": [
+        "保存",
+        "入库"
+      ],
+      "forbidden": [
+        "保存完成"
+      ],
+      "keys": [
+        "notification.archive.archive_complete.title"
+      ],
+      "notes": "文件进入标准库的动作，以工具栏 toolbar_save 的口径为准。『保存』单字在『保存项目/保存CSV』中是正确用法，故只禁词组『保存完成』。"
+    },
+    {
+      "id": "archive_count",
+      "zh_CN": "已归档 {n} 个文件",
+      "zh_TW": "已歸檔 {n} 個檔案",
+      "en": "Archived {n} file(s)",
+      "aliases": [],
+      "forbidden": [
+        "已归档："
+      ],
+      "keys": [
+        "notification.archive.archive_complete.body.count"
+      ],
+      "notes": "正文句式统一为『动作 + 空格 + 数量』，不用冒号引导（键值对才用冒号）。"
+    },
+    {
+      "id": "abolished",
+      "zh_CN": "已废止",
+      "zh_TW": "已廢止",
+      "en": "Expired",
+      "aliases": [],
+      "forbidden": [
+        "已作废",
+        "已失效"
+      ],
+      "keys": [
+        "notification.common.abolished"
+      ],
+      "notes": "标准失效态的权威用词。『过期作废』是磁盘目录名（expire_folder），不是状态词，故不列入 forbidden。en 原为 Expired，与 expire（过期）混淆，改为 Abolished 与 zh 对齐。"
+    },
+    {
+      "id": "scan_done_title",
+      "zh_CN": "扫描完成（{failed} 个无法识别）",
+      "zh_TW": "掃描完成（{failed} 個無法識別）",
+      "en": "Scan Complete ({failed} unrecognized)",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [
+        "notification.scan.scan_complete.title"
+      ],
+      "notes": "失败数写进标题，用户不展开即知。failed==0 时改用 title.clean 变体。"
+    },
+    {
+      "id": "unrecognized",
+      "zh_CN": "无法识别的文件：",
+      "zh_TW": "無法識別的檔案：",
+      "en": "Unrecognized files:",
+      "aliases": [],
+      "forbidden": [
+        "未识别",
+        "识别失败"
+      ],
+      "keys": [
+        "notification.scan.scan_complete.body.failed_header"
+      ],
+      "notes": "文件名无法匹配标准（非系统错误），与『失败』区分：失败保留给真实错误。"
+    },
+    {
+      "id": "scan_stats",
+      "zh_CN": "共扫描 {t} 个文件：识别成功 {s} 个，无法识别 {f} 个",
+      "zh_TW": "共掃描 {t} 個檔案：識別成功 {s} 個，無法識別 {f} 個",
+      "en": "Scanned {t} file(s): {s} recognized, {f} unrecognized",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [
+        "notification.scan.scan_complete.body.stats"
+      ],
+      "notes": "与桌面状态栏 msg_scan_complete 的口径对齐（后者本就是正确写法）。"
+    },
+    {
+      "id": "scan_empty_title",
+      "zh_CN": "扫描完成，无新增文件",
+      "zh_TW": "掃描完成，無新增檔案",
+      "en": "Scan Complete, No New Files",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [
+        "notification.scan.scan_empty.title"
+      ],
+      "notes": "消除与 scan_complete 的标题歧义——原先两者值完全相同（都是『扫描完成』），用户无法区分。"
+    },
+    {
+      "id": "query_empty_body",
+      "zh_CN": "共 {total} 条标准，均未查询到结果",
+      "zh_TW": "共 {total} 條標準，均未查詢到結果",
+      "en": "No results found among the {total} standard(s)",
+      "aliases": [],
+      "forbidden": [
+        "全部未命中"
+      ],
+      "keys": [
+        "notification.query.query_empty.body"
+      ],
+      "notes": "『未命中』是缓存/技术语境用词，用户侧统一为『未查询到』。"
+    },
+    {
+      "id": "site",
+      "zh_CN": "站点日配额已耗尽",
+      "zh_TW": "站點日配額已耗盡",
+      "en": "Site Daily Quota Exhausted",
+      "aliases": [],
+      "forbidden": [
+        "适配器",
+        "配接器"
+      ],
+      "keys": [
+        "notification.system.quota_exhausted.title"
+      ],
+      "notes": "『适配器』是内部代号，用户不知道它指什么；『站点』已有 5 键在用。"
+    },
+    {
+      "id": "system_log_hint",
+      "zh_CN": "详细错误已记录至系统日志。",
+      "zh_TW": "詳細錯誤已記錄至系統日誌。",
+      "en": "Detailed error has been logged to the system log.",
+      "aliases": [],
+      "forbidden": [
+        "堆栈",
+        "堆疊",
+        "error stack"
+      ],
+      "keys": [
+        "notification.validity.validity_system_failed.body.hint"
+      ],
+      "notes": "技术黑话『堆栈』改为用户语言；错误类文案去掉 emoji；单人项目该场景无『管理员』角色，删除该词（安全告警场景的『管理员』保留——ADMIN_ROLE 真实存在）。"
+    },
+    {
+      "id": "not_found",
+      "zh_CN": "未查询到",
+      "zh_TW": "未查詢到",
+      "en": "Not found",
+      "aliases": [],
+      "forbidden": [
+        "查无"
+      ],
+      "keys": [],
+      "notes": "站点查询无果的标准说法（存量键 query_cat_not_found 等 6 键已一致，本批仅登记口径）。"
+    },
+    {
+      "id": "failed",
+      "zh_CN": "定时任务执行失败",
+      "zh_TW": "定時任務執行失敗",
+      "en": "Scheduled Task Execution Failed",
+      "aliases": [],
+      "forbidden": [
+        "出错",
+        "不成功"
+      ],
+      "keys": [
+        "notification.system.task_execution_failed.title"
+      ],
+      "notes": "保留给『真实错误』（网络/接口/任务异常）。文件名不匹配场景改用『无法识别』。"
+    },
+    {
+      "id": "system_error",
+      "zh_CN": "异常",
+      "zh_TW": "異常",
+      "en": "Error",
+      "aliases": [],
+      "forbidden": [
+        "系统错误"
+      ],
+      "keys": [],
+      "notes": "系统级问题用『异常』（异常=非预期），业务预期内的问题用『失败』。边界由此固定。"
+    },
+    {
+      "id": "notice",
+      "zh_CN": "📦 聚合通知（{n} 条）",
+      "zh_TW": "📦 聚合通知（{n} 條）",
+      "en": "📦 Aggregated notifications ({n})",
+      "aliases": [
+        "消息"
+      ],
+      "forbidden": [],
+      "keys": [
+        "notification.aggregated.body.header"
+      ],
+      "notes": "功能名统一为『通知』；『消息』仅在指称单条内容时可用（如测试消息），不阻断。"
+    },
+    {
+      "id": "reminder",
+      "zh_CN": "提醒",
+      "zh_TW": "提醒",
+      "en": "Reminder",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [],
+      "notes": "日期/配额类的前瞻性告知用『提醒』，与『通知』（事后告知结果）区分。"
+    },
+    {
+      "id": "security_alert",
+      "zh_CN": "安全告警未能送达：{channels}",
+      "zh_TW": "安全告警未能送達：{channels}",
+      "en": "Security alert could not be delivered: {channels}",
+      "aliases": [],
+      "forbidden": [
+        "安全通知",
+        "安全提醒"
+      ],
+      "keys": [
+        "notification.api.security_notify_failed"
+      ],
+      "notes": "凭证/令牌/密码类安全事件统一用『告警』，区别于普通业务通知，提示用户需立即关注。"
+    },
+    {
+      "id": "delete",
+      "zh_CN": "删除",
+      "zh_TW": "刪除",
+      "en": "Delete",
+      "aliases": [],
+      "forbidden": [
+        "移除"
+      ],
+      "keys": [],
+      "notes": "统一为『删除』；『移除』在存量界面标签（remove_selected 等）中仍存在，属界面标签作用域外。"
+    },
+    {
+      "id": "cancel",
+      "zh_CN": "取消",
+      "zh_TW": "取消",
+      "en": "Cancel",
+      "aliases": [],
+      "forbidden": [
+        "终止",
+        "中止"
+      ],
+      "keys": [],
+      "notes": "用户主动放弃操作用『取消』；系统侧强制结束用『终止』（如需，另行登记）。"
+    },
+    {
+      "id": "quota",
+      "zh_CN": "{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置",
+      "zh_TW": "{site_name} 今日配額已用完（限額 {quota_limit}），將於 {reset_time} 重置",
+      "en": "{site_name} has used up today's quota (limit {quota_limit}); it will reset at {reset_time}",
+      "aliases": [],
+      "forbidden": [
+        "额度"
+      ],
+      "keys": [
+        "notification.system.quota_exhausted.body"
+      ],
+      "notes": "站点日调用上限统一称『配额』。"
+    },
+    {
+      "id": "credential",
+      "zh_CN": "通知渠道凭证已变更",
+      "zh_TW": "通知渠道憑證已變更",
+      "en": "Notification credentials changed",
+      "aliases": [],
+      "forbidden": [
+        "凭据"
+      ],
+      "keys": [
+        "notification.system.notification_credential_changed.title"
+      ],
+      "notes": "二选一，取既有键已用的『凭证』。"
+    },
+    {
+      "id": "token_static",
+      "zh_CN": "API 静态令牌已轮换",
+      "zh_TW": "API 靜態權杖已輪換",
+      "en": "API static token rotated",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [
+        "notification.system.security_token_refreshed.title"
+      ],
+      "notes": "静态 API 令牌称『令牌』。配置字段名 bot_token / chat_id 属 exempt_terms，不翻译。"
+    },
+    {
+      "id": "not_configured",
+      "zh_CN": "未配置",
+      "zh_TW": "未設定",
+      "en": "not configured",
+      "aliases": [],
+      "forbidden": [
+        "没有配置"
+      ],
+      "keys": [],
+      "notes": "句式统一为『未配置』。"
+    },
+    {
+      "id": "channel_unavailable",
+      "zh_CN": "渠道 {ch} 未启用或初始化失败",
+      "zh_TW": "渠道 {ch} 未啟用或初始化失敗",
+      "en": "Channel {ch} is not enabled or failed to initialize",
+      "aliases": [],
+      "forbidden": [],
+      "keys": [
+        "notification.manager.channel_unavailable"
+      ],
+      "notes": "渠道不可用的标准表述，句内同时用到『未配置/未启用』与『失败』，作为两个术语的边界示例。"
+    },
+    {
+      "id": "scan_done_title_clean",
+      "keys": [
+        "notification.scan.scan_complete.title.clean"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "failed==0 时的标题变体（构建器按失败数分支选择），与 title 同族。",
+      "zh_CN": "扫描完成，全部识别成功",
+      "zh_TW": "掃描完成，全部識別成功",
+      "en": "Scan Complete, All Recognized"
+    },
+    {
+      "id": "unknown_reason",
+      "keys": [
+        "notification.common.unknown_reason"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "兜底占位原因（与『无法识别』区分：本键是通用未知原因的兜底文案）。",
+      "zh_CN": "未知原因",
+      "zh_TW": "未知原因",
+      "en": "Unknown reason"
+    },
+    {
+      "id": "site_others_count",
+      "keys": [
+        "notification.announce.announce_fetch_summary.body.others_count"
+      ],
+      "forbidden": [
+        "适配器",
+        "配接器"
+      ],
+      "aliases": [],
+      "notes": "适配器明细折叠末句，用户侧统一称『站点』。",
+      "zh_CN": "等共 {total} 个站点",
+      "zh_TW": "等共 {total} 個站點",
+      "en": "and {total} sites in total"
+    }
+  ]
+}

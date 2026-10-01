@@ -109,6 +109,17 @@ run_fast() {
         log_fail "G-043 敏感端点审计接线"
     fi
 
+    # G-044: 术语与禁用词检查（notification.* 文案术语一致 + 禁用词）
+    # 起因（2026-09-26，第 5 批术语治理）：语言包中同一概念多译法（归档/保存、
+    # 废止/作废、无法识别/未识别、未查询到/未命中）+ 技术黑话残留（适配器/堆栈）。
+    # 术语唯一数据源 docs/governance/glossary.json；作用域限 notification.*
+    # （界面标签用词自由度更高，全量扫描会命中"保存项目"等正确用法）。
+    if python scripts/check_terminology.py; then
+        log_pass "G-044 术语与禁用词检查"
+    else
+        log_fail "G-044 术语与禁用词检查"
+    fi
+
     # 前端类型检查（对齐 CI 的 `pnpm run type-check`，即 -p tsconfig.app.json）
     # 两个缺陷都在这一处（2026-09-26 实测）：
     # ① 必须把命令写进 if 条件：脚本开头是 set -euo pipefail，裸命令一旦返回非 0 会立刻

@@ -565,7 +565,7 @@
     "notification.validity.validity_standard_failed.title": "标准有效性检查失败",
 
     "notification.validity.validity_system_failed.title": "有效性检查系统级失败",
-    "notification.validity.validity_system_failed.body.hint": "💡 详细错误堆栈已记录至系统日志，请联系管理员查看。",
+    "notification.validity.validity_system_failed.body.hint": "详细错误已记录至系统日志。",
 
     "notification.validity.date_reminder.title": "标准实施日期提醒",
     "notification.validity.date_reminder.body": "{standard_number} {std_name} 距离实施日期还有 {days_before} 天（{remind_type}）",
@@ -593,24 +593,24 @@
     "notification.announce.announce_fetch_summary.body.adapter_count": "{count} 条",
     "notification.announce.announce_fetch_summary.body.adapter_error": "失败: {error}",
     "notification.announce.announce_fetch_summary.body.others": "其他",
-    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 个适配器",
+    "notification.announce.announce_fetch_summary.body.others_count": "等共 {total} 个站点",
 
     "notification.announce.announcement_fetch_failed.title": "公告抓取失败",
     "notification.announce.announcement_fetch_failed.body": "{source} 抓取失败：{error}",
 
-    "notification.scan.scan_complete.title": "扫描完成",
-    "notification.scan.scan_complete.body.stats": "已扫描：{t} 个文件，成功：{s} 个，失败：{f} 个",
-    "notification.scan.scan_complete.body.failed_header": "失败文件：",
+    "notification.scan.scan_complete.title": "扫描完成（{failed} 个无法识别）",
+    "notification.scan.scan_complete.body.stats": "共扫描 {t} 个文件：识别成功 {s} 个，无法识别 {f} 个",
+    "notification.scan.scan_complete.body.failed_header": "无法识别的文件：",
     "notification.scan.scan_complete.body.failed_item": "• {path} — {reason}",
 
-    "notification.scan.scan_empty.title": "扫描完成",
+    "notification.scan.scan_empty.title": "扫描完成，无新增文件",
     "notification.scan.scan_empty.body": "未发现新文件",
 
     "notification.scan.auto_scan_failed.title": "自动扫描失败",
     "notification.scan.auto_scan_failed.body.path": "路径：{p}",
 
     "notification.archive.archive_complete.title": "归档完成",
-    "notification.archive.archive_complete.body.count": "已归档：{n} 个文件",
+    "notification.archive.archive_complete.body.count": "已归档 {n} 个文件",
     "notification.archive.archive_complete.body.category_item": "{label}：{n} 条",
     "notification.archive.archive_complete.body.dir_header": "归档目录：",
     "notification.archive.archive_complete.body.dir_item": "• {d}",
@@ -635,7 +635,7 @@
     "notification.query.query_failed.body": "{standard_number} 查询失败：{error}",
 
     "notification.query.query_empty.title": "查询完成",
-    "notification.query.query_empty.body": "共 {total} 条标准，全部未命中",
+    "notification.query.query_empty.body": "共 {total} 条标准，均未查询到结果",
 
     "notification.system.auto_backup.title.success": "自动备份成功",
     "notification.system.auto_backup.title.failed": "自动备份失败",
@@ -667,7 +667,7 @@
 
     "notification.system.trust_ip_update.title.default": "可信 IP 状态",
 
-    "notification.system.quota_exhausted.title": "适配器日配额已耗尽",
+    "notification.system.quota_exhausted.title": "站点日配额已耗尽",
     "notification.system.quota_exhausted.body": "{site_name} 今日配额已用完（限额 {quota_limit}），将于 {reset_time} 重置",
 
     "notification.fallback.body.event_type": "事件类型：{t}",
@@ -749,5 +749,6 @@
     "notification.api.security_notify_failed": "安全告警未能送达：{channels}",
     "notification.api.security_notify_no_channel": "未配置可用的通知渠道，本次变更未发出告警。",
     "notification.api.security_notify_error": "安全告警发送失败，请查看系统日志。",
-    "notification.api.token_db_unsynced": "令牌已刷新，但数据库同步失败；重启后新令牌可能失效。"
+    "notification.api.token_db_unsynced": "令牌已刷新，但数据库同步失败；重启后新令牌可能失效。",
+    "notification.scan.scan_complete.title.clean": "扫描完成，全部识别成功"
 }
