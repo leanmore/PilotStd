@@ -38,12 +38,15 @@ from ._message_builders import (
     _build_image_update_available_message,
     _build_normalize_complete_message,
     _build_normalize_failed_message,
+    _build_notification_credential_changed_message,
     _build_query_empty_message,
     _build_query_failed_message,
     _build_quota_exhausted_message,
     _build_replacement_not_found_message,
     _build_scan_complete_message,
     _build_scan_empty_message,
+    _build_security_password_changed_message,
+    _build_security_token_refreshed_message,
     _build_standard_first_registered_message,
     _build_standard_status_changed_message,
     _build_task_execution_failed_message,
@@ -413,6 +416,9 @@ class NotificationManager:
             "expire_standard_moved": _build_expire_standard_moved_message,
             "replacement_not_found": _build_replacement_not_found_message,
             "quota_exhausted": _build_quota_exhausted_message,
+            "notification_credential_changed": _build_notification_credential_changed_message,
+            "security_password_changed": _build_security_password_changed_message,
+            "security_token_refreshed": _build_security_token_refreshed_message,
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:

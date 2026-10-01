@@ -25,6 +25,7 @@
 | G-038 | 历史遗留错误清零 | 静态检查（Ruff/Mypy）发现的历史遗留错误 | 存在任何未修复的历史遗留错误 | `scripts/check_g_038_legacy_errors.py` | ✅ 已部署 |
 | G-039 | 冲突标记检查 | 提交/入库内容不得含 `<<<<<<<` / `=======` / `>>>>>>>` 合并冲突标记 | 命中冲突块或孤立标记 | `scripts/check_no_conflict_markers.py` | ✅ 已部署 |
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
+| G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -274,6 +275,37 @@
 + 扩展 `login` 4 键 / `announce.type_long.*` 3 键 / `announce.detail.route_title`，叶子键 **772 → 860**（静态 75 + 动态/扩展 13）。
 `router.ts` 两条详情路由的中文 `meta.title` 兜底删除、改用既有 `titleKey` 机制；模块级表 `typeTabs`/`STD_TYPE_LABEL`/`UnifiedFilterBar.types` 存 key、渲染期 `t()`；
 非组件模块 `api/http.ts`/`useQueryAdapters.ts`/`useFavorite.ts` 走批 4 建好的 `i18n.global.t`。
+
+---
+
+### G-043：敏感端点审计接线
+
+**检查内容**：扫描 `docker/api/**/*.py` 中的状态变更路由装饰器（`POST`/`PUT`/`DELETE`/`PATCH`），
+命中 `SENSITIVE_ROUTES` 的路由要求其所属模块内存在 `write_audit(` 调用；否则 FAIL。
+
+**敏感端点判定标准**（三类，命中任一即纳入）：
+
+| 编号 | 判据 | 本批示例 |
+|------|------|---------|
+| S1 | 凭证/密钥生命周期变更（创建、替换、轮换、撤销） | `PUT /api/notification/config`、`PUT /api/users/password`、`POST /api/settings/token/refresh` |
+| S2 | 权限与身份边界变更（改变谁能访问什么，或增删身份主体） | `POST /api/users`、`DELETE /api/users/{id}`、`POST /api/auth/register` |
+| S3 | 不可逆批量数据销毁 | `DELETE /api/admin/logs`、`POST /api/cache/cleanup` |
+
+**豁免**：`EXEMPT_ROUTES` 是**显式登记**的待接入清单，每条必须带理由字符串（禁止无理由豁免）。
+某条一旦在该模块内出现 `write_audit`，脚本会提示"可移出豁免"（提示不阻断）。
+
+**已知局限（有意保留）**：按**模块**粒度判定，无法区分"同文件内另一个端点已写审计"的情形
+（如 `admin_db.py` 的 `DB_QUERY` 已写，故 `POST /query` 报"可移出"）。升级到函数级 AST 判定留待
+P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级判定才有意义。
+
+**起因**（2026-09-26，第 2 批安全审计闭环）：全库仅 **4 处** `write_audit`
+（`ACCESS_DENIED` / `DB_QUERY` / `SETTINGS_WRITE`），而使用 `@require_role` 的端点有 **61 处**；
+改密、轮换静态令牌、改写通知渠道凭证这三类 P0 安全操作「放行不写审计」此前无任何门禁拦截。
+同一轮还补齐了审计**读取**入口 `GET /api/admin/audit`（`docker/api/audit.py`）——此前
+`read_audit` 无任何 API 暴露，审计只写不可读，等于死数据。
+
+**执行方式**：`python scripts/check_sensitive_endpoint_audit.py`；
+辅助模式 `--list`（列出敏感路由与接线状态）。退出码 0=通过，1=存在未接线敏感端点。
 
 ---
 

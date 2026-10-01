@@ -73,6 +73,13 @@ class TestUpdateConfigSync(unittest.TestCase):
         mgr.notification_mgr = MagicMock()
         return mgr
 
+    @staticmethod
+    def _body(result):
+        """第 2 批起 update_config 返回 JSONResponse（响应体含 warnings），此处取出 JSON。"""
+        import json
+
+        return json.loads(bytes(result.body).decode("utf-8"))
+
     def test_enabled_writes_both_config_and_db(self):
         from unittest.mock import MagicMock
 
@@ -84,7 +91,7 @@ class TestUpdateConfigSync(unittest.TestCase):
         mgr.user_service.save_preference.assert_called_once_with(1, "notification.enabled", True)
         mgr.cfg.save.assert_called_once()
         mgr._init_notification.assert_called_once()
-        self.assertEqual(result, {"ok": True})
+        self.assertEqual(self._body(result)["ok"], True)
 
     def test_enabled_false_writes_db(self):
         from unittest.mock import MagicMock
@@ -105,7 +112,7 @@ class TestUpdateConfigSync(unittest.TestCase):
         result = update_config(request=MagicMock(), body={"enabled": True}, mgr=mgr, user_id=1)
         mgr.cfg.set.assert_called_once_with("notification.enabled", True)
         mgr._init_notification.assert_called_once()
-        self.assertEqual(result, {"ok": True})
+        self.assertEqual(self._body(result)["ok"], True)
 
 
 # ════════════════════════════════════════════════════════════════

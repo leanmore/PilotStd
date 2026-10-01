@@ -139,6 +139,20 @@ FALLBACK_WHITELIST: dict[str, set[str]] = {
     "image_update_available": {"release_notes"},
 }
 
+# 有意豁免"必须有 send_event 触发点"的事件（第 2 批安全与审计闭环）：
+# 这三个安全告警不走 NotificationManager.send_event —— 凭证变更告警必须在**新凭证
+# 落库之前**送达旧渠道，而 manager 路径会被聚合缓冲（默认 5s）与静音时段（延后补发）
+# 推迟到落库之后，从而投递到攻击者控制的新地址。投递改由
+# pilotstd/core/notification/security_notifier.py 直连临时渠道同步 send() 完成，
+# 其正确性（含"不得调用 send_event"）由 tests/test_p0_security_endpoints.py 锁定。
+SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED: frozenset[str] = frozenset(
+    {
+        "notification_credential_changed",
+        "security_password_changed",
+        "security_token_refreshed",
+    }
+)
+
 # 硬编码 trigger_keys — 当 regex 无法解析 Block 模式 send_event 时使用
 # 由手动审查 trigger 源码维护，是字段验证的真实来源
 TRIGGER_KEYS: dict[str, set[str]] = {
@@ -602,10 +616,46 @@ EVENTS: list[dict[str, Any]] = [
         "builder_keys": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
         "mutual": "",
     },
+    # ── 安全告警（3，第 2 批安全与审计闭环）──
+    # 投递由 security_notifier 直连旧渠道同步发送（绕过聚合/静音），
+    # 但事件自身仍登记于 ALL_EVENTS 并配构建器，故纳入本契约测试。
+    {
+        "name": "notification_credential_changed",
+        "module": "安全告警",
+        "level": "warning",
+        "aggregation": "绕过（直连旧渠道）",
+        "trigger_file": "pilotstd/core/notification/security_notifier.py",
+        "builder_file": "pilotstd/core/notification/_builders_system.py",
+        "builder_method": "_build_notification_credential_changed_message",
+        "builder_keys": {"services", "changed_keys", "rules_changed", "from_ip"},
+        "mutual": "",
+    },
+    {
+        "name": "security_password_changed",
+        "module": "安全告警",
+        "level": "warning",
+        "aggregation": "绕过（直连旧渠道）",
+        "trigger_file": "pilotstd/core/notification/security_notifier.py",
+        "builder_file": "pilotstd/core/notification/_builders_system.py",
+        "builder_method": "_build_security_password_changed_message",
+        "builder_keys": {"user_id", "from_ip", "sessions_revoked"},
+        "mutual": "",
+    },
+    {
+        "name": "security_token_refreshed",
+        "module": "安全告警",
+        "level": "warning",
+        "aggregation": "绕过（直连旧渠道）",
+        "trigger_file": "pilotstd/core/notification/security_notifier.py",
+        "builder_file": "pilotstd/core/notification/_builders_system.py",
+        "builder_method": "_build_security_token_refreshed_message",
+        "builder_keys": {"rotated_at", "from_ip", "db_synced"},
+        "mutual": "",
+    },
 ]
 
 # 验证 EVENTS 列表完整性
-assert len(EVENTS) == 35, f"Expected 35 events, got {len(EVENTS)}"
+assert len(EVENTS) == 38, f"Expected 38 events, got {len(EVENTS)}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -654,11 +704,21 @@ class TestNotificationRegistry:
 
 
 class TestNotificationTriggerPoints:
-    """验证所有 32 个事件均有 send_event 触发点。"""
+    """验证所有事件均有 send_event 触发点。
+
+    例外（第 2 批安全与审计闭环）：`SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED` 中的事件
+    刻意**不由** `NotificationManager.send_event` 投递——凭证变更告警必须早于新凭证
+    落库送达旧渠道，而 manager 路径受聚合缓冲（默认 5s）与静音时段（延后至次日）
+    影响，会把告警投递到攻击者控制的新地址。故这三个事件由
+    `pilotstd/core/notification/security_notifier.py` 直连临时渠道同步发送。
+    """
 
     @pytest.mark.parametrize("event", EVENTS, ids=[e["name"] for e in EVENTS])
     def test_trigger_exists(self, event):
         name = event["name"]
+        if name in SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED:
+            # 投递路径已由 tests/test_p0_security_endpoints.py 覆盖（含"不得走 send_event"断言）
+            return
         calls = _find_send_event_calls(name)
         assert len(calls) > 0, f"{name}: 未找到任何 send_event 调用\n预期触发文件: {event['trigger_file']}"
         for fpath, lineno in calls:

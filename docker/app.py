@@ -25,6 +25,7 @@ from .api.announce_detail import router as announce_detail_router
 from .api.announce_lookup import router as announce_lookup_router
 from .api.announcements import router as announcements_router
 from .api.archive import router as archive_router
+from .api.audit import router as audit_router
 from .api.auth_register import router as auth_register_router
 from .api.auto import router as auto_router
 from .api.backup import router as backup_router
@@ -315,6 +316,7 @@ app.include_router(adapter_router)
 app.include_router(query_debug_router)
 app.include_router(scheduler_router)
 app.include_router(admin_db_router)
+app.include_router(audit_router)
 app.include_router(backup_router)
 app.include_router(export_router)
 app.include_router(favorites_router)

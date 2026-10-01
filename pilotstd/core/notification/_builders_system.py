@@ -306,3 +306,117 @@ def _build_quota_exhausted_message(data: dict) -> NotificationMessage:
         event_type="quota_exhausted",
         icon="pi pi-exclamation-triangle",
     )
+
+
+# ── 安全告警（第 2 批：安全与审计闭环）───────────────────────────────
+# 这三个事件的投递不走 NotificationManager.send_event（聚合/静音会把凭证变更
+# 告警推迟到新凭证落库之后），由 security_notifier 直连旧渠道同步发送。
+# 构建器仍按统一契约产出 NotificationMessage，故载荷字段与调用方严格对齐。
+
+
+def _build_notification_credential_changed_message(data: dict) -> NotificationMessage:
+    """通知渠道凭证变更告警。
+
+    载荷：services（被改动渠道）、changed_keys（被改动字段名）、rules_changed、
+    from_ip。**载荷与日志均不含凭证值**——变更告警的价值在于"知道被改"，
+    回显凭证会让告警本身成为泄露面。
+    """
+    services = [str(s) for s in (data.get("services") or [])]
+    changed_keys = [str(k) for k in (data.get("changed_keys") or [])]
+    rules_changed = bool(data.get("rules_changed"))
+    from_ip = str(data.get("from_ip") or "")
+
+    blocks: list[NotificationBlock] = []
+    if services:
+        blocks.append(
+            KeyValueBlock(
+                key=t("notification.system.notification_credential_changed.body.services"),
+                value=", ".join(services),
+            )
+        )
+    if changed_keys:
+        blocks.append(
+            KeyValueBlock(
+                key=t("notification.system.notification_credential_changed.body.keys"),
+                value=", ".join(changed_keys),
+            )
+        )
+    if not services and rules_changed:
+        blocks.append(TextBlock(text=t("notification.system.notification_credential_changed.body.rules")))
+    if from_ip:
+        blocks.append(
+            KeyValueBlock(
+                key=t("notification.system.notification_credential_changed.body.from_ip"),
+                value=from_ip,
+            )
+        )
+    blocks.append(TextBlock(text=t("notification.system.notification_credential_changed.body.hint")))
+
+    return NotificationMessage(
+        title=t("notification.system.notification_credential_changed.title"),
+        blocks=blocks,
+        level="warning",
+        event_type="notification_credential_changed",
+        icon="pi pi-shield",
+    )
+
+
+def _build_security_password_changed_message(data: dict) -> NotificationMessage:
+    """账号密码变更告警（sessions_revoked 恒为 false，见已知限制）。
+
+    载荷：user_id、from_ip、sessions_revoked。
+    """
+    user_id = str(data.get("user_id") or "")
+    from_ip = str(data.get("from_ip") or "")
+    sessions_revoked = bool(data.get("sessions_revoked"))
+
+    blocks: list[NotificationBlock] = []
+    if user_id:
+        blocks.append(
+            KeyValueBlock(key=t("notification.system.security_password_changed.body.account"), value=user_id)
+        )
+    if from_ip:
+        blocks.append(
+            KeyValueBlock(key=t("notification.system.security_password_changed.body.from_ip"), value=from_ip)
+        )
+    if not sessions_revoked:
+        # 已会话未失效是**已知限制**（SessionStore 无按用户移除能力），
+        # 必须在用户可见文案中显式提示，否则用户会误以为改密已踢掉其它登录。
+        blocks.append(TextBlock(text=t("notification.system.security_password_changed.body.sessions_kept")))
+    blocks.append(TextBlock(text=t("notification.system.security_password_changed.body.hint")))
+
+    return NotificationMessage(
+        title=t("notification.system.security_password_changed.title"),
+        blocks=blocks,
+        level="warning",
+        event_type="security_password_changed",
+        icon="pi pi-key",
+    )
+
+
+def _build_security_token_refreshed_message(data: dict) -> NotificationMessage:
+    """静态 API 令牌轮换告警。载荷：rotated_at、from_ip、db_synced。绝不包含令牌值。"""
+    rotated_at = str(data.get("rotated_at") or "")
+    from_ip = str(data.get("from_ip") or "")
+    db_synced = bool(data.get("db_synced", True))
+
+    blocks: list[NotificationBlock] = []
+    if rotated_at:
+        blocks.append(
+            KeyValueBlock(key=t("notification.system.security_token_refreshed.body.time"), value=rotated_at)
+        )
+    if from_ip:
+        blocks.append(
+            KeyValueBlock(key=t("notification.system.security_token_refreshed.body.from_ip"), value=from_ip)
+        )
+    if not db_synced:
+        blocks.append(TextBlock(text=t("notification.system.security_token_refreshed.body.db_unsynced")))
+    blocks.append(TextBlock(text=t("notification.system.security_token_refreshed.body.hint")))
+
+    return NotificationMessage(
+        title=t("notification.system.security_token_refreshed.title"),
+        blocks=blocks,
+        level="warning",
+        event_type="security_token_refreshed",
+        icon="pi pi-refresh",
+    )

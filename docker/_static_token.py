@@ -6,8 +6,11 @@ auth.py 通过再导入保持 `from .auth import get_static_token` 的既有调�
 """
 
 import hashlib
+import logging
 import os
 import secrets
+
+logger = logging.getLogger(__name__)
 
 # 静态接口令牌：优先取环境变量 PILOTSTD_API_TOKEN，未设置则自动生成随机令牌。
 # 进程级缓存（模块变量）——令牌刷新后同一进程内立即生效，不必重启容器。
@@ -66,10 +69,14 @@ def get_static_token() -> str:
     return _STATIC_API_TOKEN
 
 
-def refresh_static_token() -> str:
+def refresh_static_token() -> tuple[str, bool]:
     """重新生成静态令牌，更新内存缓存 + 数据库 + 环境变量。
 
-    返回新令牌值。刷新后旧令牌立即失效。
+    返回 ``(新令牌, 数据库是否同步成功)``。刷新后旧令牌立即失效。
+
+    裁决 D-5（2026-09-26）：原实现写库失败静默 ``pass``，会出现"内存/环境变量里是
+    新令牌、数据库里仍是旧哈希"的不一致状态，且调用方无从得知——新令牌在下一次
+    校验时失效却没有任何线索。改为显式返回同步结果，由调用方决定如何暴露。
     """
     global _STATIC_API_TOKEN, _STATIC_TOKEN_INITIALIZED
     # 局部再导入标准库：与既有实现保持一致（函数体逐字节搬移，不改行为）
@@ -100,8 +107,12 @@ def refresh_static_token() -> str:
                 (new_hash,),
             )
         db.close()
+        db_synced = True
     except Exception:
-        pass
+        # 显式返回失败而非静默吞错：校验走 api_keys 表，同步失败会让新令牌在
+        # 重启后失效，必须让调用方与用户都可见（裁决 D-5）。
+        db_synced = False
+        logger.warning("静态令牌写库失败，内存与数据库可能不一致", exc_info=True)
     # 回写.文件，确保重启后令牌不丢失
     _dotenv_path = os.path.join(os.path.dirname(__file__) or ".", "..", ".env")
     try:
@@ -121,5 +132,5 @@ def refresh_static_token() -> str:
             if not _written:
                 _f.write(f"\nPILOTSTD_API_TOKEN={new_token}\n")
     except OSError:
-        pass
-    return new_token
+        logger.warning("静态令牌回写 .env 失败，重启后令牌可能回退", exc_info=True)
+    return new_token, db_synced

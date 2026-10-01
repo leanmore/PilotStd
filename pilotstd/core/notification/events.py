@@ -58,6 +58,13 @@ EVENT_FAVORITE_CREATED = "favorite_created"
 EVENT_DOWNLOAD_STARTED = "download_started"
 EVENT_DOWNLOAD_COMPLETE = "download_complete"
 
+# ── 安全告警（第 2 批：安全与审计闭环）──
+# 这三个事件的投递由 security_notifier 直连旧渠道同步发送，不经聚合器与静音时段
+# （否则凭证变更告警会被推迟到新凭证落库之后，流向新地址）。
+EVENT_NOTIFICATION_CREDENTIAL_CHANGED = "notification_credential_changed"
+EVENT_SECURITY_PASSWORD_CHANGED = "security_password_changed"
+EVENT_SECURITY_TOKEN_REFRESHED = "security_token_refreshed"
+
 # ── 唯一数据源：所有事件定义（全部经第二层聚合器，无绕过） ──
 
 ALL_EVENTS: list[EventDef] = [
@@ -96,6 +103,9 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_FAVORITE_CREATED),
     EventDef(EVENT_DOWNLOAD_STARTED),
     EventDef(EVENT_DOWNLOAD_COMPLETE),
+    EventDef(EVENT_NOTIFICATION_CREDENTIAL_CHANGED),
+    EventDef(EVENT_SECURITY_PASSWORD_CHANGED),
+    EventDef(EVENT_SECURITY_TOKEN_REFRESHED),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

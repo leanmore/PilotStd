@@ -8,10 +8,13 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel, Field
 
 from docker.scheduler import update_job
+from pilotstd.core.audit import write_audit
+from pilotstd.core.notification.security_notifier import client_ip, notify_security_event
+from pilotstd.i18n import t
 from pilotstd.query.adapters.registry import ALL_ADAPTERS
 
 from .._static_token import get_static_token, refresh_static_token
-from ..auth import require_role
+from ..auth import get_current_user_id, require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -368,16 +371,48 @@ def get_token(request: Request):
 
 @router.post("/api/settings/token/refresh")
 @require_role("admin")
-def refresh_token(request: Request):
+def refresh_token(request: Request, mgr=Depends(get_manager_dep)):
     """重新生成静态令牌（立即生效，旧令牌立即失效）。
 
     刷新后刷新数据库 api_keys 表的 pst_static 记录 +
     内存缓存 + 环境变量 PILOTSTD_API_TOKEN。
+
+    顺序（第 2 批安全审计闭环）：**先落库、后告警**。静态令牌与通知渠道凭证相互
+    独立，不存在"告警流向新地址"的问题；但若先告警后落库，写入失败会产生误报。
+    审计与告警载荷**绝不含令牌值**——轮换告警只需让用户知道"被换了、何时、来自哪"。
     """
-    new_token = refresh_static_token()
+    new_token, db_synced = refresh_static_token()
     now_iso = datetime.now(timezone.utc).isoformat()
+    from_ip = client_ip(request)
     logger.info("静态令牌已刷新")
-    return {"token": new_token, "refreshed_at": now_iso}
+
+    write_audit(
+        action="STATIC_TOKEN_REFRESH",
+        resource="POST /api/settings/token/refresh",
+        detail={"rotated_at": now_iso, "from_ip": from_ip, "db_synced": db_synced},
+    )
+
+    warnings: list[str] = []
+    if not db_synced:
+        warnings.append(t("notification.api.token_db_unsynced"))
+    try:
+        notification_mgr = mgr.notification_mgr
+        sent, failed = notify_security_event(
+            notification_mgr,
+            getattr(notification_mgr, "_cred_helper", None),
+            get_current_user_id(request),
+            "security_token_refreshed",
+            {"rotated_at": now_iso, "from_ip": from_ip, "db_synced": db_synced},
+        )
+        if failed:
+            warnings.append(t("notification.api.security_notify_failed").format(channels=", ".join(failed)))
+        elif not sent:
+            warnings.append(t("notification.api.security_notify_no_channel"))
+    except Exception as e:  # noqa: BLE001 - 告警绝不阻断令牌刷新（刷新已不可逆）
+        logger.warning("静态令牌轮换告警发送失败: %s", e)
+        warnings.append(t("notification.api.security_notify_error"))
+
+    return {"token": new_token, "refreshed_at": now_iso, "db_synced": db_synced, "warnings": warnings}
 
 
 # ──配置（单一数据源）─────────────────────────────────────

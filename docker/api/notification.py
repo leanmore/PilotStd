@@ -7,9 +7,11 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel
 
+from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification._credentials import MASKED_VALUE
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
+from pilotstd.core.notification.security_notifier import client_ip, notify_credential_change
 from pilotstd.i18n import t
 
 from ..auth import get_current_user_id
@@ -39,6 +41,69 @@ class MarkReadRequest(BaseModel):
 
 def _get_notification_mgr(mgr=Depends(get_manager_dep)) -> NotificationManager:
     return cast("NotificationManager", mgr.notification_mgr)
+
+
+def _find_masked_field(body: dict, cred_helper: object) -> str:
+    """预校验：返回首个掩码占位符字段的报错文案，无违规返回空串。
+
+    掩码值会被 CredentialHelper.set_channel 整体拒绝；提前拦下可保证落库循环不抛异常、
+    且告警不会为一次注定失败的请求发出（避免误报"凭证已变更"）。
+    """
+    if cred_helper is None:
+        return ""
+    masked_values = getattr(cred_helper, "MASKED_VALUES", set())
+    channels = body.get("channels")
+    if not isinstance(channels, dict):
+        return ""
+    for ch_cfg in channels.values():
+        if not isinstance(ch_cfg, dict):
+            continue
+        for field, field_value in ch_cfg.items():
+            if isinstance(field_value, str) and field_value.strip() in masked_values:
+                return f"凭证校验失败: 字段 '{field}' 的值疑似掩码占位符，请重新输入真实凭证。"
+    return ""
+
+
+def _diff_credential_changes(
+    body: dict, cred_helper: object, user_id: int
+) -> tuple[dict[str, dict], dict[str, dict[str, str]], list[str], list[str]]:
+    """读取待改渠道的旧凭证快照并计算差异。
+
+    返回 ``(待写渠道配置, 旧凭证快照, 变更渠道列表, 变更字段列表)``。
+    必须在 `set_channel` 落库**之前**调用：凭证为合并写入 + INSERT OR REPLACE，
+    落库后旧值不可恢复，而告警必须用旧地址发送。
+    差异口径沿用 `set_channel` 的合并语义——空串跳过不覆盖（不构成变更），
+    `enabled` 归一化为 "true"/"false" 文本比较。
+    """
+    channel_updates: dict[str, dict] = {}
+    channels = body.get("channels")
+    if not (isinstance(channels, dict) and cred_helper is not None):
+        return channel_updates, {}, [], []
+    masked_values = getattr(cred_helper, "MASKED_VALUES", set())
+    for ch_name, ch_cfg in channels.items():
+        if isinstance(ch_cfg, dict):
+            channel_updates[ch_name] = ch_cfg
+
+    old_creds: dict[str, dict[str, str]] = {}
+    changed_channels: list[str] = []
+    changed_keys: list[str] = []
+    for ch_name, ch_cfg in channel_updates.items():
+        old = cred_helper.get_channel(user_id, ch_name) or {}
+        old_creds[ch_name] = old
+        for field, field_value in ch_cfg.items():
+            if isinstance(field_value, str) and field_value.strip() in masked_values:
+                continue
+            if field == "enabled":
+                if old.get(field, "") == ("true" if field_value else "false"):
+                    continue
+            elif isinstance(field_value, str) and field_value.strip() == "":
+                continue
+            elif old.get(field, "") == field_value:
+                continue
+            changed_channels.append(ch_name)
+            if field not in changed_keys:
+                changed_keys.append(field)
+    return channel_updates, old_creds, changed_channels, changed_keys
 
 
 @router.get("/api/notification/config")
@@ -103,8 +168,95 @@ def update_config(
     mgr=Depends(get_manager_dep),
     user_id: int = Depends(_get_user_id),
 ):
-    """更新通知配置（按用户隔离）。"""
+    """更新通知配置（按用户隔离）。
+
+    凭证变更的安全顺序（第 2 批安全审计闭环，见 docs/plans/batch2-security-audit-design.md）：
+    E2 读旧凭证 → E3 预校验 → E4 **先向旧渠道发告警** → E5 才落库 → E9 审计。
+    顺序不可调换：凭证落库后，旧 webhook 地址即不可恢复（合并写入 + INSERT OR REPLACE），
+    而告警若晚于落库就会投递到新地址——正是要防的攻击场景。
+    """
     nmgr = mgr.notification_mgr
+    user_id_int = int(user_id)
+    # 防御式取来源地址：测试替身（MagicMock）的属性访问会返回 Mock，
+    # 直接放进审计 detail 会让 json.dumps 崩溃；只用于审计展示，取不到就留空。
+    from_ip = client_ip(request)
+    warnings: list[str] = []
+
+    # ── E3 预校验 → E2 读旧凭证快照 + 差异计算（均在任何写入之前）──
+    masked_error = _find_masked_field(body, nmgr._cred_helper)
+    if masked_error:
+        return JSONResponse({"error": masked_error}, status_code=400)
+    channel_updates, old_creds, changed_channels, changed_keys = _diff_credential_changes(
+        body, nmgr._cred_helper, user_id_int
+    )
+
+    # enabled / rules 的变更判定同样前置：幂等保存（值未变）不应产生告警与审计噪声
+    enabled_changed = "enabled" in body and bool(body["enabled"]) != bool(
+        mgr.cfg.get("notification.enabled", False)
+    )
+    rules_changed = False
+    if "rules" in body and isinstance(body["rules"], dict):
+        for rule_name, channels in body["rules"].items():
+            if mgr.cfg.get(f"notification.rules.{rule_name}") != channels:
+                rules_changed = True
+                break
+
+    # ── E4 先通知旧渠道（使用 E2 的旧凭证快照；绝不走 manager.send_event）──
+    if changed_channels or rules_changed or enabled_changed:
+        sent, failed = notify_credential_change(
+            notification_mgr=nmgr,
+            cred_helper=nmgr._cred_helper,
+            user_id=user_id_int,
+            changed_channels=changed_channels,
+            old_creds=old_creds,
+            changed_keys=changed_keys,
+            rules_changed=rules_changed,
+            enabled_changed=enabled_changed,
+            from_ip=from_ip,
+        )
+        if failed:
+            warnings.append(t("notification.api.credential_notify_failed").format(channels=", ".join(failed)))
+        elif not sent and changed_channels:
+            warnings.append(t("notification.api.credential_notify_no_channel"))
+
+    # ── E5 落库 + E9 审计（凭证告警已在 E4 完成，此处顺序不可前移）──
+    write_error = _persist_config_and_audit(
+        mgr=mgr,
+        nmgr=nmgr,
+        body=body,
+        user_id=user_id,
+        user_id_int=user_id_int,
+        changed_channels=changed_channels,
+        changed_keys=changed_keys,
+        enabled_changed=enabled_changed,
+        rules_changed=rules_changed,
+        from_ip=from_ip,
+        warnings=warnings,
+    )
+    if write_error is not None:
+        return write_error
+    return JSONResponse({"ok": True, "warnings": warnings})
+
+
+def _persist_config_and_audit(
+    *,
+    mgr: object,
+    nmgr: NotificationManager,
+    body: dict,
+    user_id: int,
+    user_id_int: int,
+    changed_channels: list[str],
+    changed_keys: list[str],
+    enabled_changed: bool,
+    rules_changed: bool,
+    from_ip: str,
+    warnings: list[str],
+) -> JSONResponse | None:
+    """落库 + 审计；返回 None 表示成功，返回 JSONResponse 表示需回给调用方的错误。
+
+    独立成函数的原因有二：① `update_config` 需守住 G-010 的逻辑行上限；
+    ② 把"写"集中在一处，使"告警必须先于写"这一安全边界在阅读时一目了然。
+    """
     for key, value in body.items():
         if key == "enabled":
             mgr.cfg.set("notification.enabled", bool(value))
@@ -131,7 +283,24 @@ def update_config(
                 mgr.cfg.set(f"notification.rules.{rule_name}", channels)
     mgr.cfg.save()
     mgr._init_notification()
-    return {"ok": True}
+
+    # 审计只记字段名与渠道，绝不记凭证值
+    if changed_channels or changed_keys or enabled_changed or rules_changed:
+        write_audit(
+            action="NOTIFICATION_CREDENTIAL_CHANGE",
+            resource="PUT /api/notification/config",
+            detail={
+                "user_id": user_id_int,
+                "changed_channels": changed_channels,
+                "changed_keys": changed_keys,
+                "enabled_changed": enabled_changed,
+                "rules_changed": rules_changed,
+                "from_ip": from_ip,
+                "notify_failed": warnings,
+            },
+            user_id=user_id_int,
+        )
+    return None
 
 
 @router.post("/api/notification/test")

@@ -657,7 +657,12 @@ class TestAPIEndpoints(unittest.TestCase):
     @patch("docker.api.users.get_current_user_id")
     @patch("docker.api.users.change_password")
     def test_change_password_returns_ok(self, mock_change, mock_user, mock_lookup):
-        """PUT /api/users/password 修改密码成功返回 ok。"""
+        """PUT /api/users/password 修改密码成功返回 ok。
+
+        新密码需满足 users._validate_password 的规则（≥8 位 + 至少一个字母 + 至少一个数字）：
+        第 2 批（安全审计闭环）把端点自校验从"≥4 位"改为复用同一套规则，
+        消除了原实现"端点判 4 位、底层判 8 位"的口径分裂引发的 500。
+        """
         mock_user.return_value = 1
         mock_change.return_value = True
         # 路由内 get_user_by_id 走真实 DB；隔离 fixture 将 get_db_path 重定向到空临时库
@@ -665,15 +670,37 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
         r = self.client.put(
             "/api/users/password",
-            json={"old_password": "old", "new_password": "newpass"},
+            json={"old_password": "old", "new_password": "newpass123"},
         )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
+        # 已知限制（裁决 D-2）：改密不失效既有会话，必须在响应中显式可见
+        self.assertFalse(r.json()["sessions_revoked"])
+
+    @patch("docker.api.users.get_user_by_id")
+    @patch("docker.api.users.get_current_user_id")
+    @patch("docker.api.users.change_password")
+    def test_change_password_weak_returns_400_not_500(self, mock_change, mock_user, mock_lookup):
+        """弱密码必须返回 400，且**不得**落到 change_password 内部抛 ValueError（原为 500）。
+
+        回归点：原实现端点只判 len<4，弱密码穿透到 users._validate_password 抛
+        ValueError 而无人捕获 → HTTP 500，且审计/告警语句永不执行。
+        """
+        mock_user.return_value = 1
+        mock_change.return_value = True
+        mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
+        # 8 位以上但缺数字 → 满足旧的 len<4 判定，会被原实现放进 change_password
+        r = self.client.put(
+            "/api/users/password",
+            json={"old_password": "old", "new_password": "onlyletters"},
+        )
+        self.assertEqual(r.status_code, 400)
+        mock_change.assert_not_called()
 
     @patch("docker.api.users.get_user_by_id")
     @patch("docker.api.users.get_current_user_id")
     def test_change_password_short_returns_400(self, mock_user, mock_lookup):
-        """新密码不足 4 个字符返回 400。"""
+        """新密码不满足强度规则（≥8 位 + 字母 + 数字）返回 400。"""
         mock_user.return_value = 1
         mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
         r = self.client.put("/api/users/password", json={"old_password": "old", "new_password": "ab"})
