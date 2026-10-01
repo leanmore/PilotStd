@@ -7,6 +7,7 @@ from typing import Any
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db import Database
+from pilotstd.core.status import Status
 from pilotstd.query.network import CHROME_UA, safe_raw_get, safe_raw_post
 from pilotstd.query.site_config import create_default_sites
 
@@ -76,9 +77,9 @@ def _log_health_transition(name: str, previous: str | None, status: str) -> None
     if previous == status:
         logger.debug("[health] %s 仍为 %s", name, status)
     elif status == "down":
-        logger.warning("[health] %s 转为不可用（%s → down）", name, previous or "未知")
+        logger.warning("[health] %s 转为不可用（%s → down）", name, previous or Status.UNKNOWN.value)
     else:
-        logger.info("[health] %s 已恢复（%s → up）", name, previous or "未知")
+        logger.info("[health] %s 已恢复（%s → up）", name, previous or Status.UNKNOWN.value)
 
 
 def _write_health(name: str, status: str) -> str | None:

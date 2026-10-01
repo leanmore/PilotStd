@@ -9,6 +9,7 @@ from fastapi.routing import APIRouter
 
 from pilotstd.core import status as status_dict
 from pilotstd.core.db._constants import DatabaseError
+from pilotstd.core.status import Status
 
 from ..manager import get_manager_dep
 
@@ -25,9 +26,9 @@ def get_status_stats(mgr=Depends(get_manager_dep)):
         stats = mgr.standard_service.get_stats()
         by_status = stats["by_status"]
         return {
-            "active": by_status.get("现行", 0),
-            "inactive": by_status.get("已废止", 0),
-            "unknown": by_status.get("未知", 0),
+            "active": by_status.get(Status.ACTIVE.value, 0),
+            "inactive": by_status.get(Status.WITHDRAWN_NORMALIZED.value, 0),
+            "unknown": by_status.get(Status.UNKNOWN.value, 0),
         }
     except DatabaseError as e:
         logger.error("标准状态统计查询失败: %s", e)
