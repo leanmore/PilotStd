@@ -288,7 +288,7 @@
 
 | 编号 | 判据 | 本批示例 |
 |------|------|---------|
-| S1 | 凭证/密钥生命周期变更（创建、替换、轮换、撤销） | `PUT /api/notification/config`、`PUT /api/users/password`、`POST /api/settings/token/refresh` |
+| S1 | 凭证/密钥生命周期变更（创建、替换、轮换、撤销）与认证校验失败 | `PUT /api/notification/config`、`PUT /api/users/password`、`POST /api/settings/token/refresh`、`POST /api/login` |
 | S2 | 权限与身份边界变更（改变谁能访问什么，或增删身份主体） | `POST /api/users`、`DELETE /api/users/{id}`、`POST /api/auth/register` |
 | S3 | 不可逆批量数据销毁 | `DELETE /api/admin/logs`、`POST /api/cache/cleanup` |
 
@@ -298,6 +298,9 @@
 **已知局限（有意保留）**：按**模块**粒度判定，无法区分"同文件内另一个端点已写审计"的情形
 （如 `admin_db.py` 的 `DB_QUERY` 已写，故 `POST /query` 报"可移出"）。升级到函数级 AST 判定留待
 P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级判定才有意义。
+
+**扫描范围**：`docker/api/**/*.py` + `docker/auth.py`（后者承接 `POST /api/login`、`POST /api/logout`
+路由，不在 `docker/api/` 下；第 8 批纳入，否则登录路由对门禁不可见）。
 
 **起因**（2026-09-26，第 2 批安全审计闭环）：全库仅 **4 处** `write_audit`
 （`ACCESS_DENIED` / `DB_QUERY` / `SETTINGS_WRITE`），而使用 `@require_role` 的端点有 **61 处**；

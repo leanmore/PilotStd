@@ -579,6 +579,66 @@
       "zh_CN": "… 等 {n} 条",
       "zh_TW": "… 等 {n} 條",
       "en": "… and {n} more"
+    },
+    {
+      "id": "security_login_failed",
+      "keys": [
+        "notification.system.security_login_failed.title"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "登录失败达阈值的安全告警标题（安全告警族，第 8 批 P0 事件）。",
+      "zh_CN": "登录失败告警",
+      "zh_TW": "登入失敗告警",
+      "en": "Login Failure Alert"
+    },
+    {
+      "id": "security_login_failed_count",
+      "keys": [
+        "notification.system.security_login_failed.body.count"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "告警正文：同源连续失败次数与时间窗口。",
+      "zh_CN": "同一来源在 {minutes} 分钟内连续失败 {n} 次登录",
+      "zh_TW": "同一來源在 {minutes} 分鐘內連續失敗 {n} 次登入",
+      "en": "{n} consecutive login failures from the same source within {minutes} minute(s)"
+    },
+    {
+      "id": "security_login_failed_account",
+      "keys": [
+        "notification.system.security_login_failed.body.account"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "被尝试登录的账号名——达阈值后账号所有者需知道目标是谁。",
+      "zh_CN": "目标账号",
+      "zh_TW": "目標帳號",
+      "en": "Target account"
+    },
+    {
+      "id": "security_login_failed_from_ip",
+      "keys": [
+        "notification.system.security_login_failed.body.from_ip"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "登录尝试的来源地址。",
+      "zh_CN": "来源地址",
+      "zh_TW": "來源位址",
+      "en": "Source address"
+    },
+    {
+      "id": "security_login_failed_hint",
+      "keys": [
+        "notification.system.security_login_failed.body.hint"
+      ],
+      "forbidden": [],
+      "aliases": [],
+      "notes": "行动建议：检查账号安全并考虑更换密码。",
+      "zh_CN": "若非本人操作，请立即检查账号安全并考虑更换密码。",
+      "zh_TW": "若非本人操作，請立即檢查帳號安全並考慮更換密碼。",
+      "en": "If this was not you, review your account security and consider changing the password."
     }
   ]
 }

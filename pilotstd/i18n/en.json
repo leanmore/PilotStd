@@ -753,5 +753,10 @@
     "notification.renderer.field.detail": "Detail",
     "notification.renderer.field.path": "File",
     "notification.renderer.field.reason": "Reason",
-    "notification.renderer.field.unknown": "Field"
+    "notification.renderer.field.unknown": "Field",
+    "notification.system.security_login_failed.title": "Login Failure Alert",
+    "notification.system.security_login_failed.body.count": "{n} consecutive login failures from the same source within {minutes} minute(s)",
+    "notification.system.security_login_failed.body.account": "Target account",
+    "notification.system.security_login_failed.body.from_ip": "Source address",
+    "notification.system.security_login_failed.body.hint": "If this was not you, review your account security and consider changing the password."
 }

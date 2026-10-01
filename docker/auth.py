@@ -195,11 +195,65 @@ AUTH_WHITELIST: list[tuple[str, set[str]]] = [
 MAX_ATTEMPTS = 100  # 5 分钟内最多 100 次失败（压测放宽）
 LOCKOUT_SECONDS = 300  # 锁定 5 分钟
 
+# 登录失败安全告警阈值（第 8 批）：与上面的限流阈值**故意解耦**。
+# MAX_ATTEMPTS=100 是为压测放宽的限流闸门，作为告警阈值过高（几乎不会触发）；
+# 本阈值取"已构成暴力破解嫌疑"的量级。告警按 IP 在窗口内累计，且只在**恰好**
+# 达到阈值时发一次（继续失败不刷屏），登录成功清空计数后再次累积可再次触发。
+LOGIN_FAILURE_ALERT_THRESHOLD = 5
+
 # 接口全局速率限制：{:[,...]}，=用户名或
 _api_rate_limit: dict[str, list[float]] = defaultdict(list)
 _api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
 API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
 API_RATE_WINDOW = 60  # 窗口 60 秒
+
+
+def _notify_login_failure(request: Request, client_ip: str, username: str) -> None:
+    """登录失败达到阈值时写审计 + 发安全告警（第 8 批）。
+
+    设计要点：
+    - **按 IP 累计**（`count_recent_failures` 的口径）且只在**恰好**达到阈值时触发一次；
+      登录成功会 `clear_login_failures`，故清空后再次累积可再次告警。
+    - 登录接口是**未认证**路径，`write_audit` 的 ContextVar 尚未注入，故显式传
+      `user_id=None`（audit_logs 允许 NULL，见 v45 迁移）。
+    - **不记录密码**；用户名也不记入 detail——登录失败响应本身不区分"用户不存在"
+      与"密码错误"（防用户名枚举），审计与告警同样遵循该口径。
+    - 任何异常都不得影响登录响应（401 必须照常返回）。
+    """
+    try:
+        from .users import count_recent_failures
+
+        failures = count_recent_failures(client_ip, time.time() - LOCKOUT_SECONDS)
+        if failures < LOGIN_FAILURE_ALERT_THRESHOLD:
+            return
+        if failures > LOGIN_FAILURE_ALERT_THRESHOLD:
+            return  # 阈值后继续失败不重复告警（仅在恰好达到时发一次）
+        from pilotstd.core.audit import write_audit
+
+        write_audit(
+            action="LOGIN_FAILED",
+            resource="POST /api/login",
+            detail={"from_ip": client_ip, "failures": failures, "window_seconds": LOCKOUT_SECONDS},
+            user_id=None,
+        )
+        from .manager import get_manager
+
+        mgr = get_manager()
+        notification_mgr = getattr(mgr, "notification_mgr", None)
+        if notification_mgr is None:
+            return
+        notification_mgr.send_event(
+            "security_login_failed",
+            {
+                "from_ip": client_ip,
+                "failures": failures,
+                "window_seconds": LOCKOUT_SECONDS,
+                "username": username,
+            },
+        )
+    except Exception:
+        # 告警/审计失败绝不能改变登录失败的响应语义
+        logger.warning("登录失败告警发送失败", exc_info=True)
 
 
 def _generate_token(user_id: int = 1, role: str = "user") -> str:
@@ -251,6 +305,7 @@ def login(
 
     if not verify_user(username, password):
         record_login_failure(client_ip)
+        _notify_login_failure(request, client_ip, username)
         raise HTTPException(401, "认证失败")
 
     # 登录成功，清除失败记录

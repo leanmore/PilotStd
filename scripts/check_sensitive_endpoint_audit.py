@@ -35,13 +35,21 @@ if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-API_DIR = PROJECT_ROOT / "docker" / "api"
+# 扫描目录：docker/api/ 为主；docker/auth.py（登录/登出路由）不在该目录下，
+# 第 8 批补入 docker/ 根目录的 auth.py 以覆盖 POST /api/login。
+API_DIRS = (PROJECT_ROOT / "docker" / "api",)
+AUTH_MODULE = PROJECT_ROOT / "docker" / "auth.py"
+API_DIR = API_DIRS[0]  # 兼容既有引用
 
 # 敏感端点判定标准（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）
 SENSITIVE_ROUTES: dict[str, str] = {
     "PUT /api/notification/config": "S1 通知渠道凭证变更（含先通知旧渠道的顺序要求）",
     "PUT /api/users/password": "S1 账号密码变更（自助）",
     "POST /api/settings/token/refresh": "S1 静态 API 令牌轮换",
+    # 第 8 批纳入：登录失败是暴力破解的唯一可观测信号。该路由定义在 docker/auth.py
+    # （不在 docker/api/ 下），故同时扩展了扫描目录 SCAN_DIRS——否则本清单会"静默失效"
+    # （路由查不到 → 门禁报"清单过期"）。
+    "POST /api/login": "S1 认证凭证校验失败（阈值告警 + LOGIN_FAILED 审计）",
 }
 
 # 显式登记的待接入清单：每条必须带理由。禁止无理由豁免（P-104 门禁不绕过）。
@@ -92,7 +100,10 @@ def main(argv: list[str]) -> int:
 
     audit_modules: set[str] = set()
     all_routes: dict[str, tuple[str, int]] = {}  # 路由键 → (相对路径, 行号)
-    for path in sorted(API_DIR.rglob("*.py")):
+    scan_targets = [p for d in API_DIRS if d.is_dir() for p in sorted(d.rglob("*.py"))]
+    if AUTH_MODULE.exists():
+        scan_targets.append(AUTH_MODULE)
+    for path in scan_targets:
         if path.name == "__init__.py":
             continue
         routes = scan_module_routes(path)

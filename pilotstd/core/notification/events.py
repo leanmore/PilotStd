@@ -64,6 +64,7 @@ EVENT_DOWNLOAD_COMPLETE = "download_complete"
 EVENT_NOTIFICATION_CREDENTIAL_CHANGED = "notification_credential_changed"
 EVENT_SECURITY_PASSWORD_CHANGED = "security_password_changed"
 EVENT_SECURITY_TOKEN_REFRESHED = "security_token_refreshed"
+EVENT_SECURITY_LOGIN_FAILED = "security_login_failed"
 
 # ── 唯一数据源：所有事件定义（全部经第二层聚合器，无绕过） ──
 
@@ -106,6 +107,7 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_NOTIFICATION_CREDENTIAL_CHANGED),
     EventDef(EVENT_SECURITY_PASSWORD_CHANGED),
     EventDef(EVENT_SECURITY_TOKEN_REFRESHED),
+    EventDef(EVENT_SECURITY_LOGIN_FAILED),
 ]
 
 # ── 派生变量（供各模块引用，避免硬编码重复） ──

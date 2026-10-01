@@ -757,5 +757,10 @@
     "notification.renderer.field.detail": "详情",
     "notification.renderer.field.path": "文件",
     "notification.renderer.field.reason": "原因",
-    "notification.renderer.field.unknown": "字段"
+    "notification.renderer.field.unknown": "字段",
+    "notification.system.security_login_failed.title": "登录失败告警",
+    "notification.system.security_login_failed.body.count": "同一来源在 {minutes} 分钟内连续失败 {n} 次登录",
+    "notification.system.security_login_failed.body.account": "目标账号",
+    "notification.system.security_login_failed.body.from_ip": "来源地址",
+    "notification.system.security_login_failed.body.hint": "若非本人操作，请立即检查账号安全并考虑更换密码。"
 }

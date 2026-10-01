@@ -420,3 +420,51 @@ def _build_security_token_refreshed_message(data: dict) -> NotificationMessage:
         event_type="security_token_refreshed",
         icon="pi pi-refresh",
     )
+
+
+def _build_security_login_failed_message(data: dict) -> NotificationMessage:
+    """登录失败告警（第 8 批，P0 安全事件）。
+
+    载荷：from_ip、failures、window_seconds、username。
+    **不回显密码**；用户名照常展示——登录失败响应本身不区分"用户不存在"与
+    "密码错误"（防用户名枚举），但一旦达到告警阈值，账号所有者需要知道
+    "有人在试哪个账号"，否则无法判断是否针对自己。
+    """
+    from_ip = str(data.get("from_ip") or "")
+    failures = data.get("failures", 0)
+    window_seconds = data.get("window_seconds", 0)
+    username = str(data.get("username") or "")
+
+    blocks: list[NotificationBlock] = []
+    try:
+        window_minutes = max(1, int(window_seconds) // 60)
+    except (TypeError, ValueError):
+        window_minutes = 0
+    blocks.append(
+        TextBlock(
+            text=t("notification.system.security_login_failed.body.count").format(
+                n=failures, minutes=window_minutes
+            )
+        )
+    )
+    if username:
+        blocks.append(
+            KeyValueBlock(
+                key=t("notification.system.security_login_failed.body.account"), value=username
+            )
+        )
+    if from_ip:
+        blocks.append(
+            KeyValueBlock(
+                key=t("notification.system.security_login_failed.body.from_ip"), value=from_ip
+            )
+        )
+    blocks.append(TextBlock(text=t("notification.system.security_login_failed.body.hint")))
+
+    return NotificationMessage(
+        title=t("notification.system.security_login_failed.title"),
+        blocks=blocks,
+        level="warning",
+        event_type="security_login_failed",
+        icon="pi pi-lock",
+    )

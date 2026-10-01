@@ -91,11 +91,13 @@ def _extract_builder_keys(file_path: str, method_name: str) -> set[str]:
 
 
 def _extract_trigger_payload_keys(event_name: str) -> set[str]:
-    """从触发点源码中提取 send_event data dict 的顶层 key 集合（取第一个匹配）。"""
-    pattern = re.compile(
-        r'send_event\s*\(\s*["\']' + re.escape(event_name) + r'["\']\s*,\s*(\{.*?\})\s*\)',
-        re.DOTALL,
-    )
+    """从触发点源码中提取 send_event data dict 的顶层 key 集合（取第一个匹配）。
+
+    实现用 AST 而非正则：旧正则的 `(\\{.*?\\})` 会**跨过函数边界**——当 dict 之后的
+    同一文件里还有别的 `}`（如 JWT payload 字面量），非贪婪匹配会一路吞到那里，
+    把无关键（`exp`/`sub`/`role`…）算成触发方 payload，导致"字段双向一致"断言误报。
+    AST 按语法树取第二参数，边界精确。
+    """
     search_roots = [
         os.path.join(_PROJECT_ROOT, "pilotstd"),
         os.path.join(_PROJECT_ROOT, "docker"),
@@ -110,13 +112,29 @@ def _extract_trigger_payload_keys(event_name: str) -> set[str]:
                 fpath = os.path.join(root, f)
                 try:
                     with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
-                        content = fh.read()
-                except OSError:
+                        tree = ast.parse(fh.read())
+                except (OSError, SyntaxError):
                     continue
-                match = pattern.search(content)
-                if match:
-                    dict_str = match.group(1)
-                    return _parse_dict_keys(dict_str)
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.Call) or len(node.args) < 2:
+                        continue
+                    func = node.func
+                    is_send_event = (isinstance(func, ast.Attribute) and func.attr == "send_event") or (
+                        isinstance(func, ast.Name) and func.id == "send_event"
+                    )
+                    if not is_send_event:
+                        continue
+                    arg0 = node.args[0]
+                    if not (isinstance(arg0, ast.Constant) and arg0.value == event_name):
+                        continue
+                    data_arg = node.args[1]
+                    if not isinstance(data_arg, ast.Dict):
+                        continue
+                    keys: set[str] = set()
+                    for key_node in data_arg.keys:
+                        if isinstance(key_node, ast.Constant) and isinstance(key_node.value, str):
+                            keys.add(key_node.value)
+                    return keys
     return set()
 
 
@@ -152,6 +170,11 @@ SECURITY_EVENTS_BY_DESIGN_UNTRIGGERED: frozenset[str] = frozenset(
         "security_token_refreshed",
     }
 )
+
+# 安全事件中**确实**走 send_event 留痕的一个：登录失败告警由 docker/auth.py 触发，
+# 既发 send_event（写入 notification_log + WS 广播），也由其直连投递（auth 未认证、
+# 无用户凭证上下文，走 manager 已足够）。故它**不**在豁免集内。
+SECURITY_EVENTS_TRIGGERED_VIA_SEND_EVENT: frozenset[str] = frozenset({"security_login_failed"})
 
 # 硬编码 trigger_keys — 当 regex 无法解析 Block 模式 send_event 时使用
 # 由手动审查 trigger 源码维护，是字段验证的真实来源
@@ -652,10 +675,21 @@ EVENTS: list[dict[str, Any]] = [
         "builder_keys": {"rotated_at", "from_ip", "db_synced"},
         "mutual": "",
     },
+    {
+        "name": "security_login_failed",
+        "module": "安全告警",
+        "level": "warning",
+        "aggregation": "聚合",
+        "trigger_file": "docker/auth.py",
+        "builder_file": "pilotstd/core/notification/_builders_system.py",
+        "builder_method": "_build_security_login_failed_message",
+        "builder_keys": {"from_ip", "failures", "window_seconds", "username"},
+        "mutual": "",
+    },
 ]
 
 # 验证 EVENTS 列表完整性
-assert len(EVENTS) == 38, f"Expected 38 events, got {len(EVENTS)}"
+assert len(EVENTS) == 39, f"Expected 39 events, got {len(EVENTS)}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

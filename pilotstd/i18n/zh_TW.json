@@ -674,5 +674,10 @@
     "notification.renderer.field.detail": "詳情",
     "notification.renderer.field.path": "檔案",
     "notification.renderer.field.reason": "原因",
-    "notification.renderer.field.unknown": "欄位"
+    "notification.renderer.field.unknown": "欄位",
+    "notification.system.security_login_failed.title": "登入失敗告警",
+    "notification.system.security_login_failed.body.count": "同一來源在 {minutes} 分鐘內連續失敗 {n} 次登入",
+    "notification.system.security_login_failed.body.account": "目標帳號",
+    "notification.system.security_login_failed.body.from_ip": "來源位址",
+    "notification.system.security_login_failed.body.hint": "若非本人操作，請立即檢查帳號安全並考慮更換密碼。"
 }

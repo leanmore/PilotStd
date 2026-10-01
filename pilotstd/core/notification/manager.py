@@ -45,6 +45,7 @@ from ._message_builders import (
     _build_replacement_not_found_message,
     _build_scan_complete_message,
     _build_scan_empty_message,
+    _build_security_login_failed_message,
     _build_security_password_changed_message,
     _build_security_token_refreshed_message,
     _build_standard_first_registered_message,
@@ -425,6 +426,7 @@ class NotificationManager:
             "notification_credential_changed": _build_notification_credential_changed_message,
             "security_password_changed": _build_security_password_changed_message,
             "security_token_refreshed": _build_security_token_refreshed_message,
+            "security_login_failed": _build_security_login_failed_message,
         }
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
