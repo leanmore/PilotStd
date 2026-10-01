@@ -7,6 +7,7 @@ from fastapi import Depends, Query
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 
+from pilotstd.core import status as status_dict
 from pilotstd.core.db._constants import DatabaseError
 
 from ..manager import get_manager_dep
@@ -14,7 +15,7 @@ from ..manager import get_manager_dep
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["standards"])
 
-_VALID_STATUSES = ("现行", "已废止", "未知")
+_VALID_STATUSES = status_dict.API_VALID_STATUSES
 
 
 @router.get("/api/standards/status/stats")

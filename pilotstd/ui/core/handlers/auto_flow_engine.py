@@ -10,12 +10,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from pilotstd.core import status as status_dict
+
 
 class AutoFlowEngine:
     """自动管线纯逻辑：结果分类统计、汇总数据构建。"""
 
     # 已废止状态的特征值集合
-    EXPIRED_STATUSES: frozenset[str] = frozenset({"废止", "已废止", "作废"})
+    EXPIRED_STATUSES: frozenset[str] = status_dict.EXPIRED_STATUSES
 
     @staticmethod
     def build_summary_stats(results: list[Any]) -> dict[str, Any]:

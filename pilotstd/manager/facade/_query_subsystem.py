@@ -17,6 +17,8 @@ from typing import Any, Callable, cast
 
 import requests
 
+from pilotstd.core import status as status_dict
+
 from ...core.std_utils import GB_CODES, classify_std_code
 from ...query.models import BatchQueryStats, QueryResult
 
@@ -45,7 +47,7 @@ class QuerySubsystem:
     }
 
     _GB_CODES = GB_CODES
-    _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
+    _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES
 
     def __init__(self, core):
         self._core = core

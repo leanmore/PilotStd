@@ -4,10 +4,12 @@ from typing import Any
 
 from pilotstd.i18n import t
 
+from .. import status as status_dict
+
 # 废止类状态的数据口径（适配器/检查器写入的原始状态值）。
 # 严禁用翻译函数的展示文案参与逻辑比较：英文环境下废止状态的译文是"已过期"，
 # 与数据里的 "废止" 永不相等，会导致废止计数与告警级别随语言漂移。
-ABOLISHED_STATUS_TOKENS: frozenset[str] = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+ABOLISHED_STATUS_TOKENS: frozenset[str] = status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
 
 
 def is_abolished_status(status: str) -> bool:

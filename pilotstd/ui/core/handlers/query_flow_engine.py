@@ -12,6 +12,8 @@ import logging
 import re
 from typing import Any, Callable
 
+from pilotstd.core import status as status_dict
+
 from ....i18n import _ as tr
 from ....models import ParsedStdInfo
 
@@ -27,7 +29,7 @@ _STATUS_COLOR_MAP: dict[str, str] = {
     "待确认": "#808000",
 }
 _FALLBACK_COLOR = "#808000"  # darkYellow（不可下载覆盖）
-_EXCLUDED_FROM_OVERRIDE = frozenset({"废止", "已废止", "作废", "待确认"})
+_EXCLUDED_FROM_OVERRIDE = status_dict.NON_OVERRIDABLE_STATUSES
 _WEBSITE_NO_CATEGORY = "网站无此分类"
 
 

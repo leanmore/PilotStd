@@ -5,6 +5,8 @@ import logging
 import os
 from typing import Optional
 
+from pilotstd.core import status as status_dict
+
 from ..core.file_utils import (
     make_standard_filename,
     safe_move,
@@ -32,7 +34,7 @@ class FileMover:
 
     # ── 独立步骤：规范化生成路径 ──
 
-    _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+    _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
 
     def normalize_filename(self, parsed: ParsedStdInfo) -> str:
         """仅生成规范文件名和目标路径，不移动文件。返回完整目标路径。"""

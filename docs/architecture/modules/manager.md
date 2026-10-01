@@ -70,6 +70,21 @@ StandardManager (BaseFacade)
 - 三端（CLI/WinUI/Docker）通过同一门面调用，确保逻辑一致
 - Handler 之间通过 `ManagerCore` 共享依赖，不直接通信
 
+## 废止类状态判定（#32-A / R14-4a，2026-10-01）
+
+本模块内原先**各自硬编码**废止类状态集合的 4 处定义已收敛到权威字典 `pilotstd/core/status.py`
+（`ABOLISHED_STATUSES` 4 值 / `ABOLISHED_STATUSES_WITH_EXPIRED` 5 值），**取值集合与重构前逐一等价**：
+
+| 位置 | 原字面量 | 现引用 |
+|---|---|---|
+| `pilotstd/manager/classifier.py`（`QueryClassifier._EXPIRE_STATUSES`） | `{废止, 已废止, 作废, 被代替}` | `status.ABOLISHED_STATUSES` |
+| `pilotstd/manager/facade/_query.py`（`QueryHandler._EXPIRE_STATUSES`） | 同上 4 值 | `status.ABOLISHED_STATUSES` |
+| `pilotstd/manager/facade/_query_subsystem.py`（`QuerySubsystem._EXPIRE_STATUSES`） | 同上 4 值 | `status.ABOLISHED_STATUSES` |
+| `pilotstd/manager/facade/_organize.py`（`archive_standards` 内局部变量） | 5 值（含 `过期`） | `status.ABOLISHED_STATUSES_WITH_EXPIRED` |
+
+> A 阶段只做"建字典 + 容器收敛"：**不替换**业务逻辑中的状态字面量（B 阶段）、不改 API 返回字符串、
+> 不改 DB 迁移脚本。等价性由 `tests/unit/core/test_status.py` 断言（含"容器与命名集合为同一对象"）。
+
 ## 关键接口
 
 | 方法 | 说明 |

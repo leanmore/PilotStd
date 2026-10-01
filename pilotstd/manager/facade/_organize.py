@@ -11,6 +11,8 @@ import os
 import warnings
 from typing import TYPE_CHECKING, Any, Optional, cast
 
+from pilotstd.core import status as status_dict
+
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.std_utils import classify_std_code
 from ...i18n import t
@@ -183,7 +185,7 @@ class OrganizeHandler:
             logger.info("archive_standards: 回填 std_name %d/%d 条", backfilled, total)
         result = self._core.organizer_svc.organize(items, word_source_root, overwrite=overwrite)
         moved = result.get("moved", 0)
-        _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替", "过期"})
+        _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES_WITH_EXPIRED
         if moved > 0:
             for p in items:
                 std_no = f"{p.logical_code} {p.number}"

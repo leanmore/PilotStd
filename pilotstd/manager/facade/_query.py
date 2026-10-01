@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
+from pilotstd.core import status as status_dict
+
 from ...core.std_utils import GB_CODES
 from ...query.models import BatchQueryStats, QueryResult
 from ._query_subsystem import QuerySubsystem
@@ -30,7 +32,7 @@ class QueryHandler:
     _CAT_LABEL = QuerySubsystem._CAT_LABEL
     _PENDING_REASONS = QuerySubsystem._PENDING_REASONS
     _GB_CODES = GB_CODES
-    _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
+    _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES
 
     # 查询执行代理（委托）
 

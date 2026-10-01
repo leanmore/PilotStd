@@ -5,6 +5,8 @@ import logging
 import re
 from typing import Any
 
+from pilotstd.core import status as status_dict
+
 from ..core.std_utils import GB_CODES, is_gb_code
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ class QueryClassifier:
     """
 
     _GB_CODES = GB_CODES  # 向后兼容，定义见 pilotstd.core.std_utils
-    _EXPIRE_STATUSES = frozenset({"废止", "已废止", "作废", "被代替"})
+    _EXPIRE_STATUSES = status_dict.ABOLISHED_STATUSES
 
     def __init__(self, router: Any, query_adapters: Any, quota_tracker: Any, query_engine: Any) -> None:
         """注入依赖。
