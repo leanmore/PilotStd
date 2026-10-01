@@ -166,19 +166,23 @@ class NotificationAggregator:
     # ──主题提取（保留，用于设置_）──
 
     @staticmethod
-    def _escape_with_placeholders(text: str, *, optional_placeholder: bool = False) -> str:
-        """把片段中的 `{name}` 换成通配，其余字面量 `re.escape` 转义。
+    def _escape_with_placeholders(text: str) -> str:
+        """把片段中的 `{name}` 换成**非空**通配 `(.+?)`，其余字面量 `re.escape` 转义。
 
-        `optional_placeholder=True` 时占位符用 `(.*?)`（允许空值），否则用 `(.+?)`。
-        括号内需要宽松匹配：渲染器在取值为空时会产出 `Scan Complete ()` 这类空括号。
+        用非空通配（而非 `(.*?)`）：i18n 模板里占位符两侧都有字面量
+        （`({failed} unrecognized)`），`str.format` 传空串会产出
+        `( unrecognized)`——占位符位置被空串填充但**两侧字面量保留**，
+        故通配只需匹配"至少一个字符"。实测三语全部含占位符标题在
+        `value=0/1/999/""` 下均能命中（见 `tests/..._topic_i18n.py`）。
+        用非空通配保持匹配精确性，避免把 `Scan Complete ()` 这类不含
+        模板字面量的标题误纳。
         """
-        wildcard = "(.*?)" if optional_placeholder else "(.+?)"
         out: list[str] = []
         for part in re.split(r"(\{[^}]*\})", text):
             if not part:
                 continue
             if part.startswith("{") and part.endswith("}"):
-                out.append(wildcard)
+                out.append("(.+?)")
             else:
                 out.append(re.escape(part))
         return "".join(out)
@@ -188,15 +192,20 @@ class NotificationAggregator:
         """把含 `{name}` 占位符的 i18n 模板转为**一个或两个**正则源码。
 
         规则：
-        1. 占位符 → 通配（括号内允许空值，括号外要求非空）；其余字面量转义；
+        1. 占位符 → 非空通配 `(.+?)`；其余字面量 `re.escape` 转义；
         2. 含占位符的括号组额外生成一个**括号整段去掉**的变体。
 
-        规则 2 的必要性（实测边界）：占位符取空串时渲染器会把括号内字面量一并省略，
-        产出 `Scan Complete ()`，其内容不含 `unrecognized`；"括号去掉"的变体
-        （`Scan Complete`）可命中该形态。
+        规则 2 的用途：某些调用方可能**只取标题前缀**或渲染后截断（去掉尾部括号段），
+        该变体（如 `Scan Complete`）仍能命中，避免退化为兜底。
 
-        单独出现的占位符（如 `第 {round} 轮…`）只生成一个正则——它为空即标题本身
-        为空，不应归入任何主题。
+        单独出现的占位符（如 `第 {round} 轮…`）只生成一个正则。
+
+        **空白折叠（必须）**：模板中的占位符若与两侧字面空白相邻，渲染为空值后
+        会出现"通配符与字面空格争抢同一空格"的情形——例如
+        `Scan Complete ({failed} unrecognized)` 传空串产出 `Scan Complete ( unrecognized)`，
+        而正则 `\\((.+?)\\ unrecognized\\)` 需要**两个**空格（捕获组一个 + 字面一个），
+        实际只有一个，故不匹配。因此生成正则前先折叠模板空白，使通配符与字面空白
+        不再争抢；匹配时对标题做同样折叠（见 `_extract_topic`）。
         """
         split = re.split(r"([（(][^（()）]*\{[^}]*\}[^（()）]*[)）])", template)
         if len(split) == 1:
@@ -209,11 +218,13 @@ class NotificationAggregator:
                 continue
             if part[0] in "(（" and part[-1] in ")）":
                 inner = NotificationAggregator._escape_with_placeholders(
-                    part[1:-1], optional_placeholder=True
+                    NotificationAggregator._collapse_spaces(part[1:-1])
                 )
                 complete.append(re.escape(part[0]) + inner + re.escape(part[-1]))
             else:
-                escaped = NotificationAggregator._escape_with_placeholders(part)
+                escaped = NotificationAggregator._escape_with_placeholders(
+                    NotificationAggregator._collapse_spaces(part)
+                )
                 complete.append(escaped)
                 without.append(escaped)
 
@@ -222,6 +233,16 @@ class NotificationAggregator:
         if stripped and stripped != patterns[0]:
             patterns.append(stripped)
         return patterns
+
+    @staticmethod
+    def _collapse_spaces(text: str) -> str:
+        """把连续空白折叠为单个空格并去除首尾空白。
+
+        必须在**模板**与**待匹配标题**两侧同样施加，否则"通配符与字面空格争抢同一
+        空格"会导致空值渲染无法匹配（实测：`( unrecognized)` 只有一个空格，而模板
+        正则要求两个）。
+        """
+        return re.sub(r"\s+", " ", text).strip()
 
     @staticmethod
     def _strip_bracketed(title: str) -> str:
@@ -291,11 +312,13 @@ class NotificationAggregator:
                     continue
                 # 同一标题可能被多个事件共用（实测 1 例，同属 announce）——
                 # 保留先登记者，但若推导出的主题**不一致**则记入冲突并告警。
-                previous = index.get(value)
+                # 索引键做空白折叠，与 `_extract_topic` 的查找侧保持一致。
+                key_text = NotificationAggregator._collapse_spaces(value)
+                previous = index.get(key_text)
                 if previous is None:
-                    index[value] = topic
+                    index[key_text] = topic
                 elif previous != topic:
-                    conflicts.setdefault(value, {previous}).add(topic)
+                    conflicts.setdefault(key_text, {previous}).add(topic)
                 if "{" in value:
                     for source in NotificationAggregator._template_to_patterns(value):
                         try:
@@ -321,19 +344,21 @@ class NotificationAggregator:
         5. 兜底为"标题前 8 字符 + `_` 前缀"，保证返回值非空。
         """
         index, patterns = cls._title_index_data()
-        hit = index.get(title)
+        # 空白折叠：与索引登记侧同口径，解决"通配符与字面空格争抢同一空格"
+        folded = cls._collapse_spaces(title)
+        hit = index.get(folded)
         if hit:
             return hit
-        stripped = cls._strip_bracketed(title)
-        if stripped != title:
+        stripped = cls._strip_bracketed(folded)
+        if stripped != folded:
             hit = index.get(stripped)
             if hit:
                 return hit
         for pattern, topic in patterns:
-            if pattern.fullmatch(title) or pattern.fullmatch(stripped):
+            if pattern.fullmatch(folded) or pattern.fullmatch(stripped):
                 return topic
 
-        lowered = title.lower()
+        lowered = folded.lower()
         for topic, words in _LEGACY_TOPIC_KEYWORDS:
             if any(w in lowered for w in words):
                 return topic

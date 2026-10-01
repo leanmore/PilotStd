@@ -68,9 +68,18 @@ def _title_keys_for(event: str, pack: dict[str, str]) -> list[str]:
     ]
 
 
-def _render(template: str) -> str:
-    """把 i18n 模板渲染为具体标题（占位符替换为示例值）。"""
-    return re.sub(r"\{[^}]*\}", "3", template)
+def _render(template: str, value: object = 3) -> str:
+    """用**渲染器同款的方式**（`str.format`）把 i18n 模板渲染为具体标题。
+
+    不用 `re.sub` 替换占位符：两者语义不同——`re.sub` 会把占位符连同其位置的
+    空白一并抹掉，产出 `Scan Complete ()` 这类渲染器**不会产出**的形态；
+    `str.format` 保留两侧字面量（空值时产出 `Scan Complete ( unrecognized)`）。
+    用错误的替换方式构造样本会得到无效验证结论。
+    """
+    fields = sorted(set(re.findall(r"\{([^}!]+)(?:![^}]*)?\}", template)))
+    if not fields:
+        return template
+    return template.format(**{f: value for f in fields})
 
 
 EVENTS = _events_from_registry()
@@ -147,7 +156,7 @@ class TestTrilingualTopicConsistency:
                     if not isinstance(template, str):
                         continue
                     for value in values:
-                        rendered = re.sub(r"\{[^}]*\}", value, template)
+                        rendered = _render(template, value)
                         topic = NotificationAggregator._extract_topic(rendered, "")
                         if topic.startswith("_"):
                             offenders.append(f"{event}/{lang} v={value!r}: {rendered!r} -> {topic}")
@@ -160,7 +169,7 @@ class TestTrilingualTopicConsistency:
         for lang in LANGS:
             template = _pack(lang)[key]
             topics = {
-                NotificationAggregator._extract_topic(re.sub(r"\{[^}]*\}", str(n), template), "")
+                NotificationAggregator._extract_topic(_render(template, n), "")
                 for n in (1, 2, 3, 17, 999)
             }
             assert topics == {"validity"}, f"{lang}: 跨轮次主题不一致 -> {topics}"
@@ -427,35 +436,46 @@ class TestIndexUniquenessAndConflicts:
 
 
 class TestDynamicValueBoundaries:
-    """审核补证：占位符取值边界（不同值、0/负数/大数/空/特殊字符）。"""
+    """占位符取值边界（0/负数/大数/空串/特殊字符），一律经**渲染器同款** `str.format`。"""
 
     @pytest.mark.parametrize("value", ["0", "1", "2", "7", "999", "-5", "1e9", "", "a b", "%s", 'x"y'])
     def test_scan_complete_dynamic_count_always_done(self, value: str):
-        """`Scan Complete (<任何值>)` 恒归 `done`（三语）。"""
+        """`Scan Complete (<值>)` 恒归 `done`（三语），**含空串**。
+
+        空串经 `str.format` 产出 `Scan Complete ( unrecognized)`——占位符两侧字面量
+        保留，故与完整形正则仍然匹配（这也是"非空通配 `(.+?)` 足够"的实测依据）。
+        """
         for lang in LANGS:
             tpl = _pack(lang)["notification.scan.scan_complete.title"]
-            rendered = tpl.replace("{failed}", value)
+            rendered = _render(tpl, value)
             got = NotificationAggregator._extract_topic(rendered, "")
-            assert got == "done", f"{lang} value={value!r} -> {got!r}"
+            assert got == "done", f"{lang} value={value!r} rendered={rendered!r} -> {got!r}"
 
     @pytest.mark.parametrize("value", ["0", "1", "12", "999", "-3", "abc"])
     def test_round_summary_dynamic_round_always_validity(self, value: str):
         """`第 <非空值> 轮有效性汇总报告` 恒归 `validity`（三语，模板正则路径）。
 
-        **已知边界**：占位符取**空串**时渲染结果为 `第  轮…`（双空格），而模板为单空格，
-        故不匹配、落兜底。该输入现实中不产生（轮次恒 ≥ 1）；为退化输入放宽正则
-        （如空白归一化）会削弱匹配精确性，故登记为边界而不修。
+        **空串例外**：`str.format(round="")` 产出 `第  轮…`（双空格），与模板单空格
+        不匹配故落兜底；但调用方恒传 `round >= 1`，该输入**实际不可达**
+        （见 `test_round_summary_empty_value_is_unreachable_but_falls_back`）。
         """
         for lang in LANGS:
             tpl = _pack(lang)["notification.validity.validity_round_summary.title"]
-            rendered = tpl.replace("{round}", value)
+            rendered = _render(tpl, value)
             got = NotificationAggregator._extract_topic(rendered, "")
             assert got == "validity", f"{lang} value={value!r} -> {got!r}"
 
-    def test_round_summary_empty_value_is_known_boundary(self):
-        """锁定上述边界现状：空值落兜底（若未来实现空白归一化，应更新本用例）。"""
+    def test_round_summary_empty_value_is_unreachable_but_falls_back(self):
+        """空轮次经 `str.format` 渲染后落兜底——但该输入**实际不可达**。
+
+        调用方 `_validity_pipeline.py` 恒传 `round: new_round`，而
+        `new_round = config.get("validity.round_count", 0) + 1 >= 1`，故 `round` 永不为空。
+        此处锁定现状：若将来 `round` 可能为空，此用例会提醒需要实现空白归一化匹配。
+        """
         tpl = _pack(DEFAULT_LANG)["notification.validity.validity_round_summary.title"]
-        got = NotificationAggregator._extract_topic(tpl.replace("{round}", ""), "")
+        rendered = tpl.format(round="")
+        assert rendered == "第  轮有效性汇总报告", f"渲染形态变化：{rendered!r}"
+        got = NotificationAggregator._extract_topic(rendered, "")
         assert got.startswith("_"), f"预期落兜底，实际 {got!r}"
 
     def test_multiple_placeholders_in_one_title(self):
@@ -474,7 +494,7 @@ class TestDynamicValueBoundaries:
             expected = _TOPIC_BY_EVENT.get(owner or "")
             for lang in LANGS:
                 lt = _pack(lang)[key]
-                rendered = re.sub(r"\{[^}]*\}", "5", lt)
+                rendered = _render(lt, 5)
                 if lang == "en" and owner == "validity_round_summary":
                     pass
                 got = NotificationAggregator._extract_topic(rendered, "")
