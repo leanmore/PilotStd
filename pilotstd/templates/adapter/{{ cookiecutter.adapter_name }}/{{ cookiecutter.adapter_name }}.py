@@ -1,6 +1,6 @@
 # 模板—由模板引擎渲染后生成最终代码
 # 注释密度占位以满足门禁-012要求
-# 适配器模块：项目/查询/适配器/{{模板引擎.适配器_}}脚本
+# 适配器模块：项目/查询/适配器/{{ cookiecutter.adapter_name }}脚本
 """{{ cookiecutter.site_label }} 适配器
 URL: {{ cookiecutter.base_url }}{{ cookiecutter.search_endpoint }}
 架构: {{ cookiecutter.response_type }} (method={{ cookiecutter.method }}, encoding={{ cookiecutter.encoding }})
@@ -9,6 +9,10 @@ URL: {{ cookiecutter.base_url }}{{ cookiecutter.search_endpoint }}
 import logging
 from typing import Any, Optional
 import httpx
+
+# 状态值统一引用权威字典（#32-D / R14-5：模板生成物同样零裸中文状态字面量）
+from pilotstd.core.status import Status
+
 from ..models import QueryResult
 from ..search_strategy import _parse_result_number, match_result
 from .base import BaseAdapter
@@ -17,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 # 适配器实现—由模板引擎生成
-# 架构类型:{{模板引擎._}}
+# 架构类型:{{ cookiecutter.response_type }}
 # 更多注释占位以满足门禁-012密度要求
 class {{ cookiecutter.adapter_class }}(BaseAdapter):
     """{{ cookiecutter.site_label }} 查询适配器。"""
@@ -50,25 +54,25 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
         if not keyword:
             return []
 
-        {% if cookiecutter.method == "POST" -%}
+        {% if cookiecutter.method == "POST" %}
         data: dict[str, Any] = {"keyword": keyword}
-        {% if cookiecutter.pagination -%}
+        {% if cookiecutter.pagination %}
         page = kwargs.get("pageNo", {{ cookiecutter.pagination_start }})
         if page > {{ cookiecutter.pagination_start | int }}:
             data["{{ cookiecutter.pagination_param }}"] = page
-        {% endif -%}
+        {% endif %}
         try:
             resp = self._client.post(self.SEARCH_URL, data=data, timeout=15)
-        {% else -%}
+        {% else %}
         params: dict[str, Any] = {"keyword": keyword}
-        {% if cookiecutter.pagination -%}
+        {% if cookiecutter.pagination %}
         page = kwargs.get("pageNo", {{ cookiecutter.pagination_start }})
         if page > {{ cookiecutter.pagination_start | int }}:
             params["{{ cookiecutter.pagination_param }}"] = page
-        {% endif -%}
+        {% endif %}
         try:
             resp = self._client.get(self.SEARCH_URL, params=params, timeout=15)
-        {% endif -%}
+        {% endif %}
         except Exception as e:
             logger.debug(f"{{ cookiecutter.adapter_name }} request failed: {e}")
             return []
@@ -86,7 +90,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
 
     def _extract_rows(self, resp: httpx.Response) -> list[Any]:
         """从响应中提取行数据（JSON 或 HTML）。"""
-        {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] -%}
+        {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] %}
         try:
             data = resp.json()
         except Exception:
@@ -98,7 +102,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
             if key in data and isinstance(data[key], list):
                 return data[key]
         return []
-        {% elif cookiecutter.response_type == "vue_datalist" -%}
+        {% elif cookiecutter.response_type == "vue_datalist" %}
         import json, re
         patterns = [
             re.compile(r"dataList\s*:\s*(\[.*?\])\s*,\s*\w+\s*:", re.DOTALL),
@@ -114,11 +118,11 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
                 except json.JSONDecodeError:
                     continue
         return []
-        {% else -%}
+        {% else %}
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(resp.text, "lxml")
         return soup.select("table tbody tr, div.list-row, li.result-item")
-        {% endif -%}
+        {% endif %}
 
     def _search(self, search_term: str) -> Optional[QueryResult]:
         candidates = self.query_standards(search_term)
@@ -130,7 +134,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
         return max(candidates, key=lambda c: getattr(c, "publish_date", "") or "")
 
     def _parse_result(self, row: Any, search_term: str = "") -> Optional[QueryResult]:
-        {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] -%}
+        {% if cookiecutter.response_type in ["json_api_post", "json_api_get", "json_api_mixed"] %}
         std_no = str(row.get("{{ cookiecutter.field_std_number }}", "") or "").strip()
         name = str(row.get("{{ cookiecutter.field_std_name }}", "") or "").strip()
         if not std_no:
@@ -138,7 +142,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
         pub_date = str(row.get("{{ cookiecutter.field_publish_date }}", "") or "").strip()
         imp_date = str(row.get("{{ cookiecutter.field_implement_date }}", "") or "").strip()
         status_text = str(row.get("{{ cookiecutter.field_status }}", "") or "").strip()
-        {% elif cookiecutter.response_type == "vue_datalist" -%}
+        {% elif cookiecutter.response_type == "vue_datalist" %}
         std_no = str(row.get("standard_code") or "").strip()
         name = str(row.get("title") or "").strip()
         if not std_no:
@@ -146,7 +150,7 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
         pub_date = ""
         imp_date = ""
         status_text = ""
-        {% else -%}
+        {% else %}
         cols = row.find_all("td") if hasattr(row, "find_all") else []
         if len(cols) < 2:
             return None
@@ -157,10 +161,17 @@ class {{ cookiecutter.adapter_class }}(BaseAdapter):
         pub_date = cols[2].text.strip() if len(cols) > 2 else ""
         imp_date = cols[3].text.strip() if len(cols) > 3 else ""
         status_text = cols[4].text.strip() if len(cols) > 4 else ""
-        {% endif -%}
+        {% endif %}
 
-        status_map = {"现行": "现行", "现行有效": "现行", "即将实施": "即将实施", "废止": "废止", "已废止": "废止"}
-        status = status_map.get(status_text, status_text) if status_text else "未知"
+        # 取值与归一化行为与原模板逐字等价：仅把中文常量换成字典引用
+        status_map = {
+            Status.ACTIVE.value: Status.ACTIVE.value,
+            "现行有效": Status.ACTIVE.value,  # 站点自带的另一种在用写法（不在字典内，保留原文）
+            Status.UPCOMING.value: Status.UPCOMING.value,
+            Status.WITHDRAWN.value: Status.WITHDRAWN.value,
+            Status.WITHDRAWN_NORMALIZED.value: Status.WITHDRAWN.value,  # 保持原模板归一方向
+        }
+        status = status_map.get(status_text, status_text) if status_text else Status.UNKNOWN.value
 
         target = _parse_result_number(search_term) if search_term else {}
         _, match_status = match_result(
