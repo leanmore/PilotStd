@@ -12,6 +12,7 @@ import warnings
 from typing import TYPE_CHECKING, Any, Optional, cast
 
 from pilotstd.core import status as status_dict
+from pilotstd.core.status import Status
 
 from ...core.notification import EVENT_ARCHIVE_COMPLETE
 from ...core.std_utils import classify_std_code
@@ -281,7 +282,7 @@ class OrganizeHandler:
             info = self._core.parser.parse(os.path.basename(path))
             if info:
                 info.source_path = path
-                info.effect_status = "废止"
+                info.effect_status = Status.WITHDRAWN.value
                 parsed.append(info)
         if not parsed:
             return {"moved": 0, "failed": 0, "details": ["无有效文件"]}

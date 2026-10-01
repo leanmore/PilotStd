@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from pilotstd.core.status import Status
+
 from ...download.models import BatchDownloadStats, DownloadTask
 
 if TYPE_CHECKING:
@@ -35,9 +37,14 @@ class DownloadHandler:
                         old_status = getattr(p, "effect_status", "") or ""
                         old_match = getattr(p, "match_status", "") or ""
                         new_effect = ""
-                        if old_status in ("废止", "已废止", "作废", "被代替"):
-                            new_effect = "现行"
-                        elif old_status == "现行" and old_match == "newer":
+                        if old_status in (
+                            Status.WITHDRAWN.value,
+                            Status.WITHDRAWN_NORMALIZED.value,
+                            Status.VOIDED.value,
+                            Status.SUPERSEDED.value,
+                        ):
+                            new_effect = Status.ACTIVE.value
+                        elif old_status == Status.ACTIVE.value and old_match == "newer":
                             new_effect = "待实施"
                         if new_effect:
                             cached = self._core.cache.get(task.standard_number, getattr(task, "source_site", ""))

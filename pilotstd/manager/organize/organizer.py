@@ -6,6 +6,8 @@ import logging
 import os
 from typing import Any
 
+from pilotstd.core.status import Status
+
 from ...core.config import get_library_root
 from ...core.file_utils import (
     hash_file_content,
@@ -157,7 +159,7 @@ class OrganizerCore:
                     number=number,
                     year=year,
                     std_name=std_name,
-                    status="现行",
+                    status=Status.ACTIVE.value,
                 )
         except PermissionError:
             logger.warning("Word 归档失败(权限不足): %s — 请关闭占用程序后重试", os.path.basename(src))
@@ -195,7 +197,7 @@ class OrganizerCore:
                     year=p.year,
                     part=getattr(p, "part", None),
                     std_name=p.std_name or "",
-                    status=getattr(p, "effect_status", "") or "现行",
+                    status=getattr(p, "effect_status", "") or Status.ACTIVE.value,
                     raw_number=p.raw_number or "",
                 )
             # 6-0:归档成功后注册到表

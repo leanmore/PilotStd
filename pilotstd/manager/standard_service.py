@@ -3,6 +3,8 @@
 
 from typing import Any
 
+from pilotstd.core.status import Status
+
 
 class StandardService:
     """标准统计与列表查询（数据源：文件索引表，与首页卡片口径一致）。"""
@@ -17,12 +19,12 @@ class StandardService:
         """将前端筛选状态值映射到文件索引表的查询条件子句。
         返回：(值列表, 操作符) —— 操作符为包含、不包含或等于。
         """
-        if filter_status == "现行":
-            return (["现行"], None)
-        if filter_status == "已废止":
-            return (["废止", "被代替"], "IN")
-        if filter_status == "未知":
-            return (["现行", "废止", "被代替"], "NOT IN")
+        if filter_status == Status.ACTIVE.value:
+            return ([Status.ACTIVE.value], None)
+        if filter_status == Status.WITHDRAWN_NORMALIZED.value:
+            return ([Status.WITHDRAWN.value, Status.SUPERSEDED.value], "IN")
+        if filter_status == Status.UNKNOWN.value:
+            return ([Status.ACTIVE.value, Status.WITHDRAWN.value, Status.SUPERSEDED.value], "NOT IN")
         return ([filter_status], None)
 
     @staticmethod
@@ -67,9 +69,13 @@ class StandardService:
         rows = db.fetchall("SELECT status, COUNT(*) AS cnt FROM file_index WHERE status IS NOT NULL GROUP BY status")
         s = {row["status"]: row["cnt"] for row in rows}
         by_status = {
-            "现行": s.get("现行", 0),
-            "已废止": s.get("废止", 0) + s.get("被代替", 0),
-            "未知": sum(cnt for st, cnt in s.items() if st not in ("现行", "废止", "被代替")),
+            Status.ACTIVE.value: s.get(Status.ACTIVE.value, 0),
+            Status.WITHDRAWN_NORMALIZED.value: s.get(Status.WITHDRAWN.value, 0) + s.get(Status.SUPERSEDED.value, 0),
+            Status.UNKNOWN.value: sum(
+                cnt
+                for st, cnt in s.items()
+                if st not in (Status.ACTIVE.value, Status.WITHDRAWN.value, Status.SUPERSEDED.value)
+            ),
         }
         return {
             "total": sum(by_status.values()),

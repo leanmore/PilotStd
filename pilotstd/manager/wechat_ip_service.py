@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from pilotstd.core.status import Status
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_ENCRYPT_SECRET = "pilotstd_wework_ip_2026"
@@ -141,7 +143,7 @@ class WechatIPService:
                 pass
 
         return {
-            "current_ip": now_ip or "未知",
+            "current_ip": now_ip or Status.UNKNOWN.value,
             "last_ip": cfg.get("wechat_ip.last_ip", ""),
             "ip_changed": now_ip != cfg.get("wechat_ip.last_ip", "") if now_ip else False,
             "cookie_valid": cookie_valid,

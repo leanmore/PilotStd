@@ -18,6 +18,7 @@ from typing import Any, Callable, cast
 import requests
 
 from pilotstd.core import status as status_dict
+from pilotstd.core.status import Status
 
 from ...core.std_utils import GB_CODES, classify_std_code
 from ...query.models import BatchQueryStats, QueryResult
@@ -313,7 +314,7 @@ class QuerySubsystem:
         """按标准类型分组统计：国标/行业/地方/国际/国外，含待确认计数。"""
         cats: dict[str, dict[str, int]] = {}
         for p, r in zip(items, results):
-            cat = self._CAT_LABEL.get(classify_std_code(p.logical_code), "未知")
+            cat = self._CAT_LABEL.get(classify_std_code(p.logical_code), Status.UNKNOWN.value)
             if cat not in cats:
                 cats[cat] = {"total": 0, "found": 0, "pending": 0}
             cats[cat]["total"] += 1
@@ -321,11 +322,11 @@ class QuerySubsystem:
                 cats[cat]["found"] += 1
         pending_set = set(id(p) for p in self._core.pending_list)
         for p in items:
-            cat = self._CAT_LABEL.get(classify_std_code(p.logical_code), "未知")
+            cat = self._CAT_LABEL.get(classify_std_code(p.logical_code), Status.UNKNOWN.value)
             if id(p) in pending_set:
                 cats[cat]["pending"] += 1
 
-        for cat in ("国标", "行业标准", "地方标准", "国际标准", "国外标准", "未知"):
+        for cat in ("国标", "行业标准", "地方标准", "国际标准", "国外标准", Status.UNKNOWN.value):
             c = cats.pop(cat, None)
             if c is None:
                 continue

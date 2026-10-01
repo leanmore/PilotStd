@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+from pilotstd.core.status import Status
+
 if TYPE_CHECKING:
     from ._core import ManagerCore
 
@@ -25,7 +27,7 @@ class FileIndexHandler:
         year: int,
         part: Any = None,
         std_name: str = "",
-        status: str = "现行",
+        status: str = Status.ACTIVE.value,
         raw_number: str = "",
     ) -> None:
         """封装 file_index.upsert，供 UI 层在归档完成后写入索引。"""
