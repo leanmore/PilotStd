@@ -4,6 +4,8 @@ import os
 import sys
 import unittest
 
+from pilotstd.core.status import Status
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -68,7 +70,7 @@ class TestQueryRemaining(unittest.TestCase):
         from pilotstd.query.search_strategy import MATCH_SCORE, map_status
 
         self.assertIn("exact", MATCH_SCORE)
-        self.assertEqual(map_status("Active"), "现行")
+        self.assertEqual(map_status("Active"), Status.ACTIVE.value)
 
 
 class TestScanRemaining(unittest.TestCase):

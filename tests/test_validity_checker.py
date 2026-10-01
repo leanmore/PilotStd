@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from pilotstd.core.db import Database
+from pilotstd.core.status import Status
 from pilotstd.core.validity_checker import ValidityChecker
 
 
@@ -60,7 +61,7 @@ class TestValidityChecker(unittest.TestCase):
             ("GB 1-2020",),
         )
         self.assertIsNotNone(row)
-        self.assertEqual(row["status"], "未知")
+        self.assertEqual(row["status"], Status.UNKNOWN.value)
         self.assertIsNotNone(row["next_check_at"])
 
     def test_register_duplicate_noop(self):
@@ -75,23 +76,23 @@ class TestValidityChecker(unittest.TestCase):
     # ── update_status ──
 
     def test_update_status_new(self):
-        self.checker.update_status("GB 2-2020", "现行")
+        self.checker.update_status("GB 2-2020", Status.ACTIVE.value)
         row = self.db.fetchone(
             "SELECT status, check_count FROM standard_validity WHERE standard_number=?",
             ("GB 2-2020",),
         )
-        self.assertEqual(row["status"], "现行")
+        self.assertEqual(row["status"], Status.ACTIVE.value)
         self.assertEqual(row["check_count"], 1)
 
     def test_update_status_existing(self):
         self.checker.register_new_standard("GB 3-2020")
-        self.checker.update_status("GB 3-2020", "已废止")
+        self.checker.update_status("GB 3-2020", Status.WITHDRAWN_NORMALIZED.value)
         row = self.db.fetchone(
             "SELECT status, last_status, check_count FROM standard_validity WHERE standard_number=?",
             ("GB 3-2020",),
         )
-        self.assertEqual(row["status"], "已废止")
-        self.assertEqual(row["last_status"], "未知")
+        self.assertEqual(row["status"], Status.WITHDRAWN_NORMALIZED.value)
+        self.assertEqual(row["last_status"], Status.UNKNOWN.value)
         self.assertEqual(row["check_count"], 1)
 
     # ── get_due_standards + random_slice ──
@@ -117,40 +118,40 @@ class TestValidityChecker(unittest.TestCase):
     # ── update_status with 28-day scheduling ──
 
     def test_update_status_sets_next_check(self):
-        self.checker.update_status("GB X-2020", "现行")
+        self.checker.update_status("GB X-2020", Status.ACTIVE.value)
         row = self.db.fetchone(
             "SELECT status, next_check_at, check_count FROM standard_validity WHERE standard_number=?",
             ("GB X-2020",),
         )
-        self.assertEqual(row["status"], "现行")
+        self.assertEqual(row["status"], Status.ACTIVE.value)
         self.assertIsNotNone(row["next_check_at"])
         self.assertEqual(row["check_count"], 1)
 
     def test_update_status_change_records_last_status(self):
-        self.checker.update_status("GB Y-2020", "现行")
-        self.checker.update_status("GB Y-2020", "已废止")
+        self.checker.update_status("GB Y-2020", Status.ACTIVE.value)
+        self.checker.update_status("GB Y-2020", Status.WITHDRAWN_NORMALIZED.value)
         row = self.db.fetchone(
             "SELECT status, last_status, last_status_updated_at FROM standard_validity WHERE standard_number=?",
             ("GB Y-2020",),
         )
-        self.assertEqual(row["status"], "已废止")
-        self.assertEqual(row["last_status"], "现行")
+        self.assertEqual(row["status"], Status.WITHDRAWN_NORMALIZED.value)
+        self.assertEqual(row["last_status"], Status.ACTIVE.value)
         self.assertIsNotNone(row["last_status_updated_at"])
 
     # ── check_standard ──
 
     def test_check_standard_l3_history(self):
-        self.checker.update_status("GB 5-2020", "现行")
+        self.checker.update_status("GB 5-2020", Status.ACTIVE.value)
         result = self.checker.check_standard("GB 5-2020")
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
 
     # ── get_status_summary ──
 
     def test_status_summary(self):
-        self.checker.update_status("GB A-2020", "现行")
-        self.checker.update_status("GB B-2020", "现行")
-        self.checker.update_status("GB C-2020", "已废止")
+        self.checker.update_status("GB A-2020", Status.ACTIVE.value)
+        self.checker.update_status("GB B-2020", Status.ACTIVE.value)
+        self.checker.update_status("GB C-2020", Status.WITHDRAWN_NORMALIZED.value)
         summary = self.checker.get_status_summary()
-        self.assertEqual(summary.get("现行"), 2)
-        self.assertEqual(summary.get("已废止"), 1)
+        self.assertEqual(summary.get(Status.ACTIVE.value), 2)
+        self.assertEqual(summary.get(Status.WITHDRAWN_NORMALIZED.value), 1)

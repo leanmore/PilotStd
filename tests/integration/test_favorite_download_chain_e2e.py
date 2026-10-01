@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from pilotstd.core.db import Database  # noqa: E402
 from pilotstd.core.file_index import FileIndexRepository  # noqa: E402
+from pilotstd.core.status import Status
 from pilotstd.download.adapters.base import BaseDownloadAdapter  # noqa: E402
 from pilotstd.download.engine import DownloadEngine  # noqa: E402
 from pilotstd.download.session import SessionManager  # noqa: E402
@@ -154,7 +155,7 @@ class _RealArchiveMgr:
                 number=item.number,
                 year=item.year,
                 std_name="测试标准",
-                status="现行",
+                status=Status.ACTIVE.value,
             )
         return {"moved": len(parsed_list)}
 
@@ -243,7 +244,7 @@ class TestArchiveIndexContract:
                 number=item.number,
                 year=item.year,
                 std_name="测试标准",
-                status="现行",
+                status=Status.ACTIVE.value,
             )
             # 链路侧：用规范标准号查得到（这正是归档后置 done 的依据）
             assert _find_in_file_index("GB/T 5613-2026", db) == dst

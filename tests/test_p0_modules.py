@@ -5,6 +5,8 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
+from pilotstd.core.status import Status
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -229,7 +231,7 @@ class TestQueryHandler(unittest.TestCase):
     def test_build_result_from_cache(self):
         from pilotstd.manager.facade._query import QueryHandler
 
-        cache_data = {"standard_number": "GB/T 1.1", "standard_name": "Test", "status": "现行"}
+        cache_data = {"standard_number": "GB/T 1.1", "standard_name": "Test", "status": Status.ACTIVE.value}
         result = QueryHandler._build_result_from_cache("GB/T 1.1", cache_data)
         self.assertEqual(result.standard_number, "GB/T 1.1")
 

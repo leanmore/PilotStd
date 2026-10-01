@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -49,8 +50,8 @@ class TestTDPressAdapter(unittest.TestCase):
     def test_status_mapping_known(self):
         from pilotstd.query.adapters.tdpress import _map_status
 
-        self.assertEqual(_map_status("TRUE"), "现行")
-        self.assertEqual(_map_status("FALSE"), "废止")
+        self.assertEqual(_map_status("TRUE"), Status.ACTIVE.value)
+        self.assertEqual(_map_status("FALSE"), Status.WITHDRAWN.value)
 
     def test_status_mapping_unknown_preserved(self):
         from pilotstd.query.adapters.tdpress import _map_status
@@ -80,7 +81,7 @@ class TestTDPressAdapter(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.standard_number, "TB 10621-2014")
         self.assertEqual(result.standard_name, "高速铁路设计规范")
-        self.assertEqual(result.status, "废止")
+        self.assertEqual(result.status, Status.WITHDRAWN.value)
         self.assertEqual(result.replaces, "TB 10621-2009")
         self.assertEqual(result.implementation_date, "2015-02-01")
         self.assertEqual(result.publish_date, "2014-12-01")

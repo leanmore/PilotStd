@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.manager.standard_service import StandardService
 
 
@@ -24,21 +25,21 @@ class TestMapFilterStatus:
 
     def test_current_returns_exact_match(self):
         """现行 → (["现行"], None) 精确匹配。"""
-        vals, op = StandardService._map_filter_status("现行")
-        assert vals == ["现行"]
+        vals, op = StandardService._map_filter_status(Status.ACTIVE.value)
+        assert vals == [Status.ACTIVE.value]
         assert op is None
 
     def test_abolished_returns_in_operator(self):
         """已废止 → IN 操作符匹配废止+被代替。"""
-        vals, op = StandardService._map_filter_status("已废止")
-        assert "废止" in vals
-        assert "被代替" in vals
+        vals, op = StandardService._map_filter_status(Status.WITHDRAWN_NORMALIZED.value)
+        assert Status.WITHDRAWN.value in vals
+        assert Status.SUPERSEDED.value in vals
         assert op == "IN"
 
     def test_unknown_returns_not_in_operator(self):
         """未知 → NOT IN 操作符排除已知状态。"""
-        vals, op = StandardService._map_filter_status("未知")
-        assert "现行" in vals
+        vals, op = StandardService._map_filter_status(Status.UNKNOWN.value)
+        assert Status.ACTIVE.value in vals
         assert op == "NOT IN"
 
     def test_arbitrary_status_returns_exact(self):
@@ -59,13 +60,13 @@ class TestBuildWhere:
 
     def test_status_filter_current(self):
         """status=现行 生成 status = ?"""
-        sql, params = StandardService._build_where({"status": "现行"})
+        sql, params = StandardService._build_where({"status": Status.ACTIVE.value})
         assert "status = ?" in sql
-        assert params == ["现行"]
+        assert params == [Status.ACTIVE.value]
 
     def test_status_filter_abolished(self):
         """status=已废止 生成 status IN (?, ?)"""
-        sql, params = StandardService._build_where({"status": "已废止"})
+        sql, params = StandardService._build_where({"status": Status.WITHDRAWN_NORMALIZED.value})
         assert "IN (?, ?)" in sql
         assert len(params) == 2
 
@@ -78,19 +79,19 @@ class TestBuildWhere:
 
     def test_combined_status_and_keyword(self):
         """status + keyword 组合过滤。"""
-        sql, params = StandardService._build_where({"status": "现行", "keyword": "12345"})
+        sql, params = StandardService._build_where({"status": Status.ACTIVE.value, "keyword": "12345"})
         assert "status = ?" in sql
         assert "LIKE ?" in sql
-        assert "现行" in params
+        assert Status.ACTIVE.value in params
 
     def test_alias_prefix_in_column_refs(self):
         """alias='f' 时所有列引用带 f. 前缀。"""
-        sql, _ = StandardService._build_where({"status": "现行"}, alias="f")
+        sql, _ = StandardService._build_where({"status": Status.ACTIVE.value}, alias="f")
         assert "f.status = ?" in sql
 
     def test_not_in_operator_for_unknown(self):
         """status=未知 生成 NOT IN 子句。"""
-        sql, params = StandardService._build_where({"status": "未知"})
+        sql, params = StandardService._build_where({"status": Status.UNKNOWN.value})
         assert "NOT IN" in sql
         assert len(params) == 3  # 现行, 废止, 被代替
 
@@ -101,31 +102,31 @@ class TestGetStats:
     def test_normal_stats_with_mixed_statuses(self, mock_mgr, svc):
         """混合状态数据返回正确分组统计。"""
         mock_mgr.db.fetchall.return_value = [
-            {"status": "现行", "cnt": 100},
-            {"status": "废止", "cnt": 20},
-            {"status": "被代替", "cnt": 5},
+            {"status": Status.ACTIVE.value, "cnt": 100},
+            {"status": Status.WITHDRAWN.value, "cnt": 20},
+            {"status": Status.SUPERSEDED.value, "cnt": 5},
             {"status": "custom", "cnt": 3},
         ]
         result = svc.get_stats()
         assert result["total"] == 128
-        assert result["by_status"]["现行"] == 100
-        assert result["by_status"]["已废止"] == 25
-        assert result["by_status"]["未知"] == 3
+        assert result["by_status"][Status.ACTIVE.value] == 100
+        assert result["by_status"][Status.WITHDRAWN_NORMALIZED.value] == 25
+        assert result["by_status"][Status.UNKNOWN.value] == 3
 
     def test_empty_stats(self, mock_mgr, svc):
         """空数据库返回全部为零的统计。"""
         mock_mgr.db.fetchall.return_value = []
         result = svc.get_stats()
         assert result["total"] == 0
-        assert result["by_status"]["现行"] == 0
+        assert result["by_status"][Status.ACTIVE.value] == 0
 
     def test_only_current_status(self, mock_mgr, svc):
         """仅有现行状态时其他分组为零。"""
-        mock_mgr.db.fetchall.return_value = [{"status": "现行", "cnt": 50}]
+        mock_mgr.db.fetchall.return_value = [{"status": Status.ACTIVE.value, "cnt": 50}]
         result = svc.get_stats()
         assert result["total"] == 50
-        assert result["by_status"]["已废止"] == 0
-        assert result["by_status"]["未知"] == 0
+        assert result["by_status"][Status.WITHDRAWN_NORMALIZED.value] == 0
+        assert result["by_status"][Status.UNKNOWN.value] == 0
 
 
 class TestGetList:
@@ -135,9 +136,9 @@ class TestGetList:
         """分页查询返回 items + total + page + size。"""
         mock_mgr.db.fetchone.return_value = {"cnt": 42}
         mock_rows = [
-            {"id": 1, "standard_number": "GB/T 1.1", "status": "现行",
+            {"id": 1, "standard_number": "GB/T 1.1", "status": Status.ACTIVE.value,
              "std_name": "标准1", "last_checked_at": None, "check_count": 0},
-            {"id": 2, "standard_number": "ISO 9001", "status": "现行",
+            {"id": 2, "standard_number": "ISO 9001", "status": Status.ACTIVE.value,
              "std_name": "标准2", "last_checked_at": "2026-01-01", "check_count": 3},
         ]
         mock_mgr.db.fetchall.return_value = mock_rows
@@ -168,7 +169,7 @@ class TestGetList:
         """带 status 过滤的列表查询 SQL 包含过滤条件。"""
         mock_mgr.db.fetchone.return_value = {"cnt": 5}
         mock_mgr.db.fetchall.return_value = []
-        svc.get_list(filters={"status": "已废止"})
+        svc.get_list(filters={"status": Status.WITHDRAWN_NORMALIZED.value})
         sql_called = mock_mgr.db.fetchall.call_args[0][0]
         assert "IN (?, ?)" in sql_called or "status" in sql_called
 

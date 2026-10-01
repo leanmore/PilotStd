@@ -19,6 +19,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 # ── 工具函数 ─────────────────────────────────────────────────
@@ -127,17 +128,17 @@ def test_query_result_fields_and_coloring_e2e(window, test_data_dir, qtbot):
 
             # ── 验证状态着色（hex 值比较，避免 GlobalColor 枚举 vs QColor 对象比较陷阱）──
             color = effect_cell.foreground().color()
-            if effect in ("现行",):
+            if effect in (Status.ACTIVE.value,):
                 # 现行通常为绿色，但若 is_adopted=True（不可下载）会被覆盖为 darkYellow
                 assert color.name() in ("#008000", "#808000"), (
                     f"行 {row}: 现行状态应为绿色或darkYellow(采标覆盖), 实际 effect='{effect}' color={color.name()}"
                 )
-            elif effect == "即将实施":
+            elif effect == Status.UPCOMING.value:
                 # 即将实施本应为蓝色，但 handler 中 is_downloadable=False 会覆盖为 darkYellow
                 assert color.name() in ("#0000ff", "#808000"), (
                     f"行 {row}: 即将实施应为蓝色或darkYellow(不可下载覆盖), 实际 effect='{effect}' color={color.name()}"
                 )
-            elif effect in ("废止", "已废止", "作废"):
+            elif effect in (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value, Status.VOIDED.value):
                 assert color.name() == "#ff0000", f"行 {row}: 废止状态应为红色, 实际 effect='{effect}'"
 
             # 其余字段至少可读（mock 数据可能为空，不崩溃即可）
@@ -172,7 +173,7 @@ def test_on_query_result_ready_direct(window, qtbot):
         mock_result = QueryResult(
             standard_number="GB/T 1.1-2020",
             standard_name="标准化工作导则 第1部分：标准化文件的结构和起草规则",
-            status="现行",
+            status=Status.ACTIVE.value,
             replaces="GB/T 1.1-2009",
             implementation_date="2020-10-01",
             publish_date="2020-03-31",
@@ -192,7 +193,7 @@ def test_on_query_result_ready_direct(window, qtbot):
         # ── 7 字段验证 ──
         assert table.item(0, 1).text() == "已查询(mock_query)", "col1 工作状态"
         assert table.item(0, 3).text() == mock_result.standard_name, "col3 标准名称"
-        assert table.item(0, 4).text() == "现行", "col4 生效状态"
+        assert table.item(0, 4).text() == Status.ACTIVE.value, "col4 生效状态"
         assert table.item(0, 5).text() == "GB/T 1.1-2009", "col5 替代标准"
         assert table.item(0, 6).text() == "2020-03-31", "col6 发布日期"
         assert table.item(0, 7).text() == "2020-10-01", "col7 实施日期"
@@ -208,7 +209,7 @@ def test_on_query_result_ready_direct(window, qtbot):
         mock_result2 = QueryResult(
             standard_number="GB/T 67890-2019",
             standard_name="已废止标准",
-            status="废止",
+            status=Status.WITHDRAWN.value,
             replaces="",
             implementation_date="2019-06-01",
             publish_date="2019-01-01",

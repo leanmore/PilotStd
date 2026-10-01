@@ -8,6 +8,7 @@ import unittest
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
+from pilotstd.core.status import Status
 from tests.mocks.mock_database import MockDatabase
 
 
@@ -102,17 +103,17 @@ class TestValidityCheckerRemaining(unittest.TestCase):
         self.db.execute(
             "INSERT INTO standard_validity "
             "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
-            ("STD-A", "现行", now, now, now),
+            ("STD-A", Status.ACTIVE.value, now, now, now),
         )
         self.db.execute(
             "INSERT INTO standard_validity "
             "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
-            ("STD-B", "废止", now, now, now),
+            ("STD-B", Status.WITHDRAWN.value, now, now, now),
         )
         vc = ValidityChecker(self.db)
         summary = vc.get_status_summary()
-        self.assertIn("现行", summary)
-        self.assertIn("废止", summary)
+        self.assertIn(Status.ACTIVE.value, summary)
+        self.assertIn(Status.WITHDRAWN.value, summary)
 
 
 # ═══ core/ cache_manager (71.8→80%) ═══

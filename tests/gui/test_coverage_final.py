@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtWidgets import QDialog, QMenu, QTreeWidgetItem
 
+from pilotstd.core.status import Status
 from pilotstd.ui.workers._common import RowUpdate
 
 
@@ -246,7 +247,7 @@ class TestTableRemaining:
                         "is_adopted": True,
                         "confidence": 0.95,
                         "cached_at": "2024-06-01",
-                        "match_status": "现行",
+                        "match_status": Status.ACTIVE.value,
                     }
                 ]
             )

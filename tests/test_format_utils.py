@@ -4,11 +4,13 @@ from unittest.mock import MagicMock, patch
 from pilotstd.core.notification._format_utils import (
     do_test_send,
     format_standard_status_changed_aggregated,
+    is_abolished_status,
 )
+from pilotstd.core.status import Status
 from tests.fixtures.engine_mock_tree import ChannelStub, ConfigStub
 
 
-def _make_entry(num, new_status="现行", old_status="现行"):
+def _make_entry(num, new_status=Status.ACTIVE.value, old_status=Status.ACTIVE.value):
     msg = MagicMock()
     msg.standard_number = f"GB/T {num}"
     msg.standard_name = f"标准{num}"
@@ -26,9 +28,9 @@ class TestFormatAggregated:
         assert "标准1" in result
 
     def test_expired_count_in_header(self):
-        entries = [_make_entry(1, new_status="废止")]
+        entries = [_make_entry(1, new_status=Status.WITHDRAWN.value)]
         result = format_standard_status_changed_aggregated("", entries, 1)
-        assert "废止" in result
+        assert Status.WITHDRAWN.value in result
 
     def test_multiple_entries_under_10(self):
         entries = [_make_entry(i) for i in range(5)]
@@ -45,8 +47,8 @@ class TestFormatAggregated:
         msg = MagicMock()
         msg.standard_number = "X"
         msg.standard_name = ""
-        msg.new_status = "现行"
-        msg.old_status = "现行"
+        msg.new_status = Status.ACTIVE.value
+        msg.old_status = Status.ACTIVE.value
         msg.changed_at = ""
         entries = [(msg, "ch", "ts")]
         result = format_standard_status_changed_aggregated("", entries, 1)
@@ -57,9 +59,12 @@ class TestFormatAggregated:
         assert "，" not in result
 
     def test_expired_in_overflow_range(self):
-        entries = [_make_entry(i, new_status="废止" if i >= 10 else "现行") for i in range(12)]
+        entries = [_make_entry(
+            i,
+            new_status=Status.WITHDRAWN.value if i >= 10 else Status.ACTIVE.value,
+        ) for i in range(12)]
         result = format_standard_status_changed_aggregated("", entries, 12)
-        assert "废止" in result
+        assert Status.WITHDRAWN.value in result
 
 
 # ── do_test_send 全覆盖 ──
@@ -429,3 +434,17 @@ class TestDoTestSendInitError:
             )
         assert result["ok"] is False
         assert "渠道初始化失败" in result["error"]
+
+# Sentinel 4（#32-D / R14-4d）：解析/格式层的中文契约哨兵
+def test_sentinel_abolished_tokens_match_live_chinese_contract():
+    """**Sentinel 4**：废止类状态解析必须仍认历史中文取值。
+
+    生产端 `ABOLISHED_STATUS_TOKENS` 已由状态字典派生（#32-A/B），但**外部输入仍是中文**：
+    适配器、公告文本、历史库里存的就是这些字面量。本哨兵用直写中文驱动解析，
+    确保"字典 value 改了但外部输入没变"这类脱节会当场被发现。
+    """
+    # Sentinel: 确保枚举 value 与现网中文契约一致（外部输入口径）
+    assert is_abolished_status("废止") is True
+    assert is_abolished_status("已废止") is True
+    assert is_abolished_status("现行") is False
+    assert Status.WITHDRAWN.value == "废止"

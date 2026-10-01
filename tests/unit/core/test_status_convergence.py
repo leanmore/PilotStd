@@ -69,7 +69,12 @@ def test_no_bare_status_literals_in_production():
 
 
 def test_all_status_values_are_reachable_from_enum():
-    """守卫的前提：扫描集合来自枚举本身（避免哨兵值与枚举脱节）。"""
+    """守卫的前提：扫描集合来自枚举本身（避免哨兵值与枚举脱节）。
+
+    **Sentinel 2**（#32-D）：下面 9 个中文字面量是本文件扫描基准的独立来源——
+    若有人改动枚举 value，本断言与 `test_status.py` 的 Sentinel 1 会同时失败。
+    """
+    # Sentinel: 确保枚举 value 与现网中文契约一致（扫描基准必须独立于被测枚举实现）
     assert STATUS_VALUES == {
         "现行",
         "即将实施",

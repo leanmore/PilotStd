@@ -5,6 +5,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from pilotstd.core.status import Status
 from pilotstd.core.validity_checker import (
     ValidityChecker,
     _finalize_validity_round,
@@ -161,10 +162,10 @@ class TestUpdateStatus(unittest.TestCase):
         mock_cm.get.return_value = 4
         mock_cm_cls.return_value = mock_cm
 
-        self.mock_db.fetchone.return_value = _row(status="现行", check_count=1)
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
         notif_mgr = MagicMock()
 
-        self.checker.update_status("GB/T 12345", "已废止", notification_mgr=notif_mgr)
+        self.checker.update_status("GB/T 12345", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=notif_mgr)
 
         # 验证 UPDATE 被执行，且含 last_changed_at
         self.mock_db.execute.assert_called_once()
@@ -177,8 +178,8 @@ class TestUpdateStatus(unittest.TestCase):
         first_call_args = notif_mgr.send_event.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "standard_status_changed")
         self.assertEqual(first_call_args[1]["standard_number"], "GB/T 12345")
-        self.assertEqual(first_call_args[1]["old_status"], "现行")
-        self.assertEqual(first_call_args[1]["new_status"], "已废止")
+        self.assertEqual(first_call_args[1]["old_status"], Status.ACTIVE.value)
+        self.assertEqual(first_call_args[1]["new_status"], Status.WITHDRAWN_NORMALIZED.value)
         self.assertTrue(first_call_args[1]["is_expired"])
 
     @patch("pilotstd.core.config.ConfigManager")
@@ -188,10 +189,10 @@ class TestUpdateStatus(unittest.TestCase):
         mock_cm.get.return_value = 4
         mock_cm_cls.return_value = mock_cm
 
-        self.mock_db.fetchone.return_value = _row(status="现行", check_count=1)
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
         notif_mgr = MagicMock()
 
-        self.checker.update_status("GB/T 12345", "现行", notification_mgr=notif_mgr)
+        self.checker.update_status("GB/T 12345", Status.ACTIVE.value, notification_mgr=notif_mgr)
 
         sql_text = self.mock_db.execute.call_args[0][0]
         self.assertIn("UPDATE", sql_text)
@@ -207,7 +208,7 @@ class TestUpdateStatus(unittest.TestCase):
 
         self.mock_db.fetchone.return_value = None
 
-        self.checker.update_status("GB/T 99999", "现行")
+        self.checker.update_status("GB/T 99999", Status.ACTIVE.value)
 
         sql_text = self.mock_db.execute.call_args[0][0]
         self.assertIn("INSERT INTO", sql_text)
@@ -219,12 +220,12 @@ class TestUpdateStatus(unittest.TestCase):
         mock_cm.get.return_value = 4
         mock_cm_cls.return_value = mock_cm
 
-        self.mock_db.fetchone.return_value = _row(status="现行", check_count=1)
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
         notif_mgr = MagicMock()
         notif_mgr.send_event.side_effect = RuntimeError("send failed")
 
         # 不应抛异常
-        self.checker.update_status("GB/T 12345", "已废止", notification_mgr=notif_mgr)
+        self.checker.update_status("GB/T 12345", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=notif_mgr)
         self.mock_db.execute.assert_called_once()
 
     @patch("pilotstd.core.config.ConfigManager")
@@ -234,9 +235,9 @@ class TestUpdateStatus(unittest.TestCase):
         mock_cm.get.return_value = 4
         mock_cm_cls.return_value = mock_cm
 
-        self.mock_db.fetchone.return_value = _row(status="现行", check_count=1)
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value, check_count=1)
 
-        self.checker.update_status("GB/T 12345", "已废止", notification_mgr=None)
+        self.checker.update_status("GB/T 12345", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=None)
         self.mock_db.execute.assert_called_once()
 
 
@@ -428,7 +429,7 @@ class TestCheckStandard(unittest.TestCase):
         )
         result = self.checker.check_standard("GB/T 12345")
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
         self.assertIsNone(result["previous"])
 
     def test_l1_hit_announcement_record(self):
@@ -438,13 +439,13 @@ class TestCheckStandard(unittest.TestCase):
         ]
         result = self.checker.check_standard("GB/T 12345")
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "已废止")
+        self.assertEqual(result["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_l1_exception_falls_to_l2(self):
         """L1 查询抛异常 → 抑制后继续 L2。"""
         self.mock_db.fetchone.side_effect = [
             Exception("table missing"),  # announcement_record 异常
-            _row(status="现行", last_status=None),  # L3 fallback
+            _row(status=Status.ACTIVE.value, last_status=None),  # L3 fallback
         ]
         mock_qe = MagicMock()
         result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
@@ -460,34 +461,34 @@ class TestCheckStandard(unittest.TestCase):
 
         mock_result = MagicMock()
         mock_result.is_found.return_value = True
-        mock_result.status = "现行"
+        mock_result.status = Status.ACTIVE.value
         mock_qe = MagicMock()
         mock_qe.query_standards.return_value = [mock_result]
 
         result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_parse_failed_falls_to_l3(self, mock_parse):
         """L2 parse_std_number 返回 None → 落到 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            _row(status="现行", last_status=None),
+            _row(status=Status.ACTIVE.value, last_status=None),
         ]
         mock_parse.return_value = None
         mock_qe = MagicMock()
 
         result = self.checker.check_standard("INVALID", query_engine=mock_qe)
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_result_not_found_falls_to_l3(self, mock_parse):
         """L2 is_found()=False → 落到 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            _row(status="未知", last_status=None),
+            _row(status=Status.UNKNOWN.value, last_status=None),
         ]
         mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
 
@@ -499,14 +500,14 @@ class TestCheckStandard(unittest.TestCase):
 
         result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "未知")
+        self.assertEqual(result["status"], Status.UNKNOWN.value)
 
     @patch("pilotstd.core.std_utils.parse_std_number")
     def test_l2_query_engine_raises_falls_to_l3(self, mock_parse):
         """L2 query_engine 抛异常 → 抑制，落到 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            _row(status="现行", last_status=None),
+            _row(status=Status.ACTIVE.value, last_status=None),
         ]
         mock_parse.return_value = {"code": "GB", "number": "12345", "year": 2020}
         mock_qe = MagicMock()
@@ -514,7 +515,7 @@ class TestCheckStandard(unittest.TestCase):
 
         result = self.checker.check_standard("GB/T 12345", query_engine=mock_qe)
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
 
     # ── L3 命中 ──
 
@@ -522,12 +523,12 @@ class TestCheckStandard(unittest.TestCase):
         """L1/L2 未命中 → L3 standard_validity 有记录 → 返回 last_status。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            _row(status="现行", last_status="已废止"),
+            _row(status=Status.ACTIVE.value, last_status=Status.WITHDRAWN_NORMALIZED.value),
         ]
         result = self.checker.check_standard("GB/T 99999")
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
-        self.assertEqual(result["previous"], "已废止")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
+        self.assertEqual(result["previous"], Status.WITHDRAWN_NORMALIZED.value)
 
     # ── 全部未命中 ──
 
@@ -541,11 +542,11 @@ class TestCheckStandard(unittest.TestCase):
         """无 query_engine → 跳过 L2，直接走 L3。"""
         self.mock_db.fetchone.side_effect = [
             None,
-            _row(status="现行", last_status=None),
+            _row(status=Status.ACTIVE.value, last_status=None),
         ]
         result = self.checker.check_standard("GB/T 99999")
         self.assertIsNotNone(result)
-        self.assertEqual(result["status"], "现行")
+        self.assertEqual(result["status"], Status.ACTIVE.value)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -563,31 +564,31 @@ class TestDetermineStatus(unittest.TestCase):
 
     def test_keyword_fei_zhi(self):
         r = self.checker._determine_status("GB/T 1", {"std_name": "关于废止某某标准"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_keyword_zuo_fei(self):
         r = self.checker._determine_status("GB/T 1", {"std_name": "某某标准 已作废"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_keyword_bei_dai_ti(self):
         r = self.checker._determine_status("GB/T 1", {"std_name": "被代替 GB/T 12345"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_keyword_abolished(self):
         r = self.checker._determine_status("BS 1", {"std_name": "Standard (abolished)"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_keyword_withdrawn(self):
         r = self.checker._determine_status("ISO 1", {"std_name": "Withdrawn standard"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_keyword_obsolete(self):
         r = self.checker._determine_status("ISO 1", {"std_name": "Obsolete standard"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_name_no_keyword_active(self):
         r = self.checker._determine_status("GB/T 1", {"std_name": "国家标准"})
-        self.assertEqual(r["status"], "现行")
+        self.assertEqual(r["status"], Status.ACTIVE.value)
 
     def test_empty_name_none(self):
         r = self.checker._determine_status("GB/T 1", {"std_name": ""})
@@ -604,7 +605,7 @@ class TestDetermineStatus(unittest.TestCase):
     def test_case_insensitive_obsolete(self):
         """大小写不敏感：OBSOLETE 也命中。"""
         r = self.checker._determine_status("ISO 1", {"std_name": "OBSOLETE STANDARD"})
-        self.assertEqual(r["status"], "已废止")
+        self.assertEqual(r["status"], Status.WITHDRAWN_NORMALIZED.value)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -625,11 +626,11 @@ class TestGetStatusSummary(unittest.TestCase):
 
     def test_has_results(self):
         self.mock_db.fetchall.return_value = _rows(
-            {"status": "现行", "cnt": 100},
-            {"status": "已废止", "cnt": 20},
+            {"status": Status.ACTIVE.value, "cnt": 100},
+            {"status": Status.WITHDRAWN_NORMALIZED.value, "cnt": 20},
         )
         result = self.checker.get_status_summary()
-        self.assertEqual(result, {"现行": 100, "已废止": 20})
+        self.assertEqual(result, {Status.ACTIVE.value: 100, Status.WITHDRAWN_NORMALIZED.value: 20})
 
     def test_no_results(self):
         self.mock_db.fetchall.return_value = []
@@ -689,8 +690,11 @@ class TestProcessValidityBatch(unittest.TestCase):
 
     def test_status_changed(self):
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
-        self.mock_db.fetchone.return_value = _row(status="现行")
+        mock_checker.check_standard.return_value = {
+            "status": Status.WITHDRAWN_NORMALIZED.value,
+            "previous": Status.ACTIVE.value,
+        }
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value)
 
         changed, changed_list, failed, change_detail = _process_validity_batch(
             ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
@@ -698,12 +702,12 @@ class TestProcessValidityBatch(unittest.TestCase):
         self.assertEqual(changed, 1)
         self.assertEqual(changed_list, ["GB/T 1"])
         self.assertEqual(change_detail[0]["standard"], "GB/T 1")
-        self.assertEqual(change_detail[0]["reason"], "已废止")
+        self.assertEqual(change_detail[0]["reason"], Status.WITHDRAWN_NORMALIZED.value)
 
     def test_status_unchanged(self):
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
-        self.mock_db.fetchone.return_value = _row(status="现行")
+        mock_checker.check_standard.return_value = {"status": Status.ACTIVE.value, "previous": None}
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value)
 
         changed, changed_list, failed, _ = _process_validity_batch(
             ["GB/T 1"], mock_checker, self.mock_db, self.mock_notif, 50, 5
@@ -734,8 +738,11 @@ class TestProcessValidityBatch(unittest.TestCase):
     def test_batch_notification_at_10_changes(self):
         """每累计 10 条变更 → 发送 validity_batch_report 通知。"""
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
-        self.mock_db.fetchone.return_value = _row(status="现行")
+        mock_checker.check_standard.return_value = {
+            "status": Status.WITHDRAWN_NORMALIZED.value,
+            "previous": Status.ACTIVE.value,
+        }
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value)
 
         candidates = [f"GB/T {i}" for i in range(12)]
         _process_validity_batch(candidates, mock_checker, self.mock_db, self.mock_notif, 50, 0)
@@ -744,8 +751,11 @@ class TestProcessValidityBatch(unittest.TestCase):
 
     def test_no_notification_mgr(self):
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "已废止", "previous": "现行"}
-        self.mock_db.fetchone.return_value = _row(status="现行")
+        mock_checker.check_standard.return_value = {
+            "status": Status.WITHDRAWN_NORMALIZED.value,
+            "previous": Status.ACTIVE.value,
+        }
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value)
 
         changed, changed_list, _, _ = _process_validity_batch(["GB/T 1"], mock_checker, self.mock_db, None, 50, 0)
         self.assertEqual(changed, 1)
@@ -762,7 +772,7 @@ class TestProcessValidityBatch(unittest.TestCase):
     def test_old_status_none_skips_change(self):
         """数据库无旧记录 (old_status=None) → 不计为变更。"""
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
+        mock_checker.check_standard.return_value = {"status": Status.ACTIVE.value, "previous": None}
         self.mock_db.fetchone.return_value = None
 
         changed, changed_list, _, _ = _process_validity_batch(
@@ -776,8 +786,8 @@ class TestProcessValidityBatch(unittest.TestCase):
         import time
 
         mock_checker = MagicMock()
-        mock_checker.check_standard.return_value = {"status": "现行", "previous": None}
-        self.mock_db.fetchone.return_value = _row(status="现行")
+        mock_checker.check_standard.return_value = {"status": Status.ACTIVE.value, "previous": None}
+        self.mock_db.fetchone.return_value = _row(status=Status.ACTIVE.value)
 
         # 候选 3 条，batch_size=1 → i=1,2 时触发 2 次 sleep
         with patch.object(time, "sleep") as mock_sleep:

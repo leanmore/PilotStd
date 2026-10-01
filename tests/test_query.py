@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.organizer.industry_lookup import build_code_mapping
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.cache import CacheRepository
@@ -39,7 +40,7 @@ class MockActiveAdapter(BaseAdapter):
         return QueryResult(
             standard_number=search_term,
             standard_name=f"标准名称_{search_term}",
-            status="现行",
+            status=Status.ACTIVE.value,
             source_site=self.site_name,
             is_adopted=False,
             match_status="exact",
@@ -63,7 +64,7 @@ class MockAdoptedAdapter(BaseAdapter):
         return QueryResult(
             standard_number=search_term,
             standard_name=f"采标标准_{search_term}",
-            status="现行",
+            status=Status.ACTIVE.value,
             is_adopted=True,
             source_site=self.site_name,
         )
@@ -97,7 +98,7 @@ class TestCacheRepository(unittest.TestCase):
         r = QueryResult(
             standard_number="GB/T 1-2020",
             standard_name="基础规范",
-            status="现行",
+            status=Status.ACTIVE.value,
             source_site="mock",
         )
         self.cache.put(r)
@@ -109,13 +110,13 @@ class TestCacheRepository(unittest.TestCase):
         self.assertIsNone(self.cache.get("不存在的标准", "mock"))
 
     def test_refresh(self):
-        r = QueryResult(standard_number="GB/T 2-2020", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T 2-2020", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
         self.cache.refresh("GB/T 2-2020", "mock")
         self.assertIsNone(self.cache.get("GB/T 2-2020", "mock"))
 
     def test_history(self):
-        r = QueryResult(standard_number="GB/T 3-2020", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T 3-2020", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
         history = self.cache.get_history(limit=10)
         self.assertGreaterEqual(len(history), 1)
@@ -123,7 +124,7 @@ class TestCacheRepository(unittest.TestCase):
     def test_no_ttl_expiry(self):
         """缓存不因 TTL 过期而删除——失效由事件（被代替）驱动。"""
         cache = CacheRepository(self.db, active_ttl=-1, inactive_ttl=-1)
-        r = QueryResult(standard_number="GB/T 4-2020", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T 4-2020", status=Status.ACTIVE.value, source_site="mock")
         cache.put(r)
         result = cache.get("GB/T 4-2020", "mock")
         self.assertIsNotNone(result)
@@ -136,7 +137,10 @@ class TestCacheRepository(unittest.TestCase):
         from pilotstd.core.file_index import ANNOUNCEMENT_CACHE_TABLE
         self.db.execute(
             f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",
-            ("GB/T ANNOUNCE", json.dumps({"standard_name": "来自公告", "status": "废止"}), "2026-01-01"),
+            ("GB/T ANNOUNCE", json.dumps({
+                "standard_name": "来自公告",
+                "status": Status.WITHDRAWN.value,
+            }), "2026-01-01"),
         )
         cached = self.cache.get("GB/T ANNOUNCE", "mock")
         self.assertIsNotNone(cached)
@@ -146,9 +150,9 @@ class TestCacheRepository(unittest.TestCase):
     def test_append_status_history(self):
         """append_status_history 追加状态变更记录到 JSON 数组。"""
         import json
-        r = QueryResult(standard_number="GB/T SH", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T SH", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
-        self.cache.append_status_history("GB/T SH", "mock", {"status": "废止"})
+        self.cache.append_status_history("GB/T SH", "mock", {"status": Status.WITHDRAWN.value})
         row = self.db.fetchone(
             "SELECT status_history FROM standard_info_cache WHERE standard_number=? AND source_site=?",
             ("GB/T SH", "mock"),
@@ -157,25 +161,25 @@ class TestCacheRepository(unittest.TestCase):
         history = json.loads(row["status_history"])
         self.assertIsInstance(history, list)
         self.assertEqual(len(history), 1)
-        self.assertEqual(history[0]["status"], "废止")
+        self.assertEqual(history[0]["status"], Status.WITHDRAWN.value)
 
     def test_refresh_all_sites(self):
         """refresh 不指定 source_site 时清除所有来源的缓存。"""
-        r = QueryResult(standard_number="GB/T ALL", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T ALL", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
         self.cache.refresh("GB/T ALL")
         self.assertIsNone(self.cache.get("GB/T ALL", "mock"))
 
     def test_clear_all(self):
         """clear_all 清空全部缓存数据。"""
-        r = QueryResult(standard_number="GB/T CLR", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T CLR", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
         self.cache.clear_all()
         self.assertIsNone(self.cache.get("GB/T CLR", "mock"))
 
     def test_delete_by_id(self):
         """_delete 按主键删除单条记录。"""
-        r = QueryResult(standard_number="GB/T DEL", status="现行", source_site="mock")
+        r = QueryResult(standard_number="GB/T DEL", status=Status.ACTIVE.value, source_site="mock")
         self.cache.put(r)
         row = self.db.fetchone(
             "SELECT id FROM standard_info_cache WHERE standard_number=? AND source_site=?",
@@ -187,17 +191,27 @@ class TestCacheRepository(unittest.TestCase):
 
     def test_put_update_existing(self):
         """已存在记录时 put 执行 UPDATE 而非 INSERT。"""
-        r = QueryResult(standard_number="GB/T UPD", standard_name="原始", status="现行", source_site="mock")
+        r = QueryResult(
+            standard_number="GB/T UPD",
+            standard_name="原始",
+            status=Status.ACTIVE.value,
+            source_site="mock",
+        )
         self.cache.put(r)
         # 再次 put 同一条，走 UPDATE 路径
-        r2 = QueryResult(standard_number="GB/T UPD", standard_name="更新后", status="废止", source_site="mock")
+        r2 = QueryResult(
+            standard_number="GB/T UPD",
+            standard_name="更新后",
+            status=Status.WITHDRAWN.value,
+            source_site="mock",
+        )
         self.cache.put(r2)
         cached = self.cache.get("GB/T UPD", "mock")
-        self.assertEqual(cached.status, "废止")
+        self.assertEqual(cached.status, Status.WITHDRAWN.value)
 
     def test_append_status_history_no_row(self):
         """无匹配标准号时 append_status_history 静默返回。"""
-        self.cache.append_status_history("不存在的标准", "mock", {"status": "废止"})
+        self.cache.append_status_history("不存在的标准", "mock", {"status": Status.WITHDRAWN.value})
         # 不应崩溃
 
 
@@ -218,7 +232,7 @@ class TestQueryEngine(unittest.TestCase):
     def test_single_query_found(self):
         r = self.engine.query_standards([("GB/T", 19001, 2020, "", None, "")])[0]
         self.assertTrue(r.is_found())
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
 
     def test_single_query_not_found(self):
         r = self.engine.query_standards([("NONE", 12345, 2020, "", None, "")])[0]
@@ -448,24 +462,24 @@ class TestStatusMapping(unittest.TestCase):
     def test_map_active(self):
         from pilotstd.query.search_strategy import map_status
 
-        self.assertEqual(map_status("Active"), "现行")
+        self.assertEqual(map_status("Active"), Status.ACTIVE.value)
 
     def test_map_withdrawn(self):
         from pilotstd.query.search_strategy import map_status
 
-        self.assertEqual(map_status("Withdrawn"), "废止")
+        self.assertEqual(map_status("Withdrawn"), Status.WITHDRAWN.value)
 
     def test_map_superseded(self):
         from pilotstd.query.search_strategy import map_status
 
-        self.assertEqual(map_status("Superseded"), "被代替")
+        self.assertEqual(map_status("Superseded"), Status.SUPERSEDED.value)
 
     def test_map_chinese_unchanged(self):
         """中文状态保持原有映射"""
         from pilotstd.query.search_strategy import map_status
 
-        self.assertEqual(map_status("现行"), "现行")
-        self.assertEqual(map_status("废止"), "废止")
+        self.assertEqual(map_status(Status.ACTIVE.value), Status.ACTIVE.value)
+        self.assertEqual(map_status(Status.WITHDRAWN.value), Status.WITHDRAWN.value)
 
 
 # ── 路由测试 ───────────────────────────────────────────────
@@ -781,7 +795,7 @@ class TestNjbz365Retry(unittest.TestCase):
                             {
                                 "bzbh": "GB/T 1-2020",
                                 "bzmc": "test",
-                                "bzzt": "现行",
+                                "bzzt": Status.ACTIVE.value,
                                 "bzid": "123",
                             }
                         ]
@@ -939,7 +953,7 @@ class MockSiteAdapter(BaseAdapter):
             return QueryResult(
                 standard_number=term,
                 standard_name=f"std_{term}",
-                status="现行",
+                status=Status.ACTIVE.value,
                 source_site=self._name,
                 match_status=self._match_status,
             )
@@ -995,7 +1009,7 @@ class TestBucketConcurrency(unittest.TestCase):
             ]
         )
         results = engine.query_batch_parsed([("GB", 99999, 2050, "x", None, "", "", "")])
-        self.assertEqual(results[0].status, "待确认")
+        self.assertEqual(results[0].status, Status.PENDING.value)
 
     @patch("pilotstd.query.engine._csres.CsresHandler._rate_limit_sleep", return_value=None)
     @patch("time.sleep", return_value=None)

@@ -16,6 +16,7 @@ from pilotstd.core.notification.blocks import KeyValueBlock, TextBlock
 from pilotstd.core.notification.channel import NotificationMessage
 from pilotstd.core.notification.manager import NotificationManager
 from pilotstd.core.notification.renderer import TelegramRenderer
+from pilotstd.core.status import Status
 
 
 def _make_msg(
@@ -365,7 +366,7 @@ class TestAggregateContract(unittest.TestCase):
 
     def test_single_item_blocks_preserved_and_renders_identical(self) -> None:
         """单条聚合：merged.blocks 保留第一条的 blocks，Telegram 渲染与直发一致。"""
-        blocks = [TextBlock(text="标准号：GB/T 123-2024"), KeyValueBlock(key="状态", value="现行")]
+        blocks = [TextBlock(text="标准号：GB/T 123-2024"), KeyValueBlock(key="状态", value=Status.ACTIVE.value)]
         msg = _make_msg(title="标准状态变更", blocks=blocks, event_type="standard_status_changed")
         entries = [(msg, ["telegram"], time.monotonic())]
 

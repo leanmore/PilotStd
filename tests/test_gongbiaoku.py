@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 from bs4 import BeautifulSoup
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -38,7 +39,7 @@ class TestGongBiaoKuAdapter(unittest.TestCase):
         self.assertTrue(r.standard_name)
         self.assertTrue(r.publish_date)
         self.assertTrue(r.implementation_date)
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
 
     def test_parse_ul_all_fields(self):
         """4-li 分组所有字段正确提取。"""

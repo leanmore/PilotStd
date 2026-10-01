@@ -6,6 +6,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from pilotstd.core.status import Status
 from pilotstd.manager.facade._query import QueryHandler
 from pilotstd.manager.facade._query_subsystem import QuerySubsystem
 from pilotstd.query.models import BatchQueryStats, QueryResult
@@ -72,7 +73,7 @@ class TestQueryHandler(unittest.TestCase):
     def test_build_result_from_cache_basic(self):
         data = {
             "standard_name": "测试标准",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "replaces": "GB/T 19001-2008",
             "implementation_date": "2017-07-01",
             "responsible_dept": "SAC",
@@ -85,7 +86,7 @@ class TestQueryHandler(unittest.TestCase):
         self.assertIsInstance(r, QueryResult)
         self.assertEqual(r.standard_number, "GB/T 19001-2016")
         self.assertEqual(r.standard_name, "测试标准")
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
         self.assertEqual(r.replaces, "GB/T 19001-2008")
         self.assertEqual(r.source_site, "web_announcement_match")
         self.assertEqual(r.source, "web端公告缓存")
@@ -94,10 +95,10 @@ class TestQueryHandler(unittest.TestCase):
 
     def test_build_result_from_cache_fallback_fields(self):
         """data 中使用 std_name / effect_status / replaces_code 别名。"""
-        data = {"std_name": "别名测试", "effect_status": "废止", "replaces_code": "GB/T 1.1-2009"}
+        data = {"std_name": "别名测试", "effect_status": Status.WITHDRAWN.value, "replaces_code": "GB/T 1.1-2009"}
         r = self.handler._build_result_from_cache("GB/T 1.1-2020", data)
         self.assertEqual(r.standard_name, "别名测试")
-        self.assertEqual(r.status, "废止")
+        self.assertEqual(r.status, Status.WITHDRAWN.value)
         self.assertEqual(r.replaces, "GB/T 1.1-2009")
 
     def test_build_result_from_cache_is_adopted(self):
@@ -211,7 +212,7 @@ class TestQueryHandler(unittest.TestCase):
 
     @patch.object(QuerySubsystem, "_query_announcement_match")
     def test_query_via_cache_all_hit(self, mock_match):
-        mock_match.return_value = {"data": {"standard_name": "cached", "status": "现行"}}
+        mock_match.return_value = {"data": {"standard_name": "cached", "status": Status.ACTIVE.value}}
         items = [_make_parsed_item(), _make_parsed_item(number="1")]
         self.core.query_engine.query_standards.return_value = []
 

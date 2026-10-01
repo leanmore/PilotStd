@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -30,7 +31,7 @@ class TestCSSNAdapter(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.standard_number, "GB/T 35081-2018")
         self.assertEqual(result.standard_name, "机械安全 GB/T 16855.1与GB/T 15706的关系")
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
         self.assertEqual(result.publish_date, "2018-05-14")
         self.assertEqual(result.implementation_date, "2018-12-01")
         self.assertEqual(result.source_site, "cssn")
@@ -71,7 +72,7 @@ class TestCSSNAdapter(unittest.TestCase):
             return_value={
                 "count": 5,
                 "next": None,
-                "results": [{"a100": "GB/T 1.1-2020", "a298": "标准化工作导则", "a000": "现行"}],
+                "results": [{"a100": "GB/T 1.1-2020", "a298": "标准化工作导则", "a000": Status.ACTIVE.value}],
             }
         )
         self.a._client.get = MagicMock(return_value=mock_resp)
@@ -87,7 +88,11 @@ class TestCSSNAdapter(unittest.TestCase):
             return_value={
                 "count": 40,
                 "next": "/standards/?page=2",
-                "results": [{"a100": f"GB/T {i}-2020", "a298": f"标准{i}", "a000": "现行"} for i in range(20)],
+                "results": [{
+                    "a100": f"GB/T {i}-2020",
+                    "a298": f"标准{i}",
+                    "a000": Status.ACTIVE.value,
+                } for i in range(20)],
             }
         )
         page2 = MagicMock()
@@ -96,7 +101,10 @@ class TestCSSNAdapter(unittest.TestCase):
             return_value={
                 "count": 40,
                 "next": None,
-                "results": [{"a100": f"GB/T {i}-2020", "a298": f"标准{i}", "a000": "现行"} for i in range(20, 40)],
+                "results": [{"a100": f"GB/T {i}-2020", "a298": f"标准{i}", "a000": Status.ACTIVE.value} for i in range(
+                    20,
+                    40,
+                )],
             }
         )
         self.a._client.get = MagicMock(side_effect=[page1, page2])
@@ -138,7 +146,11 @@ class TestCSSNAdapter(unittest.TestCase):
     # ── count 上限告警 ──
 
     def test_count_warning_at_10000(self):
-        payload = {"count": 10000, "next": None, "results": [{"a100": "GB/T 1-2020", "a298": "测试", "a000": "现行"}]}
+        payload = {"count": 10000, "next": None, "results": [{
+            "a100": "GB/T 1-2020",
+            "a298": "测试",
+            "a000": Status.ACTIVE.value,
+        }]}
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json = MagicMock(return_value=payload)

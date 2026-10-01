@@ -15,6 +15,7 @@ from pilotstd.models import ParsedStdInfo
 from pilotstd.organizer.dir_builder import DirBuilder
 
 _CI = os.environ.get("CI", "").lower() in ("true", "1")
+from pilotstd.core.status import Status
 from pilotstd.organizer.industry_lookup import (
     INDUSTRY_MAP,
     get_base_code,
@@ -36,7 +37,7 @@ class TestIndustryLookup(unittest.TestCase):
         self.assertEqual(get_industry_name("YD"), "通信")
 
     def test_get_industry_name_unknown(self):
-        self.assertIn("未知", get_industry_name("XX"))
+        self.assertIn(Status.UNKNOWN.value, get_industry_name("XX"))
 
     def test_get_folder_name(self):
         self.assertEqual(get_folder_name("GB/T"), "GB 国家标准")
@@ -138,7 +139,7 @@ class TestFileMover(unittest.TestCase):
             year=2010,
             std_name="旧标准",
         )
-        parsed.effect_status = "废止"
+        parsed.effect_status = Status.WITHDRAWN.value
         path = self.mover.normalize_filename(parsed)
         self.assertIn("过期作废", path)
 

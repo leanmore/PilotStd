@@ -5,6 +5,8 @@ import sys
 import tempfile
 import unittest
 
+from pilotstd.core.status import Status
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -179,7 +181,7 @@ class TestFileMoverComplete(unittest.TestCase):
         info = ParsedStdInfo(
             raw_filename="test.pdf", logical_code="GB/T", number=1, year=2020, std_name="Test", ext=".pdf"
         )
-        info.effect_status = "废止"
+        info.effect_status = Status.WITHDRAWN.value
         path = fm.normalize_filename(info)
         self.assertIn("过期作废", path)
 

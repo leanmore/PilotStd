@@ -5,6 +5,7 @@ import os
 from unittest import mock
 
 from pilotstd.cli.commands import build_parser
+from pilotstd.core.status import Status
 
 # ── 辅助 ──
 
@@ -171,7 +172,7 @@ class TestQuery:
         m.parser.parse.return_value = fake_parsed
         fake_result = mock.MagicMock()
         fake_result.standard_name = "测试标准"
-        fake_result.status = "现行"
+        fake_result.status = Status.ACTIVE.value
         fake_result.match_status = "exact"
         fake_stats = mock.MagicMock()
         fake_stats.found = 1
@@ -195,7 +196,7 @@ class TestQuery:
         m.parser.parse.return_value = fake_parsed
         fake_result = mock.MagicMock()
         fake_result.standard_name = "测试标准"
-        fake_result.status = "现行"
+        fake_result.status = Status.ACTIVE.value
         fake_result.match_status = "exact"
         fake_stats = mock.MagicMock()
         fake_stats.found = 1

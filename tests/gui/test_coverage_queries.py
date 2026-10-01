@@ -8,6 +8,8 @@ from unittest.mock import MagicMock, patch
 
 from PyQt6.QtCore import Qt
 
+from pilotstd.core.status import Status
+
 # ═══════════════════════════════════════════════════════════
 # _on_query_result_ready 覆盖 25-51
 # ═══════════════════════════════════════════════════════════
@@ -31,7 +33,7 @@ def test_on_query_result_ready_populates_table(window, qtbot):
     mock_result = MagicMock()
     mock_result.standard_name = "网站返回名称"
     mock_result.source_site = "test_site"
-    mock_result.status = "现行"
+    mock_result.status = Status.ACTIVE.value
     mock_result.replaces = "GB/T 1-1990"
     mock_result.publish_date = "2020-01-01"
     mock_result.implementation_date = "2020-06-01"
@@ -45,7 +47,7 @@ def test_on_query_result_ready_populates_table(window, qtbot):
     # 验证表格各列被更新
     assert table.item(0, 1).text() == "已查询(test_site)"
     assert table.item(0, 3).text() == "网站返回名称"
-    assert table.item(0, 4).text() == "现行"
+    assert table.item(0, 4).text() == Status.ACTIVE.value
     assert table.item(0, 5).text() == "GB/T 1-1990"
 
 
@@ -63,7 +65,7 @@ def test_on_query_result_ready_website_no_category(window, qtbot):
     mock_result = MagicMock()
     mock_result.standard_name = "网站名称"
     mock_result.source_site = "test"
-    mock_result.status = "现行"
+    mock_result.status = Status.ACTIVE.value
     mock_result.replaces = "网站无此分类"
     mock_result.publish_date = "网站无此分类"
     mock_result.implementation_date = "网站无此分类"
@@ -92,7 +94,7 @@ def test_on_query_result_ready_status_colors(window, qtbot):
     mock_result = MagicMock()
     mock_result.standard_name = "标"
     mock_result.source_site = "s"
-    mock_result.status = "现行"
+    mock_result.status = Status.ACTIVE.value
     mock_result.replaces = ""
     mock_result.publish_date = ""
     mock_result.implementation_date = ""
@@ -103,25 +105,25 @@ def test_on_query_result_ready_status_colors(window, qtbot):
     assert window.work_table.item(0, 4).foreground().color() == Qt.GlobalColor.darkGreen
 
     # 测试 "废止" → red
-    mock_result.status = "废止"
+    mock_result.status = Status.WITHDRAWN.value
     mock_result.replaces = ""
     window._on_query_result_ready(0, mock_result)
     assert window.work_table.item(0, 4).foreground().color() == Qt.GlobalColor.red
 
     # 测试 "即将实施" → blue
-    mock_result.status = "即将实施"
+    mock_result.status = Status.UPCOMING.value
     mock_result.replaces = ""
     window._on_query_result_ready(0, mock_result)
     assert window.work_table.item(0, 4).foreground().color() == Qt.GlobalColor.blue
 
     # 测试 "待确认" → darkYellow
-    mock_result.status = "待确认"
+    mock_result.status = Status.PENDING.value
     mock_result.replaces = ""
     window._on_query_result_ready(0, mock_result)
     assert window.work_table.item(0, 4).foreground().color() == Qt.GlobalColor.darkYellow
 
     # 测试非可下载且非终止状态 → darkYellow（覆盖 50-51）
-    mock_result.status = "现行"
+    mock_result.status = Status.ACTIVE.value
     mock_result.is_downloadable = False
     mock_result.replaces = ""
     window._on_query_result_ready(0, mock_result)

@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
@@ -52,13 +54,23 @@ class TestMessageBuilders(unittest.TestCase):
 
     def test_status_changed_expired(self):
         msg = self.mixin._build_standard_status_changed_message(
-            {"standard_number": "GB/T 1.1", "old_status": "现行", "new_status": "废止", "is_expired": True}
+            {
+                "standard_number": "GB/T 1.1",
+                "old_status": Status.ACTIVE.value,
+                "new_status": Status.WITHDRAWN.value,
+                "is_expired": True,
+            }
         )
         self.assertEqual(msg.level, "error")
 
     def test_status_changed_normal(self):
         msg = self.mixin._build_standard_status_changed_message(
-            {"standard_number": "GB/T 1.1", "old_status": "现行", "new_status": "即将实施", "is_expired": False}
+            {
+                "standard_number": "GB/T 1.1",
+                "old_status": Status.ACTIVE.value,
+                "new_status": Status.UPCOMING.value,
+                "is_expired": False,
+            }
         )
         self.assertEqual(msg.level, "info")
 
@@ -66,8 +78,8 @@ class TestMessageBuilders(unittest.TestCase):
         """standard_expired 已合并：is_expired=True 时含变更时间行（StatusChangeBlock + TextBlock）。"""
         msg = self.mixin._build_standard_status_changed_message({
             "standard_number": "GB/T 1.1",
-            "old_status": "现行",
-            "new_status": "已废止",
+            "old_status": Status.ACTIVE.value,
+            "new_status": Status.WITHDRAWN_NORMALIZED.value,
             "is_expired": True,
             "changed_at": "2026-01-15T10:00:00",
         })

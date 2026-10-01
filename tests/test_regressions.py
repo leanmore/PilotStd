@@ -14,6 +14,7 @@ if root_dir not in sys.path:
 import unittest
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.download.adapters.openstd_download import OpenstdDownloadAdapter
 from pilotstd.download.engine import DownloadEngine
 from pilotstd.download.models import DownloadTask
@@ -86,7 +87,7 @@ class TestNjbz365SearchFix(unittest.TestCase):
                     {
                         "bzbh": "GB/T 19001-2016",
                         "bzmc": "质量管理体系 要求",
-                        "bzzt": "现行",
+                        "bzzt": Status.ACTIVE.value,
                         "bzid": "12345",
                         "cybz": "",
                         "fbrq": "2016-12-30",
@@ -107,7 +108,7 @@ class TestNjbz365SearchFix(unittest.TestCase):
                         {
                             "bzbh": "API 610-2004",
                             "bzmc": "Centrifugal Pumps",
-                            "bzzt": "现行",
+                            "bzzt": Status.ACTIVE.value,
                             "bzid": "67890",
                             "cybz": "",
                             "fbrq": "2004-01-01",
@@ -163,7 +164,7 @@ class TestHbbaParseResultFix(unittest.TestCase):
         return {
             "code": code,
             "chName": ch_name,
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "pk": "12345",
             "issueDate": 1293811200000,
             "actDate": 1293811200000,
@@ -204,7 +205,7 @@ class TestDbbaParseResultFix(unittest.TestCase):
         return {
             "code": code,
             "chName": ch_name,
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "pk": "12345",
             "issueDate": 1577836800000,
             "actDate": 1577836800000,
@@ -232,7 +233,7 @@ class TestIsoGovParseResultFix(unittest.TestCase):
         return {
             "STANDARD_NO": std_no,
             "ENGLISH_NAME": en_name,
-            "STATE": "现行",
+            "STATE": Status.ACTIVE.value,
             "CIRCULATION_DATE": "2015-09-15",
             "STANDARD_STATUS": "ACTIVE",
             "YEAR_DATE": 2015,

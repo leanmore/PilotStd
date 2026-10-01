@@ -17,6 +17,7 @@ from pilotstd.core.notification._builders_batch import (
 from pilotstd.core.notification._builders_system import _build_task_execution_failed_message
 from pilotstd.core.notification._builders_validity import _build_standard_status_changed_message
 from pilotstd.core.notification._format_utils import is_abolished_status
+from pilotstd.core.status import Status
 from pilotstd.i18n import get_language, set_language
 
 
@@ -70,24 +71,24 @@ class TestTaskNameRuntimeI18n:
 
 class TestAbolishedStatusUsesDataToken:
     def test_token_membership(self):
-        assert is_abolished_status("废止")
-        assert is_abolished_status("已废止")
-        assert is_abolished_status("作废")
-        assert is_abolished_status("被代替")
-        assert not is_abolished_status("现行")
+        assert is_abolished_status(Status.WITHDRAWN.value)
+        assert is_abolished_status(Status.WITHDRAWN_NORMALIZED.value)
+        assert is_abolished_status(Status.VOIDED.value)
+        assert is_abolished_status(Status.SUPERSEDED.value)
+        assert not is_abolished_status(Status.ACTIVE.value)
         assert not is_abolished_status("")
 
     def test_level_warning_under_english(self):
         """en 下也必须判出废止 → warning；旧实现比较 t(...) 展示文案，恒为 info。"""
         set_language("en")
         msg = _build_standard_status_changed_message(
-            {"standard_number": "GB/T 1-2020", "old_status": "x", "new_status": "废止"}
+            {"standard_number": "GB/T 1-2020", "old_status": "x", "new_status": Status.WITHDRAWN.value}
         )
         assert msg.level == "warning"
 
     def test_level_info_for_current_status(self):
         msg = _build_standard_status_changed_message(
-            {"standard_number": "GB/T 1-2020", "old_status": "x", "new_status": "现行"}
+            {"standard_number": "GB/T 1-2020", "old_status": "x", "new_status": Status.ACTIVE.value}
         )
         assert msg.level == "info"
 

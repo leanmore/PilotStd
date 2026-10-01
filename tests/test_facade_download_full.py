@@ -6,6 +6,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from pilotstd.core.status import Status
 from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
 from pilotstd.manager.facade._download import DownloadHandler
 from pilotstd.query.models import QueryResult
@@ -80,7 +81,7 @@ class TestDownloadHandler(unittest.TestCase):
     def test_post_process_download_cached_status_update(self):
         """下载成功后根据状态映射规则更新缓存。"""
         parsed = _make_parsed_item()
-        parsed.effect_status = "废止"
+        parsed.effect_status = Status.WITHDRAWN.value
         self.core.download_list = [parsed]
 
         task = DownloadTask(standard_number="GB/T 19001-2016", source_site="std_gov")
@@ -88,20 +89,20 @@ class TestDownloadHandler(unittest.TestCase):
         task.saved_path = "/saved/19001.pdf"
 
         cached_entry = MagicMock()
-        cached_entry.status = "废止"
+        cached_entry.status = Status.WITHDRAWN.value
         self.core.cache.get.return_value = cached_entry
 
         tasks = [task]
         self.handler._post_process_download([task], tasks)
 
         self.core.cache.get.assert_called_once_with("GB/T 19001-2016", "std_gov")
-        self.assertEqual(cached_entry.status, "现行")
+        self.assertEqual(cached_entry.status, Status.ACTIVE.value)
         self.core.cache.put.assert_called_once_with(cached_entry)
 
     def test_post_process_download_newer_status_update(self):
         """现行 + match_status=newer → 更新为待实施。"""
         parsed = _make_parsed_item()
-        parsed.effect_status = "现行"
+        parsed.effect_status = Status.ACTIVE.value
         parsed.match_status = "newer"
         self.core.download_list = [parsed]
 
@@ -110,7 +111,7 @@ class TestDownloadHandler(unittest.TestCase):
         task.saved_path = "/saved/1.pdf"
 
         cached_entry = MagicMock()
-        cached_entry.status = "现行"
+        cached_entry.status = Status.ACTIVE.value
         self.core.cache.get.return_value = cached_entry
 
         tasks = [task]
@@ -122,7 +123,7 @@ class TestDownloadHandler(unittest.TestCase):
     def test_post_process_download_no_status_change(self):
         """无需变更的状态不更新缓存。"""
         parsed = _make_parsed_item()
-        parsed.effect_status = "现行"
+        parsed.effect_status = Status.ACTIVE.value
         parsed.match_status = "exact"
         self.core.download_list = [parsed]
 

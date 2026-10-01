@@ -16,6 +16,7 @@ import pytest
 
 from pilotstd.core.file_index import FileIndexRepository
 from pilotstd.core.file_utils import make_standard_filename
+from pilotstd.core.status import Status
 from pilotstd.manager.classifier import QueryClassifier
 from pilotstd.manager.pending_service import PendingService
 from pilotstd.models import ParsedStdInfo
@@ -45,7 +46,7 @@ def _make_parsed(code, number, year, std_name="测试标准", source_path=""):
 def _make_result(
     std_num,
     std_name,
-    status="现行",
+    status=Status.ACTIVE.value,
     match_status="exact",
     is_adopted=False,
     replaces="",
@@ -133,7 +134,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_repealed_with_replaces_goes_to_download(self):
         """GB 废止 + 有替代 + 非采标 → download"""
         p = _make_parsed("GB", 150, 1998, "钢制压力容器")
-        r = _make_result("GB 150-1998", "钢制压力容器", status="废止", replaces="GB/T 150.1-2011")
+        r = _make_result("GB 150-1998", "钢制压力容器", status=Status.WITHDRAWN.value, replaces="GB/T 150.1-2011")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "download")
         self.assertIn(p, download)
@@ -141,7 +142,7 @@ class TestQueryClassifier(unittest.TestCase):
     def test_gb_repealed_no_replaces_goes_to_expire(self):
         """GB 废止 + 无替代 → archive（过期作废走 organize 桶，next_action=archive）"""
         p = _make_parsed("GB", 12345, 1990, "旧标准")
-        r = _make_result("GB 12345-1990", "旧标准", status="废止", replaces="")
+        r = _make_result("GB 12345-1990", "旧标准", status=Status.WITHDRAWN.value, replaces="")
         download, expire, pending = self._classify([p], [r])
         self.assertEqual(p.next_action, "archive")
 
@@ -184,7 +185,7 @@ class TestQueryClassifier(unittest.TestCase):
         r = _make_result(
             "SH/T 9999-2020",
             "未知标准",
-            status="待确认",
+            status=Status.PENDING.value,
             match_status="related",
             source_site="hbba",
         )
@@ -249,7 +250,7 @@ class TestPendingService(unittest.TestCase):
 
     def test_record_pending_writes_to_db(self):
         p = _make_parsed("SH/T", 9999, 2020, "未知标准")
-        p.effect_status = "待确认"
+        p.effect_status = Status.PENDING.value
         p.match_status = "related"
         self.svc.record_pending([p])
         items = self.svc.get_pending_items()
@@ -334,7 +335,7 @@ class TestPendingService(unittest.TestCase):
                 json.dumps(
                     {
                         "standard_name": "质量管理体系",
-                        "status": "现行",
+                        "status": Status.ACTIVE.value,
                         "match_status": "exact",
                         "is_adopted": False,
                         "hcno": "12345",
@@ -370,7 +371,7 @@ class TestPendingService(unittest.TestCase):
                 json.dumps(
                     {
                         "standard_name": "苯乙烯-丁二烯橡胶",
-                        "status": "现行",
+                        "status": Status.ACTIVE.value,
                         "match_status": "exact",
                         "is_adopted": False,
                     }

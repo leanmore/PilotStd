@@ -13,6 +13,7 @@ from pilotstd.core.file_index import (
     FILE_INDEX_TABLE,
     FileIndexRepository,
 )
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 
 # ================================================================
@@ -30,7 +31,7 @@ SAMPLE_ROW = {
     "part": -1,
     "std_name": "测试标准名称",
     "file_hash": SAMPLE_HASH,
-    "status": "现行",
+    "status": Status.ACTIVE.value,
     "scanned_at": MOCK_NOW,
     "last_checked": None,
 }
@@ -391,7 +392,7 @@ class TestFileIndexRepository(unittest.TestCase):
             year=2020,
             part=1,
             std_name="更新名称",
-            status="废止",
+            status=Status.WITHDRAWN.value,
         )
 
         sql: str = self.mock_db.execute.call_args[0][0]
@@ -628,11 +629,11 @@ class TestFileIndexRepository(unittest.TestCase):
         """正常返回按状态分组的统计"""
         repo = self._make_repo()
         self.mock_db.fetchall.return_value = [
-            {"status": "现行", "cnt": 10},
-            {"status": "废止", "cnt": 3},
-            {"status": "被代替", "cnt": 2},
-            {"status": "待确认", "cnt": 1},
-            {"status": "即将实施", "cnt": 4},
+            {"status": Status.ACTIVE.value, "cnt": 10},
+            {"status": Status.WITHDRAWN.value, "cnt": 3},
+            {"status": Status.SUPERSEDED.value, "cnt": 2},
+            {"status": Status.PENDING.value, "cnt": 1},
+            {"status": Status.UPCOMING.value, "cnt": 4},
         ]
 
         stats = repo.get_status_stats()
@@ -655,7 +656,7 @@ class TestFileIndexRepository(unittest.TestCase):
         """某些状态缺席时对应计数为 0"""
         repo = self._make_repo()
         self.mock_db.fetchall.return_value = [
-            {"status": "现行", "cnt": 5},
+            {"status": Status.ACTIVE.value, "cnt": 5},
         ]
 
         stats = repo.get_status_stats()
@@ -751,7 +752,7 @@ class TestFileIndexRepository(unittest.TestCase):
         )
         info.get_full_number()
         net_cache_json = json.dumps(
-            {"match_status": "exact", "status": "现行", "standard_name": "国标名称", "is_adopted": True}
+            {"match_status": "exact", "status": Status.ACTIVE.value, "standard_name": "国标名称", "is_adopted": True}
         )
 
         # fetchone 第一次调用（网络缓存）返回结果
@@ -761,7 +762,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
         repo._restore_cache_fields(info)
 
-        self.assertEqual(info.effect_status, "现行")
+        self.assertEqual(info.effect_status, Status.ACTIVE.value)
         self.assertEqual(info.found_name, "国标名称")
         self.assertTrue(info.is_adopted)
         self.assertEqual(info.match_status, "exact")
@@ -780,7 +781,12 @@ class TestFileIndexRepository(unittest.TestCase):
         )
         info.get_full_number()
         ann_cache_json = json.dumps(
-            {"match_status": "exact", "status": "废止", "standard_name": "旧标准名", "is_adopted": False}
+            {
+                "match_status": "exact",
+                "status": Status.WITHDRAWN.value,
+                "standard_name": "旧标准名",
+                "is_adopted": False,
+            }
         )
 
         self.mock_db.fetchone.side_effect = [
@@ -790,7 +796,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
         repo._restore_cache_fields(info)
 
-        self.assertEqual(info.effect_status, "废止")
+        self.assertEqual(info.effect_status, Status.WITHDRAWN.value)
         self.assertEqual(info.found_name, "旧标准名")
         self.assertFalse(info.is_adopted)
         self.assertEqual(self.mock_db.fetchone.call_count, 2)
@@ -805,7 +811,7 @@ class TestFileIndexRepository(unittest.TestCase):
             year=2020,
             source_path="/tmp/test.pdf",
         )
-        ann_cache_json = json.dumps({"match_status": "exact", "status": "即将实施"})
+        ann_cache_json = json.dumps({"match_status": "exact", "status": Status.UPCOMING.value})
 
         self.mock_db.fetchone.side_effect = [
             {"result_json": ""},  # 网络缓存 result_json 为空
@@ -814,7 +820,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
         repo._restore_cache_fields(info)
 
-        self.assertEqual(info.effect_status, "即将实施")
+        self.assertEqual(info.effect_status, Status.UPCOMING.value)
         self.assertEqual(self.mock_db.fetchone.call_count, 2)
 
     def test_restore_cache_fields_both_miss(self) -> None:
@@ -855,7 +861,7 @@ class TestFileIndexRepository(unittest.TestCase):
         result_json = json.dumps(
             {
                 "match_status": "exact",
-                "status": "现行",
+                "status": Status.ACTIVE.value,
                 "standard_name": "测试标准全名",
                 "is_adopted": True,
             }
@@ -863,7 +869,7 @@ class TestFileIndexRepository(unittest.TestCase):
 
         FileIndexRepository._apply_cache_result(result_json, info)
 
-        self.assertEqual(info.effect_status, "现行")
+        self.assertEqual(info.effect_status, Status.ACTIVE.value)
         self.assertEqual(info.found_name, "测试标准全名")
         self.assertTrue(info.is_adopted)
         self.assertEqual(info.match_status, "exact")
@@ -880,7 +886,7 @@ class TestFileIndexRepository(unittest.TestCase):
         result_json = json.dumps(
             {
                 "match_status": "code_only",
-                "status": "现行",
+                "status": Status.ACTIVE.value,
                 "standard_name": "名称",
             }
         )
@@ -1027,9 +1033,9 @@ class TestFileIndexRepository(unittest.TestCase):
         """网络缓存有值时优先使用，忽略公告缓存"""
         repo = self._make_repo()
         nc_json = json.dumps(
-            {"match_status": "exact", "status": "现行", "standard_name": "网络版名称", "is_adopted": True}
+            {"match_status": "exact", "status": Status.ACTIVE.value, "standard_name": "网络版名称", "is_adopted": True}
         )
-        ac_json = json.dumps({"match_status": "exact", "status": "废止", "standard_name": "公告版名称"})
+        ac_json = json.dumps({"match_status": "exact", "status": Status.WITHDRAWN.value, "standard_name": "公告版名称"})
         self.mock_db.fetchall.return_value = [
             {
                 "file_path": "/a.pdf",
@@ -1048,7 +1054,7 @@ class TestFileIndexRepository(unittest.TestCase):
         result = repo.get_full_info("GB", 12345)
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["effect_status"], "现行")  # 取网络缓存
+        self.assertEqual(result[0]["effect_status"], Status.ACTIVE.value)  # 取网络缓存
         self.assertEqual(result[0]["found_name"], "网络版名称")
         self.assertEqual(result[0]["cached_at"], "2024-01-01")
         self.assertTrue(result[0]["is_adopted"])
@@ -1057,7 +1063,12 @@ class TestFileIndexRepository(unittest.TestCase):
         """网络缓存无值时回退到公告缓存"""
         repo = self._make_repo()
         ac_json = json.dumps(
-            {"match_status": "exact", "status": "废止", "standard_name": "公告版名称", "is_adopted": False}
+            {
+                "match_status": "exact",
+                "status": Status.WITHDRAWN.value,
+                "standard_name": "公告版名称",
+                "is_adopted": False,
+            }
         )
         self.mock_db.fetchall.return_value = [
             {
@@ -1077,7 +1088,7 @@ class TestFileIndexRepository(unittest.TestCase):
         result = repo.get_full_info("GB", 12345)
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["effect_status"], "废止")
+        self.assertEqual(result[0]["effect_status"], Status.WITHDRAWN.value)
         self.assertEqual(result[0]["found_name"], "公告版名称")
         self.assertEqual(result[0]["cached_at"], "2024-02-01")
 
@@ -1202,7 +1213,7 @@ class TestFileIndexRepository(unittest.TestCase):
     def test_get_full_info_multiple_rows(self) -> None:
         """多行结果各自独立处理"""
         repo = self._make_repo()
-        nc_json = json.dumps({"match_status": "exact", "status": "现行"})
+        nc_json = json.dumps({"match_status": "exact", "status": Status.ACTIVE.value})
         self.mock_db.fetchall.return_value = [
             {
                 "file_path": "/a.pdf",
@@ -1233,7 +1244,7 @@ class TestFileIndexRepository(unittest.TestCase):
         result = repo.get_full_info("GB", 12345)
 
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]["effect_status"], "现行")
+        self.assertEqual(result[0]["effect_status"], Status.ACTIVE.value)
         self.assertEqual(result[1]["effect_status"], "")
 
     def test_get_full_info_sql_uses_like_prefix_for_cache_join(self) -> None:

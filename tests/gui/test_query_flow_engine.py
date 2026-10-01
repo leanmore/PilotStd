@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.core.handlers.query_flow_engine import QueryFlowEngine
 
@@ -105,39 +106,39 @@ class TestValidateStandard:
 
 class TestDetermineStatusColor:
     def test_current(self, engine):
-        assert engine.determine_status_color("现行", True) == "#008000"
+        assert engine.determine_status_color(Status.ACTIVE.value, True) == "#008000"
 
     def test_about_to_implement(self, engine):
-        assert engine.determine_status_color("即将实施", True) == "#0000ff"
+        assert engine.determine_status_color(Status.UPCOMING.value, True) == "#0000ff"
 
     def test_abolished(self, engine):
-        assert engine.determine_status_color("废止", True) == "#ff0000"
+        assert engine.determine_status_color(Status.WITHDRAWN.value, True) == "#ff0000"
 
     def test_abolished_variant(self, engine):
-        assert engine.determine_status_color("已废止", True) == "#ff0000"
+        assert engine.determine_status_color(Status.WITHDRAWN_NORMALIZED.value, True) == "#ff0000"
 
     def test_cancelled(self, engine):
-        assert engine.determine_status_color("作废", True) == "#ff0000"
+        assert engine.determine_status_color(Status.VOIDED.value, True) == "#ff0000"
 
     def test_pending(self, engine):
-        assert engine.determine_status_color("待确认", True) == "#808000"
+        assert engine.determine_status_color(Status.PENDING.value, True) == "#808000"
 
     def test_unknown_status(self, engine):
         assert engine.determine_status_color("未知状态", True) == ""
 
     def test_current_not_downloadable(self, engine):
-        assert engine.determine_status_color("现行", False) == "#808000"
+        assert engine.determine_status_color(Status.ACTIVE.value, False) == "#808000"
 
     def test_about_to_implement_not_downloadable(self, engine):
-        assert engine.determine_status_color("即将实施", False) == "#808000"
+        assert engine.determine_status_color(Status.UPCOMING.value, False) == "#808000"
 
     def test_abolished_not_downloadable(self, engine):
         # 废止不受 is_downloadable 覆盖
-        assert engine.determine_status_color("废止", False) == "#ff0000"
+        assert engine.determine_status_color(Status.WITHDRAWN.value, False) == "#ff0000"
 
     def test_pending_not_downloadable(self, engine):
         # 待确认不受 is_downloadable 覆盖
-        assert engine.determine_status_color("待确认", False) == "#808000"
+        assert engine.determine_status_color(Status.PENDING.value, False) == "#808000"
 
 
 # ════════════════════════════════════════════════════════════════
@@ -149,7 +150,7 @@ class TestBuildResultCells:
     def test_normal_result(self, engine):
         result = _MockResult(
             standard_name="标准化导则",
-            status="现行",
+            status=Status.ACTIVE.value,
             replaces="GB/T 1.1-2009",
             publish_date="2020-03-06",
             implementation_date="2020-10-01",
@@ -162,7 +163,7 @@ class TestBuildResultCells:
 
         assert cells[0] == (1, "已查询(mock_query)")
         assert cells[1] == (3, "标准化导则")
-        assert cells[2] == (4, "现行")
+        assert cells[2] == (4, Status.ACTIVE.value)
         assert cells[3] == (5, "GB/T 1.1-2009")
         assert cells[4] == (6, "2020-03-06")
         assert cells[5] == (7, "2020-10-01")
@@ -341,7 +342,7 @@ class TestBuildPendingCsvRow:
             "std_name": "标准化导则",
             "found_name": "Guides",
             "found_number": "GB/T 1.1",
-            "effect_status": "现行",
+            "effect_status": Status.ACTIVE.value,
             "score": 95,
             "source_site": "std_gov",
         }
@@ -351,7 +352,7 @@ class TestBuildPendingCsvRow:
         assert result[2] == "Guides"
         assert result[3] == "2020"  # 年份提取
         assert result[4] == "GB/T 1.1"
-        assert result[5] == "现行"
+        assert result[5] == Status.ACTIVE.value
         assert result[6] == "95"
 
     def test_empty_row(self, engine):

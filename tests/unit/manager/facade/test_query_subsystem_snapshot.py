@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
+from pilotstd.core.status import Status
 from pilotstd.manager.facade._query_subsystem import QuerySubsystem
 from pilotstd.query.models import BatchQueryStats, QueryResult
 
@@ -48,7 +49,7 @@ class TestBuildResultFromCache:
 
     def test_full_cache_data(self):
         result = QuerySubsystem._build_result_from_cache("GB 123-2020", {
-            "standard_name": "测试标准", "status": "现行",
+            "standard_name": "测试标准", "status": Status.ACTIVE.value,
             "replaces": "GB 122-2010", "is_adopted": False,
             "match_status": "exact", "hcno": "ABC123",
         })
@@ -99,7 +100,7 @@ class TestReportQuerySummary:
             QueryResult(standard_number="GB 2-2020", standard_name="", match_status="code_only"),
         ]
         qs._report_query_summary(stats, items, results)
-        assert "待确认" in caplog.text
+        assert Status.PENDING.value in caplog.text
 
 
 class TestClassifyAfterQuery:

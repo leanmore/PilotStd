@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.core.validity_checker import ValidityChecker
 
 
@@ -31,19 +32,19 @@ def checker(db):
 class TestDetermineStatus:
     def test_abolished_keyword(self, checker):
         r = checker._determine_status("GB 1", {"std_name": "GB 1（废止）"})
-        assert r["status"] == "已废止"
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
     def test_withdrawn_keyword(self, checker):
         r = checker._determine_status("GB 2", {"std_name": "GB 2 Withdrawn"})
-        assert r["status"] == "已废止"
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
     def test_obsolete_keyword(self, checker):
         r = checker._determine_status("GB 3", {"std_name": "GB 3 Obsolete"})
-        assert r["status"] == "已废止"
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
     def test_current_standard(self, checker):
         r = checker._determine_status("GB 4", {"std_name": "GB 4 现行标准"})
-        assert r["status"] == "现行"
+        assert r["status"] == Status.ACTIVE.value
 
     def test_empty_name_returns_none(self, checker):
         r = checker._determine_status("GB 5", {"std_name": ""})
@@ -128,52 +129,52 @@ class TestUpdateStatus:
             "pilotstd.core.config.ConfigManager"
         ) as mock_cfg:
             mock_cfg.return_value.get.return_value = 4
-            checker.update_status("GB/T 1-2020", "现行")
+            checker.update_status("GB/T 1-2020", Status.ACTIVE.value)
         assert db.execute.call_count >= 1
 
     def test_updates_when_status_changed(self, checker, db):
-        db.fetchone.return_value = {"status": "现行", "check_count": 0}
+        db.fetchone.return_value = {"status": Status.ACTIVE.value, "check_count": 0}
         with patch(
             "pilotstd.core.config.ConfigManager"
         ) as mock_cfg:
             mock_cfg.return_value.get.return_value = 4
-            checker.update_status("GB/T 1-2020", "已废止")
+            checker.update_status("GB/T 1-2020", Status.WITHDRAWN_NORMALIZED.value)
         assert db.execute.call_count >= 1
 
     def test_updates_when_status_unchanged(self, checker, db):
-        db.fetchone.return_value = {"status": "现行", "check_count": 0}
+        db.fetchone.return_value = {"status": Status.ACTIVE.value, "check_count": 0}
         with patch(
             "pilotstd.core.config.ConfigManager"
         ) as mock_cfg:
             mock_cfg.return_value.get.return_value = 4
-            checker.update_status("GB/T 1-2020", "现行")
+            checker.update_status("GB/T 1-2020", Status.ACTIVE.value)
         assert db.execute.call_count >= 1
 
     def test_sends_status_changed_event(self, checker, db):
-        db.fetchone.return_value = {"status": "现行", "check_count": 0}
+        db.fetchone.return_value = {"status": Status.ACTIVE.value, "check_count": 0}
         notif = MagicMock()
         with patch(
             "pilotstd.core.config.ConfigManager"
         ) as mock_cfg:
             mock_cfg.return_value.get.return_value = 4
-            checker.update_status("GB/T 1-2020", "已废止", notification_mgr=notif)
+            checker.update_status("GB/T 1-2020", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=notif)
         calls = [c.args[0] for c in notif.send_event.call_args_list]
         assert "standard_status_changed" in calls
 
     def test_expired_merged_into_status_changed(self, checker, db):
         """standard_expired 已合并：废止仅发 standard_status_changed（is_expired=True），不再发独立事件。"""
-        db.fetchone.return_value = {"status": "现行", "check_count": 0}
+        db.fetchone.return_value = {"status": Status.ACTIVE.value, "check_count": 0}
         notif = MagicMock()
         with patch(
             "pilotstd.core.config.ConfigManager"
         ) as mock_cfg:
             mock_cfg.return_value.get.return_value = 4
-            checker.update_status("GB/T 1-2020", "已废止", notification_mgr=notif)
+            checker.update_status("GB/T 1-2020", Status.WITHDRAWN_NORMALIZED.value, notification_mgr=notif)
         calls = [c.args[0] for c in notif.send_event.call_args_list]
         assert calls == ["standard_status_changed"]
         sent_data = notif.send_event.call_args_list[0][0][1]
         assert sent_data["is_expired"] is True
-        assert sent_data["new_status"] == "已废止"
+        assert sent_data["new_status"] == Status.WITHDRAWN_NORMALIZED.value
 
 
 # ════════════════════════════════════════════════════════════
@@ -184,28 +185,28 @@ class TestCheckStandard:
     def test_l1_cache_hit(self, checker, db):
         db.fetchone.return_value = {"std_name": "GB 1 现行标准"}
         r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == "现行"
+        assert r["status"] == Status.ACTIVE.value
 
     def test_l1_cache_abolished(self, checker, db):
         db.fetchone.return_value = {"std_name": "GB 1（废止）"}
         r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == "已废止"
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
     def test_l1_exception_falls_to_l3(self, checker, db):
         db.fetchone.side_effect = [
             RuntimeError("L1 fail"),  # announcement_record
-            {"status": "现行", "last_status": "已废止"},  # L3
+            {"status": Status.ACTIVE.value, "last_status": Status.WITHDRAWN_NORMALIZED.value},  # L3
         ]
         r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == "现行"
+        assert r["status"] == Status.ACTIVE.value
 
     def test_l3_returns_history(self, checker, db):
         db.fetchone.side_effect = [
             None,  # announcement_record
-            {"status": "已废止", "last_status": "现行"},  # L3
+            {"status": Status.WITHDRAWN_NORMALIZED.value, "last_status": Status.ACTIVE.value},  # L3
         ]
         r = checker.check_standard("GB/T 1-2020")
-        assert r["status"] == "已废止"
+        assert r["status"] == Status.WITHDRAWN_NORMALIZED.value
 
     def test_all_levels_fail_returns_none(self, checker, db):
         db.fetchone.return_value = None

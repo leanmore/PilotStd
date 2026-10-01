@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from pilotstd.core.status import Status
 from pilotstd.manager.classifier import QueryClassifier
 
 
@@ -24,7 +25,7 @@ def _make_parsed(logical_code="GB/T", full_number="GB/T 1234-2020"):
     return p
 
 
-def _make_result(status="废止", replaces="", match_status="",
+def _make_result(status=Status.WITHDRAWN.value, replaces="", match_status="",
                  standard_number="GB/T 1234-2020"):
     r = MagicMock()
     r.status = status
@@ -82,7 +83,7 @@ class TestWriteBackResults:
         clf = _make_clf()
         p = MagicMock()
         r = MagicMock()
-        r.status = "废止"
+        r.status = Status.WITHDRAWN.value
         r.match_status = "exact"
         r.replaces = "GB/T 9999-2024"
         r.is_adopted = True
@@ -94,7 +95,7 @@ class TestWriteBackResults:
         r.abolition_date = "2024-12-31"
         r.source_site = "std.sac.gov.cn"
         clf._write_back_results([p], [r])
-        assert p.effect_status == "废止"
+        assert p.effect_status == Status.WITHDRAWN.value
         assert p.match_status == "exact"
         assert p.found_replaces == "GB/T 9999-2024"
         assert p.is_adopted is True
@@ -110,9 +111,9 @@ class TestWriteBackResults:
         clf = _make_clf()
         p = MagicMock()
         r = MagicMock(spec=["status"])
-        r.status = "现行"
+        r.status = Status.ACTIVE.value
         clf._write_back_results([p], [r])
-        assert p.effect_status == "现行"
+        assert p.effect_status == Status.ACTIVE.value
         assert p.match_status == ""
         assert p.found_replaces == ""
         assert p.is_adopted is False
@@ -139,7 +140,7 @@ class TestResolveCrossSiteReplaces:
     def test_triggers_resolve_and_writes_back(self, mock_resolve):
         clf = _make_clf()
         p = _make_parsed()
-        r = _make_result(status="废止", replaces="")
+        r = _make_result(status=Status.WITHDRAWN.value, replaces="")
         clf._resolve_cross_site_replaces([p], [r])
         mock_resolve.assert_called_once_with("GB/T 1234-2020", None)
         assert r.replaces == "GB/T 9999-2024"
@@ -149,7 +150,7 @@ class TestResolveCrossSiteReplaces:
     def test_replacement_set_when_not_in_results(self, mock_resolve):
         clf = _make_clf()
         p = _make_parsed()
-        r = _make_result(status="废止", replaces="",
+        r = _make_result(status=Status.WITHDRAWN.value, replaces="",
                          standard_number="QB/T 5555-2020")
         clf._resolve_cross_site_replaces([p], [r])
         assert p._replacement_number == "GB/T 9999-2024"
@@ -160,8 +161,8 @@ class TestResolveCrossSiteReplaces:
     def test_not_set_when_already_in_results(self, mock_resolve):
         clf = _make_clf()
         p = _make_parsed()
-        r = _make_result(status="废止", replaces="")
-        r2 = _make_result(status="现行", standard_number="GB/T 9999-2024")
+        r = _make_result(status=Status.WITHDRAWN.value, replaces="")
+        r2 = _make_result(status=Status.ACTIVE.value, standard_number="GB/T 9999-2024")
         clf._resolve_cross_site_replaces([p], [r, r2])
         assert r.replaces == "GB/T 9999-2024"
         assert p._replacement_number == ""
@@ -169,7 +170,7 @@ class TestResolveCrossSiteReplaces:
     def test_skips_when_replaces_present(self):
         clf = _make_clf()
         p = _make_parsed()
-        r = _make_result(status="废止", replaces="GB/T 5555-2019")
+        r = _make_result(status=Status.WITHDRAWN.value, replaces="GB/T 5555-2019")
         with patch.object(clf, "resolve_replaces") as mock_rr:
             clf._resolve_cross_site_replaces([p], [r])
             mock_rr.assert_not_called()
@@ -178,7 +179,7 @@ class TestResolveCrossSiteReplaces:
     def test_empty_continue_no_write_back(self, mock_rr):
         clf = _make_clf()
         p = _make_parsed()
-        r = _make_result(status="被代替", replaces="")
+        r = _make_result(status=Status.SUPERSEDED.value, replaces="")
         clf._resolve_cross_site_replaces([p], [r])
         assert r.replaces == ""
 

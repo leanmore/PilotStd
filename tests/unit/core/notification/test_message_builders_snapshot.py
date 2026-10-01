@@ -55,6 +55,7 @@ from pilotstd.core.notification.blocks import (
     TextBlock,
 )
 from pilotstd.core.notification.channel import NotificationMessage
+from pilotstd.core.status import Status
 
 # ══════════════════════════════════════════════════════════════
 # _builders_validity.py（7 函数）
@@ -67,8 +68,8 @@ class TestValidityBuildersSnapshot:
     def test_status_changed_normal(self):
         msg = _build_standard_status_changed_message({
             "standard_number": "GB/T 123-2024",
-            "old_status": "现行",
-            "new_status": "即将实施",
+            "old_status": Status.ACTIVE.value,
+            "new_status": Status.UPCOMING.value,
             "is_expired": False,
             "changed_at": "2024-06-01",
         })
@@ -83,8 +84,8 @@ class TestValidityBuildersSnapshot:
         """standard_expired 已合并：is_expired=True → error + 变更时间行。"""
         msg = _build_standard_status_changed_message({
             "standard_number": "GB/T 456-2019",
-            "old_status": "现行",
-            "new_status": "已废止",
+            "old_status": Status.ACTIVE.value,
+            "new_status": Status.WITHDRAWN_NORMALIZED.value,
             "is_expired": True,
             "changed_at": "2023-12-01",
         })
@@ -140,7 +141,11 @@ class TestValidityBuildersSnapshot:
             "count": 100,
             "changed": 5,
             "failed": 2,
-            "change_detail": [{"standard": "GB/T 1-2024", "name": "标准一", "reason": "已废止"}],
+            "change_detail": [{
+                "standard": "GB/T 1-2024",
+                "name": "标准一",
+                "reason": Status.WITHDRAWN_NORMALIZED.value,
+            }],
         })
         assert msg.event_type == "validity_batch_report"
         assert msg.level == "warning"

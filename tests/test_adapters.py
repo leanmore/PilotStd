@@ -13,6 +13,7 @@ if root_dir not in sys.path:
 import unittest
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.adapters.csres import CsresAdapter
 from pilotstd.query.adapters.dbba import DbbaAdapter
 from pilotstd.query.adapters.hbba import HbbaAdapter
@@ -31,7 +32,7 @@ def _make_njbz_items(*items):
     return {"code": "0", "data": {"datalist": list(items)}}
 
 
-def _njbz_item(bzbh, bzmc, bzzt="现行", bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"):
+def _njbz_item(bzbh, bzmc, bzzt=Status.ACTIVE.value, bzid="1", cybz="", fbrq="2020-01-01", ssrq="2020-06-01"):
     return {
         "bzbh": bzbh,
         "bzmc": bzmc,
@@ -51,7 +52,7 @@ def _make_hbba_records(*recs):
 def _hbba_rec(
     code,
     ch_name,
-    status="现行",
+    status=Status.ACTIVE.value,
     pk="1",
     issue_date=1577836800000,
     act_date=1577836800000,
@@ -75,7 +76,7 @@ def _make_dbba_records(*recs):
 def _dbba_rec(
     code,
     ch_name,
-    status="现行",
+    status=Status.ACTIVE.value,
     pk="1",
     issue_date=1577836800000,
     act_date=1577836800000,
@@ -96,7 +97,7 @@ def _make_iso_rows(*rows):
     return {"page": 1, "total": len(rows), "rows": list(rows)}
 
 
-def _iso_row(std_no, en_name, state="现行", year_date=2020, std_id="iso_1"):
+def _iso_row(std_no, en_name, state=Status.ACTIVE.value, year_date=2020, std_id="iso_1"):
     return {
         "STANDARD_NO": std_no,
         "ENGLISH_NAME": en_name,
@@ -431,7 +432,7 @@ def _ttbz_row(
     title_en="Group Standard English Name",
     publish_date="2024-01-01",
     implement_date="2024-07-01",
-    status_name="现行",
+    status_name=Status.ACTIVE.value,
     organ_name="中国标准化协会",
     standard_field="化工",
     unique_id="abc123def456",
@@ -467,7 +468,7 @@ class TestTTBZAdapter(unittest.TestCase):
         self.assertEqual(r.standard_name, "团体标准中文名称")
         self.assertEqual(r.publish_date, "2024-01-01")
         self.assertEqual(r.implementation_date, "2024-07-01")
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
         self.assertEqual(r.responsible_dept, "中国标准化协会")
         self.assertEqual(r.source_site, "ttbz")
         self.assertEqual(r.hcno, "abc123def456")
@@ -506,16 +507,16 @@ class TestTTBZAdapter(unittest.TestCase):
         self.assertEqual(r.standard_name, "")
         self.assertEqual(r.publish_date, "")
         self.assertEqual(r.implementation_date, "")
-        self.assertEqual(r.status, "未知")
+        self.assertEqual(r.status, Status.UNKNOWN.value)
         self.assertEqual(r.responsible_dept, "")
         self.assertEqual(r.hcno, "")
         self.assertEqual(r.standard_name_en, "")
 
     def test_parse_result_unknown_status_preserved(self):
         """验证非标准状态值原样保留。"""
-        rec = _ttbz_row(status_name="已废止")
+        rec = _ttbz_row(status_name=Status.WITHDRAWN_NORMALIZED.value)
         r = self.a._parse_result(rec, "")
-        self.assertEqual(r.status, "已废止")
+        self.assertEqual(r.status, Status.WITHDRAWN_NORMALIZED.value)
 
     def test_parse_result_is_adopted_false(self):
         """验证团体标准不应标记为采标。"""
@@ -874,7 +875,7 @@ class TestNRSISAdapter(unittest.TestCase):
         self.assertEqual(r.standard_name, "自然资源标准名称")
         self.assertEqual(r.publish_date, "2020-01-01")
         self.assertEqual(r.implementation_date, "2020-07-01")
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
         self.assertEqual(r.responsible_dept, "自然资源部")
         self.assertEqual(r.source_site, "nrsis")
 
@@ -892,7 +893,7 @@ class TestNRSISAdapter(unittest.TestCase):
         row = soup.select_one("tbody tr")
         r = self.a._parse_result(row, "GB/T 99999")
         self.assertIsNotNone(r)
-        self.assertEqual(r.status, "废止")
+        self.assertEqual(r.status, Status.WITHDRAWN.value)
 
     def test_parse_result_empty_row(self):
         """空行返回 None。"""
@@ -971,11 +972,11 @@ class TestNRSISAdapter(unittest.TestCase):
         if not os.path.exists(fixture):
             self.skipTest("Fixture not found.")
         self._mock_httpx_response(fixture)
-        self.a.query_standards("GB/T", level="HB", repeFlag="现行", zxd="01")
+        self.a.query_standards("GB/T", level="HB", repeFlag=Status.ACTIVE.value, zxd="01")
         call_args = self.a._client.get.call_args
         params = call_args[1]["params"]
         self.assertEqual(params["level"], "HB")
-        self.assertEqual(params["repeFlag"], "现行")
+        self.assertEqual(params["repeFlag"], Status.ACTIVE.value)
         self.assertEqual(params["zxd"], "01")
 
 
@@ -1056,7 +1057,7 @@ class TestJTSTAdapter(unittest.TestCase):
         self.assertEqual(r.standard_name, "交通标准名称")
         self.assertEqual(r.publish_date, "2020-01-01")
         self.assertEqual(r.implementation_date, "2020-07-01")
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
         self.assertEqual(r.responsible_dept, "交通运输部")
         self.assertEqual(r.source_site, "jtst")
 
@@ -1352,7 +1353,13 @@ class TestJJGAdapter(unittest.TestCase):
             f"Invalid standard number: {r.standard_number}",
         )
         self.assertTrue(r.standard_name, "Standard name should not be empty")
-        self.assertIn(r.status, ["现行", "现行有效", "即将实施", "废止", "未知"])
+        self.assertIn(r.status, [
+            Status.ACTIVE.value,
+            "现行有效",
+            Status.UPCOMING.value,
+            Status.WITHDRAWN.value,
+            Status.UNKNOWN.value,
+        ])
 
     def test_parse_result_maps_fields_correctly(self):
         """JSON 字段映射正确。"""
@@ -1369,7 +1376,7 @@ class TestJJGAdapter(unittest.TestCase):
         self.assertEqual(r.standard_name, "计量检定规程名称")
         self.assertEqual(r.publish_date, "2020-01-01")
         self.assertEqual(r.implementation_date, "2020-07-01")
-        self.assertEqual(r.status, "现行")
+        self.assertEqual(r.status, Status.ACTIVE.value)
         self.assertEqual(r.source_site, "jjg")
 
     def test_parse_result_empty_record(self):
@@ -1442,7 +1449,7 @@ class TestJJGAdapter(unittest.TestCase):
                 {
                     "code": f"JJG {i}-2020",
                     "title": f"Test {i}",
-                    "status": "现行",
+                    "status": Status.ACTIVE.value,
                     "publishDate": "2020-01-01",
                     "implementDate": "2020-07-01",
                 }
@@ -1455,7 +1462,7 @@ class TestJJGAdapter(unittest.TestCase):
                 {
                     "code": f"JJG {i}-2020",
                     "title": f"Test {i}",
-                    "status": "现行",
+                    "status": Status.ACTIVE.value,
                     "publishDate": "2020-01-01",
                     "implementDate": "2020-07-01",
                 }
@@ -1468,7 +1475,7 @@ class TestJJGAdapter(unittest.TestCase):
                 {
                     "code": f"JJG {i}-2020",
                     "title": f"Test {i}",
-                    "status": "现行",
+                    "status": Status.ACTIVE.value,
                     "publishDate": "2020-01-01",
                     "implementDate": "2020-07-01",
                 }

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.scan.watcher import FileWatcher, FileWatchHandler
 
 
@@ -25,7 +26,7 @@ class TestFileWatchHandler:
         parsed.year = 2020
         parsed.part = None
         parsed.std_name = "测试标准"
-        parsed.effect_status = "现行"
+        parsed.effect_status = Status.ACTIVE.value
         parsed.raw_number = "12345"
         parser.parse.return_value = parsed
         return parser

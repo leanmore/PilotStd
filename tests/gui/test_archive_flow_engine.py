@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.core.handlers.archive_flow_engine import ArchiveFlowEngine
 
@@ -69,25 +70,25 @@ def engine():
 
 class TestDetermineStatusLabel:
     def test_replaced(self, engine):
-        assert engine.determine_status_label("被代替") == "被代替"
+        assert engine.determine_status_label(Status.SUPERSEDED.value) == Status.SUPERSEDED.value
 
     def test_abolished(self, engine):
-        assert engine.determine_status_label("废止") == "废止"
+        assert engine.determine_status_label(Status.WITHDRAWN.value) == Status.WITHDRAWN.value
 
     def test_abolished_variant(self, engine):
-        assert engine.determine_status_label("已废止") == "废止"
+        assert engine.determine_status_label(Status.WITHDRAWN_NORMALIZED.value) == Status.WITHDRAWN.value
 
     def test_cancelled(self, engine):
-        assert engine.determine_status_label("作废") == "废止"
+        assert engine.determine_status_label(Status.VOIDED.value) == Status.WITHDRAWN.value
 
     def test_current(self, engine):
-        assert engine.determine_status_label("现行") == "现行"
+        assert engine.determine_status_label(Status.ACTIVE.value) == Status.ACTIVE.value
 
     def test_about_to_implement(self, engine):
-        assert engine.determine_status_label("即将实施") == "现行"
+        assert engine.determine_status_label(Status.UPCOMING.value) == Status.ACTIVE.value
 
     def test_empty_string(self, engine):
-        assert engine.determine_status_label("") == "现行"
+        assert engine.determine_status_label("") == Status.ACTIVE.value
 
 
 # ════════════════════════════════════════════════════════════════

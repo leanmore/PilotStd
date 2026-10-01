@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -36,7 +37,7 @@ class TestEnergyAdapter(unittest.TestCase):
         self.assertTrue(result.standard_number.startswith("NB"))
         self.assertTrue(result.standard_name)
         self.assertEqual(result.source_site, "energy")
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
 
     def test_parse_result_maps_fields(self):
         """JSON 字段全部正确映射。"""
@@ -45,7 +46,7 @@ class TestEnergyAdapter(unittest.TestCase):
             "stdId": 10001,
             "replacedStd": "NB/T 10456-2015",
             "stdName": "能源管理系统技术规范",
-            "state": "现行",
+            "state": Status.ACTIVE.value,
             "issueDate": "2021-07-01",
             "actDate": "2021-10-01",
         }
@@ -53,7 +54,7 @@ class TestEnergyAdapter(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.standard_number, "NB/T 10456-2021")
         self.assertEqual(result.standard_name, "能源管理系统技术规范")
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
         self.assertEqual(result.publish_date, "2021-07-01")
         self.assertEqual(result.implementation_date, "2021-10-01")
         self.assertEqual(result.replaces, "NB/T 10456-2015")

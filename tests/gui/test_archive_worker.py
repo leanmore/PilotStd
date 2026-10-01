@@ -3,11 +3,12 @@ import shutil
 import tempfile
 from unittest import mock
 
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 from pilotstd.ui.workers import ArchiveWorker
 
 
-def _make_parsed(src_path, code="GB", num=1, year=2020, effect_status="现行", std_name="测试标准"):
+def _make_parsed(src_path, code="GB", num=1, year=2020, effect_status=Status.ACTIVE.value, std_name="测试标准"):
     """创建测试用 ParsedStdInfo。"""
     p = ParsedStdInfo(
         raw_filename=os.path.basename(src_path),

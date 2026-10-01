@@ -4,6 +4,7 @@ from unittest import mock
 
 import requests
 
+from pilotstd.core.status import Status
 from pilotstd.query.adapters.std_gov import StdGovAdapter
 
 # ── 模拟全国标准平台搜索结果页 HTML ──
@@ -138,7 +139,7 @@ class TestIsoGovAdapter:
                 {
                     "STANDARD_NO": "ISO 9001:2015",
                     "ENGLISH_NAME": "Quality management systems",
-                    "STATE": "现行",
+                    "STATE": Status.ACTIVE.value,
                     "CIRCULATION_DATE": "2015-09-01",
                     "STANDARD_STATUS": "ACTIVE",
                 }

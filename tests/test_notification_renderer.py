@@ -14,6 +14,7 @@ from pilotstd.core.notification.renderer import (
     MarkdownRenderer,
     TelegramRenderer,
 )
+from pilotstd.core.status import Status
 
 
 def make_msg(title="Test", body="fallback", blocks=None):
@@ -104,7 +105,7 @@ class TestTelegramRenderer:
         assert "L:" in r
 
     def test_render_list_number_bold(self):
-        b = ListBlock(title="R", items=[{"number": "GB/T 1", "status": "现行"}])
+        b = ListBlock(title="R", items=[{"number": "GB/T 1", "status": Status.ACTIVE.value}])
         r = TelegramRenderer().render(make_msg(blocks=[b]))
         assert "*GB/T 1*" in r
 

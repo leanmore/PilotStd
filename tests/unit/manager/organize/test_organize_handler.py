@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pilotstd.core.notification import EVENT_ARCHIVE_COMPLETE
+from pilotstd.core.status import Status
 from pilotstd.manager.facade._organize import OrganizeHandler
 from pilotstd.models import ParsedStdInfo
 
@@ -133,7 +134,7 @@ class TestArchiveStandards:
     def test_expired_standard_triggers_expire_event(self, handler):
         """废止标准 → expire_standard_moved 事件。"""
         p = _make_parsed(
-            effect_status="废止", source_path="/src/expired.pdf"
+            effect_status=Status.WITHDRAWN.value, source_path="/src/expired.pdf"
         )
         handler._core.organizer_svc.organize.return_value = {
             "moved": 1, "failed": 0
@@ -172,7 +173,7 @@ class TestArchiveStandards:
 
     def test_no_moved_skips_expire_event(self, handler):
         """moved=0 → 不触发废止事件，但仍发 ARCHIVE_COMPLETE。"""
-        p = _make_parsed(effect_status="废止")
+        p = _make_parsed(effect_status=Status.WITHDRAWN.value)
         handler._core.organizer_svc.organize.return_value = {
             "moved": 0, "failed": 0
         }
@@ -292,7 +293,7 @@ class TestOrganizeAndExpireFiles:
         handler.expire_files([str(f1)])
 
         parsed_arg = handler._core.organizer_svc.organize.call_args[0][0]
-        assert parsed_arg[0].effect_status == "废止"
+        assert parsed_arg[0].effect_status == Status.WITHDRAWN.value
 
     def test_expire_files_no_valid(self, handler, tmp_path):
         """expire_files 无有效文件 → 返回空。"""
@@ -425,7 +426,7 @@ class TestArchiveStandardsProgress:
 class TestArchiveStandardsNotificationExceptions:
     def test_expire_event_send_raises_caught(self, handler):
         """expire_standard_moved 发送异常 → 捕获继续（L168-169）。"""
-        p = _make_parsed(effect_status="废止")
+        p = _make_parsed(effect_status=Status.WITHDRAWN.value)
         handler._core.organizer_svc.organize.return_value = {
             "moved": 1, "failed": 0
         }

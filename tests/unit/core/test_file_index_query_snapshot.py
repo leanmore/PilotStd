@@ -16,6 +16,7 @@ from pilotstd.core._file_index_query import (
     NETWORK_CACHE_TABLE,
     FileIndexQuery,
 )
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 
 
@@ -86,7 +87,7 @@ def _seed(db, file_path, logical_code, number, year, **kw):
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (file_path, logical_code, number, year, kw.get("part", -1),
          kw.get("std_name", ""), kw.get("file_hash", ""),
-         kw.get("status", "现行"), kw.get("raw_number", str(number))),
+         kw.get("status", Status.ACTIVE.value), kw.get("raw_number", str(number))),
     )
 
 
@@ -140,9 +141,9 @@ class TestStats:
         assert q.count() == 0
 
     def test_get_status_stats(self, db, q):
-        _seed(db, "/a.pdf", "GB", 1, 2020, status="现行")
-        _seed(db, "/b.pdf", "GB", 2, 2019, status="废止")
-        _seed(db, "/c.pdf", "GB", 3, 2021, status="即将实施")
+        _seed(db, "/a.pdf", "GB", 1, 2020, status=Status.ACTIVE.value)
+        _seed(db, "/b.pdf", "GB", 2, 2019, status=Status.WITHDRAWN.value)
+        _seed(db, "/c.pdf", "GB", 3, 2021, status=Status.UPCOMING.value)
         stats = q.get_status_stats()
         assert stats["current"] == 1
         assert stats["expired"] == 1
@@ -171,21 +172,30 @@ class TestRestoreParsed:
             f"INSERT INTO {NETWORK_CACHE_TABLE} (standard_number, result_json) VALUES (?, ?)",
             (
                 "GB 555-2021",
-                json.dumps({"status": "现行", "standard_name": "网络名", "is_adopted": True, "match_status": "exact"}),
+                json.dumps({
+                    "status": Status.ACTIVE.value,
+                    "standard_name": "网络名",
+                    "is_adopted": True,
+                    "match_status": "exact",
+                }),
             ),
         )
         info = q.restore_parsed("/cached.pdf")
-        assert info.effect_status == "现行"
+        assert info.effect_status == Status.ACTIVE.value
         assert info.is_adopted is True
 
     def test_restore_with_announcement_cache_fallback(self, db, q):
         _seed(db, "/ann.pdf", "GB", 666, 2022)
         db.execute(
             f"INSERT INTO {ANNOUNCEMENT_CACHE_TABLE} (standard_number, result_json) VALUES (?, ?)",
-            ("GB 666-2022", json.dumps({"status": "废止", "standard_name": "公告名", "match_status": "exact"})),
+            ("GB 666-2022", json.dumps({
+                "status": Status.WITHDRAWN.value,
+                "standard_name": "公告名",
+                "match_status": "exact",
+            })),
         )
         info = q.restore_parsed("/ann.pdf")
-        assert info.effect_status == "废止"
+        assert info.effect_status == Status.WITHDRAWN.value
 
 
 class TestFindMovedFiles:
@@ -221,12 +231,12 @@ class TestGetFullInfo:
             f"INSERT INTO {NETWORK_CACHE_TABLE} (standard_number, result_json, cached_at) VALUES (?, ?, ?)",
             (
                 "SH 200",
-                json.dumps({"status": "现行", "standard_name": "行标名", "match_status": "exact"}),
+                json.dumps({"status": Status.ACTIVE.value, "standard_name": "行标名", "match_status": "exact"}),
                 "2024-01-01",
             ),
         )
         results = q.get_full_info("SH", 200)
-        assert results[0]["effect_status"] == "现行"
+        assert results[0]["effect_status"] == Status.ACTIVE.value
 
     def test_full_info_miss(self, q):
         assert q.get_full_info("ZZ", 999) == []
@@ -237,10 +247,15 @@ class TestApplyCacheResult:
     def test_exact_match_applied(self):
         info = ParsedStdInfo(raw_filename="t.pdf", logical_code="GB", number=1, year=2020)
         FileIndexQuery._apply_cache_result(
-            json.dumps({"status": "现行", "standard_name": "测试", "is_adopted": False, "match_status": "exact"}),
+            json.dumps({
+                "status": Status.ACTIVE.value,
+                "standard_name": "测试",
+                "is_adopted": False,
+                "match_status": "exact",
+            }),
             info,
         )
-        assert info.effect_status == "现行"
+        assert info.effect_status == Status.ACTIVE.value
 
     def test_non_exact_skipped(self):
         info = ParsedStdInfo(raw_filename="t.pdf", logical_code="GB", number=1, year=2020)

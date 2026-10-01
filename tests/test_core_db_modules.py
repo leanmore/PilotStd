@@ -8,6 +8,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
+from pilotstd.core.status import Status
 from tests.mocks.mock_database import MockDatabase
 
 _VALIDITY_SCHEMA = """CREATE TABLE IF NOT EXISTS standard_validity (
@@ -112,7 +113,7 @@ class TestValidityChecker(unittest.TestCase):
         vc.register_new_standard("GB/T 1.1-2020")
         row = self.db.fetchone("SELECT * FROM standard_validity WHERE standard_number=?", ("GB/T 1.1-2020",))
         self.assertIsNotNone(row)
-        self.assertEqual(row["status"], "未知")
+        self.assertEqual(row["status"], Status.UNKNOWN.value)
 
     def test_register_duplicate_skips(self):
         from pilotstd.core.validity_checker import ValidityChecker

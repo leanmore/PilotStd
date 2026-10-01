@@ -3,6 +3,7 @@
 
 from typing import Optional
 
+from pilotstd.core.status import Status
 from pilotstd.query.adapters.base import BaseAdapter
 from pilotstd.query.models import QueryResult
 
@@ -22,7 +23,7 @@ class MockQueryAdapter(BaseAdapter):
         return QueryResult(
             standard_number=search_term,
             standard_name=f"标准名称_{search_term}",
-            status="现行",
+            status=Status.ACTIVE.value,
             replaces="",
             implementation_date="2024-07-01",
             publish_date="2024-01-15",

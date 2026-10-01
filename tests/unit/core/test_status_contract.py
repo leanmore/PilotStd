@@ -68,6 +68,8 @@ def test_status_key(raw, expected):
         ("unknown", Status.UNKNOWN.value),
         (Status.ACTIVE.value, Status.ACTIVE.value),  # 历史中文值（向后兼容）
         (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value),  # 别名归一
+        # Sentinel: 确保枚举 value 与现网中文契约一致（旧前端/老书签发来的就是这个中文值）
+        ("现行", Status.ACTIVE.value),
         ("", None),
         (None, None),
         ("nonsense", None),  # 非法值不生效（同旧实现）

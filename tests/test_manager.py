@@ -13,6 +13,7 @@ import unittest
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.manager import StandardManager
 
 
@@ -201,10 +202,10 @@ class TestStandardManager(unittest.TestCase):
         for j, p in enumerate(subset):
             r = QueryResult(standard_number=p.get_full_number())
             if j == 1:  # subset[1] = items[2] 标记为新版本，需要下载
-                r.status = "现行"
+                r.status = Status.ACTIVE.value
                 r.match_status = "newer"
             else:
-                r.status = "现行"
+                r.status = Status.ACTIVE.value
             results.append(r)
         mgr._core.query_results = results
 
@@ -273,7 +274,7 @@ class TestStandardManager(unittest.TestCase):
             # Mock query_engine —— 模拟网络查询成功
             qr = QueryResult(standard_number="GB/T 19001-2020")
             qr.standard_name = "质量管理体系"
-            qr.status = "现行"
+            qr.status = Status.ACTIVE.value
             qr.source_site = "test"
             qr.match_status = "exact"
             qr.is_adopted = False

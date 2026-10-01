@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from pilotstd.core.db import Database  # noqa: E402
 from pilotstd.core.file_index import FileIndexRepository  # noqa: E402
+from pilotstd.core.status import Status
 from pilotstd.monitor.scheduler import FileMonitorScheduler  # noqa: E402
 from pilotstd.organizer.industry_lookup import build_code_mapping  # noqa: E402
 from pilotstd.scan.parser import StandardParser  # noqa: E402
@@ -66,7 +67,7 @@ class _RealArchiveMgr:
                 number=item.number,
                 year=item.year,
                 std_name="测试标准",
-                status="现行",
+                status=Status.ACTIVE.value,
             )
         return {"moved": len(parsed_list), "failed": 0, "details": []}
 

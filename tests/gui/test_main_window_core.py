@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, patch
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 
+from pilotstd.core.status import Status
+
 # ════════════════════════════════════════════════════════════════
 # 1. MainWindow 初始化与属性
 # ════════════════════════════════════════════════════════════════
@@ -314,7 +316,7 @@ def test_on_query_result_ready_updates_table(window, qtbot):
 
     mock_result = MagicMock()
     mock_result.standard_name = "标准化工作导则"
-    mock_result.status = "现行"
+    mock_result.status = Status.ACTIVE.value
     mock_result.replaces = ""
     mock_result.publish_date = "2020-03-31"
     mock_result.implementation_date = "2020-10-01"

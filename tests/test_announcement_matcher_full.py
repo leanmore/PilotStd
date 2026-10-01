@@ -11,6 +11,7 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from pilotstd.announcement.matcher import AnnouncementMatcher, clean_announcement_content
+from pilotstd.core.status import Status
 from tests.mocks.mock_database import MockDatabase
 
 # ── 测试用数据 ──────────────────────────────────────────────────
@@ -227,7 +228,7 @@ class TestBuildCacheRow(unittest.TestCase):
         self.assertEqual(len(cache_rows), 1)
         std_number, source, result_json, cached_at, expires_at = cache_rows[0]
         self.assertIn("GBT 1-2020", std_number)
-        self.assertIn("即将实施", result_json)
+        self.assertIn(Status.UPCOMING.value, result_json)
 
     def test_replaced_match_status(self):
         fi_row = {"logical_code": "GB/T", "number": 1, "year": 2009, "std_name": "旧标准"}
@@ -241,7 +242,7 @@ class TestBuildCacheRow(unittest.TestCase):
 
         self.matcher._build_cache_row(fi_row, item, "replaced", "test_site", "now", cache_rows)
 
-        self.assertIn("被代替", cache_rows[0][2])
+        self.assertIn(Status.SUPERSEDED.value, cache_rows[0][2])
 
     def test_current_status_when_no_implementation_date(self):
         fi_row = {"logical_code": "GB/T", "number": 1, "year": 2020, "std_name": "现行标准"}
@@ -255,7 +256,7 @@ class TestBuildCacheRow(unittest.TestCase):
 
         self.matcher._build_cache_row(fi_row, item, "new", "test_site", "now", cache_rows)
 
-        self.assertIn("现行", cache_rows[0][2])
+        self.assertIn(Status.ACTIVE.value, cache_rows[0][2])
 
     def test_cache_row_structure(self):
         fi_row = {"logical_code": "GB/T", "number": 1, "year": 2020, "std_name": "测试"}
@@ -556,7 +557,7 @@ class TestMatchAndUpdate(unittest.TestCase):
             import json
 
             cache_data = json.loads(cache["result_json"])
-            self.assertIn("即将实施", cache_data["status"])
+            self.assertIn(Status.UPCOMING.value, cache_data["status"])
 
     def test_multiple_items_mixed_results(self):
         """混合：部分匹配、部分不匹配。"""

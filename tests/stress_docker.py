@@ -17,6 +17,7 @@ from stress_utils import (  # type: ignore[import-not-found]
     setup_stress_logging,
 )
 
+from pilotstd.core.status import Status
 from pilotstd.query.engine import PROGRESS_TAG
 
 
@@ -338,7 +339,7 @@ def run_docker_phase(config_path: str = "", step1_path: str = "", result_dir: st
         {
             "standard_number": "GB/T 1-2020",
             "standard_name": "测试标准",
-            "status": "现行",
+            "status": Status.ACTIVE.value,
             "source_site": "test",
             "match_status": "精确匹配",
             "is_adopted": False,

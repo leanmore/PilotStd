@@ -17,6 +17,8 @@ from typing import Any
 
 import responses as _responses
 
+from pilotstd.core.status import Status
+
 # ── 公告页面 HTML 模板 ──────────────────────────────────────────
 
 ANNOUNCEMENT_HTML = """<!DOCTYPE html>
@@ -38,7 +40,7 @@ NJBZ365_SEARCH_RESPONSE: dict[str, Any] = {
             {
                 "bzbh": "GB/T 1.1-2020",
                 "bzmc": "标准化工作导则 第1部分：标准化文件的结构和起草规则",
-                "bzzt": "现行",
+                "bzzt": Status.ACTIVE.value,
                 "bzid": "abc123",
                 "cybz": "",
                 "fbrq": "2020-03-31",

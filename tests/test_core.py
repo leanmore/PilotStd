@@ -29,6 +29,7 @@ from pilotstd.core.file_utils import (
 )
 from pilotstd.core.logger import LoggerManager
 from pilotstd.core.project import ProjectManager
+from pilotstd.core.status import Status
 
 
 class TestConfigManager(unittest.TestCase):
@@ -60,7 +61,7 @@ class TestConfigManager(unittest.TestCase):
 
     def test_populate_defaults(self):
         self.cfg.reset()  # 清空 _populate_first_run 预填的默认值
-        self.cfg.populate_defaults({"scan.extensions": [".pdf"], "scan.skip_folders": ["过期"]})
+        self.cfg.populate_defaults({"scan.extensions": [".pdf"], "scan.skip_folders": [Status.EXPIRED.value]})
         self.assertEqual(self.cfg.get("scan.extensions"), [".pdf"])
         self.cfg.set("scan.extensions", [".txt"])
         self.cfg.populate_defaults({"scan.extensions": [".pdf"]})
@@ -736,7 +737,7 @@ class TestFileIndexRepository(unittest.TestCase):
             {
                 "standard_number": "GB 1-2020",
                 "standard_name": "测试标准名称",
-                "status": "现行",
+                "status": Status.ACTIVE.value,
                 "is_adopted": True,
                 "match_status": "exact",
             }
@@ -747,7 +748,7 @@ class TestFileIndexRepository(unittest.TestCase):
         )
         parsed = self.repo.restore_parsed("/path/GB 1-2020 基础规范.pdf")
         self.assertIsNotNone(parsed)
-        self.assertEqual(parsed.effect_status, "现行")
+        self.assertEqual(parsed.effect_status, Status.ACTIVE.value)
         self.assertEqual(parsed.found_name, "测试标准名称")
         self.assertTrue(parsed.is_adopted)
         self.assertEqual(parsed.match_status, "exact")
@@ -761,7 +762,7 @@ class TestFileIndexRepository(unittest.TestCase):
             {
                 "standard_number": "SH 2-2020",
                 "standard_name": "某标准",
-                "status": "现行",
+                "status": Status.ACTIVE.value,
                 "is_adopted": False,
                 "match_status": "newer",
             }
@@ -788,7 +789,7 @@ class TestFileIndexRepository(unittest.TestCase):
             {
                 "standard_number": "GB 1-2020",
                 "standard_name": "公告标准名称",
-                "status": "被代替",
+                "status": Status.SUPERSEDED.value,
                 "is_adopted": False,
                 "match_status": "exact",
                 "replaced_by": "GB 1-2025",
@@ -801,7 +802,7 @@ class TestFileIndexRepository(unittest.TestCase):
         )
         parsed = self.repo.restore_parsed("/path/GB 1-2020 基础规范.pdf")
         self.assertIsNotNone(parsed)
-        self.assertEqual(parsed.effect_status, "被代替")
+        self.assertEqual(parsed.effect_status, Status.SUPERSEDED.value)
         self.assertEqual(parsed.found_name, "公告标准名称")
 
     def test_get_full_info_like_match(self):
@@ -815,7 +816,7 @@ class TestFileIndexRepository(unittest.TestCase):
             (
                 json.dumps(
                     {
-                        "status": "现行",
+                        "status": Status.ACTIVE.value,
                         "match_status": "exact",
                         "standard_name": "网查名称",
                     }
@@ -825,7 +826,7 @@ class TestFileIndexRepository(unittest.TestCase):
         )
         results = self.repo.get_full_info("GB", 1)
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["effect_status"], "现行")
+        self.assertEqual(results[0]["effect_status"], Status.ACTIVE.value)
         self.assertEqual(results[0]["found_name"], "网查名称")
 
     def test_get_full_info_network_priority(self):
@@ -837,7 +838,7 @@ class TestFileIndexRepository(unittest.TestCase):
             "INSERT INTO standard_info_cache (standard_number, source_site, result_json, cached_at)"
             "VALUES ('GB 2-2020', 'mock', ?, ?)",
             (
-                json.dumps({"status": "现行", "match_status": "exact", "standard_name": "网查"}),
+                json.dumps({"status": Status.ACTIVE.value, "match_status": "exact", "standard_name": "网查"}),
                 datetime.now().isoformat(),
             ),
         )
@@ -845,12 +846,12 @@ class TestFileIndexRepository(unittest.TestCase):
             "INSERT INTO announcement_match (standard_number, source_site, result_json, cached_at) "
             "VALUES ('GB 2-2020', 'announcement', ?, ?)",
             (
-                json.dumps({"status": "废止", "match_status": "exact", "standard_name": "公告"}),
+                json.dumps({"status": Status.WITHDRAWN.value, "match_status": "exact", "standard_name": "公告"}),
                 datetime.now().isoformat(),
             ),
         )
         results = self.repo.get_full_info("GB", 2)
-        self.assertEqual(results[0]["effect_status"], "现行")  # 网络优先
+        self.assertEqual(results[0]["effect_status"], Status.ACTIVE.value)  # 网络优先
 
 
 class TestDailyQuotaTracker(unittest.TestCase):

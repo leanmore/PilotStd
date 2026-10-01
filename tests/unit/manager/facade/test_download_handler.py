@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.download.models import BatchDownloadStats, DownloadStatus, DownloadTask
 from pilotstd.manager.facade._download import DownloadHandler
 
@@ -37,7 +38,7 @@ class TestPostProcessDownload:
         """下载成功的 task → parsed item 的 source_path 被更新。"""
         parsed = MagicMock()
         parsed.source_path = ""
-        parsed.effect_status = "现行"
+        parsed.effect_status = Status.ACTIVE.value
         parsed.match_status = "exact"
         mock_core.download_list = [parsed]
 
@@ -51,7 +52,7 @@ class TestPostProcessDownload:
         """废止标准下载成功 → effect_status 更新为 '现行'（L38-39）。"""
         parsed = MagicMock()
         parsed.source_path = ""
-        parsed.effect_status = "废止"
+        parsed.effect_status = Status.WITHDRAWN.value
         parsed.match_status = ""
         mock_core.download_list = [parsed]
 
@@ -66,7 +67,7 @@ class TestPostProcessDownload:
         """现行 + newer → effect_status 更新为 '待实施'（L40-41）。"""
         parsed = MagicMock()
         parsed.source_path = ""
-        parsed.effect_status = "现行"
+        parsed.effect_status = Status.ACTIVE.value
         parsed.match_status = "newer"
         mock_core.download_list = [parsed]
 

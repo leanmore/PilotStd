@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pilotstd.core.status import Status
 from pilotstd.ui.core.handlers.announce_flow_engine import AnnounceFlowEngine
 
 # ═══════════════════════════════════════════════════════════════════
@@ -71,36 +72,36 @@ class TestParseAnnouncement:
 
 class TestFilterByStatus:
     def test_empty_list(self):
-        r = AnnounceFlowEngine.filter_by_status([], "现行")
+        r = AnnounceFlowEngine.filter_by_status([], Status.ACTIVE.value)
         assert r == []
 
     def test_all_match(self):
-        items = [{"status": "现行"}, {"status": "现行"}]
-        r = AnnounceFlowEngine.filter_by_status(items, "现行")
+        items = [{"status": Status.ACTIVE.value}, {"status": Status.ACTIVE.value}]
+        r = AnnounceFlowEngine.filter_by_status(items, Status.ACTIVE.value)
         assert len(r) == 2
 
     def test_none_match(self):
-        items = [{"status": "现行"}, {"status": "废止"}]
-        r = AnnounceFlowEngine.filter_by_status(items, "即将实施")
+        items = [{"status": Status.ACTIVE.value}, {"status": Status.WITHDRAWN.value}]
+        r = AnnounceFlowEngine.filter_by_status(items, Status.UPCOMING.value)
         assert r == []
 
     def test_mixed_status(self):
         items = [
-            {"code": "A", "status": "现行"},
-            {"code": "B", "status": "废止"},
-            {"code": "C", "status": "现行"},
+            {"code": "A", "status": Status.ACTIVE.value},
+            {"code": "B", "status": Status.WITHDRAWN.value},
+            {"code": "C", "status": Status.ACTIVE.value},
         ]
-        r = AnnounceFlowEngine.filter_by_status(items, "现行")
+        r = AnnounceFlowEngine.filter_by_status(items, Status.ACTIVE.value)
         assert len(r) == 2
-        assert all(x["status"] == "现行" for x in r)
+        assert all(x["status"] == Status.ACTIVE.value for x in r)
 
     def test_effect_status_field(self):
-        items = [{"effect_status": "废止"}]
-        r = AnnounceFlowEngine.filter_by_status(items, "废止")
+        items = [{"effect_status": Status.WITHDRAWN.value}]
+        r = AnnounceFlowEngine.filter_by_status(items, Status.WITHDRAWN.value)
         assert len(r) == 1
 
     def test_empty_status_arg(self):
-        items = [{"status": "现行"}]
+        items = [{"status": Status.ACTIVE.value}]
         r = AnnounceFlowEngine.filter_by_status(items, "")
         assert r == items
 

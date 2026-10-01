@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -57,7 +58,7 @@ class TestNCHAAdapter(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(result.standard_number.startswith("WW/T"))
         self.assertEqual(result.standard_name, "馆藏文物保存环境监测 监测终端安装要求")
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
         self.assertEqual(result.publish_date, "2023-12-06")
         self.assertEqual(result.implementation_date, "2024-07-01")
         self.assertEqual(result.responsible_dept, "国家文物局")
@@ -72,7 +73,7 @@ class TestNCHAAdapter(unittest.TestCase):
         result = self.a._parse_result(row, "GB/T")
         self.assertIsNotNone(result)
         self.assertTrue(result.standard_number.startswith("GB/T"))
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
         self.assertEqual(result.publish_date, "2024-09-29")
 
     def test_parse_result_empty(self):

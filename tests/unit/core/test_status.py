@@ -1,12 +1,21 @@
-"""状态字典受控测试（#32-A / R14-4a，2026-10-01）。
+"""状态字典受控测试 + **中文契约哨兵**（#32-A/B/D，2026-10-01）。
 
-锁定 A 阶段的**零行为变化**契约：
-  ① 9 值 round-trip：`Status(member.value).value == member.value`，且 `ALL_STATUS_VALUES` 恰为 9 值；
-  ② 别名归一：`废止` → `已废止`（其它值不变；空白剥离；None/空串 → 空串）；
-  ③ i18n / 英文枚举脚手架覆盖全部 9 值；
-  ④ **9 处旧容器取值逐一等价**：
-     · 命名集合（`status_dict.*`）== 重构前字面量集合（逐值）；
-     · 可导入的容器对象与命名集合**同一对象**（证明容器确实引用字典，而非各自复制一遍）。
+## 哨兵机制（#32-D / R14-4d）
+
+`Status` 枚举的 value 必须与**现网中文契约**逐字一致——它同时是：
+外部系统/历史数据里的取值、API 返回的中文数据值、DB 落库值、前端旧书签的过滤参数。
+一旦有人"顺手改"枚举 value（例如把 `现行` 改成 `有效`），生产代码不会报错，但会与
+历史数据、外部系统、前端旧缓存静默脱节。因此本文件**刻意保留直写的中文字面量**作为哨兵：
+
+    Sentinel 1：`test_sentinel_enum_values_match_live_chinese_contract`（9 值逐字比对）
+
+同批另设 4 处哨兵（均带 `# Sentinel:` 注释，分布在不同层）：
+    Sentinel 2：`tests/unit/core/test_status_convergence.py`（生产代码零裸字面量的扫描基准）
+    Sentinel 3：`tests/unit/core/test_status_contract.py`（API 过滤的历史中文入参）
+    Sentinel 4：`tests/test_adapters.py`（适配器解析真实中文状态文本）
+    Sentinel 5：`tests/unit/core/test_migrate_v61.py`（DB 历史默认值）
+
+除哨兵外，测试代码一律使用 `Status.*.value`（与生产同一事实源）。
 """
 
 from __future__ import annotations
@@ -21,19 +30,39 @@ from pilotstd.manager.facade._query import QueryHandler
 from pilotstd.manager.facade._query_subsystem import QuerySubsystem
 from pilotstd.organizer.mover import FileMover
 
-# 重构前 9 处容器的字面量取值（作为等价性基准，来源：各文件原定义行）
-PRE_REFACTOR_4 = {"废止", "已废止", "作废", "被代替"}
-PRE_REFACTOR_5 = {"废止", "已废止", "作废", "被代替", "过期"}
-PRE_REFACTOR_3 = {"废止", "已废止", "作废"}
-PRE_REFACTOR_EXCLUDED = {"废止", "已废止", "作废", "待确认"}
-PRE_REFACTOR_API = ("现行", "已废止", "未知")
+EXPECTED_VALUES = tuple(member.value for member in Status)
 
-EXPECTED_VALUES = ("现行", "即将实施", "废止", "已废止", "被代替", "作废", "过期", "待确认", "未知")
+
+# ── Sentinel 1：枚举 value 与现网中文契约逐字一致 ──────────────────────────
+
+
+def test_sentinel_enum_values_match_live_chinese_contract():
+    """**哨兵**：以下 9 个中文字面量是外部契约，禁止随枚举实现一起"顺手改"。"""
+    # Sentinel: 确保枚举 value 与现网中文契约一致（外部系统 / 历史数据 / API / DB / 前端旧书签）
+    assert Status.ACTIVE.value == "现行"
+    assert Status.UPCOMING.value == "即将实施"
+    assert Status.WITHDRAWN.value == "废止"
+    assert Status.WITHDRAWN_NORMALIZED.value == "已废止"
+    assert Status.SUPERSEDED.value == "被代替"
+    assert Status.VOIDED.value == "作废"
+    assert Status.EXPIRED.value == "过期"
+    assert Status.PENDING.value == "待确认"
+    assert Status.UNKNOWN.value == "未知"
 
 
 def test_all_nine_values_round_trip():
-    """9 值 round-trip：枚举 value 与现网字符串逐字一致，且全集恰为 9 值。"""
-    assert tuple(member.value for member in Status) == EXPECTED_VALUES
+    """9 值 round-trip：枚举成员与其 value 双向一致，且全集恰为 9 值。"""
+    assert EXPECTED_VALUES == (
+        Status.ACTIVE.value,
+        Status.UPCOMING.value,
+        Status.WITHDRAWN.value,
+        Status.WITHDRAWN_NORMALIZED.value,
+        Status.SUPERSEDED.value,
+        Status.VOIDED.value,
+        Status.EXPIRED.value,
+        Status.PENDING.value,
+        Status.UNKNOWN.value,
+    )
     for member in Status:
         assert Status(member.value) is member
         assert member.value in status_dict.ALL_STATUS_VALUES
@@ -42,21 +71,21 @@ def test_all_nine_values_round_trip():
 
 
 def test_status_members_are_str_compatible():
-    """`Status` 混入 str：成员可直接与现网字符串比较（B 阶段逐点替换时的兼容前提）。"""
-    assert Status.ACTIVE == "现行"
-    assert Status.WITHDRAWN_NORMALIZED == "已废止"
-    assert f"{Status.UNKNOWN.value}" == "未知"
+    """`Status` 混入 str：成员可直接与现网字符串比较（B 阶段逐点替换的兼容前提）。"""
+    assert Status.ACTIVE == Status.ACTIVE.value
+    assert Status.WITHDRAWN_NORMALIZED == Status.WITHDRAWN_NORMALIZED.value
+    assert f"{Status.UNKNOWN.value}" == Status.UNKNOWN.value
 
 
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("废止", "已废止"),  # 别名归一（双拼写消除）
-        ("已废止", "已废止"),  # 规范值不变
-        (" 废止 ", "已废止"),  # 空白剥离
-        ("现行", "现行"),  # 其它值原样
-        ("未知", "未知"),
-        ("作废", "作废"),
+        (Status.WITHDRAWN.value, Status.WITHDRAWN_NORMALIZED.value),  # 别名归一（双拼写消除）
+        (Status.WITHDRAWN_NORMALIZED.value, Status.WITHDRAWN_NORMALIZED.value),  # 规范值不变
+        (f" {Status.WITHDRAWN.value} ", Status.WITHDRAWN_NORMALIZED.value),  # 空白剥离
+        (Status.ACTIVE.value, Status.ACTIVE.value),  # 其它值原样
+        (Status.UNKNOWN.value, Status.UNKNOWN.value),
+        (Status.VOIDED.value, Status.VOIDED.value),
         ("", ""),
         (None, ""),
         ("自定义状态", "自定义状态"),  # 未知值不猜测、不改写
@@ -67,25 +96,53 @@ def test_normalize_status(raw, expected):
 
 
 def test_i18n_and_english_scaffolding_cover_all_values():
-    """中英文映射脚手架覆盖全部 9 值，且 i18n key 形如 status.*。"""
+    """中英文映射脚手架覆盖全部 9 值，双拼写映射到同一 i18n key / 英文枚举值。"""
     assert set(status_dict.STATUS_I18N_KEYS) == set(EXPECTED_VALUES)
     assert set(status_dict.STATUS_EN_KEYS) == set(EXPECTED_VALUES)
     assert all(key.startswith("status.") for key in status_dict.STATUS_I18N_KEYS.values())
-    # 双拼写映射到同一个 i18n key / 英文枚举值（同一语义）
-    assert status_dict.STATUS_I18N_KEYS["废止"] == status_dict.STATUS_I18N_KEYS["已废止"]
-    assert status_dict.STATUS_EN_KEYS["废止"] == status_dict.STATUS_EN_KEYS["已废止"] == "withdrawn"
+    assert (
+        status_dict.STATUS_I18N_KEYS[Status.WITHDRAWN.value]
+        == status_dict.STATUS_I18N_KEYS[Status.WITHDRAWN_NORMALIZED.value]
+    )
+    assert (
+        status_dict.STATUS_EN_KEYS[Status.WITHDRAWN.value]
+        == status_dict.STATUS_EN_KEYS[Status.WITHDRAWN_NORMALIZED.value]
+        == "withdrawn"
+    )
 
 
-# ── ③ 9 处旧容器等价性 ─────────────────────────────────────────────────────
+# ── 容器等价性（基准由哨兵 pin 住的枚举值派生）────────────────────────────
 
 
 def test_named_sets_equal_pre_refactor_literals():
-    """命名集合与重构前字面量逐一等价（含 4 值／5 值／3 值／含待确认四种口径）。"""
-    assert status_dict.ABOLISHED_STATUSES == PRE_REFACTOR_4
-    assert status_dict.ABOLISHED_STATUSES_WITH_EXPIRED == PRE_REFACTOR_5
-    assert status_dict.EXPIRED_STATUSES == PRE_REFACTOR_3
-    assert status_dict.NON_OVERRIDABLE_STATUSES == PRE_REFACTOR_EXCLUDED
-    assert status_dict.API_VALID_STATUSES == PRE_REFACTOR_API
+    """命名集合与重构前字面量逐一等价（4 值／5 值／3 值／含待确认／API tuple 五种口径）。
+
+    重构前的字面量取值由 Sentinel 1 的 9 个哨兵 pin 住，故此处用枚举值表达等价性
+    （等价性判据不变，且不再重复散落中文字面量——#32-D）。
+    """
+    assert status_dict.ABOLISHED_STATUSES == {
+        Status.WITHDRAWN.value,
+        Status.WITHDRAWN_NORMALIZED.value,
+        Status.VOIDED.value,
+        Status.SUPERSEDED.value,
+    }
+    assert status_dict.ABOLISHED_STATUSES_WITH_EXPIRED == set(status_dict.ABOLISHED_STATUSES) | {Status.EXPIRED.value}
+    assert status_dict.EXPIRED_STATUSES == {
+        Status.WITHDRAWN.value,
+        Status.WITHDRAWN_NORMALIZED.value,
+        Status.VOIDED.value,
+    }
+    assert status_dict.NON_OVERRIDABLE_STATUSES == {
+        Status.WITHDRAWN.value,
+        Status.WITHDRAWN_NORMALIZED.value,
+        Status.VOIDED.value,
+        Status.PENDING.value,
+    }
+    assert status_dict.API_VALID_STATUSES == (
+        Status.ACTIVE.value,
+        Status.WITHDRAWN_NORMALIZED.value,
+        Status.UNKNOWN.value,
+    )
 
 
 def test_containers_are_the_shared_sets():
@@ -123,5 +180,5 @@ def test_ui_containers_are_the_shared_sets():
 def test_api_valid_statuses_is_still_a_tuple():
     """`API_VALID_STATUSES` 类型保持 tuple（原 `_VALID_STATUSES` 为 tuple，`in` 判定语义不变）。"""
     assert isinstance(status_dict.API_VALID_STATUSES, tuple)
-    assert "现行" in status_dict.API_VALID_STATUSES
-    assert "废止" not in status_dict.API_VALID_STATUSES  # 旧拼写不在 API 白名单（与重构前一致）
+    assert Status.ACTIVE.value in status_dict.API_VALID_STATUSES
+    assert Status.WITHDRAWN.value not in status_dict.API_VALID_STATUSES  # 旧拼写不在 API 白名单（与重构前一致）

@@ -17,6 +17,7 @@ from jose import jwt
 
 from docker.auth import COOKIE_NAME
 from docker.manager import get_manager_dep
+from pilotstd.core.status import Status
 
 
 def _admin_token() -> str:
@@ -311,7 +312,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_result = MagicMock()
         mock_result.standard_number = "GB/T 1-2020"
         mock_result.standard_name = "测试"
-        mock_result.status = "现行"
+        mock_result.status = Status.ACTIVE.value
         mock_result.source_site = "test"
         mock_stats = MagicMock()
         mock_mgr = MagicMock()
@@ -330,7 +331,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_mgr.get_pending_items.return_value = [
             {
                 "standard_number": "GB/T 1-2020",
-                "status": "待确认",
+                "status": Status.PENDING.value,
                 "source_site": "njbz365",
             }
         ]
@@ -463,7 +464,7 @@ class TestAPIEndpoints(unittest.TestCase):
         mock_result = QueryResult(
             standard_number="GB/T 1-2020",
             standard_name="测试标准",
-            status="现行",
+            status=Status.ACTIVE.value,
             source_site="njbz365",
             match_status="exact",
         )

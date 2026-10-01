@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.manager.organize.expire import merge_expire_from_source
 from pilotstd.models import ParsedStdInfo
 
@@ -92,11 +93,11 @@ class TestMergeExpireFromSource:
         p.source_path = str(src_dir / "test.pdf")
         (src_dir / "test.pdf").touch()
 
-        expire_dir = src_dir / "已废止"
+        expire_dir = src_dir / Status.WITHDRAWN_NORMALIZED.value
         expire_dir.mkdir()
         (expire_dir / "old.pdf").touch()
 
-        cfg.get.return_value = "已废止"
+        cfg.get.return_value = Status.WITHDRAWN_NORMALIZED.value
 
         with patch("pilotstd.organizer.industry_lookup.get_folder_name", return_value="SH"):
             result = merge_expire_from_source(cfg, str(root), [p])

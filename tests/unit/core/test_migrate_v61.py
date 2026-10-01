@@ -125,6 +125,17 @@ def test_column_without_default_is_skipped(conn):
     assert _ddl(conn, "file_index") == before
 
 
+def test_sentinel_historical_default_matches_enum_value():
+    """**Sentinel 5**（#32-D）：历史迁移写死的中文默认值必须仍等于枚举值。
+
+    v2/v3 的 `DEFAULT '现行'` 与 v16 的 `DEFAULT '未知'` 受 P-106 保护、不可改；
+    本哨兵把"字典与历史 DDL 的中文契约"钉在一起——改枚举 value 会在此处立刻暴露。
+    """
+    # Sentinel: 确保枚举 value 与现网中文契约一致（历史迁移 DDL 里的默认值）
+    assert Status.ACTIVE.value == "现行"
+    assert Status.UNKNOWN.value == "未知"
+
+
 def test_migration_is_registered_at_version_61():
     """迁移注册号与 CURRENT_SCHEMA_VERSION 一致（防漏注册/错号）。"""
     from pilotstd.core.db._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS

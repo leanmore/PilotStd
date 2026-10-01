@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
+from pilotstd.core.status import Status
 from tests.mocks.mock_database import MockDatabase
 
 
@@ -108,7 +109,7 @@ class TestCoreDeepComplete(unittest.TestCase):
                 db.execute(
                     "INSERT INTO standard_validity "
                     "(standard_number,status,next_check_at,created_at,updated_at) VALUES (?,?,?,?,?)",
-                    (f"DUE-{i}", "未知", past, past, past),
+                    (f"DUE-{i}", Status.UNKNOWN.value, past, past, past),
                 )
             vc = ValidityChecker(db)
             sample = vc.get_due_standards_random(3)

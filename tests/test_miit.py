@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -32,7 +33,7 @@ class TestMIITAdapter(unittest.TestCase):
         self.assertEqual(result.standard_name, "钢制焊接低压储罐")
         self.assertEqual(result.publish_date, "2012-11-07")
         self.assertEqual(result.implementation_date, "2013-03-01")
-        self.assertEqual(result.status, "现行")
+        self.assertEqual(result.status, Status.ACTIVE.value)
         self.assertEqual(result.source_site, "miit")
 
     def test_parse_result_empty(self):

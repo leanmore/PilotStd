@@ -10,6 +10,7 @@ if root_dir not in sys.path:
 
 import unittest
 
+from pilotstd.core.status import Status
 from pilotstd.models import ParsedStdInfo
 from pilotstd.pipeline.router import PipelineRouter
 
@@ -69,27 +70,27 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
     # ════════════════════════════════════════════════════════════
 
     def test_gb_active_exact(self):
-        p = _p("GB/T", 19001, 2020, "现行", "exact", std_name="质量管理体系")
+        p = _p("GB/T", 19001, 2020, Status.ACTIVE.value, "exact", std_name="质量管理体系")
         b = self._buckets([p])
         self.assertEqual(len(b["normalize"]), 1)  # 文件存在但名称不匹配→normalize
 
     def test_gb_active_newer(self):
-        p = _p("GB/T", 19001, 2016, "现行", "newer")
+        p = _p("GB/T", 19001, 2016, Status.ACTIVE.value, "newer")
         b = self._buckets([p])
         self.assertEqual(len(b["download"]), 1)  # newer+GB→download（规则1）
 
     def test_gb_repealed_with_replaces(self):
-        p = _p("GB", 150, 1998, "废止", "exact", found_replaces="GB/T 150.1-2011")
+        p = _p("GB", 150, 1998, Status.WITHDRAWN.value, "exact", found_replaces="GB/T 150.1-2011")
         b = self._buckets([p])
         self.assertEqual(len(b["download"]), 1)
 
     def test_gb_repealed_no_replaces(self):
-        p = _p("GB", 12345, 1990, "废止", "exact", found_replaces="")
+        p = _p("GB", 12345, 1990, Status.WITHDRAWN.value, "exact", found_replaces="")
         b = self._buckets([p])
         self.assertEqual(len(b["organize"]), 1)
 
     def test_gb_pending_goes_to_pending(self):
-        p = _p("GB", 99999, 2099, "待确认", "related")
+        p = _p("GB", 99999, 2099, Status.PENDING.value, "related")
         b = self._buckets([p])
         self.assertEqual(len(b["pending"]), 1)
 
@@ -99,19 +100,19 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
 
     def test_industry_newer_not_gb_no_download(self):
         """行业标准 newer → 不可下载（只有 GB 类可进 download）"""
-        p = _p("SH/T", 1610, 2001, "现行", "newer")
+        p = _p("SH/T", 1610, 2001, Status.ACTIVE.value, "newer")
         b = self._buckets([p])
         # 规则1 限 is_gb → SH/T newer 不会进 download
         self.assertEqual(len(b["download"]), 0)
 
     def test_industry_repealed_no_download(self):
-        p = _p("NB/T", 47013, 2005, "废止", "exact", found_replaces="NB/T 47013-2015")
+        p = _p("NB/T", 47013, 2005, Status.WITHDRAWN.value, "exact", found_replaces="NB/T 47013-2015")
         b = self._buckets([p])
         # 替代标准为非GB → manual_download
         self.assertEqual(len(b["manual_download"]), 1)
 
     def test_industry_active_exact(self):
-        p = _p("HG/T", 20592, 2009, "现行", "exact", std_name="钢制管法兰")
+        p = _p("HG/T", 20592, 2009, Status.ACTIVE.value, "exact", std_name="钢制管法兰")
         b = self._buckets([p])
         self.assertEqual(len(b["normalize"]), 1)  # 文件存在但名称不匹配→normalize
 
@@ -121,12 +122,12 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
 
     def test_foreign_newer_not_gb_no_download(self):
         """API 标准 newer → 不可下载（is_gb=False）"""
-        p = _p("API", 610, 2004, "现行", "newer")
+        p = _p("API", 610, 2004, Status.ACTIVE.value, "newer")
         b = self._buckets([p])
         self.assertEqual(len(b["download"]), 0)
 
     def test_foreign_active_exact(self):
-        p = _p("ASME", 1, 2021, "现行", "exact", std_name="Boiler Code")
+        p = _p("ASME", 1, 2021, Status.ACTIVE.value, "exact", std_name="Boiler Code")
         b = self._buckets([p])
         self.assertEqual(len(b["normalize"]), 1)  # 文件存在但名称不匹配→normalize
 
@@ -136,7 +137,7 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
         self.assertEqual(len(b["pending"]), 1)
 
     def test_foreign_repealed_no_download(self):
-        p = _p("BS", 1092, 2018, "废止", "exact", found_replaces="BS EN 1092.1-2025")
+        p = _p("BS", 1092, 2018, Status.WITHDRAWN.value, "exact", found_replaces="BS EN 1092.1-2025")
         b = self._buckets([p])
         # 替代标准为非GB → manual_download
         self.assertEqual(len(b["manual_download"]), 1)
@@ -146,7 +147,7 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
     # ════════════════════════════════════════════════════════════
 
     def test_local_active_exact(self):
-        p = _p("DB35", 1234, 2020, "现行", "exact", std_name="福建省地方标准")
+        p = _p("DB35", 1234, 2020, Status.ACTIVE.value, "exact", std_name="福建省地方标准")
         b = self._buckets([p])
         self.assertEqual(len(b["normalize"]), 1)  # 文件存在但名称不匹配→normalize
 
@@ -166,18 +167,18 @@ class TestRouterClassifyAfterQuery(unittest.TestCase):
 
     def test_即将实施_goes_to_fallback(self):
         """即将实施状态不在明确规则中 → fallback"""
-        p = _p("GB/T", 4053, 2025, "即将实施", "exact")
+        p = _p("GB/T", 4053, 2025, Status.UPCOMING.value, "exact")
         b = self._buckets([p])
         self.assertEqual(len(b["fallback"]), 1)
 
     def test_multi_item_mixed_types(self):
         """混合标准类型 → 各自正确分桶（规格 v1.0）"""
         items = [
-            _p("GB/T", 55555, 2020, "现行", "exact", std_name="质量管理体系"),
-            _p("GB/T", 19001, 2016, "现行", "newer"),  # → download（规则1）
-            _p("SH/T", 1610, 2011, "现行", "exact", std_name="苯乙烯-丁二烯橡胶"),
-            _p("API", 610, 2004, "现行", "newer"),  # → normalize（规则1限GB，走到规则8）
-            _p("GB", 12345, 1990, "废止", "exact", found_replaces=""),  # → expire
+            _p("GB/T", 55555, 2020, Status.ACTIVE.value, "exact", std_name="质量管理体系"),
+            _p("GB/T", 19001, 2016, Status.ACTIVE.value, "newer"),  # → download（规则1）
+            _p("SH/T", 1610, 2011, Status.ACTIVE.value, "exact", std_name="苯乙烯-丁二烯橡胶"),
+            _p("API", 610, 2004, Status.ACTIVE.value, "newer"),  # → normalize（规则1限GB，走到规则8）
+            _p("GB", 12345, 1990, Status.WITHDRAWN.value, "exact", found_replaces=""),  # → expire
             _p("DIN", 11851, 1998, "", ""),  # → pending
         ]
         b = self._buckets(items)
@@ -197,11 +198,11 @@ class TestRouterApplyActions(unittest.TestCase):
 
     def test_apply_actions_sets_next_action(self):
         items = [
-            _p("GB/T", 19001, 2020, "现行", "exact", std_name="质量管理体系"),
-            _p("GB/T", 19001, 2016, "现行", "newer"),
-            _p("GB", 12345, 1990, "废止", "exact", found_replaces=""),
-            _p("SH/T", 9999, 2020, "待确认", "related"),
-            _p("GB/T", 99999, 2099, "即将实施", "exact"),
+            _p("GB/T", 19001, 2020, Status.ACTIVE.value, "exact", std_name="质量管理体系"),
+            _p("GB/T", 19001, 2016, Status.ACTIVE.value, "newer"),
+            _p("GB", 12345, 1990, Status.WITHDRAWN.value, "exact", found_replaces=""),
+            _p("SH/T", 9999, 2020, Status.PENDING.value, "related"),
+            _p("GB/T", 99999, 2099, Status.UPCOMING.value, "exact"),
         ]
         self.router.apply_actions(items)
 

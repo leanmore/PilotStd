@@ -11,6 +11,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.engine._single import SingleQueryHandler
 from pilotstd.query.models import QueryResult
 
@@ -266,7 +267,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp = _make_adapter("site_a", found_result=found)
@@ -356,7 +357,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp_a = _make_adapter("site_a")
@@ -389,7 +390,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp_b = _make_adapter("site_b", found_result=found)
@@ -420,7 +421,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp = _make_adapter("site_a", found_result=found)
@@ -448,7 +449,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp = _make_adapter("site_a", found_result=found)
@@ -477,7 +478,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number=self.target,
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="fuzzy",
         )
         adp = _make_adapter("site_a", found_result=found)
@@ -506,7 +507,7 @@ class TestStepQueryAdapters(unittest.TestCase):
         found = QueryResult(
             standard_number="",  # 空
             standard_name="质量管理体系",
-            status="现行",
+            status=Status.ACTIVE.value,
             match_status="exact",
         )
         adp = _make_adapter("site_a", found_result=found)

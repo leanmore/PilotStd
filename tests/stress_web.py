@@ -86,6 +86,8 @@ _check("环境: Docker可达", True)
 # ── 进度心跳（每60秒，供 stress_driver 存活检测）──
 import threading as _thr  # noqa: E402
 
+from pilotstd.core.status import Status
+
 _prog_total = 4  # AUTH-01 + AUTH-02 + BIZ-12 + BIZ-13
 _prog_completed = [0]
 _prog_ok = [0]
@@ -261,7 +263,7 @@ _sample_results = [
     {
         "standard_number": "GB/T 1-2020",
         "standard_name": "测试标准",
-        "status": "现行",
+        "status": Status.ACTIVE.value,
         "source_site": "test",
         "match_status": "精确匹配",
         "is_adopted": False,

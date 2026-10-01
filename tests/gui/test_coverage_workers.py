@@ -19,6 +19,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
+
 root_dir = __import__("os").path.dirname(
     __import__("os").path.dirname(__import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 )
@@ -210,7 +212,7 @@ class TestRowUpdateDefaults:
             seq=5,
             parsed=parsed,
             work_status="已下载",
-            effect_status="现行",
+            effect_status=Status.ACTIVE.value,
             implement_date="2024-06-01",
             std_name_override="自定义名称",
             responsible_dept="归口单位",
@@ -221,7 +223,7 @@ class TestRowUpdateDefaults:
 
         assert row.seq == 5
         assert row.work_status == "已下载"
-        assert row.effect_status == "现行"
+        assert row.effect_status == Status.ACTIVE.value
         assert row.implement_date == "2024-06-01"
         assert row.std_name_override == "自定义名称"
         assert row.responsible_dept == "归口单位"
@@ -387,7 +389,7 @@ class TestArchiveWorker:
             number=12345,
             year=2024,
             std_name="已废止标准",
-            effect_status="废止",
+            effect_status=Status.WITHDRAWN.value,
         )
         result = ArchiveWorker.target_path(parsed, "/tmp/lib")
         assert "过期作废" in result

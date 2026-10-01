@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pilotstd.core.status import Status
 from pilotstd.ui.core.handlers.auto_flow_engine import AutoFlowEngine
 
 
@@ -33,8 +34,8 @@ class TestAutoFlowEngine:
 
     def test_all_found_valid(self):
         results = [
-            _FakeResult("GB/T 1.1", "现行", False, "GB/T 1.1-2020"),
-            _FakeResult("GB/T 1.2", "现行", False, "GB/T 1.2-2020"),
+            _FakeResult("GB/T 1.1", Status.ACTIVE.value, False, "GB/T 1.1-2020"),
+            _FakeResult("GB/T 1.2", Status.ACTIVE.value, False, "GB/T 1.2-2020"),
         ]
         stats = AutoFlowEngine.build_summary_stats(results)
         assert stats["total"] == 2
@@ -46,8 +47,8 @@ class TestAutoFlowEngine:
 
     def test_not_found_detected(self):
         results = [
-            _FakeResult("GB/T 1.1", "现行", False, "GB/T 1.1"),
-            _FakeResult("", "现行", False, "GB/T 1.2"),
+            _FakeResult("GB/T 1.1", Status.ACTIVE.value, False, "GB/T 1.1"),
+            _FakeResult("", Status.ACTIVE.value, False, "GB/T 1.2"),
         ]
         stats = AutoFlowEngine.build_summary_stats(results)
         assert stats["total"] == 2
@@ -59,10 +60,10 @@ class TestAutoFlowEngine:
 
     def test_expired_detected(self):
         results = [
-            _FakeResult("GB/T 1.1", "废止", False, "GB/T 1.1"),
-            _FakeResult("GB/T 1.2", "已废止", False, "GB/T 1.2"),
-            _FakeResult("GB/T 1.3", "作废", False, "GB/T 1.3"),
-            _FakeResult("GB/T 1.4", "现行", False, "GB/T 1.4"),
+            _FakeResult("GB/T 1.1", Status.WITHDRAWN.value, False, "GB/T 1.1"),
+            _FakeResult("GB/T 1.2", Status.WITHDRAWN_NORMALIZED.value, False, "GB/T 1.2"),
+            _FakeResult("GB/T 1.3", Status.VOIDED.value, False, "GB/T 1.3"),
+            _FakeResult("GB/T 1.4", Status.ACTIVE.value, False, "GB/T 1.4"),
         ]
         stats = AutoFlowEngine.build_summary_stats(results)
         assert stats["total"] == 4
@@ -70,8 +71,8 @@ class TestAutoFlowEngine:
 
     def test_adopted_detected(self):
         results = [
-            _FakeResult("GB/T 1.1", "现行", True, "GB/T 1.1"),
-            _FakeResult("GB/T 1.2", "现行", False, "GB/T 1.2"),
+            _FakeResult("GB/T 1.1", Status.ACTIVE.value, True, "GB/T 1.1"),
+            _FakeResult("GB/T 1.2", Status.ACTIVE.value, False, "GB/T 1.2"),
         ]
         stats = AutoFlowEngine.build_summary_stats(results)
         assert stats["adopted_count"] == 1
@@ -80,11 +81,11 @@ class TestAutoFlowEngine:
 
     def test_mixed_results(self):
         results = [
-            _FakeResult("GB/T 1.1", "现行", False, "GB/T 1.1"),
-            _FakeResult("", "现行", False, "GB/T 1.2"),
-            _FakeResult("GB/T 1.3", "废止", False, "GB/T 1.3"),
-            _FakeResult("GB/T 1.4", "现行", True, "GB/T 1.4"),
-            _FakeResult("GB/T 1.5", "现行", False, "GB/T 1.5"),
+            _FakeResult("GB/T 1.1", Status.ACTIVE.value, False, "GB/T 1.1"),
+            _FakeResult("", Status.ACTIVE.value, False, "GB/T 1.2"),
+            _FakeResult("GB/T 1.3", Status.WITHDRAWN.value, False, "GB/T 1.3"),
+            _FakeResult("GB/T 1.4", Status.ACTIVE.value, True, "GB/T 1.4"),
+            _FakeResult("GB/T 1.5", Status.ACTIVE.value, False, "GB/T 1.5"),
         ]
         stats = AutoFlowEngine.build_summary_stats(results)
         assert stats["total"] == 5

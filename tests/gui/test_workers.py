@@ -1,6 +1,7 @@
 import threading
 from unittest.mock import MagicMock
 
+from pilotstd.core.status import Status
 from pilotstd.query.models import QueryResult
 from pilotstd.ui.workers import QueryWorker
 
@@ -13,7 +14,7 @@ def _make_mock_manager(results_count: int):
         r = QueryResult(
             standard_number=f"GB/T {i}",
             standard_name=f"测试标准_{i}",
-            status="现行",
+            status=Status.ACTIVE.value,
             source_site="mock",
         )
         results.append(r)
@@ -53,7 +54,7 @@ def test_query_worker_stops_on_stop(qtbot):
             r = QueryResult(
                 standard_number=f"GB/T {i}",
                 standard_name=f"测试标准_{i}",
-                status="现行",
+                status=Status.ACTIVE.value,
                 source_site="mock",
             )
             results.append(r)

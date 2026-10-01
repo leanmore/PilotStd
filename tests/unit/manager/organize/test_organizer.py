@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pilotstd.core.status import Status
 from pilotstd.manager.organize.organizer import OrganizerCore
 
 # ── 辅助：构造 ParsedStdInfo 风格的 mock 对象 ──
@@ -17,7 +18,7 @@ def _make_item(
     std_name: str = "Test Standard",
     next_action: str = "",
     part: int | None = None,
-    effect_status: str = "现行",
+    effect_status: str = Status.ACTIVE.value,
     raw_number: str = "",
     **kwargs,
 ):

@@ -9,6 +9,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
+from pilotstd.core.status import Status
 from tests.mocks.mock_database import MockDatabase
 
 # ═══════════════════════════════════════════════════════
@@ -430,7 +431,7 @@ class TestQueryHandlerDeep(unittest.TestCase):
         from pilotstd.manager.facade._query import QueryHandler
 
         h = QueryHandler(self.core)
-        self.assertIn("废止", h._EXPIRE_STATUSES)
+        self.assertIn(Status.WITHDRAWN.value, h._EXPIRE_STATUSES)
 
     def test_query_announcement_timeout(self):
         import requests
