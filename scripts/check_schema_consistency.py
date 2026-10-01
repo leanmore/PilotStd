@@ -196,6 +196,8 @@ def main() -> int:
         print(f"汇总: EXTRA={extras} (严重), MISSING={missing}")
         if missing > 0:
             print("错误: Schema 不一致，请同步测试表结构后重新提交。")
+            print("提示: 若只是想构造局部表形态，请用**中性表名**建表后 `ALTER TABLE … RENAME TO <生产表名>`")
+            print("      （RENAME 会保留 DEFAULT 子句；直接 CREATE TABLE <生产表名> 会因列集不全被判 MISSING）")
             return 1
         else:
             print("警告: 请逐步修复 EXTRA 项。")

@@ -332,6 +332,40 @@ run_lint_fast() {
 }
 
 # ============================================================
+# 门禁受控测试自查（R16 P0，2026-10-01）
+# ------------------------------------------------------------
+# 起因（技术债「`tests/` 受控测试不在本地门禁路径」）：批 6 把 G-040 存量基线清零，
+# 而 tests/test_check_i18n_hardcoded.py 断言「基线文件存在」，CI test-backend 红
+# （run 36293074107），本地 `--fast --guards --local` 却全绿——因为 G-040 只跑门禁脚本
+# 本体，不跑它自己的受控测试。
+# 处置：① `--fast` 下暂存变更命中「G-040 基线 / 其门禁脚本」时自动跑对应受控测试；
+#       ② `--deep` 无条件跑一遍（CI 的 trinity-gate 会执行 `--deep`，故 CI 侧同样兜住）。
+# 扩展方式：新增门禁基线时，在下方 case 里加一条「基线路径 → 受控测试」映射。
+# ============================================================
+run_gate_selftests() {
+    local force="${1:-0}"
+    echo ""
+    echo "🧪 门禁受控测试自查（R16 P0）..."
+
+    if [ "$force" -ne 1 ] && [ "$WITH_LINT" -ne 1 ]; then
+        local staged_gate
+        staged_gate=$(git diff --cached --name-only --diff-filter=ACMRD 2>/dev/null \
+            | grep -E '^scripts/(i18n_hardcoded_baseline\.txt|check_i18n_hardcoded\.py)$' || true)
+        if [ -z "$staged_gate" ]; then
+            echo "   ⏭  暂存区未触及 G-040 基线/门禁脚本，跳过（--deep 会无条件跑）"
+            return 0
+        fi
+        echo "   📋 命中门禁变更：$(echo "$staged_gate" | tr '\n' ' ')"
+    fi
+
+    if python -m pytest tests/test_check_i18n_hardcoded.py -q; then
+        log_pass "门禁受控测试（G-040 基线）"
+    else
+        log_fail "门禁受控测试失败 — 改基线/门禁脚本后必须让对应受控测试通过"
+    fi
+}
+
+# ============================================================
 # 主调度
 # ============================================================
 for _mode in "${MODES[@]}"; do
@@ -339,12 +373,14 @@ for _mode in "${MODES[@]}"; do
         --fast)
             run_fast
             run_lint_fast
+            run_gate_selftests 0
             ;;
         --docs)
             run_docs
             ;;
         --deep)
             run_deep
+            run_gate_selftests 1
             ;;
         --guards)
             run_guards
