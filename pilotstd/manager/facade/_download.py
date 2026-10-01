@@ -126,6 +126,7 @@ class DownloadHandler:
         for idx, (orig_idx, task, parsed) in enumerate(tasks):
             result = self._core.download_engine.download_single(task, skip_adopted=True)
             completed.append(result)
+            stats.total += 1
 
             if result.status.value == "success":
                 stats.success += 1
@@ -151,6 +152,33 @@ class DownloadHandler:
                 on_progress(idx + 1, total)
 
         self._core.download_tasks = completed
+
+        # 通知接线：download_batch 路径由引擎内部发 batch_download_complete，本流式
+        # 路径手工累加 stats 属另一条实现，必须自行补发，否则 Web(/api/download) 与
+        # 桌面(DownloadWorker) 批量下载结束零通知；favorites 链经 run_paced_batches
+        # 自建汇总，不经过本方法，故不会重复通知。
+        # 载荷四键与引擎 _notify_download_complete 同口径（builders 读取同名键）：
+        # total 由循环累加，本方法记 skipped_exists 而通知口径用 skipped，故直接映射。
+        if self._core.notification_mgr:
+            try:
+                self._core.notification_mgr.send_event(
+                    "batch_download_complete",
+                    {
+                        "total": stats.total,
+                        "success": stats.success,
+                        "failed": stats.failed,
+                        "skipped": stats.skipped_exists,
+                    },
+                )
+            except Exception as e:
+                logger.warning("批量下载完成通知发送失败: %s", e)
+
+        logger.info(
+            "流式下载完成: 成功 %d, 跳过 %d, 失败 %d",
+            stats.success,
+            stats.skipped_exists,
+            stats.failed,
+        )
         return completed, stats
 
     def download_by_numbers(self, numbers: list[str]) -> tuple[list[DownloadTask], Any]:

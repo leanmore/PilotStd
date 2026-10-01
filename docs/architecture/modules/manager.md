@@ -113,3 +113,7 @@ StandardManager (BaseFacade)
 - [UI 模块](ui.md) — MainWindow 通过 `self._mgr` 调用本模块
 - [查询适配器](query.md) — 适配器注册与路由
 - [解析器模块](parser.md) — 标准号解析
+
+## 近期变更
+
+- **2026-09-26**：`facade/_download.py::download_stream` 补齐 `batch_download_complete` 通知接线。此前该流式路径手工累加 `BatchDownloadStats`，从不传 `notification_mgr`（同文件 `download()` 则显式传入），导致 Web `/api/download` 与桌面 `DownloadWorker` 的批量下载结束零通知，而收藏链经 `download_engine.run_paced_batches()` 自建汇总——两条路径行为不一致。修复含两处细节：`stats.total` 在循环内累加（`_notify_download_complete` 读该字段，原为 0）；通知口径的 `skipped` 映射自本方法的 `skipped_exists`（引擎侧读 `skipped_adopted`，两字段不同）。通知失败仅 `logger.warning`，不阻断下载。契约由 `tests/unit/manager/facade/test_download_handler.py::TestDownloadStream` 四例锁定（成功/失败/跳过/零任务）。设计方案见 [通知重构设计](../../plans/notification-refactor-design.md)。

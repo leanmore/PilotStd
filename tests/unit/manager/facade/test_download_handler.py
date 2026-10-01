@@ -181,6 +181,103 @@ class TestDownloadStream:
         completed, stats = handler.download_stream()
         assert stats.failed == 1
 
+    def test_stream_sends_notification(self, handler, mock_core):
+        """流式下载结束必须发 batch_download_complete（主下载链路通知接线）。
+
+        回归背景：download_stream 手工累加 stats，从不传 notification_mgr，
+        导致 Web（/api/download）与桌面（DownloadWorker）批量下载结束零通知，
+        而 favorites 链（经 run_paced_batches）自己发通知——两条路径行为不一致。
+        """
+        parsed = MagicMock()
+        mock_core.download_list = [parsed]
+        mock_core.queried_items = [parsed]
+        result_mock = MagicMock()
+        result_mock.standard_number = "GB/T 1234"
+        result_mock.source_site = "ahbz"
+        mock_core.query_results = [result_mock]
+
+        dl_task = DownloadTask(
+            standard_number="GB/T 1234",
+            query_result=result_mock,
+            source_site="ahbz",
+        )
+        dl_task.status = DownloadStatus.SUCCESS
+        dl_task.saved_path = "/out/test.pdf"
+        mock_core.download_engine.download_single.return_value = dl_task
+
+        handler.download_stream()
+
+        mock_core.notification_mgr.send_event.assert_called_once_with(
+            "batch_download_complete",
+            {"total": 1, "success": 1, "failed": 0, "skipped": 0},
+        )
+
+    def test_stream_notification_counts_failure(self, handler, mock_core):
+        """失败条目必须计入通知的 failed，且 total 覆盖全部分类。"""
+        parsed = MagicMock()
+        mock_core.download_list = [parsed]
+        mock_core.queried_items = [parsed]
+        result_mock = MagicMock()
+        result_mock.standard_number = "GB/T 1234"
+        result_mock.source_site = "ahbz"
+        mock_core.query_results = [result_mock]
+
+        dl_task = DownloadTask(
+            standard_number="GB/T 1234",
+            query_result=result_mock,
+            source_site="ahbz",
+        )
+        dl_task.status = DownloadStatus.FAILED
+        mock_core.download_engine.download_single.return_value = dl_task
+
+        handler.download_stream()
+
+        mock_core.notification_mgr.send_event.assert_called_once_with(
+            "batch_download_complete",
+            {"total": 1, "success": 0, "failed": 1, "skipped": 0},
+        )
+
+    def test_stream_notification_skipped_maps_to_skipped(self, handler, mock_core):
+        """跳过（文件已存在）必须计入通知的 skipped，而非丢失。
+
+        download_stream 记的是 stats.skipped_exists，而 _notify_download_complete
+        读的是 stats.skipped_adopted；不归一化会导致 skipped 恒为 0。
+        """
+        parsed = MagicMock()
+        mock_core.download_list = [parsed]
+        mock_core.queried_items = [parsed]
+        result_mock = MagicMock()
+        result_mock.standard_number = "GB/T 1234"
+        result_mock.source_site = "ahbz"
+        mock_core.query_results = [result_mock]
+
+        dl_task = DownloadTask(
+            standard_number="GB/T 1234",
+            query_result=result_mock,
+            source_site="ahbz",
+        )
+        dl_task.status = DownloadStatus.SKIPPED
+        mock_core.download_engine.download_single.return_value = dl_task
+
+        handler.download_stream()
+
+        mock_core.notification_mgr.send_event.assert_called_once_with(
+            "batch_download_complete",
+            {"total": 1, "success": 0, "failed": 0, "skipped": 1},
+        )
+
+    def test_stream_no_tasks_sends_zero_summary(self, handler, mock_core):
+        """无任务时仍走同一通知流程（与 download_batch 无条件通知口径一致）。"""
+        mock_core.download_list = []
+        mock_core.query_results = []
+
+        handler.download_stream()
+
+        mock_core.notification_mgr.send_event.assert_called_once_with(
+            "batch_download_complete",
+            {"total": 0, "success": 0, "failed": 0, "skipped": 0},
+        )
+
 
 # ════════════════════════════════════════════════════════════
 # download 等待队列

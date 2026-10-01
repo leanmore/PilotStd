@@ -55,11 +55,13 @@ class WechatChannel(NotificationChannel):
             if isinstance(e, HTTPError):
                 try:
                     body = e.read().decode("utf-8", errors="replace")[:500]
-                except Exception:
-                    pass
+                except Exception as read_exc:
+                    # 区分"服务端未返回 body"与"body 读取失败"，避免诊断信息静默丢失
+                    body = f"<body 读取失败: {read_exc}>"
+                    logger.debug("错误响应体读取失败: %s", read_exc)
             # 透传具体错误描述
             self.last_error = f"{e}: {body}" if body else str(e)
-            logger.warning("企业微信通知异常: %s, body=%s", e, body)
+            logger.warning("企业微信通知异常: %s, body=%s", e, body, exc_info=True)
             return False
 
     @staticmethod
