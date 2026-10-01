@@ -61,11 +61,11 @@ def test_static_inventory_matches_r11_4_measurement() -> None:
     """静态口径：`self.skipTest` 60 处（T-20 原登记值）——运行期实测远小于此，故两者必须分开统计。"""
     counts = sc.static_inventory()["counts"]
     assert counts["skipTest"] == 60, f"self.skipTest 静态调用点由 60 变为 {counts['skipTest']}；请同步主簿 T-20"
-    # T-29 / R13-1：原 8 处永久 skip（facade 快照 ×4 + 批调度 ×4）已全部转为真实用例；
-    # 现存 2 处为 tests/gui/test_e2e_settings*.py 的空壳占位（另见主簿 T-33）。
-    assert counts["mark_skip"] == 2, (
-        f"永久 skip 标记由 2 变为 {counts['mark_skip']}；R13-1 已清零 T-29 的 8 处，"
-        "请同步主簿 T-29 / T-33"
+    # T-29 / R13-1：8 处永久 skip 转为真实用例；T-33 / R13-2：最后 2 处 GUI 空壳占位删除。
+    # 故 tests/ 下**永久 skip 应为 0**——任何新增都必须在此登记并同步主簿。
+    assert counts["mark_skip"] == 0, (
+        f"永久 skip 标记应为 0，实测 {counts['mark_skip']}；"
+        "新增永久 skip 需同步主簿并说明理由"
     )
 
 

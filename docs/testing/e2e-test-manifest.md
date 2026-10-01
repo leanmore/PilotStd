@@ -84,8 +84,7 @@
 
 | 文件 | 覆盖 Handler | 测试数 | 说明 |
 |------|-------------|--------|------|
-| [test_e2e_settings.py](../tests/gui/test_e2e_settings.py) | SettingsHandler | 1 | 设置处理器需要对话框 |
-| [test_e2e_settings_io.py](../tests/gui/test_e2e_settings_io.py) | SettingsIOHandler | 1 | 设置 I/O 需要设置处理器 |
+> **R13-2（2026-10-01）**：`test_e2e_settings.py` / `test_e2e_settings_io.py` 原为 `def test_x(): pass` 的**空壳 skip 占位**（无任何断言），已**删除**——静态普查 `mark_skip` 因此归零。SettingsHandler / SettingsConfigIO 的覆盖由 [test_settings_announce.py](../../tests/gui/test_settings_announce.py) / [test_settings_dialog.py](../../tests/gui/test_settings_dialog.py) 承担。
 
 ### 表格
 

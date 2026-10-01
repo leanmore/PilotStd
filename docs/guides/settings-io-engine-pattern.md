@@ -175,7 +175,7 @@ def _save_general(self) -> None:
 
 ### 4.2 Handler E2E 测试
 
-当前 `test_e2e_settings_io.py` 标记为 skip（需要完整 SettingsDialog 控件树）。本范式不改变外部接口，不影响现有测试。
+原 `test_e2e_settings_io.py` 为 `def test_x(): pass` 的**空壳 skip 占位**，已于 **R13-2（2026-10-01）删除**（静态普查 `mark_skip` 归零）；SettingsConfigIO 的覆盖由 `test_settings_announce.py` / `test_settings_dialog.py` 承担。本范式不改变外部接口。
 
 ---
 
