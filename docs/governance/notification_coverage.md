@@ -162,7 +162,7 @@ G-043 的 7 项豁免、G-045 未校验的 `level`/`module`/`aggregation`/`build
 
 ### L-22：`desktop_toast` 未登记进 `ALL_EVENTS`
 
-- **性质**：`desktop_toast` 是 L2 桌面协调层向 L1 服务端聚合器投递时使用的标签（唯一产出点 `pilotstd/core/notification_aggregator.py:537` 的 `self._new.push(...)`），**不经 `manager.send_event`、也无构建器与独立 i18n 键**（标题来自上游 `_(...)`）。
+- **性质**：`desktop_toast` 是 L2 桌面协调层向 L1 服务端聚合器投递时使用的标签（唯一产出点 `pilotstd/core/notification_aggregator.py:537` 的 `self._new.push(...)`），**不经 `manager.send_event`**，且**无独立构建器与 i18n 键**——其标题/正文由上游传入（如 `pilotstd/ui/core/handlers/_download.py:286` 传 `_("download_results_title")`），故多语言能力**继承自上游事件**，而非"没有 i18n 支持"。
 - **当前处置：方案 B（不登记）**——G-045 的 `[覆盖摘要]` 中显式声明该事件未覆盖，使 PASS 不再掩盖此盲区。不登记的理由：登记会**必然即红**（无 e2e `EVENTS` 条目 → G-045 阻断；无构建器 → i18n 维度判 False；`assert len(EVENTS)` 硬编码），需一次性改 6 个文件并引入"平台层事件"新分类。
 - **方案 A 触发条件**（满足任一即须实施）：
   1. 引入**第 2 个平台层事件**时——否则每加一个都要改摘要声明，声明本身会腐化；

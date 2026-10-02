@@ -266,8 +266,9 @@ def print_coverage(rows: list[dict[str, object]], blocking: list[str], tracked: 
         uncovered=(
             "**EVENTS 的 level/module/aggregation/builder_keys 未校验**"
             "（level 为 `a/b` 集合约定，表示构建器按分支取值的集合）；"
-            "`desktop_toast` 未登记进 ALL_EVENTS（平台层事件，已采纳方案 B 显式声明未覆盖，"
-            "方案 A 触发条件见 docs/governance/notification_coverage.md）"
+            "`desktop_toast` 无独立构建器与 i18n 键（标题继承自上游事件，如 "
+            "`_(\"download_results_title\")`），未登记进 ALL_EVENTS——已采纳方案 B 显式声明"
+            "未覆盖，方案 A 触发条件见 docs/governance/notification_coverage.md"
         ),
     )
 
