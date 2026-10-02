@@ -116,4 +116,5 @@ StandardManager (BaseFacade)
 
 ## 近期变更
 
+- **2026-10-02**：`facade/_base.py` 的通知收件人改为**构造时注入**（通知架构重设计阶段 1a 顺手项）。`BaseFacade.__init__` 新增关键字参数 `user_id: int = 1`，`_init_services()`（`:250` 附近）与 `_init_notification()` 的 `NotificationManager(..., user_id=1)` 硬编码改为 `user_id=self._facade_user_id`。**默认仍为 1，全部调用点（`StandardManager()` 的 12 处生产 + 22 处测试）零改动，`send_event` 签名与 51 个调用点不改**——当前为单用户部署，此举仅为将来多用户留门，属已登记技术债而非阻塞项（裁决 Q6）。背景与边界见 [06-阶段0-1实施方案.md](../../plans/notification-redesign/06-阶段0-1实施方案.md) §1.4。
 - **2026-09-26**：`facade/_download.py::download_stream` 补齐 `batch_download_complete` 通知接线。此前该流式路径手工累加 `BatchDownloadStats`，从不传 `notification_mgr`（同文件 `download()` 则显式传入），导致 Web `/api/download` 与桌面 `DownloadWorker` 的批量下载结束零通知，而收藏链经 `download_engine.run_paced_batches()` 自建汇总——两条路径行为不一致。修复含两处细节：`stats.total` 在循环内累加（`_notify_download_complete` 读该字段，原为 0）；通知口径的 `skipped` 映射自本方法的 `skipped_exists`（引擎侧读 `skipped_adopted`，两字段不同）。通知失败仅 `logger.warning`，不阻断下载。契约由 `tests/unit/manager/facade/test_download_handler.py::TestDownloadStream` 四例锁定（成功/失败/跳过/零任务）。设计方案见 [通知重构设计](../../plans/notification-refactor-design.md)。

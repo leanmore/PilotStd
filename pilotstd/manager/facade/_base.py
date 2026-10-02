@@ -90,7 +90,13 @@ class BaseFacade:
         db: Optional[Database] = None,
         query_adapters: Optional[List[BaseAdapter]] = None,
         download_adapters: Optional[List[BaseDownloadAdapter]] = None,
+        user_id: int = 1,
     ) -> None:
+        # 通知收件人（阶段 1a 顺手项）：原先在 _init_services/_init_notification 里
+        # 硬编码 user_id=1，现改为构造时注入但**默认仍为 1**。
+        # 这是为将来多用户留门，不是当前阻塞——当前为单用户部署，
+        # 且 51 个 send_event 调用点与 send_event 签名均不改（Q6 裁决：技术债，非阻塞）。
+        self._facade_user_id = user_id
         # 1.初始化_核心容器（先占位，后面逐步填充）
         self._core = ManagerCore(
             cfg=None,  # type: ignore[arg-type]
@@ -247,7 +253,9 @@ class BaseFacade:
         from ..validity_service import ValidityService
 
         self._core.validity_checker = ValidityChecker(self._core.db)
-        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)
+        self._core.notification_mgr = NotificationManager(
+            self._core.cfg, self._core.db, user_id=self._facade_user_id
+        )
         self._core.quota_tracker.set_notification_mgr(self._core.notification_mgr)
         self._core.pipeline_store = PipelineRunStore(self._core.db)
 
@@ -268,7 +276,9 @@ class BaseFacade:
 
     def _init_notification(self) -> None:
         """重新初始化通知模块（配置变更后调用）。"""
-        self._core.notification_mgr = NotificationManager(self._core.cfg, self._core.db, user_id=1)
+        self._core.notification_mgr = NotificationManager(
+            self._core.cfg, self._core.db, user_id=self._facade_user_id
+        )
 
     def _bind_methods(self) -> None:
         """将 Handler 方法绑定到 self，保持对外 API 不变。"""

@@ -18,6 +18,7 @@ import json
 import os
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -326,6 +327,59 @@ class TestSuppressedQueueFieldRoundTrip(unittest.TestCase):
         self.assertEqual(mgr.release_suppressed_notifications(), 1)
         self.assertEqual(captured[0].message_id, "")
         self.assertEqual(captured[0].delivery_status, "pending")
+
+
+class TestFacadeUserIdInjection(unittest.TestCase):
+    """阶段 1a 顺手项：通知收件人改构造时注入，**默认仍为 1**（裁决 Q6：技术债，非阻塞）。
+
+    验证方式：把 BaseFacade 的重活初始化全桩掉，只跑 __init__ 的编排，
+    捕获 _init_services/_init_notification 传给 NotificationManager 的 user_id。
+    """
+
+    def _run(self, **ctor_kwargs):
+        from unittest.mock import patch
+
+        from pilotstd.manager.facade._base import BaseFacade
+
+        fake_core = MagicMock()
+        fake_cfg = MagicMock()
+        fake_db = MagicMock()
+        captured: list[dict] = []
+
+        def fake_notification_manager(*args, **kwargs):
+            captured.append(kwargs)
+            return MagicMock()
+
+        with (
+            patch("pilotstd.manager.facade._base.ManagerCore", return_value=fake_core),
+            patch.object(BaseFacade, "_init_config_and_scanner", return_value=None),
+            patch.object(BaseFacade, "_init_query_subsystem", return_value=None),
+            patch.object(BaseFacade, "_init_download", return_value=None),
+            patch.object(BaseFacade, "_init_services", autospec=True) as init_services,
+            patch.object(BaseFacade, "_bind_methods", return_value=None),
+            patch("pilotstd.manager.facade._base.NotificationManager", side_effect=fake_notification_manager),
+        ):
+            init_services.side_effect = lambda self: BaseFacade._init_notification(self)
+            facade = BaseFacade(fake_cfg, fake_db, user_id=ctor_kwargs.get("user_id", 1))
+        return facade, captured
+
+    def test_default_user_id_is_one(self):
+        """不传 user_id 时默认 1（全部既有调用点零改动的前提）。"""
+        facade, captured = self._run()
+        self.assertEqual(facade._facade_user_id, 1)
+        self.assertEqual(captured[-1]["user_id"], 1)
+
+    def test_injected_user_id_is_forwarded(self):
+        """显式注入时按注入值构造（为将来多用户留门）。"""
+        facade, captured = self._run(user_id=7)
+        self.assertEqual(facade._facade_user_id, 7)
+        self.assertEqual(captured[-1]["user_id"], 7)
+
+    def test_no_hardcoded_user_id_remains(self):
+        """★ 防回归：源码里不得再有硬编码 user_id=1 传给 NotificationManager。"""
+        source = Path("pilotstd/manager/facade/_base.py").read_text(encoding="utf-8")
+        self.assertNotIn("NotificationManager(self._core.cfg, self._core.db, user_id=1)", source)
+        self.assertEqual(source.count("user_id=self._facade_user_id"), 2, "两处构造点都应注入")
 
 
 if __name__ == "__main__":
