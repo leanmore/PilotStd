@@ -68,6 +68,9 @@ export interface NotificationLog {
   error_msg: string | null
   sent_at: string
   is_read: boolean
+  // 说明（已核实）：后端 `GET /api/notification/logs` **不返回**下面三个字段
+  // （docker/api/notification.py 显式构造 10 个字段，不含它们），故前端不得据此渲染。
+  // 声明保留仅为记录曾存在的契约；若后端将来补上，需同步确认前端消费方。
   aggregated_count?: number
   link?: string | null
   icon?: string | null

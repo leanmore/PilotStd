@@ -48,11 +48,13 @@ function onResizeEnd() {
 }
 
 // 筛选
+// 说明：本页是**诊断工具**（排查"通知有没有发出去"），不是阅读渠道。
+// 故不提供"已读/未读"筛选与显示——渠道（Telegram 等）不提供已读回传，
+// 「已读」只能表示"用户在 Web 界面点过标记"，与"通知是否送达/是否看过"无关。
 const filterChannel = ref<string | null>(null)
 const filterStatus = ref<string | null>(null)
 const filterStartDate = ref<Date | null>(null)
 const filterEndDate = ref<Date | null>(null)
-const filterIsRead = ref<boolean | null>(null)
 
 function loadNotifFilters() {
   try {
@@ -63,7 +65,6 @@ function loadNotifFilters() {
     filterStatus.value = f.st ?? null
     filterStartDate.value = f.sd ? new Date(f.sd) : null
     filterEndDate.value = f.ed ? new Date(f.ed) : null
-    filterIsRead.value = f.ir ?? null
   } catch { /* ignore */ }
 }
 
@@ -72,11 +73,10 @@ function saveNotifFilters() {
     ch: filterChannel.value, st: filterStatus.value,
     sd: filterStartDate.value?.toISOString() ?? null,
     ed: filterEndDate.value?.toISOString() ?? null,
-    ir: filterIsRead.value,
   }))
 }
 
-watch([filterChannel, filterStatus, filterStartDate, filterEndDate, filterIsRead], saveNotifFilters, { deep: true })
+watch([filterChannel, filterStatus, filterStartDate, filterEndDate], saveNotifFilters, { deep: true })
 const highlightId = ref<number | null>(null)
 
 // 详情弹窗
@@ -114,11 +114,6 @@ const statusOptions = computed(() => [
   { label: t('notification.logs.status.all'), value: null },
   { label: t('notification.logs.status.success'), value: 'success' },
   { label: t('notification.logs.status.failed'), value: 'failed' },
-])
-const readOptions = computed(() => [
-  { label: t('notification.logs.status.all'), value: null },
-  { label: t('notification.logs.status.unread'), value: false },
-  { label: t('notification.logs.status.read'), value: true },
 ])
 
 // 渠道显示名：仅已配置 i18n 的渠道做映射，未知渠道原样回显（保持既有行为）
@@ -161,7 +156,6 @@ async function loadLogs() {
       status: filterStatus.value || undefined,
       start_date: formatDate(filterStartDate.value),
       end_date: formatDate(filterEndDate.value),
-      is_read: filterIsRead.value !== null ? filterIsRead.value : undefined,
     }, '/notification-logs')
     logs.value = r.items
     total.value = r.total
@@ -256,10 +250,6 @@ onBeforeUnmount(() => {
           <Select v-model="filterStatus" :options="statusOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="filter-item">
-          <label>{{ t('notification.logs.field.is_read') }}</label>
-          <Select v-model="filterIsRead" :options="readOptions" optionLabel="label" optionValue="value" />
-        </div>
-        <div class="filter-item">
           <label>{{ t('notification.logs.start_date') }}</label>
           <AppCalendar v-model="filterStartDate" dateFormat="yy-mm-dd" showIcon />
         </div>
@@ -299,7 +289,6 @@ onBeforeUnmount(() => {
                 <th>{{ t('notification.logs.field.channel') }}</th>
                 <th>{{ t('notification.logs.field.event') }}</th>
                 <th>{{ t('notification.logs.field.status') }}</th>
-                <th>{{ t('notification.logs.field.is_read') }}</th>
                 <th>{{ t('notification.logs.field.title') }}</th>
                 <th>{{ t('notification.logs.field.action') }}</th>
               </tr>
@@ -310,15 +299,7 @@ onBeforeUnmount(() => {
                 <td>{{ channelLabel(l.channel) }}</td>
                 <td>{{ eventLabel(l.event_type) }}</td>
                 <td><Tag :severity="statusSeverity(l.status)" :value="statusLabel(l.status)" /></td>
-                <td>
-                  <Tag v-if="l.is_read" severity="info" :value="t('notification.logs.status.read')" />
-                  <Tag v-else severity="warn" :value="t('notification.logs.status.unread')" />
-                  <Tag v-if="l.aggregated_count && l.aggregated_count > 1" severity="info" :value="'×' + l.aggregated_count" style="margin-left:4px" />
-                </td>
-                <td class="title-cell">
-                  <a v-if="l.link" :href="l.link" class="notif-link">{{ l.title }}</a>
-                  <span v-else>{{ l.title }}</span>
-                </td>
+                <td class="title-cell">{{ l.title }}</td>
                 <td><Button :label="t('notification.logs.view')" size="small" severity="secondary" text @click="showDetail(l)" /></td>
               </tr>
             </tbody>

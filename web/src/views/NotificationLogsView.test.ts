@@ -59,7 +59,45 @@ describe('NotificationLogsView', () => {
   it('renders filter section with channel and status selects', () => {
     const wrapper = mountComponent()
     const selects = wrapper.findAll('.filter-item')
-    expect(selects.length).toBe(5) // channel, status, read, start date, end date
+    // 渠道、状态、起始日期、结束日期 —— **不含**「已读」（见下方用例）
+    expect(selects.length).toBe(4)
+  })
+
+  it('★ 不提供「已读/未读」筛选与显示（渠道无已读回传，本页是诊断工具）', () => {
+    const wrapper = mountComponent()
+    const html = wrapper.html()
+    // 不出现「已读」「未读」文案（三语中该页的 read/unread 键已无消费方）
+    expect(html).not.toContain('已读')
+    expect(html).not.toContain('未读')
+    // 筛选区不含该标签
+    expect(html).not.toContain('notification.logs.field.is_read')
+  })
+
+  it('★ 表格不渲染「已读」列，且不渲染 API 不返回的 aggregated_count 徽标', async () => {
+    mockGetLogs.mockResolvedValueOnce({
+      items: [
+        {
+          id: 1, event_type: 'archive_complete', channel: 'wechat', title: '归档完成',
+          body: 'ok', standard_number: null, status: 'success', error_msg: null,
+          sent_at: '2026-06-30T10:00:00', is_read: false,
+          // 后端**不返回** aggregated_count / link / icon（已核实）；即便传了也不应渲染
+          aggregated_count: 5, link: 'https://example.invalid/x',
+        },
+      ],
+      total: 1,
+      page: 1,
+      page_size: 20,
+    })
+    const wrapper = mountComponent()
+    await nextTick()
+    await nextTick()
+    await nextTick()
+    const row = wrapper.find('tbody tr')
+    // 表头列数：时间/渠道/事件/状态/标题/操作 = 6（原先 7，含「已读」）
+    expect(wrapper.findAll('thead th').length).toBe(6)
+    expect(row.text()).toContain('归档完成')
+    expect(row.text()).not.toContain('×5')
+    expect(row.find('a').exists()).toBe(false)
   })
 
   it('renders filter action buttons (查询 and 重置)', () => {
