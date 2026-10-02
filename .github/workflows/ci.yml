@@ -446,6 +446,10 @@ jobs:
       - name: G-045 — 通知系统覆盖度基线（i18n / e2e / 审计三维度 + trigger_file 存在性）
         run: python scripts/audit_notification_coverage.py
 
+      - name: G-046 — 通知链路审计（吞错 / 空文本风险 / 缺空值守卫）
+        # L-08 接入：判定逻辑修复后问题数由 79 归零，故可零基线接入（不设静默基线）。
+        run: python scripts/audit_notification_chain.py --strict
+
   # ════════════════════════════════════════════════════════════════
   # Job 4: GUI E2E 测试（Windows，依赖 PyQt6，允许重试）
   # ════════════════════════════════════════════════════════════════

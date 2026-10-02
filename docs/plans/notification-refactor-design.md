@@ -13,7 +13,7 @@
 
 | 证据 | 采集命令 | 实测输出 |
 |------|---------|---------|
-| 事件/构建器/调用点/吞错 | `python scripts/audit_notification_chain.py` | 事件 35、构建器 36、调用点 47、吞错模式 3、问题总数 74、**退出码 1** |
+| 事件/构建器/调用点/吞错 | `python scripts/audit_notification_chain.py` | 事件 35、构建器 36、调用点 47、吞错模式 3、问题总数 74、**退出码 1**（**第 13 批 L-08 修复后实测：39 / 40 / 50 / 0 / 0 / 退出码 0**） |
 | 覆盖度四向交叉 | 上者 `--json` 后按 `events / builders / call_sites` 求差集 | 见 §4.1 |
 | 语言包规模 | `json.load` + 递归摊平 | Python 侧 zh_CN 664 / en 660 / zh_TW 581；Web 侧三语各 860 |
 | 硬编码中文 | 正则扫 `pilotstd/**/*.py` 字符串字面量 | **`notification` 包内 0 处**；全库 300 文件 3605 处 |

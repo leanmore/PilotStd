@@ -133,7 +133,7 @@
 | `audit_notification_coverage.py` | **G-045** | 阻断缺口 → 退出码 1 | ✅ `check_all.sh --fast` + `ci.yml`（紧跟 G-044） |
 | `check_sensitive_endpoint_audit.py` | G-043 | 敏感端点缺 `write_audit` | ✅ `check_all.sh --fast` + `ci.yml` |
 | `check_terminology.py` | G-044 | 禁用词命中 / 术语三语不一致 | ✅ `check_all.sh --fast` + `ci.yml` |
-| `audit_notification_chain.py` | — | 吞错/空文本风险 | ⏳ 未接入（存量 74 问题中 72 为误报，需先修判定逻辑） |
+| `audit_notification_chain.py` | **G-046** | 静默吞错 / 空文本风险 / 缺空值守卫 | ✅ `check_all.sh --fast` + `ci.yml`（紧跟 G-045，**问题数 79 → 0** 后接入） |
 
 **三个已接入门禁均打印 `[覆盖摘要]`（L-23）**：PASS 之后追加五段式摘要（`范围` /
 `检查项` / `检查口径` / `豁免明细`或`跟踪项明细` / `未覆盖说明`），显式声明**检查了什么、
@@ -156,12 +156,52 @@ G-045 的 38 个未登记术语表的事件。段标题按语义区分（G-045 �
 | 2 | **`_on_timer` 续期末轮跨越硬上界** | ✅ **已修复**（2026-09-26 专项） | `notification/aggregate_buffer.py::_on_timer` 的续期由「固定完整窗口」改为「`min(窗口, 到上界的剩余时间)`」，并在剩余不足 `min(窗口×0.1, 0.05)` 时直接强制发送。**缺陷上界**：`elapsed < MAX` 只保证"下一次续期会超时"，那次续期可能跨过上界**最多一个窗口 w** → 越界上界 `MAX + w`（生产 `w=5s/MAX=300s` 即 305s）。**实测判别**：`window=0.2s/max=0.3s` 时旧实现 409ms（越界 109ms）→ 新实现界内；`tests/test_scheduler_timer_drift.py` 对该比例 1 FAIL / 其余 13 pass。同批把两条发送路径统一移到**锁外**（原早退路径在 `with self._lock` 内发送），并新增"强制发送偏差 ms"告警日志与"续期下次触发时刻"调试日志。**过程更正**：专项前两次分析各错一次——先误判"必然越界一个完整窗口"（`w=5s/MAX=300s` 整除时不越界），后误判"旧实现永不越界"（由整除特例错误推广）；结论以上述实测比例为准。 |
 | 3 | **`_extract_topic` 主题分组跨语言失效** | ✅ **已修复**（2026-09-26 专项） | `core/notification_aggregator.py::_extract_topic` 原用**简体中文关键词**猜测主题，故 `失败`（zh_CN）命中而 `失敗`（zh_TW）不命中、英文标题全不命中，其余落到「标题前 8 字符 + `_`」兜底 → **同一事件在不同语言下归入不同分组**；实测 **46 个标题变体 × 3 语言中 65 条**落兜底。修法改为 **i18n 契约驱动**：扫三语语言包取 `notification.*` 下全部 `.title*` 键（47 键，实测 **39/39 可映射到事件**，唯一无关键是 `notification.channel.test.title`），建立「标题 → 主题」**精确索引（134 条）+ 9 条模板正则**（覆盖 `第 {round} 轮…` 裸值占位符与 `Scan Complete ({failed} unrecognized)` 计数形态）；生成正则时**仅把紧邻占位符的字面空白转为弹性 `\s*`**——否则占位符取空值时「通配符与字面空格争抢同一空格」会让 `Scan Complete ( unrecognized)` 失配（该缺陷由第三轮审核带出；首次修复用「折叠空白」机制错误且不生效，已改为弹性空白，实测完整形正则独立命中）；「括号去掉」变体**只针对含占位符的括号组，并连同其前导空白一并删除**——否则英文会留下尾随空格（`Scan Complete `）而与静态标题字面`Scan Complete` 不相等，成为**死正则**（第五轮审核发现；中英原本不对称）；**构建期冲突检测**——同一标题若推导出不同主题则告警（实测 0 冲突）。原简体关键词表保留为回退层（自定义标题向后兼容）。**终检（用渲染器同款 `str.format` 构造样本）**：标题变体（三语合计）**138 = 静态 132 + 动态 6**；动态 6 变体 × 12 取值 = 72 样本；**总样本 204，兜底 0**；跨语言主题不一致事件 **0**。**测试有效性前提**：样本必须用 `str.format` 而非 `re.sub` 构造——后者会产出渲染器**不会产出**的形态（如 `Scan Complete ()`），据此断言属无效验证（曾因此得出错误结论）。**实际生效范围（实测）**：全库唯一调用点，平台层调用方传 `_("download_results_title")` 这类静态键，故现实收益是"UI 切繁中/英文后分组重新正确"。**边界现状**：`第 {round} 轮…` 取空串渲染为双空格亦**能命中**（弹性空白覆盖），但该输入实际不可达（调用方恒传 `round = round_count + 1 ≥ 1`）；非 i18n 自定义标题的跨语言合并**不在范围内**（`TestCustomTitleBoundary` 锁定）。契约由 `tests/test_notification_aggregator_topic_i18n.py`（**53 例**）锁定。同批确认 `_BUFFER_WINDOW = 0.3s` **设计意图正确、不变更**——桌面 toast 合并窗口，与服务端 `DEFAULT_WINDOW_SECONDS = 5.0s` 分属两条独立链路（`TestBufferWindowIntent`）。 |
 
+### L-01：敏感端点审计（G-043 升级为函数级判定）
+
+- **判定升级**：G-043 原为**模块级**判定（同文件任一端点有 `write_audit` 即整模块通过），
+  实测该口径对 4 个敏感路由"通过"是**对的但理由不全对**：其中 3 个（`update_config` /
+  `api_change_password` / `login`）的审计**经同模块辅助函数**实现
+  （`_persist_config_and_audit` / `_audit_password_change` / `_notify_login_failure`），
+  故"只看函数体"会**假 FAIL**；而"展开同模块全部辅助函数"又会因
+  `trigger_cleanup → get_stats` 这类非审计调用**假 PASS**。
+  → 采用 **`AUDIT_WRAPPERS` 显式注册表**（当前 8 条，含 `write_audit` 本体）+
+  `validate_wrappers()` 自校验（每条必须真的调用 `write_audit`）。
+  **本方案以人工维护注册表换取判定精确性，不是消除依赖**。
+- **接线范围**：`EXEMPT_ROUTES` 由 7 项**清空为 0**——6 项 P1/P2 端点（用户增删 / 自助注册 /
+  日志批删 / 缓存清理 / 手动备份）共 **24 处出口**（成功 8 + 失败 16，按 HTTP 状态码区分）
+  全部接入审计；`POST /query` 本就函数可达 `write_audit`，移出豁免。
+- **B 类补漏（出口级，非端点级）**：两个已合规端点内部各有一处遗漏出口——
+  `notification.py` 的掩码字段预校验失败（400）补 `NOTIFICATION_CREDENTIAL_CHANGE_REJECTED`；
+  `auth.py` 的锁定超限（429）补 `LOGIN_ATTEMPT_BLOCKED`（含 **S2 时间闸门**去重：
+  该路径不写 `login_attempts`，计数停滞在阈值上，故不能用"恰好等于阈值"判断）。
+- **L2（出口覆盖）的定位：《接线约定，不进入 G-043 判定》**
+  G-043 只做 **L1（函数可达 `write_audit`）**。"产生状态变更的出口"无法纯静态判定
+  （需理解语义），故 L2 由**接线时遵守 + 测试断言**承担，而非门禁。
+  **本批 24 处接线已按 L2 处理**。
+
+### L-08：`audit_notification_chain.py`（G-046）
+
+- **判定缺陷与修复**（问题数 **79 → 0**）：
+  1. **A-1 `empty_text_risk` 是恒真式**：`(not has_body_kwarg) or empty_return`——40 个
+     构建器**无一填写 `body`**（正文载体是 `blocks`）→ 40/40 全误报；且没看 `blocks`/`title`，
+     而 `manager.py` 的硬约束是三者**至少一项非空**。改为"三者皆空才报"。
+  2. **A-2 `missing_null_guard` 过粗 74.8%**：只认 4 种窄形态，漏掉 `data.get(f, DEFAULT)`、
+     正向真值判断、`or` 兜底（含推导式内）、类型强转、裸下标、作为可空 dataclass 字段传入。
+     判定边界重新界定为"**字段无保护却进入 `str.format()`**"（此时 `None` 会渲染成 "None"）。
+  3. **A-3 不解析 `EVENT_*` 常量**：构建器侧与调用点侧均修复（共享常量符号表）；
+     无法静态确定者标 `<dynamic>`（**不臆造解析**）。
+- **接入**：`ci.yml` 与 `check_all.sh` 的 **G-046**（紧跟 G-045），`--strict`，
+  **零基线**——问题数为 0，任何新发现立即阻断（P-104 门禁不绕过）。
+- **判别力验证**：`tests/test_audit_notification_chain.py`（40 例）按"好形态不报 + 坏形态必报"
+  成对设计；注入修复前形态（A-1 恒真式 / A-2 窄形态 / A-3 只认字面量）分别使
+  3 / 4 / 1 个用例 FAIL。
+
 ### 未修复（仍在册）
 
 | # | 项 | 归属 |
 |---|----|------|
 | 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | §三 |
-| 5 | `audit_notification_chain.py` 未接入 CI | §五 |
+| 5 | ~~`audit_notification_chain.py` 未接入 CI~~ | ✅ **已修复**（L-08，第 13 批）：判定逻辑修复后问题数 **79 → 0**，已接入 `ci.yml` 与 `check_all.sh` 为 **G-046**（零基线） |
 | 6 | `DesktopRenderer` 字段名前缀（第 7 批论证不应加） | 待裁决 |
 | 7 | **`desktop_toast` 未登记进 `ALL_EVENTS`**（G-045 盲区） | 见下方 L-22 专项 |
 
