@@ -8,7 +8,10 @@ import logging
 from fastapi import Depends, Request
 from fastapi.routing import APIRouter
 
+from pilotstd.core.audit import get_current_user_id as audit_actor_id
+from pilotstd.core.audit import write_audit
 from pilotstd.core.cache_manager import CacheManager
+from pilotstd.core.notification.security_notifier import client_ip
 
 from ..auth import require_role
 from ..manager import get_manager_dep
@@ -54,7 +57,18 @@ def get_stats(request: Request, mgr=Depends(get_manager_dep)):
 @router.post("/api/cache/cleanup")
 @require_role("admin")
 def trigger_cleanup(request: Request, mgr=Depends(get_manager_dep)):
-    """手动触发缓存清理（强制模式），返回清后统计。仅管理员可操作。"""
+    """手动触发缓存清理（强制模式），返回清后统计。仅管理员可操作。
+
+    写审计：缓存强制清理会丢弃全部缓存条目，属破坏性操作，需留痕。
+    """
     cm = CacheManager(mgr.db)
     cm.cleanup(force=True)
-    return {"ok": True, "stats": cm.get_stats()}
+    stats = cm.get_stats()
+    write_audit(
+        action="CACHE_CLEANUP",
+        resource="POST /api/cache/cleanup",
+        # 只记统计摘要，不记缓存内容
+        detail={"from_ip": client_ip(request), "stats": stats},
+        user_id=audit_actor_id(),
+    )
+    return {"ok": True, "stats": stats}

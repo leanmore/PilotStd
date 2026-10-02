@@ -10,7 +10,10 @@ from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 
+from pilotstd.core.audit import get_current_user_id as audit_actor_id
+from pilotstd.core.audit import write_audit
 from pilotstd.core.logger import _get_log_dir
+from pilotstd.core.notification.security_notifier import client_ip
 
 from ..auth import require_role
 
@@ -122,6 +125,35 @@ def get_app_log_raw(request: Request):
     )
 
 
+def _audit_log_purge(
+    request: Request,
+    actor_id: int | None,
+    *,
+    ok: bool,
+    deleted: int,
+    before_hours: int,
+    reason: str = "",
+) -> None:
+    """写日志清理审计（成功与失败分别记录）。批删不可逆，失败同样必须留痕。
+
+    detail 只含删除行数/时间窗/来源/原因，不含被删日志内容。
+    """
+    detail: dict[str, object] = {
+        "from_ip": client_ip(request),
+        "before_hours": before_hours,
+    }
+    if ok:
+        detail["deleted"] = deleted
+    else:
+        detail["reason"] = reason
+    write_audit(
+        action="ADMIN_LOG_PURGE" if ok else "ADMIN_LOG_PURGE_FAILED",
+        resource="DELETE /api/admin/logs",
+        detail=detail,
+        user_id=actor_id,
+    )
+
+
 @router.delete("/api/admin/logs")
 @require_role("admin")
 def clear_logs(
@@ -132,8 +164,12 @@ def clear_logs(
 
     默认 24 小时，传入 before_hours=0 表示清空全部。
     返回删除的日志行数。
+
+    全部出口（3 成功 + 1 失败）均写审计——L2 接线约定：批删不可逆，成功与失败都留痕。
     """
+    actor_id = audit_actor_id()
     if not os.path.exists(_LOG_PATH):
+        _audit_log_purge(request, actor_id, ok=True, deleted=0, before_hours=before_hours)
         return {"ok": True, "deleted": 0, "note": "日志文件不存在"}
 
     try:
@@ -145,6 +181,7 @@ def clear_logs(
             # 清空全部
             with open(_LOG_PATH, "w", encoding="utf-8") as f:
                 f.write("")
+            _audit_log_purge(request, actor_id, ok=True, deleted=total, before_hours=before_hours)
             return {"ok": True, "deleted": total}
 
         # 保留最近_小时内的日志
@@ -170,10 +207,14 @@ def clear_logs(
         with open(_LOG_PATH, "w", encoding="utf-8") as f:
             f.writelines(kept)
 
+        _audit_log_purge(request, actor_id, ok=True, deleted=deleted, before_hours=before_hours)
         return {"ok": True, "deleted": deleted, "kept": len(kept)}
     except OSError as e:
         from fastapi import HTTPException
 
+        _audit_log_purge(
+            request, actor_id, ok=False, deleted=0, before_hours=before_hours, reason=str(e)
+        )
         raise HTTPException(status_code=500, detail=f"清理日志失败: {e}")
 
 

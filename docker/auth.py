@@ -207,6 +207,52 @@ _api_rate_lock = threading.Lock()  # 保护 _api_rate_limit 并发读写
 API_RATE_LIMIT = 1000  # 每分钟最多 1000 次请求（压测放宽）
 API_RATE_WINDOW = 60  # 窗口 60 秒
 
+# 锁定拒绝（429）的审计留痕去重：IP -> 上次留痕时刻（墙钟 time.time()）。
+# 与 _api_rate_limit 同模式（进程内 dict + 锁 + 按访问修剪）。
+_lockout_audited_at: dict[str, float] = {}
+_lockout_audit_lock = threading.Lock()
+
+
+def _audit_lockout_once(client_ip_addr: str, failures: int, now: float) -> None:
+    """锁定（429）的审计留痕：同一 IP 每 LOCKOUT_SECONDS 只写一次。
+
+    **为何不用 `count == MAX_ATTEMPTS` 精确判断**：本函数在 login() 的计数检查处调用，
+    而该路径**不写 login_attempts**（record_login_failure 在密码验证失败分支，位于该
+    检查**之后**）→ 攻击者持续请求时计数**停滞在 ≥MAX_ATTEMPTS 不再增长** → 等值判断
+    每次请求都命中 → 刷屏。故必须用时间闸门。（对照：告警侧 :308 在 record_login_failure
+    之后调用，计数每次 +1，故可用"恰好等于阈值"判断。）
+
+    **时间源**：`now` 由调用方传入 login() 计算的 `time.time()`，与该函数的 `cutoff`
+    **同源**（本项目统一使用墙钟；不用 monotonic——会与 count_recent_failures 的墙钟
+    窗口形成双时钟，在系统时间跳变时错位）。
+
+    **锁范围**：读取 + 判定 + 清理 + 更新，均在锁内完成（镜像 _check_rate_limit）。
+    `write_audit` 的 DB I/O 在**锁外**，避免慢 DB 阻塞并发登录。
+
+    **失败语义**：write_audit 静默失败（见 pilotstd/core/audit.py）时 dict 已更新 →
+    该窗口不再重试。这是有意设计——审计是"尽力留痕"，与 write_audit 的不阻断契约一致；
+    失败经 logger.warning(exc_info=True) 运维可见。
+    """
+    with _lockout_audit_lock:
+        last = _lockout_audited_at.get(client_ip_addr)
+        if last is not None and now - last < LOCKOUT_SECONDS:
+            return  # 同窗口内已留痕，不再重复
+        # 惰性清理：镜像 _check_rate_limit 的按访问修剪（保留 2 倍窗口，容忍时钟抖动）
+        stale = [ip for ip, ts in _lockout_audited_at.items() if now - ts > LOCKOUT_SECONDS * 2]
+        for ip in stale:
+            del _lockout_audited_at[ip]
+        _lockout_audited_at[client_ip_addr] = now
+    # 函数内 import：与 _notify_login_failure（本文件）对 write_audit 的既有处理一致；
+    # 已核实无循环导入风险（pilotstd/core/audit.py 仅导入 pilotstd.core.*）。
+    from pilotstd.core.audit import write_audit
+
+    write_audit(
+        action="LOGIN_ATTEMPT_BLOCKED",
+        resource="POST /api/login",
+        detail={"from_ip": client_ip_addr, "failures": failures, "window_seconds": LOCKOUT_SECONDS},
+        user_id=None,
+    )
+
 
 def _notify_login_failure(request: Request, client_ip: str, username: str) -> None:
     """登录失败达到阈值时写审计 + 发安全告警（第 8 批）。
@@ -300,7 +346,11 @@ def login(
     cutoff = now - LOCKOUT_SECONDS
 
     # 超限检查（持久化到数据库查询，进程重启后仍有效）
-    if count_recent_failures(client_ip, cutoff) >= MAX_ATTEMPTS:
+    # failures 单次查询后复用：两次调用既重复 DB 查询，又可能因并发导致
+    # "审计记录的 failures 与触发判定的值不一致"（极端情况低于阈值）。
+    failures = count_recent_failures(client_ip, cutoff)
+    if failures >= MAX_ATTEMPTS:
+        _audit_lockout_once(client_ip, failures=failures, now=now)
         raise HTTPException(429, "请求过于频繁，请稍后重试")
 
     if not verify_user(username, password):

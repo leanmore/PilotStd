@@ -68,14 +68,11 @@ SENSITIVE_ROUTES: dict[str, str] = {
 }
 
 # 显式登记的待接入清单：每条必须带理由。禁止无理由豁免（P-104 门禁不绕过）。
-EXEMPT_ROUTES: dict[str, str] = {
-    "DELETE /api/users/{user_id}": "S2 待接入（第 3 批）：用户删除不可逆",
-    "POST /api/users": "S2 待接入（第 3 批）：新增账号是提权前置动作",
-    "POST /api/auth/register": "S2 待接入（第 3 批）：自助注册是注册误开的唯一信号",
-    "DELETE /api/admin/logs": "S3 待接入（第 3 批）：破坏性批删",
-    "POST /api/cache/cleanup": "S3 待接入（第 3 批）：缓存强制清理",
-    "POST /api/backup/create": "待接入（第 3 批）：手动备份与定时路径口径不一致",
-}
+#
+# L-01 接线完成后**已清空**：原 6 项 P1/P2 端点（用户增删/自助注册/日志批删/缓存清理/
+# 手动备份）均已接入审计，`POST /query` 因函数体内直接有 write_audit 一并移出。
+# 故当前**无任何豁免**——新增状态变更敏感端点必须接线，不得豁免。
+EXEMPT_ROUTES: dict[str, str] = {}
 
 # 审计封装注册表：函数名 → 说明。每条 = 一个"内部（直接）调用 write_audit"的辅助函数。
 #
@@ -89,6 +86,13 @@ AUDIT_WRAPPERS: dict[str, str] = {
     "_audit_password_change": "docker/api/users.py — 改密审计（成功/失败共用）",
     "_notify_login_failure": "docker/auth.py — 登录失败告警 + LOGIN_FAILED 审计",
     "_audit_and_respond": "docker/api/admin_db.py — 查询审计 + 统一响应",
+    # L-01 接线新增：用户增删的审计封装（add_user / delete_user 的 1 成功 + 7 失败出口共用）
+    "_audit_user_management": "docker/api/users.py — 用户增删审计（成功/失败共用）",
+    # L-01 接线新增：自助注册审计（register 的 1 成功 + 6 失败出口共用；未认证路径，
+    # 显式传 user_id，成功时为新建用户 id、失败为 None）
+    "_audit_registration": "docker/api/auth_register.py — 自助注册审计（成功/失败共用）",
+    # L-01 接线新增：日志批删审计（clear_logs 的 3 成功 + 1 失败出口共用）
+    "_audit_log_purge": "docker/api/logs.py — 日志批删审计（成功/失败共用）",
 }
 
 # 状态变更路由的 HTTP 方法（AST 装饰器属性）

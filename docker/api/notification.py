@@ -186,6 +186,15 @@ def update_config(
     # ── E3 预校验 → E2 读旧凭证快照 + 差异计算（均在任何写入之前）──
     masked_error = _find_masked_field(body, nmgr._cred_helper)
     if masked_error:
+        # 预校验失败也写审计（L2 出口覆盖）：请求载荷含**掩码占位符**（客户端回传了
+        # `****` 形式的旧值）说明前端状态失真或有人在构造异常请求——失败尝试是比
+        # 成功操作更有价值的信号。**只记字段名，绝不记凭证值**（与下方成功分支同口径）。
+        write_audit(
+            action="NOTIFICATION_CREDENTIAL_CHANGE_REJECTED",
+            resource="PUT /api/notification/config",
+            detail={"user_id": user_id_int, "from_ip": from_ip, "reason": masked_error},
+            user_id=user_id_int,
+        )
         return JSONResponse({"error": masked_error}, status_code=400)
     channel_updates, old_creds, changed_channels, changed_keys = _diff_credential_changes(
         body, nmgr._cred_helper, user_id_int
