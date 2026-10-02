@@ -517,14 +517,23 @@ class TestDynamicValueBoundaries:
             assert hits, f"{title!r} 剔括号为 {stripped!r}，但无任何 {topic} 正则命中它"
 
     def test_bare_variant_has_no_trailing_blank(self):
-        """"括号去掉"变体不得带尾随空格（否则与静态标题字面不相等，成为死正则）。"""
+        """**剔括号变体**不得带尾随空格（否则与静态标题字面不相等，成为死正则）。
+
+        判别方式：完整形正则**总是以括号收尾**（`\\)` 或 `）`），而剔括号变体不以括号
+        收尾。故用"不以括号结尾 **且** 以字面空格结尾"筛选——这样**不会**把完整形
+        `Scan\\ Complete\\ \\(...` 误判为违规：它括号前的空格是渲染串的一部分
+        （`Complete (` 之间确有一个空格），必须保留。
+
+        判别力：把 `_drop_trailing_blank` 改成恒等函数（即修复前形态）后，本用例与
+        `test_stripped_variant_actually_matches_stripped_title` 均 FAIL。
+        """
         _index, patterns = NotificationAggregator._title_index_data()
         offenders = [
             p.pattern
             for p, _t in patterns
             if not p.pattern.endswith("\\)") and not p.pattern.endswith("）") and p.pattern.endswith("\\ ")
         ]
-        assert offenders == [], f"存在带尾随空格的变体正则：{offenders}"
+        assert offenders == [], f"存在带尾随空格的剔括号变体正则：{offenders}"
 
     def test_topic_extraction_does_not_mutate_display_title(self):
         """主题判定**不得改动标题本身**——展示侧必须原样保留空白形态。
