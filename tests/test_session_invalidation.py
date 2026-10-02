@@ -144,7 +144,7 @@ class TestChangePasswordInvalidatesSessions(unittest.TestCase):
         """★ 核心判别：改密成功后该用户****全部****会话被移除（含当前会话——A1）。"""
         self.store.add("t1", 1, "alice", ttl_seconds=3600)
         self.store.add("t2", 1, "alice", ttl_seconds=3600)
-        ok, _ = self._run_change_password(user_row={"id": 1, "username": "alice"})
+        (ok, _removed), _ = self._run_change_password(user_row={"id": 1, "username": "alice"})
         self.assertTrue(ok)
         self.assertIsNone(self.store.get("t1"), "改密后旧 token 必须立即失效")
         self.assertIsNone(self.store.get("t2"))
@@ -159,14 +159,36 @@ class TestChangePasswordInvalidatesSessions(unittest.TestCase):
     def test_no_invalidation_when_old_password_wrong(self):
         """★ 旧密码错误 → 返回 False，**不得**失效会话（否则是拒绝服务）。"""
         self.store.add("t1", 1, "alice", ttl_seconds=3600)
-        ok, _ = self._run_change_password(verify_ok=False, user_row={"id": 1, "username": "alice"})
+        (ok, _removed), _ = self._run_change_password(verify_ok=False, user_row={"id": 1, "username": "alice"})
         self.assertFalse(ok)
         self.assertIsNotNone(self.store.get("t1"), "验证失败时不应失效任何会话")
 
     def test_missing_user_row_does_not_crash(self):
         """用户行查不到（数据异常）→ 不抛异常，仍返回 True（落库已成功）。"""
-        ok, _ = self._run_change_password(user_row=None)
+        (ok, _removed), _ = self._run_change_password(user_row=None)
         self.assertTrue(ok)
+
+    def test_returns_revoked_count_contract(self):
+        """★ 返回契约：`change_password` 必须返回 `(bool, int)`，第二项是撤销数。
+
+        该契约是审计/告警记录"真实撤销数"的前提（L-03 联动）。
+        判别力：把返回值改回单个 `bool` → 本用例在解包时 TypeError 而 FAIL。
+        """
+        self.store.add("t1", 1, "alice", ttl_seconds=3600)
+        self.store.add("t2", 1, "alice", ttl_seconds=3600)
+        result, _ = self._run_change_password(user_row={"id": 1, "username": "alice"})
+        self.assertIsInstance(result, tuple, f"应返回元组，实际 {type(result).__name__}")
+        ok, removed = result
+        self.assertIs(ok, True)
+        self.assertIsInstance(removed, int, f"撤销数应为 int，实际 {type(removed).__name__}")
+        self.assertEqual(removed, 2, "两个活跃会话 → 撤销数应为 2")
+
+    def test_returns_zero_when_verification_fails(self):
+        """验证失败 → `(False, 0)`（未撤销任何会话）。"""
+        self.store.add("t1", 1, "alice", ttl_seconds=3600)
+        result, _ = self._run_change_password(verify_ok=False, user_row={"id": 1, "username": "alice"})
+        self.assertEqual(result, (False, 0))
+        self.assertIsNotNone(self.store.get("t1"))
 
 
 class TestEndToEndOldTokenRejected(unittest.TestCase):

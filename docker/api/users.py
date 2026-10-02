@@ -136,6 +136,12 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
 
     已知限制（裁决 D-2）：改密后既有会话不失效——`SessionStore` 无按用户移除能力，
     本批不碰该模块。此限制在审计 detail 与告警文案中均显式标注为 `sessions_revoked=False`。
+
+    **更新（L-03）**：上述 D-2 限制**已修复**——`users.change_password` 落库成功后调用
+    `SessionStore.remove_by_user` 并**返回撤销数**。故本端点现在：
+      - 响应与告警载荷的 `sessions_revoked` 是**真实撤销数**（原为硬编码 `False`）；
+      - 审计 detail 不再写 `known_limitation=existing_sessions_not_revoked`（该限制已不存在）；
+      - 成功后**当前会话一并失效**，用户需重新登录（裁决 A1）。
     """
     user_id = get_current_user_id(request)
     user = get_user_by_id(user_id)
@@ -159,7 +165,7 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
         raise HTTPException(400, policy_error)
 
     try:
-        ok = change_password(username, body.old_password, body.new_password)
+        ok, sessions_revoked = change_password(username, body.old_password, body.new_password)
     except ValueError as e:
         # 双保险：底层规则未来若再收紧，也不得退化为 500
         _audit_password_change(username, from_ip, user_id, ok=False, reason="weak_password")
@@ -175,7 +181,7 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
         user_id,
         ok=True,
         reason="",
-        sessions_revoked=False,  # 已知限制：见函数文档
+        sessions_revoked=sessions_revoked,  # L-03：真实撤销数（原先硬编码 False）
     )
 
     # 先落库 → 后告警；告警失败只进 warnings，绝不回滚密码写入
@@ -190,7 +196,7 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
             {
                 "user_id": str(user_id),
                 "from_ip": from_ip,
-                "sessions_revoked": False,
+                "sessions_revoked": sessions_revoked,
             },
         )
         if failed:
@@ -200,7 +206,7 @@ def api_change_password(request: Request, body: ChangePasswordRequest, mgr=Depen
     except Exception as e:  # noqa: BLE001 - 告警绝不阻断改密
         logger.warning("密码变更告警发送失败: %s", e)
         warnings.append(t("notification.api.security_notify_error"))
-    return {"ok": True, "sessions_revoked": False, "warnings": warnings}
+    return {"ok": True, "sessions_revoked": sessions_revoked, "warnings": warnings}
 
 
 def _audit_user_management(
@@ -243,17 +249,19 @@ def _audit_password_change(
     *,
     ok: bool,
     reason: str,
-    sessions_revoked: bool = False,
+    sessions_revoked: int = 0,
 ) -> None:
     """写密码变更审计（成功与失败分别记录，失败尝试是暴力破解的可观测信号）。
 
     detail 只含用户名/来源/原因/会话状态，**绝不记录任何密码或哈希**。
+
+    `sessions_revoked` 是**撤销的会话数**（L-03 后由 `change_password` 返回真实值）：
+    原先硬编码 `False`，且失败时写入 `known_limitation=existing_sessions_not_revoked`
+    ——该限制已由 L-03 修复，故不再声明（否则审计记录**陈述错误事实**）。
     """
     detail: dict[str, object] = {"username": username, "from_ip": from_ip}
     if ok:
         detail["sessions_revoked"] = sessions_revoked
-        if not sessions_revoked:
-            detail["known_limitation"] = "existing_sessions_not_revoked"
     else:
         detail["reason"] = reason
     write_audit(

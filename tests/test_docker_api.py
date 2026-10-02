@@ -662,9 +662,14 @@ class TestAPIEndpoints(unittest.TestCase):
         新密码需满足 users._validate_password 的规则（≥8 位 + 至少一个字母 + 至少一个数字）：
         第 2 批（安全审计闭环）把端点自校验从"≥4 位"改为复用同一套规则，
         消除了原实现"端点判 4 位、底层判 8 位"的口径分裂引发的 500。
+
+        **L-03 更新**：`change_password` 现返回 `(是否成功, 撤销的会话数)`，故
+        `sessions_revoked` 由硬编码 `False` 转为**真实计数**。原断言
+        `assertFalse(r.json()["sessions_revoked"])` 已不成立——它锁定的是裁决 D-2 的
+        "改密不失效会话"限制，而该限制已由 L-03 修复。
         """
         mock_user.return_value = 1
-        mock_change.return_value = True
+        mock_change.return_value = (True, 2)  # 本次撤销 2 个会话
         # 路由内 get_user_by_id 走真实 DB；隔离 fixture 将 get_db_path 重定向到空临时库
         # （无种子用户 → 会命中"用户不存在"400），故 mock 为用户存在场景
         mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
@@ -674,8 +679,57 @@ class TestAPIEndpoints(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()["ok"])
-        # 已知限制（裁决 D-2）：改密不失效既有会话，必须在响应中显式可见
-        self.assertFalse(r.json()["sessions_revoked"])
+        # L-03：响应必须回传底层的真实撤销数（非硬编码 False）
+        self.assertEqual(r.json()["sessions_revoked"], 2)
+
+    @patch("docker.api.users.get_user_by_id")
+    @patch("docker.api.users.get_current_user_id")
+    @patch("docker.api.users.change_password")
+    def test_change_password_audit_records_real_revoked_count(self, mock_change, mock_user, mock_lookup):
+        """★ L-03 联动：审计 detail 记录**真实撤销数**，且不再写已失效的 `known_limitation`。
+
+        判别力：把 `sessions_revoked=sessions_revoked` 改回硬编码 `False` → 本用例 FAIL；
+        把 `known_limitation` 声明加回 → 同样 FAIL（该限制已由 L-03 修复，声明它会陈述错误事实）。
+        """
+        mock_user.return_value = 1
+        mock_change.return_value = (True, 3)
+        mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
+        with patch("docker.api.users.write_audit") as wa:
+            r = self.client.put(
+                "/api/users/password",
+                json={"old_password": "old", "new_password": "newpass123"},
+            )
+        self.assertEqual(r.status_code, 200)
+        detail = wa.call_args.kwargs["detail"]
+        self.assertEqual(detail["sessions_revoked"], 3, "审计须记录真实撤销数")
+
+    @patch("docker.api.users.get_user_by_id")
+    @patch("docker.api.users.get_current_user_id")
+    @patch("docker.api.users.change_password")
+    def test_change_password_audit_has_no_stale_limitation(self, mock_change, mock_user, mock_lookup):
+        """★ 审计不得再声明已失效的 `known_limitation=existing_sessions_not_revoked`。
+
+        **为何用撤销数 0**：原实现在 `not sessions_revoked` 时才追加该键；若用非零值，
+        该分支本就不进入，注入"加回声明"的坏形态也检测不到（测试就成了假绿）。
+        故取 0 —— 正是原实现会写入该键的场景。
+
+        判别力：加回 `if not sessions_revoked: detail["known_limitation"] = ...` → 本用例 FAIL。
+        """
+        mock_user.return_value = 1
+        mock_change.return_value = (True, 0)  # 无活跃会话 → 原实现会写 known_limitation
+        mock_lookup.return_value = {"id": 1, "username": "admin", "role": "admin"}
+        with patch("docker.api.users.write_audit") as wa:
+            r = self.client.put(
+                "/api/users/password",
+                json={"old_password": "old", "new_password": "newpass123"},
+            )
+        self.assertEqual(r.status_code, 200)
+        detail = wa.call_args.kwargs["detail"]
+        self.assertEqual(detail["sessions_revoked"], 0)
+        self.assertNotIn(
+            "known_limitation", detail,
+            "D-2 的 existing_sessions_not_revoked 限制已由 L-03 修复，不得再声明",
+        )
 
     @patch("docker.api.users.get_user_by_id")
     @patch("docker.api.users.get_current_user_id")

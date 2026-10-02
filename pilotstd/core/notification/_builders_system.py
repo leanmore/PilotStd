@@ -362,9 +362,12 @@ def _build_notification_credential_changed_message(data: dict) -> NotificationMe
 
 
 def _build_security_password_changed_message(data: dict) -> NotificationMessage:
-    """账号密码变更告警（sessions_revoked 恒为 false，见已知限制）。
+    """账号密码变更告警。
 
-    载荷：user_id、from_ip、sessions_revoked。
+    载荷：user_id、from_ip、sessions_revoked（**撤销会话数**，L-03 后为真实值；原为恒 False）。
+
+    仅当撤销数为 0 时才附加"既有会话未失效"提示——正常路径下 L-03 会撤销全部会话，
+    故该提示不应出现；保留分支是为了让"撤销数为 0"这一异常情形在用户可见文案中显式暴露。
     """
     user_id = str(data.get("user_id") or "")
     from_ip = str(data.get("from_ip") or "")
@@ -380,8 +383,8 @@ def _build_security_password_changed_message(data: dict) -> NotificationMessage:
             KeyValueBlock(key=t("notification.system.security_password_changed.body.from_ip"), value=from_ip)
         )
     if not sessions_revoked:
-        # 已会话未失效是**已知限制**（SessionStore 无按用户移除能力），
-        # 必须在用户可见文案中显式提示，否则用户会误以为改密已踢掉其它登录。
+        # 撤销数为 0（异常情形）：L-03 本应撤销全部会话，故此处必须在**用户可见文案**中
+        # 显式提示，否则用户会误以为改密已踢掉其它登录。
         blocks.append(TextBlock(text=t("notification.system.security_password_changed.body.sessions_kept")))
     blocks.append(TextBlock(text=t("notification.system.security_password_changed.body.hint")))
 

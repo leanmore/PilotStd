@@ -238,8 +238,11 @@ def clear_must_change_password(username: str) -> None:
     db.execute("UPDATE users SET must_change_password = 0 WHERE username = ?", (username,))
 
 
-def change_password(username: str, old_password: str, new_password: str) -> bool:
+def change_password(username: str, old_password: str, new_password: str) -> tuple[bool, int]:
     """修改用户密码，使用 bcrypt 存储新密码。
+
+    返回 `(是否成功, 失效的会话数)` —— 调用方需要会话数写入审计/告警（L-03 联动），
+    避免在 HTTP 层二次查询会话存储。
 
     **L-03 修复**：落库成功后**移除该用户的全部会话**，使被窃取的旧 token 立即失效
     （原先需等到 `expires_at` 才失效，即"改密对已泄露的会话无效"）。
@@ -253,7 +256,7 @@ def change_password(username: str, old_password: str, new_password: str) -> bool
     "改密 ⇒ 失效全部会话"的不变式，不依赖各调用方记得处理。
     """
     if not verify_user(username, old_password):
-        return False
+        return False, 0
     err = _validate_password(new_password)
     if err:
         raise ValueError(err)
@@ -267,12 +270,13 @@ def change_password(username: str, old_password: str, new_password: str) -> bool
     # 清除强制改密标记
     clear_must_change_password(username)
     # 失效该用户的全部会话（含当前会话——裁决 A1）
+    removed = 0
     row = get_user_by_username(username)
     if row:
         removed = get_session_store().remove_by_user(int(row["id"]))
         logger.info("用户 %s 改密后已失效 %d 个会话", username, removed)
     logger.info("用户 %s 的密码已修改", username)
-    return True
+    return True, removed
 
 
 # ── 登录失败计数持久化 ──
