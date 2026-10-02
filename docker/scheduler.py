@@ -79,8 +79,69 @@ def _add_cron_job(job_id: str, cron_expr: str):
         scheduler.add_job(func, CronTrigger.from_crontab(cron_expr), id=job_id, replace_existing=True)
 
 
+_BACKUP_KEEP = 4
+# 迁移前快照的文件名前缀。这些**不是定时备份**，而是数据库迁移前由迁移流程主动生成的
+# 安全副本，必须与"保留最近 N 个定时备份"的策略**分开处理**——否则会被定时任务删掉。
+_BACKUP_MIGRATION_PREFIX = "pre_migration_"
+
+
+def _prune_old_backups(backup_dir: str, keep: int = _BACKUP_KEEP) -> list[str]:
+    """清理旧的**定时**备份，只保留最近 `keep` 个（按修改时间）。
+
+    返回被删除的文件名列表。
+
+    **修复的缺陷（实测）**：原实现用
+    `sorted([...], reverse=True)[keep:]` 按**文件名字典序**排序。
+    迁移快照 `pre_migration_*.bak` 的字典序**大于** `pilotstd_*.bak`
+    （`'r' > 'i'`），逆序后排在前面，于是被当作"最近的 4 个"保留下来，
+    而**刚创建的** `pilotstd_<时间戳>.bak` 落到第 5 位**被自己删掉**。
+
+    实测证据（生产日志，2026-09-28 03:00:01）：
+    ```
+    数据库已备份至: /app/data/backups/pilotstd_20260928_030000.bak
+    已清理旧备份: pilotstd_20260928_030000.bak      ← 刚创建的备份被删
+    ```
+    后果：`GET /api/backup/list` 永远只有 `pre_migration_*`，
+    即"备份在跑、日志显示成功，但**备份文件不留存**"。
+
+    新实现的三点差异：
+    1. 只对**定时备份**（`pilotstd_*.bak`）做数量裁剪，迁移快照不参与、不被删；
+    2. 排序改用 **mtime**（时间语义），不再依赖文件名字典序；
+    3. 删除前重新确认文件仍在（`os.remove` 的 `FileNotFoundError` 单独容忍）。
+    """
+    try:
+        entries = [f for f in os.listdir(backup_dir) if f.endswith(".bak")]
+    except OSError:
+        return []
+
+    def mtime(name: str) -> float:
+        """取文件的修改时间；取不到时返回零（视为最旧，优先清理）。"""
+        try:
+            return os.path.getmtime(os.path.join(backup_dir, name))
+        except OSError:
+            return 0.0
+
+    scheduled = [f for f in entries if not f.startswith(_BACKUP_MIGRATION_PREFIX)]
+    scheduled.sort(key=mtime, reverse=True)  # 最新的在前
+
+    removed: list[str] = []
+    for old in scheduled[keep:]:
+        try:
+            os.remove(os.path.join(backup_dir, old))
+        except FileNotFoundError:
+            continue
+        except OSError:
+            continue
+        removed.append(old)
+        logger.info("已清理旧备份: %s", old)
+    return removed
+
+
 def _backup_database(notification_mgr=None):
-    """每周自动备份数据库，保留最近 4 个备份。"""
+    """每周自动备份数据库，保留最近 4 个**定时**备份（迁移快照不受影响）。
+
+    见 `_prune_old_backups` 的 docstring：原保留逻辑会删掉刚创建的备份。
+    """
     db = _get_db()
     backup_dir = os.path.join(os.path.dirname(db.path), "backups")
     os.makedirs(backup_dir, exist_ok=True)
@@ -88,16 +149,17 @@ def _backup_database(notification_mgr=None):
     backup_path = os.path.join(backup_dir, f"pilotstd_{timestamp}.bak")
     result = db.backup(backup_path)
     if result:
-        all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith(".bak")], reverse=True)
-        for old in all_backups[4:]:
-            try:
-                os.remove(os.path.join(backup_dir, old))
-                logger.info("已清理旧备份: %s", old)
-            except OSError:
-                pass
+        # 顺序要点（生产实测三条日志：九月十四日、二十一日、二十八日各一条）：
+        # 原实现先做保留清理、后取备份文件大小；而清理逻辑有缺陷时会误删刚创建的那个文件，
+        # 于是取大小抛"文件不存在"，又被下面的兜底吞掉，通知因此**从未发出**。
+        # 故改为：先在文件必然存在时取大小，再做清理，使通知不受清理结果影响。
+        try:
+            size_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        except OSError:
+            size_mb = 0.0
+        _prune_old_backups(backup_dir)
         if notification_mgr:
             try:
-                size_mb = os.path.getsize(backup_path) / (1024 * 1024)
                 notification_mgr.send_event(
                     "auto_backup",
                     {
