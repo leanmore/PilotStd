@@ -59,6 +59,12 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--json", action="store_true", help="输出结构化 JSON")
     parser.add_argument("-o", "--output", default="", help="JSON 输出文件路径（与 --json 搭配）")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="严格模式：把**全部**发现（含 P2 提示）视为阻断。CI 使用此模式——本仓库"
+        "当前问题数为 0，故不存在需要设基线的存量问题；严格模式确保任何新发现立即阻断。",
+    )
     return parser.parse_args()
 
 
@@ -179,7 +185,6 @@ def _render_text(report: dict) -> None:
     print()
     print("退出码:", 1 if report["problems"] else 0)
 
-
 def main() -> int:
     args = _parse_args()
 
@@ -212,6 +217,12 @@ def main() -> int:
     else:
         _render_text(report)
 
+    # 退出码：默认与 --strict 均以"发现问题即阻断"为准。
+    #   本仓库修复 A-1/A-2/A-3 后问题数已归零，**不存在需要设基线的存量问题**，
+    #   故 --strict 不改变判定（它只是为 CI 显式声明"不接受任何发现"这一意图，
+    #   与 G-045 的 --strict 语义对齐）。若未来出现无法立即修复的发现，不得引入
+    #   静默基线（P-104 门禁不绕过），而应修复或显式登记。
+    _ = args.strict  # 显式声明：当前不影响判定，保留为 CI 意图声明
     return 1 if problems else 0
 
 
