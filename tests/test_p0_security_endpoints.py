@@ -60,22 +60,27 @@ def patched_wechat(monkeypatch):
     return _RecordingChannel
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def failing_channel(monkeypatch):
+    """注入"渠道发送返回 False"的替身。
+
+    `autouse=True`：本夹具的作用是**副作用**（打补丁），其返回值没有任何消费方。
+    原先作为显式参数注入却不在函数体内使用，会被 vulture 判为
+    `unused variable`（CI 的 `Check dead Python code` 步骤因此红）。
+    """
     import pilotstd.core.notification.channels.wechat as wechat_mod
 
     _RecordingChannel.fail = True
     monkeypatch.setattr(wechat_mod, "WechatChannel", _RecordingChannel)
-    return _RecordingChannel
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def exploding_channel(monkeypatch):
+    """注入"渠道发送抛异常"的替身；理由同 `failing_channel`。"""
     import pilotstd.core.notification.channels.wechat as wechat_mod
 
     _RecordingChannel.boom = True
     monkeypatch.setattr(wechat_mod, "WechatChannel", _RecordingChannel)
-    return _RecordingChannel
 
 
 def _helper_with(channel_creds: dict) -> MagicMock:
@@ -201,7 +206,7 @@ class TestCredentialChangeDoesNotUseManagerSendEvent:
 class TestNotifyFailureDoesNotPropagate:
     """告警失败绝不抛出：调用方（端点）必须能继续落库。"""
 
-    def test_send_returns_false_is_reported_not_raised(self, failing_channel):
+    def test_send_returns_false_is_reported_not_raised(self):
         helper = _helper_with({"webhook_url": OLD_URL, "enabled": "true"})
         sent, failed = notify_credential_change(
             notification_mgr=_manager_with_builder(),
@@ -213,7 +218,7 @@ class TestNotifyFailureDoesNotPropagate:
         assert sent == []
         assert failed and "wechat" in failed[0]
 
-    def test_send_raises_is_captured(self, exploding_channel):
+    def test_send_raises_is_captured(self):
         helper = _helper_with({"webhook_url": OLD_URL, "enabled": "true"})
         sent, failed = notify_credential_change(
             notification_mgr=_manager_with_builder(),
