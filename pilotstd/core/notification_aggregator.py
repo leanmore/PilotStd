@@ -216,7 +216,15 @@ class NotificationAggregator:
         2. 含占位符的括号组额外生成一个**括号整段去掉**的变体。
 
         规则 2 的用途：调用方可能只取标题前缀或渲染后截断（去掉尾部括号段），
-        该变体（如 `Scan Complete`）仍能命中，避免退化为兜底。
+        该变体仍能命中，避免退化为兜底。
+
+        **剔括号变体只针对"含占位符"的括号组，且删该组时连同其前导空白一并删除**：
+        英文模板 `Scan Complete ({failed} unrecognized)` 的括号前有一个空格，若只删
+        括号及其内容，得到的是 `Scan Complete `（**尾随空格**），而静态标题字面是
+        `Scan Complete`（无尾随空格）——两者不相等，该变体会成为**死正则**
+        （实测确认过：那条带尾随空格的正则对 `Scan Complete` fullmatch 为 False，
+        对静态标题 `Scan Complete, All Recognized` 亦为 False，从未命中任何串）。
+        连同前导空白一起删，才得到与中文对称的 `Scan Complete`。
 
         单独出现的占位符（如 `第 {round} 轮…`）只生成一个正则。
 
@@ -233,18 +241,29 @@ class NotificationAggregator:
             if not part:
                 continue
             if part[0] in "(（" and part[-1] in ")）":
+                # 完整形：括号 + 内部（弹性空白）
                 inner = cls._escape_with_placeholders(part[1:-1])
                 complete.append(re.escape(part[0]) + inner + re.escape(part[-1]))
             else:
                 escaped = cls._escape_with_placeholders(part)
                 complete.append(escaped)
-                without.append(escaped)
+                # 剔括号形：去掉紧邻括号组的**尾部空白**（即括号前那个空格），
+                # 使结果与静态标题字面对齐（中英一致）
+                without.append(cls._drop_trailing_blank(escaped))
 
         patterns = ["".join(complete)]
         stripped = "".join(without)
         if stripped and stripped != patterns[0]:
             patterns.append(stripped)
         return patterns
+
+    @staticmethod
+    def _drop_trailing_blank(regex_fragment: str) -> str:
+        """删除正则片段末尾的**字面空格**（`re.escape(" ")` 即 `"\\ "`）。
+
+        只处理末尾的单个字面空格：弹性 `\\s*` 与其他转义序列不在此列。
+        """
+        return regex_fragment[:-2] if regex_fragment.endswith("\\ ") else regex_fragment
 
     @staticmethod
     def _strip_bracketed(title: str) -> str:

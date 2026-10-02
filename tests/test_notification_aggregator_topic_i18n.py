@@ -493,6 +493,39 @@ class TestDynamicValueBoundaries:
         )
         assert NotificationAggregator._extract_topic(target, "") == "done"
 
+    def test_stripped_variant_actually_matches_stripped_title(self):
+        """**剔括号变体必须真正命中**其剔括号串——防止再次出现死正则。
+
+        第三轮曾出现：英文模板括号前有空格的缘故，只删括号及其内容会得到
+        `Scan Complete `（尾随空格），与静态标题字面 `Scan Complete` 不相等，
+        该变体因而从未命中任何串（死正则），且与中文两条不对称。
+        本用例对**三语**都断言：剔括号变体在剔括号串上 fullmatch 成功。
+        """
+        _index, patterns = NotificationAggregator._title_index_data()
+        cases = [
+            ("Scan Complete (3 unrecognized)", "done"),
+            ("扫描完成（3 个无法识别）", "done"),
+            ("掃描完成（3 個無法識別）", "done"),
+        ]
+        for title, topic in cases:
+            stripped = NotificationAggregator._strip_bracketed(title)
+            hits = [
+                p.pattern
+                for p, t in patterns
+                if t == topic and p.fullmatch(stripped) is not None
+            ]
+            assert hits, f"{title!r} 剔括号为 {stripped!r}，但无任何 {topic} 正则命中它"
+
+    def test_bare_variant_has_no_trailing_blank(self):
+        """"括号去掉"变体不得带尾随空格（否则与静态标题字面不相等，成为死正则）。"""
+        _index, patterns = NotificationAggregator._title_index_data()
+        offenders = [
+            p.pattern
+            for p, _t in patterns
+            if not p.pattern.endswith("\\)") and not p.pattern.endswith("）") and p.pattern.endswith("\\ ")
+        ]
+        assert offenders == [], f"存在带尾随空格的变体正则：{offenders}"
+
     def test_topic_extraction_does_not_mutate_display_title(self):
         """主题判定**不得改动标题本身**——展示侧必须原样保留空白形态。
 
