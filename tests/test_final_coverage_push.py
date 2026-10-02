@@ -58,11 +58,40 @@ class TestI18nRemaining(unittest.TestCase):
         set_language("zh_TW")
         self.assertEqual(get_language(), "zh_TW")
 
-    def test_set_language_invalid_fallback(self):
-        from pilotstd.i18n import get_language, set_language
+    def test_set_language_unsupported_falls_back_to_default(self):
+        """不支持的语言码必须**回退** `DEFAULT_LANGUAGE`，而非被静默保留。
 
+        **旧断言为何不再成立**：本用例原名 `test_set_language_invalid_fallback`，
+        却断言 `get_language() == "fr"` —— 名字说"fallback"、断言却是"**不** fallback、
+        原样保留"，**自相矛盾**。它锁定的是 `_normalize` 改为 fail-loud 之前的契约。
+
+        当前契约（`pilotstd/i18n/__init__.py::_normalize`，docstring 已说明理由）：
+        `SUPPORTED_LANGUAGES = ("zh_CN", "zh_TW", "en")` 之外的语言码**一律回退**
+        `DEFAULT_LANGUAGE = "zh_CN"`，并 `logger.warning`。
+        **不静默接受的理由**：未知语言码会让 `_translations.get(lang, {})` 取到空表，
+        进而使 `t()` 全量 fail-loud 返回键名——那比回退到默认语言更难排查。
+        """
+        from pilotstd.i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, get_language, set_language
+
+        self.assertNotIn("fr", SUPPORTED_LANGUAGES, "本用例的前提是 fr 为不支持的语言")
         set_language("fr")
-        self.assertEqual(get_language(), "fr")
+        self.assertEqual(get_language(), DEFAULT_LANGUAGE)
+        self.assertEqual(get_language(), "zh_CN")
+
+    def test_set_language_unsupported_is_not_silently_kept(self):
+        """★ 判别力护栏：回退**不等于**静默接受。
+
+        逐一对多个不支持的语言码确认都回退到默认值——若实现退化为"原样保留"，
+        本用例 FAIL（旧断言 `== "fr"` 正是那种退化形态）。
+        """
+        from pilotstd.i18n import DEFAULT_LANGUAGE, get_language, set_language
+
+        for lang in ("fr", "ja", "xx", "de-DE", ""):
+            set_language(lang)
+            self.assertEqual(
+                get_language(), DEFAULT_LANGUAGE,
+                f"不支持的语言码 {lang!r} 应回退 {DEFAULT_LANGUAGE!r}，实际 {get_language()!r}",
+            )
 
 
 # ═══ core/ validity_checker (48.6→60%) ═══
