@@ -314,7 +314,16 @@ class TestDesktopChainReachesExtractTopic:
         return frames
 
     def test_show_warning_reaches_extract_topic(self, monkeypatch):
-        """`NotifyService.show_warning` → `should_show` → `_extract_topic`。"""
+        """`NotifyService.show_warning` → `should_show` → `_extract_topic`。
+
+        本用例走**桌面通知链路**，需要 PyQt6（`pilotstd/platform/notify.py` 模块级
+        `from PyQt6.QtWidgets import QSystemTrayIcon`）。**CI 不安装 GUI 依赖**
+        （`test-backend` 以 `-p no:pytest-qt` 运行且无 PyQt6，实测报
+        `ModuleNotFoundError: No module named 'PyQt6'`），故此处显式跳过——
+        与项目既有做法一致（CI 亦 `--ignore=tests/test_platform_notify.py`）。
+        本地有 PyQt6 时仍会真跑，判别力不受影响。
+        """
+        pytest.importorskip("PyQt6", reason="桌面通知链路需 PyQt6，CI 不装 GUI 依赖")
         from pilotstd.platform import notify as notify_mod
 
         frames = self._spy(monkeypatch)
