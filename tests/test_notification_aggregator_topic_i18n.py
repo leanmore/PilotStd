@@ -524,6 +524,14 @@ class TestDynamicValueBoundaries:
         `Scan\\ Complete\\ \\(...` 误判为违规：它括号前的空格是渲染串的一部分
         （`Complete (` 之间确有一个空格），必须保留。
 
+        **适用边界（隐式假设）**：本断言假定"以字面空格结尾的正则必为剔括号变体的
+        退化形态"。当前成立——完整形要么以括号收尾（3 条含括号的），要么以非空白
+        字符收尾（`第\\s*(.+?)\\s*轮…`、`Validity\\ Round\\s*(.+?)\\s*Summary\\ Report`、
+        `第\\s*(.+?)\\s*輪…`）；3 条剔括号变体均无尾随空格。
+        **若未来新增的模板末尾含空白**（如 `...报告 `），其完整形会以空格结尾且不以
+        括号收尾，被本代理判据误判为违规。届时应改为**直接检查生成"剔括号变体"的那份
+        列表**（`_template_to_patterns` 的 `without`），而非用尾部形态反推。
+
         判别力：把 `_drop_trailing_blank` 改成恒等函数（即修复前形态）后，本用例与
         `test_stripped_variant_actually_matches_stripped_title` 均 FAIL。
         """
