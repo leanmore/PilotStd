@@ -11,6 +11,7 @@ from pilotstd.core.audit import get_current_user_id as audit_actor_id
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification.security_notifier import client_ip
 
+from ..auth import require_role
 from ..manager import get_manager_dep
 
 logger = logging.getLogger(__name__)
@@ -54,15 +55,16 @@ def list_backups(mgr=Depends(get_manager_dep)):
 
 
 @router.post("/api/backup/create")
+@require_role("admin")
 def create_backup(request: Request, mgr=Depends(get_manager_dep)):
-    """手动创建数据库备份。
+    """手动创建数据库备份（**仅管理员**）。
+
+    **授权（本批修复）**：原实现无 `@require_role`——全局 `AuthMiddleware`
+    （docker/app.py:288）只保证"已认证"，不保证角色；故**任意登录用户**都能触发出
+    含全量数据库内容（用户表/密码哈希/审计日志/通知凭证）的备份文件。属越权。
 
     全部出口（1 成功 + 2 失败）均写审计——手动备份与定时路径口径不同，
     且失败原因（备份 API 返回假/异常）是运维排查的关键信号。
-
-    注：本次仅为接线而新增 `request` 参数（取 actor 与来源 IP）。
-    该端点当前**无鉴权装饰器**（与本文件其余端点一致），属既有状况、不在本次改动范围；
-    见 L-01 报告的"接线外发现"一节。
     """
     actor_id = audit_actor_id()
     from_ip = client_ip(request)

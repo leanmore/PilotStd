@@ -1,11 +1,13 @@
 // views/BackupView.test.ts — 备份管理视图测试
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import { createI18n } from 'vue-i18n'
 import zhCN from '@/locales/zh-CN.json'
 import zhTW from '@/locales/zh-TW.json'
 import en from '@/locales/en.json'
+import { useAppStore } from '@/stores/app'
 import BackupView from './BackupView.vue'
 
 // Mock axios
@@ -26,9 +28,20 @@ function makeI18n(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
   return createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, 'zh-TW': zhTW, en } })
 }
 
-function mountView(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN') {
+/**
+ * 挂载视图。
+ *
+ * `role` 默认 'admin' ——「创建备份」按钮受 admin 门控（后端 `POST /api/backup/create`
+ * 已加 `@require_role("admin")`，备份含全量数据库内容）。既有用例断言按钮存在，
+ * 故默认用 admin；非 admin 的行为由下方专门的守卫用例覆盖。
+ */
+function mountView(locale: 'zh-CN' | 'zh-TW' | 'en' = 'zh-CN', role: 'admin' | 'user' = 'admin') {
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const store = useAppStore()
+  store.role = role
   return mount(BackupView, {
-    global: { plugins: [PrimeVue, makeI18n(locale)] },
+    global: { plugins: [pinia, PrimeVue, makeI18n(locale)] },
   })
 }
 
@@ -108,5 +121,28 @@ describe('BackupView', () => {
     await new Promise(r => setTimeout(r, 10))
     expect(english.html()).toContain('Backup Management')
     expect(english.html()).not.toContain('backup.')
+  })
+
+  // ── 授权门控守卫（技术债阶段批次①）─────────────────────────────────────
+  // 后端 `POST /api/backup/create` 已加 `@require_role("admin")`；前端同步隐藏按钮，
+  // 避免非 admin 看到「可点但必然 403」的按钮。
+  it('非 admin 不渲染「创建备份」按钮', async () => {
+    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
+    const wrapper = mountView('zh-CN', 'user')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+
+    // 页面仍可访问（列表可见），但创建入口隐藏
+    expect(wrapper.html()).toContain('备份管理')
+    expect(wrapper.html()).not.toContain('创建备份')
+  })
+
+  it('admin 渲染「创建备份」按钮（判别力对照）', async () => {
+    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
+    const wrapper = mountView('zh-CN', 'admin')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+
+    expect(wrapper.html()).toContain('创建备份')
   })
 })

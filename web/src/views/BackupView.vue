@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'BackupView' })
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
@@ -9,6 +9,7 @@ import Column from 'primevue/column'
 import Divider from 'primevue/divider'
 import { getBackupList, createBackup as createBackupApi } from '@/api/backup'
 import type { RouteTag } from '@/types/route-tag'
+import { useAppStore } from '@/stores/app'
 
 interface Backup {
   id: string; name: string; size: number; size_mb: number; created_at: string
@@ -18,6 +19,11 @@ const backups = ref<Backup[]>([])
 const loading = ref(false)
 const creating = ref(false)
 const { t } = useI18n()
+const store = useAppStore()
+
+// 创建备份要求 admin：后端 `POST /api/backup/create` 已加 `@require_role("admin")`
+// （备份含全量数据库内容）。前端同步门控，避免非 admin 看到可点但必然 403 的按钮。
+const isAdmin = computed(() => store.role === 'admin')
 
 const lastBackup = ref<string | null>(null)
 
@@ -51,7 +57,13 @@ onMounted(() => fetchBackups('/backup'))
     <Card>
       <template #content>
         <div class="flex gap-3 align-items-center">
-          <Button :label="t('backup.create')" icon="pi pi-plus" @click="createBackup" :loading="creating" />
+          <Button
+            v-if="isAdmin"
+            :label="t('backup.create')"
+            icon="pi pi-plus"
+            @click="createBackup"
+            :loading="creating"
+          />
           <span v-if="lastBackup" class="text-sm">{{ t('backup.last_backup', { time: formatTime(lastBackup) }) }}</span>
         </div>
         <Divider />
