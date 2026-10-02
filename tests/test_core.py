@@ -1271,7 +1271,11 @@ class TestDbMigrations(unittest.TestCase):
     is_read INTEGER DEFAULT 0,
     aggregated_count INTEGER DEFAULT 1,
     link TEXT,
-    icon TEXT
+    icon TEXT,
+    message_id TEXT NOT NULL DEFAULT '',
+    correlation_id TEXT NOT NULL DEFAULT '',
+    delivery_status TEXT NOT NULL DEFAULT 'pending',
+    ack_status TEXT NOT NULL DEFAULT 'none'
 );""")
         _migrate_v18_notification_fetch_task(conn)
 
@@ -1308,7 +1312,11 @@ class TestDbMigrations(unittest.TestCase):
     is_read INTEGER DEFAULT 0,
     aggregated_count INTEGER DEFAULT 1,
     link TEXT,
-    icon TEXT
+    icon TEXT,
+    message_id TEXT NOT NULL DEFAULT '',
+    correlation_id TEXT NOT NULL DEFAULT '',
+    delivery_status TEXT NOT NULL DEFAULT 'pending',
+    ack_status TEXT NOT NULL DEFAULT 'none'
 );""")
         _migrate_v18_notification_fetch_task(conn)
         # 第二次执行：v18 迁移未检测 is_read 列是否存在，会抛 duplicate column
@@ -1341,7 +1349,11 @@ class TestDbMigrations(unittest.TestCase):
     is_read INTEGER DEFAULT 0,
     aggregated_count INTEGER DEFAULT 1,
     link TEXT,
-    icon TEXT
+    icon TEXT,
+    message_id TEXT NOT NULL DEFAULT '',
+    correlation_id TEXT NOT NULL DEFAULT '',
+    delivery_status TEXT NOT NULL DEFAULT 'pending',
+    ack_status TEXT NOT NULL DEFAULT 'none'
 );""")
         _migrate_v18_notification_fetch_task(conn)
 

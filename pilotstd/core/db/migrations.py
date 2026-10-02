@@ -129,3 +129,8 @@ from ._migrate_v60_drop_favorite_retry_columns import (  # noqa: E402, F401
 from ._migrate_v61_enum_status_defaults import (  # noqa: E402, F401
     _migrate_v61_enum_status_defaults,
 )
+
+# 第六十二版：notification_log 追加通知身份 4 列（通知架构重设计阶段 1a，函数自带注册装饰器）
+from ._migrate_v62_notification_log_identity import (  # noqa: E402, F401
+    _migrate_v62_notification_log_identity,
+)

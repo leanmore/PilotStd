@@ -4,7 +4,7 @@
 from typing import Any, Callable
 
 # 当前期望的表结构版本号（每次新增迁移+1）
-CURRENT_SCHEMA_VERSION = 61  # v61: 状态列默认值收敛到权威状态字典（#32-C / R14-4c）
+CURRENT_SCHEMA_VERSION = 62  # v62: notification_log 追加通知身份列（通知架构重设计阶段 1a）
 
 # 迁移注册表：版本号→迁移函数（接收实例）
 MIGRATIONS: dict[int, Callable[..., Any]] = {}

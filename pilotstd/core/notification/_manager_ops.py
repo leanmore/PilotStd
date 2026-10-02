@@ -42,6 +42,8 @@ class NotificationOps:
 
     # 写发送日志：刻意静默失败——日志落库不该反向影响通知投递本身，故只记 warning；
     # aggregated_count / link / icon 三列用于还原“这条代表合并了多少条事件”。
+    # 阶段 1a 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）
+    # 取 NotificationMessage 新字段的**默认值**，故旧 11 列的取值与语义完全不变。
     def log(
         self,
         event_type: str,
@@ -55,8 +57,9 @@ class NotificationOps:
         try:
             self._db.execute(
                 "INSERT INTO notification_log (event_type, channel, title, body, "
-                "standard_number, status, error_msg, sent_at, aggregated_count, link, icon) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "standard_number, status, error_msg, sent_at, aggregated_count, link, icon, "
+                "message_id, correlation_id, delivery_status, ack_status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -69,6 +72,10 @@ class NotificationOps:
                     msg.aggregated_count,
                     msg.link,
                     msg.icon,
+                    msg.message_id,
+                    msg.correlation_id,
+                    msg.delivery_status,
+                    msg.ack_status,
                 ),
             )
         except Exception as e:

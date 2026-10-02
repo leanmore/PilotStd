@@ -84,7 +84,11 @@ CREATE TABLE IF NOT EXISTS notification_log (
     is_read INTEGER DEFAULT 0,
     aggregated_count INTEGER DEFAULT 1,
     link TEXT,
-    icon TEXT
+    icon TEXT,
+    message_id TEXT NOT NULL DEFAULT '',
+    correlation_id TEXT NOT NULL DEFAULT '',
+    delivery_status TEXT NOT NULL DEFAULT 'pending',
+    ack_status TEXT NOT NULL DEFAULT 'none'
 );
 
 CREATE TABLE IF NOT EXISTS notification_queue (
