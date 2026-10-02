@@ -173,5 +173,68 @@ class TestMigrationV62(unittest.TestCase):
         self.assertIn(62, MIGRATIONS, "v62 必须已注册（migrations.py 导入触发装饰器）")
 
 
+class TestAggregatorCarriesIdentity(unittest.TestCase):
+    """判据 2：聚合两条带 correlation_id 的消息 → merged 的身份字段非空。"""
+
+    def _aggregate(self, msgs):
+        from pilotstd.core.notification.aggregate_buffer import NotificationAggregator
+
+        sent: list[NotificationMessage] = []
+        agg = NotificationAggregator(lambda m, _ch: sent.append(m), window_seconds=60, batch_size=50)
+        for m in msgs:
+            agg.enqueue(m, ["wechat"], target_id=m.target_id)
+        agg.flush(msgs[0].event_type, msgs[0].target_id)
+        return sent
+
+    def test_single_message_keeps_identity(self):
+        msg = NotificationMessage(
+            title="扫描完成",
+            event_type="scan_complete",
+            message_id="m-1",
+            correlation_id="run-9",
+            delivery_status="sent",
+            ack_status="read",
+        )
+        sent = self._aggregate([msg])
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0].message_id, "m-1")
+        self.assertEqual(sent[0].correlation_id, "run-9")
+
+    def test_merged_keeps_group_identity_and_resets_delivery(self):
+        """多条聚合：身份取首条；投递态/回执态**重置**（这条消息尚未投递）。"""
+        msgs = [
+            NotificationMessage(
+                title="扫描完成",
+                event_type="scan_complete",
+                target_id="std-1",
+                message_id=f"m-{i}",
+                correlation_id="run-9",
+                delivery_status="sent",
+                ack_status="read",
+            )
+            for i in (1, 2, 3)
+        ]
+        sent = self._aggregate(msgs)
+        self.assertEqual(len(sent), 1)
+        merged = sent[0]
+        self.assertEqual(merged.aggregated_count, 3)
+        self.assertEqual(merged.message_id, "m-1", "合并消息的身份应取首条")
+        self.assertEqual(merged.correlation_id, "run-9", "★ 聚合后 correlation_id 不得丢失")
+        self.assertEqual(merged.delivery_status, "pending", "重造的消息尚未投递，不得沿用 sent")
+        self.assertEqual(merged.ack_status, "none")
+
+    def test_merged_without_identity_still_safe(self):
+        """旧调用方不带身份时聚合不得报错（默认值兜底）。"""
+        msgs = [
+            NotificationMessage(title="扫描完成", event_type="scan_complete", target_id="s", body=f"b{i}")
+            for i in range(2)
+        ]
+        sent = self._aggregate(msgs)
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0].message_id, "")
+        self.assertEqual(sent[0].correlation_id, "")
+        self.assertEqual(sent[0].delivery_status, "pending")
+
+
 if __name__ == "__main__":
     unittest.main()

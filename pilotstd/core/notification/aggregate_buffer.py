@@ -394,6 +394,11 @@ class NotificationAggregator:
             summary_text = self._build_summary(entries)
 
         # 3. 构造合并消息：结构块始终保留，正文作为摘要
+        #
+        # 阶段 1a（2026-10-02）：显式搬运通知身份字段。
+        # 本构造是**重造**消息（不是就地修改），未列出的字段会取 dataclass 默认值——
+        # 即：聚合后的消息若忘了搬运，message_id/correlation_id 会**永远为空**，
+        # 而单条直发路径正常，属"只在聚合时静默丢身份"的隐性缺陷。故新字段必须显式搬运。
         merged = NotificationMessage(
             title=first_msg.title,
             body=summary_text,
@@ -404,6 +409,12 @@ class NotificationAggregator:
             link=first_msg.link,
             icon=first_msg.icon,
             aggregated_count=count,
+            # 首条消息的身份代表整组（correlation_id 是"同一次运行"的键，组内应相同）
+            message_id=first_msg.message_id,
+            correlation_id=first_msg.correlation_id,
+            # 投递态/回执态**重置**而非沿用：这条是新消息、尚未投递，沿用会让日志谎报状态
+            delivery_status="pending",
+            ack_status="none",
         )
         self._callback(merged, target_channels)
 
