@@ -143,6 +143,17 @@
 
   **(a) 对提示词前提轻信——11 处**
 
+  (a) 内含两个**子类型**（判据：提示词所指处置对**实际对象**是否适用）：
+
+  | 子类型 | 定义 | 判别方式 | 本表内实例 |
+  |--------|------|---------|-----------|
+  | **a-1 指错对象型** | 提示词**指错了位置**；它指的处置对**实际对象**也适用（问题真实存在，只是对象/位置不符） | 核对提示词所指元素 vs 实际出问题的元素 | 第 6 批（说 `header.title` 裸露，实际是 `table.header`——后者修复有效） |
+  | **a-2 前提错型** | 提示词所述处置对**所指对象根本不适用**（该对象的状态使处置无意义） | 核对提示词所述能力在该对象上是否存在 | 第 7 批（说需给 `DesktopRenderer` 补字段名——该渲染器**从不暴露字段名**，加 i18n 无意义）；第 8 批（说事件缺失，实则已实现） |
+
+  两者的共同点是"提示词提供的前提未经核对即被采信"，故同属 (a)；差异在**失真的形态**
+  （位置错 vs 状态错），修正动作也不同：a-1 需**改指对象**，a-2 需**改判前提**
+  （且可能整条作废，如第 7 批裁决"不应加字段名前缀"）。
+
   | 提示词断言 | 实测真相 | 实测依据 |
   |-----------|---------|---------|
   | 称 `_on_timer` 在 `docker/scheduler.py` | 实际在 `pilotstd/core/notification/aggregate_buffer.py` | `docker/scheduler.py` 不含 `_on_timer` |
@@ -151,7 +162,7 @@
   | 称应「删除 `_extract_topic`」 | 该函数 LIVE（`should_show` 调用），裁决改为不删、改 i18n 契约 | `notification_aggregator.py` 仍定义并调用 |
   | 称覆盖度矩阵为「39 事件 × **3** 维度」 | 实际「39 事件 × **4** 维度」 | `notification_coverage.md` 标题 |
   | 称 `security_login_failed` **可能未**入矩阵 | 第 8 批即已纳入（矩阵有该行） | `notification_coverage.md` 矩阵 |
-  | 称 `DesktopRenderer` 需「补字段名前缀」 | 其 `_render_list` 只取 first 值、**从不暴露字段名**——前提不成立 | `renderer.py` 的 `desktop_preview` 模板 |
+  | 称 `DesktopRenderer` 需「补字段名前缀」 | **a-2 前提错型**：其 `_render_list` **从不引用 `_field_label`**、只取 first 值——加字段名 i18n 无意义 | `renderer.py` 的 `DesktopRenderer._render_list`（对比 `FeishuCardRenderer` 确实引用 `_field_label`） |
   | 称「存量 3 个 mypy 错误」 | 门禁口径下为 **8** 个，且由 `7835bd64` 引入（非存量） | 见 V-1 实测定位 |
   | **第 6 批称飞书卡片的 `header.title` 裸露数据键** | **指错对象（位置错，非状态错）**：`header.title` 取 `message.title`（构建器已渲染的 i18n 文案）本就非裸露；真正裸露的是 **`table.header`（表格列头）**，第 6 批修复的是后者 | `renderer.py:24`（`header.title` = `message.title`）vs `:71`/`:79`（`_field_label(k)` + `table.header`） |
   | **第 8 批称 `credential_changed` 事件缺失/不完整** | 已完整实现（常量 + 构建器 + i18n 键 + e2e 条目，第 2 批落地） | `events.py` / `_builders_system.py` / `zh_CN.json` 三处实测均存在 |
@@ -194,15 +205,18 @@
   实则从不暴露字段名）、第 8 批（假设事件缺失，实则已实现）、第 9 批（假设 `_on_timer`
   在 scheduler，实则位置不同）、第 11 批（假设 `security_login_failed` 未入矩阵，实则已入）。
 
-  第 11 批另有一例，**须区分三者性质**（笼统说"两道是源码扫描"会掩盖差异）：
+  第 11 批另有一例。**须同时保留两个事实**：① 三者的**主要输入性质不同**；
+  ② 三者**都含人工维护成分**（跨批次审计 §C 的结构性结论，修正后仍成立）——
+  只列①会掩盖②，只列②会掩盖①。
 
-  | 门禁 | 输入性质 | 具体输入 |
-  |------|---------|---------|
-  | G-043 | **源码扫描** | `docker/api/**/*.py` + `docker/auth.py` 的 AST/正则 |
-  | G-044 | **数据文件扫描**（非源码） | `pilotstd/i18n/*.json` 语言包 + `docs/governance/glossary.json` |
-  | G-045 | **人工维护元数据** | `tests/test_notification_e2e.py` 的 `EVENTS` 列表（+ `ALL_EVENTS` 源码） |
+  | 门禁 | 主要输入（性质） | 依赖的人工维护数据 |
+  |------|----------------|------------------|
+  | G-043 | **源码扫描**：`docker/api/**/*.py` + `docker/auth.py` | `SENSITIVE_ROUTES`(4) / `EXEMPT_ROUTES`(7) / `API_DIRS` / `AUTH_MODULE`（`check_sensitive_endpoint_audit.py:42-58`） |
+  | G-044 | **数据文件扫描**：`pilotstd/i18n/*.json` + `glossary.json` | `glossary.json` 的 `terms`(47) / `keys`(40) / `exempt_keys`(16) / `exempt_terms`(10) |
+  | G-045 | **人工维护元数据**：e2e `EVENTS` | `EVENTS`(39 条 × 9 字段) / `ALL_EVENTS`(源码) / `SECURITY_EVENT_PREFIXES` / `SECURITY_EVENTS_EXTRA` |
 
-  即"三道门禁都依赖人工元数据"的前提对 G-043/G-044 **均不成立**，但二者的**输入类型彼此也不同**。
+  即"三道门禁都依赖人工元数据"的前提对 G-043/G-044 的**主要输入**不成立
+  （二者主体是自动扫描），但**人工维护的清单/词表确实是三者的共同结构性弱点**。
 
 - **修正**：把"先实测再下结论"作为硬规则——凡涉及**前提判断**（提示词给的路径/接口/预期值）或**自己刚推出的结论**，须先跑命令看输出。
 - **判别性测试/命令**（三层，③ 为本条特有且必须执行）：
