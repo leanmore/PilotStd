@@ -83,6 +83,24 @@ _CHANNEL_CLASSES = {
     "dingtalk": DingTalkChannel,
 }
 
+# notification_queue.event_data ⇄ NotificationMessage 的**字段契约**（唯一数据源）。
+# 写入侧（_enqueue_notification）与重建侧（release_suppressed_notifications）共用本常量：
+# 两侧各写一份字面量的历史写法一旦漂移，新字段就会在补发路径被静默丢弃
+# （只在静音时段暴露）。新增 NotificationMessage 字段时必须同批加进这里
+# ——契约由 tests/test_notification_manager.py::TestSuppressedQueueFieldRoundTrip 锁定。
+_QUEUE_MESSAGE_FIELDS = (
+    "event_type",
+    "title",
+    "body",
+    "level",
+    "link",
+    "icon",
+    "message_id",
+    "correlation_id",
+    "delivery_status",
+    "ack_status",
+)
+
 
 class NotificationManager:
     """通知管理器。
@@ -430,6 +448,13 @@ class NotificationManager:
                 "level": msg.level,
                 "link": msg.link,
                 "icon": msg.icon,
+                # 阶段 1a：通知身份字段必须随队列入库，
+                # 否则静音时段补发后 message_id/correlation_id 会**静默丢失**
+                # （写入侧与重建侧由同一常量 _QUEUE_MESSAGE_FIELDS 约束，防两侧漂移）
+                "message_id": msg.message_id,
+                "correlation_id": msg.correlation_id,
+                "delivery_status": msg.delivery_status,
+                "ack_status": msg.ack_status,
                 "channels": target_channels,
             },
             ensure_ascii=False,
@@ -456,8 +481,11 @@ class NotificationManager:
             try:
                 data = json.loads(row["event_data"])
                 channels = data.pop("channels", [])
+                # 白名单重建：**必须**与 _enqueue_notification 的写入键保持一致，
+                # 否则新字段在补发路径被静默丢弃（只在静音时段暴露，最难发现）。
+                # 契约由 tests/test_notification_manager.py::TestSuppressedQueueFieldRoundTrip 锁定。
                 msg = NotificationMessage(
-                    **{k: v for k, v in data.items() if k in ("title", "body", "level", "link", "icon", "event_type")}
+                    **{k: v for k, v in data.items() if k in _QUEUE_MESSAGE_FIELDS}
                 )
                 self._send_now(msg, channels)
                 self._db.execute("UPDATE notification_queue SET status='sent' WHERE id=?", (row["id"],))

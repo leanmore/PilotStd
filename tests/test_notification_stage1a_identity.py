@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import unittest
@@ -234,6 +235,97 @@ class TestAggregatorCarriesIdentity(unittest.TestCase):
         self.assertEqual(sent[0].message_id, "")
         self.assertEqual(sent[0].correlation_id, "")
         self.assertEqual(sent[0].delivery_status, "pending")
+
+
+class TestSuppressedQueueFieldRoundTrip(unittest.TestCase):
+    """判据 3：静音补发路径（序列化 → 反序列化）4 个新字段不丢。"""
+
+    def _manager(self):
+        from pilotstd.core.notification.manager import NotificationManager
+        from tests.fixtures.engine_mock_tree import ConfigStub
+
+        cfg = ConfigStub({"notification.enabled": False, "notification.aggregate_enabled": False})
+        db = MagicMock()
+        db.fetchone.return_value = None
+        db.fetchall.return_value = []
+        return NotificationManager(cfg, db, 1), db
+
+    def test_write_and_rebuild_share_whitelist(self):
+        """写入键集合 ⊆ 白名单 → 否则重建侧拿不到（白名单比写入宽是可以的）。"""
+        from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
+
+        for field in _NEW_COLUMNS:
+            self.assertIn(field, _QUEUE_MESSAGE_FIELDS, f"{field} 必须在补发白名单内")
+
+    def test_enqueue_writes_identity_fields(self):
+        mgr, db = self._manager()
+        mgr._cfg = MagicMock()
+        mgr._cfg.get.return_value = "07:00"
+        msg = NotificationMessage(
+            title="扫描完成",
+            body="b",
+            event_type="scan_complete",
+            message_id="m-42",
+            correlation_id="run-7",
+            delivery_status="sent",
+            ack_status="delivered",
+        )
+        mgr._enqueue_notification(msg, ["wechat"])
+
+        insert_sql, insert_params = db.execute.call_args[0]
+        self.assertIn("notification_queue", insert_sql)
+        event_data = json.loads(insert_params[1])
+        self.assertEqual(event_data["message_id"], "m-42")
+        self.assertEqual(event_data["correlation_id"], "run-7")
+        self.assertEqual(event_data["delivery_status"], "sent")
+        self.assertEqual(event_data["ack_status"], "delivered")
+
+    def test_release_restores_identity_fields(self):
+        """★ 核心：从 event_data 重建的消息，4 个新字段必须原样回来。"""
+        mgr, db = self._manager()
+        captured: list[NotificationMessage] = []
+        mgr._send_now = lambda m, ch: captured.append(m)  # type: ignore[method-assign]
+
+        event_data = {
+            "event_type": "scan_complete",
+            "title": "扫描完成",
+            "body": "b",
+            "level": "info",
+            "link": None,
+            "icon": None,
+            "message_id": "m-42",
+            "correlation_id": "run-7",
+            "delivery_status": "suppressed",
+            "ack_status": "none",
+            "channels": ["wechat"],
+        }
+        db.fetchall.return_value = [{"id": 1, "event_type": "scan_complete", "event_data": json.dumps(event_data)}]
+
+        count = mgr.release_suppressed_notifications()
+
+        self.assertEqual(count, 1)
+        self.assertEqual(len(captured), 1)
+        restored = captured[0]
+        self.assertEqual(restored.message_id, "m-42")
+        self.assertEqual(restored.correlation_id, "run-7")
+        self.assertEqual(restored.delivery_status, "suppressed")
+        self.assertEqual(restored.ack_status, "none")
+        # 旧字段同时不得丢（回归）
+        self.assertEqual(restored.title, "扫描完成")
+        self.assertEqual(restored.event_type, "scan_complete")
+
+    def test_release_tolerates_missing_new_fields(self):
+        """旧队列数据（无新字段）补发不得报错——走 dataclass 默认值。"""
+        mgr, db = self._manager()
+        captured: list[NotificationMessage] = []
+        mgr._send_now = lambda m, ch: captured.append(m)  # type: ignore[method-assign]
+
+        legacy = {"event_type": "scan_empty", "title": "扫描完成", "body": "", "level": "info", "channels": []}
+        db.fetchall.return_value = [{"id": 2, "event_type": "scan_empty", "event_data": json.dumps(legacy)}]
+
+        self.assertEqual(mgr.release_suppressed_notifications(), 1)
+        self.assertEqual(captured[0].message_id, "")
+        self.assertEqual(captured[0].delivery_status, "pending")
 
 
 if __name__ == "__main__":
