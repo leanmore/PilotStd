@@ -5,7 +5,6 @@ import os
 import secrets
 import threading
 import time
-import warnings
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -18,10 +17,12 @@ from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from pilotstd import ADMIN_ROLE
+from pilotstd.core.audit import write_audit
 
 from ._static_token import _ensure_static_token_in_db
 from .session_store import get_session_store
 from .users import (
+    _resolve_audit_identity,
     check_must_change_password,
     clear_login_failures,
     count_recent_failures,
@@ -105,20 +106,6 @@ def get_current_user_id(request: Request) -> int:
     return user_id
 
 
-def get_current_username(request: Request) -> int:
-    """⚠️ DEPRECATED: 实际返回 user_id 而非 username，函数名具有误导性。
-
-    请使用 get_current_user_id() 获取用户 ID。
-    将在后续版本移除。
-    """
-    warnings.warn(
-        "get_current_username() is deprecated — returns user_id, not username. Use get_current_user_id() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return get_current_user_id(request)
-
-
 def require_role(role: str):
     """装饰器：要求当前用户具有指定角色。
 
@@ -131,8 +118,6 @@ def require_role(role: str):
         def put_settings(...): ...
     """
     from functools import wraps
-
-    from pilotstd.core.audit import write_audit
 
     def decorator(func):
         @wraps(func)
@@ -149,24 +134,34 @@ def require_role(role: str):
                         request = v
                         break
 
-            # 从令牌获取当前角色
+            # 从令牌获取当前角色与主体
+            # ⚠️ v3.0 起 JWT 的 `sub` 是 **user_id**（`_generate_token` 写 `str(user_id)`），
+            # 不是 username——故变量名为 subject 而非 username（L-04 修复）。
             current_role = "user"
-            username = "unknown"
+            subject = "unknown"
             if request is not None:
                 token = request.cookies.get(COOKIE_NAME)
                 if token:
                     try:
                         payload = jwt.decode(token, SECRET, algorithms=["HS256"])
                         current_role = payload.get("role", "user")
-                        username = payload.get("sub", "unknown")
+                        subject = payload.get("sub", "unknown")
                     except JWTError:
                         pass
 
             if current_role != ADMIN_ROLE and current_role != role:
+                # L-04：审计需可读的 username，但 `sub` 是 user_id → 在拒绝路径上反查。
+                audit_user_id, audit_username = _resolve_audit_identity(subject)
                 write_audit(
                     action="ACCESS_DENIED",
                     resource=f"{request.method} {request.url.path}" if request else func.__name__,
-                    detail={"required_role": role, "actual_role": current_role, "username": username},
+                    detail={
+                        "required_role": role,
+                        "actual_role": current_role,
+                        "username": audit_username,
+                    },
+                    # 显式传 user_id，使审计列与 detail 一致（不再依赖 ContextVar 是否存在）
+                    user_id=audit_user_id,
                 )
                 raise HTTPException(403, "权限不足")
 

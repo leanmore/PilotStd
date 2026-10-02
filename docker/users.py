@@ -321,3 +321,26 @@ def get_user_by_id(user_id: int):
 def get_db_connection():
     """获取数据库连接（供其他模块使用）。"""
     return _get_db()
+
+
+def _resolve_audit_identity(subject: str) -> tuple[int | None, str]:
+    """把 JWT 的 `sub` 解析为审计用的 `(user_id, username)`。
+
+    **背景（L-04）**：v3.0 起 `sub` 是 **user_id**（`auth._generate_token` 写
+    `str(user_id)`），但原实现在 ACCESS_DENIED 审计的 `detail["username"]` 里直接塞 `sub`
+    —— 该字段因此恒为 `"1"` 这类 id 字符串，而非可读用户名。
+
+    解析规则：
+      - 全数字 → 视为 user_id，**按主键反查** users 表取真实 username；
+      - 非数字 → 旧格式 token（`sub` 即 username），直接返回，**不查库**；
+      - 查不到行（数据异常）→ username 回落 `"unknown"`，不抛异常。
+
+    **只在拒绝路径上调用**（`auth.require_role` 的 403 分支），故正常授权零 DB 开销。
+    """
+    if not isinstance(subject, str):
+        return None, "unknown"
+    if not subject.isdigit():
+        return None, subject  # 旧格式 token：sub 即 username，无 id 可反查
+    user_id = int(subject)
+    row = get_user_by_id(user_id)
+    return user_id, (str(row["username"]) if row else "unknown")
