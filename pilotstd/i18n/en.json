@@ -517,6 +517,36 @@
     "notification.common.std_type.industry": "Industry Standard",
     "notification.common.std_type.local": "Local Standard",
 
+
+    "notification.download.favorite_abandoned_summary.title": "Favorites abandoned (no further retries)",
+
+    "notification.download.favorite_abandoned_summary.body.total": "{total} standard(s) were abandoned in this run. They are in a terminal state and will not be retried automatically.",
+
+    "notification.download.favorite_abandoned_summary.body.list_header": "Reasons",
+
+    "notification.download.favorite_abandoned_summary.body.reason_label": "Reason",
+
+    "notification.download.favorite_abandoned_summary.body.count_unit": "{count}",
+
+    "notification.download.favorite_abandoned_summary.body.detail_header": "Examples",
+
+    "notification.download.favorite_abandoned_summary.body.advice_retryable": "{retryable} of them failed for temporary reasons (network/rate limit/dependency bug). Re-favorite them to retry.",
+
+
+    "notification.abandon_reason.copyright": "Copyright-restricted (adopted standard)",
+
+    "notification.abandon_reason.legacy_link": "Legacy link resolver failure (replaced)",
+
+    "notification.abandon_reason.session_defect": "Session layer defect (fixed)",
+
+    "notification.abandon_reason.db_race": "Database race (fixed)",
+
+    "notification.abandon_reason.archive_timeout": "Archive registration timeout",
+
+    "notification.abandon_reason.network": "Network timeout or channel rate limit",
+
+    "notification.abandon_reason.other": "Other reasons",
+    "notification.download.favorite_abandoned_summary.body.advice_permanent": "Most of these are permanent failures (copyright-restricted or not available at the source). Retrying usually will not help; please handle them manually.",
     "notification.download.favorite_created.title": "Favorite Added",
     "notification.download.favorite_created.body.queue_with_date": "Added to download queue; will auto-download and archive on {date}",
     "notification.download.favorite_created.body.queue_generic": "Added to download queue; will auto-download and archive after the cooldown period",

@@ -42,10 +42,13 @@ _PAUSE_CONFIG_KEY = "notification.aggregation"
 # 兜底分支——同一事件在不同语言下归入不同分组，跨语言完全不合并，且分组数随
 # 标题数无界增长（实测三语下 65 条落兜底）。
 #
-# 修法：以 i18n 中的**真实标题**为契约。`notification.*` 的 47 个 `.title*` 键
-# 经实测**全部可映射到事件**（39/39，唯一例外 `notification.channel.test.title`
+# 修法：以 i18n 中的**真实标题**为契约。`notification.*` 的 `.title*` 键
+# 经实测**全部可映射到事件**（唯一例外 `notification.channel.test.title`
 # 不属任何事件），故把标题渲染值与事件的对应关系固化为映射表，用**准确匹配**
 # 取代关键词猜测。事件 → 主题再由 `_TOPIC_BY_EVENT` 显式给出。
+# **新增事件必须同步登记本表**，否则该事件会落到"标题前 8 字符"兜底分支，
+# 导致同一事件在不同语言下分裂成不同主题（`favorite_abandoned_summary` 上线时
+# 即被 `tests/test_notification_aggregator_topic_i18n.py` 拦下）。
 #
 # **实际生效范围（实测）**：`_extract_topic` 在全库只有一个调用点（本模块
 # `should_show`），而平台层调用方 `ui/core/handlers/_download.py` 传的是
@@ -95,6 +98,7 @@ _TOPIC_BY_EVENT: dict[str, str] = {
     "replacement_not_found": "validity",
     "quota_exhausted": "validity",
     "favorite_created": "download",
+    "favorite_abandoned_summary": "download",
     "download_started": "download",
     "announcement_check_complete": "announce",
 }

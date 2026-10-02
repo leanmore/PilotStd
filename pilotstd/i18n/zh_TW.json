@@ -438,6 +438,36 @@
     "notification.common.std_type.industry": "行業標準",
     "notification.common.std_type.local": "地方標準",
 
+
+    "notification.download.favorite_abandoned_summary.title": "收藏已放棄（不會再自動重試）",
+
+    "notification.download.favorite_abandoned_summary.body.total": "本次執行共放棄 {total} 個標準：這些已進入終態，系統不會再自動嘗試。",
+
+    "notification.download.favorite_abandoned_summary.body.list_header": "放棄原因分類",
+
+    "notification.download.favorite_abandoned_summary.body.reason_label": "原因",
+
+    "notification.download.favorite_abandoned_summary.body.count_unit": "{count} 個",
+
+    "notification.download.favorite_abandoned_summary.body.detail_header": "範例",
+
+    "notification.download.favorite_abandoned_summary.body.advice_retryable": "其中 {retryable} 個屬於暫時性失敗（如網路／限流／相依缺陷），可重新收藏後重試。",
+
+
+    "notification.abandon_reason.copyright": "版權受限（採標標準），無法自動取得",
+
+    "notification.abandon_reason.legacy_link": "舊版取連結實作失敗（已替換）",
+
+    "notification.abandon_reason.session_defect": "工作階段層缺陷（已修復）",
+
+    "notification.abandon_reason.db_race": "資料庫競態（已修復）",
+
+    "notification.abandon_reason.archive_timeout": "歸檔登記逾時",
+
+    "notification.abandon_reason.network": "網路逾時或管道限流",
+
+    "notification.abandon_reason.other": "其他原因",
+    "notification.download.favorite_abandoned_summary.body.advice_permanent": "這些多為永久性失敗（如版權受限或來源未收錄），重試通常無效，建議人工處理。",
     "notification.download.favorite_created.title": "收藏成功",
     "notification.download.favorite_created.body.queue_with_date": "已加入下載佇列，預計 {date} 自動下載歸檔",
     "notification.download.favorite_created.body.queue_generic": "已加入下載佇列，冷卻期過後自動下載歸檔",

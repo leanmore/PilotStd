@@ -66,6 +66,9 @@ FACTORY_DEFAULTS = {
     "notification.rules.auto_backup": ["wechat"],
     "notification.rules.announcement_check_complete": ["wechat"],
     "notification.rules.batch_download_complete": ["wechat"],
+    # 收藏告终汇总（P0）：`abandoned` 是**终态**、系统不再自动重试，
+    # 用户必须收到明确告终提示（否则"一直没下载"这件事永远无人知晓）
+    "notification.rules.favorite_abandoned_summary": ["wechat"],
     "notification.rules.auto_scan_failed": ["wechat"],
     "notification.rules.validity_batch_report": ["wechat"],
     "notification.rules.validity_round_summary": ["wechat"],

@@ -20,6 +20,7 @@ from typing import Any, Optional
 
 from pilotstd.core.config import get_db_path
 from pilotstd.core.db.database import Database
+from pilotstd.download.engine import ADOPTED_SKIP_MESSAGE
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,81 @@ def process_pending_downloads(download_engine: Any = None, notify_per_record: bo
 
     if not notify_per_record:
         _notify_run_summary(outcomes)
+        # 告终汇总：把本轮的 `abandoned` 单独成一条（含原因分类 + 操作建议）。
+        # 必须与 `_notify_run_summary` 分开：后者的 failed 计数把 abandoned 并了进去，
+        # 用户无从得知"哪些已彻底放弃、不会再自动重试"。
+        _notify_abandoned_summary([o[1] for o in outcomes if isinstance(o, tuple) and o[0] == "abandoned"])
     return len(outcomes)
+
+
+def _classify_abandon_reason(error: str) -> tuple[str, bool]:
+    """把放弃原因归类为**类别 key**，并判断"重试是否有效"。
+
+    返回 `(类别 key, 重试是否有效)`。类别 key 由**构建器**翻译成文案
+    （与 `_format_utils.translate_error_message` 同一约定：本层只产出 key，
+    不写死中文，最终语言在渲染时决定）。
+
+    **为何要区分可重试与否**：`abandoned` 是终态、系统不再自动重试，故"建议用户做什么"
+    完全取决于是哪一类：
+    - **重试有效**（临时性）：网络/限流、依赖缺陷、数据库竞态 —— 缺陷修好后重新收藏即可；
+    - **重试无效**（永久性）：版权受限、来源未收录 —— 重试多少次都一样，只能人工线下取件。
+
+    分类依据来自生产实测的 `error_message` 实际取值（见诊断报告
+    `docs/reference/diagnosis-favorite-download-failures.md`）。
+    """
+    text = error or ""
+    # 复用下载引擎的既有常量（`pilotstd/download/engine.py`），避免同一口径两处写字面量
+    if ADOPTED_SKIP_MESSAGE in text:
+        return "copyright", False
+    if "无法获取下载链接" in text:
+        # 该实现已被替换；此处失败模式不复存在，重新收藏即可走新链路
+        return "legacy_link", True
+    if "super" in text and "request" in text:
+        # 会话层委派缺陷（已修复并部署）
+        return "session_defect", True
+    if "数据库操作失败" in text or "UNIQUE constraint" in text:
+        return "db_race", True
+    if "归档超时" in text:
+        # 下载已成功但索引未登记；链路修复后重新收藏可完成归档
+        return "archive_timeout", True
+    if "超时" in text or "timed out" in text.lower() or "429" in text:
+        return "network", True
+    return "other", True
+
+
+def _notify_abandoned_summary(abandoned: list[str]) -> None:
+    """**告终汇总**：本次运行中进入 `abandoned` 终态的标准，合并为一条通知（P0 修复）。
+
+    与 `batch_download_complete` 的分工：后者报"这一轮成功/失败/跳过各几个"；
+    本函数只报"**哪些已彻底放弃、不会再自动重试**"，含原因分类与操作建议。
+
+    仅在 `abandoned` 非空时发送——无放弃则不发，避免又多一条日常噪声。
+    通知失败只记日志，不影响状态机。
+    """
+    if not abandoned:
+        return
+    reasons: Counter[str] = Counter()
+    retryable = 0
+    for err in abandoned:
+        label, ok = _classify_abandon_reason(err)
+        reasons[label] += 1
+        if ok:
+            retryable += 1
+    try:
+        from pilotstd.manager.facade import StandardManager
+
+        StandardManager().notification_mgr.send_event(
+            "favorite_abandoned_summary",
+            {
+                "total": len(abandoned),
+                "reasons": dict(reasons),
+                "retryable": retryable,
+                # 明细取前 5 条原始原因，给出可核对的具体例证
+                "details": [str(e)[:80] for e in abandoned[:5]],
+            },
+        )
+    except Exception as e:  # noqa: BLE001 — 汇总通知失败不得影响链路结果
+        logger.warning("告终汇总通知发送失败: %s", e)
 
 
 def _notify_run_summary(outcomes: list[Any]) -> None:

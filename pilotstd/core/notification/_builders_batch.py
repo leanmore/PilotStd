@@ -29,6 +29,19 @@ _STD_TYPE_LABEL_KEYS = {
     "LocalStd": "notification.common.std_type.local",
 }
 
+# 收藏放弃的**类别 key → 文案键**。
+# 分类在 `favorite_chain_processor._classify_abandon_reason` 里只产出 key（不写死中文），
+# 语言在渲染时由此处决定；未知 key 原样回显，便于新类别上线前也能看出内容。
+_ABANDON_REASON_KEYS = {
+    "copyright": "notification.abandon_reason.copyright",
+    "legacy_link": "notification.abandon_reason.legacy_link",
+    "session_defect": "notification.abandon_reason.session_defect",
+    "db_race": "notification.abandon_reason.db_race",
+    "archive_timeout": "notification.abandon_reason.archive_timeout",
+    "network": "notification.abandon_reason.network",
+    "other": "notification.abandon_reason.other",
+}
+
 
 def _std_type_text(standard_type: str) -> str:
     """标准类型标签（未知类型返回空串，模板中省略该行）。"""
@@ -125,6 +138,81 @@ def _build_batch_download_complete_message(data: dict) -> NotificationMessage:
         level="info" if failed == 0 else "warning",
         event_type="batch_download_complete",
         icon="pi pi-download",
+    )
+
+
+def _build_favorite_abandoned_summary_message(data: dict) -> NotificationMessage:
+    """收藏告终汇总：**仅在实际发生放弃时**发送（P0 修复）。
+
+    `abandoned` 是**终态**——调度只捡 `pending`/`failed`，故系统**永远不会再自动重试**。
+    原先该状态被并进 `batch_download_complete` 的 `failed` 计数，用户看不出
+    "哪些已经彻底放弃、需要人工介入"。本事件承担该告终语义。
+
+    载荷：`total`（放弃总数）、`reasons`（原因分类 → 条数）、
+    `retryable`（其中"重试有效"的条数，用于给出可执行建议）、`details`（示例明细）。
+    """
+    total = int(data.get("total", 0) or 0)
+    reasons = data.get("reasons") or {}
+    retryable = int(data.get("retryable", 0) or 0)
+    details = [str(d) for d in (data.get("details") or []) if d][:5]
+
+    blocks: list[NotificationBlock] = [
+        TextBlock(
+            text=t("notification.download.favorite_abandoned_summary.body.total").format(total=total)
+        )
+    ]
+
+    # 原因分类：载荷里是**类别 key**（分类层不写死中文），此处翻译成文案再展示
+    if reasons:
+        items = [
+            {
+                "reason": t("notification.download.favorite_abandoned_summary.body.reason_label"),
+                "count": t("notification.download.favorite_abandoned_summary.body.count_unit").format(
+                    count=n
+                ),
+                "name": t(_ABANDON_REASON_KEYS[name]) if name in _ABANDON_REASON_KEYS else str(name),
+            }
+            for name, n in sorted(reasons.items(), key=lambda kv: -int(kv[1] or 0))[:5]
+        ]
+        blocks.append(
+            ListBlock(
+                title=t("notification.download.favorite_abandoned_summary.body.list_header"),
+                items=items,
+                total=len(reasons),
+            )
+        )
+
+    # 操作建议：区分"重试有效"与"永久失败"，两者处置方式完全不同
+    if retryable > 0:
+        blocks.append(
+            TextBlock(
+                text=t("notification.download.favorite_abandoned_summary.body.advice_retryable").format(
+                    retryable=retryable
+                )
+            )
+        )
+    else:
+        blocks.append(
+            TextBlock(
+                text=t("notification.download.favorite_abandoned_summary.body.advice_permanent")
+            )
+        )
+
+    if details:
+        blocks.append(
+            ListBlock(
+                title=t("notification.download.favorite_abandoned_summary.body.detail_header"),
+                items=[{"number": d} for d in details],
+                total=total,
+            )
+        )
+
+    return NotificationMessage(
+        title=t("notification.download.favorite_abandoned_summary.title"),
+        blocks=blocks,
+        level="warning",
+        event_type="favorite_abandoned_summary",
+        icon="pi pi-exclamation-triangle",
     )
 
 

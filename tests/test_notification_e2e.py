@@ -242,6 +242,12 @@ TRIGGER_KEYS: dict[str, set[str]] = {
     "favorite_created": {"user_id", "record_id", "standard_no", "standard_name"},
     "download_started": {"user_id", "standard_number", "favorite_id"},
     "download_complete": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
+    "favorite_abandoned_summary": {
+        "total",
+        "reasons",
+        "retryable",
+        "details",
+    },
 }
 
 EVENTS: list[dict[str, Any]] = [
@@ -650,6 +656,17 @@ EVENTS: list[dict[str, Any]] = [
         "builder_keys": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
         "mutual": "",
     },
+    {
+        "name": "favorite_abandoned_summary",
+        "module": "收藏链",
+        "level": "warning",
+        "aggregation": "聚合",
+        "trigger_file": "pilotstd/services/favorite_chain_processor.py",
+        "builder_file": "pilotstd/core/notification/_builders_batch.py",
+        "builder_method": "_build_favorite_abandoned_summary_message",
+        "builder_keys": {"total", "reasons", "retryable", "details"},
+        "mutual": "",
+    },
     # ── 安全告警（3，第 2 批安全与审计闭环）──
     # 投递由 security_notifier 直连旧渠道同步发送（绕过聚合/静音），
     # 但事件自身仍登记于 ALL_EVENTS 并配构建器，故纳入本契约测试。
@@ -700,7 +717,8 @@ EVENTS: list[dict[str, Any]] = [
 ]
 
 # 验证 EVENTS 列表完整性
-assert len(EVENTS) == 39, f"Expected 39 events, got {len(EVENTS)}"
+# 40 = 原 39 + `favorite_abandoned_summary`（P0：收藏告终汇总，见 test_abandoned_summary.py）
+assert len(EVENTS) == 40, f"Expected 40 events, got {len(EVENTS)}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

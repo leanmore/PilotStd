@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": 1,
-    "updated": "2026-09-26",
+    "updated": "2026-10-02",
     "gate": "G-044",
     "scope_keys": [
       "notification.*"
@@ -31,6 +31,7 @@
     "notification.channel_test.missing_chat_id",
     "notification.channel.not_configured_webhook",
     "notification.channel.not_configured_telegram",
+    "notification.download.favorite_abandoned_summary.title",
     "notification.api.unsupported_channel",
     "ocr_baidu_api_key",
     "ocr_baidu_secret_key",
@@ -639,6 +640,20 @@
       "zh_CN": "若非本人操作，请立即检查账号安全并考虑更换密码。",
       "zh_TW": "若非本人操作，請立即檢查帳號安全並考慮更換密碼。",
       "en": "If this was not you, review your account security and consider changing the password."
+    },
+    {
+      "id": "abandoned",
+      "zh_CN": "已放弃",
+      "zh_TW": "已放棄",
+      "en": "Abandoned",
+      "aliases": [
+        "终态",
+        "不再重试",
+        "收藏已放弃（不会再自动重试）"
+      ],
+      "forbidden": [],
+      "keys": [],
+      "notes": "收藏下载链的重试耗尽终态：系统不再自动重试，需人工介入。与『失败』区分——失败仍会在下一轮自动重试，放弃不会。P0 修复新增该告终汇总事件，避免用户对『一直没下载』无感。keys 留空：该事件标题是带修饰语的完整句子（『收藏已放弃（不会再自动重试）』），不是术语的单一规范写法，登记为规范键会因精确匹配要求误报；完整标题已登记为 alias，标题键列入 exempt_keys。"
     }
   ]
 }

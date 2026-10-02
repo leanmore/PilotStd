@@ -521,6 +521,36 @@
     "notification.common.std_type.industry": "行业标准",
     "notification.common.std_type.local": "地方标准",
 
+
+    "notification.download.favorite_abandoned_summary.title": "收藏已放弃（不会再自动重试）",
+
+    "notification.download.favorite_abandoned_summary.body.total": "本次运行共放弃 {total} 个标准：这些已进入终态，系统不会再自动尝试。",
+
+    "notification.download.favorite_abandoned_summary.body.list_header": "放弃原因分类",
+
+    "notification.download.favorite_abandoned_summary.body.reason_label": "原因",
+
+    "notification.download.favorite_abandoned_summary.body.count_unit": "{count} 个",
+
+    "notification.download.favorite_abandoned_summary.body.detail_header": "示例",
+
+    "notification.download.favorite_abandoned_summary.body.advice_retryable": "其中 {retryable} 个属于临时性失败（如网络/限流/依赖缺陷），可重新收藏后重试。",
+
+
+    "notification.abandon_reason.copyright": "版权受限（采标标准），无法自动获取",
+
+    "notification.abandon_reason.legacy_link": "旧版取链接实现失败（已替换）",
+
+    "notification.abandon_reason.session_defect": "会话层缺陷（已修复）",
+
+    "notification.abandon_reason.db_race": "数据库竞态（已修复）",
+
+    "notification.abandon_reason.archive_timeout": "归档登记超时",
+
+    "notification.abandon_reason.network": "网络超时或渠道限流",
+
+    "notification.abandon_reason.other": "其他原因",
+    "notification.download.favorite_abandoned_summary.body.advice_permanent": "这些多为永久性失败（如版权受限或来源未收录），重试通常无效，建议人工处理。",
     "notification.download.favorite_created.title": "收藏成功",
     "notification.download.favorite_created.body.queue_with_date": "已加入下载队列，预计 {date} 自动下载归档",
     "notification.download.favorite_created.body.queue_generic": "已加入下载队列，冷却期过后自动下载归档",

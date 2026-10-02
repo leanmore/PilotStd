@@ -12,7 +12,7 @@
 | [phase1-startup-checklist.md](phase1-startup-checklist.md) | Phase 1 唯一准入标准（启动检查清单） | v2.1 |
 | [gates.md](gates.md) | 门禁清单 + 执行入口（`check_all.sh` 各模式与 pre-commit 钩子接线）；版本行 **v1.68~v1.73** 依次对应 R14-4a（#31 闭环 + #32-A 状态字典）、R14-4b（#32-B 后端字面量收敛）、R14-4c（#32-C 前后端闭环 + v61 迁移）、R14-4d（#32-D 测试收敛 + 哨兵，#32 闭环）、R14-5（适配器模板同步 + 台账归档与存续项校准）、R16（候选池 P0~P3：门禁受控测试自动化 / schema 门禁提示 / T-30 收口 / 两形近脚本改名 + T-16 计数归零）；v1.68 行另含 R14-4a 的 CI 修正（`test_status` 的 PyQt6 环境守卫）；2026-09-26 新增 **G-043 敏感端点审计接线**、**G-044 术语与禁用词检查** | v1.73 + G-043/G-044 |
 | [glossary.json](glossary.json) | 术语唯一数据源（G-044 门禁输入）：47 条术语的三语用词、`forbidden` 禁用词组、`aliases` 可接受写法，以及 `exempt_keys` / `exempt_terms` 两层白名单 | 活跃 |
-| [notification_coverage.md](notification_coverage.md) | 通知系统覆盖度基线（39 事件 × i18n/e2e/审计/术语 四维度），新增事件的准入检查清单；由 `scripts/audit_notification_coverage.py`（G-045 门禁）扫描生成 | 活跃 |
+| [notification_coverage.md](notification_coverage.md) | 通知系统覆盖度基线（40 事件 × i18n/e2e/审计/术语 四维度），新增事件的准入检查清单；由 `scripts/audit_notification_coverage.py`（G-045 门禁）扫描生成 | 活跃 |
 | [verification-antipatterns.md](verification-antipatterns.md) | 验证与报告方法论的反模式集（口径 / 可复现性 / 检测器判别力 / 抽象时机），每条附可复现的判别方式 | 活跃 |
 | [file-inclusion-criteria.md](file-inclusion-criteria.md) | 文件入仓五条规则（R1-R5） | v1.0 |
 | [capabilities_registry.md](capabilities_registry.md) | 非功能性能力登记簿 | 活跃 |

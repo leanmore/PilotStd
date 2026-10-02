@@ -191,7 +191,7 @@ pilotstd/scan/parser/_result_builder.py::15
 pilotstd/scan/parser/_text_cleaner.py::1
 pilotstd/scan/scanner.py::24
 pilotstd/scan/watcher.py::7
-pilotstd/services/favorite_chain_processor.py::10
+pilotstd/services/favorite_chain_processor.py::15
 pilotstd/task/queue.py::5
 pilotstd/task/scheduler.py::5
 pilotstd/tasks/date_reminder.py::3

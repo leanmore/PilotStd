@@ -12,6 +12,7 @@ from ._builders_batch import (
     _build_download_complete_message,
     _build_download_failed_message,
     _build_download_started_message,
+    _build_favorite_abandoned_summary_message,
     _build_favorite_created_message,
     _build_normalize_complete_message,
 )

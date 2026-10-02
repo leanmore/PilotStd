@@ -28,11 +28,12 @@
 
 ---
 
-## 二、覆盖度矩阵（39 事件 × 4 维度）
+## 二、覆盖度矩阵（40 事件 × 4 维度）
 
 图例：✅ 通过 ｜ ⚠️ 跟踪项未达标（不阻断）｜ ❌ 阻断缺口 ｜ N/A 业务事件无安全语义
 
 <!-- BEGIN GENERATED MATRIX -->
+
 | 事件 | i18n | 术语 | e2e | 审计 | 构建器 |
 |------|------|------|-----|------|--------|
 | `archive_complete` | ✅ | ⚠️ | ✅ | N/A | `_build_archive_complete_message` |
@@ -70,10 +71,12 @@
 | `favorite_created` | ✅ | ⚠️ | ✅ | N/A | `_build_favorite_created_message` |
 | `download_started` | ✅ | ⚠️ | ✅ | N/A | `_build_download_started_message` |
 | `download_complete` | ✅ | ⚠️ | ✅ | N/A | `_build_download_complete_message` |
+| `favorite_abandoned_summary` | ✅ | ⚠️ | ✅ | N/A | `_build_favorite_abandoned_summary_message` |
 | `notification_credential_changed` | ✅ | ⚠️ | ✅ | ✅ | `_build_notification_credential_changed_message` |
 | `security_password_changed` | ✅ | ⚠️ | ✅ | ✅ | `_build_security_password_changed_message` |
 | `security_token_refreshed` | ✅ | ⚠️ | ✅ | ✅ | `_build_security_token_refreshed_message` |
 | `security_login_failed` | ✅ | ✅ | ✅ | ✅ | `_build_security_login_failed_message` |
+
 <!-- END GENERATED MATRIX -->
 
 **汇总**：i18n **39/39** ｜ e2e **39/39** ｜ 安全事件审计 **4/4** ｜ 术语登记 **1/39**（跟踪项）
