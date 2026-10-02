@@ -21,8 +21,10 @@ const creating = ref(false)
 const { t } = useI18n()
 const store = useAppStore()
 
-// 创建备份要求 admin：后端 `POST /api/backup/create` 已加 `@require_role("admin")`
-// （备份含全量数据库内容）。前端同步门控，避免非 admin 看到可点但必然 403 的按钮。
+// 备份页**整体**要求 admin：后端两个端点均已加 `@require_role("admin")`
+//   - `POST /api/backup/create` 导出含全量数据库内容（用户表/密码哈希/审计日志/通知凭证）；
+//   - `GET  /api/backup/list`   备份文件的存在性与时间戳本身即信息（可推断系统状态与备份频率）。
+// 前端同步门控：非 admin 不请求列表（否则必然 403）、不渲染列表，只显示提示。
 const isAdmin = computed(() => store.role === 'admin')
 
 const lastBackup = ref<string | null>(null)
@@ -48,13 +50,18 @@ const createBackup = async () => {
   finally { creating.value = false }
 }
 
-onMounted(() => fetchBackups('/backup'))
+onMounted(() => { if (isAdmin.value) fetchBackups('/backup') })
 </script>
 
 <template>
   <div class="page">
     <h2 class="page-title">{{ t('backup.title') }}</h2>
-    <Card>
+    <Card v-if="!isAdmin">
+      <template #content>
+        <p class="text-sm">{{ t('backup.admin_only') }}</p>
+      </template>
+    </Card>
+    <Card v-else>
       <template #content>
         <div class="flex gap-3 align-items-center">
           <Button

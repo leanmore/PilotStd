@@ -33,8 +33,22 @@ def _get_backup_dir(mgr) -> str:
 
 
 @router.get("/api/backup/list")
-def list_backups(mgr=Depends(get_manager_dep)):
-    """获取所有备份列表。"""
+@require_role("admin")
+def list_backups(request: Request, mgr=Depends(get_manager_dep)):
+    """获取所有备份列表（**仅管理员**）。
+
+    **授权（收尾 B）**：原实现无 `@require_role`——与 `POST /api/backup/create` 同类越权。
+    列表虽不含备份**内容**，但**备份文件的存在性本身是信息**：文件名带时间戳，可据此推断
+    系统状态与备份频率（如是否存在攻击前后的快照、运维活跃度）。普通用户无需知道。
+
+    **`request` 参数不可省**：`require_role` 从**函数参数**中查找 `Request`
+    （`docker/auth.py` 的 wrapper 遍历 `args`/`kwargs`）以读取 Cookie 中的 JWT。
+    若签名中无 `request`，wrapper 取不到请求对象 → `current_role` 回落默认 `"user"`
+    → **连 admin 也被拒**（实测：加 `@require_role` 但无 `request` 时 admin 得 403）。
+    这与 `create_backup` 当初补 `request` 参数是同一原因。
+
+    本文件两个端点现均为 admin-only（`list` 读 + `create` 写）。
+    """
     backup_dir = _get_backup_dir(mgr)
     backups = []
     if os.path.exists(backup_dir):

@@ -336,8 +336,14 @@
 
 ### G-043：敏感端点审计接线
 
-**检查内容**：扫描 `docker/api/**/*.py` 中的状态变更路由装饰器（`POST`/`PUT`/`DELETE`/`PATCH`），
-命中 `SENSITIVE_ROUTES` 的路由要求其所属模块内存在 `write_audit(` 调用；否则 FAIL。
+**检查内容**：用 **AST** 扫描 `docker/api/**/*.py` + `docker/auth.py` 的状态变更路由
+（`POST`/`PUT`/`DELETE`/`PATCH`），对命中 `SENSITIVE_ROUTES` 的路由做 **L1 函数级**判定：
+**该路由的函数必须可达 `write_audit`**；否则 FAIL。
+
+**函数级判定的折中（AUDIT_WRAPPERS）**：可达性不靠"展开同模块全部辅助函数"——那会因
+`trigger_cleanup → get_stats` 这类非审计调用而**假 PASS**。改为**显式注册表** `AUDIT_WRAPPERS`
+（当前 8 条，含 `write_audit` 本体），配合 `validate_wrappers()` 自校验（每条必须真调用
+`write_audit`）。**本方案以人工维护注册表换取判定精确性，不是消除依赖**。
 
 **敏感端点判定标准**（三类，命中任一即纳入）：
 
@@ -348,14 +354,30 @@
 | S3 | 不可逆批量数据销毁 | `DELETE /api/admin/logs`、`POST /api/cache/cleanup` |
 
 **豁免**：`EXEMPT_ROUTES` 是**显式登记**的待接入清单，每条必须带理由字符串（禁止无理由豁免）。
-某条一旦在该模块内出现 `write_audit`，脚本会提示"可移出豁免"（提示不阻断）。
+**当前为空（0 条）**——L-01 批次把 6 项 P1/P2 端点（用户增删 / 自助注册 / 日志批删 / 缓存清理 /
+手动备份）共 24 处出口全部接入；`POST /query` 本就函数可达 `write_audit`，移出豁免。
+`[覆盖摘要]` 的豁免段现在**仅在 `exempted > 0` 时**输出。
 
-**已知局限（有意保留）**：按**模块**粒度判定，无法区分"同文件内另一个端点已写审计"的情形
-（如 `admin_db.py` 的 `DB_QUERY` 已写，故 `POST /query` 报"可移出"）。升级到函数级 AST 判定留待
-P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级判定才有意义。
+**L2（出口覆盖）不进门禁**：门禁只做 L1。"产生状态变更的**出口**"无法纯静态判定（需理解语义），
+故 L2 由**接线约定 + 测试断言**承担（见 `notification_coverage.md` 的 L-01 专项）。
+
+**清单完备性提示（只提示不阻断）**：本门禁只校验两张清单**内**的路由，清单外路由不拦截。
+`[覆盖摘要]` 给出**未登记的状态变更路由数量与前 10 项**（每项标注 `[已有审计]` / `[无审计]`），
+实测当前 **55 项**。不阻断的理由：判定"哪个路由敏感"需**语义理解**（`POST /api/scan` 与
+`PUT /api/notification/policy` 都改状态但敏感度不同）——与 L2 一致：无法静态判定者交给人。
 
 **扫描范围**：`docker/api/**/*.py` + `docker/auth.py`（后者承接 `POST /api/login`、`POST /api/logout`
 路由，不在 `docker/api/` 下；第 8 批纳入，否则登录路由对门禁不可见）。
+注意 `docker/api/backup.py` **在扫描面内**，但其**读**端点 `GET /api/backup/list` 不在
+`SENSITIVE_ROUTES`（只读不改状态，无留痕价值）；**写**端点 `POST /api/backup/create` 在清单内
+且已接线（写 `BACKUP_CREATE` / `BACKUP_CREATE_FAILED`）。
+
+**⚠️ `@require_role` 必须配 `request: Request` 参数（易踩陷阱）**：`require_role` 的实现是
+**遍历 `args`/`kwargs` 查找 `Request` 对象**以读取 Cookie 中的 JWT。若端点签名无 `request`，
+wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连 admin 也被 403**。
+收尾 B 实测踩到：给 `GET /api/backup/list` 加 `@require_role("admin")` 后 admin 仍得 403，
+直到补上 `request: Request`。护栏：`tests/test_backup_auth.py` 的
+`test_admin_gated_endpoints_have_request_param`（静态检查多个文件的 admin 端点）。
 
 **起因**（2026-09-26，第 2 批安全审计闭环）：全库仅 **4 处** `write_audit`
 （`ACCESS_DENIED` / `DB_QUERY` / `SETTINGS_WRITE`），而使用 `@require_role` 的端点有 **61 处**；
@@ -364,9 +386,10 @@ P1/P2 端点真正接入时进行——届时豁免清单已清空，函数级�
 `read_audit` 无任何 API 暴露，审计只写不可读，等于死数据。
 
 **执行方式**：`python scripts/check_sensitive_endpoint_audit.py`；
-辅助模式 `--list`（列出敏感路由与接线状态）。退出码 0=通过，1=存在未接线敏感端点。
-**已接入**：`scripts/check_all.sh`（紧跟 G-040，`--fast` 路径）与 `.github/workflows/ci.yml`
-（紧跟 G-040 硬编码检查步骤）——安全门禁不进 CI 即无约束力。
+辅助模式 `--compare`（两套判定结论对比）、`--list`（列出敏感路由与接线状态）。
+退出码 0=通过，1=存在未接线敏感端点。
+**已接入**：`scripts/check_all.sh`（`--fast` 路径）与 `.github/workflows/ci.yml`。
+受控测试：`tests/test_gate_unregistered_routes.py`（10 例，含 5 项注入验证）。
 
 ---
 

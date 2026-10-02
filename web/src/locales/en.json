@@ -1,15 +1,28 @@
 {
-  "app": { "title": "PilotStd" },
-  "nav": { "home": "Home", "task": "Task", "scan": "Scan", "query": "Query", "download": "Download",
-           "normalize": "Normalize", "archive": "Archive",
-           "organize": "Organize", "pending": "Pending", "announce": "Announce",
-           "download_import": "Import & Download",
-           "favorites": "Favorites",
-           "notification_logs": "Notification Logs",
-           "standards_status": "Standards Status",
-           "scheduler": "Scheduler",
-           "settings": "Settings" },
-  "action": { "scan_index": "Scan Index" },
+  "app": {
+    "title": "PilotStd"
+  },
+  "nav": {
+    "home": "Home",
+    "task": "Task",
+    "scan": "Scan",
+    "query": "Query",
+    "download": "Download",
+    "normalize": "Normalize",
+    "archive": "Archive",
+    "organize": "Organize",
+    "pending": "Pending",
+    "announce": "Announce",
+    "download_import": "Import & Download",
+    "favorites": "Favorites",
+    "notification_logs": "Notification Logs",
+    "standards_status": "Standards Status",
+    "scheduler": "Scheduler",
+    "settings": "Settings"
+  },
+  "action": {
+    "scan_index": "Scan Index"
+  },
   "announce": {
     "type": {
       "national": "National Announcement",
@@ -20,7 +33,11 @@
       "hb": "Industry Announcement",
       "db": "Local Announcement"
     },
-    "type_long": {"gb": "National announcement", "hb": "Industry announcement", "db": "Local announcement"},
+    "type_long": {
+      "gb": "National announcement",
+      "hb": "Industry announcement",
+      "db": "Local announcement"
+    },
     "view": {
       "title": "Announcements",
       "fetch_now": "Fetch Now",
@@ -98,7 +115,12 @@
   },
   "standards": {
     "title": "Standards Status",
-    "status": { "all": "All", "current": "Active", "abolished": "Withdrawn", "unknown": "Unknown" },
+    "status": {
+      "all": "All",
+      "current": "Active",
+      "abolished": "Withdrawn",
+      "unknown": "Unknown"
+    },
     "filter_status": "Status",
     "filter_standard_no": "Standard No.",
     "filter_standard_no_ph": "e.g. GB/T",
@@ -116,24 +138,66 @@
     "col_last_checked": "Last Checked",
     "col_check_count": "Check Count"
   },
-  "home": { "stats": "Library Overview", "current": "Active", "expired": "Expired",
-            "pending": "Pending", "upcoming": "Upcoming", "tasks": "Scheduled Tasks",
-            "recent": "Recent Updates", "scanBtn": "Manual Scan",
-            "queryBtn": "Manual Query", "downloadBtn": "Download Standards",
-            "organizeBtn": "Manage Files", "autoBtn": "Auto Run" },
-  "login": {"title": "PilotStd Login", "password": "Password", "submit": "Login", "error": "Wrong password", "err_invalid": "Incorrect username or password", "hint": "Standards management console", "username": "Username", "submit_spaced": "Log In"},
-  "common": { "save": "Save", "cancel": "Cancel", "export": "Export CSV", "loading": "Loading",
-              "success": "Success", "saved": "Saved", "save_failed": "Save Failed",
-              "error": "Error", "retry": "Please retry", "check_network": "Check network and refresh",
-              "confirm": "Confirm", "confirm_discard": "Discard Changes",
-              "yes": "Yes", "no": "No",
-              "no_data": "No data" },
-  "query": { "saveResults": "Save Query Results", "saved": "Saved {n} results", "saveFailed": "Save failed" },
+  "home": {
+    "stats": "Library Overview",
+    "current": "Active",
+    "expired": "Expired",
+    "pending": "Pending",
+    "upcoming": "Upcoming",
+    "tasks": "Scheduled Tasks",
+    "recent": "Recent Updates",
+    "scanBtn": "Manual Scan",
+    "queryBtn": "Manual Query",
+    "downloadBtn": "Download Standards",
+    "organizeBtn": "Manage Files",
+    "autoBtn": "Auto Run"
+  },
+  "login": {
+    "title": "PilotStd Login",
+    "password": "Password",
+    "submit": "Login",
+    "error": "Wrong password",
+    "err_invalid": "Incorrect username or password",
+    "hint": "Standards management console",
+    "username": "Username",
+    "submit_spaced": "Log In"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "export": "Export CSV",
+    "loading": "Loading",
+    "success": "Success",
+    "saved": "Saved",
+    "save_failed": "Save Failed",
+    "error": "Error",
+    "retry": "Please retry",
+    "check_network": "Check network and refresh",
+    "confirm": "Confirm",
+    "confirm_discard": "Discard Changes",
+    "yes": "Yes",
+    "no": "No",
+    "no_data": "No data"
+  },
+  "query": {
+    "saveResults": "Save Query Results",
+    "saved": "Saved {n} results",
+    "saveFailed": "Save failed"
+  },
   "download": {
     "importResult": "Imported {n} downloadable standards",
     "importEmpty": "No data to import. Please save query results first.",
     "importFailed": "Import failed. Please save query results first.",
-    "status": {"pending": "Queued", "downloading": "Downloading", "archiving": "Archiving", "done": "Archived", "failed": "Download failed", "abandoned": "Abandoned", "notQueued": "Not queued", "lastAttempt": "Last attempt"},
+    "status": {
+      "pending": "Queued",
+      "downloading": "Downloading",
+      "archiving": "Archiving",
+      "done": "Archived",
+      "failed": "Download failed",
+      "abandoned": "Abandoned",
+      "notQueued": "Not queued",
+      "lastAttempt": "Last attempt"
+    },
     "manual_import": {
       "title": "Manual Download Import",
       "placeholder": "One standard number per line, e.g.:\nGB/T 12345-2020\nISO 9001:2015\nDB50/T 1982-2026",
@@ -182,8 +246,20 @@
     "title": "Task",
     "hint": "Standard processing pipeline: Scan → Query → Download → Normalize → Archive",
     "start": "Start Task",
-    "step": { "scan": "Scan", "query": "Query", "download": "Download", "normalize": "Normalize", "archive": "Archive" },
-    "status": { "done": "Done", "partial": "Partially Done", "failed": "Failed", "running": "Running", "pending": "Pending" },
+    "step": {
+      "scan": "Scan",
+      "query": "Query",
+      "download": "Download",
+      "normalize": "Normalize",
+      "archive": "Archive"
+    },
+    "status": {
+      "done": "Done",
+      "partial": "Partially Done",
+      "failed": "Failed",
+      "running": "Running",
+      "pending": "Pending"
+    },
     "run_failed": "Run failed",
     "pipeline_failed": "Pipeline run failed",
     "sync_failed": "Status sync failed, please check the network connection",
@@ -221,7 +297,14 @@
       "total": "{n} records in total",
       "filter_all": "All",
       "filter_failed": "Failed",
-      "status": { "pending": "Pending", "running": "Running", "completed": "Completed", "failed": "Failed", "cancelled": "Cancelled", "paused": "Paused" },
+      "status": {
+        "pending": "Pending",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled",
+        "paused": "Paused"
+      },
       "col_task_id": "Task ID",
       "col_type": "Type",
       "col_status": "Status",
@@ -284,8 +367,15 @@
     "pending": "Waiting",
     "scheduled": "Scheduled"
   },
-  "export": { "pending_list": "Pending Standards", "manual_download_list": "Manual Download List" },
-  "normalize": { "loadResult": "Loaded {n} query results", "loadEmpty": "No query results. Please save in query page first.", "loadFailed": "Failed to load query results" },
+  "export": {
+    "pending_list": "Pending Standards",
+    "manual_download_list": "Manual Download List"
+  },
+  "normalize": {
+    "loadResult": "Loaded {n} query results",
+    "loadEmpty": "No query results. Please save in query page first.",
+    "loadFailed": "Failed to load query results"
+  },
   "favorites": {
     "type": {
       "all": "All",
@@ -346,7 +436,8 @@
     "last_backup": "Last backup: {time}",
     "col_name": "Backup File",
     "col_size": "Size (MB)",
-    "col_created": "Created"
+    "col_created": "Created",
+    "admin_only": "This page is restricted to administrators"
   },
   "logbar": {
     "title": "Log ({n} lines)",
@@ -512,8 +603,12 @@
       "expire_folder": "Expire Folder Name",
       "downloads_dir": "Download Dir"
     },
-    "organize": { "auto_clean_source": "Auto Clean After Archive" },
-    "file": { "clear_readonly": "Auto Clear Read-only" },
+    "organize": {
+      "auto_clean_source": "Auto Clean After Archive"
+    },
+    "file": {
+      "clear_readonly": "Auto Clear Read-only"
+    },
     "tabs": {
       "tasks": "Scheduled Tasks",
       "storage": "Storage",
@@ -558,9 +653,19 @@
       "types": "File Types (comma separated)",
       "ignore": "Ignore Patterns (comma separated)"
     },
-    "network": { "proxy": "Proxy Address", "ua_rotation": "UA Rotation" },
-    "query": { "query_interval": "Query Interval (s)", "use_cache": "Enable Cache" },
-    "scan": { "skip_folders": "Skip Folders", "extensions": "File Extensions", "exclude_patterns": "Skip File Keywords" },
+    "network": {
+      "proxy": "Proxy Address",
+      "ua_rotation": "UA Rotation"
+    },
+    "query": {
+      "query_interval": "Query Interval (s)",
+      "use_cache": "Enable Cache"
+    },
+    "scan": {
+      "skip_folders": "Skip Folders",
+      "extensions": "File Extensions",
+      "exclude_patterns": "Skip File Keywords"
+    },
     "appearance": {
       "title": "Interface Settings",
       "login_bg": "Login Background",
@@ -580,8 +685,16 @@
     "apply_hint": "Save only the current tab",
     "ok": "OK",
     "ok_hint": "Save all tabs",
-    "locale": { "zh_cn": "简体中文", "zh_tw": "繁體中文" },
-    "theme": { "light": "Classic White", "dark": "Midnight Black", "green": "Eye-care Green", "blue": "Tech Blue" },
+    "locale": {
+      "zh_cn": "简体中文",
+      "zh_tw": "繁體中文"
+    },
+    "theme": {
+      "light": "Classic White",
+      "dark": "Midnight Black",
+      "green": "Eye-care Green",
+      "blue": "Tech Blue"
+    },
     "schema": {
       "storage": "Storage Settings",
       "network": "Network Settings",
@@ -589,7 +702,10 @@
       "scan": "Scan Settings",
       "ocr": "OCR Settings"
     },
-    "system": { "cache_title": "Cache Management", "tasks_title": "Background Tasks" },
+    "system": {
+      "cache_title": "Cache Management",
+      "tasks_title": "Background Tasks"
+    },
     "cache": {
       "usage": "Usage",
       "status": "Status",
@@ -793,7 +909,12 @@
     }
   },
   "notification": {
-    "channel": { "wechat": "WeCom", "telegram": "Telegram", "feishu": "Feishu", "dingtalk": "DingTalk" },
+    "channel": {
+      "wechat": "WeCom",
+      "telegram": "Telegram",
+      "feishu": "Feishu",
+      "dingtalk": "DingTalk"
+    },
     "settings": {
       "config_title": "Notification Settings",
       "wechat_ip_title": "WeCom Trusted IP Auto Update"
@@ -828,8 +949,13 @@
         "corpsecret": "App Secret",
         "proxy_url": "Proxy URL"
       },
-      "feishu": { "secret_label": "Signature Verification Key", "secret_placeholder": "Signing key" },
-      "dingtalk": { "secret_label": "Signing Secret" },
+      "feishu": {
+        "secret_label": "Signature Verification Key",
+        "secret_placeholder": "Signing key"
+      },
+      "dingtalk": {
+        "secret_label": "Signing Secret"
+      },
       "quiet_hours": {
         "title": "Quiet Hours",
         "enabled": "Enabled",
@@ -933,7 +1059,15 @@
   "date": {
     "weekday": {
       "prefix": "",
-      "short": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" }
+      "short": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
     }
   }
 }

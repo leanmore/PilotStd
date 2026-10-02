@@ -1,16 +1,28 @@
 {
-  "app": { "title": "PilotStd" },
-  "nav": { "home": "首页", "task": "任务", "scan": "扫描", "query": "查询", "download": "下载",
-           "normalize": "规范化", "archive": "归档",
-           "organize": "整理",
-           "pending": "待处理", "announce": "公告",
-           "download_import": "导入下载",
-           "favorites": "收藏",
-           "notification_logs": "通知日志",
-           "standards_status": "标准状态",
-           "scheduler": "调度器",
-           "settings": "设置" },
-  "action": { "scan_index": "扫描索引" },
+  "app": {
+    "title": "PilotStd"
+  },
+  "nav": {
+    "home": "首页",
+    "task": "任务",
+    "scan": "扫描",
+    "query": "查询",
+    "download": "下载",
+    "normalize": "规范化",
+    "archive": "归档",
+    "organize": "整理",
+    "pending": "待处理",
+    "announce": "公告",
+    "download_import": "导入下载",
+    "favorites": "收藏",
+    "notification_logs": "通知日志",
+    "standards_status": "标准状态",
+    "scheduler": "调度器",
+    "settings": "设置"
+  },
+  "action": {
+    "scan_index": "扫描索引"
+  },
   "announce": {
     "type": {
       "national": "国家公告",
@@ -21,7 +33,11 @@
       "hb": "行业公告",
       "db": "地方公告"
     },
-    "type_long": {"gb": "国家标准公告", "hb": "行业标准公告", "db": "地方标准公告"},
+    "type_long": {
+      "gb": "国家标准公告",
+      "hb": "行业标准公告",
+      "db": "地方标准公告"
+    },
     "view": {
       "title": "公告",
       "fetch_now": "立即抓取",
@@ -99,7 +115,12 @@
   },
   "standards": {
     "title": "标准状态",
-    "status": { "all": "全部", "current": "现行", "abolished": "已废止", "unknown": "未知" },
+    "status": {
+      "all": "全部",
+      "current": "现行",
+      "abolished": "已废止",
+      "unknown": "未知"
+    },
     "filter_status": "状态",
     "filter_standard_no": "标准号",
     "filter_standard_no_ph": "如 GB/T",
@@ -117,24 +138,66 @@
     "col_last_checked": "最后检查时间",
     "col_check_count": "检查次数"
   },
-  "home": { "stats": "标准库概览", "current": "现行", "expired": "废止",
-            "pending": "待确认", "upcoming": "即将实施", "tasks": "定时任务",
-            "recent": "最近更新", "scanBtn": "扫描文件", "queryBtn": "查询标准",
-            "downloadBtn": "下载标准", "organizeBtn": "文件管理",
-            "autoBtn": "一键更新" },
-  "login": {"title": "PilotStd 登录", "password": "密码", "submit": "登录", "error": "密码错误", "err_invalid": "用户名或密码错误", "hint": "标准管理控制台", "username": "用户名", "submit_spaced": "登 录"},
-  "common": { "save": "保存", "cancel": "取消", "export": "导出CSV", "loading": "加载中",
-              "success": "操作成功", "saved": "已保存", "save_failed": "保存失败",
-              "error": "错误", "retry": "请重试", "check_network": "请检查网络后刷新重试",
-              "confirm": "确认操作", "confirm_discard": "放弃修改",
-              "yes": "是", "no": "否",
-              "no_data": "暂无数据" },
-  "query": { "saveResults": "保存查询结果", "saved": "已保存 {n} 条查询结果", "saveFailed": "保存失败" },
+  "home": {
+    "stats": "标准库概览",
+    "current": "现行",
+    "expired": "废止",
+    "pending": "待确认",
+    "upcoming": "即将实施",
+    "tasks": "定时任务",
+    "recent": "最近更新",
+    "scanBtn": "扫描文件",
+    "queryBtn": "查询标准",
+    "downloadBtn": "下载标准",
+    "organizeBtn": "文件管理",
+    "autoBtn": "一键更新"
+  },
+  "login": {
+    "title": "PilotStd 登录",
+    "password": "密码",
+    "submit": "登录",
+    "error": "密码错误",
+    "err_invalid": "用户名或密码错误",
+    "hint": "标准管理控制台",
+    "username": "用户名",
+    "submit_spaced": "登 录"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "export": "导出CSV",
+    "loading": "加载中",
+    "success": "操作成功",
+    "saved": "已保存",
+    "save_failed": "保存失败",
+    "error": "错误",
+    "retry": "请重试",
+    "check_network": "请检查网络后刷新重试",
+    "confirm": "确认操作",
+    "confirm_discard": "放弃修改",
+    "yes": "是",
+    "no": "否",
+    "no_data": "暂无数据"
+  },
+  "query": {
+    "saveResults": "保存查询结果",
+    "saved": "已保存 {n} 条查询结果",
+    "saveFailed": "保存失败"
+  },
   "download": {
     "importResult": "已导入 {n} 条可下载标准",
     "importEmpty": "无数据可导入，请先在查询页面保存查询结果",
     "importFailed": "导入失败，请确认已保存查询结果",
-    "status": {"pending": "已入队", "downloading": "下载中", "archiving": "归档中", "done": "已归档", "failed": "下载失败", "abandoned": "已放弃", "notQueued": "未加入队列", "lastAttempt": "最后尝试"},
+    "status": {
+      "pending": "已入队",
+      "downloading": "下载中",
+      "archiving": "归档中",
+      "done": "已归档",
+      "failed": "下载失败",
+      "abandoned": "已放弃",
+      "notQueued": "未加入队列",
+      "lastAttempt": "最后尝试"
+    },
     "manual_import": {
       "title": "手动导入下载列表",
       "placeholder": "每行输入一个标准号，如：\nGB/T 12345-2020\nISO 9001:2015\nDB50/T 1982-2026",
@@ -183,8 +246,20 @@
     "title": "任务",
     "hint": "标准处理流水线：扫描 → 查询 → 下载 → 规范化 → 归档",
     "start": "开始任务",
-    "step": { "scan": "扫描", "query": "查询", "download": "下载", "normalize": "规范化", "archive": "归档" },
-    "status": { "done": "完成", "partial": "部分完成", "failed": "失败", "running": "进行中", "pending": "待定" },
+    "step": {
+      "scan": "扫描",
+      "query": "查询",
+      "download": "下载",
+      "normalize": "规范化",
+      "archive": "归档"
+    },
+    "status": {
+      "done": "完成",
+      "partial": "部分完成",
+      "failed": "失败",
+      "running": "进行中",
+      "pending": "待定"
+    },
     "run_failed": "执行失败",
     "pipeline_failed": "管道执行失败",
     "sync_failed": "状态同步失败，请检查网络连接",
@@ -222,7 +297,14 @@
       "total": "共 {n} 条",
       "filter_all": "全部",
       "filter_failed": "已失败",
-      "status": { "pending": "待处理", "running": "运行中", "completed": "已完成", "failed": "失败", "cancelled": "已取消", "paused": "已暂停" },
+      "status": {
+        "pending": "待处理",
+        "running": "运行中",
+        "completed": "已完成",
+        "failed": "失败",
+        "cancelled": "已取消",
+        "paused": "已暂停"
+      },
       "col_task_id": "任务ID",
       "col_type": "类型",
       "col_status": "状态",
@@ -285,8 +367,15 @@
     "pending": "等待中",
     "scheduled": "已调度"
   },
-  "export": { "pending_list": "待确认清单", "manual_download_list": "手动下载清单" },
-  "normalize": { "loadResult": "已加载 {n} 条查询结果", "loadEmpty": "暂无查询结果，请先在查询页面保存", "loadFailed": "加载查询结果失败" },
+  "export": {
+    "pending_list": "待确认清单",
+    "manual_download_list": "手动下载清单"
+  },
+  "normalize": {
+    "loadResult": "已加载 {n} 条查询结果",
+    "loadEmpty": "暂无查询结果，请先在查询页面保存",
+    "loadFailed": "加载查询结果失败"
+  },
   "favorites": {
     "type": {
       "all": "全部",
@@ -347,7 +436,8 @@
     "last_backup": "上次备份: {time}",
     "col_name": "备份文件",
     "col_size": "大小 (MB)",
-    "col_created": "创建时间"
+    "col_created": "创建时间",
+    "admin_only": "此页面仅限管理员访问"
   },
   "logbar": {
     "title": "日志 ({n} 行)",
@@ -513,8 +603,12 @@
       "expire_folder": "过期文件夹名",
       "downloads_dir": "下载目录"
     },
-    "organize": { "auto_clean_source": "归档后清理源文件" },
-    "file": { "clear_readonly": "自动清理只读属性" },
+    "organize": {
+      "auto_clean_source": "归档后清理源文件"
+    },
+    "file": {
+      "clear_readonly": "自动清理只读属性"
+    },
     "tabs": {
       "tasks": "定时任务",
       "storage": "存储",
@@ -559,9 +653,19 @@
       "types": "文件类型（逗号分隔）",
       "ignore": "忽略模式（逗号分隔）"
     },
-    "network": { "proxy": "代理地址", "ua_rotation": "UA 轮转" },
-    "query": { "query_interval": "查询间隔(秒)", "use_cache": "启用缓存" },
-    "scan": { "skip_folders": "跳过文件夹", "extensions": "文件扩展名", "exclude_patterns": "跳过文件关键词" },
+    "network": {
+      "proxy": "代理地址",
+      "ua_rotation": "UA 轮转"
+    },
+    "query": {
+      "query_interval": "查询间隔(秒)",
+      "use_cache": "启用缓存"
+    },
+    "scan": {
+      "skip_folders": "跳过文件夹",
+      "extensions": "文件扩展名",
+      "exclude_patterns": "跳过文件关键词"
+    },
     "appearance": {
       "title": "界面设置",
       "login_bg": "登录页背景图",
@@ -581,8 +685,16 @@
     "apply_hint": "仅保存当前 Tab 的设置",
     "ok": "确定",
     "ok_hint": "保存所有 Tab 的设置",
-    "locale": { "zh_cn": "简体中文", "zh_tw": "繁體中文" },
-    "theme": { "light": "经典白", "dark": "暗夜黑", "green": "护眼绿", "blue": "科技蓝" },
+    "locale": {
+      "zh_cn": "简体中文",
+      "zh_tw": "繁體中文"
+    },
+    "theme": {
+      "light": "经典白",
+      "dark": "暗夜黑",
+      "green": "护眼绿",
+      "blue": "科技蓝"
+    },
     "schema": {
       "storage": "存储设置",
       "network": "网络设置",
@@ -590,7 +702,10 @@
       "scan": "扫描设置",
       "ocr": "OCR 设置"
     },
-    "system": { "cache_title": "缓存管理", "tasks_title": "后台任务调度" },
+    "system": {
+      "cache_title": "缓存管理",
+      "tasks_title": "后台任务调度"
+    },
     "cache": {
       "usage": "使用量",
       "status": "状态",
@@ -794,7 +909,12 @@
     }
   },
   "notification": {
-    "channel": { "wechat": "企业微信", "telegram": "Telegram", "feishu": "飞书", "dingtalk": "钉钉" },
+    "channel": {
+      "wechat": "企业微信",
+      "telegram": "Telegram",
+      "feishu": "飞书",
+      "dingtalk": "钉钉"
+    },
     "settings": {
       "config_title": "通知配置",
       "wechat_ip_title": "企业微信可信 IP 自动更新"
@@ -829,8 +949,13 @@
         "corpsecret": "应用 Secret",
         "proxy_url": "代理地址"
       },
-      "feishu": { "secret_label": "签名校验密钥", "secret_placeholder": "加签密钥" },
-      "dingtalk": { "secret_label": "加签 Secret" },
+      "feishu": {
+        "secret_label": "签名校验密钥",
+        "secret_placeholder": "加签密钥"
+      },
+      "dingtalk": {
+        "secret_label": "加签 Secret"
+      },
       "quiet_hours": {
         "title": "静音时段",
         "enabled": "已启用",
@@ -934,7 +1059,15 @@
   "date": {
     "weekday": {
       "prefix": "周",
-      "short": { "mon": "一", "tue": "二", "wed": "三", "thu": "四", "fri": "五", "sat": "六", "sun": "日" }
+      "short": {
+        "mon": "一",
+        "tue": "二",
+        "wed": "三",
+        "thu": "四",
+        "fri": "五",
+        "sat": "六",
+        "sun": "日"
+      }
     }
   }
 }

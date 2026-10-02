@@ -1,15 +1,28 @@
 {
-  "app": { "title": "PilotStd" },
-  "nav": { "home": "首頁", "task": "任務", "scan": "掃描", "query": "查詢", "download": "下載",
-           "normalize": "規範化", "archive": "歸檔",
-           "organize": "整理", "pending": "待處理", "announce": "公告",
-           "download_import": "匯入下載",
-           "favorites": "收藏",
-           "notification_logs": "通知記錄",
-           "standards_status": "標準狀態",
-           "scheduler": "排程器",
-           "settings": "設定" },
-  "action": { "scan_index": "掃描索引" },
+  "app": {
+    "title": "PilotStd"
+  },
+  "nav": {
+    "home": "首頁",
+    "task": "任務",
+    "scan": "掃描",
+    "query": "查詢",
+    "download": "下載",
+    "normalize": "規範化",
+    "archive": "歸檔",
+    "organize": "整理",
+    "pending": "待處理",
+    "announce": "公告",
+    "download_import": "匯入下載",
+    "favorites": "收藏",
+    "notification_logs": "通知記錄",
+    "standards_status": "標準狀態",
+    "scheduler": "排程器",
+    "settings": "設定"
+  },
+  "action": {
+    "scan_index": "掃描索引"
+  },
   "announce": {
     "type": {
       "national": "國家公告",
@@ -20,7 +33,11 @@
       "hb": "行業公告",
       "db": "地方公告"
     },
-    "type_long": {"gb": "國家標準公告", "hb": "行業標準公告", "db": "地方標準公告"},
+    "type_long": {
+      "gb": "國家標準公告",
+      "hb": "行業標準公告",
+      "db": "地方標準公告"
+    },
     "view": {
       "title": "公告",
       "fetch_now": "立即抓取",
@@ -98,7 +115,12 @@
   },
   "standards": {
     "title": "標準狀態",
-    "status": { "all": "全部", "current": "現行", "abolished": "已廢止", "unknown": "未知" },
+    "status": {
+      "all": "全部",
+      "current": "現行",
+      "abolished": "已廢止",
+      "unknown": "未知"
+    },
     "filter_status": "狀態",
     "filter_standard_no": "標準號",
     "filter_standard_no_ph": "如 GB/T",
@@ -116,24 +138,66 @@
     "col_last_checked": "最後檢查時間",
     "col_check_count": "檢查次數"
   },
-  "home": { "stats": "標準庫概覽", "current": "現行", "expired": "廢止",
-            "pending": "待確認", "upcoming": "即將實施", "tasks": "定時任務",
-            "recent": "最近更新", "scanBtn": "手動掃描",
-            "queryBtn": "手動查詢", "downloadBtn": "下載標準", "organizeBtn": "檔案管理",
-            "autoBtn": "一鍵更新" },
-  "login": {"title": "PilotStd 登入", "password": "密碼", "submit": "登入", "error": "密碼錯誤", "err_invalid": "使用者名稱或密碼錯誤", "hint": "標準管理控制台", "username": "使用者名稱", "submit_spaced": "登 入"},
-  "common": { "save": "儲存", "cancel": "取消", "export": "匯出CSV", "loading": "載入中",
-              "success": "操作成功", "saved": "已儲存", "save_failed": "儲存失敗",
-              "error": "錯誤", "retry": "請重試", "check_network": "請檢查網路後重新整理",
-              "confirm": "確認操作", "confirm_discard": "放棄修改",
-              "yes": "是", "no": "否",
-              "no_data": "暫無資料" },
-  "query": { "saveResults": "儲存查詢結果", "saved": "已儲存 {n} 條查詢結果", "saveFailed": "儲存失敗" },
+  "home": {
+    "stats": "標準庫概覽",
+    "current": "現行",
+    "expired": "廢止",
+    "pending": "待確認",
+    "upcoming": "即將實施",
+    "tasks": "定時任務",
+    "recent": "最近更新",
+    "scanBtn": "手動掃描",
+    "queryBtn": "手動查詢",
+    "downloadBtn": "下載標準",
+    "organizeBtn": "檔案管理",
+    "autoBtn": "一鍵更新"
+  },
+  "login": {
+    "title": "PilotStd 登入",
+    "password": "密碼",
+    "submit": "登入",
+    "error": "密碼錯誤",
+    "err_invalid": "使用者名稱或密碼錯誤",
+    "hint": "標準管理控制台",
+    "username": "使用者名稱",
+    "submit_spaced": "登 入"
+  },
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "export": "匯出CSV",
+    "loading": "載入中",
+    "success": "操作成功",
+    "saved": "已儲存",
+    "save_failed": "儲存失敗",
+    "error": "錯誤",
+    "retry": "請重試",
+    "check_network": "請檢查網路後重新整理",
+    "confirm": "確認操作",
+    "confirm_discard": "放棄修改",
+    "yes": "是",
+    "no": "否",
+    "no_data": "暫無資料"
+  },
+  "query": {
+    "saveResults": "儲存查詢結果",
+    "saved": "已儲存 {n} 條查詢結果",
+    "saveFailed": "儲存失敗"
+  },
   "download": {
     "importResult": "已匯入 {n} 條可下載標準",
     "importEmpty": "無資料可匯入，請先在查詢頁面儲存查詢結果",
     "importFailed": "匯入失敗，請確認已儲存查詢結果",
-    "status": {"pending": "已入隊", "downloading": "下載中", "archiving": "歸檔中", "done": "已歸檔", "failed": "下載失敗", "abandoned": "已放棄", "notQueued": "未加入佇列", "lastAttempt": "最後嘗試"},
+    "status": {
+      "pending": "已入隊",
+      "downloading": "下載中",
+      "archiving": "歸檔中",
+      "done": "已歸檔",
+      "failed": "下載失敗",
+      "abandoned": "已放棄",
+      "notQueued": "未加入佇列",
+      "lastAttempt": "最後嘗試"
+    },
     "manual_import": {
       "title": "手動匯入下載清單",
       "placeholder": "每行輸入一個標準號，如：\nGB/T 12345-2020\nISO 9001:2015\nDB50/T 1982-2026",
@@ -182,8 +246,20 @@
     "title": "任務",
     "hint": "標準處理流水線：掃描 → 查詢 → 下載 → 規範化 → 歸檔",
     "start": "開始任務",
-    "step": { "scan": "掃描", "query": "查詢", "download": "下載", "normalize": "規範化", "archive": "歸檔" },
-    "status": { "done": "完成", "partial": "部分完成", "failed": "失敗", "running": "進行中", "pending": "待定" },
+    "step": {
+      "scan": "掃描",
+      "query": "查詢",
+      "download": "下載",
+      "normalize": "規範化",
+      "archive": "歸檔"
+    },
+    "status": {
+      "done": "完成",
+      "partial": "部分完成",
+      "failed": "失敗",
+      "running": "進行中",
+      "pending": "待定"
+    },
     "run_failed": "執行失敗",
     "pipeline_failed": "管道執行失敗",
     "sync_failed": "狀態同步失敗，請檢查網路連線",
@@ -221,7 +297,14 @@
       "total": "共 {n} 條",
       "filter_all": "全部",
       "filter_failed": "已失敗",
-      "status": { "pending": "待處理", "running": "執行中", "completed": "已完成", "failed": "失敗", "cancelled": "已取消", "paused": "已暫停" },
+      "status": {
+        "pending": "待處理",
+        "running": "執行中",
+        "completed": "已完成",
+        "failed": "失敗",
+        "cancelled": "已取消",
+        "paused": "已暫停"
+      },
       "col_task_id": "任務ID",
       "col_type": "類型",
       "col_status": "狀態",
@@ -284,8 +367,15 @@
     "pending": "等待中",
     "scheduled": "已排程"
   },
-  "export": { "pending_list": "待確認清單", "manual_download_list": "手動下載清單" },
-  "normalize": { "loadResult": "已載入 {n} 條查詢結果", "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存", "loadFailed": "載入查詢結果失敗" },
+  "export": {
+    "pending_list": "待確認清單",
+    "manual_download_list": "手動下載清單"
+  },
+  "normalize": {
+    "loadResult": "已載入 {n} 條查詢結果",
+    "loadEmpty": "暫無查詢結果，請先在查詢頁面儲存",
+    "loadFailed": "載入查詢結果失敗"
+  },
   "favorites": {
     "type": {
       "all": "全部",
@@ -346,7 +436,8 @@
     "last_backup": "上次備份: {time}",
     "col_name": "備份檔案",
     "col_size": "大小 (MB)",
-    "col_created": "建立時間"
+    "col_created": "建立時間",
+    "admin_only": "此頁面僅限管理員存取"
   },
   "logbar": {
     "title": "日誌 ({n} 行)",
@@ -512,8 +603,12 @@
       "expire_folder": "過期資料夾名",
       "downloads_dir": "下載目錄"
     },
-    "organize": { "auto_clean_source": "歸檔後清理原始檔" },
-    "file": { "clear_readonly": "自動清理唯讀屬性" },
+    "organize": {
+      "auto_clean_source": "歸檔後清理原始檔"
+    },
+    "file": {
+      "clear_readonly": "自動清理唯讀屬性"
+    },
     "tabs": {
       "tasks": "定時任務",
       "storage": "儲存",
@@ -558,9 +653,19 @@
       "types": "檔案類型（逗號分隔）",
       "ignore": "忽略模式（逗號分隔）"
     },
-    "network": { "proxy": "代理地址", "ua_rotation": "UA 輪轉" },
-    "query": { "query_interval": "查詢間隔(秒)", "use_cache": "啟用快取" },
-    "scan": { "skip_folders": "跳過資料夾", "extensions": "檔案副檔名", "exclude_patterns": "跳過檔案關鍵詞" },
+    "network": {
+      "proxy": "代理地址",
+      "ua_rotation": "UA 輪轉"
+    },
+    "query": {
+      "query_interval": "查詢間隔(秒)",
+      "use_cache": "啟用快取"
+    },
+    "scan": {
+      "skip_folders": "跳過資料夾",
+      "extensions": "檔案副檔名",
+      "exclude_patterns": "跳過檔案關鍵詞"
+    },
     "appearance": {
       "title": "介面設定",
       "login_bg": "登入頁背景圖",
@@ -580,8 +685,16 @@
     "apply_hint": "僅儲存目前 Tab 的設定",
     "ok": "確定",
     "ok_hint": "儲存所有 Tab 的設定",
-    "locale": { "zh_cn": "簡體中文", "zh_tw": "繁體中文" },
-    "theme": { "light": "經典白", "dark": "暗夜黑", "green": "護眼綠", "blue": "科技藍" },
+    "locale": {
+      "zh_cn": "簡體中文",
+      "zh_tw": "繁體中文"
+    },
+    "theme": {
+      "light": "經典白",
+      "dark": "暗夜黑",
+      "green": "護眼綠",
+      "blue": "科技藍"
+    },
     "schema": {
       "storage": "存儲設定",
       "network": "網路設定",
@@ -589,7 +702,10 @@
       "scan": "掃描設定",
       "ocr": "OCR 設定"
     },
-    "system": { "cache_title": "快取管理", "tasks_title": "背景任務排程" },
+    "system": {
+      "cache_title": "快取管理",
+      "tasks_title": "背景任務排程"
+    },
     "cache": {
       "usage": "使用量",
       "status": "狀態",
@@ -793,7 +909,12 @@
     }
   },
   "notification": {
-    "channel": { "wechat": "企業微信", "telegram": "Telegram", "feishu": "飛書", "dingtalk": "釘釘" },
+    "channel": {
+      "wechat": "企業微信",
+      "telegram": "Telegram",
+      "feishu": "飛書",
+      "dingtalk": "釘釘"
+    },
     "settings": {
       "config_title": "通知設定",
       "wechat_ip_title": "企業微信可信 IP 自動更新"
@@ -828,8 +949,13 @@
         "corpsecret": "應用 Secret",
         "proxy_url": "代理位址"
       },
-      "feishu": { "secret_label": "簽名校驗金鑰", "secret_placeholder": "加簽金鑰" },
-      "dingtalk": { "secret_label": "加簽 Secret" },
+      "feishu": {
+        "secret_label": "簽名校驗金鑰",
+        "secret_placeholder": "加簽金鑰"
+      },
+      "dingtalk": {
+        "secret_label": "加簽 Secret"
+      },
       "quiet_hours": {
         "title": "靜音時段",
         "enabled": "已啟用",
@@ -933,7 +1059,15 @@
   "date": {
     "weekday": {
       "prefix": "週",
-      "short": { "mon": "一", "tue": "二", "wed": "三", "thu": "四", "fri": "五", "sat": "六", "sun": "日" }
+      "short": {
+        "mon": "一",
+        "tue": "二",
+        "wed": "三",
+        "thu": "四",
+        "fri": "五",
+        "sat": "六",
+        "sun": "日"
+      }
     }
   }
 }

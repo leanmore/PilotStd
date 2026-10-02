@@ -123,26 +123,43 @@ describe('BackupView', () => {
     expect(english.html()).not.toContain('backup.')
   })
 
-  // ── 授权门控守卫（技术债阶段批次①）─────────────────────────────────────
-  // 后端 `POST /api/backup/create` 已加 `@require_role("admin")`；前端同步隐藏按钮，
-  // 避免非 admin 看到「可点但必然 403」的按钮。
+  // ── 授权门控守卫 ────────────────────────────────────────────────────────
+  // 后端**两个**端点均为 admin-only：
+  //   - `POST /api/backup/create` 导出含全量数据库内容；
+  //   - `GET  /api/backup/list`   备份文件的存在性与时间戳本身即信息。
+  // 故前端做**页面级**门控：非 admin 不请求列表、不渲染列表，只显示提示。
   it('非 admin 不渲染「创建备份」按钮', async () => {
     mockGetBackupList.mockResolvedValue({ data: { items: [] } })
     const wrapper = mountView('zh-CN', 'user')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
 
-    // 页面仍可访问（列表可见），但创建入口隐藏
-    expect(wrapper.html()).toContain('备份管理')
     expect(wrapper.html()).not.toContain('创建备份')
   })
 
-  it('admin 渲染「创建备份」按钮（判别力对照）', async () => {
-    mockGetBackupList.mockResolvedValue({ data: { items: [] } })
+  it('★ 非 admin 显示受限提示，且不发起列表请求', async () => {
+    mockGetBackupList.mockResolvedValue({ data: { items: mockBackups } })
+    const wrapper = mountView('zh-CN', 'user')
+    await wrapper.vm.$nextTick()
+    await new Promise(r => setTimeout(r, 10))
+
+    // 显示受限提示（i18n 键 backup.admin_only）
+    expect(wrapper.html()).toContain('此页面仅限管理员访问')
+    // 不渲染列表数据
+    expect(wrapper.html()).not.toContain('backup_20260629.zip')
+    // ★ 不请求列表：非 admin 请求 `GET /api/backup/list` 必然 403，不应发出
+    expect(mockGetBackupList).not.toHaveBeenCalled()
+  })
+
+  it('admin 渲染「创建备份」按钮与列表（判别力对照）', async () => {
+    mockGetBackupList.mockResolvedValue({ data: { items: mockBackups } })
     const wrapper = mountView('zh-CN', 'admin')
     await wrapper.vm.$nextTick()
     await new Promise(r => setTimeout(r, 10))
 
     expect(wrapper.html()).toContain('创建备份')
+    expect(wrapper.html()).toContain('backup_20260629.zip')
+    expect(mockGetBackupList).toHaveBeenCalled()
+    expect(wrapper.html()).not.toContain('此页面仅限管理员访问')
   })
 })
