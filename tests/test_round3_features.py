@@ -87,6 +87,13 @@ class TestQuietHours(unittest.TestCase):
         msg.level = "info"
         msg.link = None
         msg.icon = None
+        # 阶段 1a：_enqueue_notification 会把通知身份字段也写入 JSON，
+        # 故 MagicMock 的 msg 必须给出这 4 个属性——否则 json.dumps 遇到 Mock 会抛
+        # TypeError。真实 NotificationMessage 有默认值，这里是**测试替身**需要补齐。
+        msg.message_id = ""
+        msg.correlation_id = ""
+        msg.delivery_status = "pending"
+        msg.ack_status = "none"
         mgr._enqueue_notification(msg, ["wechat"])
         # 验证 db.execute 被调用且 SQL 含 INSERT INTO notification_queue
         calls = [str(c) for c in mock_db.execute.call_args_list]

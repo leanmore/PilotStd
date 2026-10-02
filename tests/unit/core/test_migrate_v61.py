@@ -137,9 +137,16 @@ def test_sentinel_historical_default_matches_enum_value():
 
 
 def test_migration_is_registered_at_version_61():
-    """迁移注册号与 CURRENT_SCHEMA_VERSION 一致（防漏注册/错号）。"""
+    """v61 注册号与函数绑定不变（防漏注册/错号）。
+
+    注意：**不断言 `CURRENT_SCHEMA_VERSION == 61`**——该值随每批新迁移推进
+    （2026-10-02 阶段 1a 已到 62），断言绝对版本号会在每次加迁移时假红。
+    v61 自身不可变（P-106），故这里只锁它自己的注册关系；
+    "当前版本号 ≥ 61 且 equals 已注册的最大号"由 test_migrate_v62 与
+    tests/test_migrations_full.py 负责。
+    """
     from pilotstd.core.db._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS
 
-    assert CURRENT_SCHEMA_VERSION == 61
+    assert CURRENT_SCHEMA_VERSION >= 61
     assert 61 in MIGRATIONS
     assert MIGRATIONS[61] is _migrate_v61_enum_status_defaults
