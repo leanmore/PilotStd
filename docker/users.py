@@ -14,6 +14,9 @@ from pilotstd.core.security import (
     verify_password_with_salt,
 )
 
+# L-03：改密后失效全部会话。session_store 仅依赖标准库，无循环导入风险。
+from .session_store import get_session_store
+
 logger = logging.getLogger(__name__)
 
 SALT_BYTES = 32
@@ -236,7 +239,19 @@ def clear_must_change_password(username: str) -> None:
 
 
 def change_password(username: str, old_password: str, new_password: str) -> bool:
-    """修改用户密码，使用 bcrypt 存储新密码。"""
+    """修改用户密码，使用 bcrypt 存储新密码。
+
+    **L-03 修复**：落库成功后**移除该用户的全部会话**，使被窃取的旧 token 立即失效
+    （原先需等到 `expires_at` 才失效，即"改密对已泄露的会话无效"）。
+
+    **裁决 A1**：连带失效**发起改密请求的那个会话**（用户需重新登录）。理由：改密后强制
+    重新认证是安全惯例；若改为"保留当前会话、仅失效其它"，需把 HTTP 层的 token 下沉到
+    本数据层函数，增加耦合。
+
+    **触发点选在此处（而非 `docker/api/users.py`）**：本函数是**唯一的密码写入路径**
+    （实测全库仅此一处 `UPDATE users SET password_hash`），故放在最内层可实现
+    "改密 ⇒ 失效全部会话"的不变式，不依赖各调用方记得处理。
+    """
     if not verify_user(username, old_password):
         return False
     err = _validate_password(new_password)
@@ -251,6 +266,11 @@ def change_password(username: str, old_password: str, new_password: str) -> bool
     )
     # 清除强制改密标记
     clear_must_change_password(username)
+    # 失效该用户的全部会话（含当前会话——裁决 A1）
+    row = get_user_by_username(username)
+    if row:
+        removed = get_session_store().remove_by_user(int(row["id"]))
+        logger.info("用户 %s 改密后已失效 %d 个会话", username, removed)
     logger.info("用户 %s 的密码已修改", username)
     return True
 

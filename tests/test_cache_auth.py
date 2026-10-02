@@ -62,7 +62,7 @@ class TestCacheAuth(unittest.TestCase):
     def _set_cookie(self, role: str, with_session: bool = False):
         token = _make_token(role)
         if with_session:
-            get_session_store().add(token, {"username": "test"}, ttl_seconds=3600)
+            get_session_store().add(token, 1, "test", ttl_seconds=3600)
         self.client.cookies.set(COOKIE_NAME, token)
 
     def _set_csrf(self):

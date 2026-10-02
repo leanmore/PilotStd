@@ -361,7 +361,7 @@ def login(
     user_row = get_user_by_username(username)
     user_id = user_row["id"] if user_row else 1
     token = _generate_token(user_id=user_id, role=role)
-    get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
+    get_session_store().add(token, user_id, username, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)  # 独立 CSRF token，不复用 JWT
     resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": must_change})
     resp.set_cookie(

@@ -169,7 +169,7 @@ class TestPipelineRuns(unittest.TestCase):
         self.client.app.dependency_overrides.clear()
         self.client.cookies.clear()
         token = _make_token("admin")
-        get_session_store().add(token, {"username": "test"}, ttl_seconds=3600)
+        get_session_store().add(token, 1, "test", ttl_seconds=3600)
         self.client.cookies.set(COOKIE_NAME, token)
 
     def test_runs_list_returns_pagination_structure(self):

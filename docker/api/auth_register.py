@@ -105,7 +105,7 @@ def register(request: Request, username: str = Form(""), password: str = Form(..
     _init_default_preferences(uid)
     role = get_user_role(username)
     token = _generate_token(user_id=uid, role=role)
-    get_session_store().add(token, {"username": username}, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
+    get_session_store().add(token, uid, username, ttl_seconds=TOKEN_EXPIRE_HOURS * 3600)
     csrf_token = secrets.token_hex(32)
     resp = JSONResponse({"ok": True, "username": username, "role": role, "must_change_password": False})
     # 安全属性：++

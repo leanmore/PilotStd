@@ -70,7 +70,7 @@ def _probe(request: Request):  # pragma: no cover - 仅用于触发装饰器
 
 
 def _add_session(token: str) -> None:
-    get_session_store().add(token, {"username": "test"}, ttl_seconds=3600)
+    get_session_store().add(token, 1, "test", ttl_seconds=3600)
 
 
 class TestAccessDeniedAuditPayload(unittest.TestCase):
