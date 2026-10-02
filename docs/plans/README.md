@@ -9,6 +9,7 @@
 
 | 计划 | 主题 | 状态 |
 |------|------|------|
+| [notification-redesign/00-README.md](notification-redesign/00-README.md) | **通知架构重设计**（三层事件分离 / 可交互消息 / Task 实体 / 回调闭环）——六阶段路径 + 15 项裁决 + 阶段 0/1 实施方案 | 架构已批准；阶段 0/1 方案待批 |
 | [notification-refactor-design.md](notification-refactor-design.md) | 事件通知模块重构设计（i18n / 模板 / 文案 / 覆盖度 / 聚合） | 实施中（第 1、3、4 批已落地） |
 | [batch2-security-audit-design.md](batch2-security-audit-design.md) | 第 2 批方案设计：安全与审计闭环（3 个 P0 端点 + 统一接线规则 + 审计读取 API） | 实施中（已落地，G-043 已接入 CI） |
 | [batch5-terminology-design.md](batch5-terminology-design.md) | 第 5 批方案设计：术语表 + 禁用词门禁（G-044） | 📋 待裁决（F-1~F-6 六个决策点） |
