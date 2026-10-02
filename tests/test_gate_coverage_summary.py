@@ -35,12 +35,18 @@ GATES = (
 )
 
 MARKER = "[覆盖摘要]"
-# 规范顺序（与 scripts/_gate_coverage_summary.py 模块 docstring 逐字一致）
-ALL_SECTIONS = ("范围", "检查项", "检查口径", "豁免明细", "未覆盖说明")
+# 规范顺序（与 scripts/_gate_coverage_summary.py 模块 docstring 逐字一致）。
+# `豁免明细` 与 `跟踪项明细` 是**同一段的两种标题**（由 exemptions_label 区分为
+# "豁免"或"跟踪"语义），故按规范顺序并列在第 4 位。
+ALL_SECTIONS = ("范围", "检查项", "检查口径", "豁免明细", "跟踪项明细", "未覆盖说明")
 # 必有段：三处门禁都必须出现
 REQUIRED_SECTIONS = ("范围", "检查项", "检查口径", "未覆盖说明")
-# 条件段：有豁免条目才出现
-OPTIONAL_SECTIONS = ("豁免明细",)
+# 第 4 段（豁免/跟踪明细）的标题，按门禁语义区分
+DETAIL_LABELS = {
+    "check_sensitive_endpoint_audit.py": "豁免明细",
+    "check_terminology.py": "豁免明细",
+    "audit_notification_coverage.py": "跟踪项明细",
+}
 
 
 def _run_gate(script: str) -> str:
@@ -71,6 +77,25 @@ def _summary_block(output: str) -> str:
     return "\n".join(block)
 
 
+def _section_items(block: str, label: str) -> list[str]:
+    """返回指定段（形如 `  豁免明细:`）下的全部 `    - ` 子项。
+
+    只取该段自己的子项：`检查口径` 段也用同样的 `    - ` 前缀，若整体扫描会把
+    口径子项误计入明细条目数。
+    """
+    lines = block.splitlines()
+    start = next((i for i, line in enumerate(lines) if line.strip() == f"{label}:"), None)
+    if start is None:
+        return []
+    items: list[str] = []
+    for line in lines[start + 1 :]:
+        if line.startswith("    - "):
+            items.append(line)
+        elif line.strip():
+            break  # 进入下一段
+    return items
+
+
 @pytest.mark.parametrize("script", GATES)
 def test_gate_prints_coverage_summary_with_required_sections(script: str) -> None:
     """每个门禁都须打印摘要，且包含全部**必有**段标签。"""
@@ -92,35 +117,45 @@ def test_uncovered_section_is_non_empty(script: str) -> None:
 
 @pytest.mark.parametrize("script", GATES)
 def test_section_labels_and_indent_are_identical(script: str) -> None:
-    """段标签的名称、缩进、顺序必须与规范完全一致（防各自漂移）。"""
+    """段标签的名称、缩进、顺序必须与规范完全一致（防各自漂移）。
+
+    第 4 段按 `DETAIL_LABELS` 取该门禁应有的标题（豁免明细 / 跟踪项明细），
+    其余段的名称与顺序在四处（公共函数 + 三处调用）必须逐字相同。
+    """
     block = _summary_block(_run_gate(script))
-    found = [s for s in ALL_SECTIONS if re.search(rf"^  {s}:", block, re.M)]
-    # 顺序必须与 ALL_SECTIONS 的声明顺序一致
-    assert found == [s for s in ALL_SECTIONS if s in found], f"{script} 段顺序不符：{found}"
+    detail = DETAIL_LABELS[script]
+    # 该门禁应出现的段标签（按规范顺序）
+    expected = [s for s in ALL_SECTIONS if s != "豁免明细" or detail == "豁免明细"]
+    expected = [s for s in expected if s != "跟踪项明细" or detail == "跟踪项明细"]
+    found = [s for s in expected if re.search(rf"^  {s}:", block, re.M)]
+    assert found == expected, f"{script} 段标签/顺序不符：期望 {expected}，实际 {found}"
     assert found[0] == "范围" and found[1] == "检查项", f"{script} 前两段应为 范围/检查项：{found}"
     assert found[-1] == "未覆盖说明", f"{script} 末段应为 未覆盖说明：{found}"
+    assert detail in found, f"{script} 缺少第 4 段「{detail}」：{found}"
 
 
-def test_exempt_detail_only_present_when_exemptions_exist() -> None:
-    """`豁免明细` 为条件段：G-043 有豁免条目故出现；G-044/G-045 无条目故省略。
+def test_exempt_detail_lists_actual_items() -> None:
+    """`豁免/跟踪明细` 段须存在并**逐条列出实际名单**，而非只给计数。
 
-    该用例同时锁定"省略空段"这一语义——若未来 G-044/G-045 也打印空的豁免明细段，
-    本用例失败并提示改断言（而非静默接受结构漂移）。
+    L-23 的核心是"PASS 不得掩盖空洞"：只显示"豁免 26"看不出豁免了什么。三处门禁的
+    豁免/跟踪数据源**都是可枚举名单**（G-043 待接入路由 7 项、G-044 豁免键 16 + 豁免词
+    10、G-045 未登记事件 38 项），故三处都必须打印明细段，且条目数与 `检查项` 行的
+    豁免计数一致。段标题按语义区分：G-045 用「跟踪项明细」，其余用「豁免明细」。
     """
-    for script in GATES:
+    labels = DETAIL_LABELS
+    for script, label in labels.items():
         block = _summary_block(_run_gate(script))
-        has_section = bool(re.search(r"^  豁免明细:", block, re.M))
+        section = re.search(rf"^  {label}:$", block, re.M)
+        assert section is not None, f"{script} 缺少「{label}」段（豁免计数 > 0 却无名单）：\n{block}"
+        # 明细条目数须等于 `检查项` 行声明的豁免计数
         exempted = re.search(r"豁免 (\d+)", block)
         assert exempted is not None, f"{script} 检查项行缺少豁免计数：\n{block}"
-        # 豁免计数须为正整数（0 则说明该门禁无豁免概念，本条不适用）
-        assert int(exempted.group(1)) > 0, f"{script} 的豁免计数应为正数：{exempted.group(1)}"
-        # G-043 的豁免 7 = 待接入路由数（有明细）；
-        # G-044 的豁免 16 = 豁免键数（无明细）；G-045 的豁免 38 = 跟踪项数（无明细）
-        # ——故只有 G-043 需打印豁免明细。
-        if script == "check_sensitive_endpoint_audit.py":
-            assert has_section, f"{script} 有豁免条目却未打印豁免明细：\n{block}"
-        else:
-            assert not has_section, f"{script} 无豁免条目却打印了空豁免明细段：\n{block}"
+        expected = int(exempted.group(1))
+        items = _section_items(block, label)
+        assert len(items) == expected, (
+            f"{script} 「{label}」条目数 {len(items)} != 豁免计数 {expected}（名单与计数不一致）"
+        )
+        assert expected > 0, f"{script} 的豁免计数应为正数：{expected}"
 
 
 def test_g044_declares_three_layer_scope() -> None:

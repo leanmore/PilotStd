@@ -256,7 +256,12 @@ def print_coverage(rows: list[dict[str, object]], blocking: list[str], tracked: 
         passed=n_i18n,
         blocked=len(blocking),
         exempted=len(tracked),
-        exemptions=[],
+        # 跟踪项是**有名有姓的事件列表**（`<事件>: N 个文案键未登记术语表`），
+        # 只给计数看不出"哪些事件未登记"，仍属 PASS 掩盖空洞。段标题用
+        # "跟踪项明细"以区别于 G-043 的"豁免路由"语义。
+        exemptions=tracked,
+        exemptions_label="跟踪项明细",
+        max_item_len=120,  # 条目含事件名 + 中文说明，40 字符会截断到不可辨识
         notes=(
             "i18n 三语键齐备 -> {}/{} 事件（阻断维度）".format(n_i18n, len(rows)),
             "e2e 覆盖 + trigger_file 存在 -> {}/{} 事件（阻断维度）".format(n_e2e, len(rows)),
@@ -323,12 +328,6 @@ def main(argv: list[str]) -> int:
     else:
         print("✅ 无阻断缺口（i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计）")
     print_coverage(rows, blocking, tracked)
-    if tracked:
-        print(f"\n⚠️  跟踪项 {len(tracked)} 项（术语表未登记，不阻断）：")
-        for item in tracked[:5]:
-            print(f"   - {item}")
-        if len(tracked) > 5:
-            print(f"   ... 另 {len(tracked) - 5} 项")
     if blocking or (strict and tracked):
         return 1
     return 0

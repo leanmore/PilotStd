@@ -187,8 +187,14 @@ def print_coverage(
         checked=len(in_scope),
         passed=len(in_scope),
         blocked=blocked,
-        exempted=len(exempt_keys),
-        exemptions=[],
+        exempted=len(exempt_keys) + len(exempt_terms),
+        # 豁免必须以**名单**呈现：exempt_keys 是 16 个具体键路径、exempt_terms 是 10 个
+        # 具体术语词。只给计数看不出"豁免了哪些"，仍属 PASS 掩盖空洞。
+        exemptions=[
+            "豁免键 {}（不参与 G-044 三条检测）".format(key) for key in sorted(exempt_keys)
+        ]
+        + ["豁免词 {}（命中该词的文案跳过禁用词检测）".format(term) for term in sorted(exempt_terms)],
+        max_item_len=90,  # i18n 键路径较长，40 字符会截断到不可辨识
         notes=(
             "三语存在性 -> {} 键（全部作用域内键）".format(len(in_scope)),
             "禁用词 / 别名 -> {} 键（全部作用域内键；另豁免键 {} 个、豁免词 {} 个）".format(
