@@ -218,13 +218,14 @@ class NotificationAggregator:
         规则 2 的用途：调用方可能只取标题前缀或渲染后截断（去掉尾部括号段），
         该变体仍能命中，避免退化为兜底。
 
-        **剔括号变体只针对"含占位符"的括号组，且删该组时连同其前导空白一并删除**：
-        英文模板 `Scan Complete ({failed} unrecognized)` 的括号前有一个空格，若只删
-        括号及其内容，得到的是 `Scan Complete `（**尾随空格**），而静态标题字面是
-        `Scan Complete`（无尾随空格）——两者不相等，该变体会成为**死正则**
-        （实测确认过：那条带尾随空格的正则对 `Scan Complete` fullmatch 为 False，
-        对静态标题 `Scan Complete, All Recognized` 亦为 False，从未命中任何串）。
-        连同前导空白一起删，才得到与中文对称的 `Scan Complete`。
+        **"括号去掉"变体需连同括号组的前导空白一并删除**：`re.split` 切出的**前缀片段**
+        保留了尾随空格（英文模板 `Scan Complete ({failed} unrecognized)` 得
+        `'Scan Complete '`，len=14），而 `_strip_bracketed` 返回的是 `'Scan Complete'`
+        （len=13，无尾随空格）——静态标题字面也是后者。若直接转义该片段，变体正则尾部
+        会带一个字面空格（形如 `Scan<空格>Complete<空格>`），与静态字面不相等，
+        **永不命中任何串**（死正则；实测三方 fullmatch 均为 False）。故对该片段调用
+        `_drop_trailing_blank`，使其与 `_strip_bracketed` 的输出、以及中文两条
+        （括号前无空格）对齐。
 
         单独出现的占位符（如 `第 {round} 轮…`）只生成一个正则。
 
@@ -260,6 +261,10 @@ class NotificationAggregator:
     @staticmethod
     def _drop_trailing_blank(regex_fragment: str) -> str:
         """删除正则片段末尾的**字面空格**（`re.escape(" ")` 即 `"\\ "`）。
+
+        **适用范围**：仅用于"括号去掉"变体——该变体要模拟 `_strip_bracketed` 的输出，
+        而后者不含括号前的尾随空格。**不得**套用到完整形片段（完整形里括号前的空格
+        是渲染串的一部分，删掉会使完整形永久失配，这正是本次修复前的缺陷形态）。
 
         只处理末尾的单个字面空格：弹性 `\\s*` 与其他转义序列不在此列。
         """
