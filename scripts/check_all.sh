@@ -98,6 +98,20 @@ run_fast() {
         log_fail "G-040 i18n 硬编码检查"
     fi
 
+    # G-047: Python 侧 i18n 硬编码中文（只拦新增）
+    # 起因（技术债阶段批次⑤）：G-040 只扫 web/src/**/*.{vue,ts}，**Python 侧完全无门禁**
+    # ——今天往 pilotstd/ 写死中文，13 道 CI 全绿（实测存量 249 文件 / 2055 处）。
+    # 判定：AST 字符串字面量含 CJK，**跳过 docstring**——因为 check_g_012_comment_density.py
+    # 强制要求注释与 docstring 用中文；若走行级正则会命中约 8791 行（误报比约 4.6:1）并把
+    # 门禁强制的规范判为违规（自我否证）。
+    # 存量记入 scripts/i18n_hardcoded_python_baseline.txt，只有**超出基线**的新增才 FAIL。
+    # 注意：必须写成 if 条件形式（脚本开头 set -euo pipefail，裸命令非 0 会直接终止脚本）。
+    if python scripts/check_i18n_hardcoded_python.py; then
+        log_pass "G-047 Python 侧 i18n 硬编码检查"
+    else
+        log_fail "G-047 Python 侧 i18n 硬编码检查"
+    fi
+
     # G-043: 敏感端点审计接线（凭证生命周期 / 权限与身份边界 / 不可逆批量销毁）
     # 起因（2026-09-26，第 2 批安全审计闭环）：全库仅 4 处 write_audit，而 @require_role
     # 端点有 61 处；改密、轮换静态令牌、改写通知渠道凭证这三类 P0 操作「放行不写审计」
@@ -396,10 +410,11 @@ run_gate_selftests() {
 
     if [ "$force" -ne 1 ] && [ "$WITH_LINT" -ne 1 ]; then
         local staged_gate
+        # G-040（前端）+ G-047（Python 侧）：两者的基线或门禁脚本任一变更即触发受控测试
         staged_gate=$(git diff --cached --name-only --diff-filter=ACMRD 2>/dev/null \
-            | grep -E '^scripts/(i18n_hardcoded_baseline\.txt|check_i18n_hardcoded\.py)$' || true)
+            | grep -E '^scripts/(i18n_hardcoded(_python)?_baseline\.txt|check_i18n_hardcoded(_python)?\.py)$' || true)
         if [ -z "$staged_gate" ]; then
-            echo "   ⏭  暂存区未触及 G-040 基线/门禁脚本，跳过（--deep 会无条件跑）"
+            echo "   ⏭  暂存区未触及 G-040/G-047 基线或门禁脚本，跳过（--deep 会无条件跑）"
             return 0
         fi
         echo "   📋 命中门禁变更：$(echo "$staged_gate" | tr '\n' ' ')"
@@ -407,6 +422,12 @@ run_gate_selftests() {
 
     if python -m pytest tests/test_check_i18n_hardcoded.py -q; then
         log_pass "门禁受控测试（G-040 基线）"
+    else
+        log_fail "门禁受控测试失败 — 改基线/门禁脚本后必须让对应受控测试通过"
+    fi
+
+    if python -m pytest tests/test_check_i18n_hardcoded_python.py -q; then
+        log_pass "门禁受控测试（G-047 Python 侧基线）"
     else
         log_fail "门禁受控测试失败 — 改基线/门禁脚本后必须让对应受控测试通过"
     fi

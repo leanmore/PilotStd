@@ -28,6 +28,8 @@
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
 | G-045 | 通知系统覆盖度基线 | 每个已注册事件必须：i18n 三语键齐备、出现在 e2e `EVENTS` 且其 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit` | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
+| G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
+| G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.txt` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -277,6 +279,58 @@
 + 扩展 `login` 4 键 / `announce.type_long.*` 3 键 / `announce.detail.route_title`，叶子键 **772 → 860**（静态 75 + 动态/扩展 13）。
 `router.ts` 两条详情路由的中文 `meta.title` 兜底删除、改用既有 `titleKey` 机制；模块级表 `typeTabs`/`STD_TYPE_LABEL`/`UnifiedFilterBar.types` 存 key、渲染期 `t()`；
 非组件模块 `api/http.ts`/`useQueryAdapters.ts`/`useFavorite.ts` 走批 4 建好的 `i18n.global.t`。
+
+---
+
+### G-047：Python 侧 i18n 硬编码检查
+
+**检查内容**：扫描 `pilotstd/`、`docker/` 下的 `.py`，统计 **AST 字符串字面量**（`ast.Constant` 且 `str`）
+中命中中日韩统一表意文字（U+3400–U+4DBF、U+4E00–U+9FFF、U+F900–U+FAFF）的位置；
+只有**超出基线**的部分才阻断。输出格式为 `文件:行号: 片段`。
+
+**为何必须走 AST，不能用行级正则**（本门禁的判定核心）：
+`check_g_012_comment_density.py` **强制要求注释与 docstring 必须是中文**。行级正则扫
+`pilotstd/**/*.py` 会命中约 **8791 行**（其中注释 3417 + docstring 2152 正是 G-012 强制存在的中文），
+而 AST 非 docstring 字面量口径只有约 **2055 处** —— **误报比约 4.6:1**，且会把门禁强制的规范判为违规
+（**自我否证**）。故：
+- **跳过 docstring**（`_docstring_lines()` 收集 `Module`/`FunctionDef`/`AsyncFunctionDef`/`ClassDef`
+  的首个 `Expr(Constant[str])`，含三引号跨行的**全部行**）；
+- **注释不在 AST 中**，天然不计。
+
+**口径边界（明确声明）**：本门禁**含 `logger` 实参**（日志确实是给非中文用户看的内容，但 i18n 化收益低）。
+按 P-104 采用**简单可辩护口径**（"Python 字符串字面量中的中文"），**不引入"日志豁免"**——
+那需要判定调用者身份、增加误报来源。若要治理日志文案，应另立专项。
+
+**存量基线**：`scripts/i18n_hardcoded_python_baseline.txt`，格式 `<相对路径>::<行数>`，机制与 G-040 一致：
+- 文件不在基线里且有中文 → **全部算违规**（新文件必须一开始就走 i18n）；
+- 文件在基线里但处数变多 → 只报多出来的（同一文件里新写死的中文照样拦得住）；
+- 文件在基线里但处数变少 → 只打印 `[STALE]` 提示（不阻断）。
+
+**空基线 ≠ 门禁失效**：上一条"文件不在基线里 → 全部违规"正是该护栏。G-040 曾因基线清零后
+门禁看似失效而出过 CI 红（run `36293074107`），故 `tests/test_check_i18n_hardcoded_python.py`
+专门有 `test_empty_baseline_still_blocks_new_file` 与 `test_missing_baseline_file_still_blocks` 两例锁定。
+
+**扫描面与排除**：`SCAN_DIRS = ("pilotstd", "docker")`；排除任意层级的
+`__pycache__`/`node_modules`/`build`/`dist`/`.venv`/`venv`/`tests`/`test`；
+路径级豁免 `pilotstd/core/i18n.py`（语言包加载器本体，自身即本地化数据入口）。
+**`scripts/` 不在扫描面**——门禁脚本面向中文维护者，i18n 化无收益。
+
+**不继承 G-040 的一个缺口**：G-040 的 `collect_files()` 对**显式文件参数**跳过了 `is_scannable()`，
+使 `check_i18n_hardcoded.py foo.py` 会真的扫 `.py`。本门禁**对显式目标也执行 `is_scannable`**，
+保持"默认路径与显式路径判定一致"；对应受控用例 `test_explicit_target_also_filtered`。
+
+**起因**（技术债阶段批次⑤）：G-040 只扫 `web/src/**/*.{vue,ts}`（其 `SCAN_SUFFIXES`），**Python 侧完全无门禁**
+—— 今天往 `pilotstd/` 里写死中文，**13 道 CI 全绿**。设计文档 `notification-refactor-design.md` §6 排名 13 与
+§7.3 已把它登记为"预存问题（本轮不修）"，并明确"若要治理，先加只拦新增的基线门禁，而非全量重写"。
+
+**存量（首次接入，实测）**：**249 文件 / 2055 处**。首次运行即 PASS（扫描 399 个 `.py`，违规 0），
+证明基线生成口径与判定口径一致。
+
+**执行方式**：`python scripts/check_i18n_hardcoded_python.py`（`check_all.sh --fast` 与 CI `test-frontend` 步骤均已接入）；
+辅助模式：`--report`（存量排行）、`--update-baseline`（偿还后收紧基线）、`<file|dir>`（只扫指定目标）。
+受控测试：`tests/test_check_i18n_hardcoded_python.py`（**24 例**：基本判定 / **中文注释与 docstring 必须 PASS** /
+跨行与模块级 docstring / **docstring 之后的普通字符串仍被报** / `i18n-allow` 行内与上一行 /
+基线三态 / **空基线与基线缺失都必须拦** / 排除规则 / **显式参数也过滤** / report 不判失败 / 仓库基线完整自检）。
 
 ---
 

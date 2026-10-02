@@ -437,6 +437,10 @@ jobs:
       - name: G-040 — i18n 硬编码检查（组件里不得新写死中文，只拦新增）
         run: python scripts/check_i18n_hardcoded.py
 
+      - name: G-047 — Python 侧 i18n 硬编码检查（AST 字面量口径，只拦新增）
+        # 与 G-040 互补：G-040 只扫 web/src/**/*.{vue,ts}，本步覆盖 pilotstd/ 与 docker/。
+        run: python scripts/check_i18n_hardcoded_python.py
+
       - name: G-043 — 敏感端点审计接线（凭证/权限/批量销毁端点必须有 write_audit）
         run: python scripts/check_sensitive_endpoint_audit.py
 
