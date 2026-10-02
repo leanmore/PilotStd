@@ -29,6 +29,8 @@ import json
 import sys
 from pathlib import Path
 
+from _gate_coverage_summary import print_coverage_summary
+
 if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -233,6 +235,43 @@ def _print_matrix(rows: list[dict[str, object]]) -> None:
         print(f"| `{r['event']}` | {r['i18n']} | {r['term']} | {r['e2e']} | {r['audit']} | `{r['builder']}` |")
 
 
+def print_coverage(rows: list[dict[str, object]], blocking: list[str], tracked: list[str]) -> None:
+    """打印 G-045 覆盖摘要（L-23）。
+
+    PASS 只说明**已检查的维度**通过；必须声明**未校验的字段**与**未登记的事件**，
+    否则会被误读为"EVENTS 元数据全部可信"。
+
+    独立成函数：`main()` 须守住 G-010 的逻辑行上限。
+    """
+    n_i18n = sum(1 for r in rows if r["i18n"] == "✅")
+    n_e2e = sum(1 for r in rows if r["e2e"] == "✅")
+    n_term = sum(1 for r in rows if r["term"] == "✅")
+    sec_rows = [r for r in rows if is_security_event(str(r["event"]))]
+    n_sec = sum(1 for r in sec_rows if r["audit"] == "✅")
+    print_coverage_summary(
+        scope="{} 的 ALL_EVENTS（{} 个）+ {} 的 EVENTS 元数据".format(
+            NOTIF.name + "/events.py", len(rows), E2E_TEST.relative_to(ROOT).as_posix()
+        ),
+        checked=len(rows),
+        passed=n_i18n,
+        blocked=len(blocking),
+        exempted=len(tracked),
+        exemptions=[],
+        notes=(
+            "i18n 三语键齐备 -> {}/{} 事件（阻断维度）".format(n_i18n, len(rows)),
+            "e2e 覆盖 + trigger_file 存在 -> {}/{} 事件（阻断维度）".format(n_e2e, len(rows)),
+            "安全事件 write_audit -> {}/{} 事件（阻断维度，仅安全类）".format(n_sec, len(sec_rows)),
+            "术语表登记 -> {}/{} 事件（跟踪项，不阻断）".format(n_term, len(rows)),
+        ),
+        uncovered=(
+            "**EVENTS 的 level/module/aggregation/builder_keys 未校验**"
+            "（level 为 `a/b` 集合约定，表示构建器按分支取值的集合）；"
+            "`desktop_toast` 未登记进 ALL_EVENTS（平台层事件，已采纳方案 B 显式声明未覆盖，"
+            "方案 A 触发条件见 docs/governance/notification_coverage.md）"
+        ),
+    )
+
+
 def main(argv: list[str]) -> int:
     """审计入口：构建矩阵、输出汇总，按阻断缺口决定退出码。"""
     matrix_only = "--matrix" in argv
@@ -282,6 +321,7 @@ def main(argv: list[str]) -> int:
             print(f"   - {item}")
     else:
         print("✅ 无阻断缺口（i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计）")
+    print_coverage(rows, blocking, tracked)
     if tracked:
         print(f"\n⚠️  跟踪项 {len(tracked)} 项（术语表未登记，不阻断）：")
         for item in tracked[:5]:

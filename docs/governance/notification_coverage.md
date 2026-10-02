@@ -95,8 +95,8 @@
 
 | # | 缺口 | 影响 | 建议 |
 |---|------|------|------|
-| B-1 | **glossary 只登记 40 / 221 个 `notification.*` 键**（38 个事件的文案键未登记） | G-044 的"三语一致性"检测**只覆盖已登记键**；未登记的文案改了简体忘改繁体不会被拦 | 分批登记：优先高频事件（`scan_*` / `download_*` / `archive_*` / `validity_*`），每批 20–30 键。**不建议一次性全量**——术语表是"受控词汇表"不是"全量字典"，无限扩张会失去治理意义 |
-| B-2 | e2e `EVENTS` 的 `module`/`level`/`aggregation` 字段为人工维护，无门禁校验其准确性 | 可能与实际构建器的 `level` 漂移（如实际 warning 而元数据记 info） | 可扩审计脚本做"元数据 vs 构建器常量"比对（需解析构建器 return 的 `level=`） |
+| B-1 | **glossary 只登记 40 / 221 个 `notification.*` 键**（38 个事件的文案键未登记） | G-044 的**三层检查覆盖范围不同**（源码核实：`check_terminology.py:_check_key` / `_check_term_consistency`）：① 三语**存在性**与 ② 禁用词/别名 -> **全部 221 个作用域内键**（作用域外 478 键不检查）；③ 术语三语**值与术语表严格相等** -> **仅 40 个登记键**。故其余 181 键的**值**无标准答案可比对（改简体忘改繁体不会被拦），但键**存在性**已全量校验 | 分批登记：优先高频事件（`scan_*` / `download_*` / `archive_*` / `validity_*`），每批 20–30 键。**不建议一次性全量**——术语表是"受控词汇表"不是"全量字典"，无限扩张会失去治理意义 |
+| B-2 | e2e `EVENTS` 的 `module`/`level`/`aggregation`/`builder_keys` 字段为人工维护，**G-045 只校验 `trigger_file` 的存在性**，其余字段未校验 | 元数据可能与构建器脱节。**但 `level` 已于本批做集合精查（AST 语义遍历）：39 事件声明集合与构建器实际分支集合完全一致，零漂移**。注意 `level` 用 `a/b` 表示**可产出集合**（如 `info/warning` = 按分支取 info 或 warning），把它当单值读会得出错误的"漂移"结论 | 若扩审计脚本比对：须按**集合**比对，且构建器 level 可能经局部变量传递（`level = ...` 再 `level=level`），正则提取会漏——必须走 AST |
 | B-3 | 测试覆盖为"事件级"而非"渠道级"：仅 `batch_download_complete` 等少数事件有逐渠道渲染断言 | 新增渠道或改渲染器时，多数事件无跨渠道回归网 | 按渠道补渲染断言（`tests/test_notification_renderer.py` 已有基础设施） |
 
 ### C 类（设计如此，不予修复）
@@ -135,6 +135,12 @@
 | `check_terminology.py` | G-044 | 禁用词命中 / 术语三语不一致 | ✅ `check_all.sh --fast` + `ci.yml` |
 | `audit_notification_chain.py` | — | 吞错/空文本风险 | ⏳ 未接入（存量 74 问题中 72 为误报，需先修判定逻辑） |
 
+**三个已接入门禁均打印 `[覆盖摘要]`（L-23）**：PASS 之后追加五段式摘要（`范围` /
+`检查项` / `检查口径` / `豁免明细` / `未覆盖说明`），显式声明**检查了什么、豁免了什么、
+没检查什么**——否则 PASS 会掩盖空洞（G-044 的术语三语值校验只覆盖 40 个登记键、
+G-043 的 7 项豁免、G-045 未校验的 `level`/`module`/`aggregation`/`builder_keys`）。
+格式实现见 `scripts/_gate_coverage_summary.py`（三处门禁共用，改动须同步三处）。
+
 ---
 
 ## 六、已修复的遗留项
@@ -152,3 +158,13 @@
 | 4 | B-1 术语登记率 40/221、B-2 EVENTS 元数据无校验、B-3 测试为事件级非渠道级 | §三 |
 | 5 | `audit_notification_chain.py` 未接入 CI | §五 |
 | 6 | `DesktopRenderer` 字段名前缀（第 7 批论证不应加） | 待裁决 |
+| 7 | **`desktop_toast` 未登记进 `ALL_EVENTS`**（G-045 盲区） | 见下方 L-22 专项 |
+
+### L-22：`desktop_toast` 未登记进 `ALL_EVENTS`
+
+- **性质**：`desktop_toast` 是 L2 桌面协调层向 L1 服务端聚合器投递时使用的标签（唯一产出点 `pilotstd/core/notification_aggregator.py:537` 的 `self._new.push(...)`），**不经 `manager.send_event`、也无构建器与独立 i18n 键**（标题来自上游 `_(...)`）。
+- **当前处置：方案 B（不登记）**——G-045 的 `[覆盖摘要]` 中显式声明该事件未覆盖，使 PASS 不再掩盖此盲区。不登记的理由：登记会**必然即红**（无 e2e `EVENTS` 条目 → G-045 阻断；无构建器 → i18n 维度判 False；`assert len(EVENTS)` 硬编码），需一次性改 6 个文件并引入"平台层事件"新分类。
+- **方案 A 触发条件**（满足任一即须实施）：
+  1. 引入**第 2 个平台层事件**时——否则每加一个都要改摘要声明，声明本身会腐化；
+  2. 当 G-045 的覆盖度矩阵需要**按投递入口分组统计**时（方案 B 无法区分"`send_event` 产出"与"平台层直接构造"）。
+- **方案 A 成本**：约 34 行 / 6 文件（`events.py` ×2、`test_notification_e2e.py` ×3 处、`audit_notification_coverage.py`、本文件）。

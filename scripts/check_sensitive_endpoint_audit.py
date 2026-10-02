@@ -30,6 +30,8 @@ import re
 import sys
 from pathlib import Path
 
+from _gate_coverage_summary import print_coverage_summary
+
 # Windows 控制台默认编码无法输出中文
 if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -90,6 +92,36 @@ def module_has_write_audit(path: Path) -> bool:
         return bool(_WRITE_AUDIT_RE.search(path.read_text(encoding="utf-8")))
     except OSError:
         return False
+
+
+def print_coverage(scan_targets: list[Path], audit_modules: set[str]) -> None:
+    """打印 G-043 覆盖摘要（L-23）。
+
+    独立成函数：`main()` 须守住 G-010 的逻辑行上限。数据取自既有清单与扫描结果，
+    不新增收集逻辑。
+    """
+    scope = "、".join(
+        str(d.relative_to(PROJECT_ROOT)).replace("\\", "/") + "/**/*.py" for d in API_DIRS if d.is_dir()
+    )
+    if AUTH_MODULE.exists():
+        scope += "、" + str(AUTH_MODULE.relative_to(PROJECT_ROOT)).replace("\\", "/")
+    print_coverage_summary(
+        scope="{}（路由装饰器 POST/PUT/DELETE/PATCH；实扫 {} 个文件）".format(scope, len(scan_targets)),
+        checked=len(SENSITIVE_ROUTES) + len(EXEMPT_ROUTES),
+        passed=len(SENSITIVE_ROUTES),
+        blocked=0,
+        exempted=len(EXEMPT_ROUTES),
+        exemptions=["{} — {}".format(route, reason) for route, reason in sorted(EXEMPT_ROUTES.items())],
+        notes=(
+            "需 write_audit 的路由 -> {} 项（SENSITIVE_ROUTES）".format(len(SENSITIVE_ROUTES)),
+            "显式豁免的路由 -> {} 项（EXEMPT_ROUTES，逐条见下）".format(len(EXEMPT_ROUTES)),
+        ),
+        uncovered=(
+            "判定为**模块级**：同一文件内任一端点有 write_audit 即整模块通过，"
+            "无法区分同文件内其它端点是否缺审计；函数级 AST 判定未实现。"
+            "上述 {} 项豁免端点仍未接入审计".format(len(EXEMPT_ROUTES))
+        ),
+    )
 
 
 def main(argv: list[str]) -> int:
@@ -153,6 +185,7 @@ def main(argv: list[str]) -> int:
         print("FAIL: 请为上述端点补 write_audit，或显式登记进 EXEMPT_ROUTES（须带理由）。")
         return 1
     print("✅ G-043 通过：{} 个敏感端点均已接入审计".format(len(SENSITIVE_ROUTES)))
+    print_coverage(scan_targets, audit_modules)
     return 0
 
 

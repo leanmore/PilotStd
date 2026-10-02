@@ -1,6 +1,17 @@
 # tests/test_notification_e2e.py
 # Q20 集成验证：32 事件全量覆盖 — 注册状态 + 触发点静态检查 + 字段双向校验 + 互斥逻辑
 # 生成日期: 2026-07-22
+#
+# EVENTS 元数据的字段约定（读 EVENTS 前必看）：
+#   - `level` 用 `a/b` 形式表示**该构建器可产出的 level 集合**，不是单个值。例：
+#     `"info/warning"` 表示构建器按分支返回 `info` 或 `warning`（如
+#     `_build_scan_complete_message` 在 `failed > 0` 时 warning，否则 info）。
+#     把集合误读为单值会得出"元数据漂移"的错误结论——判定须按集合比对，
+#     且构建器的 level 可能经局部变量传递（`level = ...` 再 `level=level`），
+#     正则提取会漏。
+#   - `trigger_file` 必须是**物理存在**的触发方文件（G-045 校验其存在性）；
+#     若事件由投递管道而非业务端点触发，应记业务端点而非管道文件。
+#   - `builder_keys` 与触发方 payload 键须**双向一致**（本文件有对应断言）。
 import ast
 import os
 import re

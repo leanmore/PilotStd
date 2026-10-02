@@ -36,6 +36,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from _gate_coverage_summary import print_coverage_summary
+
 # Windows 控制台默认编码无法输出中文
 if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -150,6 +152,61 @@ def _report_locations(keys: list[str], indexes: dict[str, dict[str, int]]) -> li
     return out
 
 
+def print_coverage(
+    packs: dict[str, dict[str, str]],
+    scope_keys: list[str],
+    terms: list[dict[str, Any]],
+    exempt_keys: set[str],
+    exempt_terms: list[str],
+    blocked: int,
+) -> None:
+    """打印 G-044 覆盖摘要（L-23）。
+
+    必须显式声明**三层检查各自的覆盖范围**，否则 PASS 会被误读为"全部文案的三语值
+    已校验"。实测口径（源码依据 `_check_key` / `_check_term_consistency`）：
+    三语存在性与禁用词/别名 -> 全部作用域内键；术语三语值与表严格相等 -> 仅登记键。
+
+    独立成函数：`main()` 须守住 G-010 的逻辑行上限。
+    """
+    zh_keys = list(packs["zh_CN"])
+    # 以 zh_CN 为遍历基准：G-044 的三条检测都以中文值为判定输入（禁用词/别名直接
+    # 匹配 zh_CN 值；术语一致性以 zh_CN 键集为入口，再逐语比对），故作用域内键数
+    # 以 zh_CN 语言包计。
+    in_scope = [k for k in zh_keys if _in_scope(k, scope_keys)]
+    registered_keys = {key for term in terms for key in term.get("keys", [])}
+    # with_glossary = 有"标准答案"可比对的键；这是与 in_scope 的关键差集，
+    # 未在此集合内的键无法做值相等性校验（只能做存在性校验）。
+    with_glossary = [k for k in in_scope if k in registered_keys]
+    print_coverage_summary(
+        scope="{} 的 {} 前缀键（三语 {}；作用域外 {} 个键不参与）".format(
+            I18N_DIR.relative_to(PROJECT_ROOT).as_posix(),
+            "、".join(scope_keys),
+            "/".join(LANGS),
+            len(zh_keys) - len(in_scope),
+        ),
+        checked=len(in_scope),
+        passed=len(in_scope),
+        blocked=blocked,
+        exempted=len(exempt_keys),
+        exemptions=[],
+        notes=(
+            "三语存在性 -> {} 键（全部作用域内键）".format(len(in_scope)),
+            "禁用词 / 别名 -> {} 键（全部作用域内键；另豁免键 {} 个、豁免词 {} 个）".format(
+                len(in_scope), len(exempt_keys), len(exempt_terms)
+            ),
+            "术语三语值与表严格相等 -> {} 键（仅 glossary.json 登记的键）".format(len(with_glossary)),
+        ),
+        uncovered=(
+            "作用域外 {} 个键不检查；**术语三语值与术语表严格相等仅覆盖 {} 个登记键**，"
+            "其余 {} 个键的三语值无标准答案可比对（改简体忘改繁体不会被拦）".format(
+                len(zh_keys) - len(in_scope),
+                len(with_glossary),
+                len(in_scope) - len(with_glossary),
+            )
+        ),
+    )
+
+
 def main(argv: list[str]) -> int:
     """门禁入口：加载术语表与三语语言包，执行三条检测并返回退出码。
 
@@ -231,6 +288,7 @@ def main(argv: list[str]) -> int:
         return 1
 
     print("PASS: 作用域内无禁用词命中，术语三语一致。")
+    print_coverage(packs, scope_keys, terms, exempt_keys, exempt_terms, len(blocking) + len(consistency))
     return 0
 
 
