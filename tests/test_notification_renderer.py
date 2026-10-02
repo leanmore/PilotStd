@@ -171,6 +171,41 @@ class TestTelegramRenderer:
         r = TelegramRenderer().render(make_msg(blocks=[b]))
         assert "*GB/T 1*" in r
 
+    def test_render_list_separator_is_escaped(self):
+        """★ 列表**字段分隔符**必须转义为 `\\|`。
+
+        缺陷背景（生产实测）：`_render_list` 原先写 `' | '.join(parts)` ——
+        `parts` 已各自转义，但**分隔符是在转义之后拼入的**，故 `|` 以未转义形态
+        进入 MarkdownV2，Telegram 返回：
+        `HTTP 400: can't parse entities: Character '|' is reserved and must be escaped`。
+        受影响事件 `standard_first_registered` **连续 7 次全部失败**（从未成功过）。
+
+        判别力：把分隔符改回 `" | "` → 本用例 FAIL。
+        """
+        b = ListBlock(title="R", items=[{"number": "GB/T 1", "name": "N"}])
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        assert r"\|" in r, f"分隔符未转义：{r!r}"
+        # 每个条目行里不得出现**未转义**的 ` | `
+        for line in r.splitlines():
+            if line.startswith("•"):
+                assert " | " not in line, f"条目行含未转义分隔符：{line!r}"
+
+    def test_render_list_separator_escape_not_doubled(self):
+        """★ 值本身含 `|` 时，值与分隔符**各转义一次**（不得二次转义）。"""
+        b = ListBlock(title="R", items=[{"number": "A|B", "name": "N"}])
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        # 值里的 | 转义一次 → 渲染中出现 `A\|B`（源码字面量 r"A\|B"）
+        assert r"A\|B" in r, f"值内的 | 应转义一次：{r!r}"
+        # 不得出现二次转义（即 `A\\|B`，源码字面量 "A\\\\|B"）
+        assert "A\\\\|B" not in r, f"出现了二次转义：{r!r}"
+
+    def test_render_list_multi_field_all_escaped(self):
+        """多字段条目的每个值都转义（保留原行为）。"""
+        b = ListBlock(title="R", items=[{"number": "GB/T 1.1-2020", "name": "含.点"}])
+        r = TelegramRenderer().render(make_msg(blocks=[b]))
+        assert "GB/T 1\\.1\\-2020" in r
+        assert "含\\.点" in r
+
     def test_render_list_with_detail_url(self):
         b = ListBlock(title="L", items=[{"k": "v"}], detail_url="https://t.me")
         r = TelegramRenderer().render(make_msg(blocks=[b]))

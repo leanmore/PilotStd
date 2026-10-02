@@ -169,6 +169,11 @@ class BlockRenderer:
 # 电报2中必须反斜杠转义的字符
 _TELEGRAM_ESCAPE_CHARS = re.compile(r"([_*\[\]()~`>#+\-=|{}.!])")
 
+# 列表条目的字段分隔符（**已转义**形态）。
+# 不能把它拼在"已转义的值"之后再行转义——那会连值一起二次转义；
+# 故这里预先给出转义后的字面量，供 `_render_list` 直接 join。
+_TELEGRAM_LIST_SEP = " \\| "
+
 
 class TelegramRenderer(BlockRenderer):
     """Telegram MarkdownV2 渲染器——先转义用户数据，再施加格式标记。"""
@@ -207,7 +212,11 @@ class TelegramRenderer(BlockRenderer):
                     parts.append(f"*{escaped_value}*")
                 else:
                     parts.append(escaped_value)
-            lines.append(f"• {' | '.join(parts)}")
+            # 分隔符本身也必须转义：`parts` 已各自转义，但分隔符是在**转义之后**拼入的，
+            # 若直接用 `" | "`，`|` 会以未转义形态进入 MarkdownV2 → Telegram 返回
+            # `HTTP 400: can't parse entities: Character '|' is reserved`。
+            # 生产实测：`standard_first_registered` 因此**连续 7 次全部失败**（从未成功过）。
+            lines.append(f"• {_TELEGRAM_LIST_SEP.join(parts)}")
 
         if block.detail_url:
             lines.append(self._escape(block.detail_url))
