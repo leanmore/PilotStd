@@ -357,14 +357,25 @@ def _resolve_audit_identity(subject: str) -> tuple[int | None, str]:
     解析规则：
       - 全数字 → 视为 user_id，**按主键反查** users 表取真实 username；
       - 非数字 → 旧格式 token（`sub` 即 username），直接返回，**不查库**；
-      - 查不到行（数据异常）→ username 回落 `"unknown"`，不抛异常。
+      - 查不到行（数据异常）→ username 回落 `"unknown"`，不抛异常；
+      - **开库失败**（库文件不存在/不可读）→ 同样回落 `"unknown"`，**不抛异常**。
 
     **只在拒绝路径上调用**（`auth.require_role` 的 403 分支），故正常授权零 DB 开销。
+
+    **为何开库失败也必须吞掉（CI 实测，2026-10-02）**：鉴权测试用
+    `FastAPI() + AuthMiddleware + 单个 router` 组装**最小应用**、**不建数据库**；
+    此时 `get_user_by_id` 抛 `sqlite3.OperationalError: unable to open database file`，
+    使本该 **403** 的拒绝路径变成 **500**，5 个鉴权用例（`test_non_admin_403` 等）在 CI 全红。
+    审计身份的**附加值**（更可读的 username）不能反过来把拒绝响应打坏——
+    审计宁可记 `"unknown"`，也不得改变授权结果。
     """
     if not isinstance(subject, str):
         return None, "unknown"
     if not subject.isdigit():
         return None, subject  # 旧格式 token：sub 即 username，无 id 可反查
     user_id = int(subject)
-    row = get_user_by_id(user_id)
+    try:
+        row = get_user_by_id(user_id)
+    except Exception:  # noqa: BLE001 — 见 docstring：审计不得影响鉴权结果
+        return user_id, "unknown"
     return user_id, (str(row["username"]) if row else "unknown")
