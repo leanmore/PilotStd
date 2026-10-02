@@ -584,7 +584,6 @@ class TestAggregateContract(unittest.TestCase):
             return_value=_make_msg(title="", body="", blocks=[], event_type="broken_builder")
         )
         mgr._do_send = MagicMock()
-        mgr._broadcast_to_ws = MagicMock()
 
         with unittest.mock.patch("pilotstd.core.notification.manager.logger") as mock_logger:
             NotificationManager.send_event(mgr, "broken_builder", {})

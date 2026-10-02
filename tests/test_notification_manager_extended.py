@@ -24,17 +24,6 @@ class TestNotificationManagerExtended(unittest.TestCase):
         self.assertFalse(nmgr._enabled)
 
     @patch("pilotstd.core.notification.manager.CredentialHelper")
-    def test_init_with_ws_broadcast(self, _cred):
-        from pilotstd.core.notification import NotificationManager
-
-        _cred.return_value = MagicMock()
-        _cred.return_value.get_all.return_value = {}
-        ws = MagicMock()
-        self.mock_cfg.get.side_effect = lambda k, d=None: {"notification.enabled": True}.get(k, d)
-        nmgr = NotificationManager(self.mock_cfg, self.mock_db, user_id=1, ws_broadcast=ws)
-        self.assertEqual(nmgr._ws_broadcast, ws)
-
-    @patch("pilotstd.core.notification.manager.CredentialHelper")
     @patch("pilotstd.core.notification.manager.WechatChannel")
     def test_send_event_with_aggregator_disabled(self, _wc, _cred):
         from pilotstd.core.notification import NotificationManager

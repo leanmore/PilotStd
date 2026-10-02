@@ -14,7 +14,7 @@ def mgr():
     db = MagicMock()
     db.fetchone.return_value = None
     db.fetchall.return_value = []
-    return NotificationManager(cfg, db, 1, None)
+    return NotificationManager(cfg, db, 1)
 
 
 class TestInit:
@@ -37,7 +37,7 @@ class TestUserEnabledFromDb:
         cfg = ConfigStub({"notification.enabled": cfg_enabled, "notification.aggregate_enabled": False})
         db = MagicMock()
         db.fetchone.return_value = db_fetchone
-        return NotificationManager(cfg, db, 1, None)
+        return NotificationManager(cfg, db, 1)
 
     def test_db_missing_falls_back_to_config(self):
         mgr = self._make(None, cfg_enabled=False)
@@ -110,18 +110,6 @@ class TestLogMethods:
         mgr._db.fetchall.return_value = [{"id": 1, "event_type": "t"}]
         r = mgr.ops.get_logs()
         assert r["total"] == 2
-
-
-class TestWSBroadcast:
-    def test_no_ws(self, mgr):
-        mgr.ops.broadcast_to_ws("x", MagicMock())
-
-    def test_with_ws(self, mgr):
-        mgr._ws_broadcast = MagicMock()
-        msg = MagicMock()
-        msg.event_type = "x"
-        mgr.ops.broadcast_to_ws("x", msg)
-        mgr._ws_broadcast.assert_called_once()
 
 
 class TestTestSend:

@@ -6,7 +6,6 @@
 
 import json
 import logging
-from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Optional, cast
 
@@ -92,7 +91,7 @@ class NotificationManager:
     渠道加载失败时降级（记录错误，不阻断流程）。
     """
 
-    def __init__(self, config: Any, db: Database, user_id: int, ws_broadcast: Callable | None = None):
+    def __init__(self, config: Any, db: Database, user_id: int):
         self._cfg = config
         self._db = db
         self._user_id = user_id
@@ -118,8 +117,7 @@ class NotificationManager:
         if db_enabled is not None:
             self._enabled = db_enabled
         self._channels: dict[str, Any] = {}
-        self._ws_broadcast = ws_broadcast
-        # 日志/查询/清理/WS 广播（组合式，见 _manager_ops.NotificationOps）
+        # 日志/查询/清理（组合式，见 _manager_ops.NotificationOps）
         self.ops = NotificationOps(self)
         self._init_event_builders()
         if self._enabled:
@@ -346,8 +344,6 @@ class NotificationManager:
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
                 self._record_delivery(ch_name, False)
-        if msg:
-            self._broadcast_to_ws(event_type, msg)
 
     # ── 投递健康度告警（P0）────────────────────────────────────
 
@@ -531,20 +527,18 @@ class NotificationManager:
             return builder(data)
         return _build_fallback_message(event_type, data)
 
-    # ── 日志与 WS 广播：实现见 _manager_ops.NotificationOps，此处保留同名方法作为内部 API ──
+    # ── 日志：实现见 _manager_ops.NotificationOps，此处保留同名方法作为内部 API ──
     # 保留委托而不是让调用方直接用 self.ops：① _send_now 是内部路径，签名即契约；
     # ② tests/test_notification_combo_patch.py 用 MagicMock(spec=NotificationManager) 打桩 _log，
-    #    spec 只认类属性，故 _log/_broadcast_to_ws 必须是管理器的方法。
+    #    spec 只认类属性，故 _log 必须是管理器的方法。
+    # （原 _broadcast_to_ws 与之并列，随 WebSocket 死代码清理于阶段 0 删除，见
+    #   docs/plans/notification-redesign/06-阶段0-1实施方案.md §1.2。）
 
     def _log(
         self, event_type: str, channel: str, msg: NotificationMessage, status: str, error_msg: str, sent_at: str
     ) -> None:
         """写通知发送日志（委托 NotificationOps.log）。"""
         self.ops.log(event_type, channel, msg, status, error_msg, sent_at)
-
-    def _broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
-        """通过独立线程向 WebSocket 广播（委托 NotificationOps.broadcast_to_ws）。"""
-        self.ops.broadcast_to_ws(event_type, msg)
 
 
     # ── 测试发送 ──────────────────────────────────────────────

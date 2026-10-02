@@ -2,7 +2,7 @@
 """NotificationManager 的日志与运维接口（组合式实现，由 NotificationManager 持有）。
 
 拆出原因（G-010 文件规模治理）：manager.py 有效行 487 已进入警告区，而本组方法
-（写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理 / WebSocket 广播）
+（写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理）
 与「事件 → 渠道分发」主流程不共享任何局部状态。
 
 为什么是组合而不是继承：`tests/test_architecture_mixin_guard.py` 明令**除
@@ -10,9 +10,10 @@ _WindowLifecycleMixin（Qt 硬约束）外禁止新增 Mixin**，并指定用 Co
 故这里是**不继承任何东西**的普通类，管理器在 __init__ 里建 `self.ops = NotificationOps(self)`。
 第一版曾用 Mixin 换取“调用点零改动”，被上述守护测试拦下——**不要再改回继承**。
 
-为什么持有宿主引用而不是拷贝 db/ws_broadcast：`_ws_broadcast` 是**可重绑**属性
-（`tests/test_notification_manager.py::TestWSBroadcast` 先构造管理器、再改该属性、最后调用广播），
-只有调用期读取才与拆分前的语义一致；`_db` 同理经属性代理转发。
+为什么持有宿主引用而不是拷贝 db：`_db` 经属性代理在**调用期**读取，才与拆分前
+各方法体的语义一致（拆分要求函数体逐字节不变）。
+（原此处举的例子是"可重绑的 `_ws_broadcast`"——该属性随 WebSocket 死代码清理
+于阶段 0 删除，见 docs/plans/notification-redesign/06-阶段0-1实施方案.md §1.2。）
 """
 
 import logging
@@ -148,20 +149,4 @@ class NotificationOps:
         if deleted > 0:
             logger.info("清理了 %d 条过期通知日志（保留 %d 天）", deleted, days)
         return deleted
-
-    def broadcast_to_ws(self, event_type: str, msg: NotificationMessage) -> None:
-        """通过独立线程向 WebSocket 连接广播通知消息（非阻塞）。"""
-        callback = self._mgr._ws_broadcast  # 调用期读取：该属性可被重绑（见 TestWSBroadcast）
-        if callback is None:
-            return
-
-        import threading
-
-        # 通过回调注入执行广播（回调内部处理/细节）
-        threading.Thread(
-            target=callback,
-            args=(event_type, msg.title, msg.body, msg.level, msg.link, msg.icon, msg.aggregated_count),
-            daemon=True,
-            name="notif-ws-broadcast",
-        ).start()
 
