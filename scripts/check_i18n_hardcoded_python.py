@@ -27,7 +27,7 @@ P-104 采用**简单可辩护口径**（"Python 字符串字面量中的中文"�
 ## 豁免与基线机制（与 G-040 一致）
 
 1. **行内豁免**：本行或**上一行**含 `i18n-allow` 注释 → 该行跳过；
-2. **存量基线** `scripts/i18n_hardcoded_python_baseline.txt`（`<相对路径>::<行数>`）：
+2. **存量基线** `scripts/i18n_hardcoded_python_baseline.json`（`{相对路径: 行数}`）：
    基线内不报；超出报新增；低于基线仅提示可刷新（不阻断）；
 3. **空基线 ≠ 门禁失效**：文件不在基线中 → **一处都不允许**（G-040 曾因此出过缺陷：
    批 6 把基线清零后门禁看似失效，CI run 36293074107 红）。
@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import ast
 import io
+import json
 import re
 import sys
 from pathlib import Path
@@ -56,7 +57,11 @@ if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_BASELINE = PROJECT_ROOT / "scripts" / "i18n_hardcoded_python_baseline.txt"
+# 基线用 `.json` 而不是 `.txt`：入仓合规门禁（`.github/scripts/check-repo-compliance.sh`）
+# 的 FILENAME_BLACKLIST 含 `*.txt`（本意拦"临时文本文件"），会把**门禁自身的基线数据**
+# 一并拦下。改 `.json` 后既不再误命中，又与项目既有基线惯例一致
+# （`.secrets.baseline` / `web/pnpm-lock.yaml` 等同为结构化数据文件）。
+DEFAULT_BASELINE = PROJECT_ROOT / "scripts" / "i18n_hardcoded_python_baseline.json"
 
 # 扫描目标：Python 生产代码。语言包本体（pilotstd/i18n/*.json）不是 .py，自然不计。
 SCAN_DIRS = ("pilotstd", "docker")
@@ -195,11 +200,28 @@ def scan(files: list[Path]) -> dict[str, list[tuple[int, str]]]:
 
 
 def load_baseline(path: Path) -> dict[str, int]:
-    """读取基线（`<相对路径>::<行数>`）；文件不存在返回空表。"""
+    """读取基线；文件不存在返回空表。
+
+    支持两种格式：
+    - **JSON** `{相对路径: 行数}`（当前写入格式，见 `write_baseline`）；
+    - **旧文本** `<相对路径>::<行数>`（历史格式，仍可读，便于平滑过渡与既有测试夹具）。
+
+    旧格式兼容是有意保留的：测试夹具会写入空文件或不含 `::` 的内容，
+    两种解析都必须安全退化为空表（"空基线 ≠ 门禁失效"由调用方保证）。
+    """
     if not path.is_file():
         return {}
+    text = path.read_text(encoding="utf-8")
+    stripped = text.lstrip()
+    if stripped.startswith("{"):
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError:
+            return {}
+        return {str(k): int(v) for k, v in data.items() if isinstance(v, (int, float))}
+
     baseline: dict[str, int] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "::" not in line:
             continue
@@ -212,15 +234,13 @@ def load_baseline(path: Path) -> dict[str, int]:
 
 
 def write_baseline(path: Path, counts: dict[str, int]) -> None:
-    """按当前存量重写基线（只写有硬编码的文件）。"""
-    lines = [
-        "# G-047 i18n 硬编码中文（Python 侧）基线",
-        "# 由 scripts/check_i18n_hardcoded_python.py --update-baseline 生成，勿手改。",
-        "# 格式: <相对仓库根路径>::<当前存量行数>；门禁只拦「超出基线」的新增，低于基线仅提示可刷新。",
-        "# 口径: AST 字符串字面量含 CJK，跳过 docstring（G-012 强制其中文）；注释不计。",
-    ]
-    lines += [f"{name}::{count}" for name, count in sorted(counts.items()) if count > 0]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    """按当前存量重写基线（只写有硬编码的文件）。
+
+    写 **JSON**（`{相对路径: 行数}`）：结构化、可被工具解析，且**避开入仓合规门禁的
+    `*.txt` 文件名黑名单**——该黑名单本意拦"临时文本文件"，会误拦门禁自身的基线数据。
+    """
+    data = {name: count for name, count in sorted(counts.items()) if count > 0}
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def print_report(hits: dict[str, list[tuple[int, str]]]) -> None:

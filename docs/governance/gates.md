@@ -29,7 +29,7 @@
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
 | G-045 | 通知系统覆盖度基线 | 每个已注册事件必须：i18n 三语键齐备、出现在 e2e `EVENTS` 且其 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit` | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
-| G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.txt` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
+| G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -301,7 +301,7 @@
 按 P-104 采用**简单可辩护口径**（"Python 字符串字面量中的中文"），**不引入"日志豁免"**——
 那需要判定调用者身份、增加误报来源。若要治理日志文案，应另立专项。
 
-**存量基线**：`scripts/i18n_hardcoded_python_baseline.txt`，格式 `<相对路径>::<行数>`，机制与 G-040 一致：
+**存量基线**：`scripts/i18n_hardcoded_python_baseline.json`，格式 `{相对路径: 行数}`，机制与 G-040 一致：
 - 文件不在基线里且有中文 → **全部算违规**（新文件必须一开始就走 i18n）；
 - 文件在基线里但处数变多 → 只报多出来的（同一文件里新写死的中文照样拦得住）；
 - 文件在基线里但处数变少 → 只打印 `[STALE]` 提示（不阻断）。

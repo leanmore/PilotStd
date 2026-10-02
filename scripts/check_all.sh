@@ -104,7 +104,7 @@ run_fast() {
     # 判定：AST 字符串字面量含 CJK，**跳过 docstring**——因为 check_g_012_comment_density.py
     # 强制要求注释与 docstring 用中文；若走行级正则会命中约 8791 行（误报比约 4.6:1）并把
     # 门禁强制的规范判为违规（自我否证）。
-    # 存量记入 scripts/i18n_hardcoded_python_baseline.txt，只有**超出基线**的新增才 FAIL。
+    # 存量记入 scripts/i18n_hardcoded_python_baseline.json，只有**超出基线**的新增才 FAIL。
     # 注意：必须写成 if 条件形式（脚本开头 set -euo pipefail，裸命令非 0 会直接终止脚本）。
     if python scripts/check_i18n_hardcoded_python.py; then
         log_pass "G-047 Python 侧 i18n 硬编码检查"
