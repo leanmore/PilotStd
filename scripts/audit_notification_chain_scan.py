@@ -145,19 +145,6 @@ def extract_events(events_file: Path) -> list[dict]:
 
 # ── 2. 构建器映射提取 ──────────────────────────────────────────────────────
 
-def _func_has_return_notification_message(func: ast.FunctionDef) -> bool:
-    """粗略判断函数是否返回通知消息（存在返回消息构造调用的分支）。"""
-    for node in ast.walk(func):
-        if (
-            isinstance(node, ast.Return)
-            and isinstance(node.value, ast.Call)
-            and isinstance(node.value.func, ast.Name)
-            and node.value.func.id == "NotificationMessage"
-        ):
-            return True
-    return False
-
-
 def _extract_event_type_from_func(func: ast.FunctionDef) -> str | None:
     """从函数体内 `event_type=` 提取事件名，**同时解析 EVENT_* 常量名**（A-3 修复）。
 
@@ -455,13 +442,6 @@ def extract_builders() -> list[dict]:
 
 
 # ── 3. 吞错模式检测 ────────────────────────────────────────────────────────
-
-def _is_pass_body(node: ast.expr | None) -> bool:
-    """判断异常处理体是否仅为空操作（静默吞错）。"""
-    if node is None:
-        return True  # 无类型但体为空操作已在调用方处理
-    return isinstance(node, ast.Pass)
-
 
 def detect_swallowed_exceptions(scope: str = "notification") -> list[dict]:
     """扫描通知目录（默认）或全库（scope=all）中的静默吞错模式。"""

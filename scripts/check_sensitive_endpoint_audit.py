@@ -239,7 +239,27 @@ def collect_routes() -> tuple[dict[str, tuple[str, int, ast.FunctionDef, bool]],
     return routes, module_level
 
 
-def print_coverage(scan_targets: list[Path], routes: dict[str, tuple[str, int, ast.FunctionDef, bool]]) -> None:
+def unregistered_routes(routes: dict[str, tuple[str, int, ast.FunctionDef, bool]]) -> list[str]:
+    """返回**状态变更路由中未登记进任何清单**的路由键（供输出提示，不阻断）。
+
+    存在理由（L-01 收尾，实施批范围外发现 1）：本门禁只校验
+    `SENSITIVE_ROUTES` + `EXEMPT_ROUTES` **清单内**的路由；清单外的新增路由**不被拦截**。
+    实测 docker/api/ 下有 49 个状态变更路由未登记（如 `PUT /api/notification/policy`
+    改通知策略、`POST /api/upload`）——若某新端点涉及凭证/权限/批量销毁却漏登记，
+    本门禁会报 PASS。
+
+    **为何只提示不阻断**：判定"哪个路由敏感"需**语义理解**（如 `POST /api/scan` 与
+    `PUT /api/notification/policy` 都改状态，但敏感度不同），无法纯静态判定。
+    这与本项目对 L2（出口覆盖）的既定处理一致：无法静态判定者交给人，不进阻断。
+    """
+    known = set(SENSITIVE_ROUTES) | set(EXEMPT_ROUTES)
+    return sorted(r for r in routes if r not in known)
+
+
+def print_coverage(
+    scan_targets: list[Path],
+    routes: dict[str, tuple[str, int, ast.FunctionDef, bool]],
+) -> None:
     """打印 G-043 覆盖摘要（L-23）。
 
     独立成函数：`main()` 须守住 G-010 的逻辑行上限。数据取自既有清单与扫描结果，
@@ -250,6 +270,7 @@ def print_coverage(scan_targets: list[Path], routes: dict[str, tuple[str, int, a
     )
     if AUTH_MODULE.exists():
         scope += "、" + str(AUTH_MODULE.relative_to(PROJECT_ROOT)).replace("\\", "/")
+    unregistered = unregistered_routes(routes)
     print_coverage_summary(
         scope="{}（AST 扫描 @router 装饰器；实扫 {} 个文件）".format(scope, len(scan_targets)),
         checked=len(SENSITIVE_ROUTES) + len(EXEMPT_ROUTES),
@@ -263,15 +284,28 @@ def print_coverage(scan_targets: list[Path], routes: dict[str, tuple[str, int, a
             "审计封装注册表 -> {} 条（AUDIT_WRAPPERS，已验证各自直接调用 write_audit）".format(
                 len(AUDIT_WRAPPERS)
             ),
+            "**未登记进任何清单的状态变更路由 -> {} 项**（清单完备性，仅提示不阻断）".format(
+                len(unregistered)
+            ),
         ),
         uncovered=(
             "判定为**函数级 L1（函数可达 write_audit）**：不做 L2 出口覆盖——"
             "『产生状态变更的出口』无法纯静态判定（需理解语义），故 L2 为**接线约定**"
             "（见 docs/governance/notification_coverage.md），由测试断言承担而非门禁。"
             "静态判定不区分可达性（if False: write_audit(...) 亦判为已接线）。"
-            "上述 {} 项豁免端点仍未接入审计".format(len(EXEMPT_ROUTES))
+            "**清单完备性**：本门禁只校验两张清单内的路由，清单外路由不拦截——"
+            "上述 {} 项未登记路由需人工判断敏感性（无法纯静态判定）".format(len(unregistered))
         ),
     )
+    if unregistered:
+        # 逐条列出（截断至前 10 项）：使"未登记"具体可见，而非只给一个数字
+        print("  未登记的状态变更路由（仅提示；确认敏感后请加入 SENSITIVE_ROUTES）：")
+        for route in unregistered[:10]:
+            rel, lineno, node, reaches = routes[route]
+            mark = "已有审计" if reaches else "无审计"
+            print("    - {:<40} {}:{}  {}()  [{}]".format(route, rel, lineno, node.name, mark))
+        if len(unregistered) > 10:
+            print("    ... 另 {} 项".format(len(unregistered) - 10))
 
 
 def print_compare(routes: dict[str, tuple[str, int, ast.FunctionDef, bool]], module_level: dict[str, bool]) -> None:
