@@ -23,6 +23,33 @@ _ERROR_DEBOUNCE_SECONDS = 120
 _MAX_ATTEMPTS = 3
 _RETRY_BACKOFF_SECONDS = (2, 4)
 
+# 限流场景的退避上限（秒）。Telegram 实测返回的 retry after 为 3~44 秒，
+# 上界再留一倍余量；超过则按此上限等待，避免某次异常值把线程挂住过久。
+_RETRY_AFTER_CAP_SECONDS = 60.0
+
+
+def _parse_retry_after(error_text: str) -> float | None:
+    """从 Telegram 的 429 响应文本里解析「建议等待秒数」。
+
+    实测响应形如 `HTTP 429: Too Many Requests: retry after 32` ——
+    该数值由服务端给出，**必须优先于本地固定退避**，否则本地等待（原为 2+4=6 秒）
+    远小于服务端要求（实测 3~44 秒），3 次尝试会全部撞在限流上。
+
+    解析失败或数值非正时返回 `None`，由调用方回退到固定退避。
+    """
+    import re
+
+    match = re.search(r"retry after\s+(\d+(?:\.\d+)?)", error_text or "", re.I)
+    if not match:
+        return None
+    try:
+        seconds = float(match.group(1))
+    except ValueError:
+        return None
+    if seconds <= 0:
+        return None
+    return min(seconds, _RETRY_AFTER_CAP_SECONDS)
+
 
 def _log_trace_id() -> str:
     """生成日志结构化上下文用的短随机追踪号（线程安全，无依赖）。"""
@@ -45,7 +72,13 @@ class TelegramChannel(NotificationChannel):
         self._last_error_time: float = 0.0
 
     def send(self, message: NotificationMessage) -> bool:
-        """发送通知。瞬时故障按退避重试，配置类错误（401/404）不重试。"""
+        """发送通知。瞬时故障按退避重试，配置类错误（401/404）不重试。
+
+        **退避优先取服务端建议值**（限流时 Telegram 会在响应里给 `retry after N`）：
+        本地固定退避（2+4=6 秒）**小于**服务端要求（实测 3~44 秒），只用本地值会让
+        3 次尝试全部撞在限流上 → 通知丢失。故每次失败后用 `_parse_retry_after`
+        读取 `last_error`，取到就用它（上限 60 秒），取不到才回退固定退避。
+        """
         # 每次发送前重置错误详情，避免上次失败残留
         self.last_error = ""
         if not self._token or not self._chat_id:
@@ -63,9 +96,11 @@ class TelegramChannel(NotificationChannel):
                 return True
             if not retryable or attempt >= _MAX_ATTEMPTS:
                 return False
-            delay = _RETRY_BACKOFF_SECONDS[attempt - 1]
+            # 服务端建议等待优先；无建议则回退固定退避
+            server_delay = _parse_retry_after(self.last_error)
+            delay = server_delay if server_delay is not None else _RETRY_BACKOFF_SECONDS[attempt - 1]
             logger.warning(
-                "Telegram 发送失败，%ds 后重试 (%d/%d): %s",
+                "Telegram 发送失败，%ss 后重试 (%d/%d): %s",
                 delay,
                 attempt,
                 _MAX_ATTEMPTS,
