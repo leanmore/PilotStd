@@ -663,6 +663,14 @@
     "notification.query.query_empty.title": "Query Complete",
     "notification.query.query_empty.body": "No results found among the {total} standard(s)",
 
+
+    "notification.system.notification_delivery_failed.title": "Notification delivery failure ({channel})",
+
+    "notification.system.notification_delivery_failed.body.consecutive": "Channel \"{channel}\" has failed {consecutive} deliveries in a row and may be completely unavailable.",
+
+    "notification.system.notification_delivery_failed.body.rate": "Channel \"{channel}\" failed {failures}/{samples} deliveries ({percent}%) in the recent window and is losing messages.",
+
+    "notification.system.notification_delivery_failed.body.advice": "Check this channel's credentials and network. If it is rate limiting, lower the send rate or enable a backup channel — other notifications may not have been delivered either.",
     "notification.system.auto_backup.title.success": "Auto Backup Succeeded",
     "notification.system.auto_backup.title.failed": "Auto Backup Failed",
     "notification.system.auto_backup.body.path": "Backup path",

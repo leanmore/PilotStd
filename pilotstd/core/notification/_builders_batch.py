@@ -216,6 +216,44 @@ def _build_favorite_abandoned_summary_message(data: dict) -> NotificationMessage
     )
 
 
+def _build_notification_delivery_failed_message(data: dict) -> NotificationMessage:
+    """通知投递失败告警（P0）：**通知系统自身故障**时发出。
+
+    这是"通知坏了没人知道"的唯一出口。载荷区分两种判据，因为处置方式不同：
+    - `consecutive`：渠道**彻底不通**（连败）——通常 token 失效/网络断，需立即处理；
+    - `rate`：渠道**在丢消息**（窗口失败率超阈）——通常是限流，可考虑降速或换渠道。
+
+    `samples`/`failures` 给出统计依据，便于判断严重程度。
+    """
+    channel = str(data.get("channel", "") or "")
+    reason = str(data.get("reason", "") or "")
+    samples = int(data.get("samples", 0) or 0)
+    failures = int(data.get("failures", 0) or 0)
+    consecutive = int(data.get("consecutive", 0) or 0)
+
+    if reason == "consecutive":
+        body = t("notification.system.notification_delivery_failed.body.consecutive").format(
+            channel=channel, consecutive=consecutive
+        )
+    else:
+        percent = round(failures / samples * 100) if samples else 0
+        body = t("notification.system.notification_delivery_failed.body.rate").format(
+            channel=channel, failures=failures, samples=samples, percent=percent
+        )
+
+    blocks: list[NotificationBlock] = [
+        TextBlock(text=body),
+        TextBlock(text=t("notification.system.notification_delivery_failed.body.advice")),
+    ]
+    return NotificationMessage(
+        title=t("notification.system.notification_delivery_failed.title").format(channel=channel),
+        blocks=blocks,
+        level="error",
+        event_type="notification_delivery_failed",
+        icon="pi pi-bell-slash",
+    )
+
+
 def _build_batch_query_summary_message(data: dict) -> NotificationMessage:
     """原 Mixin 方法，现为模块级纯函数。"""
     total = data.get("total", 0)

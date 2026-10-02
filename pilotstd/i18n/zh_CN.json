@@ -667,6 +667,14 @@
     "notification.query.query_empty.title": "查询完成",
     "notification.query.query_empty.body": "共 {total} 条标准，均未查询到结果",
 
+
+    "notification.system.notification_delivery_failed.title": "通知投递失败告警（{channel}）",
+
+    "notification.system.notification_delivery_failed.body.consecutive": "通知渠道「{channel}」已连续 {consecutive} 次投递失败，可能已完全不可用。",
+
+    "notification.system.notification_delivery_failed.body.rate": "通知渠道「{channel}」在最近统计窗口内失败 {failures}/{samples} 条（{percent}%），正在丢失消息。",
+
+    "notification.system.notification_delivery_failed.body.advice": "请检查该渠道的凭证与网络。若为限流，可考虑降低发送频率或启用备用渠道——在此期间其他通知可能也未送达。",
     "notification.system.auto_backup.title.success": "自动备份成功",
     "notification.system.auto_backup.title.failed": "自动备份失败",
     "notification.system.auto_backup.body.path": "备份路径",

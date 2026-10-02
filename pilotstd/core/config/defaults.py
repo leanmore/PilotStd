@@ -69,6 +69,8 @@ FACTORY_DEFAULTS = {
     # 收藏告终汇总（P0）：`abandoned` 是**终态**、系统不再自动重试，
     # 用户必须收到明确告终提示（否则"一直没下载"这件事永远无人知晓）
     "notification.rules.favorite_abandoned_summary": ["wechat"],
+    # 通知投递失败告警（P0）：通知系统自身故障时的唯一出口
+    "notification.rules.notification_delivery_failed": ["wechat"],
     "notification.rules.auto_scan_failed": ["wechat"],
     "notification.rules.validity_batch_report": ["wechat"],
     "notification.rules.validity_round_summary": ["wechat"],
@@ -86,6 +88,18 @@ FACTORY_DEFAULTS = {
     # （2026-09-21 实测：逐条发导致 1119 条通知中 622 条被电报接口以 429 拒绝）
     "notification.aggregate_window_seconds": 5,
     "notification.aggregate_max_events": 50,
+    # 投递健康度告警（P0）：通知系统自己坏掉时，必须有人被告知。
+    # 生产实测：32 天内 629 条发送失败（54.8%），其中连续 7 天每天失败 25~151 条，
+    # 全程无人知晓——而这正是"收藏集中失败"的窗口。
+    "notification.delivery_health_enabled": True,
+    # 连败阈值：渠道彻底不通（如 token 失效、网络断）时最先触发
+    "notification.delivery_health_consecutive_threshold": 5,
+    # 失败率阈值：渠道"在丢消息"（如限流）时触发；须先攒够样本数以免冷启动误报
+    "notification.delivery_health_rate_threshold": 0.5,
+    "notification.delivery_health_min_samples": 10,
+    "notification.delivery_health_window_seconds": 3600,
+    # 同一渠道同原因的告警最小间隔，避免风暴
+    "notification.delivery_health_alert_cooldown_seconds": 3600,
     # __默认值由.通过_类型脚本派生，
     # 此处留空由管理器层在读取时做回退，用户可通过配置脚本覆盖
     # 静音时段

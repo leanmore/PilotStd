@@ -28,7 +28,7 @@
 
 ---
 
-## 二、覆盖度矩阵（40 事件 × 4 维度）
+## 二、覆盖度矩阵（41 事件 × 4 维度）
 
 图例：✅ 通过 ｜ ⚠️ 跟踪项未达标（不阻断）｜ ❌ 阻断缺口 ｜ N/A 业务事件无安全语义
 
@@ -72,6 +72,7 @@
 | `download_started` | ✅ | ⚠️ | ✅ | N/A | `_build_download_started_message` |
 | `download_complete` | ✅ | ⚠️ | ✅ | N/A | `_build_download_complete_message` |
 | `favorite_abandoned_summary` | ✅ | ⚠️ | ✅ | N/A | `_build_favorite_abandoned_summary_message` |
+| `notification_delivery_failed` | ✅ | ⚠️ | ✅ | N/A | `_build_notification_delivery_failed_message` |
 | `notification_credential_changed` | ✅ | ⚠️ | ✅ | ✅ | `_build_notification_credential_changed_message` |
 | `security_password_changed` | ✅ | ⚠️ | ✅ | ✅ | `_build_security_password_changed_message` |
 | `security_token_refreshed` | ✅ | ⚠️ | ✅ | ✅ | `_build_security_token_refreshed_message` |

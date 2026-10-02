@@ -427,7 +427,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 
 **触发条件为什么包含 `trigger_file` 存在性**：只检查"事件在 EVENTS 列表里"不够——实测曾有 **3 处 `trigger_file` 指向已删除的 `_query_exec.py`**、**3 处安全事件记为投递管道 `security_notifier.py` 而非触发端点**（后者会让审计维度误判为"安全事件无审计"）。这类失真会让"有触发点"的断言变成**假绿**，正是无门禁时基线腐化的实证。
 
-**基线文档**：`docs/governance/notification_coverage.md`（40 事件矩阵 + 新增事件 9 步准入清单；含 `<!-- BEGIN GENERATED MATRIX -->` 标记，**禁止手工编辑矩阵行**，改代码后重跑 `--matrix` 同步）。
+**基线文档**：`docs/governance/notification_coverage.md`（41 事件矩阵 + 新增事件 9 步准入清单；含 `<!-- BEGIN GENERATED MATRIX -->` 标记，**禁止手工编辑矩阵行**，改代码后重跑 `--matrix` 同步）。
 
 **起因**（2026-09-26，第 11 批收尾审计）：通知治理完成 8 个功能批次后，缺少"全局覆盖度矩阵"证明所有事件在 i18n/测试/审计三维度无遗漏；且 5 处元数据失真长期潜伏——因为没有自动化校验。
 

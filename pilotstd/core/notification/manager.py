@@ -40,6 +40,7 @@ from ._message_builders import (
     _build_normalize_complete_message,
     _build_normalize_failed_message,
     _build_notification_credential_changed_message,
+    _build_notification_delivery_failed_message,
     _build_query_empty_message,
     _build_query_failed_message,
     _build_quota_exhausted_message,
@@ -65,6 +66,7 @@ from .channels.dingtalk import DingTalkChannel
 from .channels.feishu import FeishuChannel
 from .channels.telegram import TelegramChannel
 from .channels.wechat import WechatChannel
+from .delivery_health import NotificationDeliveryHealth
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +150,31 @@ class NotificationManager:
                 "standard_status_changed",
                 format_standard_status_changed_aggregated,
             )
+        # 投递健康度（P0）：按渠道统计成败，越过阈值时发"通知投递失败"告警。
+        # 这是"通知系统自己坏了"的唯一出口——生产实测曾有连续 7 天每天失败
+        # 25~151 条而全程无人知晓（见 delivery_health 模块 docstring）。
+        self.delivery_health: Optional[NotificationDeliveryHealth] = None
+        # 告警投递中标志：断开"告警失败 → 再告警"的回环（见 _record_delivery）
+        self._sending_delivery_alert = False
+        self._delivery_health_enabled = bool(
+            config.get("notification.delivery_health_enabled", True)
+        )
+        if self._delivery_health_enabled:
+            self.delivery_health = NotificationDeliveryHealth(
+                rate_threshold=float(
+                    config.get("notification.delivery_health_rate_threshold", 0.5)
+                ),
+                min_samples=int(config.get("notification.delivery_health_min_samples", 10)),
+                consecutive_threshold=int(
+                    config.get("notification.delivery_health_consecutive_threshold", 5)
+                ),
+                window_seconds=float(
+                    config.get("notification.delivery_health_window_seconds", 3600)
+                ),
+                alert_cooldown_seconds=float(
+                    config.get("notification.delivery_health_alert_cooldown_seconds", 3600)
+                ),
+            )
 
     @property
     def enabled(self) -> bool:
@@ -220,17 +247,27 @@ class NotificationManager:
 
     # ── 发送事件 ──────────────────────────────────────────────
 
-    def send_event(self, event_type: str, event_data: dict[str, Any], bypass_aggregation: bool = False) -> None:
+    def send_event(
+        self,
+        event_type: str,
+        event_data: dict[str, Any],
+        bypass_aggregation: bool = False,
+        target_channels: list[str] | None = None,
+    ) -> None:
         """根据策略表分发通知到各渠道（经过聚合器缓冲）。
 
         优先从 notification_policy 表读取渠道事件订阅，
         若表为空则回退到 config.json 的 notification.rules 配置。
         bypass_aggregation=True 时跳过聚合缓冲，实时发送（供紧急告警事件使用）。
+        target_channels 非空时**跳过策略查询**、改用调用方指定渠道——供"投递失败告警"
+        使用：故障渠道很可能就是问题本身，必须能定向发给**旁路**渠道（策略表无法表达
+        "除某渠道外的全部渠道"）。
         """
         if not self._enabled:
             logger.debug("通知功能未启用，跳过事件 %s 的发送", event_type)
             return
-        target_channels = self._policy.get_channels_for_event(self._user_id, event_type)
+        if target_channels is None:
+            target_channels = self._policy.get_channels_for_event(self._user_id, event_type)
         if not target_channels:
             logger.info("事件 %s 无订阅渠道，跳过发送", event_type)
             return
@@ -305,10 +342,65 @@ class NotificationManager:
                         "notification.manager.send_failed_no_detail"
                     )
                 self._log(event_type, ch_name, msg, "success" if ok else "failed", err_msg, sent_at)
+                self._record_delivery(ch_name, ok)
             except Exception as e:
                 self._log(event_type, ch_name, msg, "failed", str(e), sent_at)
+                self._record_delivery(ch_name, False)
         if msg:
             self._broadcast_to_ws(event_type, msg)
+
+    # ── 投递健康度告警（P0）────────────────────────────────────
+
+    def _record_delivery(self, channel: str, ok: bool) -> None:
+        """记录一次投递结果，并在越过阈值时发出"通知投递失败"告警。
+
+        **不回环**：告警投递期间置 `_sending_delivery_alert`，期间的结果**不再计入健康度**
+        （否则告警失败又触发新告警，无限递归）。见 `_send_delivery_alert`。
+        """
+        if self.delivery_health is None or self._sending_delivery_alert:
+            return
+        self.delivery_health.record(channel, ok)
+        if ok:
+            return
+        verdict = self.delivery_health.evaluate(channel)
+        if verdict is None:
+            return
+        reason, samples, failures = verdict
+        self._send_delivery_alert(channel, reason, samples, failures)
+
+    def _send_delivery_alert(
+        self, channel: str, reason: str, samples: int, failures: int
+    ) -> None:
+        """投递"通知投递失败"告警。
+
+        目标渠道：**除故障渠道外的所有已启用渠道**——故障渠道很可能是问题本身，
+        优先走旁路。若无旁路可用，仍投向故障渠道（可能也失败，但会在通知日志
+        留下"曾试图告警"的痕迹，好过完全静默）。
+
+        `bypass_aggregation=True`：告警不能等 5 秒聚合窗口（也可能被静默时段压后），
+        与安全告警同理——"通知已经坏了"这件事需要立刻说出来。
+        """
+        self._sending_delivery_alert = True
+        try:
+            targets = [c for c in self._channels if c != channel] or [channel]
+            self.send_event(
+                "notification_delivery_failed",
+                {
+                    "channel": channel,
+                    "reason": reason,
+                    "samples": samples,
+                    "failures": failures,
+                    "consecutive": self.delivery_health.consecutive(channel)
+                    if self.delivery_health
+                    else 0,
+                },
+                bypass_aggregation=True,
+                target_channels=targets,
+            )
+        except Exception as e:  # noqa: BLE001 — 告警失败不得影响正常发送链路
+            logger.warning("通知投递失败告警发送异常: %s", e)
+        finally:
+            self._sending_delivery_alert = False
 
     # ── 静音时段 ──────────────────────────────────────────────
 
@@ -410,6 +502,7 @@ class NotificationManager:
             "archive_abandoned": _build_archive_abandoned_message,
             "favorite_created": _build_favorite_created_message,
             "favorite_abandoned_summary": _build_favorite_abandoned_summary_message,
+            "notification_delivery_failed": _build_notification_delivery_failed_message,
             "download_started": _build_download_started_message,
             "download_complete": _build_download_complete_message,
             "normalize_complete": _build_normalize_complete_message,

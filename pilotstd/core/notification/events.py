@@ -63,6 +63,10 @@ EVENT_DOWNLOAD_COMPLETE = "download_complete"
 # 用户看不出"哪些已经彻底放弃、需要人工介入"。本事件承担该告终语义：
 # 含总数 + 原因分类 + 操作建议。
 EVENT_FAVORITE_ABANDONED_SUMMARY = "favorite_abandoned_summary"
+# 通知投递失败告警（P0）：**通知系统自身故障**的唯一出口。
+# 生产实测：32 天内 629 条发送失败（54.8%），连续 7 天每天失败 25~151 条，
+# 全程无人知晓。本事件在"连败"或"窗口失败率超阈"时发出，避免"通知坏了没人知道"。
+EVENT_NOTIFICATION_DELIVERY_FAILED = "notification_delivery_failed"
 
 # ── 安全告警（第 2 批：安全与审计闭环）──
 # 这三个事件的投递由 security_notifier 直连旧渠道同步发送，不经聚合器与静音时段
@@ -111,6 +115,7 @@ ALL_EVENTS: list[EventDef] = [
     EventDef(EVENT_DOWNLOAD_STARTED),
     EventDef(EVENT_DOWNLOAD_COMPLETE),
     EventDef(EVENT_FAVORITE_ABANDONED_SUMMARY),
+    EventDef(EVENT_NOTIFICATION_DELIVERY_FAILED),
     EventDef(EVENT_NOTIFICATION_CREDENTIAL_CHANGED),
     EventDef(EVENT_SECURITY_PASSWORD_CHANGED),
     EventDef(EVENT_SECURITY_TOKEN_REFRESHED),

@@ -101,7 +101,7 @@ pilotstd/core/notification/channels/dingtalk.py::9
 pilotstd/core/notification/channels/feishu.py::6
 pilotstd/core/notification/channels/telegram.py::11
 pilotstd/core/notification/channels/wechat.py::5
-pilotstd/core/notification/manager.py::7
+pilotstd/core/notification/manager.py::8
 pilotstd/core/notification/security_notifier.py::9
 pilotstd/core/notification_aggregator.py::17
 pilotstd/core/path_guard.py::1

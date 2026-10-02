@@ -15,6 +15,7 @@ from ._builders_batch import (
     _build_favorite_abandoned_summary_message,
     _build_favorite_created_message,
     _build_normalize_complete_message,
+    _build_notification_delivery_failed_message,
 )
 from ._builders_system import (
     _build_announcement_check_complete_message,

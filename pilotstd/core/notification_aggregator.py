@@ -78,6 +78,7 @@ _TOPIC_BY_EVENT: dict[str, str] = {
     "download_failed": "error",
     "archive_abandoned": "error",
     "task_execution_failed": "error",
+    "notification_delivery_failed": "error",
     "query_failed": "error",
     "archive_failed": "error",
     "announcement_fetch_failed": "error",

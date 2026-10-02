@@ -584,6 +584,14 @@
     "notification.query.query_empty.title": "查詢完成",
     "notification.query.query_empty.body": "共 {total} 條標準，均未查詢到結果",
 
+
+    "notification.system.notification_delivery_failed.title": "通知投遞失敗告警（{channel}）",
+
+    "notification.system.notification_delivery_failed.body.consecutive": "通知管道「{channel}」已連續 {consecutive} 次投遞失敗，可能已完全無法使用。",
+
+    "notification.system.notification_delivery_failed.body.rate": "通知管道「{channel}」在最近統計視窗內失敗 {failures}/{samples} 條（{percent}%），正在遺失訊息。",
+
+    "notification.system.notification_delivery_failed.body.advice": "請檢查該管道的憑證與網路。若為限流，可考慮降低發送頻率或啟用備用管道——在此期間其他通知可能也未送達。",
     "notification.system.auto_backup.title.success": "自動備份成功",
     "notification.system.auto_backup.title.failed": "自動備份失敗",
     "notification.system.auto_backup.body.path": "備份路徑",

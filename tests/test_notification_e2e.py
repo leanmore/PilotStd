@@ -248,6 +248,13 @@ TRIGGER_KEYS: dict[str, set[str]] = {
         "retryable",
         "details",
     },
+    "notification_delivery_failed": {
+        "channel",
+        "reason",
+        "samples",
+        "failures",
+        "consecutive",
+    },
 }
 
 EVENTS: list[dict[str, Any]] = [
@@ -667,6 +674,17 @@ EVENTS: list[dict[str, Any]] = [
         "builder_keys": {"total", "reasons", "retryable", "details"},
         "mutual": "",
     },
+    {
+        "name": "notification_delivery_failed",
+        "module": "系统运维",
+        "level": "error",
+        "aggregation": "聚合",
+        "trigger_file": "pilotstd/core/notification/manager.py",
+        "builder_file": "pilotstd/core/notification/_builders_batch.py",
+        "builder_method": "_build_notification_delivery_failed_message",
+        "builder_keys": {"channel", "reason", "samples", "failures", "consecutive"},
+        "mutual": "",
+    },
     # ── 安全告警（3，第 2 批安全与审计闭环）──
     # 投递由 security_notifier 直连旧渠道同步发送（绕过聚合/静音），
     # 但事件自身仍登记于 ALL_EVENTS 并配构建器，故纳入本契约测试。
@@ -717,8 +735,8 @@ EVENTS: list[dict[str, Any]] = [
 ]
 
 # 验证 EVENTS 列表完整性
-# 40 = 原 39 + `favorite_abandoned_summary`（P0：收藏告终汇总，见 test_abandoned_summary.py）
-assert len(EVENTS) == 40, f"Expected 40 events, got {len(EVENTS)}"
+# 41 = 原 39 + `favorite_abandoned_summary` + `notification_delivery_failed`（两项均 P0）
+assert len(EVENTS) == 41, f"Expected 41 events, got {len(EVENTS)}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
