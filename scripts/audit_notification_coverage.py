@@ -320,9 +320,9 @@ def main(argv: list[str]) -> int:
         return 0
 
     # B 类：渠道声明与实现/前端的跨层一致性（设计见 07-impl-design-A.md §八）。
-    # A 类条目统一加 `[A]` 前缀，与 B 类在输出里可区分（两类检查对象不同）。
+    # A 类条目统一加 `[覆盖度]` 前缀，与 B 类在输出里可区分（两类检查对象不同）。
     b_blocking, b_warnings, b_states = audit_spec_derivations(ROOT)
-    blocking = [f"[A] {item}" for item in blocking] + b_blocking
+    blocking = [f"[覆盖度] {item}" for item in blocking] + b_blocking
 
     print("=" * 96)
     print(f"通知系统覆盖度审计：{len(events)} 个事件 + 4 个渠道声明（A/B 两类）")
@@ -355,8 +355,8 @@ def main(argv: list[str]) -> int:
         for item in blocking:
             print(f"   - {item}")
     else:
-        print("✅ 无阻断缺口（A 类：i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计；"
-              "B 类：声明与实现/后端/前端三层一致）")
+        print("✅ 无阻断缺口（覆盖度：i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计；"
+              "派生一致性：声明与实现/后端/前端三层一致）")
     print_coverage(rows, blocking, tracked, b_states)
     if blocking or (strict and tracked):
         return 1

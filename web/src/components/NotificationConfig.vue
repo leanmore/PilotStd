@@ -15,9 +15,8 @@ import Tag from 'primevue/tag'
 import AppCalendar from '@/components/AppCalendar.vue'
 import {
   getNotificationConfig, putNotificationConfig, testNotification,
-  getNotificationPolicies, putNotificationPolicy,
-  type WechatChannelConfig, type TelegramChannelConfig,
-  type FeishuChannelConfig, type DingTalkChannelConfig,
+  getNotificationChannels, getNotificationPolicies, putNotificationPolicy,
+  type ChannelFieldSpec, type ChannelSpec, type NotificationConfigUpdate,
 } from '@/api/notification'
 
 const { t, te } = useI18n()
@@ -28,26 +27,22 @@ function eventLabel(type: string): string {
   return te(key) ? t(key) : type
 }
 
+/**
+ * 表单状态：字段集合由渠道 spec 动态决定（不再是"每渠道 8 字段超集"的硬编码），
+ * 故用索引签名承载；`enabled`/`events` 是不属于 spec 字段的固定槽位。
+ */
 interface ChannelFormState {
   enabled: boolean
-  webhook_url: string
-  bot_token: string
-  chat_id: string
-  secret: string
-  corpid: string
-  agentid: string
-  corpsecret: string
-  proxy_url: string
   events: string[]
+  /** 渠道字段值（键为 spec 的 field.name）；与 enabled/events 分离以保持类型精确 */
+  fields: Record<string, string>
 }
 
 const enabled = ref(false)
-const channels = ref<Record<string, ChannelFormState>>({
-  wechat:   { enabled: true, webhook_url: '', bot_token: '', chat_id: '', secret: '', corpid: '', agentid: '', corpsecret: '', proxy_url: '', events: [] },
-  telegram: { enabled: false, webhook_url: '', bot_token: '', chat_id: '', secret: '', corpid: '', agentid: '', corpsecret: '', proxy_url: '', events: [] },
-  feishu:   { enabled: false, webhook_url: '', bot_token: '', chat_id: '', secret: '', corpid: '', agentid: '', corpsecret: '', proxy_url: '', events: [] },
-  dingtalk: { enabled: false, webhook_url: '', bot_token: '', chat_id: '', secret: '', corpid: '', agentid: '', corpsecret: '', proxy_url: '', events: [] },
-})
+/** 渠道元数据（唯一来源 = 后端 `channel_spec.py`，经 `GET /api/notification/channels` 下发） */
+const specs = ref<ChannelSpec[]>([])
+const channels = ref<Record<string, ChannelFormState>>({})
+const specHash = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const saved = ref(false)
@@ -93,64 +88,113 @@ const EVENTS = [
   'worker_error',
 ]
 
-const CHANNELS = [
-  { key: 'wechat',   labelKey: 'notification.channel.wechat',   icon: 'pi pi-comments' },
-  { key: 'telegram', labelKey: 'notification.channel.telegram', icon: 'pi pi-send' },
-  { key: 'feishu',   labelKey: 'notification.channel.feishu',   icon: 'pi pi-book' },
-  { key: 'dingtalk', labelKey: 'notification.channel.dingtalk', icon: 'pi pi-bolt' },
-]
+/** 渠道折叠状态（按 spec 的渠道名动态构建，不再硬编码 4 键） */
+const channelOpen = ref<Record<string, boolean>>({})
 
-const channelOpen = ref<Record<string, boolean>>({
-  wechat: false,
-  telegram: false,
-  feishu: false,
-  dingtalk: false,
-})
+// ── spec 驱动的渲染辅助（模板直接调用，避免在模板里写渠道名分支）──
+
+/** 标签：前端 locales 优先（`label_key`）→ 字面量（裁决 N6 保持英文的 4 处即走此路） */
+function fieldLabel(f: ChannelFieldSpec): string {
+  if (f.label_key && te(f.label_key)) return t(f.label_key)
+  return f.label || f.label_key || f.name
+}
+
+/** 输入提示：优先 i18n 键，其次字面量 */
+function fieldPlaceholder(f: ChannelFieldSpec): string {
+  if (f.placeholder_key && te(f.placeholder_key)) return t(f.placeholder_key)
+  return f.placeholder
+}
+
+/** 标签旁的徽标：优先 spec 声明的键（"群机器人"／"可选"／"可选（简）"），无则按必填态取默认 */
+function fieldBadge(f: ChannelFieldSpec): string {
+  if (f.badge_key && te(f.badge_key)) return t(f.badge_key)
+  return t(f.required ? 'notification.config.required' : 'notification.config.optional')
+}
+
+/** 字段前的分段标签（如企微"自建应用"分隔） */
+function fieldDivider(f: ChannelFieldSpec): string {
+  return f.divider_key && te(f.divider_key) ? t(f.divider_key) : ''
+}
+
+/** 渠道级提示段落 */
+function channelHint(spec: ChannelSpec): string {
+  return spec.hint_key && te(spec.hint_key) ? t(spec.hint_key) : ''
+}
+
+/**
+ * "已配置"判定：按 spec 的 `status_rule` 分支求值（渠道特有逻辑已声明化，前端不再有 if/else）。
+ * 返回文案；未启用时按 `disabled` 处理（与改造前一致）。
+ */
+function statusText(spec: ChannelSpec): string {
+  const form = channels.value[spec.name]
+  if (!form || !form.enabled) return t('notification.config.status.disabled')
+  for (const branch of spec.status_rule.branches) {
+    const hit = branch.all_of.every((k) => (form.fields[k] ?? '').trim() !== '')
+    if (hit) return te(branch.label_key) ? t(branch.label_key) : branch.label_key
+  }
+  return t(spec.status_rule.fallback_key)
+}
+
+/** 标签颜色：未启用 secondary；命中任一分支 success；否则（待配置）secondary */
+function statusSeverity(spec: ChannelSpec): 'success' | 'secondary' {
+  const form = channels.value[spec.name]
+  if (!form || !form.enabled) return 'secondary'
+  for (const branch of spec.status_rule.branches) {
+    const hit = branch.all_of.every((k) => (form.fields[k] ?? '').trim() !== '')
+    if (hit) return 'success'
+  }
+  return 'secondary'
+}
+
+/**
+ * 拉取渠道元数据并按 spec 重建空表单。
+ * 同一 `spec_hash` 且已建表时复用（内容级缓存失效）；`saveConfig` 后调用本函数即可，
+ * 哈希未变时不会重建（避免清空用户正在编辑的内容）。
+ */
+async function loadChannelSpecs(force = false) {
+  const resp = await getNotificationChannels('/settings')
+  if (!force && specHash.value === resp.spec_hash && specs.value.length) return
+  specHash.value = resp.spec_hash
+  specs.value = resp.channels
+  const next: Record<string, ChannelFormState> = {}
+  const open: Record<string, boolean> = {}
+  for (const spec of resp.channels) {
+    const form: ChannelFormState = { enabled: spec.enabled_default, events: [], fields: {} }
+    for (const f of spec.fields) form.fields[f.name] = ''
+    next[spec.name] = form
+    open[spec.name] = channelOpen.value[spec.name] ?? false
+  }
+  channels.value = next
+  channelOpen.value = open
+}
 
 async function loadConfig() {
   loading.value = true; errMsg.value = ''
   try {
+    // 先按 spec 建表（渠道与字段均来自后端声明），再回填用户配置
+    await loadChannelSpecs()
     const cfg = await getNotificationConfig('/settings')
     enabled.value = cfg.enabled
-    for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk'] as const) {
-      const sc = cfg.channels?.[ch]
-      if (!sc) continue
-      channels.value[ch].enabled = sc.enabled ?? false
-      if (ch === 'telegram') {
-        const t = sc as TelegramChannelConfig
-        channels.value[ch].bot_token = t.bot_token || ''
-        channels.value[ch].chat_id = t.chat_id || ''
-      } else if (ch === 'wechat') {
-        const w = sc as WechatChannelConfig
-        channels.value[ch].webhook_url = w.webhook_url || ''
-        channels.value[ch].corpid = w.corpid || ''
-        channels.value[ch].agentid = w.agentid || ''
-        channels.value[ch].corpsecret = w.corpsecret || ''
-        channels.value[ch].proxy_url = w.proxy_url || ''
-      } else if (ch === 'feishu') {
-        const f = sc as FeishuChannelConfig
-        channels.value[ch].webhook_url = f.webhook_url || ''
-        channels.value[ch].secret = f.secret || ''
-      } else if (ch === 'dingtalk') {
-        const d = sc as DingTalkChannelConfig
-        channels.value[ch].webhook_url = d.webhook_url || ''
-        channels.value[ch].secret = d.secret || ''
-      }
-      channels.value[ch].events = []
+    const rawChannels = (cfg.channels ?? {}) as unknown as Record<string, Record<string, unknown>>
+    for (const spec of specs.value) {
+      const form = channels.value[spec.name]
+      const sc = rawChannels[spec.name]
+      if (!form || !sc) continue
+      form.enabled = Boolean(sc.enabled ?? false)
+      for (const f of spec.fields) form.fields[f.name] = String(sc[f.name] ?? '')
+      const events: string[] = []
       for (const ev of EVENTS) {
-        if (cfg.rules?.[ev]?.includes(ch)) channels.value[ch].events.push(ev)
+        if (cfg.rules?.[ev]?.includes(spec.name)) events.push(ev)
       }
+      form.events = events
     }
 
     // 尝试从策略 API 加载事件订阅（优先于 config.json rules）
     try {
       const { policies } = await getNotificationPolicies()
-      if (policies && policies.length > 0) {
-        for (const p of policies) {
-          if (channels.value[p.channel]) {
-            channels.value[p.channel].events = [...p.events]
-          }
-        }
+      for (const p of policies ?? []) {
+        const form = channels.value[p.channel]
+        if (form) form.events = [...p.events]
       }
     } catch { /* 策略 API 不可用时保持 config.json rules */ }
   } catch (e: unknown) {
@@ -164,41 +208,45 @@ async function saveConfig() {
   try {
     const newRules: Record<string, string[]> = {}
     for (const ev of EVENTS) {
-      newRules[ev] = []
-      for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk']) {
-        if (channels.value[ch].events.includes(ev)) newRules[ev].push(ch)
-      }
+      newRules[ev] = specs.value
+        .filter((spec) => ((channels.value[spec.name]?.events ?? []) as string[]).includes(ev))
+        .map((spec) => spec.name)
     }
-    // P1 修复：敏感字段增量提交——掩码值（含 *）或空值不提交，保留 DB 原值
-    const SENSITIVE_FIELDS = ['bot_token', 'webhook_url', 'secret', 'corpsecret']
-    const cleanChannel = (chCfg: Record<string, any>): Record<string, any> => {
-      const cleaned: Record<string, any> = {}
-      for (const [k, v] of Object.entries(chCfg)) {
-        if (SENSITIVE_FIELDS.includes(k)) {
-          // 掩码回显值或空值跳过，避免覆盖真实凭据
-          if (v && typeof v === 'string' && !v.includes('*') && v.trim() !== '') cleaned[k] = v
+    // P1 修复：**需掩码**字段增量提交——掩码回显值（含 *）或空值不提交，保留 DB 原值。
+    // "是否需掩码"来自 spec 的 `field.mask`（后端同一份声明），不再硬编码字段名清单。
+    const cleanChannel = (spec: ChannelSpec): Record<string, unknown> => {
+      const form = channels.value[spec.name] ?? { enabled: false, events: [], fields: {} }
+      const cleaned: Record<string, unknown> = {}
+      for (const f of spec.fields) {
+        const v = form.fields[f.name]
+        if (f.mask) {
+          if (typeof v === 'string' && v.trim() !== '' && !v.includes('*')) cleaned[f.name] = v
         } else {
-          cleaned[k] = v
+          cleaned[f.name] = v
         }
       }
+      cleaned.enabled = form.enabled
+      cleaned.events = form.events
       return cleaned
     }
+    const payloadChannels: Record<string, Record<string, unknown>> = {}
+    for (const spec of specs.value) payloadChannels[spec.name] = cleanChannel(spec)
     await putNotificationConfig({
       enabled: enabled.value,
-      channels: {
-        wechat:   cleanChannel(channels.value.wechat),
-        telegram: cleanChannel(channels.value.telegram),
-        feishu:   cleanChannel(channels.value.feishu),
-        dingtalk: cleanChannel(channels.value.dingtalk),
-      },
+      channels: payloadChannels as NotificationConfigUpdate['channels'],
       rules: newRules,
     })
-    // 同时保存事件订阅到策略表
-    for (const ch of ['wechat', 'telegram', 'feishu', 'dingtalk'] as const) {
+    // 同时保存事件订阅到策略表（按 spec 的渠道名遍历）
+    for (const spec of specs.value) {
       try {
-        await putNotificationPolicy({ channel: ch, events: channels.value[ch].events })
+        await putNotificationPolicy({
+          channel: spec.name,
+          events: (channels.value[spec.name]?.events ?? []) as string[],
+        })
       } catch { /* 策略 API 不可用时静默降级 */ }
     }
+    // spec 可能已变（哈希变则重建表单并回填）；未变时本调用不做任何事
+    await loadChannelSpecs()
     saved.value = true
     setTimeout(() => saved.value = false, 2000)
   } catch (e: unknown) {
@@ -209,15 +257,15 @@ async function saveConfig() {
 
 defineExpose({ saveConfig })
 
-async function testChannel(ch: string) {
+async function testChannel(spec: ChannelSpec) {
+  const ch = spec.name
   testResults.value[ch] = t('notification.config.testing')
   try {
-    const c = channels.value[ch]
+    // 测试参数 = 该渠道 spec 声明的全部字段（渠道无关；后端按渠道只取自己需要的键，
+    // 多余键被忽略——见 _format_utils.do_test_send 的按渠道取值）
+    const form = channels.value[ch] ?? { enabled: false, events: [], fields: {} }
     const params: Record<string, string> = {}
-    if (ch === 'telegram') { params.bot_token = c.bot_token; params.chat_id = c.chat_id }
-    else if (ch === 'wechat') { params.webhook_url = c.webhook_url; params.corpid = c.corpid; params.agentid = c.agentid; params.corpsecret = c.corpsecret }
-    else if (ch === 'feishu') { params.webhook_url = c.webhook_url; params.secret = c.secret }
-    else if (ch === 'dingtalk') { params.webhook_url = c.webhook_url; params.secret = c.secret }
+    for (const f of spec.fields) params[f.name] = form.fields[f.name] ?? ''
     const r = await testNotification(ch, params)
     testResults.value[ch] = r.ok
       ? t('notification.config.test_ok')
@@ -228,30 +276,6 @@ async function testChannel(ch: string) {
     testResults.value[ch] = t('notification.config.test_failed', { msg })
   }
   setTimeout(() => delete testResults.value[ch], 4000)
-}
-
-function chStatus(ch: string): string {
-  const c = channels.value[ch]
-  if (!c.enabled) return t('notification.config.status.disabled')
-  if (ch === 'telegram') {
-    return c.bot_token && c.chat_id
-      ? t('notification.config.status.configured')
-      : t('notification.config.status.pending')
-  }
-  if (ch === 'wechat') {
-    if (c.corpid && c.agentid && c.corpsecret) return t('notification.config.status.app_message')
-    if (c.webhook_url) return t('notification.config.status.group_robot')
-    return t('notification.config.status.pending')
-  }
-  return c.webhook_url ? t('notification.config.status.configured') : t('notification.config.status.pending')
-}
-
-function chSeverity(ch: string): 'success' | 'secondary' | 'warn' {
-  const c = channels.value[ch]
-  if (!c.enabled) return 'secondary'
-  if (ch === 'telegram') return c.bot_token && c.chat_id ? 'success' : 'secondary'
-  if (ch === 'wechat') return (c.webhook_url || (c.corpid && c.agentid && c.corpsecret)) ? 'success' : 'secondary'
-  return c.webhook_url ? 'success' : 'secondary'
 }
 
 // ── 静音时段配置（全局通知配置，独立区域） ──
@@ -297,105 +321,49 @@ onMounted(() => {
     </div>
 
     <div class="channel-grid">
-      <div v-for="ch in CHANNELS" :key="ch.key" class="collapsible-card">
-        <div class="collapsible-header" @click="channelOpen[ch.key] = !channelOpen[ch.key]">
+      <div v-for="ch in specs" :key="ch.name" class="collapsible-card">
+        <div class="collapsible-header" @click="channelOpen[ch.name] = !channelOpen[ch.name]">
           <div style="display:flex;align-items:center;gap:8px">
             <i :class="ch.icon" style="font-size:16px;color:var(--primary)" />
-            <span class="collapsible-title">{{ t(ch.labelKey) }}</span>
+            <span class="collapsible-title">{{ t(ch.label_key) }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <Tag :severity="chSeverity(ch.key)" :value="chStatus(ch.key)" />
-            <i :class="channelOpen[ch.key] ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
+            <Tag :severity="statusSeverity(ch)" :value="statusText(ch)" />
+            <i :class="channelOpen[ch.name] ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="collapsible-icon" />
           </div>
         </div>
         <transition name="collapsible">
-          <div v-show="channelOpen[ch.key]" class="collapsible-content">
-          <!-- Telegram -->
-          <template v-if="ch.key === 'telegram'">
+          <div v-show="channelOpen[ch.name]" class="collapsible-content">
+          <!-- 字段表单：完全由 GET /api/notification/channels 的 spec 驱动（渠道无关） -->
+          <p v-if="channelHint(ch)" style="font-size:11px;color:var(--text-dim);margin:0 0 10px">{{ channelHint(ch) }}</p>
+          <template v-for="f in ch.fields" :key="f.name">
+            <div v-if="fieldDivider(f)" class="field-sep">{{ fieldDivider(f) }}</div>
             <div class="field">
-              <label>Bot Token <span class="required">{{ t('notification.config.required') }}</span></label>
-              <Password v-model="channels[ch.key].bot_token" class="w-full" placeholder="123456:ABC-DEF" size="small" toggleMask :feedback="false" />
-            </div>
-            <div class="field">
-              <label>Chat ID <span class="required">{{ t('notification.config.required') }}</span></label>
-              <InputText v-model="channels[ch.key].chat_id" class="w-full" placeholder="-1001234567890" size="small" />
-            </div>
-            <div style="margin-top:8px">
-              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
+              <label>
+                {{ fieldLabel(f) }}
+                <span v-if="f.required" class="required">{{ t('notification.config.required') }}</span>
+                <span v-else class="optional">{{ fieldBadge(f) }}</span>
+              </label>
+              <Password v-if="f.type === 'password'" v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" toggleMask :feedback="false" />
+              <InputText v-else v-model="channels[ch.name].fields[f.name]" class="w-full" :placeholder="fieldPlaceholder(f)" size="small" :type="f.type === 'text_password' ? 'password' : 'text'" />
             </div>
           </template>
+          <div style="margin-top:8px">
+            <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch)" />
+          </div>
 
-          <!-- 企业微信 -->
-          <template v-else-if="ch.key === 'wechat'">
-            <p style="font-size:11px;color:var(--text-dim);margin:0 0 10px">{{ t('notification.config.wechat.hint') }}</p>
-            <div class="field">
-              <label>Webhook URL <span class="optional">{{ t('notification.config.wechat.group_robot_badge') }}</span></label>
-              <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://qyapi.weixin.qq.com/..." size="small" />
-            </div>
-            <div class="field-sep">{{ t('notification.config.wechat.app_sep') }}</div>
-            <div class="field">
-              <label>{{ t('notification.config.wechat.corpid') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
-              <InputText v-model="channels[ch.key].corpid" class="w-full" placeholder="ww..." size="small" />
-            </div>
-            <div class="field">
-              <label>{{ t('notification.config.wechat.agentid') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
-              <InputText v-model="channels[ch.key].agentid" class="w-full" placeholder="1000001" size="small" />
-            </div>
-            <div class="field">
-              <label>{{ t('notification.config.wechat.corpsecret') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
-              <InputText v-model="channels[ch.key].corpsecret" class="w-full" placeholder="..." size="small" type="password" />
-            </div>
-            <div class="field">
-              <label>{{ t('notification.config.wechat.proxy_url') }} <span class="optional">{{ t('notification.config.optional') }}</span></label>
-              <InputText v-model="channels[ch.key].proxy_url" class="w-full" placeholder="http://proxy:8080" size="small" />
-            </div>
-            <div style="margin-top:8px">
-              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
-            </div>
-          </template>
-
-          <!-- 飞书 -->
-          <template v-else-if="ch.key === 'feishu'">
-            <div class="field">
-              <label>Webhook URL <span class="required">{{ t('notification.config.required') }}</span></label>
-              <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://open.feishu.cn/..." size="small" />
-            </div>
-            <div class="field">
-              <label>{{ t('notification.config.feishu.secret_label') }} <span class="optional">{{ t('notification.config.optional_short') }}</span></label>
-              <Password v-model="channels[ch.key].secret" class="w-full" :placeholder="t('notification.config.feishu.secret_placeholder')" size="small" toggleMask :feedback="false" />
-            </div>
-            <div style="margin-top:8px">
-              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
-            </div>
-          </template>
-
-          <!-- 钉钉 -->
-          <template v-else-if="ch.key === 'dingtalk'">
-            <div class="field">
-              <label>Webhook URL <span class="required">{{ t('notification.config.required') }}</span></label>
-              <InputText v-model="channels[ch.key].webhook_url" class="w-full" placeholder="https://oapi.dingtalk.com/robot/..." size="small" />
-            </div>
-            <div class="field">
-              <label>{{ t('notification.config.dingtalk.secret_label') }} <span class="optional">{{ t('notification.config.optional_short') }}</span></label>
-              <Password v-model="channels[ch.key].secret" class="w-full" placeholder="SEC..." size="small" toggleMask :feedback="false" />
-            </div>
-            <div style="margin-top:8px">
-              <Button :label="t('notification.config.test')" size="small" severity="secondary" @click="testChannel(ch.key)" />
-            </div>
-          </template>
-
-          <div v-if="testResults[ch.key]" class="test-result">{{ testResults[ch.key] }}</div>
+          <div v-if="testResults[ch.name]" class="test-result">{{ testResults[ch.name] }}</div>
 
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
-            <ToggleSwitch v-model="channels[ch.key].enabled" />
+            <ToggleSwitch v-model="channels[ch.name].enabled" />
             <label style="font-size:12px;color:var(--text-dim)">{{ t('notification.config.enable_channel') }}</label>
           </div>
 
           <div class="events-row">
             <label class="events-label">{{ t('notification.config.events_label') }}</label>
             <div v-for="ev in EVENTS" :key="ev" class="checkbox-field">
-              <Checkbox v-model="channels[ch.key].events" :value="ev" :input-id="`${ch.key}-${ev}`" />
-              <label :for="`${ch.key}-${ev}`">{{ eventLabel(ev) }}</label>
+              <Checkbox v-model="channels[ch.name].events" :value="ev" :input-id="`${ch.name}-${ev}`" />
+              <label :for="`${ch.name}-${ev}`">{{ eventLabel(ev) }}</label>
             </div>
           </div>
           </div>

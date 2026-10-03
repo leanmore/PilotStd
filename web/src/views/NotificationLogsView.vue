@@ -10,7 +10,10 @@ import AppCalendar from '@/components/AppCalendar.vue'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import { getNotificationLogs, deleteNotificationLogs, type NotificationLog } from '@/api/notification'
+import {
+  getNotificationLogs, deleteNotificationLogs, getNotificationChannels,
+  type NotificationLog, type ChannelSpec,
+} from '@/api/notification'
 import { getItem, setItem } from '@/lib/storage'
 
 const route = useRoute()
@@ -104,11 +107,15 @@ async function doCleanup() {
   }
 }
 
+/** 渠道元数据（后端 channel_spec 派生）：筛选下拉与显示名都由它构建，不再硬编码渠道清单 */
+const channelSpecs = ref<ChannelSpec[]>([])
+
 const channelOptions = computed(() => [
   { label: t('notification.logs.status.all'), value: null },
-  { label: t('notification.channel.wechat'), value: 'wechat' },
-  { label: t('notification.channel.telegram'), value: 'telegram' },
-  { label: t('notification.channel.feishu'), value: 'feishu' },
+  ...channelSpecs.value.map((s) => ({
+    label: te(s.label_key) ? t(s.label_key) : s.name,
+    value: s.name,
+  })),
 ])
 const statusOptions = computed(() => [
   { label: t('notification.logs.status.all'), value: null },
@@ -116,17 +123,18 @@ const statusOptions = computed(() => [
   { label: t('notification.logs.status.failed'), value: 'failed' },
 ])
 
-// 渠道显示名：仅已配置 i18n 的渠道做映射，未知渠道原样回显（保持既有行为）
-const CHANNEL_KEYS: Record<string, string> = {
-  wechat: 'notification.channel.wechat',
-  telegram: 'notification.channel.telegram',
-  feishu: 'notification.channel.feishu',
+/** 渠道显示名：按 spec 的 label_key 解析，未知渠道原样回显（保持既有行为） */
+function channelLabel(v: string): string {
+  const spec = channelSpecs.value.find((s) => s.name === v)
+  return spec && te(spec.label_key) ? t(spec.label_key) : v
 }
 
-function channelLabel(v: string): string {
-  const k = CHANNEL_KEYS[v]
-  return k ? t(k) : v
-}
+// 渠道清单来自后端声明——新增渠道时本页自动跟随（此前漏过 dingtalk，见 C1 报告）
+onMounted(async () => {
+  try {
+    channelSpecs.value = (await getNotificationChannels()).channels
+  } catch { /* 元数据不可用时下拉只剩"全部"，不阻断日志页 */ }
+})
 
 function statusSeverity(s: string): 'success' | 'danger' | 'info' {
   if (s === 'success') return 'success'

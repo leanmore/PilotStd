@@ -27,9 +27,9 @@ BACKEND_SCAN_FILES: tuple[str, ...] = (
     "pilotstd/core/notification/manager.py",
     "docker/api/notification.py",
 )
-# B4 存量基线：C1..C2 时前端仍硬编码 4 渠道（实测 26 行）。
-# **C3（前端 schema 驱动改造）落地后必须归零**——归零即从"缓阻断"转为"全阻断"。
-FRONTEND_LITERAL_BASELINE = 26
+# B4 存量基线：C3（前端 schema 驱动改造）已落地，前端不再硬编码渠道键 ⇒ **基线归零**。
+# 此前（C1..C2）为 26 行、缓阻断；归零后本项为**全阻断**：任何新增硬编码当场红灯。
+FRONTEND_LITERAL_BASELINE = 0
 # 允许的控件形态闭集（与 channel_spec.FIELD_TYPES 同源，由 AST 读取校验）
 PASSWORD_TYPES = ("password", "text_password")
 
@@ -103,7 +103,7 @@ def check_b1(root: Path) -> tuple[list[str], str]:
     missing = sorted(declared - actual)
     extra = sorted(actual - declared)
     return (
-        [f"[B1] 声明类与实现类不一致：spec 多声明 {missing}；源码多出 {extra}"],
+        [f"[派生·B1] 声明类与实现类不一致：spec 多声明 {missing}；源码多出 {extra}"],
         f"❌ 声明 {len(declared)} / 实现 {len(actual)}",
     )
 
@@ -121,26 +121,26 @@ def check_b2(root: Path) -> tuple[list[str], str]:
             fields, ast.Tuple
         ) else []
         if not field_calls:
-            errs.append(f"[B2] {name}: 字段集为空")
+            errs.append(f"[派生·B2] {name}: 字段集为空")
             continue
         fnames = [str(_const(_kwargs(fc).get("name"))) for fc in field_calls]
         if len(fnames) != len(set(fnames)):
-            errs.append(f"[B2] {name}: 字段名重复 {sorted({n for n in fnames if fnames.count(n) > 1})}")
+            errs.append(f"[派生·B2] {name}: 字段名重复 {sorted({n for n in fnames if fnames.count(n) > 1})}")
         for fc in field_calls:
             fkw = _kwargs(fc)
             fname = str(_const(fkw.get("name")))
             ftype = str(_const(fkw.get("type")))
             fpass = _const(fkw.get("password"))
             if allowed and ftype not in allowed:
-                errs.append(f"[B2] {name}.{fname}: 控件形态 {ftype!r} 不在 {list(allowed)} 内")
+                errs.append(f"[派生·B2] {name}.{fname}: 控件形态 {ftype!r} 不在 {list(allowed)} 内")
             if bool(fpass) != (ftype in PASSWORD_TYPES):
-                errs.append(f"[B2] {name}.{fname}: password={fpass} 与 type={ftype!r} 不自洽")
+                errs.append(f"[派生·B2] {name}.{fname}: password={fpass} 与 type={ftype!r} 不自洽")
         ctor = _const(kw.get("ctor")) or ()
         guards = _const(kw.get("ctor_required")) or ()
         if not set(ctor) <= set(fnames):
-            errs.append(f"[B2] {name}: ctor 引用了未声明字段 {sorted(set(ctor) - set(fnames))}")
+            errs.append(f"[派生·B2] {name}: ctor 引用了未声明字段 {sorted(set(ctor) - set(fnames))}")
         if not set(guards) <= set(ctor):
-            errs.append(f"[B2] {name}: ctor_required 不在 ctor 内 {sorted(set(guards) - set(ctor))}")
+            errs.append(f"[派生·B2] {name}: ctor_required 不在 ctor 内 {sorted(set(guards) - set(ctor))}")
     return errs, ("✅ 全部自洽" if not errs else f"❌ {len(errs)} 项不自洽")
 
 
@@ -167,7 +167,7 @@ def check_b3(root: Path) -> tuple[list[str], str]:
     for rel in BACKEND_SCAN_FILES:
         rows = _literal_compares(ast.parse((root / rel).read_text(encoding="utf-8")), keys)
         if rows:
-            errs.append(f"[B3] {rel} 仍有渠道名字面量比较（行 {rows}）——应由 channel_spec 派生")
+            errs.append(f"[派生·B3] {rel} 仍有渠道名字面量比较（行 {rows}）——应由 channel_spec 派生")
     return errs, ("✅ 无残留" if not errs else f"❌ {len(errs)} 个文件残留")
 
 
@@ -182,22 +182,22 @@ def check_b4(root: Path, keys: set[str]) -> tuple[list[str], list[str], str]:
     warnings: list[str] = []
     # 结构位扫描（与键集无关）才能发现"前端写了 spec 未声明的渠道"；键集扫描对它恒真。
     if struct - keys:
-        blocking.append(f"[B4] 前端出现未知渠道键 {sorted(struct - keys)}（spec 未声明）")
+        blocking.append(f"[派生·B4] 前端出现未知渠道键 {sorted(struct - keys)}（spec 未声明）")
     if struct and struct != keys:
-        blocking.append(f"[B4] 前端渠道集合 {sorted(struct)} != spec {sorted(keys)}——三层漂移")
+        blocking.append(f"[派生·B4] 前端渠道集合 {sorted(struct)} != spec {sorted(keys)}——三层漂移")
     if len(hits) > FRONTEND_LITERAL_BASELINE:
         blocking.append(
-            f"[B4] 前端硬编码渠道键 {len(hits)} 行 > 基线 {FRONTEND_LITERAL_BASELINE}"
+            f"[派生·B4] 前端硬编码渠道键 {len(hits)} 行 > 基线 {FRONTEND_LITERAL_BASELINE}"
             "（C3 未完成前不得增长）"
         )
     elif hits:
         warnings.append(
-            f"[B4] 前端仍有 {len(hits)} 行硬编码渠道键（= 基线 {FRONTEND_LITERAL_BASELINE}）："
+            f"[派生·B4] 前端仍有 {len(hits)} 行硬编码渠道键（= 基线 {FRONTEND_LITERAL_BASELINE}）："
             "**缓阻断**——清理方案与截止点见 docs/governance/notification_coverage.md（C3 落地即归零转全阻断）"
         )
     elif FRONTEND_LITERAL_BASELINE > 0:
         warnings.append(
-            f"[B4] 前端硬编码已归零，但基线仍为 {FRONTEND_LITERAL_BASELINE}——请把 "
+            f"[派生·B4] 前端硬编码已归零，但基线仍为 {FRONTEND_LITERAL_BASELINE}——请把 "
             "FRONTEND_LITERAL_BASELINE 收紧为 0（否则棘轮失效）"
         )
     state = f"{len(hits)} 行 / 基线 {FRONTEND_LITERAL_BASELINE}"

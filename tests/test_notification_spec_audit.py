@@ -225,13 +225,23 @@ class TestB4:
             "  { value: 'failed' },\n"
             "]\n"))
         blocking, _w, _s = check_b4(tree, self.KEYS)
-        assert blocking == []
+        # 该树的合法渠道字面量会命中棘轮（C3 后基线为 0），但**不得**被误判为未知渠道/集合漂移
+        assert not any("未知渠道键" in b or "三层漂移" in b for b in blocking)
 
-    def test_within_baseline_warns_not_blocks(self, tmp_path):
-        """存量字面量（等于基线）只警告、不阻断——这是"缓阻断"的定义。"""
+    def test_any_literal_blocks_when_baseline_zero(self, tmp_path):
+        """C3 后基线为 0 ⇒ 全阻断：**任何**残留字面量都当场阻断（不再有存量放过）。"""
         tree = build_tree(tmp_path)
+        blocking, _w, _s = check_b4(tree, self.KEYS)
+        assert any("> 基线" in b for b in blocking)
+
+    def test_baseline_mechanism_still_warns(self, tmp_path, monkeypatch):
+        """棘轮机制本身仍可用：把基线抬到当前行数 ⇒ 只警告不阻断（缓阻断形态保留）。"""
+        import _notification_spec_audit as audit
+
+        tree = build_tree(tmp_path)
+        monkeypatch.setattr(audit, "FRONTEND_LITERAL_BASELINE", 99)
         blocking, warnings, _s = check_b4(tree, self.KEYS)
-        assert blocking == []
+        assert [b for b in blocking if "> 基线" in b] == []
         assert warnings and "缓阻断" in warnings[0]
 
     def test_over_baseline_blocks(self, tmp_path):

@@ -86,6 +86,57 @@ export interface NotificationLogResponse {
 export const getNotificationConfig = (routeTag?: RouteTag): Promise<NotificationConfig> =>
   http.get('/notification/config', { routeTag }).then(r => r.data)
 
+// ── 渠道元数据（步 A C2 新增）：`GET /api/notification/channels` ──
+// 渠道的**唯一事实来源**是后端 `channel_spec.py`；前端不再硬编码渠道清单与字段。
+// 只含渲染所需的元数据，**不含**凭证值（凭证视图仍由 `getNotificationConfig` 提供）。
+export interface ChannelFieldSpec {
+  name: string
+  /** 控件形态：`string`（InputText）/ `password`（Password）/ `text_password`（InputText type=password） */
+  type: 'string' | 'password' | 'text_password'
+  /** 前端 locales 键（优先）；为空则回退 `label` 字面量 */
+  label_key: string
+  label: string
+  required: boolean
+  /** 是否在 API 响应中掩码，且提交时是否跳过掩码回显值 */
+  mask: boolean
+  /** 输入控件是否用密码形态（`type` 的粗粒度视图） */
+  password: boolean
+  placeholder: string
+  placeholder_key: string
+  badge_key: string
+  divider_key: string
+}
+
+export interface ChannelStatusBranch {
+  all_of: string[]
+  label_key: string
+}
+
+/** "已配置"判定规则：按序匹配分支，全不命中则用兜底文案键 */
+export interface ChannelStatusRule {
+  branches: ChannelStatusBranch[]
+  fallback_key: string
+}
+
+export interface ChannelSpec {
+  name: string
+  label_key: string
+  icon: string
+  enabled_default: boolean
+  hint_key: string
+  fields: ChannelFieldSpec[]
+  status_rule: ChannelStatusRule
+}
+
+export interface NotificationChannelsResponse {
+  /** 负载本体的规范化 JSON 哈希（前 16 位）：变化即需重建表单（内容级缓存失效） */
+  spec_hash: string
+  channels: ChannelSpec[]
+}
+
+export const getNotificationChannels = (routeTag?: RouteTag): Promise<NotificationChannelsResponse> =>
+  http.get('/notification/channels', { routeTag }).then(r => r.data)
+
 export const putNotificationConfig = (data: NotificationConfigUpdate): Promise<{ ok: boolean }> =>
   http.put('/notification/config', data).then(r => r.data)
 

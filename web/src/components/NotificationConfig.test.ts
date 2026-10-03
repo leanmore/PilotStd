@@ -7,17 +7,51 @@ import zhCN from '@/locales/zh-CN.json'
 import en from '@/locales/en.json'
 import NotificationConfig from './NotificationConfig.vue'
 
-const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock } = vi.hoisted(() => ({
+const { getNotificationConfigMock, putNotificationConfigMock, testNotificationMock, getNotificationChannelsMock } = vi.hoisted(() => ({
   getNotificationConfigMock: vi.fn(),
   putNotificationConfigMock: vi.fn(),
   testNotificationMock: vi.fn(),
+  getNotificationChannelsMock: vi.fn(),
 }))
 
 vi.mock('@/api/notification', () => ({
   getNotificationConfig: getNotificationConfigMock,
   putNotificationConfig: putNotificationConfigMock,
   testNotification: testNotificationMock,
+  getNotificationChannels: getNotificationChannelsMock,
 }))
+/** 渠道元数据夹具：形状与 `GET /api/notification/channels` 一致（字段取最小可用集） */
+const CHANNEL_FIXTURE = {
+  spec_hash: '0123456789abcdef',
+  channels: [
+    {
+      name: 'wechat', label_key: 'notification.channel.wechat', icon: 'pi pi-comments',
+      enabled_default: true, hint_key: '',
+      fields: [{ name: 'webhook_url', type: 'string', label_key: '', label: 'Webhook URL', required: false, mask: true, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '' }],
+      status_rule: { branches: [{ all_of: ['webhook_url'], label_key: 'notification.config.status.configured' }], fallback_key: 'notification.config.status.pending' },
+    },
+    {
+      name: 'telegram', label_key: 'notification.channel.telegram', icon: 'pi pi-send',
+      enabled_default: false, hint_key: '',
+      fields: [{ name: 'bot_token', type: 'password', label_key: '', label: 'Bot Token', required: true, mask: true, password: true, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '' }],
+      status_rule: { branches: [{ all_of: ['bot_token'], label_key: 'notification.config.status.configured' }], fallback_key: 'notification.config.status.pending' },
+    },
+    {
+      name: 'feishu', label_key: 'notification.channel.feishu', icon: 'pi pi-book',
+      enabled_default: false, hint_key: '',
+      fields: [{ name: 'webhook_url', type: 'string', label_key: '', label: 'Webhook URL', required: true, mask: true, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '' }],
+      status_rule: { branches: [{ all_of: ['webhook_url'], label_key: 'notification.config.status.configured' }], fallback_key: 'notification.config.status.pending' },
+    },
+    {
+      name: 'dingtalk', label_key: 'notification.channel.dingtalk', icon: 'pi pi-bolt',
+      enabled_default: false, hint_key: '',
+      fields: [{ name: 'webhook_url', type: 'string', label_key: '', label: 'Webhook URL', required: true, mask: true, password: false, placeholder: '', placeholder_key: '', badge_key: '', divider_key: '' }],
+      status_rule: { branches: [{ all_of: ['webhook_url'], label_key: 'notification.config.status.configured' }], fallback_key: 'notification.config.status.pending' },
+    },
+  ],
+}
+
+
 
 function makeI18n(locale: 'zh-CN' | 'en' = 'zh-CN') {
   const i18n = createI18n({ legacy: false, locale, messages: { 'zh-CN': zhCN, en } })
@@ -42,6 +76,7 @@ describe('NotificationConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    getNotificationChannelsMock.mockResolvedValue(CHANNEL_FIXTURE)
     getNotificationConfigMock.mockResolvedValue({
       enabled: true,
       channels: {
