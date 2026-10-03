@@ -61,7 +61,7 @@ from ._message_builders import (
 )
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
-from .channel_spec import CHANNEL_NAMES, CHANNEL_SPECS, channel_class
+from .channel_spec import CHANNEL_SPECS, channel_class
 from .delivery_health import NotificationDeliveryHealth
 from .specs import specs_to_jsonable
 
