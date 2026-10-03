@@ -110,19 +110,31 @@ def builder_t_keys() -> dict[str, set[str]]:
 
 
 def manager_event_builders() -> dict[str, str]:
-    """从 manager._init_event_builders 提取 事件 → 构建器函数名。
+    """从**事件规格**（`event_spec.py`）提取 事件 → 构建器函数名。
 
     该映射是"事件是否可用"的权威判据：事件注册进 ALL_EVENTS 但没有映射时，
     `send_event` 会走兜底构建器，用户收到的是原始事件名而非可读文案。
+
+    **读取源（2026-10-03 步 B D6）**：原读 `manager._init_event_builders` 的字面量
+    字典；D2 之后该注册表由规格派生、源码里不再有字面量键值对，故改读**事件规格
+    声明**——`builder_ref` 是 `模块全名:函数名` 的静态字面量，取冒号后段即函数名。
+    **仍坚持"门禁不 import 被检对象"**：全程只用 `ast.parse` 读源文件。
     """
-    src = (NOTIF / "manager.py").read_text(encoding="utf-8")
+    src = (NOTIF / "event_spec.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     pairs: dict[str, str] = {}
     for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Dict):
-            for k, v in zip(node.value.keys, node.value.values):
-                if isinstance(k, ast.Constant) and isinstance(v, ast.Name) and v.id.startswith("_build_"):
-                    pairs[str(k.value)] = v.id
+        if not (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "EventSpec"):
+            continue
+        key: object = None
+        ref: object = None
+        for kw in node.keywords:
+            if kw.arg == "key" and isinstance(kw.value, ast.Constant):
+                key = kw.value.value
+            elif kw.arg == "builder_ref" and isinstance(kw.value, ast.Constant):
+                ref = kw.value.value
+        if isinstance(key, str) and isinstance(ref, str) and ":" in ref:
+            pairs[key] = ref.rsplit(":", 1)[1]
     return pairs
 
 
