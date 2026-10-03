@@ -313,15 +313,15 @@ run_local() {
 run_deep() {
     echo "🔬 Running DEEP checks..."
 
-    # Ruff 全量检查
-    if ruff check pilotstd/ docker/ tests/ scripts/; then
+    # Ruff 全量检查（T-36，2026-10-03：改用 `python -m`，原因见 run_lint_fast）
+    if python -m ruff check pilotstd/ docker/ tests/ scripts/; then
         log_pass "Ruff 全量检查"
     else
         log_fail "Ruff 全量检查"
     fi
 
-    # Mypy 类型检查
-    if mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
+    # Mypy 类型检查（T-36：同上）
+    if python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
         log_pass "Mypy 类型检查"
     else
         log_fail "Mypy 类型检查"
@@ -360,6 +360,10 @@ run_deep() {
 # L2：`--with-lint` 显式强制增跑（不依赖暂存区），供不提交时自查。
 # 目标与参数与 G-038 完全一致（ruff 4 目录；mypy 仅 pilotstd/ docker/）；
 # 工具缺失时**降级为 WARN 不阻断**（各机 PATH 不一致，与 G-038 不进 --fast 的既有理由一致）。
+# T-36（2026-10-03）：探测与调用由 PATH 上的 `ruff`/`mypy` 可执行文件改为 `python -m ruff` /
+#     `python -m mypy`。起因：本机两者**已安装**（模块可导入）但可执行文件不在 PATH，
+#     `command -v` 遂判定「未安装」→ 降级 WARN 跳过，**所有改 .py 的提交都漏检 lint**
+#     （C1 批次实测抓到 1 个真实 F401）。勿改回裸命令：那会让本项再次静默跳过。
 # ============================================================
 run_lint_fast() {
     echo ""
@@ -375,17 +379,17 @@ run_lint_fast() {
         echo "   📋 暂存 .py/.pyi/.pyw/scripts 变更：$(echo "$staged_relevant" | tr '\n' ' ')"
     fi
 
-    if ! command -v ruff >/dev/null 2>&1; then
+    if ! python -m ruff --version >/dev/null 2>&1; then
         log_warn "L1 ruff 未安装（pip install ruff）→ 跳过；**改 .py 的提交请改用 --deep 或先装 ruff/mypy**"
-    elif ruff check pilotstd/ docker/ tests/ scripts/; then
+    elif python -m ruff check pilotstd/ docker/ tests/ scripts/; then
         log_pass "L1 ruff check（4 目录，G-038 同口径）"
     else
         log_fail "L1 ruff check — 与 CI G-038 同口径，请当场修复"
     fi
 
-    if ! command -v mypy >/dev/null 2>&1; then
+    if ! python -m mypy --version >/dev/null 2>&1; then
         log_warn "L1 mypy 未安装（pip install mypy）→ 跳过；**改 .py 的提交请改用 --deep 或先装 ruff/mypy**"
-    elif mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
+    elif python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
         log_pass "L1 mypy（pilotstd/ docker/，G-038 同口径）"
     else
         log_fail "L1 mypy — 与 CI G-038 同口径，请当场修复"
