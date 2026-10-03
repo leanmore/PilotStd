@@ -3,6 +3,8 @@
 
 import os
 
+from pilotstd.core.notification.event_spec import EVENT_SPECS
+
 FACTORY_DEFAULTS = {
     "appearance.theme": "经典白",
     "appearance.language": "zh_CN",
@@ -59,25 +61,10 @@ FACTORY_DEFAULTS = {
     "notification.channels.telegram.chat_id": "",
     "notification.channels.feishu.enabled": False,
     "notification.channels.feishu.webhook_url": "",
-    "notification.rules.archive_complete": ["wechat"],
-    "notification.rules.standard_status_changed": ["wechat"],
-    "notification.rules.standard_first_registered": ["wechat"],
-    "notification.rules.announcement_fetch_complete": ["wechat"],
-    "notification.rules.auto_backup": ["wechat"],
-    "notification.rules.announcement_check_complete": ["wechat"],
-    "notification.rules.batch_download_complete": ["wechat"],
-    # 收藏告终汇总（P0）：`abandoned` 是**终态**、系统不再自动重试，
-    # 用户必须收到明确告终提示（否则"一直没下载"这件事永远无人知晓）
-    "notification.rules.favorite_abandoned_summary": ["wechat"],
-    # 通知投递失败告警（P0）：通知系统自身故障时的唯一出口
-    "notification.rules.notification_delivery_failed": ["wechat"],
-    "notification.rules.auto_scan_failed": ["wechat"],
-    "notification.rules.validity_batch_report": ["wechat"],
-    "notification.rules.validity_round_summary": ["wechat"],
-    "notification.rules.validity_standard_failed": ["wechat"],
-    "notification.rules.validity_system_failed": ["wechat"],
-    "notification.rules.date_reminder": ["wechat"],
-    "notification.rules.security_login_failed": ["wechat"],
+    # 通知订阅规则由**事件规格派生**（2026-10-03 步 B 第三步）：键集等于带默认渠道的事件；
+    # 其中「收藏告终汇总」与「通知投递失败告警」两项为最高优先级
+    # （终态告终提示 / 通知系统自身故障的唯一出口）。
+    **{f"notification.rules.{s.key}": list(s.default_channels) for s in EVENT_SPECS if s.default_channels},
     # 通知日志清理
     "notification.log_retention_days": 30,
     "notification.log_cleanup_interval_hours": 24,
