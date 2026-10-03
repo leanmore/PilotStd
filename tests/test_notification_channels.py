@@ -33,6 +33,17 @@ class TestFeishuChannel(unittest.TestCase):
         ch = FeishuChannel("https://open.feishu.cn/test")
         self.assertTrue(hasattr(ch, 'send'))
 
+    def test_init_with_secret(self):
+        """回归：管理器按渠道声明传两个位置参数（webhook_url, secret）必须可构造。
+
+        此前的构造签名只接受 1 个参数，导致 `_init_channels` 抛 TypeError 并被
+        静默吞成 warning —— 飞书渠道 100% 初始化失败（预存缺陷，2026-10-03 修复）。
+        """
+        from pilotstd.core.notification.channels.feishu import FeishuChannel
+        ch = FeishuChannel("https://open.feishu.cn/test", "sec")
+        self.assertTrue(hasattr(ch, 'send'))
+        self.assertEqual(ch.name, "feishu")
+
 
 class TestDingTalkChannel(unittest.TestCase):
     def test_init(self):

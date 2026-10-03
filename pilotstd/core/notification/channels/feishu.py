@@ -18,7 +18,10 @@ logger = logging.getLogger(__name__)
 class FeishuChannel(NotificationChannel):
     """飞书机器人 Webhook。"""
 
-    def __init__(self, webhook_url: str):
+    def __init__(self, webhook_url: str, secret: str = ""):
+        # 签名校验密钥参数：保留以匹配渠道声明的构造形态；
+        # 飞书签名校验尚未实现（密钥当前不被使用，勿因"看似未用"删除本参数——
+        # 删除会让管理器按声明传参时抛类型错误，导致渠道完全无法初始化）。
         self._url = webhook_url
         self._renderer = FeishuCardRenderer()
         # 错误详情透传给管理层（发送日志记录使用）
