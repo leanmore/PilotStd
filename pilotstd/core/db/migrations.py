@@ -134,3 +134,8 @@ from ._migrate_v61_enum_status_defaults import (  # noqa: E402, F401
 from ._migrate_v62_notification_log_identity import (  # noqa: E402, F401
     _migrate_v62_notification_log_identity,
 )
+
+# 第六十三版：notification_log 追加任务视角 4 列（通知架构重设计阶段 1b，函数自带注册装饰器）
+from ._migrate_v63_notification_log_task_view import (  # noqa: E402, F401
+    _migrate_v63_notification_log_task_view,
+)

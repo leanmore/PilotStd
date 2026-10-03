@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
+from typing import Any
 
 from .blocks import NotificationBlock
 
@@ -42,6 +43,20 @@ class NotificationMessage:
     delivery_status: str = "pending"
     # 回执态：none / delivered / read / acted。渠道契约当前只有 send()->bool，故默认 none。
     ack_status: str = "none"
+
+    # ── 任务视角（阶段 1b，2026-10-02）───────────────────────────────────────
+    # 与 1a 同款约定：默认值即"现状语义"，故追加这些字段对既有 17 个字段与全部调用点零行为变更。
+    task_id: str = ""  # 关联 Task 实体（投影自 task_queue.task_id）；进度型通知的原地更新锚点
+    # 通知事件（三层模型中的 7 类之一，如 task_lifecycle/batch_summary/anomaly_alert）。
+    # 为空表示"尚未映射"，阶段 1-3 各消费方回退用 event_type 推导；参与聚合分组属阶段 2.5。
+    notify_event: str = ""
+    content_type: str = ""  # 主内容类型（text/field_list/status_change/list/task_progress/action_prompt）
+    # 任务上下文快照（Task/TaskItem/TaskProgress 的扁平投影）。
+    # **契约**：写入端一律经 `_json_codec.dumps` 转 JSON 字符串入库（SQLite 无原生 JSON 类型）；
+    # 读取端经 `loads_dict` 还原为 dict，非 dict / 非法 JSON / None 一律回退 `{}`
+    # （故 **None 与 {} 在读回后不可区分**，见 06 方案 §2.2 与 tests/test_notification_stage1b_fields.py）。
+    # 用 default_factory 而非字面量 `{}`，避免所有实例共享同一个可变 dict。
+    task_context: dict[str, Any] = field(default_factory=dict)
 
 
 def __getattr__(name: str):

@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from ..db import Database
+from . import _json_codec
 from .channel import NotificationMessage
 
 if TYPE_CHECKING:
@@ -43,7 +44,9 @@ class NotificationOps:
     # 写发送日志：刻意静默失败——日志落库不该反向影响通知投递本身，故只记 warning；
     # aggregated_count / link / icon 三列用于还原“这条代表合并了多少条事件”。
     # 阶段 1a 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）
-    # 取 NotificationMessage 新字段的**默认值**，故旧 11 列的取值与语义完全不变。
+    # 与阶段 1b 追加的 4 列（task_id / notify_event / content_type / task_context）
+    # 取 NotificationMessage 对应字段（1a 为默认值）——故旧 11 列的取值与语义完全不变。
+    # task_context 是 dict，落库前经 _json_codec.dumps 转 JSON 文本（唯一转换点）。
     def log(
         self,
         event_type: str,
@@ -58,8 +61,9 @@ class NotificationOps:
             self._db.execute(
                 "INSERT INTO notification_log (event_type, channel, title, body, "
                 "standard_number, status, error_msg, sent_at, aggregated_count, link, icon, "
-                "message_id, correlation_id, delivery_status, ack_status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "message_id, correlation_id, delivery_status, ack_status, "
+                "task_id, notify_event, content_type, task_context) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -76,6 +80,10 @@ class NotificationOps:
                     msg.correlation_id,
                     msg.delivery_status,
                     msg.ack_status,
+                    msg.task_id,
+                    msg.notify_event,
+                    msg.content_type,
+                    _json_codec.dumps(msg.task_context),
                 ),
             )
         except Exception as e:
