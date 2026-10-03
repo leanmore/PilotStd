@@ -79,6 +79,14 @@ run_fast() {
         log_fail "G-012 注释密度"
     fi
 
+    # G-048: 架构文档模块计数一致性（core.md 的「子模块数」= 包内实际 .py 数）
+    # 起因：该行曾连续漂移 12 个文件而无人察觉（无门禁比对内容数字，只比对文档是否存在）
+    if python scripts/check_g_048_core_module_count.py; then
+        log_pass "G-048 架构文档模块计数"
+    else
+        log_fail "G-048 架构文档模块计数"
+    fi
+
     # G-039: 冲突标记检查（禁止 <<<<<<< / ======= / >>>>>>> 入库）
     # 起因（2026-09-26）：一次合并产生了带冲突标记的提交，却通过了当时全部门禁
     if python scripts/check_no_conflict_markers.py; then

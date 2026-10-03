@@ -30,6 +30,7 @@
 | G-045 | 通知系统覆盖度基线 | 每个已注册事件必须：i18n 三语键齐备、出现在 e2e `EVENTS` 且其 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit` | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
+| G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
 | repo-compliance | 入仓合规检查 | 五条入仓标准 | 违规 | `.github/scripts/check-repo-compliance.sh` | ✅ 已部署 |
 
 ---
@@ -334,6 +335,29 @@
 
 ---
 
+### G-048：架构文档模块计数一致性
+
+**检查内容**：`docs/architecture/modules/core.md` 的「子模块数」行声明的数字，必须等于
+`pilotstd/core/` 下**递归全部 `.py`** 的文件数。
+
+**口径（显式写死，避免歧义）**：含 `__init__.py`、不含 `__pycache__`（其中为 `.pyc`）；
+**统计文件系统而非 `git ls-files`**——后者看不见未纳入版本控制的文件，会放过"加了模块却忘提交/忘同步文档"的场景，判别力更弱。
+
+**起因（实测）**：该行**自 2026-10-01 起连续漂移 12 个文件**（`8ccc8b85` 写 74 → 实测 86），
+跨 2 天、涉及 5 个迁移实现 + 7 个通知模块，**长期无人察觉**——因为它不在任何门禁的比对范围内：
+G-031 只校验"文档存在且映射齐全"，**不校验文档里的内容数字**。本门禁把"漂移"从"事后考古"变成"提交即红"。
+
+**处置指引**：增删 `pilotstd/core/**` 下的 `.py` 后，在同一 commit 内同步该行数字（门禁输出会直接给出
+声明值与实际值）。若计数合法变化（如新增模块），改文档即可；若不该变，则说明误加了文件。
+
+**执行方式**：`python scripts/check_g_048_core_module_count.py`（已接入 `check_all.sh --fast`，
+故 pre-commit 与 CI 的 `--fast` 路径均覆盖）。
+
+**判别力（实测）**：临时在 `pilotstd/core/` 下新建一个 `.py` 而不改文档 → **EXIT=1**
+（输出 `文档声明: 86 / 实际统计: 87`）；删除该文件后复跑 → **EXIT=0**。
+
+---
+
 ### G-043：敏感端点审计接线
 
 **检查内容**：用 **AST** 扫描 `docker/api/**/*.py` + `docker/auth.py` 的状态变更路由
@@ -440,7 +464,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 
 | 模式 | 内容 | 是否写文件 | 归属 |
 |------|------|-----------|------|
-| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-039 冲突标记**、**G-040 i18n 硬编码**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
+| `--fast` | G-010 代码规模、G-011 动态属性、G-015 相对导入、G-012 SQL Schema/注释密度、**G-048 架构文档模块计数**、**G-039 冲突标记**、**G-040 i18n 硬编码**、vue-tsc、G-027 组件 `defineOptions`、`_wait_worker` 防回潮 | 否 | 通用 |
 | `--guards` | **治理守护（只读）**：Schema 一致性、G-032 文档健康度、G-037、G-030、G-033 | 否 | **入库产物**（CI 权威，本地 fail-fast） |
 | `--local` | **本地专属**：G-031 文档联动同步 | 否 | **仅本地，禁止进 CI** |
 | `--docs` | coverage.xml（缺失时生成）→ `generate_status_metrics.py` → `generate_coverage_report.py` → G-032 守护 | **是**（重写 `STATUS.md`、`docs/testing/coverage-report.md`） | 本地 |
@@ -486,7 +510,8 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
-| v1.75 | 2026-10-03 | **T-36 收口（续）：G-038 的 ruff/mypy 同样改用 `sys.executable -m` 调用（独立 commit）**。**背景**：v1.74 只修了 `check_all.sh` 的 L1/`--deep` 两处调用；`scripts/check_g_038_legacy_errors.py:31,49` 仍以裸 `["ruff", …]`／`["mypy", …]` 调 `subprocess`，`:40,:59` 捕获 `FileNotFoundError` 后返回**失败**（非跳过）→ 本机 `--deep` 的 G-038 以「ruff 未安装，请执行: pip install ruff」**误报红灯**（与 `--fast` 的 L1 已修好的状态不一致，deep/fast 口径分裂）。**改动**（仅调用方式）：两处命令列表改为 `[sys.executable, "-m", "ruff"|"mypy", …]`，扫描范围/参数/超时/裸 noqa 检查**均不变**；并在常量区补成因注释（防回退）。**语义不变**：模块真缺失时 `python -m` 以非零码退出 → `returncode == 0` 为假 → `main()` 仍 `return 1` **阻断**（不是跳过）。**受控实验**：① 正常运行 `python scripts/check_g_038_legacy_errors.py` → `✅ G-038 通过` EXIT=0；② 判别力——用 `PYTHONPATH` 加载一个抛 `ImportError` 的 `ruff.py` 影子模块（模拟"模块不可用"）→ **EXIT=1** 且打印 `Ruff 检查失败` + traceback（**证明确实阻断而非跳过**）；③ 复原 → EXIT=0。**`--deep` 实测**：`✅ Ruff 全量检查`、`✅ Mypy 类型检查`、`✅ G-038 历史遗留错误清零` 三项均 PASS（`--deep` 整体仍 EXIT=1，原因见下条）。**同批次发现（未修，另立）**：`scripts/check_all.sh:334` 仍以裸 `vulture` 调用（本机 `python -m vulture --version`＝2.16 可用但不在 PATH）→ `--deep` 的 G-020 报 `vulture: command not found` 而 FAIL，**同类 PATH 缺陷的第 3 处**，建议按同一方式收口。 |
+| v1.76 | 2026-10-03 | **新增 G-048（架构文档模块计数一致性）＋ `core.md` 计数修正（74/75 → 86）**。**背景（实测口径溯源）**：`core.md` 的「子模块数」自 `8ccc8b85`（2026-10-01）写下 **74** 后**连续漂移**——在同一口径（`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`）下，该提交实测恰为 **74**（口径一致、非口径歧义），此后 2 天内新增 12 个文件（5 个迁移实现 + 7 个通知模块，含步 A C1 的 `channel_spec.py`）至 **86**，全程无门禁察觉（G-031 只校验"文档存在 + 映射齐全"，不校验内容数字）。**改动**：① `docs/architecture/modules/core.md` 的「子模块数」改为 **86**，并**显式写明口径 + 截至日期 + 顶层构成**（3 个包 config/db/notification + 22 个直属模块），删除与实际不符的旧括注「安全 / 工具」；② 新增门禁脚本 `scripts/check_g_048_core_module_count.py` 并接入 `check_all.sh --fast`（pre-commit 与 CI 的 `--fast` 路径同时覆盖），**统计文件系统而非 `git ls-files`**（后者看不见未纳入版本控制的文件，判别力更弱）；③ 本文件补 G-048 表行、详述节与 `--fast` 模式行。**判别力（受控实验）**：临时新建一个包内 `.py` 而不改文档 → **EXIT=1**（`文档声明: 86 / 实际统计: 87`）；删除后复跑 → **EXIT=0**；探针已清理（`git status` 无残留）。**同批修正（自检发现）**：v1.75 行文中把探针写作一个**不存在的文件名**，被 G-032 交叉引用检查判为"引用了不存在的文件"（警告 16 → 17）——已改写为"影子模块"描述，不再产生该噪声。 |
+| v1.75 | 2026-10-03 | **T-36 收口（续）：G-038 的 ruff/mypy 同样改用 `sys.executable -m` 调用（独立 commit）**。**背景**：v1.74 只修了 `check_all.sh` 的 L1/`--deep` 两处调用；`scripts/check_g_038_legacy_errors.py:31,49` 仍以裸 `["ruff", …]`／`["mypy", …]` 调 `subprocess`，`:40,:59` 捕获 `FileNotFoundError` 后返回**失败**（非跳过）→ 本机 `--deep` 的 G-038 以「ruff 未安装，请执行: pip install ruff」**误报红灯**（与 `--fast` 的 L1 已修好的状态不一致，deep/fast 口径分裂）。**改动**（仅调用方式）：两处命令列表改为 `[sys.executable, "-m", "ruff"|"mypy", …]`，扫描范围/参数/超时/裸 noqa 检查**均不变**；并在常量区补成因注释（防回退）。**语义不变**：模块真缺失时 `python -m` 以非零码退出 → `returncode == 0` 为假 → `main()` 仍 `return 1` **阻断**（不是跳过）。**受控实验**：① 正常运行 `python scripts/check_g_038_legacy_errors.py` → `✅ G-038 通过` EXIT=0；② 判别力——用 `PYTHONPATH` 加载一个**抛导入错误的影子模块**（模拟"模块不可用"，探针在仓库外临时目录创建）→ **EXIT=1** 且打印 `Ruff 检查失败` + traceback（**证明确实阻断而非跳过**）；③ 复原 → EXIT=0。**`--deep` 实测**：`✅ Ruff 全量检查`、`✅ Mypy 类型检查`、`✅ G-038 历史遗留错误清零` 三项均 PASS（`--deep` 整体仍 EXIT=1，原因见下条）。**同批次发现（未修，另立）**：`scripts/check_all.sh:334` 仍以裸 `vulture` 调用（本机 `python -m vulture --version`＝2.16 可用但不在 PATH）→ `--deep` 的 G-020 报 `vulture: command not found` 而 FAIL，**同类 PATH 缺陷的第 3 处**，建议按同一方式收口。 |
 | v1.74 | 2026-10-03 | **T-36：L1/L2 快速 lint 的调用方式由 PATH 可执行文件改为 `python -m`（修复"已安装却被判未安装"的静默漏检）**。**现象**：`run_lint_fast` 以 `command -v ruff`／`command -v mypy` 探测，而本机两工具**确已安装**（`python -m ruff --version`＝0.15.17、`python -m mypy --version`＝2.1.0），只是**可执行文件不在 PATH** → 判定「未安装」并降级 WARN 跳过，**所有改 `.py` 的提交都漏检 lint**（2026-10-03 步 A C1 批次靠人工补跑才发现并修掉 1 个真实 `F401`）。**改动**（仅调用方式；扫描范围、参数、判定分支与"模块真不可导入时仍只 WARN 不阻断"的既有语义均不变）：`scripts/check_all.sh` 的 4 处调用点 `ruff check …` → `python -m ruff check …`、`mypy …` → `python -m mypy …`，探测改 `python -m ruff --version` / `python -m mypy --version`；`run_deep()` 的同两处同步改（否则 `--deep` 与 `--fast` 的 lint 口径会分裂）。**受控实验**：`bash scripts/check_all.sh --fast --with-lint` 由「⚠️ 未安装 → 跳过」变为 `✅ L1 ruff check`（`All checks passed!`）＋ `✅ L1 mypy`（`no issues found in 404 source files`）；提交钩子同验（commit `02aa9288` 的 pre-commit 已实际执行上述两项）。**同批次发现（未修，另立）**：`scripts/check_g_038_legacy_errors.py:31,49` 以裸 `ruff`／`mypy` 调 `subprocess`，`:40,:59` 捕获 `FileNotFoundError` 后返回**失败**（非跳过），故本机 `--deep` 的 G-038 会以「ruff 未安装」**误报红灯**——同类 PATH 缺陷，建议按同一方式收口。 |
 | v1.73 | 2026-10-01 | **R16：清空候选池 P0~P3（门禁受控测试自动化 + schema 门禁提示 + T-30 收口）**。**P0**：`scripts/check_all.sh` 新增 `run_gate_selftests` —— `--fast` 下暂存变更命中 G-040 基线或其门禁脚本（含**删除**，`--diff-filter=ACMRD`）即自动跑 `tests/test_check_i18n_hardcoded.py`；`--deep` **无条件**跑一遍（CI 的 `trinity-gate.yml` 会执行 `--deep`，故 CI 侧同样兜住）。**受控实验**：删基线文件并暂存 → `--fast` FAIL(1 failed/19 passed)、`--deep` FAIL；无门禁变更则跳过（`--deep` 除外）。**P2**：`scripts/check_schema_consistency.py` 的 MISSING 分支补两行指引（中性表名 + `ALTER TABLE … RENAME TO`）。**P3**：T-30 按「队列效应消除」收口（指标重定义为「首个作业启动 ≤20s 且旧组同窗 ≥100s」）并归档。**P1**：scripts/check_docs_sync.py → `scripts/check_module_doc_mappings.py`（`git mv`；两脚本头部互指职责边界），同步 `ci.yml`／受控测试／本文件历史行的反引号引用（去反引号以保 G-032 13 不增）；**T-16 计数按既定口径归零重算**（仪器已换）。观察项活跃 **12 → 10**（T-30 + T-25 残留先后归档），全部保留项仍带状态标签。 |
 | v1.72 | 2026-10-01 | **R14-5：适配器模板状态字典同步 + 技术债台账归档整理与存续项校准**。**任务一**：`pilotstd/templates/adapter/**` 状态字面量改引 `Status.*.value`（归一方向不变）；新增生成物契约测试 `tests/unit/test_adapter_template_generation.py`（10 例，覆盖四种 `response_type` 分支的渲染 + `ast.parse`/`py_compile` + 零裸字面量扫描 + import 行 `exec` 验证），并当场修复模板 **3 类缺陷**（3 处伪占位符／48 处 `-%}` 吞缩进／1 处死条件片段——默认配置此前会生成**不可编译**的适配器）。**任务二**：台账版本 v1.43.0 → **v1.44.0**；「一、已清理」改为历史归档区并补 4 条归档；「二、剩余台账」明写**存续 0 条**；「三/四/五」加状态标注；「六、观察项」**16 条逐条加状态标签 + 新增状态汇总表**，并**补登 4 条 R14 复盘的隐性债务**（SQL 内嵌状态字面量／cookiecutter CLI 未入依赖／本地网络用例挂起／schema 一致性门禁约束无提示）；内部链接死链 **0**。 |
