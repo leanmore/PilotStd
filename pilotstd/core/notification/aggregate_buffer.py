@@ -415,6 +415,17 @@ class NotificationAggregator:
             # 投递态/回执态**重置**而非沿用：这条是新消息、尚未投递，沿用会让日志谎报状态
             delivery_status="pending",
             ack_status="none",
+            # 阶段 1b：任务视角。task_id / notify_event / content_type 与 1a 同款，
+            # 取首条——三者在本分组内是**不变量**：分组键是 event_type × target_id，
+            # 而 notify_event/content_type 由 event_type 派生、task_id 由同一实体派生。
+            task_id=first_msg.task_id,
+            notify_event=first_msg.notify_event,
+            content_type=first_msg.content_type,
+            # task_context 取**首条**而非合并：理由同上（分组键保证组内同实体同事件，
+            # 上下文应一致），且"合并"需要定义键冲突的仲裁规则（首个非空？最坏值？），
+            # 那是一套无实际收益的复杂度；若组内上下文确实不同，那说明分组键选错了。
+            # 用 dict(...) 浅拷贝：first_msg 可能在窗口期内被调用方继续复用/修改。
+            task_context=dict(first_msg.task_context),
         )
         self._callback(merged, target_channels)
 
