@@ -384,7 +384,7 @@ class TestTaskKindMappingTable(unittest.TestCase):
 
     def test_covers_all_task_kinds(self):
         """九值 `TASK_KINDS` 全部有对应（无遗漏）。"""
-        from pilotstd.core.notification.mapping import TASK_KINDS, TASK_KIND_TO_TASK_TYPE
+        from pilotstd.core.notification.mapping import TASK_KIND_TO_TASK_TYPE, TASK_KINDS
 
         self.assertEqual(set(TASK_KINDS), set(TASK_KIND_TO_TASK_TYPE))
 
