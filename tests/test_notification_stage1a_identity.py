@@ -92,9 +92,16 @@ class TestLogInsertOldColumnsUnchanged(unittest.TestCase):
         return [c.strip() for c in cols.split(",")], params
 
     def test_columns_are_legacy_then_new(self):
+        """★ 零行为变更的核心：**前 11 列**必须仍是既有列且顺序不变。
+
+        后续批次会继续追加列（1b 已追加 4 列），故这里只锁前缀，
+        不锁总列数——锁总列数会让每批加字段都假红。
+        """
         cols, params = self._run_log(NotificationMessage(title="T"))
-        self.assertEqual(cols, _LEGACY_COLUMNS + _NEW_COLUMNS)
-        self.assertEqual(len(params), 15)
+        self.assertEqual(cols[:11], _LEGACY_COLUMNS, "前 11 列必须是既有列且顺序不变")
+        for col in _NEW_COLUMNS:
+            self.assertIn(col, cols, f"{col} 必须已加入 INSERT")
+        self.assertEqual(len(params), len(cols))
 
     def test_legacy_eleven_values(self):
         msg = NotificationMessage(
@@ -169,9 +176,14 @@ class TestMigrationV62(unittest.TestCase):
         _migrate_v62_notification_log_identity(db2)  # 不抛即通过
 
     def test_schema_version_advanced(self):
+        """v62 已注册且版本号已推进到至少 62。
+
+        不断言"恰好等于 62"——该值随每批新迁移推进（1b 已到 63）；
+        "当前版本号 == 已注册最大号"由 tests/test_migrations_full.py 负责。
+        """
         from pilotstd.core.db._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS
 
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 62)
+        self.assertGreaterEqual(CURRENT_SCHEMA_VERSION, 62)
         self.assertIn(62, MIGRATIONS, "v62 必须已注册（migrations.py 导入触发装饰器）")
 
 
