@@ -144,3 +144,8 @@ from ._migrate_v63_notification_log_task_view import (  # noqa: E402, F401
 from ._migrate_v64_notification_log_interactive import (  # noqa: E402, F401
     _migrate_v64_notification_log_interactive,
 )
+
+# 第六十五版：notification_log 追加 task_kind 列（通知架构重设计阶段 2.5a，函数自带注册装饰器）
+from ._migrate_v65_notification_log_task_kind import (  # noqa: E402, F401
+    _migrate_v65_notification_log_task_kind,
+)

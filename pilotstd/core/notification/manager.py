@@ -108,6 +108,9 @@ _QUEUE_MESSAGE_FIELDS = (
     # 阶段 1c：callback_data 是**字符串**，属标量 → 入白名单；
     # actions / attachments（规格列表）与 channel_message_ids（dict）走 _json_codec，不入此表
     "callback_data",
+    # 阶段 2.5a：task_kind 是字符串（标量）→ 入白名单。**漏了它就会在静音补发时静默丢失**
+    # ——与 1a/1b/1c 三批同一类缺陷（写入/重建两侧必须同源）
+    "task_kind",
 )
 
 

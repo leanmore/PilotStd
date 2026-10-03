@@ -1283,7 +1283,8 @@ class TestDbMigrations(unittest.TestCase):
     actions TEXT NOT NULL DEFAULT '',
     callback_data TEXT NOT NULL DEFAULT '',
     attachments TEXT NOT NULL DEFAULT '',
-    channel_message_ids TEXT NOT NULL DEFAULT ''
+    channel_message_ids TEXT NOT NULL DEFAULT '',
+    task_kind TEXT NOT NULL DEFAULT ''
 );""")
         _migrate_v18_notification_fetch_task(conn)
 
@@ -1332,7 +1333,8 @@ class TestDbMigrations(unittest.TestCase):
     actions TEXT NOT NULL DEFAULT '',
     callback_data TEXT NOT NULL DEFAULT '',
     attachments TEXT NOT NULL DEFAULT '',
-    channel_message_ids TEXT NOT NULL DEFAULT ''
+    channel_message_ids TEXT NOT NULL DEFAULT '',
+    task_kind TEXT NOT NULL DEFAULT ''
 );""")
         _migrate_v18_notification_fetch_task(conn)
         # 第二次执行：v18 迁移未检测 is_read 列是否存在，会抛 duplicate column
@@ -1377,7 +1379,8 @@ class TestDbMigrations(unittest.TestCase):
     actions TEXT NOT NULL DEFAULT '',
     callback_data TEXT NOT NULL DEFAULT '',
     attachments TEXT NOT NULL DEFAULT '',
-    channel_message_ids TEXT NOT NULL DEFAULT ''
+    channel_message_ids TEXT NOT NULL DEFAULT '',
+    task_kind TEXT NOT NULL DEFAULT ''
 );""")
         _migrate_v18_notification_fetch_task(conn)
 

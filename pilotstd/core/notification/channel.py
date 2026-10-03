@@ -64,6 +64,13 @@ class NotificationMessage:
     # 为空表示"尚未映射"，阶段 1-3 各消费方回退用 event_type 推导；参与聚合分组属阶段 2.5。
     notify_event: str = ""
     content_type: str = ""  # 主内容类型（text/field_list/status_change/list/task_progress/action_prompt）
+    # 任务种类（业务域名词，阶段 2.5a 落地）。值域见 `mapping.TASK_KINDS`。
+    # **双 SSOT 约定**：本字段是**通知视角**的"用户交办的是哪类事"；
+    # `task_queue.task_type`（`pilotstd/task/models.py::TaskType`）是**执行队列视角**的
+    # "哪个任务在跑"——两者不同轴（实测交集仅 scan/query/organize），
+    # 由 `mapping.task_kind_to_task_type()` 做**单向翻译**（无反向函数）。
+    # 与 `task_type` 的实际映射见 mapping.py；本字段**不落 task_type**。
+    task_kind: str = ""
     # 任务上下文快照（Task/TaskItem/TaskProgress 的扁平投影）。
     # **契约**：写入端一律经 `_json_codec.dumps` 转 JSON 字符串入库（SQLite 无原生 JSON 类型）；
     # 读取端经 `loads_dict` 还原为 dict，非 dict / 非法 JSON / None 一律回退 `{}`

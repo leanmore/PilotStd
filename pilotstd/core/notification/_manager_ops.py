@@ -71,8 +71,9 @@ class NotificationOps:
                 "standard_number, status, error_msg, sent_at, aggregated_count, link, icon, "
                 "message_id, correlation_id, delivery_status, ack_status, "
                 "task_id, notify_event, content_type, task_context, "
-                "actions, callback_data, attachments, channel_message_ids) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "actions, callback_data, attachments, channel_message_ids, "
+                "task_kind) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -97,6 +98,8 @@ class NotificationOps:
                     msg.callback_data,  # 纯字符串，无需编解码
                     _json_codec.dumps(specs_to_jsonable(msg.attachments)),
                     _json_codec.dumps(msg.channel_message_ids),
+                    # 阶段 2.5a：task_kind 是标量字符串，直接落库（不经 _json_codec）
+                    msg.task_kind,
                 ),
             )
         except Exception as e:
@@ -180,16 +183,14 @@ class NotificationOps:
 
     # ── 三层模型投影回填（阶段 2b-接入；默认不生效）────────────────────────────
     def apply_mapping(self, msg: NotificationMessage, event_type: str, event_data: dict[str, Any]) -> None:
-        """回填三层模型的投影字段（`NotificationManager._apply_mapping` 的实现）。
+        """回填三层模型的投影字段（`NotificationManager.send_event` 调用）。
 
-        仅当 `stage.is_mapping_enabled()` 为真时执行（默认 False → 行为零变化）。
-        回填两个**由查表唯一确定、且 `NotificationMessage` 已有**的字段：
-        `notify_event` / `content_type`。
+        仅当 `stage.is_mapping_enabled()` 为真时执行（默认 stage=2 → 生效；
+        设 `NOTIFY_REDESIGN_STAGE=1` 即回滚为不生效）。回填三个字段：
+        `notify_event` / `content_type`（2b-接入起）、`task_kind`（**2.5a 起**）。
 
-        未回填的三项及理由：
-        - `task_kind`：`mapping.project()` 已产出，但 `NotificationMessage` **无该字段**
-          （新增消息字段需同批加迁移/白名单/列，属独立批次）；
-        - `correlation_id` / `task_context`：需 Task 实体投影（运行期上下文），属阶段 2b-启用/2.5。
+        仍未回填的两项及理由：
+        - `correlation_id` / `task_context`：需 Task 实体投影（运行期上下文），归阶段 2.5b。
 
         **失败不得影响主流程**：投影是旁路增强，异常只记 warning 并按未映射处理
         （与 `log()` 的静默失败、`_validate_message` 的"校验失败不崩主流程"同口径）。
@@ -204,4 +205,5 @@ class NotificationOps:
             return
         msg.notify_event = projection.notify_event
         msg.content_type = projection.content_type
+        msg.task_kind = projection.task_kind
 
