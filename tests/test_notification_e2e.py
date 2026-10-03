@@ -258,12 +258,16 @@ TRIGGER_KEYS: dict[str, set[str]] = {
 }
 
 EVENTS: list[dict[str, Any]] = [
+    # 字段口径（2026-10-03，步 B 第一子步骤）：
+    # `module` 存 **i18n 键**（`notification.module.*`，文案在 pilotstd/i18n/*.json）；
+    # `aggregation` 是 **ASCII 枚举**（aggregate / bypass，系统内部状态标识）；
+    # `mutual` 仅本契约自用（规格不登记互斥说明——那是设计文档的内容）。
     # ── 时效性检查 (7) ──
     {
         "name": "standard_status_changed",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "info/warning/error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/validity_checker.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_standard_status_changed_message",
@@ -272,9 +276,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "standard_first_registered",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/validity_checker.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_standard_first_registered_message",
@@ -283,9 +287,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "validity_batch_report",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/_validity_pipeline.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_batch_report_message",
@@ -294,9 +298,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "validity_round_summary",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/_validity_pipeline.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_round_summary_message",
@@ -305,9 +309,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "validity_standard_failed",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/_validity_pipeline.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_standard_failed_message",
@@ -316,9 +320,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "validity_system_failed",
-        "module": "时效性检查",
+        "module": "notification.module.validity",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/_validity_pipeline.py",
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_system_failed_message",
@@ -328,9 +332,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 扫描/导入 (3) ──
     {
         "name": "scan_complete",
-        "module": "扫描/导入",
+        "module": "notification.module.scan",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_scan.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_scan_complete_message",
@@ -339,9 +343,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "scan_empty",
-        "module": "扫描/导入",
+        "module": "notification.module.scan",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_scan.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_scan_empty_message",
@@ -350,9 +354,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "auto_scan_failed",
-        "module": "扫描/导入",
+        "module": "notification.module.scan",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_scan.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_auto_scan_failed_message",
@@ -362,9 +366,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 查询 (3) ──
     {
         "name": "batch_query_summary",
-        "module": "查询",
+        "module": "notification.module.query",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_query_subsystem.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_batch_query_summary_message",
@@ -373,9 +377,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "query_failed",
-        "module": "查询",
+        "module": "notification.module.query",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_query_subsystem.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_query_failed_message",
@@ -384,9 +388,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "query_empty",
-        "module": "查询",
+        "module": "notification.module.query",
         "level": "warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_query_subsystem.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_query_empty_message",
@@ -396,9 +400,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 下载 (2) ──
     {
         "name": "batch_download_complete",
-        "module": "下载",
+        "module": "notification.module.download",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/download/engine.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_batch_download_complete_message",
@@ -407,9 +411,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "download_failed",
-        "module": "下载",
+        "module": "notification.module.download",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/tasks/favorite_download.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_failed_message",
@@ -419,9 +423,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 规范化 (2) ──
     {
         "name": "normalize_complete",
-        "module": "规范化",
+        "module": "notification.module.normalize",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_organize.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_normalize_complete_message",
@@ -430,9 +434,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "normalize_failed",
-        "module": "规范化",
+        "module": "notification.module.normalize",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_organize.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_normalize_failed_message",
@@ -442,9 +446,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 归档 (4) ──
     {
         "name": "archive_complete",
-        "module": "归档",
+        "module": "notification.module.archive",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_organize.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_archive_complete_message",
@@ -453,9 +457,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "archive_failed",
-        "module": "归档",
+        "module": "notification.module.archive",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/organize/organizer.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_archive_failed_message",
@@ -464,9 +468,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "archive_abandoned",
-        "module": "归档",
+        "module": "notification.module.archive",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/services/favorite_chain_processor.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_archive_abandoned_message",
@@ -475,9 +479,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "expire_standard_moved",
-        "module": "废止处理",
+        "module": "notification.module.expire",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/facade/_organize.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_expire_standard_moved_message",
@@ -487,9 +491,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 公告 (3) ──
     {
         "name": "announcement_fetch_complete",
-        "module": "公告抓取",
+        "module": "notification.module.announce",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/api/announce.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_announcement_fetch_complete_message",
@@ -498,9 +502,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "announcement_check_complete",
-        "module": "公告抓取",
+        "module": "notification.module.announce",
         "level": "info/warning/error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/announce/notifier.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_announcement_check_complete_message",
@@ -517,9 +521,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "announcement_fetch_failed",
-        "module": "公告抓取",
+        "module": "notification.module.announce",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/announce/notifier.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_announcement_fetch_failed_message",
@@ -528,9 +532,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "announce_fetch_summary",
-        "module": "公告抓取",
+        "module": "notification.module.announce",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/announce/notifier.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_announce_fetch_summary_message",
@@ -540,9 +544,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 废止处理 (1, 含在归档模块的 expire_standard_moved 已列) ──
     {
         "name": "replacement_not_found",
-        "module": "废止处理",
+        "module": "notification.module.expire",
         "level": "warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/classifier.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_replacement_not_found_message",
@@ -552,9 +556,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 系统运维 (5) ──
     {
         "name": "auto_backup",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "info/error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/scheduler.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_auto_backup_message",
@@ -563,9 +567,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "image_update_available",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "info/error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/api/system.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_image_update_available_message",
@@ -574,9 +578,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "worker_error",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/ui/pending_query_dialog.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_worker_error_message",
@@ -585,9 +589,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "task_execution_failed",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/scheduler.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_task_execution_failed_message",
@@ -596,9 +600,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "quota_exhausted",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/query/daily_quota.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_quota_exhausted_message",
@@ -608,9 +612,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 用户交互 (1) ──
     {
         "name": "date_reminder",
-        "module": "用户交互",
+        "module": "notification.module.interaction",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/tasks/date_reminder.py",
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_date_reminder_message",
@@ -620,9 +624,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 其他 (1) ──
     {
         "name": "trust_ip_update",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "info/warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/manager/wechat_ip_service.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_trust_ip_update_message",
@@ -632,9 +636,9 @@ EVENTS: list[dict[str, Any]] = [
     # ── 收藏链 (3, Phase 2 新增) ──
     {
         "name": "favorite_created",
-        "module": "收藏链",
+        "module": "notification.module.favorite",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/api/favorites.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_favorite_created_message",
@@ -643,9 +647,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "download_started",
-        "module": "收藏链",
+        "module": "notification.module.favorite",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/tasks/favorite_download.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_started_message",
@@ -654,9 +658,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "download_complete",
-        "module": "收藏链",
+        "module": "notification.module.favorite",
         "level": "info",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/tasks/favorite_download.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_complete_message",
@@ -665,9 +669,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "favorite_abandoned_summary",
-        "module": "收藏链",
+        "module": "notification.module.favorite",
         "level": "warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/services/favorite_chain_processor.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_favorite_abandoned_summary_message",
@@ -676,9 +680,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "notification_delivery_failed",
-        "module": "系统运维",
+        "module": "notification.module.system",
         "level": "error",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "pilotstd/core/notification/manager.py",
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_notification_delivery_failed_message",
@@ -690,9 +694,9 @@ EVENTS: list[dict[str, Any]] = [
     # 但事件自身仍登记于 ALL_EVENTS 并配构建器，故纳入本契约测试。
     {
         "name": "notification_credential_changed",
-        "module": "安全告警",
+        "module": "notification.module.security",
         "level": "warning",
-        "aggregation": "绕过（直连旧渠道）",
+        "aggregation": "bypass",
         "trigger_file": "docker/api/notification.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_notification_credential_changed_message",
@@ -701,9 +705,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "security_password_changed",
-        "module": "安全告警",
+        "module": "notification.module.security",
         "level": "warning",
-        "aggregation": "绕过（直连旧渠道）",
+        "aggregation": "bypass",
         "trigger_file": "docker/api/users.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_password_changed_message",
@@ -712,9 +716,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "security_token_refreshed",
-        "module": "安全告警",
+        "module": "notification.module.security",
         "level": "warning",
-        "aggregation": "绕过（直连旧渠道）",
+        "aggregation": "bypass",
         "trigger_file": "docker/api/settings.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_token_refreshed_message",
@@ -723,9 +727,9 @@ EVENTS: list[dict[str, Any]] = [
     },
     {
         "name": "security_login_failed",
-        "module": "安全告警",
+        "module": "notification.module.security",
         "level": "warning",
-        "aggregation": "聚合",
+        "aggregation": "aggregate",
         "trigger_file": "docker/auth.py",
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_login_failed_message",

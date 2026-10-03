@@ -8,6 +8,20 @@
 > **上游**：[05-refactor-decision.md](05-refactor-decision.md)（目标优先评估）、[04-refactor-P.md](04-refactor-P.md)（P 阶段拆分设计）
 > **硬约束**：禁止新增 mixin（`tests/test_architecture_mixin_guard.py:9,27-35`）；G-010 上限 500 不放宽（`scripts/check_g_010_code_size.py:29`）；业务行为不变。行号均为 2026-10-03 实测。
 
+> ## 🔄 修订（2026-10-03，步 B 第一子步骤落地时）
+>
+> **裁决**：字段值一律**机器可读**——展示文案走 i18n 键，**不把中文散文当"契约数据"搬进 `pilotstd/`**。理由有二：① 会直接撞 G-047（Python 侧 i18n 硬编码中文）——该门禁对不在存量基线中的新文件"一处都不允许"；② 把中文硬编码包装成"契约数据"是给不做事找理由（决策者原话），i18n 该做就做。
+>
+> **本次改动（规范性）**：
+> 1. 字段数 **16 → 15**：**删除 `mutual`**——互斥关系是设计文档的说明，不是数据；e2e 契约自留该字段用于自身比对，不进规格（§1.1.1 表下注）。
+> 2. `module`（中文模块名）→ **`module_key`**（i18n 键族 `notification.module.*`，12 键 × 3 语在 `pilotstd/i18n/*.json`）。
+> 3. `aggregation` 值域改 **ASCII 枚举**（`aggregate` / `bypass`）——系统内部状态标识，**不进 i18n**（做成键只多一层无意义的间接）。
+> 4. **e2e 契约同批对齐**：`module` 值改 i18n 键、`aggregation` 值改 ASCII 枚举（`mutual` 原样保留）。
+> 5. **D4 判据口径**：由"逐字段 == e2e 中文字面量"改为"**逐字段 == spec 定义值**"（§1.3 D4、§2.3 B1）。
+>
+> **与上次修订的关系**：§1.6.1 记录的 **15 → 16**（新增 `aggregation`）**仍成立**；本次是 **16 → 15**（删 `mutual`），两次改动互不抵消 ⇒ 故 §1.6.1 / §2.5 中"16 字段"的历史表述**保留原文**，**规范性字段清单以 §1.1.1 为准**（表内编号已按新清单重排：`aggregation` 由 #16 → **#15**）。
+> **附带结论**：§三 2 遗留 1 的"`levels` 序列化约定"已定为**严重度升序**（`info` → `warning` → `error`，与既有 6 个字面值同序，无需改写）。
+
 ---
 
 ## 摘要（决策者读）
@@ -20,7 +34,7 @@
 5. **步 A 顺带修 `NotificationLogsView.vue:107-112` 漏 dingtalk**——采纳。
 
 **二、两处补充澄清的结果（§1.6）**
-6. **e2e `EVENTS` 构成已精确拆解**：实测 **476 行**（不是 479）= **17**（框架/注释）+ **82**（41 条目的花括号）+ **377**（字段值，其中 `builder_keys` 占 49 行）。**9 个字段 100% 可覆盖或派生**：`builder_file`/`builder_method` 由 `builder.__module__`/`__name__` **反射（实测 41/41 一致，省 82 行）**；其余 7 个字段由 spec 提供。**但 `aggregation` 不是常量**（实测 38×"聚合" + **3×"绕过（直连旧渠道）"**）⇒ **spec 需新增第 16 个字段**。
+6. **e2e `EVENTS` 构成已精确拆解**：实测 **476 行**（不是 479）= **17**（框架/注释）+ **82**（41 条目的花括号）+ **377**（字段值，其中 `builder_keys` 占 49 行）。**9 个字段 100% 可覆盖或派生**：`builder_file`/`builder_method` 由 `builder.__module__`/`__name__` **反射（实测 41/41 一致，省 82 行）**；其余 7 个字段由 spec 提供。**但 `aggregation` 不是常量**（实测 38×"聚合" + **3×"绕过（直连旧渠道）"**）⇒ **spec 需新增第 16 个字段**（该字段现为 **#15**，见 §一 修订）。
 7. **"改 10 行"的修正**：e2e 侧**确实**从 476 行降到约 12 行，**但代价转移到 spec**——总数据点 **625（分散 6 处）→ 656（1 处）**，**处数 6 → 1**。⇒ **收益是"单一来源"，不是"更少数据"**；上一轮把它说成"净收益 10 行"是**误导性表述，予以更正**。
 8. **工作量 7 天已拆到小时级**（§2.4）：步 A 16h / 步 B 18h / 步 C 16h = **50h ≈ 6.3 天（专注）**，保守取 **7 天**；**且附了 4 个历史锚点**（阶段 1a/1b/1c/2.5a 各在 **0.5–1 个日历日**内完成，含迁移+测试+文档）证明"数据/契约类批次"的估算口径合理；**前端重设计与门禁改造无历史锚点**，是最大不确定性来源。
 
@@ -35,7 +49,7 @@
 
 ## 1.1 spec 定义
 
-### 1.1.1 字段清单（**16 个**；由消费方反推，非设计臆想）
+### 1.1.1 字段清单（**15 个**；由消费方反推，非设计臆想）
 
 **反推依据**（逐个消费方实测其读取形状）：
 - `mapping.EventMapping`（`pilotstd/core/notification/mapping.py:119-124`）：`notify_event` / `content_type` / `task_kind`
@@ -54,23 +68,25 @@
 | 6 | `i18n_category` | `str` | 文案前缀 | 门禁 G-045、前端 locales | — |
 | 7 | `default_channels` | `tuple[str, ...]` | 默认订阅渠道 | `defaults.notification.rules.*`（派生） | — |
 | 8 | `levels` | `tuple[str, ...]` | 级别**有序**集合（分支取值） | e2e `level`（斜杠连接） | **需排序约定**（见 §1.6.1） |
-| 9 | `module` | `str` | 业务模块名 | e2e `module`、前端分组 | — |
+| 9 | `module_key` | `str` | 业务模块名的 **i18n 键**（`notification.module.*`） | e2e `module`、前端分组 | **值由中文名改 i18n 键**（2026-10-03 修订） |
 | 10 | `trigger_file` | `str` | 触发方文件路径 | e2e 契约（须真实存在） | — |
 | 11 | `payload_keys` | `frozenset[str]` | 构建器读取的载荷键 | e2e `builder_keys` / G-046 | 先显式（裁决 4） |
-| 12 | `mutual` | `str` | 互斥说明（**自由文本**） | e2e `mutual` | — |
-| 13 | `security` | `bool` | 安全类（需 `write_audit`） | G-043 / G-045 | — |
-| 14 | `branch_by` | `Callable[[dict], str] \| None` | 分支判据 | `mapping.project()` | — |
-| 15 | `subscribable` | `bool` | 是否默认对用户可见 | `defaults` + 前端清单 | — |
-| **16** | **`aggregation`** | `str` | 聚合策略（**实测非常量**：38×"聚合" + 3×"绕过"） | e2e `aggregation` | **★ 本次新增** |
+| 12 | `security` | `bool` | 安全类（需 `write_audit`） | G-043 / G-045 | — |
+| 13 | `branch_by` | `Callable[[dict], str] \| None` | 分支判据 | `mapping.project()` | — |
+| 14 | `subscribable` | `bool` | 是否默认对用户可见 | `defaults` + 前端清单 | — |
+| **15** | **`aggregation`** | `str` | 聚合策略（**ASCII 枚举**：`aggregate` / `bypass`；实测非常量——改造前 38 条聚合 + 3 条绕过） | e2e `aggregation` | **★ 新增字段**（#16 → #15；值域 2026-10-03 改 ASCII） |
 
-**不计入 spec（可由既有信息派生）**：`builder_file` / `builder_method`（`builder.__module__` / `__name__` 反射，**实测 41/41 一致**）。
+**不计入 spec**：
+
+- `builder_file` / `builder_method`——可由 `builder.__module__` / `__name__` 反射派生（**实测 41/41 一致**）。
+- `mutual`（互斥说明）——**2026-10-03 裁决删除**：互斥关系是设计文档里的说明文字，不是数据；e2e 契约自留该字段用于自身比对，规格不复制中文散文。（该字段原为 #12，删除后其后字段编号前移。）
 
 ### 1.1.2 两个模块（**有硬证据**）
 
 | 模块 | 内容 | 依赖 | 理由 |
 |---|---|---|---|
 | **`events.py`（保留，保轻）** | `EventDef` + `ALL_EVENTS` + `ALL_EVENT_KEYS` + `BYPASS_EVENTS` | **零内部依赖**（实测唯一 import 是 `dataclasses`，`events.py:12`） | **10 个消费方**只需键列表：`docker/api/notification.py:13`、`__init__.py:7,48`、`manager.py:164`、`core/notification_aggregator.py:317` + 5 处测试；不应被迫加载 41 个构建器 + i18n + blocks |
-| **`event_spec.py`（新增）** | 16 字段 × 41 条声明 | **单向 `import .events`** | 需要完整 spec 的消费方本来就重 |
+| **`event_spec.py`（新增）** | 15 字段 × 41 条声明 | **单向 `import .events`** | 需要完整 spec 的消费方本来就重 |
 
 **依赖方向（实测无环）**：`event_spec.py → events.py`（零依赖）；`event_spec.py → _builders_* → channel.py → blocks.py/specs.py`；`mapping.py` 零内部依赖。**实测确认无反向依赖**（`_builders_task_results.py:17-25`、`_builders_system.py:7-17`、`channel.py:9-16`、`mapping.py:39-42` 均不 import `events.py`/`manager.py`）。
 
@@ -112,9 +128,9 @@
 | **D1** | `mapping.EVENT_MAPPINGS` | `mapping.py:154-214` = **61 行 / 41 条** | 删 61 → **+4 行** | 机械 | `set(EVENT_MAPPINGS) == set(ALL_EVENT_KEYS)`；∀e：`notify_event ∈ NOTIFY_EVENTS`、`content_type ∈ CONTENT_TYPES`、`task_kind ∈ TASK_KINDS ∪ {""}` | spec #2/#3/#4 |
 | **D2** | `manager` 构建器注册 | `manager.py:18-61`（**44 行**）+ `:523-569`（**47 行**）= **91 行** | 删 91 → **+6 行** | 机械 | `set(_EVENT_BUILDERS) == set(ALL_EVENT_KEYS)` 且 `callable` 每项 | spec #5 |
 | **D3** | `defaults.notification.rules.*` | `defaults.py:62-80` = **19 行 / 16 条** | 删 19 → **+3 行** | 机械 | 键集合 == `{s.key \| s.default_channels}`；取值 == `list(s.default_channels)` | spec #7 |
-| **D4** | e2e `EVENTS` 元数据 | `tests/test_notification_e2e.py:260-735` = **476 行** | 删 476 → **+12 行** | **重新设计**（详见 §1.6.1） | `{e["name"] for e in EVENTS} == set(ALL_EVENT_KEYS)`；逐字段 == spec | spec #8/#9/#10/#11/#12/**#16**；`e2e:739` 硬断言须同批改 |
+| **D4** | e2e `EVENTS` 元数据 | `tests/test_notification_e2e.py:260-735` = **476 行** | 删 476 → **+12 行** | **重新设计**（详见 §1.6.1） | `{e["name"] for e in EVENTS} == set(ALL_EVENT_KEYS)`；**逐字段 == spec 定义值**（2026-10-03：e2e 侧 `module` 存 i18n 键、`aggregation` 存 ASCII 枚举，**不再比对中文散文**；`mutual` 只留契约自用） | spec #8/#9/#10/#11/**#15**；`e2e:739` 硬断言须同批改 |
 | **D5** | 前端事件清单 | `NotificationConfig.vue:59-93` = **35 行** | 删 35 → **+8 行** | **重设计**（新端点 + 拉取） | 组件测试：渲染选项 == API 返回集合 | `GET /api/notification/spec` |
-| **D6** | 门禁读取源 | `audit_notification_coverage.py:58-73`（AST 读 `events.py`） | 改读 `event_spec.py`；`level`/`module`/`aggregation`/`builder_keys` 由**未覆盖**升级为**校验** | 设计 | ① 退出码 0 且"未覆盖说明"不再含四字段；② **判别力测试**：注入"spec 缺 `trigger_file`" → **断言门禁 FAIL** | spec #8/#9/#10/11/#16；D4 后 |
+| **D6** | 门禁读取源 | `audit_notification_coverage.py:58-73`（AST 读 `events.py`） | 改读 `event_spec.py`；`level`/`module`/`aggregation`/`builder_keys`（对应 spec `levels`/`module_key`/`aggregation`/`payload_keys`）由**未覆盖**升级为**校验** | 设计 | ① 退出码 0 且"未覆盖说明"不再含四字段；② **判别力测试**：注入"spec 缺 `trigger_file`" → **断言门禁 FAIL** | spec #8/#9/#10/#11/#15；D4 后 |
 | **D7** | **渠道声明收敛**（步 A） | **5 处**：`channel.py:28`、`manager.py:80`、`_policy.py:9`、`docker/api/notification.py:327`、`:145-159` | 5 处 → `channel_spec.py` **1 处** | 设计 | `set(CHANNEL_KEY_WHITELIST) == set(CHANNEL_SPECS) == set(_CHANNEL_CLASSES)`；`build_channel` 默认值 == spec | — |
 
 ### 前端改造：**是重设计，不是机械替换**
@@ -164,14 +180,14 @@
 | e2e 字段 | 行数 | 归属 | spec 覆盖 |
 |---|---|---|---|
 | `name` | 41 | spec 字段 #1 | ✅ 直接 |
-| `module` | 41 | spec #9 | ✅ 直接 |
+| `module` | 41 | spec #9（`module_key`） | ✅ 直接（**值为 i18n 键**，2026-10-03 修订） |
 | `level` | 41 | spec #8 | ✅ 需**排序约定**（实测 6 个唯一值：`error`/`info`/`info/error`/`info/warning`/`info/warning/error`/`warning` — **排序不统一**） |
-| `aggregation` | 41 | **spec #16（本次新增）** | ❌ 上轮无此字段；实测 **38×"聚合" + 3×"绕过（直连旧渠道）"**，**不是常量** |
+| `aggregation` | 41 | **spec #16（本次新增，现 #15）** | ❌ 上轮无此字段；实测 **38 条聚合 + 3 条绕过**（值域 2026-10-03 改 ASCII 枚举），**不是常量** |
 | `trigger_file` | 41 | spec #10 | ✅ 直接 |
 | `builder_file` | 41 | `builder.__module__` 反射 | ✅ **派生**（实测 41/41 一致） |
 | `builder_method` | 41 | `builder.__name__` 反射 | ✅ **派生**（实测 41/41 一致） |
 | `builder_keys` | **49** | spec #11 | ✅ 直接 |
-| `mutual` | 41 | spec #12 | ✅ 直接（**自由文本**：5 条非空，如 `互斥: scan_complete`、`count=0 时也触发（archive_empty 未独立）`） |
+| `mutual` | 41 | **spec 已删（2026-10-03）** | ⚠️ 只留在 e2e 契约自用（互斥关系是设计说明，不是数据）；规格不再登记 |
 | **合计** | **377** | — | **9 字段 100% 可覆盖或派生** |
 
 **结论（"改 10 行"是否成立）**：
@@ -180,10 +196,10 @@
 |---|---|
 | e2e 从 476 行 → 约 12 行 | ✅ **成立**（`EVENTS = [{…9 个字段…} for s in EVENT_SPECS]`，其中 2 个字段来自反射） |
 | **"必须手写的部分"** | **0 行**——9 字段全部可由 spec 提供或反射（**这是本轮最强结论**） |
-| **"改 10 行"作为收益表述** | ❌ **误导，予以更正**：代价**转移到 spec**。数据点总量 **625（分散 6 处）→ 656（1 处）**：<br>`mapping` 123 + `manager` 41 + `defaults` 16 + e2e **369** + 前端清单 35 + i18n 前缀 41 = **625**<br>spec = 41 × 16 = **656** |
+| **"改 10 行"作为收益表述** | ❌ **误导，予以更正**：代价**转移到 spec**。数据点总量 **625（分散 6 处）→ 656（1 处）**：<br>`mapping` 123 + `manager` 41 + `defaults` 16 + e2e **369** + 前端清单 35 + i18n 前缀 41 = **625**<br>spec = 41 × 16 = **656**（字段数于 2026-10-03 改为 15 ⇒ 现为 **615**） |
 | **真实收益** | **处数 6 → 1**（单一来源），**不是"更少数据"**（数据点 +31） |
 
-**⇒ 对方案的影响**：① spec 字段 **15 → 16**（新增 `aggregation`）；② `levels` 与 `aggregation` 需**序列化约定**（`levels` 用固定顺序元组，e2e 侧同批改那 6 个字面值）；③ **"e2e 省 464 行"不能算作净收益**——它是"搬家"，必须与 spec 的增量一同看。
+**⇒ 对方案的影响**：① spec 字段 **15 → 16**（新增 `aggregation`；此行是当时的历史结论，**现行字段数为 15**——2026-10-03 删 `mutual`，见 §一 修订）；② `levels` 与 `aggregation` 需**序列化约定**（`levels` 用固定顺序元组，e2e 侧同批改那 6 个字面值）；③ **"e2e 省 464 行"不能算作净收益**——它是"搬家"，必须与 spec 的增量一同看。
 
 ### 1.6.2 澄清 2：7 天工作量的依据
 
@@ -232,7 +248,7 @@
 ```
 pilotstd/core/notification/
 ├── events.py            【轻·零依赖】EventDef + ALL_EVENTS + ALL_EVENT_KEYS + BYPASS_EVENTS
-├── event_spec.py        【新·重】EVENT_SPECS（16 字段 × 41 条）→ 单向 import events.py
+├── event_spec.py        【新·重】EVENT_SPECS（15 字段 × 41 条）→ 单向 import events.py
 ├── channel_spec.py      【新】CHANNEL_SPECS（name/class/defaults/schema）
 ├── mapping.py           EVENT_MAPPINGS 由 EVENT_SPECS 派生（D1）
 ├── manager.py           【薄门面】装配 + 公开 API 转发 + _EVENT_BUILDERS 派生（D2）
@@ -262,7 +278,8 @@ pilotstd/core/notification/
 | **A** | 判据 1 达标 | **实测演练**：临时分支加假渠道 → `git status --porcelain` 中 **代码文件（.py/.ts/.vue）计数 ≤2**；同时 `set(CHANNEL_SPECS) == set(CHANNEL_KEY_WHITELIST) == set(_CHANNEL_CLASSES)` |
 | **A** | 前端渠道渲染正确 | 组件测试：渲染渠道集合 == `GET /api/notification/channels` 返回集合；`NotificationLogsView` 筛选选项含 4 渠道（**修好漏 dingtalk**） |
 | **B1** | spec↔events 一致 | `set(ALL_EVENT_KEYS) == {s.key for s in EVENT_SPECS}` |
-| **B1** | 4 处派生正确 | D1/D2/D3 集合断言 + D4 逐字段断言（含 `builder_file == spec.builder.__module__.replace('.','/') + '.py'`） |
+| **B1** | 4 处派生正确 | D1/D2/D3 集合断言 + D4 逐字段断言（含 `builder_file == spec.builder.__module__.replace('.','/') + '.py'`；**比对基准是 spec 定义值**，e2e 侧 `module` 存 i18n 键、`aggregation` 存 ASCII 枚举） |
+| **B1** | 字段值机器可读 | 声明的字符串字面量**无中文**（与 G-047 同口径）；`module_key` 在三语包中均有实体键；`aggregation ∈ {aggregate, bypass}`；`levels` 按严重度升序（旧字段值"零行为变更"口径废止——展示文案一律走 i18n） |
 | **B1** | **门禁判别力** | 注入"spec 缺 `trigger_file`" → **断言门禁 FAIL**（不是"跑通即通过"） |
 | **B2** | 判据 2/5 达标 | **实测演练**：加假事件 → 代码文件 ≤2；删假事件 → 代码文件 ≤2 |
 | **A/B/C** | 零行为变更 | 复用 [04](04-refactor-P.md) §3.2 的 Z1–Z4 |

@@ -796,5 +796,17 @@
     "notification.system.security_login_failed.body.count": "{n} consecutive login failures from the same source within {minutes} minute(s)",
     "notification.system.security_login_failed.body.account": "Target account",
     "notification.system.security_login_failed.body.from_ip": "Source address",
-    "notification.system.security_login_failed.body.hint": "If this was not you, review your account security and consider changing the password."
+    "notification.system.security_login_failed.body.hint": "If this was not you, review your account security and consider changing the password.",
+    "notification.module.validity": "Validity Check",
+    "notification.module.interaction": "User Interaction",
+    "notification.module.scan": "Scan / Import",
+    "notification.module.query": "Query",
+    "notification.module.download": "Download",
+    "notification.module.normalize": "Normalization",
+    "notification.module.archive": "Archive",
+    "notification.module.expire": "Expiry Handling",
+    "notification.module.announce": "Announcement Fetch",
+    "notification.module.system": "System Operations",
+    "notification.module.favorite": "Favorites",
+    "notification.module.security": "Security Alerts"
 }

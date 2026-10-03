@@ -717,5 +717,17 @@
     "notification.system.security_login_failed.body.count": "同一來源在 {minutes} 分鐘內連續失敗 {n} 次登入",
     "notification.system.security_login_failed.body.account": "目標帳號",
     "notification.system.security_login_failed.body.from_ip": "來源位址",
-    "notification.system.security_login_failed.body.hint": "若非本人操作，請立即檢查帳號安全並考慮更換密碼。"
+    "notification.system.security_login_failed.body.hint": "若非本人操作，請立即檢查帳號安全並考慮更換密碼。",
+    "notification.module.validity": "時效性檢查",
+    "notification.module.interaction": "使用者互動",
+    "notification.module.scan": "掃描/匯入",
+    "notification.module.query": "查詢",
+    "notification.module.download": "下載",
+    "notification.module.normalize": "正規化",
+    "notification.module.archive": "歸檔",
+    "notification.module.expire": "廢止處理",
+    "notification.module.announce": "公告抓取",
+    "notification.module.system": "系統維運",
+    "notification.module.favorite": "收藏鏈",
+    "notification.module.security": "安全告警"
 }
