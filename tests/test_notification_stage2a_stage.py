@@ -112,20 +112,42 @@ class TestPredicates(unittest.TestCase):
             self.assertFalse(is_interaction_enabled())
 
 
-class TestNotConsumedYet(unittest.TestCase):
-    """本批的边界：`stage.py` 是机制，2a 里**没有任何生产代码消费它**。"""
+class TestConsumptionBoundary(unittest.TestCase):
+    """消费边界：`stage.py` 只被 `_manager_ops.py` 引用。
 
-    def test_no_production_consumer_in_this_batch(self):
+    演化：2a 时断言"无任何生产消费者"；2b-接入把 `is_mapping_enabled()` 接进
+    `NotificationOps.apply_mapping`；随后因 manager.py 有效行超 G-010 阻断线，
+    实现从 manager.py 迁到 `_manager_ops.py`（manager.py 只保留一行 `self.ops.apply_mapping(...)`
+    调用），故消费者就是 `_manager_ops.py` 一个。这样"多处接入导致开关语义分叉"仍会被拦住。
+    """
+
+    CONSUMER = "_manager_ops.py"
+
+    def test_only_one_consumer(self):
         from pathlib import Path
 
         consumers: list[str] = []
         for path in Path("pilotstd").rglob("*.py"):
-            if path.name == "stage.py":
+            if path.name in ("stage.py", self.CONSUMER):
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             if "notification.stage" in text or "from .stage import" in text:
                 consumers.append(str(path))
-        self.assertEqual(consumers, [], f"2a 不应有生产代码消费 stage.py（属 2b+）: {consumers}")
+        self.assertEqual(consumers, [], f"stage.py 只应由 {self.CONSUMER} 消费，实测多出: {consumers}")
+
+    def test_impl_module_is_the_consumer(self):
+        from pathlib import Path
+
+        text = Path(f"pilotstd/core/notification/{self.CONSUMER}").read_text(encoding="utf-8")
+        self.assertIn("is_mapping_enabled", text, "stage 的谓词应由 _manager_ops.apply_mapping 消费")
+
+    def test_manager_delegates_via_ops(self):
+        """manager.py 不再直接 import stage，改为经 `self.ops.apply_mapping(...)` 调用。"""
+        from pathlib import Path
+
+        text = Path("pilotstd/core/notification/manager.py").read_text(encoding="utf-8")
+        self.assertIn("self.ops.apply_mapping(msg, event_type, event_data)", text)
+        self.assertNotIn("is_mapping_enabled", text)
 
 
 if __name__ == "__main__":

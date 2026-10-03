@@ -1,7 +1,6 @@
 # 模块：项目/核心//管理器脚本
 """NotificationManager——多渠道通知分发与日志记录。"""
-# 交互契约：_()统一入口（策略表→渠道路由→聚合器→发送）；聚合器默认5窗口合并同类事件，
-# _事件实时发送（系统异常须及时感知）；静音时段暂存队列表定时补发；
+# 交互契约：send_event 统一入口（策略表→渠道路由→聚合器→发送）；静音时段暂存队列表定时补发；
 # 日志与渠道发送在同一块（避免"发送成功但无日志"的审计盲区）
 
 import json
@@ -299,6 +298,9 @@ class NotificationManager:
             return
 
         msg = self._build_message(event_type, event_data)
+        # 三层模型投影回填（阶段 2b-接入）：默认 stage=1 → 不生效，行为零变化。
+        # 实现在 _manager_ops（本文件加入该逻辑会超 G-010 的 500 阻断线）。
+        self.ops.apply_mapping(msg, event_type, event_data)
         # 构建器契约校验：空消息拦截（失败仅记错误日志，不中断主业务流程）
         try:
             self._validate_message(msg, event_type)

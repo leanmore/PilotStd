@@ -584,6 +584,10 @@ class TestAggregateContract(unittest.TestCase):
             return_value=_make_msg(title="", body="", blocks=[], event_type="broken_builder")
         )
         mgr._do_send = MagicMock()
+        # 阶段 2b-接入：send_event 现在还会调 self.ops.apply_mapping（投影回填，默认不生效）。
+        # 本用例手工拼装管理器（不跑 __init__），故补一个 ops 替身——
+        # 本用例的判据是"空消息跳过 + 记 Error"，投影不在判据内。
+        mgr.ops = MagicMock()
 
         with unittest.mock.patch("pilotstd.core.notification.manager.logger") as mock_logger:
             NotificationManager.send_event(mgr, "broken_builder", {})

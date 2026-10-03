@@ -1,9 +1,11 @@
 # 模块：项目/核心//_管理器_运维接口脚本
 """NotificationManager 的日志与运维接口（组合式实现，由 NotificationManager 持有）。
 
-拆出原因（G-010 文件规模治理）：manager.py 有效行 487 已进入警告区，而本组方法
-（写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理）
-与「事件 → 渠道分发」主流程不共享任何局部状态。
+拆出原因（G-010 文件规模治理）：manager.py 有效行已两次逼近硬线——第一次 487（警告区）
+拆出「写发送日志 / 日志分页查询 / 已读标记 / 未读计数 / 过期清理」五方法；
+第二次是阶段 2b-接入加入 `_apply_mapping` 后达到 **519（超过 500 阻断线）**，
+再把「通知映射回填」一并拆到这里。两组方法都与「事件 → 渠道分发」主流程
+不共享任何局部状态（只依赖宿主、DB 与纯函数投影）。
 
 为什么是组合而不是继承：`tests/test_architecture_mixin_guard.py` 明令**除
 _WindowLifecycleMixin（Qt 硬约束）外禁止新增 Mixin**，并指定用 Composition 替代（ADR-010）。
@@ -23,7 +25,9 @@ from typing import TYPE_CHECKING, Any
 from ..db import Database
 from . import _json_codec
 from .channel import NotificationMessage
+from .mapping import project
 from .specs import specs_to_jsonable
+from .stage import is_mapping_enabled
 
 if TYPE_CHECKING:
     from .manager import NotificationManager
@@ -173,4 +177,31 @@ class NotificationOps:
         if deleted > 0:
             logger.info("清理了 %d 条过期通知日志（保留 %d 天）", deleted, days)
         return deleted
+
+    # ── 三层模型投影回填（阶段 2b-接入；默认不生效）────────────────────────────
+    def apply_mapping(self, msg: NotificationMessage, event_type: str, event_data: dict[str, Any]) -> None:
+        """回填三层模型的投影字段（`NotificationManager._apply_mapping` 的实现）。
+
+        仅当 `stage.is_mapping_enabled()` 为真时执行（默认 False → 行为零变化）。
+        回填两个**由查表唯一确定、且 `NotificationMessage` 已有**的字段：
+        `notify_event` / `content_type`。
+
+        未回填的三项及理由：
+        - `task_kind`：`mapping.project()` 已产出，但 `NotificationMessage` **无该字段**
+          （新增消息字段需同批加迁移/白名单/列，属独立批次）；
+        - `correlation_id` / `task_context`：需 Task 实体投影（运行期上下文），属阶段 2b-启用/2.5。
+
+        **失败不得影响主流程**：投影是旁路增强，异常只记 warning 并按未映射处理
+        （与 `log()` 的静默失败、`_validate_message` 的"校验失败不崩主流程"同口径）。
+        """
+        if not is_mapping_enabled():
+            return
+        try:
+            projection = project(event_type, event_data)
+        except Exception as e:  # noqa: BLE001 — 投影失败不得吃掉通知
+            # i18n-allow: 开发者日志（与 log()/渠道层既有告警同口径，不进 i18n）
+            logger.warning("通知映射失败，按未映射处理: event=%s error=%s", event_type, e)
+            return
+        msg.notify_event = projection.notify_event
+        msg.content_type = projection.content_type
 
