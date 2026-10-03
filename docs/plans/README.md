@@ -21,6 +21,7 @@
 | [notification-system-design/00-framework.md](notification-system-design/00-framework.md) | **通知系统方案框架**（回答 6 个决策问题：Docker 通知清单 / 旧设计重审 / Windows 端方向 / 技术发现处置 / MoviePilot 学与不学 / 实施路径 + 11 项待裁决） | 📐 **待批准**（方向审批用，不含实施细节） |
 | [notification-system-design/01-channel-capabilities.md](notification-system-design/01-channel-capabilities.md) | **四渠道双向形态能力调查**（钉钉/企微/飞书/Telegram × 7 维度；证据等级标注 + 8 项缺口清单；结论：当前 4 渠道均为低端形态） | 🔍 调查完成（**不含方案**） |
 | [notification-system-design/02-framework-update.md](notification-system-design/02-framework-update.md) | **框架更新 + 分档通知策略初版**（6 项裁决录入 + 2 处更正 + 阶段 3 重定义 + 四档策略（阈值基于实测耗时）+ 5 项新待裁决） | 📐 **待批准**（方向审批用） |
+| [notification-system-design/03-impl-design-D.md](notification-system-design/03-impl-design-D.md) | **实施设计总纲 + Docker 端阶段 D 详细设计**（8 阶段路线图与依赖；D 阶段：改动 6 处、验收 9 条、测试 14 个、G-010 净增 0 有效行的约束设计；4 项新待裁决） | 🔧 **待批准**（本轮只设计不实施） |
 
 ---
 
