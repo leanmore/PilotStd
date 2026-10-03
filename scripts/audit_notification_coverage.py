@@ -30,6 +30,7 @@ import sys
 from pathlib import Path
 
 from _gate_coverage_summary import print_coverage_summary
+from _notification_spec_audit import B_RULE_COUNT, audit_spec_derivations
 
 if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -235,25 +236,36 @@ def _print_matrix(rows: list[dict[str, object]]) -> None:
         print(f"| `{r['event']}` | {r['i18n']} | {r['term']} | {r['e2e']} | {r['audit']} | `{r['builder']}` |")
 
 
-def print_coverage(rows: list[dict[str, object]], blocking: list[str], tracked: list[str]) -> None:
+def print_coverage(
+    rows: list[dict[str, object]],
+    blocking: list[str],
+    tracked: list[str],
+    b_states: dict[str, str] | None = None,
+) -> None:
     """打印 G-045 覆盖摘要（L-23）。
 
     PASS 只说明**已检查的维度**通过；必须声明**未校验的字段**与**未登记的事件**，
     否则会被误读为"EVENTS 元数据全部可信"。
 
+    **A 类（事件覆盖度）与 B 类（渠道派生一致性）分开计数**：两者检查对象不同
+    （41 事件 vs 4 渠道），合并成一个数字会让"总计/通过"不可解释。
+
     独立成函数：`main()` 须守住 G-010 的逻辑行上限。
     """
+    states = b_states or {}
     n_i18n = sum(1 for r in rows if r["i18n"] == "✅")
     n_e2e = sum(1 for r in rows if r["e2e"] == "✅")
     n_term = sum(1 for r in rows if r["term"] == "✅")
     sec_rows = [r for r in rows if is_security_event(str(r["event"]))]
     n_sec = sum(1 for r in sec_rows if r["audit"] == "✅")
+    b_labels = [k for k in states if k.startswith("B") and not k.startswith("B4 扫描")]
+    n_b_block = sum(1 for k in b_labels if states[k].startswith("❌"))
     print_coverage_summary(
-        scope="{} 的 ALL_EVENTS（{} 个）+ {} 的 EVENTS 元数据".format(
-            NOTIF.name + "/events.py", len(rows), E2E_TEST.relative_to(ROOT).as_posix()
+        scope="{} 的 ALL_EVENTS（{} 个）+ {} 的 EVENTS 元数据 + channel_spec 的 4 渠道（B 类 {} 项）".format(
+            NOTIF.name + "/events.py", len(rows), E2E_TEST.relative_to(ROOT).as_posix(), B_RULE_COUNT
         ),
-        checked=len(rows),
-        passed=n_i18n,
+        checked=len(rows) + B_RULE_COUNT,
+        passed=n_i18n + (B_RULE_COUNT - n_b_block),
         blocked=len(blocking),
         exempted=len(tracked),
         # 跟踪项是**有名有姓的事件列表**（`<事件>: N 个文案键未登记术语表`），
@@ -263,17 +275,21 @@ def print_coverage(rows: list[dict[str, object]], blocking: list[str], tracked: 
         exemptions_label="跟踪项明细",
         max_item_len=120,  # 条目含事件名 + 中文说明，40 字符会截断到不可辨识
         notes=(
-            "i18n 三语键齐备 -> {}/{} 事件（阻断维度）".format(n_i18n, len(rows)),
-            "e2e 覆盖 + trigger_file 存在 -> {}/{} 事件（阻断维度）".format(n_e2e, len(rows)),
-            "安全事件 write_audit -> {}/{} 事件（阻断维度，仅安全类）".format(n_sec, len(sec_rows)),
-            "术语表登记 -> {}/{} 事件（跟踪项，不阻断）".format(n_term, len(rows)),
+            "i18n 三语键齐备 -> {}/{} 事件（A 类，阻断维度）".format(n_i18n, len(rows)),
+            "e2e 覆盖 + trigger_file 存在 -> {}/{} 事件（A 类，阻断维度）".format(n_e2e, len(rows)),
+            "安全事件 write_audit -> {}/{} 事件（A 类，阻断维度，仅安全类）".format(n_sec, len(sec_rows)),
+            "术语表登记 -> {}/{} 事件（A 类，跟踪项，不阻断）".format(n_term, len(rows)),
+            *[f"{label} -> {states[label]}（B 类，阻断维度）" for label in b_labels],
         ),
         uncovered=(
             "**EVENTS 的 level/module/aggregation/builder_keys 未校验**"
             "（level 为 `a/b` 集合约定，表示构建器按分支取值的集合）；"
             "`desktop_toast` 无独立构建器与 i18n 键（标题继承自上游事件，如 "
             "`_(\"download_results_title\")`），未登记进 ALL_EVENTS——已采纳方案 B 显式声明"
-            "未覆盖，方案 A 触发条件见 docs/governance/notification_coverage.md"
+            "未覆盖，方案 A 触发条件见 docs/governance/notification_coverage.md；"
+            "**B4 为缓阻断**（前端硬编码渠道键的棘轮：不阻断存量、阻断增量；"
+            "C3 前端 schema 驱动改造落地后字面量归零即转全阻断），"
+            "清理方案与过渡期截止点见同文档「B 类」节"
         ),
     )
 
@@ -303,8 +319,13 @@ def main(argv: list[str]) -> int:
         _print_matrix(rows)
         return 0
 
+    # B 类：渠道声明与实现/前端的跨层一致性（设计见 07-impl-design-A.md §八）。
+    # A 类条目统一加 `[A]` 前缀，与 B 类在输出里可区分（两类检查对象不同）。
+    b_blocking, b_warnings, b_states = audit_spec_derivations(ROOT)
+    blocking = [f"[A] {item}" for item in blocking] + b_blocking
+
     print("=" * 96)
-    print(f"通知系统覆盖度审计：{len(events)} 个事件")
+    print(f"通知系统覆盖度审计：{len(events)} 个事件 + 4 个渠道声明（A/B 两类）")
     print("=" * 96)
     print(f"{'事件':<34}{'i18n':<7}{'术语':<7}{'e2e':<6}{'审计':<7}构建器")
     print("-" * 96)
@@ -321,13 +342,22 @@ def main(argv: list[str]) -> int:
     print(f"i18n {n_i18n_ok}/{len(rows)} | e2e {n_e2e_ok}/{len(rows)} | 术语 {n_term_ok}/{len(rows)} "
           f"| 安全事件审计 {n_sec_ok}/{len(sec_rows)}")
     print()
+    print(f"渠道派生一致性（B 类，{B_RULE_COUNT} 项，阻断维度）：")
+    for label, state in b_states.items():
+        if label.startswith("B4 扫描"):
+            continue
+        print(f"  {label:<22}{state}")
+    for warning in b_warnings:
+        print(f"  ⚠️  {warning}")
+    print()
     if blocking:
         print(f"❌ 阻断缺口 {len(blocking)} 项：")
         for item in blocking:
             print(f"   - {item}")
     else:
-        print("✅ 无阻断缺口（i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计）")
-    print_coverage(rows, blocking, tracked)
+        print("✅ 无阻断缺口（A 类：i18n 齐备、e2e 覆盖且触发文件存在、安全事件有审计；"
+              "B 类：声明与实现/后端/前端三层一致）")
+    print_coverage(rows, blocking, tracked, b_states)
     if blocking or (strict and tracked):
         return 1
     return 0

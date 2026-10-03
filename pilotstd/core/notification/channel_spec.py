@@ -15,6 +15,8 @@
    - `label`：字面量兜底（决策者裁决 N6：4 处标签保持英文，如 `Bot Token`）。
 """
 
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -29,6 +31,8 @@ __all__ = [
     "legacy_schema",
     "masked_field_names",
     "spec_for",
+    "spec_hash",
+    "spec_payload",
 ]
 
 # 允许的控件形态（闭集，自洽校验用）
@@ -328,3 +332,63 @@ def legacy_schema(spec: ChannelSpec, labeler: Callable[[str], str]) -> dict[str,
             "secret": f.password,
         }
     return out
+
+
+# ── 前端元数据接口（`GET /api/notification/channels` 的响应体）──────────────────
+# 只暴露**前端渲染需要**的字段。以下后端专用项**刻意不出现**在负载里：
+#   `module`/`cls_name`（实现位置）、`ctor`/`ctor_required`（构造形态）、
+#   `legacy_label_key`（后端兼容形状用）。新增 spec 字段时须同时决定"是否给前端"——
+#   默认不给，确认前端要消费才加进本函数。
+
+
+def _field_dict(f: FieldSpec) -> dict[str, Any]:
+    """单个字段的前端视图（含控件形态、标签、掩码与呈现附加项）。"""
+    return {
+        "name": f.name,
+        "type": f.type,
+        "label_key": f.label_key,
+        "label": f.label,
+        "required": f.required,
+        "mask": f.mask,
+        "password": f.password,
+        "placeholder": f.placeholder,
+        "placeholder_key": f.placeholder_key,
+        "badge_key": f.badge_key,
+        "divider_key": f.divider_key,
+    }
+
+
+def _channel_dict(spec: ChannelSpec) -> dict[str, Any]:
+    """单个渠道的前端视图（键序固定，保证响应稳定可比对）。"""
+    return {
+        "name": spec.name,
+        "label_key": spec.label_key,
+        "icon": spec.icon,
+        "enabled_default": spec.enabled_default,
+        "hint_key": spec.hint_key,
+        "fields": [_field_dict(f) for f in spec.fields],
+        "status_rule": {
+            "branches": [
+                {"all_of": list(b.all_of), "label_key": b.label_key} for b in spec.status_rule.branches
+            ],
+            "fallback_key": spec.status_rule.fallback_key,
+        },
+    }
+
+
+def spec_payload() -> dict[str, Any]:
+    """产出渠道元数据负载（**不含 `spec_hash`**——哈希正是对本体计算的）。
+
+    与 `CHANNEL_SPECS` 同序，故响应键序稳定；负载中不含任何凭证值。
+    """
+    return {"channels": [_channel_dict(s) for s in CHANNEL_SPECS]}
+
+
+def spec_hash(payload: dict[str, Any]) -> str:
+    """对负载做**规范化 JSON**（键排序、无多余空白）后的 SHA-256，取前 16 位。
+
+    放在响应体而非模块常量/HTTP 头：模块常量会与响应脱节，响应头易与缓存/代理语义混淆。
+    后端不缓存——每次现算（微秒级），无失效遗漏。
+    """
+    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]

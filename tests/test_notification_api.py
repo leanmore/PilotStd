@@ -267,3 +267,135 @@ def test_notif_config_401_without_cookie(notif_client_and_db):
     client.cookies.clear()
     r = client.get("/api/notification/config")
     assert r.status_code == 401
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 步 A C2：`GET /api/notification/channels` —— 渠道元数据契约与三层一致性
+# 设计依据 docs/plans/notification-system-design/07-impl-design-A.md §三
+# ══════════════════════════════════════════════════════════════════════════════
+
+_CHANNEL_TOP_KEYS = {
+    "name",
+    "label_key",
+    "icon",
+    "enabled_default",
+    "hint_key",
+    "fields",
+    "status_rule",
+}
+_FIELD_KEYS = {
+    "name",
+    "type",
+    "label_key",
+    "label",
+    "required",
+    "mask",
+    "password",
+    "placeholder",
+    "placeholder_key",
+    "badge_key",
+    "divider_key",
+}
+# 后端实现细节：**不得**出现在面向前端的元数据里（`ctor` 由裁决 2 明确移除）
+_IMPL_KEYS = {"ctor", "ctor_required", "cls_name", "module", "legacy_label_key"}
+
+
+def _get_channels(client, cookies) -> dict:
+    """取渠道元数据响应体（带状态码断言，避免把错误体当契约用）。"""
+    r = client.get("/api/notification/channels", cookies=cookies)
+    assert r.status_code == 200, f"应返回 200，实际 {r.status_code}: {r.text}"
+    return r.json()
+
+
+@pytest.mark.xdist_group("notification")
+def test_channels_endpoint_shape(notif_client_and_db, notif_cookies):
+    """V1：契约逐项断言——必备字段齐全、类型正确、**不含实现细节**、无凭证值。"""
+    from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
+
+    client, _ = notif_client_and_db
+    body = _get_channels(client, notif_cookies)
+    assert set(body) == {"spec_hash", "channels"}
+    assert isinstance(body["spec_hash"], str) and len(body["spec_hash"]) == 16
+    assert len(body["channels"]) == len(CHANNEL_SPECS)
+    for ch in body["channels"]:
+        assert set(ch) == _CHANNEL_TOP_KEYS, f"{ch['name']} 顶层键不符"
+        assert isinstance(ch["fields"], list) and ch["fields"]
+        for field in ch["fields"]:
+            assert set(field) == _FIELD_KEYS, f"{ch['name']}.{field.get('name')} 字段键不符"
+        rule = ch["status_rule"]
+        assert set(rule) == {"branches", "fallback_key"}
+        for branch in rule["branches"]:
+            assert set(branch) == {"all_of", "label_key"}
+    # 实现细节与凭证一律不得出现在响应文本里
+    raw = repr(body)
+    for key in _IMPL_KEYS:
+        assert key not in raw, f"响应体不应含实现细节 {key}"
+    assert "***" not in raw and "tel_token" not in raw
+
+
+@pytest.mark.xdist_group("notification")
+def test_channels_endpoint_matches_spec(notif_client_and_db, notif_cookies):
+    """V5（替回 T2）：**跨层**——API 响应的渠道集合与每渠道字段集合必须等于 spec 声明。
+
+    为什么是跨层而非同源：`channel_spec` 是唯一声明源，若只比对它的两个视图会恒真；
+    本用例经 **HTTP 端点**取回，中途任何硬编码/漏渠道/字段漂移都会 FAIL。
+    """
+    from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
+
+    client, _ = notif_client_and_db
+    body = _get_channels(client, notif_cookies)
+    assert {c["name"] for c in body["channels"]} == {s.name for s in CHANNEL_SPECS}
+    spec_fields = {s.name: [f.name for f in s.fields] for s in CHANNEL_SPECS}
+    for ch in body["channels"]:
+        assert [f["name"] for f in ch["fields"]] == spec_fields[ch["name"]], ch["name"]
+        spec = next(s for s in CHANNEL_SPECS if s.name == ch["name"])
+        assert ch["enabled_default"] == spec.enabled_default
+        assert ch["label_key"] == spec.label_key
+
+
+@pytest.mark.xdist_group("notification")
+def test_spec_hash_stable_and_sensitive(notif_client_and_db, notif_cookies, monkeypatch):
+    """V2：`spec_hash` 判别力——同负载两次一致；负载变化（加字段）则**必须变化**。"""
+    import copy
+
+    import docker.api.notification as api_mod
+    from pilotstd.core.notification.channel_spec import spec_payload
+
+    client, _ = notif_client_and_db
+    first = _get_channels(client, notif_cookies)["spec_hash"]
+    again = _get_channels(client, notif_cookies)["spec_hash"]
+    assert first == again, "同一负载两次调用必须得到相同哈希（不得含时间戳/随机量）"
+
+    mutated = copy.deepcopy(spec_payload())
+    mutated["channels"][0]["fields"].append({"name": "zz_probe_xyz", "type": "string"})
+    monkeypatch.setattr(api_mod, "spec_payload", lambda: mutated)
+    changed = _get_channels(client, notif_cookies)["spec_hash"]
+    assert changed != first, "负载变化后哈希未变——说明哈希与负载无关（判别力为零）"
+
+
+@pytest.mark.xdist_group("notification")
+def test_three_layer_channel_consistency(notif_client_and_db, notif_cookies):
+    """V6：三层一致性——spec == API 响应 == 前端实际声明的渠道集合。
+
+    第三层锚在**前端源码**的结构位字面量（`key:`/`value:` 的渠道列表块），
+    与 `channel_spec` 无派生关系，故任一层漂移都会 FAIL。
+    """
+    import os
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
+    from _frontend_channel_scan import structural_keys
+
+    from pilotstd.core.notification.channel_spec import CHANNEL_SPECS
+
+    repo_root = Path(__file__).resolve().parent.parent
+    spec_keys = {s.name for s in CHANNEL_SPECS}
+    api_keys = {c["name"] for c in _get_channels(notif_client_and_db[0], notif_cookies)["channels"]}
+    fe_keys = structural_keys(repo_root)
+    assert spec_keys == api_keys, f"spec {sorted(spec_keys)} != API {sorted(api_keys)}"
+    # C3（前端 schema 驱动改造）落地前，前端仍硬编码渠道列表，此时三层必须完全一致；
+    # 落地后结构位字面量归零，只保留"不得出现未知渠道"这一半（由 B4 棘轮继续守）。
+    if fe_keys:
+        assert fe_keys == spec_keys, f"前端 {sorted(fe_keys)} 与 spec 不一致——三层漂移"
+    assert not (fe_keys - spec_keys), "前端不得出现 spec 未声明的渠道"

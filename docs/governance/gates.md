@@ -27,7 +27,7 @@
 | G-040 | i18n 硬编码检查 | `web/src/**/*.{vue,ts}` 里不得**新增**写死的中文文案（注释除外；存量走基线） | 超出 `scripts/i18n_hardcoded_baseline.txt` 的行数 | `scripts/check_i18n_hardcoded.py` | ✅ 已部署 |
 | G-043 | 敏感端点审计接线 | `docker/api/**/*.py` 中命中敏感清单（S1 凭证生命周期 / S2 权限与身份边界 / S3 不可逆批量销毁）的状态变更端点必须有 `write_audit` | 敏感路由所属模块内无 `write_audit` 调用 | `scripts/check_sensitive_endpoint_audit.py` | ✅ 已部署 |
 | G-044 | 术语与禁用词检查 | `notification.*` 作用域内的文案不得命中术语表的 `forbidden` 词组；术语表 `keys` 登记的键三语值必须与登记值严格相等 | 命中禁用词，或术语三语不一致 | `scripts/check_terminology.py` | ✅ 已部署 |
-| G-045 | 通知系统覆盖度基线 | 每个已注册事件必须：i18n 三语键齐备、出现在 e2e `EVENTS` 且其 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit` | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
+| G-045 | 通知系统覆盖度基线 | **A 类**：每个已注册事件必须 i18n 三语键齐备、出现在 e2e `EVENTS` 且 `trigger_file` 物理存在、安全类事件触发文件含 `write_audit`；**B1–B4**：渠道声明的实现类/自洽性/后端无字面量/前端硬编码棘轮与三层集合一致 | 任一维度缺失（术语登记为跟踪项，`--strict` 才升阻断；B4 存量缓阻断、增量阻断） | `scripts/audit_notification_coverage.py` | ✅ 已部署 |
 | G-046 | 通知链路审计 | 通知构建器不得出现空文本风险、不得缺空值守卫、不得静默吞错 | 任一发现（`--strict`，零基线） | `scripts/audit_notification_chain.py` | ✅ 已部署 |
 | G-047 | Python 侧 i18n 硬编码检查 | `pilotstd/`、`docker/` 的 **Python 字符串字面量**中不得**新增**写死的中文（**跳过 docstring**——G-012 强制其中文；注释不在 AST 中不计） | 超出 `scripts/i18n_hardcoded_python_baseline.json` 的新增 | `scripts/check_i18n_hardcoded_python.py` | ✅ 已部署 |
 | G-048 | 架构文档模块计数一致性 | `docs/architecture/modules/core.md` 的「子模块数」必须等于 `pilotstd/core/` 递归全部 `.py` 数（含 `__init__.py`，不含 `__pycache__`） | 文档数字与实际文件数不符 | `scripts/check_g_048_core_module_count.py` | ✅ 已部署 |
@@ -458,6 +458,38 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 **执行方式**：`python scripts/audit_notification_coverage.py`；辅助模式 `--matrix`（输出 Markdown 矩阵）/ `--strict`（术语跟踪项也阻断）。退出码 0=无阻断缺口，1=存在缺口。
 **已接入**：`scripts/check_all.sh`（紧跟 G-044，`--fast` 路径）与 `.github/workflows/ci.yml`（紧跟 G-044）。
 
+**2026-10-03 步 A C2 扩展：新增 B1–B4 渠道派生一致性（阻断维度，B4 存量缓阻断）**
+
+A 类管"**事件**是否齐备"（数据完备性）；B 类管"同一事实在**多个落点**是否一致"（派生一致性）。
+渠道声明在步 A C1 收敛到 `channel_spec.py` 单一来源后，真正的风险从"漏登记"变成"某处没跟着派生"。
+
+| 编号 | 检查 | 锚定对象（**必须非派生**） | 性质 |
+|------|------|--------------------------|------|
+| B1 | 声明类 vs 实现类 | `channels/*.py` **源码**中渠道基类的直接子类名 | 阻断 |
+| B2 | spec 自洽性 | spec **自身**结构（字段非空/名唯一/形态合法/ctor 引用有效） | 阻断 |
+| B3 | 后端无渠道名字面量 | `manager.py` 与 `docker/api/notification.py` 的 **AST** | 阻断 |
+| B4 | 前端硬编码棘轮 + 集合一致 | 前端**源码文本**（渠道列表字面量块内的 `key:`/`value:`） | 缓阻断（存量）+ 阻断（增量） |
+
+**为什么必须锚定非派生对象**：若比较双方都由同一来源派生，断言会退化为"同一来源的两个视图
+互相验证"（**恒真、判别力为零**）——这正是 C1 替换掉的旧锁的毛病。实现见
+`scripts/_notification_spec_audit.py`（+ `_frontend_channel_scan.py`）。
+
+**输出格式**：A 类阻断项加 `[A]` 前缀、B 类加 `[B]`，两类在 `❌ 阻断缺口` 列表里可区分；
+正文新增 `渠道派生一致性（B1–B4，阻断维度）` 块；`[覆盖摘要]` 的 `检查项` 为
+**41 事件 + 4 个 B 类检查 = 45**，`检查口径` 按 A 类 / B1–B4 **分开逐条列出**
+（两类检查对象不同，合并成一个数字会让"总计/通过"不可解释）。
+**⚠️ `[A]`/`[B]` 指检查族**（A＝事件覆盖度、B＝渠道派生一致性），**不是**
+`notification_coverage.md` §三 的 A/B/C 缺口分类——同名不同轴，该文档 §一-B 已显式区分。
+
+**B4 的缓阻断（可执行形式＝棘轮）**：前端存量硬编码 **26 行**（C2 时点实测），
+`≤` 基线只警告、`>` 基线**阻断**；基线归零但未收紧时输出"请把基线收紧为 0"警告，
+防止"只缓不清"。**过渡期截止点 = C3（前端 schema 驱动改造）落地时**，清理方案逐项列在
+`docs/governance/notification_coverage.md` §一-B（不得跨步）。
+
+**受控实验（判别力）**：B1–B4 逐项在**临时假树**上注入漂移 → 对应检查阻断（19 例，
+`tests/test_notification_spec_audit.py`）；并含一条**退出码**集成断言（注入 B 类阻断项 →
+`main()` 返回 1）。
+
 ---
 
 ## 执行入口：`scripts/check_all.sh` 模式
@@ -510,6 +542,7 @@ wrapper 取不到请求对象 → `current_role` 回落默认 `"user"` → **连
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
+| v1.78 | 2026-10-03 | **步 A C2：G-045 就地扩展 B1–B4（渠道派生一致性）+ 新增 `GET /api/notification/channels` 元数据接口（含 `spec_hash`）**。**① 接口**：返回 `{spec_hash, channels:[{name,label_key,icon,enabled_default,hint_key,fields,status_rule}]}`——**不含** `ctor`/`ctor_required`/`cls_name`/`module`/`legacy_label_key` 等实现细节，也不含任何凭证值（凭证视图仍由 `GET /config` 提供）；`spec_hash` = 对负载本体的**规范化 JSON**（键排序、去空白）做 SHA-256 取前 16 位，**放在响应体**、后端不缓存，供前端做**内容级缓存失效**（故不引 URL 版本号）。**② G-045 扩展**：新增 B1（声明类 vs `channels/*.py` 源码实际子类）、B2（spec 自洽性）、B3（后端 AST 无渠道名比较）、B4（前端硬编码**棘轮** + 三层集合一致）——四项**全部锚定非派生对象**（同源比对会恒真，正是 C1 替换掉的旧锁的毛病）；A 类阻断项加 `[A]`、B 类加 `[B]`；`[覆盖摘要]` 的 `检查项` 由 41 → **45**（41 事件 + 4 个 B 类检查），`检查口径` 按 A/B 分开逐条列出。**③ B4 缓阻断**：前端存量硬编码渠道键 **26 行**（C2 实测），`≤` 基线警告、`>` 基线阻断；基线归零未收紧时提示"请收紧为 0"防"只缓不清"；**过渡期截止点 = C3 落地时**，清理方案逐项列在 `notification_coverage.md` §一-B。**④ T2 补回**：三层一致性（spec == API == 前端源码）由 `tests/test_notification_api.py` 4 例断言，跨层而非同源。**受控实验**：B1–B4 逐项注入漂移 → 阻断（19 例，含退出码集成断言）；`spec_hash` 判别力（注入字段 → 哈希变）1 例。**同批修正**：前端扫描器原把 4 个渠道键**写死在正则里**（新增第 5 渠道即盲区）、结构位扫描原**未限定渠道列表块**（把日志状态 `success`/`failed` 误判为未知渠道）——两处均已修正并各有回归用例。 |
 | v1.77 | 2026-10-03 | **工具调用收口（终）：G-020 的 vulture 同样改用 `python -m vulture`（独立 commit）**。**背景**：v1.75/v1.76 已修好 ruff/mypy/G-038 的 PATH 调用，但 `check_all.sh` 的 G-020 仍以裸 `vulture` 调用（本机 `python -m vulture --version`＝2.16 可用，可执行文件不在 PATH）→ 报 `vulture: command not found` → **G-020 误报 FAIL、`--deep` 整体红灯**。**改动**（仅调用方式）：`if vulture …` → `if python -m vulture pilotstd/ docker/ tests/ scripts/ whitelist.py --min-confidence=100`，扫描范围、阈值与 `whitelist.py` 参数**均不变**；并在该段补成因注释（防回退）。**至此 `check_all.sh` 内再无裸工具调用**（ruff／mypy／vulture 三处全部 `python -m`）。**受控实验（判别力）**：修复后 vulture **真的执行**并检出 **2 处真实问题**（`tests/test_notification_stage2b_enable_grey.py:165` 与 `:523`：`unused variable 'tz' (100% confidence)`，退出码 3）→ `--deep` 的 G-020 以**真实检出** FAIL（**不再是"命令不存在"**），证明该门禁**会因真实问题阻断**。同批 `✅ Ruff 全量检查`、`✅ Mypy 类型检查`、`✅ G-038 历史遗留错误清零`。**遗留（未修，另立）**：上述 `tz` 是**为匹配被覆写的 `datetime.now` 签名而故意保留**的参数（作者已用 ruff 行内抑制，而 vulture 不读该注释）——属"抑制机制缺口"而非代码缺陷；修复须走项目既有的 `whitelist.py` 机制或改名，**需另行裁决**（本轮只改调用方式）。 |
 | v1.76 | 2026-10-03 | **新增 G-048（架构文档模块计数一致性）＋ `core.md` 计数修正（74/75 → 86）**。**背景（实测口径溯源）**：`core.md` 的「子模块数」自 `8ccc8b85`（2026-10-01）写下 **74** 后**连续漂移**——在同一口径（`pilotstd/core/` 递归全部 `.py`，含 `__init__.py`）下，该提交实测恰为 **74**（口径一致、非口径歧义），此后 2 天内新增 12 个文件（5 个迁移实现 + 7 个通知模块，含步 A C1 的 `channel_spec.py`）至 **86**，全程无门禁察觉（G-031 只校验"文档存在 + 映射齐全"，不校验内容数字）。**改动**：① `docs/architecture/modules/core.md` 的「子模块数」改为 **86**，并**显式写明口径 + 截至日期 + 顶层构成**（3 个包 config/db/notification + 22 个直属模块），删除与实际不符的旧括注「安全 / 工具」；② 新增门禁脚本 `scripts/check_g_048_core_module_count.py` 并接入 `check_all.sh --fast`（pre-commit 与 CI 的 `--fast` 路径同时覆盖），**统计文件系统而非 `git ls-files`**（后者看不见未纳入版本控制的文件，判别力更弱）；③ 本文件补 G-048 表行、详述节与 `--fast` 模式行。**判别力（受控实验）**：临时新建一个包内 `.py` 而不改文档 → **EXIT=1**（`文档声明: 86 / 实际统计: 87`）；删除后复跑 → **EXIT=0**；探针已清理（`git status` 无残留）。**同批修正（自检发现）**：v1.75 行文中把探针写作一个**不存在的文件名**，被 G-032 交叉引用检查判为"引用了不存在的文件"（警告 16 → 17）——已改写为"影子模块"描述，不再产生该噪声。 |
 | v1.75 | 2026-10-03 | **工具调用收口（续）：G-038 的 ruff/mypy 同样改用 `sys.executable -m` 调用（独立 commit）**。**背景**：v1.74 只修了 `check_all.sh` 的 L1/`--deep` 两处调用；`scripts/check_g_038_legacy_errors.py:31,49` 仍以裸 `["ruff", …]`／`["mypy", …]` 调 `subprocess`，`:40,:59` 捕获 `FileNotFoundError` 后返回**失败**（非跳过）→ 本机 `--deep` 的 G-038 以「ruff 未安装，请执行: pip install ruff」**误报红灯**（与 `--fast` 的 L1 已修好的状态不一致，deep/fast 口径分裂）。**改动**（仅调用方式）：两处命令列表改为 `[sys.executable, "-m", "ruff"|"mypy", …]`，扫描范围/参数/超时/裸 noqa 检查**均不变**；并在常量区补成因注释（防回退）。**语义不变**：模块真缺失时 `python -m` 以非零码退出 → `returncode == 0` 为假 → `main()` 仍 `return 1` **阻断**（不是跳过）。**受控实验**：① 正常运行 `python scripts/check_g_038_legacy_errors.py` → `✅ G-038 通过` EXIT=0；② 判别力——用 `PYTHONPATH` 加载一个**抛导入错误的影子模块**（模拟"模块不可用"，探针在仓库外临时目录创建）→ **EXIT=1** 且打印 `Ruff 检查失败` + traceback（**证明确实阻断而非跳过**）；③ 复原 → EXIT=0。**`--deep` 实测**：`✅ Ruff 全量检查`、`✅ Mypy 类型检查`、`✅ G-038 历史遗留错误清零` 三项均 PASS（`--deep` 整体仍 EXIT=1，原因见下条）。**同批次发现（未修，另立）**：`scripts/check_all.sh:334` 仍以裸 `vulture` 调用（本机 `python -m vulture --version`＝2.16 可用但不在 PATH）→ `--deep` 的 G-020 报 `vulture: command not found` 而 FAIL，**同类 PATH 缺陷的第 3 处**，建议按同一方式收口。 |

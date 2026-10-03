@@ -10,7 +10,13 @@ from pydantic import BaseModel
 from pilotstd.core.audit import write_audit
 from pilotstd.core.notification import NotificationManager, NotificationMessage
 from pilotstd.core.notification._credentials import MASKED_VALUE, CredentialHelper
-from pilotstd.core.notification.channel_spec import CHANNEL_NAMES, CHANNEL_SPECS, masked_field_names
+from pilotstd.core.notification.channel_spec import (
+    CHANNEL_NAMES,
+    CHANNEL_SPECS,
+    masked_field_names,
+    spec_hash,
+    spec_payload,
+)
 from pilotstd.core.notification.events import ALL_EVENT_KEYS
 from pilotstd.core.notification.security_notifier import client_ip, notify_credential_change
 from pilotstd.i18n import t
@@ -155,6 +161,20 @@ def get_config(request: Request, mgr=Depends(get_manager_dep), user_id: int = De
         },
         "rules": {ev: mgr.cfg.get(f"notification.rules.{ev}", []) for ev in ALL_EVENT_KEYS},
     }
+
+
+@router.get("/api/notification/channels")
+def get_notification_channels() -> dict:
+    """渠道元数据（由 `channel_spec` 单一来源派生），供前端渲染渠道列表与配置表单。
+
+    - 返回体含 **`spec_hash`**（对负载本体做规范化 JSON 的 SHA-256 前 16 位）：
+      前端据此做**内容级缓存失效**（哈希变则重建表单），故无需 URL 版本号。
+    - **不含** `ctor` / `ctor_required` / `cls_name` 等实现细节，也**不含任何凭证值**
+      （凭证视图仍由 `GET /api/notification/config` 提供，两者职责分离）。
+    - 每次现算、后端不缓存（微秒级），避免"缓存未失效"这一类缺陷。
+    """
+    payload = spec_payload()
+    return {"spec_hash": spec_hash(payload), **payload}
 
 
 @router.put("/api/notification/config")
