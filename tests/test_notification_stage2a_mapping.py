@@ -81,6 +81,36 @@ class TestTableCompleteness(unittest.TestCase):
         p = project("scan_complete", {})
         self.assertIsInstance(p, NotificationProjection)
 
+    def test_per_category_counts_and_sum(self):
+        """★ 逐类计数锁定（2026-10-02 教训：报告手算 `batch_summary=12`/`anomaly_alert=8`
+        导致"六类合计 43 ≠ 41"的自相矛盾——映射表本身无误，是手算错误）。
+
+        本用例把**权威计数**（由映射表算出）与**期望计数**（与 04-影响面.md §4.1 表一致）
+        分别断言，并断言总和 == 已注册事件数。任何"改归属忘了改文档"或"改文档忘了改表"
+        都会在此失败。
+        """
+        import collections
+
+        actual = collections.Counter(m.notify_event for m in EVENT_MAPPINGS.values())
+        expected = {
+            "task_lifecycle": 15,
+            "batch_summary": 11,
+            "anomaly_alert": 7,
+            "security_alert": 5,
+            "schedule_reminder": 2,
+            "system_health": 1,
+            "manual_test": 0,  # 无业务事件承接（仅 POST /api/notification/test 用）
+        }
+        for name, want in expected.items():
+            with self.subTest(notify_event=name):
+                self.assertEqual(actual.get(name, 0), want)
+        self.assertEqual(sum(actual.values()), len(ALL_EVENT_KEYS))
+        self.assertEqual(sum(expected.values()), 41)
+
+    def test_no_event_mapped_to_manual_test(self):
+        """`manual_test` 不得承接任何业务事件（它是测试专用类型）。"""
+        self.assertEqual([k for k, m in EVENT_MAPPINGS.items() if m.notify_event == "manual_test"], [])
+
 
 class TestTerminalEvents(unittest.TestCase):
     """11 个终局事件逐条断言（用户裁决点名的清单）。"""
