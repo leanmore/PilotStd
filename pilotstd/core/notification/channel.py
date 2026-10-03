@@ -13,6 +13,19 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .blocks import NotificationBlock
+from .specs import ActionSpec, AttachmentSpec
+
+# ── channel_message_ids 的键白名单（**闭集**，阶段 1c 钉死）─────────────────────
+# 语义约定（阶段 3 的"消息编辑"直接依赖它，故现在就钉死，避免届时被塞入任意键）：
+#   1. 键必须取自本元组；
+#   2. 值是**该渠道返回的消息 ID**（字符串）；拿不到 ID 的渠道**不出现**在此 dict；
+#   3. **未投递的渠道不出现在 dict 中** —— 用"键缺席"表达"没有 ID"，
+#      **不是** `{"wechat": None}`（值恒为 str，读取方不必处理 None）；
+#   4. 桌面与 Web **不计入**：桌面 `QSystemTrayIcon.showMessage` 无消息句柄、
+#      Web 无后端推送通道（见 01-现状盘点.md §1.3 的能力实测）；
+#   5. 将来新增渠道时，本元组与渠道实现（`channels/`）必须**同批**扩展，
+#      并由 tests/test_notification_stage1c_fields.py 的契约用例锁定。
+CHANNEL_KEY_WHITELIST: tuple[str, ...] = ("wechat", "dingtalk", "feishu", "telegram")
 
 
 @dataclass
@@ -57,6 +70,21 @@ class NotificationMessage:
     # （故 **None 与 {} 在读回后不可区分**，见 06 方案 §2.2 与 tests/test_notification_stage1b_fields.py）。
     # 用 default_factory 而非字面量 `{}`，避免所有实例共享同一个可变 dict。
     task_context: dict[str, Any] = field(default_factory=dict)
+
+    # ── 交互能力（阶段 1c，2026-10-02）───────────────────────────────────────
+    # 与 1a/1b 同款约定：默认值即"现状语义"，故追加这些字段对既有 21 个字段与全部调用点零行为变更。
+    # actions / attachments 是**规格对象列表**（强类型，见 specs.py）；落库/入队前经
+    # specs.specs_to_jsonable 转字典列表，再交 _json_codec.dumps 序列化。
+    actions: list[ActionSpec] = field(default_factory=list)  # 按钮的唯一数据源；空 = 无交互
+    # 回调载荷（**字符串**，不是 dict）：渠道对回调数据有长度限制，统一约束 <= 64 字节，
+    # 格式 `v1|<message_id:16>|<action:12>|<arg:32>`（见 02-目标架构.md §2.4）。
+    # 服务端解析后**必须重新鉴权**，绝不信任其中的身份信息。
+    callback_data: str = ""
+    attachments: list[AttachmentSpec] = field(default_factory=list)  # 附件（阶段 1c 只承载，不发送）
+    # 渠道名 → 该渠道返回的消息 ID。**键白名单见本模块 CHANNEL_KEY_WHITELIST**；
+    # 未投递/拿不到 ID 的渠道**键缺席**（不是 None 值）。消息编辑的唯一凭据：
+    # 某渠道不在 dict 中即表示"该渠道不可编辑"（阶段 3 据此不生成编辑计划）。
+    channel_message_ids: dict[str, str] = field(default_factory=dict)
 
 
 def __getattr__(name: str):
