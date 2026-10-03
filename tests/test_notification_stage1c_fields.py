@@ -144,5 +144,113 @@ class TestMessageDefaults1c(unittest.TestCase):
         self.assertEqual(msg.status, "")  # 业务结果态仍未动
 
 
+class TestLogInsert1c(unittest.TestCase):
+    """落库：1c 4 列的取值形态（JSON 文本 / 纯字符串）。"""
+
+    def _row(self, msg):
+        from pilotstd.core.notification._manager_ops import NotificationOps
+
+        db = MagicMock()
+        mgr = MagicMock()
+        mgr._db = db
+        NotificationOps(mgr).log("archive_complete", "wechat", msg, "success", "", "2026-10-02T10:00:00")
+        sql, params = db.execute.call_args[0]
+        cols = [c.strip() for c in sql.split("(", 1)[1].split(")", 1)[0].split(",")]
+        return cols, dict(zip(cols, params))
+
+    def test_legacy_prefix_and_prior_batches_intact(self):
+        cols, _row = self._row(NotificationMessage(title="T"))
+        self.assertEqual(cols[:11], _LEGACY_COLUMNS)
+        for col in _STAGE_1A_COLUMNS + _STAGE_1B_COLUMNS + _STAGE_1C_COLUMNS:
+            self.assertIn(col, cols)
+
+    def test_actions_attachments_stored_as_json_text(self):
+        """★ 契约：actions / attachments 落库为**字典列表的 JSON 文本**（走 specs + _json_codec）。"""
+        msg = NotificationMessage(
+            title="T",
+            actions=[_action("retry"), _action("ignore")],
+            attachments=[AttachmentSpec(kind="image", url="/x.png", name="图", size=12)],
+        )
+        _cols, row = self._row(msg)
+        self.assertIsInstance(row["actions"], str)
+        self.assertIsInstance(row["attachments"], str)
+        actions = json.loads(row["actions"])
+        self.assertEqual([a["action"] for a in actions], ["retry", "ignore"])
+        self.assertEqual(actions[0]["args"], {"record_id": 7})
+        # 读回形态与 _json_codec.loads_list 的产出一致（幂等）
+        self.assertEqual(_json_codec.loads_list(row["actions"]), actions)
+        self.assertEqual(json.loads(row["attachments"])[0]["kind"], "image")
+
+    def test_callback_data_is_plain_string_not_json(self):
+        """★ 契约：callback_data 是**纯字符串**，落库不做 JSON 编解码（不加引号）。"""
+        payload = "v1|0123456789abcdef|retry|7"
+        _cols, row = self._row(NotificationMessage(title="T", callback_data=payload))
+        self.assertEqual(row["callback_data"], payload)
+        self.assertLessEqual(len(payload.encode("utf-8")), 64)
+
+    def test_channel_message_ids_stored_as_json_object(self):
+        msg = NotificationMessage(title="T", channel_message_ids={"telegram": "42", "feishu": "om_x"})
+        _cols, row = self._row(msg)
+        self.assertIsInstance(row["channel_message_ids"], str)
+        self.assertEqual(json.loads(row["channel_message_ids"]), {"telegram": "42", "feishu": "om_x"})
+
+    def test_empty_1c_fields_are_empty_slots(self):
+        """空值统一走空槽 `""`（1b 建立的约定，1c 的 list 字段同样适用）。"""
+        _cols, row = self._row(NotificationMessage(title="T"))
+        self.assertEqual(row["actions"], "")
+        self.assertEqual(row["attachments"], "")
+        self.assertEqual(row["channel_message_ids"], "")
+        self.assertEqual(row["callback_data"], "")
+        # 空槽读回：list 字段得 []、dict 字段得 {}
+        self.assertEqual(_json_codec.loads_list(row["actions"]), [])
+        self.assertEqual(_json_codec.loads_list(row["attachments"]), [])
+        self.assertEqual(_json_codec.loads_dict(row["channel_message_ids"]), {})
+
+    def test_codec_is_the_only_conversion_path(self):
+        """★ 契约级：4 个 1c 字段的落库值必须与 _json_codec 的产出逐一相等。
+
+        若有人绕过编解码直接写原值（如把 `msg.actions` 直接进 INSERT），
+        本用例因比较对象类型不同（list vs str）而失败。
+        """
+        msg = NotificationMessage(
+            title="T",
+            actions=[_action()],
+            callback_data="v1|aaaaaaaaaaaaaaaa|retry|1",
+            attachments=[AttachmentSpec(kind="file", url="/f.pdf")],
+            channel_message_ids={"wechat": "m1"},
+        )
+        _cols, row = self._row(msg)
+        self.assertEqual(row["actions"], _json_codec.dumps(specs_to_jsonable(msg.actions)))
+        self.assertEqual(row["attachments"], _json_codec.dumps(specs_to_jsonable(msg.attachments)))
+        self.assertEqual(row["channel_message_ids"], _json_codec.dumps(msg.channel_message_ids))
+        self.assertEqual(row["callback_data"], msg.callback_data)
+
+
+class TestMigrationV64(unittest.TestCase):
+    def test_adds_four_columns_and_is_idempotent(self):
+        from pilotstd.core.db._migrate_v64_notification_log_interactive import (
+            _migrate_v64_notification_log_interactive,
+        )
+
+        db = MagicMock()
+        _migrate_v64_notification_log_interactive(db)
+        sqls = [c[0][0] for c in db.execute.call_args_list]
+        self.assertEqual(len(sqls), 4)
+        joined = " ".join(sqls)
+        for col in _STAGE_1C_COLUMNS:
+            self.assertIn(f"ADD COLUMN {col} ", joined)
+        self.assertNotIn("ADD COLUMN status ", joined)
+
+        db2 = MagicMock()
+        db2.execute.side_effect = Exception("duplicate column name")
+        _migrate_v64_notification_log_interactive(db2)  # 不抛即通过
+
+    def test_schema_version_and_registration(self):
+        from pilotstd.core.db._constants import CURRENT_SCHEMA_VERSION, MIGRATIONS
+
+        self.assertGreaterEqual(CURRENT_SCHEMA_VERSION, 64)
+        self.assertIn(64, MIGRATIONS)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 from ..db import Database
 from . import _json_codec
 from .channel import NotificationMessage
+from .specs import specs_to_jsonable
 
 if TYPE_CHECKING:
     from .manager import NotificationManager
@@ -43,10 +44,13 @@ class NotificationOps:
 
     # 写发送日志：刻意静默失败——日志落库不该反向影响通知投递本身，故只记 warning；
     # aggregated_count / link / icon 三列用于还原“这条代表合并了多少条事件”。
-    # 阶段 1a 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）
-    # 与阶段 1b 追加的 4 列（task_id / notify_event / content_type / task_context）
-    # 取 NotificationMessage 对应字段（1a 为默认值）——故旧 11 列的取值与语义完全不变。
-    # task_context 是 dict，落库前经 _json_codec.dumps 转 JSON 文本（唯一转换点）。
+    # 阶段 1a 追加的 4 列（message_id / correlation_id / delivery_status / ack_status）、
+    # 1b 的 4 列（task_id / notify_event / content_type / task_context）、
+    # 1c 的 4 列（actions / callback_data / attachments / channel_message_ids）
+    # 取 NotificationMessage 对应字段——故旧 11 列的取值与语义完全不变。
+    # **非标量字段一律经 _json_codec 转换（唯一转换点）**：task_context /
+    # channel_message_ids 走 dumps（dict），actions / attachments 先经
+    # specs.specs_to_jsonable 转字典列表再 dumps（**不能**直接 dumps 规格对象）。
     def log(
         self,
         event_type: str,
@@ -62,8 +66,9 @@ class NotificationOps:
                 "INSERT INTO notification_log (event_type, channel, title, body, "
                 "standard_number, status, error_msg, sent_at, aggregated_count, link, icon, "
                 "message_id, correlation_id, delivery_status, ack_status, "
-                "task_id, notify_event, content_type, task_context) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "task_id, notify_event, content_type, task_context, "
+                "actions, callback_data, attachments, channel_message_ids) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     event_type,
                     channel,
@@ -84,6 +89,10 @@ class NotificationOps:
                     msg.notify_event,
                     msg.content_type,
                     _json_codec.dumps(msg.task_context),
+                    _json_codec.dumps(specs_to_jsonable(msg.actions)),
+                    msg.callback_data,  # 纯字符串，无需编解码
+                    _json_codec.dumps(specs_to_jsonable(msg.attachments)),
+                    _json_codec.dumps(msg.channel_message_ids),
                 ),
             )
         except Exception as e:

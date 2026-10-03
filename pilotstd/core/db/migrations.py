@@ -139,3 +139,8 @@ from ._migrate_v62_notification_log_identity import (  # noqa: E402, F401
 from ._migrate_v63_notification_log_task_view import (  # noqa: E402, F401
     _migrate_v63_notification_log_task_view,
 )
+
+# 第六十四版：notification_log 追加交互能力 4 列（通知架构重设计阶段 1c，函数自带注册装饰器）
+from ._migrate_v64_notification_log_interactive import (  # noqa: E402, F401
+    _migrate_v64_notification_log_interactive,
+)

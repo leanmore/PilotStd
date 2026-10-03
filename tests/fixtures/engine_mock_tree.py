@@ -92,7 +92,11 @@ CREATE TABLE IF NOT EXISTS notification_log (
     task_id TEXT NOT NULL DEFAULT '',
     notify_event TEXT NOT NULL DEFAULT '',
     content_type TEXT NOT NULL DEFAULT '',
-    task_context TEXT NOT NULL DEFAULT ''
+    task_context TEXT NOT NULL DEFAULT '',
+    actions TEXT NOT NULL DEFAULT '',
+    callback_data TEXT NOT NULL DEFAULT '',
+    attachments TEXT NOT NULL DEFAULT '',
+    channel_message_ids TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS notification_queue (
