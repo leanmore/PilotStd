@@ -409,14 +409,14 @@ class TestScopeOfThisSubStep(unittest.TestCase):
         self.assertEqual(relative, {"events"})
 
     def test_only_landed_derivation_consumers_import_spec(self):
-        """**接入白名单**：目前允许 `mapping.py`（D1）与 `config/defaults.py`（D3）。
+        """**接入白名单**：`mapping.py`（D1）、`config/defaults.py`（D3）、`manager.py`（D2）。
 
-        D2（`manager` 构建器注册）落地时把 `manager.py` 加进来；任何**未在计划内**的
-        模块 import 事件规格都在此拦截。
+        步 B 的三处派生均已落地；任何**未在计划内**的模块 import 事件规格都在此拦截。
         """
         allowed = {
             "pilotstd/core/notification/mapping.py",
             "pilotstd/core/config/defaults.py",
+            "pilotstd/core/notification/manager.py",
         }
         self_relative = SPEC_FILE.relative_to(ROOT).as_posix()
         this_file = Path(__file__).resolve().relative_to(ROOT).as_posix()

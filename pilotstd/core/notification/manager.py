@@ -15,54 +15,12 @@ from . import _json_codec
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
 from ._manager_ops import NotificationOps
-from ._message_builders import (
-    _build_announce_fetch_summary_message,
-    _build_announcement_check_complete_message,
-    _build_announcement_fetch_complete_message,
-    _build_announcement_fetch_failed_message,
-    _build_archive_abandoned_message,
-    _build_archive_complete_message,
-    _build_archive_failed_message,
-    _build_auto_backup_message,
-    _build_auto_scan_failed_message,
-    _build_batch_download_complete_message,
-    _build_batch_query_summary_message,
-    _build_date_reminder_message,
-    _build_download_complete_message,
-    _build_download_failed_message,
-    _build_download_started_message,
-    _build_expire_standard_moved_message,
-    _build_fallback_message,
-    _build_favorite_abandoned_summary_message,
-    _build_favorite_created_message,
-    _build_image_update_available_message,
-    _build_normalize_complete_message,
-    _build_normalize_failed_message,
-    _build_notification_credential_changed_message,
-    _build_notification_delivery_failed_message,
-    _build_query_empty_message,
-    _build_query_failed_message,
-    _build_quota_exhausted_message,
-    _build_replacement_not_found_message,
-    _build_scan_complete_message,
-    _build_scan_empty_message,
-    _build_security_login_failed_message,
-    _build_security_password_changed_message,
-    _build_security_token_refreshed_message,
-    _build_standard_first_registered_message,
-    _build_standard_status_changed_message,
-    _build_task_execution_failed_message,
-    _build_trust_ip_update_message,
-    _build_validity_batch_report_message,
-    _build_validity_round_summary_message,
-    _build_validity_standard_failed_message,
-    _build_validity_system_failed_message,
-    _build_worker_error_message,
-)
+from ._message_builders import _build_fallback_message
 from ._policy import NotificationPolicyHelper
 from .channel import NotificationMessage
 from .channel_spec import CHANNEL_SPECS, channel_class
 from .delivery_health import NotificationDeliveryHealth
+from .event_spec import EVENT_SPECS
 from .specs import specs_to_jsonable
 
 logger = logging.getLogger(__name__)
@@ -506,55 +464,18 @@ class NotificationManager:
 
     def _init_event_builders(self) -> None:
         """初始化事件类型 → 消息构建函数的映射表。"""
-        self._EVENT_BUILDERS = {
-            "archive_complete": _build_archive_complete_message,
-            "standard_status_changed": _build_standard_status_changed_message,
-            "standard_first_registered": _build_standard_first_registered_message,
-            "announcement_fetch_complete": _build_announcement_fetch_complete_message,
-            "announce_fetch_summary": _build_announce_fetch_summary_message,
-            "auto_backup": _build_auto_backup_message,
-            "announcement_check_complete": _build_announcement_check_complete_message,
-            "batch_download_complete": _build_batch_download_complete_message,
-            "auto_scan_failed": _build_auto_scan_failed_message,
-            "validity_batch_report": _build_validity_batch_report_message,
-            "validity_round_summary": _build_validity_round_summary_message,
-            "validity_standard_failed": _build_validity_standard_failed_message,
-            "validity_system_failed": _build_validity_system_failed_message,
-            "image_update_available": _build_image_update_available_message,
-            "batch_query_summary": _build_batch_query_summary_message,
-            "trust_ip_update": _build_trust_ip_update_message,
-            "worker_error": _build_worker_error_message,
-            "download_failed": _build_download_failed_message,
-            "archive_abandoned": _build_archive_abandoned_message,
-            "favorite_created": _build_favorite_created_message,
-            "favorite_abandoned_summary": _build_favorite_abandoned_summary_message,
-            "notification_delivery_failed": _build_notification_delivery_failed_message,
-            "download_started": _build_download_started_message,
-            "download_complete": _build_download_complete_message,
-            "normalize_complete": _build_normalize_complete_message,
-            "scan_complete": _build_scan_complete_message,
-            "task_execution_failed": _build_task_execution_failed_message,
-            "date_reminder": _build_date_reminder_message,
-            "scan_empty": _build_scan_empty_message,
-            "query_failed": _build_query_failed_message,
-            "query_empty": _build_query_empty_message,
-            "archive_failed": _build_archive_failed_message,
-            "announcement_fetch_failed": _build_announcement_fetch_failed_message,
-            "normalize_failed": _build_normalize_failed_message,
-            "expire_standard_moved": _build_expire_standard_moved_message,
-            "replacement_not_found": _build_replacement_not_found_message,
-            "quota_exhausted": _build_quota_exhausted_message,
-            "notification_credential_changed": _build_notification_credential_changed_message,
-            "security_password_changed": _build_security_password_changed_message,
-            "security_token_refreshed": _build_security_token_refreshed_message,
-            "security_login_failed": _build_security_login_failed_message,
-        }
+        # 注册表由**事件规格派生**（2026-10-03 派生批次）：键 → 构建器函数；
+        # 构建器位置以静态指针登记，此处经只读属性延迟解析（进程内模块首次加载后复用）。
+        self._EVENT_BUILDERS = {s.key: s.builder for s in EVENT_SPECS}
 
     def _build_message(self, event_type: str, data: dict) -> NotificationMessage:
         """根据事件类型查找构建器生成通知消息，找不到则用兜底构建器。"""
         builder = self._EVENT_BUILDERS.get(event_type)
         if builder is not None:
-            return builder(data)
+            # 注册表由规格派生，取值的静态类型较宽（未定型）；用具名类型局部变量
+            # 收口，避免把未定型值直接返回（不使用忽略指令或强制转换）。
+            message: NotificationMessage = builder(data)
+            return message
         return _build_fallback_message(event_type, data)
 
     # ── 日志：实现见 _manager_ops.NotificationOps，此处保留同名方法作为内部 API ──

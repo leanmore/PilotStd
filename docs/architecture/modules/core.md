@@ -40,14 +40,14 @@ pilotstd/core/
 │                              #   enabled+cron；2026-09-25 补登 auto_archive_retry_*）
 │
 ├── notification/              # 通知系统
-│   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行）
+│   ├── manager.py             # NotificationManager：事件 → 渠道分发 + 聚合装配（**包根改为惰性导出**，见下行；**构建器注册表由 `event_spec` 派生**，2026-10-03 步 B D2，有效行 481 → 397）
 │   ├── __init__.py            # 包根惰性导出：`NotificationManager` 改为**取用时才 import**（2026-10-03 步 B D3）——此前"导入本包"即拖入通知全栈（构建器/渠道/凭证），`config/defaults` 派生订阅规则时会被牵连；现 import 期只剩 channel/events 链
 │   ├── _manager_ops.py        # 日志/查询/清理/WS 广播（组合式 NotificationOps，2026-09-26 拆出）
 │   ├── channels/              # wechat / feishu / dingtalk / telegram 渠道适配
 │   ├── aggregate_buffer.py    # 聚合缓冲（窗口内合并同类事件）
 │   ├── channel.py / events.py / _policy.py / _credentials.py
 │   ├── channel_spec.py        # 四渠道声明的唯一来源（键/字段/掩码/控件形态/状态规则，2026-10-03 步 A C1）
-│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1 起由 `mapping`、D3 起由 `config/defaults` 接入**；D2＝manager 构建器注册顺延至 D4/D6 批次）
+│   ├── event_spec.py          # 41 个事件声明的唯一来源（15 字段：投影/构建器指针/文案前缀/**模块 i18n 键**/默认渠道/级别/触发文件/载荷键/审计标志/聚合**ASCII 枚举**；2026-10-03 步 B，**D1/D2/D3 均已接入**：mapping / manager / config-defaults）
 │   ├── blocks.py / renderer.py / desktop_formatter.py / _format_utils.py
 │   ├── _builders_batch.py / _builders_system.py / _builders_validity.py
 │   ├── _builders_task_results.py  # 扫描/查询/归档/规范化/状态迁移/公告抓取类模板（2026-09-26 拆出）
