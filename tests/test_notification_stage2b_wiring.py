@@ -48,6 +48,8 @@ _STAGE_1C_COLUMNS = ["actions", "callback_data", "attachments", "channel_message
 
 # 2b 之前（1c 起）INSERT 的完整列集合——本批 stage=1 下必须逐列相同
 _SNAPSHOT_BEFORE_2B = _LEGACY_COLUMNS + _STAGE_1A_COLUMNS + _STAGE_1B_COLUMNS + _STAGE_1C_COLUMNS
+# 阶段 2.5a：INSERT 再增 task_kind 一列（标量，非 JSON）
+_SNAPSHOT_AFTER_2_5A = _SNAPSHOT_BEFORE_2B + ["task_kind"]
 
 _PAYLOAD = {"total": 3, "success": 3, "failed": 0, "failed_files": []}
 
@@ -104,7 +106,7 @@ class TestZeroChangeBaseline(_SendEventHarness):
         mgr, db = self._make()
         self._send(mgr, stage="1")
         cols, row = self._log_insert(db)
-        self.assertEqual(cols, _SNAPSHOT_BEFORE_2B)
+        self.assertEqual(cols, _SNAPSHOT_AFTER_2_5A)
         # 旧 11 列逐列断言（沿用 1a/1b/1c 判据；标题取自真实 builder 的产出）
         self.assertEqual(row["event_type"], "scan_complete")
         self.assertEqual(row["channel"], "wechat")
@@ -191,8 +193,8 @@ class TestStageTwoAppliesProjection(_SendEventHarness):
 
         changed = {c for c in cols if row1[c] != row2[c]}
         # sent_at 是当前时间戳，两次发送必然不同 → 允许；
-        # 其余差异**只允许**是 notify_event / content_type 两列
-        self.assertEqual(changed - {"sent_at"}, {"notify_event", "content_type"})
+        # 其余差异**只允许**是三个投影列（2.5a 起 task_kind 也随 stage 变化）
+        self.assertEqual(changed - {"sent_at"}, {"notify_event", "content_type", "task_kind"})
 
     def test_unknown_event_still_sent(self):
         """未知事件 → 投影为空，但通知**照发**（回退语义）。"""
@@ -306,81 +308,126 @@ class TestWiringBoundaries(unittest.TestCase):
                 offenders.append(str(path))
         self.assertEqual(offenders, [], f"mapping/stage 不应被其它生产模块引用: {offenders}")
 
-    def test_message_model_unchanged_in_this_batch(self):
-        """★ 本批**不**新增消息字段：`task_kind` 只存在于投影结果，不在 NotificationMessage 上。
-
-        理由：用户裁决的接入范围只列了 notify_event / content_type；给消息加字段
-        需同批加迁移/白名单/列，属独立批次。此断言防止"顺手加字段"。
-        """
+    def test_task_kind_now_a_message_field(self):
+        """★ 阶段 2.5a 起 `task_kind` **是**消息字段并在队列白名单内（2b 期间相反）。"""
         from pilotstd.core.notification.channel import NotificationMessage
-
-        self.assertFalse(hasattr(NotificationMessage(title="t"), "task_kind"))
         from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
 
-        self.assertNotIn("task_kind", _QUEUE_MESSAGE_FIELDS)
+        self.assertTrue(hasattr(NotificationMessage(title="t"), "task_kind"))
+        self.assertIn("task_kind", _QUEUE_MESSAGE_FIELDS)
 
 
-class TestTaskKindAntiCorrosion(unittest.TestCase):
-    """`task_kind` 防腐化（2026-10-02 裁决：消费点是阶段 2.5，此前保持"算而不落"）。
+class TestTaskKindPersisted(unittest.TestCase):
+    """`task_kind` **已落地**（阶段 2.5a 翻转闸门后的"必须落库"断言）。
 
-    三道防护的**可执行部分**：一旦有人提前把 `task_kind` 落库或加进队列白名单，
-    本类即 FAIL。另两道（`mapping.py` 定义处注明消费时点、`03-实施路径.md` 列入
-    阶段 2.5 必做项）是文档侧防护，由 `test_consume_point_documented_in_sources` 校验存在性。
+    演化：2a/2b 期间本类是 `TestTaskKindAntiCorrosion`（锁"不得落库"），
+    2.5a 按裁决**逐条翻转**为"必须落库"——闸门按设计主动拦下了 2.5a 的实现，
+    这正是闸门有效的证明（见提交信息与交付报告的判别力留痕）。
     """
 
-    def test_not_persisted_to_notification_log(self):
-        """★ `task_kind` 不得出现在 notification_log 的 INSERT 里。"""
+    def test_persisted_to_notification_log(self):
+        """★ `task_kind` 必须出现在 notification_log 的 INSERT 列里。"""
         from pathlib import Path
 
         src = Path("pilotstd/core/notification/_manager_ops.py").read_text(encoding="utf-8")
         insert = src.split("INSERT INTO notification_log", 1)[1].split("VALUES", 1)[0]
-        self.assertNotIn("task_kind", insert, "task_kind 提前落库了（消费点应为阶段 2.5）")
+        self.assertIn("task_kind", insert)
 
-    def test_not_in_queue_whitelist(self):
-        """★ `task_kind` 不得进 `_QUEUE_MESSAGE_FIELDS`（否则静音补发会带上它）。"""
+    def test_in_queue_whitelist(self):
+        """★ 必须进 `_QUEUE_MESSAGE_FIELDS`——否则静音补发会静默丢失（1a/1b/1c 同类缺陷）。"""
         from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
 
-        self.assertNotIn("task_kind", _QUEUE_MESSAGE_FIELDS)
+        self.assertIn("task_kind", _QUEUE_MESSAGE_FIELDS)
 
-    def test_not_a_message_field(self):
-        """★ `NotificationMessage` 不得有 `task_kind` 字段。"""
+    def test_is_a_message_field(self):
+        """★ `NotificationMessage` 必须有 `task_kind` 字段，默认空串（未设置语义）。"""
         from pilotstd.core.notification.channel import NotificationMessage
 
-        self.assertFalse(hasattr(NotificationMessage(title="t"), "task_kind"))
+        self.assertTrue(hasattr(NotificationMessage(title="t"), "task_kind"))
+        self.assertEqual(NotificationMessage(title="t").task_kind, "")
 
-    def test_not_a_table_column(self):
-        """★ `notification_log` 不得有 task_kind 列（经真实迁移链产出的 schema 校验）。
-
-        注：**不写条件 skipTest**——本仓的 `tests/test_skip_census.py` 把全库
-        `self.skipTest` 静态调用数锁为固定基线，新增一处即失败。此处的防御本来也多余
-        （本文件顶层已成功 import 数据库模块）。
-        """
+    def test_is_a_table_column(self):
+        """★ 真实迁移链产出的 schema 里必须有 task_kind 列（TEXT）。"""
         import shutil
         import tempfile
         from pathlib import Path
 
         from pilotstd.core.db import Database
 
-        d = tempfile.mkdtemp(prefix="tk_anticor_")
+        d = tempfile.mkdtemp(prefix="tk_persist_")
         try:
             db = Database(str(Path(d) / "p.db"))
-            cols = [r[1] for r in db._get_conn().execute("PRAGMA table_info(notification_log)")]
+            cols = {r[1]: r[2] for r in db._get_conn().execute("PRAGMA table_info(notification_log)")}
             db.close()
         finally:
             shutil.rmtree(d, ignore_errors=True)
-        self.assertNotIn("task_kind", cols)
+        self.assertIn("task_kind", cols)
+        self.assertEqual(cols["task_kind"], "TEXT")
 
     def test_consume_point_documented_in_sources(self):
-        """文档侧两道防护：mapping.py 定义处 + 03-实施路径.md 阶段 2.5 必做项。"""
+        """文档侧防护：`mapping.py` 与 `03-实施路径.md` 均写明**双 SSOT** 与单向翻译约定。"""
         from pathlib import Path
 
         mapping_src = Path("pilotstd/core/notification/mapping.py").read_text(encoding="utf-8")
-        self.assertIn("消费时点", mapping_src)
-        self.assertIn("算而不落", mapping_src)
+        self.assertIn("双 SSOT", mapping_src)
+        self.assertIn("只做单向", mapping_src)
+        self.assertIn("不提供反向函数", mapping_src)
+        self.assertIn("TASK_KIND_TO_TASK_TYPE", mapping_src)
 
         plan_src = Path("docs/plans/notification-redesign/03-实施路径.md").read_text(encoding="utf-8")
         self.assertIn("阶段 2.5 必做项", plan_src)
-        self.assertIn("task_kind", plan_src)
+        self.assertIn("双 SSOT", plan_src)
+
+
+class TestTaskKindMappingTable(unittest.TestCase):
+    """单向映射表 `task_kind → task_type`（双 SSOT 翻译，**无反向**）。"""
+
+    def test_covers_all_task_kinds(self):
+        """九值 `TASK_KINDS` 全部有对应（无遗漏）。"""
+        from pilotstd.core.notification.mapping import TASK_KINDS, TASK_KIND_TO_TASK_TYPE
+
+        self.assertEqual(set(TASK_KINDS), set(TASK_KIND_TO_TASK_TYPE))
+
+    def test_targets_are_valid_task_types(self):
+        """映射目标必须落在 `TaskType` 值域内（不得发明不存在的队列类型）。"""
+        from pilotstd.core.notification.mapping import TASK_KIND_TO_TASK_TYPE
+        from pilotstd.task.models import TaskType
+
+        valid = {t.value for t in TaskType}
+        self.assertTrue(set(TASK_KIND_TO_TASK_TYPE.values()) <= valid)
+
+    def test_same_name_pairs_are_identity(self):
+        """三个同名同义项必须自映射（否则是笔误）。"""
+        from pilotstd.core.notification.mapping import TASK_KIND_TO_TASK_TYPE
+
+        for k in ("scan", "query", "organize"):
+            with self.subTest(task_kind=k):
+                self.assertEqual(TASK_KIND_TO_TASK_TYPE[k], k)
+
+    def test_known_gap_is_documented(self):
+        """已知缺口：`TaskType.expire` 无 task_kind 对应（无"到期处理"类通知语义）。
+
+        本用例把它**显式记录**而非默默忽略——一旦将来补上，本用例会失败并提醒更新文档。
+        """
+        from pilotstd.core.notification.mapping import TASK_KIND_TO_TASK_TYPE
+        from pilotstd.task.models import TaskType
+
+        unmapped = {t.value for t in TaskType} - set(TASK_KIND_TO_TASK_TYPE.values())
+        self.assertEqual(unmapped, {"expire"})
+
+    def test_no_reverse_function(self):
+        """★ **不得提供反向函数**（一对多必然要猜，属后门）。"""
+        from pilotstd.core.notification import mapping
+
+        reverse_names = [n for n in dir(mapping) if "task_type_to" in n.lower()]
+        self.assertEqual(reverse_names, [], f"出现反向翻译函数: {reverse_names}")
+
+    def test_unknown_returns_empty(self):
+        """未知 task_kind（含空串）→ `""`（回退语义，与 `project()` 同口径）。"""
+        from pilotstd.core.notification.mapping import task_kind_to_task_type
+
+        self.assertEqual(task_kind_to_task_type("nope"), "")
+        self.assertEqual(task_kind_to_task_type(""), "")
 
 
 if __name__ == "__main__":
