@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from docker.auth import COOKIE_NAME, SECRET, AuthMiddleware
 from docker.manager import get_manager_dep
 from docker.session_store import get_session_store
+from pilotstd.core.notification.channel import NotificationMessage
 
 
 def _make_token(role: str) -> str:
@@ -80,30 +81,11 @@ class TestQuietHours(unittest.TestCase):
         cfg.get.side_effect = _cfg_get
         mock_db = MagicMock()
         mgr = self.NotificationManager(cfg, mock_db, user_id=1)
-        msg = MagicMock()
-        msg.event_type = "test"
-        msg.title = "T"
-        msg.body = "B"
-        msg.level = "info"
-        msg.link = None
-        msg.icon = None
-        # 阶段 1a/1b/1c：_enqueue_notification 会把通知身份、任务视角与交互字段
-        # 一并写入 JSON，故 MagicMock 的 msg 必须给出这些属性——否则 json.dumps 遇到
-        # Mock 会抛 TypeError（含 task_context / channel_message_ids 这类必须为真容器的字段；
-        # actions / attachments 需为真列表，否则 specs_to_jsonable 会把元素丢弃后得到空槽）。
-        # 真实 NotificationMessage 有默认值，这里是**测试替身**需要补齐。
-        msg.message_id = ""
-        msg.correlation_id = ""
-        msg.delivery_status = "pending"
-        msg.ack_status = "none"
-        msg.task_id = ""
-        msg.notify_event = ""
-        msg.content_type = ""
-        msg.task_context = {}
-        msg.actions = []
-        msg.callback_data = ""
-        msg.attachments = []
-        msg.channel_message_ids = {}
+        # 直接使用**真实的 NotificationMessage**（它有全套默认值）。
+        # 历史教训：1a/1b/1c 三批各自都要为 MagicMock 替身补一次新字段属性
+        # （否则 _enqueue_notification 的 json.dumps 遇到 Mock 抛 TypeError），
+        # 三次假红根因相同。此处一次性消除——后续再加字段无需改本用例。
+        msg = NotificationMessage(title="T", body="B", level="info", event_type="test")
         mgr._enqueue_notification(msg, ["wechat"])
         # 验证 db.execute 被调用且 SQL 含 INSERT INTO notification_queue
         calls = [str(c) for c in mock_db.execute.call_args_list]
