@@ -19,6 +19,8 @@
 | [dual-end-investigation/01-architecture-recon.md](dual-end-investigation/01-architecture-recon.md) | **PilotStd 双端架构实测**（`pilotstd/` 与 `docker/` 依赖关系、Windows 端信号呈现机制、41 事件分端归属：Docker 25／两端 15／Windows 1） | 🔍 侦察完成（**不含方案**） |
 | [dual-end-investigation/02-cli-and-signal-path.md](dual-end-investigation/02-cli-and-signal-path.md) | **双端报告澄清**（CLI 定位推断 + Windows 任务中心判定 + 共享事件信号链路 + 共享重统计；含对 01 报告的 2 处修正声明） | 🔍 澄清完成（**不含方案、不裁决定位**） |
 | [notification-system-design/00-framework.md](notification-system-design/00-framework.md) | **通知系统方案框架**（回答 6 个决策问题：Docker 通知清单 / 旧设计重审 / Windows 端方向 / 技术发现处置 / MoviePilot 学与不学 / 实施路径 + 11 项待裁决） | 📐 **待批准**（方向审批用，不含实施细节） |
+| [notification-system-design/01-channel-capabilities.md](notification-system-design/01-channel-capabilities.md) | **四渠道双向形态能力调查**（钉钉/企微/飞书/Telegram × 7 维度；证据等级标注 + 8 项缺口清单；结论：当前 4 渠道均为低端形态） | 🔍 调查完成（**不含方案**） |
+| [notification-system-design/02-framework-update.md](notification-system-design/02-framework-update.md) | **框架更新 + 分档通知策略初版**（6 项裁决录入 + 2 处更正 + 阶段 3 重定义 + 四档策略（阈值基于实测耗时）+ 5 项新待裁决） | 📐 **待批准**（方向审批用） |
 
 ---
 
