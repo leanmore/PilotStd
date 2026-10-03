@@ -1,0 +1,132 @@
+# tests/test_notification_stage2a_stage.py
+"""阶段 2a（2026-10-02）：`stage.py` 阶段开关（建立机制，本批不消费）。
+
+## 判据
+
+1. **未设环境变量 → 默认值 = `HIGHEST_STABLE_STAGE`**（本批为 `1`）；
+2. **合法值**：`0`/`1`/`2`/`2.5`/`3`/`4`（含字符串形态与 `2.0` 等价形态）；
+3. **非法值**（`"abc"` / `"9"` / `"2.6"` / `"-1"`）→ **回退默认值 + warning**，不抛；
+4. **空值**（`""` / `"   "`）→ 视为未设置；
+5. **谓词**：`is_mapping_enabled()`（≥2）、`is_aggregation_key_v2()`（≥2.5）、
+   `is_interaction_enabled()`（≥3）在边界值上的取值正确；
+6. **默认安全**：本批默认（1）下三个谓词**全为假**——即新能力一个都没开。
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from pilotstd.core.notification.stage import (  # noqa: E402
+    ENV_STAGE,
+    HIGHEST_STABLE_STAGE,
+    KNOWN_STAGES,
+    current_stage,
+    is_aggregation_key_v2,
+    is_interaction_enabled,
+    is_mapping_enabled,
+)
+
+
+class TestCurrentStage(unittest.TestCase):
+    def test_default_when_unset(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(ENV_STAGE, None)
+            self.assertEqual(current_stage(), HIGHEST_STABLE_STAGE)
+
+    def test_default_is_one_for_this_batch(self):
+        """2a 交付后仍为 1（2a 是纯新增、未接入 send_event，故默认不能跳到 2）。"""
+        self.assertEqual(HIGHEST_STABLE_STAGE, 1.0)
+
+    def test_known_stages_set(self):
+        self.assertEqual(set(KNOWN_STAGES), {0.0, 1.0, 2.0, 2.5, 3.0, 4.0})
+
+    def test_valid_values(self):
+        for raw, expected in (("0", 0.0), ("1", 1.0), ("2", 2.0), ("2.5", 2.5), ("3", 3.0), ("4", 4.0)):
+            with self.subTest(raw=raw):
+                with patch.dict(os.environ, {ENV_STAGE: raw}):
+                    self.assertEqual(current_stage(), expected)
+
+    def test_float_equivalence(self):
+        """`2` 与 `"2.0"` 等价（数值比较，不按字符串比较）。"""
+        with patch.dict(os.environ, {ENV_STAGE: "2.0"}):
+            self.assertEqual(current_stage(), 2.0)
+
+    def test_whitespace_tolerated(self):
+        with patch.dict(os.environ, {ENV_STAGE: "  2.5  "}):
+            self.assertEqual(current_stage(), 2.5)
+
+    def test_empty_means_unset(self):
+        for raw in ("", "   "):
+            with self.subTest(raw=repr(raw)):
+                with patch.dict(os.environ, {ENV_STAGE: raw}):
+                    self.assertEqual(current_stage(), HIGHEST_STABLE_STAGE)
+
+    def test_invalid_values_fall_back_with_warning(self):
+        """★ 非法值：回退默认 + warning，**不抛**（基础设施开关不该让链路起不来）。"""
+        for raw in ("abc", "9", "2.6", "-1", "2,5", "阶段2"):
+            with self.subTest(raw=raw):
+                with patch.dict(os.environ, {ENV_STAGE: raw}):
+                    with self.assertLogs("pilotstd.core.notification.stage", level="WARNING"):
+                        self.assertEqual(current_stage(), HIGHEST_STABLE_STAGE)
+
+    def test_never_raises(self):
+        for raw in ("abc", "9", "2.6", "", "  ", "nan", "inf", "1e309"):
+            with self.subTest(raw=raw):
+                with patch.dict(os.environ, {ENV_STAGE: raw}):
+                    try:
+                        current_stage()
+                    except Exception as e:  # noqa: BLE001
+                        self.fail(f"current_stage 不得抛异常：{raw!r} → {type(e).__name__}: {e}")
+
+
+class TestPredicates(unittest.TestCase):
+    CASES = (
+        # (环境值, mapping, agg_v2, interaction)
+        ("0", False, False, False),
+        ("1", False, False, False),  # ← 本批默认：三个谓词全假（新能力一个都没开）
+        ("2", True, False, False),
+        ("2.5", True, True, False),
+        ("3", True, True, True),
+        ("4", True, True, True),
+    )
+
+    def test_boundaries(self):
+        for raw, mapping, agg_v2, interaction in self.CASES:
+            with self.subTest(stage=raw):
+                with patch.dict(os.environ, {ENV_STAGE: raw}):
+                    self.assertEqual(is_mapping_enabled(), mapping)
+                    self.assertEqual(is_aggregation_key_v2(), agg_v2)
+                    self.assertEqual(is_interaction_enabled(), interaction)
+
+    def test_default_disables_everything(self):
+        """★ 默认值下的安全性：未配置环境变量时，三个新能力全部关闭。"""
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(ENV_STAGE, None)
+            self.assertFalse(is_mapping_enabled())
+            self.assertFalse(is_aggregation_key_v2())
+            self.assertFalse(is_interaction_enabled())
+
+
+class TestNotConsumedYet(unittest.TestCase):
+    """本批的边界：`stage.py` 是机制，2a 里**没有任何生产代码消费它**。"""
+
+    def test_no_production_consumer_in_this_batch(self):
+        from pathlib import Path
+
+        consumers: list[str] = []
+        for path in Path("pilotstd").rglob("*.py"):
+            if path.name == "stage.py":
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "notification.stage" in text or "from .stage import" in text:
+                consumers.append(str(path))
+        self.assertEqual(consumers, [], f"2a 不应有生产代码消费 stage.py（属 2b+）: {consumers}")
+
+
+if __name__ == "__main__":
+    unittest.main()
