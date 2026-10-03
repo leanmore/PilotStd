@@ -12,6 +12,7 @@ from typing import Any, Optional, cast
 from pilotstd.i18n import t
 
 from ..db import Database
+from . import _json_codec
 from ._credentials import CredentialHelper
 from ._format_utils import do_test_send, format_standard_status_changed_aggregated
 from ._manager_ops import NotificationOps
@@ -99,6 +100,11 @@ _QUEUE_MESSAGE_FIELDS = (
     "correlation_id",
     "delivery_status",
     "ack_status",
+    # 阶段 1b：任务视角（task_context 是 dict，落库/还原由 _json_codec 负责，
+    # 故它虽在 JSON 里但**不**列入本标量白名单——见 release_suppressed_notifications）
+    "task_id",
+    "notify_event",
+    "content_type",
 )
 
 
@@ -442,19 +448,12 @@ class NotificationManager:
             scheduled += timedelta(days=1)
         event_data = json.dumps(
             {
-                "event_type": msg.event_type,
-                "title": msg.title,
-                "body": msg.body,
-                "level": msg.level,
-                "link": msg.link,
-                "icon": msg.icon,
-                # 阶段 1a：通知身份字段必须随队列入库，
-                # 否则静音时段补发后 message_id/correlation_id 会**静默丢失**
-                # （写入侧与重建侧由同一常量 _QUEUE_MESSAGE_FIELDS 约束，防两侧漂移）
-                "message_id": msg.message_id,
-                "correlation_id": msg.correlation_id,
-                "delivery_status": msg.delivery_status,
-                "ack_status": msg.ack_status,
+                # 写入键集合由 _QUEUE_MESSAGE_FIELDS 驱动（**唯一数据源**）：
+                # 与重建侧共用同一常量，根治"两份字面量漂移"——新增字段只需改常量，
+                # 两侧自动同步（阶段 1a 起；1b 加入任务视角 4 字段）。
+                **{f: getattr(msg, f) for f in _QUEUE_MESSAGE_FIELDS},
+                # 非标量字段单独走编解码模块转 JSON 文本（SQLite 无原生 JSON 类型）
+                "task_context": _json_codec.dumps(msg.task_context),
                 "channels": target_channels,
             },
             ensure_ascii=False,
@@ -483,10 +482,13 @@ class NotificationManager:
                 channels = data.pop("channels", [])
                 # 白名单重建：**必须**与 _enqueue_notification 的写入键保持一致，
                 # 否则新字段在补发路径被静默丢弃（只在静音时段暴露，最难发现）。
-                # 契约由 tests/test_notification_manager.py::TestSuppressedQueueFieldRoundTrip 锁定。
-                msg = NotificationMessage(
-                    **{k: v for k, v in data.items() if k in _QUEUE_MESSAGE_FIELDS}
-                )
+                # 契约由 tests/test_notification_stage1b_fields.py::TestQueueJsonRoundTrip 锁定。
+                fields = {k: v for k, v in data.items() if k in _QUEUE_MESSAGE_FIELDS}
+                # task_context 是 dict：库中为 JSON 文本，需还原。
+                # 缺键 / 空槽 / 非法 JSON → `loads_dict` 一律给 {}（空值约定见 _json_codec 模块
+                # docstring），显式入参保证字段类型恒为 dict，不会变成 None。
+                fields["task_context"] = _json_codec.loads_dict(data.get("task_context"))
+                msg = NotificationMessage(**fields)
                 self._send_now(msg, channels)
                 self._db.execute("UPDATE notification_queue SET status='sent' WHERE id=?", (row["id"],))
             except Exception as e:

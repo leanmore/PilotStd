@@ -274,6 +274,115 @@ class TestAggregatorCarriesTaskView(unittest.TestCase):
         self.assertEqual(sent[0].notify_event, "")
         self.assertEqual(sent[0].content_type, "")
         self.assertEqual(sent[0].task_context, {})
+class TestQueueJsonRoundTrip(unittest.TestCase):
+    """判据：补发路径（序列化 → 反序列化）4 个 1b 字段不丢，task_context 走 JSON。"""
+
+    def _manager(self):
+        from pilotstd.core.notification.manager import NotificationManager
+        from tests.fixtures.engine_mock_tree import ConfigStub
+
+        cfg = ConfigStub({"notification.enabled": False, "notification.aggregate_enabled": False})
+        db = MagicMock()
+        db.fetchone.return_value = None
+        db.fetchall.return_value = []
+        return NotificationManager(cfg, db, 1), db
+
+    def test_scalar_fields_in_whitelist_context_not(self):
+        """task_context 是 dict，**不**进标量白名单（由 _json_codec 单独处理）。"""
+        from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
+
+        for field in ("task_id", "notify_event", "content_type"):
+            self.assertIn(field, _QUEUE_MESSAGE_FIELDS, f"{field} 必须在补发白名单内")
+        self.assertNotIn("task_context", _QUEUE_MESSAGE_FIELDS)
+
+    def test_enqueue_writes_task_view(self):
+        mgr, db = self._manager()
+        mgr._cfg = MagicMock()
+        mgr._cfg.get.return_value = "07:00"
+        msg = NotificationMessage(
+            title="T",
+            event_type="scan_complete",
+            task_id="t-1",
+            notify_event="task_lifecycle",
+            content_type="list",
+            task_context=_RICH_CONTEXT,
+        )
+        mgr._enqueue_notification(msg, ["wechat"])
+
+        _sql, params = db.execute.call_args[0]
+        event_data = json.loads(params[1])
+        self.assertEqual(event_data["task_id"], "t-1")
+        self.assertEqual(event_data["notify_event"], "task_lifecycle")
+        self.assertEqual(event_data["content_type"], "list")
+        # 队列里的 task_context 是 JSON 文本（不是嵌套 dict）
+        self.assertIsInstance(event_data["task_context"], str)
+
+    def test_release_restores_task_view(self):
+        """★ 核心：写侧产出的事件数据形状 → 补发还原，逐字段相等（含嵌套上下文）。"""
+        mgr, db = self._manager()
+        captured: list[NotificationMessage] = []
+        mgr._send_now = lambda m, ch: captured.append(m)  # type: ignore[method-assign]
+
+        event_data = {
+            "event_type": "scan_complete",
+            "title": "T",
+            "body": "b",
+            "level": "info",
+            "link": None,
+            "icon": None,
+            "message_id": "",
+            "correlation_id": "",
+            "delivery_status": "suppressed",
+            "ack_status": "none",
+            "task_id": "t-1",
+            "notify_event": "task_lifecycle",
+            "content_type": "list",
+            "task_context": _json_codec.dumps(_RICH_CONTEXT),
+            "channels": ["wechat"],
+        }
+        db.fetchall.return_value = [{"id": 1, "event_type": "scan_complete", "event_data": json.dumps(event_data)}]
+
+        self.assertEqual(mgr.release_suppressed_notifications(), 1)
+        restored = captured[0]
+        self.assertEqual(restored.task_id, "t-1")
+        self.assertEqual(restored.notify_event, "task_lifecycle")
+        self.assertEqual(restored.content_type, "list")
+        self.assertEqual(restored.task_context, _RICH_CONTEXT, "★ 往返保真失败")
+
+    def test_release_tolerates_legacy_rows_without_task_context(self):
+        """旧队列数据（无 task_context 键）→ 空字典，且**不是 None**。"""
+        mgr, db = self._manager()
+        captured: list[NotificationMessage] = []
+        mgr._send_now = lambda m, ch: captured.append(m)  # type: ignore[method-assign]
+
+        legacy = {"event_type": "scan_empty", "title": "T", "body": "", "level": "info", "channels": []}
+        db.fetchall.return_value = [{"id": 2, "event_type": "scan_empty", "event_data": json.dumps(legacy)}]
+
+        self.assertEqual(mgr.release_suppressed_notifications(), 1)
+        self.assertEqual(captured[0].task_context, {})
+        self.assertIsInstance(captured[0].task_context, dict)
+
+    def test_release_tolerates_corrupted_task_context(self):
+        """★ 非法 JSON 入库（历史/外部写入）→ 回退 {}，不抛，通知照发。"""
+        mgr, db = self._manager()
+        captured: list[NotificationMessage] = []
+        mgr._send_now = lambda m, ch: captured.append(m)  # type: ignore[method-assign]
+
+        event_data = {
+            "event_type": "scan_empty",
+            "title": "T",
+            "body": "",
+            "level": "info",
+            "task_context": "{not json",
+            "channels": [],
+        }
+        db.fetchall.return_value = [{"id": 3, "event_type": "scan_empty", "event_data": json.dumps(event_data)}]
+
+        with self.assertLogs("pilotstd.core.notification._json_codec", level="WARNING"):
+            self.assertEqual(mgr.release_suppressed_notifications(), 1)
+        self.assertEqual(captured[0].task_context, {})
+
+
 class TestMigrationV63(unittest.TestCase):
     """迁移 63：幂等追加 4 列，task_context 为 TEXT，不新增 status 列。"""
 
