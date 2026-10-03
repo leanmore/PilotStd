@@ -351,7 +351,7 @@ class TestCrossLayerConsistency(unittest.TestCase):
         """模块键 / 触发文件 / 载荷键 / 级别 / 聚合策略必须逐条等于契约。
 
         口径（2026-10-03 裁决）：契约的 `module` 字段存 i18n 键、`aggregation` 存
-        ASCII 枚举，故两侧可直接比对；`mutual` 只存在于契约（规格已删该字段），不比。
+        ASCII 枚举，故两侧可直接比对；`mutual` 字段已随步 B D4 从契约删除，两侧都不登记。
         """
         e2e = _e2e_events()
         self.assertEqual(set(e2e), set(EVENT_SPEC_KEYS))

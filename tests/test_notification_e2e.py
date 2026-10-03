@@ -261,7 +261,7 @@ EVENTS: list[dict[str, Any]] = [
     # 字段口径（2026-10-03，步 B 第一子步骤）：
     # `module` 存 **i18n 键**（`notification.module.*`，文案在 pilotstd/i18n/*.json）；
     # `aggregation` 是 **ASCII 枚举**（aggregate / bypass，系统内部状态标识）；
-    # `mutual` 仅本契约自用（规格不登记互斥说明——那是设计文档的内容）。
+    # `mutual` 已于步 B D4 删除（规格不登记互斥说明——互斥关系见设计文档）。
     # ── 时效性检查 (7) ──
     {
         "name": "standard_status_changed",
@@ -272,7 +272,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_standard_status_changed_message",
         "builder_keys": {"standard_number", "old_status", "new_status", "is_expired", "changed_at"},
-        "mutual": "",
     },
     {
         "name": "standard_first_registered",
@@ -283,7 +282,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_standard_first_registered_message",
         "builder_keys": {"standard_number", "name", "standards", "detail_url", "elapsed_ms"},
-        "mutual": "",
     },
     {
         "name": "validity_batch_report",
@@ -294,7 +292,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_batch_report_message",
         "builder_keys": {"count", "changed", "failed", "adapter_status"},
-        "mutual": "",
     },
     {
         "name": "validity_round_summary",
@@ -305,7 +302,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_round_summary_message",
         "builder_keys": {"round", "total_checks", "total_changes", "total_failures", "change_list"},
-        "mutual": "",
     },
     {
         "name": "validity_standard_failed",
@@ -316,7 +312,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_standard_failed_message",
         "builder_keys": {"standard_number", "error"},
-        "mutual": "",
     },
     {
         "name": "validity_system_failed",
@@ -327,7 +322,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_validity.py",
         "builder_method": "_build_validity_system_failed_message",
         "builder_keys": {"error"},
-        "mutual": "",
     },
     # ── 扫描/导入 (3) ──
     {
@@ -339,7 +333,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_scan_complete_message",
         "builder_keys": {"count", "failed"},
-        "mutual": "互斥: scan_empty",
     },
     {
         "name": "scan_empty",
@@ -350,7 +343,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_scan_empty_message",
         "builder_keys": set(),
-        "mutual": "互斥: scan_complete",
     },
     {
         "name": "auto_scan_failed",
@@ -361,7 +353,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_auto_scan_failed_message",
         "builder_keys": {"path", "error"},
-        "mutual": "",
     },
     # ── 查询 (3) ──
     {
@@ -373,7 +364,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_batch_query_summary_message",
         "builder_keys": {"total", "found", "pending", "results"},
-        "mutual": "互斥: query_empty",
     },
     {
         "name": "query_failed",
@@ -384,7 +374,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_query_failed_message",
         "builder_keys": {"standard_number", "error"},
-        "mutual": "",
     },
     {
         "name": "query_empty",
@@ -395,7 +384,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_query_empty_message",
         "builder_keys": {"total"},
-        "mutual": "互斥: batch_query_summary",
     },
     # ── 下载 (2) ──
     {
@@ -407,7 +395,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_batch_download_complete_message",
         "builder_keys": {"success", "failed", "skipped"},
-        "mutual": "",
     },
     {
         "name": "download_failed",
@@ -418,7 +405,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_failed_message",
         "builder_keys": {"standard_number", "error"},
-        "mutual": "",
     },
     # ── 规范化 (2) ──
     {
@@ -430,7 +416,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_normalize_complete_message",
         "builder_keys": {"total", "success", "failed"},
-        "mutual": "",
     },
     {
         "name": "normalize_failed",
@@ -441,7 +426,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_normalize_failed_message",
         "builder_keys": {"total", "error"},
-        "mutual": "",
     },
     # ── 归档 (4) ──
     {
@@ -453,7 +437,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_archive_complete_message",
         "builder_keys": {"count", "directories", "standard_number", "status", "target_id", "elapsed_ms"},
-        "mutual": "count=0 时也触发（archive_empty 未独立）",
     },
     {
         "name": "archive_failed",
@@ -464,7 +447,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_archive_failed_message",
         "builder_keys": {"count", "error"},
-        "mutual": "",
     },
     {
         "name": "archive_abandoned",
@@ -475,7 +457,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_archive_abandoned_message",
         "builder_keys": {"standard_info", "error"},
-        "mutual": "",
     },
     {
         "name": "expire_standard_moved",
@@ -486,7 +467,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_expire_standard_moved_message",
         "builder_keys": {"standard_number", "target_path"},
-        "mutual": "",
     },
     # ── 公告 (3) ──
     {
@@ -498,7 +478,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_announcement_fetch_complete_message",
         "builder_keys": {"count", "source"},
-        "mutual": "",
     },
     {
         "name": "announcement_check_complete",
@@ -517,7 +496,6 @@ EVENTS: list[dict[str, Any]] = [
             "total_standards",
             "failures",
         },
-        "mutual": "",
     },
     {
         "name": "announcement_fetch_failed",
@@ -528,7 +506,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_announcement_fetch_failed_message",
         "builder_keys": {"source", "error"},
-        "mutual": "",
     },
     {
         "name": "announce_fetch_summary",
@@ -539,7 +516,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_announce_fetch_summary_message",
         "builder_keys": {"adapters", "total_count", "has_error"},
-        "mutual": "",
     },
     # ── 废止处理 (1, 含在归档模块的 expire_standard_moved 已列) ──
     {
@@ -551,7 +527,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_replacement_not_found_message",
         "builder_keys": {"standard_number", "searched_sources"},
-        "mutual": "",
     },
     # ── 系统运维 (5) ──
     {
@@ -563,7 +538,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_auto_backup_message",
         "builder_keys": {"success", "backup_path", "size_mb", "error"},
-        "mutual": "",
     },
     {
         "name": "image_update_available",
@@ -574,7 +548,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_image_update_available_message",
         "builder_keys": {"error", "old_digest", "new_digest", "release_notes"},
-        "mutual": "",
     },
     {
         "name": "worker_error",
@@ -585,7 +558,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_worker_error_message",
         "builder_keys": {"worker", "error", "traceback"},
-        "mutual": "",
     },
     {
         "name": "task_execution_failed",
@@ -596,7 +568,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_task_execution_failed_message",
         "builder_keys": {"task_name", "error"},
-        "mutual": "",
     },
     {
         "name": "quota_exhausted",
@@ -607,7 +578,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_quota_exhausted_message",
         "builder_keys": {"site_name", "quota_limit", "reset_time"},
-        "mutual": "",
     },
     # ── 用户交互 (1) ──
     {
@@ -619,7 +589,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_task_results.py",
         "builder_method": "_build_date_reminder_message",
         "builder_keys": {"standard_number", "std_name", "days_before", "remind_type"},
-        "mutual": "",
     },
     # ── 其他 (1) ──
     {
@@ -631,7 +600,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_trust_ip_update_message",
         "builder_keys": {"title", "body", "ip", "update_time", "status"},
-        "mutual": "",
     },
     # ── 收藏链 (3, Phase 2 新增) ──
     {
@@ -643,7 +611,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_favorite_created_message",
         "builder_keys": {"user_id", "record_id", "standard_no", "standard_name"},
-        "mutual": "",
     },
     {
         "name": "download_started",
@@ -654,7 +621,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_started_message",
         "builder_keys": {"user_id", "standard_number", "favorite_id"},
-        "mutual": "",
     },
     {
         "name": "download_complete",
@@ -665,7 +631,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_download_complete_message",
         "builder_keys": {"user_id", "standard_number", "favorite_id", "local_path", "status"},
-        "mutual": "",
     },
     {
         "name": "favorite_abandoned_summary",
@@ -676,7 +641,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_favorite_abandoned_summary_message",
         "builder_keys": {"total", "reasons", "retryable", "details"},
-        "mutual": "",
     },
     {
         "name": "notification_delivery_failed",
@@ -687,7 +651,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_batch.py",
         "builder_method": "_build_notification_delivery_failed_message",
         "builder_keys": {"channel", "reason", "samples", "failures", "consecutive"},
-        "mutual": "",
     },
     # ── 安全告警（3，第 2 批安全与审计闭环）──
     # 投递由 security_notifier 直连旧渠道同步发送（绕过聚合/静音），
@@ -701,7 +664,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_notification_credential_changed_message",
         "builder_keys": {"services", "changed_keys", "rules_changed", "from_ip"},
-        "mutual": "",
     },
     {
         "name": "security_password_changed",
@@ -712,7 +674,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_password_changed_message",
         "builder_keys": {"user_id", "from_ip", "sessions_revoked"},
-        "mutual": "",
     },
     {
         "name": "security_token_refreshed",
@@ -723,7 +684,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_token_refreshed_message",
         "builder_keys": {"rotated_at", "from_ip", "db_synced"},
-        "mutual": "",
     },
     {
         "name": "security_login_failed",
@@ -734,7 +694,6 @@ EVENTS: list[dict[str, Any]] = [
         "builder_file": "pilotstd/core/notification/_builders_system.py",
         "builder_method": "_build_security_login_failed_message",
         "builder_keys": {"from_ip", "failures", "window_seconds", "username"},
-        "mutual": "",
     },
 ]
 
@@ -765,17 +724,17 @@ class TestNotificationRegistry:
 
     @pytest.fixture(autouse=True)
     def _setup(self):
+        from types import SimpleNamespace
+
         from pilotstd.core.notification.events import ALL_EVENT_KEYS
         from pilotstd.core.notification.manager import NotificationManager
 
         self.all_keys = ALL_EVENT_KEYS
-        # 获取 _EVENT_BUILDERS keys（需要实例化才能访问，用反射获取）
-        import inspect
-
-        src = inspect.getsource(NotificationManager._init_event_builders)
-        self.builder_keys: set[str] = set()
-        for m in re.finditer(r'"([a-z_]+)":\s*_build', src):
-            self.builder_keys.add(m.group(1))
+        # 运行期取 _EVENT_BUILDERS 的键（D4：脱离"源码正则"口径——注册表已由
+        # event_spec 派生，源码里不再有字面量键值对）。该方法是纯赋值，可用哑对象调用。
+        stub = SimpleNamespace()
+        NotificationManager._init_event_builders(stub)
+        self.builder_keys: set[str] = set(stub._EVENT_BUILDERS)
 
     @pytest.mark.parametrize("event", EVENTS, ids=[e["name"] for e in EVENTS])
     def test_registered_in_all_events(self, event):
@@ -900,21 +859,19 @@ class TestMutualExclusion:
 class TestNotificationSmoke:
     """冒烟测试：通过反射验证 32 个事件的构建器方法存在。"""
 
-    def _get_builder_keys_from_source(self):
-        """从 NotificationManager._init_event_builders 源码提取注册的 builder key。"""
-        import inspect
+    def _get_builder_keys_from_runtime(self):
+        """运行期取 _EVENT_BUILDERS 的键（D4：不再用源码正则解析注册表）。"""
+        from types import SimpleNamespace
 
         from pilotstd.core.notification.manager import NotificationManager
 
-        src = inspect.getsource(NotificationManager._init_event_builders)
-        keys: set[str] = set()
-        for m in re.finditer(r'"([a-z_]+)":\s*_build', src):
-            keys.add(m.group(1))
-        return keys
+        stub = SimpleNamespace()
+        NotificationManager._init_event_builders(stub)
+        return set(stub._EVENT_BUILDERS)
 
     def test_all_32_builders_registered(self):
         """验证所有 32 个事件的构建器均已注册。"""
-        builder_keys = self._get_builder_keys_from_source()
+        builder_keys = self._get_builder_keys_from_runtime()
         for event in EVENTS:
             name = event["name"]
             assert name in builder_keys, f"{name} 构建器未在 _EVENT_BUILDERS 注册"
