@@ -93,12 +93,16 @@ class _SendEventHarness(unittest.TestCase):
             mgr.send_event("scan_complete", dict(_PAYLOAD))
 
 
-class TestDefaultIsZeroChange(_SendEventHarness):
-    """判据 1：默认（未设 stage → 1）下，落库值与 1c 时逐列相等。"""
+class TestZeroChangeBaseline(_SendEventHarness):
+    """判据 1：**回滚档**（`NOTIFY_REDESIGN_STAGE=1`）下，落库值与 1c 时逐列相等。
+
+    本批（2b-启用）把默认值提为 2，故"零变化"基线改为**显式** stage=1 断言
+    ——它同时就是"一键回滚"的验证：回滚不需要动代码。
+    """
 
     def test_notification_log_snapshot_unchanged(self):
         mgr, db = self._make()
-        self._send(mgr)  # 不设环境变量
+        self._send(mgr, stage="1")
         cols, row = self._log_insert(db)
         self.assertEqual(cols, _SNAPSHOT_BEFORE_2B)
         # 旧 11 列逐列断言（沿用 1a/1b/1c 判据；标题取自真实 builder 的产出）
@@ -120,10 +124,10 @@ class TestDefaultIsZeroChange(_SendEventHarness):
         self.assertEqual(row["attachments"], "")
         self.assertEqual(row["channel_message_ids"], "")
 
-    def test_mapping_fields_empty_by_default(self):
-        """★ 默认 stage=1 → 三个投影字段必须为空（否则就是行为变更）。"""
+    def test_mapping_fields_empty_under_rollback_stage(self):
+        """★ 回滚档（stage=1）→ 两个投影字段必须为空（即回到改造前语义）。"""
         mgr, db = self._make()
-        self._send(mgr)
+        self._send(mgr, stage="1")
         _cols, row = self._log_insert(db)
         self.assertEqual(row["notify_event"], "")
         self.assertEqual(row["content_type"], "")
@@ -137,7 +141,7 @@ class TestDefaultIsZeroChange(_SendEventHarness):
                 self.assertEqual(row["notify_event"], "")
 
     def test_identity_fields_untouched(self):
-        """`correlation_id` 明确不在本批填充范围（属 2b-启用/2.5）。"""
+        """`correlation_id` / `task_context` 明确不在本阶段填充范围（属 2.5）。"""
         mgr, db = self._make()
         self._send(mgr, stage="2")
         _cols, row = self._log_insert(db)
@@ -200,6 +204,38 @@ class TestStageTwoAppliesProjection(_SendEventHarness):
         _cols, row = self._log_insert(db)
         self.assertEqual(row["notify_event"], "")
         self.assertEqual(row["event_type"], "made_up_event")
+
+
+class TestDefaultStageEnablesMapping(_SendEventHarness):
+    """判据 1b：2b-启用后**默认档**（未设环境变量 → 2）应回填两个字段。
+
+    这是本批的**行为变更点**：默认值由 1 提到 2，故不设环境变量时映射即生效。
+    """
+
+    def test_default_fills_projection_fields(self):
+        mgr, db = self._make()
+        self._send(mgr)  # 不设环境变量 → 默认 2
+        _cols, row = self._log_insert(db)
+        self.assertEqual(row["notify_event"], "task_lifecycle")
+        self.assertEqual(row["content_type"], "list")
+
+    def test_default_still_keeps_legacy_columns(self):
+        """默认档下旧 11 列仍须为既有取值（启用映射不该改动旧列）。"""
+        mgr, db = self._make()
+        self._send(mgr)
+        _cols, row = self._log_insert(db)
+        self.assertEqual(row["event_type"], "scan_complete")
+        self.assertEqual(row["title"], "扫描完成，全部识别成功")
+        self.assertEqual(row["status"], "success")
+        self.assertEqual(row["aggregated_count"], 1)
+
+    def test_rollback_by_env_restores_zero_change(self):
+        """★ 一键回滚验证：设 stage=1 → 投影字段回空（不改一行代码）。"""
+        mgr, db = self._make()
+        self._send(mgr, stage="1")
+        _cols, row = self._log_insert(db)
+        self.assertEqual(row["notify_event"], "")
+        self.assertEqual(row["content_type"], "")
 
 
 class TestProjectionFailureIsSafe(_SendEventHarness):
@@ -282,6 +318,69 @@ class TestWiringBoundaries(unittest.TestCase):
         from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
 
         self.assertNotIn("task_kind", _QUEUE_MESSAGE_FIELDS)
+
+
+class TestTaskKindAntiCorrosion(unittest.TestCase):
+    """`task_kind` 防腐化（2026-10-02 裁决：消费点是阶段 2.5，此前保持"算而不落"）。
+
+    三道防护的**可执行部分**：一旦有人提前把 `task_kind` 落库或加进队列白名单，
+    本类即 FAIL。另两道（`mapping.py` 定义处注明消费时点、`03-实施路径.md` 列入
+    阶段 2.5 必做项）是文档侧防护，由 `test_consume_point_documented_in_sources` 校验存在性。
+    """
+
+    def test_not_persisted_to_notification_log(self):
+        """★ `task_kind` 不得出现在 notification_log 的 INSERT 里。"""
+        from pathlib import Path
+
+        src = Path("pilotstd/core/notification/_manager_ops.py").read_text(encoding="utf-8")
+        insert = src.split("INSERT INTO notification_log", 1)[1].split("VALUES", 1)[0]
+        self.assertNotIn("task_kind", insert, "task_kind 提前落库了（消费点应为阶段 2.5）")
+
+    def test_not_in_queue_whitelist(self):
+        """★ `task_kind` 不得进 `_QUEUE_MESSAGE_FIELDS`（否则静音补发会带上它）。"""
+        from pilotstd.core.notification.manager import _QUEUE_MESSAGE_FIELDS
+
+        self.assertNotIn("task_kind", _QUEUE_MESSAGE_FIELDS)
+
+    def test_not_a_message_field(self):
+        """★ `NotificationMessage` 不得有 `task_kind` 字段。"""
+        from pilotstd.core.notification.channel import NotificationMessage
+
+        self.assertFalse(hasattr(NotificationMessage(title="t"), "task_kind"))
+
+    def test_not_a_table_column(self):
+        """★ `notification_log` 不得有 task_kind 列（经真实迁移链产出的 schema 校验）。
+
+        注：**不写条件 skipTest**——本仓的 `tests/test_skip_census.py` 把全库
+        `self.skipTest` 静态调用数锁为固定基线，新增一处即失败。此处的防御本来也多余
+        （本文件顶层已成功 import 数据库模块）。
+        """
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        from pilotstd.core.db import Database
+
+        d = tempfile.mkdtemp(prefix="tk_anticor_")
+        try:
+            db = Database(str(Path(d) / "p.db"))
+            cols = [r[1] for r in db._get_conn().execute("PRAGMA table_info(notification_log)")]
+            db.close()
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        self.assertNotIn("task_kind", cols)
+
+    def test_consume_point_documented_in_sources(self):
+        """文档侧两道防护：mapping.py 定义处 + 03-实施路径.md 阶段 2.5 必做项。"""
+        from pathlib import Path
+
+        mapping_src = Path("pilotstd/core/notification/mapping.py").read_text(encoding="utf-8")
+        self.assertIn("消费时点", mapping_src)
+        self.assertIn("算而不落", mapping_src)
+
+        plan_src = Path("docs/plans/notification-redesign/03-实施路径.md").read_text(encoding="utf-8")
+        self.assertIn("阶段 2.5 必做项", plan_src)
+        self.assertIn("task_kind", plan_src)
 
 
 if __name__ == "__main__":

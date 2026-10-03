@@ -77,6 +77,13 @@ CONTENT_TYPES: tuple[str, ...] = (
 )
 
 # ── 任务种类（业务域名词，非定时任务名）────────────────────────────────────────
+# **消费时点（2026-10-02 登记）**：`task_kind` 自本模块 2a 起就产出，但**在阶段 2.5 之前
+# 保持"算而不落"**——不回填到 `NotificationMessage`、不落 `notification_log`、
+# 不进 `_QUEUE_MESSAGE_FIELDS`。消费点是**阶段 2.5 的聚合键切换**
+# （`notify_event × correlation_id × target_id`）与阶段 3 的回调。
+# 防腐化由 `tests/test_notification_stage2b_wiring.py::TestTaskKindAntiCorrosion` 锁定：
+# 一旦提前落库/进白名单即 FAIL（见 03-实施路径.md 的"阶段 2.5 必做项"）。
+#
 # 与 `_builders_system.py::_TASK_NAME_KEY_MAP` 的**关系校正**（2026-10-02 实测）：
 # 02-目标架构.md §2.3 原文称"九个值恰好对应现有 9 个定时任务名"，**实测不成立**——
 # 那张表是 9 个**定时任务**名（auto_announce / auto_archive_retry / auto_backup /
