@@ -321,14 +321,14 @@ run_local() {
 run_deep() {
     echo "🔬 Running DEEP checks..."
 
-    # Ruff 全量检查（T-36，2026-10-03：改用 `python -m`，原因见 run_lint_fast）
+    # Ruff 全量检查（工具调用收口，2026-10-03：改用 `python -m`，原因见 run_lint_fast）
     if python -m ruff check pilotstd/ docker/ tests/ scripts/; then
         log_pass "Ruff 全量检查"
     else
         log_fail "Ruff 全量检查"
     fi
 
-    # Mypy 类型检查（T-36：同上）
+    # Mypy 类型检查（工具调用收口：同上）
     if python -m mypy pilotstd/ docker/ --follow-imports=skip --ignore-missing-imports; then
         log_pass "Mypy 类型检查"
     else
@@ -336,7 +336,7 @@ run_deep() {
     fi
 
     # G-020: Vulture 死代码
-    # T-36（2026-10-03）：调用由 PATH 上的 `vulture` 改为 `python -m vulture`（与 ruff/mypy 同批）。
+    # 工具调用收口（2026-10-03）：调用由 PATH 上的 `vulture` 改为 `python -m vulture`（与 ruff/mypy 同批）。
     # 起因：本机 vulture 已安装（`python -m vulture --version` = 2.16）但可执行文件不在 PATH，
     # 裸命令报 `vulture: command not found` → G-020 误报 FAIL、`--deep` 整体红灯。勿改回裸命令。
     # T-34（2026-10-01 第十三轮 R13-2）：口径与 CI 对齐——原为 `vulture pilotstd/ --min-confidence 80`，
@@ -371,7 +371,7 @@ run_deep() {
 # L2：`--with-lint` 显式强制增跑（不依赖暂存区），供不提交时自查。
 # 目标与参数与 G-038 完全一致（ruff 4 目录；mypy 仅 pilotstd/ docker/）；
 # 工具缺失时**降级为 WARN 不阻断**（各机 PATH 不一致，与 G-038 不进 --fast 的既有理由一致）。
-# T-36（2026-10-03）：探测与调用由 PATH 上的 `ruff`/`mypy` 可执行文件改为 `python -m ruff` /
+# 工具调用收口（2026-10-03）：探测与调用由 PATH 上的 `ruff`/`mypy` 可执行文件改为 `python -m ruff` /
 #     `python -m mypy`。起因：本机两者**已安装**（模块可导入）但可执行文件不在 PATH，
 #     `command -v` 遂判定「未安装」→ 降级 WARN 跳过，**所有改 .py 的提交都漏检 lint**
 #     （C1 批次实测抓到 1 个真实 F401）。勿改回裸命令：那会让本项再次静默跳过。

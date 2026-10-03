@@ -22,7 +22,7 @@ mock_rmdir  # unused variable (tests/test_docker_api.py:144)
 mock_start  # unused variable (tests/test_docker_scheduler.py:81)
 
 # ── 覆写 `datetime.now` 的签名参数（必须保留：改名或删除都会破坏签名兼容） ──
-# 起因（2026-10-03 T-36 收口）：修好 Vulture 的 PATH 调用后，G-020 首次真正执行并报出
+# 起因（2026-10-03 工具调用收口）：修好 Vulture 的 PATH 调用后，G-020 首次真正执行并报出
 # 这两处 `unused variable 'tz' (100% confidence)`。`tz` **不是**死代码：它是在测试中
 # 覆写 `datetime.now(cls, tz=None)` 时必须存在的形参——调用方可能以关键字参数传入
 # （`now(tz=...)`），改名会挂、删除则签名不匹配。作者已用 ruff 行内抑制 `ARG003`，
