@@ -87,9 +87,10 @@ class TestQuietHours(unittest.TestCase):
         msg.level = "info"
         msg.link = None
         msg.icon = None
-        # 阶段 1a/1b：_enqueue_notification 会把通知身份与任务视角字段也写入 JSON，
-        # 故 MagicMock 的 msg 必须给出这些属性——否则 json.dumps 遇到 Mock 会抛
-        # TypeError（含 task_context：它经 _json_codec.dumps 序列化，必须是真 dict）。
+        # 阶段 1a/1b/1c：_enqueue_notification 会把通知身份、任务视角与交互字段
+        # 一并写入 JSON，故 MagicMock 的 msg 必须给出这些属性——否则 json.dumps 遇到
+        # Mock 会抛 TypeError（含 task_context / channel_message_ids 这类必须为真容器的字段；
+        # actions / attachments 需为真列表，否则 specs_to_jsonable 会把元素丢弃后得到空槽）。
         # 真实 NotificationMessage 有默认值，这里是**测试替身**需要补齐。
         msg.message_id = ""
         msg.correlation_id = ""
@@ -99,6 +100,10 @@ class TestQuietHours(unittest.TestCase):
         msg.notify_event = ""
         msg.content_type = ""
         msg.task_context = {}
+        msg.actions = []
+        msg.callback_data = ""
+        msg.attachments = []
+        msg.channel_message_ids = {}
         mgr._enqueue_notification(msg, ["wechat"])
         # 验证 db.execute 被调用且 SQL 含 INSERT INTO notification_queue
         calls = [str(c) for c in mock_db.execute.call_args_list]
