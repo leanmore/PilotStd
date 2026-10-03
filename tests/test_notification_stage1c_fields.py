@@ -23,9 +23,11 @@ import os
 import sys
 import unittest
 from dataclasses import FrozenInstanceError
+from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from pilotstd.core.notification import _json_codec  # noqa: E402
 from pilotstd.core.notification.channel import (  # noqa: E402
     NotificationMessage,
 )
@@ -250,6 +252,68 @@ class TestMigrationV64(unittest.TestCase):
 
         self.assertGreaterEqual(CURRENT_SCHEMA_VERSION, 64)
         self.assertIn(64, MIGRATIONS)
+
+
+class TestAggregatorCarriesInteraction(unittest.TestCase):
+    """聚合：actions/attachments 深拷贝取首条；channel_message_ids/callback_data 重置。"""
+
+    def _aggregate(self, msgs):
+        from pilotstd.core.notification.aggregate_buffer import NotificationAggregator
+
+        sent: list[NotificationMessage] = []
+        agg = NotificationAggregator(lambda m, _ch: sent.append(m), window_seconds=60, batch_size=50)
+        for m in msgs:
+            agg.enqueue(m, ["wechat"], target_id=m.target_id)
+        agg.flush(msgs[0].event_type, msgs[0].target_id)
+        return sent
+
+    def _msgs(self):
+        return [
+            NotificationMessage(
+                title="扫描完成",
+                event_type="scan_complete",
+                target_id="std-1",
+                actions=[_action("retry")],
+                attachments=[AttachmentSpec(kind="image", url=f"/{i}.png")],
+                callback_data=f"v1|m{i}|retry|1",
+                channel_message_ids={"telegram": f"mid-{i}"},
+            )
+            for i in (1, 2)
+        ]
+
+    def test_actions_attachments_taken_from_first(self):
+        merged = self._aggregate(self._msgs())[0]
+        self.assertEqual([a.action for a in merged.actions], ["retry"])
+        self.assertEqual(len(merged.attachments), 1)
+        self.assertEqual(merged.attachments[0].url, "/1.png", "应取首条")
+
+    def test_delivery_scoped_fields_reset(self):
+        """★ 重造的消息尚未投递：无渠道消息 ID、无回调载荷。"""
+        merged = self._aggregate(self._msgs())[0]
+        self.assertEqual(merged.channel_message_ids, {}, "channel_message_ids 必须重置")
+        self.assertEqual(merged.callback_data, "", "callback_data 必须重置")
+
+    def test_actions_deep_copied(self):
+        """★ 深拷贝：改原消息的 args 不得污染合并消息（浅拷贝会漏）。"""
+        msgs = self._msgs()
+        merged = self._aggregate(msgs)[0]
+        self.assertIsNot(merged.actions[0], msgs[0].actions[0])
+        self.assertIsNot(merged.actions[0].args, msgs[0].actions[0].args)
+        msgs[0].actions[0].args["record_id"] = "changed"
+        self.assertEqual(merged.actions[0].args["record_id"], 7)
+        msgs[0].attachments.append(AttachmentSpec(kind="file", url="/late.pdf"))
+        self.assertEqual(len(merged.attachments), 1)
+
+    def test_empty_interaction_is_safe(self):
+        msgs = [
+            NotificationMessage(title="T", event_type="scan_empty", target_id="s", body=f"b{i}")
+            for i in range(2)
+        ]
+        merged = self._aggregate(msgs)[0]
+        self.assertEqual(merged.actions, [])
+        self.assertEqual(merged.attachments, [])
+        self.assertEqual(merged.callback_data, "")
+        self.assertEqual(merged.channel_message_ids, {})
 
 
 if __name__ == "__main__":

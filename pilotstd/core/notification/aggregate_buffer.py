@@ -29,6 +29,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable
+from copy import deepcopy
 
 from pilotstd.i18n import t
 
@@ -426,6 +427,19 @@ class NotificationAggregator:
             # 那是一套无实际收益的复杂度；若组内上下文确实不同，那说明分组键选错了。
             # 用 dict(...) 浅拷贝：first_msg 可能在窗口期内被调用方继续复用/修改。
             task_context=dict(first_msg.task_context),
+            # 阶段 1c：交互能力。
+            # actions / attachments 取**首条深拷贝**——聚合后是摘要，用户点进原消息再操作；
+            # 多条各带 retry 会变成混乱的多按钮组。深拷贝（而非浅拷贝）的理由：
+            # 元素是 ActionSpec/AttachmentSpec，其 args 是可变 dict，浅拷贝仍会共享它
+            # ——后续修改原消息的 args 会污染合并消息。
+            actions=deepcopy(first_msg.actions),
+            attachments=deepcopy(first_msg.attachments),
+            # channel_message_ids / callback_data **重置**：与 1a 的
+            # delivery_status/ack_status 同理——这条是新消息、尚未投递，
+            # 既没有渠道消息 ID，也没有可用的回调载荷；沿用会让阶段 3 对着
+            # 一个不属于本消息的 ID 去编辑消息。
+            callback_data="",
+            channel_message_ids={},
         )
         self._callback(merged, target_channels)
 
